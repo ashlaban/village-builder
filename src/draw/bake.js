@@ -1,8 +1,9 @@
-// @sys gen/bake: rasterizing the map into levels of detail, including land, water and decorations
-VB['gen/bake'] = (() => {
+// @sys draw/bake: rasterizing the map into levels of detail, including land, water and decorations
+VB['draw/bake'] = (() => {
   const { mulberry32 } = VB['gen/noise'];
-  const { B, BIOMES } = VB['gen/biomes'];
-  const SQ3 = Math.sqrt(3);
+  const { PIGMENTS, SEA, LAKE } = VB['draw/pigments'],
+    { B, treeStage } = VB['world/biomes'],
+    { hexLocator, csample } = VB['world/grid'];
 
   // Level-of-detail pyramid: every chunk is TEX x TEX texels; each level up covers 3x3 chunks of the one below.
   const TEX = 512;
@@ -12,53 +13,21 @@ VB['gen/bake'] = (() => {
     { size: 4608, scale: 1 / 9 },
   ];
 
-  function hexLocator(w) {
-    const { R, COLS, ROWS, HW, AP } = w;
-    return function (px, py, out) {
-      const x = px - AP,
-        y = py - R;
-      const qf = ((SQ3 / 3) * x - y / 3) / R,
-        rf = ((2 / 3) * y) / R,
-        sf = -qf - rf;
-      let q = Math.round(qf),
-        r = Math.round(rf),
-        s = Math.round(sf);
-      const dq = Math.abs(q - qf),
-        dr = Math.abs(r - rf),
-        ds = Math.abs(s - sf);
-      if (dq > dr && dq > ds) q = -r - s;
-      else if (dr > ds) r = -q - s;
-      const row = r,
-        col = q + ((r - (r & 1)) >> 1);
-      if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return -1;
-      out[0] = px - (HW * (col + 0.5 * (row & 1)) + AP);
-      out[1] = py - (1.5 * R * row + R);
-      return row * COLS + col;
-    };
-  }
-
   // Low-resolution water colour layer, one texel per coarse cell: a painted sea, in flat bands of blue-grey that darken away from the
   // land, each blended into the next over a narrow edge; a lake is one flat colour.
-  const SEA = [
-      [158, 190, 178],
-      [118, 160, 162],
-      [88, 132, 146],
-      [68, 108, 130],
-      [56, 90, 116],
-    ],
-    LAKE = [126, 164, 164];
-  function bakeWater(w, ctx) {
+  // P: the world's paint (draw/paint).
+  function bakeWater(w, P, ctx) {
     const { CW, CH, elev, KS } = w;
     const img = ctx.createImageData(CW, CH),
       D = img.data;
     for (let cy = 0; cy < CH; cy++)
       for (let cx = 0; cx < CW; cx++) {
         const k = cy * CW + cx,
-          i = w.chex[k];
+          i = P.chex[k];
         let c = LAKE;
         if (!(i >= 0 && w.biome[i] === B.LAKE)) {
           const depth =
-            0.85 * (1 - Math.exp(-w.cdist[k] / ((120 + w.macro[k] * 70) * KS))) +
+            0.85 * (1 - Math.exp(-P.cdist[k] / ((120 + w.macro[k] * 70) * KS))) +
             0.15 * Math.min(1, Math.max(0, -elev[k]) * 1.5);
           const u = Math.max(0, Math.min(0.9999, depth)) * (SEA.length - 1),
             n = Math.floor(u + 0.5),
@@ -76,11 +45,12 @@ VB['gen/bake'] = (() => {
     ctx.putImageData(img, 0, 0);
   }
 
-  // One chunk of the land layer at level l (0 = full detail). Transparent over open water.
+  // One chunk of the land layer at level l (0 = full detail), in the world's paint P. Transparent over open water.
   // Generator: yields every 16 texel rows so the caller can spread work across frames.
   const INK = [44, 32, 28]; // the contour's colour (page/farmart's MP.line)
-  function* bakeChunk(w, l, cx, cy, img) {
-    const { W, H, AP, biome, hrnd, nb, water, ocean, landDist, tile, shade, csample, tr, tg, tb } = w;
+  function* bakeChunk(w, P, l, cx, cy, img) {
+    const { W, H, AP, biome, nb, water, ocean, landDist } = w,
+      { tile, shade, tr, tg, tb } = P;
     const lv = LV[l],
       inv = 1 / lv.scale,
       x0 = cx * lv.size,
@@ -173,8 +143,8 @@ VB['gen/bake'] = (() => {
           let f = 1 + (tn(x * 0.045 + 7, y * 0.045 + 3) - 0.5) * 0.07;
           if (!far) f += (tn(x * 0.8, y * 0.8) - 0.5) * 0.035;
           else if (bt === B.FOREST || bt === B.PINE) f *= tn(x * 0.12, y * 0.12) > 0.5 ? 1.04 : 0.9; // far view: canopy stands in for the trees
-          const sh = csample(shade, x, y) - 1;
-          f *= 1 + (sh < -0.45 ? -0.45 : sh > 0.32 ? 0.32 : sh) * BIOMES[bt].shade;
+          const sh = csample(w, shade, x, y) - 1;
+          f *= 1 + (sh < -0.45 ? -0.45 : sh > 0.32 ? 0.32 : sh) * PIGMENTS[bt].shade;
           const aa = Math.abs(pa),
             ab = Math.abs(pb),
             ac = Math.abs(pc);
@@ -204,13 +174,6 @@ VB['gen/bake'] = (() => {
         }
       if ((ty & 15) === 15) yield ty / TEX;
     }
-  }
-
-  // Density stage of a tile's trees: 4 (more than 75% of max left) down to 1 (25% or less), 0 when none are left.
-  function treeStage(w, i) {
-    const t = w.trees[i],
-      m = w.treesMax[i];
-    return t <= 0 || m === 0 ? 0 : t > 0.75 * m ? 4 : t > 0.5 * m ? 3 : t > 0.25 * m ? 2 : 1;
   }
 
   // Decorations for one chunk. Items come from every tile near the chunk, so objects that straddle
@@ -317,11 +280,11 @@ VB['gen/bake'] = (() => {
           }
         }
       }
-    VB['gen/paths'].thin(w, VB['gen/rivers'].thin(w, items, hexLocator(w)), hexLocator(w)).sort((a, b) => a.y - b.y); // none on rivers or paths
+    VB['draw/paths'].thin(w, VB['draw/rivers'].thin(w, items, hexLocator(w)), hexLocator(w)).sort((a, b) => a.y - b.y); // none on rivers or paths
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
-    VB['gen/marks'].draw(ctx, items, S, R, full, mulberry32);
+    VB['draw/marks'].draw(ctx, items, S, R, full, mulberry32);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
-  return { bakeWater, bakeChunk, decorateChunk, hexLocator, treeStage, LV, TEX };
+  return { bakeWater, bakeChunk, decorateChunk, LV, TEX };
 })();

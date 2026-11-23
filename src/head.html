@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="glass">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -8,7 +8,58 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@1,500;1,700&family=Alegreya+Sans:wght@400;500;700&family=Grenze+Gotisch:wght@700&display=swap" rel="stylesheet">
 <style>
-:root {
+/* The theme tokens (VB-1530): a theme is mostly a set of their values, and every theme sets every one: Glass light just below,
+   Glass dark where it differs, under prefers-color-scheme, Mural with its pieces at the end of the sheet. One token a line, by group.
+   colour
+   --sea: the sea behind the map and the loader
+   --panel: a panel's colour, and what lies on it as its ground
+   --ink: words and lines
+   --muted: words that matter less
+   --edge: a hairline, a faint line between rows
+   --accent: what is chosen or pressed, links
+   --on-accent: words on the accent
+   --node: a ground lighter than the panel: fields, cards, a tree's person
+   --good: a gain, a level that is well
+   --bad: a loss, a shortfall, an error
+   --gold: heirs, the scenario's suggestion, a short larder
+   --plate: the ground behind a portrait
+   radius, a scale (VB-1535): every corner takes a step, or is round (999px for a pill, 50% for a circle: a button, an icon button,
+   a portrait, a tag of words), the same in every theme
+   --r-0: the least: a meter, its fill, a supply's cell
+   --r-1: small: a row, a field, a card or a box of words inside a panel, a name's tag
+   --r-2: large: a panel, and what floats over the map: a toast, a banner, a popup, the minimap
+   type (a head is italic; a theme whose head face is upright says so in its head's rule, as Mural)
+   --body: the body's face, of everything not named below
+   --head: a head: the title of a screen, a card or a menu
+   --head-ink: a head's colour
+   --scroll: the face of a name, a title in a list, a word on a tag
+   shadow, a scale (VB-1535)
+   --shadow-0: resting: a thing standing on the map, a pin
+   --shadow-1: raised: a panel
+   --shadow-2: floating: a round button over the map, a popup over everything, the start's view
+   panel
+   --panel-ground: a panel's background
+   --panel-border: a panel's border; a wide transparent one is the room for a ground drawn into it
+   --panel-backdrop: what a panel does to the map behind it
+   button (pressed or primary, a button takes --accent and --on-accent)
+   --btn-ground: a button's background
+   --btn-border: a button's border
+   --btn-on-edge: a pressed or primary button's border colour
+   The pieces (VB-1534): what every component is built of. A theme styles each piece once: by its tokens, and where a token cannot
+   say it, by a rule in the theme's own section that names the piece (Mural's at the end of the sheet). A component composes pieces
+   and carries its layout. One piece a line, its class (or element) first.
+   .panel: a surface standing over the map: a card, a sheet, a bar, a menu, a screen's sheet
+   .head: a head: the title of a screen, a card, a sheet or a menu
+   button: a button; pressed ([aria-pressed="true"]), a popup's opener while open ([aria-haspopup][aria-expanded="true"]) and
+     .primary all take the pressed look, by one rule
+   .icon-btn: a button that is an icon only; .icon-btn.labelled, a labelled icon button, its icon and its name (a .label) beside or
+     under it as the component lays them out: a theme styles the icon and the label inside the piece (VB-1536)
+   .row: a row of a list; pressed, the accent ring
+   .card: one of a choice of cards (a scenario, a story, a person, a voice); chosen, the accent ring, as a row
+   .meter: a level on its scale (page/meter)
+   counted: .mark-key .navigation .map-bar .act-bar (a theme's rule for one component; each reason beside Mural's rule)
+*/
+[data-theme="glass"] {
   --sea: #16395f;
   --panel: rgba(238, 245, 242, 0.88);
   --ink: #17313a;
@@ -19,17 +70,33 @@
   --node: #fbfdfc;
   --good: #2f7a4b;
   --bad: #a8432f;
-  --gold: #b3862c; /* heirs, the scenario's suggestion, a short larder */
-  --r-panel: 16px; /* panels and cards */
-  --r-small: 12px; /* small floating pieces: toasts, banners, popups, the minimap */
-  --r-field: 10px; /* inputs and selects */
+  --gold: #b3862c;
+  --plate: var(--node);
+  --r-0: 4px;
+  --r-1: 8px;
+  --r-2: 16px;
+  --body: 'Alegreya Sans', 'Gill Sans', 'Trebuchet MS', system-ui, sans-serif;
+  --head: 'Alegreya', Georgia, serif;
+  --head-ink: currentColor;
+  --scroll: 'Alegreya', Georgia, serif;
+  --panel-ground: var(--panel);
+  --panel-border: 1px solid var(--edge);
+  --panel-backdrop: blur(10px);
+  --btn-ground: transparent;
+  --btn-border: 1px solid var(--edge);
+  --btn-on-edge: transparent;
+  --shadow-0: 0 2px 6px rgba(3, 16, 26, 0.4);
+  --shadow-1: 0 10px 30px rgba(3, 16, 26, 0.28);
+  --shadow-2: 0 10px 30px rgba(3, 16, 26, 0.28);
+}
+:root {
   color-scheme: light;
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  [data-theme="glass"] {
     --panel: rgba(11, 27, 34, 0.86);
     --ink: #e1ebe7;
     --muted: #93adae;
@@ -47,8 +114,8 @@
 html { height: 100%; background: var(--sea); scroll-padding-top: env(safe-area-inset-top, 0px); }
 body {
   margin: 0; height: 100%; overflow: hidden; background: var(--sea); color: var(--ink);
-  font-family: 'Alegreya Sans', 'Gill Sans', 'Trebuchet MS', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  font-family: var(--body);
+  -webkit-font-smoothing: antialiased; accent-color: var(--accent);
 }
 #stage { position: fixed; inset: 0; touch-action: none; cursor: grab; }
 #stage.dragging { cursor: grabbing; }
@@ -59,13 +126,13 @@ body {
 .hud.top { top: 0; flex-wrap: wrap; justify-content: flex-end; align-items: flex-start; padding-top: calc(env(safe-area-inset-top, 0px) + 14px); }
 .hud.bottom { bottom: 0; align-items: flex-end; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
 .panel {
-  background: var(--panel); color: var(--ink); border: 1px solid var(--edge);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28);
+  background: var(--panel-ground); color: var(--ink); border: var(--panel-border);
+  -webkit-backdrop-filter: var(--panel-backdrop); backdrop-filter: var(--panel-backdrop); box-shadow: var(--shadow-1);
+  background-origin: border-box;
 }
 .lod { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 60px); font-size: 13px; color: rgba(235, 244, 241, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
-.clock { border-radius: var(--r-panel); padding: 8px 10px 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; max-width: 700px; } /* one row with Skip and Main menu (VB-338) */
-.clock strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.1; }
+.clock { border-radius: var(--r-2); padding: 8px 10px 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; max-width: 700px; } /* one row with Skip and Main menu (VB-338) */
+.clock strong { display: block; font-size: 19px; }
 .clock span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .speed { display: flex; flex-wrap: wrap; gap: 4px; }
 /* The top bar's controls are icons (VB-338): pause, the speeds as one to five arrows, and at its end the eye that hides the interface. */
@@ -73,9 +140,8 @@ body {
 .ico { display: block; flex: none; }
 .ui-toggle, .ui-toggle[aria-pressed] { color: var(--ink); }
 #skipBtn { padding: 5px 10px; font-size: 14px; }
-#skipBtn[aria-pressed="true"], .speed button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
-.settlers h2 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.2; margin: 12px 0 2px; }
-.settlers h2 span { font-family: 'Alegreya Sans', system-ui, sans-serif; font-style: normal; font-weight: 400; font-size: 14px; color: var(--muted); }
+.settlers h2 { font-family: var(--scroll); font-style: italic; font-weight: 700; font-size: 19px; line-height: 1.2; margin: 12px 0 2px; }
+.settlers h2 span { font-family: var(--body); font-style: normal; font-weight: 400; font-size: 14px; color: var(--muted); }
 .settlers p { margin: 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
 .settlers ul { list-style: none; margin: 4px 0 0; padding: 0; }
 .settlers li { font-size: 14px; line-height: 1.55; color: var(--muted); }
@@ -84,24 +150,24 @@ body {
 .settlers .jobs { color: var(--ink); opacity: 0.85; }
 .settlers .doing { font-size: 13px; font-style: italic; }
 .tree { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(6, 18, 26, 0.55); padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px); }
-.tree-card { width: min(1120px, 100%); height: min(720px, 100%); max-height: 100%; display: flex; flex-direction: column; border-radius: var(--r-panel); overflow: hidden; }
+.tree-card { width: min(1120px, 100%); height: min(720px, 100%); max-height: 100%; display: flex; flex-direction: column; border-radius: var(--r-2); overflow: hidden; }
 .tree-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 14px 18px; border-bottom: 1px solid var(--edge); }
-.tree-head h2 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 22px; line-height: 1.1; margin: 0; }
+.tree-head h2 { font-size: 22px; margin: 0; }
 .tree-head p { margin: 0; color: var(--muted); font-size: 14px; flex: 1; min-width: 12ch; }
 .tree-modes { margin: 0; padding: 0 18px; }
 .tree-caption { margin: 0; padding: 8px 18px; border-bottom: 1px solid var(--edge); font-size: 15px; line-height: 1.4; }
 .tree-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; min-height: 0; flex: 1; }
 .tree-scroll { overflow: auto; padding: 10px; min-height: 220px; }
 .tree-info { border-left: 1px solid var(--edge); padding: 14px 18px 18px; overflow: auto; }
-.tree-info h3 { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 22px; margin: 0 0 6px; }
+.tree-info h3 { font-size: 22px; margin: 0 0 6px; }
 .tree-info p { margin: 0 0 6px; font-size: 15px; line-height: 1.45; }
 .tree-info .hint { color: var(--muted); }
 .tree-info dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 12px 0 16px; font-size: 15px; line-height: 1.4; }
 .tree-info dt { color: var(--muted); }
 .tree-info dd { margin: 0; }
 .tree-info dd button { border: 0; padding: 0; background: none; font-size: 15px; color: var(--ink); text-decoration: underline; text-decoration-color: var(--edge); text-underline-offset: 3px; border-radius: 3px; }
-#treeSvg text.n { font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 15px; fill: var(--ink); }
-#treeSvg text.s { font-family: 'Alegreya Sans', system-ui, sans-serif; font-size: 12.5px; fill: var(--muted); }
+#treeSvg text.n { font-family: var(--scroll); font-style: italic; font-weight: 700; font-size: 15px; fill: var(--ink); }
+#treeSvg text.s { font-family: var(--body); font-size: 12.5px; fill: var(--muted); }
 #treeSvg .tn { cursor: pointer; }
 #treeSvg .tn rect { fill: var(--node); stroke: var(--edge); stroke-width: 1; }
 #treeSvg .tn.sel rect { stroke: var(--accent); stroke-width: 2.5; }
@@ -127,18 +193,26 @@ body {
 .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 3px 0 6px; vertical-align: -1px; }
 .mall { color: var(--muted); letter-spacing: 1px; font-size: 11px; }
 .dbg-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
-.dbg-row button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
-.drawer select { font: inherit; font-size: 14px; padding: 6px 8px; border-radius: var(--r-field); border: 1px solid var(--edge); background: var(--node); color: var(--ink); max-width: 100%; }
+.drawer select { font: inherit; font-size: 14px; padding: 6px 8px; border-radius: var(--r-1); border: 1px solid var(--edge); background: var(--node); color: var(--ink); max-width: 100%; }
 .dchk { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 8px 0; }
 button {
   font: inherit; font-size: 15px; font-weight: 500; line-height: 1.2; color: var(--ink);
-  background: transparent; border: 1px solid var(--edge); border-radius: 999px; padding: 7px 14px; cursor: pointer;
+  background: var(--btn-ground); border: var(--btn-border); border-radius: 999px; padding: 7px 14px; cursor: pointer;
 }
-button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 button[aria-pressed="false"] { color: var(--muted); }
 button:disabled { opacity: 0.55; cursor: progress; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.tile strong { display: block; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-weight: 700; font-size: 21px; line-height: 1.1; }
+/* the pieces' base rules (VB-1534): the head; the one pressed look of a button (the stencils' gaps take its ground); an icon button
+   and its medallion's rings; a row or a card chosen. The panel, the button, the row and the meter keep their places in the sheet. */
+.head { font-family: var(--head); font-style: italic; font-weight: 700; line-height: 1.1; color: var(--head-ink); }
+button:not(.row, .card):is([aria-pressed="true"], [aria-haspopup][aria-expanded="true"], .primary) {
+  background: var(--accent); color: var(--on-accent); border-color: var(--btn-on-edge); --ico-bg: var(--accent); }
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; }
+.icon-btn:where(:not(.labelled)) { width: 36px; padding: 0 !important; }
+.icon-btn.labelled { gap: 7px; }
+:is(.row, .card)[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.tile strong { display: block; font-size: 21px; line-height: 1.1; }
+.tile strong:not(.head) { font-family: var(--scroll); font-style: italic; font-weight: 700; }
 .tile span { display: block; color: var(--muted); font-size: 15px; line-height: 1.4; margin-top: 2px; }
 .tile .rel { margin-top: 7px; padding-top: 5px; border-top: 1px solid var(--edge); }
 .tile .rel h3 { margin: 0 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
@@ -150,7 +224,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tile .rel button + h3 { margin-top: 8px; }
 .tile .rel .pos { color: var(--good); }
 .tile .rel .neg { color: var(--bad); }
-.minimap { position: relative; width: 258px; border-radius: var(--r-small); overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
+.minimap { position: relative; width: 258px; border-radius: var(--r-2); overflow: hidden; cursor: crosshair; touch-action: none; padding: 0; }
 .minimap canvas { display: block; width: 100%; height: auto; }
 .minimap #mmView { position: absolute; inset: 0; height: 100%; }
 /* The menu screens (the main menu, New archipelago, Saves) are one family: the same card, title and head row (VB-307). */
@@ -174,22 +248,22 @@ body:has(.genscreen:not([hidden])) .editor { visibility: hidden; pointer-events:
 .game-info { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
   width: min(360px, calc(50% - 210px)); color: #f2f8f6; text-shadow: 0 1px 3px #102b3b; }
 .game-info p { margin: 0 0 4px; }
-.game-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: italic 700 32px/1.1 'Alegreya', Georgia, serif;
+.game-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 32px; color: inherit;
   text-shadow: 0 1px 4px #102b3b; }
 .game-info .meta { font-size: 15px; }
 @media (max-width: 760px) {
   #landing:has(.game-info:not([hidden])) { grid-template-rows: auto 1fr; }
   .game-info { position: static; width: auto; justify-self: stretch; }
 }
-.genscreen > .panel, .saves-screen > .panel { display: grid; gap: 14px; width: min(360px, 100%); padding: 20px 22px; border-radius: var(--r-panel); }
-.genscreen h1, .saves-screen h1 { margin: 0; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1.1; }
+.genscreen > .panel, .saves-screen > .panel { display: grid; gap: 14px; width: min(360px, 100%); padding: 20px 22px; border-radius: var(--r-2); }
+.genscreen h1, .saves-screen h1 { margin: 0; font-size: 30px; }
 .screen-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .screen-head button { flex: none; min-height: 0; padding: 5px 14px; font-size: 14px; }
 .screen-head .stepno { margin-left: auto; }
 .genscreen label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
-.genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: var(--r-field); border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
+.genscreen input, .genscreen select { font: inherit; padding: 7px 10px; border-radius: var(--r-1); border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
 .genscreen .err { margin: 0; color: var(--bad); font-size: 14px !important; }
-.landing button small { display: block; color: var(--muted); font-size: 13px; }
+.landing button small { display: block; color: var(--muted); font: 400 13px/1.2 var(--body); }
 .landing button.primary small { color: inherit; opacity: 0.85; }
 .genscreen .gen-docs { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
 .genscreen .gen-docs a { color: var(--accent); }
@@ -213,10 +287,11 @@ body:has(#savesScreen:not([hidden])) #landing > .panel, body:has(#optionsScreen:
 .save-arch h3 { margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; }
 .loader { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: var(--sea); color: #e3eeea; transition: opacity 0.7s; }
 .loader.done { opacity: 0; pointer-events: none; }
-.loader p { margin: 0; text-align: center; font-family: 'Alegreya', Georgia, serif; font-style: italic; font-size: 22px; }
-.loader .bar { width: min(280px, 70vw); height: 3px; margin-top: 14px; border-radius: 3px; overflow: hidden; background: rgba(255, 255, 255, 0.16); }
+.loader p { margin: 0; text-align: center; font-size: 22px; color: inherit; }
+.loader .bar { width: min(280px, 70vw); height: 3px; margin-top: 14px; border-radius: 3px; overflow: hidden; }
+.loader .bar { background: rgba(255, 255, 255, 0.16); }
 .loader .bar i { display: block; height: 100%; width: 0; background: #9fd6c6; }
-.err { max-width: 34ch; font-family: 'Alegreya Sans', system-ui, sans-serif !important; font-style: normal !important; font-size: 16px !important; line-height: 1.4; }
+.err { max-width: 34ch; font-family: var(--body) !important; font-style: normal !important; font-size: 16px !important; line-height: 1.4; }
 @media (prefers-reduced-motion: reduce) { .loader, .tile { transition: none; } }
 
 /* The map stays central; panels share a predictable header and scroll area. */
@@ -231,20 +306,19 @@ input, select { font: inherit; color: var(--ink); }
 .menu-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 14px 0 6px; }
 .dchk input { width: 20px; height: 20px; flex-shrink: 0; }
 .navigation { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: var(--dock-bottom); display: flex; gap: 4px;
-  padding: 5px; border-radius: var(--r-panel); }
+  padding: 5px; border-radius: var(--r-2); }
 /* The dock is icons, each with its name under it (VB-338). */
 .navigation button { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 76px;
-  padding: 4px 10px; border: 0; border-radius: 12px; font-size: 12px; line-height: 1.2; }
+  padding: 4px 10px; border: 0; font-size: 12px; line-height: 1.2; }
 .navigation button:not([aria-pressed="true"]) { color: var(--muted); }
-.navigation button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-.sheet { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: var(--r-panel); }
+.sheet { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: var(--r-2); }
 .people-sheet, .drawer, .tile { position: fixed; z-index: 6; bottom: calc(var(--dock-bottom) + 68px); top: auto;
   max-height: min(65vh, calc(100dvh - 180px)); width: min(430px, calc(100vw - 28px)); }
 /* The dock's panels rise from it, centred over it (VB-338); the selection card, opened from the map, keeps the bottom left. */
 .people-sheet, .drawer { left: max(14px, calc(50% - 215px)); right: auto; }
 .tile { left: max(14px, env(safe-area-inset-left, 0px)); }
 .sheet-head { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--edge); flex-shrink: 0; }
-.sheet-head h2, .sheet-head strong { flex: 1; min-width: 0; margin: 0; font: italic 700 22px/1.1 'Alegreya', Georgia, serif;
+.sheet-head h2, .sheet-head strong { flex: 1; min-width: 0; margin: 0; font-size: 22px;
   overflow-wrap: anywhere; }
 .sheet-head button { padding: 6px 10px; flex-shrink: 0; }
 .sheet-head .sheet-expand { font-size: 13px; color: var(--muted); }
@@ -258,15 +332,15 @@ input, select { font: inherit; color: var(--ink); }
 .collapsed .sheet-content { display: none; }
 .collapsed .sheet-head { border-bottom: 0; }
 .search-label { display: block; color: var(--muted); font-size: 14px; margin-bottom: 6px; }
-#peopleSearch { width: 100%; border: 1px solid var(--edge); border-radius: var(--r-field); background: var(--node); padding: 10px 12px; font-size: 16px; }
+#peopleSearch { width: 100%; border: 1px solid var(--edge); border-radius: var(--r-1); background: var(--node); padding: 10px 12px; font-size: 16px; }
 #peopleCount { margin: 8px 0; }
 .village-block, .fold-section { border-top: 1px solid var(--edge); }
 .village-block > summary { position: relative; padding-right: 48px; }
-.sum-go { position: absolute; right: 8px; top: 8px; width: 34px; height: 34px; padding: 5px; border-radius: 8px; }
+.sum-go { position: absolute; right: 8px; top: 8px; width: 34px; height: 34px; padding: 5px; border-radius: var(--r-1); }
 .sum-go svg { width: 100%; height: 100%; }
 .sum-go.in-flow { position: static; }
-.village-block > summary { font: italic 700 22px/1.3 'Alegreya', Georgia, serif; }
-.summary-meta { display: block; margin: 2px 0 0 18px; font: 400 14px/1.4 'Alegreya Sans', sans-serif; color: var(--muted); }
+.village-block > summary { font: italic 700 22px/1.3 var(--scroll); }
+.summary-meta { display: block; margin: 2px 0 0 18px; font: 400 14px/1.4 var(--body); color: var(--muted); }
 .settlers li { padding: 5px 0; border-bottom: 1px solid var(--edge); }
 .settlers li button { min-height: 44px; padding: 8px 0; text-align: left; }
 .settlers .farm h2 { margin-top: 4px; }
@@ -283,17 +357,28 @@ input, select { font: inherit; color: var(--ink); }
    toggle; shut, the minimap and the rest of the bar are put away and the toggle alone stays. */
 .map-tools { position: fixed; z-index: 5; right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom);
   display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-.map-bar { display: flex; gap: 2px; padding: 4px; border-radius: var(--r-panel); }
+.map-bar { display: flex; gap: 2px; padding: 4px; border-radius: var(--r-2); }
 .map-bar .icon-btn { width: 40px; height: 40px; min-height: 0; border: 0; }
-.map-bar button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
-#noticeBtn[aria-expanded="true"] { background: var(--edge); }
 @media (pointer: coarse) { .map-bar .icon-btn { width: 44px; height: 44px; } }
 body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minimapBtn) { display: none; }
+/* The overlays' list (VB-1496), the overlay button's, placed as the bell's: a row for each overlay (page/overlays), its icon, its name and
+   its key; the one on checked; a hairline between groups. */
+.overlay-list { display: flex; flex-direction: column; gap: 2px; }
+.overlay-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 4px 8px; border: 0; border-radius: var(--r-1);
+  background: none; color: inherit; text-align: left; font-size: 14px; }
+.overlay-row > span { flex: 1; }
+.overlay-row svg { flex: none; width: 20px; height: 20px; }
+.overlay-row kbd { font: 12px/1 ui-monospace, monospace; padding: 3px 6px; border: 1px solid var(--edge); border-radius: 4px; }
+.overlay-row[aria-checked="true"] { background: var(--accent); color: var(--on-accent); }
+.overlay-row[aria-checked="true"] kbd { border-color: currentColor; }
+.overlay-row.group-start { margin-top: 5px; position: relative; }
+.overlay-row.group-start::before { content: ""; position: absolute; left: 0; right: 0; top: -4px; border-top: 1px solid var(--edge); }
+@media (pointer: coarse) { .overlay-row { min-height: 44px; } }
 .notice-pop { position: absolute; right: 0; bottom: 54px; z-index: 1; width: min(290px, calc(100vw - 28px));
-  max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: var(--r-small); }
+  max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: var(--r-2); }
 .notice-pop .menu-label { margin: 12px 0 8px; }
 /* The Ground overlay's key (page/ground), over the minimap while the overlay is on: a swatch for each bedrock, a mark for each deposit. */
-.ground-key { width: 258px; padding: 0 14px 10px; border-radius: var(--r-small); font-size: 13px; }
+.ground-key { width: 258px; padding: 0 14px 10px; border-radius: var(--r-2); font-size: 13px; }
 .ground-key .menu-label { margin: 10px 0 6px; }
 .ground-key ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
 .ground-key li { display: flex; align-items: center; gap: 7px; }
@@ -314,18 +399,19 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
 body:not(.minimap-open) .ground-key { display: none; }
 .reach-key ul { grid-template-columns: 1fr; }
 .reach-key p { margin: 8px 0 0; color: var(--muted, inherit); }
+.band-key ul { grid-template-columns: 1fr; } /* page/woodland, page/wildfood */
 /* Notifications (VB-098): toasts at the top centre, just under the top bar, the newest lowest, on every screen (11 Nov, VB-338: the dock's
    panels rise where they were; first at the bottom left, then from 9 Nov at the bottom centre, above the dock). The bar's bottom edge,
    which a narrow screen's date on two lines moves, is measured by page/notices. */
 .toasts { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); top: calc(var(--bar-bottom, 76px) + 8px);
   width: min(430px, calc(100vw - 28px)); display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
-.toast { pointer-events: auto; border-radius: var(--r-small); padding: 8px 12px; text-align: left; font-size: 14px; line-height: 1.35; color: var(--ink);
+.toast { pointer-events: auto; border-radius: var(--r-2); padding: 8px 12px; text-align: left; font-size: 14px; line-height: 1.35; color: var(--ink);
   animation: toast-in 0.2s ease-out; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
 /* Playing a pawn (VB-210): after its death, whom to go on as, over the toasts; the played pawn's part of its card. */
 .play-offer { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 66px); width: min(430px, calc(100vw - 28px));
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--r-small); font-size: 14px; color: var(--ink); }
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--r-2); font-size: 14px; color: var(--ink); }
 .play-offer span { flex: 1 1 180px; }
 .succession ul { flex: 1 1 100%; max-height: 40vh; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
 .succession li button { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: center; justify-content: space-between; width: 100%; min-height: 36px;
@@ -343,7 +429,7 @@ body:not(.minimap-open) .ground-key { display: none; }
 .agenda button[aria-disabled="true"] { opacity: 0.55; }
 .agenda h4 span { font-size: 13px; }
 .play .refused { color: var(--bad); }
-.play .offer { border: 1px solid var(--accent); border-radius: 6px; padding: 6px 10px; margin: 8px 0; }
+.play .offer { border: 1px solid var(--accent); border-radius: var(--r-1); padding: 6px 10px; margin: 8px 0; }
 .play .offer .pv-row { display: flex; flex-wrap: wrap; gap: 4px 10px; list-style: none; margin: 4px 0; padding: 0; }
 .play .offer .pv-row li { display: flex; align-items: center; gap: 2px; } .play .offer .pv-row .face { width: 28px; height: 28px; }
 .play .offer .pv-row .fi, .play .offer .pv-row .ico svg { width: 22px; height: 22px; } .play .offer .pv-row small { font-size: 11px; }
@@ -351,7 +437,6 @@ body:not(.minimap-open) .ground-key { display: none; }
 .play-head h3 { margin: 0; }
 .play .switches { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .play .switches button { min-height: 36px; padding: 4px 12px; font-size: 14px; }
-.play .switches button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .play ol, .play ul { list-style: none; margin: 0; padding: 0; }
 .play .queue li { display: flex; align-items: center; gap: 8px; justify-content: space-between; padding: 2px 0; font-size: 14px; }
 .play .queue span, .play li.opp span { margin: 0; color: var(--ink); }
@@ -370,21 +455,20 @@ body:not(.minimap-open) .ground-key { display: none; }
    the Queue; a group's list of acts rises above it, and the panels rise with it; while an act waits for a tile, a banner under the top bar
    names it, and the toasts go under the banner. */
 .act-bar { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 64px); display: flex; gap: 6px;
-  padding: 6px; border-radius: var(--r-panel); width: min(560px, calc(100vw - 28px)); }
+  padding: 6px; border-radius: var(--r-2); width: min(560px, calc(100vw - 28px)); }
 .act-bar button { flex: 1 1 0; min-width: 0; min-height: 46px; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 6px 8px;
-  border-radius: 10px; background: var(--node); color: var(--ink); font-weight: 700; }
-.act-bar button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  background: var(--node); color: var(--ink); font-weight: 700; }
+.act-bar .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .act-bar .ico, .act-menu .ico, .act-banner .ico { width: 22px; height: 22px; }
-.act-bar button[aria-expanded="true"], .act-bar button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .act-bar b { font-variant-numeric: tabular-nums; }
 body.bar-open .people-sheet, body.bar-open .drawer, body.bar-open .tile, body.bar-open .play-offer { bottom: calc(var(--dock-bottom) + 126px); }
 .act-menu { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--dock-bottom) + 126px); width: min(430px, calc(100vw - 28px));
-  max-height: min(62vh, calc(100dvh - 250px)); overflow-y: auto; overscroll-behavior: contain; border-radius: var(--r-panel); padding: 6px; display: flex;
+  max-height: min(62vh, calc(100dvh - 250px)); overflow-y: auto; overscroll-behavior: contain; border-radius: var(--r-2); padding: 6px; display: flex;
   flex-direction: column; gap: 2px; }
 .act-menu .mh { display: flex; align-items: center; gap: 4px; padding: 0 0 4px 8px; }
-.act-menu .mh h2 { flex: 1; min-width: 0; margin: 0; font: italic 700 22px/1.2 'Alegreya', Georgia, serif; }
-.act-menu .mh button { border: 0; width: 44px; height: 44px; padding: 0; display: grid; place-items: center; border-radius: 8px; flex: none; }
-.act-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; border-radius: 8px; padding: 7px 8px;
+.act-menu .mh h2 { flex: 1; min-width: 0; margin: 0; font-size: 22px; }
+.act-menu .mh .icon-btn { width: 44px; height: 44px; flex: none; }
+.act-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; border-radius: var(--r-1); padding: 7px 8px;
   min-height: 48px; }
 .act-row:hover { background: var(--edge); }
 .act-row .nm { flex: 1; min-width: 0; line-height: 1.2; }
@@ -393,7 +477,6 @@ body.bar-open .people-sheet, body.bar-open .drawer, body.bar-open .tile, body.ba
 .act-row .nm small::first-letter, .act-menu .act-msg::first-letter, .act-banner .txt span::first-letter { text-transform: uppercase; }
 .act-row[aria-disabled="true"] { color: var(--muted); }
 .act-row[aria-disabled="true"] .nm small { font-style: italic; } /* why not: no warning, so not red (VB-664) */
-.act-row[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
 .act-menu .act-msg, .act-menu .act-empty { margin: 2px 8px 6px; font-size: 14px; }
 .act-menu .act-msg { font-weight: 500; }
 .act-menu .act-msg.bad { color: var(--bad); }
@@ -404,27 +487,27 @@ body.bar-open .people-sheet, body.bar-open .drawer, body.bar-open .tile, body.ba
 .act-form p { margin: 0; font-size: 14px; line-height: 1.4; }
 .act-form .hint { color: var(--muted); }
 .act-form .refused { color: var(--bad); }
-.act-form select, .act-form input { font: inherit; font-size: 15px; min-height: 44px; padding: 6px 10px; border-radius: var(--r-field); border: 1px solid var(--edge);
+.act-form select, .act-form input { font: inherit; font-size: 15px; min-height: 44px; padding: 6px 10px; border-radius: var(--r-1); border: 1px solid var(--edge);
   background: var(--node); color: var(--ink); max-width: 100%; }
 .act-form .give-to { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .act-form .give-to select { flex: 1 1 180px; min-width: 0; }
 .stepper { display: flex; align-items: center; gap: 8px; }
-.stepper button { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; border-radius: 10px; flex: none; }
+.stepper button { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; flex: none; }
 .stepper input { width: 5.5em; text-align: center; font-variant-numeric: tabular-nums; }
 .act-form .switches { display: flex; flex-wrap: wrap; gap: 6px; }
 .act-banner { position: fixed; z-index: 8; left: 50%; transform: translateX(-50%); top: calc(var(--bar-bottom, 76px) + 8px); width: min(560px, calc(100vw - 28px));
-  display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 12px; border-radius: var(--r-small); }
+  display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 12px; border-radius: var(--r-2); }
 .act-banner .txt { flex: 1; min-width: 0; font-weight: 500; line-height: 1.3; }
 .act-banner .txt span { display: block; font-size: 14px; }
 .act-banner .bad { color: var(--bad); }
-.act-banner button { flex: none; border-radius: 10px; }
+.act-banner button { flex: none; }
 body.tool-on .toasts { top: calc(var(--bar-bottom, 76px) + 80px); }
 .notice-pop .dchk { align-items: flex-start; margin: 0 0 10px; line-height: 1.3; }
 /* the Customs tab of a village's card (page/customs): the charter, its marked phrases, and an opened custom's ways with their faces */
 .customs span, .customs strong { display: inline; margin: 0; font: inherit; color: inherit; }
 .customs h3 { margin: 12px 0 2px; padding-top: 10px; border-top: 1px solid var(--edge); font-size: 12px; font-weight: 700; letter-spacing: 0.07em;
   text-transform: uppercase; color: var(--muted); }
-.customs h3.lead { margin: 4px 0; padding: 0; border: 0; font: italic 700 18px/1.15 'Alegreya', Georgia, serif; letter-spacing: 0; text-transform: none;
+.customs h3.lead { margin: 4px 0; padding: 0; border: 0; font: italic 700 18px/1.15 var(--scroll); letter-spacing: 0; text-transform: none;
   color: var(--ink); }
 .customs p { margin: 0; }
 .customs .note { font-size: 14px; line-height: 1.45; color: var(--muted); }
@@ -451,9 +534,8 @@ body.tool-on .toasts { top: calc(var(--bar-bottom, 76px) + 80px); }
 .customs .tag.red { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
 .customs .faces { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 4px 2px; align-items: start; margin-top: 6px; }
 .customs .voice { display: grid; justify-items: center; align-content: start; text-align: center; min-height: 0; padding: 4px 2px; border: 1px solid transparent;
-  border-radius: 10px; background: none; font-size: 13px; color: var(--ink); }
-.customs .voice[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.customs .why { margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 8%, transparent); font-size: 14px;
+  border-radius: var(--r-1); background: none; font-size: 13px; color: var(--ink); }
+.customs .why { margin-top: 6px; padding: 8px 10px; border-radius: var(--r-1); background: color-mix(in srgb, var(--accent) 8%, transparent); font-size: 14px;
   line-height: 1.45; color: var(--ink); }
 .customs .voice img { width: 40px; height: 40px; }
 .customs .voice b { margin-top: 3px; font-weight: 500; }
@@ -468,7 +550,6 @@ body.tool-on .toasts { top: calc(var(--bar-bottom, 76px) + 80px); }
 @media (pointer: coarse) { .customs .charter { line-height: 2.05; } }
 /* the Culture pane (page/culture): the charter's pieces again, the villages as rows, the meetings by year */
 .culture .links { margin: 0 0 8px; }
-.culture .chip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 .culture .tabs { margin: 10px 0; }
 .culture .row { padding: 7px 0; border-radius: 0; }
 .culture .row + .row, .culture .kept .row:first-of-type { border-top: 1px solid var(--edge); }
@@ -488,7 +569,7 @@ body.ui-hidden .act-bar, body.ui-hidden .act-menu, body.ui-hidden .act-banner { 
 body.ui-hidden .toast { pointer-events: none; }
 body.ui-hidden .hud * { pointer-events: none; }
 body.ui-hidden #uiToggle { visibility: visible; pointer-events: auto; background: var(--panel); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  box-shadow: 0 6px 18px rgba(3, 16, 26, 0.28); }
+  box-shadow: var(--shadow-2); }
 .genscreen { overflow-y: auto; }
 .genscreen > .panel { margin: auto; }
 .genscreen input, .genscreen select { min-height: 44px; font-size: 16px; }
@@ -499,10 +580,10 @@ body.ui-hidden #uiToggle { visibility: visible; pointer-events: auto; background
 .sheet-title { flex: 1; min-width: 0; }
 .tile .sheet-title span { margin: 1px 0 0; font-size: 14px; }
 #tileBadge { flex-shrink: 0; line-height: 0; }
-img.badge { width: 52px; height: 52px; border-radius: 12px; background: var(--node); border: 1px solid var(--edge); }
-img.mini { width: 26px; height: 26px; border-radius: 7px; background: var(--node); border: 1px solid var(--edge); flex-shrink: 0; vertical-align: middle; }
+img.badge { width: 52px; height: 52px; border-radius: 50%; background: var(--plate); border: 1px solid var(--edge); }
+img.mini { width: 26px; height: 26px; border-radius: 50%; background: var(--plate); border: 1px solid var(--edge); flex-shrink: 0; vertical-align: middle; }
 img.gone { filter: grayscale(1); opacity: 0.6; }
-.occ-badge { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 12px; background: var(--node); border: 1px solid var(--edge); color: var(--ink); }
+.occ-badge { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--node); border: 1px solid var(--edge); color: var(--ink); }
 .occ-badge svg { width: 30px; height: 30px; }
 /* A person's state in its family (VB-1035), an icon among its card's chips: unmarried, widowed, expecting, nursing. */
 .state-mark { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--node); border: 1px solid var(--edge); color: var(--ink); }
@@ -516,13 +597,13 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .bonded .bond.good { color: var(--good); } .bonded .bond.bad { color: var(--bad); }
 .bonded.badge .bond { width: 22px; height: 22px; } .bonded.badge .bond svg { width: 15px; height: 15px; }
 .chip .bonded { margin-left: -7px; margin-right: 3px; } .chip .bonded img.mini { margin-left: 0; }
-.icon-btn { width: 36px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
 .links { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
 .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px; font-size: 14px; background: var(--node); }
 .chip img.mini { margin-left: -7px; border-radius: 50%; }
-.roster { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--edge); }
+.roster { margin-top: 8px; padding-top: 6px; }
+.roster { border-top: 1px solid var(--edge); }
 .roster h3 { margin: 0 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
-.row { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 0; border: 0; border-radius: 6px; background: none;
+.row { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 0; border: 0; border-radius: var(--r-1); background: none;
   text-align: left; }
 .tile .row span { margin: 0; }
 .tile .row .who { flex: 1; min-width: 0; color: var(--ink); }
@@ -534,31 +615,32 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 /* One control, one meaning (VB-664): a tab is underlined, a filter is a small pill that stays pressed, an act is a button. */
 .tabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 6px 0 10px; border-bottom: 1px solid var(--edge); }
 .tabs button { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; padding: 5px 10px; font-size: 14px; border: 0; border-bottom: 2px solid transparent;
-  border-radius: 6px 6px 0 0; background: none; margin-bottom: -1px; }
+  border-radius: var(--r-1) var(--r-1) 0 0; background: none; margin-bottom: -1px; }
 .tabs button .ico { width: 16px; height: 16px; }
 .tabs button[aria-selected="true"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
 .tabs button[aria-selected="false"] { color: var(--muted); }
 .history .kinds button { min-height: 28px; padding: 2px 10px; font-size: 13px; }
-.history .kinds button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
 /* The one meter (page/meter): a level on its scale, marks at its targets, a signed one filled from its middle. */
 .agenda-meters { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; font-size: 12px; }
-.meter { position: relative; display: inline-block; flex: 1; min-width: 44px; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 13%, transparent);
+.meter { position: relative; display: inline-block; flex: 1; min-width: 44px; height: 8px; border-radius: var(--r-0); background: color-mix(in srgb, var(--ink) 13%, transparent);
   vertical-align: middle; }
-.meter > i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 4px; background: var(--accent); }
+.meter > i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: var(--r-0); background: var(--accent); }
 .meter.good > i { background: var(--good); }
 .meter.warn > i { background: var(--gold); }
 .meter.bad > i { background: var(--bad); }
-.meter.over > i { border-radius: 4px 0 0 4px; }
+.meter.over > i { border-radius: var(--r-0) 0 0 var(--r-0); }
 .meter.over::after { content: ''; position: absolute; right: -5px; top: -1px; border: 5px solid transparent; border-left-color: var(--accent); border-right: 0; }
 .meter.signed > i { border-radius: 0; }
 .meter > u { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
-.meter > b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; background: var(--ink); }
+.meter > b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; }
+.meter > b { background: var(--ink); }
 .meter > b + b { background: var(--gold); }
 .meter > b.custom { background: var(--ink); }
 .meter > b.head { background: var(--gold); }
 .mark-key { display: flex; gap: 14px; margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
 .mark-key > span { display: inline-flex; align-items: center; gap: 5px; }
-.mark-key b { display: inline-block; width: 2px; height: 14px; border-radius: 1px; background: var(--ink); }
+.mark-key b { display: inline-block; width: 2px; height: 14px; border-radius: 1px; }
+.mark-key b { background: var(--ink); }
 .mark-key b.head { background: var(--gold); }
 /* The People sheet as a finder: the cards' rows, a farm's people under it. */
 .settlers .row { font: inherit; color: var(--ink); }
@@ -589,14 +671,13 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .stat-val { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .stat.wide .stat-val { min-width: 62px; text-align: right; }
 .stat-val small { margin-left: 4px; font-weight: 400; font-size: 12.5px; color: var(--muted); }
-.work { margin: 6px 0; padding: 4px 10px 2px; border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); border-radius: 8px; }
+.work { margin: 6px 0; padding: 4px 10px 2px; border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); border-radius: var(--r-1); }
 .work-head { display: flex; align-items: center; gap: 7px; font-size: 14px; }
 .work-head .ico { width: 20px; height: 20px; color: var(--accent); }
 .work-head small { margin-left: auto; font-size: 12.5px; color: var(--muted); }
 .stat.kinds { min-height: 20px; gap: 10px; font-size: 12.5px; color: var(--muted); }
 .stat.kinds i { display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: 50%; }
-.card-switch { margin: 2px 0 6px; padding: 2px 10px; font-size: 13px; border-radius: 12px; }
-.card-switch[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+.card-switch { margin: 2px 0 6px; padding: 2px 10px; font-size: 13px; }
 /* The supply component (page/meter, VB-667): a row a supply, its icon, word, season cells, state and i; the cells filled solid from the
    store and striped from what is still to come, a red frame where the likeliest outcome does not cover the season. */
 .supplies { margin: 2px 0 8px; }
@@ -617,7 +698,7 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .supply.head .cells .cell-season { flex: 1; text-align: center; }
 .supply .cell-season { display: inline-flex; justify-content: center; flex: none; color: var(--muted); }
 .supply .cell-season .ico { width: 14px; height: 14px; }
-.supply .cell { position: relative; flex: 1; height: 18px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--ink) 13%, transparent); }
+.supply .cell { position: relative; flex: 1; height: 18px; border-radius: var(--r-0); overflow: hidden; background: color-mix(in srgb, var(--ink) 13%, transparent); }
 .supply .cell.short { background: color-mix(in srgb, var(--bad) 14%, transparent); box-shadow: inset 0 0 0 1.3px var(--bad); }
 .supply .cell > i { position: absolute; top: 0; bottom: 0; left: 0; }
 .supply .cell > i.with { background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--accent) 75%, transparent) 0 2px, transparent 2px 6px); }
@@ -629,8 +710,8 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .supply.bad .supply-state { color: var(--bad); }
 .supply.none .supply-state { color: var(--muted); font-weight: 400; }
 .supply-more { width: 24px; height: 24px; min-height: 0; padding: 0; border-radius: 50%; font: italic 700 13px/1 Georgia, serif; color: var(--muted); }
-.supply-more[aria-expanded="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
-.supply-nums { margin: 0 0 8px 27px; padding: 6px 10px; border-radius: 8px; background: color-mix(in srgb, var(--ink) 6%, transparent); font-size: 13px; }
+.supply-nums { margin: 0 0 8px 27px; padding: 6px 10px; border-radius: var(--r-1); font-size: 13px; }
+.supply-nums { background: color-mix(in srgb, var(--ink) 6%, transparent); }
 .supply-nums p { margin: 0 0 6px; color: var(--muted); }
 .supply-nums dl { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin: 0; }
 .supply-nums dt { color: var(--muted); }
@@ -655,7 +736,7 @@ img.gone { filter: grayscale(1); opacity: 0.6; }
 .plan-row[data-target] .stat-val small { display: block; margin-left: 0; font-size: 11.5px; }
 .plan-ctl { display: inline-flex; gap: 4px; flex: none; }
 .plan-ctl.menu { flex-wrap: wrap; margin: 0 0 6px 27px; }
-.plan-btn { min-width: 28px; height: 26px; padding: 0 6px; border: 1px solid var(--edge); border-radius: var(--r-field); background: transparent; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.plan-btn { min-width: 28px; height: 26px; padding: 0 6px; border: 1px solid var(--edge); border-radius: var(--r-1); background: transparent; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
 .plan-btn:disabled { opacity: 0.35; cursor: default; }
 .plan-btn.wide { padding: 0 10px; }
 .field-ctl { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 8px; }
@@ -729,7 +810,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   .play .queue button, .save-acts button, .save-arch h3 button { min-height: 28px; }
   /* the action menu's Back and Close are the sheets' round buttons */
   .act-menu .mh { gap: 6px; padding: 4px 6px 6px 8px; }
-  .act-menu .mh button { width: 36px; height: 36px; border: 1px solid var(--edge); border-radius: 999px; }
+  .act-menu .mh .icon-btn { width: 36px; height: 36px; }
   /* every button answers the pointer: a faint wash of its own colour, over whatever fills it (rows and choice cards have their own) */
   button:not(:disabled, .row, .act-row, .story, .person, .scard):hover { box-shadow: inset 0 0 0 99px color-mix(in srgb, currentColor 9%, transparent); }
 }
@@ -740,21 +821,20 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
   --ed-left: max(14px, env(safe-area-inset-left, 0px)); --ed-right: max(14px, env(safe-area-inset-right, 0px)); }
 .editor > * { pointer-events: auto; position: absolute; }
 .editor-top { left: var(--ed-left); top: var(--ed-top); display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 8px 10px 8px 14px;
-  border-radius: 14px; max-width: calc(100% - 200px); min-height: 62px; }
+  border-radius: var(--r-2); max-width: calc(100% - 200px); min-height: 62px; }
 .ed-name { min-width: 0; }
-.ed-name strong { display: block; font: italic 700 19px/1.1 'Alegreya', Georgia, serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed-name strong { display: block; font: italic 700 19px/1.1 var(--scroll); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ed-name span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .ed-tools { display: flex; gap: 4px; }
 .ed-tools button { padding: 6px 14px; }
-.ed-tools button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: transparent; }
-.editor-corner { right: var(--ed-right); top: var(--ed-top); display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 14px; }
+.editor-corner { right: var(--ed-right); top: var(--ed-top); display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--r-2); }
 .editor-corner .icon-btn { width: 44px; height: 44px; flex: none; }
 .editor-corner .primary { padding: 6px 22px; }
-.editor-msg { right: var(--ed-right); top: calc(var(--ed-top) + 72px); width: min(340px, calc(100% - 28px)); margin: 0; padding: 10px 14px; border-radius: 12px; }
+.editor-msg { right: var(--ed-right); top: calc(var(--ed-top) + 72px); width: min(340px, calc(100% - 28px)); margin: 0; padding: 10px 14px; border-radius: var(--r-2); }
 .editor-side { left: var(--ed-left); top: calc(var(--ed-top) + 72px); width: 340px; max-height: calc(100% - 86px - var(--ed-top)); display: flex;
-  flex-direction: column; border-radius: 16px; min-width: 0; }
+  flex-direction: column; border-radius: var(--r-2); min-width: 0; }
 .editor-side[hidden], .editor-msg[hidden] { display: none; }
-.editor-side h2 { margin: 0; padding: 12px 16px 8px; font: italic 700 22px/1.1 'Alegreya', Georgia, serif; flex: none; }
+.editor-side h2 { margin: 0; padding: 12px 16px 8px; font: italic 700 22px/1.1 var(--scroll); flex: none; }
 .editor-body { display: grid; gap: 14px; align-content: start; padding: 2px 16px 14px; overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
 .editor-foot { display: grid; gap: 8px; padding: 12px 16px 14px; border-top: 1px solid var(--edge); flex: none; }
 .editor fieldset { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
@@ -764,7 +844,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .editor .err { max-width: none; color: var(--bad); font-size: 14px !important; }
 .editor label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; min-width: 0; }
 .editor input:not([type="range"]), .editor select { font: inherit; font-size: 16px; min-height: 44px; width: 100%; min-width: 0; padding: 7px 10px;
-  border-radius: 10px; border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
+  border-radius: var(--r-1); border: 1px solid var(--edge); background: var(--node); color: var(--ink); }
 .editor input[type="range"] { width: 100%; min-height: 32px; margin: 0; accent-color: var(--accent); }
 .ed-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .ed-pair .ed-wide { grid-column: 1 / -1; }
 .editor [hidden] { display: none !important; }
@@ -777,7 +857,7 @@ button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radi
 .ed-facts dt i { width: 10px; height: 10px; border-radius: 3px; flex: none; border: 1px solid var(--edge); }
 .ed-brushes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .ed-brushes h4 { grid-column: 1 / -1; margin: 6px 0 0; font-size: 13px; font-weight: 400; color: var(--muted); }
-.ed-brushes button { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; text-align: left; font-size: 14px; line-height: 1.2;
+.ed-brushes button { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-1); text-align: left; font-size: 14px; line-height: 1.2;
   color: var(--ink); min-width: 0; }
 .ed-brushes button.wide { grid-column: 1 / -1; }
 .ed-brushes button i { width: 14px; height: 14px; border-radius: 4px; flex: none; border: 1px solid var(--edge); }
@@ -799,13 +879,13 @@ body.brushing #stage { cursor: crosshair; }
    the household at the right and the bar at the bottom right. Nothing changes size under the pointer: a pressed or lit thing only colours. */
 .choose { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
 .choose > * { pointer-events: auto; }
-.choose .panel { position: absolute; display: grid; gap: 10px; align-content: start; padding: 14px 16px; border-radius: var(--r-panel); overflow-y: auto;
+.choose .panel { position: absolute; display: grid; gap: 10px; align-content: start; padding: 14px 16px; border-radius: var(--r-2); overflow-y: auto;
   overscroll-behavior: contain; min-width: 0; }
 .choose-map { display: none; }
 .choose-list { left: max(14px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 14px); width: 320px; max-height: calc(100% - 28px); }
 /* Main menu, in the corner where the game's own is; the household's card stands under it. There is no Back (Kim, 12 Nov). */
 .corner-menu { position: fixed; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + 22px); right: max(24px, env(safe-area-inset-right, 0px));
-  width: 44px; height: 44px; border-radius: 999px; box-shadow: 0 10px 30px rgba(3, 16, 26, 0.28); }
+  width: 44px; height: 44px; border-radius: 999px; box-shadow: var(--shadow-2); }
 /* on the start it lies at the page's corner and scrolls with the sheet, whose head row makes room for it where the two would meet */
 #genScreen .corner-menu { position: absolute; pointer-events: auto; }
 @media (max-width: 1340px) { .start-top .screen-head { padding-right: 56px; } }
@@ -813,9 +893,9 @@ body.brushing #stage { cursor: crosshair; }
   max-height: calc(100% - 100px); }
 .choose-card:empty { display: none; }
 .choose .choose-bar { right: max(14px, env(safe-area-inset-right, 0px)); bottom: var(--dock-bottom); top: auto; display: flex; flex-wrap: wrap;
-  justify-content: flex-end; gap: 8px; padding: 8px 10px; border-radius: var(--r-panel); overflow: visible; }
-.choose h1 { margin: 0; font: italic 700 26px/1.1 'Alegreya', Georgia, serif; }
-.choose h2 { margin: 0; font: italic 700 20px/1.15 'Alegreya', Georgia, serif; overflow-wrap: anywhere; }
+  justify-content: flex-end; gap: 8px; padding: 8px 10px; border-radius: var(--r-2); overflow: visible; }
+.choose h1 { margin: 0; font-size: 26px; }
+.choose h2 { margin: 0; font-size: 20px; overflow-wrap: anywhere; }
 .choose h3 { margin: 4px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .choose p { margin: 0; font-size: 14px; line-height: 1.4; }
 .choose .hint { color: var(--muted); }
@@ -824,7 +904,7 @@ body.brushing #stage { cursor: crosshair; }
 .choose .ico.sug { display: inline-block; width: 15px; height: 15px; color: var(--gold); vertical-align: -1px; }
 .sug-note { display: flex; gap: 6px; align-items: center; }
 .stories { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
-.story { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 3px 8px; align-items: center; text-align: left; border-radius: 12px;
+.story { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 3px 8px; align-items: center; text-align: left; border-radius: var(--r-1);
   padding: 8px 10px; background: var(--node); min-width: 0; }
 .story[aria-pressed="false"] { color: var(--ink); }
 .story > .ico { width: 22px; height: 22px; color: var(--accent); }
@@ -833,13 +913,12 @@ body.brushing #stage { cursor: crosshair; }
 .story .few { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: flex-end; font-size: 12.5px; color: var(--muted); min-height: 22px; }
 .story .few img { width: 22px; height: 22px; margin-right: -3px; }
 .story .few span { margin-left: 8px; }
-.story[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 @media (hover: hover) { .story:hover, .person:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 10%, transparent); } }
 .hhead { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: center; }
 .hhead img { width: 44px; height: 44px; grid-row: 1 / span 2; }
 .hhead span { color: var(--muted); font-size: 14px; }
 .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 4px; }
-.person { display: grid; justify-items: center; gap: 0; padding: 4px 2px; min-height: 0; border-radius: 10px; border-color: transparent;
+.person { display: grid; justify-items: center; gap: 0; padding: 4px 2px; min-height: 0; border-radius: var(--r-1); border-color: transparent;
   font-size: 13px; line-height: 1.2; text-align: center; min-width: 0; }
 .person[aria-pressed="false"] { color: var(--ink); }
 .person img { width: 40px; height: 40px; }
@@ -849,21 +928,21 @@ body.brushing #stage { cursor: crosshair; }
 .person { position: relative; }
 .person .mark { position: absolute; top: 2px; right: 3px; color: var(--gold); line-height: 0; }
 .person .mark .ico { width: 15px; height: 15px; }
-.person[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .person.hit img { filter: drop-shadow(0 0 2px var(--gold)); }
 .detail { display: grid; gap: 8px; border-top: 1px solid var(--edge); padding-top: 10px; }
 .posline { display: flex; gap: 8px; align-items: flex-start; }
 .posline .ico { color: var(--accent); margin-top: 1px; }
 .pchips { display: flex; flex-wrap: wrap; gap: 6px; }
-.pchip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 10%, transparent); font-size: 14px; }
+.pchip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 99px; font-size: 14px; }
+.pchip { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .pchip .ico { width: 16px; height: 16px; color: var(--accent); }
 /* The start (VB-340; docs/mocks/setup.html, step 1): pieces of the menu's family over the stage, which shows through the frame of the
    picture. The callouts follow the camera (page/start). Nothing changes size under the pointer: a lit person, bar or card only colours. */
 #genScreen.start { display: block; padding: 14px max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px));
   background: none; pointer-events: none; overflow-x: hidden; }
 .start-sheet { display: grid; gap: 12px; width: min(1180px, 100%); margin: 0 auto; }
-.start-sheet .panel { pointer-events: auto; display: grid; gap: 10px; align-content: start; padding: 14px 16px; border-radius: var(--r-panel); min-width: 0; }
-.start h2 { margin: 0; font: italic 700 22px/1.15 'Alegreya', Georgia, serif; }
+.start-sheet .panel { pointer-events: auto; display: grid; gap: 10px; align-content: start; padding: 14px 16px; border-radius: var(--r-2); min-width: 0; }
+.start h2 { margin: 0; font: italic 700 22px/1.15 var(--scroll); }
 .start h3 { margin: 4px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
 .start p { margin: 0; font-size: 14px; line-height: 1.4; }
 .start .hint { color: var(--muted); }
@@ -871,12 +950,11 @@ body.brushing #stage { cursor: crosshair; }
 .start .ico.sug { display: inline-block; width: 15px; height: 15px; color: var(--gold); vertical-align: -1px; }
 .stepno { font-size: 14px; color: var(--muted); }
 .scards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.scard { display: grid; gap: 4px; padding: 0 0 8px; text-align: left; border-radius: 12px; overflow: hidden; background: var(--node); align-content: start;
+.scard { display: grid; gap: 4px; padding: 0 0 8px; text-align: left; border-radius: var(--r-1); overflow: hidden; background: var(--node); align-content: start;
   min-width: 0; color: var(--ink); }
 .scard[aria-pressed="false"] { color: var(--ink); }
 .scard > *:not(.cpic) { margin: 0 10px; }
 .scard b { font-size: 16px; } .scard small { font-size: 13px; line-height: 1.3; color: var(--muted); }
-.scard[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 @media (hover: hover) { .scard:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); } }
 .cpic { display: flex; align-items: flex-end; justify-content: center; gap: 0; height: 64px; padding: 0 8px 4px; overflow: hidden;
   background: linear-gradient(#bcd3e0 0 46%, #a9c48a 46% 100%); }
@@ -888,19 +966,19 @@ body.brushing #stage { cursor: crosshair; }
 .stats span { display: inline-flex; gap: 4px; align-items: center; } .stats .ico { width: 15px; height: 15px; }
 .cgrid { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 5fr); gap: 12px; align-items: start; }
 .start-left { display: grid; gap: 12px; min-width: 0; }
-.start-view { position: relative; aspect-ratio: 16 / 10; border-radius: var(--r-panel); overflow: hidden; pointer-events: none;
-  box-shadow: 0 0 0 2px var(--node), 0 10px 30px rgba(3, 16, 26, 0.28); }
+.start-view { position: relative; aspect-ratio: 16 / 10; border-radius: var(--r-2); overflow: hidden; pointer-events: none;
+  box-shadow: 0 0 0 2px var(--node), var(--shadow-2); }
 .pins { position: absolute; inset: 0; }
 .pin { position: absolute; left: 0; top: 0; width: 0; height: 0; font-size: 13px; color: var(--ink); white-space: nowrap; }
 .pin .mk { position: absolute; left: -15px; top: -15px; width: 30px; height: 30px; }
 .pin .mk > .ico, .pin .mk > .fi { position: absolute; inset: 0; width: 30px; height: 30px; padding: 4px; border-radius: 50%; background: #fbfdfc; color: #17313a;
-  border: 2px solid #17313a; box-shadow: 0 2px 6px rgba(3, 16, 26, 0.4); }
+  border: 2px solid #17313a; box-shadow: var(--shadow-0); }
 .pin .mk > .fi { padding: 1px; }
 .pin .mk > :nth-child(2) { display: none; }
 .pin.edge .mk > :nth-child(2) { display: block; left: 7px; top: 7px; width: 16px; height: 16px; padding: 0; border: 0; border-radius: 0; background: none;
   box-shadow: none; color: #fff; filter: drop-shadow(0 1px 2px #06202c); transform: rotate(var(--turn, 0rad)) translateX(24px); }
-.pin b { position: absolute; left: 0; top: 0; font-weight: 500; background: var(--panel); border: 1px solid var(--edge); border-radius: 8px; padding: 2px 8px;
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.pin b { position: absolute; left: 0; top: 0; font-weight: 500; background: var(--panel); border: 1px solid var(--edge); border-radius: var(--r-1); padding: 2px 8px; }
+.pin b { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 .pinlist { display: none; list-style: none; margin: 0; padding: 0; font-size: 14px; }
 .pinlist li { display: flex; gap: 8px; align-items: center; } .pinlist .fi, .pinlist .ico { width: 22px; height: 22px; flex: none; }
 .year { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; font-size: 13px; }
@@ -910,10 +988,10 @@ body.brushing #stage { cursor: crosshair; }
 .start-side .stories { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
 .who-starts { display: grid; gap: 6px; }
 .fcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
-.fcard { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; align-items: center; padding: 6px 8px; border-radius: 10px;
+.fcard { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; align-items: center; padding: 6px 8px; border-radius: var(--r-1);
   background: var(--node); border: 1px solid var(--edge); min-width: 0; }
 .fcard.none { background: none; border-style: dashed; color: var(--muted); } .fcard.has { border-color: var(--accent); }
-.fcard b { font: italic 700 15px/1.2 'Alegreya', Georgia, serif; overflow-wrap: break-word; min-width: 0; } .fcard .fi { width: 26px; height: 26px; }
+.fcard b { font: italic 700 15px/1.2 var(--scroll); overflow-wrap: break-word; min-width: 0; } .fcard .fi { width: 26px; height: 26px; }
 .fcard .faces, .fcard small { grid-column: 1 / -1; } .fcard small { font-size: 12.5px; color: var(--muted); }
 .faces { display: flex; flex-wrap: wrap; gap: 1px; align-items: flex-end; min-height: 26px; }
 .faces img, .fcard .faces img { width: 26px; height: 26px; }
@@ -927,7 +1005,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   background: linear-gradient(to right, var(--accent) var(--on, 0%), var(--dim) var(--on, 0%)); }
 .pyr .pb.l i { background: linear-gradient(to left, var(--accent) var(--on, 0%), var(--dim) var(--on, 0%)); }
 .start-bar { position: sticky; bottom: 0; display: flex !important; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: max(14px, env(safe-area-inset-bottom, 0px));
-  box-shadow: 0 -6px 24px rgba(3, 16, 26, 0.18); }
+  box-shadow: var(--shadow-1); }
 .start-sheet .start-opts, .start-sheet .start-acts { display: contents; }
 .start-bar label { width: 200px; max-width: 100%; min-width: 0; } .start-bar select { width: 100%; min-width: 0; }
 .start-bar .grow { flex: 1 1 0; }
@@ -946,7 +1024,7 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .start-bar { display: contents !important; }
   .start-sheet .start-opts, .start-sheet .start-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; padding: 10px 12px; }
   .start-sheet .start-acts { position: sticky; bottom: 0; margin: 10px 0 max(14px, env(safe-area-inset-bottom, 0px)); padding: 8px 12px;
-    box-shadow: 0 -6px 24px rgba(3, 16, 26, 0.18); }
+    box-shadow: var(--shadow-1); }
   .start-bar label { width: auto; flex: 1 1 140px; font-size: 13px; }
   /* room for the map size's words and the seed's six digits in one row, from 360px up */
   .start-bar label:first-child { flex-basis: 156px; } .start-bar label + label { flex-basis: 132px; }
@@ -976,18 +1054,18 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .hud.top { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
     top: calc(env(safe-area-inset-top, 0px) + 8px); padding: 0; gap: 0; flex-direction: column; }
   .clock { position: relative; width: 100%; max-width: none; margin: 0; padding: 6px 8px 6px 12px; gap: 6px;
-    flex-wrap: nowrap; justify-content: flex-end; border-radius: 16px; }
+    flex-wrap: nowrap; justify-content: flex-end; border-radius: var(--r-2); }
   .calendar { flex: 1; min-width: 0; white-space: nowrap; }
   .clock strong { font-size: 17px; }
   .clock span { font-size: 13px; }
   #speedBtn { color: var(--accent); }
   /* the speed picker opens over everything, the notifications too (VB-338) */
   .speed { display: none; position: absolute; right: 0; top: calc(100% + 6px); z-index: 9; flex-wrap: nowrap;
-    padding: 8px; border: 1px solid var(--edge); border-radius: 14px; background: var(--node); box-shadow: 0 10px 30px #03101a47; }
+    padding: 8px; border: 1px solid var(--edge); border-radius: var(--r-2); background: var(--node); box-shadow: var(--shadow-2); }
   .speed-open .speed { display: flex; }
   .hud.top:has(.speed-open) { z-index: 8; }
   .navigation { width: calc(100% - max(8px, env(safe-area-inset-left, 0px)) - max(8px, env(safe-area-inset-right, 0px)));
-    border-radius: 16px; gap: 0; padding: 4px; }
+    border-radius: var(--r-2); gap: 0; padding: 4px; }
   .navigation button { flex: 1; min-width: 0; padding: 4px 2px; }
   .people-sheet, .drawer, .tile { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
     width: auto; bottom: calc(var(--dock-bottom) + 62px); max-height: min(60dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 180px)); }
@@ -1029,11 +1107,11 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
   .clock strong, .clock span { display: inline; }
   .tile .sheet-head strong { font-size: 16px; }
 }
-/* ---- Options (VB-1161): the themes as cards, each with a sample of its own look. A sample shows its theme whatever theme is on, so its
-   colours are written out here, not taken from the palette. ---- */
+/* ---- Options (VB-1161): the themes as cards, each with a sample of its own look. A sample carries its theme's data-theme, and the
+   theme blocks apply to any element with the attribute, so it shows its theme whatever theme is on (VB-1531). ---- */
 .options .menu-label { margin: 0; }
 .themes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.theme { display: grid; align-content: start; gap: 4px; padding: 8px; border-radius: var(--r-small); background: var(--node); text-align: left; }
+.theme { display: grid; align-content: start; gap: 4px; padding: 8px; border-radius: var(--r-1); background: var(--node); text-align: left; }
 .theme[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .theme-name { display: flex; align-items: center; gap: 6px; font-weight: 700; }
 .theme-name::before { content: ''; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--muted); }
@@ -1041,16 +1119,11 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
 .theme small { color: var(--muted); font-size: 13px; font-weight: 400; line-height: 1.3; }
 .options-kept { margin: 0; color: var(--muted); font-size: 13px; }
 .theme-pv { display: grid; place-items: center; height: 64px; border-radius: 6px; background: linear-gradient(135deg, #7da35f 0 46%, #d8c078 46% 68%, #5f93a8 68%); }
-.theme-pv > span { display: flex; align-items: center; gap: 5px; }
-.theme-pv b { font: italic 700 14px 'Alegreya', Georgia, serif; }
-.theme-pv i { width: 20px; height: 20px; border-radius: 50%; }
-.theme-pv.glass > span { padding: 5px 7px 5px 10px; border-radius: 12px; background: rgba(238, 245, 242, 0.88); border: 1px solid rgba(23, 49, 58, 0.14); color: #17313a; }
-.theme-pv.glass i { border: 1px solid rgba(23, 49, 58, 0.2); }
-.theme-pv.glass i:first-of-type { background: #23685a; border-color: transparent; }
-.theme-pv.mural > span { padding: 10px 7px 10px 9px; color: #a04a30; background: var(--mural-band); border-left: 2px solid #a04a30; border-right: 2px solid #a04a30; }
-.theme-pv.mural b { font: 700 16px 'Grenze Gotisch', 'Alegreya', Georgia, serif; }
-.theme-pv.mural i { border: 1.5px solid #2c201c; background: #faf6e8; box-shadow: inset 0 0 0 1px #faf6e8, inset 0 0 0 2px #a04a30; }
-.theme-pv.mural i:first-of-type { background: #a04a30; box-shadow: inset 0 0 0 1px #a04a30, inset 0 0 0 2px #faf6e8; }
+/* the sample: a panel with a head, an unpressed and a pressed button, each drawn from the tokens of the theme the sample carries */
+.theme-pv > .panel { display: flex; align-items: center; gap: 5px; padding: 9px 7px 9px 10px; border-radius: var(--r-1); color: var(--ink); font-family: var(--body); }
+.theme-pv b { font-size: 15px; }
+.theme-pv i { width: 20px; height: 20px; background: var(--btn-ground); border: var(--btn-border); border-radius: 999px; }
+.theme-pv i.on { background: var(--accent); border-color: var(--btn-on-edge); }
 
 /* ---- The mural theme (VB-1161): the interface as the map is painted, a church mural's flat pigment and dark contour on lime plaster. Its
    pieces: a panel is the band (plaster between two sawtooth borders); a head is black letter in red ochre; a thing pressed is a ringed
@@ -1063,178 +1136,60 @@ img.pf.off { opacity: 0.28; } img.pf.on { filter: drop-shadow(0 0 2px var(--acce
     linear-gradient(#a04a30, #a04a30) 0 0 / 100% 2px no-repeat, linear-gradient(#a04a30, #a04a30) 0 100% / 100% 2px no-repeat,
     var(--mural-tex), #faf6e8;
 }
-:root[data-theme="mural"] {
+[data-theme="mural"] {
   --panel: #faf6e8; --ink: #2c201c; --muted: #6b5a4c; --edge: rgba(44, 32, 28, 0.32); --accent: #a04a30; --on-accent: #faf6e8; --node: #faf6e8;
   --good: #547446; --bad: #8c2f1e; --gold: #b98524;
-  --r-panel: 0px; --r-small: 0px; --r-field: 2px;
-  --head: 'Grenze Gotisch', 'Alegreya', Georgia, serif; --scroll: 'Alegreya', Georgia, serif;
-  --medal: inset 0 0 0 2px var(--node), inset 0 0 0 3.5px var(--accent);
-  --medal-on: inset 0 0 0 2px var(--accent), inset 0 0 0 3.5px var(--node);
-  --cast: 0 3px 8px rgba(20, 14, 10, 0.5);
+  --sea: #16395f; --plate: #e2c684;
+  --r-0: 0px; --r-1: 0px; --r-2: 0px;
+  --body: 'Alegreya Sans', 'Gill Sans', 'Trebuchet MS', system-ui, sans-serif;
+  --head: 'Grenze Gotisch', 'Alegreya', Georgia, serif; --head-ink: var(--accent); --scroll: 'Alegreya', Georgia, serif;
+  --panel-ground: var(--mural-band); --panel-border: 8px solid transparent; --panel-backdrop: none;
+  --btn-ground: var(--node); --btn-border: 1.5px solid var(--ink); --btn-on-edge: var(--ink);
+  --shadow-0: 0 3px 8px rgba(20, 14, 10, 0.5); --shadow-1: 0 6px 16px rgba(20, 14, 10, 0.45); --shadow-2: 0 10px 30px rgba(3, 16, 26, 0.28);
   color-scheme: light;
 }
-/* the panel: the band */
-:root[data-theme="mural"] .panel { background: var(--mural-band); border: 0; border-left: 2px solid var(--accent); border-right: 2px solid var(--accent);
-  border-radius: 0; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 6px 16px rgba(20, 14, 10, 0.45); }
-:root[data-theme="mural"] .sheet { padding: 8px 0; }
-:root[data-theme="mural"] .clock { padding-top: 12px; padding-bottom: 12px; }
-/* the head: black letter in red ochre */
-:root[data-theme="mural"] :is(.clock strong, .genscreen h1, .saves-screen h1, .sheet-head h2, .sheet-head strong, .tree-head h2, .act-menu h2) {
-  font-family: var(--head); font-style: normal; font-weight: 700; color: var(--accent); }
-:root[data-theme="mural"] :is(.genscreen h1, .saves-screen h1) { font-size: 36px; }
-/* the button: a scroll; an icon's button: a ringed medallion; pressed, either fills with red ochre */
-:where(:root[data-theme="mural"]) button { border: 1.5px solid var(--ink); border-radius: 0 10px 0 10px; background: var(--node); }
-:where(:root[data-theme="mural"]) button.primary { border-color: var(--ink); }
-:root[data-theme="mural"] :is(.landing > button, .screen-head button, .chip, .act-bar button, .navigation button, .tabs button) {
-  font-family: var(--scroll); font-style: italic; font-weight: 700; }
-:root[data-theme="mural"] .landing > button { font-size: 17px; border-radius: 0 14px 0 14px; }
-:root[data-theme="mural"] .landing > button small { font-family: 'Alegreya Sans', system-ui, sans-serif; font-style: normal; font-weight: 400; }
-:where(:root[data-theme="mural"]) .icon-btn { aspect-ratio: 1; }
-:root[data-theme="mural"] .icon-btn { border: 2px solid var(--ink); border-radius: 50%; background: var(--node); box-shadow: var(--medal); color: var(--accent); }
-:root[data-theme="mural"] .icon-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--ink); box-shadow: var(--medal-on); color: var(--on-accent); }
-:root[data-theme="mural"] :is(.speed button, #skipBtn)[aria-pressed="true"] { border-color: var(--ink); }
-/* a tab: the chosen one a filled tag on the ink line */
-:root[data-theme="mural"] .tabs { border-bottom: 2px solid var(--ink); gap: 4px; }
-:root[data-theme="mural"] .tabs button { margin-bottom: 0; border: 1.5px solid transparent; border-bottom: 0; border-radius: 9px 9px 0 0; font-size: 15px; }
-:root[data-theme="mural"] .tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--ink); color: var(--on-accent); }
-/* a link: a scroll, its picture a medallion at its head */
-:root[data-theme="mural"] .chip img.mini { border: 1.5px solid var(--ink); background: var(--node); }
-/* the dock and the map's bar: medallions standing on the map, with no panel; the dock's names on tags under them */
-:root[data-theme="mural"] :is(.navigation, .map-bar, .act-bar) { background: none; border: 0; box-shadow: none; }
-:root[data-theme="mural"] .navigation { gap: 2px; }
-:root[data-theme="mural"] .navigation button { gap: 3px; min-width: 64px; padding: 0 4px; border: 0; border-radius: 0; background: none; color: var(--ink); font-size: 13px; }
-:root[data-theme="mural"] .navigation button .ico { box-sizing: content-box; padding: 10px; border: 2px solid var(--ink); border-radius: 50%; background: var(--node);
-  box-shadow: var(--medal), var(--cast); color: var(--accent); }
-:root[data-theme="mural"] .navigation button > span { padding: 0 6px; border: 1px solid var(--ink); background: var(--node); box-shadow: 0 2px 5px rgba(20, 14, 10, 0.45); }
-:root[data-theme="mural"] .navigation button[aria-pressed="true"] .ico { background: var(--accent); box-shadow: var(--medal-on), var(--cast); color: var(--on-accent); }
-:root[data-theme="mural"] .navigation button[aria-pressed="true"] > span { background: var(--accent); color: var(--on-accent); }
-:root[data-theme="mural"] .map-bar { gap: 6px; }
-:root[data-theme="mural"] .map-bar .icon-btn { border: 2px solid var(--ink); box-shadow: var(--medal), var(--cast); }
-:root[data-theme="mural"] .map-bar .icon-btn[aria-pressed="true"] { box-shadow: var(--medal-on), var(--cast); }
-/* the action bar: each entry a medallion with its word on a scroll */
-:root[data-theme="mural"] .act-bar { gap: 26px; padding-left: 16px; }
-:root[data-theme="mural"] .act-bar button { min-height: 34px; overflow: visible; justify-content: flex-start; padding: 2px 10px 2px 0; border: 1.5px solid var(--ink);
-  border-radius: 0 10px 0 10px; font-size: 16px; box-shadow: var(--cast); }
-:root[data-theme="mural"] .act-bar button > .ico { box-sizing: content-box; margin: -8px 0 -8px -16px; padding: 8px; border: 2px solid var(--ink); border-radius: 50%;
-  background: var(--node); box-shadow: var(--medal); color: var(--accent); }
-:root[data-theme="mural"] .act-bar button:is([aria-expanded="true"], [aria-pressed="true"]) { border-color: var(--ink); }
-:root[data-theme="mural"] .act-bar button:is([aria-expanded="true"], [aria-pressed="true"]) > .ico { background: var(--accent); box-shadow: var(--medal-on); color: var(--on-accent); }
-/* the meter: counted beads, ten to a level (a trait's small one five), filled as far as the level, the last in part; a mark is a wedge
-   over the beads. The fill lies under the whole row and is cut to the level by the --lo and --hi page/meter gives. */
-:root[data-theme="mural"] .meter { --beads: 10; height: 12px; border-radius: 0;
+/* Mural's pieces (VB-1534, VB-1535): the band is its panel, by its tokens (the band's sawtooth lies in the panel's transparent top
+   and bottom border) and the ochre sides below, on a panel in a Mural page or a Mural sample; black letter in red ochre its head, by
+   its tokens, upright below; the leaf is its button, its corners and the scroll's hand below; a ringed medallion in red ochre its
+   icon button, and a labelled one's icon, its label a tag under or beside it, both filled with red ochre when pressed (VB-1536; the
+   :is(*, ...) lifts the rule over the one pressed look, which would fill the button behind them); a dotted ink line parts its rows; counted beads are its meter, ten to a level, filled as far as the level, the last in part, a mark a wedge over the beads (the fill lies under the whole row, cut to the level by page/meter's --lo and --hi). */
+:where([data-theme="mural"]) button:where(:not(.row, .card)) { border-radius: 0 10px 0 10px; font-family: var(--scroll); font-style: italic; font-weight: 700; }
+[data-theme="mural"] .panel, .panel[data-theme="mural"] { border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+[data-theme="mural"] .head { font-style: normal; }
+[data-theme="mural"] .icon-btn:not(.labelled) { border: 2px solid var(--ink); box-shadow: inset 0 0 0 2px var(--node), inset 0 0 0 3.5px var(--accent); }
+[data-theme="mural"] .icon-btn:not(.labelled):is([aria-pressed="true"], [aria-haspopup][aria-expanded="true"]) { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3.5px var(--node); }
+[data-theme="mural"] .icon-btn:not([aria-pressed="true"], [aria-expanded="true"]) { color: var(--accent); }
+[data-theme="mural"] .icon-btn.labelled:is(*, [aria-pressed="true"], [aria-haspopup][aria-expanded="true"]) { background: none; border: 0; border-radius: 0; box-shadow: none;
+  color: var(--ink); overflow: visible; padding: 0; gap: 3px; }
+[data-theme="mural"] .icon-btn.labelled > .ico { box-sizing: content-box; padding: 9px; border: 2px solid var(--ink); border-radius: 50%; background: var(--node);
+  box-shadow: inset 0 0 0 2px var(--node), inset 0 0 0 3.5px var(--accent), var(--shadow-0); color: var(--accent); }
+[data-theme="mural"] .icon-btn.labelled > .label { padding: 0 5px; font-size: 13px; line-height: 1.3; border: 1px solid var(--ink); background: var(--node); box-shadow: var(--shadow-0); }
+[data-theme="mural"] .icon-btn.labelled:is([aria-pressed="true"], [aria-haspopup][aria-expanded="true"]) > :is(.ico, .label) { background: var(--accent); color: var(--on-accent); }
+[data-theme="mural"] .icon-btn.labelled:is([aria-pressed="true"], [aria-haspopup][aria-expanded="true"]) > .ico {
+  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3.5px var(--node), var(--shadow-0); }
+@media (max-width: 1024px) { [data-theme="mural"] .icon-btn.labelled > .ico { padding: 4px; } [data-theme="mural"] .icon-btn.labelled > .label { line-height: 1.15; } }
+[data-theme="mural"] .row { border-top: 1.5px dotted var(--edge); }
+[data-theme="mural"] .meter { --beads: 10; height: 12px;
   background: radial-gradient(circle closest-side, var(--node) 0 62%, var(--ink) 66% 92%, transparent 97%) 0 0 / calc(100% / var(--beads)) 100%; }
-:root[data-theme="mural"] .meter > i { left: 0 !important; width: 100% !important; border-radius: 0; background: var(--good);
+[data-theme="mural"] .meter > i { left: 0 !important; width: 100% !important; background: var(--good);
   -webkit-mask: radial-gradient(circle closest-side, #000 0 62%, transparent 66%) 0 0 / calc(100% / var(--beads)) 100%;
   mask: radial-gradient(circle closest-side, #000 0 62%, transparent 66%) 0 0 / calc(100% / var(--beads)) 100%;
   clip-path: inset(0 calc(100% - var(--hi, 0%)) 0 var(--lo, 0%)); }
-:root[data-theme="mural"] .meter.warn > i { background: var(--gold); }
-:root[data-theme="mural"] .meter.bad > i { background: var(--bad); }
-:root[data-theme="mural"] .meter > b { top: -6px; bottom: auto; width: 0; height: 0; margin-left: -4px; border: 4px solid transparent; border-top: 6px solid var(--ink);
-  border-bottom: 0; border-radius: 0; background: none; }
-:root[data-theme="mural"] .meter > b + b, :root[data-theme="mural"] .meter > b.head { border-top-color: var(--gold); background: none; }
-:root[data-theme="mural"] .meter > b.custom { border-top-color: var(--ink); background: none; }
-:root[data-theme="mural"] .meter.over::after { border-left-color: var(--good); }
-:root[data-theme="mural"] .trait .meter { --beads: 5; height: 9px; }
-:root[data-theme="mural"] .trait .meter > i { background: var(--muted); }
-:root[data-theme="mural"] .trait.high .meter > i { background: var(--good); }
-:root[data-theme="mural"] .trait.low .meter > i { background: var(--gold); }
-:root[data-theme="mural"] .act-bar { width: auto; max-width: calc(100vw - 28px); justify-content: center; bottom: calc(var(--dock-bottom) + 74px); }
-:root[data-theme="mural"] .act-bar button { flex: 0 1 auto; padding-right: 14px; }
-:root[data-theme="mural"] .act-menu { bottom: calc(var(--dock-bottom) + 132px); padding-top: 12px; padding-bottom: 12px; }
-/* a row of a list: no scroll of its own, a dotted ink line between rows */
-:root[data-theme="mural"] .act-row { border-radius: 0; background: none; border-top: 1.5px dotted var(--edge); }
-:root[data-theme="mural"] .act-row:hover { background: rgba(44, 32, 28, 0.08); }
-:root[data-theme="mural"] .act-row .ico { color: var(--accent); }
-:root[data-theme="mural"] .act-row[aria-disabled="true"] .ico { color: var(--muted); }
-:root[data-theme="mural"] .act-menu .mh button { width: 36px; height: 36px; border: 2px solid var(--ink); border-radius: 50%; box-shadow: var(--medal); color: var(--accent); }
-/* a portrait or a picture at a card's head: a medallion on an ochre ground; the minimap: framed as a picture is, in three rings */
-:root[data-theme="mural"] img.badge { border: 2px solid var(--ink); border-radius: 50%; background: #e2c684; box-shadow: inset 0 0 0 2px var(--node); }
-:root[data-theme="mural"] .state-mark { border: 2px solid var(--ink); box-shadow: var(--medal); color: var(--accent); }
-:root[data-theme="mural"] .minimap { margin: 0 6px 6px 0; border: 2px solid var(--ink); background: var(--node);
-  box-shadow: 0 0 0 3px var(--node), 0 0 0 5px var(--accent), 0 0 0 6.5px var(--ink), 0 8px 16px rgba(20, 14, 10, 0.5); }
-:root[data-theme="mural"] .stat-ico, :root[data-theme="mural"] .trait.high, :root[data-theme="mural"] .trait.low { color: var(--accent); }
-:root[data-theme="mural"] .choose-bar { padding-top: 12px; padding-bottom: 12px; }
-/* the icons (VB-1162): an icon that carries a stencil (page/icons, stencil) shows it in this theme, in one pigment, its parts held apart
-   by gaps in the colour of the ground it lies on; a pressed button's ground is the red ochre */
-.ico .i-sten { display: none; }
-:root[data-theme="mural"] .ico .i-line { display: none; }
-:root[data-theme="mural"] .ico .i-sten { display: inline; }
-.i-sten > * { fill: currentColor; stroke: var(--ico-bg, var(--node)); stroke-width: 0.7; stroke-linejoin: round; }
-.i-sten > .l { fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; }
-.i-sten > .c { fill: none; stroke: var(--ico-bg, var(--node)); stroke-width: 1.5; stroke-linecap: round; }
-:root[data-theme="mural"] :is([aria-pressed="true"], [aria-selected="true"], .act-bar [aria-expanded="true"], button.primary) { --ico-bg: var(--accent); }
-/* the start screen (VB-1164): the scenario's name a head; a card with a picture a framed panel, square, the chosen one in a double
-   ring; the island's picture framed as the minimap is; a callout a medallion with its words on a scroll; a field an ink line */
-:root[data-theme="mural"] :is(.start-side h2, .choose-card h2, .choose h1) { font-family: var(--head); font-style: normal; font-weight: 700; color: var(--accent); }
-:root[data-theme="mural"] .start-side h2 { font-size: 28px; }
-:root[data-theme="mural"] .scard { border-radius: 0; border: 1.5px solid var(--ink); }
-:root[data-theme="mural"] .scard b { font: italic 700 18px/1.2 var(--scroll); }
-:root[data-theme="mural"] :is(.scard, .story)[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 2px var(--node), 0 0 0 4px var(--accent); --ico-bg: var(--node); }
-:root[data-theme="mural"] .story { border-radius: 0 12px 0 12px; }
-:root[data-theme="mural"] .story[aria-pressed="true"] { background: var(--node); }
-:root[data-theme="mural"] .story b { font: italic 700 16px/1.2 var(--scroll); }
-:root[data-theme="mural"] .fcard { border-radius: 0; border: 1.5px solid var(--ink); }
-:root[data-theme="mural"] .fcard.none { border-style: dashed; }
-:root[data-theme="mural"] .start-view { margin: 6px; border: 2px solid var(--ink);
-  box-shadow: 0 0 0 3px var(--node), 0 0 0 5px var(--accent), 0 0 0 6.5px var(--ink), 0 8px 16px rgba(20, 14, 10, 0.5); }
-:root[data-theme="mural"] .pin .mk > .ico { background: var(--node); color: var(--accent); border: 2px solid var(--ink); box-shadow: inset 0 0 0 1.5px var(--node), inset 0 0 0 2.5px var(--accent), var(--cast); }
-:root[data-theme="mural"] .pin .mk > .fi { background: var(--node); border: 2px solid var(--ink); box-shadow: var(--cast); }
-:root[data-theme="mural"] .pin b { background: var(--node); border: 1.5px solid var(--ink); border-radius: 0 8px 0 8px; -webkit-backdrop-filter: none; backdrop-filter: none;
-  font: italic 700 14px/1.3 var(--scroll); box-shadow: var(--cast); }
-:root[data-theme="mural"] .year div { border-top: 3px solid var(--accent); }
-:root[data-theme="mural"] :is(.genscreen, .saves-screen, .drawer, .editor) :is(input, select) { border: 1.5px solid var(--ink); }
-:root[data-theme="mural"] .start-bar { padding-top: 14px; padding-bottom: 14px; }
-/* Whom to play (VB-1165): a member of the household is a medallion with the name under it, the chosen one in the double ring with the
-   name on a red scroll; what a position can do is a fact, not a thing pressed, so it is an icon and its words with no scroll round them */
-:root[data-theme="mural"] .people { gap: 6px 4px; }
-:root[data-theme="mural"] .person { gap: 3px; padding: 4px 0 2px; border: 0; border-radius: 0; background: none; }
-:root[data-theme="mural"] .person img { width: 46px; height: 46px; padding: 3px 3px 0; border: 2px solid var(--ink); border-radius: 50%; background: #e2c684;
-  box-shadow: inset 0 0 0 2px var(--node); }
-:root[data-theme="mural"] .person[aria-pressed="true"] { background: none; }
-:root[data-theme="mural"] .person[aria-pressed="true"] img { box-shadow: inset 0 0 0 2px var(--node), 0 0 0 2px var(--node), 0 0 0 4px var(--accent); }
-:root[data-theme="mural"] .person span { padding: 0 6px; border: 1.5px solid transparent; border-radius: 0 8px 0 8px; font: italic 700 14px/1.25 var(--scroll); }
-:root[data-theme="mural"] .person[aria-pressed="true"] span { background: var(--accent); border-color: var(--ink); color: var(--on-accent); }
-:root[data-theme="mural"] .person:disabled img { background: var(--node); opacity: 0.6; }
-:root[data-theme="mural"] .person.hit img { filter: none; background: var(--gold); }
-@media (hover: hover) { :root[data-theme="mural"] .person:hover:not(:disabled) { background: none; }
-  :root[data-theme="mural"] .person:hover:not(:disabled):not([aria-pressed="true"]) span { border-color: var(--ink); } }
-:root[data-theme="mural"] .detail { border-top: 1.5px dotted var(--edge); }
-:root[data-theme="mural"] .pchips { gap: 4px 16px; }
-:root[data-theme="mural"] .pchip { padding: 1px 0; border-radius: 0; background: none; }
-:root[data-theme="mural"] .hhead img { width: 48px; height: 48px; }
-/* the family tree (VB-1166): a person is a square plaster tag in an ink line, the chosen one in red ochre; kinship is drawn in ink */
-:root[data-theme="mural"] #treeSvg .tn rect { rx: 0; fill: var(--node); stroke: var(--ink); stroke-width: 1.5; }
-:root[data-theme="mural"] #treeSvg .tn.focus rect { stroke-width: 2.5; }
-:root[data-theme="mural"] #treeSvg .tn.sel rect, :root[data-theme="mural"] #treeSvg .tn.focus.sel rect { stroke: var(--accent); stroke-width: 3.5; }
-:root[data-theme="mural"] #treeSvg .chip rect { rx: 0; stroke: var(--ink); }
-:root[data-theme="mural"] #treeSvg .marriage, :root[data-theme="mural"] #treeSvg .descent { stroke: var(--ink); }
-:root[data-theme="mural"] .tree-info h3 { font-family: var(--head); font-style: normal; font-size: 26px; color: var(--accent); }
-:root[data-theme="mural"] :is(.tree-head, .tree-modes, .tree-caption) { border-bottom: 1.5px dotted var(--edge); }
-:root[data-theme="mural"] .tree-info { border-left: 1.5px dotted var(--edge); }
-:root[data-theme="mural"] .tree-card { padding: 8px 0; }
-/* a person or a place in a list (VB-1166): its picture a small medallion, its name in the scroll's hand; rows parted by a dotted line */
-:root[data-theme="mural"] img.mini { border: 1.5px solid var(--ink); border-radius: 50%; background: #e2c684; }
-:root[data-theme="mural"] .row { border-radius: 0; border-top: 1.5px dotted var(--edge); }
-:root[data-theme="mural"] .row .who { font: italic 700 15.5px/1.25 var(--scroll); }
-:root[data-theme="mural"] .row .who i { font: 400 13px/1.3 'Alegreya Sans', system-ui, sans-serif; }
-:root[data-theme="mural"] .roster { border-top: 0; }
-/* a supply's seasons (VB-1166): square cells in an ink line, what is held in green earth; red is kept for a shortfall */
-:root[data-theme="mural"] .supply .cell { border-radius: 0; background: color-mix(in srgb, var(--ink) 9%, transparent); box-shadow: inset 0 0 0 1.5px var(--ink); }
-:root[data-theme="mural"] .supply .cell > i.own { background: var(--good); box-shadow: inset 0 0 0 1.5px var(--ink); }
-:root[data-theme="mural"] .supply .cell > i.with { background: repeating-linear-gradient(-45deg, var(--good) 0 2px, transparent 2px 6px); }
-:root[data-theme="mural"] .supply .cell.short { background: color-mix(in srgb, var(--bad) 14%, transparent); box-shadow: inset 0 0 0 1.5px var(--bad); }
-:root[data-theme="mural"] .supply-nums { border-radius: 0; background: none; border: 1.5px dotted var(--edge); }
-/* the rest of the screens (VB-1167): the editor's heads, native boxes and sliders in the red ochre, the key of a meter's marks as the
-   wedges it draws, the loader as a painted band, and room for the band's borders on the small panels */
-:root[data-theme="mural"] { accent-color: var(--accent); }
-:root[data-theme="mural"] :is(.editor h2, .drawer h2, .play-offer h2, .game-name, .loader p) { font-family: var(--head); font-style: normal; font-weight: 700; }
-:root[data-theme="mural"] :is(.editor h2, .play-offer h2) { color: var(--accent); }
-:root[data-theme="mural"] .mark-key b { width: 0; height: 0; border: 4px solid transparent; border-top: 6px solid var(--ink); border-bottom: 0; border-radius: 0; background: none; }
-:root[data-theme="mural"] .mark-key b.head { border-top-color: var(--gold); background: none; }
-:root[data-theme="mural"] .stat .meter { min-width: 84px; }
-:root[data-theme="mural"] .loader .bar { height: 12px; border: 2px solid #faf6e8; border-radius: 0; background: none; }
-:root[data-theme="mural"] .loader .bar i { background: #d9a441; }
-:root[data-theme="mural"] :is(.toast, .act-banner, .notice-pop, .play-offer) { padding-top: 12px; padding-bottom: 12px; }
-:root[data-theme="mural"] .succession li button { border-radius: 0; border-top: 1.5px dotted var(--edge); }
-:root[data-theme="mural"] .history .kinds button { border-radius: 0 8px 0 8px; }
-:root[data-theme="mural"] .history .kinds button[aria-pressed="true"] { border-color: var(--ink); }
+[data-theme="mural"] .meter.warn > i { background: var(--gold); }
+[data-theme="mural"] .meter.bad > i { background: var(--bad); }
+[data-theme="mural"] :is(.meter > b, .mark-key b) { top: -6px; bottom: auto; width: 0; height: 0; margin-left: -4px; border: 4px solid transparent;
+  border-top: 6px solid var(--ink); border-bottom: 0; border-radius: 0; }
+[data-theme="mural"] :is(.meter > b + b, .meter > b.head, .mark-key b.head) { border-top-color: var(--gold); }
+[data-theme="mural"] .meter > b.custom { border-top-color: var(--ink); }
+[data-theme="mural"] .meter.over::after { border-left-color: var(--good); }
+/* Counted (VB-1534): a Mural rule for one component, with its reason. The key of a meter's marks (above, with the meter's marks): it
+   draws the marks as the meter does. The bars over the map: their buttons stand on the map with no band, which would hide the map
+   under the dock and does not fit the height the bars are stacked by. */
+[data-theme="mural"] :is(.navigation, .map-bar, .act-bar) { background: none; border: 0; box-shadow: none; }
+/* the icons' sets (VB-1162, VB-1533; page/icons, ICON_SETS): the root's data-icons, which the theme names, is the set shown, and an icon
+   with no drawing of that set shows its line one. One rule a set but line, the fallback: hidden unless asked for, and when asked for,
+   the line drawing beside it hidden. The stencil: one pigment, its parts held apart by gaps in the colour of the ground it lies on */
+:root:not([data-icons="stencil"]) .ico > [data-set="stencil"], :root[data-icons="stencil"] .ico:has(> [data-set="stencil"]) > [data-set="line"] { display: none; }
+[data-set="stencil"] > * { fill: currentColor; stroke: var(--ico-bg, var(--node)); stroke-width: 0.7; stroke-linejoin: round; }
+[data-set="stencil"] > .l { fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; }
+[data-set="stencil"] > .c { fill: none; stroke: var(--ico-bg, var(--node)); stroke-width: 1.5; stroke-linecap: round; }

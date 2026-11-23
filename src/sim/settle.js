@@ -4,9 +4,9 @@ VB['sim/settle'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const Offers = VB['sim/offers'];
   const { next: rnd, drawer } = VB['sim/rng'];
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { DAY, SETTLE, ECON, FIELDS, WOOD, MARRIAGE, SPEED } = VB['sim/rules'],
-    { CROPS, clearable, clearedFertility } = VB['sim/crops'];
+    { CROPS, fertility, openGround: farmable, clearable, clearedFertility } = VB['sim/crops'];
   const { bufferOf, act } = VB['sim/traits'];
   const { wishOf, moveWhy } = VB['sim/wishes'];
   const { reserved } = VB['sim/stores'];

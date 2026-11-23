@@ -52,7 +52,7 @@ const trailsOf = (st, id) => Projects.projectsOf(st, 'pawn', id).filter((p) => p
   const route = findRoute(w, from, to, undefined, 0, trailStep),
     steps = trailSteps(st, from, to);
   check(
-    steps.length >= 10 && steps.every((s) => w.biome[s.place] === VB.gen.B.FOREST && s.hours === PATHS.blaze.hours),
+    steps.length >= 10 && steps.every((s) => w.biome[s.place] === VB['world/biomes'].B.FOREST && s.hours === PATHS.blaze.hours),
     `a step for each wooded tile of the route, ${PATHS.blaze.hours} hours (${steps.length})`,
   );
   check(

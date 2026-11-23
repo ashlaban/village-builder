@@ -12,17 +12,30 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `explain` checks finite outputs and contribution ranges and reports each factor, the combination, the raw result and clamp bounds.
   The million-read heap test checks retained memory after GC; it does not prove zero temporary allocations in provider callbacks.
   Modules declare an owned rule or contribute a factor/term before the first seed/load, which seals the registry; rules never enter saved state.
+- The terrain's representation is `src/world/` (VB-1501), read by the generator, the simulation and the drawing alike, and loaded before
+  them: `world/grid` the hex grid (the odd-r directions, `toAxial`, `hexDist`, `hexLocator`, and `csample(w, arr, x, y)`, a coarse-cell
+  array sampled at a map point), `world/biomes` the biome codes `B` and their keys, names and water, and `treeStage` (the stage of a
+  tile's trees, the contract between `sim/forest`, `sim/spread` and the drawing), `world/geology` the codes and names of the bedrock and
+  deposits (`ROCK`, `DEPOSIT`, `ENDLESS`, `FIND`), `world/rivers` the name of a river tile's water by its flow (`kind`).
+  A sim module reads them there, not through the `gen` facade.
 - `ArchGen.generate(seed)` (`src/gen.js`) assembles the world's terrain, hex tiles and regions. Seeded noise comes from `src/gen/noise.js`.
-  `src/gen/biomes.js` defines biome identities, cover thresholds and tile pigments, and updates a tile's biome and colour together.
-  `src/gen/bake.js` rasterizes the generated world for the map at each level of detail, with land pigments, coastal contours, water and
-  decorations. `src/gen/marks.js` draws the individual marks (trees, stones, humps, crags). `ArchGen` exposes the generator and the bake.
-  Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced and drawn by `src/gen/rivers.js`, listed before `gen.js`, which calls it.
+  `src/gen/biomes.js` holds the cover thresholds (`COVER`); a tile's biome is changed by `setBiome` of `world/biomes`, which writes the
+  biome alone. The world holds no colour (VB-1504): `src/draw/paint.js` builds a world's paint from the world (`paint(w)`: each tile's
+  colour `tr`, `tg`, `tb`, the hillshade `shade`, the coast distance `cdist` and the tile under each coarse cell `chex`, and the brush
+  texture `tile`) and recolours one tile (`colour(P, w, i)`), in the pigments of `src/draw/pigments.js` (the land's, the sea's bands, the
+  lake's). The page keeps one paint per world (`paintOf(wd)` in `page/chunks`, a WeakMap) and recolours explicitly: the tiles of
+  `st.biomeDirty` before their chunks are repainted, the editor's brush, and a world put back whole (the editor's restore, a load) drops
+  its paint, to be built anew. `src/draw/bake.js` rasterizes the world in its paint (`bakeWater(w, P, ctx)`, `bakeChunk(w, P, l, cx, cy,
+  img)`) at each level of detail, with coastal contours, water and decorations. `src/draw/marks.js` draws the individual marks (trees, stones, humps, crags). Both, with `src/draw/paths.js` and `src/draw/rivers.js`,
+  are the presentation layer, listed after `sim.js` (VB-1503). `ArchGen` exposes the generator only (`generate`, `BIOMES`, `COVER`);
+  the page reads the bake as `VB['draw/bake']` and `mulberry32` from `gen/noise`.
+  Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced by `src/gen/rivers.js`, listed before `gen.js`, which calls it, and drawn by `src/draw/rivers.js` (VB-1502).
   What lies in the ground is laid by `src/gen/geology.js`, called the same way: bedrock (`w.rock`) in provinces, with lenses of marble and
   soapstone, and finite deposits of clay and ores (`w.deposit`, `w.depositLeft`) as veins, each island drawing which kinds it has
   (`PROVINCES`, `VEINS`; `node tools/geology.js` reports the shares). Nothing digs yet. `src/sim/prospect.js` keeps what each village
   has found of the hidden upland ores (`st.finds`; `w.vein`, `w.veinNear`): a finished job near a vein may find it (`sim/agents` calls
   `worked`); `Sim.knowsDeposit` and `Sim.depositKnown` are the views' reads. They are shown by the tile panel
-  and the Ground overlay (`src/page/ground.js`: bedrock tints, deposit marks and a key, drawn once a world; the map bar, key O), and the Reach overlay (`src/page/reach.js`: land banded by walking hours from the selected tile, by `reachCosts` of `sim/routes`, with contours and a key at the hours the rules compare against; the map bar, key H).
+  and the Ground overlay (`src/page/ground.js`: bedrock tints, deposit marks and a key, drawn once a world; key O), and the Reach overlay (`src/page/reach.js`: land banded by walking hours from the selected tile, by `reachCosts` of `sim/routes`, with contours and a key at the hours the rules compare against; key J). The three register with `src/page/overlays.js` (VB-1496), the map bar's one overlay button and its list: one overlay shown at a time, its key over the minimap.
   The climate of a world is `src/gen/climate.js` (VB-342), also called by `gen.js`: it erodes the relief, draws the seed's wind (`w.wind`),
   carries rain over the map on it (`w.rain`) and deals the tiles' moisture (`w.hm`) out by that rain, so biomes follow the weather; its
   numbers are `CLIMATE`. Nothing in play reads the wind or the rain yet.
@@ -51,7 +64,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   (`st.pathCache`, `st.routeDirty`, `st.routeFallbacks`). `costChanged` marks that cache for daily refresh and tells walking to invalidate
   its reach lists if passability changed. `src/sim/villagehours.js` maintains the symmetric travel-time table `st.villageHours` (VB-286)
   through the route search and supplies the village-to-village distance queries. `src/sim/paths.js` counts and fades worn paths
-  (`w.wear`, `w.worn`) and wears in generated villages; `src/gen/paths.js` draws them into the map chunks. `src/sim/trails.js` holds the
+  (`w.wear`, `w.worn`) and wears in generated villages; `src/draw/paths.js` draws them into the map chunks. `src/sim/trails.js` holds the
   verb `blaze` (VB-447): a trail is its blazer's project plan, a job a wooded tile on the route `trailStep` makes, worked by the blazer's
   household; a tile blazed is set to a path's count through `sim/paths` (`blazeTile`), and nothing else of it is kept.
 - `Sim.seed(w, seed, scenario)` (`src/sim/scenarios.js`) makes the state `st`; `Sim.advance(st, hours)` (`src/sim/clock.js`) runs it, by whole 6-minute steps only: any other number of hours is refused with an error (VB-244); the page keeps the part of a step and draws the pawns between steps.
@@ -370,8 +383,8 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   three by hand for each archipelago) or a file; the build id is written by `build.py`, and a save of another build is refused by the
   page, not by `Sim.load`. The landing page and the loader (`src/page/loader.js`) lead to it; it keeps nothing in `st`.
 - The interface's theme (VB-1161) is `src/page/options.js`: the main menu's Options screen, and `glass` (the default, the stylesheet as it
-  stands) or `mural`, set as `data-theme` on the page's root and kept in localStorage (`vb.theme`), never in `st` or a save. A theme is the
-  rules under `:root[data-theme="..."]` at the end of `src/head.html`; the meter gives its fill's start and end as `--lo` and `--hi`, so a
+  stands) or `mural`, set as `data-theme` on the page's root and kept in localStorage (`vb.theme`), never in `st` or a save. A theme is a
+  block of tokens under `[data-theme="..."]` and its styling of the pieces in `src/head.html`; the meter gives its fill's start and end as `--lo` and `--hi`, so a
   theme can draw a level another way than as a bar's width.
   With no game open, the loader raises a tiny showcase island behind the menu screens, on one of a pool of seeds (VB-307; `demo`, page state): a run of its own at 3x,
   never saved and never a game to go back to; `build` drops it.
@@ -385,14 +398,14 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 ## Layers (VB-230)
 Each module's layer is in `src/layers.json` (a module without one fails `npm test`); target-v2 3.1 gives the rule: calls go downward, reads are
 free, influence goes upward by a command, an event or a hook. Composition roots stand apart: `sim/clock`, `sim/saves`, `sim/scenarios`, `sim`.
-- Kernel and world: `vb`, `gen`, `gen/*`, `sim/norms` (the norms on goods, VB-417), `sim/rules`, `sim/crops` (the crops, rotations and soil), `sim/roles` (the roles and their work, `MATCH`), `sim/house` (a well-kept house), `sim/registry`, `sim/events`, `sim/rng`, `sim/due` (the due-queue helper: search, insert, removal and take over a sorted list its owner keeps, VB-1473), `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
+- Kernel and world: `vb`, `world/*`, `gen`, `gen/*` (the generator), `sim/norms` (the norms on goods, VB-417), `sim/rules`, `sim/crops` (the crops, rotations and soil), `sim/roles` (the roles and their work, `MATCH`), `sim/house` (a well-kept house), `sim/registry`, `sim/events`, `sim/rng`, `sim/due` (the due-queue helper: search, insert, removal and take over a sorted list its owner keeps, VB-1473), `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
   `sim/villagehours`, `sim/paths`,
   `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/traits` (the stand-in traits and a
   head's skill and bias, VB-254), `sim/skills` (VB-475: a pawn's skill at each type of work, a stand-in that does not grow, from the stream
   `traits`, and a work leg's pace: skill and a mishap from the stream `mishap`; `sim/agents` writes `agent.pace` at the leg's start and
   `manning` reads it; VB-360: a pawn's crafts, `pawn.skills`, learnt by doing and fading, read in closed form: a kind names its `craft`,
   the leg's pace reads its level, and `sim/work`'s `settle` practises it with the hours worked), `sim/commands`, `sim/customs` (the catalogue of customs and the door to the customs in force, VB-231).
-- Material and land: `sim/projects` (the project plans' record and reads, VB-123), `sim/holding` (who may come to hold a farm: one table of the bars, each way to a farm the list it reads, and the household that goes with a new holder, VB-688), `sim/makings` (the registry of what a head begins through the verb `project`, VB-678), `sim/projectplans` (their one writer; VB-431), `sim/goods` (trade goods, grain subtype identifiers and the worth and propriety rules of `sim/norms`), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/seasonal` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/larder`, `sim/pot`, `sim/hunger`, `sim/foodneed`, `sim/quern`, `sim/fieldplans` (household demand, site selection and project planning), `sim/rotations` (crop choices and the village custom), `sim/courses` (a field's course in its rotation: the next step, a rotation taken and staggered, a new field placed, steps swapped, a crop out of turn, the crop last lost; VB-1479), `sim/newground` (a field's site cleared and its ground broken; VB-1479), `sim/soil` (soil, tilth and manure; VB-1479), `sim/fields` (a field's crop year), `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/saltpan` (salt boiled at a spring, VB-700), `sim/ironwork` (the tools' condition, smelting and mending, VB-701), `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091), `sim/herds`, `sim/ownership`, `sim/claims`, `sim/disputes`,
+- Material and land: `sim/projects` (the project plans' record and reads, VB-123), `sim/holding` (who may come to hold a farm: one table of the bars, each way to a farm the list it reads, and the household that goes with a new holder, VB-688), `sim/makings` (the registry of what a head begins through the verb `project`, VB-678), `sim/projectplans` (their one writer; VB-431), `sim/goods` (trade goods, grain subtype identifiers and the worth and propriety rules of `sim/norms`), `sim/stores`, `sim/targets` (the head's target on each made good, VB-698: the registry of goods with a maker, each declared by its maker; `sim/seasonal` compiles `plan.targets.goods` at the review and the verb `target` sets one within `bounds`), `sim/larder`, `sim/pot`, `sim/hunger`, `sim/foodneed`, `sim/quern`, `sim/fieldplans` (household demand, site selection and project planning), `sim/rotations` (crop choices and the village custom), `sim/courses` (a field's course in its rotation: the next step, a rotation taken and staggered, a new field placed, steps swapped, a crop out of turn, the crop last lost; VB-1479), `sim/newground` (a field's site cleared and its ground broken; VB-1479), `sim/fieldrec` (the one constructor of a field's record, `newField`; VB-1528), `sim/soil` (soil, tilth and manure; VB-1479), `sim/fields` (a field's crop year), `sim/meadows`, `sim/byre`, `sim/carts`, `sim/tar`, `sim/saltpan` (salt boiled at a spring, VB-700), `sim/ironwork` (the tools' condition, smelting and mending, VB-701), `sim/grazing`, `sim/spread` (forest spread into open land: the front `st.front`, scrub, what keeps land open, the hours scrub adds to clearing; VB-091; the lapsed ground `st.lapsed` of fields let go, wild again after `LAPSE.years`; VB-1527), `sim/herds`, `sim/ownership`, `sim/claims`, `sim/disputes`,
   `sim/stakes`, `sim/territory`, `sim/cottageplan` (the cottage as stages of a plan, a plot's and a settler household's), `sim/expansion`, `sim/building` (the cottage's stages as kinds, and what building takes: timber, VB-328),
   `sim/fieldwork` (the job kinds of a farm's fields, beside `sim/fields`, VB-418), `sim/chores` (the job kinds of the household's daily work at
   the house: firewood, water, cooking, brewing, gathering, VB-418),
@@ -410,6 +423,9 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   `norm` gives a normal crop's hours), `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review, with its doubt, VB-669; kept
   in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
 - Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
+- Presentation (VB-1503): `draw/*`, the map's drawing (`draw/pigments`, `draw/paint`, `draw/bake`, `draw/marks`, `draw/paths`,
+  `draw/rivers`), listed after `sim.js`. They read the world, and the bake a world's paint (VB-1504); no generator or simulation module names them (`tests/dependencies.js`
+  refuses it, as an upward call and as a lookup of a later module). The page reads them by key.
 
 ## Adding things
 
@@ -421,7 +437,7 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
 - Tunables: a table one domain reads lives in that domain's module with a `// @tunable NAME: meaning` line above it (VB-419;
   `grep -rn "@tunable" src`, the lint holds it for each table that left `sim/rules`); the tables several domains read (the calendar, `ECON`,
   `FOODS`, `HERD`, `TRAVEL` and the like) stay in `src/sim/rules.js`; `KINDS` (job kinds) in each domain's module, joined by `src/sim/kinds.js`; `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK`
-  (worn paths) in `src/gen/paths.js`; `DIMS`, `ARCHETYPES` and `PRACTICES` in `src/sim/customs.js`.
+  (worn paths) in `src/draw/paths.js`; `DIMS`, `ARCHETYPES` and `PRACTICES` in `src/sim/customs.js`.
 - A new job kind is one record in the `KINDS` of the module whose state its work changes (VB-418): numbers, type of work, labels, where to
   stand, urgency, and what finishing and delivering do, beside the rules its `done`, `deliver` and `available` call (the field's kinds in
   `sim/fieldwork`, the byre's in `sim/byre`, the household's daily work at the house in `sim/chores`). A kind that takes from one module and
@@ -446,4 +462,30 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   enough for what is planned: a count, and where a project plan asks for it, its framed work block with held against asked on the one
   meter); a **gear** wears (what condition is it in). A material is one row of `MATERIALS` in `src/page/cards.js`, its kinds a list under
   the total, shown only where more than one is held; a work's asks are read from the project plan's `build` reservations.
+- A new map overlay (VB-1496) is one file under `src/page/`, its line in `src/page.json` after `page/overlays.js` and before `page/input.js`,
+  an icon in both sets of `src/page/icons.js` (`ICON` and `ICON_STEN`), and a key panel (`class="ground-key panel"`, `hidden`) beside the
+  others over the minimap in `src/body.html`. The file ends with `registerOverlay({id, name, short, key, icon, group, set(on), refresh(), reset(), layer, keyEl})`:
+  `set` shows or hides its layer and draws it, `refresh` runs every frame on or off, `reset` for a new world. With no `key` it takes the next
+  free digit (6 to 9: 1 to 5 are the speeds; then Y, U and I). The overlay button, its list, the keys and `tests/browser-overlays.js` follow the registry: none
+  of them names an overlay.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.
+- A new set of icons (VB-1533; `line` and `stencil` today) is one entry of `ICON_SETS` in `src/page/icons.js` and its drawings, given
+  by name where an icon is made (`drawings(svg, { stencil: ..., <set>: ... })`, drawn on a 24 box); an icon left without one shows its
+  `line` drawing. In `src/head.html`, beside the stencil's, its one rule (hidden unless the root's `data-icons` names it, and then the
+  `line` drawing beside it hidden) and the styles its shapes are drawn with; then a theme names it, the `icons` field of its entry in
+  `THEMES` (`src/page/options.js`), which `applyTheme` puts on the root as `data-icons`. No rule of the icons names a theme.
+- A new theme (VB-1531) is two edits. An entry in `THEMES` (`src/page/options.js`): its key, `name`, `note` and the `icons` it shows; its
+  card in Options, and `tests/page.js`'s walk of the themes, follow. And a block `[data-theme="<key>"] { ... }` in `src/head.html`
+  that sets every token listed at the head of the stylesheet, in one rule (`tests/themes.js` checks it); written without `:root`, it
+  applies to any element with the attribute, so the card's sample (a panel, a head, a pressed and an unpressed button) is drawn in the
+  theme whatever theme is on. Then its styling of the pieces (VB-1534), listed beside the tokens: panel, head, button (pressed and
+  primary by one rule), icon button, row, card, meter. What the tokens cannot say is a rule in the theme's own section,
+  `[data-theme="<key>"] .piece`, as Mural's medallion, leaf and beads; a rule there names a piece, or a component on the list's `counted:`
+  line with its reason beside it (`tests/themes.js` checks it). The tokens are scales and plain meanings (VB-1535): a theme sets its
+  three corners (`--r-0` to `--r-2`) and its three shadows (resting, raised, floating), not one corner a component; a value only one
+  theme's piece would read is that piece's rule, not a token. A sample's panel carries the theme itself, so a theme's panel rule names
+  it twice, `[data-theme="<key>"] .panel, .panel[data-theme="<key>"]`.
+- A new component uses pieces (VB-1534): its markup carries `panel`, `head`, `icon-btn`, `row`, `card` or `meter` (a button is the
+  element), a popup's opener `aria-haspopup` so that it shows pressed while open; its own rules carry layout (place, size, gaps), and
+  corners from a step of the radius scale (or round, for a pill or a circle), its shadow from a step of the shadow scale, not a look
+  a theme would want to change.

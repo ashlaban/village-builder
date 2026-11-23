@@ -21,7 +21,7 @@ const SIGN_PATHS = {
   shield: 'M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z',
   people: 'M6 8a3 3 0 1 0 6 0 3 3 0 1 0-6 0M3 20c0-5 3-7 6-7s6 2 6 7M15 5.5a2.5 2.5 0 1 1 0 5M17 13c2.5.5 4 2.5 4 6',
 };
-// The same signs as stencils, for the mural theme (VB-1164; page/icons, stencil): most are icons the interface has already.
+// The same signs as stencils, for the mural theme (VB-1164; page/icons, drawings): most are icons the interface has already.
 const SIGN_STEN = {
   house: ACT_STEN.home,
   field: GOOD_STEN.grain,
@@ -38,7 +38,7 @@ const SIGN_STEN = {
   shield: '<path d="M12 2.8l8 2.7v6c0 5-3.5 8.3-8 10-4.5-1.7-8-5-8-10v-6z"/>',
   people: PEOPLE_STEN,
 };
-const sign = (k) => stencil(svgIcon(24, 24, `<path d="${SIGN_PATHS[k]}"/>`, ICON_STROKE), SIGN_STEN[k]);
+const sign = (k) => drawings(svgIcon(24, 24, `<path d="${SIGN_PATHS[k]}"/>`, ICON_STROKE), { stencil: SIGN_STEN[k] });
 // The scenario's suggestion (design.md, Which pawn), a filled star; what it means is written beside the cards, not only in a tooltip.
 const SUGGESTED =
   '<svg class="ico sug" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="Suggested by the scenario" focusable="false">' +
@@ -279,7 +279,7 @@ function storyCards(scenario, pressed = null) {
   return `<div class="stories">${storyPeople(scenario)
     .map(
       (s) =>
-        `<button type="button" class="story" data-story="${s.key}" aria-pressed="${
+        `<button type="button" class="card story" data-story="${s.key}" aria-pressed="${
           pressed === s.key
         }">${sign(POS_ICON[s.key])}<b>${esc(s.label)}</b>${s.sug ? SUGGESTED : '<span></span>'}<small>${esc(LIFE_LINE[s.key])}</small>` +
         `<span class="few">${s.who

@@ -4,6 +4,7 @@
 const FAST = [
   ['node', 'tests/build.js'],
   ['node', 'tests/format.js'],
+  ['node', 'tests/themes.js'], // VB-1532: every theme of THEMES sets every theme token; every var() of the stylesheet is defined
   ['node', 'tests/marriage-demography.js'],
   ['node', 'tests/lintrules.js'],
   ['node', 'tests/source.js'],
@@ -58,6 +59,9 @@ const FAST = [
   ['node', 'tests/crops.js'],
   ['node', 'tests/seedorder.js'], // seed eaten last field last; a start in life and settlers take a field's seed of each crop (VB-352)
   ['node', 'tests/forest-spread.js'],
+  ['node', 'tests/clear-ground.js'], // clearing by ground: hills 18, heath 13, meadow 10 (VB-1522)
+  ['node', 'tests/forest-field.js'], // a wood broken to a field: felled, grubbed, cleared, broken; its timber walked home (VB-1525)
+  ['node', 'tests/field-site.js'], // a field's site by its score, whatever its ground: far stony meadow over near hills (VB-1524)
   ['node', 'tests/rye.js'],
   ['node', 'tests/weather.js'], // VB-354: the seasons' weather, each crop's reading, the thaw, the frost, the ripening
   ['node', 'tests/latitude.js'], // VB-807: the winter's dates by latitude, the bands, the growing year by world, dates falling, lat saved
@@ -102,6 +106,7 @@ const FAST = [
   ['node', 'tests/accounts.js'], // VB-403: the balance accounts close, the people account too, and the run is unchanged
 ];
 const INTEGRATION = [
+  ['node', 'tests/samepixels.js'], // VB-1500: the map-pixels tool catches a pigment and a mark moved; 2.5 s
   ['node', 'tests/events.js'],
   ['node', 'tests/grain.js'],
   ['node', 'tests/scaling.js'],
@@ -209,6 +214,7 @@ const INTEGRATION = [
   ['node', 'tests/aleevening.js'], // VB-522: the ale evening (who calls, who is asked, the barrel) and the season's rite (its leader, the ties)
   // VB-855: the farming year, from new fields to digging, on small generated islands and constructed states
   ['node', 'tests/newfields.js'],
+  ['node', 'tests/fieldground.js'],
   ['node', 'tests/fieldswanted.js'],
   ['node', 'tests/weeding.js'],
   ['node', 'tests/soil.js'],
@@ -282,6 +288,7 @@ const EXTENDED = [
   ['node', 'tests/browser-speed.js'],
   ['node', 'tests/browser-gathering.js'], // a gathering while it is on: its notice, its mark and its card (VB-1031, VB-1032)
   ['node', 'tests/browser-fields.js'], // a field's card: crop, course, the head's rotation choices and their answers, winter rye (VB-1146)
+  ['node', 'tests/browser-overlays.js'], // the map's overlays through their list and by key, one at a time, on a phone (VB-1496)
   ['node', 'tests/browser-bonds.js'] // portraits: the bonds as badges (VB-1026), their words (VB-1033), ageing (VB-1029)
 ];
 module.exports = { FAST, INTEGRATION, EXTENDED };

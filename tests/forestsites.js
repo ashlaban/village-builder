@@ -4,7 +4,7 @@
 // field broken there is fresh land. On a tiny world (tests/lib/tiny.js): a meadow clearing in a forest.
 const VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/settle'];
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
-const { SETTLE, SPEED, SOIL } = { ...VB['sim/rules'], ...VB['sim/crops'] }, { hexSteps, bfs } = VB['sim/hex'], { B } = VB.gen;
+const { SETTLE, SPEED, SOIL } = { ...VB['sim/rules'], ...VB['sim/crops'] }, { hexSteps, bfs } = VB['sim/hex'], { B } = VB['world/biomes'];
 const Projects = VB['sim/projects'], { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('FOREST SITES FAIL:', m); } };
 const roll = (st, f) => { const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } };

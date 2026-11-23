@@ -1,10 +1,17 @@
 // @sys page/setup: start-up of the page script: the PixiJS app, daylight wash, layers, static textures (waves, clouds), and the camera state
 const G = ArchGen,
-  LV = G.LV,
-  TEX = G.TEX,
-  Rivers = VB['gen/rivers'],
-  Paths = VB['gen/paths'],
+  Noise = VB['gen/noise'],
+  Bake = VB['draw/bake'],
+  Pigments = VB['draw/pigments'],
+  LV = Bake.LV,
+  TEX = Bake.TEX,
+  Rivers = VB['draw/rivers'],
+  Paths = VB['draw/paths'],
   Geo = VB['gen/geology'],
+  Strata = VB['world/geology'],
+  Biomes = VB['world/biomes'],
+  Grid = VB['world/grid'],
+  Flow = VB['world/rivers'],
   Customs = VB['sim/customs'];
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
@@ -79,6 +86,11 @@ for (const k of [
   'fences',
   'ground',
   'reach',
+  'fertility',
+  'woodland',
+  'wildfood',
+  'grazing',
+  'wear',
   'land',
   'grid',
   'regions',
@@ -96,6 +108,10 @@ L.regions.visible = false;
 L.land.visible = false;
 L.ground.visible = false;
 L.reach.visible = false;
+L.fertility.visible = false;
+L.woodland.visible = L.wildfood.visible = false;
+L.grazing.visible = false;
+L.wear.visible = false;
 
 // ---- static textures ----
 let SPR = null; // the trees and shrubs the chunks are decorated with: landSprites (page/farmart), made at the first chunk
@@ -122,7 +138,7 @@ function waveCanvas() {
 function cloudCanvas(seed) {
   const c = makeCanvas(400, 240),
     g = c.getContext('2d'),
-    r = G.mulberry32(seed);
+    r = Noise.mulberry32(seed);
   for (let k = 0; k < 28; k++) {
     const a = r() * Math.PI * 2,
       d = Math.sqrt(r());

@@ -7,7 +7,7 @@
 // Prints, for each kind of stone and deposit, the share of maps and of counted islands that have it, the kinds an island has (median and
 // most), the islands that have every kind, and how alike two islands of one map are (the mean share of kinds they have in common).
 require('./help.js')(__filename);
-const VB = require('../src/load.js'), G = VB.gen, Geo = VB['gen/geology'], { landComponents } = VB['sim/hex'];
+const VB = require('../src/load.js'), G = VB.gen, Geo = VB['world/geology'], { landComponents } = VB['sim/hex'];
 const args = process.argv.slice(2), opt = (n, d) => { const i = args.indexOf('--' + n); return i >= 0 ? args[i + 1] : d; };
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
 const map = opt('map', 'small'), least = +opt('least', 60), each = args.includes('--islands');

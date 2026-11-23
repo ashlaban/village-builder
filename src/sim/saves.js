@@ -1,6 +1,5 @@
 // @sys sim/saves: saving and loading a run (VB-074): the state as JSON-compatible data, with shared objects, Maps, Sets and typed arrays kept
 VB['sim/saves'] = (() => {
-  const { setBiome } = VB['gen'];
   const { seal } = VB['sim/registry'];
   const { rebuildLiving } = VB['sim/records'];
   // ---- encoding a graph of plain data ----
@@ -250,8 +249,8 @@ VB['sim/saves'] = (() => {
     return dec(data);
   }
   // ---- a run ----
-  // The tiles the simulation changes (grep writes to w. in src/sim): kept whole, one value a tile. biome is applied with setBiome, which
-  // also recomputes the tile's colours from it; dev, wear, worn, fish, fishDay, forage and forageYear are added to the world by seeding.
+  // The tiles the simulation changes (grep writes to w. in src/sim): kept whole, one value a tile (the page recolours a world
+  // loaded onto, page/loader); dev, wear, worn, fish, fishDay, forage and forageYear are added to the world by seeding.
   const WORLD = [
     'trees',
     'treesMax',
@@ -390,15 +389,14 @@ VB['sim/saves'] = (() => {
     for (const k of WORLD) {
       if (!(k in data.world)) continue;
       const a = decode(data.world[k]);
-      if (k === 'biome') {
-        for (let i = 0; i < a.length; i++) if (w.biome[i] !== a[i]) setBiome(w, i, a[i]);
-      } else if (w[k] && w[k].constructor === a.constructor && w[k].length === a.length) w[k].set(a);
+      if (w[k] && w[k].constructor === a.constructor && w[k].length === a.length) w[k].set(a);
       else w[k] = a;
     }
     const st = decode(data.state, REVIVE);
     st.w = w;
     for (const k in DERIVED) st[k] = null;
     for (const k in DERIVED) if (DERIVED[k]) DERIVED[k](st);
+    VB['sim/fieldrec'].grounded(st); // VB-1520
     grownCustoms(st); // a save from before the last custom (VB-555)
     for (const p of st.pawns) if (p.att) VB['sim/attitudes'].compileLeans(p); // VB-520: compiled from the attitude, as it was saved or made
     VB['sim/agents'].loaded(st); // VB-472: the step's agents have begun; older saves' work is reckoned from now

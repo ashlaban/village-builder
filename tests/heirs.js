@@ -14,7 +14,7 @@ const show = (title) => {
     const f = st.farmsteads[hh.farmstead], v = st.villages[f.village].name, rank = Sim.heirRanking(st, hh).slice(0, 3).map(nm).join(' > ');
     console.log(`  ${v}/${f.name}: holder ${nm(hh.holder)}; members ${hh.members.map((m) => `${st.pawns[m].given} ${st.pawns[m].age} ${st.pawns[m].role}`).join(', ')}\n      heirs: ${rank || 'none'}`);
   }
-  for (const f of st.farmsteads) if (f.household === null) console.log(`  ${st.villages[f.village].name}/${f.name}: ${f.state}, condition ${(f.condition * 100).toFixed(0)}%, fields ${f.fields[0].stage}`);
+  for (const f of st.farmsteads) if (f.household === null) console.log(`  ${st.villages[f.village].name}/${f.name}: ${f.state}, condition ${(f.condition * 100).toFixed(0)}%, fields ${f.fields[0] ? f.fields[0].stage : "gone back to the land"}`);
   console.log('  wants out:', st.demand.map(nm).join(', ') || '(not counted yet)');
   for (const s of st.cenv.settlements) console.log(`  ${s.name}: tie ${s.tie.toFixed(2)} (${s.distance ? s.distance.toFixed(1) : 0} walking hours, kin links ${s.kinLinks || 0}), heirSex ${Sim.practice(st, s.id).heirSex}, handover ${Sim.practice(st, s.id).handover}, claims ${Sim.practice(st, s.id).claims}`);
 };

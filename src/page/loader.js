@@ -57,7 +57,7 @@ function showLanding() {
 // The sea and the overview level of a world, painted before it is swapped in; onP hears the share done.
 async function paintOverview(wd, onP) {
   const wc = makeCanvas(wd.CW, wd.CH);
-  G.bakeWater(wd, wc.getContext('2d'));
+  Bake.bakeWater(wd, paintOf(wd), wc.getContext('2d'));
   const nx2 = Math.ceil(wd.W / LV[2].size),
     ny2 = Math.ceil(wd.H / LV[2].size),
     over = [];
@@ -81,7 +81,7 @@ async function swapWorld(wd, sim, { wc, over }) {
   }
   w = wd;
   stagePainted = { wc, over };
-  loc = G.hexLocator(wd);
+  loc = Grid.hexLocator(wd);
   sel = -1;
   hoverDirty = true;
   showTile(-1);
@@ -89,7 +89,10 @@ async function swapWorld(wd, sim, { wc, over }) {
   water.scale.set(wd.STEP);
   water.position.set(-wd.STEP / 2, -wd.STEP / 2);
   L.water.addChild(water);
-  for (const o of over) addChunk(2, o.cx, o.cy, o.canvas);
+  for (const o of over) {
+    addChunk(2, o.cx, o.cy, o.canvas);
+    if (o.stale) chunks.get(ckey(2, o.cx, o.cy)).stale = true; // left stale when this world was swapped out: painted again here
+  }
   regionG = buildRegions(wd);
   L.regions.addChild(regionG);
   if (!waves.length) {
@@ -99,10 +102,7 @@ async function swapWorld(wd, sim, { wc, over }) {
   makeClouds(wd);
   drawMinimap(wd, wc, over);
   await buildSettlement(wd, sim);
-  resetLand();
-  if (landOn) drawLand();
-  resetGround();
-  resetReach();
+  resetOverlays();
 }
 // save: a save of this build to go on from (Sim.save's data; page/saves), on the world regenerated from its seed and size.
 // size: one of SIZES, or the editor's generation options {cols, rows, landFrac, regionRadius, apply, places} (page/editor), `apply(wd)`
@@ -129,6 +129,7 @@ async function build(seed, scenario, size, save = null, quick = false) {
   let sim = null;
   try {
     sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario, custom ? custom.places : null);
+    if (save) dropPaint(wd); // the save's biomes are laid on the world whole: a paint it had is built anew
   } catch (e) {
     console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e);
   }
@@ -287,7 +288,7 @@ function makeClouds(wd) {
     c.sh.destroy();
   }
   clouds = [];
-  const r = G.mulberry32(wd.seed * 7 + 3),
+  const r = Noise.mulberry32(wd.seed * 7 + 3),
     K = wd.KS;
   for (let k = 0; k < 13; k++) {
     const tex = cloudTex[k % cloudTex.length],

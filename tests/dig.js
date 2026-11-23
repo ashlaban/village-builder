@@ -3,12 +3,12 @@
 // village's outland or wilderness, searched when the want opens and kept; an endless tile stays endless; bog iron regains a load a year up
 // to its first amount, clay nothing; a save keeps the tiles and the stores, and one without them loads with none dug.
 // Populous at seed 8 on the small island of tests/lib/probe.js (VB-855), half a year: households dig and the state keeps its invariants.
-const VB = require('../src/load.js'), Sim = VB.sim, { island } = require('./lib/probe.js'), Geo = VB['gen/geology'], D = VB['sim/dig'], Stores = VB['sim/stores'];
+const VB = require('../src/load.js'), Sim = VB.sim, { island } = require('./lib/probe.js'), D = VB['sim/dig'], Stores = VB['sim/stores'];
 const { KINDS, ASK } = VB['sim/kinds'], { DAY, YEAR } = VB['sim/rules'], { MATCH } = VB['sim/roles'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('DIG FAIL:', m); } };
 const world = (seed) => island(seed), SEED = 8; // at 42 the small island has no bog iron (VB-855)
-const { DIG } = D, { DEPOSIT, ENDLESS } = Geo;
+const { DIG } = D, { DEPOSIT, ENDLESS } = VB['world/geology'];
 
 // --- the kind
 const K = KINDS.dig;

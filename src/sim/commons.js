@@ -8,8 +8,9 @@ VB['sim/commons'] = (() => {
     { DIMS, IDX, inForceAt } = VB['sim/customs'];
   const { cal } = VB['sim/rules'],
     { ROLES } = VB['sim/roles'],
-    { CROPS, farmable, fertility } = VB['sim/crops'];
-  const { B } = VB['gen'];
+    { CROPS, openGround: farmable, fertility } = VB['sim/crops'],
+    { groundKey } = VB['sim/fieldrec'];
+  const { B } = VB['world/biomes'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
   const { freeFor } = VB['sim/territory'];
@@ -99,6 +100,7 @@ VB['sim/commons'] = (() => {
     return {
       what: 'commons',
       started: st.t,
+      ground: groundKey(st.w, t),
       steps: [
         { kind: 'clear', place: t, hours: clearHours(st, t), stake: 'field' },
         { kind: 'break', place: t, hours: BREAK_HOURS, stake: 'field' },
@@ -132,7 +134,7 @@ VB['sim/commons'] = (() => {
     const v = st.villages[j.village];
     realise(st, j.site, VILLAGE(v));
     if (!v.commonFields) v.commonFields = [];
-    v.commonFields.push(broken(st, j.site, v.commonFields.length));
+    v.commonFields.push(broken(st, j.site, v.commonFields.length, plan.ground));
     st.villageDirty.add(v.id); // its new field is drawn (VB-442)
     emit(st, 'stepDone', { type: 'village', id: v.id, plan });
     log(st, `${v.name} has broken a common field: its harvest will go to the village store.`, {

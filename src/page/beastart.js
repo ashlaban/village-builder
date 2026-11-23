@@ -142,7 +142,7 @@ function drawFence(g, s) {
   g.clear();
   const broken = s.cond < 0.45;
   for (const pass of [0, 1]) {
-    const r = G.mulberry32(s.id * 97 + (s.edges[0].tile | 0));
+    const r = Noise.mulberry32(s.id * 97 + (s.edges[0].tile | 0));
     for (const e of s.edges) {
       const dx = e.x2 - e.x1,
         dy = e.y2 - e.y1,

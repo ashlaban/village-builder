@@ -1,13 +1,14 @@
 // @sys sim/layout: placing villages (a green, and a farm at a time round it, by its land), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { WOOD } = VB['sim/rules'],
-    { RIVER, SOIL, farmable, byRiver, fertility, clearable, clearedFertility } = VB['sim/crops'],
+    { RIVER, openGround: farmable, byRiver, fertility, clearable, clearedFertility } = VB['sim/crops'],
     { PATHS } = VB['sim/walking'];
   const { drawnName, nameVillages, nameFarms, loneFarmName } = VB['sim/names']; // names at seeding
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
   const { initWear, wearIn } = VB['sim/paths'];
+  const { newField } = VB['sim/fieldrec'];
   const { initFish } = VB['sim/fish'],
     { initForage } = VB['sim/forage'];
   // ---- placing farms: houses, fields, fences ----
@@ -188,24 +189,7 @@ VB['sim/layout'] = (() => {
     return {
       id,
       house,
-      fields: fields.map((t, k) => ({
-        id: k,
-        tile: t,
-        crop: 'barley',
-        rotation: 'every',
-        step: 0,
-        stage: 'stubble',
-        sown: null,
-        reaped: null,
-        held: 0,
-        fert: fertility(w, t),
-        soil: SOIL.start,
-        tilth: 0,
-        tilthAt: 0, // placed at no tilth: the tick is moot until dung is spread (VB-717)
-        weedOpen: false,
-        weedPosted: null,
-        weedMiss: 0,
-      })),
+      fields: fields.map((t, k) => newField(w, k, t)),
       village: village ? village.id : null,
       household: null,
       name: '',
@@ -393,7 +377,7 @@ VB['sim/layout'] = (() => {
     w.dev = new Uint8Array(w.N);
     for (const j of used) w.dev[j] = 1;
     for (const f of farmsteads) w.dev[f.house] = 3; // a house: no way wears through it (sim/paths)
-    for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (gen/paths)
+    for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (draw/paths)
     initWear(w);
     initFish(w);
     initForage(w);
@@ -465,24 +449,7 @@ VB['sim/layout'] = (() => {
   }
   function fieldOn(w, used, f, tile) {
     used.add(tile);
-    f.fields.push({
-      id: f.fields.length,
-      tile,
-      crop: 'barley',
-      rotation: 'every',
-      step: 0,
-      stage: 'stubble',
-      sown: null,
-      reaped: null,
-      held: 0,
-      fert: fertility(w, tile),
-      soil: SOIL.start,
-      tilth: 0,
-      tilthAt: 0, // placed at no tilth: the tick is moot until dung is spread (VB-717)
-      weedOpen: false,
-      weedPosted: null,
-      weedMiss: 0,
-    });
+    f.fields.push(newField(w, f.fields.length, tile));
   }
   // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
   const farmHooks = [];
