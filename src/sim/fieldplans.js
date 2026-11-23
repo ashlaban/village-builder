@@ -139,7 +139,7 @@ VB['sim/fieldplans'] = (() => {
   // The best farmable tile within reach of the house that the household may take in (its village's outland or wilderness, sim/territory),
   // not on a river, and where farmed land may lie (sim/layout, farmedLand: beside a house, but off the ring round a green and no nearer
   // the green than the house): fertile (watered by one), few stones, near, and 1 better when it touches one of the
-  // farm's fields, so the fields grow as one block (VB-109). Open meadow always comes first; heath, hills or marsh (poorer, by FERTILITY)
+  // farm's fields, so the fields grow as one block (VB-109). Open meadow always comes first; heath, hills or marsh (poorer, by GROUND)
   // only when no meadow is free (balance review: where land ran short, poorer land was taken in). -1 when there is none. `free`: whether the
   // household may take a tile in (a stake it may contest, for sim/stakes).
   // `built`: builtTiles(st), when the caller has it (the review asks every farm in one hour, VB-227).
