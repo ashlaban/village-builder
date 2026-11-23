@@ -182,6 +182,7 @@ VB['sim/fieldwork'] = (() => {
       type: 'harvest',
       field: true,
       spot: onField,
+      norm: (st, j) => CROPS[j.field.crop].hours.reap ?? HOURS.reap, // a normal crop's hours (the head's estimate, VB-476)
       urgency: (st, j, c, U) => U.reap + frostNear(st, c, U),
       done: (st, j, hh, c) => reaped(st, j.field, c),
       // a ripe field
@@ -251,6 +252,7 @@ VB['sim/fieldwork'] = (() => {
       hands: Infinity,
       type: 'threshing',
       inside: true,
+      norm: (st, j) => CROPS[st.households[j.owner.id].sheafCrops?.[0] || 'barley'].hours.thresh ?? HOURS.thresh,
       window: { from: WORK[0] - 1 },
       done: (st, j, hh) => {
         Stores.thresh(st, hh);
@@ -344,5 +346,5 @@ VB['sim/fieldwork'] = (() => {
       },
     },
   };
-  return { KINDS, sowWhy, rowAngle, onField };
+  return { KINDS, sowWhy, rowAngle, onField, fieldKey };
 })();

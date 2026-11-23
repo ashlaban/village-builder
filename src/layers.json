@@ -152,7 +152,8 @@
       "sim/plandays",
       "sim/plans",
       "sim/aims",
-      "sim/outlook"
+      "sim/outlook",
+      "sim/estimate"
     ],
     "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview"]
   }

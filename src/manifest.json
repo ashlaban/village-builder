@@ -122,6 +122,7 @@
   "sim/routines.js",
   "sim/plandays.js",
   "sim/plans.js",
+  "sim/estimate.js",
   "sim/jobs.js",
   "sim/heirranking.js",
   "sim/heirs.js",

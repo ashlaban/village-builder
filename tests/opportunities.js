@@ -42,7 +42,8 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
     // every job a pawn set out for in the step was on its list, unless it was first given out within the step
     for (const id of housed(st)) {
       const j = st.agents[id].job;
-      if (!j || !before.has(id) || j.posted >= at) continue;
+      // nor one a helper may first take within the step (its wait, MATCH.help.waitHours, ended in it: VB-476 left such a job to help)
+      if (!j || !before.has(id) || j.posted >= at || (st.pawns[id].household !== j.owner.id && j.posted + MATCH.help.waitHours >= at)) continue;
       if (st.agents[id].phase === 'go') { taken++; assert.ok(before.get(id).has(j.key), `pawn ${id} took ${j.key}, which was not on its list`); }
     }
   }

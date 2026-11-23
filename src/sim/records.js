@@ -115,6 +115,7 @@ VB['sim/records'] = (() => {
     harvest: GENERATION,
     hay: GENERATION,
     frost: GENERATION,
+    misjudged: GENERATION,
     climate: SHORT, // a winter's date falls in a band of the map (sim/climate, VB-807)
     weather: SHORT, // a season's weather, named as it begins (sim/weather, VB-354)
     herdBirths: GENERATION,
