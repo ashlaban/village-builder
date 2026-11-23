@@ -20,6 +20,7 @@ VB['sim/building'] = (() => {
   const { plotTimber } = VB['sim/expansion'],
     { cottageJob, cottageTimber, finishBoothStage } = VB['sim/cottageplan'];
   const { wantsStone, hewable, hewLoad } = VB['sim/quern'];
+  const { stoneLacking } = VB['sim/wells'];
   const { freeFor } = VB['sim/territory'];
   const { register } = VB['sim/commands'];
   // Design (Land and ecology, Timber; Agreed, Kim, 10 Nov): a cottage's walls take BUILD.timber loads (six trees, 3 loads a tree as a firewood
@@ -290,17 +291,19 @@ VB['sim/building'] = (() => {
   // The building step a household's plan holds after a review: open while its house stands on the ground, lived in by it, and it has no
   // land project under way when the step would open (a household makes its land first); its source kept while a load can still be got there.
   // It is also open, whatever the house and the land, while the household wants a quern and its heap lacks the load to hew it from (VB-009);
-  // then its source is one that gives such a load, and a quarry of another rock is searched again (VB-733).
+  // then its source is one that gives such a load, and a quarry of another rock is searched again (VB-733). And while its head means to
+  // dig a well and the heap lacks the lining's stone (sim/wells, VB-1553).
   function buildStep(st, plan, hh) {
     const f = hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null,
       old = plan.build || null,
-      quern = !!f && wantsStone(st, hh);
+      quern = !!f && wantsStone(st, hh),
+      other = quern || (!!f && !f.booth && stoneLacking(st, hh, f) > 0);
     if (
       !f ||
       f.household !== hh.id ||
       f.booth ||
-      (f.grade !== 'ground' && !quern) ||
-      (!old && !quern && Projects.ownOf(st, hh.id))
+      (f.grade !== 'ground' && !other) ||
+      (!old && !other && Projects.ownOf(st, hh.id))
     )
       return null;
     const stale = quern && old && old.kind === 'quarry' && !hewable(rockAt(st.w, old.tile));
@@ -315,13 +318,16 @@ VB['sim/building'] = (() => {
     const plan = st.plans.households.get(hh.id),
       step = plan && plan.build;
     if (!step || f.household !== hh.id) return;
+    const well = stoneLacking(st, hh, f) > 0; // the lining's stone for the well its head means to dig (VB-1553), a trip at a time
     if (f.grade !== 'ground') {
       // a house on stone: the step is open for a quern's load (VB-009), one trip, while the heap holds none of a rock it is hewn of
-      if (step.tile >= 0 && hewLoad(hh) === null) post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
+      if (step.tile >= 0 && (well || (wantsStone(st, hh) && hewLoad(hh) === null)))
+        post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
       return;
     }
     if (Stores.heldOf(hh, 'stone') >= BUILD.foundationStone) {
       if (slack(c)) post(`raise:f${f.id}`, f.house, { farm: f }, 'raise');
+      if (well && step.tile >= 0) post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
       return;
     }
     if (step.tile < 0) return;

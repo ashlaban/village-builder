@@ -476,7 +476,8 @@ VB['sim/scenarios'] = (() => {
     //   their household in st.plans.projects (sim/expansion, VB-1411)
     // @state st.villages[]: {id, name, center, farmsteads[], fence, wood[], grain, ledger[], totals[] (as a household's), green, well};
     //   center is a tile index, farmsteads are ids; wood: the tiles the village cuts its firewood on (sim/territory, VB-326);
-    //   grain: the village store, {crop: rations} (sim/help); green, well: booleans; a one-farm village has neither
+    //   grain: the village store, {crop: rations} (sim/help); green: a boolean; well: the tile of its well, on its green, or null
+    //   (VB-1553); a one-farm village has neither
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done (cleared), holder (pawn id or null),
     //   started, cottage {i (stages done of foundation, walls, roof), done (hours on the open stage)} once cleared, built (the roof is on;
     //   farmstead is then its id; sim/cottage), wood (loads: its felled trees and the timber carried to it, less the walls'; VB-328),

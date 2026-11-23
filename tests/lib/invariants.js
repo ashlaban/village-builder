@@ -363,8 +363,8 @@ function checkState(st) {
       // small constructions (a cart, a boat, a tar pit) without number but one of a making (VB-1414); only those three are small
       if (type === 'household' && list.filter((p) => p.what !== 'cottage' && !p.small).length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
       if (type === 'household') for (const p of list) {
-        if (p.small && !['cart', 'boat', 'tarpit'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is marked small`);
-        if (!p.small && ['cart', 'boat', 'tarpit'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is not marked small`);
+        if (p.small && !['cart', 'boat', 'tarpit', 'well'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is marked small`);
+        if (!p.small && ['cart', 'boat', 'tarpit', 'well'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is not marked small`);
         if (p.small && list.filter((q) => q.what === p.what).length > 1) bad.push(`plans: household ${id} has two ${p.what} plans`);
       }
       if (type === 'household' && list.filter((p) => p.what === 'cottage').length > 1) bad.push(`plans: ${type} ${id} has ${list.length} cottage plans`);
@@ -1008,7 +1008,7 @@ function checkState(st) {
       const { FRESH } = VB['world/water'], s = f.water, w = st.w, by = (c) => [0, 1, 2, 3, 4, 5].some((k) => w.nb[s.tile * 6 + k] >= 0 && w.fresh[w.nb[s.tile * 6 + k]] === c);
       const ok = s.tile === -1 ? s.cls === FRESH.NONE
         : !(Number.isInteger(s.tile) && s.tile >= 0 && s.tile < w.N && s.walk >= 0 && s.walk <= VB['sim/water'].WATER.search) ? false
-        : s.cls === FRESH.WELL ? w.fresh[s.tile] === FRESH.WELL && (s.tile === f.house || st.villages.some((v) => v.well && v.center === s.tile))
+        : s.cls === FRESH.WELL ? w.fresh[s.tile] === FRESH.WELL && (s.tile === f.house || st.villages.some((v) => v.well === s.tile))
         : s.cls === FRESH.LAKE ? by(FRESH.LAKE)
         : s.cls === FRESH.MARSH ? w.fresh[s.tile] === FRESH.MARSH || by(FRESH.MARSH)
         : [FRESH.BROOK, FRESH.STREAM, FRESH.RIVER].includes(s.cls) && w.fresh[s.tile] === s.cls;
@@ -1147,20 +1147,24 @@ function checkState(st) {
         bad.push(`villages[${v.id}]: plot ${pl.plot} has stood cleared with nobody to have it since ${pl.vacant}`);
     // the green and well (VB-058): a well only with a green; a green under way at most once, only while there is no well: its three steps
     // on one tile, the village's and in use, open ground off any river, its stone brought at most what the well takes
-    if (v.well && !v.green) bad.push(`villages[${v.id}]: a well without a green`);
+    // VB-1553: the well is its tile, on the green (the village's centre), a source on the map, in ground that has one; null for none
+    if (v.well !== null && !v.green) bad.push(`villages[${v.id}]: a well without a green`);
+    if (v.well !== null && (v.well !== v.center || st.w.fresh[v.well] !== VB['world/water'].FRESH.WELL)) bad.push(`villages[${v.id}]: well ${v.well}, centre ${v.center}, not a well on the map`);
     const greens = projects.filter((pl) => pl.what === 'green');
     if (projects.some((pl) => !['plot', 'green', 'commons'].includes(pl.what))) bad.push(`villages[${v.id}]: a project of an unknown kind`);
     // a common field under way (VB-100): at most one, its clearing and breaking on one tile, in use
     const commons = projects.filter((pl) => pl.what === 'commons');
     if (commons.length > 1 || commons.some((pl) => pl.steps.map((x) => x.kind).join() !== 'clear,break' ||
         pl.steps[0].place !== pl.steps[1].place || !st.used.has(pl.steps[0].place))) bad.push(`villages[${v.id}]: a common field under way is malformed`);
-    if (greens.length > 1 || (greens.length && v.well)) bad.push(`villages[${v.id}]: ${greens.length} greens under way, well ${v.well}`);
+    if (greens.length > 1 || (greens.length && v.green)) bad.push(`villages[${v.id}]: ${greens.length} greens under way, well ${v.well}`);
     for (const pl of greens) {
       const t = pl.steps[0].place, wellStep = pl.steps[1];
-      if (pl.steps.map((x) => x.kind).join() !== 'green,well,sweep' || pl.steps.some((x) => x.place !== t)) bad.push(`villages[${v.id}]: green shape`);
+      const noWell = !(st.w.waterDepth[t] < Infinity);
+      if (pl.steps.map((x) => x.kind).join() !== (noWell ? 'green' : 'green,well,sweep') || pl.steps.some((x) => x.place !== t)) bad.push(`villages[${v.id}]: green shape`);
       if (st.owner[t] !== -v.id - 1 || !st.used.has(t) || onRiver(t) || st.w.water[t]) bad.push(`villages[${v.id}]: green under way on tile ${t}, not its own open ground`);
-      const B = globalThis.VB['sim/rules'].BUILD;
-      if (!Number.isInteger(wellStep.brought) || wellStep.brought < 0 || wellStep.brought > B.wellStone) bad.push(`villages[${v.id}]: the well's stone ${wellStep.brought}`);
+      const { wellHours, wellStone } = VB['world/water'], depth = st.w.waterDepth[t];
+      if (wellStep && (!Number.isInteger(wellStep.brought) || wellStep.brought < 0 || wellStep.brought > (wellStep.stone ?? 6))) bad.push(`villages[${v.id}]: the well's stone ${wellStep.brought}`);
+      if (wellStep && wellStep.stone !== undefined && (wellStep.stone !== wellStone(depth) || wellStep.hours !== wellHours(depth))) bad.push(`villages[${v.id}]: the well's hours ${wellStep.hours} and stone ${wellStep.stone} are not its depth's`);
     }
     // the last work day (VB-120): a day not after today, of a kind there is, hours worked by pawns that were born, none negative, and no
     // more than the day's working hours

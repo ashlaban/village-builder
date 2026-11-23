@@ -329,7 +329,7 @@ VB['sim/settle'] = (() => {
       ledger: [],
       totals: [],
       green: false,
-      well: false,
+      well: null,
       plots: [],
       crowded: 0,
       founded: { t: st.t, from: home.id, by: p.id },

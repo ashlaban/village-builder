@@ -79,12 +79,12 @@ VB['sim/water'] = (() => {
   // ---- a farm's source (VB-1551; design.md, Water by the site, A farm's source) ----
   const running = (c) => c === FRESH.BROOK || c === FRESH.STREAM || c === FRESH.RIVER;
   // What a household of the farm with its house on `house`, of village v, may draw standing on tile i, a code of FRESH or 0: at a well
-  // that is its own (on its house's tile) or its village's (on the green), at running water on the water's own tile, at a lake from
+  // that is its own (on its house's tile) or its village's (v.well, its tile), at running water on the water's own tile, at a lake from
   // its bank, at marsh on it or at its edge. Good water before marsh where a tile has both.
   function drawnAt(w, i, house, v) {
     const c = w.fresh[i];
     if (c === FRESH.WELL) {
-      if (i === house || (!!v && v.well && v.center === i)) return c;
+      if (i === house || (!!v && v.well === i)) return c;
     } else if (running(c)) return c;
     let cls = c === FRESH.MARSH ? c : 0;
     for (let k = 0; k < 6; k++) {
@@ -204,7 +204,7 @@ VB['sim/water'] = (() => {
       opts = [];
     let walk = w.freshWalk[i] < WATER.search ? w.freshWalk[i] : Infinity,
       village = null;
-    if (v && v.well) {
+    if (v && v.well !== null) {
       const s = source(w, i, v);
       if (s.cls === FRESH.WELL) village = { name: v.name, walk: s.walk, hours: n * tripHours(s.walk) };
       else if (s.tile >= 0 && s.cls !== FRESH.MARSH) walk = Math.min(walk, s.walk); // good water nearer than the green, as walked now
@@ -229,11 +229,16 @@ VB['sim/water'] = (() => {
     const [by, hours] = opts[0] || ['none', noWater(people)];
     return { hours, share: hours / (WORK[1] - WORK[0]), by, source: src, village, well };
   }
-  // A well stands on `tile` from now: a source on the map, and the farms of village v (all with a source found, when v is null: none)
-  // find their sources again.
-  function wellDug(st, tile, v) {
+  // A well stands on `tile` from now: a source on the map, and the farms it changes find their sources again: those of village v (its
+  // own well, sim/green), or farm f alone (a household's, at its house: sim/wells), each with a source found.
+  function wellDug(st, tile, v, f = null) {
     st.w.fresh[tile] = FRESH.WELL;
     if (v) for (const id of v.farmsteads) if (st.farmsteads[id].water) find(st, st.farmsteads[id]);
+    if (f && f.water) find(st, f);
+  }
+  // A save from before the well was a tile (VB-1553): a village's well was a boolean, the well on its green, which is its centre.
+  function wellsLoaded(st) {
+    for (const v of st.villages) if (typeof v.well !== 'number') v.well = v.well === true ? v.center : null;
   }
   // The wells a run starts with (design.md, At the start), on a world as generated: a village that starts with its green has its well on
   // the green's tile; where the farms have stood for years (`stood`: not the founders' landing nor the lone settler's), a farm more than
@@ -241,7 +246,7 @@ VB['sim/water'] = (() => {
   // its natural sources.
   function startWells(w, villages, farmsteads, stood) {
     for (let i = 0; i < w.N; i++) if (w.fresh[i] === FRESH.WELL) w.fresh[i] = FRESH.NONE;
-    for (const v of villages) if (v.well) w.fresh[v.center] = FRESH.WELL;
+    for (const v of villages) if (v.well !== null) w.fresh[v.well] = FRESH.WELL;
     if (!stood) return;
     for (const f of farmsteads) {
       if (f.household === null || w.fresh[f.house] !== FRESH.NONE || !(w.waterDepth[f.house] < NO_WELL)) continue;
@@ -267,6 +272,7 @@ VB['sim/water'] = (() => {
     siteFetch,
     siteWater,
     wellDug,
+    wellsLoaded,
     startWells,
   };
 })();

@@ -399,6 +399,7 @@ VB['sim/saves'] = (() => {
     for (const k in DERIVED) st[k] = null;
     for (const k in DERIVED) if (DERIVED[k]) DERIVED[k](st);
     VB['sim/fieldrec'].grounded(st); // VB-1520
+    VB['sim/water'].wellsLoaded(st); // VB-1553: an older save's well, a boolean, is its tile
     VB['sim/stores'].heapsLoaded(st); // VB-733: an older save's heap of no rock, and its quern's `rock`
     VB['sim/quern'].quernsLoaded(st);
     grownCustoms(st); // a save from before the last custom (VB-555)

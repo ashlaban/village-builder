@@ -91,6 +91,7 @@
       "sim/pose",
       "sim/cottageplan",
       "sim/expansion",
+      "sim/wells",
       "sim/building",
       "sim/trails",
       "sim/drying",

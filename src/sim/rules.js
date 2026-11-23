@@ -571,9 +571,10 @@ VB['sim/rules'] = (() => {
   // wood (six trees). A stone foundation (VB-332; design, Land and ecology, Stone; Agreed, Kim, 11 Nov) takes `foundationStone` loads from the
   // household's heap and `foundationHours` of work at the house; stone is picked (`pickHours` a load) on a meadow tile holding more than
   // `keepStones` (what a meadow keeps, sim/meadows) or quarried (`quarryHours` a load) on `quarryOn`, within `stoneReach` walking steps
-  // and `stoneWalk` hours' walk of the house (proposed, 11 Nov). The village's well (VB-058; sim/green) takes `wellStone` loads from its
-  // households' heaps, carried to the green; the green is cleared in `greenHours`, the well dug and lined in `wellHours` and its sweep raised
-  // in `sweepHours` (Agreed, Kim, 30 Oct); the green lies within `greenReach` walking steps of a farm's house (VB-058's own choice).
+  // and `stoneWalk` hours' walk of the house (proposed, 11 Nov). The village's well (VB-058; sim/green) takes its stone from its
+  // households' heaps, carried to the green, and its hours and stone are by the depth of the green's ground (world/water, VB-1553);
+  // the green is cleared in `greenHours` and the sweep raised in `sweepHours` (Agreed, Kim, 30 Oct); the green lies within `greenReach`
+  // walking steps of a farm's house (VB-058's own choice).
   // quarryOn: the biomes stone is quarried on, each with the rocks quarried there (null: any) (VB-733, the plan of VB-702's D7; Proposed):
   // any rock on the hills and mountains of VB-332, and on heath, thin soil over rock, the bedded building stones, limestone and sandstone,
   // as limestone was quarried on flat ground (Gotland, Öland); flat granite lies under till.
@@ -591,9 +592,7 @@ VB['sim/rules'] = (() => {
     keepStones: 80,
     stoneReach: 12,
     stoneWalk: 3,
-    wellStone: 6,
     greenHours: 10,
-    wellHours: 40,
     sweepHours: 10,
     greenReach: 4,
     // a barn (VB-255; Kim, 10 Nov: QUESTION_ARCHIVE.md, "VB-255: the barn as a project"): a second store building on the farm's block,

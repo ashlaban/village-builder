@@ -50,8 +50,8 @@ const brook = (w, i) => {
   const w2 = tinyWorld(meadow(24, 9));
   brook(w2, at(11, 4));
   w2.fresh[at(6, 4)] = FRESH.WELL;
-  const own = source(w2, house, { well: true, center: at(6, 4) }),
-    other = source(w2, house, { well: true, center: at(20, 8) });
+  const own = source(w2, house, { well: at(6, 4), center: at(6, 4) }),
+    other = source(w2, house, { well: at(20, 8), center: at(20, 8) });
   check(own.tile === at(6, 4) && own.cls === FRESH.WELL && near(own.walk, 0.25), `its village's well, 2 steps off (${JSON.stringify(own)})`);
   check(other.tile === at(11, 4), `another village's well is not drawn at: the brook beyond it (${JSON.stringify(other)})`);
   w2.fresh[house] = FRESH.WELL;
@@ -172,7 +172,7 @@ const fetchOf = (steps) => {
   const w = tinyWorld(meadow(24, 12)),
     st = tinyState(w, [{ at: [10, 5], farms: 3 }], { seed: 7 }),
     v = st.villages[0];
-  check(v.well && w.fresh[v.center] === FRESH.WELL, 'the starting village has its well on the map, on the green');
+  check(v.well === v.center && w.fresh[v.well] === FRESH.WELL, 'the starting village has its well on the map, on the green');
   for (const id of v.farmsteads) {
     const s = Water.sourceOf(st, st.farmsteads[id]);
     check(

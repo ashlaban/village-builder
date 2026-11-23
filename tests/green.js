@@ -109,9 +109,11 @@ assert.notStrictEqual(v.center, oldCentre);
 assert.strictEqual(st.owner[tile], -v.id - 1);
 assert.strictEqual(w.dev[tile], 2, 'open ground that the ways cross');
 assert.ok(!Green.greenOf(st, v), 'the plan is finished');
-assert.strictEqual(before - heaps() >= BUILD.wellStone, true, 'the well took its stone from the heaps');
+const wellStone = VB['world/water'].wellStone(w.waterDepth[tile]); // VB-1553: by the depth of the green's tile
+assert.strictEqual(before - heaps() >= wellStone, true, 'the well took its stone from the heaps');
 const taken = v.farmsteads.flatMap((id) => st.households[st.farmsteads[id].household].ledger).filter((x) => x.kind === 'well');
-assert.strictEqual(taken.reduce((n, x) => n - x.n, 0), BUILD.wellStone, 'six loads, each through the stores with its own reason');
+assert.strictEqual(taken.reduce((n, x) => n - x.n, 0), wellStone, 'its loads, each through the stores with its own reason');
+assert.strictEqual(v.well, tile, 'the well is its tile');
 assert.strictEqual(greens().length, 2, 'begun and finished, in the village\'s log');
 assert.ok(Sim.chronicle(st, { village: v.id }, 'land').some((x) => greens().includes(x.ev)), 'in the village\'s history');
 assert.ok(!VB['sim/routines'].VILLAGE_ROUTINES.green.available(st, v), 'no more work once the well is dug');

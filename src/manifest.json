@@ -97,6 +97,7 @@
   "sim/expansion.js",
   "sim/allotment.js",
   "sim/farmclaims.js",
+  "sim/wells.js",
   "sim/building.js",
   "sim/drying.js",
   "sim/tar.js",

@@ -210,14 +210,14 @@ const fieldIcon = (look) => groundIcon(`field-${look}`, () => fieldCanvas(look, 
 const meadowIcon = (stage) => groundIcon(`meadow-${stage}`, () => meadowCanvas(stage, w.R));
 // A village by a cluster of its buildings: barn and storehouse behind a cottage, and the well sweep where it has a well.
 function villageIcon(v) {
-  return icon(`village${v.well ? 'w' : ''}`, (g) => {
+  return icon(`village${v.well !== null ? 'w' : ''}`, (g) => {
     const at = (b, x, y, s0) => {
       const s = s0 / ARTK;
       g.drawImage(b, x, y - b.height * s, b.width * s, b.height * s);
     };
     at(ladaCanvas(), 2, 70, 0.62);
     at(harbreCanvas(), 78, 80, 0.62);
-    if (v.well) at(wellSweepCanvas(), 52, 74, 0.5);
+    if (v.well !== null) at(wellSweepCanvas(), 52, 74, 0.5);
     at(stugaCanvas(1), 18, 114, 0.72);
   });
 }

@@ -109,6 +109,7 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/tar'].KINDS); // the tar pit, burning tar, tarring the house and the boat (VB-301): sim/tar's
   Object.assign(KINDS, VB['sim/saltpan'].KINDS); // boiling salt at a spring (VB-700): sim/saltpan's
   Object.assign(KINDS, VB['sim/ironwork'].KINDS); // smelting bog ore and mending the tools (VB-701): sim/ironwork's
+  Object.assign(KINDS, VB['sim/wells'].KINDS); // a household's well, dug by its house (VB-1553): sim/wells's
   // a load left lying where its carrier fell is fetched by its owner (VB-611): a fetch kind for each kind that carries a load (sim/lying)
   for (const [k, K] of Object.entries(KINDS))
     if (K.carry && (K.load || K.stack)) KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
@@ -181,7 +182,7 @@ VB['sim/kinds'] = (() => {
     booth: { name: 'a booth' },
     fence: { name: 'the village fence' },
     green: { name: 'the village green' },
-    well: { name: 'the village well' },
+    well: { name: 'a well' },
     trail: { name: 'a trail' },
   };
   for (const [k, K] of Object.entries(KINDS)) {

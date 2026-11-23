@@ -1,6 +1,7 @@
 // @sys sim/layout: placing villages (a green, and a farm at a time round it, by its land), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
-  const { B } = VB['world/biomes'];
+  const { B } = VB['world/biomes'],
+    { NO_WELL } = VB['world/water'];
   const { WOOD } = VB['sim/rules'],
     { RIVER, openGround: farmable, byRiver, fertility, clearable, clearedFertility } = VB['sim/crops'],
     { PATHS } = VB['sim/walking'];
@@ -267,7 +268,7 @@ VB['sim/layout'] = (() => {
       ledger: [],
       totals: [],
       green: true,
-      well: true,
+      well: center,
     };
     used.add(center);
     const mine = new Set([center]),
@@ -331,7 +332,9 @@ VB['sim/layout'] = (() => {
         tilled.add(j);
       }
     }
-    village.green = village.well = village.farmsteads.length >= 2;
+    village.green = village.farmsteads.length >= 2;
+    // its well is on its green, where the ground has one (VB-1553: the well's tile, null for none)
+    village.well = village.green && w.waterDepth[center] < NO_WELL ? center : null;
     // a village that came to one farm is a lone farm: its centre is the house, and the ground meant for the green is free again
     if (village.farmsteads.length === 1) {
       used.delete(center);
@@ -418,7 +421,7 @@ VB['sim/layout'] = (() => {
       ledger: [],
       totals: [],
       green: false,
-      well: false,
+      well: null,
     };
   }
   // The farmstead of a house and fields found, in village v; the caller adds it to `farmsteads`.

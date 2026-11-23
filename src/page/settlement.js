@@ -455,7 +455,7 @@ function drawTarPits(wd) {
 // One village: its common fields, its well sweep, its fence and the plots under way.
 function drawVillage(wd, v) {
   for (const fd of v.commonFields || []) addField(wd, fd, 0); // the village's common fields (VB-100)
-  if (v.well) place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
+  if (v.well !== null) place(art.sweep, wd.hx[v.well] + 1, wd.hy[v.well] + 10, 0.44, 0.95);
   for (const s2 of v.fence) addFence(s2);
   const X = VB['sim/expansion'];
   for (const plot of X.livePlots(st, v))
