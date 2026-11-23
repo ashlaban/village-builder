@@ -225,6 +225,13 @@ VB['sim/roles'] = (() => {
       fishCalm: 0.2,
       fishLean: 2,
       fishCalmDays: 24, // fishing (VB-117): 0.2 while spare food covers 24 days of need, rising in a line to 2 at none
+      // A household out of food (VB-1491; Kim, 24 Nov: fix the inversion): under needDays of spare food the work that brings food in
+      // (the kinds that read spare food: fishing, gathering, hunting) rises in a line to `need` at none, above the work whose payoff is
+      // months away: at none the holder's foraging 3 x 8 = 24 is above his ploughing and sowing at their most pressing (10 x 2.4) and a
+      // low woodpile (7 x 2.2); the water late (a mistress's 9 x 3.3) stays first. Over a few days only: one trip's catch lifts a
+      // household of one past it, so the day's other work still gets its hours.
+      need: 8,
+      needDays: 3,
     },
   };
   return { ROLES, STAND, STAND_KEYS, absentMask, CHILD, workRate, MATCH };
