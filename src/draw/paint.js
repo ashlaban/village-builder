@@ -1,14 +1,54 @@
 // @sys draw/paint: a world's paint, built from the world alone: each tile's colour, the light of the relief and the distance to the land per
 // coarse cell, and the brush texture; the page keeps one per world (page/chunks paintOf) and recolours a tile where its biome changed
 VB['draw/paint'] = (() => {
-  const { mulberry32, makeTile } = VB['gen/noise'];
-  const { PIGMENTS } = VB['gen/biomes'],
+  const { mulberry32 } = VB['gen/noise'];
+  const { PIGMENTS } = VB['draw/pigments'],
     { BIOMES } = VB['world/biomes'],
     { hexLocator, csample } = VB['world/grid'];
 
   // interface Paint { tr, tg, tb: Float32Array per tile, the tile's colour 0..255 (0 on water); shade: Float32Array per coarse cell, the
   //   hillshade (~1 flat); cdist: Float32Array per coarse cell, the distance to the nearest land tile (map units, 1e9 if none); chex:
   //   Int32Array per coarse cell, the tile under it; tile: Float32Array 256*256, a tileable noise texture }
+
+  // Periodic multi-octave value noise, 0..1, used for brush texture lookups.
+  function makeTile(rand, size, cells0, oct) {
+    const out = new Float32Array(size * size);
+    let amp = 1,
+      cells = cells0;
+    for (let o = 0; o < oct; o++) {
+      const lat = new Float32Array(cells * cells);
+      for (let k = 0; k < lat.length; k++) lat[k] = rand();
+      for (let y = 0; y < size; y++) {
+        const fy = (y / size) * cells,
+          y0 = fy | 0,
+          ty0 = fy - y0,
+          ty = ty0 * ty0 * (3 - 2 * ty0),
+          y1 = (y0 + 1) % cells;
+        for (let x = 0; x < size; x++) {
+          const fx = (x / size) * cells,
+            x0 = fx | 0,
+            tx0 = fx - x0,
+            tx = tx0 * tx0 * (3 - 2 * tx0),
+            x1 = (x0 + 1) % cells;
+          const a = lat[y0 * cells + x0],
+            b = lat[y0 * cells + x1],
+            c = lat[y1 * cells + x0],
+            d = lat[y1 * cells + x1];
+          out[y * size + x] += amp * (a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty);
+        }
+      }
+      amp *= 0.5;
+      cells *= 2;
+    }
+    let mn = Infinity,
+      mx = -Infinity;
+    for (const v of out) {
+      if (v < mn) mn = v;
+      if (v > mx) mx = v;
+    }
+    for (let k = 0; k < out.length; k++) out[k] = (out[k] - mn) / (mx - mn);
+    return out;
+  }
 
   // One tile's colour from its biome: the pigment from c to c2 by the macro tint, and the tile's own small tint (mc in double precision).
   function colour(P, w, i) {

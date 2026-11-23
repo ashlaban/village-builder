@@ -27,7 +27,7 @@ assert(land('cover-before').length === 1 && land('cover-set')[0] !== land('cover
 assert(land('cover-restored')[0] === land('cover-before')[0], 'restored, the chunk is as before');
 
 // one pigment: the meadow's colour moved by 6 in red
-const meadow = VB['gen/biomes'].PIGMENTS[D.B.MEADOW];
+const meadow = VB['draw/pigments'].PIGMENTS[D.B.MEADOW];
 meadow.c[0] += 6;
 let pig;
 try { pig = compare(one, bake(fresh())).differ; } finally { meadow.c[0] -= 6; }

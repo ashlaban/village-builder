@@ -156,6 +156,7 @@
   "sim/clock.js",
   "sim/saves.js",
   "sim.js",
+  "draw/pigments.js",
   "draw/paths.js",
   "draw/rivers.js",
   "draw/marks.js",

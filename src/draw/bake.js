@@ -1,7 +1,7 @@
 // @sys draw/bake: rasterizing the map into levels of detail, including land, water and decorations
 VB['draw/bake'] = (() => {
   const { mulberry32 } = VB['gen/noise'];
-  const { PIGMENTS } = VB['gen/biomes'],
+  const { PIGMENTS, SEA, LAKE } = VB['draw/pigments'],
     { B, treeStage } = VB['world/biomes'],
     { hexLocator, csample } = VB['world/grid'];
 
@@ -15,14 +15,6 @@ VB['draw/bake'] = (() => {
 
   // Low-resolution water colour layer, one texel per coarse cell: a painted sea, in flat bands of blue-grey that darken away from the
   // land, each blended into the next over a narrow edge; a lake is one flat colour.
-  const SEA = [
-      [158, 190, 178],
-      [118, 160, 162],
-      [88, 132, 146],
-      [68, 108, 130],
-      [56, 90, 116],
-    ],
-    LAKE = [126, 164, 164];
   // P: the world's paint (draw/paint).
   function bakeWater(w, P, ctx) {
     const { CW, CH, elev, KS } = w;
