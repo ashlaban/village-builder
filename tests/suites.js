@@ -162,6 +162,7 @@ const INTEGRATION = [
   ['node', 'tests/commons.js'],
   ['node', 'tests/cottage.js'],
   ['node', 'tests/relations.js'],
+  ['node', 'tests/pastimes.js'], // VB-1539: own time, the six pastimes each reached, the verb `pastime`, the call and the cut
   ['node', 'tests/encounters.js'],
   ['node', 'tests/goodwill.js'],
   ['node', 'tests/meadows.js'],

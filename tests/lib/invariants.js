@@ -1324,6 +1324,8 @@ function checkState(st) {
     !(Number.isInteger(h.threshed) && h.threshed >= 0)) bad.push(`households[${h.id}]: threshed ${h.threshed}`);
   // the hour of a pawn's last talk with a friend (agent.talk.friendAt, VB-062): a finite hour, no later than a talk begun now can show (two
   // talks in one hour may be shown in either order, so it may follow the latest talk's own hour)
+  // a pawn's pastime (agent.pastime, VB-1539): a kind of the table, begun no later than now, with a pawn and at a farm there are
+  for (const a of st.agents) if (a.pastime !== undefined) { const r = a.pastime; if (!(r && Object.hasOwn(VB['sim/pastimes'].PASTIMES, r.kind) && r.at <= st.t + 1e-9 && r.until >= r.at && (r.with === null || !!st.pawns[r.with]) && (r.farm === null || !!st.farmsteads[r.farm]))) bad.push(`agents[${a.id}].pastime: ${JSON.stringify(r)}`); }
   for (const a of st.agents) if (a.talk && a.talk.friendAt !== undefined && !(Number.isFinite(a.talk.friendAt) && a.talk.friendAt <= st.t + VB['sim/ties'].SOCIAL.talk.bubbleHours + 1e-9)) bad.push(`agents[${a.id}].talk: friendAt ${a.talk.friendAt}, after now (${st.t}) and a talk's bubble`);
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
   // assignments numbered (VB-1405): three slot numbers, none above the count taken, and once numbered a slot that holds a task has one
