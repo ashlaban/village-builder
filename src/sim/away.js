@@ -10,14 +10,16 @@ VB['sim/away'] = (() => {
   const { ate, rationOf, nightCost } = VB['sim/hunger'];
   const Kin = VB['sim/records'];
   const { driveHome } = VB['sim/grazing'];
-  const { on } = VB['sim/events'];
+  const { on, emit } = VB['sim/events'];
   const { setDown } = VB['sim/agents'];
-  const { stayOf, travelling } = VB['sim/pose'];
+  const { stayOf, travelling, tileAt, placeOf } = VB['sim/pose'];
   const { hostWhy } = VB['sim/hosting'];
+  const { hexSteps } = VB['sim/hex'];
   // @tunable AWAY: sleeping away from home (VB-783; design.md, Sleeping away from home): pack, the rations a pawn away carries at most (12 days of the
   // 30 rations a back carries, the rest of the load being tools and seed); walk, the walking hours there and back over which a place is
-  // worked from a bed there rather than from home (a third of the working day)
-  const AWAY = { pack: 12, walk: 4 };
+  // worked from a bed there rather than from home (a third of the working day); yard, the steps from its house within which a pawn is at
+  // home and packs from its barn (VB-1175: the house and the tiles about it, where the barn and the woodpile stand)
+  const AWAY = { pack: 12, walk: 4, yard: 1 };
   // Acts this module's pawns choose (going home, coming home from a stay, work at it) go through the verbs (AGENTS.md, Every act is a pawn's).
   const { issue, register } = VB['sim/commands'];
   // ---- the stays (design.md, Moving to new land, Sleeping away from home) ----
@@ -154,13 +156,22 @@ VB['sim/away'] = (() => {
       const b = VB['sim/building'].boothAt(st, at);
       if (b) {
         if (!VB['sim/building'].boothOpenTo(st, b, id)) return `the booth at tile ${at} is not for pawn ${id}`;
-        if (st.away.filter((s) => s.bed === at && s.roof === 'booth').length >= BOOTH.sleeps)
+        if (st.away.filter((s) => s.bed === at && s.roof === 'booth').length + packingFor(st, b, at) >= BOOTH.sleeps)
           return `the booth at tile ${at} sleeps ${BOOTH.sleeps}, and its beds are taken`;
       }
     }
     const R = 1 / st.ECON.uncooked,
       spare = Math.max(0, Stores.grainOf(hh) - Stores.reserved(st, hh, 'grain')) / R;
     return spare + 1e-9 < packOf(st, p, o.days) ? `household ${hh.id} has no food to spare for the pack` : null;
+  }
+  // The pawns booth b is open to that walk home to pack for a bed at tile `at` (agent.packing, VB-1175): its beds are theirs already.
+  function packingFor(st, b, at) {
+    let n = 0;
+    for (const id of [...st.households[b.by].members, ...b.guests]) {
+      const t = st.agents[id] && st.agents[id].packing;
+      if (t && t.at === at && (t.args.host === undefined || t.args.host === null)) n++;
+    }
+    return n;
   }
   // The roof over a bed on tile b: a standing booth's (VB-784), else the open sky.
   const roofAt = (st, b) => {
@@ -217,6 +228,26 @@ VB['sim/away'] = (() => {
     setDown(st, a);
     provide(st, s, [hh], packOf(st, p, args.days));
     open(st, s);
+    emit(st, 'lodged', s); // its stay is open, its pack taken at the house (sim/gathering: its dealer loads, VB-302)
+  }
+  // @state agent.packing: absent, or {at, args}: the lodge it was asked to make while away from its house (VB-1175, from VB-302): it walks
+  //   home, and packs there (the verb lodge again, from its door). Its household's store is in its barn, so the pack and a dealer's load
+  //   are taken where the household's goods are, never from where the pawn happened to stand.
+  // Whether pawn a stands at its household's house, or in its yard (AWAY.yard).
+  const atHouse = (st, a) =>
+    hexSteps(st.w, tileAt(st, ...placeOf(st, a)), houseOf(st, st.households[st.pawns[a.id].household])) <= AWAY.yard;
+  // Pawn a, asked to lodge while away from its house, walks home to pack first.
+  function homeToPack(st, a, at, args) {
+    setDown(st, a);
+    a.packing = { at, args };
+    goHome(st, a); // to its house: no stay is open yet
+  }
+  // Pawn a is home with a lodge to pack for: it lodges now, from its door, if it still may (else it stays home).
+  function packed(st, a) {
+    const t = a.packing;
+    delete a.packing;
+    if (!t || !st.pawns[a.id].alive) return;
+    issue(st, { actor: a.id, verb: 'lodge', target: t.at, args: t.args, source: 'pawn' });
   }
   // Why pawn id cannot come home from a stay, or null: it lodges away and has not turned for home yet.
   function comeHomeWhy(st, id) {
@@ -285,6 +316,7 @@ VB['sim/away'] = (() => {
   }
   // What sim/agents tells of the pawns away (sim/events): one away is at its bed; a booth over beds is gone or raised.
   on('atBed', atBed);
+  on('homeToPack', packed); // VB-1175: home, with a lodge to pack for
   on('boothGone', unroof); // VB-784: a booth rotted away
   on('boothRaised', roofOver); // VB-1172: a booth raised where pawns lodge
   // lodge(tile, {why, days, jobs, host}) (VB-783; design.md, Sleeping away from home): walk to the tile and sleep there, working only
@@ -295,6 +327,7 @@ VB['sim/away'] = (() => {
     check: (st, c) => free(st, c.actor) || lodgeWhy(st, c.actor, c.target, c.args),
     run: (st, c) => {
       const a = st.agents[c.actor];
+      if (!atHouse(st, a)) return homeToPack(st, a, c.target, c.args); // it packs at its house (VB-1175, from VB-302)
       lodge(st, a, c.target, c.args);
       stakeIfRough(st, a, c.args.days);
       goHome(st, a); // to its bed

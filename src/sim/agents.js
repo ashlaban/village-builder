@@ -320,9 +320,10 @@ VB['sim/agents'] = (() => {
     } else if (a.phase === 'home') {
       a.inside = true;
       a.phase = null;
-      if (a.away === undefined)
+      if (a.away === undefined) {
         driveHome(st, st.households[st.pawns[a.id].household], a.id); // the herds it brought home are by the farm (VB-136)
-      else emit(st, 'atBed', a); // at the bed of its stay, or home from it (sim/away)
+        if (a.packing) emit(st, 'homeToPack', a); // home to pack for a stay (sim/away, VB-1175)
+      } else emit(st, 'atBed', a); // at the bed of its stay, or home from it (sim/away)
     } else if (a.phase === 'journey') emit(st, 'legEnd', a); // a journey's leg has arrived (sim/journeys)
     if (!a.leg && !a.path && a.phase === null && st.pawns[a.id].alive) waitLeg(st, a, st.tick + 1);
     sideCheck(st, a);

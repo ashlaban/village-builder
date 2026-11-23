@@ -92,6 +92,7 @@
     "st.booths": "sim/building",
     "st.boothSeq": "sim/building",
     "agent.away": {"owner": "sim/away", "category": "cache"},
+    "agent.packing": "sim/away",
     "st.occasionSeq": "sim/occasions",
     "agent.occasion": "sim/occasions",
     "household.grain": "sim/stores",

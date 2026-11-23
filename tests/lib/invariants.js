@@ -1525,6 +1525,12 @@ function checkState(st) {
   // 'road' exactly when it is on one. A lodger: its bed a tile and its walk there, `to` its bed, roof 'none' or 'house', a guest's bed the
   // house of its host, another household (roof 'house', or 'barn' at a gathering, VB-295); its pawn never on the road; one for an occasion
   // (until) has a bed and no tasks.
+  // VB-1175: a pawn walking home to pack for a stay (agent.packing) is not away yet: no stay of its own, a tile to lodge at and the verb's args
+  (st.agents || []).forEach((a, id) => {
+    if (!a || a.packing === undefined) return;
+    const t = a.packing;
+    if (a.away !== undefined || !t || !Number.isInteger(t.at) || t.at < 0 || t.at >= st.w.N || !t.args || typeof t.args.why !== 'string') bad.push(`agent ${id}: packing ${JSON.stringify(t)} while away ${a.away}`);
+  });
   if (st.away !== undefined) {
     const seen = new Set(), ids = new Set();
     if (!Array.isArray(st.away) || !Number.isInteger(st.awaySeq) || st.awaySeq < 0) bad.push(`away: ${typeof st.away}, seq ${st.awaySeq}`);

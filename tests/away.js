@@ -151,4 +151,22 @@ assert.deepStrictEqual(checkState(st), [], 'invariants once home');
   assert.ok(lay.includes('leftGrain') && lay.includes(String(Math.round(grain5 * 1000) / 1000).slice(0, 4)), `its pack lies where it fell: ${lay.slice(0, 200)}`);
   assert.ok(lie0 === 0, 'nothing lay before');
 }
+// ---- one asked to lodge while away from its house walks home and packs there (VB-1175, from VB-302): no pack from where it stands ----
+{
+  const s6 = make(), h6 = s6.households[0], id6 = adultOf(s6, h6), a6 = s6.agents[id6], f6 = s6.farmsteads[h6.farmstead];
+  to(s6, 9);
+  Stores.put(s6, h6, 'grain', 60, 'harvest', { barley: 60 });
+  const out = f6.house + 8; // 8 steps along the row from its door
+  VB['sim/agents'].setDown(s6, a6);
+  a6.x = s6.w.hx[out]; a6.y = s6.w.hy[out]; a6.inside = false;
+  const g0 = Stores.grainOf(h6);
+  assert.strictEqual(issue(s6, { actor: id6, verb: 'lodge', target: site, args: { why: 'work', days: 3 }, source: 'pawn' }), true, 'asked to lodge');
+  assert.ok(stayOf(s6, id6) === null && a6.packing && a6.packing.at === site, 'no stay before it is home: it walks home to pack');
+  assert.ok(Math.abs(Stores.grainOf(h6) - g0) < 1e-9, 'nothing is taken from the barn while it stands away from it');
+  for (let h = 0; h < 6 && !stayOf(s6, id6); h++) Sim.advance(s6, 1);
+  const j6 = stayOf(s6, id6);
+  assert.ok(j6 && j6.bed === site && !a6.packing, 'home, it packs and its stay opens');
+  assert.ok(Math.abs(g0 - Stores.grainOf(h6) - j6.food / s6.ECON.uncooked) < 1e-6 && j6.food > 0, 'the pack taken from the barn at home');
+  assert.deepStrictEqual(checkState(s6), [], 'invariants, packed at home');
+}
 console.log(`away: a pawn lodged ${s.walk.toFixed(1)} hours from home on a pack of 3, worked two days, ate from its pack, walked home on the third; a household at its seed sent nobody; a guest; a save in the middle`);
