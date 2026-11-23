@@ -18,6 +18,7 @@ VB['sim/norms'] = (() => {
     'cattle/steer': 20,
     sheep: 6,
     hide: 6, // a roe deer's hide, leather for shoes and harness (VB-424)
+    salt: 20, // a sack of 10 measures, boiled at a spring (VB-700; Proposed): it salts 100 rations of meat, which then keep a year
     quern: 25, // a hand quern's stone, hewn of sandstone or granite (VB-009; Proposed, slice 6's plan): a good of place
   });
   // The three classes of goods (Decided, 10 Nov): food; wares (animals, cloth and labour; today animals, and tar beside them); land.

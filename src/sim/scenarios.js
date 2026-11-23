@@ -442,7 +442,7 @@ VB['sim/scenarios'] = (() => {
     //   dry (0..1, the mean of dryLog over HUNGER.days) and dryLog[] (the last days, 1 a day its water was not fetched; empty when
     //   none was dry that long; sim/hunger, VB-331), waterDay, cookDay, dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
-    //   larder[] ({kind 'meat'|'salt meat'|'milk'|'butter'|'dried fish' (rules FOODS), n (rations), until}: stored food lots;
+    //   larder[] ({kind 'meat'|'salt meat'|'smoked meat'|'milk'|'butter'|'dried fish' (rules FOODS), n (rations), until}: stored food lots;
     //   sim/hunger), fresh[] ({food 'fish'|'gathered' (rules FOODS held 'fresh'), day, qty (units)}: fresh food in batches by day; sim/pot, VB-119),
     //   fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
     //   manure (loads on the heap by the byre; VB-137), wool (fleeces shorn, summer day 1; VB-144),

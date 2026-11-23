@@ -35,7 +35,7 @@ VB['sim/fair'] = (() => {
   // giving it up costs its household at most `bring` times its customary worth (its margin), and `room` of the back load is left for
   // what it takes (a sack, or a lot); the played pawn's hours to answer.
   const FAIR = {
-    goods: ['grain', 'butter', 'salt meat', 'dried fish', 'tar', 'hide'],
+    goods: ['grain', 'butter', 'salt meat', 'dried fish', 'tar', 'hide', 'salt'],
     weight: { sack: 10, lot: 10, barrel: 15, hide: 5 },
     hours: [10, 16],
     others: 4,
@@ -100,6 +100,7 @@ VB['sim/fair'] = (() => {
     if (good === 'grain') return Stores.grainOf(hh) - floorOf(st, hh);
     if (good === 'tar') return hh.tar || 0;
     if (good === 'hide') return hh.hides || 0;
+    if (good === 'salt') return hh.salt || 0; // boiled at a spring (VB-700)
     return larderOf(hh, good);
   }
   // What giving up a quantum of `good` costs household hh by need, against its customary worth; null when it has none to spare

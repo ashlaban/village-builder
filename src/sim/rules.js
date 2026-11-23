@@ -263,7 +263,10 @@ VB['sim/rules'] = (() => {
     startMargin: 1.1,
     // the byre and the autumn count (sim/byre, VB-134): the count on autumn day 8 (doy 31) keeps what hay × margin feeds; old ages; meat a head
     // (Kim, 31 Oct); fodder hours (base, a head of cattle, a sheep); slaughter hours; fresh meat keeps freshDays, salt meat saltDays; salting
-    // makes saltPerHour rations an hour; emergency meat is lean (half); a herd unfed starveDays running loses an animal a day
+    // makes saltPerHour rations an hour; emergency meat is lean (half); a herd unfed starveDays running loses an animal a day; smokeDays
+    // (VB-700): meat a household has no salt for is hung in the smoke under the roof and dried, and keeps two seasons, from the autumn
+    // slaughter into spring, against salt meat's year (Proposed, no source: smoked and dried meat keeps months, not a year, in a damp house);
+    // saltPerRation (VB-700): measures of salt a ration of meat takes, dry-salted (a part of salt to ten of meat by weight; sim/saltpan)
     countDay: 31,
     // margins by the village's custom `stocking` (VB-711): the count keeps the animals whose winter's need times the margin the hay covers;
     // over 1 keeps a reserve, under 1 expects the hay stretched (the cost falls on the lean days and starvation, as built)
@@ -275,6 +278,8 @@ VB['sim/rules'] = (() => {
     slaughter: { cattle: 3, sheep: 1 },
     freshDays: 3,
     saltDays: 48,
+    smokeDays: 24,
+    saltPerRation: 0.1,
     saltPerHour: 8,
     lean: 0.5,
     eatSoonDays: 6,
@@ -359,6 +364,7 @@ VB['sim/rules'] = (() => {
     flour: { worth: 1, keeps: null, source: 'grain', held: 'flour', raw: false }, // a few days' stock: its keeping is not modelled
     meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', held: 'larder', raw: true }, // fresh, from the slaughter
     'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', held: 'larder', raw: true },
+    'smoked meat': { worth: 1, keeps: HERD.smokeDays, source: 'meat', held: 'larder', raw: true }, // salting without salt (VB-700)
     milk: { worth: 1, keeps: 1, source: 'milk', held: 'larder', raw: true }, // fresh milk keeps a day
     butter: { worth: 1, keeps: HERD.butterDays, source: 'milk', held: 'larder', raw: true },
     'dried fish': { worth: 1, keeps: YEAR_DAYS, source: 'fish', held: 'larder', raw: true }, // hung on the rack (VB-300); also cooked in the winter's pot

@@ -71,7 +71,7 @@ async function main() {
     const nStat = () => qa('#tileHouse .stat-grid')[1].children.length;
     const few = nStat();
     click(q('#tileHouse [data-all-materials]'), 'All materials switch'); tick(2);
-    if (nStat() !== 6 || !q('#tileHouse [data-all-materials][aria-pressed="true"]')) fail(`All materials lists ${nStat()} of 6 (${few} by default)`);
+    if (nStat() !== 7 || !q('#tileHouse [data-all-materials][aria-pressed="true"]')) fail(`All materials lists ${nStat()} of 7 (${few} by default)`);
     // the layout takes a list of kinds and a work's asks: kinds show under the total only where more than one is held
     const mat = (key, n, kinds) => ({ key, label: key, icon: 'stone', n, kinds, title: key });
     const lay = win.__materialsHTML([mat('stone', 9, [{ label: 'granite', n: 5 }, { label: 'sandstone', n: 4 }]), mat('clay', 4, [{ label: 'one', n: 4 }])],
