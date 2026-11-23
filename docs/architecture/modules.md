@@ -422,7 +422,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   task by it, and a window missed (`sim/fields`' event `windowMissed`) outside the range is told on the record as `misjudged`; a kind's
   `norm` gives a normal crop's hours), `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review, with its doubt, VB-669; kept
   in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
-- Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
+- Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162), `sim/reasons` (who chose a pawn's act and why, `Sim.reasonOf`, `Sim.reasonLine`, VB-1538) (read-only, computed when asked).
 - Presentation (VB-1503): `draw/*`, the map's drawing (`draw/pigments`, `draw/paint`, `draw/bake`, `draw/marks`, `draw/paths`,
   `draw/rivers`), listed after `sim.js`. They read the world, and the bake a world's paint (VB-1504); no generator or simulation module names them (`tests/dependencies.js`
   refuses it, as an upward call and as a lookup of a later module). The page reads them by key.

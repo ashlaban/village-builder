@@ -154,6 +154,7 @@
   "sim/preview.js",
   "sim/births.js",
   "sim/people.js",
+  "sim/reasons.js",
   "sim/scenarios.js",
   "sim/clock.js",
   "sim/saves.js",
