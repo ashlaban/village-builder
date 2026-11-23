@@ -147,6 +147,15 @@ VB['sim/goods'] = (() => {
         material: null,
         ...spec,
         kinds: kinded ? Object.freeze([...spec.kinds]) : NO_KINDS,
+        // the kinds by customary worth, least first, ties in the order declared: what a take of the good, any kind, spends first
+        cheapest: kinded
+          ? Object.freeze(
+              spec.kinds
+                .map((k, i) => [rows[k].worth, i, k])
+                .sort((a, b) => a[0] - b[0] || a[1] - b[1])
+                .map((e) => e[2]),
+            )
+          : NO_KINDS,
         reads: Object.freeze([...(spec.reads || [])]),
         perish: spec.perish && Object.freeze({ ...spec.perish }),
       }),

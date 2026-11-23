@@ -235,7 +235,11 @@ function storeCalls(mod, src, fns) {
       const g = (good, sign, why) => ({ good, goods: good === null ? OP_GOODS[op] || [] : [good], sign, why }); // a good by name: those the op may move
       // a crop's grain ('grain/barley', or Stores.grainGood(crop); VB-347) is grain
       const good = (n) => {
-        const l = lit(n); return typeof l === 'string' && l.startsWith('grain/') || l === null && n &&
+        const l = lit(n);
+        // a good by its kind ('stone/granite', or 'stone/' + rock; VB-733) is the good
+        if (typeof l === 'string' && l.startsWith('stone/')) return 'stone';
+        if (n && n.type === 'BinaryExpression' && typeof lit(n.left) === 'string' && lit(n.left).endsWith('/')) return lit(n.left).slice(0, -1);
+        return typeof l === 'string' && l.startsWith('grain/') || l === null && n &&
         /grainGood/.test(src.slice(n.start, n.end)) ? 'grain' : l; };
       let goods = [];
       if (op === 'put') goods = [g(good(a[2]), +1, reason(a[4]))];

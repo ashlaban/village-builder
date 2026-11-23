@@ -378,7 +378,7 @@ function storesTab(hh) {
       label: 'Hand quern',
       wide: true,
       value: !hh.quern ? 'none' : quern > 0 ? `${Math.ceil(quern)} years left` : 'worn out',
-      note: hh.quern ? `of ${hh.quern.rock}` : '',
+      note: hh.quern ? `of ${hh.quern.kind}` : '',
       tone: hh.quern && quern > 0 ? '' : 'warn',
       title: hh.quern && quern > 0 ? 'A hand quern' : 'No quern that grinds: grain is cooked unground',
     },

@@ -132,7 +132,12 @@ VB['sim/green'] = (() => {
   function stoneTaken(st, j) {
     const hh = st.households[j.from],
       s = j.step;
-    if (!hh || hh.dissolved || s.brought >= BUILD.wellStone || (hh.stone || 0) - Stores.reserved(st, hh, 'stone') < 1)
+    if (
+      !hh ||
+      hh.dissolved ||
+      s.brought >= BUILD.wellStone ||
+      Stores.heldOf(hh, 'stone') - Stores.reserved(st, hh, 'stone') < 1
+    )
       return 0;
     Stores.take(st, hh, 'stone', 1, 'well');
     return 1;
@@ -166,7 +171,7 @@ VB['sim/green'] = (() => {
     for (const id of v.farmsteads) {
       const f = st.farmsteads[id],
         hh = f.household === null ? null : st.households[f.household];
-      const n = hh ? (hh.stone || 0) - Stores.reserved(st, hh, 'stone') : 0;
+      const n = hh ? Stores.heldOf(hh, 'stone') - Stores.reserved(st, hh, 'stone') : 0;
       if (n >= 1) out.push([n, hh.id, f.house]);
     }
     return out.sort((a, b) => b[0] - a[0] || a[1] - b[1]);
