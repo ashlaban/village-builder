@@ -208,6 +208,7 @@ const INTEGRATION = [
   ['node', 'tests/aleevening.js'], // VB-522: the ale evening (who calls, who is asked, the barrel) and the season's rite (its leader, the ties)
   // VB-855: the farming year, from new fields to digging, on small generated islands and constructed states
   ['node', 'tests/newfields.js'],
+  ['node', 'tests/fieldground.js'],
   ['node', 'tests/fieldswanted.js'],
   ['node', 'tests/weeding.js'],
   ['node', 'tests/soil.js'],
