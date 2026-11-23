@@ -12,8 +12,14 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `explain` checks finite outputs and contribution ranges and reports each factor, the combination, the raw result and clamp bounds.
   The million-read heap test checks retained memory after GC; it does not prove zero temporary allocations in provider callbacks.
   Modules declare an owned rule or contribute a factor/term before the first seed/load, which seals the registry; rules never enter saved state.
+- The terrain's representation is `src/world/` (VB-1490), read by the generator, the simulation and the drawing alike, and loaded before
+  them: `world/grid` the hex grid (the odd-r directions, `toAxial`, `hexDist`, `hexLocator`, and `csample(w, arr, x, y)`, a coarse-cell
+  array sampled at a map point), `world/biomes` the biome codes `B` and their keys, names and water, and `treeStage` (the stage of a
+  tile's trees, the contract between `sim/forest`, `sim/spread` and the drawing), `world/geology` the codes and names of the bedrock and
+  deposits (`ROCK`, `DEPOSIT`, `ENDLESS`, `FIND`), `world/rivers` the name of a river tile's water by its flow (`kind`).
+  A sim module reads them there, not through the `gen` facade.
 - `ArchGen.generate(seed)` (`src/gen.js`) assembles the world's terrain, hex tiles and regions. Seeded noise comes from `src/gen/noise.js`.
-  `src/gen/biomes.js` defines biome identities, cover thresholds and tile pigments, and updates a tile's biome and colour together.
+  `src/gen/biomes.js` holds the cover thresholds and the tile pigments, and updates a tile's biome and colour together (`setBiome`).
   `src/gen/bake.js` rasterizes the generated world for the map at each level of detail, with land pigments, coastal contours, water and
   decorations. `src/gen/marks.js` draws the individual marks (trees, stones, humps, crags). `ArchGen` exposes the generator and the bake.
   Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced and drawn by `src/gen/rivers.js`, listed before `gen.js`, which calls it.
@@ -383,7 +389,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 ## Layers (VB-230)
 Each module's layer is in `src/layers.json` (a module without one fails `npm test`); target-v2 3.1 gives the rule: calls go downward, reads are
 free, influence goes upward by a command, an event or a hook. Composition roots stand apart: `sim/clock`, `sim/saves`, `sim/scenarios`, `sim`.
-- Kernel and world: `vb`, `gen`, `gen/*`, `sim/norms` (the norms on goods, VB-417), `sim/rules`, `sim/crops` (the crops, rotations and soil), `sim/roles` (the roles and their work, `MATCH`), `sim/house` (a well-kept house), `sim/registry`, `sim/events`, `sim/rng`, `sim/due` (the due-queue helper: search, insert, removal and take over a sorted list its owner keeps, VB-1473), `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
+- Kernel and world: `vb`, `world/*`, `gen`, `gen/*`, `sim/norms` (the norms on goods, VB-417), `sim/rules`, `sim/crops` (the crops, rotations and soil), `sim/roles` (the roles and their work, `MATCH`), `sim/house` (a well-kept house), `sim/registry`, `sim/events`, `sim/rng`, `sim/due` (the due-queue helper: search, insert, removal and take over a sorted list its owner keeps, VB-1473), `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
   `sim/villagehours`, `sim/paths`,
   `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/traits` (the stand-in traits and a
   head's skill and bias, VB-254), `sim/skills` (VB-475: a pawn's skill at each type of work, a stand-in that does not grow, from the stream
