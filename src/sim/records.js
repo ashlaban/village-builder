@@ -81,6 +81,7 @@ VB['sim/records'] = (() => {
     wishLapsed: 0, // the played pawn's wish for a match ended or passed by, with why (sim/wishes, VB-1113)
     kinBarred: 0,
     share: 0,
+    wage: 0, // a servant's wage paid, or what was still owed of it lapsed (sim/service, VB-637)
     player: 0,
     year: 0,
     hayRotted: 0,

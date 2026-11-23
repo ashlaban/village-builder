@@ -125,6 +125,9 @@ VB.COUNTERS = {
   takeInWeighed:
     'Pawns of st.demand weighed for a household short of people whose ask for food fell short, as kin and then as servants ' +
     '(sim/service, takeIn; VB-308)',
+  wagesWeighed:
+    'Members of the households weighed for a servant who has served a year, owed its wage at the moving round (sim/service, ' +
+    'oweWages; VB-637)',
   labourWeighed:
     'Households short of labour weighed for a landless adult with hands to spare at home, at the moving round (sim/service, ' +
     'serveWhereShort; VB-090)',

@@ -78,7 +78,7 @@ function lineOf(holder, d) {
     return d.to === 'the village store' ? 'out.given.toStore' : 'out.given.toHouseholds';
   }
   if (k === 'away') return n > 0 ? 'in.packsHome' : 'out.packed';
-  if (k === 'share' || k === 'handingOn' || k === 'provisions' || k === 'start') return n > 0 ? 'in.handedOn' : 'out.handedOn';
+  if (k === 'share' || k === 'wage' || k === 'handingOn' || k === 'provisions' || k === 'start') return n > 0 ? 'in.handedOn' : 'out.handedOn';
   return 'other.' + k; // a kind this report does not know yet: it shows, so that it is placed
 }
 const yearOfT = (YEAR, t) => Math.floor(t / YEAR) + 1;

@@ -13,7 +13,7 @@ VB['sim/round'] = (() => {
   const { startPlots } = VB['sim/allotment'];
   const { claimFarms, claimableFarm, askLand } = VB['sim/farmclaims'];
   const { settleRound } = VB['sim/settle'];
-  const { takeServants, serveWhereShort } = VB['sim/service'];
+  const { takeServants, serveWhereShort, oweWages, unpaid, unpaidLeave } = VB['sim/service'];
   const { payOwed } = VB['sim/cottage'];
   const { callFilling } = VB['sim/help'];
   const { refreshStanding } = VB['sim/society'];
@@ -98,6 +98,7 @@ VB['sim/round'] = (() => {
   function phase(st, n, d, now) {
     if (n < VILLAGE_STEPS) {
       if (n === 0 && d === 0) {
+        oweWages(st); // a year served is owed its wage, and wages owed are paid, before any servant marries (sim/service, VB-637)
         review(st); // the courting couples are read: a courtship that has run out ends (sim/courting, VB-036)
         chooseWishes(st); // each pawn comes to the round with its wish (sim/wishes, VB-680)
       }
@@ -123,8 +124,9 @@ VB['sim/round'] = (() => {
       settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
     else if (n === VILLAGE_STEPS + 2) {
       // a holder who lives alone takes in a landless adult, then service where labour is short, and for those of a courting couple a
-      // head refused (sim/service, sim/courting)
-      serveWhereShort(st, { ...takeServants(st), leavers: leavers(st) });
+      // head refused (sim/service, sim/courting), and for a servant its master has not paid, who goes home first (VB-637)
+      const unhomed = unpaidLeave(st, unpaid(st));
+      serveWhereShort(st, { ...takeServants(st), leavers: [...leavers(st), ...unhomed] });
       payOwed(st);
       refreshStanding(st);
       if (ASK.passes === 1) lapseRound(st);

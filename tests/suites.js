@@ -127,6 +127,7 @@ const INTEGRATION = [
   ['node', 'tests/takenin.js'],
   ['node', 'tests/trust.js'],
   ['node', 'tests/obligations.js'],
+  ['node', 'tests/wage.js'], // a servant's wage (VB-637)
   ['node', 'tests/days.js'],
   ['node', 'tests/labour.js'],
   ['node', 'tests/marriage.js'],

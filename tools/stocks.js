@@ -93,6 +93,10 @@ const QUANTITIES = [
   { id: 'villageGrain', of: 'village', name: 'the village store\'s grain', unit: 'rations', fields: ['village.grain'], good: 'grain', holder: 'village',
     kinds: ['haul'],
     none: 'a household short of food gets nothing from the village when its kin cannot help (sim/help), and a common field is not sown (VB-100)' },
+  { id: 'stake', of: 'pawn', name: 'a pawn\'s stake: grain of its own, shares paid out (VB-032) and a servant\'s wages (VB-637), lying where it lives',
+    unit: 'rations', fields: ['pawn.stake'], kinds: [],
+    none: 'nothing is lost: a party for new land takes its provisions from its old households\' grain (sim/settle, sim/farmclaims), the means to '
+      + 'marry are the home\'s store alone (sim/matching meansOf), and a new household starts on what its old one gives (sim/cottage)' },
   { id: 'pack', of: 'stay', name: 'the pack: the food a pawn away from home carries, on a journey or lodging', unit: 'rations', fields: ['st.away'],
     covers: ['st.awaySeq', 'agent.away'], kinds: [],
     none: 'the pawn on the road goes hungry (its hunger log), slow and loses health, until it arrives and eats at its new home (VB-287); a lodger '
@@ -194,7 +198,7 @@ const OPS = { put: 'add', take: 'take', takeSpare: 'take', move: 'move', cook: '
   start: 'start', brew: 'brew',
   pour: 'take', spoilAle: 'take', villageDay: 'take', dry: 'take', cookLarder: 'add' };
 const OP_GOODS = { dug: ['clay', 'bogOre', 'peat'] };
-const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'share', 'handingOn', 'provisions', 'start']);
+const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'share', 'wage', 'handingOn', 'provisions', 'start']);
 const SKIP = new Set(['sim/stores', 'sim/saves']); // the stores' own operations, and saving
 // A module's named functions, innermost by line: [{name, from, to}], a job kind's properties as `kind.property`
 function functionsOf(src) {
