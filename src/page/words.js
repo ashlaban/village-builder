@@ -278,12 +278,14 @@ function showPawn(id) {
 // are a level (VB-908).
 const marryYears = (n) => (Math.round(Math.max(0, n) * 10) / 10).toString();
 const hasMeans = (bar) => bar.kind === 'short' || bar.kind === 'means';
+// A pawn's own stake (shares paid out, a servant's wages: VB-637) counts with the home's store, and the words say so.
+const portionWords = (bar) => (bar.portion > 0 ? ', your portion counted' : '');
 const marryWords = (bar) =>
   ({
     hungry: 'Too hungry to marry',
     nohome: 'No holding to marry onto',
-    short: `Cannot marry yet: the home holds ${marryYears(bar.held)} of the ${marryYears(bar.asked)} years it needs`,
-    means: `The home has the means to marry: it holds ${marryYears(bar.held)} of the ${marryYears(bar.asked)} years asked`,
+    short: `Cannot marry yet: the home holds ${marryYears(bar.held)} of the ${marryYears(bar.asked)} years it needs${portionWords(bar)}`,
+    means: `The home has the means to marry: it holds ${marryYears(bar.held)} of the ${marryYears(bar.asked)} years asked${portionWords(bar)}`,
     hands: "The home needs a spouse's hands: no means are asked",
   })[bar.kind];
 // The means stat: years of food the home holds on the one meter, to twice what is asked (or what it holds, if more), marked at the asked.
