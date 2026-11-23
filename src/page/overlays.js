@@ -65,6 +65,7 @@ function paintOverlays() {
   const btn = $('overlayBtn'),
     icon = overlayOn ? overlayOn.icon : 'layers';
   btn.classList.toggle('on', !!overlayOn);
+  btn.setAttribute('aria-pressed', String(!!overlayOn)); // the one pressed look (the button piece)
   btn.title = overlayOn ? `Overlays: ${overlayOn.name}` : 'Overlays';
   if (btn.dataset.shows !== icon) {
     btn.dataset.shows = icon;

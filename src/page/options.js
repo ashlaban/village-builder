@@ -1,12 +1,15 @@
 // @sys page/options: the main menu's Options screen and the interface's theme (VB-1161): glass or mural, the page's choice, kept in localStorage
 // ---- options: the interface's theme ----
-// A theme is a set of styles under :root[data-theme] in src/head.html; glass, the default, is the stylesheet as it stands and sets no
-// attribute. The choice is the page's and the device's: kept in localStorage, never in st or a save. A theme's card shows a sample of
-// its own look whatever theme is on, so its colours are written out in the stylesheet (.theme-pv), not taken from the palette.
+// A theme is a block of tokens under [data-theme] in src/head.html, with its styling of the pieces (VB-1534), over a base
+// stylesheet that holds what every theme shares; the root always carries one, glass by default, set in the markup and here (VB-1529).
+// The choice is the page's and the device's: kept in localStorage, never in st or a save. A theme's card shows a sample of its own look
+// whatever theme is on: the sample carries the theme's data-theme, so its panel, head and buttons take that theme's tokens (VB-1531).
+// Adding a theme is an entry here, a token block and its styling of the pieces in src/head.html (docs/architecture/modules.md,
+// Adding things).
 const THEME_KEY = 'vb.theme';
 const THEMES = {
-  glass: { name: 'Glass', note: 'Frosted panels and line icons; light or dark with the system.' },
-  mural: { name: 'Mural', note: 'Plaster, ochre and stencils, as the map is painted.' },
+  glass: { name: 'Glass', note: 'Frosted panels and line icons; light or dark with the system.', icons: 'line' },
+  mural: { name: 'Mural', note: 'Plaster, ochre and stencils, as the map is painted.', icons: 'stencil' },
 };
 let theme = 'glass';
 try {
@@ -16,15 +19,15 @@ try {
   /* no storage: the default */
 }
 function applyTheme() {
-  if (theme === 'glass') delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset.icons = THEMES[theme].icons; // the set of icons it shows (page/icons, ICON_SETS)
+  document.documentElement.dataset.theme = theme;
 }
 function drawThemes() {
   $('themeList').innerHTML = Object.entries(THEMES)
     .map(
       ([k, t]) =>
         `<button type="button" class="theme" role="radio" data-theme-choice="${k}" aria-checked="${k === theme}" tabindex="${k === theme ? 0 : -1}">` +
-        `<span class="theme-pv ${k}" aria-hidden="true"><span><b>Spring</b><i></i><i></i></span></span>` +
+        `<span class="theme-pv" aria-hidden="true"><span class="panel" data-theme="${k}"><b class="head">Spring</b><i class="on"></i><i></i></span></span>` +
         `<span class="theme-name">${esc(t.name)}</span><small>${esc(t.note)}</small></button>`,
     )
     .join('');

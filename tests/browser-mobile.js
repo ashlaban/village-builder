@@ -73,7 +73,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     await page.click('#speedBtn'); await page.evaluate(() => document.getElementById('fakeToast').remove());
     // VB-338: the dock's buttons are icons with their names under them; the panels' Close and fold are icons with accessible names
     const dock = await page.locator('.navigation button:visible').evaluateAll((bs) => bs.map((b) => [!!b.querySelector('svg'),
-      b.querySelector('.nav-label') && b.querySelector('.nav-label').getBoundingClientRect().height > 0]));
+      b.querySelector('.label') && b.querySelector('.label').getBoundingClientRect().height > 0]));
     assert(dock.length >= 4 && dock.every(([icon, label]) => icon && label), `the dock's buttons have an icon and a label: ${JSON.stringify(dock)}`);
     const heads = await page.locator('[id$="Close"].icon-btn, .sheet-expand').evaluateAll((bs) => bs.filter((b) => !b.querySelector('svg')
       || !b.getAttribute('aria-label') || b.textContent.trim()).map((b) => b.id || b.dataset.sheet));

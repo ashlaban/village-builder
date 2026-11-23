@@ -383,8 +383,8 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   three by hand for each archipelago) or a file; the build id is written by `build.py`, and a save of another build is refused by the
   page, not by `Sim.load`. The landing page and the loader (`src/page/loader.js`) lead to it; it keeps nothing in `st`.
 - The interface's theme (VB-1161) is `src/page/options.js`: the main menu's Options screen, and `glass` (the default, the stylesheet as it
-  stands) or `mural`, set as `data-theme` on the page's root and kept in localStorage (`vb.theme`), never in `st` or a save. A theme is the
-  rules under `:root[data-theme="..."]` at the end of `src/head.html`; the meter gives its fill's start and end as `--lo` and `--hi`, so a
+  stands) or `mural`, set as `data-theme` on the page's root and kept in localStorage (`vb.theme`), never in `st` or a save. A theme is a
+  block of tokens under `[data-theme="..."]` and its styling of the pieces in `src/head.html`; the meter gives its fill's start and end as `--lo` and `--hi`, so a
   theme can draw a level another way than as a bar's width.
   With no game open, the loader raises a tiny showcase island behind the menu screens, on one of a pool of seeds (VB-307; `demo`, page state): a run of its own at 3x,
   never saved and never a game to go back to; `build` drops it.
@@ -469,3 +469,23 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   free digit (6 to 9: 1 to 5 are the speeds; then Y, U and I). The overlay button, its list, the keys and `tests/browser-overlays.js` follow the registry: none
   of them names an overlay.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.
+- A new set of icons (VB-1533; `line` and `stencil` today) is one entry of `ICON_SETS` in `src/page/icons.js` and its drawings, given
+  by name where an icon is made (`drawings(svg, { stencil: ..., <set>: ... })`, drawn on a 24 box); an icon left without one shows its
+  `line` drawing. In `src/head.html`, beside the stencil's, its one rule (hidden unless the root's `data-icons` names it, and then the
+  `line` drawing beside it hidden) and the styles its shapes are drawn with; then a theme names it, the `icons` field of its entry in
+  `THEMES` (`src/page/options.js`), which `applyTheme` puts on the root as `data-icons`. No rule of the icons names a theme.
+- A new theme (VB-1531) is two edits. An entry in `THEMES` (`src/page/options.js`): its key, `name`, `note` and the `icons` it shows; its
+  card in Options, and `tests/page.js`'s walk of the themes, follow. And a block `[data-theme="<key>"] { ... }` in `src/head.html`
+  that sets every token listed at the head of the stylesheet, in one rule (`tests/themes.js` checks it); written without `:root`, it
+  applies to any element with the attribute, so the card's sample (a panel, a head, a pressed and an unpressed button) is drawn in the
+  theme whatever theme is on. Then its styling of the pieces (VB-1534), listed beside the tokens: panel, head, button (pressed and
+  primary by one rule), icon button, row, card, meter. What the tokens cannot say is a rule in the theme's own section,
+  `[data-theme="<key>"] .piece`, as Mural's medallion, leaf and beads; a rule there names a piece, or a component on the list's `counted:`
+  line with its reason beside it (`tests/themes.js` checks it). The tokens are scales and plain meanings (VB-1535): a theme sets its
+  three corners (`--r-0` to `--r-2`) and its three shadows (resting, raised, floating), not one corner a component; a value only one
+  theme's piece would read is that piece's rule, not a token. A sample's panel carries the theme itself, so a theme's panel rule names
+  it twice, `[data-theme="<key>"] .panel, .panel[data-theme="<key>"]`.
+- A new component uses pieces (VB-1534): its markup carries `panel`, `head`, `icon-btn`, `row`, `card` or `meter` (a button is the
+  element), a popup's opener `aria-haspopup` so that it shows pressed while open; its own rules carry layout (place, size, gaps), and
+  corners from a step of the radius scale (or round, for a pill or a circle), its shadow from a step of the shadow scale, not a look
+  a theme would want to change.

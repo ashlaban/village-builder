@@ -62,7 +62,9 @@ const START_STEN = {
   village: ACT_STEN.village,
 };
 const startSign = (k) =>
-  SIGN_PATHS[k] ? sign(k) : stencil(svgIcon(24, 24, `<path d="${START_SIGNS[k]}"/>`, ICON_STROKE), START_STEN[k]);
+  SIGN_PATHS[k]
+    ? sign(k)
+    : drawings(svgIcon(24, 24, `<path d="${START_SIGNS[k]}"/>`, ICON_STROKE), { stencil: START_STEN[k] });
 const NUMBER_WORDS = [
   'no',
   'one',
@@ -360,7 +362,7 @@ function renderCards() {
         ].join('')
       : '';
     return (
-      `<button type="button" class="scard" data-sc="${k}" aria-pressed="${k === start.sc}"><span class="cpic ${k}">${pic}</span>` +
+      `<button type="button" class="card scard" data-sc="${k}" aria-pressed="${k === start.sc}"><span class="cpic ${k}">${pic}</span>` +
       `<b>${esc(words.name)}</b><small>${esc(words.line)}</small><span class="stats"><span>${startSign('people')}${people}</span>` +
       `<span>${startSign('gens')}${gens}</span></span></button>`
     );
