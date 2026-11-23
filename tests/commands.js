@@ -377,11 +377,16 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
     const took = b0 - Sim.grainOf(b); // the grain is set aside where it lies, no more
     assert.ok(Math.abs(took - 20) < 1e-9, `the grain is set aside: ${took}`);
     assert.ok(/own household/.test(offer(s, a.holder, a.holder, { basis: 'ask', wants: { good: 'grain', n: 20 } })), 'not of one\'s own');
-    // beyond what the asked would give: no, and both remember it
-    const ob = opinionOf(s, a.holder, b.holder);
+    // beyond what the asked would give (VB-691): it gives what its floor and allowance allow, up to the ask
+    const gives = VB['sim/exchange'].assessGift(s, { from: b, to: a, n: 0, source: 'ask' }).allowance, b1 = Sim.grainOf(b);
     assert.strictEqual(offer(s, a.holder, b.holder, { basis: 'ask', wants: { good: 'grain', n: 50000 } }), true);
-    assert.ok(opinionOf(s, a.holder, b.holder) < ob, 'the asker remembers the refusal');
-    assert.ok(told(s, 'offerRefused', (e) => e.pawn === b.holder), 'the refusal is told');
+    assert.ok(gives > 0 && Math.abs(b1 - Sim.grainOf(b) - gives) < 1e-6, `gives its allowance: ${gives}, ${b1 - Sim.grainOf(b)}`);
+    // with nothing above its floor to give: no, and an honest cannot is not resented (VB-470's rule for hands)
+    const ob = opinionOf(s, a.holder, b.holder), floor = VB['sim/hunger'].floorOf(s, b);
+    VB['sim/stores'].take(s, b, 'grain', Sim.grainOf(b) - floor, 'spoilage');
+    assert.strictEqual(offer(s, a.holder, b.holder, { basis: 'ask', wants: { good: 'grain', n: 20 } }), true);
+    assert.strictEqual(opinionOf(s, a.holder, b.holder), ob, 'nothing remembered');
+    assert.ok(!told(s, 'offerRefused', (e) => e.pawn === b.holder), 'nor told');
     sound(s, 'an ask');
   }
   // (d) an offer due later is kept and answered once, at its due time, by the unplayed pawn's judgement

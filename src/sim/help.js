@@ -95,8 +95,9 @@ VB['sim/help'] = (() => {
   // above the seed runs out (sim/stores wakes the plan). While its spare grain covers fewer than HELP.askBelow days, and it has not asked
   // this season, it asks for food until the next harvest (askDaysAt): an offer on the basis `ask` to the head of each kin household
   // within a day's walk, then to its village's alderman for the store, then to kin further away by land, nearest first, each for what it
-  // still lacks; each answers by its floor and allowance and gives what they allow (sim/exchange). The asker knows what it was given by
-  // what was set aside for it; an ask answered later (the played head's) moves nothing now. An ask that moved nothing marks nothing worth
+  // still lacks, none who refused it this season (its memory refusedUs); each answers by its floor and allowance and gives what they
+  // allow (sim/exchange). The asker knows what it was given by what was set aside for it; an ask answered later (the played head's)
+  // moves nothing now. An ask that moved nothing marks nothing worth
   // remembering (VB-391): it asks again at its next review. The played head asks for itself, by the same verb, unless its pawn plans for
   // it. True when the ask was made.
   function askFood(st, hh) {
@@ -119,9 +120,14 @@ VB['sim/help'] = (() => {
         moved = true;
       }
     };
+    // the head of kin household k, unless it refused us this season: an ask refused is remembered (VB-690), and not made again until the next
     const head = (k) => {
-      const g = st.households[k];
-      return g.holder !== null && st.pawns[g.holder].alive ? g.holder : null;
+      const g = st.households[k],
+        h = g.holder;
+      if (h === null || !st.pawns[h].alive) return null;
+      const r = st.pawns[by].rel.get(h),
+        m = r && r.mem.refusedUs;
+      return m && seasonOf(m.t) === season ? null : h;
     };
     const near = [],
       far = [];
@@ -139,7 +145,9 @@ VB['sim/help'] = (() => {
     }
     const v = st.villages[st.farmsteads[hh.farmstead].village],
       alderman = agentOf(st, v.id);
-    if (want >= HELP.askLeast && alderman !== null) ask(v, alderman, { good: 'grain', n: want, store: v.id });
+    const refused = alderman !== null && st.pawns[by].rel.get(alderman),
+      no = refused && refused.mem.refusedUs && seasonOf(refused.mem.refusedUs.t) === season;
+    if (want >= HELP.askLeast && alderman !== null && !no) ask(v, alderman, { good: 'grain', n: want, store: v.id });
     for (const k of far) {
       if (want < HELP.askLeast) break;
       const h = head(k);

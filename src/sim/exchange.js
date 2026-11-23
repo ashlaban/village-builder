@@ -278,7 +278,10 @@ VB['sim/exchange'] = (() => {
     },
     refused: (st, o, no) => {
       const from = Offers.partyOf(st, o.parties.to);
-      if (o.from === no.by || (isHousehold(from) && Stores.grainOf(from) - floorOf(st, from) < HELP.askLeast)) return;
+      const above = isHousehold(from)
+        ? Stores.grainOf(from) - floorOf(st, from)
+        : Stores.grainOf(from) - Stores.reserved(st, from, 'grain');
+      if (o.from === no.by || above < HELP.askLeast) return; // nothing to give: an honest cannot
       remember(st, o.from, no.by, 'refusedUs');
       remember(st, no.by, o.from, 'refusedThem');
       log(st, `${fullName(st.pawns[no.by])} refused ${Offers.what(st, o)}.`, {
