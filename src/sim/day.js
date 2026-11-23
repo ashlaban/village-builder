@@ -17,9 +17,6 @@ VB['sim/day'] = (() => {
   const Estimate = VB['sim/estimate'];
   const { score, bid, matchBar, joined, allotted, workCommand, jobsFor } = VB['sim/fit'];
   const none = new Set();
-  // The households short of hands the morning's allotment found, [[household id, hours short]], asked once it is over (allotChanged);
-  // null but in the morning's allotment.
-  let asking = null;
   // Where a bid of score s goes in bids[from..], which is sorted best first: after every bid at least as good.
   function slot(bids, from, s) {
     let lo = from,
@@ -47,7 +44,8 @@ VB['sim/day'] = (() => {
   // draw. Then the head calls: a member at work leaves its task for the first of its list when that is much more urgent (switchRatio,
   // switchMargin; VB-107), a task with a deadline today (`late`: the meal)
   // calls its hand from work, from the road or from idling. The others take their tasks when they next look for work (takeDay).
-  function allot(st, hh, c) {
+  // `asking`, in the morning's allotment (allotChanged): the list that gains [household id, hours short] when the household is short of hands.
+  function allot(st, hh, c, asking = null) {
     const plan = planOf(st, 'household', hh.id);
     if (!plan || hh.farmstead === null) return;
     const lists = {},
@@ -164,13 +162,12 @@ VB['sim/day'] = (() => {
           if (hid !== null) ids.add(hid);
         }
     }
-    asking = c.hour === WORK[0] - 1 ? [] : null;
+    // the households short of hands the morning's allotment finds, [[household id, hours short]], asked once it is over
+    const ask = c.hour === WORK[0] - 1 ? [] : null;
     for (const id of [...ids].sort((x, y) => x - y)) {
       const hh = st.households[id];
-      if (hh && !hh.dissolved) allot(st, hh, c);
+      if (hh && !hh.dissolved) allot(st, hh, c, ask);
     }
-    const ask = asking;
-    asking = null;
     // once every day is allotted, so that the heads asked answer by their own (VB-470)
     if (ask)
       for (const [id, short] of ask) if (!st.households[id].dissolved) Hands.askFor(st, st.households[id], short, c);
