@@ -1,6 +1,7 @@
 // @sys draw/rivers: rivers drawn on the map, each river tile a curve from joint to joint, its banks, springs and reeds
 // ===== Rivers on the map: width by catchment, bends, lines per tile, drawn per chunk; items kept off them =====
-// Listed before draw/bake, whose decorateChunk calls thin; the page draws each chunk with drawChunk (VB-1491, from gen/rivers).
+// Listed after sim.js, in the presentation layer, before draw/bake, whose decorateChunk calls thin; the page draws each chunk with
+// drawChunk (VB-1491, from gen/rivers).
 VB['draw/rivers'] = (() => {
   // ---- drawing: each river tile holds a line from the joint upstream, past a bend near its centre, to the joint downstream ----
   // Width of the river through tile i, in map units: a brook at its source, at most three quarters of a hex wide.
@@ -247,7 +248,7 @@ VB['draw/rivers'] = (() => {
       }
     }
   }
-  // Paints the rivers of one map chunk onto ctx, over the baked land and under the decorations. lv: ArchGen.LV[level]; full: level 0.
+  // Paints the rivers of one map chunk onto ctx, over the baked land and under the decorations. lv: draw/bake LV[level]; full: level 0.
   // The paint only takes where the chunk already holds land (or the foam along a shore), so a river ends at the painted coastline.
   function drawChunk(w, ctx, lv, cx, cy, full) {
     const { R, HW, AP, COLS, ROWS } = w,

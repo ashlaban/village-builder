@@ -110,7 +110,7 @@ These are the invariants. Each later section applies them; a change that breaks 
 | Social | `persons`, `relations`, `membership`, `obligations`, `culture`, `encounters`, `institutions` | Traits and skills; opinion, goodwill, memories, stories; bodies and roles; claims; attitudes, drift and what changes custom; who meets whom; the Crown and the Church |
 | Material and land | `stores`, `land`, `facilities`, `production` | Goods and custody; holdings and rights; built things, ways included; recipes and their runs |
 | World and kernel | `world`, `movement`, `kernel` | Terrain, ecology and climate; modes, vehicles, worn ways and reach; time, the calendar, seeded streams, commands, events, records, saves, the rules registry, the customs in force (read side) |
-| Player and presentation | `page` | What the player sees and the commands it issues |
+| Player and presentation | `page`, `draw` | What the player sees and the commands it issues; the map's drawing (`draw/*`, VB-1492) |
 
 Twenty-one modules besides the page, against 43 today. Most of today's modules survive inside them: `herds`, `meadows`, `byre` and `fields` as
 domain steps and job kinds in `production` and `world`; `heirs`, `cottage`, `settle` and `farmclaims` as kind rules and workflows in

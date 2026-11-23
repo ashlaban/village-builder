@@ -21,7 +21,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 - `ArchGen.generate(seed)` (`src/gen.js`) assembles the world's terrain, hex tiles and regions. Seeded noise comes from `src/gen/noise.js`.
   `src/gen/biomes.js` holds the cover thresholds and the tile pigments, and updates a tile's biome and colour together (`setBiome`).
   `src/draw/bake.js` rasterizes the generated world for the map at each level of detail, with land pigments, coastal contours, water and
-  decorations. `src/draw/marks.js` draws the individual marks (trees, stones, humps, crags). `ArchGen` exposes the generator and the bake.
+  decorations. `src/draw/marks.js` draws the individual marks (trees, stones, humps, crags). Both, with `src/draw/paths.js` and `src/draw/rivers.js`,
+  are the presentation layer, listed after `sim.js` (VB-1492). `ArchGen` exposes the generator only (`generate`, `BIOMES`, `COVER`, `setBiome`);
+  the page reads the bake as `VB['draw/bake']` and `mulberry32` from `gen/noise`.
   Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced by `src/gen/rivers.js`, listed before `gen.js`, which calls it, and drawn by `src/draw/rivers.js` (VB-1491).
   What lies in the ground is laid by `src/gen/geology.js`, called the same way: bedrock (`w.rock`) in provinces, with lenses of marble and
   soapstone, and finite deposits of clay and ores (`w.deposit`, `w.depositLeft`) as veins, each island drawing which kinds it has
@@ -389,7 +391,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
 ## Layers (VB-230)
 Each module's layer is in `src/layers.json` (a module without one fails `npm test`); target-v2 3.1 gives the rule: calls go downward, reads are
 free, influence goes upward by a command, an event or a hook. Composition roots stand apart: `sim/clock`, `sim/saves`, `sim/scenarios`, `sim`.
-- Kernel and world: `vb`, `world/*`, `gen`, `gen/*`, `sim/norms` (the norms on goods, VB-417), `sim/rules`, `sim/crops` (the crops, rotations and soil), `sim/roles` (the roles and their work, `MATCH`), `sim/house` (a well-kept house), `sim/registry`, `sim/events`, `sim/rng`, `sim/due` (the due-queue helper: search, insert, removal and take over a sorted list its owner keeps, VB-1473), `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
+- Kernel and world: `vb`, `world/*`, `gen`, `gen/*` (the generator), `sim/norms` (the norms on goods, VB-417), `sim/rules`, `sim/crops` (the crops, rotations and soil), `sim/roles` (the roles and their work, `MATCH`), `sim/house` (a well-kept house), `sim/registry`, `sim/events`, `sim/rng`, `sim/due` (the due-queue helper: search, insert, removal and take over a sorted list its owner keeps, VB-1473), `sim/hex`, `sim/names`, `sim/walking`, `sim/routes`,
   `sim/villagehours`, `sim/paths`,
   `sim/fish` (a river's stock, no actors), `sim/layout`, `sim/forest`, `sim/people`, `sim/records`, `sim/traits` (the stand-in traits and a
   head's skill and bias, VB-254), `sim/skills` (VB-475: a pawn's skill at each type of work, a stand-in that does not grow, from the stream
@@ -414,6 +416,9 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   `norm` gives a normal crop's hours), `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review, with its doubt, VB-669; kept
   in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
 - Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
+- Presentation (VB-1492): `draw/*`, the map's drawing (`draw/bake`, `draw/marks`, `draw/paths`, `draw/rivers`), listed after `sim.js`. They
+  read the world and, until VB-1493, the pigments of `gen/biomes`; no generator or simulation module names them (`tests/dependencies.js`
+  refuses it, as an upward call and as a lookup of a later module). The page reads them by key.
 
 ## Adding things
 

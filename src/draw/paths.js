@@ -1,8 +1,8 @@
 // @sys draw/paths: how worn paths look: a trail through each worn tile towards its worn neighbours, painted into the map chunks and over the fields
 // ===== Worn paths on the map (VB-094). The simulation counts and fades the wear (sim/paths); this module only reads w.worn. =====
-// Listed before gen/rivers.js and gen.js: the chunk bake keeps trees and stones off paths and lanes through `thin`.
+// Listed after sim.js, in the presentation layer, before draw/bake: the chunk bake keeps trees and stones off paths and lanes through `thin`.
 VB['draw/paths'] = (() => {
-  // By stage (0 none, 1 trodden ground, 2 path, 3 lane): the trail's width in map units, and the coarsest level of detail (ArchGen.LV
+  // By stage (0 none, 1 trodden ground, 2 path, 3 lane): the trail's width in map units, and the coarsest level of detail (draw/bake LV
   // index) that still shows it: trodden ground only up close, paths and lanes at the middle level too. The overview shows none, so a path
   // that changes stage never repaints it (a full overview chunk takes about 60 ms).
   // A trail is painted in layers, widest first, each [times the width, colour by stage]: the verge of dry, flattened grass, the darker
@@ -275,7 +275,7 @@ VB['draw/paths'] = (() => {
     }
     return out;
   }
-  // The trail curves of one chunk at level l (lv: ArchGen.LV[l]), and its worn fields and meadows.
+  // The trail curves of one chunk at level l (lv: draw/bake LV[l]), and its worn fields and meadows.
   function chunkSegments(w, lv, cx, cy, l) {
     const { R, HW, AP, COLS, ROWS } = w,
       x0 = cx * lv.size,
@@ -325,7 +325,7 @@ VB['draw/paths'] = (() => {
         }
       }
   }
-  // Paints the trails of one chunk onto ctx, over the rivers and under the decorations. lv: ArchGen.LV[level]; l: the level.
+  // Paints the trails of one chunk onto ctx, over the rivers and under the decorations. lv: draw/bake LV[level]; l: the level.
   function drawChunk(w, ctx, lv, cx, cy, l) {
     if (!w.worn) return;
     const { segs } = chunkSegments(w, lv, cx, cy, l);
