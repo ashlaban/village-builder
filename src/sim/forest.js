@@ -1,6 +1,6 @@
 // @sys sim/forest: felling, regrowth and clearing of forest tiles
 VB['sim/forest'] = (() => {
-  const { B, treeStage, setBiome } = VB['gen'];
+  const { B, treeStage, setBiome } = VB['world/biomes'];
   const { YEAR_DAYS, WOOD } = VB['sim/rules'];
   const { next } = VB['sim/rng'];
   const { costChanged } = VB['sim/routes'];
@@ -65,6 +65,17 @@ VB['sim/forest'] = (() => {
     stageChanged(st, tile, was);
   }
 
+  // Every tree standing on `tile` felled at once (a plot's or a new field's felling step, VB-031, VB-1525): the stumps stay until grubbed
+  // (clearTile), nothing grows back. Returns the trees felled, whole ones (ECON.woodPerTrip loads each: a plot's walls, a field's wood).
+  function fellAll(st, tile) {
+    const w = st.w,
+      n = Math.floor(w.trees[tile]);
+    w.trees[tile] = 0;
+    st.regrow.delete(tile);
+    st.treeDirty.add(tile);
+    return n;
+  }
+
   // Once a game day: tiles with some trees but fewer than their maximum grow back.
   function growTrees(st) {
     const w = st.w;
@@ -76,5 +87,5 @@ VB['sim/forest'] = (() => {
       stageChanged(st, tile, was);
     }
   }
-  return { FELL_HOURS, GRUB_HOURS, fellTree, drawWood, growTrees, clearTile };
+  return { FELL_HOURS, GRUB_HOURS, wooded, fellAll, fellTree, drawWood, growTrees, clearTile };
 })();

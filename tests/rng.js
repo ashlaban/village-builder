@@ -3,7 +3,7 @@
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/rng'];
 
-const a = R.fromState(12345), m = G.mulberry32(12345);
+const a = R.fromState(12345), m = VB['gen/noise'].mulberry32(12345);
 for (let i = 0; i < 1000; i++) assert.strictEqual(R.next(a), m(), `draw ${i} differs from mulberry32`);
 const copy = JSON.parse(JSON.stringify(a));
 for (let i = 0; i < 100; i++) assert.strictEqual(R.next(copy), R.next(a), 'a JSON copy continues identically');

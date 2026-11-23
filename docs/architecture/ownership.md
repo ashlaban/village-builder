@@ -55,6 +55,11 @@ after route updates, before building and fence decay. It handles ripening, the w
 overgrowth; building decay stays in the clock. Harvest yield still draws from `st.rng.fields` at reaping, in the same order.
 `node tools/writes.js --field farmstead.fields` reports only `sim/fields`, plus seeding in `sim/layout` and `sim/scenarios`.
 All 29 crop writes formerly allowed outside their owner were removed from `tests/ownership-baseline.json`; new violations fail.
+VB-1479 (22 November): the field record is owned by parts (`src/owners.json` takes `farmstead.fields[].<part>`, and `tools/writes.js`
+places a write there): its course (`rotation`, `step`, `crop`, `turn`, with `farmstead.rotationBy` and `farmstead.failed`) by
+`sim/courses`; its soil (`soil`, `tilth`, `tilthAt`, `surplus`, `surplusYear`) by `sim/soil`; the rest, the crop year, by `sim/fields`.
+A field's record is built by `sim/fieldrec` (`newField`), called by `sim/newground` (`broken`) and `sim/layout`. Three lines are allowed by `lint-allow: owner`: a change of course that leaves a hoed
+field in stubble or drops its weeding (`sim/courses`' `lies`, `unweeded`), and a new field joining its farm's list (`sim/newground`).
 The tables below remain the historical pre-refactor survey.
 
 VB-241 (12 November): `sim/clock` holds one table, `CALENDAR`, of what runs each step, hour, day, season and year, in order, each entry
@@ -169,17 +174,14 @@ of section 7 that would give the field its owner: ¹ food, ² membership, ³ the
 
 | Field | Owner (proposed) | Writers: lines | Other readers |
 | --- | --- | --- | --- |
-| `dev` **4** | fields ⁷ | layout 179,180; fields 78; meadows 47; expansion 161 | gen/paths, gen, routes, paths |
+| `dev` **4** | fields ⁷ | layout 179,180; fields 78; meadows 47; expansion 161 | draw/paths, gen, routes, paths |
 | `stones` **4** | fields ⁷ | layout 178; fields 68; meadows 65; expansion 160 | gen, names, page |
 | `trees` **2** | forest ⁷ | forest 15,30,40; expansion 158 | gen, page |
 | `*` | saves (the load) | saves 118,119 | - |
-| `biome` | gen (setBiome) | gen 574 | rules, names, routes, layout, territory, herds, fields, meadows, expansion, settle, clock, saves, page |
-| `tb` | gen | gen 578 | - |
-| `tg` | gen | gen 577 | - |
-| `tr` | gen | gen 576 | - |
+| `biome` | world/biomes (setBiome) | world/biomes setBiome; gen/cover set | rules, names, routes, layout, territory, herds, fields, meadows, expansion, settle, clock, saves, page |
 | `treesMax` | forest | forest 15 | gen, page |
 | `wear` | paths | paths 17,20,28,55 | page |
-| `worn` | paths | paths 17,31,56 | gen/paths, routes, page |
+| `worn` | paths | paths 17,31,56 | draw/paths, routes, page |
 
 ##### pawn
 
@@ -433,13 +435,13 @@ gone. The table is `node tools/writes.js` of 18 November.
 
 | Module | Imports at load | Lookups inside functions (later: a module loaded after it) |
 | --- | --- | --- |
-| gen/paths | - | - |
+| draw/paths | - | - |
 | gen/rivers | - | - |
 | gen/climate | gen/rivers | - |
-| gen/marks | - | - |
+| draw/marks | - | - |
 | gen/geology | - | - |
 | gen/cover | - | - |
-| gen | - | gen/cover:243, gen/climate:344, gen/climate:477, gen/rivers:543, gen/geology:716, gen/paths:1038, gen/rivers:1038, gen/marks:1040 |
+| gen | - | gen/cover:243, gen/climate:344, gen/climate:477, gen/rivers:543, gen/geology:716, draw/paths:1038, gen/rivers:1038, draw/marks:1040 |
 | culture | - | count:381, count:417 |
 | sim/rules | gen | - |
 | sim/registry | - | count:120, count:136 |

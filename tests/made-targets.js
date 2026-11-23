@@ -18,11 +18,11 @@ const G = plan.targets.goods;
 
 // the registry: the goods with a maker, each declared once by its maker
 const goods = Targets.madeGoods().sort();
-assert.deepStrictEqual(goods, ['ale', 'bogOre', 'butter', 'clay', 'dried fish', 'peat', 'quern', 'salt meat', 'tar'], 'the made goods');
+assert.deepStrictEqual(goods, ['ale', 'bogOre', 'butter', 'clay', 'dried fish', 'iron', 'peat', 'quern', 'salt', 'salt meat', 'tar'], 'the made goods');
 // the default: the household's need, as its rule sets it
 assert.deepStrictEqual(
-  [G.clay, G.bogOre, G.ale, G.quern, G['dried fish'], G.tar, G.butter, G['salt meat'], G.peat],
-  [Dig.DIG.stock, Dig.DIG.stock, BREW.stock, 1, Drying.wanted(st, hh), 1, Infinity, Infinity, Infinity],
+  [G.clay, G.bogOre, G.ale, G.quern, G['dried fish'], G.tar, G.butter, G['salt meat'], G.peat, G.salt, G.iron],
+  [Dig.DIG.stock, Dig.DIG.stock, BREW.stock, 1, Drying.wanted(st, hh), 1, Infinity, Infinity, Infinity, hh.herds.length ? VB['sim/saltpan'].SALT.stock : 0, VB['sim/ironwork'].mendingNeed(hh)],
   'a review compiles each target to its need');
 for (const g of goods) assert.strictEqual(Targets.target(st, hh, g), G[g], `${g}: the makers read the compiled target`);
 sound('compiled');
@@ -67,7 +67,7 @@ assert.strictEqual(Quern.wantsStone(st, hh), false, 'none at a target of none');
 // ale beyond its stock; the page's view of a good
 assert.strictEqual(Sim.head(st, 'target', { store: 'ale', n: 3 }), true);
 const V = Sim.headView(st, hh.id).goods;
-assert.deepStrictEqual(V.ale, { held: 0, now: 3, custom: BREW.stock, chosen: 3, bounds: [0, BREW.stock + Math.floor(spare / BREW.hours)], unit: 'barrel' },
+assert.deepStrictEqual(V.ale, { held: 0, now: 3, custom: BREW.stock, chosen: 3, bounds: [0, BREW.stock + Math.floor(spare / BREW.hours)], unit: 'barrel', placed: 0 },
   'the page reads the held stock, the target, the custom\'s, the choice and the bounds');
 assert.strictEqual(V.butter.now, Infinity, 'butter: all the milk gives');
 sound('chosen');

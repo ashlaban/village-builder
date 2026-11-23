@@ -53,7 +53,7 @@ const MP = {
 function artKit(w, h, seed) {
   const c = makeCanvas(w * ARTK, h * ARTK),
     g = c.getContext('2d'),
-    r = G.mulberry32(seed);
+    r = Noise.mulberry32(seed);
   c.artK = ARTK;
   g.scale(ARTK, ARTK);
   g.lineJoin = 'round';
@@ -522,7 +522,7 @@ function curbCanvas() {
 function yardCanvas() {
   const c = makeCanvas(150, 120),
     g = c.getContext('2d'),
-    r = G.mulberry32(5);
+    r = Noise.mulberry32(5);
   const gr = g.createRadialGradient(75, 75, 10, 75, 75, 74);
   gr.addColorStop(0, 'rgba(206,176,120,0.8)');
   gr.addColorStop(0.72, 'rgba(206,176,120,0.5)');

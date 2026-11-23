@@ -24,9 +24,9 @@ expect('a command before init says who runs init', !r.ok && /init/.test(r.out), 
 r = run('', 'init');
 expect('init reads the next free ID from backlog/', r.ok && r.out.includes(N), r.out);
 r = run('', 'start', A);
-expect('start reserves five IDs', r.ok && r.out.includes([0, 1, 2, 3, 4].map((i) => pad(last + 1 + i)).join(' ')), r.out);
+expect('start reserves two IDs', r.ok && r.out.includes([0, 1].map((i) => pad(last + 1 + i)).join(' ')), r.out);
 r = run('', 'start', B, '2');
-expect('a second block follows the first', r.ok && r.out.includes(`${pad(last + 6)} ${pad(last + 7)}`), r.out);
+expect('a second block follows the first', r.ok && r.out.includes(`${pad(last + 3)} ${pad(last + 4)}`), r.out);
 r = run('', 'claim', A, 'src/sim/herds.js');
 expect('a first claim is free', r.ok, r.out);
 r = run('', 'claim', B, 'src/sim/herds.js', 'src/sim/stores.js');

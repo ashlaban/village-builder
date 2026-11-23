@@ -1,0 +1,123 @@
+{
+ "session": "ba0ce73e-d6b0-5cd5-ac73-a16b15d9ca35",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-22T23:19:14.935Z",
+ "end": "2026-11-22T23:27:31.754Z",
+ "wallMin": 8.3,
+ "activeMin": 8.3,
+ "prompts": 1,
+ "calls": 49,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 93,
+  "cacheWrite": 150721,
+  "cacheRead": 6537032,
+  "output": 24872
+ },
+ "context": {
+  "first": 54781,
+  "peak": 167917,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 48,
+   "bytes": 119572,
+   "seconds": 182.4
+  },
+  "mcp__github__list_pull_requests": {
+   "calls": 1,
+   "bytes": 2,
+   "seconds": 0.7
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/fields.js",
+   "calls": 1,
+   "bytes": 24422
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 7,
+   "bytes": 17832
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 8,
+   "bytes": 15225
+  },
+  {
+   "tool": "Bash",
+   "what": "for i",
+   "calls": 2,
+   "bytes": 13791
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 12,
+   "bytes": 11138
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 4,
+   "bytes": 8576
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 5333
+  },
+  {
+   "tool": "Bash",
+   "what": "git show",
+   "calls": 2,
+   "bytes": 4964
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 1,
+   "bytes": 4747
+  },
+  {
+   "tool": "Bash",
+   "what": "npm test",
+   "calls": 1,
+   "bytes": 3456
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 2245
+  },
+  {
+   "tool": "Bash",
+   "what": "timeout 300",
+   "calls": 1,
+   "bytes": 1817
+  }
+ ],
+ "weighted": 966557,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 966557,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

@@ -48,6 +48,8 @@ VB['sim/kinds'] = (() => {
   //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt, null, from), as it is reckoned; minAge.
   //   late: a job of the kind under way, its worker walking there or at work, is finished after the end of work (VB-119: the cook).
   //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/jobs).
+  //   norm(st, j): the job's hours for a normal crop, where its hours go by the crop's size (reap, thresh): what a head that does not
+  //   reckon with the size estimates (sim/estimate, VB-476).
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
   // The village's common fields (VB-100): their kinds, as at a farm's fields, while its meeting chose the routine.
   function commonWork(st, v, at, c, post) {
@@ -100,9 +102,12 @@ VB['sim/kinds'] = (() => {
   KINDS.hunt = VB['sim/deer'].KIND; // hunting roe deer (VB-139): its record is sim/deer's
   Object.assign(KINDS, Drying.KINDS, Carts.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
   Object.assign(KINDS, VB['sim/tar'].KINDS); // the tar pit, burning tar, tarring the house and the boat (VB-301): sim/tar's
+  Object.assign(KINDS, VB['sim/saltpan'].KINDS); // boiling salt at a spring (VB-700): sim/saltpan's
+  Object.assign(KINDS, VB['sim/ironwork'].KINDS); // smelting bog ore and mending the tools (VB-701): sim/ironwork's
   // a load left lying where its carrier fell is fetched by its owner (VB-611): a fetch kind for each kind that carries a load (sim/lying)
   for (const [k, K] of Object.entries(KINDS))
     if (K.carry && (K.load || K.stack)) KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
+  KINDS.blaze = VB['sim/trails'].KINDS.blaze; // blazing a trail (VB-447): sim/trails'
   // A job is open while it has work left and fewer workers than hands; a carried job whose work is done waits for its carrier.
   const isOpen = (st, j) =>
     j.claims.length < KINDS[j.kind].hands &&
@@ -154,7 +159,10 @@ VB['sim/kinds'] = (() => {
   );
   ASK.farmAfterPlans.push(rule('grind'), rule('hewQuern')); // the hand quern (VB-009, sim/quern)
   ASK.farmAfterPlans.push(rule('burntar'), rule('tarhouse'), rule('tarboat')); // tar (VB-301, sim/tar)
+  ASK.farmAfterPlans.push(rule('boilsalt')); // salt (VB-700, sim/saltpan)
+  ASK.farmAfterPlans.push(rule('smelt'), rule('mendtools')); // iron and the tools (VB-701, sim/ironwork)
   (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)
+  ASK.island.push(rule('blaze')); // the trails under way, each its blazer's household's (VB-447, sim/trails)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, isOpen };
 })();

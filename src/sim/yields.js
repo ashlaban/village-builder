@@ -1,6 +1,7 @@
 // @sys sim/yields: a head's remembered yield of each source of food (VB-767): a household's yearly tally of rations by source, booked by
 // sim/stores with each food operation, closed at the head's planning day after the harvest into a ring of FIELDS.memory years a source;
-// what the head expects of a source (poor and mean) and how cautious it is. Nothing reads it yet (VB-768 on).
+// what the head expects of a source (poor and mean), how cautious it is, and what it trusts its sources other than its fields to bring
+// (trusted, which sim/fieldplans' fieldsWanted takes off the food its fields must grow: VB-768).
 // Design: docs/plans/VB-189.md section 5.5; AGENTS.md, Deciding without Kim, 14 (the future is someone's estimate).
 VB['sim/yields'] = (() => {
   const { FIELDS } = VB['sim/rules'],
@@ -72,11 +73,32 @@ VB['sim/yields'] = (() => {
       b = plan && plan.head ? plan.head.bias.fields : 1;
     return Math.max(0, Math.min(1, 0.5 + (b - 1) / (2 * Traits.HEAD.bias)));
   }
+  // What the head trusts its sources other than its fields to bring in a year (VB-768; design.md, Fields a household wants): over each,
+  // c x its poor year + (1 - c) x its mean, c the head's caution; what it was given (gifts and help) at its poor year only, whatever the
+  // caution: a head does not plan on charity (a close call, backlog/VB-768.md). Nothing while the head remembers fewer than FIELDS.trustFrom
+  // years (the household sizes its fields as before it had a memory). {total, by: {[source]: rations}, years, c}; a few reads, no draw.
+  function trusted(st, hh) {
+    if (!hh.yields) return { total: 0, by: {}, years: 0, c: 0.5 }; // read without making the record (a constructed household, the start)
+    const c = caution(st, hh),
+      by = {};
+    let total = 0,
+      years = 0;
+    for (const s of SOURCES) {
+      if (s === 'fields') continue;
+      const e = expects(st, hh, s);
+      years = Math.max(years, e.years);
+      const n = s === 'gifts' ? e.poor : c * e.poor + (1 - c) * e.mean;
+      by[s] = n;
+      total += n;
+    }
+    if (years < FIELDS.trustFrom) return { total: 0, by: {}, years, c };
+    return { total, by, years, c };
+  }
   // The head's planning day after the harvest (winter's first review of the household): the tally closes into the ring.
   on('planReviewed', (st, d) => {
     if (d.why !== 'day' || d.c.season !== 3 || d.plan.holder.type !== 'household') return;
     const hh = st.households[d.plan.holder.id];
     if (!hh.dissolved && of(hh).closed !== d.c.year) close(hh, d.c.year);
   });
-  return { SOURCES, book, expects, caution, of, close };
+  return { SOURCES, book, expects, caution, trusted, of, close };
 })();

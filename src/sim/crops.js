@@ -1,7 +1,7 @@
 // @sys sim/crops: the crops, their rotations and the soil (VB-419, from sim/rules): each crop's row, the rotations a field keeps,
 // how a harvest wears the soil and dung restores it, and which land can be farmed and how fertile it is
 VB['sim/crops'] = (() => {
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { SEASON_DAYS } = VB['sim/rules'];
   // @tunable CROPS: crops (VB-346; design.md, Crops and rotations): one row each, and a field holds the key of its crop (`fd.crop`). A plain table here,
   // not the registry's: nothing yet changes a row at run time, so it is no rule with contributions; it never enters saved state. Barley is today's
@@ -94,12 +94,25 @@ VB['sim/crops'] = (() => {
     window: [0, 5],
     rot: 0.5,
   };
-  // @tunable FERTILITY: the fertility of a farmable tile as a field, by its biome (a tile of another biome cannot be farmed)
-  const FERTILITY = { [B.MEADOW]: 1, [B.HEATH]: 0.65, [B.HILLS]: 0.7, [B.MARSH]: 0.5 };
+  // @tunable GROUND: what a farmable ground is worth as a field, by its biome (a tile of a biome with no row cannot be farmed):
+  // fert its fertility, clear the hours its clearing adds (VB-1522; estimates, a track's hours over heath and hills; marsh waits for VB-721);
+  // wood: a wood broken to a field (VB-1525; Kim, 23 Nov), felled and grubbed before its clearing (sim/fieldplans' fieldProject), its trees
+  // carted home; the generator's farms and a plot's field keep to open ground (openGround). Forest 0.9, pine 0.6: estimates (leaf mould
+  // against the needles' sour ground).
+  const GROUND = {
+    [B.MEADOW]: { fert: 1, clear: 0 },
+    [B.HEATH]: { fert: 0.65, clear: 3 },
+    [B.HILLS]: { fert: 0.7, clear: 8 },
+    [B.MARSH]: { fert: 0.5, clear: 0 },
+    [B.FOREST]: { fert: 0.9, clear: 0, wood: true },
+    [B.PINE]: { fert: 0.6, clear: 0, wood: true },
+  };
   // @tunable RIVER: rivers (src/gen/rivers.js): no house or field on a river tile; a field next to one is watered from it
   // irrigation: extra fertility of a field next to a river tile; site: added to a village site's score by steps to the nearest river tile (0..3).
   const RIVER = { irrigation: 0.2, site: [0, 10, 10, 5] };
-  const farmable = (w, i) => i >= 0 && !w.water[i] && !w.river[i] && FERTILITY[w.biome[i]] !== undefined;
+  const farmable = (w, i) => i >= 0 && !w.water[i] && !w.river[i] && GROUND[w.biome[i]] !== undefined;
+  // Farmable and not a wood: where a field is made without felling (the generator's farms, a plot's field, a farm's room). Allocates nothing.
+  const openGround = (w, i) => farmable(w, i) && !GROUND[w.biome[i]].wood;
   const byRiver = (w, i) => {
     for (let k = 0; k < 6; k++) {
       const j = w.nb[i * 6 + k];
@@ -107,8 +120,25 @@ VB['sim/crops'] = (() => {
     }
     return false;
   };
-  // Fertility of a farmable tile as a field: by its biome, and more when a river waters it.
-  const fertility = (w, i) => FERTILITY[w.biome[i]] * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
+  // Fertility of a farmable tile as a field: by its biome (or the ground `b` it had, a wood felled and grubbed to meadow, VB-1525), and more
+  // when a river waters it.
+  const fertility = (w, i, b = w.biome[i]) => GROUND[b]?.fert * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
 
-  return { CROPS, ROTATIONS, SOIL, FERTILITY, RIVER, farmable, byRiver, fertility };
+  // A tile a settler may farm once it is cleared (VB-786): farmable, a wood among them since a household may break one (VB-1525); its
+  // fertility as a field then is its ground's (a wood's own, not the meadow it is grubbed to).
+  const clearable = farmable,
+    clearedFertility = fertility;
+  return {
+    CROPS,
+    ROTATIONS,
+    SOIL,
+    GROUND,
+    RIVER,
+    farmable,
+    openGround,
+    byRiver,
+    fertility,
+    clearable,
+    clearedFertility,
+  };
 })();

@@ -328,13 +328,22 @@ VB['sim/byre'] = (() => {
     },
     held: (st, hh) => larderOf(hh, 'salt meat'),
   });
-  // Salted: the fresh meat keeps as salt meat does (sim/goods), the change booked in the ledger.
+  // Salted: the fresh meat keeps as salt meat does (sim/goods), as far as the household's salt goes, HERD.saltPerRation a ration (VB-700);
+  // the rest is smoked and keeps HERD.smokeDays, so a household without salt is worse off, not barred. The changes booked in the ledger.
   function saltDone(st, hh) {
     const n = takeAll(hh, 'meat');
-    addFood(st, hh, 'salt meat', n);
-    if (n > 0) {
-      Stores.record(st, hh, 'meat', -n, 'salting');
-      Stores.record(st, hh, 'salt meat', n, 'salting');
+    if (!(n > 0)) return;
+    const salted = Math.min(n, (hh.salt || 0) / HERD.saltPerRation),
+      smoked = n - salted;
+    if (salted > 0) Stores.take(st, hh, 'salt', salted * HERD.saltPerRation, 'salting');
+    Stores.record(st, hh, 'meat', -n, 'salting');
+    if (salted > 0) {
+      addFood(st, hh, 'salt meat', salted);
+      Stores.record(st, hh, 'salt meat', salted, 'salting');
+    }
+    if (smoked > 0) {
+      addFood(st, hh, 'smoked meat', smoked);
+      Stores.record(st, hh, 'smoked meat', smoked, 'salting');
     }
   }
   // Barn hay spoils by winters of the animals now; mown hay still on a meadow is untouched (VB-159); BUILD.barn.loss as much on a farm
@@ -468,17 +477,21 @@ VB['sim/byre'] = (() => {
     }
   }
   // The flock is shorn (the job `shear`): a fleece for each sheep of a year or more still in it (one sold or dead meanwhile gives none).
+  // Only the flocks at the fold are shorn (VB-1175, from VB-674): one out with a herder or standing at another farm keeps its fleece.
   function shearDone(st, hh, c) {
     for (const herd of herdsOf(st, hh)) {
+      if (!byFold(herd)) continue;
       const n = Math.min(unshorn(herd, c), herd.ewes + herd.rams);
       if (herd.fleece !== undefined) delete herd.fleece;
       if (n > 0) hh.wool = (hh.wool || 0) + n;
     }
   }
-  // The fleeces of the household's flocks waiting at its fold on day c: not out with a herder, nor standing at another farm (sim/droving).
+  // Whether the herd waits at its household's fold: not out with a herder, nor standing at another farm (sim/droving).
+  const byFold = (herd) => herd.herder == null && herd.at === undefined;
+  // The fleeces of the household's flocks waiting at its fold on day c.
   const atFold = (st, hh, c) => {
     let n = 0;
-    for (const herd of herdsOf(st, hh)) if (herd.herder == null && herd.at === undefined) n += unshorn(herd, c);
+    for (const herd of herdsOf(st, hh)) if (byFold(herd)) n += unshorn(herd, c);
     return n;
   };
   // Fed and mucked out: the day's dung goes on the heap (VB-137).

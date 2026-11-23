@@ -31,11 +31,13 @@ $('noticeList').innerHTML = Object.entries(Sim.NOTABLE)
   .join('');
 // The list is the bell's, in the map's bar under the minimap (VB-338): it opens over the minimap, and shuts on a press elsewhere or Esc.
 function closeNotices() {
+  closeOverlayList(); // and the overlays' list (page/overlays), placed as this one
   $('noticePop').hidden = true;
   $('noticeBtn').setAttribute('aria-expanded', 'false');
 }
 $('noticeBtn').addEventListener('click', () => {
   const open = $('noticePop').hidden;
+  closeOverlayList();
   $('noticePop').hidden = !open;
   $('noticeBtn').setAttribute('aria-expanded', String(open));
 });

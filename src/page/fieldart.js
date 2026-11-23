@@ -41,7 +41,7 @@ function fieldCanvas(look, R) {
     cy = Hc / 2,
     rr0 = R * S * 0.92,
     stage = FIELD_P[look].as || look,
-    r = G.mulberry32(stage.length * 977 + 5),
+    r = Noise.mulberry32(stage.length * 977 + 5),
     P = FIELD_P[look];
   const rgb = (a, f = 1) => `rgb(${(a[0] * f) | 0},${(a[1] * f) | 0},${(a[2] * f) | 0})`;
   g.save();
@@ -159,7 +159,7 @@ function meadowCanvas(stage, R) {
   const cx = Wc / 2,
     cy = Hc / 2,
     rr0 = R * S * 0.92,
-    r = G.mulberry32(stage.length * 131 + 9);
+    r = Noise.mulberry32(stage.length * 131 + 9);
   const base = { grass: [130, 174, 90], mown: [178, 188, 106], aftermath: [148, 180, 94] }[stage];
   const rgb = (a, f = 1) => `rgb(${a.map((v) => Math.min(255, v * f) | 0)})`;
   g.save();

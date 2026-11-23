@@ -9,7 +9,7 @@ const m = adults.find((p) => p.sex === 'm'), f = adults.find((p) => p.sex === 'f
 if (!m || !f) { console.error('COTTAGE FAIL: no adults'); process.exit(1); }
 st.unions.push({ id: st.unions.length, a: m.id, b: f.id, start: st.t, end: null, kind: 'marriage' });
 st.demand = [m.id, f.id]; m.stake = 300; f.stake = 100;
-X.startPlots(st);
+VB['sim/allotment'].startPlots(st);
 const plot = X.livePlots(st, v)[0]; check(!!plot, 'a plot is started'); // its village's project plan (VB-123)
 for (const tr of X.tilesOf(plot)) while (tr.i < tr.steps.length) X.finishStep(st, { plot, tr });
 plot.hours[m.id] = 10; plot.to = m.id;

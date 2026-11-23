@@ -148,7 +148,7 @@ out.push(`orders: ${Object.entries(orders).map(([k, v]) => `${k} ${v}`).join('; 
   check(o && o.to === al && o.wants.plot === B.id, `a plot is asked of the alderman of the village it is in (${o && o.to} for ${al})`);
   check(st.offers.length === n + 1 && st.pawns[who.gunnar].ask === o.id, 'the ask is held, due at the round');
   VB['sim/offers'].conclude(st, o);
-  check(VB['sim/expansion'].hasPlot(st, who.gunnar) && st.villages[1].plots.length + VB['sim/expansion'].livePlots(st, B).length > 0, 'the alderman answers a plot: begun for the asker in his village');
+  check(VB['sim/allotment'].hasPlot(st, who.gunnar) && st.villages[1].plots.length + VB['sim/expansion'].livePlots(st, B).length > 0, 'the alderman answers a plot: begun for the asker in his village');
   ok(st, 'a plot asked of a small village');
 }
 
@@ -208,7 +208,8 @@ const P = (id) => ({ type: 'pawn', id });
   check(Sim.grainOf(hh) === 0 && stops.length && Math.abs(lies - need) < 1e-6 && stops.every((x) => x.at === A0h && x.start),
     `the grain lies at the old home: ${Sim.grainOf(hh)} in store, ${lies} of ${need} to fetch`);
   const wood = (st.lying || []).filter((l) => l.kind === 'leftTimber' && l.owner.id === hh.id && l.tile === A0h);
-  check(hh.meals > 0 && hh.wood === 0 && wood.length === 1 && wood[0].n === trips * TRAVEL.load
+  // VB-1175 (from VB-675): no cooked food from nothing either; the household eats what is fetched
+  check(hh.meals === 0 && hh.wood === 0 && wood.length === 1 && wood[0].n === trips * TRAVEL.load
     && st.households[A0].wood === 40 - trips * st.ECON.woodPerTrip,
     `stores: ${hh.meals} meals, ${hh.wood} wood; ${wood.length} loads of wood lying at the old home`);
   // the fields gone to grass and scrub are cleared again by the new household
@@ -250,7 +251,7 @@ const P = (id) => ({ type: 'pawn', id });
 {
   const { st, who } = scene('kin');
   st.demand = [who.olof, who.cecilia];
-  X.startPlots(st, (id) => FC.claimableFarm(st, id) === null);
+  VB['sim/allotment'].startPlots(st, (id) => FC.claimableFarm(st, id) === null);
   check(!X.livePlots(st, st.villages[1]).length, 'nobody who may claim an empty farm gets a plot');
 }
 // ---- in play: the moving round gives the farm to a claimant, who mends it and moves in within days ----

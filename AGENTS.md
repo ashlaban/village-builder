@@ -13,7 +13,7 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 - `docs/slices.md`: the slices (vertical slices, each an arch of the backlog), what each brings, and their order; `docs/cost.md`: the
   late-game budget, the ten rules for cost and cheap measurement; `docs/roadmap.html` (made by `tools/roadmap.js`, not committed): the
   timeline of what was built when, and the estimate of when the rest is done.
-- `docs/architecture/target-v2.md`: where the code is going (five layers; principles in section 2; Kim's decisions in section 8). A target,
+- `docs/architecture/target-v2.md`: where the code is going (five layers and presentation; principles in section 2; Kim's decisions in section 8). A target,
   not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
 - `docs/architecture/modules.md`: where each system lives; `docs/architecture/ownership.md`: who writes each piece of state.
 - `REVIEW.md`: the latest review of design against code; earlier reviews are `docs/review-*.md`.
@@ -77,9 +77,13 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - Module map: `grep -rn "^// @sys" src`; state schema: `grep -rn "@state" src`; modules in load order: `src/manifest.json`; tunables:
   `grep -rn "@tunable" src`, beside the tables of `src/sim/rules.js` that several domains read (VB-419).
 - Source is read through `readSource(file)` (`tools/lib/source.js`), never `readFileSync`, so that `.ts` is read as JavaScript.
+- The terrain's codes, names and grid (`B`, the biomes' names, `treeStage`, `ROCK`, `DEPOSIT`, `hexLocator`, `csample`, a river's kind)
+  are `src/world/*` (VB-1501): read them there, not through the `gen` facade, which is the generator and the bake.
 - A module and its users: grep `VB['<key>']`, e.g. `VB['sim']`. Definitions are `function name(` or `const name = (`; sections are `// ----` headers.
 - The page script is `src/page/*.js`, in the order of `src/page.json`; `build.js` splices them, without their `@sys` line, into the one closure
   in `src/body.html`. They are not `VB` modules: they share the closure's variables (grep `src/page` for a name), and run in order.
+- The map's drawing is `src/draw/*` (`draw/bake`, `draw/marks`, `draw/paths`, `draw/rivers`), the presentation layer, listed after `sim.js`:
+  the page reads it by key; no generator or simulation module may name it (`tests/dependencies.js`). `ArchGen` is the generator only.
 
 ## Conventions
 - Read owned fields freely; write through the module in `src/owners.json` (caches follow the same rule; page flags are signals).

@@ -58,7 +58,7 @@ VB['sim/notable'] = (() => {
   // A pawn's line: itself, its forebears and its descendants, this many generations up and down.
   const GENERATIONS = 4;
   const HUNGER = new Set(['hunger', 'starvation']);
-  const FARM = new Set(['empty', 'claim', 'cottage', 'left', 'frost']);
+  const FARM = new Set(['empty', 'claim', 'cottage', 'left', 'frost', 'misjudged']);
   const CUSTOM = new Set(['custom', 'split']);
   // What moves a pawn between homes or brings one in, for the played household (VB-1109); each stops a skip, since the household's hands, mouths
   // or farm change: 'moved' (a child or holder goes to kin who hold its farm in trust, a ward comes back of age and the trust ends, a pawn comes

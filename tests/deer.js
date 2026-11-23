@@ -5,7 +5,7 @@
 // winter men of 14 or more go hunting at the nearest forest edge within reach whose region holds a deer, with fishing's urgency; a kill
 // (DEER.hunt.chance times the deer against the capacity) gives DEER.hunt.meat rations of fresh meat and one deer fewer. On a tiny village
 // under a forest: the rules on constructed states, then a month of autumn, the invariants and a save.
-const VB = require('../src/load.js'), Sim = VB.sim, D = VB['sim/deer'], Z = VB['sim/grazing'], Fd = VB['sim/fields'], { B } = VB.gen;
+const VB = require('../src/load.js'), Sim = VB.sim, D = VB['sim/deer'], Z = VB['sim/grazing'], Fd = VB['sim/fields'], { B } = VB['world/biomes'];
 const { KINDS } = VB['sim/kinds'], { DEER, HERD, DAY, YEAR_DAYS } = VB['sim/rules'], { ROLES, MATCH } = VB['sim/roles'], { larderOf } = VB['sim/larder'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('DEER FAIL:', m); } };

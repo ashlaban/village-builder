@@ -14,6 +14,8 @@ const setAge = (st, p, years) => { p.born = st.t - years * YEAR - 1; p.age = yea
 function labourCase(st) {
   for (const a of st.households) {
     const fa = st.farmsteads[a.farmstead]; if (fa.fields.length < 4) continue;
+    // a village of at least four farms, for case 5's third farm (VB-780: the forested island's villages are smaller)
+    if (st.households.filter((h) => !h.dissolved && vOf(st, h) === vOf(st, a)).length < 4) continue;
     const sp = R.spouseOf(st, a.holder); if (sp === null || st.pawns[sp].household !== a.id) continue;
     for (const b of st.households) {
       if (b === a || vOf(st, b) !== vOf(st, a) || st.farmsteads[b.farmstead].fields.length < 2) continue;
@@ -94,6 +96,26 @@ let report = '';
   Sim.movingRound(st);
   check(c.a.members.some((id) => st.pawns[id].servant), 'after the moving round the old couple has a servant');
   const bad = checkState(st); check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
+}
+// 5. Credit follows the pawn who acted (VB-704): of two short farms of the village, the one seeking a place goes to the head who owes it
+// goodwill for hours it worked there, before the farm with fewer hands per field.
+{
+  const st = fresh(), c = labourCase(st);
+  countDemand(st);
+  const q = c.four.find((p) => st.demand.includes(p.id));
+  const d = st.households.find((h) => h !== c.a && h !== c.b && !h.dissolved && h.holder !== null && vOf(st, h) === vOf(st, c.a)
+    && S.hands(st, h) > 0 && !h.members.some((id) => [q.father, q.mother].includes(id)));
+  check(!!d, 'setup: a third farm in the village');
+  if (d) {
+    const fd = st.farmsteads[d.farmstead];
+    while (S.handsPerField(st, d) >= SERVICE.short) fd.fields.push(fd.fields[0]); // short of hands, but less short than A
+    check(S.handsPerField(st, d) > S.handsPerField(st, c.a), 'setup: A has fewer hands per field than D');
+    VB['sim/relations'].book(st, q.id, d.holder, 6); // q worked 16 hours at D: D's head owes it 6 rations
+    st.demand = [q.id];
+    S.serveWhereShort(st);
+    check(q.household === d.id, `the one D's head owes goes to D (${q.household}, D ${d.id}, A ${c.a.id})`);
+    report += `; one owed goodwill went to the farm whose head owed it`;
+  }
 }
 if (failed) process.exit(1);
 console.log(`labour ok: ${report}`);

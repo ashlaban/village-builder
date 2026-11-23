@@ -9,9 +9,8 @@
 //   const st = tinyState(w, [{ at: [2, 1], farms: 2 }, { at: [8, 2], farms: 1 }], { seed: 7 });
 // Rows run north to south, columns west to east; odd rows are shifted half a tile east, as the generator lays them (pointy-top, odd-r).
 // Characters: . meadow, h heath, m marsh, F forest, P pine, ^ hills, M mountain, * snow, ~ sea, o lake, , beach.
-const VB = require('../../src/load.js'), G = VB.gen, { B, mulberry32 } = G;
+const VB = require('../../src/load.js'), G = VB.gen, { mulberry32 } = VB['gen/noise'], { B } = VB['world/biomes'], { DIR_EVEN, DIR_ODD } = VB['world/grid'];
 const CHARS = { '.': B.MEADOW, h: B.HEATH, m: B.MARSH, F: B.FOREST, P: B.PINE, '^': B.HILLS, M: B.MOUNTAIN, '*': B.SNOW, '~': B.SEA, o: B.LAKE, ',': B.BEACH };
-const DIR_EVEN = [[1, 0], [0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1]], DIR_ODD = [[1, 0], [1, -1], [0, -1], [-1, 0], [0, 1], [1, 1]];
 
 // rows: array of equal-length strings. opt.stones: stones on every meadow tile (0..255, default 0); opt.seed: for the fixed tile noise.
 function tinyWorld(rows, opt = {}) {
@@ -41,11 +40,10 @@ function tinyWorld(rows, opt = {}) {
   const land = N - water.reduce((s, x) => s + x, 0), CN = CW * CH;
   return {
     seed: opt.seed ?? 1, name: 'Tiny', R, COLS, ROWS, RR: 7, W, H, HW, AP, N, STEP, CW, CH, KS: W / 3264,
-    elev: new Float32Array(CN), shade: new Float32Array(CN).fill(1), macro: new Float32Array(CN).fill(0.5), cdist: new Float32Array(CN),
-      chex: new Int32Array(CN),
-    csample: () => 0.5, hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
+    elev: new Float32Array(CN), macro: new Float32Array(CN).fill(0.5),
+    hx, hy, he, hp, hm, biome, water, ocean, hrnd, nb, landDist,
     region: new Int32Array(N), regions: [{ cq: 0, cr: 0, tiles: N, land, label: 1 }],
-    tr: new Float32Array(N), tg: new Float32Array(N), tb: new Float32Array(N), ang: new Float32Array(2 * N), trees, treesMax, stones,
+    ang: new Float32Array(2 * N), trees, treesMax, stones,
     river: new Uint16Array(N), riverTo: new Int32Array(N).fill(-1), crossing: new Uint8Array(N), rivers: [],
   };
 }

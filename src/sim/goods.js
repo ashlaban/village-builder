@@ -36,6 +36,9 @@ VB['sim/goods'] = (() => {
   KEEPING.ale = Object.freeze({ keepsDays: SEASON_DAYS }); // a barrel keeps its season (VB-305)
   KEEPING.meals = Object.freeze({ never: 'cooked for the coming day and eaten within it' });
   KEEPING.flour = Object.freeze({ never: 'a few days of the pot ground at a time (sim/quern)' });
+  KEEPING.salt = Object.freeze({
+    never: 'boiled dry and kept in a sack under the roof, it keeps (sim/saltpan, VB-700)',
+  });
   KEEPING.rack = Object.freeze({ never: 'the catch waits by the rack for a day or two, then is hung (sim/drying)' });
   KEEPING.stake = Object.freeze({
     never:
@@ -73,7 +76,7 @@ VB['sim/goods'] = (() => {
   // lump (its name: a sack, a lot), rations (food a unit gives; 0 for what is not eaten), source (its source in the pot, as FOODS; null),
   // perish ({keepsDays}: a lot spoils by date; {tiers: true}: a share of the stock is lost by tiers; null: it does not perish in store; an
   // animal lives and dies as an animal): its keeping row (perishOf; VB-683), keeping (accepted beyond need, to be passed on; design.md,
-  // The fair, Keeping goods). ----
+  // The fair, Keeping goods), weight (optional, VB-700: rations of TRAVEL.load a unit weighs; VB-684 gives every good one). ----
   const GOODS = new Map();
   function declareGood(spec) {
     Rules.atLoad();
@@ -88,6 +91,7 @@ VB['sim/goods'] = (() => {
       spec.quantum > 0 &&
       spec.rations >= 0 &&
       typeof spec.keeping === 'boolean' &&
+      (spec.weight === undefined || spec.weight > 0) &&
       (spec.perish === null || spec.perish.keepsDays > 0 || spec.perish.tiers === true) &&
       Norms.norm('worth', spec.id) > 0;
     if (!ok) throw new Error('stores: invalid or duplicate good ' + (spec && spec.id));

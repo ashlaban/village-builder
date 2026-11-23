@@ -1,29 +1,25 @@
-// @sys sim/away: the nights a pawn spends away from its household's house (VB-783): the open stays, a journey's (a bed where its leg
-// ends) and a lodger's (a bed at a place, or a guest's in another house), their packs and meals, and a journey's arrivals and gifts; a
-// suitor's visit, the journey there and back (VB-289); a lodger's judgement to stake a booth at its bed (VB-1172)
+// @sys sim/away: the nights a pawn spends away from its household's house (VB-783): the open stays (a journey's, a bed where its leg
+// ends, and a lodger's, a bed at a place or a guest's in another house), their packs and meals; a lodger's stay by the verbs lodge and
+// comeHome, its day away, and its judgement to stake a booth at its bed (VB-1172). A journey's course is sim/journeys'; a guest's bed, sim/hosting's
 VB['sim/away'] = (() => {
   const { living } = VB['sim/records'];
   const { release, goHome, free } = VB['sim/agents'];
   const { cal, WORK, SPEED, HEALTH, TRAVEL, BOOTH } = VB['sim/rules'];
-  const { route, routeCost } = VB['sim/routes'],
-    { hoursBetween } = VB['sim/villagehours'];
-  const { personEvent } = VB['sim/records'];
+  const { route, routeCost } = VB['sim/routes'];
   const Stores = VB['sim/stores'];
   const { ate, rationOf, nightCost } = VB['sim/hunger'];
-  const { receive } = VB['sim/exchange'];
-  const { hexSteps } = VB['sim/hex'];
-  const { opinionOf } = VB['sim/relations'];
   const Kin = VB['sim/records'];
   const { driveHome } = VB['sim/grazing'];
   const { on, emit } = VB['sim/events'];
-  const Lying = VB['sim/lying'];
-  const { placeAtHome, restOnRoad, walkLeg, turnTo, setDown, stop, waitIndoors, standBy } = VB['sim/agents'];
-  const { placeOf, tileAt, travelling, stayOf } = VB['sim/pose'];
+  const { setDown } = VB['sim/agents'];
+  const { stayOf, travelling, tileAt, placeOf } = VB['sim/pose'];
+  const { hostWhy } = VB['sim/hosting'];
+  const { hexSteps } = VB['sim/hex'];
   // @tunable AWAY: sleeping away from home (VB-783; design.md, Sleeping away from home): pack, the rations a pawn away carries at most (12 days of the
   // 30 rations a back carries, the rest of the load being tools and seed); walk, the walking hours there and back over which a place is
-  // worked from a bed there rather than from home (a third of the working day)
-  // asks: the households a visitor asks for a bed, one after the other (VB-1151), before he sleeps at the green
-  const AWAY = { pack: 12, walk: 4, asks: 3 };
+  // worked from a bed there rather than from home (a third of the working day); yard, the steps from its house within which a pawn is at
+  // home and packs from its barn (VB-1175: the house and the tiles about it, where the barn and the woodpile stand)
+  const AWAY = { pack: 12, walk: 4, yard: 1 };
   // Acts this module's pawns choose (going home, coming home from a stay, work at it) go through the verbs (AGENTS.md, Every act is a pawn's).
   const { issue, register } = VB['sim/commands'];
   // ---- the stays (design.md, Moving to new land, Sleeping away from home) ----
@@ -50,24 +46,22 @@ VB['sim/away'] = (() => {
     st.away.push(s);
     st.agents[s.pawn].away = s.id;
   }
-  function addFetchStop(st, pawn, stop) {
-    const stay = stayOf(st, pawn);
-    if (!stay) return false;
-    stay.gift.stops.push(stop);
-    return true;
+  // A new stay's id (st.awaySeq): ids are never reused.
+  const nextStay = (st) => st.awaySeq++;
+  // Stay `stay`'s bed is tile `bed` (null: on the road) under `roof`, a guest of household `host` (absent: no one's guest).
+  function bedAt(stay, bed, roof, host) {
+    if (host !== undefined) stay.host = host;
+    stay.bed = bed;
+    stay.roof = roof;
+    if (host === undefined) delete stay.host;
   }
-  // Pawn `pawn`, setting out to its new home in another village (a move's journey, not yet turned back), bears `stops` there (VB-675: a
-  // start in life lies where it was taken, and is carried): its journey becomes a fetch for household `to`, first to the place the
-  // first stop lies, a load at a time. False when it is not on such a journey.
-  function bear(st, pawn, to, stops) {
-    const j = stayOf(st, pawn);
-    if (!j || j.why !== 'move' || j.back || j.to !== st.farmsteads[st.households[to].farmstead].house) return false;
-    j.why = 'fetch';
-    j.gift = { to, held: 0, parts: {}, stops };
-    j.back = false;
-    j.to = stops[0].at;
-    turnTo(st, st.agents[pawn], j.to);
-    return true;
+  // Stay `stay` has turned for home (`back` true), or not yet.
+  const turn = (stay, back) => {
+    stay.back = back;
+  };
+  // A lodger's stay becomes a journey: what was the lodger's goes (its tasks, walk, host, turn and occasion).
+  function unlodge(stay) {
+    for (const k of ['jobs', 'walk', 'host', 'back', 'until']) delete stay[k];
   }
   // Stay s ends: out of st.away and the index.
   function close(st, s) {
@@ -162,13 +156,22 @@ VB['sim/away'] = (() => {
       const b = VB['sim/building'].boothAt(st, at);
       if (b) {
         if (!VB['sim/building'].boothOpenTo(st, b, id)) return `the booth at tile ${at} is not for pawn ${id}`;
-        if (st.away.filter((s) => s.bed === at && s.roof === 'booth').length >= BOOTH.sleeps)
+        if (st.away.filter((s) => s.bed === at && s.roof === 'booth').length + packingFor(st, b, at) >= BOOTH.sleeps)
           return `the booth at tile ${at} sleeps ${BOOTH.sleeps}, and its beds are taken`;
       }
     }
     const R = 1 / st.ECON.uncooked,
       spare = Math.max(0, Stores.grainOf(hh) - Stores.reserved(st, hh, 'grain')) / R;
     return spare + 1e-9 < packOf(st, p, o.days) ? `household ${hh.id} has no food to spare for the pack` : null;
+  }
+  // The pawns booth b is open to that walk home to pack for a bed at tile `at` (agent.packing, VB-1175): its beds are theirs already.
+  function packingFor(st, b, at) {
+    let n = 0;
+    for (const id of [...st.households[b.by].members, ...b.guests]) {
+      const t = st.agents[id] && st.agents[id].packing;
+      if (t && t.at === at && (t.args.host === undefined || t.args.host === null)) n++;
+    }
+    return n;
   }
   // The roof over a bed on tile b: a standing booth's (VB-784), else the open sky.
   const roofAt = (st, b) => {
@@ -208,7 +211,7 @@ VB['sim/away'] = (() => {
       host = args.host === undefined || args.host === null ? null : st.households[args.host],
       b = host ? houseOf(st, host) : at,
       s = {
-        id: st.awaySeq++,
+        id: nextStay(st),
         pawn: a.id,
         why: args.why,
         bed: b,
@@ -225,6 +228,25 @@ VB['sim/away'] = (() => {
     setDown(st, a);
     provide(st, s, [hh], packOf(st, p, args.days));
     open(st, s);
+    emit(st, 'lodged', s); // its stay is open, its pack taken at the house (sim/gathering: its dealer loads, VB-302)
+  }
+  // @state agent.packing: absent, or {at, args}: the lodge it was asked to make while away from its house (VB-1175, from VB-302): it walks
+  //   home, and packs there (the verb lodge again, from its door). Its household's store is in its barn, so the pack and a dealer's load
+  //   are taken where the household's goods are, never from where the pawn happened to stand.
+  // Whether pawn a stands at its household's house, or in its yard (AWAY.yard).
+  const atHouse = (st, a) =>
+    hexSteps(st.w, tileAt(st, ...placeOf(st, a)), houseOf(st, st.households[st.pawns[a.id].household])) <= AWAY.yard;
+  // Pawn a, asked to lodge while away from its house, will pack at home first (the verb lodge walks it there: no stay is open yet).
+  function homeToPack(st, a, at, args) {
+    setDown(st, a);
+    a.packing = { at, args };
+  }
+  // Pawn a is home with a lodge to pack for: it lodges now, from its door, if it still may (else it stays home).
+  function packed(st, a) {
+    const t = a.packing;
+    delete a.packing;
+    if (!t || !st.pawns[a.id].alive) return;
+    issue(st, { actor: a.id, verb: 'lodge', target: t.at, args: t.args, source: 'pawn' });
   }
   // Why pawn id cannot come home from a stay, or null: it lodges away and has not turned for home yet.
   function comeHomeWhy(st, id) {
@@ -291,445 +313,11 @@ VB['sim/away'] = (() => {
     packHome(st, s, hh);
     driveHome(st, hh, a.id);
   }
-  // ---- journeys (VB-287; design.md, Between villages: A journey, Provisions and the season): a stay whose bed is where its leg ends ----
-  // A pawn who dies away: its stay ends where it fell. A bearer's grain is put down there (VB-850; sim/lying), for the household it is the
-  // gift of to fetch; what lies at the stops goes back.
-  function dropStay(st, a) {
-    const j = stayOf(st, a.id);
-    if (!j) return;
-    const k = kindOf(j);
-    if (k.fall) k.fall(st, a, j);
-    layPack(st, a, j);
-    close(st, j);
-  }
-  // What is left of a pack lies where its bearer fell (sim/lying), for the household it came from to fetch (as a gift's grain is laid).
-  function layPack(st, a, j) {
-    const g = packLeft(st, j),
-      hh = st.pawns[a.id].household;
-    if (g && hh !== null) layGift(st, a, g.n, g.parts, hh);
-  }
-  // A bearer who dies on the road lays n of grain (by crop, `parts`) down where he fell: the household `to`'s (its village's, if it is gone),
-  // a carried or fetched gift's receiver; a quarter hauled to the green is still its giver's (`to`) until it is in the store.
-  function layGift(st, a, n, parts, to) {
-    const hh = st.households[to],
-      [x, y] = placeOf(st, a),
-      at = tileAt(st, x, y);
-    const owner = hh.dissolved
-      ? { type: 'village', id: st.farmsteads[hh.farmstead].village }
-      : { type: 'household', id: to };
-    Lying.leave(st, 'leftGrain', n, at, owner, { x, y, of: { parts: { ...parts } } });
-  }
-  // Walking hours from village `from` (null: the village whose centre is nearest tile `at`) to village v, by the table of walking hours
-  // (sim/routes); with no table, or no route by land within reach, the straight line from `at` at SPEED.
-  function hoursTo(st, from, at, v) {
-    if (from === null && at >= 0)
-      for (const u of st.villages)
-        if (from === null || hexSteps(st.w, at, u.center) < hexSteps(st.w, at, st.villages[from].center)) from = u.id;
-    const h = from !== null && st.villageHours ? hoursBetween(st, from, v) : Infinity;
-    return Number.isFinite(h) ? h : (at >= 0 ? hexSteps(st.w, at, st.villages[v].center) : 0) / SPEED;
-  }
-  // Pawn a changed household (sim/heirs' moveTo), from household `old` (or none) to hh: it is released from its job and goes to its new
-  // home on foot. To another village (from no household: further than TRAVEL.dayWalk hours), on a journey; within one, home to the new
-  // door at once (one indoors at night walks when its day starts, at 6:00). A pawn already on the road walks on to the new home; one
-  // lodging away turns for home with its pack, from its bed. `carry` false: its provisions come from the new household (settlers, who walk
-  // on their stakes).
-  function moved(st, a, old, hh, carry = true) {
-    const f = st.farmsteads[hh.farmstead];
-    if (old) driveHome(st, old, a.id); // the old household's herds it had out are left by that farm (its herder is no longer a member)
-    if (travelling(a)) return retarget(st, a, f.house);
-    if (a.load > 0 && a.phase === 'back' && a.job) {
-      // a hand with a load on its way home brings it in first, and then goes (VB-581: the load is carried, not booked from the road)
-      if (!a.moving) a.moving = { old: old ? old.id : null, carry };
-      return;
-    }
-    setDown(st, a);
-    const s = stayOf(st, a.id);
-    if (s) s.back = true; // lodging away: it goes to the new home from its bed (VB-783)
-    const from = old ? st.farmsteads[old.farmstead] : null,
-      at = tileAt(st, ...placeOf(st, a));
-    if (from ? from.village !== f.village : hoursTo(st, null, at, f.village) > TRAVEL.dayWalk)
-      return setOut(st, a, old, hh, carry, hoursTo(st, from ? from.village : null, at, f.village));
-    const h = cal(st.t).hour,
-      same = from !== null && from.id === f.id && !s;
-    // in its own house it is home already; indoors elsewhere at night, it walks at 6:00
-    if (a.inside && (same || h < WORK[0] || h >= WORK[1])) return waitIndoors(st, a, same);
-    issue(st, { actor: a.id, verb: 'goHome', source: 'pawn' });
-  }
-  // @state agent.moving: absent, or {old (the household it left, or null), carry}: a move it was told of with a load on its way home, made when
-  //   the load is in (VB-581); the pawn's household is already the new one.
-  function finishMove(st, a) {
-    const { old, carry } = a.moving;
-    delete a.moving;
-    moved(st, a, old === null ? null : st.households[old], st.households[st.pawns[a.id].household], carry);
-  }
-  // A child born to a mother away from home (VB-425; no teleporting): it is where she is, outdoors, and walks to its home as she does.
-  function placeBorn(st, a, mother, hh) {
-    const m = st.agents[mother];
-    if (m.away === undefined) return waitIndoors(st, a, true);
-    standBy(st, a, m);
-    setOut(st, a, null, hh, false, hoursTo(st, null, tileAt(st, a.x, a.y), st.farmsteads[hh.farmstead].village));
-  }
-  // A journey starts: provisions from the household it leaves, its record, and the first leg now if a day's walking is left (6:00 to
-  // 16:00), else at the next 6:00, from where it stands. A fetch (VB-461) sets out from its own home, for the first place its gift lies.
-  // A lodger's stay becomes the journey, with what is left of its pack.
-  function setOut(st, a, old, hh, carry, hours, gift = null) {
-    const p = st.pawns[a.id],
-      f = st.farmsteads[hh.farmstead],
-      fetch = !!(gift && gift.stops),
-      was = stayOf(st, a.id),
-      j = was || { id: st.awaySeq++, pawn: a.id, food: 0 };
-    j.to = fetch ? gift.stops[0].at : f.house;
-    j.why = fetch ? (gift.haul ? 'haul' : 'fetch') : gift ? 'carry' : 'move';
-    j.bed = null;
-    j.roof = 'none';
-    j.from = old ? old.farmstead : null;
-    if (was) for (const k of ['jobs', 'walk', 'host', 'back', 'until']) delete j[k];
-    if (gift) {
-      j.gift = gift; // VB-291: {to (household), n (grain), parts (by crop)}; null from its arrival on, the pawn walking home
-      j.back = false;
-    }
-    // provisions (design: Provisions and the season): a ration (half below 14) a day of walking, from the grain above the seed of the
-    // household it leaves, never of the one it joins (VB-676: nothing is carried from a store the pawn has not reached); with none to give
-    // it goes unprovisioned, and hungry. Settlers (carry false) walk on the stakes booked to their new household. A gift's bearer walks
-    // there and back, and takes at least a day's meal (VB-461: a pawn working away from home carries its meal)
-    const days = Math.ceil(hours / TRAVEL.dayWalk);
-    provide(
-      st,
-      j,
-      gift ? [old] : carry ? (old && !old.dissolved ? [old] : []) : [hh],
-      (gift ? Math.max(1, 2 * days) : days) * rationOf(st, p),
-    );
-    const left = old ? st.farmsteads[old.farmstead].name : 'where it stood';
-    personEvent(
-      st,
-      a.id,
-      'setOut',
-      `Set out from ${left} for ${fetch ? gift.stops[0].name : f.name}, ${Math.round(hours)} hours' walk`,
-      false,
-    );
-    stop(st, a); // a walk in hand (to a task it was released from) ends where it has come to: the journey sets out from there
-    if (!was) open(st, j);
-    startLeg(st, a, j);
-  }
-  // ---- the suitor's visit (VB-289; design.md, Between villages: The suitor's visit, Provisions and the season) ----
-  // The days away on a visit to a village `hours` off: there and back at a day for each TRAVEL.dayWalk hours, and TRAVEL.stay as a guest.
-  const visitDays = (hours) => 2 * Math.ceil(hours / TRAVEL.dayWalk) + TRAVEL.stay;
-  // Pawn a sets out on a visit to village v (sim/visits' due step, its only caller, carrying out the plan made by the verb `visit`): a
-  // journey to its green and back, on a ration a day
-  // away from its household's grain above the seed.
-  function visit(st, a, v) {
-    const p = st.pawns[a.id],
-      hh = st.households[p.household],
-      f = st.farmsteads[hh.farmstead],
-      hours = hoursBetween(st, f.village, v),
-      j = { id: st.awaySeq++, pawn: a.id, why: 'visit', bed: null, roof: 'none', food: 0, from: f.id, village: v };
-    j.to = st.villages[v].center;
-    j.back = false;
-    j.stay = TRAVEL.stay;
-    setDown(st, a);
-    provide(st, j, [hh], visitDays(hours) * rationOf(st, p));
-    personEvent(
-      st,
-      a.id,
-      'setOut',
-      `Set out from ${f.name} to visit ${st.villages[v].name}, ${Math.round(hours)} hours' walk`,
-      false,
-    );
-    stop(st, a);
-    open(st, j);
-    startLeg(st, a, j);
-  }
-  // The visitor arrives at the other village's green: the visit is his (sim/visits writes pawn.visited), and he rests there, its guest,
-  // until he walks home.
-  function visited(st, a, j) {
-    const hh = st.households[st.pawns[a.id].household];
-    emit(st, 'visited', { pawn: a.id, village: j.village });
-    j.back = true;
-    j.guest = true;
-    j.to = st.farmsteads[hh.farmstead].house;
-    const host = askBed(st, a.id, j.village);
-    if (host) {
-      // a guest in the host's house (roof 'house', the host's fire): he stands at its door for his nights there
-      j.host = host.id;
-      j.bed = houseOf(st, host);
-      j.roof = 'house';
-      return walkLeg(st, a, j.bed);
-    }
-    restOnRoad(st, a);
-  }
-  // The households of village v a visitor asks for a bed, in the order he asks (VB-1151): the house of the woman he came for (an unmarried
-  // woman of the village's queue) and of his kin, before any other; each by its pawn's id. Read from the village's asking queue, a few
-  // dozen at most; at most AWAY.asks are asked, by the rule the lodge verb's guest has (hostWhy: the head's yes, by its opinion of him).
-  function askBed(st, id, v) {
-    const p = st.pawns[id],
-      own = st.households[p.household],
-      seen = new Set(),
-      want = [];
-    for (const e of VB['sim/wishes'].askingIn(st, v)) {
-      const q = st.pawns[e.pawn],
-        hid = q.household;
-      if (!q.alive || hid === null || hid === own.id || seen.has(hid)) continue;
-      const kin = Kin.kinship(st, id, q.id) > 0;
-      if (kin || q.sex !== p.sex) {
-        seen.add(hid);
-        want.push({ hid, kin: kin ? 1 : 0, at: e.pawn });
-      }
-    }
-    want.sort((x, y) => y.kin - x.kin || x.at - y.at);
-    for (const w of want.slice(0, AWAY.asks)) {
-      const host = st.households[w.hid];
-      if (!hostWhy(st, id, host)) return host;
-    }
-    return null;
-  }
-  // Why household host will not have pawn id as a guest, or null: it stands, has a farm and a living head who does not dislike him.
-  function hostWhy(st, id, host) {
-    if (!host || host.dissolved || host.farmstead === null) return 'there is no household to stay with';
-    if (host.holder === null || !st.pawns[host.holder].alive) return `household ${host.id} has no head to ask`;
-    if (opinionOf(st, host.holder, id) < 0)
-      return `the head of household ${host.id} will not have pawn ${id} as a guest`;
-    return null;
-  }
-  // A guest's nights at the host's house are over: his bed is the road again.
-  function leaveHost(j) {
-    j.bed = null;
-    j.roof = 'none';
-    delete j.host;
-  }
-  // A journey's rest is over at 6:00: a guest with days to stay stays one more (he takes no work there), else the next leg sets out.
-  function legDue(st, a) {
-    const j = stayOf(st, a.id),
-      k = kindOf(j);
-    if (k.morning && k.morning(st, a, j)) return;
-    delete j.guest;
-    if (j.host !== undefined) leaveHost(j);
-    walkLeg(st, a, j.to);
-  }
-  // The first leg now if a day's walking is left (6:00 to 16:00), else at the next 6:00, from where the pawn stands (a wait on the road).
-  function startLeg(st, a, j) {
-    const h = cal(st.t).hour;
-    if (h >= WORK[0] && h < WORK[1] - 2) return walkLeg(st, a, j.to);
-    restOnRoad(st, a);
-  }
-  // What still lies of gift g goes back to the stores it lies in, its giver's again (a dissolved giver's to its village's store).
-  function unfetched(st, g) {
-    const why = { kind: 'gift', back: st.farmsteads[st.households[g.to].farmstead].name };
-    for (const s of g.stops) {
-      const hh = s.from === null ? null : st.households[s.from];
-      Stores.put(
-        st,
-        hh && !hh.dissolved ? hh : st.villages[s.village ?? st.farmsteads[hh.farmstead].village],
-        'grain',
-        s.left,
-        why,
-        s.parts,
-      );
-    }
-    g.stops = [];
-  }
-  // The hauler at the end of a walk: at the house he takes up a load and walks to the green; at the green it goes into the store, and he
-  // goes home for the next while any lies and he is still of the household; else the journey ends at his home.
-  function haulStop(st, a, j) {
-    const g = j.gift,
-      from = st.households[g.to],
-      v = st.villages[g.village];
-    if (g.held === 0) {
-      const s = g.stops[0];
-      g.held = Math.min(TRAVEL.load, s.left);
-      g.parts = takeUp(st, j, g.held);
-      if (!(s.left > 1e-9)) g.stops.shift();
-      j.to = v.center;
-      return startLeg(st, a, j);
-    }
-    Stores.put(st, v, 'grain', g.held, { kind: 'gift', from: st.farmsteads[from.farmstead].name }, g.parts);
-    g.held = 0;
-    g.parts = {};
-    if (g.stops.length && !from.dissolved && st.pawns[a.id].household === from.id) {
-      provide(st, j, [from], rationOf(st, st.pawns[a.id])); // his meal for the next trip
-      j.to = g.stops[0].at;
-      return startLeg(st, a, j);
-    }
-    unfetched(st, g);
-    j.gift = null;
-    j.back = true;
-    const home = st.farmsteads[st.households[st.pawns[a.id].household].farmstead].house;
-    if (home === v.center) return endJourney(st, a);
-    j.to = home;
-    startLeg(st, a, j);
-  }
-  // A load of n of the grain at journey j's first stop taken up, by crop: the rest of its crops stays.
-  function takeUp(st, j, n) {
-    const s = j.gift.stops[0];
-    if (n >= s.left - 1e-9) {
-      s.left = 0;
-      return s.parts;
-    }
-    const parts = {},
-      k = n / s.left;
-    for (const c in s.parts) {
-      parts[c] = s.parts[c] * k;
-      s.parts[c] -= parts[c];
-    }
-    s.left -= n;
-    return parts;
-  }
-  // The fetcher at the end of a walk: at a stop, he takes up a load (TRAVEL.load at most) and walks home; at home with a load, it is his
-  // household's, and he goes for the next while any lies and he is still its member; else the journey ends at his home.
-  function fetchStop(st, a, j) {
-    const g = j.gift,
-      to = st.households[g.to],
-      house = st.farmsteads[to.farmstead].house;
-    if (g.held === 0) {
-      const s = g.stops[0];
-      g.held = Math.min(TRAVEL.load, s.left);
-      g.parts = takeUp(st, j, g.held);
-      g.from = s.name;
-      g.keep = s.keep === true;
-      g.start = s.start === true;
-      if (!(s.left > 1e-9)) g.stops.shift();
-      j.to = house;
-      return startLeg(st, a, j);
-    }
-    const at = to.dissolved ? st.villages[st.farmsteads[to.farmstead].village] : to;
-    Stores.put(
-      st,
-      at,
-      'grain',
-      g.held,
-      { kind: g.start ? 'provisions' : g.keep ? 'keep' : 'gift', from: g.from },
-      g.parts,
-    );
-    g.held = 0;
-    g.parts = {};
-    if (g.stops.length && !to.dissolved && st.pawns[a.id].household === to.id) {
-      provide(st, j, [to], rationOf(st, st.pawns[a.id])); // his meal for the next trip
-      j.to = g.stops[0].at;
-      return startLeg(st, a, j);
-    }
-    unfetched(st, g);
-    j.gift = null;
-    j.back = true;
-    const home = st.farmsteads[st.households[st.pawns[a.id].household].farmstead].house;
-    if (home === house) return endJourney(st, a);
-    j.to = home;
-    startLeg(st, a, j);
-  }
-  // A pawn's household changed again on the road (a death at home, a handover): it walks to the new home, turning back if need be.
-  function retarget(st, a, to) {
-    const j = stayOf(st, a.id),
-      k = kindOf(j);
-    if (k.rehome && k.rehome(st, a, j)) return;
-    if (j.to === to) return;
-    j.to = to;
-    turnTo(st, a, to);
-  }
-  // A carrier arrives with his gift: the receiving household books it (its village's store, if the household is gone) and he turns for home.
-  // The giver is the household of the farm he set out from, not his own: his household may have changed on the road (into service, or
-  // a handover, at the very farm he carries to), and he walks home to the one he has, or is there.
-  function delivered(st, a, j) {
-    const g = j.gift,
-      gave = j.from === null ? null : st.farmsteads[j.from].household,
-      from = gave === null ? null : st.households[gave],
-      to = st.households[g.to],
-      f = st.farmsteads[to.farmstead];
-    j.gift = null;
-    j.back = true;
-    if (to.dissolved) Stores.put(st, st.villages[f.village], 'grain', g.n, { kind: 'gift', from: f.name }, g.parts);
-    else
-      receive(st, from && !from.dissolved && from !== to ? from : null, to, g.n, st.farmsteads[j.from].name, g.parts);
-    personEvent(st, a.id, 'arrived', `Arrived at ${f.name} with ${Math.round(g.n)} grain`, false);
-    const home = st.farmsteads[st.households[st.pawns[a.id].household].farmstead].house;
-    if (home === f.house) return endJourney(st, a);
-    j.to = home;
-    startLeg(st, a, j);
-  }
-  // ---- a journey's kinds (VB-1409): what each does of its own; sim/kinds' KINDS in spirit ----
-  // A journey's kind is its stay's why, and its course is read here, never saved (a stay keeps only the word). Each hook is optional: one
-  // a kind does not name, or a hook that answers false, leaves the common course (a move's). arrive(st, a, j): the leg's end, in
-  // endJourney; morning(st, a, j): its rest on the road is over, in legDue; fall(st, a, j): its pawn died away, in dropStay, before its
-  // pack is laid down; rehome(st, a, j): its pawn's household changed on the road, in retarget, true to walk on to where it goes. What is
-  // state, not kind (back, gift, stay), each hook tests itself: a carrier who has delivered ends as a move does.
-  // A lodger's stay shares st.away and may carry the same word (a caller's 'visit'), and is told from a journey as it was before the table:
-  // arrive, morning and rehome are reached only by a pawn on the road (phase 'journey' or 'road', sim/agents' travelling), which only a
-  // journey's legs set; fall by any stay, but a lodger holds no gift, and a visit's fall is none.
-  const fetching = {
-    // a fetcher or hauler who dies: the load he held lies where he fell, and what lies at the stops goes back
-    fall: (st, a, j) => {
-      if (!j.gift) return;
-      if (j.gift.held > 0) layGift(st, a, j.gift.held, j.gift.parts, j.gift.to);
-      unfetched(st, j.gift);
-    },
-    // a fetcher brings his load in first (fetchStop), and then walks to the home he has; on his way out, what lies there is fetched no more
-    rehome: (st, a, j) => {
-      if (!j.gift) return false;
-      if (j.gift.held > 0) return true;
-      unfetched(st, j.gift);
-      j.gift = null;
-      j.back = true;
-      return false;
-    },
-  };
-  const JOURNEYS = {
-    move: {},
-    carry: {
-      arrive: (st, a, j) => !j.back && (delivered(st, a, j), true),
-      fall: (st, a, j) => {
-        if (j.gift && !j.back) layGift(st, a, j.gift.n, j.gift.parts, j.gift.to);
-      },
-      rehome: (st, a, j) => !j.back, // a carrier delivers first, and then walks to the home he has
-    },
-    fetch: { ...fetching, arrive: (st, a, j) => !!j.gift && (fetchStop(st, a, j), true) },
-    haul: { ...fetching, arrive: (st, a, j) => !!j.gift && (haulStop(st, a, j), true) },
-    visit: {
-      // he arrives at the village he visits; later, a guest of a house, at his host's door (VB-1151), where he rests
-      arrive: (st, a, j) => {
-        if (!j.back) visited(st, a, j);
-        else if (j.bed !== null) restOnRoad(st, a);
-        else return false;
-        return true;
-      },
-      // a guest with days to stay stays one more (he takes no work there)
-      morning: (st, a, j) => {
-        if (!(j.back && j.stay > 0)) return false;
-        j.stay--;
-        restOnRoad(st, a);
-        return true;
-      },
-      // his home changed on the way (VB-289): the visit is over, and he walks to the home he has
-      rehome: (st, a, j) => {
-        j.back = true;
-        j.stay = 0;
-        delete j.guest;
-        if (j.host !== undefined) leaveHost(j);
-        return false;
-      },
-    },
-  };
-  const NONE = {};
-  const kindOf = (j) => (Object.hasOwn(JOURNEYS, j.why) ? JOURNEYS[j.why] : NONE);
-  // Arrival: the journey ends, what is left of its provisions goes into the new home's meals, and the pawn is at home.
-  function endJourney(st, a) {
-    const j = stayOf(st, a.id),
-      k = kindOf(j);
-    if (k.arrive && k.arrive(st, a, j)) return;
-    const hh = st.households[st.pawns[a.id].household];
-    close(st, j);
-    packHome(st, j, hh);
-    placeAtHome(st, a);
-    personEvent(st, a.id, 'arrived', `Arrived at ${st.farmsteads[hh.farmstead].name}`, false);
-  }
-  // What sim/agents tells of the pawns away (sim/events): a journey's leg has arrived; its rest on the road is over and the next leg sets
-  // out; one away has died; a move it was told of with a load in hand is made; one away is at its bed.
-  on('legEnd', endJourney);
-  on('legDue', legDue);
-  on('stillAway', dropStay);
-  on('moveOn', finishMove);
+  // What sim/agents tells of the pawns away (sim/events): one away is at its bed; a booth over beds is gone or raised.
   on('atBed', atBed);
+  on('homeToPack', packed); // VB-1175: home, with a lodge to pack for
   on('boothGone', unroof); // VB-784: a booth rotted away
   on('boothRaised', roofOver); // VB-1172: a booth raised where pawns lodge
-  // A pawn's household changed (sim/heirs' moveTo); a child is born (sim/births).
-  on('rehoused', (st, d) => moved(st, d.a, d.old, d.hh, d.carry));
-  on('placeBorn', (st, d) => placeBorn(st, d.a, d.mother, d.hh));
   // lodge(tile, {why, days, jobs, host}) (VB-783; design.md, Sleeping away from home): walk to the tile and sleep there, working only
   // the tasks `jobs` names, on a pack of a ration a day for `days` (at most AWAY.pack) from the household's food above its seed; with
   // `host`, a guest in that household's house (in its barn with `barn`), with its head's yes (sim/away lodgeWhy); with `until`, at an
@@ -738,6 +326,10 @@ VB['sim/away'] = (() => {
     check: (st, c) => free(st, c.actor) || lodgeWhy(st, c.actor, c.target, c.args),
     run: (st, c) => {
       const a = st.agents[c.actor];
+      if (!atHouse(st, a)) {
+        homeToPack(st, a, c.target, c.args); // it packs at its house (VB-1175, from VB-302)
+        return goHome(st, a);
+      }
       lodge(st, a, c.target, c.args);
       stakeIfRough(st, a, c.args.days);
       goHome(st, a); // to its bed
@@ -757,18 +349,17 @@ VB['sim/away'] = (() => {
   });
   return {
     AWAY,
+    open,
+    close,
+    provide,
+    packLeft,
+    packHome,
+    nextStay,
+    bedAt,
+    turn,
+    unlodge,
     feedAway,
     dayAway,
     lodgeWhy,
-    lodge,
-    comeHomeWhy,
-    comeHome,
-    moved,
-    placeBorn,
-    setOut,
-    addFetchStop,
-    bear,
-    visit,
-    visitDays,
   };
 })();

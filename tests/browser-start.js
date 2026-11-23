@@ -84,11 +84,14 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
   await page.selectOption('#genSize', 't'); await page.fill('#genSeed', '7');
   for (const sc of ['founders', 'heirs', 'populous']) {
     if (await page.locator('#genScreen').isHidden()) { await page.click('#chooseMenu'); await page.click('#landNew'); } // by the main menu
-    await page.click(`[data-sc="${sc}"]`); await page.click('#genGo');
+    const lat = sc === 'populous' ? 62 : 59; // VB-807: the climate offered beside size, seed and scenario
+    await page.click(`[data-sc="${sc}"]`); await page.selectOption('#genClimate', String(lat)); await page.click('#genGo');
     await page.waitForFunction((sc) => document.getElementById('loader').classList.contains('done') && window.__start.st && !window.__start.demo
       && window.__start.st.scenario === sc && !document.getElementById('choose').hidden, sc, { timeout: 120000 });
     const game = await page.evaluate(() => { window.__game = window.__start.st; return window.__start.st.w.COLS; });
     if (game !== 120) fail(`${sc} raised on ${game} columns, not the tiny map`);
+    const made = await page.evaluate(() => [window.__start.st.w.lat, document.getElementById('meta').textContent]);
+    if (made[0] !== lat || (lat === 62) !== made[1].includes('northern climate')) fail(`${sc}: the world is at ${made[0]}, not ${lat} (${made[1]})`);
     await page.click('#chooseMenu'); await page.click('#landNew');
     await page.waitForFunction(() => !document.getElementById('genScreen').hidden && window.__start.demo && document.querySelector('#startPins .pin'));
     await page.click('#genMenu');

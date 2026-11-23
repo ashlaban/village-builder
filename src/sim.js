@@ -48,7 +48,7 @@ const Sim = (() => {
     { shareOwed } = VB['sim/obligations'];
   const { fieldView } = VB['sim/rotations'];
   const { fieldsWanted, harvestEstimate } = VB['sim/fieldplans'],
-    { tilthOf } = VB['sim/fields'];
+    { tilthOf } = VB['sim/soil'];
   const { plotProgress } = VB['sim/expansion'];
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking } = VB['sim/heirranking'],

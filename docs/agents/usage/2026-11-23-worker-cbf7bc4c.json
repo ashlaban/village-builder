@@ -1,0 +1,118 @@
+{
+ "session": "cbf7bc4c-2d76-5148-a409-2867bc2eaa03",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-23T01:43:25.427Z",
+ "end": "2026-11-23T02:07:26.232Z",
+ "wallMin": 24,
+ "activeMin": 24,
+ "prompts": 1,
+ "calls": 122,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 232,
+  "cacheWrite": 241825,
+  "cacheRead": 23656893,
+  "output": 61558
+ },
+ "context": {
+  "first": 54780,
+  "peak": 259022,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 123,
+   "bytes": 246706,
+   "seconds": 717.8
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 19,
+   "bytes": 77036
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 17,
+   "bytes": 27065
+  },
+  {
+   "tool": "Bash",
+   "what": "git log",
+   "calls": 1,
+   "bytes": 14578
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 6,
+   "bytes": 14506
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/help.js",
+   "calls": 1,
+   "bytes": 13843
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/offers.js",
+   "calls": 1,
+   "bytes": 11861
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 1,
+   "bytes": 11778
+  },
+  {
+   "tool": "Bash",
+   "what": "cat tests/help.js",
+   "calls": 1,
+   "bytes": 11103
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 19,
+   "bytes": 10587
+  },
+  {
+   "tool": "Bash",
+   "what": "git show",
+   "calls": 2,
+   "bytes": 8548
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 4448
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/agent-usage.js",
+   "calls": 2,
+   "bytes": 4204
+  }
+ ],
+ "weighted": 2975993,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 2975993,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

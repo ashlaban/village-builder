@@ -361,6 +361,19 @@ input, select { font: inherit; color: var(--ink); }
 .map-bar .icon-btn { width: 40px; height: 40px; min-height: 0; border: 0; }
 @media (pointer: coarse) { .map-bar .icon-btn { width: 44px; height: 44px; } }
 body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minimapBtn) { display: none; }
+/* The overlays' list (VB-1496), the overlay button's, placed as the bell's: a row for each overlay (page/overlays), its icon, its name and
+   its key; the one on checked; a hairline between groups. */
+.overlay-list { display: flex; flex-direction: column; gap: 2px; }
+.overlay-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 4px 8px; border: 0; border-radius: var(--r-1);
+  background: none; color: inherit; text-align: left; font-size: 14px; }
+.overlay-row > span { flex: 1; }
+.overlay-row svg { flex: none; width: 20px; height: 20px; }
+.overlay-row kbd { font: 12px/1 ui-monospace, monospace; padding: 3px 6px; border: 1px solid var(--edge); border-radius: 4px; }
+.overlay-row[aria-checked="true"] { background: var(--accent); color: var(--on-accent); }
+.overlay-row[aria-checked="true"] kbd { border-color: currentColor; }
+.overlay-row.group-start { margin-top: 5px; position: relative; }
+.overlay-row.group-start::before { content: ""; position: absolute; left: 0; right: 0; top: -4px; border-top: 1px solid var(--edge); }
+@media (pointer: coarse) { .overlay-row { min-height: 44px; } }
 .notice-pop { position: absolute; right: 0; bottom: 54px; z-index: 1; width: min(290px, calc(100vw - 28px));
   max-height: min(60vh, calc(100dvh - 200px)); overflow: auto; padding: 0 14px 6px; border-radius: var(--r-2); }
 .notice-pop .menu-label { margin: 12px 0 8px; }
@@ -386,6 +399,7 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
 body:not(.minimap-open) .ground-key { display: none; }
 .reach-key ul { grid-template-columns: 1fr; }
 .reach-key p { margin: 8px 0 0; color: var(--muted, inherit); }
+.band-key ul { grid-template-columns: 1fr; } /* page/woodland, page/wildfood */
 /* Notifications (VB-098): toasts at the top centre, just under the top bar, the newest lowest, on every screen (11 Nov, VB-338: the dock's
    panels rise where they were; first at the bottom left, then from 9 Nov at the bottom centre, above the dock). The bar's bottom edge,
    which a narrow screen's date on two lines moves, is measured by page/notices. */

@@ -4,7 +4,7 @@
 // On a tiny village, with a peat tile placed by hand.
 const VB = require('../src/load.js');
 const { feedHousehold } = VB['sim/hunger'], { KINDS } = VB['sim/kinds'], D = VB['sim/dig'], Stores = VB['sim/stores'];
-const { PEAT, YEAR, DAY, SEASON_DAYS, ECON } = VB['sim/rules'], { DEPOSIT } = VB['gen/geology'];
+const { PEAT, YEAR, DAY, SEASON_DAYS, ECON } = VB['sim/rules'], { DEPOSIT } = VB['world/geology'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('PEAT FAIL:', m); } };
 const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;

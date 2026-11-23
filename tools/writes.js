@@ -60,8 +60,8 @@ const HINTS = {
   'sim/droving': { from: 'household', to: 'household', dest: 'herd', src: 'herd', keeper: 'household', owner: 'household' },
   'sim/heirs': { from: 'household', to: 'household', old: 'household', family: 'local' }, 'sim/heirranking': { asked: 'local' }, 'sim/relations': { g: 'agent', s: 'agent.talk', r: 'pawn.rel[]' },
   'sim/claims': { c: 'claim', r: 'local' }, 'sim/trust': { t: 'st.trusts' }, 'sim/offers': { o: 'st.offers' }, 'sim/clock': { s: 'fence' }, 'sim/meadows': { m: 'farmstead.meadows[]' }, 'sim/births': { m: 'pawn' },
-  'sim/commands': { q: 'pawn' }, 'sim/notable': { from: 'local' }, 'sim/agents': { g: 'agent', stay: 'st.away[]' }, 'sim/away': { g: 'local', rest: 'local' }, 'sim/expansion': { live: 'local', walls: 'plan.steps[]' }, 'sim/building': { walls: 'plan.steps[]' }, // a plot's walls step (VB-1407)
-  'sim/pot': { units: 'local' },
+  'sim/commands': { q: 'pawn' }, 'sim/notable': { from: 'local' }, 'sim/agents': { g: 'agent', stay: 'st.away[]' }, 'sim/away': { g: 'local', rest: 'local', stay: 'st.away[]' }, 'sim/journeys': { g: 'local' }, 'sim/expansion': { walls: 'plan.steps[]' }, 'sim/allotment': { live: 'local' }, 'sim/building': { walls: 'plan.steps[]' }, // a plot's walls step (VB-1407)
+  'sim/pot': { units: 'local' }, 'sim/hands': { d: 'st.handsToday' }, 'sim/jobs': { asking: 'local' }, // VB-470: today's lent hands; the morning's asks
   'sim/fair': { l: 'local', x: 'local' }, 'sim/larder': { lots: 'local', by: 'local' }, // a dealer's load and its lots, inside pawn.load and written only by sim/fair (VB-302)
   'sim/lifecycle': { households: 'local', people: 'local', u: 'union' }, 'sim/meetings': { people: 'local' }, 'sim/plans': { T: 'plan.targets' }, 'sim/seasonal': { T: 'plan.targets' }, 'sim/aims': { A: 'plan.aim', B: 'plan.aim' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
     R: 'st', A1: 'farmstead', A2: 'farmstead', B1: 'farmstead', f: 'farmstead' },
@@ -430,14 +430,15 @@ function scanned(file, mod, returns, src) {
 // ---- assembling the report ----
 const keyOf = (f) => f.replace(/\.js$/, '');
 const order = manifest.map(keyOf);
-const GEN = new Set(['gen', 'gen/rivers', 'gen/climate', 'gen/paths', 'gen/marks', 'gen/geology']); // the world generator: runs before the state exists
+const GEN = new Set(['gen', 'gen/rivers', 'gen/climate', 'gen/geology', 'draw/paths', 'draw/marks']); // the world generator, which runs before the state exists, and the drawing, which writes none
 // a field: the entity and its first field (household.larder[].n -> household.larder)
 // A field is its entity and first key; a container whose parts have owners of their own (st.plans: its projects, seasons and due-queue,
 // VB-431) declares each part as a key of three, which a path under it resolves to.
 const fieldOf = (p) => {
-  const m = p.match(/^([A-Za-z]+)\.([A-Za-z_$*][\w$]*)(?:\.([A-Za-z_$][\w$]*))?/);
+  // a part of a record owned on its own: `farmstead.barn.x`, or of each element of a list, `farmstead.fields[].soil` (VB-1479)
+  const m = p.match(/^([A-Za-z]+)\.([A-Za-z_$*][\w$]*)(\[\])?(?:\.([A-Za-z_$][\w$]*))?/);
   if (!m) return p;
-  const part = m[3] && `${m[1]}.${m[2]}.${m[3]}`;
+  const part = m[4] && `${m[1]}.${m[2]}${m[3] || ''}.${m[4]}`;
   return part && Object.hasOwn(OWNERS.fields, part) ? part : `${m[1]}.${m[2]}`;
 };
 const entityOf = (p) => p.split('.')[0];

@@ -7,7 +7,7 @@ VB['sim/building'] = (() => {
     Projects = VB['sim/projects'];
   const { BUILD, ECON, SEASON_DAYS, SPEED, TRAVEL, YEAR, BOOTH } = VB['sim/rules'],
     { HOUSE, houseCondition } = VB['sim/house'];
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
     { findRoute } = VB['sim/routes'];
@@ -16,7 +16,8 @@ VB['sim/building'] = (() => {
   const Lying = VB['sim/lying'];
   const { living } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
-  const { cottageJob, finishStep, plotTimber, cottageTimber } = VB['sim/expansion'];
+  const { plotTimber } = VB['sim/expansion'],
+    { cottageJob, cottageTimber, finishBoothStage } = VB['sim/cottageplan'];
   const { wantsStone } = VB['sim/quern'];
   const { freeFor } = VB['sim/territory'];
   const { register } = VB['sim/commands'];
@@ -24,7 +25,7 @@ VB['sim/building'] = (() => {
   // trip's); a plot's felled tiles give their trees as its wood (sim/expansion, plot.wood); a cottage or booth short of it fells the rest in
   // the village's wood before its walls are raised, as firewood trips whose load goes to the site (site.wood: a plot's or a booth's cottage's walls step).
   // The timber trips (VB-328, VB-1407), one rule for every site that lacks timber: each module names its sites ({key, site, need, dest, owner,
-  // and fell: the site's own tile when it is felled there}; sim/expansion a plot's and a booth's cottage, sim/projects a project step that
+  // and fell: the site's own tile when it is felled there}; sim/expansion a plot's cottage, sim/cottageplan a booth's, sim/projects a project step that
   // carries `timber`, this module a staked booth), and a trip is posted for each load the site lacks (sim/projects, lacks), at most two at a
   // time, from the village's wood (none where it has none, sim/territory) or the site's own tile.
   function fetchTimber(v, n, post) {
@@ -52,7 +53,7 @@ VB['sim/building'] = (() => {
       }
     }
   }
-  // Settlers build their cottage (sim/settle): the open stage of their household's cottage plan (sim/expansion).
+  // Settlers build their cottage (sim/settle): the open stage of their household's cottage plan (sim/cottageplan).
   function boothWork(st, hh, f, c, post) {
     const bj = cottageJob(st, hh, f);
     if (bj) post(bj[0], f.house, bj[2], bj[1]);
@@ -375,8 +376,9 @@ VB['sim/building'] = (() => {
     spot: (st, a, j) => [st.w.hx[j.site] + 16 + a.ox * 0.4, st.w.hy[j.site] + 2 + a.oy * 0.3],
     done: barnStage,
   });
-  // The job kinds of building (sim/kinds takes them in). The cottage's stages, all finished by sim/expansion: a plot's (j.plot) by the
-  // hand's finish, a booth household's (j.booth, settlers) here; a plot's are posted by sim/kinds' plotWork, a booth household's by boothWork.
+  // The job kinds of building (sim/kinds takes them in). The cottage's stages, all finished by sim/cottageplan: a plot's (j.plot) by the
+  // hand's finish through sim/expansion, a booth household's (j.booth, settlers) here; a plot's are posted by sim/kinds' plotWork, a booth
+  // household's by boothWork.
   const stage = (verb, go, name, label, anim, hours) => ({
     verb,
     go,
@@ -387,7 +389,7 @@ VB['sim/building'] = (() => {
     hands: Infinity,
     type: 'wood',
     done: (st, j) => {
-      if (j.booth) finishStep(st, j);
+      if (j.booth) finishBoothStage(st, j);
     },
     available: boothWork,
   });
@@ -471,7 +473,7 @@ VB['sim/building'] = (() => {
       deliver: (st, j, hh, f, a) =>
         Stores.put(st, hh, 'wood', ECON.woodPerTrip * Math.max(1, Math.round(a.load / TRAVEL.load)), 'timber'),
     },
-    // The grain of a gift whose bearer died on the road (sim/away's dropStay, VB-850): lying where he fell, fetched home to the store of
+    // The grain of a gift whose bearer died on the road (sim/journeys' dropStay, VB-850): lying where he fell, fetched home to the store of
     // the household it was set aside for (its village's, if that is gone), by crop as it was.
     leftGrain: {
       verb: 'Taking up grain',

@@ -500,6 +500,14 @@ function settlementTileInfo(i) {
       const more = fieldCard(i, fd, f); // its crop, its course and the head's choices (page/tileinfo, VB-355)
       // the soil as two levels on the one meter: what the ground is worth, and how its crops and its dung have left it (100 is unworn)
       const cond = Math.round(fd.soil * 100);
+      const GROUND_WORDS = {
+        meadow: 'on meadow',
+        heath: 'on heath',
+        hills: 'on hills',
+        marsh: 'on marsh',
+        forest: 'broken from forest',
+        pine: 'broken from pine wood',
+      };
       return [
         `Field of ${where}`,
         f.household === null ? ['No one works it'] : [],
@@ -522,8 +530,10 @@ function settlementTileInfo(i) {
               icon: 'soil',
               label: 'Soil',
               value: Math.round(fd.fert * 100),
-              note: Sim.byRiver(w, i) ? 'watered by the river' : '',
-              title: 'The quality of the soil',
+              note: [GROUND_WORDS[fd.ground], Sim.byRiver(w, i) ? 'watered by the river' : '']
+                .filter(Boolean)
+                .join(', '),
+              title: 'The quality of the soil, and the ground the field was broken from',
               meter: { value: fd.fert * 100 },
             },
             {

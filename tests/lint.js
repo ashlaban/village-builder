@@ -80,8 +80,8 @@ for (const f of ['src/body.html', ...pageFiles]) readSource(f).split('\n').forEa
 // Tunables (VB-419): a table that left sim/rules keeps a `// @tunable NAME: meaning` line in the comment just above it, so that
 // `grep -rn "@tunable" src` finds it wherever it lives (the tables still in sim/rules are found there); each such line names the table
 // defined just below it. A table that leaves sim/rules joins LEFT_RULES.
-const LEFT_RULES = ['AWAY', 'BIRTH', 'CALL', 'CHILD', 'COMMONS', 'COURT', 'CROPS', 'CROWD', 'DAYS', 'DIRNAME', 'FEAST', 'FERTILITY', 'FORAGE',
-  'FOUNDERS', 'GIFT', 'GRAZE', 'HOUSE', 'IDLE', 'MATCH', 'MOOD', 'PATHS', 'PLOT_PRIO', 'RIVER', 'ROLES', 'ROTATIONS', 'ROUTE', 'SEASONS', 'SERVICE',
+const LEFT_RULES = ['AWAY', 'BIRTH', 'CALL', 'CHILD', 'COMMONS', 'COURT', 'CROPS', 'CROWD', 'DAYS', 'DIRNAME', 'FEAST', 'FORAGE',
+  'FOUNDERS', 'GIFT', 'GRAZE', 'GROUND', 'HOUSE', 'IDLE', 'MATCH', 'MOOD', 'PATHS', 'PLOT_PRIO', 'RIVER', 'ROLES', 'ROTATIONS', 'ROUTE', 'SEASONS', 'SERVICE',
   'SLOPE', 'SOCIAL', 'SOIL', 'TERRAIN', 'TIE', 'TILTH', 'WISH', 'WORKDAY'];
 const tunables = new Set();
 for (const f of files) {

@@ -1,55 +1,12 @@
 // @sys gen/geology: what lies in the ground: each land tile's bedrock, and the deposits of clay and ores laid as patches and veins, by island
 // ===== Geology: bedrock provinces, lenses of rare stone, and finite deposits of clay and ore (generation only: nothing digs yet) =====
-// Listed before gen.js, which calls lay; it reads no other module, so gen.js passes in the arrays, a random source and the biome codes.
+// Listed before gen.js, which calls lay with the arrays of the world in the making.
 // Measure: node tools/sim.js --scenario populous --map small --years 0 --report ground --seeds 1,2,3 [--reach 12,30]: villages with each deposit in reach.
-// The setting is Europe of 1300 to 1700, continental and Scandinavian: granite and gneiss are the common ground, limestone and sandstone
-// the building stones, slate, marble and soapstone the rarer ones; iron comes from bogs and from rock, silver with lead, tin only in
-// granite (uplands and hills).
+// The codes and names of the rocks and deposits are world/geology's.
 VB['gen/geology'] = (() => {
-  // Bedrock, w.rock's codes. weight: a province's chance of each of the four common rocks; marble and soapstone are lenses (VEINS).
-  const ROCK = { NONE: 0, GRANITE: 1, LIMESTONE: 2, SANDSTONE: 3, SLATE: 4, MARBLE: 5, SOAPSTONE: 6 };
-  const ROCKS = [
-    { key: 'none', name: '' },
-    { key: 'granite', name: 'Granite', weight: 45 },
-    { key: 'limestone', name: 'Limestone', weight: 22 },
-    { key: 'sandstone', name: 'Sandstone', weight: 18 },
-    { key: 'slate', name: 'Slate', weight: 15 },
-    { key: 'marble', name: 'Marble' },
-    { key: 'soapstone', name: 'Soapstone' },
-  ];
-  // Deposits, w.deposit's codes. hidden: an ore that does not show at the surface, and must be found (sim/prospect).
-  const DEPOSIT = {
-    NONE: 0,
-    CLAY: 1,
-    BOG_IRON: 2,
-    IRON: 3,
-    COPPER: 4,
-    LEAD_SILVER: 5,
-    TIN: 6,
-    GOLD: 7,
-    SALT: 8,
-    PEAT: 9,
-    FLINT: 10,
-    AMBER: 11,
-  };
-  const DEPOSITS = [
-    { key: 'none', name: '' },
-    { key: 'clay', name: 'Clay' },
-    { key: 'bogIron', name: 'Bog iron ore' },
-    { key: 'iron', name: 'Iron ore', hidden: true },
-    { key: 'copper', name: 'Copper ore', hidden: true },
-    { key: 'leadSilver', name: 'Lead and silver ore', hidden: true },
-    { key: 'tin', name: 'Tin ore', hidden: true },
-    { key: 'gold', name: 'Gold', hidden: true },
-    { key: 'salt', name: 'Salt spring' },
-    { key: 'peat', name: 'Peat' },
-    { key: 'flint', name: 'Flint' },
-    { key: 'amber', name: 'Amber' },
-  ];
-  // A deposit tile's w.depositLeft of ENDLESS is a source that does not run out in any game.
-  const ENDLESS = 65535;
-  // A hidden vein can be come on by work within `reach` tiles of it (w.veinNear).
-  const FIND = { reach: 2 };
+  const { ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND } = VB['world/geology'],
+    { B } = VB['world/biomes'],
+    { mulberry32: rng } = VB['gen/noise'];
   // tiles: map tiles (sea included) to a bedrock province, at least `least` provinces; ragged: how far, in tiles, noise moves a border.
   const PROVINCES = { tiles: 2200, least: 3, ragged: 2.5 };
   // Lenses of stone and deposits, laid island by island in this order (the rarest first: a tile holds one deposit, the first to reach it).
@@ -183,10 +140,10 @@ VB['gen/geology'] = (() => {
     },
   ];
 
-  // g: {N, nb, hx, hy, hp, hm, water, biome, river, W, H, R, seed} of the world in the making; B: the biome codes. rng(seed): a seeded
-  // random source: the bedrock (0) and each kind of VEINS draw from one of their own, so a kind added later leaves the others' draws as they were.
+  // g: {N, nb, hx, hy, hp, hm, water, biome, river, W, H, R, seed} of the world in the making. rng(seed), gen/noise's mulberry32: a
+  // seeded random source: the bedrock (0) and each kind of VEINS draw from one of their own, so a kind added later leaves the others' draws as they were.
   // Returns the three layers.
-  function lay(g, rng, B) {
+  function lay(g) {
     const stream = (k) => rng(g.seed ^ 0x6e0106 ^ Math.imul(k, 0x9e3779b1));
     const { N, nb, hx, hy, hp, hm, water, biome, river } = g,
       rnd = stream(0);
@@ -409,5 +366,5 @@ VB['gen/geology'] = (() => {
     nearVeins(w);
   }
 
-  return { lay, setDeposit, reveins, ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND, PROVINCES, VEINS };
+  return { lay, setDeposit, reveins, PROVINCES, VEINS };
 })();

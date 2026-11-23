@@ -42,6 +42,8 @@ VB['sim/records'] = (() => {
     // notable: births, marriages and deaths; inheritances and handovers; moves and leaving; farms, plots, cottages and meadows; customs
     // and causes; shares paid; and the kinds no task has called routine yet
     born: 0,
+    bornOutside: 0, // a child born outside marriage, and one its parents' marriage made born in it (sim/births, VB-555)
+    legitimated: 0,
     married: 0,
     died: 0,
     child: 0,
@@ -64,6 +66,7 @@ VB['sim/records'] = (() => {
     plotStarted: 0,
     green: 0, // the village's green and well laid out, and done (VB-058)
     field: 0,
+    fieldLeft: 0, // a field a household let go, its tile back to the village (sim/fields, VB-768)
     meadow: 0,
     stake: 0,
     stakeLapsed: 0,
@@ -89,6 +92,7 @@ VB['sim/records'] = (() => {
     leftRefused: 0, // left home for service after a head refused the one it courts (sim/service, VB-036)
     offerLapsed: 0,
     offerRefused: 0, // goods offered or asked for, refused (sim/offers, VB-690)
+    advice: GENERATION, // a retired member's advice taken by its head (sim/advice, VB-1316)
     renounced: 0, // an inheritance renounced by one in line who holds a place (sim/heirs, VB-824)
     meetingFailed: 0,
     days: 0, // days of work owed lapsed (sim/obligations, VB-462; the alderman's keep, VB-463)
@@ -98,6 +102,7 @@ VB['sim/records'] = (() => {
     fair: 0, // the fair at a gathering: its deals, what changed hands, those that failed for want of change (VB-302)
     cartBuilt: 0, // a household's new cart (VB-327)
     tarPit: 0, // a household's tar pit dug (VB-301)
+    trail: 0, // a trail blazed through the wood (VB-447)
     setOut: 0, // a journey to a new home in another village (VB-287)
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
     closeFriend: SHORT,
@@ -114,6 +119,8 @@ VB['sim/records'] = (() => {
     harvest: GENERATION,
     hay: GENERATION,
     frost: GENERATION,
+    misjudged: GENERATION,
+    climate: SHORT, // a winter's date falls in a band of the map (sim/climate, VB-807)
     weather: SHORT, // a season's weather, named as it begins (sim/weather, VB-354)
     herdBirths: GENERATION,
     herdDeath: GENERATION,

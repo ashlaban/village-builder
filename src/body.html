@@ -152,9 +152,18 @@
     <div class="notice-pop panel" id="noticePop" role="group" aria-labelledby="noticeTitle" hidden>
       <h2 class="menu-label" id="noticeTitle">Notifications</h2><div id="noticeList"></div>
     </div>
+    <div class="notice-pop overlay-pop panel" id="overlayPop" role="group" aria-labelledby="overlayTitle" hidden>
+      <h2 class="menu-label" id="overlayTitle">Overlays</h2>
+      <div class="overlay-list" id="overlayList" role="radiogroup" aria-labelledby="overlayTitle"></div>
+    </div>
     <div class="ground-key panel" id="groundKey" role="group" aria-label="Key to the ground" hidden></div>
     <div class="ground-key land-key panel" id="landKey" role="group" aria-label="Key to land ownership" hidden></div>
     <div class="ground-key reach-key panel" id="reachKey" role="group" aria-label="Key to walking time" hidden></div>
+    <div class="ground-key reach-key panel" id="fertilityKey" role="group" aria-label="Key to fertility" hidden></div>
+    <div class="ground-key band-key panel" id="woodlandKey" role="group" aria-label="Key to woodland" hidden></div>
+    <div class="ground-key band-key panel" id="wildfoodKey" role="group" aria-label="Key to wild food" hidden></div>
+    <div class="ground-key reach-key panel" id="grazingKey" role="group" aria-label="Key to grazing pressure" hidden></div>
+    <div class="ground-key reach-key panel" id="wearKey" role="group" aria-label="Key to wear on foot" hidden></div>
     <div class="minimap panel" id="minimap" aria-label="Overview map, click or tap to jump" tabindex="0" role="group">
       <canvas id="mmBase"></canvas>
       <canvas id="mmView"></canvas>
@@ -164,12 +173,8 @@
         aria-pressed="true"></button>
       <button id="regionBtn" type="button" class="icon-btn" data-icon="regions" aria-keyshortcuts="r" aria-label="Regions" title="Regions (R)"
         aria-pressed="false"></button>
-      <button id="landBtn" type="button" class="icon-btn" data-icon="land" aria-keyshortcuts="l" aria-label="Land ownership"
-        title="Land ownership (L)" aria-pressed="false" aria-controls="landKey"></button>
-      <button id="groundBtn" type="button" class="icon-btn" data-icon="ground" aria-keyshortcuts="o" aria-label="Bedrock and deposits"
-        title="Bedrock and deposits (O)" aria-pressed="false" aria-controls="groundKey"></button>
-      <button id="reachBtn" type="button" class="icon-btn" data-icon="reach" aria-keyshortcuts="h" aria-label="Walking time from the selected tile"
-        title="Walking time from the selected tile (H)" aria-pressed="false" aria-controls="reachKey"></button>
+      <button id="overlayBtn" type="button" class="icon-btn" aria-label="Overlays" title="Overlays" aria-haspopup="true" aria-expanded="false"
+        aria-controls="overlayPop"></button>
       <button id="noticeBtn" type="button" class="icon-btn" data-icon="bell" aria-label="Notifications" title="Which notifications show"
         aria-haspopup="true" aria-expanded="false" aria-controls="noticePop"></button>
       <button id="minimapBtn" type="button" class="icon-btn" data-icon="minimap" aria-keyshortcuts="m" aria-label="Minimap" title="Minimap (M)"
@@ -254,6 +259,12 @@
         <select id="genSize">
           <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
           <option value="m" selected>Medium (280 × 200)</option><option value="l">Large (380 × 270)</option>
+        </select>
+      </label>
+      <label>Climate
+        <select id="genClimate">
+          <option value="57">Southern (57° N)</option><option value="59" selected>Middle (59° N)</option>
+          <option value="62">Northern (62° N)</option><option value="65">Far north (65° N)</option>
         </select>
       </label>
       <label>Seed

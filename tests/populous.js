@@ -11,7 +11,7 @@ const world = (seed, cols, rows) => (EXT ? generate(seed, { cols, rows }) : isla
 const band = (n) => (n >= 2 && n <= 5 ? 'small' : n >= 6 && n <= 10 ? 'medium' : n >= 12 && n <= 16 ? 'large' : 'other');
 // mean and spread of drawSize, from 20,000 seeded draws: a map's mean household size lies within 3 standard errors of that mean
 // (on a Tiny map of about 20 households, about 6.2 +- 1.0; on Medium, of about 130, +- 0.4)
-const draws = Array.from({ length: 20000 }, ((r) => () => VB['sim/people'].drawSize(r))(G.mulberry32(1)));
+const draws = Array.from({ length: 20000 }, ((r) => () => VB['sim/people'].drawSize(r))(VB['gen/noise'].mulberry32(1)));
 const MU = draws.reduce((a, b) => a + b, 0) / draws.length, SD = Math.sqrt(draws.reduce((a, b) => a + (b - MU) ** 2, 0) / draws.length);
 
 for (const [name, [cols, rows, lo, hi]] of Object.entries(SIZES)) for (const seed of [7, 42]) {

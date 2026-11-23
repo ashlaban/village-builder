@@ -172,9 +172,9 @@ let made;
 // a raised hay target is met by the next winter: a household with meadows for more than its animals' need rakes and mows for two winters by its
 // template (the meadows mown together overshoot it) and for three by its head's choice
 const hay = [];
-// the seed is one whose meadows give three winters: the herds drawn at seeding move with every custom added (VB-711, VB-826)
+// the seed is one whose meadows give three winters: the herds drawn at seeding move with every custom added (VB-711, VB-826, VB-555)
 for (const raise of [false, true]) {
-  const { st, hh, f } = scene({ herds: true, seed: 1 });
+  const { st, hh, f } = scene({ herds: true, seed: 3 });
   for (const id of hh.herds) { // a cow and five ewes: three winters' need is within what the four meadows give, raked
     const hd = st.herds[id];
     if (hd.species === 'cattle') hd.head.length = 1; else { hd.ewes = 5; hd.rams = 0; hd.lambs = 0; }

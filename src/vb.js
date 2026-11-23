@@ -7,6 +7,9 @@
 var VB = (globalThis.VB = globalThis.VB || {});
 // Work measurements only: never part of st or an input to a simulation decision.
 VB.COUNTERS = {
+  letGoJobs:
+    "Jobs read to see whether a field a household might let go has a task on it, on its head's planning day after the harvest " +
+    '(sim/fieldplans letGoWhy, VB-768)',
   tilthRead: "Reads of a field's tilth, at manuring and reaping only (sim/fields tilthOf, VB-717)",
   routeSearch: 'A* searches started',
   visitNoRoute:
@@ -17,12 +20,21 @@ VB.COUNTERS = {
   routeHit: 'Routes served from the cache, in either direction',
   routeRefresh: 'Cached routes tested for invalidation',
   reachSettled: 'Tiles settled by the searches of the walking hours between villages (sim/routes reachCosts, VB-286)',
+  settleReach:
+    "Tiles settled by a crowded village's search for new land within SETTLE.hours along a trail, one a round where someone " +
+    'leads (sim/routes trailReach, VB-786)',
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   talkWeighed: 'Eligible partners weighed in talkHour',
   daysCalled: 'Days called by a creditor holder on its planning day (sim/days, VB-462)',
   obligationsDue: 'Obligations whose term ended at a step, taken off the due-queue (sim/obligations, VB-310)',
+  asksRead: 'Open asks for a good passed by a head reading them, once a year a head (sim/asks, VB-699)',
   offerWeighed: 'Answers to an offer weighed by the pawn asked, at the due time (sim/offers, VB-690)',
   offersAnswered: 'Open offers answered at a village step of the moving round, a day of it each (sim/round, VB-692)',
+  adviceOffered: 'Advice offered by a retired member to its head, at its spring planning day (sim/advice, VB-1316)',
+  adviceTaken: 'Advice taken by a head and carried out (sim/advice, VB-1316)',
+  adviceStanding: 'Members of a village read for its mean standing, an advice weighed (sim/advice weightOf, VB-1316)',
+  adviceMatchWalk:
+    "Entries of the asking queue read for a grandchild's match, a retired grandparent's advice (sim/advice, VB-1316)",
   askings: 'Askings held: a pawn who seeks, on its asking day once a season (sim/asking, VB-823)',
   asksMade: 'Offers made at an asking (sim/asking, VB-823)',
   asksNobody: 'Askings whose rungs found nobody to ask (sim/asking, VB-823)',
@@ -93,9 +105,10 @@ VB.COUNTERS = {
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
     '(sim/jobs, allot; VB-466)',
   dayTake: 'Tasks of its list an idle pawn passes or takes (sim/jobs, takeDay; VB-466)',
-  helpOffer:
-    "Jobs of a village's households weighed for the offer to helpers, once a village a round with a helper (sim/jobs, offered; VB-106)",
-  helpBid: 'Helper and offered job pairs weighed by the help round (sim/jobs, helpRound; VB-106)',
+  handsAsked: 'Asks for hands made by a head short of hands, at the morning allotment (sim/hands askFor, VB-470)',
+  foodAsked: 'Asks for food made by a hungry head at its plan review, one an asked party (sim/help askFood, VB-691)',
+  handsWeighed: 'Farms of the village read by a head short of hands, to choose whom to ask (sim/hands askFor, VB-470)',
+  handsLent: 'Hands lent by a head asked for help, a pawn a day (sim/hands, VB-470)',
   occasionAsked:
     "Pawns weighed as guests of an occasion: a village's people at its meeting, kin and housemates at a wedding or a death " +
     '(sim/occasions, VB-126), the adults asked to an ale evening and to the rite (VB-522)',
@@ -127,6 +140,8 @@ VB.COUNTERS = {
     'for tar (sim/drying, sim/tar; VB-301)',
   boatAsk:
     'Farms of villages by fishing water asked whether their household begins a boat, once a year (sim/drying; VB-300)',
+  saltGround:
+    'Tiles within reach of a house searched for its salt spring, when its want opens, at most once a year (sim/saltpan; VB-700)',
   digGround:
     'Tiles within reach of a house searched for its digging ground, when its want opens, at most once a year (sim/dig; VB-359)',
   cowSeek:
@@ -144,6 +159,9 @@ VB.COUNTERS = {
     "A head's menu of projects computed (its options' tiles and sites), for a holder with a surplus and no project, at most once a " +
     'year and when a project ends (sim/aims; VB-255)',
   frontTile: 'Tiles of the forest front visited by spreadForest, once a game day (sim/spread; VB-091)',
+  fieldLapse: "Fields weighed for their years unused on the year's last day (sim/fields' lapseFields; VB-1527)",
+  lapsedTile:
+    'Tiles of fields let go visited by spreadForest, once a game day, until they revert or are used again (sim/spread; VB-1527)',
   giftUncarried:
     'Grain a gift settled at once between two farmsteads, or from a village store to a household: none, by the hard rule (sim/exchange; ' +
     'VB-461)',

@@ -20,6 +20,7 @@ const FAST = [
   ['node', 'tests/living.js'],
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
+  ['node', 'tests/outcomes.js'], // commands' three outcomes and the queue's assignments: release, reacquire, side work, saves (VB-1405)
   ['node', 'tests/crowding.js'], // a household's crowding, its factor and its refresh, on a constructed state (VB-766)
   ['node', 'tests/sheet.js'], // the played pawn's sheet: what a command brought, what moved its levels, an illness before it kills (VB-1118)
   ['node', 'tests/illness.js'], // illnesses that are survived: a course that passes, one turned by a draw, the roll's deaths kept (VB-1246)
@@ -31,6 +32,7 @@ const FAST = [
   ['node', 'tests/asking.js'],
   ['node', 'tests/suit.js'],
   ['node', 'tests/courting.js'],
+  ['node', 'tests/outside.js'], // VB-555: a child on the way, the offer out of the round, the custom
   ['node', 'tests/succession.js'],
   ['node', 'tests/chronicle.js'],
   ['node', 'tests/opportunities.js'],
@@ -47,6 +49,7 @@ const FAST = [
   ['node', 'tests/overview.js'],
   ['node', 'tests/outlook.js'],
   ['node', 'tests/yields.js'],
+  ['node', 'tests/fieldsbyfood.js'],
   ['node', 'tests/timber.js'],
   ['node', 'tests/cottageplan.js'], // VB-1411: a settler household's cottage a project plan beside its field's; each job ends its own; the roof ends the booth
   ['node', 'tests/sitelacks.js'], // VB-1407: one read of what a site lacks; a step carrying timber gets its trips; the walls by name; kept hours
@@ -56,16 +59,22 @@ const FAST = [
   ['node', 'tests/crops.js'],
   ['node', 'tests/seedorder.js'], // seed eaten last field last; a start in life and settlers take a field's seed of each crop (VB-352)
   ['node', 'tests/forest-spread.js'],
+  ['node', 'tests/clear-ground.js'], // clearing by ground: hills 18, heath 13, meadow 10 (VB-1522)
+  ['node', 'tests/forest-field.js'], // a wood broken to a field: felled, grubbed, cleared, broken; its timber walked home (VB-1525)
+  ['node', 'tests/field-site.js'], // a field's site by its score, whatever its ground: far stony meadow over near hills (VB-1524)
   ['node', 'tests/rye.js'],
   ['node', 'tests/weather.js'], // VB-354: the seasons' weather, each crop's reading, the thaw, the frost, the ripening
+  ['node', 'tests/latitude.js'], // VB-807: the winter's dates by latitude, the bands, the growing year by world, dates falling, lat saved
   ['node', 'tests/peas.js'],
   ['node', 'tests/skills.js'], // time taken from causes: skill, a leg's mishap, the crop's size (VB-475)
+  ['node', 'tests/estimate.js'], // the head's estimate: the causes reckoned by skill, the range, the day manned by it (VB-476)
   ['node', 'tests/crafts.js'], // crafts learnt by doing: halfway in 400 hours, a tenth a year, a novice's rate to a master's (VB-360)
   ['node', 'tests/rotations.js'],
   ['node', 'tests/sowing.js'],
   ['node', 'tests/foresight.js'],
   ['node', 'tests/kinds.js'],
   ['node', 'tests/routes.js'],
+  ['node', 'tests/discomfort.js'], // VB-448: routes chosen by time weighed with discomfort; a bridge up to twice the time, load classes
   ['node', 'tests/oversea.js'], // VB-436: nobody is sent to a home over the sea
   ['node', 'tests/tiny.js'],
   ['node', 'tests/claims.js'],
@@ -97,6 +106,7 @@ const FAST = [
   ['node', 'tests/accounts.js'], // VB-403: the balance accounts close, the people account too, and the run is unchanged
 ];
 const INTEGRATION = [
+  ['node', 'tests/samepixels.js'], // VB-1500: the map-pixels tool catches a pigment and a mark moved; 2.5 s
   ['node', 'tests/events.js'],
   ['node', 'tests/grain.js'],
   ['node', 'tests/scaling.js'],
@@ -126,7 +136,7 @@ const INTEGRATION = [
   ['node', 'tests/children.js'],
   ['node', 'tests/hands.js'],
   ['node', 'tests/tillcap.js'], // hoe and sow only what the hands can till (VB-1186)
-  ['node', 'tests/helpers.js'],
+  ['node', 'tests/helpers.js'], // help asked for: the ask, the answer, the hands lent and the tie by hours (VB-470)
   ['node', 'tests/help.js'], // food help, with VB-461's fetched gift (VB-889)
   ['node', 'tests/interrupts.js'],
   ['node', 'tests/day.js'],
@@ -161,6 +171,7 @@ const INTEGRATION = [
   ['node', 'tests/stakes.js'],
   ['node', 'tests/head.js'],
   ['node', 'tests/made-targets.js'],
+  ['node', 'tests/asks.js'], // VB-699: the asks for goods, read by a head whose place makes them
   ['node', 'tests/traits.js'],
   ['node', 'tests/aims.js'],
   ['node', 'tests/traitacts.js'], // VB-520: what each trait does, chemistry, the quarrel
@@ -193,6 +204,7 @@ const INTEGRATION = [
   ['node', 'tests/owners.js'],
   ['node', 'tests/plans.js'],
   ['node', 'tests/offers.js'],
+  ['node', 'tests/advice.js'], // VB-1316: the retired's advice to its head, and a grandchild's match
   ['node', 'tests/exchange.js'],
   ['node', 'tests/occasions.js'],
   ['node', 'tests/gift.js'], // VB-460: the good-year gift, unasked, kin first, carried
@@ -201,6 +213,7 @@ const INTEGRATION = [
   ['node', 'tests/aleevening.js'], // VB-522: the ale evening (who calls, who is asked, the barrel) and the season's rite (its leader, the ties)
   // VB-855: the farming year, from new fields to digging, on small generated islands and constructed states
   ['node', 'tests/newfields.js'],
+  ['node', 'tests/fieldground.js'],
   ['node', 'tests/fieldswanted.js'],
   ['node', 'tests/weeding.js'],
   ['node', 'tests/soil.js'],
@@ -218,12 +231,16 @@ const INTEGRATION = [
   ['node', 'tests/drying.js'],
   ['node', 'tests/forage.js'],
   ['node', 'tests/dig.js'],
+  ['node', 'tests/saltpan.js'], // salt boiled at a spring, and the salting that uses it (VB-700)
+  ['node', 'tests/ironwork.js'], // the tools' wear and rate, smelting bog ore and mending with iron (VB-701)
   // VB-856: land and geography, and the tools, on small generated islands and constructed states
   ['node', 'tests/rivers.js'],
   ['node', 'tests/stones.js'],
   ['node', 'tests/geology.js'],
   ['node', 'tests/layout.js'],
   ['node', 'tests/settle.js'],
+  ['node', 'tests/forestsites.js'], // VB-786: a forest site within SETTLE.hours along a trail, none within 11 hex steps; felled, grubbed, fresh
+  ['node', 'tests/trails.js'], // VB-447: blaze: a wooded tile a job of 3 hours, 1 where trodden; blazed tiles are paths; a dead blazer's trail goes
   ['node', 'tests/plots.js'],
   ['node', 'tests/names.js'],
   ['node', 'tests/populous.js'],
@@ -270,6 +287,7 @@ const EXTENDED = [
   ['node', 'tests/browser-speed.js'],
   ['node', 'tests/browser-gathering.js'], // a gathering while it is on: its notice, its mark and its card (VB-1031, VB-1032)
   ['node', 'tests/browser-fields.js'], // a field's card: crop, course, the head's rotation choices and their answers, winter rye (VB-1146)
+  ['node', 'tests/browser-overlays.js'], // the map's overlays through their list and by key, one at a time, on a phone (VB-1496)
   ['node', 'tests/browser-bonds.js'] // portraits: the bonds as badges (VB-1026), their words (VB-1033), ageing (VB-1029)
 ];
 module.exports = { FAST, INTEGRATION, EXTENDED };

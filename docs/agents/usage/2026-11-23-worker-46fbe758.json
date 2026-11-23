@@ -1,0 +1,123 @@
+{
+ "session": "46fbe758-2269-519d-8015-cdd9b345122a",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-23T01:21:53.996Z",
+ "end": "2026-11-23T01:42:37.020Z",
+ "wallMin": 20.7,
+ "activeMin": 20.7,
+ "prompts": 1,
+ "calls": 119,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 230,
+  "cacheWrite": 218839,
+  "cacheRead": 25580062,
+  "output": 78461
+ },
+ "context": {
+  "first": 84784,
+  "peak": 282543,
+  "firstEdit": 192885
+ },
+ "tools": {
+  "Bash": {
+   "calls": 119,
+   "bytes": 265109,
+   "seconds": 383.2
+  },
+  "Write": {
+   "calls": 2,
+   "bytes": 288,
+   "seconds": 0.1
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 19,
+   "bytes": 84867
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 7,
+   "bytes": 34398
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 18,
+   "bytes": 27179
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/days.js",
+   "calls": 1,
+   "bytes": 25896
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 2,
+   "bytes": 16560
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 24,
+   "bytes": 12251
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/advice.js",
+   "calls": 1,
+   "bytes": 8970
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7408
+  },
+  {
+   "tool": "Bash",
+   "what": "cat tests/helpers.js",
+   "calls": 1,
+   "bytes": 7008
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 5264
+  },
+  {
+   "tool": "Bash",
+   "what": "cat >",
+   "calls": 6,
+   "bytes": 3939
+  },
+  {
+   "tool": "Bash",
+   "what": "mkdir -p",
+   "calls": 1,
+   "bytes": 3194
+  }
+ ],
+ "weighted": 3224090,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 3224090,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

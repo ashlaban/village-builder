@@ -1,4 +1,4 @@
-// Sleeping away from home (VB-783; design.md, Moving to new land, Sleeping away from home): a pawn lodges at a place two hours from home on
+// Sleeping away from home (VB-783; design.md, Moving to new land, Sleeping away from home): a pawn lodges at a place three hours from home on
 // a pack from its household's food above its seed, works there only the tasks its stay names, is left out of its household's meals, eats
 // a ration a day from its pack and walks home when the pack is down to the walk home's ration; a household at its seed sends nobody; a
 // guest sleeps in another household's house with its head's yes; a save in the middle plays as the unbroken run. On a tiny state.
@@ -19,7 +19,7 @@ const keep = (st, hh, site) => post(st, KEY, 'fell', { type: 'household', id: hh
 
 const st = make(), hh = st.households[0], f = st.farmsteads[hh.farmstead], id = adultOf(st, hh), a = st.agents[id], p = st.pawns[id];
 assert.ok(id !== undefined, 'an adult who can go');
-const site = tileAt(st.w, st.w.hx ? (f.house % st.w.COLS) + 24 : 30, Math.floor(f.house / st.w.COLS)); // 24 tiles of meadow: 2 hours
+const site = tileAt(st.w, st.w.hx ? (f.house % st.w.COLS) + 24 : 30, Math.floor(f.house / st.w.COLS)); // 24 tiles of meadow: 3 hours at 8 an hour
 to(st, 15);
 Stores.put(st, hh, 'grain', 60, 'harvest', { barley: 60 });
 keep(st, hh, site);
@@ -37,7 +37,7 @@ assert.ok(Math.abs(s.food - 3 * rationOf(st, p)) < 1e-9, `a pack of 3 rations: $
 const packed = hh.ledger.filter((e) => e.kind === 'away' && e.good === 'grain' && e.pawn === id).reduce((n, e) => n - e.n, 0);
 assert.ok(grain0 - Stores.grainOf(hh) >= packed - 1e-9 && Math.abs(packed - 3 * R) < 1e-9, 'taken from the grain above the seed, uncooked');
 assert.ok(hh.ledger.some((e) => e.kind === 'away' && e.pawn === id), "a store movement with the reason 'away'");
-assert.ok(s.walk > 1.5 && s.walk < 2.5, `two hours from home: ${s.walk}`);
+assert.ok(s.walk > 2.5 && s.walk < 3.5, `three hours from home: ${s.walk}`);
 assert.strictEqual(bed(st, a), site, 'its bed is the site');
 assert.ok(typeof issue(st, { actor: id, verb: 'lodge', target: site, args: { why: 'work', days: 1 }, source: 'pawn' }) === 'string', 'one stay a pawn');
 to(st, 23);
@@ -150,5 +150,23 @@ assert.deepStrictEqual(checkState(st), [], 'invariants once home');
   const lay = JSON.stringify(s5.lying || null);
   assert.ok(lay.includes('leftGrain') && lay.includes(String(Math.round(grain5 * 1000) / 1000).slice(0, 4)), `its pack lies where it fell: ${lay.slice(0, 200)}`);
   assert.ok(lie0 === 0, 'nothing lay before');
+}
+// ---- one asked to lodge while away from its house walks home and packs there (VB-1175, from VB-302): no pack from where it stands ----
+{
+  const s6 = make(), h6 = s6.households[0], id6 = adultOf(s6, h6), a6 = s6.agents[id6], f6 = s6.farmsteads[h6.farmstead];
+  to(s6, 9);
+  Stores.put(s6, h6, 'grain', 60, 'harvest', { barley: 60 });
+  const out = f6.house + 8; // 8 steps along the row from its door
+  VB['sim/agents'].setDown(s6, a6);
+  a6.x = s6.w.hx[out]; a6.y = s6.w.hy[out]; a6.inside = false;
+  const g0 = Stores.grainOf(h6);
+  assert.strictEqual(issue(s6, { actor: id6, verb: 'lodge', target: site, args: { why: 'work', days: 3 }, source: 'pawn' }), true, 'asked to lodge');
+  assert.ok(stayOf(s6, id6) === null && a6.packing && a6.packing.at === site, 'no stay before it is home: it walks home to pack');
+  assert.ok(Math.abs(Stores.grainOf(h6) - g0) < 1e-9, 'nothing is taken from the barn while it stands away from it');
+  for (let h = 0; h < 6 && !stayOf(s6, id6); h++) Sim.advance(s6, 1);
+  const j6 = stayOf(s6, id6);
+  assert.ok(j6 && j6.bed === site && !a6.packing, 'home, it packs and its stay opens');
+  assert.ok(Math.abs(g0 - Stores.grainOf(h6) - j6.food / s6.ECON.uncooked) < 1e-6 && j6.food > 0, 'the pack taken from the barn at home');
+  assert.deepStrictEqual(checkState(s6), [], 'invariants, packed at home');
 }
 console.log(`away: a pawn lodged ${s.walk.toFixed(1)} hours from home on a pack of 3, worked two days, ate from its pack, walked home on the third; a household at its seed sent nobody; a guest; a save in the middle`);

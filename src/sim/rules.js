@@ -1,7 +1,7 @@
 // @sys sim/rules: the calendar, the economy and the foods, the herds, the ages of life and health, travel, given names, and the other
 // tables several domains read (VB-419: a table one domain reads lives in that domain's module, found by its @tunable line)
 VB['sim/rules'] = (() => {
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   // ---- calendar: 4 seasons of 12 days; one game hour is the base unit of time ----
   const DAY = 24,
     SEASON_DAYS = 12,
@@ -70,7 +70,21 @@ VB['sim/rules'] = (() => {
   // than its hands can till: perHand fields a working adult (14 to 59, not retired) and oxenHands more for a team of oxen (VB-138); no fixed cap ----
   // room (stability review, VB-154): a new farm (a plot, a settler's farm, a new village) needs this many free farmable tiles within FIELD_REACH
   // walking steps of its house besides its first field, for more fields, meadow and pasture; so fewer farms fit between villages.
-  const FIELDS = { want: 1.1, expect: 0.75, perHand: 2, oxenHands: 1.5, room: 6, memory: 8 };
+  // memory (VB-767): the years of each source of food a head remembers; trustFrom (VB-768): the years it must remember before it counts on
+  // its other sources at all; letGo (VB-768): the most fields a household lets go in a year, so one good year does not strip a farm; slack
+  // (VB-768): the fields a household keeps over those it wants before it lets one go, so that a target moving by a field from one year to
+  // the next does not let a field go and break it again (hysteresis: AGENTS.md, a derived view feeds a rule only through hysteresis)
+  const FIELDS = {
+    want: 1.1,
+    expect: 0.75,
+    perHand: 2,
+    oxenHands: 1.5,
+    room: 6,
+    memory: 8,
+    trustFrom: 3,
+    letGo: 1,
+    slack: 1,
+  };
   // ---- fishing (VB-117; Kim, 10 Nov, QUESTION_ARCHIVE.md, VB-117 to VB-119, question 1): from a bank within `reach` walking steps of the
   // house; a trip brings home `trip` rations times the water tile's stock and lowers a river or small lake tile's stock by `take`, which
   // recovers `recover` a day; lakes of `bigLake` tiles or more and the sea do not run down. Water holds fish at a stock of `least` or more (a
@@ -263,7 +277,10 @@ VB['sim/rules'] = (() => {
     startMargin: 1.1,
     // the byre and the autumn count (sim/byre, VB-134): the count on autumn day 8 (doy 31) keeps what hay × margin feeds; old ages; meat a head
     // (Kim, 31 Oct); fodder hours (base, a head of cattle, a sheep); slaughter hours; fresh meat keeps freshDays, salt meat saltDays; salting
-    // makes saltPerHour rations an hour; emergency meat is lean (half); a herd unfed starveDays running loses an animal a day
+    // makes saltPerHour rations an hour; emergency meat is lean (half); a herd unfed starveDays running loses an animal a day; smokeDays
+    // (VB-700): meat a household has no salt for is hung in the smoke under the roof and dried, and keeps two seasons, from the autumn
+    // slaughter into spring, against salt meat's year (Proposed, no source: smoked and dried meat keeps months, not a year, in a damp house);
+    // saltPerRation (VB-700): measures of salt a ration of meat takes, dry-salted (a part of salt to ten of meat by weight; sim/saltpan)
     countDay: 31,
     // margins by the village's custom `stocking` (VB-711): the count keeps the animals whose winter's need times the margin the hay covers;
     // over 1 keeps a reserve, under 1 expects the hay stretched (the cost falls on the lean days and starvation, as built)
@@ -275,6 +292,8 @@ VB['sim/rules'] = (() => {
     slaughter: { cattle: 3, sheep: 1 },
     freshDays: 3,
     saltDays: 48,
+    smokeDays: 24,
+    saltPerRation: 0.1,
     saltPerHour: 8,
     lean: 0.5,
     eatSoonDays: 6,
@@ -359,6 +378,7 @@ VB['sim/rules'] = (() => {
     flour: { worth: 1, keeps: null, source: 'grain', held: 'flour', raw: false }, // a few days' stock: its keeping is not modelled
     meat: { worth: 1, keeps: HERD.freshDays, source: 'meat', held: 'larder', raw: true }, // fresh, from the slaughter
     'salt meat': { worth: 1, keeps: HERD.saltDays, source: 'meat', held: 'larder', raw: true },
+    'smoked meat': { worth: 1, keeps: HERD.smokeDays, source: 'meat', held: 'larder', raw: true }, // salting without salt (VB-700)
     milk: { worth: 1, keeps: 1, source: 'milk', held: 'larder', raw: true }, // fresh milk keeps a day
     butter: { worth: 1, keeps: HERD.butterDays, source: 'milk', held: 'larder', raw: true },
     'dried fish': { worth: 1, keeps: YEAR_DAYS, source: 'fish', held: 'larder', raw: true }, // hung on the rack (VB-300); also cooked in the winter's pot
@@ -433,6 +453,7 @@ VB['sim/rules'] = (() => {
     // household's food in store before giving
     floorDays: 20, // the floor (VB-182): no deal takes a household below its seed reserve and this many days of its need
     answerDays: 1, // an offer of goods (a gift, an ask) the played pawn must answer stays open this many days (sim/offers, VB-690)
+    askLeast: 1, // an ask for food that would be given less than this many rations is answered no (sim/exchange, VB-691)
     askBelow: 3,
     askDays: 12, // a household asks when its spare grain covers fewer days than this, once a season, for food until the
     // next harvest and at least this many days (VB-222)
@@ -452,9 +473,14 @@ VB['sim/rules'] = (() => {
     gratitude: 0.15,
     scale: 20, // a debtor's opinion of its creditor gains gratitude x s / (s + scale) for a balance of s rations
     opinionRations: 10, // allowance: the giver's opinion of the receiver (-1 to 1) times this many rations
+    // an hour of help given to another household books this many rations to the worker's credit, owed by the head helped (VB-704):
+    // the worth table's day's work, 3 rations for 8 work hours (design.md, Remedies: "Debts are paid with")
+    hour: 3 / 8,
   };
 
-  const SPEED = 12; // tiles per game hour on foot, on meadow (it was 3: the distance review, Kim, 12 Nov; design.md, World and scale)
+  // tiles per game hour on foot, on meadow (design.md, The journey scale; Kim, 15 Nov; VB-780): it was 3, then 12 (the distance review, Kim,
+  // 12 Nov); at 8 the neighbouring village is 2.5 to 3 hours off and the far side of the medium island days away (VB-444's plan, section 5)
+  const SPEED = 8;
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = {
@@ -468,28 +494,31 @@ VB['sim/rules'] = (() => {
   };
   // Moving to new land (sim/settle; docs/review-expansion.md): a waiting adult of ages[0]..ages[1] in a crowded village leaves with a chance of
   // chance[k] after k + 1 rounds of waiting there (the last from then on); each waiting sibling follows with `follow`, at most maxFollow. A party
-  // needs provisionDays of its rations and seed for one field. A new village lies reach[0]..reach[1] walking steps from home, its house at least
-  // `apart` steps from any house, green or field, with a block of `fields` fields at least `fertility` times as fertile as home's and a
-  // wood (WOOD.least wooded tiles within WOOD.reach); sites score siteScore + fieldWeight × the block's fertility − perStep a step, and the
-  // best `candidates` by the first and last terms are tried. A small village (VB-147) has 1..smallFarms farms, its centre within `join`
-  // steps of home. Spacing (stability review, VB-154): `apart` was 3, and a new village's house lies at least centreApart hex steps from
-  // every village centre. Provisions were 36 days, which left no margin before the first threshing; 42 agreed by Kim, 2 Nov.
+  // needs provisionDays of its rations and seed for one field. A new village lies within `hours` walking hours of home's green along a
+  // trail the party would blaze (a wooded tile with no path at a path's cost; VB-786, docs/plans/VB-445.md: 6 hours is there and back in a
+  // day; the 10 to 30 steps it replaces were 10 hours at 3 tiles an hour when decided, 3.75 at 8), on meadow or wood (wood read as the
+  // meadow it becomes when grubbed), its house at least `apart` steps from any house, green or field, with a block of `fields` fields at
+  // least `fertility` times as fertile as home's and a wood (WOOD.least wooded tiles within WOOD.reach); sites score siteScore +
+  // fieldWeight × the block's fertility − perHour an hour (0.15 a step at 8 steps an hour), and the best `candidates` by the first and last
+  // terms are tried. A small village (VB-147) has 1..smallFarms farms, its green within `join` hours of home's by the villages' table.
+  // Spacing (stability review, VB-154): `apart` was 3, and a new village's house lies at least centreApart hex steps from every village
+  // centre, the only near bound. Provisions were 36 days, which left no margin before the first threshing; 42 agreed by Kim, 2 Nov.
   const SETTLE = {
     ages: [18, 45],
     chance: [0.3, 0.6, 0.8],
     follow: 0.5,
     maxFollow: 2,
     provisionDays: 42,
-    reach: [10, 30],
+    hours: 6,
     apart: 5,
     centreApart: 12,
     fields: 3,
     fertility: 0.9,
     fieldWeight: 3,
-    perStep: 0.15,
+    perHour: 1.2,
     candidates: 40,
     smallFarms: 3,
-    join: 30,
+    join: 6,
   };
   // The moving round as offers (VB-692; docs/plans/VB-682.md, section 2; Proposed): it lasts `passes` days from autumn day `day` + 1 (sday
   // `day`, 0-based: days 11 to 13), each day every village in its step; a village's step answers the offers due to its people in `order`
@@ -511,11 +540,12 @@ VB['sim/rules'] = (() => {
   });
   // The village's wood (VB-326; design, Land and ecology, The village's wood; Agreed, Kim, 10 Nov): an allotted area of wooded tiles, v.wood
   // (sim/territory), perHousehold tiles for each live household of the village (a household fells about 11 trees a year and a tile of 60 to 80
-  // regrows 2 to 2.7), at least `least` and at most `cap`; the nearest within `reach` walking steps of the centre (4 hours each way on meadow,
-  // so a trip with its 3 hours' cutting fits the working day). A trip cuts on a tile drawn evenly among those keeping more than `thin` of
-  // their trees, else among any (sim/forest). A generated village or a settlers' site needs `least` wooded tiles within `reach`. Where reach
-  // holds too few, the rest of the area lies beyond it, up to `far` steps (VB-421): the farthest a trip still fits the working day, 9 hours'
-  // walk out on meadow (3 steps an hour) and its 3 hours' cutting between 6:00 and 18:00; the laden walk home may run past the day's end.
+  // regrows 2 to 2.7), at least `least` and at most `cap`; the nearest within `reach` walking steps of the centre. Where reach holds too few,
+  // the rest of the area lies beyond it, up to `far` steps (VB-421). A trip cuts on a tile drawn evenly among those keeping more than `thin`
+  // of their trees, else among any (sim/forest). A generated village or a settlers' site needs `least` wooded tiles within `reach`. The two
+  // reaches are distances (Kim, 16 Nov; VB-781 gives them hours), written at 3 steps an hour, when `far` was 9 hours' walk out: at SPEED 8
+  // and the journey scale's dear ground (VB-780), `reach` is 1.5 hours out over meadow, 6 through pathless broadleaf forest and 2.4 on the
+  // path the wood trips wear (worn in at seeding); `far` is 5.4 hours out on a path, and out of a day's work without one.
   const WOOD = { perHousehold: 5, least: 6, cap: 150, reach: 12, far: 27, thin: 0.25 };
   // Peat (VB-367; design.md, Fuel; Proposed, slice 6's plan, 11 Nov): cut in summer (sim/dig) and burnt in place of wood once dry, from the
   // season after it was cut. A load of peat is dug a trip (ECON.woodPerTrip units, as a firewood trip brings); `worth` of wood a unit burns

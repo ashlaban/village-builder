@@ -50,6 +50,10 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - No golden file (retired by VB-408, Kim, 12 November): where an older task or document asks for `tests/golden.js` or a re-recorded
   `tests/golden.json`, `docs/testing.md` stands instead. A refactor shows its behaviour unchanged with `node tools/same.js --base REF`, REF the commit it started
   from: the same runs from both trees, the world and the state compared leaf by leaf, nothing recorded. Its line goes into the PR.
+- Map pixels (VB-1500): a refactor of the map's drawing (the bake, the marks, the rivers' or the paths' drawing) shows it unchanged with
+  `node tools/samepixels.js --base REF`: the sea, the overview and the chunks round each village baked headless by both trees at seeds 7
+  and 42, small, founders, years 0 and 2, and a cover set by hand and restored, their hashes compared; about 6 seconds; nothing recorded.
+  Its drawing functions are found by one adapter (`drawing` in the tool), which a task that moves them keeps working at both commits.
 - Targets: `node tools/targets.js [--name PATTERN] [--since DATE]` prints each target's latest value, residual and last five
   (`docs/bench/targets.jsonl`, written by `--record` on the checks that are targets, the bench, the bands and the nightly; `docs/bench/targets.md`).
 - Roadmap: `node tools/roadmap.js [--out FILE] [--today DATE] [--json]` writes `docs/roadmap.html` (derived, never committed; the Pages
@@ -84,6 +88,9 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   (host, its villages, how many villages named each host in their choice) and the villages with none; then gatherings a year, how often a
   village's host changed from the year before, and the share of village-years with no gathering.
   `node tools/sim.js --report ground [--reach 12,30] [--seeds 3,7,11] [--json]` (VB-735, `tools/ground.js`): by village, each rock (any tile, and a quarry tile) and deposit within the reach of its green, hidden ores found or not, the rock under the green, and a summary by kind (villages, and maps with several seeds), with the pairs copper and tin and any iron; at any year (`--years`, `--at`, `--load`).
+- The head's estimate: `node tools/estimates.js [--scenario populous] [--map small] [--seeds 3,7,11,42] [--years 30] [--honest Y]` (VB-476): hungry
+  household-days and crops lost to frost a household-year by thirds of the head's skill, and over the first Y years the share of tasks whose
+  person-hours ended inside the head's range, below and above, by thirds and by kind; one process a seed (30 years, 4 seeds: about 10 minutes).
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
   `node tools/crops.js [--runs populous,founders,heirs] [--years N] [--seeds LIST] [--out FILE|--load FILE] [--json]` (VB-356, the crops'
   wrap-up): the bands' full runs, one per core (about 20 minutes on 4 cores): rations by crop and source against need, fields, fallow and soil

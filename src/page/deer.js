@@ -103,7 +103,7 @@ function drawDeer(c, show) {
           oy = 0;
         for (let k = 0; k < 6; k++) {
           const j = w.nb[t * 6 + k];
-          if (j >= 0 && !w.water[j] && w.biome[j] !== G.B.FOREST && w.biome[j] !== G.B.PINE) {
+          if (j >= 0 && !w.water[j] && w.biome[j] !== Biomes.B.FOREST && w.biome[j] !== Biomes.B.PINE) {
             ox = (w.hx[j] - x) * 0.55;
             oy = (w.hy[j] - y) * 0.55;
             break;

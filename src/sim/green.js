@@ -6,7 +6,7 @@ VB['sim/green'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
   const { BUILD } = VB['sim/rules'];
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
     { costChanged } = VB['sim/routes'];

@@ -292,6 +292,9 @@ VB['sim/society'] = (() => {
           const m = r.mem && r.mem.refusedCourting;
           if (m && st.t - m.t < SOCIAL.memories.refusedCourting.days * DAY) set('matchBy', { couple: 1 });
         }
+      // children born outside marriage (VB-555; Kim, 30 Oct): one born outside, and the parent of one, lean to their inheriting as others
+      if (p.outside === true || childrenOf(st, p.id).some((c) => st.pawns[c].outside === true))
+        set('outside', { equal: 1 });
       p.interest = it;
     }
   }

@@ -1,8 +1,8 @@
 // @sys sim/gifts: how a gift gets from here to there (VB-228): the verbs `give`, the offer of a gift, and `deliver`, what a yes settles: carried,
-// hauled or fetched (sim/away) between places, booked at once within one farmstead (sim/exchange); and a new household's start in life,
+// hauled or fetched (sim/journeys) between places, booked at once within one farmstead (sim/exchange); and a new household's start in life,
 // laid at the homes it was taken from and borne or fetched (VB-675, layStart)
 VB['sim/gifts'] = (() => {
-  const { setOut, addFetchStop, bear } = VB['sim/away'];
+  const { setOut, addFetchStop, bear } = VB['sim/journeys'];
   const { stayOf } = VB['sim/pose'];
   const Lying = VB['sim/lying'],
     { on } = VB['sim/events'];
@@ -100,7 +100,7 @@ VB['sim/gifts'] = (() => {
   // ---- a start in life laid where it was taken (VB-675; AGENTS.md, the hard rule: nothing is in the new store before someone brought it) ----
   // New household hh's grain came from `piles` [[household, n]], the homes it was taken from (a settler's stake, a parent's gift). What is
   // still in its store (a settler's journey took its pack from it) is taken out and laid at those homes, by crop in proportion, as hh's:
-  // each pile is borne by the grown of hh on their way there from that farm, a share each (sim/away bear), else by any of them on the
+  // each pile is borne by the grown of hh on their way there from that farm, a share each (sim/journeys bear), else by any of them on the
   // way, else fetched by one of hh at home (fetcherOf); with none, it lies there for the farm's hands (sim/lying, leftGrain).
   function layStart(st, hh, piles) {
     const total = piles.reduce((s, [, n]) => s + n, 0),

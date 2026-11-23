@@ -7,13 +7,14 @@ VB['sim/clock'] = (() => {
   const { growTrees } = VB['sim/forest'];
   const { spreadForest } = VB['sim/spread'];
   const { fieldsDay, fieldsFrost } = VB['sim/fields'];
-  const { seasonBegins, frostDay } = VB['sim/weather'];
+  const { seasonBegins, frostDay, winterAhead } = VB['sim/weather'];
+  const { reckon: reckonWinter, fallDue: climateDue } = VB['sim/climate'];
   const { refreshRoutes, costChanged } = VB['sim/routes'],
     { refreshHoursStep, ROW_STEPS } = VB['sim/villagehours'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
-  const { shareFood } = VB['sim/help'];
+  const { fellShort } = VB['sim/help'];
   const Workdays = VB['sim/workdays'];
   const { placeByDoor, release, dropJob, stepAgents, rest } = VB['sim/agents'],
     { travelling } = VB['sim/pose'],
@@ -21,7 +22,7 @@ VB['sim/clock'] = (() => {
     { reckonAll } = VB['sim/work'];
   const { placeOf } = VB['sim/pose'];
   const { feedAway, dayAway } = VB['sim/away'];
-  const { refreshJobs, takeDay, helpers, dutyRound, idleAbout, lookForWork } = VB['sim/jobs'];
+  const { refreshJobs, takeDay, dutyRound, idleAbout, lookForWork } = VB['sim/jobs'];
   const { issue, register } = VB['sim/commands'];
   const { playerStep } = VB['sim/player'];
   const { commanded, unplanned } = VB['sim/records'];
@@ -76,9 +77,6 @@ VB['sim/clock'] = (() => {
   const STEPS_A_DAY = DAY * TICKS,
     mod = (x, m) => ((x % m) + m) % m;
   const cenv = (st) => !!st.cenv;
-  // Households short of people whose ask for food fell short today (sim/help, VB-308): written by shareFood's entry and read by takeIn's
-  // later in the same step, so it is never seen across a save.
-  let short = [];
   // The autumn frost falls on the year's own day (sim/weather frostDay, VB-354), at its first step.
   const AUTUMN = 2,
     frosty = (st, c) => c.season === AUTUMN && c.sday === frostDay(st);
@@ -89,6 +87,21 @@ VB['sim/clock'] = (() => {
       owner: 'sim/weather',
       note: "a season begins: its warmth and wetness drawn (on spring's, the year's thaw and frost first)",
       run: (st, c) => seasonBegins(st, c),
+    },
+    // ---- the winter's dates (VB-807): reckoned on autumn's first step, after its weather; each falls at the first step of its day ----
+    {
+      every: 'season',
+      when: (st, c) => c.season === AUTUMN,
+      owner: 'sim/climate',
+      note: "the winter's dates reckoned for each band, from the curve and the winter's warmth (drawn ahead)",
+      run: (st, c) => reckonWinter(st, c.year, winterAhead(st)),
+    },
+    {
+      every: 'day',
+      when: (st) => !!st.climate && st.climate.due.length > 0 && st.climate.due[0].at <= st.t,
+      owner: 'sim/climate',
+      note: "a winter's date falls due: its band's state, and a line",
+      run: (st) => climateDue(st, st.t),
     },
     // ---- each hour, at its first step ----
     {
@@ -160,14 +173,6 @@ VB['sim/clock'] = (() => {
       },
     },
     // ---- each day, at midnight: the households, the land ----
-    {
-      every: 'day',
-      owner: 'sim/help',
-      note: 'kin and the village give food to the short',
-      run: (st) => {
-        short = shareFood(st);
-      },
-    },
     {
       every: 'day',
       owner: 'sim/hunger',
@@ -417,10 +422,13 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'day',
-      when: (st) => !!st.cenv && short.length > 0,
+      when: cenv,
       owner: 'sim/service',
-      note: 'the short of people taken in (VB-308)',
-      run: (st) => takeIn(st, short),
+      note: 'the short of people whose ask for food fell short yesterday taken in (VB-308, VB-691: sim/help fellShort)',
+      run: (st) => {
+        const short = fellShort(st);
+        if (short.length) takeIn(st, short);
+      },
     },
     // autumn day 9 from noon (sday 8), before the meetings of day 10 whose tie may read the table (VB-290): a village a step (VB-286)
     {
@@ -488,6 +496,13 @@ VB['sim/clock'] = (() => {
       owner: 'sim/days',
       note: "a day's calls come on duty and those who gave their hours go home (VB-462)",
       run: (st) => VB['sim/days'].step(st),
+    },
+    {
+      every: 'step',
+      when: (st) => !!st.handsToday,
+      owner: 'sim/hands',
+      note: "the hands lent today who have given their hours go home, and a day's help closes with it (VB-470)",
+      run: (st) => VB['sim/hands'].step(st),
     },
     {
       every: 'step',
@@ -667,8 +682,9 @@ VB['sim/clock'] = (() => {
       idle = st.away.length ? dayAway(st, mine) : mine; // a lodger works only what its stay names (VB-783)
     if (idle.length) {
       // each takes the next task of its day (VB-466); those it gave none look at the household's opportunities, whose day is then allotted
-      // anew (VB-249), and take again; those still without help a neighbour (VB-106)
-      const got = st.daysToday ? dutyRound(st, idle, new Set(), c) : new Set();
+      // anew (VB-249), and take again; a hand lent to a neighbour works its tasks first (VB-470)
+      const onDuty = !!st.daysToday || !!st.handsToday,
+        got = onDuty ? dutyRound(st, idle, new Set(), c) : new Set();
       for (const a of takeDay(
         st,
         idle.filter((a) => !got.has(a)),
@@ -684,7 +700,6 @@ VB['sim/clock'] = (() => {
             )
           : [];
       if (looked.length) for (const a of takeDay(st, looked, c)) got.add(a);
-      if (got.size < idle.length) helpers(st, idle, got, c);
       for (const a of idle) if (!got.has(a)) idleAbout(st, a);
     }
     rest(st, all); // one left free with nothing in hand looks again at the next step (VB-473)

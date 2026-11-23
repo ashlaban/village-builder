@@ -14,9 +14,10 @@ VB['sim/relations'] = (() => {
   const M = SOCIAL.memories; // the land's memories, from events (sim/stakes, sim/territory, sim/herds), are the three `on` below
   // ---- allowance (VB-216): how much one agent would give up to another in one deal, in rations, never below 0. Its context is
   //   {giver, receiver, from, to}: the two agents (pawn ids, or null for a household without a holder) and the two households, reused.
-  //   Terms: grain above the floor (sim/hunger), goodwill and opinion (sim/exchange), the holder's own reserve (sim/help).
+  //   Terms: grain above the floor (sim/hunger), goodwill and opinion (sim/exchange), the holder's own reserve (sim/help), the giver's
+  //   mood (sim/exchange, VB-875).
   const Rules = VB['sim/registry'],
-    ORDER = ['slack', 'goodwill', 'opinion', 'reserve'];
+    ORDER = ['slack', 'goodwill', 'opinion', 'reserve', 'mood'];
   Rules.declare({
     id: 'allowance',
     owner: 'sim/relations',
@@ -222,17 +223,21 @@ VB['sim/relations'] = (() => {
   on('bullLent', (st, e) => remember(st, e.borrower, e.lender, 'bull'));
   on('cattleInCrop', (st, e) => remember(st, e.holder, e.keeper, 'crop'));
   on('helped', (st, e) => helped(st, e));
-  // Helpers finished a task of household e.household (sim/agents; VB-106): each knows each adult there better and both remember working
-  // together; the helper's life tells of the farm helped, once a day for a farm.
+  // Helpers gave e.hours of help to household e.household (sim/hands; VB-106, VB-470): each knows each adult there better, by
+  // MATCH.help.tie for each tieHours given, and both remember working together; the helper's life tells of the farm helped, once a day for a farm.
+  // Credit follows the pawn who acted (VB-704; Kim, 16 Nov): the hours' worth (GOODWILL.hour a work hour) is booked to the helper, owed
+  // by the head helped, and stays the helper's own wherever it goes; goods given stay booked between the two heads.
   function helped(st, e) {
     const hh = st.households[e.household],
       f = e.farm || st.farmsteads[hh.farmstead],
-      H = MATCH.help;
+      H = MATCH.help,
+      head = hh.holder !== null && st.pawns[hh.holder].alive ? hh.holder : null;
     for (const h of e.helpers) {
+      if (head !== null && h !== head && st.pawns[h].alive && e.hours > 0) book(st, h, head, e.hours * GOODWILL.hour);
       for (const m of hh.members) {
         const q = st.pawns[m];
         if (m === h || !q.alive || age(st, q) < H.minAge) continue;
-        grow(st, h, m, H.tie);
+        grow(st, h, m, (H.tie * e.hours) / H.tieHours);
         remember(st, h, m, 'worked');
         remember(st, m, h, 'worked');
       }

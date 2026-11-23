@@ -1,0 +1,143 @@
+{
+ "session": "43098179-9ede-5df9-a380-2310ddb3248e",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-23T08:17:51.316Z",
+ "end": "2026-11-23T08:57:37.434Z",
+ "wallMin": 39.8,
+ "activeMin": 35.4,
+ "prompts": 2,
+ "calls": 134,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 272,
+  "cacheWrite": 225532,
+  "cacheRead": 27832608,
+  "output": 62562
+ },
+ "context": {
+  "first": 83220,
+  "peak": 287661,
+  "firstEdit": 241635
+ },
+ "tools": {
+  "Bash": {
+   "calls": 132,
+   "bytes": 299207,
+   "seconds": 1006.4
+  },
+  "ToolSearch": {
+   "calls": 3,
+   "bytes": 431,
+   "seconds": 0
+  },
+  "TaskCreate": {
+   "calls": 4,
+   "bytes": 358,
+   "seconds": 0.1
+  },
+  "TaskUpdate": {
+   "calls": 7,
+   "bytes": 154,
+   "seconds": 37
+  },
+  "Write": {
+   "calls": 1,
+   "bytes": 139,
+   "seconds": 0
+  },
+  "mcp__github__list_pull_requests": {
+   "calls": 1,
+   "bytes": 2,
+   "seconds": 0.8
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 27,
+   "bytes": 129189
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 16,
+   "bytes": 28167
+  },
+  {
+   "tool": "Bash",
+   "what": "for id",
+   "calls": 1,
+   "bytes": 25894
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/round.js",
+   "calls": 1,
+   "bytes": 16426
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/births.js",
+   "calls": 1,
+   "bytes": 14996
+  },
+  {
+   "tool": "Bash",
+   "what": "git show",
+   "calls": 1,
+   "bytes": 11038
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 3,
+   "bytes": 8159
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 19,
+   "bytes": 7917
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 5692
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 1,
+   "bytes": 5208
+  },
+  {
+   "tool": "Bash",
+   "what": "head -60",
+   "calls": 1,
+   "bytes": 4760
+  },
+  {
+   "tool": "Bash",
+   "what": "git diff",
+   "calls": 1,
+   "bytes": 4475
+  }
+ ],
+ "weighted": 3378258,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 3378258,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

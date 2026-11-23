@@ -68,3 +68,9 @@ None of this measures how far a person walks round to stay dry. That is a judgem
    **A (Kim, 2026-11-16):** Yes.
 5. **May it land switched off (weight 0) with the numbers reported, and be switched on by your tuning run?** Proposed: yes.
    **A (Kim, 2026-11-16):** Yes, but it must be verified working first: shown to steer routes with the weight on, before it lands switched off.
+
+## 6. Written into the design (VB-448, 23 November 2026)
+
+The answers are in `design.md`, Worn paths (4, Sharing paths) and World and scale (Walking and terrain): discomfort steers the choice
+only; footing, wet and two load classes; a ford's crossing minded as twice its time; one weight; weight 0 until Kim's tuning run.
+The values are `DISCOMFORT` in `src/sim/walking.js`, read by `sim/routes`; the runs with the weight on are in `docs/tuning.md` (the `DISCOMFORT.weight` row).

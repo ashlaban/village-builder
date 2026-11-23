@@ -1,5 +1,5 @@
 // @sys sim/fieldwork: the job kinds of a farm's fields: hoeing, sowing, weeding, reaping, bringing in, threshing, carting manure, clearing
-// an overgrown field, and the two steps that make a new one (clear, break); each ends in one of sim/fields' transitions
+// an overgrown field, and the two steps that make a new one (clear, break); each ends in one of sim/fields' transitions (or sim/newground's, sim/soil's)
 // VB-418: the fields' domain in two modules: sim/fields is the field's state and its year, this the work a household does on it. It writes
 // no field itself. sim/kinds joins KINDS into the registry, where a kind's fields are described; for a common field sim/commons wraps
 // the three kinds whose end is the village's (haul, clear, break).
@@ -12,21 +12,9 @@ VB['sim/fieldwork'] = (() => {
   const { scrubHours, SPREAD } = VB['sim/spread'];
   const { onProject, landProject } = VB['sim/projects'],
     { workStake } = VB['sim/claims'];
-  const {
-    finishClear,
-    finishBreak,
-    manureWanted,
-    manureDone,
-    hoed,
-    sown,
-    reaped,
-    standing,
-    carried,
-    laidDown,
-    binned,
-    reclaimed,
-    weeded,
-  } = VB['sim/fields'];
+  const { finishClear, finishBreak } = VB['sim/newground'],
+    { manureWanted, manureDone } = VB['sim/soil'];
+  const { hoed, sown, reaped, standing, carried, laidDown, binned, reclaimed, weeded } = VB['sim/fields'];
   const { fieldsWorkable } = VB['sim/fieldplans'];
   const { heldFarms } = VB['sim/ownership'];
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -194,6 +182,7 @@ VB['sim/fieldwork'] = (() => {
       type: 'harvest',
       field: true,
       spot: onField,
+      norm: (st, j) => CROPS[j.field.crop].hours.reap ?? HOURS.reap, // a normal crop's hours (the head's estimate, VB-476)
       urgency: (st, j, c, U) => U.reap + frostNear(st, c, U),
       done: (st, j, hh, c) => reaped(st, j.field, c),
       // a ripe field
@@ -263,6 +252,7 @@ VB['sim/fieldwork'] = (() => {
       hands: Infinity,
       type: 'threshing',
       inside: true,
+      norm: (st, j) => CROPS[st.households[j.owner.id].sheafCrops?.[0] || 'barley'].hours.thresh ?? HOURS.thresh,
       window: { from: WORK[0] - 1 },
       done: (st, j, hh) => {
         Stores.thresh(st, hh);
@@ -356,5 +346,5 @@ VB['sim/fieldwork'] = (() => {
       },
     },
   };
-  return { KINDS, sowWhy, rowAngle, onField };
+  return { KINDS, sowWhy, rowAngle, onField, fieldKey };
 })();

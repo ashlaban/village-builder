@@ -1,11 +1,11 @@
-// A journey's kinds (VB-1409; sim/away JOURNEYS): each of move, carry, fetch, haul and visit walked through its arrival (legEnd), the
+// A journey's kinds (VB-1409; sim/journeys JOURNEYS): each of move, carry, fetch, haul and visit walked through its arrival (legEnd), the
 // morning its rest ends (legDue), its pawn's death away (stillAway) and its household's change on the road (retarget, by rehoused), in
 // the states a stay can be in (a carrier not yet back or back, a fetcher with a load or none, a guest with days left or none); and a
 // lodger's stay under the word 'visit' taking the common course. On a tiny constructed state of two villages.
 const assert = require('assert'),
   VB = require('../src/load.js');
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
-const { setOut, visit, lodgeWhy } = VB['sim/away'];
+const { setOut, visit } = VB['sim/journeys'], { lodgeWhy } = VB['sim/away'];
 const { emit } = VB['sim/events'];
 const { stayOf } = VB['sim/pose'];
 const { issue } = VB['sim/commands'];

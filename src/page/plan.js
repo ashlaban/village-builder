@@ -36,6 +36,8 @@ const MADE_ICON = {
   butter: 'butter',
   tar: 'tar',
   quern: 'quern',
+  salt: 'salt',
+  iron: 'ore',
 };
 const MADE_NAME = { bogOre: 'Bog ore' };
 const fmtN = (x) => String(Math.round(x * 100) / 100);
@@ -72,7 +74,14 @@ function targetRow(key, o, mine) {
     icon: o.icon,
     label: o.label,
     value: o.flag ? `${fmtN(o.level)}, ${wants}` : `${fmt(o.level)} / ${fmt(t.now)}`,
-    note: [o.flag ? '' : o.per, t.chosen !== null ? 'chosen' : ''].filter(Boolean).join(', '),
+    note: [
+      o.flag ? '' : o.per,
+      t.chosen !== null ? 'chosen' : '',
+      // VB-699: what the head reckons it can place of the asks it heard of, beyond its need: its own estimate
+      t.placed ? `+${fmtN(t.placed)} for the asks, the head's estimate` : '',
+    ]
+      .filter(Boolean)
+      .join(', '),
     tone: !o.flag && o.level < t.now ? 'warn' : '',
     title: `${o.label}: ${o.unit}; held ${fmtN(o.level)}, the head's target ${fmt(t.now)}${
       custom !== null ? `, the custom's ${fmt(custom)}` : ''
@@ -101,6 +110,22 @@ function targetRow(key, o, mine) {
     }</span>`;
   }
   return `<div class="plan-row" data-target="${esc(key)}">${h}</div>`;
+}
+// What the head counts on besides its fields (VB-768): its own estimate, by its memory of each source and its caution; principle 14.
+const COUNT_WORDS = {
+  animals: 'milk and meat',
+  fish: 'fish',
+  wild: 'hunting and gathering',
+  deals: 'dealing',
+  work: 'days of work',
+  gifts: 'gifts',
+};
+function countsNote(V) {
+  const C = V.targets.fields.counts || [];
+  if (!C.length || !V.head) return '';
+  const who = Sim.fullName(st.pawns[V.head.pawn]),
+    parts = C.map((x, i) => `${x.rations} rations ${i ? 'of ' : 'a year of '}${COUNT_WORDS[x.source] || x.source}`);
+  return `<p class="card-note">${esc(`${who} counts on ${parts.join(', ')}, and sizes the fields to grow the rest.`)}</p>`;
 }
 function targetsHTML(hh, V, mine) {
   const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead],
@@ -148,7 +173,7 @@ function targetsHTML(hh, V, mine) {
             step: PLAN_STEP.fields,
           },
           mine,
-        )
+        ) + countsNote(V)
       : '',
     targetRow(
       'cow',
@@ -175,7 +200,7 @@ function targetsHTML(hh, V, mine) {
         unit: `in ${g.unit}s`,
         per: `${g.unit}s`,
         level: g.held,
-        t: { now: g.now, custom: g.custom, chosen: g.chosen, bounds: g.bounds },
+        t: { now: g.now, custom: g.custom, chosen: g.chosen, bounds: g.bounds, placed: g.placed },
         step: 1,
       },
       mine,
@@ -575,7 +600,7 @@ function planPoint(i) {
       d = VB['sim/hex'].bfs(st.w, f.house, PLAN_REACH[tool.what], VB['sim/walking'].walkable(st.w)).dist.get(i),
       why = (tool.what === 'field' ? VB['sim/fieldplans'].fieldWhy : VB['sim/meadows'].meadowWhy)(st, f, hh, i);
     tool.facts = [
-      G.BIOMES[w.biome[i]].name,
+      Biomes.BIOMES[w.biome[i]].name,
       VB['sim/crops'].farmable(w, i) ? `fertility ${Math.round(VB['sim/crops'].fertility(w, i) * 100)}` : '',
       Sim.byRiver(w, i) ? 'by the river' : '',
       d === undefined ? '' : `${d} ${d === 1 ? 'step' : 'steps'} from the house`,

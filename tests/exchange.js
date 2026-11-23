@@ -101,15 +101,16 @@ let checks = 0;
   for (const c of bad) assert(typeof issue(st, { ...c, source: 'help' }) === 'string', `refused: ${JSON.stringify(c)}`);
   checks++;
 }
-{ // on a running village (a year of populous) allowance names its two terms and equals help's surplus on every household
+{ // on a running village (a year of populous) allowance names its terms and, but for the giver's mood (VB-875), equals help's surplus on every household
   const st = scenario('populous'); Sim.advance(st, Sim.YEAR);
   let n = 0, giving = 0;
   for (const hh of st.households) {
     if (hh.dissolved) continue;
     const c = { giver: hh.holder, receiver: null, from: hh, to: hh }, e = Rules.explain(st, 'allowance', c);
-    assert.deepStrictEqual(e.parts.map((p) => p.key), ['slack', 'goodwill', 'opinion', 'reserve']);
+    assert.deepStrictEqual(e.parts.map((p) => p.key), ['slack', 'goodwill', 'opinion', 'reserve', 'mood']);
     assert.strictEqual(e.parts[1].factor, 0, 'a null receiver: no goodwill term'); assert.strictEqual(e.parts[2].factor, 0, 'nor opinion term');
-    assert(Math.abs(e.value - surplus(st, hh)) < 1e-9, `household ${hh.id}: allowance ${e.value}, surplus ${surplus(st, hh)}`);
+    const calm = Math.max(0, e.unclamped - e.parts[4].factor); // the allowance without the mood term
+    assert(Math.abs(calm - surplus(st, hh)) < 1e-9, `household ${hh.id}: allowance ${calm} without mood, surplus ${surplus(st, hh)}`);
     n++; if (e.value > 0) giving++;
   }
   assert(giving > 0, 'some household has something to give');
