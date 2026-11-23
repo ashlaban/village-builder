@@ -5,28 +5,28 @@
   "claude-opus-5-5"
  ],
  "start": "2026-11-23T19:55:57.782Z",
- "end": "2026-11-23T20:24:46.152Z",
- "wallMin": 28.8,
- "activeMin": 28.8,
+ "end": "2026-11-23T20:24:59.051Z",
+ "wallMin": 29,
+ "activeMin": 29,
  "prompts": 1,
- "calls": 171,
+ "calls": 174,
  "subagentCalls": 0,
  "tokens": {
-  "input": 339,
-  "cacheWrite": 267080,
-  "cacheRead": 38639899,
-  "output": 88936
+  "input": 345,
+  "cacheWrite": 269893,
+  "cacheRead": 39629084,
+  "output": 89696
  },
  "context": {
   "first": 83465,
-  "peak": 329163,
+  "peak": 331976,
   "firstEdit": 181225
  },
  "tools": {
   "Bash": {
-   "calls": 172,
-   "bytes": 329471,
-   "seconds": 899
+   "calls": 175,
+   "bytes": 334785,
+   "seconds": 904
   },
   "TaskCreate": {
    "calls": 4,
@@ -123,10 +123,11 @@
    "bytes": 4546
   }
  ],
- "weighted": 4642859,
+ "weighted": 4749100,
+ "task": "VB-733",
  "subagents": [],
  "summary": {
-  "weightedTotal": 4642859,
+  "weightedTotal": 4749100,
   "orchestratorShare": 1,
   "bootMedian": null,
   "readMedian": null,
