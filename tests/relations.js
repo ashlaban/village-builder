@@ -114,7 +114,7 @@ for (const ag of st.agents) { ag.inside = true; ag.talk = null; }
 const idleAt = (p, dx) => { const g = st.agents[p.id]; VB['sim/agents'].release(st, g); VB['sim/agents'].standStill(st, g); g.inside = false; g.x = hx + dx; g.y = hy; };
 idleAt(fr, 40); st.idlers = null; // the hour's idlers are a cache (sim/relations): the test placed them by hand
 const ax = st.agents[x.id];
-VB['sim/jobs'].idleAbout(st, ax); // the planner's idle choice (VB-168)
+VB['sim/pastimes'].idleAbout(st, ax); // the planner's idle choice (VB-168)
 const end = ax.path[ax.path.length - 1];
 check(Math.abs(end[0] - (hx + 40)) <= 8 && Math.abs(end[1] - hy) <= 4, `walks to the friend: ends at ${end.slice(0, 2).map(Math.round)}, friend at ${hx + 40},${hy}`);
 st.agents[fr.id].inside = true; idleAt(foe, 40); st.idlers = null;

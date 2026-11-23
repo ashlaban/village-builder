@@ -22,7 +22,8 @@ VB['sim/clock'] = (() => {
     { reckonAll } = VB['sim/work'];
   const { placeOf } = VB['sim/pose'];
   const { feedAway, dayAway } = VB['sim/away'];
-  const { refreshJobs, takeDay, dutyRound, idleAbout, lookForWork } = VB['sim/jobs'];
+  const { refreshJobs, takeDay, dutyRound, lookForWork } = VB['sim/jobs'],
+    { idleAbout } = VB['sim/pastimes'];
   const { issue, register } = VB['sim/commands'];
   const { playerStep } = VB['sim/player'];
   const { commanded, unplanned } = VB['sim/records'];

@@ -112,6 +112,7 @@
   "sim/work.js",
   "sim/attention.js",
   "sim/agents.js",
+  "sim/pastimes.js",
   "sim/hosting.js",
   "sim/away.js",
   "sim/journeys.js",
