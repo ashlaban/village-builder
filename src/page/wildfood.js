@@ -3,7 +3,8 @@
 // A forest or heath tile is tinted by its stock of berries, mushrooms and nuts (one ramp, RdPu, pale to dark); a river or lake tile gets a
 // disc in its fish stock's colour (another ramp, Blues), so that a wooded river tile shows both. Each stock is read through its module's
 // own reading of it today (sim/forage stock, sim/fish stock), never worked out here; the sea is not shown (it does not run down), nor
-// any tile with neither. The first band ends at a trip's least (FORAGE.least, FISH.least), read from the rules. The bands are worked out
+// any tile with neither. The first band ends at a trip's least (FORAGE.least, FISH.least), read from the rules. The key always lists every
+// band, so that full is told from empty before any is taken (Kim, 23 November). The bands are worked out
 // again at most twice a second, and the tiles drawn again only when one has changed; a new world wipes them. bandFill: page/woodland.
 const FORAGE_COLOUR = [0xfeebe2, 0xfbb4b9, 0xf768a1, 0xae017e], // empty to full (RdPu)
   FISH_COLOUR = [0xeff3ff, 0xbdd7e7, 0x6baed6, 0x2171b5]; // empty to full (Blues)
@@ -43,9 +44,11 @@ function drawWildFood() {
   const forage = bandFill(wildG, band.subarray(0, N), FORAGE_COLOUR, 0),
     fish = bandFill(wildG, band.subarray(N), FISH_COLOUR, 0.42),
     rows = (seen, colours, cls, least) =>
-      wildRows(least)
-        .map((t, k) => (seen[k] ? bandKeyRow(cls, colours[k], t) : ''))
-        .join('') || '<li>None on this map</li>';
+      seen.some(Boolean)
+        ? wildRows(least)
+            .map((t, k) => bandKeyRow(cls, colours[k], seen[k] ? t : `${t} (none now)`))
+            .join('')
+        : '<li>None on this map</li>';
   $('wildfoodKey').innerHTML =
     '<h2 class="menu-label">Berries, mushrooms and nuts (woods, heath)</h2><ul>' +
     rows(forage, FORAGE_COLOUR, 'rock', Fo.FORAGE.least) +

@@ -5,7 +5,10 @@
 // and a crowded pasture lowers the milk from HERD.herding.downAt, by `bite` for each downAt over (sim/grazing milkFactor), so the last
 // band, overgrazed, starts at twice downAt. Land grazed less than GRAZING_LEAST is left as it is. The bands are measured at most twice
 // a second while the overlay is on, and the tiles drawn again only when one's band has changed.
-const GRAZING_COLOUR = [0xfcc5c0, 0xfa9fb5, 0xf768a1, 0xc51b8a, 0x7a0177]; // light to overgrazed (the RdPu ramp: apart from the grass)
+// Deer graze nearly everywhere (Kim, 23 November: deer and cattle both count), so the lightest band is drawn faint and the heavier ones
+// stand out over it; the key lists every band, those the map has none of marked so.
+const GRAZING_COLOUR = [0xfde0dd, 0xfa9fb5, 0xf768a1, 0xc51b8a, 0x7a0177], // light to overgrazed (the RdPu ramp: apart from the grass)
+  GRAZING_ALPHA = [0.28, 0.6, 0.72, 0.8, 0.86];
 const GRAZING_LEAST = 1,
   GRAZING_NONE = 255;
 let grazingG = null,
@@ -58,13 +61,14 @@ function drawGrazing() {
         g.poly(hexPoly(i));
         seen[k]++;
       }
-    if (seen[k]) g.fill({ color: GRAZING_COLOUR[k], alpha: 0.68 });
+    if (seen[k]) g.fill({ color: GRAZING_COLOUR[k], alpha: GRAZING_ALPHA[k] });
   }
   const row = (k) =>
-    `<li><i class="rock" style="background:${hex6(GRAZING_COLOUR[k])}"></i>From ${bands[k].at} cow-hour${bands[k].at === 1 ? '' : 's'}: ${bands[k].what}</li>`;
+    `<li><i class="rock" style="background:${hex6(GRAZING_COLOUR[k])}"></i>From ${bands[k].at} cow-hour${bands[k].at === 1 ? '' : 's'}: ` +
+    `${bands[k].what}${seen[k] ? '' : ' (none now)'}</li>`;
   $('grazingKey').innerHTML =
     '<h2 class="menu-label">Grazing pressure</h2><ul>' +
-    (bands.map((b, k) => (seen[k] ? row(k) : '')).join('') || '<li>Nothing grazed yet</li>') +
+    (seen.some(Boolean) ? bands.map((b, k) => row(k)).join('') : '<li>Nothing grazed yet</li>') +
     '</ul><p>The herds and the deer this past year, halving each year. No colour: not grazed.</p>';
 }
 function setGrazing(on) {
