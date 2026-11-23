@@ -197,7 +197,7 @@ VB['sim/agents'] = (() => {
   function sideEnded(st, j, a) {
     const K = KINDS[j.kind];
     unhold(st, a, j);
-    if (K.done) K.done(st, j, st.households[st.pawns[a.id].household], cal(st.t));
+    if (K.done) K.done(st, j, st.households[st.pawns[a.id].household], cal(st.t), a.id);
     prospected(st, a.id, here(st, a), j.hours ?? K.hours);
     dropJob(st, j);
     if (!a.job && !a.path && !a.inside && a.phase === null) goHome(st, a);
@@ -263,7 +263,7 @@ VB['sim/agents'] = (() => {
       dropJob(st, j);
       return;
     }
-    if (K.done) K.done(st, j, hh, cal(st.t));
+    if (K.done) K.done(st, j, hh, cal(st.t), a.id); // a.id: who finished it (a made piece's grade is its maker's, VB-761)
     if (st.player && st.player.pawn === a.id)
       emit(st, 'yielded', { pawn: a.id, kind: j.kind, farm: j.farm ?? null, good: null, n: 0 });
     dropJob(st, j);

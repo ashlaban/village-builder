@@ -86,4 +86,23 @@ assert.strictEqual(maker(st, [q.id, p.id], 'stonework'), q.id, 'a tie: the first
 const quern = Goods.goodOf('quern');
 assert(near(Rules.value(st, 'worth', { good: quern }), Norms.norm('worth', 'quern')), 'no grade: sound');
 assert(near(Rules.value(st, 'worth', { good: quern, grade: 4 }), 4 * Norms.norm('worth', 'quern')), 'a masterwork: four times');
+// ---- the quern: hewn with a grade drawn by its hewer's stonework; it lasts and grinds by its grade ----
+const Q = VB['sim/quern'];
+const hh = st.households[p.household];
+assert.strictEqual(hh.quern.grade, W.SOUND, "the start's quern is sound");
+hh.quern = null; // lint-allow: owner the test takes the quern away
+hh.stone.granite = 1; // lint-allow: owner a load of granite on the heap
+st.rng.making.fix = 0.999; // the last grade
+assert(Q.hewn(st, hh, p.id), 'hewn');
+assert.strictEqual(hh.quern.grade, 4, 'a masterwork');
+delete st.rng.making.fix;
+assert(near(Q.yearsLeft(st, hh), Q.QUERN.years * WORKMANSHIP.life[4]), 'a masterwork lasts half again as long');
+assert(near(Q.speed(hh.quern), granite.grit * WORKMANSHIP.work[4]), 'and grinds faster');
+hh.quern = { kind: 'granite', grade: 0, made: st.t - Q.QUERN.years * 0.71 * YEAR }; // lint-allow: owner a shoddy quern, 14.2 years old
+assert.strictEqual(Q.quernOf(st, hh), null, 'a shoddy quern is worn out at 14 years');
+hh.quern = { kind: 'granite', made: st.t }; // lint-allow: owner a quern of a save from before VB-761
+Q.quernsLoaded(st);
+assert.strictEqual(hh.quern.grade, W.SOUND, "an old save's quern is sound");
+const { checkState } = require('./lib/invariants.js');
+assert.deepStrictEqual(checkState(st), [], 'invariants');
 console.log('workmanship: ok');
