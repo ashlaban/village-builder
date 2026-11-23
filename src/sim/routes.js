@@ -86,7 +86,9 @@ VB['sim/routes'] = (() => {
   // its time weighed with its discomfort, VB-448), which with DISCOMFORT.weight 0 is the quickest; maxCost bounds its time, as before,
   // so that what is in reach does not move with the weight (a route is pruned by its time on the way the choice took to each tile).
   // The two ends may be closed tiles (a pawn stands where it stands; a job's site is where it is); every tile between is passable.
-  function findRoute(w, from, to, maxCost = ROUTE.reach, cls = 0) {
+  // `step` is a step's time: stepCost, the ground as it stands, or sim/walking's trailStep for the route a trail would take (VB-447: a
+  // wooded tile at a path's cost; its least step is a path's, above minStep, so the bound holds).
+  function findRoute(w, from, to, maxCost = ROUTE.reach, cls = 0, step = stepCost) {
     if (from === to) return [from];
     VB.count.routeSearch++;
     let expanded = 0;
@@ -125,7 +127,7 @@ VB['sim/routes'] = (() => {
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
         if (j < 0 || shut[j] === run || (j !== to && !through(w, j))) continue;
-        const t = stepCost(w, i, j),
+        const t = step(w, i, j),
           tj = time[i] + t,
           gj = g[i] + (k ? t * (1 + (k * (discomfort(w, i) + discomfort(w, j))) / 2) : t);
         if (tj > maxCost || (mark[j] === run && gj >= g[j])) continue;
