@@ -1,7 +1,9 @@
 // @sys page/setup: start-up of the page script: the PixiJS app, daylight wash, layers, static textures (waves, clouds), and the camera state
 const G = ArchGen,
-  LV = G.LV,
-  TEX = G.TEX,
+  Noise = VB['gen/noise'],
+  Bake = VB['gen/bake'],
+  LV = Bake.LV,
+  TEX = Bake.TEX,
   Rivers = VB['draw/rivers'],
   Paths = VB['gen/paths'],
   Geo = VB['gen/geology'],
@@ -126,7 +128,7 @@ function waveCanvas() {
 function cloudCanvas(seed) {
   const c = makeCanvas(400, 240),
     g = c.getContext('2d'),
-    r = G.mulberry32(seed);
+    r = Noise.mulberry32(seed);
   for (let k = 0; k < 28; k++) {
     const a = r() * Math.PI * 2,
       d = Math.sqrt(r());

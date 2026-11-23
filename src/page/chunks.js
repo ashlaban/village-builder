@@ -33,14 +33,14 @@ function levelFor(z, cur) {
 function* chunkJob(wd, l, cx, cy, canvas, out) {
   const ctx = canvas.getContext('2d'),
     img = ctx.createImageData(TEX, TEX);
-  yield* G.bakeChunk(wd, l, cx, cy, img);
+  yield* Bake.bakeChunk(wd, l, cx, cy, img);
   ctx.putImageData(img, 0, 0);
   yield 1;
   Rivers.drawChunk(wd, ctx, LV[l], cx, cy, l === 0);
   Paths.drawChunk(wd, ctx, LV[l], cx, cy, l);
   if (out) out.way = Paths.drawOver(wd, LV[l], cx, cy, l, () => makeCanvas(TEX, TEX));
   yield 1;
-  G.decorateChunk(wd, ctx, l, cx, cy, SPR || (SPR = landSprites()));
+  Bake.decorateChunk(wd, ctx, l, cx, cy, SPR || (SPR = landSprites()));
 }
 function addChunk(l, cx, cy, canvas, wayCanvas) {
   const s = LV[l].size,

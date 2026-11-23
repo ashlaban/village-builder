@@ -9,7 +9,7 @@
 //   const st = tinyState(w, [{ at: [2, 1], farms: 2 }, { at: [8, 2], farms: 1 }], { seed: 7 });
 // Rows run north to south, columns west to east; odd rows are shifted half a tile east, as the generator lays them (pointy-top, odd-r).
 // Characters: . meadow, h heath, m marsh, F forest, P pine, ^ hills, M mountain, * snow, ~ sea, o lake, , beach.
-const VB = require('../../src/load.js'), G = VB.gen, { mulberry32 } = G, { B } = VB['world/biomes'], { DIR_EVEN, DIR_ODD } = VB['world/grid'];
+const VB = require('../../src/load.js'), G = VB.gen, { mulberry32 } = VB['gen/noise'], { B } = VB['world/biomes'], { DIR_EVEN, DIR_ODD } = VB['world/grid'];
 const CHARS = { '.': B.MEADOW, h: B.HEATH, m: B.MARSH, F: B.FOREST, P: B.PINE, '^': B.HILLS, M: B.MOUNTAIN, '*': B.SNOW, '~': B.SEA, o: B.LAKE, ',': B.BEACH };
 
 // rows: array of equal-length strings. opt.stones: stones on every meadow tile (0..255, default 0); opt.seed: for the fixed tile noise.

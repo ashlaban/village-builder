@@ -2,7 +2,6 @@
 const ArchGen = (() => {
   const { mulberry32, makeSimplex, fbm, smooth, makeTile } = VB['gen/noise'];
   const { COVER, BIOMES, setBiome } = VB['gen/biomes'];
-  const { bakeWater, bakeChunk, decorateChunk, LV, TEX } = VB['gen/bake'];
   const { B } = VB['world/biomes'],
     Grid = VB['world/grid'],
     { DIR_EVEN, DIR_ODD, toAxial, hexDist, hexLocator } = Grid;
@@ -472,14 +471,8 @@ const ArchGen = (() => {
 
   return {
     generate,
-    bakeWater,
-    bakeChunk,
-    decorateChunk,
     BIOMES,
     COVER,
-    LV,
-    TEX,
-    mulberry32,
     setBiome,
   };
 })();

@@ -45,12 +45,12 @@ const stage = (t) => { w1.trees[tile] = t; return VB['world/biomes'].treeStage(w
 let tile = -1; for (let i = 0; i < w1.N && tile < 0; i++) if (w1.biome[i] === VB['world/biomes'].B.FOREST && w1.treesMax[i] === 60) tile = i;
 const m = w1.treesMax[tile];
 check([m, 0.76 * m, 0.51 * m, 0.26 * m, 0.1 * m, 0].map(stage).join() === '4,4,3,2,1,0', 'stage thresholds');
-const lv = G.LV[0], cx = Math.floor(w1.hx[tile] / lv.size), cy = Math.floor(w1.hy[tile] / lv.size);
+const lv = VB['gen/bake'].LV[0], cx = Math.floor(w1.hx[tile] / lv.size), cy = Math.floor(w1.hy[tile] / lv.size);
 const drawn = (t) => {
   w1.trees[tile] = t; let n = 0;
   const ctx = new Proxy({}, { get: (o, k) => (k === 'drawImage' ? () => n++ : () => {}), set: () => true });
   const S = { broad: Array(10).fill(1), pine: Array(8).fill(1), shrub: Array(4).fill(1) };
-  G.decorateChunk(w1, ctx, 0, cx, cy, S); return n;
+  VB['gen/bake'].decorateChunk(w1, ctx, 0, cx, cy, S); return n;
 };
 const d4 = drawn(m), d2 = drawn(0.4 * m), d1 = drawn(0.1 * m);
 check(d4 > d2 && d2 > d1, `tree sprites do not thin out: ${d4}, ${d2}, ${d1}`);

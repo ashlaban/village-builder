@@ -56,7 +56,7 @@ function showLanding() {
 // The sea and the overview level of a world, painted before it is swapped in; onP hears the share done.
 async function paintOverview(wd, onP) {
   const wc = makeCanvas(wd.CW, wd.CH);
-  G.bakeWater(wd, wc.getContext('2d'));
+  Bake.bakeWater(wd, wc.getContext('2d'));
   const nx2 = Math.ceil(wd.W / LV[2].size),
     ny2 = Math.ceil(wd.H / LV[2].size),
     over = [];
@@ -286,7 +286,7 @@ function makeClouds(wd) {
     c.sh.destroy();
   }
   clouds = [];
-  const r = G.mulberry32(wd.seed * 7 + 3),
+  const r = Noise.mulberry32(wd.seed * 7 + 3),
     K = wd.KS;
   for (let k = 0; k < 13; k++) {
     const tex = cloudTex[k % cloudTex.length],
