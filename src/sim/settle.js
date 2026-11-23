@@ -6,7 +6,7 @@ VB['sim/settle'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['world/biomes'];
   const { DAY, SETTLE, ECON, FIELDS, WOOD, MARRIAGE, SPEED } = VB['sim/rules'],
-    { CROPS, clearable, clearedFertility } = VB['sim/crops'];
+    { CROPS, fertility, openGround: farmable, clearable, clearedFertility } = VB['sim/crops'];
   const { bufferOf, act } = VB['sim/traits'];
   const { wishOf, moveWhy } = VB['sim/wishes'];
   const { reserved } = VB['sim/stores'];

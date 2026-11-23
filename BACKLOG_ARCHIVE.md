@@ -23,6 +23,14 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-1527](backlog/VB-1527.md) | An abandoned field goes back to its ground | - | 2 | S | A field let go is developed ground for 8 years untended, then wild ground of its terrain again: walked, drawn and fresh as its biome |
+| [VB-1521](backlog/VB-1521.md) | Refactor: the GROUND table replaces FERTILITY | - | 2 | S | One table a farmable ground: its fertility as a field, and room for its clearing hours |
+| [VB-1528](backlog/VB-1528.md) | Refactor: one constructor for a field record | - | 2 | S | The three places that write a field record (sim/newground, sim/layout twice) call one helper |
+| [VB-1522](backlog/VB-1522.md) | Marginal ground costs more to clear | - | 2 | S | clearHours adds a term by ground: heath 3, hills 8; a hill field no longer costs less than a stony meadow |
+| [VB-1520](backlog/VB-1520.md) | A field records its ground | - | 2 | S | fd.ground: the biome a field was broken on, kept when the tile's biome changes |
+| [VB-1523](backlog/VB-1523.md) | Page: the field's card shows its ground | - | 3 | S | A field's ground (meadow, heath, hills, marsh) is shown on its card |
+| [VB-1524](backlog/VB-1524.md) | A field's site is chosen by its estimated yield: no order of land use | - | 2 | M | chooseTile drops the meadow-first rule; the head prefers the tile with the best estimated yield for its work, by fertility, clearing hours and distance |
+| [VB-1525](backlog/VB-1525.md) | Breaking forest to a field: felled, grubbed, and its wood carted home | - | 2 | M | A household may break a forest tile into its own field: a costly conversion that yields all the standing wood as timber to cart home |
 | [VB-001](backlog/VB-001.md) | Make the test suite fail on regressions | - | 1 | S | Add assertions so `npm test` fails when the sim or page breaks. |
 | [VB-002](backlog/VB-002.md) | Clock shows game time in 5-minute steps, apart from the simulation step | - | 1 | S | UI clock follows game time in 5-minute steps, redrawn every frame. |
 | [VB-003](backlog/VB-003.md) | Every farm in a village, and an owner for every tile | claims | 1 | M | Lone farms become one-farm villages; a per-tile owner map. |

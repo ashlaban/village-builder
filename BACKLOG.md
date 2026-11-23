@@ -106,6 +106,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1493](backlog/VB-1493.md)<a id="VB-1493"></a> | Refactor: split sim/walking by concern | - | 3 | S | sim/walking holds the ground's cost, the worn ways' tunables (PATHS), the discomfort a route is chosen by, passability with the cached reach, and the trail's cost; the discomfort and the reach cache are the first candidates for modules of their own. |
 | [VB-1494](backlog/VB-1494.md)<a id="VB-1494"></a> | A village blazes a trail to a neighbour or a daughter it has kin in | far | 3 | S | At its meeting a village decides to blaze a trail to a neighbour or a daughter it has kin in and cannot reach in a day there and back; its alderman issues blaze (sim/trails) as a village duty (VB-314; principle 16). |
 | [VB-1505](backlog/VB-1505.md)<a id="VB-1505"></a> | sim/pose: the tile at a map point by the grid's one locator | - | 3 | S | sim/pose.tileAt repeats hexLocator's arithmetic line for line; it calls the one in world/grid |
+| [VB-1526](backlog/VB-1526.md)<a id="VB-1526"></a> | Crops by ground: a crop's yield factor by the field's ground | - | 3 | M | An optional ground map on a CROPS row, read once in standing; the head's choice of crop reads it |
 
 </details>
 

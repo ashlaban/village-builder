@@ -3,7 +3,7 @@ VB['sim/scenarios'] = (() => {
   const { B } = VB['world/biomes'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
   const { YEAR, TICKS, ECON, TESTBED, SEASON_DAYS, cal } = VB['sim/rules'],
-    { CROPS, ROTATIONS, FERTILITY, farmable } = VB['sim/crops'];
+    { CROPS, ROTATIONS, openGround: farmable } = VB['sim/crops'];
   const { seal } = VB['sim/registry'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],

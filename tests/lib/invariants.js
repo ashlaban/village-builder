@@ -904,6 +904,11 @@ function checkState(st) {
       bad.push(`villages[${v.id}]: founded is ${JSON.stringify(fd)}`);
     }
   }
+  // lapsed ground (VB-1527): a Set of tiles, each let go on a known day (w.tended); a house or a green never stands on one
+  if (st.lapsed !== undefined) {
+    if (!(st.lapsed instanceof Set)) bad.push(`lapsed is ${typeof st.lapsed}`);
+    else for (const t of st.lapsed) if (!Number.isInteger(t) || t < 0 || t >= st.w.N || !(st.w.tended[t] > 0) || st.w.dev[t] > 1) bad.push(`lapsed: tile ${t} (dev ${st.w.dev[t]}, tended ${st.w.tended[t]})`);
+  }
   // the village's wood (VB-326): every tile wooded (forest, or scrub the forest has grown on open land, VB-091), in no other village's wood
   // and not in use; within the cap
   const WOOD = globalThis.VB['sim/rules'].WOOD, { B } = globalThis.VB['world/biomes'], inWood = new Map();
@@ -1001,9 +1006,11 @@ function checkState(st) {
     }
     if (f.grade !== 'ground' && f.grade !== 'stone') bad.push(`farmsteads[${f.id}]: grade ${f.grade}`); // VB-332
     for (const fd of f.fields) if (!tileOk(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} out of range`);
+    // VB-1520: a field's ground is the key of a farmable ground (a biome with a row of GROUND)
+    for (const fd of f.fields) if (!VB['sim/fieldrec'].farmableKeys().includes(fd.ground)) bad.push(`farmsteads[${f.id}]: field ${fd.id} ground ${fd.ground}`);
     // VB-768: the fields let go, absent or counted; the fields' ids distinct and under the fields ever made (none used again)
     const L = f.left;
-    if (L !== undefined && !(L && Number.isInteger(L.gone) && L.gone >= 1 && Number.isInteger(L.year) && L.year >= 0 && L.year <= Math.floor(st.t / VB["sim/rules"].YEAR) + 1 && Number.isInteger(L.inYear) && L.inYear >= 1 && L.inYear <= L.gone))
+    if (L !== undefined && !(L && Number.isInteger(L.gone) && L.gone >= 1 && Number.isInteger(L.year) && L.year >= 0 && L.year <= Math.floor(st.t / VB["sim/rules"].YEAR) + 1 && Number.isInteger(L.inYear) && L.inYear >= 0 && L.inYear <= L.gone))
       bad.push(`farmsteads[${f.id}]: fields let go ${JSON.stringify(L)}`);
     const made = f.fields.length + (L ? L.gone : 0), ids = new Set(f.fields.map((fd) => fd.id));
     if (ids.size !== f.fields.length || f.fields.some((fd) => !(Number.isInteger(fd.id) && fd.id >= 0 && fd.id < made)))

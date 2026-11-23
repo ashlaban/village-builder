@@ -3,7 +3,7 @@
 // Every rule on two 48 by 34 islands of tests/lib/probe.js (VB-856). --extended, at night: the default island at seeds 7 and 42, where
 // the counts are a statistic of whole islands' generated geography (ten sources or more, a course through a lake, more than 20 crossings).
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Rv = VB['gen/rivers'], Dr = VB['draw/rivers'], Flow = VB['world/rivers'];
-const { RIVER, FERTILITY, fertility, byRiver } = VB['sim/crops'], { findRoute } = VB['sim/routes'], { passable } = VB['sim/walking'], { siteScore } = VB['sim/layout'], { bfs, land, landComponents } = VB['sim/hex'];
+const { RIVER, GROUND, fertility, byRiver } = VB['sim/crops'], { findRoute } = VB['sim/routes'], { passable } = VB['sim/walking'], { siteScore } = VB['sim/layout'], { bfs, land, landComponents } = VB['sim/hex'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('RIVERS FAIL:', m); } };
 const EXT = process.argv.includes('--extended'), { island, generate, ROOMY } = require('./lib/probe.js');
 const world = (seed) => (EXT ? generate(seed, {}) : island(seed, ROOMY)), anew = (seed) => (EXT ? world(seed) : generate(seed, ROOMY));
@@ -99,8 +99,9 @@ for (const seed of EXT ? [7, 42] : [11, 13]) {
       check(!st.w.river[f.house], `seed ${seed} ${scenario}: ${f.name} stands on a river`);
       for (const fd of f.fields) {
         check(!st.w.river[fd.tile], `seed ${seed} ${scenario}: a field of ${f.name} lies on a river`);
-        const base = FERTILITY[st.w.biome[fd.tile]], wet = byRiver(st.w, fd.tile);
-        check(Math.abs(fd.fert - fertility(st.w, fd.tile)) < 1e-9 && Math.abs(fd.fert - base * (wet ? 1 + RIVER.irrigation : 1)) < 1e-9,
+        // its ground's fertility: a wood broken to a field is meadow now (VB-1525)
+        const gb = VB['world/biomes'].BIOMES.findIndex((b) => b.key === fd.ground), base = GROUND[gb].fert, wet = byRiver(st.w, fd.tile);
+        check(Math.abs(fd.fert - fertility(st.w, fd.tile, gb)) < 1e-9 && Math.abs(fd.fert - base * (wet ? 1 + RIVER.irrigation : 1)) < 1e-9,
           `seed ${seed} ${scenario}: a field of ${f.name} has fertility ${fd.fert}, by the river ${wet}`);
         if (wet) { watered++; check(fd.fert > base, `seed ${seed} ${scenario}: a watered field of ${f.name} is no more fertile (${fd.fert})`); }
       }

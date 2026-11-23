@@ -1,7 +1,7 @@
 // @sys page/fertility: the Fertility overlay: each farmable tile banded by its fertility as a field (sim/crops), with a key of the bands
 // ---- the Fertility overlay (sim/crops): how good a tile is as a field ----
 // Each tile a field can be made on is tinted by `fertility(w, i)` of sim/crops, one band for each distinct value the map has; land no
-// field can be made on is left as it is. The value is read from sim/crops, never copied: its biome's FERTILITY, more by RIVER.irrigation
+// field can be made on is left as it is. The value is read from sim/crops, never copied: its ground's GROUND.fert, more by RIVER.irrigation
 // with a river beside it. The tint is a place on one ramp (viridis, poor to good) by the value's place between the poorest and the best
 // a field can have under the rules, so that a band keeps its colour from one map to the next. Fertility changes only with the land (a
 // new world, the editor), so the tiles' kinds are looked at at most twice a second and the overlay drawn again only when one changed.
@@ -41,7 +41,7 @@ function drawFertility() {
   }
   const C = VB['sim/crops'],
     g = fertilityG,
-    all = Object.values(C.FERTILITY),
+    all = Object.values(C.GROUND).map((g0) => g0.fert),
     lo = Math.min(...all),
     hi = Math.max(...all) * (1 + C.RIVER.irrigation),
     bands = new Map(); // fertility -> {tiles, kinds}
@@ -71,7 +71,7 @@ function drawFertility() {
         .join(
           ', ',
         )}${k === 0 && order.length > 1 ? ' (best)' : k === order.length - 1 && k > 0 ? ' (poorest)' : ''}</li>`,
-    unfarmed = Biomes.BIOMES.filter((b, k) => !b.water && C.FERTILITY[k] === undefined).map((b) => b.name);
+    unfarmed = Biomes.BIOMES.filter((b, k) => !b.water && C.GROUND[k] === undefined).map((b) => b.name);
   $('fertilityKey').innerHTML =
     '<h2 class="menu-label">Fertility as a field</h2>' +
     (order.length ? '<ul>' + order.map(row).join('') + '</ul>' : '<p>No land on this map can be farmed.</p>') +

@@ -34,6 +34,7 @@
   "sim/paths.js",
   "sim/fish.js",
   "sim/forage.js",
+  "sim/fieldrec.js",
   "sim/layout.js",
   "sim/byhand.js",
   "sim/ownership.js",

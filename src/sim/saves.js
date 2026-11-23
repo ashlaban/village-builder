@@ -396,6 +396,7 @@ VB['sim/saves'] = (() => {
     st.w = w;
     for (const k in DERIVED) st[k] = null;
     for (const k in DERIVED) if (DERIVED[k]) DERIVED[k](st);
+    VB['sim/fieldrec'].grounded(st); // VB-1520
     grownCustoms(st); // a save from before the last custom (VB-555)
     for (const p of st.pawns) if (p.att) VB['sim/attitudes'].compileLeans(p); // VB-520: compiled from the attitude, as it was saved or made
     VB['sim/agents'].loaded(st); // VB-472: the step's agents have begun; older saves' work is reckoned from now

@@ -58,6 +58,9 @@ const FAST = [
   ['node', 'tests/crops.js'],
   ['node', 'tests/seedorder.js'], // seed eaten last field last; a start in life and settlers take a field's seed of each crop (VB-352)
   ['node', 'tests/forest-spread.js'],
+  ['node', 'tests/clear-ground.js'], // clearing by ground: hills 18, heath 13, meadow 10 (VB-1522)
+  ['node', 'tests/forest-field.js'], // a wood broken to a field: felled, grubbed, cleared, broken; its timber walked home (VB-1525)
+  ['node', 'tests/field-site.js'], // a field's site by its score, whatever its ground: far stony meadow over near hills (VB-1524)
   ['node', 'tests/rye.js'],
   ['node', 'tests/weather.js'], // VB-354: the seasons' weather, each crop's reading, the thaw, the frost, the ripening
   ['node', 'tests/latitude.js'], // VB-807: the winter's dates by latitude, the bands, the growing year by world, dates falling, lat saved
@@ -209,6 +212,7 @@ const INTEGRATION = [
   ['node', 'tests/aleevening.js'], // VB-522: the ale evening (who calls, who is asked, the barrel) and the season's rite (its leader, the ties)
   // VB-855: the farming year, from new fields to digging, on small generated islands and constructed states
   ['node', 'tests/newfields.js'],
+  ['node', 'tests/fieldground.js'],
   ['node', 'tests/fieldswanted.js'],
   ['node', 'tests/weeding.js'],
   ['node', 'tests/soil.js'],
