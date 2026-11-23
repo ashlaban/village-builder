@@ -10,7 +10,7 @@ assert.deepStrictEqual(Customs.DIMS[Customs.IDX.stocking].opts.map((o) => o[0]),
 assert.strictEqual(Customs.fromArchetype('oldNordic')[Customs.IDX.stocking], 0, 'to the hay by default');
 assert.deepStrictEqual(Sim.HERD.margins, { hay: 1.1, herd: 0.8 });
 // household 3: six cows (4 years old) and nothing else
-const SEED = 9; // the herds drawn at seeding move with every custom added (VB-711, VB-826, VB-463)
+const SEED = 2; // the herds drawn at seeding move with every custom added (VB-711, VB-826, VB-463, VB-555)
 function scene(option, hay) {
   const st = tinyState(tinyWorld(Array(18).fill('.'.repeat(28)), { seed: SEED }), [{ at: [7, 9], farms: 2, sizes: [6, 5] }, { at: [21, 9], farms: 2, sizes: [5, 4] }], { seed: SEED, herds: true }), hh = st.households[3], herd = H.herdOf(st, hh, 'cattle');
   herd.head = [];

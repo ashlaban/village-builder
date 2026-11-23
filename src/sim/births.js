@@ -150,7 +150,6 @@ VB['sim/births'] = (() => {
         by: fatherId,
         ...atHousehold(st, hh),
       });
-      emit(st, 'bornOutside', { child: id, mother: m.id, father: fatherId });
     }
     refreshRoles(st);
     st.rigDirty.add(id);
