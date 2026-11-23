@@ -43,6 +43,9 @@ VB['sim/walking'] = (() => {
   // A generated village (but the founders') starts with `wornYears` of its daily trips worn in (VB-114): `trips` per farm and day, there
   // and back, to each field, to the well (water) and to the green on an idle stroll, and to the village's wood; set so a new village has the paths a
   // played one has after two years (populous Tiny, seeds 7 and 11: 14 and 18 path tiles worn in, 14 to 21 and 13 to 19 played).
+  // blaze: a trail cut through forest (VB-447; docs/plans/VB-445.md, sections 3 and 5): the work hours a wooded tile with no path takes
+  // to blaze (`hours`: trees marked with an axe, brush cut, windfall cleared), and `again` where it is still trodden ground (a faded trail
+  // blazed again); a blazed tile is set to a path's count (at[2]) and is from then on a worn way like any other.
   const PATHS = {
     at: [0, 50, 200, 800],
     keep: 0.85,
@@ -51,6 +54,7 @@ VB['sim/walking'] = (() => {
     clear: [0, 0.25, 0.75, 0.8],
     wornYears: 3,
     trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 },
+    blaze: { hours: 3, again: 1 },
   };
 
   // @tunable DISCOMFORT: what a walker minds though it costs little time (VB-448; design.md, Worn paths, 4, and docs/path-effort.md): an
@@ -155,17 +159,21 @@ VB['sim/walking'] = (() => {
   // what a path there would (PATHS.clear and speed at stage 2: broadleaf 1.59, pine 1.36), the trail the party cuts before it carries
   // anything; every other tile what it costs now (tileCost). A step along it is stepCost's, by these costs.
   const TRAIL = 2;
-  function trailCost(w, i) {
+  // Whether tile i is wood a trail is blazed through (VB-447): broadleaf or pine forest, not water, a river, developed ground or a path
+  // already (open ground wears its own way). The one test, for the trail's cost here and its jobs (sim/trails).
+  function unblazed(w, i) {
     const b = w.biome[i];
-    if (
-      (b !== B.FOREST && b !== B.PINE) ||
-      w.water[i] ||
-      (w.dev && w.dev[i]) ||
-      (w.river && w.river[i]) ||
-      (w.worn && w.worn[i] >= TRAIL)
-    )
-      return tileCost(w, i);
-    return (1 + (TERRAIN[b] - 1) * (1 - PATHS.clear[TRAIL])) / PATHS.speed[TRAIL];
+    return (
+      (b === B.FOREST || b === B.PINE) &&
+      !w.water[i] &&
+      !(w.dev && w.dev[i]) &&
+      !(w.river && w.river[i]) &&
+      !(w.worn && w.worn[i] >= TRAIL)
+    );
+  }
+  function trailCost(w, i) {
+    if (!unblazed(w, i)) return tileCost(w, i);
+    return (1 + (TERRAIN[w.biome[i]] - 1) * (1 - PATHS.clear[TRAIL])) / PATHS.speed[TRAIL];
   }
   const trailStep = (w, a, b) => {
     const ca = trailCost(w, a),
@@ -211,6 +219,7 @@ VB['sim/walking'] = (() => {
     slopeFactor,
     stepCost,
     trailStep,
+    unblazed,
     discomfort,
     choiceCost,
     invalidateReach,

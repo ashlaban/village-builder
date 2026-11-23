@@ -40,10 +40,10 @@ assert.deepStrictEqual(calls, [], `acts called outside a verb: ${calls.join(', '
 // VB-678: no project by the calendar. A household's boat, cart, tar pit, barn and farm for its heir are makings (sim/makings), begun only
 // through the verb project; the only emitters of projectBegun left are a plot (sim/expansion: an heir's, through the making heirFarm, or
 // a village's, VB-673), a claimant's restoration (sim/farmclaims' startClaim, a wrapped act) and a staked booth (sim/building's
-// raiseBooth, the verb raiseBooth's act, VB-1172); and the clock begins none.
+// raiseBooth, the verb raiseBooth's act, VB-1172) and a trail (sim/trails, the verb blaze's act, VB-447); and the clock begins none.
 {
   const emitters = files.filter((f) => /emit\(st, 'projectBegun'/.test(text[f])).sort();
-  assert.deepStrictEqual(emitters, ['src/sim/building.js', 'src/sim/expansion.js', 'src/sim/farmclaims.js'], 'projectBegun is emitted by a verb\'s act alone');
+  assert.deepStrictEqual(emitters, ['src/sim/building.js', 'src/sim/expansion.js', 'src/sim/farmclaims.js', 'src/sim/trails.js'], 'projectBegun is emitted by a verb\'s act alone');
   const { looks, makingOf } = VB['sim/makings'];
   assert.deepStrictEqual(looks().map((M) => M.what), ['boat', 'tarpit', 'cart'], 'the heads weigh the three small constructions');
   assert.ok(makingOf('barn') && makingOf('heirFarm') && !makingOf('barn').look, 'the barn and the heir\'s farm are makings of the menu');
