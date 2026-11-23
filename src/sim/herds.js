@@ -1,7 +1,7 @@
 // @sys sim/herds: households' cattle and sheep: the herds and their hay, breeding and ageing each spring, each scenario's herds (handing on: sim/droving)
 VB['sim/herds'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { DAY, YEAR, TICKS, HERD, stalled } = VB['sim/rules'];
   const { log, atFarm } = VB['sim/records'];
   const { bfs, hexSteps } = VB['sim/hex'];
@@ -458,7 +458,7 @@ VB['sim/herds'] = (() => {
       text: describeHerds(st, hh),
       cull: herdsOf(st, hh).reduce((s, hd) => s + hd.cull.length, 0),
       larder: Object.fromEntries(
-        ['meat', 'salt meat', 'milk', 'butter', 'dried fish'].map((k) => [
+        ['meat', 'salt meat', 'smoked meat', 'milk', 'butter', 'dried fish'].map((k) => [
           k,
           Math.round(hh.larder.reduce((s, l) => s + (l.kind === k ? l.n : 0), 0)),
         ]),

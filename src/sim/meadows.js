@@ -2,7 +2,7 @@
 // sim/plans), and the meadows of generated farms
 VB['sim/meadows'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { SEASON_DAYS, TRAVEL, HERD } = VB['sim/rules'],
     { byRiver } = VB['sim/crops'];
   const { bfs } = VB['sim/hex'];
@@ -350,6 +350,9 @@ VB['sim/meadows'] = (() => {
       verb: 'Clearing a hay meadow',
       go: 'Going to clear a meadow',
       name: 'Clear a hay meadow',
+      at: ['land'],
+      needs: [],
+      gives: ['meadow', 'stone'],
       label: 'Meadow',
       anim: 'hoe',
       hours: 4,
@@ -369,6 +372,9 @@ VB['sim/meadows'] = (() => {
       verb: 'Raking the meadow clean',
       go: 'Going to rake a meadow',
       name: 'Rake a meadow',
+      at: ['meadow'],
+      needs: [],
+      gives: [],
       label: 'Raking',
       anim: 'gather',
       hours: 2,
@@ -386,6 +392,9 @@ VB['sim/meadows'] = (() => {
       verb: 'Mowing hay',
       go: 'Going to mow a meadow',
       name: 'Mow a meadow',
+      at: ['meadow'],
+      needs: [],
+      gives: ['hay'],
       label: 'Mowing',
       anim: 'mow',
       hours: 16,
@@ -402,6 +411,9 @@ VB['sim/meadows'] = (() => {
       go: 'Going for the hay',
       back: 'Carrying hay to the barn',
       name: 'Bring in hay',
+      at: ['meadow'],
+      needs: ['hay'],
+      gives: ['hay'],
       label: 'Hauling hay',
       anim: 'gather',
       hours: 1.5,

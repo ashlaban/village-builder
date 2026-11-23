@@ -214,6 +214,20 @@ const feastStat = (hh) => {
     wide: true,
   };
 };
+// The household's tools (VB-701, sim/ironwork): shown once worn, with what their wear costs the field work and felling
+const toolsStat = (hh) => {
+  if (hh.tools === undefined) return null;
+  const I = VB['sim/ironwork'],
+    slow = Math.round((1 - I.rate(st, { kind: 'plow', owner: { type: 'household', id: hh.id } })) * 100);
+  return {
+    icon: 'ore',
+    label: 'Tools',
+    value: `${Math.round(hh.tools * 100)}`,
+    tone: hh.tools < 0.5 ? 'warn' : '',
+    title: `Tools at ${Math.round(hh.tools * 100)} of 100: ploughing, reaping and felling ${slow}% slower; mended in winter with iron`,
+    meter: { value: hh.tools * 100 },
+  };
+};
 const houseStats = (hh) =>
   suppliesHTML(Sim.supplyOutlook(st, hh.id)) +
   stats([
@@ -226,6 +240,7 @@ const houseStats = (hh) =>
       ? { icon: 'water', label: 'Water', value: 'none', tone: 'bad', title: 'No water: nothing is cooked' }
       : null,
     hh.hungryDays > 0 ? { icon: 'hunger', label: 'Hungry days', value: hh.hungryDays, tone: 'warn' } : null,
+    toolsStat(hh),
   ]);
 const section = (title) => `<h3 class="card-sec">${title}</h3>`;
 // ---- materials (VB-668): held until a work asks for them, so the question is whether there is enough for what is planned ----
@@ -239,6 +254,20 @@ const MATERIALS = [
   { key: 'clay', label: 'Clay', icon: 'clay', field: 'clay', title: 'Clay, in loads' },
   { key: 'bogOre', label: 'Bog ore', icon: 'ore', field: 'bogOre', title: 'Bog iron ore, in loads' },
   { key: 'tar', label: 'Tar', icon: 'tar', field: 'tar', title: 'Tar, in barrels' },
+  {
+    key: 'salt',
+    label: 'Salt',
+    icon: 'salt',
+    field: 'salt',
+    title: 'Salt, in measures (a measure salts 10 rations of meat)',
+  },
+  {
+    key: 'iron',
+    label: 'Iron',
+    icon: 'ore',
+    field: 'iron',
+    title: 'Iron, in blooms (a tenth of a bloom mends the tools a tenth)',
+  },
   { key: 'wool', label: 'Wool', icon: 'wool', field: 'wool', title: 'Wool, in fleeces, unspun' },
 ];
 const materialsOf = (hh) => MATERIALS.map((m) => ({ ...m, n: Math.round(hh[m.field] || 0), kinds: [] }));
@@ -464,6 +493,7 @@ function animalsTab(hh) {
   }
   const larder = [
     ['salt meat', 'Salt meat', 'meat'],
+    ['smoked meat', 'Smoked meat', 'meat'],
     ['meat', 'Fresh meat', 'meat'],
     ['butter', 'Butter', 'butter'],
     ['milk', 'Milk', 'milk'],

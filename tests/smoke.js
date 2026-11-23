@@ -4,6 +4,8 @@ const P = require('./lib/dompage').openPage({ label: 'SMOKE' });
 const { win, doc, fail, tick } = P;
 const names = ['water', 'waves', 'lod2', 'lod1', 'lod0', 'fields', 'fences', 'grid', 'regions', 'objects', 'labels', 'hover', 'shadows', 'clouds'];
 const state = () => { const lay = P.APP.stage.children[0].children; return names.map((n, k) => `${n}:${lay[k].children.length}/${lay[k].children.filter((c) => c.visible).length}`).join(' '); };
+// the objects layer: the fifth from the top (labels, hover, shadows and clouds above it), however many overlay layers lie below
+const objectsLayer = () => { const lay = P.APP.stage.children[0].children; return lay[lay.length - 5]; };
 const start = Date.now();
 const generate = (scenario, size, seed) => {
   doc.getElementById('genScenario').value = scenario; doc.getElementById('genSize').value = size; doc.getElementById('genSeed').value = seed;
@@ -15,7 +17,7 @@ const iv = setInterval(async () => {
     if (Date.now() - start > 90000) { fail('the generation screen never appeared'); process.exit(1); }
     if (doc.getElementById('landing').hidden) return;
     const docs = [...doc.querySelectorAll('#landing #genDocs a')].map((a) => a.getAttribute('href')).join(' ');
-    if (docs !== 'docs/roadmap.html BACKLOG.html QUESTIONS.html') fail(`the main menu links "${docs}", not the roadmap, backlog and open questions`);
+    if (docs !== 'docs/roadmap.html docs/usage.html BACKLOG.html QUESTIONS.html') fail(`the main menu links "${docs}", not the roadmap, token use, backlog and open questions`);
     started = true; generate('heirs', 't', '7'); return;
   }
   if (!doc.getElementById('loader').classList.contains('done')) { if (Date.now() - start > 90000) { fail('loader timeout'); process.exit(1); } return; }
@@ -29,9 +31,9 @@ const iv = setInterval(async () => {
   let t = Date.now(); tick(300); console.log('after intro (300 frames,', Date.now() - t, 'ms):', state(), '| lod:', doc.getElementById('lod').hidden ? 'idle' : doc.getElementById('lod').textContent);
   t = Date.now(); let n = 0; while (!doc.getElementById('lod').hidden && n < 2000) { tick(1); n++; } console.log('settled after', n, 'more frames', Date.now() - t, 'ms:', state());
   const q = (s) => doc.querySelector(s), qa = (s) => [...doc.querySelectorAll(s)];
-  // a farm with a cart draws one (VB-410): a hand cart given to a household adds one visible sprite to the objects layer (the 14th of the world's layers; `names` above is older)
+  // a farm with a cart draws one (VB-410): a hand cart given to a household adds one visible sprite to the objects layer (objectsLayer; `names` above is older)
   {
-    const vis = () => P.APP.stage.children[0].children[13].children.filter((c) => c.visible).length;
+    const vis = () => objectsLayer().children.filter((c) => c.visible).length;
     const hh = P.st.households.find((h) => !h.dissolved && h.farmstead !== null), before = vis();
     hh.carts.push({ kind: 'hand', cond: 0.3, built: P.st.t, by: null }); tick(3);
     if (vis() !== before + 1) fail(`a farm given a hand cart draws ${vis() - before} more sprites, not 1`);
@@ -43,7 +45,7 @@ const iv = setInterval(async () => {
       const C = win.VB['sim/carts'], hh2 = P.st.households.find((h) => !h.dissolved && h.farmstead !== null && h.members.some((m) => P.st.agents[m] && !P.st.agents[m].inside && !P.st.agents[m].job));
       const a = P.st.agents[hh2.members.find((m) => !P.st.agents[m].inside && !P.st.agents[m].job)];
       hh2.carts.length = 0; hh2.carts.push({ kind: 'hand', cond: 1, built: P.st.t, by: null }); tick(3);
-      const objs = P.APP.stage.children[0].children[13].children;
+      const objs = objectsLayer().children;
       const saved = { job: a.job, phase: a.phase, carry: a.carry, load: a.load };
       // a pawn with no job: one at the plough has its team drawn with it, and the team would leave with the phase (not the cart's doing)
       a.job = a.job || { kind: 'haul', farm: P.st.farmsteads[hh2.farmstead] }; a.phase = 'back'; a.carry = 'hay'; a.load = 60; tick(3);
@@ -61,7 +63,7 @@ const iv = setInterval(async () => {
     // not once the pawn has delivered it
     {
       const hh3 = P.st.households.find((h) => !h.dissolved && h.farmstead !== null && h.members.some((m) => P.st.agents[m] && !P.st.agents[m].inside && !P.st.agents[m].job));
-      const a = P.st.agents[hh3.members.find((m) => !P.st.agents[m].inside && !P.st.agents[m].job)], objs = P.APP.stage.children[0].children[13].children;
+      const a = P.st.agents[hh3.members.find((m) => !P.st.agents[m].inside && !P.st.agents[m].job)], objs = objectsLayer().children;
       const saved = { job: a.job, phase: a.phase, carry: a.carry, load: a.load, x: a.x, y: a.y, path: a.path };
       const cows = () => objs.filter((o) => o.visible && o.anchor.y === 0.92).length;
       const base = cows();
@@ -112,6 +114,15 @@ const iv = setInterval(async () => {
   doc.getElementById('groundBtn').click(); tick(2); // the Ground overlay on and off
   doc.getElementById('reachBtn').click(); tick(5); // the Reach overlay (VB-437): its key names the origin, or asks for one
   if (doc.getElementById('reachKey').hidden || !/Walking time/.test(doc.getElementById('reachKey').textContent)) fail('the Reach overlay shows no key');
+  { // two taps on land (VB-448): the bands from the second, and the way a walker takes from the first drawn, its hours beside the quickest's
+    win.HTMLElement.prototype.setPointerCapture = win.HTMLElement.prototype.setPointerCapture || (() => {});
+    const tapAt = (x, type) => { const e = new win.MouseEvent(type, { bubbles: true, clientX: x, clientY: 0 }); Object.defineProperty(e, 'pointerId', { value: 1 }); return e; };
+    for (const x of [0, 60]) { doc.getElementById('stage').dispatchEvent(tapAt(x, 'pointerdown')); doc.getElementById('stage').dispatchEvent(tapAt(x, 'pointerup')); tick(3); }
+    const key = doc.getElementById('reachKey').textContent;
+    console.log('Reach overlay, two taps:', key.replace(/Within.*Further, by land|Within.*?\./, '…'));
+    if (/Walking time from tile/.test(key) && !/quickest way/.test(key)) fail('the Reach overlay does not say it draws the quickest way');
+    if (/Walking time from tile/.test(key) && !/The white line|Click another tile/.test(key)) fail('the Reach overlay does not tell of the way a walker takes');
+  }
   doc.getElementById('reachBtn').click(); tick(2);
   if (!doc.getElementById('reachKey').hidden) fail('the Reach overlay keeps its key when off');
   doc.getElementById('settlersBtn').click(); tick(20);
@@ -606,6 +617,19 @@ async function actionBar() {
   const gift = st.player.queue.find((c) => c.verb === 'give');
   if (!gift || gift.target !== +opt.value || gift.args.n !== 5 || !/^Queued: 5 grain/.test(q('#actMenu .act-msg').textContent)) {
     fail(`the gift was not queued: ${JSON.stringify(gift)}`); }
+  while (st.player.queue.length) Sim.unqueue(st, 0);
+  // VB-691: the played head asks by the same form, the household's holder answering: an offer on the basis ask
+  if (!q('#actMenu [data-give="ask"]')) { q('#actBar [data-group="house"]').click(); tick(1); q('#actMenu [data-view="give"]').click(); tick(1); }
+  const askBtn = q('#actMenu [data-give="ask"]');
+  if (st.households[+opt.value].holder !== null) {
+    if (!askBtn) fail('the gift\'s form has no ask');
+    else {
+      askBtn.click(); tick(1);
+      const ask = st.player.queue.find((c) => c.verb === 'offer' && c.args && c.args.basis === 'ask');
+      if (!ask || ask.target !== st.households[+opt.value].holder || ask.args.wants.n !== 5 || !/^Queued: an ask of 5 grain/.test(q('#actMenu .act-msg').textContent)) {
+        fail(`the ask was not queued: ${JSON.stringify(ask)}`); }
+    }
+  }
   while (st.player.queue.length) Sim.unqueue(st, 0);
   // Walk here: the camera follows the pawn, and a tap at the view's middle (the page's 0, 0 here) is its tile
   q('#queueBtn').click(); tick(1); q('#playBox [data-play="follow"]').click(); tick(200); // the camera glides to the pawn, wherever its work has taken it

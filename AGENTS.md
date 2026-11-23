@@ -13,7 +13,7 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 - `docs/slices.md`: the slices (vertical slices, each an arch of the backlog), what each brings, and their order; `docs/cost.md`: the
   late-game budget, the ten rules for cost and cheap measurement; `docs/roadmap.html` (made by `tools/roadmap.js`, not committed): the
   timeline of what was built when, and the estimate of when the rest is done.
-- `docs/architecture/target-v2.md`: where the code is going (five layers; principles in section 2; Kim's decisions in section 8). A target,
+- `docs/architecture/target-v2.md`: where the code is going (five layers and presentation; principles in section 2; Kim's decisions in section 8). A target,
   not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
 - `docs/architecture/modules.md`: where each system lives; `docs/architecture/ownership.md`: who writes each piece of state.
 - `REVIEW.md`: the latest review of design against code; earlier reviews are `docs/review-*.md`.
@@ -26,7 +26,7 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 2. Resolve open decisions using **Deciding without Kim** below. Record each decision and reason.
 3. Work in small commits and run `npm test` after each change. For a refactor, run focused checks and, where needed, compare against the starting commit with `node tools/same.js`.
 4. Before the last commit run `npm run format` and `npm run verify`. For page changes also run `node tests/smoke.js` and the affected browser tests. Hard failures block merging. See `docs/testing.md` for coverage. A nightly failure gets its own repair task.
-5. Tick the criteria met. For an outstanding measurement or missed target, leave its criterion unticked, give the reason and report the available evidence at PR closeout. Mark complete work with `node tools/backlog.js done ID`. Set incomplete work or a question requiring Kim to `needs-review`. Limit task notes to ten lines of decisions, reasons and outstanding work.
+5. Tick the criteria met. For an outstanding measurement or missed target, leave its criterion unticked, give the reason and report the available evidence at PR closeout. Mark complete work with `node tools/backlog.js done ID`. Set incomplete work or a question requiring Kim to `needs-review`. Limit task notes to ten lines of decisions, reasons and outstanding work. A session that worked on one task alone measures itself last, `node tools/agent-usage.js --label worker --task ID --out docs/agents/usage`, and commits the file (the token use page, `tools/usage-page.js`, reads it); in an orchestrated run the orchestrator measures.
 6. Open the PR. For size M or a new module or state field, lead with its reads, writes, new coupling and the reason for any new abstraction or special case. For behaviour changes, report whether households were better off. Under **Targets**, give before, after, residual and cause for each target moved or intended to move, then count the other outstanding targets. Only Kim changes targets or starts a tuning run. Keep lint and ownership baselines as ratchets.
 
 Measure behaviour before and after once on the final PR result, or at nightly wrap-up on the merged branch. Measure within a task when its criterion names a number to move or when tuning. A refactor reports what became simpler and lists each intentional behaviour change.
@@ -77,9 +77,13 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - Module map: `grep -rn "^// @sys" src`; state schema: `grep -rn "@state" src`; modules in load order: `src/manifest.json`; tunables:
   `grep -rn "@tunable" src`, beside the tables of `src/sim/rules.js` that several domains read (VB-419).
 - Source is read through `readSource(file)` (`tools/lib/source.js`), never `readFileSync`, so that `.ts` is read as JavaScript.
+- The terrain's codes, names and grid (`B`, the biomes' names, `treeStage`, `ROCK`, `DEPOSIT`, `hexLocator`, `csample`, a river's kind)
+  are `src/world/*` (VB-1501): read them there, not through the `gen` facade, which is the generator and the bake.
 - A module and its users: grep `VB['<key>']`, e.g. `VB['sim']`. Definitions are `function name(` or `const name = (`; sections are `// ----` headers.
 - The page script is `src/page/*.js`, in the order of `src/page.json`; `build.js` splices them, without their `@sys` line, into the one closure
   in `src/body.html`. They are not `VB` modules: they share the closure's variables (grep `src/page` for a name), and run in order.
+- The map's drawing is `src/draw/*` (`draw/bake`, `draw/marks`, `draw/paths`, `draw/rivers`), the presentation layer, listed after `sim.js`:
+  the page reads it by key; no generator or simulation module may name it (`tests/dependencies.js`). `ArchGen` is the generator only.
 
 ## Conventions
 - Read owned fields freely; write through the module in `src/owners.json` (caches follow the same rule; page flags are signals).

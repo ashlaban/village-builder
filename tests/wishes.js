@@ -31,7 +31,7 @@ const castOf = () => {
   const { st, empty, lone } = scene();
   const claimant = FC.claimants(st, empty)[0];
   const round = scene().st; Sim.movingRound(round);
-  const single = st.demand.find((id) => R.spouseOf(st, id) === null && X.hasPlot(round, id));
+  const single = st.demand.find((id) => R.spouseOf(st, id) === null && VB['sim/allotment'].hasPlot(round, id));
   const heir = st.living.find((id) => H.staysWhy(st, st.pawns[id]) === 'heir to the farm at home');
   const holder = st.households[2].holder, child = st.living.find((id) => st.pawns[id].age < 18);
   S.takeServants(st);
@@ -97,7 +97,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   Sim.wish(st, 'out', false);
   Sim.movingRound(st);
   assert.ok(!st.demand.includes(id) && st.pawns[id].household === home && !st.pawns[id].servant, 'after the round it is at home still');
-  assert.ok(!X.hasPlot(st, id), 'no plot is cleared for it');
+  assert.ok(!VB['sim/allotment'].hasPlot(st, id), 'no plot is cleared for it');
   assert.ok(!st.farmsteads.some((f) => VB['sim/farmclaims'].claimOn(st, f)?.by === id) && !R.isHolder(st, id), 'it claimed nothing and holds nothing');
   sound(st, 'a round with a wish to stay');
 }

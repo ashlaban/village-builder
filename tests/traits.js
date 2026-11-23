@@ -198,7 +198,7 @@ const born = (st, hh) => {
 // far-seeing one a season more and the stall days within it; the template's own targets are untouched; a review draws nothing
 {
   const st = templateHeads(VB, make()), hh = st.households[0], plan = P.planOf(st, 'household', hh.id), Tg = plan.targets, E = st.ECON;
-  assert.deepStrictEqual(plan.head.bias, { wood: 1, hay: 1, seed: 1, fields: 1 }, 'no bias');
+  assert.deepStrictEqual(plan.head.bias, { wood: 1, hay: 1, seed: 1, fields: 1, hours: 1 }, 'no bias');
   const goal = (c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
   const at = (wits, c) => {
     setSkill(st, hh.holder, wits);

@@ -100,7 +100,7 @@ function renderChoose() {
   if (!f) h = '<p class="hint">Drag the map and pick a farm.</p>';
   else {
     const v = st.villages[f.village];
-    h += `<div class="hhead">${iconImg(farmIcon(f), `fi${hh ? '' : ' gone'}`)}<h2>${esc(f.name)}</h2><span>${esc(v.name)}</span></div>`;
+    h += `<div class="hhead">${iconImg(farmIcon(f), `fi${hh ? '' : ' gone'}`)}<h2 class="head">${esc(f.name)}</h2><span>${esc(v.name)}</span></div>`;
     if (hh) h += suppliesHTML(Sim.supplyOutlook(st, hh.id), ['food']); // the cards' supply component (VB-667), the head's estimate
     if (!hh) {
       const yrs =
@@ -113,7 +113,8 @@ function renderChoose() {
         .map((q) => {
           const p = st.pawns[q],
             hit = choose.story && inStory(choose.story, q);
-          return `<button type="button" class="person${hit ? ' hit' : ''}" data-p="${q}" aria-pressed="${q === id}"${mayPlay(q) ? '' : ' disabled'}>${faceImg(
+          const cls = `card person${hit ? ' hit' : ''}`;
+          return `<button type="button" class="${cls}" data-p="${q}" aria-pressed="${q === id}"${mayPlay(q) ? '' : ' disabled'}>${faceImg(
             q,
             'pf',
           )}<span>${esc(p.given)}</span><small>${esc(placeLine(p))}</small>${
@@ -133,7 +134,7 @@ function renderChoose() {
       after = Sim.successor(st, id),
       { can, ahead } = chipsOf(id);
     h +=
-      `<div class="detail"><h2>${esc(Sim.fullName(p))}${id === choose.sug ? ` ${SUGGESTED}` : ''}</h2>` +
+      `<div class="detail"><h2 class="head">${esc(Sim.fullName(p))}${id === choose.sug ? ` ${SUGGESTED}` : ''}</h2>` +
       `<p class="posline">${sign(POS_ICON[k])}<span>${Sim.age(st, p)} · ${esc(positionName(id).toLowerCase())}</span></p>` +
       `<p class="hint">${esc(LIFE_LINE[k])}</p>` +
       `<p class="posline">${sign('next')}<span>${

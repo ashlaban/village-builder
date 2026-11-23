@@ -14,9 +14,9 @@ VB['sim/farmclaims'] = (() => {
   const { wishOf, moveWhy: whose } = VB['sim/wishes'];
   const CL = VB['sim/claims'],
     Disputes = VB['sim/disputes'];
-  const { dailyNeed } = VB['sim/hunger'],
-    { reserved } = VB['sim/stores'];
-  const { hasPlot, activePlots, MAX_PLOTS } = VB['sim/expansion'];
+  const { reserved } = VB['sim/stores'];
+  const { activePlots, MAX_PLOTS } = VB['sim/expansion'],
+    { hasPlot } = VB['sim/allotment'];
   const { landed, barredWhy, goesWith, contribute } = VB['sim/holding'];
   const { emit } = VB['sim/events'],
     { onFarm, projectsOf } = VB['sim/projects'];
@@ -187,7 +187,7 @@ VB['sim/farmclaims'] = (() => {
         : `The claim on ${f.name} died with ${fullName(p)}.`,
     );
   };
-  // At the moving round, after st.demand is counted and before plots are started (sim/expansion): each farm that may be claimed, in id order,
+  // At the moving round, after st.demand is counted and before plots are started (sim/allotment): each farm that may be claimed, in id order,
   // goes to its first claimant (claimants) who has not claimed another this round. Claims whose claimant died or took land end first.
   // The first claimant asks the one who speaks for the farm's village for it (the basis `land`, due at once: VB-692); one who holds an
   // open offer about its future takes part only in that offer's step.
@@ -410,7 +410,8 @@ VB['sim/farmclaims'] = (() => {
     return { n: have, grain, piles };
   }
   // The claimant, their spouse and their minor children living with either move in: a new household holds the farm, its house, fields and
-  // meadows, with the grain of `provisions`, the firewood and two days of cooked food of a founders household. The claim on the house and the
+  // meadows, with the grain of `provisions` and the firewood of a founders household; no cooked food is given (VB-1175, from VB-675: it
+  // came from nothing), so it eats from the grain it brought until its first meal is cooked. The claim on the house and the
   // old family's birthright are spent.
   function moveIn(st, f) {
     if (!valid(st, f)) {
@@ -431,7 +432,6 @@ VB['sim/farmclaims'] = (() => {
       source: 'restoration',
     });
     const hh = st.households[f.household];
-    Stores.put(st, hh, 'meals', 2 * dailyNeed(st, hh), 'provisions');
     emit(st, 'stepDone', { type: 'pawn', id: holder.id, plan: c.plan }); // mended: the plan is finished (sim/plans)
     f.condition = 1;
     f.condAt = st.t;
@@ -474,6 +474,9 @@ VB['sim/farmclaims'] = (() => {
       verb: 'Mending an empty farm',
       go: 'Going to mend an empty farm',
       name: 'Mend an empty farm',
+      at: ['farm'],
+      needs: [],
+      gives: ['house'],
       label: 'Mending a farm',
       anim: 'mallet',
       hours: 20,

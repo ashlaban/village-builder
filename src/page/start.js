@@ -51,11 +51,12 @@ const START_WORDS = {
   },
 };
 // The living at the start, for each map size: the least and the most of Sim.seed at the seeds of DEMO.seeds (tests/start.js runs them).
+// On the forested island (VB-780) a founders' lone farm finds no room at one seed of the tiny map, and populous seats a little fewer.
 const START_PEOPLE = {
-  founders: { t: [10, 10], s: [10, 10], m: [10, 10], l: [10, 10] },
+  founders: { t: [8, 10], s: [10, 10], m: [10, 10], l: [10, 10] },
   solo: { t: [1, 1], s: [1, 1], m: [1, 1], l: [1, 1] },
   heirs: { t: [18, 18], s: [18, 18], m: [18, 18], l: [18, 18] },
-  populous: { t: [132, 156], s: [323, 360], m: [800, 844], l: [801, 880] },
+  populous: { t: [130, 153], s: [320, 341], m: [805, 839], l: [801, 848] },
 };
 const START_SIGNS = {
   well: 'M6 21V7M3 10l14-6M17 4v7M15 11h4v4h-4zM10 21h10',
@@ -73,7 +74,9 @@ const START_STEN = {
   village: ACT_STEN.village,
 };
 const startSign = (k) =>
-  SIGN_PATHS[k] ? sign(k) : stencil(svgIcon(24, 24, `<path d="${START_SIGNS[k]}"/>`, ICON_STROKE), START_STEN[k]);
+  SIGN_PATHS[k]
+    ? sign(k)
+    : drawings(svgIcon(24, 24, `<path d="${START_SIGNS[k]}"/>`, ICON_STROKE), { stencil: START_STEN[k] });
 const NUMBER_WORDS = [
   'no',
   'one',
@@ -134,7 +137,7 @@ function nearTile(wd, from, ok) {
 // words, and `edge` for one that may lie outside the picture and is then put at its edge, towards it.
 function pinsOf(wd, s, sc) {
   const T = (i) => ({ x: wd.hx[i], y: wd.hy[i] }),
-    B = G.B,
+    B = Biomes.B,
     farms = (v) => v.farmsteads.map((id) => s.farmsteads[id]);
   const pic = (url, gone) => ({ img: url, gone });
   let v, pins;
@@ -229,6 +232,7 @@ function runOf(sc) {
 function openStart(msg) {
   $('genSeed').value = String(choice.seed);
   $('genSize').value = choice.size;
+  $('genClimate').value = String(choice.lat);
   $('genMsg').hidden = !msg;
   $('genMsg').textContent = msg || '';
   if (!start) {
@@ -374,7 +378,7 @@ function renderCards() {
         ].join('')
       : '';
     return (
-      `<button type="button" class="scard" data-sc="${k}" aria-pressed="${k === start.sc}"><span class="cpic ${k}">${pic}</span>` +
+      `<button type="button" class="card scard" data-sc="${k}" aria-pressed="${k === start.sc}"><span class="cpic ${k}">${pic}</span>` +
       `<b>${esc(words.name)}</b><small>${esc(words.line)}</small><span class="stats"><span>${startSign('people')}${people}</span>` +
       `<span>${startSign('gens')}${gens}</span></span></button>`
     );

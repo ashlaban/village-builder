@@ -148,15 +148,57 @@ VB['sim/society'] = (() => {
     }
     for (const s of st.cenv.settlements) updateTie(st, s.id, by.get(s.id) || []);
   }
-  // The parts of a pawn's standing, [label, value]: its position (1.6 a holder, 1.3 a holder's spouse, else 1), age from 55, and for a holder and
-  // a holder's spouse the term of the house's condition (VB-306), read from the farm's closed form (nothing is stored beside the condition).
+  // @tunable DEED: standing as the sum of a pawn's public deeds (VB-705), each a term that fades, read in closed form (rule 3)
+  // Every adult starts at `base` 1, the one weight a voice has at the meeting with no deeds behind it (no base by status: it was 1.6 a holder,
+  // 1.3 a holder's spouse). A farm held adds `held` while it is held, and after the holding ends (retirement, a handover) fades with a half-life
+  // of `heldHalf` years: an old holder is listened to for a while. An office (the alderman, OFFICE.standing) fades after it ends the same way.
+  // A gift of food given from one household's store to another's (a deed the village sees: the grain is carried across it) adds its worth,
+  // in rations, to a sum that halves in `giftHalf` years, as goodwill does (The gift: goodwill halves in 4 years); the term is
+  // `gift` x (1 - exp(-sum / giftScale)), so one large gift does not buy the first place: a gift of 50 rations gives 0.12, of 200 0.26.
+  // A term under `forget` is dropped. Named estimates (VB-705, 23 Nov), no source: `held` keeps a holder's term at the old 0.6 above a
+  // villager, the half-lives a working life's few years.
+  const DEED = { base: 1, held: 0.6, heldHalf: 6, gift: 0.3, giftScale: 100, giftHalf: 4, forget: 0.005 };
+  // @state pawn.deeds: absent until a deed, then {[kind]: [v, t]} for kind held, office (v the term when the position was last seen held,
+  //   t that hour) and gift (v the rations given, as of hour t); read with its half-life by `deedNow`, never decayed by a pass.
+  const HALF = { held: DEED.heldHalf, office: DEED.heldHalf, gift: DEED.giftHalf };
+  function deedNow(st, p, kind) {
+    const d = p.deeds && p.deeds[kind];
+    return d ? d[0] * Math.pow(0.5, (st.t - d[1]) / (HALF[kind] * YEAR)) : 0;
+  }
+  // A position held now (a farm, the office) is read at full; one held before as it fades from when it was last seen held. `stamp` (only
+  // in refreshStanding, at every death, retirement and moving round) records that hour, and drops a term faded under `forget`.
+  const holdsOffice = (st, p, holder) => holder && st.villages[settlementIdOf(st, p)].alderman === p.id; // VB-314
+  function position(st, p, kind, now, full) {
+    if (now) return full;
+    const v = deedNow(st, p, kind);
+    return v >= DEED.forget ? v : 0;
+  }
+  function mark(st, p, kind, now, full) {
+    if (now) {
+      if (!p.deeds) p.deeds = {};
+      p.deeds[kind] = [full, st.t];
+    } else if (p.deeds && p.deeds[kind] && deedNow(st, p, kind) < DEED.forget) delete p.deeds[kind];
+  }
+  function stamp(st, p) {
+    const holder = isHolder(st, p.id);
+    mark(st, p, 'held', holder, DEED.held);
+    mark(st, p, 'office', holdsOffice(st, p, holder), OFFICE.standing);
+    if (p.deeds && p.deeds.gift && deedNow(st, p, 'gift') < 1) delete p.deeds.gift;
+  }
+  // The parts of a pawn's standing, [label, value]: the base, a farm held (or held before), age from 55, an office, for a holder and a holder's
+  // spouse the term of the house's condition (VB-306), read from the farm's closed form (nothing is stored beside the condition), ale poured,
+  // the gifts given and the work days. It only reads (the page's Standing line calls it).
   function standingParts(st, p) {
     const sp = spouseOf(st, p.id),
       holder = isHolder(st, p.id),
       spHolder = sp !== null && isHolder(st, sp);
-    const parts = [[holder ? 'Holder' : spHolder ? "Holder's spouse" : 'Villager', holder ? 1.6 : spHolder ? 1.3 : 1]];
+    const parts = [['A member of the village', DEED.base]];
+    const held = position(st, p, 'held', holder, DEED.held);
+    if (held > 0) parts.push([holder ? 'Holds a farm' : 'Held a farm', held]);
     if (p.age >= 55) parts.push(['Age', 0.2]);
-    if (holder && st.villages[settlementIdOf(st, p)].alderman === p.id) parts.push(['Alderman', OFFICE.standing]); // VB-314
+    const inOffice = holdsOffice(st, p, holder),
+      office = position(st, p, 'office', inOffice, OFFICE.standing);
+    if (office > 0) parts.push([inOffice ? 'Alderman' : 'Was alderman', office]);
     const hh = holder || spHolder ? st.households[p.household] : null,
       f = hh && !hh.dissolved && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
     if (f && f.household === hh.id && !f.booth)
@@ -165,6 +207,8 @@ VB['sim/society'] = (() => {
       const ale = aleStanding(st, holdingOf(st, p.id));
       if (ale > 0) parts.push(['Ale poured', ale]);
     }
+    const given = deedNow(st, p, 'gift');
+    if (given >= 1) parts.push(['Gifts given', DEED.gift * (1 - Math.exp(-given / DEED.giftScale))]);
     // the village's work days this year (VB-120): turned out, and, as a holder, stayed away
     const wd = p.workdays;
     if (wd && wd.year === cal(st.t).year) {
@@ -173,22 +217,33 @@ VB['sim/society'] = (() => {
     }
     return parts;
   }
+  const sumOf = (parts) => parts.reduce((s, x) => s + x[1], 0);
   function refreshStanding(st) {
     for (const id of st.living) {
       const p = st.pawns[id];
-      p.standing = standingParts(st, p).reduce((s, x) => s + x[1], 0);
+      stamp(st, p);
+      p.standing = sumOf(standingParts(st, p));
     }
   }
   // A host poured ale (sim/occasions): its holder's standing gains at once, not at the year's round.
   on('alePoured', (st, e) => {
     const p = st.pawns[e.host];
-    if (p.alive) p.standing = standingParts(st, p).reduce((n, x) => n + x[1], 0);
+    if (p.alive) p.standing = sumOf(standingParts(st, p));
+  });
+  // A gift of food went from one household to another (sim/exchange): the giver's sum of gifts grows by its worth, at once.
+  on('giftGiven', (st, e) => {
+    const p = st.pawns[e.giver];
+    if (!p.alive) return;
+    const given = deedNow(st, p, 'gift') + e.worth;
+    if (!p.deeds) p.deeds = {};
+    p.deeds.gift = [given, st.t];
+    p.standing = sumOf(standingParts(st, p));
   });
   // A village's work day ended (sim/workdays): the standing of those who turned out, and of the holders who stayed away, at once.
   on('workDay', (st, e) => {
     for (const id of e.pawns) {
       const p = st.pawns[id];
-      if (p.alive) p.standing = standingParts(st, p).reduce((n, x) => n + x[1], 0);
+      if (p.alive) p.standing = sumOf(standingParts(st, p));
     }
   });
   // Self-interest follows position: what would this option do for me, or for my children? For `people` (pawn records; all the living when
@@ -292,6 +347,9 @@ VB['sim/society'] = (() => {
           const m = r.mem && r.mem.refusedCourting;
           if (m && st.t - m.t < SOCIAL.memories.refusedCourting.days * DAY) set('matchBy', { couple: 1 });
         }
+      // children born outside marriage (VB-555; Kim, 30 Oct): one born outside, and the parent of one, lean to their inheriting as others
+      if (p.outside === true || childrenOf(st, p.id).some((c) => st.pawns[c].outside === true))
+        set('outside', { equal: 1 });
       p.interest = it;
     }
   }
@@ -361,6 +419,7 @@ VB['sim/society'] = (() => {
   return {
     TIE,
     standingParts,
+    DEED,
     hooks,
     initCulture,
     addSettlement,

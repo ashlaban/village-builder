@@ -48,11 +48,11 @@ function load() {
 }
 
 // ---- the food lines ----
-const FOOD = new Set(['grain', 'sheaves', 'flour', 'fish', 'gathered', 'dried fish', 'meat', 'salt meat', 'milk', 'butter']);
+const FOOD = new Set(['grain', 'sheaves', 'flour', 'fish', 'gathered', 'dried fish', 'meat', 'salt meat', 'smoked meat', 'milk', 'butter']);
 // The grain's own account (island-wide, beside the food's): its goods (sheaves, grain of every crop, flour ground from it) are also booked
 // under the key 'g:' + village, with their stocks, so that the harvest's split reads as the balance review's did (docs/balance/findings.md)
 const GRAIN = new Set(['grain', 'sheaves', 'flour']);
-const LARDER = new Set(['dried fish', 'meat', 'salt meat', 'milk', 'butter']); // the larder's foods (FOODS held 'larder')
+const LARDER = new Set(['dried fish', 'meat', 'salt meat', 'smoked meat', 'milk', 'butter']); // the larder's foods (FOODS held 'larder')
 const G = 'g:';
 // A ledger entry or a yearly total of a food: the line it books to, or null when it moves food between two of a holder's stores (threshing,
 // grinding, drying) or is no movement (milkbite). holder: 'household' or 'village'; d: the entry (kind, n, crop, to, stake ...).
@@ -78,7 +78,7 @@ function lineOf(holder, d) {
     return d.to === 'the village store' ? 'out.given.toStore' : 'out.given.toHouseholds';
   }
   if (k === 'away') return n > 0 ? 'in.packsHome' : 'out.packed';
-  if (k === 'share' || k === 'handingOn' || k === 'provisions' || k === 'start') return n > 0 ? 'in.handedOn' : 'out.handedOn';
+  if (k === 'share' || k === 'wage' || k === 'handingOn' || k === 'provisions' || k === 'start') return n > 0 ? 'in.handedOn' : 'out.handedOn';
   return 'other.' + k; // a kind this report does not know yet: it shows, so that it is placed
 }
 const yearOfT = (YEAR, t) => Math.floor(t / YEAR) + 1;

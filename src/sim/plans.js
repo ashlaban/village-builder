@@ -3,7 +3,7 @@
 // village's routines' steps, sim/routines) and dropped; and the head's choices of its plan, each through a verb of sim/commands
 VB['sim/plans'] = (() => {
   const { rotationWhy, turnWhy, swapWhy, fieldsChoice } = VB['sim/rotations'],
-    { takeRotation, outOfTurn, swapSteps } = VB['sim/fields'];
+    { takeRotation, outOfTurn, swapSteps } = VB['sim/courses'];
   const { living, home } = VB['sim/records'];
   const { TICKS, HERD, cal } = VB['sim/rules'],
     { ROTATIONS } = VB['sim/crops'];
@@ -13,7 +13,9 @@ VB['sim/plans'] = (() => {
     OTHER_CROPS = Stores.CROP_LIST.filter((k) => k !== SEED_CROP);
   const { seedNeed } = VB['sim/hunger'];
   const { rotationChoice } = VB['sim/rotations'];
-  const { fieldsWanted, fieldWhy, pickField, beginField } = VB['sim/fieldplans'];
+  const { fieldsWanted, fieldWhy, pickField, beginField, letGoWhy, fieldToLetGo } = VB['sim/fieldplans'];
+  const { letGo } = VB['sim/fields'];
+  const { trusted } = VB['sim/yields'];
   const { makingOf } = VB['sim/makings'];
   const Projects = VB['sim/projects'],
     { projectsOf } = Projects,
@@ -153,6 +155,9 @@ VB['sim/plans'] = (() => {
     const act = own ? fieldsChoice(st, f, hh, c, H) : null; // what it sows where (VB-351)
     if (act) issue(st, { actor, verb: act.verb, target: hh.id, args: act.args, source: 'pawn' });
     reviewTargets(st, plan, hh, c);
+    // a field its other sources free is let go, on its planning day after the harvest (VB-768), through the head's verb
+    const gone = own && why === 'day' && c.season === 3 ? fieldToLetGo(st, plan, f, hh, c) : null;
+    if (gone) issue(st, { actor, verb: 'letField', target: hh.id, args: { field: gone.id }, source: 'pawn' });
     if (c.doy >= HERD.countDay && plan.counted !== c.year && hh.herds.length) plan.counted = c.year;
     reserveSeed(st, hh, plan);
     reviewWant(st, plan, hh, why); // a cow wanted (VB-390): plan.want, sim/exchange's
@@ -292,11 +297,12 @@ VB['sim/plans'] = (() => {
     return {
       targets: {
         hay: target('hay', T.hayWinters, M.hayWinters),
-        fields: target('fields', T.fields, wanted),
+        // what the head counts on besides its fields, by source (VB-768: its own estimate, sim/yields' trusted), rations a year
+        fields: { ...target('fields', T.fields, wanted), counts: hh.farmstead === null ? [] : countsOn(st, hh) },
         wood: target('wood', T.wood[c.season], M.wood[c.season]),
         cow: target('cow', plan.want ? 1 : 0, null),
       },
-      goods: Targets.view(st, hh, C.goods),
+      goods: Targets.view(st, hh, C.goods, plan.placed && plan.placed.goods),
       head: plan.head
         ? { pawn: plan.head.pawn, skill, horizon: horizonOf(skill), keepsOrder: skill >= ORDER_LEAST }
         : null,
@@ -309,6 +315,14 @@ VB['sim/plans'] = (() => {
         .map((q) => ({ id: q.id, what: q.what, step: q.steps[q.open].kind, tile: q.steps[q.open].place })),
       heldOff: C.project === 'none',
     };
+  }
+  // The rations a year the head counts on from each source besides its fields, the largest first, those of a ration or more (VB-768).
+  function countsOn(st, hh) {
+    const by = trusted(st, hh).by;
+    return Object.keys(by)
+      .filter((s) => by[s] >= 1)
+      .sort((a, b) => by[b] - by[a])
+      .map((source) => ({ source, rations: Math.round(by[source]) }));
   }
   // The head of household c.target, or why the actor is not: a living pawn that holds it, or {household} for a household with no holder
   // (its own rule); the household has a standing plan (VB-253).
@@ -402,6 +416,27 @@ VB['sim/plans'] = (() => {
       if (what === 'none' || what === null) holdProject(st, c.target, what === 'none');
       else if (what === 'field' || what === 'meadow') beginLand(st, hh, what, landTile(st, hh, c.args));
       else beginMaking(st, hh, makingOf(what), c.args);
+    },
+  });
+  // letField({field}) (VB-768): the head lets field `field` (its id) of its farm go, its tile back to the village (sim/fields' letGo): a
+  // field with no crop, sheaves or task on it (sim/fieldplans' letGoWhy); the same for every head, played or not.
+  register('letField', {
+    check: (st, c) => {
+      const why = heads(st, c) || farmOf(st, c);
+      if (why) return why;
+      const f = st.farmsteads[st.households[c.target].farmstead],
+        id = c.args && c.args.field,
+        fd = f.fields.find((x) => x.id === id);
+      return fd ? letGoWhy(st, f, fd) : `${f.name} has no field ${id}`;
+    },
+    run: (st, c) => {
+      const f = st.farmsteads[st.households[c.target].farmstead];
+      letGo(
+        st,
+        f,
+        f.fields.find((x) => x.id === c.args.field),
+        cal(st.t),
+      );
     },
   });
   // A making begun (the verb project): the plan its module gives, made for the household (a small construction marked so), or begun by

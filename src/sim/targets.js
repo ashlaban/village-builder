@@ -71,8 +71,9 @@ VB['sim/targets'] = (() => {
     return [0, Number.isFinite(n) ? n + most : most];
   }
   // What the page shows of the goods' targets: each made good's held stock, the target now, the household's rule's (its need), the
-  // head's choice (null for none) and its bounds. Plain data.
-  function view(st, hh, chosen) {
+  // head's choice (null for none), its bounds and what the head reckons it can place of the asks it read beyond its need (VB-699: its
+  // estimate, from plan.placed; 0 for none). Plain data.
+  function view(st, hh, chosen, placed) {
     const out = {};
     for (const [good, M] of MADE)
       out[good] = {
@@ -82,6 +83,7 @@ VB['sim/targets'] = (() => {
         chosen: (chosen && chosen[good]) ?? null,
         bounds: bounds(st, hh, good),
         unit: M.unit,
+        placed: (placed && placed[good]) || 0,
       };
     return out;
   }

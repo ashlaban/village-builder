@@ -21,6 +21,7 @@ VB['sim/matching'] = (() => {
   const { hoursBetween, byLand } = VB['sim/villagehours'];
   const { wishOf } = VB['sim/wishes'];
   const Rules = VB['sim/registry'];
+  const NONE = [];
 
   // ---- the means to marry (VB-153, VB-631; design.md, Marriage, nursing and growth: The setpoint) ----
   // A rule of the registry, `marriage.means`: the years of food a home must hold above its seed for its members and one more. Base
@@ -30,17 +31,22 @@ VB['sim/matching'] = (() => {
   Rules.declare({ id: 'marriage.means', owner: 'sim/matching', combine: 'product', base: () => MARRIAGE.means });
   // One formula for the gate (`affords`) and the words (the pawn panel, matchBar's reason): {held, asked, exempt} of household h. held:
   // years of food above the seed for its members and one more (grain, grain in sheaf, meals, the larder, less what is reserved); asked: the
-  // rule's value; exempt: fewer than two adults, who need the spouse's hands.
+  // rule's value; exempt: fewer than two adults, who need the spouse's hands. `ids`: the two who would marry there (VB-637), whose stakes
+  // (a servant's wages, shares paid out) come to the home with them and count as its food: the home holds 1.2 of 1.5 years, portions counted.
   const fig = (n) => (Math.round(Math.max(0, n) * 10) / 10).toString();
-  function meansOf(st, h) {
-    const hh = st.households[h],
-      store = grainOf(hh) + hh.meals + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh);
+  function meansOf(st, h, ids = NONE) {
+    const hh = st.households[h];
+    let store = grainOf(hh) + hh.meals + hh.unthreshed.reduce((a, x) => a + (+x || 0), 0) + larderOf(hh),
+      portion = 0;
+    for (const id of ids) if (st.pawns[id].alive) portion += st.pawns[id].stake || 0;
+    store += portion;
     let grown = 0;
     for (const id of hh.members) if (st.pawns[id].alive && st.pawns[id].age >= 18) grown++;
     return {
       held: (store - reserved(st, hh, 'grain')) / (YEAR_DAYS * (dailyNeed(st, hh) + st.ECON.ration.adult)),
       asked: Rules.value(st, 'marriage.means', hh),
       exempt: grown < 2,
+      portion,
     };
   }
 
@@ -227,12 +233,15 @@ VB['sim/matching'] = (() => {
       const h = homeBy(m, f, cu, pm, pf);
       return h !== null && ((m.servant && m.household === h) || (f.servant && f.household === h)) ? null : h;
     };
-    const affords = (h) => {
+    // the home's own verdict is kept a home; where it falls short, the stakes of the two who would marry are counted (they only add)
+    const affords = (h, ids = NONE) => {
       if (!means.has(h)) {
         const m = meansOf(st, h);
         means.set(h, m.exempt || m.held >= m.asked);
       }
-      return means.get(h);
+      if (means.get(h) || !ids.some((id) => st.pawns[id].stake > 0)) return means.get(h);
+      const m = meansOf(st, h, ids);
+      return m.held >= m.asked;
     };
     return { rank, place, homeFor, affords, clear, touched };
   }
@@ -279,9 +288,11 @@ VB['sim/matching'] = (() => {
             why: `${fullName(p)} is in service: ${p.sex === 'm' ? 'his' : 'her'} master's house is no home for a couple`,
           };
     if (home === null) return { why: 'no home for them: neither has a farm to live on' };
-    if (!rules.affords(home)) {
-      const m = meansOf(st, home);
-      return { why: `their home holds ${fig(m.held)} of the ${fig(m.asked)} years of food it needs` };
+    if (!rules.affords(home, [m.id, f.id])) {
+      const n = meansOf(st, home, [m.id, f.id]);
+      return {
+        why: `their home holds ${fig(n.held)} of the ${fig(n.asked)} years of food it needs${n.portion > 0 ? ', their portions counted' : ''}`,
+      };
     }
     const widowed = wasWidowed(st, m.id) || wasWidowed(st, f.id);
     if (matchScore(st, { ...m, age: age(st, m) }, { ...f, age: age(st, f) }, 0.5, widowed) < MARRIAGE.minScore) {
@@ -333,8 +344,13 @@ VB['sim/matching'] = (() => {
     const cu = practice(st, settlementIdOf(st, p));
     const home = cu.residence === 'land' ? matchRules(st).place(id) : p.servant ? null : p.household;
     if (home === null) return { kind: 'nohome' };
-    const m = meansOf(st, home);
-    return { kind: m.exempt ? 'hands' : m.held >= m.asked ? 'means' : 'short', held: m.held, asked: m.asked };
+    const m = meansOf(st, home, [id]); // its own stake counted: the partner's is not known
+    return {
+      kind: m.exempt ? 'hands' : m.held >= m.asked ? 'means' : 'short',
+      held: m.held,
+      asked: m.asked,
+      portion: m.portion,
+    };
   }
   return {
     kinOk,

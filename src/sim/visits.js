@@ -1,6 +1,6 @@
 // @sys sim/visits: the suitor's visit, planned (VB-289; design.md, Between villages: The suitor's visit): a man who found nobody to ask
 //   within a day's walk at his village's round chooses the nearest village beyond it that holds a woman he could marry (seekVisit) and
-//   plans a visit there by the verb `visit`; the plans wait in a due-queue and are set out in winter (visitsDue), as journeys of sim/away;
+//   plans a visit there by the verb `visit`; the plans wait in a due-queue and are set out in winter (visitsDue), as journeys of sim/journeys;
 //   the villages any pawn might visit (visitChoices), a visit's state for its sheet and the played pawn's order for one (VB-292)
 VB['sim/visits'] = (() => {
   const Due = VB['sim/due'],
@@ -15,7 +15,7 @@ VB['sim/visits'] = (() => {
   const Stores = VB['sim/stores'];
   const { travelling, stayOf, placeOf, tileAt } = VB['sim/pose'];
   const { hasRoute } = VB['sim/routes'];
-  const { visit, visitDays } = VB['sim/away'];
+  const { visit, visitDays } = VB['sim/journeys'];
   const { kinOk, matchScore, matchRules, meansOf, roundYear } = VB['sim/matching'];
   const { wishOf, askingIn } = VB['sim/wishes'];
   const { issue, register } = VB['sim/commands'];
@@ -206,7 +206,7 @@ VB['sim/visits'] = (() => {
   }
   // Daily at 6:00: the visits due, from the head of the queue (Rules for cost, 4). A plan is dropped where its man has died, married,
   // retired, changed household (he took a farm, his home dissolved) or is away; one whose household can no longer spare the food, or who
-  // is hungry himself, stays home, and the log says so; else he sets out (sim/away visit).
+  // is hungry himself, stays home, and the log says so; else he sets out (sim/journeys visit).
   function visitsDue(st) {
     while (st.visits.length && st.visits[0].due <= st.t) {
       const e = st.visits.shift(),
@@ -233,7 +233,7 @@ VB['sim/visits'] = (() => {
   // @state pawn.visited: null, or {village, year}: the village the pawn last visited, and the year of the moving round the visit followed
   //   (sim/matching roundYear at its arrival), so that it counts until the next round is over (sim/matching reads it); overwritten by the
   //   next visit, cleared at its marriage and its death
-  // The visitor has arrived at the other village's green (sim/away): the visit is his, and on his record.
+  // The visitor has arrived at the other village's green (sim/journeys): the visit is his, and on his record.
   on('visited', (st, d) => {
     // one married while on the road (the round's match, made while away) arrives a guest, but courts no more (the invariant: no
     // visited kept by one married)

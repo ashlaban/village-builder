@@ -3,8 +3,12 @@ VB['sim/heirranking'] = (() => {
   const { childrenOf, spouseOf, holdingOf, practice, villageOf, householdsOfLine, ancestorsOf } = VB['sim/records'];
   // The living of pawn `line`'s blood in the order its customs `cu` give (sex, birth order; under "chosen" those of household `homeId`
   // first): its children and their lines (a dead child's children stand in its place), to four generations; then, unless `nested`, its
-  // siblings and their lines and its parents' siblings and theirs. {out, direct}: direct the first part alone.
+  // siblings and their lines and its parents' siblings and theirs. {out, direct}: direct the first part alone. A child born outside
+  // marriage (pawn.outside) stands by the custom `outside` (VB-555): as the others, after those born in marriage (before sex and birth
+  // order), or not at all, nor its line.
   function bloodLine(st, line, cu, homeId, nested) {
+    const after = cu.outside === 'after',
+      barred = (id) => cu.outside === 'none' && st.pawns[id].outside === true;
     const sexRank = (p) =>
       cu.heirSex === 'sonsFirst'
         ? p.sex === 'm'
@@ -19,7 +23,7 @@ VB['sim/heirranking'] = (() => {
       [...ids].sort((a, b) => {
         const pa = st.pawns[a],
           pb = st.pawns[b],
-          s = sexRank(pa) - sexRank(pb);
+          s = after && pa.outside !== pb.outside ? (pa.outside === true ? 1 : -1) : sexRank(pa) - sexRank(pb);
         if (s) return s;
         if (cu.birthOrder === 'youngest') return pb.born - pa.born;
         if (cu.birthOrder === 'chosen') {
@@ -36,6 +40,7 @@ VB['sim/heirranking'] = (() => {
       for (const c of order(childrenOf(st, id))) {
         if (seen.has(c)) continue;
         seen.add(c);
+        if (barred(c)) continue;
         if (st.pawns[c].died === null) out.push(c);
         lineOf(c, depth + 1); // a dead child's children stand in their place; a living child's line follows them
       }
@@ -51,6 +56,7 @@ VB['sim/heirranking'] = (() => {
       for (const s of order(childrenOf(st, parent).filter((q) => q !== anc))) {
         if (seen.has(s)) continue;
         seen.add(s);
+        if (barred(s)) continue;
         if (st.pawns[s].died === null) out.push(s);
         lineOf(s, 1);
       }

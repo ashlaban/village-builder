@@ -27,7 +27,8 @@ Sim.advance(st, Sim.YEAR + Sim.HERD.springDay * Sim.DAY + 6);
 Sim.HERD.death.cattle = deathRate; Sim.HERD.lambDeath = lambDeath;
 const calves = st.herds.reduce((s, hd) => s + (hd.head ? hd.head.filter((h) => h.kind === 'calf').length : 0), 0);
 const lambs = st.herds.reduce((s, hd) => s + (hd.lambs || 0), 0);
-check(calves >= 2 && lambs >= 3, `founders year 2: ${calves} calves and ${lambs} lambs born`);
+// lambs: 2 or 3 of the first farm's 3 ewes left by spring, by the draws (3 before VB-1525 shifted them; the second farm's ewes are gone in both)
+check(calves >= 2 && lambs >= 2, `founders year 2: ${calves} calves and ${lambs} lambs born`);
 check(Sim.villageLog(st, Infinity).some((e) => /born this spring/.test(e.text)), 'founders year 2: no log line for the births');
 check(!checkState(st).length, 'founders year 2: ' + checkState(st).slice(0, 3).join('; '));
 const report = `founders seed 7, year 2: ${calves} calves, ${lambs} lambs; ` + hhs.filter((h) => h.herds.length).map((h) => H.describeHerds(st, h)).join(' / ');
@@ -46,7 +47,7 @@ check(H.herdOf(st, to, 'cattle').head.length + standing.reduce((n, hd) => n + hd
 check(!checkState(st).length, 'after passHerds: ' + checkState(st).slice(0, 3).join('; '));
 
 // --- populous: every herd fits the byre; a village with cattle has a bull, one with sheep a ram
-st = scenario('populous', 8); // the herds drawn at seeding move with every custom added (VB-711, VB-826)
+st = scenario('populous', 1); // the herds drawn at seeding move with every custom added (VB-711, VB-826, VB-555)
 for (const hd of st.herds) if (hd.head) check(H.byreRoom(hd) <= Sim.HERD.byre, `populous: herd ${hd.id} needs ${H.byreRoom(hd)} places in the byre`);
 for (const v of st.villages) {
   const vh = st.herds.filter((hd) => st.farmsteads[st.households[hd.household].farmstead].village === v.id);

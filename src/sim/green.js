@@ -6,7 +6,7 @@ VB['sim/green'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
   const { BUILD } = VB['sim/rules'];
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
     { costChanged } = VB['sim/routes'];
@@ -202,6 +202,9 @@ VB['sim/green'] = (() => {
       verb: 'Clearing the village green',
       go: 'Going to clear the green',
       name: 'Clear the green',
+      at: ['green'],
+      needs: [],
+      gives: ['green'],
       label: 'Green',
       anim: 'hoe',
       hours: BUILD.greenHours,
@@ -216,6 +219,9 @@ VB['sim/green'] = (() => {
       go: 'Going for stone for the well',
       back: 'Carrying stone to the well',
       name: 'Carry stone to the well',
+      at: ['green'],
+      needs: ['stone'],
+      gives: [],
       label: 'Stone',
       anim: 'gather',
       hours: 0.25,
@@ -232,6 +238,9 @@ VB['sim/green'] = (() => {
       verb: 'Digging and lining the well',
       go: 'Going to dig the well',
       name: 'Dig the well',
+      at: ['green'],
+      needs: ['stone'],
+      gives: ['well'],
       label: 'Well',
       anim: 'hoe',
       hours: BUILD.wellHours,
@@ -245,6 +254,9 @@ VB['sim/green'] = (() => {
       verb: 'Raising the well sweep',
       go: 'Going to raise the well sweep',
       name: 'Raise the well sweep',
+      at: ['green'],
+      needs: [],
+      gives: ['well'],
       label: 'Sweep',
       anim: 'mallet',
       hours: BUILD.sweepHours,

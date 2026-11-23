@@ -15,7 +15,7 @@ const fieldW = (k) => (r.fields.find((f) => f.field === k) || { writers: [] }).w
 assert.strictEqual(fieldW('st.owner').join(), 'sim/ownership', 'writes map: st.owner has one writer');
 for (const k of ['household.members', 'pawn.household', 'pawn.servant']) assert.strictEqual(fieldW(k).join(), 'sim/records', `writes map: ${k}`);
 assert(fieldW('household.grain').includes('sim/stores'), 'writes map: household grain owner not found');
-for (const [from, target] of [['sim/farmclaims', 'sim/heirs'], ['sim/expansion', 'sim/cottage']]) {
+for (const [from, target] of [['sim/farmclaims', 'sim/heirs'], ['sim/cottageplan', 'sim/cottage'], ['sim/allotment', 'sim/cottage']]) {
   const dep = r.deps.find((d) => d.mod === from);
   assert(dep && !dep.lookups.some((l) => l.key === target), `writes map: direct founding lookup ${from} → ${target}`);
   assert(dep && dep.imports.includes('sim/commands'), `writes map: ${from} founds through a command`);
@@ -59,6 +59,20 @@ if (process.argv.includes('--update')) {
   const bad = Object.keys(found).filter((k) => found[k] > (base.pairs[k] || 0));
   assert.deepStrictEqual(bad, [], `new upward calls against the layers (baseline ${base.total}, found ${total}); see node tools/dependencies.js`);
   if (total < base.total) console.log(`dependencies: ${total} upward calls, baseline ${base.total}: run --update to lower it`);
+}
+// VB-1503: the wall. The drawing (presentation) loads after sim.js: a generator or simulation module that names a draw/ module, at load or
+// in a function, is refused twice, as a call upward against the layers and as a lookup of a later module; and the layers place it so.
+const draws = L.names[L.of['draw/bake']];
+assert.strictEqual(draws, 'presentation', 'the draw/ modules are the presentation layer');
+for (const m of Object.keys(L.of)) if (m.startsWith('draw/')) assert.strictEqual(L.of[m], L.of['draw/bake'], `${m} is in the presentation layer`);
+const mods = r.deps.map((d) => d.mod);
+for (const [mod, code] of [['gen/cover', "const bad = VB['draw/bake'];"], ['sim/fish', "const bad = () => VB['draw/paths'].thin;"]]) {
+  const src = `VB['${mod}'] = (() => {\n${code}\n})();`, edges = dependencies(parse(src, { ecmaVersion: 'latest' }), src, mod);
+  const dep = { mod, imports: edges.filter((d) => d.atLoad).map((d) => d.key), importSites: edges.filter((d) => d.atLoad),
+    lookups: edges.filter((d) => !d.atLoad).map((d) => ({ ...d, later: mods.indexOf(d.key) > mods.indexOf(mod) })) };
+  assert.strictEqual(upward([dep], L).length, 1, `${mod} naming a draw/ module is an upward call`);
+  const order = r.deps.map((d) => (d.mod === mod ? dep : d));
+  assert(violations(order).some((e) => e.startsWith(`src/${mod}.js:2`)), `${mod} naming a draw/ module breaks the load order`);
 }
 console.log(`dependencies: layers ${total} upward calls (baseline ${Math.min(base.total, total)});`);
 console.log('dependencies: module order enforced; no cycle');

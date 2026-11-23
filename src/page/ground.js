@@ -39,8 +39,8 @@ function drawGround() {
   }
   const g = groundG,
     R = w.R,
-    rocks = Geo.ROCKS.map(() => 0),
-    deps = Geo.DEPOSITS.map(() => 0);
+    rocks = Strata.ROCKS.map(() => 0),
+    deps = Strata.DEPOSITS.map(() => 0);
   g.clear();
   groundFor = w;
   groundSeen = sight;
@@ -48,7 +48,7 @@ function drawGround() {
   const shown = new Uint8Array(w.N);
   let faint = 0;
   for (let i = 0; i < w.N; i++) if (w.deposit[i]) shown[i] = depositShown(i);
-  for (let r = 1; r < Geo.ROCKS.length; r++) {
+  for (let r = 1; r < Strata.ROCKS.length; r++) {
     for (let i = 0; i < w.N; i++)
       if (w.rock[i] === r) {
         g.poly(hexPoly(i));
@@ -56,7 +56,7 @@ function drawGround() {
       }
     if (rocks[r]) g.fill({ color: ROCK_COLOUR[r], alpha: 0.5 });
   }
-  for (let d = 1; d < Geo.DEPOSITS.length; d++)
+  for (let d = 1; d < Strata.DEPOSITS.length; d++)
     for (const how of [1, 2]) {
       let n = 0;
       for (let i = 0; i < w.N; i++) {
@@ -80,7 +80,7 @@ function drawGround() {
     }
   let endless = 0;
   for (let i = 0; i < w.N; i++)
-    if (shown[i] && w.depositLeft[i] === Geo.ENDLESS) {
+    if (shown[i] && w.depositLeft[i] === Strata.ENDLESS) {
       g.circle(w.hx[i], w.hy[i], R * 0.68);
       endless++;
     }
@@ -89,9 +89,9 @@ function drawGround() {
   const row = (cls, colour, name) => `<li><i class="${cls}" style="background:${hex6(colour)}"></i>${name}</li>`;
   $('groundKey').innerHTML =
     '<h2 class="menu-label">Bedrock</h2><ul>' +
-    Geo.ROCKS.map((r, k) => (rocks[k] ? row('rock', ROCK_COLOUR[k], r.name) : '')).join('') +
+    Strata.ROCKS.map((r, k) => (rocks[k] ? row('rock', ROCK_COLOUR[k], r.name) : '')).join('') +
     '</ul><h2 class="menu-label">Deposits</h2><ul>' +
-    (Geo.DEPOSITS.map((d, k) => (deps[k] ? row(DEPOSIT_MARK[k], DEPOSIT_COLOUR[k], d.name) : '')).join('') ||
+    (Strata.DEPOSITS.map((d, k) => (deps[k] ? row(DEPOSIT_MARK[k], DEPOSIT_COLOUR[k], d.name) : '')).join('') ||
       '<li>None on this map</li>') +
     (endless ? '<li><i class="ore endless"></i>Does not run out</li>' : '') +
     (faint ? '<li><i class="ore faint"></i>Not yet found</li>' : '') +
@@ -100,7 +100,6 @@ function drawGround() {
 function setGround(on) {
   groundOn = on;
   L.ground.visible = on;
-  $('groundKey').hidden = !on;
   if (on) drawGround();
 }
 // Each frame while the overlay is on: a new find or another viewer redraws it, looked for at most twice a second.
@@ -116,3 +115,15 @@ function resetGround() {
   if (groundG) groundG.clear();
   if (groundOn) drawGround();
 }
+registerOverlay({
+  id: 'ground',
+  name: 'Bedrock and deposits',
+  key: 'o',
+  icon: 'ground',
+  group: 'nature',
+  set: setGround,
+  refresh: refreshGround,
+  reset: resetGround,
+  layer: L.ground,
+  keyEl: $('groundKey'),
+});

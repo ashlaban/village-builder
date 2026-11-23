@@ -50,6 +50,10 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - No golden file (retired by VB-408, Kim, 12 November): where an older task or document asks for `tests/golden.js` or a re-recorded
   `tests/golden.json`, `docs/testing.md` stands instead. A refactor shows its behaviour unchanged with `node tools/same.js --base REF`, REF the commit it started
   from: the same runs from both trees, the world and the state compared leaf by leaf, nothing recorded. Its line goes into the PR.
+- Map pixels (VB-1500): a refactor of the map's drawing (the bake, the marks, the rivers' or the paths' drawing) shows it unchanged with
+  `node tools/samepixels.js --base REF`: the sea, the overview and the chunks round each village baked headless by both trees at seeds 7
+  and 42, small, founders, years 0 and 2, and a cover set by hand and restored, their hashes compared; about 6 seconds; nothing recorded.
+  Its drawing functions are found by one adapter (`drawing` in the tool), which a task that moves them keeps working at both commits.
 - Targets: `node tools/targets.js [--name PATTERN] [--since DATE]` prints each target's latest value, residual and last five
   (`docs/bench/targets.jsonl`, written by `--record` on the checks that are targets, the bench, the bands and the nightly; `docs/bench/targets.md`).
 - Roadmap: `node tools/roadmap.js [--out FILE] [--today DATE] [--json]` writes `docs/roadmap.html` (derived, never committed; the Pages
@@ -74,6 +78,11 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   `node tools/sim.js --report waiting [--json]` (VB-633, `tools/waiting.js`): who waits to marry and why, at the moving round's day, by 20
   years (too hungry, nobody free, kin, no home, the score, the means, free), with the age at first marriage by sex, the share never married
   at 45, marriages a year per 1,000, those put off for the means and the share of adults waiting for land. VB-660 adds the fate of those free: at the round's end, of those still unmarried, put off, refused, lapsed, taken, open or unmatched.
+  `node tools/foresight-hunger.js [--seeds 3,7,11,42,5,13,21,29] [--years 30] [--jobs 4] [--root DIR] [--save FILE] [--json]` and `--compare A.json
+  B.json` (VB-571; one seed: `node tools/sim.js --report foresight-hunger`): hunger by household-year, which one household cannot swing as it
+  swings the hungry household-days: the share of household-years with any hunger, the hungry days a household-year, and both by the head's
+  skill third, over the seeds with their spread; `--root` runs another checkout (a `git worktree` of an older commit) with this measure;
+  `--compare` gives B less A seed by seed and whether it is outside twice its standard error. Read-only; about 25 minutes for eight seeds.
   `node tools/sim.js --report soil [--period year|decade] [--json]` (VB-720, `tools/soil.js`): by period and farm class (no cattle, 1-2 head, 3 or
   more): fields, mean soil and tilth, loads of dung spread to the cap and beyond it a field-year, loads rotted on the heap, grain a field reaped;
   by village: meadow tiles to field tiles, cattle a field, mean tilth, and the correlation of the two. Read from the fields a day at a time, kept
@@ -85,6 +94,9 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   (host, its villages, how many villages named each host in their choice) and the villages with none; then gatherings a year, how often a
   village's host changed from the year before, and the share of village-years with no gathering.
   `node tools/sim.js --report ground [--reach 12,30] [--seeds 3,7,11] [--json]` (VB-735, `tools/ground.js`): by village, each rock (any tile, and a quarry tile) and deposit within the reach of its green, hidden ores found or not, the rock under the green, and a summary by kind (villages, and maps with several seeds), with the pairs copper and tin and any iron; at any year (`--years`, `--at`, `--load`).
+- The head's estimate: `node tools/estimates.js [--scenario populous] [--map small] [--seeds 3,7,11,42] [--years 30] [--honest Y]` (VB-476): hungry
+  household-days and crops lost to frost a household-year by thirds of the head's skill, and over the first Y years the share of tasks whose
+  person-hours ended inside the head's range, below and above, by thirds and by kind; one process a seed (30 years, 4 seeds: about 10 minutes).
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
   `node tools/crops.js [--runs populous,founders,heirs] [--years N] [--seeds LIST] [--out FILE|--load FILE] [--json]` (VB-356, the crops'
   wrap-up): the bands' full runs, one per core (about 20 minutes on 4 cores): rations by crop and source against need, fields, fallow and soil
@@ -102,6 +114,9 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads), `node tools/bench.js` (the budget's lines at
   `medium-y5` and `medium-ref`).
 - Land cover: `node tools/cover.js [--map M] [--seeds 7,11,42]` prints each biome's share of a generated island's land; the thresholds are `COVER` in `src/gen.js`.
-- Agent usage: `node tools/agent-usage.js [--results FILE]` (this session's calls, tokens and tool results, and each sub-agent's, from
+- Token use: `node tools/usage-page.js [--dir DIR] [--out FILE] [--json]` writes `docs/usage.html` (derived, never committed; the Pages
+  workflow makes it): the weighted cost of each task from the runs in `docs/agents/usage`, by size and model, by kind of token, by turns (model calls) and turns against cost, and the
+  sessions that belong to no one task (orchestrators, and work outside a task) apart. Its model is checked by `tests/usage-page.js`.
+- Agent usage: `node tools/agent-usage.js [--task VB-NNN] [--results FILE]` (this session's calls, tokens and tool results, and each sub-agent's, from
   their transcripts: weighted cost a done task by size, the orchestrator's share, the median boot, the share done; `--history docs/agents/usage`).
 - Play locally: `node build.js`, then open `index.html` in a browser.

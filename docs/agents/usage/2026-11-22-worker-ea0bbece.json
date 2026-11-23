@@ -1,0 +1,118 @@
+{
+ "session": "ea0bbece-fb68-5cb1-a110-0d7f49ec9444",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-22T23:03:29.783Z",
+ "end": "2026-11-22T23:18:10.659Z",
+ "wallMin": 14.7,
+ "activeMin": 14.7,
+ "prompts": 1,
+ "calls": 59,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 113,
+  "cacheWrite": 114728,
+  "cacheRead": 8328019,
+  "output": 30064
+ },
+ "context": {
+  "first": 84503,
+  "peak": 176811,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 59,
+   "bytes": 144917,
+   "seconds": 465.4
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 12,
+   "bytes": 47691
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 6,
+   "bytes": 21830
+  },
+  {
+   "tool": "Bash",
+   "what": "git log",
+   "calls": 2,
+   "bytes": 14408
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 1,
+   "bytes": 9618
+  },
+  {
+   "tool": "Bash",
+   "what": "for id",
+   "calls": 1,
+   "bytes": 8727
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7384
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 13,
+   "bytes": 6023
+  },
+  {
+   "tool": "Bash",
+   "what": "time node",
+   "calls": 1,
+   "bytes": 5305
+  },
+  {
+   "tool": "Bash",
+   "what": "git show",
+   "calls": 1,
+   "bytes": 3450
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/sim.js",
+   "calls": 2,
+   "bytes": 3005
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 4,
+   "bytes": 2909
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 2662
+  }
+ ],
+ "weighted": 1126645,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 1126645,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

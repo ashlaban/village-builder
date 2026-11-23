@@ -523,8 +523,7 @@ VB['sim/gathering'] = (() => {
             },
             source: 'planner',
           }) === true;
-        if (!ok) setGoing(st, id, false);
-        else emit(st, 'gatheringSetOut', { pawn: id, household: hh.id, until: at.end }); // its dealer loads (sim/fair, VB-302)
+        if (!ok) setGoing(st, id, false); // its dealer loads as its stay opens, at its house (lodged, below; VB-1175)
       }
       plan.beds = [];
     }
@@ -600,6 +599,12 @@ VB['sim/gathering'] = (() => {
   onEnd('gathering', { end: (st, o, pre, present) => dayEnd(st, o, present) });
   // A death at home while its household's goers lodge at the gathering (sim/lifecycle's 'died'): if no adult is left at home, the first
   // adult lodged there turns for home (the news is known at once: knowledge moves without a carrier).
+  // A goer's stay at the gathering opens (sim/away's lodge, at its house: VB-1175): its dealer loads there (sim/fair, VB-302), until the
+  // gathering's end (its stay's until is the morning after).
+  on('lodged', (st, s) => {
+    if (s.why === 'gathering')
+      emit(st, 'gatheringSetOut', { pawn: s.pawn, household: st.pawns[s.pawn].household, until: s.until - WORK[0] });
+  });
   on('died', (st, d) => {
     const p = st.pawns[d.pawn];
     if (p.household === null) return;

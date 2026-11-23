@@ -1,22 +1,24 @@
-// @sys sim/walking: terrain and slope costs, tile passability and cached reach by walking steps
+// @sys sim/walking: terrain and slope costs, the discomfort routes are chosen by, tile passability and cached reach by walking steps
 VB['sim/walking'] = (() => {
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { YEAR_DAYS } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   // @tunable TERRAIN: walking: the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost
   // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed, and so is a river but at a ford or bridge.
-  // Each kind of ground has its own cost (Kim, 13 Nov; VB-439): sand and heather slow a walker a little, open pine wood more, rough
-  // hill ground more again, a thick broadleaf wood with no way through it takes twice the time of meadow, marsh and bare rock longer.
-  // What a worn way takes off these is PATHS.clear.
+  // Each kind of ground has its own cost (Kim, 13 Nov; VB-439): sand and heather slow a walker a little, open pine wood and rough hill
+  // ground three times as long as meadow, a thick broadleaf wood with no way through it four times, marsh and bare rock longer. Rough
+  // ground is dear (Kim, 15 Nov; the journey scale, VB-444's plan, section 5; VB-780): the costs above heath were doubled from 1.6, 1.8,
+  // 2, 2.5 and 3.5, so a path through the wood (PATHS.clear) is half again as slow as meadow, and two and a half times as fast as the
+  // pathless wood beside it: where a way goes decides the journey. What a worn way takes off these is PATHS.clear.
   const TERRAIN = {
     [B.MEADOW]: 1,
     [B.BEACH]: 1.15,
-    [B.HEATH]: 1.25,
-    [B.PINE]: 1.6,
-    [B.HILLS]: 1.8,
-    [B.FOREST]: 2,
-    [B.MARSH]: 2.5,
-    [B.MOUNTAIN]: 3.5,
+    [B.HEATH]: 1.5,
+    [B.PINE]: 3,
+    [B.HILLS]: 3,
+    [B.FOREST]: 4,
+    [B.MARSH]: 5,
+    [B.MOUNTAIN]: 6,
     [B.SNOW]: Infinity,
     ford: 2,
     bridge: 1,
@@ -41,6 +43,9 @@ VB['sim/walking'] = (() => {
   // A generated village (but the founders') starts with `wornYears` of its daily trips worn in (VB-114): `trips` per farm and day, there
   // and back, to each field, to the well (water) and to the green on an idle stroll, and to the village's wood; set so a new village has the paths a
   // played one has after two years (populous Tiny, seeds 7 and 11: 14 and 18 path tiles worn in, 14 to 21 and 13 to 19 played).
+  // blaze: a trail cut through forest (VB-447; docs/plans/VB-445.md, sections 3 and 5): the work hours a wooded tile with no path takes
+  // to blaze (`hours`: trees marked with an axe, brush cut, windfall cleared), and `again` where it is still trodden ground (a faded trail
+  // blazed again); a blazed tile is set to a path's count (at[2]) and is from then on a worn way like any other.
   const PATHS = {
     at: [0, 50, 200, 800],
     keep: 0.85,
@@ -49,6 +54,36 @@ VB['sim/walking'] = (() => {
     clear: [0, 0.25, 0.75, 0.8],
     wornYears: 3,
     trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 },
+    blaze: { hours: 3, again: 1 },
+  };
+
+  // @tunable DISCOMFORT: what a walker minds though it costs little time (VB-448; design.md, Worn paths, 4, and docs/path-effort.md): an
+  // allowance a tile, the share of a step's time a walker would give to be spared it, which steers the route search alone (sim/routes);
+  // the walk takes its time (tileCost), and tires no one. A step is chosen by its time × (1 + weight × load[class] × the mean of its two
+  // tiles' allowances). footing: uneven or overgrown ground by its kind, as energy runs above time on it (de Gruchy, Caswell and Edwards:
+  // grass 1.1, light brush 1.2, heavy brush 1.5, bog 1.8 against hard ground), taken away by wear as PATHS.clear takes the ground's cost
+  // (use gives footing); a field, a meadow, the green and a house are firm. wet: what wear does not drain, marsh and the ford: the ford's
+  // is set so that from bank to bank over open meadow a walker goes round to a bridge up to twice the time of wading and no further, at
+  // weight 1 (Kim, 16 Nov: a dry crossing is worth up to twice the time round); a bridge is dry and firm. load, by class (0 unladen, 1 a
+  // load on the back, 2 with a cart; Kim, 16 Nov): a laden walker minds bad footing and wet more, a cart most.
+  // weight: one for everyone until slice 7 (Kim, 16 Nov); 0 switches discomfort off, and routes are the quickest; it lands at 0 for
+  // Kim's tuning run to switch on (docs/tuning.md).
+  const DISCOMFORT = {
+    weight: 0,
+    footing: {
+      [B.MEADOW]: 0.1,
+      [B.BEACH]: 0.4,
+      [B.HEATH]: 0.2,
+      [B.PINE]: 0.2,
+      [B.HILLS]: 0.3,
+      [B.FOREST]: 0.5,
+      [B.MARSH]: 0.3,
+      [B.MOUNTAIN]: 0.5,
+    },
+    wet: { [B.MARSH]: 0.6 },
+    ford: 2.3,
+    bridge: 0,
+    load: [1, 1.5, 2.5],
   };
 
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
@@ -120,6 +155,49 @@ VB['sim/walking'] = (() => {
     return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
   };
 
+  // A tile's cost along a trail a party would blaze (VB-786; docs/plans/VB-445.md, section 2): a wooded tile with no path through it costs
+  // what a path there would (PATHS.clear and speed at stage 2: broadleaf 1.59, pine 1.36), the trail the party cuts before it carries
+  // anything; every other tile what it costs now (tileCost). A step along it is stepCost's, by these costs.
+  const TRAIL = 2;
+  // Whether tile i is wood a trail is blazed through (VB-447): broadleaf or pine forest, not water, a river, developed ground or a path
+  // already (open ground wears its own way). The one test, for the trail's cost here and its jobs (sim/trails).
+  function unblazed(w, i) {
+    const b = w.biome[i];
+    return (
+      (b === B.FOREST || b === B.PINE) &&
+      !w.water[i] &&
+      !(w.dev && w.dev[i]) &&
+      !(w.river && w.river[i]) &&
+      !(w.worn && w.worn[i] >= TRAIL)
+    );
+  }
+  function trailCost(w, i) {
+    if (!unblazed(w, i)) return tileCost(w, i);
+    return (1 + (TERRAIN[w.biome[i]] - 1) * (1 - PATHS.clear[TRAIL])) / PATHS.speed[TRAIL];
+  }
+  const trailStep = (w, a, b) => {
+    const ca = trailCost(w, a),
+      cb = trailCost(w, b);
+    return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
+  };
+
+  // The discomfort of tile i (DISCOMFORT): its footing, less what its wear has cleared, and its wet; 0 where it is firm (a field, a
+  // meadow, the green, a house, a bridge) or closed. Read by the route search only when DISCOMFORT.weight is not 0.
+  function discomfort(w, i) {
+    if (w.water[i] || (w.dev && w.dev[i])) return 0;
+    if (w.river && w.river[i]) return w.crossing[i] === 1 ? DISCOMFORT.ford : DISCOMFORT.bridge;
+    const b = w.biome[i],
+      s = w.worn ? w.worn[i] : 0;
+    return (DISCOMFORT.footing[b] ?? 0) * (1 - PATHS.clear[s]) + (DISCOMFORT.wet[b] ?? 0);
+  }
+  // What a step from a to b costs a walker of load class `cls` to choose (sim/routes): its time (stepCost) weighed by the mean of its
+  // tiles' discomfort; its time alone when the weight is 0.
+  function choiceCost(w, a, b, cls = 0) {
+    const t = stepCost(w, a, b),
+      k = DISCOMFORT.weight * DISCOMFORT.load[cls];
+    return k ? t * (1 + (k * (discomfort(w, a) + discomfort(w, b))) / 2) : t;
+  }
+
   function invalidateReach(w, tile) {
     const r = REACH.get(w),
       stands = passable(w, tile) ? 1 : 0;
@@ -132,6 +210,7 @@ VB['sim/walking'] = (() => {
     TERRAIN,
     SLOPE,
     PATHS,
+    DISCOMFORT,
     tileCost,
     passable,
     through,
@@ -139,6 +218,10 @@ VB['sim/walking'] = (() => {
     reachTiles,
     slopeFactor,
     stepCost,
+    trailStep,
+    unblazed,
+    discomfort,
+    choiceCost,
     invalidateReach,
   };
 })();

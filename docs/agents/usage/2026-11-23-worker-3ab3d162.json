@@ -1,0 +1,128 @@
+{
+ "session": "3ab3d162-5b34-58fd-9390-37a035f9a5b5",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-23T00:04:47.115Z",
+ "end": "2026-11-23T00:30:36.520Z",
+ "wallMin": 25.8,
+ "activeMin": 24,
+ "prompts": 2,
+ "calls": 113,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 221,
+  "cacheWrite": 175035,
+  "cacheRead": 21141197,
+  "output": 49943
+ },
+ "context": {
+  "first": 84784,
+  "peak": 238785,
+  "firstEdit": 168624
+ },
+ "tools": {
+  "Bash": {
+   "calls": 112,
+   "bytes": 222671,
+   "seconds": 492.1
+  },
+  "Write": {
+   "calls": 2,
+   "bytes": 278,
+   "seconds": 0.1
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 47,
+   "seconds": 0
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 27,
+   "bytes": 123757
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 19,
+   "bytes": 25299
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 14,
+   "bytes": 12608
+  },
+  {
+   "tool": "Bash",
+   "what": "for i",
+   "calls": 1,
+   "bytes": 8715
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 5,
+   "bytes": 8094
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7710
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 5,
+   "bytes": 6867
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 1,
+   "bytes": 5071
+  },
+  {
+   "tool": "Bash",
+   "what": "git show",
+   "calls": 1,
+   "bytes": 4266
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 3705
+  },
+  {
+   "tool": "Bash",
+   "what": "node tests/ownership.js",
+   "calls": 4,
+   "bytes": 3445
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -i",
+   "calls": 8,
+   "bytes": 3151
+  }
+ ],
+ "weighted": 2582849,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 2582849,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

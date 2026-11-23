@@ -309,7 +309,7 @@ function renderTreeInfo() {
     .reverse()
     .map((e) => `<li>Year ${yearStr(Math.floor(e.t / Sim.YEAR) + 1)}: ${esc(e.text)}</li>`)
     .join('');
-  box.innerHTML = `<h3>${esc(Sim.fullName(p))}</h3>
+  box.innerHTML = `<h3 class="head">${esc(Sim.fullName(p))}</h3>
       <p>${
         dead
           ? `Lived from year ${yearStr(Sim.birthYear(p))} to ${yearStr(deathYear(p))}.`

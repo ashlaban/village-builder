@@ -1,95 +1,21 @@
-// @sys sim/fields: field state from breaking ground through the crop year, including rotation changes, soil and manure
+// @sys sim/fields: a field's crop year: hoed, sown, growing, weeded, ripe, reaped, carried, lost to the frost or left standing; fallow's rest
 VB['sim/fields'] = (() => {
-  const { underCrop, fieldAt, courseFor } = VB['sim/rotations'];
   const { next: rnd } = VB['sim/rng'];
-  const { HERD, DEER, cal, DAY, SEASON_DAYS, YEAR } = VB['sim/rules'],
-    { CROPS, ROTATIONS, SOIL, fertility } = VB['sim/crops'];
-  const { costChanged } = VB['sim/routes'];
+  const { HERD, DEER, DAY, SEASON_DAYS, YEAR, YEAR_DAYS } = VB['sim/rules'],
+    { CROPS } = VB['sim/crops'];
   const { log, atFarm } = VB['sim/records'];
   const { cropFactor, ripeShift } = VB['sim/weather'];
-  const { woodTaken } = VB['sim/territory'];
-  const { realiseStake } = VB['sim/stakes'];
-  const Stores = VB['sim/stores'],
-    Projects = VB['sim/projects'];
+  const Projects = VB['sim/projects'];
+  const { clearScrub, lapse, wild, SPREAD, LAPSE } = VB['sim/spread'];
+  const { nextStep, failed } = VB['sim/courses'];
+  const { wearSoil, rested, tilthOf } = VB['sim/soil'];
   const { emit } = VB['sim/events'];
-  const { clearScrub, tended, SPREAD } = VB['sim/spread'];
-  const STONES_PER_LOAD = 25;
-  // @tunable TILTH: tilth (VB-717; docs/review-yields.md, 4): a field's slow soil, built by dung and fading over decades. Estimates, with no medieval
-  // Nordic source. `perLoad`: what one load of manure adds to a field's tilth (on top of its soil); `years`: the time constant of its
-  // fading, in game years (e^-1 left after that long without dung); `max`: a bound for the invariant, which play should never reach.
-  // A harvest is multiplied by 1 + tilth ----
-  const TILTH = { perLoad: 0.0011, years: 70, max: 0.4, surplus: 2 };
-  // Clearing done: the stones go to the household's store, the tile is bare ground; the project's next step, breaking, opens.
-  // `plan` is the household's field plan whose step the job was (sim/projects' onProject).
-  function finishClear(st, f, hh, plan) {
-    const tile = plan.steps[plan.open].place;
-    clearStones(st, tile, hh);
-    emit(st, 'stepDone', { type: 'household', id: f.household, plan }); // the project's next step opens (sim/plans)
-  }
-  // The stones cleared off `tile` go to household hh's heap (VB-332: through the stores; a common field's to the household of the one who
-  // finished the clearing, VB-100), and the tile is bare ground.
-  function clearStones(st, tile, hh) {
-    const w = st.w,
-      loads = Math.round(w.stones[tile] / STONES_PER_LOAD);
-    if (loads > 0 && hh) Stores.put(st, hh, 'stone', loads, 'clear');
-    w.stones[tile] = 0;
-    clearScrub(st, tile); // its scrub too, and it is tended (VB-091)
-    st.biomeDirty.add(tile);
-  }
-  // Breaking done: the stake is the household's own land, a field in stubble; on ground never farmed (w.dev 0) its soil starts fresh
-  // (SOIL.fresh, VB-149). The project is finished.
-  function finishBreak(st, f, plan) {
-    const tile = plan.steps[plan.open].place;
-    realiseStake(st, st.households[f.household], tile);
-    const fd = broken(st, tile, f.fields.length);
-    f.fields.push(fd);
-    placeField(st, f, st.households[f.household], fd);
-    st.farmDirty.add(f.id); // its new field is drawn (VB-442)
-    emit(st, 'stepDone', { type: 'household', id: f.household, plan }); // the project is finished (sim/plans)
-    log(st, `${f.name} has broken a new field.`, { kind: 'field', ...atFarm(f) });
-  }
-  // A new field in stubble on `tile`, its ground broken: farmed land from now. A farm's (finishBreak) or a village's common field (VB-100,
-  // sim/commons), whose holder adds it to its list.
-  function broken(st, tile, id) {
-    const w = st.w,
-      fd = {
-        id,
-        tile,
-        crop: 'barley',
-        rotation: 'every',
-        step: 0,
-        stage: 'stubble',
-        sown: null,
-        reaped: null,
-        held: 0,
-        fert: fertility(w, tile),
-        soil: w.dev[tile] ? SOIL.start : SOIL.fresh,
-        tilth: 0,
-        tilthAt: st.t,
-        weedOpen: false,
-        weedPosted: null,
-        weedMiss: 0,
-      };
-    tended(st, tile); // VB-091
-    st.used.add(tile);
-    woodTaken(st, tile); // a wood tile broken to a field leaves its village's wood (VB-326)
-    if (!w.dev[tile]) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
-    w.dev[tile] = 1;
-    st.biomeDirty.add(tile);
-    return fd;
-  }
-  // The field goes on to its next step: its crop is in, or lost, or its window passed with it unsown, or its fallow year is over. A field
-  // hoed for a crop it will not bear now lies in stubble (a fallow field is never hoed).
-  function nextStep(fd) {
-    const R = ROTATIONS[fd.rotation].courses;
-    if (fd.turn)
-      delete fd.turn; // its year out of turn is over (VB-355): back to the rotation, at the next step
-    else if (R.length === 1) return; // barley every year: as it was
-    fd.step = (fd.step + 1) % R.length;
-    fd.crop = R[fd.step];
-    if (!underCrop(fd)) delete fd.weeds;
-    if (CROPS[fd.crop].fallow && fd.stage === 'plowed') fd.stage = 'stubble';
-  }
+  const { setOwner } = VB['sim/ownership'];
+  // A farm's window missed with the task that would have met it still on the board (sim/estimate, VB-476: the head's estimate read against
+  // the truth): told before the field moves on, while the task stands. A village's common field has no head to have misjudged it.
+  const missed = (st, f, fd, kind, why) => {
+    if (!isVillage(f)) emit(st, 'windowMissed', { farm: f, field: fd, kind, why });
+  };
   // The days after the crops' sowing windows close: [season, day, crop].
   const CLOSED = Object.keys(CROPS)
     .filter((k) => CROPS[k].seed > 0)
@@ -105,164 +31,20 @@ VB['sim/fields'] = (() => {
       for (const f of st.farmsteads)
         if (f.household !== null)
           for (const fd of f.fields)
-            if (fd.crop === k && (fd.stage === 'stubble' || fd.stage === 'plowed')) nextStep(fd);
+            if (fd.crop === k && (fd.stage === 'stubble' || fd.stage === 'plowed')) {
+              missed(st, f, fd, fd.stage === 'stubble' ? 'plow' : 'sow', `the window for sowing ${k} closed`);
+              nextStep(fd);
+            }
     }
-  }
-  // How well a step's course suits a field when the farm changes rotation: its own crop first, then fallow.
-  const suits = (course, crop) => (course === crop ? 2 : CROPS[course].fallow ? 1 : 0);
-  // The farm's fields take rotation `key`, staggered: a field under a crop keeps it (the caller checks the rotation has it); each other
-  // field, in order, takes a step fewest of the fields are at, the one that suits it best, else the first.
-  function restagger(f, key) {
-    const R = ROTATIONS[key].courses;
-    for (const fd of f.fields) {
-      delete fd.turn;
-      fd.rotation = key;
-      fd.step = underCrop(fd) ? R.indexOf(fd.crop) : -1; // -1: placed below
-    }
-    const at = (j) => f.fields.filter((q) => q.step === j).length;
-    for (const fd of f.fields) {
-      if (fd.step >= 0) continue;
-      const n = R.map((k, j) => at(j)),
-        least = Math.min(...n);
-      let i = -1;
-      for (let j = 0; j < R.length; j++)
-        if (n[j] === least && (i < 0 || suits(R[j], fd.crop) > suits(R[i], fd.crop))) i = j;
-      fd.step = i;
-      fd.crop = R[i];
-      delete fd.weeds; // no crop stands: a lost crop's weeding goes with it (VB-999's reviews at rye's close met it)
-      if (CROPS[fd.crop].fallow && fd.stage === 'plowed') fd.stage = 'stubble';
-    }
-  }
-  // A new field takes the farm's rotation (with no field yet, the household's: rotationOf) and the step fewest of the farm's fields are
-  // at; of those, the course sown soonest from today (fallow last), then the first.
-  function placeField(st, f, hh, fd) {
-    const { key, i } = courseFor(
-      st,
-      f.fields.filter((q) => q !== fd),
-      hh,
-    );
-    fd.rotation = key;
-    fd.step = i;
-    fd.crop = ROTATIONS[key].courses[i];
-  }
-  // Farm f takes rotation `key` (rotationWhy holds), its fields staggered anew when it changes. hold: its head keeps it against the
-  // village's usual one, until it chooses again; key null, or a choice without hold, gives the choosing back to the rule. short: the crop
-  // whose seed ran out, when the rule falls back (logged once, at the change).
-  function takeRotation(st, f, hh, key, { hold = false, short = null } = {}) {
-    const changed = key !== null && f.fields[0].rotation !== key;
-    if (changed) restagger(f, key);
-    // a farm that now sows one crop has no other to turn to after a failure (failed's own rule): what it remembers of one goes
-    if (changed && f.failed && ROTATIONS[key].courses.filter((k) => CROPS[k].seed > 0).length < 2) delete f.failed;
-    if (hold && key !== null) f.rotationBy = hh.id;
-    else if (f.rotationBy === hh.id) delete f.rotationBy;
-    if (!changed || (short === null && !hold)) return;
-    log(
-      st,
-      short !== null
-        ? `${f.name} has no seed of ${short} to sow and falls back on ${ROTATIONS[key].label}.`
-        : `${f.name} now farms ${ROTATIONS[key].label}, by its head's choice.`,
-      { kind: 'field', ...atFarm(f) },
-    );
-  }
-  // The fields of farm f on tiles a and b exchange their courses (swapWhy holds; the verb courses, VB-351): each takes the other's step and
-  // crop, so the farm's fields stay staggered and the worn one rests first. A hoed field going fallow lies in stubble.
-  function swapSteps(st, f, a, b) {
-    const x = fieldAt(f, a),
-      y = fieldAt(f, b);
-    [x.step, y.step] = [y.step, x.step];
-    [x.crop, y.crop] = [y.crop, x.crop];
-    for (const fd of [x, y]) if (CROPS[fd.crop].fallow && fd.stage === 'plowed') fd.stage = 'stubble';
-    const rest = CROPS[x.crop].seed > 0 ? y : x,
-      sown = rest === x ? y : x;
-    log(st, `${f.name} rests its poorer field and sows ${sown.crop} on the better one.`, {
-      kind: 'field',
-      ...atFarm(f),
-    });
-  }
-  // @state farmstead.failed: absent, or {crop, year}: the crop last lost on a field of the farm, to the frost or left standing, and the year
-  //   of cal it was lost in (VB-351): the year after, an ordinary or good head sows more of another crop (sim/rotations' fieldsChoice).
-  //   Kept only on a farm whose rotation has two crops or more, so a farm of barley alone holds none.
-  function failed(st, f, fd) {
-    if (isVillage(f) || ROTATIONS[fd.rotation].courses.filter((k) => CROPS[k].seed > 0).length < 2) return;
-    f.failed = { crop: fd.crop, year: cal(st.t).year };
-  }
-  // The field on `tile` bears `crop` this year, out of turn (turnWhy holds): its step stays, and when the crop is in, or lost, or its
-  // window closes, the field goes on to its next step as after any course. Nothing is sown here: the household's work does that.
-  function outOfTurn(st, f, tile, crop) {
-    const fd = fieldAt(f, tile);
-    fd.crop = crop;
-    if (ROTATIONS[fd.rotation].courses[fd.step] === crop) delete fd.turn;
-    else fd.turn = true;
-    if (CROPS[crop].fallow && fd.stage === 'plowed') fd.stage = 'stubble';
-    log(
-      st,
-      fd.turn
-        ? `${f.name} ${CROPS[crop].fallow ? 'rests a field' : `sows a field with ${crop}`} out of turn this year.`
-        : `${f.name} puts a field back to its turn: ${crop}.`,
-      { kind: 'field', ...atFarm(f) },
-    );
-  }
-  // ---- soil and manure (VB-137) ----
-  // A reaped crop wears the field's soil.
-  const wearSoil = (fd) => {
-    const C = CROPS[fd.crop];
-    fd.soil = C.gain
-      ? Math.max(fd.soil, Math.min(SOIL.start, fd.soil + C.gain))
-      : Math.max(SOIL.floor, fd.soil - C.wear); // peas mend it (VB-349)
-  };
-  // The loads a field has taken this year beyond its soil's need (VB-718): read as 0 when the year is not this one, so nothing resets it.
-  // @state farmstead.fields[].surplus: loads of surplus dung taken in year surplusYear (absent: none); written only at manuring.
-  const surplusOf = (st, fd) => (fd.surplusYear === Math.floor(st.t / YEAR) ? fd.surplus : 0);
-  // In spring, while the heap holds a load, manure goes to the field with the poorest soil that is not yet sown: [field, loads, surplus] or null.
-  // When no field wants dung for its soil, the heap's loads go for tilth to the field with the least, up to TILTH.surplus a field-year.
-  function manureWanted(st, f, hh, c) {
-    if (c.season !== 0 || c.sday < SOIL.window[0] || c.sday > SOIL.window[1] || !(hh.manure >= 1)) return null;
-    let best = null;
-    for (const fd of f.fields) {
-      if ((fd.stage !== 'stubble' && fd.stage !== 'plowed') || fd.soil >= SOIL.cap - 1e-9) continue;
-      if (!best || fd.soil < best.soil) best = fd;
-    }
-    if (best) return [best, Math.min(hh.manure, (SOIL.cap - best.soil) / SOIL.perLoad), false];
-    let low = null,
-      lowT = Infinity,
-      room = 0;
-    for (const fd of f.fields) {
-      if (fd.stage !== 'stubble' && fd.stage !== 'plowed') continue;
-      const left = TILTH.surplus - surplusOf(st, fd);
-      if (left < 1 - 1e-9) continue;
-      const t = tilthOf(st, fd);
-      if (t < lowT) {
-        low = fd;
-        lowT = t;
-        room = left;
-      }
-    }
-    return low ? [low, Math.min(Math.floor(hh.manure + 1e-9), Math.floor(room + 1e-9)), true] : null;
-  }
-  // The manure is spread: each load the job carried raises the soil, as far as the heap still holds it; never below a fresh field's soil.
-  function manureDone(st, fd, hh, loads) {
-    const n = Math.max(0, Math.min(loads, hh.manure));
-    hh.manure -= n;
-    const extra = Math.max(0, n - Math.max(0, (SOIL.cap - fd.soil) / SOIL.perLoad)); // loads beyond the soil's need (VB-718)
-    if (extra > 1e-9) {
-      fd.surplus = surplusOf(st, fd) + extra;
-      fd.surplusYear = Math.floor(st.t / YEAR);
-    }
-    fd.soil = Math.max(fd.soil, Math.min(SOIL.cap, fd.soil + n * SOIL.perLoad));
-    fd.tilth = tilthOf(st, fd) + n * TILTH.perLoad; // the ground's slow soil, whatever the soil (VB-717)
-    fd.tilthAt = st.t;
-  }
-  // @state farmstead.fields[].tilth: the field's tilth when last set (0 or more); tilthAt: the tick it was set; it fades as e^-(t/TILTH.years),
-  //   read in closed form by tilthOf, and written only at manuring (VB-717). A field starts at 0 in every scenario.
-  function tilthOf(st, fd) {
-    VB.count.tilthRead++;
-    return fd.tilth * Math.exp(-(st.t - fd.tilthAt) / (TILTH.years * YEAR));
   }
   // @state farmstead.fields[]: crop (a key of CROPS, sim/crops: a crop, or the course fallow, VB-348), stage, sown/reaped days, held sheaves and
-  // weeding progress; changed only here after seeding.
+  // weeding progress; changed only here after seeding, but for its course (rotation, step, crop, turn: sim/courses) and its soil (soil,
+  // tilth, tilthAt, surplus, surplusYear: sim/soil), each part's owner in src/owners.json (VB-1479); made by sim/newground's broken.
   //   trampled: absent, or the times cattle got into the standing crop since it was sown (VB-136; each takes HERD.stray.loss of its yield)
   //   hoursOwn, hoursOther (VB-462): absent, or the year's work hours given by the user household's own members and by others
   //   weeds: absent, or the rounds of weeding posted since sowing (CROPS weeds; VB-334, VB-348)
+  //   used: absent, or the game day of the field's last use (sown, reaped, a fallow course, reclaimed, broken; VB-1527): LAPSE.years
+  //   after it the field goes back to the land (lapseFields)
   //   rest: absent, or a fallow field's rest this year (VB-348): 0.5 once it stood fallow at the summer's start, 1 once tilled; credited
   //   to the soil at the year's end, whatever the field bears by then (rye is sown on it in autumn)
   // A stubble field hoed for its crop; a fallow field (the course, not the stage) is tilled and stays in stubble.
@@ -274,6 +56,7 @@ VB['sim/fields'] = (() => {
   function sown(fd, c) {
     fd.stage = 'sown';
     fd.sown = c.day;
+    fd.used = c.day;
     fd.weedOpen = false;
     fd.weedPosted = null;
     fd.weedMiss = 0;
@@ -318,6 +101,7 @@ VB['sim/fields'] = (() => {
     if (fd.weedOpen) fd.weedMiss++;
     fd.stage = 'stooks';
     fd.reaped = c.day;
+    fd.used = c.day;
     fd.held = Math.round(standing(st, fd) * (0.9 + rnd(st.rng.fields) * 0.2));
     delete fd.trampled;
     delete fd.browsed;
@@ -352,6 +136,7 @@ VB['sim/fields'] = (() => {
   };
   function reclaimed(st, fd) {
     clearScrub(st, fd.tile); // the forest's scrub on it is cleared with the grass (VB-091)
+    fd.used = Math.floor(st.t / DAY);
     if (fd.stage === 'fallow' || fd.stage === 'scrub') fd.stage = 'stubble'; // its picture follows the stage (page/animate)
   }
   const weeded = (fd) => {
@@ -364,10 +149,70 @@ VB['sim/fields'] = (() => {
       fd.sown = null;
     }
   }
+  // @state farmstead.left (VB-768): absent, or {gone (fields the farm has let go, ever), year (the game year of the last), inYear (let go in
+  //   that year, at most FIELDS.letGo)}; a new field's id is the farm's fields made so far, fields.length + gone, so no id is used again
+  // A field let go (the head's verb letField, sim/plans; VB-768): it leaves the farm's list and its tile passes back to the village, in
+  // stubble or fallow as it lay: developed ground, outland any household of the village may take in again (sim/territory's freeFor). Only
+  // an idle field is let go (the verb checks it: no crop, no sheaves, no job on it), so no work and no store is touched.
+  function letGo(st, f, fd, c) {
+    const i = f.fields.indexOf(fd);
+    if (i < 0) return;
+    f.fields.splice(i, 1);
+    const L = f.left || (f.left = { gone: 0, year: c.year, inYear: 0 });
+    if (L.year !== c.year) L.inYear = 0;
+    L.gone++;
+    L.year = c.year;
+    L.inYear++;
+    st.used.delete(fd.tile);
+    setOwner(st, fd.tile, { type: 'village', id: f.village });
+    lapse(st, fd.tile, fd.used); // developed ground until LAPSE.years from its last use, then its terrain again (sim/spread, VB-1527)
+    st.farmDirty.add(f.id);
+    st.biomeDirty.add(fd.tile);
+    log(st, `${f.name} lets a field go: its household no longer needs its grain.`, { kind: 'fieldLeft', ...atFarm(f) });
+  }
+  // A field unused goes back to the land, whatever farm it lies on (Kim, 23 Nov: reverting is a natural property of the ground, not tied
+  // to a pawn or a household; VB-1527): on the year's last day, a field of any farm, held or empty, whose last use (fd.used: sown, reaped,
+  // a fallow course, reclaimed, broken) is LAPSE.years back, that bears no crop and no sheaves and has no task on it, leaves the farm's
+  // list and is wild ground of its terrain at once (sim/spread's wild). A field with no use recorded (laid out, or an older save's) counts
+  // from the day its farm emptied, or from today. A farm under restoration keeps its fields (a claimant is reclaiming them).
+  function lapseFields(st, c) {
+    const day = Math.floor(st.t / DAY);
+    for (const f of st.farmsteads) {
+      if (!f.fields.length || Projects.onFarm(st, f.id)) continue;
+      const jobs = f.household === null ? null : st.jobsBy.get(`household:${f.household}`);
+      let n = 0;
+      for (const fd of [...f.fields]) {
+        VB.count.fieldLapse++;
+        if (fd.used === undefined)
+          fd.used = f.household === null && typeof f.emptySince === 'number' ? Math.floor(f.emptySince / DAY) : day;
+        if (day - fd.used < LAPSE.years * YEAR_DAYS || !LIES.has(fd.stage) || fd.held > 0) continue;
+        if (jobs && [...jobs].some((j) => j.field === fd)) continue;
+        f.fields.splice(f.fields.indexOf(fd), 1);
+        const L = f.left || (f.left = { gone: 0, year: c.year, inYear: 0 });
+        L.gone++; // its id is not used again (VB-768)
+        st.used.delete(fd.tile);
+        setOwner(st, fd.tile, { type: 'village', id: f.village });
+        wild(st, fd.tile);
+        n++;
+      }
+      if (!n) continue;
+      st.farmDirty.add(f.id);
+      log(
+        st,
+        `${n === 1 ? 'A field' : `${n} fields`} of ${f.name}, unused ${LAPSE.years} years, ${n === 1 ? 'has' : 'have'} gone back to the land.`,
+        {
+          kind: 'fieldLeft',
+          ...atFarm(f),
+        },
+      );
+    }
+  }
+  const LIES = new Set(['stubble', 'fallow', 'scrub']);
   // A ripe field still standing on its crop's `lost` day is lost (rye by the autumn's first day; VB-348).
   function lostRipe(st, f, fd, c) {
     const L = CROPS[fd.crop].lost;
     if (!L || fd.stage !== 'ripe' || c.season !== L[0] || c.sday !== L[1]) return;
+    missed(st, f, fd, 'reap', `the ${fd.crop} was lost, left standing too long`);
     fd.stage = 'stubble';
     fd.sown = null;
     fd.weedOpen = false;
@@ -397,10 +242,13 @@ VB['sim/fields'] = (() => {
     if (!summer && !end && !autumn) return;
     for (const f of st.farmsteads)
       for (const fd of f.fields) {
-        if (summer && f.household !== null && CROPS[fd.crop].fallow && fd.rest === undefined) fd.rest = 0.5;
+        if (summer && f.household !== null && CROPS[fd.crop].fallow && fd.rest === undefined) {
+          fd.rest = 0.5;
+          fd.used = c.day; // a fallow course is the field's use that year
+        }
         if (autumn && CROPS[fd.crop].fallow && fd.rest !== undefined) nextStep(fd);
         if (end && fd.rest !== undefined) {
-          fd.soil = Math.max(fd.soil, Math.min(SOIL.start, fd.soil + CROPS.fallow.mend * fd.rest));
+          rested(fd);
           delete fd.rest;
         }
       }
@@ -429,6 +277,7 @@ VB['sim/fields'] = (() => {
     });
     rest(st, c);
     unsown(st, c);
+    if (c.season === 3 && c.sday === SEASON_DAYS - 1) lapseFields(st, c);
     // Untended fields go to grass, unless a claimant is restoring the farm; a field the forest has grown into is scrub (sim/spread, VB-091).
     for (const f of st.farmsteads)
       if (f.household === null && !Projects.onFarm(st, f.id)) {
@@ -449,6 +298,7 @@ VB['sim/fields'] = (() => {
       if (CROPS[fd.crop].winter && fd.stage === 'growing') return;
       if (['ripe', 'growing', 'stooks'].includes(fd.stage)) {
         const k = fd.crop + ' ' + (STOOD[fd.stage] || fd.stage);
+        if (fd.stage === 'ripe') missed(st, f, fd, 'reap', `frost took the ${fd.crop}`);
         if (!lost.has(f)) lost.set(f, new Map());
         lost.get(f).set(k, (lost.get(f).get(k) || 0) + 1);
         fd.stage = 'stubble';
@@ -474,32 +324,21 @@ VB['sim/fields'] = (() => {
   }
   const STOOD = { ripe: 'ripe and not yet reaped', stooks: 'in stooks', growing: 'still growing' };
   return {
-    TILTH,
-    takeRotation,
-    outOfTurn,
-    swapSteps,
-    restagger,
     book,
     hoed,
     sown,
     trample,
     reaped,
     standing,
-    tilthOf,
     carried,
     laidDown,
     binned,
     reclaimed,
     weeded,
     abandoned,
+    letGo,
+    lapseFields,
     fieldsDay,
     fieldsFrost,
-    finishClear,
-    clearStones,
-    finishBreak,
-    broken,
-    manureWanted,
-    surplusOf,
-    manureDone,
   };
 })();

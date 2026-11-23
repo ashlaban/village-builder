@@ -20,7 +20,7 @@ const check = (ok, m) => { if (!ok) fail(m); };
   page.on('pageerror', (e) => fail('page error: ' + (e.stack || e.message)));
   await page.route(/^https?:\/\//, (r) => /pixi(\.min)?\.js/.test(r.request().url()) ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' }));
   await page.route('https://village.test/', (r) => r.fulfill({ contentType: 'text/html', body: browserHTML(builtPage()
-    .replace(HOOK, HOOK + ' window.__play = { get st() { return st; }, Sim, get speed() { return speed; }, set speed(v) { speed = v; }, roundEnd: (y) => roundEnd(y), listSaves: () => listSaves(), saveTx: (...a) => saveTx(...a) };')) }));
+    .replace(HOOK, HOOK + ' window.__play = { get st() { return st; }, Sim, get speed() { return speed; }, set speed(v) { speed = v; }, roundEnd: (y) => roundEnd(y), listSaves: () => listSaves(), saveTx: (...a) => saveTx(...a), paintOf };')) }));
   const shot = async (name) => { if (out) await page.screenshot({ path: path.join(out, name) }); };
   const done = () => page.waitForFunction(() => document.getElementById('loader').classList.contains('done') && !!window.__play.st
     && document.getElementById('genScreen').hidden && document.getElementById('landing').hidden
@@ -132,6 +132,10 @@ const check = (ok, m) => { if (!ok) fail(m); };
   await pause();
   check((await hash()) === h1, 'Continue after a reload: ' + (await hash()) + ' against ' + h1);
   check(await page.locator('#choose').isHidden(), 'a load opens whom to play'); // VB-339: only a new game does
+  // VB-1504: the loaded world's paint, whose biomes the save laid, is the paint built anew from it
+  const stale = await page.evaluate(() => { const w = window.__play.st.w, P = window.__play.paintOf(w), Q = VB['draw/paint'].paint(w);
+    return Object.keys(Q).filter((k) => P[k].some((v, i) => !Object.is(v, Q[k][i]))); });
+  check(!stale.length, 'the paint of a loaded world is not as built anew: ' + stale.join(', '));
   await page.click('#menuBtn'); await landing(); await savesOpen();
   await page.click(`#savesBody [data-del="${P7}:3"]`);
   await until(async (k) => !(await window.__play.listSaves()).some((x) => x.key === k), `${P7}:3`);

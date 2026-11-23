@@ -17,7 +17,7 @@ VB['sim/opportunities'] = (() => {
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { GATHERING } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];
-  const { fit, jobsFor } = VB['sim/jobs'];
+  const { appraise, workCommand, jobsFor } = VB['sim/jobs'];
   const { eligible } = VB['sim/eligibility'];
   const { heirRanking, successorOf } = VB['sim/heirranking'],
     { staysWhy } = VB['sim/heirs'];
@@ -70,11 +70,21 @@ VB['sim/opportunities'] = (() => {
       const basis = seen.has(key) ? null : eligible(view, j || { owner }, p);
       if (!basis) return;
       seen.add(key);
-      const row = j
-        ? fit(view, p, j, c)
-        : { bid: null, reason: 'not given out yet: work is given out in working hours' };
-      const why = j && a.job === j ? 'doing it now' : row.reason || check(view, p.id, 'work', key, null);
-      list.push(item('work', key, null, why, { holder: owner, basis, fit: row.bid, kind, site: j ? j.site : site }));
+      // a posted job as the matcher weighs it (sim/jobs appraise), then the verb's own check of the command it would be given; one not
+      // yet posted is shown, with why it cannot be taken
+      const r = j ? appraise(view, a, j, c) : 'not given out yet: work is given out in working hours',
+        cmd = workCommand(p.id, key, 'player');
+      const why =
+        j && a.job === j ? 'doing it now' : typeof r === 'string' ? r : VERBS.work.check(view, { ...cmd, args: null });
+      list.push(
+        item(cmd.verb, cmd.target, null, why || null, {
+          holder: owner,
+          basis,
+          fit: typeof r === 'number' ? r : null,
+          kind,
+          site: j ? j.site : site,
+        }),
+      );
     };
     // as refreshJobs asks the kinds (sim/jobs), for this farm and this village only; `put` posts nothing
     let kind = null,

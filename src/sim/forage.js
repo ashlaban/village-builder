@@ -2,7 +2,7 @@
 // each spring and lowered by a trip, and a house's gathering ground: the nearest such tile within reach with something left
 VB['sim/forage'] = (() => {
   const { YEAR_DAYS, DAY } = VB['sim/rules'],
-    { B } = VB['gen'];
+    { B } = VB['world/biomes'];
   const { reachTiles } = VB['sim/walking'];
   // @tunable FORAGE: gathering (VB-118; Kim, 10 Nov, QUESTION_ARCHIVE.md, VB-117 to VB-119, question 2): berries, mushrooms and nuts on a forest or heath tile
   // within `reach` walking steps of the house, with at least `least` (a trip's take) left; a trip brings home `trip` rations times the tile's

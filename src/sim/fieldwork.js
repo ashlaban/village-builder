@@ -1,5 +1,5 @@
 // @sys sim/fieldwork: the job kinds of a farm's fields: hoeing, sowing, weeding, reaping, bringing in, threshing, carting manure, clearing
-// an overgrown field, and the two steps that make a new one (clear, break); each ends in one of sim/fields' transitions
+// an overgrown field, and the two steps that make a new one (clear, break); each ends in one of sim/fields' transitions (or sim/newground's, sim/soil's)
 // VB-418: the fields' domain in two modules: sim/fields is the field's state and its year, this the work a household does on it. It writes
 // no field itself. sim/kinds joins KINDS into the registry, where a kind's fields are described; for a common field sim/commons wraps
 // the three kinds whose end is the village's (haul, clear, break).
@@ -12,21 +12,9 @@ VB['sim/fieldwork'] = (() => {
   const { scrubHours, SPREAD } = VB['sim/spread'];
   const { onProject, landProject } = VB['sim/projects'],
     { workStake } = VB['sim/claims'];
-  const {
-    finishClear,
-    finishBreak,
-    manureWanted,
-    manureDone,
-    hoed,
-    sown,
-    reaped,
-    standing,
-    carried,
-    laidDown,
-    binned,
-    reclaimed,
-    weeded,
-  } = VB['sim/fields'];
+  const { finishClear, finishBreak } = VB['sim/newground'],
+    { manureWanted, manureDone } = VB['sim/soil'];
+  const { hoed, sown, reaped, standing, carried, laidDown, binned, reclaimed, weeded } = VB['sim/fields'];
   const { fieldsWorkable } = VB['sim/fieldplans'];
   const { heldFarms } = VB['sim/ownership'];
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
@@ -134,6 +122,9 @@ VB['sim/fieldwork'] = (() => {
       verb: 'Hoeing a field',
       go: 'Going to hoe a field',
       name: 'Hoe a field',
+      at: ['field'],
+      needs: [],
+      gives: [],
       label: 'Hoeing',
       anim: 'hoe',
       hours: HOURS.plow,
@@ -159,6 +150,9 @@ VB['sim/fieldwork'] = (() => {
       verb: 'Sowing',
       go: 'Going to sow',
       name: 'Sow a field',
+      at: ['field'],
+      needs: ['seed'],
+      gives: [],
       label: 'Sowing',
       anim: 'sow',
       hours: HOURS.sow,
@@ -187,6 +181,9 @@ VB['sim/fieldwork'] = (() => {
       verb: 'Reaping',
       go: 'Going to reap',
       name: 'Reap a field',
+      at: ['field'],
+      needs: [],
+      gives: ['sheaves'],
       label: 'Reaping',
       anim: 'reap',
       hours: HOURS.reap,
@@ -194,6 +191,7 @@ VB['sim/fieldwork'] = (() => {
       type: 'harvest',
       field: true,
       spot: onField,
+      norm: (st, j) => CROPS[j.field.crop].hours.reap ?? HOURS.reap, // a normal crop's hours (the head's estimate, VB-476)
       urgency: (st, j, c, U) => U.reap + frostNear(st, c, U),
       done: (st, j, hh, c) => reaped(st, j.field, c),
       // a ripe field
@@ -207,6 +205,9 @@ VB['sim/fieldwork'] = (() => {
       go: 'Going for the sheaves',
       back: 'Carrying sheaves to the barn',
       name: 'Bring in sheaves',
+      at: ['field'],
+      needs: ['sheaves'],
+      gives: ['sheaves'],
       label: 'Hauling sheaves',
       anim: 'gather',
       hours: 0.7,
@@ -239,6 +240,9 @@ VB['sim/fieldwork'] = (() => {
       verb: 'Weeding a field',
       go: 'Going to weed a field',
       name: 'Weed a field',
+      at: ['field'],
+      needs: [],
+      gives: [],
       label: 'Weed',
       anim: 'gather',
       hours: HOURS.weed,
@@ -257,12 +261,16 @@ VB['sim/fieldwork'] = (() => {
       verb: 'Threshing in the barn',
       go: 'Going to the barn to thresh',
       name: 'Thresh the grain',
+      at: ['barn'],
+      needs: ['sheaves'],
+      gives: ['grain'],
       label: 'Threshing',
       anim: null,
       hours: HOURS.thresh,
       hands: Infinity,
       type: 'threshing',
       inside: true,
+      norm: (st, j) => CROPS[st.households[j.owner.id].sheafCrops?.[0] || 'barley'].hours.thresh ?? HOURS.thresh,
       window: { from: WORK[0] - 1 },
       done: (st, j, hh) => {
         Stores.thresh(st, hh);
@@ -276,6 +284,9 @@ VB['sim/fieldwork'] = (() => {
       verb: 'Clearing scrub and stones',
       go: 'Going to clear land',
       name: 'Clear a new field',
+      at: ['land'],
+      needs: [],
+      gives: ['stone'],
       label: 'Clear',
       anim: 'hoe',
       hours: 10,
@@ -295,6 +306,9 @@ VB['sim/fieldwork'] = (() => {
       verb: 'Breaking new ground',
       go: 'Going to break new ground',
       name: 'Break new ground',
+      at: ['land'],
+      needs: [],
+      gives: ['field'],
       label: 'Break',
       anim: 'hoe',
       hours: 30,
@@ -314,6 +328,9 @@ VB['sim/fieldwork'] = (() => {
       verb: 'Clearing an overgrown field',
       go: 'Going to clear an overgrown field',
       name: 'Clear an overgrown field',
+      at: ['field'],
+      needs: [],
+      gives: ['field'],
       label: 'Reclaim',
       anim: 'hoe',
       hours: 10,
@@ -333,6 +350,9 @@ VB['sim/fieldwork'] = (() => {
       verb: 'Spreading manure on the field',
       go: 'Carting manure to the field',
       name: 'Cart manure',
+      at: ['field'],
+      needs: ['manure'],
+      gives: [],
       label: 'Manure',
       anim: 'gather',
       hours: 1,
@@ -356,5 +376,5 @@ VB['sim/fieldwork'] = (() => {
       },
     },
   };
-  return { KINDS, sowWhy, rowAngle, onField };
+  return { KINDS, sowWhy, rowAngle, onField, fieldKey };
 })();

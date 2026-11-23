@@ -8,7 +8,7 @@ VB['sim/projects'] = (() => {
   //   opportunity kind of sim/kinds), place (a tile), hours (of work), stake (the why of the holder's claim the step works under, or absent),
   //   spends ({[good]: n} taken from the holder's store when the step is done, or absent), timber and wood (loads it needs at its site and
   //   loads brought, or absent; VB-300's boat), done (hours worked on a stage kept while its job is dropped, or absent)}], open (the index of
-  //   the open step), reserved, reasons (sim/stores)}. A settler household's cottage (VB-1411; sim/expansion's cottagePlan, made by
+  //   the open step), reserved, reasons (sim/stores)}. A settler household's cottage (VB-1411; sim/cottageplan's cottagePlan, made by
   //   sim/settle) is 'cottage', with the plot's three stages and `farmstead` (the farm it is kept with: its village holds it while the farm
   //   waits for a household, sim/plans' dropAll); it is not of the household's choosing (ownOf). A small construction (a cart, a boat, a tar
   //   pit: a few days' work; Kim, 21 Nov 2026) is marked `small: true` by the starter that makes it: begun and built beside any other plan,

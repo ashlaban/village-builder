@@ -5,7 +5,7 @@
 // gives 1 / ECON.unground a ration.
 VB['sim/quern'] = (() => {
   const { YEAR } = VB['sim/rules'];
-  const { ROCK, ROCKS } = VB['gen/geology'];
+  const { ROCK, ROCKS } = VB['world/geology'];
   const Goods = VB['sim/goods'],
     Stores = VB['sim/stores'],
     { grainOf, reserved } = Stores;
@@ -91,6 +91,9 @@ VB['sim/quern'] = (() => {
       verb: 'Grinding grain at the quern',
       go: 'Going home to grind',
       name: 'Grind grain',
+      at: ['house'],
+      needs: ['grain', 'quern'],
+      gives: ['flour'],
       label: 'Grinding',
       anim: null,
       hours: QUERN.grindHours,
@@ -115,6 +118,9 @@ VB['sim/quern'] = (() => {
       verb: 'Hewing a quern stone',
       go: 'Going home to hew a quern',
       name: 'Hew a quern',
+      at: ['house'],
+      needs: ['stone'],
+      gives: ['quern'],
       label: 'Quern',
       anim: 'mallet',
       hours: QUERN.hewHours,

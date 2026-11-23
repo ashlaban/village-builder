@@ -46,15 +46,15 @@ const out = [];
     start(st, f[2], hh[2]);
     check(!pj(st, f[2]) || pj(st, f[2]).tile !== t, 'another household does not take in the staked tile');
     if (!pj(st, f[2])) break;
-    F.finishClear(st, f[2], hh[2], VB['sim/projects'].ownOf(st, f[2].household)); F.finishBreak(st, f[2], VB['sim/projects'].ownOf(st, f[2].household));
+    VB['sim/newground'].finishClear(st, f[2], hh[2], VB['sim/projects'].ownOf(st, f[2].household)); VB['sim/newground'].finishBreak(st, f[2], VB['sim/projects'].ownOf(st, f[2].household));
   }
   ok(st, 'staked');
   moveClock(st, YEAR);
   KINDS.clear.worked(st, { site: t, owner: H(0) });
   check(CL.strength(st, c) === 1, 'an hour of work renews the stake');
-  F.finishClear(st, f[0], hh[0], VB['sim/projects'].ownOf(st, f[0].household));
+  VB['sim/newground'].finishClear(st, f[0], hh[0], VB['sim/projects'].ownOf(st, f[0].household));
   check(CL.claimOf(st, t, H(0)) && st.owner[t] === was, 'cleared: still a stake');
-  F.finishBreak(st, f[0], VB['sim/projects'].ownOf(st, f[0].household));
+  VB['sim/newground'].finishBreak(st, f[0], VB['sim/projects'].ownOf(st, f[0].household));
   check(st.owner[t] === 1 && !CL.claimsOn(st, t).length && f[0].fields.some((fd) => fd.tile === t), 'broken: a field, the household\'s own, the stake gone');
   ok(st, 'broken');
   out.push('a stake is owned land once broken');

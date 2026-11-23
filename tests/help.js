@@ -1,10 +1,10 @@
 // Food help: a household above its buffer gives, one below does not; kin are asked before the village store; a household asks once a
-// season, for food until the next harvest (VB-222); stores fill from surpluses. On the small island of tests/lib/probe.js (VB-856; the
+// season, for food until the next harvest (VB-222), by its head's offer at its plan's review (VB-691); stores fill from surpluses. On the small island of tests/lib/probe.js (VB-856; the
 // default island before).
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, { island } = require('./lib/probe.js'), { checkState } = require('./lib/invariants.js');
 const { setClock, moveClock } = require('./lib/clock.js');
-const { shareFood, fillStores, surplus, askDaysAt, seasonOf } = VB['sim/help'], { dailyNeed, seedReserve } = VB['sim/hunger'], { HELP } = VB['sim/rules'];
+const { askFood, fillStores, surplus, askDaysAt, seasonOf } = VB['sim/help'], { dailyNeed, seedReserve } = VB['sim/hunger'], { HELP } = VB['sim/rules'];
 const fresh = () => {
   const st = Sim.seed(island(7), 7, 'founders');
   for (const hh of st.households) VB['sim/projectplans'].dropAll(st, 'household', hh.id);
@@ -13,6 +13,8 @@ const fresh = () => {
   for (const v of st.villages) { const f = st.farmsteads[v.farmsteads[v.farmsteads.length - 1]]; if (f && f.household !== null) VB['sim/membership'].setAlderman(st, v, st.households[f.household].holder); }
   return st;
 };
+// VB-691: every hungry household's head asks, as at its plan's review (sim/help askFood)
+const shareFood = (st) => { for (const id of st.liveHouseholds) askFood(st, st.households[id]); };
 // VB-461: a gift from another farmstead or the village store is set aside at the ask and fetched; run the day's fetches to their end
 const settle = (st) => { for (let s = 0; s < 6 * 48 && st.away.some((j) => j.why === 'fetch'); s++) Sim.advance(st, 0.5); assert(!st.away.some((j) => j.why === 'fetch'), 'the fetches are over'); };
 const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the floor and the holder's reserve, by its generosity
@@ -43,11 +45,14 @@ const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the f
   st.pawns[a.members[0]].father = b.members[0];
   const need = dailyNeed(st, a), buf = bufferOf(st, b.holder) * dailyNeed(st, b);
   b.grain = { barley: buf + 2 * need }; v.grain = { barley: 1000 };
+  // VB-691: the head asked gives what its floor and allowance allow (its opinion and mood among the allowance's terms)
+  const gives = VB['sim/exchange'].assessGift(st, { from: b, to: a, n: 0, source: 'ask' }).allowance;
+  assert(gives > 0 && gives < askDaysAt(st) * need, 'setup: kin can give some, not all');
   shareFood(st); settle(st);
   const came = a.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.from !== undefined).reduce((t, e) => t + e.n, 0);
   assert(Math.abs(came - askDaysAt(st) * need) < 1e-6, 'asked food until the harvest in all, and it came in');
-  assert(Math.abs(Sim.grainOf(b) - buf) < 1e-6, 'kin gave all their surplus first');
-  assert(Math.abs(Sim.grainOf(v) - (1000 - (askDaysAt(st) * need - 2 * need))) < 1e-6, 'the village store covered the rest');
+  assert(Math.abs(Sim.grainOf(b) - (buf + 2 * need - gives)) < 1e-6, 'kin gave all their allowance first');
+  assert(Math.abs(Sim.grainOf(v) - (1000 - (askDaysAt(st) * need - gives))) < 1e-6, 'the village store covered the rest');
 }
 { // the amount: until the next harvest (the start of autumn), at least a season's; in autumn a season's
   const st = fresh(), at = (doy) => { setClock(st, doy * Sim.DAY); return askDaysAt(st); };
@@ -76,6 +81,7 @@ const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the f
   const st = fresh(), a = st.households[0], v = st.villages[st.farmsteads[a.farmstead].village];
   v.grain = { barley: 0 }; for (const hh of st.households) hh.grain = { barley: seedReserve(st, hh) };
   a.grain.barley += bufferOf(st, a.holder) * dailyNeed(st, a) + 400;
+  for (const hh of st.households) hh.askedIn = seasonOf(st.t); // the hungry have asked this season: none asks the filled store (VB-691)
   fillStores(st); // carried to the green a load a trip (VB-849): the store holds it when the hauls are over
   for (let s = 0; s < 6 * 48 && st.away.some((j) => j.why === 'haul'); s++) Sim.advance(st, 0.5);
   assert(!st.away.some((j) => j.why === 'haul'), 'the hauls are over');

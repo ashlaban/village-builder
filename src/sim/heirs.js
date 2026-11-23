@@ -38,20 +38,22 @@ VB['sim/heirs'] = (() => {
     { houseCondition } = VB['sim/house'];
   const { passGoodwill } = VB['sim/relations'];
   const { passHerds, payInAnimals } = VB['sim/droving'];
+  const Lying = VB['sim/lying'],
+    { ECON, TRAVEL } = VB['sim/rules'];
   const { abandoned } = VB['sim/fields'],
     { dropPlan } = VB['sim/plans'],
     { emit } = VB['sim/events'];
   const { heirsPlace, heirRanking, ownFirstOf } = VB['sim/heirranking'];
   // The act of moving (the move command, VB-822, its only caller): pawn id changes to household hhId, for `reason`; text: the 'moved' life
   // event, when the caller says more than the farm's name (sim/settle). The pawn walks to its new home, on a journey when it lies in another
-  // village (sim/away's moved, VB-287, by sim/events); carry false: its provisions come from the new household (settlers).
+  // village (sim/journeys' moved, VB-287, by sim/events); carry false: its provisions come from the new household (settlers).
   function moveTo(st, id, hhId, text = null, carry = true, reason = null) {
     const p = st.pawns[id],
       old = p.household !== null ? st.households[p.household] : null;
     leaveHousehold(st, id);
     const hh = st.households[hhId];
     joinHousehold(st, hh, id, false);
-    emit(st, 'rehoused', { a: st.agents[id], old, hh, carry }); // it walks to its new home (sim/away's moved)
+    emit(st, 'rehoused', { a: st.agents[id], old, hh, carry }); // it walks to its new home (sim/journeys' moved)
     if (old && old.farmstead !== hh.farmstead) {
       // on the record as `joined`, beside the event that tells the move itself
       personEvent(st, id, 'moved', text || `Moved to ${st.farmsteads[hh.farmstead].name}`, {
@@ -201,6 +203,44 @@ VB['sim/heirs'] = (() => {
     }
     return best ? best.household : null;
   }
+  // ---- the estate's barn and woodpile (VB-1175, from VB-650; AGENTS.md, the hard rule): what a household that dies out holds stays where it
+  // lies, at its farm, and changes owner there. Its grain and its woodpile in whole trips (ECON.woodPerTrip) are taken out of its store
+  // while it stands (a dissolved holder is refused), as handed on; once its people are placed they lie at the house (sim/lying, leftGrain
+  // and leftTimber) for the household its herds go to (sim/droving passHerds: the first of its people to find a new home), put in at once
+  // when that household lives on the same farm. With none, the grain is the village's, as the farm is (sim/ownership farmToVillage), and
+  // the wood lies the dead household's for the autumn frost, which names it (sim/lying frost). What is left in its record (wood under a
+  // trip, and the goods no fetch kind carries yet: stone, flour, peat, tar, hides, salt, iron, clay, ore, the rack) is noted in VB-1175.
+  function takeEstate(st, hh) {
+    const parts = {},
+      grain = Stores.grainOf(hh) > 1e-9 ? Stores.take(st, hh, 'grain', Stores.grainOf(hh), ESTATE, parts) : 0,
+      trips = Math.floor((hh.wood || 0) / ECON.woodPerTrip);
+    if (trips > 0) Stores.take(st, hh, 'wood', trips * ECON.woodPerTrip, ESTATE);
+    return { grain, parts, trips };
+  }
+  const ESTATE = { kind: 'handingOn', estate: true };
+  function layEstate(st, hh, f, { grain, parts, trips }, to) {
+    const heir = to === null ? null : st.households[to],
+      here = heir && heir.farmstead === hh.farmstead;
+    if (grain > 0) {
+      if (here) Stores.put(st, heir, 'grain', grain, ESTATE, parts);
+      else
+        Lying.leave(
+          st,
+          'leftGrain',
+          grain,
+          f.house,
+          heir ? { type: 'household', id: heir.id } : { type: 'village', id: f.village },
+          {
+            of: { parts: { ...parts } },
+          },
+        );
+    }
+    if (trips > 0) {
+      if (here) Stores.put(st, heir, 'wood', trips * ECON.woodPerTrip, ESTATE);
+      else
+        Lying.leave(st, 'leftTimber', trips * TRAVEL.load, f.house, { type: 'household', id: heir ? heir.id : hh.id });
+    }
+  }
   // why: the end of the log line ("no heir would take it").
   function extinct(st, hh, why = 'no heir would take it') {
     const f = st.farmsteads[hh.farmstead];
@@ -244,8 +284,9 @@ VB['sim/heirs'] = (() => {
     f.emptySince = st.t; // the house as it was kept (VB-306)
     abandoned(f);
     // its plans go while it still stands: timber at a building step is put on its woodpile (sim/plans' leftWood), which a dissolved
-    // holder refuses (VB-779); Stores.close leaves the wood, so it stays with the derelict farm
+    // holder refuses (VB-779); then the woodpile and the barn are laid at the house for its heir (takeEstate, layEstate)
     dropPlan(st, 'household', hh.id);
+    const estate = takeEstate(st, hh);
     hh.dissolved = true;
     noteDissolved(st, hh);
     Stores.close(st, hh);
@@ -253,7 +294,8 @@ VB['sim/heirs'] = (() => {
     farmToVillage(st, f);
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
-    for (const id of [...hh.members]) {
+    const people = [...hh.members];
+    for (const id of people) {
       const p = st.pawns[id];
       if (!p.alive) continue;
       const kin = kinNear(st, id)
@@ -267,8 +309,12 @@ VB['sim/heirs'] = (() => {
       if (target !== null) move(st, id, target, { reason: kinHome !== null ? 'care' : 'service' });
     }
     // the animals go with the first of its people to find a new home
-    const first = hh.members.map((id) => st.pawns[id]).find((p) => p.alive && p.household !== hh.id);
+    // (read from those it had: a move takes them off its members; VB-1175 found the herds had gone to no one)
+    const first = people
+      .map((id) => st.pawns[id])
+      .find((p) => p.alive && p.household !== null && p.household !== hh.id);
     passHerds(st, hh, first ? first.household : null);
+    layEstate(st, hh, f, estate, first ? first.household : null);
     clearMembers(st, hh);
     log(st, `${f.name} stands empty: ${why}.`, { kind: 'empty', ...atHousehold(st, hh) });
     st.visualDirty = true;

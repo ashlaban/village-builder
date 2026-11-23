@@ -148,7 +148,7 @@ out.push(`orders: ${Object.entries(orders).map(([k, v]) => `${k} ${v}`).join('; 
   check(o && o.to === al && o.wants.plot === B.id, `a plot is asked of the alderman of the village it is in (${o && o.to} for ${al})`);
   check(st.offers.length === n + 1 && st.pawns[who.gunnar].ask === o.id, 'the ask is held, due at the round');
   VB['sim/offers'].conclude(st, o);
-  check(VB['sim/expansion'].hasPlot(st, who.gunnar) && st.villages[1].plots.length + VB['sim/expansion'].livePlots(st, B).length > 0, 'the alderman answers a plot: begun for the asker in his village');
+  check(VB['sim/allotment'].hasPlot(st, who.gunnar) && st.villages[1].plots.length + VB['sim/expansion'].livePlots(st, B).length > 0, 'the alderman answers a plot: begun for the asker in his village');
   ok(st, 'a plot asked of a small village');
 }
 
@@ -188,7 +188,7 @@ const P = (id) => ({ type: 'pawn', id });
   moveClock(st, 1); J.refreshJobs(st, cal(st.t));
   const job2 = st.jobs.get(`restore:f${f.id}.h${A0}`);
   check(job2 && job2.done === 20 && !st.jobs.has(`restore:f${f.id}.h${hid}`), 'moved house: the job goes on at 20 hours, the old one is gone');
-  moveClock(st, YEAR); KINDS.restore.worked(st, job2);
+  moveClock(st, YEAR); VB['sim/lying'].frost(st); KINDS.restore.worked(st, job2); // the frost the year passed (a dead household's estate lies, VB-1175)
   check(CL.strength(st, CL.claimOf(st, f.house, P(who.gunhild))) === 1, 'work on the farm renews the claim');
   // the roof mended: they move in, their old household able to spare their start
   st.households[A0].grain = { barley: 2000 }; st.households[A0].wood = 40; // and its first wood (VB-328)
@@ -208,7 +208,8 @@ const P = (id) => ({ type: 'pawn', id });
   check(Sim.grainOf(hh) === 0 && stops.length && Math.abs(lies - need) < 1e-6 && stops.every((x) => x.at === A0h && x.start),
     `the grain lies at the old home: ${Sim.grainOf(hh)} in store, ${lies} of ${need} to fetch`);
   const wood = (st.lying || []).filter((l) => l.kind === 'leftTimber' && l.owner.id === hh.id && l.tile === A0h);
-  check(hh.meals > 0 && hh.wood === 0 && wood.length === 1 && wood[0].n === trips * TRAVEL.load
+  // VB-1175 (from VB-675): no cooked food from nothing either; the household eats what is fetched
+  check(hh.meals === 0 && hh.wood === 0 && wood.length === 1 && wood[0].n === trips * TRAVEL.load
     && st.households[A0].wood === 40 - trips * st.ECON.woodPerTrip,
     `stores: ${hh.meals} meals, ${hh.wood} wood; ${wood.length} loads of wood lying at the old home`);
   // the fields gone to grass and scrub are cleared again by the new household
@@ -231,7 +232,7 @@ const P = (id) => ({ type: 'pawn', id });
   ok(st, 'died');
   FC.claimFarms(st);
   check(FC.claimOn(st, f) && FC.claimOn(st, f).by === who.brita, `the next claimant takes it (${FC.claimOn(st, f) && st.pawns[FC.claimOn(st, f).by].given})`);
-  moveClock(st, CLAIMS.years * YEAR);
+  moveClock(st, CLAIMS.years * YEAR); VB['sim/lying'].frost(st);
   const lapsed = CL.lapseClaims(st); VB['sim/stakes'].lapsedStakes(st, lapsed); FC.lapsedFarmClaims(st, lapsed); // as the day's end does
   check(!FC.claimOn(st, f) && FC.claimable(st, f), 'a claim unworked for 3 years lapses');
   ok(st, 'lapsed');
@@ -250,7 +251,7 @@ const P = (id) => ({ type: 'pawn', id });
 {
   const { st, who } = scene('kin');
   st.demand = [who.olof, who.cecilia];
-  X.startPlots(st, (id) => FC.claimableFarm(st, id) === null);
+  VB['sim/allotment'].startPlots(st, (id) => FC.claimableFarm(st, id) === null);
   check(!X.livePlots(st, st.villages[1]).length, 'nobody who may claim an empty farm gets a plot');
 }
 // ---- in play: the moving round gives the farm to a claimant, who mends it and moves in within days ----

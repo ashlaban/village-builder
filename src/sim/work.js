@@ -7,9 +7,11 @@ VB['sim/work'] = (() => {
   const { age } = VB['sim/records'];
   const { hexSteps } = VB['sim/hex'];
   const Days = VB['sim/days'],
+    Hands = VB['sim/hands'],
     { book: bookHours } = VB['sim/fields'];
   const { hasTeam } = VB['sim/herds'];
-  const Carts = VB['sim/carts'];
+  const Carts = VB['sim/carts'],
+    Iron = VB['sim/ironwork'];
   const { KINDS } = VB['sim/kinds'],
     Progress = VB['sim/progress'],
     { workTick } = Progress;
@@ -79,9 +81,9 @@ VB['sim/work'] = (() => {
     if (b.path && l && l.kind === 'walk') return inReach(st, j, tileAt(st, l.x, l.y)) && inReach(st, j, endTile(st, b));
     return b.phase === null || inReach(st, j, tileAt(st, b.x, b.y));
   }
-  // The hours of work j's hands do together in a game hour now: rateOf, the ox team and the cart's part in carting (a hand at carting
-  // takes a free cart as it is reckoned, as it did each step); a background task's kind rate for each holder minding it. `take` false
-  // reads only.
+  // The hours of work j's hands do together in a game hour now: rateOf, the tools' condition (VB-701), the ox team and the cart's part
+  // in carting (a hand at carting takes a free cart as it is reckoned, as it did each step); a background task's kind rate for each
+  // holder minding it. `take` false reads only.
   function manning(st, j, take = false) {
     const K = KINDS[j.kind];
     let rate = 0;
@@ -90,6 +92,7 @@ VB['sim/work'] = (() => {
         for (const id of j.claims || []) if (minding(st, st.agents[id], j)) rate += K.rate;
       return rate;
     }
+    const tools = Iron.rate(st, j); // worn tools slow ploughing, reaping and felling (VB-701)
     for (const id of j.claims || []) {
       if (!atWork(st, j, id)) continue;
       const a = st.agents[id],
@@ -97,6 +100,7 @@ VB['sim/work'] = (() => {
       rate +=
         rateOf(st, st.pawns[id]) *
         (a.pace ?? 1) *
+        tools *
         (withOxen(st, a) ? HERD.team.rate : 1) *
         (hh ? (take ? Carts.carting : Carts.cartingRate)(st, hh, id, teamFree(st, hh)) : 1);
     }
@@ -122,6 +126,7 @@ VB['sim/work'] = (() => {
       if (K.worked) K.worked(st, j, dt, null, from);
       return;
     }
+    Iron.wear(st, j, dt * j.rate); // the hours of work done wear the household's tools (VB-701)
     for (const id of j.claims) {
       if (!atWork(st, j, id)) continue;
       if (K.worked) K.worked(st, j, dt, st.agents[id], from);
@@ -130,6 +135,7 @@ VB['sim/work'] = (() => {
       if (K.craft) Skills.practise(st, id, K.craft, dt); // hours at a craft raise the hand's skill at it (VB-360)
       if (j.field && j.farm) bookHours(j.field, st.pawns[id].household === j.farm.household, dt); // VB-462: the class reads it
       if (st.agents[id].basis === 'owed') Days.worked(st, id, dt);
+      else if (st.agents[id].basis === 'helper') Hands.worked(st, id, dt);
     }
   }
   // @state household.workHours (VB-255): [season (year * 4 + season of cal, of the hours counted), hours, last]: the hours its working hands

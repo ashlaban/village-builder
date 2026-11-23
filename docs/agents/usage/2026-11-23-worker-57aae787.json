@@ -1,0 +1,118 @@
+{
+ "session": "57aae787-8826-59f6-97dc-2ea4036fdb7d",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-23T11:23:42.862Z",
+ "end": "2026-11-23T11:53:57.337Z",
+ "wallMin": 30.2,
+ "activeMin": 30.2,
+ "prompts": 1,
+ "calls": 106,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 201,
+  "cacheWrite": 174843,
+  "cacheRead": 19113225,
+  "output": 51994
+ },
+ "context": {
+  "first": 84782,
+  "peak": 238547,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 107,
+   "bytes": 218685,
+   "seconds": 1095.2
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 25,
+   "bytes": 85944
+  },
+  {
+   "tool": "Bash",
+   "what": "for i",
+   "calls": 2,
+   "bytes": 26159
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 11,
+   "bytes": 25560
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 16,
+   "bytes": 8605
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7615
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/agent-usage.js",
+   "calls": 2,
+   "bytes": 7241
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 6,
+   "bytes": 6999
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 6559
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -i",
+   "calls": 6,
+   "bytes": 5264
+  },
+  {
+   "tool": "Bash",
+   "what": "until [",
+   "calls": 3,
+   "bytes": 4958
+  },
+  {
+   "tool": "Bash",
+   "what": "node /tmp/claude-0/-home-user-village-builder/57aae787-8826-",
+   "calls": 1,
+   "bytes": 4311
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 2,
+   "bytes": 2992
+  }
+ ],
+ "weighted": 2390047,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 2390047,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

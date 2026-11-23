@@ -54,7 +54,7 @@ const cmdAttrs = (o) =>
 function actRow(attrs, icon, name, note, why = null, more = false, count = 0, title = '') {
   const how = why ? `data-bar="why" data-why="${esc(why)}" aria-disabled="true"` : attrs;
   return (
-    `<button type="button" class="act-row" ${how} data-k="${esc(icon + ':' + name)}"${title ? ` title="${esc(title)}"` : ''}>` +
+    `<button type="button" class="row act-row" ${how} data-k="${esc(icon + ':' + name)}"${title ? ` title="${esc(title)}"` : ''}>` +
     `${actIcon(icon)}<span class="nm">${esc(name)}<small>${esc(why || note)}</small></span>` +
     `${count > 1 ? `<b class="act-n" aria-label="${count} places">${count}</b>` : ''}${more ? actIcon('next') : ''}</button>`
   );
@@ -116,11 +116,11 @@ function menuHTML(id, opps) {
   let h =
     `<div class="mh">${
       m.view
-        ? `<button type="button" data-bar="back" data-k="back" aria-label="Back to ${GROUPS[m.g]}">${actIcon('back')}</button>`
+        ? `<button type="button" class="icon-btn" data-bar="back" data-k="back" aria-label="Back to ${GROUPS[m.g]}">${actIcon('back')}</button>`
         : ''
     }` +
-    `<h2 id="actMenuTitle">${m.view ? TITLES[m.view] : GROUPS[m.g]}</h2>` +
-    `<button type="button" data-bar="close" data-k="close" aria-label="Close the list">${actIcon('no')}</button></div>`;
+    `<h2 id="actMenuTitle" class="head">${m.view ? TITLES[m.view] : GROUPS[m.g]}</h2>` +
+    `<button type="button" class="icon-btn" data-bar="close" data-k="close" aria-label="Close the list">${actIcon('no')}</button></div>`;
   if (barMsg) h += `<p class="act-msg${barMsg.bad ? ' bad' : ''}" role="status">${esc(barMsg.text)}</p>`;
   if (m.view === 'round') return `${h}<div class="play">${roundBox(id, by.round, Sim.wishesOf(st, id))}</div>`;
   if (m.view === 'give') return h + giveHTML(id);
@@ -386,6 +386,13 @@ function done(r, text) {
   flash = { text, until: performance.now() + 3000 };
 }
 // The banner under the top bar while the tool is in hand: the act, what to tap, the last tap's answer, and Done (or Cancel).
+// The guide's row for the work in hand (VB-1124): the plan tool's field or meadow (break, meadow), a kind's own.
+function guideLink(t) {
+  const k = t.kind === 'plan' ? (t.what === 'field' ? 'break' : 'meadow') : t.kind === 'work' ? t.work : null;
+  return k && Sim.KINDS[k]
+    ? `<a href="#" class="guide-link" data-guide="work:${esc(k)}">What ${esc(Sim.KINDS[k].name.toLowerCase())} needs and gives</a>`
+    : '';
+}
 function paintBanner() {
   const el = $('actBanner');
   let h = '';
@@ -393,7 +400,7 @@ function paintBanner() {
     h =
       `${actIcon(tool.icon)}<div class="txt"><b>${esc(tool.title)}</b>: ${tapWord} ${esc(tool.needs)}${
         tool.kind === 'work' && !tool.sites.length ? '<span class="bad">None is open to you now.</span>' : ''
-      }${tool.facts ? `<span data-facts>${esc(tool.facts)}</span>` : ''}${
+      }${tool.facts ? `<span data-facts>${esc(tool.facts)}</span>` : ''}${guideLink(tool)}${
         tool.msg ? `<span class="${tool.msg.bad ? 'bad' : ''}">${esc(tool.msg.text)}</span>` : ''
       }` +
       `</div><button type="button" data-tool="end"${tool.keep ? ' class="primary"' : ''}>${tool.keep ? 'Done' : 'Cancel'}</button>`;

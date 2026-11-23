@@ -27,7 +27,7 @@ const cattleOf = (st, hh) => {
 // The fields of farms with cattle and of farms without, now: {cattle: {n, sum}, none: {n, sum}}, the sum of their tilth.
 function tilthByHerd(VB, st) {
   const out = { cattle: { n: 0, sum: 0 }, none: { n: 0, sum: 0 } },
-    { tilthOf } = VB['sim/fields'];
+    { tilthOf } = VB['sim/soil'];
   for (const id of st.liveHouseholds) {
     const hh = st.households[id],
       f = st.farmsteads[hh.farmstead];
@@ -59,8 +59,8 @@ function corr(xs, ys) {
 module.exports = (VB, st, { period = 'decade' } = {}) => {
   if (!['year', 'decade'].includes(period)) throw new Error('soil: --period is year or decade');
   const Sim = VB.sim,
-    { YEAR_DAYS, YEAR } = VB['sim/rules'], { SOIL } = VB['sim/crops'], { TILTH } = VB['sim/fields'],
-    { tilthOf } = VB['sim/fields'];
+    { YEAR_DAYS, YEAR } = VB['sim/rules'], { SOIL } = VB['sim/crops'], { TILTH } = VB['sim/soil'],
+    { tilthOf } = VB['sim/soil'];
   const span = period === 'year' ? 1 : 10,
     perDay = 1 - Math.pow(1 - SOIL.rot, 1 / YEAR_DAYS);
   const acc = new Map(); // period -> class -> tallies

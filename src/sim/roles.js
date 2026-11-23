@@ -159,8 +159,7 @@ VB['sim/roles'] = (() => {
   // The fit of a pawn for a job (jobs.js): its role's priority for the kind times the job's urgency, less distanceWeight for each step
   // from home; a good fit (priority above poorFit) never falls under `floor`. The head allots a household's day by it (VB-466); a
   // further hand on a job counts for join of the one before (VB-102), so a free job comes first. When the day is allotted anew, a pawn
-  // at work leaves its job for one whose fit is above switchRatio × its own job's + switchMargin (VB-107). `noise` is on a helper's
-  // bid for a neighbour's job only.
+  // at work leaves its job for one whose fit is above switchRatio × its own job's + switchMargin (VB-107).
   // urgency: a job's weight in a bid, by kind (see the kinds in sim/kinds).
   const MATCH = {
     poorFit: 2,
@@ -171,21 +170,19 @@ VB['sim/roles'] = (() => {
     day: { horizon: 0.5, afternoon: 14 },
     floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
     distanceWeight: 0.15,
-    noise: 0.3,
     join: 0.8,
     switchRatio: 1.5,
     switchMargin: 1,
-    // Help between households (VB-106; design.md, Who may take a job): an adult of `minAge` or more with no bid of its own in a round
-    // bids on another household's job of its village, of the `kinds`, once the job has waited `waitHours`; each household offers its
-    // most urgent open job of each kind. The bid is multiplied by `factor`, plus `kin` for near kin of the holder, plus the helper's
-    // opinion of the holder. Each finished task (a load, for hauling) raises the tie with each adult helped by `tie`.
+    // Help between households (VB-106, VB-470; design.md, Help between households): a head short of hands asks (sim/hands); the head
+    // asked lends its adults of `minAge` or more for work of the `kinds` when `factor`, plus `kin` for near kin of the asker, plus its
+    // opinion of the asker, is above nothing. The tie of a helper with each adult helped rises by `tie` for each `tieHours` it gave.
     help: {
       minAge: 14,
-      waitHours: 2,
       kinds: ['plow', 'sow', 'weed', 'reap', 'haul', 'thresh', 'clear', 'break', 'mend'],
       factor: 0.5,
       kin: 1,
       tie: 0.2,
+      tieHours: 4,
     },
     urgency: {
       field: 1,

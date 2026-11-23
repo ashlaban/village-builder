@@ -8,9 +8,13 @@ VB['sim/service'] = (() => {
   const { refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { hoursBetween, withinDay, byLand } = VB['sim/villagehours'];
-  const { MARRIAGE, AGES } = VB['sim/rules'];
+  const { MARRIAGE, AGES, SHARES, YEAR, DAY } = VB['sim/rules'];
+  const Stores = VB['sim/stores'];
+  const Obligations = VB['sim/obligations'];
+  const { floorOf } = VB['sim/hunger'];
   const Offers = VB['sim/offers'];
-  const { hasPlot } = VB['sim/expansion'];
+  const { balance } = VB['sim/relations'];
+  const { hasPlot } = VB['sim/allotment'];
   const { trustOf } = VB['sim/ownership'];
   const adult = (p) => p.alive && p.age >= 18;
   // @tunable SERVICE: service: who takes in a servant, and where labour is short
@@ -18,7 +22,9 @@ VB['sim/service'] = (() => {
   // wants land, if that adult's household keeps keepHands working hands (14 to 59) without them; from the holder's village, or one within
   // `hours` walking hours of it, a day's walk, since the servant moves (VB-290; design.md, The round's other acts; it was 15 hex steps).
   // Where labour is short (VB-090; Agreed, Kim, 30 Oct): hands per field below `short`, to spare above `spare`.
-  const SERVICE = { ages: [18, 50], keepHands: 2, hours: 12, short: 1, spare: 1.5 };
+  // The wage (VB-637; design.md, Marriage, nursing and growth: The portion): `wage` rations of grain for a year served, what a year's work
+  // earns above board (12: a quarter of a year's food); a servant owed more than `unpaid` years' wages by its master leaves at the round.
+  const SERVICE = { ages: [18, 50], keepHands: 2, hours: 12, short: 1, spare: 1.5, wage: 12, unpaid: 2 };
   // a before b, comparing arrays of numbers element by element
   const before = (a, b) => {
     for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return a[k] < b[k];
@@ -240,8 +246,11 @@ VB['sim/service'] = (() => {
       v = farmOf(st, b).village;
     return withinDay(st, u, v, SERVICE.hours) ? hoursBetween(st, u, v) : null;
   };
+  // The whole rations head owes pawn id in goodwill (sim/relations balance), 0 if none: a worker's credit for hours it gave (VB-704)
+  const owedTo = (st, head, id) => Math.max(0, Math.floor(-balance(st, head, id)));
   // The servant for household hh among `available`, or null: one whose household keeps SERVICE.keepHands working hands without it, from
-  // hh's village first, then the nearest village within SERVICE.hours walking hours; then the household that keeps the most hands, then the oldest.
+  // hh's village first, then the nearest village within SERVICE.hours walking hours; then the one its head owes most in goodwill, whose
+  // asking for a place is answered by its credit (VB-704); then the household that keeps the most hands, then the oldest.
   function servantFor(st, hh, available) {
     let best = null,
       bs = null;
@@ -252,7 +261,7 @@ VB['sim/service'] = (() => {
       if (left < SERVICE.keepHands) continue;
       const d = reachHours(st, st.households[q.household], hh);
       if (d === null) continue;
-      const s = [d, -left, q.born];
+      const s = [d, -owedTo(st, hh.holder, id), -left, q.born];
       if (!bs || before(s, bs)) {
         best = q;
         bs = s;
@@ -264,7 +273,13 @@ VB['sim/service'] = (() => {
     // a grown holder whose farm is held in trust by kin counts as one who lives alone: with a servant, it goes back (VB-309)
     const lone = st.liveHouseholds
       .map((id) => st.households[id])
-      .filter((h) => !h.dissolved && (h.members.length === 1 || trustOf(st, h.id)) && adult(st.pawns[h.holder]));
+      .filter(
+        (h) =>
+          !h.dissolved &&
+          (h.members.length === 1 || trustOf(st, h.id)) &&
+          adult(st.pawns[h.holder]) &&
+          (!belowFloor(st, h) || trustOf(st, h.id)), // a farm in trust goes back to its heir with a servant whatever its store
+      );
     const taken = new Set(),
       moved = new Set(); // the households that took a servant this round, and the servants (for serveWhereShort)
     if (!lone.length) return { taken, moved };
@@ -294,10 +309,14 @@ VB['sim/service'] = (() => {
   // to spare above SERVICE.spare. At the moving round, after the servants for the lone (takeServants, whose households and servants count as
   // this round's): those who would serve (willServe: in st.demand, fit, unmarried, 18 to 50, not declining by the player's wish), oldest
   // first, whose household has hands to spare and keeps at least SERVICE.short hands per field without them, go as servants (the serve
-  // command) to the short household with fields of their own village with the fewest hands per field, else to the shortest of the nearest
-  // village within reach that has one (reachHours); never to a household where a parent lives (nobody goes back home by this rule). Each
-  // household takes at most one new servant a round, and nobody moves twice in one. A servant whose household is no longer short may go
-  // on at a later round by the same rule. Board and lodging only: the servant is a member and works its jobs on the `servant` basis.
+  // command) to the short household with fields of their own village whose head owes them most in goodwill (VB-704), then with the fewest
+  // hands per field, else to the shortest of the nearest village within reach that has one (reachHours); never to a household where a
+  // parent lives (nobody goes back home by this rule). Each household takes at most one new servant a round, and nobody moves twice in one.
+  // A servant whose household is no longer short may go on at a later round by the same rule. The servant is a member, works its jobs on
+  // the `servant` basis and is owed a wage a year (oweWages); a household below its floor (sim/hunger floorOf) takes no new servant, since
+  // it could not pay one (VB-637), nor does a lone holder's (takeServants) but where its farm is held in trust (VB-309: a rescue, as
+  // takeIn is). One its master owes more than SERVICE.unpaid years' wages goes home (unpaidLeave), else asks for a place as one a head
+  // refused does (`leavers`), whatever the hands at home.
   const fieldsOf = (st, hh) => Math.max(1, farmOf(st, hh).fields.length);
   const handsPerField = (st, hh) => hands(st, hh) / fieldsOf(st, hh);
   const parentIn = (st, q, hh) =>
@@ -312,7 +331,8 @@ VB['sim/service'] = (() => {
           !taken.has(h.id) &&
           !trustOf(st, h.id) &&
           farmOf(st, h).fields.length > 0 &&
-          handsPerField(st, h) < SERVICE.short,
+          handsPerField(st, h) < SERVICE.short &&
+          !belowFloor(st, h),
       );
     if (!short.length) return;
     // One of a courting couple a head refused (`leavers`: sim/courting, VB-036) asks for a place whatever the hands at home, and
@@ -344,7 +364,7 @@ VB['sim/service'] = (() => {
         if (h.id === from.id || parentIn(st, q, h)) continue;
         const d = reachHours(st, from, h);
         if (d === null) continue;
-        const s = [d, handsPerField(st, h), h.id];
+        const s = [d, -owedTo(st, h.holder, q.id), handsPerField(st, h), h.id]; // its credit answers its ask (VB-704)
         if (!bs || before(s, bs)) {
           best = i;
           bs = s;
@@ -368,6 +388,124 @@ VB['sim/service'] = (() => {
     }
     refreshRoles(st);
     st.visualDirty = true;
+  }
+
+  // ---- the servant's wage (VB-637; design.md, Marriage, nursing and growth: The portion; Exchange, Obligations) ----
+  // A household below its floor (its seed and HELP.floorDays of food: what it keeps back from any gift) could not pay a wage.
+  const belowFloor = (st, hh) => Stores.grainOf(hh) < floorOf(st, hh);
+  const party = (kind, id) => ({ kind, id });
+  // At the moving round's first step, before its offers are answered: each servant who has served a year (in service with its master
+  // since the round a year back, pawn.servedSince) is owed SERVICE.wage rations by the household it serves, as an obligation of the kind
+  // `wage`: the creditor the servant, as a sibling's share names a person, the enforcer the master's village. One obligation a servant a
+  // year. Then the wages owed are paid (payWages), so that a servant who marries at this round brings its year's wage to the home.
+  function oweWages(st) {
+    for (const hid of st.liveHouseholds) {
+      const hh = st.households[hid];
+      if (hh.dissolved || hh.farmstead === null) continue;
+      VB.count.wagesWeighed += hh.members.length;
+      for (const id of hh.members) {
+        const p = st.pawns[id];
+        if (!p.alive || !p.servant || p.servedSince === null || st.t - p.servedSince < YEAR - DAY) continue;
+        Obligations.create(st, {
+          kind: 'wage',
+          debtor: party('household', hh.id),
+          creditor: party('pawn', id),
+          owes: { rations: SERVICE.wage },
+          enforcer: party('village', farmOf(st, hh).village),
+        });
+      }
+    }
+    payWages(st);
+  }
+  // Wages owed are paid from the master's grain above its reserve (the seed and the winter's food, as shares are paid: SHARES), into the
+  // servant's stake. Paid where it lies: the grain changes owner in the master's store, where the servant lives, so only to one who lives
+  // there still; what one who has left is owed stays owed. What a dead servant was owed, or a master's household gone, lapses.
+  function payWages(st) {
+    for (const [id, list] of Obligations.openShares(st, 'wage')) {
+      const p = st.pawns[id];
+      if (!p.alive) {
+        for (const o of list) Obligations.lapse(st, o.id, 'the one owed has died');
+        continue;
+      }
+      const byHousehold = new Map();
+      for (const o of list) {
+        if (!byHousehold.has(o.debtor.id)) byHousehold.set(o.debtor.id, []);
+        byHousehold.get(o.debtor.id).push(o);
+      }
+      for (const [debtor, os] of byHousehold) {
+        const hh = st.households[debtor];
+        if (hh.dissolved) {
+          for (const o of os) Obligations.lapse(st, o.id, 'the household that owed it is gone');
+          continue;
+        }
+        if (p.household !== hh.id) continue;
+        const owed = os.reduce((n, o) => n + Obligations.left(o), 0),
+          reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember,
+          pay = Math.min(owed, Math.max(0, Math.floor(Stores.grainOf(hh) - reserve)));
+        if (pay <= 0) continue;
+        Obligations.fulfil(
+          st,
+          os.map((o) => o.id),
+          pay,
+          { kind: 'wage', pawn: id },
+          { from: hh, to: p, good: 'grain' },
+        );
+        const rest = owed - pay;
+        personEvent(st, id, 'wage', `Was paid ${pay} rations of wages${rest ? `, ${rest} still owed` : ''}`, {
+          n: pay,
+          ...atHousehold(st, hh),
+        });
+      }
+    }
+  }
+  // The rations of wages pawn id is owed by household hh (or by any household), still to deliver.
+  const wagesOwed = (st, id, hh = null) =>
+    Obligations.due(st, party('pawn', id), 'creditor', 'wage')
+      .filter((o) => hh === null || o.debtor.id === hh)
+      .reduce((n, o) => n + Obligations.left(o), 0);
+  // The servants whose master owes them more than SERVICE.unpaid years' wages, by id: they leave at the round (serveWhereShort's
+  // leavers; with no place found, unpaidLeave).
+  function unpaid(st) {
+    const out = [];
+    for (const [id] of Obligations.openShares(st, 'wage')) {
+      const p = st.pawns[id];
+      if (
+        p.alive &&
+        p.servant &&
+        p.household !== null &&
+        wagesOwed(st, id, p.household) > SERVICE.unpaid * SERVICE.wage
+      )
+        out.push(id);
+    }
+    return out;
+  }
+  // The servants of `ids` (unpaid) go home: to the household of a living parent, if it will have them (the move's yes), the reason
+  // 'home'. Returns those with no home to go to, who ask for a place with another master (serveWhereShort's leavers).
+  function unpaidLeave(st, ids) {
+    const left = [];
+    for (const id of ids) {
+      const p = st.pawns[id],
+        master = st.households[p.household],
+        owed = wagesOwed(st, id, master.id);
+      const homes = [p.father, p.mother]
+        .filter((q) => q !== null && st.pawns[q].alive && st.pawns[q].household !== null)
+        .map((q) => st.pawns[q].household)
+        .filter((h, k, all) => h !== master.id && !st.households[h].dissolved && all.indexOf(h) === k);
+      const text = (h) =>
+        `Went home to ${farmIn(st, st.households[h])}: ${farmIn(st, master)} owed ${owed} rations of wages`;
+      const went = homes.some(
+        (h) =>
+          issue(st, {
+            actor: id,
+            verb: 'move',
+            target: h,
+            args: { reason: 'home', text: text(h) },
+            source: 'round',
+          }) === true,
+      );
+      if (!went) left.push(id);
+    }
+    return left;
   }
 
   // ---- taken in before it starves (VB-308; design.md, Households short of people) ----
@@ -443,5 +581,20 @@ VB['sim/service'] = (() => {
       st.visualDirty = true;
     }
   }
-  return { SERVICE, careForOrphans, takeServants, serveWhereShort, takeIn, hands, handsPerField, unfit, handsLeft };
+  return {
+    SERVICE,
+    careForOrphans,
+    takeServants,
+    serveWhereShort,
+    takeIn,
+    hands,
+    handsPerField,
+    unfit,
+    handsLeft,
+    oweWages,
+    payWages,
+    wagesOwed,
+    unpaid,
+    unpaidLeave,
+  };
 })();

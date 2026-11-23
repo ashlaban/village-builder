@@ -9,7 +9,7 @@
 VB['sim/tar'] = (() => {
   const { YEAR, SEASON_DAYS } = VB['sim/rules'],
     { HOUSE, houseCondition, houseTarred } = VB['sim/house'];
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const Rules = VB['sim/registry'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
@@ -233,6 +233,9 @@ VB['sim/tar'] = (() => {
       verb: 'Digging a tar pit',
       go: 'Going to dig the tar pit',
       name: 'Dig a tar pit',
+      at: ['woods'],
+      needs: [],
+      gives: ['tar pit'],
       label: 'Tar pit',
       anim: 'hoe',
       hours: TAR.pitHours,
@@ -246,6 +249,9 @@ VB['sim/tar'] = (() => {
       verb: 'Burning tar',
       go: 'Going to the tar pit',
       name: 'Burn tar',
+      at: ['woods'],
+      needs: ['tar pit', 'firewood'],
+      gives: ['tar'],
       label: 'Tar',
       anim: 'axe',
       hours: TAR.barrelHours,
@@ -268,6 +274,9 @@ VB['sim/tar'] = (() => {
       verb: 'Tarring the house',
       go: 'Going home to tar the house',
       name: 'Tar the house',
+      at: ['house'],
+      needs: ['tar'],
+      gives: ['house'],
       label: 'Tarring',
       anim: 'mallet',
       hours: TAR.tarHours,
@@ -286,6 +295,9 @@ VB['sim/tar'] = (() => {
       verb: 'Tarring the boat',
       go: 'Going to tar the boat',
       name: 'Tar the boat',
+      at: ['shore'],
+      needs: ['tar', 'boat'],
+      gives: ['boat'],
       label: 'Tarring',
       anim: 'mallet',
       hours: TAR.tarHours,

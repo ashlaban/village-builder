@@ -69,6 +69,12 @@ const QUANTITIES = [
     none: 'stalled animals go unfed: they grow lean and, after HERD.starveDays, the weakest die (sim/byre); the autumn count culls to the hay (sim/byre)' },
   { id: 'manure', of: 'household', name: 'the manure heap', unit: 'loads', fields: ['household.manure'], kinds: ['manure'],
     none: 'fields are not manured: neither their soil nor their tilth is raised; with the soil at its cap, up to TILTH.surplus loads a field-year go to tilth alone (sim/fields)' },
+  { id: 'salt', of: 'household', name: 'salt', unit: 'measures', fields: ['household.salt'], good: 'salt', holder: 'household',
+    kinds: ['saltboil'], covers: ['household.saltAt'],
+    none: 'the meat is smoked, not salted, and keeps HERD.smokeDays in place of a year (sim/byre saltDone, VB-700)' },
+  { id: 'iron', of: 'household', name: 'iron', unit: 'blooms', fields: ['household.iron'], good: 'iron', holder: 'household',
+    kinds: ['smelt', 'mendtools'], covers: ['household.tools'],
+    none: 'the tools are not mended: they wear down to 0, and ploughing, reaping and felling go at 1 - TOOLS.share of the rate (sim/ironwork, VB-701)' },
   { id: 'hides', of: 'household', name: 'hides of the hunt', unit: 'hides', fields: ['household.hides'], good: 'hide', holder: 'household',
     kinds: ['hunt'],
     none: 'no leather for shoes and harness: a household lacking hides values one at DEER.leather a head a year, and takes one at the fair or as a gift (sim/deer, VB-424)' },
@@ -87,6 +93,10 @@ const QUANTITIES = [
   { id: 'villageGrain', of: 'village', name: 'the village store\'s grain', unit: 'rations', fields: ['village.grain'], good: 'grain', holder: 'village',
     kinds: ['haul'],
     none: 'a household short of food gets nothing from the village when its kin cannot help (sim/help), and a common field is not sown (VB-100)' },
+  { id: 'stake', of: 'pawn', name: 'a pawn\'s stake: grain of its own, shares paid out (VB-032) and a servant\'s wages (VB-637), lying where it lives',
+    unit: 'rations', fields: ['pawn.stake'], kinds: [],
+    none: 'nothing is lost: a party for new land takes its provisions from its old households\' grain (sim/settle, sim/farmclaims), the means to '
+      + 'marry are the home\'s store alone (sim/matching meansOf), and a new household starts on what its old one gives (sim/cottage)' },
   { id: 'pack', of: 'stay', name: 'the pack: the food a pawn away from home carries, on a journey or lodging', unit: 'rations', fields: ['st.away'],
     covers: ['st.awaySeq', 'agent.away'], kinds: [],
     none: 'the pawn on the road goes hungry (its hunger log), slow and loses health, until it arrives and eats at its new home (VB-287); a lodger '
@@ -127,16 +137,16 @@ const NOT_STOCKS = {
     'household.herds', 'household.dissolved', 'farmstead.id', 'farmstead.house', 'farmstead.village', 'farmstead.household', 'farmstead.name',
     'farmstead.line', 'farmstead.rowAngle', 'farmstead.firstRotation', 'farmstead.keeps', 'village.id', 'village.riteDays', 'village.name', 'village.center', 'village.farmsteads', 'village.wood', 'village.plots', 'village.alderman'],
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'village.keep', 'village.keepBy', 'village.tarBy', 'household.yields', 'household.spoilt', 'household.hungryDays',
-    'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.giftedIn', 'household.milkDay', 'household.workHours', 'village.ledger', 'village.totals', 'village.workday'],
+    'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.fellShort', 'household.giftedIn', 'household.milkDay', 'household.workHours', 'village.ledger', 'village.totals', 'village.workday'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'village.commonFields',
     'farmstead.booth', 'farmstead.barn', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
       'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'village.crowded', 'village.founded',
-      'village.rotation', 'farmstead.rotationBy', 'farmstead.failed'],
-  'the generated world': ['w.seed', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
+      'village.rotation', 'farmstead.rotationBy', 'farmstead.failed', 'farmstead.left'],
+  'the generated world': ['w.seed', 'w.lat', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
     'w.elev',
-    'w.shade', 'w.macro', 'w.cdist', 'w.chex', 'w.csample', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',
+    'w.macro', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',
       'w.hrnd',
-    'w.landDist', 'w.nb', 'w.region', 'w.regions', 'w.tr', 'w.tg', 'w.tb', 'w.tile', 'w.river', 'w.riverTo', 'w.rock', 'w.deposit', 'w.vein', 'w.veinKind',
+    'w.landDist', 'w.nb', 'w.region', 'w.regions', 'w.river', 'w.riverTo', 'w.rock', 'w.deposit', 'w.vein', 'w.veinKind',
     'w.veinNear'],
   'ways (the wear of walking, fords and bridges)': ['w.wear', 'w.worn', 'w.crossing'],
   'when a tile was last worked (a day, not an amount; sim/spread)': ['w.tended'],
@@ -188,7 +198,7 @@ const OPS = { put: 'add', take: 'take', takeSpare: 'take', move: 'move', cook: '
   start: 'start', brew: 'brew',
   pour: 'take', spoilAle: 'take', villageDay: 'take', dry: 'take', cookLarder: 'add' };
 const OP_GOODS = { dug: ['clay', 'bogOre', 'peat'] };
-const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'share', 'handingOn', 'provisions', 'start']);
+const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'share', 'wage', 'handingOn', 'provisions', 'start']);
 const SKIP = new Set(['sim/stores', 'sim/saves']); // the stores' own operations, and saving
 // A module's named functions, innermost by line: [{name, from, to}], a job kind's properties as `kind.property`
 function functionsOf(src) {
@@ -277,7 +287,7 @@ function build() {
   for (const s of sources) for (const [n, p] of Object.entries(Writes.scan('src/' + s.f, s.mod, {}).rets)) returns[s.mod + ':' + n] = p;
   const mods = new Map();
   for (const s of sources) {
-    if (s.mod === 'gen' || s.mod.startsWith('gen/')) continue;
+    if (s.mod === 'gen' || s.mod.startsWith('gen/') || s.mod.startsWith('draw/')) continue;
     const fns = functionsOf(s.src), scan = Writes.scan('src/' + s.f, s.mod, returns);
     mods.set(s.mod, {
       ...s, fns, reads: [...scan.reads.map((r) => ({ field: Writes.fieldOf(r.path), line: r.line })), ...grainReads(fns.ast, s.src)],

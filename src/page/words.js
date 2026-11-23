@@ -278,12 +278,14 @@ function showPawn(id) {
 // are a level (VB-908).
 const marryYears = (n) => (Math.round(Math.max(0, n) * 10) / 10).toString();
 const hasMeans = (bar) => bar.kind === 'short' || bar.kind === 'means';
+// A pawn's own stake (shares paid out, a servant's wages: VB-637) counts with the home's store, and the words say so.
+const portionWords = (bar) => (bar.portion > 0 ? ', your portion counted' : '');
 const marryWords = (bar) =>
   ({
     hungry: 'Too hungry to marry',
     nohome: 'No holding to marry onto',
-    short: `Cannot marry yet: the home holds ${marryYears(bar.held)} of the ${marryYears(bar.asked)} years it needs`,
-    means: `The home has the means to marry: it holds ${marryYears(bar.held)} of the ${marryYears(bar.asked)} years asked`,
+    short: `Cannot marry yet: the home holds ${marryYears(bar.held)} of the ${marryYears(bar.asked)} years it needs${portionWords(bar)}`,
+    means: `The home has the means to marry: it holds ${marryYears(bar.held)} of the ${marryYears(bar.asked)} years asked${portionWords(bar)}`,
     hands: "The home needs a spouse's hands: no means are asked",
   })[bar.kind];
 // The means stat: years of food the home holds on the one meter, to twice what is asked (or what it holds, if more), marked at the asked.
@@ -500,6 +502,14 @@ function settlementTileInfo(i) {
       const more = fieldCard(i, fd, f); // its crop, its course and the head's choices (page/tileinfo, VB-355)
       // the soil as two levels on the one meter: what the ground is worth, and how its crops and its dung have left it (100 is unworn)
       const cond = Math.round(fd.soil * 100);
+      const GROUND_WORDS = {
+        meadow: 'on meadow',
+        heath: 'on heath',
+        hills: 'on hills',
+        marsh: 'on marsh',
+        forest: 'broken from forest',
+        pine: 'broken from pine wood',
+      };
       return [
         `Field of ${where}`,
         f.household === null ? ['No one works it'] : [],
@@ -522,8 +532,10 @@ function settlementTileInfo(i) {
               icon: 'soil',
               label: 'Soil',
               value: Math.round(fd.fert * 100),
-              note: Sim.byRiver(w, i) ? 'watered by the river' : '',
-              title: 'The quality of the soil',
+              note: [GROUND_WORDS[fd.ground], Sim.byRiver(w, i) ? 'watered by the river' : '']
+                .filter(Boolean)
+                .join(', '),
+              title: 'The quality of the soil, and the ground the field was broken from',
               meter: { value: fd.fert * 100 },
             },
             {

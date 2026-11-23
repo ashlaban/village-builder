@@ -9,6 +9,11 @@ const edMark = (wd, sim) => {
   if (sim) for (const t of sim.used) edStale.add(t);
   if (wd.worn) for (let i = 0; i < wd.N; i++) if (wd.worn[i]) edStale.add(i);
 };
+// The world put back as kept, with no run: its paint is built anew (page/chunks), as the run's changes of cover are taken back whole.
+function edRestore(wd, kept) {
+  VB['gen/cover'].restore(wd, kept);
+  dropPaint(wd);
+}
 // The run of the places on a world as kept, or null with none. A place that finds no room is taken out of the list, and the rest laid.
 function edLay(wd, kept, seed) {
   const lived = () => edit.places.some((p) => p.village !== undefined || p.farm !== undefined);
@@ -17,7 +22,7 @@ function edLay(wd, kept, seed) {
     try {
       return Sim.seed(wd, seed, 'manual', edit.places);
     } catch (e) {
-      VB['gen/cover'].restore(wd, kept);
+      edRestore(wd, kept);
       if (e.place === undefined) {
         console.warn('What is placed could not be laid', e);
         return null;
@@ -30,7 +35,7 @@ function edLay(wd, kept, seed) {
 // The run taken off the editor's world, which is as kept again.
 function edUnseat() {
   edMark(edit.wd, edit.sim);
-  VB['gen/cover'].restore(edit.wd, edit.kept);
+  edRestore(edit.wd, edit.kept);
   edit.sim = null;
   buildSettlement(edit.wd, null);
 }
@@ -39,7 +44,7 @@ async function edRelay() {
   if (!edit || !edit.wd || w !== edit.wd) return;
   const wd = edit.wd;
   edMark(wd, edit.sim);
-  VB['gen/cover'].restore(wd, edit.kept);
+  edRestore(wd, edit.kept);
   edit.sim = edLay(wd, edit.kept, edit.p.seed);
   edMark(wd, edit.sim);
   const tiles = [...edStale];

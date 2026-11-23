@@ -6,6 +6,9 @@
 // by land is left as it is. The origin is the tile last selected by a click (a house or a green as well); it is measured again
 // every REACH_EVERY seconds, since paths wear and bridges are built, and drawn again only when a tile's band has changed. The lines
 // are a drawing of their own, made again when the zoom halves or doubles, so that they stay at least REACH_LINE pixels wide.
+// The bands are the quickest way's hours; a walker chooses its way by time weighed with discomfort (VB-448, sim/walking DISCOMFORT), so
+// the way it takes may be longer: with a tile clicked before the origin, that way, from the one to the other, is drawn over the bands
+// (unladen, as the route search chooses it now), and the key gives its hours beside the quickest's.
 const REACH_COLOUR = [0xf0f921, 0xfdb42f, 0xed7953, 0xcc4778, 0x9c179e, 0x5c01a6, 0x0d0887]; // near to far (the plasma ramp)
 const REACH_BEYOND = 0x5a5a5a,
   REACH_NONE = 255,
@@ -16,6 +19,8 @@ let reachG = null,
   reachZoom = 0,
   reachOn = false,
   reachFrom = -1,
+  reachPrev = -1,
+  reachWay = null,
   reachFor = null,
   reachAt = -1,
   reachBand = null,
@@ -30,7 +35,7 @@ function reachBands() {
       [R.BUILD.stoneWalk, 'stone for a house'],
       [R.CLAIMS.farmHours, 'there and back in a day'],
       [R.TRAVEL.dayWalk, "a day's walk"],
-      [VB['sim/routes'].ROUTE.reach / R.SPEED, 'as far as routes go'],
+      [VB['sim/routes'].ROUTE.hours, 'as far as routes go'],
     ].sort((a, b) => a[0] - b[0]),
     out = [];
   for (const [h, what] of raw) {
@@ -71,7 +76,33 @@ function reachKey(bands, seen) {
       .map((b, k) => (seen[k] ? row(REACH_COLOUR[k], `Within ${reachTime(b.h)}${b.what ? `: ${b.what}` : ''}`) : ''))
       .join('') +
     (seen[bands.length] ? row(REACH_BEYOND, 'Further, by land') : '') +
-    '</ul><p>One way, on foot. No colour: no way by land.</p>';
+    '</ul><p>One way, on foot, by the quickest way. No colour: no way by land.</p>' +
+    reachWayText();
+}
+// The way a walker takes from the tile clicked before to the origin (sim/routes findRoute, unladen), its hours and the quickest's;
+// null with no tile before, or none by land.
+function reachMeasureWay() {
+  const R = VB['sim/routes'],
+    speed = VB['sim/rules'].SPEED;
+  if (reachPrev < 0 || reachPrev >= w.N || reachPrev === reachFrom) return null;
+  const tiles = R.findRoute(w, reachPrev, reachFrom);
+  if (!tiles) return null;
+  const quick = R.reachCosts(w, reachPrev, Infinity, [reachFrom])[0];
+  return { tiles, hours: R.routeCost(w, tiles) / speed, quickest: quick === null ? null : quick / speed };
+}
+function reachWayText() {
+  const wt = VB['sim/walking'].DISCOMFORT.weight;
+  if (!reachWay)
+    return `<p>Click another tile, and the way a walker takes between the two is drawn.${wt ? '' : ' Routes are the quickest (discomfort weighs 0).'}</p>`;
+  const { hours, quickest } = reachWay,
+    longer = quickest !== null && hours > quickest + 1e-6;
+  return (
+    `<p>The white line: the way a walker takes from the tile clicked before, ${reachTime(hours)}` +
+    (longer
+      ? `, where the quickest takes ${reachTime(quickest)}: it minds the ground (discomfort weighs ${wt}).`
+      : ', the quickest.') +
+    '</p>'
+  );
 }
 function drawReach() {
   if (!w) return;
@@ -84,7 +115,10 @@ function drawReach() {
     from = reachFrom >= 0 && reachFrom < w.N ? reachFrom : -1,
     band = from >= 0 ? reachMeasure(from, bands) : null;
   reachAt = time;
-  if (band && reachFor === w && reachBand && band.every((b, i) => b === reachBand[i])) return;
+  const way = band ? reachMeasureWay() : null,
+    sameWay = (way && way.tiles.join()) === (reachWay && reachWay.tiles.join());
+  if (band && reachFor === w && reachBand && sameWay && band.every((b, i) => b === reachBand[i])) return;
+  reachWay = way;
   const g = reachG,
     seen = bands.map(() => 0).concat(0);
   g.clear();
@@ -130,6 +164,11 @@ function drawReachLines() {
   if (lines) g.stroke({ width: px, color: 0x1a0c2a, alpha: 0.9, cap: 'round' });
   g.circle(w.hx[from], w.hy[from], w.R * 0.75).stroke({ width: px * 1.6, color: 0x1a0c2a });
   g.circle(w.hx[from], w.hy[from], w.R * 0.75).stroke({ width: px * 0.7, color: 0xffffff });
+  if (!reachWay) return;
+  const t = reachWay.tiles;
+  g.moveTo(w.hx[t[0]], w.hy[t[0]]);
+  for (let k = 1; k < t.length; k++) g.lineTo(w.hx[t[k]], w.hy[t[k]]);
+  g.stroke({ width: px * 1.4, color: 0xffffff, alpha: 0.95, cap: 'round', join: 'round' });
 }
 // The tile a click selected, if a walk can start there: land, a house or a green; a selected person keeps the origin as it is.
 function reachPick() {
@@ -138,7 +177,6 @@ function reachPick() {
 function setReach(on) {
   reachOn = on;
   L.reach.visible = on;
-  $('reachKey').hidden = !on;
   if (!on || !w) return;
   const pick = reachPick();
   if (pick >= 0) reachFrom = pick;
@@ -150,6 +188,7 @@ function refreshReach() {
   if (!reachOn || !w) return;
   const pick = reachPick();
   if (pick >= 0 && pick !== reachFrom) {
+    reachPrev = reachFrom;
     reachFrom = pick;
     drawReach();
   } else if (reachFrom >= 0 && time - reachAt >= REACH_EVERY) drawReach();
@@ -158,6 +197,8 @@ function refreshReach() {
 // A new world: the old one's reach is wiped, and its origin forgotten.
 function resetReach() {
   reachFrom = -1;
+  reachPrev = -1;
+  reachWay = null;
   reachBand = null;
   reachFor = null;
   if (reachG) {
@@ -166,3 +207,16 @@ function resetReach() {
   }
   if (reachOn) drawReach();
 }
+// The H the old button named is the eye's, which hides the interface (page/input), so walking time is J, for a journey.
+registerOverlay({
+  id: 'reach',
+  name: 'Walking time',
+  key: 'j',
+  icon: 'reach',
+  group: 'ways',
+  set: setReach,
+  refresh: refreshReach,
+  reset: resetReach,
+  layer: L.reach,
+  keyEl: $('reachKey'),
+});

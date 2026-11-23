@@ -6,9 +6,9 @@
 
 <div class="hud top">
   <div class="clock panel" id="clock">
-    <div class="calendar"><strong id="clockDate">Spring, day 1</strong><span id="clockYear">Year 1, 06:00</span></div>
+    <div class="calendar"><strong id="clockDate" class="head">Spring, day 1</strong><span id="clockYear">Year 1, 06:00</span></div>
     <button id="pauseBtn" class="mobile-only icon-btn" type="button" aria-label="Pause game" title="Pause (Space)"></button>
-    <button id="speedBtn" class="mobile-only icon-btn" type="button" aria-expanded="false" aria-controls="speedOptions"></button>
+    <button id="speedBtn" class="mobile-only icon-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="speedOptions"></button>
     <div class="speed" id="speedOptions" role="group" aria-label="Game speed">
       <button type="button" class="icon-btn" data-speed="0" aria-pressed="false" aria-keyshortcuts="Space" aria-label="Pause" title="Pause (Space)"></button>
       <button type="button" class="icon-btn" data-speed="1" aria-pressed="true" aria-keyshortcuts="1" aria-label="1×" title="1× (1)"></button>
@@ -33,7 +33,7 @@
   <div class="choose-map" id="chooseMap"></div>
   <section class="choose-card panel" id="chooseCard" aria-live="polite" aria-label="The household chosen"></section>
   <section class="choose-list panel" aria-labelledby="chooseTitle">
-    <h1 id="chooseTitle">Whom to play</h1>
+    <h1 id="chooseTitle" class="head">Whom to play</h1>
     <p class="hint">Drag the map and pick a farm, or begin from a story. Anyone may be played, a child too.</p>
     <h3>Story archetypes</h3>
     <div id="chooseStories"></div>
@@ -47,32 +47,32 @@
 </div>
 <div class="toasts" id="toasts" role="log" aria-live="polite" aria-label="Notifications"></div>
 <nav class="navigation panel" aria-label="Game panels">
-  <button id="actionsBtn" type="button" data-icon="pawn" title="Your pawn's acts" aria-pressed="false" aria-controls="actBar"
-    hidden><span class="nav-label">Actions</span></button>
-  <button id="settlersBtn" type="button" data-icon="people" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false"
-    aria-controls="peopleSheet"><span class="nav-label">People</span></button>
-  <button id="treeBtn" type="button" data-icon="family" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog"><span
-    class="nav-label">Family</span></button>
-  <button id="cultureBtn" type="button" data-icon="customs" aria-keyshortcuts="c" title="Culture (C)" aria-pressed="false" aria-controls="drawer"><span
-    class="nav-label">Culture</span></button>
-  <button id="agendaBtn" type="button" data-icon="agenda" title="Your agenda: the cause you argue" aria-pressed="false" aria-controls="drawer"
-    hidden><span class="nav-label">Agenda</span></button>
-  <button id="debugBtn" type="button" data-icon="bug" title="Debug" aria-pressed="false" aria-controls="drawer"><span
-    class="nav-label">Debug</span></button>
+  <button id="actionsBtn" type="button" class="icon-btn labelled" data-icon="pawn" title="Your pawn's acts" aria-pressed="false" aria-controls="actBar"
+    hidden><span class="label">Actions</span></button>
+  <button id="settlersBtn" type="button" class="icon-btn labelled" data-icon="people" aria-keyshortcuts="p" title="People and households (P)" aria-pressed="false"
+    aria-controls="peopleSheet"><span class="label">People</span></button>
+  <button id="treeBtn" type="button" class="icon-btn labelled" data-icon="family" aria-keyshortcuts="t" title="Family records (T)" aria-haspopup="dialog"><span
+    class="label">Family</span></button>
+  <button id="cultureBtn" type="button" class="icon-btn labelled" data-icon="customs" aria-keyshortcuts="c" title="Culture (C)" aria-pressed="false" aria-controls="drawer"><span
+    class="label">Culture</span></button>
+  <button id="agendaBtn" type="button" class="icon-btn labelled" data-icon="agenda" title="Your agenda: the cause you argue" aria-pressed="false" aria-controls="drawer"
+    hidden><span class="label">Agenda</span></button>
+  <button id="debugBtn" type="button" class="icon-btn labelled" data-icon="bug" title="Debug" aria-pressed="false" aria-controls="drawer"><span
+    class="label">Debug</span></button>
 </nav>
 <!-- The action bar (VB-341): the dock's Actions opens it over the dock; a group opens its list of acts above it, an act that needs a tile
      puts the map in a tool mode named by the banner, and Queue opens the played pawn's sheet. -->
 <div class="act-bar panel" id="actBar" role="group" aria-label="Your pawn's acts" hidden>
-  <button type="button" data-group="self" data-icon="act-me" aria-expanded="false" aria-controls="actMenu"><span>Myself</span></button>
-  <button type="button" data-group="house" data-icon="act-home" aria-expanded="false" aria-controls="actMenu"><span>Household</span></button>
-  <button type="button" data-group="village" data-icon="act-village" aria-expanded="false" aria-controls="actMenu"><span>Village</span></button>
-  <button type="button" id="queueBtn" data-icon="act-queue" aria-pressed="false" aria-controls="actionSheet"><span>Queue <b id="queueCount"></b></span></button>
+  <button type="button" class="icon-btn labelled" data-group="self" data-icon="act-me" aria-haspopup="true" aria-expanded="false" aria-controls="actMenu"><span class="label">Myself</span></button>
+  <button type="button" class="icon-btn labelled" data-group="house" data-icon="act-home" aria-haspopup="true" aria-expanded="false" aria-controls="actMenu"><span class="label">Household</span></button>
+  <button type="button" class="icon-btn labelled" data-group="village" data-icon="act-village" aria-haspopup="true" aria-expanded="false" aria-controls="actMenu"><span class="label">Village</span></button>
+  <button type="button" class="icon-btn labelled" id="queueBtn" data-icon="act-queue" aria-pressed="false" aria-controls="actionSheet"><span class="label">Queue <b id="queueCount"></b></span></button>
 </div>
 <div class="act-menu panel" id="actMenu" role="group" aria-labelledby="actMenuTitle" hidden></div>
 <div class="act-banner panel" id="actBanner" hidden></div>
 <aside class="people-sheet sheet panel" id="actionSheet" hidden aria-labelledby="actionTitle">
   <div class="sheet-head">
-    <h2 id="actionTitle">Queue</h2>
+    <h2 id="actionTitle" class="head">Queue</h2>
     <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="actionSheet" aria-expanded="true" aria-controls="actionContent"
       aria-label="Collapse" title="Collapse"></button>
     <button id="actionClose" type="button" class="icon-btn" data-icon="close" aria-label="Close actions" title="Close"></button>
@@ -83,7 +83,7 @@
 </aside>
 <aside class="people-sheet sheet panel" id="peopleSheet" hidden aria-labelledby="peopleTitle">
   <div class="sheet-head">
-    <h2 id="peopleTitle">People &amp; households</h2>
+    <h2 id="peopleTitle" class="head">People &amp; households</h2>
     <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="peopleSheet" aria-expanded="true" aria-controls="peopleContent"
       aria-label="Collapse" title="Collapse"></button>
     <button id="peopleClose" type="button" class="icon-btn" data-icon="close" aria-label="Close people" title="Close"></button>
@@ -97,7 +97,7 @@
 </aside>
 <aside class="drawer sheet panel" id="drawer" hidden aria-labelledby="drawerTitle">
   <div class="sheet-head">
-    <h2 id="drawerTitle">Culture</h2>
+    <h2 id="drawerTitle" class="head">Culture</h2>
     <button type="button" class="sheet-expand icon-btn" data-icon="chevron" data-sheet="drawer" aria-expanded="true" aria-controls="drawerBody"
       aria-label="Collapse" title="Collapse"></button>
     <button id="drawerClose" type="button" class="icon-btn" data-icon="close" aria-label="Close" title="Close"></button>
@@ -109,7 +109,7 @@
   <aside class="tile sheet panel collapsed" id="tile" hidden aria-labelledby="tileName">
     <div class="sheet-head">
       <div id="tileBadge" hidden></div>
-      <div class="sheet-title"><strong id="tileName"></strong><span id="tileKind" hidden></span></div>
+      <div class="sheet-title"><strong id="tileName" class="head"></strong><span id="tileKind" hidden></span></div>
       <button type="button" id="tileFocus" class="icon-btn" aria-label="Centre the map on this" aria-keyshortcuts="f" title="Centre the map on this (F)"><svg
         viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8"
         r="4.5"/><path d="M8 0v4M8 12v4M0 8h4M12 8h4"/></svg></button>
@@ -152,9 +152,18 @@
     <div class="notice-pop panel" id="noticePop" role="group" aria-labelledby="noticeTitle" hidden>
       <h2 class="menu-label" id="noticeTitle">Notifications</h2><div id="noticeList"></div>
     </div>
+    <div class="notice-pop overlay-pop panel" id="overlayPop" role="group" aria-labelledby="overlayTitle" hidden>
+      <h2 class="menu-label" id="overlayTitle">Overlays</h2>
+      <div class="overlay-list" id="overlayList" role="radiogroup" aria-labelledby="overlayTitle"></div>
+    </div>
     <div class="ground-key panel" id="groundKey" role="group" aria-label="Key to the ground" hidden></div>
     <div class="ground-key land-key panel" id="landKey" role="group" aria-label="Key to land ownership" hidden></div>
     <div class="ground-key reach-key panel" id="reachKey" role="group" aria-label="Key to walking time" hidden></div>
+    <div class="ground-key reach-key panel" id="fertilityKey" role="group" aria-label="Key to fertility" hidden></div>
+    <div class="ground-key band-key panel" id="woodlandKey" role="group" aria-label="Key to woodland" hidden></div>
+    <div class="ground-key band-key panel" id="wildfoodKey" role="group" aria-label="Key to wild food" hidden></div>
+    <div class="ground-key reach-key panel" id="grazingKey" role="group" aria-label="Key to grazing pressure" hidden></div>
+    <div class="ground-key reach-key panel" id="wearKey" role="group" aria-label="Key to wear on foot" hidden></div>
     <div class="minimap panel" id="minimap" aria-label="Overview map, click or tap to jump" tabindex="0" role="group">
       <canvas id="mmBase"></canvas>
       <canvas id="mmView"></canvas>
@@ -164,14 +173,10 @@
         aria-pressed="true"></button>
       <button id="regionBtn" type="button" class="icon-btn" data-icon="regions" aria-keyshortcuts="r" aria-label="Regions" title="Regions (R)"
         aria-pressed="false"></button>
-      <button id="landBtn" type="button" class="icon-btn" data-icon="land" aria-keyshortcuts="l" aria-label="Land ownership"
-        title="Land ownership (L)" aria-pressed="false" aria-controls="landKey"></button>
-      <button id="groundBtn" type="button" class="icon-btn" data-icon="ground" aria-keyshortcuts="o" aria-label="Bedrock and deposits"
-        title="Bedrock and deposits (O)" aria-pressed="false" aria-controls="groundKey"></button>
-      <button id="reachBtn" type="button" class="icon-btn" data-icon="reach" aria-keyshortcuts="h" aria-label="Walking time from the selected tile"
-        title="Walking time from the selected tile (H)" aria-pressed="false" aria-controls="reachKey"></button>
+      <button id="overlayBtn" type="button" class="icon-btn" aria-label="Overlays" title="Overlays" aria-haspopup="true" aria-expanded="false"
+        aria-controls="overlayPop"></button>
       <button id="noticeBtn" type="button" class="icon-btn" data-icon="bell" aria-label="Notifications" title="Which notifications show"
-        aria-expanded="false" aria-controls="noticePop"></button>
+        aria-haspopup="true" aria-expanded="false" aria-controls="noticePop"></button>
       <button id="minimapBtn" type="button" class="icon-btn" data-icon="minimap" aria-keyshortcuts="m" aria-label="Minimap" title="Minimap (M)"
         aria-pressed="false"></button>
     </div>
@@ -180,7 +185,7 @@
 
 <div class="tree" id="tree" hidden role="dialog" aria-modal="true" aria-labelledby="treeTitle">
   <div class="tree-card panel">
-    <header class="tree-head"><h2 id="treeTitle">Family records</h2><p id="treeSub"></p>
+    <header class="tree-head"><h2 id="treeTitle" class="head">Family records</h2><p id="treeSub"></p>
       <button id="treeClose" type="button" class="icon-btn" data-icon="close" aria-label="Close family records" title="Close"></button></header>
     <div class="tabs tree-modes" id="treeModes" role="tablist" aria-label="What the tree shows">
       <button type="button" role="tab" data-mode="line" aria-selected="true">Ancestors</button><button type="button" role="tab" data-mode="father" aria-selected="false">Father's line</button>
@@ -197,7 +202,7 @@
 
 <div class="genscreen" id="landing" hidden>
   <div class="game-info" id="gameInfo" hidden>
-    <p class="game-name" id="name"></p>
+    <p class="game-name head" id="name"></p>
     <p class="meta" id="meta"></p>
   </div>
   <div class="panel landing">
@@ -206,9 +211,11 @@
     <button id="landEdit" type="button">Archipelago editor<small>Shape a world of your own, and play it</small></button>
     <button id="landQuick" type="button">Quick start<small>A tiny island of populous villages</small></button>
     <button id="landLoad" type="button">Load archipelago</button>
+    <button id="landGuide" type="button">Guide<small>What can be done, where, with what</small></button>
     <button id="landOptions" type="button">Options<small>The look of the interface</small></button>
     <button id="landBack" type="button" hidden>Back to game</button>
     <p class="gen-docs" id="genDocs"><a href="docs/roadmap.html" target="_blank" rel="noopener">Roadmap</a> ·
+      <a href="docs/usage.html" target="_blank" rel="noopener">Token use</a> ·
       <a href="BACKLOG.html" target="_blank" rel="noopener">Backlog</a> ·
       <a href="QUESTIONS.html" target="_blank" rel="noopener">Open questions</a></p>
   </div>
@@ -220,7 +227,7 @@
   <button id="genMenu" type="button" class="icon-btn corner-menu" data-icon="menu" aria-label="Main menu" aria-keyshortcuts="Escape"></button>
   <form class="start-sheet" id="genForm" autocomplete="off" aria-labelledby="startTitle">
     <section class="panel start-top">
-      <div class="screen-head"><h1 id="startTitle">Play a Scenario</h1><span class="stepno">Step 1 of 2</span></div>
+      <div class="screen-head"><h1 id="startTitle" class="head">Play a Scenario</h1><span class="stepno">Step 1 of 2</span></div>
       <div class="scards" id="startCards" role="group" aria-label="Starting scenario"></div>
       <input type="hidden" id="genScenario" value="founders">
     </section>
@@ -236,7 +243,7 @@
         </div>
       </section>
       <section class="panel start-side" aria-labelledby="startName">
-        <h2 id="startName"></h2>
+        <h2 id="startName" class="head"></h2>
         <h3>Who starts</h3>
         <p class="hint">An example: the people of the island in the picture. Each island has its own.</p>
         <div class="who-starts" id="startWho"></div>
@@ -254,6 +261,12 @@
         <select id="genSize">
           <option value="t">Tiny (120 × 85)</option><option value="s">Small (180 × 130)</option>
           <option value="m" selected>Medium (280 × 200)</option><option value="l">Large (380 × 270)</option>
+        </select>
+      </label>
+      <label>Climate
+        <select id="genClimate">
+          <option value="57">Southern (57° N)</option><option value="59" selected>Middle (59° N)</option>
+          <option value="62">Northern (62° N)</option><option value="65">Far north (65° N)</option>
         </select>
       </label>
       <label>Seed
@@ -288,7 +301,7 @@
   </div>
   <p class="panel editor-msg err" id="edMsg" role="alert" hidden></p>
   <form class="panel editor-side" id="edGen" autocomplete="off" aria-labelledby="edGenTitle">
-    <h2 id="edGenTitle">Generation</h2>
+    <h2 id="edGenTitle" class="head">Generation</h2>
     <div class="editor-body">
       <fieldset>
         <legend>Seed</legend>
@@ -333,7 +346,7 @@
     </div>
   </form>
   <section class="panel editor-side" id="edTerrain" aria-labelledby="edTerrainTitle" hidden>
-    <h2 id="edTerrainTitle">Terrain</h2>
+    <h2 id="edTerrainTitle" class="head">Terrain</h2>
     <div class="editor-body">
       <fieldset>
         <legend>Brush</legend>
@@ -354,7 +367,7 @@
     </div>
   </section>
   <section class="panel editor-side" id="edSettle" aria-labelledby="edSettleTitle" hidden>
-    <h2 id="edSettleTitle">Settlement</h2>
+    <h2 id="edSettleTitle" class="head">Settlement</h2>
     <div class="editor-body">
       <fieldset>
         <legend>Settled by</legend>
@@ -401,7 +414,7 @@
 
 <div class="saves-screen" id="savesScreen" role="dialog" aria-modal="true" aria-labelledby="savesTitle" hidden>
   <div class="panel">
-    <div class="screen-head"><h1 id="savesTitle">Saves</h1><button id="savesClose" type="button">Close</button></div>
+    <div class="screen-head"><h1 id="savesTitle" class="head">Saves</h1><button id="savesClose" type="button">Close</button></div>
     <div class="saves-body" id="savesBody"></div>
   </div>
 </div>
@@ -409,16 +422,25 @@
 <!-- Options (VB-1161), opened from the main menu and taking its card's place as Saves does: the interface's theme, the page's choice -->
 <div class="saves-screen" id="optionsScreen" role="dialog" aria-modal="true" aria-labelledby="optionsTitle" hidden>
   <div class="panel options">
-    <div class="screen-head"><h1 id="optionsTitle">Options</h1><button id="optionsClose" type="button">Close</button></div>
+    <div class="screen-head"><h1 id="optionsTitle" class="head">Options</h1><button id="optionsClose" type="button">Close</button></div>
     <p class="menu-label" id="themeLabel">Interface</p>
     <div class="themes" id="themeList" role="radiogroup" aria-labelledby="themeLabel"></div>
     <p class="options-kept">Kept in this browser, for every game on this device.</p>
   </div>
 </div>
 
+<!-- The game's guide (VB-1124; page/guide), opened from the main menu and from plan mode: every kind of work, the things, the crops -->
+<div class="saves-screen" id="guideScreen" role="dialog" aria-modal="true" aria-labelledby="guideTitle" hidden>
+  <div class="panel guide">
+    <div class="screen-head"><h1 id="guideTitle" class="head">Guide</h1><button id="guideClose" type="button">Close</button></div>
+    <div class="guide-tabs" id="guideTabs" role="tablist" aria-label="Chapters"></div>
+    <div class="guide-body" id="guideBody" role="tabpanel"></div>
+  </div>
+</div>
+
 <div class="loader" id="loader">
   <div>
-    <p id="loadText">Raising the land</p>
+    <p id="loadText" class="head">Raising the land</p>
     <div class="bar"><i id="loadBar"></i></div>
   </div>
 </div>

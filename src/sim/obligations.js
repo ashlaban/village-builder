@@ -26,6 +26,15 @@ VB['sim/obligations'] = (() => {
         return end > t ? end : end + YEAR;
       },
     },
+    // a servant's wage for a year served (VB-637, sim/service): owed at the moving round that ends the year and paid there, as a share
+    // is; what is not paid stays owed to the next round
+    wage: {
+      every: YEAR,
+      term: (t) => {
+        const end = (Math.floor(t / YEAR) * YEAR_DAYS + AUTUMN * SEASON_DAYS + ASK.day + 1) * DAY;
+        return end > t ? end : end + YEAR;
+      },
+    },
     // days of work owed (VB-462, sim/days): owes {days}, source 'debt' | 'keep' | 'patron'; it runs to the year's end. A debt's days then
     // stand (overdue: VB-315 says what follows); those of the keep and of a patron's due lapse, told once.
     days: {
@@ -229,13 +238,14 @@ VB['sim/obligations'] = (() => {
   }
   // The rations of shares pawn id is still owed.
   const shareOwed = (st, id) => (st.obligationsBy ? owed(st, { kind: 'pawn', id }, 'creditor', 'share') : 0);
-  // The open shares, grouped by the sibling owed, in the order of the siblings' ids: [[pawn id, its shares, the oldest first], ...].
-  function openShares(st) {
+  // The open obligations of a kind owed to pawns (the siblings' shares, unless another kind is named: a servant's wages), grouped by the
+  // pawn owed, in the order of the pawns' ids: [[pawn id, its obligations, the oldest first], ...].
+  function openShares(st, kind = 'share') {
     const out = [];
     for (const k of Object.keys(st.obligationsBy ? st.obligationsBy.creditor : {})) {
       if (!k.startsWith('pawn:')) continue;
       const id = +k.slice(5),
-        list = due(st, { kind: 'pawn', id }, 'creditor', 'share');
+        list = due(st, { kind: 'pawn', id }, 'creditor', kind);
       if (list.length) out.push([id, list]);
     }
     return out.sort((a, b) => a[0] - b[0]);

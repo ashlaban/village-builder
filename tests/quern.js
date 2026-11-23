@@ -5,7 +5,7 @@
 // none) from a load of the heap, where the village's ground is sandstone or granite; the start's households have one; the quern is a good.
 const VB = require('../src/load.js'), Goods = VB['sim/goods'], Stores = VB['sim/stores'], Pot = VB['sim/pot'], Q = VB['sim/quern'];
 const { YEAR, DAY, ECON, FOODS } = VB['sim/rules'], { ROLES } = VB['sim/roles'], { dailyNeed, feedHousehold, seedReserve } = VB['sim/hunger'];
-const { KINDS, ASK } = VB['sim/kinds'], Norms = VB['sim/norms'], { ROCK } = VB['gen/geology'];
+const { KINDS, ASK } = VB['sim/kinds'], Norms = VB['sim/norms'], { ROCK } = VB['world/geology'];
 const { state } = require('./lib/probe.js'), { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('QUERN FAIL:', m); } };
 const near = (a, b, e = 1e-6) => Math.abs(a - b) < e;

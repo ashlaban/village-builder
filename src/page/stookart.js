@@ -113,7 +113,7 @@ function landSprites() {
     g.scale(T, T);
     g.lineJoin = 'round';
     g.lineCap = 'round';
-    fn(g, G.mulberry32(seed));
+    fn(g, Noise.mulberry32(seed));
     return c;
   };
   const col = (c3, f = 1) => `rgb(${c3.map((v) => Math.min(255, v * f) | 0)})`;

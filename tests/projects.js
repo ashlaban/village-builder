@@ -99,7 +99,8 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   const t = F.chooseTile(st, f);
   VB['sim/stakes'].stake(st, hh, t, 'field');
   const land = VB['sim/projectplans'].makeProject(st, 'household', hh.id, F.fieldProject(st, hh, t));
-  assert(land.steps.map((s) => s.kind).join() === 'clear,break' && land.reasons['grain/barley'] === 'field', 'a field: clearing then breaking, its seed held');
+  const felled = VB['sim/forest'].wooded(st.w, t) ? 'fell,grub,' : ''; // a wood is felled and grubbed first (VB-1525)
+  assert(land.steps.map((s) => s.kind).join() === felled + 'clear,break' && land.reasons['grain/barley'] === 'field', 'a field: clearing then breaking, its seed held');
   VB['sim/claims'].dropClaim(st, t, { type: 'household', id: hh.id });
   assert(!VB['sim/projectplans'].review(st, land) && !VB['sim/projects'].ownOf(st, hh.id), 'its stake lost, the land project is dropped at review');
   clean(st, 'stake lost');
@@ -109,7 +110,7 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   const X = VB['sim/expansion'], st = Sim.seed(world7, 7, 'heirs'), v = st.villages[0];
   st.demand = st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id)).map((p) => p.id).slice(0, 2);
   for (const f of st.farmsteads) if (f.household === null) f.state = 'ruin';
-  X.startPlots(st);
+  VB['sim/allotment'].startPlots(st);
   const plan = X.livePlots(st, v)[0];
   assert(plan && plan.what === 'plot' && plan.steps.map((s) => s.kind).join() === 'clear,foundation,walls,roof' && plan.steps[0].places.length === 2,
     'a plot: its tiles\' clearing, then the cottage');

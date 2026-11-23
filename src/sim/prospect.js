@@ -4,7 +4,7 @@
 VB['sim/prospect'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { villageOf, fullName, log, atHousehold } = VB['sim/records'];
-  const Geo = VB['gen/geology'];
+  const Geo = VB['world/geology'];
   // hours: work hours within reach of a vein (w.veinNear: 2 tiles) for an even chance times two of finding it: a finished job of h work
   // hours finds it with chance h / hours, at most 1. Drawn as the work ends, so no tally of hours is kept (Rules for cost 3).
   const PROSPECT = { hours: 60 };

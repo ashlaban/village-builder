@@ -59,8 +59,6 @@ const before = (a, b) => {
   const y = CALENDAR.findIndex((e) => e.every === 'day' && e.owner === b);
   assert(x >= 0 && y > x, `${a} must precede ${b}`);
 };
-before('sim/help', 'sim/hunger'); // share before consuming today's food
-before('sim/help', 'sim/service'); // take-in reads today's shortage
 before('sim/paths', 'sim/routes'); // invalidate travel costs before refreshing routes
 const modules = new Set(require('../src/manifest.json').map((f) => f.slice(0, -3)));
 for (const r of rows) assert(modules.has(r.owner), `calendar: ${r.note}: its owner ${r.owner} is not a module of the manifest`);

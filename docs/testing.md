@@ -18,6 +18,7 @@ scenarios, heavily constructed on the smallest states; the longer tests run at n
 | `npm run nightly` | Scheduled or manual | Prepare all late fixtures once, extended, then bench and multi-seed band measurements |
 | `node tests/NAME.js` | A change to what NAME covers | One script, whatever its tier: a page change runs `tests/smoke.js` and the `tests/browser*.js` it touches |
 | `node tools/same.js --base REF` | A behavior-preserving change | The same runs from REF and from the working tree, compared leaf by leaf; nothing recorded; `--renamed OLD=NEW` reads a renamed field by its new name |
+| `node tools/samepixels.js --base REF` | A change to the map's drawing that keeps its pixels | The same chunks baked headless by REF's code and the working tree's (sea, overview, round each village, a cover set and restored), hashes compared; `tests/samepixels.js` shows it catches a pigment and a mark moved |
 
 `tests/suites.js` is the explicit inventory. `--list` prints per-script timings; `--verbose` includes full output and advisory
 targets. Every suite reports its slowest five scripts.

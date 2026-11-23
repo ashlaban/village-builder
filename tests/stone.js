@@ -16,7 +16,7 @@ check(f.grade === 'ground' && st.farmsteads.every((x) => x.grade === 'ground'), 
 VB['sim/projectplans'].dropAll(st, 'household', hh.id); plan.build = null;
 let step = Bld.buildStep(st, plan, hh);
 check(step && (step.kind === 'quarry' || step.kind === null), `with no stony meadow the stone is quarried, if hills are in reach (${JSON.stringify(step)})`);
-const stony = VB['sim/territory'].outlandOf(st, v).find((t) => w.biome[t] === VB.gen.B.MEADOW);
+const stony = VB['sim/territory'].outlandOf(st, v).find((t) => w.biome[t] === VB['world/biomes'].B.MEADOW);
 w.stones[stony] = 200; plan.build = null;
 step = Bld.buildStep(st, plan, hh);
 check(step && step.kind === 'pick' && step.tile === stony, `a stony meadow of the outland is picked (${JSON.stringify(step)})`);

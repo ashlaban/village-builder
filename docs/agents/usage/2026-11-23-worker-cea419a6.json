@@ -1,0 +1,133 @@
+{
+ "session": "cea419a6-14a9-57d8-a7e7-dadfa07ede01",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-23T00:50:34.158Z",
+ "end": "2026-11-23T01:20:49.127Z",
+ "wallMin": 30.2,
+ "activeMin": 30.2,
+ "prompts": 3,
+ "calls": 145,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 282,
+  "cacheWrite": 211167,
+  "cacheRead": 29590976,
+  "output": 71097
+ },
+ "context": {
+  "first": 84788,
+  "peak": 275107,
+  "firstEdit": 167801
+ },
+ "tools": {
+  "Bash": {
+   "calls": 139,
+   "bytes": 253168,
+   "seconds": 574
+  },
+  "Write": {
+   "calls": 4,
+   "bytes": 565,
+   "seconds": 0.2
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 47,
+   "seconds": 0
+  },
+  "Monitor": {
+   "calls": 1,
+   "bytes": 302,
+   "seconds": 0.1
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 34,
+   "bytes": 137643
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 29,
+   "bytes": 26355
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 23,
+   "bytes": 13024
+  },
+  {
+   "tool": "Bash",
+   "what": "for t",
+   "calls": 1,
+   "bytes": 10877
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 1,
+   "bytes": 9741
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 5,
+   "bytes": 8287
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7865
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 2,
+   "bytes": 4779
+  },
+  {
+   "tool": "Bash",
+   "what": "head -30",
+   "calls": 1,
+   "bytes": 4260
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -i",
+   "calls": 8,
+   "bytes": 3895
+  },
+  {
+   "tool": "Bash",
+   "what": "cat backlog/VB-476.md",
+   "calls": 1,
+   "bytes": 3557
+  },
+  {
+   "tool": "Bash",
+   "what": "cat backlog/VB-704.md",
+   "calls": 1,
+   "bytes": 3152
+  }
+ ],
+ "weighted": 3578823,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 3578823,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

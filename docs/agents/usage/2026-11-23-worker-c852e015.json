@@ -1,0 +1,123 @@
+{
+ "session": "c852e015-8301-5730-84e9-ca9938e9c881",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-23T10:00:04.183Z",
+ "end": "2026-11-23T10:26:38.587Z",
+ "wallMin": 26.6,
+ "activeMin": 24.6,
+ "prompts": 1,
+ "calls": 110,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 208,
+  "cacheWrite": 192583,
+  "cacheRead": 20398783,
+  "output": 52407
+ },
+ "context": {
+  "first": 84782,
+  "peak": 256287,
+  "firstEdit": 178323
+ },
+ "tools": {
+  "Bash": {
+   "calls": 110,
+   "bytes": 246524,
+   "seconds": 942
+  },
+  "Write": {
+   "calls": 3,
+   "bytes": 431,
+   "seconds": 0.2
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 30,
+   "bytes": 117436
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 13,
+   "bytes": 31108
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 19,
+   "bytes": 15091
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 2,
+   "bytes": 14374
+  },
+  {
+   "tool": "Bash",
+   "what": "while !",
+   "calls": 1,
+   "bytes": 13174
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 5,
+   "bytes": 9996
+  },
+  {
+   "tool": "Bash",
+   "what": "for i",
+   "calls": 1,
+   "bytes": 9223
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 6430
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/balance.js",
+   "calls": 1,
+   "bytes": 3843
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/manifest.json",
+   "calls": 1,
+   "bytes": 3563
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 3490
+  },
+  {
+   "tool": "Bash",
+   "what": "tail -12",
+   "calls": 1,
+   "bytes": 2523
+  }
+ ],
+ "weighted": 2542850,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 2542850,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

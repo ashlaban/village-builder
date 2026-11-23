@@ -39,6 +39,7 @@ check(Goods.goodOf('butter').perish.keepsDays === FOODS.butter.keeps && Goods.go
   Byre.byreDay(st, Sim.cal(st.t));
   check(hh.larder.length === 0 && near(sum('spoilage', 'milk') - milk0, -5), `the spoilt milk booked (${sum('spoilage', 'milk') - milk0})`);
   addFood(st, hh, 'meat', 4);
+  hh.salt = 4 * Sim.HERD.saltPerRation; // the salt for 4 rations (VB-700)
   Byre.saltDone(st, hh);
   check(near(sum('salting', 'meat'), -4) && near(sum('salting', 'salt meat'), 4), 'salting: out of meat, into salt meat');
   check(hh.larder.length === 1 && hh.larder[0].kind === 'salt meat' && hh.larder[0].until === st.t + FOODS['salt meat'].keeps * DAY, 'salt meat keeps');

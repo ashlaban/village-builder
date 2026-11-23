@@ -1,7 +1,7 @@
 // @sys sim/territory: the village's outland (utmark), claimed by need at the meetings and its own a year and a day later; borders settled by
 // custom and marked with cairns; land a household or village may take in; the village's wood, the area it cuts its firewood in (VB-326)
 VB['sim/territory'] = (() => {
-  const { B } = VB['gen'];
+  const { B } = VB['world/biomes'];
   const { CLAIMS, YEAR, WOOD } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
