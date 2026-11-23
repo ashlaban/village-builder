@@ -253,7 +253,7 @@ VB['sim/building'] = (() => {
   // (plan.build, opened at a review by sim/plans from buildStep), not a standing target, so heaps do not grow without use.
   const STONES_PER_LOAD = 25; // as clearing loads them (sim/fields, sim/meadows)
   const pickable = (w, t) => w.biome[t] === B.MEADOW && w.stones[t] > BUILD.keepStones;
-  const quarry = (w, t) => w.biome[t] === B.HILLS || w.biome[t] === B.MOUNTAIN;
+  const quarry = (w, t) => BUILD.quarryOn.includes(w.biome[t]); // VB-733: and heath
   // Where the household's stone comes from: the nearest tile within BUILD.stoneReach walking steps of its house where a load may be picked (a
   // meadow tile of its own land or its village's outland holding more than a meadow keeps), else the nearest hills or mountain tile, not
   // another's land, to quarry; {tile, kind ('pick' | 'quarry')}, or {tile: -1, kind: null} when there is none (its heap may still fill
