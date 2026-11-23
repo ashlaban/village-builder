@@ -5,7 +5,7 @@ VB['sim/expansion'] = (() => {
   const { B } = VB['gen'];
   const { doneOf, keptDone } = VB['sim/progress'];
   const { FIELDS, ECON } = VB['sim/rules'],
-    { fertility, farmable } = VB['sim/crops'];
+    { fertility, farmable, clearable } = VB['sim/crops'];
   const Projects = VB['sim/projects'],
     { emit, on } = VB['sim/events'];
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
@@ -19,8 +19,9 @@ VB['sim/expansion'] = (() => {
   const { BREAK_HOURS, clearHours, builtTiles } = VB['sim/fieldplans'],
     { onField } = VB['sim/fieldwork'];
   const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand, houseScore } = VB['sim/layout'];
-  const { COTTAGE, villageOf, wallsOf, timberNeed, waitsForTimber, cottageSteps, finishCottageStage } =
+  const { COTTAGE, villageOf, wallsOf, timberNeed, waitsForTimber, cottageSteps, finishCottageStage, cottageOf } =
     VB['sim/cottageplan'];
+  const Stores = VB['sim/stores'];
   const MAX_PLOTS = 2,
     REACH = 6;
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
@@ -91,11 +92,13 @@ VB['sim/expansion'] = (() => {
   // Room for a farm whose house is h (VB-154): free farmable tiles within FIELD_REACH walking steps of h, unused and free for village vid
   // (its outland or wilderness; vid null: wilderness only, for a new village; sim/territory), that `taken` does not exclude; counted up to
   // FIELDS.room. A farm needs FIELDS.room of them besides its first field for more fields, meadow and pasture.
-  function roomAt(st, h, taken = () => false, vid = null) {
-    const w = st.w;
+  // cleared: a wooded tile counts as the meadow it becomes when grubbed (sim/crops clearable; a new village's site, VB-786).
+  function roomAt(st, h, taken = () => false, vid = null, cleared = false) {
+    const w = st.w,
+      may = cleared ? clearable : farmable;
     let n = 0;
     for (const [t] of bfs(w, h, FIELD_REACH, walkable(w)).dist) {
-      if (farmable(w, t) && freeFor(st, t, vid) && !st.used.has(t) && !taken(t) && ++n >= FIELDS.room) break;
+      if (may(w, t) && freeFor(st, t, vid) && !st.used.has(t) && !taken(t) && ++n >= FIELDS.room) break;
     }
     return n;
   }
@@ -331,6 +334,30 @@ VB['sim/expansion'] = (() => {
     emit(st, 'stepDone', { type: plot.holder.type, id: plot.holder.id, plan: plot }); // its tiles cleared: the cottage's first stage opens (sim/plans)
     emit(st, 'plotCleared', { plot }); // who is to have it (sim/allotment)
   }
+  // A household's own step of felling or grubbing is done (VB-786: a settler's first field and its house on a forest site, sim/fieldplans
+  // fellSteps): felling takes the trees, as a plot's does, its timber to the household's cottage walls while it lives in a booth (3 loads a
+  // tree, VB-328), else to its woodpile; grubbing turns the wood into meadow. The plan's next step opens.
+  function finishOwnClearing(st, j, hh) {
+    const plan = Projects.onProject(st, j);
+    if (!plan || !hh) return;
+    const w = st.w,
+      s = plan.steps[plan.open],
+      tile = s.place;
+    if (s.kind === 'fell') {
+      const loads = Math.floor(w.trees[tile]) * ECON.woodPerTrip,
+        home = cottageOf(st, hh.id);
+      const walls = home ? wallsOf(home) : null;
+      if (walls) walls.wood += loads;
+      else if (loads > 0) Stores.put(st, hh, 'wood', loads, 'timber');
+      w.trees[tile] = 0;
+      st.regrow.delete(tile);
+      st.treeDirty.add(tile);
+    } else clearTile(st, tile);
+    tended(st, tile); // worked on: kept open from the forest a year (sim/spread)
+    st.biomeDirty.add(tile);
+    if (hh.farmstead !== null) st.farmDirty.add(hh.farmstead);
+    emit(st, 'stepDone', { type: 'household', id: hh.id, plan }); // the next step opens (sim/plans)
+  }
   // Asked once for the island, not per village: the open step of each tile of every active plot, then each building plot's cottage stage,
   // owned by the plot's village (sim/expansion).
   function plotWork(st, holder, at, c, post) {
@@ -347,6 +374,7 @@ VB['sim/expansion'] = (() => {
       hours: 10,
       hands: Infinity,
       type: 'wood',
+      done: (st, j, hh) => finishOwnClearing(st, j, hh), // a household's own (a plot's step is finished by finishStep)
       available: plotWork,
     },
     grub: {
@@ -360,6 +388,7 @@ VB['sim/expansion'] = (() => {
       type: 'tilling',
       field: true,
       spot: onField,
+      done: (st, j, hh) => finishOwnClearing(st, j, hh),
       available: plotWork,
     },
   };

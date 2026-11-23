@@ -151,6 +151,28 @@ VB['sim/walking'] = (() => {
     return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
   };
 
+  // A tile's cost along a trail a party would blaze (VB-786; docs/plans/VB-445.md, section 2): a wooded tile with no path through it costs
+  // what a path there would (PATHS.clear and speed at stage 2: broadleaf 1.59, pine 1.36), the trail the party cuts before it carries
+  // anything; every other tile what it costs now (tileCost). A step along it is stepCost's, by these costs.
+  const TRAIL = 2;
+  function trailCost(w, i) {
+    const b = w.biome[i];
+    if (
+      (b !== B.FOREST && b !== B.PINE) ||
+      w.water[i] ||
+      (w.dev && w.dev[i]) ||
+      (w.river && w.river[i]) ||
+      (w.worn && w.worn[i] >= TRAIL)
+    )
+      return tileCost(w, i);
+    return (1 + (TERRAIN[b] - 1) * (1 - PATHS.clear[TRAIL])) / PATHS.speed[TRAIL];
+  }
+  const trailStep = (w, a, b) => {
+    const ca = trailCost(w, a),
+      cb = trailCost(w, b);
+    return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
+  };
+
   // The discomfort of tile i (DISCOMFORT): its footing, less what its wear has cleared, and its wet; 0 where it is firm (a field, a
   // meadow, the green, a house, a bridge) or closed. Read by the route search only when DISCOMFORT.weight is not 0.
   function discomfort(w, i) {
@@ -188,6 +210,7 @@ VB['sim/walking'] = (() => {
     reachTiles,
     slopeFactor,
     stepCost,
+    trailStep,
     discomfort,
     choiceCost,
     invalidateReach,
