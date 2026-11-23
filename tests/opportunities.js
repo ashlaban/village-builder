@@ -23,8 +23,8 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
       asked++; most = Math.max(most, list.length);
       // a job the planner's matching would let this pawn bid for: open, its household's or its village's, with a score above 0
       const bids = new Set();
-      for (const j of J.jobsFor(st, p)) {
-        const s = J.score(st, p, j, c);
+      for (const j of VB['sim/fit'].jobsFor(st, p)) {
+        const s = VB['sim/fit'].score(st, p, j, c);
         if (isOpen(st, j) && VB['sim/eligibility'].eligible(st, j, p) && s !== null && s > 0 && a.job !== j) bids.add(j.key);
       }
       const offered = new Set(works.filter((o) => o.why === null && o.basis !== 'helper').map((o) => o.target));
@@ -36,7 +36,7 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
         if (o.why === null) {
           may++; assert.ok(o.fit > 0, `fit ${o.fit}`);
           // one evaluation (VB-1405): the fit shown is the matcher's bid, unless the matcher's own reach rule bars it
-          const b = J.bid(st, a, st.jobs.get(o.target), c);
+          const b = VB['sim/fit'].bid(st, a, st.jobs.get(o.target), c);
           if (b !== -1) assert.strictEqual(o.fit, b, `pawn ${id}, ${o.target}: the list's fit is the matcher's bid`);
         } else { barred++; reasons.add(o.why.replace(/\d\d:\d\d/, 'HH:MM')); }
       }

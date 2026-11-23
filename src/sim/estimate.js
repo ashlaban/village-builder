@@ -1,6 +1,6 @@
 // @sys sim/estimate: the head's estimate of a task (VB-476; design.md section 7, The estimate; docs/review-blocks.md, section 2): its hours by
 //   the causes the estimating pawn's judgement reckons with, the others at their norm, leaned by the head's lean, with an honest range; read
-//   by the head's day (sim/jobs allot) and told on the record when a window is missed and the truth lay outside the range
+//   by the head's day (sim/day allot) and told on the record when a window is missed and the truth lay outside the range
 // Principle (AGENTS.md, Deciding without Kim, 14): what is shown of the future is some pawn's estimate. Nothing is stored here: the estimate is
 // worked out when read, from the task, its hands and the head; the one thing drawn is the lean, plan.head.bias.hours (sim/seasonal).
 VB['sim/estimate'] = (() => {
@@ -148,7 +148,7 @@ VB['sim/estimate'] = (() => {
       [dn, up] = reach(J.skill, r, f);
     return { lo: mid * (1 - dn), mid, hi: mid * (1 + up), unseen: unseenOf(r), work };
   }
-  // For the head's day (sim/jobs allot): the head's judgement of its household, once an allotment; the work it sees left of task j; the
+  // For the head's day (sim/day allot): the head's judgement of its household, once an allotment; the work it sees left of task j; the
   // hours of work it believes member id does in an hour at j (first: its first hand).
   const headOf = (st, hh) => {
     const plan = st.plans.households.get(hh.id),

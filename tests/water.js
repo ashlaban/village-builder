@@ -112,8 +112,8 @@ const fetchOf = (steps) => {
       // the water's fit as it is, and as it would be by the house: the walk takes nothing off it
       const p = st.pawns[hh.holder],
         c = cal(st.t);
-      scores = [Jobs.score(st, p, j, c), Jobs.score(st, p, { ...j, site: f.house }, c), Jobs.score(st, p, { ...j, kind: 'brew' }, c)];
-      scores.push(Jobs.score(st, p, { ...j, kind: 'brew', site: f.house }, c));
+      scores = [VB['sim/fit'].score(st, p, j, c), VB['sim/fit'].score(st, p, { ...j, site: f.house }, c), VB['sim/fit'].score(st, p, { ...j, kind: 'brew' }, c)];
+      scores.push(VB['sim/fit'].score(st, p, { ...j, kind: 'brew', site: f.house }, c));
     }
     for (const id of hh.members) {
       const job = st.agents[id].job;

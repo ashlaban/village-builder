@@ -7,7 +7,7 @@
 require('./help.js')(__filename);
 const { loadModules } = require('../tests/lib/load.js');
 const SYSTEMS = {
-  'jobs refresh and matching': { 'sim/jobs': ['refreshJobs', 'takeDay', 'dutyRound', 'lookForWork'] },
+  'jobs refresh and matching': { 'sim/jobs': ['refreshJobs', 'lookForWork'], 'sim/day': ['takeDay', 'dutyRound'] },
   'talk and contacts': { 'sim/relations': ['talkHour'], 'sim/encounters': ['outdoors', 'partners'] },
   'daily life and births': { 'sim/lifecycle': ['dailyLife', 'dailyDeaths'], 'sim/meetings': ['nightCulture'], 'sim/births': ['dailyBirths'] },
   'hunger and meals': { 'sim/hunger': ['feedHousehold', 'spoilGrain'], 'sim/help': ['askFood'] },
@@ -23,7 +23,7 @@ const SYSTEMS = {
   'meetings': { 'sim/meetings': ['meetingStage'] },
   // VB-205: the agents' six-minute step (walking, working, and who wants work), and the strolls of those the planner found nothing for.
   'agents: walking and working': { 'sim/agents': ['stepAgents'] },
-  'agents: idle strolls': { 'sim/jobs': ['idleAbout'] },
+  'agents: idle strolls': { 'sim/idle': ['idleAbout'] },
 };
 const now = () => Number(process.hrtime.bigint()) / 1e6;
 const acc = {}, stack = []; let active = false;

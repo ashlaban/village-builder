@@ -2,7 +2,7 @@
 // reach, and dropped, reopened for others, when the pawn leaves reach or takes a full task out of it. Test-only kinds, one of each attention.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { issue } = VB['sim/commands'], { KINDS, isOpen } = VB['sim/kinds'];
-const { post, bid } = VB['sim/jobs'], { hexSteps } = VB['sim/hex'], A = VB['sim/agents'], { TICKS } = VB['sim/rules'];
+const { post } = VB['sim/jobs'], { bid } = VB['sim/fit'], { hexSteps } = VB['sim/hex'], A = VB['sim/agents'], { TICKS } = VB['sim/rules'];
 const it = G.generate(7); let r; while (!(r = it.next()).done);
 const st = Sim.seed(r.value, 7, 'founders');
 Sim.advance(st, 3 * Sim.DAY + 4);

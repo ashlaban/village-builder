@@ -103,10 +103,10 @@ VB.COUNTERS = {
     "Plans reviewed: on each holder's planning day, when a window closes or a store crosses a target (sim/plans; VB-258, VB-249)",
   dayPair:
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
-    '(sim/jobs, allot; VB-466)',
-  dayTake: 'Tasks of its list an idle pawn passes or takes (sim/jobs, takeDay; VB-466)',
+    '(sim/day, allot; VB-466)',
+  dayTake: 'Tasks of its list an idle pawn passes or takes (sim/day, takeDay; VB-466)',
   eveningAsk:
-    "Households' tasks read for one that may be begun after work, from its end to the evening (sim/jobs eveningCall, VB-1547)",
+    "Households' tasks read for one that may be begun after work, from its end to the evening (sim/day eveningCall, VB-1547)",
   handsAsked: 'Asks for hands made by a head short of hands, at the morning allotment (sim/hands askFor, VB-470)',
   foodAsked: 'Asks for food made by a hungry head at its plan review, one an asked party (sim/help askFood, VB-691)',
   handsWeighed: 'Farms of the village read by a head short of hands, to choose whom to ask (sim/hands askFor, VB-470)',

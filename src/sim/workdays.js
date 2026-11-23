@@ -196,7 +196,7 @@ VB['sim/workdays'] = (() => {
   };
   const clearSpot = (st, a, j) => [st.w.hx[j.site] + a.ox * 0.8, st.w.hy[j.site] + a.oy * 0.6];
   // The job kinds (sim/kinds takes them in): the work day's own type of work, `workday` (ROLES: 8 for every adult), unlimited hands, all
-  // together (no hand's bid falls for those already at it, sim/jobs).
+  // together (no hand's bid falls for those already at it, sim/fit).
   const KINDS = {
     workfence: {
       verb: 'Closing the village fence on the work day',
