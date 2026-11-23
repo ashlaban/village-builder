@@ -68,6 +68,8 @@ VB['sim/stores'] = (() => {
   KINDS.push('tarburn', 'tarring');
   // VB-700: salt boiled at a spring and carried home (sim/saltpan); it is used up by the salting (the reason 'salting')
   KINDS.push('saltboil');
+  // VB-701: a bloom smelted at the household's pit, out of bog ore and firewood, and the iron a mending of its tools takes (sim/smelting)
+  KINDS.push('smelt', 'mendtools');
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -127,6 +129,7 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && good === 'tar') return good; // barrels of tar (VB-301, sim/tar)
     if (kind === 'household' && good === 'hide') return 'hides'; // the hides of the hunt (VB-424, sim/deer)
     if (kind === 'household' && good === 'salt') return good; // salt boiled at a spring (VB-700, sim/saltpan)
+    if (kind === 'household' && (good === 'iron' || good === 'clay' || good === 'bogOre')) return good; // blooms (VB-701); dug loads, taken by the smelting
     if (kind === 'household' && good === 'fish') return 'rack'; // the catch waiting by the drying rack (VB-300)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
   }
@@ -204,6 +207,11 @@ VB['sim/stores'] = (() => {
   const setSalt = (hh, n) => {
     hh.salt = n;
   };
+  // @state household.iron: blooms of iron held (VB-701; smelted at the pit, sim/smelting, and used up a tenth at a time by the mending of
+  //   the household's tools), undefined (none) until its first smelting
+  const setIron = (hh, n) => {
+    hh.iron = n;
+  };
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (good === 'wood') setWood(holder, n);
@@ -213,6 +221,8 @@ VB['sim/stores'] = (() => {
     else if (good === 'tar') setTar(holder, n);
     else if (good === 'hide') setHides(holder, n);
     else if (good === 'salt') setSalt(holder, n);
+    else if (good === 'iron') setIron(holder, n);
+    else if (DUG.includes(good)) setDug(holder, good, n);
     else if (good === 'flour') setFlour(holder, n);
     else setMeals(holder, n);
   }

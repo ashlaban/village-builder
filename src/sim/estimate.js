@@ -10,6 +10,7 @@ VB['sim/estimate'] = (() => {
   const Skills = VB['sim/skills'],
     Traits = VB['sim/traits'];
   const { KINDS } = VB['sim/kinds'];
+  const Iron = VB['sim/ironwork'];
   const { doneOf, attentionOf, teamKind } = VB['sim/work'];
   const { hasTeam } = VB['sim/herds'];
   const { headSkill } = VB['sim/seasonal'];
@@ -104,7 +105,7 @@ VB['sim/estimate'] = (() => {
     const craft = KINDS[j.kind].craft;
     let k = craft ? Skills.craftRate(Skills.level(st, id, craft)) : 1;
     if (first && teamKind(j) && hasTeam(st, st.households[j.owner.id])) k *= HERD.team.rate;
-    return k;
+    return k * Iron.rate(st, j); // the household knows its tools (VB-701)
   }
   // The truth the same way, at the mean mishap: the hand's rate (sim/work rateOf), its skill's mean pace, what is known.
   function rateTrue(st, id, j, first) {

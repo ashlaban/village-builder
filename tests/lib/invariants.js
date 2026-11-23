@@ -734,6 +734,9 @@ function checkState(st) {
       h[k] > globalThis.VB['sim/dig'].DIG.stock) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
     // salt (VB-700): measures held, none or a finite amount; its spring, when searched, a tile of the map or -1
     if (h.salt !== undefined && !(Number.isFinite(h.salt) && h.salt >= 0 && h.salt <= 1e4)) bad.push(`households[${h.id}]: salt is ${h.salt}`);
+    // iron and the tools (VB-701): blooms held, none or a finite amount; the tools' condition, when worn, from 0 to 1
+    if (h.iron !== undefined && !(Number.isFinite(h.iron) && h.iron >= 0 && h.iron <= 1e4)) bad.push(`households[${h.id}]: iron is ${h.iron}`);
+    if (h.tools !== undefined && !(Number.isFinite(h.tools) && h.tools >= 0 && h.tools <= 1)) bad.push(`households[${h.id}]: tools are ${h.tools}`);
     if (h.saltAt !== undefined && !(h.saltAt && (h.saltAt.tile === -1 || tileOk(h.saltAt.tile)) && tileOk(h.saltAt.house)))
       bad.push(`households[${h.id}]: saltAt ${JSON.stringify(h.saltAt)}`);
     if (h.digAt !== undefined &&
@@ -856,7 +859,7 @@ function checkState(st) {
   for (const holder of [...st.households, ...st.villages]) {
     if (!Array.isArray(holder.ledger)) { bad.push(`stores[${holder.id}]: missing ledger`); continue; }
     for (const e of holder.ledger) if (!ledgerKinds.includes(e.kind) || !Number.isFinite(e.n) || !Number.isFinite(e.t) || e.t > st.t
-        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'salt meat', 'smoked meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', 'peat', 'tar', 'hide', 'salt', ...FISHES, ...WOODS].includes(e.good)
+        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'salt meat', 'smoked meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', 'peat', 'tar', 'hide', 'salt', 'iron', ...FISHES, ...WOODS].includes(e.good)
         || e.stake && !st.pawns[e.pawn]) {
       bad.push(`stores[${holder.id}]: invalid ledger entry ${JSON.stringify(e)}`);
     }

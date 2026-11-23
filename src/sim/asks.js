@@ -18,10 +18,10 @@ VB['sim/asks'] = (() => {
   const { headSkill, goodTargets } = VB['sim/seasonal'];
   const { on } = VB['sim/events'];
   // @tunable ASKS (VB-699; the agent's starting values): cap, the open asks a household holds at once (one a good it cannot make: there are
-  //   two such goods today, tar and dried fish); hears, the head's skill from which it hears of the asks of the villages its own gathers
-  //   with (below it, only its own village's); season, the season from whose first review the head reads the asks (autumn: after the
-  //   harvest, before the gathering its dealer carries the goods to).
-  const ASKS = Object.freeze({ cap: 3, hears: 0.5, season: 2 });
+  //   four such goods today, tar, dried fish, salt and iron; VB-701 raised it from 3 with iron); hears, the head's skill from which it
+  //   hears of the asks of the villages its own gathers with (below it, only its own village's); season, the season from whose first
+  //   review the head reads the asks (autumn: after the harvest, before the gathering its dealer carries the goods to).
+  const ASKS = Object.freeze({ cap: 4, hears: 0.5, season: 2 });
   const TOLERANCE = 1e-9;
   const farmOf = (st, hh) => (hh.farmstead === null ? null : st.farmsteads[hh.farmstead]);
   const villageOf = (st, hh) => {

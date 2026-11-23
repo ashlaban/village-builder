@@ -103,6 +103,7 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, Drying.KINDS, Carts.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
   Object.assign(KINDS, VB['sim/tar'].KINDS); // the tar pit, burning tar, tarring the house and the boat (VB-301): sim/tar's
   Object.assign(KINDS, VB['sim/saltpan'].KINDS); // boiling salt at a spring (VB-700): sim/saltpan's
+  Object.assign(KINDS, VB['sim/ironwork'].KINDS); // smelting bog ore and mending the tools (VB-701): sim/ironwork's
   // a load left lying where its carrier fell is fetched by its owner (VB-611): a fetch kind for each kind that carries a load (sim/lying)
   for (const [k, K] of Object.entries(KINDS))
     if (K.carry && (K.load || K.stack)) KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
@@ -158,6 +159,7 @@ VB['sim/kinds'] = (() => {
   ASK.farmAfterPlans.push(rule('grind'), rule('hewQuern')); // the hand quern (VB-009, sim/quern)
   ASK.farmAfterPlans.push(rule('burntar'), rule('tarhouse'), rule('tarboat')); // tar (VB-301, sim/tar)
   ASK.farmAfterPlans.push(rule('boilsalt')); // salt (VB-700, sim/saltpan)
+  ASK.farmAfterPlans.push(rule('smelt'), rule('mendtools')); // iron and the tools (VB-701, sim/ironwork)
   (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, isOpen };

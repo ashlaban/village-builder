@@ -322,6 +322,8 @@ const KIND_ICON = {
   walls: 'build',
   roof: 'build',
   mend: 'fence',
+  smelt: 'build',
+  mendtools: 'build',
   workfence: 'fence',
   plow: 'hoe',
   repair: 'build',

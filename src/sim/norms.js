@@ -18,6 +18,7 @@ VB['sim/norms'] = (() => {
     'cattle/steer': 20,
     sheep: 6,
     hide: 6, // a roe deer's hide, leather for shoes and harness (VB-424)
+    iron: 30, // a bloom smelted from bog ore (VB-701; VB-364's Proposed worth): it mends a farm's tools whole
     salt: 20, // a sack of 10 measures, boiled at a spring (VB-700; Proposed): it salts 100 rations of meat, which then keep a year
     quern: 25, // a hand quern's stone, hewn of sandstone or granite (VB-009; Proposed, slice 6's plan): a good of place
   });

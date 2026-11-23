@@ -37,6 +37,7 @@ const MADE_ICON = {
   tar: 'tar',
   quern: 'quern',
   salt: 'salt',
+  iron: 'ore',
 };
 const MADE_NAME = { bogOre: 'Bog ore' };
 const fmtN = (x) => String(Math.round(x * 100) / 100);
