@@ -14,6 +14,8 @@ const setAge = (st, p, years) => { p.born = st.t - years * YEAR - 1; p.age = yea
 function labourCase(st) {
   for (const a of st.households) {
     const fa = st.farmsteads[a.farmstead]; if (fa.fields.length < 4) continue;
+    // a village of at least four farms, for case 5's third farm (VB-780: the forested island's villages are smaller)
+    if (st.households.filter((h) => !h.dissolved && vOf(st, h) === vOf(st, a)).length < 4) continue;
     const sp = R.spouseOf(st, a.holder); if (sp === null || st.pawns[sp].household !== a.id) continue;
     for (const b of st.households) {
       if (b === a || vOf(st, b) !== vOf(st, a) || st.farmsteads[b.farmstead].fields.length < 2) continue;

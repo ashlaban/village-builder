@@ -1,5 +1,5 @@
 // The ale evening and the season's rite (VB-522; design.md, Where pawns meet). On a constructed state (tests/lib/probe.js, two villages
-// of two farms, 1.17 walking hours apart): no barrel, no evening; a barrel kept for a wedding at the farm is not poured; a second host of
+// of two farms, 1.75 walking hours apart (14 tiles at 8 an hour)): no barrel, no evening; a barrel kept for a wedding at the farm is not poured; a second host of
 // the village the same day waits; a guest 2 hours away is not asked; the barrel leaves the store once, and only if a guest came; the
 // rite's leader is the most devout respected holder present, and only it gains the ties of those who came.
 const assert = require('assert');
@@ -156,7 +156,7 @@ const at = (st, t) => {
 }
 console.log('ale evening and rite ok');
 
-// 8. Rites on a village's own days (VB-775): two greens 1.17 hours apart with different days; a devout adult attends both villages' rites
+// 8. Rites on a village's own days (VB-775): two greens 1.75 hours apart with different days; a devout adult attends both villages' rites
 // (the other's by the walk); under 'common' days it attends its own only; a village 3 hours away sends nobody.
 {
   const { RITE } = VB['sim/rules'], V = VB['sim/venues'];
@@ -181,7 +181,7 @@ console.log('ale evening and rite ok');
     assert.strictEqual(r[0].village, 0);
     const guests = adultsOf(st, 1);
     assert.ok(guests.length && guests.every((m) => r[0].asked.some((a) => a.id === m)), "the other village's adults are asked, by the walk");
-    assert.ok(r[0].asked.every((a) => a.hours === 0 || Math.abs(a.hours - 1.17) < 0.1), 'those who walk, walk the hours between the greens');
+    assert.ok(r[0].asked.every((a) => a.hours === 0 || Math.abs(a.hours - 1.75) < 0.1), 'those who walk, walk the hours between the greens');
     day(st, 0, 2);
     st.occasions.length = 0;
     V.callRites(st);
