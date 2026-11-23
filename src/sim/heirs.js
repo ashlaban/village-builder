@@ -284,7 +284,7 @@ VB['sim/heirs'] = (() => {
     f.emptySince = st.t; // the house as it was kept (VB-306)
     abandoned(f);
     // its plans go while it still stands: timber at a building step is put on its woodpile (sim/plans' leftWood), which a dissolved
-    // holder refuses (VB-779); Stores.close leaves the wood, so it stays with the derelict farm
+    // holder refuses (VB-779); then the woodpile and the barn are laid at the house for its heir (takeEstate, layEstate)
     dropPlan(st, 'household', hh.id);
     const estate = takeEstate(st, hh);
     hh.dissolved = true;
