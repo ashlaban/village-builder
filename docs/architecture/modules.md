@@ -168,6 +168,13 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   reach, nearest villages first, at most `ASK.pool` weighed, none asked by `ASK.held` open matches; the round's ask anew uses it too),
   or an empty farm (`askLand`); a plot, new land and service are left to the round's walk. An open offer whose people died, married or
   took a place lapses where it is next read (`staleWhy`: the asker's asking, or the round's step).
+- The retired's voice (`src/sim/advice.js`, VB-1316; design, Inheritance: The retired; plan VB-1122, section 3): the basis `advice` of
+  `sim/offers`, by which a retired member offers its head one of the head's verbs (`target`, `rotation`, `order`, `sowOutOfTurn`, or `match`,
+  a grandchild's match the head asks by `sim/asking`'s `askMatch`); the check is the verb's own, for the head. The head takes it when its
+  opinion of the adviser times the adviser's standing over its village's mean reaches `ADVICE.heed`, and issues the verb itself; a no books
+  nothing (`memory: false`). An unplayed retired advises once a year (`pawn.advisedIn`) at its head's spring planning day (the event
+  `planReviewed`): the custom's hay where the head's departs from it by more than `ADVICE.gap`, and, under "Who makes a match" by the
+  heads, a match for a grandchild of age with the one who seeks in its village it thinks best of (`ADVICE.fancy`).
 - Courting (`src/sim/courting.js`, VB-036; design, Traits, talk and stories: Courting): `pawn.courting` (the other's id, on both sides),
   `pawn.courtingSince`, `pawn.courtRefused` and the index `st.courtships` (the man of each couple). It starts at a good talk
   (`sim/relations` emits `goodTalk`; one check, `courtCheck`, never a pass over pairs) when each holds the other at `COURT.opinion` with

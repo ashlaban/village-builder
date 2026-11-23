@@ -23,6 +23,11 @@ VB.COUNTERS = {
   obligationsDue: 'Obligations whose term ended at a step, taken off the due-queue (sim/obligations, VB-310)',
   offerWeighed: 'Answers to an offer weighed by the pawn asked, at the due time (sim/offers, VB-690)',
   offersAnswered: 'Open offers answered at a village step of the moving round, a day of it each (sim/round, VB-692)',
+  adviceOffered: 'Advice offered by a retired member to its head, at its spring planning day (sim/advice, VB-1316)',
+  adviceTaken: 'Advice taken by a head and carried out (sim/advice, VB-1316)',
+  adviceStanding: 'Members of a village read for its mean standing, an advice weighed (sim/advice weightOf, VB-1316)',
+  adviceMatchWalk:
+    "Entries of the asking queue read for a grandchild's match, a retired grandparent's advice (sim/advice, VB-1316)",
   askings: 'Askings held: a pawn who seeks, on its asking day once a season (sim/asking, VB-823)',
   asksMade: 'Offers made at an asking (sim/asking, VB-823)',
   asksNobody: 'Askings whose rungs found nobody to ask (sim/asking, VB-823)',
