@@ -6,14 +6,10 @@
   "world/rivers.js",
   "gen/noise.js",
   "gen/biomes.js",
-  "gen/paths.js",
   "gen/rivers.js",
-  "draw/rivers.js",
   "gen/climate.js",
-  "gen/marks.js",
   "gen/geology.js",
   "gen/cover.js",
-  "gen/bake.js",
   "gen.js",
   "sim/customs.js",
   "sim/norms.js",
@@ -159,5 +155,9 @@
   "sim/scenarios.js",
   "sim/clock.js",
   "sim/saves.js",
-  "sim.js"
+  "sim.js",
+  "gen/paths.js",
+  "draw/rivers.js",
+  "gen/marks.js",
+  "gen/bake.js"
 ]

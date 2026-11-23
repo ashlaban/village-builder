@@ -1,5 +1,5 @@
 {
-  "layers": ["kernel", "material", "social", "agency", "derived"],
+  "layers": ["kernel", "material", "social", "agency", "derived", "presentation"],
   "roots": ["sim/clock", "sim/saves", "sim/scenarios", "sim"],
   "modules": {
     "kernel": [
@@ -10,14 +10,10 @@
       "world/rivers",
       "gen/noise",
       "gen/biomes",
-      "gen/paths",
       "gen/rivers",
-      "draw/rivers",
       "gen/climate",
-      "gen/marks",
       "gen/geology",
       "gen/cover",
-      "gen/bake",
       "gen",
       "sim/customs",
       "sim/norms",
@@ -166,6 +162,7 @@
       "sim/outlook",
       "sim/estimate"
     ],
-    "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview"]
+    "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview"],
+    "presentation": ["gen/paths", "draw/rivers", "gen/marks", "gen/bake"]
   }
 }
