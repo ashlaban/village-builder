@@ -4,7 +4,7 @@
 // once, after merging (apply). Nothing durable lives here: apply and report carry it into the repository and the PR.
 // usage: node tools/inbox.js <command> [--db FILE] [--root DIR]
 //   init [--fresh]             make the file; the next free task ID is read from backlog/ (--fresh empties an earlier run's file)
-//   start TASK [N]             a sub-agent starts on TASK: reserves N (default 5) new task IDs for it and prints them
+//   start TASK [N]             a sub-agent starts on TASK: reserves N (default 2) new task IDs for it and prints them
 //   claim TASK FILE...         TASK will edit these files; prints who else holds one (exit 1) and claims them all the same
 //   note TASK KIND key=value... [--body FILE|-]
 //                              leave a note (kinds below); the body is Markdown, from a file or standard input
@@ -111,7 +111,7 @@ if (cmd === 'init') {
   });
   console.log(`inbox at ${file}; the next free task ID is ${pad(+get("SELECT value FROM meta WHERE key = 'next'").value)}`);
 } else if (cmd === 'start') {
-  const task = taskId(rest[0]), n = Math.max(0, Math.min(20, rest[1] == null ? 5 : +rest[1] || 0));
+  const task = taskId(rest[0]), n = Math.max(0, Math.min(20, rest[1] == null ? 2 : +rest[1] || 0));
   const ids = atomic(() => {
     run('INSERT OR IGNORE INTO results (task, started) VALUES (?, ?)', task, new Date().toISOString());
     const next = +get("SELECT value FROM meta WHERE key = 'next'").value, got = [];

@@ -262,7 +262,7 @@ The vertical slices of `docs/slices.md` in Kim's order, then the archs that run 
 
 **Files and rows.** Each task has its own file, `backlog/VB-NNN.md`, which holds the full description and is the source of truth.
 Its row here is the overview: when a task's name, arch, priority, size or what it waits for changes, update its row too; when its status
-changes, move the row to that status's section. A new task takes the next free ID, gets a file and a row. Done tasks are moved, row unchanged, to `BACKLOG_ARCHIVE.md`;
+changes, move the row to that status's section. A new task takes the next free ID, gets a file and a row. IDs are never reused and the gaps are not filled: a task renumbered at a merge, because its ID met one on main, takes main's next free ID (the highest file on main, plus one), never a round number further on. Done tasks are moved, row unchanged, to `BACKLOG_ARCHIVE.md`;
 their files stay in `backlog/`. Ready and Waiting for Kim are sorted by priority, then ID; Blocked by arch (in the order of the Archs table,
 tasks outside every arch last), then priority, then ID; the archive by when a task was done, newest at the bottom.
 `tests/backlog.js` checks that files and rows agree, and the order. `node tools/backlog.js` makes these moves from the task files
