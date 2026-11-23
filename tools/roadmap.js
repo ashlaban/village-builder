@@ -58,7 +58,7 @@ function gitDates(root) {
   const git = (...a) => execFileSync('git', a, { cwd: root, encoding: 'utf8', maxBuffer: 1 << 30 });
   let shallow = false;
   try { shallow = git('rev-parse', '--is-shallow-repository').trim() === 'true'; } catch (e) { return { created: {}, done: {}, last: null, shallow: false, git: false }; }
-  const log = git('log', '--reverse', '--format=@@%ad', '--date=short', '-p', '--unified=0', '--', 'BACKLOG.md', 'backlog/');
+  const log = git('log', '--reverse', '-m', '--format=@@%ad', '--date=short', '-p', '--unified=0', '--', 'BACKLOG.md', 'backlog/');
   const created = {}, done = {};
   let day = null, file = null;
   for (const l of log.split('\n')) {
