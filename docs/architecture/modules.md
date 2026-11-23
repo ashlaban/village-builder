@@ -191,6 +191,12 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   round), a match of `sim/marriage` marked `courted`: the means and the two's hunger are read where it settles, and a head's no is
   remembered by both (`refused`: `SOCIAL.memories.refusedCourting`). One who courts is in no arranged match (`matchBar`, `askMatch`). At the next round one who holds the head who refused at an opinion under `COURT.leaveBelow` asks for a place in
   service whatever the hands at home (`leavers`, read by `serveWhereShort`).
+  A child on the way (VB-555): `sim/births` lets a courting woman conceive (`courtChance`: `COURT.conceive` a year at the peak of the
+  married curve), marks the pregnancy `pregnantCourting` and emits `conceivedCourting`; `sim/asking` files it in `st.courtDue` and, at
+  the first asking hour `COURT.known` days on (`courtDay`, `offerKnown`), answers the pair's open offer of the round at once (`sim/offers`
+  `conclude(st, o, null, true)`: the played pawn keeps the basis's days) or makes one due now (`askCourted(st, id, st.t, false)`),
+  put off a day at a time while either is hungry (`COURT.wait`), never for a servant. A child born to an unmarried mother is
+  `pawn.outside` (events `bornOutside`, `legitimated` at its parents' wedding); the custom `outside` ranks it in `sim/heirranking`.
   The means to marry is the registry rule `marriage.means` (declared there, base `MARRIAGE.means`, context the home's household; VB-631), read by `affords` and by `Sim.meansOf`, which also feeds `matchBar`'s reason and the pawn panel (`marryBar`). A later contribution (a custom, a head's caution, a servant's portion: VB-637) joins by `Rules.contribute({ rule: 'marriage.means', ... })` from its own module.
 - The suitor's visit (`src/sim/visits.js`, VB-289; design, Between villages: The suitor's visit): a match joins two villages only
   within a day's walk (`TRAVEL.dayWalk`), or when one of the two has visited the other's village since the last round

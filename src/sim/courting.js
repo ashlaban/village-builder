@@ -28,7 +28,7 @@ VB['sim/courting'] = (() => {
     leaveBelow: 0,
     conceive: 0.08,
     known: 12,
-    wait: 12,
+    wait: 12, // a season
   });
   // @state pawn.courting (VB-036): absent or null, else the id of the pawn it courts; the same on both sides (one at a time). Written
   //   where a courtship starts (a good talk) and ends. Plain data, saved with the pawn.
