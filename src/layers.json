@@ -163,6 +163,6 @@
       "sim/estimate"
     ],
     "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview"],
-    "presentation": ["gen/paths", "draw/rivers", "gen/marks", "gen/bake"]
+    "presentation": ["gen/paths", "draw/rivers", "gen/marks", "draw/bake"]
   }
 }

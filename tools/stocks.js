@@ -283,7 +283,7 @@ function build() {
   for (const s of sources) for (const [n, p] of Object.entries(Writes.scan('src/' + s.f, s.mod, {}).rets)) returns[s.mod + ':' + n] = p;
   const mods = new Map();
   for (const s of sources) {
-    if (s.mod === 'gen' || s.mod.startsWith('gen/')) continue;
+    if (s.mod === 'gen' || s.mod.startsWith('gen/') || s.mod.startsWith('draw/')) continue;
     const fns = functionsOf(s.src), scan = Writes.scan('src/' + s.f, s.mod, returns);
     mods.set(s.mod, {
       ...s, fns, reads: [...scan.reads.map((r) => ({ field: Writes.fieldOf(r.path), line: r.line })), ...grainReads(fns.ast, s.src)],

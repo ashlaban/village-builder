@@ -1,7 +1,7 @@
 // @sys page/setup: start-up of the page script: the PixiJS app, daylight wash, layers, static textures (waves, clouds), and the camera state
 const G = ArchGen,
   Noise = VB['gen/noise'],
-  Bake = VB['gen/bake'],
+  Bake = VB['draw/bake'],
   LV = Bake.LV,
   TEX = Bake.TEX,
   Rivers = VB['draw/rivers'],

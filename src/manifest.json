@@ -159,5 +159,5 @@
   "gen/paths.js",
   "draw/rivers.js",
   "gen/marks.js",
-  "gen/bake.js"
+  "draw/bake.js"
 ]

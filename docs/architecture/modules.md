@@ -20,7 +20,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   A sim module reads them there, not through the `gen` facade.
 - `ArchGen.generate(seed)` (`src/gen.js`) assembles the world's terrain, hex tiles and regions. Seeded noise comes from `src/gen/noise.js`.
   `src/gen/biomes.js` holds the cover thresholds and the tile pigments, and updates a tile's biome and colour together (`setBiome`).
-  `src/gen/bake.js` rasterizes the generated world for the map at each level of detail, with land pigments, coastal contours, water and
+  `src/draw/bake.js` rasterizes the generated world for the map at each level of detail, with land pigments, coastal contours, water and
   decorations. `src/gen/marks.js` draws the individual marks (trees, stones, humps, crags). `ArchGen` exposes the generator and the bake.
   Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced by `src/gen/rivers.js`, listed before `gen.js`, which calls it, and drawn by `src/draw/rivers.js` (VB-1491).
   What lies in the ground is laid by `src/gen/geology.js`, called the same way: bedrock (`w.rock`) in provinces, with lenses of marble and

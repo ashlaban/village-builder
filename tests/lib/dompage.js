@@ -43,7 +43,7 @@ function openPage({ patch = (h) => h, url = 'https://x.test/', label = 'PAGE', p
   // them, and painting every chunk the page asks for (it repaints as trees and fields change) was three fifths of the smoke's time.
   // The rest of a chunk's job (rivers, paths, decoration, the texture) runs for every chunk; the Chromium tests paint them all.
   out.baked = [0, 0, 0]; out.blank = 0;
-  { const G = win.VB['gen/bake'], bake = G.bakeChunk; G.bakeChunk = function* (w, l, cx, cy, img) { if (out.baked[l]++ < (Array.isArray(painted) ? painted[l] : painted)) yield* bake(w, l, cx, cy, img); else out.blank++; }; }
+  { const G = win.VB['draw/bake'], bake = G.bakeChunk; G.bakeChunk = function* (w, l, cx, cy, img) { if (out.baked[l]++ < (Array.isArray(painted) ? painted[l] : painted)) yield* bake(w, l, cx, cy, img); else out.blank++; }; }
   // the simulation's state, as the page last advanced it (the page script keeps it in its closure); `seeded`, the last one Sim.seed made
   out.st = null; out.seeded = null;
   { const adv = win.Sim.advance; win.Sim.advance = (st, h) => { out.st = st; return adv(st, h); }; }

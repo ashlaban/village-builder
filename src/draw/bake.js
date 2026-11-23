@@ -1,5 +1,5 @@
-// @sys gen/bake: rasterizing the map into levels of detail, including land, water and decorations
-VB['gen/bake'] = (() => {
+// @sys draw/bake: rasterizing the map into levels of detail, including land, water and decorations
+VB['draw/bake'] = (() => {
   const { mulberry32 } = VB['gen/noise'];
   const { BIOMES } = VB['gen/biomes'],
     { B, treeStage } = VB['world/biomes'],
