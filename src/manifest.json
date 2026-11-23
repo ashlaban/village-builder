@@ -88,6 +88,7 @@
   "sim/byre.js",
   "sim/deer.js",
   "sim/progress.js",
+  "sim/cottageplan.js",
   "sim/expansion.js",
   "sim/farmclaims.js",
   "sim/building.js",

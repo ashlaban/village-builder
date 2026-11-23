@@ -13,7 +13,7 @@ const f = st.farmsteads[v.farmsteads[0]], hh = st.households[f.household], field
 f.booth = true; // as sim/settle's settleFarm: the household in a booth, its field's plan and its cottage's
 stake(st, hh, field, 'field');
 const land = VB['sim/projectplans'].makeProject(st, 'household', hh.id, { what: 'field', steps: [{ kind: 'break', place: field, hours: 30, stake: 'field' }] });
-const home = VB['sim/projectplans'].makeProject(st, 'household', hh.id, X.cottagePlan(f));
+const home = VB['sim/projectplans'].makeProject(st, 'household', hh.id, VB['sim/cottageplan'].cottagePlan(f));
 check(home.what === 'cottage' && home.steps.map((s) => s.kind).join() === 'foundation,walls,roof' && Projects.stepOf(home, 'walls').wood === 0,
   'the cottage plan: the plot\'s three stages, the walls with their wood');
 check(Projects.ownOf(st, hh.id) === land && Projects.openOf(st, hh.id) === land.steps[0], 'the project of its own choosing is the field, not the cottage');
@@ -56,7 +56,7 @@ check(hh.wood === wood + 2 * ECON.woodPerTrip, 'the timber left over goes to the
 // a household dissolved: its cottage passes to its village, kept with the farm, and to the household that comes
 const g = st.farmsteads[v.farmsteads[1]], gh = st.households[g.household];
 g.booth = true;
-const gc = VB['sim/projectplans'].makeProject(st, 'household', gh.id, X.cottagePlan(g));
+const gc = VB['sim/projectplans'].makeProject(st, 'household', gh.id, VB['sim/cottageplan'].cottagePlan(g));
 gc.open = 1; Projects.stepOf(gc, 'walls').wood = 6;
 VB['sim/projectplans'].dropAll(st, 'household', gh.id);
 check(Projects.projectsOf(st, 'village', v.id).includes(gc) && gc.holder.type === 'village', 'its household dissolved: the cottage is its village\'s, its work with it');

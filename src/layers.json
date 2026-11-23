@@ -84,6 +84,7 @@
       "sim/territory",
       "sim/progress",
       "sim/pose",
+      "sim/cottageplan",
       "sim/expansion",
       "sim/building",
       "sim/drying",
