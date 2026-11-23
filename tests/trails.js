@@ -60,7 +60,8 @@ const trailsOf = (st, id) => Projects.projectsOf(st, 'pawn', id).filter((p) => p
     'the steps in the order of the route, from its start',
   );
   const before = routeCost(w, findRoute(w, from, to)),
-    promised = routeCost(w, route);
+    promised = route.reduce((c, t, k) => (k ? c + trailStep(w, route[k - 1], t) : 0), 0),
+    t0 = st.t;
   check(say(st, id, { from, to }) === true, 'a grown pawn of a household with a farm blazes a trail');
   check(/already/.test(say(st, id, { from, to })), 'one trail at a time');
   const plan = trailsOf(st, id)[0];
@@ -79,7 +80,12 @@ const trailsOf = (st, id) => Projects.projectsOf(st, 'pawn', id).filter((p) => p
     steps.every((s) => w.worn[s.place] === 2 && w.wear[s.place] >= PATHS.at[2] * 0.9 && !unblazed(w, s.place)),
     'every tile blazed is a path',
   );
-  const after = routeCost(w, findRoute(w, from, to));
+  const after = routeCost(w, findRoute(w, from, to)),
+    hrs = (x) => (x / VB['sim/rules'].SPEED).toFixed(2);
+  if (process.env.TRAILS_SHOW)
+    console.log(
+      `${steps.length} tiles, ${((st.t - t0) / DAY).toFixed(1)} days; hours ${hrs(before)}, ${hrs(promised)}, ${hrs(after)}`,
+    );
   check(
     after < before * 0.6 && after <= promised * 1.1,
     `the walk is as quick as the trail promised: ${before.toFixed(1)} before, ${promised.toFixed(1)} promised, ${after.toFixed(1)} after`,
