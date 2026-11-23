@@ -208,7 +208,8 @@ const P = (id) => ({ type: 'pawn', id });
   check(Sim.grainOf(hh) === 0 && stops.length && Math.abs(lies - need) < 1e-6 && stops.every((x) => x.at === A0h && x.start),
     `the grain lies at the old home: ${Sim.grainOf(hh)} in store, ${lies} of ${need} to fetch`);
   const wood = (st.lying || []).filter((l) => l.kind === 'leftTimber' && l.owner.id === hh.id && l.tile === A0h);
-  check(hh.meals > 0 && hh.wood === 0 && wood.length === 1 && wood[0].n === trips * TRAVEL.load
+  // VB-1175 (from VB-675): no cooked food from nothing either; the household eats what is fetched
+  check(hh.meals === 0 && hh.wood === 0 && wood.length === 1 && wood[0].n === trips * TRAVEL.load
     && st.households[A0].wood === 40 - trips * st.ECON.woodPerTrip,
     `stores: ${hh.meals} meals, ${hh.wood} wood; ${wood.length} loads of wood lying at the old home`);
   // the fields gone to grass and scrub are cleared again by the new household

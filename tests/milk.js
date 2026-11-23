@@ -110,7 +110,11 @@ if (sh) {
   check(G.unshorn(g5, cal(HD.shear)) === 3 && G.unshorn(g5, cal(HD.eweEnd)) === 0, 'an unshorn fleece is shed at the end of summer');
   h3.wool = 0; Y.shearDone(s3, h3, cal(HD.eweEnd));
   check(h3.wool === 0, 'a shed fleece gives no wool');
-  g5.fleece = 3; g5.herder = null;
+  // VB-1175 (from VB-674): a flock standing at another farm (sim/droving, herd.at) keeps its fleece when the fold at home is shorn
+  g5.fleece = 3; g5.herder = null; g5.at = 0; h3.wool = 0;
+  Y.shearDone(s3, h3, cal(HD.shear));
+  check(h3.wool === 0 && g5.fleece === 3, 'a flock away was shorn at the home fold');
+  delete g5.at;
   G.driveOut(s3, h3, 0, cal(HD.shear));
   check(g5.herder === null, 'a flock waiting to be shorn stays in');
 }

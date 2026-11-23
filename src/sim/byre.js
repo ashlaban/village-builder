@@ -477,17 +477,21 @@ VB['sim/byre'] = (() => {
     }
   }
   // The flock is shorn (the job `shear`): a fleece for each sheep of a year or more still in it (one sold or dead meanwhile gives none).
+  // Only the flocks at the fold are shorn (VB-1175, from VB-674): one out with a herder or standing at another farm keeps its fleece.
   function shearDone(st, hh, c) {
     for (const herd of herdsOf(st, hh)) {
+      if (!byFold(herd)) continue;
       const n = Math.min(unshorn(herd, c), herd.ewes + herd.rams);
       if (herd.fleece !== undefined) delete herd.fleece;
       if (n > 0) hh.wool = (hh.wool || 0) + n;
     }
   }
-  // The fleeces of the household's flocks waiting at its fold on day c: not out with a herder, nor standing at another farm (sim/droving).
+  // Whether the herd waits at its household's fold: not out with a herder, nor standing at another farm (sim/droving).
+  const byFold = (herd) => herd.herder == null && herd.at === undefined;
+  // The fleeces of the household's flocks waiting at its fold on day c.
   const atFold = (st, hh, c) => {
     let n = 0;
-    for (const herd of herdsOf(st, hh)) if (herd.herder == null && herd.at === undefined) n += unshorn(herd, c);
+    for (const herd of herdsOf(st, hh)) if (byFold(herd)) n += unshorn(herd, c);
     return n;
   };
   // Fed and mucked out: the day's dung goes on the heap (VB-137).
