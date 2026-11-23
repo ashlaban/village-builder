@@ -8,7 +8,7 @@ VB['sim/jobs'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { villageOf, age } = VB['sim/records'];
   const { freeHands, dropJob, workSpot } = VB['sim/agents'],
-    { bed } = VB['sim/pose'],
+    { bed, travelling } = VB['sim/pose'],
     { offerWhy, heldAt } = VB['sim/attention'],
     { ownerKey, rateOf, attentionOf, doneOf } = VB['sim/work'];
   const { tileAt, placeOf } = VB['sim/pose'];
@@ -549,6 +549,33 @@ VB['sim/jobs'] = (() => {
     if (ask)
       for (const [id, short] of ask) if (!st.households[id].dissolved) Hands.askFor(st, st.households[id], short, c);
   }
+  // The evening (VB-1544; design.md, The head calls): from the end of work to MATCH.day.evening, each hour, a household's task of a kind
+  // that may be begun after work (`evening`, sim/kinds: the water) that stands open and unmanned calls one hand: the member free of a task
+  // whom the head's day put it earliest for (the lower id on a tie; one whose list was made before the task was posted, after those), at
+  // home or on its way there, not away, commanded, on a day owed, lent, at an occasion or on the road. A pass over each live household's
+  // tasks, two hours a day.
+  function eveningCall(st, c) {
+    for (const id of st.liveHouseholds) {
+      const plan = planOf(st, 'household', id),
+        lists = plan && plan.day && plan.day.lists;
+      if (!lists) continue;
+      for (const j of st.jobsBy.get(`household:${id}`) || none) {
+        VB.count.eveningAsk++;
+        if (!KINDS[j.kind].evening || j.claims.length || !isOpen(st, j)) continue;
+        let best = null,
+          at = Infinity;
+        for (const pid of st.households[id].members) {
+          const p = st.pawns[pid],
+            a = st.agents[pid],
+            n = lists[pid] ? lists[pid].indexOf(j.key) : -1,
+            i = n < 0 ? Number.MAX_SAFE_INTEGER : n;
+          if (i >= at || p.died !== null || a.job || a.occasion !== null || travelling(a)) continue;
+          if (allotted(st, p) && eligible(st, j, p)) [best, at] = [a, i];
+        }
+        if (best) issue(st, workCommand(best.id, j.key, 'planner'));
+      }
+    }
+  }
   // Whether pawn a can take job j of its list now: there is room, it still may, and a task held at the side is in reach.
   const canTake = (st, a, j) => !matchBar(st, a, j);
   // Each idle pawn takes the first task of its list that it can (a task held at the side leaves it free for the next one, next step). A
@@ -652,6 +679,7 @@ VB['sim/jobs'] = (() => {
     allot,
     takeDay,
     dutyRound,
+    eveningCall,
     score,
     bid,
     idleAbout,

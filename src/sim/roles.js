@@ -166,8 +166,11 @@ VB['sim/roles'] = (() => {
     // The head's day (VB-466): a task is given hands until they finish it within `horizon` working days, and a member is given tasks
     // up to its working hours of that time; what it may do besides follows in its list. The day is allotted at the hour before work and
     // again at `afternoon` (VB-1543; Kim, 23 November), the hour the afternoon's urgencies change: water's rises above cooking's, the
-    // cook's window opens (sim/chores); so that a task that has become more pressing reaches the lists made in the morning.
-    day: { horizon: 0.5, afternoon: 14 },
+    // cook's window opens (sim/chores); so that a task that has become more pressing reaches the lists made in the morning. `evening`
+    // (VB-1544): the hour after the end of work past which no task is begun, even of a kind that may be begun in the evening (the
+    // water, sim/kinds `evening`): 20:00, so that a half-hour fetch is home before the dark at every season (sim/rules dark: 21:00 at
+    // its earliest, midwinter).
+    day: { horizon: 0.5, afternoon: 14, evening: 20 },
     floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
     distanceWeight: 0.15,
     join: 0.8,
