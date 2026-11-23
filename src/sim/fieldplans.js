@@ -2,7 +2,7 @@
 VB['sim/fieldplans'] = (() => {
   const { B } = VB['gen'];
   const { ECON, FIELDS, cal, YEAR_DAYS } = VB['sim/rules'],
-    { CROPS, ROTATIONS, farmable, fertility } = VB['sim/crops'];
+    { CROPS, ROTATIONS, GROUND, farmable, fertility } = VB['sim/crops'];
   const { rotationOf, courseFor } = VB['sim/rotations'];
   const { age } = VB['sim/records'];
   const { team } = VB['sim/herds'];
@@ -103,8 +103,12 @@ VB['sim/fieldplans'] = (() => {
       if (letGoWhy(st, f, fd) === null && (!best || fd.fert * fd.soil <= best.fert * best.soil)) best = fd;
     return best;
   }
-  // Hours of clearing a tile: brush, plus the stones in proportion, plus the scrub the forest has grown on it (sim/spread, VB-091).
-  const clearHours = (st, tile) => SCRUB_HOURS + (STONE_HOURS * st.w.stones[tile]) / 255 + scrubHours(st, tile);
+  // Hours of clearing a tile: brush, plus its ground (GROUND.clear), the stones in proportion and the scrub grown on it (sim/spread, VB-091).
+  const clearHours = (st, tile) =>
+    SCRUB_HOURS +
+    (GROUND[st.w.biome[tile]]?.clear ?? 0) +
+    (STONE_HOURS * st.w.stones[tile]) / 255 +
+    scrubHours(st, tile);
   // Houses and greens, standing or planned (a plot's house): no field is made next to one (VB-113).
   function builtTiles(st) {
     const out = new Set(st.villages.map((v) => v.center));

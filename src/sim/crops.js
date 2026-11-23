@@ -95,11 +95,11 @@ VB['sim/crops'] = (() => {
     rot: 0.5,
   };
   // @tunable GROUND: what a farmable ground is worth as a field, by its biome (a tile of a biome with no row cannot be farmed):
-  // fert its fertility, clear the hours of clearing it takes (0 for now)
+  // fert its fertility, clear the hours its clearing adds (VB-1492; estimates, a track's hours over heath and hills; marsh waits for VB-721)
   const GROUND = {
     [B.MEADOW]: { fert: 1, clear: 0 },
-    [B.HEATH]: { fert: 0.65, clear: 0 },
-    [B.HILLS]: { fert: 0.7, clear: 0 },
+    [B.HEATH]: { fert: 0.65, clear: 3 },
+    [B.HILLS]: { fert: 0.7, clear: 8 },
     [B.MARSH]: { fert: 0.5, clear: 0 },
   };
   // @tunable RIVER: rivers (src/gen/rivers.js): no house or field on a river tile; a field next to one is watered from it
