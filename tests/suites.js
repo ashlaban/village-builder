@@ -83,6 +83,7 @@ const FAST = [
   ['node', 'tests/afternoon.js'], // VB-1546: the day allotted again at 14:00: a rise in urgency reaches the morning's lists
   ['node', 'tests/needfood.js'], // VB-1549: a household with no food fishes before it ploughs; with food, after
   ['node', 'tests/evening.js'], // VB-1547: a task lived by, begun, is finished past 18:00; the water fetched in the evening
+  ['node', 'tests/water.js'], // VB-1551: a farm's source by the walk, marsh a last resort, the fetch walked and taken first, the starting wells
   ['node', 'tests/claims.js'],
   ['node', 'tests/territory.js'],
   ['node', 'tests/borders.js'],

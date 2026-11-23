@@ -175,6 +175,9 @@ VB.COUNTERS = {
   waterSettled:
     "Tiles settled by the two searches of the map's fresh water, once a world: the rise above the nearest water surface (gen/water) " +
     'and the walk to fresh water (sim/water; VB-1550)',
+  sourceSettled:
+    "Tiles settled by the searches for a farm's source of water: one a farm on its first morning, at a well's finishing in its village " +
+    'and once a year on its planning day, each stopping at the first source (sim/water; VB-1551)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };

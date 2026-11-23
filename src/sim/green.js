@@ -14,6 +14,7 @@ VB['sim/green'] = (() => {
   const { freeFor } = VB['sim/territory'];
   const { log } = VB['sim/records'];
   const { emit } = VB['sim/events'];
+  const { wellDug } = VB['sim/water'];
   // @state the green's project plan (st.plans.projects.village; sim/projects): {what: 'green', started (game hours), steps: [{kind 'green',
   //   place, hours}, {kind 'well', place, hours, brought (loads of stone carried to the green)}, {kind 'sweep', place, hours}]}, at most one
   //   a village. Its tile is the village's (st.owner) and in use (st.used) from the plan's making; v.center, v.green and v.well change when
@@ -149,7 +150,7 @@ VB['sim/green'] = (() => {
     if (!plan || plan.steps[plan.open] !== j.step) return;
     stepDone(st, v, plan);
   }
-  // The sweep raised: the village has its green and well from now, its centre on the green (water is drawn there, sim/kinds; the map
+  // The sweep raised: the village has its green and well from now, its centre on the green (its farms may draw there, sim/water; the map
   // draws the green, the sweep and the village's name there).
   function raised(st, j) {
     const v = st.villages[j.village],
@@ -158,6 +159,7 @@ VB['sim/green'] = (() => {
     v.center = j.site;
     v.green = true;
     v.well = true;
+    wellDug(st, v.center, v); // a source on the map: the village's farms find their sources again (VB-1551)
     st.visualDirty = true;
     log(st, `The well sweep is raised on the new green of ${v.name}: the farms draw their water at one well.`, {
       kind: 'green',

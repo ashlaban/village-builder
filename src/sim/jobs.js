@@ -16,7 +16,7 @@ VB['sim/jobs'] = (() => {
   const { issue } = VB['sim/commands'];
   const { unplanned } = VB['sim/records'];
   const { eligible } = VB['sim/eligibility'];
-  const { KINDS, ASK, isOpen } = VB['sim/kinds'];
+  const { KINDS, ASK, isOpen, carriedOn } = VB['sim/kinds'];
   const Days = VB['sim/days'];
   const Hands = VB['sim/hands'];
   const { builtTiles } = VB['sim/fieldplans'];
@@ -261,7 +261,9 @@ VB['sim/jobs'] = (() => {
   };
   const urgencyOf = (st, j, c) =>
     KINDS[j.kind].urgency ? KINDS[j.kind].urgency(st, j, c, MATCH.urgency) : MATCH.urgency.other;
-  // A pawn's fit for a job: its role's priority for the kind times the job's urgency, less the walk. The head allots by it (allot); a
+  // A pawn's fit for a job: its role's priority for the kind times the job's urgency, less the walk; a job of a kind the household lives
+  // by (`vital`, sim/kinds carriedOn) is weighed with no walk taken off, since it must be done wherever it lies (VB-1551; design.md,
+  // Water by the site, How it is ranked). The head allots by it (allot); a
   // pawn on duty or lent bids it for the tasks of the household it works for, where a job that k pawns already work gets join^k of the
   // bid (VB-102).
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
@@ -306,7 +308,8 @@ VB['sim/jobs'] = (() => {
     const pr = prioOf(st, p, j, stand);
     if (pr <= 0) return null;
     const here = bed(st, st.agents[p.id]); // the walk from where its day starts (VB-783)
-    return floored(pr, pr * urgency(st, j, c, memo) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
+    const walk = KINDS[j.kind].vital && carriedOn(st, j) ? 0 : hexSteps(st.w, here, j.site) * MATCH.distanceWeight;
+    return floored(pr, pr * urgency(st, j, c, memo) - walk);
   }
   // ---- a posted job weighed for a pawn (VB-1405): one evaluation, read-only and drawing nothing, for the matcher and the Actions list
   // (sim/opportunities); each adds its own policy of choosing: the matcher ranks and takes, the player chooses ----
@@ -462,6 +465,7 @@ VB['sim/jobs'] = (() => {
       manned = new Map(), // job -> [hours of work given, hands]
       given = new Map(), // pawn -> its first task of the first pass, with its fit
       due = new Map(), // pawn -> the task with a deadline today it is the hand for
+      heads = new Set(), // the pawns whose list a task that comes first heads (`first`: the water)
       spare = [];
     // best first; a pair whose task has gained hands since it was weighed falls by `join` for each (VB-102: the hands spread over the
     // tasks that can be worked at once) and waits its turn again
@@ -469,7 +473,8 @@ VB['sim/jobs'] = (() => {
       const pair = pairs[i],
         [s, id, j, k = 0] = pair,
         full = attentionOf(j) === 'full',
-        m = manned.get(j) || [0, 0];
+        m = manned.get(j) || [0, 0],
+        K = KINDS[j.kind];
       let left = 0;
       if (full && (left = est.get(j)) === undefined) est.set(j, (left = Estimate.workFor(st, H, j)));
       if (m[1] >= KINDS[j.kind].hands || (full && (cap.get(id) <= 0 || m[0] >= left)) || (!full && m[1] > 0)) {
@@ -483,12 +488,17 @@ VB['sim/jobs'] = (() => {
       }
       const r = full ? Estimate.rateFor(st, H, id, j, m[1] === 0) : 0,
         h = r > 0 ? Math.min(cap.get(id), (left - m[0]) / r) : 0;
-      cap.set(id, cap.get(id) - h);
+      // the hours of a trip beside its work (the water's walk) are hours of its hand's day too (VB-1551)
+      cap.set(id, Math.max(0, cap.get(id) - h - (K.trip ? K.trip(st, j) : 0)));
       manned.set(j, [m[0] + h * r, m[1] + 1]);
-      // a task with a deadline today that waits unmanned goes first in its hand's list, whatever its fit, and calls it (below)
-      if (KINDS[j.kind].late && !j.claims.length && !due.has(id)) {
-        due.set(id, j);
+      // water first (VB-1551): the fetch heads the list of the member best fit for it. A task with a deadline today that waits
+      // unmanned goes first in its hand's list too, after a fetch, whatever its fit, and calls it (below)
+      if (K.first && !j.claims.length && !heads.has(id)) {
+        heads.add(id);
         lists[id].unshift(j.key);
+      } else if (K.late && !j.claims.length && !due.has(id)) {
+        due.set(id, j);
+        lists[id].splice(heads.has(id) ? 1 : 0, 0, j.key);
       } else lists[id].push(j.key);
       if (full && !given.has(id)) given.set(id, [s, j]);
     }

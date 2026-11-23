@@ -1,10 +1,18 @@
 // @sys sim/water: the walk to fresh water as a field of the map (w.freshWalk): the hours on foot over pathless ground from each land tile to
-// the nearest source that is not marsh, searched once from the land as generated
+// the nearest source that is not marsh, searched once from the land as generated; and each farm's source (farmstead.water): where its
+// household draws its water, of what class and how long the walk, found by one search outward from the house (VB-1551); the wells the
+// map starts with and a well's entry on the map (w.fresh)
 VB['sim/water'] = (() => {
   const { minHeap } = VB['gen/rivers'];
-  const { good } = VB['world/water'];
-  const { SPEED } = VB['sim/rules'];
-  const { TERRAIN, slopeFactor } = VB['sim/walking'];
+  const { good, FRESH, FRESHES, WELL, NO_WELL } = VB['world/water'];
+  const { SPEED, TRAVEL, YEAR } = VB['sim/rules'];
+  const yearOf = (t) => Math.floor(t / YEAR);
+  const { TERRAIN, slopeFactor, stepCost, through } = VB['sim/walking'];
+  const { on } = VB['sim/events'];
+  // @tunable WATER: the fetch (design.md, Water by the site; Proposed, Kim's starting values of 23 November). search: the hours one way
+  // beyond which a farm has no water in reach; marshShy: a household draws at a marsh only when no good source lies within this much
+  // further walk one way; draw: the hours of drawing a trip's water with a yoke of two buckets.
+  const WATER = { search: 8, marshShy: 0.5, draw: 0.1 };
 
   // What tile i costs to cross with no path, no field and no house on it: its biome's cost (sim/walking TERRAIN), a river's tile only at
   // a crossing, as a ford. It reads the generated fields alone, so the walk is the same whatever has been built or worn since.
@@ -67,5 +75,111 @@ VB['sim/water'] = (() => {
     //   not saved (a load lays it again on its freshly generated world); the tile card and the Water overlay read it (VB-1550)
     if (!w.freshWalk && w.fresh) w.freshWalk = walks(w);
   }
-  return { walks, layWalk };
+  // ---- a farm's source (VB-1551; design.md, Water by the site, A farm's source) ----
+  const running = (c) => c === FRESH.BROOK || c === FRESH.STREAM || c === FRESH.RIVER;
+  // What a household of the farm with its house on `house`, of village v, may draw standing on tile i, a code of FRESH or 0: at a well
+  // that is its own (on its house's tile) or its village's (on the green), at running water on the water's own tile, at a lake from
+  // its bank, at marsh on it or at its edge. Good water before marsh where a tile has both.
+  function drawnAt(w, i, house, v) {
+    const c = w.fresh[i];
+    if (c === FRESH.WELL) {
+      if (i === house || (!!v && v.well && v.center === i)) return c;
+    } else if (running(c)) return c;
+    let cls = c === FRESH.MARSH ? c : 0;
+    for (let k = 0; k < 6; k++) {
+      const j = w.nb[i * 6 + k];
+      if (j < 0) continue;
+      if (w.fresh[j] === FRESH.LAKE) return FRESH.LAKE;
+      if (w.fresh[j] === FRESH.MARSH) cls = FRESH.MARSH;
+    }
+    return cls;
+  }
+  // The source of a house on tile `house` in village v: {tile, cls, walk}, the tile its household stands on to draw (-1: none in reach),
+  // the source's class (w.fresh's code) and the walk one way in hours. One search outward from the house over the ground as it is walked
+  // now (sim/walking stepCost: the worn ways and the ground's cost), which stops at the first tile the household may draw at; bounded at
+  // WATER.search hours. Marsh is a last resort: the first marsh found is kept and the search goes on WATER.marshShy hours further for
+  // good water. A river's tile away from its fords is walked to, never through, as a route's end is. The tiles settled are counted
+  // (sourceSettled): tens beside water, hundreds inland.
+  function source(w, house, v) {
+    const { N, nb } = w,
+      g = new Float32Array(N).fill(Infinity),
+      done = new Uint8Array(N),
+      heap = minHeap(g);
+    let bound = WATER.search * SPEED,
+      marsh = -1;
+    g[house] = 0;
+    heap.push(house);
+    while (heap.size) {
+      const i = heap.pop();
+      if (done[i]) continue;
+      done[i] = 1;
+      VB.count.sourceSettled++;
+      if (g[i] > bound) break;
+      const cls = drawnAt(w, i, house, v);
+      if (cls && cls !== FRESH.MARSH) return { tile: i, cls, walk: Math.round((g[i] / SPEED) * 1000) / 1000 };
+      if (cls && marsh < 0) {
+        marsh = i;
+        bound = Math.min(bound, g[i] + WATER.marshShy * SPEED);
+      }
+      if (i !== house && !through(w, i)) continue;
+      for (let k = 0; k < 6; k++) {
+        const j = nb[i * 6 + k];
+        if (j < 0 || done[j] || w.water[j] || !(through(w, j) || running(w.fresh[j]))) continue;
+        const c = Math.fround(g[i] + stepCost(w, i, j));
+        if (c > bound || c >= g[j]) continue;
+        g[j] = c;
+        heap.push(j);
+      }
+    }
+    return marsh < 0
+      ? { tile: -1, cls: FRESH.NONE, walk: 0 }
+      : { tile: marsh, cls: FRESH.MARSH, walk: Math.round((g[marsh] / SPEED) * 1000) / 1000 };
+  }
+  // Farm f's source is found: at its founding (its first morning: sourceOf), when a well is finished in its village (wellDug) and once
+  // a year on its household's planning day, since paths wear in and grow over.
+  function find(st, f) {
+    // @state farmstead.water: {tile, cls, walk, year}: where the farm's household draws its water: the tile it stands on to draw (a
+    //   source's own tile, or a lake's bank or a marsh's edge; -1 when none lies within WATER.search hours), the source's class (w.fresh's
+    //   code; 0 with none), the walk one way in hours as the ground was when it was found, and the year it was found in; absent until
+    //   the farm's first morning (sim/water find, VB-1551)
+    f.water = { ...source(st.w, f.house, st.villages[f.village]), year: yearOf(st.t) };
+    return f.water;
+  }
+  const sourceOf = (st, f) => f.water || find(st, f);
+  // The hours of a day's fetch from a source `walk` hours off: out with empty buckets, the drawing, home laden (TRAVEL.pace.back).
+  const tripHours = (walk) => walk * (1 + 1 / TRAVEL.pace.back) + WATER.draw;
+  // Farm f's water as the page tells it: {none: true} with no source in reach, else {name (the source's), walk, hours (the day's fetch)}.
+  function waterOf(st, f) {
+    const s = sourceOf(st, f);
+    return s.tile < 0
+      ? { none: true, search: WATER.search }
+      : { name: FRESHES[s.cls].name, poor: !!FRESHES[s.cls].poor, walk: s.walk, hours: tripHours(s.walk) };
+  }
+  // A well stands on `tile` from now: a source on the map, and the farms of village v (all with a source found, when v is null: none)
+  // find their sources again.
+  function wellDug(st, tile, v) {
+    st.w.fresh[tile] = FRESH.WELL;
+    if (v) for (const id of v.farmsteads) if (st.farmsteads[id].water) find(st, st.farmsteads[id]);
+  }
+  // The wells a run starts with (design.md, At the start), on a world as generated: a village that starts with its green has its well on
+  // the green's tile; where the farms have stood for years (`stood`: not the founders' landing nor the lone settler's), a farm more than
+  // WELL.startWalk hours from any source has a well on its house's tile, where its ground has one. A world seeded again starts from
+  // its natural sources.
+  function startWells(w, villages, farmsteads, stood) {
+    for (let i = 0; i < w.N; i++) if (w.fresh[i] === FRESH.WELL) w.fresh[i] = FRESH.NONE;
+    for (const v of villages) if (v.well) w.fresh[v.center] = FRESH.WELL;
+    if (!stood) return;
+    for (const f of farmsteads) {
+      if (f.household === null || w.fresh[f.house] !== FRESH.NONE || !(w.waterDepth[f.house] < NO_WELL)) continue;
+      const s = source(w, f.house, villages[f.village]);
+      if (s.tile < 0 || s.walk > WELL.startWalk) w.fresh[f.house] = FRESH.WELL;
+    }
+  }
+  on('planReviewed', (st, d) => {
+    if (d.why !== 'day' || d.plan.holder.type !== 'household') return;
+    const hh = st.households[d.plan.holder.id],
+      f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    if (f && f.water && f.water.year !== yearOf(st.t)) find(st, f);
+  });
+  return { WATER, walks, layWalk, source, find, sourceOf, tripHours, waterOf, wellDug, startWells };
 })();

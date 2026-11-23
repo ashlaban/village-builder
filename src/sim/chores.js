@@ -16,6 +16,8 @@ VB['sim/chores'] = (() => {
   const { dailyNeed, floorOf, spareDays, spareUrgency } = VB['sim/hunger'],
     Pot = VB['sim/pot'];
   const { ground: forageGround, gather } = VB['sim/forage'];
+  const Water = VB['sim/water'],
+    { FRESH } = VB['world/water'];
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   // The fuel pile in wood loads: the woodpile less what a project plan holds back, and the peat held at PEAT.worth (VB-367).
@@ -94,7 +96,7 @@ VB['sim/chores'] = (() => {
       gives: ['water'],
       label: 'Water',
       anim: 'draw',
-      hours: 0.5,
+      hours: Water.WATER.draw, // the drawing; the walk out and the walk home laden are walked (VB-1551)
       hands: 1,
       type: 'household',
       carry: 'buckets',
@@ -102,25 +104,36 @@ VB['sim/chores'] = (() => {
       window: { from: WORK[0] - 1 },
       vital: true, // a dry day costs the meal's cooking and health (VB-331): a fetch begun is finished after work (VB-1547)
       evening: true, // and one not yet begun may be, until MATCH.day.evening (Kim, 23 November: water after dark)
+      first: true, // water first: it heads the list of the member best fit for it at the allotment (VB-1551)
+      // the hours of the trip besides the drawing, which the head counts in its hand's day: the walk out and home laden
+      trip: (st, j) =>
+        j.farm.water && j.farm.water.tile === j.site ? Water.tripHours(j.farm.water.walk) - Water.WATER.draw : 0,
+      // by the curb of a well of the farm's own; by the sweep of a well on a green; else at the water's edge
       spot: (st, a, j) => {
         const w = st.w;
-        return st.villages[j.farm.village].well
-          ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8]
-          : [w.hx[j.site] - 1, w.hy[j.site] + 4];
+        return j.site === j.farm.house
+          ? [w.hx[j.site] - 1, w.hy[j.site] + 4]
+          : w.fresh[j.site] === FRESH.WELL
+            ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8]
+            : [w.hx[j.site] + a.ox * 0.2, w.hy[j.site] + 4];
       },
       // from the afternoon (14:00), the cook's hour, above cooking's (VB-331): the hand that would cook fetches the water first
       urgency: (st, j, c, U) =>
         c.hour >= AFTERNOON ? U.waterLate : c.hour < U.waterMorningHour ? U.waterMorning : U.water,
+      // the day's water is in; marsh water is poor, and costs those it covers some health that day (sim/hunger; VB-1551)
       deliver: (st, j, hh) => {
         hh.waterDay = cal(st.t).day;
+        if (j.poor) hh.marshDay = hh.waterDay;
       },
       // once a day, from the hour before work until the evening's (VB-1547: the due-queue's last ask, at the end of work, leaves it
-      // standing for the evening), at the village well if it has one, else by the house
+      // standing for the evening), at the farm's source (sim/water: the nearest source or well its household may draw at; found on the
+      // farm's first morning); a farm with no source in reach posts none (VB-1551)
       available: (st, hh, f, c, post) => {
-        if (c.hour >= WORK[0] - 1 && c.hour < EVENING && hh.waterDay !== c.day)
-          post(`water:h${hh.id}:${c.day}`, st.villages[f.village].well ? st.villages[f.village].center : f.house, {
-            farm: f,
-          });
+        if (c.hour >= WORK[0] - 1 && c.hour < EVENING && hh.waterDay !== c.day) {
+          const s = Water.sourceOf(st, f);
+          if (s.tile >= 0)
+            post(`water:h${hh.id}:${c.day}`, s.tile, s.cls === FRESH.MARSH ? { farm: f, poor: true } : { farm: f });
+        }
       },
     },
     cook: {

@@ -4,7 +4,7 @@
 // the walk. Nothing here is a rule of the fetch: these are the map's names and its one reading of a depth.
 VB['world/water'] = (() => {
   // A tile's source of fresh water, w.fresh's codes: none (the sea and the shallows are salt), a lake, running water by its flow
-  // (world/rivers), marsh, of poor water, and a dug well (none is dug yet: VB-1553).
+  // (world/rivers), marsh, of poor water, and a dug well (the wells a run starts with, sim/water; digging is VB-1553).
   const FRESH = { NONE: 0, LAKE: 1, BROOK: 2, STREAM: 3, RIVER: 4, MARSH: 5, WELL: 6 };
   // By code: key, and the name the player reads after "Fresh water:".
   const FRESHES = [
@@ -18,9 +18,10 @@ VB['world/water'] = (() => {
   ];
   // @tunable WELL: wells by the depth to the ground's water: shallow to `shallow` metres, middling to `middling`, deep to `deepest`, beyond
   // which no well is dug (w.waterDepth holds NO_WELL there); a well's hours are `flat` (the curb and the sweep) and `perMetre` down to
-  // the water, from `least` metres, the shallowest a well is. Proposed, design.md, Water by the site, Wells (Kim, 23 November: starting
+  // the water, from `least` metres, the shallowest a well is; startWalk: a farm that has stood for years further than this, in hours one way, from
+  // any source starts with a well of its own (sim/water, VB-1551). Proposed, design.md, Water by the site, Wells (Kim, 23 November: starting
   // values). Only the bands and their hours are read yet: no well is dug before VB-1553.
-  const WELL = { shallow: 4, middling: 10, deepest: 20, flat: 16, perMetre: 4, least: 1 };
+  const WELL = { shallow: 4, middling: 10, deepest: 20, flat: 16, perMetre: 4, least: 1, startWalk: 0.5 };
   // w.waterDepth where no well can be dug: mountain, snowfield, water, and ground whose water lies deeper than WELL.deepest.
   const NO_WELL = Infinity;
   const BANDS = [

@@ -228,6 +228,30 @@ const toolsStat = (hh) => {
     meter: { value: hh.tools * 100 },
   };
 };
+// The day's water (VB-1551): the fetch in hours of the day's plan, from the farm's source; none where no source is in reach, and why.
+const waterStat = (hh) => {
+  const W = Sim.waterOf(st, st.farmsteads[hh.farmstead]);
+  if (W.none)
+    return {
+      icon: 'water',
+      label: 'Water',
+      value: 'none in reach',
+      tone: 'bad',
+      title: `No fresh water within ${W.search} hours' walk of the house: none is fetched, and nothing is cooked`,
+    };
+  const h = `${W.hours.toFixed(1)} h a day`,
+    from = `fetched at ${W.name}${W.poor ? ', poor water' : ''}: the walk there and back and the drawing, ${h}`;
+  return hh.dry > 0
+    ? {
+        icon: 'water',
+        label: 'Water',
+        value: 'none',
+        note: h,
+        tone: 'bad',
+        title: `No water: nothing is cooked; ${from}`,
+      }
+    : { icon: 'water', label: 'Water', value: h, tone: W.poor ? 'warn' : '', title: `Water ${from}` };
+};
 const houseStats = (hh) =>
   suppliesHTML(Sim.supplyOutlook(st, hh.id)) +
   stats([
@@ -236,9 +260,7 @@ const houseStats = (hh) =>
     tilthStat(st.farmsteads[hh.farmstead].fields, 'the mean of its fields'),
     feastStat(hh),
     hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', title: 'Cold: no firewood' } : null,
-    hh.dry > 0
-      ? { icon: 'water', label: 'Water', value: 'none', tone: 'bad', title: 'No water: nothing is cooked' }
-      : null,
+    waterStat(hh),
     hh.hungryDays > 0 ? { icon: 'hunger', label: 'Hungry days', value: hh.hungryDays, tone: 'warn' } : null,
     toolsStat(hh),
   ]);

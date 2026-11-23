@@ -50,6 +50,8 @@ VB['sim/kinds'] = (() => {
   //   vital: a kind a household lives by, true or (st, j) => boolean: once begun it is carried to its end though the work day ends
   //   meanwhile (`carriedOn`, below; VB-1547, Kim, 23 November). evening: a vital kind a hand may also begin after the end of work, until
   //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/jobs eveningCall; the water).
+  //   first: a kind that heads the list of the member best fit for it when the day is allotted (the water); trip(st, j): the hours of
+  //   its trip besides its work, counted in that member's day (sim/jobs allot; VB-1551).
   //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/jobs).
   //   norm(st, j): the job's hours for a normal crop, where its hours go by the crop's size (reap, thresh): what a head that does not
   //   reckon with the size estimates (sim/estimate, VB-476).

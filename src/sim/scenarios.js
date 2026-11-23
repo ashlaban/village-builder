@@ -421,6 +421,8 @@ VB['sim/scenarios'] = (() => {
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
     seal();
     VB['sim/water'].layWalk(w); // VB-1550: the walk to fresh water, from the land as generated
+    // VB-1551: the wells the run starts with, as sources on the map (design.md, Water by the site, At the start)
+    VB['sim/water'].startWells(w, villages, farmsteads, scenario !== 'founders' && scenario !== 'solo');
     const rand = drawer(S); // the scenario's one seeding stream
     for (const p of R.pawns) p.events = p.events || [];
     // @state st.t: number; game time in hours since the start of year 1 (negative before it): st.tick / TICKS (sim/clock)

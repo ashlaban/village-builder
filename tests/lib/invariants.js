@@ -1002,6 +1002,18 @@ function checkState(st) {
     }
   }
   for (const f of st.farmsteads) {
+    // VB-1551: the farm's source (sim/water): none, or a tile its household may draw at, of the class named: a well its own or on a
+    // green, running water on its own tile, a lake or a marsh from the tile or beside it; the walk within WATER.search hours
+    if (f.water !== undefined) {
+      const { FRESH } = VB['world/water'], s = f.water, w = st.w, by = (c) => [0, 1, 2, 3, 4, 5].some((k) => w.nb[s.tile * 6 + k] >= 0 && w.fresh[w.nb[s.tile * 6 + k]] === c);
+      const ok = s.tile === -1 ? s.cls === FRESH.NONE
+        : !(Number.isInteger(s.tile) && s.tile >= 0 && s.tile < w.N && s.walk >= 0 && s.walk <= VB['sim/water'].WATER.search) ? false
+        : s.cls === FRESH.WELL ? w.fresh[s.tile] === FRESH.WELL && (s.tile === f.house || st.villages.some((v) => v.well && v.center === s.tile))
+        : s.cls === FRESH.LAKE ? by(FRESH.LAKE)
+        : s.cls === FRESH.MARSH ? w.fresh[s.tile] === FRESH.MARSH || by(FRESH.MARSH)
+        : [FRESH.BROOK, FRESH.STREAM, FRESH.RIVER].includes(s.cls) && w.fresh[s.tile] === s.cls;
+      if (!ok || !Number.isInteger(s.year)) bad.push(`farmsteads[${f.id}]: water ${JSON.stringify(s)} is no source its household may draw at`);
+    }
     const want = f.household === null ? ['derelict', 'ruin'] : ['occupied'];
     if (!want.includes(f.state)) bad.push(`farmsteads[${f.id}]: state ${f.state} with household ${f.household}`);
     // VB-255: the farm's barn, one at most, built at a time not after now

@@ -135,6 +135,8 @@
     "w.graze": "sim/grazing",
     "w.tended": "sim/spread",
     "w.freshWalk": "sim/water",
+    "w.fresh": "sim/water",
+    "farmstead.water": "sim/water",
     "st.front": "sim/spread",
     "st.lapsed": "sim/spread",
     "st.deer": "sim/deer",

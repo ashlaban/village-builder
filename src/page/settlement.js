@@ -388,7 +388,8 @@ function drawFarm(wd, f) {
       ? place(art.haystack[0], hx + YARD.stack[0], hy + YARD.stack[1], 0.5, 0.93)
       : null;
   const heap = herds ? place(art.manure[0], hx + YARD.heap[0], hy + YARD.heap[1], 0.5, 0.88) : null; // the dung heap by the byre (VB-137)
-  if (!st.villages[f.village].well) place(art.curb, hx + YARD.curb[0], hy + YARD.curb[1], 0.5, 0.85);
+  if (st.w.fresh && st.w.fresh[f.house] === FRESH.WELL)
+    place(art.curb, hx + YARD.curb[0], hy + YARD.curb[1], 0.5, 0.85);
   if (!empty) {
     const puffs = [];
     for (let k = 0; k < 6; k++) {

@@ -160,7 +160,17 @@ VB['sim/rules'] = (() => {
 
   // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and by a cold house (VB-327: `cold` times the day's cold,
   // 0..1), and restored by a full meal on a warm day; at 0 the pawn dies of starvation ----
-  const HEALTH = { drain: 4, cold: 2, dry: 1, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
+  const HEALTH = {
+    drain: 4,
+    cold: 2,
+    dry: 1,
+    marsh: 0.25,
+    frail: 1.5,
+    recover: 3,
+    riskBelow: 50,
+    riskSlope: 25,
+    slow: 0.3,
+  };
   // The scenario "The market town" (VB-778; a test bed, known to decay): `plots` plot households set within 2 steps of each other, at the
   // village with most people within `reach` hex steps (about a day's walk). Read at the start only; no rule reads it afterwards.
   const TESTBED = { plots: 8, reach: 15 };

@@ -152,7 +152,9 @@ VB['sim/hunger'] = (() => {
     const fed = mem.some((p) => feasted(st, p)) ? mem.filter((p) => feasted(st, p)) : null;
     if (fed) mem = mem.filter((p) => !feasted(st, p));
     const cold = season === undefined ? 0 : warmHouse(st, hh, season),
-      dry = season === undefined ? 0 : dryHouse(st, hh);
+      dry = season === undefined ? 0 : dryHouse(st, hh),
+      // the day's water was a marsh's (hh.marshDay, sim/chores): poor water, which costs those it covers HEALTH.marsh (VB-1551)
+      poor = season !== undefined && !dry && hh.marshDay >= Math.floor(st.t / DAY) - 1;
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])),
       total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
@@ -199,14 +201,14 @@ VB['sim/hunger'] = (() => {
     }
     let sum = 0;
     for (const p of mem) {
-      ate(st, p, eaten.get(p), need.get(p), cold, dry);
+      ate(st, p, eaten.get(p), need.get(p), cold, dry, poor);
       hungryDay(p); // a child's hungry days, for its traits at 15 (sim/traits, VB-519)
       sum += p.hunger;
     }
     if (fed)
       for (const p of fed) {
         const n = rationOf(st, p);
-        ate(st, p, n, n, cold, dry); // fed at the feast; the night's cold and a dry house still reach it at home
+        ate(st, p, n, n, cold, dry, poor); // fed at the feast; the night's cold and a dry house still reach it at home
         hungryDay(p);
         sum += p.hunger;
       }
@@ -271,11 +273,11 @@ VB['sim/hunger'] = (() => {
     return [use[season] / use[3], 1];
   }
   // The day's meal of pawn p: `eaten` of its `need` rations, into its hunger log, its hunger and its health.
-  function ate(st, p, eaten, need, cold = 0, dry = 0) {
+  function ate(st, p, eaten, need, cold = 0, dry = 0, poor = false) {
     p.hungerLog.push(1 - eaten / need);
     if (p.hungerLog.length > HUNGER.days) p.hungerLog.shift();
     p.hunger = p.hungerLog.reduce((s, x) => s + x, 0) / HUNGER.days;
-    updateHealth(st, p, eaten >= need, cold, dry);
+    updateHealth(st, p, eaten >= need, cold, dry, poor);
   }
   // A pawn's day's need in rations.
   const rationOf = (st, p) => (age(st, p) >= 14 ? st.ECON.ration.adult : st.ECON.ration.child);
@@ -286,16 +288,17 @@ VB['sim/hunger'] = (() => {
     Pot.seedTold(st, hh);
   }
   // Health after the meal: hunger drains it, and the day's cold in the house (VB-327), both faster for the very young and the old; a full meal
-  // restores some on a warm day, nothing on a cold one. An illness running its course (pawn.ill, sim/deaths; VB-1118) takes ILLNESS.fall
+  // restores some on a warm day, nothing on a cold one; a dry day costs HEALTH.dry and restores nothing, a day of marsh water HEALTH.marsh
+  // (VB-1551). An illness running its course (pawn.ill, sim/deaths; VB-1118) takes ILLNESS.fall
   // over its days (ILLNESS.passing of it for one that passes, VB-1246), and nothing is restored while it runs. The played pawn's day is
   // told to sim/player (event 'health': what moved it).
-  function updateHealth(st, p, fed, cold = 0, dry = 0) {
+  function updateHealth(st, p, fed, cold = 0, dry = 0, poor = false) {
     const a = age(st, p),
       frail = a < 5 || a >= 60 ? HEALTH.frail : 1,
       before = p.health;
     const hungry = p.hunger > 0 ? HEALTH.drain * p.hunger * p.hunger * frail : 0,
       chill = cold > 0 ? HEALTH.cold * cold * frail : 0,
-      damp = dry > 0 ? HEALTH.dry * frail : 0,
+      damp = dry > 0 ? HEALTH.dry * frail : poor ? HEALTH.marsh * frail : 0, // marsh water: the meal is cooked and restores (VB-1551)
       ill =
         p.ill === undefined
           ? 0
