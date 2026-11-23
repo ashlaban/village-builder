@@ -114,7 +114,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   `medium-y5` and `medium-ref`).
 - Land cover: `node tools/cover.js [--map M] [--seeds 7,11,42]` prints each biome's share of a generated island's land; the thresholds are `COVER` in `src/gen.js`.
 - Token use: `node tools/usage-page.js [--dir DIR] [--out FILE] [--json]` writes `docs/usage.html` (derived, never committed; the Pages
-  workflow makes it): the weighted cost of each task from the runs in `docs/agents/usage`, by size and model, by kind of token, and the
+  workflow makes it): the weighted cost of each task from the runs in `docs/agents/usage`, by size and model, by kind of token, by turns (model calls) and turns against cost, and the
   sessions that belong to no one task (orchestrators, and work outside a task) apart. Its model is checked by `tests/usage-page.js`.
 - Agent usage: `node tools/agent-usage.js [--task VB-NNN] [--results FILE]` (this session's calls, tokens and tool results, and each sub-agent's, from
   their transcripts: weighted cost a done task by size, the orchestrator's share, the median boot, the share done; `--history docs/agents/usage`).

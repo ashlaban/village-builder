@@ -65,6 +65,15 @@ th button[aria-sort]::after{content:" ▾"} th button[aria-sort="ascending"]::af
 <div class="legend"><span><i class="sw" style="background:var(--s1)"></i>a task</span><span><i class="sw" style="background:var(--s2)"></i>a session outside a task</span></div>
 <div class="panel"><svg id="dots" role="img" aria-label="Weighted cost per task, by size and model"></svg></div>
 
+<h2>Turns a task took</h2>
+<p class="note">A turn is one model call. Tasks by the number of turns, all their runs together, in steps of twenty; the line at 120 is where a run hands over.</p>
+<div class="panel"><svg id="turns" role="img" aria-label="Tasks by number of turns"></svg></div>
+
+<h2>Turns against cost</h2>
+<p class="note">One dot per task, both axes logarithmic. Every turn reads the whole context again, so cost grows faster than turns: the dashed line is the slope the tasks follow.</p>
+<div class="legend" id="scatterLegend"></div>
+<div class="panel"><svg id="scatter" role="img" aria-label="Turns against weighted cost, per task"></svg></div>
+
 <h2>The twenty costliest tasks</h2>
 <div class="legend" id="topLegend"></div>
 <div class="panel"><div class="top" id="top"></div></div>
@@ -96,7 +105,7 @@ const hover = (el, html) => { el.addEventListener('mousemove', (e) => { tip.inne
   el.addEventListener('mouseleave', () => { tip.style.display = 'none'; }); };
 const sessionCard = (s) => `<b>${esc(s.id)}</b> ${KIND[s.kind]}<br>${esc(s.label)} · ${esc(s.model)} · ${s.date}${s.tasks ? ` · ${s.tasks} tasks handed out` : ''}<br>weighted ${k(s.w)} · ${s.calls} calls<br>`
   + `cache reads ${k(s.cr)} · writes ${k(s.cw)} · output ${k(s.o)}`;
-const card = (t) => `<b>${t.id}</b> ${esc(t.name)}<br>${t.size} · ${esc(t.model)} · ${how(t)} · ${t.date}<br>weighted ${k(t.w)} · ${t.calls} calls · ${t.runs} run${t.runs > 1 ? 's' : ''}<br>`
+const card = (t) => `<b>${t.id}</b> ${esc(t.name)}<br>${t.size} · ${esc(t.model)} · ${how(t)} · ${t.date}<br>weighted ${k(t.w)} · ${t.calls} turns · ${t.runs} run${t.runs > 1 ? 's' : ''}<br>`
   + `cache reads ${k(t.cr)} · writes ${k(t.cw)} · output ${k(t.o)}`;
 
 // ---- the head and the tiles
@@ -131,6 +140,47 @@ $('topLegend').innerHTML = legend(all.map(([n, , c]) => [n, null, c]));
   const svg = $('dots'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.style.minWidth = '620px'; svg.innerHTML = s;
   const by = Object.fromEntries(T.map((t) => [t.id, t])), bys = Object.fromEntries(S.map((s) => ['s:' + s.id, s]));
   svg.querySelectorAll('circle').forEach((c) => hover(c, by[c.dataset.id] ? card(by[c.dataset.id]) : sessionCard(bys[c.dataset.id])));
+})();
+
+// ---- turns: how many tasks took how many
+(() => {
+  if (!T.length) return;
+  const STEP = 20, HAND = 120, bins = []; for (const t of T) { const b = Math.floor(t.calls / STEP); (bins[b] = bins[b] || []).push(t); }
+  const n = bins.length, top = Math.max(...Array.from(bins, (b) => (b ? b.length : 0))), W = 940, L = 40, R = 16, TOP = 16, PH = 200, H = TOP + PH + 40;
+  const x = (v) => L + v / (n * STEP) * (W - L - R), y = (c) => TOP + PH - c / top * PH, tick = Math.max(1, Math.ceil(top / 4 / 5) * 5);
+  let s = '';
+  for (let c = 0; c <= top; c += tick) s += `<line x1="${L}" x2="${W - R}" y1="${y(c)}" y2="${y(c)}" stroke="var(--grid)"/><text class="m" x="${L - 6}" y="${y(c) + 4}" text-anchor="end">${c}</text>`;
+  for (let b = 0; b < n; b++) { const ts = bins[b] || []; if (b % 2 === 0 || n <= 12) s += `<text class="m" x="${x(b * STEP)}" y="${TOP + PH + 16}" text-anchor="middle">${b * STEP}</text>`;
+    if (ts.length) { const x0 = x(b * STEP) + 1, w = x(STEP) - x(0) - 2, y0 = y(ts.length), r = Math.min(4, TOP + PH - y0);
+      s += `<path data-b="${b}" d="M${x0},${TOP + PH}V${y0 + r}q0,${-r} ${r},${-r}h${w - 2 * r}q${r},0 ${r},${r}V${TOP + PH}z" fill="var(--s1)"/>`; } }
+  s += `<line x1="${x(HAND)}" x2="${x(HAND)}" y1="${TOP - 6}" y2="${TOP + PH}" stroke="var(--ink2)" stroke-dasharray="3 3"/><text class="m" x="${x(HAND) + 5}" y="${TOP + 4}">120: a run hands over</text>`;
+  s += `<text class="m" x="${W - R}" y="${H - 6}" text-anchor="end">turns (model calls) per task</text><text class="m" x="0" y="${TOP - 4}">tasks</text>`;
+  const svg = $('turns'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.style.minWidth = '620px'; svg.innerHTML = s;
+  svg.querySelectorAll('path').forEach((p) => { const b = +p.dataset.b, ts = bins[b], w = ts.reduce((a, t) => a + t.w, 0);
+    hover(p, `<b>${b * STEP} to ${b * STEP + STEP - 1} turns</b><br>${ts.length} task${ts.length > 1 ? 's' : ''} · weighted ${k(w)} (${Math.round(100 * w / total)}% of all tasks' cost)<br>median ${k(median(ts.map((t) => t.w)))} a task`); });
+})();
+
+// ---- turns against cost
+(() => {
+  if (!T.length) return;
+  const COL = { Sonnet: '--s1', Opus: '--s2', Fable: '--s3' }, col = (t) => COL[t.model] || '--mark', name = (t) => (COL[t.model] ? t.model : 'other or several');
+  const W = 940, L = 56, R = 20, TOP = 12, PH = 340, H = TOP + PH + 40, lg = Math.log10;
+  const xs = T.map((t) => Math.max(1, t.calls)), x0 = lg(Math.min(...xs) * 0.8), x1 = lg(Math.max(...xs) * 1.2), y0 = lg(Math.min(...T.map((t) => t.w)) * 0.7), y1 = lg(Math.max(...T.map((t) => t.w)) * 1.4);
+  const x = (v) => L + (lg(v) - x0) / (x1 - x0) * (W - L - R), y = (v) => TOP + PH - (lg(v) - y0) / (y1 - y0) * PH;
+  let s = '';
+  for (const v of [5, 10, 20, 50, 100, 200, 500, 1000]) if (lg(v) >= x0 && lg(v) <= x1) s += `<line x1="${x(v)}" x2="${x(v)}" y1="${TOP}" y2="${TOP + PH}" stroke="var(--grid)"/><text class="m" x="${x(v)}" y="${TOP + PH + 16}" text-anchor="middle">${v}</text>`;
+  for (const v of [3e4, 1e5, 3e5, 1e6, 3e6, 1e7, 3e7]) if (lg(v) >= y0 && lg(v) <= y1) s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text class="m" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${k(v)}</text>`;
+  // the least-squares line in log-log: cost = a × turns^b
+  const P = T.filter((t) => t.calls > 0 && t.w > 0).map((t) => [lg(t.calls), lg(t.w)]), mx = P.reduce((a, p) => a + p[0], 0) / P.length, my = P.reduce((a, p) => a + p[1], 0) / P.length;
+  const den = P.reduce((a, p) => a + (p[0] - mx) ** 2, 0), b = den ? P.reduce((a, p) => a + (p[0] - mx) * (p[1] - my), 0) / den : 0, fit = (v) => 10 ** (my + b * (lg(v) - mx));
+  if (P.length > 2 && den) { const a = Math.min(...xs), z = Math.max(...xs);
+    s += `<line x1="${x(a)}" y1="${y(fit(a))}" x2="${x(z)}" y2="${y(fit(z))}" stroke="var(--ink2)" stroke-width="2" stroke-dasharray="5 4"/><text class="m" x="${L + 12}" y="${TOP + 18}">dashed: cost grows as turns to the power ${b.toFixed(2)}</text>`; }
+  T.forEach((t) => { s += `<circle data-id="${t.id}" cx="${x(Math.max(1, t.calls)).toFixed(1)}" cy="${y(t.w).toFixed(1)}" r="4.5" fill="var(${col(t)})" fill-opacity=".75" stroke="var(--panel)" stroke-width="1.5"/>`; });
+  s += `<text class="m" x="${W - R}" y="${H - 6}" text-anchor="end">turns (model calls) per task</text><text class="m" x="0" y="${TOP + 2}">weighted</text>`;
+  const svg = $('scatter'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.style.minWidth = '620px'; svg.innerHTML = s;
+  const by = Object.fromEntries(T.map((t) => [t.id, t])); svg.querySelectorAll('circle').forEach((c) => hover(c, card(by[c.dataset.id])));
+  const seen = new Map(); for (const t of T) seen.set(name(t), [col(t), (seen.get(name(t)) || [0, 0])[1] + 1]);
+  $('scatterLegend').innerHTML = [...seen].sort((a, b) => b[1][1] - a[1][1]).map(([n, [c, cnt]]) => `<span><i class="sw" style="background:var(${c})"></i>${n} (${cnt})</span>`).join('');
 })();
 
 // ---- the costliest
