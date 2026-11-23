@@ -223,6 +223,7 @@ const INTEGRATION = [
   ['node', 'tests/drying.js'],
   ['node', 'tests/forage.js'],
   ['node', 'tests/dig.js'],
+  ['node', 'tests/saltpan.js'], // salt boiled at a spring, and the salting that uses it (VB-700)
   // VB-856: land and geography, and the tools, on small generated islands and constructed states
   ['node', 'tests/rivers.js'],
   ['node', 'tests/stones.js'],
