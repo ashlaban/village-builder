@@ -73,4 +73,4 @@ None of this measures how far a person walks round to stay dry. That is a judgem
 
 The answers are in `design.md`, Worn paths (4, Sharing paths) and World and scale (Walking and terrain): discomfort steers the choice
 only; footing, wet and two load classes; a ford's crossing minded as twice its time; one weight; weight 0 until Kim's tuning run.
-The values are `DISCOMFORT` in `src/sim/walking.js`, read by `sim/routes` (section 7 of this note, once built, gives the measured runs).
+The values are `DISCOMFORT` in `src/sim/walking.js`, read by `sim/routes`; the runs with the weight on are in `docs/tuning.md` (the `DISCOMFORT.weight` row).
