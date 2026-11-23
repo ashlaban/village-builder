@@ -149,7 +149,8 @@ VB['sim/jobs'] = (() => {
       const mine = st.jobsBy.get(`${type}:${id}`);
       if (mine) for (const j of mine) if (!islandJob(j)) j.live = false;
       reviewed(st, plan, c, why);
-      changed.add(`${type}:${id}`); // a review reads the stores anew, so its tasks' urgency
+      // a review reads the stores anew, so its tasks' urgency: a household's day is allotted at its review (a village's: below)
+      if (type === 'household') changed.add(`${type}:${id}`);
       return plan;
     };
     const takeDown = (type, id) => {
@@ -186,6 +187,8 @@ VB['sim/jobs'] = (() => {
         if (kind === null || routineAsks(plan, kind)) ASK.village[i][1](st, v, v, c, put, undefined);
       }
       takeDown('village', v.id);
+      // Its households' days are allotted anew when its tasks change: one posted or taken down is noted where it is (post, sweep). Its
+      // review alone changes nobody's day (VB-1541; design.md section 7, The day's work: "when its tasks or its village's change").
     }
     // ---- the island: plots, and empty farms being restored, every review hour; and a farm's land project that has ended (given up,
     // or contested away, sim/stakes) takes its task down at once, its hands freed, whatever the holder's planning day ----
