@@ -7,7 +7,8 @@ VB['sim/building'] = (() => {
     Projects = VB['sim/projects'];
   const { BUILD, ECON, SEASON_DAYS, SPEED, TRAVEL, YEAR, BOOTH } = VB['sim/rules'],
     { HOUSE, houseCondition } = VB['sim/house'];
-  const { B } = VB['world/biomes'];
+  const { B } = VB['world/biomes'],
+    { rockKey } = VB['world/geology'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
     { findRoute } = VB['sim/routes'];
@@ -18,7 +19,7 @@ VB['sim/building'] = (() => {
   const { fellTree, drawWood } = VB['sim/forest'];
   const { plotTimber } = VB['sim/expansion'],
     { cottageJob, cottageTimber, finishBoothStage } = VB['sim/cottageplan'];
-  const { wantsStone } = VB['sim/quern'];
+  const { wantsStone, hewable, hewLoad } = VB['sim/quern'];
   const { freeFor } = VB['sim/territory'];
   const { register } = VB['sim/commands'];
   // Design (Land and ecology, Timber; Agreed, Kim, 10 Nov): a cottage's walls take BUILD.timber loads (six trees, 3 loads a tree as a firewood
@@ -252,12 +253,18 @@ VB['sim/building'] = (() => {
   // (plan.build, opened at a review by sim/plans from buildStep), not a standing target, so heaps do not grow without use.
   const STONES_PER_LOAD = 25; // as clearing loads them (sim/fields, sim/meadows)
   const pickable = (w, t) => w.biome[t] === B.MEADOW && w.stones[t] > BUILD.keepStones;
-  const quarry = (w, t) => w.biome[t] === B.HILLS || w.biome[t] === B.MOUNTAIN;
+  // a tile stone is quarried on: a biome of BUILD.quarryOn, of a rock quarried there (VB-733: heath, where its rock is bedded)
+  const quarry = (w, t) => {
+    const rocks = BUILD.quarryOn[w.biome[t]];
+    return rocks === null || (rocks !== undefined && rocks.includes(rockKey(w, t)));
+  };
   // Where the household's stone comes from: the nearest tile within BUILD.stoneReach walking steps of its house where a load may be picked (a
   // meadow tile of its own land or its village's outland holding more than a meadow keeps), else the nearest hills or mountain tile, not
   // another's land, to quarry; {tile, kind ('pick' | 'quarry')}, or {tile: -1, kind: null} when there is none (its heap may still fill
-  // from clearing). One search, when the step opens or its tile is picked down.
-  function stoneSource(st, f) {
+  // from clearing). One search, when the step opens or its tile is picked down. `hew`: the load is for a quern, so a quarry is of a rock
+  // one can be hewn of (VB-733; a picked load is granite, which can).
+  const rockAt = (w, t) => rockKey(w, t) || 'granite';
+  function stoneSource(st, f, hew) {
     const w = st.w,
       own = (t) => st.owner[t] === f.household + 1 || (st.owner[t] === -f.village - 1 && !st.used.has(t));
     // Proposed (merge of VB-332 with VB-359, 11 Nov): the tile is also within BUILD.stoneWalk hours' walk of the house, so that a trip up a
@@ -267,7 +274,7 @@ VB['sim/building'] = (() => {
       rocks = [];
     for (const [t, d] of bfs(w, f.house, BUILD.stoneReach, walkable(w)).dist) {
       if (pickable(w, t) && own(t)) picks.push([d, t]);
-      else if (quarry(w, t) && (st.owner[t] === 0 || own(t))) rocks.push([d, t]);
+      else if (quarry(w, t) && (st.owner[t] === 0 || own(t)) && (!hew || hewable(rockAt(w, t)))) rocks.push([d, t]);
     }
     const first = (list) => {
       const c = list
@@ -282,7 +289,8 @@ VB['sim/building'] = (() => {
   }
   // The building step a household's plan holds after a review: open while its house stands on the ground, lived in by it, and it has no
   // land project under way when the step would open (a household makes its land first); its source kept while a load can still be got there.
-  // It is also open, whatever the house and the land, while the household wants a quern and its heap lacks the load to hew it from (VB-009).
+  // It is also open, whatever the house and the land, while the household wants a quern and its heap lacks the load to hew it from (VB-009);
+  // then its source is one that gives such a load, and a quarry of another rock is searched again (VB-733).
   function buildStep(st, plan, hh) {
     const f = hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null,
       old = plan.build || null,
@@ -295,8 +303,9 @@ VB['sim/building'] = (() => {
       (!old && !quern && Projects.ownOf(st, hh.id))
     )
       return null;
-    if (old && (old.kind !== 'pick' || pickable(st.w, old.tile))) return old;
-    return stoneSource(st, f);
+    const stale = quern && old && old.kind === 'quarry' && !hewable(rockAt(st.w, old.tile));
+    if (old && !stale && (old.kind !== 'pick' || pickable(st.w, old.tile))) return old;
+    return stoneSource(st, f, quern);
   }
   // The slack of the year, when a house is raised: the first half of summer, and winter.
   const slack = (c) => (c.season === 1 && c.sday < SEASON_DAYS / 2) || c.season === 3;
@@ -307,31 +316,33 @@ VB['sim/building'] = (() => {
       step = plan && plan.build;
     if (!step || f.household !== hh.id) return;
     if (f.grade !== 'ground') {
-      // a house on stone: the step is open for a quern's load (VB-009), one trip
-      if (step.tile >= 0 && hh.stone < 1) post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
+      // a house on stone: the step is open for a quern's load (VB-009), one trip, while the heap holds none of a rock it is hewn of
+      if (step.tile >= 0 && hewLoad(hh) === null) post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
       return;
     }
-    if (hh.stone >= BUILD.foundationStone) {
+    if (Stores.heldOf(hh, 'stone') >= BUILD.foundationStone) {
       if (slack(c)) post(`raise:f${f.id}`, f.house, { farm: f }, 'raise');
       return;
     }
     if (step.tile < 0) return;
     post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
-    if (hh.stone + 1 < BUILD.foundationStone) post(`${step.kind}:h${hh.id}b`, step.tile, { farm: f }, step.kind);
+    if (Stores.heldOf(hh, 'stone') + 1 < BUILD.foundationStone)
+      post(`${step.kind}:h${hh.id}b`, step.tile, { farm: f }, step.kind);
   }
-  // A load carried home onto the heap; a picked load off its tile, as clearing takes them.
+  // A load carried home onto the heap; a picked load off its tile, as clearing takes them. A quarried load is of its tile's bedrock; a
+  // picked one is granite, the field stone the ice left (Decided, 11 Nov; VB-733), as is a quarry's on a world made without the ground layers.
   function stoneHome(st, j, hh) {
     if (j.kind === 'pick') {
       st.w.stones[j.site] = Math.max(0, st.w.stones[j.site] - STONES_PER_LOAD);
       st.biomeDirty.add(j.site);
     }
-    Stores.put(st, hh, 'stone', 1, j.kind);
+    Stores.put(st, hh, 'stone/' + (j.kind === 'quarry' ? rockAt(st.w, j.site) : 'granite'), 1, j.kind);
   }
   // The house raised: the foundation's stone off the heap, and the house on stone from now (its condition carried over at this hour, so the
   // closed form wears it at the stone's rate from here).
   function raised(st, j, hh) {
     const f = j.farm;
-    if (f.grade !== 'ground' || hh.stone < BUILD.foundationStone) return;
+    if (f.grade !== 'ground' || Stores.heldOf(hh, 'stone') < BUILD.foundationStone) return;
     Stores.take(st, hh, 'stone', BUILD.foundationStone, 'foundation');
     f.condition = houseCondition(st, f);
     f.condAt = st.t;

@@ -245,8 +245,8 @@ const houseStats = (hh) =>
 const section = (title) => `<h3 class="card-sec">${title}</h3>`;
 // ---- materials (VB-668): held until a work asks for them, so the question is whether there is enough for what is planned ----
 // A material: the good a project's step spends (its key, as sim/stores names it) or a heap the household holds; `kinds` is the list of
-// {label, n, tint} the heap holds of one material (today's state holds one kind of each, so it is empty), shown under the total only
-// where more than one kind is held.
+// {label, n, tint} the heap holds of one material (the stone heap by its rock, VB-733; the others hold one kind, so it is empty), shown
+// under the total only where more than one kind is held.
 let allMaterials = false; // the "All materials" switch: the page's own state, kept as the selection changes
 const MATERIALS = [
   { key: 'wood', label: 'Timber', icon: 'wood', field: 'wood', title: 'Timber, in loads (the woodpile)' },
@@ -270,7 +270,24 @@ const MATERIALS = [
   },
   { key: 'wool', label: 'Wool', icon: 'wool', field: 'wool', title: 'Wool, in fleeces, unspun' },
 ];
-const materialsOf = (hh) => MATERIALS.map((m) => ({ ...m, n: Math.round(hh[m.field] || 0), kinds: [] }));
+// A good's kinds as the page shows them wherever they appear (VB-733, principle 15): the good's icon, and the kind as its label and tint (a
+// rock's tint as the Ground overlay draws its bedrock, page/ground). A store by kind ({[kind]: n}) gives its kinds held, in the registry's order.
+const kindTint = (good, kind) => {
+  const G = VB['world/geology'];
+  return good === 'stone' ? hex6(ROCK_COLOUR[G.ROCK[kind.toUpperCase()]] || 0x888888) : null;
+};
+const kindsHeld = (good, store) =>
+  store && typeof store === 'object'
+    ? VB['sim/goods']
+        .kindsOf(good)
+        .filter((k) => store[k] >= 0.5)
+        .map((k) => ({ label: k[0].toUpperCase() + k.slice(1), n: Math.round(store[k]), tint: kindTint(good, k) }))
+    : [];
+// What a household holds of a material: a single store's number, or the sum of a store by kind.
+const heldIn = (hh, m) =>
+  typeof hh[m.field] === 'object' && hh[m.field] ? VB['sim/stores'].heldOf(hh, m.key) : hh[m.field] || 0;
+const materialsOf = (hh) =>
+  MATERIALS.map((m) => ({ ...m, n: Math.round(heldIn(hh, m)), kinds: kindsHeld(m.key, hh[m.field]) }));
 const WORK_WORD = { field: 'New field', meadow: 'New hay meadow', boat: 'A boat', plot: 'A plot for an heir' };
 // The works that ask for materials: the household's project plans, each with what it asks (what its plan holds back for its steps, `build`).
 function worksOf(hh) {
@@ -280,7 +297,7 @@ function worksOf(hh) {
     for (const key in plan.reasons)
       if (plan.reasons[key] === 'build' && plan.reserved[key] > 0) {
         const m = MATERIALS.find((x) => x.key === key);
-        if (m) asks.push({ key, have: Math.round(hh[m.field] || 0), want: Math.ceil(plan.reserved[key] - 1e-9) });
+        if (m) asks.push({ key, have: Math.round(heldIn(hh, m)), want: Math.ceil(plan.reserved[key] - 1e-9) });
       }
     if (asks.length) {
       const step = plan.steps[plan.open];
@@ -378,7 +395,7 @@ function storesTab(hh) {
       label: 'Hand quern',
       wide: true,
       value: !hh.quern ? 'none' : quern > 0 ? `${Math.ceil(quern)} years left` : 'worn out',
-      note: hh.quern ? `of ${hh.quern.rock}` : '',
+      note: hh.quern ? `of ${hh.quern.kind}` : '',
       tone: hh.quern && quern > 0 ? '' : 'warn',
       title: hh.quern && quern > 0 ? 'A hand quern' : 'No quern that grinds: grain is cooked unground',
     },

@@ -726,7 +726,11 @@ function checkState(st) {
     if (h.holder !== null && !h.members.includes(h.holder) && !st.offers.some((o) => o.basis === 'inheritance' && o.gives.household === h.id) && !(st.liveTrusts || []).some((i) => st.trusts[i].household === h.id)) bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     if (grainBad(h.grain)) bad.push(`households[${h.id}]: grain ${JSON.stringify(h.grain)}`);
-    for (const k of ['wood', 'stone', 'peat', 'meals', 'flour', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    for (const k of ['wood', 'peat', 'meals', 'flour', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    // the stone heap by rock (VB-733): loads of the stone's kinds, each a finite number, none negative
+    const rocks = globalThis.VB['sim/goods'].kindsOf('stone');
+    if (!h.stone || typeof h.stone !== 'object' || Object.keys(h.stone).some((k) => !rocks.includes(k) || !within(h.stone[k], 0, 1e6)))
+      bad.push(`households[${h.id}]: stone is ${JSON.stringify(h.stone)}`);
     // the head's remembered yield (VB-767): a tally and a ring a source, none negative, at most FIELDS.memory years each, so 8 x 7 numbers
     if (h.yields) {
       const Y = VB['sim/yields'], M = VB['sim/rules'].FIELDS.memory;
@@ -736,8 +740,8 @@ function checkState(st) {
         if (!Array.isArray(r) || r.length > M || r.some((n) => !within(n, 0, 1e9))) bad.push(`households[${h.id}]: yield ring ${s} is ${JSON.stringify(r)}`);
       }
     }
-    // the hand quern (VB-009): null, or a stone of sandstone or granite made at a time not after now
-    if (h.quern !== null && !(h.quern && ['sandstone', 'granite'].includes(h.quern.rock) && Number.isFinite(h.quern.made) && h.quern.made <= st.t))
+    // the hand quern (VB-009): null, or a stone of a kind of the good (sandstone or granite; VB-733) made at a time not after now
+    if (h.quern !== null && !(h.quern && globalThis.VB['sim/goods'].kindRow('quern', h.quern.kind) && Number.isFinite(h.quern.made) && h.quern.made <= st.t))
       bad.push(`households[${h.id}]: quern ${JSON.stringify(h.quern)}`);
     // dug loads (VB-359): whole loads, and no more than the stock a household digs to; its digging ground's tiles on the map
     for (const k of ['clay', 'bogOre']) if (!Number.isInteger(h[k]) || h[k] < 0 ||

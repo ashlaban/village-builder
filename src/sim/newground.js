@@ -44,7 +44,7 @@ VB['sim/newground'] = (() => {
   function clearStones(st, tile, hh) {
     const w = st.w,
       loads = Math.round(w.stones[tile] / STONES_PER_LOAD);
-    if (loads > 0 && hh) Stores.put(st, hh, 'stone', loads, 'clear');
+    if (loads > 0 && hh) Stores.put(st, hh, 'stone/granite', loads, 'clear'); // cleared stone is granite (VB-733)
     w.stones[tile] = 0;
     clearScrub(st, tile); // its scrub too, and it is tended (VB-091)
     st.biomeDirty.add(tile);

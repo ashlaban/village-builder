@@ -48,5 +48,8 @@ VB['world/geology'] = (() => {
   // A hidden vein can be come on by work within `reach` tiles of it (w.veinNear).
   const FIND = { reach: 2 };
 
-  return { ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND };
+  // The key of a tile's bedrock in ROCKS ('granite'), or null where it has none or the world was made without the ground layers.
+  const rockKey = (w, t) => (w.rock && w.rock[t] ? ROCKS[w.rock[t]].key : null);
+
+  return { ROCK, ROCKS, DEPOSIT, DEPOSITS, ENDLESS, FIND, rockKey };
 })();

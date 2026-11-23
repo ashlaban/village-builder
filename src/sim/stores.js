@@ -1,12 +1,13 @@
 // @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals;
-// reservations, grain by crop and ale brewed, poured and spoiling (VB-305)
+// reservations, grain by crop, a good by kind (the stone heap by rock, VB-733) and ale brewed, poured and spoiling (VB-305)
 VB['sim/stores'] = (() => {
   const { DAY, YEAR, YEAR_DAYS, TICKS, FOODS, BREW, cal } = VB['sim/rules'],
     { MATCH } = VB['sim/roles'],
     { CROPS } = VB['sim/crops'];
   const { addFood, takeFood } = VB['sim/larder'];
   const WOOD_LOW = MATCH.urgency.woodLow;
-  const { goodOf, dayLoss, keepsDays, GRAIN, CROP_LIST, CROP_GOOD, GOOD_CROP, isGrain, grainGood } = VB['sim/goods'];
+  const { goodOf, dayLoss, keepsDays, GRAIN, CROP_LIST, CROP_GOOD, GOOD_CROP, isGrain, grainGood } = VB['sim/goods'],
+    { kindRow, baseOf, kindIn } = VB['sim/goods'];
   const STAKE_CROP = 'barley';
   const { emit } = VB['sim/events'],
     Projects = VB['sim/projects'],
@@ -105,7 +106,9 @@ VB['sim/stores'] = (() => {
   function record(st, holder, good, n, why, kind = type(holder)) {
     amount(Math.abs(n));
     if (n === 0) return;
-    if (good !== GRAIN && GOOD_CROP[good] !== undefined) good = GRAIN; // the ledger counts grain whatever its crop
+    if (good !== GRAIN && GOOD_CROP[good] !== undefined)
+      good = GRAIN; // the ledger counts grain whatever its crop
+    else if (good.indexOf('/') > 0) good = baseOf(good); // and a good of kinds whatever its kind (VB-733)
     const detail = typeof why === 'string' ? { kind: why } : why;
     if (!detail || !KINDS.includes(detail.kind)) throw new Error('stores: unknown reason');
     const hh = kind === 'pawn' ? st.households[holder.household] : holder;
@@ -125,7 +128,7 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && good === 'meals') return good;
     if (kind === 'household' && good === 'flour') return good; // ground on the quern (VB-009, sim/quern)
     if (kind === 'household' && good === 'wood') return good; // the woodpile (VB-328)
-    if (kind === 'household' && good === 'stone') return good; // the stone heap (VB-332)
+    if (kind === 'household' && (good === 'stone' || baseOf(good) === 'stone')) return 'stone'; // the stone heap (VB-332), by rock (VB-733)
     if (kind === 'household' && good === 'peat') return good; // the peat stack (VB-367)
     if (kind === 'household' && good === 'tar') return good; // barrels of tar (VB-301, sim/tar)
     if (kind === 'household' && good === 'hide') return 'hides'; // the hides of the hunt (VB-424, sim/deer)
@@ -181,9 +184,49 @@ VB['sim/stores'] = (() => {
   const setWood = (hh, n) => {
     hh.wood = n;
   };
-  const setStone = (hh, n) => {
-    hh.stone = n;
+  // ---- a good by kind (VB-733; design.md, The metals and the stones: Kind in state; principle 17): a store of a good with kinds is
+  // {[kind]: n}, as grain is by crop (none held: no key, or 0). A put names the kind ('stone/granite'); a take of a kind takes it; a take of
+  // the good, any kind, falls on the kind of least customary worth first (the registry's `cheapest`; D13: a head spends the common stone
+  // and keeps the one with a use of its own). The ledger counts the good whatever its kind. Today the household's stone heap alone.
+  // @state household.stone: {[rock]: loads >= 0}, rocks of the good 'stone' (sim/goods): the stone heap, a load of 25 stones (VB-332) by
+  //   the rock it is of (VB-733); its sum, heldOf(hh, 'stone'), is what the foundation and the well read
+  const setStone = (hh, kind, n) => {
+    hh.stone[kind] = n;
   };
+  // A save from before VB-733 held the heap as one number of no rock: it becomes granite, the commonest kind.
+  function heapsLoaded(st) {
+    for (const hh of st.households)
+      if (typeof hh.stone === 'number') hh.stone = hh.stone > 0 ? { granite: hh.stone } : {};
+  }
+  // What a holder's single store holds of a good: of a good with kinds, of one kind ('stone/granite') or of all ('stone'). Grain is read by
+  // grainOf. Allocates nothing.
+  function heldOf(holder, good) {
+    const k = field(holder, good);
+    if (k !== 'stone') return holder[k] || 0;
+    const store = holder.stone;
+    if (good !== k) return store[kindIn(good)] || 0;
+    let n = 0;
+    for (const kind in store) n += store[kind];
+    return n;
+  }
+  // Takes up to n of a good with kinds: of its kind, or of any, the least worth first.
+  function takeKinds(holder, good, n) {
+    const store = holder.stone; // the one store by kind (field: 'stone')
+    if (good !== 'stone') {
+      const kind = kindIn(good),
+        got = Math.min(store[kind] || 0, n);
+      if (got > 0) setStone(holder, kind, store[kind] - got);
+      return got;
+    }
+    let got = 0;
+    for (const kind of goodOf('stone').cheapest) {
+      if (got >= n) break;
+      const x = Math.min(store[kind] || 0, n - got);
+      if (x > 0) setStone(holder, kind, store[kind] - x);
+      got += x;
+    }
+    return got;
+  }
   const setMeals = (hh, n) => {
     hh.meals = n;
   };
@@ -216,7 +259,6 @@ VB['sim/stores'] = (() => {
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (good === 'wood') setWood(holder, n);
-    else if (good === 'stone') setStone(holder, n);
     else if (good === 'peat') setPeat(holder, n);
     else if (good === 'fish') setRack(holder, n);
     else if (good === 'tar') setTar(holder, n);
@@ -256,6 +298,13 @@ VB['sim/stores'] = (() => {
       crossed(st, holder, kind, before);
       return n;
     }
+    if (k === 'stone') {
+      const row = kindRow('stone', kindIn(good) || '');
+      if (!row) throw new Error('stores: stone is put by its rock');
+      record(st, holder, good, n, why, kind);
+      setStone(holder, row.kind, (holder.stone[row.kind] || 0) + n);
+      return n;
+    }
     const before = holder[k] || 0;
     record(st, holder, good, n, why, kind);
     set(holder, good, before + n, kind);
@@ -270,6 +319,13 @@ VB['sim/stores'] = (() => {
     const kind = type(holder),
       k = field(holder, good, kind);
     if (k === GRAIN) return takeGrain(st, holder, good, n, why, into, kind, false, undefined, how);
+    if (k === 'stone') {
+      if (good !== k && !kindRow(k, kindIn(good))) throw new Error('stores: unknown rock ' + good);
+      const got = takeKinds(holder, good, n);
+      record(st, holder, good, -got, why, kind);
+      if (got > 0) short(st, holder, kind, k, heldOf(holder, k));
+      return got;
+    }
     const before = holder[k] || 0,
       got = Math.min(before, n);
     record(st, holder, good, -got, why, kind);
@@ -628,7 +684,7 @@ VB['sim/stores'] = (() => {
     if (!isPlanOf(st, holder, plan)) throw new Error("stores: a reservation names its holder's plan");
     if (
       why === CHECKED &&
-      n > (holder[k] || 0) - reserved(st, holder, good) + (plan.reasons[good] ? plan.reserved[good] : 0) + 1e-9
+      n > heldOf(holder, good) - reserved(st, holder, good) + (plan.reasons[good] ? plan.reserved[good] : 0) + 1e-9
     ) {
       return false;
     }
@@ -683,6 +739,8 @@ VB['sim/stores'] = (() => {
     dry,
     cookLarder,
     grainOf,
+    heldOf,
+    heapsLoaded,
     grainGood,
     partsOk,
     partsSum,

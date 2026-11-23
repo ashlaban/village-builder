@@ -126,7 +126,7 @@ VB['sim/kinds'] = (() => {
     water: 'a well, a spring, a lake or a river',
     shore: 'the shore',
     bog: 'a bog or a clay bank',
-    hills: 'the hills and mountains, where rock is bare',
+    hills: 'the hills, mountains and heath, where rock lies near the surface', // VB-733: heath, thin soil over rock
     spring: 'a salt spring',
     site: 'a building site',
     green: 'the village green',
