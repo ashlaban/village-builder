@@ -1,10 +1,10 @@
 // Moving to new land (VB-146, VB-147): a waiting adult of a crowded village leaves with a sibling who follows and founds a village of one
-// farm 10 to 30 walking steps away, in a booth until the cottage is built; the household sows its first field. A village with room founds
+// farm within SETTLE.hours along a trail (VB-786), in a booth until the cottage is built; the household sows its first field. A village with room founds
 // nothing, and a party without provisions stays. With a small village nearby that has room, the settler joins it instead. On the small
 // islands of tests/lib/probe.js since VB-856 (heirs at seed 13, the 48 by 34 island's first seed whose crowded village founds; on the default
 // island it was seed 7).
 const VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/settle'];
-const { bfs } = VB['sim/hex'], { walkable } = VB['sim/walking'], { SETTLE } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
+const { bfs } = VB['sim/hex'], { walkable } = VB['sim/walking'], { SETTLE, SPEED } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SETTLE FAIL:', m); } };
 const { scenario } = require('./lib/probe.js');
 // The heirs scenario at seed 13: a waiting adult of village A with an unmarried adult sibling who also waits. Natural deaths off.
@@ -50,7 +50,7 @@ const roll = (st, f) => { const rs = new Set(Object.values(st.rng)); rs.forEach(
   roll(st, () => S.settleRound(st));
   check(v.crowded === 0 && st.villages.length === n && m.landWait === 0, `a village with room founds nothing (crowded ${v.crowded})`);
 }
-// 2. Crowded (village B lies beyond reach): the settler leaves with the sibling and founds a village 10 to 30 steps away.
+// 2. Crowded (village B lies beyond reach): the settler leaves with the sibling and founds a village within SETTLE.hours along a trail.
 const { st, v, m, sib } = setUp();
 fill(st, v);
 st.demand = [m.id, sib.id]; m.landWait = 2; sib.landWait = 2; m.stake = 300;
@@ -63,11 +63,11 @@ check(nv && nv.founded && nv.founded.from === v.id && nv.founded.by === m.id, `f
   const N = VB['sim/names'], nctx = { w: st.w, site: nv.center, founder: m, mother: v }, r = () => N.tileRand(nv.center, 1);
   check([...N.founder(nctx, r()), ...N.mother(nctx, r())].includes(nv.name), `named for the founder or the mother village (${nv.name})`);
 }
-const steps = bfs(st.w, v.center, SETTLE.reach[1], walkable(st.w)).dist.get(nv.center);
-check(steps >= SETTLE.reach[0] && steps <= SETTLE.reach[1], `the new village is ${steps} walking steps away`);
+const trail = VB['sim/routes'].trailReach(st.w, v.center, SETTLE.hours * SPEED).get(nv.center) / SPEED;
+check(trail <= SETTLE.hours && VB['sim/hex'].hexSteps(st.w, v.center, nv.center) >= SETTLE.centreApart, `the new village is ${trail.toFixed(1)} hours away along a trail`);
 check(f && f.village === nv.id && nv.farmsteads.length === 1 && nv.farmsteads[0] === f.id && f.booth === true && VB['sim/projects'].projectsOf(st, 'household', f.household).some((p) => p.what === 'cottage'), 'one farm, in a booth');
 check(f.name === nv.name, `the farm bears the new village's name (${f.name}, ${nv.name})`);
-check(f.fields.length === 0 && VB['sim/projects'].openOf(st, hh.id)?.kind === 'clear', 'the first field is the household\'s project plan');
+check(f.fields.length === 0 && ['clear', 'fell'].includes(VB['sim/projects'].openOf(st, hh.id)?.kind), 'the first field is the household\'s project plan');
 check(hh && hh.holder === m.id && m.household === hh.id && sib.household === hh.id && hh.members.length === 2, 'settler and sibling live there');
 check(sib.servant && ['farmhand', 'maid'].includes(sib.role) && m.role === 'farmer', `the sibling serves (${sib.role})`);
 // the stake less a day's ration a head, eaten uncooked on the journey (VB-287, sim/agents setOut)
@@ -127,10 +127,12 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
 // of its own waiting for land, or no room, it is passed over.
 let joined = '';
 // The founders' two unmarried young are 16 to 19 and live on either farm by the seed's draw, so the first seed is taken where one of age
-// lives in the village (seed 7 had one until the villages were laid out anew, VB-402).
+// lives in the village (seed 7 had one until the villages were laid out anew, VB-402). Since VB-786 the lone farm is joined within
+// SETTLE.join hours by the villages' table and a site found within SETTLE.hours along a trail: the probe island is rough, and of seeds 1
+// to 80 these are the ones where both hold (at seed 7 the lone farm lies 10.3 hours off and no site lies within 6 hours).
 const grown = (st) => st.pawns.find((p) => p.alive && p.age >= 18 && p.age <= 45 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id)
   && Sim.spouseOf(st, p.id) === null);
-const foundersSeed = [7, 1, 5, 6, 42].find((seed) => grown(scenario('founders', seed)));
+const foundersSeed = [32, 35, 49, 73].find((seed) => grown(scenario('founders', seed)));
 const founders = () => {
   const st = scenario('founders', foundersSeed); st.naturalDeaths = false;
   const v = st.villages[0], lone = st.villages[1], m = grown(st);
@@ -138,25 +140,25 @@ const founders = () => {
   return { st, v, lone, m };
 };
 {
-  const t = founders(), n = t.st.villages.length, d = S.reachOf(t.st, t.v).get(t.lone.center);
-  const small = S.smallVillage(t.st, t.v, t.m, S.waitingByVillage(t.st), S.reachOf(t.st, t.v));
-  check(d <= SETTLE.join && small && small.village === t.lone, `the lone farm lies within ${SETTLE.join} steps (${d}) and is the small village offered`);
+  const t = founders(), n = t.st.villages.length, d = VB['sim/villagehours'].hoursBetween(t.st, t.v.id, t.lone.id);
+  const small = S.smallVillage(t.st, t.v, t.m, S.waitingByVillage(t.st));
+  check(d <= SETTLE.join && small && small.village === t.lone, `the lone farm lies within ${SETTLE.join} hours (${d.toFixed(1)}) and is the small village offered`);
   roll(t.st, () => S.settleRound(t.st));
   check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id && t.lone.farmsteads.length === 1, 'the round founds, and joins nobody unasked');
   bad = checkState(t.st); check(!bad.length, `invariants after founding: ${bad.slice(0, 3).join('; ')}`);
-  joined = `; the lone village ${t.lone.name} ${d} steps away is offered, not joined`;
+  joined = `; the lone village ${t.lone.name} ${d.toFixed(1)} hours away is offered, not joined`;
 }
 { // an adult of its own waits for land there: the settler founds
   const t = founders(), n = t.st.villages.length;
   const other = t.st.pawns.find((p) => p.alive && p.age >= 18 && p.id !== t.m.id && Sim.settlementIdOf(t.st, p) === 0 && !Sim.isHolder(t.st, p.id));
   VB['sim/heirs'].moveTo(t.st, other.id, t.st.farmsteads[t.lone.farmsteads[0]].household); t.st.demand.push(other.id);
-  check(S.smallVillage(t.st, t.v, t.m, S.waitingByVillage(t.st), S.reachOf(t.st, t.v)) === null, 'with its own adult waiting, the lone farm is passed over');
+  check(S.smallVillage(t.st, t.v, t.m, S.waitingByVillage(t.st)) === null, 'with its own adult waiting, the lone farm is passed over');
   roll(t.st, () => S.settleRound(t.st));
   check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id, 'and the settler founds');
 }
 { // no room at the lone farm either: the settler founds
   const t = founders(), n = t.st.villages.length; fill(t.st, t.lone);
-  check(S.smallVillage(t.st, t.v, t.m, S.waitingByVillage(t.st), S.reachOf(t.st, t.v)) === null, 'with no room at the lone farm, it is passed over');
+  check(S.smallVillage(t.st, t.v, t.m, S.waitingByVillage(t.st)) === null, 'with no room at the lone farm, it is passed over');
   roll(t.st, () => S.settleRound(t.st));
   check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id, 'and the settler founds');
 }
@@ -193,4 +195,4 @@ const founders = () => {
   check(typeof Sim.wish(t.st, 'settle', 3) === 'string', 'settle is null, true or false');
 }
 if (failed) process.exit(1);
-console.log(`settle ok: ${m.given} founded ${nv.name} ${steps} steps from ${v.name}; cottage built on day ${built}, first field sown on day ${sown}${joined}`);
+console.log(`settle ok: ${m.given} founded ${nv.name} ${trail.toFixed(1)} hours along a trail from ${v.name}; cottage built on day ${built}, first field sown on day ${sown}${joined}`);

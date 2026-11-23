@@ -26,8 +26,8 @@ for (const v of st.villages) {
   const d = Math.min(...st.villages.map((u) => hexSteps(st.w, u.center, site.house))); nearest = Math.min(nearest, d);
   check(d >= SETTLE.centreApart, `${v.name}: the new site lies ${d} hex steps from a village centre`);
   check(!use.near.has(site.house) && !use.near.has(site.field), `${v.name}: the new house and field keep ${SETTLE.apart} steps from other farms`);
-  check(X.roomAt(st, site.house, (t) => use.taken.has(t) || use.near.has(t) || t === site.field || t === site.house) >= FIELDS.room,
-    `${v.name}: the new site has room`);
+  check(X.roomAt(st, site.house, (t) => use.taken.has(t) || use.near.has(t) || t === site.field || t === site.house, null, true) >= FIELDS.room,
+    `${v.name}: the new site has room`); // wood counted as the meadow it becomes when grubbed (VB-786)
 }
 check(found > 0, 'some village finds land for a new village');
 if (failed) process.exit(1);
