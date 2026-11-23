@@ -82,6 +82,12 @@ VB['sim/fieldplans'] = (() => {
       }
     return null;
   }
+  // The fields the household would want on its fields alone, by its head's bias (fieldsWanted with others false).
+  const alone = (st, plan, hh) =>
+    fieldsWanted(st, hh, plan.targets.workable, plan.head ? plan.head.bias.fields : 1, false);
+  // Whether the head counts on its other sources for a field's food or more (its target under the fields it would want on its fields
+  // alone): its ambition then breaks no field beyond the target (sim/aims), which it would let go again.
+  const freesFields = (st, plan, hh) => alone(st, plan, hh) > plan.targets.fields;
   // The field the head lets go this year, or null (at its planning day after the harvest, sim/plans): only the fields its other sources
   // free, those it would want on its fields alone (fieldsWanted with others false; so a household shrunk by a death or a marriage keeps
   // its fields, as before), over those it wants now; none while its head has chosen its fields (the head's own target governs, VB-253), and
@@ -91,9 +97,7 @@ VB['sim/fieldplans'] = (() => {
       L = f.left;
     if (plan.chosen && plan.chosen.fields !== null && plan.chosen.fields !== undefined) return null;
     if (L && L.year === c.year && L.inYear >= FIELDS.letGo) return null;
-    const bias = plan.head ? plan.head.bias.fields : 1,
-      alone = Math.min(f.fields.length, fieldsWanted(st, hh, T.workable, bias, false));
-    if (alone - T.fields < 1) return null;
+    if (Math.min(f.fields.length, alone(st, plan, hh)) - T.fields <= FIELDS.slack) return null;
     let best = null;
     for (const fd of f.fields)
       if (letGoWhy(st, f, fd) === null && (!best || fd.fert * fd.soil <= best.fert * best.soil)) best = fd;
@@ -246,5 +250,6 @@ VB['sim/fieldplans'] = (() => {
     harvestEstimate,
     letGoWhy,
     fieldToLetGo,
+    freesFields,
   };
 })();
