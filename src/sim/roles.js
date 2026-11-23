@@ -133,6 +133,24 @@ VB['sim/roles'] = (() => {
       except: { water: 6, weed: 5, haul: 4, rake: 4, hay: 4, mow: 0, hunt: 0 },
     },
   };
+  // @tunable STAND: the roles a holder stands in for (VB-1545; Kim, 23 Nov: a lone holder gains the absent roles' ranks; design.md, A
+  // holder alone). Each key is a role of the household's head pair, with the roles that fill its place: the mistress's is filled by a
+  // mistress, a maid or a daughter of the house (each of whom ranks the household's work as she does or above). A role is absent when
+  // none of the members the head allots the day to (living, 7 or older, at home, not on a day owed elsewhere nor commanded; ill or
+  // nursing still count) holds a role that fills it, the holder apart; the holder then ranks each kind of work at the higher of its own
+  // rank and the absent role's (sim/kinds `ranks`; read in sim/jobs prioOf). Only the holder stands in: a mistress left alone at home
+  // keeps her own ranks. The holder is always `farmer` (sim/heirs refreshRoles), so the farmer's place is never absent.
+  const STAND = { wife: ['wife', 'maid', 'daughter'] };
+  const STAND_KEYS = Object.keys(STAND);
+  // The absent roles among pawns `ps` (those the head allots the day to), the holder apart: a mask, bit i for STAND_KEYS[i]. One pass
+  // over the household's members, made once an allotment by its caller.
+  function absentMask(holder, ps) {
+    let m = (1 << STAND_KEYS.length) - 1;
+    for (const p of ps)
+      if (p.id !== holder)
+        for (let i = 0; i < STAND_KEYS.length; i++) if (STAND[STAND_KEYS[i]].includes(p.role)) m &= ~(1 << i);
+    return m;
+  }
   // @tunable CHILD: a child's working rate, by its age
   // Children of 7 to 13 work at a reduced rate: 0.3 at 7, rising 0.1 a year to 0.9 at 13; under 7 they take no jobs.
   const CHILD = { from: 7, base: 0.3, perYear: 0.1 };
@@ -146,8 +164,13 @@ VB['sim/roles'] = (() => {
   const MATCH = {
     poorFit: 2,
     // The head's day (VB-466): a task is given hands until they finish it within `horizon` working days, and a member is given tasks
-    // up to its working hours of that time; what it may do besides follows in its list.
-    day: { horizon: 0.5 },
+    // up to its working hours of that time; what it may do besides follows in its list. The day is allotted at the hour before work and
+    // again at `afternoon` (VB-1546; Kim, 23 November), the hour the afternoon's urgencies change: water's rises above cooking's, the
+    // cook's window opens (sim/chores); so that a task that has become more pressing reaches the lists made in the morning. `evening`
+    // (VB-1547): the hour after the end of work past which no task is begun, even of a kind that may be begun in the evening (the
+    // water, sim/kinds `evening`): 20:00, so that a half-hour fetch is home before the dark at every season (sim/rules dark: 21:00 at
+    // its earliest, midwinter).
+    day: { horizon: 0.5, afternoon: 14, evening: 20 },
     floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
     distanceWeight: 0.15,
     join: 0.8,
@@ -177,8 +200,7 @@ VB['sim/roles'] = (() => {
       waterMorning: 1.4,
       waterMorningHour: 10,
       water: 1,
-      waterLate: 3.3, // VB-331: from waterLateHour, 1.5 times cookEvening: the water comes before the cooking
-      waterLateHour: 14,
+      waterLate: 3.3, // VB-331: from the afternoon (day.afternoon), 1.5 times cookEvening: the water comes before the cooking
       cookEvening: 2.2,
       cookEveningHour: 15,
       cook: 0.6,
@@ -203,7 +225,14 @@ VB['sim/roles'] = (() => {
       fishCalm: 0.2,
       fishLean: 2,
       fishCalmDays: 24, // fishing (VB-117): 0.2 while spare food covers 24 days of need, rising in a line to 2 at none
+      // A household out of food (VB-1549; Kim, 24 Nov: fix the inversion): under needDays of spare food the work that brings food in
+      // (the kinds that read spare food: fishing, gathering, hunting) rises in a line to `need` at none, above the work whose payoff is
+      // months away: at none the holder's foraging 3 x 8 = 24 is above his ploughing and sowing at their most pressing (10 x 2.4) and a
+      // low woodpile (7 x 2.2); the water late (a mistress's 9 x 3.3) stays first. Over a few days only: one trip's catch lifts a
+      // household of one past it, so the day's other work still gets its hours.
+      need: 8,
+      needDays: 3,
     },
   };
-  return { ROLES, CHILD, workRate, MATCH };
+  return { ROLES, STAND, STAND_KEYS, absentMask, CHILD, workRate, MATCH };
 })();

@@ -15,7 +15,7 @@ const P = openPage({
   patch: (html) => html
     .replace(/const SIZES = \{ t:/, () => { patched++; return 'const SIZES = { x: [36, 26], t:'; })
     .replace('let allMaterials = false;', () => { patched++; return 'let allMaterials = false; window.__materialsHTML = (...a) => materialsHTML(...a); window.__materialsOf = (h) => materialsOf(h);'; })
-    .replace('/^#([shp]?)([tsml]?)(\\d{1,9})$/', () => { patched++; return '/^#([shp]?)([tsmlx]?)(\\d{1,9})$/'; })
+    .replace('/^#([sohp]?)([tsml]?)(\\d{1,9})$/', () => { patched++; return '/^#([sohp]?)([tsmlx]?)(\\d{1,9})$/'; })
     .replace('const THEMES = {', () => { patched++; return 'const THEMES = window.__themes = {'; }) // the themes, to walk each (VB-1531)
     .replace('const chunks = new Map();', () => { patched++; return 'const chunks = new Map(); window.__lod = { chunks, w: () => w, st: () => st, T: () => T, size: (l) => LV[l].size, zoom(z) { cam.z = zt = z; }, zMin: () => zMin(), intro: () => !!intro, pending: () => pending, over: () => stagePainted.over };'; })
     .replace(/const t0 = performance\.now\(\);\s*while \(performance\.now\(\) - t0 < budget\) \{/, () => { patched++; return 'const t0 = performance.now(); let __n = 0; while (window.__lodSteps ? __n++ < window.__lodSteps : performance.now() - t0 < budget) {'; }),
