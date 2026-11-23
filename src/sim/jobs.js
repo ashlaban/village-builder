@@ -287,13 +287,31 @@ VB['sim/jobs'] = (() => {
     const here = bed(st, st.agents[p.id]); // the walk from where its day starts (VB-783)
     return floored(pr, pr * urgency(st, j, c, memo) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
   }
-  function bid(st, a, j, c, memo) {
-    const p = st.pawns[a.id];
-    if (!isOpen(st, j) || !eligible(st, j, p) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j)))
-      return -1;
-    const s = score(st, p, j, c, memo);
-    return s === null ? -1 : s * joined(j, j.claims.length);
+  // ---- a posted job weighed for a pawn (VB-1405): one evaluation, read-only and drawing nothing, for the matcher and the Actions list
+  // (sim/opportunities); each adds its own policy of choosing: the matcher ranks and takes, the player chooses ----
+  // Why pawn a may not take posted job j now, or null: it has no room, or it is not the pawn's to take (sim/eligibility).
+  const takeBar = (st, a, j) =>
+    !isOpen(st, j) ? 'taken' : !eligible(st, j, st.pawns[a.id]) ? 'not theirs to take' : null;
+  // The matcher's bar besides: a task held at the side, or a task that would take one held out of reach (offerWhy). The player may still
+  // order such a one (the verb work checks the side, not the reach): a policy of the matcher, not the evaluation.
+  const matchBar = (st, a, j) =>
+    takeBar(st, a, j) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j)) || null;
+  // Pawn a's appraisal of posted job j: its bid, a number above 0 (its score, by the hands already at the job), or why it would not
+  // bid, a string: the bar's (takeBar by default), 'not their work' or 'not worth the walk'.
+  function appraise(st, a, j, c, memo, bar = takeBar) {
+    const why = bar(st, a, j);
+    if (why) return why;
+    const s = score(st, st.pawns[a.id], j, c, memo);
+    if (s === null) return 'not their work';
+    return s > 0 ? s * joined(j, j.claims.length) : 'not worth the walk';
   }
+  // The matcher's bid of pawn a for job j: its appraisal, or -1 when it would not bid.
+  function bid(st, a, j, c, memo) {
+    const r = appraise(st, a, j, c, memo, matchBar);
+    return typeof r === 'number' ? r : -1;
+  }
+  // The command that sets pawn id to work at the job with key `key`, the same whoever chooses it.
+  const workCommand = (id, key, source) => ({ actor: id, verb: 'work', target: key, source });
   // The jobs a pawn may bid for: its household's and its village's, in increasing id.
   const none = new Set();
   // When one of the two is empty, the other as it stands (VB-227: most villages post nothing of their own); callers only read it.
@@ -304,21 +322,10 @@ VB['sim/jobs'] = (() => {
   }
   // Why a pawn gets no job: every open job it may take with its bid, or the reason it gets none. Best first. Draws no random
   // numbers and writes nothing to st.
-  // Pawn p's fit for a job it may take: {bid (null when it would not bid), reason (why not, or null)}.
+  // Pawn p's fit for a job it may take, its appraisal as a row: {bid (null when it would not bid), reason (why not, or null)}.
   function fit(st, p, j, c) {
-    const pr = prioOf(st, p, j),
-      row = { bid: null, reason: null };
-    if (!isOpen(st, j)) row.reason = 'taken';
-    else if (pr <= 0 || tooYoung(st, p, j)) row.reason = 'not their work';
-    else {
-      const here = bed(st, st.agents[p.id]);
-      row.bid = floored(pr, pr * urgency(st, j, c) - hexSteps(st.w, here, j.site) * MATCH.distanceWeight);
-      if (row.bid <= 0) {
-        row.reason = 'not worth the walk';
-        row.bid = null;
-      } else row.bid *= joined(j, j.claims.length);
-    }
-    return row;
+    const r = appraise(st, st.agents[p.id], j, c);
+    return typeof r === 'number' ? { bid: r, reason: null } : { bid: null, reason: r };
   }
   function explainIdle(st, id) {
     const p = st.pawns[id],
@@ -376,7 +383,7 @@ VB['sim/jobs'] = (() => {
         bids.splice(slot(bids, i + 1, b[0]), 0, b);
         continue;
       }
-      issue(st, { actor: a.id, verb: 'work', target: j.key, source: 'planner' });
+      issue(st, workCommand(a.id, j.key, 'planner'));
       busy.add(a);
     }
   }
@@ -485,7 +492,7 @@ VB['sim/jobs'] = (() => {
       if (dj && a.job !== dj && isOpen(st, dj) && c.hour <= WORK[1]) {
         // the deadline calls: from work, from the road to it, or from idling (waiting, or out for company; not at an occasion)
         if (busy ? a.phase === 'work' || a.phase === 'go' : !a.job && a.phase === null && a.occasion === null)
-          issue(st, { actor: a.id, verb: 'work', target: dj.key, source: 'planner' });
+          issue(st, workCommand(a.id, dj.key, 'planner'));
         continue;
       }
       if (!top || !busy || a.phase !== 'work' || a.job === top[1] || !isOpen(st, top[1])) continue;
@@ -493,7 +500,7 @@ VB['sim/jobs'] = (() => {
         hoursLeft(st, a.job) > rateOf(st, p) &&
         top[0] > MATCH.switchRatio * (score(st, p, a.job, c, memo) ?? 0) + MATCH.switchMargin
       )
-        issue(st, { actor: a.id, verb: 'work', target: top[1].key, source: 'planner' });
+        issue(st, workCommand(a.id, top[1].key, 'planner'));
     }
   }
   // The days of the holders noted as changed, in the order of their ids: a household's own, and for a village's tasks each of its
@@ -523,10 +530,7 @@ VB['sim/jobs'] = (() => {
       for (const [id, short] of ask) if (!st.households[id].dissolved) Hands.askFor(st, st.households[id], short, c);
   }
   // Whether pawn a can take job j of its list now: there is room, it still may, and a task held at the side is in reach.
-  const canTake = (st, a, j) =>
-    isOpen(st, j) &&
-    !!eligible(st, j, st.pawns[a.id]) &&
-    !((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j));
+  const canTake = (st, a, j) => !matchBar(st, a, j);
   // Each idle pawn takes the first task of its list that it can (a task held at the side leaves it free for the next one, next step). A
   // household with no day yet, or a member its day does not know (it moved in, or was born, since) or left out, has its day allotted first. The
   // pawns that got work.
@@ -560,7 +564,7 @@ VB['sim/jobs'] = (() => {
         VB.count.dayTake++;
         const j = st.jobs.get(key);
         if (!j || !canTake(st, a, j)) continue;
-        if (issue(st, { actor: a.id, verb: 'work', target: key, source: 'planner' }) === true) {
+        if (issue(st, workCommand(a.id, key, 'planner')) === true) {
           got.add(a);
           break;
         }
@@ -583,7 +587,7 @@ VB['sim/jobs'] = (() => {
         const s = bid(st, a, j, c, memo);
         if (s > top) [best, top] = [j, s];
       }
-      if (best && issue(st, { actor: a.id, verb: 'work', target: best.key, source: 'planner' }) === true) busy.add(a);
+      if (best && issue(st, workCommand(a.id, best.key, 'planner')) === true) busy.add(a);
       else if (owed === null) Hands.release(st, a.id);
     }
     return busy;
@@ -628,13 +632,13 @@ VB['sim/jobs'] = (() => {
     allot,
     takeDay,
     dutyRound,
-    urgency,
     score,
     bid,
     idleAbout,
     explainIdle,
     idleLine,
-    fit,
+    appraise,
+    workCommand,
     jobsFor,
   };
 })();

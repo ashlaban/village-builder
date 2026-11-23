@@ -7,14 +7,16 @@ VB['sim/player'] = (() => {
     { SOCIAL } = VB['sim/ties'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { setWish, resetWish, endPartner } = VB['sim/wishes'];
-  const { issue, VERBS } = VB['sim/commands'];
+  const { issue, perform, active, VERBS } = VB['sim/commands'];
   const { on } = VB['sim/events'];
   const { daysOfFood } = VB['sim/foodneed'];
   const { KINDS } = VB['sim/kinds'];
   // ---- the player (VB-169): one source, `player`, with one pawn at a time, whose queued commands go before the pawn's own logic ----
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
-  //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun}, in turn; `begun` is
-  //   null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act lasts),
+  //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun, ref}, in turn;
+  //   `begun` is null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act
+  //   lasts; `ref` is null, or once begun the reference its verb gave to the act it began (sim/commands perform, VB-1405), plain data;
+  //   absent in a command begun in a save made before VB-1405),
   //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), left (null while the pawn
   //   lives; from its death {t, held (the household it held, or null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those
   //   it thought friends, best first), village (the settlement whose customs name its successor, VB-1121)}: what a death erases and the
@@ -25,14 +27,6 @@ VB['sim/player'] = (() => {
   const QUEUE_MAX = 8,
     TIES_MAX = 12,
     DAYS_KEPT = 5;
-  // A command begun lasts while its act does: work while the pawn holds that job, a walk until it arrives, going home until it is indoors,
-  // idling until its time is up. Any other verb is done at once.
-  const LASTS = {
-    work: (st, a, c) => !!a.job && a.job.key === c.target,
-    walkTo: (st, a) => !!a.path,
-    goHome: (st, a) => !a.inside && !!a.path,
-    idle: (st, a, c) => st.t < c.args.until,
-  };
   function inhabit(st, id) {
     const dead = living(st, id);
     if (dead) return dead;
@@ -122,6 +116,7 @@ VB['sim/player'] = (() => {
       args: copy(cmd.args),
       source: 'player',
       begun: null,
+      ref: null,
     });
     return true;
   }
@@ -166,30 +161,34 @@ VB['sim/player'] = (() => {
   const clearMatchWish = (st, a, b) => endPartner(st, a, b);
   // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
   // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
+  // Whether a begun act lasts is its verb's to say, from the reference it gave (sim/commands active); an act done at once lasts no longer
+  // than the step it was issued in. A command is begun once, and never issued again: a loaded save resumes it from its reference.
   function playerStep(st) {
     const pl = st.player;
     if (!pl || !pl.queue.length) return;
     const a = st.agents[pl.pawn],
       q = pl.queue;
     if (q[0].begun !== null) {
-      const lasts = LASTS[q[0].verb];
-      if (lasts && !living(st, pl.pawn) && lasts(st, a, q[0])) return;
+      const ref = q[0].ref === undefined ? null : q[0].ref; // a command begun before VB-1405 kept none
+      if ((ref !== null || q[0].ref === undefined) && !living(st, pl.pawn) && active(st, q[0], ref)) return;
       q.shift();
     }
     while (q.length) {
       if (a.phase === 'back') return;
       // told to walk, go home or idle, the pawn leaves the job in hand, which keeps its progress (work leaves it itself): only if it may
       const cmd = q[0],
-        leaves = !!a.job && cmd.verb !== 'work' && !!LASTS[cmd.verb],
-        barred = leaves ? VERBS[cmd.verb].check(st, cmd) : null;
+        V = VERBS[cmd.verb],
+        leaves = !!a.job && !!V && !!V.frees,
+        barred = leaves ? V.check(st, cmd) : null;
       if (leaves && !barred) release(st, a);
-      const why = barred || issue(st, cmd);
-      if (why === true) {
+      const out = barred ? { status: 'refused', why: barred } : perform(st, cmd);
+      if (out.status !== 'refused') {
         cmd.begun = st.t;
+        cmd.ref = out.status === 'pending' ? out.ref : null;
         return;
       }
       q.shift();
-      pl.refused = { verb: cmd.verb, why, t: st.t };
+      pl.refused = { verb: cmd.verb, why: out.why, t: st.t };
     }
     if (!living(st, pl.pawn)) homeAtDark(st, pl);
   }

@@ -31,7 +31,8 @@ VB['sim/agents'] = (() => {
     teamFree,
     dueWork,
   } = VB['sim/work'];
-  const { heldAt, sideWhy, hold, unhold, dropSides, reachAfter, sideCheck } = VB['sim/attention'];
+  const { heldAt, sideWhy, hold, unhold, dropSides, reachAfter, sideCheck, assign, inSlot, holds } =
+    VB['sim/attention'];
   const { legsOf, waitLeg, roadWait, unleg, halt, begin, repace, setOut, putAt, workAt, walked, dueLegs } =
     VB['sim/legs'];
   // the spot by the door of the house on tile `house`, where pawn a would stand
@@ -105,6 +106,7 @@ VB['sim/agents'] = (() => {
     settle(st, j);
     j.claims.push(a.id);
     a.job = j;
+    assign(a, 'full');
     rerate(st, j);
     const K = KINDS[j.kind];
     if (K.inside) {
@@ -580,7 +582,10 @@ VB['sim/agents'] = (() => {
   });
   // A living pawn not on a journey (VB-287): on the road it takes no work, walks nowhere else and goes to no occasion.
   const free = (st, id) => living(st, id) || (travelling(st.agents[id]) ? `pawn ${id} is on the road` : null);
-  // work(job): leave the job in hand, if any (it keeps its progress), and set out for the job with key `target`
+  // work(job): leave the job in hand, if any (it keeps its progress), and set out for the job with key `target`; it holds it in the
+  // slot of its attention. Pending while the pawn holds that assignment ({slot, key, n}, sim/attention): it ends when the pawn lets it go,
+  // whoever else works on, even if the same key is posted again or the pawn takes the job afresh. A command begun before VB-1405 kept no
+  // reference: it goes on while any slot of the pawn holds a job of that key.
   register('work', {
     check: (st, c) =>
       free(st, c.actor) ||
@@ -588,22 +593,36 @@ VB['sim/agents'] = (() => {
         ? `there is no job ${c.target}`
         : !isOpen(st, st.jobs.get(c.target))
           ? `job ${c.target} has no room`
-          : attentionOf(st.jobs.get(c.target)) !== 'full'
-            ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target))
-            : null),
+          : !eligible(st, st.jobs.get(c.target), st.pawns[c.actor])
+            ? `job ${c.target} is not pawn ${c.actor}'s to take`
+            : attentionOf(st.jobs.get(c.target)) !== 'full'
+              ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target))
+              : null),
     run: (st, c) => {
       const a = st.agents[c.actor],
-        j = st.jobs.get(c.target);
-      if (attentionOf(j) !== 'full') {
-        hold(st, a, j);
-        return;
-      } // a partial or background task is held beside the pawn's task (VB-251)
-      release(st, a);
-      start(st, a, j);
-      a.basis = eligible(st, j, st.pawns[a.id]);
-      if (a.side) reachAfter(st, a);
+        j = st.jobs.get(c.target),
+        slot = attentionOf(j);
+      if (slot !== 'full')
+        hold(st, a, j); // a partial or background task is held beside the pawn's task (VB-251)
+      else {
+        release(st, a);
+        start(st, a, j);
+        a.basis = eligible(st, j, st.pawns[a.id]);
+        if (a.side) reachAfter(st, a);
+      }
+      return { slot, key: j.key, n: a.assigned[slot] };
+    },
+    active: (st, c, ref) => {
+      const a = st.agents[c.actor];
+      if (ref) return holds(a, ref);
+      return ['full', 'partial', 'background'].some((slot) => {
+        const j = inSlot(a, slot);
+        return !!j && j.key === c.target;
+      });
     },
   });
+  // The pawn's walk, its way home and its idling last as the pawn's own state says (its walk, out of doors; the hour), whatever
+  // the reference: each pawn has one walk at a time.
   // walkTo(tile): walk to the tile, to the spot args {x, y} in map units (the tile's centre if absent), by the cheapest route
   register('walkTo', {
     // Not refused on a tile the walking rule closes: an idle walk to company may end on a river tile (twice in a founders year at seed 7),
@@ -616,20 +635,33 @@ VB['sim/agents'] = (() => {
         y = c.args && c.args.y !== undefined ? c.args.y : st.w.hy[c.target];
       const near = !!(c.args && c.args.near);
       walkTo(st, st.agents[c.actor], c.target, x, y, near, !near);
+      return { walk: c.target };
     },
+    active: (st, c) => !!st.agents[c.actor].path,
+    frees: true,
   });
   // goHome: walk home and go in (phase 'home')
   register('goHome', {
     check: (st, c) =>
       free(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),
-    run: (st, c) => goHome(st, st.agents[c.actor]),
+    run: (st, c) => {
+      goHome(st, st.agents[c.actor]);
+      return { home: true };
+    },
+    active: (st, c) => !st.agents[c.actor].inside && !!st.agents[c.actor].path,
+    frees: true,
   });
   // idle(until): look for nothing to do until game time args.until
   register('idle', {
     check: (st, c) =>
       free(st, c.actor) ||
       (!(c.args && c.args.until >= st.t) ? `idle until ${c.args && c.args.until}, which is past` : null),
-    run: (st, c) => idle(st, st.agents[c.actor], c.args.until),
+    run: (st, c) => {
+      idle(st, st.agents[c.actor], c.args.until);
+      return { until: c.args.until };
+    },
+    active: (st, c) => st.t < c.args.until,
+    frees: true,
   });
   // haltForTalk(until): pause an idle outdoor pawn until the talk ends, leaving work and indoor pawns alone
   register('haltForTalk', {

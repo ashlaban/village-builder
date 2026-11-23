@@ -78,7 +78,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1354](backlog/VB-1354.md)<a id="VB-1354"></a> | Screenshots and Debug audit for VB-671 | - | 3 | S | screenshots, Debug audit |
 | [VB-1389](backlog/VB-1389.md)<a id="VB-1389"></a> | Cost: three history targets out at small-y40 (asksWeighed, kinPairs, roundWalk) | - | 3 | S | asksWeighed, kinPairs and roundWalk grow with history at small-y40; find the loops and bound them |
 | [VB-1404](backlog/VB-1404.md)<a id="VB-1404"></a> | Measures owed to VB-775: RITE.spread 3/5/8, hours lost, cross-village marriages | - | 3 | S | RITE.spread runs, hours lost, marriages across villages, greens' share of dealing |
-| [VB-1405](backlog/VB-1405.md)<a id="VB-1405"></a> | Share work candidates and track queued verbs through explicit outcomes | life | 3 | M | Give the matcher and player a shared query for posted work. Let the queue follow a specific pawn assignment through the verb result. |
 | [VB-1410](backlog/VB-1410.md)<a id="VB-1410"></a> | Measure the alderman's keep (VB-463): each option forced, keepDays 2/4/7, keepShare 0.05/0.1/0.17 | - | 3 | S | Collecting task for VB-463's unmeasured numbers |
 | [VB-1412](backlog/VB-1412.md)<a id="VB-1412"></a> | One order for every due-queue (due, then id), and removal by key | - | 3 | S | All due-queues by (due, id); sim/due shrinks; removals by key search |
 | [VB-1413](backlog/VB-1413.md)<a id="VB-1413"></a> | Refactor: split sim/projects: the plans' record, what a site lacks, a project's beginning and end | - | 3 | S | sim/projects at the width line with three responsibilities: split by them |
@@ -93,6 +92,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1483](backlog/VB-1483.md)<a id="VB-1483"></a> | The growing year by band and height: a field's thaw and first frost from its band's curve and the lapse over the land | roads | 3 | S | VB-807 moved the thaw and frost by the world's latitude only; a field's band (a day on the medium map's north and south) and its height (CLIMATE.lapse 8) are left |
 | [VB-1484](backlog/VB-1484.md)<a id="VB-1484"></a> | Page: the played retired pawn's say: its decisions of the year, and on to the next thing asked of it | life | 3 | S | The page side of VB-1316: the played retired pawn's sheet lists its decisions (advise the plan, a grandchild's match, the meeting, the keep) and skips a year with none to the next thing asked |
 | [VB-1486](backlog/VB-1486.md)<a id="VB-1486"></a> | Refactor: split sim/stores by concern | - | 3 | S | sim/stores over 700 lines (VB-700's salt): the ledger and its yearly totals, grain by crop, the household's single stores (wood, stone, peat, tar, hides, salt, dug loads), ale, reservations; split by those, not by the line count |
+| [VB-1487](backlog/VB-1487.md)<a id="VB-1487"></a> | Refactor: split sim/agents by concern | - | 3 | S | sim/agents went over 700 lines with VB-1405's lasting verbs; split it by its concerns |
 
 </details>
 
