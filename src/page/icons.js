@@ -398,6 +398,8 @@ const GOOD_PATHS = {
     'c3 0 4-2 4-4-2.5 0-4 1.5-4 4zM12 16.5c-3 0-4-2-4-4 2.5 0 4 1.5 4 4zM12 16.5c3 0 4-2 4-4-2.5 0-4 1.5-4 4z"/>',
   seed: ACT_PATHS.sow,
   // a crop each (VB-355): rye's ear is slim and awned beside barley's (the grain icon); a pod of peas; fallow, the resting ground
+  wheat: '<path d="M12 21V5m0 3q-5 0-4-5 4 1 4 5Zm0 4q5-1 4-6-4 2-4 6Zm0 3q-6 0-5-6 5 2 5 6Zm0 3q6-1 5-6-5 2-5 6Z"/>',
+  oats: '<path d="M10 21Q13 12 11 3m1 3Q6 5 5 10q-3 6 0 5 3-1 0-5m7-2q6-2 7 3 3 6 0 5-3-1 0-5m-7 1q4 0 4 4 2 6-1 4-2-2 1-4"/>',
   rye: '<path d="M12 21V7M12 7l-1.3-4M12 7l1.3-4M12 10.5l-3-3.5M12 10.5l3-3.5M12 14l-3-3.5M12 14l3-3.5M12 17.5l-3-3.5M12 17.5l3-3.5"/>',
   peas:
     '<path d="M4 16c1-7 8-11 16-10-1 8-6 13-13 13-1.5 0-2.5-1.5-3-3z"/><circle cx="9.3" cy="14.2" r="1.5"/>' +

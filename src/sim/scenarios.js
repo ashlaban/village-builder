@@ -691,7 +691,8 @@ VB['sim/scenarios'] = (() => {
     if (farms >= CROP_DRAW.both) return 'peasRye';
     if (u < CROP_DRAW.alone || !land) return 'every';
     if (forest / land >= CROP_DRAW.forest) return 'three';
-    return meadow / land >= CROP_DRAW.meadow ? 'peas' : 'every';
+    if (meadow / land >= CROP_DRAW.meadow) return u > 0.65 ? 'wheat' : 'peas';
+    return u > 0.65 ? 'oats' : 'every';
   }
   // The test switch (VB-350; tools/sim.js and tools/balance.js --rye): every village is given rye and farms in three courses.
   const giveRye = (st) => giveCrops(st, () => 'three');
