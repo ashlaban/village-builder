@@ -62,8 +62,8 @@ assert.strictEqual(Green.houses(st, v).length, 2, 'two occupied farms');
 assert.ok(VB['sim/routines'].VILLAGE_ROUTINES.green.available(st, v) && VB['sim/routines'].chooseRoutines(st, v).includes('green'), 'the meeting may choose it');
 assert.ok(!Green.greenOf(st, v), 'nothing is built before the meeting chooses it');
 // stone in the heaps, as clearing leaves it (sim/fields): the well's six loads, and more
-for (const id of v.farmsteads) Stores.put(st, st.households[st.farmsteads[id].household], 'stone', 4, 'clear');
-const heaps = () => v.farmsteads.reduce((n, id) => n + st.households[st.farmsteads[id].household].stone, 0), before = heaps();
+for (const id of v.farmsteads) Stores.put(st, st.households[st.farmsteads[id].household], 'stone/granite', 4, 'clear');
+const heaps = () => v.farmsteads.reduce((n, id) => n + Stores.heldOf(st.households[st.farmsteads[id].household], 'stone'), 0), before = heaps();
 
 // the green's tile: free and passable, nearest the farms' mean position among the open tiles near them
 let tile = Green.greenSite(st, v);

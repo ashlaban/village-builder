@@ -33,6 +33,12 @@ Measure behaviour before and after once on the final PR result, or at nightly wr
 
 In an orchestrated run, follow `.claude/agents/vb-task.md`. Send closeout details through the inbox. The orchestrator updates shared records and opens the PR. Hand over at 120 model calls.
 
+### Spending turns
+Every model call re-reads the whole context, so a task's cost grows faster than its calls (the token use page, `docs/usage.html`).
+- Send independent reads and searches together, in one message: several greps, file sections or `doc.js` headings at once, not one a call.
+- Read a function or a section whole, once, not in windows of a few lines.
+- Make a file's edits in one call, and check the result in the same call (the diff, or the focused test), not in a call of its own.
+
 ## Deciding without Kim
 
 Ask Kim when a change revises a Decided design mechanism or gives the player a capability outside existing systems. Set the task to `needs-review` and record the question with a proposed answer. Extending an existing crop system to another crop is an ordinary implementation decision. For other choices, apply the design principles in `design.md`, record your reason and continue. Surface close calls below. Enforcing a Decided rule needs no approval. A measured defect may justify adjusting a named bound while preserving its mechanism. Record the bound in the design and report its before-and-after effect. Agents decide tooling under target-v2. Kim decides when changes that hold up other tasks go ahead.

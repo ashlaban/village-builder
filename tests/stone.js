@@ -6,6 +6,7 @@ const VB = require('../src/load.js'), Bld = VB['sim/building'], Plans = VB['sim/
 const { BUILD, YEAR, SEASON_DAYS, DAY, cal } = VB['sim/rules'], { HOUSE, houseTerm, houseCondition } = VB['sim/house'];
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
+const { heldOf } = VB['sim/stores'], { ROCK } = VB['world/geology'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('STONE FAIL:', m); } };
 // meadow, a stony strip of the village's outland to the east, hills beyond
 const rows = Array.from({ length: 14 }, (_, r) => [...Array(26)].map((_, c) => (c >= 22 ? '^' : '.')).join(''));
@@ -25,26 +26,39 @@ check(Bld.buildStep(st, plan, hh) === step, 'the step and its source are kept on
 // the jobs: two trips at a time while the heap lacks the foundation's stone; none without the step
 const asked = (c) => { const out = []; Bld.stoneWork(st, hh, f, c, (key, site, extra, kind) => out.push({ key, site, kind })); return out; };
 const summer = cal(YEAR + SEASON_DAYS * DAY + 10), autumn = cal(YEAR + 2 * SEASON_DAYS * DAY + 10);
-hh.stone = 0;
+hh.stone = {}; // lint-allow: owner a test empties the heap
 let jobs = asked(autumn);
 check(jobs.length === 2 && jobs.every((j) => j.kind === 'pick' && j.site === stony), `two picking trips are posted (${jobs.length})`);
 plan.build = null; check(asked(autumn).length === 0, 'no stone is wanted without a building step'); plan.build = step;
 // a trip: a load on the heap, through the stores, and 25 stones off the tile
 const j = { kind: 'pick', site: stony, farm: f };
 K.pick.deliver(st, j, hh);
-check(hh.stone === 1 && w.stones[stony] === 175 && hh.ledger.some((e) => e.kind === 'pick' && e.good === 'stone'), `a picked load (${hh.stone}, ${w.stones[stony]} stones left)`);
+check(hh.stone.granite === 1 && w.stones[stony] === 175 && hh.ledger.some((e) => e.kind === 'pick' && e.good === 'stone'), `a picked load, granite (${JSON.stringify(hh.stone)}, ${w.stones[stony]} stones left)`);
+// VB-733: a quarried load is of its tile's bedrock; the ledger counts the good whatever its kind
+if (!w.rock) w.rock = new Uint8Array(w.N);
+w.rock[tileAt(w, 23, 7)] = ROCK.SANDSTONE;
 K.quarry.deliver(st, { kind: 'quarry', site: tileAt(w, 23, 7), farm: f }, hh);
-check(hh.stone === 2 && w.stones[tileAt(w, 23, 7)] === 0, 'a quarried load; the hills are never exhausted');
+check(heldOf(hh, 'stone') === 2 && hh.stone.sandstone === 1 && heldOf(hh, 'stone/sandstone') === 1 && w.stones[tileAt(w, 23, 7)] === 0,
+  `a quarried load of sandstone; the hills are never exhausted (${JSON.stringify(hh.stone)})`);
+check(hh.ledger.filter((e) => e.kind === 'quarry').every((e) => e.good === 'stone'), 'the ledger books stone, not its rock');
 w.stones[stony] = BUILD.keepStones;
 check(Bld.buildStep(st, plan, hh).tile !== stony, 'a tile picked down to what a meadow keeps is left');
 // the raising: only with the stone on the heap and in the slack
-hh.stone = BUILD.foundationStone;
+hh.stone = { granite: BUILD.foundationStone - 1, sandstone: 1 }; // lint-allow: owner a test's heap
 check(asked(autumn).length === 0, 'not raised in autumn');
 jobs = asked(summer);
 check(jobs.length === 1 && jobs[0].kind === 'raise' && jobs[0].site === f.house && K.raise.hours === BUILD.foundationHours, 'raised in early summer, 40 hours');
 const before = houseTerm(st, f) / houseCondition(st, f);
 K.raise.done(st, { kind: 'raise', farm: f });
-check(f.grade === 'stone' && hh.stone === 0 && hh.ledger.some((e) => e.kind === 'foundation'), `raised: grade ${f.grade}, ${hh.stone} loads left`);
+check(f.grade === 'stone' && heldOf(hh, 'stone') === 0 && hh.ledger.some((e) => e.kind === 'foundation'), `raised: grade ${f.grade}, ${JSON.stringify(hh.stone)} left`);
+// a take of any kind spends the kind of least customary worth first: granite before sandstone (VB-733, D13)
+hh.stone = { sandstone: 1, granite: 2 }; // lint-allow: owner a test's heap
+VB['sim/stores'].take(st, hh, 'stone', 2, 'well');
+check(hh.stone.granite === 0 && hh.stone.sandstone === 1, `granite is spent first (${JSON.stringify(hh.stone)})`);
+check(VB['sim/stores'].take(st, hh, 'stone/sandstone', 5, 'quern') === 1 && heldOf(hh, 'stone') === 0, 'a take of a kind takes that kind');
+let refused = 0; try { VB['sim/stores'].put(st, hh, 'stone', 1, 'pick'); } catch (e) { refused = /by its rock/.test(e.message); }
+check(refused, 'stone is put by its rock');
+hh.stone = {}; // lint-allow: owner a test's heap
 check(Math.abs(before - HOUSE.term) < 1e-9 && Math.abs(houseTerm(st, f) / houseCondition(st, f) - HOUSE.termStone) < 1e-9, 'the term is 0.20 on stone, 0.15 on the ground');
 const c0 = houseCondition(st, f); st.t += YEAR;
 check(Math.abs(c0 - houseCondition(st, f) - HOUSE.wearStone) < 1e-6, `the house wears ${(c0 - houseCondition(st, f)).toFixed(3)} a year on stone`);
@@ -52,6 +66,12 @@ st.t -= YEAR;
 check(Bld.buildStep(st, plan, hh) === null, 'the step closes once the house is on stone');
 const p = st.pawns[hh.holder], parts = VB.sim.standingParts(st, p);
 check(parts.some(([l]) => l === 'A well-kept house on stone'), `the standing parts name the grade (${parts.map((x) => x[0])})`);
+// a save from before VB-733: its heap of no rock is granite, its quern's `rock` the quern's kind
+hh.stone = 5; hh.quern = { rock: 'sandstone', made: 0 }; // lint-allow: owner a test's old save
+VB['sim/stores'].heapsLoaded(st); VB['sim/quern'].quernsLoaded(st);
+check(hh.stone.granite === 5 && Object.keys(hh.stone).length === 1 && hh.quern.kind === 'sandstone' && hh.quern.made === 0 && !('rock' in hh.quern),
+  `an old save's heap and quern (${JSON.stringify(hh.stone)}, ${JSON.stringify(hh.quern)})`);
+hh.stone = {}; // lint-allow: owner a test's heap
 const bad = checkState(st);
 check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
 if (failed) process.exit(1);

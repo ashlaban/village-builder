@@ -101,7 +101,7 @@ if (sh) {
   Y.shearing(s3);
   check(s3.households.every((h) => h.wool === 0), 'wool before the shearing');
   const G = VB['sim/grazing'];
-  for (const h of s3.households) { const g = H.herdOf(s3, h, 'sheep'); check(!g || g.fleece === g.ewes + g.rams, `household ${h.id}: fleeces grown`); }
+  for (const h of s3.households) { const g = H.herdOf(s3, h, 'sheep'); check(!g || (g.fleece || 0) === g.ewes + g.rams, `household ${h.id}: fleeces grown`); }
   for (const h of s3.households) { for (const g of H.herdsOf(s3, h)) g.herder = null; Y.shearDone(s3, h, cal(HD.shear)); }
   for (const h of s3.households) { const g = H.herdOf(s3, h, 'sheep'); fleeces += h.wool; check(h.wool === (g ? g.ewes + g.rams : 0) && !(g && g.fleece), `household ${h.id}: ${h.wool} fleeces`); }
   check(fleeces > 0, 'no fleece');

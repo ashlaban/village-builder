@@ -119,8 +119,8 @@ const fetchJob = () => {
 // 6. the well's stone (sim/green): a carrier killed on the way to the green; the stone lies there, is fetched and reaches the well
 {
   const Stores = VB['sim/stores'], v = st.villages[f.village], step = { kind: 'well', place: v.center, hours: 1, brought: 0 };
-  Stores.put(st, hh, 'stone', 3, 'clear');
-  const stone0 = hh.stone;
+  Stores.put(st, hh, 'stone/granite', 3, 'clear');
+  const stone0 = Stores.heldOf(hh, 'stone');
   const grown = hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 14);
   const villagers = st.households.filter((h) => !h.dissolved && st.farmsteads[h.farmstead].village === v.id)
     .flatMap((h) => h.members).filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18 && id !== grown[0]);
@@ -131,7 +131,7 @@ const fetchJob = () => {
   const j = J.post(st, 'wellstone:setdown', 'wellstone', own, f.house, { village: v.id, step, from: hh.id, dest: v.center });
   j.claims.push(a.id); a.job = j; a.phase = 'back'; a.inside = false;
   assert.strictEqual(KINDS.wellstone.load(st, a, j, 1), 1);
-  assert(a.load === 1 && hh.stone === stone0 - 1, 'the stone taken up is not in hand');
+  assert(a.load === 1 && Stores.heldOf(hh, 'stone') === stone0 - 1, 'the stone taken up is not in hand');
   a.carry = 'basket';
   a.x = st.w.hx[f.house] + 300; a.y = st.w.hy[f.house];
   const at = VB['sim/pose'].tileAt(st, a.x, a.y);

@@ -18,7 +18,7 @@ for (const seed of [7, 42]) {
       check(JSON.stringify(Sim.ownerOf(st, fd.tile)) === JSON.stringify({ type: 'household', id: f.household }), `seed ${seed}: field tile ${fd.tile} not owned`);
     }
   }
-  check(st.households.some((h) => h.stone > 0) || st.farmsteads.some((f) => f.fields.some((fd) => stones0[fd.tile] >= 13)), `seed ${seed}: no stone gathered`);
+  check(st.households.some((h) => VB['sim/stores'].heldOf(h, 'stone') > 0) || st.farmsteads.some((f) => f.fields.some((fd) => stones0[fd.tile] >= 13)), `seed ${seed}: no stone gathered`);
 }
 const heirs = scenario('heirs', 7);
 check(heirs.farmsteads.every((f) => f.fields.length > 0), 'heirs: a farm lost its fields');
