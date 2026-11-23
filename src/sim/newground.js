@@ -39,28 +39,34 @@ VB['sim/newground'] = (() => {
     emit(st, 'stepDone', { type: 'household', id: f.household, plan }); // the project is finished (sim/plans)
     log(st, `${f.name} has broken a new field.`, { kind: 'field', ...atFarm(f) });
   }
+  // The one record of a field, in stubble on `tile`: a property a field starts with is set here, once (VB-1489). Its soil and the tick its tilth
+  // was set differ by where it comes from: a laid-out farm's fields start at SOIL.start and no tilth (tilthAt 0: the tick is moot until dung is
+  // spread, VB-717), ground broken in play at SOIL.start or SOIL.fresh and the tick it was broken.
+  function newField(w, id, tile, soil = SOIL.start, tilthAt = 0) {
+    return {
+      id,
+      tile,
+      crop: 'barley',
+      rotation: 'every',
+      step: 0,
+      stage: 'stubble',
+      sown: null,
+      reaped: null,
+      held: 0,
+      fert: fertility(w, tile),
+      soil,
+      tilth: 0,
+      tilthAt,
+      weedOpen: false,
+      weedPosted: null,
+      weedMiss: 0,
+    };
+  }
   // A new field in stubble on `tile`, its ground broken: farmed land from now. A farm's (finishBreak) or a village's common field (VB-100,
   // sim/commons), whose holder adds it to its list.
   function broken(st, tile, id) {
     const w = st.w,
-      fd = {
-        id,
-        tile,
-        crop: 'barley',
-        rotation: 'every',
-        step: 0,
-        stage: 'stubble',
-        sown: null,
-        reaped: null,
-        held: 0,
-        fert: fertility(w, tile),
-        soil: w.dev[tile] ? SOIL.start : SOIL.fresh,
-        tilth: 0,
-        tilthAt: st.t,
-        weedOpen: false,
-        weedPosted: null,
-        weedMiss: 0,
-      };
+      fd = newField(w, id, tile, w.dev[tile] ? SOIL.start : SOIL.fresh, st.t);
     tended(st, tile); // VB-091
     st.used.add(tile);
     woodTaken(st, tile); // a wood tile broken to a field leaves its village's wood (VB-326)
@@ -69,5 +75,5 @@ VB['sim/newground'] = (() => {
     st.biomeDirty.add(tile);
     return fd;
   }
-  return { finishClear, clearStones, finishBreak, broken };
+  return { finishClear, clearStones, finishBreak, broken, newField };
 })();
