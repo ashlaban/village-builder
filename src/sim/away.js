@@ -236,11 +236,10 @@ VB['sim/away'] = (() => {
   // Whether pawn a stands at its household's house, or in its yard (AWAY.yard).
   const atHouse = (st, a) =>
     hexSteps(st.w, tileAt(st, ...placeOf(st, a)), houseOf(st, st.households[st.pawns[a.id].household])) <= AWAY.yard;
-  // Pawn a, asked to lodge while away from its house, walks home to pack first.
+  // Pawn a, asked to lodge while away from its house, will pack at home first (the verb lodge walks it there: no stay is open yet).
   function homeToPack(st, a, at, args) {
     setDown(st, a);
     a.packing = { at, args };
-    goHome(st, a); // to its house: no stay is open yet
   }
   // Pawn a is home with a lodge to pack for: it lodges now, from its door, if it still may (else it stays home).
   function packed(st, a) {
@@ -327,7 +326,10 @@ VB['sim/away'] = (() => {
     check: (st, c) => free(st, c.actor) || lodgeWhy(st, c.actor, c.target, c.args),
     run: (st, c) => {
       const a = st.agents[c.actor];
-      if (!atHouse(st, a)) return homeToPack(st, a, c.target, c.args); // it packs at its house (VB-1175, from VB-302)
+      if (!atHouse(st, a)) {
+        homeToPack(st, a, c.target, c.args); // it packs at its house (VB-1175, from VB-302)
+        return goHome(st, a);
+      }
       lodge(st, a, c.target, c.args);
       stakeIfRough(st, a, c.args.days);
       goHome(st, a); // to its bed
