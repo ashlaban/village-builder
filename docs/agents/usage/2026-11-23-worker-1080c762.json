@@ -1,0 +1,138 @@
+{
+ "session": "1080c762-42c8-5b24-b2cf-0a760b98d536",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-23T19:55:57.782Z",
+ "end": "2026-11-23T20:24:46.152Z",
+ "wallMin": 28.8,
+ "activeMin": 28.8,
+ "prompts": 1,
+ "calls": 171,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 339,
+  "cacheWrite": 267080,
+  "cacheRead": 38639899,
+  "output": 88936
+ },
+ "context": {
+  "first": 83465,
+  "peak": 329163,
+  "firstEdit": 181225
+ },
+ "tools": {
+  "Bash": {
+   "calls": 172,
+   "bytes": 329471,
+   "seconds": 899
+  },
+  "TaskCreate": {
+   "calls": 4,
+   "bytes": 304,
+   "seconds": 0
+  },
+  "TaskUpdate": {
+   "calls": 7,
+   "bytes": 154,
+   "seconds": 0.1
+  },
+  "Edit": {
+   "calls": 2,
+   "bytes": 166,
+   "seconds": 0.1
+  },
+  "Write": {
+   "calls": 3,
+   "bytes": 453,
+   "seconds": 0.1
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 35,
+   "bytes": 143406
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 20,
+   "bytes": 33771
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 26,
+   "bytes": 17786
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 9,
+   "bytes": 16981
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 1,
+   "bytes": 15838
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 10,
+   "bytes": 13967
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -i",
+   "calls": 11,
+   "bytes": 12501
+  },
+  {
+   "tool": "Bash",
+   "what": "for t",
+   "calls": 3,
+   "bytes": 10068
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 2,
+   "bytes": 8126
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 1,
+   "bytes": 7256
+  },
+  {
+   "tool": "Bash",
+   "what": "(for a",
+   "calls": 3,
+   "bytes": 4876
+  },
+  {
+   "tool": "Bash",
+   "what": "time (node",
+   "calls": 1,
+   "bytes": 4546
+  }
+ ],
+ "weighted": 4642859,
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 4642859,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}
