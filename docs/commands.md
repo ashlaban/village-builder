@@ -73,8 +73,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   `node tools/sim.js --report waiting [--json]` (VB-633, `tools/waiting.js`): who waits to marry and why, at the moving round's day, by 20
   years (too hungry, nobody free, kin, no home, the score, the means, free), with the age at first marriage by sex, the share never married
   at 45, marriages a year per 1,000, those put off for the means and the share of adults waiting for land. VB-660 adds the fate of those free: at the round's end, of those still unmarried, put off, refused, lapsed, taken, open or unmatched.
-  `node tools/foresight.js [--seeds 3,7,11,42,5,13,21,29] [--years 30] [--jobs 4] [--root DIR] [--save FILE] [--json]` and `--compare A.json
-  B.json` (VB-571; one seed: `node tools/sim.js --report foresight`): hunger by household-year, which one household cannot swing as it
+  `node tools/foresight-hunger.js [--seeds 3,7,11,42,5,13,21,29] [--years 30] [--jobs 4] [--root DIR] [--save FILE] [--json]` and `--compare A.json
+  B.json` (VB-571; one seed: `node tools/sim.js --report foresight-hunger`): hunger by household-year, which one household cannot swing as it
   swings the hungry household-days: the share of household-years with any hunger, the hungry days a household-year, and both by the head's
   skill third, over the seeds with their spread; `--root` runs another checkout (a `git worktree` of an older commit) with this measure;
   `--compare` gives B less A seed by seed and whether it is outside twice its standard error. Read-only; about 25 minutes for eight seeds.

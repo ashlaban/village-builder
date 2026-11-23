@@ -1,8 +1,8 @@
 // Foresight's hunger, by a measure one household cannot swing (VB-571; backlog/VB-485.md, backlog/VB-254.md).
-// node tools/foresight.js [--seeds 3,7,11,42,5,13,21,29] [--scenario populous] [--map small] [--years 30] [--jobs 4] [--root DIR]
+// node tools/foresight-hunger.js [--seeds 3,7,11,42,5,13,21,29] [--scenario populous] [--map small] [--years 30] [--jobs 4] [--root DIR]
 //                         [--json] [--save FILE]
-// node tools/foresight.js --compare A.json B.json [--json]
-// node tools/sim.js --scenario populous --seed 7 --map small --years 30 --report foresight [--json]   (one seed)
+// node tools/foresight-hunger.js --compare A.json B.json [--json]
+// node tools/sim.js --scenario populous --seed 7 --map small --years 30 --report foresight-hunger [--json]   (one seed)
 // The hungry household-days of a run (the sum of `hungryDays`) move by a fifth to a half between versions that differ only in a head's
 // targets, since one household's bad stretch is 15 to 30 days of them. This measures by household-years instead: a household-year is a
 // household standing on some day of a year of the run, and one household is at most one of them a year (of some 3,000 on populous

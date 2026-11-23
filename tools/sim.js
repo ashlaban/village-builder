@@ -8,7 +8,7 @@
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
 const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'hours', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land',
-  'plans', 'calendar', 'reach', 'waiting', 'ground', 'outlook', 'gathering', 'soil', 'accounts', 'foresight'];
+  'plans', 'calendar', 'reach', 'waiting', 'ground', 'outlook', 'gathering', 'soil', 'accounts', 'foresight-hunger'];
 const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous|market] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
@@ -31,8 +31,8 @@ const USAGE = `usage: node tools/sim.js [--scenario founders|heirs|populous|mark
                     which runs on past --years (tools/outlook.js --help)
   --report gathering by year, the gatherings settled at the autumn meetings (host, villages, how many named each host) and the villages
                     with none; then gatherings a year, host changes and the share with none (VB-294; tools/gathering.js)
-  --report foresight by household-year, the share hungry and the hungry days, by the head's skill third (VB-571); over many seeds and
-                    versions: tools/foresight.js --help
+  --report foresight-hunger by household-year, the share hungry and the hungry days, by the head's skill third (VB-571); over many seeds and
+                    versions: tools/foresight-hunger.js --help
   --report calendar prints the clock's table (sim/clock CALENDAR, VB-241) in the order it runs, and runs nothing`;
 if (process.argv.includes('--help') || process.argv.includes('-h')) { console.log(USAGE); process.exit(0); }
 if (process.argv.includes('calendar')) { // the clock's table needs no run (VB-241)
@@ -87,7 +87,7 @@ const countsFrom = st.t;
 if (report === 'counts') VB.resetCounts();
 const hunger = report === 'hunger' ? require('./hunger.js')(Sim, st) : null;
 const soil = report === 'soil' ? require('./soil.js')(VB, st, { period: opt('period', 'decade') }) : null;
-const foresight = report === 'foresight' ? require('./foresight.js').report(VB, st) : null;
+const foresight = report === 'foresight-hunger' ? require('./foresight-hunger.js').report(VB, st) : null;
 const waiting = report === 'waiting' ? require('./waiting.js').report(VB, st) : null;
 const gathering = report === 'gathering' ? require('./gathering.js')(VB, st) : null;
 const accounts = accountsTool ? accountsTool.report(VB, st) : null;
@@ -129,7 +129,7 @@ function plansOf(h) {
 }
 const tables = {
   gathering: () => gathering.result(), // VB-294
-  foresight: () => { const F = require('./foresight.js'), r = foresight.result(); return F.measure(r.rows); }, // VB-571
+  'foresight-hunger': () => { const F = require('./foresight-hunger.js'), r = foresight.result(); return F.measure(r.rows); }, // VB-571
   reach: () => require('./reach.js')(st), // VB-286
   ground: () => { // VB-735
     const G2 = require('./ground.js'), more = G2.others(VB, opt('seeds', '').split(',').filter(Boolean).map(Number).filter((s) => s !== seedNum), { scenario, size: SIZES[map], years: last });
