@@ -1370,6 +1370,12 @@ function checkState(st) {
       if (!o || !B.subject || B.subject(st, o) !== p.id) bad.push(`pawn ${p.id}: ask ${p.ask} is no open offer about its future`);
     }
   }
+  // the retired's spring advice (VB-1316; sim/advice): pawn.advisedIn absent, or a year not after this one, on a pawn who was retired then
+  for (const p of st.pawns) {
+    if (p.advisedIn === undefined) continue;
+    if (!Number.isInteger(p.advisedIn) || p.advisedIn < 0 || p.advisedIn > Math.floor(st.t / globalThis.VB['sim/rules'].YEAR)) bad.push(`pawn ${p.id}: advisedIn ${p.advisedIn} is no year yet`);
+    else if (!p.retired) bad.push(`pawn ${p.id}: advised its head in ${p.advisedIn}, not being retired`);
+  }
   // the askings' queue (VB-823; sim/wishes): entries {t, pawn} in order of t, at most one a pawn, each a living pawn's on its asking day
   // (season day pawn mod SEASON_DAYS, at ASK.hour); none for the dead, the married who hold a place (holder or holder's spouse), and
   // none due before a child comes of age (its entry, written at its birth, falls due at the first asking day after its 18th birthday).

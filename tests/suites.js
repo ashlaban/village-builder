@@ -193,6 +193,7 @@ const INTEGRATION = [
   ['node', 'tests/owners.js'],
   ['node', 'tests/plans.js'],
   ['node', 'tests/offers.js'],
+  ['node', 'tests/advice.js'], // VB-1316: the retired's advice to its head, and a grandchild's match
   ['node', 'tests/exchange.js'],
   ['node', 'tests/occasions.js'],
   ['node', 'tests/gift.js'], // VB-460: the good-year gift, unasked, kin first, carried

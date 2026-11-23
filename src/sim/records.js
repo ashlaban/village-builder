@@ -89,6 +89,7 @@ VB['sim/records'] = (() => {
     leftRefused: 0, // left home for service after a head refused the one it courts (sim/service, VB-036)
     offerLapsed: 0,
     offerRefused: 0, // goods offered or asked for, refused (sim/offers, VB-690)
+    advice: GENERATION, // a retired member's advice taken by its head (sim/advice, VB-1316)
     renounced: 0, // an inheritance renounced by one in line who holds a place (sim/heirs, VB-824)
     meetingFailed: 0,
     days: 0, // days of work owed lapsed (sim/obligations, VB-462; the alderman's keep, VB-463)
