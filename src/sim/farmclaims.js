@@ -14,8 +14,7 @@ VB['sim/farmclaims'] = (() => {
   const { wishOf, moveWhy: whose } = VB['sim/wishes'];
   const CL = VB['sim/claims'],
     Disputes = VB['sim/disputes'];
-  const { dailyNeed } = VB['sim/hunger'],
-    { reserved } = VB['sim/stores'];
+  const { reserved } = VB['sim/stores'];
   const { activePlots, MAX_PLOTS } = VB['sim/expansion'],
     { hasPlot } = VB['sim/allotment'];
   const { landed, barredWhy, goesWith, contribute } = VB['sim/holding'];
@@ -411,7 +410,8 @@ VB['sim/farmclaims'] = (() => {
     return { n: have, grain, piles };
   }
   // The claimant, their spouse and their minor children living with either move in: a new household holds the farm, its house, fields and
-  // meadows, with the grain of `provisions`, the firewood and two days of cooked food of a founders household. The claim on the house and the
+  // meadows, with the grain of `provisions` and the firewood of a founders household; no cooked food is given (VB-1175, from VB-675: it
+  // came from nothing), so it eats from the grain it brought until its first meal is cooked. The claim on the house and the
   // old family's birthright are spent.
   function moveIn(st, f) {
     if (!valid(st, f)) {
@@ -432,7 +432,6 @@ VB['sim/farmclaims'] = (() => {
       source: 'restoration',
     });
     const hh = st.households[f.household];
-    Stores.put(st, hh, 'meals', 2 * dailyNeed(st, hh), 'provisions');
     emit(st, 'stepDone', { type: 'pawn', id: holder.id, plan: c.plan }); // mended: the plan is finished (sim/plans)
     f.condition = 1;
     f.condAt = st.t;
