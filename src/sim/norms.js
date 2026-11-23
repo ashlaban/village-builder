@@ -42,10 +42,15 @@ VB['sim/norms'] = (() => {
   // side that drove it), 'ordinary' (within a class), 'admired' (food for an animal, freely). PROPER is their order, worst first.
   const PROPER = Object.freeze(['none', 'hard', 'ordinary', 'admired']);
   const NORMS = Object.freeze({ hardBelowDays: 60 }); // an animal given for food by a household holding fewer days of need is a hard bargain
-  // norm('worth', good): rations a quantum (undefined for a good with no customary worth). norm('proper', fromClass, toClass, days): a word of
+  // Custom's worth of a made piece by its grade of workmanship (VB-761; Proposed, the plan of VB-702, 13.1), times the worth of its good and
+  // kind, in the order of sim/workmanship's grades (shoddy, sound, good, fine, masterwork): one table for every culture until norms learn.
+  const WORKMANSHIP = Object.freeze([0.6, 1, 1.25, 2, 4]);
+  // norm('worth', good): rations a quantum (undefined for a good with no customary worth). norm('workmanship', grade): custom's
+  // multiplier for a grade. norm('proper', fromClass, toClass, days): a word of
   // PROPER; days is the food the giving side's household holds, in days of its need. Pure: no state, no allocation.
   function norm(key, a, b, days) {
     if (key === 'worth') return WORTH[a];
+    if (key === 'workmanship') return WORKMANSHIP[a];
     if (key !== 'proper') throw new Error('Unknown norm: ' + key);
     if (!CLASSES.includes(a) || !CLASSES.includes(b)) throw new Error(`Unknown class of goods: ${a}, ${b}`);
     if (a === 'land' || b === 'land') return 'none';
