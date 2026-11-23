@@ -32,7 +32,19 @@ assert(near(meanAt(0.5, life), 1.01, 0.005) && near(meanAt(0.5, work), 1.0, 0.00
 assert(near(meanAt(1, life), 1.12, 0.005) && near(meanAt(1, work), 1.06, 0.005), 'a master');
 assert(near(meanAt(0, worth), 0.77, 0.005) && near(meanAt(1, worth), 1.47, 0.005), 'worth: 0.77 to 1.47');
 
-// ---- a state ----
+// ---- the registry: a graded good's kind carries one row a grade (sim/goods) ----
+const Goods = VB['sim/goods'], Rules = VB['sim/registry'];
+const granite = Goods.kindRow('quern', 'granite');
+assert.strictEqual(granite.grades.length, 5, 'five rows');
+assert(Object.isFrozen(granite.grades) && Object.isFrozen(granite.grades[0]), 'frozen');
+for (let g = 0; g < 5; g++) {
+  const r = granite.grades[g];
+  assert.strictEqual(r.grade, g);
+  assert(near(r.grit, granite.grit * WORKMANSHIP.work[g]), `grit scaled by work at ${g}`);
+  assert(near(r.life, WORKMANSHIP.life[g]) && near(r.worth, granite.worth * worth(g)), `life and worth at ${g}`);
+}
+assert.strictEqual(Goods.kindRow('stone', 'granite').grades, undefined, 'a material is not graded');
+
 const w = tinyWorld(Array.from({ length: 18 }, () => '.'.repeat(24)));
 const st = tinyState(w, [{ at: [8, 8], farms: 1, sizes: [6] }], { seed: 7 });
 const HANDS = TRAITS.names.indexOf('hands');
@@ -70,4 +82,8 @@ q.traits[HANDS] = 0.5;
 assert.strictEqual(maker(st, [q.id, p.id], 'stonework'), p.id, 'the practised hand makes');
 q.skills = { stonework: { level: 0.5, at: st.t } };
 assert.strictEqual(maker(st, [q.id, p.id], 'stonework'), q.id, 'a tie: the first');
+// the worth rule takes the grade in its context
+const quern = Goods.goodOf('quern');
+assert(near(Rules.value(st, 'worth', { good: quern }), Norms.norm('worth', 'quern')), 'no grade: sound');
+assert(near(Rules.value(st, 'worth', { good: quern, grade: 4 }), 4 * Norms.norm('worth', 'quern')), 'a masterwork: four times');
 console.log('workmanship: ok');

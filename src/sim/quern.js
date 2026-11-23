@@ -167,6 +167,7 @@ VB['sim/quern'] = (() => {
     material: 'stone',
     kinds: ['sandstone', 'granite'], // VB-733: a quern is of the rock it was hewn from, and grinds at its grit
     reads: ['grit'],
+    graded: { work: ['grit'] }, // VB-761: a quern's grade multiplies its grit (grinding speed) by its work, its years by its life
   });
   return {
     QUERN,
