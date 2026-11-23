@@ -115,7 +115,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1538](backlog/VB-1538.md)<a id="VB-1538"></a> | Refactor: split sim/goods by concern | - | 3 | S | sim/goods holds three concerns: keeping in store, grain's subtype ids by crop, and the registry of goods with their materials and kinds; split by them |
 | [VB-1539](backlog/VB-1539.md)<a id="VB-1539"></a> | Refactor: split sim/building by concern | - | 3 | S | sim/building holds four concerns: timber and the cottage's stages, the booth, the stone foundation and its stone, and the barn; split by them |
 | [VB-1540](backlog/VB-1540.md)<a id="VB-1540"></a> | Refactor: split sim/rules by concern | - | 3 | S | sim/rules is over 700 lines: the time constants and names stay; tables read by one domain move to it (VB-419), the rest are grouped by the domains that share them |
-| [VB-1565](backlog/VB-1565.md)<a id="VB-1565"></a> | A plot's site in a village weighs its water | - | 3 | S | VB-1552 weighs the round's search for a new village only; sim/expansion findSite, where most new farms are founded (41 of 54 and 42 of 57 in populous 7 and 42), does not weigh water |
 | [VB-1566](backlog/VB-1566.md)<a id="VB-1566"></a> | takeDay's missed member: one rule for whom the head allots | - | 3 | S | takeDay repeats allotted's terms but for the commanded pawn (found by VB-1560) |
 
 </details>
