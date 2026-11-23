@@ -14,6 +14,7 @@ VB['sim/fieldplans'] = (() => {
   const Projects = VB['sim/projects'],
     Stores = VB['sim/stores'];
   const { scrubHours } = VB['sim/spread'];
+  const { FELL_HOURS, GRUB_HOURS } = VB['sim/forest'];
   const { seedPer } = VB['sim/hunger'];
   const { trusted } = VB['sim/yields'];
   const REACH = 4,
@@ -189,9 +190,19 @@ VB['sim/fieldplans'] = (() => {
   }
   // The project plan of a new field on `tile`, as sim/plans makes it (makeProject; VB-123): clearing, then breaking, both under the
   // household's stake; it holds back the seed the field will want (released when the field is made, when the standing plan's seed counts it).
+  // A field on a wooded tile (a settler's first, on a forest site: VB-786) is felled and grubbed first, the steps a plot's tile has.
+  const woodedAt = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
+  const fellSteps = (st, tile, stake) =>
+    woodedAt(st.w, tile)
+      ? [
+          { kind: 'fell', place: tile, hours: FELL_HOURS, ...(stake ? { stake } : {}) },
+          { kind: 'grub', place: tile, hours: GRUB_HOURS, ...(stake ? { stake } : {}) },
+        ]
+      : [];
   const fieldProject = (st, hh, tile) => ({
     what: 'field',
     steps: [
+      ...fellSteps(st, tile, 'field'),
       { kind: 'clear', place: tile, hours: clearHours(st, tile), stake: 'field' },
       { kind: 'break', place: tile, hours: BREAK_HOURS, stake: 'field' },
     ],
@@ -246,6 +257,7 @@ VB['sim/fieldplans'] = (() => {
     chooseTile,
     beginField,
     fieldProject,
+    fellSteps,
     newFieldSeed,
     harvestEstimate,
     letGoWhy,

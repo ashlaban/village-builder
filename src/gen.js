@@ -1,7 +1,7 @@
 // @sys gen: assembly of the seeded archipelago's terrain, tile and region data, and the public ArchGen API
 const ArchGen = (() => {
   const { mulberry32, makeSimplex, fbm, smooth, makeTile } = VB['gen/noise'];
-  const { B, COVER, BIOMES, setBiome } = VB['gen/biomes'];
+  const { B, COVER: BASE_COVER, BIOMES, setBiome } = VB['gen/biomes'];
   const { bakeWater, bakeChunk, decorateChunk, hexLocator, treeStage, LV, TEX } = VB['gen/bake'];
   const SQ3 = Math.sqrt(3);
 
@@ -38,6 +38,8 @@ const ArchGen = (() => {
   };
 
   function* generate(seed, opt = {}) {
+    // opt.cover: thresholds that replace COVER's for this world (the tests' probe islands keep the open island's, tests/lib/probe.js)
+    const COVER = opt.cover ? { ...BASE_COVER, ...opt.cover } : BASE_COVER;
     const Cover = VB['gen/cover'],
       K = { mulberry32, B };
     const R = opt.R || 28,
@@ -531,7 +533,7 @@ const ArchGen = (() => {
     hexLocator,
     BIOMES,
     B,
-    COVER,
+    COVER: BASE_COVER,
     NX,
     NY,
     LV,

@@ -37,10 +37,11 @@ let demo = false,
   stagePainted = null;
 // seeds whose island of this size holds standing villages (populous asks for more people than most hold) and looks well from its largest;
 // `start`, those where all three scenarios fit, for the start's picture (page/start; tests/start.js): all of them, since the weather
-// began to place the biomes and the list was chosen again by that fit (VB-342), and again when the villages were laid out anew (VB-402)
+// began to place the biomes and the list was chosen again by that fit (VB-342), and again when the villages were laid out anew (VB-402);
+// on the forested island (VB-780) the heirs' two villages fit at four of them
 const DEMO = {
   seeds: [18, 19, 29, 32, 33, 45, 93, 114, 128],
-  start: [18, 19, 29, 32, 33, 45, 93, 114, 128],
+  start: [19, 29, 114, 128],
   cols: 56,
   rows: 40,
   speed: 3,

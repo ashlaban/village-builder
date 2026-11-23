@@ -5,18 +5,20 @@ VB['sim/walking'] = (() => {
   const { bfs } = VB['sim/hex'];
   // @tunable TERRAIN: walking: the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost
   // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed, and so is a river but at a ford or bridge.
-  // Each kind of ground has its own cost (Kim, 13 Nov; VB-439): sand and heather slow a walker a little, open pine wood more, rough
-  // hill ground more again, a thick broadleaf wood with no way through it takes twice the time of meadow, marsh and bare rock longer.
-  // What a worn way takes off these is PATHS.clear.
+  // Each kind of ground has its own cost (Kim, 13 Nov; VB-439): sand and heather slow a walker a little, open pine wood and rough hill
+  // ground three times as long as meadow, a thick broadleaf wood with no way through it four times, marsh and bare rock longer. Rough
+  // ground is dear (Kim, 15 Nov; the journey scale, VB-444's plan, section 5; VB-780): the costs above heath were doubled from 1.6, 1.8,
+  // 2, 2.5 and 3.5, so a path through the wood (PATHS.clear) is half again as slow as meadow, and two and a half times as fast as the
+  // pathless wood beside it: where a way goes decides the journey. What a worn way takes off these is PATHS.clear.
   const TERRAIN = {
     [B.MEADOW]: 1,
     [B.BEACH]: 1.15,
-    [B.HEATH]: 1.25,
-    [B.PINE]: 1.6,
-    [B.HILLS]: 1.8,
-    [B.FOREST]: 2,
-    [B.MARSH]: 2.5,
-    [B.MOUNTAIN]: 3.5,
+    [B.HEATH]: 1.5,
+    [B.PINE]: 3,
+    [B.HILLS]: 3,
+    [B.FOREST]: 4,
+    [B.MARSH]: 5,
+    [B.MOUNTAIN]: 6,
     [B.SNOW]: Infinity,
     ford: 2,
     bridge: 1,
@@ -149,6 +151,28 @@ VB['sim/walking'] = (() => {
     return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
   };
 
+  // A tile's cost along a trail a party would blaze (VB-786; docs/plans/VB-445.md, section 2): a wooded tile with no path through it costs
+  // what a path there would (PATHS.clear and speed at stage 2: broadleaf 1.59, pine 1.36), the trail the party cuts before it carries
+  // anything; every other tile what it costs now (tileCost). A step along it is stepCost's, by these costs.
+  const TRAIL = 2;
+  function trailCost(w, i) {
+    const b = w.biome[i];
+    if (
+      (b !== B.FOREST && b !== B.PINE) ||
+      w.water[i] ||
+      (w.dev && w.dev[i]) ||
+      (w.river && w.river[i]) ||
+      (w.worn && w.worn[i] >= TRAIL)
+    )
+      return tileCost(w, i);
+    return (1 + (TERRAIN[b] - 1) * (1 - PATHS.clear[TRAIL])) / PATHS.speed[TRAIL];
+  }
+  const trailStep = (w, a, b) => {
+    const ca = trailCost(w, a),
+      cb = trailCost(w, b);
+    return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
+  };
+
   // The discomfort of tile i (DISCOMFORT): its footing, less what its wear has cleared, and its wet; 0 where it is firm (a field, a
   // meadow, the green, a house, a bridge) or closed. Read by the route search only when DISCOMFORT.weight is not 0.
   function discomfort(w, i) {
@@ -186,6 +210,7 @@ VB['sim/walking'] = (() => {
     reachTiles,
     slopeFactor,
     stepCost,
+    trailStep,
     discomfort,
     choiceCost,
     invalidateReach,
