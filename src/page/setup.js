@@ -79,6 +79,7 @@ for (const k of [
   'fences',
   'ground',
   'reach',
+  'fertility',
   'woodland',
   'wildfood',
   'grazing',
@@ -100,6 +101,7 @@ L.regions.visible = false;
 L.land.visible = false;
 L.ground.visible = false;
 L.reach.visible = false;
+L.fertility.visible = false;
 L.woodland.visible = L.wildfood.visible = false;
 L.grazing.visible = false;
 L.wear.visible = false;
