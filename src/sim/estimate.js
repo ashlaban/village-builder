@@ -19,7 +19,7 @@ VB['sim/estimate'] = (() => {
   //   estimate; a poor head's range is honest and wide):
   //   reckons: the causes a judgement reckons with, in the order skill as head brings them in, each from the skill named: hunger and health
   //   (a hand's rate), then the crop's size (a reaping's or a threshing's hours), then each hand's skill at the type of work. Every judgement
-  //   reckons with the walk, the hands' role and age, the ox team and the norm.
+  //   reckons with the walk, the hands' role and age, their crafts, the ox team and the norm.
   //   unseen: what a cause not reckoned with may make of the task's hours, [the share less, the share more]: a crop between a half and one and
   //   a half of a normal one (sim/fieldwork SIZE), a hand slowed by hunger and poor health (HUNGER.slow, HEALTH.slow; only slower), and skill's
   //   reach on the rate (sim/skills SKILL.rate).
@@ -34,8 +34,8 @@ VB['sim/estimate'] = (() => {
       Object.freeze(['skill', 0.75]),
     ]),
     unseen: Object.freeze({
-      health: Object.freeze([0, 0.3]),
-      size: Object.freeze([0.5, 0.5]),
+      health: Object.freeze([0, 0.15]),
+      size: Object.freeze([0.3, 0.3]),
       skill: Object.freeze([0.1, 0.1]),
     }),
     claims: 0.8,
@@ -87,7 +87,7 @@ VB['sim/estimate'] = (() => {
     return { work: Math.max(0, total - done), f };
   }
   // The rate a judgement r believes hand id works task j at, an hour: its role and age; its hunger and health, if reckoned; its skill at
-  // the kind's type, if reckoned; the ox team for the task's first hand at a team's work in a household with a team.
+  // the kind's type, if reckoned; and what every judgement knows (known).
   function rateBelieved(st, r, id, j, first) {
     const p = st.pawns[id];
     let rate = workRate(p.role, age(st, p));
@@ -96,10 +96,17 @@ VB['sim/estimate'] = (() => {
       const R = Skills.SKILL.rate;
       rate *= R[0] + (R[1] - R[0]) * Skills.skillOf(st, id, KINDS[j.kind].type);
     }
-    if (first && teamKind(j) && hasTeam(st, st.households[j.owner.id])) rate *= HERD.team.rate;
-    return rate;
+    return rate * known(st, id, j, first);
   }
-  // The truth the same way, at the mean mishap: the hand's rate (sim/work rateOf), its skill's mean pace, the team.
+  // What every judgement reckons with besides role and age: the hand's level at the kind's craft (its word is on an absolute scale, seen by
+  // all; VB-360) and the ox team for the task's first hand at a team's work in a household with a team.
+  function known(st, id, j, first) {
+    const craft = KINDS[j.kind].craft;
+    let k = craft ? Skills.craftRate(Skills.level(st, id, craft)) : 1;
+    if (first && teamKind(j) && hasTeam(st, st.households[j.owner.id])) k *= HERD.team.rate;
+    return k;
+  }
+  // The truth the same way, at the mean mishap: the hand's rate (sim/work rateOf), its skill's mean pace, what is known.
   function rateTrue(st, id, j, first) {
     const p = st.pawns[id];
     let rate =
@@ -107,8 +114,7 @@ VB['sim/estimate'] = (() => {
       (1 - HUNGER.slow * p.hunger) *
       (1 - (HEALTH.slow * (100 - p.health)) / 100) *
       Skills.paceOf(Skills.skillOf(st, id, KINDS[j.kind].type), 0.5); // the mean draw is the middle of the uniform one
-    if (first && teamKind(j) && hasTeam(st, st.households[j.owner.id])) rate *= HERD.team.rate;
-    return rate;
+    return rate * known(st, id, j, first);
   }
   // The range's reach either way, as shares of the centre, for judgement skill s and the causes r it reckons with, shrunk by the share seen f.
   function reach(s, r, f) {
@@ -219,7 +225,7 @@ VB['sim/estimate'] = (() => {
       long = truth > e.hi ? 'longer' : 'shorter';
     log(
       st,
-      `${fullName(st.pawns[id])} of ${f.name} reckoned the ${task} at ${Math.round(e.mid)} hours, and it would have taken ${long}: ` +
+      `${fullName(st.pawns[id])} of ${f.name} reckoned the ${task} at ${Math.round(e.mid)} hours for ${hands.length === 1 ? 'one hand' : `${hands.length} hands`}, and it would have taken ${long}: ` +
         `${d.why}; the head had not reckoned with ${WORDS[cause]}.`,
       { kind: 'misjudged', pawn: id, reason: cause, ...atFarm(f) },
     );

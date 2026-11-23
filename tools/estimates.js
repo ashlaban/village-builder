@@ -3,11 +3,11 @@
 //   - by thirds of the head's skill (sim/seasonal headSkill, read at each year's end): household-years, hungry household-days (the
 //     households' hungryDays over the year) and crops lost to frost (the record's 'frost' events at a farm, of the field's kind: a crop
 //     lost standing or in stooks), each a household-year;
-//   - with sim/estimate loaded and --honest Y (default 5; 0 for none), over the first Y years: the honesty of the range. At each hour every
+//   - with sim/estimate loaded and --honest Y (default 5; 0 for none), over the first Y years: the honesty of the range. Each half hour every
 //     full-attention task of a household with a head is read once when it is first worked (the head's estimate of its work then, at a
-//     norm hand), and the hours each hand works it are counted; when it is done, its person-hours are set against the range the head's
+//     norm hand; only tasks of 4 hours or more), and the half hours each hand works it are counted; when it is done, its person-hours are set against the range the head's
 //     estimate gave, read for the hands that worked it (sim/estimate's `span`). The share that ended inside, below and above, by thirds,
-//     beside the share the range claims (ESTIMATE.claims).
+//     beside the share the range claims (ESTIMATE.claims), and by kind of task.
 // It samples outside the simulation (Sim.advance and reads of st), adding no counter and writing nothing to st. Hourly sampling steps the
 // clock in pieces, so the run differs in detail from a plain one.
 require('./help.js')(__filename);
@@ -21,36 +21,39 @@ function run({ scenario, map, seed, years, honest }) {
   let r;
   while (!(r = it.next()).done);
   const st = Sim.seed(r.value, seed, scenario);
+  const STEP = 0.5, LEAST = 4; // sampled each half hour; tasks of 4 hours' work or more at their first reading
   const third = (s) => Math.min(2, Math.floor(s * 3));
   const by = [0, 1, 2].map(() => ({ years: 0, hungry: 0, frost: 0, tasks: 0, inside: 0, below: 0, above: 0 }));
-  const seen = new Map(); // job key -> {hh, third, est, hands: Map(id -> hours)}
+  const seen = new Map(), kinds = {}; // job key -> {hh, third, est, hands: Map(id -> hours)}
   const sample = () => {
     for (const j of st.jobs.values()) {
       if (!j.claims || !j.claims.length || !j.owner || j.owner.type !== 'household') continue;
       let s = seen.get(j.key);
       if (!s || s.job !== j) {
         const hh = st.households[j.owner.id], plan = st.plans.households.get(hh.id);
-        if (!plan || !plan.head || !E.attended(j)) continue;
+        if (!plan || !plan.head || !E.attended(j) || !(E.workOf(st, plan.head.pawn, j) >= LEAST)) continue;
         s = { job: j, head: plan.head.pawn, third: third(headSkill(st, hh.id)), work: E.workOf(st, plan.head.pawn, j), hands: new Map() };
         seen.set(j.key, s);
       }
-      for (const id of j.claims) if (st.agents[id].job === j && st.agents[id].phase === 'work') s.hands.set(id, (s.hands.get(id) || 0) + 1);
+      for (const id of j.claims) if (st.agents[id].job === j && st.agents[id].phase === 'work') s.hands.set(id, (s.hands.get(id) || 0) + STEP);
     }
     for (const [k, s] of seen) {
       if (st.jobs.get(k) === s.job) continue;
       seen.delete(k);
       const worked = [...s.hands.values()].reduce((a, b) => a + b, 0);
-      if (!(worked > 1) || !st.pawns[s.head].alive) continue; // a task that ended at once, or was dropped before work
+      if (!(worked >= 1) || !st.pawns[s.head].alive) continue; // a task dropped before work
       const span = E.span(st, s.head, s.job, s.work, s.hands), b = by[s.third];
       b.tasks++;
-      if (worked < span.lo) b.below++;
-      else if (worked > span.hi) b.above++;
-      else b.inside++;
+      const kd = kinds[s.job.kind] || (kinds[s.job.kind] = { tasks: 0, inside: 0, below: 0, above: 0 });
+      kd.tasks++;
+      const at = worked < span.lo ? 'below' : worked > span.hi ? 'above' : 'inside';
+      b[at]++;
+      kd[at]++;
     }
   };
   for (let y = 0; y < years; y++) {
     const days0 = new Map(st.households.map((h) => [h.id, h.hungryDays])), rec0 = st.record.length;
-    if (E && y < honest) for (let h = 0; h < YEAR; h += 1) { Sim.advance(st, 1); sample(); }
+    if (E && y < honest) for (let h = 0; h < YEAR; h += STEP) { Sim.advance(st, STEP); sample(); }
     else Sim.advance(st, YEAR);
     const frost = new Map();
     for (let i = rec0; i < st.record.length; i++) {
@@ -64,7 +67,7 @@ function run({ scenario, map, seed, years, honest }) {
       if (hh.farmstead !== null) b.frost += frost.get(hh.farmstead) || 0;
     }
   }
-  return { seed, by, claims: E ? E.ESTIMATE.claims : null, day: DAY };
+  return { seed, by, kinds, claims: E ? E.ESTIMATE.claims : null, day: DAY };
 }
 
 if (process.env.VB_ESTIMATES_CHILD) {
@@ -93,7 +96,12 @@ if (process.env.VB_ESTIMATES_CHILD) {
       const pc = (x) => (s.tasks ? ((100 * x) / s.tasks).toFixed(0) + '%' : '-');
       console.log(`${names[t].padEnd(15)} ${String(s.years).padStart(15)}  ${(s.hungry / Math.max(1, s.years)).toFixed(2).padStart(21)}  ${(s.frost / Math.max(1, s.years)).toFixed(3).padStart(22)}  ${String(s.tasks).padStart(5)}  ${pc(s.inside).padStart(6)}  ${pc(s.below).padStart(5)}  ${pc(s.above).padStart(5)}`);
     });
-    if (out[0].claims !== null) console.log(`the range claims ${Math.round(out[0].claims * 100)}%`);
+    if (out[0].claims === null) return;
+    console.log(`the range claims ${Math.round(out[0].claims * 100)}%; by kind of task (all heads):`);
+    const kinds = {};
+    for (const r of out) for (const [k, v] of Object.entries(r.kinds)) for (const [x, n] of Object.entries(v)) (kinds[k] ||= {})[x] = (kinds[k][x] || 0) + n;
+    for (const [k, v] of Object.entries(kinds).sort((a, b) => b[1].tasks - a[1].tasks))
+      console.log(`  ${k.padEnd(12)} ${String(v.tasks).padStart(6)}  inside ${Math.round((100 * v.inside) / v.tasks)}%, below ${Math.round((100 * v.below) / v.tasks)}%, above ${Math.round((100 * v.above) / v.tasks)}%`);
   };
   go();
 }

@@ -84,6 +84,9 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   (host, its villages, how many villages named each host in their choice) and the villages with none; then gatherings a year, how often a
   village's host changed from the year before, and the share of village-years with no gathering.
   `node tools/sim.js --report ground [--reach 12,30] [--seeds 3,7,11] [--json]` (VB-735, `tools/ground.js`): by village, each rock (any tile, and a quarry tile) and deposit within the reach of its green, hidden ores found or not, the rock under the green, and a summary by kind (villages, and maps with several seeds), with the pairs copper and tin and any iron; at any year (`--years`, `--at`, `--load`).
+- The head's estimate: `node tools/estimates.js [--scenario populous] [--map small] [--seeds 3,7,11,42] [--years 30] [--honest Y]` (VB-476): hungry
+  household-days and crops lost to frost a household-year by thirds of the head's skill, and over the first Y years the share of tasks whose
+  person-hours ended inside the head's range, below and above, by thirds and by kind; one process a seed (30 years, 4 seeds: about 10 minutes).
 - Food balance: `node tools/balance.js --scenario populous --seeds 3,7,11,42 --map small --years 15`: rations by source against need.
   `node tools/crops.js [--runs populous,founders,heirs] [--years N] [--seeds LIST] [--out FILE|--load FILE] [--json]` (VB-356, the crops'
   wrap-up): the bands' full runs, one per core (about 20 minutes on 4 cores): rations by crop and source against need, fields, fallow and soil
