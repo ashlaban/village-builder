@@ -16,7 +16,8 @@ VB['sim/farmclaims'] = (() => {
     Disputes = VB['sim/disputes'];
   const { dailyNeed } = VB['sim/hunger'],
     { reserved } = VB['sim/stores'];
-  const { hasPlot, activePlots, MAX_PLOTS } = VB['sim/expansion'];
+  const { activePlots, MAX_PLOTS } = VB['sim/expansion'],
+    { hasPlot } = VB['sim/allotment'];
   const { landed, barredWhy, goesWith, contribute } = VB['sim/holding'];
   const { emit } = VB['sim/events'],
     { onFarm, projectsOf } = VB['sim/projects'];
@@ -187,7 +188,7 @@ VB['sim/farmclaims'] = (() => {
         : `The claim on ${f.name} died with ${fullName(p)}.`,
     );
   };
-  // At the moving round, after st.demand is counted and before plots are started (sim/expansion): each farm that may be claimed, in id order,
+  // At the moving round, after st.demand is counted and before plots are started (sim/allotment): each farm that may be claimed, in id order,
   // goes to its first claimant (claimants) who has not claimed another this round. Claims whose claimant died or took land end first.
   // The first claimant asks the one who speaks for the farm's village for it (the basis `land`, due at once: VB-692); one who holds an
   // open offer about its future takes part only in that offer's step.

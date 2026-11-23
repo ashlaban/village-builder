@@ -11,7 +11,7 @@ VB['sim/service'] = (() => {
   const { MARRIAGE, AGES } = VB['sim/rules'];
   const Offers = VB['sim/offers'];
   const { balance } = VB['sim/relations'];
-  const { hasPlot } = VB['sim/expansion'];
+  const { hasPlot } = VB['sim/allotment'];
   const { trustOf } = VB['sim/ownership'];
   const adult = (p) => p.alive && p.age >= 18;
   // @tunable SERVICE: service: who takes in a servant, and where labour is short

@@ -90,6 +90,7 @@
   "sim/progress.js",
   "sim/cottageplan.js",
   "sim/expansion.js",
+  "sim/allotment.js",
   "sim/farmclaims.js",
   "sim/building.js",
   "sim/drying.js",

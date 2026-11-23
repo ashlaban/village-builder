@@ -17,7 +17,7 @@ function setup(newLand) {
   st.cenv.settlements[0].practice[k] = Customs.DIMS[k].opts.findIndex((o) => o[0] === newLand);
   // village A's empty farm could be claimed, and nobody who may claim a farm gets a plot (VB-033, tests/farmclaims.js); here it is a ruin
   for (const f of st.farmsteads) if (f.household === null) f.state = 'ruin';
-  X.startPlots(st);
+  VB['sim/allotment'].startPlots(st);
   return { st, v, a, b, c };
 }
 for (const rule of ['village', 'labour', 'intended']) {
@@ -63,12 +63,12 @@ check(cleared > 0, 'founders seed 7: no plot is cleared for anyone in two years'
     for (const tr of X.tilesOf(plot)) while (tr.i < tr.steps.length) X.finishStep(st, { plot, tr });
     check(plot.open === 1 && plot.to === null, `VB-646: nobody to have it (to ${plot.to})`);
     const tiles = X.tilesOf(plot).map((t) => t.tile);
-    X.startPlots(st); check(plot.vacant === st.t, 'VB-646: stamped at the first round');
+    VB['sim/allotment'].startPlots(st); check(plot.vacant === st.t, 'VB-646: stamped at the first round');
     st.t += YEAR; st.demand = [a.id]; // someone now waits: the plot is theirs at the next round
-    X.startPlots(st);
+    VB['sim/allotment'].startPlots(st);
     check(plot.to === a.id && plot.vacant === undefined, `VB-646: allotted to the one waiting (to ${plot.to})`);
     plot.to = null; st.demand = []; plot.intended = holder; delete plot.vacant;
-    X.startPlots(st); st.t += 2 * YEAR; st.t += 1; X.startPlots(st);
+    VB['sim/allotment'].startPlots(st); st.t += 2 * YEAR; st.t += 1; VB['sim/allotment'].startPlots(st);
     check(!X.livePlots(st, v).includes(plot), 'VB-646: given back after two years');
     check(tiles.every((t) => !st.used.has(t) && Sim.ownerOf(st, t) === null || Sim.ownerOf(st, t) === 0 || !Sim.ownerOf(st, t)), 'VB-646: tiles released');
     check(tiles.every((t) => st.w.dev[t] === 0), 'VB-646: dev released');

@@ -48,7 +48,7 @@ const landed = (id) => Sim.isHolder(st, id) || (Sim.spouseOf(st, id) !== null &&
 const landless = (u) => st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === u.id && !landed(p.id)).map((p) => p.id);
 const v = st.villages.find((u) => landless(u).length) || st.villages[0], ids = landless(v); // the first village with an adult without land
 st.demand = ids.slice(0, 1);
-X.startPlots(st);
+VB['sim/allotment'].startPlots(st);
 const plot = X.livePlots(st, v).slice(-1)[0]; // its village's project plan (VB-123)
 if (!plot) check(false, 'a plot is started');
 else {

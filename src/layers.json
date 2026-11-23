@@ -110,6 +110,7 @@
       "sim/membership",
       "sim/cottage",
       "sim/settle",
+      "sim/allotment",
       "sim/farmclaims",
       "sim/service",
       "sim/matching",
