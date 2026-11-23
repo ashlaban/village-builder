@@ -1,4 +1,4 @@
-// @sys sim/walking: terrain and slope costs, tile passability and cached reach by walking steps
+// @sys sim/walking: terrain and slope costs, the discomfort routes are chosen by, tile passability and cached reach by walking steps
 VB['sim/walking'] = (() => {
   const { B } = VB['gen'];
   const { YEAR_DAYS } = VB['sim/rules'];
@@ -49,6 +49,35 @@ VB['sim/walking'] = (() => {
     clear: [0, 0.25, 0.75, 0.8],
     wornYears: 3,
     trips: { field: 0.5, water: 2, stroll: 1, wood: 0.9 },
+  };
+
+  // @tunable DISCOMFORT: what a walker minds though it costs little time (VB-448; design.md, Worn paths, 4, and docs/path-effort.md): an
+  // allowance a tile, the share of a step's time a walker would give to be spared it, which steers the route search alone (sim/routes);
+  // the walk takes its time (tileCost), and tires no one. A step is chosen by its time × (1 + weight × load[class] × the mean of its two
+  // tiles' allowances). footing: uneven or overgrown ground by its kind, as energy runs above time on it (de Gruchy, Caswell and Edwards:
+  // grass 1.1, light brush 1.2, heavy brush 1.5, bog 1.8 against hard ground), taken away by wear as PATHS.clear takes the ground's cost
+  // (use gives footing); a field, a meadow, the green and a house are firm. wet: what wear does not drain, marsh and the ford: the ford's
+  // is set so that from bank to bank over open meadow a walker goes round to a bridge up to twice the time of wading and no further, at
+  // weight 1 (Kim, 16 Nov: a dry crossing is worth up to twice the time round); a bridge is dry and firm. load, by class (0 unladen, 1 a
+  // load on the back, 2 with a cart; Kim, 16 Nov): a laden walker minds bad footing and wet more, a cart most.
+  // weight: one for everyone until slice 7 (Kim, 16 Nov); 0 switches discomfort off, and routes are the quickest; it lands at 0 for
+  // Kim's tuning run to switch on (docs/tuning.md).
+  const DISCOMFORT = {
+    weight: 0,
+    footing: {
+      [B.MEADOW]: 0.1,
+      [B.BEACH]: 0.4,
+      [B.HEATH]: 0.2,
+      [B.PINE]: 0.2,
+      [B.HILLS]: 0.3,
+      [B.FOREST]: 0.5,
+      [B.MARSH]: 0.3,
+      [B.MOUNTAIN]: 0.5,
+    },
+    wet: { [B.MARSH]: 0.6 },
+    ford: 2.3,
+    bridge: 0,
+    load: [1, 1.5, 2.5],
   };
 
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
@@ -120,6 +149,23 @@ VB['sim/walking'] = (() => {
     return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
   };
 
+  // The discomfort of tile i (DISCOMFORT): its footing, less what its wear has cleared, and its wet; 0 where it is firm (a field, a
+  // meadow, the green, a house, a bridge) or closed. Read by the route search only when DISCOMFORT.weight is not 0.
+  function discomfort(w, i) {
+    if (w.water[i] || (w.dev && w.dev[i])) return 0;
+    if (w.river && w.river[i]) return w.crossing[i] === 1 ? DISCOMFORT.ford : DISCOMFORT.bridge;
+    const b = w.biome[i],
+      s = w.worn ? w.worn[i] : 0;
+    return (DISCOMFORT.footing[b] ?? 0) * (1 - PATHS.clear[s]) + (DISCOMFORT.wet[b] ?? 0);
+  }
+  // What a step from a to b costs a walker of load class `cls` to choose (sim/routes): its time (stepCost) weighed by the mean of its
+  // tiles' discomfort; its time alone when the weight is 0.
+  function choiceCost(w, a, b, cls = 0) {
+    const t = stepCost(w, a, b),
+      k = DISCOMFORT.weight * DISCOMFORT.load[cls];
+    return k ? t * (1 + (k * (discomfort(w, a) + discomfort(w, b))) / 2) : t;
+  }
+
   function invalidateReach(w, tile) {
     const r = REACH.get(w),
       stands = passable(w, tile) ? 1 : 0;
@@ -132,6 +178,7 @@ VB['sim/walking'] = (() => {
     TERRAIN,
     SLOPE,
     PATHS,
+    DISCOMFORT,
     tileCost,
     passable,
     through,
@@ -139,6 +186,8 @@ VB['sim/walking'] = (() => {
     reachTiles,
     slopeFactor,
     stepCost,
+    discomfort,
+    choiceCost,
     invalidateReach,
   };
 })();
