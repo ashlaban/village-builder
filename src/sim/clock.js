@@ -22,7 +22,8 @@ VB['sim/clock'] = (() => {
     { reckonAll } = VB['sim/work'];
   const { placeOf } = VB['sim/pose'];
   const { feedAway, dayAway } = VB['sim/away'];
-  const { refreshJobs, takeDay, dutyRound, idleAbout, lookForWork, eveningCall } = VB['sim/jobs'];
+  const { refreshJobs, takeDay, dutyRound, lookForWork, eveningCall } = VB['sim/jobs'],
+    { ownTime } = VB['sim/pastimes'];
   const { issue, register } = VB['sim/commands'];
   const { playerStep } = VB['sim/player'];
   const { commanded, unplanned } = VB['sim/records'];
@@ -708,7 +709,7 @@ VB['sim/clock'] = (() => {
             )
           : [];
       if (looked.length) for (const a of takeDay(st, looked, c)) got.add(a);
-      for (const a of idle) if (!got.has(a)) idleAbout(st, a);
+      for (const a of idle) if (!got.has(a)) ownTime(st, a);
     }
     rest(st, all); // one left free with nothing in hand looks again at the next step (VB-473)
   }

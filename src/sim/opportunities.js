@@ -131,6 +131,9 @@ VB['sim/opportunities'] = (() => {
     );
     const until = view.t + 1;
     out.push(item('idle', null, { until }, check(view, p.id, 'idle', null, { until })));
+    // its own time (VB-1552): the pastimes open to it, each an item {verb: 'pastime', target: the kind, args, pastime: {name, note}}
+    for (const o of VB['sim/pastimes'].options(view, p.id))
+      out.push(item('pastime', o.kind, o.args, o.why, { pastime: { name: o.name, note: o.note } }));
     occasions(view, p, out);
     if (near === null || near === undefined) return;
     const open = Number.isInteger(near) && near >= 0 && near < view.w.N && walkable(view.w)(near);

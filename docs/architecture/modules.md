@@ -283,6 +283,15 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `occasion`), each with who is present, how a partner is drawn and the mix that lets strangers meet; the talk round of `sim/relations` asks
   it for partners at each pawn's turn (every `SOCIAL.talk.every` waking hours, by id). `present` reads those who came to an occasion and
   `said` is the one door by which something is made known to them all. It keeps no state, reads no plan and has only social effects.
+- Own time (VB-1552): `src/sim/pastimes.js` owns what a pawn does with a wait the planner found no task for: a table `PASTIMES` (`herd`,
+  `company`, `visit`, `green`, `fire`, `play`), each with who may choose it (`who`), where it is spent (`at`), with whom (`partner`,
+  `withWhy`), what weighs for it (`weight`, the tunable `PASTIME`) and its words for the card (`words`). `sim/clock` hands it the pawns
+  left without a task (`ownTime`, which was `sim/jobs`' `idleAbout`): a herder stays by its herd, company is tried at its chance
+  (`sim/relations` `companyFor`), and the rest is a weighted draw on the stream `talk`. The verb `pastime` carries the choice out, for the
+  planner and the played pawn alike (`options` lists the played pawn's, through `sim/opportunities`): a walk (`walkTo`, `goHome`) and a
+  wait (`idle`, `IDLE.wait`), and `agent.pastime`, its one field. `of` says whether that pastime still runs (nothing clears it: the call,
+  a task, an occasion and the night end it by the pawn's own state), and `line` gives `Sim.describe` its words. It reads no plan, no
+  store and no mood. A new pastime is a row of the table.
 - Occasions (VB-126): `src/sim/occasions.js` calls a gathering at a place from a start to an end (the village meeting on the green on autumn
   day 10, for its village's turn, a wedding the day after a marriage, a funeral ale the day after a death), asks its guests and keeps `st.occasions`, a due-queue the
   six-minute step reads at its head only. Those asked set out by the verb `attend` and stand about the spot until the end (`agent.occasion`);
@@ -414,7 +423,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   the house: firewood, water, cooking, brewing, gathering, VB-418),
   `sim/green` (the village green and well as a project plan of the village and its job kinds, a village duty, VB-058), `sim/lying` (loads left
   lying where their carrier fell, VB-611), `sim/droving` (animals that change household, led home from where they stand, VB-674).
-- Social: `sim/attitudes`, `culture`, `sim/encounters`, `sim/relations`, `sim/courting` (VB-036), `sim/society`, `sim/deaths`, `sim/births`, `sim/heirranking`, `sim/heirs`, `sim/membership`, `sim/allotment` (who gets a plot, and the moving round's plots), `sim/cottage`, `sim/settle`, `sim/obligations`,
+- Social: `sim/attitudes`, `culture`, `sim/encounters`, `sim/relations`, `sim/pastimes` (VB-1552), `sim/courting` (VB-036), `sim/society`, `sim/deaths`, `sim/births`, `sim/heirranking`, `sim/heirs`, `sim/membership`, `sim/allotment` (who gets a plot, and the moving round's plots), `sim/cottage`, `sim/settle`, `sim/obligations`,
   `sim/farmclaims`, `sim/service`, `sim/matching` (marriage rules), `sim/workdays` (the village's work days,
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
 - Agency: `sim/legs`, `sim/work`, `sim/attention`, `sim/agents` (VB-422), `sim/away` (the stays away from home, VB-783), `sim/gifts` (how a gift gets from here to there: the verbs `give` and
@@ -425,7 +434,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   task by it, and a window missed (`sim/fields`' event `windowMissed`) outside the range is told on the record as `misjudged`; a kind's
   `norm` gives a normal crop's hours), `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review, with its doubt, VB-669; kept
   in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
-- Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162) (read-only, computed when asked).
+- Derived views: `sim/notable`, `sim/opportunities`, `sim/overview` (a village at a glance, `Sim.villageSummary`, VB-162), `sim/reasons` (who chose a pawn's act and why, `Sim.reasonOf`, `Sim.reasonLine`, VB-1551) (read-only, computed when asked).
 - Presentation (VB-1503): `draw/*`, the map's drawing (`draw/pigments`, `draw/paint`, `draw/bake`, `draw/marks`, `draw/paths`,
   `draw/rivers`), listed after `sim.js`. They read the world, and the bake a world's paint (VB-1504); no generator or simulation module names them (`tests/dependencies.js`
   refuses it, as an upward call and as a lookup of a later module). The page reads them by key.

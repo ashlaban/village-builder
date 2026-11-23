@@ -650,7 +650,11 @@ VB['sim/agents'] = (() => {
     check: (st, c) =>
       free(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),
     run: (st, c) => {
-      goHome(st, st.agents[c.actor]);
+      // the job in hand is let go first, whoever sends it home (the queue, the day's end, a lent hand's hours given, its own time):
+      // a hand on its way home works no task (VB-1565)
+      const a = st.agents[c.actor];
+      if (a.job) release(st, a);
+      goHome(st, a);
       return { home: true };
     },
     active: (st, c) => !st.agents[c.actor].inside && !!st.agents[c.actor].path,

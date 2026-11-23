@@ -39,10 +39,13 @@ const Sim = (() => {
   } = VB['sim/notable'];
   const { describe: doing } = VB['sim/agents'],
     { occasionLabel } = VB['sim/occasions'],
-    { explainFeast } = VB['sim/feast'];
+    { explainFeast } = VB['sim/feast'],
+    { line: pastimeLine, of: pastimeOf } = VB['sim/pastimes'];
   // What a pawn is doing, for its card: at or on its way to an occasion (VB-126), else as sim/agents tells it.
-  const describe = (st, id) => occasionLabel(st, st.agents[id]) || doing(st, id);
+  // its pastime and with whom (sim/pastimes, VB-1552),
+  const describe = (st, id) => occasionLabel(st, st.agents[id]) || pastimeLine(st, id) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/jobs'];
+  const { reasonOf, reasonLine } = VB['sim/reasons']; // who chose a pawn's act, and why, for its card (VB-1551)
   const { seedReserve } = VB['sim/hunger'],
     { grainOf } = VB['sim/stores'],
     { shareOwed } = VB['sim/obligations'];
@@ -153,6 +156,7 @@ const Sim = (() => {
     kinship,
     kinDegree,
     describe,
+    pastimeOf,
     villageOf,
     SEASONS,
     DAY,
@@ -201,6 +205,8 @@ const Sim = (() => {
     poseOf, // and its facing and stride, for the page until it draws from legs (VB-474)
     explainIdle,
     idleLine,
+    reasonOf,
+    reasonLine,
     RIVER,
     byRiver,
     tilthOf, // a field's tilth now, closed form (VB-717): the field, farm and village cards (VB-719)

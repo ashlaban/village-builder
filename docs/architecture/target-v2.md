@@ -609,6 +609,27 @@ building work (a field half hoed stays half hoed, whoever comes next), the task 
 (Decided, Kim, 3 Nov): a pawn may hold one `partial` task and one `background` task at once (minding the herd while spinning), the
 background one at a reduced rate.
 
+**Agency below the head** (23 November; `docs/review-agency.md`; `design.md` section 7). The matcher above is the head's day since 15
+November (`sim/jobs`, `allot`): the household is the unit that allots, and a member carries its list out. Four things give the member
+an agency of its own, each in the layer that already owns its kind:
+
+- **Standing duties** are an idea with no mechanism (Kim, 23 November): the keep factor tried in the allotment was removed (VB-1553).
+  A mechanism for it would be the plan's (Plans), as the day is.
+- **Own time** is Social, not Work: `sim/pastimes` owns a table of pastimes beside the encounters' table, reads no plan and no store,
+  and writes only the pawn's pastime; Work offers it the pawn it found no task for. A pastime has no opportunity, no task and no
+  progress.
+- **A member's voice** is Exchange's offer and answer: the bases `leave` and `duty` are rows of the table of bases (`sim/offers`),
+  contributed by the module that weighs them; a yes is carried out by the plan's owner. No new channel between member and head.
+- **Reasons** are a derived view (4.6): computed when asked, from the day's lists, the task's basis and the kind's record; never read
+  by a rule.
+
+```ts
+interface Pastime { key: string; who(st, pawn: PawnId): boolean; weight(st, pawn: PawnId, c): number;
+  where(st, pawn: PawnId): { tile: Tile; with?: PawnId } | null; label(st, pawn: PawnId): string }   // social effects only
+interface Reason { by: 'head' | 'call' | 'duty' | 'lent' | 'owed' | 'village' | 'player' | 'self' | 'none'; head?: PawnId;
+  place?: [number, number]; why: string }   // a view: Reasons.of(st, pawn)
+```
+
 **Exchange** owns no goods and no balances: it is mechanisms (gift, help, swap, loan, fair, market, service) that move goods through
 Stores, create obligations for anything delivered later, and book the residual in goodwill.
 

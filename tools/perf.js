@@ -23,7 +23,7 @@ const SYSTEMS = {
   'meetings': { 'sim/meetings': ['meetingStage'] },
   // VB-205: the agents' six-minute step (walking, working, and who wants work), and the strolls of those the planner found nothing for.
   'agents: walking and working': { 'sim/agents': ['stepAgents'] },
-  'agents: idle strolls': { 'sim/jobs': ['idleAbout'] },
+  'agents: idle strolls': { 'sim/pastimes': ['ownTime'] },
 };
 const now = () => Number(process.hrtime.bigint()) / 1e6;
 const acc = {}, stack = []; let active = false;

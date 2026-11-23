@@ -181,9 +181,14 @@ for (const raise of [false, true]) {
   }
   Sim.inhabit(st, hh.holder);
   if (raise) assert.strictEqual(Sim.head(st, 'target', { store: 'hay', n: 3 }), true);
-  let peak = 0, need = 0;
-  while (cal(st.t).season !== 3) { Sim.advance(st, DAY); if (hh.hay > peak) { peak = hh.hay; need = winterNeed(st, hh); } }
-  hay.push({ peak, need, winters: peak / need, atWinter: hh.hay / winterNeed(st, hh), meadows: f.meadows.length, expected: M.expectedHay(f) });
+  let peak = 0, need = 0, wanted = 0; // wanted: the most the head's rule asked for in the haymaking (the target and the stack's loss to winter)
+  while (cal(st.t).season !== 3) {
+    Sim.advance(st, DAY);
+    if (hh.hay > peak) { peak = hh.hay; need = winterNeed(st, hh); }
+    const c = cal(st.t), n = winterNeed(st, hh), target = st.plans.households.get(hh.id).targets.hayWinters * n;
+    if ((c.season === 1 || c.season === 2) && M.hayWanted(st, f, hh)) wanted = Math.max(wanted, target + M.hayLostToWinter(st, f, target, n));
+  }
+  hay.push({ peak, need, wanted, winters: peak / need, atWinter: hh.hay / winterNeed(st, hh), meadows: f.meadows.length, expected: M.expectedHay(f) });
   if (raise) sound(st, 'a raised hay target');
 }
 const w = (x) => x.toFixed(2);
@@ -191,8 +196,10 @@ const w = (x) => x.toFixed(2);
 // tenths falling short of a task's hours, the fourth was left 0.9 h short at nightfall and taken down; VB-472 ends it at its hours)
 const meadowHay = hay[0].expected / hay[0].meadows / hay[0].need; // one meadow's hay, in winters
 assert.ok(hay[0].atWinter >= 2 && hay[0].atWinter < 3 + meadowHay, `by its template the household holds two winters' hay at the start of winter, overshot by less than a meadow past three (${w(hay[0].atWinter)}, below ${w(3 + meadowHay)})`);
-assert.ok(hay[1].winters >= 3 && hay[1].atWinter >= 3,
-  `by its head's choice three (${w(hay[1].atWinter)} winters of ${hay[1].need.toFixed(1)}, ${w(hay[1].winters)} at its peak; meadows give ${hay[1].expected})`);
+// VB-1561: the target reckons with what the stack loses before the winter (the autumn's stall days and the spoilage), so a target met early in
+// the window is still met at the winter's start; the meadows begun together overshoot it by less than a meadow past what was wanted.
+assert.ok(hay[1].atWinter >= 3 && hay[1].atWinter < hay[1].wanted / hay[1].need + meadowHay,
+  `by its head's choice three at the start of winter (${w(hay[1].atWinter)} winters of ${hay[1].need.toFixed(1)}, ${w(hay[1].winters)} at its peak, ${w(hay[1].wanted / hay[1].need)} wanted at its last mowing, a meadow ${w(meadowHay)}; meadows give ${hay[1].expected})`);
 
 { // the holder's own rule goes through the verb: a household with no player, and one with no holder, begin their fields by `project`
   const { st, hh, f } = scene();
@@ -213,4 +220,4 @@ assert.ok(hay[1].winters >= 3 && hay[1].atWinter >= 3,
   sound(st, 'the holder\'s rule');
 }
 console.log(`head ok: only the head chooses; a chosen tile's field made there in ${made} days; ${refusals} refusals with their reasons change nothing; ` +
-  `targets, order and the hold on projects set and cleared; hay at the start of winter ${w(hay[0].atWinter)} winters by the template, ${w(hay[1].atWinter)} by a target of 3`);
+  `targets, order and the hold on projects set and cleared; hay at the start of winter ${w(hay[0].atWinter)} winters by the template, ${w(hay[1].atWinter)} by a target of 3 (${w(hay[1].wanted / hay[1].need)} wanted with the loss to winter, a meadow ${w(meadowHay)})`);

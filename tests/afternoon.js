@@ -34,6 +34,9 @@ until(10);
 hh.waterDay = D - 1;
 const key = `water:h${hh.id}:${D}`;
 Jobs.post(st, key, 'water', { type: 'household', id: hh.id }, f.house, { farm: f });
+// a task posted by the test's hand marks no day as changed (only a review's post does), and a village's review alone no longer allots
+// its households anew (VB-1554): the head's day is allotted here, as the review that posted it would
+Jobs.allot(st, hh, cal(st.t));
 until(13.5);
 const busy = a.job;
 check(busy && a.phase === 'work' && busy.key !== key, `at 13:30 the settler works (${busy && busy.kind}, ${a.phase})`);

@@ -267,6 +267,7 @@ VB['sim/hands'] = (() => {
         j = a.job,
         now = j && a.phase === 'work' && j.owner.id === e[0] && j.rate > 0 ? (st.tick - j.at) / TICKS : 0;
       if (!over && e[2] + now < e[1] - 1e-9) continue;
+      if (a.phase === 'back') continue; // a load on the road is brought in first, as at the day's end (sim/clock)
       e[2] += now; // booked here: the reckoning its going home makes is not booked again (worked: once ended, no more)
       ended(st, +id, e);
       if (st.pawns[id].alive) issue(st, { actor: +id, verb: 'goHome', source: 'planner' });

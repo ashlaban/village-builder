@@ -159,6 +159,7 @@
     "agent.path": "sim/legs",
     "agent.pace": "sim/agents",
     "agent.assigned": "sim/attention",
+    "agent.pastime": "sim/pastimes",
     "agent.phase": "sim/agents",
     "agent.anim": "sim/agents",
     "agent.inside": "sim/agents",

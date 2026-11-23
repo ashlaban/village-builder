@@ -130,6 +130,15 @@ function menuHTML(id, opps) {
     h += actRow('data-bar="walk"', 'walk', 'Walk here', `Then ${tapWord} an open tile on the map`);
     h += actRow(cmdAttrs(home), 'home', 'Go home', 'Indoors, for yourself', home.why);
     h += actRow(cmdAttrs(idle), 'idle', 'Rest an hour', 'You wait where you are', idle.why);
+    // its own time (VB-1552): the pastimes open to it, by the verb `pastime`
+    for (const o of by.self.filter((x) => x.verb === 'pastime'))
+      h += actRow(
+        cmdAttrs(o),
+        o.target === 'fire' ? 'home' : o.target === 'green' ? 'green' : 'walk',
+        o.pastime.name,
+        o.pastime.note,
+        o.why,
+      );
     // the ale evenings and rites called within reach (VB-522)
     for (const o of by.self.filter((x) => x.verb === 'attend')) {
       const ale = o.occasion.kind === 'ale';

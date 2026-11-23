@@ -79,4 +79,25 @@ for (const id of st.liveHouseholds) {
   assert.strictEqual(hash(back), hash(st), 'the loaded run and the saved one agree a day later');
   assert.deepStrictEqual(checkState(st), [], 'invariants');
 }
-console.log('day ok: a day for every household, a list for each member; no random draw; best fit first and the hands spread; the first task with room is taken; saved and loaded');
+
+// 6. A village's review alone changes nobody's day; a task of the village posted at it has every household's day allotted anew (VB-1554).
+{
+  const s3 = make(4.5), c3 = Sim.cal(s3.t), hour = Math.floor(s3.t), vp = s3.plans.villages.get(0);
+  const made = () => s3.liveHouseholds.map((id) => dayOf(s3, id).made);
+  Jobs.refreshJobs(s3, c3); // the hour's due-queue and reviews are behind it
+  for (const id of s3.liveHouseholds) dayOf(s3, id).made = -1;
+  assert.strictEqual((s3.jobsBy.get('village:0') || new Set()).size, 0, 'the village has no task');
+  vp.nextReview = hour;
+  VB.resetCounts();
+  Jobs.refreshJobs(s3, c3);
+  assert.strictEqual(VB.count.planReview, 1, 'the village is reviewed');
+  assert.strictEqual(VB.count.dayPair, 0, 'and nobody is weighed');
+  assert.deepStrictEqual(made(), s3.liveHouseholds.map(() => -1), 'no day allotted anew at a review that changes no task');
+  for (const s of s3.villages[0].fence) s.cond = 0.2; // the fence is worn: the review posts its mending
+  vp.nextReview = hour;
+  Jobs.refreshJobs(s3, c3);
+  assert.ok(s3.jobsBy.get('village:0').size > 0, 'the village posts the mending');
+  assert.deepStrictEqual(made(), s3.liveHouseholds.map(() => hour), 'every household of the village has its day allotted anew');
+  assert.ok(s3.liveHouseholds.some((id) => Object.values(dayOf(s3, id).lists).some((l) => l.some((k) => k.startsWith('mend:')))), 'and the mending is in a list');
+}
+console.log('day ok: a day for every household, a list for each member; no random draw; best fit first and the hands spread; the first task with room is taken; saved and loaded; a village\'s review alone allots no day');

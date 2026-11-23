@@ -347,6 +347,8 @@ function renderActions() {
   // the pawn's levels and its household's supplies, as its card and the farm's show them (VB-664: one meter; VB-667: one supply component)
   h += `<div class="needs">${pawnStats(id)}${hh ? `<h3 class="card-sec">${esc(f.name)}</h3>${suppliesHTML(Sim.supplyOutlook(st, hh.id))}` : ''}</div>`;
   h += `<p class="doing">Doing: ${esc(Sim.describe(st, id))}</p>`;
+  const why = Sim.reasonLine(st, id); // as its card says it (VB-1551)
+  if (why) h += `<p class="doing reason">${esc(why)}</p>`;
   h += afterYouHTML(id, f);
   // what its last act brought, what moved its levels over its last days, and who of its household ails, as kin see it (VB-1118)
   const notes = Sim.sheetNotes(st);
