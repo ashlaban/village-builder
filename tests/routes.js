@@ -14,8 +14,12 @@ const grid = (COLS, ROWS) => {
 {
   const COLS = 380, w = grid(COLS, 270), N = w.N;
   const st = { w, pathCache: new Map(), routeFallbacks: 0, routeDirty: new Set() };
-  // (100029, 100030) and (100030, 30) share the old key from * 100000 + to; the second is too far to walk, so it falls back
+  // (100029, 100030) and (100030, 30) share the old key from * 100000 + to; the second is too far to walk at a reach of 200 steps (the
+  // reach before the journey scale's 536, VB-780, which crosses this grid), so it falls back
+  const { ROUTE } = VB['sim/routes'], reach = ROUTE.reach;
+  ROUTE.reach = 200;
   const p1 = route(st, 100029, 100030), p2 = route(st, 100030, 30);
+  ROUTE.reach = reach;
   check(p1.length === 2 && p1[0] === 100029 && p1[1] === 100030, 'first pair gets its own path');
   check(p2.length === 1 && p2[0] === 30 && st.routeFallbacks === 1, 'second pair gets its own path, a counted fallback');
   st.routeFallbacks = 0;
@@ -115,12 +119,12 @@ const grid = (COLS, ROWS) => {
   const stages = (biome) => { w.biome[t] = biome; const c = [0, 1, 2, 3].map((s) => { w.worn[t] = s; return cost(w, t); }); w.worn[t] = 0; w.biome[t] = B.MEADOW; return c; };
   const m = stages(B.MEADOW), f = stages(B.FOREST);
   check(m.every((c, s) => Math.abs(m[0] / c - PATHS.speed[s]) < 1e-9), `stage speeds on meadow: ${m.map((c) => (m[0] / c).toFixed(3))}`);
-  // every kind of ground has a cost of its own (VB-439)
+  // every kind of ground has a cost of its own (VB-439), but pine forest and hills, both 3 at the journey scale (VB-780)
   { const kinds = [B.MEADOW, B.BEACH, B.HEATH, B.PINE, B.HILLS, B.FOREST, B.MARSH, B.MOUNTAIN].map((k) => T[k]);
-    check(new Set(kinds).size === kinds.length && kinds.every((c, k) => !k || c > kinds[k - 1]), `each ground its own cost: ${kinds}`); }
-  // roads (a path or a lane) clear the ground: thick forest is much slower than a road through it, which is a little slower than open
-  // meadow, which is a little slower than a road over meadow
-  for (const s of [2, 3]) check(f[0] > 1.5 * f[s] && f[s] > m[0] && f[s] < 1.2 * m[0] && m[0] > m[s] && m[s] > 0.8 * m[0],
+    check(T[B.PINE] === T[B.HILLS] && new Set(kinds).size === kinds.length - 1 && kinds.every((c, k) => !k || c >= kinds[k - 1]), `each ground its own cost: ${kinds}`); }
+  // roads (a path or a lane) clear the ground, and a path is a bad road (Kim, 15 Nov; VB-780): thick forest is more than twice as slow as
+  // a road through it, which is a third to two thirds slower than open meadow, which is a little slower than a road over meadow
+  for (const s of [2, 3]) check(f[0] > 2 * f[s] && f[s] > 1.3 * m[0] && f[s] < 1.7 * m[0] && m[0] > m[s] && m[s] > 0.8 * m[0],
     `forest ${f[0]}, its road ${f[s].toFixed(3)}, meadow ${m[0]}, its road ${m[s].toFixed(3)} (stage ${s})`);
   check(f[1] < f[0] && f[1] > 1.5 * m[0], `trodden forest is still slow (${f[1].toFixed(3)})`);
   check(Math.abs(f[2] - (1 + (T[B.FOREST] - 1) * (1 - PATHS.clear[2])) / PATHS.speed[2]) < 1e-9, 'a worn tile costs (1 + (terrain - 1)(1 - clear)) / speed');

@@ -29,7 +29,8 @@ const villageOf = (st, hh) => st.farmsteads[hh.farmstead].village;
   assert.deepStrictEqual(checkState(st), [], 'invariants after a move within a village');
 }
 
-// ---- between two villages a long day's walk apart (166 tiles of meadow, about 14 hours): a bride walks, in two legs ----
+// ---- between two villages a long day's walk apart (166 tiles of meadow, about 21 hours at 8 tiles an hour): a bride walks, the evening she
+// sets out, a day and the next morning ----
 const W = 180, far = () => tinyState(tinyWorld(Array(9).fill('.'.repeat(W)), { seed: 7 }),
   [{ at: [6, 4], farms: 1, sizes: [5] }, { at: [W - 8, 4], farms: 1, sizes: [5] }], { seed: 7 });
 const st = far(), home = st.households[0], left = st.households[1];
@@ -84,7 +85,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   const a1 = Sim.load(st.w, JSON.parse(JSON.stringify(save.at))), b1 = Sim.load(st.w, JSON.parse(JSON.stringify(save.at)));
   const back = Sim.load(st.w, JSON.parse(JSON.stringify(Sim.save(b1))));
   assert.strictEqual(a1.away.length, 1, 'the save holds the open journey');
-  for (const s of [a1, back]) Sim.advance(s, 1.5 * DAY);
+  for (const s of [a1, back]) Sim.advance(s, 2 * DAY); // from the first night's stop: a day's walk, a night and the last leg
   for (const k of ['away', 'agents', 'pawns', 'households']) assert.strictEqual(canon(a1[k]), canon(back[k]), `continued ${k}`);
   assert.strictEqual(a1.away.length, 0, 'the loaded run arrives too');
 }

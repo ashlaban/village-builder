@@ -1,5 +1,5 @@
 // @sys sim/spread: forest spread into open land (VB-091): the front of open tiles beside woodland, where scrub grows to forest unless
-// farming, work or grazing keeps the land open; the hours scrub adds to clearing
+// farming, work or grazing keeps the land open; the hours scrub adds to clearing; a field let go, wild ground again after its years (VB-1504)
 VB['sim/spread'] = (() => {
   const G = VB['gen'],
     { B, treeStage, setBiome } = G;
@@ -65,6 +65,7 @@ VB['sim/spread'] = (() => {
           w.trees[fd.tile] = SPREAD.scrub * w.treesMax[fd.tile];
         }
     st.front = new Set();
+    st.lapsed = new Set();
     for (let t = 0; t < w.N; t++) if (open(w, t) && (w.trees[t] > 0 || seeded(w, t))) st.front.add(t);
   }
   on('cutBare', (st, e) => {
@@ -73,6 +74,47 @@ VB['sim/spread'] = (() => {
   // Work on tile t today keeps it open (a clearing step, a field or meadow made, a field reclaimed).
   function tended(st, t) {
     st.w.tended[t] = Math.floor(st.t / DAY) + 1;
+  }
+  // @tunable LAPSE: abandoned fields (VB-1504; Kim, 23 Nov): a field let go is developed ground `years` game years untended, then wild
+  // ground of its terrain again. 8 is when scrub would stand on open land beside a wood (SPREAD.scrub of SPREAD.years); an estimate.
+  const LAPSE = { years: 8 };
+  // @state st.lapsed: Set of tile indexes; the tiles of fields let go (sim/fields' letGo) that are still developed ground (w.dev 1) in
+  //   nobody's use, visited once a game day (spreadForest); a tile taken into use again leaves it, and one LAPSE.years untended reverts
+  //   (w.dev 0) and leaves it. Made at seed; at the load of an older save, on the first day, from the developed tiles in nobody's use.
+  //   Written here only.
+  // Tile t was let go today: tended to today, it lapses from now; open land a wood seeds joins the forest's front.
+  function lapse(st, t) {
+    const w = st.w;
+    tended(st, t);
+    lapsedOf(st).add(t);
+    if (st.front && open(w, t) && seeded(w, t)) st.front.add(t);
+  }
+  // The lapsed ground; an older save's is found once: every developed tile (w.dev 1) in nobody's use, lapsing from today.
+  function lapsedOf(st) {
+    if (st.lapsed) return st.lapsed;
+    const w = st.w;
+    st.lapsed = new Set();
+    if (w.dev) for (let t = 0; t < w.N; t++) if (w.dev[t] === 1 && !st.used.has(t)) lapse(st, t);
+    return st.lapsed;
+  }
+  // Once a game day: lapsed ground taken into use again is no longer lapsed; LAPSE.years untended, it is wild ground of its terrain,
+  // walked and drawn as its biome, and never farmed to whoever breaks it next (its stones do not come back).
+  function revert(st, day) {
+    const w = st.w,
+      lapsed = lapsedOf(st);
+    for (const t of lapsed) {
+      VB.count.lapsedTile++;
+      if (st.used.has(t) || w.dev[t] !== 1) {
+        lapsed.delete(t);
+        continue;
+      }
+      if (day - (w.tended[t] - 1) < LAPSE.years * YEAR_DAYS) continue;
+      w.dev[t] = 0;
+      lapsed.delete(t);
+      costChanged(st, t);
+      st.biomeDirty.add(t);
+      st.treeDirty.add(t);
+    }
   }
   // The hours the trees on tile t add to clearing it: none without trees, SPREAD.scrubHours for scrub below half cover, a felling and a
   // grubbing for thick scrub or forest (as forest, VB-031; a plot fells and grubs as steps of their own, before its clearing).
@@ -156,6 +198,7 @@ VB['sim/spread'] = (() => {
       ctx = { restoring: null },
       join = [],
       scale = yearScale(st); // the pressure now is w.graze over the year's scale (sim/grazing, grazeOf), taken once for the pass
+    revert(st, day);
     for (const t of front) {
       VB.count.frontTile++;
       if (!open(w, t) || !(w.trees[t] > 0 || seeded(w, t))) {
@@ -180,5 +223,5 @@ VB['sim/spread'] = (() => {
         if (j >= 0 && open(w, j)) front.add(j);
       }
   }
-  return { GRAZE, SPREAD, initFront, spreadForest, tended, scrubHours, clearScrub, thick };
+  return { GRAZE, SPREAD, LAPSE, initFront, spreadForest, tended, lapse, scrubHours, clearScrub, thick };
 })();

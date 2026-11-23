@@ -904,6 +904,11 @@ function checkState(st) {
       bad.push(`villages[${v.id}]: founded is ${JSON.stringify(fd)}`);
     }
   }
+  // lapsed ground (VB-1504): a Set of tiles, each let go on a known day (w.tended); a house or a green never stands on one
+  if (st.lapsed !== undefined) {
+    if (!(st.lapsed instanceof Set)) bad.push(`lapsed is ${typeof st.lapsed}`);
+    else for (const t of st.lapsed) if (!Number.isInteger(t) || t < 0 || t >= st.w.N || !(st.w.tended[t] > 0) || st.w.dev[t] > 1) bad.push(`lapsed: tile ${t} (dev ${st.w.dev[t]}, tended ${st.w.tended[t]})`);
+  }
   // the village's wood (VB-326): every tile wooded (forest, or scrub the forest has grown on open land, VB-091), in no other village's wood
   // and not in use; within the cap
   const WOOD = globalThis.VB['sim/rules'].WOOD, { B } = globalThis.VB.gen, inWood = new Map();

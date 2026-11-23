@@ -156,6 +156,8 @@ VB.COUNTERS = {
     "A head's menu of projects computed (its options' tiles and sites), for a holder with a surplus and no project, at most once a " +
     'year and when a project ends (sim/aims; VB-255)',
   frontTile: 'Tiles of the forest front visited by spreadForest, once a game day (sim/spread; VB-091)',
+  lapsedTile:
+    'Tiles of fields let go visited by spreadForest, once a game day, until they revert or are used again (sim/spread; VB-1504)',
   giftUncarried:
     'Grain a gift settled at once between two farmsteads, or from a village store to a household: none, by the hard rule (sim/exchange; ' +
     'VB-461)',

@@ -478,7 +478,9 @@ VB['sim/rules'] = (() => {
     hour: 3 / 8,
   };
 
-  const SPEED = 12; // tiles per game hour on foot, on meadow (it was 3: the distance review, Kim, 12 Nov; design.md, World and scale)
+  // tiles per game hour on foot, on meadow (design.md, The journey scale; Kim, 15 Nov; VB-780): it was 3, then 12 (the distance review, Kim,
+  // 12 Nov); at 8 the neighbouring village is 2.5 to 3 hours off and the far side of the medium island days away (VB-444's plan, section 5)
+  const SPEED = 8;
   // Shares for the siblings who do not inherit (heirs.js, transfer): the farm is worth perField per field and perGrain per ration in the store;
   // the reserve (reserveBase plus reservePerMember per member) is never paid out.
   const SHARES = {
@@ -535,11 +537,12 @@ VB['sim/rules'] = (() => {
   });
   // The village's wood (VB-326; design, Land and ecology, The village's wood; Agreed, Kim, 10 Nov): an allotted area of wooded tiles, v.wood
   // (sim/territory), perHousehold tiles for each live household of the village (a household fells about 11 trees a year and a tile of 60 to 80
-  // regrows 2 to 2.7), at least `least` and at most `cap`; the nearest within `reach` walking steps of the centre (4 hours each way on meadow,
-  // so a trip with its 3 hours' cutting fits the working day). A trip cuts on a tile drawn evenly among those keeping more than `thin` of
-  // their trees, else among any (sim/forest). A generated village or a settlers' site needs `least` wooded tiles within `reach`. Where reach
-  // holds too few, the rest of the area lies beyond it, up to `far` steps (VB-421): the farthest a trip still fits the working day, 9 hours'
-  // walk out on meadow (3 steps an hour) and its 3 hours' cutting between 6:00 and 18:00; the laden walk home may run past the day's end.
+  // regrows 2 to 2.7), at least `least` and at most `cap`; the nearest within `reach` walking steps of the centre. Where reach holds too few,
+  // the rest of the area lies beyond it, up to `far` steps (VB-421). A trip cuts on a tile drawn evenly among those keeping more than `thin`
+  // of their trees, else among any (sim/forest). A generated village or a settlers' site needs `least` wooded tiles within `reach`. The two
+  // reaches are distances (Kim, 16 Nov; VB-781 gives them hours), written at 3 steps an hour, when `far` was 9 hours' walk out: at SPEED 8
+  // and the journey scale's dear ground (VB-780), `reach` is 1.5 hours out over meadow, 6 through pathless broadleaf forest and 2.4 on the
+  // path the wood trips wear (worn in at seeding); `far` is 5.4 hours out on a path, and out of a day's work without one.
   const WOOD = { perHousehold: 5, least: 6, cap: 150, reach: 12, far: 27, thin: 0.25 };
   // Peat (VB-367; design.md, Fuel; Proposed, slice 6's plan, 11 Nov): cut in summer (sim/dig) and burnt in place of wood once dry, from the
   // season after it was cut. A load of peat is dug a trip (ECON.woodPerTrip units, as a firewood trip brings); `worth` of wood a unit burns
