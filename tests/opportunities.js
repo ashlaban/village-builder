@@ -21,11 +21,11 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
       const p = st.pawns[id], a = st.agents[id], list = ask(st, id), works = list.filter((o) => o.verb === 'work');
       before.set(id, new Set(works.map((o) => o.target)));
       asked++; most = Math.max(most, list.length);
-      // a job the planner's matching would let this pawn bid for: open, its household's or its village's, with a score that noise can lift above 0
+      // a job the planner's matching would let this pawn bid for: open, its household's or its village's, with a score above 0
       const bids = new Set();
       for (const j of J.jobsFor(st, p)) {
         const s = J.score(st, p, j, c);
-        if (isOpen(st, j) && VB['sim/eligibility'].eligible(st, j, p) && s !== null && s + MATCH.noise > 0 && a.job !== j) bids.add(j.key);
+        if (isOpen(st, j) && VB['sim/eligibility'].eligible(st, j, p) && s !== null && s > 0 && a.job !== j) bids.add(j.key);
       }
       const offered = new Set(works.filter((o) => o.why === null && o.basis !== 'helper').map((o) => o.target));
       for (const k of bids) assert.ok(offered.has(k), `${c.hour.toFixed(1)}: pawn ${id} would bid for ${k}, which is not offered`);
@@ -33,7 +33,7 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
       for (const o of works) {
         assert.ok(['member', 'servant', 'villager', 'helper'].includes(o.basis) && o.holder && o.kind && o.when === 'now', JSON.stringify(o));
         assert.strictEqual(o.basis === 'villager', o.holder.type === 'village');
-        if (o.why === null) { may++; assert.ok(o.fit > -MATCH.noise, `fit ${o.fit}`); } else { barred++; reasons.add(o.why.replace(/\d\d:\d\d/, 'HH:MM')); }
+        if (o.why === null) { may++; assert.ok(o.fit > 0, `fit ${o.fit}`); } else { barred++; reasons.add(o.why.replace(/\d\d:\d\d/, 'HH:MM')); }
       }
       const fits = works.filter((o) => o.why === null).map((o) => o.fit);
       assert.deepStrictEqual(fits, [...fits].sort((x, y) => y - x), 'work it may take comes best fit first');
@@ -42,8 +42,7 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
     // every job a pawn set out for in the step was on its list, unless it was first given out within the step
     for (const id of housed(st)) {
       const j = st.agents[id].job;
-      // nor one a helper may first take within the step (its wait, MATCH.help.waitHours, ended in it: VB-476 left such a job to help)
-      if (!j || !before.has(id) || j.posted >= at || (st.pawns[id].household !== j.owner.id && j.posted + MATCH.help.waitHours >= at)) continue;
+      if (!j || !before.has(id) || j.posted >= at) continue;
       if (st.agents[id].phase === 'go') { taken++; assert.ok(before.get(id).has(j.key), `pawn ${id} took ${j.key}, which was not on its list`); }
     }
   }

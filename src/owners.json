@@ -68,6 +68,7 @@
     "st.obligationsBy": {"owner": "sim/obligations", "category": "cache"},
     "st.daysCalls": "sim/days",
     "st.daysToday": {"owner": "sim/days", "category": "cache"},
+    "st.handsToday": "sim/hands",
     "st.offerSeq": "sim/offers",
     "st.asking": "sim/wishes",
     "st.askingBy": {"owner": "sim/wishes", "category": "cache"},

@@ -147,6 +147,16 @@ function checkState(st) {
       const o = all[oid];
       if (!o || o.kind !== 'days' || !st.pawns[pawn] || !Number.isInteger(day)) bad.push(`daysCalls: [${day}, ${pawn}, ${oid}]`);
     }
+    // VB-470: today's lent hands, each a living pawn lent to another live household, its hours worked within those given
+    if (st.handsToday) {
+      const d = st.handsToday;
+      if (!Number.isInteger(d.day) || !Array.isArray(d.asked)) bad.push(`handsToday: ${JSON.stringify(d).slice(0, 80)}`);
+      for (const [id, e] of Object.entries(d.by || {})) {
+        const p = st.pawns[id], hh = st.households[e[0]];
+        if (!p || !hh || p.household === e[0] || !(e[1] > 0) || !(e[2] >= 0) || (e[3] !== 0 && e[3] !== 1) || (!e[3] && e[2] > e[1] + 1))
+          bad.push(`handsToday: pawn ${id} lent ${JSON.stringify(e)}`);
+      }
+    }
     if (st.daysCalls && st.daysCalls.some((c, i) => i && (st.daysCalls[i - 1][0] > c[0] || (st.daysCalls[i - 1][0] === c[0] && st.daysCalls[i - 1][1] > c[1])))) bad.push('daysCalls: not sorted');
     const made = O.rebuilt(st);
     if (JSON.stringify(made.due) !== JSON.stringify(st.obligationsDue)) bad.push(`obligations: the due-queue ${JSON.stringify(st.obligationsDue)} is not the running ones ${JSON.stringify(made.due)}`);

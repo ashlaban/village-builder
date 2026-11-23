@@ -98,9 +98,9 @@ VB.COUNTERS = {
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
     '(sim/jobs, allot; VB-466)',
   dayTake: 'Tasks of its list an idle pawn passes or takes (sim/jobs, takeDay; VB-466)',
-  helpOffer:
-    "Jobs of a village's households weighed for the offer to helpers, once a village a round with a helper (sim/jobs, offered; VB-106)",
-  helpBid: 'Helper and offered job pairs weighed by the help round (sim/jobs, helpRound; VB-106)',
+  handsAsked: 'Asks for hands made by a head short of hands, at the morning allotment (sim/hands askFor, VB-470)',
+  handsWeighed: 'Farms of the village read by a head short of hands, to choose whom to ask (sim/hands askFor, VB-470)',
+  handsLent: 'Hands lent by a head asked for help, a pawn a day (sim/hands, VB-470)',
   occasionAsked:
     "Pawns weighed as guests of an occasion: a village's people at its meeting, kin and housemates at a wedding or a death " +
     '(sim/occasions, VB-126), the adults asked to an ale evening and to the rite (VB-522)',

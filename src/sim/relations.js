@@ -223,8 +223,8 @@ VB['sim/relations'] = (() => {
   on('bullLent', (st, e) => remember(st, e.borrower, e.lender, 'bull'));
   on('cattleInCrop', (st, e) => remember(st, e.holder, e.keeper, 'crop'));
   on('helped', (st, e) => helped(st, e));
-  // Helpers finished a task of household e.household (sim/agents; VB-106): each knows each adult there better and both remember working
-  // together; the helper's life tells of the farm helped, once a day for a farm.
+  // Helpers gave e.hours of help to household e.household (sim/hands; VB-106, VB-470): each knows each adult there better, by
+  // MATCH.help.tie for each tieHours given, and both remember working together; the helper's life tells of the farm helped, once a day for a farm.
   function helped(st, e) {
     const hh = st.households[e.household],
       f = e.farm || st.farmsteads[hh.farmstead],
@@ -233,7 +233,7 @@ VB['sim/relations'] = (() => {
       for (const m of hh.members) {
         const q = st.pawns[m];
         if (m === h || !q.alive || age(st, q) < H.minAge) continue;
-        grow(st, h, m, H.tie);
+        grow(st, h, m, (H.tie * e.hours) / H.tieHours);
         remember(st, h, m, 'worked');
         remember(st, m, h, 'worked');
       }

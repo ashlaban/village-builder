@@ -7,6 +7,7 @@ VB['sim/work'] = (() => {
   const { age } = VB['sim/records'];
   const { hexSteps } = VB['sim/hex'];
   const Days = VB['sim/days'],
+    Hands = VB['sim/hands'],
     { book: bookHours } = VB['sim/fields'];
   const { hasTeam } = VB['sim/herds'];
   const Carts = VB['sim/carts'];
@@ -130,6 +131,7 @@ VB['sim/work'] = (() => {
       if (K.craft) Skills.practise(st, id, K.craft, dt); // hours at a craft raise the hand's skill at it (VB-360)
       if (j.field && j.farm) bookHours(j.field, st.pawns[id].household === j.farm.household, dt); // VB-462: the class reads it
       if (st.agents[id].basis === 'owed') Days.worked(st, id, dt);
+      else if (st.agents[id].basis === 'helper') Hands.worked(st, id, dt);
     }
   }
   // @state household.workHours (VB-255): [season (year * 4 + season of cal, of the hours counted), hours, last]: the hours its working hands

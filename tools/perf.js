@@ -7,7 +7,7 @@
 require('./help.js')(__filename);
 const { loadModules } = require('../tests/lib/load.js');
 const SYSTEMS = {
-  'jobs refresh and matching': { 'sim/jobs': ['refreshJobs', 'takeDay', 'helpers', 'lookForWork'] },
+  'jobs refresh and matching': { 'sim/jobs': ['refreshJobs', 'takeDay', 'dutyRound', 'lookForWork'] },
   'talk and contacts': { 'sim/relations': ['talkHour'], 'sim/encounters': ['outdoors', 'partners'] },
   'daily life and births': { 'sim/lifecycle': ['dailyLife', 'dailyDeaths'], 'sim/meetings': ['nightCulture'], 'sim/births': ['dailyBirths'] },
   'hunger and meals': { 'sim/hunger': ['feedHousehold', 'spoilGrain'], 'sim/help': ['shareFood'] },

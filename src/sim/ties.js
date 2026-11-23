@@ -36,7 +36,7 @@ VB['sim/ties'] = (() => {
       hardBargain: { label: 'Drove a hard bargain with us', v: -0.1, cap: -0.3, days: 3 * YEAR_DAYS },
       // sim/byre: an unherded herd got into the field through a broken stretch of fence; about the holder of the stretch's keeper (VB-136)
       crop: { label: 'Cattle in our crop', v: -0.1, cap: -0.3, days: 2 * YEAR_DAYS },
-      // sim/agents: a helper finished a job of another household of its village, both ways with each adult there (VB-106; Kim, 10 Nov)
+      // sim/relations: a hand lent gave its hours to another household of its village, both ways with each adult there (VB-106, VB-470; Kim, 10 Nov)
       worked: { label: 'Worked together', v: 0.05, cap: 0.3, days: YEAR_DAYS },
       // sim/workdays: a holder of the village whose household stayed away from a work day; each other holder with a tie to it (VB-120; Kim,
       // 10 Nov: a small negative memory fading over a year; the numbers are the agent's starting values)

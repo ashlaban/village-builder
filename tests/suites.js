@@ -128,7 +128,7 @@ const INTEGRATION = [
   ['node', 'tests/children.js'],
   ['node', 'tests/hands.js'],
   ['node', 'tests/tillcap.js'], // hoe and sow only what the hands can till (VB-1186)
-  ['node', 'tests/helpers.js'],
+  ['node', 'tests/helpers.js'], // help asked for: the ask, the answer, the hands lent and the tie by hours (VB-470)
   ['node', 'tests/help.js'], // food help, with VB-461's fetched gift (VB-889)
   ['node', 'tests/interrupts.js'],
   ['node', 'tests/day.js'],

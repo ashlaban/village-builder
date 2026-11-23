@@ -134,6 +134,7 @@
       "sim/kinds",
       "sim/exchange",
       "sim/days",
+      "sim/hands",
       "sim/keep",
       "sim/help",
       "sim/lifecycle",
