@@ -741,7 +741,9 @@ function checkState(st) {
       }
     }
     // the hand quern (VB-009): null, or a stone of a kind of the good (sandstone or granite; VB-733) made at a time not after now
-    if (h.quern !== null && !(h.quern && globalThis.VB['sim/goods'].kindRow('quern', h.quern.kind) && Number.isFinite(h.quern.made) && h.quern.made <= st.t))
+    // and of a grade of workmanship, a whole number 0 to 4 (VB-761)
+    if (h.quern !== null && !(h.quern && globalThis.VB['sim/goods'].kindRow('quern', h.quern.kind) && Number.isFinite(h.quern.made) && h.quern.made <= st.t
+      && Number.isInteger(h.quern.grade) && h.quern.grade >= 0 && h.quern.grade <= 4))
       bad.push(`households[${h.id}]: quern ${JSON.stringify(h.quern)}`);
     // dug loads (VB-359): whole loads, and no more than the stock a household digs to; its digging ground's tiles on the map
     for (const k of ['clay', 'bogOre']) if (!Number.isInteger(h[k]) || h[k] < 0 ||

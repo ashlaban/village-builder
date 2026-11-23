@@ -33,7 +33,8 @@ checks += 4;
 assert.strictEqual(Goods.goodOf('stone').material, 'stone'); assert.strictEqual(Goods.goodOf('grain').material, null);
 assert.deepStrictEqual([...Goods.kindsOf('stone')], ['granite', 'limestone', 'sandstone', 'slate', 'marble', 'soapstone']);
 assert.deepStrictEqual([...Goods.kindsOf('quern')], ['sandstone', 'granite']); assert.deepStrictEqual([...Goods.kindsOf('grain')], []);
-assert.deepStrictEqual({ ...Goods.kindRow('quern', 'granite') }, { id: 'quern/granite', good: 'quern', kind: 'granite', worth: 20, grit: 0.8 });
+{ const { grades, ...row } = Goods.kindRow('quern', 'granite'); // VB-761: and its rows by grade (tests/workmanship.js)
+  assert.deepStrictEqual(row, { id: 'quern/granite', good: 'quern', kind: 'granite', worth: 20, grit: 0.8 }); assert.strictEqual(grades.length, 5); }
 assert.strictEqual(Goods.kindRow('quern', 'sandstone').grit, 1); assert.strictEqual(Goods.kindRow('quern', 'slate'), undefined);
 assert(Object.isFrozen(Goods.kindRow('stone', 'marble')) && Goods.kindRow('stone', 'marble').grit === undefined, 'a row holds the properties read');
 for (const k of Goods.kindsOf('stone')) assert(Goods.kindRow('stone', k).worth === Norms.norm('worth', 'stone/' + k) && Goods.kindRow('stone', k).worth > 0, k);

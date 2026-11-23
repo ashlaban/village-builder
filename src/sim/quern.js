@@ -12,6 +12,7 @@ VB['sim/quern'] = (() => {
     { grainOf, reserved } = Stores;
   const { dailyNeed } = VB['sim/hunger'];
   const Targets = VB['sim/targets'];
+  const Workmanship = VB['sim/workmanship'];
   // Proposed (slice 6's plan, VB-185, 11 Nov): years, a quern's life from when it was made; renewYears, how long before its end a new one is
   // wanted; perHour, grain ground an hour on sandstone, 1 grain to 1 flour (design.md: about 1 work hour per 4 units); grindHours, one
   // grinding job's work on sandstone (on another rock it takes 1 / its grit as long for the same flour: the registry's row of the quern's
@@ -36,34 +37,42 @@ VB['sim/quern'] = (() => {
   // A rock a quern can be hewn of: a kind of the good 'quern' (sim/goods: sandstone and granite, the best grit first).
   const hewable = (rock) => Goods.kindRow('quern', rock) !== undefined;
   const rockOf = (st, hh) => villageRock(st, st.villages[st.farmsteads[hh.farmstead].village]);
-  // @state household.quern: {kind ('sandstone' | 'granite', a kind of the good 'quern'), made (game hours)} or null: the household's hand
-  //   quern, of the rock it was hewn from (VB-733); worn out QUERN.years after `made`, read in closed form (Rules for cost, 3), and left in
-  //   place until a new one replaces it. Written only here.
+  // @state household.quern: {kind ('sandstone' | 'granite', a kind of the good 'quern'), grade (0 to 4, its workmanship: VB-761), made
+  //   (game hours)} or null: the household's hand quern, of the rock it was hewn from (VB-733), of the grade drawn at its hewing by the
+  //   hewer's skill at stonework (sim/workmanship); worn out QUERN.years times its grade's life after `made`, read in closed form (Rules for
+  //   cost, 3), and left in place until a new one replaces it. Written only here.
   function setQuern(hh, q) {
     hh.quern = q;
   }
-  // A save from before VB-733 named the quern's stone `rock`: it is its kind.
+  // A save from before VB-733 named the quern's stone `rock`: it is its kind; one from before VB-761 has no grade: it is sound.
   function quernsLoaded(st) {
-    for (const hh of st.households)
-      if (hh.quern && hh.quern.kind === undefined) setQuern(hh, { kind: hh.quern.rock, made: hh.quern.made });
+    for (const hh of st.households) {
+      const q = hh.quern;
+      if (q && (q.kind === undefined || q.grade === undefined))
+        setQuern(hh, { kind: q.kind ?? q.rock, grade: q.grade ?? Workmanship.SOUND, made: q.made });
+    }
   }
+  // The registry's row of a quern's kind and grade (sim/goods: its grit scaled by the grade's work, and the grade's life).
+  const rowOf = (q) => Goods.kindRow('quern', q.kind).grades[q.grade];
+  // The hour a quern wears out: QUERN.years times its grade's life after it was made.
+  const endOf = (q) => q.made + QUERN.years * rowOf(q).life * YEAR;
   // The household's working quern, or null: none, or worn out.
-  const quernOf = (st, hh) => (hh.quern && st.t < hh.quern.made + QUERN.years * YEAR ? hh.quern : null);
+  const quernOf = (st, hh) => (hh.quern && st.t < endOf(hh.quern) ? hh.quern : null);
   // Years left of the household's quern (0 when worn out; null with none).
-  const yearsLeft = (st, hh) => (hh.quern ? Math.max(0, (hh.quern.made + QUERN.years * YEAR - st.t) / YEAR) : null);
-  // The grinding speed of a quern against sandstone's: its kind's grit.
-  const speed = (q) => Goods.kindRow('quern', q.kind).grit;
-  // A household of the scenario's start has a quern of its village's bedrock where that is sandstone or granite, else granite, of an age
-  // below QUERN.startAge years spread by its id, so that the start's querns do not all wear out in one year.
+  const yearsLeft = (st, hh) => (hh.quern ? Math.max(0, (endOf(hh.quern) - st.t) / YEAR) : null);
+  // The grinding speed of a quern against sound sandstone's: its kind's grit, times its grade's work.
+  const speed = (q) => rowOf(q).grit;
+  // A household of the scenario's start has a sound quern of its village's bedrock where that is sandstone or granite, else granite, of an
+  // age below QUERN.startAge years spread by its id, so that the start's querns do not all wear out in one year.
   function startQuern(st, hh) {
     const rock = rockOf(st, hh),
       age = (hh.id * 7) % QUERN.startAge;
-    setQuern(hh, { kind: hewable(rock) ? rock : 'granite', made: st.t - age * YEAR });
+    setQuern(hh, { kind: hewable(rock) ? rock : 'granite', grade: Workmanship.SOUND, made: st.t - age * YEAR });
   }
   // A new quern is wanted from QUERN.renewYears before the old one ends, or at once with none. It is hewn of a load on the heap that is
   // of a rock it can be hewn of; the load comes from the household's building step (sim/building), picked (field stone is granite) or
   // quarried where the rock can be hewn, within the step's reach; elsewhere it comes from the fair, when VB-302's fair trades the good.
-  const wanted = (st, hh) => !hh.quern || st.t >= hh.quern.made + (QUERN.years - QUERN.renewYears) * YEAR;
+  const wanted = (st, hh) => !hh.quern || st.t >= endOf(hh.quern) - QUERN.renewYears * YEAR;
   const canHew = (st, hh) => hh.farmstead !== null;
   // The rock of the best load on the heap a quern can be hewn of (the quern's kinds in their order: sandstone's grit first), or null.
   function hewLoad(hh) {
@@ -90,12 +99,16 @@ VB['sim/quern'] = (() => {
     return n;
   }
   // ---- hewing: a load of sandstone or granite off the heap, QUERN.hewHours at home; in winter, or in any season with no working quern;
-  // the quern is of the load's rock (VB-733) ----
-  function hewn(st, hh) {
+  // the quern is of the load's rock (VB-733), of the grade drawn by its hewer `by`'s skill at stonework (VB-761; none named: sound) ----
+  function hewn(st, hh, by = null) {
     const rock = hewLoad(hh);
     if (!hewWanted(st, hh) || !canHew(st, hh) || rock === null) return false;
     Stores.take(st, hh, 'stone/' + rock, 1, 'quern');
-    setQuern(hh, { kind: rock, made: st.t });
+    setQuern(hh, {
+      kind: rock,
+      grade: by === null ? Workmanship.SOUND : Workmanship.draw(st, by, 'stonework'),
+      made: st.t,
+    });
     return true;
   }
   const atHome = (dx, dy) => (st, a, j) => [st.w.hx[j.site] + dx + a.ox * 0.2, st.w.hy[j.site] + dy + a.oy * 0.2];
@@ -143,8 +156,8 @@ VB['sim/quern'] = (() => {
       craft: 'stonework', // VB-360
       spot: atHome(-6, 12),
       urgency: () => QUERN.urgency.hew,
-      done: (st, j, hh) => {
-        hewn(st, hh);
+      done: (st, j, hh, c, by) => {
+        hewn(st, hh, by);
       },
       // while a new quern is wanted and the heap holds a load it can be hewn of: in winter, or at once with none working
       available: (st, hh, f, c, post) => {
@@ -167,6 +180,7 @@ VB['sim/quern'] = (() => {
     material: 'stone',
     kinds: ['sandstone', 'granite'], // VB-733: a quern is of the rock it was hewn from, and grinds at its grit
     reads: ['grit'],
+    graded: { work: ['grit'] }, // VB-761: a quern's grade multiplies its grit (grinding speed) by its work, its years by its life
   });
   return {
     QUERN,
@@ -177,6 +191,7 @@ VB['sim/quern'] = (() => {
     quernsLoaded,
     quernOf,
     yearsLeft,
+    speed,
     startQuern,
     wanted,
     canHew,

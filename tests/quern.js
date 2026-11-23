@@ -102,7 +102,7 @@ function days(quern) {
 // --- wear and want: read from when it was made
 {
   const { st, hh, f } = home(100);
-  hh.quern = { kind: 'granite', made: st.t - 17 * YEAR }; // lint-allow: owner a test's quern
+  hh.quern = { kind: 'granite', grade: 1, made: st.t - 17 * YEAR }; // lint-allow: owner a test's quern
   check(Q.quernOf(st, hh) && !Q.wanted(st, hh) && near(Q.yearsLeft(st, hh), 3), '17 years old: works, not yet wanted, 3 years left');
   hh.quern.made = st.t - 18.5 * YEAR;
   check(Q.quernOf(st, hh) && Q.wanted(st, hh), '18.5 years old: works, and a new one is wanted');
