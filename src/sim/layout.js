@@ -2,12 +2,13 @@
 VB['sim/layout'] = (() => {
   const { B } = VB['gen'];
   const { WOOD } = VB['sim/rules'],
-    { RIVER, SOIL, farmable, byRiver, fertility } = VB['sim/crops'],
+    { RIVER, farmable, byRiver, fertility } = VB['sim/crops'],
     { PATHS } = VB['sim/walking'];
   const { drawnName, nameVillages, nameFarms, loneFarmName } = VB['sim/names']; // names at seeding
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
   const { initWear, wearIn } = VB['sim/paths'];
+  const { newField } = VB['sim/fieldrec'];
   const { initFish } = VB['sim/fish'],
     { initForage } = VB['sim/forage'];
   // ---- placing farms: houses, fields, fences ----
@@ -179,24 +180,7 @@ VB['sim/layout'] = (() => {
     return {
       id,
       house,
-      fields: fields.map((t, k) => ({
-        id: k,
-        tile: t,
-        crop: 'barley',
-        rotation: 'every',
-        step: 0,
-        stage: 'stubble',
-        sown: null,
-        reaped: null,
-        held: 0,
-        fert: fertility(w, t),
-        soil: SOIL.start,
-        tilth: 0,
-        tilthAt: 0, // placed at no tilth: the tick is moot until dung is spread (VB-717)
-        weedOpen: false,
-        weedPosted: null,
-        weedMiss: 0,
-      })),
+      fields: fields.map((t, k) => newField(w, k, t)),
       village: village ? village.id : null,
       household: null,
       name: '',
@@ -456,24 +440,7 @@ VB['sim/layout'] = (() => {
   }
   function fieldOn(w, used, f, tile) {
     used.add(tile);
-    f.fields.push({
-      id: f.fields.length,
-      tile,
-      crop: 'barley',
-      rotation: 'every',
-      step: 0,
-      stage: 'stubble',
-      sown: null,
-      reaped: null,
-      held: 0,
-      fert: fertility(w, tile),
-      soil: SOIL.start,
-      tilth: 0,
-      tilthAt: 0, // placed at no tilth: the tick is moot until dung is spread (VB-717)
-      weedOpen: false,
-      weedPosted: null,
-      weedMiss: 0,
-    });
+    f.fields.push(newField(w, f.fields.length, tile));
   }
   // Hooks run on every farmstead the generator makes, in every scenario: (w, farmstead, used) => void.
   const farmHooks = [];

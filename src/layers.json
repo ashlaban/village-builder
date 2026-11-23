@@ -33,6 +33,7 @@
       "sim/paths",
       "sim/fish",
       "sim/forage",
+      "sim/fieldrec",
       "sim/layout",
       "sim/byhand",
       "sim/forest",

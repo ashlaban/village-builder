@@ -1,6 +1,7 @@
 // @sys sim/newground: new ground made: a field's site cleared of its stones, its ground broken, and the new field it becomes (VB-149, VB-332)
 VB['sim/newground'] = (() => {
-  const { SOIL, fertility } = VB['sim/crops'];
+  const { SOIL } = VB['sim/crops'];
+  const { newField } = VB['sim/fieldrec'];
   const { costChanged } = VB['sim/routes'];
   const { log, atFarm } = VB['sim/records'];
   const { woodTaken } = VB['sim/territory'];
@@ -43,24 +44,7 @@ VB['sim/newground'] = (() => {
   // sim/commons), whose holder adds it to its list.
   function broken(st, tile, id) {
     const w = st.w,
-      fd = {
-        id,
-        tile,
-        crop: 'barley',
-        rotation: 'every',
-        step: 0,
-        stage: 'stubble',
-        sown: null,
-        reaped: null,
-        held: 0,
-        fert: fertility(w, tile),
-        soil: w.dev[tile] ? SOIL.start : SOIL.fresh,
-        tilth: 0,
-        tilthAt: st.t,
-        weedOpen: false,
-        weedPosted: null,
-        weedMiss: 0,
-      };
+      fd = newField(w, id, tile, w.dev[tile] ? SOIL.start : SOIL.fresh, st.t);
     tended(st, tile); // VB-091
     st.used.add(tile);
     woodTaken(st, tile); // a wood tile broken to a field leaves its village's wood (VB-326)
