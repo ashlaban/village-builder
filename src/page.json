@@ -7,6 +7,8 @@
   "page/land.js",
   "page/ground.js",
   "page/reach.js",
+  "page/grazing.js",
+  "page/wear.js",
   "page/loader.js",
   "page/minimap.js",
   "page/tileinfo.js",

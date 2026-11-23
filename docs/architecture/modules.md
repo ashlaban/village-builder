@@ -448,6 +448,6 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   an icon in both sets of `src/page/icons.js` (`ICON` and `ICON_STEN`), and a key panel (`class="ground-key panel"`, `hidden`) beside the
   others over the minimap in `src/body.html`. The file ends with `registerOverlay({id, name, short, key, icon, group, set(on), refresh(), reset(), layer, keyEl})`:
   `set` shows or hides its layer and draws it, `refresh` runs every frame on or off, `reset` for a new world. With no `key` it takes the next
-  free digit (6 to 9: 1 to 5 are the speeds). The overlay button, its list, the keys and `tests/browser-overlays.js` follow the registry: none
+  free digit (6 to 9: 1 to 5 are the speeds; then Y, U and I). The overlay button, its list, the keys and `tests/browser-overlays.js` follow the registry: none
   of them names an overlay.
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.

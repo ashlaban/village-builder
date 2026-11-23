@@ -116,7 +116,7 @@ stage.addEventListener(
 );
 
 const keys = new Set();
-// The overlays' keys are their registry's (overlayShortcut, page/overlays): L, O, J, a digit 6 to 9, 0 for none, [ and ].
+// The overlays' keys are their registry's (overlayShortcut, page/overlays): L, O, J, a digit 6 to 9 or Y, U, I, 0 for none, [ and ].
 const SHORTCUTS = {
   p: 'settlersBtn',
   t: 'treeBtn',

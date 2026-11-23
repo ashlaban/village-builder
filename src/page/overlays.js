@@ -8,14 +8,15 @@
 // The map bar's overlay button shows the overlay on (layers, with none) and unfolds the list of them above the bar, as the bell does its
 // own: a row for each, grouped by `group`. The list stays open after a choice, so that overlays can be compared; it shuts on the button,
 // on Esc and on a press on the map. The hex grid and the regions are not overlays: they are toggles of their own.
-// The list's fold is the page's (never `st`). The digits 1 to 5 choose a speed, so an overlay's digit is 6 to 9.
+// The list's fold is the page's (never `st`). The digits 1 to 5 choose a speed and 0 shows none, so an overlay's digit is 6 to 9; past
+// those, the free letters under them, Y, U and I, are handed out in turn (VB-1493).
 const OVERLAYS = [],
-  OVERLAY_DIGITS = '6789';
+  OVERLAY_DIGITS = '6789yui';
 let overlayOn = null;
 function registerOverlay(o) {
   if (OVERLAYS.some((p) => p.id === o.id || (o.key && p.key === o.key)))
     throw new Error(`overlay ${o.id}: its id or key is taken`);
-  if (!o.key) o.key = OVERLAY_DIGITS[OVERLAYS.filter((p) => /\d/.test(p.key)).length] || '';
+  if (!o.key) o.key = [...OVERLAY_DIGITS].find((k) => !OVERLAYS.some((p) => p.key === k)) || '';
   OVERLAYS.push(o);
   const list = $('overlayList'),
     last = list.lastElementChild,
