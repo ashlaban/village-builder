@@ -93,6 +93,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1486](backlog/VB-1486.md)<a id="VB-1486"></a> | Refactor: split sim/stores by concern | - | 3 | S | sim/stores over 700 lines (VB-700's salt): the ledger and its yearly totals, grain by crop, the household's single stores (wood, stone, peat, tar, hides, salt, dug loads), ale, reservations; split by those, not by the line count |
 | [VB-1487](backlog/VB-1487.md)<a id="VB-1487"></a> | Refactor: split sim/agents by concern | - | 3 | S | sim/agents went over 700 lines with VB-1405's lasting verbs; split it by its concerns |
 | [VB-1488](backlog/VB-1488.md)<a id="VB-1488"></a> | Refactor: split sim/fieldplans by concern | - | 3 | S | sim/fieldplans holds four concerns at 16 exports (VB-768 took it over 15): field demand (yearlyRations, fieldsWorkable, fieldsWanted, and the fields let go: letGoWhy, fieldToLetGo, freesFields), where a field may go (builtTiles, fieldWhy, chooseTile, pickField), the clearing project (clearHours, BREAK_HOURS, beginField, fieldProject, newFieldSeed) and the head's harvest estimate (harvestEstimate); split by those |
+| [VB-1490](backlog/VB-1490.md)<a id="VB-1490"></a> | Page: a tile turned to meadow recolours the overview without waiting for a tree change | - | 3 | S | updateSettlement calls refreshTrees only when st.treeDirty has tiles, so a change that sets only st.biomeDirty waits for the next tree change before the overview is recoloured. |
+| [VB-1491](backlog/VB-1491.md)<a id="VB-1491"></a> | Page: the overview's repaint is painted within the frame budget | - | 3 | S | repaintTiles repaints each changed level-2 chunk whole and at once, outside schedule()'s budget: one frame pays for up to all six overview chunks. |
 
 </details>
 
