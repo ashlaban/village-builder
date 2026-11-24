@@ -1,7 +1,7 @@
 // @sys sim/soil: a field's soil and tilth: worn by a crop, mended by manure, the heap's loads carted to the field that wants them (VB-137, VB-717, VB-718)
 VB['sim/soil'] = (() => {
   const { YEAR } = VB['sim/rules'],
-    { CROPS, SOIL } = VB['sim/crops'];
+    { CROPS, SOIL, wetLoss } = VB['sim/crops'];
   // @tunable TILTH: tilth (VB-717; docs/review-yields.md, 4): a field's slow soil, built by dung and fading over decades. Estimates, with no medieval
   // Nordic source. `perLoad`: what one load of manure adds to a field's tilth (on top of its soil); `years`: the time constant of its
   // fading, in game years (e^-1 left after that long without dung); `max`: a bound for the invariant, which play should never reach.
@@ -67,5 +67,26 @@ VB['sim/soil'] = (() => {
     VB.count.tilthRead++;
     return fd.tilth * Math.exp(-(st.t - fd.tilthAt) / (TILTH.years * YEAR));
   }
-  return { TILTH, wearSoil, rested, surplusOf, manureWanted, manureDone, tilthOf };
+  // @tunable DITCH: a wet field's ditches (VB-721; Kim, 16 Nov: drainage is a land improvement a head decides on). Estimates with no
+  // source (docs/review-yields.md, 2.5: open ditches and ridging are medieval; the gain on wet clay "a quarter or more", unverified; rows of
+  // docs/tuning.md). `share`: the share of the wetness's loss (sim/crops' wetLoss) a new ditch takes away; `years`: the time constant of its
+  // silting, in game years (e^-1 of its work left after that long uncleared), so the gain fades unless the ditch is dug again; `hours`:
+  // the work of ditching a field from nothing (about 120 m of open ditch along a field of 1.95 ha, some 20 m a day); a silted
+  // ditch is dug again for the share of it silted. ----
+  const DITCH = { share: 0.75, years: 10, hours: 60 };
+  // @state farmstead.fields[].ditch: the ditch's state when last dug (0 to 1, absent: none); ditchAt: the tick it was dug. It silts as
+  //   e^-(t/DITCH.years), read in closed form by ditchOf; written only when ditching is done (ditchDug, VB-721).
+  const ditchOf = (st, fd) => (fd.ditch ? fd.ditch * Math.exp(-(st.t - fd.ditchAt) / (DITCH.years * YEAR)) : 0);
+  // The share of field fd's fertility its wetness leaves now: 1 on dry ground; on wet ground the loss less the share its ditch takes away.
+  // Read at the standing crop (sim/fields) and the field's card. Allocates nothing.
+  const wetFactor = (st, fd) => {
+    const loss = wetLoss(st.w, fd.tile);
+    return loss > 0 ? 1 - loss * (1 - DITCH.share * ditchOf(st, fd)) : 1;
+  };
+  // The ditches of field fd dug (sim/drain): as new, from now.
+  function ditchDug(st, fd) {
+    fd.ditch = 1;
+    fd.ditchAt = st.t;
+  }
+  return { TILTH, DITCH, wearSoil, rested, surplusOf, manureWanted, manureDone, tilthOf, ditchOf, wetFactor, ditchDug };
 })();

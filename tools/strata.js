@@ -21,7 +21,7 @@
 // It reads the run and writes nothing to it. Also used by tests/lib/bands.js: `Strata.collector(VB, st)`.
 require('./help.js')(__filename);
 const KINDS_OF = {
-  farm: 'plow sow reap haul weed thresh clear break meadow reclaim rake mow hay fodder manure milk shear slaughter salt fell grub fish gather herd lead hunt boat cart leftCart restore workclear fetchHaul fetchHay fetchLeftCart drove',
+  farm: 'plow sow reap haul weed thresh clear break ditch meadow reclaim rake mow hay fodder manure milk shear slaughter salt fell grub fish gather herd lead hunt boat cart leftCart restore workclear fetchHaul fetchHay fetchLeftCart drove',
   craft: 'brew hewQuern rackfish dry tarpit burntar tarhouse tarboat dig boilsalt smelt mendtools cobble harness',
   household:
     'wood cook water boothwater drink grind foundation walls roof barnbase barnwalls barnroof timber booth leftTimber leftGrain pick quarry raise green wellstone well sweep workfence mend repair mendcart housewell fetchWood fetchLeftTimber fetchLeftGrain fetchWellstone blaze',

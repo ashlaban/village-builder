@@ -8,7 +8,7 @@ VB['sim/fields'] = (() => {
   const Projects = VB['sim/projects'];
   const { clearScrub, lapse, wild, SPREAD, LAPSE } = VB['sim/spread'];
   const { nextStep, failed } = VB['sim/courses'];
-  const { wearSoil, rested, tilthOf } = VB['sim/soil'];
+  const { wearSoil, rested, tilthOf, wetFactor } = VB['sim/soil'];
   const { emit } = VB['sim/events'];
   const { setOwner } = VB['sim/ownership'];
   // A farm's window missed with the task that would have met it still on the board (sim/estimate, VB-476: the head's estimate read against
@@ -77,7 +77,7 @@ VB['sim/fields'] = (() => {
     else fd.trampled = (fd.trampled || 0) + 1;
   };
   // The crop as it stands on field fd, in rations (VB-475): what the field would give at reaping but for the reaping's own draw: its
-  // crop's yield by the field's fertility, soil and tilth, its crop's reading of the seasons (sim/weather, VB-354), the weeding missed
+  // crop's yield by the field's fertility, wetness (VB-721), soil and tilth, its crop's reading of the seasons (sim/weather, VB-354), the weeding missed
   // (`missed` more rounds: the one open at reaping), the strays' trampling and the deer's browsing. Read by the reaping's hours
   // (sim/fieldwork) and by the reaping.
   function standing(st, fd, missed = 0) {
@@ -86,6 +86,7 @@ VB['sim/fields'] = (() => {
       CROPS[fd.crop].yield *
       fd.fert *
       fd.soil *
+      wetFactor(st, fd) *
       (1 + tilthOf(st, fd)) *
       cropFactor(st, fd.crop) *
       (1 - Math.min(E.weedCutMax, E.weedCut * (fd.weedMiss + missed))) *

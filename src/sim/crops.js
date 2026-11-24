@@ -165,6 +165,14 @@ VB['sim/crops'] = (() => {
   // Fertility of a farmable tile as a field: by its biome (or the ground `b` it had, a wood felled and grubbed to meadow, VB-1525), and more
   // when a river waters it.
   const fertility = (w, i, b = w.biome[i]) => GROUND[b]?.fert * (byRiver(w, i) ? 1 + RIVER.irrigation : 1);
+  // @tunable WET: the wetness of a place (VB-721; slice 10's plan, VB-190, 5.1): a tile's moisture w.hm (0 to 1, VB-342), nothing new stored.
+  // A field is wet above `from`, set where about a tenth of the fields lie above it (measured, VB-721: 11% at year 15 of populous seeds 7
+  // and 42 and founders seed 7, small map; at the start of populous none do, its fields lying on the dry meadow), and loses fertility in
+  // proportion beyond it, `most` at moisture 1 (an estimate with no source: docs/review-yields.md, 2.5; docs/tuning.md). A ditch takes
+  // away a share of the loss (sim/soil's DITCH). Marsh keeps its own fertility by its biome (GROUND) besides. ----
+  const WET = { from: 0.45, most: 0.4 };
+  // The share of a field's fertility tile i's wetness takes, 0 on ground no wetter than WET.from. Allocates nothing.
+  const wetLoss = (w, i) => (w.hm[i] > WET.from ? (WET.most * (w.hm[i] - WET.from)) / (1 - WET.from) : 0);
 
   // A tile a settler may farm once it is cleared (VB-786): farmable, a wood among them since a household may break one (VB-1525); its
   // fertility as a field then is its ground's (a wood's own, not the meadow it is grubbed to).
@@ -176,6 +184,8 @@ VB['sim/crops'] = (() => {
     SOIL,
     GROUND,
     RIVER,
+    WET,
+    wetLoss,
     farmable,
     openGround,
     byRiver,

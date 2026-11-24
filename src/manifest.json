@@ -104,6 +104,7 @@
   "sim/building.js",
   "sim/drying.js",
   "sim/tar.js",
+  "sim/drain.js",
   "sim/carts.js",
   "sim/chores.js",
   "sim/green.js",

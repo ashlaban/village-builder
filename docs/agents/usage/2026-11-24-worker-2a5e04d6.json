@@ -1,0 +1,124 @@
+{
+ "session": "2a5e04d6-3263-5cd7-ae99-960a387150e8",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T07:49:11.660Z",
+ "end": "2026-11-24T08:12:13.393Z",
+ "wallMin": 23,
+ "activeMin": 23,
+ "prompts": 1,
+ "calls": 100,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 191,
+  "cacheWrite": 231979,
+  "cacheRead": 18677450,
+  "output": 51822
+ },
+ "context": {
+  "first": 55264,
+  "peak": 248694,
+  "firstEdit": 190025
+ },
+ "tools": {
+  "Bash": {
+   "calls": 101,
+   "bytes": 238965,
+   "seconds": 875.4
+  },
+  "Write": {
+   "calls": 2,
+   "bytes": 276,
+   "seconds": 0.1
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 23,
+   "bytes": 80559
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 2,
+   "bytes": 17923
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 11,
+   "bytes": 17873
+  },
+  {
+   "tool": "Bash",
+   "what": "cat docs/plans/VB-190.md",
+   "calls": 1,
+   "bytes": 15127
+  },
+  {
+   "tool": "Bash",
+   "what": "for t",
+   "calls": 2,
+   "bytes": 13968
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 5,
+   "bytes": 10017
+  },
+  {
+   "tool": "Bash",
+   "what": "git fetch",
+   "calls": 1,
+   "bytes": 9632
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/commands.js",
+   "calls": 1,
+   "bytes": 7567
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7559
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/fieldrec.js",
+   "calls": 1,
+   "bytes": 7319
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 8,
+   "bytes": 5443
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/sim.js",
+   "calls": 1,
+   "bytes": 5395
+  }
+ ],
+ "weighted": 2417020,
+ "task": "VB-721",
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 2417020,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

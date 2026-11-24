@@ -66,6 +66,23 @@ function tilthStat(fields, of = '') {
     meter: { value: n, max: Math.round(100 * VB['sim/soil'].TILTH.max) },
   };
 }
+// A wet field's loss to its wetness now, and its ditch (VB-721), on the one meter; null on dry ground. The loss less what its ditch takes away.
+function wetStat(fd) {
+  if (VB['sim/crops'].wetLoss(st.w, fd.tile) <= 0) return null;
+  const n = Math.round(100 * (1 - Sim.wetFactor(st, fd))),
+    d = Math.round(100 * Sim.ditchOf(st, fd)),
+    most = Math.round(100 * VB['sim/crops'].WET.most);
+  return {
+    icon: 'soil',
+    label: 'Wetness',
+    value: n,
+    note: d >= 1 ? `ditched, the ditch at ${d}%` : 'not ditched',
+    tone: n >= 10 ? 'warn' : '',
+    title:
+      'What the wet ground takes of the harvest, in hundredths; a ditch takes a share of it away, and silts unless dug again',
+    meter: { value: n, max: most },
+  };
+}
 const stats = (list) => `<div class="stat-grid">${list.filter(Boolean).map(stat).join('')}</div>`;
 // A pawn's mood (sim/mood, VB-062): a stat, its level on the one meter marked at the words' cut points (miserable under 25, low under
 // 45, content under 65, happy), the word beside the number; and each modifier in force as its icon and signed value, its label the title.

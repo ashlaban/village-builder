@@ -103,6 +103,7 @@ VB['sim/records'] = (() => {
     fair: 0, // the fair at a gathering: its deals, what changed hands, those that failed for want of change (VB-302)
     cartBuilt: 0, // a household's new cart (VB-327)
     tarPit: 0, // a household's tar pit dug (VB-301)
+    drained: 0, // a household's wet field ditched (VB-721)
     wellDug: 0, // a household's well dug by its house (VB-1584)
     thirst: SHORT, // a pawn that left what it did to drink, THIRST.leave hours without one (sim/drinking, VB-1585)
     trail: 0, // a trail blazed through the wood (VB-447)

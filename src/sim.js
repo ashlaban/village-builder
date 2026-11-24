@@ -52,7 +52,7 @@ const Sim = (() => {
     { shareOwed } = VB['sim/obligations'];
   const { fieldView } = VB['sim/rotations'];
   const { fieldsWanted, harvestEstimate } = VB['sim/fieldplans'],
-    { tilthOf } = VB['sim/soil'];
+    { tilthOf, wetFactor, ditchOf } = VB['sim/soil'];
   const { plotProgress } = VB['sim/expansion'];
   const { ownerOf, setOwner } = VB['sim/ownership'];
   const { heirRanking } = VB['sim/heirranking'],
@@ -214,6 +214,8 @@ const Sim = (() => {
     reasonLine,
     RIVER,
     byRiver,
+    wetFactor, // the share of a field's fertility its wetness and ditch leave now (VB-721): the field's card
+    ditchOf, // a field's ditch now, 0 to 1, closed form (VB-721)
     tilthOf, // a field's tilth now, closed form (VB-717): the field, farm and village cards (VB-719)
     compat,
     bond, // what b is to a: spouse, parent, child, sibling, housemate or null (the page's bond badges, VB-1026)

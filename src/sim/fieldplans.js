@@ -1,7 +1,7 @@
 // @sys sim/fieldplans: field demand, site selection, clearing projects and the head's harvest estimate
 VB['sim/fieldplans'] = (() => {
   const { ECON, FIELDS, SPEED, cal, YEAR_DAYS } = VB['sim/rules'],
-    { CROPS, ROTATIONS, GROUND, SOIL, farmable, fertility } = VB['sim/crops'],
+    { CROPS, ROTATIONS, GROUND, SOIL, farmable, fertility, wetLoss } = VB['sim/crops'],
     { groundKey } = VB['sim/fieldrec'];
   const { rotationOf, courseFor } = VB['sim/rotations'];
   const { age } = VB['sim/records'];
@@ -165,14 +165,14 @@ VB['sim/fieldplans'] = (() => {
     for (const [stage, h] of Object.entries(c.hours)) work += stage === 'weed' ? h * c.weeds : h;
     return { grain: c.yield, work, start: mean(SOIL.start), fresh: mean(SOIL.fresh) };
   }
-  // A site's score, d walking steps from the house: its grain a year (fertility, the soil it would start at) for each hour a year it costs
-  // (the crop's work, the making over SITE.years, the walk). The making: a wood's felling and grubbing (woodHours), the clearing with its
-  // ground's term (clearHours, GROUND.clear) and the breaking, less the worth of a wood's timber in hours (SITE.wood, VB-1525), at least
-  // nothing. Allocates nothing.
+  // A site's score, d walking steps from the house: its grain a year (fertility less its wetness, undrained: VB-721; the soil it would
+  // start at) for each hour a year it costs (the crop's work, the making over SITE.years, the walk). The making: a wood's felling and
+  // grubbing (woodHours), the clearing with its ground's term (clearHours, GROUND.clear) and the breaking, less the worth of a wood's
+  // timber in hours (SITE.wood, VB-1525), at least nothing. Allocates nothing.
   const makingHours = (st, t) =>
     Math.max(0, woodHours(st.w, t) + clearHours(st, t) + BREAK_HOURS - SITE.wood * woodOn(st.w, t));
   const siteScore = (st, t, d, k = siteTerms()) =>
-    (k.grain * fertility(st.w, t) * (st.w.dev[t] ? k.start : k.fresh)) /
+    (k.grain * fertility(st.w, t) * (1 - wetLoss(st.w, t)) * (st.w.dev[t] ? k.start : k.fresh)) /
     (k.work + makingHours(st, t) / SITE.years + (2 * SITE.trips * d) / SPEED);
   // The best farmable tile within reach of the house that the household may take in (its village's outland or wilderness, sim/territory),
   // not on a river, and where farmed land may lie (sim/layout, farmedLand: beside a house, but off the ring round a green and no nearer
@@ -287,6 +287,7 @@ VB['sim/fieldplans'] = (() => {
     pickField,
     chooseTile,
     siteScore,
+    siteTerms,
     beginField,
     fieldProject,
     fellSteps,

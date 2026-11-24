@@ -551,6 +551,7 @@ function settlementTileInfo(i) {
               meter: { value: cond, max: 150, marks: [{ at: 100, label: 'unworn at 100' }] },
             },
             tilthStat([fd]),
+            wetStat(fd),
           ]),
         },
       ];
