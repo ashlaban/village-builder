@@ -27,7 +27,12 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
    model by size: `sonnet` for S, `opus` for M and L. A plan task runs on the strongest model offered, whatever its size (Kim, 16 November):
    its size measures the diff, not the judgement, and the tasks written from it inherit its quality. If that agent type is not offered, start a general-purpose one with the same
    model, told to read `.claude/agents/vb-task.md` and follow it for that task.
-3. When one ends, merge it, one at a time: `git merge --no-ff <its branch>` into the run's branch, then `npm test`.
+3. When one ends `done`, its review comes first (VB-1619; you read no findings): `node tools/review.js eligible VB-NNN --base <base> --head
+   <its branch> --inbox`, the base `git merge-base <its branch> <the run's branch>`. For `review`, start `vb-review` in the background, isolated,
+   the model by size as for the task, at most two beside the implementers, with only "Review VB-NNN; base <sha>; head <sha>; inbox"; its last
+   line is the verdict. Merge on `pass`, `control` or `ineligible`. On `revise`, send the same implementer "Revise VB-NNN" (SendMessage; a
+   fresh `vb-task` by `continue` if it is past 90 calls); it confirms and gives its result again, then merge. One review a task.
+   Merge it, one at a time: `git merge --no-ff <its branch>` into the run's branch, then `npm test`.
    - `index.html` is derived and no longer in the repository (VB-450): a branch from before that may still conflict in it; take
      the deletion (`git rm index.html`), conclude the merge, and go on to `npm test`.
    - Any other conflict, or a red `npm test`: undo the merge (`git merge --abort`, or `git reset --hard` to the commit before it), and

@@ -115,7 +115,7 @@ const hover = (el, html) => { el.addEventListener('mousemove', (e) => { tip.inne
 const sessionCard = (s) => `<b>${esc(s.id)}</b> ${KIND[s.kind]}<br>${esc(s.label)} · ${esc(s.model)} · ${s.date}${s.tasks ? ` · ${s.tasks} tasks handed out` : ''}<br>weighted ${k(s.w)} · ${s.calls} calls<br>`
   + `cache reads ${k(s.cr)} · writes ${k(s.cw)} · output ${k(s.o)}`;
 const card = (t) => `<b>${t.id}</b> ${esc(t.name)}<br>${t.size} · ${esc(t.model)} · ${how(t)} · ${t.date}<br>weighted ${k(t.w)} · ${t.calls} turns · ${t.runs} run${t.runs > 1 ? 's' : ''}<br>`
-  + `cache reads ${k(t.cr)} · writes ${k(t.cw)} · output ${k(t.o)}`;
+  + `cache reads ${k(t.cr)} · writes ${k(t.cw)} · output ${k(t.o)}${t.arm ? `<br>review: ${t.arm}${t.rw ? `, the reviewer ${k(t.rw)}` : ''}${t.vw ? `, the revision ${k(t.vw)}` : ''}` : ''}`;
 
 // ---- the head and the tiles
 const total = sum((t) => t.w), days = [...new Set(T.map((t) => t.date))].sort();
@@ -229,7 +229,7 @@ $('topLegend').innerHTML = legend(all.map(([n, , c]) => [n, null, c]));
 
 // ---- the table
 const COLS = [['Task', 'id'], ['Name', 'name'], ['Size', 'size'], ['Model', 'model'], ['Run as', 'src'], ['Day', 'date'], ['Runs', 'runs'], ['Calls', 'calls'], ['Minutes', 'min'],
-  ['Peak context', 'peak'], ['Input', 'i'], ['Cache writes', 'cw'], ['Cache reads', 'cr'], ['Output', 'o'], ['Weighted', 'w']];
+  ['Peak context', 'peak'], ['Input', 'i'], ['Cache writes', 'cw'], ['Cache reads', 'cr'], ['Output', 'o'], ['Review', 'rw'], ['Revision', 'vw'], ['Weighted', 'w']];
 let sortKey = 'w', asc = false;
 for (const m of [...new Set(T.map((t) => t.model))].sort()) $('fm').add(new Option(m));
 const draw = () => {
@@ -239,7 +239,7 @@ const draw = () => {
   rows.sort((a, b) => { const va = sortKey === 'id' ? idn(a) : a[sortKey], vb = sortKey === 'id' ? idn(b) : b[sortKey]; return (num(va) ? va - vb : String(va).localeCompare(String(vb))) * (asc ? 1 : -1); });
   $('tbl').tHead.innerHTML = '<tr>' + COLS.map(([n, key]) => `<th><button data-k="${key}"${key === sortKey ? ` aria-sort="${asc ? 'ascending' : 'descending'}"` : ''}>${n}</button></th>`).join('') + '</tr>';
   $('tbl').tBodies[0].innerHTML = rows.map((t) => `<tr><td><a href="../backlog/${t.id}.html">${t.id}</a></td><td class="n">${esc(t.name)}</td><td>${t.size}</td><td>${esc(t.model)}</td><td>${how(t)}</td><td>${t.date}</td>`
-    + `<td>${t.runs}</td><td>${t.calls}</td><td>${Math.round(t.min)}</td><td>${k(t.peak)}</td><td>${k(t.i)}</td><td>${k(t.cw)}</td><td>${k(t.cr)}</td><td>${k(t.o)}</td><td><b>${k(t.w)}</b></td></tr>`).join('');
+    + `<td>${t.runs}</td><td>${t.calls}</td><td>${Math.round(t.min)}</td><td>${k(t.peak)}</td><td>${k(t.i)}</td><td>${k(t.cw)}</td><td>${k(t.cr)}</td><td>${k(t.o)}</td><td title="${t.arm || 'no arm recorded'}">${t.rw ? k(t.rw) : t.arm && t.arm !== 'review' ? t.arm : '-'}</td><td>${t.vw ? k(t.vw) : '-'}</td><td><b>${k(t.w)}</b></td></tr>`).join('');
   $('count').textContent = `${rows.length} of ${T.length} tasks, ${k(rows.reduce((a, t) => a + t.w, 0))} weighted`;
 };
 $('tbl').tHead.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; if (sortKey === b.dataset.k) asc = !asc; else { sortKey = b.dataset.k; asc = !T.length || typeof T[0][sortKey] !== 'number'; } draw(); });

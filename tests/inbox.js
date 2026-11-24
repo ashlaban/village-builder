@@ -70,6 +70,8 @@ expect('a ready task note, with its goal and criteria', r.ok, r.out);
 const before = file('BACKLOG.md');
 r = run('', 'apply', '--dry');
 expect('apply --dry writes nothing', r.ok && file('BACKLOG.md') === before && !fs.existsSync(path.join(dir, 'backlog', N + '.md')), r.out);
+r = run('', 'apply', '--task', B);
+expect("apply --task applies only that task's: none of A's", r.ok && /applied 0/.test(r.out) && file('BACKLOG.md') === before, r.out);
 r = run('', 'apply');
 expect('apply: the result, the task, the question, the tuning row and the three findings', r.ok && /applied 8/.test(r.out), r.out);
 const collected = (name) =>
@@ -97,6 +99,8 @@ expect('a task with a criterion unmet goes to Waiting for Kim', r.ok &&
   file('BACKLOG.md').split('\n## Waiting for Kim\n')[1].split('\n## ')[0].includes(`[${B}]`), r.out);
 r = run('', 'report');
 expect('and heads the report with its reason', r.out.includes(`- ${B} def5678: cost not measured`), r.out);
+r = run('', 'report', '--task', B);
+expect("report --task: only that task's lines", r.ok && r.out.includes(`- ${B} def5678`) && !r.out.includes('Animals are led'), r.out);
 r = run('', 'report');
 expect('report: the PR section', r.ok && r.out.startsWith('## For Kim') && r.out.includes('- Animals are led, never carried')
   && r.out.includes('hay jumps') && r.out.includes(`- ${N} Herds are led`), r.out);

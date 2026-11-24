@@ -304,6 +304,22 @@ function claimStats(i) {
 }
 function pick(sx, sy, inspect = true) {
   if (!w || document.body.classList.contains('ui-hidden') || startOpen()) return; // the start's picture is only dragged and zoomed
+  if (site) {
+    if (inspect) siteAt(sx, sy);
+    else {
+      const t = loc(...toWorld(sx, sy), [0, 0]); // a pointer over the land marks the tile it would read
+      if (t !== sel) {
+        sel = t;
+        hoverDirty = true;
+      }
+    }
+    return;
+  } // where to settle takes the map's clicks (page/ui2site)
+  if (u2Live() && st && !choose && played() >= 0) {
+    if (inspect) hudTap(sx, sy);
+    return;
+  }
+
   if (choose) {
     if (inspect) chooseAt(sx, sy);
     return;

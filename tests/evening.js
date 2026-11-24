@@ -51,38 +51,42 @@ for (const hour of [WORK[1], MATCH.day.evening]) {
 hh.waterDay = waterWas; // the probe's own, so that the run below is the settler's as seeded (VB-1544)
 check(posted.length === 1 && posted[0][0] === WORK[1], `the water posted at 18:00, not at 20:00 (${JSON.stringify(posted)})`);
 // 1. day 3: the settler clears land at 17:54; at 18:00 the clearing, not lived by, is let go and he goes home
-until(3, WORK[1] - 0.1);
+const D1 = 4; // day 3 until VB-1666 put the shelter on the house tile
+until(D1, WORK[1] - 0.1);
 const clearing = a.job;
 check(clearing && clearing.kind === 'clear' && a.phase === 'work', `at 17:54 the settler clears (${clearing && clearing.kind})`);
-until(3, WORK[1] + 0.1);
+until(D1, WORK[1] + 0.1);
 check(!a.job && (a.phase === 'home' || a.inside), `at 18:00 the clearing is let go (${a.job && a.job.kind}, ${a.phase})`);
 // 2. day 16 (day 5 until VB-721 moved the settler's field to drier ground, day 10 until VB-1544 had him raise a booth first): water
 // taken at 17:42 is still his after 18:00, and delivered that evening
-const k10 = waterAt(16, 17.7);
+const D2 = 20; // day 16 until VB-1666
+const k10 = waterAt(D2, 17.7);
 check(issue(st, VB['sim/fit'].workCommand(id, k10, 'planner')) === true, 'the settler takes the water at 17:42');
-until(16, WORK[1] - 0.1);
+until(D2, WORK[1] - 0.1);
 const before = a.phase,
   n = a.assigned.assignments; // the tasks it has taken: one let go at 18:00 and called again would count anew
-until(16, WORK[1] + 0.1);
+until(D2, WORK[1] + 0.1);
 check(
   a.job && a.job.key === k10 && a.assigned.assignments === n,
   `after 18:00 the water begun (${before} at 17:54) is still in hand, never let go (${a.job && a.job.key})`,
 );
-until(16, MATCH.day.evening);
-check(hh.waterDay === 16, `the water taken at 17:42 is in by 20:00 (waterDay ${hh.waterDay})`);
+until(D2, MATCH.day.evening);
+check(hh.waterDay === D2, `the water taken at 17:42 is in by 20:00 (waterDay ${hh.waterDay})`);
 // 3. day 18 (day 12 until VB-1544): water wanted from 18:30, after the end of work's call; at 19:00 it is not in, and the evening's call sends the settler
-const k12 = waterAt(18, WORK[1] + 0.5);
-until(18, WORK[1] + 0.9);
-check(hh.waterDay !== 18 && !a.job, `at 18:54 the water is not in (waterDay ${hh.waterDay}) and the settler is free`);
-until(18, WORK[1] + 1.1);
+const D3 = 22; // day 18 until VB-1666
+const k12 = waterAt(D3, WORK[1] + 0.5);
+until(D3, WORK[1] + 0.9);
+check(hh.waterDay !== D3 && !a.job, `at 18:54 the water is not in (waterDay ${hh.waterDay}) and the settler is free`);
+until(D3, WORK[1] + 1.1);
 check(a.job && a.job.key === k12, `at 19:00 the evening's call sends the settler for the water (${a.job && a.job.key})`);
-until(18, MATCH.day.evening + 1);
-check(hh.waterDay === 18, `the water not in at 19:00 is in that evening (waterDay ${hh.waterDay})`);
+until(D3, MATCH.day.evening + 1);
+check(hh.waterDay === D3, `the water not in at 19:00 is in that evening (waterDay ${hh.waterDay})`);
 check(a.inside && !a.job, `and the settler, free, has gone in (inside ${a.inside})`);
 // 4. day 20 (day 14 until VB-1544): none is begun from the evening's hour: water wanted at 20:30 stands unfetched
-const k14 = waterAt(20, MATCH.day.evening + 0.5);
-until(20, 23.5);
-check(hh.waterDay !== 20 && !a.job && st.jobs.get(k14) && !st.jobs.get(k14).claims.length, 'water wanted at 20:30 is not begun');
+const D4 = 24; // day 20 until VB-1666
+const k14 = waterAt(D4, MATCH.day.evening + 0.5);
+until(D4, 23.5);
+check(hh.waterDay !== D4 && !a.job && st.jobs.get(k14) && !st.jobs.get(k14).claims.length, 'water wanted at 20:30 is not begun');
 // 5. the wood of a cold house is lived by; of a warm house with a full pile, not
 const wood = { kind: 'wood', farm: f },
   was = [hh.cold, hh.wood];

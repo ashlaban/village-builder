@@ -85,6 +85,7 @@ const onFrame = (tk) => {
     hoverDirty = false;
   }
   drawMinimapView();
+  u2Frame();
 };
 // Pixi stops its ticker for good when a frame throws; catch it, say so, and keep the game running.
 app.ticker.add((tk) => {

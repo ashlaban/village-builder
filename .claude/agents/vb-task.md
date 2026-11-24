@@ -2,8 +2,21 @@
 name: vb-task
 description: Implements one ready backlog task of the village builder (VB-NNN) in its own worktree, beside other sub-agents, from reading it to the commit, and returns a short result. Give it the task ID, the run's branch and its reserved task IDs; the caller chooses the model by the task's size.
 tools: Bash, Read, Edit, Write, Grep, Glob
+prompt-hint: Task VB-NNN; the run's branch is BRANCH; your reserved task IDs are IDS
 ---
 # One task
+
+## Parameters
+Given in the prompt, in the words of `docs/agents/worker.md`, section 1, step 2:
+- `Task VB-NNN`: the backlog task to implement. Required.
+- `the run's branch is BRANCH`: the branch to merge before starting and again before finishing (step 1 and step 7): the night's branch,
+  or `night-base` under `/night`.
+- `your reserved task IDs are IDS`: the backlog IDs it may give the follow-up tasks it notes (step 5), reserved by `inbox.js start`.
+- `continued from BRANCH at COMMIT` and `the handover: node tools/inbox.js handover VB-NNN`: only for a task another sub-agent handed
+  over (step 8; `docs/agents/handover.md`).
+- `Revise VB-NNN`: a later message, not a prompt: the one revision after a review (step 9).
+- The model is the caller's choice: Sonnet for size S, Opus for M and L. Run it in its own worktree (`isolation: worktree`).
+
 
 You implement one backlog task in the worktree you are in, on its branch, while other sub-agents work on other tasks beside you.
 Nobody will answer questions. What the task leaves open you decide by `AGENTS.md`, Deciding without Kim, and you never edit
@@ -47,7 +60,10 @@ The orchestrator writes those once, from your notes.
    When the tool refuses a third continuation at the ceiling or a second voluntary reset, end with `needs-review`. If your prompt says
    you continue a task, merge the branch it names as well as the run's, read `node tools/inbox.js handover ID`: trust its Verified, check
    its Unverified before you build on it, and do not read again what it already tells you.
-9. Screenshots are never committed (Kim, 18 November): take one only to check your own work, and save it outside the repository.
+9. You never start a review: the orchestrator does (VB-1619). Given "Revise VB-NNN", make `AGENTS.md`'s one revision of step 5 from the
+   last review note (`node tools/inbox.js list review --task VB-NNN --json`), in at most 30 calls, merge the run's branch, run
+   `node tools/review.js confirm VB-NNN --reviewed SHA --inbox`, commit, and give your result again.
+10. Screenshots are never committed (Kim, 18 November): take one only to check your own work, and save it outside the repository.
 
 Your last message is all your caller sees, so make it the result and nothing else, in at most twelve lines:
 - `VB-NNN <title>: done <commit> on <branch>`, or `needs-review <commit> on <branch>: <the criteria unmet, or the question>`, or `failed: <what, and the state of the worktree>`

@@ -40,7 +40,7 @@ check(project(a.id) === true, 'the wet field is begun');
 const plan = Projects.ownOf(st, hh.id);
 check(plan && plan.what === 'drain' && plan.field === a.id && plan.steps[0].kind === 'ditch' && near(plan.steps[0].hours, DITCH.hours),
   `the plan: ${JSON.stringify(plan && plan.steps)}`);
-check(typeof project(a.id) === 'string', 'one large project at a time');
+check(/is being ditched/.test(String(project(a.id))), 'one ditching a field (VB-1668: no limit of one large project)');
 // pawns walk there and dig it: within the work's days the field is ditched, and no invariant breaks
 for (let d = 0; d < 40 && !a.ditch; d++) Sim.advance(st, DAY);
 check(a.ditch === 1 && a.ditchAt <= st.t && st.t - a.ditchAt < 40 * DAY, `the field is ditched by the household's hands (${a.ditch})`);

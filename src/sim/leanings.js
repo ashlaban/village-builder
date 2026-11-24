@@ -1,4 +1,5 @@
-// @sys sim/leanings: read-only views of a person's leanings on the customs: what draws them towards a way (VB-398); no state
+// @sys sim/leanings: read-only views of a person's leanings on the customs: what draws them towards a way (VB-398), and where they
+//   differ from the practice in force (VB-082); no state
 VB['sim/leanings'] = (() => {
   const { OFF, NOPT, DIMS } = VB['sim/customs'],
     { P, WEIGH } = VB['sim/attitudes'];
@@ -62,5 +63,21 @@ VB['sim/leanings'] = (() => {
       own: !!p.advocate && p.advocate.dim === d && p.advocate.opt === j,
     };
   }
-  return { pulls };
+  // The customs where a person's own mind differs most from the practice in force (VB-082, the pawn card's "Leans" line): each custom d
+  // whose way the person favours most is not practice[d], as {dim, opt (the way it favours), practice, by (by how much of its share it
+  // favours opt over the practice)}, the widest first, at most n. A lead under LEAN_MIN is no leaning.
+  const LEAN_MIN = 0.05;
+  function leansOf(p, practice, n = 2) {
+    const out = [];
+    for (let d = 0; d < DIMS.length; d++) {
+      const o = OFF[d],
+        x = practice[d];
+      let y = 0;
+      for (let j = 1; j < NOPT[d]; j++) if (p.att[o + j] > p.att[o + y]) y = j;
+      const by = p.att[o + y] - p.att[o + x];
+      if (y !== x && by >= LEAN_MIN) out.push({ dim: d, opt: y, practice: x, by });
+    }
+    return out.sort((a, b) => b.by - a.by || a.dim - b.dim).slice(0, n);
+  }
+  return { pulls, leansOf, LEAN_MIN };
 })();

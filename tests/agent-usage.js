@@ -135,7 +135,43 @@ fs.writeFileSync(o, [
 r = run(o, '--json');
 const oc = r.ok ? JSON.parse(r.out).continuations : {};
 expect('an orchestrator\'s continuations, and the calls from the news to the launch', oc.launched === 1 && oc.calls === 2, r.out);
+
+// a review (VB-1619): a reviewer known by its meta file, the implementer resumed after it (its revision), kept apart from the task's measures
+const subDir = path.join(dir, 's', 'subagents'), L = (o) => JSON.stringify({ isSidechain: true, ...o });
+fs.writeFileSync(path.join(subDir, 'agent-cccc3333.jsonl'), [
+  L({ type: 'user', timestamp: at(13), message: { role: 'user', content: 'Review VB-123; base a; head b' } }),
+  L({ type: 'assistant', timestamp: at(14), message: { id: 'r1', model: 'z-model', usage: usage(2000, 0, 100), content: [] } })].join('\n'));
+fs.writeFileSync(path.join(subDir, 'agent-cccc3333.meta.json'), JSON.stringify({ agentType: 'vb-review' }));
+fs.appendFileSync(path.join(subDir, 'agent-aaaa1111.jsonl'), '\n' + L({ type: 'assistant', timestamp: at(15), message: { id: 'a3', model: 'y-model',
+  usage: usage(3000, 0, 40), content: [{ type: 'tool_use', id: 'u3', name: 'Edit', input: { file_path: 'src/x.js' } }] } }));
+fs.writeFileSync(path.join(dir, 'results.json'), JSON.stringify([{ task: 'VB-123', status: 'done', size: 'S', review: { arm: 'review', verdict: 'revise', blocking: 1 } },
+  { task: 'VB-124', status: 'failed', size: 'M' }]));
+r = run(file, '--json', '--results', path.join(dir, 'results.json'));
+const rvw = r.ok ? JSON.parse(r.out) : { subagents: [], summary: {} }, rv = rvw.subagents.find((x) => x.role === 'review'), im = rvw.subagents.find((x) => x.task === 'VB-123' && x.role === 'implement');
+// the revision: 2 + 0.1 * 3000 + 5 * 40 = 502; the implementation is the rest
+expect('a reviewer by its meta file, its cost apart, no status', rv && rv.task === 'VB-123' && rv.status === null && rv.weighted === 2 + 200 + 500, r.out);
+expect('the implementer\'s revision, after the reviewer returned', im && im.revision && im.revision.weighted === 502 && im.review.verdict === 'revise'
+  && rvw.summary.perSize.S.median === im.weighted - 502, r.out);
+expect('reviews are not tasks: first pass and counts as before', rvw.summary.firstPass === 0.5 && rvw.summary.tasks === 2
+  && rvw.summary.review.reviews === 1 && rvw.summary.review.revisions === 1 && rvw.summary.review.revisionWeighted === 502, r.out);
+fs.mkdirSync(path.join(dir, 'work'), { recursive: true });
+fs.writeFileSync(path.join(dir, 'work', 'VB-123.json'), JSON.stringify({ task: 'VB-123', confirm: { reviewed: 'b' }, findings: [
+  { id: 'F1', grade: 'blocking', category: 'principle', verified: 'mended' }, { id: 'F2', grade: 'advisory', category: 'test', verified: 'declined' }] }));
+r = run(file, '--json', '--review', path.join(dir, 'work', 'VB-123.json'));
+const sr = r.ok ? JSON.parse(r.out).review : {};
+expect('--review: the arm, the verdict, the outcomes, the reviewer\'s cost', sr.arm === 'review' && sr.verdict === 'revise' && sr.blocking === 1 && sr.advisory === 1
+  && sr.confirmed && sr.findings[0].verified === 'mended' && sr.reviewer && sr.reviewer.weighted === 702, r.out);
+r = run(file, '--json', '--task', 'VB-124', '--arm', 'control');
+expect('--arm: a session not reviewed states its arm', r.ok && JSON.parse(r.out).review.arm === 'control' && JSON.parse(r.out).review.task === 'VB-124', r.out);
+expect('--arm takes control or ineligible', !run(file, '--arm', 'review').ok);
+const f2 = path.join(dir, 'or.jsonl');
+fs.writeFileSync(f2, [{ type: 'user', timestamp: at(0), message: { role: 'user', content: 'Run the night.' } },
+  { type: 'assistant', timestamp: at(1), message: { id: 'o1', usage: usage(10, 0, 1), content: [{ type: 'tool_use', id: 'x1', name: 'Agent', input: { subagent_type: 'vb-review', prompt: 'Review VB-1; base a; head b' } },
+    { type: 'tool_use', id: 'x2', name: 'Bash', input: { command: 'node tools/review.js eligible VB-1 --inbox' } }, { type: 'tool_use', id: 'x3', name: 'Bash', input: { command: 'git status' } }] } }]
+  .map((l) => JSON.stringify(l)).join('\n'));
+r = run(f2, '--json');
+expect('the session\'s own calls on review', r.ok && JSON.parse(r.out).reviewCalls === 2, r.out);
 fs.rmSync(dir, { recursive: true, force: true });
 
 if (errors.length) { console.error('AGENT USAGE FAIL:\n  ' + errors.join('\n  ')); process.exit(1); }
-console.log('agent usage: calls by message id, tokens, context, tools, turns and history from a transcript, no content printed');
+console.log('agent usage: calls by message id, tokens, context, tools, turns and history from a transcript, no content printed; reviewers and revisions apart');

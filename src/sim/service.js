@@ -166,7 +166,7 @@ VB['sim/service'] = (() => {
     const hh = placeHome(st, o),
       q = Number.isInteger(o.to) ? st.pawns[o.to] : null;
     if (!hh || hh.holder === null) return `there is no household ${o.gives && o.gives.household} with a head`;
-    if (o.from !== hh.holder) return `pawn ${o.from} is not the head of household ${hh.id}`;
+    if (o.from !== hh.holder) return `pawn ${o.from} is not the head of the household`;
     if (!q || !q.alive || q.household === null) return `pawn ${o.to} is not a living pawn with a home`;
     if (q.household === hh.id) return `pawn ${o.to} lives there already`;
     const whose = moveWhy(st, q.id, hh.id, 'service');

@@ -114,5 +114,6 @@ for (const p of st.pawns) if (p.died === null) assert(Sim.reasonLine(st, p.id), 
 // no simulation module names the view: only the Sim facade reads it
 const r = build();
 const readers = r.deps.filter((d) => d.imports.includes('sim/reasons') || d.lookups.some((l) => l.key === 'sim/reasons')).map((d) => d.mod);
-assert.deepStrictEqual(readers, ['sim'], `only sim reads sim/reasons, not ${readers.join(', ')}`);
+// sim/agenda (VB-1644), itself a view read by no simulation module, words its causes by this one's
+assert.deepStrictEqual(readers, ['sim/agenda', 'sim'], `only sim and the agenda read sim/reasons, not ${readers.join(', ')}`);
 console.log(`reasons ok: ${seen.size} of ${VB['sim/reasons'].BY.length} kinds of chooser reached (duty is VB-1553's)`);

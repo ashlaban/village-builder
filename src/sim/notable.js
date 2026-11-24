@@ -52,6 +52,7 @@ VB['sim/notable'] = (() => {
     hunger: 'Deaths from hunger',
     farm: 'Farms left empty, claimed or newly built',
     custom: 'Changes of custom',
+    cause: 'Causes taken up',
     meeting: 'Village meetings that did not decide',
     gathering: 'Gatherings that concern the played person, as they begin',
   };
@@ -99,6 +100,7 @@ VB['sim/notable'] = (() => {
     const k = ev.kind;
     if (FARM.has(k)) return ['farm'];
     if (CUSTOM.has(k)) return ['custom'];
+    if (k === 'cause') return ev.reason === 'natural' ? ['cause'] : null; // taken up on its own (VB-082), not laid down or ended
     if (k === 'meetingFailed') return ['meeting'];
     if (k !== 'died' && k !== 'born' && k !== 'married') return null;
     const why = [];
@@ -113,6 +115,9 @@ VB['sim/notable'] = (() => {
   // births, marriages and deaths from before the start, seeded as history, carry none.
   function eventLine(st, ev) {
     if (ev.kind !== 'died') {
+      // a cause taken up is told with its pawn's name, as the notice tells it (VB-082): "Took up the cause: ..." in its own history
+      if (ev.kind === 'cause' && ev.reason === 'natural' && /^Took up/.test(ev.text))
+        return `${fullName(st.pawns[ev.pawn])} took up${ev.text.slice(7)}.`;
       if (ev.text) return ev.text;
       if (ev.kind === 'born') return `${fullName(st.pawns[ev.pawn])} was born.`;
       if (ev.kind === 'holds') return `${fullName(st.pawns[ev.pawn])} holds ${st.farmsteads[ev.farm].name}.`;

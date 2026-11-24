@@ -288,6 +288,9 @@ VB['sim/rules'] = (() => {
     maxAge: 15,
     keepBullUnder: 8,
     byre: 6,
+    // a farm with no byre (VB-1665; sim/byrehouse) winters its animals in the open: each lean day of the stall winter counts openLean
+    // (a whole number: herd.lean counts days) towards the herd's lean, against 1 under a roof (sim/byre)
+    openLean: 2,
     startMargin: 1.1,
     // the byre and the autumn count (sim/byre, VB-134): the count on autumn day 8 (doy 31) keeps what hay × margin feeds; old ages; meat a head
     // (Kim, 31 Oct); fodder hours (base, a head of cattle, a sheep); slaughter hours; fresh meat keeps freshDays, salt meat saltDays; salting
@@ -603,6 +606,13 @@ VB['sim/rules'] = (() => {
     // built by a plot's cottage's stages (hours as theirs) with `timber` loads felled in the village's wood for its walls; a farm with one
     // loses `loss` times the grain to spoilage (ECON.storeLoss, sim/hunger) and the barn hay (HERD.hayLoss, sim/byre)
     barn: Object.freeze({ timber: 40, hours: Object.freeze([30, 60, 30]), loss: 0.5 }),
+    // a byre (VB-1665; Kim, 24 Nov 2026: "a byre of about 20 timber loads and 60 hours houses six"): its walls take `timber` loads felled
+    // in the village's wood; `hours` its walls' and its roof's (sim/byrehouse); it houses HERD.byre places
+    byre: Object.freeze({ timber: 20, hours: Object.freeze([40, 20]) }),
+    // the timber house (VB-1664), built up from a cottage (sim/timberhouse): its frame takes `timber` loads felled in the village's wood;
+    // `hours` its frame's and its roof's, about 150 in all; its room and its smaller fire are sim/house's ROOM; a head left to its own rule
+    // begins one only with `hands` working hands or more (sim/upgrade ownTimber)
+    timberHouse: Object.freeze({ timber: 30, hours: Object.freeze([100, 50]), hands: 3 }),
   };
   // The village's office (VB-314; design.md, The alderman): standing gained while in office, and what the election weighs: a candidate's
   // standing (`standing` the weight of one point of it) against a voice's opinion of him (opinions run -1 to 1).

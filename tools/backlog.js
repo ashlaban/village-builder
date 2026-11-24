@@ -3,14 +3,18 @@
 // tests/backlog.js checks the result after every change. Prose outside the task tables is never touched.
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
 const USAGE = `usage: node tools/backlog.js <command> [--root DIR]
-  next [N]                  the first N ready tasks (default 3), in the order they are taken, with summaries
+  next [N] [--size S|M|L] [--unattended]
+                            the first N ready tasks (default 3), in the order they are taken, with summaries; --size keeps one size;
+                            --unattended leaves out the tasks flagged "Flag: Kim takes part" (taken only in a session with Kim)
   list [IDs] [--status S] [--arch KEY] [--waits-for ID] [-s]
                             one line per task (default: open tasks, in table order); S may be open, done or a status list a,b; -s adds summaries
   show ID... [--brief]      a task's file; --brief stops before its notes and reports
   done ID... [--date D]     mark done (Status: done (D)): rows to the archive, ID dropped from "Waits for:" lines, freed tasks set ready
-  set ID key=value...       status, priority, size, arch, phase, waits, name, summary (status=done is the same as done)
+  set ID key=value...       status, priority, size, arch, phase, waits, cause, name, summary (status=done is the same as done)
+                            cause=VB-NNN: the task whose change introduced the defect this one mends (cause= removes it)
   new key=value...          the next free ID (above this checkout's task files and those of the branches fetched from origin and pushed in
-                            the last 14 days: tools/lib/ids.js): name, status, priority, size, summary required; arch, phase, waits, ref, goal optional;
+                            the last 14 days: tools/lib/ids.js): name, status, priority, size, summary required; arch, phase, waits, cause,
+                            ref, goal optional;
                             id=VB-NNN takes a reserved ID instead (tools/inbox.js start)
   close-arch KEY            an arch with no open tasks: its row moves to the archive's closed archs
   sync [--dry]              rewrite the tables from the task files, e.g. after editing a header by hand; --dry only reports`;
@@ -20,14 +24,14 @@ const option = (k) => { const i = args.indexOf(k); if (i < 0) return null; const
 const flag = (k) => { const i = args.indexOf(k); if (i < 0) return false; args.splice(i, 1); return true; };
 const root = path.resolve(option('--root') || path.join(__dirname, '..'));
 const today = option('--date') || new Date().toISOString().slice(0, 10);
-const dry = flag('--dry'), brief = flag('--brief'), withSummary = flag('-s');
+const dry = flag('--dry'), brief = flag('--brief'), withSummary = flag('-s'), unattended = flag('--unattended'), size = option('--size');
 const filters = { status: option('--status'), arch: option('--arch'), waitsFor: option('--waits-for') };
 const fail = (msg) => { console.error('backlog: ' + msg); process.exit(1); };
 
 const STATUSES = ['ready', 'needs-review', 'blocked', 'done'];
 const TABLES = { ready: ['BACKLOG.md', 'Ready'], 'needs-review': ['BACKLOG.md', 'Waiting for Kim'], blocked: ['BACKLOG.md', 'Blocked'],
   done: ['BACKLOG_ARCHIVE.md', 'Done tasks'] };
-const HEADER = ['Status', 'Waits for', 'Priority', 'Size', 'Arch', 'Phase'];
+const HEADER = ['Status', 'Waits for', 'Cause', 'Priority', 'Size', 'Arch', 'Phase'];
 const phaseOf = (name) => (/^Plan:/.test(name) ? 'plan' : /^Wrap-up:/.test(name) ? 'wrap-up' : 'implement');
 const num = (id) => +id.slice(3);
 const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
@@ -45,14 +49,19 @@ for (const f of fs.readdirSync(dir).filter((f) => /^VB-\d{3,}\.md$/.test(f)).sor
 }
 const task = (id) => tasks.get(id) || fail(`no task ${id} (backlog/${id}.md)`);
 
-// A header line is replaced in place, removed (value null), or inserted after the header line that comes before it.
+// A header line is replaced in place, removed (value null), or inserted after the header line that comes before it. Only the header
+// block (the title and the HEADER lines under it) is touched: a note further down may begin with the same word ("Cause: ...").
 function put(t, key, value) {
+  const lines = t.text.split('\n'), isHead = (l) => HEADER.some((k) => l.startsWith(k + ': '));
+  let end = 1; while (end < lines.length && isHead(lines[end])) end++;
+  let head = lines.slice(0, end).join('\n') + '\n';
   const re = new RegExp(`^${key}: .*\\n?`, 'm');
-  if (re.test(t.text)) t.text = t.text.replace(re, value == null ? '' : `${key}: ${value}\n`);
+  if (re.test(head)) head = head.replace(re, value == null ? '' : `${key}: ${value}\n`);
   else if (value != null) {
-    const prev = HEADER.slice(0, HEADER.indexOf(key)).reverse().find((k) => new RegExp(`^${k}: `, 'm').test(t.text));
-    t.text = t.text.replace(prev ? new RegExp(`^${prev}: .*$`, 'm') : /^# .*$/m, (line) => `${line}\n${key}: ${value}`);
+    const prev = HEADER.slice(0, HEADER.indexOf(key)).reverse().find((k) => new RegExp(`^${k}: `, 'm').test(head));
+    head = head.replace(prev ? new RegExp(`^${prev}: .*$`, 'm') : /^# .*$/m, (line) => `${line}\n${key}: ${value}`);
   }
+  t.text = head + lines.slice(end).join('\n');
   t.dirty = true;
 }
 function setStatus(t, status) {
@@ -192,7 +201,7 @@ function parsePairs(list) {
   return pairs;
 }
 function apply(t, p) {
-  const known = ['status', 'priority', 'size', 'arch', 'phase', 'waits', 'name', 'summary'];
+  const known = ['status', 'priority', 'size', 'arch', 'phase', 'waits', 'cause', 'name', 'summary'];
   for (const k of Object.keys(p)) if (!known.includes(k)) fail(`unknown key "${k}" (one of ${known.join(', ')})`);
   if (p.name) { t.name = p.name; t.text = t.text.replace(/^# .*$/m, () => `# ${t.id}: ${p.name}`); t.dirty = true; }
   if (p.priority) { if (!/^[1-3]$/.test(p.priority)) fail('priority is 1, 2 or 3'); t.priority = p.priority; put(t, 'Priority', p.priority); }
@@ -212,20 +221,27 @@ function apply(t, p) {
     for (const w of list) if (w !== 'Kim' && !tasks.has(w)) fail(`waits for ${w}, which has no file`);
     setWaits(t, list);
   }
+  if (p.cause !== undefined) {
+    if (p.cause && (!tasks.has(p.cause) || p.cause === t.id)) fail(`cause=${p.cause}: ${p.cause === t.id ? 'a task is not its own cause' : 'no such task file'}`);
+    put(t, 'Cause', p.cause || null); t.dirty = true;
+  }
   if (t.status === 'blocked' && !t.waits.length) fail(`${t.id} is blocked: give waits=VB-NNN[, ...] or waits=Kim`);
   if (t.status !== 'blocked' && t.waits.length) fail(`${t.id} is ${t.status}: only blocked tasks wait (drop waits=)`);
 }
 const [cmd, ...rest] = args;
 const report = [];
 if (cmd === 'next') {
-  const ready = ordered('ready'), n = +(rest[0] || 3);
+  const all = ordered('ready'), n = +(rest[0] || 3), kimTakesPart = (t) => /^- Flag: Kim takes part/m.test(t.text);
+  const ready = all.filter((t) => (!size || t.size === size.toUpperCase()) && !(unattended && kimTakesPart(t)));
   for (const t of ready.slice(0, n)) {
     const freed = [...tasks.values()].filter((u) => u.waits.includes(t.id)).map((u) => u.id + (u.waits.length === 1 ? '*' : ''));
     console.log(`${t.id} P${t.priority} ${t.size} ${t.arch}: ${t.name}\n    ${summaries.get(t.id)}`
       + (freed.length ? `\n    waited for by ${freed.join(', ')} (* only this)` : ''));
   }
   const count = (s) => ordered(s).length;
-  console.log(`${ready.length} ready (${Math.max(0, ready.length - n)} more), ${count('needs-review')} waiting for Kim, ${count('blocked')} blocked;`
+  const left = all.length - ready.length;
+  console.log(`${ready.length} ready${left ? ` of ${all.length} (${left} left out by --size or --unattended)` : ''}`
+    + ` (${Math.max(0, ready.length - n)} more), ${count('needs-review')} waiting for Kim, ${count('blocked')} blocked;`
     + ' read one with  node tools/backlog.js show ID');
 } else if (cmd === 'list') {
   const statuses = !filters.status || filters.status === 'open' ? STATUSES.slice(0, 3) : filters.status.split(',');

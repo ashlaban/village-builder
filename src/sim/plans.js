@@ -165,12 +165,14 @@ VB['sim/plans'] = (() => {
     emit(st, 'planReviewed', { plan, c, why }); // the head's projects (sim/aims, VB-255), its supply outlook (sim/outlook, VB-666)
   }
   // The land step (at each review of a household's plan): a new field while the household has fewer than the plan's target, else a hay
-  // meadow while it is short of one; none while its head holds off projects (VB-253). The tile is the one the plan names, while it still
+  // meadow while it is short of one; none while its head holds off projects (VB-253; sim/projects' heldOff: also the played head with
+  // automatic behaviour off, VB-1651). The tile is the one the plan names, while it still
   // passes the verb's check (cleared when it no longer does), else the holder's choice (pickField, pickMeadow); the field or meadow is
   // begun through the head's verb `project`, the holder's rule as the player's (source 'pawn'; VB-253). `built`: the houses and greens,
   // once for every farm's look (sim/fields, builtTiles).
   function landStep(st, plan, f, hh, built) {
-    if (!(plan.chosen && plan.chosen.project === 'none')) {
+    if (!Projects.heldOff(st, hh.id)) {
+      // the head's prudence, its own choice and not a refusal (VB-1668): it begins a field or a meadow only with no large project under way
       if (!Projects.ownOf(st, hh.id) && f.fields.length < plan.targets.fields) landBy(st, plan, f, hh, 'field', built);
       if (!Projects.ownOf(st, hh.id) && (wantsMeadow(st, f, hh) || wantsFirstMeadow(st, f, hh)))
         landBy(st, plan, f, hh, 'meadow', built);
@@ -233,7 +235,7 @@ VB['sim/plans'] = (() => {
   // Why `steps` may not be the order of household id's routines this season, or null: the same routines as its seasonal plan's, each once.
   function orderWhy(st, id, steps) {
     const sp = st.plans.seasons.get(id);
-    if (!sp) return `household ${id} has no seasonal plan`;
+    if (!sp) return `the household has no seasonal plan`;
     if (!Array.isArray(steps) || steps.length !== sp.steps.length || new Set(steps).size !== steps.length)
       return `the order must name each of the season's ${sp.steps.length} routines once`;
     for (const k of steps) if (!sp.steps.includes(k)) return `${k} is not a routine of the season`;
@@ -243,18 +245,20 @@ VB['sim/plans'] = (() => {
   function holdProject(st, id, on) {
     choices(st.plans.households.get(id)).project = on ? 'none' : null;
   }
-  // Why household hh may not begin the land project `what` on `tile` now, or null: a farm of its own, no project under way, and the
-  // tile's check (fieldWhy, meadowWhy: claims, reach, the farm's block).
+  // Why household hh may not begin the land project `what` on `tile` now, or null: a farm of its own, no project of the household's at
+  // the tile, and the tile's check (fieldWhy, meadowWhy: claims, reach, the farm's block). For every head, beside any other project
+  // (VB-1651, VB-1668): whether a head begins one beside another is its own rule's (the land step).
   function landWhy(st, hh, what, tile) {
     if (what !== 'field' && what !== 'meadow') return `there is no land project ${what}`;
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
-    const p = Projects.ownOf(st, hh.id);
-    if (p) return `household ${hh.id} has a ${p.what} under way`;
+    if (!f || f.household !== hh.id) return `the household has no farm of its own`;
+    for (const q of projectsOf(st, 'household', hh.id))
+      if (q.steps.some((x) => x.place === tile)) return `a ${q.what} of the household's is under way at ${tile}`;
     return (what === 'field' ? fieldWhy : meadowWhy)(st, f, hh, tile);
   }
   // The new field or meadow begun on `tile` (sim/fields' beginField, sim/meadows' beginMeadow: staked, or a stake contested), its project
-  // plan made; the plan's named tile used. Nothing is begun when a contest is lost.
+  // plan made (marked `side` by makeProject when begun beside another of its kinds, VB-1668); the plan's named tile used. Nothing is
+  // begun when a contest is lost.
   function beginLand(st, hh, what, tile) {
     const f = st.farmsteads[hh.farmstead],
       p = what === 'field' ? beginField(st, f, hh, tile) : beginMeadow(st, f, hh, tile);
@@ -272,7 +276,8 @@ VB['sim/plans'] = (() => {
   }
   // What the head may choose, for the page (VB-256): the targets now (the head's, by its foresight and bias: VB-254), the custom's (its
   // culture's template, unbiased; the fields its household's food asks), the head's own choices, their bounds, the named tiles, the
-  // season's order and the project under way (the large one, ownOf) and the small constructions beside it (VB-1414); the head's skill
+  // season's order and the project under way (the large one, ownOf; `projects` every large one, VB-1651, VB-1668: side by side, each
+  // {id, what, step, tile}) and the small constructions beside it (VB-1414); the head's skill
   // and horizon; or null for a household with no plan. Plain data, a copy.
   function headView(st, id) {
     const plan = st.plans.households.get(id),
@@ -310,6 +315,9 @@ VB['sim/plans'] = (() => {
       order: [...sp.steps],
       orderBy: sp.by || 'template',
       project: p ? { id: p.id, what: p.what, step: p.steps[p.open].kind } : null,
+      projects: Projects.projectsOf(st, 'household', id)
+        .filter((q) => q.what !== 'cottage' && !q.small)
+        .map((q) => ({ id: q.id, what: q.what, step: q.steps[q.open].kind, tile: q.steps[q.open].place })),
       small: Projects.projectsOf(st, 'household', id)
         .filter((q) => q.small)
         .map((q) => ({ id: q.id, what: q.what, step: q.steps[q.open].kind, tile: q.steps[q.open].place })),
@@ -334,18 +342,18 @@ VB['sim/plans'] = (() => {
       return (
         living(st, c.actor) ||
         (hh.holder !== c.actor
-          ? `pawn ${c.actor} is not the head of household ${id}: only its head changes its plan`
+          ? `pawn ${c.actor} is not the head of the household: only its head changes its plan`
           : null)
       );
     return c.actor && c.actor.household === id && hh.holder === null
       ? null
-      : `only the head of household ${id} changes its plan`;
+      : `only the head of the household changes its plan`;
   }
   const farmOf = (st, c) => {
     const hh = st.households[c.target];
     return hh.farmstead !== null && st.farmsteads[hh.farmstead].household === hh.id
       ? null
-      : `household ${c.target} has no farm of its own`;
+      : `the household has no farm of its own`;
   };
   const landWhat = (what) => (what === 'field' || what === 'meadow' ? null : `there is no land project ${what}`);
   // The tile a land project `what` is begun on: args.tile, else the tile the plan names, else the holder's own pick (-1: none).
@@ -390,7 +398,7 @@ VB['sim/plans'] = (() => {
     run: (st, c) => setOrder(st, c.target, c.args.steps),
   });
   // project({what, tile, ...}): begin a new field or meadow (what) now, on `tile`, else the tile the plan names, else the holder's own pick;
-  // refused while a project is under way, and under the tile's checks. The land step is the holder's rule for it (sim/plans, source
+  // beside any other project, one a tile (VB-1651, VB-1668), and under the tile's checks. The land step is the holder's rule for it (sim/plans, source
   // 'pawn'). what 'none': the head holds off projects (its rule begins none: the land step, its yearly look at a boat, a cart, a tar pit,
   // its menu); null clears that. Any other what is a making of sim/makings (VB-678: a boat, a cart, a tar pit, a barn, a farm for the heir
   // with args.heir), under that making's one check, the same for every head, played or not; its plan is made here.
@@ -463,8 +471,8 @@ VB['sim/plans'] = (() => {
       return droppable(st, c.target, id)
         ? null
         : id === undefined
-          ? `household ${c.target} has no project under way`
-          : `household ${c.target} has no project ${id} under way`;
+          ? `the household has no project under way`
+          : `the household has no project ${id} under way`;
     },
     run: (st, c) => {
       giveUp(st, st.households[c.target], droppable(st, c.target, c.args ? c.args.id : undefined));

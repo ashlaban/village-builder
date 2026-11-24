@@ -7,6 +7,7 @@
 var VB = (globalThis.VB = globalThis.VB || {});
 // Work measurements only: never part of st or an input to a simulation decision.
 VB.COUNTERS = {
+  campLook: 'Households read each working hour for a camp left to itself (sim/upgrade ownRung, VB-1658)',
   letGoJobs:
     "Jobs read to see whether a field a household might let go has a task on it, on its head's planning day after the harvest " +
     '(sim/fieldplans letGoWhy, VB-768)',

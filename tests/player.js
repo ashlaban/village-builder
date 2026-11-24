@@ -27,13 +27,15 @@ const FARMER = 0, WIFE = 1;
   assert.strictEqual(plain.player, null, 'no one plays a new run');
   assert.strictEqual(Sim.inhabit(played, FARMER), true);
   assert.deepStrictEqual(played.player, {
-    pawn: FARMER, auto: true, queue: [], refused: null, since: played.t, left: null, ended: null, last: null, days: [] });
+    pawn: FARMER, auto: true, queue: [], refused: null, since: played.t, left: null, ended: null, last: null, days: [], sleep: { owed: 0, asleep: false, at: played.tick } });
   for (const st of [plain, played]) Sim.advance(st, 5 * Sim.DAY);
   sound(played, 'inhabited and left alone');
   const marks = (list) => list.filter((e) => e.kind === 'player');
   assert.strictEqual(marks(played.record).length, 1); assert.strictEqual(marks(Sim.recordOf(played, { pawn: FARMER, life: true })).length, 1);
   assert.strictEqual(marks(played.record)[0].text, 'Played by the player');
   dropKind(played, 'player');
+  // a help refused is told only where the player is one of the two (sim/hands refused): a line of the record, not of behaviour
+  dropKind(played, 'offerRefused');
   played.player = null;
   assert.strictEqual(hash(played), hash(plain), 'an inhabited pawn with no commands changes nothing in five days');
   assert.ok(typeof Sim.inhabit(plain, 9999) === 'string', 'only a living pawn is inhabited');

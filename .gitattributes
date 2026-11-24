@@ -16,3 +16,4 @@ tools/sim.js merge=vb-js
 tools/perf.js merge=vb-js
 docs/bench/history.jsonl merge=union
 docs/bench/bands.jsonl merge=union
+docs/agents/changes.md merge=union
