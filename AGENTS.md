@@ -141,7 +141,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   claims, so debts and dues are "obligations".
 - Interface sketches in design documents are TypeScript-style types: shape and ownership, not code to build.
 - Hot paths to watch: the household's membership caches, the per-tile travel cost (compile it), the death roll; the rules registry's `value()`
-  must not allocate. A categorical derived view (class, tier) feeds a rule only through hysteresis.
+  must not allocate. A categorical derived view (class, a place's label) is shown with hysteresis and feeds no rule: a rule reads the measure behind it (`design.md`, A label is read, never a switch).
 - Late-game cost: cost grows with history and with pairs before it grows with people (docs/cost.md, section 1). Measure a change that adds a
   loop on a late save (`node tools/sim.js --load FILE --years 1 --report perf`), not only on populous at year 2.
 
