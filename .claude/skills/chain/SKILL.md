@@ -6,7 +6,9 @@ model: sonnet
 ---
 # The coordinator of a chain
 
-Arguments: `$ARGUMENTS`. `SIZE` is S, M or L (required); `N` the number of tasks, default 8.
+Arguments: `$ARGUMENTS`:
+- `SIZE`: `S`, `M` or `L`. Required.
+- `N`: the number of tasks; default 8.
 
 You run on Sonnet; if this session runs on another model, carry on. You implement nothing and read no code: each task is done by a session of its own (`/task`, `.claude/skills/task/SKILL.md`), started
 by you one at a time, which opens its PR and messages you one line. You merge it and start the next. `node tools/chain.js` decides
