@@ -514,6 +514,7 @@ function offerSuccession() {
     dead = pl && st.pawns[pl.pawn].died !== null ? pl.pawn : -1;
   const noSkip = played() < 0;
   if ($('skipBtn').hidden !== noSkip) $('skipBtn').hidden = noSkip; // Skip is offered while a pawn is played
+  if ($('taskBtn').hidden !== noSkip) $('taskBtn').hidden = noSkip; // and Until my task ends (VB-477)
   if (dead < 0) {
     if (!box.hidden) box.hidden = true;
     succFor = -1;
@@ -614,19 +615,23 @@ function dropSkipNote() {
     skipNote = null;
   }
 }
-function startSkip() {
+// `task`: until the played pawn's task ends (VB-477, Kim 15 Nov): the same skip, at the fastest, with the stops of Sim.taskStop beside its
+// own (the end or cut of its leg or task, and what concerns its household). Not a verb: the run is the same with or without it.
+function startSkip(task = false) {
   if (played() < 0 || building || skipping) return;
   const back = speed === 0 ? lastSpeed : speed;
   dropSkipNote();
   setSpeed(Infinity);
   lastSpeed = back === Infinity ? 1 : back; // Play after the stop resumes at the speed before the skip
   skipCursor = Sim.skipFrom(st, skipLast); // it goes on where the last skip stopped, if the game has stood since (VB-1108)
-  $('skipBtn').setAttribute('aria-pressed', 'true');
+  taskCursor = task ? Sim.taskFrom(st) : null;
+  $(task ? 'taskBtn' : 'skipBtn').setAttribute('aria-pressed', 'true');
 }
 function endSkip(stop) {
   const ev = stop.ev,
     id = st.player ? st.player.pawn : -1,
-    f = ev && ev.farm !== undefined ? st.farmsteads[ev.farm] : null;
+    f = ev && ev.farm !== undefined ? st.farmsteads[ev.farm] : null,
+    task = !!taskCursor; // a run until the task ends (VB-477)
   setSpeed(0);
   if (stop.spot)
     flyTo(stop.spot.x, stop.spot.y); // a gathering as it begins (VB-1031): where its people stand
@@ -641,7 +646,7 @@ function endSkip(stop) {
   skipNote.dataset.why = stop.why;
   skipNote.stopEv = ev || null; // the notice of this event is this note, not a toast as well (VB-1101)
   const c = Sim.cal(st.t);
-  skipNote.textContent = `Skip stopped, ${Sim.SEASONS[c.season]} day ${c.sday + 1}, year ${c.year}: ${stop.text}`;
+  skipNote.textContent = `${task ? 'Stopped' : 'Skip stopped'}, ${Sim.SEASONS[c.season]} day ${c.sday + 1}, year ${c.year}: ${stop.text}`;
   skipNote.addEventListener('click', dropSkipNote);
   $('toasts').appendChild(skipNote);
   if (stop.why === 'offer') showOffer(stop.offer); // the offer, where it is answered (VB-1100)
@@ -656,4 +661,8 @@ function showOffer(oid) {
 $('skipBtn').addEventListener('click', () => {
   if (skipCursor) setSpeed(0);
   else startSkip();
+});
+$('taskBtn').addEventListener('click', () => {
+  if (skipCursor) setSpeed(0);
+  else startSkip(true);
 });

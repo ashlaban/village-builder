@@ -116,6 +116,8 @@ VB.COUNTERS = {
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
     '(sim/day, allot; VB-466)',
   dayTake: 'Tasks of its list an idle pawn passes or takes (sim/day, takeDay; VB-466)',
+  timetableEntry:
+    "Entries of a member's list laid out in a timetable, a view asked by the page (sim/timetable, VB-477)",
   eveningAsk:
     "Households' tasks read for one that may be begun after work, from its end to the evening (sim/day eveningCall, VB-1547)",
   handsAsked: 'Asks for hands made by a head short of hands, at the morning allotment (sim/hands askFor, VB-470)',
