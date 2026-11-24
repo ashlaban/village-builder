@@ -20,7 +20,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-1406](backlog/VB-1406.md)<a id="VB-1406"></a> | Refactor: declare beside the owner: the lists every task appends to become registries joined at load | - | 1 | L | 134 tasks collide on lists each feature adds a line to (suites, owners, manifest, counters, the Sim facade, rules' exports, migrations, event kinds); each owner declares its entry and a thin registry joins them, as sim/kinds and sim/commands do. |
-| [VB-1471](backlog/VB-1471.md)<a id="VB-1471"></a> | Repair the night of 21 November: invariants, fixtures and the invariants band | - | 1 | S | Extended tier red on the run of 21 Nov |
 | [VB-1481](backlog/VB-1481.md)<a id="VB-1481"></a> | Repair: a marriage hands a farm on to a dissolved home (founders small seed 5, year 31) | - | 1 | S | stores throws 'missing or dissolved holder' in heirs handOn from marriage wed: the home is dissolved and empty, its holder still in its other household |
 | [VB-1485](backlog/VB-1485.md)<a id="VB-1485"></a> | Repair: a cow led home books goodwill with a dead holder (populous small seed 3) | - | 1 | S | relations throws 'goodwill: cannot add 20 between 6 and 76' from exchange ledHome (a deal's cow led home) when a holder of either household is no longer alive |
 | [VB-1495](backlog/VB-1495.md)<a id="VB-1495"></a> | Repair: tests/browser-editor places no empty farm near the village | - | 1 | S | tests/browser-editor.js fails five checks, from 'no empty farm could be placed near the village' on; seen on main at 5e69f31, before VB-1491. |
@@ -125,7 +124,10 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1610](backlog/VB-1610.md)<a id="VB-1610"></a> | A booth's water in the evening: one who comes to its booth after work takes the open fetch | - | 3 | S | the booth's fetch is taken only in the working day (sim/away dayAway); a late arrival ends the day thirsty though the fetch stands open until 20:00 |
 | [VB-1611](backlog/VB-1611.md)<a id="VB-1611"></a> | The page says what a lodger's water is: the booth's source, whether today's water is in | - | 3 | S | VB-1601 built the booth's fetch and the morning drink; nothing on the page tells of them but the pawn's job line and its Thirsty line |
 | [VB-1656](backlog/VB-1656.md)<a id="VB-1656"></a> | Sim.load clears the world fields its save lacks | - | 3 | S | A save loads the same on a used world as on a fresh one (found by VB-1654: w.shut left over on a shared world). |
-| [VB-1671](backlog/VB-1671.md)<a id="VB-1671"></a> | Byre: founders seed 4 loses an animal to hunger since sleep for every pawn | - | 3 | S | Find why founders seed 4 loses a byre animal to hunger once every pawn sleeps |
+| [VB-1671](backlog/VB-1671.md)<a id="VB-1671"></a> | A move's first trip with the cart brings a load | - | 3 | S | The cart left standing at the landing is fetched empty: its trip home could carry the first load of grain. |
+| [VB-1672](backlog/VB-1672.md)<a id="VB-1672"></a> | A move's frost warning is reckoned in the plan's days | - | 3 | S | Sim.moveCost's `frost` counts the move's work in working days; the plan lays it after the routine and the sleeping hours, so the warning can be late. |
+| [VB-1673](backlog/VB-1673.md)<a id="VB-1673"></a> | The sim's reasons name a farm or a person, never a household's number | - | 3 | S | Reasons a player can read still say 'household 12 ...' in sim/trust, marriage, heirs, hosting, offers and exchange (the plan's and the ladder's were mended by VB-1670). |
+| [VB-1674](backlog/VB-1674.md)<a id="VB-1674"></a> | Byre: founders seed 4 loses an animal to hunger since sleep for every pawn | - | 3 | S | Find why founders seed 4 loses a byre animal to hunger once every pawn sleeps |
 
 </details>
 
@@ -139,6 +141,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-455](backlog/VB-455.md)<a id="VB-455"></a> | Refactor: split sim/records: the event log (sim/eventlog) and the register of persons and households | - | 1 | M | sim/records is two modules under one name: the record of events moves out, verbatim, to a new kernel module sim/eventlog; the register of persons and households stays. |
+| [VB-1471](backlog/VB-1471.md)<a id="VB-1471"></a> | Repair the night of 21 November: invariants, fixtures and the invariants band | - | 1 | S | Extended tier red on the run of 21 Nov |
 | [VB-1470](backlog/VB-1470.md)<a id="VB-1470"></a> | Measure: the moving round at medium-ref after VB-1380 | - | 2 | S | owed by VB-1380: the round call at medium-ref |
 | [VB-1564](backlog/VB-1564.md)<a id="VB-1564"></a> | Cost: a holder's opportunities cached (the asks of the jobs line) | - | 2 | M | The third part of the jobs line, 17.5%: the availability asks, and the cache design.md agrees |
 | [VB-1583](backlog/VB-1583.md)<a id="VB-1583"></a> | A site's water is weighed by the site search and shown in the leader's choice | - | 2 | S | batch (b), second half, of VB-1543: SETTLE.perFetch and the site choice's water lines |
