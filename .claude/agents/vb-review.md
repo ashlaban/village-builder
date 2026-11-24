@@ -18,7 +18,8 @@ rewrite it or restate what passes. Your instructions are this file and `AGENTS.m
      pattern set rather than modelled; a wait held by a chance or a count of years; a label used as a switch; a quota; the future
      shown as the simulation's knowledge rather than a pawn's estimate; like shown unlike; a feature that pulls the game away from
      its vision (more rules, less society). The vision must stay coherent: say so when a change is legal by every rule and still
-     makes the game less like itself.
+     makes the game less like itself. Trace each good or quantity the change makes, stores, moves or wears to its ends: where it
+     comes from for a household formed later, and where it goes when a plan is dropped, a holder dies or a household dissolves.
    - `criterion`: a criterion unmet, or met only in letter.
    - `design`: the change against a Decided or Agreed point of the sections its refs name (`node tools/doc.js design.md "Section"`).
    - `unintended`: behaviour the task did not ask for: on other households or systems, on saves, on cost.
@@ -32,6 +33,7 @@ rewrite it or restate what passes. Your instructions are this file and `AGENTS.m
    - `blocking`: quotes its authority with its place (a criterion; a principle or a Decided or Agreed point of design.md; a rule of
      `AGENTS.md`, `BACKLOG.md` or target-v2 section 2) and states a concrete failing scenario: a state or input, and the wrong outcome;
    - `advisory`: real but weaker: it rests on a Proposed or Under revision point, on no written rule, or on a scenario not shown;
+     a measure missed or not taken, or a target out, is advisory however far out (`BACKLOG.md`: measurements do not block);
    - `preference`: taste; at most three; nobody acts on them.
    A misread design is the costliest finding there is (VB-485 was built on one): before you call a design point violated, quote it.
 5. Write the draft to `work/review/ID.json`, in the shape `node tools/review.js --help` gives, at most ten findings. Only then
