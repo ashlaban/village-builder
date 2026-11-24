@@ -18,6 +18,7 @@ VB['sim/outlook'] = (() => {
   const { householdHay } = VB['sim/herds'];
   const { HAY } = VB['sim/meadows'];
   const { fuelFree, timberOf } = VB['sim/chores'];
+  const { fireOf } = VB['sim/house'];
   const { hands } = VB['sim/targets'];
   const { headSkill } = VB['sim/seasonal'];
   const { CHAINS } = VB['sim/planchains'];
@@ -255,15 +256,17 @@ VB['sim/outlook'] = (() => {
     return withLeft(out, hand, left);
   }
   // Fuel: firewood and peat as one supply (sim/chores' fuelFree: the pile less what a project holds back, peat at PEAT.worth), burnt at
-  // the season's ECON.woodUse. Its intake is the plan's: at the start of each season (today, for this one) the household cuts towards the
-  // season's goal, plan.targets.wood[season], at most hands × OUTLOOK.woodTrips × ECON.woodPerTrip a season (the share of it left, for
-  // the season we are in); none with no farm or no wood in its village's reach. Firewood does not spoil. Timber home and not yet cut
+  // the season's ECON.woodUse times the house's own fire (sim/house fireOf: a timber house's is smaller; VB-1641). Its intake is the
+  // plan's: at the start of each season (today, for this one) the household cuts towards the season's goal, plan.targets.wood[season],
+  // at most hands × OUTLOOK.woodTrips × ECON.woodPerTrip a season (the share of it left, for the season we are in); none with no farm or no wood in its
+  // village's reach. Firewood does not spoil. Timber home and not yet cut
   // counts as firewood (VB-1625): the head has it cut by its own rule (sim/chores); for the household of a pawn planned by hand
   // (automatic behaviour off) only while a `firewood` task of the plan covers it (sim/playerplan).
   // For a household planned by hand (VB-1633; Kim, 24 Nov: "Stores count what is in the plan"), the head's own cutting to the goal is
   // left out, and a fell task's loads still to come home are counted, today, only with a `firewood` task to cut them.
   function fuel(st, hh, f, plan, c, F, end, dz = null) {
-    const use = st.ECON.woodUse,
+    const fire = fireOf(st, hh),
+      use = st.ECON.woodUse.map((u) => u * fire),
       hand = handOf(st, hh),
       cut = !hand || covered(st, 'firewood'),
       left = [],

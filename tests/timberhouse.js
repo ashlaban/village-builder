@@ -150,5 +150,35 @@ function crowd(st, to, n) {
   sound(st, 'own rule');
   console.log(`  own rule: begun on day ${(begun / DAY).toFixed(1)}, finished by day ${(st.t / DAY).toFixed(1)}`);
 }
+// ---- 4. the cutting goals read the house's own fire (VB-1641): a timber house's goal is ROOM.timberFire of a cottage's ----
+{
+  const st = fresh(),
+    Seasonal = VB['sim/seasonal'],
+    { cal } = VB['sim/rules'],
+    hh = st.households[2],
+    g = st.households[1];
+  st.farmsteads[hh.farmstead].rung = 'timber'; // a test's write: the house built up
+  const c = cal(st.t),
+    kept = new Map();
+  for (const h of [hh, g]) {
+    const plan = st.plans.households.get(h.id);
+    kept.set(plan, [plan.head, plan.chosen]);
+    plan.head = null; // the same head for both: unbiased, the middle's horizon
+    plan.chosen = null;
+    Seasonal.seasonal(st, plan, c);
+  }
+  const T = st.plans.households.get(hh.id).targets,
+    U = st.plans.households.get(g.id).targets;
+  assert(U.wood[c.season] > 0, 'a cottage has a goal');
+  for (let s = 0; s < 4; s++)
+    assert(Math.abs(T.wood[s] - ROOM.timberFire * U.wood[s]) < 1e-9, `season ${s}: ${T.wood[s]} against ${U.wood[s]}`);
+  assert(Math.abs(T.woodSecond - ROOM.timberFire * U.woodSecond) < 1e-9, "the second hand's level");
+  // the supply outlook's fuel burns the same smaller fire
+  const need = (h) => VB['sim/outlook'].reckon(st, h, st.plans.households.get(h.id)).fuel.parts.need;
+  assert(Math.abs(need(hh)[0] - ROOM.timberFire * need(g)[0]) < 0.1, `the outlook's need: ${need(hh)} against ${need(g)}`);
+  for (const [plan, [head, chosen]] of kept) Object.assign(plan, { head, chosen }); // their heads back
+  sound(st, 'goals');
+  console.log(`  goals: a timber house's winter goal ${T.wood[3].toFixed(1)}, a cottage's ${U.wood[3].toFixed(1)}`);
+}
 console.log('timberhouse: the rungs\' room, a crowded house weighs on everyone in it, the smaller fire, an older save; by the plan, the '
-  + 'timber at home first, a save mid-chain the same; by a crowded head\'s own rule, in winter');
+  + 'timber at home first, a save mid-chain the same; by a crowded head\'s own rule, in winter; the cutting goals the house\'s own fire');

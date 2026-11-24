@@ -22,6 +22,7 @@ VB['sim/chores'] = (() => {
     { WATER, atHome } = Water,
     { FRESH } = VB['world/water'];
   const { age } = VB['sim/records'];
+  const { fireOf } = VB['sim/house'];
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   // The fuel pile in wood loads: the woodpile less what a project plan holds back, and the peat held at PEAT.worth (VB-367).
@@ -34,8 +35,9 @@ VB['sim/chores'] = (() => {
       t = pp && pp.tasks.find((x) => x.key === undefined && x.kind === 'fell' && x.fell === tile);
     return t ? (t.n || 1) - (t.got || 0) : 0;
   };
-  // The house is cold, or its pile will not feed tonight's fire (VB-1547): the wood kinds' vital rule.
-  const fireShort = (st, hh) => hh.cold > 0 || fuelFree(st, hh) < st.ECON.woodUse[cal(st.t).season];
+  // The house is cold, or its pile will not feed tonight's fire (VB-1547), the house's own (sim/house fireOf, VB-1641): the wood kinds'
+  // vital rule.
+  const fireShort = (st, hh) => hh.cold > 0 || fuelFree(st, hh) < st.ECON.woodUse[cal(st.t).season] * fireOf(st, hh);
   // @tunable WOOD_HOURS (VB-1625): the hours of one load of firewood in its two steps, felling a tree and cutting its timber at home; they
   //   sum to the firewood trip's 3 hours before the split, so a load costs the labour it did.
   const WOOD_HOURS = Object.freeze({ fell: 2, cut: 1 });

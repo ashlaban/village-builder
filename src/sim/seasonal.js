@@ -10,6 +10,7 @@ VB['sim/seasonal'] = (() => {
   const { fieldsWanted, fieldsWorkable } = VB['sim/fieldplans'];
   const { on } = VB['sim/events'];
   const Targets = VB['sim/targets'];
+  const { fireOf } = VB['sim/house'];
   // @state st.plans.seasons (VB-252): a household's seasonal plan, {holder, kind: 'season', year, season (of cal), made (the day), steps (the
   //   season's routines in the template's order: kinds of sim/kinds), by (absent, or 'head' once its head set the order: VB-253's verb)};
   //   one per undissolved household, made with its standing plan and again
@@ -152,7 +153,7 @@ VB['sim/seasonal'] = (() => {
     const id = plan.holder.id,
       T = templateOf(st, cultureOf(st, st.households[id]), c),
       P = plan.targets;
-    biased(plan, T);
+    biased(st, plan, T);
     P.perHand = T.perHand;
     chosenTargets(plan);
     project(st, plan, c);
@@ -200,7 +201,7 @@ VB['sim/seasonal'] = (() => {
       seasonal(st, plan, c);
     } else {
       const M = templateOf(st, cultureOf(st, hh), c);
-      biased(plan, M);
+      biased(st, plan, M);
       T.perHand = M.perHand;
       chosenTargets(plan);
       project(st, plan, c);
@@ -236,19 +237,22 @@ VB['sim/seasonal'] = (() => {
   // The days from today to the end of the head's horizon (0 for a head that reacts).
   const daysAhead = (c, hz) => (hz ? SEASON_DAYS - c.sday + (hz - 1) * SEASON_DAYS : 0);
   // The head's targets from the template's T, at the making of its seasonal plan: each times the head's bias. The review reads them from
-  // the plan from then on (VB-252); only what it projects ahead (project, below) is added at each review.
-  function biased(plan, T) {
+  // the plan from then on (VB-252); only what it projects ahead (project, below) is added at each review. The woodpile's are a cottage's
+  // times the house's own fire (sim/house fireOf: a timber house burns less, so its household cuts less; VB-1641).
+  function biased(st, plan, T) {
     const P = plan.targets,
-      b = plan.head ? plan.head.bias : UNBIASED;
-    for (let s = 0; s < 4; s++) P.wood[s] = T.wood[s] * b.wood;
-    P.woodSecond = T.woodSecond * b.wood;
+      b = plan.head ? plan.head.bias : UNBIASED,
+      w = b.wood * fireOf(st, st.households[plan.holder.id]);
+    for (let s = 0; s < 4; s++) P.wood[s] = T.wood[s] * w;
+    P.woodSecond = T.woodSecond * w;
     P.hayWinters = T.hayWinters * b.hay;
     P.seed = T.seed * b.seed;
     P.ahead = { season: 0, wood: 0, hay: 0 };
   }
   // What the household will burn and feed from today to the end of horizon hz (seasons ahead: 0 none, 1 to the season's end, 2 a season
-  // further): the hearth's ECON.woodUse by season, and the stall days within it over a winter's (in winters' need of hay).
-  function burnAhead(st, c, hz) {
+  // further): the hearth's ECON.woodUse by season times the house's own fire (fire, sim/house fireOf), and the stall days within it over a
+  // winter's (in winters' need of hay).
+  function burnAhead(st, c, hz, fire) {
     const use = st.ECON.woodUse,
       days = daysAhead(c, hz);
     let stall = 0;
@@ -256,7 +260,9 @@ VB['sim/seasonal'] = (() => {
       const doy = (c.doy + d) % YEAR_DAYS;
       if (doy >= HERD.stall[0] || doy < HERD.stall[1]) stall++;
     }
-    const wood = hz ? use[c.season] * (SEASON_DAYS - c.sday) + (hz > 1 ? use[(c.season + 1) % 4] * SEASON_DAYS : 0) : 0;
+    const wood = hz
+      ? fire * (use[c.season] * (SEASON_DAYS - c.sday) + (hz > 1 ? use[(c.season + 1) % 4] * SEASON_DAYS : 0))
+      : 0;
     return [wood, stall / HERD.stallDays];
   }
   // What the head projects the household will burn and feed before its horizon ends, at a review (design.md, How a holder chooses:
@@ -273,7 +279,12 @@ VB['sim/seasonal'] = (() => {
       C = plan.chosen;
     P.wood[A.season] -= A.wood;
     P.hayWinters -= A.hay;
-    let [wood, hay] = burnAhead(st, c, horizonOf(headSkill(st, plan.holder.id)));
+    let [wood, hay] = burnAhead(
+      st,
+      c,
+      horizonOf(headSkill(st, plan.holder.id)),
+      fireOf(st, st.households[plan.holder.id]),
+    );
     if (C && C.wood !== null) wood = 0;
     if (C && C.hay !== null) hay = 0;
     P.wood[c.season] += wood;

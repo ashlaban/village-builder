@@ -8,6 +8,7 @@ VB['sim/planview'] = (() => {
   const { empty, today } = VB['sim/playerplan'];
   const { nextOf, waitsOf } = VB['sim/plannext'];
   const { supplyOutlook, reckon } = VB['sim/outlook'];
+  const { fireOf } = VB['sim/house'];
   // ---- the page's read: Sim.planView(st) ----
   // A task at a tile as the view shows it: its tile (under its chain's name), the kind of the step open or next (`step`, null with none
   // left), whether that step's job is posted (`stands`), and its job's key (null while not posted).
@@ -62,8 +63,9 @@ VB['sim/planview'] = (() => {
   // ---- the page's read of the fire (VB-1625): Sim.fireView(st) ----
   // How the fire stands for the played pawn's household: wood (firewood held), timber (held, not yet cut), peat (held), free (the pile's
   // free fuel, sim/chores fuelFree: what a project holds back left out, peat at its worth), goal (the season's, the head's plan's), nights
-  // (whole nights the free pile lasts at the season's use, ECON.woodUse), cold (the house went cold last night), short (the house cold,
-  // or the fuel of the supply outlook not lasting its frame), state, lasts, season (VB-1633: the outlook's fuel, its state, its `with`
+  // (whole nights the free pile lasts at the season's use, ECON.woodUse, times the house's own fire, sim/house fireOf), cold (the house
+  // went cold last night), short (the house cold, or the fuel of the supply outlook not lasting its frame), state, lasts, season (VB-1633: the
+  // outlook's fuel, its state, its `with`
   // and its first short season, the one reckoning the page shows; null season when it lasts), below (the pile below the season's goal,
   // the head's target for its cutting), mend (what would mend it, in order: [] when not short; 'firewood' first when timber is home and
   // the pile is below its goal or the house cold, 'fell' when no timber is or what is home falls short of the goal or of the frame),
@@ -80,7 +82,7 @@ VB['sim/planview'] = (() => {
     if (!hh || hh.dissolved || hh.farmstead === null) return null;
     const p = pileOf(st, hh),
       timber = timberOf(hh),
-      use = st.ECON.woodUse[cal(st.t).season],
+      use = st.ECON.woodUse[cal(st.t).season] * fireOf(st, hh),
       cold = hh.cold > 0,
       O = supplyOutlook(st, hid),
       fuel = O ? O.fuel : reckon(st, hh, st.plans.households.get(hid)).fuel, // before the household's first review
