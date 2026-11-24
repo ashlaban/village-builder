@@ -11,7 +11,8 @@
 //   result TASK status=done|needs-review|failed|continue [commit=SHA] [size=S|M|L] [model=NAME] [summary=TEXT]
 //                              TASK's outcome; frees its claims
 //                              continue: the ceiling on calls was reached and a fresh sub-agent goes on from commit= (at most twice a task)
-//   calls [AGENT]              a sub-agent's model calls so far against the ceiling of 120, from its own transcript (found by its worktree, agent-<id>)
+//   calls [AGENT]              a sub-agent's model calls so far against the ceiling of 120, from its own transcript (found by its worktree, agent-<id>),
+//                              with its context and weighted cost; outside a sub-agent's worktree, the session's own, without the ceiling
 //   list [KIND] [--task TASK] [--json]
 //                              the notes, a line each
 //   status                     the tasks started, their claims and results, and the notes not yet applied
@@ -30,7 +31,7 @@
 //   act        where= what=   an act with no pawn, or a choice only the player has (AGENTS.md, 16): collected likewise
 //   decision   what= why=   a close call, decided by Deciding without Kim, that Kim should see
 require('./help.js')(__filename);
-const os = require('os'), fs = require('fs'), path = require('path'), { execFileSync, spawnSync } = require('child_process');
+const fs = require('fs'), path = require('path'), transcript = require('./lib/transcript.js'), { execFileSync, spawnSync } = require('child_process');
 const emitWarning = process.emitWarning;
 process.emitWarning = (w, ...a) => (/SQLite/.test(String(w)) ? undefined : emitWarning.call(process, w, ...a)); // node:sqlite is marked experimental
 const { DatabaseSync } = require('node:sqlite');
@@ -48,7 +49,8 @@ const KINDS = { task: ['id', 'name', 'priority', 'size', 'summary'], question: [
 // Findings are collected, not given a task each (Kim, 18 November): one open task a kind holds them, a criterion a finding, and a
 // slice's wrap-up sweeps it. apply finds that task by its name, or makes the next one.
 const COLLECT = {
-  teleport: { name: "Teleports found, collected: swept at a slice's wrap-up", arch: 'physical', goal: 'Each teleport listed is mended or shown to be none: goods arrive by being carried',
+  teleport: { name: "Teleports found, collected: swept at a slice's wrap-up", arch: 'physical',
+    goal: 'Each teleport listed is mended or shown to be none: goods arrive by being carried',
     summary: 'The teleports tasks found in the code, a line each; swept together when a slice wraps up' },
   act: { name: "Acts with no pawn, collected: swept at a slice's wrap-up", arch: 'acts', goal: 'Each act listed is a pawn\'s, through a verb any pawn may use',
     summary: 'The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up' },
@@ -146,12 +148,15 @@ if (cmd === 'init') {
   if (kind === 'task') {
     if (!/^(S|M|L)$/.test(f.size)) fail('size is S, M or L');
     if (f.status && !['blocked', 'needs-review', 'ready'].includes(f.status)) fail('a noted task is ready, blocked or needs-review (the default)');
-    if (f.status === 'ready' && !(f.goal && f.ref && body)) fail('a noted task is ready only with its goal (goal=), its design ref (ref=) and its criteria (--body), and no question for Kim; else needs-review (the default)');
+    if (f.status === 'ready' &&
+      !(f.goal && f.ref && body)) fail(
+      'a noted task is ready only with its goal (goal=), its design ref (ref=) and its criteria (--body), and no question for Kim; else needs-review (the default)');
   }
   const n = atomic(() => {
     if (kind === 'task') {
       const own = get('SELECT * FROM ids WHERE id = ?', f.id);
-      if (!own || own.task !== task) fail(`${f.id} is not reserved for ${task}: its IDs are ${all('SELECT id FROM ids WHERE task = ? AND used = 0', task).map((r) => r.id).join(' ') || 'used up (start TASK N reserves more)'}`);
+      if (!own || own.task !== task) fail(`${f.id} is not reserved for ${task}: its IDs are ${all('SELECT id FROM ids WHERE task = ? AND used = 0',
+        task).map((r) => r.id).join(' ') || 'used up (start TASK N reserves more)'}`);
       if (own.used) fail(`${f.id} already has a note`);
       run('UPDATE ids SET used = 1 WHERE id = ?', f.id);
     }
@@ -177,18 +182,18 @@ if (cmd === 'init') {
   });
   console.log(`${task}: ${f.status}${nth ? ` (${nth} of ${CONTINUATIONS})` : ''}`);
 } else if (cmd === 'calls') {
+  // A sub-agent's own transcript, by its worktree (agent-<id>) or the id given; outside one, a session's: the newest under the projects
+  // directory, as tools/agent-usage.js finds it (VB-1615). Beside the count, the context of the last call and the weighted cost so far.
+  // The ceiling is a sub-agent's (.claude/agents/vb-task.md, step 8): a session is told its numbers, not to hand over.
   const agent = rest[0] || (path.basename(root).match(/^agent-(\w+)$/) || [])[1];
-  if (!agent) fail('calls: not in a sub-agent\'s worktree (agent-<id>); give the agent id');
-  const base = path.join(process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude'), 'projects'), name = `agent-${agent}.jsonl`;
-  const found = (fs.existsSync(base) ? fs.readdirSync(base) : []).flatMap((p) => fs.readdirSync(path.join(base, p)).map((s) => path.join(base, p, s, 'subagents', name))).find((p) => fs.existsSync(p));
-  if (!found) fail(`calls: no transcript ${name} under ${base}`);
-  const ids = new Set();
-  for (const line of fs.readFileSync(found, 'utf8').split('\n')) {
-    if (!line.includes('"assistant"')) continue;
-    try { const e = JSON.parse(line); if (e.type === 'assistant' && e.message && e.message.id) ids.add(e.message.id); } catch (e) { /* a line still being written */ }
-  }
-  const n = ids.size, left = CEILING - n;
-  console.log(`${n} of ${CEILING} calls` + (left > WARN ? '' : left > 0 ? `: ${left} left. Finish within them, or hand over now (.claude/agents/vb-task.md, The ceiling)`
+  const found = agent ? transcript.subagent(agent) : transcript.newest();
+  if (!found) fail(agent ? `calls: no transcript agent-${agent}.jsonl under ${transcript.projects()}` : `calls: no transcript under ${transcript.projects()}`);
+  const { calls: n, context, weighted } = transcript.tally(found), left = CEILING - n;
+  const k = (x) => (x >= 1e6 ? (x / 1e6).toFixed(1) + 'M' : x >= 1e3 ? Math.round(x / 1e3) + 'k' : String(x)),
+    size = `; context ${k(context)}; weighted ${k(weighted)}`;
+  if (!agent) console.log(`${n} calls (a session: the ceiling of ${CEILING} is a sub-agent's)${size}`);
+  else console.log(`${n} of ${CEILING} calls${size}` +
+    (left > WARN ? '' : left > 0 ? `: ${left} left. Finish within them, or hand over now (.claude/agents/vb-task.md, The ceiling)`
     : ': the ceiling is reached. Hand over now: commit, then  node tools/inbox.js result ID status=continue commit=SHA summary=...'));
 } else if (cmd === 'list') {
   const kind = rest[0];
@@ -203,12 +208,14 @@ if (cmd === 'init') {
     console.log(`${r.task} ${r.status || 'running'}${r.commit_ ? ' ' + r.commit_ : ''}${claims.length ? '; editing ' + claims.join(', ') : ''}`);
   }
   const open = notes('WHERE applied = 0'), byKind = Object.keys(KINDS).map((k) => [k, open.filter((n) => n.kind === k).length]).filter(([, c]) => c);
-  console.log(`${rs.length} tasks started, ${rs.filter((r) => !r.status).length} running; notes not applied: ${byKind.map(([k, c]) => `${c} ${k}`).join(', ') || 'none'}`);
+  console.log(`${rs.length} tasks started, ${rs.filter((r) => !r.status).length} running; notes not applied: ${byKind.map(([k, c]) => `${c} ${k}`).join(', ') ||
+    'none'}`);
 } else if (cmd === 'results') {
   const rs = all('SELECT * FROM results ORDER BY started').map((r) => ({ task: r.task, status: r.status || 'running', commit: r.commit_, size: r.size,
     model: r.model, summary: r.summary, started: r.started, ended: r.ended }));
   if (asJson) console.log(JSON.stringify(rs, null, 1));
-  else console.log(rs.map((r) => `${r.task} ${r.size || '-'} ${r.status}${r.commit ? ' ' + r.commit : ''}${r.summary ? ': ' + r.summary : ''}`).join('\n') || 'no results');
+  else console.log(rs.map((r) => `${r.task} ${r.size || '-'} ${r.status}${r.commit ? ' ' + r.commit : ''}${r.summary ? ': ' + r.summary : ''}`).join('\n') ||
+    'no results');
 } else if (cmd === 'apply') {
   const backlog = (...a) => {
     if (dry) return console.log('would run: backlog.js ' + a.join(' '));
@@ -225,7 +232,8 @@ if (cmd === 'init') {
   const mark = (table, key, value) => { if (!dry) run(`UPDATE ${table} SET applied = 1 WHERE ${key} = ?`, value); };
   let count = 0;
   for (const r of all("SELECT * FROM results WHERE applied = 0 AND status IN ('done', 'needs-review')")) {
-    if (!fs.existsSync(path.join(root, 'backlog', r.task + '.md'))) { console.log(`${r.task}: no task file in this checkout (merge its branch first); left`); continue; }
+    if (!fs.existsSync(path.join(root, 'backlog', r.task + '.md'))) {
+      console.log(`${r.task}: no task file in this checkout (merge its branch first); left`); continue; }
     if (r.status === 'done') backlog('done', r.task); else backlog('set', r.task, 'status=needs-review');
     mark('results', 'task', r.task); count++;
   }
@@ -252,7 +260,8 @@ if (cmd === 'init') {
       edit('docs/tuning.md', (text) => {
         const at = text.indexOf('\n## Parameters waiting\n'), lines = text.split('\n');
         if (at < 0) return null;
-        const first = text.slice(0, at + 1).split('\n').length, lastRow = lines.findIndex((l, i) => i > first && l.startsWith('|') && !(lines[i + 1] || '').startsWith('|'));
+        const first = text.slice(0, at + 1).split('\n').length,
+          lastRow = lines.findIndex((l, i) => i > first && l.startsWith('|') && !(lines[i + 1] || '').startsWith('|'));
         if (lastRow < 0) return null;
         lines.splice(lastRow + 1, 0, `| ${cell(f.parameter)} | ${cell(f.means)} | ${cell(f.measured)} | ${cell(f.proposed)} | ${n.task} |`);
         return lines.join('\n');
@@ -274,8 +283,11 @@ if (cmd === 'init') {
         });
       } else if (dry) console.log(`would open the collecting task "${c.name}"`);
       else {
-        const id = atomic(() => { const next = +get("SELECT value FROM meta WHERE key = 'next'").value; run("UPDATE meta SET value = ? WHERE key = 'next'", String(next + 1)); return pad(next); });
-        backlog('new', `id=${id}`, 'status=needs-review', `name=${c.name}`, 'priority=3', 'size=M', `summary=${c.summary}`, `arch=${c.arch}`, 'ref=AGENTS.md, Surfacing', `goal=${c.goal}`);
+        const id = atomic(() => {
+          const next = +get("SELECT value FROM meta WHERE key = 'next'").value; run("UPDATE meta SET value = ? WHERE key = 'next'", String(next + 1));
+          return pad(next); });
+        backlog('new', `id=${id}`, 'status=needs-review', `name=${c.name}`, 'priority=3', 'size=M', `summary=${c.summary}`, `arch=${c.arch}`,
+          'ref=AGENTS.md, Surfacing', `goal=${c.goal}`);
         const p = path.join(dirOf, id + '.md');
         fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('- [ ] (to write)\n', line + '\n'));
         backlog('set', id, 'status=ready');
@@ -287,13 +299,18 @@ if (cmd === 'init') {
 } else if (cmd === 'report') {
   const by = (kind) => notes('WHERE kind = ?', kind), out = ['## For Kim'];
   const section = (title, rows) => { if (rows.length) out.push('', `**${title}**`, ...rows); };
-  section('Principle candidates', by('candidate').map((n) => `- ${one(n.fields.rule)} (${n.task})${n.body ? '\n' + n.body.split('\n').map((l) => '  ' + l).join('\n') : ''}`));
+  section('Principle candidates',
+    by('candidate').map((n) => `- ${one(n.fields.rule)} (${n.task})${n.body ? '\n' + n.body.split('\n').map((l) => '  ' + l).join('\n') : ''}`));
   section('Teleports found', by('teleport').map((n) => `- ${headline(n)}, found by ${n.task}`));
   section('Acts with no pawn found', by('act').map((n) => `- ${headline(n)}, found by ${n.task}`));
-  section('Tasks merged with a criterion unmet', all("SELECT * FROM results WHERE status = 'needs-review'").map((r) => `- ${r.task}${r.commit_ ? ' ' + r.commit_ : ''}: ${r.summary || 'see its task file'}`));
+  section('Tasks merged with a criterion unmet',
+    all("SELECT * FROM results WHERE status = 'needs-review'").map((r) =>
+    `- ${r.task}${r.commit_ ? ' ' + r.commit_ : ''}: ${r.summary || 'see its task file'}`));
   section('Close calls', by('decision').map((n) => `- ${n.task}: ${headline(n)}`));
   section('Questions (in `QUESTIONS.md`)', by('question').map((n) => `- ${n.task}: ${headline(n)} (priority ${n.fields.priority})`));
-  section('New tasks', by('task').map((n) => `- ${n.fields.id} ${one(n.fields.name)} (${n.fields.size}, ${n.fields.status || 'needs-review'}; from ${n.task}): ${one(n.fields.summary)}`));
+  section('New tasks',
+    by('task').map((n) =>
+    `- ${n.fields.id} ${one(n.fields.name)} (${n.fields.size}, ${n.fields.status || 'needs-review'}; from ${n.task}): ${one(n.fields.summary)}`));
   section('Tuning rows (in `docs/tuning.md`)', by('tuning').map((n) => `- ${headline(n)} (${n.task})`));
   if (out.length === 1) out.push('', 'Nothing to decide: no candidates, teleports, close calls or questions tonight.');
   console.log(out.join('\n'));

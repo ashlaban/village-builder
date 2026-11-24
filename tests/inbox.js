@@ -9,7 +9,8 @@ fs.mkdirSync(path.join(dir, 'backlog')); fs.mkdirSync(path.join(dir, 'docs'));
 for (const f of fs.readdirSync(path.join(root, 'backlog'))) fs.copyFileSync(path.join(root, 'backlog', f), path.join(dir, 'backlog', f));
 fs.copyFileSync(path.join(root, 'docs', 'tuning.md'), path.join(dir, 'docs', 'tuning.md'));
 const run = (input, ...args) => {
-  const r = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), '--date', '2026-01-02', ...args], { encoding: 'utf8', input: input || '' });
+  const r = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), '--date', '2026-01-02', ...args], {
+    encoding: 'utf8', input: input || '' });
   return { ok: r.status === 0, out: r.stdout + r.stderr };
 };
 const expect = (what, cond, out) => { if (!cond) errors.push(what + (out ? '\n    ' + out.trim().split('\n').join('\n    ') : '')); };
@@ -32,7 +33,8 @@ expect('a first claim is free', r.ok, r.out);
 r = run('', 'claim', B, 'src/sim/herds.js', 'src/sim/stores.js');
 expect('a second claim names the holder and exits 1', !r.ok && r.out.includes(`also being edited by ${A}`), r.out);
 
-r = run('- [ ] The herd is led.', 'note', A, 'task', `id=${N}`, 'name=Herds are led | to a new farm', 'priority=2', 'size=M', 'summary=Herds walk.', '--body', '-');
+r = run('- [ ] The herd is led.', 'note', A, 'task', `id=${N}`, 'name=Herds are led | to a new farm', 'priority=2', 'size=M', 'summary=Herds walk.', '--body',
+  '-');
 expect('a task note with a reserved ID', r.ok, r.out);
 r = run('', 'note', B, 'task', `id=${N}`, 'name=x', 'priority=1', 'size=S', 'summary=s');
 expect("another task's reserved ID is refused", !r.ok && /not reserved/.test(r.out), r.out);
@@ -70,7 +72,8 @@ r = run('', 'apply', '--dry');
 expect('apply --dry writes nothing', r.ok && file('BACKLOG.md') === before && !fs.existsSync(path.join(dir, 'backlog', N + '.md')), r.out);
 r = run('', 'apply');
 expect('apply: the result, the task, the question, the tuning row and the three findings', r.ok && /applied 8/.test(r.out), r.out);
-const collected = (name) => fs.readdirSync(path.join(dir, 'backlog')).map((f) => file('backlog/' + f)).filter((t) => t.includes(`: ${name}`) && !/^Status: done/m.test(t));
+const collected = (name) =>
+  fs.readdirSync(path.join(dir, 'backlog')).map((f) => file('backlog/' + f)).filter((t) => t.includes(`: ${name}`) && !/^Status: done/m.test(t));
 expect('the teleports are lines of one open collecting task', collected('Teleports found, collected').length === 1
   && collected('Teleports found, collected')[0].includes(`- [ ] From ${A}: src/sim/herds.js:420: hay jumps\n- [ ] From ${A}: src/sim/herds.js:99: wool jumps`));
 expect('the act is a line of its own collecting task, ready', collected('Acts with no pawn, collected').length === 1
@@ -90,7 +93,8 @@ const check = spawnSync(process.execPath, [path.join(root, 'tests', 'backlog.js'
 expect('tests/backlog.js passes on the result', check.status === 0, check.stdout + check.stderr);
 r = run('', 'result', B, 'status=needs-review', 'commit=def5678', 'summary=cost not measured');
 r = run('', 'apply');
-expect('a task with a criterion unmet goes to Waiting for Kim', r.ok && file('BACKLOG.md').split('\n## Waiting for Kim\n')[1].split('\n## ')[0].includes(`[${B}]`), r.out);
+expect('a task with a criterion unmet goes to Waiting for Kim', r.ok &&
+  file('BACKLOG.md').split('\n## Waiting for Kim\n')[1].split('\n## ')[0].includes(`[${B}]`), r.out);
 r = run('', 'report');
 expect('and heads the report with its reason', r.out.includes(`- ${B} def5678: cost not measured`), r.out);
 r = run('', 'report');
@@ -99,13 +103,25 @@ expect('report: the PR section', r.ok && r.out.startsWith('## For Kim') && r.out
 
 // the ceiling: calls are counted from the sub-agent's transcript, a model call a message id; a task is continued at most twice
 const sub = path.join(dir, 'config', 'projects', 'p', 's', 'subagents'); fs.mkdirSync(sub, { recursive: true });
-const entry = (i) => JSON.stringify({ type: 'assistant', message: { id: 'msg_' + i } });
-const calls = (n) => { fs.writeFileSync(path.join(sub, 'agent-abc123.jsonl'), [...Array(n).keys()].flatMap((i) => [entry(i), entry(i), '{"type":"user"}']).join('\n'));
-  const c = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), 'calls', 'abc123'], { encoding: 'utf8', env: { ...process.env, CLAUDE_CONFIG_DIR: path.join(dir, 'config') } });
+const entry = (i) => JSON.stringify({
+  type: 'assistant', message: { id: 'msg_' + i, usage: { input_tokens: 2, cache_read_input_tokens: 1000 * (i + 1), output_tokens: 10 } } });
+const calls = (n) => {
+  fs.writeFileSync(path.join(sub, 'agent-abc123.jsonl'), [...Array(n).keys()].flatMap((i) => [entry(i), entry(i), '{"type":"user"}']).join('\n'));
+  const c = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), 'calls', 'abc123'], {
+    encoding: 'utf8', env: { ...process.env, CLAUDE_CONFIG_DIR: path.join(dir, 'config') } });
   return c.stdout + c.stderr; };
-expect('calls: counted by message id', calls(40).trim() === '40 of 120 calls', calls(40));
-expect('calls: a warning near the ceiling', /^110 of 120 calls: 10 left/.test(calls(110)), calls(110));
-expect('calls: at the ceiling, hand over', /^125 of 120 calls: the ceiling is reached. Hand over now/.test(calls(125)), calls(125));
+// 40 calls: the last read 40,002 tokens; weighted 40 × (2 + 50) + 0.1 × 1000 × (1 + ... + 40) = 2,080 + 82,000
+expect('calls: counted by message id, with the context and the weighted cost', calls(40).trim() === '40 of 120 calls; context 40k; weighted 84k', calls(40));
+expect('calls: a warning near the ceiling', /^110 of 120 calls; context 110k; weighted [\d.]+k: 10 left/.test(calls(110)), calls(110));
+expect('calls: at the ceiling, hand over', /^125 of 120 calls; .*: the ceiling is reached. Hand over now/.test(calls(125)), calls(125));
+// a session of its own (VB-1615): its newest transcript, its sub-agents' calls apart, and no ceiling
+const sess = path.join(dir, 'config', 'projects', 'p', 'sess.jsonl');
+fs.writeFileSync(sess,
+  [entry(1), entry(1), JSON.stringify({ type: 'assistant', isSidechain: true, message: { id: 'side', usage: { input_tokens: 5 } } }), entry(2)].join('\n'));
+const c = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), 'calls'], {
+  encoding: 'utf8', env: { ...process.env, CLAUDE_CONFIG_DIR: path.join(dir, 'config') } });
+expect('calls: in a session, its own transcript and no ceiling',
+  c.stdout.trim() === "2 calls (a session: the ceiling of 120 is a sub-agent's); context 3k; weighted 604", c.stdout + c.stderr);
 r = run('', 'result', B, 'status=continue');
 expect('a continuation needs its commit', !r.ok && /commit=SHA/.test(r.out), r.out);
 r = run('', 'result', B, 'status=continue', 'commit=aaa1111', 'summary=half built');

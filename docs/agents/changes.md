@@ -18,3 +18,4 @@ The rows before 24 November were written from `git log` and `docs/review-agent-w
 | 2026-11-20T23:28Z | Agent guidance consolidated: `AGENTS.md` cut by about 150 lines; the GitHub Actions worker removed | `AGENTS.md`, `docs/agents/`, `tools/brief.js` | first context | bf435eae |
 | 2026-11-23T20:03Z | A session on one task measures itself with `--task` at closeout (measure) | `AGENTS.md` | sessions measured | e0d4ed6f |
 | 2026-11-23T20:12Z | `AGENTS.md`, Spending turns: reads sent together, sections read whole, a file's edits in one call | `AGENTS.md` | calls a run, cache reads | e0841e8a |
+| 2026-11-24T20:41Z | `inbox.js calls` prints the context and weighted cost beside the count, and works in a session of its own (no ceiling there); runs record repeats, tests, continuations and the context's curve (measure) | `tools/inbox.js`, `tools/agent-usage.js`, `tools/lib/transcript.js` | calls a run (what an agent sees of its own cost) | VB-1615 |
