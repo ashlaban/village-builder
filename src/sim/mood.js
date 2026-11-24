@@ -5,11 +5,13 @@ VB['sim/mood'] = (() => {
   const { DAY } = VB['sim/rules'];
   const { on } = VB['sim/events'];
   const { spouseOf, childrenOf } = VB['sim/records'];
+  const { owedBy, tiredMood } = VB['sim/sleep'];
   // @tunable MOOD: mood (VB-062; design.md, Traits, talk and stories: Mood): 50 plus its modifiers' values, within 0 to 100; shown, and read
   //   by one rule, the allowance of a gift (`gives`, VB-875)
   // Starting values, each a feeling's weight on that scale (Kim, 30 Oct: "talked with a friend +5"). For a state, read from it: hungry,
   // `value` × the pawn's hunger while over `over`; cold, `value` × its household's cold (VB-327, cold's weight as hunger's until Kim sets
-  // one); without water, `value` while its household's hh.dry is above 0 (VB-331); weak, `value` while health is under `under`. For an
+  // one); without water, `value` while its household's hh.dry is above 0 (VB-331); weak, `value` while health is under `under`; tired,
+  // by the played pawn's sleep owed (SLEEP.mood, sim/sleep; VB-1615). For an
   // event, kept `days` from it (pawn.mods): married; a child born, both parents; grieving at the death of a spouse, child or parent;
   // talked with a friend, read from the pawn's latest talk (agent.talk) with one it holds at SOCIAL.friend or above.
   // gives (VB-875): what mood changes. A giver's allowance (what it would give up to another in one deal, sim/relations) gains
@@ -35,6 +37,7 @@ VB['sim/mood'] = (() => {
     cold: 'Cold: no firewood',
     dry: 'Without water',
     weak: 'Weak',
+    tired: 'Tired: sleep owed',
     married: 'Newly married',
     child: 'A child born',
     grieving: 'Grieving',
@@ -81,6 +84,8 @@ VB['sim/mood'] = (() => {
     if (hh && hh.cold > 0) sum += put(out, 'cold', MOOD.cold.value * hh.cold);
     if (hh && hh.dry > 0) sum += put(out, 'dry', MOOD.dry.value);
     if (p.health < MOOD.weak.under) sum += put(out, 'weak', MOOD.weak.value);
+    const tired = tiredMood(owedBy(st, id)); // the played pawn's sleep owed (sim/sleep, VB-1615)
+    if (tired) sum += put(out, 'tired', tired);
     if (p.mods) for (const m of p.mods) if (m.until > st.t) sum += put(out, m.key, MOOD[m.key].value);
     if (friendTalk(st, id)) sum += put(out, 'friend', MOOD.friend.value);
     return Math.max(0, Math.min(100, MOOD.base + sum));

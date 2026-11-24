@@ -67,6 +67,7 @@
       "sim/dig",
       "sim/pot",
       "sim/thirst",
+      "sim/sleep",
       "sim/hunger",
       "sim/foodneed",
       "sim/saltpan",
