@@ -21,6 +21,7 @@ VB['sim/agenda'] = (() => {
   const { CHAINS, chainOf, chainSteps } = VB['sim/planchains'];
   const { waitsOf } = VB['sim/plannext'];
   const { heldFarms } = VB['sim/ownership'];
+  const Camp = VB['sim/camp'];
   const { AWAKE, SLEEP, owedBy } = VB['sim/sleep'];
   const LEN = WORK[1] - WORK[0];
   // ---- time: work and walks are laid in working hours ----
@@ -575,5 +576,22 @@ VB['sim/agenda'] = (() => {
     }
     return out.sort((a, b) => a.deadline.t - b.deadline.t || a.tile - b.tile);
   }
-  return { agenda, after, past, planGaps };
+  // Sim.buildMenu(st) (VB-1627; VB-1630): sim/camp's build menu, each entry with `work`, the whole of it as the plan reckons it: the hours
+  // of the steps its task would carry (its chain's, at the house: the timber trips with the raising), by the played pawn's own estimate
+  // (the middle of its range, as the plan's task shows it); `hours` stays the raising alone. Reads only.
+  function buildMenu(st) {
+    const menu = Camp.buildMenu(st);
+    if (!menu.length) return menu;
+    const id = st.player.pawn,
+      hid = st.pawns[id].household,
+      hh = hid === null ? null : st.households[hid],
+      tile = hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead].house : -1;
+    return menu.map((e) => {
+      const ps =
+          CHAINS[e.what] && tile >= 0 ? chainParts(st, id, hid, { kind: e.what, [e.what]: tile }, null).parts : [],
+        work = ps.reduce((n, x) => n + x.e.mid, 0);
+      return { ...e, work: ps.length ? Math.round(work * 10) / 10 : e.hours };
+    });
+  }
+  return { agenda, after, past, planGaps, buildMenu };
 })();

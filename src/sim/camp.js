@@ -1,7 +1,8 @@
 // @sys sim/camp: the camp of a settler who plans by hand (VB-1627; Kim, 24 Nov 2026: "land first, place from the menu"): the farm kept on
 //   the landing tile with nothing on it, roofless (sim/building roofless), until its head places the farmstead (the verb `placeFarmstead`:
 //   the house moved to the tile chosen within LANDING.soilSteps of the landing, the booth staked beside it) and its booth stands; what the
-//   played head may build now (the build menu, a registry) and why a tile will not take it
+//   played head may build now (the build menu, a registry) and why a tile will not take it; a camp left to itself placed by its head's
+//   own rule (placeOwn, VB-1630)
 VB['sim/camp'] = (() => {
   const { register, issue } = VB['sim/commands'];
   const { living } = VB['sim/records'];
@@ -19,8 +20,14 @@ VB['sim/camp'] = (() => {
   // @state farmstead.camp: absent on a farm not landed by hand; true while nothing stands on the farm of a settler who plans by hand (the
   //   solo start with `hand`: its household sleeps under the open sky, sim/building roofless), false once its booth stands, the cottage
   //   not yet planned (VB-1627). Written here only: at the landing (makeCamp) and when the booth beside the house is raised.
-  const makeCamp = (f) => {
+  // The landing (VB-1630): the farm is a camp, and the village fence the generator laid round its tile (sim/layout finishLand: the solo
+  // village encloses its one house) is taken down before anything reads it, its stretches numbered again: nothing of the farm stands
+  // until it is placed, and a farm placed in play gets no fence by itself, as a settler's (sim/cottage) gets none.
+  const makeCamp = (st, f) => {
     f.camp = true;
+    const v = st.villages[f.village],
+      kept = v.fence.filter((s) => !s.edges.some((e) => e.tile === f.house)).map((s, i) => ({ ...s, id: i }));
+    v.fence = kept; // lint-allow: owner the fence round a camp's landing taken down at seeding (VB-1630)
   };
   // The bound on how far from the landing the farmstead may be placed: the reach of the site's reading.
   const reach = () => LANDING.soilSteps;
@@ -125,6 +132,25 @@ VB['sim/camp'] = (() => {
     if (staked) return { f, staked };
     return raisedHome(st, hh, f) ? { f, raised: true } : null;
   }
+  // ---- the head's own rule (VB-1630): a camp left to itself places its farmstead ----
+  // The tile the head of household hh places its camp's farmstead on by its own rule, or -1: the tile of the played head's farmstead task
+  // if it has one that takes it, else the landing, else the nearest that takes it within reach() steps' walk (bfs order).
+  function ownTile(st, hh, f) {
+    const id = hh.holder,
+      pl = st.player,
+      t = pl && pl.pawn === id && pl.plan ? pl.plan.tasks.find((k) => k.kind === 'farmstead') : null;
+    if (t && tileWhy(st, id, t.farmstead) === null) return t.farmstead;
+    if (tileWhy(st, id, f.house) === null) return f.house;
+    for (const [u] of bfs(st.w, f.house, reach(), walkable(st.w)).dist) if (tileWhy(st, id, u) === null) return u;
+    return -1;
+  }
+  // The head of household hh, whose farm f is a camp with no booth staked, places the farmstead by its own rule (the verb, as a player
+  // would): with automatic behaviour on, or a head not played (the caller asks sim/projects heldOff). Whether it was placed.
+  function placeOwn(st, hh, f) {
+    if (hh.holder === null || campWhy(st, hh.holder) !== null) return false;
+    const tile = ownTile(st, hh, f);
+    return tile >= 0 && issue(st, { actor: hh.holder, verb: 'placeFarmstead', target: tile, source: 'pawn' }) === true;
+  }
   // ---- the build menu (VB-1627): what the played head may build now, a registry later rungs add to ----
   // Each: why the played pawn cannot build it now whatever the tile (`why`), why not on `tile` (`tile`), its raising's hours and its timber
   // (loads).
@@ -137,7 +163,8 @@ VB['sim/camp'] = (() => {
       timber: BOOTH.wood,
     },
   };
-  // Sim.buildMenu(st): [{what, ok, why, hours, timber}] for the played pawn; [] with none played. Reads only.
+  // The build menu: [{what, ok, why, hours, timber}] for the played pawn; [] with none played (Sim.buildMenu adds each entry's `work`,
+  // sim/agenda). Reads only.
   function buildMenu(st) {
     if (!st.player) return [];
     const id = st.player.pawn,
@@ -156,5 +183,5 @@ VB['sim/camp'] = (() => {
     const id = st.player.pawn;
     return living(st, id) || B.why(st, id) || B.tile(st, id, tile);
   }
-  return { BUILDS, makeCamp, campAt, campWhy, placeWhy, buildMenu };
+  return { BUILDS, makeCamp, campAt, campWhy, placeWhy, buildMenu, placeOwn };
 })();

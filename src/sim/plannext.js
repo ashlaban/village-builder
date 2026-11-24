@@ -2,7 +2,7 @@
 //   automatic behaviour off and the views read without writing) and why each task waits and why the plan is idle (WAITS, waitsOf;
 //   VB-1623), by the reads nextOf makes (VB-1618; VB-1629 split it from sim/playerplan). Reads only
 VB['sim/plannext'] = (() => {
-  const { cal } = VB['sim/rules'];
+  const { cal, DAY, WORK } = VB['sim/rules'];
   const { VERBS } = VB['sim/commands'];
   const { living } = VB['sim/records'];
   const { CHAINS, chainOf, chainSteps, headCmd, pileOf } = VB['sim/planchains'];
@@ -10,6 +10,7 @@ VB['sim/plannext'] = (() => {
   const Fieldwork = VB['sim/fieldwork'],
     Meadows = VB['sim/meadows'],
     Chores = VB['sim/chores']; // VB-1624: the rules HOLDS reads
+  const { lacks } = VB['sim/projects'];
   const workCmd = (id, key) => ({ actor: id, verb: 'work', target: key, args: null, source: 'player' });
   // ---- why a task waits (VB-1623): the one closed list of reasons, each plain data for the page (planView's `waits` and `idle`) ----
   // hand: a command queued by hand goes first (its verb, target and the game hour it was begun, null before); before: an earlier task (i,
@@ -68,6 +69,20 @@ VB['sim/plannext'] = (() => {
     }
     return held('review');
   }
+  // The staked booth's timber all in, its raising not yet posted (VB-1630): the wood step is done and the raising posted when the staked
+  // booths are next asked (sim/building stakedWork, the island's ask at the first step of each review hour, sim/plandays reviewHour), a
+  // wait with its hour, not work missing (the page had shown it as nothing open). The hour of that ask after game hour t.
+  const raisingDue = (where, y) => {
+    const s = where.staked && where.staked.steps[where.staked.open];
+    return y.kind === 'booth' && !!s && s.kind === 'timber' && lacks(s, s.timber) === 0;
+  };
+  function nextAsk(t) {
+    const day = Math.floor(t / DAY),
+      h = Math.floor(t - day * DAY) + 1;
+    if (h < WORK[0] - 1) return day * DAY + WORK[0] - 1;
+    if (h > WORK[1]) return (day + 1) * DAY + WORK[0] - 1;
+    return day * DAY + h;
+  }
   // What the pawn may do now for chain task tk, as a command with its `plan` mark, or why not (a WAITS reason): on a marked or free tile,
   // the project begun through the head's verb, beside any other of the household's (VB-1623); else the first step posted at its tile, in
   // the order the work goes, if its `work` verb lets the pawn take it; else its first step's opening, or that its job is not posted.
@@ -97,6 +112,7 @@ VB['sim/plannext'] = (() => {
     }
     const y = s.steps[0];
     if (!y) return WAITS.refused(`nothing is left to do at ${tile}`);
+    if (raisingDue(s.where, y)) return WAITS.opens(nextAsk(st.t), 'the raising of the booth');
     return y.from > st.t
       ? WAITS.opens(y.from, y.what || y.kind)
       : WAITS.unposted(y.kind, holdOf(st, hid, name, s.where, y, tile));

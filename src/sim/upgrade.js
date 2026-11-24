@@ -1,10 +1,12 @@
 // @sys sim/upgrade: the main building built up a rung as a task of the player's plan (VB-1632; Kim, 24 Nov 2026: "It should then be
 //   possible to upgrade the main building"): the chain `upgrade` (the booth to a cottage today), contributed to sim/planchains' CHAINS at
 //   load; the head's verb that begins the cottage (beginCottage: its plan made as sim/settle and sim/scenarios make it); and the timber
-//   held at home taken into the walls of a cottage so begun before any is fetched
+//   held at home taken into the walls of a cottage so begun before any is fetched; a camp's household left to itself placing its
+//   farmstead and beginning its cottage by its head's own rule (ownRung, VB-1630)
 VB['sim/upgrade'] = (() => {
   const { BUILD, ECON } = VB['sim/rules'];
-  const { register } = VB['sim/commands'];
+  const { register, issue } = VB['sim/commands'];
+  const Camp = VB['sim/camp'];
   const { living } = VB['sim/records'];
   const { on } = VB['sim/events'];
   const Stores = VB['sim/stores'],
@@ -62,6 +64,23 @@ VB['sim/upgrade'] = (() => {
       if (p) homeTimber(st, hh, p);
     },
   });
+  // ---- the head's own rule (VB-1630): a camp left to itself gets its roof ----
+  // Each working hour, every household whose farm was landed as a camp (sim/camp; f.camp set) and whose head does not hold off projects
+  // (sim/projects heldOff: automatic behaviour on, or a head not played) builds up by its own rule, by the verbs a player's plan issues:
+  // from a camp with no booth staked it places the farmstead (sim/camp placeOwn); once the booth stands (camp false, f.booth) it begins
+  // its cottage (beginCottage), as the solo start without `hand` makes it at the landing (sim/scenarios landAlone). Few farms are camps;
+  // the rest are passed over at one read each (the work counter campLook).
+  function ownRung(st) {
+    for (const hid of st.liveHouseholds) {
+      VB.count.campLook++;
+      const f = farmOf(st, hid);
+      if (!f || f.camp === undefined || !f.booth || Projects.heldOff(st, hid)) continue;
+      const hh = st.households[hid];
+      if (f.camp === true) Camp.placeOwn(st, hh, f);
+      else if (hh.holder !== null && !cottageOf(st, hid))
+        issue(st, { actor: hh.holder, verb: 'beginCottage', target: f.house, source: 'pawn' });
+    }
+  }
   // ---- the chain: upgrade (CHAINS.upgrade) ----
   // At the house's tile of the household's farm: {f, hh, tile, what (the task's rung, 'cottage' before it is planned), cottage (its plan
   // once begun, or null)}. Its act begins the cottage (beginCottage); then its stages at the house, the walls' timber trips before the
@@ -119,5 +138,5 @@ VB['sim/upgrade'] = (() => {
         : null,
   };
   CHAINS.upgrade = upgrade; // contributed at load, before the first seed (VB-1632)
-  return { homeTimber };
+  return { homeTimber, ownRung };
 })();

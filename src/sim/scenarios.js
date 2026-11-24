@@ -119,7 +119,7 @@ VB['sim/scenarios'] = (() => {
       field = hand ? -1 : pickField(st, f, hh);
     f.booth = true;
     if (hand) {
-      makeCamp(f); // VB-1627: a camp, nothing under way; the head places the farmstead by its plan
+      makeCamp(st, f); // VB-1627: a camp, nothing under way; the head places the farmstead by its plan
       return null;
     }
     if (field >= 0) {
