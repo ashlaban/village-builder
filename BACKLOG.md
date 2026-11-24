@@ -124,6 +124,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1597](backlog/VB-1597.md)<a id="VB-1597"></a> | takeDay's missed member: one rule for whom the head allots | - | 3 | S | takeDay repeats allotted's terms but for the commanded pawn (found by VB-1591) |
 | [VB-1610](backlog/VB-1610.md)<a id="VB-1610"></a> | A booth's water in the evening: one who comes to its booth after work takes the open fetch | - | 3 | S | the booth's fetch is taken only in the working day (sim/away dayAway); a late arrival ends the day thirsty though the fetch stands open until 20:00 |
 | [VB-1611](backlog/VB-1611.md)<a id="VB-1611"></a> | The page says what a lodger's water is: the booth's source, whether today's water is in | - | 3 | S | VB-1601 built the booth's fetch and the morning drink; nothing on the page tells of them but the pawn's job line and its Thirsty line |
+| [VB-1645](backlog/VB-1645.md)<a id="VB-1645"></a> | Sleep for every pawn: hours owed, the verb for a pawn's own logic, and the cost | - | 3 | M | Extend the played pawn's sleep (VB-1643) to every pawn, reckoned by transitions so the cost stays flat |
+| [VB-1656](backlog/VB-1656.md)<a id="VB-1656"></a> | Sim.load clears the world fields its save lacks | - | 3 | S | A save loads the same on a used world as on a fresh one (found by VB-1654: w.shut left over on a shared world). |
 
 </details>
 

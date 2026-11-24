@@ -28,7 +28,7 @@ const refused = (st, hh, got, re, label) => {
   const { st, hh, f } = scene(), before = snap(st, hh);
   refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: 3 }), /no pawn is played/, 'no player');
   const other = hh.members.find((id) => id !== hh.holder && Sim.inhabit(st, id) === true);
-  refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: 3 }), /is not the head of household 0/, 'a member that is not the head');
+  refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: 3 }), /is not the head of the household/, 'a member that is not the head');
   refused(st, hh, Sim.head(st, 'tile', { what: 'field', tile: F.pickField(st, f, hh) }), /is not the head/, 'its tile');
   refused(st, hh, Sim.head(st, 'order', { steps: [...st.plans.seasons.get(hh.id).steps].reverse() }), /is not the head/, 'its order');
   refused(st, hh, Sim.head(st, 'project', { what: 'none' }), /is not the head/, 'its project');
@@ -36,7 +36,7 @@ const refused = (st, hh, got, re, label) => {
   refused(st, hh, Sim.head(st, 'kill', {}), /not a choice of the plan/, 'another verb');
   // another household's head, issued directly: the verb's own check
   refused(st, hh, Sim.command(st, { actor: st.households[1].holder, verb: 'target', target: hh.id, args: { store: 'hay', n: 3 }, source: 'player' }),
-    /is not the head of household 0/, "another household's head");
+    /is not the head of the household/, "another household's head");
   refused(st, hh, Sim.command(st, { actor: { household: hh.id }, verb: 'target', target: hh.id, args: { store: 'hay', n: 3 }, source: 'pawn' }),
     /only the head/, 'the household itself while it has a holder');
   refused(st, hh, Sim.command(st, { actor: other, verb: 'target', target: 99, args: { store: 'hay', n: 3 }, source: 'player' }), /no household 99/, 'no such household');
@@ -71,7 +71,10 @@ let made;
   const p = Projects.ownOf(st, hh.id);
   assert.ok(p && p.what === 'field' && p.steps[0].place === tile, `the land step begins the field on the chosen tile (${p && p.steps[0].place}, not ${tile})`);
   assert.strictEqual(plan.tiles.field, -1, 'the tile is used');
-  refused(st, hh, Sim.head(st, 'project', { what: 'field' }), /has a field under way/, 'a second project');
+  // a second: the verb refuses it to neither (VB-1668); the holder's land step begins none while one is under way, its own choice
+  const second = (source) => VB['sim/commands'].VERBS.project.check(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'field' }, source });
+  assert.strictEqual(second('pawn'), null, 'a second project, by the head\'s verb as its rule issues it');
+  assert.strictEqual(second('player'), null, 'a second project, by the played head');
   for (d = 0; !f.fields.some((fd) => fd.tile === tile) && d < 60; d++) Sim.advance(st, DAY);
   assert.ok(f.fields.some((fd) => fd.tile === tile), 'the field is made on the chosen tile');
   made = d;

@@ -129,14 +129,16 @@ async function build(seed, scenario, size, save = null, quick = false) {
     0.52,
   );
   await frame();
+  // The new interface's solo start (page/ui2site): the land is shown with nobody on it, and seeded when the player has chosen a site
+  const landFirst = UI2 && scenario === 'solo' && !save && !custom && !quick;
   let sim = null;
   try {
-    sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario, custom ? custom.places : null);
+    if (!landFirst) sim = save ? Sim.load(wd, save) : Sim.seed(wd, seed, scenario, custom ? custom.places : null);
     if (save) dropPaint(wd); // the save's biomes are laid on the world whole: a paint it had is built anew
   } catch (e) {
     console.warn(save ? 'The save could not be loaded' : 'No settlement on this map for this scenario', e);
   }
-  if (!sim) {
+  if (!sim && !landFirst) {
     building = false;
     $('menuBtn').disabled = false;
     const msg = save
@@ -197,11 +199,12 @@ async function build(seed, scenario, size, save = null, quick = false) {
 
   // Opening move: start on the whole chart, then glide down through the clouds to the village; for a new game, to the farm of the
   // scenario's suggestion, where whom to play opens (page/choose); for a loaded one with a pawn played, to its farm (VB-1027).
-  const sug = !save && !sim.player ? suggestedPawn() : -1,
-    mine = save && sim.player && sim.pawns[sim.player.pawn].died === null ? sim.player.pawn : -1, // a loaded game opens on the played pawn's farm
+  const sug = sim && !save && !sim.player ? suggestedPawn() : -1,
+    scouted = landFirst ? Sim.landing.best(wd, 1) : [],
+    mine = sim && save && sim.player && sim.pawns[sim.player.pawn].died === null ? sim.player.pawn : -1, // a loaded game opens on the played pawn's farm
     sugFarm = sug >= 0 ? farmOf(sim.pawns[sug]) : mine >= 0 ? farmOf(sim.pawns[mine]) : null;
-  let best = sugFarm ? sugFarm.house : sim ? sim.villages[0].center : -1,
-    bd = sim ? -1 : Infinity;
+  let best = sugFarm ? sugFarm.house : sim ? sim.villages[0].center : scouted.length ? scouted[0].tile : -1,
+    bd = best >= 0 ? -1 : Infinity;
   for (let i = 0; i < wd.N && bd >= 0; i++) {
     if (wd.water[i]) continue;
     const d = Math.hypot(wd.hx[i] - wd.W / 2, wd.hy[i] - wd.H / 2);
@@ -241,7 +244,8 @@ async function build(seed, scenario, size, save = null, quick = false) {
   vel.x = vel.y = 0;
   loader.classList.add('done');
   // a quick start asks nothing: the scenario's suggested pawn is played at once, the action bar open (the sheet would cover its farm)
-  if (quick && !sim.player && suggestedPawn() >= 0 && playAs(suggestedPawn()) === true) openBar();
+  if (landFirst) openSite(seed);
+  else if (quick && !sim.player && suggestedPawn() >= 0 && playAs(suggestedPawn()) === true) openBar();
   else if (!save && !sim.player) openChoose();
   else if (sim.player && sim.pawns[sim.player.pawn].alive) openBar(!mobileUI.matches); // narrow: the bar alone, as above
   building = false;

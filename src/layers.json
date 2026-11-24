@@ -39,6 +39,7 @@
       "sim/forage",
       "sim/fieldrec",
       "sim/layout",
+      "sim/landing",
       "sim/byhand",
       "sim/forest",
       "sim/people",
@@ -66,6 +67,7 @@
       "sim/dig",
       "sim/pot",
       "sim/thirst",
+      "sim/sleep",
       "sim/hunger",
       "sim/foodneed",
       "sim/saltpan",
@@ -98,6 +100,9 @@
       "sim/expansion",
       "sim/wells",
       "sim/building",
+      "sim/byrehouse",
+      "sim/timberhouse",
+      "sim/camp",
       "sim/trails",
       "sim/drying",
       "sim/tar",
@@ -147,6 +152,11 @@
       "sim/occasions",
       "sim/venues",
       "sim/player",
+      "sim/planchains",
+      "sim/playerplan",
+      "sim/plannext",
+      "sim/ladder",
+      "sim/upgrade",
       "sim/trust",
       "sim/jobs",
       "sim/drinking",
@@ -179,7 +189,7 @@
       "sim/outlook",
       "sim/estimate"
     ],
-    "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview", "sim/reasons"],
+    "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview", "sim/reasons", "sim/planview", "sim/agenda"],
     "presentation": ["draw/pigments", "draw/paths", "draw/rivers", "draw/marks", "draw/paint", "draw/bake"]
   }
 }

@@ -16,6 +16,7 @@ VB['sim/clock'] = (() => {
   const Stores = VB['sim/stores'];
   const { fellShort } = VB['sim/help'];
   const Workdays = VB['sim/workdays'];
+  const { ownRung } = VB['sim/upgrade'];
   const { placeByDoor, release, dropJob, stepAgents, rest } = VB['sim/agents'],
     { travelling } = VB['sim/pose'],
     { dropSides } = VB['sim/attention'],
@@ -144,6 +145,13 @@ VB['sim/clock'] = (() => {
       owner: 'sim/jobs',
       note: 'the review of the standing plans (sim/plandays reviewHour)',
       run: (st, c) => refreshJobs(st, c),
+    },
+    {
+      every: 'hour',
+      at: { hour: [WORK[0], WORK[1]] },
+      owner: 'sim/upgrade',
+      note: 'a camp left to itself: its head places the farmstead, and begins the cottage once the booth stands (VB-1658)',
+      run: (st) => ownRung(st),
     },
     {
       every: 'hour',

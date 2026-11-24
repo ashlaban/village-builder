@@ -17,7 +17,7 @@ assert.strictEqual(rows.get('wood').mark, 'used', 'the woodpile is used by the h
 assert.strictEqual(rows.get('water').mark, 'used', 'the day\'s water is used by the cook and the dry day (VB-331)');
 assert.strictEqual(rows.get('stone').mark, 'used', 'the stone heap is used by the foundation (VB-332)');
 for (const id of ['grain', 'meals', 'hay', 'villageGrain']) assert.strictEqual(rows.get(id).mark, 'used', `${id} is used`);
-assert(rows.get('wood').reads.some((r) => r.fn === 'cookWanted') && rows.get('wood').adds.some((a) => a.fn === 'wood.deliver'),
+assert(rows.get('wood').reads.some((r) => r.fn === 'cookWanted') && rows.get('wood').adds.some((a) => a.fn === 'firewood.done'),
   'the woodpile: the cook reads it (VB-327), and its own kind fills it');
 
 // 2. The hours report reads the run and writes nothing: tests/review-hours.js (VB-856: apart, since the scan above takes 4 seconds)

@@ -9,7 +9,7 @@ VB['sim/stores'] = (() => {
   const { goodOf, dayLoss, keepsDays, GRAIN, CROP_LIST, CROP_GOOD, GOOD_CROP, isGrain, grainGood } = VB['sim/goods'],
     { kindRow, baseOf, kindIn } = VB['sim/goods'];
   const STAKE_CROP = 'barley';
-  const { emit } = VB['sim/events'],
+  const { emit, on } = VB['sim/events'],
     Projects = VB['sim/projects'],
     Yields = VB['sim/yields'];
   const KINDS = [
@@ -35,6 +35,7 @@ VB['sim/stores'] = (() => {
   ];
   KINDS.push('feast'); // VB-458: the food a host lays out at a wedding or a funeral ale, eaten there by those who came (sim/occasions)
   KINDS.push('wage'); // VB-637: a servant's wage, paid from its master's grain into its stake (sim/service)
+  KINDS.push('moving'); // VB-1667: what a household left lying at its landing when its house moved, and fetched home (sim/camp)
   KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-359, sim/dig)
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
@@ -45,6 +46,10 @@ VB['sim/stores'] = (() => {
   // VB-328: the woodpile, in loads: a firewood trip, the day's burning (routine), a plot's wood, timber left over, a new household's first wood.
   KINDS.push('firewood', 'burn', 'plot', 'timber', 'start');
   ROUTINE.push('firewood', 'burn');
+  // VB-1653: timber felled in the woods and carried home (sim/chores' wood), and cut there into firewood (its firewood kind): out of
+  // 'timber' and into 'wood', both routine totals
+  KINDS.push('felling', 'cutting');
+  ROUTINE.push('felling', 'cutting');
   // VB-332: the stone heap, in loads of 25 stones: cleared from a field or meadow, picked, quarried; taken by a stone foundation.
   KINDS.push('clear', 'pick', 'quarry', 'foundation');
   KINDS.push('well'); // VB-058: a load carried from the heap to the village's well (sim/green)
@@ -131,6 +136,7 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && good === 'meals') return good;
     if (kind === 'household' && good === 'flour') return good; // ground on the quern (VB-009, sim/quern)
     if (kind === 'household' && good === 'wood') return good; // the woodpile (VB-328)
+    if (kind === 'household' && good === 'timber') return good; // timber felled and carried home, not yet cut (VB-1653)
     if (kind === 'household' && (good === 'stone' || baseOf(good) === 'stone')) return 'stone'; // the stone heap (VB-332), by rock (VB-733)
     if (kind === 'household' && good === 'peat') return good; // the peat stack (VB-367)
     if (kind === 'household' && good === 'tar') return good; // barrels of tar (VB-301, sim/tar)
@@ -187,6 +193,12 @@ VB['sim/stores'] = (() => {
   };
   const setWood = (hh, n) => {
     hh.wood = n;
+  };
+  // @state household.timber: loads of timber felled in the woods and carried home, not yet cut into firewood (VB-1653; sim/chores: put
+  //   by the wood kind's trip, taken by the firewood kind's cutting at the house, ECON.woodPerTrip a trip, the woodpile's units);
+  //   absent (none) until the household's first timber is home, and in a save from before
+  const setTimber = (hh, n) => {
+    hh.timber = n;
   };
   // ---- a good by kind (VB-733; design.md, The metals and the stones: Kind in state; principle 17): a store of a good with kinds is
   // {[kind]: n}, as grain is by crop (none held: no key, or 0). A put names the kind ('stone/granite'); a take of a kind takes it; a take of
@@ -292,6 +304,7 @@ VB['sim/stores'] = (() => {
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (good === 'wood') setWood(holder, n);
+    else if (good === 'timber') setTimber(holder, n);
     else if (good === 'peat') setPeat(holder, n);
     else if (good === 'fish') setRack(holder, n);
     else if (good === 'tar') setTar(holder, n);
@@ -307,11 +320,18 @@ VB['sim/stores'] = (() => {
   // VB-249: a store crossing a target wakes its household's plan for a review (sim/plans reads and clears the flag, at most one such review
   // a day): the grain above the seed reserve running out or coming back, sheaves coming into an empty barn. The one call from the stores
   // to the plans is this flag.
-  // @state plan.dirty: true when a store of the plan's household crossed a target since the plan's last review; set only here.
+  // @state plan.dirty: true when a store of the plan's household crossed a target since the plan's last review, or the player's plan
+  //   asked for work its head posts at a review (the event planAsks, VB-1661); set only here.
   function wake(st, hh) {
     const plan = st.plans && st.plans.households.get(hh.id);
     if (plan) plan.dirty = true;
   }
+  // The player's plan asks its head for work the head's rule posts at a review (sim/playerplan, the event planAsks: a firewood task's
+  // cutting, VB-1661): the plan is woken as by a store crossing a target, the stores it reads having changed since its review.
+  on('planAsks', (st, { household }) => {
+    const hh = st.households[household];
+    if (hh && !hh.dissolved) wake(st, hh);
+  });
   function crossed(st, holder, kind, before) {
     if (kind !== 'household' || !st.plans) return;
     const r = reserved(st, holder, GRAIN);

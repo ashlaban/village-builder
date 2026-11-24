@@ -30,6 +30,8 @@ VB['sim/carts'] = (() => {
     Projects = VB['sim/projects'];
   const { declare } = VB['sim/makings'];
   const { log, atFarm } = VB['sim/records'];
+  const { on } = VB['sim/events'],
+    Lying = VB['sim/lying'];
   // @state household.carts[]: {kind ('hand' | 'ox'), cond (1 new; mended below CART.mendAt; gone at 0), built (game hour), by (the pawn
   //   that has it out with a load, or null)}: the household's carts, in the order they were made. Written only here.
   // @state household.cartMiss: loads taken on the back because no cart was free while more waited, since the head's last yearly look at a
@@ -40,7 +42,8 @@ VB['sim/carts'] = (() => {
   // @state household.carts[].at: absent, or {tile, x, y, t}: a cart left standing where its carrier was released on the road with a load
   //   (VB-649: it dies or its household dissolves), until a hand of the household fetches it home (the lying load 'leftCart', sim/lying);
   //   while it stands the cart is out, and the team that drew it stands with it. Written only here; removed at the autumn frost if nobody
-  //   came (sim/lying).
+  //   came (sim/lying), unless `kept`: a cart its household left standing at the landing when its house moved (VB-1667), on its own land
+  //   and not abandoned, which the frost does not take.
   const out = (st, c) => {
     if (c.at) return true;
     const a = c.by === null ? null : st.agents[c.by];
@@ -71,6 +74,27 @@ VB['sim/carts'] = (() => {
     c.at = { tile, x, y, t: st.t };
     return c;
   }
+  // The house of household hh moved from `from` (sim/camp's placing, VB-1667): each cart not out stands there (`kept`), with a lying
+  // leftCart, marked moving and kept, for its hands to fetch (sim/lying keeps it at the frost; cartsFrost below).
+  on('houseMoved', (st, { f, from, walk }) => {
+    const hh = f.household === null ? null : st.households[f.household];
+    if (!hh) return;
+    for (const c of hh.carts)
+      if (!out(st, c)) {
+        const x = st.w.hx[from] - 10,
+          y = st.w.hy[from] + 10;
+        c.by = null;
+        c.at = { tile: from, x, y, t: st.t, kept: true };
+        Lying.leave(
+          st,
+          'leftCart',
+          1,
+          from,
+          { type: 'household', id: hh.id },
+          { x, y, of: { moving: true, kept: true, walk, cart: { kind: c.kind, built: c.built } } },
+        );
+      }
+  });
   // The cart (kind, built) standing out is fetched home: it is free again, with its team; or it is lost, by the frost, and is gone.
   const standing = (hh, kind, built) => hh.carts.find((c) => c.at && c.kind === kind && c.built === built) || null;
   function fetched(st, hh, kind, built) {
@@ -140,7 +164,7 @@ VB['sim/carts'] = (() => {
   }
   // A cart left standing that nobody fetched is lost at the autumn frost (VB-649).
   function cartsFrost(st) {
-    for (const hh of st.households) for (const c of hh.carts.filter((q) => q.at)) lost(st, hh, c);
+    for (const hh of st.households) for (const c of hh.carts.filter((q) => q.at && !q.at.kept)) lost(st, hh, c);
   }
   // The cart, a making the head begins through the verb project (VB-678; sim/projects' declare): possible with no cart under way and a
   // village wood to fell its timber in; args.kind 'hand' or 'ox', else an ox cart if the household keeps a team and has none, else a hand
@@ -155,7 +179,7 @@ VB['sim/carts'] = (() => {
       const v = st.villages[f.village];
       if (args && args.kind !== undefined && !Object.hasOwn(CART.hours, args.kind))
         return `there is no cart ${args.kind}`;
-      if (Projects.underWay(st, hh.id, 'cart')) return `household ${hh.id} has a cart under way`;
+      if (Projects.underWay(st, hh.id, 'cart')) return `the household has a cart under way`;
       return v.wood.length ? null : `${v.name} has no wood to fell its timber in`;
     },
     begin: (st, hh, f, args) => {

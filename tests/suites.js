@@ -22,6 +22,17 @@ const FAST = [
   ['node', 'tests/living.js'],
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
+  ['node', 'tests/handplan.js'], // VB-1661: by hand the outlook counts what the plan covers, one reckoning of the fire, no stone work held off, the cutting asked
+  ['node', 'tests/firewood.js'], // VB-1653: wood in two steps, felled and carried home as timber, cut at the house; the plan's fell and firewood
+  ['node', 'tests/camp.js'], // VB-1655: land first: a camp, roofless; the build menu and the refusals; the farmstead placed and its shelter raised on the house tile, the house moved
+  ['node', 'tests/move.js'], // VB-1667: the farmstead placed anywhere reachable on foot: the goods, the carts and the herds left at the landing and fetched; the village follows; Sim.moveCost
+  ['node', 'tests/upgrade.js'], // VB-1660: the shelter built up to a cottage by a task of the plan; the timber at home first; farmView next
+  ['node', 'tests/shelter.js'], // VB-1666: a settler household's shelter on its house tile, then its cottage there; an older save's booth kept
+  ['node', 'tests/farmtasks.js'], // VB-1663: the stone foundation and the barn, each by a task of the plan; the slack's wait; farmView's foundation
+  ['node', 'tests/byrehouse.js'], // VB-1665: the byre as a building: at seeding, none on a camp, an older save; the lean in the open; by the plan and by the head's rule
+  ['node', 'tests/timberhouse.js'], // VB-1664: the timber house above the cottage, the rungs' room and the crowded tenants; by the plan and by a crowded head's rule
+  ['node', 'tests/plan.js'], // VB-1646: the player's plan: its ops, the routine once a day, tasks in order, hand commands first, sleep by its hours
+  ['node', 'tests/sleep.js'], // VB-1643: the played pawn's sleep owed, the verb sleep, a night worked in mood and health
   ['node', 'tests/outcomes.js'], // commands' three outcomes and the queue's assignments: release, reacquire, side work, saves (VB-1405)
   ['node', 'tests/crowding.js'], // a household's crowding, its factor and its refresh, on a constructed state (VB-766)
   ['node', 'tests/sheet.js'], // the played pawn's sheet: what a command brought, what moved its levels, an illness before it kills (VB-1118)
@@ -75,6 +86,7 @@ const FAST = [
   ['node', 'tests/peas.js'],
   ['node', 'tests/skills.js'], // time taken from causes: skill, a leg's mishap, the crop's size (VB-475)
   ['node', 'tests/reasons.js'], // VB-1551: who chose a pawn's act and why, every chooser but a duty, read-only and read by no module
+  ['node', 'tests/agenda.js'], // VB-1644: the played pawn's queue and open work at its own estimate, against their deadlines, read-only; VB-1647: its plan laid into days agrees with the feeder
   ['node', 'tests/workmanship.js'], // workmanship: the grades' odds by skill, the draw, the maker, the graded quern (VB-761)
   ['node', 'tests/estimate.js'], // the head's estimate: the causes reckoned by skill, the range, the day manned by it (VB-476)
   ['node', 'tests/crafts.js'], // crafts learnt by doing: halfway in 400 hours, a tenth a year, a novice's rate to a master's (VB-360)
@@ -132,6 +144,8 @@ const FAST = [
   ['node', 'tests/accounts.js'], // VB-403: the balance accounts close, the people account too, and the run is unchanged
 ];
 const INTEGRATION = [
+  ['node', 'tests/ladder.js', 'founders,solo'], // VB-1659: the rungs and outbuildings as data, rungOf on every farm, Sim.farmView
+  ['node', 'tests/ladder.js', 'populous'], // VB-1659: rungOf on every farm of populous, at seeding and a year on
   ['node', 'tests/samepixels.js'], // VB-1500: the map-pixels tool catches a pigment and a mark moved; 2.5 s
   ['node', 'tests/events.js'],
   ['node', 'tests/grain.js'],
@@ -324,6 +338,6 @@ const EXTENDED = [
   ['node', 'tests/browser-gathering.js'], // a gathering while it is on: its notice, its mark and its card (VB-1031, VB-1032)
   ['node', 'tests/browser-fields.js'], // a field's card: crop, course, the head's rotation choices and their answers, winter rye (VB-1146)
   ['node', 'tests/browser-overlays.js'], // the map's overlays through their list and by key, one at a time, on a phone (VB-1496)
-  ['node', 'tests/browser-bonds.js'] // portraits: the bonds as badges (VB-1026), their words (VB-1033), ageing (VB-1029)
+  ['node', 'tests/browser-bonds.js'], // portraits: the bonds as badges (VB-1026), their words (VB-1033), ageing (VB-1029)
 ];
 module.exports = { FAST, INTEGRATION, EXTENDED };

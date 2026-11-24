@@ -72,8 +72,8 @@ VB['sim/textile'] = (() => {
   declare('loom', {
     small: true,
     why: (st, hh, f) => {
-      if (hasLoom(hh)) return `household ${hh.id} has a loom`;
-      if (Projects.underWay(st, hh.id, 'loom')) return `household ${hh.id} has a loom under way`;
+      if (hasLoom(hh)) return `the household has a loom`;
+      if (Projects.underWay(st, hh.id, 'loom')) return `the household has a loom under way`;
       return st.villages[f.village].wood.length
         ? null
         : `${st.villages[f.village].name} has no wood to fell its timber in`;

@@ -33,7 +33,8 @@ VB['draw/paths'] = (() => {
   // A worn tile that draws its own trail: land, a field or a meadow (w.dev 0 and 1) worn to LOOK.from or more, not a green, a house or
   // a river. Less worn ground is walked, counted and quicker (sim/paths, sim/routes) and is not drawn (Kim, VB-402): the small ways
   // everyone takes across the grass are too slight for the map, and drawn they hid the roads.
-  const trail = (w, i) => i >= 0 && w.worn[i] >= LOOK.from && w.dev[i] < 2 && !w.water[i] && !w.river[i];
+  // A land with nobody on it yet has no wear (w.worn is laid at the seeding): no trail.
+  const trail = (w, i) => i >= 0 && !!w.worn && w.worn[i] >= LOOK.from && w.dev[i] < 2 && !w.water[i] && !w.river[i];
   // ---- which ways a trail leaves its tile ----
   // Worn tiles lie in patches as well as in lines (round a house, where ways part), and a trail to every worn neighbour would draw a
   // mesh of triangles there. So of three worn tiles that all touch, the weakest link is not drawn: strength is the lower stage of the two

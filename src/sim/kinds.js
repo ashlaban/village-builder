@@ -22,7 +22,8 @@ VB['sim/kinds'] = (() => {
     { plotWork } = Expansion,
     { claimWork } = Farmclaims;
   // A kind's fields:
-  //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
+  //   verb, go, back: what the pawn panel says while working, walking there and carrying home (words(st, j): any of them read from the
+  //   state, VB-1670: sim/byre's fodder with no byre standing); name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
   //   hands: how many pawns may work one job at once (VB-102: field, land and threshing work takes the whole household);
   //   type: the type of work, which roles rank (ROLES in sim/roles); craft: the craft the work is (SKILLS.crafts, sim/skills; VB-360),
@@ -51,7 +52,8 @@ VB['sim/kinds'] = (() => {
   //   late: a task with a deadline today: unmanned, it goes first in its hand's list and calls it when the day is allotted (sim/day; the cook).
   //   vital: a kind a household lives by, true or (st, j) => boolean: once begun it is carried to its end though the work day ends
   //   meanwhile (`carriedOn`, below; VB-1547, Kim, 23 November). evening: a vital kind a hand may also begin after the end of work, until
-  //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/day eveningCall; the water).
+  //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/day eveningCall; the water); true or, as vital, (st, j) =>
+  //   boolean (the firewood cut at home while the house is cold or the pile short, VB-1653).
   //   first: a kind that heads the list of the member best fit for it when the day is allotted (the water); trip(st, j): the hours of
   //   its trip besides its work, counted in that member's day (sim/day allot; VB-1582). setOut(st, a, j, teamFree): as its hand sets
   //   out (sim/agents start), what it takes at the house; returns the load it sets out with (the water's barrel on a cart; VB-1586).
@@ -121,6 +123,9 @@ VB['sim/kinds'] = (() => {
   KINDS.drink = VB['sim/thirst'].KINDS.drink; // a pawn's drink at a source (VB-1585): sim/thirst's
   Object.assign(KINDS, VB['sim/leather'].KINDS); // shoes and harness cut from a hide (VB-911): sim/leather's
   Object.assign(KINDS, VB['sim/textile'].KINDS); // spinning, weaving and the loom (VB-362): sim/textile's
+  KINDS.firewood = Chores.KINDS.firewood; // timber cut into firewood at the house (VB-1653): sim/chores'
+  Object.assign(KINDS, VB['sim/byrehouse'].KINDS); // the byre's walls and roof (VB-1665): sim/byrehouse's
+  Object.assign(KINDS, VB['sim/timberhouse'].KINDS); // the timber house's frame and roof (VB-1664): sim/timberhouse's
   // ---- where a kind is worked, what it takes and what it gives (VB-1124): each kind's record declares `at` (the places of PLACES where its
   // work is done), `needs` (the things of THINGS it takes or must find there: a good used up, a tool or a facility) and `gives` (the
   // things it makes or brings home), beside its rule, as its name and hours are. The game's guide (page/guide) reads them, and a kind
@@ -191,6 +196,7 @@ VB['sim/kinds'] = (() => {
     meadow: { name: 'a hay meadow' },
     house: { name: 'the house' },
     barn: { name: 'a barn' },
+    byre: { name: 'a byre' },
     booth: { name: 'a booth' },
     fence: { name: 'the village fence' },
     green: { name: 'the village green' },
@@ -248,6 +254,7 @@ VB['sim/kinds'] = (() => {
       landProject,
       Building.boothWork,
       'wood',
+      'firewood',
       'thresh',
       'water',
       'cook',
