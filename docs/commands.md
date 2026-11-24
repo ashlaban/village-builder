@@ -6,6 +6,8 @@ the short list. Read one entry with `node tools/doc.js docs/commands.md QUERY`, 
 Every tool run from `tools/` answers `--help` with its options, without running: read that, not its source (a new tool starts with `tools/help.js`).
 - Backlog: `node tools/backlog.js next|list|show ID [--brief]` to read; `done ID...`, `set ID key=value...`, `new key=value...`,
   `close-arch KEY`, and `sync` after a task file's header is edited by hand, to change it. Each rewrites the tables and runs `tests/backlog.js`.
+- Merge drivers: `node tools/merge.js --install` (run by `npm install`) sets the drivers `.gitattributes` names; git then runs
+  `tools/merge.js MODE ...` itself at a merge. The backlog's tables merge by task row (VB-1620).
 - A task's brief: `node tools/brief.js VB-NNN [--refs N]` prints, in one call, the task up to its criteria (its notes by size only, a
   `Flag:` line kept), its open questions, each section of `design.md` its Design ref names (whole up to N KB, default 4; a longer one
   by its subsections), the tasks that wait for it, and the rules for its kind (a change of behaviour, a refactor, the page, a plan, a wrap-up).

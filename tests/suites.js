@@ -142,6 +142,7 @@ const INTEGRATION = [
   ['node', 'tests/codec.js'],
   ['node', 'tests/skip.js'],
   ['node', 'tests/backlog-tool.js'],
+  ['node', 'tests/merge.js'], // VB-1620: the merge drivers: backlog rows by ID and field, the non-mechanical conflicts kept
   ['node', 'tests/inbox.js'],
   ['node', 'tests/waiting.js'],
   ['node', 'tests/foresight-hunger.js'], // foresight's hunger by household-years (VB-571)
