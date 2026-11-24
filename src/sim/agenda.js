@@ -1,7 +1,7 @@
 // @sys sim/agenda: the played pawn's agenda (VB-1616; docs/ui2/HANDOFF.md): its queue laid end to end from now and the open work it may
 // take, each with the hours the pawn itself reckons it takes (sim/estimate; principle 14: what is shown of the future is some pawn's
 // estimate), the deadline that presses (a field's sowing window, the frost the head expects, the haymaking window) and whether it ends in
-// time; for a step of a project making a field, the steps left before the field can be sown; and the player's plan (sim/playerplan) laid
+// time; for a step of a project making a field, the steps left before the field can be sown; and the player's plan (sim/playerplan, sim/plannext) laid
 // into today and the next two days by the feeder's rule (VB-1619: days, plan, owed, routine); and the windows that press at the household's
 // tiles with no task of the plan covering them (VB-1622: planGaps). A view computed when the page asks, as
 // sim/reasons is: it writes nothing, draws nothing, and no simulation module reads it (tests/agenda.js)
@@ -17,7 +17,9 @@ VB['sim/agenda'] = (() => {
   const { workFor } = VB['sim/opportunities'];
   const { here, walkHours } = VB['sim/pose'];
   const { toAxial, hexDist } = VB['world/grid'];
-  const { asleepAt, CHAINS, chainOf, chainSteps, waitsOf } = VB['sim/playerplan'];
+  const { asleepAt } = VB['sim/playerplan'];
+  const { CHAINS, chainOf, chainSteps } = VB['sim/planchains'];
+  const { waitsOf } = VB['sim/plannext'];
   const { heldFarms } = VB['sim/ownership'];
   const { AWAKE, SLEEP, owedBy } = VB['sim/sleep'];
   const LEN = WORK[1] - WORK[0];
@@ -137,7 +139,7 @@ VB['sim/agenda'] = (() => {
       then: thenOf(st, id, j, j.owner && j.owner.id, ends, endsHi),
     };
   }
-  // ---- the plan laid into days (VB-1619): the feeder's rule (sim/playerplan nextOf, sim/player feed) followed forward in time ----
+  // ---- the plan laid into days (VB-1619): the feeder's rule (sim/plannext nextOf, sim/player feed) followed forward in time ----
   const NDAYS = 3, // today and the next two
     BEYOND = 30; // days a task's end is still sought past them, for its verdict
   // The next game hour from t (t itself included) at which the day's clock reads h.
@@ -188,7 +190,7 @@ VB['sim/agenda'] = (() => {
     if (f && f.water && (KINDS[k].at || []).includes('water')) Object.assign(s, { farm: f, site: f.water.tile });
     return s;
   }
-  // A task at a tile's steps left (sim/playerplan chainSteps; VB-1621, VB-1622) as parts of its work: {kind, key (its job's, null while
+  // A task at a tile's steps left (sim/planchains chainSteps; VB-1621, VB-1622) as parts of its work: {kind, key (its job's, null while
   // not posted), e (the pawn's estimate: of the job posted, else of the step's hours; a carrying's by its loads), rough (not posted), from
   // (the hour it may begin: a step not posted at its window's opening, or when its crop is expected ripe, its hay dry)}; with its
   // chain's deadline (`frost`: the autumn day of the frost the head expects).

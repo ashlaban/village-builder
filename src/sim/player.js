@@ -13,7 +13,8 @@ VB['sim/player'] = (() => {
   const { on } = VB['sim/events'];
   const { daysOfFood } = VB['sim/foodneed'];
   const { KINDS } = VB['sim/kinds'];
-  const { nextOf, planDay, planBegun } = VB['sim/playerplan'];
+  const { planDay, planBegun } = VB['sim/playerplan'];
+  const { nextOf } = VB['sim/plannext'];
   // ---- the player (VB-169): one source, `player`, with one pawn at a time, whose queued commands go before the pawn's own logic ----
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
   //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun, ref}, in turn;
