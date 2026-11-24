@@ -51,7 +51,8 @@ VB['sim/kinds'] = (() => {
   //   meanwhile (`carriedOn`, below; VB-1547, Kim, 23 November). evening: a vital kind a hand may also begin after the end of work, until
   //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/day eveningCall; the water).
   //   first: a kind that heads the list of the member best fit for it when the day is allotted (the water); trip(st, j): the hours of
-  //   its trip besides its work, counted in that member's day (sim/day allot; VB-1551).
+  //   its trip besides its work, counted in that member's day (sim/day allot; VB-1551). setOut(st, a, j, teamFree): as its hand sets
+  //   out (sim/agents start), what it takes at the house; returns the load it sets out with (the water's barrel on a cart; VB-1555).
   //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/fit).
   //   norm(st, j): the job's hours for a normal crop, where its hours go by the crop's size (reap, thresh): what a head that does not
   //   reckon with the size estimates (sim/estimate, VB-476).
