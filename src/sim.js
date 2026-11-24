@@ -64,6 +64,7 @@ const Sim = (() => {
   const { issue: command } = VB['sim/commands'];
   const { inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, head, sheetNotes } = VB['sim/player'];
   const { headView } = VB['sim/plans'];
+  const { timetable, callCost } = VB['sim/timetable'];
   const { wishesOf } = VB['sim/wishes']; // a pawn's wish at the moving round, kind by kind (VB-680)
   const { actorView, forPawn, successor, succeed, roundChoice } = VB['sim/opportunities'];
   const { visitState, orderVisit } = VB['sim/visits']; // a pawn's visit, planned or under way, and the played pawn's order for one (VB-292)
@@ -129,6 +130,8 @@ const Sim = (() => {
     DEBUG,
     head,
     headView,
+    timetable, // a household's day laid end to end, each task a range by the viewer's estimate (VB-477)
+    callCost, // what calling a member off costs: its walk home and the load it leaves (VB-477)
     inhabit,
     sheetNotes,
     uninhabit,

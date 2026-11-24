@@ -179,7 +179,7 @@
       "sim/outlook",
       "sim/estimate"
     ],
-    "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview", "sim/reasons"],
+    "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview", "sim/reasons", "sim/timetable"],
     "presentation": ["draw/pigments", "draw/paths", "draw/rivers", "draw/marks", "draw/paint", "draw/bake"]
   }
 }
