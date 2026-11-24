@@ -31,6 +31,12 @@ const HUD_CHAIN = {
     fresh: 'Make a hay meadow here',
     done: 'the meadow is mown and its hay brought home',
   },
+  farmstead: {
+    name: 'Build the farmstead',
+    icon: () => actIcon('home'),
+    offer: 'Build the farmstead here',
+    done: 'the farmstead placed, its timber carried and its booth raised',
+  },
   harvest: {
     name: 'Bring in the harvest',
     icon: () => goodIcon('sheaves'),
@@ -53,8 +59,7 @@ function hudWaits(x) {
   if (x.why === 'routine') return `Waits for the day’s routine (${hudKind(x.kind).toLowerCase()}).`;
   if (x.why === 'sleep') return `Waits for the night to end, at ${hudHour(x.until)}.`;
   if (x.why === 'opens') return `Waits for ${x.what}, ${hudClock(x.t)}: nothing of it can be done before.`;
-  if (x.why === 'unposted')
-    return `Cannot go on now: there is no ${hudKind(x.kind).toLowerCase()} to do here at present.`;
+  if (x.why === 'unposted') return `Cannot go on now: there is no work open for “${hudKind(x.kind)}” at present.`;
   return `Cannot go on: ${x.text}.`;
 }
 // Why the plan as a whole has the settler do nothing now though it holds tasks ('' when it works, or holds none).

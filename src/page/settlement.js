@@ -201,6 +201,56 @@ function boothCottage(f) {
     P.projectsOf(st, 'village', f.village).find(mine)
   );
 }
+// A camp (farmstead.camp, VB-1627: the settler who plans by hand lands with nothing built): the goods landed on the house tile, a
+// covered pile of sacks and a chest beside a ring of hearth stones, and nothing standing; the tent comes when the booth is raised.
+const CAMP_AT = [3, 6]; // the pile, from the tile's middle; the hearth to its left
+function drawCamp(wd, f) {
+  const x = wd.hx[f.house] + CAMP_AT[0],
+    y = wd.hy[f.house] + CAMP_AT[1],
+    g = new PIXI.Graphics(),
+    line = { width: 0.8, color: INK, join: 'round' };
+  for (let k = 0; k < 7; k++) {
+    const a = (k / 7) * Math.PI * 2;
+    g.ellipse(x - 13 + Math.cos(a) * 3.4, y - 1 + Math.sin(a) * 2, 1.3, 0.9)
+      .fill(0xb9b2a4)
+      .stroke({ width: 0.4, color: INK });
+  }
+  g.roundRect(x + 1.5, y - 5.5, 8, 5.5, 0.8)
+    .fill(0x8a5a36)
+    .stroke(line); // the chest
+  g.moveTo(x + 1.5, y - 3.6)
+    .lineTo(x + 9.5, y - 3.6)
+    .stroke({ width: 0.5, color: INK });
+  for (const [dx, dy, s] of [
+    [-6, 0, 1],
+    [-1.5, 0.6, 0.9],
+    [-3.8, -4, 0.85],
+  ])
+    g.ellipse(x + dx, y + dy - 2.6 * s, 3 * s, 3.2 * s)
+      .fill(0xd9c79c)
+      .stroke(line); // the sacks
+  g.poly([x - 9.5, y + 0.5, x - 7.5, y - 6, x - 2, y - 8.5, x + 0.5, y - 4.5, x + 0.5, y + 0.8])
+    .fill({ color: 0x6f7c55, alpha: 0.9 })
+    .stroke(line); // the cover
+  g.zIndex = y + 1;
+  L.objects.addChild(g);
+}
+// A booth staked beside a camp's house and not yet raised: its poles stand, leaning together, with no cover on them.
+function stakedPoles(g, bx, by) {
+  for (const [a, b] of [
+    [-7, 3],
+    [7, -3],
+    [-2.5, 1.5],
+    [2.5, -1.5],
+  ])
+    g.moveTo(bx + a, by)
+      .lineTo(bx + b * 0.4, by - 13.5)
+      .stroke({ width: 1.6, color: INK })
+      .moveTo(bx + a, by)
+      .lineTo(bx + b * 0.4, by - 13.5)
+      .stroke({ width: 0.8, color: 0x96462f });
+  g.ellipse(bx, by, 8.5, 2.4).stroke({ width: 0.7, color: INK, alpha: 0.45 });
+}
 function drawBooth(wd, f, empty) {
   const x = wd.hx[f.house],
     y = wd.hy[f.house],
@@ -208,9 +258,9 @@ function drawBooth(wd, f, empty) {
     n = boothCottage(f) ? boothCottage(f).open : 0, // the stages done
     bx = x + YARD.booth[0],
     by = y + YARD.booth[1];
-  tent(g, bx, by);
+  if (f.camp === undefined) tent(g, bx, by); // a farm landed by hand has its booth on its own tile (drawBooths)
   cottageStage(g, x + YARD.stuga[0], y + YARD.stuga[1] - 5, n);
-  if (!empty) g.ellipse(x, y + 4, 17, 11).stroke({ width: 1.2, color: 0xf6eed8, alpha: 0.7 });
+  if (!empty && f.camp === undefined) g.ellipse(x, y + 4, 17, 11).stroke({ width: 1.2, color: 0xf6eed8, alpha: 0.7 });
   if (empty) g.alpha = 0.55;
   g.zIndex = y + 8;
   L.objects.addChild(g);
@@ -325,9 +375,12 @@ function drawBooths(wd) {
     g.alpha = 0.55 + 0.45 * Sim.boothCondition(st, b);
     add(g, wd.hy[b.tile]);
   }
+  const camps = st.farmsteads.filter((f) => f.camp === true).map((f) => f.house),
+    { hexSteps } = VB['sim/hex'];
   for (const t of Sim.stakedBooths(st)) {
     const g = new PIXI.Graphics();
-    g.circle(wd.hx[t], wd.hy[t] - 3, 6).stroke({ width: 1, color: INK, alpha: 0.6 });
+    if (camps.some((h) => hexSteps(wd, h, t) <= 1)) stakedPoles(g, wd.hx[t], wd.hy[t]);
+    else g.circle(wd.hx[t], wd.hy[t] - 3, 6).stroke({ width: 1, color: INK, alpha: 0.6 });
     add(g, wd.hy[t]);
   }
 }
@@ -352,7 +405,12 @@ function drawFarm(wd, f) {
   // an empty farm greys; a ruin keeps only the cottage's lower walls (proper decay art comes with claims); a tarred house's logs
   // are darker (VB-301)
   const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : Sim.houseTarred(st, f) ? 0x9a8a7c : 0xffffff;
-  if (f.booth) drawBooth(wd, f, empty);
+  const camp = f.camp === true,
+    landed = f.camp !== undefined && f.booth; // landed by hand: no byre nor heap until they are built (VB-1627)
+  if (camp) {
+    yard.alpha = 0.3; // trodden ground only
+    drawCamp(wd, f);
+  } else if (f.booth) drawBooth(wd, f, empty);
   else {
     const lada = place(art.lada, hx + YARD.lada[0], hy + YARD.lada[1], 0.5, 0.93),
       harbre = place(art.harbre, hx + YARD.harbre[0], hy + YARD.harbre[1], 0.5, 0.95),
@@ -382,12 +440,12 @@ function drawFarm(wd, f) {
   const wood = place(art.wood[0], hx + YARD.wood[0], hy + YARD.wood[1], 0.5, 0.9);
   wood.visible = !empty;
   const herds = !empty && st.households[f.household].herds.length > 0;
-  if (herds) place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92);
+  if (herds && !landed) place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92);
   const stack =
     herds || (!empty && st.households[f.household].hay > 0)
       ? place(art.haystack[0], hx + YARD.stack[0], hy + YARD.stack[1], 0.5, 0.93)
       : null;
-  const heap = herds ? place(art.manure[0], hx + YARD.heap[0], hy + YARD.heap[1], 0.5, 0.88) : null; // the dung heap by the byre (VB-137)
+  const heap = herds && !landed ? place(art.manure[0], hx + YARD.heap[0], hy + YARD.heap[1], 0.5, 0.88) : null; // the dung heap by the byre (VB-137)
   if (st.w.fresh && st.w.fresh[f.house] === Water.FRESH.WELL)
     place(art.curb, hx + YARD.curb[0], hy + YARD.curb[1], 0.5, 0.85);
   if (!empty) {
@@ -404,8 +462,20 @@ function drawFarm(wd, f) {
     const sx = hx + YARD.stuga[0],
       sy = hy + YARD.stuga[1],
       at = (q) => [sx + (q[0] - STUGA.w / 2) * ART_S, sy + (q[1] - STUGA.h * 0.92) * ART_S];
-    const [cx, cy] = f.booth ? [hx + YARD.booth[0], hy + YARD.booth[1] - 13] : at(STUGA.hole);
-    const [gx, gy] = f.booth ? [hx + YARD.booth[0], hy + YARD.booth[1] + 1] : at([48, 62]);
+    // a camp's hearth ring; the booth beside the house of a farm landed by hand
+    const near = (b) => b.by === f.household && VB['sim/hex'].hexSteps(wd, b.tile, f.house) <= 1,
+      booth = f.camp === false ? st.booths.find(near) : null,
+      fire = camp
+        ? [hx + CAMP_AT[0] - 13, hy + CAMP_AT[1] - 1]
+        : booth
+          ? [wd.hx[booth.tile], wd.hy[booth.tile] + 1]
+          : null;
+    const [cx, cy] = fire
+      ? [fire[0], fire[1] - (booth ? 14 : 3)]
+      : f.booth
+        ? [hx + YARD.booth[0], hy + YARD.booth[1] - 13]
+        : at(STUGA.hole);
+    const [gx, gy] = fire || (f.booth ? [hx + YARD.booth[0], hy + YARD.booth[1] + 1] : at([48, 62]));
     const lit = f.booth ? null : place(art.lit, sx, sy, 0.5, 0.92);
     if (lit) {
       lit.zIndex = sy + 0.01;

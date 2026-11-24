@@ -204,3 +204,16 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 }
 @media (prefers-reduced-motion: no-preference) { .u2-sheet { animation: u2up 0.2s ease-out; } }
 @keyframes u2up { from { transform: translateY(12px); opacity: 0; } }
+/* building (page/ui2build): the build button calls while nothing is built; the menu's entries; the line of help while placing */
+.u2 .u2-tabs button.call { background: #f3dfa6; animation: u2call 1.4s ease-in-out infinite; }
+@keyframes u2call { 50% { box-shadow: 0 0 0 7px rgba(192, 138, 30, 0.45); } }
+@media (prefers-reduced-motion: reduce) { .u2 .u2-tabs button.call { animation: none; box-shadow: 0 0 0 4px rgba(192, 138, 30, 0.6); } }
+.u2 .u2-build { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; padding: 10px 12px; text-align: left; border: var(--line); border-radius: 12px; background: var(--paper2); box-shadow: 0 2px 0 rgba(20, 28, 25, 0.5); }
+.u2 .u2-build:not([disabled]):hover { background: #f3dfa6; }
+.u2 .u2-build[disabled] { cursor: not-allowed; border-style: dashed; box-shadow: none; color: var(--soft); }
+.u2-build > svg { width: 34px; height: 34px; }
+.u2-build > span { display: grid; gap: 2px; } .u2-build b { font: 800 19px/1.1 var(--head); } .u2-build small { color: var(--soft); font-size: 13px; }
+.u2-build em { font-style: normal; font-weight: 700; color: var(--red); font-size: 14px; }
+.u2-help { flex: none; align-self: center; display: flex; gap: 8px; align-items: center; max-width: 100%; padding: 4px 6px 4px 12px; font-size: 14px; font-weight: 700; border-radius: 999px; }
+.u2-help > svg { width: 20px; height: 20px; flex: none; }
+.u2-welcome svg, .u2-call .u2-act svg { display: inline-block; width: 18px; height: 18px; vertical-align: -3px; }

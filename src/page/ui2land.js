@@ -11,11 +11,12 @@ const HUD_AILS = [
 ];
 function hudAils() {
   const d = (st.player.days || []).slice(-1)[0],
-    seen = new Set();
+    seen = new Set(),
+    build = buildCalls(hudHouse().f); // a camp with no farmstead planned: the roof is the build menu's
   return d
     ? HUD_AILS.filter(([k, icon]) => d.why[k] >= 0.2 && !seen.has(icon) && seen.add(icon)).map(([, icon, words]) => [
         icon,
-        words,
+        icon === 'cold' && build ? `${words} Build a farmstead: the build button.` : words,
       ])
     : [];
 }
@@ -89,7 +90,12 @@ const HUD_VERDICT = { 'in time': 0, tight: 1, late: 2 };
 // An agenda entry's verdict: its own, or the whole chain's it leads to (a field broken now, sown in time?).
 const hudVerdict = (e) => (e.then && e.then.verdict) || e.verdict || null;
 // One line of words for an agenda entry: the hours it takes as the settler reckons them, and how it stands against its deadline.
-const HUD_ENDS = { plant: 'to a sown field', hay: 'until the hay is home', harvest: 'until the sheaves are in' };
+const HUD_ENDS = {
+  plant: 'to a sown field',
+  hay: 'until the hay is home',
+  harvest: 'until the sheaves are in',
+  farmstead: 'until the booth stands',
+};
 function hudStake(e) {
   let t = `About ${hudSpan(e.hours.mid)} of work`;
   if (e.steps && e.steps.length)
@@ -119,6 +125,7 @@ function hudSites(hh) {
 }
 // The callout of tile i: what it is, how it stands, and what the settler can do there.
 function hudCall(i, id, hh, f) {
+  if (hud.place) return placeCall(i);
   const V = Sim.headView(st, hh.id),
     fi = f.fields.findIndex((q) => q.tile === i),
     mi = (f.meadows || []).findIndex((q) => q.tile === i),
@@ -129,15 +136,29 @@ function hudCall(i, id, hh, f) {
   let title,
     sub,
     acts = '';
+  const camp = hudCamp(f),
+    P0 = hudPlanned(),
+    placed = i !== f.house && P0 && P0.tasks.some((t) => t.kind === 'farmstead' && t.site === i);
   if (i === f.house) {
-    title = f.name;
+    title = camp === 'camp' ? `${f.name}: a camp` : camp === 'staked' ? `${f.name}: the booth staked` : f.name;
     sub = `${st.pawns[id].given}: ${Sim.describe(st, id)}.${hudAils()
       .map(([, words]) => ` ${words}`)
       .join('')}`;
+    if (camp === 'camp')
+      sub = `Nothing is built: the goods are landed here, and the nights are spent under the open sky. ${
+        buildTasked() ? 'The farmstead is in the plan.' : 'The build button places a farmstead.'
+      } ${sub}`;
+    else if (camp === 'staked')
+      sub = `The farmstead is placed: its booth is staked beside the house, and stands once its timber is carried and it is raised. ${sub}`;
+    if (camp === 'camp' && !buildTasked())
+      acts += `<button type="button" class="u2-act go" data-tab="build">${actIcon('build')} Build…<small>The build menu</small></button>`;
     acts +=
       `<p class="u2-legend">${hudGauges(hh)}</p>` +
       '<div class="u2-row2"><button type="button" class="u2-chip" data-tab="stores">Stores</button>' +
       `<button type="button" class="u2-chip" data-tab="me">${esc(st.pawns[id].given)}</button></div>`;
+  } else if (placed) {
+    title = 'The farmstead’s place';
+    sub = 'The farmstead is to stand here: it is in the plan.';
   } else if (fi >= 0) [title, sub] = fieldLine(f.fields[fi], fi);
   else if (mi >= 0) {
     title = `Hay meadow ${mi + 1}`;
@@ -176,7 +197,7 @@ function hudCall(i, id, hh, f) {
   // the chains this tile may take, by what stands on it; the sim says why not when one is pressed and refused
   // a free tile the head's own check takes for a field or a meadow: a task there begins it in its turn, beside any other (VB-1623)
   const none = { field: new Set(), meadow: new Set() },
-    free = i !== f.house && fi < 0 && mi < 0 && !here ? hudSites(hh) : none;
+    free = i !== f.house && fi < 0 && mi < 0 && !here && !placed ? hudSites(hh) : none;
   const offer = (c) => ((free.field.has(i) || free.meadow.has(i)) && HUD_CHAIN[c].fresh) || HUD_CHAIN[c].offer;
   const gap = hudGaps().find((g) => g.tile === i),
     marked = V.tiles.field === i ? 'plant' : V.tiles.meadow === i ? 'hay' : null,
@@ -222,6 +243,7 @@ function hudMarks(id, hh, f) {
     key = [
       Math.floor(st.t),
       hud.at,
+      hud.place,
       hud.msg ? hud.msg.text : '',
       hud.tab,
       plan,

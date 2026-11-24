@@ -53,7 +53,9 @@ function u2Place() {
   const hex = w.R * cam.z, // a tile's radius on the screen
     top =
       Math.max(
-        ...[u2.top, u2.lens, u2.key, u2.alert].filter((e) => !e.hidden).map((e) => e.getBoundingClientRect().bottom),
+        ...[u2.top, u2.lens, u2.key, u2.alert, u2.help]
+          .filter((e) => !e.hidden)
+          .map((e) => e.getBoundingClientRect().bottom),
       ) + 6,
     bot =
       Math.min(
@@ -100,6 +102,7 @@ function u2Init() {
       <button type="button" class="u2-menu" id="u2Menu" aria-label="Main menu" title="Main menu">${ICON.menu}</button>
     </div>
     <p class="u2-alert" id="u2Alert" hidden></p>
+    <div class="u2-help u2-card" id="u2Help" role="status" hidden></div>
     <div class="u2-lens" id="u2Lens" role="group" aria-label="What the map shows" hidden></div>
     <div class="u2-key" id="u2Key" hidden></div>
     <div class="u2-mid" id="u2Mid"><div class="u2-welcome u2-card" id="u2Welcome" hidden></div></div>
