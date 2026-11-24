@@ -2,6 +2,7 @@
 // the leader's estimate (sim/water siteWater) is the least of the walk to fresh water, the well of the village the site would join and a
 // well of its own at the middle of its band, spread over WELL.payYears; a candidate's score loses SETTLE.perFetch a daily hour, so of two
 // sites alike but for their water the nearer ranks first; and no site is refused: where there is no source and no well, one is still offered.
+// VB-1565: a plot's site in a village (sim/expansion findSite) loses the same a daily hour, its water reckoned with the village's well.
 const VB = require('../src/load.js'),
   Settle = VB['sim/settle'],
   Water = VB['sim/water'];
@@ -146,5 +147,60 @@ const cands = (st, v) => Settle.candidates(st, v, Settle.landInUse(st), Settle.r
   check(!!site, 'a site with no source and no well is still offered');
   check(shown.length > 0 && shown[0].water.by === 'none' && shown[0].house === site.house, `and shown as it is (${JSON.stringify(shown[0] && shown[0].water)})`);
 }
+// ---- 4. a plot's site in a village (sim/expansion findSite, VB-1565): of two sites alike but for the walk to the village's well, the nearer ----
+{
+  const X = VB['sim/expansion'],
+    { hexSteps } = VB['sim/hex'];
+  const { w, st, v } = world();
+  lay(w, NO_WELL); // no fresh water and no well of a site's own: the village's well is all the water there is
+  w.worn.fill(0);
+  const perFetch = SETTLE.perFetch,
+    unweighed = () => {
+      SETTLE.perFetch = 0;
+      const s = X.findSite(st, v);
+      SETTLE.perFetch = perFetch;
+      return s;
+    },
+    walk = (t) => siteWater(st, t, 2, v).village.walk;
+  const plain = unweighed(),
+    even = X.findSite(st, v);
+  check(plain && even && even.house === plain.house, 'on even ground the water moves no plot: every site as near the green walks as far');
+  // a worn way from the green to another site as far from it, which the plot's own score does not read
+  const d = hexSteps(w, v.center, plain.house);
+  let other = -1,
+    by = -1;
+  for (let k = 0; k < 6 && other < 0; k++) {
+    const a = w.nb[v.center * 6 + k];
+    if (a < 0 || st.used.has(a) || hexSteps(w, a, plain.house) < 2) continue;
+    for (let m = 0; m < 6; m++) {
+      const b = w.nb[a * 6 + m];
+      if (b < 0 || st.used.has(b) || b === plain.house || hexSteps(w, v.center, b) !== d || hexSteps(w, b, plain.house) < 3) continue;
+      w.worn[a] = w.worn[b] = 3;
+      const s = unweighed(),
+        t = X.findSite(st, v);
+      if (s && s.house === plain.house && t && t.house === b) {
+        other = b;
+        by = a;
+        break;
+      }
+      w.worn[a] = w.worn[b] = 0;
+    }
+  }
+  check(d === 2 && other >= 0, `a site as far from the green as the first (${d} steps), alike in the plot's score, a worn way to it`);
+  if (other >= 0) {
+    check(unweighed().house === plain.house, 'the plot score alone does not tell them apart: unweighed, the first is chosen still');
+    check(
+      walk(other) < walk(plain.house) && X.findSite(st, v).house === other,
+      `of two plot sites alike but for the walk to the village's well the nearer is chosen (${walk(other)} against ${walk(plain.house)} hours, by ${by})`,
+    );
+  }
+  // no site is refused for its water: with no well on the green either, the plot is the one the land alone gives
+  w.worn.fill(0);
+  v.well = false;
+  w.fresh[v.center] = FRESH.NONE;
+  const dry = X.findSite(st, v);
+  check(siteWater(st, plain.house, 2, v).by === 'none', 'a village with no water at all');
+  check(dry && dry.house === plain.house && dry.field === plain.field, 'a plot is still found where no site has water, the same as unweighed');
+}
 if (failed) process.exit(1);
-console.log("sitewater ok: the leader's estimate (source, village well, own well), the search weighs the fetch, no site refused for its water");
+console.log("sitewater ok: the leader's estimate (source, village well, own well), the search weighs the fetch, no site refused for its water; a plot's site by the walk to the village's well");

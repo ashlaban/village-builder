@@ -128,7 +128,7 @@ VB['sim/aims'] = (() => {
     const [heir, ranked] = heirOf(st, hh);
     if (heir !== null) {
       VB.count.aimMenu++; // a search of the village's reach for a site (findSite), counted with the menus
-      if (findSite(st, st.villages[f.village]))
+      if (findSite(st, st.villages[f.village], false))
         out.push({ what: 'heir', weight: (ranked >= 2 ? AIMS.heirs : AIMS.base) * generosity, heir });
     }
     if (!f.barn && !f.booth && st.villages[f.village].wood.length) out.push({ what: 'barn', weight: AIMS.base });
