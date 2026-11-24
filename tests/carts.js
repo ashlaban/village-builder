@@ -76,13 +76,13 @@ check(hh.carts.length === 1 && hh.carts[0].kind === 'hand' && hh.carts[0].cond =
   check(near(M.hayLoad(o, TRAVEL.cart), 60 / TRAVEL.hay) && near(o.held, 30) && o.stage === 'mown', 'an ox cart takes 60 of a larger heap');
   check(KINDS.hay.again({ meadow: { held: 3 } }) && !KINDS.hay.again({ meadow: { held: 0 } }) && KINDS.hay.reload === CART.reload, 'more loads while hay lies');
 }
-// --- firewood: a load for each trip's cutting stacked on the cart
+// --- timber (VB-1625: felled and carried home, cut to firewood at the house): a load for each tree felled stacked on the cart
 {
-  const v = st.villages[0], w0 = hh.wood, j = { site: v.wood[0], farm: f };
+  const v = st.villages[0], w0 = hh.timber || 0, j = { site: v.wood[0], farm: f };
   KINDS.wood.deliver(st, j, hh, f, { load: 0 });
-  check(near(hh.wood - w0, st.ECON.woodPerTrip), 'a back load of firewood');
+  check(near(hh.timber - w0, st.ECON.woodPerTrip), 'a back load of timber');
   KINDS.wood.deliver(st, j, hh, f, { load: 3 * TRAVEL.load });
-  check(near(hh.wood - w0, 4 * st.ECON.woodPerTrip), 'three loads on a cart are three trips\' wood');
+  check(near(hh.timber - w0, 4 * st.ECON.woodPerTrip), 'three loads on a cart are three trips\' timber');
 }
 // --- dung: carted faster with a cart
 hh.carts = []; idle(p);

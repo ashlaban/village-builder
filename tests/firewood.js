@@ -25,11 +25,14 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
 // 1. No pawn played: every household fells timber and cuts it at home, and keeps its pile through a year with no cold day.
 {
   const st = make();
+  // (the households that stood from the start: a household founded in the year begins with the wood its people bring, and a new
+  // household's first days are a matter of its hands' choice of work, as before the split)
+  const n0 = st.households.length;
   let cold = 0, felled = 0, cut = 0;
   const seen = new Set();
   for (let d = 0; d < YEAR_DAYS; d++) {
     Sim.advance(st, DAY);
-    for (const hh of st.households) if (!hh.dissolved && hh.cold > 0) cold++;
+    for (const hh of st.households.slice(0, n0)) if (!hh.dissolved && hh.cold > 0) cold++;
     for (const j of st.jobs.values()) {
       if (seen.has(j.id)) continue;
       seen.add(j.id);
@@ -38,7 +41,7 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
     }
   }
   assert(felled > 0 && cut > 0, `trips to fell (${felled}) and cuttings at home (${cut}) posted`);
-  assert.strictEqual(cold, 0, 'no household-day cold in the year');
+  assert.strictEqual(cold, 0, 'no household-day cold in the year, of those that stood from the start');
   for (const hh of st.households) {
     if (hh.dissolved) continue;
     assert(hh.wood > 0, `household ${hh.id} has wood at the year's end`);
@@ -88,7 +91,7 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert.deepStrictEqual(st.player.plan.tasks, [], 'both tasks done');
   assert(onTile, 'the felling was at the chosen tile');
   assert.strictEqual(lastFell.which, 'home', 'the fell task left with its trips home');
-  assert(st.w.trees[tile] <= trees - 2 + 1e-6, `two trees felled at the chosen tile (${trees} to ${st.w.trees[tile]})`);
+  assert(st.w.trees[tile] < trees - 1.5, `two trees felled at the chosen tile, less a few days' regrowth (${trees} to ${st.w.trees[tile]})`);
   assert(['cut', 'full'].includes(st.player.plan.last.which), `the firewood task left: ${st.player.plan.last.which}`);
   assert(hh.wood > 0, 'firewood cut at home');
   fire = Sim.fireView(st);
@@ -115,7 +118,7 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   const st = make();
   const hh = st.households[st.pawns[FARMER].household];
   Stores.put(st, hh, 'timber', 30, 'felling');
-  const fuelOf = () => Sim.supplyOutlook(st, hh.id);
+  const fuelOf = () => VB['sim/outlook'].reckon(st, hh, st.plans.households.get(hh.id)).fuel.parts.store; // as the head reckons at a review
   const auto = JSON.stringify(fuelOf());
   Sim.inhabit(st, FARMER);
   Sim.setAuto(st, false);

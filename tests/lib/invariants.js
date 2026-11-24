@@ -754,6 +754,8 @@ function checkState(st) {
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     if (grainBad(h.grain)) bad.push(`households[${h.id}]: grain ${JSON.stringify(h.grain)}`);
     for (const k of ['wood', 'peat', 'meals', 'flour', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    // timber home and not yet cut (VB-1625): absent, or loads, a finite number not negative
+    if (h.timber !== undefined && !within(h.timber, 0, 1e6)) bad.push(`households[${h.id}]: timber is ${h.timber}`);
     // the stone heap by rock (VB-733): loads of the stone's kinds, each a finite number, none negative
     const rocks = globalThis.VB['sim/goods'].kindsOf('stone');
     if (!h.stone || typeof h.stone !== 'object' || Object.keys(h.stone).some((k) => !rocks.includes(k) || !within(h.stone[k], 0, 1e6)))

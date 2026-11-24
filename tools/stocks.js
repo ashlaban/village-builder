@@ -47,8 +47,10 @@ const QUANTITIES = [
   { id: 'rack', of: 'household', name: 'fish by the drying rack', unit: 'rations', fields: ['household.rack'], good: 'fish', holder: 'household',
     kinds: ['rackfish', 'fish'], // fish: the catch for the pot beyond what is eaten before it spoils (sim/drying, VB-388)
     none: 'nothing to split and hang: the drying job is not posted, and another catch for the rack may be (sim/drying, VB-300)' },
-  { id: 'wood', of: 'household', name: 'the woodpile', unit: 'loads', fields: ['household.wood'], good: 'wood', holder: 'household', kinds: ['wood'],
+  { id: 'wood', of: 'household', name: 'the woodpile', unit: 'loads', fields: ['household.wood'], good: 'wood', holder: 'household', kinds: ['firewood'],
     none: 'the day\'s fire takes what there is and the house is cold (hh.cold, sim/hunger): health falls, no meal is cooked, and the firewood job comes first (VB-327)' },
+  { id: 'timber', of: 'household', name: 'timber home, not yet cut', unit: 'loads', fields: ['household.timber'], good: 'timber', holder: 'household', kinds: ['wood', 'firewood'],
+    none: 'nothing to cut at the house: the firewood job is not posted, and the felling of the woods is (sim/chores, VB-1625)' },
   { id: 'stone', of: 'household', name: 'the stone heap', unit: 'loads', fields: ['household.stone'], good: 'stone', holder: 'household',
     kinds: ['pick', 'quarry'],
     none: 'the house is not raised onto a stone foundation; stone is picked or quarried for it (sim/building, VB-332); the village\'s well, '

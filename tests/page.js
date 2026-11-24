@@ -262,8 +262,8 @@ async function main() {
     if (!cook || !/Cook/.test(cook.textContent) || !cook.querySelector('[data-guide-thing="firewood"]')) fail('the guide\'s Cook row does not name the firewood it needs');
     click(cook.querySelector('[data-guide-thing="firewood"]'), 'firewood, in the Cook row');
     const fw = q('#guideBody [data-thing="firewood"]');
-    if (!fw || !fw.open || !fw.querySelector('[data-guide-kind="wood"]') || !fw.querySelector('[data-guide-kind="cook"]'))
-      fail('firewood in the guide does not say it is made by cutting firewood and used by cooking');
+    if (!fw || !fw.open || !fw.querySelector('[data-guide-kind="firewood"]') || !fw.querySelector('[data-guide-kind="cook"]'))
+      fail('firewood in the guide does not say it is made by cutting firewood (VB-1625: at the house, from timber) and used by cooking');
     click(q('#guideTabs [data-guide-tab="crops"]'), 'the Crops chapter');
     if (!q('#guideBody [data-crop="rye"]')) fail('the guide\'s crops do not list rye');
     $('guideScreen').dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
