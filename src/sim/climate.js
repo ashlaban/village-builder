@@ -119,10 +119,12 @@ VB['sim/climate'] = (() => {
   // ---- the state and the due-queue ----
   // @state st.climate: {year, bands: [{lat, state, dates}], due: [{at, band, date}]}: the winter reckoned on autumn day 1 of `year`; a
   //   band's latitude, its state (the name of the last of DATES fallen, 'open' before the first) and its dates (each of DATES a game
-  //   hour, the start of its day, or null); due, the dates still to fall, by hour then band. Plain data; written only here. Missing in a
+  //   hour, DATE_HOUR of its day, or null); due, the dates still to fall, by hour then band. Plain data; written only here. Missing in a
   //   save made before VB-807, until the next autumn.
   const atOf = (e) => e.at;
-  const dayStart = (year, k) => ((year - 1) * YEAR_DAYS + AUTUMN + k) * DAY;
+  // A date falls at DATE_HOUR of its day, when nobody is out (VB-808: no pawn is on the ice when it stops bearing).
+  const DATE_HOUR = 4;
+  const dayStart = (year, k) => ((year - 1) * YEAR_DAYS + AUTUMN + k) * DAY + DATE_HOUR;
   // The winter that begins this autumn (`year`, in a winter of warmth `warmth`), reckoned for every band: its dates go into the queue.
   function reckon(st, year, warmth) {
     if (st.climate) fallDue(st, Infinity, true); // anything left of the last winter has fallen by now
@@ -172,7 +174,16 @@ VB['sim/climate'] = (() => {
   // ---- the ground by season (VB-808; design.md, Climate and travel beyond walking, The ground by season) ----
   // The ground of each state of a band, as sim/walking's flags (GROUND): what each date brings, from the frost to firm ground.
   const G = Walk.GROUND;
-  const GROUND_OF = Object.freeze({ open: 0, frost: 0, lakeBears: 0, soundShut: 0, soundBears: 0, thaw: 0 });
+  const SNOW = G.snow | G.marsh,
+    ICE = SNOW | G.lake;
+  const GROUND_OF = Object.freeze({
+    open: 0,
+    frost: SNOW,
+    lakeBears: ICE,
+    soundShut: ICE,
+    soundBears: ICE | G.sea,
+    thaw: G.soft,
+  });
   // The rows of band b, first and last.
   const bandRows = (w, b) => [Math.ceil((b * w.ROWS) / C.bands), Math.ceil(((b + 1) * w.ROWS) / C.bands) - 1];
   // The world's ground compiled on the bands' states (sim/walking compileGround): at a run's first step (sim/clock) and at a load.

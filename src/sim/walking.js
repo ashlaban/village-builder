@@ -115,7 +115,10 @@ VB['sim/walking'] = (() => {
         t = f & GROUND.marsh && b === B.MARSH ? WINTER.marsh : (TERRAIN[b] ?? 1);
       c = (1 + (t - 1) * (1 - PATHS.clear[s])) / PATHS.speed[s];
     }
-    if (f & (GROUND.snow | GROUND.soft) && c < Infinity && s < LANE) c *= f & GROUND.snow ? WINTER.snow : WINTER.soft;
+    // frozen marsh bears at WINTER.marsh with its snow (the criterion's 1.5 in frost), not again by the snow on it
+    const frozen = f & GROUND.marsh && w.biome[i] === B.MARSH && !(w.dev && w.dev[i]) && !(w.river && w.river[i]);
+    if (f & (GROUND.snow | GROUND.soft) && c < Infinity && s < LANE && !frozen)
+      c *= f & GROUND.snow ? WINTER.snow : WINTER.soft;
     return c;
   }
   // Whether ice bears tile i on the ground of season f: lake water and every river tile once lake ice bears, the sea within WINTER.near
@@ -145,11 +148,13 @@ VB['sim/walking'] = (() => {
     const g = { cost: new Float64Array(w.N), ice: new Uint8Array(w.N), season: Uint8Array.from(rows) };
     w.ground = g; // lint-allow: owner derived from the world and the season, rebuilt on load; never saved
     for (let i = 0; i < w.N; i++) recost(w, i);
+    REACH.delete(w); // what stands may differ from the lists searched before (ice)
     return g;
   }
   // A run seeded on a world: its ground is compiled again at the first step (a world may be seeded more than once).
   function dropGround(w) {
     w.ground = null; // lint-allow: owner derived, as compileGround's
+    REACH.delete(w); // the lists a run before searched, perhaps over its ice
   }
   // Tile i's cost again, on its row's season: true if it changed.
   function recost(w, i) {

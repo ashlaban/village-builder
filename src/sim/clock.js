@@ -93,7 +93,7 @@ VB['sim/clock'] = (() => {
       note: "a season begins: its warmth and wetness drawn (on spring's, the year's thaw and frost first)",
       run: (st, c) => seasonBegins(st, c),
     },
-    // ---- the winter's dates (VB-807): reckoned on autumn's first step, after its weather; each falls at the first step of its day ----
+    // ---- the winter's dates (VB-807): reckoned on autumn's first step, after its weather; each falls at 4:00 of its day (VB-808) ----
     {
       every: 'season',
       when: (st, c) => c.season === AUTUMN,
@@ -103,6 +103,7 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'day',
+      at: { hour: 4 }, // sim/climate's DATE_HOUR: when nobody is out (VB-808)
       when: (st) => !!st.climate && st.climate.due.length > 0 && st.climate.due[0].at <= st.t,
       owner: 'sim/climate',
       note: "a winter's date falls due: its band's state, and a line",
