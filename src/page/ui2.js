@@ -103,7 +103,10 @@ function u2Init() {
     <div class="u2-sitebar" id="u2SiteCard" aria-live="polite" hidden></div>
     <section class="u2-sheet u2-card" id="u2Sheet" aria-live="polite" hidden></section>
     <p class="u2-does" id="u2Does" hidden></p>
-    <div class="u2-dock" id="u2Dock" hidden><div class="u2-tabs" id="u2Tabs" role="group" aria-label="Your farm"></div></div>`;
+    <div class="u2-dock" id="u2Dock" hidden>
+      <div class="u2-pcard u2-card" id="u2Pcard" aria-live="polite" hidden></div>
+      <div class="u2-dockrow"><div class="u2-planbar" id="u2Plan" role="group" aria-label="The plan" hidden></div>
+      <div class="u2-tabs" id="u2Tabs" role="group" aria-label="Your farm"></div></div></div>`;
   document.body.appendChild(root);
   u2 = Object.fromEntries(
     [root, ...root.querySelectorAll('[id]')].map((el) => [el.id.slice(2).toLowerCase() || 'u2', el]),

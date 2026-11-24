@@ -2,11 +2,11 @@
 // ======== the played settler's year, day and stores ========
 // All of it reads st and acts through Sim: the head's verbs (Sim.head: project, target, order), the queue (Sim.queue, unqueue,
 // setAuto). The page's own state, never saved: hud = {tab: 'today' | 'plan' | 'stores' | null, msg: {text, bad}, key: what was drawn}.
-const hud = { tab: null, msg: null, key: '', yearKey: '', at: -1, markKey: '', sites: null };
+const hud = { tab: null, msg: null, key: '', yearKey: '', at: -1, markKey: '', sites: null, pc: null, planKey: '' };
 const HUD_TABS = [
-  ['today', 'Today'],
-  ['plan', 'Plan'],
-  ['stores', 'Stores'],
+  ['today', 'Today', () => actIcon('me')],
+  ['plan', 'Plan', () => goodIcon('plan')],
+  ['stores', 'Stores', () => goodIcon('grain')],
 ];
 const HUD_DAILY = ['water', 'cook', 'fodder', 'milk']; // done every day whatever the season's order
 const hudHouse = () => {
@@ -246,6 +246,7 @@ function renderHud() {
   renderYear();
   u2.alert.hidden = !hud.press || !!hud.tab;
   hudMarks(id, hh, f);
+  renderPlan();
   const hour = Math.floor(st.t),
     key = `${hud.tab}|${hour}|${st.player.queue.length}|${st.player.auto}|${followPlayed}|${hud.msg ? hud.msg.text : ''}`;
   for (const b of u2.tabs.children) b.setAttribute('aria-pressed', String(b.dataset.tab === hud.tab));
@@ -266,6 +267,141 @@ function hudTab(tab) {
   hud.msg = null;
   hud.key = '';
   u2.sheet.scrollTop = 0;
+}
+// ---- the plan: every day's routine, the sleeping hours and the tasks in order, a row of icons; the words are a tap away ----
+// Planned by hand (Kim, 24 Nov): the settler follows the plan the player lays (Sim.plan, Sim.planView; VB-1618), automatic planning off.
+const HUD_SLEEP = { from: 22, until: 6 };
+const hudPlanned = () => (Sim.planView ? Sim.planView(st) : null);
+// The first morning: automatic planning off, the necessities as the day's routine, and the night for sleep.
+function hudBegin() {
+  if (!Sim.plan || !st || played() < 0) return;
+  Sim.setAuto(st, false);
+  Sim.plan(st, 'routine', { kinds: HUD_DAILY });
+  Sim.plan(st, 'sleep', HUD_SLEEP);
+}
+const hudHour = (h) => `${String(((h % 24) + 24) % 24).padStart(2, '0')}:00`;
+const hudKind = (k) => (k === 'sleep' ? 'Sleep' : (Sim.KINDS[k] && Sim.KINDS[k].name) || k);
+// An agenda entry for a job's key, wherever the agenda holds it.
+const hudEntry = (A, key) =>
+  A
+    ? (A.plan || []).find((x) => x.key === key) ||
+      A.queue.find((x) => x.key === key) ||
+      A.open.find((x) => x.key === key)
+    : null;
+function renderPlan() {
+  const P = hudPlanned();
+  u2.plan.hidden = !P;
+  if (!P) return (u2.pcard.hidden = true);
+  const S = Sim.sleepOf(st),
+    A = Sim.agenda(st),
+    owed = S ? Math.floor(S.owed) : 0,
+    key = [Math.floor(st.t), hud.pc, st.player.auto, JSON.stringify(P), owed, hud.msg ? hud.msg.text : ''].join('|');
+  if (key === hud.planKey) return;
+  hud.planKey = key;
+  const now = P.now || {},
+    chip = (pc, cls, inner, label) =>
+      `<button type="button" class="u2-pc ${cls}" data-pc="${esc(pc)}" aria-pressed="${hud.pc === pc}" ` +
+      `aria-label="${esc(label)}" title="${esc(label)}">${inner}</button>`;
+  let h = P.routine
+    .map((r) =>
+      chip(
+        `r:${r.kind}`,
+        `${r.done ? 'done' : ''}${now.what === 'routine' && now.kind === r.kind ? ' on' : ''}`,
+        actIcon(KIND_ICON[r.kind] || 'hoe'),
+        `Every day: ${hudKind(r.kind)}`,
+      ),
+    )
+    .join('');
+  h += chip(
+    'sleep',
+    `sleep${P.sleep ? '' : ' off'}${owed >= 8 ? ' press2' : owed >= 4 ? ' press1' : ''}${now.what === 'sleep' ? ' on' : ''}`,
+    hudPin(actIcon('idle'), owed >= 1 ? owed : ''),
+    'Sleep',
+  );
+  h += '<i class="u2-pdiv"></i>';
+  h += P.tasks.length
+    ? P.tasks
+        .map((t, i) => {
+          const e = hudEntry(A, t.key),
+            v = e ? HUD_VERDICT[hudVerdict(e)] || 0 : 0,
+            days = e && Number.isFinite(e.ends) ? hudDaysTo(e.ends) : '';
+          return chip(
+            `t:${i}`,
+            `task press${v}${now.what === 'task' && now.key === t.key ? ' on' : ''}`,
+            `<s>${i + 1}</s>${hudPin(actIcon(KIND_ICON[t.kind] || 'hoe'), days)}`,
+            `${i + 1}. ${hudKind(t.kind)}`,
+          );
+        })
+        .join('')
+    : chip('empty', 'empty', hudPin(goodIcon('tile'), '+'), 'Plan work');
+  u2.plan.innerHTML = h;
+  u2.pcard.hidden = !hud.pc;
+  if (hud.pc) u2.pcard.innerHTML = planCard(P, A, S);
+}
+// The words behind a chip of the plan, and what can be done with it.
+function planCard(P, A, S) {
+  const [what, arg] = String(hud.pc).split(':'),
+    btn = (act, label, extra = '') =>
+      `<button type="button" class="u2-chip" data-hud="${act}"${extra}>${label}</button>`;
+  let title,
+    sub,
+    acts = '';
+  if (what === 'r') {
+    const r = P.routine.find((x) => x.kind === arg);
+    title = hudKind(arg);
+    sub = !r
+      ? 'Not in the routine.'
+      : r.done
+        ? 'Every day. Seen to today.'
+        : r.open
+          ? 'Every day. Next in turn today.'
+          : 'Every day. Nothing of it to do yet today.';
+    if (r) acts += btn('pdrop', 'Drop from the routine', ` data-kind="${esc(arg)}"`);
+  } else if (what === 'sleep') {
+    const owed = S ? S.owed : 0;
+    title = P.sleep ? `Sleeps ${hudHour(P.sleep.from)} to ${hudHour(P.sleep.until)}` : 'No hours for sleep';
+    sub =
+      owed < 1
+        ? 'Rested.'
+        : `Owes ${Math.round(owed)} ${Math.round(owed) === 1 ? 'hour' : 'hours'} of sleep` +
+          (S.mood ? `: mood ${S.mood}` : '') +
+          (S.health ? ', and health suffers' : '') +
+          '.';
+    sub += P.sleep
+      ? ' Work in the plan stops for the night and is taken up in the morning.'
+      : ' The plan’s work goes on through the night.';
+    if (P.sleep)
+      acts +=
+        btn('psleep', 'To bed earlier', ` data-from="${P.sleep.from - 1}" data-until="${P.sleep.until}"`) +
+        btn('psleep', 'To bed later', ` data-from="${P.sleep.from + 1}" data-until="${P.sleep.until}"`) +
+        btn('psleep', 'Up earlier', ` data-from="${P.sleep.from}" data-until="${P.sleep.until - 1}"`) +
+        btn('psleep', 'Up later', ` data-from="${P.sleep.from}" data-until="${P.sleep.until + 1}"`) +
+        btn('psleep', 'No sleep', ' data-off="1"');
+    else acts += btn('psleep', 'Sleep at night', ` data-from="${HUD_SLEEP.from}" data-until="${HUD_SLEEP.until}"`);
+    const out = HUD_DAILY.filter((k) => !P.routine.some((r) => r.kind === k));
+    if (out.length) acts += out.map((k) => btn('padd', `Every day: ${hudKind(k)}`, ` data-kind="${esc(k)}"`)).join('');
+  } else if (what === 't') {
+    const i = +arg,
+      t = P.tasks[i],
+      e = t && hudEntry(A, t.key);
+    if (!t) return ((hud.pc = null), '');
+    title = `${i + 1}. ${hudKind(t.kind)}`;
+    sub = e ? hudStake(e) : 'Its work is not open now.';
+    acts +=
+      (t.site >= 0 ? btn('fly', 'Show', ` data-tile="${t.site}"`) : '') +
+      btn('pmove', 'Earlier', ` data-from="${i}" data-to="${i - 1}"${i > 0 ? '' : ' disabled'}`) +
+      btn('pmove', 'Later', ` data-from="${i}" data-to="${i + 1}"${i < P.tasks.length - 1 ? '' : ' disabled'}`) +
+      btn('premove', 'Remove', ` data-i="${i}"`);
+  } else {
+    title = 'Nothing planned';
+    sub = `Tap the land where work is to be done, and add it to the plan. ${st.pawns[played()].given} does the day’s routine and then waits.`;
+  }
+  return (
+    `<div class="u2-verdict"><div><h2>${esc(title)}</h2><p class="sub">${esc(sub)}</p></div>` +
+    '<button type="button" class="u2-x" data-hud="pshut" aria-label="Close">×</button></div>' +
+    (hud.msg ? `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>` : '') +
+    (acts ? `<div class="u2-row2">${acts}</div>` : '')
+  );
 }
 // ---- on the land: how things stand, and what can be done where ----
 // A field's pin: the icon of what it waits for, a number of days where one counts (to ripe, or left to sow), and how pressing it is.
@@ -355,12 +491,24 @@ function hudCall(i, id, hh, f) {
           : waterLines(i)[0] || '';
   }
   const A = Sim.agenda(st);
+  const P = hudPlanned();
   jobs.slice(0, 3).forEach((o, n) => {
-    const e = A && (A.open.find((x) => x.key === o.target) || A.queue.find((x) => x.key === o.target));
-    acts +=
-      `<button type="button" class="u2-act${n ? '' : ' go'}" data-hud="job" data-target="${esc(o.target)}" data-site="-1">${esc(Sim.KINDS[o.kind].name)}` +
-      `<small>${e ? esc(hudStake(e)) : o.when === 'now' ? 'Done next' : 'Queued for when it opens'}</small></button>`;
+    const e = hudEntry(A, o.target),
+      stake = e ? esc(hudStake(e)) : '',
+      inPlan = P && P.tasks.some((t) => t.key === o.target),
+      name = esc(Sim.KINDS[o.kind].name);
+    if (P && !inPlan)
+      acts +=
+        `<button type="button" class="u2-act${n ? '' : ' go'}" data-hud="planadd" data-target="${esc(o.target)}">${name}` +
+        `<small>${stake ? `${stake}. ` : ''}Add to the plan</small></button>`;
+    else if (P)
+      acts += `<p class="u2-inplan">${actIcon(KIND_ICON[o.kind] || 'hoe')}<span><b>${name}</b> is in the plan. ${stake}</span></p>`;
+    if (o.when === 'now' || !P)
+      acts +=
+        `<button type="button" class="${P ? 'u2-chip' : `u2-act${n ? '' : ' go'}`}" data-hud="job" data-target="${esc(o.target)}" data-site="-1">` +
+        `${P ? `Do it now: ${name.toLowerCase()}` : `${name}<small>${stake || 'Done next'}</small>`}</button>`;
   });
+
   if (i !== f.house && fi < 0 && mi < 0) {
     const S = hudSites(hh);
     if (S.field.has(i) && V.tiles.field !== i)
@@ -464,7 +612,27 @@ function hudClick(b) {
   const d = b.dataset,
     { id, hh } = hudHouse();
   if (d.hud === 'close') hud.tab = null;
-  else if (d.hud === 'shut') hud.at = -1;
+  else if (d.hud === 'pshut') hud.pc = null;
+  else if (d.hud === 'planadd') hudMsg(Sim.plan(st, 'add', { key: d.target }), 'Added to the plan.');
+  else if (d.hud === 'premove') {
+    hudMsg(Sim.plan(st, 'remove', { i: +d.i }), 'Taken out of the plan.');
+    hud.pc = null;
+  } else if (d.hud === 'pmove') {
+    const r = Sim.plan(st, 'move', { from: +d.from, to: +d.to });
+    hudMsg(r, 'The order is changed.');
+    if (r === true) hud.pc = `t:${d.to}`;
+  } else if (d.hud === 'psleep')
+    hudMsg(
+      Sim.plan(st, 'sleep', d.off ? null : { from: ((+d.from % 24) + 24) % 24, until: ((+d.until % 24) + 24) % 24 }),
+      d.off ? 'No hours for sleep now.' : 'The sleeping hours are changed.',
+    );
+  else if (d.hud === 'pdrop' || d.hud === 'padd') {
+    const now = hudPlanned().routine.map((r) => r.kind),
+      kinds =
+        d.hud === 'padd' ? HUD_DAILY.filter((k) => now.includes(k) || k === d.kind) : now.filter((k) => k !== d.kind);
+    hudMsg(Sim.plan(st, 'routine', { kinds }), d.hud === 'padd' ? 'Back in the routine.' : 'Dropped from the routine.');
+    if (d.hud === 'pdrop') hud.pc = 'sleep';
+  } else if (d.hud === 'shut') hud.at = -1;
   else if (d.hud === 'walk') hudMsg(Sim.queue(st, { actor: id, verb: 'walkTo', target: hud.at }), 'Queued: walk here.');
   else if (d.hud === 'lay') {
     let r = Sim.head(st, 'tile', { what: d.what, tile: hud.at });
@@ -499,15 +667,26 @@ function hudClick(b) {
     steps.splice(+d.to, 0, x);
     hudMsg(Sim.head(st, 'order', { steps }), 'The order is changed.');
   }
-  hud.key = hud.markKey = '';
+  hud.key = hud.markKey = hud.planKey = '';
 }
 if (UI2) {
   u2.tabs.innerHTML = HUD_TABS.map(
-    ([k, name]) => `<button type="button" data-tab="${k}" aria-pressed="false">${name}</button>`,
+    ([k, name, icon]) =>
+      `<button type="button" data-tab="${k}" aria-pressed="false" aria-label="${name}" title="${name}">${icon()}</button>`,
   ).join('');
   u2.u2.addEventListener('click', (e) => {
     const t = e.target.closest('[data-tab]'),
-      b = e.target.closest('[data-hud]');
+      b = e.target.closest('[data-hud]'),
+      pc = e.target.closest('[data-pc]');
+    if (pc && st && played() >= 0) {
+      hud.pc = hud.pc === pc.dataset.pc ? null : pc.dataset.pc;
+      hud.msg = null;
+      hud.planKey = '';
+      const P = hudPlanned(),
+        t0 = P && pc.dataset.pc.startsWith('t:') ? P.tasks[+pc.dataset.pc.slice(2)] : null;
+      if (hud.pc && t0 && t0.site >= 0) flyTo(w.hx[t0.site], w.hy[t0.site]);
+      return renderHud();
+    }
     if (t && st && played() >= 0) {
       if (t.closest('.u2-call')) hud.at = -1;
       if (hud.tab !== t.dataset.tab || !t.closest('.u2-call')) hudTab(t.dataset.tab);
