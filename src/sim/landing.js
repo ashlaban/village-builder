@@ -1,6 +1,6 @@
 // @sys sim/landing: a site read before anyone has settled (the solo start): its soil, water, wood and room, and the best sites of a land
 VB['sim/landing'] = (() => {
-  const { B } = VB['world/biomes'];
+  const { B, BIOMES } = VB['world/biomes'];
   const { fromState, drawer } = VB['sim/rng'];
   const { farmable, openGround, fertility } = VB['sim/crops'];
   const { bfs, hexSteps } = VB['sim/hex'];
@@ -9,37 +9,52 @@ VB['sim/landing'] = (() => {
   const { layWalk, siteFetch, dayFetch } = VB['sim/water'];
   const { FRESHES, BANDS, band, bandMid, sourceNear } = VB['world/water'];
   // @tunable LANDING: how a site is read for the settler who lands alone. soilSteps: the steps round the house its fields are looked
-  // for in; fields: how many of the best tiles there are its soil; woodSteps: the steps a wood is counted within; soil, water, wood:
-  // the upper bounds of the bands poor, fair and good (water in hours of fetching a day for one, wood in wooded tiles); apart: the
-  // least steps between two of the sites suggested; read: how many of the best-scored meadows are read for them.
+  // for in; fields: how many of the best tiles there are its soil; woodSteps: the steps a wood is counted within. Each of water, soil
+  // and wood is banded 0 to 3, poor to fine, by the first row it meets, best first: water [hours of fetching a day for one, by a
+  // natural source alone (true) or by the nearer of source and well, the most hours of digging the well may take]; soil [the least
+  // mean fertility, the least open tiles]; wood [the most steps to the nearest, the least wooded tiles]. apart: the least steps
+  // between two of the sites suggested; read: how many of the best-scored meadows are read for them.
   const LANDING = {
     soilSteps: 3,
     fields: 4,
     woodSteps: 6,
-    soil: [0.75, 0.95],
-    water: [1, 0.4],
-    wood: [3, 8],
+    water: [
+      [0.6, true, 0],
+      [0.7, false, 45],
+      [1.5, false, Infinity],
+    ],
+    soil: [
+      [0.95, 12],
+      [0.9, 6],
+      [0.7, 3],
+    ],
+    wood: [
+      [2, 20],
+      [3, 8],
+      [Infinity, 1],
+    ],
     apart: 10,
     read: 120,
   };
   const wooded = (w, i) => w.biome[i] === B.FOREST || w.biome[i] === B.PINE;
-  // The band of v: 0 poor, 1 fair, 2 good, by the two bounds (falling bounds: the less the better).
-  const bandOf = (v, [a, b]) => (a < b ? (v >= b ? 2 : v >= a ? 1 : 0) : v <= b ? 2 : v <= a ? 1 : 0);
+  // The band of a reading by its rows: 3 for the first met, down to 0 for none.
+  const bandOf = (rows, meets) => 3 - (rows.findIndex(meets) + 1 || rows.length + 1) + 1;
   // The land as it lies before anyone lands: the walk to water is laid (sim/water), nothing else is touched.
   const lay = (w) => layWalk(w);
   // Why a farm cannot stand round tile i, or null: the village's own placing, tried on nothing (it writes no world before its finish).
   function why(w, i) {
     if (!(i >= 0) || w.water[i]) return 'That is water';
     if (w.river[i]) return 'A river runs here';
-    if (w.biome[i] !== B.MEADOW) return 'A house needs open meadow to stand on';
+    if (w.biome[i] !== B.MEADOW)
+      return `A house needs open meadow to stand on: this is ${BIOMES[w.biome[i]].name.toLowerCase()}`;
     const v = settlementGenerator(w, drawer(fromState(i + 1)), true).addVillage(i, 1);
     return v.farmsteads.length ? null : 'No room here for a house and its first fields';
   }
   // What the settler sees of tile i as a site: {ok, why; soil: {band, best: the mean fertility of the LANDING.fields best tiles a field
   // can be made on within soilSteps, open: how many of those tiles are open ground}; water: {band, hours: the day's fetch for one,
   // walk: hours one way, name: the source's, well: the band's name of a well there or null, dig: its hours, byWell: whether the
-  // fetch reckoned is a well's, the source lying further}; wood: {band, n: wooded tiles within
-  // woodSteps, steps: to the nearest}; stars: the three bands' sum, 0 to 6}. check: whether a farm's room is tried (why).
+  // fetch reckoned is a well's, the source lying further, srcHours: the day's fetch at the source alone}; wood: {band, n: wooded tiles within
+  // woodSteps, steps: to the nearest}; stars: the three bands' sum, 0 to 9}. check: whether a farm's room is tried (why).
   function read(w, i, check = true) {
     lay(w);
     const no = check ? why(w, i) : null,
@@ -64,18 +79,23 @@ VB['sim/landing'] = (() => {
     const walk = w.freshWalk ? w.freshWalk[i] : Infinity,
       near = walk < Infinity ? sourceNear(w, i) : -1,
       k = w.waterDepth ? band(w.waterDepth[i]) : 3,
-      hours = w.freshWalk ? siteFetch(w, i, 1) : Infinity;
-    const soil = { band: bandOf(best, LANDING.soil), best, open },
+      hours = w.freshWalk ? siteFetch(w, i, 1) : Infinity,
+      srcHours = walk < Infinity ? dayFetch(walk, 1).hours : Infinity,
+      dig = k < 3 ? bandMid(k) : Infinity;
+    const soil = { band: bandOf(LANDING.soil, ([f, o]) => best >= f && open >= o), best, open },
       water = {
-        band: bandOf(hours, LANDING.water),
+        band: bandOf(LANDING.water, ([h, natural, d]) =>
+          natural ? srcHours <= h : hours <= h && (srcHours <= h || dig <= d),
+        ),
         hours,
+        srcHours,
         walk,
         name: near >= 0 ? FRESHES[w.fresh[near]].name : null,
         well: k < 3 ? BANDS[k].name : null,
-        dig: k < 3 ? bandMid(k) : null,
-        byWell: k < 3 && !(dayFetch(walk, 1).hours <= hours),
+        dig: k < 3 ? dig : null,
+        byWell: k < 3 && !(srcHours <= hours),
       },
-      wood = { band: bandOf(n, LANDING.wood), n, steps };
+      wood = { band: bandOf(LANDING.wood, ([d, m]) => steps <= d && n >= m), n, steps };
     return { tile: i, ok: no === null, why: no, soil, water, wood, stars: soil.band + water.band + wood.band };
   }
   // The n sites a newcomer is pointed to, no two within LANDING.apart steps: the best by the reading's stars among the meadows the
@@ -98,9 +118,9 @@ VB['sim/landing'] = (() => {
           return;
         out.push(r);
       };
-    const stream = reads.find((r) => !r.water.byWell && r.water.band > 0);
+    const stream = reads.find((r) => r.water.band === 3);
     for (const r of reads) {
-      if (out.length === n - 1 && stream && out.every((o) => o.water.byWell)) take(stream);
+      if (out.length === n - 1 && stream && out.every((o) => o.water.band < 3)) take(stream);
       take(r);
     }
     return out;

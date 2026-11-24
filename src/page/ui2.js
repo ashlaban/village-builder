@@ -5,14 +5,10 @@
 // interface's tests and tools ask for it (window.VB_CLASSIC, tests/lib/page.js), and `?classic` in the address shows it by hand.
 const UI2 = !window.VB_CLASSIC && !/[?&]classic\b/.test(location.search);
 // The speeds offered: pause and three paces, named by what they are for (a day at 1× is a slow walk; a week wants 10×).
-const U2_SPEEDS = [
-  [0, 'Pause', null],
-  [1, 'Play', '1×'],
-  [10, 'Fast', '10×'],
-  [30, 'Faster', '30×'],
-];
+const U2_SPEEDS = [1, 10, 30]; // a day at 1× is a slow walk; a week wants 10×
 let u2 = null, // the shell's elements, by name
   u2Clock = -1,
+  u2Pace = '',
   u2Doing = '';
 function u2Init() {
   if (!UI2) return;
@@ -24,10 +20,11 @@ function u2Init() {
     <div id="u2Pins"></div>
     <div class="u2-top" id="u2Top">
       <div class="u2-card u2-date" id="u2Date" hidden><b id="u2Day"></b><span id="u2Year"></span></div>
-      <div class="u2-card u2-speed" id="u2Speed" role="group" aria-label="Game speed" hidden>${U2_SPEEDS.map(
-        ([v, name, word]) =>
-          `<button type="button" data-u2speed="${v}" aria-pressed="false" aria-label="${name}" title="${name}">${word || ICON.pause}</button>`,
-      ).join('')}</div>
+      <div class="u2-card u2-speed" id="u2Speed" role="group" aria-label="Game speed" hidden>
+        <button type="button" id="u2Pause" class="pause" aria-label="Pause"></button>${U2_SPEEDS.map(
+          (v) =>
+            `<button type="button" data-u2speed="${v}" aria-pressed="false" aria-label="Speed ${v}×" title="Speed ${v}×">${v}×</button>`,
+        ).join('')}</div>
       <button type="button" class="u2-card u2-menu" id="u2Menu" aria-label="Main menu" title="Main menu" style="margin-left:auto">${ICON.menu}</button>
     </div>
     <div class="u2-site-head u2-card" id="u2SiteHead" hidden></div>
@@ -41,8 +38,11 @@ function u2Init() {
     [root, ...root.querySelectorAll('[id]')].map((el) => [el.id.slice(2).toLowerCase() || 'u2', el]),
   );
   u2.speed.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-u2speed]');
-    if (b) setSpeed(+b.dataset.u2speed);
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b === u2.pause) setSpeed(speed === 0 ? lastSpeed : 0);
+    else setSpeed(+b.dataset.u2speed);
+    if (e.detail) b.blur(); // pressed by a pointer: Space stays the game's pause, not this button's press
   });
   u2.menu.addEventListener('click', () => showLanding());
 }
@@ -55,9 +55,15 @@ function u2Frame() {
   u2.me.hidden = !playing || played() < 0;
   if (site) sitePins();
   if (!playing) return;
-  for (const b of u2.speed.children) {
-    const on = String(+b.dataset.u2speed === speed);
-    if (b.getAttribute('aria-pressed') !== on) b.setAttribute('aria-pressed', on);
+  const pace = speed === 0 ? `p${lastSpeed}` : `r${speed}`;
+  if (pace !== u2Pace) {
+    u2Pace = pace;
+    u2.pause.innerHTML = speed === 0 ? ICON.play : ICON.pause;
+    u2.pause.setAttribute('aria-label', speed === 0 ? 'Resume' : 'Pause');
+    u2.pause.title = speed === 0 ? 'Resume (Space)' : 'Pause (Space)';
+    u2.pause.classList.toggle('paused', speed === 0);
+    for (const b of u2.speed.querySelectorAll('[data-u2speed]'))
+      b.setAttribute('aria-pressed', String(+b.dataset.u2speed === (speed === 0 ? lastSpeed : speed)));
   }
   const step = Math.floor(st.t * 12);
   if (step !== u2Clock) {

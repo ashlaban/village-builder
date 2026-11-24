@@ -6,13 +6,19 @@
 let site = null,
   siteKey = '',
   sitePinKey = '';
-const siteG = new PIXI.Graphics();
-L.hover.addChild(siteG);
+const siteG = new PIXI.Graphics(), // the ground read round the tile: one path, one fill
+  siteAtG = new PIXI.Graphics(); // the tile itself
+L.hover.addChild(siteG, siteAtG);
 const SITE_LENS = [
   { id: '', name: 'Land', dot: '#7fae5b' },
-  { id: 'freshwater', name: 'Water', dot: '#2b83ba', key: ['near', WATER_RAMP, 'far', '● a well can be dug'] },
+  {
+    id: 'freshwater',
+    name: 'Water',
+    dot: '#2b83ba',
+    key: ['near', WATER_RAMP, 'far', '● a well can be dug; the bigger, the shallower'],
+  },
   { id: 'fertility', name: 'Soil', dot: '#a0da39', key: ['poor', FERTILITY_RAMP, 'rich'] },
-  { id: 'woodland', name: 'Wood', dot: '#2f6b4f' },
+  { id: 'woodland', name: 'Wood', dot: '#2f6b4f', key: ['bare', WOOD_COLOUR, 'full wood'] },
 ];
 const SITE_ICON = {
   water: ICON.freshwater,
@@ -22,29 +28,34 @@ const SITE_ICON = {
 const siteCap = (t) => t[0].toUpperCase() + t.slice(1);
 const siteHex = (c) => '#' + c.toString(16).padStart(6, '0');
 const sitePips = (b) =>
-  `<span class="u2-pips b${b}" aria-label="${['poor', 'fair', 'good'][b]}"><i></i><i></i><i></i></span>`;
+  `<span class="u2-pips b${b}" aria-label="${['poor', 'fair', 'good', 'fine'][b]}"><i></i><i></i><i></i></span>`;
 // A reading in words: one row for each of water, soil and wood, [title, line].
 function siteWords(r) {
   const wt = r.water,
-    perDay =
-      wt.hours < Infinity
-        ? `${wt.hours < 0.75 ? 'about half an hour' : wt.hours < 1.25 ? 'about an hour' : `${wt.hours.toFixed(1)} hours`} a day fetching it`
-        : '';
+    dur = (h) => (h < 0.75 ? 'about half an hour' : h < 1.25 ? 'about an hour' : `${h.toFixed(1)} hours`),
+    src = wt.name ? siteCap(wt.name.replace(/^an? /, '')) : '',
+    days = wt.dig ? Math.max(1, Math.round(wt.dig / 10)) : 0;
   const water =
     wt.hours === Infinity || (wt.name === null && wt.well === null)
       ? ['No water', 'No fresh water in reach, and no well can be dug here.']
-      : wt.byWell
+      : !wt.byWell
         ? [
-            'Water by a well',
-            `No water close by: you would dig a ${wt.well} well, about ${Math.round(wt.dig / 10)} days of work. Then ${perDay}.`,
+            `${src} ${wt.walk < 0.13 ? 'at the door' : walkWords(wt.walk) + ' away'}`,
+            `${siteCap(dur(wt.hours))} a day fetching water.`,
           ]
-        : [
-            `${siteCap(wt.name.replace(/^an? /, ''))} ${wt.walk < 0.13 ? 'at the door' : walkWords(wt.walk) + ' away'}`,
-            `${perDay[0].toUpperCase() + perDay.slice(1)}.`,
-          ];
+        : wt.srcHours < 3
+          ? [
+              `${src} ${walkWords(wt.walk)} away`,
+              `A long fetch: ${dur(wt.srcHours)} a day. A ${wt.well} well by the house, about ${days} ${days === 1 ? 'day' : 'days'} of digging, ` +
+                `cuts it to ${dur(wt.hours)}.`,
+            ]
+          : [
+              'Water only by a well',
+              `No stream or lake near. A ${wt.well} well by the house takes about ${days} days of digging; then ${dur(wt.hours)} a day.`,
+            ];
   const so = r.soil,
     soil = [
-      ['Thin soil', 'Middling soil', 'Rich soil'][so.band],
+      ['Poor ground', 'Thin soil', 'Good soil', 'Rich soil'][so.band],
       so.open >= 6
         ? `${so.open} open tiles near the house to break into fields.`
         : so.open > 0
@@ -60,12 +71,9 @@ function siteWords(r) {
     ];
   return { water, soil, wood };
 }
+const siteGrade = (r) => (!r.ok ? 0 : r.stars >= 8 ? 3 : r.stars >= 6 ? 2 : r.stars >= 4 ? 1 : 0);
 const siteVerdict = (r) =>
-  !r.ok
-    ? 'No farm can stand here'
-    : ['A poor place', 'A poor place', 'A hard place', 'A hard place', 'A fair place', 'A good place', 'A fine place'][
-        r.stars
-      ];
+  !r.ok ? 'No farm can stand here' : ['A poor place', 'A hard place', 'A good place', 'A fine place'][siteGrade(r)];
 function openSite(seed) {
   Sim.landing.lay(w);
   site = { seed, best: Sim.landing.best(w, 3), at: -1, read: null, lens: '', msg: '', busy: false };
@@ -84,6 +92,7 @@ function closeSite() {
   site = null;
   siteKey = sitePinKey = '';
   siteG.clear();
+  siteAtG.clear();
   u2.pins.textContent = '';
   u2.sitehead.hidden = u2.lens.hidden = u2.key.hidden = u2.sitecard.hidden = true;
 }
@@ -140,19 +149,19 @@ function renderSite() {
     if (!site.best.length) h += '<p class="sub">Nothing stood out. Tap the land to read a place yourself.</p>';
   } else {
     const wd = siteWords(r),
-      grade = !r.ok ? 0 : r.stars >= 5 ? 2 : r.stars >= 3 ? 1 : 0;
-    h += `<div class="u2-verdict"><span class="u2-stamp s${grade}" aria-hidden="true">${r.ok ? r.stars : '×'}</span>`;
+      own = !site.best.some((b) => b.tile === r.tile);
+    h += `<div class="u2-verdict"><span class="u2-stamp s${r.ok ? siteGrade(r) : 'x'}" aria-hidden="true">${r.ok ? (own ? '★' : '✓') : '×'}</span>`;
     h += `<div><h2>${siteVerdict(r)}</h2><p class="sub">${
-      r.ok ? `${r.stars} of 6 for water, soil and wood` : esc(r.why)
+      r.ok ? `${own ? 'Your own find' : 'Scouted'} · ${r.stars} of 9 for water, soil and wood` : esc(r.why)
     }</p></div></div>`;
-    if (r.ok || (w.biome[r.tile] !== undefined && !w.water[r.tile])) {
+    if (r.ok) {
       h += '<div class="u2-rows">';
       for (const k of ['water', 'soil', 'wood'])
         h += `<div class="u2-row">${SITE_ICON[k]}<b>${esc(wd[k][0])}</b>${sitePips(r[k].band)}<small>${esc(wd[k][1])}</small></div>`;
       h += '</div>';
     }
     if (site.msg) h += `<p class="u2-msg">${esc(site.msg)}</p>`;
-    h += '<div class="u2-actions"><button type="button" class="u2-link" data-site="back">Scouted places</button>';
+    h += '<div class="u2-actions"><button type="button" class="u2-btn" data-site="back">‹ Back</button>';
     h += `<button type="button" class="u2-btn go" data-site="settle"${
       r.ok && !site.busy ? '' : ' disabled'
     }>${site.busy ? 'Raising the house…' : r.ok ? 'Settle here' : 'Not here'}</button></div>`;
@@ -167,29 +176,42 @@ function sitePins() {
     key = `${cam.x.toFixed(1)},${cam.y.toFixed(1)},${cam.z.toFixed(4)},${site.at},${r.width},${r.height}`;
   if (key !== sitePinKey) {
     sitePinKey = key;
-    if (u2.pins.children.length !== site.best.length)
-      u2.pins.innerHTML = site.best
-        .map(
-          (b, k) =>
-            `<button type="button" class="u2-pin" data-scout="${k}" aria-label="Scouted place ${k + 1}">${k + 1}</button>`,
-        )
-        .join('');
+    if (u2.pins.children.length !== site.best.length + 1)
+      u2.pins.innerHTML =
+        '<span class="u2-pin own" aria-hidden="true">★</span>' +
+        site.best
+          .map(
+            (b, k) =>
+              `<button type="button" class="u2-pin" data-scout="${k}" aria-label="Scouted place ${k + 1}">${k + 1}</button>`,
+          )
+          .join('');
     site.best.forEach((b, k) => {
-      const el = u2.pins.children[k],
+      const el = u2.pins.children[k + 1],
         x = r.left + r.width / 2 + (w.hx[b.tile] - cam.x) * cam.z,
         y = r.top + r.height / 2 + (w.hy[b.tile] - cam.y) * cam.z;
       el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
       el.classList.toggle('on', b.tile === site.at);
     });
+    const own = u2.pins.children[0],
+      mine = site.at >= 0 && !site.best.some((b) => b.tile === site.at);
+    own.hidden = !mine;
+    if (mine) {
+      const x = r.left + r.width / 2 + (w.hx[site.at] - cam.x) * cam.z,
+        y = r.top + r.height / 2 + (w.hy[site.at] - cam.y) * cam.z;
+      own.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+    }
   }
   const mk = `${site.at}|${cam.z.toFixed(3)}`;
   if (mk === siteKey) return;
   siteKey = mk;
   siteG.clear();
+  siteAtG.clear();
   if (site.at < 0) return;
   const near = VB['sim/hex'].bfs(w, site.at, Sim.landing.LANDING.soilSteps, VB['sim/walking'].walkable(w)).dist;
-  for (const [j] of near) if (j !== site.at) siteG.poly(hexPoly(j, 0.96)).fill({ color: 0xffffff, alpha: 0.17 });
-  siteG
+  for (const [j] of near) if (j !== site.at) siteG.poly(hexPoly(j, 0.96));
+  siteG.fill({ color: 0xffffff, alpha: 0.22 });
+  siteAtG.clear();
+  siteAtG
     .poly(hexPoly(site.at, 0.92))
     .fill({ color: site.read && site.read.ok ? 0xa8392b : 0x1f2a26, alpha: 0.45 })
     .stroke({ width: 4 / cam.z, color: 0xfff7ec, alpha: 1 });
@@ -217,6 +239,7 @@ async function siteSettle() {
   closeSite();
   await swapWorld(w, sim, stagePainted);
   for (const k of chunks.keys()) staleChunk(k); // the land was painted with nobody on it
+  setSpeed(0);
   const id = suggestedPawn(),
     f = sim.farmsteads[0];
   if (id >= 0) playAs(id);
@@ -233,6 +256,17 @@ function u2Welcome(id, f) {
     '<button type="button" class="u2-btn go" data-site="begin">Begin the first day</button>';
   u2.welcome.querySelector('button').focus({ preventScroll: true });
 }
+// Esc, while choosing: from a place read back to the places scouted (before the page's own keys, which would open the main menu).
+if (UI2)
+  window.addEventListener(
+    'keydown',
+    (e) => {
+      if (e.key !== 'Escape' || !site || site.at < 0 || !$('landing').hidden) return;
+      e.stopImmediatePropagation();
+      siteChoose(-1, false);
+    },
+    true,
+  );
 if (UI2)
   u2.u2.addEventListener('click', (e) => {
     const sc = e.target.closest('[data-scout]'),
