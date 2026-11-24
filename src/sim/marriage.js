@@ -559,6 +559,7 @@ VB['sim/marriage'] = (() => {
         remember(st, side.by, a.by, 'refusedMatch');
         // under the heads a member's no is a slight twice over (VB-826)
         if (matchByOf(st, st.pawns[a.by]) === 'heads') remember(st, side.by, a.by, 'refusedMatch');
+        emit(st, 'matchRefused', { by: a.by, side: side.by }); // a story (sim/stories, VB-523)
       }
     }
     const asked = o.asker === 'woman' ? 'man' : 'woman';

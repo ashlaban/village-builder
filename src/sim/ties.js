@@ -2,6 +2,7 @@
 VB['sim/ties'] = (() => {
   const { YEAR, DAY, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
   const { kinNear } = VB['sim/records'];
+  const { emit } = VB['sim/events'];
   // @tunable SOCIAL: relationships (docs/review-relationships.md; VB-240, Kim 10 Nov): one pawn's opinion of another (-1..1) is derived:
   // the bond's value (kin, spouse, housemate), plus affinity, affinity.weight * compatibility * min(1, tie / affinity.known), the pair's
   // fixed compatibility shown as the two grow familiar, plus timed memories of things that happened. A memory gains v at each event, up to
@@ -155,6 +156,7 @@ VB['sim/ties'] = (() => {
       else p.ties.set(j, v);
     }
     p.tieT = st.t;
+    emit(st, 'tiesRenormalised', { pawn: p.id }); // the stories it has forgotten go too (sim/stories, VB-523)
   }
   // Once a day, at midnight: two housemates' tie grows by TIES.home per 24 waking hours both spent in their house (the lesser of their
   // hours); the pawns due put their ties back on today's scale, or raise their near kin to the floor (once a season, spread by id).

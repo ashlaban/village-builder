@@ -1,0 +1,346 @@
+{
+ "session": "11b5acc8-2a5e-5fbf-b51c-40e596ecd64a",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T22:54:22.974Z",
+ "end": "2026-11-24T23:42:12.976Z",
+ "wallMin": 47.8,
+ "activeMin": 26.5,
+ "prompts": 3,
+ "calls": 51,
+ "subagentCalls": 0,
+ "reviewCalls": 1,
+ "tokens": {
+  "input": 104,
+  "cacheWrite": 138428,
+  "cacheRead": 8089124,
+  "output": 36784
+ },
+ "context": {
+  "first": 86276,
+  "peak": 203157,
+  "firstEdit": 162121,
+  "series": [
+   [
+    5,
+    96954
+   ],
+   [
+    10,
+    125495
+   ],
+   [
+    15,
+    142259
+   ],
+   [
+    20,
+    154344
+   ],
+   [
+    25,
+    173446
+   ],
+   [
+    30,
+    180918
+   ],
+   [
+    35,
+    189980
+   ],
+   [
+    40,
+    192565
+   ],
+   [
+    45,
+    196671
+   ],
+   [
+    50,
+    202157
+   ],
+   [
+    51,
+    203157
+   ]
+  ]
+ },
+ "tools": {
+  "Bash": {
+   "calls": 44,
+   "bytes": 126985,
+   "seconds": 177
+  },
+  "Read": {
+   "calls": 1,
+   "bytes": 34158,
+   "seconds": 0.1
+  },
+  "Write": {
+   "calls": 1,
+   "bytes": 141,
+   "seconds": 0.1
+  },
+  "Agent": {
+   "calls": 1,
+   "bytes": 1049,
+   "seconds": 120.5
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 9,
+   "bytes": 40564
+  },
+  {
+   "tool": "Read",
+   "what": "../../../root/.claude/projects/-home-user-village-builder/11b5acc8-2a5e-5fbf-b51c-40e596ecd64a/tool-results/bxuyx91yi.txt",
+   "calls": 1,
+   "bytes": 34158
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 3,
+   "bytes": 14191
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 3,
+   "bytes": 10664
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 8151
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 3,
+   "bytes": 6907
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 6826
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 7,
+   "bytes": 6559
+  },
+  {
+   "tool": "Bash",
+   "what": "ls tests",
+   "calls": 1,
+   "bytes": 6320
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/sim.js",
+   "calls": 1,
+   "bytes": 6173
+  },
+  {
+   "tool": "Bash",
+   "what": "npm test",
+   "calls": 1,
+   "bytes": 5194
+  },
+  {
+   "tool": "Bash",
+   "what": "cat .claude/skills/task/SKILL.md",
+   "calls": 1,
+   "bytes": 4595
+  }
+ ],
+ "repeats": {
+  "reads": 0,
+  "readBytes": 0,
+  "commands": 0,
+  "commandBytes": 0,
+  "recent": 0
+ },
+ "tests": {
+  "runs": 10,
+  "failed": 5,
+  "streak": 3,
+  "current": 0
+ },
+ "compactions": 0,
+ "continuation": {
+  "continues": false,
+  "handoverBytes": 0,
+  "callsToEdit": 22,
+  "contextToEdit": 75845,
+  "reason": "boundary"
+ },
+ "continuations": {
+  "launched": 1,
+  "calls": 1
+ },
+ "weighted": 1165971,
+ "task": "VB-523",
+ "subagents": [
+  {
+   "agent": "aeab6ff9",
+   "role": "implement",
+   "task": "VB-523",
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 92,
+   "tokens": {
+    "input": 184,
+    "cacheWrite": 157076,
+    "cacheRead": 9969811,
+    "output": 56744
+   },
+   "weighted": 1477230,
+   "first": 17240,
+   "boot": 69065,
+   "peak": 157078,
+   "activeMin": 39.4,
+   "start": "2026-11-24T23:02:14.366Z",
+   "end": "2026-11-24T23:41:39.997Z",
+   "mergeUndone": null,
+   "series": [
+    [
+     5,
+     36693
+    ],
+    [
+     10,
+     60746
+    ],
+    [
+     15,
+     74513
+    ],
+    [
+     20,
+     81222
+    ],
+    [
+     25,
+     92440
+    ],
+    [
+     30,
+     100584
+    ],
+    [
+     35,
+     105277
+    ],
+    [
+     40,
+     110900
+    ],
+    [
+     45,
+     113746
+    ],
+    [
+     50,
+     120264
+    ],
+    [
+     55,
+     125227
+    ],
+    [
+     60,
+     130695
+    ],
+    [
+     65,
+     134809
+    ],
+    [
+     70,
+     138806
+    ],
+    [
+     75,
+     142294
+    ],
+    [
+     80,
+     146878
+    ],
+    [
+     85,
+     151493
+    ],
+    [
+     90,
+     156492
+    ],
+    [
+     92,
+     157078
+    ]
+   ],
+   "repeats": {
+    "reads": 1,
+    "readBytes": 138,
+    "commands": 1,
+    "commandBytes": 100,
+    "recent": 1
+   },
+   "tests": {
+    "runs": 11,
+    "failed": 6,
+    "streak": 3,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 4369,
+    "callsToEdit": 14,
+    "contextToEdit": 51825,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  }
+ ],
+ "review": {
+  "task": "VB-523",
+  "arm": "control"
+ },
+ "summary": {
+  "weightedTotal": 2643201,
+  "orchestratorShare": 0.441,
+  "bootMedian": 69065,
+  "readMedian": 51825,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0,
+  "review": {
+   "reviews": 0,
+   "weighted": 0,
+   "median": null,
+   "revisions": 0,
+   "revisionWeighted": 0,
+   "orchestratorCalls": 1
+  }
+ }
+}

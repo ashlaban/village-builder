@@ -35,6 +35,7 @@ const REPORTS = [
   'soil',
   'accounts',
   'foresight-hunger',
+  'stories',
 ];
 const USAGE = `usage: node tools/sim.js [--scenario founders|solo|heirs|populous|market] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
@@ -60,6 +61,9 @@ const USAGE = `usage: node tools/sim.js [--scenario founders|solo|heirs|populous
                     with none; then gatherings a year, host changes and the share with none (VB-294; tools/gathering.js)
   --report foresight-hunger by household-year, the share hungry and the hungry days, by the head's skill third (VB-571); over many seeds and
                     versions: tools/foresight-hunger.js --help
+  --report stories  stories made by kind a year, held a pawn, by hops (the valence held against the source's), the spread curve by day
+                    (subject's village, the most-reached other) and strangers' opinion of the subject against witnesses' (VB-523;
+                    tools/stories.js --help); the numbers are sim/stories STORY
   --report calendar prints the clock's table (sim/clock CALENDAR, VB-241) in the order it runs, and runs nothing`;
 if (process.argv.includes('--help') || process.argv.includes('-h')) { console.log(USAGE); process.exit(0); }
 if (process.argv.includes('calendar')) { // the clock's table needs no run (VB-241)
@@ -116,13 +120,14 @@ const hunger = report === 'hunger' ? require('./hunger.js')(Sim, st) : null;
 const soil = report === 'soil' ? require('./soil.js')(VB, st, { period: opt('period', 'decade') }) : null;
 const foresight = report === 'foresight-hunger' ? require('./foresight-hunger.js').report(VB, st) : null;
 const waiting = report === 'waiting' ? require('./waiting.js').report(VB, st) : null;
+const stories = report === 'stories' ? require('./stories.js').collector(VB, st) : null;
 const gathering = report === 'gathering' ? require('./gathering.js')(VB, st) : null;
 const accounts = accountsTool ? accountsTool.report(VB, st) : null;
 const hours = report === 'hours' ? require('./hours.js')(VB, st, { from: +opt('from', 1), every: opt('every', 'step'), fields: opt('fields', null),
   team: args.includes('--team'), household: hhId }) : null;
 for (let y = start + 1; y <= last; y++) {
   const t0 = Date.now(), hungry0 = st.households.reduce((s, h) => s + h.hungryDays, 0);
-  if (accounts) accounts.advanceYear(); else if (idle) idle.advanceYear(); else if (hours) hours.advanceYear(); else if (hunger) hunger.advanceYear(); else if (waiting) waiting.advanceYear(); else if (foresight) foresight.advanceYear(); else if (soil) soil.advanceYear(); else if (perf) perfMs += perf.timeAdvance(Sim, st, Sim.YEAR); else Sim.advance(st, Sim.YEAR);
+  if (accounts) accounts.advanceYear(); else if (idle) idle.advanceYear(); else if (hours) hours.advanceYear(); else if (hunger) hunger.advanceYear(); else if (waiting) waiting.advanceYear(); else if (foresight) foresight.advanceYear(); else if (soil) soil.advanceYear(); else if (stories) stories.advanceYear(); else if (perf) perfMs += perf.timeAdvance(Sim, st, Sim.YEAR); else Sim.advance(st, Sim.YEAR);
   if (gathering) gathering.year(y);
   const ms = (Date.now() - t0) / Sim.YEAR_DAYS, live = st.households.filter((h) => !h.dissolved);
   const births = st.pawns.filter((p) => !p.founder && p.born >= (y - 1) * Sim.YEAR && p.born < y * Sim.YEAR).length;
@@ -156,6 +161,7 @@ function plansOf(h) {
 }
 const tables = {
   gathering: () => gathering.result(), // VB-294
+  stories: () => stories.result(), // VB-523
   'foresight-hunger': () => { const F = require('./foresight-hunger.js'), r = foresight.result(); return F.measure(r.rows); }, // VB-571
   reach: () => require('./reach.js')(st), // VB-286
   ground: () => { // VB-735
