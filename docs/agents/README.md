@@ -36,12 +36,9 @@ first edit); and the share of tasks done at the first attempt.
 
 ## Chains
 
-`/chain SIZE [N]` (`.claude/skills/chain/SKILL.md`) runs N ready tasks of one size (default 8), one unattended session each: the
-session takes the first ready task of that size (`backlog.js next --size SIZE --unattended`), implements it as `AGENTS.md` says, reviews it
-as `AGENTS.md`, step 5, says (`vb-review`, by its arm), measures itself, merges its PR and starts the next
-session with the same command and one task fewer. A chain stops when no such task is ready, main is red, two tasks in a row end
-`needs-review`, or N is reached. The system allows 8 sessions in a chain, so for N above 8 the first session only coordinates: it runs
-chains of 7, one after another, each telling it when it ends. Chains never run side by side.
-Each session's model is chosen as the night's, by the task it will take (Sonnet for S, Opus for M and L, the strongest offered for a
-plan), the reviewer's
-likewise, by `AGENTS.md`, step 5.
+`/chain SIZE [N]` (`.claude/skills/chain/SKILL.md`) runs N ready tasks of one size (default 8) one after another. Its session is a
+coordinator, meant for Haiku: it starts each task as a session of its own, `/task VB-NNN` (`.claude/skills/task/SKILL.md`), on the
+task's model, and merges the PR that session opens; `tools/chain.js` decides the task, the model (Sonnet for S, Opus for M and L,
+the strongest offered for a plan), the title and when to stop (N reached, no such task ready, main red, two tasks in a row
+unfinished). A task session builds, is reviewed as `AGENTS.md`, step 5, says, closes, measures itself and opens its PR; it starts no
+session, so a chain is one level deep however long. Chains never run side by side.
