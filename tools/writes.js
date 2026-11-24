@@ -61,7 +61,7 @@ const HINTS = {
   'sim/heirs': { from: 'household', to: 'household', old: 'household', family: 'local' }, 'sim/heirranking': { asked: 'local' }, 'sim/relations': { g: 'agent', s: 'agent.talk', r: 'pawn.rel[]' },
   'sim/claims': { c: 'claim', r: 'local' }, 'sim/trust': { t: 'st.trusts' }, 'sim/offers': { o: 'st.offers' }, 'sim/clock': { s: 'fence' }, 'sim/meadows': { m: 'farmstead.meadows[]' }, 'sim/births': { m: 'pawn' },
   'sim/commands': { q: 'pawn' }, 'sim/notable': { from: 'local' }, 'sim/agents': { g: 'agent', stay: 'st.away[]' }, 'sim/away': { g: 'local', rest: 'local', stay: 'st.away[]' }, 'sim/journeys': { g: 'local' }, 'sim/expansion': { walls: 'plan.steps[]' }, 'sim/allotment': { live: 'local' }, 'sim/building': { walls: 'plan.steps[]' }, // a plot's walls step (VB-1407)
-  'sim/pot': { units: 'local' }, 'sim/hands': { d: 'st.handsToday' }, 'sim/day': { asking: 'local' }, // VB-470: today's lent hands; the morning's asks
+  'sim/pot': { units: 'local' }, 'sim/hands': { d: 'st.handsToday' }, 'sim/day': { asking: 'local', cap: 'local', due: 'local', lists: 'plan.day', fits: 'plan.day', ctx: 'plan.day' }, // VB-470: today's lent hands; the morning's asks
   'sim/fair': { l: 'local', x: 'local' }, 'sim/larder': { lots: 'local', by: 'local' }, // a dealer's load and its lots, inside pawn.load and written only by sim/fair (VB-302)
   'sim/lifecycle': { households: 'local', people: 'local', u: 'union' }, 'sim/meetings': { people: 'local' }, 'sim/plans': { T: 'plan.targets' }, 'sim/seasonal': { T: 'plan.targets' }, 'sim/aims': { A: 'plan.aim', B: 'plan.aim' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
     R: 'st', A1: 'farmstead', A2: 'farmstead', B1: 'farmstead', f: 'farmstead' },

@@ -345,6 +345,11 @@ function checkState(st) {
         else for (const [id, list] of Object.entries(d.lists)) {
           if (!st.pawns[id]) bad.push(`${at}: a list for pawn ${id}, which does not exist`);
           if (!Array.isArray(list) || list.some((k) => typeof k !== 'string') || new Set(list).size !== list.length) bad.push(`${at}: pawn ${id}'s list is not task keys, each once`);
+          // VB-1558: beside each list its fits (null at the head, then > 0, best first, then < 0, the rest) and the hours given each entry
+          const fit = d.fits && d.fits[id];
+          if (d.fits && (!Array.isArray(fit) || fit.length !== list.length || fit.some((x) => x !== null && !Number.isFinite(x)))) bad.push(`${at}: pawn ${id}'s fits do not match its list`);
+          const hrs = d.hours && d.hours[id];
+          if (d.hours && (!Array.isArray(hrs) || hrs.length !== list.length || hrs.some((x) => !(x >= 0)))) bad.push(`${at}: pawn ${id}'s hours do not match its list`);
         }
       }
     }
