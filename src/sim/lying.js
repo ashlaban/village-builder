@@ -132,7 +132,7 @@ VB['sim/lying'] = (() => {
           : l.kind === 'hay'
             ? 'hay'
             : l.kind === 'wood'
-              ? 'firewood'
+              ? 'timber'
               : l.kind === 'leftTimber'
                 ? 'timber'
                 : l.kind === 'leftGrain'

@@ -2,8 +2,9 @@
 //   tasks, edited by the player (Sim.plan) and read by the page (Sim.planView); `nextOf` is the one choice of what the plan has the pawn
 //   do next, which sim/player's feeder queues with automatic behaviour off and the view reads without writing (VB-1619 reads it too);
 //   a task at a tile (VB-1621, VB-1622) carries one chain of steps there: a field from its clearing to its sowing (plant), a meadow's hay
-//   from its mowing until it is home (hay), a field's crop from its reaping until its sheaves are in (harvest); declared as data (CHAINS);
-//   why each task waits and why the plan is idle (WAITS, waitsOf; VB-1623), by the reads nextOf makes
+//   from its mowing until it is home (hay), a field's crop from its reaping until its sheaves are in (harvest), trips of timber felled
+//   on a forest tile and carried home (fell) and the timber home cut into firewood (firewood; VB-1625); declared as data (CHAINS);
+//   why each task waits and why the plan is idle (WAITS, waitsOf; VB-1623), by the reads nextOf makes; how the fire stands (fireView)
 VB['sim/playerplan'] = (() => {
   const { DAY, SEASON_DAYS, YEAR, WORK, TRAVEL, cal } = VB['sim/rules'];
   const { CROPS, ROTATIONS } = VB['sim/crops'];
@@ -18,14 +19,20 @@ VB['sim/playerplan'] = (() => {
   const { VERBS } = VB['sim/commands'];
   const { eligible } = VB['sim/eligibility'];
   const { living } = VB['sim/records'];
+  const { WOOD_HOURS, fuelFree, timberOf } = VB['sim/chores'];
+  const { woodWhy } = VB['sim/territory'];
+  const { on } = VB['sim/events'];
   // @state st.player.plan: absent until the player first plans (an older save reads as empty), else {routine[] (job kinds seen to every
   //   day, in order, at most PLAN_MAX), sleep (null, or {from, until}: hours of the day, the pawn sleeps from `from` to `until`), tasks[]
   //   (at most PLAN_MAX, in order: a task by key {key (a job's key), kind, site (its tile or -1)}, or a task at a tile {<chain> (a tile),
-  //   kind: <chain> (a key of CHAINS: plant, hay, harvest), site (the same tile)}, one a chain a tile; VB-1621, VB-1622), day (the game day
+  //   kind: <chain> (a key of CHAINS: plant, hay, harvest, fell, firewood), site (the same tile), and a fell task's n (the trips planned,
+  //   1 to FELL_MAX) and got (those home)}, one a chain a tile; VB-1621, VB-1622, VB-1625), day (the game day
   //   `done` is of), done[] (the routine kinds begun on day `day`), last (null, or the last task that left the plan: {key, kind, t}, its
   //   job finished or gone; or {<chain>, kind, site, t, which (one of the chain's `which`: plant 'sown' | 'closed' (its sowing window
   //   shut, the field unsown) | 'fallow' (the field made lies fallow this year) | 'gone' (nothing of the household's there now); hay
-  //   'home' | 'closed' (the haymaking over, the meadow unmown) | 'rotted' | 'gone'; harvest 'in' | 'lost' | 'gone')})}; plain data,
+  //   'home' | 'closed' (the haymaking over, the meadow unmown) | 'rotted' | 'gone'; harvest 'in' | 'lost' | 'gone'; fell 'home' (its
+  //   trips home) | 'bare' (no tree left at the tile) | 'gone'; firewood 'cut' (no timber left, and none planned to fell) | 'full' (the
+  //   pile at the season's goal) | 'gone')})}; plain data,
   //   saved with st.player. A command the plan feeds to the queue carries `plan` {from: 'routine' | 'task' | 'sleep', kind, key}, and
   //   `chain` and <chain> (its tile) when a task at a tile fed it (kind 'project' for the project a marked tile begins)
   const PLAN_MAX = 24;
@@ -54,7 +61,9 @@ VB['sim/playerplan'] = (() => {
       if (pp.tasks.length >= PLAN_MAX) return `the plan is full (${PLAN_MAX} tasks)`;
       const at = g.at === undefined || g.at === null ? pp.tasks.length : g.at;
       if (!(Number.isInteger(at) && at >= 0 && at <= pp.tasks.length)) return `there is no place ${g.at} in the plan`;
-      pp.tasks.splice(at, 0, { [name]: tile, kind: name, site: tile });
+      const more = CHAINS[name].args ? CHAINS[name].args(g) : null;
+      if (typeof more === 'string') return more;
+      pp.tasks.splice(at, 0, { [name]: tile, kind: name, site: tile, ...more });
     } else if (op === 'add') {
       const j = st.jobs.get(g.key);
       if (!j) return `there is no job ${g.key}`;
@@ -334,7 +343,88 @@ VB['sim/playerplan'] = (() => {
       return fd.stage === 'stooks' || ripeDay(fd) * DAY < d.t ? d : at(yearOf(st) + YEAR);
     },
   };
-  const CHAINS = { plant, hay, harvest };
+  // ---- fell: n trips of timber felled on a forest tile the player chose and carried home (VB-1625; Kim, 24 Nov 2026) ----
+  // Any tile the household's village may fell on (sim/territory woodWhy: the tiles the rule of the village's wood may give it, whatever
+  // its size, within WOOD.far of its centre; a lone farm's village is its own, so the same rule). The household's farm takes the timber.
+  const FELL_MAX = 20;
+  // The task of chain `name` at `tile` in the played pawn's plan, or null.
+  const taskAt = (st, name, tile) => {
+    const pp = st.player && st.player.plan;
+    return (pp && pp.tasks.find((t) => t.key === undefined && t.kind === name && t[name] === tile)) || null;
+  };
+  const fell = {
+    noun: 'felling',
+    mark: null,
+    kinds: ['wood'],
+    which: ['home', 'bare', 'gone'],
+    args: (g) => {
+      const n = g.n === undefined || g.n === null ? 1 : g.n;
+      return Number.isInteger(n) && n >= 1 && n <= FELL_MAX
+        ? { n, got: 0 }
+        : `cannot plan ${g.n} trips to fell (1 to ${FELL_MAX})`;
+    },
+    at: (st, hid, tile) => {
+      const f = homeOf(st, hid);
+      if (!f || st.households[hid].dissolved || !st.villages[f.village]) return null;
+      const t = taskAt(st, 'fell', tile);
+      return { f, tile, n: t ? t.n : 1, got: t ? t.got : 0 };
+    },
+    none: () => 'the household has no farm to carry timber home to',
+    why: (st, { f }, tile) => woodWhy(st, st.villages[f.village], tile),
+    // the trips left, each a tree felled and its timber home, while trees stand there
+    steps: (st, hid, { tile, n, got }) =>
+      st.w.trees[tile] > 0 && got < n ? [{ kind: 'wood', hours: WOOD_HOURS.fell, n: n - got, from: -Infinity }] : [],
+    gone: (st, { tile, n, got }) => (got >= n ? 'home' : st.w.trees[tile] > 0 ? null : 'bare'),
+    deadline: () => null,
+  };
+  // A trip of timber is home from `tile` (sim/chores' wood, the event timberHome): a fell task of the played household's there counts it.
+  on('timberHome', (st, { household, tile }) => {
+    const pl = st.player;
+    if (!pl || !pl.plan || st.pawns[pl.pawn].household !== household) return;
+    const t = taskAt(st, 'fell', tile);
+    if (t && t.got < t.n) t.got++;
+  });
+  // ---- firewood: the timber home cut into firewood at the house, until it is all cut or the pile holds the season's goal (VB-1625) ----
+  // The pile's free wood against the season's goal (the head's plan's targets, sim/plans), and whether it is short.
+  const pileOf = (st, hh) => {
+    const plan = st.plans.households.get(hh.id),
+      goal = plan && plan.targets ? plan.targets.wood[cal(st.t).season] : 0,
+      free = fuelFree(st, hh);
+    return { free, goal, short: free < goal };
+  };
+  // Whether the played pawn's plan holds a fell task with trips left (timber to come home).
+  const fellPlanned = (st) => {
+    const pp = st.player && st.player.plan;
+    return !!pp && pp.tasks.some((t) => t.key === undefined && t.kind === 'fell' && t.got < t.n);
+  };
+  const firewood = {
+    noun: 'firewood',
+    mark: null,
+    kinds: ['firewood'],
+    which: ['cut', 'full', 'gone'],
+    at: (st, hid, tile) => {
+      const f = homeOf(st, hid);
+      return f && f.house === tile && !st.households[hid].dissolved ? { f, hh: st.households[hid], tile } : null;
+    },
+    none: (tile) => `the household's house is not at ${tile}`,
+    // timber home, or a felling planned to bring it; the pile short of the season's goal
+    why: (st, { hh }) => {
+      if (!timberOf(hh) && !fellPlanned(st)) return 'no timber is home to cut: fell timber first';
+      return pileOf(st, hh).short ? null : "the woodpile holds the season's goal";
+    },
+    // the loads left to cut: the timber home, at most the pile's shortfall, ECON.woodPerTrip a load
+    steps: (st, hid, { hh }) => {
+      const p = pileOf(st, hh),
+        per = st.ECON.woodPerTrip,
+        x = Math.min(timberOf(hh), Math.max(0, p.goal - p.free));
+      return x > 0 || fellPlanned(st)
+        ? [{ kind: 'firewood', hours: WOOD_HOURS.cut, n: Math.max(1, Math.ceil(x / per - 1e-9)), from: -Infinity }]
+        : [];
+    },
+    gone: (st, { hh }) => (!pileOf(st, hh).short ? 'full' : !timberOf(hh) && !fellPlanned(st) ? 'cut' : null),
+    deadline: () => null,
+  };
+  const CHAINS = { plant, hay, harvest, fell, firewood };
   // The chain of task t (a task at a tile: no key), or null for a task by key.
   const chainOf = (t) => (t.key === undefined && CHAINS[t.kind] ? t.kind : null);
   // What stands at `tile` for chain `name` of household hid: the chain's own (`at`), else the tile the head has marked for its next field
@@ -564,6 +654,7 @@ VB['sim/playerplan'] = (() => {
       key: x && x.job ? x.job.key : null,
       step: x ? x.kind : null,
       stands: !!(x && x.job),
+      ...(t.n !== undefined ? { n: t.n, got: t.got } : {}), // a fell task's trips planned and home (VB-1625)
     };
   }
   // The routine, each kind with whether it is done today and whether a job of it is posted for the household; the sleeping hours; the
@@ -601,8 +692,51 @@ VB['sim/playerplan'] = (() => {
       followed: !pl.auto,
     };
   }
+  // ---- the page's read of the fire (VB-1625): Sim.fireView(st) ----
+  // How the fire stands for the played pawn's household: wood (firewood held), timber (held, not yet cut), peat (held), free (the pile's
+  // free fuel, sim/chores fuelFree: what a project holds back left out, peat at its worth), goal (the season's, the head's plan's), nights
+  // (whole nights the free pile lasts at the season's use, ECON.woodUse), cold (the house went cold last night), short (the pile below the
+  // goal, or the house cold), mend (what would mend it, in order: [] when not short; 'firewood' first when timber is home, 'fell' when
+  // none is or what is home falls short of the goal), planned ({fell, firewood}: whether the plan holds a task of each). null with no
+  // pawn played or no household with a farm. Plain data; writes nothing.
+  function fireView(st) {
+    const pl = st.player;
+    if (!pl) return null;
+    const hid = st.pawns[pl.pawn].household,
+      hh = hid === null ? null : st.households[hid];
+    if (!hh || hh.dissolved || hh.farmstead === null) return null;
+    const p = pileOf(st, hh),
+      timber = timberOf(hh),
+      use = st.ECON.woodUse[cal(st.t).season],
+      cold = hh.cold > 0,
+      short = cold || p.short,
+      mend = [],
+      tasks = pl.plan ? pl.plan.tasks : [];
+    if (short) {
+      if (timber > 0) mend.push('firewood');
+      if (!timber || p.free + timber < p.goal) mend.push('fell');
+      if (!timber) mend.push('firewood');
+    }
+    return {
+      wood: hh.wood,
+      timber,
+      peat: hh.peat || 0,
+      free: p.free,
+      goal: p.goal,
+      nights: use > 0 ? Math.floor(Math.max(0, p.free) / use + 1e-9) : Infinity,
+      cold,
+      short,
+      mend,
+      planned: {
+        fell: tasks.some((t) => t.key === undefined && t.kind === 'fell'),
+        firewood: tasks.some((t) => t.key === undefined && t.kind === 'firewood'),
+      },
+    };
+  }
   return {
     PLAN_MAX,
+    FELL_MAX,
+    fireView,
     CHAINS,
     WAITS,
     plan,
