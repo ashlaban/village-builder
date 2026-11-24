@@ -13,7 +13,7 @@ VB['sim/jobs'] = (() => {
     { routineAsks } = VB['sim/routines'],
     { reviewWhy, mayLook, WINDOWED, dueNow, again } = VB['sim/plandays'];
   const { onProject } = VB['sim/projects'];
-  const { allotChanged } = VB['sim/day'];
+  const { allotChanged, slotIn } = VB['sim/day'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   // The holders whose tasks were posted or taken down during the review or the look under way: their days are allotted anew at its end
@@ -77,11 +77,13 @@ VB['sim/jobs'] = (() => {
     let kind = null,
       own = null,
       only = null,
-      gave = false;
+      gave = false,
+      opened = null;
     const put = (key, site, extra, k = kind, owner = own) => {
       if (only && k !== only) return;
       gave = true;
-      post(st, key, k, owner, site, extra);
+      if (opened && !st.jobs.has(key)) opened.push(post(st, key, k, owner, site, extra));
+      else post(st, key, k, owner, site, extra);
     };
     const ask = (rules, holder, at, f) => {
       VB.count.oppAsk += rules.length;
@@ -90,9 +92,11 @@ VB['sim/jobs'] = (() => {
         rules[i][1](st, holder, at, c, put, f);
       }
     };
-    // ---- the due-queue: each entry asks its kind for its household, and takes down that kind's tasks it no longer reports ----
+    // ---- the due-queue: each entry asks its kind for its household, and takes down that kind's tasks it no longer reports. A task it
+    // opens is slotted into the household's day as it stands (sim/day slotIn; VB-1558), but at the hours every day is allotted anew ----
     const due = dueNow(st, hour),
-      gaveAt = [];
+      gaveAt = [],
+      whole = everyone || c.hour === WORK[0] - 1 || c.hour === MATCH.day.afternoon;
     for (const [, id, k] of due) {
       const hh = st.households[id],
         K = WINDOWED[k],
@@ -103,18 +107,33 @@ VB['sim/jobs'] = (() => {
         if (mine) for (const j of mine) if (j.kind === K) j.live = false;
         only = K;
         own = { type: 'household', id };
-        const rule = DUE_RULES[k];
+        const rule = DUE_RULES[k],
+          noted = changed;
+        // what is opened is noted here, not for the day's allotment
+        changed = new Set();
+        opened = [];
         if (KINDS[K].stages) {
           for (const fd of f.fields) if (KINDS[K].stages.includes(fd.stage)) ask(rule, hh, fd, f);
           // the fields of a farm it holds in trust, as its own (VB-309)
           for (const g of heldFarms(st, id))
             for (const fd of g.fields) if (KINDS[K].stages.includes(fd.stage)) ask(rule, hh, fd, g);
         } else ask(rule, hh, f, f);
+        const fresh = opened;
+        changed = noted;
+        opened = null;
         only = null;
         const now = st.jobsBy.get(`household:${id}`);
         if (now) for (const j of now) if (j.kind === K && !j.claims.length) sweep(st, j);
-        // a task with a deadline today that waits unmanned: its hand is called (allot)
-        if (gave && KINDS[K].late && now && [...now].some((j) => j.kind === K && !j.claims.length))
+        for (const j of fresh)
+          if (whole || !j.live || j.owner.type !== 'household' || j.owner.id !== id || !slotIn(st, hh, j, c))
+            changedFor(j.owner);
+        // a task with a deadline today that waits unmanned, opened before: its hand is called (allot)
+        if (
+          gave &&
+          KINDS[K].late &&
+          now &&
+          [...now].some((j) => j.kind === K && !j.claims.length && !fresh.includes(j))
+        )
           changed.add(`household:${id}`);
       }
       gaveAt.push(gave);

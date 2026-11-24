@@ -83,6 +83,7 @@ const FAST = [
   ['node', 'tests/oversea.js'], // VB-436: nobody is sent to a home over the sea
   ['node', 'tests/tiny.js'],
   ['node', 'tests/stand.js'], // VB-1545: a holder alone takes the ranks of the roles its household lacks
+  ['node', 'tests/slot.js'], // VB-1558: a task the due-queue opens is slotted into the day as it stands, as the allotment would put it
   ['node', 'tests/afternoon.js'], // VB-1546: the day allotted again at 14:00: a rise in urgency reaches the morning's lists
   ['node', 'tests/needfood.js'], // VB-1549: a household with no food fishes before it ploughs; with food, after
   ['node', 'tests/evening.js'], // VB-1547: a task lived by, begun, is finished past 18:00; the water fetched in the evening

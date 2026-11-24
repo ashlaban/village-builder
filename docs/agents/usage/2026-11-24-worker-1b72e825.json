@@ -1,0 +1,124 @@
+{
+ "session": "1b72e825-4188-52d7-9403-5b600cc1eff2",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T06:49:05.890Z",
+ "end": "2026-11-24T07:16:47.845Z",
+ "wallMin": 27.7,
+ "activeMin": 27.7,
+ "prompts": 1,
+ "calls": 76,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 145,
+  "cacheWrite": 175769,
+  "cacheRead": 13646256,
+  "output": 73863
+ },
+ "context": {
+  "first": 85132,
+  "peak": 239558,
+  "firstEdit": 185534
+ },
+ "tools": {
+  "Bash": {
+   "calls": 75,
+   "bytes": 177958,
+   "seconds": 958.2
+  },
+  "Write": {
+   "calls": 1,
+   "bytes": 136,
+   "seconds": 0
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 8,
+   "bytes": 53791
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 1,
+   "bytes": 22478
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 7,
+   "bytes": 18810
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 9021
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 19,
+   "bytes": 8690
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 1,
+   "bytes": 8181
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7501
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/sim.js",
+   "calls": 2,
+   "bytes": 6217
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 4,
+   "bytes": 6008
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -i",
+   "calls": 6,
+   "bytes": 5746
+  },
+  {
+   "tool": "Bash",
+   "what": "cp $S/jobs.new.js",
+   "calls": 1,
+   "bytes": 5588
+  },
+  {
+   "tool": "Bash",
+   "what": "git fetch",
+   "calls": 1,
+   "bytes": 5292
+  }
+ ],
+ "weighted": 1953797,
+ "task": "VB-1558",
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 1953797,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

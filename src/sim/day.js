@@ -44,8 +44,11 @@ VB['sim/day'] = (() => {
   // ---- the head's day (VB-466; design.md section 7, The day's work) ----
   // @state plan.day (a household's standing plan's; sim/plans holds the plan): absent until first allotted, then {made (the game hour),
   //   lists: {pawn id: [job keys]}}: for each living member the tasks the head gave it, in the order it takes them; a member too young has
-  //   an empty list; free: {pawn id: hours}: the working hours of the horizon the head gave each member no task in (VB-470: what it may
-  //   lend). Written only by allot, whole, each time; a key whose job is gone is passed over. Plain data, saved with the plan.
+  //   an empty list; fits: {pawn id: [fit or null]} and hours: {pawn id: [hours]}, beside each list, the fit each entry was given at and
+  //   the hours of the member's day it was given (given, further: VB-1558); free:
+  //   {pawn id: hours}: the working hours of the horizon the head gave each member no task in (VB-470: what it may lend). Written by
+  //   allot, whole, and by slotIn, a task put into the lists as they stand; a key whose job is gone is passed over. Plain data, saved with
+  //   the plan.
   // A member's working hours of the horizon, by the clock; what it does in them at a task is the head's belief of its rate there (VB-476).
   const dayHours = () => MATCH.day.horizon * (WORK[1] - WORK[0]);
   const hoursLeft = (st, j) => (j.hours ?? KINDS[j.kind].hours ?? 0) - doneOf(st, j);
@@ -62,50 +65,107 @@ VB['sim/day'] = (() => {
     const plan = planOf(st, 'household', hh.id);
     if (!plan || hh.farmstead === null) return;
     const lists = {},
+      fits = {},
+      hours = {},
       members = [];
     for (const id of hh.members) {
       const p = st.pawns[id];
       if (p.died !== null) continue;
       lists[id] = [];
+      fits[id] = [];
+      hours[id] = [];
       // the head allots around those it does not have today (allotted)
       if (allotted(st, p)) members.push(p);
     }
-    const pairs = [],
-      memo = new Map(),
-      // the roles the household lacks today, whose ranks its holder takes (VB-1545): one pass over the members allotted
-      stand = hh.holder !== null && members.some((p) => p.id === hh.holder) ? absentMask(hh.holder, members) : 0;
+    const memo = new Map(),
+      stand = standIn(hh, members),
+      pairs = [];
     if (members.length) {
       const jobs = jobsFor(st, members[0]);
       VB.count.dayPair += (jobs.length ?? jobs.size) * members.length;
-      for (const j of jobs) {
-        if (attentionOf(j) === 'full' && hoursLeft(st, j) <= 0) continue; // only its load is on the road
-        // a making of a graded good goes to the most skilled hand at its craft of those who may take it (VB-761)
-        const only = makesGraded(j.kind)
-          ? Workmanship.maker(
-              st,
-              members.filter((p) => eligible(st, j, p)).map((p) => p.id),
-              KINDS[j.kind].craft,
-            )
-          : null;
-        for (const p of members) {
-          if (only !== null && p.id !== only) continue;
-          if (!eligible(st, j, p)) continue;
-          const s = score(st, p, j, c, memo, p.id === hh.holder ? stand : 0);
-          if (s !== null && s > 0) pairs.push([s, p.id, j]);
-        }
-      }
+      for (const j of jobs) weigh(st, hh, members, j, c, memo, stand, pairs);
     }
     pairs.sort((x, y) => y[0] - x[0] || x[2].id - y[2].id || x[1] - y[1]);
     const H = Estimate.headOf(st, hh),
-      est = new Map(), // job -> the work left as the head sees it, once an allotment
-      cap = new Map(members.map((p) => [p.id, dayHours()])),
-      manned = new Map(), // job -> [hours of work given, hands]
-      given = new Map(), // pawn -> its first task of the first pass, with its fit
-      due = new Map(), // pawn -> the task with a deadline today it is the hand for
-      heads = new Map(), // pawn -> the tasks that come first at the head of its list (`first`: the water, each of the day's trips)
+      ctx = {
+        lists,
+        fits,
+        hours,
+        est: new Map(), // job -> the work left as the head sees it, once an allotment
+        cap: new Map(members.map((p) => [p.id, dayHours()])),
+        manned: new Map(), // job -> [hours of work given, hands]
+        given: new Map(), // pawn -> its first task of the first pass, with its fit
+        due: new Map(), // pawn -> the task with a deadline today it is the hand for
+        heads: new Map(), // pawn -> the tasks that come first at the head of its list (`first`: the water, each of the day's trips)
+      };
+    man(st, H, pairs, ctx);
+    const free = {};
+    for (const p of members) free[p.id] = ctx.cap.get(p.id);
+    plan.day = { made: Math.floor(st.tick / TICKS), lists, fits, hours, free };
+    // the morning's allotment: the hours of help the head's estimate says the household lacks to finish its field work in its windows
+    if (asking && ctx.est.size) {
+      const tasks = [];
+      for (const [j, left] of ctx.est) tasks.push([j, left, (ctx.manned.get(j) || [0])[0]]);
+      const short = Hands.shortOf(st, tasks, c);
+      if (short > 0) asking.push([hh.id, short]);
+    }
+    for (const p of members) call(st, hh, p, ctx.due.get(p.id), ctx.given.get(p.id), c, memo, stand);
+  }
+  // The roles the household lacks today, whose ranks its holder takes (VB-1545): one pass over the members allotted.
+  const standIn = (hh, members) =>
+    hh.holder !== null && members.some((p) => p.id === hh.holder) ? absentMask(hh.holder, members) : 0;
+  // Each member weighed for task j (allot's for every task, the slot's for the one): its fit (score) where it may take it, into `pairs`.
+  function weigh(st, hh, members, j, c, memo, stand, pairs) {
+    if (attentionOf(j) === 'full' && hoursLeft(st, j) <= 0) return; // only its load is on the road
+    // a making of a graded good goes to the most skilled hand at its craft of those who may take it (VB-761)
+    const only = makesGraded(j.kind)
+      ? Workmanship.maker(
+          st,
+          members.filter((p) => eligible(st, j, p)).map((p) => p.id),
+          KINDS[j.kind].craft,
+        )
+      : null;
+    for (const p of members) {
+      if (only !== null && p.id !== only) continue;
+      if (!eligible(st, j, p)) continue;
+      const s = score(st, p, j, c, memo, p.id === hh.holder ? stand : 0);
+      if (s !== null && s > 0) pairs.push([s, p.id, j]);
+    }
+  }
+  // A list's entries, their fits and their hours (plan.day.fits, plan.day.hours): the fit is null at its head (a fetch, a task with a
+  // deadline today), the fit a task was given hands at in the first pass (> 0, best first), less than 0 for the rest (minus the fit, best
+  // first); the hours, those of the member's day the entry was given (0 for the rest). A task given hands goes after the first pass's
+  // entries as good, a further one after the rest as good: in the allotment, the end of each; in the slot, its place.
+  function given(ctx, id, key, s, h) {
+    const fit = ctx.fits[id];
+    let i = fit.length;
+    while (i > 0 && fit[i - 1] !== null && fit[i - 1] < 0) i--;
+    while (i > 0 && fit[i - 1] !== null && fit[i - 1] < s) i--;
+    enter(ctx, id, i, key, s, h);
+  }
+  function further(ctx, id, key, s) {
+    const fit = ctx.fits[id];
+    let i = fit.length;
+    while (i > 0 && fit[i - 1] !== null && fit[i - 1] < 0 && -fit[i - 1] < s) i--;
+    enter(ctx, id, i, key, -s, 0);
+  }
+  function enter(ctx, id, i, key, fit, h) {
+    ctx.lists[id].splice(i, 0, key);
+    ctx.fits[id].splice(i, 0, fit);
+    ctx.hours[id].splice(i, 0, h);
+  }
+  function leave(ctx, id, i) {
+    ctx.lists[id].splice(i, 1);
+    ctx.fits[id].splice(i, 1);
+    return ctx.hours[id].splice(i, 1)[0];
+  }
+  // The pass over the pairs weighed, best first (allot's over the day's tasks, the slot's over its one): a pair whose task has gained
+  // hands since it was weighed falls by `join` for each (VB-102: the hands spread over the tasks that can be worked at once) and waits its
+  // turn again; a task is given hands until they cover its work left as the head estimates it, each member up to its hours left (`cap`);
+  // the pairs left over go on each member's list after.
+  function man(st, H, pairs, ctx) {
+    const { est, cap, manned, given: first, due, heads } = ctx,
       spare = [];
-    // best first; a pair whose task has gained hands since it was weighed falls by `join` for each (VB-102: the hands spread over the
-    // tasks that can be worked at once) and waits its turn again
     for (let i = 0; i < pairs.length; i++) {
       const pair = pairs[i],
         [s, id, j, k = 0] = pair,
@@ -126,50 +186,144 @@ VB['sim/day'] = (() => {
       const r = full ? Estimate.rateFor(st, H, id, j, m[1] === 0) : 0,
         h = r > 0 ? Math.min(cap.get(id), (left - m[0]) / r) : 0;
       // the hours of a trip beside its work (the water's walk) are hours of its hand's day too (VB-1582)
-      cap.set(id, Math.max(0, cap.get(id) - h - (K.trip ? K.trip(st, j) : 0)));
+      const had = cap.get(id);
+      cap.set(id, Math.max(0, had - h - (K.trip ? K.trip(st, j) : 0)));
       manned.set(j, [m[0] + h * r, m[1] + 1]);
       // water first (VB-1582): the fetch heads the list of the member best fit for it. A task with a deadline today that waits
-      // unmanned goes first in its hand's list too, after a fetch, whatever its fit, and calls it (below)
+      // unmanned goes first in its hand's list too, after a fetch, whatever its fit, and calls it (call)
       const head = heads.get(id) || 0;
       if (K.first && !j.claims.length) {
         heads.set(id, head + 1);
-        lists[id].splice(head, 0, j.key);
+        enter(ctx, id, head, j.key, null, had - cap.get(id));
       } else if (K.late && !j.claims.length && !due.has(id)) {
         due.set(id, j);
-        lists[id].splice(head, 0, j.key);
-      } else lists[id].push(j.key);
-      if (full && !given.has(id)) given.set(id, [s, j]);
+        enter(ctx, id, head, j.key, null, had - cap.get(id));
+      } else given(ctx, id, j.key, s, had - cap.get(id));
+      if (full && !first.has(id)) first.set(id, [s, j]);
     }
-    for (const [, id, j] of spare) lists[id].push(j.key);
-    const free = {};
-    for (const p of members) free[p.id] = cap.get(p.id);
-    plan.day = { made: Math.floor(st.tick / TICKS), lists, free };
-    // the morning's allotment: the hours of help the head's estimate says the household lacks to finish its field work in its windows
-    if (asking && est.size) {
-      const tasks = [];
-      for (const [j, left] of est) tasks.push([j, left, (manned.get(j) || [0])[0]]);
-      const short = Hands.shortOf(st, tasks, c);
-      if (short > 0) asking.push([hh.id, short]);
+    for (const [s, id, j] of spare) further(ctx, id, j.key, s);
+  }
+  // The head calls member p (design.md section 7, The head calls): to `dj`, the task with a deadline today it is the hand for, from work,
+  // from the road or from idling; else from its work to `top`, the first of its list, when that is much more urgent (switchRatio,
+  // switchMargin; VB-107).
+  function call(st, hh, p, dj, top, c, memo, stand) {
+    const a = st.agents[p.id],
+      busy = !!a.job && attentionOf(a.job) === 'full';
+    if (dj && a.job !== dj && isOpen(st, dj) && c.hour <= WORK[1]) {
+      // the deadline calls: from work, from the road to it, or from idling (waiting, or out for company; not at an occasion)
+      if (busy ? a.phase === 'work' || a.phase === 'go' : !a.job && a.phase === null && a.occasion === null)
+        issue(st, workCommand(a.id, dj.key, 'planner'));
+      return;
     }
-    for (const p of members) {
-      const a = st.agents[p.id],
-        dj = due.get(p.id),
-        top = given.get(p.id),
-        busy = !!a.job && attentionOf(a.job) === 'full';
-      if (dj && a.job !== dj && isOpen(st, dj) && c.hour <= WORK[1]) {
-        // the deadline calls: from work, from the road to it, or from idling (waiting, or out for company; not at an occasion)
-        if (busy ? a.phase === 'work' || a.phase === 'go' : !a.job && a.phase === null && a.occasion === null)
-          issue(st, workCommand(a.id, dj.key, 'planner'));
-        continue;
+    if (!top || !busy || a.phase !== 'work' || a.job === top[1] || !isOpen(st, top[1])) return;
+    if (
+      hoursLeft(st, a.job) > rateOf(st, p) &&
+      top[0] >
+        MATCH.switchRatio * (score(st, p, a.job, c, memo, p.id === hh.holder ? stand : 0) ?? 0) + MATCH.switchMargin
+    )
+      issue(st, workCommand(a.id, top[1].key, 'planner'));
+  }
+  // ---- the slot (VB-1558; design.md section 7, The day's work: "a task the due-queue opens in the day is weighed alone") ----
+  // Task j, newly due for household hh, put into the day's lists as they stand: each member allotted is weighed for it alone, and the pass
+  // of the allotment (man) gives it hands by its fit among the tasks already there and within the members' hours left (plan.day.free); a
+  // task with a deadline today goes first in its hand's list and calls it; the hand it is now the first task of is called from lesser
+  // work, as by the allotment. False where the day cannot take it as it stands (no day yet, or made before the fits were kept, or a
+  // member it does not know or left out then and allotted now: nothing changed), or where the task found no hand in the hours left (the
+  // lists changed, nobody called; a meal or the milking would wait at the end of every list): its caller has the day allotted anew,
+  // which weighs every member's hours afresh.
+  function slotIn(st, hh, j, c) {
+    const plan = planOf(st, 'household', hh.id),
+      day = plan && plan.day;
+    if (!day || !day.fits || !day.hours || !day.free || hh.farmstead === null) return false;
+    const members = [];
+    for (const id of hh.members) {
+      const p = st.pawns[id];
+      if (p.died !== null) continue;
+      const list = day.lists[id],
+        fit = day.fits[id],
+        hrs = day.hours[id];
+      if (!list || !fit || !hrs || fit.length !== list.length || hrs.length !== list.length) return false;
+      if (allotted(st, p)) {
+        if (!(id in day.free)) return false;
+        members.push(p);
       }
-      if (!top || !busy || a.phase !== 'work' || a.job === top[1] || !isOpen(st, top[1])) continue;
-      if (
-        hoursLeft(st, a.job) > rateOf(st, p) &&
-        top[0] >
-          MATCH.switchRatio * (score(st, p, a.job, c, memo, p.id === hh.holder ? stand : 0) ?? 0) + MATCH.switchMargin
-      )
-        issue(st, workCommand(a.id, top[1].key, 'planner'));
     }
+    // the task's key out of the lists, its hours back to the member, where a task of that key stood before (an earlier one gone)
+    for (const id of Object.keys(day.lists)) {
+      const i = day.lists[id].indexOf(j.key),
+        h = i >= 0 ? leave(day, id, i) : 0;
+      if (h > 0 && id in day.free) day.free[id] += h;
+    }
+    const memo = new Map(),
+      stand = standIn(hh, members),
+      pairs = [];
+    VB.count.dayPair += members.length;
+    weigh(st, hh, members, j, c, memo, stand, pairs);
+    pairs.sort((x, y) => y[0] - x[0] || x[1] - y[1]);
+    // a member's hours for the task: those left, and those of its tasks given hands at a lesser fit, which it would give up for it as
+    // the allotment would have (the hours of the lesser ones taken, the least first, below)
+    const fitOf = new Map(pairs.map(([s, id]) => [id, s])),
+      lesser = (id, s) => {
+        let h = 0;
+        for (let i = 0; i < day.fits[id].length; i++)
+          if (day.fits[id][i] > 0 && day.fits[id][i] < s) h += day.hours[id][i];
+        return h;
+      };
+    const ctx = {
+      lists: day.lists,
+      fits: day.fits,
+      hours: day.hours,
+      est: new Map(),
+      cap: new Map(members.map((p) => [p.id, day.free[p.id] + (fitOf.has(p.id) ? lesser(p.id, fitOf.get(p.id)) : 0)])),
+      manned: new Map(),
+      given: new Map(),
+      due: new Map(),
+      heads: new Map(),
+    };
+    // what the lists already hold at their heads: the fetches before, a task with a deadline today the member is the hand for
+    for (const p of members) {
+      const list = day.lists[p.id],
+        fit = day.fits[p.id];
+      let n = 0;
+      for (let i = 0; i < list.length && fit[i] === null; i++) {
+        const t = st.jobs.get(list[i]);
+        if (t && KINDS[t.kind].late && !t.claims.length) ctx.due.set(p.id, t);
+        else if (!ctx.due.has(p.id)) n++;
+      }
+      ctx.heads.set(p.id, n);
+    }
+    man(st, Estimate.headOf(st, hh), pairs, ctx);
+    if (!ctx.manned.has(j) && pairs.length) return false;
+    for (const p of members) {
+      const at0 = day.lists[p.id].indexOf(j.key);
+      if (at0 >= 0) {
+        // the hours given, from those left first, then from its tasks given hands at a lesser fit, the least first; one left no hours
+        // goes on among the rest
+        let over = day.hours[p.id][at0] - day.free[p.id];
+        day.free[p.id] = Math.max(0, -over);
+        const s0 = day.fits[p.id][at0] ?? Infinity;
+        for (let i = day.fits[p.id].length - 1; i >= 0 && over > 1e-9; i--) {
+          const fi = day.fits[p.id][i];
+          if (fi === null || fi <= 0 || fi >= s0 || i === at0) continue;
+          const take = Math.min(day.hours[p.id][i], over);
+          day.hours[p.id][i] -= take;
+          over -= take;
+          if (day.hours[p.id][i] <= 1e-9) {
+            const key = day.lists[p.id][i];
+            leave(day, p.id, i);
+            further(day, p.id, key, fi);
+          }
+        }
+      }
+      const dj = ctx.due.get(p.id),
+        fit = day.fits[p.id],
+        at = fit.findIndex((x) => x !== null && x > 0);
+      // the member called is one the task changed for: its hand when due today, or the one it now comes first for
+      if (dj === j) call(st, hh, p, j, null, c, memo, stand);
+      else if (at >= 0 && day.lists[p.id][at] === j.key && attentionOf(j) === 'full')
+        call(st, hh, p, null, [fit[at], j], c, memo, stand);
+    }
+    return true;
   }
   // The days of the holders `changed` (their keys, as sim/jobs noted them in a review or a look), in the order of their ids: a household's
   // own, and for a village's tasks each of its households'.
@@ -285,5 +439,5 @@ VB['sim/day'] = (() => {
     }
     return busy;
   }
-  return { allot, allotChanged, takeDay, dutyRound, eveningCall, dayHours, hoursLeft };
+  return { allot, slotIn, allotChanged, takeDay, dutyRound, eveningCall, dayHours, hoursLeft };
 })();
