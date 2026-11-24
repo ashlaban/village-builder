@@ -1090,6 +1090,16 @@ function checkState(st) {
     if (f.camp !== undefined && f.camp !== true && f.camp !== false) bad.push(`farmsteads[${f.id}]: camp ${JSON.stringify(f.camp)}`);
     if (f.camp === true && (!f.booth || (st.booths || []).some((b) => b.by === f.household && globalThis.VB['sim/hex'].hexSteps(st.w, b.tile, f.house) <= 1)))
       bad.push(`farmsteads[${f.id}]: a camp ${f.booth ? 'with its booth raised' : 'with no booth mark'}`);
+    // the shelter on the house tile (VB-1638): absent or null, or on a farm with no cottage yet {wood, done, built (null while raised, else
+    // not after now), cond 0..1, condAt not after now}; a camp's never stands
+    const sh = f.shelter;
+    if (sh !== undefined && sh !== null) {
+      const num = (x) => Number.isFinite(x) && x >= 0;
+      if (!f.booth) bad.push(`farmsteads[${f.id}]: a shelter on a farm with its cottage`);
+      if (!num(sh.wood) || !num(sh.done) || !(sh.cond >= 0 && sh.cond <= 1) || !(sh.condAt <= st.t) || !(sh.built === null || sh.built <= st.t))
+        bad.push(`farmsteads[${f.id}]: shelter ${JSON.stringify(sh)}`);
+      if (f.camp === true && sh.built !== null) bad.push(`farmsteads[${f.id}]: a camp with its shelter standing`);
+    }
     if (f.grade !== 'ground' && f.grade !== 'stone') bad.push(`farmsteads[${f.id}]: grade ${f.grade}`); // VB-332
     for (const fd of f.fields) if (!tileOk(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} out of range`);
     // VB-1520: a field's ground is the key of a farmable ground (a biome with a row of GROUND)

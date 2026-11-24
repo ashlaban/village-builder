@@ -23,8 +23,9 @@ const FAST = [
   ['node', 'tests/player.js'],
   ['node', 'tests/handplan.js'], // VB-1633: by hand the outlook counts what the plan covers, one reckoning of the fire, no stone work held off, the cutting asked
   ['node', 'tests/firewood.js'], // VB-1625: wood in two steps, felled and carried home as timber, cut at the house; the plan's fell and firewood
-  ['node', 'tests/camp.js'], // VB-1627: land first: a camp, roofless; the build menu and the refusals; the farmstead placed and its booth raised, the house moved
-  ['node', 'tests/upgrade.js'], // VB-1632: the booth built up to a cottage by a task of the plan; the timber at home first; farmView next
+  ['node', 'tests/camp.js'], // VB-1627: land first: a camp, roofless; the build menu and the refusals; the farmstead placed and its shelter raised on the house tile, the house moved
+  ['node', 'tests/upgrade.js'], // VB-1632: the shelter built up to a cottage by a task of the plan; the timber at home first; farmView next
+  ['node', 'tests/shelter.js'], // VB-1638: a settler household's shelter on its house tile, then its cottage there; an older save's booth kept
   ['node', 'tests/farmtasks.js'], // VB-1635: the stone foundation and the barn, each by a task of the plan; the slack's wait; farmView's foundation
   ['node', 'tests/byrehouse.js'], // VB-1637: the byre as a building: at seeding, none on a camp, an older save; the lean in the open; by the plan and by the head's rule
   ['node', 'tests/plan.js'], // VB-1618: the player's plan: its ops, the routine once a day, tasks in order, hand commands first, sleep by its hours

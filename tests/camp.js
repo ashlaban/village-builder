@@ -1,6 +1,6 @@
-// VB-1627: land first. The solo settler who plans by hand lands at a camp with nothing under way (no booth staked, no cottage plan, no
+// VB-1627: land first. The solo settler who plans by hand lands at a camp with nothing under way (no shelter begun, no cottage plan, no
 // field), roofless, its nights the open sky's (no fire lit); the build menu and the tile's reasons; the farmstead task's refusals; the
-// chain from the tap to the raised booth, on the landing tile and on a tile two steps off (the house, its tile's owner, the herd's home
+// chain from the tap to the raised shelter on the house tile itself (VB-1638), on the landing tile and on a tile two steps off (the house, its tile's owner, the herd's home
 // and the water moved with it, the landing given back); its waits and its days in the agenda; a save and a load mid-chain go on the same.
 // On the tiny land of tests/plan.js.
 const assert = require('assert');
@@ -61,13 +61,14 @@ const twoOff = (st) => {
   assert(!st.villages[f.village].fence.some((s) => s.edges.some((e) => e.tile === f.house)), 'no fence round the landing (VB-1630)');
   const wood = hh.wood;
   Sim.advance(st, 30);
-  assert(roofless(st, hh), 'still roofless: placed, its booth staked, not raised');
+  assert(roofless(st, hh), 'still roofless: placed, its shelter begun, not raised');
   assert.strictEqual(hh.wood, wood, 'the open sky: no fire lit at the camp');
   const staked = Sim.stakedBooths(st); // VB-1630: a head not played places the farmstead by its own rule at its first working hour
-  assert(staked.length === 1 && hexSteps(st.w, staked[0], f.house) === 1, 'unplayed, the camp placed its farmstead itself');
+  assert.deepStrictEqual(staked, [f.house], 'unplayed, the camp placed its farmstead itself, its shelter on the house tile');
+  assert(f.shelter && f.shelter.built === null && !st.booths.length, 'the shelter is the farm\'s own, no booth of st.booths');
   const old = seed(false);
   assert.strictEqual(old.farmsteads[0].camp, undefined, 'without hand, no camp');
-  assert.strictEqual(Sim.stakedBooths(old).length, 1, 'without hand, the booth staked at the landing');
+  assert.deepStrictEqual(Sim.stakedBooths(old), [old.farmsteads[0].house], 'without hand, the shelter begun at the landing');
 }
 // ---- 2. the menu, the tile's reasons, the task's refusals ----
 {
@@ -128,12 +129,13 @@ const twoOff = (st) => {
   assert.strictEqual(f.house, land, 'the house stays on the landing');
   assert.strictEqual(st.herds[hh.herds[0]].home, home, 'the herd stays');
   assert.strictEqual(f.camp, false, 'the camp is over');
-  assert(st.booths.some((b) => b.by === hh.id && hexSteps(st.w, b.tile, land) === 1), 'the booth stands beside the house');
-  assert(!roofless(st, hh), 'under the booth');
+  assert(f.shelter && f.shelter.built !== null && !st.booths.length, 'the shelter stands on the house tile, no booth beside it');
+  assert.strictEqual(Sim.farmView(st, f.id).rung, 'shelter');
+  assert(!roofless(st, hh), 'under the shelter');
   assert.deepStrictEqual(projectsOf(st, 'household', 0), [], 'no cottage begun');
   assert(waits.has('sleep') && waits.has('unposted:timber'), `waits given: ${[...waits]}`);
-  assert(!waits.has('unposted:booth'), `the raising is never unposted once the timber is in (VB-1630): ${[...waits]}`);
-  assert(laid.has('timber') || laid.has('booth'), `the agenda lays its steps: ${[...laid]}`);
+  assert(!waits.has('unposted:shelter'), `the raising is never unposted once the timber is in (VB-1630): ${[...waits]}`);
+  assert(laid.has('timber') || laid.has('shelter'), `the agenda lays its steps: ${[...laid]}`);
   Sim.advance(st, 48);
   assert.deepStrictEqual(projectsOf(st, 'household', 0), [], 'still no cottage begun');
   sound(st, 'raised on the landing');
@@ -158,7 +160,7 @@ const twoOff = (st) => {
   const src = Water.source(st.w, t, v);
   assert.strictEqual(f.water.tile, src.tile, 'the water found from the house');
   const staked = Sim.stakedBooths(st);
-  assert(staked.length === 1 && hexSteps(st.w, staked[0], t) === 1, 'the booth staked beside it');
+  assert.deepStrictEqual(staked, [t], 'the shelter begun on it');
   assert(roofless(st, hh), 'roofless while staked');
   const views = Sim.planView(st).tasks;
   assert.strictEqual(views[0].farmstead, t);
@@ -195,12 +197,12 @@ const twoOff = (st) => {
     if (raised === null && f.camp === false) raised = st.t;
   }
   assert(placed !== null && placed < 30 + 24, `placed within a day of automatic behaviour turned on (${placed})`);
-  assert(raised !== null && !roofless(st, hh), 'the booth raised');
+  assert(raised !== null && !roofless(st, hh), 'the shelter raised');
   assert(projectsOf(st, 'household', 0).some((p) => p.what === 'cottage'), 'the cottage begun');
   assert(st.t < 30 + Sim.SEASON_DAYS * 24, `within a season (${st.t})`);
   assert(!st.villages[f.village].fence.length, 'no fence stands for the farm placed in play');
   sound(st, 'roofed on automatic');
 }
 console.log('camp: a camp at the landing, nothing under way, roofless and unlit; the menu and the refusals; the farmstead placed and its '
-  + 'booth raised on the landing and two steps off, the house, its owner, the herd and the water moved; a save mid-chain the same; on automatic behaviour, unplayed or played, '
-  + 'the farmstead placed, the booth raised and the cottage begun; no fence round the landing; the menu\'s work the plan\'s');
+  + 'shelter raised on the house tile, on the landing and two steps off, the house, its owner, the herd and the water moved; a save mid-chain the same; on automatic behaviour, unplayed or played, '
+  + 'the farmstead placed, the shelter raised and the cottage begun; no fence round the landing; the menu\'s work the plan\'s');

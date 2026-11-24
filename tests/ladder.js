@@ -1,6 +1,7 @@
 // VB-1631: the main building's rungs and the outbuildings as data (sim/ladder), read from the rules that build them; rungOf, derived from
 // the state, right for every farm of founders, solo (with and without `hand`) and populous at seeding and a year on; Sim.farmView, plain
-// data that writes nothing, through the hand-planned settler's landing: a camp, its booth being raised, the booth, the cottage next.
+// data that writes nothing, through the hand-planned settler's landing: a camp, its shelter being raised on the house tile, the shelter, the
+// cottage next (VB-1638).
 const assert = require('assert');
 const VB = require('../src/load.js'),
   Sim = VB.sim;
@@ -18,9 +19,9 @@ const v0 = (st, f) => Sim.farmView(st, f.id);
 // ---- 1. the tables: each rung built from one before it, the numbers the rules' own ----
 assert.deepStrictEqual(
   Object.keys(RUNGS).map((k) => RUNGS[k].from),
-  [null, 'camp', 'booth'],
+  [null, 'camp', 'shelter'],
 );
-assert.deepStrictEqual(RUNGS.booth.needs, { timber: BOOTH.wood, stone: 0, hours: BOOTH.hours });
+assert.deepStrictEqual(RUNGS.shelter.needs, { timber: BOOTH.wood, stone: 0, hours: BOOTH.hours });
 assert.deepStrictEqual(RUNGS.cottage.needs, { timber: BUILD.timber, stone: 0, hours: 120 });
 assert.deepStrictEqual(FOUNDATION.needs, { timber: 0, stone: BUILD.foundationStone, hours: BUILD.foundationHours });
 assert.strictEqual(FOUNDATION.gives.wear, HOUSE.wearStone);
@@ -29,16 +30,17 @@ assert.strictEqual(RUNGS.cottage.gives.standing, HOUSE.term);
 assert.deepStrictEqual(OUTBUILDINGS.barn.needs, { timber: BUILD.barn.timber, stone: 0, hours: 120 });
 
 // ---- 2. rungOf, for every farm, against the state read directly ----
-// A farm with no cottage: a camp while no booth of its household stands beside its house and it has a camp or one staked there; a
-// booth else (raised, or sim/settle's mark); a cottage on the ground or on stone.
+// A farm with no cottage: a camp while its shelter (VB-1638) does not stand, or (a farm with none: a save before VB-1638) while no booth
+// of its household stands beside its house and it has a camp or one staked there; a shelter else; a cottage on the ground or on stone.
 function expected(st, f) {
   if (f.camp === true) return 'camp';
+  if (f.booth && f.shelter) return f.shelter.built !== null && B.boothCondition(st, f.shelter) > 0 ? 'shelter' : 'camp';
   if (f.booth) {
     const near = (t) => hexSteps(st.w, t, f.house) <= 1;
-    if (st.booths.some((b) => b.by === f.household && near(b.tile))) return 'booth';
+    if (st.booths.some((b) => b.by === f.household && near(b.tile))) return 'shelter';
     let staked = false;
     B.stakedEach(st, (p) => (staked = staked || (st.pawns[p.holder.id].household === f.household && near(p.tile))));
-    return staked ? 'camp' : 'booth';
+    return staked ? 'camp' : 'shelter';
   }
   return 'cottage';
 }
@@ -75,7 +77,7 @@ for (const [name, opts] of [
   Sim.advance(st, Sim.YEAR);
   sweep(st, `${tag}, a year on`, seen);
 }
-if (!only || only.includes('solo')) assert(seen.has('camp') && seen.has('booth'), `rungs seen: ${[...seen]}`);
+if (!only || only.includes('solo')) assert(seen.has('camp') && seen.has('shelter'), `rungs seen: ${[...seen]}`);
 if (!only || only.includes('populous')) assert(seen.has('cottage') && seen.has('ground') && seen.has('on stone'), `rungs seen: ${[...seen]}`);
 
 if (only && !only.includes('solo')) process.exit(0);
@@ -88,30 +90,30 @@ if (only && !only.includes('solo')) process.exit(0);
   let v = Sim.farmView(st, 0);
   assert.strictEqual(v.rung, 'camp');
   assert.strictEqual(v.building, null);
-  assert.deepStrictEqual(v.next, [{ what: 'booth', needs: RUNGS.booth.needs, ok: true, why: null, planned: false }]);
+  assert.deepStrictEqual(v.next, [{ what: 'shelter', needs: RUNGS.shelter.needs, ok: true, why: null, planned: false }]);
   assert.deepStrictEqual(v.outbuildings, [
     { what: 'barn', built: false, needs: OUTBUILDINGS.barn.needs, ok: false, why: `${f.name} has no cottage yet`, planned: false, building: null },
     { what: 'byre', built: false, needs: OUTBUILDINGS.byre.needs, ok: false, why: `${f.name} has no cottage yet`, planned: false, building: null },
   ]);
-  assert.strictEqual(v.foundation.why, `${f.name} has no cottage yet`, 'no foundation under a booth');
+  assert.strictEqual(v.foundation.why, `${f.name} has no cottage yet`, 'no foundation under a shelter');
   Sim.inhabit(st, st.households[0].holder);
   Sim.setAuto(st, false);
   assert.strictEqual(Sim.plan(st, 'add', { farmstead: f.house }), true);
-  assert.match(Sim.farmView(st, 0).next[0].why, /planned already/, 'the booth planned');
+  assert.match(Sim.farmView(st, 0).next[0].why, /planned already/, 'the shelter planned');
   assert.strictEqual(Sim.farmView(st, 0).next[0].planned, true);
   let raising = null;
   for (let i = 0; i < 20 * 240 && f.camp !== false; i++) {
     Sim.advance(st, 0.1);
     const b = Sim.farmView(st, 0).building;
     if (b) {
-      assert.strictEqual(b.what, 'booth');
+      assert.strictEqual(b.what, 'shelter');
       assert(b.hoursLeft <= BOOTH.hours && b.hoursLeft >= 0);
-      if (b.step === 'booth' && b.hoursLeft < BOOTH.hours) raising = b.hoursLeft;
+      if (b.step === 'shelter' && b.hoursLeft < BOOTH.hours) raising = b.hoursLeft;
     }
   }
-  assert(raising !== null, 'the booth seen being raised');
+  assert(raising !== null, 'the shelter seen being raised');
   v = Sim.farmView(st, 0);
-  assert.strictEqual(v.rung, 'booth');
+  assert.strictEqual(v.rung, 'shelter');
   assert.strictEqual(v.building, null);
   assert.deepStrictEqual(v.next, [{ what: 'cottage', needs: RUNGS.cottage.needs, ok: true, why: null, planned: false }]);
 }

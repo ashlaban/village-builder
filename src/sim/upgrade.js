@@ -1,5 +1,5 @@
 // @sys sim/upgrade: the main building built up a rung as a task of the player's plan (VB-1632; Kim, 24 Nov 2026: "It should then be
-//   possible to upgrade the main building"): the chain `upgrade` (the booth to a cottage today), contributed to sim/planchains' CHAINS at
+//   possible to upgrade the main building"): the chain `upgrade` (the shelter to a cottage today), contributed to sim/planchains' CHAINS at
 //   load; the head's verb that begins the cottage (beginCottage: its plan made as sim/settle and sim/scenarios make it); and the timber
 //   held at home taken into the walls of a cottage so begun before any is fetched; a camp's household left to itself placing its
 //   farmstead and beginning its cottage by its head's own rule (ownRung, VB-1630); the house set on stone and an outbuilding built as
@@ -48,7 +48,7 @@ VB['sim/upgrade'] = (() => {
     if (p && taskAt(st, 'upgrade', f.house)) homeTimber(st, st.households[household], p);
   });
   // ---- the verb: the head begins its cottage ----
-  // beginCottage(tile): the head of a household living in a booth begins its cottage at its house (`tile`): the cottage plan made as a
+  // beginCottage(tile): the head of a household living in its shelter (VB-1638) begins its cottage at its house (`tile`): the cottage plan made as a
   // settler household's is (sim/cottageplan cottagePlan), its stages then posted as theirs are (sim/building boothWork), and the timber
   // held at home taken into its walls. A verb, not the making registry: the cottage is the household's one main building, a project plan
   // of its own (sim/projects, 'cottage'), not a small construction beside others; the plan's chain reaches it as the farmstead's placing.
@@ -72,7 +72,7 @@ VB['sim/upgrade'] = (() => {
   // ---- the head's own rule (VB-1630): a camp left to itself gets its roof ----
   // Each working hour, every household whose farm was landed as a camp (sim/camp; f.camp set) and whose head does not hold off projects
   // (sim/projects heldOff: automatic behaviour on, or a head not played) builds up by its own rule, by the verbs a player's plan issues:
-  // from a camp with no booth staked it places the farmstead (sim/camp placeOwn); once the booth stands (camp false, f.booth) it begins
+  // from a camp with no shelter begun it places the farmstead (sim/camp placeOwn); once the shelter stands (camp false, f.booth) it begins
   // its cottage (beginCottage), as the solo start without `hand` makes it at the landing (sim/scenarios landAlone). Few farms are camps;
   // the rest are passed over at one read each (the work counter campLook).
   // And the played head's foundation task asks its review (askFoundation, VB-1635); its outbuilding begun takes the timber at home (outTimber).

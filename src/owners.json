@@ -156,6 +156,7 @@
     "farmstead.water": "sim/water",
     "farmstead.wellMeant": "sim/wells",
     "farmstead.camp": "sim/camp",
+    "farmstead.shelter": "sim/building",
     "st.front": "sim/spread",
     "st.lapsed": "sim/spread",
     "st.deer": "sim/deer",

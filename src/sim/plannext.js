@@ -2,7 +2,7 @@
 //   automatic behaviour off and the views read without writing) and why each task waits and why the plan is idle (WAITS, waitsOf;
 //   VB-1623), by the reads nextOf makes (VB-1618; VB-1629 split it from sim/playerplan). Reads only
 VB['sim/plannext'] = (() => {
-  const { cal, DAY, WORK } = VB['sim/rules'];
+  const { cal, DAY, WORK, BOOTH } = VB['sim/rules'];
   const { VERBS } = VB['sim/commands'];
   const { living } = VB['sim/records'];
   const { CHAINS, chainOf, chainSteps, headCmd, pileOf } = VB['sim/planchains'];
@@ -41,7 +41,7 @@ VB['sim/plannext'] = (() => {
     hay: () => "the household wants no more hay: it holds its animals' winters, or keeps none",
     timber: () => 'no timber is home to cut yet',
     woodpile: () => "the woodpile holds the season's goal",
-    booth: () => "the booth's timber is not all fetched",
+    booth: () => "the shelter's timber is not all fetched",
     wood: (what = 'booth') => `there is no wood to fetch the ${what}'s timber from`,
     stone: () => 'there is no stone to pick or quarry within reach of the house', // VB-1635: the foundation's
     project: (what) => `the household has a ${what} under way: its land and buildings go one at a time`,
@@ -66,6 +66,11 @@ VB['sim/plannext'] = (() => {
       if (!Chores.timberOf(hh)) return held('timber');
       if (!(hh.cold > 0) && !pileOf(st, hh).short) return held('woodpile');
     }
+    if (name === 'farmstead' && where.shelter) {
+      // VB-1638: the shelter on the house tile, raised once its timber is in; its timber fetched from the village's wood
+      if (y.kind === 'shelter' && lacks(where.shelter, BOOTH.wood) > 0) return held('booth');
+      if (y.kind === 'timber' && !st.villages[where.f.village].wood.length) return held('wood');
+    }
     if (name === 'farmstead' && where.staked) {
       const s = where.staked.steps[where.staked.open];
       if (y.kind === 'booth' && s && s.kind === 'timber') return held('booth');
@@ -83,6 +88,7 @@ VB['sim/plannext'] = (() => {
   // booths are next asked (sim/building stakedWork, the island's ask at the first step of each review hour, sim/plandays reviewHour), a
   // wait with its hour, not work missing (the page had shown it as nothing open). The hour of that ask after game hour t.
   const raisingDue = (where, y) => {
+    if (where.shelter) return y.kind === 'shelter' && lacks(where.shelter, BOOTH.wood) === 0; // VB-1638: its household's next ask
     const s = where.staked && where.staked.steps[where.staked.open];
     return y.kind === 'booth' && !!s && s.kind === 'timber' && lacks(s, s.timber) === 0;
   };
@@ -122,7 +128,8 @@ VB['sim/plannext'] = (() => {
     }
     const y = s.steps[0];
     if (!y) return WAITS.refused(`nothing is left to do at ${tile}`);
-    if (raisingDue(s.where, y)) return WAITS.opens(nextAsk(st.t), 'the raising of the booth');
+    if (raisingDue(s.where, y))
+      return WAITS.opens(nextAsk(st.t), `the raising of the ${s.where.shelter ? 'shelter' : 'booth'}`);
     return y.from > st.t
       ? WAITS.opens(y.from, y.what || y.kind)
       : WAITS.unposted(y.kind, holdOf(st, hid, name, s.where, y, tile));

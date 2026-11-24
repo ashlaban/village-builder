@@ -249,10 +249,12 @@ const Sim = (() => {
     quernYears,
     houseTarred,
     boothCondition,
-    // VB-1172: the tiles of the booths staked and not yet raised (each its maker's plan), for the page's ring of stakes
+    // VB-1172: the tiles of the booths staked and not yet raised (each its maker's plan), for the page's ring of stakes; and (VB-1638)
+    // the house tiles of the farms whose shelter is being raised (farmstead.shelter, built null), after them
     stakedBooths: (st) => {
       const out = [];
       stakedEach(st, (plan) => out.push(plan.tile));
+      for (const f of st.farmsteads) if (f.shelter && f.shelter.built === null) out.push(f.house);
       return out;
     },
     // VB-1627: the build menu, what the played head may build now, and why a tile will not take one (sim/camp); reads only

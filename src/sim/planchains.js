@@ -341,21 +341,37 @@ VB['sim/planchains'] = (() => {
     deadline: () => null,
   };
   // ---- farmstead: the first shelter, placed from the camp and raised (VB-1627) ----
-  // On a camp (sim/camp) the head places the farmstead by its own verb (`act`: placeFarmstead, the house moved to the tile and the booth
-  // staked beside it); then the booth's timber trips, whose jobs stand at the wood (`keys`: found by their keys, not at the tile), and its
-  // raising. It leaves when the booth stands ('raised'), or when nothing of the camp's stands for it ('gone').
+  // On a camp (sim/camp) the head places the farmstead by its own verb (`act`: placeFarmstead, the house moved to the tile and its shelter
+  // begun there, VB-1638); then the shelter's timber trips, whose jobs stand at the wood (`keys`: found by their keys, not at the tile),
+  // and its raising on the house tile. It leaves when the shelter stands ('raised'), or when nothing of the camp's stands for it ('gone').
+  // A save before VB-1638 may hold a booth staked beside the house instead (`staked`): its trips and raising, as before.
   const Camp = VB['sim/camp'];
   const trips = (lack) => Math.max(1, Math.ceil(lack / ECON.woodPerTrip - 1e-9));
   const farmstead = {
     noun: 'farmstead',
     mark: null,
-    kinds: ['timber', 'booth'],
+    kinds: ['timber', 'shelter', 'booth'],
     which: ['raised', 'gone'],
     at: (st, hid, tile) => Camp.campAt(st, hid, tile),
     none: (tile) => `there is no camp to place a farmstead from, nor a farmstead under way at ${tile}`,
     why: (st, where, tile) =>
       where.camp ? Camp.placeWhy(st, 'farmstead', tile) : where.raised ? `the farmstead at ${tile} stands` : null,
-    steps: (st, hid, { camp, staked }) => {
+    steps: (st, hid, { f, camp, staked, shelter }) => {
+      if (shelter || (camp && !staked)) {
+        const lack = lacks(shelter || {}, BOOTH.wood),
+          raise = { kind: 'shelter', hours: BOOTH.hours, n: 1, from: -Infinity, keys: [`shelter:f${f.id}`] };
+        if (!lack) return [raise];
+        return [
+          {
+            kind: 'timber',
+            hours: KINDS.timber.hours,
+            n: trips(lack),
+            from: -Infinity,
+            keys: [`timber:f${f.id}`, `timber:f${f.id}b`],
+          },
+          raise,
+        ];
+      }
       if (!camp && !staked) return [];
       const s = staked && staked.steps[staked.open],
         bid = staked ? staked.booth : null,
