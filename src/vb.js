@@ -60,6 +60,10 @@ VB.COUNTERS = {
   talkBucket: 'Living walked to rebuild the talk turns when the living changed (sim/relations, VB-521)',
   walkStep:
     'Legs a step takes from the due-queue as they end: walks and waits (sim/legs dueLegs, for sim/agents stepAgents; VB-473)',
+  sleepReckon:
+    'Pawns whose sleep owed was reckoned: each living pawn once an hour, the played pawn each step (sim/sleepers, VB-1645)',
+  sleepOwn:
+    "Sleeps begun by a pawn's own rule, one that owed a whole night and was free in the working day (sim/sleepers, VB-1645)",
   walkAwake:
     "Pawn records looked at by the working day's start, for those waiting for it, once a day (sim/agents dayStart; VB-473)",
   idleStroll:

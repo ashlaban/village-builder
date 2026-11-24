@@ -340,7 +340,7 @@ VB['sim/hunger'] = (() => {
         p.ill === undefined
           ? 0
           : ((p.ill.passes ? ILLNESS.passing : 1) * ILLNESS.fall * DAY) / (p.ill.until - p.ill.from),
-      tired = tiredHealth(owedBy(st, p.id)), // the played pawn's sleep owed, a whole night or more (sim/sleep, VB-1643)
+      tired = tiredHealth(owedBy(st, p.id)), // the pawn's sleep owed, a whole night or more (sim/sleep, VB-1643, VB-1645)
       rest = cold <= 0 && dry <= 0 && fed && !ill ? HEALTH.recover * act(st, p.id, 'body', 'recover') : 0; // 2.5 to 3.5 by body (VB-520)
     p.health = Math.max(0, Math.min(100, p.health - hungry - chill - damp - ill - tired + rest));
     if (st.player && st.player.pawn === p.id)

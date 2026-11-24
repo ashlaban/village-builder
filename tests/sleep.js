@@ -24,20 +24,20 @@ const FARMER = 0;
   Sim.inhabit(st, FARMER);
   assert.deepStrictEqual(Sim.sleepOf(st), { owed: 0, asleep: false, mood: 0, health: 0 });
   VB['sim/player'].playerStep(st); VB['sim/player'].playerStep(st);
-  assert.strictEqual(st.player.sleep.owed, 0, 'reckoned once a step, however often the queue is stepped');
+  assert.strictEqual(st.pawns[FARMER].sleep.owed, 0, 'reckoned once a step, however often the queue is stepped');
   Sim.advance(st, 1);
-  const at9 = st.player.sleep.owed;
+  const at9 = st.pawns[FARMER].sleep.owed;
   near(at9, AWAKE, 'an hour awake owes need / (24 - need)');
   near(AWAKE, 0.5, 'need 8: half an hour');
   until(st, WORK[1] - 1);
-  assert.ok(!a.inside && st.player.sleep.owed > at9, 'awake through the day, more is owed');
+  assert.ok(!a.inside && st.pawns[FARMER].sleep.owed > at9, 'awake through the day, more is owed');
   until(st, 21);
-  assert.ok(a.inside && st.player.sleep.asleep, 'home at dark, it sleeps');
-  const at21 = st.player.sleep.owed;
+  assert.ok(a.inside && st.pawns[FARMER].sleep.asleep, 'home at dark, it sleeps');
+  const at21 = st.pawns[FARMER].sleep.owed;
   Sim.advance(st, 1);
-  near(st.player.sleep.owed, Math.max(0, at21 - 1), 'an hour asleep pays one');
+  near(st.pawns[FARMER].sleep.owed, Math.max(0, at21 - 1), 'an hour asleep pays one');
   until(st, 5);
-  assert.strictEqual(st.player.sleep.owed, 0, 'a night pays an ordinary day off, never under 0');
+  assert.strictEqual(st.pawns[FARMER].sleep.owed, 0, 'a night pays an ordinary day off, never under 0');
   assert.strictEqual(Mood.of(st, FARMER).mods.some((m) => m.key === 'tired'), false, 'an ordinary day is not tiring');
   sound(st, 'an ordinary day and night');
 }
@@ -48,17 +48,17 @@ const FARMER = 0;
   const st = make(3), a = st.agents[FARMER];
   Sim.inhabit(st, FARMER);
   assert.ok(a.job, 'the farmer works');
-  st.player.sleep.owed = 10;
+  st.pawns[FARMER].sleep.owed = 10;
   assert.strictEqual(Sim.queue(st, { actor: FARMER, verb: 'sleep', args: { hours: 2 } }), true);
   Sim.advance(st, 0.1);
   assert.ok(!a.job && st.player.queue[0].begun !== null, 'it leaves the job in hand');
   let steps = 0;
   while (a.path && steps++ < 100) Sim.advance(st, 0.1);
   Sim.advance(st, 0.1);
-  assert.ok(st.player.sleep.asleep && st.player.queue.length === 1, 'home, it sleeps under the verb');
-  const was = st.player.sleep.owed;
+  assert.ok(st.pawns[FARMER].sleep.asleep && st.player.queue.length === 1, 'home, it sleeps under the verb');
+  const was = st.pawns[FARMER].sleep.owed;
   Sim.advance(st, 0.5);
-  near(st.player.sleep.owed, was - 0.5, 'asleep in the day, it pays');
+  near(st.pawns[FARMER].sleep.owed, was - 0.5, 'asleep in the day, it pays');
   until(st, Sim.cal(st.player.queue[0].ref.until).hour);
   Sim.advance(st, 0.1);
   assert.ok(!st.player.queue.length, 'the sleep ends at its time');
@@ -93,11 +93,11 @@ const FARMER = 0;
   Sim.queue(worked, { actor: FARMER, verb: 'idle', args: { until: worked.t + 13 } });
   for (const st of [worked, slept]) Sim.advance(st, 13);
   assert.ok(!worked.agents[FARMER].inside, 'out all night');
-  const owed = worked.player.sleep.owed, mood = Mood.of(worked, FARMER).mods.find((m) => m.key === 'tired');
+  const owed = worked.pawns[FARMER].sleep.owed, mood = Mood.of(worked, FARMER).mods.find((m) => m.key === 'tired');
   assert.ok(Math.abs(owed - 24 * AWAKE) < 0.5, `a night lost: ${owed} owed, a day and a night's waking`);
   assert.ok(mood && mood.value === Math.round(tiredMood(owed)) && mood.value <= -5, `tired by the tunable: ${JSON.stringify(mood)}`);
   assert.strictEqual(Sim.sleepOf(worked).mood, mood.value, 'the page reads the same term');
-  assert.strictEqual(slept.player.sleep.owed, 0, 'one that slept owes nothing');
+  assert.strictEqual(slept.pawns[FARMER].sleep.owed, 0, 'one that slept owes nothing');
   assert.strictEqual(Mood.of(slept, FARMER).mods.some((m) => m.key === 'tired'), false);
   // the allowance and the cap
   assert.strictEqual(tiredMood(SLEEP.mood.over), 0);
@@ -110,7 +110,7 @@ const FARMER = 0;
   const st = make(1), p = st.pawns[FARMER], need = rationOf(st, p);
   Sim.inhabit(st, FARMER);
   const meal = (owed) => {
-    st.player.sleep.owed = owed;
+    st.pawns[FARMER].sleep.owed = owed;
     p.health = 60; p.hunger = 0; p.hungerLog = p.hungerLog.map(() => 0);
     ate(st, p, need, need);
     return p.health;
@@ -128,7 +128,7 @@ const FARMER = 0;
     ate(st, other, rationOf(st, other), rationOf(st, other));
     const moved = other.health - h;
     Object.assign(other, keep);
-    st.player.sleep.owed = 0;
+    st.pawns[FARMER].sleep.owed = 0;
     ate(st, other, rationOf(st, other), rationOf(st, other));
     near(other.health - h, moved, "another pawn's health is not touched by the player's sleep");
   }
@@ -140,13 +140,66 @@ const FARMER = 0;
   Sim.inhabit(st, FARMER);
   Sim.advance(st, 3);
   const data = JSON.parse(JSON.stringify(Sim.save(st))), back = Sim.load(tinyWorld(rows), data);
-  assert.strictEqual(canon(back.player.sleep), canon(st.player.sleep), 'saved and loaded');
+  assert.strictEqual(canon(back.pawns[FARMER].sleep), canon(st.pawns[FARMER].sleep), 'saved and loaded');
   for (const s of [st, back]) Sim.advance(s, 1);
-  near(back.player.sleep.owed, st.player.sleep.owed, 'and goes on alike');
-  delete data.state.player.sleep;
+  near(back.pawns[FARMER].sleep.owed, st.pawns[FARMER].sleep.owed, 'and goes on alike');
+  // a save made from VB-1643 to VB-1645 kept the played pawn's hours on the player: the next step hands them to the pawn
+  data.state.player.sleep = { owed: 5, asleep: false, at: data.state.tick };
+  delete data.state.pawns.$arr[FARMER].sleep;
   const old = Sim.load(tinyWorld(rows), data);
   Sim.advance(old, 0.1);
-  near(old.player.sleep.owed, AWAKE / TICKS, 'an old save starts owing nothing');
+  near(old.pawns[FARMER].sleep.owed, 5 + (old.pawns[FARMER].sleep.asleep ? -1 : AWAKE) / TICKS, 'an older save hands its hours to the pawn');
+  assert.strictEqual(old.player.sleep, undefined, 'and keeps them no more');
   sound(back, 'loaded');
+  sound(old, 'loaded from before VB-1645');
 }
-console.log('sleep ok: owed awake, paid asleep; the verb leaves the job, sleeps until its hour and the queue goes on; a night worked tires by SLEEP.mood; health past a whole night only; saved');
+
+// 6. Every pawn (VB-1645): an unplayed pawn owes and pays by the same rule, reckoned each hour; kept out all night, it is tired in mood
+// and health; free at the start of work owing a night, its own rule sleeps it off (owed over SLEEP.mood.over), and it works after.
+{
+  const st = make(), other = st.pawns.find((p) => p.alive && p.id !== FARMER && st.agents[p.id] && p.household !== null && p.age >= 16).id;
+  const a = st.agents[other];
+  until(st, 21);
+  assert.ok(st.pawns[other].sleep && st.pawns[other].sleep.asleep && a.inside, 'home at dark, the unplayed pawn sleeps');
+  until(st, 5);
+  assert.strictEqual(st.pawns[other].sleep.owed, 0, 'and owes nothing by morning');
+  until(st, WORK[1] - 1);
+  const far = 11 * st.w.COLS + 1;
+  VB['sim/commands'].issue(st, { actor: other, verb: 'walkTo', target: far, source: 'debug' });
+  // kept out: sent back out whenever it comes in, through the night
+  const keep = () => { if (a.inside || (!a.path && a.phase === 'home')) VB['sim/commands'].issue(st, { actor: other, verb: 'walkTo', target: far, source: 'debug' }); };
+  for (let n = 0; n < (24 + WORK[0] - 1 - (WORK[1] - 1)) * TICKS; n++) { keep(); Sim.advance(st, 0.1); }
+  const owed = st.pawns[other].sleep.owed;
+  assert.ok(owed >= SLEEP.health.over, `a night out: ${owed} owed`);
+  const mood = Mood.of(st, other).mods.find((m) => m.key === 'tired');
+  assert.ok(mood && mood.value === Math.round(tiredMood(owed)), `the unplayed pawn is tired: ${JSON.stringify(mood)}`);
+  // its health at the day's reckoning
+  const p = st.pawns[other], need = rationOf(st, p), keepP = { ...p };
+  p.health = 60; p.hunger = 0; p.hungerLog = p.hungerLog.map(() => 0);
+  ate(st, p, need, need);
+  const tiredH = 60 - p.health;
+  Object.assign(p, keepP);
+  p.sleep.owed = 0; // the same record: put back below
+  p.health = 60; p.hunger = 0; p.hungerLog = p.hungerLog.map(() => 0);
+  ate(st, p, need, need);
+  near(tiredH - (60 - p.health), tiredHealth(owed), 'its health pays SLEEP.health as the played pawn\'s does');
+  Object.assign(p, keepP);
+  p.sleep.owed = owed;
+  // still out and free at 6:00: its own rule sends it home to sleep it off
+  assert.ok(!a.inside && !a.job, 'out at dawn');
+  const before = VB.count.sleepOwn;
+  until(st, WORK[0]);
+  Sim.advance(st, 0.1);
+  {
+    assert.ok(st.pawns[other].sleep.until > st.t, `owing a night at the start of work, it sleeps: ${JSON.stringify(st.pawns[other].sleep)}`);
+    assert.ok(VB.count.sleepOwn > before && !a.job, 'by its own rule, and takes no work');
+    const ends = st.pawns[other].sleep.until;
+    near(ends - Math.floor(ends), 0, 'whole hours');
+    until(st, Sim.cal(ends).hour);
+    Sim.advance(st, 2);
+    assert.ok(st.pawns[other].sleep.owed <= SLEEP.mood.over + 1, `slept off: ${st.pawns[other].sleep.owed}`);
+    assert.strictEqual(st.pawns[other].sleep.until, null, 'the sleep is over');
+  }
+  sound(st, 'an unplayed pawn');
+}
+console.log('sleep ok: owed awake, paid asleep, by every pawn (an unplayed one kept out is tired, and sleeps it off by its own rule); the verb leaves the job, sleeps until its hour and the queue goes on; a night worked tires by SLEEP.mood; health past a whole night only; saved');
