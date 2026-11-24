@@ -15,6 +15,7 @@ const MANY = {
   cottage: 'new cottages',
   left: 'parties setting out for new land',
   custom: 'changes of custom',
+  cause: 'causes taken up',
   split: 'partings of custom',
 };
 const noticeOff = new Set();
