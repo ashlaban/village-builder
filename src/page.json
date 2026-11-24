@@ -57,5 +57,6 @@
   "page/guide.js",
   "page/ui2.js",
   "page/ui2site.js",
+  "page/ui2hud.js",
   "page/frame.js"
 ]

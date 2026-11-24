@@ -315,6 +315,7 @@ function pick(sx, sy, inspect = true) {
     }
     return;
   } // where to settle takes the map's clicks (page/ui2site)
+  if (UI2 && inspect && st && !choose && hudTap(sx, sy)) return; // the played farm's house, fields and settler open their tabs (page/ui2hud)
   if (choose) {
     if (inspect) chooseAt(sx, sy);
     return;

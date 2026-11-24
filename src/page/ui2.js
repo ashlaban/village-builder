@@ -27,12 +27,14 @@ function u2Init() {
         ).join('')}</div>
       <button type="button" class="u2-card u2-menu" id="u2Menu" aria-label="Main menu" title="Main menu" style="margin-left:auto">${ICON.menu}</button>
     </div>
+    <button type="button" class="u2-year u2-card" id="u2Ribbon" hidden></button>
     <div class="u2-site-head u2-card" id="u2SiteHead" hidden></div>
     <div class="u2-lens u2-card" id="u2Lens" role="group" aria-label="What the map shows" hidden></div>
     <div class="u2-key u2-card" id="u2Key" hidden></div>
     <div class="u2-mid" id="u2Mid"><div class="u2-welcome u2-card" id="u2Welcome" hidden></div></div>
     <section class="u2-sitecard u2-card" id="u2SiteCard" aria-live="polite" hidden></section>
-    <div class="u2-me u2-card" id="u2Me" hidden><b id="u2Name"></b><span id="u2Does"></span></div>`;
+    <section class="u2-sheet u2-card" id="u2Sheet" aria-live="polite" hidden></section>
+    <div class="u2-dock u2-card" id="u2Dock" hidden><p id="u2Does"></p><div class="u2-tabs" id="u2Tabs" role="group" aria-label="Your farm"></div></div>`;
   document.body.appendChild(root);
   u2 = Object.fromEntries(
     [root, ...root.querySelectorAll('[id]')].map((el) => [el.id.slice(2).toLowerCase() || 'u2', el]),
@@ -52,7 +54,9 @@ function u2Frame() {
   const playing = !!st && !site && !demo;
   u2.date.hidden = u2.speed.hidden = !playing;
   u2.menu.style.marginLeft = playing ? '0' : 'auto';
-  u2.me.hidden = !playing || played() < 0;
+  u2.dock.hidden = u2.ribbon.hidden = !playing || played() < 0 || !u2.welcome.hidden;
+  if (u2.dock.hidden) u2.sheet.hidden = true;
+  else renderHud();
   if (site) sitePins();
   if (!playing) return;
   const pace = speed === 0 ? `p${lastSpeed}` : `r${speed}`;
@@ -74,11 +78,10 @@ function u2Frame() {
     u2.day.textContent = `${s[0].toUpperCase() + s.slice(1)} · day ${c.sday + 1}`;
     u2.year.textContent = `Year ${c.year} · ${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
     const id = played(),
-      does = id >= 0 ? `${st.pawns[id].given}|${Sim.describe(st, id)}` : '';
+      does = id >= 0 ? `${st.pawns[id].given}: ${Sim.describe(st, id)}` : '';
     if (does !== u2Doing) {
       u2Doing = does;
-      u2.name.textContent = id >= 0 ? Sim.fullName(st.pawns[id]) : '';
-      u2.does.textContent = id >= 0 ? Sim.describe(st, id) : '';
+      u2.does.textContent = does;
     }
   }
 }
