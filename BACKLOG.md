@@ -124,7 +124,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1611](backlog/VB-1611.md)<a id="VB-1611"></a> | The page says what a lodger's water is: the booth's source, whether today's water is in | - | 3 | S | VB-1601 built the booth's fetch and the morning drink; nothing on the page tells of them but the pawn's job line and its Thirsty line |
 | [VB-1617](backlog/VB-1617.md)<a id="VB-1617"></a> | Sleep for every pawn: hours owed, the verb for a pawn's own logic, and the cost | - | 3 | M | Extend the played pawn's sleep (VB-1615) to every pawn, reckoned by transitions so the cost stays flat |
 | [VB-1628](backlog/VB-1628.md)<a id="VB-1628"></a> | Sim.load clears the world fields its save lacks | - | 3 | S | A save loads the same on a used world as on a fresh one (found by VB-1626: w.shut left over on a shared world). |
-| [VB-1630](backlog/VB-1630.md)<a id="VB-1630"></a> | A camp left on automatic behaviour places its farmstead and plans its cottage by its own rule | - | 3 | S | auto on: the head places the camp's farmstead and plans the cottage |
 
 </details>
 
