@@ -38,7 +38,7 @@ VB['sim/overview'] = (() => {
     }
     return out;
   };
-  // Whose estimate the warnings that foretell are (AGENTS.md, Deciding without Kim, 14): the viewer, a living pawn (the page passes the
+  // Whose estimate the warnings that foretell are (principle "The future is someone's estimate"): the viewer, a living pawn (the page passes the
   // played pawn); else the village's eldest living holder, who speaks for it until it has an alderman; null in a village with no holder.
   function viewerOf(st, v, viewer) {
     if (viewer !== null && viewer !== undefined && st.pawns[viewer] && st.pawns[viewer].alive) return viewer;

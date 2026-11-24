@@ -3,7 +3,7 @@
 
 // ---- the village's overview (VB-162; Sim.villageSummary): food, the harvest, hungry households and idle hands as stats, people by age
 // band as a graph, and the warnings, each with the farms it concerns. What is counted is exact; what foretells (food, hands) is the
-// estimate of a pawn, named (principle 14). ----
+// estimate of a pawn, named (principle "The future is someone's estimate"). ----
 function overviewStats(S) {
   const days = Math.floor(S.food.days),
     pct = Math.round(100 * S.harvest.share),
@@ -224,7 +224,7 @@ function showVillage(id) {
           meter: { value: worst * 100 },
         }
       : { icon: 'fence', label: 'Fence', value: 'none yet', wide: true },
-    // a plot being cleared: how far the work has come, which is exact (what is done is shown as it was: principle 14)
+    // a plot being cleared: how far the work has come, which is exact (what is done is shown as it was: principle "The future is someone's estimate")
     ...plots
       .filter((plot) => plot.steps && plot.open < 1)
       .map((plot) => {

@@ -24,7 +24,8 @@ VB['sim/norms'] = (() => {
     yarn: 12, // a skein spun from a fleece (VB-362; Proposed, slice 6's plan)
     // a length of woollen cloth woven from two skeins (VB-362; Proposed), a sound one: custom's multiplier by grade beside
     cloth: 40, // a hand quern's stone, hewn of sandstone or granite (VB-009; Proposed, slice 6's plan): a good of place
-    // VB-733 (Proposed; principle 17, D14: custom's row for each good and kind, never computed from the properties): a quern by its rock,
+    // VB-733 (Proposed; design.md, "A good, its material and its kind", D14: custom's row for each good and kind, never computed from the properties): a
+    // quern by its rock,
     // granite's slower grit worth less; a load of stone by its rock, the common building stones least, those with a use of their own more
     // (sandstone hews the quern; soapstone and marble wait for the pot, lime and the memorial), so that a take of any kind spends the
     // common stone first. 'stone' is a load of the commonest kind.

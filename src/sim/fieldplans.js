@@ -152,7 +152,8 @@ VB['sim/fieldplans'] = (() => {
   // felled wood's timber saves the household (VB-1525: a firewood trip cuts a tree, ECON.woodPerTrip units, in 3 hours, and carrying it home
   // remains; an estimate), set against the making's hours and never beyond them: the wood pays for the conversion, not for the crop. ----
   const SITE = { years: 5, trips: 10, together: 2, wood: 0.5 };
-  // The head's reckoning (principle 14) that a search shares: the reference crop's yield and hours a year, and its mean soil over SITE.years
+  // The head's reckoning (principle "The future is someone's estimate") that a search shares: the reference crop's yield and hours a year, and its mean
+  // soil over SITE.years
   // on ground farmed before (SOIL.start) and on ground never farmed (SOIL.fresh), each crop wearing it to SOIL.floor. Once a search.
   function siteTerms() {
     const c = CROPS.barley,
@@ -256,7 +257,8 @@ VB['sim/fieldplans'] = (() => {
     stake(st, hh, tile, 'field');
     return fieldProject(st, hh, tile);
   }
-  // The head's estimate (principle 14: the head's own reckoning, by the hands it counts, not the simulation's knowledge) of the harvest
+  // The head's estimate (principle "The future is someone's estimate": the head's own reckoning, by the hands it counts, not the simulation's knowledge)
+  // of the harvest
   // before the frost, for household hh in autumn: {fields (ripe, to reap), days (of work they ask of its hands, HARVEST_DAY hours a hand a
   // day), left (days to the frost), late (the work asks more than the days left)}, or null out of autumn or with nothing ripe.
   const HARVEST_DAY = 8;

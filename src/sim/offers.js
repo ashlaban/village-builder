@@ -1,4 +1,4 @@
-// @sys sim/offers: offer and answer (VB-690; AGENTS.md, Deciding without Kim, 16): every crossing between households is an offer one pawn
+// @sys sim/offers: offer and answer (VB-690; principle "Every act is a pawn's"): every crossing between households is an offer one pawn
 //   makes and another answers, yes or no, once, when it falls due, by its basis's rule (the played pawn as it likes, its pawn's judgement
 //   shown as advice); a yes settles by the basis's verbs (the right at once, goods carried by the one who gives), a no is a memory
 // @state st.offers[]: the open offers, sorted by due (after those due at the same time), each {id, from, to (pawn ids; for a gift given
@@ -257,7 +257,8 @@ VB['sim/offers'] = (() => {
     for (const a of o.answers) if (a.by === id && a.yes === null) a.yes = !!yes;
     if (o.answers.some((a) => a.yes === false) || o.answers.every((a) => a.yes === true)) close(st, o);
   }
-  // What pawn id's own judgement would answer to the open offer o, as advice to the player (principle 14: that pawn's estimate): true
+  // What pawn id's own judgement would answer to the open offer o, as advice to the player (principle "The future is someone's estimate": that pawn's
+  // estimate): true
   // (yes), false (no), or null when it has no answer to give. Reads only.
   function advice(st, o, id) {
     const mine = o.answers.filter((a) => a.by === id && a.yes === null);

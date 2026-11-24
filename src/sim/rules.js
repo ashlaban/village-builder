@@ -172,7 +172,8 @@ VB['sim/rules'] = (() => {
   // village with most people within `reach` hex steps (about a day's walk). Read at the start only; no rule reads it afterwards.
   const TESTBED = { plots: 8, reach: 15 };
 
-  // ---- illness (VB-1118, principle 19): a death the day's roll draws of a cause in `days` (the base hazard's causes; not hunger, which
+  // ---- illness (VB-1118, principle "A wait is the thing waited for"): a death the day's roll draws of a cause in `days` (the base hazard's causes; not
+  // hunger, which
   // health already shows) comes as an illness that runs that cause's days before it kills; while it runs the pawn's health falls by `fall`
   // over the course (sim/hunger), with no recovery, and no other roll is drawn for it. Kin see the pawn ailing, never the outcome.
   // VB-1246: a pawn also falls ill at an incidence of its own, `incidence` a year by the cause its age gives (above the roll's deaths,

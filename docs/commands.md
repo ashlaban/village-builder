@@ -42,7 +42,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Bands (`tests/lib/bands.js`, one table; Kim's decision 9): `node tests/bands.js` (extended) checks each band's reduced run, populous on
   the tiny map at four seeds for 8 years; `node tools/bands.js` makes the full runs (populous small at four seeds, founders small at
   sixteen, heirs at two), prints each band and appends to `docs/bench/bands.jsonl`, never failing (`npm run nightly` runs it for a new
-  commit). Growth is a target over a scenario's seeds; a household's hunger is described, with no target (Deciding without Kim, 1 and 2).
+  commit). Growth is a target over a scenario's seeds; a household's hunger is described, with no target (principle "Hunger presses, the feast binds"; principle "The island grows without the player").
   The marriage valve and the pace of growth (VB-633) are described bands of every full run: growth by 20 years and before and after land
   grows scarce, the year 1,000 is reached (or worked out, marked "arithmetic"), the swing between decades, the age at first marriage, the
   never married at 45 and who waits by cause. Its two runs on the medium map are weekly, not nightly (a populous medium run is 13 minutes

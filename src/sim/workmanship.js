@@ -56,7 +56,8 @@ VB['sim/workmanship'] = (() => {
     for (let g = 0; g < N - 1; g++) if (u < (acc += oddsAt(s, g))) return g;
     return N - 1;
   }
-  // The head's estimate (principle 14) of what a piece of its own hand id's making is worth, against a sound one: the mean of custom's
+  // The head's estimate (principle "The future is someone's estimate") of what a piece of its own hand id's making is worth, against a sound one: the mean
+  // of custom's
   // multipliers by grade over the odds at the hand's skill (a novice 0.77, practised 1.11, a master 1.47). Offered to VB-698 and VB-699.
   const worthOf = (g) => Norms.norm('workmanship', g);
   const expectedWorth = (st, id, craft) => meanAt(skillFor(st, id, craft), worthOf);

@@ -1,7 +1,7 @@
 // @sys page/meter: the panels' shared pieces (VB-664): the one meter every level is shown on, a stat (a good or a measure: its icon, its
 // value, its meter where it is a level) and the grid of them, and a pawn's traits as icons
 // ======== meters and stats ========
-// One meter for every level (AGENTS.md, Deciding without Kim, 15): the value on its scale from min to max, a mark at each target or
+// One meter for every level (principle "Like is shown alike"): the value on its scale from min to max, a mark at each target or
 // threshold, and a signed form filled from its middle. The scale is the caller's argument: today's ranges, until VB-665 settles them.
 // o: {value, min (0), max (100), marks: [{at, label, kind}] (kind 'custom' or 'head': whose mark, by its colour; markKey is their
 // key), signed, tone ('good', 'warn', 'bad' or none), label, text (the value in words,
@@ -51,7 +51,7 @@ function stat(o) {
 }
 // Tilth (VB-719; Kim, 16 Nov): what years of dung have left in the ground, as the hundredths of harvest it adds, on the one meter to
 // TILTH.max; of one field, or the mean of a farm's or a village's fields (null with none, and no row). What the ground holds now: no
-// foretelling, so no pawn's estimate is named (principle 14).
+// foretelling, so no pawn's estimate is named (principle "The future is someone's estimate").
 function tilthStat(fields, of = '') {
   if (!fields.length) return null;
   let sum = 0;
@@ -150,7 +150,7 @@ function craftsLine(id) {
   return c.length ? `Crafts: ${c.map((x) => `${x.craft} (${x.word})`).join(', ')}` : '';
 }
 // ======== the supply component (VB-667) ========
-// One presentation of a supply, wherever it is shown (AGENTS.md, Deciding without Kim, 15): its icon, its word, its season cells, its
+// One presentation of a supply, wherever it is shown (principle "Like is shown alike"): its icon, its word, its season cells, its
 // state in a few words and an i that opens its numbers. Its argument is the outlook the household's head made at his last review
 // (Sim.supplyOutlook, VB-666); the page computes nothing of it, and says whose reckoning it is (14). Mocks: docs/mocks/supply-scale.html
 // (the rows and the numbers) and docs/mocks/supply-doubt.html (the chips in the farm rows).
@@ -286,7 +286,7 @@ function supplyRow(O, r) {
     (open ? supplyNums(O, r, s) : '')
   );
 }
-// Whose reckoning it is (principle 14): "By Gunnar Håkansson's reckoning, at his last review"; the played pawn's is "your".
+// Whose reckoning it is (principle "The future is someone's estimate"): "By Gunnar Håkansson's reckoning, at his last review"; the played pawn's is "your".
 function supplyWhose(O) {
   const p = O.head === null || O.head === undefined ? null : st.pawns[O.head],
     mine = !!(p && st.player && st.player.pawn === p.id),

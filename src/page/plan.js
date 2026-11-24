@@ -111,7 +111,8 @@ function targetRow(key, o, mine) {
   }
   return `<div class="plan-row" data-target="${esc(key)}">${h}</div>`;
 }
-// What the head counts on besides its fields (VB-768): its own estimate, by its memory of each source and its caution; principle 14.
+// What the head counts on besides its fields (VB-768): its own estimate, by its memory of each source and its caution; principle "The future is someone's
+// estimate".
 const COUNT_WORDS = {
   animals: 'milk and meat',
   fish: 'fish',

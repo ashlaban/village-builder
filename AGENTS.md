@@ -13,6 +13,8 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 - `docs/slices.md`: the slices (vertical slices, each an arch of the backlog), what each brings, and their order; `docs/cost.md`: the
   late-game budget, the ten rules for cost and cheap measurement; `docs/roadmap.html` (made by `tools/roadmap.js`, not committed): the
   timeline of what was built when, and the estimate of when the rest is done.
+- `docs/principles-concordance.md`: cite a principle by name, never a bare number; its table resolves the old numbers (1 to 21) that
+  task files, plans and PRs of 12 to 20 November cite.
 - `docs/architecture/target-v2.md`: where the code is going (five layers and presentation; principles in section 2; Kim's decisions in section 8). A target,
   not design: where it changes a Decided point of `design.md`, a design pass comes first (its section 11).
 - `docs/architecture/modules.md`: where each system lives; `docs/architecture/ownership.md`: who writes each piece of state.

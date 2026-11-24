@@ -192,7 +192,7 @@ VB['sim/round'] = (() => {
   }
   // A village's round (VB-277, VB-693; design.md, A village's round): its alderman calls its households to fill its store; the played pawn's wished match
   // (VB-274) is offered, the wisher's own yes given; its kin pressure; and its men who hold no offer plan a visit. The round chooses
-  // nobody (principle 16): the matches were asked through the year by the spokesmen (sim/asking) and answered in the village's step
+  // nobody (principle "Every act is a pawn's"): the matches were asked through the year by the spokesmen (sim/asking) and answered in the village's step
   // (answerDue: `married`, the couples it married). One walk of the pool (`roundWalk`), and no pass over pairs.
   function villageRound(st, v, married) {
     const pool = poolFor(st, v); // the living of the villages within a day's walk, and of those visited (sim/matching, VB-288, VB-289)

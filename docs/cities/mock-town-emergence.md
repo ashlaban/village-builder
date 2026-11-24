@@ -115,7 +115,7 @@ bad year (finding 8).
 | Skill that grows with hours (the maker's edge over the farm: 0.6 to 1.3) and a facility as a lump | Planned: VB-360, VB-361 (both ready) |
 | A head makes more than its need for a purpose | Planned: VB-698 (ready). It sets what to make, not what to stop |
 | **A head sizes its fields by its estimate of all its food, not by need alone** | **Lacking.** `fieldsWanted` (`src/sim/fields.js`) reads only the household's rations: a household fed by fish or iron still wants the same fields. Without this no household moves along the ladder |
-| **A head's memory of what a source brought, and its caution** (principle 14) | **Lacking.** Finding 3: this is what holds the smith to its fields |
+| **A head's memory of what a source brought, and its caution** (principle "The future is someone's estimate") | **Lacking.** Finding 3: this is what holds the smith to its fields |
 | A swap between two pawns in one place, anywhere | Planned: VB-690, VB-302 (freed from the gathering, 16 Nov) |
 | **A walk to a named household to deal, between gatherings** | Named, not planned: VB-302's note leaves "the trading trip as a pawn's own act" to the visit (VB-289, VB-292). Finding 10: this carries most deals |
 | A yearly gathering whose site villages choose | Planned: VB-294 |
@@ -437,7 +437,7 @@ a point that cannot be served from a walk away, and a great deal of it: a ship t
     made it, to the place it was made. 8 to 11 of the island's makers pay one, 18 to 41 rations' worth a year each. But 66% to 100%
     of the dues go to a builder's heir who is no maker: the builder's household ended and the kiln outlived it. That is a toy's
     assumption (an heir keeps the facility and the due), and it is also how a small rentier would arise: a claim sized at about a
-    seventh of a household's need for each user (Deciding without Kim, 13).
+    seventh of a household's need for each user (principle "An elite is what the rules leave over, not a quota").
 34. **What stops the place is custom, then land; not ore, and not fuel at these sizes** (D5; one thing changed on the costly
     facility, 2 seeds). Material carried at no cost: 15.1 maker households against 15.2, the fullest place 4.4 against 4.3. Wants
     twice as often: 16.2, the place 3.7. Three times the would-be makers: 17.2, the place 4.5, and 175 who found no place. A full

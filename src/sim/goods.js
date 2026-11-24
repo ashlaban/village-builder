@@ -77,7 +77,8 @@ VB['sim/goods'] = (() => {
   // perish ({keepsDays}: a lot spoils by date; {tiers: true}: a share of the stock is lost by tiers; null: it does not perish in store; an
   // animal lives and dies as an animal): its keeping row (perishOf; VB-683), keeping (accepted beyond need, to be passed on; design.md,
   // The fair, Keeping goods), weight (optional, VB-700: rations of TRAVEL.load a unit weighs; VB-684 gives every good one). ----
-  // ---- materials and kinds (VB-733; design.md, The metals and the stones: goods by purpose, kinds by property; principle 17): a good is
+  // ---- materials and kinds (VB-733; design.md, The metals and the stones: goods by purpose, kinds by property; design.md, "A good, its material and its
+  // kind"): a good is
   // what it is for and is made of a material, its `material`, one of MATERIALS (`class` keeps its meaning, custom's class of exchange). A
   // good with kinds lists them (at most KINDS_MAX), each a key of its material's table of properties below, and names the properties its
   // use reads (`reads`); the kind is the good's subtype, 'quern/granite', carried from the material into the good, with no record for each

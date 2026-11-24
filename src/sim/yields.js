@@ -2,7 +2,7 @@
 // sim/stores with each food operation, closed at the head's planning day after the harvest into a ring of FIELDS.memory years a source;
 // what the head expects of a source (poor and mean), how cautious it is, and what it trusts its sources other than its fields to bring
 // (trusted, which sim/fieldplans' fieldsWanted takes off the food its fields must grow: VB-768).
-// Design: docs/plans/VB-189.md section 5.5; AGENTS.md, Deciding without Kim, 14 (the future is someone's estimate).
+// Design: docs/plans/VB-189.md section 5.5; principle "The future is someone's estimate" (the future is someone's estimate).
 VB['sim/yields'] = (() => {
   const { FIELDS } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];

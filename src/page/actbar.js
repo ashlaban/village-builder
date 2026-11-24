@@ -86,7 +86,8 @@ function workRows(list) {
   }
   return h;
 }
-// "Hand the farm on" (VB-1140): the offer of the holding to the first in line, who is named with its own estimate of its answer (principle 14).
+// "Hand the farm on" (VB-1140): the offer of the holding to the first in line, who is named with its own estimate of its answer (principle "The future is
+// someone's estimate").
 function handOnRow(o) {
   const { first, next } = o.handover,
     note = first

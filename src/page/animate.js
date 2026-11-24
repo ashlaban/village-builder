@@ -326,7 +326,7 @@ function placePawns() {
 let tAcc = 0;
 // The clock shown is the UI's own state: the time the simulation has reached (st.tick), floored to 5 game minutes, redrawn only when
 // that value changes. The pawns are drawn up to a step ahead along their legs (VB-474), but the clock never shows a time the
-// simulation has not reached (principle 14): it is at most 5 minutes behind st.t, never ahead.
+// simulation has not reached (principle "The future is someone's estimate"): it is at most 5 minutes behind st.t, never ahead.
 let uiClock = null,
   uiClockSt = null;
 function updateClock() {

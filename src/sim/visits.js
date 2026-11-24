@@ -140,7 +140,8 @@ VB['sim/visits'] = (() => {
   }
   // The villages pawn id might visit (VB-292; what sim/opportunities lists, for any pawn): those beyond a day's walk and within walking
   // reach that hold one it could marry (farSingles, suits), the nearest first, at most VISIT_CHOICES, each {village, days (away, there and
-  // back and as a guest), rations (its pack, from its household's grain)}: the pawn's own reckoning of the way (principle 14). None for
+  // back and as a guest), rations (its pack, from its household's grain)}: the pawn's own reckoning of the way (principle "The future is someone's
+  // estimate"). None for
   // one married, under age or of no household. Read-only, and not counted: it is asked for a view, never by a step.
   const VISIT_CHOICES = 5;
   function visitChoices(st, id) {

@@ -195,7 +195,8 @@ VB['sim/climate'] = (() => {
     Walk.compileGround(w, rows);
   }
   // The ground of a normal winter (warmth 0) of the world's climate, a row's flags: each band at the deepest ground its normal winter
-  // reaches (sound ice, lake ice, snow, or none). What people know of the winter ways (principle 14), for the winter table of hours
+  // reaches (sound ice, lake ice, snow, or none). What people know of the winter ways (principle "The future is someone's estimate"), for the winter table
+  // of hours
   // (sim/villagehours); null where no band has lake ice in a normal winter.
   function normalGround(w) {
     const deep = [];

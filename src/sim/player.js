@@ -366,7 +366,8 @@ VB['sim/player'] = (() => {
     }
     return out;
   }
-  // Who of the played pawn's household ails, as its kin see it (principle 14: what they see, not what will come): "Gunnar is ailing", and
+  // Who of the played pawn's household ails, as its kin see it (principle "The future is someone's estimate": what they see, not what will come): "Gunnar
+  // is ailing", and
   // "is gravely ill" once health has fallen under HEALTH's risk line. The played pawn itself is "You are ailing".
   function ailingWords(st) {
     const pl = st.player;

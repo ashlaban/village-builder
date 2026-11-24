@@ -68,7 +68,7 @@ These are the invariants. Each later section applies them; a change that breaks 
 7. **Class, occupation, a place's label and region are derived, with hysteresis.** They are computed from rights, obligations,
    stores, hours of work and where people deal, never stored as truth. Only rank (frälse, clergy, burgher) is stored: an
    institution grants it. Class may feed a rule, through its hysteretic value only (4.1). A place's label (market place, town) and
-   its region feed no rule at all (Decided, Kim, 16 Nov; `AGENTS.md`, Deciding without Kim, 20): a place has measures, not a tier,
+   its region feed no rule at all (Decided, Kim, 16 Nov; principle "A label is read, never a switch"): a place has measures, not a tier,
    no threshold on them switches anything on, and a rule that wants what a town was thought to give reads the measure itself.
 8. **A body exists only when something needs its identity:** holdings, obligations owed to or by it, an agent, or a succession
    distinct from its members'. Otherwise it is a derived view.

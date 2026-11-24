@@ -1,7 +1,7 @@
 // @sys sim/outlook: the supply outlook (VB-666): how long a household's food, fuel and hay last, on one scale (seasons of need) over the
 // four seasons from the start of the one we are in, by its head's reckoning at each review of its plan, with its doubt (VB-669); kept in
 // plan.outlook, read by the page
-// Design: docs/mocks/supply-scale.html and supply-doubt.html (the UI review with Kim, 16 Nov); AGENTS.md, Deciding without Kim, 14 (the future
+// Design: docs/mocks/supply-scale.html and supply-doubt.html (the UI review with Kim, 16 Nov); principle "The future is someone's estimate" (the future
 // is someone's estimate: this is the head's) and 15 (one scale for every supply). What is still to come is the plan's: the crop the head
 // expects of its fields (FIELDS.expect of the full yield, as the plan reckons when it asks how many fields), the hay of its meadows in an
 // ordinary year (sim/meadows' expectedHay), the woodpile's goal of each season (plan.targets.wood); no weather to come is read. Nothing
@@ -496,7 +496,7 @@ VB['sim/outlook'] = (() => {
     return {
       ...JSON.parse(JSON.stringify(O)),
       stale: O.year !== c.year || O.season !== c.season,
-      head: plan.head ? plan.head.pawn : null, // whose estimate it is (AGENTS.md, Deciding without Kim, 14)
+      head: plan.head ? plan.head.pawn : null, // whose estimate it is (principle "The future is someone's estimate")
     };
   }
   // The food outlook of household id as its head reckons it now, had it given `less` rations of grain away (VB-671: the gift form shows it
@@ -535,7 +535,8 @@ VB['sim/outlook'] = (() => {
   // with are the same. Its target
   // (HELP.storeTarget years of need, VB-457) is in parts.target. Shaped as a household's outlook (food only; fuel and hay 'none'), with
   // `head`, whose estimate it is: the viewer's (the played pawn), else the village's eldest holder, who speaks for it until it has an
-  // alderman (as sim/overview's warnings; a village never acts or estimates, a pawn does: AGENTS.md, Deciding without Kim, 14 and 16).
+  // alderman (as sim/overview's warnings; a village never acts or estimates, a pawn does: principle "The future is someone's estimate"; principle "Every
+  // act is a pawn's").
   // One pass over the village's farmsteads, with the card; stores nothing.
   function villageOutlook(st, vid, head = null) {
     const v = st.villages[vid],

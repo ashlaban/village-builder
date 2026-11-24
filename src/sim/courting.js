@@ -14,7 +14,7 @@ VB['sim/courting'] = (() => {
   // other at an opinion of `opinion` with a tie of `tie`, read when the two have a good talk; it ends when either's opinion of the other
   // falls under `end`, or `years` after it began with no offer of theirs open. A refusal sends one of the two to ask for service at the
   // next round when it holds the head who refused at an opinion under `leaveBelow` (a threshold on what the pawn feels, in place of
-  // the design's first chance of 0.5: principle 19).
+  // the design's first chance of 0.5: principle "A wait is the thing waited for").
   // A child on the way (VB-555; design.md, Courting: A child on the way): a courting woman conceives at `conceive` a year at the peak of
   // the married women's curve (sim/births, by that curve and her hunger), so that about 5% of births come while courting; the
   // pregnancy is known `known` days after, and the couple's offer is made then (sim/asking), postponed a day at a time while either

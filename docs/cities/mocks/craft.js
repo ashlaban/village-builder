@@ -6,7 +6,7 @@
 // it above its customary worth and the walk; goods are bought in whole pieces. The craft household's head plans the year in spring, before
 // it knows what the craft will bring: it wants its own cautious estimate of its food to reach 1.1 times its need (the game's FIELDS.want), and
 // takes the plan that does so with the fewest hours of its adults. Its estimate of the craft is the second lowest of the last 8 years it
-// remembers (principle 14: a pawn's estimate). Numbers: numbers.js (GAME from the game and its plans, INVENTED made up).
+// remembers (principle "The future is someone's estimate": a pawn's estimate). Numbers: numbers.js (GAME from the game and its plans, INVENTED made up).
 const { GAME: G, INVENTED: I, rng, harvest, table, median, mean, opt } = require('./numbers.js');
 const need = G.household.hands * G.ration.adult + G.household.children * G.ration.child; // 216 rations a year
 const T = G.want * need;
