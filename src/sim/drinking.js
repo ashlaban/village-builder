@@ -128,7 +128,8 @@ VB['sim/drinking'] = (() => {
         hold(st, { pawn: p.id, at: st.t + 1 });
         continue;
       }
-      if (a.job && a.job.kind === 'drink') continue; // on its way to drink already
+      // on its way to drink already, or to draw its household's water, where it drinks (sim/chores)
+      if (a.job && (a.job.kind === 'drink' || a.job.kind === 'water')) continue;
       const left = a.job ? a.job.kind : null,
         s = sourceFor(st, p);
       if (issue(st, { actor: p.id, verb: 'drink', source: 'pawn' }) !== true) continue;

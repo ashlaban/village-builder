@@ -120,10 +120,12 @@ VB['sim/chores'] = (() => {
       // from the afternoon (14:00), the cook's hour, above cooking's (VB-331): the hand that would cook fetches the water first
       urgency: (st, j, c, U) =>
         c.hour >= AFTERNOON ? U.waterLate : c.hour < U.waterMorningHour ? U.waterMorning : U.water,
-      // the day's water is in; marsh water is poor, and costs those it covers some health that day (sim/hunger; VB-1551)
-      deliver: (st, j, hh) => {
+      // the day's water is in; marsh water is poor, and costs those it covers some health that day (sim/hunger; VB-1551); who drew
+      // it drank at the source (sim/thirst, VB-1554)
+      deliver: (st, j, hh, f, a) => {
         hh.waterDay = cal(st.t).day;
         if (j.poor) hh.marshDay = hh.waterDay;
+        if (a) VB['sim/thirst'].drank(st, st.pawns[a.id]);
       },
       // once a day, from the hour before work until the evening's (VB-1547: the due-queue's last ask, at the end of work, leaves it
       // standing for the evening), at the farm's source (sim/water: the nearest source or well its household may draw at; found on the
