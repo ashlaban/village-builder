@@ -105,6 +105,28 @@ try {
   assert(/F3: would open a priority 1 task, Cause: VB-900/.test(k.stdout), '--dry opens nothing');
   assert(!JSON.parse(fs.readFileSync(path.join(dir, 'work/review', id + '.json'), 'utf8')).confirm, '--dry writes nothing');
   assert.strictEqual(git('worktree', 'list').split('\n').length, 1, 'the reviewed commit\'s worktree is removed');
+
+  // an orchestrated run: the same through the inbox (VB_INBOX), and the orchestrator reads one line a task
+  const env = { ...process.env, VB_INBOX: path.join(dir, 'inbox.db') };
+  const inb = (...a) => cp.spawnSync(process.execPath, [path.join(__dirname, '../tools/inbox.js'), ...a, '--root', dir], { encoding: 'utf8', env });
+  const rin = (...a) => cp.spawnSync(process.execPath, [tool, ...a, '--root', dir], { encoding: 'utf8', env });
+  assert.strictEqual(inb('init').status, 0); inb('start', id, '1');
+  fs.renameSync(path.join(dir, 'work'), path.join(dir, 'work-kept'));
+  assert.match(rin('eligible', id, '--base', base, '--inbox').stdout, new RegExp(`${id}: (review|control): `), 'the arm, noted');
+  fs.renameSync(path.join(dir, 'work-kept'), path.join(dir, 'work'));
+  assert.match(rin('check', id, '--inbox').stdout, /review: revise 4 blocking/, 'the verdict, noted');
+  const conf = rin('confirm', id, '--reviewed', reviewed, '--inbox');
+  assert(conf.status === 0 && /F3: noted VB-\d+ \(priority 1, Cause: VB-900\)/.test(conf.stdout), conf.stdout + conf.stderr);
+  const followup = conf.stdout.match(/F3: noted (VB-\d+)/)[1];
+  assert(inb('list', 'task', '--json').stdout.includes(`"cause": "${id}"`), 'the follow-up is a task note naming its cause, for apply');
+  fs.renameSync(path.join(dir, 'work'), path.join(dir, 'work-kept'));
+  assert.match(rin('eligible', id, '--base', base).stdout, /reviewed: a review is recorded: the inbox/, 'one review a task, by the inbox');
+  assert(inb('status').stdout.includes(`${id} running; review: revise 4 blocking, confirmed, 2 unresolved (${followup},VB-777)`), inb('status').stdout);
+  const res = JSON.parse(inb('results', '--json').stdout).find((x) => x.task === id);
+  assert(res.review && res.review.verdict === 'revise' && res.review.blocking === 4 && res.review.unresolved === 2, JSON.stringify(res));
+  assert(/\*\*Reviews \(VB-1615\)\*\*\n- VB-900: revise 4 blocking, confirmed, 2 unresolved/.test(inb('report').stdout), inb('report').stdout);
+  const ceil = inb('calls', 'nobody', '--ceiling', '40');
+  assert(ceil.status !== 0 && /no transcript agent-nobody/.test(ceil.stderr), 'calls takes a ceiling (a reviewer\'s 40)');
 } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 
 // a follow-up task, on a copy of the backlog: ready, priority 1, its cause named
@@ -116,4 +138,4 @@ try {
   const text = fs.readFileSync(path.join(copy, 'backlog', nid + '.md'), 'utf8');
   assert(/^Status: ready\nCause: VB-911\nPriority: 1$/m.test(text) && /^- \[ \] a test that a marriage's new household/m.test(text) && !text.includes('(to write)'), text);
 } finally { fs.rmSync(copy, { recursive: true, force: true }); }
-console.log('review tool: declarations, grades, the arm, the packet (vision first, task as it stood, tests against the base, structure), claims after the draft, one review a task, confirm after the revision, a follow-up task');
+console.log('review tool: declarations, grades, the arm, the packet (vision first, task as it stood, tests against the base, structure), claims after the draft, one review a task, confirm after the revision, a follow-up task, the same through the inbox');

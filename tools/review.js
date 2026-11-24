@@ -16,6 +16,9 @@
 //              ("outcome": "rebutted", "rebuttal": an authority quoted, or a probe's output); each advisory one is mended or declined
 //              ("outcome", "note"). A blocking finding left unresolved gets a priority 1 task with Cause: VB-NNN, made once (its ID kept in
 //              the findings file as "followup"; --dry opens none); the results are kept in the findings file for tools/agent-usage.js
+//   --inbox    in an orchestrated run (docs/agents/worker.md): eligible records the arm, check the verdict and confirm the outcomes as
+//              `review` notes of tools/inbox.js, and confirm leaves a follow-up as a `task` note (a reserved ID) for the orchestrator to
+//              apply, instead of writing the backlog
 //   --base REF   default: git merge-base HEAD origin/main.   --head REF   default: HEAD (the packet's runs use the working tree)
 // The findings file, work/review/VB-NNN.json (never committed):
 //   { "task": "VB-NNN", "base": SHA, "head": SHA, "findings": [ { "id": "F1", "grade": "blocking|advisory|preference",
@@ -98,8 +101,29 @@ function change(root, id, base, head) {
   return { names, src, before, after, added, unparsed, flag };
 }
 
+// ---- the inbox of an orchestrated run (tools/inbox.js), read only when its file exists
+function inboxFile(root) {
+  if (process.env.VB_INBOX) return path.resolve(process.env.VB_INBOX);
+  try { return path.join(path.resolve(root, git(root, 'rev-parse', '--git-common-dir')), 'vb-inbox.db'); } catch { return null; }
+}
+function inbox(root, ...a) {
+  const x = cp.spawnSync(process.execPath, [path.join(__dirname, 'inbox.js'), '--root', root, ...a], { encoding: 'utf8' });
+  if (x.status !== 0) throw new Error('inbox.js ' + a[0] + ': ' + (x.stderr || x.stdout).trim());
+  return x.stdout.trim();
+}
+const toInbox = (root, id, fields, body) => {
+  const f = body ? path.join(os.tmpdir(), `vb-review-${id}-${process.pid}.json`) : null;
+  if (f) fs.writeFileSync(f, body);
+  try { return inbox(root, 'note', id, 'review', ...Object.entries(fields).filter(([, v]) => v != null && v !== '').map(([k, v]) => `${k}=${v}`), ...(f ? ['--body', f] : [])); }
+  finally { if (f) fs.rmSync(f, { force: true }); }
+};
+
 // ---- one review a task: a record of an earlier one, in the session, the committed runs or the inbox
 function reviewedAt(root, id) {
+  const db = inboxFile(root);
+  if (db && fs.existsSync(db)) {
+    try { if (JSON.parse(inbox(root, 'list', 'review', '--task', id, '--json')).some((n) => n.fields.round !== 'arm')) return 'the inbox (a review note)'; } catch {}
+  }
   const own = path.join(root, 'work', 'review', id + '.json');
   if (fs.existsSync(own)) return 'work/review/' + id + '.json';
   const dir = path.join(root, 'docs', 'agents', 'usage');
@@ -267,7 +291,7 @@ function checkFindings(r) {
 
 // ---- after the revision: each finding's outcome checked, not judged again
 const AUTHORITY = /criterion|Decided|Agreed|Principles for decisions|The game, in Kim's terms|AGENTS\.md|BACKLOG\.md|target-v2/i;
-async function confirm(root, id, reviewed, dry) {
+async function confirm(root, id, reviewed, dry, toIn) {
   const { r, error } = readFindings(root, id);
   if (error) throw new Error(error);
   const bad = checkFindings(r).errors;
@@ -292,12 +316,14 @@ async function confirm(root, id, reviewed, dry) {
   for (const f of blocking.filter((x) => x.verified === 'unresolved')) {
     if (f.followup) { lines.push(`  ${f.id}: its follow-up is ${f.followup}`); continue; }
     if (dry) { lines.push(`  ${f.id}: would open a priority 1 task, Cause: ${id}`); continue; }
-    f.followup = openFollowup(root, id, f);
-    lines.push(`  ${f.id}: opened ${f.followup} (priority 1, Cause: ${id})`);
+    f.followup = toIn ? noteFollowup(root, id, f) : openFollowup(root, id, f);
+    lines.push(`  ${f.id}: ${toIn ? 'noted' : 'opened'} ${f.followup} (priority 1, Cause: ${id})`);
   }
   r.confirm = { reviewed, head: git(root, 'rev-parse', '--short', 'HEAD') };
   if (!dry) fs.writeFileSync(path.join(root, 'work', 'review', id + '.json'), JSON.stringify(r, null, 2) + '\n');
   const n = (g, v) => r.findings.filter((f) => f.grade === g && f.verified === v).length;
+  if (toIn && !dry) toInbox(root, id, { arm: 'review', round: 'confirm', reviewed, mended: n('blocking', 'mended'), rebutted: n('blocking', 'rebutted'),
+    unresolved: n('blocking', 'unresolved'), followups: blocking.map((f) => f.followup).filter(Boolean).join(',') }, JSON.stringify(r));
   lines.unshift(`${id} confirm: blocking ${n('blocking', 'mended')} mended, ${n('blocking', 'rebutted')} rebutted, ${n('blocking', 'unresolved')} unresolved;`
     + ` advisory ${n('advisory', 'mended')} mended, ${n('advisory', 'declined')} declined, ${n('advisory', 'unanswered')} unanswered`);
   return lines.join('\n');
@@ -318,10 +344,26 @@ function openFollowup(root, id, f) {
   return nid;
 }
 
+// The same in an orchestrated run: a `task` note with one of the task's reserved IDs; the orchestrator applies it.
+function noteFollowup(root, id, f) {
+  let free = inbox(root, 'ids', id).split(' ').filter((x) => /^VB-\d+$/.test(x));
+  if (!free.length) free = (inbox(root, 'start', id, '1').match(/VB-\d{3,}/g) || []).filter((x) => x !== id);
+  const nid = free[0], one = (t, n) => String(t || '').replace(/\s+/g, ' ').replace(/\|/g, '/').slice(0, n);
+  const body = path.join(os.tmpdir(), `vb-followup-${nid}.md`);
+  fs.writeFileSync(body, `- [ ] ${one(f.check, 600) || 'A test that fails while the defect stands'}, and the mend.\n- Opened by tools/review.js confirm from the review of ${id} (finding ${f.id}, at ${f.place}).`);
+  try {
+    inbox(root, 'note', id, 'task', `id=${nid}`, `name=Mend ${id}'s review finding ${f.id} (${f.category}, ${one(f.place, 60)})`, 'priority=1', 'size=S',
+      `summary=${one(f.scenario, 240)}`, 'status=ready', `cause=${id}`, `ref=${one(f.authority, 300)}`,
+      `goal=The defect the review of ${id} found and its revision left: ${one(f.scenario, 300)}`, '--body', body);
+  } finally { fs.rmSync(body, { force: true }); }
+  return nid;
+}
+
 // ---- the command line
 async function main(argv) {
   const opt = (k) => { const i = argv.indexOf(k); if (i < 0) return null; const v = argv[i + 1]; argv.splice(i, 2); return v; };
-  const dry = argv.includes('--dry'); if (dry) argv.splice(argv.indexOf('--dry'), 1);
+  const flagOf = (k) => { const i = argv.indexOf(k); if (i < 0) return false; argv.splice(i, 1); return true; };
+  const dry = flagOf('--dry'), toIn = flagOf('--inbox');
   const root = path.resolve(opt('--root') || path.join(__dirname, '..')), baseRef = opt('--base'), head = opt('--head') || 'HEAD', reviewed = opt('--reviewed');
   const [cmd, id] = argv;
   if (!['eligible', 'packet', 'claims', 'check', 'confirm'].includes(cmd)) throw new Error('a command: eligible, packet, claims, check, confirm (--help)');
@@ -329,19 +371,26 @@ async function main(argv) {
   let base = baseRef;
   if (cmd === 'confirm') {
     if (!reviewed) throw new Error('confirm --reviewed SHA: the commit the reviewer read');
-    console.log(await confirm(root, id, git(root, 'rev-parse', '--short', `${reviewed}^{commit}`), dry)); return;
+    console.log(await confirm(root, id, git(root, 'rev-parse', '--short', `${reviewed}^{commit}`), dry, toIn)); return;
   }
   if (!base && cmd !== 'check') {
     try { base = git(root, 'merge-base', head, 'origin/main'); } catch { throw new Error('no merge base with origin/main: name it, --base REF'); }
   }
   const short = (ref) => git(root, 'rev-parse', '--short', `${ref}^{commit}`);
-  if (cmd === 'eligible') { const e = eligibility(root, id, short(base), short(head)); console.log(`${id}: ${e.arm}: ${e.why.join('; ')}`); return; }
+  if (cmd === 'eligible') {
+    const e = eligibility(root, id, short(base), short(head));
+    if (toIn && e.arm !== 'reviewed') toInbox(root, id, { arm: e.arm, round: 'arm', reviewed: short(head) });
+    console.log(`${id}: ${e.arm}: ${e.why.join('; ')}`); return;
+  }
   if (cmd === 'packet') { console.log(await packet(root, id, short(base), short(head))); return; }
   const { r, error } = readFindings(root, id);
   if (error) throw new Error(error);
   if (cmd === 'check') {
     const c = checkFindings(r);
     if (c.errors.length) { console.log(c.errors.map((e) => '- ' + e).join('\n')); process.exitCode = 1; return; }
+    const g = (x) => r.findings.filter((f) => f.grade === x).length;
+    if (toIn) toInbox(root, id, { arm: 'review', round: 'review', verdict: c.verdict, blocking: c.blocking, advisory: g('advisory'), preference: g('preference'),
+      reviewed: r.head || git(root, 'rev-parse', '--short', 'HEAD') }, JSON.stringify(r));
     console.log(`${id} review: ${c.verdict}${c.blocking ? ` ${c.blocking} blocking` : ''}; ${r.findings.length - c.blocking} advisory or preference`); return;
   }
   // claims: what the implementer says it did, read after the draft
