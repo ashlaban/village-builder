@@ -179,6 +179,29 @@ assert.strictEqual(laid(N).days[0][0].what, 'queue');
 Sim.setAuto(N, true);
 assert(laid(N).days.flat().every((g) => g.what === 'queue' || g.what === 'free'), 'not followed: queue and free');
 
+// VB-1621: a plant task laid step by step: on the project's tile its clearing (posted), then its breaking, hoeing and sowing (not posted:
+// rough, at the step's and the crop's hours), the hoeing and the sowing not before the window opens; its entry the hours of all steps
+// left, ending at the sowing's end, the barley window its deadline and the chain's verdict; on a broken field the hoeing and the sowing
+const G = alone(), gsite = G.jobs.get('clear:f0').site, gfield = G.farmsteads[0].fields[0];
+assert.strictEqual(Sim.plan(G, 'add', { plant: gsite }), true);
+assert.strictEqual(Sim.plan(G, 'add', { plant: gfield.tile }), true);
+const LG = laid(G), [PA, PB] = LG.plan, CB = VB['sim/crops'].CROPS.barley.sow;
+assert.deepStrictEqual(PA.steps.map((x) => [x.kind, x.rough]), [['clear', false], ['break', true], ['plow', true], ['sow', true]]);
+assert.deepStrictEqual([PA.kind, PA.plant, PA.step, PA.stands, PA.rough, PA.key], ['plant', gsite, 'clear', true, true, 'clear:f0']);
+assert(Math.abs(PA.hours.mid - PA.steps.reduce((n, x) => n + x.hours.mid, 0)) < 1e-9, 'the hours of all steps left');
+assert.strictEqual(PA.deadline.t, (CB[0] * VB['sim/rules'].SEASON_DAYS + CB[2]) * DAY + WORK[1], 'the barley window its deadline');
+assert(/barley sowing/.test(PA.deadline.what) && PA.verdict === 'in time' && PA.starts === G.t && PA.ends > PA.starts + PA.hours.mid, JSON.stringify(PA));
+assert.deepStrictEqual(PB.steps.map((x) => [x.kind, x.rough]), [['plow', false], ['sow', true]], 'a broken field: its hoeing and sowing');
+assert(Math.abs(PB.starts - PA.ends) < 1e-9 && PB.ends > PB.starts && PB.deadline.t === PA.deadline.t, JSON.stringify(PB));
+const gseq = LG.days.flat().filter((g) => g.what === 'task').map((g) => `${g.site}:${g.kind}`);
+assert.deepStrictEqual([...new Set(gseq)], [`${gsite}:clear`, `${gsite}:break`, `${gsite}:plow`, `${gsite}:sow`, `${gfield.tile}:plow`, `${gfield.tile}:sow`].slice(0, new Set(gseq).size), `step by step: ${[...new Set(gseq)]}`);
+assert(LG.days.flat().some((g) => g.kind === 'break' && g.key === null), 'a step not posted is laid with no key');
+// a plain task by key that is a step of the project is as it was: its own job, and `then` to the sowing
+const H = alone();
+Sim.plan(H, 'add', { key: 'clear:f0' });
+const PH = laid(H).plan[0];
+assert(PH.key === 'clear:f0' && PH.kind === 'clear' && !('steps' in PH) && PH.then && PH.then.steps.map((x) => x.kind).join() === 'break,plow,sow', JSON.stringify(PH));
+
 // the layout and the feeder agree: what the pawn did, hour by hour over the three days (sampled each tenth), against what `days` said
 // at the start: the same act (sleep, routine of a kind, a task by its key, free), but within the estimate's error of a join
 const TOL = 3, joins = L.days.flat().slice(1).map((g) => g.from);

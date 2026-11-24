@@ -16,7 +16,7 @@ VB['sim/agenda'] = (() => {
   const { workFor } = VB['sim/opportunities'];
   const { here, walkHours } = VB['sim/pose'];
   const { toAxial, hexDist } = VB['world/grid'];
-  const { asleepAt } = VB['sim/playerplan'];
+  const { asleepAt, plantSteps, sowWindow } = VB['sim/playerplan'];
   const { AWAKE, SLEEP, owedBy } = VB['sim/sleep'];
   const LEN = WORK[1] - WORK[0];
   // ---- time: work and walks are laid in working hours ----
@@ -186,8 +186,25 @@ VB['sim/agenda'] = (() => {
     if (f && f.water && (KINDS[k].at || []).includes('water')) Object.assign(s, { farm: f, site: f.water.tile });
     return s;
   }
-  // The plan laid from now: {days (NDAYS lists of segments {from, to, what, kind, key, site}), plan (each task's entry where the layout
-  // puts it), owed (the hours of sleep owed at each day's end), routine ([{kind, hours}]: a day's work of each routine kind, from home)}.
+  // A plant task's steps left (sim/playerplan plantSteps, VB-1621) as parts of its work: {kind, key (its job's, null while not posted), e
+  // (the pawn's estimate: of the job posted, else of the step's hours), rough (not posted), from (the hour it may begin: a hoeing or a
+  // sowing not posted at its sowing window's opening)}; with the window and the crop.
+  function plantParts(st, id, hid, tk) {
+    const s = plantSteps(st, hid, tk.plant);
+    if (!s) return { parts: [], win: null, crop: null };
+    const win = sowWindow(st, s.crop);
+    const parts = s.steps.map((x) => ({
+      kind: x.kind,
+      key: x.job ? x.job.key : null,
+      e: estimate(st, id, x.job || step(x.kind, x.hours, hid), [id]),
+      rough: !x.job,
+      from: !x.job && win && (x.kind === 'plow' || x.kind === 'sow') ? win.opens : -Infinity,
+    }));
+    return { parts, win, crop: s.crop };
+  }
+  // The plan laid from now: {days (NDAYS lists of segments {from, to, what, kind, key, site}; a plant task's by the kind and key of its
+  // step), plan (each task's entry where the layout puts it; a plant task's with its steps left, as `then` lays a project's), owed (the
+  // hours of sleep owed at each day's end), routine ([{kind, hours}]: a day's work of each routine kind, from home)}.
   // Hand-queued commands first, end to end; then, the plan followed (automatic behaviour off), the sleeping hours, the routine once a day
   // in order (a kind with no job posted now waits for its window; on the days after, a kind with a window is taken from its opening, one
   // without from the day's start if a job of it is posted now), the tasks in order, broken off at the sleeping hour; else free.
@@ -256,11 +273,53 @@ VB['sim/agenda'] = (() => {
         routine.push({ kind: k, hours: piece(st, id, routineJob(st, hid, k), home >= 0 ? home : at, home).hours });
     // the tasks: their work left at the pawn's estimate, laid in order; the one under way is begun where the pawn is
     const head = pl.queue[0],
-      underWay = !hand && head && head.plan && head.plan.from === 'task' && head.begun !== null ? head.plan.key : null;
+      mark = !hand && head && head.plan && head.plan.from === 'task' && head.begun !== null ? head.plan : null,
+      underWay = mark ? mark.key : null,
+      underWayAt = (tk) =>
+        !!mark && (tk.plant !== undefined ? mark.plant === tk.plant : mark.plant === undefined && underWay === tk.key);
+    // each task's parts (a task by key: its job; a plant task: its steps left), the part laid now and its hours left
+    const parts = [],
+      part = [],
+      pleft = [];
     if (pp)
       for (const tk of pp.tasks) {
+        if (tk.plant !== undefined) {
+          const { parts: ps, win, crop } = plantParts(st, id, hid, tk),
+            sum = (k) => ps.reduce((n, x) => n + x.e[k], 0);
+          parts.push(ps);
+          part.push(0);
+          pleft.push(ps.length ? ps[0].e.mid : 0);
+          left.push(sum('mid'));
+          plan.push({
+            plant: tk.plant,
+            kind: 'plant',
+            site: tk.site,
+            key: ps.length ? ps[0].key : null,
+            step: ps.length ? ps[0].kind : null,
+            stands: ps.length > 0 && !ps[0].rough,
+            hours: ps.length ? { lo: sum('lo'), mid: sum('mid'), hi: sum('hi') } : null,
+            starts: null,
+            ends: null,
+            deadline: win
+              ? { t: win.close, what: `the end of the ${crop} sowing${win.next ? ' next year' : ''}` }
+              : null,
+            verdict: null,
+            then: null,
+            rough: ps.some((x) => x.rough),
+            steps: ps.map((x) => ({
+              kind: x.kind,
+              key: x.key,
+              hours: { lo: x.e.lo, mid: x.e.mid, hi: x.e.hi },
+              rough: x.rough,
+            })),
+          });
+          continue;
+        }
         const j = st.jobs.get(tk.key),
           e = j ? estimate(st, id, j, [id]) : null;
+        parts.push(e ? [{ kind: tk.kind, key: tk.key, e, rough: false, from: -Infinity }] : []);
+        part.push(0);
+        pleft.push(e ? e.mid : 0);
         left.push(e ? e.mid : 0);
         plan.push({
           key: tk.key,
@@ -312,24 +371,33 @@ VB['sim/agenda'] = (() => {
         at = to < bed ? p.ends : (j.site ?? at);
         continue;
       }
-      const i = left.findIndex((l) => l > 1e-9);
+      // the first task with work left whose part may begin now (a plant task's hoeing waits for its sowing window)
+      const i = left.findIndex((l, n) => l > 1e-9 && parts[n][part[n]].from <= t + 1e-9);
       if (i >= 0) {
         const tk = pp.tasks[i],
-          j = st.jobs.get(tk.key),
-          w = (underWay === tk.key && plan[i].starts === null) || at === j.site ? 0 : (walk(st, at, j.site) ?? 0),
-          to = Math.min(t + w + left[i], bed, far);
+          P = parts[i][part[i]],
+          j = P.key === null ? null : st.jobs.get(P.key),
+          site = j ? (j.site ?? tk.site) : tk.site,
+          w = (underWayAt(tk) && plan[i].starts === null) || at === site ? 0 : (walk(st, at, site) ?? 0),
+          to = Math.min(t + w + pleft[i], bed, far),
+          did = Math.max(0, to - t - w);
         if (plan[i].starts === null) plan[i].starts = t;
-        put(t, to, 'task', tk.kind, tk.key, tk.site);
-        left[i] = Math.max(0, left[i] - Math.max(0, to - t - w));
+        put(t, to, 'task', P.kind, P.key, tk.site);
+        left[i] = Math.max(0, left[i] - did);
+        pleft[i] = Math.max(0, pleft[i] - did);
+        if (!(pleft[i] > 1e-9) && part[i] + 1 < parts[i].length) pleft[i] = parts[i][++part[i]].e.mid;
         if (!(left[i] > 1e-9)) plan[i].ends = to;
         t = to;
-        at = j.site ?? at;
+        at = site ?? at;
         continue;
       }
       if (t >= end - 1e-9) break;
-      // nothing to do: free until bed, a routine kind's window opening, or the next day's routine
+      // nothing to do: free until bed, a routine kind's window opening, the next day's routine, or a waiting task's part
       let to = Math.min(bed, (d + 1) * DAY);
       for (const r of pp.routine) if (!done.has(r) && opens(r, d) > t) to = Math.min(to, opens(r, d));
+      left.forEach((l, n) => {
+        if (l > 1e-9) to = Math.min(to, parts[n][part[n]].from);
+      });
       put(t, to, 'free', null, null, -1);
       t = to;
     }
@@ -337,6 +405,19 @@ VB['sim/agenda'] = (() => {
     // the tasks' ends and verdicts; one not ended within the days searched is reckoned on past them, the routine aside
     for (let i = 0; i < plan.length; i++) {
       const e = plan[i];
+      if (e.kind === 'plant') {
+        // a plant task: its parts not laid reckoned on past the days searched, each from its own opening; the chain's verdict
+        if (!followed || !parts[i].length) continue;
+        if (e.ends === null) {
+          let u = Math.max(t, far, parts[i][part[i]].from);
+          if (e.starts === null) e.starts = u;
+          u = past(u, pleft[i], sl);
+          for (const P of parts[i].slice(part[i] + 1)) u = past(Math.max(u, P.from), P.e.mid, sl);
+          e.ends = u;
+        }
+        e.verdict = verdict(e.deadline, e.ends, past(e.ends, e.hours.hi - e.hours.mid, sl));
+        continue;
+      }
       if (!e.stands || !followed) continue;
       if (e.ends === null) e.ends = past(Math.max(t, far), left[i], sl);
       if (e.starts === null) e.starts = Math.max(t, far);

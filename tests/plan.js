@@ -161,5 +161,70 @@ const head = (st) => st.player.queue[0];
   sound(st, 'over two days');
   sound(back, 'loaded');
 }
+// 6. VB-1621: a plant task, one field carried from its clearing to its sowing. Its refusals; on the project's tile, the clearing, the
+// breaking, the hoeing and the sowing taken in that order with no further act of the player, the pawn going on to the next task while a
+// step's job is not posted yet; on a field already broken, the hoeing and the sowing only; the task leaves once the field is sown; a save
+// and a load go on the same; a window shut with the field unsown drops it.
+{
+  const PLANT = ['clear', 'break', 'plow', 'sow'];
+  const st = played(make());
+  const f = st.farmsteads[0], site = st.jobs.get('clear:f0').site, broken = f.fields[0].tile;
+  assert.match(String(Sim.plan(st, 'add', { plant: 5 })), /no field of the household's nor a field project at 5/);
+  const theirs = st.farmsteads[1].fields[0].tile;
+  assert.match(String(Sim.plan(st, 'add', { plant: theirs })), /no field of the household's/, 'a neighbour\'s field is not its to plant');
+  assert.strictEqual(Sim.plan(st, 'add', { plant: site }), true, 'the project\'s tile, its clearing posted');
+  assert.match(String(Sim.plan(st, 'add', { plant: site })), /already planned/);
+  assert.strictEqual(Sim.plan(st, 'add', { plant: broken }), true, 'a field broken, in stubble, in its window');
+  assert.match(String(Sim.plan(st, 'add', { plant: broken, at: 3 })), /already planned/);
+  assert.deepStrictEqual(st.player.plan.tasks[0], { plant: site, kind: 'plant', site });
+  const v = Sim.planView(st).tasks;
+  assert.deepStrictEqual(v.map((t) => [t.kind, t.plant, t.step, t.stands]), [['plant', site, 'clear', true], ['plant', broken, 'plow', true]]);
+  const begun = [];
+  let seen = null, saved = null, stood = false;
+  for (let i = 0; i < 10 * 24 * 6 && st.player.plan.tasks.length; i++) {
+    Sim.advance(st, 0.1);
+    const c = head(st);
+    if (c && c.plan && c.plan.from === 'task' && c.begun !== null && c !== seen) {
+      seen = c;
+      begun.push([c.plan.plant, c.plan.kind, c.plan.key]);
+      if (c.plan.kind === 'break' && !saved) saved = JSON.parse(JSON.stringify(Sim.save(st)));
+    }
+    const t0 = Sim.planView(st).tasks.find((t) => t.plant === site);
+    if (t0 && !t0.stands && t0.step === 'break') stood = true;
+  }
+  const at = (tile) => begun.filter((b) => b[0] === tile).map((b) => b[1]);
+  const order = (ks) => ks.every((k, n) => !n || PLANT.indexOf(ks[n - 1]) <= PLANT.indexOf(k));
+  assert(order(at(site)) && at(site)[0] === 'clear' && at(site).includes('break') && at(site).includes('sow'), `the steps at the project's tile in order: ${at(site)}`);
+  assert(at(broken).length && order(at(broken)) && at(broken).every((k) => k === 'plow' || k === 'sow'), `the broken field: its hoeing and sowing only, ${at(broken)}`);
+  assert(stood, 'between the clearing and the breaking the task stood, its next job not yet posted');
+  assert(begun.findIndex((b) => b[0] === broken) < begun.findIndex((b) => b[1] === 'break'), 'the pawn went on to the next task meanwhile');
+  const fd = f.fields.find((x) => x.tile === site);
+  assert(fd && ['sown', 'growing'].includes(fd.stage), 'the new field is sown');
+  assert.strictEqual(st.player.plan.tasks.length, 0);
+  assert.deepStrictEqual([st.player.plan.last.plant, st.player.plan.last.kind, st.player.plan.last.which], [site, 'plant', 'sown']);
+  assert.match(String(Sim.plan(st, 'add', { plant: site })), /is sown/, 'a sown field is refused');
+  sound(st, 'planted');
+  // the run saved at the breaking goes on the same
+  const back = Sim.load(tinyWorld(rows), saved), again = Sim.load(tinyWorld(rows), saved);
+  assert(back.player.plan.tasks.some((t) => t.plant === site), 'the loaded plan keeps the plant task');
+  Sim.advance(back, 24);
+  Sim.advance(again, 12);
+  Sim.advance(again, 12);
+  assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
+  sound(back, 'planted, loaded');
+}
+{
+  // a window shut with the field unsown (its household's seed gone: hoed, never sown): the task leaves, kept in `last`
+  const st = played(make()), Stores = VB['sim/stores'], hh = st.households[0];
+  const fd = st.farmsteads[0].fields[2];
+  assert.strictEqual(Sim.plan(st, 'add', { plant: fd.tile }), true);
+  Stores.take(st, hh, Stores.grainGood('barley'), Stores.grainOf(hh, 'barley'), 'seed');
+  for (let i = 0; i < 12 * 24 * 10 && st.player.plan.tasks.length; i++) Sim.advance(st, 0.1);
+  assert.deepStrictEqual([st.player.plan.last.plant, st.player.plan.last.which], [fd.tile, 'closed'], 'its window shut, the field unsown');
+  assert.match(String(Sim.plan(st, 'add', { plant: fd.tile })), /barley sowing is over/, 'refused once its window has shut');
+  fd.crop = 'fallow';
+  assert.match(String(Sim.plan(st, 'add', { plant: fd.tile })), /lies fallow/);
+}
 console.log('plan: ops and refusals; the routine once a day in order, the tasks in order, a finished task leaves; hand commands first; '
-  + 'sleep by the plan\'s hours, a night worked by hand; a clearing over two days; saved and loaded');
+  + 'sleep by the plan\'s hours, a night worked by hand; a clearing over two days; saved and loaded; a plant task from clearing to '
+  + 'sowing, shorter on a broken field, dropped when its window shuts');
