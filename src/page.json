@@ -41,6 +41,7 @@
   "page/gathering.js",
   "page/actbar.js",
   "page/plan.js",
+  "page/day.js",
   "page/gift.js",
   "page/positions.js",
   "page/choose.js",

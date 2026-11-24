@@ -490,6 +490,8 @@ function planTab(hh) {
         ? `${mine ? 'Your plan, as head' : `${head}'s plan`}: the targets by ${mine ? 'your' : 'the head’s'} reckoning.`
         : 'No head: the custom’s plan.',
     )}</p>` +
+    section('Today') +
+    dayHTML(hh, mine) +
     section('Targets') +
     markKey() +
     '<p class="card-note"><a href="#" class="guide-link" data-guide="work">What each kind of work needs and gives: the guide</a></p>' +
@@ -543,7 +545,10 @@ function planClick(b, hh) {
     return;
   } else if (d.plan === 'project') r = Sim.head(st, 'project', { what: d.what === 'null' ? null : d.what });
   else if (d.plan === 'drop') r = Sim.head(st, 'dropProject', d.id !== undefined ? { id: +d.id } : {});
-  else return;
+  else if (d.plan.startsWith('day')) {
+    r = dayClick(b, hh); // the day's verbs (page/day, VB-477)
+    if (r === undefined) return;
+  } else return;
   planMsg = r === true ? { text: `Done: ${b.getAttribute('aria-label')}.` } : { text: r, bad: true };
 }
 // The tiles that would take the next field or meadow, read once at the tool's start: those within the farm's reach (the walk of the rule,
