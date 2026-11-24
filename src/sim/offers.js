@@ -20,7 +20,7 @@ VB['sim/offers'] = (() => {
   const { register } = VB['sim/commands'];
   const { DAY, YEAR, TRAVEL } = VB['sim/rules'];
   const { remember } = VB['sim/relations'];
-  const { log, fullName, holdingOf, atHousehold } = VB['sim/records'];
+  const { log, fullName, holdingOf, atHousehold, mindsWhy } = VB['sim/records'];
   const { grainOf } = VB['sim/stores'];
   const { agentWhy } = VB['sim/decisions'];
   const home = (st, id) => Number.isInteger(id) && !!st.households[id] && !st.households[id].dissolved;
@@ -143,6 +143,8 @@ VB['sim/offers'] = (() => {
         a.phase === 'back'
       )
         return `pawn ${args.carrier} cannot carry the gift`;
+      const kept = mindsWhy(st, p.id); // VB-1571
+      if (kept) return kept;
       if (from.farmstead === to.farmstead) return 'nothing is carried within a farmstead';
       if (n > TRAVEL.load + 1e-9) return `one pawn carries at most ${TRAVEL.load} rations: a larger gift is fetched`;
       g.carrier = p.id;

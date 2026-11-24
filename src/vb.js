@@ -178,6 +178,9 @@ VB.COUNTERS = {
   sourceSettled:
     "Tiles settled by the searches for a farm's source of water: one a farm on its first morning, at a well's finishing in its village " +
     'and once a year on its planning day, each stopping at the first source (sim/water; VB-1551)',
+  childMinded:
+    'Times one about to leave home was found the last of 7 or over there with a child under 7, and stayed: a lodger, a carrier, a ' +
+    'fetcher or hauler of a gift, a suitor (sim/records mindsWhy; VB-1571)',
   thirstDue:
     'Entries of the thirsty pawns taken when due: a pawn that ended a day without a drink, at 36 hours without one, and one that ' +
     'drank at night and goes in (sim/drinking; VB-1554)',

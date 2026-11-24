@@ -5,7 +5,7 @@
 VB['sim/visits'] = (() => {
   const Due = VB['sim/due'],
     dueKey = (e) => e.due; // its order (sim/due): by due, after those due at the same time
-  const { living } = VB['sim/records'];
+  const { living, mindsWhy } = VB['sim/records'];
   const { DAY, YEAR, SEASON_DAYS, YEAR_DAYS, WORK, HUNGER, MARRIAGE, ASK, TRAVEL } = VB['sim/rules'];
   const { on } = VB['sim/events'];
   const { log, personEvent, age, spouseOf, wasWidowed, settlementIdOf, practice, fullName, atHousehold, spokesmanOf } =
@@ -215,6 +215,7 @@ VB['sim/visits'] = (() => {
         hh = st.households[e.household];
       if (!p.alive || spouseOf(st, p.id) !== null || p.retired || p.servant || p.household !== e.household) continue;
       if (hh.dissolved || !a || a.away !== undefined || travelling(a)) continue;
+      if (mindsWhy(st, p.id)) continue; // the last one at home with a child under 7 stays (VB-1571)
       const hours = hoursFrom(st, hh, e.village);
       if (!(hours > TRAVEL.dayWalk && hours < Infinity)) continue; // the way has changed since (the table is a year's)
       // the table's hours are green to green: from where he stands the way may lie beyond the route search's reach (VB-436), and he does not
