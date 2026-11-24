@@ -210,6 +210,16 @@ function hudClick(b) {
   else if (d.hud === 'buildpick') buildPick(d.what);
   else if (d.hud === 'placeoff') buildPick(null);
   else if (d.hud === 'buildhere') buildHere();
+  else if (d.hud === 'uptoggle') hud.up = !hud.up;
+  else if (d.hud === 'upgrade') ladderAdd(d.what);
+  else if (d.hud === 'fell') {
+    const n = +d.n;
+    hudMsg(
+      Sim.plan(st, 'add', { fell: +d.tile, n }),
+      `Added to the plan: felling, ${n} ${n === 1 ? 'load' : 'loads'}.`,
+    );
+  } else if (d.hud === 'cutwood')
+    hudMsg(Sim.plan(st, 'add', { firewood: hudHouse().f.house }), 'Added to the plan: cutting firewood.');
   else if (d.hud === 'planadd') hudMsg(Sim.plan(st, 'add', { key: d.target }), 'Added to the plan.');
   else if (d.hud === 'premove') {
     hudMsg(Sim.plan(st, 'remove', { i: +d.i }), 'Taken out of the plan.');

@@ -27,10 +27,78 @@ const buildTasked = () => {
 // The build button calls for a tap while there is a camp and no farmstead in the plan: the first thing to do.
 const buildCalls = (f) => hudCamp(f) === 'camp' && !buildTasked();
 const buildCost = (e) =>
-  `About ${hudSpan(e.hours)} of work to raise, and ${e.timber} ${e.timber === 1 ? 'load' : 'loads'} of timber cut and carried from the wood`;
+  `About ${hudSpan(e.hours)} of work to raise, and ${woodTimber(e.timber)} cut and carried from the wood`;
+// ---- the ladder: what stands at the farmstead and what can follow (Sim.farmView, VB-1631), built up by an upgrade task (VB-1632) ----
+const LADDER = {
+  camp: { name: 'Camp', icon: () => goodIcon('flour'), line: 'The goods landed, and nothing built.' },
+  booth: { name: 'Booth', icon: () => actIcon('home'), line: 'Poles and bark: a roof for the nights.' },
+  cottage: { name: 'Cottage', icon: () => actIcon('home'), line: 'Log walls and a turf roof: a house to winter in.' },
+  stone: {
+    name: 'Stone foundation',
+    icon: () => goodIcon('stone'),
+    line: 'The cottage raised onto stones: its sills do not rot.',
+  },
+  barn: { name: 'Barn', icon: () => goodIcon('sheaves'), line: 'A barn for the harvest: less of it lost in store.' },
+};
+const ladderOf = (k) => LADDER[k] || { name: siteCap(k), icon: () => actIcon('build'), line: '' };
+const ladderNeeds = (n) =>
+  [
+    n.hours ? `about ${hudSpan(n.hours)} of work` : '',
+    n.timber ? woodTimber(n.timber) : '',
+    n.stone ? `${n.stone} stone` : '',
+  ]
+    .filter(Boolean)
+    .join(', ');
+// What is being built at farm f now, in words, or ''.
+function ladderBuilding(V) {
+  const b = V && V.building;
+  if (!b || !b.step) return '';
+  return `Building the ${ladderOf(b.what).name.toLowerCase()}: ${hudKind(b.step).toLowerCase()} now, about ${hudSpan(b.hoursLeft)} of work left.`;
+}
+// The card of the upgrade icon, and the build menu under the Farmstead once it stands: what stands, what can follow and what it takes.
+function ladderHTML(f) {
+  const V = Sim.farmView(st, f.id);
+  if (!V) return '';
+  const row = (k, words, act) => {
+    const L = ladderOf(k);
+    return `<div class="u2-build u2-rung">${L.icon()}<span><b>${esc(L.name)}</b><span>${esc(L.line)}</span>${words}${act}</span></div>`;
+  };
+  let h = `<p class="sub">Stands now: <b>${esc(ladderOf(V.rung).name)}</b>. ${esc(ladderBuilding(V))}</p>`;
+  for (const e of V.next)
+    h += row(
+      e.what,
+      `<small>${esc(siteCap(ladderNeeds(e.needs)))}.</small>`,
+      e.planned
+        ? '<em class="ok">In the plan.</em>'
+        : e.ok
+          ? `<button type="button" class="u2-chip go" data-hud="upgrade" data-what="${esc(e.what)}">Build</button>`
+          : `<em>Not now: ${esc(e.why)}.</em>`,
+    );
+  for (const o of V.outbuildings)
+    h += row(
+      o.what,
+      '',
+      o.built
+        ? '<em class="ok">It stands.</em>'
+        : o.ok
+          ? '<em>It cannot be planned yet: its task is still to come.</em>'
+          : `<em>Not now: ${esc(o.why)}.</em>`,
+    );
+  return h;
+}
+function ladderAdd(what) {
+  const { f } = hudHouse();
+  hudMsg(
+    Sim.plan(st, 'add', { upgrade: f.house, what }),
+    `Added to the plan: the ${ladderOf(what).name.toLowerCase()}.`,
+  );
+}
 function buildHTML() {
-  const M = Sim.buildMenu(st);
+  const M = Sim.buildMenu(st),
+    { f } = hudHouse();
   if (!M.length) return '<p class="sub">Nothing can be built now.</p>';
+  // once the farmstead stands, what can follow it, as its upgrade icon shows it (one list, two ways in)
+  if (f && !hudCamp(f)) return `<h3>The farmstead</h3>${ladderHTML(f)}`;
   return (
     M.map((e) => {
       const B = BUILD_WHAT[e.what] || { name: siteCap(e.what), icon: () => actIcon('build'), line: '' };

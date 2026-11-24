@@ -69,6 +69,12 @@ function u2Place() {
       below = false;
     if (a.call) {
       // above its tile where there is room, else under it, else where there is most, and never under the bars
+      // a callout taller than the land between the bars scrolls within it, its top and its close never under a bar
+      a.el.style.maxHeight = '';
+      const room = Math.max(120, bot - top),
+        tall = a.el.offsetHeight > room;
+      a.el.classList.toggle('scroll', tall);
+      if (tall) a.el.style.maxHeight = `${room}px`;
       const cw = a.el.offsetWidth,
         ch = a.el.offsetHeight,
         over = y - hex * 0.9 - ch >= top,

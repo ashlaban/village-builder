@@ -217,3 +217,13 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2-help { flex: none; align-self: center; display: flex; gap: 8px; align-items: center; max-width: 100%; padding: 4px 6px 4px 12px; font-size: 14px; font-weight: 700; border-radius: 999px; }
 .u2-help > svg { width: 20px; height: 20px; flex: none; }
 .u2-welcome svg, .u2-call .u2-act svg { display: inline-block; width: 18px; height: 18px; vertical-align: -3px; }
+/* wood and the ladder (page/ui2wood, page/ui2build): the fire's warning on the house's wood gauge; the upgrade icon beside the house */
+.u2-gauges i { position: relative; }
+.u2-gauges i > b { position: absolute; right: -6px; top: -6px; width: 15px; height: 15px; border-radius: 50%; background: var(--red); color: #fff7ec; font: 800 11px/15px var(--body); text-align: center; }
+.u2-pin.up { margin-left: 40px; margin-top: -6px; background: #f3dfa6; }
+.u2-ladder { display: grid; gap: 6px; padding-top: 4px; }
+.u2 .u2-rung { padding: 8px 10px; box-shadow: none; } .u2-rung > svg { width: 28px; height: 28px; }
+.u2-build em.ok { color: var(--pine); }
+.u2 .u2-chip.go { background: var(--red); color: #fff7ec; justify-self: start; }
+.u2 .u2-chip svg, .u2-legend svg { width: 16px; height: 16px; vertical-align: -3px; display: inline-block; }
+.u2-call.scroll { overflow-y: auto; overscroll-behavior: contain; opacity: 0.999; } .u2-call.scroll::after { display: none; }
