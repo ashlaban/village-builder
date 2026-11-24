@@ -213,6 +213,7 @@ const Sim = (() => {
     thirstLine,
     reasonOf,
     reasonLine,
+    agenda: VB['sim/agenda'].agenda, // the played pawn's queue and open work against their deadlines (VB-1616)
     RIVER,
     byRiver,
     wetFactor, // the share of a field's fertility its wetness and ditch leave now (VB-721): the field's card

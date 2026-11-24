@@ -476,6 +476,18 @@ VB['sim/opportunities'] = (() => {
     return out;
   }
 
+  // Only the work pawn id may take, as forPawn lists it (VB-1616: the agenda's open work, over its household's and village's jobs); [] for
+  // a pawn with no household. Read-only, as forPawn.
+  function workFor(st, id) {
+    const view = actorView(st, id),
+      p = view.pawns[id],
+      out = [];
+    if (!p || p.died !== null || !view.agents[id] || p.household === null) return out;
+    const hh = view.households[p.household];
+    if (hh && !hh.dissolved) work(view, p, cal(view.t), out);
+    return out;
+  }
+
   // ---- a choice the moving round will read (VB-1101), for the skip's stop at the round's eve ----
   // The first thing the played pawn, or a member of its household it answers for as head, may do at the round with its wish or custom
   // letting it: {text, spot (a farm's house tile)} or null. Offers it holds are the skip's own stop. Reads only; writes nothing.
@@ -568,5 +580,5 @@ VB['sim/opportunities'] = (() => {
     if (s.id !== id) return `${fullName(st.pawns[pl.pawn])}'s successor is ${fullName(st.pawns[s.id])}`;
     return goOnAs(st, id, `The player went on as its ${s.why}, ${fullName(st.pawns[id])}`);
   }
-  return { actorView, forPawn, successor, succeed, roundChoice };
+  return { actorView, forPawn, workFor, successor, succeed, roundChoice };
 })();

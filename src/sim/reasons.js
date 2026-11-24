@@ -164,5 +164,5 @@ VB['sim/reasons'] = (() => {
     if (!who) return r.why.charAt(0).toUpperCase() + r.why.slice(1);
     return r.why ? `${who}: ${r.why}` : who;
   }
-  return { REASONS, BY, reasonOf, reasonLine, frostExpected };
+  return { REASONS, BY, reasonOf, reasonLine, frostExpected, windowLeft, cause };
 })();

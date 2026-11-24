@@ -170,6 +170,7 @@
   "sim/births.js",
   "sim/people.js",
   "sim/reasons.js",
+  "sim/agenda.js",
   "sim/landing.js",
   "sim/scenarios.js",
   "sim/clock.js",
