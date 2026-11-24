@@ -31,6 +31,7 @@ const HOLDOUT = true;
 const EXCLUDE = ['index.html', 'package-lock.json', 'BACKLOG.md', 'BACKLOG_ARCHIVE.md', 'QUESTION_ARCHIVE.md', 'docs/img', 'docs/agents/usage', 'docs/bench'];
 const BASELINES = /^tests\/(.*baseline.*\.json|counters\.json)$/;
 const CAP = 60000;
+const RUNNERS = ['tests/suites.js', 'tests/run.js']; // lists and runners of tests, not tests
 
 // ---- small helpers
 const fnv1a = (s) => { let h = 0x811c9dc5; for (const c of Buffer.from(s)) h = Math.imul(h ^ c, 0x01000193) >>> 0; return h; };
@@ -78,7 +79,7 @@ function change(root, id, base, head) {
   const known = new Set(mh.map((m) => m.replace(/\.[cm]?[jt]s$/, ''))); // VB['sim/x'] names a module; VB.COUNTERS, VB.count do not
   const owners = (ref) => { try { return (JSON.parse(show(root, ref, 'src/owners.json') || '{}').fields) || {}; } catch { return {}; } };
   const ob = owners(base), oh = owners(head);
-  added.owners = Object.keys(oh).filter((k) => JSON.stringify(oh[k]) !== JSON.stringify(ob[k])).map((k) => `${k} → ${oh[k].owner}`);
+  added.owners = Object.keys(oh).filter((k) => JSON.stringify(oh[k]) !== JSON.stringify(ob[k])).map((k) => `${k} → ${typeof oh[k] === 'string' ? oh[k] : oh[k].owner || JSON.stringify(oh[k])}`);
   const unparsed = [];
   for (const { f } of src) {
     const a = facts(show(root, base, f), f), b = facts(show(root, head, f), f);
@@ -171,7 +172,7 @@ async function packet(root, id, base, head) {
         const r = cp.spawnSync('npm', ['test', '--silent'], { cwd: root, encoding: 'utf8', maxBuffer: 1 << 26 });
         ev.push(`- npm test at the head: ${r.status === 0 ? 'passes' : 'FAILS'}: ${(r.stdout + r.stderr).trim().split('\n').filter((l) => /passed|failed|FAIL/.test(l)).slice(-3).join(' / ')}`);
       }
-      const tests = c.names.filter((n) => n.s !== 'D' && /^tests\/[^/]+\.js$/.test(n.f)).map((n) => n.f);
+      const tests = c.names.filter((n) => n.s !== 'D' && /^tests\/[^/]+\.js$/.test(n.f) && !RUNNERS.includes(n.f)).map((n) => n.f);
       if (tests.length) {
         fs.rmSync(path.join(tree, 'tests'), { recursive: true, force: true });
         fs.cpSync(path.join(root, 'tests'), path.join(tree, 'tests'), { recursive: true, filter: (s) => !s.includes(`${path.sep}fixtures`) });
