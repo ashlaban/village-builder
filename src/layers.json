@@ -119,6 +119,7 @@
       "culture",
       "sim/encounters",
       "sim/relations",
+      "sim/stories",
       "sim/pastimes",
       "sim/mood",
       "sim/society",

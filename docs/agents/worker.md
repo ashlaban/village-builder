@@ -18,8 +18,10 @@ sub-agents leave notes in the inbox (`node tools/inbox.js --help`), a local file
 
 ## 1. Ready tasks, three or four at a time, until none are left
 Aim for at least one L task, three M or five S. Keep three or four sub-agents running; start the next when one ends.
-1. Choose: `node tools/backlog.js next 6` gives the ready tasks in order, with sizes and summaries. Take them in that order, but run
-   side by side only tasks of different archs, and run alone a task whose summary says so, a plan and a wrap-up. After a slice's
+1. Choose: `git fetch -q origin`, then `node tools/lanes.js <free places>` (VB-1678): the ready tasks in order, but each held back
+   that meets, by the functions of its `Touches:` line, a task already taken, a task running (the inbox) or a branch pushed and not
+   merged; a plan and a wrap-up alone; a task with no footprint only beside other archs. Take what it says `take`, and also run alone
+   a task whose summary says so. After a slice's
    wrap-up, take the collecting tasks of findings next ("Teleports found, collected", "Acts with no pawn, collected"), whatever their
    priority: findings are swept there, not interleaved a task each (Kim, 18 November).
 2. Start: `node tools/inbox.js start VB-NNN` reserves the task's new IDs. Then a `vb-task` sub-agent, in the background, isolated in
@@ -32,7 +34,8 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
    the model by size as for the task, at most two beside the implementers, with only "Review VB-NNN; base <sha>; head <sha>; inbox"; its last
    line is the verdict. Merge on `pass`, `control` or `ineligible`. On `revise`, send the same implementer "Revise VB-NNN" (SendMessage; a
    fresh `vb-task` by `continue` if it is past 90 calls); it confirms and gives its result again, then merge. One review a task.
-   Merge it, one at a time: `git merge --no-ff <its branch>` into the run's branch, then `npm test`.
+   Merge it, one at a time: `git merge --no-ff <its branch>` into the run's branch, then `npm test`, then
+   `node tools/lanes.js --measure VB-NNN HEAD^1..HEAD^2 --inbox`: its declared footprint against its edits, for the night's report.
    - `index.html` is derived and no longer in the repository (VB-450): a branch from before that may still conflict in it; take
      the deletion (`git rm index.html`), conclude the merge, and go on to `npm test`.
    - Any other conflict, or a red `npm test`: undo the merge (`git merge --abort`, or `git reset --hard` to the commit before it), and
@@ -61,12 +64,14 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
 ## 2. When no ready task is left
 Start one general-purpose sub-agent on Opus with this section as its prompt, and "your task ID is VB-000; your reserved task IDs
 are <IDs>" (`node tools/inbox.js start VB-000`): read the design's Decided and Agreed points against the code, a section at a time
-(`node tools/doc.js --toc`), and note up to five candidate tasks, `node tools/inbox.js note VB-000 task ...`: goal, proposed
-criteria, Design ref, size, and for each the questions Kim must answer, with proposed answers, as a `question` note (`about=` the
+(`node tools/doc.js --toc`), and note up to five candidate tasks, `node tools/inbox.js note VB-000 task ...`, written as `docs/agents/tasks.md` says: goal, proposed
+criteria, Design ref, `touches=`, size, and for each the questions Kim must answer, with proposed answers, as a `question` note (`about=` the
 new task's ID); note every teleport found (`AGENTS.md`, the hard rule); report the IDs. Then `node tools/inbox.js apply`, commit and
 push. Candidates are never ready. Prefer small tasks that unblock others.
 
 ## 3. Wrap up, whenever you stop
+0. Bring in main before the last push: `git fetch origin main && node tools/renumber.js --onto origin/main && git merge origin/main`,
+   then `npm test`. The renumbering moves the night's new task IDs that another session took meanwhile; the inbox follows it.
 1. `npm run nightly`: it makes the late-game fixtures the sources lack (VB-272: a local cache keyed by the sources, about 2 minutes
    for all four) and appends the bench history. This is the night's one measurement of its changes to behaviour (Kim, 18 November):
    write the PR's Targets section from it and `node tools/targets.js`. Run nothing else meanwhile, since the bench times the machine. Commit
@@ -83,5 +88,10 @@ push. Candidates are never ready. Prefer small tasks that unblock others.
 - Timing is measured by the nightly bench, alone on the machine (section 3): a time a sub-agent measured beside others is a
   description, never a result.
 - Only you merge, apply and push; a sub-agent commits on its worktree's branch and writes nothing outside its worktree but the inbox.
-- If `BACKLOG.md` or `BACKLOG_ARCHIVE.md` conflicts when you update from `main`, keep both sides' rows (delete only the conflict
-  markers) and run `node tools/backlog.js sync`, which rebuilds the tables from the task files.
+- `BACKLOG.md` and `BACKLOG_ARCHIVE.md` merge by task row once `npm install` has set the merge drivers (`tools/merge.js`, VB-1679): rows
+  changed on different sides merge themselves. What conflicts still is a real clash: one ID taken by two branches (renumber yours, as
+  "How this backlog works" says), a row changed two ways, or a row done on one side and changed on the other. Resolve it from the task
+  files and run `node tools/backlog.js sync`, which rebuilds the tables from them. The JSON lists (`src/owners.json`, `page.json`,
+  `manifest.json`, `layers.json`, `tests/counters.json`) merge by key and element the same way, and a JavaScript file whose only conflicts
+  are in its import block, its export list or a table marked `// @merge union` merges those by name. `npm test` after the merge is
+  the check; each resolution is a line of `<git common dir>/vb-merge.log`: list them in the PR beside the merge they belong to.

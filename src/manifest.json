@@ -55,6 +55,7 @@
   "sim/makings.js",
   "sim/prospect.js",
   "sim/relations.js",
+  "sim/stories.js",
   "sim/sleep.js",
   "sim/mood.js",
   "sim/claims.js",

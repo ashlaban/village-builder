@@ -1067,10 +1067,12 @@ function checkState(st) {
     if (p.rel) checkRel(st, p, bad);
     if (p.ties) checkTies(st, p, bad);
     if (p.goodwill) checkGoodwill(st, p, bad);
+    if (p.known) checkKnown(st, p, bad);
     if (p.kinPush !== null &&
       !(typeof p.kinPush.to === 'string' && within(p.kinPush.w, 0, 1))) bad.push(`pawns[${p.id}]: kinPush is ${JSON.stringify(p.kinPush)}`);
     if (p.landWait !== undefined && !(Number.isInteger(p.landWait) && p.landWait >= 0)) bad.push(`pawns[${p.id}]: landWait is ${p.landWait}`);
   }
+  checkStories(st, bad);
   const open = new Map();
   for (const u of st.unions) {
     if (u.end !== null && u.end < u.start) bad.push(`unions[${u.id}]: ends (${u.end}) before it starts (${u.start})`);
@@ -2017,6 +2019,34 @@ function checkHerds(st, bad) {
 }
 // Goodwill balances (sim/relations, VB-217): none for the dead or with them, at most GOODWILL.cap, each {v, t} with v non-zero and finite,
 // t no later than now, mirrored exactly on the other pawn ({v: -v, t}).
+const within = (x, lo, hi) => Number.isFinite(x) && x >= lo - 1e-9 && x <= hi + 1e-9;
+// VB-523: a pawn's stories: the living only, at most STORY.keep, each of a live story once, its values within bounds
+function checkKnown(st, p, bad) {
+  const { STORY } = VB['sim/stories'];
+  if (!p.alive) { bad.push(`pawns[${p.id}]: dead and holding stories`); return; }
+  if (!Array.isArray(p.known) || p.known.length > STORY.keep) { bad.push(`pawns[${p.id}]: ${p.known.length} stories held, over ${STORY.keep}`); return; }
+  const seen = new Set();
+  for (const e of p.known) {
+    const where = `pawns[${p.id}].known<${e.story}>`;
+    if (!st.stories || !st.stories.has(e.story)) bad.push(`${where}: no live story`);
+    if (seen.has(e.story)) bad.push(`${where}: held twice`);
+    seen.add(e.story);
+    if (!within(e.v, -1, 1) || !(Number.isInteger(e.hops) && e.hops >= 0) || !within(e.s, 0, 1) || !(e.t <= st.t) ||
+      !Array.isArray(e.zeal) || e.zeal.length !== 2 || !e.zeal.every((z) => within(z, 0, 1)) || typeof e.first !== 'boolean')
+      bad.push(`${where}: ${JSON.stringify(e)}`);
+  }
+}
+// VB-523: each live story is held by as many living pawns as `held` says, at least one; its kind and parties known
+function checkStories(st, bad) {
+  if (!st.stories) return;
+  const { STORY } = VB['sim/stories'], n = new Map();
+  for (const id of st.living) for (const e of st.pawns[id].known || []) n.set(e.story, (n.get(e.story) || 0) + 1);
+  for (const [id, s] of st.stories) {
+    if (s.id !== id || !STORY.kinds[s.kind] || !st.pawns[s.subject] || (s.other !== null && !st.pawns[s.other]) || !within(s.v, -1, 1) ||
+      !(id < st.storySeq)) bad.push(`stories<${id}>: ${JSON.stringify(s)}`);
+    if (s.held !== (n.get(id) || 0) || s.held < 1) bad.push(`stories<${id}>: held ${s.held}, by ${n.get(id) || 0} living pawns`);
+  }
+}
 function checkGoodwill(st, p, bad) {
   const { GOODWILL } = VB['sim/rules'];
   if (!p.alive) { bad.push(`pawns[${p.id}]: dead with a goodwill map`); return; }

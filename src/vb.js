@@ -33,6 +33,9 @@ VB.COUNTERS = {
   routeCheck:
     'Changed tiles and cells read in testing a route set aside before it is taken back (sim/routes untouched, VB-1563)',
   talkWeighed: 'Eligible partners weighed in talkHour',
+  storyMade: 'Stories made, a witnessed event each (sim/stories, VB-523)',
+  storyWeighed: 'Held stories weighed by a teller at its telling in a talk (sim/stories, VB-523)',
+  storyTold: 'Stories told in a talk, believed or not (sim/stories, VB-523)',
   daysCalled: 'Days called by a creditor holder on its planning day (sim/days, VB-462)',
   obligationsDue: 'Obligations whose term ended at a step, taken off the due-queue (sim/obligations, VB-310)',
   asksRead: 'Open asks for a good passed by a head reading them, once a year a head (sim/asks, VB-699)',

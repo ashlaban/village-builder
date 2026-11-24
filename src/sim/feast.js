@@ -28,7 +28,7 @@ VB['sim/feast'] = (() => {
     for (const id of present)
       if (id !== hh.holder && st.pawns[id].alive && st.pawns[id].household !== hh.id)
         remember(st, id, hh.holder, 'ale');
-    emit(st, 'alePoured', { host: hh.holder, household: hh.id, barrels });
+    emit(st, 'alePoured', { host: hh.holder, household: hh.id, barrels, present });
     return barrels;
   }
   // ---- the feast (VB-458; design.md, The gift: The feast, What a feast books) ----
