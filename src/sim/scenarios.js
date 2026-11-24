@@ -501,9 +501,11 @@ VB['sim/scenarios'] = (() => {
     //   A routine event's slot becomes, once folded, the index of its count in st.recordYears (VB-199); slots are never removed.
     // @state st.pathCache: Map of route key ((class * w.N + from) * w.N + to; the load class only while discomfort weighs, VB-448)
     //   to path (tiles, both ends; sim/routes), oldest first, emptied each day a tile
-    //   changed cost, at most ROUTE.cacheMax.
+    //   changed cost (the routes untouched kept aside in st.routeKept), at most ROUTE.cacheMax.
     // @state st.routeFallbacks: number; routes not found within ROUTE.reach, walked straight
     // @state st.routeDirty: Set of tile indexes whose walking cost changed today; a nonempty set invalidates the route cache at day’s end
+    // @state st.routeKept: {routes: Map of route key to [path, choice cost, epoch], log, epoch}: set aside (sim/routes, VB-1563); derived
+    // @state st.routeCosts: Map of route key to the choice cost of a st.pathCache route its search found (sim/routes); derived
     // @state st.talks: number; talks since the start (sim/relations)
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
     // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)
@@ -552,6 +554,8 @@ VB['sim/scenarios'] = (() => {
       pathCache: new Map(),
       routeFallbacks: 0,
       routeDirty: new Set(),
+      routeKept: null,
+      routeCosts: null,
       talks: 0,
       driftMul: 1,
       naturalDeaths: true,

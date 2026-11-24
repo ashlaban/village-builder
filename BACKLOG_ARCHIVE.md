@@ -724,3 +724,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1561](backlog/VB-1561.md) | A hay target met early is kept to the winter | - | 2 | S | hayWanted stops the mowing when barn and mown hay reach the target; met at midsummer, the stack then falls under it by winter |
 | [VB-1565](backlog/VB-1565.md) | A helper who goes home is let go of the task it worked: no work credited to a hand not there | - | 1 | S | On the branch merged with main a lent helper walks home at the day's end still counted on the task, which goes on accruing work at its rate; tests/oxen.js is red |
 | [VB-1550](backlog/VB-1550.md) | Refactor: split sim/jobs by concern | - | 3 | S | sim/jobs is 714 lines: the job board, a job weighed for a pawn, and the head's day; the split follows them |
+| [VB-1563](backlog/VB-1563.md) | Cost: the routes begun by the planner's commands | - | 2 | M | The second part of the jobs line, 22%: the walk a task taken begins |

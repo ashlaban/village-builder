@@ -411,6 +411,10 @@ function checkState(st) {
   if (!(st.pathCache instanceof Map) || st.pathCache.size > globalThis.VB['sim/routes'].ROUTE.cacheMax) {
     bad.push('pathCache: exceeds ROUTE.cacheMax or is not a Map');
   }
+  { // VB-1563: the routes set aside at the day's emptying are bounded as the cache is, their log by ROUTE.keepDays
+    const K = st.routeKept, { ROUTE } = globalThis.VB['sim/routes'];
+    if (K && (K.routes.size > ROUTE.cacheMax || K.log.length > ROUTE.keepDays)) bad.push('routeKept: over ROUTE.cacheMax or ROUTE.keepDays');
+  }
   // the walking hours between villages (VB-286): a row a village, each as long as the villages are many; 0 on the diagonal, symmetric, and
   // every other entry null or a number in (0, ROUTE.reach / SPEED]
   {

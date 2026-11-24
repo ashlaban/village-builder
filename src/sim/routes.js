@@ -1,4 +1,5 @@
-// @sys sim/routes: least-cost path searches and the daily invalidation of the run's bounded route cache
+// @sys sim/routes: least-cost path searches and the daily invalidation of the run's bounded route cache, which keeps the routes no
+// changed tile could have touched
 VB['sim/routes'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { through, stepCost, trailStep, discomfort, invalidateReach, PATHS, DISCOMFORT } = VB['sim/walking'];
@@ -9,7 +10,9 @@ VB['sim/routes'] = (() => {
   // for (beyond it a pawn walks straight); minStep: the cheapest step there is, a lane over meadow. cacheMax: entries, first in first
   // out; the cache is emptied each day a tile changes cost (VB-236), and the most it held over 48 days after the first emptying was
   // 4,028 at medium-ref and 2,779 at small-y40: twice the larger, for a run of quiet days.
-  const ROUTE = { cacheMax: 8000, hours: 67, reach: 67 * SPEED, minStep: 1 / PATHS.speed[3] };
+  // keepDays: the emptyings a route searched is set aside for, to be taken back if untouched (VB-1563): a bound on the log and on what
+  // is set aside; it changes only how many searches are saved (16: tried at 1, 4, 8, 16 and 48, populous small, seed 7, task notes).
+  const ROUTE = { cacheMax: 8000, hours: 67, reach: 67 * SPEED, minStep: 1 / PATHS.speed[3], keepDays: 16 };
 
   const STRAIGHT = 1e-3; // see findRoute: what a tile's width off the straight line adds to a tile's key, in steps
   // ---- the search: A* (Hart, Nilsson and Raphael 1968) with the hex distance times the cheapest step as the bound ----
@@ -122,6 +125,7 @@ VB['sim/routes'] = (() => {
         const p = [to];
         for (let j = prev[to]; j >= 0; j = prev[j]) p.push(j);
         VB.count.routeExpand += expanded;
+        S.found = g[to]; // the route's key at the goal, its choice cost: what bounds the tiles this search popped (kept, below)
         return p.reverse();
       }
       for (let d = 0; d < 6; d++) {
@@ -229,9 +233,113 @@ VB['sim/routes'] = (() => {
   // Also used on load: pre-VB-198 saves may hold more entries than the current bound.
   function trimRoutes(st) {
     while (st.pathCache.size > ROUTE.cacheMax) {
-      st.pathCache.delete(st.pathCache.keys().next().value);
+      const k = st.pathCache.keys().next().value;
+      st.pathCache.delete(k);
+      costs(st).delete(k);
       VB.count.routeEvict++;
     }
+  }
+  // ---- the routes kept over the day's emptying (VB-1563) ----
+  // A* pops only tiles whose key, the cost so far plus the bound to the goal, is at most the goal's own key, the route's choice cost C
+  // (the heap's order is total: keys, then tile indexes). A tile t's key is at least (hexSteps(from, t) + hexSteps(t, to)) x minStep,
+  // whatever the ground costs, since no step costs less. So when every tile changed since a route was searched has that bound above C,
+  // no changed tile was popped then nor would be now, and a search now pops the same tiles in the same order: it finds the same route.
+  // At the day's emptying the routes searched are set aside (st.routeKept), with the tiles changed that day (its log, one list an
+  // emptying, for ROUTE.keepDays emptyings); a route set aside is taken back into the cache the first time it is asked for, once the test
+  // has passed against every tile changed since its day (the log from there, and st.routeDirty): what is taken is what the search would
+  // find, so nothing a walker does changes, only the searches saved. It is tested only when asked for: a test of every route set aside
+  // at each emptying cost what it saved. A route from the way back reversed, a fallback, and a route from before a load (its cost not
+  // known) are not set aside. st.routeKept and st.routeCosts are derived, not saved (sim/saves DERIVED): a run loaded searches again, and
+  // finds the same routes.
+  const costs = (st) => st.routeCosts || (st.routeCosts = new Map());
+  const kept = (st) => st.routeKept || (st.routeKept = { routes: new Map(), log: [], today: new Map(), epoch: 0 });
+  // The changed tiles, by cell of CELL x CELL tiles: a Map of cell to its tiles' axial coordinates, q and r in turn (sim/hex hexSteps's),
+  // so that a route is tested only against the tiles changed near it, and the test grows with the routes, not with the island's changes.
+  const CELL = 16;
+  const qOf = (cols, i) => {
+    const y = (i / cols) | 0;
+    return (i % cols) - ((y - (y & 1)) >> 1);
+  };
+  function note(cells, cols, t) {
+    const y = (t / cols) | 0,
+      c = (y >> 4) * ((cols + CELL - 1) >> 4) + ((t % cols) >> 4),
+      a = cells.get(c);
+    if (a) a.push(qOf(cols, t), y);
+    else cells.set(c, [qOf(cols, t), y]);
+  }
+  // Whether the route p, of choice cost c, is untouched by the changed tiles `cells` (above) of a world `cols` tiles wide: the bound above,
+  // with a margin for rounding, in twice hexSteps so as to stay in integers. A tile within the bound is at most R = r2 / 2 steps from
+  // either end, so within R rows of both and 1.5 R + 1 columns (offset rows shift by half a tile a row): only those cells are read.
+  const LO2 = 2 / ROUTE.minStep;
+  function untouched(cols, p, c, cells) {
+    if (!cells.size) return true;
+    const from = p[0],
+      to = p[p.length - 1],
+      fy = (from / cols) | 0,
+      ty = (to / cols) | 0,
+      fx = from % cols,
+      tx = to % cols,
+      fq = fx - ((fy - (fy & 1)) >> 1),
+      tq = tx - ((ty - (ty & 1)) >> 1),
+      r2 = (c * (1 + 1e-9) + 1e-9) * LO2,
+      R = Math.ceil(r2 / 2),
+      X = Math.ceil(1.5 * R) + 1,
+      cw = (cols + CELL - 1) >> 4,
+      y0 = Math.max(0, Math.max(fy, ty) - R) >> 4,
+      y1 = (Math.min(fy, ty) + R) >> 4,
+      x0 = Math.max(0, Math.max(fx, tx) - X) >> 4,
+      x1 = Math.min(cols - 1, Math.min(fx, tx) + X) >> 4;
+    const near = (at) => {
+      VB.count.routeCheck += at.length >> 1;
+      for (let k = 0; k < at.length; k += 2) {
+        const aq = fq - at[k],
+          ar = fy - at[k + 1],
+          bq = at[k] - tq,
+          br = at[k + 1] - ty;
+        if (Math.abs(aq) + Math.abs(ar) + Math.abs(aq + ar) + Math.abs(bq) + Math.abs(br) + Math.abs(bq + br) <= r2)
+          return true;
+      }
+      return false;
+    };
+    if (y1 < y0 || x1 < x0) return true;
+    if ((y1 - y0 + 1) * (x1 - x0 + 1) > cells.size) {
+      // fewer cells changed than the box holds: read those
+      for (const [cell, at] of cells) {
+        const cy = (cell / cw) | 0,
+          cx = cell - cy * cw;
+        VB.count.routeCheck++;
+        if (cy >= y0 && cy <= y1 && cx >= x0 && cx <= x1 && near(at)) return false;
+      }
+      return true;
+    }
+    for (let cy = y0; cy <= y1; cy++)
+      for (let cx = x0; cx <= x1; cx++) {
+        VB.count.routeCheck++;
+        const at = cells.get(cy * cw + cx);
+        if (at && near(at)) return false;
+      }
+    return true;
+  }
+  // The route under key k set aside at an emptying, taken into the cache if untouched since, or null. Its entry: [path, cost, epoch],
+  // the epoch the emptying's number; the log holds the emptyings from epoch - log.length + 1 to epoch, and `today` the tiles changed
+  // since the last (st.routeDirty, by cell).
+  function takeKept(st, k) {
+    const K = st.routeKept,
+      e = K && K.routes.get(k);
+    if (!e) return null;
+    K.routes.delete(k);
+    const cols = st.w.COLS,
+      first = K.epoch - K.log.length + 1;
+    if (e[2] < first) return null;
+    for (let i = e[2] - first; i < K.log.length; i++) if (!untouched(cols, e[0], e[1], K.log[i])) return null;
+    if (!untouched(cols, e[0], e[1], K.today)) return null;
+    VB.count.routeHit++;
+    costs(st).set(k, e[1]);
+    return e[0];
+  }
+  // A route just searched for: its cost noted, so that it can be set aside.
+  function searched(st, k, p) {
+    if (p.length > 1) costs(st).set(k, buffers(st.w).found);
   }
   // The route a walker of load class `cls` takes (findRoute), from the cache: keyed by the class as well while discomfort weighs (VB-448),
   // so a laden walk and an unladen one between the same tiles are two entries under the one bound; with DISCOMFORT.weight 0 every class
@@ -251,12 +359,12 @@ VB['sim/routes'] = (() => {
     if (back && back[0] === to) {
       VB.count.routeHit++;
       p = back.slice().reverse();
-    } else {
+    } else if (!(p = takeKept(st, k))) {
       p = findRoute(st.w, from, to, ROUTE.reach, c);
       if (!p) {
         p = [to];
         st.routeFallbacks++;
-      }
+      } else searched(st, k, p);
     }
     st.pathCache.set(k, p);
     trimRoutes(st);
@@ -272,9 +380,14 @@ VB['sim/routes'] = (() => {
     if (p) return p[0] === from;
     const back = st.pathCache.get(to * N + from);
     if (back) return back[0] === to;
-    const found = findRoute(st.w, from, to);
-    if (!found) return false;
-    st.pathCache.set(from * N + to, found);
+    const k = from * N + to;
+    let found = takeKept(st, k);
+    if (!found) {
+      found = findRoute(st.w, from, to);
+      if (!found) return false;
+      searched(st, k, found);
+    }
+    st.pathCache.set(k, found);
     trimRoutes(st);
     return true;
   }
@@ -282,14 +395,36 @@ VB['sim/routes'] = (() => {
   // the day. Dropping only the routes the tile could change took as long as the searches it saved (VB-236): the late fixtures change a
   // tile on nearly every day, and the cache refills with a tenth of the routes held.
   const costChanged = (st, tile) => {
+    if (!st.routeDirty.has(tile)) note(kept(st).today, st.w.COLS, tile);
     st.routeDirty.add(tile);
     invalidateReach(st.w, tile);
   };
-  // Once a game day: when any tile changed cost, empty the cache (the straight-walk fallbacks with it).
+  // Once a game day: when any tile changed cost, empty the cache (the straight-walk fallbacks with it), setting aside the routes searched
+  // (above), newest last, with the day's changed tiles in the log; at most ROUTE.cacheMax routes, and none older than the log, the oldest
+  // dropped first.
   function refreshRoutes(st) {
     if (!st.routeDirty.size) return;
+    const K = kept(st),
+      m = K.routes,
+      c = costs(st),
+      epoch = ++K.epoch;
+    K.log.push(K.today);
+    K.today = new Map();
+    if (K.log.length > ROUTE.keepDays) K.log.shift();
+    for (const [k, p] of st.pathCache) {
+      const cost = c.get(k);
+      if (cost === undefined) continue;
+      m.delete(k);
+      m.set(k, [p, cost, epoch]);
+    }
+    const first = epoch - K.log.length + 1;
+    for (const [k, e] of m) {
+      if (m.size <= ROUTE.cacheMax && e[2] >= first) break;
+      m.delete(k);
+    }
     VB.count.routeRefresh += st.pathCache.size;
     st.pathCache.clear();
+    c.clear();
     st.routeDirty.clear();
   }
 

@@ -26,6 +26,8 @@
     "st.weather": "sim/weather",
     "st.pathCache": {"owner": "sim/routes", "category": "cache"},
     "st.routeDirty": "sim/routes",
+    "st.routeKept": {"owner": "sim/routes", "category": "cache"},
+    "st.routeCosts": {"owner": "sim/routes", "category": "cache"},
     "st.routeFallbacks": "sim/routes",
     "st.villageHours": "sim/villagehours",
     "plan.targets": "sim/seasonal",
