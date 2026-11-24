@@ -32,7 +32,8 @@ The orchestrator writes those once, from your notes.
    `ln -s "$M/tests/fixtures" tests/fixtures` likewise (the fixtures are keyed by the sources, so the cache is safe to share).
 2. Take the task as `AGENTS.md`, "Taking a task", says, from `node tools/brief.js ID` to ticking its criteria and writing its few lines of
    notes in `backlog/ID.md`, which is yours to edit. Read sections, not files (`tools/doc.js`); learn a tool from its `--help`.
-3. Before you first edit a file under `src/`, `node tools/inbox.js claim ID FILE...`. If another task holds one, keep your change to
+3. Before you first edit a file under `src/`, `node tools/inbox.js claim ID FILE[:FUNCTION]...`: the functions of your `Touches:` line
+   (`sim/jobs:allot`), or the whole file. If another task holds one, keep your change to
    that file small. If the task has no `Touches:` line, or yours shows it wrong, write the one you now know into `backlog/ID.md`
    (`docs/agents/tasks.md`, Touches): the functions you will edit.
 4. Allowed: what the task specifies, and the tests it needs. No new dependencies, build changes or restructuring unless the task says so.

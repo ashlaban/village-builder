@@ -26,8 +26,8 @@ and update the count after each merge; at the end, `done · ` in front.
    `git fetch origin main && git branch -f night-base origin/main`, now and after each merge. Sub-agents are told "the run's branch is
    `night-base`". Your own session branch carries only the wrap-up. Part 1 runs `node tools/inbox.js init --fresh`; a later part runs
    `init` without `--fresh`, since the inbox holds the night so far.
-2. **Choice** (its section 1, step 1): `node tools/backlog.js next 6 --unattended`, with `--size` if given, and skip a task an open PR
-   names in its title (a chain may have it in hand). Models as its step 2; stop starting tasks at `N`.
+2. **Choice** (its section 1, step 1): `git fetch -q origin`, then `node tools/lanes.js <free places> --unattended`, with `--size` if
+   given (VB-1678), and skip a task an open PR names in its title (a chain may have it in hand). Models as its step 2; stop starting tasks at `N`.
 3. **Each task ends as a PR of its own, merged** (it replaces the merge of its section 1, step 3, and steps 4 and 5). When a
    sub-agent ends, one task at a time:
    - `failed`, no result, or `continue`: as the worker's step 3.
@@ -44,7 +44,8 @@ and update the count after each merge; at the end, `done · ` in front.
      `npm run verify` (local checks only: do not wait for GitHub's). Red: as a conflict, above.
    - **Merge**: push as `claude/vb-NNN-<a short slug>`; open a PR to `main` titled `VB-NNN: <task name>`, its body the output of
      `node tools/inbox.js report --task VB-NNN` (its "For Kim" and its review), the sub-agent's result lines, then `Night <DATE>, task <k>`.
-     Merge it with a merge commit; if main moved meanwhile, update once more and retry. Then
+     Merge it with a merge commit; if main moved meanwhile, update once more and retry; then, from its merge commit M on main,
+     `node tools/lanes.js --measure VB-NNN M^1..M^2 --inbox` (its footprint against its edits). Then
      `git fetch origin main && git branch -f night-base origin/main`, remove the worktree, update the session's title, and start the next task.
 4. **Your own ceiling.** Your context grows with every task. After each merge, `node tools/agent-usage.js --json` (this session's transcript):
    past 150 calls, start no more tasks; when the running ones are merged, measure (the worker's section 3, step 2, `--label worker`) and

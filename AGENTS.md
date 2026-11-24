@@ -66,7 +66,8 @@ then the teleports and the close calls, one line each. Kim accepts a candidate i
 ## Commands
 Every tool under `tools/` answers `--help` with its options, without running: read that, not its source (a new tool starts with
 `tools/help.js`). The full reference, with each tool's cadence, fixtures and measures, is `docs/commands.md`: grep it for a name.
-- Writing a task, wherever it is written, its `Touches:` line included: `docs/agents/tasks.md`.
+- Writing a task, wherever it is written, its `Touches:` line included: `docs/agents/tasks.md`. Which tasks may run side by side, by the
+  functions they edit and the branches in flight: `node tools/lanes.js [N]`; what one task would meet: `node tools/lanes.js --check ID`.
 - A task's brief: `node tools/brief.js ID`. Backlog: `node tools/backlog.js next|list|show ID [--brief]`; `done`, `set`, `new`,
   `close-arch`, `sync` change it.
 - Before merging main into a branch: `git fetch origin main && node tools/renumber.js --onto origin/main`, which moves the branch's new task

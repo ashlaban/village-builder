@@ -18,8 +18,10 @@ sub-agents leave notes in the inbox (`node tools/inbox.js --help`), a local file
 
 ## 1. Ready tasks, three or four at a time, until none are left
 Aim for at least one L task, three M or five S. Keep three or four sub-agents running; start the next when one ends.
-1. Choose: `node tools/backlog.js next 6` gives the ready tasks in order, with sizes and summaries. Take them in that order, but run
-   side by side only tasks of different archs, and run alone a task whose summary says so, a plan and a wrap-up. After a slice's
+1. Choose: `git fetch -q origin`, then `node tools/lanes.js <free places>` (VB-1678): the ready tasks in order, but each held back
+   that meets, by the functions of its `Touches:` line, a task already taken, a task running (the inbox) or a branch pushed and not
+   merged; a plan and a wrap-up alone; a task with no footprint only beside other archs. Take what it says `take`, and also run alone
+   a task whose summary says so. After a slice's
    wrap-up, take the collecting tasks of findings next ("Teleports found, collected", "Acts with no pawn, collected"), whatever their
    priority: findings are swept there, not interleaved a task each (Kim, 18 November).
 2. Start: `node tools/inbox.js start VB-NNN` reserves the task's new IDs. Then a `vb-task` sub-agent, in the background, isolated in
@@ -32,7 +34,8 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
    the model by size as for the task, at most two beside the implementers, with only "Review VB-NNN; base <sha>; head <sha>; inbox"; its last
    line is the verdict. Merge on `pass`, `control` or `ineligible`. On `revise`, send the same implementer "Revise VB-NNN" (SendMessage; a
    fresh `vb-task` by `continue` if it is past 90 calls); it confirms and gives its result again, then merge. One review a task.
-   Merge it, one at a time: `git merge --no-ff <its branch>` into the run's branch, then `npm test`.
+   Merge it, one at a time: `git merge --no-ff <its branch>` into the run's branch, then `npm test`, then
+   `node tools/lanes.js --measure VB-NNN HEAD^1..HEAD^2 --inbox`: its declared footprint against its edits, for the night's report.
    - `index.html` is derived and no longer in the repository (VB-450): a branch from before that may still conflict in it; take
      the deletion (`git rm index.html`), conclude the merge, and go on to `npm test`.
    - Any other conflict, or a red `npm test`: undo the merge (`git merge --abort`, or `git reset --hard` to the commit before it), and
