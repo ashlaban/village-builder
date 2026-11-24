@@ -96,6 +96,7 @@ const FAST = [
   ['node', 'tests/wells.js'], // VB-1584: a well's cost by the depth; a household's well dug when it pays; the green by the water; village.well a tile
   ['node', 'tests/thirst.js'], // VB-1585: a pawn's own thirst; the dry day its own; a mower leaves at 36 hours, drinks and fetches; no source refused
   ['node', 'tests/minding.js'], // VB-1602: the last one at home with a child under 7 does not leave it: lodge refused with the reason, no carrier
+  ['node', 'tests/fetchchild.js'], // VB-1240: a child under 7 moved within a day's walk is fetched by a grown of its household, not alone
   ['node', 'tests/sitewater.js'], // VB-1583: a site's water as the leader's estimate, weighed by the site search; no site refused for it
   ['node', 'tests/boothwater.js'], // VB-1601: a booth's water fetched by who sleeps there; a dry booth's day; the drink takes the fetch; the open sky; Drink offered
   ['node', 'tests/sitewell.js'], // VB-1587: a site chosen for its well: marked at the founding, dug from the booth beside the field, the fetch then the drawing

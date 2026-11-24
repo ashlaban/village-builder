@@ -1688,6 +1688,19 @@ function checkState(st) {
     const t = a.packing;
     if (a.away !== undefined || !t || !Number.isInteger(t.at) || t.at < 0 || t.at >= st.w.N || !t.args || typeof t.args.why !== 'string') bad.push(`agent ${id}: packing ${JSON.stringify(t)} while away ${a.away}`);
   });
+  // VB-1240: a small child fetched to its new home: agent.awaits -1 or a pawn (of its household when the fetch was made: one broken off
+  // is let go at the day's end); agent.fetching {at (a tile), led}, its pawn on no journey
+  (st.agents || []).forEach((a, id) => {
+    if (!a) return;
+    if (a.awaits !== undefined) {
+      const b = a.awaits, hh = st.pawns[id].household;
+      if (!Number.isInteger(b) || b < -1 || (b >= 0 && !st.pawns[b]) || hh === null) bad.push(`agent ${id}: awaits ${b}, of household ${hh}`);
+    }
+    if (a.fetching !== undefined) {
+      const f = a.fetching;
+      if (!f || !Number.isInteger(f.at) || f.at < 0 || f.at >= st.w.N || typeof f.led !== 'boolean' || a.phase === 'journey') bad.push(`agent ${id}: fetching ${JSON.stringify(f)} in phase ${a.phase}`);
+    }
+  });
   if (st.away !== undefined) {
     const seen = new Set(), ids = new Set();
     if (!Array.isArray(st.away) || !Number.isInteger(st.awaySeq) || st.awaySeq < 0) bad.push(`away: ${typeof st.away}, seq ${st.awaySeq}`);

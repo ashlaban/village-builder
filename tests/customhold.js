@@ -72,4 +72,25 @@ function world(shares) {
   assert(env.settlements[0].list[0].anc[o + y] > 0, 'the voices of the village that took it up hold to it');
   assert.strictEqual(env.settlements[1].list[0].anc[o + y], 0, 'those of the village that kept the old do not');
 }
+
+// VB-1240: a village takes the culture's change up by its own act, the caller's decide (the verb), as at its meeting; one refused is
+// neither taken up nor kept, and its practice stands
+for (const yes of [true, false]) {
+  const { env, c, hooks } = world([Array.from({ length: 12 }, () => [0.9, 1])]);
+  const asked = [];
+  hooks.decide = (s, dim, option) => {
+    asked.push([s.id, dim, option]);
+    if (yes) s.practice[dim] = option;
+    return yes;
+  };
+  for (const s of env.settlements) {
+    const { S, W } = C.support(env, s.list, (p) => p.voice);
+    s.lastSupport = S;
+    s.lastVoices = W;
+  }
+  const x1 = C.cultureYear(env, hooks, c).changes.find((q) => q.dim === d);
+  assert.deepStrictEqual(asked, [[0, d, y]], 'the take-up is asked of the village through decide');
+  assert.deepStrictEqual([x1.took, x1.kept], yes ? [[0], []] : [[], []], yes ? 'taken up' : 'refused: neither');
+  assert.strictEqual(env.settlements[0].practice[d], yes ? y : x, 'the practice is the act\'s');
+}
 console.log('customhold: ok');

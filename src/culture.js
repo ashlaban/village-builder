@@ -292,7 +292,9 @@ const Culture = (() => {
               kept.push(s.id);
               continue;
             }
-            s.practice[d] = y;
+            // the village takes it up by its own act, as at its meeting (VB-1240: through the caller's decide, the verb, else written here);
+            // the culture's custom itself is a reckoning of its villages' voices, not an act
+            if (!(hooks.decide ? hooks.decide(s, d, y) : (setPractice(s, d, y), true))) continue;
             took.push(s.id);
             holdTo(hooks, s, d, x, y);
           }
