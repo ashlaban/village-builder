@@ -1,11 +1,10 @@
 // @sys sim/player: the player (VB-169), a source of commands with one pawn at a time: its queue, which goes before the pawn's own logic, its
 // wish, its answer and its choices as head, its pawn's death and whom it goes on as
 VB['sim/player'] = (() => {
-  const { release, free, goHome, idle } = VB['sim/agents'];
-  const { here, bed } = VB['sim/pose'];
-  const { SLEEP, AWAKE } = VB['sim/sleep'];
+  const { release } = VB['sim/agents'];
+  const { reckon, adopt } = VB['sim/sleepers'];
   const { holdingOf, spouseOf, personEvent, living, villageOf, fullName } = VB['sim/records'];
-  const { cal, WORK, HEALTH, DAY, TICKS } = VB['sim/rules'],
+  const { cal, WORK, HEALTH } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { setWish, resetWish, endPartner } = VB['sim/wishes'];
@@ -28,11 +27,9 @@ VB['sim/player'] = (() => {
   //   player's succession needs, VB-213), ended (null, or when the line ended: its pawn died with no successor, VB-1121), last (null, or {kind, farm, good,
   //   n, t}: the pawn's last task done or load brought home, VB-1118), days[] (at most DAYS_KEPT {t, health, before, hunger, food, why}:
   //   the pawn's health after each of its last meals, its hunger level, its household's food in days of need, and what moved its health,
-  //   why {hunger, cold, damp, ill, tired, rest}, VB-1118; tired absent in a day kept before VB-1643), sleep ({owed, asleep}, below;
-  //   absent in a save made before VB-1643)}; plain data, saved with the run
-  // @state st.player.sleep: {owed (hours of sleep the pawn owes, 0 to SLEEP.cap), asleep (boolean: it slept in the last step), at (the
-  //   step, st.tick, last reckoned: once a step, however often the queue is stepped)}, kept by sleepStep (VB-1643); read by sim/sleep for
-  //   mood and health
+  //   why {hunger, cold, damp, ill, tired, rest}, VB-1118; tired absent in a day kept before VB-1643)}; plain data, saved with the run. A
+  //   save made from VB-1643 to VB-1645 holds sleep ({owed, asleep, at}): the hours its pawn owes, handed to the pawn (sim/sleepers adopt)
+  //   at the next step. The pawn's sleep is reckoned each step while it is played (sim/sleepers reckon), for the page
   const QUEUE_MAX = 8,
     TIES_MAX = 12,
     DAYS_KEPT = 5;
@@ -50,7 +47,6 @@ VB['sim/player'] = (() => {
       ended: null,
       last: null,
       days: [],
-      sleep: { owed: 0, asleep: false, at: st.tick },
     };
     resetWish(st, id); // the player starts from the default wish (VB-680): its wishes are the pawn's (pawn.wish, sim/wishes)
     personEvent(st, id, 'player', 'Played by the player');
@@ -175,7 +171,11 @@ VB['sim/player'] = (() => {
   // than the step it was issued in. A command is begun once, and never issued again: a loaded save resumes it from its reference.
   function playerStep(st) {
     const pl = st.player;
-    if (pl) sleepStep(st);
+    if (pl && pl.sleep) {
+      adopt(st, pl.pawn, pl.sleep); // a save made before VB-1645
+      delete pl.sleep;
+    }
+    if (pl) reckon(st, pl.pawn);
     if (pl && pl.plan && !pl.auto && !living(st, pl.pawn)) feed(st, pl);
     if (!pl || !pl.queue.length) return;
     const a = st.agents[pl.pawn],
@@ -228,61 +228,6 @@ VB['sim/player'] = (() => {
     }
     if (next) q.push({ ...next, begun: null, ref: null });
   }
-  // ---- sleep (VB-1643; sim/sleep): the hours the played pawn owes, and the verb `sleep` ----
-  // Asleep: under the verb `sleep`, once it stands where it sleeps; or indoors where it sleeps (its house, its booth, or its bed under the
-  // open sky before the booth stands, VB-1544; away, its stay's bed) with no act in hand.
-  function sleeping(st, pl, a) {
-    const c = pl.queue[0];
-    if (c && c.verb === 'sleep' && c.begun !== null && c.ref && st.t < c.ref.until) return !a.path;
-    if (!a.inside || a.job || a.path || a.phase !== null || a.occasion !== null) return false;
-    if (st.pawns[pl.pawn].household === null && a.away === undefined) return false;
-    return here(st, a) === bed(st, a);
-  }
-  // Each step, for the step gone by: an hour awake owes AWAKE, an hour asleep pays one, within 0 and SLEEP.cap. Not for a dead pawn.
-  function sleepStep(st) {
-    const pl = st.player;
-    if (living(st, pl.pawn)) return;
-    if (!pl.sleep) pl.sleep = { owed: 0, asleep: false, at: st.tick - 1 }; // a save made before VB-1643
-    if (pl.sleep.at === st.tick) return;
-    pl.sleep.at = st.tick;
-    pl.sleep.asleep = sleeping(st, pl, st.agents[pl.pawn]);
-    pl.sleep.owed = Math.min(SLEEP.cap, Math.max(0, pl.sleep.owed + (pl.sleep.asleep ? -1 : AWAKE) / TICKS));
-  }
-  // The game time a sleep begun now ends: args.hours from now, or the next args.until o'clock (by default the start of work).
-  function sleepUntil(st, args) {
-    if (args && args.hours !== undefined) return st.t + args.hours;
-    const h = args && args.until !== undefined ? args.until : WORK[0];
-    let u = Math.floor(st.t / DAY) * DAY + h;
-    if (u <= st.t) u += DAY;
-    return u;
-  }
-  // sleep({until | hours}): the pawn leaves the job in hand (which keeps its progress), goes to where it sleeps and sleeps until the hour
-  // args.until of the day (by default the start of work), or for args.hours; the act lasts until then. The player's only: no pawn's own
-  // logic sleeps by it yet. Refused for the dead, the travelling, one with no place to sleep, or an hour that is none.
-  register('sleep', {
-    sources: ['player'],
-    check: (st, c) => {
-      const why = free(st, c.actor);
-      if (why) return why;
-      if (st.pawns[c.actor].household === null && st.agents[c.actor].away === undefined)
-        return `pawn ${c.actor} has no place to sleep`;
-      const g = c.args || {};
-      if (g.hours !== undefined && !(g.hours > 0 && g.hours <= SLEEP.cap)) return `cannot sleep ${g.hours} hours`;
-      if (g.hours === undefined && g.until !== undefined && !(g.until >= 0 && g.until < 24))
-        return `there is no hour ${g.until} to sleep until`;
-      return null;
-    },
-    run: (st, c) => {
-      const a = st.agents[c.actor],
-        until = sleepUntil(st, c.args);
-      if (a.job) release(st, a);
-      if (!(a.inside && !a.path && here(st, a) === bed(st, a))) goHome(st, a);
-      idle(st, a, until);
-      return { until };
-    },
-    active: (st, c, ref) => st.t < ref.until,
-    frees: true,
-  });
   // ---- what the played pawn's acts brought, and what moved its levels (VB-1118) ----
   // A task finished or a load brought home by the played pawn (sim/agents): the last one is kept for its sheet.
   on('yielded', (st, d) => {
@@ -398,7 +343,18 @@ VB['sim/player'] = (() => {
   // The played pawn chooses as head of its household (VB-253, for the page's plan panel, VB-256): verb one of HEAD_VERBS, at once, not
   // queued (a choice of the plan takes no time); its target the household it holds, else the one it lives in, so a pawn that is not the
   // head is refused with the reason. True, or why not.
-  const HEAD_VERBS = ['target', 'tile', 'order', 'project', 'dropProject', 'rotation', 'sowOutOfTurn'];
+  const HEAD_VERBS = [
+    'target',
+    'tile',
+    'order',
+    'project',
+    'dropProject',
+    'rotation',
+    'sowOutOfTurn',
+    'dayOrder',
+    'dayGive',
+    'dayCall',
+  ];
   function head(st, verb, args) {
     const pl = st.player;
     if (!pl) return 'no pawn is played';

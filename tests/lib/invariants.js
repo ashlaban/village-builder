@@ -106,6 +106,15 @@ function checkState(st) {
       if (!st.crowdN || st.crowdN[id] !== n || st.crowd[id] !== Cr.factorOf(n)) { bad.push(`crowding: household ${id} holds ${st.crowdN && st.crowdN[id]}, a fresh count gives ${n}`); break; }
     }
   }
+  // VB-1481: a pawn holds at most one live household (a marriage hands a farm on before the holder is counted twice)
+  {
+    const seen = new Map();
+    for (const hh of st.households) {
+      if (hh.dissolved || hh.holder === null || hh.holder === undefined) continue;
+      if (seen.has(hh.holder)) bad.push(`holders: pawn ${hh.holder} holds households ${seen.get(hh.holder)} and ${hh.id}`);
+      else seen.set(hh.holder, hh.id);
+    }
+  }
   // VB-309: farms held in trust: st.liveTrusts the sorted ids of the open records of st.trusts; a live trust's farm and trustee live, its
   // household empty, its holder living with the trustee; no farm held twice
   if (st.trusts || st.liveTrusts) {
@@ -1508,12 +1517,21 @@ function checkState(st) {
     }
   }
   if (st.herds) checkHerds(st, bad);
+  // sleep owed (VB-1645, sim/sleepers): a living pawn's absent until first reckoned, else {owed within 0 and SLEEP.cap, asleep, at a step
+  // not ahead of the clock, until null or a time}
+  {
+    const CAP = globalThis.VB['sim/sleep'].SLEEP.cap;
+    for (const id of st.living || []) {
+      const sl = st.pawns[id].sleep;
+      if (sl !== undefined && !(sl && sl.owed >= 0 && sl.owed <= CAP && typeof sl.asleep === 'boolean' && Number.isInteger(sl.at) && sl.at <= st.tick && (sl.until === null || Number.isFinite(sl.until)))) bad.push(`pawns[${id}]: sleep ${JSON.stringify(sl)}`);
+    }
+  }
   // the player (VB-169): null, or a pawn that exists with a queue of at most 8 of its own commands, of which only the head may be begun
   if (st.player !== null && st.player !== undefined) {
     const pl = st.player, QUEUE_MAX = globalThis.VB['sim/player'].QUEUE_MAX;
     if (!st.pawns[pl.pawn] || !st.agents[pl.pawn]) bad.push(`player: pawn ${pl.pawn} does not exist`);
     if (typeof pl.auto !== 'boolean' || !(pl.since <= st.t)) bad.push(`player: auto ${pl.auto}, since ${pl.since}`);
-    // its sleep owed (VB-1643): absent in a save made before it, else {owed within 0 and SLEEP.cap, asleep}
+    // its sleep owed is its pawn's since VB-1645: only a save made from VB-1643 to then holds it, until the next step hands it over
     const sl = pl.sleep, CAP = globalThis.VB['sim/sleep'].SLEEP.cap;
     if (sl !== undefined && !(sl && sl.owed >= 0 && sl.owed <= CAP && typeof sl.asleep === 'boolean' && Number.isInteger(sl.at) && sl.at <= st.tick)) bad.push(`player: sleep ${JSON.stringify(sl)}`);
     if (!Array.isArray(pl.queue) || pl.queue.length > QUEUE_MAX) bad.push(`player: a queue of ${pl.queue && pl.queue.length} commands`);
@@ -1928,8 +1946,9 @@ function checkHerds(st, bad) {
     if (!whole(hd.lean || 0) || !whole(hd.unfed || 0)) bad.push(`${where}: lean ${hd.lean}, unfed ${hd.unfed}`);
     // fleeces grown and not yet shorn (sim/byre, VB-679): a sheep flock's, a whole number, one or more
     if (hd.fleece !== undefined && (hd.species !== 'sheep' || !whole(hd.fleece) || hd.fleece < 1)) bad.push(`${where}: fleece ${hd.fleece}`);
-    // herding (sim/grazing, VB-136): out with a pawn of the household, or by the farm; taken out last on a past day, or never (-1)
-    if (hd.herder !== null && !(st.pawns[hd.herder] && st.pawns[hd.herder].household === hd.household)) bad.push(`${where}: herder ${hd.herder}`);
+    // herding (sim/grazing, VB-136): out with a living pawn, of the household or one working off days it owes it (VB-462, VB-463's keep: the
+    // job is the household's, whoever takes it), or by the farm; taken out last on a past day, or never (-1)
+    if (hd.herder !== null && !(st.pawns[hd.herder] && st.pawns[hd.herder].alive)) bad.push(`${where}: herder ${hd.herder}`);
     if (!(Number.isInteger(hd.herded) && hd.herded >= -1 && hd.herded <= Math.floor(st.t / 24))) bad.push(`${where}: herded on day ${hd.herded}`);
     // the household's kept pasture (sim/grazing, VB-136): absent, or a tile of the map chosen on a past day
     const pa = hh && hh.pasture;

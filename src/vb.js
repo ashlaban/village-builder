@@ -60,6 +60,10 @@ VB.COUNTERS = {
   talkBucket: 'Living walked to rebuild the talk turns when the living changed (sim/relations, VB-521)',
   walkStep:
     'Legs a step takes from the due-queue as they end: walks and waits (sim/legs dueLegs, for sim/agents stepAgents; VB-473)',
+  sleepReckon:
+    'Pawns whose sleep owed was reckoned: each living pawn once an hour, the played pawn each step (sim/sleepers, VB-1645)',
+  sleepOwn:
+    "Sleeps begun by a pawn's own rule, one that owed a whole night and was free in the working day (sim/sleepers, VB-1645)",
   walkAwake:
     "Pawn records looked at by the working day's start, for those waiting for it, once a day (sim/agents dayStart; VB-473)",
   idleStroll:
@@ -116,6 +120,8 @@ VB.COUNTERS = {
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
     '(sim/day, allot; VB-466)',
   dayTake: 'Tasks of its list an idle pawn passes or takes (sim/day, takeDay; VB-466)',
+  timetableEntry:
+    "Entries of a member's list laid out in a timetable, a view asked by the page (sim/timetable, VB-477)",
   eveningAsk:
     "Households' tasks read for one that may be begun after work, from its end to the evening (sim/day eveningCall, VB-1547)",
   handsAsked: 'Asks for hands made by a head short of hands, at the morning allotment (sim/hands askFor, VB-470)',

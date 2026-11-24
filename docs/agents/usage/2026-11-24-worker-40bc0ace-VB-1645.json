@@ -1,0 +1,314 @@
+{
+ "session": "40bc0ace-f903-55dd-98fe-08c83ed4b63c",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T22:24:47.145Z",
+ "end": "2026-11-24T22:49:48.383Z",
+ "wallMin": 25,
+ "activeMin": 14.9,
+ "prompts": 1,
+ "calls": 56,
+ "subagentCalls": 0,
+ "reviewCalls": 1,
+ "tokens": {
+  "input": 112,
+  "cacheWrite": 175045,
+  "cacheRead": 8510377,
+  "output": 37140
+ },
+ "context": {
+  "first": 56176,
+  "peak": 191570,
+  "firstEdit": 162948,
+  "series": [
+   [
+    5,
+    103235
+   ],
+   [
+    10,
+    113352
+   ],
+   [
+    15,
+    136238
+   ],
+   [
+    20,
+    149730
+   ],
+   [
+    25,
+    161666
+   ],
+   [
+    30,
+    168825
+   ],
+   [
+    35,
+    175421
+   ],
+   [
+    40,
+    178827
+   ],
+   [
+    45,
+    182577
+   ],
+   [
+    50,
+    186885
+   ],
+   [
+    55,
+    191045
+   ],
+   [
+    56,
+    191570
+   ]
+  ]
+ },
+ "tools": {
+  "Bash": {
+   "calls": 50,
+   "bytes": 136614,
+   "seconds": 107.3
+  },
+  "Skill": {
+   "calls": 1,
+   "bytes": 21,
+   "seconds": 0
+  },
+  "Write": {
+   "calls": 1,
+   "bytes": 142,
+   "seconds": 0
+  },
+  "Agent": {
+   "calls": 1,
+   "bytes": 1049,
+   "seconds": 120.5
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 6,
+   "bytes": 56238
+  },
+  {
+   "tool": "Bash",
+   "what": "for t",
+   "calls": 2,
+   "bytes": 23993
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 4,
+   "bytes": 7373
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 2,
+   "bytes": 7271
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 1,
+   "bytes": 5478
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 4842
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 3,
+   "bytes": 4603
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/sim.js",
+   "calls": 1,
+   "bytes": 4074
+  },
+  {
+   "tool": "Bash",
+   "what": "git log",
+   "calls": 1,
+   "bytes": 3826
+  },
+  {
+   "tool": "Bash",
+   "what": "git fetch",
+   "calls": 1,
+   "bytes": 3611
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -i",
+   "calls": 4,
+   "bytes": 2869
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 2357
+  }
+ ],
+ "repeats": {
+  "reads": 0,
+  "readBytes": 0,
+  "commands": 0,
+  "commandBytes": 0,
+  "recent": 0
+ },
+ "tests": {
+  "runs": 13,
+  "failed": 4,
+  "streak": 3,
+  "current": 0
+ },
+ "compactions": 0,
+ "continuation": {
+  "continues": false,
+  "handoverBytes": 0,
+  "callsToEdit": 26,
+  "contextToEdit": 106772,
+  "reason": "boundary"
+ },
+ "continuations": {
+  "launched": 1,
+  "calls": 1
+ },
+ "weighted": 1255656,
+ "task": "VB-1645",
+ "subagents": [
+  {
+   "agent": "af38c1ad",
+   "role": "implement",
+   "task": "VB-1645",
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 50,
+   "tokens": {
+    "input": 100,
+    "cacheWrite": 69332,
+    "cacheRead": 2232793,
+    "output": 19712
+   },
+   "weighted": 408604,
+   "first": 17186,
+   "boot": 34235,
+   "peak": 69334,
+   "activeMin": 17.5,
+   "start": "2026-11-24T22:31:47.000Z",
+   "end": "2026-11-24T22:49:14.509Z",
+   "mergeUndone": null,
+   "series": [
+    [
+     5,
+     23840
+    ],
+    [
+     10,
+     27927
+    ],
+    [
+     15,
+     33297
+    ],
+    [
+     20,
+     42010
+    ],
+    [
+     25,
+     45668
+    ],
+    [
+     30,
+     50681
+    ],
+    [
+     35,
+     57278
+    ],
+    [
+     40,
+     62144
+    ],
+    [
+     45,
+     66895
+    ],
+    [
+     50,
+     69334
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 9,
+    "failed": 4,
+    "streak": 2,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 3650,
+    "callsToEdit": 16,
+    "contextToEdit": 17049,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  }
+ ],
+ "review": {
+  "task": "VB-1645",
+  "arm": "control"
+ },
+ "summary": {
+  "weightedTotal": 1664260,
+  "orchestratorShare": 0.754,
+  "bootMedian": 34235,
+  "readMedian": 17049,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0,
+  "review": {
+   "reviews": 0,
+   "weighted": 0,
+   "median": null,
+   "revisions": 0,
+   "revisionWeighted": 0,
+   "orchestratorCalls": 1
+  }
+ }
+}

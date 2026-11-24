@@ -107,5 +107,18 @@ for (const grain of [0, 5000]) {
   assert.deepStrictEqual(VB['sim/heirranking'].heirRanking(st, hh, cu), []);
   assert.strictEqual(VB.count.heirRank, 1, 'empty ranks must not rank other households');
 }
+// 9. VB-1481: a home dissolved before the wedding (a trust ended at its head) is not moved to or handed a farm: the couple lives where one
+// of them lives, and nobody holds two households
+{
+  const { st, a, b, man, woman } = setUp(1000);
+  const gone = a.id;
+  man.household === gone && VB['sim/heirs'].moveTo(st, man.id, b.id);
+  a.members = []; a.dissolved = true; // as a household that ended with its last member
+  let threw = null;
+  try { VB['sim/marriage'].wed(st, man.id, woman.id, gone); } catch (e) { threw = e; }
+  check(!threw, `wed does not throw: ${threw && threw.message}`);
+  check(R.spouseOf(st, man.id) === woman.id && man.household === b.id && woman.household === b.id, 'they marry and live on the live farm');
+  check(st.households.filter((h) => !h.dissolved && (h.holder === man.id || h.holder === woman.id)).length === 1, 'they hold one farm');
+}
 if (failed) process.exit(1);
 console.log('marriage ok');

@@ -269,9 +269,9 @@ assert.strictEqual(snap3(), before5, 'refused leave commands change nothing');
   Sim.inhabit(s4, hh.holder);
   for (const verb of ['skip', 'kill', 'retire']) assert.ok(/no verb/.test(Sim.queue(s4, { actor: hh.holder, verb })), `${verb} is not queued`);
   assert.deepStrictEqual(Object.keys(VERBS).filter((v) => VERBS[v].sources && VERBS[v].sources.join() === 'debug').sort(), ['kill', 'retire', 'skip'], 'the debug verbs');
-  // the player's only (VB-1643): sleep, which no pawn's own logic takes yet
-  assert.deepStrictEqual(Object.keys(VERBS).filter((v) => VERBS[v].sources && VERBS[v].sources.join() === 'player'), ['sleep'], "the player's verbs");
-  assert.ok(/player only/.test(issue(s4, { actor: hh.holder, verb: 'sleep', source: 'pawn' })), 'a pawn does not sleep by the verb');
+  // sleep, the player's only under VB-1643, is open to a pawn's own logic (VB-1645): no verb is the player's alone
+  assert.deepStrictEqual(Object.keys(VERBS).filter((v) => VERBS[v].sources && VERBS[v].sources.join() === 'player'), [], "the player's verbs");
+  assert.deepStrictEqual(VERBS.sleep.sources, ['player', 'pawn'], 'sleep: the player and the pawn');
   // the facade's direct mutators are debug: none is a verb, and the page calls them only from its drawer
   assert.deepStrictEqual(Sim.DEBUG, ['setOwner', 'killPawn', 'retireHolder', 'holdMeetings', 'movingRound']);
   for (const n of Sim.DEBUG) assert.ok(!VERBS[n] && typeof Sim[n] === 'function', `${n} is debug, no verb`);

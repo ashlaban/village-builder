@@ -44,6 +44,14 @@ VB['sim/marriage'] = (() => {
       const t = trustOfHolder(st, id); // a holder whose farm is held in trust goes back to it first (VB-309)
       if (t) goBack(st, t, 'married', 'round');
     }
+    // the home may have gone while the trusts ended (VB-1481): the couple lives where one of them now lives, on a live farm
+    if (st.households[home].dissolved) {
+      const live = [mId, fId]
+        .map((id) => st.pawns[id].household)
+        .find((h) => h !== null && !st.households[h].dissolved);
+      if (live === undefined) return; // no home to go to: no wedding (the match is made again)
+      home = live;
+    }
     m.kinPush = f.kinPush = null; // pushed at an earlier village's round, she takes the pull of the round that married her (VB-277)
     st.unions.push({ id: st.unions.length, a: mId, b: fId, start: st.t, end: null, kind: 'marriage' });
     const olds = [mId, fId].map((id) => st.pawns[id].household).filter((h) => h !== null && h !== home);
@@ -70,7 +78,10 @@ VB['sim/marriage'] = (() => {
     clearMatchWish(st, mId, fId);
     for (const id of [mId, fId]) {
       const own2 = holdingOf(st, id);
-      if (own2 && own2.id !== home) handOn(st, own2, id, home);
+      if (own2 && own2.id !== home) {
+        handOn(st, own2, id, home);
+        refreshRoles(st); // the heir came from another household than the wedding's: its roles follow the holder (rare: a holder marries away)
+      }
     }
     // a heifer from the old household of the one who moved in, where the home wants a cow (sim/exchange, VB-390)
     for (const h of olds) if (startInLife(st, st.households[home], st.households[h])) break;
@@ -236,7 +247,6 @@ VB['sim/marriage'] = (() => {
       if (hh.dissolved || hh.holder !== o.from) return 'the holding has passed';
       const no = heirNo(st, hh, o.to); // farms are not combined, whoever says yes
       if (no) return `${fullName(st.pawns[o.to])} ${no}`;
-      const touched = [hh.id, st.pawns[o.from].household, st.pawns[o.to].household]; // before the move
       const r = issue(st, {
         actor: o.from,
         verb: 'handOn',
@@ -246,8 +256,8 @@ VB['sim/marriage'] = (() => {
       });
       if (r === true) {
         // on any day, by whoever's answer: the roles follow the holder, in the households it touched
-        touched.push(st.pawns[o.from].household, st.pawns[o.to].household);
-        refreshRoles(st, membersOf(st, touched));
+        // a heir who held a place of its own hands it on first (heirsPlace), and that heir's households were none of these: all roles
+        refreshRoles(st);
       }
       return r;
     },
