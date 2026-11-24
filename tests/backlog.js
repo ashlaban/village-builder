@@ -7,9 +7,10 @@
 const fs = require('fs'), path = require('path');
 const root = process.argv[2] ? path.resolve(process.argv[2]) : path.join(__dirname, '..'), dir = path.join(root, 'backlog');
 const { parseTouches, fileOf } = require(path.join(__dirname, '..', 'tools', 'lib', 'touches.js')), warnings = [];
-// from this ID on a ready task carries a "Touches:" line (VB-1671): one without is named, not failed, since a branch in flight writes
-// its tasks with the tools from before the line; `tools/backlog.js new` writes it "(to write)", which a ready task may not keep
-const TOUCHES_FROM = 1675;
+// from this ID on a ready task carries a "Touches:" line (VB-1671): above every task file in sight when the line came (VB-1674 on
+// 25 November, tools/lib/ids.js), so no task a branch in flight had written then fails; one written since, without it, is mended by
+// `node tools/backlog.js set ID touches="..."`
+const TOUCHES_FROM = 1674;
 const errors = [], PHASES = ['plan', 'implement', 'wrap-up'];
 const SECTIONS = { 'BACKLOG.md': { 'Ready': 'ready', 'Waiting for Kim': 'needs-review', 'Blocked': 'blocked' },
   'BACKLOG_ARCHIVE.md': { 'Done tasks': 'done' } };
@@ -52,7 +53,7 @@ for (const f of files) {
       }
     } catch (e) { errors.push(`backlog/${f}: "Touches:" ${e.message} (docs/agents/tasks.md)`); }
   } else if (touches === undefined && status === 'ready' && +head[1].slice(3) >= TOUCHES_FROM) {
-    warnings.push(`backlog/${f} is ready without a "Touches:" line (docs/agents/tasks.md): node tools/backlog.js set ${head[1]} touches="..."`);
+    errors.push(`backlog/${f} is ready without a "Touches:" line (docs/agents/tasks.md): node tools/backlog.js set ${head[1]} touches="..."`);
   }
   tasks[head[1]] = { name: head[2], arch, status, priority: field('Priority'), size: field('Size'), waits: field('Waits for'), cause: ((text.split(/^(?!# |Status|Waits for|Cause|Priority|Size|Arch|Phase)/m)[0] || '').match(/^Cause: (.*)$/m) || [])[1] || '' };
 }

@@ -10,8 +10,8 @@ You cannot change the design: you change only the task files in `backlog/` (and 
    numbers, criteria) and set a task `ready` when nothing undecided is left. Leave the moving of answered questions to the reviewer.
 3. Read the design a section at a time (`node tools/doc.js --toc`) against the backlog (`node tools/backlog.js list -s`), and add the
    concrete implementation tasks it lacks with `node tools/backlog.js new`: `needs-review` with its questions and proposed answers in
-   `QUESTIONS.md` when it needs a decision, `blocked` with `waits=` when it waits for another task, `ready` only when it states its goal,
-   numbers and criteria and needs no decision.
+   `QUESTIONS.md` when it needs a decision, `blocked` with `waits=` when it waits for another task, `ready` as `docs/agents/tasks.md`
+   (Ready) says.
 4. Split tasks too large for one session (size L) into S and M tasks with clear boundaries. Write each as `docs/agents/tasks.md` says,
    its `Touches:` line naming the functions it edits, so that the tasks of a split edit different ones where they can.
 5. Keep to `BACKLOG.md`, "How this backlog works" (`node tools/doc.js BACKLOG.md "How this backlog works"`): the slices' plans in order,

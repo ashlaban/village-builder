@@ -33,4 +33,10 @@ function fileOf(root, target) {
   for (const ext of ['.js', '.ts']) if (fs.existsSync(path.join(root, 'src', target + ext))) return `src/${target}${ext}`;
   return `src/${target}.js`;
 }
-module.exports = { parseTouches, fileOf };
+// a place ("src/sim/jobs.js:120", "AGENTS.md", ".claude/agents/vb-task.md:33") as a Touches item: a module key under src/, else the path
+function targetOf(place) {
+  const m = /((?:[\w.-]+\/)*[\w.-]+\.\w+)(?::\d+)?/.exec(String(place || ''));
+  if (!m || !TARGET.test(m[1])) return null;
+  return /^src\/.*\.(js|ts)$/.test(m[1]) ? m[1].replace(/^src\//, '').replace(/\.(js|ts)$/, '') : m[1];
+}
+module.exports = { parseTouches, fileOf, targetOf };

@@ -34,7 +34,7 @@
 //   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= cause= touches= ref= goal=]; body: its criteria
 //              (how to write each, touches= the functions it will edit: docs/agents/tasks.md)
 //              (cause=VB-NNN: the task whose change introduced the defect it mends, VB-1619)
-//              (ready: goal=, ref= and the body given, and no question for Kim; priority=1 if it mends a red check)
+//              (ready: goal=, ref=, touches= and the body given, and no question for Kim; priority=1 if it mends a red check)
 //   question   priority= title= [about=VB-NNN, the task it is filed under: default TASK]; body: the numbered questions, each with its proposed answer (**P:**), as in QUESTIONS.md
 //   tuning     parameter= means= measured= proposed=   a row of docs/tuning.md, Parameters waiting
 //   candidate  rule=   a principle candidate (AGENTS.md, Surfacing); body: the decisions behind it
@@ -209,8 +209,9 @@ if (cmd === 'init') {
     if (!/^(S|M|L)$/.test(f.size)) fail('size is S, M or L');
     if (f.status && !['blocked', 'needs-review', 'ready'].includes(f.status)) fail('a noted task is ready, blocked or needs-review (the default)');
     if (f.status === 'ready' &&
-      !(f.goal && f.ref && body)) fail(
-      'a noted task is ready only with its goal (goal=), its design ref (ref=) and its criteria (--body), and no question for Kim; else needs-review (the default)');
+      !(f.goal && f.ref && f.touches && body)) fail(
+      'a noted task is ready only with its goal (goal=), its design ref (ref=), its footprint (touches=, docs/agents/tasks.md) and its criteria (--body), and no question for Kim; else needs-review (the default)');
+    if (f.touches) try { require('./lib/touches.js').parseTouches(f.touches); } catch (e) { fail(`touches=: ${e.message} (docs/agents/tasks.md)`); }
   }
   if (kind === 'review') {
     if (!['review', 'control', 'ineligible'].includes(f.arm)) fail('arm is review, control or ineligible');
@@ -352,10 +353,8 @@ if (cmd === 'init') {
   for (const n of notes('WHERE applied = 0').filter(mine)) {
     const f = n.fields;
     if (n.kind === 'task') {
-      // a note with no footprint gets one that says so: the agent that takes the task writes it before its first edit (VB-1671)
-      const touches = f.touches || `unknown (${n.task}'s note gave none)`;
-      const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'cause', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`)
-        .concat(`touches=${touches}`);
+      // a ready note gives its footprint (checked when noted); one that is not ready keeps the line to fill (VB-1671)
+      const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'cause', 'touches', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`);
       // a file is never made ready with "(to write)" in it (tools/backlog.js new): a ready note's task is made, filled, then set ready
       backlog('new', `id=${f.id}`, `status=${f.status === 'ready' ? 'needs-review' : f.status || 'needs-review'}`, ...keys);
       if (n.body && !dry) {

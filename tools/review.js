@@ -336,12 +336,8 @@ async function confirm(root, id, reviewed, dry, toIn) {
   return lines.join('\n');
 }
 
-// A follow-up's footprint (VB-1671, docs/agents/tasks.md): the file the finding names, as a module key under src/, else unknown
-function touchesOf(f) {
-  const m = /((?:src|tests|tools|docs)\/[\w./-]+\.\w+)/.exec(String(f.place || ''));
-  if (!m) return 'unknown (the review finding names no file)';
-  return /^src\/.*\.(js|ts)$/.test(m[1]) ? m[1].replace(/^src\//, '').replace(/\.(js|ts)$/, '') : m[1];
-}
+// A follow-up's footprint (VB-1671, docs/agents/tasks.md): the file the finding names (tools/lib/touches.js), else unknown
+const touchesOf = (f) => require('./lib/touches.js').targetOf(f.place) || 'unknown (the review finding names no file)';
 
 // A blocking finding left unresolved becomes a task of its own (tools/backlog.js), ready, priority 1, naming the task as its cause.
 function openFollowup(root, id, f) {
