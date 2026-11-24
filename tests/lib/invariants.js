@@ -1479,6 +1479,11 @@ function checkState(st) {
           if (own === null && side === null) bad.push(`${at}: an answer of ${x.key}`);
           else if (own !== null ? x.by !== own : x.by === side) bad.push(`${at}: ${x.key} answered by ${x.by}`);
         }
+      } else if (o.basis === 'swap') { // a swap of the fair (VB-1567): whole quanta of its goods, both dealers still carrying their loads
+        const F = globalThis.VB['sim/fair'], term = (t) => t && F.FAIR.goods.includes(t.good) && Number.isInteger(t.n) && t.n > 0;
+        if (!term(o.gives) || !term(o.wants)) bad.push(`${at}: a swap of the fair: gives ${JSON.stringify(o.gives)}, wants ${JSON.stringify(o.wants)}`);
+        for (const id of [o.from, o.to]) if (!st.pawns[id] || !st.pawns[id].load) bad.push(`${at}: a swap of the fair outlives the load of pawn ${id}`);
+        if (keys.join() !== 'to' || o.answers[0].by !== o.to) bad.push(`${at}: a swap of the fair: answers ${keys.join()} of ${o.to}`);
       } else if (BASES[o.basis].where) { // an offer about a life: answered at a village's step of the round (a handover has no subject, VB-824)
         const g = o.gives || {}, w = o.wants || {};
         const terms = o.basis === 'handover' ? !!st.households[g.household] && ['marriage', 'retirement'].includes(g.reason)
