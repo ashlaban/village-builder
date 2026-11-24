@@ -3,7 +3,7 @@
 // (VB-291, VB-461), the suitor's visit there and back (VB-289), and JOURNEYS, what each kind does of its own (VB-1409); the stays' record,
 // packs and meals are sim/away's; split from sim/away (VB-1474)
 VB['sim/journeys'] = (() => {
-  const { cal, WORK, SPEED, TRAVEL } = VB['sim/rules'];
+  const { cal, DAY, WORK, SPEED, TRAVEL } = VB['sim/rules'];
   const { hoursBetween } = VB['sim/villagehours'];
   const { personEvent } = VB['sim/records'];
   const Stores = VB['sim/stores'];
@@ -14,10 +14,12 @@ VB['sim/journeys'] = (() => {
   const { on, emit } = VB['sim/events'];
   const Lying = VB['sim/lying'];
   const { placeAtHome, restOnRoad, walkLeg, turnTo, setDown, stop, waitIndoors, standBy } = VB['sim/agents'];
-  const { placeOf, tileAt, travelling, stayOf } = VB['sim/pose'];
+  const { placeOf, tileAt, travelling, stayOf, endTile } = VB['sim/pose'];
   const { open, close, provide, packLeft, packHome, nextStay, bedAt, turn, unlodge } = VB['sim/away'];
   const { askBed } = VB['sim/hosting'];
-  const { issue } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
+  const { age, living } = VB['sim/records'],
+    { CHILD } = VB['sim/roles'];
   function addFetchStop(st, pawn, stop) {
     const stay = stayOf(st, pawn);
     if (!stay) return false;
@@ -83,6 +85,17 @@ VB['sim/journeys'] = (() => {
     const f = st.farmsteads[hh.farmstead];
     if (old) driveHome(st, old, a.id); // the old household's herds it had out are left by that farm (its herder is no longer a member)
     if (travelling(a)) return retarget(st, a, f.house);
+    if (a.fetching) {
+      // fetching a small child of the household it joins, it walks home with it (VB-1240); a fetch of another household's is let go
+      const f2 = a.fetching;
+      if (
+        f2.led
+          ? a.phase === 'home' && a.path && endTile(st, a) === f.house
+          : hh.members.some((m) => st.agents[m] && st.agents[m].awaits === a.id)
+      )
+        return;
+      delete a.fetching;
+    }
     if (a.load > 0 && a.phase === 'back' && a.job) {
       // a hand with a load on its way home brings it in first, and then goes (VB-581: the load is carried, not booked from the road)
       if (!a.moving) a.moving = { old: old ? old.id : null, carry };
@@ -97,9 +110,15 @@ VB['sim/journeys'] = (() => {
       return setOut(st, a, old, hh, carry, hoursTo(st, from ? from.village : null, at, f.village));
     const h = cal(st.t).hour,
       same = from !== null && from.id === f.id && !s;
+    // a child under 7 does not go on its own: one of its new household of 7 or over takes it, or the first of them to join it (VB-1240)
+    if (!same && young(st, a)) return void (fetch(st, a, hh) || wait(st, a, -1));
     // in its own house it is home already; indoors elsewhere at night, it walks at 6:00
-    if (a.inside && (same || h < WORK[0] || h >= WORK[1])) return waitIndoors(st, a, same);
-    issue(st, { actor: a.id, verb: 'goHome', source: 'pawn' });
+    if (a.inside && (same || h < WORK[0] || h >= WORK[1])) waitIndoors(st, a, same);
+    else issue(st, { actor: a.id, verb: 'goHome', source: 'pawn' });
+    if (!young(st, a))
+      for (const m of hh.members)
+        if (st.agents[m] && st.agents[m].awaits === -1)
+          issue(st, { actor: a.id, verb: 'fetchChild', target: m, source: 'pawn' });
   }
   // @state agent.moving: absent, or {old (the household it left, or null), carry}: a move it was told of with a load on its way home, made when
   //   the load is in (VB-581); the pawn's household is already the new one.
@@ -415,6 +434,107 @@ VB['sim/journeys'] = (() => {
   };
   const NONE = {};
   const kindOf = (j) => (Object.hasOwn(JOURNEYS, j.why) ? JOURNEYS[j.why] : NONE);
+  // ---- a small child taken to its new home (VB-1240: an act with no pawn, sim/journeys moved): within a day's walk a child under
+  // CHILD.from does not walk to its new home alone; one of its new household of that age or over fetches it, and they walk home together ----
+  // @state agent.fetching: absent, or {at (the tile it walks to for a child), led (true from when it has the child: it walks it home)}:
+  //   the pawn fetches the children of its household who await it (the verb fetchChild); cleared when it is home. Written here only.
+  // @state agent.awaits: absent, or the pawn id of the one of its household fetching it, or -1 (none yet: the first of CHILD.from or over to
+  //   join its household fetches it): a child under CHILD.from waits where it is until fetched; cleared when it is led home, or at the
+  //   day's end when nobody came (it goes home alone). Written here only.
+  const young = (st, a) => age(st, st.pawns[a.id]) < CHILD.from;
+  const tileOf = (st, a) => tileAt(st, ...placeOf(st, a));
+  // Who of household hh fetches child k: of CHILD.from or over, alive, at home in the village (on no road, away at no bed, at no
+  // occasion), not leading another child home; one where the child is first, else the nearest. Null when none can.
+  function fetcherFor(st, k, hh) {
+    const at = tileOf(st, k);
+    let best = null,
+      d = Infinity;
+    for (const m of hh.members) {
+      const b = st.agents[m];
+      if (m === k.id || !b || living(st, m) || young(st, b) || b.away !== undefined || b.occasion !== null) continue;
+      if (b.fetching && (b.fetching.led || b.fetching.at !== at)) continue;
+      const e = hexSteps(st.w, tileOf(st, b), at);
+      if (e < d) [best, d] = [m, e];
+    }
+    return best;
+  }
+  // Child k, moved to household hh, is fetched: true when one of its household takes it (the verb fetchChild), else false (it goes alone).
+  function fetch(st, k, hh) {
+    const m = fetcherFor(st, k, hh);
+    return m !== null && issue(st, { actor: m, verb: 'fetchChild', target: k.id, source: 'pawn' }) === true;
+  }
+  // Child a waits where it is for `by`, the one of its household fetching it, or -1: the first of 7 or over to join its household.
+  function wait(st, a, by) {
+    stop(st, a);
+    a.awaits = by;
+    issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + DAY }, source: 'pawn' });
+  }
+  // The fetcher b has the children who await it (it stands where they are): it walks home, and they with it.
+  function lead(st, b) {
+    b.fetching.led = true;
+    issue(st, { actor: b.id, verb: 'goHome', source: 'pawn' });
+    for (const id of st.households[st.pawns[b.id].household].members) {
+      const a = st.agents[id];
+      if (!a || a.awaits !== b.id) continue;
+      delete a.awaits;
+      issue(st, { actor: id, verb: 'goHome', source: 'pawn' });
+    }
+  }
+  // fetchChild: pawn actor goes for the child `target` of its household, under CHILD.from, and takes it home: the child waits where it is
+  // until fetched; one at the child's place leads it home at once
+  register('fetchChild', {
+    check: (st, c) => {
+      const no = living(st, c.actor) || living(st, c.target);
+      if (no) return no;
+      const a = st.agents[c.actor],
+        k = st.agents[c.target],
+        hh = st.pawns[c.actor].household;
+      if (hh === null || st.pawns[c.target].household !== hh) return 'the child is not of its household';
+      if (young(st, a)) return `a child under ${CHILD.from} fetches no one`;
+      if (!young(st, k)) return `pawn ${c.target} is ${CHILD.from} or over and walks alone`;
+      if (travelling(a) || a.away !== undefined) return `pawn ${c.actor} is away`;
+      if (travelling(k) || k.away !== undefined) return `pawn ${c.target} is away`;
+      if (a.fetching && (a.fetching.led || a.fetching.at !== tileOf(st, k)))
+        return `pawn ${c.actor} is fetching another`;
+      return null;
+    },
+    run: (st, c) => {
+      const a = st.agents[c.actor],
+        k = st.agents[c.target],
+        at = tileOf(st, k);
+      wait(st, k, a.id);
+      if (a.fetching) return { fetch: k.id };
+      setDown(st, a);
+      a.fetching = { at, led: false };
+      if (tileOf(st, a) === at) lead(st, a);
+      else issue(st, { actor: a.id, verb: 'walkTo', target: at, args: { x: k.x, y: k.y }, source: 'pawn' });
+      return { fetch: k.id };
+    },
+    active: (st, c) => st.agents[c.target].awaits === c.actor,
+  });
+  // A fetcher's walk has ended (sim/legs, a leg changed with no walk in hand): at the children's place it leads them home; home, it is done.
+  function fetchLeg(st, a) {
+    const f = a.fetching;
+    if (!f || a.path) return;
+    if (f.led) {
+      if (a.inside) delete a.fetching;
+    } else if (tileOf(st, a) === f.at) lead(st, a);
+  }
+  // At the day's end (sim/clock): true while a fetch goes on, and the pawn is left to it. One whose fetch was broken off (its fetcher
+  // sent elsewhere or dead) is let go: a child is fetched again, by another if need be, or goes home alone; a fetcher goes home.
+  function fetchGoesOn(st, a) {
+    if (a.fetching) {
+      if (a.path && (a.fetching.led ? a.phase === 'home' : a.errand)) return true;
+      delete a.fetching;
+      return false;
+    }
+    if (a.awaits === undefined) return false;
+    const b = a.awaits >= 0 ? st.agents[a.awaits] : null;
+    if (b && st.pawns[b.id].alive && b.fetching && !b.fetching.led) return true;
+    delete a.awaits;
+    const hid = st.pawns[a.id].household;
+    return hid !== null && !st.households[hid].dissolved && fetch(st, a, st.households[hid]);
+  }
   // Arrival: the journey ends, what is left of its provisions goes into the new home's meals, and the pawn is at home.
   function endJourney(st, a) {
     const j = stayOf(st, a.id),
@@ -435,5 +555,6 @@ VB['sim/journeys'] = (() => {
   // A pawn's household changed (sim/heirs' moveTo); a child is born (sim/births).
   on('rehoused', (st, d) => moved(st, d.a, d.old, d.hh, d.carry));
   on('placeBorn', (st, d) => placeBorn(st, d.a, d.mother, d.hh));
-  return { moved, placeBorn, setOut, addFetchStop, bear, visit, visitDays };
+  on('legChanged', fetchLeg);
+  return { moved, fetchGoesOn, placeBorn, setOut, addFetchStop, bear, visit, visitDays };
 })();

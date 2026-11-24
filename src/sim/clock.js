@@ -21,7 +21,8 @@ VB['sim/clock'] = (() => {
     { dropSides } = VB['sim/attention'],
     { reckonAll } = VB['sim/work'];
   const { placeOf } = VB['sim/pose'];
-  const { feedAway, dayAway } = VB['sim/away'];
+  const { feedAway, dayAway } = VB['sim/away'],
+    { fetchGoesOn } = VB['sim/journeys'];
   const { refreshJobs, lookForWork } = VB['sim/jobs'],
     { takeDay, dutyRound, eveningCall } = VB['sim/day'],
     { ownTime } = VB['sim/pastimes'];
@@ -167,6 +168,7 @@ VB['sim/clock'] = (() => {
           if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
           if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)
           if (travelling(a)) continue; // on the road it sleeps where it stopped (VB-287)
+          if (fetchGoesOn(st, a)) continue; // a small child fetched to its new home, and its fetcher (sim/journeys, VB-1240)
           if (a.job && (a.phase === 'go' || a.phase === 'work') && carriedOn(st, a.job)) continue; // a task lived by, finished (VB-1547)
           release(st, a);
           if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
