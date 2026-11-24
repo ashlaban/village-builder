@@ -59,6 +59,7 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2-gauges { pointer-events: none; display: flex; gap: 3px; padding: 3px 5px; margin-top: 30px; border-radius: 8px; border: var(--line); background: var(--glass); box-shadow: 0 1px 3px rgba(15, 22, 19, 0.4); }
 .u2-gauges i { display: grid; justify-items: center; gap: 1px; font-style: normal; color: var(--ink2); }
 .u2-gauges svg { width: 16px; height: 16px; }
+.u2-gauges .warn { align-self: center; width: 22px; height: 22px; border-radius: 50%; background: var(--red); color: #fff7ec; place-items: center; }
 .u2-gauges u { display: block; width: 22px; height: 7px; border-radius: 3px; border: 1.5px solid var(--ink2); background: var(--pine); }
 .u2-gauges .short u { background: var(--gold2); } .u2-gauges .bad u { background: var(--red); } .u2-gauges .none u { background: transparent; border-style: dashed; }
 .u2-flag button { display: grid; grid-template-columns: auto auto; align-items: center; gap: 0 6px; padding: 3px 8px 3px 3px; border-radius: 999px; border: var(--line); background: var(--glass); box-shadow: var(--lift); font-weight: 700; font-size: 14px; }

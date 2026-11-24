@@ -416,6 +416,25 @@ function planCard(P, A, S) {
   );
 }
 // ---- on the land: how things stand, and what can be done where ----
+// What took of the settler's health at its last reckoning (st.player.days, VB-1118), each an icon at the house and a sentence in its
+// callout: the warning stands on the land, its words a tap away.
+const HUD_AILS = [
+  ['cold', 'cold', 'The night was cold: there is no roof and fire to sleep by. A booth or a house mends that.'],
+  ['damp', 'cold', 'The night was damp: there is no roof to sleep under. A booth or a house mends that.'],
+  ['hunger', 'hunger', 'Hunger is taking of its health.'],
+  ['tired', 'mood', 'Lack of sleep is taking of its health.'],
+  ['ill', 'health', 'It is ill.'],
+];
+function hudAils() {
+  const d = (st.player.days || []).slice(-1)[0],
+    seen = new Set();
+  return d
+    ? HUD_AILS.filter(([k, icon]) => d.why[k] >= 0.2 && !seen.has(icon) && seen.add(icon)).map(([, icon, words]) => [
+        icon,
+        words,
+      ])
+    : [];
+}
 // A field's pin: the icon of what it waits for, a number of days where one counts (to ripe, or left to sow), and how pressing it is.
 // The words are the tile's callout (fieldLine), a tap away.
 function fieldPin(fd) {
@@ -485,7 +504,9 @@ function hudCall(i, id, hh, f) {
     acts = '';
   if (i === f.house) {
     title = f.name;
-    sub = `${st.pawns[id].given}: ${Sim.describe(st, id)}`;
+    sub = `${st.pawns[id].given}: ${Sim.describe(st, id)}.${hudAils()
+      .map(([, words]) => ` ${words}`)
+      .join('')}`;
     acts +=
       '<div class="u2-row2"><button type="button" class="u2-chip" data-tab="stores">Stores</button>' +
       '<button type="button" class="u2-chip" data-tab="plan">Plan</button><button type="button" class="u2-chip" data-tab="today">Today</button></div>';
@@ -546,7 +567,8 @@ function hudMarks(id, hh, f) {
     V = Sim.headView(st, hh.id),
     open = VB['sim/projects'].openOf(st, hh.id),
     site = open && Number.isInteger(open.place) ? open.place : -1,
-    plan = st.player.queue.map((q) => q.target).join() + JSON.stringify((hudPlanned() || {}).tasks || 0),
+    plan =
+      hudAils().length + st.player.queue.map((q) => q.target).join() + JSON.stringify((hudPlanned() || {}).tasks || 0),
     key = [
       Math.floor(st.t),
       hud.at,
@@ -603,13 +625,17 @@ function hudMarks(id, hh, f) {
       id: 'house',
       tile: f.house,
       cls: 'u2-gauges',
-      html: [
-        ['food', 'grain'],
-        ['fuel', 'wood'],
-        ['hay', 'hay'],
-      ]
-        .map(([k, icon]) => `<i class="${O[k].state}">${goodIcon(icon)}<u></u></i>`)
-        .join(''),
+      html:
+        [
+          ['food', 'grain'],
+          ['fuel', 'wood'],
+          ['hay', 'hay'],
+        ]
+          .map(([k, icon]) => `<i class="${O[k].state}">${goodIcon(icon)}<u></u></i>`)
+          .join('') +
+        hudAils()
+          .map(([icon]) => `<i class="warn">${goodIcon(icon)}</i>`)
+          .join(''),
     });
   if (hud.at >= 0)
     marks.push({ id: 'call', tile: hud.at, cls: 'u2-call', call: true, html: hudCall(hud.at, id, hh, f) });
