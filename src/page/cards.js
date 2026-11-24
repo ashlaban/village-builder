@@ -295,8 +295,6 @@ const houseStats = (hh) =>
     waterStat(hh),
     hh.hungryDays > 0 ? { icon: 'hunger', label: 'Hungry days', value: hh.hungryDays, tone: 'warn' } : null,
     toolsStat(hh),
-    shoesStat(hh),
-    harnessStat(hh),
   ]);
 const section = (title) => `<h3 class="card-sec">${title}</h3>`;
 // ---- materials (VB-668): held until a work asks for them, so the question is whether there is enough for what is planned ----
@@ -477,6 +475,8 @@ function storesTab(hh) {
           meter: { value: c.cond * 100, marks: [{ at: C.CART.mendAt * 100, label: 'below this it wants mending' }] },
         }))
       : [{ icon: 'cart', label: 'Cart', wide: true, value: 'none' }]),
+    shoesStat(hh), // VB-911
+    harnessStat(hh),
   ];
   const low = Math.round(Math.min(100, ...hh.members.map((id) => st.pawns[id].health)));
   return (
