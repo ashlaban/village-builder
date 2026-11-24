@@ -17,11 +17,17 @@ from the code: write what it cannot find quickly, and nothing it can.
 
 1. Commit what you have (`VB-NNN: <title> (work in progress)`), `npm test` passing or the failing script named in the handover.
 2. Tick the criteria met in the task file.
-3. `node tools/inbox.js note VB-NNN handover --body -` with the text below (at most 60 lines, 4 KB; the inbox refuses more).
+3. `node tools/inbox.js note VB-NNN handover --body -` with the text below (at most 60 lines, 4 KB; the inbox refuses more). A session
+   with no inbox runs `node tools/inbox.js init` first (never `--fresh`).
 4. `node tools/inbox.js result VB-NNN status=continue reason=ceiling|boundary|stuck commit=SHA summary=...`.
-5. A sub-agent ends with `VB-NNN <title>: continue <commit> on <branch>`. A session of its own starts a fresh `vb-task` sub-agent
-   (the model it runs on) with the prompt "Task VB-NNN, continued from `<branch>` at <commit>; the handover: `node tools/inbox.js
-   handover VB-NNN`", waits for its result, and reports it; it explores no further itself.
+5. A sub-agent ends with `VB-NNN <title>: continue <commit> on <branch>`; its orchestrator starts the next.
+6. A session of its own hands over to a fresh `vb-task` sub-agent itself, and explores no further:
+   - `node tools/inbox.js start VB-NNN` reserves the IDs for the tasks the sub-agent may note;
+   - the sub-agent (the Agent tool, `vb-task`, in a worktree of its own, on the model the session runs on) gets the prompt "Task VB-NNN,
+     continued from `<branch>` at <commit>; the run's branch is `<branch>`; your reserved task IDs are <IDs>; the handover: `node
+     tools/inbox.js handover VB-NNN`";
+   - when it ends, the session merges its branch (`git merge --no-ff`), runs `npm test`, `node tools/inbox.js apply`, and closes the
+     task as `AGENTS.md`, Taking a task, says, measuring itself with `--task VB-NNN` (its sub-agent is measured with it).
 
 ## The text
 

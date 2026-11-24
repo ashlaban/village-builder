@@ -31,13 +31,14 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 
 Measure behaviour before and after once on the final PR result, or at nightly wrap-up on the merged branch. Measure within a task when its criterion names a number to move or when tuning. A refactor reports what became simpler and lists each intentional behaviour change.
 
-In an orchestrated run, follow `.claude/agents/vb-task.md`. Send closeout details through the inbox. The orchestrator updates shared records and opens the PR. Hand over at 120 model calls.
+In an orchestrated run, follow `.claude/agents/vb-task.md`. Send closeout details through the inbox. The orchestrator updates shared records and opens the PR. Hand over at 120 model calls, or past the context threshold at a boundary (`vb-task.md`, step 8).
 
 ### Spending turns
 Every model call re-reads the whole context, so a task's cost grows faster than its calls (the token use page, `docs/usage.html`).
 - Send independent reads and searches together, in one message: several greps, file sections or `doc.js` headings at once, not one a call.
 - Read a function or a section whole, once, not in windows of a few lines.
 - Make a file's edits in one call, and check the result in the same call (the diff, or the focused test), not in a call of its own.
+- Run `node tools/inbox.js calls` with each `npm test`. Past its context threshold, a session hands the rest of its task to a fresh `vb-task` sub-agent at the next boundary (`docs/agents/handover.md`).
 
 ## Deciding without Kim
 
