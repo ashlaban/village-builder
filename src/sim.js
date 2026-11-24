@@ -58,7 +58,8 @@ const Sim = (() => {
   const { heirRanking } = VB['sim/heirranking'],
     { wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
   const { updateTies, refreshInterests, hooks, standingParts } = VB['sim/society'];
-  const { plan, planView, fireView } = VB['sim/playerplan']; // the player's plan, its act and its read (VB-1618)
+  const { plan } = VB['sim/playerplan']; // the player's plan, its act (VB-1618)
+  const { planView, fireView } = VB['sim/planview']; // the plan's and the fire's reads (VB-1618, VB-1625)
   const { sleepOf } = VB['sim/sleep']; // the played pawn's sleep owed, for the page (VB-1615)
   const { of: moodOf, word: moodWord } = VB['sim/mood']; // a pawn's mood and its modifiers, for its card (VB-062)
   const { labelsOf: traitLabels, act: traitAct } = VB['sim/traits']; // a pawn's traits in words, for its card (VB-519); one's act (VB-520)

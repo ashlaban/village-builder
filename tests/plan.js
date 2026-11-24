@@ -335,7 +335,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
 // fields sown and the hay home, the open project left as it was and nothing begun by the household's own rule; why each task waits on
 // the way, and the agenda laying none before its reason allows; a save and a load go on the same. An unplayed head keeps the limit of one.
 {
-  const P = VB['sim/projects'], { VERBS } = VB['sim/commands'], WHYS = Object.keys(VB['sim/playerplan'].WAITS);
+  const P = VB['sim/projects'], { VERBS } = VB['sim/commands'], WHYS = Object.keys(VB['sim/plannext'].WAITS);
   const st = alone({ herds: true }), f = st.farmsteads[0], hh = st.households[0];
   const old = f.fields.map((fd) => [fd, fd.crop]);
   for (const fd of f.fields) fd.crop = 'fallow'; // the settler's hands till the new fields (sim/fieldwork underHands); put back below

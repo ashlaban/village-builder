@@ -113,7 +113,7 @@ VB['sim/camp'] = (() => {
       f = hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
     if (f && f.camp === true && hexSteps(st.w, b.tile, f.house) <= 1) f.camp = false;
   });
-  // What stands for the farmstead chain of household hid at `tile` (sim/playerplan CHAINS.farmstead), or null: {f, camp: true} while its
+  // What stands for the farmstead chain of household hid at `tile` (sim/planchains CHAINS.farmstead), or null: {f, camp: true} while its
   // camp has no booth staked (any tile, its placing to come); {f, staked} (the booth plan) or {f, raised: true} at its house's tile.
   function campAt(st, hid, tile) {
     const hh = st.households[hid],

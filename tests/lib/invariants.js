@@ -1474,14 +1474,14 @@ function checkState(st) {
     });
     // its plan (VB-1618): absent until first planned; at most PLAN_MAX kinds of sim/kinds, each once, and tasks of distinct keys; the
     // sleeping hours two distinct hours of the day; a task at a tile (VB-1621, VB-1622) a tile under its chain's name, one a chain a tile; the routine's done kinds of its own, on a day not after today; the commands it fed marked
-    const pp = pl.plan, PP = globalThis.VB['sim/playerplan'], KS = globalThis.VB['sim/kinds'].KINDS, hr = (h) => typeof h === 'number' && h >= 0 && h < 24;
+    const pp = pl.plan, PP = globalThis.VB['sim/playerplan'], PC = globalThis.VB['sim/planchains'], KS = globalThis.VB['sim/kinds'].KINDS, hr = (h) => typeof h === 'number' && h >= 0 && h < 24;
     if (pp !== undefined && !(pp && Array.isArray(pp.routine) && pp.routine.length <= PP.PLAN_MAX && pp.routine.every((k) => KS[k])
       && new Set(pp.routine).size === pp.routine.length && (pp.sleep === null || (pp.sleep && hr(pp.sleep.from) && hr(pp.sleep.until) && pp.sleep.from !== pp.sleep.until))
       && Array.isArray(pp.tasks) && pp.tasks.length <= PP.PLAN_MAX && new Set(pp.tasks.map((x) => (x.key === undefined ? `${x.kind} ${x[x.kind]}` : x.key))).size === pp.tasks.length
-      && pp.tasks.every((x) => (x.key === undefined ? !!PP.CHAINS[x.kind] && Number.isInteger(x[x.kind]) && x.site === x[x.kind]
+      && pp.tasks.every((x) => (x.key === undefined ? !!PC.CHAINS[x.kind] && Number.isInteger(x[x.kind]) && x.site === x[x.kind]
         : typeof x.key === 'string' && KS[x.kind] && Number.isInteger(x.site))) && Number.isInteger(pp.day) && pp.day * 24 <= st.t
       && Array.isArray(pp.done) && pp.done.every((k) => pp.routine.includes(k)) && new Set(pp.done).size === pp.done.length
-      && (pp.last === null || ((typeof pp.last.key === 'string' || (!!PP.CHAINS[pp.last.kind] && Number.isInteger(pp.last[pp.last.kind]) && PP.CHAINS[pp.last.kind].which.includes(pp.last.which))) && pp.last.t <= st.t)))) bad.push(`player.plan: ${JSON.stringify(pp)}`);
+      && (pp.last === null || ((typeof pp.last.key === 'string' || (!!PC.CHAINS[pp.last.kind] && Number.isInteger(pp.last[pp.last.kind]) && PC.CHAINS[pp.last.kind].which.includes(pp.last.which))) && pp.last.t <= st.t)))) bad.push(`player.plan: ${JSON.stringify(pp)}`);
     (Array.isArray(pl.queue) ? pl.queue : []).forEach((c, n) => {
       if (c.plan !== undefined && !(c.plan && ['routine', 'task', 'sleep'].includes(c.plan.from))) bad.push(`player.queue[${n}].plan: ${JSON.stringify(c.plan)}`);
     });
