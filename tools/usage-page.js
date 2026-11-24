@@ -13,6 +13,8 @@
 //                 otherwise the task its commits name: the VB-NNN that heads at least two thirds of the commits made between its start
 //                 and five minutes after its end; a session with no such task is listed apart, as outside a task.
 // A task measured more than once (a retry, a second session) is the sum of its runs.
+// A task's independent review (VB-1615) is part of its cost and shown apart too: the reviewer's (rw), the revision after it (vw), and the
+// task's arm (review, control, ineligible). A session whose only sub-agents are reviewers worked on one task, not as an orchestrator.
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
 
@@ -37,7 +39,8 @@ function taskOfCommits(run, commits) {
 function model({ runs, commits, taskInfo }) {
   const byTask = new Map(), sessions = [];
   const add = (id, r) => {
-    const t = byTask.get(id) || { id, runs: 0, calls: 0, min: 0, peak: 0, i: 0, cw: 0, cr: 0, o: 0, models: [], src: r.src, date: r.date };
+    const t = byTask.get(id) || { id, runs: 0, calls: 0, min: 0, peak: 0, i: 0, cw: 0, cr: 0, o: 0, rw: 0, vw: 0, arm: null, models: [], src: r.src || 'sub-agent', date: r.date };
+    t.rw += r.rw || 0; t.vw += r.vw || 0; if (r.arm) t.arm = r.arm;
     t.runs++; t.calls += r.calls; t.min += r.min || 0; t.peak = Math.max(t.peak, r.peak || 0);
     t.i += r.tokens.input; t.cw += r.tokens.cacheWrite; t.cr += r.tokens.cacheRead; t.o += r.tokens.output;
     t.models.push(...r.models); if (r.date > t.date) t.date = r.date;
@@ -50,11 +53,13 @@ function model({ runs, commits, taskInfo }) {
     const self = { id: (run.session || '').slice(0, 8), label: run.label || '-', date, models: run.models || [], calls: run.calls, tokens: run.tokens,
       min: run.activeMin, peak: run.context && run.context.peak, src: 'session' };
     for (const s of subs) {
-      const r = { id: s.agent, label: 'sub-agent', date: (s.start || run.start || '').slice(0, 10), models: [s.model], calls: s.calls, tokens: s.tokens, min: s.activeMin, peak: s.peak, src: 'sub-agent' };
+      const r = { id: s.agent, label: 'sub-agent', date: (s.start || run.start || '').slice(0, 10), models: [s.model], calls: s.calls, tokens: s.tokens, min: s.activeMin, peak: s.peak,
+        src: s.role === 'review' ? undefined : 'sub-agent', rw: s.role === 'review' ? weighted(s.tokens) : 0, vw: s.revision ? s.revision.weighted : 0, arm: s.review ? s.review.arm : null };
       if (s.task) add(s.task, r); else apart('outside', r, 0);
     }
-    const task = subs.length ? null : run.task || taskOfCommits(run, commits);
-    if (task) add(task, self); else apart(subs.length ? 'orchestrator' : 'outside', self, subs.filter((s) => s.task).length);
+    const implementers = subs.filter((s) => s.role !== 'review'), task = implementers.length ? null : run.task || (run.review && run.review.task) || taskOfCommits(run, commits);
+    if (run.review) Object.assign(self, { arm: run.review.arm, vw: run.review.revision ? run.review.revision.weighted : 0 });
+    if (task) add(task, self); else apart(implementers.length ? 'orchestrator' : 'outside', self, implementers.filter((s) => s.task).length);
   }
   const tasks = [...byTask.values()].map((t) => {
     const info = taskInfo(t.id) || {}, { models, ...rest } = t;

@@ -128,7 +128,10 @@ function reviewedAt(root, id) {
   if (fs.existsSync(own)) return 'work/review/' + id + '.json';
   const dir = path.join(root, 'docs', 'agents', 'usage');
   for (const f of fs.existsSync(dir) ? fs.readdirSync(dir) : []) {
-    try { const r = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')).review; if (r && r.task === id && r.arm === 'review') return 'docs/agents/usage/' + f; } catch {}
+    try {
+      const run = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')), r = run.review;
+      if ((r && r.task === id && r.arm === 'review') || (run.subagents || []).some((s) => s.role === 'review' && s.task === id)) return 'docs/agents/usage/' + f;
+    } catch {}
   }
   return null;
 }

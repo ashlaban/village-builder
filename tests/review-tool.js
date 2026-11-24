@@ -82,6 +82,8 @@ try {
   fs.rmSync(path.join(dir, 'work'), { recursive: true });
   put('docs/agents/usage/run.json', JSON.stringify({ review: { task: id, arm: 'review' } }));
   assert.match(run('eligible', id, '--base', base).stdout, /reviewed: .*docs\/agents\/usage\/run\.json/, 'a committed run file records it too');
+  put('docs/agents/usage/run.json', JSON.stringify({ subagents: [{ role: 'review', task: id }] }));
+  assert.match(run('eligible', id, '--base', base).stdout, /reviewed: .*run\.json/, 'and an orchestrated night\'s reviewer');
 
   // confirm, after one revision: a test that fails at the reviewed commit and passes at the head shows a mend; no second review
   fs.rmSync(path.join(dir, 'docs'), { recursive: true });

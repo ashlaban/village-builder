@@ -50,4 +50,19 @@ assert.ok(!page.includes('/*DATA*/') && page.includes('"VB-001"') && page.includ
 const script = page.slice(page.indexOf('<script>') + 8, page.lastIndexOf('</script>'));
 assert.doesNotThrow(() => new Function(script), 'the page script parses');
 fs.rmSync(tmp, { recursive: true });
+// a review (VB-1615): a session whose only sub-agent is its reviewer stays its task's; the reviewer's and the revision's costs shown apart
+const rd = model({ commits: [], taskInfo: () => null, runs: [
+  run('solo0000', '2026-11-05T10:00:00Z', '2026-11-05T11:00:00Z', { task: 'VB-010', review: { task: 'VB-010', arm: 'review', revision: { weighted: 30 } },
+    subagents: [{ agent: 'r1', role: 'review', task: 'VB-010', model: 'claude-opus-5-5', calls: 4, tokens: tok(20), activeMin: 3, peak: 4, start: '2026-11-05T10:30:00Z' }] }),
+  run('orch1111', '2026-11-06T10:00:00Z', '2026-11-06T12:00:00Z', { subagents: [
+    { agent: 'i2', role: 'implement', task: 'VB-011', review: { arm: 'review' }, revision: { weighted: 7 }, model: 'claude-opus-5-5', calls: 9, tokens: tok(50), activeMin: 5, peak: 6, start: '2026-11-06T10:05:00Z' },
+    { agent: 'r2', role: 'review', task: 'VB-011', model: 'claude-opus-5-5', calls: 2, tokens: tok(15), activeMin: 1, peak: 3, start: '2026-11-06T10:40:00Z' },
+    { agent: 'i3', role: 'implement', task: 'VB-012', review: { arm: 'control' }, model: 'claude-sonnet-5-5', calls: 3, tokens: tok(9), activeMin: 1, peak: 2, start: '2026-11-06T10:06:00Z' }] }),
+  run('solo2222', '2026-11-07T10:00:00Z', '2026-11-07T11:00:00Z', { task: 'VB-013', review: { task: 'VB-013', arm: 'ineligible' } })] });
+const rt = (id) => rd.tasks.find((t) => t.id === id);
+assert.ok(rt('VB-010') && rt('VB-010').w === 120 && rt('VB-010').rw === 20 && rt('VB-010').vw === 30 && rt('VB-010').arm === 'review'
+  && !rd.sessions.some((x) => x.id === 'solo0000'), 'a session with only its reviewer is its task\'s: the review and the revision apart');
+assert.ok(rt('VB-011').w === 65 && rt('VB-011').rw === 15 && rt('VB-011').vw === 7 && rt('VB-011').arm === 'review' && rt('VB-012').arm === 'control'
+  && rd.sessions.find((x) => x.id === 'orch1111').tasks === 2, 'a night: the reviewer is the task\'s cost, not a task handed out; each task\'s arm');
+assert.ok(rt('VB-013').arm === 'ineligible' && rt('VB-013').rw === 0, 'a session not reviewed states its arm');
 console.log('usage page ok');
