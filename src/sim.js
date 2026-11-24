@@ -260,6 +260,7 @@ const Sim = (() => {
     // VB-1627: the build menu, what the played head may build now, and why a tile will not take one (sim/camp); reads only
     buildMenu: VB['sim/agenda'].buildMenu, // sim/camp's menu with each entry's `work`, the plan's estimate (VB-1630)
     placeWhy: VB['sim/camp'].placeWhy,
+    moveCost: (st, tile) => VB['sim/camp'].moveCost(st, tile, VB['sim/reasons'].frostExpected(st)), // VB-1639
     farmView: VB['sim/ladder'].farmView, // VB-1631: what stands at a farm, what is being built, what could follow (sim/ladder); reads only
     boatUntarred,
     team,
