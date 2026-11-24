@@ -165,8 +165,11 @@ VB['sim/obligations'] = (() => {
       if (!(part > 0)) continue;
       n -= part;
       o.delivered += part;
-      if (left(o) <= 0) close(st, o, 'met');
-      else if (o.status === 'open') o.status = 'part';
+      // Met within rounding (parts of hours or rations summed: 3.9999999999999996 of 4), and then booked as whole (VB-1175's run).
+      if (left(o) <= 1e-9) {
+        o.delivered = amount(o);
+        close(st, o, 'met');
+      } else if (o.status === 'open') o.status = 'part';
     }
     return null;
   }

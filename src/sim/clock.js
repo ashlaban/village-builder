@@ -8,9 +8,9 @@ VB['sim/clock'] = (() => {
   const { spreadForest } = VB['sim/spread'];
   const { fieldsDay, fieldsFrost } = VB['sim/fields'];
   const { seasonBegins, frostDay, winterAhead } = VB['sim/weather'];
-  const { reckon: reckonWinter, fallDue: climateDue } = VB['sim/climate'];
+  const { reckon: reckonWinter, fallDue: climateDue, layGround } = VB['sim/climate'];
   const { refreshRoutes, costChanged } = VB['sim/routes'],
-    { refreshHoursStep, ROW_STEPS } = VB['sim/villagehours'];
+    { refreshHoursStep, ROW_STEPS, WINTER_AT, winterDay, winterStep } = VB['sim/villagehours'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
@@ -22,7 +22,8 @@ VB['sim/clock'] = (() => {
     { dropSides } = VB['sim/attention'],
     { reckonAll } = VB['sim/work'];
   const { placeOf } = VB['sim/pose'];
-  const { feedAway, dayAway } = VB['sim/away'];
+  const { feedAway, dayAway } = VB['sim/away'],
+    { fetchGoesOn } = VB['sim/journeys'];
   const { refreshJobs, lookForWork } = VB['sim/jobs'],
     { takeDay, dutyRound, eveningCall } = VB['sim/day'],
     { ownTime } = VB['sim/pastimes'];
@@ -94,7 +95,7 @@ VB['sim/clock'] = (() => {
       note: "a season begins: its warmth and wetness drawn (on spring's, the year's thaw and frost first)",
       run: (st, c) => seasonBegins(st, c),
     },
-    // ---- the winter's dates (VB-807): reckoned on autumn's first step, after its weather; each falls at the first step of its day ----
+    // ---- the winter's dates (VB-807): reckoned on autumn's first step, after its weather; each falls at 4:00 of its day (VB-808) ----
     {
       every: 'season',
       when: (st, c) => c.season === AUTUMN,
@@ -104,6 +105,7 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'day',
+      at: { hour: 4 }, // sim/climate's DATE_HOUR: when nobody is out (VB-808)
       when: (st) => !!st.climate && st.climate.due.length > 0 && st.climate.due[0].at <= st.t,
       owner: 'sim/climate',
       note: "a winter's date falls due: its band's state, and a line",
@@ -174,6 +176,7 @@ VB['sim/clock'] = (() => {
           if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
           if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)
           if (travelling(a)) continue; // on the road it sleeps where it stopped (VB-287)
+          if (fetchGoesOn(st, a)) continue; // a small child fetched to its new home, and its fetcher (sim/journeys, VB-1240)
           if (a.job && (a.phase === 'go' || a.phase === 'work') && carriedOn(st, a.job)) continue; // a task lived by, finished (VB-1547)
           release(st, a);
           if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
@@ -482,6 +485,15 @@ VB['sim/clock'] = (() => {
       note: 'the walking hours between villages, a row a step (VB-286)',
       run: (st, c, n) => refreshHoursStep(st, n - 12 * TICKS),
     },
+    // the day lake ice first bears in the middle band, from 5:00: the winter table, a village a step (VB-808)
+    {
+      every: 'day',
+      at: { hour: WINTER_AT, tick: [0, ROW_STEPS] },
+      when: winterDay,
+      owner: 'sim/villagehours',
+      note: "the walking hours between villages over a normal winter's ground, a row a step (VB-808)",
+      run: (st, c, n) => winterStep(st, n - WINTER_AT * TICKS),
+    },
     {
       every: 'year',
       at: { season: AUTUMN, sday: 9 },
@@ -725,6 +737,7 @@ VB['sim/clock'] = (() => {
     }
   }
   function step(st) {
+    if (!st.w.ground) layGround(st); // the ground compiled at a run's first step (VB-808; a load compiles it at once)
     stepEnds(st);
     playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
     const c = cal(st.t),

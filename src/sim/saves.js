@@ -401,6 +401,7 @@ VB['sim/saves'] = (() => {
     st.w = w;
     for (const k in DERIVED) st[k] = null;
     for (const k in DERIVED) if (DERIVED[k]) DERIVED[k](st);
+    VB['sim/climate'].layGround(st); // VB-808: the ground compiled on the bands' states, from the land as loaded
     VB['sim/fieldrec'].grounded(st); // VB-1520
     VB['sim/water'].wellsLoaded(st); // VB-1584: an older save's well, a boolean, is its tile
     VB['sim/thirst'].loaded(st); // VB-1585: a save from before a pawn's own thirst loads as having drunk

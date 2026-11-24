@@ -13,7 +13,7 @@ VB['sim/hands'] = (() => {
     { MATCH, ROLES } = VB['sim/roles'];
   const HELP = MATCH.help;
   const { CROPS } = VB['sim/crops'];
-  const { frostDay } = VB['sim/weather'];
+  const { frostExpected } = VB['sim/weather'];
   const Offers = VB['sim/offers'];
   const { issue } = VB['sim/commands'];
   const { opinionOf, remember } = VB['sim/relations'];
@@ -55,14 +55,15 @@ VB['sim/hands'] = (() => {
   };
   // ---- the asker's window ----
   // The last day of the year (season * SEASON_DAYS + day) on which task j can be done, or null when it has none or it is past: the
-  // sowing window of its field's crop for hoeing and sowing, the year's frost for reaping and carrying the sheaves (sim/weather frostDay).
+  // sowing window of its field's crop for hoeing and sowing, the frost the head expects for reaping and carrying the sheaves
+  // (sim/weather frostExpected: not this year's drawn day, which nobody knows ahead; VB-1175).
   function windowEnd(st, j, c) {
     const now = c.season * SEASON_DAYS + c.sday;
     let end = null;
     if ((j.kind === 'plow' || j.kind === 'sow') && j.field && CROPS[j.field.crop] && CROPS[j.field.crop].sow) {
       const W = CROPS[j.field.crop].sow;
       end = W[0] * SEASON_DAYS + W[2];
-    } else if (j.kind === 'reap' || j.kind === 'haul') end = 2 * SEASON_DAYS + frostDay(st);
+    } else if (j.kind === 'reap' || j.kind === 'haul') end = 2 * SEASON_DAYS + frostExpected(st);
     return end === null || end < now ? null : end;
   }
   // The working hours from now to the end of day `end` of the year

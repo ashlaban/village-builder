@@ -74,11 +74,14 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   (`gen/cover`, keep and restore) before it is painted or seeded again. A game begun there is
   `unsaved`: a save rebuilds its world from seed and size alone (`tests/browser-editor.js`).
 - Walking: `src/sim/walking.js` defines tile passability, the cost of a step, the discomfort a route is chosen by (`DISCOMFORT`,
-  `choiceCost`, VB-448) and the cached breadth-first reach lists. `src/sim/routes.js` searches for the route a walker of a load class
+  `choiceCost`, VB-448) and the cached breadth-first reach lists. A tile's cost is compiled into one array a world (`w.ground`, VB-808:
+  derived, rebuilt at a run's first step and at a load), by the rule on its row's season; `sim/climate` sets a band's rows as a winter's
+  date falls (snow, frozen marsh, lake, river and sound ice, the thaw's soft ground; `WINTER` in `sim/rules`). `src/sim/routes.js` searches for the route a walker of a load class
   chooses (its time weighed with discomfort; the quickest at weight 0), bounded by its time, including `reachCosts` for one search to many targets, and owns the bounded route cache
   (`st.pathCache`, `st.routeDirty`, `st.routeFallbacks`). `costChanged` marks that cache for daily refresh and tells walking to invalidate
   its reach lists if passability changed. `src/sim/villagehours.js` maintains the symmetric travel-time table `st.villageHours` (VB-286)
-  through the route search and supplies the village-to-village distance queries. `src/sim/paths.js` counts and fades worn paths
+  through the route search, and the winter table `st.winterHours` over a normal winter's ground (VB-808), and supplies the
+  village-to-village distance queries (the winter table while ice bears in the asking village's band). `src/sim/paths.js` counts and fades worn paths
   (`w.wear`, `w.worn`) and wears in generated villages; `src/draw/paths.js` draws them into the map chunks. `src/sim/trails.js` holds the
   verb `blaze` (VB-447): a trail is its blazer's project plan, a job a wooded tile on the route `trailStep` makes, worked by the blazer's
   household; a tile blazed is set to a path's count through `sim/paths` (`blazeTile`), and nothing else of it is kept.

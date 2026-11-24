@@ -10,7 +10,8 @@ VB['sim/agenda'] = (() => {
   const { CROPS, ROTATIONS } = VB['sim/crops'];
   const { KINDS } = VB['sim/kinds'];
   const { estimate } = VB['sim/estimate'];
-  const { windowLeft, cause, frostExpected } = VB['sim/reasons'];
+  const { windowLeft, cause } = VB['sim/reasons'];
+  const { frostExpected } = VB['sim/weather'];
   const { projectsOf } = VB['sim/projects'];
   const { courseFor } = VB['sim/rotations'];
   const { MOW_LAST, hayWanted } = VB['sim/meadows'];

@@ -68,6 +68,14 @@ expect('close-arch refuses an arch with open tasks', !r.ok, r.out);
 r = run(dir, 'set', B, 'status=ready', 'priority=2');
 expect(`set ${B} ready: no "Waits for:", row in Ready`, r.ok && !/^Waits for:/m.test(file(`backlog/${B}.md`))
   && section('BACKLOG.md', 'Ready').includes(`[${B}](backlog/${B}.md)<a id="${B}"></a> | Test two | zz-test | 2 | S | Two. |`), r.out);
+fs.appendFileSync(path.join(dir, `backlog/${B}.md`), 'Notes:\nCause: a note that begins with the word, not the header.\n');
+r = run(dir, 'set', B, `cause=${A}`);
+expect(`set ${B} cause=${A}: the line after Status`, r.ok && new RegExp(`^Status: ready\nCause: ${A}\nPriority: 2$`, 'm').test(file(`backlog/${B}.md`))
+  && file(`backlog/${B}.md`).includes('Cause: a note that begins with the word'), r.out);
+r = run(dir, 'set', B, 'cause=VB-99999');
+expect('set refuses a cause with no task file', !r.ok, r.out);
+r = run(dir, 'set', B, `cause=${B}`);
+expect('set refuses a task as its own cause', !r.ok, r.out);
 r = run(dir, 'done', B);
 expect('the emptied arch is reported', r.ok && /arch zz-test has no open tasks left/.test(r.out), r.out);
 r = run(dir, 'close-arch', 'zz-test');

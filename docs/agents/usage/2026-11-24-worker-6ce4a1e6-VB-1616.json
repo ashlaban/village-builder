@@ -1,0 +1,163 @@
+{
+ "session": "6ce4a1e6-5583-536a-86c6-5b21e7169590",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T20:53:41.866Z",
+ "end": "2026-11-24T21:02:15.935Z",
+ "wallMin": 8.6,
+ "activeMin": 8.6,
+ "prompts": 1,
+ "calls": 30,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 55,
+  "cacheWrite": 56486,
+  "cacheRead": 9474950,
+  "output": 40507
+ },
+ "context": {
+  "first": 288812,
+  "peak": 343358,
+  "firstEdit": 296140,
+  "series": [
+   [
+    5,
+    302533
+   ],
+   [
+    10,
+    310535
+   ],
+   [
+    15,
+    316241
+   ],
+   [
+    20,
+    324986
+   ],
+   [
+    25,
+    334498
+   ],
+   [
+    30,
+    343358
+   ]
+  ]
+ },
+ "tools": {
+  "Bash": {
+   "calls": 28,
+   "bytes": 29486,
+   "seconds": 165.4
+  },
+  "Write": {
+   "calls": 1,
+   "bytes": 146,
+   "seconds": 0
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 3,
+   "bytes": 10159
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 14,
+   "bytes": 9625
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 4,
+   "bytes": 3270
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 1,
+   "bytes": 2161
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 1756
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/wrap.js",
+   "calls": 2,
+   "bytes": 1345
+  },
+  {
+   "tool": "Bash",
+   "what": "cat >",
+   "calls": 1,
+   "bytes": 771
+  },
+  {
+   "tool": "Bash",
+   "what": "-u +%Y-%m-%dT%H:%MZ)",
+   "calls": 1,
+   "bytes": 262
+  },
+  {
+   "tool": "Write",
+   "what": "docs/agents/handover.md",
+   "calls": 1,
+   "bytes": 146
+  },
+  {
+   "tool": "Bash",
+   "what": "git add",
+   "calls": 1,
+   "bytes": 137
+  }
+ ],
+ "repeats": {
+  "reads": 0,
+  "readBytes": 0,
+  "commands": 0,
+  "commandBytes": 0,
+  "recent": 0
+ },
+ "tests": {
+  "runs": 16,
+  "failed": 4,
+  "streak": 2,
+  "current": 0
+ },
+ "compactions": 0,
+ "continuation": {
+  "continues": true,
+  "handoverBytes": 2971,
+  "callsToEdit": 3,
+  "contextToEdit": 7328,
+  "reason": "ceiling"
+ },
+ "continuations": {
+  "launched": 0,
+  "calls": 0
+ },
+ "weighted": 1220693,
+ "task": "VB-1616",
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 1220693,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}
