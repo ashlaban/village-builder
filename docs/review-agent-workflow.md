@@ -195,3 +195,35 @@ about its calls times its context, and what is in the context at the first call 
 Also from the trial: the built `index.html` conflicts between tasks side by side, and the orchestrator rebuilds it; a linked
 `node_modules` and the worktrees themselves are ignored; times measured beside other sub-agents are descriptions; the fixtures cache
 is linked into a worktree. Still open: whether a task with a criterion unmet keeps its commit as `needs-review`.
+
+## 10. The offline estimate of a context reset (VB-1615, 24 November 2026)
+
+Before any agent is changed, what could a voluntary reset save? `node tools/agent-usage.js --history docs/agents/usage --estimate
+--from 2026-11-18T19:41Z` (`tools/lib/reset-estimate.js`, its model in its header) takes each run since the 120-call ceiling began
+(each sub-agent, and each session with no sub-agents; orchestrators left out), 138 runs and 139.9M weighted, and costs its context curve
+twice: with the ceiling alone, and with one voluntary reset once the context reaches T (from the run's 30th call, with 20 calls or more
+left). A reset starts again from the run's first call plus a handover of H tokens, then R calls of reading again. None of these runs had
+`context.series` yet (it is recorded from VB-1615 on), so every curve is the straight line from the first call to the peak.
+
+Saved, as a share of the runs' measured weighted cost (the share of runs that reset in brackets):
+
+| T | H 5k, R 0 | H 15k, R 6 | H 15k, R 15 | H 30k, R 6 | H 30k, R 15 | runs reset |
+|---|-----------|------------|-------------|------------|-------------|------------|
+| 100k | 8.3% | 1.9% | −4.7% | −1.9% | −9.0% | 36% |
+| 130k | 8.0% | 2.5% | −3.5% | −0.8% | −7.3% | 32% |
+| 160k | 7.7% | 3.9% | −0.1% | 1.7% | −2.6% | 25% |
+| 200k | 4.3% | 2.8% | 1.1% | 1.9% | 0.2% | 13% |
+
+- **Where it is.** At T 160k, H 15k and R 6, the saving is 4.8M of the sessions' 84.5M (5.7%; 32 of 39 sessions reset) and 0.6M of the
+  sub-agents' 55.4M (1.1%; 2 of 99 reset). Since the ceiling, sub-agents seldom pass 160k; sessions of one task on Opus do, and have no
+  ceiling of their own (6 of them passed 120 calls).
+- **What decides it.** Reading again. A reset that costs 15 calls of re-reading loses money below T 200k; one that costs 6 or fewer saves
+  a few per cent. A short handover matters less than few calls of reconstruction, which is what the handover's Verified and Places
+  sections are for.
+- **Why it is a bound.** The model resets at any call once over T, knowing how many calls are left; a real reset waits for a boundary
+  and guesses what is left. Output is left out (the same either way), the first call's prefix is taken as cached across agents, and the
+  work after a reset adds what it added in the run, so no exploration is repeated beyond R. It says nothing of quality: whether a fresh
+  context fixates less, or loses what it needed, only the period comparison (VB-1616) can show.
+- **Proposed for VB-1616:** T = 160k tokens. It saves the most at a middling handover (3.9%), stays above nothing unless re-reading
+  reaches 15 calls with a handover of 15k or more, and touches a quarter of the runs, nearly all of them long sessions. The guards of the
+  model are VB-1616's: no voluntary reset before a run's 30th call, one a task.
