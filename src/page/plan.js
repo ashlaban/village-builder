@@ -346,7 +346,7 @@ function projectHTML(hh, V, mine) {
   const h = pj
     ? stat({
         img: actIcon('spade'),
-        label: `New ${pj.what === 'meadow' ? 'hay meadow' : pj.what}`,
+        label: pj.what === 'drain' ? 'Ditching a field' : `New ${pj.what === 'meadow' ? 'hay meadow' : pj.what}`,
         value: pj.step,
         note: at >= 0 ? `tile ${at}` : '',
         wide: true,
@@ -376,7 +376,14 @@ function projectHTML(hh, V, mine) {
         true,
         'wide',
       ) +
-      planBtn({ plan: 'project', what: 'barn' }, 'Build a barn', 'Begin a barn at the house now', true, 'wide');
+      planBtn({ plan: 'project', what: 'barn' }, 'Build a barn', 'Begin a barn at the house now', true, 'wide') +
+      planBtn(
+        { plan: 'project', what: 'drain' },
+        'Ditch a field',
+        'Ditch the wettest of the farm’s fields whose ditch is silted, the one worth its hours first (VB-721)',
+        true,
+        'wide',
+      );
   const hold = V.heldOff
     ? planBtn(
         { plan: 'project', what: 'null' },

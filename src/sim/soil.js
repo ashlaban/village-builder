@@ -71,9 +71,9 @@ VB['sim/soil'] = (() => {
   // source (docs/review-yields.md, 2.5: open ditches and ridging are medieval; the gain on wet clay "a quarter or more", unverified; rows of
   // docs/tuning.md). `share`: the share of the wetness's loss (sim/crops' wetLoss) a new ditch takes away; `years`: the time constant of its
   // silting, in game years (e^-1 of its work left after that long uncleared), so the gain fades unless the ditch is dug again; `hours`:
-  // the work of ditching a field from nothing (about 200 m of open ditch round and across a field of 1.95 ha, some 20 m a day); a silted
+  // the work of ditching a field from nothing (about 120 m of open ditch along a field of 1.95 ha, some 20 m a day); a silted
   // ditch is dug again for the share of it silted. ----
-  const DITCH = { share: 0.75, years: 15, hours: 100 };
+  const DITCH = { share: 0.75, years: 10, hours: 60 };
   // @state farmstead.fields[].ditch: the ditch's state when last dug (0 to 1, absent: none); ditchAt: the tick it was dug. It silts as
   //   e^-(t/DITCH.years), read in closed form by ditchOf; written only when ditching is done (ditchDug, VB-721).
   const ditchOf = (st, fd) => (fd.ditch ? fd.ditch * Math.exp(-(st.t - fd.ditchAt) / (DITCH.years * YEAR)) : 0);

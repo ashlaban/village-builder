@@ -50,5 +50,12 @@ const bad = checkState(st); check(!bad.length, `invariants: ${bad.slice(0, 3).jo
 // a silted ditch is dug again for the share silted
 st.t += 2 * DITCH.years * YEAR;
 check(near(Drain.ditchHours(st, a), DITCH.hours * (1 - Soil.ditchOf(st, a))), 'a silted ditch is dug again for the share silted');
+// with no field named, the head's pick: the wettest field whose ditch is silted (the player's button)
+{ const q = state(), g = q.farmsteads.find((x) => x.household !== null && x.fields.length >= 2), h = q.households[g.household];
+  for (const fd of g.fields) { q.w.hm[fd.tile] = 0.1; fd.stage = 'stubble'; }
+  const ask = () => issue(q, { actor: h.holder, verb: 'project', target: h.id, args: { what: 'drain' }, source: 'player' });
+  check(/no wet field/.test(ask()), 'with no wet field, nothing to ditch');
+  q.w.hm[g.fields[1].tile] = 0.5; q.w.hm[g.fields[0].tile] = 0.6;
+  check(ask() === true && Projects.ownOf(q, h.id).field === g.fields[0].id, 'the wettest field is ditched when none is worth its hours'); }
 a.ditch = 1.5; check(checkState(st).some((m) => /ditch/.test(m)), 'invariant misses a ditch above 1');
 if (failed) process.exit(1); console.log('drain ok');

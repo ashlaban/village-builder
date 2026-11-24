@@ -60,16 +60,37 @@ VB['sim/drain'] = (() => {
     }
     return best;
   }
-  // Ditching a field, a making the head begins through the verb project (sim/plans; args {field}: the field's id): a large project, one
-  // at a time beside the household's others (a field, a meadow, a barn), on its own farm's wet field.
+  // The field named (args.field, its id), or with none named the head's pick: the best worth its hours (bestField), else the wettest whose
+  // ditch is silted below DRAIN.again (the player's order to ditch, against the head's own sum), else -1.
+  function fieldFor(st, f, args) {
+    if (args && Number.isInteger(args.field)) return args.field;
+    const best = bestField(st, f);
+    if (best) return best.id;
+    let id = -1,
+      most = 0;
+    for (const fd of f.fields) {
+      const loss = wetLoss(st.w, fd.tile);
+      if (loss > most && ditchOf(st, fd) < DRAIN.again) {
+        most = loss;
+        id = fd.id;
+      }
+    }
+    return id;
+  }
+  // Ditching a field, a making the head begins through the verb project (sim/plans; args {field}: the field's id, or none for the head's
+  // pick, fieldFor): a large project, one at a time beside the household's others (a field, a meadow, a barn), on its own farm's wet field.
   declare('drain', {
     why: (st, hh, f, args) => {
       const p = Projects.ownOf(st, hh.id);
       if (p) return `household ${hh.id} has a ${p.what} under way`;
-      return fieldWhy(st, f, args && args.field);
+      const id = fieldFor(st, f, args);
+      return id < 0 && !(args && Number.isInteger(args.field))
+        ? `${f.name} has no wet field to ditch`
+        : fieldWhy(st, f, id);
     },
     begin: (st, hh, f, args) => {
-      const fd = f.fields.find((x) => x.id === args.field);
+      const id = fieldFor(st, f, args),
+        fd = f.fields.find((x) => x.id === id);
       return { field: fd.id, steps: [{ kind: 'ditch', place: fd.tile, hours: ditchHours(st, fd) }] };
     },
     look: {

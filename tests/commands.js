@@ -45,7 +45,7 @@ assert.deepStrictEqual(calls, [], `acts called outside a verb: ${calls.join(', '
   const emitters = files.filter((f) => /emit\(st, 'projectBegun'/.test(text[f])).sort();
   assert.deepStrictEqual(emitters, ['src/sim/building.js', 'src/sim/expansion.js', 'src/sim/farmclaims.js', 'src/sim/trails.js'], 'projectBegun is emitted by a verb\'s act alone');
   const { looks, makingOf } = VB['sim/makings'];
-  assert.deepStrictEqual(looks().map((M) => M.what), ['boat', 'tarpit', 'cart'], 'the heads weigh the three small constructions');
+  assert.deepStrictEqual(looks().map((M) => M.what), ['boat', 'tarpit', 'drain', 'cart'], 'the heads weigh the three small constructions and ditching a wet field (VB-721)');
   assert.ok(makingOf('barn') && makingOf('heirFarm') && !makingOf('barn').look, 'the barn and the heir\'s farm are makings of the menu');
   const notes = VB['sim/clock'].calendarRows().map((r) => r.note).join('\n');
   assert.ok(!/begin a boat|has one dug|has one built/.test(notes), 'the calendar begins no boat, tar pit or cart');
