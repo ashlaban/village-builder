@@ -1,0 +1,44 @@
+# Merge conflicts between parallel work: where they are, and what would predict them
+
+Opened 24 November 2026 in a session with Kim. The question: how to tell automatically which tasks can run side by side, so that
+parallel work stops meeting a merge conflict at nearly every merge. Kim's answers: the aim is fewer conflicts (no task is lost to
+one, but no parallel batch goes without one); a task's footprint is declared when the task is written, from one guide every writer of
+tasks follows; function level if it pays; the list files are ignored until VB-1406 turns them into declarations.
+
+## Answer in short
+
+- Since VB-450 (15 November) 91 of 405 merges that were not GitHub PR merges conflicted (22%). 44 were main merged into a session's
+  branch, that is separate sessions running side by side; 36 were inside an orchestrated run. A scheduler inside a run sees only the
+  second half: it must also read the branches in flight.
+- 62 of the 91 conflicted only where the conflict is mechanical: 37 in the backlog and other bookkeeping files only, 11 in the list
+  files (manifest, layers, owners, suites...), 11 in a module's import block, `@sys` header or export list, 3 in other documents.
+  29 had a conflict inside a function or table body. The mechanical ones are VB-1620's; the body ones VB-1618's and VB-1619's.
+- What a task's text names today predicts its edits poorly: over 482 done tasks it names 37% of the `src/` files they edited, and
+  26% of the files it names were edited (list files left out). A footprint has to be written on purpose; it cannot be read off the goal.
+- Function level pays. With each side's actual edits, "both sides edited the same file" flags 126 of the 405 merges to catch the 29
+  body conflicts (precision 0.23); "both sides edited the same function or table" flags 74 and still catches all 29 (precision 0.39).
+  41% fewer false alarms at no loss, so a footprint names functions, and parallelism is not given up for nothing.
+
+## Data and method
+
+- Full history (`git fetch --unshallow`): 3,111 commits, 809 merges, from 29 October. Period: merges dated from 15 November, after
+  `index.html` left the repository; GitHub's "Merge pull request" merges are left out, since GitHub refuses a conflicting one.
+- `VB-1618-replay.js` replays each two-parent merge with `git merge-tree --write-tree` and, in each conflicted text file of the
+  result, finds the enclosing symbol of each conflict marker: a declaration at indent 0 or 2 (a module's body is indented 2 inside
+  `VB['key'] = (() => {`), the import block (`const { ... } = VB['x']`), the export list (`return {`), a Markdown heading.
+- `VB-1618-split.js` groups the conflicted merges by their worst conflict (body, documents, import/head/export, list, bookkeeping).
+- `VB-1618-granularity.js` takes, for each merge, each side's diff from the merge base, maps every hunk to its enclosing symbol in
+  the base, and tests file overlap and symbol overlap against the replay's conflicts.
+- `VB-1618-predict.js` compares the files and module keys a done task's text names (before its notes) with the `src/` files of its
+  `VB-NNN:` commits.
+
+## Limits
+
+- The symbol finder is a line heuristic: a hunk appended after a table is credited to the table before it, and page files without the
+  module wrapper fall to their nearest top-level `const`. Big tables (`ICON`, `REPORTS`, `KINDS`, `CHRONICLE`, the rules' tables)
+  are append points as much as the list files are: several of the 29 body conflicts are in them.
+- The granularity test uses what each side actually edited, the ceiling a declared footprint can reach, not what a planner would write.
+  VB-1619 measures the declared against the actual after each merge.
+- A merge that resolved cleanly can still break the build (a semantic conflict); none of this measures those. `npm test` after each
+  merge stays the check.
+- Merges are counted, not tasks: one session's branch merging main twice counts twice.
