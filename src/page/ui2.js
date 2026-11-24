@@ -105,6 +105,7 @@ function u2Init() {
     <p class="u2-does" id="u2Does" hidden></p>
     <div class="u2-dock" id="u2Dock" hidden>
       <div class="u2-pcard u2-card" id="u2Pcard" aria-live="polite" hidden></div>
+      <div class="u2-days" id="u2Days" role="group" aria-label="The days ahead by the hour" hidden></div>
       <div class="u2-dockrow"><div class="u2-planbar" id="u2Plan" role="group" aria-label="The plan" hidden></div>
       <div class="u2-tabs" id="u2Tabs" role="group" aria-label="Your farm"></div></div></div>`;
   document.body.appendChild(root);

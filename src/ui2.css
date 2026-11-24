@@ -165,6 +165,17 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2-pcard { width: min(360px, calc(100vw - 16px)); padding: 8px 10px 10px; display: grid; gap: 6px; opacity: 0.999; }
 .u2-pcard h2 { margin: 0; font: 800 19px/1.1 var(--head); } .u2-pcard p { margin: 0; } .u2-pcard .sub { color: var(--soft); font-size: 14px; }
 .u2-inplan { display: flex; gap: 8px; align-items: center; font-size: 14px; } .u2-inplan svg { width: 22px; height: 22px; flex: none; }
+/* the days ahead by the hour: one strip a day */
+.u2-days { display: grid; gap: 3px; width: min(520px, calc(100vw - 16px)); padding: 5px 10px; border-radius: 12px; border: var(--line); background: var(--glass); box-shadow: var(--lift); opacity: 0.999; cursor: pointer; }
+.u2-day { display: grid; grid-template-columns: 62px 1fr 34px; gap: 6px; align-items: center; }
+.u2-dayname { font: 700 12px var(--body); color: var(--soft); }
+.u2-dayrow { position: relative; height: 22px; border-radius: 6px; background: var(--paper2); overflow: hidden; }
+.u2 .u2-seg { position: absolute; top: 0; bottom: 0; padding: 0; border: 0; border-right: 1px solid var(--paper); display: grid; place-items: center; min-width: 2px; color: var(--ink2); }
+.u2-seg svg { width: 15px; height: 15px; }
+.u2 .u2-seg.sleep { background: var(--ink2); color: var(--paper); } .u2 .u2-seg.routine { background: #9fc3cf; } .u2 .u2-seg.task { background: #e3c36a; } .u2 .u2-seg.queue { background: #d98f6a; }
+.u2-dayrow u { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--red); pointer-events: none; }
+.u2-dayowed { display: flex; align-items: center; gap: 1px; font: 800 12px var(--body); } .u2-dayowed svg { width: 14px; height: 14px; }
+.u2-dayowed.press1 { color: #8a6a17; } .u2-dayowed.press2 { color: var(--red); }
 .u2-tabs { display: flex; gap: 6px; }
 .u2 .u2-tabs button { width: 46px; min-height: 46px; padding: 0; display: grid; place-items: center; border: var(--line); border-radius: 999px; background: var(--glass); font: 800 17px var(--head); box-shadow: var(--lift); }
 .u2 .u2-tabs button[aria-pressed="true"] { background: var(--ink2); color: var(--paper); }

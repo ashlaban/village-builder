@@ -291,11 +291,19 @@ const hudEntry = (A, key) =>
 function renderPlan() {
   const P = hudPlanned();
   u2.plan.hidden = !P;
-  if (!P) return (u2.pcard.hidden = true);
+  if (!P) return (u2.pcard.hidden = u2.days.hidden = true);
   const S = Sim.sleepOf(st),
     A = Sim.agenda(st),
     owed = S ? Math.floor(S.owed) : 0,
-    key = [Math.floor(st.t), hud.pc, st.player.auto, JSON.stringify(P), owed, hud.msg ? hud.msg.text : ''].join('|');
+    key = [
+      Math.floor(st.t * 4),
+      hud.pc,
+      hud.days3,
+      st.player.auto,
+      JSON.stringify(P),
+      owed,
+      hud.msg ? hud.msg.text : '',
+    ].join('|');
   if (key === hud.planKey) return;
   hud.planKey = key;
   const now = P.now || {},
@@ -337,6 +345,7 @@ function renderPlan() {
   u2.plan.innerHTML = h;
   u2.pcard.hidden = !hud.pc;
   if (hud.pc) u2.pcard.innerHTML = planCard(P, A, S);
+  renderDay(A, P);
 }
 // The words behind a chip of the plan, and what can be done with it.
 function planCard(P, A, S) {
