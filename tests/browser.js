@@ -373,6 +373,25 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       await page.screenshot({ path: path.join(root, 'docs/img/vb256-plan.png') });
     }
     console.log(`browser: the plan panel raised hay from ${before} to ${hay.now} winters and named tile ${named} for the next field`);
+    // the day (VB-477): Today shows a row a member, each task a range by your reckoning; a call names its cost before it is made, and a
+    // reorder is said to stand until the day is next allotted
+    {
+      await page.waitForSelector('#tileHouse .day-row', { timeout: 5000 }).catch(() => fail('the Plan tab shows no row of the day'));
+      if (!/by your reckoning/.test(await page.locator('#tileHouse').textContent())) fail('the day does not say whose reckoning its ranges are');
+      await page.locator('#tileHouse [data-plan="dayCallAsk"]').first().click();
+      const cost = await page.locator('#tileHouse .day-cost').textContent().catch(() => '');
+      if (!/A call costs: .*(walks home|is at home).*(carries)/.test(cost)) fail(`no cost named before the call: ${cost}`);
+      await page.click('#tileHouse [data-plan="dayCallNo"]');
+      if (await page.locator('#tileHouse .day-cost').count()) fail('the cost stays after Leave at work');
+      const down = page.locator('#tileHouse [data-plan="dayOrder"][aria-label^="Leave"]:not([disabled])');
+      if (await down.count()) {
+        await down.first().click();
+        const ed = await page.evaluate((id) => window.__play.st.plans.households.get(id).day.edited, hh);
+        if (!ed) fail('a reorder from the Plan tab did not change the day');
+        await page.waitForSelector('#tileHouse .day-edited', { timeout: 5000 }).catch(() => fail('the day does not say the head changed it'));
+      }
+      console.log(`browser: the day in the Plan tab: ${await page.locator('#tileHouse .day-row').count()} rows; the call's cost: ${cost}`);
+    }
     // VB-1027: with no tile that would do (a farm at its most meadows) the tile tool says why at once and does not go into hand; the
     // refusal goes when the tab is next opened; a project's row names its tile by the same link, which moves the camera to it
     {
@@ -464,6 +483,19 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if (skipped.paused !== 'true' || skipped.pressed !== 'false') fail(`the page is not paused after the skip: ${JSON.stringify(skipped)}`);
   if (!(skipped.t > skipT) || skipped.t - skipT > 1153) fail(`the skip ran from ${skipT} to ${skipped.t}`);
   await page.click('#skipNote');
+  // until my task ends (VB-477): the same skip, stopped at the end of the pawn's leg or task, or what concerns its household
+  {
+    await page.locator('#taskBtn').waitFor({ state: 'visible', timeout: 5000 }).catch(() => fail('Until my task ends is not offered'));
+    const t0 = await page.evaluate(() => window.__play.st.t);
+    await page.click('#taskBtn');
+    await page.waitForSelector('#skipNote', { timeout: 240000 });
+    const r = await page.evaluate(() => ({ t: window.__play.st.t, text: document.getElementById('skipNote').textContent,
+      paused: document.querySelector('[data-speed="0"]').getAttribute('aria-pressed'),
+      pressed: document.getElementById('taskBtn').getAttribute('aria-pressed') }));
+    if (!/^Stopped, .+: .+/.test(r.text) || r.paused !== 'true' || r.pressed !== 'false' || !(r.t > t0)) fail(`until my task ends: ${JSON.stringify(r)}`);
+    console.log(`browser: until my task ends ran ${(r.t - t0).toFixed(1)} h: ${r.text}`);
+    await page.click('#skipNote');
+  }
   await stopPlaying();
   // succession (VB-213, VB-1121): the played holder is killed from the debug drawer; the page pauses and shows its successor by the customs
   await playSelected();

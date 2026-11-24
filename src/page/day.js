@@ -44,7 +44,8 @@ function dayEntry(T, r, k, list, mine) {
       (others.length
         ? `<select class="day-to" data-sel="${esc(sk)}" aria-label="${esc(`Whom to give ${e.label.toLowerCase()} to`)}">${others
             .map(
-              (m) => `<option value="${m.id}"${sel === m.id ? ' selected' : ''}>${esc(st.pawns[m.id].name)}</option>`,
+              (m) =>
+                `<option value="${m.id}"${sel === m.id ? ' selected' : ''}>${esc(Sim.fullName(st.pawns[m.id]))}</option>`,
             )
             .join('')}</select>${planBtn(
             { plan: 'dayGive', key: e.key, from: r.id },
@@ -61,11 +62,11 @@ function dayEntry(T, r, k, list, mine) {
 // The call of member id: a button that asks, then its cost and the confirmation (the call is made on the second press).
 function dayCallHTML(id) {
   if (dayCalling !== id) {
-    const ask = `Call ${st.pawns[id].name} home: see what it costs first`;
+    const ask = `Call ${Sim.fullName(st.pawns[id])} home: see what it costs first`;
     return `<p class="plan-ctl menu">${planBtn({ plan: 'dayCallAsk', member: id }, 'Call home…', ask, true, 'wide')}</p>`;
   }
   const c = Sim.callCost(st, id, dayViewer()),
-    name = st.pawns[id].name;
+    name = Sim.fullName(st.pawns[id]);
   if (!c) return '';
   const words = [
     c.walk > 0 ? `${name} walks home ${dayHours(c.walk)}` : `${name} is at home`,
@@ -111,7 +112,7 @@ function dayHTML(hh, mine) {
     const p = st.pawns[r.id],
       list = day.lists[r.id] || [];
     const free = r.free > 0.05 ? ` <span class="day-hours">${esc(`${dayHours(r.free)} free`)}</span>` : '';
-    h += `<div class="day-row"><h4 class="day-who">${esc(p.name)}${free}</h4>`;
+    h += `<div class="day-row"><h4 class="day-who">${esc(Sim.fullName(p))}${free}</h4>`;
     h += r.entries.length
       ? `<ol class="day-list">${r.entries.map((e, k) => dayEntry(T, r, k, list, mine)).join('')}</ol>`
       : '<p class="card-note">Nothing given for the day.</p>';
