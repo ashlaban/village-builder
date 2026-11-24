@@ -95,6 +95,9 @@ const HUD_ENDS = {
   hay: 'until the hay is home',
   harvest: 'until the sheaves are in',
   farmstead: 'until the booth stands',
+  fell: 'until the timber is home',
+  firewood: 'until it is cut',
+  upgrade: 'until the roof is on',
 };
 function hudStake(e) {
   let t = `About ${hudSpan(e.hours.mid)} of work`;
@@ -152,6 +155,17 @@ function hudCall(i, id, hh, f) {
       sub = `The farmstead is placed: its booth is staked beside the house, and stands once its timber is carried and it is raised. ${sub}`;
     if (camp === 'camp' && !buildTasked())
       acts += `<button type="button" class="u2-act go" data-tab="build">${actIcon('build')} Build…<small>The build menu</small></button>`;
+    const FV = camp ? null : Sim.farmView(st, f.id);
+    if (FV) {
+      if (FV.rung !== 'camp') title = `${f.name}: ${ladderOf(FV.rung).name.toLowerCase()}`;
+      const now = ladderBuilding(FV);
+      if (now) sub = `${now} ${sub}`;
+      // the upgrade icon's card, opened by the icon on the land or by this button
+      acts +=
+        `<button type="button" class="u2-chip up" data-hud="uptoggle" aria-pressed="${!!hud.up}">${actIcon('build')} Build up…</button>` +
+        (hud.up ? `<div class="u2-ladder">${ladderHTML(f)}</div>` : '');
+    }
+    acts += houseWood(camp ? null : Sim.fireView(st));
     acts +=
       `<p class="u2-legend">${hudGauges(hh)}</p>` +
       '<div class="u2-row2"><button type="button" class="u2-chip" data-tab="stores">Stores</button>' +
@@ -191,6 +205,7 @@ function hudCall(i, id, hh, f) {
         `${P ? `Do it now: ${name.toLowerCase()}` : `${name}<small>${stake || 'Done next'}</small>`}</button>`;
   });
 
+  if (i !== f.house) acts += woodActs(i, f);
   const here = (V.projects || []).find((p) => p.tile === i) || null, // the project under way on this tile, of several (VB-1623)
     making = !!here && here.what === 'field',
     unsown = fi >= 0 && !['sown', 'growing', 'ripe', 'stooks'].includes(f.fields[fi].stage);
@@ -224,6 +239,7 @@ function hudCall(i, id, hh, f) {
     acts += '<button type="button" class="u2-chip" data-hud="walk">Walk here</button>';
   return (
     hudBand(hud.band && hud.band.tile === i ? hud.band : null) +
+    (hud.band && hud.band.tile === i && hud.band.mark === 'house' && fireWarn() ? fireAct(fireWarn(), f) : '') +
     `<div class="u2-verdict"><div><h2>${esc(title)}</h2>${sub ? `<p class="sub">${esc(sub)}</p>` : ''}</div>` +
     '<button type="button" class="u2-x" data-hud="shut" aria-label="Close">×</button></div>' +
     (hud.msg && !hud.tab ? `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>` : '') +
@@ -316,8 +332,19 @@ function hudMarks(id, hh, f) {
       });
   for (let k = marks.length - 1; k >= 0; k--) if (planned.has(marks[k].tile)) marks.splice(k, 1);
   marks.push(...planned.values());
+  const F = fireWarn(),
+    FV = hudCamp(f) ? null : Sim.farmView(st, f.id);
+  if (FV && FV.rung !== 'camp' && f.house !== hud.at)
+    marks.push({
+      id: 'up',
+      tile: f.house,
+      cls: 'u2-pin up',
+      html: hudPin(actIcon('build')),
+      why: `Build up the farmstead: what can follow the ${ladderOf(FV.rung).name.toLowerCase()}, and what it takes.`,
+    });
   if (O && f.house !== hud.at)
     marks.push({
+      why: F ? fireWords(F) : '',
       id: 'house',
       tile: f.house,
       cls: 'u2-gauges',
@@ -327,7 +354,10 @@ function hudMarks(id, hh, f) {
           ['fuel', 'wood'],
           ['hay', 'hay'],
         ]
-          .map(([k, icon]) => `<i class="${O[k].state}">${goodIcon(icon)}<u></u></i>`)
+          .map(
+            ([k, icon]) =>
+              `<i class="${O[k].state}">${goodIcon(icon)}<u></u>${k === 'fuel' && F ? '<b>!</b>' : ''}</i>`,
+          )
           .join('') +
         hudAils()
           .map(([icon]) => `<i class="warn">${goodIcon(icon)}</i>`)
@@ -351,6 +381,7 @@ function hudTap(sx, sy) {
   const i = pin ? pin.tile : loc(...toWorld(sx, sy), [0, 0]);
   hud.at = (i === hud.at && !pin) || i < 0 ? -1 : i;
   hud.band = pin && hud.at >= 0 ? pin : null;
+  hud.up = !!hud.band && hud.band.mark === 'up';
   hud.tapAt = performance.now();
   hud.msg = null;
   hud.markKey = '';

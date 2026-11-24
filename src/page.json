@@ -62,5 +62,6 @@
   "page/ui2land.js",
   "page/ui2day.js",
   "page/ui2build.js",
+  "page/ui2wood.js",
   "page/frame.js"
 ]

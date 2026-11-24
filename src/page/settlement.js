@@ -406,7 +406,7 @@ function drawFarm(wd, f) {
   // are darker (VB-301)
   const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : Sim.houseTarred(st, f) ? 0x9a8a7c : 0xffffff;
   const camp = f.camp === true,
-    landed = f.camp !== undefined && f.booth; // landed by hand: no byre nor heap until they are built (VB-1627)
+    landed = f.camp !== undefined; // landed by hand: only what it built stands, no byre, heap, storehouse or loft (VB-1627, VB-1632)
   if (camp) {
     yard.alpha = 0.3; // trodden ground only
     drawCamp(wd, f);
@@ -420,6 +420,7 @@ function drawFarm(wd, f) {
       b.tint = tint;
       if (empty && !ruin) b.alpha = 0.9;
     }
+    if (landed) lada.visible = harbre.visible = false;
     if (ruin) {
       lada.visible = harbre.visible = false;
       if (barn) barn.visible = false;

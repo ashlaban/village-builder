@@ -37,6 +37,24 @@ const HUD_CHAIN = {
     offer: 'Build the farmstead here',
     done: 'the farmstead placed, its timber carried and its booth raised',
   },
+  fell: {
+    name: 'Fell timber',
+    icon: () => actIcon('chop'),
+    offer: 'Fell timber here',
+    done: 'timber felled here and carried home',
+  },
+  firewood: {
+    name: 'Cut firewood',
+    icon: () => goodIcon('wood'),
+    offer: 'Cut firewood',
+    done: 'the timber at home cut into firewood',
+  },
+  upgrade: {
+    name: 'Build up the house',
+    icon: () => actIcon('build'),
+    offer: 'Build',
+    done: 'the next building raised until its roof is on',
+  },
   harvest: {
     name: 'Bring in the harvest',
     icon: () => goodIcon('sheaves'),
@@ -59,6 +77,7 @@ function hudWaits(x) {
   if (x.why === 'routine') return `Waits for the day’s routine (${hudKind(x.kind).toLowerCase()}).`;
   if (x.why === 'sleep') return `Waits for the night to end, at ${hudHour(x.until)}.`;
   if (x.why === 'opens') return `Waits for ${x.what}, ${hudClock(x.t)}: nothing of it can be done before.`;
+  if (x.why === 'unposted' && x.text) return `Cannot go on now: ${x.text}.`;
   if (x.why === 'unposted') return `Cannot go on now: there is no work open for “${hudKind(x.kind)}” at present.`;
   return `Cannot go on: ${x.text}.`;
 }
