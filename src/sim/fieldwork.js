@@ -5,7 +5,7 @@
 // the three kinds whose end is the village's (haul, clear, break).
 VB['sim/fieldwork'] = (() => {
   const Stores = VB['sim/stores'];
-  const { WORK, SEASON_DAYS } = VB['sim/rules'],
+  const { WORK, SEASON_DAYS, cal } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];
   const { sowOpen, frostDay } = VB['sim/weather'];
   const { log, atFarm } = VB['sim/records'];
@@ -89,10 +89,13 @@ VB['sim/fieldwork'] = (() => {
   // hoeing, those hoed, with those ahead of fd in its farms' order at fd's own stage (in stubble in the window, or hoed): the first are
   // worked. A winter crop sown in autumn is next year's harvest, so it counts only the winter crop's fields; a spring crop counts the
   // winter crop growing since the autumn. A household's fields are few (its hands' share and the fallow), so the walk is short.
+  const handsCap = (st, hh) => {
+    const plan = st.plans.households.get(hh.id);
+    return Math.max(1, plan && plan.targets ? plan.targets.workable : fieldsWorkable(st, hh));
+  };
   function underHands(st, hh, fd, c, home) {
     if (home === hh) return true; // a common field, the village's own (sim/commons passes the village as both): it sows by its own rule
-    const plan = st.plans.households.get(hh.id),
-      cap = Math.max(1, plan && plan.targets ? plan.targets.workable : fieldsWorkable(st, hh)),
+    const cap = handsCap(st, hh),
       winter = !!CROPS[fd.crop].winter,
       at = fd.stage;
     let n = 0,
@@ -111,6 +114,10 @@ VB['sim/fieldwork'] = (() => {
       }
     return true;
   }
+  // The fields household hh's hands till when field fd of its farm f is beyond them now (underHands), else null (VB-1624: the reason the
+  // player's plan gives for a hoeing or a sowing not posted).
+  const beyondHands = (st, hh, fd, f) =>
+    underHands(st, hh, fd, cal(st.t), homeOf(st, hh, f)) ? null : handsCap(st, hh);
   // Hoeing and sowing grow more urgent as the sowing window runs out.
   const inWindow = (st, j, c, U) => U.field + c.sday / U.fieldPerDay;
   // Reaping and hauling the sheaves grow more urgent as the year's frost nears (sim/weather frostDay, VB-354): in autumn, by the days gone
@@ -376,5 +383,5 @@ VB['sim/fieldwork'] = (() => {
       },
     },
   };
-  return { KINDS, sowWhy, rowAngle, onField, fieldKey };
+  return { KINDS, sowWhy, beyondHands, rowAngle, onField, fieldKey };
 })();

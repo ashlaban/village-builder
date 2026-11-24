@@ -451,8 +451,37 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   Sim.setAuto(st, true);
   assert(!P.heldOff(st, 0));
 }
+// 10. VB-1624: an `unposted` task names the household's own rule that holds its job back: a plant task on a field beyond what its hands
+// till shows the cap; a hay task with hay enough shows that; else the next review.
+{
+  const st = alone({ herds: true }), f = st.farmsteads[0], hh = st.households[0], { RULES } = VB['sim/plannext'];
+  const review = (s) => VB['sim/jobs'].refreshJobs(s, Sim.cal(s.t), true);
+  const last = f.fields[f.fields.length - 1], m = f.meadows[0];
+  for (const fd of f.fields) assert.strictEqual(Sim.plan(st, 'add', { plant: fd.tile }), true);
+  const F = VB['sim/rules'].FIELDS, was = [F.perHand, F.oxenHands];
+  F.perHand = 1; // the review writes the plan's targets.workable: a field a hand, fewer than its fields (a constructed state)
+  F.oxenHands = 0;
+  try { review(st); } finally { [F.perHand, F.oxenHands] = was; }
+  const cap = st.plans.households.get(0).targets.workable;
+  assert(cap < f.fields.length, `the cap ${cap} below the fields`);
+  const w = Sim.planView(st).tasks.find((t) => t.plant === last.tile).waits;
+  assert.deepStrictEqual([w.why, w.kind, w.rule], ['unposted', 'plow', 'hands'], JSON.stringify(w));
+  assert.match(w.text, new RegExp(`hands till ${cap} fields?; the field at ${last.tile} is beyond them`));
+  assert(RULES.includes(w.rule) && RULES.includes('review'), 'a rule of the closed list');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(w)), w, 'plain data');
+  while (st.player.plan.tasks.length) Sim.plan(st, 'remove', { i: 0 });
+  // the hay: in the haymaking, with the barn full
+  Sim.advance(st, 300 - st.t);
+  assert.strictEqual(Sim.plan(st, 'add', { hay: m.tile }), true);
+  hh.hay = 1e6;
+  review(st);
+  const h = Sim.planView(st).tasks[0].waits;
+  assert.deepStrictEqual([h.why, h.kind, h.rule], ['unposted', 'mow', 'hay'], JSON.stringify(h));
+  assert.match(h.text, /wants no more hay/);
+  sound(st, 'the rules named');
+}
 console.log('plan: ops and refusals; the routine once a day in order, the tasks in order, a finished task leaves; hand commands first; '
   + 'sleep by the plan\'s hours, a night worked by hand; a clearing over two days; saved and loaded; a plant task from clearing to '
   + 'sowing, shorter on a broken field, dropped when its window shuts; a hay task from mowing to hay home, a harvest task from reaping '
   + 'to the sheaves in, the gaps; a marked tile\'s project begun by the head\'s verb; fields and a meadow begun side by side by the '
-  + 'played head, why each task waits; the hand start');
+  + 'played head, why each task waits; the hand start; the household\'s rule that holds a step back');

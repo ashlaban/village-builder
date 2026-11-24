@@ -5,24 +5,69 @@ VB['sim/plannext'] = (() => {
   const { cal } = VB['sim/rules'];
   const { VERBS } = VB['sim/commands'];
   const { living } = VB['sim/records'];
-  const { CHAINS, chainOf, chainSteps, headCmd } = VB['sim/planchains'];
+  const { CHAINS, chainOf, chainSteps, headCmd, pileOf } = VB['sim/planchains'];
   const { asleepAt, today } = VB['sim/playerplan'];
+  const Fieldwork = VB['sim/fieldwork'],
+    Meadows = VB['sim/meadows'],
+    Chores = VB['sim/chores']; // VB-1624: the rules HOLDS reads
   const workCmd = (id, key) => ({ actor: id, verb: 'work', target: key, args: null, source: 'player' });
   // ---- why a task waits (VB-1623): the one closed list of reasons, each plain data for the page (planView's `waits` and `idle`) ----
   // hand: a command queued by hand goes first (its verb, target and the game hour it was begun, null before); before: an earlier task (i,
   // its index) is what the plan does next or has in hand; routine: a routine kind goes first; sleep: the sleeping hours, until `until`
   // o'clock; opens: its next step is not posted until game hour t (what: its window opening, its crop ripe, its hay dry); unposted: its
-  // next step (kind) is open and its job not posted for the household now (posted at a review, while the household's own rule wants it:
-  // the fields its hands till, the hay it needs); refused: the verb's own reason (text).
+  // next step (kind) is open and its job not posted for the household now, `rule` (one of RULES) the household's own rule that holds it
+  // back and `text` its words for the page (HOLDS, VB-1624); refused: the verb's own reason (text).
   const WAITS = {
     hand: (c) => ({ why: 'hand', verb: c.verb, target: c.target ?? null, since: c.begun ?? null }),
     before: (i) => ({ why: 'before', i }),
     routine: (kind) => ({ why: 'routine', kind }),
     sleep: (until) => ({ why: 'sleep', until }),
     opens: (t, what) => ({ why: 'opens', t, what }),
-    unposted: (kind) => ({ why: 'unposted', kind }),
+    unposted: (kind, h) => ({ why: 'unposted', kind, rule: h.rule, text: h.text }),
     refused: (text) => ({ why: 'refused', text }),
   };
+  // ---- the household's own rule that holds an open step's job back (VB-1624): the one closed list, HOLDS, each {rule, text} ----
+  // hands: a field beyond what its hands till (sim/fieldwork beyondHands, the plan's targets.workable); sowing: its sowing refused
+  // (sim/fieldwork sowWhy: the seed, the thaw); hay: no hay wanted (sim/meadows hayWanted); timber: no timber home to cut; woodpile: the
+  // pile at the season's goal (sim/chores, the firewood job's rule); booth: the booth's timber not all fetched to its tile; wood: no wood
+  // to fetch the booth's timber from; review: none of those, the job posted at the household's next review.
+  const HOLDS = {
+    hands: (cap, tile) =>
+      `the household's hands till ${cap} field${cap === 1 ? '' : 's'}; the field at ${tile} is beyond them`,
+    sowing: (why) => why,
+    hay: () => "the household wants no more hay: it holds its animals' winters, or keeps none",
+    timber: () => 'no timber is home to cut yet',
+    woodpile: () => "the woodpile holds the season's goal",
+    booth: () => "the booth's timber is not all fetched",
+    wood: () => "there is no wood to fetch the booth's timber from",
+    review: () => "posted at the household's next review",
+  };
+  const RULES = Object.keys(HOLDS);
+  const held = (rule, ...a) => ({ rule, text: HOLDS[rule](...a) });
+  // Why open step y of chain `name` at `tile` has no job posted for household hid (where: what stands there, chainSteps'), by HOLDS.
+  function holdOf(st, hid, name, where, y, tile) {
+    const hh = st.households[hid];
+    if (name === 'plant' && where.fd && (y.kind === 'plow' || y.kind === 'sow')) {
+      const cap = Fieldwork.beyondHands(st, hh, where.fd, where.f);
+      if (cap !== null) return held('hands', cap, tile);
+      const why =
+        y.kind === 'sow' && where.fd.stage === 'plowed' ? Fieldwork.sowWhy(st, hh, where.fd, cal(st.t)) : null;
+      if (why) return held('sowing', why);
+    }
+    if (name === 'hay' && where.m && (y.kind === 'mow' || y.kind === 'rake') && !Meadows.hayWanted(st, where.f, hh))
+      return held('hay');
+    if (name === 'firewood' && y.kind === 'firewood') {
+      if (!Chores.timberOf(hh)) return held('timber');
+      if (!(hh.cold > 0) && !pileOf(st, hh).short) return held('woodpile');
+    }
+    if (name === 'farmstead' && where.staked) {
+      const s = where.staked.steps[where.staked.open];
+      if (y.kind === 'booth' && s && s.kind === 'timber') return held('booth');
+      const v = st.villages[st.farmsteads[hh.farmstead].village];
+      if (y.kind === 'timber' && !(st.w.trees[where.staked.tile] > 0) && !v.wood.length) return held('wood');
+    }
+    return held('review');
+  }
   // What the pawn may do now for chain task tk, as a command with its `plan` mark, or why not (a WAITS reason): on a marked or free tile,
   // the project begun through the head's verb, beside any other of the household's (VB-1623); else the first step posted at its tile, in
   // the order the work goes, if its `work` verb lets the pawn take it; else its first step's opening, or that its job is not posted.
@@ -52,7 +97,9 @@ VB['sim/plannext'] = (() => {
     }
     const y = s.steps[0];
     if (!y) return WAITS.refused(`nothing is left to do at ${tile}`);
-    return y.from > st.t ? WAITS.opens(y.from, y.what || y.kind) : WAITS.unposted(y.kind);
+    return y.from > st.t
+      ? WAITS.opens(y.from, y.what || y.kind)
+      : WAITS.unposted(y.kind, holdOf(st, hid, name, s.where, y, tile));
   }
   // What the pawn may do now for task t (a task at a tile, or by key): a command with its `plan` mark, or why not (a WAITS reason).
   function taskCmd(st, id, t) {
@@ -136,5 +183,5 @@ VB['sim/plannext'] = (() => {
     }
     return { tasks, idle };
   }
-  return { WAITS, nextOf, waitsOf };
+  return { WAITS, RULES, nextOf, waitsOf };
 })();
