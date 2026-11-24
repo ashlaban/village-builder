@@ -1,5 +1,6 @@
 // tools/merge.js, the merge drivers (VB-1620), on constructed three-way cases: the backlog's task rows merge by ID and field and come out
-// in the backlog's order; JSON merges by key and element and keeps the file's layout; what is not mechanical (a row changed both ways, an ID taken twice, a row removed on one side and changed on
+// in the backlog's order; JSON merges by key and element and keeps the file's layout; a JavaScript file's imports, exports and marked
+// tables merge by name when every conflict lies in them; what is not mechanical (a row changed both ways, an ID taken twice, a row removed on one side and changed on
 // the other, prose changed both ways) stays a conflict with markers; and, end to end, `git merge` in a scratch repository runs the
 // driver that `--install` and `.gitattributes` set.
 const fs = require('fs'), os = require('os'), path = require('path'), { spawnSync } = require('child_process');
@@ -97,6 +98,42 @@ for (const f of ['src/owners.json', 'src/layers.json', 'src/page.json', 'src/man
   expect(`json: ${f} merged with itself is unchanged`, m.clean && m.text === t, m.err);
 }
 
+// ---- js: imports, exports and marked tables merge by name; anything else stays a conflict
+const mod = ({ rec = 'age', crops = null, exp = 'a, b', body = '  const a = 1;\n  const b = 2;\n' }) => [
+  "// @sys sim/x: a module", "VB['sim/x'] = (() => {", `  const { living, ${rec} } = VB['sim/records'];`, "  const { WORK } = VB['sim/rules'];",
+  ...(crops ? [`  const { ${crops} } = VB['sim/crops'];`] : []), '', body.replace(/\n$/, ''), `  return { ${exp} };`, '})();', ''].join('\n');
+const driveS = (o, a, b, name = 'src/sim/x.js') => {
+  const f = (n, s) => { const p = path.join(tmp, n); fs.writeFileSync(p, s); return p; };
+  const [po, pa, pb] = [f('o', o), f('a', a), f('b', b)];
+  const r = spawnSync(process.execPath, [tool, 'js', po, pa, pb, name], { encoding: 'utf8', cwd: tmp });
+  return { clean: r.status === 0, text: fs.readFileSync(pa, 'utf8'), err: r.stderr };
+};
+const body3 = '  const a = 1;\n  const b = 2;\n  const c = 3;\n';
+m = driveS(mod({}), mod({ rec: 'age, spouseOf', exp: 'a, b, c', body: body3 }), mod({ rec: 'age, home', exp: 'a, b, d', body: '  const a = 1;\n  const b = 2;\n  const d = 4;\n' }));
+expect('js: a body line added at one place on both sides stays a conflict', !m.clean, m.text);
+m = driveS(mod({ body: body3 }), mod({ rec: 'age, spouseOf', crops: 'farmable', body: body3 }), mod({ rec: 'age, home', crops: 'fertility', body: body3 }));
+expect('js: names added to one import on both sides merge', m.clean && m.text.includes('const { living, age, spouseOf, home } = VB[\'sim/records\'];')
+  && m.text.includes("const { farmable, fertility } = VB['sim/crops'];"), m.text + m.err);
+m = driveS(mod({ body: body3, exp: 'a, b' }), mod({ body: body3, exp: 'a, b, c' }), mod({ body: body3, exp: 'b, c' }));
+expect('js: export lists changed on both sides merge', m.clean && m.text.includes('return { b, c };'), m.text + m.err);
+m = driveS(mod({}), mod({ rec: 'age, spouseOf' }), mod({ rec: 'home' }));
+expect('js: a name removed on one side and others added on the other', m.clean && m.text.includes("const { living, spouseOf, home } = VB['sim/records'];"), m.text + m.err);
+const table = (rows, before = '') => `const A = 1;\n${before}// @merge union: test\nconst T = {\n${rows.map(([k, v]) => `  ${k}: ${v},\n`).join('')}};\nconst Z = 2;\n`;
+m = driveS(table([['x', 1], ['y', 2]]), table([['x', 1], ['y', 2], ['p', 3]]), table([['x', 1], ['y', 2], ['q', 4]]), 'tools/t.js');
+expect('js: a marked table: entries added on both sides merge, ours first', m.clean && m.text === table([['x', 1], ['y', 2], ['p', 3], ['q', 4]]), m.text + m.err);
+m = driveS(table([['x', 1], ['y', 2]]), table([['x', 1], ['y', 2], ['p', 3]]), table([['x', 1], ['y', 2], ['p', 4]]), 'tools/t.js');
+expect('js: one key added to a marked table with two values is a conflict', !m.clean, m.text);
+m = driveS(table([['x', 1], ['y', 2]]), table([['x', 1], ['y', 2], ['p', 3]]), table([['x', 1], ['y', 2], ['q', 4]]).replace('// @merge union: test\n', ''), 'tools/t.js');
+expect('js: a table marked on one side only is left to the text merge', !m.clean, m.text);
+m = driveS(table([['x', 1], ['y', 2]]).replace('// @merge', '// a word\n// @merge'), table([['x', 1], ['y', 2], ['p', 3]]).replace('// @merge', '// ours\n// @merge'),
+  table([['x', 1], ['y', 2], ['q', 4]]).replace('// @merge', '// theirs\n// @merge'), 'tools/t.js');
+expect('js: a conflict outside the table leaves the whole file to the text merge', !m.clean && m.text.includes('// ours') && m.text.includes('// theirs'), m.text);
+for (const f of ['src/page/icons.js', 'tests/suites.js', 'tools/sim.js', 'tools/perf.js', 'src/sim/jobs.js', 'src/sim/clock.js']) {
+  const t = fs.readFileSync(path.join(root, f), 'utf8');
+  m = driveS(t, t, t, f);
+  expect(`js: ${f} merged with itself is unchanged`, m.clean && m.text === t, m.err);
+}
+
 // this checkout's own files merged with themselves come out unchanged
 for (const f of ['BACKLOG.md', 'BACKLOG_ARCHIVE.md']) {
   const t = fs.readFileSync(path.join(root, f), 'utf8');
@@ -124,4 +161,4 @@ expect('git merge runs the driver: rows added on both sides merge clean', merged
 
 fs.rmSync(tmp, { recursive: true, force: true });
 if (errors.length) { console.log('MERGE FAIL:\n  ' + errors.join('\n  ')); process.exit(1); }
-console.log('merge: backlog rows by ID and field, JSON by key and element in its own layout; the non-mechanical conflicts kept; runs under git merge');
+console.log('merge: backlog rows by ID and field, JSON by key and element, JavaScript imports, exports and marked tables by name; the rest kept; runs under git merge');

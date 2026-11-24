@@ -82,4 +82,6 @@ push. Candidates are never ready. Prefer small tasks that unblock others.
   changed on different sides merge themselves. What conflicts still is a real clash: one ID taken by two branches (renumber yours, as
   "How this backlog works" says), a row changed two ways, or a row done on one side and changed on the other. Resolve it from the task
   files and run `node tools/backlog.js sync`, which rebuilds the tables from them. The JSON lists (`src/owners.json`, `page.json`,
-  `manifest.json`, `layers.json`, `tests/counters.json`) merge by key and element the same way; `npm test` after the merge checks the order.
+  `manifest.json`, `layers.json`, `tests/counters.json`) merge by key and element the same way, and a JavaScript file whose only conflicts
+  are in its import block, its export list or a table marked `// @merge union` merges those by name. `npm test` after the merge is
+  the check; each resolution is a line of `<git common dir>/vb-merge.log`: list them in the PR beside the merge they belong to.

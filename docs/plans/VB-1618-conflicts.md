@@ -60,3 +60,19 @@ tasks follows; function level if it pays; the list files are ignored until VB-14
 Every kind but a row or value changed differently on both sides has a mechanical answer: rows keyed by task ID, union for files that
 only grow, a key-wise three-way merge for JSON objects, an element-wise one for arrays.
 
+## With the drivers (VB-1620)
+
+Replayed with `tools/merge.js` installed (`git merge-tree` runs the drivers), the non-PR merges since 15 November:
+
+| Worst conflict | Before | With the drivers |
+|----------------|-------:|-----------------:|
+| bookkeeping only | 37 | 19 |
+| list files | 11 | 5 |
+| imports, `@sys` header, exports | 11 | 3 |
+| other documents | 3 | 3 |
+| a function or table body | 29 | 29 |
+| **conflicted merges** | **91** | **59** |
+
+About 4 more resolve through the tables marked `// @merge union` since, which the old files do not carry. What is left of the
+bookkeeping is mostly task IDs taken by two branches (VB-1621) and the old `index.html`; the bodies are VB-1619's.
+

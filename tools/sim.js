@@ -7,8 +7,35 @@
 //   --report hours [--from Y] [--every step|hour] [--fields N] [--team] [--household N]   (VB-337: tools/hours.js; its --help)
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
-const REPORTS = ['households', 'pawns', 'jobs', 'customs', 'events', 'farms', 'idle', 'hours', 'paths', 'relations', 'herds', 'villages', 'hunger', 'perf', 'counts', 'land',
-  'plans', 'calendar', 'reach', 'waiting', 'ground', 'outlook', 'gathering', 'soil', 'accounts', 'foresight-hunger'];
+// @merge union: its entries merge by line: a report a line; the order is only the usage line's (tools/merge.js, VB-1620)
+const REPORTS = [
+  'households',
+  'pawns',
+  'jobs',
+  'customs',
+  'events',
+  'farms',
+  'idle',
+  'hours',
+  'paths',
+  'relations',
+  'herds',
+  'villages',
+  'hunger',
+  'perf',
+  'counts',
+  'land',
+  'plans',
+  'calendar',
+  'reach',
+  'waiting',
+  'ground',
+  'outlook',
+  'gathering',
+  'soil',
+  'accounts',
+  'foresight-hunger',
+];
 const USAGE = `usage: node tools/sim.js [--scenario founders|solo|heirs|populous|market] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
   --report NAME     ${REPORTS.join('|')}
