@@ -33,6 +33,9 @@ VB.COUNTERS = {
   routeCheck:
     'Changed tiles and cells read in testing a route set aside before it is taken back (sim/routes untouched, VB-1563)',
   talkWeighed: 'Eligible partners weighed in talkHour',
+  storyMade: 'Stories made, a witnessed event each (sim/stories, VB-523)',
+  storyWeighed: 'Held stories weighed by a teller at its telling in a talk (sim/stories, VB-523)',
+  storyTold: 'Stories told in a talk, believed or not (sim/stories, VB-523)',
   daysCalled: 'Days called by a creditor holder on its planning day (sim/days, VB-462)',
   obligationsDue: 'Obligations whose term ended at a step, taken off the due-queue (sim/obligations, VB-310)',
   asksRead: 'Open asks for a good passed by a head reading them, once a year a head (sim/asks, VB-699)',
@@ -60,6 +63,10 @@ VB.COUNTERS = {
   talkBucket: 'Living walked to rebuild the talk turns when the living changed (sim/relations, VB-521)',
   walkStep:
     'Legs a step takes from the due-queue as they end: walks and waits (sim/legs dueLegs, for sim/agents stepAgents; VB-473)',
+  sleepReckon:
+    'Pawns whose sleep owed was reckoned: each living pawn once an hour, the played pawn each step (sim/sleepers, VB-1645)',
+  sleepOwn:
+    "Sleeps begun by a pawn's own rule, one that owed a whole night and was free in the working day (sim/sleepers, VB-1645)",
   walkAwake:
     "Pawn records looked at by the working day's start, for those waiting for it, once a day (sim/agents dayStart; VB-473)",
   idleStroll:

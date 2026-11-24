@@ -1,6 +1,6 @@
 ---
 name: task
-description: One backlog task of the village builder, end to end in this session (built, reviewed, closed, measured, its PR opened), then reported to the chain's coordinator, who merges it. Started by /chain's coordinator, or by hand. Use when a prompt starts with /task.
+description: One backlog task of the village builder, end to end in this session (built, reviewed, closed, measured, its PR opened), then reported to the chain's coordinator, who merges it. Started by /chain's coordinator, or by hand. Use when a prompt starts with /task or asks to run the task skill.
 argument-hint: VB-NNN [--report-to SESSION --chain T --link K]
 ---
 # One task, a leaf of a chain
@@ -15,8 +15,9 @@ session asking you to resolve a conflict in your PR is step 6 below.
 - `--report-to SESSION`: the coordinator; `--chain T --link K`: your place in its chain. Without `--report-to` you work alone:
   you merge your own PR at step 5 and report nothing.
 
-The coordinator named this session; when you end, put your outcome in front of its title (`set_session_title`, `session_id`
-omitted): `done · `, `needs-review · `, `failed · ` or `stopped · `.
+The coordinator named this session; when you end, put your outcome in front of its title: `done · `, `needs-review · `, `failed · `
+or `stopped · `. `set_session_title` requires a `session_id`: take your own from `get_session` with no `session_id` (it describes this
+session, its title included), never the `--report-to` id, which is the coordinator's.
 
 ## 1. Preflight
 Work on the branch the system gave this session. `git fetch origin main && git merge --no-edit origin/main`; `npm install` if
@@ -39,7 +40,7 @@ or, if you handed over, that `vb-task` sub-agent, sent "Revise VB-NNN" (SendMess
 
 ## 4. Close
 `AGENTS.md`, step 6: tick the criteria, `backlog.js done VB-NNN` or `set VB-NNN status=needs-review`, ten lines of notes. With no
-orchestrator, write what the task raised yourself: follow-up tasks (`tools/backlog.js new`), tuning rows (`docs/tuning.md`), questions
+orchestrator, write what the task raised yourself: follow-up tasks (`tools/backlog.js new`, as `docs/agents/tasks.md` says), tuning rows (`docs/tuning.md`), questions
 (`tools/questions.js`), and the Surfacing lines (`AGENTS.md`) in their collecting tasks. Measure last:
 `node tools/agent-usage.js --label worker --task VB-NNN --review work/review/VB-NNN.json --out docs/agents/usage` (not reviewed:
 `--arm control` or `--arm ineligible`), and commit the file.

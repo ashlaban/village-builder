@@ -362,6 +362,7 @@ VB['sim/expansion'] = (() => {
       w.trees[tile] = 0;
       st.regrow.delete(tile);
       st.treeDirty.add(tile);
+      woodTaken(st, tile); // felled bare, it leaves its village's wood as a tile cut bare does (sim/forest; VB-326)
     } else clearTile(st, tile);
     tended(st, tile); // worked on: kept open from the forest a year (sim/spread)
     st.biomeDirty.add(tile);

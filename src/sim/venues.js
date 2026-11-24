@@ -13,7 +13,7 @@ VB['sim/venues'] = (() => {
   const { hoursBetween } = VB['sim/villagehours'],
     { opinionOf } = VB['sim/relations'],
     { addTie } = VB['sim/ties'],
-    { on } = VB['sim/events'],
+    { on, emit } = VB['sim/events'],
     Encounters = VB['sim/encounters'],
     Stores = VB['sim/stores'],
     Traits = VB['sim/traits'],
@@ -247,6 +247,7 @@ VB['sim/venues'] = (() => {
   function riteEnds(st, o, led, present, far) {
     if (!led) return;
     for (const id of led.heard) if (st.pawns[id].alive) addTie(st, id, led.id, SOCIAL.ties.rite);
+    emit(st, 'spoke', { by: led.id, heard: led.heard }); // what the leader says is known to all who heard (sim/stories, VB-523)
     const v = st.villages[o.village],
       by = st.pawns[led.id],
       from = far ? `, ${far} of them from other villages` : '';

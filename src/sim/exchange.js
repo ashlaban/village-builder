@@ -158,7 +158,7 @@ VB['sim/exchange'] = (() => {
           addTie(st, a.id, b.id, HELP.tieGain);
       if (two) book(st, hf.id, ht.id, n * WORTH.grain); // the giver is owed the gift's worth (Who books: the two holders)
       // a household's gift is a deed the village sees, the grain carried across it (VB-705): its giver's standing (sim/society)
-      if (two && isHousehold(from)) emit(st, 'giftGiven', { giver: hf.id, worth: n * WORTH.grain });
+      if (two && isHousehold(from)) emit(st, 'giftGiven', { giver: hf.id, receiver: ht.id, worth: n * WORTH.grain });
     }
   }
   // Settles an accepted gift between two households of one farmstead, which is one place (the hard rule): what goes between places is

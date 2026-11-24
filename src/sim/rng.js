@@ -29,6 +29,7 @@ VB['sim/rng'] = (() => {
     'people',
     'society',
     'talk',
+    'stories',
     'herds',
     'settle',
     'occasions',

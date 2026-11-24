@@ -1,6 +1,9 @@
 # New interface (ui2): where it stands
 
-Branch `claude/bold-lamport-xsgshf` (24 November, second session; it holds `claude/new-ui-usability-wi3an6` merged onto main). Kim's brief (24 November): hide the current interface, build a new one with an aggressive
+**On main since 24 November (PR #289), as partial work: the new interface shows in the solo scenario only** (`u2Live()` in
+`src/page/ui2.js`; every other scenario, the start's menus and the editor are the old interface's; `?classic` shows the old one in
+solo too). The task numbers below are as renumbered at that merge (this work's VB-1615..1642 became VB-1643..1670: main had taken
+the first seven; commit messages before the merge keep the old numbers). Kim's brief (24 November): hide the current interface, build a new one with an aggressive
 focus on usability and expressiveness, phone and desktop, playtested by Opus agents; drafts shown from time to time; earlier UI
 design instructions may be ignored. Scope: the solo scenario at the first player scale, choosing the site of the first farm and
 planning days and weeks through the first year. Kim's later notes: the interface must feel part of the map, not a layer on top
@@ -192,22 +195,54 @@ Open:
 - The inbox's reserved IDs clash with tasks made by `backlog.js new` in the same run: reserve through the inbox, or make
   follow-ups by hand as this session did.
 
+## Seventh batch (24 November, third session, last): the ladder, placing anywhere, no project limit; merged into main
+Kim's answers, 24 November:
+- A timber house gives more room and a smaller fire; "If a household is over housing capacity tenants will receive a mood malus",
+  and: "I meant everyone in the house (every one should be affected by crowding)."
+- The stone house is today's stone foundation: "Yes. Maybe have the foundation as a separate property. It is also more prestigious."
+- The byre (without one the animals lose condition faster in winter): "Agreed." The ladder is one rule for every household: "Yes!"
+- Placing: "They should be unrestricted (but it will be more difficult to survive of course)."
+- "Is the booth still in? If so remove it in favour of the farmstead ladder." Asked: a shelter on the house tile, each upgrade
+  replacing it in place; settler households follow the ladder, travellers keep their booths.
+- "The one project limit should be gone. For all projects."
+- Words: "What is this thing about 'a cottage being roofed'? [...] When building a house/cottage/shelter you of course also build a
+  roof." A building is "finished", never "roofed", in what the player reads; its stages are only the step under way.
+- "I think we are ready to merge this as partial work. Enable the new gui only in the solo scenario and merge with main."
+Built:
+- VB-1661: one reckoning of the fire (`fireView().short` reads the outlook); for a household planned by hand the outlook counts an
+  intake only when a task covers it, and lists what it left out (`parts.left`); no unplanned stone work; a firewood task waits a
+  night at most. VB-1662: a fell task counts loads (a load is a tree, 3 timber), not trips.
+- VB-1663: the foundation is a property of the house (`farmstead.grade`, `farmView().foundation`), not a rung; plan tasks
+  `foundation` and `outbuilding` (barn). Its prestige is the standing term sim/society already reads ("A well-kept house on stone").
+- VB-1665: the byre (`src/sim/byrehouse.js`, `farmstead.byre`; `HERD.openLean` 2 without one). VB-1666: the shelter
+  (`farmstead.shelter`) on the house tile in place of a farm's booth, for settler households too.
+- VB-1664: room (shelter 4, cottage 6, timber house 10: `ROOM` in `src/sim/house.js`), the mood modifier `crowded` for every member,
+  the timber house (`src/sim/timberhouse.js`, `farmstead.rung`; an unplayed head builds one in winter when crowded). VB-1669: the
+  woodpile's goals follow the house's fire.
+- VB-1667: the farmstead placed anywhere reachable; the goods lie at the landing as loads and are fetched, the cart and herds brought
+  over, by the farmstead task; a lone farm's village follows its house; `Sim.moveCost`. VB-1670: walks reckoned by the route, one
+  trip count for the estimate, the plan and the agenda; a trip under way is not dropped at bedtime; the frost's day; the sim's words.
+- VB-1668: no check refuses a project because another is under way; an unplayed head's own rule still begins one large project at a
+  time (VB-1472 designs how heads choose).
+- The page: the shelter in its three states; the upgrade card and the build menu (one list) with the cottage, the timber house, the
+  foundation, the barn and the byre; placing anywhere with the move's cost; the landing's loads, cart and herds drawn; the stores'
+  "Not counted" lists and their key; crowding in the house's callout.
+Open:
+- Left unattended after a far move the solo settler died in its second winter (no firewood, short food, sleep owed): the game by
+  hand may be too hard to survive without close attention. No playtest round has been run on any of the third session's work.
+- VB-1671, VB-1672, VB-1673 (below). VB-1656: `Sim.load` on a used world. VB-1645: sleep for every pawn. VB-1472: how heads choose
+  among projects.
+- `HERD.openLean` has never been seen to bite; cold household-days rose 522 to 533 on populous after VB-1669 (one seed).
+
 ## For the next session: the plan, in order
-Kim wants clarifying questions and small batches; sub-agents are Opus. Each numbered item is a batch.
-1. Find why a plan stands still (round 4, finding 1) and make the screen say why: when the plan holds tasks and the settler does
-   none of them, the plan bar or the settler's pill names the reason (waiting for a window, for a project, for a walk ordered by
-   hand that cannot end, for the hour). Reproduce first on `ot7`, site 1, desktop, with a plant and a hay task and a stray
-   "walk here".
-2. Taps: a tap that opens a callout must not press what appears under the finger; a pin's tap opens its tile's callout with the
-   mark's band on top (B); the map does not move unless the player asks ("Show"), and the scouted button centres its place.
-3. Wood and the booth (sim and page): cutting wood or timber offered on any forest tile within reach; the load taken home;
-   working it into firewood, or leaving it as timber, at the house; "Raise the booth" at the house; the staked booth drawn as
-   staked. Scope the sim part as a backlog task with Kim's words above.
-4. Stores count only what the plan covers (firewood to cut, hay to mow, the harvest of standing fields: each only with a task for
-   it), and say so in words on a tap.
-5. Sleep's two effects from the debt (sim), and the day sleeping of an idle settler.
-6. Explanations on a tap, everything left in round 4's finding 6; the day strip made believable (finding 7); the words (finding 10).
-7. Then a playtest round, with Kim's rule for explanations and the harness traps given to the testers.
+Kim wants clarifying questions and small batches; sub-agents are Opus. Items 1 to 4 of the earlier plan are done.
+1. A playtest round (two Opus players, phone and desktop, a whole first year from the landing), when Kim says so: with Kim's rule
+   for explanations and the harness traps given to the testers. It will say whether the year can be survived by hand.
+2. Sleep's two effects from the debt (Kim's answers after round 4), and the day sleeping of an idle settler.
+3. Explanations on a tap, what is left of round 4's finding 6; the day strip made believable (finding 7).
+4. VB-1671 (the cart's first trip brings a load), VB-1672 (the move's frost warning in the plan's days), VB-1673 (the sim's reasons
+   name a farm, not a household's number).
+5. The site screen and the start's menus are still the old interface's in part (VB-1613, the site's choice).
 
 How to work here:
 - Seeing the page: `node build.js`, then patch a copy of `index.html` as `tests/browser.js` does (replace the `let st = null,`
@@ -215,8 +250,9 @@ How to work here:
   `docs/ui2/playtest.js`. Do not rebuild `index.html` while testers play.
 - Sim work goes to Opus `vb-task` sub-agents through backlog tasks (`tools/inbox.js init --fresh`, `start ID`, then `apply` after
   merging the worktree's branch); the page is the orchestrator's. Checks: `npm test`, `npm run verify`, `node tests/smoke.js`.
-- Branch `claude/bold-lamport-xsgshf`, pushed. No PR is open; none was asked for. Open backlog: VB-1645 (sleep for every pawn),
-  VB-1613 (the site's choice, overlapping the new start).
+- The page's work was given to an Opus general agent with a written brief (what the sim gives, what to build, Kim's words, how to
+  check in a browser), one batch at a time, never two page agents at once; sim tasks side by side when their modules differ.
+- The inbox's reserved IDs clash with tasks made by `backlog.js new` in the same run: use one or the other.
 
 ## What is built (first session)
 - The flag: `UI2` (`src/page/ui2.js`). On by default; `?classic` in the address, or `window.VB_CLASSIC` (set by `tests/lib/page.js`

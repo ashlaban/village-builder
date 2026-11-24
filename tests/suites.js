@@ -1,6 +1,7 @@
 // Explicit coverage tiers; see docs/testing.md. FAST is npm test; verify adds INTEGRATION; EXTENDED runs at night.
 // A script of FAST or INTEGRATION takes under 5 seconds (the runner names those over); a longer one goes to EXTENDED until it is
 // rebuilt on a small constructed state. The runner starts them in this order.
+// @merge union: its entries merge by line: a script a line; the order only schedules them (tools/merge.js, VB-1679)
 const FAST = [
   ['node', 'tests/build.js'],
   ['node', 'tests/format.js'],
@@ -145,6 +146,7 @@ const FAST = [
   ['node', 'tests/quern.js'], // the hand quern (VB-009): grinding, the pot's flour, wear and hewing, on the probe's small state
   ['node', 'tests/accounts.js'], // VB-403: the balance accounts close, the people account too, and the run is unchanged
 ];
+// @merge union: its entries merge by line: a script a line; the order only schedules them (tools/merge.js, VB-1679)
 const INTEGRATION = [
   ['node', 'tests/ladder.js', 'founders,solo'], // VB-1659: the rungs and outbuildings as data, rungOf on every farm, Sim.farmView
   ['node', 'tests/ladder.js', 'populous'], // VB-1659: rungOf on every farm of populous, at seeding and a year on
@@ -160,6 +162,9 @@ const INTEGRATION = [
   ['node', 'tests/codec.js'],
   ['node', 'tests/skip.js'],
   ['node', 'tests/backlog-tool.js'],
+  ['node', 'tests/lanes.js'], // VB-1678: tasks side by side by the functions they edit, against the work in flight
+  ['node', 'tests/renumber.js'], // VB-1680: a branch's new task IDs that main took move, with their files and references
+  ['node', 'tests/merge.js'], // VB-1679: the merge drivers: backlog rows by ID and field, the non-mechanical conflicts kept
   ['node', 'tests/inbox.js'],
   ['node', 'tests/chain-tool.js'],
   ['node', 'tests/waiting.js'],
@@ -205,6 +210,7 @@ const INTEGRATION = [
   ['node', 'tests/commons.js'],
   ['node', 'tests/cottage.js'],
   ['node', 'tests/relations.js'],
+  ['node', 'tests/stories.js'], // VB-523: stories witnessed, told, believed, saturated, forgotten, dropped and saved
   ['node', 'tests/pastimes.js'], // VB-1552: own time, the six pastimes each reached, the verb `pastime`, the call and the cut
   ['node', 'tests/visitors.js'], // VB-1559: a caller at the door sits with those indoors; a passer-by does not
   ['node', 'tests/encounters.js'],
@@ -310,6 +316,7 @@ const INTEGRATION = [
   ['node', 'tests/manual.js'],
   ['node', 'tests/page.js'], // VB-409: the page in jsdom on a 36 by 26 island, a few days and each panel once; the tiny map's smoke at night
 ];
+// @merge union: its entries merge by line: a script a line; the order only schedules them (tools/merge.js, VB-1679)
 const EXTENDED = [
   // The slowest first, so that none starts last and runs on alone. First the long runs of whole islands, which load the late fixtures.
   ['node', 'tests/start.js', '--people'],

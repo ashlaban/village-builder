@@ -21,12 +21,14 @@ else {
   const id = (r.out.match(/^start (VB-\d+)/) || [])[1];
   expect('next starts the first ready S task not skipped, on sonnet, with its title, branch and prompt', r.ok && id === ready[1]
     && /^model: (sonnet|claude-fable-5-2)$/m.test(r.out) && r.out.includes(`title: ${id}: `) && r.out.includes(' · t1 1/3')
-    && r.out.includes('branch: claude/chain-t1-1') && r.out.includes(`prompt: /task ${id} --report-to session_x --chain t1 --link 1`), r.out);
+    && r.out.includes('branch: claude/chain-t1-1') && r.out.includes(`prompt: Run the task skill: /task ${id} --report-to session_x --chain t1 --link 1`)
+    && r.out.includes('source_url: https://github.com/ashlaban/village-builder'), r.out);
   run('started', id, 'session=s1');
   r = run('next');
   expect('next waits while a leaf runs', r.ok && r.out.trim() === `wait ${id}`, r.out);
-  r = run('result', id, 'status=needs-review', 'pr=7');
-  expect('a result', r.ok && /1\/3 S tasks, 0 done, 1 needs-review/.test(r.out), r.out);
+  r = run('result', id, 'status=needs-review', 'pr=7', 'reason=extended', 'tier', 'still', 'red');
+  expect('a result, its unquoted reason read whole', r.ok && /1\/3 S tasks, 0 done, 1 needs-review/.test(r.out)
+    && JSON.parse(run('status', '--json').out).leaves[0].reason === 'extended tier still red', r.out);
   r = run('next', '--skip', ready[0]);
   const id2 = (r.out.match(/^start (VB-\d+)/) || [])[1];
   expect('a task taken is not taken again', r.ok && id2 && id2 !== id && id2 !== ready[0], r.out);

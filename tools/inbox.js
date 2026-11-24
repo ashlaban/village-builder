@@ -3,9 +3,11 @@
 // worktree, and never edit BACKLOG.md, QUESTIONS.md or docs/tuning.md: they leave notes here, and the orchestrator writes those files
 // once, after merging (apply). Nothing durable lives here: apply and report carry it into the repository and the PR.
 // usage: node tools/inbox.js <command> [--db FILE] [--root DIR]
-//   init [--fresh]             make the file; the next free task ID is read from backlog/ (--fresh empties an earlier run's file)
+//   init [--fresh]             make the file; the next free task ID is above backlog/ and the branches fetched from origin and pushed in the
+//                              last 14 days (tools/lib/ids.js; fetch first for the latest); --fresh empties an earlier run's file
 //   start TASK [N]             a sub-agent starts on TASK: reserves N (default 2) new task IDs for it and prints them
-//   claim TASK FILE...         TASK will edit these files; prints who else holds one (exit 1) and claims them all the same
+//   claim TASK FILE[:FUNCTION]...  TASK will edit these files, or these functions of them (sim/jobs:allot); prints who else holds one,
+//                              the whole file or the same function (exit 1), and claims them all the same
 //   note TASK KIND key=value... [--body FILE|-]
 //                              leave a note (kinds below); the body is Markdown, from a file or standard input
 //   result TASK status=done|needs-review|failed|continue [reason=ceiling|boundary|stuck] [commit=SHA] [size=S|M|L] [model=NAME] [summary=TEXT]
@@ -13,6 +15,8 @@
 //                              continue: a fresh context goes on from commit=: at the ceiling on calls (reason=ceiling, the default; at most
 //                              twice a task), or by choice past the context threshold (boundary, stuck; once a task, from the run's 30th call,
 //                              with commit= made in this run; tools/lib/ceiling.js, VB-1616)
+//   flight                     the tasks started and running and the claims, as JSON, for tools/lanes.js
+//   renumber OLD=NEW...        tools/renumber.js moved this branch's new tasks: reserved IDs, notes, claims and results follow
 //   handover TASK              the latest handover note of TASK, for the context that continues it (docs/agents/handover.md)
 //   calls [AGENT] [--ceiling N]  a sub-agent's model calls so far against the ceiling of 120, from its own transcript (found by its worktree, agent-<id>),
 //                              with its context and weighted cost; outside a sub-agent's worktree, the session's own, without the ceiling;
@@ -29,9 +33,10 @@
 //                              --task only TASK's
 //   results [--json]           the results, for  node tools/agent-usage.js --results FILE
 // kinds, with their keys:
-//   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= cause= ref= goal=]; body: its criteria
+//   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= cause= touches= ref= goal=]; body: its criteria
+//              (how to write each, touches= the functions it will edit: docs/agents/tasks.md)
 //              (cause=VB-NNN: the task whose change introduced the defect it mends, VB-1619)
-//              (ready: goal=, ref= and the body given, and no question for Kim; priority=1 if it mends a red check)
+//              (ready: goal=, ref=, touches= and the body given, and no question for Kim; priority=1 if it mends a red check)
 //   question   priority= title= [about=VB-NNN, the task it is filed under: default TASK]; body: the numbered questions, each with its proposed answer (**P:**), as in QUESTIONS.md
 //   tuning     parameter= means= measured= proposed=   a row of docs/tuning.md, Parameters waiting
 //   candidate  rule=   a principle candidate (AGENTS.md, Surfacing); body: the decisions behind it
@@ -41,6 +46,8 @@
 //   review     arm=review|control|ineligible round=arm|review|confirm [verdict= blocking= advisory= preference= reviewed=SHA mended=
 //              rebutted= unresolved= followups=]   VB-1619, written by tools/review.js (eligible, check, confirm --inbox): a task's arm,
 //              its review's verdict, and what the one revision left; the body the findings file. Never applied: report and results read it
+//   footprint  recall= precision= [declared= edited=]   VB-1678, written by tools/lanes.js --measure --inbox after a merge: the
+//              task's declared footprint against its edits; never applied: report totals them
 //   handover   (no keys)    body: the handover of a task to a fresh context, at most 60 lines and 4 KB (docs/agents/handover.md); not applied
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path'), transcript = require('./lib/transcript.js'), { execFileSync, spawnSync } = require('child_process');
@@ -57,7 +64,8 @@ const ceilingArg = option('--ceiling'), asJson = flag('--json'), dry = flag('--d
 const today = option('--date') || new Date().toISOString().slice(0, 10);
 
 const KINDS = { task: ['id', 'name', 'priority', 'size', 'summary'], question: ['priority', 'title'], tuning: ['parameter', 'means', 'measured', 'proposed'],
-  candidate: ['rule'], teleport: ['where', 'what'], act: ['where', 'what'], decision: ['what', 'why'], handover: [], review: ['arm', 'round'] };
+  candidate: ['rule'], teleport: ['where', 'what'], act: ['where', 'what'], decision: ['what', 'why'], handover: [], review: ['arm', 'round'],
+  footprint: ['recall', 'precision'] };
 // Findings are collected, not given a task each (Kim, 18 November): one open task a kind holds them, a criterion a finding, and a
 // slice's wrap-up sweeps it. apply finds that task by its name, or makes the next one.
 const COLLECT = {
@@ -67,8 +75,8 @@ const COLLECT = {
   act: { name: "Acts with no pawn, collected: swept at a slice's wrap-up", arch: 'acts', goal: 'Each act listed is a pawn\'s, through a verb any pawn may use',
     summary: 'The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up' },
 };
-const OPTIONAL = { task: ['status', 'arch', 'waits', 'cause', 'ref', 'goal'], question: ['about'], teleport: ['task'],
-  review: ['verdict', 'blocking', 'advisory', 'preference', 'reviewed', 'mended', 'rebutted', 'unresolved', 'followups'] };
+const OPTIONAL = { task: ['status', 'arch', 'waits', 'cause', 'touches', 'ref', 'goal'], question: ['about'], teleport: ['task'],
+  review: ['verdict', 'blocking', 'advisory', 'preference', 'reviewed', 'mended', 'rebutted', 'unresolved', 'followups'], footprint: ['declared', 'edited'] };
 const NEEDS_BODY = ['question', 'handover'];
 const HANDOVER_LINES = 60, HANDOVER_BYTES = 4096; // docs/agents/handover.md
 // The ceiling on a run's calls and the voluntary reset (tools/lib/ceiling.js).
@@ -94,7 +102,7 @@ function dbFile() {
 }
 const file = dbFile();
 const [cmd, ...rest] = args;
-if (!cmd) fail('a command: init, start, claim, note, result, list, status, apply, report, results (--help)');
+if (!cmd) fail('a command: init, start, claim, note, result, renumber, list, status, apply, report, results (--help)');
 if (cmd !== 'init' && cmd !== 'calls' && !fs.existsSync(file)) fail(`no inbox at ${file}: the orchestrator runs  node tools/inbox.js init  first`);
 if (cmd === 'init' && fresh && fs.existsSync(file)) fs.rmSync(file);
 const db = cmd === 'calls' ? null : new DatabaseSync(file); // calls reads a transcript only: a session of its own has no inbox
@@ -136,29 +144,62 @@ if (cmd === 'init') {
     CREATE TABLE IF NOT EXISTS notes (n INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, kind TEXT, fields TEXT, body TEXT, applied INTEGER DEFAULT 0);
     CREATE TABLE IF NOT EXISTS results (task TEXT PRIMARY KEY, status TEXT, commit_ TEXT, size TEXT, model TEXT, summary TEXT, started TEXT,
       ended TEXT, applied INTEGER DEFAULT 0);`);
-  const dir = path.join(root, 'backlog');
-  const last = Math.max(0, ...(fs.existsSync(dir) ? fs.readdirSync(dir) : []).map((f) => +(f.match(/^VB-(\d+)\.md$/) || [])[1] || 0));
+  const seen = require('./lib/ids.js').highestId(root), last = seen.max; // above the branches in flight too (VB-1680)
   atomic(() => {
     const have = get("SELECT value FROM meta WHERE key = 'next'");
     if (!have) run("INSERT INTO meta VALUES ('next', ?)", String(last + 1));
     else if (+have.value <= last) run("UPDATE meta SET value = ? WHERE key = 'next'", String(last + 1));
   });
-  console.log(`inbox at ${file}; the next free task ID is ${pad(+get("SELECT value FROM meta WHERE key = 'next'").value)}`);
+  console.log(`inbox at ${file}; the next free task ID is ${pad(+get("SELECT value FROM meta WHERE key = 'next'").value)}`
+    + (seen.where !== 'this checkout' ? ` (above ${seen.where}, which holds task files up to ${pad(seen.max)})` : ''));
 } else if (cmd === 'start') {
   const task = taskId(rest[0]), n = Math.max(0, Math.min(20, rest[1] == null ? 2 : +rest[1] || 0));
+  const seen = require('./lib/ids.js').highestId(root); // a branch pushed since init (VB-1680)
   const ids = atomic(() => {
     run('INSERT OR IGNORE INTO results (task, started) VALUES (?, ?)', task, new Date().toISOString());
-    const next = +get("SELECT value FROM meta WHERE key = 'next'").value, got = [];
+    const next = Math.max(+get("SELECT value FROM meta WHERE key = 'next'").value, seen.max + 1), got = [];
     for (let i = 0; i < n; i++) { got.push(pad(next + i)); run('INSERT INTO ids (id, task) VALUES (?, ?)', pad(next + i), task); }
     run("UPDATE meta SET value = ? WHERE key = 'next'", String(next + n));
     return got;
   });
   console.log(`${task} started; reserved for its new tasks: ${ids.join(' ') || 'none'}`);
+} else if (cmd === 'renumber') {
+  // tools/renumber.js moved this branch's new tasks to other IDs: the inbox follows, so the run goes on (VB-1680)
+  const map = new Map(rest.map((p) => p.split('=')).filter((x) => x.length === 2 && /^VB-\d+$/.test(x[0]) && /^VB-\d+$/.test(x[1])));
+  if (!map.size || map.size !== rest.length) fail('renumber OLD=NEW... (VB-NNN=VB-NNN)');
+  const swap = (s) => (s == null ? s : String(s).replace(/VB-(\d{3,})(?!\d)/g, (m) => map.get(m) || m));
+  const TEXT = { ids: ['id', 'task'], claims: ['task'], notes: ['task', 'fields', 'body'], results: ['task', 'summary'] };
+  const changed = atomic(() => {
+    let n = 0;
+    for (const [table, cols] of Object.entries(TEXT)) {
+      for (const row of all(`SELECT rowid AS r, ${cols.join(', ')} FROM ${table}`)) {
+        const next = cols.map((c) => swap(row[c]));
+        if (next.some((v, i) => v !== row[cols[i]])) { run(`UPDATE ${table} SET ${cols.map((c) => c + ' = ?').join(', ')} WHERE rowid = ?`, ...next, row.r); n++; }
+      }
+    }
+    const top = Math.max(...[...map.values()].map((v) => +v.slice(3)));
+    if (+get("SELECT value FROM meta WHERE key = 'next'").value <= top) run("UPDATE meta SET value = ? WHERE key = 'next'", String(top + 1));
+    return n;
+  });
+  console.log(`inbox: ${changed} rows renumbered (${[...map].map(([a, b]) => a + '=' + b).join(' ')})`);
+} else if (cmd === 'flight') {
+  // the run's work in flight, read by tools/lanes.js (VB-1678), so the inbox has one reader of its tables: the tasks started, those
+  // still running (no result yet, or a continuation), and the claims (file, or file:function)
+  const rs = all('SELECT task, status FROM results');
+  console.log(JSON.stringify({ started: rs.map((r) => r.task), running: rs.filter((r) => !r.status || r.status === 'continue').map((r) => r.task),
+    claims: all('SELECT file, task FROM claims') }));
 } else if (cmd === 'claim') {
-  const task = taskId(rest[0]), files = rest.slice(1).map((f) => path.relative(root, path.resolve(root, f)));
-  if (!files.length) fail('claim TASK FILE...');
+  // a file, or a function of one (sim/jobs:allot, src/sim/jobs.js:allot; VB-1678): two claims clash on one file when either is the
+  // whole file or both name the same function
+  const { fileOf } = require('./lib/touches.js');
+  const norm = (a) => { const m = /^(.*?):([A-Za-z_$][\w$]*)$/.exec(a), f = m ? m[1] : a;
+    const file = /\.\w+$/.test(f) ? path.relative(root, path.resolve(root, f)) : fileOf(root, f); return m ? `${file}:${m[2]}` : file; };
+  const split = (c) => { const m = /^(.*?):([A-Za-z_$][\w$]*)$/.exec(c); return m ? [m[1], m[2]] : [c, null]; };
+  const task = taskId(rest[0]), files = rest.slice(1).map(norm);
+  if (!files.length) fail('claim TASK FILE[:FUNCTION]...');
   const held = atomic(() => {
-    const others = files.flatMap((f) => all('SELECT file, task FROM claims WHERE file = ? AND task != ?', f, task));
+    const others = all('SELECT file, task FROM claims WHERE task != ?', task).filter((c) => files.some((f) => {
+      const [fa, sa] = split(f), [fb, sb] = split(c.file); return fa === fb && (!sa || !sb || sa === sb); }));
     for (const f of files) run('INSERT OR IGNORE INTO claims VALUES (?, ?)', f, task);
     return others;
   });
@@ -186,8 +227,9 @@ if (cmd === 'init') {
     if (!/^(S|M|L)$/.test(f.size)) fail('size is S, M or L');
     if (f.status && !['blocked', 'needs-review', 'ready'].includes(f.status)) fail('a noted task is ready, blocked or needs-review (the default)');
     if (f.status === 'ready' &&
-      !(f.goal && f.ref && body)) fail(
-      'a noted task is ready only with its goal (goal=), its design ref (ref=) and its criteria (--body), and no question for Kim; else needs-review (the default)');
+      !(f.goal && f.ref && f.touches && body)) fail(
+      'a noted task is ready only with its goal (goal=), its design ref (ref=), its footprint (touches=, docs/agents/tasks.md) and its criteria (--body), and no question for Kim; else needs-review (the default)');
+    if (f.touches) try { require('./lib/touches.js').parseTouches(f.touches); } catch (e) { fail(`touches=: ${e.message} (docs/agents/tasks.md)`); }
   }
   if (kind === 'review') {
     if (!['review', 'control', 'ineligible'].includes(f.arm)) fail('arm is review, control or ineligible');
@@ -329,7 +371,8 @@ if (cmd === 'init') {
   for (const n of notes('WHERE applied = 0').filter(mine)) {
     const f = n.fields;
     if (n.kind === 'task') {
-      const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'cause', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`);
+      // a ready note gives its footprint (checked when noted); one that is not ready keeps the line to fill (VB-1677)
+      const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'cause', 'touches', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`);
       // a file is never made ready with "(to write)" in it (tools/backlog.js new): a ready note's task is made, filled, then set ready
       backlog('new', `id=${f.id}`, `status=${f.status === 'ready' ? 'needs-review' : f.status || 'needs-review'}`, ...keys);
       if (n.body && !dry) {
@@ -376,6 +419,7 @@ if (cmd === 'init') {
           const next = +get("SELECT value FROM meta WHERE key = 'next'").value; run("UPDATE meta SET value = ? WHERE key = 'next'", String(next + 1));
           return pad(next); });
         backlog('new', `id=${id}`, 'status=needs-review', `name=${c.name}`, 'priority=3', 'size=M', `summary=${c.summary}`, `arch=${c.arch}`,
+          'touches=unknown (a collecting task: each line names its own place)',
           'ref=AGENTS.md, Surfacing', `goal=${c.goal}`);
         const p = path.join(dirOf, id + '.md');
         fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('- [ ] (to write)\n', line + '\n'));
@@ -397,6 +441,9 @@ if (cmd === 'init') {
     `- ${r.task}${r.commit_ ? ' ' + r.commit_ : ''}: ${r.summary || 'see its task file'}`));
   section('Reviews (VB-1619)', all('SELECT task FROM results ORDER BY started').filter(mine).map((r) => [r.task, reviewOf(r.task)])
     .filter(([, v]) => v && v.arm === 'review').map(([t, v]) => `- ${t}: ${reviewLine(v).replace(/^review: /, '')}`));
+  const fps = by('footprint'), mean = (k) => (fps.reduce((s, n) => s + +n.fields[k], 0) / fps.length).toFixed(2);
+  section('Footprints, declared against edited (VB-1678)', fps.length ? [`- ${fps.length} tasks: mean recall ${mean('recall')}, mean precision ${mean('precision')}`,
+    ...fps.map((n) => `- ${n.task}: recall ${n.fields.recall}, precision ${n.fields.precision} (declared ${n.fields.declared || '?'}, edited ${n.fields.edited || '?'})`)] : []);
   section('Close calls', by('decision').map((n) => `- ${n.task}: ${headline(n)}`));
   section('Questions (in `QUESTIONS.md`)', by('question').map((n) => `- ${n.task}: ${headline(n)} (priority ${n.fields.priority})`));
   section('New tasks',

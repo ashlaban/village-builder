@@ -164,7 +164,7 @@ assert(L.routine.every((r) => r.hours > 0) && L.routine[1].hours > L.routine[0].
 assert.strictEqual(L.owed.length, 3);
 const awake0 = L.days[0].filter((g) => g.what !== 'sleep').reduce((n, g) => n + g.to - g.from, 0),
   slept0 = L.days[0].filter((g) => g.what === 'sleep').reduce((n, g) => n + g.to - g.from, 0);
-assert(Math.abs(L.owed[0] - Math.max(0, P.player.sleep.owed + awake0 * AWAKE - slept0)) < 1e-6, `owed on day 0: ${L.owed}`);
+assert(Math.abs(L.owed[0] - Math.max(0, P.pawns[P.player.pawn].sleep.owed + awake0 * AWAKE - slept0)) < 1e-6, `owed on day 0: ${L.owed}`);
 
 // with no sleeping hours the work is laid through the night, and the hours owed mount
 const N = alone();

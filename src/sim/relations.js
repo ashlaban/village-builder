@@ -202,15 +202,16 @@ VB['sim/relations'] = (() => {
     return o;
   }
   // a remembers an event with b: the memory of its kind gains v, up to its cap, and fades from now. A breach (TRAITS.breach) is felt by
-  // a's honour, its v and cap 0.5 to 1.5 times (TRAITS.acts.honour.breach; VB-520).
+  // a's honour, its v and cap 0.5 to 1.5 times (TRAITS.acts.honour.breach; VB-520). `gain`, if given, in place of the kind's v (a story's
+  // hearsay, sim/stories: its value set by the telling).
   const BREACH = new Set(TRAITS.breach);
-  function remember(st, a, b, kind) {
+  function remember(st, a, b, kind, gain) {
     const rel = st.pawns[a].rel,
       r = rel.get(b) || rel.set(b, { mem: {} }).get(b),
       K = M[kind],
       m = r.mem[kind],
       felt = BREACH.has(kind) ? Traits.act(st, a, 'honour', 'breach') : 1;
-    const sum = (m ? memNow(st, kind, m) : 0) + K.v * felt,
+    const sum = (m ? memNow(st, kind, m) : 0) + (gain ?? K.v) * felt,
       v = K.cap > 0 ? Math.min(K.cap * felt, sum) : Math.max(K.cap * felt, sum);
     if (m) {
       m.v = v;
@@ -377,6 +378,7 @@ VB['sim/relations'] = (() => {
   // @state agent.talk: {with (pawn id), kind (chat, goodTalk or crossWords), at, until (game hours), friendAt (the hour of its last talk
   //   with one it held at SOCIAL.friend or above, as the talk's band check read it; absent before one)} or null; the latest talk, for the
   //   bubble, and talked with a friend for its mood (sim/mood, VB-062)
+  const told = { a: -1, b: -1 };
   function talk(st, a, b) {
     const i = a.id,
       j = b.id,
@@ -409,6 +411,9 @@ VB['sim/relations'] = (() => {
     halt(a);
     halt(b);
     st.talks++;
+    told.a = i; // each side may tell a story (sim/stories, VB-523); the event's data reused, read at once
+    told.b = j;
+    emit(st, 'talked', told);
   }
 
   // Cross words become a quarrel (VB-520; design.md, The twelve traits: temper) at T.quarrel × the two tempers' sum, one draw of the talk
@@ -419,6 +424,7 @@ VB['sim/relations'] = (() => {
     if (rnd(st.rng.talk) >= T.quarrel * (Traits.of(st, i, 'temper') + Traits.of(st, j, 'temper'))) return;
     remember(st, i, j, 'quarrel');
     remember(st, j, i, 'quarrel');
+    emit(st, 'quarrelled', { a: i, b: j }); // a story (sim/stories)
     personEvent(st, i, 'quarrel', `Quarrelled with ${fullName(st.pawns[j])}`, {
       other: j,
       village: settlementIdOf(st, st.pawns[i]),

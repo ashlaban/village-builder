@@ -59,6 +59,7 @@ const HINTS = {
   'sim/help': { from: 'household', to: 'household', a: 'pawn' }, 'sim/herds': { from: 'household', to: 'household', dest: 'herd', ramHerd: 'herd' },
   'sim/droving': { from: 'household', to: 'household', dest: 'herd', src: 'herd', keeper: 'household', owner: 'household' },
   'sim/heirs': { from: 'household', to: 'household', old: 'household', family: 'local' }, 'sim/heirranking': { asked: 'local' }, 'sim/relations': { g: 'agent', s: 'agent.talk', r: 'pawn.rel[]' },
+  'sim/stories': { s: 'st.stories', e: 'pawn.known[]', best: 'pawn.known[]' }, // a story, and a pawn's entry for it (VB-523)
   'sim/claims': { c: 'claim', r: 'local' }, 'sim/trust': { t: 'st.trusts' }, 'sim/offers': { o: 'st.offers' }, 'sim/clock': { s: 'fence' }, 'sim/meadows': { m: 'farmstead.meadows[]' }, 'sim/births': { m: 'pawn' },
   'sim/commands': { q: 'pawn' }, 'sim/notable': { from: 'local' }, 'sim/timetable': { from: 'local' }, 'sim/agents': { g: 'agent', stay: 'st.away[]' }, 'sim/away': { g: 'local', rest: 'local', stay: 'st.away[]' }, 'sim/journeys': { g: 'local' }, 'sim/expansion': { walls: 'plan.steps[]' }, 'sim/allotment': { live: 'local' }, 'sim/building': { walls: 'plan.steps[]' }, 'sim/upgrade': { walls: 'plan.steps[]' }, // a plot's walls step (VB-1407)
   'sim/pot': { units: 'local' }, 'sim/hands': { d: 'st.handsToday' }, 'sim/voice': { d: 'st.leaves', e: 'st.leaves' }, // VB-1555: today's leaves

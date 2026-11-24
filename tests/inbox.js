@@ -64,8 +64,14 @@ expect('status: the done task, the running one with its claims, the open notes',
   && r.out.includes(`${B} running; editing src/sim/herds.js, src/sim/stores.js`) && /1 task, 1 question, 1 tuning, 1 candidate/.test(r.out), r.out);
 r = run('', 'results', '--json');
 expect('results as JSON', r.ok && JSON.parse(r.out).find((x) => x.task === A).size === 'M', r.out);
+r = run('- [ ] The check passes.', 'note', A, 'task', `id=${pad(last + 2)}`, 'name=x', 'priority=1', 'size=S', 'summary=s', 'status=ready',
+  'goal=g', 'ref=r', 'touches=sim/jobs (allot', '--body', '-');
+expect('a task note with a malformed touches= is refused when noted (VB-1677)', !r.ok && /touches=/.test(r.out), r.out);
+r = run('- [ ] The check passes.', 'note', A, 'task', `id=${pad(last + 2)}`, 'name=x', 'priority=1', 'size=S', 'summary=s', 'status=ready',
+  'goal=g', 'ref=r', '--body', '-');
+expect('a ready task note without touches= is refused (VB-1677)', !r.ok && /touches=/.test(r.out), r.out);
 r = run('- [ ] The check passes.', 'note', A, 'task', `id=${pad(last + 2)}`, 'name=Mend a red check', 'priority=1', 'size=S', 'summary=Red.', 'status=ready',
-  'goal=the check passes', 'ref=tests/x.js', '--body', '-');
+  'goal=the check passes', 'ref=tests/x.js', 'touches=sim/herds (herdsDay); tests/x.js', '--body', '-');
 expect('a ready task note, with its goal and criteria', r.ok, r.out);
 const before = file('BACKLOG.md');
 r = run('', 'apply', '--dry');
@@ -74,6 +80,8 @@ r = run('', 'apply', '--task', B);
 expect("apply --task applies only that task's: none of A's", r.ok && /applied 0/.test(r.out) && file('BACKLOG.md') === before, r.out);
 r = run('', 'apply');
 expect('apply: the result, the task, the question, the tuning row and the three findings', r.ok && /applied 8/.test(r.out), r.out);
+expect('a task note\'s footprint is its Touches line; a note not ready without one keeps the line to fill', /^Touches: sim\/herds \(herdsDay\); tests\/x\.js$/m.test(file(`backlog/${pad(last + 2)}.md`))
+  && /^Touches: \(to write\)$/m.test(file(`backlog/${N}.md`)));
 const collected = (name) =>
   fs.readdirSync(path.join(dir, 'backlog')).map((f) => file('backlog/' + f)).filter((t) => t.includes(`: ${name}`) && !/^Status: done/m.test(t));
 expect('the teleports are lines of one open collecting task', collected('Teleports found, collected').length === 1
@@ -208,6 +216,14 @@ expect('a reset when stuck, the handover not yet written', r.ok && /continue \(s
 r = runIn('', 'result', S2, 'status=continue', 'reason=stuck', 'commit=' + fresh);
 expect('stuck again: needs-review', !r.ok && /stuck again: end with status=needs-review/.test(r.out), r.out);
 
+// renumber (VB-1680): a branch's new tasks moved by tools/renumber.js; the reserved IDs follow, and later blocks start above them
+r = run('', 'renumber', `${pad(last + 1)}=${pad(last + 90)}`);
+expect('renumber moves a reserved ID', r.ok && /rows renumbered/.test(r.out), r.out);
+r = run('', 'status');
+r = run('', 'start', ready[2] || A, '1');
+expect('a block reserved after renumbering starts above the moved ID', r.ok && r.out.includes(pad(last + 91)), r.out);
+r = run('', 'renumber', 'VB-1=oops');
+expect('renumber refuses a pair that is not VB-NNN=VB-NNN', !r.ok, r.out);
 fs.rmSync(dir, { recursive: true, force: true });
 if (errors.length) { console.error('INBOX FAIL\n  ' + errors.join('\n  ')); process.exit(1); }
-console.log('inbox: reserved IDs, claims, notes by kind, apply once and the report on a copy of the backlog');
+console.log('inbox: reserved IDs, claims, notes by kind, apply once, renumber and the report on a copy of the backlog');

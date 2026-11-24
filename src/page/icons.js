@@ -50,6 +50,7 @@ function speedIcon(v) {
     14,
   );
 }
+// @merge union: its entries merge by name: an icon a key, in no order that matters (tools/merge.js, VB-1679)
 const ICON = {
   pause: svgIcon(
     14,
@@ -207,6 +208,7 @@ const PEOPLE_STEN =
   '<path d="M2.5 21.5c0-5.5 2.6-9 6-9s6 3.5 6 9z"/><circle cx="8.5" cy="8" r="3.1"/>';
 const EYE_STEN =
   '<path d="M2 12c3-5 6.5-7 10-7s7 2 10 7c-3 5-6.5 7-10 7s-7-2-10-7z"/><circle class="c" cx="12" cy="12" r="3.2"/>';
+// @merge union: its entries merge by name: a stencil drawing a key, in no order that matters (tools/merge.js, VB-1679)
 const ICON_STEN = {
   pause: '<rect x="5.5" y="4" width="4.6" height="16" rx=".6"/><rect x="13.9" y="4" width="4.6" height="16" rx=".6"/>',
   skip: '<path d="M4.5 4.5l10 7.5-10 7.5z"/><rect x="16" y="4.5" width="3.6" height="15" rx=".6"/>',
