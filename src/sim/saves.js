@@ -312,6 +312,8 @@ VB['sim/saves'] = (() => {
     idx: null, // sim/records index, built at its first use
     stepAt: null, // sim/agents loaded, at the end of a load
     jobsBy: rebuildJobsBy,
+    routeKept: null, // sim/routes, built at its first use: a route kept aside is searched again after a load, and found the same (VB-1563)
+    routeCosts: null,
   };
   // st.jobsBy from st.jobs: each owner's open jobs, in the order they were posted (sim/jobs post adds a job to both together)
   function rebuildJobsBy(st) {

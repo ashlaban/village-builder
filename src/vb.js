@@ -17,13 +17,16 @@ VB.COUNTERS = {
   moveNoRoute:
     'Moves to a new home refused for want of a way by land between the two villages (sim/heirs, the move verb; VB-436)',
   routeExpand: 'Tiles removed from the A* heap (including duplicates)',
-  routeHit: 'Routes served from the cache, in either direction',
+  routeHit:
+    'Routes served from the cache, in either direction, or taken back from the routes set aside at its emptying (VB-1563)',
   routeRefresh: 'Cached routes tested for invalidation',
   reachSettled: 'Tiles settled by the searches of the walking hours between villages (sim/routes reachCosts, VB-286)',
   settleReach:
     "Tiles settled by a crowded village's search for new land within SETTLE.hours along a trail, one a round where someone " +
     'leads (sim/routes trailReach, VB-786)',
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
+  routeCheck:
+    'Changed tiles and cells read in testing a route set aside before it is taken back (sim/routes untouched, VB-1563)',
   talkWeighed: 'Eligible partners weighed in talkHour',
   daysCalled: 'Days called by a creditor holder on its planning day (sim/days, VB-462)',
   obligationsDue: 'Obligations whose term ended at a step, taken off the due-queue (sim/obligations, VB-310)',
