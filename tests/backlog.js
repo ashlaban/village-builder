@@ -41,7 +41,7 @@ for (const f of files) {
   tasks[head[1]] = { name: head[2], arch, status, priority: field('Priority'), size: field('Size'), waits: field('Waits for'), cause: ((text.split(/^(?!# |Status|Waits for|Cause|Priority|Size|Arch|Phase)/m)[0] || '').match(/^Cause: (.*)$/m) || [])[1] || '' };
 }
 
-// "Cause:" (VB-1615), optional: the task whose change introduced the defect this one mends; one existing task, not itself.
+// "Cause:" (VB-1619), optional: the task whose change introduced the defect this one mends; one existing task, not itself.
 for (const [id, t] of Object.entries(tasks)) {
   if (t.cause && (!/^VB-\d{3,}$/.test(t.cause) || !tasks[t.cause] || t.cause === id))
     errors.push(`backlog/${id}.md: "Cause: ${t.cause}" must name one other task that has a file (VB-NNN)`);

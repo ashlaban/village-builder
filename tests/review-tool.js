@@ -1,4 +1,4 @@
-// tools/review.js (VB-1615) on a constructed repository of two commits: the arm and its rule, one review a task, the packet (the vision
+// tools/review.js (VB-1619) on a constructed repository of two commits: the arm and its rule, one review a task, the packet (the vision
 // and principles first, the task as it stood, a changed test that passes on the base flagged, the task's own file left out of the diff),
 // the claims refused before the draft, the findings' grades checked, and what a source file declares.
 const assert = require('assert'), fs = require('fs'), os = require('os'), path = require('path'), cp = require('child_process');
@@ -126,7 +126,7 @@ try {
   assert(inb('status').stdout.includes(`${id} running; review: revise 4 blocking, confirmed, 2 unresolved (${followup},VB-777)`), inb('status').stdout);
   const res = JSON.parse(inb('results', '--json').stdout).find((x) => x.task === id);
   assert(res.review && res.review.verdict === 'revise' && res.review.blocking === 4 && res.review.unresolved === 2, JSON.stringify(res));
-  assert(/\*\*Reviews \(VB-1615\)\*\*\n- VB-900: revise 4 blocking, confirmed, 2 unresolved/.test(inb('report').stdout), inb('report').stdout);
+  assert(/\*\*Reviews \(VB-1619\)\*\*\n- VB-900: revise 4 blocking, confirmed, 2 unresolved/.test(inb('report').stdout), inb('report').stdout);
   const ceil = inb('calls', 'nobody', '--ceiling', '40');
   assert(ceil.status !== 0 && /no transcript agent-nobody/.test(ceil.stderr), 'calls takes a ceiling (a reviewer\'s 40)');
 } finally { fs.rmSync(dir, { recursive: true, force: true }); }

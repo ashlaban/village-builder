@@ -13,7 +13,7 @@
 //                 otherwise the task its commits name: the VB-NNN that heads at least two thirds of the commits made between its start
 //                 and five minutes after its end; a session with no such task is listed apart, as outside a task.
 // A task measured more than once (a retry, a second session) is the sum of its runs.
-// A task's independent review (VB-1615) is part of its cost and shown apart too: the reviewer's (rw), the revision after it (vw), and the
+// A task's independent review (VB-1619) is part of its cost and shown apart too: the reviewer's (rw), the revision after it (vw), and the
 // task's arm (review, control, ineligible). A session whose only sub-agents are reviewers worked on one task, not as an orchestrator.
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');

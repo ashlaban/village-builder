@@ -1,4 +1,4 @@
-// Review: the deterministic half of an independent review of a task's change (VB-1615). A `vb-review` sub-agent with a fresh context
+// Review: the deterministic half of an independent review of a task's change (VB-1619). A `vb-review` sub-agent with a fresh context
 // reads the packet, writes its findings, and only then reads the implementer's claims; this tool computes what a reviewer must not
 // spend calls on, and checks the findings file. The review's first question is whether the change keeps the game's vision and its
 // design principles (design.md, The game, in Kim's terms; Principles for decisions): every packet carries both whole.
@@ -16,7 +16,7 @@
 //              ("outcome": "rebutted", "rebuttal": an authority quoted, or a probe's output); each advisory one is mended or declined
 //              ("outcome", "note"). A blocking finding left unresolved gets a priority 1 task with Cause: VB-NNN, made once (its ID kept in
 //              the findings file as "followup"; --dry opens none); the results are kept in the findings file for tools/agent-usage.js
-//   eval [--dir docs/agents/usage] [--days 14]   (no task ID) the evaluation (VB-1615): per arm, the eligible tasks done, their escapes (tasks
+//   eval [--dir docs/agents/usage] [--days 14]   (no task ID) the evaluation (VB-1619): per arm, the eligible tasks done, their escapes (tasks
 //              whose Cause: names them, made within --days after they were done, not opened by their own review), escapes a task with an
 //              exact 90% interval of the ratio, cost and minutes; for the reviewed arm the findings, the confirmed catches (a blocking finding
 //              mended with a test that failed before), false blockers (rebutted), the cost a catch and the break-even against the median repair
@@ -37,7 +37,7 @@ const fs = require('fs'), os = require('os'), path = require('path'), cp = requi
 
 const CATEGORIES = ['principle', 'criterion', 'design', 'unintended', 'counterexample', 'test', 'coupling'];
 const GRADES = ['blocking', 'advisory', 'preference'];
-// The holdout (VB-1615, the evaluation): a third of eligible tasks get no review, until the evaluation task records Kim's decision.
+// The holdout (VB-1619, the evaluation): a third of eligible tasks get no review, until the evaluation task records Kim's decision.
 const HOLDOUT = true;
 // Left out of the diff: built, measured or derived files, and the backlog's tables (the task files are in the diff).
 const EXCLUDE = ['index.html', 'package-lock.json', 'BACKLOG.md', 'BACKLOG_ARCHIVE.md', 'QUESTION_ARCHIVE.md', 'docs/img', 'docs/agents/usage', 'docs/bench'];
@@ -366,7 +366,7 @@ function noteFollowup(root, id, f) {
   return nid;
 }
 
-// ---- the evaluation (VB-1615): does review pay for itself? Per arm, from the run files, the task files and the git log of backlog/
+// ---- the evaluation (VB-1619): does review pay for itself? Per arm, from the run files, the task files and the git log of backlog/
 // Clopper-Pearson bounds of a binomial proportion, by bisection on its distribution function (no library).
 function binomCdf(k, n, p) { let s = 0, t = Math.pow(1 - p, n); for (let i = 0; i <= k; i++) { s += t; t *= ((n - i) / (i + 1)) * (p / (1 - p || 1e-300)); } return Math.min(1, s); }
 function cpBounds(x, n, alpha) {
@@ -415,7 +415,7 @@ function evaluation(root, dir, days) {
   const repairs = files.filter((f) => f.cause), repairCost = md(repairs.map((f) => costs.get(f.id)).filter(Boolean).map((t) => t.w));
   const arms = { review: [], control: [], ineligible: [] };
   for (const [id, t] of costs) if (t.arm && arms[t.arm]) arms[t.arm].push(id);
-  const lines = [`Independent review, the evaluation (VB-1615): ${runs.length} measured runs; escapes counted within ${days} days of a task's done date`];
+  const lines = [`Independent review, the evaluation (VB-1619): ${runs.length} measured runs; escapes counted within ${days} days of a task's done date`];
   const stat = {};
   for (const [a, ids] of Object.entries(arms)) {
     const done = ids.filter((id) => byId.get(id) && byId.get(id).done), observed = done.filter((id) => now - byId.get(id).done >= span);

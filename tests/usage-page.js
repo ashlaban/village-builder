@@ -50,7 +50,7 @@ assert.ok(!page.includes('/*DATA*/') && page.includes('"VB-001"') && page.includ
 const script = page.slice(page.indexOf('<script>') + 8, page.lastIndexOf('</script>'));
 assert.doesNotThrow(() => new Function(script), 'the page script parses');
 fs.rmSync(tmp, { recursive: true });
-// a review (VB-1615): a session whose only sub-agent is its reviewer stays its task's; the reviewer's and the revision's costs shown apart
+// a review (VB-1619): a session whose only sub-agent is its reviewer stays its task's; the reviewer's and the revision's costs shown apart
 const rd = model({ commits: [], taskInfo: () => null, runs: [
   run('solo0000', '2026-11-05T10:00:00Z', '2026-11-05T11:00:00Z', { task: 'VB-010', review: { task: 'VB-010', arm: 'review', revision: { weighted: 30 } },
     subagents: [{ agent: 'r1', role: 'review', task: 'VB-010', model: 'claude-opus-5-5', calls: 4, tokens: tok(20), activeMin: 3, peak: 4, start: '2026-11-05T10:30:00Z' }] }),

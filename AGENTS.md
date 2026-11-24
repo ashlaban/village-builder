@@ -26,7 +26,7 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
 2. Resolve open decisions using **Deciding without Kim** below. Record each decision and reason.
 3. Work in small commits and run `npm test` after each change. For a refactor, run focused checks and, where needed, compare against the starting commit with `node tools/same.js`.
 4. Before the last commit run `npm run format` and `npm run verify`. For page changes also run `node tests/smoke.js` and the affected browser tests. Hard failures block merging. See `docs/testing.md` for coverage. A nightly failure gets its own repair task.
-5. Review, with no orchestrator (VB-1615): commit; `node tools/review.js eligible ID`. For `review`, start a fresh `vb-review` sub-agent
+5. Review, with no orchestrator (VB-1619): commit; `node tools/review.js eligible ID`. For `review`, start a fresh `vb-review` sub-agent
    (Sonnet for S, Opus for M and L, the strongest for a plan) with only `Review ID; base <merge-base>; head <sha>`. On `revise`, revise once,
    in at most 30 calls: each blocking finding mended with a test that fails at the reviewed commit, or rebutted in the findings file; each
    advisory mended or declined; then `review.js confirm ID --reviewed SHA`. No second review. The PR's Review section: arm, verdict, outcomes.

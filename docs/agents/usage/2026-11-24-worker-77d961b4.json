@@ -83,7 +83,7 @@
   },
   {
    "tool": "Read",
-   "what": "backlog/VB-1615.md",
+   "what": "backlog/VB-1619.md",
    "calls": 1,
    "bytes": 15277
   },
@@ -125,7 +125,7 @@
   }
  ],
  "weighted": 4280806,
- "task": "VB-1615",
+ "task": "VB-1619",
  "subagents": [
   {
    "agent": "abc1b6ef",
@@ -175,7 +175,7 @@
   }
  ],
  "review": {
-  "task": "VB-1615",
+  "task": "VB-1619",
   "arm": "control"
  },
  "summary": {

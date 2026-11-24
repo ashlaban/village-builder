@@ -17,7 +17,7 @@ const USAGE = `usage: node tools/agent-usage.js [FILE.jsonl] [--json] [--turns] 
   --task      the one task this session worked on, when it ran no sub-agents: kept in the run's file as "task" (tools/usage-page.js reads it);
               leave it out for a session that worked on several tasks or on none
   --results   the tasks' outcomes, from  node tools/inbox.js results --json : joins size and status to the sub-agents by task
-  --review    a session that ran an independent review (VB-1615): its findings file, work/review/VB-NNN.json; kept as "review" in the run's
+  --review    a session that ran an independent review (VB-1619): its findings file, work/review/VB-NNN.json; kept as "review" in the run's
               file, with the reviewer's cost and the revision's (the session's after the reviewer returned)
   --arm       control | ineligible: a session whose task was not reviewed (tools/review.js eligible), kept as "review" with its arm
               A sub-agent is a reviewer by its meta file (agentType vb-review) or its prompt ("Review VB-NNN"): its cost is apart from the
@@ -48,7 +48,7 @@ function newest() {
 // The measures of one transcript.
 const weighted = (t) => Math.round(t.input + 1.25 * t.cacheWrite + 0.1 * t.cacheRead + 5 * t.output);
 const EDITS = ['Edit', 'Write', 'NotebookEdit'];
-// A review's own calls: the reviewer started, review.js run, a revision asked (VB-1615); the orchestrator's share of reviewing.
+// A review's own calls: the reviewer started, review.js run, a revision asked (VB-1619); the orchestrator's share of reviewing.
 const REVIEWING = (use) => (use.name === 'Agent' && use.input.subagent_type === 'vb-review') || (use.name === 'Bash' && /tools\/review\.js/.test(use.input.command || ''))
   || (use.name === 'SendMessage' && /Revise VB-\d/.test(JSON.stringify(use.input)));
 function measure(file, sub = false, from = null) {
@@ -197,7 +197,7 @@ function report(m) {
     + `${m.subagents.length} sub-agents ${k(s.weightedTotal - m.weighted)}; median boot ${s.bootMedian == null ? '-' : `${k(s.bootMedian)}, of which read before the first edit ${k(s.readMedian)}`}`);
   if (s.tasks) lines.push(`tasks: ${s.tasks} ended, ${Math.round(s.firstPass * 100)}% done; weighted cost a done task ${s.weightedPerDoneTask == null ? '-' : k(s.weightedPerDoneTask)}`
     + Object.entries(s.perSize).map(([size, x]) => `; ${size} median ${k(x.median)} (${x.n})`).join(''));
-  if (s.review) lines.push(`reviews (VB-1615): ${s.review.reviews}, weighted ${k(s.review.weighted)} (median ${s.review.median == null ? '-' : k(s.review.median)}); `
+  if (s.review) lines.push(`reviews (VB-1619): ${s.review.reviews}, weighted ${k(s.review.weighted)} (median ${s.review.median == null ? '-' : k(s.review.median)}); `
     + `revisions ${s.review.revisions}, weighted ${k(s.review.revisionWeighted)}; the session's calls on review ${s.review.orchestratorCalls}`);
   if (m.review) lines.push(`review of ${m.review.task}: ${m.review.arm}` + (m.review.arm !== 'review' ? '' : `, ${m.review.verdict}, ${m.review.blocking} blocking, `
     + `${m.review.advisory} advisory, ${m.review.preference} preference${m.review.reviewer ? `; reviewer ${k(m.review.reviewer.weighted)}` : ''}`

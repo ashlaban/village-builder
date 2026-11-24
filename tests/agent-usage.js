@@ -68,7 +68,7 @@ expect('the summary: share, boot, cost a done task, first pass', w.summary.weigh
 r = run(file, '--results', path.join(dir, 'results.json'));
 expect('the report lists the sub-agents, no content', r.ok && /VB-123 S done y-model: 2 calls/.test(r.out) && /50% done/.test(r.out) && !/SECRET/.test(r.out), r.out);
 
-// a review (VB-1615): a reviewer known by its meta file, the implementer resumed after it (its revision), kept apart from the task's measures
+// a review (VB-1619): a reviewer known by its meta file, the implementer resumed after it (its revision), kept apart from the task's measures
 const subDir = path.join(dir, 's', 'subagents'), L = (o) => JSON.stringify({ isSidechain: true, ...o });
 fs.writeFileSync(path.join(subDir, 'agent-cccc3333.jsonl'), [
   L({ type: 'user', timestamp: at(13), message: { role: 'user', content: 'Review VB-123; base a; head b' } }),

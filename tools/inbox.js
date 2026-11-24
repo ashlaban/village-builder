@@ -24,7 +24,7 @@
 //   results [--json]           the results, for  node tools/agent-usage.js --results FILE
 // kinds, with their keys:
 //   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= cause= ref= goal=]; body: its criteria
-//              (cause=VB-NNN: the task whose change introduced the defect it mends, VB-1615)
+//              (cause=VB-NNN: the task whose change introduced the defect it mends, VB-1619)
 //              (ready: goal=, ref= and the body given, and no question for Kim; priority=1 if it mends a red check)
 //   question   priority= title= [about=VB-NNN, the task it is filed under: default TASK]; body: the numbered questions, each with its proposed answer (**P:**), as in QUESTIONS.md
 //   tuning     parameter= means= measured= proposed=   a row of docs/tuning.md, Parameters waiting
@@ -33,7 +33,7 @@
 //   act        where= what=   an act with no pawn, or a choice only the player has (AGENTS.md, 16): collected likewise
 //   decision   what= why=   a close call, decided by Deciding without Kim, that Kim should see
 //   review     arm=review|control|ineligible round=arm|review|confirm [verdict= blocking= advisory= preference= reviewed=SHA mended=
-//              rebutted= unresolved= followups=]   VB-1615, written by tools/review.js (eligible, check, confirm --inbox): a task's arm,
+//              rebutted= unresolved= followups=]   VB-1619, written by tools/review.js (eligible, check, confirm --inbox): a task's arm,
 //              its review's verdict, and what the one revision left; the body the findings file. Never applied: report and results read it
 require('./help.js')(__filename);
 const os = require('os'), fs = require('fs'), path = require('path'), { execFileSync, spawnSync } = require('child_process');
@@ -65,7 +65,7 @@ const NEEDS_BODY = ['question'];
 // The ceiling on a sub-agent's model calls (Kim, 18 November): every call re-reads the whole context, so a long task is handed to a
 // fresh sub-agent instead. On 15 November 10 tasks of 45 went past 120 calls and took 71% of the night's cost.
 const CEILING = 120, WARN = 15, CONTINUATIONS = 2;
-// A task's review, by its notes (VB-1615): the arm, the reviewer's verdict, and the confirmation after the one revision.
+// A task's review, by its notes (VB-1619): the arm, the reviewer's verdict, and the confirmation after the one revision.
 const reviewOf = (task) => {
   const rs = notes('WHERE kind = ? AND task = ?', 'review', task).map((n) => n.fields), last = (round) => rs.filter((f) => f.round === round).pop();
   const arm = last('arm'), rev = last('review'), conf = last('confirm');
@@ -318,7 +318,7 @@ if (cmd === 'init') {
   section('Teleports found', by('teleport').map((n) => `- ${headline(n)}, found by ${n.task}`));
   section('Acts with no pawn found', by('act').map((n) => `- ${headline(n)}, found by ${n.task}`));
   section('Tasks merged with a criterion unmet', all("SELECT * FROM results WHERE status = 'needs-review'").map((r) => `- ${r.task}${r.commit_ ? ' ' + r.commit_ : ''}: ${r.summary || 'see its task file'}`));
-  section('Reviews (VB-1615)', all('SELECT task FROM results ORDER BY started').map((r) => [r.task, reviewOf(r.task)]).filter(([, v]) => v && v.arm === 'review')
+  section('Reviews (VB-1619)', all('SELECT task FROM results ORDER BY started').map((r) => [r.task, reviewOf(r.task)]).filter(([, v]) => v && v.arm === 'review')
     .map(([t, v]) => `- ${t}: ${reviewLine(v).replace(/^review: /, '')}`));
   section('Close calls', by('decision').map((n) => `- ${n.task}: ${headline(n)}`));
   section('Questions (in `QUESTIONS.md`)', by('question').map((n) => `- ${n.task}: ${headline(n)} (priority ${n.fields.priority})`));
