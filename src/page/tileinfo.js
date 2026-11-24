@@ -304,6 +304,10 @@ function claimStats(i) {
 }
 function pick(sx, sy, inspect = true) {
   if (!w || document.body.classList.contains('ui-hidden') || startOpen()) return; // the start's picture is only dragged and zoomed
+  if (site) {
+    if (inspect) siteAt(sx, sy);
+    return;
+  } // where to settle takes the map's clicks (page/ui2site)
   if (choose) {
     if (inspect) chooseAt(sx, sy);
     return;

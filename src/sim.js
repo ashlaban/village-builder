@@ -121,6 +121,7 @@ const Sim = (() => {
 
   return {
     seed,
+    landing: VB['sim/landing'],
     advance,
     save,
     load,
