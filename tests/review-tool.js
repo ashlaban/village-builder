@@ -2,7 +2,7 @@
 // and principles first, the task as it stood, a changed test that passes on the base flagged, the task's own file left out of the diff),
 // the claims refused before the draft, the findings' grades checked, and what a source file declares.
 const assert = require('assert'), fs = require('fs'), os = require('os'), path = require('path'), cp = require('child_process');
-const { facts, checkFindings, fnv1a } = require('../tools/review.js');
+const { facts, checkFindings, fnv1a, openFollowup } = require('../tools/review.js');
 const tool = path.join(__dirname, '../tools/review.js');
 
 // ---- what a source file declares
@@ -82,5 +82,38 @@ try {
   fs.rmSync(path.join(dir, 'work'), { recursive: true });
   put('docs/agents/usage/run.json', JSON.stringify({ review: { task: id, arm: 'review' } }));
   assert.match(run('eligible', id, '--base', base).stdout, /reviewed: .*docs\/agents\/usage\/run\.json/, 'a committed run file records it too');
+
+  // confirm, after one revision: a test that fails at the reviewed commit and passes at the head shows a mend; no second review
+  fs.rmSync(path.join(dir, 'docs'), { recursive: true });
+  const reviewed = git('rev-parse', '--short', 'HEAD');
+  put('src/sim/a.js', "VB['sim/a'] = (() => {\n  // @state st.digs: holes, by tile (mended)\n  VB['sim/commands'].register('dig', {});\n  return {};\n})();\n");
+  put('tests/fix.js', "require('assert')(require('fs').readFileSync(__dirname + '/../src/sim/a.js', 'utf8').includes('mended'));\n");
+  git('add', 'src', 'tests'); git('commit', '-q', '-m', 'revision');
+  const B = (id, more) => ({ ...blocking, id, ...more });
+  put(`work/review/${id}.json`, JSON.stringify({ task: id, findings: [
+    B('F1', { outcome: 'mended', test: 'tests/fix.js' }),
+    B('F2', { outcome: 'rebutted', rebuttal: 'design.md, Digging (Decided): "Holes are dug by hand", which the change keeps' }),
+    B('F3', { outcome: 'mended', test: 'tests/dig.js' }),
+    B('F4', { followup: 'VB-777' }),
+    { ...blocking, id: 'A1', grade: 'advisory', outcome: 'declined', note: 'the walk is the head\'s choice' },
+    { ...blocking, id: 'A2', grade: 'advisory' }] }));
+  const k = run('confirm', id, '--reviewed', reviewed, '--dry');
+  assert.strictEqual(k.status, 0, k.stderr);
+  assert(k.stdout.startsWith(`${id} confirm: blocking 1 mended, 1 rebutted, 2 unresolved; advisory 0 mended, 1 declined, 1 unanswered`), k.stdout);
+  assert(/F3 blocking: unresolved: tests\/dig\.js passes at \w+, so it does not show the mend/.test(k.stdout), 'a test that passed before shows no mend');
+  assert(/F4: its follow-up is VB-777/.test(k.stdout) && !/F4: would open/.test(k.stdout), 'a follow-up is opened once');
+  assert(/F3: would open a priority 1 task, Cause: VB-900/.test(k.stdout), '--dry opens nothing');
+  assert(!JSON.parse(fs.readFileSync(path.join(dir, 'work/review', id + '.json'), 'utf8')).confirm, '--dry writes nothing');
+  assert.strictEqual(git('worktree', 'list').split('\n').length, 1, 'the reviewed commit\'s worktree is removed');
 } finally { fs.rmSync(dir, { recursive: true, force: true }); }
-console.log('review tool: declarations, grades, the arm, the packet (vision first, task as it stood, tests against the base, structure), claims after the draft, one review a task');
+
+// a follow-up task, on a copy of the backlog: ready, priority 1, its cause named
+const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-review-backlog-')), real = path.join(__dirname, '..');
+try {
+  for (const f of ['BACKLOG.md', 'BACKLOG_ARCHIVE.md']) fs.copyFileSync(path.join(real, f), path.join(copy, f));
+  fs.cpSync(path.join(real, 'backlog'), path.join(copy, 'backlog'), { recursive: true });
+  const nid = openFollowup(copy, 'VB-911', { ...blocking, check: 'a test that a marriage\'s new household is not shod from nothing' });
+  const text = fs.readFileSync(path.join(copy, 'backlog', nid + '.md'), 'utf8');
+  assert(/^Status: ready\nCause: VB-911\nPriority: 1$/m.test(text) && /^- \[ \] a test that a marriage's new household/m.test(text) && !text.includes('(to write)'), text);
+} finally { fs.rmSync(copy, { recursive: true, force: true }); }
+console.log('review tool: declarations, grades, the arm, the packet (vision first, task as it stood, tests against the base, structure), claims after the draft, one review a task, confirm after the revision, a follow-up task');

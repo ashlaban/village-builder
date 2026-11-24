@@ -11,6 +11,11 @@
 //              structure changed); and the diff, without derived files and the task's own file, cut at 60 KB
 //   claims     the implementer's ticks and notes since the base; refused until work/review/VB-NNN.json holds the draft findings
 //   check      checks work/review/VB-NNN.json (grades, categories, fields) and prints the verdict line
+//   confirm --reviewed SHA [--dry]   after the one revision, in a checkout at the head; no second review. Each blocking finding is
+//              mended ("outcome": "mended", "test": a tests/ script that fails at SHA and passes at the head, both run here) or rebutted
+//              ("outcome": "rebutted", "rebuttal": an authority quoted, or a probe's output); each advisory one is mended or declined
+//              ("outcome", "note"). A blocking finding left unresolved gets a priority 1 task with Cause: VB-NNN, made once (its ID kept in
+//              the findings file as "followup"; --dry opens none); the results are kept in the findings file for tools/agent-usage.js
 //   --base REF   default: git merge-base HEAD origin/main.   --head REF   default: HEAD (the packet's runs use the working tree)
 // The findings file, work/review/VB-NNN.json (never committed):
 //   { "task": "VB-NNN", "base": SHA, "head": SHA, "findings": [ { "id": "F1", "grade": "blocking|advisory|preference",
@@ -139,15 +144,35 @@ function runAll(jobs, width = Math.max(1, Math.min(4, os.availableParallelism?.(
   });
 }
 
+// ---- a temporary worktree of REF beside the checkout (as tools/same.js makes one), with the checkout's node_modules; removed after
+async function withTree(root, ref, fn) {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-review-')), tree = path.join(tmp, 'tree');
+  git(root, 'worktree', 'add', '--detach', tree, ref);
+  try {
+    const mods = path.join(root, 'node_modules');
+    if (fs.existsSync(mods)) fs.symlinkSync(fs.realpathSync(mods), path.join(tree, 'node_modules'));
+    return await fn(tree);
+  } finally {
+    git(root, 'worktree', 'remove', '--force', tree);
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+// The head's tests (the checkout's tests/), each run at the head and against TREE's sources: does a test need the change?
+async function testsBothSides(root, tree, tests) {
+  fs.rmSync(path.join(tree, 'tests'), { recursive: true, force: true });
+  fs.cpSync(path.join(root, 'tests'), path.join(tree, 'tests'), { recursive: true, filter: (x) => !x.includes(`${path.sep}fixtures`) });
+  const fx = path.join(root, 'tests', 'fixtures');
+  if (fs.existsSync(fx)) fs.symlinkSync(fs.realpathSync(fx), path.join(tree, 'tests', 'fixtures'));
+  const res = await runAll(tests.flatMap((f) => [{ args: [f], cwd: root }, { args: [f], cwd: tree }]));
+  return tests.map((f, i) => ({ test: f, head: res[2 * i], base: res[2 * i + 1] }));
+}
+
 async function packet(root, id, base, head) {
   const c = change(root, id, base, head), e = eligibility(root, id, base, head, c), out = [];
   const t = c.after || '', name = (t.split('\n')[0] || '').replace(/^# VB-\d+: /, ''), refactor = /^Refactor:/.test(name);
   out.push(`# Review of ${id}: ${name}\nbase ${base}, head ${head}; arm ${e.arm} (${e.why.join('; ')})`);
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-review-')), tree = path.join(tmp, 'base');
-  git(root, 'worktree', 'add', '--detach', tree, base);
-  try {
-    const mods = path.join(root, 'node_modules');
-    if (fs.existsSync(mods)) fs.symlinkSync(fs.realpathSync(mods), path.join(tree, 'node_modules'));
+  await withTree(root, base, async (tree) => {
     const node = (args, cwd) => cp.spawnSync(process.execPath, args, { cwd, encoding: 'utf8', maxBuffer: 1 << 26 });
     // the vision and the principles, as they stood at the base
     const doc = (q) => node([path.join(__dirname, 'doc.js'), 'design.md', q], tree);
@@ -174,14 +199,8 @@ async function packet(root, id, base, head) {
       }
       const tests = c.names.filter((n) => n.s !== 'D' && /^tests\/[^/]+\.js$/.test(n.f) && !RUNNERS.includes(n.f)).map((n) => n.f);
       if (tests.length) {
-        fs.rmSync(path.join(tree, 'tests'), { recursive: true, force: true });
-        fs.cpSync(path.join(root, 'tests'), path.join(tree, 'tests'), { recursive: true, filter: (s) => !s.includes(`${path.sep}fixtures`) });
-        const fx = path.join(root, 'tests', 'fixtures');
-        if (fs.existsSync(fx)) fs.symlinkSync(fs.realpathSync(fx), path.join(tree, 'tests', 'fixtures'));
-        const res = await runAll(tests.flatMap((f) => [{ args: [f], cwd: root }, { args: [f], cwd: tree }]));
         ev.push(`- the tests the diff adds or changes, at the head and with the head's tests against the base's sources:`);
-        tests.forEach((f, i) => {
-          const [h, b] = [res[2 * i], res[2 * i + 1]];
+        (await testsBothSides(root, tree, tests)).forEach(({ test: f, head: h, base: b }) => {
           const verdict = !h.ok ? `FAILS at the head: ${h.tail}` : b.ok ? (refactor ? 'passes on base (as a refactor should)' : 'passes on base: does not detect the change') : 'fails on base: detects the change';
           ev.push(`  - ${f}: ${verdict}`);
         });
@@ -199,10 +218,7 @@ async function packet(root, id, base, head) {
     if (!Object.values(a).some((v) => v.length)) ev.push('- structure: no module, @state field, owner, verb, job kind, counter or read between modules added');
     if (c.unparsed.length) ev.push(`- not parsed (structure unknown): ${c.unparsed.join(', ')}`);
     out.push('## Evidence, computed: do not run these again\n' + ev.join('\n'));
-  } finally {
-    git(root, 'worktree', 'remove', '--force', tree);
-    fs.rmSync(tmp, { recursive: true, force: true });
-  }
+  });
   // the diff, without derived files and the task's own file
   const spec = ['--', '.', ...EXCLUDE.map((x) => `:(exclude)${x}`), `:(exclude)backlog/${id}.md`];
   const stat = git(root, 'diff', '--stat=120', base, head, ...spec), order = (f) => (/^src\//.test(f) ? 0 : /^tests\//.test(f) ? 1 : 2);
@@ -249,14 +265,72 @@ function checkFindings(r) {
   return { errors, blocking, verdict: blocking ? 'revise' : 'pass' };
 }
 
+// ---- after the revision: each finding's outcome checked, not judged again
+const AUTHORITY = /criterion|Decided|Agreed|Principles for decisions|The game, in Kim's terms|AGENTS\.md|BACKLOG\.md|target-v2/i;
+async function confirm(root, id, reviewed, dry) {
+  const { r, error } = readFindings(root, id);
+  if (error) throw new Error(error);
+  const bad = checkFindings(r).errors;
+  if (bad.length) throw new Error('the findings file does not pass check:\n' + bad.join('\n'));
+  const blocking = r.findings.filter((f) => f.grade === 'blocking'), advisory = r.findings.filter((f) => f.grade === 'advisory');
+  const tests = [...new Set(blocking.filter((f) => f.outcome === 'mended' && f.test).map((f) => f.test))];
+  const runs = tests.length ? await withTree(root, reviewed, (tree) => testsBothSides(root, tree, tests)) : [];
+  const lines = [];
+  for (const f of blocking) {
+    const run = runs.find((x) => x.test === f.test);
+    if (f.outcome === 'mended' && run && run.head.ok && !run.base.ok) f.verified = 'mended';
+    else if (f.outcome === 'rebutted' && f.rebuttal && (AUTHORITY.test(f.rebuttal) || /probe|printed|prints|output/i.test(f.rebuttal))) f.verified = 'rebutted';
+    else f.verified = 'unresolved';
+    const why = f.verified !== 'unresolved' ? '' : f.outcome === 'mended' ? (!f.test ? ': no test named' : !run.head.ok ? `: ${f.test} fails at the head` : `: ${f.test} passes at ${reviewed}, so it does not show the mend`)
+      : f.outcome === 'rebutted' ? ': the rebuttal quotes no authority and no probe' : ': no outcome';
+    lines.push(`- ${f.id} blocking: ${f.verified}${why}`);
+  }
+  for (const f of advisory) {
+    f.verified = ['mended', 'declined'].includes(f.outcome) && (f.outcome === 'mended' || f.note) ? f.outcome : 'unanswered';
+    lines.push(`- ${f.id} advisory: ${f.verified}`);
+  }
+  for (const f of blocking.filter((x) => x.verified === 'unresolved')) {
+    if (f.followup) { lines.push(`  ${f.id}: its follow-up is ${f.followup}`); continue; }
+    if (dry) { lines.push(`  ${f.id}: would open a priority 1 task, Cause: ${id}`); continue; }
+    f.followup = openFollowup(root, id, f);
+    lines.push(`  ${f.id}: opened ${f.followup} (priority 1, Cause: ${id})`);
+  }
+  r.confirm = { reviewed, head: git(root, 'rev-parse', '--short', 'HEAD') };
+  if (!dry) fs.writeFileSync(path.join(root, 'work', 'review', id + '.json'), JSON.stringify(r, null, 2) + '\n');
+  const n = (g, v) => r.findings.filter((f) => f.grade === g && f.verified === v).length;
+  lines.unshift(`${id} confirm: blocking ${n('blocking', 'mended')} mended, ${n('blocking', 'rebutted')} rebutted, ${n('blocking', 'unresolved')} unresolved;`
+    + ` advisory ${n('advisory', 'mended')} mended, ${n('advisory', 'declined')} declined, ${n('advisory', 'unanswered')} unanswered`);
+  return lines.join('\n');
+}
+
+// A blocking finding left unresolved becomes a task of its own (tools/backlog.js), ready, priority 1, naming the task as its cause.
+function openFollowup(root, id, f) {
+  const bl = (...a) => { const x = cp.spawnSync(process.execPath, [path.join(__dirname, 'backlog.js'), '--root', root, ...a], { encoding: 'utf8' });
+    if (x.status !== 0) throw new Error('backlog.js ' + a[0] + ': ' + (x.stderr || x.stdout).trim()); return x.stdout; };
+  const one = (t, n) => String(t || '').replace(/\s+/g, ' ').replace(/\|/g, '/').slice(0, n);
+  const out = bl('new', `name=Mend ${id}'s review finding ${f.id} (${f.category}, ${one(f.place, 60)})`, 'status=needs-review', 'priority=1', 'size=S',
+    `cause=${id}`, `summary=${one(f.scenario, 240)}`, `ref=${one(f.authority, 300)}`, `goal=The defect the review of ${id} found and its revision left: ${one(f.scenario, 300)}`);
+  const nid = (out.match(/(VB-\d{3,}) created/) || [])[1];
+  const file = path.join(root, 'backlog', nid + '.md');
+  fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('- [ ] (to write)\n',
+    `- [ ] ${one(f.check, 600) || 'A test that fails while the defect stands'}, and the mend.\n- Opened by tools/review.js confirm from the review of ${id} (finding ${f.id}, at ${f.place}).\n`));
+  bl('set', nid, 'status=ready');
+  return nid;
+}
+
 // ---- the command line
 async function main(argv) {
   const opt = (k) => { const i = argv.indexOf(k); if (i < 0) return null; const v = argv[i + 1]; argv.splice(i, 2); return v; };
-  const root = path.resolve(opt('--root') || path.join(__dirname, '..')), baseRef = opt('--base'), head = opt('--head') || 'HEAD';
+  const dry = argv.includes('--dry'); if (dry) argv.splice(argv.indexOf('--dry'), 1);
+  const root = path.resolve(opt('--root') || path.join(__dirname, '..')), baseRef = opt('--base'), head = opt('--head') || 'HEAD', reviewed = opt('--reviewed');
   const [cmd, id] = argv;
-  if (!['eligible', 'packet', 'claims', 'check'].includes(cmd)) throw new Error('a command: eligible, packet, claims, check (--help)');
+  if (!['eligible', 'packet', 'claims', 'check', 'confirm'].includes(cmd)) throw new Error('a command: eligible, packet, claims, check, confirm (--help)');
   if (!/^VB-\d{3,}$/.test(id || '')) throw new Error('a task ID (VB-NNN)');
   let base = baseRef;
+  if (cmd === 'confirm') {
+    if (!reviewed) throw new Error('confirm --reviewed SHA: the commit the reviewer read');
+    console.log(await confirm(root, id, git(root, 'rev-parse', '--short', `${reviewed}^{commit}`), dry)); return;
+  }
   if (!base && cmd !== 'check') {
     try { base = git(root, 'merge-base', head, 'origin/main'); } catch { throw new Error('no merge base with origin/main: name it, --base REF'); }
   }
@@ -277,5 +351,5 @@ async function main(argv) {
   console.log(before == null ? after : git(root, 'diff', short(base), short(head), '--', `backlog/${id}.md`));
 }
 
-module.exports = { facts, checkFindings, fnv1a, CATEGORIES, GRADES };
+module.exports = { facts, checkFindings, fnv1a, openFollowup, CATEGORIES, GRADES, AUTHORITY };
 if (require.main === module) main(process.argv.slice(2)).catch((e) => { console.error('review: ' + e.message); process.exitCode = 2; });
