@@ -6,7 +6,8 @@
 //   stands at a tile for each (chainWhere), why it cannot be planned (chainWhy), its steps left (chainSteps) and why its task leaves the
 //   plan (chainGone). Reads only: the plan's writes are sim/playerplan's
 VB['sim/planchains'] = (() => {
-  const { DAY, SEASON_DAYS, YEAR, WORK, TRAVEL, BOOTH, ECON, cal } = VB['sim/rules'];
+  const { DAY, SEASON_DAYS, YEAR, WORK, TRAVEL, BOOTH, ECON, SPEED, cal } = VB['sim/rules'];
+  const { hexSteps } = VB['sim/hex'];
   const { CROPS, ROTATIONS } = VB['sim/crops'];
   const { projectsOf, lacks } = VB['sim/projects'];
   const { frostDay } = VB['sim/weather'];
@@ -352,39 +353,44 @@ VB['sim/planchains'] = (() => {
   // house (drove), each cart standing there fetched with its team, then each load left there fetched (its trips: on the household's best
   // cart once fetched, else on the back); a step's job is posted at the household's review (sim/droving, sim/lying fetchWork).
   const MOVE_KINDS = ['drove', 'fetchLeftCart', 'fetchLeftGrain', 'fetchHay', 'fetchLeftTimber'];
+  // VB-1642: each step's trips are sim/camp's moveTrips, the reckoning of the page's Sim.moveCost: `trip` {go, lift, back} one trip's
+  // hours (the walks by the way's route hours kept with the loads, `of.walk`), `hours` their sum, `n` the trips, the loads' on the
+  // carrier the household has now (a cart standing at the landing reckoned home: it is fetched first).
   function moveSteps(st, hid) {
     const hh = st.households[hid],
       { herds, carts, loads } = Camp.leftAt(st, hh),
       out = [];
-    if (herds.length)
+    if (!herds.length && !carts.length && !loads.length) return out;
+    const any = carts[0] || loads[0],
+      walk = any && any.of.walk !== undefined ? any.of.walk : moveWalk(st, hh, herds, any),
+      keys = { drove: herds.map((id) => `drove:H${id}`), fetchLeftCart: carts.map((l) => `fetch:L${l.id}`) },
+      ls = MOVE_KINDS.slice(2).map((k) => ({ kind: k, of: loads.filter((l) => Lying.fetchKey(l.kind) === k) }));
+    for (const x of ls) keys[x.kind] = x.of.map((l) => `fetch:L${l.id}`);
+    const m = Camp.moveTrips(
+      walk,
+      herds.length,
+      carts.length,
+      ls.map((x) => ({ kind: x.kind, n: x.of.reduce((s, l) => s + l.n, 0), hay: x.kind === 'fetchHay' })),
+      Camp.carrierOf(hh),
+    );
+    for (const x of m) {
+      const t = x.trips[0];
       out.push({
-        kind: 'drove',
-        hours: KINDS.drove.hours,
-        n: herds.length,
+        kind: x.kind,
+        hours: t.go + t.lift + t.back,
+        trip: t,
+        n: x.trips.length,
         from: -Infinity,
-        keys: herds.map((id) => `drove:H${id}`),
+        keys: keys[x.kind],
       });
-    if (carts.length)
-      out.push({
-        kind: 'fetchLeftCart',
-        hours: KINDS.leftCart.hours,
-        n: carts.length,
-        from: -Infinity,
-        keys: carts.map((l) => `fetch:L${l.id}`),
-      });
-    const cart = hh.carts.some((c) => c.kind === 'ox') ? TRAVEL.cart : hh.carts.length ? TRAVEL.hand : TRAVEL.load;
-    for (const k of MOVE_KINDS.slice(2)) {
-      const ls = loads.filter((l) => Lying.fetchKey(l.kind) === k);
-      if (ls.length)
-        out.push({
-          kind: k,
-          hours: Lying.LIFT,
-          n: ls.reduce((x, l) => x + Math.ceil(l.n / cart - 1e-9), 0),
-          from: -Infinity,
-          keys: ls.map((l) => `fetch:L${l.id}`),
-        });
     }
     return out;
+  }
+  // The walking hours from the landing to the house for a move whose loads keep no `walk` (a save before VB-1642): its steps at SPEED.
+  function moveWalk(st, hh, herds, l) {
+    const from = l ? l.tile : st.herds[herds[0]].tile,
+      to = st.farmsteads[hh.farmstead].house;
+    return hexSteps(st.w, from, to) / SPEED;
   }
   const Lying = VB['sim/lying'];
   const farmstead = {
@@ -428,13 +434,13 @@ VB['sim/planchains'] = (() => {
     },
     gone: (st, where) =>
       where.raised && !(where.f.household !== null && moveSteps(st, where.f.household).length) ? 'raised' : null,
-    // VB-1639: while loads of the move lie at the landing, the frost the head expects (`frost`, an autumn day), when they are lost (sim/lying)
+    // VB-1639: while loads of the move lie at the landing, the frost the head expects (`frost`, an autumn day), when they are lost (sim/lying);
+    // VB-1642: at the first step of that day, when sim/lying's frost runs (sim/camp frostAt), not the end of its work
     deadline: (st, hid, where, frost) => {
       if (!where.shelter || frost === null || frost === undefined || !Camp.leftAt(st, st.households[hid]).loads.length)
         return null;
-      const at = (y) => y + (2 * SEASON_DAYS + frost) * DAY + WORK[1],
-        t = at(yearOf(st));
-      return { t: t >= st.t ? t : at(yearOf(st) + YEAR), what: 'the frost' };
+      const t = Camp.frostAt(yearOf(st), frost);
+      return { t: t >= st.t ? t : Camp.frostAt(yearOf(st) + YEAR, frost), what: 'the frost' };
     },
     act: (st, id, where, tile) =>
       where.camp ? { actor: id, verb: 'placeFarmstead', target: tile, args: null, source: 'player' } : null,
@@ -494,7 +500,7 @@ VB['sim/planchains'] = (() => {
         for (const k of s.keys) job = job || st.jobs.get(k) || null; // jobs found by key (farmstead's timber at the wood)
       else if (js && !where.mark) for (const j of js) if (j.kind === s.kind && j.site === tile) job = j;
       if (!job && s.posted) continue;
-      steps.push({ kind: s.kind, job, hours: s.hours, n: s.n, from: s.from, what: s.what });
+      steps.push({ kind: s.kind, job, hours: s.hours, n: s.n, from: s.from, what: s.what, trip: s.trip });
     }
     return { where, steps };
   }
@@ -505,5 +511,5 @@ VB['sim/planchains'] = (() => {
     if (!where) return 'gone';
     return where.plan || where.mark ? null : CHAINS[name].gone(st, where);
   }
-  return { CHAINS, FELL_MAX, chainOf, chainWhy, chainSteps, chainGone, taskAt, headCmd, pileOf };
+  return { CHAINS, FELL_MAX, MOVE_KINDS, chainOf, chainWhy, chainSteps, chainGone, taskAt, headCmd, pileOf };
 })();

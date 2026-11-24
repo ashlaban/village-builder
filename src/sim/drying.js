@@ -155,7 +155,7 @@ VB['sim/drying'] = (() => {
     why: (st, hh, f) => {
       const v = st.villages[f.village];
       if (hasBoat(st, hh, f)) return `${f.name} has a fishing boat`;
-      if (Projects.underWay(st, hh.id, 'boat')) return `household ${hh.id} has a boat under way`;
+      if (Projects.underWay(st, hh.id, 'boat')) return `the household has a boat under way`;
       if (!v.wood.length) return `${v.name} has no wood to fell its timber in`;
       if (!villageFishes(st, v) || !boatShore(st, f.house))
         return `${f.name} has no shore by the sea or a large lake in reach`;

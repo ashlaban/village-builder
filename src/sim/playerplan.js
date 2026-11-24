@@ -8,7 +8,7 @@ VB['sim/playerplan'] = (() => {
   const { eligible } = VB['sim/eligibility'];
   const { living } = VB['sim/records'];
   const { on, emit } = VB['sim/events'];
-  const { CHAINS, chainOf, chainWhy, chainGone, taskAt, pileOf } = VB['sim/planchains'];
+  const { CHAINS, chainOf, chainWhy, chainGone, chainSteps, taskAt, pileOf } = VB['sim/planchains'];
   const { timberOf } = VB['sim/chores'];
   // @state st.player.plan: absent until the player first plans (an older save reads as empty), else {routine[] (job kinds seen to every
   //   day, in order, at most PLAN_MAX), sleep (null, or {from, until}: hours of the day, the pawn sleeps from `from` to `until`), tasks[]
@@ -120,6 +120,20 @@ VB['sim/playerplan'] = (() => {
       pp.last = { key: t.key, kind: t.kind, t: st.t };
     }
     askCutting(st, pp);
+    askFarmstead(st, pp);
+  }
+  // A farmstead task whose next step (the move's droving and fetching, the shelter's raising once its timber is in) is open but not posted:
+  // the plan asks its head now (planAsks, as askCutting), so that a step does not wait days for the household's planning day (VB-1642:
+  // the shelter's raising had waited 34 hours for it on the tiny map). Only while the plan's review is not asked already.
+  function askFarmstead(st, pp) {
+    const hid = st.pawns[st.player.pawn].household,
+      hh = hid === null ? null : st.households[hid],
+      t = hh && !hh.dissolved ? pp.tasks.find((k) => k.key === undefined && k.kind === 'farmstead') : null,
+      plan = t && st.plans && st.plans.households.get(hid);
+    if (!plan || plan.dirty) return;
+    const s = chainSteps(st, hid, 'farmstead', t.farmstead, t),
+      y = s && !s.where.camp ? s.steps[0] : null;
+    if (y && !y.job && y.from <= st.t) emit(st, 'planAsks', { household: hid });
   }
   // A firewood task whose cutting the head's rule would post (sim/chores: timber home, the pile below the season's goal or the house
   // cold) but has not: the plan asks its head now (the event planAsks; sim/stores wakes the plan's review, at most one such a day), so

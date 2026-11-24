@@ -15,6 +15,7 @@ VB['sim/player'] = (() => {
   const { KINDS } = VB['sim/kinds'];
   const { planDay, planBegun } = VB['sim/playerplan'];
   const { nextOf } = VB['sim/plannext'];
+  const { MOVE_KINDS } = VB['sim/planchains'];
   // ---- the player (VB-169): one source, `player`, with one pawn at a time, whose queued commands go before the pawn's own logic ----
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
   //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun, ref}, in turn;
@@ -207,6 +208,11 @@ VB['sim/player'] = (() => {
   // ---- the plan's feeder (VB-1618; sim/playerplan): with automatic behaviour off, the plan feeds the queue when nothing queued by hand
   // waits. A command queued by hand goes first, as an order for now: the plan's commands give way to it (a task left keeps its progress
   // and stays planned). In the sleeping hours the plan's work in hand is left for its sleep; else the plan's command runs to its end.
+  // A trip of the move under way (the farmstead chain's droving and fetching from the landing, sim/planchains MOVE_KINDS) is not left
+  // for the sleeping hours: it goes on to its end, and the pawn sleeps after (VB-1642: on a way of 7 hours each way, the walk out left at
+  // bedtime every evening had the move undone for 50 days, and the frost took the loads).
+  const onTrip = (st, pl, c) =>
+    c.begun !== null && c.plan.from === 'task' && MOVE_KINDS.includes(c.plan.kind) && !!st.agents[pl.pawn].job;
   function feed(st, pl) {
     const q = pl.queue;
     if (q.some((c) => !c.plan)) {
@@ -217,7 +223,7 @@ VB['sim/player'] = (() => {
     planDay(st);
     const next = nextOf(st);
     if (q.length) {
-      if (!(next && next.plan.from === 'sleep' && q[0].plan.from !== 'sleep')) return;
+      if (!(next && next.plan.from === 'sleep' && q[0].plan.from !== 'sleep') || onTrip(st, pl, q[0])) return;
       q.length = 0;
     }
     if (next) q.push({ ...next, begun: null, ref: null });

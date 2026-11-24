@@ -235,7 +235,7 @@ VB['sim/plans'] = (() => {
   // Why `steps` may not be the order of household id's routines this season, or null: the same routines as its seasonal plan's, each once.
   function orderWhy(st, id, steps) {
     const sp = st.plans.seasons.get(id);
-    if (!sp) return `household ${id} has no seasonal plan`;
+    if (!sp) return `the household has no seasonal plan`;
     if (!Array.isArray(steps) || steps.length !== sp.steps.length || new Set(steps).size !== steps.length)
       return `the order must name each of the season's ${sp.steps.length} routines once`;
     for (const k of steps) if (!sp.steps.includes(k)) return `${k} is not a routine of the season`;
@@ -251,7 +251,7 @@ VB['sim/plans'] = (() => {
   function landWhy(st, hh, what, tile) {
     if (what !== 'field' && what !== 'meadow') return `there is no land project ${what}`;
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
+    if (!f || f.household !== hh.id) return `the household has no farm of its own`;
     for (const q of projectsOf(st, 'household', hh.id))
       if (q.steps.some((x) => x.place === tile)) return `a ${q.what} of the household's is under way at ${tile}`;
     return (what === 'field' ? fieldWhy : meadowWhy)(st, f, hh, tile);
@@ -342,18 +342,18 @@ VB['sim/plans'] = (() => {
       return (
         living(st, c.actor) ||
         (hh.holder !== c.actor
-          ? `pawn ${c.actor} is not the head of household ${id}: only its head changes its plan`
+          ? `pawn ${c.actor} is not the head of the household: only its head changes its plan`
           : null)
       );
     return c.actor && c.actor.household === id && hh.holder === null
       ? null
-      : `only the head of household ${id} changes its plan`;
+      : `only the head of the household changes its plan`;
   }
   const farmOf = (st, c) => {
     const hh = st.households[c.target];
     return hh.farmstead !== null && st.farmsteads[hh.farmstead].household === hh.id
       ? null
-      : `household ${c.target} has no farm of its own`;
+      : `the household has no farm of its own`;
   };
   const landWhat = (what) => (what === 'field' || what === 'meadow' ? null : `there is no land project ${what}`);
   // The tile a land project `what` is begun on: args.tile, else the tile the plan names, else the holder's own pick (-1: none).
@@ -471,8 +471,8 @@ VB['sim/plans'] = (() => {
       return droppable(st, c.target, id)
         ? null
         : id === undefined
-          ? `household ${c.target} has no project under way`
-          : `household ${c.target} has no project ${id} under way`;
+          ? `the household has no project under way`
+          : `the household has no project ${id} under way`;
     },
     run: (st, c) => {
       giveUp(st, st.households[c.target], droppable(st, c.target, c.args ? c.args.id : undefined));

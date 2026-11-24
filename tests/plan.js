@@ -313,7 +313,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   assert.match(String(Sim.plan(st, 'add', { plant: st.farmsteads[1].house })), /no field of the household's nor a field project at \d+ \(/, 'a tile the head\'s verb refuses, with its reason');
   assert.strictEqual(Sim.command(st, { actor: FARMER, verb: 'tile', target: 0, args: { what: 'field', tile }, source: 'player' }), true);
   hh.holder = null;
-  assert.match(String(Sim.plan(st, 'add', { plant: tile })), /pawn 0 is not the head of household 0/, 'refused for one not the head');
+  assert.match(String(Sim.plan(st, 'add', { plant: tile })), /pawn 0 is not the head of the household/, 'refused for one not the head');
   hh.holder = FARMER;
   const site = st.jobs.get('clear:f0').site;
   assert.strictEqual(Sim.plan(st, 'add', { plant: site }), true);

@@ -151,7 +151,7 @@ VB['sim/upgrade'] = (() => {
     },
     none: (tile) => `the household's house is not at ${tile}`,
     why: (st, { hh, what, cottage }) =>
-      what === 'cottage' && cottage ? `household ${hh.id} has a cottage under way` : null,
+      what === 'cottage' && cottage ? `the household has a cottage under way` : null,
     // the cottage plan's stages left (all of them before it is begun), the timber trips its walls lack before the walls: before it is
     // begun, what the timber at home will not cover
     steps: (st, hid, { f, hh, what, cottage: p, project }) => {

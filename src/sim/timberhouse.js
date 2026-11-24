@@ -24,7 +24,7 @@ VB['sim/timberhouse'] = (() => {
   // at a time is being taken out of every check).
   function timberWhy(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
+    if (!f || f.household !== hh.id) return `the household has no farm of its own`;
     if (f.booth) return `${f.name} has no cottage yet`;
     if (f.rung === 'timber') return `${f.name} has a timber house`;
     if (!st.villages[f.village].wood.length) return `${st.villages[f.village].name} has no wood to fell its timber in`;

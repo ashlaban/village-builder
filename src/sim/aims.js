@@ -368,19 +368,19 @@ VB['sim/aims'] = (() => {
   // wood to fell its timber in; beside any other project (VB-1640).
   function barnWhy(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
+    if (!f || f.household !== hh.id) return `the household has no farm of its own`;
     if (f.barn) return `${f.name} has a barn`;
     if (f.booth) return `${f.name} has no cottage yet`;
     if (!st.villages[f.village].wood.length) return `${st.villages[f.village].name} has no wood to fell its timber in`;
-    return Projects.underWay(st, hh.id, 'barn') ? `household ${hh.id} has a barn under way` : null;
+    return Projects.underWay(st, hh.id, 'barn') ? `the household has a barn under way` : null;
   }
   // Why household hh may not begin a farm for pawn `heir` now, or null (the verb heirFarm): an adult of the household with no farm nor
   // plot (one under way counts: hasPlot); beside any other project (VB-1640; the site is the plot's to find).
   function heirWhy(st, hh, heir) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
+    if (!f || f.household !== hh.id) return `the household has no farm of its own`;
     const p = st.pawns[heir];
-    if (!p || !p.alive || p.household !== hh.id || p.age < 18) return `pawn ${heir} is no adult of household ${hh.id}`;
+    if (!p || !p.alive || p.household !== hh.id || p.age < 18) return `pawn ${heir} is no adult of the household`;
     if (isHolder(st, heir) || hasPlot(st, heir) || awaitsCottage(st, heir)) return `pawn ${heir} has a farm or a plot`;
     return null; // the site is found as the plot is begun (sim/expansion's startPlot), and none begins where there is no room
   }
@@ -413,7 +413,7 @@ VB['sim/aims'] = (() => {
         : Plans.heads(st, c)) ||
       (Projects.projectsOf(st, 'household', c.target).some((p) => p.what === 'plot' && p.id === (c.args && c.args.plan))
         ? null
-        : `household ${c.target} has no plot ${c.args && c.args.plan} under way`),
+        : `the household has no plot ${c.args && c.args.plan} under way`),
     run: (st, c) =>
       emit(st, 'plotToVillage', { household: c.target, plan: c.args.plan, why: c.args.why || 'given up' }),
   });

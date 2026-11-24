@@ -22,7 +22,8 @@ VB['sim/kinds'] = (() => {
     { plotWork } = Expansion,
     { claimWork } = Farmclaims;
   // A kind's fields:
-  //   verb, go, back: what the pawn panel says while working, walking there and carrying home; name: the job in the settlers panel;
+  //   verb, go, back: what the pawn panel says while working, walking there and carrying home (words(st, j): any of them read from the
+  //   state, VB-1642: sim/byre's fodder with no byre standing); name: the job in the settlers panel;
   //   label: the job in the line that says why a pawn is idle; anim: the page's work animation; hours: work hours to finish;
   //   hands: how many pawns may work one job at once (VB-102: field, land and threshing work takes the whole household);
   //   type: the type of work, which roles rank (ROLES in sim/roles); craft: the craft the work is (SKILLS.crafts, sim/skills; VB-360),

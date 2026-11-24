@@ -76,7 +76,7 @@ VB['sim/carts'] = (() => {
   }
   // The house of household hh moved from `from` (sim/camp's placing, VB-1639): each cart not out stands there (`kept`), with a lying
   // leftCart, marked moving and kept, for its hands to fetch (sim/lying keeps it at the frost; cartsFrost below).
-  on('houseMoved', (st, { f, from }) => {
+  on('houseMoved', (st, { f, from, walk }) => {
     const hh = f.household === null ? null : st.households[f.household];
     if (!hh) return;
     for (const c of hh.carts)
@@ -91,7 +91,7 @@ VB['sim/carts'] = (() => {
           1,
           from,
           { type: 'household', id: hh.id },
-          { x, y, of: { moving: true, kept: true, cart: { kind: c.kind, built: c.built } } },
+          { x, y, of: { moving: true, kept: true, walk, cart: { kind: c.kind, built: c.built } } },
         );
       }
   });
@@ -179,7 +179,7 @@ VB['sim/carts'] = (() => {
       const v = st.villages[f.village];
       if (args && args.kind !== undefined && !Object.hasOwn(CART.hours, args.kind))
         return `there is no cart ${args.kind}`;
-      if (Projects.underWay(st, hh.id, 'cart')) return `household ${hh.id} has a cart under way`;
+      if (Projects.underWay(st, hh.id, 'cart')) return `the household has a cart under way`;
       return v.wood.length ? null : `${v.name} has no wood to fell its timber in`;
     },
     begin: (st, hh, f, args) => {

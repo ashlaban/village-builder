@@ -4,6 +4,7 @@
 // the rule that posts them) and sim/agents (release lays a load down).
 VB['sim/lying'] = (() => {
   const { log, atHousehold } = VB['sim/records'];
+  const { TRAVEL } = VB['sim/rules'];
   // @state st.lying: absent, or [{id, kind, n, tile, x, y, t, owner, of}]: the loads lying where their carrier was released on the road,
   //   in the order they were put down (id): `kind` the job kind that carried it (haul, hay, wood, wellstone), `n` the load in that kind's
   //   units (a.load), `tile` and `x`, `y` where it lies, `t` the game hour it was put down, `owner` the task's owner ({type, id}: the
@@ -73,12 +74,28 @@ VB['sim/lying'] = (() => {
   // tied, hay raked, logs cut, stone in its basket; a named guess, half an hour), carried as K carries, delivered as K delivers, with the
   // task's tile as it was (a felled tree's, sim/kinds wood).
   const LIFT = 0.5;
+  // What a load of each kind is, in the words the player reads (VB-1642: the fetch kinds named by what they bring, not all "a load"); the
+  // frost's log line names it the same.
+  const WHAT = {
+    haul: 'sheaves',
+    hay: 'hay',
+    wood: 'timber',
+    leftTimber: 'timber',
+    leftGrain: 'grain',
+    wellstone: 'stone',
+  };
+  const whatOf = (kind) => (kind === 'leftCart' ? 'cart' : WHAT[kind] || 'goods');
+  // Hay is taken by the rule of every load of hay (sim/meadows hayLoad): TRAVEL.hay of hay a unit of load, at most TRAVEL.hayCart a load
+  // (VB-1642: a cart had taken 300 units, 100 hay, from hay left lying, where a meadow gives it 60).
+  const capOf = (kind, cap) => (kind === 'hay' ? Math.min(cap, TRAVEL.hayCart / TRAVEL.hay) : cap);
   function fetchKind(kind, K) {
+    const what = whatOf(kind),
+      lies = kind === 'leftCart' ? 'left standing' : 'left lying';
     return {
-      verb: 'Picking up a load left lying',
-      go: 'Going for a load left lying',
+      verb: `Picking up the ${what} ${lies}`,
+      go: `Going for the ${what} ${lies}`,
       back: K.back,
-      name: 'Fetch a load left lying',
+      name: `Fetch the ${what} ${lies}`,
       at: ['road'], // where it was left (sim/kinds PLACES; VB-1124)
       needs: [],
       gives: K.gives,
@@ -94,7 +111,7 @@ VB['sim/lying'] = (() => {
       urgency: (st, j, c, U) => U.haul,
       // j.left: what still lies after this load (posted with the whole load), so that the task stays open for the rest
       load: (st, a, j, cap) => {
-        a.load = take(st, j.lying, cap);
+        a.load = take(st, j.lying, capOf(kind, cap));
         j.left = left(st, j.lying);
         return a.load;
       },
@@ -128,20 +145,7 @@ VB['sim/lying'] = (() => {
       const o = l.owner,
         hh = o.type === 'household' ? st.households[o.id] : null;
       if (l.kind === 'leftCart') continue; // its cart is gone with it, and named (sim/carts' frost sweep, VB-649)
-      const what =
-        l.kind === 'haul'
-          ? 'sheaves'
-          : l.kind === 'hay'
-            ? 'hay'
-            : l.kind === 'wood'
-              ? 'timber'
-              : l.kind === 'leftTimber'
-                ? 'timber'
-                : l.kind === 'leftGrain'
-                  ? 'grain'
-                  : l.kind === 'wellstone'
-                    ? 'stone'
-                    : 'goods';
+      const what = whatOf(l.kind);
       if (hh && !hh.dissolved)
         log(st, `A load of ${what} left lying for ${st.farmsteads[hh.farmstead].name} was lost to the frost.`, {
           kind: 'frost',

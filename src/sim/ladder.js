@@ -188,16 +188,12 @@ VB['sim/ladder'] = (() => {
     // a cottage is begun on a booth farm whose household has none planned (sim/cottageplan cottagePlan)
     cottage: (st, hh, f) =>
       own(st, hh, f) ||
-      (!f.booth
-        ? `${f.name} has a cottage`
-        : cottageOf(st, hh.id)
-          ? `household ${hh.id} has a cottage under way`
-          : null),
+      (!f.booth ? `${f.name} has a cottage` : cottageOf(st, hh.id) ? `the household has a cottage under way` : null),
     // a timber house is begun from a cottage by its making (sim/timberhouse timberWhy), one at a time
     timber: (st, hh, f) => own(st, hh, f) || timberRule(st, hh),
   };
   const timberRule = (st, hh) =>
-    Projects.underWay(st, hh.id, 'timberhouse') ? `household ${hh.id} has a timber house under way` : timberWhy(st, hh);
+    Projects.underWay(st, hh.id, 'timberhouse') ? `the household has a timber house under way` : timberWhy(st, hh);
   // the stone foundation's step (sim/building buildStep): a house from the cottage up on the ground, none begun; beside any other project
   // (VB-1640)
   const stoneWhy = (st, hh, f) =>
@@ -207,7 +203,7 @@ VB['sim/ladder'] = (() => {
       : f.grade !== 'ground'
         ? `the house at ${f.name} stands on stone`
         : stoneUnderWay(st, hh, f)
-          ? `household ${hh.id} has a stone foundation under way`
+          ? `the household has a stone foundation under way`
           : null);
   // an outbuilding: none built, none under way, and its making's own check (a barn: sim/aims barnWhy)
   const OUT_WHY = {
@@ -218,7 +214,7 @@ VB['sim/ladder'] = (() => {
     f[what]
       ? `${f.name} has a ${what}`
       : hh && Projects.underWay(st, hh.id, what)
-        ? `household ${hh.id} has a ${what} under way`
+        ? `the household has a ${what} under way`
         : OUT_WHY[what](st, hh, f);
   // ---- the plan tasks' checks: the played head builds up its farm as tasks of its plan (VB-1632, VB-1635) ----
   // The head's check, shared by the tasks: the farm's own household, pawn id its head.
@@ -241,7 +237,7 @@ VB['sim/ladder'] = (() => {
     if (RUNGS[what].from !== rung) return `a ${what} is built from a ${RUNGS[what].from}, and ${f.name} is a ${rung}`;
     if (what === 'timber') return timberRule(st, householdOf(st, f));
     if (what !== 'cottage') return 'not yet';
-    return cottageOf(st, f.household) ? `household ${f.household} has a cottage under way` : null;
+    return cottageOf(st, f.household) ? `the household has a cottage under way` : null;
   }
   // Why the played pawn id cannot plan the upgrade of farm f to `what`, or null: rungWhy, and none planned already.
   const upgradeWhy = (st, id, f, what) =>

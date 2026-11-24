@@ -13,7 +13,7 @@ const { stepsTo } = VB['sim/hex'],
   { walkable, invalidateReach } = VB['sim/walking'],
   Stores = VB['sim/stores'],
   { TRAVEL, ECON } = VB['sim/rules'];
-const rows = Array.from({ length: 14 }, (_, i) => (i < 2 ? 'F'.repeat(26) : '.'.repeat(26)));
+const rows = Array.from({ length: 14 }, (_, i) => (i < 2 ? 'F'.repeat(44) : '.'.repeat(44)));
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const hash = (st) => sha(canon(kept(st)));
 const seed = (play = true) => {
@@ -50,10 +50,15 @@ const holdings = (st) => {
 function move(st, t, placed = () => {}, days = 60) {
   const hh = st.households[0],
     f = st.farmsteads[0];
+  const cost = Sim.moveCost(st, t),
+    MOVE = VB['sim/planchains'].MOVE_KINDS,
+    a = st.agents[hh.holder];
   assert.strictEqual(Sim.plan(st, 'add', { farmstead: t }), true);
   const seen = new Set(),
     laid = new Set();
   let at = null,
+    reckoned = null,
+    worked = 0,
     raised = null,
     hungry = 0,
     low = Infinity;
@@ -62,14 +67,16 @@ function move(st, t, placed = () => {}, days = 60) {
     if (at === null && f.shelter) {
       at = st.t;
       hungry = hh.hungryDays || 0;
+      reckoned = Sim.agenda(st).plan.find((e) => e.kind === 'farmstead').ends - st.t;
       placed(st);
     }
     if (raised === null && f.shelter && f.shelter.built !== null) raised = st.t;
     if (at !== null && raised === null) low = Math.min(low, Stores.grainOf(hh));
+    if (a.job && MOVE.includes(a.job.kind)) worked += 0.1;
     for (const v of Sim.planView(st).tasks) seen.add(v.step);
     if (i % 20 === 0) for (const g of Sim.agenda(st).days.flat()) if (g.what === 'task') laid.add(g.kind);
   }
-  return { raised, hours: raised - at, hungry: (hh.hungryDays || 0) - hungry, low, seen, laid };
+  return { raised, hours: raised - at, hungry: (hh.hungryDays || 0) - hungry, low, seen, laid, cost, reckoned, worked };
 }
 
 // ---- 1. the refusals and the read for the page ----
@@ -104,7 +111,7 @@ function move(st, t, placed = () => {}, days = 60) {
 }
 // ---- 2. a move of 2 steps and of 12: nothing teleports, the stocks conserved, the village follows; the hours and hungry days ----
 const report = [];
-for (const n of [2, 10]) {
+for (const n of [2, 10, 24]) {
   const st = seed(),
     hh = st.households[0],
     f = st.farmsteads[0],
@@ -139,6 +146,14 @@ for (const n of [2, 10]) {
   assert(hh.carts.every((c) => !c.at), 'the carts home');
   const after = holdings(st);
   assert.strictEqual(after.carts, before.carts);
+  // VB-1642: what the page's callout and the agenda reckon is what the move takes, within a quarter: the work of the move's trips
+  // (Sim.moveCost hours) against the pawn's hours on them, and the agenda's end of the task at placing against the roof raised
+  const near = (x, y) => Math.abs(x - y) <= 0.25 * y;
+  report.push(
+    `${n} steps: reckoned ${r.cost.hours} h of work (run ${r.worked.toFixed(0)}), the roof at ${Math.round(r.reckoned)} h (run ${Math.round(r.hours)})`,
+  );
+  assert(near(r.cost.hours, r.worked), report[report.length - 1]);
+  assert(near(r.reckoned, r.hours), report[report.length - 1]);
   report.push(`${n} steps: roof ${Math.round(r.hours)} h after placing, ${r.hungry} hungry days (grain at home at least ${Math.round(r.low)}, ${hh.members.length} members), laid ${[...r.laid]}`);
   sound(st, `raised ${n} off`);
 }

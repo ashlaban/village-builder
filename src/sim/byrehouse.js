@@ -22,11 +22,11 @@ VB['sim/byrehouse'] = (() => {
   // in, none under way; beside any other project (VB-1640; the byre is a large project, as the barn is).
   function byreWhy(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
+    if (!f || f.household !== hh.id) return `the household has no farm of its own`;
     if (f.byre) return `${f.name} has a byre`;
     if (f.booth) return `${f.name} has no cottage yet`;
     if (!st.villages[f.village].wood.length) return `${st.villages[f.village].name} has no wood to fell its timber in`;
-    return Projects.underWay(st, hh.id, 'byre') ? `household ${hh.id} has a byre under way` : null;
+    return Projects.underWay(st, hh.id, 'byre') ? `the household has a byre under way` : null;
   }
   declare('byre', {
     why: (st, hh) => byreWhy(st, hh),

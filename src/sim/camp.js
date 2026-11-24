@@ -17,7 +17,7 @@ VB['sim/camp'] = (() => {
   const { TRAVEL, SPEED, ECON, DAY, YEAR, SEASON_DAYS, WORK } = VB['sim/rules'];
   const { setOwner } = VB['sim/ownership'];
   const { freeFor, woodTaken } = VB['sim/territory'];
-  const { costChanged } = VB['sim/routes'];
+  const { costChanged, findRoute, routeCost } = VB['sim/routes'];
   const { homeTile } = VB['sim/herds'];
   const Water = VB['sim/water'];
   const { BOOTH } = VB['sim/rules'];
@@ -83,8 +83,9 @@ VB['sim/camp'] = (() => {
   // The house of household hh's farm f is moved to `tile`, and what follows the house with it: the tile in use and its owner (the landing
   // given back to nobody), the ground's mark, the travel cost, the herds' home tile, the farm's water (found again where found already).
   function moveHouse(st, hh, f, tile) {
-    const old = f.house;
-    leaveLanding(st, hh, f, old);
+    const old = f.house,
+      walk = wayHours(st, old, tile);
+    leaveLanding(st, hh, f, old, walk);
     st.used.delete(old);
     st.used.add(tile);
     st.w.dev[old] = 0;
@@ -97,7 +98,7 @@ VB['sim/camp'] = (() => {
     woodTaken(st, tile);
     for (const id of hh.herds) st.herds[id].home = homeTile(st, f);
     if (f.water) Water.find(st, f);
-    emit(st, 'houseMoved', { f, from: old }); // a lone farm's village follows its house (sim/green)
+    emit(st, 'houseMoved', { f, from: old, walk }); // a lone farm's village follows its house (sim/green)
     st.visualDirty = true;
   }
   // ---- the move (VB-1639): nothing teleports ----
@@ -106,21 +107,30 @@ VB['sim/camp'] = (() => {
   // to the new house (TRAVEL.load: the first night is not foodless), its firewood, its hay; its carts stand there (`kept`, with a lying
   // leftCart each: not lost at the frost; sim/carts, on 'houseMoved', and sim/lying); its herds stand there (sim/droving leaveAt: herd.tile; its owner has
   // a farm, so the frost does not take them). The loads are lost at the frost as any load left lying (sim/lying).
-  const MOVING = { moving: true }; // lint-allow: closure a constant spread into each load's `of`, never written
-  function leaveLanding(st, hh, f, tile) {
+  // Each load's `of` also keeps `walk`, the hours of the way from the landing to the new house (wayHours, once at the move), which the
+  // farmstead chain reckons its trips by (VB-1642).
+  // The walking hours of the way from tile a to tile b, by the route a pawn takes (sim/routes findRoute at the costs in force, unladen;
+  // VB-1642: the hex steps at a meadow's pace had reckoned a quarter of it on the tiny map's shore); the steps at SPEED with no route.
+  function wayHours(st, a, b) {
+    if (a === b) return 0;
+    const p = findRoute(st.w, a, b, Infinity);
+    return p ? routeCost(st.w, p) / SPEED : stepsTo(st.w, a, b, st.w.N, walkable(st.w)) / SPEED;
+  }
+  function leaveLanding(st, hh, f, tile, walk) {
     const owner = { type: 'household', id: hh.id },
-      grain = Stores.grainOf(hh) - Math.min(TRAVEL.load, Stores.grainOf(hh));
+      grain = Stores.grainOf(hh) - Math.min(TRAVEL.load, Stores.grainOf(hh)),
+      moving = { moving: true, walk };
     if (grain > 1e-9) {
       const parts = {},
         n = Stores.take(st, hh, 'grain', grain, 'moving', parts);
-      Lying.leave(st, 'leftGrain', n, tile, owner, { of: { ...MOVING, parts } });
+      Lying.leave(st, 'leftGrain', n, tile, owner, { of: { ...moving, parts } });
     }
     if (hh.wood > 1e-9) {
       const n = Stores.take(st, hh, 'wood', hh.wood, 'moving');
-      Lying.leave(st, 'leftTimber', (n / ECON.woodPerTrip) * TRAVEL.load, tile, owner, { of: { ...MOVING } });
+      Lying.leave(st, 'leftTimber', (n / ECON.woodPerTrip) * TRAVEL.load, tile, owner, { of: { ...moving } });
     }
     if (hh.hay > 1e-9) {
-      Lying.leave(st, 'hay', hh.hay / TRAVEL.hay, tile, owner, { of: { ...MOVING } });
+      Lying.leave(st, 'hay', hh.hay / TRAVEL.hay, tile, owner, { of: { ...moving } });
       hh.hay = 0; // lint-allow: owner the hay left lying at the landing, fetched back (VB-1639), as sim/droving's leaveHay
     }
     leaveAt(st, hh, tile); // its carts: sim/carts hears the house moved
@@ -138,44 +148,69 @@ VB['sim/camp'] = (() => {
         (l.kind === 'leftCart' ? out.carts : out.loads).push(l);
     return out;
   }
-  // The trips that fetch the loads `ns` (each in its kind's load units), on a cart of `cap` and on the back.
-  const tripsOf = (ns, cap) => ns.reduce((s, n) => s + Math.ceil(n / cap - 1e-9), 0);
-  // The hours a move from the landing over `steps` walking steps takes, with `herds` herds, `carts` carts standing and loads `ns`: each
-  // herd driven (a walk there, the haltering, a walk back), the cart fetched with its team, then the loads on the cart (the ox cart's
-  // pace, or the hand cart's), or on the back with none; a walk an hour of SPEED steps, laden at TRAVEL.pace.
-  function moveHours(steps, herds, cart, ns) {
-    const walk = steps / SPEED,
-      trip = (pace) => walk + Lying.LIFT + walk / pace,
-      cap = cart ? TRAVEL[cart === 'ox' ? 'cart' : 'hand'] : TRAVEL.load;
-    return {
-      cart: cart ? tripsOf(ns, cap) : 0,
-      back: tripsOf(ns, TRAVEL.load),
-      hours:
-        herds * (2 * walk + 0.5) +
-        (cart
-          ? trip(TRAVEL.pace[cart]) + tripsOf(ns, cap) * trip(TRAVEL.pace[cart])
-          : tripsOf(ns, cap) * trip(TRAVEL.pace.back)),
-    };
+  // ---- the move's trips (VB-1642): one reckoning for the page's callout (moveCost) and the farmstead chain's steps (sim/planchains) ----
+  // A load of `n` (its kind's load units) on a carrier of `cap` load units takes ceil(n / cap) trips; hay by the rule of every load of hay
+  // (sim/meadows hayLoad, sim/lying fetchKind): TRAVEL.hay of hay a unit of load, at most TRAVEL.hayCart a trip.
+  const capOf = (cap, hay) => (hay ? Math.min(cap, TRAVEL.hayCart / TRAVEL.hay) : cap);
+  const tripsOf = (n, cap, hay) => Math.ceil(n / capOf(cap, hay) - 1e-9);
+  // The carrier a household's loads go on: its best cart ('ox', 'hand') or the back; its load (units) and its laden pace.
+  const carrierOf = (hh) => (hh.carts.some((c) => c.kind === 'ox') ? 'ox' : hh.carts.length ? 'hand' : 'back');
+  const capOfCarrier = (k) => TRAVEL[k === 'ox' ? 'cart' : k === 'hand' ? 'hand' : 'load'];
+  // One trip of the move over `walk` hours of way: {go (the walk there, unladen), lift (its hours at the landing), back (the walk home at
+  // `pace`)}. A herd is haltered (HERD_LIFT, sim/droving's kind's hours) and led home at the pawn's own pace; a cart fetched comes home
+  // unladen (VB-1639 brings no load on it), at the team's walking pace.
+  const HERD_LIFT = 0.5;
+  const tripOf = (walk, lift, pace) => ({ go: walk, lift, back: walk / pace });
+  // The trips of a move: herds (driven, sim/droving), carts (fetched, sim/carts), and the loads [{n, hay}] on `carrier`, in the order the
+  // farmstead chain takes them: [{kind, trips: [{go, lift, back}]}], the kinds its steps (sim/planchains moveSteps).
+  function moveTrips(walk, herds, carts, loads, carrier) {
+    const cap = capOfCarrier(carrier),
+      pace = TRAVEL.pace[carrier],
+      out = [],
+      add = (kind, n, lift, p) => {
+        if (n > 0) out.push({ kind, trips: Array.from({ length: n }, () => tripOf(walk, lift, p)) });
+      };
+    add('drove', herds, HERD_LIFT, 1);
+    add('fetchLeftCart', carts, Lying.LIFT, 1);
+    for (const l of loads) add(l.kind, tripsOf(l.n, cap, l.hay), Lying.LIFT, pace);
+    return out;
   }
+  const hoursOf = (steps) => steps.reduce((s, x) => s + x.trips.reduce((u, t) => u + t.go + t.lift + t.back, 0), 0);
   // Sim.moveCost(st, tile) (VB-1639): what placing the played head's farmstead on `tile` costs in carrying and droving: {steps (walking
   // steps from the landing), trips: {cart, back} (the loads' trips on the household's best cart, 0 with none, and on the back), hours
-  // (the work of the move, moveHours), frost (whether that work, one hand's working days from now, ends after the frost the head
-  // expects (`frost`, its autumn day, sim/reasons frostExpected: the caller's), when the loads left lying are lost)}; null where it
-  // cannot be placed or nothing is played. Plain data; writes nothing.
+  // (the work of the move: each trip's walks by the route, wayHours, and its lifting, moveTrips; the first from the landing, where the
+  // head stands at the camp), frost (whether that work, one hand's working days from now, ends after the frost the head expects
+  // (`frost`, its autumn day, sim/reasons frostExpected: the caller's), when the loads left lying are lost)}; null where it cannot be
+  // placed or nothing is played. Plain data; writes nothing (one route search, findRoute, outside the route cache).
   function moveCost(st, tile, frost) {
     if (!st.player || placeWhy(st, 'farmstead', tile) !== null) return null;
     const { hh, f } = homeOf(st, st.player.pawn),
       steps = tile === f.house ? 0 : stepsTo(st.w, f.house, tile, st.w.N, walkable(st.w));
+    if (!steps) return { steps, trips: { cart: 0, back: 0 }, hours: 0, frost: false };
     const grain = Stores.grainOf(hh) - Math.min(TRAVEL.load, Stores.grainOf(hh)),
-      ns = [grain, (hh.wood / ECON.woodPerTrip) * TRAVEL.load, hh.hay / TRAVEL.hay].filter((n) => n > 1e-9),
-      cart = hh.carts.some((c) => c.kind === 'ox') ? 'ox' : hh.carts.length ? 'hand' : null,
-      m = steps ? moveHours(steps, hh.herds.length, cart, ns) : { cart: 0, back: 0, hours: 0 },
+      loads = [
+        { kind: 'fetchLeftGrain', n: grain, hay: false },
+        { kind: 'fetchHay', n: hh.hay / TRAVEL.hay, hay: true },
+        { kind: 'fetchLeftTimber', n: (hh.wood / ECON.woodPerTrip) * TRAVEL.load, hay: false },
+      ].filter((l) => l.n > 1e-9),
+      carrier = carrierOf(hh),
+      count = (k) => loads.reduce((s, l) => s + tripsOf(l.n, capOfCarrier(k), l.hay), 0),
+      m = moveTrips(wayHours(st, f.house, tile), hh.herds.length, hh.carts.length, loads, carrier);
+    if (m.length) m[0].trips[0].go = 0; // the head stands at the landing
+    const hours = hoursOf(m),
       y = Math.floor(st.t / YEAR) * YEAR,
-      at = (yy) => yy + (2 * SEASON_DAYS + frost) * DAY + WORK[1],
-      next = at(y) >= st.t ? at(y) : at(y + YEAR),
-      ends = st.t + (m.hours / (WORK[1] - WORK[0])) * DAY;
-    return { steps, trips: { cart: m.cart, back: m.back }, hours: Math.round(m.hours * 10) / 10, frost: ends > next };
+      next = frostAt(y, frost) >= st.t ? frostAt(y, frost) : frostAt(y + YEAR, frost),
+      ends = st.t + (hours / (WORK[1] - WORK[0])) * DAY;
+    return {
+      steps,
+      trips: { cart: carrier === 'back' ? 0 : count(carrier), back: count('back') },
+      hours: Math.round(hours * 10) / 10,
+      frost: ends > next,
+    };
   }
+  // The game hour the frost on autumn day `frost` of the year that begins at `y` takes the loads left lying: that day's first step
+  // (sim/clock runs sim/lying's frost then). VB-1642: the chain's deadline had read the end of that day's work, after they were lost.
+  const frostAt = (y, frost) => y + (2 * SEASON_DAYS + frost) * DAY;
   // placeFarmstead(tile) (VB-1627): the head of a household with a camp places its farmstead on `tile`: the house moved there if it is not
   // the landing's, and its shelter begun on that tile (VB-1638; sim/building stakeShelter), which its household then raises.
   register('placeFarmstead', {
@@ -261,5 +296,18 @@ VB['sim/camp'] = (() => {
     const id = st.player.pawn;
     return living(st, id) || B.why(st, id) || B.tile(st, id, tile);
   }
-  return { BUILDS, makeCamp, campAt, campWhy, placeWhy, buildMenu, placeOwn, leftAt, moveCost };
+  return {
+    BUILDS,
+    makeCamp,
+    campAt,
+    campWhy,
+    placeWhy,
+    buildMenu,
+    placeOwn,
+    leftAt,
+    moveCost,
+    moveTrips,
+    carrierOf,
+    frostAt,
+  };
 })();

@@ -28,7 +28,7 @@ const refused = (st, hh, got, re, label) => {
   const { st, hh, f } = scene(), before = snap(st, hh);
   refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: 3 }), /no pawn is played/, 'no player');
   const other = hh.members.find((id) => id !== hh.holder && Sim.inhabit(st, id) === true);
-  refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: 3 }), /is not the head of household 0/, 'a member that is not the head');
+  refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: 3 }), /is not the head of the household/, 'a member that is not the head');
   refused(st, hh, Sim.head(st, 'tile', { what: 'field', tile: F.pickField(st, f, hh) }), /is not the head/, 'its tile');
   refused(st, hh, Sim.head(st, 'order', { steps: [...st.plans.seasons.get(hh.id).steps].reverse() }), /is not the head/, 'its order');
   refused(st, hh, Sim.head(st, 'project', { what: 'none' }), /is not the head/, 'its project');
@@ -36,7 +36,7 @@ const refused = (st, hh, got, re, label) => {
   refused(st, hh, Sim.head(st, 'kill', {}), /not a choice of the plan/, 'another verb');
   // another household's head, issued directly: the verb's own check
   refused(st, hh, Sim.command(st, { actor: st.households[1].holder, verb: 'target', target: hh.id, args: { store: 'hay', n: 3 }, source: 'player' }),
-    /is not the head of household 0/, "another household's head");
+    /is not the head of the household/, "another household's head");
   refused(st, hh, Sim.command(st, { actor: { household: hh.id }, verb: 'target', target: hh.id, args: { store: 'hay', n: 3 }, source: 'pawn' }),
     /only the head/, 'the household itself while it has a holder');
   refused(st, hh, Sim.command(st, { actor: other, verb: 'target', target: 99, args: { store: 'hay', n: 3 }, source: 'player' }), /no household 99/, 'no such household');
