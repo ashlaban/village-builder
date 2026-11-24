@@ -10,7 +10,8 @@
 //        node tools/lanes.js --check VB-NNN [--days D]
 //                              what in flight a task would meet, for a session that starts one by hand
 //        node tools/lanes.js --measure VB-NNN BASE..TIP [--inbox]
-//                              after a merge: the declared footprint against the edits (recall: the edits it named; precision: what
+//                              after a merge (BASE..TIP read from their merge base, as git's three dots; after `git merge --no-ff`,
+//                              HEAD^1..HEAD^2): the declared footprint against the edits (recall: the edits it named; precision: what
 //                              it named that was edited); --inbox leaves it as a `footprint` note for the night's report
 // Rules: a plan or a wrap-up runs alone. A task without a footprint (no line, or `unknown (...)`) runs only beside tasks of other archs,
 // the rule of before, and is listed so. The list and bookkeeping files, a module's imports, exports and head, and the tables marked
@@ -24,7 +25,7 @@ const root = path.join(__dirname, '..');
 const args = process.argv.slice(2);
 const opt = (k) => { const i = args.indexOf(k); if (i < 0) return null; const v = args[i + 1]; args.splice(i, 2); return v; };
 const flag = (k) => { const i = args.indexOf(k); if (i < 0) return false; args.splice(i, 1); return true; };
-const check = opt('--check'), measure = opt('--measure'), days = +(opt('--days') || 3), size = opt('--size');
+const check = opt('--check'), measure = flag('--measure'), days = +(opt('--days') || 3), size = opt('--size');
 const unattended = flag('--unattended');
 const json = flag('--json'), noFlight = flag('--no-flight'), toInbox = flag('--inbox');
 const fail = (m) => { console.error('lanes: ' + m); process.exit(1); };
@@ -67,27 +68,26 @@ const alone = (t) => /^(Plan|Wrap-up):/.test(t.name);
 
 // ---- the work in flight: the inbox's claims, and the branches pushed and not merged into main
 const started = new Set(); // the tasks this run's inbox has started, whatever became of them: never offered again the same night
+const running = []; // the tasks running in this run: { t, fp } (fp null without a footprint), for the plan and the arch rules
 function inFlight() {
   const out = [];
   const common = git('rev-parse', '--git-common-dir').stdout.trim(), db = path.resolve(root, common, 'vb-inbox.db');
-  if (fs.existsSync(db)) {
-    const { DatabaseSync } = require('node:sqlite'), d = new DatabaseSync(db, { readOnly: true });
-    const byTask = new Map();
-    try { // a task running: its Touches line from the start, before its first claim
-      for (const { task, status } of d.prepare('SELECT task, status FROM results').all()) {
-        started.add(task);
-        if (status || !/^VB-\d+$/.test(task) || !fs.existsSync(path.join(root, 'backlog', task + '.md'))) continue;
-        const fp = footprint(readTask(task));
-        if (fp) byTask.set(task, fp);
-      }
-    } catch { /* an inbox from before results */ }
-    try {
-      for (const { file, task } of d.prepare('SELECT file, task FROM claims').all()) {
-        const m = /^(.*?):([A-Za-z_$][\w$]*)$/.exec(file), f = m ? m[1] : file, s = m ? m[2] : '*';
-        if (ignored(f)) continue;
-        const fp = byTask.get(task) || new Map(); fp.set(f, new Set([...(fp.get(f) || []), s])); byTask.set(task, fp);
-      }
-    } catch { /* an inbox from before claims: nothing claimed */ }
+  if (fs.existsSync(db)) { // read through inbox.js, the one reader of its tables
+    const r = spawnSync(process.execPath, [path.join(__dirname, 'inbox.js'), 'flight'], { cwd: root, encoding: 'utf8' });
+    if (r.status) fail('inbox.js flight: ' + (r.stderr || r.stdout).trim());
+    const inbox = JSON.parse(r.stdout), byTask = new Map();
+    for (const id of inbox.started) started.add(id);
+    for (const id of inbox.running) { // a task running: its Touches line from the start, before its first claim
+      if (!/^VB-\d+$/.test(id) || !fs.existsSync(path.join(root, 'backlog', id + '.md'))) continue;
+      const t = readTask(id), fp = footprint(t);
+      running.push({ t, fp });
+      if (fp) byTask.set(id, fp);
+    }
+    for (const { file, task } of inbox.claims) {
+      const m = /^(.*?):([A-Za-z_$][\w$]*)$/.exec(file), f = m ? m[1] : file, s = m ? m[2] : '*';
+      if (ignored(f)) continue;
+      const fp = byTask.get(task) || new Map(); fp.set(f, new Set([...(fp.get(f) || []), s])); byTask.set(task, fp);
+    }
     for (const [task, fp] of byTask) out.push({ who: `${task} (running, in the inbox)`, task, fp });
   }
   if (noFlight) return out;
@@ -95,7 +95,7 @@ function inFlight() {
   if (!main) return out;
   const mine = git('rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}').stdout.trim();
   const since = Date.now() / 1000 - days * 86400;
-  for (const line of git('for-each-ref', '--format=%(refname:short) %(committerdate:unix)', 'refs/remotes/origin').stdout.trim().split('\n')) {
+  for (const line of git('for-each-ref', '--format=%(refname:short) %(committerdate:unix)', 'refs/remotes/origin/claude').stdout.trim().split('\n')) { // the agents' branches
     const [ref, t] = line.split(' ');
     if (!ref || +t < since || ['origin/main', 'origin/HEAD', 'origin', mine].includes(ref)) continue;
     if (git('merge-base', '--is-ancestor', ref, main).status === 0) continue; // merged
@@ -109,9 +109,12 @@ function inFlight() {
 
 // ---- measure: the declared footprint against the edits
 if (measure) {
-  const [id] = args, t = readTask(id || fail('--measure VB-NNN BASE..TIP'));
-  const [base, tip] = (measure.includes('..') ? measure : `${measure}..HEAD`).split('..');
-  const edited = editsBetween(root, base, tip || 'HEAD'), declared = footprint(t);
+  const id = args.find((a) => /^VB-\d+$/.test(a)), range = args.find((a) => a.includes('..'));
+  if (!id || !range) fail('--measure VB-NNN BASE..TIP');
+  const t = readTask(id), [from, tip] = range.split('..').map((x) => x || 'HEAD');
+  // from the merge base of the two, as git's three dots: what TIP's side changed, not what BASE's side gained meanwhile
+  const base = git('merge-base', from, tip).stdout.trim() || fail(`no merge base of ${from} and ${tip}`);
+  const edited = editsBetween(root, base, tip), declared = footprint(t);
   const units = (fp) => [...fp].flatMap(([f, s]) => [...s].map((x) => [f, x]));
   const covers = (fp, f, s) => fp.has(f) && (fp.get(f).has('*') || fp.get(f).has(s) || s === '*');
   const eu = units(edited), du = declared ? units(declared) : [];
@@ -145,23 +148,26 @@ if (check) {
 const n = +(args[0] || 4);
 if (!(n > 0)) fail('N is a count of tasks (--help)');
 const flight = inFlight(), taken = [], held = [];
-for (const t of readyTasks(started)) {
+const runningAlone = running.find((r) => alone(r.t));
+for (const t of runningAlone ? [] : readyTasks(started)) {
   if (taken.length >= n) break;
-  if (alone(t)) {
-    if (!taken.length) { taken.push({ t, fp: footprint(t), why: 'a plan or a wrap-up: alone' }); break; }
-    held.push({ t, why: 'a plan or a wrap-up runs alone' }); continue;
+  if (alone(t)) { // alone: nothing taken and nothing running in this run
+    if (!taken.length && !running.length) { taken.push({ t, fp: footprint(t), why: 'a plan or a wrap-up: alone' }); break; }
+    held.push({ t, why: `a plan or a wrap-up runs alone (${running.length} running, ${taken.length} taken)` }); continue;
   }
   const fp = footprint(t), why = [];
-  for (const o of taken) {
-    if (o.alone) why.push(`${o.t.id} runs alone`);
-    else if (!fp || !o.fp) { if (t.arch === o.t.arch) why.push(`${o.t.id}, of its arch (${t.arch}), and one of them has no footprint`); }
-    else { const x = overlap(fp, o.fp); if (x.length) why.push(`${o.t.id} at ${x.join('; ')}`); }
+  // the arch rule, where one of two has no footprint: against the tasks taken and those running
+  for (const o of [...running.map((r) => ({ ...r, who: `${r.t.id} (running, in the inbox)` })), ...taken.map((x) => ({ ...x, who: x.t.id }))]) {
+    if ((!fp || !o.fp) && t.arch === o.t.arch) why.push(`${o.who}, of its arch (${t.arch}), and one of them has no footprint`);
+    else if (fp && o.fp && !o.who.includes('running')) { const x = overlap(fp, o.fp); if (x.length) why.push(`${o.who} at ${x.join('; ')}`); }
   }
   if (fp) for (const w of flight) { const x = overlap(fp, w.fp); if (x.length) why.push(`${w.who} at ${x.join('; ')}`); }
   if (why.length) held.push({ t, why: 'meets ' + why.join(', ') });
   else taken.push({ t, fp, why: fp ? show(fp) : `no footprint: beside other archs only (${t.touches || 'no Touches: line'})` });
 }
-if (json) { console.log(JSON.stringify({ take: taken.map((x) => ({ id: x.t.id, size: x.t.size, why: x.why })), hold: held.map((x) => ({ id: x.t.id, why: x.why })), inFlight: flight.map((w) => w.who) }, null, 1)); process.exit(0); }
+if (json) { console.log(JSON.stringify({ take: taken.map((x) => ({ id: x.t.id, size: x.t.size, why: x.why })), hold: held.map((x) => ({ id: x.t.id, why: x.why })), inFlight: flight.map((w) => w.who),
+  running: running.map((r) => r.t.id), alone: runningAlone ? runningAlone.t.id : null }, null, 1)); process.exit(0); }
+if (runningAlone) console.log(`${runningAlone.t.id} is running, a plan or a wrap-up: it runs alone, so nothing is taken`);
 console.log(`${flight.length} in flight${noFlight ? ' (the inbox only)' : ` (the inbox and the branches pushed in ${days} days, not merged)`}`);
 for (const x of taken) console.log(`take ${x.t.id} ${x.t.size} ${x.t.name}\n     ${x.why}`);
 for (const x of held) console.log(`hold ${x.t.id}: ${x.why}`);

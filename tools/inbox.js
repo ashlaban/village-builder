@@ -15,6 +15,7 @@
 //                              continue: a fresh context goes on from commit=: at the ceiling on calls (reason=ceiling, the default; at most
 //                              twice a task), or by choice past the context threshold (boundary, stuck; once a task, from the run's 30th call,
 //                              with commit= made in this run; tools/lib/ceiling.js, VB-1616)
+//   flight                     the tasks started and running and the claims, as JSON, for tools/lanes.js
 //   renumber OLD=NEW...        tools/renumber.js moved this branch's new tasks: reserved IDs, notes, claims and results follow
 //   handover TASK              the latest handover note of TASK, for the context that continues it (docs/agents/handover.md)
 //   calls [AGENT] [--ceiling N]  a sub-agent's model calls so far against the ceiling of 120, from its own transcript (found by its worktree, agent-<id>),
@@ -181,6 +182,12 @@ if (cmd === 'init') {
     return n;
   });
   console.log(`inbox: ${changed} rows renumbered (${[...map].map(([a, b]) => a + '=' + b).join(' ')})`);
+} else if (cmd === 'flight') {
+  // the run's work in flight, read by tools/lanes.js (VB-1678), so the inbox has one reader of its tables: the tasks started, those
+  // still running (no result yet, or a continuation), and the claims (file, or file:function)
+  const rs = all('SELECT task, status FROM results');
+  console.log(JSON.stringify({ started: rs.map((r) => r.task), running: rs.filter((r) => !r.status || r.status === 'continue').map((r) => r.task),
+    claims: all('SELECT file, task FROM claims') }));
 } else if (cmd === 'claim') {
   // a file, or a function of one (sim/jobs:allot, src/sim/jobs.js:allot; VB-1678): two claims clash on one file when either is the
   // whole file or both name the same function
