@@ -88,10 +88,20 @@ slices of `docs/slices.md` build towards them, and the sections below say how fa
 - **Inspiration.** The acoup blog (Bret Devereaux), especially "Bread, How Did They Make It?", "Clothing, How Did They Make It?" and "Life,
   Work, Death and the Peasant".
 
-### Principles for decisions (Kim, 12 and 14 November 2026)
+### Principles for decisions (Kim, 12 and 14 November 2026; extended 24 November)
 
 Decided, in a discussion of the open questions and a revision two days later. They say how a question is answered when the sections
-below do not; `AGENTS.md`, Deciding without Kim, sets the escalation and reporting procedure.
+below do not; `AGENTS.md`, Deciding without Kim, sets the escalation and reporting procedure. The principles review of 24 November
+added the first principle, as an umbrella over five of the others, and four more, and resolved where the principles disagreed
+(`QUESTION_ARCHIVE.md`, Archived 24 November 2026; `docs/review-principles-2026-11-24/synthesis.md`). A principle is cited by its
+name (`docs/principles-concordance.md`).
+
+- **The simulation has no hand of its own** (Kim, 24 November). The simulation supplies nature and chance: weather, growth, birth,
+  death, spoilage, a find. It never moves a thing, does an act, knows ahead, judges or aims: each of those is some pawn's, with what
+  that pawn has and can know. Five principles below are its cases: Nothing teleports (it moves nothing), Every act is a pawn's (it
+  does no act), The future is someone's estimate (it knows nothing ahead), A wait is the thing waited for (it judges nothing), and
+  Mechanisms, not prescriptions with An elite is what the rules leave over (it aims at nothing). Of a new line of code, ask whose
+  hand it is: a pawn's, nature's or chance's.
 
 - **Nothing teleports.** The one hard rule. Goods, animals and people change place only by being carried, carted, led, shipped or
   walked, by someone who makes the journey, and nothing appears or vanishes but by a process that makes or uses it: water is fetched
@@ -100,7 +110,14 @@ below do not; `AGENTS.md`, Deciding without Kim, sets the escalation and reporti
   gift, a share or a loan changes owner where it lies and waits to be fetched. The world a scenario starts with is placed, not
   carried. Where the sections below still move goods or animals at once (help in hunger, shares, handing on, a new household's start),
   the rule stands over them. No task adds a teleport, however small or temporary; one found in the code is recorded under the
-  collection procedure in `AGENTS.md`, Surfacing.
+  collection procedure in `AGENTS.md`, Surfacing. **Title moves at once; custody moves by a journey** (Kim, 24 November): whoever
+  uses a good must have it in reach, not merely own it. A stake or a share is title to goods in a named store; it stays there when
+  its holder moves or dies, and passes at once to whoever inherits it.
+- **Nothing is left to no one** (Kim, 24 November). A party (a pawn, a household, a village, a plan) ends only as the last step of a
+  process that passes on or ends each thing in its keeping, each right it holds and each obligation it owes or is owed. A body exists
+  from its first holding, obligation or agent to its last: a household that has died out stands as an estate, with no members,
+  until its goods have gone by a process (inherited, fetched, rotted where they lie), and what remains passes with the farm to
+  whoever takes it.
 - **Hunger presses, the feast binds.** Shortage drives help, loans and land passing, and through them the landed class; help still
   books goodwill. What drives the goodwill economy is plenty: at a feast a household turns its surplus into goodwill and standing. A
   household may fail; the design does not aim for every household to be fed.
@@ -123,7 +140,9 @@ below do not; `AGENTS.md`, Deciding without Kim, sets the escalation and reporti
   head or the player a decision: key kinds, not every kind, as with the crops (Crops and rotations).
 - **The future is someone's estimate** (Kim, 15 November). What the player is shown of what will happen (when a task ends, whether a
   store will last, what help a neighbour wants) is the estimate of a pawn, by that pawn's judgement, never the simulation's own
-  knowledge; what has happened is shown as it was (section 7, The estimate and The timetable).
+  knowledge; what has happened is shown as it was (section 7, The estimate and The timetable). Decisions too (Kim, 24 November): no
+  decision reads a draw before it falls or a quantity not yet realised (the year's frost); all of the present and the past is known
+  to all, for now, and nothing of the future is.
 - **Like is shown alike, and pictures before words** (Kim, 16 November). Every thing of one kind (a level, a store, a trait, a
   person's row, a link) has one presentation, used wherever it appears, with any exception justified in the task. Design for desktop first. Presentation favours
   clear, indicative icons, and images and graphs where they apply, before text; a level is shown on a meter, the same meter
@@ -132,21 +151,40 @@ below do not; `AGENTS.md`, Deciding without Kim, sets the escalation and reporti
   keeps it exists is built as the practice that produced it, which the institution later takes over: the ale evening before the
   town's alehouse, the rite before the Church's service.
 - **A wait is the thing waited for** (Kim, 16 November). No rule holds a pawn back by a chance or a count of years alone: what
-  makes it wait is modelled (a holding to marry onto, a portion to save), and the wait is what that takes.
+  makes it wait is modelled (a holding to marry onto, a portion to save), and the wait is what that takes. A judgement is never a
+  die (Kim, 24 November): chance is for what nobody decides (weather, a birth, a death, a find); a pawn's yes or no is a threshold
+  on what it weighs, never a draw and never a count of years.
 - **A label is read, never a switch** (Kim, 16 November). A place's or a person's name for what it is (market place, town, smith,
   landed) is read from what people do and feeds no rule; a label gets a cut point only where a measure falls into two groups, else
-  the measure is shown and no word is put on it.
+  the measure is shown and no word is put on it. A rule reads the measure, never the name (Kim, 24 November): class too is shown, with
+  hysteresis, and feeds no rule; a rule that wants what the name stood for reads the measure behind it (income from others against
+  need, not "elite"). Practice before institution is the same rule in time.
 - **What does not wear needs a way out** (Kim, 16 November). A good that does not wear leaves play by a process: given, buried,
   lost with its keeper's knowledge.
 - **A made good is graded, a built thing is not** (Kim, 16 November; with the grades of workmanship, section 8, The metals and
   the stones).
 - **An elite is what the rules leave over, not a quota.** No road, office or class is given a share or a count to reach. A plan
-    sizes each claim (a rent, a keep, a due) against a household's need, and the wrap-up reports who became elite and by what.
+    sizes each claim (a rent, a keep, a due) against a household's need, and the wrap-up reports who became elite and by what. The
+    split of 600 farming, 325 town and craft and 75 elite in 1,000 (Balance loops and targets) is a band, observed and reported, never
+    steered toward and never asserted by a hard check (Kim, 24 November).
 - **Every act is a pawn's** (Kim, 16 November). An act is done by a pawn who chose it, through a verb whose check holds for any
     pawn alike. A household, a village or the calendar never acts: a household's head does; a village's meeting first elects an
-    alderman, who carries out what the meeting decided. The player has what its pawn has, no more and no less: a choice the player is
-    given is a choice every pawn makes, and a new verb widens the game for both. Natural processes need no pawn (birth, death,
-    growth, spoilage, an animal eating); debug verbs are the world's, not a pawn's.
+    alderman, who carries out what the meeting decided. The player has what its pawn has, no more and no less: the same verbs and the
+    same checks for every pawn, and a new verb widens the game for both; a pawn's own chooser may weigh fewer of them to keep its cost
+    down (Kim, 24 November). State too: whatever state the played pawn has, every pawn has, and `st.player` holds only the frame (who
+    is played, the view). The unplayed head chooses as well as its cost allows: the player's edge is foresight and attention, not a
+    head made weaker on purpose (Kim, 24 November). Natural processes need no pawn (birth, death, growth, spoilage, an animal
+    eating); debug verbs are the world's, not a pawn's.
+- **Whoever cannot keep itself is someone's charge** (Kim, 24 November). A child too young to keep itself, or a pawn bedridden, has a
+  named living minder: an obligation, which passes at once like any right and, at the minder's death, by Nothing is left to no one.
+  A minder may still leave; leaving costs what it costs the dependant, and the minder weighs that. No verb's check forbids it.
+- **One quantity, one reckoning** (Kim, 24 November). A quantity has one unit, one scale and one function that reckons it; a bound
+  is kept in the unit it was argued in. An estimate is reckoned by the same function as the doing, from what the estimator knows,
+  so the two differ only by what it cannot know. Target-v2's principles 2, 12 and 13 are its cases in the code, and Like is shown
+  alike its case on the page.
+- **What can be undone costs something to undo** (Kim, 24 November). A choice a pawn can reverse (keep a field or let it go, hold a
+  custom or return, move or stay) is held by the cost of reversing it, which the chooser weighs. Only where the world charges no such
+  cost is a named dead band added.
 - **References.** Founders is the reference for the early game, populous for the late game (many pawns). Report heirs without a target.
 
 ## 2. World, climate and travel
