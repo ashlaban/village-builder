@@ -44,6 +44,7 @@ const FAST = [
   ['node', 'tests/questions-tool.js'],
   ['node', 'tests/agent-usage.js'],
   ['node', 'tests/usage-page.js'],
+  ['node', 'tests/agents-page.js'], // the page of the skills and agents, and each one's parameters listed
   ['node', 'tests/periods.js'], // VB-1615: the log of changes cuts periods, compared by stratum
   ['node', 'tests/reset-estimate.js'], // VB-1615: what a context reset at T could save against the ceiling alone
   ['node', 'tests/context-size.js'],

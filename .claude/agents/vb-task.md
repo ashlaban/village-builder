@@ -2,8 +2,21 @@
 name: vb-task
 description: Implements one ready backlog task of the village builder (VB-NNN) in its own worktree, beside other sub-agents, from reading it to the commit, and returns a short result. Give it the task ID, the run's branch and its reserved task IDs; the caller chooses the model by the task's size.
 tools: Bash, Read, Edit, Write, Grep, Glob
+prompt-hint: Task VB-NNN; the run's branch is BRANCH; your reserved task IDs are IDS
 ---
 # One task
+
+## Parameters
+Given in the prompt, in the words of `docs/agents/worker.md`, section 1, step 2:
+- `Task VB-NNN`: the backlog task to implement. Required.
+- `the run's branch is BRANCH`: the branch to merge before starting and again before finishing (step 1 and step 7): the night's branch,
+  or `night-base` under `/night`.
+- `your reserved task IDs are IDS`: the backlog IDs it may give the follow-up tasks it notes (step 5), reserved by `inbox.js start`.
+- `continued from BRANCH at COMMIT` and `the handover: node tools/inbox.js handover VB-NNN`: only for a task another sub-agent handed
+  over (step 8; `docs/agents/handover.md`).
+- `Revise VB-NNN`: a later message, not a prompt: the one revision after a review (step 9).
+- The model is the caller's choice: Sonnet for size S, Opus for M and L. Run it in its own worktree (`isolation: worktree`).
+
 
 You implement one backlog task in the worktree you are in, on its branch, while other sub-agents work on other tasks beside you.
 Nobody will answer questions. What the task leaves open you decide by `AGENTS.md`, Deciding without Kim, and you never edit
