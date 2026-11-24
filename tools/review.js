@@ -12,7 +12,8 @@
 //   claims     the implementer's ticks and notes since the base; refused until work/review/VB-NNN.json holds the draft findings
 //   check      checks work/review/VB-NNN.json (grades, categories, fields) and prints the verdict line
 //   confirm --reviewed SHA [--dry]   after the one revision, in a checkout at the head; no second review. Each blocking finding is
-//              mended ("outcome": "mended", "test": a tests/ script that fails at SHA and passes at the head, both run here) or rebutted
+//              mended ("outcome": "mended", "test": a tests/ script that fails at SHA and passes at the head, both run here; at SHA with
+//              SHA's own copy of the other files under tests/ the revision changed, so a mend in a checker shows) or rebutted
 //              ("outcome": "rebutted", "rebuttal": an authority quoted, or a probe's output); each advisory one is mended or declined
 //              ("outcome", "note"). A blocking finding left unresolved gets a priority 1 task with Cause: VB-NNN, made once (its ID kept in
 //              the findings file as "followup"; --dry opens none); the results are kept in the findings file for tools/agent-usage.js
@@ -190,9 +191,13 @@ async function withTree(root, ref, fn) {
 }
 
 // The head's tests (the checkout's tests/), each run at the head and against TREE's sources: does a test need the change?
-async function testsBothSides(root, tree, tests) {
+// OWN: files under tests/ that TREE keeps as its own, for a mend made in tests/ itself (a checker such as tests/backlog.js, a
+// library of tests/lib/): the head's copy of those would carry the mend to TREE, and the test would pass there (VB-1676)
+async function testsBothSides(root, tree, tests, own = []) {
+  const kept = new Map(own.filter((f) => fs.existsSync(path.join(tree, f))).map((f) => [f, fs.readFileSync(path.join(tree, f))]));
   fs.rmSync(path.join(tree, 'tests'), { recursive: true, force: true });
   fs.cpSync(path.join(root, 'tests'), path.join(tree, 'tests'), { recursive: true, filter: (x) => !x.includes(`${path.sep}fixtures`) });
+  for (const [f, text] of kept) fs.writeFileSync(path.join(tree, f), text);
   const fx = path.join(root, 'tests', 'fixtures');
   if (fs.existsSync(fx)) fs.symlinkSync(fs.realpathSync(fx), path.join(tree, 'tests', 'fixtures'));
   const res = await runAll(tests.flatMap((f) => [{ args: [f], cwd: root }, { args: [f], cwd: tree }]));
@@ -305,7 +310,9 @@ async function confirm(root, id, reviewed, dry, toIn) {
   if (bad.length) throw new Error('the findings file does not pass check:\n' + bad.join('\n'));
   const blocking = r.findings.filter((f) => f.grade === 'blocking'), advisory = r.findings.filter((f) => f.grade === 'advisory');
   const tests = [...new Set(blocking.filter((f) => f.outcome === 'mended' && f.test).map((f) => f.test))];
-  const runs = tests.length ? await withTree(root, reviewed, (tree) => testsBothSides(root, tree, tests)) : [];
+  // the files under tests/ the revision changed, but for the tests named: the reviewed commit runs its own (VB-1676)
+  const own = tests.length ? git(root, 'diff', '--name-only', reviewed, 'HEAD', '--', 'tests').split('\n').filter((f) => f && !tests.includes(f)) : [];
+  const runs = tests.length ? await withTree(root, reviewed, (tree) => testsBothSides(root, tree, tests, own)) : [];
   const lines = [];
   for (const f of blocking) {
     const run = runs.find((x) => x.test === f.test);
