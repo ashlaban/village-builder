@@ -114,6 +114,12 @@ VB['sim/clock'] = (() => {
     // ---- each hour, at its first step ----
     {
       every: 'hour',
+      owner: 'sim/sleepers',
+      note: "each pawn's sleep owed reckoned, and in the working day one that owes a night sleeps (VB-1645)",
+      run: (st, c) => VB['sim/sleepers'].hour(st, c),
+    },
+    {
+      every: 'hour',
       at: { hour: [SOCIAL.talk.from, SOCIAL.talk.to] },
       when: cenv,
       owner: 'sim/relations',

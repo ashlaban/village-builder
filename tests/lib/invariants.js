@@ -1508,12 +1508,21 @@ function checkState(st) {
     }
   }
   if (st.herds) checkHerds(st, bad);
+  // sleep owed (VB-1645, sim/sleepers): a living pawn's absent until first reckoned, else {owed within 0 and SLEEP.cap, asleep, at a step
+  // not ahead of the clock, until null or a time}
+  {
+    const CAP = globalThis.VB['sim/sleep'].SLEEP.cap;
+    for (const id of st.living || []) {
+      const sl = st.pawns[id].sleep;
+      if (sl !== undefined && !(sl && sl.owed >= 0 && sl.owed <= CAP && typeof sl.asleep === 'boolean' && Number.isInteger(sl.at) && sl.at <= st.tick && (sl.until === null || Number.isFinite(sl.until)))) bad.push(`pawns[${id}]: sleep ${JSON.stringify(sl)}`);
+    }
+  }
   // the player (VB-169): null, or a pawn that exists with a queue of at most 8 of its own commands, of which only the head may be begun
   if (st.player !== null && st.player !== undefined) {
     const pl = st.player, QUEUE_MAX = globalThis.VB['sim/player'].QUEUE_MAX;
     if (!st.pawns[pl.pawn] || !st.agents[pl.pawn]) bad.push(`player: pawn ${pl.pawn} does not exist`);
     if (typeof pl.auto !== 'boolean' || !(pl.since <= st.t)) bad.push(`player: auto ${pl.auto}, since ${pl.since}`);
-    // its sleep owed (VB-1643): absent in a save made before it, else {owed within 0 and SLEEP.cap, asleep}
+    // its sleep owed is its pawn's since VB-1645: only a save made from VB-1643 to then holds it, until the next step hands it over
     const sl = pl.sleep, CAP = globalThis.VB['sim/sleep'].SLEEP.cap;
     if (sl !== undefined && !(sl && sl.owed >= 0 && sl.owed <= CAP && typeof sl.asleep === 'boolean' && Number.isInteger(sl.at) && sl.at <= st.tick)) bad.push(`player: sleep ${JSON.stringify(sl)}`);
     if (!Array.isArray(pl.queue) || pl.queue.length > QUEUE_MAX) bad.push(`player: a queue of ${pl.queue && pl.queue.length} commands`);
