@@ -119,9 +119,11 @@ VB['sim/lying'] = (() => {
       if (l.owner.type === type && l.owner.id === holder.id)
         post(`fetch:L${l.id}`, l.tile, { ...l.of, lying: l.id, x: l.x, y: l.y, left: l.n }, fetchKey(l.kind), l.owner);
   }
-  // The autumn frost (sim/clock, with the stooks and the mown hay): every load still lying rots where it lies, and the list is empty.
+  // The autumn frost (sim/clock, with the stooks and the mown hay): every load still lying rots where it lies, and the list is empty but for
+  // a cart its household left standing at the landing when its house moved (`of.kept`, VB-1639: sim/carts' frost keeps it too).
   function frost(st) {
     if (!st.lying) return;
+    const keep = st.lying.filter((l) => l.kind === 'leftCart' && l.of.kept);
     for (const l of st.lying) {
       const o = l.owner,
         hh = o.type === 'household' ? st.households[o.id] : null;
@@ -159,7 +161,8 @@ VB['sim/lying'] = (() => {
           village: o.id,
         });
     }
-    delete st.lying;
+    if (keep.length) st.lying = keep;
+    else delete st.lying;
   }
   return { lay, leave, take, left, fetchKey, fetchKind, fetchWork, frost, LIFT };
 })();

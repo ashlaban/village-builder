@@ -714,8 +714,11 @@ VB['sim/building'] = (() => {
       carry: 'logs',
       to: 'woodpile',
       load: () => 0,
+      // VB-1639: the firewood a household left at its landing when its house moved (`j.moving`) comes home as it was, a load's share
       deliver: (st, j, hh, f, a) =>
-        Stores.put(st, hh, 'wood', ECON.woodPerTrip * Math.max(1, Math.round(a.load / TRAVEL.load)), 'timber'),
+        j.moving
+          ? Stores.put(st, hh, 'wood', (ECON.woodPerTrip * a.load) / TRAVEL.load, 'moving')
+          : Stores.put(st, hh, 'wood', ECON.woodPerTrip * Math.max(1, Math.round(a.load / TRAVEL.load)), 'timber'),
     },
     // The grain of a gift whose bearer died on the road (sim/journeys' dropStay, VB-850): lying where he fell, fetched home to the store of
     // the household it was set aside for (its village's, if that is gone), by crop as it was.
@@ -738,7 +741,7 @@ VB['sim/building'] = (() => {
           parts = {};
         for (const c in j.parts) parts[c] = (j.parts[c] * a.load) / sum;
         const at = j.owner.type === 'village' ? st.villages[j.owner.id] : hh;
-        Stores.put(st, at, 'grain', a.load, { kind: 'gift', from: 'where it lay' }, parts);
+        Stores.put(st, at, 'grain', a.load, j.moving ? 'moving' : { kind: 'gift', from: 'where it lay' }, parts);
       },
     },
     pick: {

@@ -78,15 +78,17 @@ VB['sim/herds'] = (() => {
     for (const id of hh.herds) if (st.herds[id].species === species) return st.herds[id];
     return null;
   };
-  // where a herd stands: by its household's farm, or at the farm it waits at to be led home (herd.at, sim/droving)
-  const houseOf = (st, herd) => st.farmsteads[herd.at ?? st.households[herd.household].farmstead].house;
-  // Where a farm's animals graze by day: the most open free tile within 2 steps of the house, not built on, not water, not a green.
-  function homeTile(st, f) {
+  // where a herd stands: by its household's farm, or at the farm it waits at to be led home (herd.at, sim/droving), or at the tile it was
+  // left at when its farm's house moved (herd.tile, VB-1639: the landing)
+  const houseOf = (st, herd) => herd.tile ?? st.farmsteads[herd.at ?? st.households[herd.household].farmstead].house;
+  // Where a farm's animals graze by day: the most open free tile within 2 steps of the house (or of `at`, where a herd stands away from
+  // it), not built on, not water, not a green.
+  function homeTile(st, f, at = f.house) {
     const w = st.w,
       greens = new Set(st.villages.map((v) => v.center));
-    let best = f.house,
+    let best = at,
       bs = -Infinity;
-    for (const [t, d] of bfs(w, f.house, 2, walkable(w)).dist) {
+    for (const [t, d] of bfs(w, at, 2, walkable(w)).dist) {
       if (d < 1 || st.used.has(t) || w.water[t] || w.river[t] || greens.has(t)) continue;
       const s = (w.biome[t] === B.MEADOW || w.biome[t] === B.HEATH ? 1 : 0) - 0.3 * d;
       if (s > bs) {
@@ -277,7 +279,7 @@ VB['sim/herds'] = (() => {
   function herdsDay(st, c) {
     for (const herd of st.herds) {
       if ((herd.household !== null || herd.at !== undefined) && st.used.has(herd.home))
-        herd.home = homeTile(st, st.farmsteads[herd.at ?? st.households[herd.household].farmstead]);
+        herd.home = homeTile(st, st.farmsteads[herd.at ?? st.households[herd.household].farmstead], herd.tile);
     }
   }
 
