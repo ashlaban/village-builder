@@ -92,6 +92,7 @@
   "sim/fields.js",
   "sim/fieldwork.js",
   "sim/meadows.js",
+  "sim/passage.js",
   "sim/byre.js",
   "sim/deer.js",
   "sim/leather.js",

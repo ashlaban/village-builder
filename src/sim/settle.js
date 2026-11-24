@@ -11,7 +11,7 @@ VB['sim/settle'] = (() => {
   const { wishOf, moveWhy } = VB['sim/wishes'];
   const { reserved } = VB['sim/stores'];
   const { bfs, hexSteps, cutsOff } = VB['sim/hex'];
-  const { walkable } = VB['sim/walking'],
+  const { cutTests } = VB['sim/walking'],
     { villageAdded, hoursBetween } = VB['sim/villagehours'],
     { costChanged, trailReach } = VB['sim/routes'];
   const { log, fullName, spouseOf, unionOf, siblingsOf, kinNear, settlementIdOf, atFarm } = VB['sim/records'];
@@ -197,9 +197,7 @@ VB['sim/settle'] = (() => {
   function bestSites(st, v, use, cands, n) {
     const w = st.w,
       minFert = SETTLE.fertility * meanFertility(st, v);
-    const walk = walkable(w),
-      house = (j) => w.dev[j] === 3,
-      shut = (j) => j < 0 || !walk(j) || house(j);
+    const { shut, end: house } = cutTests(w); // a closed field counts as a house does (VB-816)
     const best = [];
     let bs = -Infinity, // the score to beat: the last kept, once n are
       tried = 0;

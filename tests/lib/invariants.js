@@ -1242,6 +1242,12 @@ function checkState(st) {
     for (let i = 0; i < N; i++) if (!(st.w.graze[i] >= 0 && st.w.graze[i] < Infinity)) off++;
     if (st.w.graze.length !== N || off) bad.push(`w.graze: ${off} tiles with a pressure out of place, of ${st.w.graze.length}`);
   }
+  // passage on foot (sim/passage, VB-816): 0 open, 1 closed, 2 standing but kept open; only a field's or a meadow's tile (developed ground) is marked
+  if (st.w.shut) {
+    let off = 0;
+    for (let i = 0; i < N; i++) if (st.w.shut[i] > 2 || (st.w.shut[i] && st.w.dev[i] !== 1)) off++;
+    if (st.w.shut.length !== N || off) bad.push(`w.shut: ${off} tiles marked out of place, of ${st.w.shut.length}`);
+  }
   // the generated climate (VB-342): the wind a unit vector, rain from 0 to 1 and only on land
   if (st.w.rain) {
     let off = 0;

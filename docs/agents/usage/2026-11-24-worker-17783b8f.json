@@ -1,0 +1,134 @@
+{
+ "session": "17783b8f-9108-5864-beec-7c06e38298d8",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T08:29:44.330Z",
+ "end": "2026-11-24T09:11:00.764Z",
+ "wallMin": 41.3,
+ "activeMin": 41.3,
+ "prompts": 6,
+ "calls": 144,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 289,
+  "cacheWrite": 226095,
+  "cacheRead": 30853600,
+  "output": 70921
+ },
+ "context": {
+  "first": 85355,
+  "peak": 289884,
+  "firstEdit": 183136
+ },
+ "tools": {
+  "Bash": {
+   "calls": 133,
+   "bytes": 270325,
+   "seconds": 1156
+  },
+  "Write": {
+   "calls": 2,
+   "bytes": 280,
+   "seconds": 0.1
+  },
+  "ToolSearch": {
+   "calls": 2,
+   "bytes": 95,
+   "seconds": 0
+  },
+  "TaskStop": {
+   "calls": 1,
+   "bytes": 1806,
+   "seconds": 0
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 22,
+   "bytes": 91547
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 17,
+   "bytes": 41762
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 6,
+   "bytes": 18695
+  },
+  {
+   "tool": "Bash",
+   "what": "for i",
+   "calls": 2,
+   "bytes": 16150
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 3,
+   "bytes": 11798
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 17,
+   "bytes": 10862
+  },
+  {
+   "tool": "Bash",
+   "what": "git show",
+   "calls": 2,
+   "bytes": 6531
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 1,
+   "bytes": 6519
+  },
+  {
+   "tool": "Bash",
+   "what": "cp src/sim/routes.js",
+   "calls": 4,
+   "bytes": 5624
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 5447
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 5058
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/targets.js",
+   "calls": 1,
+   "bytes": 4495
+  }
+ ],
+ "weighted": 3722873,
+ "task": "VB-816",
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 3722873,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

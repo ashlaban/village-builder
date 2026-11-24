@@ -213,6 +213,18 @@ VB['sim/customs'] = (() => {
         ['none', 'Do not inherit'],
       ],
     },
+    // VB-816 (design.md, Built ways, passage and upkeep: Passage on foot, Decided 3 Nov): whether a walker may cross another's meadow while
+    // its hay stands, or only along a path or a lane over it; read where the tile lies, by the village whose land it is (sim/passage).
+    // Fields in crop are never crossed, whatever the custom.
+    {
+      key: 'passage',
+      label: 'Passage over standing hay',
+      m: 0.5,
+      opts: [
+        ['free', 'Anyone may cross a meadow'],
+        ['ways', 'A meadow in grass is crossed only along its ways'],
+      ],
+    },
   ];
   const OFF = [],
     NOPT = [],
@@ -247,6 +259,7 @@ VB['sim/customs'] = (() => {
       matchBy: 'consent',
       keep: 'days',
       outside: 'after',
+      passage: 'free',
       commons: 'fair', // its claims favour kin, not the village (`first` where an archetype's claims are the village's: villagers, assembly)
     },
   };

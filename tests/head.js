@@ -173,9 +173,10 @@ let made;
 // template (the meadows mown together overshoot it) and for three by its head's choice
 const hay = [];
 // the seed is one whose meadows give three winters: the herds drawn at seeding move with every custom added (VB-711, VB-826, VB-555), and
-// the days with the walked fetch (VB-1582: seed 3 held 2.7 winters at the start of winter after a peak of 3.4)
+// the days with the walked fetch (VB-1582: seed 3 held 2.7 winters at the start of winter after a peak of 3.4), and the custom passage
+// (VB-816: seed 4 drew no herd for the first household; 12 gives a cow and sheep and 3.0 winters at its peak)
 for (const raise of [false, true]) {
-  const { st, hh, f } = scene({ herds: true, seed: 4 });
+  const { st, hh, f } = scene({ herds: true, seed: 12 });
   for (const id of hh.herds) { // a cow and five ewes: three winters' need is within what the four meadows give, raked
     const hd = st.herds[id];
     if (hd.species === 'cattle') hd.head.length = 1; else { hd.ewes = 5; hd.rams = 0; hd.lambs = 0; }

@@ -10,7 +10,7 @@ VB['sim/expansion'] = (() => {
   const Projects = VB['sim/projects'],
     { emit, on } = VB['sim/events'];
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
-  const { walkable } = VB['sim/walking'],
+  const { walkable, cutTests } = VB['sim/walking'],
     { costChanged } = VB['sim/routes'];
   const { log, fullName } = VB['sim/records'];
   const { setOwner } = VB['sim/ownership'];
@@ -146,9 +146,7 @@ VB['sim/expansion'] = (() => {
     const fieldScore = (t) => fertility(w, t) - (0.5 * w.stones[t]) / 255;
     const fieldOk = (t) => farmable(w, t) && !wooded(w, t) && !built.has(t);
     const fieldCandidates = cand.filter(([t]) => fieldOk(t)).map(([t]) => [t, fieldScore(t)]);
-    const walk = walkable(w),
-      house = (j) => w.dev[j] === 3,
-      shut = (j) => j < 0 || !walk(j) || house(j);
+    const { shut, end: house } = cutTests(w); // a closed field counts as a house does (VB-816)
     let best = null,
       bs = -Infinity;
     for (const [h, d] of cand) {
