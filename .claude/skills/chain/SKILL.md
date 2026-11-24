@@ -29,6 +29,10 @@ The system lets one chain hold at most 8 sessions, counting the first. Hence:
    script>"). Do not fix it here; a red main gets a repair task of its own.
 3. `node tools/backlog.js next 10 --size SIZE --unattended`. Take the first task that no open PR names in its title (list the open PRs
    once; skip a task another session has in hand). None left: **stop** (reason "no ready SIZE task").
+4. Name the session after it (`set_session_title`, `session_id` omitted): `VB-NNN: <the task's name, cut to about 60 characters> · <T> <K>/<K + N - 1>`,
+   e.g. `VB-816: Passage on foot through fields in crop · 20261124-M-a1b2c3 2/8`. When it ends, rename it once more, the status in
+   front: `done`, `needs-review` or `stopped` and the title, e.g. `done · VB-816: ...`. A link that stops before choosing a task is titled
+   `stopped · <T> <K>: <reason>`.
 
 ## 2. The task (a link)
 1. Take it as `AGENTS.md`, "Taking a task", says, steps 1 to 5: `node tools/brief.js ID`, Deciding without Kim, small commits as
@@ -70,6 +74,8 @@ and end with that line as your last message.
 
 ## 4. The coordinator (N above 8)
 You implement nothing; your context stays small. Every chain you start is 7 links, the 8 sessions the system allows counting you, but the last, which takes what is left.
+0. Name this session `Chain <T>: <N> SIZE tasks (coordinator)`, and on each chain's message update it to
+   `Chain <T>: <count>/<N> SIZE tasks (coordinator)`; when it ends, `done · ` or `stopped · ` in front.
 1. Start the first chain: `create_session` titled `Chain <T> link 1`, `outcome_branch` `claude/chain-<T>-1`, prompt
    `/chain SIZE <min(7, N)> --tag T --link 1 --report-to <this session's id>`. Then schedule a check-in (`send_later`, 180 minutes)
    that says "chain <T>: check the running chain", and end your turn. The chain's last link will message you.
