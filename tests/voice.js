@@ -140,4 +140,19 @@ const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invarian
   assert.strictEqual(o.leave.likely, true, "with its head's likely answer");
   assert.strictEqual(o.why, null);
 }
+// ---- the played head is asked, and answers by the verb, its pawn's judgement shown as advice ----
+{
+  const { st, A, m } = make();
+  VB['sim/day'].allot(st, A, Sim.cal(st.t));
+  Sim.inhabit(st, A.holder);
+  Sim.setAuto(st, false); // the player answers for itself
+  assert.strictEqual(askOf(st, m, A.holder, { from: st.t, with: null }), true);
+  const o = Sim.opportunities(st, A.holder).find((x) => x.when === 'offer' && x.offer.basis === 'leave');
+  assert.ok(o, 'the played head is asked');
+  assert.strictEqual(o.offer.advice, true, "its pawn's judgement: yes");
+  assert.strictEqual(Voice.leaveOf(st, m), null, 'nothing given before it answers');
+  assert.strictEqual(issue(st, { actor: A.holder, verb: 'answer', target: o.target, args: { yes: true }, source: 'player' }), true);
+  assert.ok(Voice.on(st, m), 'its yes gives the leave');
+  sound(st, 'the played head answered');
+}
 console.log('voice ok: leave asked of the head, answered by its day and its opinion, taken around the day');
