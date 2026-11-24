@@ -9,7 +9,8 @@ fs.mkdirSync(path.join(dir, 'backlog')); fs.mkdirSync(path.join(dir, 'docs'));
 for (const f of fs.readdirSync(path.join(root, 'backlog'))) fs.copyFileSync(path.join(root, 'backlog', f), path.join(dir, 'backlog', f));
 fs.copyFileSync(path.join(root, 'docs', 'tuning.md'), path.join(dir, 'docs', 'tuning.md'));
 const run = (input, ...args) => {
-  const r = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), '--date', '2026-01-02', ...args], { encoding: 'utf8', input: input || '' });
+  const r = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), '--date', '2026-01-02', ...args], {
+    encoding: 'utf8', input: input || '' });
   return { ok: r.status === 0, out: r.stdout + r.stderr };
 };
 const expect = (what, cond, out) => { if (!cond) errors.push(what + (out ? '\n    ' + out.trim().split('\n').join('\n    ') : '')); };
@@ -32,7 +33,8 @@ expect('a first claim is free', r.ok, r.out);
 r = run('', 'claim', B, 'src/sim/herds.js', 'src/sim/stores.js');
 expect('a second claim names the holder and exits 1', !r.ok && r.out.includes(`also being edited by ${A}`), r.out);
 
-r = run('- [ ] The herd is led.', 'note', A, 'task', `id=${N}`, 'name=Herds are led | to a new farm', 'priority=2', 'size=M', 'summary=Herds walk.', '--body', '-');
+r = run('- [ ] The herd is led.', 'note', A, 'task', `id=${N}`, 'name=Herds are led | to a new farm', 'priority=2', 'size=M', 'summary=Herds walk.', '--body',
+  '-');
 expect('a task note with a reserved ID', r.ok, r.out);
 r = run('', 'note', B, 'task', `id=${N}`, 'name=x', 'priority=1', 'size=S', 'summary=s');
 expect("another task's reserved ID is refused", !r.ok && /not reserved/.test(r.out), r.out);
@@ -72,7 +74,8 @@ r = run('', 'apply', '--task', B);
 expect("apply --task applies only that task's: none of A's", r.ok && /applied 0/.test(r.out) && file('BACKLOG.md') === before, r.out);
 r = run('', 'apply');
 expect('apply: the result, the task, the question, the tuning row and the three findings', r.ok && /applied 8/.test(r.out), r.out);
-const collected = (name) => fs.readdirSync(path.join(dir, 'backlog')).map((f) => file('backlog/' + f)).filter((t) => t.includes(`: ${name}`) && !/^Status: done/m.test(t));
+const collected = (name) =>
+  fs.readdirSync(path.join(dir, 'backlog')).map((f) => file('backlog/' + f)).filter((t) => t.includes(`: ${name}`) && !/^Status: done/m.test(t));
 expect('the teleports are lines of one open collecting task', collected('Teleports found, collected').length === 1
   && collected('Teleports found, collected')[0].includes(`- [ ] From ${A}: src/sim/herds.js:420: hay jumps\n- [ ] From ${A}: src/sim/herds.js:99: wool jumps`));
 expect('the act is a line of its own collecting task, ready', collected('Acts with no pawn, collected').length === 1
@@ -92,7 +95,8 @@ const check = spawnSync(process.execPath, [path.join(root, 'tests', 'backlog.js'
 expect('tests/backlog.js passes on the result', check.status === 0, check.stdout + check.stderr);
 r = run('', 'result', B, 'status=needs-review', 'commit=def5678', 'summary=cost not measured');
 r = run('', 'apply');
-expect('a task with a criterion unmet goes to Waiting for Kim', r.ok && file('BACKLOG.md').split('\n## Waiting for Kim\n')[1].split('\n## ')[0].includes(`[${B}]`), r.out);
+expect('a task with a criterion unmet goes to Waiting for Kim', r.ok &&
+  file('BACKLOG.md').split('\n## Waiting for Kim\n')[1].split('\n## ')[0].includes(`[${B}]`), r.out);
 r = run('', 'report');
 expect('and heads the report with its reason', r.out.includes(`- ${B} def5678: cost not measured`), r.out);
 r = run('', 'report', '--task', B);
@@ -103,22 +107,106 @@ expect('report: the PR section', r.ok && r.out.startsWith('## For Kim') && r.out
 
 // the ceiling: calls are counted from the sub-agent's transcript, a model call a message id; a task is continued at most twice
 const sub = path.join(dir, 'config', 'projects', 'p', 's', 'subagents'); fs.mkdirSync(sub, { recursive: true });
-const entry = (i) => JSON.stringify({ type: 'assistant', message: { id: 'msg_' + i } });
-const calls = (n) => { fs.writeFileSync(path.join(sub, 'agent-abc123.jsonl'), [...Array(n).keys()].flatMap((i) => [entry(i), entry(i), '{"type":"user"}']).join('\n'));
-  const c = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), 'calls', 'abc123'], { encoding: 'utf8', env: { ...process.env, CLAUDE_CONFIG_DIR: path.join(dir, 'config') } });
+const entry = (i) => JSON.stringify({
+  type: 'assistant', message: { id: 'msg_' + i, usage: { input_tokens: 2, cache_read_input_tokens: 1000 * (i + 1), output_tokens: 10 } } });
+const calls = (n) => {
+  fs.writeFileSync(path.join(sub, 'agent-abc123.jsonl'), [...Array(n).keys()].flatMap((i) => [entry(i), entry(i), '{"type":"user"}']).join('\n'));
+  const c = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), 'calls', 'abc123'], {
+    encoding: 'utf8', env: { ...process.env, CLAUDE_CONFIG_DIR: path.join(dir, 'config') } });
   return c.stdout + c.stderr; };
-expect('calls: counted by message id', calls(40).trim() === '40 of 120 calls', calls(40));
-expect('calls: a warning near the ceiling', /^110 of 120 calls: 10 left/.test(calls(110)), calls(110));
-expect('calls: at the ceiling, hand over', /^125 of 120 calls: the ceiling is reached. Hand over now/.test(calls(125)), calls(125));
+// 40 calls: the last read 40,002 tokens; weighted 40 × (2 + 50) + 0.1 × 1000 × (1 + ... + 40) = 2,080 + 82,000
+expect('calls: counted by message id, with the context and the weighted cost', calls(40).trim() === '40 of 120 calls; context 40k; weighted 84k', calls(40));
+expect('calls: a warning near the ceiling', /^110 of 120 calls; context 110k; weighted [\d.]+k: 10 left/.test(calls(110)), calls(110));
+expect('calls: at the ceiling, hand over', /^125 of 120 calls; .*: the ceiling is reached. Hand over now/.test(calls(125)), calls(125));
+// a session of its own (VB-1615): its newest transcript, its sub-agents' calls apart, and no ceiling
+const sess = path.join(dir, 'config', 'projects', 'p', 'sess.jsonl');
+fs.writeFileSync(sess,
+  [entry(1), entry(1), JSON.stringify({ type: 'assistant', isSidechain: true, message: { id: 'side', usage: { input_tokens: 5 } } }), entry(2)].join('\n'));
+const c = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'none.db'), 'calls'], {
+  encoding: 'utf8', env: { ...process.env, CLAUDE_CONFIG_DIR: path.join(dir, 'config') } });
+expect('calls: in a session, its own transcript, no inbox needed and no ceiling',
+  c.stdout.trim() === "2 calls (a session: the ceiling of 120 is a sub-agent's); context 3k; weighted 604", c.stdout + c.stderr);
 r = run('', 'result', B, 'status=continue');
 expect('a continuation needs its commit', !r.ok && /commit=SHA/.test(r.out), r.out);
 r = run('', 'result', B, 'status=continue', 'commit=aaa1111', 'summary=half built');
-expect('a continuation, the first of two', r.ok && r.out.includes('continue (1 of 2)'), r.out);
+expect('a continuation, the first of two, at the ceiling by default', r.ok && r.out.includes('continue (ceiling, 1 of 2)'), r.out);
 r = run('', 'apply');
 expect('a continued task is not applied', r.ok && /applied 0/.test(r.out), r.out);
 run('', 'result', B, 'status=continue', 'commit=aaa2222');
 r = run('', 'result', B, 'status=continue', 'commit=aaa3333');
 expect('no third continuation', !r.ok && /needs-review/.test(r.out), r.out);
+
+// VB-1616: the handover, stored and read back; a voluntary reset only past the threshold, from the 30th call, with a commit of this run, once a task
+const cfg = path.join(dir, 'config2'), proj = path.join(cfg, 'projects', 'p'); fs.mkdirSync(proj, { recursive: true });
+const runIn = (input, ...args) => {
+  const r = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), ...args], { encoding: 'utf8', input: input || '',
+    env: { ...process.env, CLAUDE_CONFIG_DIR: cfg } });
+  return { ok: r.status === 0, out: r.stdout + r.stderr };
+};
+const session = (n, ctx) => fs.writeFileSync(path.join(proj, 'run.jsonl'), [...Array(n).keys()].map((i) => JSON.stringify({ type: 'assistant',
+  timestamp: '2026-01-02T00:00:0' + (i % 10) + 'Z', message: {
+    id: 'h' + i, usage: { input_tokens: 1, cache_read_input_tokens: i === n - 1 ? ctx : 1000 } } })).join('\n'));
+const commitAt = (date) => {
+  const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t', GIT_AUTHOR_DATE: date,
+    GIT_COMMITTER_DATE: date };
+  fs.writeFileSync(path.join(dir, 'f.txt'), date);
+  spawnSync('git', ['add', 'f.txt'], { cwd: dir, env }); spawnSync('git', ['commit', '-q', '-m', date], { cwd: dir, env });
+  return spawnSync('git', ['rev-parse', 'HEAD'], { cwd: dir, encoding: 'utf8' }).stdout.trim();
+};
+spawnSync('git', ['init', '-q'], { cwd: dir });
+const old = commitAt('2026-01-01T00:00:00Z'), fresh = commitAt('2026-01-03T00:00:00Z');
+const H = 'VB-9001';
+r = runIn('', 'note', H, 'handover');
+expect('a handover needs its text', !r.ok && /needs its text/.test(r.out), r.out);
+r = runIn('x\n'.repeat(61), 'note', H, 'handover', '--body', '-');
+expect('a handover is at most 60 lines', !r.ok && /at most 60 lines/.test(r.out), r.out);
+r = runIn('Verified: a\nPlaces: b', 'note', H, 'handover', '--body', '-');
+expect('a handover is stored', r.ok && /\(handover\)/.test(r.out), r.out);
+r = runIn('', 'handover', H);
+expect('and read back, the latest', r.ok && r.out.trim() === 'Verified: a\nPlaces: b', r.out);
+expect('no handover, said so', !runIn('', 'handover', 'VB-9009').ok);
+r = runIn('', 'result', H, 'status=done', 'reason=stuck');
+expect('a reason only with continue', !r.ok && /status=continue/.test(r.out), r.out);
+r = runIn('', 'result', H, 'status=continue', 'reason=bored', 'commit=' + fresh);
+expect('a known reason', !r.ok && /ceiling, boundary or stuck/.test(r.out), r.out);
+session(40, 100e3);
+r = runIn('', 'result', H, 'status=continue', 'reason=boundary', 'commit=' + fresh);
+expect('no voluntary reset under the threshold', !r.ok && /under the threshold of 160k/.test(r.out), r.out);
+session(20, 200e3);
+r = runIn('', 'result', H, 'status=continue', 'reason=boundary', 'commit=' + fresh);
+expect('none before the 30th call', !r.ok && /20 calls into this run, under 30/.test(r.out), r.out);
+session(40, 200e3);
+r = runIn('', 'result', H, 'status=continue', 'reason=boundary', 'commit=' + old);
+expect('none without a commit of this run', !r.ok && /before this run started/.test(r.out), r.out);
+r = runIn('', 'result', H, 'status=continue', 'reason=boundary', 'commit=' + fresh);
+expect('a voluntary reset at a boundary, with the handover named', r.ok &&
+  /continue \(boundary\); the handover: node tools\/inbox.js handover VB-9001/.test(r.out), r.out);
+r = runIn('', 'result', H, 'status=continue', 'reason=boundary', 'commit=' + fresh);
+expect('one voluntary reset a task', !r.ok && /has had its voluntary reset/.test(r.out) && /go on/.test(r.out), r.out);
+r = runIn('', 'result', H, 'status=continue', 'commit=' + fresh);
+expect('the ceiling\'s continuations besides it', r.ok && /continue \(ceiling, 1 of 2\)/.test(r.out), r.out);
+// past the threshold, calls hints at the next boundary, and at being stuck when a test has failed three times running
+const fails = (n) => [...Array(n).keys()].flatMap((i) => [{ type: 'assistant', timestamp: '2026-01-02T00:01:00Z', message: { id: 'f' + i,
+  usage: { input_tokens: 1, cache_read_input_tokens: 200e3 },
+    content: [{ type: 'tool_use', id: 'u' + i, name: 'Bash', input: { command: 'node tests/x.js' } }] } },
+{ type: 'user', timestamp: '2026-01-02T00:01:01Z', message: {
+  content: [{ type: 'tool_result', tool_use_id: 'u' + i, content: '1 failed', is_error: true }] } }]);
+session(40, 200e3);
+r = runIn('', 'calls');
+expect('calls: past the threshold, a session hands the rest over at a boundary', r.ok &&
+  /^40 calls .*Past 160k: at the next boundary, hand the rest to a fresh vb-task/.test(r.out)
+  && !/Stuck/.test(r.out), r.out);
+fs.appendFileSync(path.join(proj, 'run.jsonl'), '\n' + fails(3).map((e) => JSON.stringify(e)).join('\n'));
+r = runIn('', 'calls');
+expect('calls: and stuck, after a test failed three times running', r.ok && /Stuck\? the same test failed 3 times running/.test(r.out), r.out);
+session(40, 100e3);
+expect('calls: under the threshold, no hint', /^40 calls [^.]*$/.test(runIn('', 'calls').out.trim()), runIn('', 'calls').out);
+session(40, 200e3);
+const S2 = 'VB-9002';
+r = runIn('', 'result', S2, 'status=continue', 'reason=stuck', 'commit=' + fresh);
+expect('a reset when stuck, the handover not yet written', r.ok && /continue \(stuck\); the handover: none yet/.test(r.out), r.out);
+r = runIn('', 'result', S2, 'status=continue', 'reason=stuck', 'commit=' + fresh);
+expect('stuck again: needs-review', !r.ok && /stuck again: end with status=needs-review/.test(r.out), r.out);
 
 fs.rmSync(dir, { recursive: true, force: true });
 if (errors.length) { console.error('INBOX FAIL\n  ' + errors.join('\n  ')); process.exit(1); }

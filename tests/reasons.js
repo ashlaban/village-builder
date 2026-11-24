@@ -5,7 +5,7 @@ const assert = require('assert'), { isDeepStrictEqual } = require('util');
 const VB = require('../src/load.js'), Sim = VB.sim;
 const { state } = require('./lib/probe.js');
 const { DAY, YEAR, SEASON_DAYS, WORK } = VB['sim/rules'];
-const { frostExpected } = VB['sim/reasons'];
+const { frostExpected } = VB['sim/weather'];
 const { build } = require('../tools/writes.js');
 
 const st = state();

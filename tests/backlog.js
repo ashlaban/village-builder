@@ -38,7 +38,13 @@ for (const f of files) {
   if (arch === '-' && phase !== '-') errors.push(`backlog/${f}: a phase without an arch`);
   if (status === 'ready' && (!/^Goal: /m.test(text) || !/^Acceptance criteria\b/m.test(text) || text.includes('(to write)')))
     errors.push(`backlog/${f} is ready: it needs a "Goal:" line and "Acceptance criteria", and nothing left "(to write)"`);
-  tasks[head[1]] = { name: head[2], arch, status, priority: field('Priority'), size: field('Size'), waits: field('Waits for') };
+  tasks[head[1]] = { name: head[2], arch, status, priority: field('Priority'), size: field('Size'), waits: field('Waits for'), cause: ((text.split(/^(?!# |Status|Waits for|Cause|Priority|Size|Arch|Phase)/m)[0] || '').match(/^Cause: (.*)$/m) || [])[1] || '' };
+}
+
+// "Cause:" (VB-1619), optional: the task whose change introduced the defect this one mends; one existing task, not itself.
+for (const [id, t] of Object.entries(tasks)) {
+  if (t.cause && (!/^VB-\d{3,}$/.test(t.cause) || !tasks[t.cause] || t.cause === id))
+    errors.push(`backlog/${id}.md: "Cause: ${t.cause}" must name one other task that has a file (VB-NNN)`);
 }
 
 // "Waits for:" names what a blocked task waits for: open tasks and/or Kim. Only blocked tasks have it, and it never names a done task, so a

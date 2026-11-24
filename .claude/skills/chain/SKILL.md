@@ -35,20 +35,20 @@ The system lets one chain hold at most 8 sessions, counting the first. Hence:
    `stopped · <T> <K>: <reason>`.
 
 ## 2. The task (a link)
-1. Take it as `AGENTS.md`, "Taking a task", says, steps 1 to 5: `node tools/brief.js ID`, Deciding without Kim, small commits as
-   `VB-NNN: <what>`, `npm test` after each, `npm run format` and `npm run verify` before the last, `node tests/smoke.js` and the browser
-   tests for page changes, tick the criteria, `backlog.js done ID` or `set ID status=needs-review`, ten lines of notes. Leave the
-   follow-ups, tuning rows and questions it raises with `tools/backlog.js new`, `docs/tuning.md` and `tools/questions.js` yourself: no
-   orchestrator runs here.
-2. The ceiling: about 120 model calls. When what is left will not fit, stop building: commit what you have with `npm test` passing,
-   tick what is met, write the handover in the task's notes (what is built, what is left by criterion, where to start), and set it `needs-review`.
-3. **Review.** With the work committed and verified, start one `vb-reviewer` sub-agent in the foreground, on `opus` whatever
-   your own model (Kim, 24 November), with the prompt "Task VB-NNN; branch <yours>; base origin/main". If that agent type is not offered, start a general-purpose
-   one told to read `.claude/agents/vb-reviewer.md` and follow it. Then:
-   - each `blocker` and `fix`: mend it, or say in the task's notes why it stands; then `npm run verify` again. One round: do not review again;
-   - each `note`: a line in the task's notes, or a follow-up task when it is work.
-   Keep its verdict line and counts for the PR.
-4. Measure, last: `node tools/agent-usage.js --label worker --task ID --out docs/agents/usage`, and commit the file.
+`AGENTS.md`, "Taking a task", in its order, with no orchestrator:
+1. **Build** (steps 1 to 4): `node tools/brief.js ID`, Deciding without Kim, small commits as `VB-NNN: <what>`, `npm test` after each
+   with `node tools/inbox.js calls`, `npm run format` and `npm run verify` before the last, `node tests/smoke.js` and the browser
+   tests for page changes. When `calls` says to hand over, follow `docs/agents/handover.md`, How, step 6 (a session of its own hands the
+   rest to a fresh `vb-task` sub-agent, merges its branch, and goes on here).
+2. **Review** (step 5, VB-1619): `node tools/review.js eligible ID` picks the arm; for `review`, a fresh `vb-review` sub-agent, its model
+   by size as that step says, given only `Review ID; base <merge-base>; head <sha>`; on `revise`, your one revision and
+   `review.js confirm`. `control` and `ineligible` are not reviewed: never review a task its arm leaves out, since the arms are an
+   experiment (VB-1618).
+3. **Close** (step 6): tick the criteria, `backlog.js done ID` or `set ID status=needs-review`, ten lines of notes. Write the
+   follow-ups, tuning rows and questions it raises yourself (`tools/backlog.js new`, `docs/tuning.md`, `tools/questions.js`), and add
+   the Surfacing lines to the collecting tasks yourself: no orchestrator runs here. Measure last
+   (`node tools/agent-usage.js --label worker --task ID --review work/review/ID.json --out docs/agents/usage`, or `--arm control` /
+   `--arm ineligible`), and commit the file.
 
 ## 3. Merge and hand on (a link)
 1. `git fetch origin main && git merge --no-edit origin/main`. Conflicts:
@@ -57,8 +57,8 @@ The system lets one chain hold at most 8 sessions, counting the first. Hence:
    - code: resolve it, keeping both changes' intent, and rerun `npm run verify`. One you cannot resolve with confidence: abort the merge,
      open the PR without merging, and **stop** (reason "conflict in <file>").
    Then `npm test`, and push: `git push -u origin <branch>`.
-2. Open a PR to `main`, titled `VB-NNN: <task name>`. Its body: `AGENTS.md`, step 6 (reads, writes, coupling for size M or a new
-   module; households better off; **Targets**), then the review's verdict and what was mended, then the "For Kim" lines (`AGENTS.md`,
+2. Open a PR to `main`, titled `VB-NNN: <task name>`. Its body: `AGENTS.md`, step 7 (reads, writes, coupling for size M or a new
+   module; households better off; **Targets**), its Review section (arm, verdict, outcomes: step 5), then the "For Kim" lines (`AGENTS.md`,
    Surfacing), and last `Chain <T>, link <K>; <N - 1> to go`. Merge it with a merge commit. If main moved meanwhile, repeat step 1 once.
 3. Hand on. `R` is `R + 1` if the task ended `needs-review`, else 0.
    - **Stop** if `N` is 1, or `R` is 2 (two tasks in a row unfinished: something is wrong that a fresh session will not mend).

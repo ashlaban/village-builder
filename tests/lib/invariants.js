@@ -447,6 +447,20 @@ function checkState(st) {
       }
     }
   }
+  // the winter table (VB-808): none, or a row a village as the land table's, 0 on the diagonal, symmetric, every other entry null or a number
+  // in (0, WINTER_HOURS]
+  if (st.winterHours !== null && st.winterHours !== undefined) {
+    const T = st.winterHours, n = st.villages.length, top = globalThis.VB['sim/villagehours'].WINTER_HOURS;
+    if (!Array.isArray(T) || T.length !== n) bad.push(`winterHours: ${Array.isArray(T) ? T.length : T} rows for ${n} villages`);
+    else for (let v = 0; v < n; v++) {
+      if (!Array.isArray(T[v]) || T[v].length !== n) { bad.push(`winterHours[${v}]: not a row of ${n}`); continue; }
+      for (let u = 0; u < n; u++) {
+        const h = T[v][u];
+        if (u === v ? h !== 0 : !(h === null || (typeof h === 'number' && h > 0 && h <= top + 1e-9))) bad.push(`winterHours[${v}][${u}]: ${h}`);
+        else if (u > v && Array.isArray(T[u]) && (h === null ? T[u][v] !== null : !(Math.abs(h - T[u][v]) <= 1e-9))) bad.push(`winterHours[${v}][${u}]: not symmetric`);
+      }
+    }
+  }
   // the household charged with a village's tar pit (VB-673): none, or a household that is or was of the world
   for (const v of st.villages)
     if (v.tarBy !== undefined && v.tarBy !== null && !(Number.isInteger(v.tarBy) && st.households[v.tarBy]))
@@ -1248,6 +1262,18 @@ function checkState(st) {
     for (let i = 0; i < N; i++) if (st.w.shut[i] > 2 || (st.w.shut[i] && st.w.dev[i] !== 1)) off++;
     if (st.w.shut.length !== N || off) bad.push(`w.shut: ${off} tiles marked out of place, of ${st.w.shut.length}`);
   }
+  // the ground compiled (VB-808, sim/walking w.ground): each tile's cost and ice equal the rule computed afresh on its row's season, so
+  // no change of a tile's cost has gone by sim/routes costChanged unseen
+  if (st.w.ground) {
+    const Wk = globalThis.VB['sim/walking'], g = st.w.ground;
+    let off = 0, first = -1;
+    for (let i = 0; i < N; i++) {
+      const c = Wk.ruleCost(st.w, i);
+      if (!(g.cost[i] === c || (Number.isNaN(c) && Number.isNaN(g.cost[i])))) { off++; if (first < 0) first = i; }
+    }
+    if (off || g.cost.length !== N || g.season.length !== st.w.ROWS)
+      bad.push(`w.ground: ${off} tiles costed out of step with the rule (first ${first}: ${first >= 0 ? `${g.cost[first]} against ${Wk.ruleCost(st.w, first)}` : '-'})`);
+  }
   // the generated climate (VB-342): the wind a unit vector, rain from 0 to 1 and only on land
   if (st.w.rain) {
     let off = 0;
@@ -1661,6 +1687,19 @@ function checkState(st) {
     if (!a || a.packing === undefined) return;
     const t = a.packing;
     if (a.away !== undefined || !t || !Number.isInteger(t.at) || t.at < 0 || t.at >= st.w.N || !t.args || typeof t.args.why !== 'string') bad.push(`agent ${id}: packing ${JSON.stringify(t)} while away ${a.away}`);
+  });
+  // VB-1240: a small child fetched to its new home: agent.awaits -1 or a pawn (of its household when the fetch was made: one broken off
+  // is let go at the day's end); agent.fetching {at (a tile), led}, its pawn on no journey
+  (st.agents || []).forEach((a, id) => {
+    if (!a) return;
+    if (a.awaits !== undefined) {
+      const b = a.awaits, hh = st.pawns[id].household;
+      if (!Number.isInteger(b) || b < -1 || (b >= 0 && !st.pawns[b]) || hh === null) bad.push(`agent ${id}: awaits ${b}, of household ${hh}`);
+    }
+    if (a.fetching !== undefined) {
+      const f = a.fetching;
+      if (!f || !Number.isInteger(f.at) || f.at < 0 || f.at >= st.w.N || typeof f.led !== 'boolean' || a.phase === 'journey') bad.push(`agent ${id}: fetching ${JSON.stringify(f)} in phase ${a.phase}`);
+    }
   });
   if (st.away !== undefined) {
     const seen = new Set(), ids = new Set();

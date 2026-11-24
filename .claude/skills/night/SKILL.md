@@ -27,24 +27,23 @@ and update the count after each merge; at the end, `done · ` in front.
    `init` without `--fresh`, since the inbox holds the night so far.
 2. **Choice** (its section 1, step 1): `node tools/backlog.js next 6 --unattended`, with `--size` if given, and skip a task an open PR
    names in its title (a chain may have it in hand). Models as its step 2; stop starting tasks at `N`.
-3. **Each task ends as a PR of its own, merged** (it replaces its section 1, steps 3 to 5). When a sub-agent ends, work in its worktree
-   (`git -C <worktree>`, or `cd` there), one task at a time:
+3. **Each task ends as a PR of its own, merged** (it replaces the merge of its section 1, step 3, and steps 4 and 5). When a
+   sub-agent ends, one task at a time:
    - `failed`, no result, or `continue`: as the worker's step 3.
-   - **Review.** `done` or `needs-review` with a commit: one `vb-reviewer` sub-agent (it runs on Opus), in the foreground, with
-     "Task VB-NNN; branch <its branch>; base night-base". On `approve`, go on. On blockers or fixes: **one fix round**: a fresh `vb-task`
-     sub-agent on the task's model, in the same worktree's branch, with "Task VB-NNN, continued from `<its branch>` at <commit>; the run's
-     branch is `night-base`; your reserved task IDs are <the same>; mend these review findings and nothing else: <the finding lines>".
-     Whatever it reports, do not review again: `done` goes on; `needs-review` or `failed` with a commit goes on as `needs-review`.
-     Each `note` finding goes in the PR body.
-   - **Update.** `git merge --no-edit night-base` (fresh from `origin/main`). `BACKLOG.md`, `BACKLOG_ARCHIVE.md`: keep both sides'
-     rows, then `node tools/backlog.js sync`; `index.html`: `git rm index.html`. A code conflict you do not fix yourself: abort, and if
-     the fix round is unused, spend it on "merge `night-base` and resolve the conflict, keeping both changes' intent"; else leave the
-     branch unmerged, `node tools/inbox.js result VB-NNN status=needs-review summary=conflict with main in <file>`, and go on.
-   - **Apply and check.** `node tools/inbox.js apply --task VB-NNN --root <worktree>`; commit `Backlog: VB-NNN <done or needs-review>`;
+   - **Review**: exactly as the worker's step 3 (VB-1619): `review.js eligible ... --inbox` with the base `git merge-base <its branch>
+     night-base`; for `review`, `vb-review` in the background, its model by size, given only "Review VB-NNN; base <sha>; head <sha>; inbox";
+     on `revise`, "Revise VB-NNN" to the same implementer (SendMessage), and wait for its result again. One review a task; `control`
+     and `ineligible` are merged unreviewed. You read no findings.
+   - **Update**, in its worktree (`git -C <worktree>`): `git merge --no-edit night-base`, fresh from `origin/main`. `BACKLOG.md`,
+     `BACKLOG_ARCHIVE.md`: keep both sides' rows, then `node tools/backlog.js sync`; `index.html`: `git rm index.html`. A code conflict
+     you never resolve yourself: abort, and send the implementer (SendMessage; a fresh `vb-task` by `continue` if it is past 90 calls)
+     "merge `night-base` and resolve the conflict, keeping both changes' intent; give your result again". If it fails, or conflicts again,
+     leave the branch unmerged, `node tools/inbox.js result VB-NNN status=needs-review summary=conflict with main in <file>`, and go on.
+   - **Apply and check**: `node tools/inbox.js apply --task VB-NNN --root <worktree>`; commit `Backlog: VB-NNN <done or needs-review>`;
      `npm run verify` (local checks only: do not wait for GitHub's). Red: as a conflict, above.
-   - **Merge.** Push as `claude/vb-NNN-<a short slug>`; open a PR to `main` titled `VB-NNN: <task name>`, its body: the output of
-     `node tools/inbox.js report --task VB-NNN`, the sub-agent's result lines, the review's verdict and what was mended, then
-     `Night <DATE>, task <k>`. Merge it with a merge commit; if main moved meanwhile, update once more and retry. Then
+   - **Merge**: push as `claude/vb-NNN-<a short slug>`; open a PR to `main` titled `VB-NNN: <task name>`, its body the output of
+     `node tools/inbox.js report --task VB-NNN` (its "For Kim" and its review), the sub-agent's result lines, then `Night <DATE>, task <k>`.
+     Merge it with a merge commit; if main moved meanwhile, update once more and retry. Then
      `git fetch origin main && git branch -f night-base origin/main`, remove the worktree, update the session's title, and start the next task.
 4. **Your own ceiling.** Your context grows with every task. After each merge, `node tools/agent-usage.js --json` (this session's transcript):
    past 150 calls, start no more tasks; when the running ones are merged, measure (the worker's section 3, step 2, `--label worker`) and

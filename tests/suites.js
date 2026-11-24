@@ -43,8 +43,11 @@ const FAST = [
   ['node', 'tests/questions-tool.js'],
   ['node', 'tests/agent-usage.js'],
   ['node', 'tests/usage-page.js'],
+  ['node', 'tests/periods.js'], // VB-1615: the log of changes cuts periods, compared by stratum
+  ['node', 'tests/reset-estimate.js'], // VB-1615: what a context reset at T could save against the ceiling alone
   ['node', 'tests/context-size.js'],
   ['node', 'tests/same-tool.js'],
+  ['node', 'tests/review-tool.js'],
   ['node', 'tests/wood.js'],
   ['node', 'tests/cold.js'],
   ['node', 'tests/mood.js'],
@@ -67,6 +70,7 @@ const FAST = [
   ['node', 'tests/rye.js'],
   ['node', 'tests/weather.js'], // VB-354: the seasons' weather, each crop's reading, the thaw, the frost, the ripening
   ['node', 'tests/latitude.js'], // VB-807: the winter's dates by latitude, the bands, the growing year by world, dates falling, lat saved
+  ['node', 'tests/winter.js'], // VB-808: the ground by season: ice that bears, frozen marsh, snow; no night on the ice; the thaw's routes
   ['node', 'tests/peas.js'],
   ['node', 'tests/skills.js'], // time taken from causes: skill, a leg's mishap, the crop's size (VB-475)
   ['node', 'tests/reasons.js'], // VB-1551: who chose a pawn's act and why, every chooser but a duty, read-only and read by no module
@@ -93,6 +97,7 @@ const FAST = [
   ['node', 'tests/wells.js'], // VB-1584: a well's cost by the depth; a household's well dug when it pays; the green by the water; village.well a tile
   ['node', 'tests/thirst.js'], // VB-1585: a pawn's own thirst; the dry day its own; a mower leaves at 36 hours, drinks and fetches; no source refused
   ['node', 'tests/minding.js'], // VB-1602: the last one at home with a child under 7 does not leave it: lodge refused with the reason, no carrier
+  ['node', 'tests/fetchchild.js'], // VB-1240: a child under 7 moved within a day's walk is fetched by a grown of its household, not alone
   ['node', 'tests/sitewater.js'], // VB-1583: a site's water as the leader's estimate, weighed by the site search; no site refused for it
   ['node', 'tests/boothwater.js'], // VB-1601: a booth's water fetched by who sleeps there; a dry booth's day; the drink takes the fetch; the open sky; Drink offered
   ['node', 'tests/sitewell.js'], // VB-1587: a site chosen for its well: marked at the founding, dug from the booth beside the field, the fetch then the drawing

@@ -333,8 +333,8 @@ VB['sim/expansion'] = (() => {
       clearScrub(st, tr.tile); // scrub below half cover goes with the clearing (VB-091)
     } else if (tr.kind === 'field') {
       tr.fresh = !w.dev[tr.tile];
-      if (tr.fresh) costChanged(st, tr.tile); // developed ground walks as open ground (sim/routes, tileCost)
       w.dev[tr.tile] = 1;
+      if (tr.fresh) costChanged(st, tr.tile); // developed ground walks as open ground (sim/routes, tileCost)
     } // ground never farmed starts fresh (VB-149)
     tended(st, tr.tile); // worked on: kept open from the forest a year (sim/spread)
     tr.i++;

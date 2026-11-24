@@ -114,9 +114,22 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   tools/village-shot.js` (one generated village on a really tiny island, to judge villages and roads), `node tools/bench.js` (the budget's lines at
   `medium-y5` and `medium-ref`).
 - Land cover: `node tools/cover.js [--map M] [--seeds 7,11,42]` prints each biome's share of a generated island's land; the thresholds are `COVER` in `src/gen.js`.
-- Token use: `node tools/usage-page.js [--dir DIR] [--out FILE] [--json]` writes `docs/usage.html` (derived, never committed; the Pages
+- Token use: `node tools/usage-page.js [--dir DIR] [--out FILE] [--changes FILE] [--json]` writes `docs/usage.html` (derived, never committed; the Pages
   workflow makes it): the weighted cost of each task from the runs in `docs/agents/usage`, by size and model, by kind of token, by turns (model calls) and turns against cost, and the
-  sessions that belong to no one task (orchestrators, and work outside a task) apart. Its model is checked by `tests/usage-page.js`.
+  sessions that belong to no one task (orchestrators, and work outside a task) apart; the cost of tasks over time with the rows of
+  `docs/agents/changes.md` marked, and their periods compared (VB-1615). Its model is checked by `tests/usage-page.js`.
 - Agent usage: `node tools/agent-usage.js [--task VB-NNN] [--results FILE]` (this session's calls, tokens and tool results, and each sub-agent's, from
   their transcripts: weighted cost a done task by size, the orchestrator's share, the median boot, the share done; `--history docs/agents/usage`).
+  Each run also records the context at every 5th call, repeated reads and commands, test runs and failures, whether it continues a task
+  (with its handover's bytes and reconstruction) and compactions (VB-1615). `--history docs/agents/usage --periods docs/agents/changes.md
+  [--from DATE] [--to DATE]` compares the periods that the log of changes starts, by run kind, size and model, with the quality proxies
+  (`tools/lib/periods.js`); `--history docs/agents/usage --estimate [--from DATE]` gives what a voluntary context reset at T could save
+  against the 120-call ceiling alone (`tools/lib/reset-estimate.js`; an upper bound). A change to how agents work adds its row to
+  `docs/agents/changes.md` in the same commit. `node tools/inbox.js calls` prints a run's calls, context and weighted cost, in a sub-agent
+  against the ceiling and in a session of its own without it; past the reset's threshold (`tools/lib/ceiling.js`, 160k) it says to hand
+  over at the next boundary, and when a test has failed three times running or three reads come again in 20 calls, that the run may be
+  stuck (VB-1616). A handover: `node tools/inbox.js note ID handover --body -` (`docs/agents/handover.md`; at most 60 lines, 4 KB), read
+  back by `node tools/inbox.js handover ID`; `result ID status=continue reason=ceiling|boundary|stuck` refuses a voluntary reset under the
+  threshold, before a run's 30th call, without a commit of the run, or a second one a task. `--periods ... --eligible` keeps the tasks
+  whose peak context reached the threshold, `--ineligible` the others (VB-1617 compares them).
 - Play locally: `node build.js`, then open `index.html` in a browser.
