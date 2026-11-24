@@ -1,7 +1,6 @@
 // @sys sim/layout: placing villages (a green, and a farm at a time round it, by its land), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
-  const { B } = VB['world/biomes'],
-    { NO_WELL } = VB['world/water'];
+  const { B } = VB['world/biomes'];
   const { WOOD } = VB['sim/rules'],
     { RIVER, openGround: farmable, byRiver, fertility, clearable, clearedFertility } = VB['sim/crops'],
     { PATHS } = VB['sim/walking'];
@@ -333,8 +332,9 @@ VB['sim/layout'] = (() => {
       }
     }
     village.green = village.farmsteads.length >= 2;
-    // its well is on its green, where the ground has one (VB-1553: the well's tile, null for none)
-    village.well = village.green && w.waterDepth[center] < NO_WELL ? center : null;
+    // a village that starts with its green starts with its well on it, whatever its ground (design.md, Water by the site, At the start;
+    // VB-1553: the well's tile, null for none)
+    village.well = village.green ? center : null;
     // a village that came to one farm is a lone farm: its centre is the house, and the ground meant for the green is free again
     if (village.farmsteads.length === 1) {
       used.delete(center);

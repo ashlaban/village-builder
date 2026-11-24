@@ -357,7 +357,10 @@ VB['sim/fair'] = (() => {
       return {};
     },
     answers: (st, o) => [{ key: 'to', by: o.to, yes: null }],
-    weigh: (st, o) => weigh(st, o.to, o.from, o.wants, o.gives).accept,
+    // an offer that comes due after a dealer has unpacked its load (the played pawn's answer waited for past the fair: found by
+    // VB-1553's run, tests/browser-saves.js) is declined: there is nothing to weigh
+    weigh: (st, o) =>
+      !!st.pawns[o.to].load && !!st.pawns[o.from].load && weigh(st, o.to, o.from, o.wants, o.gives).accept,
     refused: () => {},
     settle: (st, o) =>
       issue(st, {

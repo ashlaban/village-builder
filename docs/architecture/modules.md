@@ -39,6 +39,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   source (VB-1551); the site search weighs a site's daily fetch by them (`siteFetch`, array reads) and a leader's estimate of a site's
   water is `siteWater` (VB-1552: the source, the well of the village joined, a well of its own by its band); the tile card and the
   Fresh water overlay (`src/page/water.js`) show them.
+  Wells (VB-1553): a well's hours and stone are `world/water`'s one rule by the depth (`wellHours`, `wellStone`); a household's well is
+  `src/sim/wells.js` (the making `well` and its kind `housewell`, the head's test `pays` on its planning day, `stoneLacking`, which
+  `sim/building`'s stone step reads), a village's `src/sim/green.js`; `village.well` is the well's tile, and a finished well is a source
+  through `sim/water`'s `wellDug`.
   What lies in the ground is laid by `src/gen/geology.js`, called the same way: bedrock (`w.rock`) in provinces, with lenses of marble and
   soapstone, and finite deposits of clay and ores (`w.deposit`, `w.depositLeft`) as veins, each island drawing which kinds it has
   (`PROVINCES`, `VEINS`; `node tools/geology.js` reports the shares). Nothing digs yet. `src/sim/prospect.js` keeps what each village

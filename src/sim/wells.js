@@ -6,7 +6,7 @@
 // the depth: it weighs the band's middle, sets aside the band's most stone, and meets the depth when water is struck.
 VB['sim/wells'] = (() => {
   const { FRESH, WELL, NO_WELL, BANDS, band, bandMid, bandStone, wellHours, wellStone } = VB['world/water'];
-  const { YEAR_DAYS } = VB['sim/rules'];
+  const { YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
   const { WATER, tripHours, wellDug } = VB['sim/water'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
@@ -50,10 +50,23 @@ VB['sim/wells'] = (() => {
     const fetch = tripHours(s.tile < 0 ? WATER.search : s.walk);
     return (fetch - WATER.draw) * WELL.payYears * YEAR_DAYS > bandMid(band(d));
   }
-  // Whether the head of household hh, holding farm f, means to dig: a well pays, its ground and its plans allow one, and it does not
-  // hold off projects (sim/projects mayBegin).
+  // A household makes its land first (as its building step does, sim/building): while it has fewer fields than its plan wants, or
+  // keeps animals with no meadow to mow for them, its head's rule begins no well (tests/meadows.js: a founder's first meadow is late
+  // as it is). Two comparisons; the played head digs when it likes.
+  function landFirst(st, hh, f) {
+    const plan = st.plans.households.get(hh.id);
+    return (
+      (!!plan && !!plan.targets && f.fields.length < plan.targets.fields) || (hh.herds.length > 0 && !f.meadows.length)
+    );
+  }
+  // Whether the head of household hh, holding farm f, means to dig: a well pays, its ground and its plans allow one, its land is
+  // made, and it does not hold off projects (sim/projects mayBegin).
   const means = (st, hh, f) =>
-    f.household === hh.id && pays(st, f) && Projects.mayBegin(st, hh, 'well') && ground(st, hh, f) === null;
+    f.household === hh.id &&
+    pays(st, f) &&
+    Projects.mayBegin(st, hh, 'well') &&
+    ground(st, hh, f) === null &&
+    !landFirst(st, hh, f);
   // The loads of stone household hh's heap lacks for the well its head means to dig, 0 when it means none or has them: its building
   // step gathers them (sim/building: picked or quarried, as the foundation's), since a heap holds little that no work asked for.
   const stoneLacking = (st, hh, f) =>
@@ -72,10 +85,14 @@ VB['sim/wells'] = (() => {
       ],
     }),
   });
-  // On the household's planning day its head weighs a well: begun, through the verb every head has, when it pays and the verb's check
-  // passes (the stone on its heap). A comparison of numbers a planning day; no search.
+  // The slack of the year, when the head's rule begins the digging: the first half of summer, between the sowing and the haymaking,
+  // and winter, as a house is raised onto stone then (sim/building's slack); a well begun in the hay harvest cost a byre its hay
+  // (tests/byre.js). The played head digs when it likes.
+  const slack = (c) => (c.season === 1 && c.sday < SEASON_DAYS / 2) || c.season === 3;
+  // On the household's planning day in the slack its head weighs a well: begun, through the verb every head has, when it pays and the
+  // verb's check passes (the stone on its heap). A comparison of numbers a planning day; no search.
   on('planReviewed', (st, d) => {
-    if (d.why !== 'day' || d.plan.holder.type !== 'household') return;
+    if (d.why !== 'day' || d.plan.holder.type !== 'household' || !slack(d.c)) return;
     const hh = st.households[d.plan.holder.id],
       f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || hh.holder === null || hh.holder === undefined || !means(st, hh, f) || why(st, hh, f) !== null) return;

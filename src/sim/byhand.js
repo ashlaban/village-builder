@@ -1,6 +1,5 @@
 // @sys sim/byhand: what is placed by hand on a settlement generator: the editor's farm, field or green on a very tile; the market town's packed plots
 VB['sim/byhand'] = (() => {
-  const { NO_WELL } = VB['world/water'];
   const { SETTLE } = VB['sim/rules'],
     { openGround: farmable } = VB['sim/crops'];
   const { hexSteps, bfs } = VB['sim/hex'];
@@ -51,7 +50,7 @@ VB['sim/byhand'] = (() => {
     if (!v) return false;
     v.center = tile;
     v.green = true;
-    v.well = w.waterDepth[tile] < NO_WELL ? tile : null; // no well where the ground has none (VB-1553)
+    v.well = tile; // the well's tile (VB-1553)
     used.add(tile);
     for (let k = 0; k < 6; k++) {
       const j = w.nb[tile * 6 + k];

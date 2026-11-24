@@ -200,7 +200,7 @@ VB['sim/water'] = (() => {
     const out = new Map(),
       n = trips(people);
     for (const t of tiles.keys()) out.set(t, siteFetch(w, t, people));
-    if (!v.well || w.fresh[v.center] !== FRESH.WELL) return out;
+    if (v.well === null || w.fresh[v.well] !== FRESH.WELL) return out;
     const g = new Float32Array(w.N).fill(Infinity),
       done = new Uint8Array(w.N),
       heap = minHeap(g);
