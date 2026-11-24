@@ -297,7 +297,7 @@ VB['sim/agenda'] = (() => {
     const parts = [],
       part = [],
       pleft = [],
-      frost = pp && pp.tasks.some((tk) => tk.kind === 'harvest') ? frostExpected(st) : null;
+      frost = pp && pp.tasks.some((tk) => tk.kind === 'harvest' || tk.kind === 'farmstead') ? frostExpected(st) : null;
     if (pp)
       for (const tk of pp.tasks) {
         if (chainOf(tk)) {
@@ -551,7 +551,7 @@ VB['sim/agenda'] = (() => {
       );
     const gap = (name, tile, where) => {
       if (covered(name, tile)) return;
-      if (name === 'harvest' && frost === null) frost = frostExpected(st);
+      if ((name === 'harvest' || name === 'farmstead') && frost === null) frost = frostExpected(st); // VB-1639: the move's loads
       const deadline = CHAINS[name].deadline(st, hid, where, frost);
       if (deadline) out.push({ tile, chain: name, deadline, days: Math.floor(deadline.t / DAY) - d0 });
     };

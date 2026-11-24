@@ -7,7 +7,7 @@
 // modules' syntax (acorn). A line is placed in its function (the innermost named one; a job kind's property as `kind.property`).
 // - adds and takes: a store operation (by its good; a grain call is the village's when its holder or reason names a village), or a direct
 //   write: `+=`, `++` and push add; `-=`, `--`, filter, splice, shift and pop take; `=` and `*=` set. A take is a use unless its reason
-//   is a loss (spoilage, burn) or a transfer between holders (gift, share, handingOn, provisions, start), or, for a direct write, its
+//   is a loss (spoilage, burn) or a transfer between holders (gift, share, handingOn, provisions, start, moving), or, for a direct write, its
 //   function is one of the line's `losses`.
 // - reads: a read site in the simulation (not sim/stores, sim/saves or the generator) in a function that does not change the quantity;
 //   reads in its own job kinds' `available` and `urgency` are not counted (they only refill it).
@@ -213,7 +213,7 @@ const OPS = { put: 'add', take: 'take', takeSpare: 'take', move: 'move', cook: '
   start: 'start', brew: 'brew',
   pour: 'take', spoilAle: 'take', villageDay: 'take', dry: 'take', cookLarder: 'add' };
 const OP_GOODS = { dug: ['clay', 'bogOre', 'peat'] };
-const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'share', 'wage', 'handingOn', 'provisions', 'start']);
+const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'share', 'wage', 'handingOn', 'provisions', 'start', 'moving']);
 const SKIP = new Set(['sim/stores', 'sim/saves']); // the stores' own operations, and saving
 // A module's named functions, innermost by line: [{name, from, to}], a job kind's properties as `kind.property`
 function functionsOf(src) {

@@ -435,6 +435,11 @@ function checkState(st) {
     const K = st.routeKept, { ROUTE } = globalThis.VB['sim/routes'];
     if (K && (K.routes.size > ROUTE.cacheMax || K.log.length > ROUTE.keepDays)) bad.push('routeKept: over ROUTE.cacheMax or ROUTE.keepDays');
   }
+  // VB-1639: a lone farm's village follows its house: a village of one farm and no green has its centre on that farm's house (sim/layout
+  // seeds it so, sim/green moves it when the house moves)
+  for (const v of st.villages)
+    if (!v.green && v.farmsteads.length === 1 && v.center !== st.farmsteads[v.farmsteads[0]].house)
+      bad.push(`village ${v.id}: one farm and no green, its centre ${v.center} not the house ${st.farmsteads[v.farmsteads[0]].house}`);
   // the walking hours between villages (VB-286): a row a village, each as long as the villages are many; 0 on the diagonal, symmetric, and
   // every other entry null or a number in (0, ROUTE.reach / SPEED]
   {
@@ -1844,6 +1849,9 @@ function checkHerds(st, bad) {
     const standing = hd.at !== undefined;
     if (standing && !(Number.isInteger(hd.at) && st.farmsteads[hd.at])) bad.push(`${where}: stands at farm ${hd.at}`);
     if (standing !== (st.herdsAway || []).includes(hd.id)) bad.push(`${where}: at ${hd.at}, ${standing ? 'not ' : ''}on herdsAway`);
+    // VB-1639: a herd left at the landing its farm's house moved from stands at a tile of the map, away, at its own household's farm
+    if (hd.tile !== undefined && !(standing && Number.isInteger(hd.tile) && hd.tile >= 0 && hd.tile < st.w.N && hd.household !== null
+      && st.households[hd.household] && st.households[hd.household].farmstead === hd.at)) bad.push(`${where}: stands at tile ${hd.tile}`);
     if (hd.household === null) {
       if (!standing && ((hd.head && hd.head.length) || hd.ewes || hd.rams || hd.lambs)) bad.push(`${where}: animals but no household`);
       continue;

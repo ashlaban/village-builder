@@ -98,14 +98,15 @@ const twoOff = (st) => {
   tried(() => ((st.owner[t] = 9), () => (st.owner[t] = 0)), /owned or claimed by another/, 'owned by another');
   tried(() => ((w.trees[t] = 5), () => (w.trees[t] = 0)), /trees stand/, 'wooded');
   const far = [...bfs(w, f.house, 6, () => true).dist.keys()].find((u) => hexSteps(w, f.house, u) === LANDING.soilSteps + 1);
-  assert.match(String(Sim.placeWhy(st, 'farmstead', far)), /farther than 3 steps/);
-  // walled in: every way to it within reach blocked (the tiles round it made water)
+  assert.strictEqual(Sim.placeWhy(st, 'farmstead', far), null, 'no step bound for the played head (VB-1639)');
+  // walled in: every way to it blocked (the tiles round it made water; the walkable parts labelled again)
   const ring = [];
   for (let d = 0; d < 6; d++) ring.push(w.nb[t * 6 + d]);
-  const near = ring.filter((u) => u >= 0 && u !== f.house && !w.water[u]);
-  for (const u of near) w.water[u] = 1;
-  assert.match(String(Sim.placeWhy(st, 'farmstead', t)), /walk|open ground/, 'walled in');
-  for (const u of near) w.water[u] = 0;
+  const near = ring.filter((u) => u >= 0 && u !== f.house && !w.water[u]),
+    { invalidateReach } = VB['sim/walking'];
+  for (const u of near) (w.water[u] = 1), invalidateReach(w, u);
+  assert.match(String(Sim.placeWhy(st, 'farmstead', t)), /not reachable on foot/, 'walled in');
+  for (const u of near) (w.water[u] = 0), invalidateReach(w, u);
   assert.strictEqual(Sim.plan(st, 'add', { farmstead: t }), true);
   assert.match(String(Sim.plan(st, 'add', { farmstead: f.house })), /planned already/, 'one at a time');
   const est = Sim.agenda(st).plan[0].hours.mid; // VB-1630: the menu's work is the plan's estimate (a task at t, here: the same steps)
@@ -156,7 +157,8 @@ const twoOff = (st) => {
   assert(st.used.has(t) && !st.used.has(land), 'the tiles in use');
   assert.deepStrictEqual(VB['sim/ownership'].ownerOf(st, t), { type: 'household', id: hh.id });
   assert.strictEqual(VB['sim/ownership'].ownerOf(st, land), null, 'the landing given back');
-  assert(hexSteps(st.w, st.herds[hh.herds[0]].home, t) <= 2, 'the herd grazes by the house');
+  assert.deepStrictEqual(hh.herds, [], 'the herds stand at the landing (VB-1639), listed away');
+  assert(st.herdsAway.every((id) => st.herds[id].tile === land), 'each at the landing');
   const src = Water.source(st.w, t, v);
   assert.strictEqual(f.water.tile, src.tile, 'the water found from the house');
   const staked = Sim.stakedBooths(st);
@@ -175,6 +177,8 @@ const twoOff = (st) => {
   run(st);
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
   assert.strictEqual(back.player.plan.last.which, 'raised');
+  assert(back.households[0].herds.length && !back.herdsAway, 'the herds driven home');
+  for (const id of back.households[0].herds) assert(hexSteps(back.w, back.herds[id].home, t) <= 2, 'the herd grazes by the house');
   assert.strictEqual(back.farmsteads[0].camp, false);
   sound(back, 'raised two steps off, loaded');
 }

@@ -12,11 +12,15 @@ VB['sim/droving'] = (() => {
   //   list (Rules for cost 1): a herd leaves it when it is led home, taken in or lost at the frost; absent once empty. Written only here.
   // @state herd.at: the farmstead the herd stands at while it is on st.herdsAway (its `home` the grazing tile by that farm); absent otherwise.
   //   A herd standing away is listed by no household's herds: its animals are not milked, fed or worked by anyone until they are home.
+  // @state herd.tile: absent, or the tile a herd on st.herdsAway stands at when that is not its farm's house: the landing its own farm's
+  //   house moved from (VB-1639; herd.at its own farm), its `home` the grazing tile by it. Written only here, with herd.at.
   const away = (st) => st.herdsAway || [];
-  function standAway(st, herd, owner, at) {
+  function standAway(st, herd, owner, at, tile) {
     herd.household = owner === null ? null : owner.id;
     herd.at = at;
-    herd.home = homeTile(st, st.farmsteads[at]);
+    if (tile === undefined) delete herd.tile;
+    else herd.tile = tile;
+    herd.home = homeTile(st, st.farmsteads[at], tile);
     herd.herder = null; // left by the farm where it stands
     herd.cull = [];
     if (!st.herdsAway) st.herdsAway = [];
@@ -24,6 +28,7 @@ VB['sim/droving'] = (() => {
   }
   function unlist(st, herd) {
     delete herd.at;
+    delete herd.tile;
     if (!st.herdsAway) return;
     st.herdsAway.splice(st.herdsAway.indexOf(herd.id), 1);
     if (!st.herdsAway.length) delete st.herdsAway;
@@ -83,7 +88,7 @@ VB['sim/droving'] = (() => {
       else herd.household = null;
     }
     for (const id of [...away(st)])
-      if (st.herds[id].household === from.id) standAway(st, st.herds[id], dest, st.herds[id].at);
+      if (st.herds[id].household === from.id) standAway(st, st.herds[id], dest, st.herds[id].at, st.herds[id].tile);
     if (dest && from.hay > 0) leaveHay(st, from, dest, from.hay);
     from.herds = [];
     from.hay = 0;
@@ -144,12 +149,32 @@ VB['sim/droving'] = (() => {
     hd.species === 'cattle'
       ? plural(hd.head.length, 'head of cattle', 'head of cattle')
       : plural(count(hd), 'sheep', 'sheep');
-  // The herd is home: its animals join the household's herd (sim/kinds' `drove`, delivered at the barn).
+  // A household's house moved (sim/camp, VB-1639): each of its herds stands at the tile the house left, the landing, its own farm's still,
+  // until one of its members drives it to the new house (the kind `drove`). Not lost at the frost: its owner has a farm.
+  function leaveAt(st, hh, tile) {
+    for (const id of hh.herds) standAway(st, st.herds[id], hh, hh.farmstead, tile);
+    hh.herds = [];
+  }
+  // The herd is home: its animals join the household's herd (sim/kinds' `drove`, delivered at the barn); a herd driven from the landing
+  // (herd.tile) is the household's herd again, as it was, unless it has one of the species already.
   function ledHome(st, j, hh) {
     const herd = st.herds[j.herd];
     if (!herd || herd.at === undefined || herd.household !== hh.id) return;
     const from = st.farmsteads[herd.at],
       text = what(herd);
+    if (herd.tile !== undefined) {
+      unlist(st, herd);
+      if (herdOf(st, hh, herd.species)) merge(st, herd, hh);
+      else {
+        hh.herds.push(herd.id);
+        herd.home = homeTile(st, from);
+      }
+      log(st, `${from.name}: ${text} driven from the landing to the new house.`, {
+        kind: 'herdLed',
+        ...atHousehold(st, hh),
+      });
+      return;
+    }
     unlist(st, herd);
     merge(st, herd, hh);
     log(st, `${st.farmsteads[hh.farmstead].name}: ${text} led home from ${from.name}.`, {
@@ -214,9 +239,9 @@ VB['sim/droving'] = (() => {
     available: (st, hh, f, c, post) => {
       for (const id of away(st)) {
         const hd = st.herds[id];
-        if (hd.household === hh.id) post(`drove:H${id}`, st.farmsteads[hd.at].house, { farm: f, herd: id });
+        if (hd.household === hh.id) post(`drove:H${id}`, hd.tile ?? st.farmsteads[hd.at].house, { farm: f, herd: id });
       }
     },
   };
-  return { passHerds, startHerd, payInAnimals, frost, KIND };
+  return { passHerds, startHerd, payInAnimals, leaveAt, frost, KIND };
 })();

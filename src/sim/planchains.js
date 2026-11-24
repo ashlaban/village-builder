@@ -347,21 +347,62 @@ VB['sim/planchains'] = (() => {
   // A save before VB-1638 may hold a booth staked beside the house instead (`staked`): its trips and raising, as before.
   const Camp = VB['sim/camp'];
   const trips = (lack) => Math.max(1, Math.ceil(lack / ECON.woodPerTrip - 1e-9));
+  // VB-1639: placed off the landing, the move goes first, as steps found by their keys: each herd standing at the landing driven to the new
+  // house (drove), each cart standing there fetched with its team, then each load left there fetched (its trips: on the household's best
+  // cart once fetched, else on the back); a step's job is posted at the household's review (sim/droving, sim/lying fetchWork).
+  const MOVE_KINDS = ['drove', 'fetchLeftCart', 'fetchLeftGrain', 'fetchHay', 'fetchLeftTimber'];
+  function moveSteps(st, hid) {
+    const hh = st.households[hid],
+      { herds, carts, loads } = Camp.leftAt(st, hh),
+      out = [];
+    if (herds.length)
+      out.push({
+        kind: 'drove',
+        hours: KINDS.drove.hours,
+        n: herds.length,
+        from: -Infinity,
+        keys: herds.map((id) => `drove:H${id}`),
+      });
+    if (carts.length)
+      out.push({
+        kind: 'fetchLeftCart',
+        hours: KINDS.leftCart.hours,
+        n: carts.length,
+        from: -Infinity,
+        keys: carts.map((l) => `fetch:L${l.id}`),
+      });
+    const cart = hh.carts.some((c) => c.kind === 'ox') ? TRAVEL.cart : hh.carts.length ? TRAVEL.hand : TRAVEL.load;
+    for (const k of MOVE_KINDS.slice(2)) {
+      const ls = loads.filter((l) => Lying.fetchKey(l.kind) === k);
+      if (ls.length)
+        out.push({
+          kind: k,
+          hours: Lying.LIFT,
+          n: ls.reduce((x, l) => x + Math.ceil(l.n / cart - 1e-9), 0),
+          from: -Infinity,
+          keys: ls.map((l) => `fetch:L${l.id}`),
+        });
+    }
+    return out;
+  }
+  const Lying = VB['sim/lying'];
   const farmstead = {
     noun: 'farmstead',
     mark: null,
-    kinds: ['timber', 'shelter', 'booth'],
+    kinds: ['timber', 'shelter', 'booth', ...MOVE_KINDS],
     which: ['raised', 'gone'],
     at: (st, hid, tile) => Camp.campAt(st, hid, tile),
     none: (tile) => `there is no camp to place a farmstead from, nor a farmstead under way at ${tile}`,
     why: (st, where, tile) =>
       where.camp ? Camp.placeWhy(st, 'farmstead', tile) : where.raised ? `the farmstead at ${tile} stands` : null,
-    steps: (st, hid, { f, camp, staked, shelter }) => {
+    steps: (st, hid, { f, camp, staked, shelter, raised }) => {
       if (shelter || (camp && !staked)) {
         const lack = lacks(shelter || {}, BOOTH.wood),
           raise = { kind: 'shelter', hours: BOOTH.hours, n: 1, from: -Infinity, keys: [`shelter:f${f.id}`] };
-        if (!lack) return [raise];
+        const move = shelter ? moveSteps(st, hid) : [];
+        if (!lack) return [...move, raise];
         return [
+          ...move,
           {
             kind: 'timber',
             hours: KINDS.timber.hours,
@@ -372,6 +413,7 @@ VB['sim/planchains'] = (() => {
           raise,
         ];
       }
+      if (raised) return moveSteps(st, hid); // VB-1639: the shelter raised before the move was all fetched
       if (!camp && !staked) return [];
       const s = staked && staked.steps[staked.open],
         bid = staked ? staked.booth : null,
@@ -383,8 +425,16 @@ VB['sim/planchains'] = (() => {
         ? [{ kind: 'timber', hours: KINDS.timber.hours, n: trips(lack), from: -Infinity, keys }, raise]
         : [raise];
     },
-    gone: (st, where) => (where.raised ? 'raised' : null),
-    deadline: () => null,
+    gone: (st, where) =>
+      where.raised && !(where.f.household !== null && moveSteps(st, where.f.household).length) ? 'raised' : null,
+    // VB-1639: while loads of the move lie at the landing, the frost the head expects (`frost`, an autumn day), when they are lost (sim/lying)
+    deadline: (st, hid, where, frost) => {
+      if (!where.shelter || frost === null || frost === undefined || !Camp.leftAt(st, st.households[hid]).loads.length)
+        return null;
+      const at = (y) => y + (2 * SEASON_DAYS + frost) * DAY + WORK[1],
+        t = at(yearOf(st));
+      return { t: t >= st.t ? t : at(yearOf(st) + YEAR), what: 'the frost' };
+    },
     act: (st, id, where, tile) =>
       where.camp ? { actor: id, verb: 'placeFarmstead', target: tile, args: null, source: 'player' } : null,
   };
