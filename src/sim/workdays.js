@@ -172,6 +172,7 @@ VB['sim/workdays'] = (() => {
         VB.count.workdayHolders++;
         if (b !== hh.holder && tieOf(st, b, hh.holder) > 0) remember(st, b, hh.holder, 'stayedAway');
       }
+      emit(st, 'stayedAway', { holder: hh.holder, came }); // a story, known to those who came (sim/stories, VB-523)
     }
     const turned = Object.keys(rec.hoursOf).filter((id) => rec.hoursOf[id] > 0).length,
       task = rec.what === 'fence' ? 'to close the village fence' : 'to clear the commons at the edge of the wood',

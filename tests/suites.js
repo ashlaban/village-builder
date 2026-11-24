@@ -205,6 +205,7 @@ const INTEGRATION = [
   ['node', 'tests/commons.js'],
   ['node', 'tests/cottage.js'],
   ['node', 'tests/relations.js'],
+  ['node', 'tests/stories.js'], // VB-523: stories witnessed, told, believed, saturated, forgotten, dropped and saved
   ['node', 'tests/pastimes.js'], // VB-1552: own time, the six pastimes each reached, the verb `pastime`, the call and the cut
   ['node', 'tests/visitors.js'], // VB-1559: a caller at the door sits with those indoors; a passer-by does not
   ['node', 'tests/encounters.js'],
