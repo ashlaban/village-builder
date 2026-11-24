@@ -1,0 +1,184 @@
+{
+ "session": "0ef11e6f-71db-5b88-9d50-864619948b9b",
+ "label": "worker",
+ "models": [
+  "claude-sonnet-5-5"
+ ],
+ "start": "2026-11-24T22:46:25.273Z",
+ "end": "2026-11-24T22:51:18.572Z",
+ "wallMin": 4.9,
+ "activeMin": 4.9,
+ "prompts": 1,
+ "calls": 24,
+ "subagentCalls": 0,
+ "reviewCalls": 1,
+ "tokens": {
+  "input": 46,
+  "cacheWrite": 53494,
+  "cacheRead": 2499486,
+  "output": 7661
+ },
+ "context": {
+  "first": 86140,
+  "peak": 117408,
+  "firstEdit": 0,
+  "series": [
+   [
+    5,
+    95486
+   ],
+   [
+    10,
+    106048
+   ],
+   [
+    15,
+    110706
+   ],
+   [
+    20,
+    114531
+   ],
+   [
+    24,
+    117408
+   ]
+  ]
+ },
+ "tools": {
+  "Skill": {
+   "calls": 1,
+   "bytes": 21,
+   "seconds": 0
+  },
+  "Bash": {
+   "calls": 22,
+   "bytes": 42578,
+   "seconds": 225.3
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "git log",
+   "calls": 3,
+   "bytes": 11097
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 5,
+   "bytes": 9744
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 3,
+   "bytes": 9095
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 4080
+  },
+  {
+   "tool": "Bash",
+   "what": "node tests/marriage.js",
+   "calls": 2,
+   "bytes": 3229
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 1812
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/review.js",
+   "calls": 1,
+   "bytes": 1566
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 3,
+   "bytes": 781
+  },
+  {
+   "tool": "Bash",
+   "what": "npm run",
+   "calls": 1,
+   "bytes": 658
+  },
+  {
+   "tool": "Bash",
+   "what": "cat >>",
+   "calls": 1,
+   "bytes": 428
+  },
+  {
+   "tool": "Bash",
+   "what": "git stash",
+   "calls": 1,
+   "bytes": 88
+  },
+  {
+   "tool": "Skill",
+   "what": "task",
+   "calls": 1,
+   "bytes": 21
+  }
+ ],
+ "repeats": {
+  "reads": 0,
+  "readBytes": 0,
+  "commands": 0,
+  "commandBytes": 0,
+  "recent": 0
+ },
+ "tests": {
+  "runs": 7,
+  "failed": 0,
+  "streak": 0,
+  "current": 0
+ },
+ "compactions": 0,
+ "continuation": {
+  "continues": false,
+  "handoverBytes": 0,
+  "callsToEdit": null,
+  "contextToEdit": null,
+  "reason": null
+ },
+ "continuations": {
+  "launched": 0,
+  "calls": 0
+ },
+ "weighted": 355167,
+ "task": "VB-1481",
+ "subagents": [],
+ "review": {
+  "task": "VB-1481",
+  "arm": "ineligible"
+ },
+ "summary": {
+  "weightedTotal": 355167,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0,
+  "review": {
+   "reviews": 0,
+   "weighted": 0,
+   "median": null,
+   "revisions": 0,
+   "revisionWeighted": 0,
+   "orchestratorCalls": 1
+  }
+ }
+}
