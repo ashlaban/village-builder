@@ -225,6 +225,111 @@ const head = (st) => st.player.queue[0];
   fd.crop = 'fallow';
   assert.match(String(Sim.plan(st, 'add', { plant: fd.tile })), /lies fallow/);
 }
+// 7. VB-1622: the chains hay and harvest, and a marked tile. With herds and meadows, the played farmer alone (the others' hands would do
+// its tasks before it): the gaps of the sowing listed and one gone once planned; a hay task added in spring stands until the mowing is
+// posted, then carries the meadow from its mowing to its hay home with no further act; a harvest task added in summer waits for the
+// crop to ripen, then reaps it and brings the sheaves in; the refusals; a save and a load go on the same.
+const alone = (opt) => {
+  const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4, ...opt });
+  st.naturalDeaths = false;
+  Sim.advance(st, 3);
+  for (const p of st.pawns) if (p.id !== FARMER && p.alive) VB['sim/lifecycle'].killPawn(st, p.id);
+  Sim.advance(st, 0.1);
+  return played(st);
+};
+const chainRun = (st, stop, steps = 40 * 24 * 10) => {
+  const begun = [];
+  let seen = null;
+  for (let i = 0; i < steps && !stop(st); i++) {
+    Sim.advance(st, 0.1);
+    const c = head(st);
+    if (c && c.plan && c.plan.from === 'task' && c.begun !== null && c !== seen) {
+      seen = c;
+      begun.push([c.plan.chain, c.plan[c.plan.chain], c.plan.kind]);
+    }
+  }
+  return begun;
+};
+{
+  const st = alone({ herds: true }), f = st.farmsteads[0], m = f.meadows[0], fd = f.fields[0];
+  assert.strictEqual(st.households[0].holder, FARMER, 'the farmer is the head');
+  const gaps = Sim.planGaps(st);
+  assert(gaps.some((g) => g.chain === 'plant' && g.tile === fd.tile && /barley sowing/.test(g.deadline.what) && g.days >= 0), JSON.stringify(gaps));
+  assert(gaps.every((g, n) => !n || gaps[n - 1].deadline.t <= g.deadline.t), 'by deadline');
+  assert.strictEqual(Sim.plan(st, 'add', { plant: fd.tile }), true);
+  assert(!Sim.planGaps(st).some((g) => g.tile === fd.tile), 'the field planned is no gap');
+  // the refusals
+  assert.match(String(Sim.plan(st, 'add', { hay: fd.tile })), /no meadow of the household's nor a meadow project at/);
+  assert.match(String(Sim.plan(st, 'add', { harvest: m.tile })), /no field of the household's at/);
+  assert.match(String(Sim.plan(st, 'add', { harvest: fd.tile })), /is not sown/);
+  assert.match(String(Sim.plan(st, 'add', { harvest: st.farmsteads[1].fields[0].tile })), /no field of the household's/, 'a neighbour\'s field');
+  assert.strictEqual(Sim.plan(st, 'add', { hay: m.tile }), true, 'a hay task added before the haymaking');
+  assert.match(String(Sim.plan(st, 'add', { hay: m.tile, at: 0 })), /meadow at \d+ is already planned/);
+  assert.deepStrictEqual(st.player.plan.tasks[1], { hay: m.tile, kind: 'hay', site: m.tile });
+  const hv = Sim.planView(st).tasks[1];
+  assert.deepStrictEqual([hv.kind, hv.hay, hv.step, hv.stands], ['hay', m.tile, 'mow', false], 'it stands, its mowing not posted');
+  const saved = JSON.parse(JSON.stringify(Sim.save(st)));
+  const summer = (s) => Sim.cal(s.t).season >= 1;
+  const sown = chainRun(st, summer);
+  assert(sown.some((b) => b[0] === 'plant' && b[2] === 'sow') && SOWN(fd), `the field sown on the way: ${fd.stage}`);
+  assert(st.player.plan.tasks.some((t) => t.hay === m.tile), 'the hay task stood through the spring');
+  // the harvest task added in summer: it waits
+  assert.strictEqual(Sim.plan(st, 'add', { harvest: fd.tile }), true);
+  const rv = Sim.planView(st).tasks.find((t) => t.kind === 'harvest');
+  assert.deepStrictEqual([rv.harvest, rv.step, rv.stands], [fd.tile, 'reap', false]);
+  const hay = chainRun(st, (s) => !s.player.plan.tasks.some((t) => t.kind === 'hay'));
+  const at = (b, k) => b.filter((x) => x[0] === k).map((x) => x[2]);
+  assert(at(hay, 'hay')[0] === 'mow' && at(hay, 'hay').includes('hay') && at(hay, 'hay').every((k, n) => k === 'mow' ? !at(hay, 'hay').slice(0, n).includes('hay') : k === 'hay'), `mown, then its hay carried: ${at(hay, 'hay')}`);
+  assert.strictEqual(m.stage, 'aftermath');
+  assert.deepStrictEqual([st.player.plan.last.hay, st.player.plan.last.kind, st.player.plan.last.which], [m.tile, 'hay', 'home']);
+  assert.match(String(Sim.plan(st, 'add', { hay: m.tile })), /hay of the meadow at \d+ is in/);
+  assert(!hay.some((b) => b[0] === 'harvest'), 'the harvest waited');
+  sound(st, 'hay home');
+  // the crop brought on to ripen in a few days (a constructed state: the year's draw would ripen it in autumn)
+  fd.sown -= 12;
+  const reaped = chainRun(st, (s) => !s.player.plan.tasks.some((t) => t.kind === 'harvest'));
+  assert(at(reaped, 'harvest')[0] === 'reap' && at(reaped, 'harvest').includes('haul'), `reaped, then its sheaves carried: ${at(reaped, 'harvest')}`);
+  assert.deepStrictEqual([st.player.plan.last.harvest, st.player.plan.last.which], [fd.tile, 'in'], JSON.stringify(st.player.plan.last));
+  assert.strictEqual(fd.stage, 'stubble');
+  assert(st.households[0].unthreshed.length > 0, 'the sheaves in the barn');
+  sound(st, 'harvest in');
+  // the run saved in spring goes on the same
+  const back = Sim.load(tinyWorld(rows), saved), again = Sim.load(tinyWorld(rows), saved);
+  Sim.advance(back, 48);
+  Sim.advance(again, 24);
+  Sim.advance(again, 24);
+  assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
+  sound(back, 'chains, loaded');
+}
+function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
+// A marked tile: the head names the tile of its next field (sim/plans' verb `tile`) while a field project is open; a plant task there is
+// accepted for the head only, stands, and when the open project is done the feeder begins the new one through the head's verb `project`.
+{
+  const st = alone(), f = st.farmsteads[0], hh = st.households[0];
+  st.jobs.get('clear:f0').hours = 8;
+  const tile = VB['sim/fieldplans'].pickField(st, f, hh);
+  assert(tile >= 0 && VB['sim/projects'].ownOf(st, 0), 'a field project open, and a tile for the next');
+  assert.match(String(Sim.plan(st, 'add', { plant: tile })), /no field of the household's nor a field project/, 'not marked: refused');
+  assert.strictEqual(Sim.command(st, { actor: FARMER, verb: 'tile', target: 0, args: { what: 'field', tile }, source: 'player' }), true);
+  hh.holder = null;
+  assert.match(String(Sim.plan(st, 'add', { plant: tile })), /pawn 0 is not the head of household 0/, 'refused for one not the head');
+  hh.holder = FARMER;
+  const site = st.jobs.get('clear:f0').site;
+  assert.strictEqual(Sim.plan(st, 'add', { plant: site }), true);
+  assert.strictEqual(Sim.plan(st, 'add', { plant: tile }), true, 'the marked tile');
+  const v = Sim.planView(st).tasks[1];
+  assert.deepStrictEqual([v.plant, v.step, v.stands], [tile, VB['sim/fieldplans'].fieldProject(st, hh, tile).steps[0].kind, false]);
+  const begun = chainRun(st, () => VB['sim/projects'].projectsOf(st, 'household', 0).some((p) => p.what === 'field' && p.steps.some((s) => s.place === tile)), 10 * 24 * 10);
+  const p = VB['sim/projects'].ownOf(st, 0);
+  assert(p && p.steps[p.open].place === tile, 'the project at the marked tile begun');
+  Sim.advance(st, 0.2);
+  assert(begun.some((b) => b[1] === site && b[2] === 'break'), 'after the first project\'s breaking');
+  assert(begun.some((b) => b[1] === tile && b[2] === 'project'), `begun by the feeder through the head's verb: ${JSON.stringify(begun)}`);
+  assert(st.player.plan.tasks.some((t) => t.plant === tile) && Sim.planView(st).tasks.find((t) => t.plant === tile).step === p.steps[p.open].kind, 'the task goes on with its project');
+  assert.strictEqual(st.plans.households.get(0).tiles.field, -1, 'the mark used');
+  sound(st, 'marked');
+}
 console.log('plan: ops and refusals; the routine once a day in order, the tasks in order, a finished task leaves; hand commands first; '
   + 'sleep by the plan\'s hours, a night worked by hand; a clearing over two days; saved and loaded; a plant task from clearing to '
-  + 'sowing, shorter on a broken field, dropped when its window shuts');
+  + 'sowing, shorter on a broken field, dropped when its window shuts; a hay task from mowing to hay home, a harvest task from reaping '
+  + 'to the sheaves in, the gaps; a marked tile\'s project begun by the head\'s verb');

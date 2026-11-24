@@ -202,6 +202,45 @@ Sim.plan(H, 'add', { key: 'clear:f0' });
 const PH = laid(H).plan[0];
 assert(PH.key === 'clear:f0' && PH.kind === 'clear' && !('steps' in PH) && PH.then && PH.then.steps.map((x) => x.kind).join() === 'break,plow,sow', JSON.stringify(PH));
 
+// VB-1622: a hay task and a harvest task laid as the plant task is: in spring, the hay's mowing and carrying not posted (rough), laid
+// no earlier than the haymaking opens, its deadline the haymaking's end; a field near ripe (a constructed state) its reaping from the
+// day it is expected ripe and its carrying after, its deadline the frost the head expects. Sim.planGaps lists the harvest that presses
+// with no task, and not once planned; it writes nothing.
+{
+  const K = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4, herds: true });
+  K.naturalDeaths = false;
+  Sim.advance(K, 3);
+  for (const p of K.pawns) if (p.id !== 0 && p.alive) VB['sim/lifecycle'].killPawn(K, p.id);
+  Sim.advance(K, 0.1);
+  Sim.inhabit(K, 0);
+  Sim.setAuto(K, false);
+  const { SEASON_DAYS } = VB['sim/rules'], { MOW_LAST } = VB['sim/meadows'], m = K.farmsteads[0].meadows[0], fd = K.farmsteads[0].fields[1];
+  const today = Math.floor(K.t / DAY);
+  fd.stage = 'growing';
+  fd.sown = today - VB['sim/crops'].CROPS[fd.crop].ripe + 2; // ripe in two days
+  const gaps = () => {
+    const before = structuredClone(K), r = Sim.planGaps(K);
+    assert(isDeepStrictEqual(before, K), 'planGaps wrote to st');
+    return r;
+  };
+  const g = gaps().find((x) => x.tile === fd.tile);
+  assert(g && g.chain === 'harvest' && g.deadline.what === 'the frost' && g.days > 2, JSON.stringify(g));
+  assert.strictEqual(Sim.plan(K, 'add', { hay: m.tile }), true);
+  assert.strictEqual(Sim.plan(K, 'add', { harvest: fd.tile }), true);
+  assert(!gaps().some((x) => x.tile === fd.tile), 'gone once planned');
+  const LK = laid(K), [HA, HR] = LK.plan, open = (SEASON_DAYS * DAY) + WORK[0];
+  assert.deepStrictEqual(HA.steps.map((x) => [x.kind, x.rough]), [['mow', true], ['hay', true]], JSON.stringify(HA.steps));
+  assert.deepStrictEqual([HA.kind, HA.hay, HA.step, HA.stands, HA.rough], ['hay', m.tile, 'mow', false, true]);
+  assert(HA.deadline.t === (2 * SEASON_DAYS + MOW_LAST) * DAY + WORK[1] && HA.deadline.what === 'the end of haymaking', JSON.stringify(HA.deadline));
+  assert(HA.starts >= open && HA.ends > HA.starts && HA.verdict === 'in time', JSON.stringify(HA));
+  assert(Math.abs(HA.hours.mid - HA.steps.reduce((n, x) => n + x.hours.mid, 0)) < 1e-9, 'the hours of all steps left');
+  assert.deepStrictEqual(HR.steps.map((x) => [x.kind, x.rough]), [['reap', true], ['haul', true]]);
+  assert(HR.step === 'reap' && !HR.stands && HR.deadline.what === 'the frost' && HR.deadline.t === g.deadline.t, JSON.stringify(HR));
+  assert(HR.starts >= (fd.sown + VB['sim/crops'].CROPS[fd.crop].ripe) * DAY + WORK[0] && HR.ends > HR.starts && HR.verdict, JSON.stringify(HR));
+  const seq = LK.days.flat().filter((x) => x.what === 'task').map((x) => x.kind);
+  assert(seq.length && seq.every((k) => k === 'reap' || k === 'haul') && seq[0] === 'reap', `the reaping laid first in the three days, the mowing not before summer: ${seq}`);
+}
+
 // the layout and the feeder agree: what the pawn did, hour by hour over the three days (sampled each tenth), against what `days` said
 // at the start: the same act (sleep, routine of a kind, a task by its key, free), but within the estimate's error of a join
 const TOL = 3, joins = L.days.flat().slice(1).map((g) => g.from);

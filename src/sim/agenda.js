@@ -2,21 +2,23 @@
 // take, each with the hours the pawn itself reckons it takes (sim/estimate; principle 14: what is shown of the future is some pawn's
 // estimate), the deadline that presses (a field's sowing window, the frost the head expects, the haymaking window) and whether it ends in
 // time; for a step of a project making a field, the steps left before the field can be sown; and the player's plan (sim/playerplan) laid
-// into today and the next two days by the feeder's rule (VB-1619: days, plan, owed, routine). A view computed when the page asks, as
+// into today and the next two days by the feeder's rule (VB-1619: days, plan, owed, routine); and the windows that press at the household's
+// tiles with no task of the plan covering them (VB-1622: planGaps). A view computed when the page asks, as
 // sim/reasons is: it writes nothing, draws nothing, and no simulation module reads it (tests/agenda.js)
 VB['sim/agenda'] = (() => {
   const { DAY, SEASON_DAYS, YEAR, WORK, SPEED, cal } = VB['sim/rules'];
   const { CROPS, ROTATIONS } = VB['sim/crops'];
   const { KINDS } = VB['sim/kinds'];
   const { estimate } = VB['sim/estimate'];
-  const { windowLeft, cause } = VB['sim/reasons'];
+  const { windowLeft, cause, frostExpected } = VB['sim/reasons'];
   const { projectsOf } = VB['sim/projects'];
   const { courseFor } = VB['sim/rotations'];
-  const { MOW_LAST } = VB['sim/meadows'];
+  const { MOW_LAST, hayWanted } = VB['sim/meadows'];
   const { workFor } = VB['sim/opportunities'];
   const { here, walkHours } = VB['sim/pose'];
   const { toAxial, hexDist } = VB['world/grid'];
-  const { asleepAt, plantSteps, sowWindow } = VB['sim/playerplan'];
+  const { asleepAt, CHAINS, chainOf, chainSteps } = VB['sim/playerplan'];
+  const { heldFarms } = VB['sim/ownership'];
   const { AWAKE, SLEEP, owedBy } = VB['sim/sleep'];
   const LEN = WORK[1] - WORK[0];
   // ---- time: work and walks are laid in working hours ----
@@ -186,24 +188,33 @@ VB['sim/agenda'] = (() => {
     if (f && f.water && (KINDS[k].at || []).includes('water')) Object.assign(s, { farm: f, site: f.water.tile });
     return s;
   }
-  // A plant task's steps left (sim/playerplan plantSteps, VB-1621) as parts of its work: {kind, key (its job's, null while not posted), e
-  // (the pawn's estimate: of the job posted, else of the step's hours), rough (not posted), from (the hour it may begin: a hoeing or a
-  // sowing not posted at its sowing window's opening)}; with the window and the crop.
-  function plantParts(st, id, hid, tk) {
-    const s = plantSteps(st, hid, tk.plant);
-    if (!s) return { parts: [], win: null, crop: null };
-    const win = sowWindow(st, s.crop);
-    const parts = s.steps.map((x) => ({
-      kind: x.kind,
-      key: x.job ? x.job.key : null,
-      e: estimate(st, id, x.job || step(x.kind, x.hours, hid), [id]),
-      rough: !x.job,
-      from: !x.job && win && (x.kind === 'plow' || x.kind === 'sow') ? win.opens : -Infinity,
-    }));
-    return { parts, win, crop: s.crop };
+  // A task at a tile's steps left (sim/playerplan chainSteps; VB-1621, VB-1622) as parts of its work: {kind, key (its job's, null while
+  // not posted), e (the pawn's estimate: of the job posted, else of the step's hours; a carrying's by its loads), rough (not posted), from
+  // (the hour it may begin: a step not posted at its window's opening, or when its crop is expected ripe, its hay dry)}; with its
+  // chain's deadline (`frost`: the autumn day of the frost the head expects).
+  function chainParts(st, id, hid, tk, frost) {
+    const s = chainSteps(st, hid, tk.kind, tk[tk.kind]);
+    if (!s) return { parts: [], deadline: null };
+    const on = s.where.fd ? { field: s.where.fd, farm: s.where.f } : null; // a field's step, whose normal hours are its crop's
+    const parts = s.steps.map((x) => {
+      const e = estimate(
+        st,
+        id,
+        x.job || (on ? { ...step(x.kind, x.hours, hid), ...on } : step(x.kind, x.hours, hid)),
+        [id],
+      );
+      return {
+        kind: x.kind,
+        key: x.job ? x.job.key : null,
+        e: x.n === 1 ? e : { lo: e.lo * x.n, mid: e.mid * x.n, hi: e.hi * x.n },
+        rough: !x.job,
+        from: x.job ? -Infinity : x.from,
+      };
+    });
+    return { parts, deadline: CHAINS[tk.kind].deadline(st, hid, s.where, frost) };
   }
-  // The plan laid from now: {days (NDAYS lists of segments {from, to, what, kind, key, site}; a plant task's by the kind and key of its
-  // step), plan (each task's entry where the layout puts it; a plant task's with its steps left, as `then` lays a project's), owed (the
+  // The plan laid from now: {days (NDAYS lists of segments {from, to, what, kind, key, site}; a task at a tile's by the kind and key of
+  // its step), plan (each task's entry where the layout puts it; a task at a tile's with its steps left, as `then` lays a project's), owed (the
   // hours of sleep owed at each day's end), routine ([{kind, hours}]: a day's work of each routine kind, from home)}.
   // Hand-queued commands first, end to end; then, the plan followed (automatic behaviour off), the sleeping hours, the routine once a day
   // in order (a kind with no job posted now waits for its window; on the days after, a kind with a window is taken from its opening, one
@@ -276,23 +287,25 @@ VB['sim/agenda'] = (() => {
       mark = !hand && head && head.plan && head.plan.from === 'task' && head.begun !== null ? head.plan : null,
       underWay = mark ? mark.key : null,
       underWayAt = (tk) =>
-        !!mark && (tk.plant !== undefined ? mark.plant === tk.plant : mark.plant === undefined && underWay === tk.key);
-    // each task's parts (a task by key: its job; a plant task: its steps left), the part laid now and its hours left
+        !!mark &&
+        (chainOf(tk) ? mark.chain === tk.kind && mark[tk.kind] === tk[tk.kind] : !mark.chain && underWay === tk.key);
+    // each task's parts (a task by key: its job; a task at a tile: its steps left), the part laid now and its hours left
     const parts = [],
       part = [],
-      pleft = [];
+      pleft = [],
+      frost = pp && pp.tasks.some((tk) => tk.kind === 'harvest') ? frostExpected(st) : null;
     if (pp)
       for (const tk of pp.tasks) {
-        if (tk.plant !== undefined) {
-          const { parts: ps, win, crop } = plantParts(st, id, hid, tk),
+        if (chainOf(tk)) {
+          const { parts: ps, deadline } = chainParts(st, id, hid, tk, frost),
             sum = (k) => ps.reduce((n, x) => n + x.e[k], 0);
           parts.push(ps);
           part.push(0);
           pleft.push(ps.length ? ps[0].e.mid : 0);
           left.push(sum('mid'));
           plan.push({
-            plant: tk.plant,
-            kind: 'plant',
+            [tk.kind]: tk[tk.kind],
+            kind: tk.kind,
             site: tk.site,
             key: ps.length ? ps[0].key : null,
             step: ps.length ? ps[0].kind : null,
@@ -300,9 +313,7 @@ VB['sim/agenda'] = (() => {
             hours: ps.length ? { lo: sum('lo'), mid: sum('mid'), hi: sum('hi') } : null,
             starts: null,
             ends: null,
-            deadline: win
-              ? { t: win.close, what: `the end of the ${crop} sowing${win.next ? ' next year' : ''}` }
-              : null,
+            deadline,
             verdict: null,
             then: null,
             rough: ps.some((x) => x.rough),
@@ -371,7 +382,8 @@ VB['sim/agenda'] = (() => {
         at = to < bed ? p.ends : (j.site ?? at);
         continue;
       }
-      // the first task with work left whose part may begin now (a plant task's hoeing waits for its sowing window)
+      // the first task with work left whose part may begin now (a plant task's hoeing waits for its sowing window, a hay task's mowing
+      // for the haymaking, a harvest task's reaping for the crop to ripen)
       const i = left.findIndex((l, n) => l > 1e-9 && parts[n][part[n]].from <= t + 1e-9);
       if (i >= 0) {
         const tk = pp.tasks[i],
@@ -405,11 +417,11 @@ VB['sim/agenda'] = (() => {
     // the tasks' ends and verdicts; one not ended within the days searched is reckoned on past them, the routine aside
     for (let i = 0; i < plan.length; i++) {
       const e = plan[i];
-      if (e.kind === 'plant') {
-        // a plant task: its parts not laid reckoned on past the days searched, each from its own opening; the chain's verdict
+      if (chainOf(pp.tasks[i])) {
+        // a task at a tile: its parts not laid reckoned on past the days searched, each from its own opening; the chain's verdict
         if (!followed || !parts[i].length) continue;
         if (e.ends === null) {
-          let u = Math.max(t, far, parts[i][part[i]].from);
+          let u = Math.max(t, parts[i][part[i]].from); // the loop stops at far, or earlier with nothing to begin before this part's opening
           if (e.starts === null) e.starts = u;
           u = past(u, pleft[i], sl);
           for (const P of parts[i].slice(part[i] + 1)) u = past(Math.max(u, P.from), P.e.mid, sl);
@@ -506,5 +518,57 @@ VB['sim/agenda'] = (() => {
     const left = c.hour >= WORK[1] ? 0 : WORK[1] - Math.max(c.hour, WORK[0]);
     return { queue, open, day: { left, queued: work }, ...layout(st, id, queue) };
   }
-  return { agenda, after, past };
+  // ---- the windows that press with nothing planned (VB-1622): Sim.planGaps(st), for the page's warnings ----
+  // @tunable GAPS (VB-1622): ripeDays, the days before a sown field's crop is expected ripe from which it is listed with no harvest task.
+  const GAPS = Object.freeze({ ripeDays: 3 });
+  // The windows that press at the played pawn's household's tiles with no task of the plan covering them (a task at the tile of the
+  // chain, or a task by key whose job is of the chain's kinds there): [{tile, chain, deadline {t, what}, days (left: whole days to the
+  // deadline's day)}], by deadline: a field unsown in its open sowing window (plant); a meadow unmown in the haymaking window while the
+  // household wants hay (hay: it mows only then, sim/meadows hayWanted); a sown field ripe, in stooks, or within GAPS.ripeDays of its
+  // expected ripening (harvest). [] with no pawn played or no household. Over its farms' fields and meadows, a few tens; writes nothing.
+  function planGaps(st) {
+    const pl = st.player;
+    if (!pl || !st.pawns[pl.pawn] || st.pawns[pl.pawn].died !== null) return [];
+    const hid = st.pawns[pl.pawn].household,
+      hh = hid === null ? null : st.households[hid];
+    if (!hh || hh.dissolved) return [];
+    const tasks = pl.plan ? pl.plan.tasks : [],
+      c = cal(st.t),
+      d0 = Math.floor(st.t / DAY),
+      home = hh.farmstead === null ? null : st.farmsteads[hh.farmstead],
+      farms = home ? [home, ...heldFarms(st, hid)] : heldFarms(st, hid),
+      out = [];
+    let frost = null;
+    const covered = (name, tile) =>
+      tasks.some((t) =>
+        chainOf(t) ? t.kind === name && t[name] === tile : t.site === tile && CHAINS[name].kinds.includes(t.kind),
+      );
+    const gap = (name, tile, where) => {
+      if (covered(name, tile)) return;
+      if (name === 'harvest' && frost === null) frost = frostExpected(st);
+      const deadline = CHAINS[name].deadline(st, hid, where, frost);
+      if (deadline) out.push({ tile, chain: name, deadline, days: Math.floor(deadline.t / DAY) - d0 });
+    };
+    const doy = c.season * SEASON_DAYS + c.sday;
+    for (const f of farms) {
+      for (const fd of f.fields) {
+        const C = CROPS[fd.crop];
+        if ((fd.stage === 'stubble' || fd.stage === 'plowed') && !C.fallow && C.sow && C.seed > 0) {
+          const W = C.sow;
+          if (doy >= W[0] * SEASON_DAYS + W[1] && doy <= W[0] * SEASON_DAYS + W[2]) gap('plant', fd.tile, { f, fd });
+        } else if (
+          fd.stage === 'ripe' ||
+          fd.stage === 'stooks' ||
+          ((fd.stage === 'sown' || fd.stage === 'growing') && fd.sown + C.ripe - d0 <= GAPS.ripeDays)
+        )
+          gap('harvest', fd.tile, { f, fd });
+      }
+      const haying = c.season === 1 || (c.season === 2 && c.sday <= MOW_LAST);
+      let want = null;
+      for (const m of f.meadows)
+        if (m.stage === 'grass' && haying && (want ?? (want = hayWanted(st, f, hh)))) gap('hay', m.tile, { f, m });
+    }
+    return out.sort((a, b) => a.deadline.t - b.deadline.t || a.tile - b.tile);
+  }
+  return { agenda, after, past, planGaps };
 })();
