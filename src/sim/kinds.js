@@ -46,6 +46,8 @@ VB['sim/kinds'] = (() => {
   //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
   //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
   //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt, null, from), as it is reckoned; minAge.
+  //   yields: a background kind that bars its holder from no full task: one out of its reach lets it go (VB-362: spinning at the house);
+  //   rank(st, p, j, stand): the kind's own rank for pawn p, in place of its role's (sim/fit prioOf; VB-362: by a practice and the sex).
   //   late: a task with a deadline today: unmanned, it goes first in its hand's list and calls it when the day is allotted (sim/day; the cook).
   //   vital: a kind a household lives by, true or (st, j) => boolean: once begun it is carried to its end though the work day ends
   //   meanwhile (`carriedOn`, below; VB-1547, Kim, 23 November). evening: a vital kind a hand may also begin after the end of work, until

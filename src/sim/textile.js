@@ -67,7 +67,8 @@ VB['sim/textile'] = (() => {
   }
   // The loom, a making the head begins through the verb project (sim/makings): possible with none and none under way, and a village wood
   // to fell its timber in. The head weighs it once a year from the winter's start, and wants it when the household holds the yarn of a
-  // length, or the fleeces for it. A small construction, beside any other project (VB-1414).
+  // length spun and waiting (so settlers build theirs once the spinning is under way, not in their first busy winter). A small
+  // construction, beside any other project (VB-1414).
   declare('loom', {
     small: true,
     why: (st, hh, f) => {
@@ -83,9 +84,15 @@ VB['sim/textile'] = (() => {
     look: {
       from: 3 * SEASON_DAYS,
       want: (st, hh, f) =>
-        !hasLoom(hh) && st.villages[f.village].wood.length && yarnOf(hh) + woolOf(hh) >= TEXTILE.skeins ? {} : null,
+        !hasLoom(hh) && st.villages[f.village].wood.length && yarnOf(hh) >= TEXTILE.skeins ? {} : null,
     },
   });
+  // The looms a scenario's households start with: every farm that has stood for years has one (not the founders', who land with what
+  // they carry), as its hand cart (sim/carts seedCarts).
+  function seedLooms(st) {
+    for (const id of st.liveHouseholds)
+      if (st.households[id].farmstead !== null) st.households[id].loom = { built: st.t };
+  }
   function loomBuilt(st, j, hh) {
     const f = st.farmsteads[hh.farmstead];
     hh.loom = { built: st.t };
@@ -108,6 +115,7 @@ VB['sim/textile'] = (() => {
       type: 'household',
       craft: 'spinning',
       attention: 'background',
+      yields: true,
       reach: TEXTILE.reach,
       rate: TEXTILE.rate,
       inside: true,
@@ -170,5 +178,5 @@ VB['sim/textile'] = (() => {
       done: (st, j, hh) => Projects.stepEnds(st, j, hh, loomBuilt),
     },
   };
-  return { TEXTILE, SPINNERS, KINDS, practice, rank, hasLoom, yarnOf, clothOf, spun, woven };
+  return { TEXTILE, SPINNERS, KINDS, practice, rank, hasLoom, yarnOf, clothOf, spun, woven, seedLooms };
 })();

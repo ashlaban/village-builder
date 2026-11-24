@@ -72,12 +72,14 @@ VB['sim/attention'] = (() => {
     if (a.side) for (const slot of ['partial', 'background']) if (a.side && a.side[slot]) unhold(st, a, a.side[slot]);
   }
   // The matcher offers a pawn that holds a background task only tasks within its reach (a full one beyond it never, until the urgency
-  // switch; VB-136: the herder may take other work within reach of the pasture); null when job j may be bid for, else why not.
+  // switch; VB-136: the herder may take other work within reach of the pasture); null when job j may be bid for, else why not. A kind
+  // that `yields` (VB-362: spinning, done beside the work at the house) bars nothing: a task out of its reach lets it go (reachAfter).
   function offerWhy(st, a, j) {
     const att = attentionOf(j),
       bg = heldAt(a, 'background');
     if (att !== 'full') return sideWhy(st, a, j);
-    if (bg && !inReach(st, bg, j.site)) return `${j.key} would take the background task ${bg.key} out of reach`;
+    if (bg && !KINDS[bg.kind].yields && !inReach(st, bg, j.site))
+      return `${j.key} would take the background task ${bg.key} out of reach`;
     return null;
   }
   // The pawn takes a full task by the urgency switch (or an order): a background task the new site takes out of reach is let go.
