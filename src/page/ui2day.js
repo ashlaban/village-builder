@@ -18,7 +18,10 @@ function dayStripHTML(A, P) {
       const a = Math.max(0, g.from - from),
         b = Math.min(D, g.to - from);
       if (!(b > a) || g.what === 'free') continue;
-      const ti = g.what === 'task' ? P.tasks.findIndex((t) => t.key === g.key) : -1,
+      const ti =
+          g.what === 'task'
+            ? P.tasks.findIndex((t) => (g.key && t.key === g.key) || (t.kind === 'plant' && t.site === g.site))
+            : -1,
         pc = g.what === 'sleep' ? 'sleep' : g.what === 'routine' ? `r:${g.kind}` : ti >= 0 ? `t:${ti}` : '',
         name = hudKind(g.what === 'sleep' ? 'sleep' : g.kind),
         wide = ((b - a) / D) * (u2.days ? u2.days.clientWidth || 300 : 300) >= 20;

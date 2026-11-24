@@ -280,8 +280,13 @@ function hudBegin() {
   Sim.plan(st, 'sleep', HUD_SLEEP);
 }
 const hudHour = (h) => `${String(((h % 24) + 24) % 24).padStart(2, '0')}:00`;
-const hudKind = (k) => (k === 'sleep' ? 'Sleep' : (Sim.KINDS[k] && Sim.KINDS[k].name) || k);
+const hudKind = (k) =>
+  k === 'sleep' ? 'Sleep' : k === 'plant' ? 'Plant a field' : (Sim.KINDS[k] && Sim.KINDS[k].name) || k;
 // An agenda entry for a job's key, wherever the agenda holds it.
+// A plan task's entry in the agenda: a plant task by its tile, another by its job's key; and its icon.
+const hudTaskEntry = (A, t) =>
+  t.kind === 'plant' ? (A && (A.plan || []).find((x) => x.plant === t.plant)) || null : hudEntry(A, t.key);
+const hudTaskIcon = (t) => (t.kind === 'plant' ? goodIcon('field') : actIcon(KIND_ICON[t.kind] || 'hoe'));
 const hudEntry = (A, key) =>
   A
     ? (A.plan || []).find((x) => x.key === key) ||
@@ -330,13 +335,13 @@ function renderPlan() {
   h += P.tasks.length
     ? P.tasks
         .map((t, i) => {
-          const e = hudEntry(A, t.key),
+          const e = hudTaskEntry(A, t),
             v = e ? HUD_VERDICT[hudVerdict(e)] || 0 : 0,
             days = e && Number.isFinite(e.ends) ? hudDaysTo(e.ends) : '';
           return chip(
             `t:${i}`,
-            `task press${v}${now.what === 'task' && now.key === t.key ? ' on' : ''}`,
-            `<s>${i + 1}</s>${hudPin(actIcon(KIND_ICON[t.kind] || 'hoe'), days)}`,
+            `task press${v}${now.what === 'task' && now.key && now.key === t.key ? ' on' : ''}`,
+            `<s>${i + 1}</s>${hudPin(hudTaskIcon(t), days)}`,
             `${i + 1}. ${hudKind(t.kind)}`,
           );
         })
@@ -395,9 +400,9 @@ function planCard(P, A, S) {
   } else if (what === 't') {
     const i = +arg,
       t = P.tasks[i],
-      e = t && hudEntry(A, t.key);
+      e = t && hudTaskEntry(A, t);
     if (!t) return ((hud.pc = null), '');
-    title = `${i + 1}. ${hudKind(t.kind)}`;
+    title = `${i + 1}. ${hudKind(t.kind)}${t.kind === 'plant' && t.step ? `: ${hudKind(t.step).toLowerCase()} next` : ''}`;
     sub = e ? hudStake(e) : 'Its work is not open now.';
     acts +=
       (t.site >= 0 ? btn('fly', 'Show', ` data-tile="${t.site}"`) : '') +
@@ -467,6 +472,8 @@ const hudVerdict = (e) => (e.then && e.then.verdict) || e.verdict || null;
 // One line of words for an agenda entry: the hours it takes as the settler reckons them, and how it stands against its deadline.
 function hudStake(e) {
   let t = `About ${hudSpan(e.hours.mid)} of work`;
+  if (e.steps && e.steps.length)
+    t += ` to a sown field (${e.steps.map((x) => hudKind(x.kind).toLowerCase()).join(', ')})${e.rough ? ', roughly' : ''}`;
   if (e.then) {
     const more = e.then.steps.reduce((n, x) => n + x.hours.mid, 0);
     t += `, then ${hudSpan(more)} more before ${e.then.crop} is sown`;
@@ -542,6 +549,14 @@ function hudCall(i, id, hh, f) {
         `${P ? `Do it now: ${name.toLowerCase()}` : `${name}<small>${stake || 'Done next'}</small>`}</button>`;
   });
 
+  const proj = VB['sim/projects'].openOf(st, hh.id),
+    making = !!proj && proj.place === i && !!V.project && V.project.what === 'field',
+    unsown = fi >= 0 && !['sown', 'growing', 'ripe', 'stooks'].includes(f.fields[fi].stage);
+  if (P && (making || unsown) && !P.tasks.some((t) => t.plant === i))
+    acts =
+      '<button type="button" class="u2-act go" data-hud="plant">Plant this field<small>' +
+      `${making ? 'Clearing, breaking, hoeing and sowing' : 'Hoeing and sowing'}, as one task of the plan</small></button>` +
+      acts.replace('u2-act go', 'u2-act');
   if (i !== f.house && fi < 0 && mi < 0) {
     const S = hudSites(hh);
     if (S.field.has(i) && V.tiles.field !== i)
@@ -604,7 +619,7 @@ function hudMarks(id, hh, f) {
   const P = hudPlanned(),
     list =
       P && P.tasks.length
-        ? P.tasks.map((t) => ({ ...t, e: hudEntry(A, t.key) }))
+        ? P.tasks.map((t) => ({ ...t, e: hudTaskEntry(A, t) }))
         : A
           ? A.queue.map((e) => ({ ...e, e }))
           : [];
@@ -615,7 +630,7 @@ function hudMarks(id, hh, f) {
       id: `q${t.site}`,
       tile: t.site,
       cls: `u2-pin plan press${(t.e && HUD_VERDICT[hudVerdict(t.e)]) || 0}`,
-      html: `<s>${k + 1}</s>${hudPin(actIcon(KIND_ICON[t.kind] || 'hoe'), days)}`,
+      html: `<s>${k + 1}</s>${hudPin(hudTaskIcon(t), days)}`,
     });
   });
   for (let k = marks.length - 1; k >= 0; k--) if (planned.has(marks[k].tile)) marks.splice(k, 1);
@@ -679,10 +694,13 @@ function hudClick(b) {
     if (d.hud === 'pdrop') hud.pc = 'sleep';
   } else if (d.hud === 'shut') hud.at = -1;
   else if (d.hud === 'walk') hudMsg(Sim.queue(st, { actor: id, verb: 'walkTo', target: hud.at }), 'Queued: walk here.');
+  else if (d.hud === 'plant')
+    hudMsg(Sim.plan(st, 'add', { plant: hud.at }), 'Added to the plan: the field is carried through to its sowing.');
   else if (d.hud === 'lay') {
     let r = Sim.head(st, 'tile', { what: d.what, tile: hud.at });
     const busy = !!Sim.headView(st, hh.id).project;
     if (r === true && !busy) r = Sim.head(st, 'project', { what: d.what });
+    if (r === true && !busy && d.what === 'field' && Sim.plan) Sim.plan(st, 'add', { plant: hud.at }); // a field begun is planned through
     hudMsg(
       r,
       busy
