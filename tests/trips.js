@@ -13,7 +13,8 @@ const { FRESH } = VB['world/water'];
 const { TICKS, DAY, YEAR, HUNGER, TRAVEL, SPEED, cal } = VB['sim/rules'];
 const { KINDS } = VB['sim/kinds'];
 const { CART } = VB['sim/carts'];
-const { WATER, tripHours } = Water;
+const { WATER } = Water;
+const tripHours = (walk) => Water.dayFetch(walk, 1).hours; // one trip by hand
 let failed = 0;
 const check = (ok, m) => {
   if (!ok) {
@@ -148,6 +149,27 @@ for (const n of [3, 6]) {
   check(!bad.length, `invariants on a part-dry day: ${bad.slice(0, 3).join('; ')}`);
   hh.waterFor = 2.5; // a test's write
   check(checkState(st).some((m) => m.includes('waterFor')), 'the invariant sees a load that covers no whole number of people');
+}
+// ---- 5b. a cart's trip released on the way home (VB-1573: its hand dies on the road, its household dissolves): the barrel's water is
+// spilt, no load lies (water has no fetch kind: the next asking of the jobs threw), and the cart stands where it was ----
+{
+  const { st, hh } = farm(7, 7, [handCart()]),
+    A = VB['sim/agents'];
+  let a = null;
+  for (let k = 0; k < 2 * DAY * TICKS && !a; k++) {
+    Sim.advance(st, 1 / TICKS);
+    a = hh.members.map((id) => st.agents[id]).find((b) => b.job && b.job.kind === 'water' && b.job.cart && b.phase === 'back') || null;
+  }
+  check(a && a.load === TRAVEL.hand, `a hand on its way home with the barrel (${a && a.load})`);
+  if (a) {
+    A.release(st, a);
+    A.placeAtHome(st, a);
+    const lying = (st.lying || []).map((l) => l.kind);
+    check(lying.join() === 'leftCart', `the water is spilt and the cart stands there (${lying})`);
+    Sim.advance(st, DAY);
+    const bad = checkState(st).filter((m) => /lying|cart/i.test(m));
+    check(!bad.length, `invariants a day on: ${bad.slice(0, 3).join('; ')}`);
+  }
 }
 // ---- 6. a child under 12 carries one bucket ----
 {

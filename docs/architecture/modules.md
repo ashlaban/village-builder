@@ -38,7 +38,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   saved fields are put back): from the land as generated, never saved, never recomputed. The fetch reads them through a farm's
   source (VB-1551); the site search weighs a site's daily fetch by them (`siteFetch`, array reads) and a leader's estimate of a site's
   water is `siteWater` (VB-1552: the source, the well of the village joined, a well of its own by its band); the tile card and the
-  Fresh water overlay (`src/page/water.js`) show them.
+  Fresh water overlay (`src/page/water.js`) show them. The day's fetch has one reckoning, `dayFetch(walk, people, cart)` (VB-1573: the
+  trips by hand and with a cart and their hours), read by the household's panel and the well's test (`waterOf`: its people at home,
+  `atHome`, and its cart), by the site's estimate (by hand alone) and by `sim/chores`, which keeps the choice a trip makes.
   Wells (VB-1553): a well's hours and stone are `world/water`'s one rule by the depth (`wellHours`, `wellStone`); a household's well is
   `src/sim/wells.js` (the making `well` and its kind `housewell`, the head's test `pays` on its planning day, `stoneLacking`, which
   `sim/building`'s stone step reads), a village's `src/sim/green.js`; `village.well` is the well's tile, and a finished well is a source

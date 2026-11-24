@@ -228,7 +228,10 @@ const toolsStat = (hh) => {
     meter: { value: hh.tools * 100 },
   };
 };
-// The day's water (VB-1551): the fetch in hours of the day's plan, from the farm's source; none where no source is in reach, and why.
+// The day's water (VB-1551): the household's fetch as it is made (VB-1573: the trips by hand and with its cart for its people at
+// home, and their hours together; by hand alone in brackets where the cart is the cheaper), from the farm's source; none where no
+// source is in reach, and why.
+const tripWords = (n, how) => `${n} ${n === 1 ? 'trip' : 'trips'} ${how}`;
 const waterStat = (hh) => {
   const W = Sim.waterOf(st, st.farmsteads[hh.farmstead]);
   if (W.none)
@@ -240,7 +243,11 @@ const waterStat = (hh) => {
       title: `No fresh water within ${W.search} hours' walk of the house: none is fetched, and nothing is cooked`,
     };
   const h = `${W.hours.toFixed(1)} h a day`,
-    from = `fetched at ${W.name}${W.poor ? ', poor water' : ''}: the walk there and back and the drawing, ${h}`;
+    trips = [W.cart ? tripWords(W.cart, 'with the cart') : '', W.hand ? tripWords(W.hand, 'by hand') : '']
+      .filter(Boolean)
+      .join(' and '),
+    alone = W.cart ? ` (${W.byHand.toFixed(1)} h by hand alone)` : '',
+    from = `fetched at ${W.name}${W.poor ? ', poor water' : ''}: for its ${W.people} at home ${trips}, the walk there and back and the drawing, ${h}${alone}`;
   return hh.dry > 0
     ? {
         icon: 'water',
