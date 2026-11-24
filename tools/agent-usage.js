@@ -66,10 +66,10 @@ function measure(file, sub = false) {
     start: entries.length ? entries[0].timestamp : null, end: entries.length ? entries[entries.length - 1].timestamp : null,
     wallMin: 0, activeMin: 0, prompts: 0, calls: 0, subagentCalls: 0,
     tokens: { input: 0, cacheWrite: 0, cacheRead: 0, output: 0 }, context: { first: 0, peak: 0, firstEdit: 0, series: [] }, tools: {}, largest: [], turns: [],
-    repeats: { reads: 0, readBytes: 0, commands: 0, commandBytes: 0 }, tests: { runs: 0, failed: 0, streak: 0 }, compactions: 0,
+    repeats: { reads: 0, readBytes: 0, commands: 0, commandBytes: 0, recent: 0 }, tests: { runs: 0, failed: 0, streak: 0, current: 0 }, compactions: 0,
     continuation: { continues: false, handoverBytes: 0, callsToEdit: null, contextToEdit: null } };
   const seen = new Set(), uses = new Map(), models = new Set();
-  const read = new Set(), ran = new Set(), streaks = {};
+  const read = new Set(), ran = new Set(), streaks = {}, repeatsAt = [];
   let turn = null, last = null, lastCtx = 0, firstPrompt = true;
   const result = (c) => (typeof c === 'string' ? c.length : Array.isArray(c) ? c.reduce((s, x) => s + (x.type === 'text' ? x.text.length
     : JSON.stringify(x).length), 0) : JSON.stringify(c || '').length);
@@ -134,6 +134,7 @@ function measure(file, sub = false) {
         const use = uses.get(c.tool_use_id) || { name: '?', input: {}, at: t }, bytes = result(c.content);
         const tool = (m.tools[use.name] = m.tools[use.name] || { calls: 0, bytes: 0, seconds: 0 });
         tool.calls++; tool.bytes += bytes; tool.seconds += Math.max(0, (t - use.at) / 1000);
+        if (use.repeat) repeatsAt.push(m.calls);
         if (use.repeat === 'read') { m.repeats.reads++; m.repeats.readBytes += bytes; }
         if (use.repeat === 'command') { m.repeats.commands++; m.repeats.commandBytes += bytes; }
         if (use.test) {
@@ -141,11 +142,13 @@ function measure(file, sub = false) {
           m.tests.runs++; if (failed) m.tests.failed++;
           streaks[use.test] = failed ? (streaks[use.test] || 0) + 1 : 0;
           m.tests.streak = Math.max(m.tests.streak, streaks[use.test]);
+          m.tests.current = streaks[use.test]; // the streak of the script run last: what  inbox.js calls  reads as stuck
         }
         m.largest.push({ tool: use.name, what: what(use), bytes });
       }
     }
   }
+  m.repeats.recent = repeatsAt.filter((c) => c > m.calls - 20).length; // in the last 20 calls
   if (lastCtx && (!m.context.series.length || m.context.series[m.context.series.length - 1][0] !== m.calls)) m.context.series.push([m.calls, lastCtx]);
   if (m.start) m.wallMin = (Date.parse(m.end) - Date.parse(m.start)) / 60e3;
   m.activeMin = +m.activeMin.toFixed(1); m.wallMin = +m.wallMin.toFixed(1); m.models = [...models];

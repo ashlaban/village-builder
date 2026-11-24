@@ -181,6 +181,23 @@ r = runIn('', 'result', H, 'status=continue', 'reason=boundary', 'commit=' + fre
 expect('one voluntary reset a task', !r.ok && /has had its voluntary reset/.test(r.out) && /go on/.test(r.out), r.out);
 r = runIn('', 'result', H, 'status=continue', 'commit=' + fresh);
 expect('the ceiling\'s continuations besides it', r.ok && /continue \(ceiling, 1 of 2\)/.test(r.out), r.out);
+// past the threshold, calls hints at the next boundary, and at being stuck when a test has failed three times running
+const fails = (n) => [...Array(n).keys()].flatMap((i) => [{ type: 'assistant', timestamp: '2026-01-02T00:01:00Z', message: { id: 'f' + i,
+  usage: { input_tokens: 1, cache_read_input_tokens: 200e3 },
+    content: [{ type: 'tool_use', id: 'u' + i, name: 'Bash', input: { command: 'node tests/x.js' } }] } },
+{ type: 'user', timestamp: '2026-01-02T00:01:01Z', message: {
+  content: [{ type: 'tool_result', tool_use_id: 'u' + i, content: '1 failed', is_error: true }] } }]);
+session(40, 200e3);
+r = runIn('', 'calls');
+expect('calls: past the threshold, a session hands the rest over at a boundary', r.ok &&
+  /^40 calls .*Past 160k: at the next boundary, hand the rest to a fresh vb-task/.test(r.out)
+  && !/Stuck/.test(r.out), r.out);
+fs.appendFileSync(path.join(proj, 'run.jsonl'), '\n' + fails(3).map((e) => JSON.stringify(e)).join('\n'));
+r = runIn('', 'calls');
+expect('calls: and stuck, after a test failed three times running', r.ok && /Stuck\? the same test failed 3 times running/.test(r.out), r.out);
+session(40, 100e3);
+expect('calls: under the threshold, no hint', /^40 calls [^.]*$/.test(runIn('', 'calls').out.trim()), runIn('', 'calls').out);
+session(40, 200e3);
 const S2 = 'VB-9002';
 r = runIn('', 'result', S2, 'status=continue', 'reason=stuck', 'commit=' + fresh);
 expect('a reset when stuck, the handover not yet written', r.ok && /continue \(stuck\); the handover: none yet/.test(r.out), r.out);

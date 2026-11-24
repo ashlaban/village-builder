@@ -231,15 +231,27 @@ if (cmd === 'init') {
 } else if (cmd === 'calls') {
   // A sub-agent's own transcript, by its worktree (agent-<id>) or the id given; outside one, a session's: the newest under the projects
   // directory, as tools/agent-usage.js finds it (VB-1615). Beside the count, the context of the last call and the weighted cost so far.
-  // The ceiling is a sub-agent's (.claude/agents/vb-task.md, step 8): a session is told its numbers, not to hand over.
+  // The ceiling is a sub-agent's (.claude/agents/vb-task.md, step 8); past the context threshold, a session as well is told to hand over.
   const agent = rest[0] || ownAgent(), found = agent ? transcript.subagent(agent) : transcript.newest();
   if (!found) fail(agent ? `calls: no transcript agent-${agent}.jsonl under ${transcript.projects()}` : `calls: no transcript under ${transcript.projects()}`);
   const { calls: n, context, weighted } = transcript.tally(found), left = CEILING - n;
   const k = (x) => (x >= 1e6 ? (x / 1e6).toFixed(1) + 'M' : x >= 1e3 ? Math.round(x / 1e3) + 'k' : String(x)),
     size = `; context ${k(context)}; weighted ${k(weighted)}`;
-  if (!agent) console.log(`${n} calls (a session: the ceiling of ${CEILING} is a sub-agent's)${size}`);
+  // Past the threshold (VB-1616): a hint to hand over at the next boundary, and whether the run looks stuck, from its transcript's measures
+  let hint = '';
+  if (context >= RESET_AT && n >= VOLUNTARY_FROM) {
+    hint = agent ? `. Past ${k(RESET_AT)}: hand over at the next boundary, reason=boundary (docs/agents/handover.md)`
+      : `. Past ${k(RESET_AT)}: at the next boundary, hand the rest to a fresh vb-task sub-agent, reason=boundary (docs/agents/handover.md)`;
+    const u = spawnSync(process.execPath, [path.join(__dirname, 'agent-usage.js'), found, '--json'], { encoding: 'utf8', maxBuffer: 1 << 26 });
+    let m = null;
+    try { m = JSON.parse(u.stdout); } catch (e) { /* no measures: no stuck hint */ }
+    const why = !m ? null : m.tests.current >= STUCK ? `the same test failed ${m.tests.current} times running`
+      : m.repeats.recent >= STUCK ? `${m.repeats.recent} reads or commands again in the last 20 calls` : null;
+    if (why) hint += `. Stuck? ${why}: if your next idea is no better than the last, hand over now, reason=stuck, the rejected hypotheses listed`;
+  }
+  if (!agent) console.log(`${n} calls (a session: the ceiling of ${CEILING} is a sub-agent's)${size}${hint}`);
   else console.log(`${n} of ${CEILING} calls${size}` +
-    (left > WARN ? '' : left > 0 ? `: ${left} left. Finish within them, or hand over now (.claude/agents/vb-task.md, The ceiling)`
+    (left > WARN ? hint : left > 0 ? `: ${left} left. Finish within them, or hand over now (.claude/agents/vb-task.md, The ceiling)`
     : ': the ceiling is reached. Hand over now: commit, then  node tools/inbox.js result ID status=continue commit=SHA summary=...'));
 } else if (cmd === 'list') {
   const kind = rest[0];

@@ -104,7 +104,9 @@ const v = r.ok ? JSON.parse(r.out) : { context: {} };
 expect('the context at every 5th call and the last', JSON.stringify(v.context.series) === '[[5,1402],[10,1902],[11,2002]]', r.out);
 expect('repeated reads, by file and range, not after an edit', v.repeats && v.repeats.reads === 2 && v.repeats.readBytes === 6, r.out);
 expect('a command run again with no edit between', v.repeats && v.repeats.commands === 1 && v.repeats.commandBytes === 27, r.out);
-expect('test runs, failures and the longest streak', v.tests && v.tests.runs === 4 && v.tests.failed === 2 && v.tests.streak === 2, r.out);
+expect('test runs, failures, the longest streak and the current one', v.tests && v.tests.runs === 4 && v.tests.failed === 2 && v.tests.streak === 2
+  && v.tests.current === 0, r.out);
+expect('repeats in the last 20 calls', v.repeats && v.repeats.recent === 3, r.out);
 expect('a continuation: the handover\'s bytes and the reconstruction', v.continuation && v.continuation.continues && v.continuation.handoverBytes === 67
   && v.continuation.callsToEdit === 7 && v.continuation.contextToEdit === 600, r.out);
 expect('a compaction is counted', v.compactions === 1 && v.prompts === 1, r.out);
