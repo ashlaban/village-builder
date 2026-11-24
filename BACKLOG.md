@@ -20,7 +20,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-1406](backlog/VB-1406.md)<a id="VB-1406"></a> | Refactor: declare beside the owner: the lists every task appends to become registries joined at load | - | 1 | L | 134 tasks collide on lists each feature adds a line to (suites, owners, manifest, counters, the Sim facade, rules' exports, migrations, event kinds); each owner declares its entry and a thin registry joins them, as sim/kinds and sim/commands do. |
-| [VB-1471](backlog/VB-1471.md)<a id="VB-1471"></a> | Repair the night of 21 November: invariants, fixtures and the invariants band | - | 1 | S | Extended tier red on the run of 21 Nov |
 | [VB-1481](backlog/VB-1481.md)<a id="VB-1481"></a> | Repair: a marriage hands a farm on to a dissolved home (founders small seed 5, year 31) | - | 1 | S | stores throws 'missing or dissolved holder' in heirs handOn from marriage wed: the home is dissolved and empty, its holder still in its other household |
 | [VB-1485](backlog/VB-1485.md)<a id="VB-1485"></a> | Repair: a cow led home books goodwill with a dead holder (populous small seed 3) | - | 1 | S | relations throws 'goodwill: cannot add 20 between 6 and 76' from exchange ledHome (a deal's cow led home) when a holder of either household is no longer alive |
 | [VB-1495](backlog/VB-1495.md)<a id="VB-1495"></a> | Repair: tests/browser-editor places no empty farm near the village | - | 1 | S | tests/browser-editor.js fails five checks, from 'no empty farm could be placed near the village' on; seen on main at 5e69f31, before VB-1491. |
@@ -137,6 +136,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-455](backlog/VB-455.md)<a id="VB-455"></a> | Refactor: split sim/records: the event log (sim/eventlog) and the register of persons and households | - | 1 | M | sim/records is two modules under one name: the record of events moves out, verbatim, to a new kernel module sim/eventlog; the register of persons and households stays. |
+| [VB-1471](backlog/VB-1471.md)<a id="VB-1471"></a> | Repair the night of 21 November: invariants, fixtures and the invariants band | - | 1 | S | Extended tier red on the run of 21 Nov |
 | [VB-1470](backlog/VB-1470.md)<a id="VB-1470"></a> | Measure: the moving round at medium-ref after VB-1380 | - | 2 | S | owed by VB-1380: the round call at medium-ref |
 | [VB-1564](backlog/VB-1564.md)<a id="VB-1564"></a> | Cost: a holder's opportunities cached (the asks of the jobs line) | - | 2 | M | The third part of the jobs line, 17.5%: the availability asks, and the cache design.md agrees |
 | [VB-1583](backlog/VB-1583.md)<a id="VB-1583"></a> | A site's water is weighed by the site search and shown in the leader's choice | - | 2 | S | batch (b), second half, of VB-1543: SETTLE.perFetch and the site choice's water lines |
