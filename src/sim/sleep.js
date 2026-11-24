@@ -1,8 +1,8 @@
 // @sys sim/sleep: sleep owed (VB-1643): the SLEEP tunable, what the hours owed cost in mood (sim/mood) and health (sim/hunger), and
-//   the page's read of the played pawn's sleep. The hours are the player's (st.player.sleep): sim/player keeps them each step and carries
-//   out the verb `sleep`; unplayed pawns do not sleep by this rule yet
+//   the page's read of the played pawn's sleep. The hours are every pawn's (pawn.sleep, VB-1645): sim/sleepers keeps them and carries
+//   out the verb `sleep`
 VB['sim/sleep'] = (() => {
-  // @tunable SLEEP: sleep for the played pawn (VB-1643; Kim, 24 Nov: "Night work at a cost; sleep can be a planned action. Sleep
+  // @tunable SLEEP: sleep for every pawn (VB-1643, VB-1645; Kim, 24 Nov: "Night work at a cost; sleep can be a planned action. Sleep
   //   deprivation affects mood and (to a lesser degree initially, health)"). Starting values.
   // need: hours of sleep a day; each hour awake owes need / (24 - need) of an hour (need 8: half an hour), each hour asleep pays one,
   //   never under 0 and at most `cap` (two days and nights awake). An ordinary day (awake 6 to 18, WORK) owes 6 by its evening.
@@ -18,10 +18,10 @@ VB['sim/sleep'] = (() => {
   };
   // what an hour awake owes
   const AWAKE = SLEEP.need / (24 - SLEEP.need);
-  // The hours of sleep pawn id owes: the played pawn's, 0 for any other (they do not sleep by this rule yet).
+  // The hours of sleep pawn id owes, as last reckoned (sim/sleepers; 0 before its first reckoning).
   const owedBy = (st, id) => {
-    const pl = st.player;
-    return pl && pl.pawn === id && pl.sleep ? pl.sleep.owed : 0;
+    const s = st.pawns[id].sleep;
+    return s ? s.owed : 0;
   };
   // The mood modifier `tired` for hours owed (0 under the allowance), and the day's health cost.
   const tiredMood = (owed) =>
@@ -32,10 +32,11 @@ VB['sim/sleep'] = (() => {
   function sleepOf(st) {
     const pl = st.player;
     if (!pl) return null;
-    const owed = pl.sleep ? pl.sleep.owed : 0;
+    const s = st.pawns[pl.pawn].sleep,
+      owed = s ? s.owed : 0;
     return {
       owed,
-      asleep: !!(pl.sleep && pl.sleep.asleep),
+      asleep: !!(s && s.asleep),
       mood: Math.round(tiredMood(owed)),
       health: tiredHealth(owed),
     };

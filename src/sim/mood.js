@@ -89,7 +89,7 @@ VB['sim/mood'] = (() => {
     if (hh && hh.cold > 0) sum += put(out, 'cold', MOOD.cold.value * hh.cold);
     if (hh && hh.dry > 0) sum += put(out, 'dry', MOOD.dry.value);
     if (p.health < MOOD.weak.under) sum += put(out, 'weak', MOOD.weak.value);
-    const tired = tiredMood(owedBy(st, id)); // the played pawn's sleep owed (sim/sleep, VB-1643)
+    const tired = tiredMood(owedBy(st, id)); // the pawn's sleep owed (sim/sleep, VB-1643, VB-1645)
     if (tired) sum += put(out, 'tired', tired);
     if (hh && crowded(st, hh)) sum += put(out, 'crowded', MOOD.crowded.value);
     if (p.mods) for (const m of p.mods) if (m.until > st.t) sum += put(out, m.key, MOOD[m.key].value);

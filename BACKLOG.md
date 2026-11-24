@@ -122,11 +122,11 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1597](backlog/VB-1597.md)<a id="VB-1597"></a> | takeDay's missed member: one rule for whom the head allots | - | 3 | S | takeDay repeats allotted's terms but for the commanded pawn (found by VB-1591) |
 | [VB-1610](backlog/VB-1610.md)<a id="VB-1610"></a> | A booth's water in the evening: one who comes to its booth after work takes the open fetch | - | 3 | S | the booth's fetch is taken only in the working day (sim/away dayAway); a late arrival ends the day thirsty though the fetch stands open until 20:00 |
 | [VB-1611](backlog/VB-1611.md)<a id="VB-1611"></a> | The page says what a lodger's water is: the booth's source, whether today's water is in | - | 3 | S | VB-1601 built the booth's fetch and the morning drink; nothing on the page tells of them but the pawn's job line and its Thirsty line |
-| [VB-1645](backlog/VB-1645.md)<a id="VB-1645"></a> | Sleep for every pawn: hours owed, the verb for a pawn's own logic, and the cost | - | 3 | M | Extend the played pawn's sleep (VB-1643) to every pawn, reckoned by transitions so the cost stays flat |
 | [VB-1656](backlog/VB-1656.md)<a id="VB-1656"></a> | Sim.load clears the world fields its save lacks | - | 3 | S | A save loads the same on a used world as on a fresh one (found by VB-1654: w.shut left over on a shared world). |
 | [VB-1671](backlog/VB-1671.md)<a id="VB-1671"></a> | A move's first trip with the cart brings a load | - | 3 | S | The cart left standing at the landing is fetched empty: its trip home could carry the first load of grain. |
 | [VB-1672](backlog/VB-1672.md)<a id="VB-1672"></a> | A move's frost warning is reckoned in the plan's days | - | 3 | S | Sim.moveCost's `frost` counts the move's work in working days; the plan lays it after the routine and the sleeping hours, so the warning can be late. |
 | [VB-1673](backlog/VB-1673.md)<a id="VB-1673"></a> | The sim's reasons name a farm or a person, never a household's number | - | 3 | S | Reasons a player can read still say 'household 12 ...' in sim/trust, marriage, heirs, hosting, offers and exchange (the plan's and the ladder's were mended by VB-1670). |
+| [VB-1674](backlog/VB-1674.md)<a id="VB-1674"></a> | Byre: founders seed 4 loses an animal to hunger since sleep for every pawn | - | 3 | S | Find why founders seed 4 loses a byre animal to hunger once every pawn sleeps |
 
 </details>
 
