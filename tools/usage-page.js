@@ -148,13 +148,16 @@ if (require.main === module) {
     data.changes = changes.map((c) => ({ at: c.at, when: c.when, change: c.change }));
     data.periods = periodTable(compared).map((r) => ({ ...r, row: changes.findIndex((c) => c.when === r.when) + 1 }));
   }
-  if (args.includes('--json')) { console.log(JSON.stringify(data)); process.exit(0); }
-  const page = fs.readFileSync(path.join(__dirname, 'lib', 'usage-page.html'), 'utf8').replace('/*DATA*/', () => JSON.stringify(data).replace(/</g, '\\u003c'));
-  const out = path.resolve(root, opt('--out', 'docs/usage.html'));
-  fs.writeFileSync(out, page);
-  const k = (n) => (n / 1e6).toFixed(1) + 'M', sum = (xs) => xs.reduce((a, x) => a + x.w, 0);
-  console.log(`usage: ${path.relative(root,
-    out)}: ${data.tasks.length} tasks from ${data.runs} runs, weighted ${k(sum(data.tasks))}; apart, ${data.sessions.length} sessions, ${k(
-    sum(data.sessions))}`);
+  if (args.includes('--json')) process.stdout.write(JSON.stringify(data) + '\n'); // no process.exit: a pipe would lose what is not yet written
+  else {
+    const page = fs.readFileSync(path.join(__dirname, 'lib', 'usage-page.html'), 'utf8').replace('/*DATA*/', () =>
+      JSON.stringify(data).replace(/</g, '\\u003c'));
+    const out = path.resolve(root, opt('--out', 'docs/usage.html'));
+    fs.writeFileSync(out, page);
+    const k = (n) => (n / 1e6).toFixed(1) + 'M', sum = (xs) => xs.reduce((a, x) => a + x.w, 0);
+    console.log(`usage: ${path.relative(root,
+      out)}: ${data.tasks.length} tasks from ${data.runs} runs, weighted ${k(sum(data.tasks))}; apart, ${data.sessions.length} sessions, ${k(
+      sum(data.sessions))}`);
+  }
 }
 module.exports = { model, taskOfCommits, weighted, readRuns, gitCommits, taskInfoOf, comparePeriods, periodTable };

@@ -13,7 +13,7 @@ const USAGE = `usage: node tools/agent-usage.js [FILE.jsonl] [--json] [--turns] 
        node tools/agent-usage.js --history DIR [--periods FILE [--from DATE] [--to DATE] [--eligible|--ineligible] [--json]] [--estimate [--from DATE] [--json]]
   FILE        a transcript; default the newest under ~/.claude/projects (this session's, when run from a session)
   --turns     a line per user prompt; --since/--until T limit to entries from/before an ISO time
-  --label     the run's role (worker, reviewer, project-manager); --out DIR also writes DIR/<date>-<label>-<session>.json
+  --label     the run's role (worker, reviewer, project-manager); --out DIR also writes DIR/<date>-<label>-<session>[-<task>].json
   --task      the one task this session worked on, when it ran no sub-agents: kept in the run's file as "task" (tools/usage-page.js reads it);
               leave it out for a session that worked on several tasks or on none
   --results   the tasks' outcomes, from  node tools/inbox.js results --json : joins size and status to the sub-agents by task
@@ -291,19 +291,24 @@ function estimate(dir) {
   return asJson ? JSON.stringify(e, null, 1) : E.report(e);
 }
 
-if (historyDir) { console.log(estimateOnly ? estimate(historyDir) : periodsFile ? periods(historyDir, periodsFile) : history(historyDir)); process.exit(0); }
-const file = args[0] || newest();
-if (!fs.existsSync(file)) fail(`no file ${file}`);
-const m = measure(file);
-if (task && !/^VB-\d{3,}$/.test(task)) fail(`--task takes a task ID (VB-NNN), not ${task}`);
-if (task) m.task = task;
-const results = resultsFile ? JSON.parse(fs.readFileSync(resultsFile, 'utf8')) : [];
-m.subagents = subagents(file, results);
-m.summary = summary(m);
-if (out) {
-  fs.mkdirSync(out, { recursive: true });
-  const name = path.join(out, `${(m.start || '').slice(0, 10)}-${m.label}-${m.session.slice(0, 8)}.json`);
-  fs.writeFileSync(name, JSON.stringify({ ...m, turns: undefined }, null, 1) + '\n');
-  console.error('agent-usage: wrote ' + name);
+// no process.exit after printing: a pipe would lose what is not yet written
+if (historyDir) console.log(estimateOnly ? estimate(historyDir) : periodsFile ? periods(historyDir, periodsFile) : history(historyDir));
+else main();
+function main() {
+  const file = args[0] || newest();
+  if (!fs.existsSync(file)) fail(`no file ${file}`);
+  const m = measure(file);
+  if (task && !/^VB-\d{3,}$/.test(task)) fail(`--task takes a task ID (VB-NNN), not ${task}`);
+  if (task) m.task = task;
+  const results = resultsFile ? JSON.parse(fs.readFileSync(resultsFile, 'utf8')) : [];
+  m.subagents = subagents(file, results);
+  m.summary = summary(m);
+  if (out) {
+    fs.mkdirSync(out, { recursive: true });
+    // with --task, the task is in the name: a session that worked on two tasks in turn measures each (--since) without overwriting
+    const name = path.join(out, `${(m.start || '').slice(0, 10)}-${m.label}-${m.session.slice(0, 8)}${task ? '-' + task : ''}.json`);
+    fs.writeFileSync(name, JSON.stringify({ ...m, turns: undefined }, null, 1) + '\n');
+    console.error('agent-usage: wrote ' + name);
+  }
+  console.log(asJson ? JSON.stringify(m, null, 1) : report(m));
 }
-console.log(asJson ? JSON.stringify(m, null, 1) : report(m));
