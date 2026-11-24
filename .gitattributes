@@ -1,1 +1,19 @@
 package-lock.json -diff linguist-generated
+# Merge drivers (VB-1679): `node tools/merge.js --install` sets them in a clone's git config (npm install runs it); without them git
+# merges these files as text. merge=union is git's own: both sides' lines kept, for files that only grow.
+BACKLOG.md merge=vb-backlog
+BACKLOG_ARCHIVE.md merge=vb-backlog
+QUESTION_ARCHIVE.md merge=union
+docs/design-changelog.md merge=union
+src/owners.json merge=vb-json
+src/page.json merge=vb-json
+src/manifest.json merge=vb-json
+src/layers.json merge=vb-json
+tests/counters.json merge=vb-json
+src/**/*.js merge=vb-js
+tests/suites.js merge=vb-js
+tools/sim.js merge=vb-js
+tools/perf.js merge=vb-js
+docs/bench/history.jsonl merge=union
+docs/bench/bands.jsonl merge=union
+docs/agents/changes.md merge=union

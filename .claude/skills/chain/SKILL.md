@@ -19,7 +19,7 @@ step below, and a message or a check-in wakes you.
 1. `get_session` with no `session_id`: your id. Your tag `T` is `<YYYYMMDD>-<SIZE>-<the last 6 characters of your id>`.
 2. `git fetch -q origin main && git checkout -q --detach origin/main`, then
    `node tools/chain.js init --size SIZE --n N --tag T --coordinator <your id>`.
-3. `set_session_title`: `Chain <T>: 0/<N> SIZE tasks (coordinator)`. Go to 2.
+3. `set_session_title` with your id (every title call takes it): `Chain <T>: 0/<N> SIZE tasks (coordinator)`. Go to 2.
 
 ## 2. Start the next task
 1. `git fetch -q origin main && git checkout -q --detach origin/main` (the merged tasks change the backlog).

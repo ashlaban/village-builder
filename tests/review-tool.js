@@ -87,9 +87,14 @@ try {
 
   // confirm, after one revision: a test that fails at the reviewed commit and passes at the head shows a mend; no second review
   fs.rmSync(path.join(dir, 'docs'), { recursive: true });
+  // a checker under tests/ (as tests/backlog.js): lenient at the reviewed commit; the revision makes it strict (VB-1676)
+  put('tests/checker.js', "process.exit(0);\n");
+  git('add', 'tests'); git('commit', '-q', '-m', 'a checker');
   const reviewed = git('rev-parse', '--short', 'HEAD');
   put('src/sim/a.js', "VB['sim/a'] = (() => {\n  // @state st.digs: holes, by tile (mended)\n  VB['sim/commands'].register('dig', {});\n  return {};\n})();\n");
   put('tests/fix.js', "require('assert')(require('fs').readFileSync(__dirname + '/../src/sim/a.js', 'utf8').includes('mended'));\n");
+  put('tests/checker.js', "process.exit(process.argv[2] === 'bad' ? 1 : 0);\n");
+  put('tests/strict.js', "require('assert')(require('child_process').spawnSync(process.execPath, [__dirname + '/checker.js', 'bad']).status === 1);\n");
   git('add', 'src', 'tests'); git('commit', '-q', '-m', 'revision');
   const B = (id, more) => ({ ...blocking, id, ...more });
   put(`work/review/${id}.json`, JSON.stringify({ task: id, findings: [
@@ -97,12 +102,14 @@ try {
     B('F2', { outcome: 'rebutted', rebuttal: 'design.md, Digging (Decided): "Holes are dug by hand", which the change keeps' }),
     B('F3', { outcome: 'mended', test: 'tests/dig.js' }),
     B('F4', { followup: 'VB-777' }),
+    B('F5', { outcome: 'mended', test: 'tests/strict.js' }),
     { ...blocking, id: 'A1', grade: 'advisory', outcome: 'declined', note: 'the walk is the head\'s choice' },
     { ...blocking, id: 'A2', grade: 'advisory' }] }));
   const k = run('confirm', id, '--reviewed', reviewed, '--dry');
   assert.strictEqual(k.status, 0, k.stderr);
-  assert(k.stdout.startsWith(`${id} confirm: blocking 1 mended, 1 rebutted, 2 unresolved; advisory 0 mended, 1 declined, 1 unanswered`), k.stdout);
+  assert(k.stdout.startsWith(`${id} confirm: blocking 2 mended, 1 rebutted, 2 unresolved; advisory 0 mended, 1 declined, 1 unanswered`), k.stdout);
   assert(/F3 blocking: unresolved: tests\/dig\.js passes at \w+, so it does not show the mend/.test(k.stdout), 'a test that passed before shows no mend');
+  assert(/F5 blocking: mended/.test(k.stdout), 'a mend made in a checker under tests/ shows: the reviewed commit runs its own checker (VB-1676)');
   assert(/F4: its follow-up is VB-777/.test(k.stdout) && !/F4: would open/.test(k.stdout), 'a follow-up is opened once');
   assert(/F3: would open a priority 1 task, Cause: VB-900/.test(k.stdout), '--dry opens nothing');
   assert(!JSON.parse(fs.readFileSync(path.join(dir, 'work/review', id + '.json'), 'utf8')).confirm, '--dry writes nothing');
@@ -116,17 +123,17 @@ try {
   fs.renameSync(path.join(dir, 'work'), path.join(dir, 'work-kept'));
   assert.match(rin('eligible', id, '--base', base, '--inbox').stdout, new RegExp(`${id}: (review|control): `), 'the arm, noted');
   fs.renameSync(path.join(dir, 'work-kept'), path.join(dir, 'work'));
-  assert.match(rin('check', id, '--inbox').stdout, /review: revise 4 blocking/, 'the verdict, noted');
+  assert.match(rin('check', id, '--inbox').stdout, /review: revise 5 blocking/, 'the verdict, noted');
   const conf = rin('confirm', id, '--reviewed', reviewed, '--inbox');
   assert(conf.status === 0 && /F3: noted VB-\d+ \(priority 1, Cause: VB-900\)/.test(conf.stdout), conf.stdout + conf.stderr);
   const followup = conf.stdout.match(/F3: noted (VB-\d+)/)[1];
   assert(inb('list', 'task', '--json').stdout.includes(`"cause": "${id}"`), 'the follow-up is a task note naming its cause, for apply');
   fs.renameSync(path.join(dir, 'work'), path.join(dir, 'work-kept'));
   assert.match(rin('eligible', id, '--base', base).stdout, /reviewed: a review is recorded: the inbox/, 'one review a task, by the inbox');
-  assert(inb('status').stdout.includes(`${id} running; review: revise 4 blocking, confirmed, 2 unresolved (${followup},VB-777)`), inb('status').stdout);
+  assert(inb('status').stdout.includes(`${id} running; review: revise 5 blocking, confirmed, 2 unresolved (${followup},VB-777)`), inb('status').stdout);
   const res = JSON.parse(inb('results', '--json').stdout).find((x) => x.task === id);
-  assert(res.review && res.review.verdict === 'revise' && res.review.blocking === 4 && res.review.unresolved === 2, JSON.stringify(res));
-  assert(/\*\*Reviews \(VB-1619\)\*\*\n- VB-900: revise 4 blocking, confirmed, 2 unresolved/.test(inb('report').stdout), inb('report').stdout);
+  assert(res.review && res.review.verdict === 'revise' && res.review.blocking === 5 && res.review.mended === 2 && res.review.unresolved === 2, JSON.stringify(res));
+  assert(/\*\*Reviews \(VB-1619\)\*\*\n- VB-900: revise 5 blocking, confirmed, 2 unresolved/.test(inb('report').stdout), inb('report').stdout);
   const ceil = inb('calls', 'nobody', '--ceiling', '40');
   assert(ceil.status !== 0 && /no transcript agent-nobody/.test(ceil.stderr), 'calls takes a ceiling (a reviewer\'s 40)');
 } finally { fs.rmSync(dir, { recursive: true, force: true }); }

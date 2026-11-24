@@ -283,15 +283,15 @@ The vertical slices of `docs/slices.md` in Kim's order, then the archs that run 
 
 **Files and rows.** Each task has its own file, `backlog/VB-NNN.md`, which holds the full description and is the source of truth.
 Its row here is the overview: when a task's name, arch, priority, size or what it waits for changes, update its row too; when its status
-changes, move the row to that status's section. A new task takes the next free ID, gets a file and a row. IDs are never reused and the gaps are not filled: a task renumbered at a merge, because its ID met one on main, takes main's next free ID (the highest file on main, plus one), never a round number further on. Done tasks are moved, row unchanged, to `BACKLOG_ARCHIVE.md`;
+changes, move the row to that status's section. A new task takes the next free ID, gets a file and a row; the next free ID is above the task files of this checkout and of the branches pushed to origin in the last 14 days, so that sessions side by side do not take the same one (`tools/lib/ids.js`, VB-1680). A branch whose new IDs met main's renumbers them with `node tools/renumber.js --onto origin/main` before it merges main: only the IDs that met move, above every ID in sight, with the files named after them and every reference the branch made. IDs are never reused and the gaps are not filled: a task renumbered at a merge, because its ID met one on main, takes main's next free ID (the highest file on main, plus one), never a round number further on. Done tasks are moved, row unchanged, to `BACKLOG_ARCHIVE.md`;
 their files stay in `backlog/`. Ready and Waiting for Kim are sorted by priority, then ID; Blocked by arch (in the order of the Archs table,
 tasks outside every arch last), then priority, then ID; the archive by when a task was done, newest at the bottom.
 `tests/backlog.js` checks that files and rows agree, and the order. `node tools/backlog.js` makes these moves from the task files
 (`done`, `set`, `new`, `close-arch`, `sync`) and reads the backlog without these tables (`next`, `list`, `show`); `AGENTS.md`, Commands.
 
 **Order and statuses.** Agents take only `Status: ready` tasks, in the Ready table's order: priority (1 first), then ID.
-To change what runs first, change priorities; there is no other order. A task's notes say what it may run beside (tasks that edit the
-same files run one at a time).
+To change what runs first, change priorities; there is no other order. A task's `Touches:` line names the functions it will edit, so that tasks editing different ones run side by
+side (VB-1677); how to write a task, that line included: [`docs/agents/tasks.md`](docs/agents/tasks.md).
 A task is `ready` when its goal and acceptance criteria are stated; what it leaves open, its agent decides by `AGENTS.md`, Deciding without Kim.
 `needs-review` tasks list the questions only Kim can answer (a Decided point moved, or a new thing the player can do); [`QUESTIONS.md`](QUESTIONS.md) gathers the open questions of all tasks
 in one place, with proposed answers, and answered ones move to [`QUESTION_ARCHIVE.md`](QUESTION_ARCHIVE.md).
