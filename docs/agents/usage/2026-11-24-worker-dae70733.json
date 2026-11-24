@@ -1,0 +1,134 @@
+{
+ "session": "dae70733-34fb-5ecb-87e3-efaf7418a235",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T08:13:05.057Z",
+ "end": "2026-11-24T08:28:55.187Z",
+ "wallMin": 15.8,
+ "activeMin": 15.8,
+ "prompts": 2,
+ "calls": 90,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 176,
+  "cacheWrite": 236603,
+  "cacheRead": 17641002,
+  "output": 47255
+ },
+ "context": {
+  "first": 54366,
+  "peak": 254216,
+  "firstEdit": 200336
+ },
+ "tools": {
+  "Bash": {
+   "calls": 86,
+   "bytes": 261695,
+   "seconds": 368.9
+  },
+  "Write": {
+   "calls": 2,
+   "bytes": 280,
+   "seconds": 0.1
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 47,
+   "seconds": 0
+  },
+  "Monitor": {
+   "calls": 1,
+   "bytes": 302,
+   "seconds": 0.2
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 21,
+   "bytes": 109356
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/leather.js",
+   "calls": 1,
+   "bytes": 20615
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 10,
+   "bytes": 18381
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 3,
+   "bytes": 16188
+  },
+  {
+   "tool": "Bash",
+   "what": "git log",
+   "calls": 1,
+   "bytes": 15851
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 7,
+   "bytes": 13284
+  },
+  {
+   "tool": "Bash",
+   "what": "for t",
+   "calls": 1,
+   "bytes": 12415
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 1,
+   "bytes": 10989
+  },
+  {
+   "tool": "Bash",
+   "what": "git show",
+   "calls": 2,
+   "bytes": 7819
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7525
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 1,
+   "bytes": 5179
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -i",
+   "calls": 8,
+   "bytes": 4842
+  }
+ ],
+ "weighted": 2296305,
+ "task": "VB-362",
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 2296305,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}
