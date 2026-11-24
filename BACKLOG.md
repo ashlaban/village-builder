@@ -42,7 +42,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1507](backlog/VB-1507.md)<a id="VB-1507"></a> | tests/browser.js fails on a busy machine: steps in working hours, and the work bar's click | - | 2 | S | 3 of 5 runs failed at d8f81ff on 23 November, before any page change: a wall-clock check and a click on a menu row that is redrawn |
 | [VB-1541](backlog/VB-1541.md)<a id="VB-1541"></a> | A dry day's health loss is named for what it is: thirst, not a damp house, nor starvation at death | - | 2 | S | The played pawn's sheet calls a day without water 'a damp house' and a death from it 'starvation'; both name the water. |
 | [VB-1544](backlog/VB-1544.md)<a id="VB-1544"></a> | Solo starts with no house: the settler lands with provisions and raises a booth first | - | 2 | M | The solo settler lands with stores and stock and no roof, picks the site, raises a booth and then the cottage, so the first scale of play begins with the siting decision. |
-| [VB-1555](backlog/VB-1555.md)<a id="VB-1555"></a> | The fetch grows with the household: trips by hand for six, a cart's barrel for eighteen | - | 2 | M | batch (e) of VB-1543: WATER.hand, WATER.cart, hh.waterFor, the dry part |
 | [VB-1570](backlog/VB-1570.md)<a id="VB-1570"></a> | Water at a site: the booth's fetch, and Drink in the played pawn's Actions | - | 2 | M | VB-1554 built the drink at a site's source; a booth still has its water with its roof, and the Actions list has no Drink |
 | [VB-1575](backlog/VB-1575.md)<a id="VB-1575"></a> | A settler alone with a child under 7 bears its start for days while the child sits alone | - | 2 | S | The one path VB-1571 left: a lone settler's bearing of its start (11 child-days alone on seed 7) |
 | [VB-043](backlog/VB-043.md)<a id="VB-043"></a> | One scope model: a membership graph of entities | debt | 3 | M | The membership graph of typed edges, with scopes on it; as Membership's truth if Kim adopts it (measured 0.55 ms at year 12). |
@@ -117,7 +116,9 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1538](backlog/VB-1538.md)<a id="VB-1538"></a> | Refactor: split sim/goods by concern | - | 3 | S | sim/goods holds three concerns: keeping in store, grain's subtype ids by crop, and the registry of goods with their materials and kinds; split by them |
 | [VB-1539](backlog/VB-1539.md)<a id="VB-1539"></a> | Refactor: split sim/building by concern | - | 3 | S | sim/building holds four concerns: timber and the cottage's stages, the booth, the stone foundation and its stone, and the barn; split by them |
 | [VB-1540](backlog/VB-1540.md)<a id="VB-1540"></a> | Refactor: split sim/rules by concern | - | 3 | S | sim/rules is over 700 lines: the time constants and names stay; tables read by one domain move to it (VB-419), the rest are grouped by the domains that share them |
+| [VB-1556](backlog/VB-1556.md)<a id="VB-1556"></a> | A new site's well is dug by the party before the move | - | 3 | S | follows batches (b2) and (c) of VB-1543: the well as a job of the site |
 | [VB-1566](backlog/VB-1566.md)<a id="VB-1566"></a> | takeDay's missed member: one rule for whom the head allots | - | 3 | S | takeDay repeats allotted's terms but for the commanded pawn (found by VB-1560) |
+| [VB-1573](backlog/VB-1573.md)<a id="VB-1573"></a> | The day's fetch by the household's size where it is reckoned: the panel, the well's test, the site's panel | - | 3 | S | VB-1555 made the fetch grow with the household; the panel's water row, sim/wells pays and the site's panel still reckon one trip |
 
 </details>
 
@@ -237,7 +238,6 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-456](backlog/VB-456.md)<a id="VB-456"></a> | Refactor: rename sim/records to sim/register | - | 3 | S | [VB-455](#VB-455) | Once the event log is out (VB-455), the module left is the register of persons and households, and is named so: sim/register, in a commit of its own. |
 | [VB-478](backlog/VB-478.md)<a id="VB-478"></a> | Wrap-up: work as blocks | - | 3 | S | [VB-477](#VB-477) | Check the blocks, the estimate and the timetable with long runs: cost early and on medium-ref against the budget, the idle share, households by their head's skill; add the bands and propose tuning. |
 | [VB-893](backlog/VB-893.md)<a id="VB-893"></a> | Page: the Plan tab shows stores by the supply component and the year ahead | - | 3 | S | [VB-1123](#VB-1123) | The plan panel (VB-256) takes up VB-667's supply component and the year-ahead graph |
-| [VB-1556](backlog/VB-1556.md)<a id="VB-1556"></a> | A new site's well is dug by the party before the move | - | 3 | S | [VB-1555](#VB-1555) | follows batches (b2) and (c) of VB-1543: the well as a job of the site |
 | [VB-1564](backlog/VB-1564.md)<a id="VB-1564"></a> | The leader's choice and the solo siting show each site's water | - | 3 | S | [VB-788](#VB-788), [VB-1544](#VB-1544) | VB-1552 built the estimate (sim/settle sites, Sim.siteWater, siteWaterWords); the choice's views are VB-788's and VB-1544's, not built yet |
 
 </details>
