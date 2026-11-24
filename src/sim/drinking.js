@@ -65,6 +65,7 @@ VB['sim/drinking'] = (() => {
       }
       const j = post(st, key, 'drink', { type: 'pawn', id: c.actor }, s.tile, {
         pawn: c.actor,
+        cls: s.cls,
         ...(s.cls === FRESH.MARSH ? { poor: true } : {}),
       });
       start(st, a, j);
@@ -130,8 +131,7 @@ VB['sim/drinking'] = (() => {
       }
       // on its way to drink already, or to draw its household's water, where it drinks (sim/chores)
       if (a.job && (a.job.kind === 'drink' || a.job.kind === 'water')) continue;
-      const left = a.job ? a.job.kind : null,
-        s = sourceFor(st, p);
+      const left = a.job ? a.job.kind : null;
       if (issue(st, { actor: p.id, verb: 'drink', source: 'pawn' }) !== true) continue;
       const hh = p.household === null ? null : st.households[p.household],
         f = hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
@@ -139,11 +139,11 @@ VB['sim/drinking'] = (() => {
         st,
         `${fullName(p)}${f ? ` of ${f.name}` : ''}, ${Math.floor(Thirst.thirst(st, p))} hours without a drink, ${
           left ? `left ${KINDS[left].name.toLowerCase()}` : 'went'
-        } to drink at ${FRESHES[s.cls].name}.`,
+        } to drink at ${FRESHES[a.job.cls].name}.`,
         {
           kind: 'thirst',
           pawn: p.id,
-          tile: s.tile,
+          tile: a.job.site,
           ...(left ? { reason: left } : {}),
           ...(f ? { household: hh.id, farm: f.id, village: f.village } : {}),
         },

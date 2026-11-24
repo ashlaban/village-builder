@@ -191,5 +191,41 @@ const farmBy = (steps, size, opt = {}) => {
   tick(st);
   check(st.thirstDue.length === 0 && (!st.agents[p.id].job || st.agents[p.id].job.kind !== 'drink'), 'with no source it is asked once and goes nowhere');
 }
+// ---- 5. a house with nobody at home has no dry day ----
+{
+  const { st, hh } = farmBy(4, 3);
+  const members = hh.members;
+  hh.waterDay = -5; // a test's write: no water in for days
+  hh.members = []; // a test's write: nobody lives there
+  VB['sim/hunger'].feedHousehold(st, hh, 1);
+  check(hh.dry === 0 && !hh.dryLog.length, `an empty house is not dry (${hh.dry})`);
+  hh.members = members;
+  VB['sim/hunger'].feedHousehold(st, hh, 1);
+  check(hh.dry > 0 && hh.dryLog[hh.dryLog.length - 1] === 1, 'with its people at home it is');
+}
+// ---- 6. a pawn working away at a site, under the open sky, drinks at the site's source ----
+{
+  const { st, hh, f } = farmBy(5, 3);
+  const id = hh.holder,
+    p = st.pawns[id],
+    a = st.agents[id],
+    src = Water.sourceOf(st, f),
+    site = src.tile + 12; // twelve tiles beyond the brook: the farm's source is the brook's near side
+  while (cal(st.t).hour !== 16) tick(st);
+  const r = issue(st, { actor: id, verb: 'lodge', target: site, args: { why: 'work', days: 3, jobs: [] }, source: 'pawn' });
+  check(r === true, `the holder lodges at a site (${r})`);
+  while (cal(st.t).hour !== 23) tick(st);
+  check(a.away !== undefined && VB['sim/pose'].bed(st, a) === site, 'it sleeps at the site');
+  p.drank = st.t - THIRST.leave + 0.5; // a test's write
+  Thirst.dayEnd(st, p, false);
+  const here = Drinking.sourceFor(st, p);
+  check(here.tile >= 0 && here.tile !== f.house, `the site's source is found from where it stands (${JSON.stringify(here)})`);
+  for (let i = 0; i < TICKS && !(a.job && a.job.kind === 'drink'); i++) tick(st);
+  check(a.job && a.job.kind === 'drink' && a.job.site === here.tile, `at 36 hours it goes to drink there (${a.job && a.job.kind})`);
+  const before = p.drank;
+  for (let i = 0; i < 6 * TICKS && p.drank === before; i++) tick(st);
+  check(p.drank > before && hh.waterDay !== cal(st.t).day, 'it drinks; the fetch home is not its to take from there');
+  check(!checkState(st).length, `invariants: ${checkState(st).slice(0, 3).join('; ')}`);
+}
 if (failed) process.exit(1);
 console.log('thirst ok: thirst from the hour last drunk; the dry day the pawn\'s own; a mower leaves at 36 hours, drinks and fetches; no source refused');

@@ -153,7 +153,8 @@ VB['sim/hunger'] = (() => {
     const fed = mem.some((p) => feasted(st, p)) ? mem.filter((p) => feasted(st, p)) : null;
     if (fed) mem = mem.filter((p) => !feasted(st, p));
     const cold = season === undefined ? 0 : warmHouse(st, hh, season),
-      dry = season === undefined ? 0 : dryHouse(st, hh),
+      // a house with nobody at home today has no dry day (VB-1554): nothing was to be cooked there, and nobody was there to fetch
+      dry = season === undefined ? 0 : dryHouse(st, hh, mem.length > 0 || !!fed),
       // the day's water was a marsh's (hh.marshDay, sim/chores): poor water, which costs those it covers HEALTH.marsh (VB-1551)
       poor = season !== undefined && !dry && hh.marshDay >= Math.floor(st.t / DAY) - 1;
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])),
@@ -249,10 +250,11 @@ VB['sim/hunger'] = (() => {
     return day;
   }
   // A day without water (VB-331): the day that ends, if its water was not fetched (hh.waterDay behind it), costs each member HEALTH.dry and the
-  // meal restores nothing. hh.dry is the mean of the last HUNGER.days days (hh.dryLog, 1 a dry day) as hh.cold is. Returns 1 on a dry day.
+  // meal restores nothing; a house with nobody at home (`anyone` false) has no dry day.
+  // hh.dry is the mean of the last HUNGER.days days (hh.dryLog, 1 a dry day) as hh.cold is. Returns 1 on a dry day.
   // One comparison a live household a day.
-  function dryHouse(st, hh) {
-    const day = hh.waterDay < Math.floor(st.t / DAY) - 1 ? 1 : 0;
+  function dryHouse(st, hh, anyone = true) {
+    const day = anyone && hh.waterDay < Math.floor(st.t / DAY) - 1 ? 1 : 0;
     if (day > 0 || hh.dry > 0) {
       hh.dryLog.push(day);
       if (hh.dryLog.length > HUNGER.days) hh.dryLog.shift();
