@@ -66,8 +66,9 @@ VB['sim/building'] = (() => {
   // hands go to the fields when they are due (VB-1544: the harvest lost to the frost otherwise, and the cottage never done in the
   // slack's other work). The settlers of sim/settle, whose booth is a mark with none raised (until VB-787), build at once, as before.
   function boothWork(st, hh, f, c, post) {
-    const own = homeBooth(st, hh, f);
-    if ((own && !slack(c)) || roofless(st, hh)) return;
+    const own = homeBooth(st, hh, f),
+      hand = !!st.player && !st.player.auto && hh.holder === st.player.pawn; // VB-1632: the played head's plan says when, not the slack
+    if ((own && !slack(c) && !hand) || roofless(st, hh)) return;
     const bj = cottageJob(st, hh, f);
     if (!bj) return;
     if (own) bj[2].shelter = true;

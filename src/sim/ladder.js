@@ -1,6 +1,7 @@
 // @sys sim/ladder: the main building's rungs (a camp, a booth, a cottage, a cottage on stone) and the outbuildings (a barn) as data, each
 //   what it is built from, needs and gives, read from the rules that build it; the rung a farm stands at (rungOf), derived from its state;
-//   and the farm's view for the page (farmView): what stands, what is being built, what could follow and why not now (VB-1631). Reads only.
+//   and the farm's view for the page (farmView): what stands, what is being built, what could follow and why not now (VB-1631); the upgrade
+//   task's check (rungWhy, upgradeWhy; VB-1632, sim/upgrade). Reads only.
 VB['sim/ladder'] = (() => {
   const { BOOTH, BUILD } = VB['sim/rules'];
   const { HOUSE } = VB['sim/house'];
@@ -145,18 +146,48 @@ VB['sim/ladder'] = (() => {
             : busy(st, hh)),
   };
   const OUT_WHY = { barn: (st, hh, f) => own(st, hh, f) || barnWhy(st, hh) };
+  // ---- the upgrade task's check (VB-1632): the played head builds the next rung of its main building as a task of its plan ----
+  // Whether a task of the played pawn's plan covers rung `what` of farm f: the booth by the farmstead task, a later rung by an upgrade task
+  // of the house's tile naming it.
+  function planned(st, f, what) {
+    const pp = st.player && st.player.plan;
+    if (!pp) return false;
+    return what === 'booth'
+      ? pp.tasks.some((t) => t.kind === 'farmstead')
+      : pp.tasks.some((t) => t.kind === 'upgrade' && t.upgrade === f.house && t.what === what);
+  }
+  // Why pawn id cannot begin rung `what` of farm f now, or null (sim/upgrade's verb beginCottage): the head of the farm's household; a rung
+  // of RUNGS that follows the one standing, the farm no longer a camp; only the cottage is built today ('not yet'); none under way.
+  function rungWhy(st, id, f, what) {
+    const hh = householdOf(st, f);
+    if (own(st, hh, f)) return own(st, hh, f);
+    if (hh.holder !== id) return 'only the head of the household builds up its house';
+    if (!RUNGS[what]) return `there is no rung ${what}`;
+    const rung = rungOf(st, f);
+    if (rung === 'camp')
+      return f.camp === true
+        ? `${f.name} is still a camp: place the farmstead first`
+        : `${f.name} has no roof: raise its booth first`;
+    if (RUNGS[what].from !== rung) return `a ${what} is built from a ${RUNGS[what].from}, and ${f.name} is a ${rung}`;
+    if (what !== 'cottage') return 'not yet';
+    return cottageOf(st, hh.id) ? `household ${hh.id} has a cottage under way` : null;
+  }
+  // Why the played pawn id cannot plan the upgrade of farm f to `what`, or null: rungWhy, and none planned already.
+  const upgradeWhy = (st, id, f, what) =>
+    rungWhy(st, id, f, what) || (planned(st, f, what) ? `the ${what} is planned already` : null);
   // Sim.farmView(st, farmId): plain data for the page, writing nothing: {rung, building (null, or {what, step, hoursLeft}), next: [{what,
   // needs, ok, why}] (the rungs built from the one standing), outbuildings: [{what, built, ok, why}]}; null for no such farm.
   function farmView(st, id) {
     const f = st.farmsteads[id];
     if (!f) return null;
     const hh = householdOf(st, f),
-      rung = rungOf(st, f);
+      rung = rungOf(st, f),
+      hand = !!st.player && !!hh && hh.holder === st.player.pawn;
     const next = Object.keys(RUNGS)
       .filter((k) => RUNGS[k].from === rung)
       .map((what) => {
-        const why = WHY[what](st, hh, f);
-        return { what, needs: { ...RUNGS[what].needs }, ok: why === null, why };
+        const why = hand && what !== 'booth' ? upgradeWhy(st, st.player.pawn, f, what) : WHY[what](st, hh, f);
+        return { what, needs: { ...RUNGS[what].needs }, ok: why === null, why, planned: planned(st, f, what) };
       });
     const outbuildings = Object.keys(OUTBUILDINGS).map((what) => {
       const built = !!f[what],
@@ -165,5 +196,5 @@ VB['sim/ladder'] = (() => {
     });
     return { rung, building: building(st, hh, f), next, outbuildings };
   }
-  return { RUNGS, OUTBUILDINGS, rungOf, farmView };
+  return { RUNGS, OUTBUILDINGS, rungOf, rungWhy, upgradeWhy, farmView };
 })();

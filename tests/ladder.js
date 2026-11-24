@@ -84,12 +84,13 @@ if (only && !only.includes('solo')) process.exit(0);
   let v = Sim.farmView(st, 0);
   assert.strictEqual(v.rung, 'camp');
   assert.strictEqual(v.building, null);
-  assert.deepStrictEqual(v.next, [{ what: 'booth', needs: RUNGS.booth.needs, ok: true, why: null }]);
+  assert.deepStrictEqual(v.next, [{ what: 'booth', needs: RUNGS.booth.needs, ok: true, why: null, planned: false }]);
   assert.deepStrictEqual(v.outbuildings, [{ what: 'barn', built: false, ok: false, why: `${f.name} has no cottage yet` }]);
   Sim.inhabit(st, st.households[0].holder);
   Sim.setAuto(st, false);
   assert.strictEqual(Sim.plan(st, 'add', { farmstead: f.house }), true);
   assert.match(Sim.farmView(st, 0).next[0].why, /planned already/, 'the booth planned');
+  assert.strictEqual(Sim.farmView(st, 0).next[0].planned, true);
   let raising = null;
   for (let i = 0; i < 20 * 240 && f.camp !== false; i++) {
     Sim.advance(st, 0.1);
@@ -104,6 +105,6 @@ if (only && !only.includes('solo')) process.exit(0);
   v = Sim.farmView(st, 0);
   assert.strictEqual(v.rung, 'booth');
   assert.strictEqual(v.building, null);
-  assert.deepStrictEqual(v.next, [{ what: 'cottage', needs: RUNGS.cottage.needs, ok: true, why: null }]);
+  assert.deepStrictEqual(v.next, [{ what: 'cottage', needs: RUNGS.cottage.needs, ok: true, why: null, planned: false }]);
 }
 console.log('ladder: ok');

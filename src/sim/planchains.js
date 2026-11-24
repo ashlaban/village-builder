@@ -1,7 +1,8 @@
 // @sys sim/planchains: the chains of a task at a tile in the player's plan (VB-1621, VB-1622, VB-1625, VB-1627; VB-1629 split it from
 //   sim/playerplan), declared as data (CHAINS): a field from its clearing to its sowing (plant), a meadow's hay from its mowing until it
 //   is home (hay), a field's crop from its reaping until its sheaves are in (harvest), trips of timber felled on a forest tile and carried
-//   home (fell), the timber home cut into firewood (firewood) and the first shelter placed from the camp and raised (farmstead); what
+//   home (fell), the timber home cut into firewood (firewood) and the first shelter placed from the camp and raised (farmstead; the
+//   upgrade of the main building, sim/upgrade's, is contributed at load, VB-1632); what
 //   stands at a tile for each (chainWhere), why it cannot be planned (chainWhy), its steps left (chainSteps) and why its task leaves the
 //   plan (chainGone). Reads only: the plan's writes are sim/playerplan's
 VB['sim/planchains'] = (() => {

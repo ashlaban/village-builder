@@ -153,6 +153,8 @@
       "sim/planchains",
       "sim/playerplan",
       "sim/plannext",
+      "sim/ladder",
+      "sim/upgrade",
       "sim/trust",
       "sim/jobs",
       "sim/drinking",
@@ -185,7 +187,7 @@
       "sim/outlook",
       "sim/estimate"
     ],
-    "derived": ["sim/notable", "sim/ladder", "sim/leanings", "sim/opportunities", "sim/overview", "sim/reasons", "sim/planview", "sim/agenda"],
+    "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview", "sim/reasons", "sim/planview", "sim/agenda"],
     "presentation": ["draw/pigments", "draw/paths", "draw/rivers", "draw/marks", "draw/paint", "draw/bake"]
   }
 }

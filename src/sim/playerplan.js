@@ -13,13 +13,14 @@ VB['sim/playerplan'] = (() => {
   //   day, in order, at most PLAN_MAX), sleep (null, or {from, until}: hours of the day, the pawn sleeps from `from` to `until`), tasks[]
   //   (at most PLAN_MAX, in order: a task by key {key (a job's key), kind, site (its tile or -1)}, or a task at a tile {<chain> (a tile),
   //   kind: <chain> (a key of CHAINS: plant, hay, harvest, fell, firewood), site (the same tile), and a fell task's n (the trips planned,
-  //   1 to FELL_MAX) and got (those home)}, one a chain a tile; VB-1621, VB-1622, VB-1625), day (the game day
+  //   1 to FELL_MAX) and got (those home); an upgrade task's what (the rung it builds, sim/upgrade: 'cottage')}, one a chain a tile; VB-1621,
+  //   VB-1622, VB-1625, VB-1632), day (the game day
   //   `done` is of), done[] (the routine kinds begun on day `day`), last (null, or the last task that left the plan: {key, kind, t}, its
   //   job finished or gone; or {<chain>, kind, site, t, which (one of the chain's `which`: plant 'sown' | 'closed' (its sowing window
   //   shut, the field unsown) | 'fallow' (the field made lies fallow this year) | 'gone' (nothing of the household's there now); hay
   //   'home' | 'closed' (the haymaking over, the meadow unmown) | 'rotted' | 'gone'; harvest 'in' | 'lost' | 'gone'; fell 'home' (its
   //   trips home) | 'bare' (no tree left at the tile) | 'gone'; firewood 'cut' (no timber left, and none planned to fell) | 'full' (the
-  //   pile at the season's goal) | 'gone')})}; plain data,
+  //   pile at the season's goal) | 'gone'; farmstead 'raised' | 'gone'; upgrade 'roof' (the roof on) | 'gone')})}; plain data,
   //   saved with st.player. A command the plan feeds to the queue carries `plan` {from: 'routine' | 'task' | 'sleep', kind, key}, and
   //   `chain` and <chain> (its tile) when a task at a tile fed it (kind 'project' for the project a marked tile begins)
   const PLAN_MAX = 24;
@@ -47,7 +48,7 @@ VB['sim/playerplan'] = (() => {
       if (pp.tasks.length >= PLAN_MAX) return `the plan is full (${PLAN_MAX} tasks)`;
       const at = g.at === undefined || g.at === null ? pp.tasks.length : g.at;
       if (!(Number.isInteger(at) && at >= 0 && at <= pp.tasks.length)) return `there is no place ${g.at} in the plan`;
-      const more = CHAINS[name].args ? CHAINS[name].args(g) : null;
+      const more = CHAINS[name].args ? CHAINS[name].args(g, st, pl.pawn) : null;
       if (typeof more === 'string') return more;
       pp.tasks.splice(at, 0, { [name]: tile, kind: name, site: tile, ...more });
     } else if (op === 'add') {

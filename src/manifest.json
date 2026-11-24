@@ -155,6 +155,7 @@
   "sim/heirs.js",
   "sim/aims.js",
   "sim/ladder.js",
+  "sim/upgrade.js",
   "sim/outlook.js",
   "sim/trust.js",
   "sim/matching.js",
