@@ -29,6 +29,7 @@ VB['sim/settle'] = (() => {
   const { projectsOf } = VB['sim/projects'];
   const { reckonWood, woodTaken } = VB['sim/territory'];
   const { siteFetch, siteWater } = VB['sim/water'];
+  const { siteWell } = VB['sim/wells'];
   const MAX_PLOTS = 2; // plots and booths under way in a village, as sim/expansion's projects at a time
   const listed = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
   const { keepsWard, mayHoldFarm, goesWith } = VB['sim/holding'];
@@ -284,6 +285,7 @@ VB['sim/settle'] = (() => {
     f.condAt = st.t;
     f.emptySince = null;
     f.booth = true; // the household lives in a booth until its cottage has its roof (sim/expansion's roofOn)
+    siteWell(st, f, v, party.all.length); // a site chosen for the well it means to dig: dug with the booth and the clearing (VB-1556)
     st.farmsteads.push(f);
     v.farmsteads.push(f.id);
     costChanged(st, house); // routes go round the house from now on

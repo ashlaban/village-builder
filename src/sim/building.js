@@ -20,7 +20,7 @@ VB['sim/building'] = (() => {
   const { plotTimber } = VB['sim/expansion'],
     { cottageJob, cottageTimber, finishBoothStage } = VB['sim/cottageplan'];
   const { wantsStone, hewable, hewLoad } = VB['sim/quern'];
-  const { stoneLacking } = VB['sim/wells'];
+  const { stoneLacking, stoneIn } = VB['sim/wells'];
   const { freeFor } = VB['sim/territory'];
   const { register } = VB['sim/commands'];
   // Design (Land and ecology, Timber; Agreed, Kim, 10 Nov): a cottage's walls take BUILD.timber loads (six trees, 3 loads a tree as a firewood
@@ -292,16 +292,18 @@ VB['sim/building'] = (() => {
   // land project under way when the step would open (a household makes its land first); its source kept while a load can still be got there.
   // It is also open, whatever the house and the land, while the household wants a quern and its heap lacks the load to hew it from (VB-009);
   // then its source is one that gives such a load, and a quarry of another rock is searched again (VB-733). And while its head means to
-  // dig a well and the heap lacks the lining's stone (sim/wells, VB-1553).
+  // dig a well and the heap lacks the lining's stone (sim/wells, VB-1553): in a booth too, where the site was chosen for its well
+  // (farmstead.wellMeant, VB-1556), and then for that stone alone.
   function buildStep(st, plan, hh) {
     const f = hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null,
       old = plan.build || null,
       quern = !!f && wantsStone(st, hh),
-      other = quern || (!!f && !f.booth && stoneLacking(st, hh, f) > 0);
+      well = !!f && (!f.booth || !!f.wellMeant) && stoneLacking(st, hh, f) > 0,
+      other = quern || well;
     if (
       !f ||
       f.household !== hh.id ||
-      f.booth ||
+      (f.booth && !well) ||
       (f.grade !== 'ground' && !other) ||
       (!old && !other && Projects.ownOf(st, hh.id))
     )
@@ -319,6 +321,11 @@ VB['sim/building'] = (() => {
       step = plan && plan.build;
     if (!step || f.household !== hh.id) return;
     const well = stoneLacking(st, hh, f) > 0; // the lining's stone for the well its head means to dig (VB-1553), a trip at a time
+    if (f.booth) {
+      // a booth's household gathers no stone but its site's well's (VB-1556): its cottage is laid on the ground
+      if (well && step.tile >= 0) post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
+      return;
+    }
     if (f.grade !== 'ground') {
       // a house on stone: the step is open for a quern's load (VB-009), one trip, while the heap holds none of a rock it is hewn of
       if (step.tile >= 0 && (well || (wantsStone(st, hh) && hewLoad(hh) === null)))
@@ -343,6 +350,7 @@ VB['sim/building'] = (() => {
       st.biomeDirty.add(j.site);
     }
     Stores.put(st, hh, 'stone/' + (j.kind === 'quarry' ? rockAt(st.w, j.site) : 'granite'), 1, j.kind);
+    stoneIn(st, hh); // a site's well is begun with the last load of its lining (sim/wells, VB-1556)
   }
   // The house raised: the foundation's stone off the heap, and the house on stone from now (its condition carried over at this hour, so the
   // closed form wears it at the stone's rate from here).

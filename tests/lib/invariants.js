@@ -1010,6 +1010,8 @@ function checkState(st) {
     }
   }
   for (const f of st.farmsteads) {
+    // VB-1556: the well a site was chosen for (sim/wells): a mark, true or absent, and none once the house's tile has its well
+    if (f.wellMeant !== undefined && (f.wellMeant !== true || st.w.fresh[f.house] === VB['world/water'].FRESH.WELL)) bad.push(`farmsteads[${f.id}]: wellMeant ${JSON.stringify(f.wellMeant)}${f.wellMeant === true ? ' beside its well' : ''}`);
     // VB-1551: the farm's source (sim/water): none, or a tile its household may draw at, of the class named: a well its own or on a
     // green, running water on its own tile, a lake or a marsh from the tile or beside it; the walk within WATER.search hours
     if (f.water !== undefined) {

@@ -159,7 +159,9 @@ VB['sim/agents'] = (() => {
         [x, y] = placeOf(st, a),
         at = tileAt(st, x, y);
       if (K.setDown && at === a.job.site) K.setDown(st, a.job, a);
-      else Lying.lay(st, a, a.job, K.fetch || a.job.kind, at, x, y);
+      // a load whose kind has no fetching (the day's water on its way home, VB-1555: nothing registers a fetch for it) is spilt where
+      // it falls, not left lying for a task of no kind (found by VB-1556: populous small 7 ended at such a load in year 6)
+      else if (KINDS[Lying.fetchKey(K.fetch || a.job.kind)]) Lying.lay(st, a, a.job, K.fetch || a.job.kind, at, x, y);
       standCart(st, a, at, x, y); // its cart stands where it was, with the team that drew it, until a hand fetches them (VB-649)
       a.carry = null;
       laid = a.job;

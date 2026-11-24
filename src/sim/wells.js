@@ -1,13 +1,14 @@
 // @sys sim/wells: a household's well (VB-1553): the making `well`, dug at the house on the house's own tile in the hours its ground's depth
 // asks and lined with stone off the household's heap; the head's test of whether a well pays, on its planning day, and the stone it wants
-// on its heap for one; the well finished is a source on the map (sim/water)
+// on its heap for one; the well a new site was chosen for, which its settlers dig with the booth and the clearing (VB-1556); the well
+// finished is a source on the map (sim/water)
 // Design: design.md, Goods and the farming year, Water by the site (Wells: A household's well). The well's cost is world/water's one rule
 // (wellHours, wellStone), which the village's well reads too (sim/green). What a head knows before it digs is the ground's band, never
 // the depth: it weighs the band's middle, sets aside the band's most stone, and meets the depth when water is struck.
 VB['sim/wells'] = (() => {
   const { FRESH, WELL, NO_WELL, BANDS, band, bandMid, bandStone, wellHours, wellStone } = VB['world/water'];
   const { YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
-  const { WATER, tripHours, wellDug } = VB['sim/water'];
+  const { WATER, tripHours, wellDug, siteWater } = VB['sim/water'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
   const { declare } = VB['sim/makings'];
@@ -20,12 +21,13 @@ VB['sim/wells'] = (() => {
   const hasWell = (st, f) => st.w.fresh[f.house] === FRESH.WELL;
   // Why household hh, holding farm f, may not begin a well now, but for its stone; or null. The ground has none (mountain, snow, water
   // deeper than WELL.deepest), the farm has one, one is being dug, or the household has a project of its own under way (VB-1553's
-  // criterion: with no project under way; the well is long work).
+  // criterion: with no project under way; the well is long work). The well a site was chosen for (farmstead.wellMeant) is dug beside
+  // the first field's breaking, as the cottage is raised beside it.
   function ground(st, hh, f) {
     if (!(st.w.waterDepth[f.house] < NO_WELL)) return `there is no well in the ground of ${f.name}`;
     if (hasWell(st, f)) return `${f.name} has a well`;
     if (Projects.underWay(st, hh.id, 'well')) return `${f.name} has a well under way`;
-    return Projects.ownOf(st, hh.id) ? `household ${hh.id} has a project under way` : null;
+    return !f.wellMeant && Projects.ownOf(st, hh.id) ? `household ${hh.id} has a project under way` : null;
   }
   // The stone a well on farm f's ground is begun with: the most its band may take, since the depth is not known before the digging.
   const lining = (st, f) => bandStone(band(st.w.waterDepth[f.house]));
@@ -60,13 +62,31 @@ VB['sim/wells'] = (() => {
     );
   }
   // Whether the head of household hh, holding farm f, means to dig: a well pays, its ground and its plans allow one, its land is
-  // made, and it does not hold off projects (sim/projects mayBegin).
+  // made, and it does not hold off projects (sim/projects mayBegin). Where the site was chosen for its well (farmstead.wellMeant) the
+  // leader weighed it before the house was placed: it is dug with the booth and the clearing, the land not waited for.
   const means = (st, hh, f) =>
     f.household === hh.id &&
-    pays(st, f) &&
     Projects.mayBegin(st, hh, 'well') &&
     ground(st, hh, f) === null &&
-    !landFirst(st, hh, f);
+    (f.wellMeant || (pays(st, f) && !landFirst(st, hh, f)));
+  // ---- the well a new site was chosen for (VB-1556; design.md, Water by the site, Wells, At a new site) ----
+  // The farm f just founded on its site in village v by `people` settlers: where the site's water, as its leader reckoned it before
+  // placing the house (sim/water siteWater: the site search's least), is the well it means to dig, the farm is marked so. Array reads,
+  // and one bounded search from the site where the village it joins has a well.
+  function siteWell(st, f, v, people) {
+    // @state farmstead.wellMeant: true while the farm's site, chosen for the well its settlers mean to dig (sim/settle settleFarm), has
+    //   no well yet: its household gathers the lining's stone and digs with the booth and the clearing, whatever the season and its
+    //   land; absent otherwise, and once water is struck (VB-1556)
+    if (siteWater(st, f.house, people, v).by === 'well') f.wellMeant = true;
+  }
+  // A load of stone has come onto household hh's heap (sim/building stoneHome): at a site chosen for its well the digging is begun with
+  // the last load of its lining, by the head, through the verb every head has. A comparison a load.
+  function stoneIn(st, hh) {
+    const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    if (!f || !f.wellMeant || hh.holder === null || hh.holder === undefined) return;
+    if (means(st, hh, f) && why(st, hh, f) === null)
+      issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'well' }, source: 'pawn' });
+  }
   // The loads of stone household hh's heap lacks for the well its head means to dig, 0 when it means none or has them: its building
   // step gathers them (sim/building: picked or quarried, as the foundation's), since a heap holds little that no work asked for.
   const stoneLacking = (st, hh, f) =>
@@ -92,10 +112,11 @@ VB['sim/wells'] = (() => {
   // On the household's planning day in the slack its head weighs a well: begun, through the verb every head has, when it pays and the
   // verb's check passes (the stone on its heap). A comparison of numbers a planning day; no search.
   on('planReviewed', (st, d) => {
-    if (d.why !== 'day' || d.plan.holder.type !== 'household' || !slack(d.c)) return;
+    if (d.why !== 'day' || d.plan.holder.type !== 'household') return;
     const hh = st.households[d.plan.holder.id],
       f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    if (!f || hh.holder === null || hh.holder === undefined || !means(st, hh, f) || why(st, hh, f) !== null) return;
+    if (!f || (!f.wellMeant && !slack(d.c))) return; // a site's well waits for no season
+    if (hh.holder === null || hh.holder === undefined || !means(st, hh, f) || why(st, hh, f) !== null) return;
     issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'well' }, source: 'pawn' });
   });
   // Water is struck and the well lined: the lining takes the stone its depth asks, of what was set aside (the rest stays on the heap);
@@ -105,9 +126,15 @@ VB['sim/wells'] = (() => {
       depth = st.w.waterDepth[s.place];
     // the depth met: what the lining takes of the stone set aside, which sim/projectplans spends as the step ends
     plan.steps[plan.open].spends.stone = Math.min(s.spends.stone, wellStone(depth)); // lint-allow: owner the step's own module names its spend
+    const site = !!f.wellMeant;
+    delete f.wellMeant; // the well its site was chosen for is dug
     wellDug(st, s.place, null, f);
     st.visualDirty = true;
-    log(st, `${f.name} has struck water and lined a well by its house.`, { kind: 'wellDug', ...atFarm(f) });
+    log(st, `${f.name} has struck water and lined a well by its house.`, {
+      kind: 'wellDug',
+      ...atFarm(f),
+      ...(site ? { site: true, hours: s.hours } : {}),
+    });
   }
   const byHouse = (st, a, j) => [st.w.hx[j.farm.house] + 1 + a.ox * 0.3, st.w.hy[j.farm.house] + 19 + a.oy * 0.2];
   // The job kind (sim/kinds registers it): the open step of the household's well, posted with its hours by sim/projects' landProject.
@@ -129,5 +156,5 @@ VB['sim/wells'] = (() => {
       done: (st, j, hh) => Projects.stepEnds(st, j, hh, struck),
     },
   };
-  return { KINDS, pays, stoneLacking };
+  return { KINDS, pays, stoneLacking, siteWell, stoneIn };
 })();
