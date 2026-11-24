@@ -51,7 +51,10 @@ function u2Place() {
   if (key === u2PlaceKey) return;
   u2PlaceKey = key;
   const hex = w.R * cam.z, // a tile's radius on the screen
-    top = (u2.key.hidden ? (u2.lens.hidden ? u2.top : u2.lens) : u2.key).getBoundingClientRect().bottom + 6,
+    top =
+      Math.max(
+        ...[u2.top, u2.lens, u2.key, u2.alert].filter((e) => !e.hidden).map((e) => e.getBoundingClientRect().bottom),
+      ) + 6,
     bot =
       Math.min(
         r.height,

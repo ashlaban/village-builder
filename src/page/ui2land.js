@@ -42,16 +42,39 @@ function fieldPin(fd) {
   const C = VB['sim/crops'].CROPS[fd.crop],
     c = Sim.cal(st.t),
     day = Math.floor(st.t / Sim.DAY);
-  if (fd.stage === 'sown' || fd.stage === 'growing')
-    return [goodIcon(GOOD_PATHS[fd.crop] ? fd.crop : 'seed'), C.ripe - Math.min(C.ripe, Math.max(0, day - fd.sown)), 0];
-  if (fd.stage === 'ripe') return [actIcon('mow'), '!', 2];
-  if (fd.stage === 'stooks') return [goodIcon('sheaves'), '', 1];
-  if (fd.stage === 'fallow' || fd.stage === 'scrub') return [actIcon('weed'), '', 1];
-  if (C.fallow) return [goodIcon('fallow'), '', 0];
+  if (fd.stage === 'sown' || fd.stage === 'growing') {
+    const n = C.ripe - Math.min(C.ripe, Math.max(0, day - fd.sown));
+    return [
+      goodIcon(GOOD_PATHS[fd.crop] ? fd.crop : 'seed'),
+      n,
+      0,
+      `The ${fd.crop} grows: about ${hudDays(n)} until it is ripe.`,
+    ];
+  }
+  if (fd.stage === 'ripe')
+    return [actIcon('mow'), '!', 2, `The ${fd.crop} is ripe: it is reaped now, or lost to the frost.`];
+  if (fd.stage === 'stooks')
+    return [goodIcon('sheaves'), '', 1, 'Reaped: the sheaves stand drying until they are carried in.'];
+  if (fd.stage === 'fallow' || fd.stage === 'scrub')
+    return [actIcon('weed'), '', 1, 'Untilled and growing over: it is hoed before it can be sown again.'];
+  if (C.fallow) return [goodIcon('fallow'), '', 0, 'Lies fallow this year, to rest the soil.'];
   const open = c.season === C.sow[0] && c.sday >= C.sow[1] && c.sday <= C.sow[2],
-    left = C.sow[2] - c.sday + 1;
-  return [actIcon(fd.stage === 'plowed' ? 'sow' : 'hoe'), open ? left : '', open ? (left <= 3 ? 2 : 1) : 0];
+    left = C.sow[2] - c.sday + 1,
+    plowed = fd.stage === 'plowed';
+  return [
+    actIcon(plowed ? 'sow' : 'hoe'),
+    open ? left : '',
+    open ? (left <= 3 ? 2 : 1) : 0,
+    `Waits to be ${plowed ? 'sown' : 'hoed, then sown'} with ${fd.crop}` +
+      (open
+        ? `: ${hudDays(left)} of the sowing ${left === 1 ? 'is' : 'are'} left (the number).`
+        : ': the sowing is not open now.'),
+  ];
 }
+// A mark's own explanation, in the callout of its tile when the mark was what was tapped (Kim, 24 Nov: a tap on anything standing on a
+// tile opens that tile's callout, the mark's words in a band on top with its icon repeated).
+const hudBand = (b) =>
+  b && b.why ? `<p class="u2-band"><span class="${esc(b.cls)}">${b.html}</span><span>${esc(b.why)}</span></p>` : '';
 // A span of working hours in the player's units: hours under a day's work, else days of work to the half.
 const hudSpan = (h) => {
   const L = Sim.WORK[1] - Sim.WORK[0];
@@ -185,6 +208,7 @@ function hudCall(i, id, hh, f) {
   if (!w.water[i] && !w.river[i] && i !== f.house)
     acts += '<button type="button" class="u2-chip" data-hud="walk">Walk here</button>';
   return (
+    hudBand(hud.band && hud.band.tile === i ? hud.band : null) +
     `<div class="u2-verdict"><div><h2>${esc(title)}</h2>${sub ? `<p class="sub">${esc(sub)}</p>` : ''}</div>` +
     '<button type="button" class="u2-x" data-hud="shut" aria-label="Close">×</button></div>' +
     (hud.msg && !hud.tab ? `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>` : '') +
@@ -215,9 +239,9 @@ function hudMarks(id, hh, f) {
   hud.markKey = key;
   const marks = [];
   f.fields.forEach((fd, k) => {
-    const [icon, n, press] = fieldPin(fd);
+    const [icon, n, press, why] = fieldPin(fd);
     if (fd.tile !== hud.at)
-      marks.push({ id: `f${k}`, tile: fd.tile, cls: `u2-pin press${press}`, html: hudPin(icon, n) });
+      marks.push({ id: `f${k}`, tile: fd.tile, cls: `u2-pin press${press}`, html: hudPin(icon, n), why });
   });
   if (site >= 0 && site !== hud.at && V.project)
     marks.push({
@@ -225,10 +249,17 @@ function hudMarks(id, hh, f) {
       tile: site,
       cls: 'u2-pin work',
       html: hudPin(actIcon(KIND_ICON[V.project.step] || 'build')),
+      why: `Work under way here: ${hudKind(V.project.step).toLowerCase()}. The mark is its tool.`,
     });
   for (const what of ['field', 'meadow'])
     if (V.tiles[what] >= 0 && V.tiles[what] !== site && V.tiles[what] !== hud.at)
-      marks.push({ id: `next${what}`, tile: V.tiles[what], cls: 'u2-pin next', html: hudPin(goodIcon(what)) });
+      marks.push({
+        id: `next${what}`,
+        tile: V.tiles[what],
+        cls: 'u2-pin next',
+        html: hudPin(goodIcon(what)),
+        why: `Marked for the next ${what === 'field' ? 'field' : 'hay meadow'}: nothing is begun here yet.`,
+      });
   // the plan's pins: each queued job at its tile, its place in the queue at one shoulder and the days until it is done at the other;
   // a tile shows one pin, the plan's before the field's
   const A = Sim.agenda(st),
@@ -242,8 +273,13 @@ function hudMarks(id, hh, f) {
           : [];
   list.forEach((t, k) => {
     if (t.site < 0 || !t.kind || planned.has(t.site) || t.site === hud.at) return;
-    const days = t.e && Number.isFinite(t.e.ends) ? hudDaysTo(t.e.ends) : '';
+    const days = t.e && Number.isFinite(t.e.ends) ? hudDaysTo(t.e.ends) : '',
+      v = (t.e && hudVerdict(t.e)) || '';
     planned.set(t.site, {
+      why:
+        `${hudKind(t.kind)} is number ${k + 1} in the plan (the square).` +
+        (days === '' ? '' : ` It is done in about ${hudDays(days)} (the round number).`) +
+        (v ? ` It is ${v === 'late' ? 'too late' : v} for what it must be ready for.` : ''),
       id: `q${t.site}`,
       tile: t.site,
       cls: `u2-pin plan press${(t.e && HUD_VERDICT[hudVerdict(t.e)]) || 0}`,
@@ -258,6 +294,7 @@ function hudMarks(id, hh, f) {
         tile: g.tile,
         cls: 'u2-pin press2 gap',
         html: hudPin(HUD_CHAIN[g.chain].icon(), g.days),
+        why: `Pressing, and nothing in the plan sees to it: ${hudDays(g.days)} left (the number) until ${g.deadline.what}.`,
       });
   for (let k = marks.length - 1; k >= 0; k--) if (planned.has(marks[k].tile)) marks.splice(k, 1);
   marks.push(...planned.values());
@@ -278,6 +315,7 @@ function hudMarks(id, hh, f) {
           .map(([icon]) => `<i class="warn">${goodIcon(icon)}</i>`)
           .join(''),
     });
+  hud.pins = marks.map(({ id: mark, tile, cls, html, why }) => ({ mark, tile, cls, html, why: why || '' }));
   if (hud.at >= 0)
     marks.push({ id: 'call', tile: hud.at, cls: 'u2-call', call: true, html: hudCall(hud.at, id, hh, f) });
   u2Marks(marks);
@@ -286,8 +324,16 @@ function hudMarks(id, hh, f) {
 function hudTap(sx, sy) {
   const { id, f } = hudHouse();
   if (id < 0 || !f) return false;
-  const i = loc(...toWorld(sx, sy), [0, 0]);
-  hud.at = i === hud.at || i < 0 ? -1 : i;
+  // a mark under the finger is its tile's (it stands above the tile, often over another): its callout opens with the mark's words
+  const pin = (hud.pins || []).find((p) => {
+    const a = u2Anchor.get(p.mark),
+      r = a && a.el.getBoundingClientRect();
+    return r && sx >= r.left - 6 && sx <= r.right + 6 && sy >= r.top - 6 && sy <= r.bottom + 6;
+  });
+  const i = pin ? pin.tile : loc(...toWorld(sx, sy), [0, 0]);
+  hud.at = (i === hud.at && !pin) || i < 0 ? -1 : i;
+  hud.band = pin && hud.at >= 0 ? pin : null;
+  hud.tapAt = performance.now();
   hud.msg = null;
   hud.markKey = '';
   sel = hud.at;

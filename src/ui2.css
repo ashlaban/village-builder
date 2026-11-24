@@ -175,6 +175,8 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2-pdiv { flex: none; width: 1.5px; height: 26px; background: var(--ink2); opacity: 0.35; margin: 0 2px; }
 .u2-pcard { width: min(360px, calc(100vw - 16px)); padding: 8px 10px 10px; display: grid; gap: 6px; opacity: 0.999; }
 .u2-pcard h2 { margin: 0; font: 800 19px/1.1 var(--head); } .u2-pcard p { margin: 0; } .u2-pcard .sub { color: var(--soft); font-size: 14px; }
+.u2-band { display: flex; gap: 12px; align-items: center; padding: 8px 8px 8px 14px; border-radius: 10px; background: var(--paper); font-size: 14px; }
+.u2-band > .u2-pin, .u2-band > .u2-gauges { flex: none; margin: 4px 6px 0 0; animation: none; }
 .u2-inplan { display: flex; gap: 8px; align-items: center; font-size: 14px; } .u2-inplan svg { width: 22px; height: 22px; flex: none; }
 /* the days ahead by the hour: one strip a day */
 .u2-days { display: grid; gap: 3px; width: min(520px, calc(100vw - 16px)); padding: 5px 10px; border-radius: 12px; border: var(--line); background: var(--glass); box-shadow: var(--lift); opacity: 0.999; cursor: pointer; }

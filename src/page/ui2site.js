@@ -117,11 +117,13 @@ function siteChoose(i, fly) {
   site.msg = '';
   renderSite();
   if (fly && i >= 0) {
-    // the tile comes to rest below the middle of the screen, the room above it left for its callout
+    // the tile comes to rest in the land left free between the bars, under its middle: the room above it is its callout's
     const z = Math.max(cam.z, clamp(30 / w.HW, zMin(), zMax)),
-      dx = 0,
-      dy = innerHeight * 0.22;
-    flyTo(w.hx[i] - dx / z, w.hy[i] - dy / z, z);
+      r = stage.getBoundingClientRect(),
+      top = (u2.key.hidden ? (u2.lens.hidden ? u2.top : u2.lens) : u2.key).getBoundingClientRect().bottom,
+      bot = u2.sitecard.hidden ? r.bottom : Math.min(r.bottom, u2.sitecard.getBoundingClientRect().top),
+      dy = top + (bot - top) * 0.72 - (r.top + r.height / 2);
+    flyTo(w.hx[i], w.hy[i] - dy / z, z);
   }
 }
 // What is on the land while choosing: a flag on each place scouted, and on the tile read a callout with its reading and the one act,

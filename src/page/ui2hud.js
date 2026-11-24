@@ -246,7 +246,6 @@ function hudClick(b) {
       Sim.queue(st, { actor: id, verb: 'work', target: d.target }),
       `Queued: ${b.firstChild.textContent.toLowerCase()}.`,
     );
-    if (+d.site >= 0) flyTo(w.hx[+d.site], w.hy[+d.site]);
   } else if (d.hud === 'drop') hudMsg(Sim.head(st, 'dropProject', { id: +d.id }), 'Given up.');
   hud.key = hud.markKey = hud.planKey = '';
 }
@@ -256,6 +255,8 @@ if (UI2) {
       `<button type="button" data-tab="${k}" aria-pressed="false" aria-label="${name}" title="${name}">${icon()}</button>`,
   ).join('');
   u2.u2.addEventListener('click', (e) => {
+    // the tap that opened a callout presses nothing in it: what appears under the finger is not what was aimed at
+    if (e.target.closest('.u2-call') && performance.now() - (hud.tapAt || 0) < 450) return;
     const t = e.target.closest('[data-tab]'),
       b = e.target.closest('[data-hud]'),
       pc = e.target.closest('[data-pc]');
@@ -263,10 +264,7 @@ if (UI2) {
       hud.pc = hud.pc === pc.dataset.pc ? null : pc.dataset.pc;
       hud.msg = null;
       hud.planKey = '';
-      const P = hudPlanned(),
-        t0 = P && pc.dataset.pc.startsWith('t:') ? P.tasks[+pc.dataset.pc.slice(2)] : null;
-      if (hud.pc && t0 && t0.site >= 0) flyTo(w.hx[t0.site], w.hy[t0.site]);
-      return renderHud();
+      return renderHud(); // the map stays where it is: a task's card has "Show" for its place
     }
     if (t && st && played() >= 0) {
       if (t.closest('.u2-call')) hud.at = -1;
