@@ -79,7 +79,10 @@ VB['sim/ladder'] = (() => {
     });
     return out;
   }
-  const stoneUnderWay = (st, hh, f) => !f.booth && f.grade === 'ground' && !!st.plans.households.get(hh.id)?.build;
+  // the stone foundation under way: the building step of the household's plan (sim/building buildStep), which a head holding off projects
+  // has none of (VB-1633: read at once, not at its next review, once the player takes the plan by hand)
+  const stoneUnderWay = (st, hh, f) =>
+    !f.booth && f.grade === 'ground' && !!st.plans.households.get(hh.id)?.build && !Projects.heldOff(st, hh.id);
   // What farm f's household is building now, the main building first: {what, step (the open step's kind), hoursLeft}, or null.
   function building(st, hh, f) {
     if (!hh) return null;

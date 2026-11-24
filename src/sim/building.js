@@ -366,8 +366,11 @@ VB['sim/building'] = (() => {
   // It is also open, whatever the house and the land, while the household wants a quern and its heap lacks the load to hew it from (VB-009);
   // then its source is one that gives such a load, and a quarry of another rock is searched again (VB-733). And while its head means to
   // dig a well and the heap lacks the lining's stone (sim/wells, VB-1584): in a booth too, where the site was chosen for its well
-  // (farmstead.wellMeant, VB-1587), and then for that stone alone.
+  // (farmstead.wellMeant, VB-1587), and then for that stone alone. None while its head holds off projects (sim/projects heldOff: the
+  // played head with automatic behaviour off, VB-1633; Kim, 24 Nov 2026: nothing the head would plan by itself while the player plans):
+  // the step is the head's own rule, as a project begun by it is, and one open when the hold began is closed.
   function buildStep(st, plan, hh) {
+    if (Projects.heldOff(st, hh.id)) return null;
     const f = hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null,
       old = plan.build || null,
       quern = !!f && wantsStone(st, hh),

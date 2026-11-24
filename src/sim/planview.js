@@ -7,6 +7,7 @@ VB['sim/planview'] = (() => {
   const { chainOf, chainSteps, pileOf } = VB['sim/planchains'];
   const { empty, today } = VB['sim/playerplan'];
   const { nextOf, waitsOf } = VB['sim/plannext'];
+  const { supplyOutlook, reckon } = VB['sim/outlook'];
   // ---- the page's read: Sim.planView(st) ----
   // A task at a tile as the view shows it: its tile (under its chain's name), the kind of the step open or next (`step`, null with none
   // left), whether that step's job is posted (`stands`), and its job's key (null while not posted).
@@ -61,10 +62,16 @@ VB['sim/planview'] = (() => {
   // ---- the page's read of the fire (VB-1625): Sim.fireView(st) ----
   // How the fire stands for the played pawn's household: wood (firewood held), timber (held, not yet cut), peat (held), free (the pile's
   // free fuel, sim/chores fuelFree: what a project holds back left out, peat at its worth), goal (the season's, the head's plan's), nights
-  // (whole nights the free pile lasts at the season's use, ECON.woodUse), cold (the house went cold last night), short (the pile below the
-  // goal, or the house cold), mend (what would mend it, in order: [] when not short; 'firewood' first when timber is home, 'fell' when
-  // none is or what is home falls short of the goal), planned ({fell, firewood}: whether the plan holds a task of each). null with no
-  // pawn played or no household with a farm. Plain data; writes nothing.
+  // (whole nights the free pile lasts at the season's use, ECON.woodUse), cold (the house went cold last night), short (the house cold,
+  // or the fuel of the supply outlook not lasting its frame), state, lasts, season (VB-1633: the outlook's fuel, its state, its `with`
+  // and its first short season, the one reckoning the page shows; null season when it lasts), below (the pile below the season's goal,
+  // the head's target for its cutting), mend (what would mend it, in order: [] when not short; 'firewood' first when timber is home and
+  // the pile is below its goal or the house cold, 'fell' when no timber is or what is home falls short of the goal or of the frame),
+  // planned ({fell, firewood}: whether the plan holds a task of each). null with no pawn played or no household with a farm. Plain data;
+  // writes nothing.
+  // One reckoning of the fire (VB-1633): `short` reads the outlook's fuel (sim/outlook: the pile and the timber the plan cuts, walked
+  // against each season's use over the frame), not the pile against the season's goal, which is only the head's target for its cutting
+  // and was short on a hand start's first morning while the outlook counted the head's cutting and said it lasted the year.
   function fireView(st) {
     const pl = st.player;
     if (!pl) return null;
@@ -75,12 +82,15 @@ VB['sim/planview'] = (() => {
       timber = timberOf(hh),
       use = st.ECON.woodUse[cal(st.t).season],
       cold = hh.cold > 0,
-      short = cold || p.short,
+      O = supplyOutlook(st, hid),
+      fuel = O ? O.fuel : reckon(st, hh, st.plans.households.get(hid)).fuel, // before the household's first review
+      short = cold || fuel.state !== 'safe',
       mend = [],
       tasks = pl.plan ? pl.plan.tasks : [];
     if (short) {
-      if (timber > 0) mend.push('firewood');
-      if (!timber || p.free + timber < p.goal) mend.push('fell');
+      const cut = timber > 0 && (cold || p.short);
+      if (cut) mend.push('firewood');
+      if (!cut || p.free + timber < p.goal) mend.push('fell');
       if (!timber) mend.push('firewood');
     }
     return {
@@ -92,6 +102,10 @@ VB['sim/planview'] = (() => {
       nights: use > 0 ? Math.floor(Math.max(0, p.free) / use + 1e-9) : Infinity,
       cold,
       short,
+      state: fuel.state,
+      lasts: fuel.with,
+      season: fuel.season,
+      below: p.short,
       mend,
       planned: {
         fell: tasks.some((t) => t.key === undefined && t.kind === 'fell'),
