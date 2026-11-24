@@ -72,10 +72,10 @@ function dbFile() {
 const file = dbFile();
 const [cmd, ...rest] = args;
 if (!cmd) fail('a command: init, start, claim, note, result, list, status, apply, report, results (--help)');
-if (cmd !== 'init' && !fs.existsSync(file)) fail(`no inbox at ${file}: the orchestrator runs  node tools/inbox.js init  first`);
+if (cmd !== 'init' && cmd !== 'calls' && !fs.existsSync(file)) fail(`no inbox at ${file}: the orchestrator runs  node tools/inbox.js init  first`);
 if (cmd === 'init' && fresh && fs.existsSync(file)) fs.rmSync(file);
-const db = new DatabaseSync(file);
-db.exec('PRAGMA busy_timeout = 5000');
+const db = cmd === 'calls' ? null : new DatabaseSync(file); // calls reads a transcript only: a session of its own has no inbox
+if (db) db.exec('PRAGMA busy_timeout = 5000');
 const all = (sql, ...p) => db.prepare(sql).all(...p), get = (sql, ...p) => db.prepare(sql).get(...p), run = (sql, ...p) => db.prepare(sql).run(...p);
 // One writer at a time: a command's reads and writes are one transaction, so two sub-agents never take the same ID.
 const atomic = (f) => { db.exec('BEGIN IMMEDIATE'); try { const v = f(); db.exec('COMMIT'); return v; } catch (e) { db.exec('ROLLBACK'); throw e; } };

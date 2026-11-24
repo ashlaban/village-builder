@@ -118,9 +118,9 @@ expect('calls: at the ceiling, hand over', /^125 of 120 calls; .*: the ceiling i
 const sess = path.join(dir, 'config', 'projects', 'p', 'sess.jsonl');
 fs.writeFileSync(sess,
   [entry(1), entry(1), JSON.stringify({ type: 'assistant', isSidechain: true, message: { id: 'side', usage: { input_tokens: 5 } } }), entry(2)].join('\n'));
-const c = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), 'calls'], {
+const c = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'none.db'), 'calls'], {
   encoding: 'utf8', env: { ...process.env, CLAUDE_CONFIG_DIR: path.join(dir, 'config') } });
-expect('calls: in a session, its own transcript and no ceiling',
+expect('calls: in a session, its own transcript, no inbox needed and no ceiling',
   c.stdout.trim() === "2 calls (a session: the ceiling of 120 is a sub-agent's); context 3k; weighted 604", c.stdout + c.stderr);
 r = run('', 'result', B, 'status=continue');
 expect('a continuation needs its commit', !r.ok && /commit=SHA/.test(r.out), r.out);
