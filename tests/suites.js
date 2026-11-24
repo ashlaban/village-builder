@@ -22,6 +22,7 @@ const FAST = [
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
   ['node', 'tests/firewood.js'], // VB-1625: wood in two steps, felled and carried home as timber, cut at the house; the plan's fell and firewood
+  ['node', 'tests/camp.js'], // VB-1627: land first: a camp, roofless; the build menu and the refusals; the farmstead placed and its booth raised, the house moved
   ['node', 'tests/plan.js'], // VB-1618: the player's plan: its ops, the routine once a day, tasks in order, hand commands first, sleep by its hours
   ['node', 'tests/sleep.js'], // VB-1615: the played pawn's sleep owed, the verb sleep, a night worked in mood and health
   ['node', 'tests/outcomes.js'], // commands' three outcomes and the queue's assignments: release, reacquire, side work, saves (VB-1405)
@@ -321,6 +322,6 @@ const EXTENDED = [
   ['node', 'tests/browser-gathering.js'], // a gathering while it is on: its notice, its mark and its card (VB-1031, VB-1032)
   ['node', 'tests/browser-fields.js'], // a field's card: crop, course, the head's rotation choices and their answers, winter rye (VB-1146)
   ['node', 'tests/browser-overlays.js'], // the map's overlays through their list and by key, one at a time, on a phone (VB-1496)
-  ['node', 'tests/browser-bonds.js'] // portraits: the bonds as badges (VB-1026), their words (VB-1033), ageing (VB-1029)
+  ['node', 'tests/browser-bonds.js'], // portraits: the bonds as badges (VB-1026), their words (VB-1033), ageing (VB-1029)
 ];
 module.exports = { FAST, INTEGRATION, EXTENDED };

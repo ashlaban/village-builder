@@ -154,6 +154,7 @@
     "w.fresh": "sim/water",
     "farmstead.water": "sim/water",
     "farmstead.wellMeant": "sim/wells",
+    "farmstead.camp": "sim/camp",
     "st.front": "sim/spread",
     "st.lapsed": "sim/spread",
     "st.deer": "sim/deer",

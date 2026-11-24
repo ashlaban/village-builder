@@ -100,6 +100,7 @@
       "sim/expansion",
       "sim/wells",
       "sim/building",
+      "sim/camp",
       "sim/trails",
       "sim/drying",
       "sim/tar",

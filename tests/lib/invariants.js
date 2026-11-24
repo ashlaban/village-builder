@@ -1080,8 +1080,13 @@ function checkState(st) {
     if (f.booth && st.plans && st.plans.projects) {
       const P = st.plans.projects, mine = (p) => p.what === 'cottage' && p.farmstead === f.id,
         n = [...(P.household.get(f.household) || []), ...(P.village.get(f.village) || [])].filter(mine).length;
-      if (n !== 1) bad.push(`farmsteads[${f.id}]: a booth with ${n} cottage plans`);
+      // a farm landed by hand (f.camp, VB-1627) has its cottage planned by a later task: none, or one
+      if (n !== 1 && !(n === 0 && f.camp !== undefined)) bad.push(`farmsteads[${f.id}]: a booth with ${n} cottage plans`);
     }
+    // the camp (VB-1627): absent, or true (nothing stands: no booth of its household raised by its house) or false, on a booth farm while true
+    if (f.camp !== undefined && f.camp !== true && f.camp !== false) bad.push(`farmsteads[${f.id}]: camp ${JSON.stringify(f.camp)}`);
+    if (f.camp === true && (!f.booth || (st.booths || []).some((b) => b.by === f.household && globalThis.VB['sim/hex'].hexSteps(st.w, b.tile, f.house) <= 1)))
+      bad.push(`farmsteads[${f.id}]: a camp ${f.booth ? 'with its booth raised' : 'with no booth mark'}`);
     if (f.grade !== 'ground' && f.grade !== 'stone') bad.push(`farmsteads[${f.id}]: grade ${f.grade}`); // VB-332
     for (const fd of f.fields) if (!tileOk(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} out of range`);
     // VB-1520: a field's ground is the key of a farmable ground (a biome with a row of GROUND)

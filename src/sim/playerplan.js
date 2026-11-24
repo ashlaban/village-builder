@@ -6,9 +6,9 @@
 //   on a forest tile and carried home (fell) and the timber home cut into firewood (firewood; VB-1625); declared as data (CHAINS);
 //   why each task waits and why the plan is idle (WAITS, waitsOf; VB-1623), by the reads nextOf makes; how the fire stands (fireView)
 VB['sim/playerplan'] = (() => {
-  const { DAY, SEASON_DAYS, YEAR, WORK, TRAVEL, cal } = VB['sim/rules'];
+  const { DAY, SEASON_DAYS, YEAR, WORK, TRAVEL, BOOTH, ECON, cal } = VB['sim/rules'];
   const { CROPS, ROTATIONS } = VB['sim/crops'];
-  const { projectsOf } = VB['sim/projects'];
+  const { projectsOf, lacks } = VB['sim/projects'];
   const { frostDay } = VB['sim/weather'];
   const { fieldProject } = VB['sim/fieldplans'];
   const { standing } = VB['sim/fields'];
@@ -424,7 +424,40 @@ VB['sim/playerplan'] = (() => {
     gone: (st, { hh }) => (!pileOf(st, hh).short ? 'full' : !timberOf(hh) && !fellPlanned(st) ? 'cut' : null),
     deadline: () => null,
   };
+  // ---- farmstead: the first shelter, placed from the camp and raised (VB-1627) ----
+  // On a camp (sim/camp) the head places the farmstead by its own verb (`act`: placeFarmstead, the house moved to the tile and the booth
+  // staked beside it); then the booth's timber trips, whose jobs stand at the wood (`keys`: found by their keys, not at the tile), and its
+  // raising. It leaves when the booth stands ('raised'), or when nothing of the camp's stands for it ('gone').
+  const Camp = VB['sim/camp'];
+  const trips = (lack) => Math.max(1, Math.ceil(lack / ECON.woodPerTrip - 1e-9));
+  const farmstead = {
+    noun: 'farmstead',
+    mark: null,
+    kinds: ['timber', 'booth'],
+    which: ['raised', 'gone'],
+    at: (st, hid, tile) => Camp.campAt(st, hid, tile),
+    none: (tile) => `there is no camp to place a farmstead from, nor a farmstead under way at ${tile}`,
+    why: (st, where, tile) =>
+      where.camp ? Camp.placeWhy(st, 'farmstead', tile) : where.raised ? `the farmstead at ${tile} stands` : null,
+    steps: (st, hid, { camp, staked }) => {
+      if (!camp && !staked) return [];
+      const s = staked && staked.steps[staked.open],
+        bid = staked ? staked.booth : null,
+        raise = { kind: 'booth', hours: BOOTH.hours, n: 1, from: -Infinity, keys: staked ? [`booth:o${bid}`] : [] };
+      if (s && s.kind !== 'timber') return [raise];
+      const lack = s ? lacks(s, s.timber) : BOOTH.wood,
+        keys = staked ? [`timber:o${bid}`, `timber:o${bid}b`] : [];
+      return lack > 0
+        ? [{ kind: 'timber', hours: KINDS.timber.hours, n: trips(lack), from: -Infinity, keys }, raise]
+        : [raise];
+    },
+    gone: (st, where) => (where.raised ? 'raised' : null),
+    deadline: () => null,
+    act: (st, id, where, tile) =>
+      where.camp ? { actor: id, verb: 'placeFarmstead', target: tile, args: null, source: 'player' } : null,
+  };
   const CHAINS = { plant, hay, harvest, fell, firewood };
+  CHAINS.farmstead = farmstead; // VB-1627
   // The chain of task t (a task at a tile: no key), or null for a task by key.
   const chainOf = (t) => (t.key === undefined && CHAINS[t.kind] ? t.kind : null);
   // What stands at `tile` for chain `name` of household hid: the chain's own (`at`), else the tile the head has marked for its next field
@@ -474,7 +507,9 @@ VB['sim/playerplan'] = (() => {
       steps = [];
     for (const s of [...first, ...CHAINS[name].steps(st, hid, where)]) {
       let job = null;
-      if (js && !where.mark) for (const j of js) if (j.kind === s.kind && j.site === tile) job = j;
+      if (s.keys)
+        for (const k of s.keys) job = job || st.jobs.get(k) || null; // jobs found by key (farmstead's timber at the wood)
+      else if (js && !where.mark) for (const j of js) if (j.kind === s.kind && j.site === tile) job = j;
       if (!job && s.posted) continue;
       steps.push({ kind: s.kind, job, hours: s.hours, n: s.n, from: s.from, what: s.what });
     }
@@ -516,6 +551,11 @@ VB['sim/playerplan'] = (() => {
       const cmd = headCmd(id, hid, { what: s.where.mark, tile }),
         why = VERBS.project.check(st, cmd);
       return why === null ? { ...cmd, plan: { ...mark, kind: 'project', key: null } } : WAITS.refused(why);
+    }
+    const act = CHAINS[name].act && CHAINS[name].act(st, id, s.where, tile); // a chain's own act first (farmstead: its placing)
+    if (act) {
+      const why = VERBS[act.verb].check(st, act);
+      return why === null ? { ...act, plan: { ...mark, kind: act.verb, key: null } } : WAITS.refused(why);
     }
     const x = s.steps.find((y) => y.job);
     if (x) {
