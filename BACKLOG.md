@@ -303,6 +303,8 @@ not own, it raises it in the same PR: a question in `QUESTIONS.md` or a new task
 A sentence deep in the notes is not enough. On 5 and 6 November the late fixture's 2,492 living (against about 1,000) and VB-174's
 ledgers adding half to the save were written in task files, and no one acted on them until the review of 7 November.
 
+**Causes.** A task that mends a defect names, in a `Cause: VB-NNN` line after `Status:`, the task whose change introduced it, where that is known (`tools/backlog.js set ID cause=VB-NNN`; VB-1615): the evaluation of independent review counts these.
+
 **Archs and phases.** An arch groups the tasks that build one part of the design. Its tasks go through three phases:
 - **plan:** a plan task makes the design concrete, deciding by `AGENTS.md`, Deciding without Kim, and asking Kim only what that leaves; it writes the arch's implement tasks with numbers and acceptance criteria, and sets them `ready`.
 - **implement:** the tasks that build it, each small enough for one agent session (size S or M where possible).

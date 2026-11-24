@@ -21,7 +21,8 @@
 //   report                     the PR's "For Kim" section, in Markdown: principle candidates, teleports found, close calls, questions, new tasks
 //   results [--json]           the results, for  node tools/agent-usage.js --results FILE
 // kinds, with their keys:
-//   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= ref= goal=]; body: its criteria
+//   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= cause= ref= goal=]; body: its criteria
+//              (cause=VB-NNN: the task whose change introduced the defect it mends, VB-1615)
 //              (ready: goal=, ref= and the body given, and no question for Kim; priority=1 if it mends a red check)
 //   question   priority= title= [about=VB-NNN, the task it is filed under: default TASK]; body: the numbered questions, each with its proposed answer (**P:**), as in QUESTIONS.md
 //   tuning     parameter= means= measured= proposed=   a row of docs/tuning.md, Parameters waiting
@@ -53,7 +54,7 @@ const COLLECT = {
   act: { name: "Acts with no pawn, collected: swept at a slice's wrap-up", arch: 'acts', goal: 'Each act listed is a pawn\'s, through a verb any pawn may use',
     summary: 'The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up' },
 };
-const OPTIONAL = { task: ['status', 'arch', 'waits', 'ref', 'goal'], question: ['about'], teleport: ['task'] };
+const OPTIONAL = { task: ['status', 'arch', 'waits', 'cause', 'ref', 'goal'], question: ['about'], teleport: ['task'] };
 const NEEDS_BODY = ['question'];
 // The ceiling on a sub-agent's model calls (Kim, 18 November): every call re-reads the whole context, so a long task is handed to a
 // fresh sub-agent instead. On 15 November 10 tasks of 45 went past 120 calls and took 71% of the night's cost.
@@ -232,7 +233,7 @@ if (cmd === 'init') {
   for (const n of notes('WHERE applied = 0')) {
     const f = n.fields;
     if (n.kind === 'task') {
-      const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`);
+      const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'cause', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`);
       // a file is never made ready with "(to write)" in it (tools/backlog.js new): a ready note's task is made, filled, then set ready
       backlog('new', `id=${f.id}`, `status=${f.status === 'ready' ? 'needs-review' : f.status || 'needs-review'}`, ...keys);
       if (n.body && !dry) {
