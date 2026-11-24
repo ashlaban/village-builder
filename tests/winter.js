@@ -127,4 +127,23 @@ const steps = (w, a, b) => {
   assert(round.length - 1 >= 20 && !round.some((t) => w.water[t]), `on the thaw's day the route goes round (${round.length - 1} steps)`);
   assert.deepStrictEqual(groundBad(st), [], 'the ground compiled as the rule, after the thaw');
 }
+// The winter table (sim/villagehours): two villages across the lake, its hours over a normal winter's ice while ice bears, the land table's
+// otherwise.
+{
+  const VH = VB['sim/villagehours'],
+    w = tinyWorld(map),
+    st = tinyState(w, [{ at: [12, 0], farms: 1, sizes: [2] }, { at: [12, 11], farms: 1, sizes: [2] }], { seed: 7 });
+  Climate.layGround(st);
+  VH.buildHours(st);
+  const land = VH.hoursBetween(st, 0, 1);
+  for (let j = 0; j < VH.ROW_STEPS; j++) VH.winterStep(st, j);
+  const winter = st.winterHours[0][1];
+  assert(winter !== null && winter < land, `the winter table finds the way over the ice shorter: ${winter} against ${land} hours`);
+  assert.strictEqual(VH.hoursBetween(st, 0, 1), land, 'open water: the land table answers');
+  for (const b of st.climate.bands) b.state = 'lakeBears';
+  assert.strictEqual(VH.hoursBetween(st, 0, 1), winter, 'ice bears: the winter table answers');
+  assert.strictEqual(VH.hoursBetween(st, 0, 1, 'land'), land, 'asked for the land table');
+  assert.deepStrictEqual(checkState(st).filter((m) => m.startsWith('winterHours')), [], 'the winter table as its invariant asks');
+  out.push(`between villages across the lake ${winter.toFixed(2)} hours in winter, ${land.toFixed(2)} by land`);
+}
 console.log(`winter ok: ${out.join('; ')}`);

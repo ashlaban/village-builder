@@ -447,6 +447,20 @@ function checkState(st) {
       }
     }
   }
+  // the winter table (VB-808): none, or a row a village as the land table's, 0 on the diagonal, symmetric, every other entry null or a number
+  // in (0, WINTER_HOURS]
+  if (st.winterHours !== null && st.winterHours !== undefined) {
+    const T = st.winterHours, n = st.villages.length, top = globalThis.VB['sim/villagehours'].WINTER_HOURS;
+    if (!Array.isArray(T) || T.length !== n) bad.push(`winterHours: ${Array.isArray(T) ? T.length : T} rows for ${n} villages`);
+    else for (let v = 0; v < n; v++) {
+      if (!Array.isArray(T[v]) || T[v].length !== n) { bad.push(`winterHours[${v}]: not a row of ${n}`); continue; }
+      for (let u = 0; u < n; u++) {
+        const h = T[v][u];
+        if (u === v ? h !== 0 : !(h === null || (typeof h === 'number' && h > 0 && h <= top + 1e-9))) bad.push(`winterHours[${v}][${u}]: ${h}`);
+        else if (u > v && Array.isArray(T[u]) && (h === null ? T[u][v] !== null : !(Math.abs(h - T[u][v]) <= 1e-9))) bad.push(`winterHours[${v}][${u}]: not symmetric`);
+      }
+    }
+  }
   // the household charged with a village's tar pit (VB-673): none, or a household that is or was of the world
   for (const v of st.villages)
     if (v.tarBy !== undefined && v.tarBy !== null && !(Number.isInteger(v.tarBy) && st.households[v.tarBy]))

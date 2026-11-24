@@ -30,6 +30,7 @@
     "st.routeCosts": {"owner": "sim/routes", "category": "cache"},
     "st.routeFallbacks": "sim/routes",
     "st.villageHours": "sim/villagehours",
+    "st.winterHours": "sim/villagehours",
     "plan.targets": "sim/seasonal",
     "plan.tiles": "sim/plans",
     "plan.counted": "sim/plans",

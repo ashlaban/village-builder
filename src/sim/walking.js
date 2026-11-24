@@ -145,11 +145,23 @@ VB['sim/walking'] = (() => {
   //   a load), a tile again where its cost changed (sim/routes costChanged), a band's rows on a winter's date. Equal to the rule computed
   //   afresh (an invariant).
   function compileGround(w, rows) {
-    const g = { cost: new Float64Array(w.N), ice: new Uint8Array(w.N), season: Uint8Array.from(rows) };
-    w.ground = g; // lint-allow: owner derived from the world and the season, rebuilt on load; never saved
+    // derived from the world and the season, rebuilt on load; never saved
+    w.ground = { cost: new Float64Array(w.N), ice: new Uint8Array(w.N), season: Uint8Array.from(rows) }; // lint-allow: owner derived
     for (let i = 0; i < w.N; i++) recost(w, i);
     REACH.delete(w); // what stands may differ from the lists searched before (ice)
-    return g;
+    return w.ground;
+  }
+  // fn() run on the ground of seasons `rows` (a row's GROUND flags) in place of the ground as it stands, which is put back after: the
+  // ground of a normal winter, for the winter table of hours (sim/villagehours). Compiled afresh each call, so that nothing is kept aside.
+  function withGround(w, rows, fn) {
+    const was = w.ground;
+    w.ground = { cost: new Float64Array(w.N), ice: new Uint8Array(w.N), season: Uint8Array.from(rows) }; // lint-allow: owner as compileGround's
+    for (let i = 0; i < w.N; i++) recost(w, i);
+    try {
+      return fn();
+    } finally {
+      w.ground = was; // lint-allow: owner as compileGround's
+    }
   }
   // A run seeded on a world: its ground is compiled again at the first step (a world may be seeded more than once).
   function dropGround(w) {
@@ -335,6 +347,7 @@ VB['sim/walking'] = (() => {
     GROUND,
     tileCost,
     compileGround,
+    withGround,
     dropGround,
     recost,
     setRows,

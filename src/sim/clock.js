@@ -10,7 +10,7 @@ VB['sim/clock'] = (() => {
   const { seasonBegins, frostDay, winterAhead } = VB['sim/weather'];
   const { reckon: reckonWinter, fallDue: climateDue, layGround } = VB['sim/climate'];
   const { refreshRoutes, costChanged } = VB['sim/routes'],
-    { refreshHoursStep, ROW_STEPS } = VB['sim/villagehours'];
+    { refreshHoursStep, ROW_STEPS, WINTER_AT, winterDay, winterStep } = VB['sim/villagehours'];
   const { fadeWear } = VB['sim/paths'];
   const { feedHousehold, spoilGrain } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
@@ -474,6 +474,15 @@ VB['sim/clock'] = (() => {
       owner: 'sim/villagehours',
       note: 'the walking hours between villages, a row a step (VB-286)',
       run: (st, c, n) => refreshHoursStep(st, n - 12 * TICKS),
+    },
+    // the day lake ice first bears in the middle band, from 5:00: the winter table, a village a step (VB-808)
+    {
+      every: 'day',
+      at: { hour: WINTER_AT, tick: [0, ROW_STEPS] },
+      when: winterDay,
+      owner: 'sim/villagehours',
+      note: "the walking hours between villages over a normal winter's ground, a row a step (VB-808)",
+      run: (st, c, n) => winterStep(st, n - WINTER_AT * TICKS),
     },
     {
       every: 'year',

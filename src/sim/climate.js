@@ -193,6 +193,30 @@ VB['sim/climate'] = (() => {
     for (let r = 0; r < w.ROWS; r++) rows[r] = GROUND_OF[bandState(st, bandOfRow(w, r))];
     Walk.compileGround(w, rows);
   }
+  // The ground of a normal winter (warmth 0) of the world's climate, a row's flags: each band at the deepest ground its normal winter
+  // reaches (sound ice, lake ice, snow, or none). What people know of the winter ways (principle 14), for the winter table of hours
+  // (sim/villagehours); null where no band has lake ice in a normal winter.
+  function normalGround(w) {
+    const deep = [];
+    let ice = false;
+    for (let b = 0; b < C.bands; b++) {
+      const d = datesOf(bandLat(w, b), 0),
+        s =
+          d.soundBears !== null
+            ? 'soundBears'
+            : d.lakeBears !== null
+              ? 'lakeBears'
+              : d.frost !== null
+                ? 'frost'
+                : 'open';
+      if (d.lakeBears !== null) ice = true;
+      deep.push(GROUND_OF[s]);
+    }
+    if (!ice) return null;
+    const rows = new Uint8Array(w.ROWS);
+    for (let r = 0; r < w.ROWS; r++) rows[r] = deep[bandOfRow(w, r)];
+    return rows;
+  }
   // Band b's rows come to the ground of its state; where any tile's cost changed, the routes cached are emptied now (sim/routes).
   function groundOfBand(st, b) {
     if (!st.w.ground) return;
@@ -218,5 +242,6 @@ VB['sim/climate'] = (() => {
     seedClimate,
     bandState,
     layGround,
+    normalGround,
   };
 })();
