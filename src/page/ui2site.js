@@ -255,6 +255,7 @@ if (UI2)
     else if (b && b.dataset.site === 'settle') siteSettle();
     else if (b && b.dataset.site === 'begin') {
       u2.welcome.hidden = true;
+      hudBegin();
       setSpeed(1);
     }
   });

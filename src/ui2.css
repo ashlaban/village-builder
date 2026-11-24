@@ -149,8 +149,24 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 /* in play: what she does, and three round doors to the fuller views */
 .u2-does { flex: none; align-self: center; margin: 0; max-width: 100%; padding: 3px 12px; border-radius: 999px; background: var(--glass); border: var(--line); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .u2-dock { flex: none; align-self: center; }
-.u2-tabs { display: flex; gap: 8px; }
-.u2 .u2-tabs button { min-width: 92px; min-height: 46px; padding: 0 16px; border: var(--line); border-radius: 999px; background: var(--glass); font: 800 17px var(--head); box-shadow: var(--lift); }
+.u2-dock { display: grid; gap: 6px; max-width: 100%; }
+.u2-dockrow { display: flex; gap: 8px; align-items: center; max-width: 100%; }
+/* the plan: a row of icons; the routine, the sleep, then the tasks in order */
+.u2-planbar { display: flex; gap: 6px; align-items: center; padding: 6px 12px 6px 8px; border-radius: 999px; border: var(--line); background: var(--glass); box-shadow: var(--lift); overflow-x: auto; opacity: 0.999; }
+.u2 .u2-pc { position: relative; flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--ink2); background: var(--paper); color: var(--ink2); }
+.u2 .u2-pc svg { width: 22px; height: 22px; }
+.u2 .u2-pc.done { opacity: 0.45; } .u2 .u2-pc.off { border-style: dashed; opacity: 0.6; } .u2 .u2-pc.empty { border-style: dashed; }
+.u2 .u2-pc.on { box-shadow: 0 0 0 3px var(--gold2); } .u2 .u2-pc[aria-pressed="true"] { background: var(--ink2); color: var(--paper); }
+.u2 .u2-pc.press1 { background: #f3dfa6; } .u2 .u2-pc.press2 { background: var(--red); color: #fff7ec; }
+.u2 .u2-pc.task { margin: 0 6px 0 7px; }
+.u2-pc b { position: absolute; right: -8px; top: -6px; min-width: 17px; height: 17px; padding: 0 3px; border-radius: 9px; border: 1.5px solid var(--ink2); background: var(--paper); color: var(--ink2); font: 800 11px/14px var(--body); text-align: center; }
+.u2-pc s { position: absolute; left: -8px; top: -6px; min-width: 17px; height: 17px; padding: 0 3px; border-radius: 4px; background: var(--ink2); color: var(--paper); font: 800 11px/17px var(--body); text-align: center; text-decoration: none; }
+.u2-pdiv { flex: none; width: 1.5px; height: 26px; background: var(--ink2); opacity: 0.35; margin: 0 2px; }
+.u2-pcard { width: min(360px, calc(100vw - 16px)); padding: 8px 10px 10px; display: grid; gap: 6px; opacity: 0.999; }
+.u2-pcard h2 { margin: 0; font: 800 19px/1.1 var(--head); } .u2-pcard p { margin: 0; } .u2-pcard .sub { color: var(--soft); font-size: 14px; }
+.u2-inplan { display: flex; gap: 8px; align-items: center; font-size: 14px; } .u2-inplan svg { width: 22px; height: 22px; flex: none; }
+.u2-tabs { display: flex; gap: 6px; }
+.u2 .u2-tabs button { width: 46px; min-height: 46px; padding: 0; display: grid; place-items: center; border: var(--line); border-radius: 999px; background: var(--glass); font: 800 17px var(--head); box-shadow: var(--lift); }
 .u2 .u2-tabs button[aria-pressed="true"] { background: var(--ink2); color: var(--paper); }
 .u2-sheet { background: var(--paper); }
 @media (min-width: 721px) { .u2-does, .u2-dock { align-self: flex-start; } }
