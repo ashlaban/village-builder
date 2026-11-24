@@ -80,6 +80,51 @@ Drafts page (screenshots and both rounds' findings, newest first): https://claud
   8. Sowing offered late with contradicting words ("too late for ... to be sown today"); hoeing called ploughing.
   Worked: the sleep card, the deadline banner and ribbon, the hours-and-verdict line in callouts, reordering a task, Stores' bars.
 
+## Fourth batch and round 4 of playtests (24 November)
+- One plan: the Today and Plan sheets are removed (Kim: for now; later one representation, possibly edited from several places).
+  Left: Stores, and the settler's card (`meHTML`: what it does and why, health, mood, what ails it, the log). VB-1620: the play
+  screen is `page/ui2hud` (ribbon, sheets, clicks), `page/ui2plan` (the plan bar and cards), `page/ui2land` (pins, callout),
+  `page/ui2day` (the strip).
+- VB-1622: tile tasks are chains declared as data (`CHAINS` in `src/sim/playerplan.js`): `plant`, `hay`, `harvest`; a marked tile's
+  task begins its project in its turn; `Sim.planGaps(st)` lists the windows pressing with nothing planned (red pulsing pins).
+  Seen in the page: a plant task sown, a harvest task planned in spring brought in by autumn.
+- Kim's rule for explanations, to give every playtester word for word: "If you want clarification, click the thing you want
+  explained. Missing information on expansion is a bug. The information can be a few clicks away though."
+- Harness traps to tell testers: `click ×` matches the speed buttons ("1×") and resumes the game (round 3's "pause does not hold");
+  close by `click Close` or by tapping the button's coordinates.
+- Round 4 (two Opus players, a whole first year each). Phone: field sown and harvested, hay made, no roof, no firewood, health 55.
+  Desktop: nothing planned was ever done all year; animals starved. Open, by weight:
+  1. UNEXPLAINED, first thing to find: on desktop the plan never ran (plant and hay tasks added, the strip showed the clearing
+     every day, the settler only did the routine; a hand-ordered "walk here" stayed queued for 5 days and more). Not reproduced:
+     a hand-ordered walk to the nearest tile of every terrain ends, on the probe island and in the page (`ot7`, site 1). Suspects:
+     a walk to a tile that cannot be reached, a task on a marked tile waiting for a project that never begins, "No sleep".
+     Whatever the cause, the screen must say why the plan stands still (the tester found no reason after any number of clicks).
+  2. No way to raise a roof or to cut firewood by hand: the house's callout offers neither, forest tiles offer nothing, the booth
+     and wood jobs have no tile the player thinks of. Work without an obvious tile needs a place: the house's callout (or the "+").
+  3. Taps go through: the tap that opens a callout also presses the button that appears under the finger ("Added to the plan",
+     "Queued: walk here" unasked). Likely the source of the stray walk orders.
+  4. The map moves by itself: opening a task chip flies to its tile (`flyTo` in the plan bar's click), the callout's place jumps,
+     and the next tap lands on another tile; the scouted button does not centre its place under the screen's middle.
+  5. Pins and warnings cannot be tapped (they pass the tap to the tile under them, often another tile's): the red cold mark, the
+     gap pin, the work pin. Against Kim's rule: every mark must explain itself on a tap.
+  6. Not explained on a tap: health and mood bars, the moon's number at the strip's end, the "Resting" pill, the stores' colours,
+     "Your order: you have turned its own plans off".
+  7. The day strip is not believable: routine pieces overlap, a task shows daily though it does not happen, sleep is cut at
+     midnight ("22:00 to 00:00"); a hand-ordered walk is named "null".
+  8. Stores count on work nobody planned ("about 35 more counted on from work still to do": the head's automatic reckoning).
+  9. Sleep costs too little to see: five nights without sleep showed "Owes 4 hours"; mood never left 50. (A pawn at home with
+     nothing to do sleeps in the day; the cost needs work at night to bite.)
+  10. Words: chain cards say "to a sown field" for hay and harvest (`hudStake`); the estimate's days and the pin's differ (work
+      days against calendar days); "it" for the settler; "Break a field here" then a second tap to plan it.
+
+## For the next session
+- Start with 1 (find and explain a standing plan), then 2, 3, 4, 5: they are why a year fails or misleads.
+- Seeing the page: `node build.js`, then patch a copy of `index.html` as `tests/browser.js` does (replace the `let st = null,`
+  line to add `window.__play = { get st() { return st; }, Sim, setSpeed }`) and drive it with Playwright; the playtest harness is
+  `docs/ui2/playtest.js`. Do not rebuild `index.html` while testers play.
+- Sim work goes to Opus `vb-task` sub-agents through backlog tasks (`tools/inbox.js init --fresh`, `start ID`, then `apply`); the
+  page is the orchestrator's. Kim wants clarifying questions and small batches. No PR is open; none was asked for.
+
 ## What is built (first session)
 - The flag: `UI2` (`src/page/ui2.js`). On by default; `?classic` in the address, or `window.VB_CLASSIC` (set by `tests/lib/page.js`
   for the page's tests and tools), shows the old interface. The old panels are hidden by one rule in `src/ui2.css`, not removed.
