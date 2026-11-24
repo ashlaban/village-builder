@@ -1,7 +1,8 @@
 // @sys sim/agenda: the played pawn's agenda (VB-1616; docs/ui2/HANDOFF.md): its queue laid end to end from now and the open work it may
 // take, each with the hours the pawn itself reckons it takes (sim/estimate; principle 14: what is shown of the future is some pawn's
 // estimate), the deadline that presses (a field's sowing window, the frost the head expects, the haymaking window) and whether it ends in
-// time; for a step of a project making a field, the steps left before the field can be sown. A view computed when the page asks, as
+// time; for a step of a project making a field, the steps left before the field can be sown; and the player's plan (sim/playerplan) laid
+// into today and the next two days by the feeder's rule (VB-1619: days, plan, owed, routine). A view computed when the page asks, as
 // sim/reasons is: it writes nothing, draws nothing, and no simulation module reads it (tests/agenda.js)
 VB['sim/agenda'] = (() => {
   const { DAY, SEASON_DAYS, YEAR, WORK, SPEED, cal } = VB['sim/rules'];
@@ -15,6 +16,8 @@ VB['sim/agenda'] = (() => {
   const { workFor } = VB['sim/opportunities'];
   const { here, walkHours } = VB['sim/pose'];
   const { toAxial, hexDist } = VB['world/grid'];
+  const { asleepAt } = VB['sim/playerplan'];
+  const { AWAKE, SLEEP, owedBy } = VB['sim/sleep'];
   const LEN = WORK[1] - WORK[0];
   // ---- time: work and walks are laid in working hours ----
   // The game hour at which h working hours begun at t are spent: the hours outside WORK[0]..WORK[1] are skipped. Closed form, no loop.
@@ -132,6 +135,237 @@ VB['sim/agenda'] = (() => {
       then: thenOf(st, id, j, j.owner && j.owner.id, ends, endsHi),
     };
   }
+  // ---- the plan laid into days (VB-1619): the feeder's rule (sim/playerplan nextOf, sim/player feed) followed forward in time ----
+  const NDAYS = 3, // today and the next two
+    BEYOND = 30; // days a task's end is still sought past them, for its verdict
+  // The next game hour from t (t itself included) at which the day's clock reads h.
+  const nextAt = (t, h) => {
+    const u = Math.floor(t / DAY) * DAY + h;
+    return u >= t ? u : u + DAY;
+  };
+  // The game hour h awake hours begun at t are spent, the sleeping hours s skipped (any 24 hours hold the same awake hours).
+  function past(t, h, s) {
+    if (!Number.isFinite(h) || !Number.isFinite(t)) return Infinity;
+    if (!s) return t + h;
+    const A = 24 - ((s.until - s.from + 24) % 24),
+      full = Math.floor(h / A);
+    t += full * DAY;
+    h -= full * A;
+    for (let i = 0; i < 4 && h > 1e-9; i++) {
+      if (asleepAt(s, t - Math.floor(t / DAY) * DAY)) t = nextAt(t, s.until);
+      const room = nextAt(t + 1e-9, s.from) - t;
+      if (h <= room) return t + h;
+      h -= room;
+      t += room;
+    }
+    return t + h;
+  }
+  // A piece of work at job j begun at tile `at` (null: under way, already there), for a pawn of home `home`: its walk there, its work at
+  // the pawn's own estimate (e), the walk home of a kind that carries home (a water trip's both ways, as sim/day counts it), and the tile
+  // it ends on.
+  function piece(st, id, j, at, home) {
+    const K = KINDS[j.kind] || {},
+      e = estimate(st, id, j, [id]),
+      trip = at !== null && K.trip && j.farm ? K.trip(st, j) : 0,
+      w = at === null || trip > 0 ? 0 : (walk(st, at, j.site) ?? 0),
+      back = trip > 0 ? trip : K.back ? (walk(st, j.site, home) ?? 0) : 0;
+    return { e, w, back, hours: w + e.mid + back, ends: K.back && home >= 0 ? home : (j.site ?? at) };
+  }
+  // The job of kind k posted for household hid (a household's jobs, a few tens), or null.
+  function postedJob(st, hid, k) {
+    const js = hid === null ? null : st.jobsBy.get(`household:${hid}`);
+    if (js) for (const j of js) if (j.kind === k) return j;
+    return null;
+  }
+  // The job of routine kind k, or where none is posted a step of the kind's hours, at the household's water for a kind drawn there.
+  function routineJob(st, hid, k) {
+    const j = postedJob(st, hid, k);
+    if (j) return j;
+    const s = step(k, KINDS[k].hours ?? 0, hid),
+      f = hid === null || st.households[hid].farmstead === null ? null : st.farmsteads[st.households[hid].farmstead];
+    if (f && f.water && (KINDS[k].at || []).includes('water')) Object.assign(s, { farm: f, site: f.water.tile });
+    return s;
+  }
+  // The plan laid from now: {days (NDAYS lists of segments {from, to, what, kind, key, site}), plan (each task's entry where the layout
+  // puts it), owed (the hours of sleep owed at each day's end), routine ([{kind, hours}]: a day's work of each routine kind, from home)}.
+  // Hand-queued commands first, end to end; then, the plan followed (automatic behaviour off), the sleeping hours, the routine once a day
+  // in order (a kind with no job posted now waits for its window; on the days after, a kind with a window is taken from its opening, one
+  // without from the day's start if a job of it is posted now), the tasks in order, broken off at the sleeping hour; else free.
+  // Bounded by the queue, the plan's length and the days laid (at most NDAYS + BEYOND).
+  function layout(st, id, entries) {
+    const pl = st.player,
+      a = st.agents[id],
+      pp = pl.plan || null,
+      followed = !!pp && !pl.auto,
+      hid = st.pawns[id].household,
+      hh = hid === null ? null : st.households[hid],
+      home = (hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead].house : -1) ?? -1,
+      d0 = Math.floor(st.t / DAY),
+      end = (d0 + NDAYS) * DAY,
+      far = end + BEYOND * DAY,
+      sl = followed ? pp.sleep : null,
+      c = cal(st.t),
+      hourOf = (t) => t - Math.floor(t / DAY) * DAY;
+    const days = Array.from({ length: NDAYS }, () => []);
+    // a segment, cut at midnight, joined to the one before when it goes on
+    const put = (from, to, what, kind, key, site) => {
+      to = Math.min(to, end);
+      while (to > from + 1e-9) {
+        const d = Math.floor(from / DAY),
+          cut = Math.min(to, (d + 1) * DAY),
+          list = days[d - d0],
+          last = list[list.length - 1];
+        if (last && last.what === what && last.key === key && last.kind === kind && Math.abs(last.to - from) < 1e-9)
+          list.splice(-1, 1, { ...last, to: cut });
+        else list.push({ from, to: cut, what, kind, key, site });
+        from = cut;
+      }
+    };
+    let t = st.t,
+      at = here(st, a);
+    // the commands queued: by hand (the plan's give way to one), or the plan's routine work under way
+    const hand = pl.queue.some((q) => !q.plan),
+      begun = new Set();
+    pl.queue.forEach((q, i) => {
+      if (q.plan && (hand || q.plan.from !== 'routine')) return; // the sleeping hours and the tasks are laid below
+      const e = entries[i];
+      let to;
+      if (q.verb === 'sleep') {
+        const g = q.args || {};
+        to =
+          q.begun !== null && q.ref ? q.ref.until : g.hours !== undefined ? t + g.hours : nextAt(t, g.until ?? WORK[0]);
+      } else if (q.verb === 'idle' && q.args && q.args.until !== undefined) to = Math.max(t, q.args.until);
+      else if (q.plan) {
+        begun.add(q.plan.kind);
+        const j = st.jobs.get(q.target),
+          p = j ? piece(st, id, j, q.begun !== null && j === a.job ? null : at, home) : null;
+        to = p ? t + p.hours : t;
+        if (sl) to = Math.min(to, asleepAt(sl, hourOf(t)) ? t : nextAt(t, sl.from));
+        if (p) at = p.ends;
+      } else to = t + e.walk + (e.hours ? e.hours.mid : 0);
+      const what = q.verb === 'sleep' ? 'sleep' : q.plan ? 'routine' : 'queue';
+      put(t, to, what, q.plan ? q.plan.kind : e.kind, q.verb === 'work' ? q.target : null, e.site);
+      if (!q.plan && e.site >= 0) at = e.site;
+      t = Math.max(t, Number.isFinite(to) ? to : far);
+    });
+    const routine = [],
+      plan = [],
+      left = [];
+    if (pp)
+      for (const k of pp.routine)
+        routine.push({ kind: k, hours: piece(st, id, routineJob(st, hid, k), home >= 0 ? home : at, home).hours });
+    // the tasks: their work left at the pawn's estimate, laid in order; the one under way is begun where the pawn is
+    const head = pl.queue[0],
+      underWay = !hand && head && head.plan && head.plan.from === 'task' && head.begun !== null ? head.plan.key : null;
+    if (pp)
+      for (const tk of pp.tasks) {
+        const j = st.jobs.get(tk.key),
+          e = j ? estimate(st, id, j, [id]) : null;
+        left.push(e ? e.mid : 0);
+        plan.push({
+          key: tk.key,
+          kind: tk.kind,
+          site: tk.site,
+          stands: !!j,
+          hours: e ? { lo: e.lo, mid: e.mid, hi: e.hi } : null,
+          starts: null,
+          ends: null,
+          deadline: j ? deadlineOf(st, j, c) : null,
+          verdict: null,
+          then: null,
+        });
+      }
+    // when routine kind k may be taken on day d: today, posted now or at its window's opening later today; after, as said above
+    const posted = new Set(pp ? pp.routine.filter((k) => postedJob(st, hid, k)) : []);
+    const opens = (k, d) => {
+      const w = KINDS[k].window;
+      if (d === d0) return posted.has(k) ? st.t : w && c.hour < w.from ? d * DAY + w.from : Infinity;
+      return w ? d * DAY + w.from : posted.has(k) ? d * DAY : Infinity;
+    };
+    let day = d0,
+      done = new Set([...(pp && pp.day === d0 ? pp.done : []), ...begun]),
+      n = 0;
+    while (followed && t < far - 1e-9 && n++ < 64 * (NDAYS + BEYOND)) {
+      const d = Math.floor(t / DAY),
+        h = t - d * DAY;
+      if (d !== day) {
+        day = d;
+        done = new Set();
+      }
+      if (t >= end - 1e-9 && !left.some((l) => l > 1e-9)) break;
+      if (asleepAt(sl, h)) {
+        const u = nextAt(t, sl.until);
+        put(t, u, 'sleep', null, null, home);
+        t = u;
+        if (home >= 0) at = home;
+        continue;
+      }
+      const bed = sl ? nextAt(t + 1e-9, sl.from) : Infinity;
+      const k = pp.routine.find((r) => !done.has(r) && opens(r, d) <= t + 1e-9);
+      if (k) {
+        done.add(k);
+        const j = routineJob(st, hid, k),
+          p = piece(st, id, j, at, home),
+          to = Math.min(t + p.hours, bed);
+        put(t, to, 'routine', k, j.key === `${k}:agenda` ? null : j.key, j.site ?? -1);
+        t = to;
+        at = to < bed ? p.ends : (j.site ?? at);
+        continue;
+      }
+      const i = left.findIndex((l) => l > 1e-9);
+      if (i >= 0) {
+        const tk = pp.tasks[i],
+          j = st.jobs.get(tk.key),
+          w = (underWay === tk.key && plan[i].starts === null) || at === j.site ? 0 : (walk(st, at, j.site) ?? 0),
+          to = Math.min(t + w + left[i], bed, far);
+        if (plan[i].starts === null) plan[i].starts = t;
+        put(t, to, 'task', tk.kind, tk.key, tk.site);
+        left[i] = Math.max(0, left[i] - Math.max(0, to - t - w));
+        if (!(left[i] > 1e-9)) plan[i].ends = to;
+        t = to;
+        at = j.site ?? at;
+        continue;
+      }
+      if (t >= end - 1e-9) break;
+      // nothing to do: free until bed, a routine kind's window opening, or the next day's routine
+      let to = Math.min(bed, (d + 1) * DAY);
+      for (const r of pp.routine) if (!done.has(r) && opens(r, d) > t) to = Math.min(to, opens(r, d));
+      put(t, to, 'free', null, null, -1);
+      t = to;
+    }
+    if (t < end) put(t, end, 'free', null, null, -1);
+    // the tasks' ends and verdicts; one not ended within the days searched is reckoned on past them, the routine aside
+    for (let i = 0; i < plan.length; i++) {
+      const e = plan[i];
+      if (!e.stands || !followed) continue;
+      if (e.ends === null) e.ends = past(Math.max(t, far), left[i], sl);
+      if (e.starts === null) e.starts = Math.max(t, far);
+      const hi = past(e.ends, e.hours.hi - e.hours.mid, sl),
+        j = st.jobs.get(e.key);
+      e.verdict = verdict(e.deadline, e.ends, hi);
+      e.then = thenOf(st, id, j, j.owner && j.owner.id, e.ends, hi);
+    }
+    // the hours of sleep owed at each day's end (VB-1615): an hour asleep pays one, an hour awake owes AWAKE; free hours outside the
+    // working day are slept, as the pawn goes home at dark and sleeps there with nothing in hand
+    let owe = owedBy(st, id);
+    const owed = days.map((list) => {
+      for (const s of list) {
+        const d = Math.floor(s.from / DAY) * DAY,
+          parts =
+            s.what !== 'free'
+              ? [[s.from, s.to, s.what === 'sleep']]
+              : [
+                  [s.from, Math.min(s.to, d + WORK[0]), true],
+                  [Math.max(s.from, d + WORK[0]), Math.min(s.to, d + WORK[1]), false],
+                  [Math.max(s.from, d + WORK[1]), s.to, true],
+                ];
+        for (const [f, u, asleep] of parts)
+          if (u > f) owe = Math.min(SLEEP.cap, Math.max(0, owe + (asleep ? -1 : AWAKE) * (u - f)));
+      }
+      return owe;
+    });
+    return { days, plan, owed, routine };
+  }
   // The agenda of the played pawn, or null with none played (or its pawn dead): {queue, open, day}. Over its own queue and its household's
   // and village's open work only.
   function agenda(st) {
@@ -189,7 +423,7 @@ VB['sim/agenda'] = (() => {
       open.push({ ...entry(st, id, j, now, st.t, c), why: cause(st, j, c), barred: o.why });
     }
     const left = c.hour >= WORK[1] ? 0 : WORK[1] - Math.max(c.hour, WORK[0]);
-    return { queue, open, day: { left, queued: work } };
+    return { queue, open, day: { left, queued: work }, ...layout(st, id, queue) };
   }
-  return { agenda, after };
+  return { agenda, after, past };
 })();

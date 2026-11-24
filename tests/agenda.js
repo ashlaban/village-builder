@@ -104,4 +104,97 @@ if (keep.had) st.jobs.set(key, keep.had); else st.jobs.delete(key);
 const r = build();
 const readers = r.deps.filter((d) => d.imports.includes('sim/agenda') || d.lookups.some((l) => l.key === 'sim/agenda')).map((d) => d.mod);
 assert.deepStrictEqual(readers, ['sim'], `only sim reads sim/agenda, not ${readers.join(', ')}`);
-console.log(`agenda ok: ${ag.queue.length} queued, ${ag.open.length} open, a project step leads to ${kinds.join(', ')}`);
+
+// VB-1619: the plan laid into days. On the tiny village of tests/plan.js with the played farmer alone (the others' hands would end its
+// tasks sooner than its own estimate says, which the view does not reckon): a routine, sleeping hours and two tasks.
+const { tinyWorld, tinyState } = require('./lib/tiny.js');
+const { AWAKE } = VB['sim/sleep'];
+const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
+const alone = () => {
+  const s = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 });
+  s.naturalDeaths = false;
+  Sim.advance(s, 3);
+  for (const p of s.pawns) if (p.id !== 0 && p.alive) VB['sim/lifecycle'].killPawn(s, p.id);
+  Sim.advance(s, 0.1);
+  Sim.inhabit(s, 0);
+  Sim.setAuto(s, false);
+  s.jobs.get('clear:f0').hours = 8;
+  return s;
+};
+const laid = (s) => {
+  const before = structuredClone(s), r = Sim.agenda(s);
+  assert(isDeepStrictEqual(before, s), 'the agenda wrote to st');
+  return r;
+};
+const segAt = (r, t) => r.days.flat().find((g) => t >= g.from && t < g.to);
+const P = alone();
+assert.strictEqual(Sim.plan(P, 'routine', { kinds: ['water', 'wood'] }), true);
+assert.strictEqual(Sim.plan(P, 'sleep', { from: 22, until: 6 }), true);
+for (const key of ['clear:f0', 'plow:f0.1']) assert.strictEqual(Sim.plan(P, 'add', { key }), true);
+const L = laid(P), d0 = Math.floor(P.t / DAY);
+// three days, each its segments in order and end to end, from now to the third midnight
+assert.strictEqual(L.days.length, 3);
+L.days.forEach((list, d) => {
+  assert.strictEqual(list[0].from, d ? (d0 + d) * DAY : P.t, `day ${d} begins at its start`);
+  assert(Math.abs(list[list.length - 1].to - (d0 + d + 1) * DAY) < 1e-9, `day ${d} ends at midnight`);
+  list.forEach((g, i) => {
+    assert(g.to > g.from && ['sleep', 'routine', 'task', 'queue', 'free'].includes(g.what), JSON.stringify(g));
+    assert(['from', 'to', 'what', 'kind', 'key', 'site'].every((k) => k in g), JSON.stringify(g));
+    if (i) assert(Math.abs(list[i - 1].to - g.from) < 1e-9, `day ${d}: end to end`);
+  });
+});
+// the sleeping hours slept, the routine once a day in order, then the tasks in order
+for (let d = 1; d < 3; d++) {
+  const list = L.days[d];
+  assert.deepStrictEqual([list[0].what, list[0].to - list[0].from], ['sleep', 6], `day ${d}: asleep until 6`);
+  assert.deepStrictEqual(list.filter((g) => g.what === 'routine').map((g) => g.kind), ['water', 'wood'], `day ${d}: the routine`);
+  assert.strictEqual(list[list.length - 1].what, 'sleep');
+}
+const tasks = L.days.flat().filter((g) => g.what === 'task').map((g) => g.key);
+assert.deepStrictEqual([...new Set(tasks)], ['clear:f0', 'plow:f0.1'], 'the tasks in order');
+// each task where the layout puts it: the first begins after the day's routine, broken off at 22 and taken up the next day
+const [T1, T2] = L.plan;
+assert(T1.starts > P.t && T1.ends > (d0 + 1) * DAY && T2.starts === T1.ends && T2.ends > T2.starts, JSON.stringify(L.plan));
+assert(T1.hours.mid > 0 && T2.deadline && T2.verdict === 'in time', JSON.stringify(T2));
+const work1 = L.days.flat().filter((g) => g.key === 'clear:f0');
+assert(work1.length >= 2 && Math.abs(work1[0].to % DAY - 22) < 1e-9, 'the clearing broken off at bedtime');
+// the routine's hours a day, each kind from home; the hours owed at each day's end, by VB-1615's rule
+assert.deepStrictEqual(L.routine.map((r) => r.kind), ['water', 'wood']);
+assert(L.routine.every((r) => r.hours > 0) && L.routine[1].hours > L.routine[0].hours, JSON.stringify(L.routine));
+assert.strictEqual(L.owed.length, 3);
+const awake0 = L.days[0].filter((g) => g.what !== 'sleep').reduce((n, g) => n + g.to - g.from, 0),
+  slept0 = L.days[0].filter((g) => g.what === 'sleep').reduce((n, g) => n + g.to - g.from, 0);
+assert(Math.abs(L.owed[0] - Math.max(0, P.player.sleep.owed + awake0 * AWAKE - slept0)) < 1e-6, `owed on day 0: ${L.owed}`);
+
+// with no sleeping hours the work is laid through the night, and the hours owed mount
+const N = alone();
+Sim.plan(N, 'add', { key: 'clear:f0' });
+N.jobs.get('clear:f0').hours = 40;
+const LN = laid(N);
+assert(LN.days[1].length === 1 && LN.days[1][0].what === 'task', 'a night worked: the next day a task from midnight to midnight');
+assert(LN.owed[1] > LN.owed[0] && LN.owed[1] > 12, `the hours owed mount: ${LN.owed}`);
+// a command queued by hand goes first; with automatic behaviour on, the plan is not followed
+assert.strictEqual(Sim.queue(N, { actor: 0, verb: 'walkTo', target: N.villages[0].center }), true);
+assert.strictEqual(laid(N).days[0][0].what, 'queue');
+Sim.setAuto(N, true);
+assert(laid(N).days.flat().every((g) => g.what === 'queue' || g.what === 'free'), 'not followed: queue and free');
+
+// the layout and the feeder agree: what the pawn did, hour by hour over the three days (sampled each tenth), against what `days` said
+// at the start: the same act (sleep, routine of a kind, a task by its key, free), but within the estimate's error of a join
+const TOL = 3, joins = L.days.flat().slice(1).map((g) => g.from);
+let n = 0, same = 0, worst = 0;
+while (P.t < (d0 + 3) * DAY - 0.05) {
+  Sim.advance(P, 0.1);
+  const q = P.player.queue[0], mark = q && q.plan,
+    did = mark ? `${mark.from}:${mark.from === 'task' ? mark.key : (mark.kind ?? '')}` : q ? 'queue:' : 'free:',
+    g = segAt(L, P.t - 0.05),
+    said = `${g.what}:${g.what === 'task' ? g.key : (g.kind ?? '')}`;
+  n++;
+  if (did === said) { same++; continue; }
+  const off = Math.min(...joins.map((j) => Math.abs(j - P.t)));
+  worst = Math.max(worst, off);
+  assert(off <= TOL, `at ${P.t.toFixed(1)} the pawn was on ${did}, the agenda said ${said}, ${off.toFixed(1)} h from a join`);
+}
+assert(same / n > 0.85, `the layout and the feeder agree on ${((100 * same) / n).toFixed(0)}% of the hours`);
+console.log(`agenda ok: ${ag.queue.length} queued, ${ag.open.length} open, a project step leads to ${kinds.join(', ')}; `
+  + `the plan laid into days agrees with the feeder on ${((100 * same) / n).toFixed(0)}% of the hours, ${worst.toFixed(1)} h at most from a join`);
