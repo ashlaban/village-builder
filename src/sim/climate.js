@@ -2,7 +2,8 @@
 // bands of rows, each band's curve of the year's temperature, and the winter's dates, reckoned once a year on autumn day 1 from the
 // curve and the winter's warmth and taken from a due-queue as they fall; and how far a world's growing year lies from the middle world's.
 // The weather (sim/weather) draws the seasons and the year's thaw and frost about the normal; this module holds the normal itself, by
-// latitude, and the dates it gives the ground and the water. Nothing reads a band's state yet but the log (VB-808 and on will).
+// latitude, and the dates it gives the ground and the water: as a date falls, its band's rows come to the ground of its state
+// (sim/walking's compiled ground, VB-808), and the ground of a normal winter is what the winter table of hours is searched over.
 VB['sim/climate'] = (() => {
   const { DAY, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'];
   // A table one domain reads lives in its domain (VB-419).

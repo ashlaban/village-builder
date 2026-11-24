@@ -1,4 +1,5 @@
-// @sys sim/villagehours: the symmetric table of walking hours between village greens and its distance queries
+// @sys sim/villagehours: the symmetric tables of walking hours between village greens, by land and over a normal winter's ice (VB-808),
+// and its distance queries
 VB['sim/villagehours'] = (() => {
   const { SPEED, TRAVEL, DAY } = VB['sim/rules'],
     { ROUTE } = VB['sim/routes'];

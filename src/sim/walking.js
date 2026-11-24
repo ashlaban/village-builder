@@ -1,4 +1,5 @@
-// @sys sim/walking: terrain and slope costs, the discomfort routes are chosen by, tile passability and cached reach by walking steps
+// @sys sim/walking: terrain and slope costs, the ground by season compiled into one array a world (VB-808), the discomfort routes are
+// chosen by, tile passability and cached reach by walking steps
 VB['sim/walking'] = (() => {
   const { B } = VB['world/biomes'];
   const { YEAR_DAYS, WINTER } = VB['sim/rules'];
