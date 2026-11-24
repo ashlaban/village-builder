@@ -35,7 +35,7 @@ function clearSettlement() {
     ...L.objects.removeChildren(),
     ...L.labels.removeChildren(),
   ])
-    if (s !== ring) s.destroy({ children: true, context: true });
+    if (s !== ring && s !== moveG) s.destroy({ children: true, context: true }); // the move's loads too: kept, and re-added (buildFarms)
   selPawn = -1;
   selVillage = -1;
   selFarm = -1;
@@ -253,6 +253,51 @@ function stakedPoles(g, bx, by) {
       .stroke({ width: 0.8, color: 0x96462f });
   g.ellipse(bx, by, 8.5, 2.4).stroke({ width: 0.7, color: INK, alpha: 0.45 });
 }
+// The move of a farm placed off its landing (VB-1639): the loads left lying at the landing, marked `of.moving`, drawn as the camp's pile
+// was, smaller as they are fetched; one Graphics, redrawn only when what lies changes (each frame, page/animate).
+const moveG = new PIXI.Graphics();
+let moveKey = '';
+function drawMoveLoads() {
+  const lying = (st.lying || []).filter((x) => x.of && x.of.moving),
+    key = lying.map((x) => `${x.kind}${Math.ceil(x.n)}@${x.tile}`).join();
+  if (key === moveKey) return;
+  moveKey = key;
+  moveG.clear();
+  const line = { width: 0.8, color: INK, join: 'round' },
+    clamp1 = (v, a, b) => Math.max(a, Math.min(b, v));
+  for (const x of lying) {
+    const px = x.x,
+      py = x.y;
+    if (x.kind === 'hay')
+      moveG
+        .ellipse(
+          px,
+          py - 4 * clamp1(Math.sqrt(x.n / 500), 0.45, 1),
+          9 * clamp1(Math.sqrt(x.n / 500), 0.45, 1),
+          6 * clamp1(Math.sqrt(x.n / 500), 0.45, 1),
+        )
+        .fill(0xd9b44a)
+        .stroke(line);
+    else if (x.kind === 'leftTimber')
+      for (let k = 0; k < clamp1(Math.ceil(x.n / 40), 1, 4); k++)
+        moveG
+          .roundRect(px - 7 + (k % 2) * 2, py - 3 - k * 2.6, 14, 2.6, 1.2)
+          .fill(0x9a6a3e)
+          .stroke({ width: 0.6, color: INK });
+    else if (x.kind === 'leftGrain' || x.kind === 'grain')
+      for (let k = 0; k < clamp1(Math.ceil(x.n / 20), 1, 4); k++)
+        moveG
+          .ellipse(px - 6 + k * 3.6, py - 2.6 - (k % 2) * 2, 2.8, 3)
+          .fill(0xd9c79c)
+          .stroke(line);
+    else if (x.kind !== 'leftCart')
+      moveG
+        .roundRect(px - 3, py - 4, 6, 4, 0.8)
+        .fill(0x8a5a36)
+        .stroke(line);
+  }
+  moveG.zIndex = lying.length ? Math.max(...lying.map((x) => x.y)) + 1 : 0;
+}
 // A building record stands (farmstead.barn, farmstead.byre: {built}); `true` in a save older than the record.
 const hasBuilt = (x) => !!x && (typeof x !== 'object' || (x.built !== null && x.built !== undefined));
 function drawBooth(wd, f, empty) {
@@ -315,7 +360,7 @@ function drawnBy(draw) {
 }
 function buildFarms(wd) {
   for (const s2 of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren()])
-    if (s2 !== ring) s2.destroy({ children: true, context: true });
+    if (s2 !== ring && s2 !== moveG) s2.destroy({ children: true, context: true });
   fieldSprites = [];
   rigs = [];
   houseInfo = [];
@@ -336,7 +381,8 @@ function buildFarms(wd) {
   for (const v of st.villages) villageDrawn[v.id] = drawnBy(() => drawVillage(wd, v));
   if (labelsReady && labelSigOf() !== labelSig) buildLabels(wd);
   for (const p of st.pawns) rigs.push(pawnRig(p));
-  L.objects.addChild(ring);
+  L.objects.addChild(ring, moveG);
+  moveKey = '';
   st.visualDirty = false;
   st.rigDirty.clear();
   st.farmDirty.clear();
@@ -437,6 +483,11 @@ function drawFarm(wd, f) {
       if (empty && !ruin) b.alpha = 0.9;
     }
     if (landed) lada.visible = harbre.visible = false;
+    if (f.rung === 'timber') {
+      // the timber house (VB-1636): a larger house of another of the three cottages' looks, standing where the cottage stood
+      stuga.texture = art.stuga[(v + 1) % 3];
+      stuga.scale.set(ART_S * 1.32);
+    }
     if (ruin) {
       lada.visible = harbre.visible = false;
       if (barn) barn.visible = false;

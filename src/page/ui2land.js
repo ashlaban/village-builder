@@ -48,6 +48,41 @@ function hudGauges(hh) {
     (left ? ' Some is not counted, for want of a task of the plan: Stores says what.' : '')
   );
 }
+// How many live in the house against its room (sim/house roomOf, VB-1636): crowded, every member's mood suffers until a larger house.
+function hudRoom(hh, f, FV) {
+  const room = VB['sim/house'].roomOf(f),
+    n = hh.members.length;
+  if (!Number.isFinite(room)) return '';
+  const lives = `${n} ${n === 1 ? 'lives' : 'live'} here`;
+  if (n <= room) return `<p class="u2-legend">${goodIcon('people')} ${lives}, room for ${room}.</p>`;
+  const next = FV && FV.next.length ? ladderOf(FV.next[0].what).name.toLowerCase() : '';
+  return (
+    `<p class="u2-move bad">${goodIcon('people')} Crowded: ${lives}, room for ${room}; everyone’s mood suffers.` +
+    `${next ? ` A ${next} mends it: Build up.` : ''}</p>`
+  );
+}
+// What of a farm's move lies at its landing (VB-1639): the loads marked `moving`, the cart left there, the herds standing there; and the
+// landing's tile, or null when nothing is left.
+function hudMoving(hh, f) {
+  const lying = (st.lying || []).filter(
+      (x) => x.of && x.of.moving && x.owner && x.owner.id === hh.id && x.kind !== 'leftCart',
+    ),
+    cart = hh.carts.find((c) => c.at && c.at.kept),
+    herds = (st.herdsAway || [])
+      .map((i) => st.herds[i])
+      .filter((x) => x && x.tile !== undefined && x.household === hh.id);
+  const tile = lying.length ? lying[0].tile : cart ? cart.at.tile : herds.length ? herds[0].tile : -1;
+  if (tile < 0 || tile === f.house) return null;
+  const NAMES = { leftGrain: 'grain', leftTimber: 'firewood and timber', hay: 'hay', grain: 'grain' },
+    parts = lying.map((x) => `${Math.round(x.n)} ${NAMES[x.kind] || x.kind}`);
+  if (cart) parts.push('the cart');
+  if (herds.length) parts.push(herds.length === 1 ? 'a herd' : `${herds.length} herds`);
+  const P = hudPlanned(),
+    t = P && P.tasks.find((q) => q.kind === 'farmstead'),
+    e = t ? hudTaskEntry(Sim.agenda(st), t) : null,
+    frost = e && e.deadline ? e.deadline : null;
+  return { tile, parts, frost, lying: lying.length };
+}
 // The windows that press with no task of the plan for them (Sim.planGaps, VB-1622).
 const hudGaps = () => (Sim.planGaps && HUD_CHAIN ? (Sim.planGaps(st) || []).filter((g) => HUD_CHAIN[g.chain]) : []);
 // A field's pin: the icon of what it waits for, a number of days where one counts (to ripe, or left to sow), and how pressing it is.
@@ -110,7 +145,7 @@ const HUD_ENDS = {
   farmstead: 'until the shelter stands',
   fell: 'until the timber is home',
   firewood: 'until it is cut',
-  upgrade: 'until the roof is on',
+  upgrade: 'until it is finished',
   foundation: 'until the house stands on stone',
   outbuilding: 'until it stands',
 };
@@ -144,6 +179,7 @@ function hudSites(hh) {
 // The callout of tile i: what it is, how it stands, and what the settler can do there.
 function hudCall(i, id, hh, f) {
   if (hud.place) return placeCall(i);
+  const P0move = (hudPlanned() || { tasks: [] }).tasks.some((t) => t.kind === 'farmstead');
   const V = Sim.headView(st, hh.id),
     fi = f.fields.findIndex((q) => q.tile === i),
     mi = (f.meadows || []).findIndex((q) => q.tile === i),
@@ -155,6 +191,7 @@ function hudCall(i, id, hh, f) {
         o.site === i &&
         o.kind &&
         o.kind !== 'firewood' && // the house offers its cutting as a task of its own (page/ui2wood)
+        !(HUD_MOVE[o.kind] && P0move) && // the move's loads are the farmstead task's to fetch
         !seen.has(o.kind) &&
         seen.add(o.kind),
     );
@@ -187,7 +224,7 @@ function hudCall(i, id, hh, f) {
         `<button type="button" class="u2-chip up" data-hud="uptoggle" aria-pressed="${!!hud.up}">${actIcon('build')} Build up…</button>` +
         (hud.up ? `<div class="u2-ladder">${ladderHTML(f)}</div>` : '');
     }
-    acts += houseWood(camp ? null : Sim.fireView(st));
+    acts += hudRoom(hh, f, FV) + houseWood(camp ? null : Sim.fireView(st));
     acts +=
       `<p class="u2-legend">${hudGauges(hh)}</p>` +
       '<div class="u2-row2"><button type="button" class="u2-chip" data-tab="stores">Stores</button>' +
@@ -363,6 +400,19 @@ function hudMarks(id, hh, f) {
       cls: 'u2-pin up',
       html: hudPin(actIcon('build')),
       why: `Build up the farmstead: what can follow the ${ladderOf(FV.rung).name.toLowerCase()}, and what it takes.`,
+    });
+  const mv = hudMoving(hh, f);
+  if (mv && mv.tile !== hud.at)
+    marks.push({
+      id: 'landing',
+      tile: mv.tile,
+      cls: `u2-pin landing${mv.frost && mv.lying ? ' press1' : ''}`,
+      html: hudPin(goodIcon('flour'), mv.frost && mv.lying ? hudDaysTo(mv.frost.t) : ''),
+      why:
+        `Left at the landing: ${mv.parts.join(', ')}. The farmstead task fetches it all.` +
+        (mv.frost && mv.lying
+          ? ` What still lies here at the frost is lost: ${hudDays(hudDaysTo(mv.frost.t))} left (the number).`
+          : ''),
     });
   if (O && f.house !== hud.at)
     marks.push({

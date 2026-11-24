@@ -11,8 +11,16 @@ function hudBegin() {
   Sim.plan(st, 'sleep', HUD_SLEEP);
 }
 const hudHour = (h) => `${String(((h % 24) + 24) % 24).padStart(2, '0')}:00`;
+// the steps of a farmstead's move from its landing (VB-1639), each by what it brings over
+const HUD_MOVE = {
+  drove: 'Drive the animals over',
+  fetchLeftCart: 'Fetch the cart',
+  fetchLeftGrain: 'Fetch the grain',
+  fetchHay: 'Fetch the hay',
+  fetchLeftTimber: 'Fetch the wood',
+};
 const hudKind = (k) =>
-  k === 'sleep' ? 'Sleep' : HUD_CHAIN[k] ? HUD_CHAIN[k].name : (Sim.KINDS[k] && Sim.KINDS[k].name) || k;
+  k === 'sleep' ? 'Sleep' : HUD_CHAIN[k] ? HUD_CHAIN[k].name : HUD_MOVE[k] || (Sim.KINDS[k] && Sim.KINDS[k].name) || k;
 // An agenda entry for a job's key, wherever the agenda holds it.
 // A plan task's entry in the agenda: a plant task by its tile, another by its job's key; and its icon.
 // The tasks at a tile that carry a chain of work through (VB-1621, VB-1622): the name, the icon, what the callout offers and says.
@@ -53,7 +61,7 @@ const HUD_CHAIN = {
     name: 'Build up the house',
     icon: () => actIcon('build'),
     offer: 'Build',
-    done: 'the next building raised until its roof is on',
+    done: 'the next building raised until it is finished',
   },
   foundation: {
     name: 'Lay a stone foundation',

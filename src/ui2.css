@@ -232,3 +232,6 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2-left { list-style: none; margin: -2px 0 4px; padding: 0 0 0 10px; display: grid; gap: 6px; font-size: 14px; border-left: 3px dashed var(--soft); }
 .u2-left li { display: grid; gap: 4px; } .u2-left li.h { font-weight: 700; color: var(--soft); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
 .u2-left .u2-row2 { display: flex; gap: 6px; flex-wrap: wrap; }
+/* the move of a farm placed off its landing, and a crowded house: a plain line, red when it costs */
+.u2-move { margin: 0; padding: 6px 10px; border-radius: 10px; background: var(--paper2); font-size: 14px; }
+.u2-move.bad { background: #f3dfa6; font-weight: 700; } .u2-move svg { width: 16px; height: 16px; vertical-align: -3px; display: inline-block; }
