@@ -1,0 +1,196 @@
+{
+ "session": "6050a339-de2c-5010-8c30-d7ddffc19fe7",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T21:20:47.629Z",
+ "end": "2026-11-24T21:39:58.044Z",
+ "wallMin": 19.2,
+ "activeMin": 19.2,
+ "prompts": 5,
+ "calls": 50,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 103,
+  "cacheWrite": 105391,
+  "cacheRead": 6883658,
+  "output": 21346
+ },
+ "context": {
+  "first": 85544,
+  "peak": 169345,
+  "firstEdit": 0,
+  "series": [
+   [
+    5,
+    105959
+   ],
+   [
+    10,
+    121509
+   ],
+   [
+    15,
+    131094
+   ],
+   [
+    20,
+    138247
+   ],
+   [
+    25,
+    142427
+   ],
+   [
+    30,
+    146886
+   ],
+   [
+    35,
+    150531
+   ],
+   [
+    40,
+    156867
+   ],
+   [
+    45,
+    163005
+   ],
+   [
+    50,
+    169345
+   ]
+  ]
+ },
+ "tools": {
+  "Bash": {
+   "calls": 44,
+   "bytes": 126390,
+   "seconds": 363.7
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 47,
+   "seconds": 0
+  },
+  "Monitor": {
+   "calls": 1,
+   "bytes": 302,
+   "seconds": 0.2
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "for id",
+   "calls": 3,
+   "bytes": 45604
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 5,
+   "bytes": 23081
+  },
+  {
+   "tool": "Bash",
+   "what": "git log",
+   "calls": 1,
+   "bytes": 10530
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 5,
+   "bytes": 10024
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 2,
+   "bytes": 8120
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 2,
+   "bytes": 5971
+  },
+  {
+   "tool": "Bash",
+   "what": "cat /tmp/claude-0/-home-user-village-builder/6050a339-de2c-5",
+   "calls": 3,
+   "bytes": 5040
+  },
+  {
+   "tool": "Bash",
+   "what": "cat h42-main.txt",
+   "calls": 1,
+   "bytes": 3855
+  },
+  {
+   "tool": "Bash",
+   "what": "tail -2",
+   "calls": 1,
+   "bytes": 3329
+  },
+  {
+   "tool": "Bash",
+   "what": "git worktree",
+   "calls": 2,
+   "bytes": 2733
+  },
+  {
+   "tool": "Bash",
+   "what": "git cat-file",
+   "calls": 1,
+   "bytes": 2058
+  },
+  {
+   "tool": "Bash",
+   "what": "node -e",
+   "calls": 3,
+   "bytes": 1761
+  }
+ ],
+ "repeats": {
+  "reads": 0,
+  "readBytes": 0,
+  "commands": 0,
+  "commandBytes": 0,
+  "recent": 0
+ },
+ "tests": {
+  "runs": 1,
+  "failed": 0,
+  "streak": 0,
+  "current": 0
+ },
+ "compactions": 0,
+ "continuation": {
+  "continues": false,
+  "handoverBytes": 0,
+  "callsToEdit": null,
+  "contextToEdit": null,
+  "reason": null
+ },
+ "continuations": {
+  "launched": 0,
+  "calls": 0
+ },
+ "weighted": 926938,
+ "task": "VB-663",
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 926938,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}
