@@ -63,6 +63,13 @@ const ICON = {
     '<path d="M2 1.5L9.5 7L2 12.5Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>' +
       '<rect x="10.5" y="1.5" width="2.5" height="11" rx="1" fill="currentColor"/>',
   ),
+  // until my task ends (VB-477): run on, to a pawn standing at the bar
+  taskEnd: svgIcon(
+    14,
+    14,
+    '<path d="M1.5 1.5L8 7L1.5 12.5Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>' +
+      '<circle cx="11.3" cy="3.2" r="1.8" fill="currentColor"/><rect x="9.9" y="5.6" width="2.8" height="7" rx="1" fill="currentColor"/>',
+  ),
   play: svgIcon(
     14,
     14,
@@ -204,6 +211,8 @@ const ICON_STEN = {
   pause: '<rect x="5.5" y="4" width="4.6" height="16" rx=".6"/><rect x="13.9" y="4" width="4.6" height="16" rx=".6"/>',
   skip: '<path d="M4.5 4.5l10 7.5-10 7.5z"/><rect x="16" y="4.5" width="3.6" height="15" rx=".6"/>',
   play: '<path d="M6.5 4l12.5 8-12.5 8z"/>',
+  taskEnd:
+    '<path d="M2.5 4.5l10 7.5-10 7.5z"/><circle cx="19" cy="5.5" r="2.9"/><rect x="16.6" y="9.6" width="4.8" height="10" rx="1"/>',
   eye: EYE_STEN,
   eyeOff: EYE_STEN + '<path class="c" d="M5.4 21.2L21.4 4.2"/><path class="l" d="M4 20L20 3"/>',
   people: PEOPLE_STEN,

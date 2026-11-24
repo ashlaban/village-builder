@@ -113,4 +113,30 @@ const head = hh.holder, [m1, m2] = hh.members.filter((m) => dayOf(hh.id).lists[m
   Sim.inhabit(st, head);
   assert.strictEqual(Sim.head(st, 'dayOrder', { member: m1, from: 0, to: 0 }), true);
 }
-console.log('timetable ok: the view laid end to end and read only; dayOrder, dayGive, dayCall checked and standing until the next allotment');
+// 7. Until my task ends: the cursor is the page's, its stops read only; it stops at the end or cut of the played pawn's task or leg, or at
+// what concerns its household; the pawn's task on its card: its share done, exact, and the hours left by a viewer's estimate.
+{
+  const who = hh.members.find((m) => st.pawns[m].died === null && st.agents[m].job) ?? head;
+  Sim.inhabit(st, who);
+  const c = Sim.taskFrom(st);
+  assert.strictEqual(c.pawn, who);
+  const T = Sim.taskLeft(st, who, head);
+  if (T) {
+    assert.ok(T.done >= 0 && T.done <= 1, 'a share done');
+    if (T.left) assert.ok(T.left.lo <= T.left.mid + 1e-9 && T.left.mid <= T.left.hi + 1e-9, 'a range');
+  }
+  let stop = null, steps = 0;
+  while (!stop && steps < 480) {
+    Sim.advance(st, 0.1);
+    steps++;
+    const before = canon(st);
+    stop = Sim.taskStop(st, c);
+    assert.strictEqual(canon(st), before, 'taskStop writes nothing to st');
+  }
+  assert.ok(stop, 'a stop within two days');
+  assert.ok(['task', 'leg', 'day', 'help', 'store', 'household'].includes(stop.why), `a stop of its own: ${stop.why}`);
+  assert.ok(typeof stop.text === 'string' && stop.text.length > 0);
+  Sim.uninhabit(st);
+  assert.strictEqual(Sim.taskFrom(st), null, 'no pawn played, no cursor');
+}
+console.log('timetable ok: the view laid end to end and read only; dayOrder, dayGive, dayCall checked and standing until the next allotment; until my task ends stops and writes nothing');

@@ -273,6 +273,7 @@ function showPawn(id) {
       marryLine,
       craftsLine(id),
       Sim.thirstLine(st, id),
+      taskLine(id), // its task in hand: done so far, exact; hours left, the inhabited pawn's estimate (VB-477)
     ].filter(Boolean),
     Sim.describe(st, id),
     {

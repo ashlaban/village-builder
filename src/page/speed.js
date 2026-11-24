@@ -13,15 +13,21 @@ let speedSampleAt = 0,
 // A skip to the next event (VB-234, page/play): where it began (Sim.skipFrom), or null; page state, never saved.
 // skipLast is the cursor of the skip that last ended (VB-1108): the next one goes on from it, so that the other events of the step
 // that stopped it are told in turn.
+// A skip "until my task ends" (VB-477) keeps beside it taskCursor (Sim.taskFrom), whose stops (Sim.taskStop) it adds to the skip's own.
 let skipCursor = null,
-  skipLast = null;
+  skipLast = null,
+  taskCursor = null;
 function cancelSkip() {
   if (skipCursor) {
     skipLast = skipCursor;
     skipCursor = null;
+    taskCursor = null;
     $('skipBtn').setAttribute('aria-pressed', 'false');
+    $('taskBtn').setAttribute('aria-pressed', 'false');
   }
 }
+// Has the skip reached a stop: the skip's own, or, until the task ends, the task's.
+const skipStopNow = () => Sim.skipStop(st, skipCursor) || (taskCursor ? Sim.taskStop(st, taskCursor) : null);
 const simulationAway = () => document.hidden || !windowFocused;
 // The uncapped speed's button is an icon (VB-338): the rate it reaches is in its name and tooltip.
 function nameUncapped(name) {
@@ -73,10 +79,10 @@ function advanceSimulation(dt) {
   if (skipCursor) {
     // as the uncapped speed, a step at a time, asking the simulation after each whether the skip has reached its stop
     const deadline = performance.now() + SIM_BUDGET_MS;
-    let stop = Sim.skipStop(st, skipCursor);
+    let stop = skipStopNow();
     while (!stop) {
       Sim.advance(st, SIM_SLICE_HOURS);
-      stop = Sim.skipStop(st, skipCursor);
+      stop = skipStopNow();
       if (performance.now() >= deadline) break;
     }
     if (stop) endSkip(stop);
