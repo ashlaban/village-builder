@@ -2,7 +2,7 @@
 // ---- on the land: how things stand, and what can be done where ----
 // What took of the settler's health at its last reckoning (st.player.days, VB-1118), each an icon at the house and a sentence in its
 // callout: the warning stands on the land, its words a tap away.
-// The day kept is the last one reckoned (its `t`, at the day's end): its cold is of the roof that stood then, so a booth raised since is
+// The day kept is the last one reckoned (its `t`, at the day's end): its cold is of the roof that stood then, so a shelter raised since is
 // said to have come after it. `damp` is a day without water (sim/hunger's dry day, VB-331), not the roof's.
 const HUD_AILS = [
   ['cold', 'cold', ''],
@@ -15,12 +15,13 @@ const HUD_AILS = [
 function hudColdWords(d) {
   const { hh, f } = hudHouse(),
     { hexSteps } = VB['sim/hex'],
-    booth = f && hh ? st.booths.find((b) => b.by === hh.id && hexSteps(w, b.tile, f.house) <= 1) : null,
+    sh = f && f.shelter && f.shelter.built !== null ? f.shelter : null, // the shelter on the house tile (VB-1638)
+    booth = sh || (f && hh ? st.booths.find((b) => b.by === hh.id && hexSteps(w, b.tile, f.house) <= 1) : null), // or an older save's
     roofed = f && (!f.booth || (booth && booth.built <= d.t));
   if (roofed) return 'The last night was cold: too little firewood for the fire. ' + WOOD_PATH;
   const then = 'The last night was cold: there was no roof and fire to sleep by.';
-  if (booth || (f && !f.booth)) return `${then} The booth stands now: the next night is under its roof.`;
-  return `${then} ${buildCalls(f) ? 'Build a farmstead: the build button.' : 'The booth in the plan mends that.'}`;
+  if (booth || (f && !f.booth)) return `${then} The shelter stands now: the next night is under its roof.`;
+  return `${then} ${buildCalls(f) ? 'Build a farmstead: the build button.' : 'The shelter in the plan mends that.'}`;
 }
 function hudAils() {
   const d = (st.player.days || []).slice(-1)[0],
@@ -106,10 +107,12 @@ const HUD_ENDS = {
   plant: 'to a sown field',
   hay: 'until the hay is home',
   harvest: 'until the sheaves are in',
-  farmstead: 'until the booth stands',
+  farmstead: 'until the shelter stands',
   fell: 'until the timber is home',
   firewood: 'until it is cut',
   upgrade: 'until the roof is on',
+  foundation: 'until the house stands on stone',
+  outbuilding: 'until it stands',
 };
 function hudStake(e) {
   let t = `About ${hudSpan(e.hours.mid)} of work`;
@@ -162,7 +165,7 @@ function hudCall(i, id, hh, f) {
     P0 = hudPlanned(),
     placed = i !== f.house && P0 && P0.tasks.some((t) => t.kind === 'farmstead' && t.site === i);
   if (i === f.house) {
-    title = camp === 'camp' ? `${f.name}: a camp` : camp === 'staked' ? `${f.name}: the booth staked` : f.name;
+    title = camp === 'camp' ? `${f.name}: a camp` : camp === 'staked' ? `${f.name}: the shelter staked` : f.name;
     sub = `${st.pawns[id].given}: ${Sim.describe(st, id)}.${hudAils()
       .map(([, words]) => ` ${words}`)
       .join('')}`;
@@ -171,7 +174,7 @@ function hudCall(i, id, hh, f) {
         buildTasked() ? 'The farmstead is in the plan.' : 'The build button places a farmstead.'
       } ${sub}`;
     else if (camp === 'staked')
-      sub = `The farmstead is placed: its booth is staked beside the house, and stands once its timber is carried and it is raised. ${sub}`;
+      sub = `The farmstead is placed: its shelter is staked here, and stands once its timber is carried and it is raised. ${sub}`;
     if (camp === 'camp' && !buildTasked())
       acts += `<button type="button" class="u2-act go" data-tab="build">${actIcon('build')} Build…<small>The build menu</small></button>`;
     const FV = camp ? null : Sim.farmView(st, f.id);
