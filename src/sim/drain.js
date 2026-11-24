@@ -83,9 +83,11 @@ VB['sim/drain'] = (() => {
   declare('drain', {
     why: (st, hh, f, args) => {
       const id = fieldFor(st, f, args);
-      return id < 0 && !(args && Number.isInteger(args.field))
-        ? `${f.name} has no wet field to ditch`
-        : fieldWhy(st, f, id);
+      if (id < 0 && !(args && Number.isInteger(args.field))) return `${f.name} has no wet field to ditch`;
+      // one ditching a field: a second on another goes beside it (VB-1640)
+      if (Projects.projectsOf(st, 'household', hh.id).some((p) => p.what === 'drain' && p.field === id))
+        return `the field ${id} is being ditched`;
+      return fieldWhy(st, f, id);
     },
     begin: (st, hh, f, args) => {
       const id = fieldFor(st, f, args),
