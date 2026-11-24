@@ -131,6 +131,8 @@ const FAST = [
   ['node', 'tests/accounts.js'], // VB-403: the balance accounts close, the people account too, and the run is unchanged
 ];
 const INTEGRATION = [
+  ['node', 'tests/ladder.js', 'founders,solo'], // VB-1631: the rungs and outbuildings as data, rungOf on every farm, Sim.farmView
+  ['node', 'tests/ladder.js', 'populous'], // VB-1631: rungOf on every farm of populous, at seeding and a year on
   ['node', 'tests/samepixels.js'], // VB-1500: the map-pixels tool catches a pigment and a mark moved; 2.5 s
   ['node', 'tests/events.js'],
   ['node', 'tests/grain.js'],

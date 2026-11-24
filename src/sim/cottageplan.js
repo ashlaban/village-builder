@@ -119,6 +119,7 @@ VB['sim/cottageplan'] = (() => {
   }
   return {
     COTTAGE,
+    COTTAGE_HOURS,
     villageOf,
     wallsOf,
     timberNeed,
