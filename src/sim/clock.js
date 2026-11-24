@@ -39,6 +39,7 @@ VB['sim/clock'] = (() => {
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay, spring } = VB['sim/herds'];
   const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
+  const { passageDay } = VB['sim/passage'];
   const { frost: lyingFrost } = VB['sim/lying'];
   const { frost: droveFrost } = VB['sim/droving'];
   const { byreDay, autumnCounts, strays, shearing } = VB['sim/byre'];
@@ -243,6 +244,12 @@ VB['sim/clock'] = (() => {
       owner: 'sim/paths',
       note: 'paths fade; a changed stage changes the cost of walking it',
       run: (st) => fadeWear(st, (tile) => costChanged(st, tile)),
+    },
+    {
+      every: 'day',
+      owner: 'sim/passage',
+      note: 'fields in crop, and meadows in grass where the custom says so, are closed to routes through them (VB-816)',
+      run: (st, c) => passageDay(st, c),
     },
     { every: 'day', owner: 'sim/routes', note: 'cached routes refreshed', run: (st) => refreshRoutes(st) },
     {

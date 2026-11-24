@@ -92,9 +92,16 @@ VB['sim/walking'] = (() => {
   // buildings (VB-402). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too,
   // and its wear takes away a share of what its ground costs above meadow (PATHS.clear, VB-439; not at a ford or on a bridge);
   // the green (w.dev 2) wears no path.
+  // A field in crop, or a meadow in grass where the practice `passage` is `ways` (sim/passage, VB-816: w.shut 1), is closed like a house
+  // but along a path or a lane worn over it (stage OPEN_WAY and up: the way between the strips).
   function tileCost(w, i) {
     if (w.water[i]) return Infinity;
-    if (w.dev && w.dev[i]) return w.dev[i] === 3 ? Infinity : w.dev[i] === 1 && w.worn ? 1 / PATHS.speed[w.worn[i]] : 1;
+    if (w.dev && w.dev[i]) {
+      if (w.dev[i] !== 1) return w.dev[i] === 3 ? Infinity : 1;
+      const s = w.worn ? w.worn[i] : 0;
+      if (w.shut && w.shut[i] === 1 && s < OPEN_WAY) return Infinity;
+      return w.worn ? 1 / PATHS.speed[s] : 1;
+    }
     const c =
         w.river && w.river[i]
           ? w.crossing[i] === 1
@@ -107,10 +114,16 @@ VB['sim/walking'] = (() => {
     if (c) return c / PATHS.speed[s];
     return (1 + ((TERRAIN[w.biome[i]] ?? 1) - 1) * (1 - PATHS.clear[s])) / PATHS.speed[s];
   }
-  // Land a pawn can stand on: what is in walking reach counts steps over it, a house too (the reach searches of sim/hex end at houses).
-  const passable = (w, i) => i >= 0 && (tileCost(w, i) < Infinity || (!!w.dev && w.dev[i] === 3));
-  // Land a route may cross: passable, and not a house.
+  // Land a pawn can stand on: what is in walking reach counts steps over it, a house too (the reach searches of sim/hex end at houses),
+  // and a closed field or meadow (VB-816: its holder works it; only crossing it is barred).
+  const passable = (w, i) => i >= 0 && (tileCost(w, i) < Infinity || ended(w, i));
+  // Land a route may cross: passable, and not a house or a closed field.
   const through = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
+  // A tile a route may end at but not cross: a house, or a field or meadow closed by passage (VB-816).
+  const ended = (w, i) => !!w.dev && (w.dev[i] === 3 || (!!w.shut && w.shut[i] === 1));
+  // The two tests of sim/hex cutsOff, on the ground as it stands (VB-402, VB-816): `shut`, no route crosses j; `end`, j is a place a
+  // route must reach from an open tile beside it (a house, a closed field).
+  const cutTests = (w) => ({ shut: (j) => j < 0 || !through(w, j), end: (j) => j >= 0 && ended(w, j) });
   // The rule for breadth-first searches of what is in walking reach (sim/hex bfs): passable tiles only.
   const walkable = (w) => (j) => passable(w, j);
   // The tiles within `steps` walking steps of `from`, in the order the breadth-first search finds them (sim/hex bfs under `walkable`,
@@ -159,6 +172,8 @@ VB['sim/walking'] = (() => {
   // what a path there would (PATHS.clear and speed at stage 2: broadleaf 1.59, pine 1.36), the trail the party cuts before it carries
   // anything; every other tile what it costs now (tileCost). A step along it is stepCost's, by these costs.
   const TRAIL = 2;
+  // The worn stage from which a closed field is crossed along its way (VB-816): a path or a lane.
+  const OPEN_WAY = 2;
   // Whether tile i is wood a trail is blazed through (VB-447): broadleaf or pine forest, not water, a river, developed ground or a path
   // already (open ground wears its own way). The one test, for the trail's cost here and its jobs (sim/trails).
   function unblazed(w, i) {
@@ -214,6 +229,8 @@ VB['sim/walking'] = (() => {
     tileCost,
     passable,
     through,
+    ended,
+    cutTests,
     walkable,
     reachTiles,
     slopeFactor,

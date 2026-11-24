@@ -14,6 +14,8 @@ VB.COUNTERS = {
     "Fields read by a head's yearly look at ditching a wet field, once a year a farm after the harvest (sim/drain bestField, VB-721)",
   tilthRead: "Reads of a field's tilth, at manuring and reaping only (sim/fields tilthOf, VB-717)",
   routeSearch: 'A* searches started',
+  passageRead:
+    "Fields and meadows read by the day's sweep of passage on foot, once a day (sim/passage passageDay, VB-816)",
   visitNoRoute:
     "Visits that did not set out: no route within the search's reach from where the visitor stood (sim/visits, visitsDue; VB-436)",
   moveNoRoute:

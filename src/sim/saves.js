@@ -267,6 +267,7 @@ VB['sim/saves'] = (() => {
   WORLD.push('depositLeft', 'depositFull', 'dugDay'); // VB-359: what has been dug (sim/dig); a save without them was never dug
   WORLD.push('graze'); // VB-136: grazing pressure (sim/herds); a save without it was never grazed
   WORLD.push('fresh'); // VB-1582: the wells (sim/water); a save without it has the natural sources its world was generated with
+  WORLD.push('shut'); // VB-816: passage (sim/passage); a save without it has its fields closed at the next day's sweep
   WORLD.push('tended'); // VB-091: the last work on a tile (sim/spread); a save without it has its front made anew
   // Format 2 (VB-226): Maps as "$kv", and each pawn's relationship records (pawn.rel) packed in one flat array, [other, band, the number
   // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
