@@ -46,7 +46,10 @@ The orchestrator writes those once, from your notes.
    and function), and what cost you calls to find out. A task is continued at most twice: after that the tool refuses, and you end
    with `needs-review`. If your prompt says you continue a task, merge the branch it names as well as the run's, and start from the
    handover: do not read again what it already tells you.
-9. Screenshots are never committed (Kim, 18 November): take one only to check your own work, and save it outside the repository.
+9. You never start a review: the orchestrator does (VB-1615). Given "Revise VB-NNN", make `AGENTS.md`'s one revision of step 5 from the
+   last review note (`node tools/inbox.js list review --task VB-NNN --json`), in at most 30 calls, merge the run's branch, run
+   `node tools/review.js confirm VB-NNN --reviewed SHA --inbox`, commit, and give your result again.
+10. Screenshots are never committed (Kim, 18 November): take one only to check your own work, and save it outside the repository.
 
 Your last message is all your caller sees, so make it the result and nothing else, in at most twelve lines:
 - `VB-NNN <title>: done <commit> on <branch>`, or `needs-review <commit> on <branch>: <the criteria unmet, or the question>`, or `failed: <what, and the state of the worktree>`
