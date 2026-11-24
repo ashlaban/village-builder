@@ -70,7 +70,8 @@ const reviewOf = (task) => {
   const rs = notes('WHERE kind = ? AND task = ?', 'review', task).map((n) => n.fields), last = (round) => rs.filter((f) => f.round === round).pop();
   const arm = last('arm'), rev = last('review'), conf = last('confirm');
   return rs.length ? { arm: (rev || arm || conf).arm, verdict: rev ? rev.verdict : null, blocking: rev ? +rev.blocking || 0 : null,
-    confirmed: !!conf, unresolved: conf ? +conf.unresolved || 0 : null, followups: conf && conf.followups ? conf.followups : null } : null;
+    confirmed: !!conf, mended: conf ? +conf.mended || 0 : null, rebutted: conf ? +conf.rebutted || 0 : null, unresolved: conf ? +conf.unresolved || 0 : null,
+    followups: conf && conf.followups ? conf.followups : null } : null;
 };
 const reviewLine = (r) => !r ? '' : r.arm !== 'review' ? `review: ${r.arm}` : !r.verdict ? 'review: in review'
   : `review: ${r.verdict}${r.blocking ? ` ${r.blocking} blocking` : ''}${r.confirmed ? `, confirmed${r.unresolved ? `, ${r.unresolved} unresolved (${r.followups})` : ''}` : r.verdict === 'revise' ? ', in revision' : ''}`;

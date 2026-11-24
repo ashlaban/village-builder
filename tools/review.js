@@ -16,6 +16,10 @@
 //              ("outcome": "rebutted", "rebuttal": an authority quoted, or a probe's output); each advisory one is mended or declined
 //              ("outcome", "note"). A blocking finding left unresolved gets a priority 1 task with Cause: VB-NNN, made once (its ID kept in
 //              the findings file as "followup"; --dry opens none); the results are kept in the findings file for tools/agent-usage.js
+//   eval [--dir docs/agents/usage] [--days 14]   (no task ID) the evaluation (VB-1615): per arm, the eligible tasks done, their escapes (tasks
+//              whose Cause: names them, made within --days after they were done, not opened by their own review), escapes a task with an
+//              exact 90% interval of the ratio, cost and minutes; for the reviewed arm the findings, the confirmed catches (a blocking finding
+//              mended with a test that failed before), false blockers (rebutted), the cost a catch and the break-even against the median repair
 //   --inbox    in an orchestrated run (docs/agents/worker.md): eligible records the arm, check the verdict and confirm the outcomes as
 //              `review` notes of tools/inbox.js, and confirm leaves a follow-up as a `task` note (a reserved ID) for the orchestrator to
 //              apply, instead of writing the backlog
@@ -362,6 +366,80 @@ function noteFollowup(root, id, f) {
   return nid;
 }
 
+// ---- the evaluation (VB-1615): does review pay for itself? Per arm, from the run files, the task files and the git log of backlog/
+// Clopper-Pearson bounds of a binomial proportion, by bisection on its distribution function (no library).
+function binomCdf(k, n, p) { let s = 0, t = Math.pow(1 - p, n); for (let i = 0; i <= k; i++) { s += t; t *= ((n - i) / (i + 1)) * (p / (1 - p || 1e-300)); } return Math.min(1, s); }
+function cpBounds(x, n, alpha) {
+  const solve = (f) => { let lo = 0, hi = 1; for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (f(mid)) hi = mid; else lo = mid; } return (lo + hi) / 2; };
+  const lower = x === 0 ? 0 : solve((p) => 1 - binomCdf(x - 1, n, p) >= alpha / 2), upper = x === n ? 1 : solve((p) => binomCdf(x, n, p) <= alpha / 2);
+  return [lower, upper];
+}
+// The ratio of two rates (escapes a task, reviewed against control) with its exact interval, conditional on the total count.
+function rateRatio(x1, n1, x2, n2, alpha = 0.1) {
+  if (!n1 || !n2) return null;
+  const ratio = x2 ? (x1 / n1) / (x2 / n2) : null, total = x1 + x2;
+  if (!total) return { ratio: null, low: 0, high: Infinity };
+  const [pl, pu] = cpBounds(x1, total, alpha), rr = (p) => (p >= 1 ? Infinity : (p / (1 - p)) * (n2 / n1));
+  return { ratio, low: rr(pl), high: rr(pu) };
+}
+
+function evaluation(root, dir, days) {
+  const { model, readRuns } = require('./usage-page.js'), runs = readRuns(dir), md = (xs) => { const s = xs.filter(Number.isFinite).sort((a, b) => a - b), i = (s.length - 1) / 2; return s.length ? (s[Math.floor(i)] + s[Math.ceil(i)]) / 2 : null; };
+  const commits = (() => { try { return git(root, 'log', '--format=%aI%x09%s').split('\n').filter(Boolean).map((l) => ({ t: Date.parse(l.slice(0, l.indexOf('\t'))), subject: l.slice(l.indexOf('\t') + 1) })); } catch { return []; } })();
+  const costs = new Map(model({ runs, commits, taskInfo: () => null }).tasks.map((t) => [t.id, t]));
+  // the reviews' outcomes: a session's own record (its findings), or a night's (the inbox's counts)
+  const out = new Map();
+  for (const run of runs) {
+    const r = run.review;
+    if (r && r.task && r.arm === 'review' && r.findings) out.set(r.task, { blocking: r.blocking, advisory: r.advisory, preference: r.preference,
+      mended: r.findings.filter((f) => f.verified === 'mended').length, rebutted: r.findings.filter((f) => f.verified === 'rebutted').length,
+      unresolved: r.findings.filter((f) => f.verified === 'unresolved').length });
+    for (const sub of run.subagents || []) if (sub.review && sub.review.arm === 'review' && sub.task)
+      out.set(sub.task, { blocking: sub.review.blocking || 0, advisory: null, preference: null, mended: sub.review.mended || 0, rebutted: sub.review.rebutted || 0, unresolved: sub.review.unresolved || 0 });
+  }
+  // the task files: done dates, causes, and when each file was made (the first commit that added it)
+  const made = new Map();
+  try {
+    let at = null;
+    for (const l of git(root, 'log', '--reverse', '--diff-filter=A', '--name-only', '--format=@%aI', '--', 'backlog/').split('\n')) {
+      if (l.startsWith('@')) at = Date.parse(l.slice(1)); else if (/^backlog\/VB-\d+\.md$/.test(l) && !made.has(l)) made.set(l.slice(8, -3), at);
+    }
+  } catch {}
+  const files = fs.readdirSync(path.join(root, 'backlog')).filter((f) => /^VB-\d+\.md$/.test(f)).map((f) => {
+    const text = fs.readFileSync(path.join(root, 'backlog', f), 'utf8'), head = text.split(/^(?!# |Status|Waits for|Cause|Priority|Size|Arch|Phase)/m)[0];
+    const done = (head.match(/^Status: done \((\d{4}-\d\d-\d\d)\)/m) || [])[1];
+    return { id: f.slice(0, -3), done: done ? Date.parse(done) : null, cause: (head.match(/^Cause: (VB-\d+)/m) || [])[1] || null,
+      byReview: /Opened by tools\/review\.js confirm/.test(text), made: made.get(f.slice(0, -3)) || null };
+  });
+  const byId = new Map(files.map((f) => [f.id, f])), now = Math.max(Date.now(), ...files.map((f) => f.made || 0)), span = days * 864e5; // lint-allow: clock (a tool)
+  const repairs = files.filter((f) => f.cause), repairCost = md(repairs.map((f) => costs.get(f.id)).filter(Boolean).map((t) => t.w));
+  const arms = { review: [], control: [], ineligible: [] };
+  for (const [id, t] of costs) if (t.arm && arms[t.arm]) arms[t.arm].push(id);
+  const lines = [`Independent review, the evaluation (VB-1615): ${runs.length} measured runs; escapes counted within ${days} days of a task's done date`];
+  const stat = {};
+  for (const [a, ids] of Object.entries(arms)) {
+    const done = ids.filter((id) => byId.get(id) && byId.get(id).done), observed = done.filter((id) => now - byId.get(id).done >= span);
+    const escapes = observed.map((id) => repairs.filter((f) => f.cause === id && !f.byReview && f.made && f.made - byId.get(id).done <= span && f.made >= byId.get(id).done - 864e5).length);
+    const ts = done.map((id) => costs.get(id));
+    stat[a] = { done: done.length, observed: observed.length, escapes: escapes.reduce((x, y) => x + y, 0) };
+    lines.push(`- ${a}: ${done.length} done (${observed.length} past the follow-up, ${done.length - observed.length} still in it); escapes ${stat[a].escapes}`
+      + (observed.length ? ` (${(stat[a].escapes / observed.length).toFixed(2)} a task)` : '')
+      + `; median weighted ${md(ts.map((t) => t.w)) == null ? '-' : Math.round(md(ts.map((t) => t.w)))}`
+      + (a === 'review' ? ` (of which review ${Math.round(md(ts.map((t) => t.rw)) || 0)}, revision ${Math.round(md(ts.map((t) => t.vw)) || 0)})` : '')
+      + `, minutes ${md(ts.map((t) => t.min)) == null ? '-' : Math.round(md(ts.map((t) => t.min)))}`);
+  }
+  const rr = rateRatio(stat.review.escapes, stat.review.observed, stat.control.escapes, stat.control.observed);
+  lines.push(`- escapes a task, reviewed against control: ${!rr ? 'not yet (an arm has no task past the follow-up)' : `ratio ${rr.ratio == null ? '-' : rr.ratio.toFixed(2)}, 90% interval ${rr.low.toFixed(2)} to ${Number.isFinite(rr.high) ? rr.high.toFixed(2) : '∞'}`}`);
+  const rv = arms.review.map((id) => out.get(id)).filter(Boolean), sum = (k) => rv.reduce((x, o) => x + (o[k] || 0), 0);
+  const reviewCost = arms.review.reduce((x, id) => x + (costs.get(id).rw || 0) + (costs.get(id).vw || 0), 0), catches = sum('mended');
+  lines.push(`- reviewed: ${rv.length} with outcomes; findings blocking ${sum('blocking')}, advisory ${sum('advisory')}, preference ${sum('preference')}; `
+    + `confirmed catches ${catches}, false blockers (rebutted) ${sum('rebutted')}, merged with a finding unresolved ${rv.filter((o) => o.unresolved).length}`);
+  lines.push(`- cost: reviews and revisions ${Math.round(reviewCost)} weighted; a catch ${catches ? Math.round(reviewCost / catches) : '-'}; the median repair `
+    + `(a task with a Cause: line) ${repairCost == null ? '-' : Math.round(repairCost)}; break-even: ${catches} catches × the median repair = `
+    + `${repairCost == null ? '-' : Math.round(catches * repairCost)} against ${Math.round(reviewCost)}${repairCost == null ? '' : catches * repairCost >= reviewCost ? ': review pays' : ': review does not pay yet'}`);
+  return { text: lines.join('\n'), stat, rr, catches, reviewCost, repairCost };
+}
+
 // ---- the command line
 async function main(argv) {
   const opt = (k) => { const i = argv.indexOf(k); if (i < 0) return null; const v = argv[i + 1]; argv.splice(i, 2); return v; };
@@ -369,7 +447,8 @@ async function main(argv) {
   const dry = flagOf('--dry'), toIn = flagOf('--inbox');
   const root = path.resolve(opt('--root') || path.join(__dirname, '..')), baseRef = opt('--base'), head = opt('--head') || 'HEAD', reviewed = opt('--reviewed');
   const [cmd, id] = argv;
-  if (!['eligible', 'packet', 'claims', 'check', 'confirm'].includes(cmd)) throw new Error('a command: eligible, packet, claims, check, confirm (--help)');
+  if (cmd === 'eval') { console.log(evaluation(root, path.resolve(root, opt('--dir') || 'docs/agents/usage'), +(opt('--days') || 14)).text); return; }
+  if (!['eligible', 'packet', 'claims', 'check', 'confirm'].includes(cmd)) throw new Error('a command: eligible, packet, claims, check, confirm, eval (--help)');
   if (!/^VB-\d{3,}$/.test(id || '')) throw new Error('a task ID (VB-NNN)');
   let base = baseRef;
   if (cmd === 'confirm') {
@@ -403,5 +482,5 @@ async function main(argv) {
   console.log(before == null ? after : git(root, 'diff', short(base), short(head), '--', `backlog/${id}.md`));
 }
 
-module.exports = { facts, checkFindings, fnv1a, openFollowup, CATEGORIES, GRADES, AUTHORITY };
+module.exports = { facts, checkFindings, fnv1a, openFollowup, evaluation, rateRatio, cpBounds, CATEGORIES, GRADES, AUTHORITY };
 if (require.main === module) main(process.argv.slice(2)).catch((e) => { console.error('review: ' + e.message); process.exitCode = 2; });

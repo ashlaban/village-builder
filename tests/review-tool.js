@@ -2,7 +2,7 @@
 // and principles first, the task as it stood, a changed test that passes on the base flagged, the task's own file left out of the diff),
 // the claims refused before the draft, the findings' grades checked, and what a source file declares.
 const assert = require('assert'), fs = require('fs'), os = require('os'), path = require('path'), cp = require('child_process');
-const { facts, checkFindings, fnv1a, openFollowup } = require('../tools/review.js');
+const { facts, checkFindings, fnv1a, openFollowup, evaluation, rateRatio, cpBounds } = require('../tools/review.js');
 const tool = path.join(__dirname, '../tools/review.js');
 
 // ---- what a source file declares
@@ -140,4 +140,35 @@ try {
   const text = fs.readFileSync(path.join(copy, 'backlog', nid + '.md'), 'utf8');
   assert(/^Status: ready\nCause: VB-911\nPriority: 1$/m.test(text) && /^- \[ \] a test that a marriage's new household/m.test(text) && !text.includes('(to write)'), text);
 } finally { fs.rmSync(copy, { recursive: true, force: true }); }
-console.log('review tool: declarations, grades, the arm, the packet (vision first, task as it stood, tests against the base, structure), claims after the draft, one review a task, confirm after the revision, a follow-up task, the same through the inbox');
+// ---- the evaluation: the exact interval, and the arms on a constructed backlog and its runs
+const [lo, hi] = cpBounds(0, 10, 0.1);
+assert(lo === 0 && Math.abs(hi - (1 - Math.pow(0.05, 1 / 10))) < 1e-6, 'Clopper-Pearson, none in ten: 1 - 0.05^(1/10)');
+const [l2, h2] = cpBounds(5, 10, 0.1);
+assert(Math.abs(l2 - 0.2224) < 1e-3 && Math.abs(h2 - 0.7776) < 1e-3, 'five in ten: 0.222 to 0.778');
+const rr = rateRatio(2, 40, 6, 40);
+assert(Math.abs(rr.ratio - 1 / 3) < 1e-9 && rr.low < rr.ratio && rr.high > rr.ratio, 'the rate ratio sits inside its interval');
+const ev = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-review-eval-'));
+try {
+  const g = (date, ...a) => cp.execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd: ev, env: { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date }, stdio: 'ignore' });
+  const task = (id, head, notes = '') => { fs.mkdirSync(path.join(ev, 'backlog'), { recursive: true }); fs.writeFileSync(path.join(ev, 'backlog', id + '.md'), `# ${id}: T\n${head}\nPriority: 2\nSize: M\nGoal: g\n${notes}`); };
+  g('2025-12-01T00:00:00Z', 'init', '-q', '-b', 'main');
+  task('VB-100', 'Status: done (2025-12-01)'); task('VB-101', 'Status: done (2025-12-01)');
+  g('2025-12-01T00:00:00Z', 'add', '.'); g('2025-12-01T00:00:00Z', 'commit', '-q', '-m', 'tasks');
+  task('VB-102', 'Status: done (2025-12-09)\nCause: VB-101'); task('VB-103', 'Status: ready\nCause: VB-100', 'Opened by tools/review.js confirm from the review of VB-100\n');
+  task('VB-104', 'Status: ready\nCause: VB-101'); // made long after VB-101's follow-up: not an escape
+  g('2025-12-05T00:00:00Z', 'add', 'backlog/VB-102.md', 'backlog/VB-103.md'); g('2025-12-05T00:00:00Z', 'commit', '-q', '-m', 'repairs');
+  g('2026-02-01T00:00:00Z', 'add', 'backlog/VB-104.md'); g('2026-02-01T00:00:00Z', 'commit', '-q', '-m', 'late');
+  const tk = (n) => ({ input: n, cacheWrite: 0, cacheRead: 0, output: 0 });
+  const r = (session, t, extra) => ({ session, label: 'worker', models: ['m'], start: '2025-11-30T10:00:00Z', end: '2025-11-30T11:00:00Z', activeMin: 30, calls: 9, tokens: tk(t), task: extra.task, subagents: extra.subagents || [], review: extra.review });
+  const usage = path.join(ev, 'usage'); fs.mkdirSync(usage);
+  fs.writeFileSync(path.join(usage, 'a.json'), JSON.stringify(r('s1', 1000, { task: 'VB-100', review: { task: 'VB-100', arm: 'review', blocking: 1, advisory: 1, preference: 0,
+    revision: { weighted: 50 }, findings: [{ id: 'F1', grade: 'blocking', verified: 'mended' }, { id: 'A1', grade: 'advisory', verified: 'declined' }] },
+    subagents: [{ agent: 'x', role: 'review', task: 'VB-100', calls: 3, tokens: tk(150), activeMin: 2, peak: 1, start: '2025-11-30T10:30:00Z' }] })));
+  fs.writeFileSync(path.join(usage, 'b.json'), JSON.stringify(r('s2', 800, { task: 'VB-101', review: { task: 'VB-101', arm: 'control' } })));
+  fs.writeFileSync(path.join(usage, 'c.json'), JSON.stringify(r('s3', 400, { task: 'VB-102', review: { task: 'VB-102', arm: 'ineligible' } })));
+  const e = evaluation(ev, usage, 14);
+  assert.deepStrictEqual(e.stat, { review: { done: 1, observed: 1, escapes: 0 }, control: { done: 1, observed: 1, escapes: 1 }, ineligible: { done: 1, observed: 1, escapes: 0 } },
+    'an escape is a Cause: task made within the follow-up, not one the review opened, not one made months later');
+  assert(e.catches === 1 && e.reviewCost === 200 && e.repairCost === 400 && /break-even: 1 catches × the median repair = 400 against 200: review pays/.test(e.text), e.text);
+} finally { fs.rmSync(ev, { recursive: true, force: true }); }
+console.log('review tool: declarations, grades, the arm, the packet (vision first, task as it stood, tests against the base, structure), claims after the draft, one review a task, confirm after the revision, a follow-up task, the same through the inbox, the evaluation');
