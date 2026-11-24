@@ -7,7 +7,7 @@ VB['sim/fieldwork'] = (() => {
   const Stores = VB['sim/stores'];
   const { WORK, SEASON_DAYS } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];
-  const { sowOpen, frostDay } = VB['sim/weather'];
+  const { sowOpen, frostExpected } = VB['sim/weather'];
   const { log, atFarm } = VB['sim/records'];
   const { scrubHours, SPREAD } = VB['sim/spread'];
   const { onProject, landProject } = VB['sim/projects'],
@@ -113,10 +113,10 @@ VB['sim/fieldwork'] = (() => {
   }
   // Hoeing and sowing grow more urgent as the sowing window runs out.
   const inWindow = (st, j, c, U) => U.field + c.sday / U.fieldPerDay;
-  // Reaping and hauling the sheaves grow more urgent as the year's frost nears (sim/weather frostDay, VB-354): in autumn, by the days gone
-  // of a season that ended at the frost (as by the autumn's day when the frost fell on its last).
+  // Reaping and hauling the sheaves grow more urgent as the frost the head expects nears (sim/weather frostExpected, VB-354, VB-1175):
+  // in autumn, by the days gone of a season that ended at the frost (as by the autumn's day when the frost fell on its last).
   const frostNear = (st, c, U) =>
-    c.season === 2 ? Math.max(0, SEASON_DAYS - 1 - (frostDay(st) - c.sday)) / U.reapFrostPerDay : 0;
+    c.season === 2 ? Math.max(0, SEASON_DAYS - 1 - (frostExpected(st) - c.sday)) / U.reapFrostPerDay : 0;
   const KINDS = {
     plow: {
       verb: 'Hoeing a field',

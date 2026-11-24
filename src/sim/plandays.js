@@ -4,7 +4,7 @@
 VB['sim/plandays'] = (() => {
   const { WORK, DAY, TICKS } = VB['sim/rules'],
     { CROPS, ROTATIONS } = VB['sim/crops'];
-  const { sowOpen, frostDay } = VB['sim/weather'];
+  const { sowOpen, frostDay, frostExpected } = VB['sim/weather'];
   const Traits = VB['sim/traits'];
   const { KINDS } = VB['sim/kinds'];
   const Workdays = VB['sim/workdays'];
@@ -45,8 +45,9 @@ VB['sim/plandays'] = (() => {
     return day * DAY + h;
   }
   // Days on which a window is about to close, or has just closed, and every holder is reviewed at its first review hour: the last day of
-  // sowing and the day after it (its hoeing and sowing taken down), the year's frost day and the day before it (the harvest before the
-  // frost: sim/weather frostDay, VB-354), and the first day of winter (the ice: fishing taken down, VB-117).
+  // sowing and the day after it (its hoeing and sowing taken down), the frost the head expects and the day before it (the harvest before
+  // the frost: sim/weather frostExpected, VB-354, VB-1175) and the day the year's frost falls (frostDay: seen, not foreseen), and the
+  // first day of winter (the ice: fishing taken down, VB-117).
   const SOWN = Object.keys(CROPS).filter((k) => !CROPS[k].fallow && CROPS[k].sow);
   // Barley's window closes for every holder; another crop's (rye's in autumn, VB-999) only for a household whose farm sows it.
   const closes = (k, c) => {
@@ -56,7 +57,8 @@ VB['sim/plandays'] = (() => {
   function closing(st, c, plan) {
     return (
       closes('barley', c) ||
-      (c.season === 2 && (c.sday === frostDay(st) - 1 || c.sday === frostDay(st))) ||
+      (c.season === 2 &&
+        (c.sday === frostExpected(st) - 1 || c.sday === frostExpected(st) || c.sday === frostDay(st))) ||
       (c.season === 3 && c.sday === 0) ||
       (!!plan && cropClosing(st, c, plan))
     );
