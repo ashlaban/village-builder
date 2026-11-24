@@ -29,11 +29,12 @@ function subagent(id) {
 // The entries of a transcript; a line still being written, or not JSON, is skipped.
 const entries = (file) => fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch (e) { return null; } })
   .filter(Boolean);
-// The calls so far, the context of the last and the weighted cost: what  inbox.js calls  prints. Sub-agents' calls (isSidechain) apart.
+// The calls so far, the context of the last, the weighted cost and when the run started: what  inbox.js calls  prints. Sub-agents' calls (isSidechain) apart.
 function tally(file) {
   const seen = new Set(), t = { input: 0, cacheWrite: 0, cacheRead: 0, output: 0 };
-  let context = 0;
+  let context = 0, start = null;
   for (const e of entries(file)) {
+    if (!start && e.timestamp) start = e.timestamp;
     if (e.type !== 'assistant' || !e.message || !e.message.id || seen.has(e.message.id) || e.isSidechain && !/agent-/.test(path.basename(file))) continue;
     seen.add(e.message.id);
     const u = e.message.usage || {};
@@ -41,6 +42,6 @@ function tally(file) {
     t.cacheRead += u.cache_read_input_tokens || 0; t.output += u.output_tokens || 0;
     if (contextOf(u)) context = contextOf(u);
   }
-  return { calls: seen.size, context, weighted: weighted(t) };
+  return { calls: seen.size, context, weighted: weighted(t), start };
 }
 module.exports = { projects, weighted, contextOf, newest, subagent, entries, tally };

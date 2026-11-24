@@ -7,7 +7,7 @@
 //   cache (the first call's prefix is cached across agents), then R calls of reading again, each adding the run's mean growth a call;
 //   the work left goes on adding what it added in the run;
 // - a reset may come at any call once over T: the real ones wait for a boundary, so the bound is generous.
-const CEILING = 120, VOLUNTARY_FROM = 30, MIN_LEFT = 20;
+const { CEILING, VOLUNTARY_FROM } = require('./ceiling.js'), MIN_LEFT = 20;
 
 // The context at calls 1..n, from first, the series' points and peak.
 function curve(run) {

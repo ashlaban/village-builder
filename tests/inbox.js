@@ -125,12 +125,67 @@ expect('calls: in a session, its own transcript, no inbox needed and no ceiling'
 r = run('', 'result', B, 'status=continue');
 expect('a continuation needs its commit', !r.ok && /commit=SHA/.test(r.out), r.out);
 r = run('', 'result', B, 'status=continue', 'commit=aaa1111', 'summary=half built');
-expect('a continuation, the first of two', r.ok && r.out.includes('continue (1 of 2)'), r.out);
+expect('a continuation, the first of two, at the ceiling by default', r.ok && r.out.includes('continue (ceiling, 1 of 2)'), r.out);
 r = run('', 'apply');
 expect('a continued task is not applied', r.ok && /applied 0/.test(r.out), r.out);
 run('', 'result', B, 'status=continue', 'commit=aaa2222');
 r = run('', 'result', B, 'status=continue', 'commit=aaa3333');
 expect('no third continuation', !r.ok && /needs-review/.test(r.out), r.out);
+
+// VB-1616: the handover, stored and read back; a voluntary reset only past the threshold, from the 30th call, with a commit of this run, once a task
+const cfg = path.join(dir, 'config2'), proj = path.join(cfg, 'projects', 'p'); fs.mkdirSync(proj, { recursive: true });
+const runIn = (input, ...args) => {
+  const r = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), ...args], { encoding: 'utf8', input: input || '',
+    env: { ...process.env, CLAUDE_CONFIG_DIR: cfg } });
+  return { ok: r.status === 0, out: r.stdout + r.stderr };
+};
+const session = (n, ctx) => fs.writeFileSync(path.join(proj, 'run.jsonl'), [...Array(n).keys()].map((i) => JSON.stringify({ type: 'assistant',
+  timestamp: '2026-01-02T00:00:0' + (i % 10) + 'Z', message: {
+    id: 'h' + i, usage: { input_tokens: 1, cache_read_input_tokens: i === n - 1 ? ctx : 1000 } } })).join('\n'));
+const commitAt = (date) => {
+  const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t', GIT_AUTHOR_DATE: date,
+    GIT_COMMITTER_DATE: date };
+  fs.writeFileSync(path.join(dir, 'f.txt'), date);
+  spawnSync('git', ['add', 'f.txt'], { cwd: dir, env }); spawnSync('git', ['commit', '-q', '-m', date], { cwd: dir, env });
+  return spawnSync('git', ['rev-parse', 'HEAD'], { cwd: dir, encoding: 'utf8' }).stdout.trim();
+};
+spawnSync('git', ['init', '-q'], { cwd: dir });
+const old = commitAt('2026-01-01T00:00:00Z'), fresh = commitAt('2026-01-03T00:00:00Z');
+const H = 'VB-9001';
+r = runIn('', 'note', H, 'handover');
+expect('a handover needs its text', !r.ok && /needs its text/.test(r.out), r.out);
+r = runIn('x\n'.repeat(61), 'note', H, 'handover', '--body', '-');
+expect('a handover is at most 60 lines', !r.ok && /at most 60 lines/.test(r.out), r.out);
+r = runIn('Verified: a\nPlaces: b', 'note', H, 'handover', '--body', '-');
+expect('a handover is stored', r.ok && /\(handover\)/.test(r.out), r.out);
+r = runIn('', 'handover', H);
+expect('and read back, the latest', r.ok && r.out.trim() === 'Verified: a\nPlaces: b', r.out);
+expect('no handover, said so', !runIn('', 'handover', 'VB-9009').ok);
+r = runIn('', 'result', H, 'status=done', 'reason=stuck');
+expect('a reason only with continue', !r.ok && /status=continue/.test(r.out), r.out);
+r = runIn('', 'result', H, 'status=continue', 'reason=bored', 'commit=' + fresh);
+expect('a known reason', !r.ok && /ceiling, boundary or stuck/.test(r.out), r.out);
+session(40, 100e3);
+r = runIn('', 'result', H, 'status=continue', 'reason=boundary', 'commit=' + fresh);
+expect('no voluntary reset under the threshold', !r.ok && /under the threshold of 160k/.test(r.out), r.out);
+session(20, 200e3);
+r = runIn('', 'result', H, 'status=continue', 'reason=boundary', 'commit=' + fresh);
+expect('none before the 30th call', !r.ok && /20 calls into this run, under 30/.test(r.out), r.out);
+session(40, 200e3);
+r = runIn('', 'result', H, 'status=continue', 'reason=boundary', 'commit=' + old);
+expect('none without a commit of this run', !r.ok && /before this run started/.test(r.out), r.out);
+r = runIn('', 'result', H, 'status=continue', 'reason=boundary', 'commit=' + fresh);
+expect('a voluntary reset at a boundary, with the handover named', r.ok &&
+  /continue \(boundary\); the handover: node tools\/inbox.js handover VB-9001/.test(r.out), r.out);
+r = runIn('', 'result', H, 'status=continue', 'reason=boundary', 'commit=' + fresh);
+expect('one voluntary reset a task', !r.ok && /has had its voluntary reset/.test(r.out) && /go on/.test(r.out), r.out);
+r = runIn('', 'result', H, 'status=continue', 'commit=' + fresh);
+expect('the ceiling\'s continuations besides it', r.ok && /continue \(ceiling, 1 of 2\)/.test(r.out), r.out);
+const S2 = 'VB-9002';
+r = runIn('', 'result', S2, 'status=continue', 'reason=stuck', 'commit=' + fresh);
+expect('a reset when stuck, the handover not yet written', r.ok && /continue \(stuck\); the handover: none yet/.test(r.out), r.out);
+r = runIn('', 'result', S2, 'status=continue', 'reason=stuck', 'commit=' + fresh);
+expect('stuck again: needs-review', !r.ok && /stuck again: end with status=needs-review/.test(r.out), r.out);
 
 fs.rmSync(dir, { recursive: true, force: true });
 if (errors.length) { console.error('INBOX FAIL\n  ' + errors.join('\n  ')); process.exit(1); }

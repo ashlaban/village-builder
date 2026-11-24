@@ -8,9 +8,12 @@
 //   claim TASK FILE...         TASK will edit these files; prints who else holds one (exit 1) and claims them all the same
 //   note TASK KIND key=value... [--body FILE|-]
 //                              leave a note (kinds below); the body is Markdown, from a file or standard input
-//   result TASK status=done|needs-review|failed|continue [commit=SHA] [size=S|M|L] [model=NAME] [summary=TEXT]
+//   result TASK status=done|needs-review|failed|continue [reason=ceiling|boundary|stuck] [commit=SHA] [size=S|M|L] [model=NAME] [summary=TEXT]
 //                              TASK's outcome; frees its claims
-//                              continue: the ceiling on calls was reached and a fresh sub-agent goes on from commit= (at most twice a task)
+//                              continue: a fresh context goes on from commit=: at the ceiling on calls (reason=ceiling, the default; at most
+//                              twice a task), or by choice past the context threshold (boundary, stuck; once a task, from the run's 30th call,
+//                              with commit= made in this run; tools/lib/ceiling.js, VB-1616)
+//   handover TASK              the latest handover note of TASK, for the context that continues it (docs/agents/handover.md)
 //   calls [AGENT]              a sub-agent's model calls so far against the ceiling of 120, from its own transcript (found by its worktree, agent-<id>),
 //                              with its context and weighted cost; outside a sub-agent's worktree, the session's own, without the ceiling
 //   list [KIND] [--task TASK] [--json]
@@ -30,6 +33,7 @@
 //   teleport   where= what=   a teleport found (AGENTS.md, the hard rule): apply adds it to the open collecting task, a line
 //   act        where= what=   an act with no pawn, or a choice only the player has (AGENTS.md, 16): collected likewise
 //   decision   what= why=   a close call, decided by Deciding without Kim, that Kim should see
+//   handover   (no keys)    body: the handover of a task to a fresh context, at most 60 lines and 4 KB (docs/agents/handover.md); not applied
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path'), transcript = require('./lib/transcript.js'), { execFileSync, spawnSync } = require('child_process');
 const emitWarning = process.emitWarning;
@@ -45,7 +49,7 @@ const asJson = flag('--json'), dry = flag('--dry'), fresh = flag('--fresh'), bod
 const today = option('--date') || new Date().toISOString().slice(0, 10);
 
 const KINDS = { task: ['id', 'name', 'priority', 'size', 'summary'], question: ['priority', 'title'], tuning: ['parameter', 'means', 'measured', 'proposed'],
-  candidate: ['rule'], teleport: ['where', 'what'], act: ['where', 'what'], decision: ['what', 'why'] };
+  candidate: ['rule'], teleport: ['where', 'what'], act: ['where', 'what'], decision: ['what', 'why'], handover: [] };
 // Findings are collected, not given a task each (Kim, 18 November): one open task a kind holds them, a criterion a finding, and a
 // slice's wrap-up sweeps it. apply finds that task by its name, or makes the next one.
 const COLLECT = {
@@ -56,10 +60,10 @@ const COLLECT = {
     summary: 'The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up' },
 };
 const OPTIONAL = { task: ['status', 'arch', 'waits', 'ref', 'goal'], question: ['about'], teleport: ['task'] };
-const NEEDS_BODY = ['question'];
-// The ceiling on a sub-agent's model calls (Kim, 18 November): every call re-reads the whole context, so a long task is handed to a
-// fresh sub-agent instead. On 15 November 10 tasks of 45 went past 120 calls and took 71% of the night's cost.
-const CEILING = 120, WARN = 15, CONTINUATIONS = 2;
+const NEEDS_BODY = ['question', 'handover'];
+const HANDOVER_LINES = 60, HANDOVER_BYTES = 4096; // docs/agents/handover.md
+// The ceiling on a run's calls and the voluntary reset (tools/lib/ceiling.js).
+const { CEILING, WARN, CONTINUATIONS, RESET_AT, VOLUNTARY_FROM, VOLUNTARY, STUCK } = require('./lib/ceiling.js');
 
 function dbFile() {
   const given = option('--db') || process.env.VB_INBOX;
@@ -80,6 +84,13 @@ const all = (sql, ...p) => db.prepare(sql).all(...p), get = (sql, ...p) => db.pr
 // One writer at a time: a command's reads and writes are one transaction, so two sub-agents never take the same ID.
 const atomic = (f) => { db.exec('BEGIN IMMEDIATE'); try { const v = f(); db.exec('COMMIT'); return v; } catch (e) { db.exec('ROLLBACK'); throw e; } };
 
+// This run's transcript: a sub-agent's by its worktree (agent-<id>), else the session's, the newest under the projects directory.
+const ownAgent = () => (path.basename(root).match(/^agent-(\w+)$/) || [])[1];
+const own = () => (ownAgent() ? transcript.subagent(ownAgent()) : transcript.newest());
+const commitTime = (sha) => {
+  const r = spawnSync('git', ['log', '-1', '--format=%cI', sha], { cwd: root, encoding: 'utf8' });
+  return r.status === 0 && r.stdout.trim() ? Date.parse(r.stdout.trim()) : null;
+};
 const taskId = (s) => (/^VB-\d{3,}$/.test(s || '') ? s : fail(`"${s || ''}" is not a task ID (VB-NNN)`));
 const pad = (n) => 'VB-' + String(n).padStart(3, '0');
 const pairs = (list) => Object.fromEntries(list.map((a) => {
@@ -94,7 +105,8 @@ const notes = (where = '', ...p) => all(`SELECT * FROM notes ${where} ORDER BY n
 const headline = (n) => {
   const f = n.fields;
   return one({ task: `${f.id} ${f.name}`, question: f.title, tuning: `${f.parameter}: ${f.measured}`, candidate: f.rule,
-    teleport: `${f.where}: ${f.what}${f.task ? ` (${f.task})` : ''}`, act: `${f.where}: ${f.what}`, decision: `${f.what}: ${f.why}` }[n.kind]);
+    teleport: `${f.where}: ${f.what}${f.task ? ` (${f.task})` : ''}`, act: `${f.where}: ${f.what}`, decision: `${f.what}: ${f.why}`,
+    handover: `${(n.body || '').split('\n').length} lines, ${Buffer.byteLength(n.body || '')} bytes` }[n.kind]);
 };
 
 if (cmd === 'init') {
@@ -145,6 +157,11 @@ if (cmd === 'init') {
   const body = bodyFrom ? fs.readFileSync(bodyFrom === '-' ? 0 : bodyFrom, 'utf8').trim() : '';
   if (NEEDS_BODY.includes(kind) && !body) fail(`a ${kind} note needs its text: --body FILE, or --body - for standard input`);
   if (f.priority && !/^[1-3]$/.test(f.priority)) fail('priority is 1, 2 or 3');
+  if (kind === 'handover' && (body.split('\n').length > HANDOVER_LINES || Buffer.byteLength(body) > HANDOVER_BYTES)) {
+    fail(`a handover is at most ${HANDOVER_LINES} lines and ${HANDOVER_BYTES} bytes (this one: ${body.split('\n').length} lines, ${Buffer.byteLength(
+      body)} bytes): `
+      + 'keep what the next context cannot find quickly (docs/agents/handover.md)');
+  }
   if (kind === 'task') {
     if (!/^(S|M|L)$/.test(f.size)) fail('size is S, M or L');
     if (f.status && !['blocked', 'needs-review', 'ready'].includes(f.status)) fail('a noted task is ready, blocked or needs-review (the default)');
@@ -166,12 +183,36 @@ if (cmd === 'init') {
 } else if (cmd === 'result') {
   const task = taskId(rest[0]), f = pairs(rest.slice(1));
   if (!['done', 'needs-review', 'failed', 'continue'].includes(f.status)) fail('status=done, needs-review, failed or continue');
-  let nth = 0;
+  let nth = 0, reason = null;
+  if (f.reason && f.status !== 'continue') fail('reason= goes with status=continue');
   if (f.status === 'continue') {
     if (!f.commit) fail('continue needs commit=SHA: commit what you have first');
-    nth = +(get('SELECT value FROM meta WHERE key = ?', 'continued:' + task) || { value: 0 }).value + 1;
-    if (nth > CONTINUATIONS) fail(`${task} has been continued ${CONTINUATIONS} times: end with status=needs-review, the unmet criteria in summary=`);
-    run('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', 'continued:' + task, String(nth));
+    reason = f.reason || 'ceiling';
+    if (!['ceiling', 'boundary', 'stuck'].includes(reason)) fail('reason=ceiling, boundary or stuck');
+    const meta = (key) => +(get('SELECT value FROM meta WHERE key = ?', key + task) || { value: 0 }).value;
+    if (reason === 'ceiling') {
+      nth = meta('continued:') + 1;
+      if (nth > CONTINUATIONS) fail(`${task} has been continued ${CONTINUATIONS} times: end with status=needs-review, the unmet criteria in summary=`);
+      run('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', 'continued:' + task, String(nth));
+    } else { // a voluntary reset (VB-1616): past the threshold, late enough in the run, with something new committed, once a task
+      const was = meta('voluntary:');
+      if (was >= VOLUNTARY) {
+        fail(reason === 'stuck' ||
+          meta('stuck:') ? `${task} has had its voluntary reset and is stuck again: end with status=needs-review, what was tried and ruled out in summary=`
+          : `${task} has had its voluntary reset (${VOLUNTARY} a task): go on, and hand over at the ceiling if it comes`);
+      }
+      const t = own();
+      if (!t) fail('a voluntary reset reads this run\'s transcript, and there is none: go on, or hand over at the ceiling (reason=ceiling)');
+      const { calls, context, start } = transcript.tally(t);
+      if (context < RESET_AT) fail(
+        `the context is ${Math.round(context / 1e3)}k, under the threshold of ${RESET_AT / 1e3}k: a reset would cost more than it saves; go on`);
+      if (calls < VOLUNTARY_FROM) fail(`${calls} calls into this run, under ${VOLUNTARY_FROM}: go on`);
+      const at = commitTime(f.commit);
+      if (at == null) fail(`no commit ${f.commit} in ${root}`);
+      if (start && at < Date.parse(start)) fail(`${f.commit} was made before this run started: commit what this run built first`);
+      run('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', 'voluntary:' + task, String(was + 1));
+      if (reason === 'stuck') run('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', 'stuck:' + task, '1');
+    }
   }
   if (f.size && !/^(S|M|L)$/.test(f.size)) fail('size is S, M or L');
   atomic(() => {
@@ -180,13 +221,18 @@ if (cmd === 'init') {
       f.status, f.commit || null, f.size || null, f.model || null, f.summary ? one(f.summary) : null, new Date().toISOString(), task);
     run('DELETE FROM claims WHERE task = ?', task);
   });
-  console.log(`${task}: ${f.status}${nth ? ` (${nth} of ${CONTINUATIONS})` : ''}`);
+  console.log(`${task}: ${f.status}${reason ? ` (${reason}${nth ? `, ${nth} of ${CONTINUATIONS}` : ''})` : ''}`
+    + (reason ? `; the handover: ${get("SELECT n FROM notes WHERE task = ? AND kind = 'handover'", task) ? `node tools/inbox.js handover ${task}`
+      : `none yet: node tools/inbox.js note ${task} handover --body - (docs/agents/handover.md)`}` : ''));
+} else if (cmd === 'handover') {
+  const task = taskId(rest[0]), h = get("SELECT body FROM notes WHERE task = ? AND kind = 'handover' ORDER BY n DESC LIMIT 1", task);
+  if (!h) fail(`no handover for ${task}`);
+  console.log(h.body);
 } else if (cmd === 'calls') {
   // A sub-agent's own transcript, by its worktree (agent-<id>) or the id given; outside one, a session's: the newest under the projects
   // directory, as tools/agent-usage.js finds it (VB-1615). Beside the count, the context of the last call and the weighted cost so far.
   // The ceiling is a sub-agent's (.claude/agents/vb-task.md, step 8): a session is told its numbers, not to hand over.
-  const agent = rest[0] || (path.basename(root).match(/^agent-(\w+)$/) || [])[1];
-  const found = agent ? transcript.subagent(agent) : transcript.newest();
+  const agent = rest[0] || ownAgent(), found = agent ? transcript.subagent(agent) : transcript.newest();
   if (!found) fail(agent ? `calls: no transcript agent-${agent}.jsonl under ${transcript.projects()}` : `calls: no transcript under ${transcript.projects()}`);
   const { calls: n, context, weighted } = transcript.tally(found), left = CEILING - n;
   const k = (x) => (x >= 1e6 ? (x / 1e6).toFixed(1) + 'M' : x >= 1e3 ? Math.round(x / 1e3) + 'k' : String(x)),
