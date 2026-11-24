@@ -4,6 +4,7 @@
 // setAuto). The page's own state, never saved: hud = {tab: 'today' | 'plan' | 'stores' | null, msg: {text, bad}, key: what was drawn}.
 const hud = { tab: null, msg: null, key: '', yearKey: '', at: -1, markKey: '', sites: null, pc: null, planKey: '' };
 const HUD_TABS = [
+  ['build', 'Build', () => actIcon('build')],
   ['me', 'The settler', () => actIcon('me')],
   ['stores', 'Stores', () => goodIcon('grain')],
 ];
@@ -32,7 +33,10 @@ function hudYear(hh, f) {
       .filter((x) => x.stage === 'sown' || x.stage === 'growing')
       .map((x) => (x.sown + CROPS[x.crop].ripe) % Sim.YEAR_DAYS);
   let line, press;
-  if (sow && c.doy <= sow[1] && sown < Math.max(1, fields.length)) {
+  if (buildCalls(f)) {
+    line = 'Nothing is built yet: the build button places your farmstead';
+    press = 1;
+  } else if (sow && c.doy <= sow[1] && sown < Math.max(1, fields.length)) {
     const left = sow[1] - c.doy + 1;
     line = fields.length
       ? `Sow by spring day ${sow[1] + 1}: ${hudDays(left)} left, ${sown} of ${fields.length} ${fields.length === 1 ? 'field' : 'fields'} sown`
@@ -171,7 +175,8 @@ function renderHud() {
   const { id, hh, f } = hudHouse();
   if (id < 0 || !hh || !f) return;
   renderYear();
-  u2.alert.hidden = !hud.press || !!hud.tab;
+  u2.alert.hidden = !hud.press || !!hud.tab || !!hud.place;
+  renderBuild(f);
   hudMarks(id, hh, f);
   renderPlan();
   const hour = Math.floor(st.t),
@@ -181,16 +186,18 @@ function renderHud() {
   if (!hud.tab || key === hud.key) return;
   hud.key = key;
   const top = u2.sheet.scrollTop,
-    body = hud.tab === 'me' ? meHTML(id) : storesHTML(hh);
+    body = hud.tab === 'me' ? meHTML(id) : hud.tab === 'build' ? buildHTML() : storesHTML(hh);
   u2.sheet.innerHTML =
-    `<header><h2>${hud.tab === 'me' ? esc(Sim.fullName(st.pawns[id])) : esc(f.name) + ': stores'}</h2>` +
+    `<header><h2>${hud.tab === 'me' ? esc(Sim.fullName(st.pawns[id])) : hud.tab === 'build' ? 'Build' : esc(f.name) + ': stores'}</h2>` +
     `<button type="button" class="u2-chip" data-hud="close" aria-label="Close">Close</button></header>` +
     (hud.msg ? `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>` : '') +
     body;
   u2.sheet.scrollTop = top;
 }
 function hudTab(tab) {
-  hud.tab = hud.tab === tab ? null : tab;
+  const open = hud.tab === tab ? null : tab;
+  if (tab === 'build') buildPick(null); // the menu again: what was being placed is let go
+  hud.tab = open;
   hud.msg = null;
   hud.key = '';
   u2.sheet.scrollTop = 0;
@@ -200,6 +207,9 @@ function hudClick(b) {
     { id, hh } = hudHouse();
   if (d.hud === 'close') hud.tab = null;
   else if (d.hud === 'pshut') hud.pc = null;
+  else if (d.hud === 'buildpick') buildPick(d.what);
+  else if (d.hud === 'placeoff') buildPick(null);
+  else if (d.hud === 'buildhere') buildHere();
   else if (d.hud === 'planadd') hudMsg(Sim.plan(st, 'add', { key: d.target }), 'Added to the plan.');
   else if (d.hud === 'premove') {
     hudMsg(Sim.plan(st, 'remove', { i: +d.i }), 'Taken out of the plan.');

@@ -162,13 +162,13 @@ function renderSite() {
       if (site.msg) h += `<p class="u2-msg">${esc(site.msg)}</p>`;
       h +=
         `<button type="button" class="u2-btn go" data-site="settle"${site.busy ? ' disabled' : ''}>` +
-        `${site.busy ? 'Raising the house…' : 'Settle here'}</button>`;
+        `${site.busy ? 'Landing…' : 'Land here'}</button>`;
     }
     marks.push({ id: 'read', tile: r.tile, cls: 'u2-call', call: true, html: h });
   }
   u2Marks(marks);
   u2.sitecard.innerHTML =
-    (r ? '' : '<span><b>Where will you settle?</b> Tap the land to read it.</span>') +
+    (r ? '' : '<span><b>Where will you land?</b> Tap the land to read it.</span>') +
     '<span class="u2-scouts">Scouted:' +
     site.best
       .map(
@@ -230,8 +230,13 @@ function u2Welcome(id, f) {
   u2.welcome.hidden = false;
   const who = p ? `You are <b>${esc(Sim.fullName(p))}</b>, ${p.age}, alone on new land. ` : '';
   u2.welcome.innerHTML =
-    `<h2>${esc(f.name)} stands</h2><p>${who}It is the first morning of spring. Break a field and sow before the season turns; ` +
-    'make hay in summer; reap in autumn; live on your stores through winter.</p>' +
+    (f.camp === true
+      ? `<h2>Landed at ${esc(f.name)}</h2><p>${who}It is the first morning of spring. Your goods and animals are landed, and ` +
+        `nothing is built: the nights are spent under the open sky. First, the build button below (${actIcon('build')}): ` +
+        'place your farmstead, a booth to sleep under, a tap on the land near the camp.</p>' +
+        '<p>Then break a field and sow before the season turns; make hay in summer; reap in autumn; live on your stores through winter.</p>'
+      : `<h2>${esc(f.name)} stands</h2><p>${who}It is the first morning of spring. Break a field and sow before the season turns; ` +
+        'make hay in summer; reap in autumn; live on your stores through winter.</p>') +
     '<button type="button" class="u2-btn go" data-site="begin">Begin the first day</button>';
   u2.welcome.querySelector('button').focus({ preventScroll: true });
 }
