@@ -34,10 +34,12 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
      `node tools/inbox.js result VB-NNN status=needs-review summary=<the reason>`. Never retry a task in the same night, and never
      fix it yourself.
    - It reported `failed`, or left no result (`node tools/inbox.js status`): the same, without merging.
-   - It reported `continue` (Kim, 18 November: a sub-agent has a ceiling of 120 model calls, since every call re-reads its context):
-     do not merge. Start a fresh `vb-task` sub-agent on the same model, with the prompt "Task VB-NNN, continued from `<its branch>` at
-     <commit>; the run's branch is ...; your reserved task IDs are <the same IDs>; the handover: <its last message>". This is the one
-     case a task is started again in a night; the inbox allows it twice a task, and the third sub-agent ends with `needs-review`.
+   - It reported `continue` (Kim, 18 November: a sub-agent has a ceiling of 120 model calls, since every call re-reads its context;
+     VB-1616: or it reset by choice, past the context threshold, at a boundary or when stuck): do not merge. Start a fresh `vb-task`
+     sub-agent on the same model, with the prompt "Task VB-NNN, continued from `<its branch>` at <commit>; the run's branch is ...; your
+     reserved task IDs are <the same IDs>; the handover: `node tools/inbox.js handover VB-NNN`". Do not paste the handover: it is in the
+     inbox, and your own context stays small. This is the one case a task is started again in a night; the inbox allows two
+     continuations at the ceiling and one reset by choice a task, and refuses more.
    - It reported `needs-review` with a commit (work not built, or a question; Kim, 15 November): merge it as any other, since the hard
      checks decide a merge; the task stays open, under Waiting for Kim, and what is unmet goes under "For Kim" in the PR. A measure
      not taken is not this case (Kim, 16 November): that task is done, and you report its evidence and the reason for the missing measure at PR closeout.
