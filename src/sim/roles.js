@@ -138,7 +138,7 @@ VB['sim/roles'] = (() => {
   // mistress, a maid or a daughter of the house (each of whom ranks the household's work as she does or above). A role is absent when
   // none of the members the head allots the day to (living, 7 or older, at home, not on a day owed elsewhere nor commanded; ill or
   // nursing still count) holds a role that fills it, the holder apart; the holder then ranks each kind of work at the higher of its own
-  // rank and the absent role's (sim/kinds `ranks`; read in sim/jobs prioOf). Only the holder stands in: a mistress left alone at home
+  // rank and the absent role's (sim/kinds `ranks`; read in sim/fit prioOf). Only the holder stands in: a mistress left alone at home
   // keeps her own ranks. The holder is always `farmer` (sim/heirs refreshRoles), so the farmer's place is never absent.
   const STAND = { wife: ['wife', 'maid', 'daughter'] };
   const STAND_KEYS = Object.keys(STAND);
@@ -156,7 +156,7 @@ VB['sim/roles'] = (() => {
   const CHILD = { from: 7, base: 0.3, perYear: 0.1 };
   const workRate = (role, age) => (role === 'child' ? Math.min(1, CHILD.base + CHILD.perYear * (age - CHILD.from)) : 1);
   // @tunable MATCH: the fit of a pawn for a task, the head's day, help between households
-  // The fit of a pawn for a job (jobs.js): its role's priority for the kind times the job's urgency, less distanceWeight for each step
+  // The fit of a pawn for a job (sim/fit): its role's priority for the kind times the job's urgency, less distanceWeight for each step
   // from home; a good fit (priority above poorFit) never falls under `floor`. The head allots a household's day by it (VB-466); a
   // further hand on a job counts for join of the one before (VB-102), so a free job comes first. When the day is allotted anew, a pawn
   // at work leaves its job for one whose fit is above switchRatio × its own job's + switchMargin (VB-107).

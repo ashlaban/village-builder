@@ -16,7 +16,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   them: `world/grid` the hex grid (the odd-r directions, `toAxial`, `hexDist`, `hexLocator`, and `csample(w, arr, x, y)`, a coarse-cell
   array sampled at a map point), `world/biomes` the biome codes `B` and their keys, names and water, and `treeStage` (the stage of a
   tile's trees, the contract between `sim/forest`, `sim/spread` and the drawing), `world/geology` the codes and names of the bedrock and
-  deposits (`ROCK`, `DEPOSIT`, `ENDLESS`, `FIND`), `world/rivers` the name of a river tile's water by its flow (`kind`).
+  deposits (`ROCK`, `DEPOSIT`, `ENDLESS`, `FIND`), `world/rivers` the name of a river tile's water by its flow (`kind`),
+  `world/water` the codes and names of a tile's fresh water (`FRESH`), the well's bands by the depth to the ground's water (`WELL`, `band`,
+  `bandHours`) and the nearest source down the walk to water (`sourceNear`).
   A sim module reads them there, not through the `gen` facade.
 - `ArchGen.generate(seed)` (`src/gen.js`) assembles the world's terrain, hex tiles and regions. Seeded noise comes from `src/gen/noise.js`.
   `src/gen/biomes.js` holds the cover thresholds (`COVER`); a tile's biome is changed by `setBiome` of `world/biomes`, which writes the
@@ -30,6 +32,19 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   are the presentation layer, listed after `sim.js` (VB-1503). `ArchGen` exposes the generator only (`generate`, `BIOMES`, `COVER`);
   the page reads the bake as `VB['draw/bake']` and `mulberry32` from `gen/noise`.
   Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced by `src/gen/rivers.js`, listed before `gen.js`, which calls it, and drawn by `src/draw/rivers.js` (VB-1502).
+  Fresh water (VB-1581; design.md, Water by the site) is laid by `src/gen/water.js` after the ground: a tile's source (`w.fresh`) and the
+  depth to the ground's water (`w.waterDepth`, `WATERTABLE`), shown only as a band. The walk to it (`w.freshWalk`) needs the walking
+  costs, which are the simulation's, so `src/sim/water.js` lays it where a world enters a state (`makeState`, and `load` before the
+  saved fields are put back): from the land as generated, never saved, never recomputed. The fetch reads them through a farm's
+  source (VB-1582); the site search weighs a site's daily fetch by them (`siteFetch`, array reads) and a leader's estimate of a site's
+  water is `siteWater` (VB-1583: the source, the well of the village joined, a well of its own by its band); the tile card and the
+  Fresh water overlay (`src/page/water.js`) show them. The day's fetch has one reckoning, `dayFetch(walk, people, cart)` (VB-1604: the
+  trips by hand and with a cart and their hours), read by the household's panel and the well's test (`waterOf`: its people at home,
+  `atHome`, and its cart), by the site's estimate (by hand alone) and by `sim/chores`, which keeps the choice a trip makes.
+  Wells (VB-1584): a well's hours and stone are `world/water`'s one rule by the depth (`wellHours`, `wellStone`); a household's well is
+  `src/sim/wells.js` (the making `well` and its kind `housewell`, the head's test `pays` on its planning day, `stoneLacking`, which
+  `sim/building`'s stone step reads), a village's `src/sim/green.js`; `village.well` is the well's tile, and a finished well is a source
+  through `sim/water`'s `wellDug`.
   What lies in the ground is laid by `src/gen/geology.js`, called the same way: bedrock (`w.rock`) in provinces, with lenses of marble and
   soapstone, and finite deposits of clay and ores (`w.deposit`, `w.depositLeft`) as veins, each island drawing which kinds it has
   (`PROVINCES`, `VEINS`; `node tools/geology.js` reports the shares). Nothing digs yet. `src/sim/prospect.js` keeps what each village
@@ -42,10 +57,10 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   What a tile's cover holds (a wood's trees at full cover, a meadow's stones) is `src/gen/cover.js`, read by `gen.js` as it lays the land.
 - The panels' shared pieces are `src/page/meter.js` (VB-664; `AGENTS.md`, Deciding without Kim, 15): `meter(o)`, the one meter every level is
   shown on (its scale is the caller's argument: VB-665), `stat(o)` and `stats(list)` (a good or a measure: its icon from `goodIcon` of
-  `src/page/icons.js`, its word, its value, its meter where it is a level), `traitsHTML(id)`, and the supply component (VB-667):
+  `src/page/goodicons.js`, its word, its value, its meter where it is a level), `traitsHTML(id)`, and the supply component (VB-667):
   `suppliesHTML(O, only)` draws a household's food, fuel and hay as season cells from its argument, the outlook `Sim.supplyOutlook` reads
   (VB-666; the page computes none), with whose reckoning it is and an i for the numbers, and `supplyChips(O)` the chips of a farm's row
-  (`seasonIcon` of `src/page/icons.js` for the seasons). A supply is shown only through these. A new panel shows a level, a store or a
+  (`seasonIcon` of `src/page/cardicons.js` for the seasons). A supply is shown only through these. A new panel shows a level, a store or a
   trait through these, and a person or a farm by `memberRow` and `farmRow` of `src/page/cards.js`; a household is told of only on its
   farm's card (`houseStats`, `renderHouse`: the tabs Stores, Land and Animals), and the People sheet only finds.
 - The archipelago editor is `src/page/editor.js`: a world alone on the stage with no run (`edit`, page state as the showcase island is), its
@@ -87,7 +102,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   Meals are cooked by `cook` from a food of `FOODS` (`src/sim/rules.js`), by its worth in rations (VB-259).
   Call operations with a good and a reason; signed ledger entries distinguish goods and pawn stakes.
 - Help asked for (VB-470): `src/sim/hands.js` owns `st.handsToday` (today's lent hands, by pawn: the household helped, the hours given
-  and worked) and the offer basis `help` of `sim/offers`. At the morning's allotment `sim/jobs` reads the head's shortfall (`shortOf`: its
+  and worked) and the offer basis `help` of `sim/offers`. At the morning's allotment `sim/day` reads the head's shortfall (`shortOf`: its
   windowed field work against the pace of the hands it gave it, kept to each window's end) and `askFor` asks the village's heads, near kin
   first, then by opinion; the head asked answers by kinship, opinion and its day (`plan.day.free`) and lends whom it can spare. A hand
   lent takes the asker's field work on the basis `helper` (`sim/eligibility`), through `dutyRound`; `step` sends it home when its hours
@@ -137,7 +152,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   ends of tasks in `st.workDue`); a pawn's side tasks are `src/sim/attention.js` (VB-251), told of a leg's change by the event
   `legChanged`; `src/sim/agents.js` holds the job's phases (start, arrival, a load home, completion, release), the step (`stepAgents`,
   which takes what is due and nothing else), a journey's walking and the verbs. A pawn's place is `src/sim/pose.js`, read only:
-  `placeOf` (a walker along its leg's hours), `poseOf` (the page's), `tileAt`, and the bed; `sim/society`'s `outdoors`, `sim/jobs`'
+  `placeOf` (a walker along its leg's hours), `poseOf` (the page's), `tileAt`, and the bed; `sim/society`'s `outdoors`, `sim/pastimes`'
   company and `sim/lifecycle`'s death on the road read it, and the page reads walkers' places through the shim `Sim.walkerPlaces` until
   VB-474.
 - Claims (VB-042, VB-155 to VB-158, VB-033): `src/sim/claims.js` (claims on tiles: strength, lapse, the land each holds), `src/sim/disputes.js` (disputes settled by custom: support, scores, the winner and the losers' grievance; VB-1176), `src/sim/territory.js` (the
@@ -428,9 +443,9 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
 - Agency: `sim/legs`, `sim/work`, `sim/attention`, `sim/agents` (VB-422), `sim/away` (the stays away from home, VB-783), `sim/gifts` (how a gift gets from here to there: the verbs `give` and
   `deliver`, VB-228; a new household's start laid at its old homes and borne or fetched, VB-675), `sim/occasions` (gatherings; agency since VB-228, as target-v2 4.5 has it: its verb `attend` walks the pawn), `sim/player`
-  (the player as a source of commands, VB-169, VB-228), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs`, `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/gathering` (the village's choice of gathering, VB-294), `sim/meetings`, `sim/asking` (the asking day, VB-823), `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/seasonal` (a household's seasonal plan and targets: the template of the year, the head's bias and foresight), `sim/routines` (the village's routines and its review's steps), `sim/plandays` (planning days and the due-queue), `sim/plans` (the standing plans and the head's choices; split by VB-431),
+  (the player as a source of commands, VB-169, VB-228), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs` (the job board: `post`, the review hour's asks of the kinds' rules in `refreshJobs`, a member's look in `lookForWork`; it notes the holders whose tasks changed and has `sim/day` allot their days), `sim/fit` (a posted job weighed for a pawn, read-only: urgency, priority, score, the bars, the bid, `explainIdle`; the jobs a pawn weighs, `jobsFor`, and the one command that takes one, `workCommand`; read by `sim/day` and `sim/opportunities`), `sim/day` (the day's work: the head's `allot`, which alone writes `plan.day`, `takeDay`, `eveningCall`, and `dutyRound` for a pawn on a day owed or lent), (split from `sim/jobs` by VB-1591; load order `sim/fit`, `sim/day`, `sim/jobs`; the pawn that found no work is `sim/pastimes`' `ownTime`, VB-1552), `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/gathering` (the village's choice of gathering, VB-294), `sim/meetings`, `sim/asking` (the asking day, VB-823), `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/seasonal` (a household's seasonal plan and targets: the template of the year, the head's bias and foresight), `sim/routines` (the village's routines and its review's steps), `sim/plandays` (planning days and the due-queue), `sim/plans` (the standing plans and the head's choices; split by VB-431),
   `sim/estimate` (the head's estimate of a task, VB-476: its hours by the causes the head's judgement reckons with, in the order of
-  `ESTIMATE.reckons`, leaned by `plan.head.bias.hours`, with an honest range; worked out when read, nothing stored; `sim/jobs`' `allot` mans a
+  `ESTIMATE.reckons`, leaned by `plan.head.bias.hours`, with an honest range; worked out when read, nothing stored; `sim/day`'s `allot` mans a
   task by it, and a window missed (`sim/fields`' event `windowMissed`) outside the range is told on the record as `misjudged`; a kind's
   `norm` gives a normal crop's hours), `sim/outlook` (the supply outlook, VB-666: how long food, fuel and hay last, in seasons, by the head's reckoning at its review, with its doubt, VB-669; kept
   in `plan.outlook`, read by `Sim.supplyOutlook`; it follows `planReviewed` and nothing reads it to decide).
@@ -477,7 +492,8 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   meter); a **gear** wears (what condition is it in). A material is one row of `MATERIALS` in `src/page/cards.js`, its kinds a list under
   the total, shown only where more than one is held; a work's asks are read from the project plan's `build` reservations.
 - A new map overlay (VB-1496) is one file under `src/page/`, its line in `src/page.json` after `page/overlays.js` and before `page/input.js`,
-  an icon in both sets of `src/page/icons.js` (`ICON` and `ICON_STEN`), and a key panel (`class="ground-key panel"`, `hidden`) beside the
+  an icon in both sets of `src/page/icons.js` (`ICON` and `ICON_STEN`: the interface's own icons, not the kinds' of `src/page/kindicons.js`
+  or the goods' of `src/page/goodicons.js`), and a key panel (`class="ground-key panel"`, `hidden`) beside the
   others over the minimap in `src/body.html`. The file ends with `registerOverlay({id, name, short, key, icon, group, set(on), refresh(), reset(), layer, keyEl})`:
   `set` shows or hides its layer and draws it, `refresh` runs every frame on or off, `reset` for a new world. With no `key` it takes the next
   free digit (6 to 9: 1 to 5 are the speeds; then Y, U and I). The overlay button, its list, the keys and `tests/browser-overlays.js` follow the registry: none
@@ -488,6 +504,11 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   `line` drawing. In `src/head.html`, beside the stencil's, its one rule (hidden unless the root's `data-icons` names it, and then the
   `line` drawing beside it hidden) and the styles its shapes are drawn with; then a theme names it, the `icons` field of its entry in
   `THEMES` (`src/page/options.js`), which `applyTheme` puts on the root as `data-icons`. No rule of the icons names a theme.
+  The drawings are in four files, by what they show (VB-1589), in this order in `src/page.json`, each reading only those before it:
+  `src/page/icons.js` (the makers `svgIcon` and `drawings`, `ICON_SETS`, and the interface's own `ICON` and `ICON_STEN`),
+  `src/page/kindicons.js` (the acts' and the job kinds': `ACT_PATHS`, `ACT_STEN`, `actIcon`, `KIND_ICON`), `src/page/goodicons.js`
+  (the goods' and measures': `GOOD_PATHS`, `GOOD_STEN`, `goodIcon`) and `src/page/cardicons.js` (the seasons', traits', bonds', states'
+  and occasions', several of them the goods' and the acts' drawings). A new set gets its drawings in each.
 - A new theme (VB-1531) is two edits. An entry in `THEMES` (`src/page/options.js`): its key, `name`, `note` and the `icons` it shows; its
   card in Options, and `tests/page.js`'s walk of the themes, follow. And a block `[data-theme="<key>"] { ... }` in `src/head.html`
   that sets every token listed at the head of the stylesheet, in one rule (`tests/themes.js` checks it); written without `:root`, it

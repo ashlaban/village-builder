@@ -71,7 +71,11 @@ at(st, 3 * Sim.YEAR_DAYS - 1);
 // the hay is in each farm's log (with five or six fields to sow for its courses, VB-353, a founders farm's stock is eaten as fast as it is mown, so its
 // stock is no measure)
 const told = Sim.villageLog(st, Infinity).map((e) => e.text).join('\n');
-for (const h of st.households.filter((x) => x.herds.length)) check(told.includes(`${st.farmsteads[h.farmstead].name} has its hay in`), `founders: household ${h.id} brought in no hay by the end of year 3`);
+// a herd with a winter to feed: a new farm's herd with no head yet has none (VB-1596: a plot's site moved, and Yttergården, founded at the end
+// of year 1, has a cattle herd of no head and no meadow by year 3)
+const wintering = st.households.filter((x) => x.herds.length && Sim.winterNeed(st, x) > 0);
+check(wintering.length >= 3, `founders: ${wintering.length} households with a herd to winter`);
+for (const h of wintering) check(told.includes(`${st.farmsteads[h.farmstead].name} has its hay in`), `founders: household ${h.id} brought in no hay by the end of year 3`);
 check(Sim.villageLog(st, Infinity).some((e) => /has its hay in/.test(e.text)), 'founders: no log line for the hay');
 
 if (failed) process.exit(1);

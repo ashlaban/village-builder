@@ -46,11 +46,14 @@ VB['sim/kinds'] = (() => {
   //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
   //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
   //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt, null, from), as it is reckoned; minAge.
-  //   late: a task with a deadline today: unmanned, it goes first in its hand's list and calls it when the day is allotted (sim/jobs; the cook).
+  //   late: a task with a deadline today: unmanned, it goes first in its hand's list and calls it when the day is allotted (sim/day; the cook).
   //   vital: a kind a household lives by, true or (st, j) => boolean: once begun it is carried to its end though the work day ends
   //   meanwhile (`carriedOn`, below; VB-1547, Kim, 23 November). evening: a vital kind a hand may also begin after the end of work, until
-  //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/jobs eveningCall; the water).
-  //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/jobs).
+  //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/day eveningCall; the water).
+  //   first: a kind that heads the list of the member best fit for it when the day is allotted (the water); trip(st, j): the hours of
+  //   its trip besides its work, counted in that member's day (sim/day allot; VB-1582). setOut(st, a, j, teamFree): as its hand sets
+  //   out (sim/agents start), what it takes at the house; returns the load it sets out with (the water's barrel on a cart; VB-1586).
+  //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/fit).
   //   norm(st, j): the job's hours for a normal crop, where its hours go by the crop's size (reap, thresh): what a head that does not
   //   reckon with the size estimates (sim/estimate, VB-476).
   // ---- the rules shared by the kinds a module posts together; each names its jobs' kinds ----
@@ -107,10 +110,12 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/tar'].KINDS); // the tar pit, burning tar, tarring the house and the boat (VB-301): sim/tar's
   Object.assign(KINDS, VB['sim/saltpan'].KINDS); // boiling salt at a spring (VB-700): sim/saltpan's
   Object.assign(KINDS, VB['sim/ironwork'].KINDS); // smelting bog ore and mending the tools (VB-701): sim/ironwork's
+  Object.assign(KINDS, VB['sim/wells'].KINDS); // a household's well, dug by its house (VB-1584): sim/wells's
   // a load left lying where its carrier fell is fetched by its owner (VB-611): a fetch kind for each kind that carries a load (sim/lying)
   for (const [k, K] of Object.entries(KINDS))
     if (K.carry && (K.load || K.stack)) KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
   KINDS.blaze = VB['sim/trails'].KINDS.blaze; // blazing a trail (VB-447): sim/trails'
+  KINDS.drink = VB['sim/thirst'].KINDS.drink; // a pawn's drink at a source (VB-1585): sim/thirst's
   // ---- where a kind is worked, what it takes and what it gives (VB-1124): each kind's record declares `at` (the places of PLACES where its
   // work is done), `needs` (the things of THINGS it takes or must find there: a good used up, a tool or a facility) and `gives` (the
   // things it makes or brings home), beside its rule, as its name and hours are. The game's guide (page/guide) reads them, and a kind
@@ -179,7 +184,7 @@ VB['sim/kinds'] = (() => {
     booth: { name: 'a booth' },
     fence: { name: 'the village fence' },
     green: { name: 'the village green' },
-    well: { name: 'the village well' },
+    well: { name: 'a well' },
     trail: { name: 'a trail' },
   };
   for (const [k, K] of Object.entries(KINDS)) {
@@ -246,7 +251,7 @@ VB['sim/kinds'] = (() => {
     // the green's rule posts each of its kinds (sim/green); the work day's both (sim/workdays); the common fields' (sim/commons, VB-100) the
     // open step of the one under way and the field kinds of each one's stage, while the meeting chose them
     village: ['mend', 'green', 'workfence', commonWork].map(rule),
-    island: [plotWork, claimWork, Building.stakedWork, Building.timberWork].map(rule),
+    island: [plotWork, claimWork, Building.stakedWork, Building.timberWork, 'boothwater'].map(rule), // a booth's water: VB-1601
     fieldAt: {},
   };
   // VB-359, VB-300, sim/carts (a boat or a cart is a project's step), VB-139 (hunting roe deer), VB-390 (a cow led home, sim/exchange)

@@ -1,0 +1,489 @@
+{
+ "session": "787de03f-042f-583e-a042-b65c1a02e362",
+ "label": "project-manager",
+ "models": [
+  "claude-fable-5-2",
+  "<synthetic>"
+ ],
+ "start": "2026-11-23T20:41:57.090Z",
+ "end": "2026-11-24T02:40:16.218Z",
+ "wallMin": 358.3,
+ "activeMin": 139.3,
+ "prompts": 6,
+ "calls": 74,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 166,
+  "cacheWrite": 228721,
+  "cacheRead": 10884301,
+  "output": 43192
+ },
+ "context": {
+  "first": 86334,
+  "peak": 215587,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 38,
+   "bytes": 90791,
+   "seconds": 146.8
+  },
+  "AskUserQuestion": {
+   "calls": 1,
+   "bytes": 607,
+   "seconds": 119.1
+  },
+  "Agent": {
+   "calls": 17,
+   "bytes": 17833,
+   "seconds": 152.2
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 51,
+   "seconds": 0
+  },
+  "SendMessage": {
+   "calls": 4,
+   "bytes": 652,
+   "seconds": 9.1
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 3,
+   "bytes": 26471
+  },
+  {
+   "tool": "Bash",
+   "what": "git merge",
+   "calls": 17,
+   "bytes": 18316
+  },
+  {
+   "tool": "Agent",
+   "what": "",
+   "calls": 17,
+   "bytes": 17833
+  },
+  {
+   "tool": "Bash",
+   "what": "cat .claude/agents/vb-task.md",
+   "calls": 1,
+   "bytes": 8887
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/world/rivers.js",
+   "calls": 1,
+   "bytes": 8813
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 3,
+   "bytes": 8706
+  },
+  {
+   "tool": "Bash",
+   "what": "ls src/world",
+   "calls": 1,
+   "bytes": 5811
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 1,
+   "bytes": 4709
+  },
+  {
+   "tool": "Bash",
+   "what": "cat >",
+   "calls": 2,
+   "bytes": 4410
+  },
+  {
+   "tool": "Bash",
+   "what": "git worktree",
+   "calls": 1,
+   "bytes": 1978
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/inbox.js",
+   "calls": 5,
+   "bytes": 1568
+  },
+  {
+   "tool": "Bash",
+   "what": "git fetch",
+   "calls": 1,
+   "bytes": 822
+  }
+ ],
+ "weighted": 1590457,
+ "subagents": [
+  {
+   "agent": "af929bec",
+   "task": "VB-1543",
+   "size": "M",
+   "status": "done",
+   "model": "claude-fable-5-2",
+   "calls": 25,
+   "tokens": {
+    "input": 50,
+    "cacheWrite": 108782,
+    "cacheRead": 1693883,
+    "output": 58445
+   },
+   "weighted": 597641,
+   "first": 17877,
+   "boot": 55001,
+   "peak": 117057,
+   "activeMin": 12.4,
+   "start": "2026-11-23T20:45:58.386Z"
+  },
+  {
+   "agent": "a06f68ef",
+   "task": "VB-1581",
+   "size": "M",
+   "status": "done",
+   "model": "claude-fable-5-2",
+   "calls": 58,
+   "tokens": {
+    "input": 116,
+    "cacheWrite": 187712,
+    "cacheRead": 8176562,
+    "output": 68117
+   },
+   "weighted": 1392997,
+   "first": 16410,
+   "boot": 114504,
+   "peak": 195987,
+   "activeMin": 19.3,
+   "start": "2026-11-23T21:04:33.741Z"
+  },
+  {
+   "agent": "a280879d",
+   "task": "VB-1582",
+   "size": "M",
+   "status": "done",
+   "model": "claude-fable-5-2",
+   "calls": 58,
+   "tokens": {
+    "input": 114,
+    "cacheWrite": 367945,
+    "cacheRead": 7280103,
+    "output": 76854
+   },
+   "weighted": 1572326,
+   "first": 16628,
+   "boot": 122111,
+   "peak": 198628,
+   "activeMin": 24.1,
+   "start": "2026-11-23T21:24:15.779Z"
+  },
+  {
+   "agent": "a929fbec",
+   "task": "VB-1589",
+   "size": "S",
+   "status": "done",
+   "model": "claude-fable-5-2",
+   "calls": 25,
+   "tokens": {
+    "input": 50,
+    "cacheWrite": 48802,
+    "cacheRead": 1035598,
+    "output": 17237
+   },
+   "weighted": 250797,
+   "first": 16279,
+   "boot": 30916,
+   "peak": 57077,
+   "activeMin": 11.6,
+   "start": "2026-11-23T21:24:15.782Z"
+  },
+  {
+   "agent": "a64146e0",
+   "task": "VB-1593",
+   "size": "S",
+   "status": "done",
+   "model": "claude-fable-5-2",
+   "calls": 24,
+   "tokens": {
+    "input": 46,
+    "cacheWrite": 67803,
+    "cacheRead": 880456,
+    "output": 16065
+   },
+   "weighted": 253170,
+   "first": 16381,
+   "boot": 51467,
+   "peak": 59699,
+   "activeMin": 20,
+   "start": "2026-11-23T21:36:05.446Z"
+  },
+  {
+   "agent": "a8d9d2bc",
+   "task": "VB-1583",
+   "size": "S",
+   "status": "needs-review",
+   "model": "claude-fable-5-2",
+   "calls": 58,
+   "tokens": {
+    "input": 116,
+    "cacheWrite": 153220,
+    "cacheRead": 6437710,
+    "output": 56001
+   },
+   "weighted": 1115417,
+   "first": 16609,
+   "boot": 87583,
+   "peak": 161495,
+   "activeMin": 20.6,
+   "start": "2026-11-23T23:17:55.022Z"
+  },
+  {
+   "agent": "af628e7d",
+   "task": "VB-1591",
+   "size": "M",
+   "status": "done",
+   "model": "claude-fable-5-2",
+   "calls": 24,
+   "tokens": {
+    "input": 48,
+    "cacheWrite": 84320,
+    "cacheRead": 1621993,
+    "output": 26381
+   },
+   "weighted": 399552,
+   "first": 16344,
+   "boot": 66664,
+   "peak": 92595,
+   "activeMin": 11.2,
+   "start": "2026-11-23T23:17:55.028Z"
+  },
+  {
+   "agent": "a8ba048d",
+   "task": "VB-1584",
+   "size": "M",
+   "status": "done",
+   "model": "claude-fable-5-2",
+   "calls": 75,
+   "tokens": {
+    "input": 150,
+    "cacheWrite": 231594,
+    "cacheRead": 11686611,
+    "output": 93239
+   },
+   "weighted": 1924499,
+   "first": 16767,
+   "boot": 115596,
+   "peak": 239869,
+   "activeMin": 41.8,
+   "start": "2026-11-23T23:38:52.320Z"
+  },
+  {
+   "agent": "abd5092e",
+   "task": "VB-1596",
+   "size": "S",
+   "status": "done",
+   "model": "claude-fable-5-2",
+   "calls": 39,
+   "tokens": {
+    "input": 78,
+    "cacheWrite": 104975,
+    "cacheRead": 2966843,
+    "output": 39655
+   },
+   "weighted": 626256,
+   "first": 16446,
+   "boot": 68599,
+   "peak": 113250,
+   "activeMin": 18.4,
+   "start": "2026-11-23T23:38:52.325Z"
+  },
+  {
+   "agent": "a5d61e18",
+   "task": "VB-1585",
+   "size": "M",
+   "status": "needs-review",
+   "model": "claude-fable-5-2",
+   "calls": 87,
+   "tokens": {
+    "input": 174,
+    "cacheWrite": 272981,
+    "cacheRead": 16039982,
+    "output": 116347
+   },
+   "weighted": 2527133,
+   "first": 16710,
+   "boot": 109337,
+   "peak": 281256,
+   "activeMin": 51,
+   "start": "2026-11-24T00:20:56.686Z"
+  },
+  {
+   "agent": "a5ddeb93",
+   "task": "VB-1598",
+   "size": "S",
+   "status": "done",
+   "model": "claude-fable-5-2",
+   "calls": 27,
+   "tokens": {
+    "input": 54,
+    "cacheWrite": 66616,
+    "cacheRead": 1441879,
+    "output": 19577
+   },
+   "weighted": 325397,
+   "first": 16362,
+   "boot": 55290,
+   "peak": 74891,
+   "activeMin": 5.8,
+   "start": "2026-11-24T00:20:56.689Z"
+  },
+  {
+   "agent": "a7016bb5",
+   "task": "VB-1586",
+   "size": "M",
+   "status": "done",
+   "model": "claude-fable-5-2",
+   "calls": 60,
+   "tokens": {
+    "input": 120,
+    "cacheWrite": 206295,
+    "cacheRead": 8641846,
+    "output": 91612
+   },
+   "weighted": 1580233,
+   "first": 16641,
+   "boot": 110189,
+   "peak": 214570,
+   "activeMin": 28.8,
+   "start": "2026-11-24T01:12:20.901Z"
+  },
+  {
+   "agent": "a8ac7147",
+   "task": "VB-1602",
+   "size": "S",
+   "status": "needs-review",
+   "model": "claude-fable-5-2",
+   "calls": 41,
+   "tokens": {
+    "input": 82,
+    "cacheWrite": 121796,
+    "cacheRead": 3324388,
+    "output": 42716
+   },
+   "weighted": 698346,
+   "first": 16423,
+   "boot": 51194,
+   "peak": 130071,
+   "activeMin": 15.2,
+   "start": "2026-11-24T01:12:20.905Z"
+  },
+  {
+   "agent": "ac15d0ad",
+   "task": "VB-1587",
+   "size": "S",
+   "status": "needs-review",
+   "model": "claude-fable-5-2",
+   "calls": 55,
+   "tokens": {
+    "input": 110,
+    "cacheWrite": 168475,
+    "cacheRead": 6379355,
+    "output": 53581
+   },
+   "weighted": 1116544,
+   "first": 16679,
+   "boot": 112595,
+   "peak": 176750,
+   "activeMin": 23,
+   "start": "2026-11-24T01:41:29.790Z"
+  },
+  {
+   "agent": "a33f359e",
+   "task": "VB-1604",
+   "size": "S",
+   "status": "done",
+   "model": "claude-fable-5-2",
+   "calls": 40,
+   "tokens": {
+    "input": 80,
+    "cacheWrite": 129543,
+    "cacheRead": 3823818,
+    "output": 47640
+   },
+   "weighted": 782591,
+   "first": 16480,
+   "boot": 81507,
+   "peak": 137818,
+   "activeMin": 17.1,
+   "start": "2026-11-24T01:41:29.794Z"
+  },
+  {
+   "agent": "a718ca67",
+   "task": "VB-1601",
+   "size": "M",
+   "status": "done",
+   "model": "claude-fable-5-2",
+   "calls": 77,
+   "tokens": {
+    "input": 154,
+    "cacheWrite": 200834,
+    "cacheRead": 11246282,
+    "output": 74354
+   },
+   "weighted": 1747595,
+   "first": 16693,
+   "boot": 131009,
+   "peak": 209109,
+   "activeMin": 24.7,
+   "start": "2026-11-24T02:04:45.467Z"
+  },
+  {
+   "agent": "a22db3fd",
+   "task": "VB-1581",
+   "size": null,
+   "status": null,
+   "model": "claude-fable-5-2",
+   "calls": 31,
+   "tokens": {
+    "input": 62,
+    "cacheWrite": 150322,
+    "cacheRead": 3576981,
+    "output": 19484
+   },
+   "weighted": 643083,
+   "first": 67831,
+   "boot": 0,
+   "peak": 150324,
+   "activeMin": 9.1,
+   "start": "2026-11-24T02:31:03.726Z"
+  }
+ ],
+ "summary": {
+  "weightedTotal": 19144034,
+  "orchestratorShare": 0.083,
+  "bootMedian": 84545,
+  "readMedian": 68001,
+  "weightedPerDoneTask": 1595336,
+  "perSize": {
+   "S": {
+    "n": 5,
+    "median": 325397
+   },
+   "M": {
+    "n": 7,
+    "median": 1572326
+   }
+  },
+  "firstPass": 0.75,
+  "tasks": 16
+ }
+}

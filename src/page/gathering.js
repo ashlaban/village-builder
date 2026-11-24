@@ -22,7 +22,7 @@ const OCC_R = 11, // the mark's radius on screen, in pixels
 const occOn = () => (st ? st.occasions.filter((o) => st.t >= o.start && st.t < o.end) : []);
 const occScale = () => 1 / Math.max(cam.z, 0.35); // the same size on screen down to a far view, then smaller with the map
 const occSelection = () => `${selPawn}|${selVillage}|${selFarm}|${sel}`;
-// One mark: a pale disc, ringed in gold while its card is open, and on it the occasion's icon, the interface's own (page/icons), drawn
+// One mark: a pale disc, ringed in gold while its card is open, and on it the occasion's icon, the interface's own (page/cardicons), drawn
 // by PixiJS from the same path.
 function makeOccMark(kind) {
   const c = new PIXI.Container(),

@@ -420,6 +420,9 @@ VB['sim/scenarios'] = (() => {
   }
   function makeState(w, S, R, households, farmsteads, villages, used, scenario) {
     seal();
+    VB['sim/water'].layWalk(w); // VB-1581: the walk to fresh water, from the land as generated
+    // VB-1582: the wells the run starts with, as sources on the map (design.md, Water by the site, At the start)
+    VB['sim/water'].startWells(w, villages, farmsteads, scenario !== 'founders' && scenario !== 'solo');
     const rand = drawer(S); // the scenario's one seeding stream
     for (const p of R.pawns) p.events = p.events || [];
     // @state st.t: number; game time in hours since the start of year 1 (negative before it): st.tick / TICKS (sim/clock)
@@ -451,7 +454,8 @@ VB['sim/scenarios'] = (() => {
     //   cold (0..1, the mean of coldLog over HUNGER.days) and coldLog[] (the last days' cold, each the wood the fire lacked over winter's use;
     //   empty when warm that long; sim/hunger, VB-327),
     //   dry (0..1, the mean of dryLog over HUNGER.days) and dryLog[] (the last days, 1 a day its water was not fetched; empty when
-    //   none was dry that long; sim/hunger, VB-331), waterDay, cookDay, dissolved,
+    //   none was dry that long; sim/hunger, VB-331), waterDay, cookDay, marshDay (the last day its water was a marsh's; sim/chores, VB-1582),
+    //   dissolved,
     //   herds[] (ids into st.herds), hay (units in the barn), haySpoilt (hay lost in store since the start; sim/byre),
     //   larder[] ({kind 'meat'|'salt meat'|'smoked meat'|'milk'|'butter'|'dried fish' (rules FOODS), n (rations), until}: stored food lots;
     //   sim/hunger), fresh[] ({food 'fish'|'gathered' (rules FOODS held 'fresh'), day, qty (units)}: fresh food in batches by day; sim/pot, VB-119),
@@ -472,7 +476,8 @@ VB['sim/scenarios'] = (() => {
     //   their household in st.plans.projects (sim/expansion, VB-1411)
     // @state st.villages[]: {id, name, center, farmsteads[], fence, wood[], grain, ledger[], totals[] (as a household's), green, well};
     //   center is a tile index, farmsteads are ids; wood: the tiles the village cuts its firewood on (sim/territory, VB-326);
-    //   grain: the village store, {crop: rations} (sim/help); green, well: booleans; a one-farm village has neither
+    //   grain: the village store, {crop: rations} (sim/help); green: a boolean; well: the tile of its well, on its green, or null
+    //   (VB-1584); a one-farm village has neither
     //   plots[] (sim/expansion): {id, village, intended (pawn id), hours {pawn id: hours worked}, done (cleared), holder (pawn id or null),
     //   started, cottage {i (stages done of foundation, walls, roof), done (hours on the open stage)} once cleared, built (the roof is on;
     //   farmstead is then its id; sim/cottage), wood (loads: its felled trees and the timber carried to it, less the walls'; VB-328),

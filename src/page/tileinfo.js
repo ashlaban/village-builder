@@ -69,7 +69,10 @@ function showTile(i) {
       ...more,
       stats: (more.stats || '') + strength,
     });
-  } else card(b.name, [line, ...river, ...worn, ...ownLine, ...claims], '', { stats: levelStats(i) + strength });
+  } else
+    card(b.name, [line, ...river, ...waterLines(i), ...worn, ...ownLine, ...claims], '', {
+      stats: levelStats(i) + strength,
+    });
 }
 // ---- a field's crop, and the head's choice of it (VB-355; design.md, How the head chooses what to sow) ----
 // A field's part of its tile's card, from Sim.fieldView: its crop (with its own icon), its course in the farm's rotation, what is sown on

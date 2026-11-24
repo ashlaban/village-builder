@@ -189,7 +189,7 @@ function showVillage(id) {
   const S = Sim.villageSummary(st, id, st.player ? st.player.pawn : null); // the overview (VB-162): the played pawn's estimate
   const lines = [
     `${people} people in ${lived.length} ${lived.length === 1 ? 'household' : 'households'}${empty ? `, ${empty} empty` : ''}`,
-    v.well ? 'A shared well and woods' : 'Shared woods',
+    v.well !== null ? 'A shared well and woods' : 'Shared woods',
     v.founded
       ? `Founded in year ${Math.floor(v.founded.t / Sim.YEAR) + 1} from ${mother.name} by ${name(v.founded.by)}`
       : '',

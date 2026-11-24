@@ -106,10 +106,10 @@ VB.COUNTERS = {
     "Plans reviewed: on each holder's planning day, when a window closes or a store crosses a target (sim/plans; VB-258, VB-249)",
   dayPair:
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
-    '(sim/jobs, allot; VB-466)',
-  dayTake: 'Tasks of its list an idle pawn passes or takes (sim/jobs, takeDay; VB-466)',
+    '(sim/day, allot; VB-466)',
+  dayTake: 'Tasks of its list an idle pawn passes or takes (sim/day, takeDay; VB-466)',
   eveningAsk:
-    "Households' tasks read for one that may be begun after work, from its end to the evening (sim/jobs eveningCall, VB-1547)",
+    "Households' tasks read for one that may be begun after work, from its end to the evening (sim/day eveningCall, VB-1547)",
   handsAsked: 'Asks for hands made by a head short of hands, at the morning allotment (sim/hands askFor, VB-470)',
   foodAsked: 'Asks for food made by a hungry head at its plan review, one an asked party (sim/help askFood, VB-691)',
   handsWeighed: 'Farms of the village read by a head short of hands, to choose whom to ask (sim/hands askFor, VB-470)',
@@ -175,6 +175,21 @@ VB.COUNTERS = {
     'VB-461)',
   awayMeals:
     'Meals eaten from a pack by the pawns away from home, on a journey or lodging, a meal a day each (sim/away feedAway; VB-783)',
+  waterSettled:
+    "Tiles settled by the two searches of the map's fresh water, once a world: the rise above the nearest water surface (gen/water) " +
+    'and the walk to fresh water (sim/water; VB-1581)',
+  sourceSettled:
+    "Tiles settled by the searches for a farm's source of water: one a farm on its first morning, at a well's finishing in its village " +
+    'and once a year on its planning day, each stopping at the first source (sim/water; VB-1582)',
+  childMinded:
+    'Times one about to leave home was found the last of 7 or over there with a child under 7, and stayed: a lodger, a carrier, a ' +
+    'fetcher or hauler of a gift, a suitor (sim/records mindsWhy; VB-1602)',
+  thirstDue:
+    'Entries of the thirsty pawns taken when due: a pawn that ended a day without a drink, at 36 hours without one, and one that ' +
+    'drank at night and goes in (sim/drinking; VB-1585)',
+  boothWater:
+    "Stays read for the booths' water, each review hour while any booth stands: the fetch of each booth somebody sleeps in " +
+    '(sim/building; VB-1601)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };

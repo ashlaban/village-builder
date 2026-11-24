@@ -8,7 +8,7 @@ function checkSeeding(st, label) {
   const own = (t) => Sim.ownerOf(st, t), houses = new Set(st.farmsteads.map((f) => f.house));
   const expected = new Map();
   for (const v of st.villages) {
-    check(v.green === v.well && v.green === (v.farmsteads.length >= 2), `${label}: ${v.name} green/well ${v.green}/${v.well} with ${v.farmsteads.length} farms`);
+    check(v.green === (v.well !== null) && v.green === (v.farmsteads.length >= 2), `${label}: ${v.name} green/well ${v.green}/${v.well} with ${v.farmsteads.length} farms`);
     check(Object.keys(v).every((k) => !/lone|degenerate/i.test(k)), `${label}: ${v.name} has a lone flag`);
     if (!houses.has(v.center)) expected.set(v.center, { type: 'village', id: v.id });
   }

@@ -266,6 +266,7 @@ VB['sim/saves'] = (() => {
   ];
   WORLD.push('depositLeft', 'depositFull', 'dugDay'); // VB-359: what has been dug (sim/dig); a save without them was never dug
   WORLD.push('graze'); // VB-136: grazing pressure (sim/herds); a save without it was never grazed
+  WORLD.push('fresh'); // VB-1582: the wells (sim/water); a save without it has the natural sources its world was generated with
   WORLD.push('tended'); // VB-091: the last work on a tile (sim/spread); a save without it has its front made anew
   // Format 2 (VB-226): Maps as "$kv", and each pawn's relationship records (pawn.rel) packed in one flat array, [other, band, the number
   // of memories, then kind, v, t for each, ...]: they were two thirds of the objects a save walked.
@@ -385,6 +386,7 @@ VB['sim/saves'] = (() => {
       );
     }
     seal();
+    VB['sim/water'].layWalk(w); // VB-1581: before the saved fields are put back, so from the land as generated, as at seeding
     w.lat = typeof data.lat === 'number' ? data.lat : VB['sim/climate'].CLIMATE.worlds.middle; // a save before VB-807: the middle world
     for (const k of WORLD) {
       if (!(k in data.world)) continue;
@@ -397,6 +399,8 @@ VB['sim/saves'] = (() => {
     for (const k in DERIVED) st[k] = null;
     for (const k in DERIVED) if (DERIVED[k]) DERIVED[k](st);
     VB['sim/fieldrec'].grounded(st); // VB-1520
+    VB['sim/water'].wellsLoaded(st); // VB-1584: an older save's well, a boolean, is its tile
+    VB['sim/thirst'].loaded(st); // VB-1585: a save from before a pawn's own thirst loads as having drunk
     VB['sim/stores'].heapsLoaded(st); // VB-733: an older save's heap of no rock, and its quern's `rock`
     VB['sim/quern'].quernsLoaded(st);
     const R = VB['sim/rng']; // a save from before a system's stream (VB-761's `making`): its stream from the seed and its name, as at seeding

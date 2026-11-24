@@ -152,7 +152,9 @@ function pinsOf(wd, s, sc) {
         ...pic(farmIcon(fs[0])),
         text: fs.length > 1 ? 'The houses stand ready' : 'The house stands ready',
       },
-      v.well ? { x: wd.hx[v.center] + 1, y: wd.hy[v.center] + 10, icon: 'well', text: 'One well between them' } : null,
+      v.well !== null
+        ? { x: wd.hx[v.well] + 1, y: wd.hy[v.well] + 10, icon: 'well', text: 'One well between them' }
+        : null,
       meadow >= 0 ? { ...T(meadow), icon: 'meadow', text: 'No field broken yet' } : null,
       wood >= 0 ? { ...T(wood), icon: 'tree', text: 'Forest to clear for hay meadows' } : null,
     ];

@@ -1,6 +1,9 @@
 [
   "page/setup.js",
   "page/icons.js",
+  "page/kindicons.js",
+  "page/goodicons.js",
+  "page/cardicons.js",
   "page/meter.js",
   "page/chunks.js",
   "page/overlays.js",
@@ -12,6 +15,7 @@
   "page/wildfood.js",
   "page/grazing.js",
   "page/wear.js",
+  "page/water.js",
   "page/loader.js",
   "page/minimap.js",
   "page/tileinfo.js",

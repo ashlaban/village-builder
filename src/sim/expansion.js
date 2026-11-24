@@ -4,7 +4,8 @@
 VB['sim/expansion'] = (() => {
   const { B } = VB['world/biomes'];
   const { doneOf, keptDone } = VB['sim/progress'];
-  const { FIELDS, ECON } = VB['sim/rules'],
+  const { FIELDS, ECON, SETTLE } = VB['sim/rules'],
+    { plotFetch } = VB['sim/water'],
     { fertility, openGround: farmable, clearable } = VB['sim/crops'];
   const Projects = VB['sim/projects'],
     { emit, on } = VB['sim/events'];
@@ -25,7 +26,8 @@ VB['sim/expansion'] = (() => {
     VB['sim/cottageplan'];
   const Stores = VB['sim/stores'];
   const MAX_PLOTS = 2,
-    REACH = 6;
+    REACH = 6,
+    PLOT_PEOPLE = 2; // whom a plot's water is weighed for: the couple a plot is cleared for (one trip a day at any size until VB-1586)
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   // @state village.plots[]: the village's plots built, {id, village, intended, holder (who moved in), started, farmstead, tiles: [{tile, kind
   //   'house' | 'field'}]}, appended when the cottage's household moves in (sim/cottage). A plot under way is a project plan of its village
@@ -91,6 +93,14 @@ VB['sim/expansion'] = (() => {
   // green, not crowded, where its field is worth most and its own tile least; Kim, 12 Nov); the field lies 1 to FIELD_REACH steps from it,
   // where farmed land may lie (farmedLand: beside a house, off the ring round the green, no nearer the green than the house); and the
   // farm has room (roomAt). Null when there is no room.
+  // The site's water is weighed as the round's search weighs it (VB-1596; design.md, Water by the site, The site's access): the score
+  // loses SETTLE.perFetch a daily hour of the fetch a house there would make (sim/water plotFetch: the least of fresh water, the
+  // village's well and a well of its own), for a household that makes one trip (PLOT_PEOPLE). 2.4 a daily hour is an hour's nearness
+  // to the green (8 steps at HOUSE.far), so a step further from the village's well costs 0.63 beside the step's 0.3, and all the water
+  // can move, from a house on the green's rim to a well of its own, is about HOUSE.offGreen. No site is refused for its water. Cost:
+  // the walks to the village's well are one search outward from the green within the reach, shared by all the sites and made when
+  // the first is scored; none for a caller that asks only whether the village has room (water false: no site is refused for its
+  // water, so the answer is the same).
   // Room for a farm whose house is h (VB-154): free farmable tiles within FIELD_REACH walking steps of h, unused and free for village vid
   // (its outland or wilderness; vid null: wilderness only, for a new village; sim/territory), that `taken` does not exclude; counted up to
   // FIELDS.room. A farm needs FIELDS.room of them besides its first field for more fields, meadow and pasture.
@@ -104,7 +114,7 @@ VB['sim/expansion'] = (() => {
     }
     return n;
   }
-  function findSite(st, v) {
+  function findSite(st, v, water = true) {
     const w = st.w,
       vreg = w.region[v.center],
       cand = [],
@@ -126,7 +136,9 @@ VB['sim/expansion'] = (() => {
       }
       return false;
     };
-    for (const [t, d] of bfs(w, v.center, REACH, walkable(w)).dist) {
+    const reach = bfs(w, v.center, REACH, walkable(w)).dist;
+    let fetch = null;
+    for (const [t, d] of reach) {
       if (d < 1 || !freeFor(st, t, v.id) || st.used.has(t) || v.wood.includes(t) || w.river[t]) continue;
       if (w.biome[t] === B.MOUNTAIN || w.biome[t] === B.SNOW || !near(t)) continue;
       cand.push([t, d]);
@@ -159,7 +171,8 @@ VB['sim/expansion'] = (() => {
       let touch = 0;
       for (let k = 0; k < 6; k++) if (built.has(w.nb[h * 6 + k])) touch++;
       // the generator's score of a house site (sim/layout houseScore), where its field is worth most and its own tile least
-      const s = houseScore(w, h, d, touch) + (f >= 0 ? HOUSE.byLand * fs - HOUSE.spare * fertility(w, h) : -Infinity);
+      let s = houseScore(w, h, d, touch) + (f >= 0 ? HOUSE.byLand * fs - HOUSE.spare * fertility(w, h) : -Infinity);
+      if (water && s > bs) s -= SETTLE.perFetch * (fetch ||= plotFetch(w, v, reach, PLOT_PEOPLE)).get(h);
       if (s > bs) {
         bs = s;
         best = { house: h, field: f };

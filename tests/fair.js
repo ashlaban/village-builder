@@ -62,6 +62,34 @@ assert.ok(here.length >= dealers.length * 0.6, `${here.length} of ${dealers.leng
 assert.strictEqual(F.swapWhy(st, here[0], here[0], { good: 'grain', n: 1 }, { good: 'tar', n: 1 }) !== null, true);
 assert.deepStrictEqual(issues(st), []);
 
+// a swap offered to a played pawn that has not answered when the fair ends (VB-1598), on a copy of the run at the last day's close of
+// dealing: when the host's dealer unpacks its load at home that night the offer lapses with it, and no deal is counted
+{
+  const c = Sim.load(st.w, JSON.parse(JSON.stringify(Sim.save(st))));
+  Sim.advance(c, start + 2 * DAY + F.FAIR.hours[1] - c.t);
+  const villageOf = (id) => c.farmsteads[c.households[c.pawns[id].load.household].farmstead].village;
+  const on = dealers.filter((id) => c.pawns[id].load && c.agents[id].occasion != null), swaps = () => c.offers.filter((o) => o.basis === 'swap');
+  const to = on.find((id) => villageOf(id) === day.village);
+  assert.ok(to !== undefined && swaps().length === 0, 'a dealer of the host is on the green, and no swap is open');
+  Sim.inhabit(c, to);
+  let terms = null;
+  for (const from of on)
+    for (const g of F.FAIR.goods)
+      for (const t of F.FAIR.goods) {
+        const args = { basis: 'swap', gives: { good: g, n: 1 }, wants: { good: t, n: 1 } };
+        if (!terms && issue(c, { actor: from, verb: 'offer', target: to, args, source: 'pawn' }) === true) terms = args;
+      }
+  const deals = c.fair.fairs[0].deals;
+  assert.ok(terms && swaps().length === 1 && swaps()[0].to === to, 'the swap waits for the played pawn');
+  assert.deepStrictEqual(checkState(c).filter((x) => /fair|offers\[/.test(x)), []);
+  Sim.advance(c, end + 2 - c.t);
+  assert.strictEqual(c.pawns[to].load, null, 'the fair is over: the dealer has unpacked');
+  assert.deepStrictEqual(swaps(), [], 'no swap outlives its load');
+  assert.strictEqual(c.fair.fairs[0].deals, deals, 'a lapsed swap is no deal');
+  assert.ok(c.record.some((e) => e && e.kind === 'offerLapsed' && /^A swap of .* lapsed: the fair is over\.$/.test(e.text)), 'the lapse is told');
+  assert.deepStrictEqual(checkState(c).filter((x) => /fair|offers\[/.test(x)), []);
+}
+
 // the played pawn proposes through the same verb, and its allowance does not bind it: it offers more than it gains, and the other
 // takes it by its own need
 const a = here.find((id) => F.held(st.pawns[id].load, 'grain') >= 20), b = here.find((id) => F.held(st.pawns[id].load, 'hide') >= 1 && st.pawns[id].load.household !== st.pawns[a].load.household);

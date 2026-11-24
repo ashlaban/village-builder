@@ -37,7 +37,7 @@ function morning() {
   // under an hour of work left at the son's rate (1) when the head allots the day anew (VB-466: the test is made then, not at the hour)
   field.done = hours - 0.8;
   hh.wood = 5;
-  VB['sim/jobs'].allot(st, hh, Sim.cal(st.t));
+  VB['sim/day'].allot(st, hh, Sim.cal(st.t));
   check(son.job === field && field.done < hours, `the son left a field he would finish within the hour (${son.job && son.job.kind}, ${field.done} of ${hours})`);
 }
 console.log('interrupts ok');

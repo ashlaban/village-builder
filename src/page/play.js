@@ -36,6 +36,7 @@ const VERB_WORDS = {
   walkTo: 'Walk to a tile',
   goHome: 'Go home',
   idle: 'Idle',
+  drink: 'Drink',
   argue: 'Argue for a cause',
   dropCause: 'Drop the cause',
   leave: 'Move out to new land',

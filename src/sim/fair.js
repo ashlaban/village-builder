@@ -168,10 +168,13 @@ VB['sim/fair'] = (() => {
   }
   on('gatheringSetOut', loadUp);
   // The load goes home: its lots into the household's store (the one it was packed for, else the dealer's own), or lost with nobody to
-  // take them; the dealer carries none.
+  // take them; the dealer carries none. The swaps it offered or was offered that are still open lapse with the load they were to be
+  // made from (VB-1598: the played pawn's answer was waited for; the question leaves its prompt with the offer), before the goods go.
   function unload(st, p, lost = false) {
     const l = p.load,
       f = fairOf(st);
+    for (const o of st.offers.filter((x) => x.basis === 'swap' && (x.from === p.id || x.to === p.id)))
+      Offers.conclude(st, o, p.alive ? 'the fair is over' : `${fullName(p)} has died`);
     let hh = st.households[l.household];
     if (hh.dissolved)
       hh = p.household === null || st.households[p.household].dissolved ? null : st.households[p.household];
@@ -357,6 +360,7 @@ VB['sim/fair'] = (() => {
       return {};
     },
     answers: (st, o) => [{ key: 'to', by: o.to, yes: null }],
+    // both still carry their loads: an open swap lapses when either is unpacked (unload)
     weigh: (st, o) => weigh(st, o.to, o.from, o.wants, o.gives).accept,
     refused: () => {},
     settle: (st, o) =>

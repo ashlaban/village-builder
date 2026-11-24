@@ -390,7 +390,7 @@ function projectHTML(hh, V, mine) {
 }
 // The small constructions the played head may begin beside any project (VB-678: through the verb project, under the same check as every
 // head's; a refusal says why): those of a making not under way.
-const SMALL_VERB = { cart: 'Build a cart', boat: 'Build a fishing boat', tarpit: 'Dig a tar pit' };
+const SMALL_VERB = { cart: 'Build a cart', boat: 'Build a fishing boat', tarpit: 'Dig a tar pit', well: 'Dig a well' };
 function makeHTML(V) {
   const btns = Object.keys(SMALL_VERB)
     .filter((what) => !(V.small || []).some((q) => q.what === what))
@@ -407,7 +407,14 @@ function makeHTML(V) {
   return btns ? `<div class="plan-row" data-make><span class="plan-ctl menu">${btns}</span></div>` : '';
 }
 // The small constructions under way beside the project (a cart, a boat, a tar pit: VB-1414), a row each; the head may give each up.
-const SMALL_NAME = { cart: 'cart', boat: 'fishing boat', tarpit: 'tar pit' };
+const SMALL_NAME = { cart: 'cart', boat: 'fishing boat', tarpit: 'tar pit', well: 'well' };
+// A well under way shows its ground's band and the band's range of hours until water is struck, never the metres ahead (VB-1584).
+function wellNote(tile) {
+  const W = VB['world/water'],
+    k = W.band(st.w.waterDepth[tile]),
+    range = W.bandHours(k);
+  return range ? `${W.BANDS[k].name} ground: ${range[0]} to ${range[1]} hours until water is struck` : '';
+}
 function smallHTML(V, mine) {
   return (V.small || [])
     .map((q) => {
@@ -417,7 +424,7 @@ function smallHTML(V, mine) {
         img: actIcon('spade'),
         label: `New ${name}`,
         value: q.step,
-        note: at >= 0 ? `tile ${at}` : '',
+        note: at < 0 ? '' : q.what === 'well' ? wellNote(at) : `tile ${at}`,
         wide: true,
         title: 'A small construction under way beside any project, its step and the tile it is on',
       });

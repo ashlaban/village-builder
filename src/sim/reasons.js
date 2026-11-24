@@ -16,7 +16,7 @@ VB['sim/reasons'] = (() => {
     { travelling, stayOf } = VB['sim/pose'];
   const Days = VB['sim/days'],
     Hands = VB['sim/hands'],
-    { idleLine } = VB['sim/jobs'];
+    { idleLine } = VB['sim/fit'];
   // The view's wording: a field's window is said to close when it ends within `closing` days (the design's "within three days"); the
   // occasions the village holds, whose attending is the village's (the others, a call, an ale evening, a rite, are the pawn's own).
   const REASONS = Object.freeze({ closing: 3, village: Object.freeze(['meeting', 'gathering']) });

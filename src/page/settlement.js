@@ -388,7 +388,8 @@ function drawFarm(wd, f) {
       ? place(art.haystack[0], hx + YARD.stack[0], hy + YARD.stack[1], 0.5, 0.93)
       : null;
   const heap = herds ? place(art.manure[0], hx + YARD.heap[0], hy + YARD.heap[1], 0.5, 0.88) : null; // the dung heap by the byre (VB-137)
-  if (!st.villages[f.village].well) place(art.curb, hx + YARD.curb[0], hy + YARD.curb[1], 0.5, 0.85);
+  if (st.w.fresh && st.w.fresh[f.house] === Water.FRESH.WELL)
+    place(art.curb, hx + YARD.curb[0], hy + YARD.curb[1], 0.5, 0.85);
   if (!empty) {
     const puffs = [];
     for (let k = 0; k < 6; k++) {
@@ -454,7 +455,7 @@ function drawTarPits(wd) {
 // One village: its common fields, its well sweep, its fence and the plots under way.
 function drawVillage(wd, v) {
   for (const fd of v.commonFields || []) addField(wd, fd, 0); // the village's common fields (VB-100)
-  if (v.well) place(art.sweep, wd.hx[v.center] + 1, wd.hy[v.center] + 10, 0.44, 0.95);
+  if (v.well !== null) place(art.sweep, wd.hx[v.well] + 1, wd.hy[v.well] + 10, 0.44, 0.95);
   for (const s2 of v.fence) addFence(s2);
   const X = VB['sim/expansion'];
   for (const plot of X.livePlots(st, v))

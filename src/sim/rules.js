@@ -160,7 +160,17 @@ VB['sim/rules'] = (() => {
 
   // ---- health: a pawn's health (0..100) is drained daily by hunger (h squared) and by a cold house (VB-327: `cold` times the day's cold,
   // 0..1), and restored by a full meal on a warm day; at 0 the pawn dies of starvation ----
-  const HEALTH = { drain: 4, cold: 2, dry: 1, frail: 1.5, recover: 3, riskBelow: 50, riskSlope: 25, slow: 0.3 };
+  const HEALTH = {
+    drain: 4,
+    cold: 2,
+    dry: 1,
+    marsh: 0.25,
+    frail: 1.5,
+    recover: 3,
+    riskBelow: 50,
+    riskSlope: 25,
+    slow: 0.3,
+  };
   // The scenario "The market town" (VB-778; a test bed, known to decay): `plots` plot households set within 2 steps of each other, at the
   // village with most people within `reach` hex steps (about a day's walk). Read at the start only; no rule reads it afterwards.
   const TESTBED = { plots: 8, reach: 15 };
@@ -500,7 +510,10 @@ VB['sim/rules'] = (() => {
   // meadow it becomes when grubbed), its house at least `apart` steps from any house, green or field, with a block of `fields` fields at
   // least `fertility` times as fertile as home's and a wood (WOOD.least wooded tiles within WOOD.reach); sites score siteScore +
   // fieldWeight × the block's fertility − perHour an hour (0.15 a step at 8 steps an hour), and the best `candidates` by the first and last
-  // terms are tried. A small village (VB-147) has 1..smallFarms farms, its green within `join` hours of home's by the villages' table.
+  // terms are tried; a site's water (VB-1583; design.md, Water by the site, The site's access: Proposed, Kim's starting value of 23
+  // November) takes perFetch a daily hour of its fetch off the score, twice an hour of nearness, which is paid once; `shown`: the best
+  // sites a played leader chooses among (sim/settle sites). A small village (VB-147) has 1..smallFarms farms, its green within `join`
+  // hours of home's by the villages' table.
   // Spacing (stability review, VB-154): `apart` was 3, and a new village's house lies at least centreApart hex steps from every village
   // centre, the only near bound. Provisions were 36 days, which left no margin before the first threshing; 42 agreed by Kim, 2 Nov.
   const SETTLE = {
@@ -516,6 +529,8 @@ VB['sim/rules'] = (() => {
     fertility: 0.9,
     fieldWeight: 3,
     perHour: 1.2,
+    perFetch: 2.4,
+    shown: 5,
     candidates: 40,
     smallFarms: 3,
     join: 6,
@@ -556,9 +571,10 @@ VB['sim/rules'] = (() => {
   // wood (six trees). A stone foundation (VB-332; design, Land and ecology, Stone; Agreed, Kim, 11 Nov) takes `foundationStone` loads from the
   // household's heap and `foundationHours` of work at the house; stone is picked (`pickHours` a load) on a meadow tile holding more than
   // `keepStones` (what a meadow keeps, sim/meadows) or quarried (`quarryHours` a load) on `quarryOn`, within `stoneReach` walking steps
-  // and `stoneWalk` hours' walk of the house (proposed, 11 Nov). The village's well (VB-058; sim/green) takes `wellStone` loads from its
-  // households' heaps, carried to the green; the green is cleared in `greenHours`, the well dug and lined in `wellHours` and its sweep raised
-  // in `sweepHours` (Agreed, Kim, 30 Oct); the green lies within `greenReach` walking steps of a farm's house (VB-058's own choice).
+  // and `stoneWalk` hours' walk of the house (proposed, 11 Nov). The village's well (VB-058; sim/green) takes its stone from its
+  // households' heaps, carried to the green, and its hours and stone are by the depth of the green's ground (world/water, VB-1584);
+  // the green is cleared in `greenHours` and the sweep raised in `sweepHours` (Agreed, Kim, 30 Oct); the green lies within `greenReach`
+  // walking steps of a farm's house (VB-058's own choice).
   // quarryOn: the biomes stone is quarried on, each with the rocks quarried there (null: any) (VB-733, the plan of VB-702's D7; Proposed):
   // any rock on the hills and mountains of VB-332, and on heath, thin soil over rock, the bedded building stones, limestone and sandstone,
   // as limestone was quarried on flat ground (Gotland, Öland); flat granite lies under till.
@@ -576,9 +592,7 @@ VB['sim/rules'] = (() => {
     keepStones: 80,
     stoneReach: 12,
     stoneWalk: 3,
-    wellStone: 6,
     greenHours: 10,
-    wellHours: 40,
     sweepHours: 10,
     greenReach: 4,
     // a barn (VB-255; Kim, 10 Nov: QUESTION_ARCHIVE.md, "VB-255: the barn as a project"): a second store building on the farm's block,

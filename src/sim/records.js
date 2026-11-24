@@ -103,6 +103,8 @@ VB['sim/records'] = (() => {
     fair: 0, // the fair at a gathering: its deals, what changed hands, those that failed for want of change (VB-302)
     cartBuilt: 0, // a household's new cart (VB-327)
     tarPit: 0, // a household's tar pit dug (VB-301)
+    wellDug: 0, // a household's well dug by its house (VB-1584)
+    thirst: SHORT, // a pawn that left what it did to drink, THIRST.leave hours without one (sim/drinking, VB-1585)
     trail: 0, // a trail blazed through the wood (VB-447)
     setOut: 0, // a journey to a new home in another village (VB-287)
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
@@ -290,6 +292,7 @@ VB['sim/records'] = (() => {
       hunger: 0,
       hungerLog: [],
       health: 100,
+      drank: R.t || 0, // the hour it last drank (sim/thirst, VB-1585): at its making
       kinPush: null,
       visited: null,
     };
@@ -601,6 +604,28 @@ VB['sim/records'] = (() => {
     st.pawns[id].events.push(st.record.length - 1);
   }
   const age = (st, p, t = st.t) => Math.floor((t - p.born) / YEAR);
+  // ---- nobody leaves a small child alone (VB-1602) ----
+  // Why pawn id may not go away from home, or null: it is at home, of CHILD.from (7) or over, and the only such member of its household
+  // at home (not away: agent.away, sim/away), with a member under 7 at home too. One who minds a child does not leave (the verb lodge, a
+  // gift's carrier, fetcher and hauler, a suitor's visit): the child cannot draw its water, cook nor go for its own drink, and the
+  // gathering's rule (an adult stays with the animals and the fire) is every stay's. At most a household's members a call, asked
+  // only where one is about to leave.
+  function mindsWhy(st, id) {
+    const p = st.pawns[id],
+      hh = p.household === null ? null : st.households[p.household],
+      from = VB['sim/roles'].CHILD.from;
+    if (!hh || hh.dissolved || !p.alive || st.agents[id].away !== undefined || age(st, p) < from) return null;
+    let child = false;
+    for (const m of hh.members) {
+      const q = st.pawns[m];
+      if (m === id || !q.alive || !st.agents[m] || st.agents[m].away !== undefined) continue;
+      if (age(st, q) >= from) return null;
+      child = true;
+    }
+    if (!child) return null;
+    VB.count.childMinded++;
+    return `the last one at home with a child under ${from} does not leave it alone`;
+  }
   const birthYear = (p) => Math.floor(p.born / YEAR) + 1;
   const fullName = (p) => `${p.given} ${p.patronym}`;
   function spouseOf(st, id, t = st.t) {
@@ -763,6 +788,7 @@ VB['sim/records'] = (() => {
     atHousehold,
     atFarm,
     age,
+    mindsWhy,
     birthYear,
     fullName,
     spouseOf,

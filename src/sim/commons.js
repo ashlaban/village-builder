@@ -207,7 +207,7 @@ VB['sim/commons'] = (() => {
   );
   // The option of the custom in force in village vid (its settlement's practice), an index of OPTS.
   const optionOf = (st, vid) => inForceAt(st, DIM, vid);
-  // A pawn's priority for a common field's job (sim/jobs).
+  // A pawn's priority for a common field's job (sim/fit).
   const commonPrio = (st, p, j) => PRIO[optionOf(st, j.village)][p.role] || 0;
   // Help received leans a person towards the commons (Kim, 10 Nov): the days of its household's need it owes in goodwill (what its holder
   // was given and has not given back, fading as goodwill fades: sim/relations), up to COMMONS.fullDays, lean it by up to COMMONS.pull

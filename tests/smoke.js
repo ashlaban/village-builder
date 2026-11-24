@@ -112,6 +112,9 @@ const iv = setInterval(async () => {
   doc.getElementById('groundBtn').click(); tick(5);
   if (doc.getElementById('groundKey').hidden || !/Bedrock/.test(doc.getElementById('groundKey').textContent)) fail('the Ground overlay shows no key');
   doc.getElementById('groundBtn').click(); tick(2); // the Ground overlay on and off
+  doc.getElementById('freshwaterBtn').click(); tick(2); // the Fresh water overlay (VB-1581): its key names the walk's bands and the wells'
+  if (doc.getElementById('freshwaterKey').hidden || !/Within a quarter of an hour.*A shallow well: 20 to 32 hours/.test(doc.getElementById('freshwaterKey').textContent)) fail('the Fresh water overlay shows no key');
+  doc.getElementById('freshwaterBtn').click(); tick(2);
   doc.getElementById('reachBtn').click(); tick(5); // the Reach overlay (VB-437): its key names the origin, or asks for one
   if (doc.getElementById('reachKey').hidden || !/Walking time/.test(doc.getElementById('reachKey').textContent)) fail('the Reach overlay shows no key');
   { // two taps on land (VB-448): the bands from the second, and the way a walker takes from the first drawn, its hours beside the quickest's

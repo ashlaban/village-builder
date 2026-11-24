@@ -17,7 +17,7 @@ VB['sim/opportunities'] = (() => {
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { GATHERING } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];
-  const { appraise, workCommand, jobsFor } = VB['sim/jobs'];
+  const { appraise, workCommand, jobsFor } = VB['sim/fit'];
   const { eligible } = VB['sim/eligibility'];
   const { heirRanking, successorOf } = VB['sim/heirranking'],
     { staysWhy } = VB['sim/heirs'];
@@ -70,7 +70,7 @@ VB['sim/opportunities'] = (() => {
       const basis = seen.has(key) ? null : eligible(view, j || { owner }, p);
       if (!basis) return;
       seen.add(key);
-      // a posted job as the matcher weighs it (sim/jobs appraise), then the verb's own check of the command it would be given; one not
+      // a posted job as the matcher weighs it (sim/fit appraise), then the verb's own check of the command it would be given; one not
       // yet posted is shown, with why it cannot be taken
       const r = j ? appraise(view, a, j, c) : 'not given out yet: work is given out in working hours',
         cmd = workCommand(p.id, key, 'player');
@@ -131,6 +131,8 @@ VB['sim/opportunities'] = (() => {
     );
     const until = view.t + 1;
     out.push(item('idle', null, { until }, check(view, p.id, 'idle', null, { until })));
+    // a drink at the nearest source it may draw at (VB-1601): the verb's own reason where it is refused
+    out.push(item('drink', null, null, check(view, p.id, 'drink', null, null)));
     // its own time (VB-1552): the pastimes open to it, each an item {verb: 'pastime', target: the kind, args, pastime: {name, note}}
     for (const o of VB['sim/pastimes'].options(view, p.id))
       out.push(item('pastime', o.kind, o.args, o.why, { pastime: { name: o.name, note: o.note } }));

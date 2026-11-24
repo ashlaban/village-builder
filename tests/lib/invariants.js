@@ -363,8 +363,8 @@ function checkState(st) {
       // small constructions (a cart, a boat, a tar pit) without number but one of a making (VB-1414); only those three are small
       if (type === 'household' && list.filter((p) => p.what !== 'cottage' && !p.small).length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
       if (type === 'household') for (const p of list) {
-        if (p.small && !['cart', 'boat', 'tarpit'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is marked small`);
-        if (!p.small && ['cart', 'boat', 'tarpit'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is not marked small`);
+        if (p.small && !['cart', 'boat', 'tarpit', 'well'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is marked small`);
+        if (!p.small && ['cart', 'boat', 'tarpit', 'well'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is not marked small`);
         if (p.small && list.filter((q) => q.what === p.what).length > 1) bad.push(`plans: household ${id} has two ${p.what} plans`);
       }
       if (type === 'household' && list.filter((p) => p.what === 'cottage').length > 1) bad.push(`plans: ${type} ${id} has ${list.length} cottage plans`);
@@ -710,10 +710,13 @@ function checkState(st) {
     if (!Array.isArray(CL) || CL.length > HD || CL.some((x) => !within(x, 0, 1))) bad.push(`households[${h.id}]: coldLog ${JSON.stringify(CL)}`);
     else if (!within(h.cold, 0, 1) || Math.abs(h.cold - CL.reduce((n, x) => n + x, 0) / HD) > 1e-9 || (CL.length > 0) !== CL.some((x) => x > 0))
       bad.push(`households[${h.id}]: cold ${h.cold} against its log ${JSON.stringify(CL)}`);
-    const DL = h.dryLog; // the dry days (VB-331): as the cold, each 0 or 1
-    if (!Array.isArray(DL) || DL.length > HD || DL.some((x) => x !== 0 && x !== 1)) bad.push(`households[${h.id}]: dryLog ${JSON.stringify(DL)}`);
+    const DL = h.dryLog; // the dry days (VB-331): as the cold, each 0 or 1, or the part of its people a day's loads did not cover (VB-1586)
+    if (!Array.isArray(DL) || DL.length > HD || DL.some((x) => !within(x, 0, 1))) bad.push(`households[${h.id}]: dryLog ${JSON.stringify(DL)}`);
     else if (!within(h.dry, 0, 1) || Math.abs(h.dry - DL.reduce((n, x) => n + x, 0) / HD) > 1e-9 || (DL.length > 0) !== DL.some((x) => x > 0))
       bad.push(`households[${h.id}]: dry ${h.dry} against its log ${JSON.stringify(DL)}`);
+    // the people the day's loads cover (VB-1586): absent until the first load is brought, then a whole number of people, a load's at least
+    if (h.waterFor !== undefined && !(Number.isInteger(h.waterFor) && h.waterFor >= globalThis.VB['sim/water'].WATER.child && Number.isInteger(h.waterDay)))
+      bad.push(`households[${h.id}]: waterFor ${h.waterFor} on day ${h.waterDay}`);
     if (h.dissolved) { if (h.members.length) bad.push(`households[${h.id}]: dissolved but has members ${h.members}`); continue; }
     if (new Set(h.members).size !== h.members.length) bad.push(`households[${h.id}]: duplicate members ${h.members}`);
     for (const id of h.members) {
@@ -778,11 +781,13 @@ function checkState(st) {
     else for (const c of h.carts) {
       if (!((c.kind === 'hand' || c.kind === 'ox') && c.cond > 0 && c.cond <= 1 && c.built <= st.t && (c.by === null || !!st.pawns[c.by]))) {
         bad.push(`households[${h.id}]: cart ${JSON.stringify(c)}`); }
-      // a cart standing out (VB-649): no carrier, and a lying 'leftCart' load of the household names it
+      // a cart standing out (VB-649): no carrier, and a lying 'leftCart' load of the household names it, or a hand that has taken it up
+      // is leading it home (the lying load goes as it is taken up, the cart is free once it is at the house: seen with VB-1586)
       if (c.at !== undefined && !(c.by === null && Number.isInteger(c.at.tile) && c.at.t <= st.t &&
-        (st.lying || []).some((l) => l.kind === 'leftCart' && l.owner.type === 'household' && l.owner.id === h.id && l.of.cart.kind === c.kind && l.of.cart.built === c.built) ||
-        // or a hand has taken it up and leads it home (the fetch's way back: the lying load is gone, the cart is home at the delivery; VB-1552 found the gap)
-        [...st.jobs.values()].some((j) => j.cart && j.cart.kind === c.kind && j.cart.built === c.built && j.claims.some((id) => st.agents[id].phase === 'back'))))
+        ((st.lying || []).some((l) => l.kind === 'leftCart' && l.owner.type === 'household' && l.owner.id === h.id && l.of.cart.kind === c.kind && l.of.cart.built === c.built) ||
+          [...st.jobs.values()].some((j) => j.kind === 'fetchLeftCart' && j.owner.id === h.id && j.claims.length > 0 && j.cart && j.cart.kind === c.kind && j.cart.built === c.built) ||
+          // or a hand has taken it up and leads it home (the fetch's way back: the lying load is gone, the cart is home at the delivery; VB-1552 found the gap)
+          [...st.jobs.values()].some((j) => j.cart && j.cart.kind === c.kind && j.cart.built === c.built && j.claims.some((id) => st.agents[id].phase === 'back')))))
         bad.push(`households[${h.id}]: cart ${JSON.stringify(c)} stands out with no carrier's lying cart`);
     }
     // the larder holds foods eaten as they are (rules FOODS, VB-259)
@@ -967,6 +972,9 @@ function checkState(st) {
       if (p.died !== null) bad.push(`pawns[${p.id}]: alive with died ${p.died}`);
       if (p.buffer !== undefined) bad.push(`pawns[${p.id}]: a drawn buffer (VB-520: the holder's reserve is its generosity's)`);
       if (!within(p.health, 0, 100)) bad.push(`pawns[${p.id}]: health is ${p.health}`);
+      // VB-1585: the hour it last drank (sim/thirst), never ahead of the clock; the day it last drank marsh water, if any
+      if (!(typeof p.drank === 'number' && p.drank <= st.t + 1e-9)) bad.push(`pawns[${p.id}]: drank is ${p.drank} at ${st.t}`);
+      if (p.marsh !== undefined && !(Number.isInteger(p.marsh) && p.marsh <= st.t / 24)) bad.push(`pawns[${p.id}]: marsh is ${p.marsh}`);
     } else {
       if (memberOf.has(p.id)) bad.push(`pawns[${p.id}]: dead but in household ${memberOf.get(p.id)}`);
       if (p.died === null) bad.push(`pawns[${p.id}]: dead without a died time`);
@@ -1006,6 +1014,20 @@ function checkState(st) {
     }
   }
   for (const f of st.farmsteads) {
+    // VB-1587: the well a site was chosen for (sim/wells): a mark, true or absent, and none once the house's tile has its well
+    if (f.wellMeant !== undefined && (f.wellMeant !== true || st.w.fresh[f.house] === VB['world/water'].FRESH.WELL)) bad.push(`farmsteads[${f.id}]: wellMeant ${JSON.stringify(f.wellMeant)}${f.wellMeant === true ? ' beside its well' : ''}`);
+    // VB-1582: the farm's source (sim/water): none, or a tile its household may draw at, of the class named: a well its own or on a
+    // green, running water on its own tile, a lake or a marsh from the tile or beside it; the walk within WATER.search hours
+    if (f.water !== undefined) {
+      const { FRESH } = VB['world/water'], s = f.water, w = st.w, by = (c) => [0, 1, 2, 3, 4, 5].some((k) => w.nb[s.tile * 6 + k] >= 0 && w.fresh[w.nb[s.tile * 6 + k]] === c);
+      const ok = s.tile === -1 ? s.cls === FRESH.NONE
+        : !(Number.isInteger(s.tile) && s.tile >= 0 && s.tile < w.N && s.walk >= 0 && s.walk <= VB['sim/water'].WATER.search) ? false
+        : s.cls === FRESH.WELL ? w.fresh[s.tile] === FRESH.WELL && (s.tile === f.house || st.villages.some((v) => v.well === s.tile))
+        : s.cls === FRESH.LAKE ? by(FRESH.LAKE)
+        : s.cls === FRESH.MARSH ? w.fresh[s.tile] === FRESH.MARSH || by(FRESH.MARSH)
+        : [FRESH.BROOK, FRESH.STREAM, FRESH.RIVER].includes(s.cls) && w.fresh[s.tile] === s.cls;
+      if (!ok || !Number.isInteger(s.year)) bad.push(`farmsteads[${f.id}]: water ${JSON.stringify(s)} is no source its household may draw at`);
+    }
     const want = f.household === null ? ['derelict', 'ruin'] : ['occupied'];
     if (!want.includes(f.state)) bad.push(`farmsteads[${f.id}]: state ${f.state} with household ${f.household}`);
     // VB-255: the farm's barn, one at most, built at a time not after now
@@ -1139,20 +1161,24 @@ function checkState(st) {
         bad.push(`villages[${v.id}]: plot ${pl.plot} has stood cleared with nobody to have it since ${pl.vacant}`);
     // the green and well (VB-058): a well only with a green; a green under way at most once, only while there is no well: its three steps
     // on one tile, the village's and in use, open ground off any river, its stone brought at most what the well takes
-    if (v.well && !v.green) bad.push(`villages[${v.id}]: a well without a green`);
+    // VB-1584: the well is its tile, on the green (the village's centre), a source on the map, in ground that has one; null for none
+    if (v.well !== null && !v.green) bad.push(`villages[${v.id}]: a well without a green`);
+    if (v.well !== null && (v.well !== v.center || st.w.fresh[v.well] !== VB['world/water'].FRESH.WELL)) bad.push(`villages[${v.id}]: well ${v.well}, centre ${v.center}, not a well on the map`);
     const greens = projects.filter((pl) => pl.what === 'green');
     if (projects.some((pl) => !['plot', 'green', 'commons'].includes(pl.what))) bad.push(`villages[${v.id}]: a project of an unknown kind`);
     // a common field under way (VB-100): at most one, its clearing and breaking on one tile, in use
     const commons = projects.filter((pl) => pl.what === 'commons');
     if (commons.length > 1 || commons.some((pl) => pl.steps.map((x) => x.kind).join() !== 'clear,break' ||
         pl.steps[0].place !== pl.steps[1].place || !st.used.has(pl.steps[0].place))) bad.push(`villages[${v.id}]: a common field under way is malformed`);
-    if (greens.length > 1 || (greens.length && v.well)) bad.push(`villages[${v.id}]: ${greens.length} greens under way, well ${v.well}`);
+    if (greens.length > 1 || (greens.length && v.green)) bad.push(`villages[${v.id}]: ${greens.length} greens under way, well ${v.well}`);
     for (const pl of greens) {
       const t = pl.steps[0].place, wellStep = pl.steps[1];
-      if (pl.steps.map((x) => x.kind).join() !== 'green,well,sweep' || pl.steps.some((x) => x.place !== t)) bad.push(`villages[${v.id}]: green shape`);
+      const noWell = !(st.w.waterDepth[t] < Infinity);
+      if (pl.steps.map((x) => x.kind).join() !== (noWell ? 'green' : 'green,well,sweep') || pl.steps.some((x) => x.place !== t)) bad.push(`villages[${v.id}]: green shape`);
       if (st.owner[t] !== -v.id - 1 || !st.used.has(t) || onRiver(t) || st.w.water[t]) bad.push(`villages[${v.id}]: green under way on tile ${t}, not its own open ground`);
-      const B = globalThis.VB['sim/rules'].BUILD;
-      if (!Number.isInteger(wellStep.brought) || wellStep.brought < 0 || wellStep.brought > B.wellStone) bad.push(`villages[${v.id}]: the well's stone ${wellStep.brought}`);
+      const { wellHours, wellStone } = VB['world/water'], depth = st.w.waterDepth[t];
+      if (wellStep && (!Number.isInteger(wellStep.brought) || wellStep.brought < 0 || wellStep.brought > (wellStep.stone ?? 6))) bad.push(`villages[${v.id}]: the well's stone ${wellStep.brought}`);
+      if (wellStep && wellStep.stone !== undefined && (wellStep.stone !== wellStone(depth) || wellStep.hours !== wellHours(depth))) bad.push(`villages[${v.id}]: the well's hours ${wellStep.hours} and stone ${wellStep.stone} are not its depth's`);
     }
     // the last work day (VB-120): a day not after today, of a kind there is, hours worked by pawns that were born, none negative, and no
     // more than the day's working hours
@@ -1204,6 +1230,21 @@ function checkState(st) {
       else if ((fish[i] < 1 || fishDay[i] > 0) && !F.runsDown(st.w, i)) off++;
     }
     if (off) bad.push(`w.fish: ${off} tiles with a stock or day out of place`);
+  }
+  // fresh water on the map (VB-1581): a source's class on every tile, none on the sea, a lake on a lake, running water where a river runs;
+  // a depth to the ground's water on land or no well, never on water; the walk laid, 0 on a river's tile, none on water, nowhere negative
+  {
+    const { fresh, waterDepth, freshWalk, water, ocean, river } = st.w, { FRESH, FRESHES } = globalThis.VB['world/water'];
+    if (!fresh || !waterDepth || !freshWalk || fresh.length !== N || waterDepth.length !== N || freshWalk.length !== N) bad.push('w.fresh, w.waterDepth, w.freshWalk: not laid a tile');
+    else {
+      let off = 0;
+      for (let i = 0; i < N; i++) {
+        const f = fresh[i], running = f >= FRESH.BROOK && f <= FRESH.RIVER;
+        if (f >= FRESHES.length || (water[i] ? f !== (ocean[i] ? FRESH.NONE : FRESH.LAKE) : f === FRESH.LAKE) || running !== (river[i] > 0 && !water[i])) off++;
+        else if (water[i] ? waterDepth[i] !== Infinity || freshWalk[i] !== Infinity : !(waterDepth[i] > 0) || !(freshWalk[i] >= 0) || (running && freshWalk[i] !== 0)) off++;
+      }
+      if (off) bad.push(`w.fresh, w.waterDepth, w.freshWalk: ${off} tiles out of place`);
+    }
   }
   // the kept lists of walking reach (VB-452; sim/walking reachTiles): for each farm with a household and each reach the ground searches ask
   // (fishing, gathering, hunting), the kept list is what a new search from the house finds now, tile for tile in its order
@@ -1276,6 +1317,16 @@ function checkState(st) {
     const KS = globalThis.VB['sim/kinds'].KINDS, { TICKS } = globalThis.VB['sim/rules'], A = globalThis.VB['sim/agents'];
     const q = st.workDue, inQ = new Set(q || []);
     if (q !== undefined && !Array.isArray(q)) bad.push(`workDue: ${typeof q}`);
+    // VB-1585: the thirsty pawns held due (sim/drinking): in the order of their hour, each a pawn, one thirst entry a pawn at most
+    if (st.thirstDue !== undefined) {
+      const T = st.thirstDue, seen = new Set();
+      if (!Array.isArray(T)) bad.push(`thirstDue: ${typeof T}`);
+      else T.forEach((e, i) => {
+        if (!st.pawns[e.pawn] || typeof e.at !== 'number' || (i > 0 && T[i - 1].at > e.at)) bad.push(`thirstDue[${i}]: ${JSON.stringify(e)} out of place`);
+        if (!e.home && seen.has(e.pawn)) bad.push(`thirstDue[${i}]: pawn ${e.pawn} held twice`);
+        if (!e.home) seen.add(e.pawn);
+      });
+    }
     else if (q) {
       if (inQ.size !== q.length) bad.push('workDue: a task twice');
       q.forEach((j, n) => {
@@ -1326,8 +1377,9 @@ function checkState(st) {
     });
   }
   // a load on the road (VB-335): a whole number of rations above 0 only while carrying home; the barn's threshed count is a whole number
-  // or while cutting the next load beside a cart with room (sim/agents stepWork, a kind's `stack`: firewood)
-  for (const a of st.agents) if (a.load && !(a.load > 0 && (a.phase === 'back' || (a.phase === 'work' && a.job && VB['sim/kinds'].KINDS[a.job.kind].stack)))) bad.push(`agents[${a.id}]: a load of ${a.load} in phase ${a.phase}`);
+  // or while cutting the next load beside a cart with room (sim/agents stepWork, a kind's `stack`: firewood), or out with a cart taken
+  // at the house, on the way and at the work (the water's barrel: the job names its cart, VB-1586)
+  for (const a of st.agents) if (a.load && !(a.load > 0 && (a.phase === 'back' || (a.phase === 'work' && a.job && VB['sim/kinds'].KINDS[a.job.kind].stack) || ((a.phase === 'go' || a.phase === 'work') && a.job && a.job.cart)))) bad.push(`agents[${a.id}]: a load of ${a.load} in phase ${a.phase}`);
   // a full task in hand (agent.job) only on the way to it, at it or bringing its load in: a hand sent home or left free has let it go, and
   // holds no claim a task's pace is reckoned from (VB-1565; sim/agents release, the verb goHome)
   for (const a of st.agents) if (a.job && !['go', 'work', 'back'].includes(a.phase)) bad.push(`agents[${a.id}]: holds job ${a.job.key} in phase ${a.phase}`);
@@ -1457,6 +1509,11 @@ function checkState(st) {
           if (own === null && side === null) bad.push(`${at}: an answer of ${x.key}`);
           else if (own !== null ? x.by !== own : x.by === side) bad.push(`${at}: ${x.key} answered by ${x.by}`);
         }
+      } else if (o.basis === 'swap') { // a swap of the fair (VB-1598): whole quanta of its goods, both dealers still carrying their loads
+        const F = globalThis.VB['sim/fair'], term = (t) => t && F.FAIR.goods.includes(t.good) && Number.isInteger(t.n) && t.n > 0;
+        if (!term(o.gives) || !term(o.wants)) bad.push(`${at}: a swap of the fair: gives ${JSON.stringify(o.gives)}, wants ${JSON.stringify(o.wants)}`);
+        for (const id of [o.from, o.to]) if (!st.pawns[id] || !st.pawns[id].load) bad.push(`${at}: a swap of the fair outlives the load of pawn ${id}`);
+        if (keys.join() !== 'to' || o.answers[0].by !== o.to) bad.push(`${at}: a swap of the fair: answers ${keys.join()} of ${o.to}`);
       } else if (BASES[o.basis].where) { // an offer about a life: answered at a village's step of the round (a handover has no subject, VB-824)
         const g = o.gives || {}, w = o.wants || {};
         const terms = o.basis === 'handover' ? !!st.households[g.household] && ['marriage', 'retirement'].includes(g.reason)
@@ -1577,6 +1634,7 @@ function checkState(st) {
       seen.add(j.pawn);
       if (!st.agents[j.pawn] || st.agents[j.pawn].away !== j.id) bad.push(`${at}: its pawn's agent.away is ${st.agents[j.pawn] && st.agents[j.pawn].away}`);
       if (!(j.food >= 0)) bad.push(`${at}: food ${j.food}`);
+      if (j.noWater !== undefined && !(Number.isInteger(j.noWater) && j.noWater <= Math.floor(st.t / VB['sim/rules'].DAY) && j.bed !== null && j.host === undefined)) bad.push(`${at}: noWater ${j.noWater}, bed ${j.bed}, host ${j.host}`); // VB-1601
       if (j.until !== undefined && (j.bed === null || !(j.until > 0) || (j.jobs || []).length)) bad.push(`${at}: a stay for an occasion until ${j.until}, bed ${j.bed}, jobs ${j.jobs}`);
       if (j.why === 'visit' && j.village !== undefined && j.bed !== null) {
         // VB-1151: a visitor's bed at his host's door: the house of another household of the village visited, under its roof, while he is its guest
@@ -1628,6 +1686,10 @@ function checkState(st) {
       if (!st.households[b.by]) bad.push(`${at}: for no household`);
       if (!(b.built <= st.t) || !(b.cond >= 0 && b.cond <= 1) || b.condAt < b.built || b.condAt > st.t) bad.push(`${at}: condition ${b.cond} at ${b.condAt}, built ${b.built}`);
       if (!(b.wood >= 0)) bad.push(`${at}: wood ${b.wood}`);
+      // its water (VB-1601): a source found once, a tile of the map or none; the day its water last came in not after today, its marsh day never after that
+      if (b.water !== undefined && !(Number.isInteger(b.water.tile) && b.water.tile >= -1 && b.water.tile < st.w.N && b.water.walk >= 0 && (b.water.tile >= 0) === (b.water.cls > 0))) bad.push(`${at}: water ${JSON.stringify(b.water)}`);
+      if (b.waterDay !== undefined && !(Number.isInteger(b.waterDay) && b.waterDay <= Math.floor(st.t / VB['sim/rules'].DAY))) bad.push(`${at}: waterDay ${b.waterDay}`);
+      if (b.marshDay !== undefined && !(b.marshDay <= b.waterDay)) bad.push(`${at}: marshDay ${b.marshDay} against waterDay ${b.waterDay}`);
       if ((under.get(b.tile) || 0) > VB['sim/rules'].BOOTH.sleeps) bad.push(`${at}: more than it sleeps`);
     });
     for (const t of under.keys()) if (!tiles.has(t)) bad.push(`a stay under a booth's roof at tile ${t}, where none stands`);

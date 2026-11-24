@@ -109,16 +109,27 @@ assert.notStrictEqual(v.center, oldCentre);
 assert.strictEqual(st.owner[tile], -v.id - 1);
 assert.strictEqual(w.dev[tile], 2, 'open ground that the ways cross');
 assert.ok(!Green.greenOf(st, v), 'the plan is finished');
-assert.strictEqual(before - heaps() >= BUILD.wellStone, true, 'the well took its stone from the heaps');
+const wellStone = VB['world/water'].wellStone(w.waterDepth[tile]); // VB-1584: by the depth of the green's tile
+assert.strictEqual(before - heaps() >= wellStone, true, 'the well took its stone from the heaps');
 const taken = v.farmsteads.flatMap((id) => st.households[st.farmsteads[id].household].ledger).filter((x) => x.kind === 'well');
-assert.strictEqual(taken.reduce((n, x) => n - x.n, 0), BUILD.wellStone, 'six loads, each through the stores with its own reason');
+assert.strictEqual(taken.reduce((n, x) => n - x.n, 0), wellStone, 'its loads, each through the stores with its own reason');
+assert.strictEqual(v.well, tile, 'the well is its tile');
 assert.strictEqual(greens().length, 2, 'begun and finished, in the village\'s log');
 assert.ok(Sim.chronicle(st, { village: v.id }, 'land').some((x) => greens().includes(x.ev)), 'in the village\'s history');
 assert.ok(!VB['sim/routines'].VILLAGE_ROUTINES.green.available(st, v), 'no more work once the well is dug');
-// water is drawn at the well from now
+// the well is a source on the map from now (VB-1582): the village's farms have found their sources again, and each draws at the
+// green unless a source of its own (a well by its door, water nearer by) is the shorter walk
 review();
+const { FRESH } = VB['world/water'];
+assert.strictEqual(st.w.fresh[tile], FRESH.WELL, 'the well is a source on the map');
 const water = [...st.jobs.values()].filter((j) => j.kind === 'water' && st.farmsteads[j.farm.id].village === v.id);
-assert.ok(water.length && water.every((j) => j.site === tile), 'water is drawn at the well');
+assert.ok(water.length && water.every((j) => j.site === j.farm.water.tile), 'water is drawn at each farm\'s source');
+const walkTo = (f) => VB['sim/routes'].reachCosts(st.w, f.house, 1e9, [tile])[0] / VB['sim/rules'].SPEED;
+for (const id of v.farmsteads) {
+  const f = st.farmsteads[id];
+  if (!f.water) continue;
+  assert.ok(f.water.tile === tile || f.water.walk <= walkTo(f) + 1e-3, `farm ${id} draws at the well or nearer (${JSON.stringify(f.water)}, the green ${walkTo(f)})`);
+}
 assert.deepStrictEqual(bad(), [], 'invariants');
 // a save keeps it
 const back = Sim.load(st.w, JSON.parse(JSON.stringify(Sim.save(st))));

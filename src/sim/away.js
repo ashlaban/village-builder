@@ -4,7 +4,7 @@
 VB['sim/away'] = (() => {
   const { living } = VB['sim/records'];
   const { release, goHome, free } = VB['sim/agents'];
-  const { cal, WORK, SPEED, HEALTH, TRAVEL, BOOTH } = VB['sim/rules'];
+  const { cal, DAY, WORK, SPEED, HEALTH, TRAVEL, BOOTH } = VB['sim/rules'];
   const { route, routeCost } = VB['sim/routes'];
   const Stores = VB['sim/stores'];
   const { ate, rationOf, nightCost } = VB['sim/hunger'];
@@ -32,7 +32,8 @@ VB['sim/away'] = (() => {
   //   the house of the pawn's household, a carrier's receiver's, a fetcher's stop; a lodger: its bed). A journey's carrier or fetcher
   //   also holds its gift and back (VB-291, VB-461: fetchGift); a lodger its jobs (the keys of the tasks it is away for), walk (the hours
   //   from its house to its bed, its estimate when it set out), host (a guest's: the household whose house or barn it sleeps in), back (true
-  //   once it has turned for home) and, for a stay at an occasion (VB-295: the gathering), until (the game hour from which it turns for
+  //   once it has turned for home), noWater (absent, or the day on which it found no source to drink at from a bed under the open sky:
+  //   VB-1601) and, for a stay at an occasion (VB-295: the gathering), until (the game hour from which it turns for
   //   home: it takes no work, and waits at its bed to be asked to the occasion's days). A journey's course by its kind is read from
   //   JOURNEYS (below, VB-1409), keyed by why; a stay keeps only the word. Plain data, saved; a save with st.journeys loads them as stays.
   //   When a journey's legs start and stop is its pawn's (st.legDue, VB-473): a walk that stops for the night, a wait on the road until
@@ -104,7 +105,7 @@ VB['sim/away'] = (() => {
   // lodger whose stay is over by its meal (stayOver) comes home.
   // Its night has the cold and the wet of its roof (VB-785, sim/hunger nightCost): a booth's fire burns once for all who sleep in it.
   function feedAway(st) {
-    const season = cal(st.t - 1).season,
+    const { season, day: ended } = cal(st.t - 1),
       fires = new Map();
     for (const j of st.away) {
       VB.count.awayMeals++;
@@ -119,7 +120,11 @@ VB['sim/away'] = (() => {
         fire = fires.get(booth);
       }
       const [cold, dry] = nightCost(st, season, j.roof, j.host == null ? null : st.households[j.host], fire);
-      ate(st, p, eat, need, cold, dry);
+      // its drink is its roof's: a host's water (a host's part-dry day still gives its guest a drink); a booth's when its day's fetch
+      // came in (VB-1601: walked for, sim/building; marsh water is poor); under the open sky none (water on a journey is Open). Read
+      // back as the pawn's own thirst, so that one with no water where it stays goes to drink at the site's source (VB-1585)
+      const given = booth ? booth.waterDay >= ended : dry < 1;
+      ate(st, p, eat, need, cold, ...VB['sim/thirst'].dayEnd(st, p, given, !!booth && booth.marshDay === ended));
       if (j.bed !== null && !j.back && stayOver(st, j, eat < need - 1e-9))
         issue(st, { actor: j.pawn, verb: 'comeHome', source: 'pawn' });
     }
@@ -139,6 +144,8 @@ VB['sim/away'] = (() => {
       o = args || {};
     if (st.agents[id].away !== undefined) return `pawn ${id} is away from home already`;
     if (!hh || hh.dissolved || hh.farmstead === null) return `pawn ${id} has no home to go out from`;
+    const kept = Kin.mindsWhy(st, id); // the last one at home with a child under 7 (VB-1602)
+    if (kept) return kept;
     if (typeof o.why !== 'string' || !o.why) return 'a stay names why the pawn is away';
     if (!(Number.isInteger(o.days) && o.days >= 1)) return 'a stay plans a whole number of days, one or more';
     if (o.jobs !== undefined && !Array.isArray(o.jobs)) return 'the tasks of a stay must be a list';
@@ -268,6 +275,22 @@ VB['sim/away'] = (() => {
     if (hungry || p.health < HEALTH.riskBelow) return true;
     return s.food <= rationOf(st, p) * (Math.ceil(s.walk / TRAVEL.dayWalk) - 1) + 1e-9;
   }
+  // A lodger's water comes before its tasks (VB-1601; design.md, Water by the site: water first, and walked for). Under a booth it takes
+  // the booth's fetch while that stands open (sim/building: one trip covers all the booth sleeps, and who draws drinks). Under the open
+  // sky there is no pot to fetch for, so it goes to the site's source for its own drink (the verb `drink`), once a day, before it has
+  // drunk that day; where the verb refuses (no source in reach) it is not asked again that day (stay.noWater). True if it set out.
+  function waterFirst(st, a, s) {
+    if (s.host !== undefined || s.bed === null) return false;
+    if (s.roof === 'booth') {
+      const key = `boothwater:o${(VB['sim/building'].boothAt(st, s.bed) || { id: -1 }).id}`;
+      return st.jobs.has(key) && issue(st, { actor: a.id, verb: 'work', target: key, source: 'planner' }) === true;
+    }
+    const day = Math.floor(st.t / DAY);
+    if (st.pawns[a.id].drank >= day * DAY || s.noWater === day) return false;
+    if (issue(st, { actor: a.id, verb: 'drink', source: 'pawn' }) === true) return true;
+    s.noWater = day;
+    return false;
+  }
   // The working day of the pawns away (sim/clock, before the household's day): of the free pawns `idle`, each lodger takes the first open
   // task of those its stay names, and no other (no chore of its house, no help, no idling about); one with none left, or turned for home,
   // walks home. The others, for the household's day; `idle` itself when none is away.
@@ -290,6 +313,7 @@ VB['sim/away'] = (() => {
         if (st.t >= s.until) issue(st, { actor: a.id, verb: 'comeHome', source: 'pawn' });
         continue;
       }
+      if (waterFirst(st, a, s)) continue;
       let got = false;
       for (const key of s.jobs) {
         const j = st.jobs.get(key);

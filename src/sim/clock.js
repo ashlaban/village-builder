@@ -22,7 +22,8 @@ VB['sim/clock'] = (() => {
     { reckonAll } = VB['sim/work'];
   const { placeOf } = VB['sim/pose'];
   const { feedAway, dayAway } = VB['sim/away'];
-  const { refreshJobs, takeDay, dutyRound, lookForWork, eveningCall } = VB['sim/jobs'],
+  const { refreshJobs, lookForWork } = VB['sim/jobs'],
+    { takeDay, dutyRound, eveningCall } = VB['sim/day'],
     { ownTime } = VB['sim/pastimes'];
   const { issue, register } = VB['sim/commands'];
   const { playerStep } = VB['sim/player'];
@@ -177,7 +178,7 @@ VB['sim/clock'] = (() => {
     {
       every: 'hour',
       at: { hour: [WORK[1], MATCH.day.evening] },
-      owner: 'sim/jobs',
+      owner: 'sim/day',
       note: 'the evening: a task that may be begun after work (the water), open and unmanned, calls a hand at home (VB-1547)',
       run: (st, c) => eveningCall(st, c),
     },
@@ -519,6 +520,13 @@ VB['sim/clock'] = (() => {
       owner: 'sim/obligations',
       note: 'the obligations whose term has ended go on to their next term, or are overdue (VB-310)',
       run: (st) => VB['sim/obligations'].step(st),
+    },
+    {
+      every: 'step',
+      when: (st) => !!st.thirstDue && st.thirstDue.length > 0,
+      owner: 'sim/drinking',
+      note: 'a pawn 36 hours without a drink leaves what it does and goes to drink (VB-1585); only those that ended a day thirsty are held',
+      run: (st) => VB['sim/drinking'].step(st),
     },
     {
       every: 'step',

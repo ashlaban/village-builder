@@ -253,6 +253,7 @@ function showPawn(id) {
           : '',
       marryLine,
       craftsLine(id),
+      Sim.thirstLine(st, id),
     ].filter(Boolean),
     Sim.describe(st, id),
     {
