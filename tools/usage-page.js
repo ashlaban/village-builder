@@ -33,24 +33,50 @@ function taskOfCommits(run, commits) {
   return top && top[1] >= SHARE * all ? top[0] : null;
 }
 
+// The measures of VB-1615 a task carries beside its tokens, summed over its runs; null where no run of it has the measure (a file from
+// before the measure existed). first and boot are its first run's; statuses, the outcome each run reported (sub-agents).
+const extra = () => ({ start: null, end: null, first: null, boot: null, statuses: [], mergeUndone: null, repeats: null, repeatBytes: null, testsFailed: null,
+  streak: null, continued: 0, handoverBytes: null, reconstruct: null, compactions: null });
+const plus = (a, b) => (b == null ? a : (a || 0) + b);
+function more(t, r) {
+  if (r.start && (!t.start || r.start < t.start)) { t.start = r.start; t.first = r.first == null ? null : r.first; t.boot = r.boot || null; }
+  if (r.end && (!t.end || r.end > t.end)) t.end = r.end;
+  if (r.status) t.statuses.push(r.status);
+  if (r.mergeUndone != null) t.mergeUndone = !!(t.mergeUndone || r.mergeUndone);
+  if (r.repeats) { t.repeats = plus(t.repeats, r.repeats.reads + r.repeats.commands);
+    t.repeatBytes = plus(t.repeatBytes, r.repeats.readBytes + r.repeats.commandBytes); }
+  if (r.tests) { t.testsFailed = plus(t.testsFailed, r.tests.failed); t.streak = Math.max(t.streak || 0, r.tests.streak); }
+  if (r.compactions != null) t.compactions = plus(t.compactions, r.compactions);
+  const c = r.continuation;
+  if (c && c.continues) { t.continued++; t.handoverBytes = plus(t.handoverBytes, c.handoverBytes); t.reconstruct = plus(t.reconstruct, c.contextToEdit || 0); }
+}
+
 // runs: the parsed run files; commits: [{ t, subject }]; taskInfo(id): { name, size, arch } or null.
 function model({ runs, commits, taskInfo }) {
   const byTask = new Map(), sessions = [];
   const add = (id, r) => {
-    const t = byTask.get(id) || { id, runs: 0, calls: 0, min: 0, peak: 0, i: 0, cw: 0, cr: 0, o: 0, models: [], src: r.src, date: r.date };
+    const t = byTask.get(id) || { id, runs: 0, calls: 0, min: 0, peak: 0, i: 0, cw: 0, cr: 0, o: 0, models: [], src: r.src, date: r.date, ...extra() };
     t.runs++; t.calls += r.calls; t.min += r.min || 0; t.peak = Math.max(t.peak, r.peak || 0);
     t.i += r.tokens.input; t.cw += r.tokens.cacheWrite; t.cr += r.tokens.cacheRead; t.o += r.tokens.output;
     t.models.push(...r.models); if (r.date > t.date) t.date = r.date;
+    more(t, r);
     byTask.set(id, t);
   };
-  const apart = (kind, r, tasks) => sessions.push({ id: r.id, kind, label: r.label, date: r.date, model: families(r.models), tasks, calls: r.calls, min: +(r.min || 0).toFixed(1),
+  const apart = (kind, r, tasks) =>
+    sessions.push({ id: r.id, kind, label: r.label, date: r.date, start: r.start, model: families(r.models), tasks, calls: r.calls,
+    min: +(r.min || 0).toFixed(1),
     peak: r.peak || 0, i: r.tokens.input, cw: r.tokens.cacheWrite, cr: r.tokens.cacheRead, o: r.tokens.output, w: weighted(r.tokens) });
   for (const run of runs) {
     const subs = run.subagents || [], date = (run.start || '').slice(0, 10);
+    const ctx = run.context || {};
     const self = { id: (run.session || '').slice(0, 8), label: run.label || '-', date, models: run.models || [], calls: run.calls, tokens: run.tokens,
-      min: run.activeMin, peak: run.context && run.context.peak, src: 'session' };
+      min: run.activeMin, peak: ctx.peak, src: 'session', start: run.start, end: run.end, first: ctx.first, boot: ctx.firstEdit, series: ctx.series,
+      repeats: run.repeats, tests: run.tests, continuation: run.continuation, compactions: run.compactions };
     for (const s of subs) {
-      const r = { id: s.agent, label: 'sub-agent', date: (s.start || run.start || '').slice(0, 10), models: [s.model], calls: s.calls, tokens: s.tokens, min: s.activeMin, peak: s.peak, src: 'sub-agent' };
+      const r = { id: s.agent, label: 'sub-agent', date: (s.start || run.start || '').slice(0, 10), models: [s.model], calls: s.calls, tokens: s.tokens,
+        min: s.activeMin, peak: s.peak, src: 'sub-agent', start: s.start || run.start, end: s.end || s.start || run.start, first: s.first, boot: s.boot,
+          series: s.series,
+        status: s.status, mergeUndone: s.mergeUndone, repeats: s.repeats, tests: s.tests, continuation: s.continuation, compactions: s.compactions };
       if (s.task) add(s.task, r); else apart('outside', r, 0);
     }
     const task = subs.length ? null : run.task || taskOfCommits(run, commits);
@@ -67,11 +93,13 @@ function model({ runs, commits, taskInfo }) {
 
 function readRuns(dir) {
   if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir).filter((f) => f.endsWith('.json')).sort().map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))).filter((r) => r.tokens && r.start && r.end);
+  return fs.readdirSync(dir).filter((f) => f.endsWith('.json')).sort().map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))).filter((r) =>
+    r.tokens && r.start && r.end);
 }
 function gitCommits(root, since) {
   try {
-    return execFileSync('git', ['log', '--format=%aI%x09%s', ...(since ? ['--since=' + since] : [])], { cwd: root, encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
+    return execFileSync('git', ['log', '--format=%aI%x09%s', ...(since ? ['--since=' + since] : [])], {
+      cwd: root, encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
       .split('\n').filter(Boolean).map((l) => { const at = l.indexOf('\t'); return { t: Date.parse(l.slice(0, at)), subject: l.slice(at + 1) }; });
   } catch (e) { return []; }
 }
@@ -93,6 +121,8 @@ if (require.main === module) {
   const out = path.resolve(root, opt('--out', 'docs/usage.html'));
   fs.writeFileSync(out, page);
   const k = (n) => (n / 1e6).toFixed(1) + 'M', sum = (xs) => xs.reduce((a, x) => a + x.w, 0);
-  console.log(`usage: ${path.relative(root, out)}: ${data.tasks.length} tasks from ${data.runs} runs, weighted ${k(sum(data.tasks))}; apart, ${data.sessions.length} sessions, ${k(sum(data.sessions))}`);
+  console.log(`usage: ${path.relative(root,
+    out)}: ${data.tasks.length} tasks from ${data.runs} runs, weighted ${k(sum(data.tasks))}; apart, ${data.sessions.length} sessions, ${k(
+    sum(data.sessions))}`);
 }
-module.exports = { model, taskOfCommits, weighted, readRuns };
+module.exports = { model, taskOfCommits, weighted, readRuns, gitCommits, taskInfoOf };

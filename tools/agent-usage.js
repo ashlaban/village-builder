@@ -10,21 +10,25 @@
 // of the cost, and the median boot), and with --results the share of tasks done at the first attempt.
 const fs = require('fs'), path = require('path'), transcript = require('./lib/transcript.js');
 const USAGE = `usage: node tools/agent-usage.js [FILE.jsonl] [--json] [--turns] [--since T] [--until T] [--label NAME] [--task VB-NNN] [--out DIR] [--results FILE]
-       node tools/agent-usage.js --history DIR
+       node tools/agent-usage.js --history DIR [--periods FILE [--from DATE] [--to DATE] [--json]]
   FILE        a transcript; default the newest under ~/.claude/projects (this session's, when run from a session)
   --turns     a line per user prompt; --since/--until T limit to entries from/before an ISO time
   --label     the run's role (worker, reviewer, project-manager); --out DIR also writes DIR/<date>-<label>-<session>.json
   --task      the one task this session worked on, when it ran no sub-agents: kept in the run's file as "task" (tools/usage-page.js reads it);
               leave it out for a session that worked on several tasks or on none
   --results   the tasks' outcomes, from  node tools/inbox.js results --json : joins size and status to the sub-agents by task
-  --history   medians and quartiles by label over the files in DIR`;
+  --history   medians and quartiles by label over the files in DIR
+  --periods   with --history: compare the periods that the rows of FILE (docs/agents/changes.md) start, by run kind, size and model:
+              a task's cost summed over its runs, calls, runs, context, repeats, test failures, continuations and the quality proxies
+              (tools/lib/periods.js); --from/--to DATE keep the tasks that started in that range`;
 
 const args = process.argv.slice(2);
 const option = (k) => { const i = args.indexOf(k); if (i < 0) return null; const v = args[i + 1]; args.splice(i, 2); return v; };
 const flag = (k) => { const i = args.indexOf(k); if (i < 0) return false; args.splice(i, 1); return true; };
 if (flag('--help') || flag('-h')) { console.log(USAGE); process.exit(0); }
 const asJson = flag('--json'), turns = flag('--turns'), since = option('--since'), until = option('--until');
-const label = option('--label') || '-', out = option('--out'), historyDir = option('--history'), resultsFile = option('--results'), task = option('--task');
+const label = option('--label') || '-', out = option('--out'), historyDir = option('--history'), periodsFile = option('--periods'),
+  fromDate = option('--from'), toDate = option('--to'), resultsFile = option('--results'), task = option('--task');
 const fail = (msg) => { console.error('agent-usage: ' + msg); process.exit(1); };
 const k = (n) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(n));
 const kb = (n) => (n >= 1000 ? (n / 1000).toFixed(1) + ' KB' : n + ' B');
@@ -166,6 +170,9 @@ function subagents(file, results) {
     const s = measure(path.join(dir, f), true), r = results.find((x) => x.task && x.task === s.task) || {};
     return { agent: f.slice(6, -6).slice(0, 8), task: s.task, size: r.size || null, status: r.status || null, model: s.models[0] || null, calls: s.calls,
       tokens: s.tokens, weighted: s.weighted, first: s.context.first, boot: s.context.firstEdit, peak: s.context.peak, activeMin: s.activeMin, start: s.start,
+        end: s.end,
+      // a proxy: the orchestrator undid its merge for a red check or a conflict, and said so in the result (docs/agents/worker.md, 1.3)
+      mergeUndone: r.status ? r.status === 'needs-review' && /\b(merge|conflict|red|npm test)\b/i.test(r.summary || '') : null,
       series: s.context.series, repeats: s.repeats, tests: s.tests, continuation: s.continuation, compactions: s.compactions };
   }).filter((s) => s.calls).sort((a, b) => String(a.start).localeCompare(String(b.start)));
 }
@@ -244,7 +251,20 @@ function history(dir) {
   }).filter(Boolean).join('\n')).join('\n');
 }
 
-if (historyDir) { console.log(history(historyDir)); process.exit(0); }
+// The periods of the log compared (VB-1615), from the runs in DIR as the usage page sums them into tasks.
+function periods(dir, file) {
+  const P = require('./lib/periods.js'), page = require('./usage-page.js'), root = path.join(__dirname, '..');
+  if (!fs.existsSync(file)) fail(`no file ${file}`);
+  const runs = page.readRuns(dir), first = runs.map((r) => r.start).sort()[0];
+  const data = page.model({
+    runs, commits: page.gitCommits(root, first && new Date(Date.parse(first) - 864e5).toISOString()), taskInfo: page.taskInfoOf(root) });
+  const info = (id) => { try { return P.fileInfo(fs.readFileSync(path.join(root, 'backlog', id + '.md'), 'utf8')); } catch (e) { return null; } };
+  const ms = (d) => (d ? Date.parse(d) : null);
+  const c = P.compare({ data, changes: P.parseChanges(fs.readFileSync(file, 'utf8')), info, fixList: P.fixes(root), from: ms(fromDate), to: ms(toDate) });
+  return asJson ? JSON.stringify(c, null, 1) : P.report(c);
+}
+
+if (historyDir) { console.log(periodsFile ? periods(historyDir, periodsFile) : history(historyDir)); process.exit(0); }
 const file = args[0] || newest();
 if (!fs.existsSync(file)) fail(`no file ${file}`);
 const m = measure(file);

@@ -66,6 +66,13 @@ expect('sub-agents: task, size, status, weighted cost and boot', s1 && s1.task =
 expect('the summary: share, boot, cost a done task, first pass', w.summary.weightedTotal === w.weighted + s1.weighted + s2.weighted
   && w.summary.orchestratorShare > 0 && w.summary.bootMedian === 1502 && w.summary.perSize.S.median === 404 && w.summary.firstPass === 0.5
   && w.summary.weightedPerDoneTask === w.summary.weightedTotal, r.out);
+expect('merge undone: a proxy from the result, false when the result says nothing of it', s1 && s1.mergeUndone === false && s2.mergeUndone === false, r.out);
+fs.writeFileSync(path.join(dir, 'changes.md'), '| 2026-01-01T00:00Z | A change | x |\n');
+run(file, '--label', 'worker', '--out', path.join(dir, 'one'), '--results', path.join(dir, 'results.json')); // an orchestrator and its two sub-agents
+r = run('--history', path.join(dir, 'one'), '--periods', path.join(dir, 'changes.md'));
+expect('--periods compares the periods of the log', r.ok && /^2026-01-01T00:00Z to now: A change \(2 tasks\)/m.test(r.out) &&
+  /sub-agent \S+ y-model \(few\) +1/.test(r.out)
+  && /orchestrator - x-model \(few\)/.test(r.out) && /a proxy/.test(r.out), r.out);
 r = run(file, '--results', path.join(dir, 'results.json'));
 expect('the report lists the sub-agents, no content', r.ok && /VB-123 S done y-model: 2 calls/.test(r.out) && /50% done/.test(r.out) && !/SECRET/.test(r.out),
   r.out);
