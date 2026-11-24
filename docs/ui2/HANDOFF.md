@@ -155,6 +155,43 @@ Drafts page (screenshots and both rounds' findings, newest first): https://claud
   at d00fdc0): it wants its own repair task. No playtest round on any of this yet.
 - Next, in order: items 3 to 7 below (1 and 2 are done).
 
+## Sixth batch (24 November, third session, later): land first, the build menu, wood in two steps, the ladder
+Kim's answers, 24 November:
+- Wood: "Fell timber at the forest tile, and then cut firewood in the home. But this should be clear (warning at the home tile,
+  no firewood. Tapping the warning gives you text 'No firewood' and a path to resolve it, 'Fell timber, then cut to firewood at
+  the farmstead')."
+- Building: "When starting the game in solo, nothing should be built, a construction menu (not tied to any tile) should be
+  clickable and show an option 'Farmstead'. The farmstead initially, when built, is just a cottage. It should then be possible to
+  upgrade the main building to a timber house, and then to a stone house, and also to add additional buildings, like the byre.
+  The upgrade icons should be accessible from the farmstead tile through an upgrade icon." Asked: the booth is the first rung;
+  the settler lands first and the Farmstead is placed from the menu; first the menu and the Farmstead from nothing.
+- No playtest round for now. Work is off-loaded to Opus sub-agents (sim tasks by `vb-task`, the page by a general agent with a
+  written brief and its own browser checks).
+Built (all merged on `claude/zen-gauss-hpj14o`):
+- VB-1625: wood in two steps for every household: felling (`wood`, 2 h) brings timber home (`household.timber`), cutting
+  (`firewood`, 1 h) at the house; plan tasks `fell` (a tile, n trips) and `firewood`; `Sim.fireView`.
+- VB-1627: the hand start lands on a camp (`farmstead.camp`, `src/sim/camp.js`): goods and animals, nothing built, nights in the
+  open; the plan task `farmstead` places it (within 3 steps of the landing: decided without Kim, the farm record is the camp) and
+  raises the booth; `Sim.buildMenu`, `Sim.placeWhy`. VB-1630: a camp on automatic does the same by the head's own rule.
+- VB-1631: `src/sim/ladder.js`: `RUNGS` (camp, booth, cottage, stone), `OUTBUILDINGS` (barn), `Sim.farmView`. VB-1632: the plan
+  task `upgrade` builds the booth up to a cottage (`src/sim/upgrade.js`), timber at home first (the played household only).
+- VB-1629: sim/playerplan split into `playerplan` (state), `planchains` (CHAINS), `plannext` (nextOf, WAITS, HOLDS), `planview`.
+  VB-1624: an `unposted` wait names the household's rule (`rule`, `text`). VB-1626: `tests/browser.js` mended (a shared world).
+- The page: `src/page/ui2build.js` (the build button, the menu, placing with the site's reading, the upgrade card),
+  `src/page/ui2wood.js` (felling on a forest tile, cutting at the house, the warning on the house's wood gauge with its path);
+  the camp, the staked booth and the raised booth each drawn as what they are.
+Open:
+- VB-1633 (running at the time of writing): the outlook and `fireView` disagree on the fire; stores count only what the plan
+  covers (Kim); `farmView().building` reports unplanned stone work; a firewood task waits days for a review.
+- Kim's answers wanted: what a timber house gives over today's log-walled cottage; whether "stone house" is today's stone
+  foundation; what a byre gives; whether the ladder is one rule for every household; how far from the landing the Farmstead may
+  be placed (3 steps now).
+- Not built: the stone rung and the barn as plan tasks, the timber house, the byre; the page shows `hours` 12 in the build menu
+  though `buildMenu().work` now gives the plan's estimate; sleep's two effects (item 5 below); the day strip and the remaining
+  explanations (item 6); a playtest round (item 7, held off by Kim).
+- The inbox's reserved IDs clash with tasks made by `backlog.js new` in the same run: reserve through the inbox, or make
+  follow-ups by hand as this session did.
+
 ## For the next session: the plan, in order
 Kim wants clarifying questions and small batches; sub-agents are Opus. Each numbered item is a batch.
 1. Find why a plan stands still (round 4, finding 1) and make the screen say why: when the plan holds tasks and the settler does
