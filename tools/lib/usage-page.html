@@ -47,6 +47,7 @@ td:nth-child(-n+5),th:nth-child(-n+5){text-align:left} #ses td:nth-child(5),#ses
 th{position:sticky;top:0;background:var(--panel)} th button{font:inherit;font-weight:600;color:var(--ink2);background:none;border:0;padding:0;cursor:pointer}
 th button[aria-sort]::after{content:" ▾"} th button[aria-sort="ascending"]::after{content:" ▴"}
 .tbl{max-height:640px;overflow:auto;padding:0 10px 10px}
+#per td:nth-child(n+4),#per th:nth-child(n+4){text-align:right} #per tr.few td{color:var(--ink2)} #per td.c{white-space:normal;min-width:14em;max-width:26em}
 </style>
 </head>
 <body>
@@ -55,6 +56,14 @@ th button[aria-sort]::after{content:" ▾"} th button[aria-sort="ascending"]::af
 <p class="sub" id="sub"></p>
 <p class="note"><a href="../index.html">The game</a> · <a href="roadmap.html">Roadmap</a> · <a href="../BACKLOG.html">Backlog</a></p>
 <div class="tiles" id="tiles"></div>
+
+<h2>Cost of a task over time, and the changes</h2>
+<p class="note">One dot per task at the time its first run started, cost on a logarithmic axis. Each dashed line is a row of <code>docs/agents/changes.md</code>, a change that may move token use; it starts a period, compared in the table below it.</p>
+<div class="legend"><span><i class="sw" style="background:var(--s1)"></i>a sub-agent's task</span><span><i class="sw" style="background:var(--s3)"></i>a session's task</span><span><i class="sw" style="background:var(--mark)"></i>a logged change</span></div>
+<div class="panel"><svg id="time" role="img" aria-label="Weighted cost per task over time, with the logged changes"></svg></div>
+<h2>Periods compared</h2>
+<p class="note">A row per period and stratum (run kind, size, model): medians over its tasks, a task's cost summed over its runs. A stratum with fewer than five tasks is greyed and not compared; the change is the median cost of a done task against the same stratum in the period before it. Done, merges undone and reopened are proxies (<code>tools/lib/periods.js</code>).</p>
+<div class="panel tbl"><table id="per"><thead></thead><tbody></tbody></table></div>
 
 <h2>Where a task's cost goes</h2>
 <p class="note">All measured tasks together, by kind of token, each at its weight: a fresh input token 1, a cache write 1.25, a cache read 0.1, an output token 5 (about the prices' ratios, as in <code>tools/agent-usage.js</code>).</p>
@@ -116,6 +125,34 @@ const tiles = [[k(total), 'weighted tokens, all measured tasks'], [k(median(T.ma
   [k(median(grp((t) => t.size === 'S'))), `median size S (${grp((t) => t.size === 'S').length})`], [k(median(grp((t) => t.size === 'M'))), `median size M (${grp((t) => t.size === 'M').length})`],
   [k(wOf('orchestrator')), 'orchestrators, on top of their tasks'], [k(wOf('outside')), 'sessions outside a task']];
 $('tiles').innerHTML = tiles.map(([b, s]) => `<div class="tile"><b>${b}</b><span>${s}</span></div>`).join('');
+
+// ---- over time, with the logged changes; and the periods compared
+(() => {
+  const C = D.changes || [], P = D.periods || [], at = (t) => Date.parse(t.start || t.date);
+  const ts = T.filter((t) => Number.isFinite(at(t))), xs = ts.map(at);
+  if (!ts.length) { $('time').outerHTML = '<p class="note">No measured tasks yet.</p>'; } else {
+    const W = 940, L = 50, R = 20, TOP = 16, H = 300, a = Math.min(...xs) - 864e5, b = Math.max(...xs) + 864e5;
+    const x = (v) => L + (v - a) / (b - a) * (W - L - R), lo = Math.log10(3e4), hi = Math.log10(2e7);
+    const y = (v) => TOP + (1 - (Math.log10(Math.max(v, 3e4)) - lo) / (hi - lo)) * (H - TOP - 28);
+    let s = '';
+    for (const v of [1e5, 3e5, 1e6, 3e6, 1e7]) s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text class="m" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${k(v)}</text>`;
+    for (let d = Math.ceil(a / 864e5) * 864e5; d <= b; d += 864e5 * Math.max(1, Math.round((b - a) / 864e5 / 10))) s += `<text class="m" x="${x(d)}" y="${H - 8}" text-anchor="middle">${new Date(d).toISOString().slice(5, 10)}</text>`;
+    C.forEach((c, i) => { if (c.at < a || c.at > b) return; s += `<g data-c="${i}"><line x1="${x(c.at)}" x2="${x(c.at)}" y1="${TOP - 8}" y2="${H - 24}" stroke="var(--mark)" stroke-dasharray="4 3" stroke-width="1.5"/>`
+      + `<rect x="${x(c.at) - 5}" y="${TOP - 8}" width="10" height="${H - TOP - 16}" fill="transparent"/><text class="m" x="${x(c.at) + 3}" y="${TOP - 2 + (i % 2) * 13}">${i + 1}</text></g>`; });
+    ts.forEach((t) => { s += `<circle data-id="${t.id}" cx="${x(at(t)).toFixed(1)}" cy="${y(t.w).toFixed(1)}" r="4" fill="var(${t.src === 'session' ? '--s3' : '--s1'})" fill-opacity=".6" stroke="var(--panel)" stroke-width="1"/>`; });
+    const svg = $('time'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.style.minWidth = '620px'; svg.innerHTML = s;
+    const by = Object.fromEntries(T.map((t) => [t.id, t]));
+    svg.querySelectorAll('circle').forEach((el) => hover(el, card(by[el.dataset.id])));
+    svg.querySelectorAll('g[data-c]').forEach((el) => { const c = C[+el.dataset.c]; hover(el, `<b>${+el.dataset.c + 1}. ${esc(c.when)}</b><br>${esc(c.change)}`); });
+  }
+  const pct = (v) => v == null ? '-' : Math.round(v * 100) + '%', n = (v) => v == null ? '-' : k(v);
+  $('per').tHead.innerHTML = '<tr>' + ['Period from', 'Change', 'Stratum', 'Tasks', 'Done', 'Weighted, a done task', 'Quartiles', 'Change', 'Calls', 'Runs', 'Peak context', 'Boot', 'Repeats', 'Test failures', 'Continued', 'Reopened']
+    .map((h) => `<th>${h}</th>`).join('') + '</tr>';
+  $('per').tBodies[0].innerHTML = P.length ? P.map((r) => `<tr${r.few ? ' class="few"' : ''}><td>${r.first ? `${r.row ? r.row + '. ' : ''}${esc(r.when)}` : ''}</td><td class="c">${r.first ? esc(r.change) : ''}</td><td>${esc(r.stratum)}${r.few ? ' (few)' : ''}</td><td>${r.n}</td>`
+    + `<td>${pct(r.done)}</td><td><b>${n(r.w)}</b></td><td>${r.q1 == null ? '-' : `${k(r.q1)} – ${k(r.q3)}`}</td><td>${r.delta == null ? '' : (r.delta >= 0 ? '+' : '') + pct(r.delta)}</td>`
+    + `<td>${n(r.calls)}</td><td>${n(r.runs)}</td><td>${n(r.peak)}</td><td>${n(r.boot)}</td><td>${n(r.repeats)}</td><td>${n(r.fails)}</td><td>${pct(r.continued)}</td><td>${pct(r.reopened)}</td></tr>`).join('')
+    : '<tr><td colspan="16">No log of changes (docs/agents/changes.md), or no measured task in its periods.</td></tr>';
+})();
 
 // ---- the share by kind of token
 const all = parts({ cr: sum((t) => t.cr), cw: sum((t) => t.cw), i: sum((t) => t.i), o: sum((t) => t.o) });

@@ -4,6 +4,8 @@
 //   --dir DIR   the measured runs, one JSON file each as tools/agent-usage.js --out writes them (default docs/agents/usage)
 //   --out FILE  the page to write (default docs/usage.html)
 //   --json      print the data the page is drawn from, and write nothing
+//   --changes FILE  the log of changes that may move token use (default docs/agents/changes.md): its rows are marked on the chart over
+//               time, and the periods they start are compared in a table, as  tools/agent-usage.js --periods  does (VB-1615)
 // Reads: the run files; the task files in backlog/ (name, size, arch); and `git log` (the commits made during a session).
 // Cost is the one weighted number of tools/agent-usage.js, in fresh-input tokens: input + 1.25 × cache writes + 0.1 × cache reads + 5 × output.
 // Which task a measurement belongs to:
@@ -110,12 +112,36 @@ const taskInfoOf = (root) => (id) => {
   return { name: g(/^# VB-\d+: (.*)/), size: g(/^Size: (\w+)/m), arch: g(/^Arch: (.*)/m) };
 };
 
+// The periods of the change log compared (tools/lib/periods.js), for --periods of tools/agent-usage.js and for the page.
+function comparePeriods(root, data, file, from = null, to = null) {
+  const P = require('./lib/periods.js');
+  const info = (id) => { try { return P.fileInfo(fs.readFileSync(path.join(root, 'backlog', id + '.md'), 'utf8')); } catch (e) { return null; } };
+  const changes = P.parseChanges(fs.readFileSync(file, 'utf8'));
+  return { changes, compared: P.compare({ data, changes, info, fixList: P.fixes(root), from, to }) };
+}
+// The page's table of periods: a row a stratum a period, with its medians, shares and the change against the period before.
+function periodTable(c) {
+  const med = (s, name) => (s.measures[name] ? s.measures[name].median : null), sh = (s, name) => (s.shares[name] ? s.shares[name].share : null);
+  return c.periods.flatMap((p) =>
+    p.strata.map((s, i) => ({ when: p.when, change: p.change, first: i === 0, stratum: s.key, n: s.n, few: s.few, done: sh(s, 'done'),
+    w: med(s, 'weighted'), q1: s.measures.weighted ? s.measures.weighted.q1 : null, q3: s.measures.weighted ? s.measures.weighted.q3 : null,
+    delta: s.change ? s.change.weighted : null, calls: med(s, 'calls'), runs: med(s, 'runs'), peak: med(s, 'peak'), boot: med(s, 'boot'),
+      repeats: med(s, 'repeats'),
+    fails: med(s, 'testsFailed'), continued: sh(s, 'continued'), reopened: sh(s, 'reopened') })));
+}
+
 if (require.main === module) {
   const root = path.join(__dirname, '..'), args = process.argv.slice(2);
   const opt = (k, d) => { const i = args.indexOf(k); return i < 0 ? d : args[i + 1]; };
   const runs = readRuns(path.resolve(root, opt('--dir', 'docs/agents/usage')));
   const first = runs.map((r) => r.start).sort()[0];
   const data = model({ runs, commits: gitCommits(root, first && new Date(Date.parse(first) - 864e5).toISOString()), taskInfo: taskInfoOf(root) });
+  const log = path.resolve(root, opt('--changes', 'docs/agents/changes.md'));
+  if (fs.existsSync(log)) {
+    const { changes, compared } = comparePeriods(root, data, log);
+    data.changes = changes.map((c) => ({ at: c.at, when: c.when, change: c.change }));
+    data.periods = periodTable(compared).map((r) => ({ ...r, row: changes.findIndex((c) => c.when === r.when) + 1 }));
+  }
   if (args.includes('--json')) { console.log(JSON.stringify(data)); process.exit(0); }
   const page = fs.readFileSync(path.join(__dirname, 'lib', 'usage-page.html'), 'utf8').replace('/*DATA*/', () => JSON.stringify(data).replace(/</g, '\\u003c'));
   const out = path.resolve(root, opt('--out', 'docs/usage.html'));
@@ -125,4 +151,4 @@ if (require.main === module) {
     out)}: ${data.tasks.length} tasks from ${data.runs} runs, weighted ${k(sum(data.tasks))}; apart, ${data.sessions.length} sessions, ${k(
     sum(data.sessions))}`);
 }
-module.exports = { model, taskOfCommits, weighted, readRuns, gitCommits, taskInfoOf };
+module.exports = { model, taskOfCommits, weighted, readRuns, gitCommits, taskInfoOf, comparePeriods, periodTable };

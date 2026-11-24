@@ -258,10 +258,8 @@ function periods(dir, file) {
   const runs = page.readRuns(dir), first = runs.map((r) => r.start).sort()[0];
   const data = page.model({
     runs, commits: page.gitCommits(root, first && new Date(Date.parse(first) - 864e5).toISOString()), taskInfo: page.taskInfoOf(root) });
-  const info = (id) => { try { return P.fileInfo(fs.readFileSync(path.join(root, 'backlog', id + '.md'), 'utf8')); } catch (e) { return null; } };
-  const ms = (d) => (d ? Date.parse(d) : null);
-  const c = P.compare({ data, changes: P.parseChanges(fs.readFileSync(file, 'utf8')), info, fixList: P.fixes(root), from: ms(fromDate), to: ms(toDate) });
-  return asJson ? JSON.stringify(c, null, 1) : P.report(c);
+  const ms = (d) => (d ? Date.parse(d) : null), { compared } = page.comparePeriods(root, data, file, ms(fromDate), ms(toDate));
+  return asJson ? JSON.stringify(compared, null, 1) : P.report(compared);
 }
 
 if (historyDir) { console.log(periodsFile ? periods(historyDir, periodsFile) : history(historyDir)); process.exit(0); }
