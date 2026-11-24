@@ -116,7 +116,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1538](backlog/VB-1538.md)<a id="VB-1538"></a> | Refactor: split sim/goods by concern | - | 3 | S | sim/goods holds three concerns: keeping in store, grain's subtype ids by crop, and the registry of goods with their materials and kinds; split by them |
 | [VB-1539](backlog/VB-1539.md)<a id="VB-1539"></a> | Refactor: split sim/building by concern | - | 3 | S | sim/building holds four concerns: timber and the cottage's stages, the booth, the stone foundation and its stone, and the barn; split by them |
 | [VB-1540](backlog/VB-1540.md)<a id="VB-1540"></a> | Refactor: split sim/rules by concern | - | 3 | S | sim/rules is over 700 lines: the time constants and names stay; tables read by one domain move to it (VB-419), the rest are grouped by the domains that share them |
-| [VB-1556](backlog/VB-1556.md)<a id="VB-1556"></a> | A new site's well is dug by the party before the move | - | 3 | S | follows batches (b2) and (c) of VB-1543: the well as a job of the site |
 | [VB-1566](backlog/VB-1566.md)<a id="VB-1566"></a> | takeDay's missed member: one rule for whom the head allots | - | 3 | S | takeDay repeats allotted's terms but for the commanded pawn (found by VB-1560) |
 
 </details>
@@ -141,6 +140,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | [VB-1364](backlog/VB-1364.md)<a id="VB-1364"></a> | The village's loans are made by its alderman | - | 3 | S | Loans of the village (VB-312) made by the alderman, booked as goodwill |
 | [VB-1369](backlog/VB-1369.md)<a id="VB-1369"></a> | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
 | [VB-1506](backlog/VB-1506.md)<a id="VB-1506"></a> | Owners for w.biome, w.trees and w.stones | - | 3 | S | about ten sim modules write the world's biome, trees and stones, and src/owners.json names no owner for them |
+| [VB-1556](backlog/VB-1556.md)<a id="VB-1556"></a> | A new site's well is dug by the party before the move | - | 3 | S | follows batches (b2) and (c) of VB-1543: the well as a job of the site |
 
 </details>
 
@@ -238,6 +238,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-478](backlog/VB-478.md)<a id="VB-478"></a> | Wrap-up: work as blocks | - | 3 | S | [VB-477](#VB-477) | Check the blocks, the estimate and the timetable with long runs: cost early and on medium-ref against the budget, the idle share, households by their head's skill; add the bands and propose tuning. |
 | [VB-893](backlog/VB-893.md)<a id="VB-893"></a> | Page: the Plan tab shows stores by the supply component and the year ahead | - | 3 | S | [VB-1123](#VB-1123) | The plan panel (VB-256) takes up VB-667's supply component and the year-ahead graph |
 | [VB-1564](backlog/VB-1564.md)<a id="VB-1564"></a> | The leader's choice and the solo siting show each site's water | - | 3 | S | [VB-788](#VB-788), [VB-1544](#VB-1544) | VB-1552 built the estimate (sim/settle sites, Sim.siteWater, siteWaterWords); the choice's views are VB-788's and VB-1544's, not built yet |
+| [VB-1576](backlog/VB-1576.md)<a id="VB-1576"></a> | A site's well under settling in steps: a job of the site, and the move waits for it | - | 3 | S | [VB-787](#VB-787) | VB-1556's criteria 2 and 4, which need the move of VB-787 |
 
 </details>
 
