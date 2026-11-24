@@ -1,6 +1,6 @@
 ---
 name: task
-description: One backlog task of the village builder, end to end in this session (built, reviewed, closed, measured, its PR opened), then reported to the chain's coordinator, who merges it. Started by /chain's coordinator, or by hand. Use when a prompt starts with /task.
+description: One backlog task of the village builder, end to end in this session (built, reviewed, closed, measured, its PR opened), then reported to the chain's coordinator, who merges it. Started by /chain's coordinator, or by hand. Use when a prompt starts with /task or asks to run the task skill.
 argument-hint: VB-NNN [--report-to SESSION --chain T --link K]
 ---
 # One task, a leaf of a chain
