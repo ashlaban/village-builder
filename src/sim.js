@@ -253,6 +253,9 @@ const Sim = (() => {
       stakedEach(st, (plan) => out.push(plan.tile));
       return out;
     },
+    // VB-1627: the build menu, what the played head may build now, and why a tile will not take one (sim/camp); reads only
+    buildMenu: VB['sim/camp'].buildMenu,
+    placeWhy: VB['sim/camp'].placeWhy,
     boatUntarred,
     team,
     withOxen,

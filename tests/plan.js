@@ -441,7 +441,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
 {
   const w = tinyWorld(rows), P = VB['sim/projects'];
   const st = Sim.seed(w, 7, 'solo', null, { hand: true });
-  assert.deepStrictEqual(P.projectsOf(st, 'household', 0).map((p) => p.what), ['cottage'], 'nothing under way but the cottage');
+  assert.deepStrictEqual(P.projectsOf(st, 'household', 0).map((p) => p.what), [], 'nothing under way, the cottage neither (VB-1627)');
   assert.deepStrictEqual(P.projectsOf(Sim.seed(tinyWorld(rows), 7, 'solo', null, {}), 'household', 0).map((p) => p.what), ['field', 'cottage']);
   Sim.inhabit(st, st.households[0].holder);
   Sim.setAuto(st, false);

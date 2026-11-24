@@ -110,6 +110,7 @@ VB['sim/building'] = (() => {
   function roofless(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || !f.booth || homeBooth(st, hh, f)) return false;
+    if (f.camp === true) return true; // a camp (sim/camp, VB-1627): nothing stands on the farm
     return !!stakedBy(st, (p) => st.pawns[p.holder.id].household === hh.id && hexSteps(st.w, p.tile, f.house) <= 1);
   }
   // Whether a booth of household hh stands beside the house of its farm f.

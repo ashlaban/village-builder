@@ -5,6 +5,7 @@ VB['sim/scenarios'] = (() => {
   const { YEAR, TICKS, ECON, TESTBED, SEASON_DAYS, cal } = VB['sim/rules'],
     { CROPS, ROTATIONS, openGround: farmable } = VB['sim/crops'];
   const { seal } = VB['sim/registry'];
+  const { makeCamp } = VB['sim/camp'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
     { buildHours } = VB['sim/villagehours'];
@@ -110,13 +111,17 @@ VB['sim/scenarios'] = (() => {
   // the booth stands (sim/building roofless), and the cottage follows as a settler household's does. Its first field is staked at the
   // landing as a settler household's is (settleFarm), on the tile its head would pick (sim/fieldplans pickField): a household's land
   // projects wait while another of its projects is under way, and the cottage's would hold the field back to the roof. With `hand` (a
-  // player who plans by hand; Kim, 24 Nov 2026: "begin with nothing under way") no field is staked. The booth's tile, or null where none
-  // beside the house will take one.
+  // player who plans by hand; Kim, 24 Nov 2026: "begin with nothing under way") nothing is: no field, no booth, no cottage plan; the farm is
+  // a camp (sim/camp, VB-1627) until its head places the farmstead by its plan. The booth's tile, or null where none is staked.
   function landAlone(st, hand = false) {
     const hh = st.households[0],
       f = st.farmsteads[hh.farmstead],
       field = hand ? -1 : pickField(st, f, hh);
     f.booth = true;
+    if (hand) {
+      makeCamp(f); // VB-1627: a camp, nothing under way; the head places the farmstead by its plan
+      return null;
+    }
     if (field >= 0) {
       stake(st, hh, field, 'field');
       makeProject(st, 'household', hh.id, fieldProject(st, hh, field));

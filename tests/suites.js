@@ -21,6 +21,7 @@ const FAST = [
   ['node', 'tests/living.js'],
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
+  ['node', 'tests/camp.js'], // VB-1627: land first: a camp, roofless; the build menu and the refusals; the farmstead placed and its booth raised, the house moved
   ['node', 'tests/plan.js'], // VB-1618: the player's plan: its ops, the routine once a day, tasks in order, hand commands first, sleep by its hours
   ['node', 'tests/sleep.js'], // VB-1615: the played pawn's sleep owed, the verb sleep, a night worked in mood and health
   ['node', 'tests/outcomes.js'], // commands' three outcomes and the queue's assignments: release, reacquire, side work, saves (VB-1405)
