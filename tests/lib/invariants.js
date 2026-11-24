@@ -1876,8 +1876,9 @@ function checkHerds(st, bad) {
     if (!whole(hd.lean || 0) || !whole(hd.unfed || 0)) bad.push(`${where}: lean ${hd.lean}, unfed ${hd.unfed}`);
     // fleeces grown and not yet shorn (sim/byre, VB-679): a sheep flock's, a whole number, one or more
     if (hd.fleece !== undefined && (hd.species !== 'sheep' || !whole(hd.fleece) || hd.fleece < 1)) bad.push(`${where}: fleece ${hd.fleece}`);
-    // herding (sim/grazing, VB-136): out with a pawn of the household, or by the farm; taken out last on a past day, or never (-1)
-    if (hd.herder !== null && !(st.pawns[hd.herder] && st.pawns[hd.herder].household === hd.household)) bad.push(`${where}: herder ${hd.herder}`);
+    // herding (sim/grazing, VB-136): out with a living pawn, of the household or one working off days it owes it (VB-462, VB-463's keep: the
+    // job is the household's, whoever takes it), or by the farm; taken out last on a past day, or never (-1)
+    if (hd.herder !== null && !(st.pawns[hd.herder] && st.pawns[hd.herder].alive)) bad.push(`${where}: herder ${hd.herder}`);
     if (!(Number.isInteger(hd.herded) && hd.herded >= -1 && hd.herded <= Math.floor(st.t / 24))) bad.push(`${where}: herded on day ${hd.herded}`);
     // the household's kept pasture (sim/grazing, VB-136): absent, or a tile of the map chosen on a past day
     const pa = hh && hh.pasture;
