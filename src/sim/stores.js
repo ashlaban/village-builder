@@ -9,7 +9,7 @@ VB['sim/stores'] = (() => {
   const { goodOf, dayLoss, keepsDays, GRAIN, CROP_LIST, CROP_GOOD, GOOD_CROP, isGrain, grainGood } = VB['sim/goods'],
     { kindRow, baseOf, kindIn } = VB['sim/goods'];
   const STAKE_CROP = 'barley';
-  const { emit } = VB['sim/events'],
+  const { emit, on } = VB['sim/events'],
     Projects = VB['sim/projects'],
     Yields = VB['sim/yields'];
   const KINDS = [
@@ -319,11 +319,18 @@ VB['sim/stores'] = (() => {
   // VB-249: a store crossing a target wakes its household's plan for a review (sim/plans reads and clears the flag, at most one such review
   // a day): the grain above the seed reserve running out or coming back, sheaves coming into an empty barn. The one call from the stores
   // to the plans is this flag.
-  // @state plan.dirty: true when a store of the plan's household crossed a target since the plan's last review; set only here.
+  // @state plan.dirty: true when a store of the plan's household crossed a target since the plan's last review, or the player's plan
+  //   asked for work its head posts at a review (the event planAsks, VB-1633); set only here.
   function wake(st, hh) {
     const plan = st.plans && st.plans.households.get(hh.id);
     if (plan) plan.dirty = true;
   }
+  // The player's plan asks its head for work the head's rule posts at a review (sim/playerplan, the event planAsks: a firewood task's
+  // cutting, VB-1633): the plan is woken as by a store crossing a target, the stores it reads having changed since its review.
+  on('planAsks', (st, { household }) => {
+    const hh = st.households[household];
+    if (hh && !hh.dissolved) wake(st, hh);
+  });
   function crossed(st, holder, kind, before) {
     if (kind !== 'household' || !st.plans) return;
     const r = reserved(st, holder, GRAIN);

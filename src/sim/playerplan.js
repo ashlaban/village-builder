@@ -7,8 +7,9 @@ VB['sim/playerplan'] = (() => {
   const { KINDS } = VB['sim/kinds'];
   const { eligible } = VB['sim/eligibility'];
   const { living } = VB['sim/records'];
-  const { on } = VB['sim/events'];
-  const { CHAINS, chainOf, chainWhy, chainGone, taskAt } = VB['sim/planchains'];
+  const { on, emit } = VB['sim/events'];
+  const { CHAINS, chainOf, chainWhy, chainGone, taskAt, pileOf } = VB['sim/planchains'];
+  const { timberOf } = VB['sim/chores'];
   // @state st.player.plan: absent until the player first plans (an older save reads as empty), else {routine[] (job kinds seen to every
   //   day, in order, at most PLAN_MAX), sleep (null, or {from, until}: hours of the day, the pawn sleeps from `from` to `until`), tasks[]
   //   (at most PLAN_MAX, in order: a task by key {key (a job's key), kind, site (its tile or -1)}, or a task at a tile {<chain> (a tile),
@@ -116,6 +117,17 @@ VB['sim/playerplan'] = (() => {
       pp.tasks.splice(i, 1);
       pp.last = { key: t.key, kind: t.kind, t: st.t };
     }
+    askCutting(st, pp);
+  }
+  // A firewood task whose cutting the head's rule would post (sim/chores: timber home, the pile below the season's goal or the house
+  // cold) but has not: the plan asks its head now (the event planAsks; sim/stores wakes the plan's review, at most one such a day), so
+  // that the task does not wait for the household's planning day (VB-1633: up to three days by its head's diligence, sim/plandays).
+  function askCutting(st, pp) {
+    const hid = st.pawns[st.player.pawn].household,
+      hh = hid === null ? null : st.households[hid];
+    if (!hh || hh.dissolved || !pp.tasks.some((t) => t.key === undefined && t.kind === 'firewood')) return;
+    if (timberOf(hh) > 0 && (hh.cold > 0 || pileOf(st, hh).short) && !st.jobs.has(`firewood:h${hid}`))
+      emit(st, 'planAsks', { household: hid });
   }
   // A routine kind's command was begun: it is done for the day.
   function planBegun(st, mark) {

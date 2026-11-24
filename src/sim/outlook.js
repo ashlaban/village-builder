@@ -147,6 +147,7 @@ VB['sim/outlook'] = (() => {
     const pl = st.player;
     return !!pl && !pl.auto && st.pawns[pl.pawn].household === hh.id;
   };
+  const playedOf = (st, hh) => !!st.player && st.pawns[st.player.pawn].household === hh.id;
   const tasksOf = (st) => (st.player && st.player.plan ? st.player.plan.tasks : []);
   // Whether a task of the plan covers chain `name` (sim/planchains CHAINS) at `tile` (any, when undefined): a task at the tile, or a task
   // by key of one of the chain's job kinds there.
@@ -485,8 +486,9 @@ VB['sim/outlook'] = (() => {
     const plan = st.plans && st.plans.households.get(id),
       hh = st.households[id],
       c = cal(st.t),
-      // by hand, reckoned when asked: the plan's tasks change between reviews, and the outlook counts only what they cover (VB-1633)
-      O = plan && hh && !hh.dissolved && handOf(st, hh) ? reckon(st, hh, plan, c) : plan && plan.outlook;
+      // the played pawn's household's, reckoned when asked (VB-1633): by hand it counts only what the plan's tasks cover, and they, and
+      // automatic behaviour, change between its reviews
+      O = plan && hh && !hh.dissolved && playedOf(st, hh) ? reckon(st, hh, plan, c) : plan && plan.outlook;
     if (!O) return null;
     return {
       ...JSON.parse(JSON.stringify(O)),
