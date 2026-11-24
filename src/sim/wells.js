@@ -8,7 +8,7 @@
 VB['sim/wells'] = (() => {
   const { FRESH, WELL, NO_WELL, BANDS, band, bandMid, bandStone, wellHours, wellStone } = VB['world/water'];
   const { YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
-  const { WATER, tripHours, wellDug, siteWater } = VB['sim/water'];
+  const { WATER, dayFetch, waterOf, wellDug, siteWater } = VB['sim/water'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
   const { declare } = VB['sim/makings'];
@@ -42,15 +42,16 @@ VB['sim/wells'] = (() => {
       : `a ${BANDS[band(st.w.waterDepth[f.house])].name} well may take ${need} loads of stone for its lining, and the heap holds ${have} free`;
   }
   // Whether a well of its own pays farm f's household (design.md, A household's well): the hours of fetching it saves in WELL.payYears,
-  // the day's fetch from its source as found (farmstead.water) against the drawing at the door, are more than the well's hours at the
-  // head's estimate, the middle of the ground's band. A farm with no water in reach reckons the farthest fetch a farm makes. Numbers the
-  // farm's source already holds: nothing is searched.
+  // the household's day's fetch as it is made (VB-1573; sim/water waterOf: the trips its people at home make at its source as found,
+  // farmstead.water, with its cart where that is the cheaper) against the drawing at the door for each trip, are more than the well's
+  // hours at the head's estimate, the middle of the ground's band. A farm with no water in reach reckons the farthest fetch a farm
+  // makes. Numbers the farm's source already holds, and the household's members counted: nothing is searched.
   function pays(st, f) {
-    const s = f.water,
-      d = st.w.waterDepth[f.house];
-    if (!s || !(d < NO_WELL) || hasWell(st, f)) return false;
-    const fetch = tripHours(s.tile < 0 ? WATER.search : s.walk);
-    return (fetch - WATER.draw) * WELL.payYears * YEAR_DAYS > bandMid(band(d));
+    const d = st.w.waterDepth[f.house];
+    if (!f.water || !(d < NO_WELL) || hasWell(st, f)) return false;
+    const W = waterOf(st, f),
+      fetch = W.none ? dayFetch(WATER.search, W.people, W.kind).hours : W.hours;
+    return (fetch - dayFetch(0, W.people, W.kind).hours) * WELL.payYears * YEAR_DAYS > bandMid(band(d));
   }
   // A household makes its land first (as its building step does, sim/building): while it has fewer fields than its plan wants, or
   // keeps animals with no meadow to mow for them, its head's rule begins no well (tests/meadows.js: a founder's first meadow is late

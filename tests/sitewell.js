@@ -12,7 +12,7 @@ const { checkState } = require('./lib/invariants.js');
 const { FRESH, wellHours } = VB['world/water'];
 const { DAY } = VB['sim/rules'];
 const { issue } = VB['sim/commands'];
-const { WATER, tripHours } = Water;
+const { WATER } = Water;
 let failed = 0;
 const check = (ok, m) => {
   if (!ok) {
@@ -78,7 +78,7 @@ const wellPlan = (st, hh) => Projects.projectsOf(st, 'household', hh.id).find((p
   check(w.fresh[house] === FRESH.WELL && f.wellMeant === undefined, `water is struck within 90 days (${days}), and the mark goes`);
   check(drawn === 0, `until then no source lay in reach, and none was drawn at (${drawn} days with one)`);
   check(
-    f.water && f.water.tile === house && f.water.walk === 0 && near(tripHours(f.water.walk), WATER.draw),
+    f.water && f.water.tile === house && f.water.walk === 0 && near(Sim.waterOf(st, f).hours, WATER.draw),
     `the fetch is the drawing alone (${JSON.stringify(f.water)})`,
   );
   Sim.advance(st, 2 * DAY);

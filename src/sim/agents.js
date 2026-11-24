@@ -152,16 +152,14 @@ VB['sim/agents'] = (() => {
     // waits for the delivery, and the planner, the occasions, the orders and the working day's end find it on its way home and leave it).
     // One released here puts the load down where it stands: in its own field or meadow it goes back with the stooks or the mown hay;
     // elsewhere (its death on the road, its household dissolving) it lies there for the task's owner to fetch (VB-611, sim/lying). A task
-    // that has no more loads to give is done with.
+    // that has no more loads to give is done with. A load no kind fetches (a barrel's water, VB-1573) is spilt: nothing lies.
     let laid = null;
     if (a.load > 0 && a.phase === 'back' && a.job) {
       const K = KINDS[a.job.kind],
         [x, y] = placeOf(st, a),
         at = tileAt(st, x, y);
       if (K.setDown && at === a.job.site) K.setDown(st, a.job, a);
-      // a load whose kind has no fetching (the day's water on its way home, VB-1555: nothing registers a fetch for it) is spilt where
-      // it falls, not left lying for a task of no kind (found by VB-1556: populous small 7 ended at such a load in year 6)
-      else if (KINDS[Lying.fetchKey(K.fetch || a.job.kind)]) Lying.lay(st, a, a.job, K.fetch || a.job.kind, at, x, y);
+      else if (K.fetch || K.load || K.stack) Lying.lay(st, a, a.job, K.fetch || a.job.kind, at, x, y);
       standCart(st, a, at, x, y); // its cart stands where it was, with the team that drew it, until a hand fetches them (VB-649)
       a.carry = null;
       laid = a.job;

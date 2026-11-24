@@ -140,7 +140,7 @@ const NOT_STOCKS = {
     'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.marshDay', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.fellShort', 'household.giftedIn', 'household.milkDay', 'household.workHours', 'village.ledger', 'village.totals', 'village.workday'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'village.commonFields',
     'farmstead.booth', 'farmstead.barn', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
-      'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'farmstead.water', 'village.crowded', 'village.founded',
+      'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'farmstead.water', 'farmstead.wellMeant', 'village.crowded', 'village.founded',
       'village.rotation', 'farmstead.rotationBy', 'farmstead.failed', 'farmstead.left'],
   'the generated world': ['w.seed', 'w.lat', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
     'w.elev',

@@ -18,7 +18,7 @@ VB['sim/chores'] = (() => {
     Pot = VB['sim/pot'];
   const { ground: forageGround, gather } = VB['sim/forage'];
   const Water = VB['sim/water'],
-    { WATER } = Water,
+    { WATER, atHome } = Water,
     { FRESH } = VB['world/water'];
   const { age } = VB['sim/records'];
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
@@ -42,22 +42,13 @@ VB['sim/chores'] = (() => {
   //   day's water does not keep: the first load of a day begins the count anew (sim/chores, the water's deliver; sim/hunger reads it)
   // The people today's loads cover.
   const waterIn = (hh, day) => (hh.waterDay !== day ? 0 : (hh.waterFor ?? Infinity));
-  // The household's people at home: those its water is for. With nobody at home it is fetched for one, as it was before the fetch
-  // grew: who comes home that day finds the trip posted (the due-queue asks no more once a kind posts nothing).
-  const atHome = (st, hh) => {
-    let n = 0;
-    for (const id of hh.members) if (st.pawns[id].died === null && st.agents[id].away === undefined) n++;
-    return Math.max(1, n);
-  };
+  // The household's people at home, those its water is for: sim/water's atHome, which the panel and the well's test read too.
   // What a trip under way brings: its hand's load (`cover`, set as it sets out).
   const coverOf = (j) => j.cover ?? WATER.hand;
-  // A cart's trip from a source `walk` hours off: the walk both ways at the cart's pace, and the barrel's filling.
-  const cartHours = (walk, kind) => (2 * walk) / TRAVEL.pace[kind] + WATER.fill;
   // The head's choice (Above the first): for `need` people still without water a cart of `kind` is the cheaper in hours than the trips
-  // by hand its barrel saves; never for those one trip by hand covers.
-  const cartPays = (walk, need, kind) =>
-    need > WATER.hand &&
-    cartHours(walk, kind) < Math.ceil(Math.min(need, WATER.cart) / WATER.hand) * Water.tripHours(walk);
+  // by hand its barrel saves; never for those one trip by hand covers. The reckoning is sim/water's (dayFetch, VB-1573): the trip is
+  // the cart's when the day's fetch of those people would begin with one.
+  const cartPays = (walk, need, kind) => need > WATER.hand && Water.dayFetch(walk, need, kind).cart > 0;
   // The cart a barrel would go on now: a free hand cart, the faster with the same barrel, else the ox cart if its team is free
   // (design.md, Carts, Taking a cart; `team`: as sim/work's teamFree says when a hand sets out, and as the head reckons before: it
   // keeps a team and its ox cart is in); null with none. A cart goes where a walker does, until carts mind the ground (VB-810).
@@ -148,7 +139,7 @@ VB['sim/chores'] = (() => {
       trip: (st, j) => {
         const s = j.farm.water;
         if (!s || s.tile !== j.site) return 0;
-        return j.cart ? (2 * s.walk) / TRAVEL.pace[j.cart] : Water.tripHours(s.walk) - WATER.draw;
+        return j.cart ? (2 * s.walk) / TRAVEL.pace[j.cart] : Water.dayFetch(s.walk, 1).hours - WATER.draw;
       },
       // As its hand sets out (sim/agents start): what the trip will cover (j.cover: a child under WATER.childUnder carries one
       // bucket), and, where more people are still without water than a trip by hand covers, the cart: the head takes the household's

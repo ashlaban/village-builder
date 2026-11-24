@@ -2,7 +2,8 @@
 // the nearest source that is not marsh, searched once from the land as generated; and each farm's source (farmstead.water): where its
 // household draws its water, of what class and how long the walk, found by one search outward from the house (VB-1551); the wells the
 // map starts with and a well's entry on the map (w.fresh); and a site's water before a house stands there (siteFetch, siteWater: VB-1552;
-// plotFetch, a plot's site in a village: VB-1565)
+// plotFetch, a plot's site in a village: VB-1565); and the day's fetch by the people it is for (dayFetch: the trips by hand and with a
+// cart and their hours), the one reckoning the panel, the well's test and the site search read (VB-1573)
 VB['sim/water'] = (() => {
   const { minHeap } = VB['gen/rivers'];
   const { good, FRESH, FRESHES, WELL, NO_WELL, BANDS, band, bandHours, bandMid, sourceNear } = VB['world/water'];
@@ -150,33 +151,78 @@ VB['sim/water'] = (() => {
     return f.water;
   }
   const sourceOf = (st, f) => f.water || find(st, f);
-  // The hours of a day's fetch from a source `walk` hours off: out with empty buckets, the drawing, home laden (TRAVEL.pace.back).
+  // ---- the day's fetch (VB-1573; design.md, Water by the site, The fetch grows with the household, The daily cost at a site) ----
+  // The hours of one trip by hand to a source `walk` hours off: out with empty buckets, the drawing, home laden (TRAVEL.pace.back).
   const tripHours = (walk) => walk * (1 + 1 / TRAVEL.pace.back) + WATER.draw;
-  // Farm f's water as the page tells it: {none: true} with no source in reach, else {name (the source's), walk, hours (the day's fetch)}.
+  // A cart's trip: the walk both ways at the pace of a cart of `kind` ('hand' or 'ox'), and the barrel's filling.
+  const cartHours = (walk, kind) => (2 * walk) / TRAVEL.pace[kind] + WATER.fill;
+  // The day's fetch of `people` at a source `walk` hours off, with a cart of kind `cart` to take or none (null): {hand, cart, hours},
+  // the trips by hand and with the cart and their hours together. The one reckoning (the panel, the well's test, the site search; and
+  // the choice a trip makes, sim/chores, asks it of those still without water as the trip sets out): a trip by hand covers WATER.hand
+  // people and a cart's barrel WATER.cart; trip by trip the cart goes for those still uncovered where they are more than one trip by
+  // hand covers and it is the cheaper in hours than the trips by hand its barrel saves (Above the first). One trip at the least.
+  function dayFetch(walk, people, cart = null) {
+    const by = tripHours(walk),
+      barrel = cart ? cartHours(walk, cart) : Infinity;
+    let hand = 0,
+      carts = 0;
+    for (let need = Math.max(1, people); need > 0;)
+      if (need > WATER.hand && barrel < Math.ceil(Math.min(need, WATER.cart) / WATER.hand) * by) {
+        carts++;
+        need -= WATER.cart;
+      } else {
+        hand++;
+        need -= WATER.hand;
+      }
+    return { hand, cart: carts, hours: carts ? hand * by + carts * barrel : hand * by };
+  }
+  // The people of household hh at home: those its water is for. With nobody at home it is fetched for one, as it was before the fetch
+  // grew: who comes home that day finds the trip posted (the due-queue asks no more once a kind posts nothing).
+  const atHome = (st, hh) => {
+    let n = 0;
+    for (const id of hh.members) if (st.pawns[id].died === null && st.agents[id].away === undefined) n++;
+    return Math.max(1, n);
+  };
+  // The cart a household reckons its water with: its hand cart, the faster with the same barrel, else its ox cart (sim/chores'
+  // barrelCart, less what the day decides: whether the cart is in and the team free); null with none.
+  const cartOf = (hh) =>
+    hh.carts.some((c) => c.kind === 'hand') ? 'hand' : hh.carts.some((c) => c.kind === 'ox') ? 'ox' : null;
+  // Farm f's water as the page tells it and its head weighs it (sim/wells): its household's day's fetch as it is made. {people (at
+  // home, whom it is for), kind (the cart reckoned with, or null)} and, with no source in reach, {none: true, search}; else {name (the
+  // source's), poor, walk, hand, cart (the trips), hours (theirs together), byHand (the hours with no cart)}.
   function waterOf(st, f) {
-    const s = sourceOf(st, f);
-    return s.tile < 0
-      ? { none: true, search: WATER.search }
-      : { name: FRESHES[s.cls].name, poor: !!FRESHES[s.cls].poor, walk: s.walk, hours: tripHours(s.walk) };
+    const s = sourceOf(st, f),
+      hh = f.household === null ? null : st.households[f.household],
+      people = hh ? atHome(st, hh) : 1,
+      kind = hh ? cartOf(hh) : null;
+    if (s.tile < 0) return { none: true, search: WATER.search, people, kind };
+    return {
+      name: FRESHES[s.cls].name,
+      poor: !!FRESHES[s.cls].poor,
+      walk: s.walk,
+      people,
+      kind,
+      ...dayFetch(s.walk, people, kind),
+      byHand: dayFetch(s.walk, people).hours,
+    };
   }
   // ---- a site's water, before a house stands there (VB-1552; design.md, Water by the site, The site's access, shown before placing) ----
-  // The trips a day `people` make for their water, by hand: one for each WATER.hand of them (VB-1555). A site is weighed by hand alone:
-  // who settles brings no hand cart (design.md, Carts, At the start).
-  const trips = (people) => Math.max(1, Math.ceil(people / WATER.hand));
+  // A site is weighed by hand alone (dayFetch with no cart: one trip for each WATER.hand of the people): who settles brings no hand
+  // cart (design.md, Carts, At the start).
   // The daily hours a well of its own would cost a house on tile i: the drawing at the door, and the digging at the middle of the
   // ground's band (the head's estimate: never the depth) spread over WELL.payYears; Infinity where no well can be dug.
   const ownWell = (w, i, people) =>
     w.waterDepth[i] < NO_WELL
-      ? trips(people) * WATER.draw + bandMid(band(w.waterDepth[i])) / (WELL.payYears * YEAR_DAYS)
+      ? dayFetch(0, people).hours + bandMid(band(w.waterDepth[i])) / (WELL.payYears * YEAR_DAYS)
       : Infinity;
   // The daily fetch of a house on tile i with no source and no well: as far as a farm searches, which no site is refused for.
-  const noWater = (people) => trips(people) * tripHours(WATER.search);
+  const noWater = (people) => dayFetch(WATER.search, people).hours;
   // The daily fetch in hours the site search weighs for `people` settling on tile i, in a village of their own: the least of the walk
   // to fresh water as the land shows it (w.freshWalk) and a well of the site's own. Array reads, nothing searched (a candidate of
   // sim/settle, at most a searching village's reach a round).
   const siteFetch = (w, i, people) =>
     Math.min(
-      w.freshWalk[i] < WATER.search ? trips(people) * tripHours(w.freshWalk[i]) : Infinity,
+      w.freshWalk[i] < WATER.search ? dayFetch(w.freshWalk[i], people).hours : Infinity,
       ownWell(w, i, people),
       noWater(people),
     );
@@ -200,8 +246,7 @@ VB['sim/water'] = (() => {
   // walks to the well are one search outward from the green over the ground as it is walked now, shared by all the tiles and kept
   // within them (sourceSettled: at most the tiles given), a step costed as it is walked towards the well.
   function plotFetch(w, v, tiles, people) {
-    const out = new Map(),
-      n = trips(people);
+    const out = new Map();
     for (const t of tiles.keys()) out.set(t, siteFetch(w, t, people));
     if (v.well === null || w.fresh[v.well] !== FRESH.WELL) return out;
     const g = new Float32Array(w.N).fill(Infinity),
@@ -214,7 +259,7 @@ VB['sim/water'] = (() => {
       if (done[i]) continue;
       done[i] = 1;
       VB.count.sourceSettled++;
-      if (out.has(i)) out.set(i, Math.min(out.get(i), n * tripHours(g[i] / SPEED)));
+      if (out.has(i)) out.set(i, Math.min(out.get(i), dayFetch(g[i] / SPEED, people).hours));
       if (i !== v.center && !through(w, i)) continue;
       for (let k = 0; k < 6; k++) {
         const j = w.nb[i * 6 + k];
@@ -229,26 +274,28 @@ VB['sim/water'] = (() => {
     return out;
   }
   // A site's water as its leader would reckon it before placing the house on tile i, for `people` (design.md, In the leader's choice):
-  // {hours, share, by, source, village, well}. hours: the daily fetch, the least of what follows; share: of one hand's working day;
+  // {people, trips, hours, share, by, source, village, well}. people: for whom it is reckoned (one trip's by default, as the tile card
+  // asks), and trips: those they make a day, by hand alone (who settles brings no cart); hours: the daily fetch, the least of what
+  // follows; share: of one hand's working day;
   // by: which it is ('source', 'village', 'well', or 'none': no water in reach and no well in the ground, when hours is the farthest
   // fetch a farm makes); source: {name, walk, hours}, the nearest good water by the land's walk (w.freshWalk; null beyond
   // WATER.search); village: {name, walk, hours}, the well of the village v the site would join (joins, unless given; null where it
   // has none nearer than other water), by one search outward from the site over the ground as it is walked now; well: {band, name,
   // range ([least, most] hours of digging), dig (the estimate, the band's middle), hours (a day, the digging spread over
   // WELL.payYears)}, null where none can be dug. An estimate, never the depth: the band is all a pawn knows before it digs.
-  function siteWater(st, i, people = 1, v = joins(st, i)) {
+  function siteWater(st, i, people = WATER.hand, v = joins(st, i)) {
     const w = st.w,
-      n = trips(people),
+      fetch = (walk) => dayFetch(walk, people).hours,
       opts = [];
     let walk = w.freshWalk[i] < WATER.search ? w.freshWalk[i] : Infinity,
       village = null;
     if (v && v.well !== null) {
       const s = source(w, i, v);
-      if (s.cls === FRESH.WELL) village = { name: v.name, walk: s.walk, hours: n * tripHours(s.walk) };
+      if (s.cls === FRESH.WELL) village = { name: v.name, walk: s.walk, hours: fetch(s.walk) };
       else if (s.tile >= 0 && s.cls !== FRESH.MARSH) walk = Math.min(walk, s.walk); // good water nearer than the green, as walked now
     }
     const near = walk < Infinity ? sourceNear(w, i) : -1,
-      src = near < 0 ? null : { name: FRESHES[w.fresh[near]].name, walk, hours: n * tripHours(walk) },
+      src = near < 0 ? null : { name: FRESHES[w.fresh[near]].name, walk, hours: fetch(walk) },
       k = band(w.waterDepth[i]),
       well =
         w.waterDepth[i] < NO_WELL
@@ -265,7 +312,16 @@ VB['sim/water'] = (() => {
     if (well) opts.push(['well', well.hours]);
     opts.sort((a, b) => a[1] - b[1]);
     const [by, hours] = opts[0] || ['none', noWater(people)];
-    return { hours, share: hours / (WORK[1] - WORK[0]), by, source: src, village, well };
+    return {
+      people,
+      trips: dayFetch(0, people).hand,
+      hours,
+      share: hours / (WORK[1] - WORK[0]),
+      by,
+      source: src,
+      village,
+      well,
+    };
   }
   // A well stands on `tile` from now: a source on the map, and the farms it changes find their sources again: those of village v (its
   // own well, sim/green), or farm f alone (a household's, at its house: sim/wells), each with a source found.
@@ -300,12 +356,12 @@ VB['sim/water'] = (() => {
   });
   return {
     WATER,
-    walks,
     layWalk,
     source,
     find,
     sourceOf,
-    tripHours,
+    dayFetch,
+    atHome,
     waterOf,
     siteFetch,
     plotFetch,

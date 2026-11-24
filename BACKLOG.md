@@ -118,7 +118,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1540](backlog/VB-1540.md)<a id="VB-1540"></a> | Refactor: split sim/rules by concern | - | 3 | S | sim/rules is over 700 lines: the time constants and names stay; tables read by one domain move to it (VB-419), the rest are grouped by the domains that share them |
 | [VB-1556](backlog/VB-1556.md)<a id="VB-1556"></a> | A new site's well is dug by the party before the move | - | 3 | S | follows batches (b2) and (c) of VB-1543: the well as a job of the site |
 | [VB-1566](backlog/VB-1566.md)<a id="VB-1566"></a> | takeDay's missed member: one rule for whom the head allots | - | 3 | S | takeDay repeats allotted's terms but for the commanded pawn (found by VB-1560) |
-| [VB-1573](backlog/VB-1573.md)<a id="VB-1573"></a> | The day's fetch by the household's size where it is reckoned: the panel, the well's test, the site's panel | - | 3 | S | VB-1555 made the fetch grow with the household; the panel's water row, sim/wells pays and the site's panel still reckon one trip |
 
 </details>
 

@@ -10,7 +10,8 @@ const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { FRESH, WELL, NO_WELL, bandHours, bandMid } = VB['world/water'];
 const { SETTLE, YEAR_DAYS, WORK } = VB['sim/rules'];
 const { RIVER } = VB['sim/crops'];
-const { WATER, tripHours, siteFetch, siteWater } = Water;
+const { WATER, siteFetch, siteWater } = Water;
+const tripHours = (walk) => Water.dayFetch(walk, 1).hours; // one trip by hand
 let failed = 0;
 const check = (ok, m) => {
   if (!ok) {
@@ -34,7 +35,8 @@ const lay = (w, depth) => {
   for (let i = 0; i < w.N; i++) if (w.fresh[i] === FRESH.WELL) wells.push(i);
   for (const i of wells) w.fresh[i] = FRESH.NONE;
   w.waterDepth.fill(depth);
-  w.freshWalk = Water.walks(w);
+  delete w.freshWalk;
+  Water.layWalk(w);
   for (const i of wells) w.fresh[i] = FRESH.WELL;
 };
 const world = () => {
@@ -55,6 +57,13 @@ const cands = (st, v) => Settle.candidates(st, v, Settle.landInUse(st), Settle.r
     `beside a brook: the brook, a step off, 0.36 hours a day, no well (${JSON.stringify(by)})`,
   );
   check(near(by.share, by.hours / (WORK[1] - WORK[0]), 1e-9), `its share is of one hand's day (${by.share})`);
+  // for whom it is reckoned, and by hand alone (VB-1573): one trip for each six of the party; the tile card asks for one trip's people
+  const eight = siteWater(st, at(59, 12), 8, null),
+    card = siteWater(st, at(59, 12));
+  check(by.people === 3 && by.trips === 1, `reckoned for the party's three, in one trip (${by.people}, ${by.trips})`);
+  check(eight.people === 8 && eight.trips === 2 && near(eight.hours, 2 * by.hours, 1e-9), `eight make two trips by hand, twice the hours (${eight.hours})`);
+  check(near(eight.hours, Water.dayFetch(by.source.walk, 8).hours, 1e-9), 'the one reckoning, with no cart');
+  check(card.people === WATER.hand && card.trips === 1 && near(card.hours, by.hours, 1e-9), `the tile card's: for six, one trip (${card.people})`);
   const off = siteWater(st, at(53, 12), 3, null);
   check(off.by === 'source' && near(off.source.walk, 0.875) && near(off.hours, 1.95), `7 steps of meadow off: 1.95 hours (${JSON.stringify(off)})`);
   check(near(siteFetch(w, at(53, 12), 3), off.hours, 1e-6), 'the search weighs the same hours as the estimate shows');

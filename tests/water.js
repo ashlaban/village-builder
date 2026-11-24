@@ -13,7 +13,8 @@ const { checkState } = require('./lib/invariants.js');
 const { FRESH, WELL } = VB['world/water'];
 const { TICKS, DAY, WORK, HEALTH, cal } = VB['sim/rules'];
 const { KINDS } = VB['sim/kinds'];
-const { WATER, source, tripHours } = Water;
+const { WATER, source } = Water;
+const tripHours = (walk) => Water.dayFetch(walk, 1).hours; // one trip by hand
 let failed = 0;
 const check = (ok, m) => {
   if (!ok) {

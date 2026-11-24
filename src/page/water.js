@@ -49,8 +49,9 @@ function waterLines(i) {
 }
 // A site's water in words, from the leader's estimate e (Sim.siteWater; design.md, Water by the site, In the leader's choice):
 // {source: the nearest good water and the walk there and back, or that none is in reach; fetch: the day's fetch in hours, as a share of
-// one hand's day, and where it is drawn; well: the band of a well there with its range of hours, or that none can be dug}. The site
-// choice (VB-788, VB-1544) shows the three; the tile card has the first and the last in its own lines, and adds the fetch.
+// one hand's day, for how many people it is reckoned, by hand alone (VB-1573: who settles brings no hand cart), and where it is drawn;
+// well: the band of a well there with its range of hours, or that none can be dug}. The site choice (VB-788, VB-1544) shows the
+// three; the tile card has the first and the last in its own lines, and adds the fetch, for one trip's people.
 function siteWaterWords(e) {
   const from = {
     source: () => `from ${e.source.name}`,
@@ -60,7 +61,9 @@ function siteWaterWords(e) {
   }[e.by]();
   return {
     source: e.source ? `${e.source.name}, ${walkWords(2 * e.source.walk)} there and back` : 'no fresh water in reach',
-    fetch: `water ${e.hours.toFixed(1)} hours a day, ${Math.round(e.share * 100)}% of one hand's day (${from})`,
+    fetch:
+      `water ${e.hours.toFixed(1)} hours a day for ${e.people} ${e.people === 1 ? 'person' : 'people'} by hand, ` +
+      `${Math.round(e.share * 100)}% of one hand's day (${from})`,
     well: e.well
       ? `a well here: ${e.well.name}, ${e.well.range[0]} to ${e.well.range[1]} hours`
       : 'no well can be dug here',

@@ -1,7 +1,7 @@
 // VB-1553: wells are dug. On drawn maps (tests/lib/tiny.js): a well's hours and stone are by the depth of its tile, one rule for a
 // household's and a village's (2 m: 24 hours and 2 loads; 10 m: 56 and 6); a household inland gathers the lining's stone, digs by its
-// house and then fetches in the drawing alone; a household beside a brook does not dig; no well is begun on ground with none, and the
-// verb says why not; a village's green lies where the water is reckoned shallowest, its well's step by the depth, and a green whose
+// house and then fetches in the drawing alone; a household beside a brook does not dig, and one of twelve at the same walk does (VB-1573);
+// no well is begun on ground with none, and the verb says why not; a village's green lies where the water is reckoned shallowest, its well's step by the depth, and a green whose
 // ground has no well is laid out without one; village.well is the well's tile, and a save with the boolean loads.
 const VB = require('../src/load.js'),
   Sim = VB.sim,
@@ -15,7 +15,8 @@ const { checkState } = require('./lib/invariants.js');
 const { FRESH, NO_WELL, wellHours, wellStone, bandStone, bandHours } = VB['world/water'];
 const { DAY } = VB['sim/rules'];
 const { issue } = VB['sim/commands'];
-const { WATER, tripHours } = Water;
+const { WATER } = Water;
+const tripHours = (walk) => Water.dayFetch(walk, 1).hours; // one trip by hand
 let failed = 0;
 const check = (ok, m) => {
   if (!ok) {
@@ -35,9 +36,10 @@ check(wellHours(10) === 56 && wellStone(10) === 6, `in 10 m: 56 hours and 6 load
 check(wellStone(1) === 2 && wellStone(4) === 3 && wellStone(20) === 11, 'shallow 2 or 3 loads, the deepest 11');
 check([0, 1, 2].map(bandStone).join() === '3,6,11', 'the stone set aside is the band\'s most');
 
-// A lone farm with a brook `steps` tiles east of its house, in ground `depth` metres to the water; the farm's starting well taken away.
-const lone = (steps, depth) => {
-  const lay = (ww) => tinyState(ww, [{ at: [8, 6], farms: 1, sizes: [4] }], { seed: 7 });
+// A lone farm of `n` people with a brook `steps` tiles east of its house, in ground `depth` metres to the water; the farm's starting
+// well taken away.
+const lone = (steps, depth, n = 4) => {
+  const lay = (ww) => tinyState(ww, [{ at: [8, 6], farms: 1, sizes: [n] }], { seed: 7 });
   const w = tinyWorld(meadow(30, 13), { stones: 200 }),
     house = lay(tinyWorld(meadow(30, 13))).farmsteads[0].house;
   brook(w, house + steps);
@@ -89,6 +91,37 @@ const wellPlan = (st, hh) => Projects.projectsOf(st, 'household', hh.id).find((p
   Sim.advance(st, 16 * DAY);
   check(!wellPlan(st, hh) && w.fresh[f.house] === FRESH.NONE, 'and with stone on the heap its head begins none');
   check(project(st, hh) === true && wellPlan(st, hh), 'the played head may dig all the same');
+}
+// ---- 3b. the well is weighed by the household's day's fetch (VB-1573): a household of 12 digs where one of 4 at the same walk does not ----
+{
+  const four = lone(1, 10),
+    { st, w, hh, f } = lone(1, 10, 12),
+    W = Sim.waterOf(st, f);
+  check(four.hh.members.length === 4 && !Wells.pays(four.st, four.f), 'four, a step from the brook in middling ground: one trip a day, no well pays');
+  check(hh.members.length === 12 && near(f.water.walk, four.f.water.walk, 1e-9), `twelve at the same walk (${hh.members.length}, ${f.water.walk})`);
+  check(
+    W.people === 12 && W.hand === 2 && W.cart === 0 && near(W.hours, 2 * tripHours(f.water.walk), 1e-9) && W.byHand === W.hours,
+    `their day's fetch is two trips by hand (${JSON.stringify(W)})`,
+  );
+  check(Wells.pays(st, f), 'a well pays the twelve');
+  // with a hand cart the twelve fetch in one trip, the cheaper: the well saves less, and in middling ground does not pay
+  hh.carts = [{ kind: 'hand', cond: 1, built: 0, by: null }]; // a test's write
+  const C = Sim.waterOf(st, f);
+  check(C.kind === 'hand' && C.cart === 1 && C.hand === 0 && C.hours < C.byHand && C.byHand === W.hours, `with a cart, one trip of its barrel (${JSON.stringify(C)})`);
+  check(!Wells.pays(st, f), 'and the well no longer pays: what it saves is the cart\'s trip, not two by hand');
+  hh.carts = [];
+  for (const id of hh.members.slice(0, 7)) if (id !== hh.holder) st.agents[id].away = {}; // a test's write: six or seven of them away
+  check(Sim.waterOf(st, f).people <= 6 && !Wells.pays(st, f), `with six at home it is one trip again, and no well pays (${Sim.waterOf(st, f).people})`);
+  for (const id of hh.members) delete st.agents[id].away;
+  Stores.put(st, hh, 'stone/granite', 6, 'pick');
+  Stores.put(four.st, four.hh, 'stone/granite', 6, 'pick');
+  let days = 0;
+  for (; days < 60 && w.fresh[f.house] !== FRESH.WELL; days++) Sim.advance(st, DAY);
+  Sim.advance(four.st, 16 * DAY);
+  check(w.fresh[f.house] === FRESH.WELL, `the twelve dig their well (${days} days)`);
+  check(!wellPlan(four.st, four.hh) && four.w.fresh[four.f.house] === FRESH.NONE, 'and the four, with the stone on their heap, begin none');
+  const bad = checkState(st);
+  check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
 }
 // ---- 4. no well is begun on ground with none; nor beside a project under way ----
 {
