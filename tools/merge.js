@@ -9,11 +9,17 @@
 //             for Kim and Blocked come out in the order "How this backlog works" sets (tools/backlog.js); Done tasks keeps our
 //             order and appends theirs. A row changed differently on both sides, a row removed on one side and changed on the
 //             other, and one ID added differently on both sides (two branches took the same new ID) stay conflicts.
+//   json      the JSON lists and tables (src/owners.json, src/page.json, src/manifest.json, src/layers.json, tests/counters.json):
+//             objects merge key by key, arrays of names element by element (an element added on one side goes after the element
+//             it followed there; ours before theirs at the same place), and the result is printed in the file's own layout (the
+//             printer that reproduces ours: two-space JSON, or Prettier with the repository's settings). A value changed two ways
+//             is a conflict, but in tests/counters.json, a recorded measurement, where the incoming side's value is kept (Kim,
+//             24 November 2026). A reordered array, or one with repeated elements, is a conflict.
 // Without --install, git merges these files as text, as before: a clone without the drivers is no worse off.
 require('./help.js')(__filename);
 const fs = require('fs'), { spawnSync } = require('child_process');
 
-const DRIVERS = { backlog: 'task rows merged by ID (tools/merge.js)' };
+const DRIVERS = { backlog: 'task rows merged by ID (tools/merge.js)', json: 'JSON merged by key and element (tools/merge.js)' };
 
 // ---- shared: a three-way choice, and the text merge git itself does
 const same = (x, y) => JSON.stringify(x) === JSON.stringify(y);
@@ -102,7 +108,71 @@ function separatorUnder(lines, heading) {
 const tableUnder = (lines, heading) => { const s = separatorUnder(lines, heading), rows = []; if (s < 0) return rows;
   for (let i = s + 1; i < lines.length && lines[i].startsWith('|'); i++) rows.push(lines[i]); return rows; };
 
-const MODES = { backlog };
+// ---- json: by key and by element, printed in the file's own layout
+const INCOMING = new Set(['tests/counters.json']); // a scalar changed two ways keeps theirs, the incoming side's
+const isObj = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
+// a merged order: ours, less what theirs removed, plus what theirs added, each after the item it followed in theirs
+function mergeOrder(o, a, b) {
+  const inO = new Set(o), inB = new Set(b), addedA = new Set(a.filter((x) => !inO.has(x)));
+  const out = a.filter((x) => inB.has(x) || !inO.has(x)), inOut = new Set(out);
+  for (let i = 0; i < b.length; i++) {
+    const x = b[i]; if (inOut.has(x)) continue;
+    if (inO.has(x)) continue; // removed by ours
+    let at = 0;
+    for (let j = i - 1; j >= 0; j--) if (inOut.has(b[j])) { at = out.indexOf(b[j]) + 1; break; }
+    while (at < out.length && addedA.has(out[at])) at++; // ours' additions at the same place come first
+    out.splice(at, 0, x); inOut.add(x);
+  }
+  return out;
+}
+// the common items keep one relative order on all three sides; else the merge would have to choose one
+const sameOrder = (o, a, b) => { const all = [o, a, b].map((v) => new Set(v)), common = o.filter((x) => all[1].has(x) && all[2].has(x));
+  const seq = (v) => v.filter((x) => common.includes(x)).join('\u0000'); return seq(a) === seq(o) && seq(b) === seq(o); };
+function mergeValue(o, a, b, incoming) {
+  const p = pick(o, a, b); if (p !== CONFLICT) return p;
+  if (a === undefined || b === undefined) return CONFLICT; // removed on one side, changed on the other
+  if (Array.isArray(a) && Array.isArray(b) && (o === undefined || Array.isArray(o))) {
+    const O = o || [], prim = (v) => v.every((x) => typeof x === 'string' || typeof x === 'number') && new Set(v).size === v.length;
+    if (![O, a, b].every(prim) || !sameOrder(O, a, b)) return CONFLICT;
+    return mergeOrder(O, a, b);
+  }
+  if (isObj(a) && isObj(b) && (o === undefined || isObj(o))) {
+    const O = o || {}, values = new Map(), out = {};
+    for (const k of new Set([...Object.keys(O), ...Object.keys(a), ...Object.keys(b)])) { // every key, so a removal meets a change
+      const v = mergeValue(O[k], a[k], b[k], incoming); if (v === CONFLICT) return CONFLICT;
+      values.set(k, v);
+    }
+    for (const k of mergeOrder(Object.keys(O), Object.keys(a), Object.keys(b))) if (values.get(k) !== undefined) out[k] = values.get(k);
+    return out;
+  }
+  return incoming && typeof b !== 'object' ? b : CONFLICT;
+}
+async function printers() {
+  const list = [['two-space JSON', (v) => JSON.stringify(v, null, 2) + '\n']];
+  let prettier; try { prettier = require('prettier'); } catch { return list; }
+  const cfg = (await prettier.resolveConfig(__filename)) || {};
+  list.push(['Prettier', (v) => prettier.format(JSON.stringify(v), { ...cfg, parser: 'json' })]);
+  list.push(['Prettier, no bracket spacing', (v) => prettier.format(JSON.stringify(v), { ...cfg, parser: 'json', bracketSpacing: false })]);
+  return list;
+}
+async function json(o, a, b, name) {
+  let O, A, B; try { [O, A, B] = [o, a, b].map((t) => (t.trim() ? JSON.parse(t) : undefined)); } catch { return textMerge(o, a, b); }
+  const merged = mergeValue(O, A, B, INCOMING.has(name));
+  if (merged === CONFLICT || merged === undefined) return { ...textMerge(o, a, b), note: merged === CONFLICT ? 'a value changed two ways' : '' };
+  if (same(merged, A)) return { text: a, clean: true }; // one side's value: its text as it stands
+  if (same(merged, B)) return { text: b, clean: true };
+  // the layout: the printer that reproduces ours exactly, else the one that keeps most of its lines
+  let best = null, score = -1;
+  for (const [label, print] of await printers()) {
+    const t = await print(A), lines = new Set(a.split('\n')), s = t === a ? Infinity : t.split('\n').filter((l) => lines.has(l)).length;
+    if (s > score) { best = [label, print]; score = s; }
+  }
+  const text = await best[1](merged);
+  if (!same(JSON.parse(text), merged)) return textMerge(o, a, b);
+  return { text, clean: true, note: score === Infinity ? '' : `printed as ${best[0]}, the nearest to ours` };
+}
+
+const MODES = { backlog, json };
 
 // ---- command line
 const args = process.argv.slice(2);
@@ -121,9 +191,11 @@ if (args[0] === '--install') {
 const [mode, base, ours, theirs, name] = args;
 if (!MODES[mode] || !theirs) { console.error('merge: MODE BASE OURS THEIRS [PATH], or --install (--help)'); process.exit(2); }
 const read = (f) => fs.readFileSync(f, 'utf8');
-let result;
-try { result = MODES[mode](read(base), read(ours), read(theirs)); }
-catch (e) { console.error(`merge: ${name || ours}: ${e.message}; left to git's text merge`); result = textMerge(read(base), read(ours), read(theirs)); }
-fs.writeFileSync(ours, result.text);
-if (result.note) console.error(`merge: ${name || ours}: ${result.note}`);
-process.exit(result.clean ? 0 : 1);
+(async () => {
+  let result;
+  try { result = await MODES[mode](read(base), read(ours), read(theirs), name); }
+  catch (e) { console.error(`merge: ${name || ours}: ${e.message}; left to git's text merge`); result = textMerge(read(base), read(ours), read(theirs)); }
+  fs.writeFileSync(ours, result.text);
+  if (result.note) console.error(`merge: ${name || ours}: ${result.note}`);
+  process.exit(result.clean ? 0 : 1);
+})();

@@ -1,5 +1,5 @@
 // tools/merge.js, the merge drivers (VB-1620), on constructed three-way cases: the backlog's task rows merge by ID and field and come out
-// in the backlog's order; what is not mechanical (a row changed both ways, an ID taken twice, a row removed on one side and changed on
+// in the backlog's order; JSON merges by key and element and keeps the file's layout; what is not mechanical (a row changed both ways, an ID taken twice, a row removed on one side and changed on
 // the other, prose changed both ways) stays a conflict with markers; and, end to end, `git merge` in a scratch repository runs the
 // driver that `--install` and `.gitattributes` set.
 const fs = require('fs'), os = require('os'), path = require('path'), { spawnSync } = require('child_process');
@@ -65,6 +65,38 @@ const archive = (ids) => ['# Backlog archive', '', '## Done tasks', '', '| Task 
 m = drive('backlog', archive(['VB-109', 'VB-150']), archive(['VB-109', 'VB-150', 'VB-170', 'VB-120']), archive(['VB-109', 'VB-150', 'VB-160']));
 expect('rows appended to the archive on both sides: ours in order, then theirs', m.clean && rows(m.text, 'Done tasks').join() === 'VB-109,VB-150,VB-170,VB-120,VB-160', m.text);
 
+// ---- json: objects by key, arrays by element, the file's own layout, a recorded measurement keeps the incoming side's value
+const J = (v) => JSON.stringify(v, null, 2) + '\n';
+const driveJ = (o, a, b, name = 'src/x.json') => {
+  const f = (n, s) => { const p = path.join(tmp, n); fs.writeFileSync(p, s); return p; };
+  const [po, pa, pb] = [f('o', o), f('a', a), f('b', b)];
+  const r = spawnSync(process.execPath, [tool, 'json', po, pa, pb, name], { encoding: 'utf8' });
+  return { clean: r.status === 0, text: fs.readFileSync(pa, 'utf8'), err: r.stderr };
+};
+m = driveJ(J(['a', 'b', 'c']), J(['a', 'b', 'x', 'c']), J(['a', 'b', 'y', 'c']));
+expect('json: elements added at one place on both sides: ours, then theirs', m.clean && m.text === J(['a', 'b', 'x', 'y', 'c']), m.text + m.err);
+m = driveJ(J(['a', 'b', 'c']), J(['a', 'c']), J(['a', 'b', 'c', 'z']));
+expect('json: an element removed on one side, one added on the other', m.clean && m.text === J(['a', 'c', 'z']), m.text + m.err);
+m = driveJ(J(['a', 'b', 'c']), J(['b', 'a', 'c']), J(['a', 'b', 'c', 'z']));
+expect('json: a reordered array is a conflict', !m.clean && /^<<<<<<< /m.test(m.text), m.text);
+m = driveJ(J({ k: 1, l: 2 }), J({ k: 1, l: 2, m: 3 }), J({ k: 1, l: 2, n: 4 }));
+expect('json: keys added on both sides', m.clean && m.text === J({ k: 1, l: 2, m: 3, n: 4 }), m.text + m.err);
+m = driveJ(J({ k: 1, l: 2 }), J({ k: 5, l: 2 }), J({ k: 6, l: 2 }));
+expect('json: a value changed two ways is a conflict', !m.clean, m.text);
+m = driveJ(J({ k: 1, l: 2 }), J({ k: 5, l: 2 }), J({ l: 2 }));
+expect('json: a key removed on one side and changed on the other is a conflict', !m.clean, m.text);
+m = driveJ(J({ k: 1, l: 2 }), J({ k: 5, l: 2, m: 0 }), J({ k: 6, l: 3 }), 'tests/counters.json');
+expect('json: counters.json keeps the incoming value of a counter re-recorded on both sides', m.clean && m.text === J({ k: 6, l: 3, m: 0 }), m.text + m.err);
+const owners = (extra) => `{\n  "fields": {\n    "st.a": {"owner": "sim/a", "category": "cache"},\n${extra}    "st.b": "signal"\n  }\n}\n`;
+m = driveJ(owners(''), owners('    "st.c": {"owner": "sim/c", "category": "cache"},\n'), owners('    "st.d": "signal",\n'), 'src/owners.json');
+expect('json: the file\'s own layout is kept (owners.json, inline objects without bracket spacing)',
+  m.clean && m.text === owners('    "st.c": {"owner": "sim/c", "category": "cache"},\n    "st.d": "signal",\n'), m.text + m.err);
+for (const f of ['src/owners.json', 'src/layers.json', 'src/page.json', 'src/manifest.json', 'tests/counters.json']) {
+  const t = fs.readFileSync(path.join(root, f), 'utf8');
+  m = driveJ(t, t, t, f);
+  expect(`json: ${f} merged with itself is unchanged`, m.clean && m.text === t, m.err);
+}
+
 // this checkout's own files merged with themselves come out unchanged
 for (const f of ['BACKLOG.md', 'BACKLOG_ARCHIVE.md']) {
   const t = fs.readFileSync(path.join(root, f), 'utf8');
@@ -92,4 +124,4 @@ expect('git merge runs the driver: rows added on both sides merge clean', merged
 
 fs.rmSync(tmp, { recursive: true, force: true });
 if (errors.length) { console.log('MERGE FAIL:\n  ' + errors.join('\n  ')); process.exit(1); }
-console.log('merge: the backlog driver merges rows by ID and field, keeps the non-mechanical conflicts, and runs under git merge');
+console.log('merge: backlog rows by ID and field, JSON by key and element in its own layout; the non-mechanical conflicts kept; runs under git merge');

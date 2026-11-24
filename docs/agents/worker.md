@@ -81,4 +81,5 @@ push. Candidates are never ready. Prefer small tasks that unblock others.
 - `BACKLOG.md` and `BACKLOG_ARCHIVE.md` merge by task row once `npm install` has set the merge drivers (`tools/merge.js`, VB-1620): rows
   changed on different sides merge themselves. What conflicts still is a real clash: one ID taken by two branches (renumber yours, as
   "How this backlog works" says), a row changed two ways, or a row done on one side and changed on the other. Resolve it from the task
-  files and run `node tools/backlog.js sync`, which rebuilds the tables from them.
+  files and run `node tools/backlog.js sync`, which rebuilds the tables from them. The JSON lists (`src/owners.json`, `page.json`,
+  `manifest.json`, `layers.json`, `tests/counters.json`) merge by key and element the same way; `npm test` after the merge checks the order.
