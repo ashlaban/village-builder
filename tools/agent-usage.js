@@ -8,7 +8,7 @@
 // Cost is one weighted number, in fresh-input tokens: input + 1.25 × cache writes + 0.1 × cache reads + 5 × output (about the prices'
 // ratios). The summary gives the run's three measures: weighted cost a finished task by size, the overhead (the orchestrator's share
 // of the cost, and the median boot), and with --results the share of tasks done at the first attempt.
-const fs = require('fs'), os = require('os'), path = require('path');
+const fs = require('fs'), path = require('path'), transcript = require('./lib/transcript.js');
 const USAGE = `usage: node tools/agent-usage.js [FILE.jsonl] [--json] [--turns] [--since T] [--until T] [--label NAME] [--task VB-NNN] [--out DIR] [--results FILE]
        node tools/agent-usage.js --history DIR
   FILE        a transcript; default the newest under ~/.claude/projects (this session's, when run from a session)
@@ -29,22 +29,13 @@ const fail = (msg) => { console.error('agent-usage: ' + msg); process.exit(1); }
 const k = (n) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(n));
 const kb = (n) => (n >= 1000 ? (n / 1000).toFixed(1) + ' KB' : n + ' B');
 
-function newest() {
-  const base = path.join(process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude'), 'projects');
-  const files = fs.existsSync(base) ? fs.readdirSync(base).flatMap((d) => {
-    const dir = path.join(base, d);
-    return fs.statSync(dir).isDirectory() ? fs.readdirSync(dir).filter((f) => f.endsWith('.jsonl')).map((f) => path.join(dir, f)) : [];
-  }) : [];
-  if (!files.length) fail(`no transcript under ${base}; give a FILE`);
-  return files.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0];
-}
+const newest = () => transcript.newest() || fail(`no transcript under ${transcript.projects()}; give a FILE`);
 
 // The measures of one transcript.
-const weighted = (t) => Math.round(t.input + 1.25 * t.cacheWrite + 0.1 * t.cacheRead + 5 * t.output);
+const { weighted, contextOf } = transcript;
 const EDITS = ['Edit', 'Write', 'NotebookEdit'];
 function measure(file, sub = false) {
-  const entries = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } })
-    .filter((e) => e && e.timestamp && (!since || e.timestamp >= since) && (!until || e.timestamp < until));
+  const entries = transcript.entries(file).filter((e) => e.timestamp && (!since || e.timestamp >= since) && (!until || e.timestamp < until));
   const m = { session: (entries.find((e) => e.sessionId) || {}).sessionId || path.basename(file, '.jsonl'), label, models: [],
     start: entries.length ? entries[0].timestamp : null, end: entries.length ? entries[entries.length - 1].timestamp : null,
     wallMin: 0, activeMin: 0, prompts: 0, calls: 0, subagentCalls: 0,
@@ -66,7 +57,7 @@ function measure(file, sub = false) {
     }
     if (e.type === 'assistant' && e.message && e.message.usage && !seen.has(e.message.id)) {
       seen.add(e.message.id);
-      const u = e.message.usage, ctx = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0);
+      const u = e.message.usage, ctx = contextOf(u);
       if (e.isSidechain && !sub) m.subagentCalls++; else m.calls++;
       if (e.message.model) models.add(e.message.model);
       m.tokens.input += u.input_tokens || 0; m.tokens.cacheWrite += u.cache_creation_input_tokens || 0;
@@ -79,7 +70,7 @@ function measure(file, sub = false) {
       for (const c of content) if (c.type === 'tool_use') uses.set(c.id, { name: c.name, input: c.input || {}, at: t });
       const u = e.message.usage;
       if (!m.context.firstEdit && u && content.some((c) => c.type === 'tool_use' && EDITS.includes(c.name))) {
-        m.context.firstEdit = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0);
+        m.context.firstEdit = contextOf(u);
       }
     }
     if (e.type === 'user' && Array.isArray(content)) {
