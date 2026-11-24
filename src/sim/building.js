@@ -413,7 +413,8 @@ VB['sim/building'] = (() => {
     return pick >= 0 ? { tile: pick, kind: 'pick' } : { tile: rock, kind: rock >= 0 ? 'quarry' : null };
   }
   // The building step a household's plan holds after a review: open while its house stands on the ground, lived in by it, and it has no
-  // land project under way when the step would open (a household makes its land first); its source kept while a load can still be got there.
+  // large project under way when the step would open (the head's prudence, its own choice: a household makes its land first; not for
+  // the played head's foundation task, which goes beside any other, VB-1640); its source kept while a load can still be got there.
   // It is also open, whatever the house and the land, while the household wants a quern and its heap lacks the load to hew it from (VB-009);
   // then its source is one that gives such a load, and a quarry of another rock is searched again (VB-733). And while its head means to
   // dig a well and the heap lacks the lining's stone (sim/wells, VB-1584): in a booth too, where the site was chosen for its well
@@ -434,7 +435,7 @@ VB['sim/building'] = (() => {
       f.household !== hh.id ||
       (f.booth && !well) ||
       (f.grade !== 'ground' && !other) ||
-      (!old && !other && Projects.ownOf(st, hh.id))
+      (!old && !other && !foundationAsked(st, hh, f) && Projects.ownOf(st, hh.id))
     )
       return null;
     const stale = quern && old && old.kind === 'quarry' && !hewable(rockAt(st.w, old.tile));

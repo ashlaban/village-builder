@@ -141,5 +141,67 @@ function run(st, kind, days = 80) {
   sound(back, 'loaded mid-chain');
   console.log(`  barn: waits ${[...waits].join(', ')}; laid ${[...laid].join(', ')}`);
 }
+// ---- 5. VB-1640: a barn, a byre and the foundation planned at once, each under way beside the others and carried through in the plan's
+// order; the refusals that remain (the same making twice); a save and a load with the three under way go on the same ----
+{
+  const { st, hh, f } = village();
+  const { VERBS } = VB['sim/commands'],
+    verb = (what) => VERBS.project.check(st, { actor: 0, verb: 'project', target: hh.id, args: { what }, source: 'player' });
+  VB['sim/byrehouse'].noByre(st, f); // the farm without the byre the seed gives it
+  Stores.put(st, hh, 'timber', BUILD.barn.timber + BUILD.byre.timber, 'felling');
+  Stores.put(st, hh, 'stone/granite', BUILD.foundationStone, 'pick');
+  assert.strictEqual(Sim.plan(st, 'add', { outbuilding: f.house, what: 'barn' }), true);
+  assert.strictEqual(Sim.plan(st, 'add', { outbuilding: f.house, what: 'byre' }), true, 'a byre beside the barn at the house');
+  assert.strictEqual(Sim.plan(st, 'add', { foundation: f.house }), true, 'the foundation beside both');
+  assert.match(String(Sim.plan(st, 'add', { outbuilding: f.house, what: 'barn' })), /already planned/, 'one barn');
+  assert.match(String(Sim.plan(st, 'add', { foundation: f.house })), /planned already/, 'one foundation');
+  let saved = null,
+    all = false;
+  const under = (s) => {
+    const v = Sim.farmView(s, s.households[hh.id].farmstead === null ? f.id : s.households[hh.id].farmstead);
+    return [v.outbuildings.find((o) => o.what === 'barn').building, v.outbuildings.find((o) => o.what === 'byre').building, v.foundation.building];
+  };
+  for (let i = 0; i < 120 * 240 && st.player.plan.tasks.some((t) => t.kind === 'outbuilding' || t.kind === 'foundation'); i++) {
+    Sim.advance(st, 0.1);
+    if (!saved && under(st).every((b) => b)) {
+      all = true;
+      const whys = Sim.farmView(st, f.id).outbuildings.map((o) => o.why).concat(Sim.farmView(st, f.id).foundation.why);
+      assert(whys.every((w) => w === null || !/has a (?!barn|byre|stone foundation)\w+ under way/.test(w)), `no why names another making: ${whys}`);
+      assert.match(String(verb('barn')), /has a barn under way/, 'a second barn refused');
+      assert.match(String(verb('byre')), /has a byre under way/, 'a second byre refused');
+      assert.deepStrictEqual(Sim.headView(st, hh.id).projects.map((p) => p.what).sort(), ['barn', 'byre'], 'headView().projects');
+      saved = JSON.parse(JSON.stringify(Sim.save(st)));
+    }
+  }
+  assert(all && saved, 'the barn, the byre and the foundation under way together');
+  assert(f.barn && f.byre && f.grade === 'stone', `all three carried through: barn ${!!f.barn}, byre ${!!f.byre}, ${f.grade}`);
+  sound(st, 'three side by side');
+  const back = Sim.load(world(), saved),
+    again = Sim.load(world(), saved);
+  Sim.advance(back, 48);
+  Sim.advance(again, 24);
+  Sim.advance(again, 24);
+  assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
+  sound(back, 'three side by side, loaded');
+  console.log(`  three side by side: done in ${(st.t / DAY).toFixed(0)} days`);
+}
+// ---- 6. VB-1640: an unplayed head's verb begins a field and a barn together (its own rule would not), both carried through ----
+{
+  const { st } = village();
+  const hh = st.households.find((h) => !h.dissolved && h.holder !== null && h.holder !== 0 && h.farmstead !== null),
+    f = st.farmsteads[hh.farmstead],
+    act = (args) => VB['sim/commands'].issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args, source: 'pawn' });
+  for (const p of projectsOf(st, 'household', hh.id)) act({ what: null }) && VB['sim/commands'].issue(st, { actor: hh.holder, verb: 'dropProject', target: hh.id, args: { id: p.id }, source: 'pawn' });
+  const fields = f.fields.length;
+  assert.strictEqual(act({ what: 'field' }), true, 'a field begun');
+  assert.strictEqual(act({ what: 'barn' }), true, 'a barn begun beside it, by the verb');
+  assert.match(String(act({ what: 'barn' })), /has a barn under way/, 'not a second barn');
+  const tile = projectsOf(st, 'household', hh.id).find((p) => p.what === 'field').steps[0].place;
+  assert.match(String(act({ what: 'meadow', tile })), /under way at/, 'one project a tile');
+  sound(st, 'a field and a barn');
+  for (let d = 0; d < 200 && !(f.barn && f.fields.length > fields); d++) Sim.advance(st, DAY);
+  assert(f.barn && f.fields.length > fields, `both carried through: barn ${!!f.barn}, fields ${fields} to ${f.fields.length}`);
+}
 console.log('farmtasks: by hand neither begun by itself; the refusals; the foundation by the plan, outside the slack, and the slack wait '
-  + 'for a head left to its rule; the barn by the plan, the timber at home first; a save mid-chain the same');
+  + 'for a head left to its rule; the barn by the plan, the timber at home first; a save mid-chain the same; a barn, a byre and the '
+  + 'foundation side by side; an unplayed head\'s field and barn by the verb');

@@ -12,7 +12,7 @@ VB['sim/planview'] = (() => {
   // A task at a tile as the view shows it: its tile (under its chain's name), the kind of the step open or next (`step`, null with none
   // left), whether that step's job is posted (`stands`), and its job's key (null while not posted).
   function chainView(st, hid, t) {
-    const s = chainSteps(st, hid, t.kind, t[t.kind]),
+    const s = chainSteps(st, hid, t.kind, t[t.kind], t),
       x = s && s.steps[0];
     return {
       [t.kind]: t[t.kind],

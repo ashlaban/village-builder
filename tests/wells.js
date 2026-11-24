@@ -123,7 +123,7 @@ const wellPlan = (st, hh) => Projects.projectsOf(st, 'household', hh.id).find((p
   const bad = checkState(st);
   check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
 }
-// ---- 4. no well is begun on ground with none; nor beside a project under way ----
+// ---- 4. no well is begun on ground with none; nor by the head's own rule beside a project under way (the verb begins one, VB-1640) ----
 {
   const { st, hh, f } = lone(7, NO_WELL);
   Stores.put(st, hh, 'stone/granite', 12, 'pick');
@@ -136,8 +136,8 @@ const wellPlan = (st, hh) => Projects.projectsOf(st, 'household', hh.id).find((p
   const { st, hh, f } = lone(7, 6);
   Stores.put(st, hh, 'stone/granite', 12, 'pick');
   check(project(st, hh, 'meadow') === true || project(st, hh, 'field') === true, 'a land project begun');
-  check(/project under way/.test(project(st, hh)), `a project under way: no well (${project(st, hh)})`);
-  check(Wells.stoneLacking(st, hh, f) === 0, 'and no stone is gathered for one');
+  check(Wells.stoneLacking(st, hh, f) === 0, 'the head\'s own rule means no well beside it: no stone is gathered for one');
+  check(project(st, hh) === true, 'the verb begins one beside it (VB-1640)');
 }
 // ---- 5. the village's well: the green where the water is reckoned shallowest, the well's step by the depth; none where the ground has none ----
 {

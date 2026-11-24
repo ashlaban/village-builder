@@ -348,11 +348,11 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   };
   const a = pick('field', [site]), b = pick('field', [site, a]), m = pick('meadow', [site, a, b]);
   assert(a >= 0 && b >= 0 && m >= 0, `tiles for two fields and a meadow beside the open project: ${[a, b, m]}`);
-  assert.match(String(may('field', a, 'pawn')), /has a field under way/, 'the holder\'s own rule keeps the limit of one');
+  assert.strictEqual(may('field', a, 'pawn'), null, 'the check refuses no second for the holder\'s own rule either (VB-1640)');
   assert.match(String(may('field', site)), /under way at/, 'one project a tile');
-  // the head unplayed is refused a second as before
+  // the head unplayed is not refused a second either (VB-1640): its land step keeps its prudence of one
   Sim.uninhabit(st);
-  assert.match(String(may('field', a)), /has a field under way/, 'an unplayed head is refused a second');
+  assert.strictEqual(may('field', a), null, 'an unplayed head\'s verb begins a second');
   played(st);
   assert.strictEqual(Sim.plan(st, 'add', { plant: a }), true, 'no mark needed');
   assert.strictEqual(Sim.plan(st, 'add', { plant: b }), true);
@@ -407,8 +407,10 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   const begun = chainRun(st, (s) => {
     look(s);
     apart = Math.max(apart, [...s.jobs.values()].filter((j) => j.owner.type === 'household' && j.owner.id === 0 && P.onProject(s, j)).length);
-    const keys = P.projectsOf(s, 'household', 0).filter((p) => p.side).length;
-    if (!saved && keys === 3) {
+    // begun beside the first; the fields, of its kinds, marked `side` (VB-1640: a plan of kinds of its own keeps its key)
+    const beside = P.projectsOf(s, 'household', 0).filter((p) => p.id !== first.id && p.what !== 'cottage');
+    if (!saved && beside.length === 3) {
+      assert(beside.filter((p) => p.what === 'field').every((p) => p.side), 'the fields beside the first are keyed apart');
       const pv = Sim.headView(s, 0);
       assert.deepStrictEqual(pv.projects.map((p) => p.tile).sort(), [site, a, b, m].sort((x, y) => x - y), 'headView().projects');
       assert.deepStrictEqual(pv.project.id, first.id, 'project stays the first');

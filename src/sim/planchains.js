@@ -21,10 +21,11 @@ VB['sim/planchains'] = (() => {
   const { woodWhy } = VB['sim/territory'];
   // ---- a task at a tile (VB-1621, VB-1622; Kim, 24 Nov 2026): a chain of steps carried at one tile ----
   // A chain is declared as data (CHAINS): the land project a tile the head has marked for it begins (`mark`: 'field' or 'meadow', or
-  // null), what of the household's stands at a tile for it (`at`: {f, fd} a field, {f, m} a meadow, {plan, f} its open project making
-  // one, or null), why nothing does (`none`), why what stands there takes no task now (`why`), its steps in the order the work goes after
-  // any project's (`steps`: [{kind, hours (of one piece), n (pieces: the loads of a carrying, else 1), from (the game hour it may begin,
-  // while its job is not posted)}]), why it leaves the plan (`gone`: one of `which`, or null while it stands), the job kinds it covers
+  // null), what of the household's stands at a tile for it (`at`, given the task when it is read for one, VB-1640: {f, fd} a field,
+  // {f, m} a meadow, {plan, f} its open project making one, or null), why nothing does (`none`), why what stands there takes no task
+  // now (`why`), its steps in the order the work goes after any project's (`steps`: [{kind, hours (of one piece), n (pieces: the
+  // loads of a carrying, else 1), from (the game hour it may begin, while its job is not posted)}]), why it leaves the plan (`gone`:
+  // one of `which`, or null while it stands), the job kinds it covers
   // (`kinds`, sim/agenda's gaps) and its deadline (`deadline`, {t, what}: `frost` the autumn day of the frost the head expects, which
   // sim/reasons reckons and its reader passes). A project's tile and a marked one stand until the project is done, whatever the season.
   const SOWN = ['sown', 'growing', 'ripe', 'stooks'];
@@ -395,10 +396,10 @@ VB['sim/planchains'] = (() => {
   // What stands at `tile` for chain `name` of household hid: the chain's own (`at`), else the tile the head has marked for its next field
   // or meadow (sim/plans, plan.tiles) as {mark, f, tile}; else, for a task already planned (`planned`), its tile as one the played head's
   // verb `project` begins a field or meadow on (VB-1623: no mark needed; {mark, f, tile, free: true}); null for nothing.
-  function chainWhere(st, hid, name, tile, planned = false) {
+  function chainWhere(st, hid, name, tile, planned = false, task = null) {
     if (hid === null || hid === undefined || !Number.isInteger(tile) || tile < 0) return null;
     const C = CHAINS[name],
-      where = C.at(st, hid, tile);
+      where = C.at(st, hid, tile, task);
     if (where) return where;
     const plan = C.mark && st.plans.households.get(hid);
     if (plan && plan.tiles && plan.tiles[C.mark] === tile) return { mark: C.mark, f: homeOf(st, hid), tile };
@@ -428,8 +429,8 @@ VB['sim/planchains'] = (() => {
   // marked or free tile would begin) at their own hours, then the chain's: {where, steps: [{kind, job (its job posted at the tile, or
   // null), hours, n, from, what (what its `from` waits for, or absent)}]}; null where nothing of the household's stands there. A step
   // whose job is not posted now and that is listed only while posted (`posted`) is left out. Reads only.
-  function chainSteps(st, hid, name, tile) {
-    const where = chainWhere(st, hid, name, tile, true);
+  function chainSteps(st, hid, name, tile, task = null) {
+    const where = chainWhere(st, hid, name, tile, true, task);
     if (!where) return null;
     const p = where.plan || (where.mark ? markProject(st, hid, where.mark, tile) : null),
       first = p
@@ -449,8 +450,8 @@ VB['sim/planchains'] = (() => {
   }
   // Why a task of chain `name` leaves the plan now (one of the chain's `which`), or null: nothing of the household's stands there
   // ('gone'); a project's tile, a marked one or a free one stands.
-  function chainGone(st, hid, name, tile) {
-    const where = chainWhere(st, hid, name, tile, true);
+  function chainGone(st, hid, name, tile, task = null) {
+    const where = chainWhere(st, hid, name, tile, true, task);
     if (!where) return 'gone';
     return where.plan || where.mark ? null : CHAINS[name].gone(st, where);
   }

@@ -161,10 +161,6 @@ VB['sim/ladder'] = (() => {
   }
   // ---- why a rung cannot be begun now, in its own checks' words (null: it can) ----
   const own = (st, hh, f) => (!hh || f.household !== hh.id ? `farm ${f.id} has no household of its own` : null);
-  const busy = (st, hh) => {
-    const p = Projects.ownOf(st, hh.id);
-    return p ? `household ${hh.id} has a ${p.what} under way` : null;
-  };
   const WHY = {
     camp: () => 'a camp is not built',
     // the camp's head places the farmstead (sim/camp, the build menu's farmstead), which begins the shelter on the house tile; one begun
@@ -185,7 +181,8 @@ VB['sim/ladder'] = (() => {
           ? `household ${hh.id} has a cottage under way`
           : null),
   };
-  // the stone foundation's step (sim/building buildStep): a house from the cottage up on the ground, no project under way, none begun
+  // the stone foundation's step (sim/building buildStep): a house from the cottage up on the ground, none begun; beside any other project
+  // (VB-1640)
   const stoneWhy = (st, hh, f) =>
     own(st, hh, f) ||
     (f.booth
@@ -194,7 +191,7 @@ VB['sim/ladder'] = (() => {
         ? `the house at ${f.name} stands on stone`
         : stoneUnderWay(st, hh, f)
           ? `household ${hh.id} has a stone foundation under way`
-          : busy(st, hh));
+          : null);
   // an outbuilding: none built, none under way, and its making's own check (a barn: sim/aims barnWhy)
   const OUT_WHY = {
     barn: (st, hh, f) => own(st, hh, f) || barnWhy(st, hh),

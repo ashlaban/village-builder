@@ -13,8 +13,9 @@ VB['sim/projects'] = (() => {
   //   waits for a household, sim/plans' dropAll); it is not of the household's choosing (ownOf). A small construction (a cart, a boat, a tar
   //   pit: a few days' work; Kim, 21 Nov 2026) is marked `small: true` by the starter that makes it: begun and built beside any other plan,
   //   in a booth as in a house, one of a making (`what`) at a time (mayBegin), and not of the household's large projects (ownOf).
-  //   A field or meadow the played head begins beside another large project of the household's (VB-1623; sim/plans' landWhy) is marked
-  //   `side: true`, so that its steps' jobs are keyed apart (landProject); absent on every other plan.
+  //   A plan begun while another of the household's under way has steps of a kind it has (VB-1623 for the played head's fields, VB-1640
+  //   for every head and making: sim/projectplans makeProject) is marked `side: true`, so that its steps' jobs are keyed apart
+  //   (landProject); absent on every other plan, so that a run with one project at a time keeps its keys.
   //   A finished or dropped plan is removed, and a holder with none has no entry (Rules for cost, 1). st.plans.projectSeq: the last plan's id.
   //   st.plans.projects.heirPlots (VB-255): the households' plots for their heirs under way (the same plans as in `household`), an index
   //   of the live ones so that a village's plots are found without walking its households; written with the record, by sim/plans.
@@ -26,12 +27,12 @@ VB['sim/projects'] = (() => {
       list = P && P[type].get(id);
     return list || NONE;
   }
-  // The household's large project of its own choosing under way (a field, a meadow, a barn, a plot for its heir), or null: the guards' one
-  // read of it (the aims' menu, the land step, landWhy, buildStep, barnWhy, heirWhy, the verb dropProject). That a head begins no second
-  // large project is today's limit, not the design's (the limit of one project removed, Kim, 21 Nov 2026; how parallel projects are
-  // limited and ranked is VB-1472's). A settler household's cottage is not of its choosing: those guards that refused a farm with a booth
-  // still do (f.booth), and the others never counted it; a small construction (plan.small) is beside it as the cottage is. The played
-  // head's fields and meadows begun beside it (plan.side, VB-1623) come after it: the first made is the one read. Allocates nothing.
+  // The household's first large project of its own choosing under way (a field, a meadow, a barn, a plot for its heir), or null. No check
+  // refuses a project because another is under way (VB-1640; the limit of one removed, Kim, 21 Nov 2026): this is read by the head's own
+  // rule, its prudence of beginning one large project at a time (the land step, the aims' yearly look, the foundation's step of
+  // buildStep, the well's and the drain's looks, ownByre; how heads should choose among parallel projects is VB-1472's), by the verb
+  // dropProject, and by makeProject to mark a plan `side`. A settler household's cottage and a small construction (plan.small) are not
+  // counted. Those begun beside it (plan.side) come after it: the first made is the one read. Allocates nothing.
   function ownOf(st, id) {
     for (const plan of projectsOf(st, 'household', id)) if (plan.what !== 'cottage' && !plan.small) return plan;
     return null;
@@ -139,8 +140,8 @@ VB['sim/projects'] = (() => {
   // The open steps of the household's project plans but a plot's and a cottage's (a new field's clear and break, a meadow, a boat...), each
   // posted once the step before it is done, and not while it waits for timber (VB-300). A plot the household clears for its heir (VB-255) is
   // posted as every plot is (plotWork), a settler household's cottage by sim/building's boothWork. The key is the step's kind at the farm:
-  // the plans posted here open steps of kinds of their own (one large plan, and at most one small one of each making, mayBegin), so
-  // the keys of several plans under way do not meet (VB-1414); a field or meadow begun beside another (`side`, VB-1623) adds its plan's id.
+  // a plan begun beside another with steps of a kind it has (`side`, VB-1623, VB-1640) adds its plan's id, so the keys of several plans
+  // under way do not meet (VB-1414).
   const landProject = (st, hh, f, c, post) => {
     for (const p of projectsOf(st, 'household', hh.id)) {
       const s = p.what !== 'plot' && p.what !== 'cottage' ? p.steps[p.open] : null;

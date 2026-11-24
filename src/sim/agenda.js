@@ -196,7 +196,7 @@ VB['sim/agenda'] = (() => {
   // (the hour it may begin: a step not posted at its window's opening, or when its crop is expected ripe, its hay dry)}; with its
   // chain's deadline (`frost`: the autumn day of the frost the head expects).
   function chainParts(st, id, hid, tk, frost) {
-    const s = chainSteps(st, hid, tk.kind, tk[tk.kind]);
+    const s = chainSteps(st, hid, tk.kind, tk[tk.kind], tk);
     if (!s) return { parts: [], deadline: null };
     const on = s.where.fd ? { field: s.where.fd, farm: s.where.f } : null; // a field's step, whose normal hours are its crop's
     const parts = s.steps.map((x) => {

@@ -18,7 +18,7 @@ function checkState(st) {
   const bad = [], N = st.w.N, tileOk = (i) => Number.isInteger(i) && i >= 0 && i < N;
   // the open step of a household's land project (VB-123: the plan whose open step works under a stake), or null; a cottage's plan or a
   // small construction may stand before it in the list (VB-1411, VB-1414)
-  // the staked open steps of household id's project plans (several for the played head's fields and meadows side by side, VB-1623)
+  // the staked open steps of household id's project plans (several side by side, VB-1623, VB-1640)
   const projectSteps = (id) => {
     const l = st.plans && st.plans.projects && st.plans.projects.household.get(id), out = [];
     for (const p of l || []) if (p.steps[p.open] && p.steps[p.open].stake) out.push(p.steps[p.open]);
@@ -377,11 +377,15 @@ function checkState(st) {
       const h = (type === 'household' ? st.households : type === 'village' ? st.villages : st.pawns)[id];
       if (!h || h.dissolved) bad.push(`plans: project plans of a ${type} ${id} that is gone`); // a claimant who died: until the round (sim/farmclaims)
       if (!Array.isArray(list) || !list.length) { bad.push(`plans: ${type} ${id} keeps an empty list of project plans`); continue; }
-      // today's limit (VB-1472): one large plan of the household's own choosing, a settler household's cottage beside it (VB-1411), and
-      // small constructions (a cart, a boat, a tar pit) without number but one of a making (VB-1414); only those three are small; and
-      // beside them the played head's fields and meadows begun beside another (`side`, VB-1623), one a tile
-      if (type === 'household' && list.some((p) => p.side && p.what !== 'field' && p.what !== 'meadow')) bad.push(`plans: household ${id} has a ${list.find((p) => p.side && p.what !== 'field' && p.what !== 'meadow').what} begun beside another`);
-      if (type === 'household' && list.filter((p) => p.what !== 'cottage' && !p.small && !p.side).length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
+      // no limit on the household's projects (VB-1640), but their jobs' keys never meet (sim/projects landProject): of the plans it
+      // posts (not a plot's nor a cottage's), two with steps of a kind in common are not both unmarked `side`; small constructions one
+      // of a making (VB-1414)
+      if (type === 'household') {
+        const posted = list.filter((p) => p.what !== 'plot' && p.what !== 'cottage' && !p.side);
+        for (let i = 0; i < posted.length; i++) for (let k = i + 1; k < posted.length; k++)
+          if (posted[i].steps.some((x) => posted[k].steps.some((y) => y.kind === x.kind)))
+            bad.push(`plans: household ${id}'s ${posted[i].what} and ${posted[k].what} would post jobs of one key`);
+      }
       if (type === 'household') for (const p of list) {
         if (p.small && !['cart', 'boat', 'tarpit', 'well', 'loom'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is marked small`);
         if (!p.small && ['cart', 'boat', 'tarpit', 'well'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is not marked small`);
@@ -1486,11 +1490,11 @@ function checkState(st) {
       if (c.ref === undefined ? c.begun === null : (c.ref !== null && (c.begun === null || typeof c.ref !== 'object'))) bad.push(`player.queue[${n}]: ref ${JSON.stringify(c.ref)}, begun ${c.begun}`);
     });
     // its plan (VB-1618): absent until first planned; at most PLAN_MAX kinds of sim/kinds, each once, and tasks of distinct keys; the
-    // sleeping hours two distinct hours of the day; a task at a tile (VB-1621, VB-1622) a tile under its chain's name, one a chain a tile; the routine's done kinds of its own, on a day not after today; the commands it fed marked
+    // sleeping hours two distinct hours of the day; a task at a tile (VB-1621, VB-1622) a tile under its chain's name, one a chain a tile and a `what` (VB-1640); the routine's done kinds of its own, on a day not after today; the commands it fed marked
     const pp = pl.plan, PP = globalThis.VB['sim/playerplan'], PC = globalThis.VB['sim/planchains'], KS = globalThis.VB['sim/kinds'].KINDS, hr = (h) => typeof h === 'number' && h >= 0 && h < 24;
     if (pp !== undefined && !(pp && Array.isArray(pp.routine) && pp.routine.length <= PP.PLAN_MAX && pp.routine.every((k) => KS[k])
       && new Set(pp.routine).size === pp.routine.length && (pp.sleep === null || (pp.sleep && hr(pp.sleep.from) && hr(pp.sleep.until) && pp.sleep.from !== pp.sleep.until))
-      && Array.isArray(pp.tasks) && pp.tasks.length <= PP.PLAN_MAX && new Set(pp.tasks.map((x) => (x.key === undefined ? `${x.kind} ${x[x.kind]}` : x.key))).size === pp.tasks.length
+      && Array.isArray(pp.tasks) && pp.tasks.length <= PP.PLAN_MAX && new Set(pp.tasks.map((x) => (x.key === undefined ? `${x.kind} ${x[x.kind]} ${x.what}` : x.key))).size === pp.tasks.length
       && pp.tasks.every((x) => (x.key === undefined ? !!PC.CHAINS[x.kind] && Number.isInteger(x[x.kind]) && x.site === x[x.kind]
         : typeof x.key === 'string' && KS[x.kind] && Number.isInteger(x.site))) && Number.isInteger(pp.day) && pp.day * 24 <= st.t
       && Array.isArray(pp.done) && pp.done.every((k) => pp.routine.includes(k)) && new Set(pp.done).size === pp.done.length

@@ -19,15 +19,14 @@ VB['sim/byrehouse'] = (() => {
       ...(kind === 'byrewalls' ? { wood: 0, timber: BUILD.byre.timber } : {}),
     }));
   // Why household hh may not begin a byre now, or null: a farm of its own with none, its cottage built, a village wood to fell its timber
-  // in, no project under way (the byre is a large project, as the barn is).
+  // in, none under way; beside any other project (VB-1640; the byre is a large project, as the barn is).
   function byreWhy(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
     if (f.byre) return `${f.name} has a byre`;
     if (f.booth) return `${f.name} has no cottage yet`;
     if (!st.villages[f.village].wood.length) return `${st.villages[f.village].name} has no wood to fell its timber in`;
-    const p = Projects.ownOf(st, hh.id);
-    return p ? `household ${hh.id} has a ${p.what} under way` : null;
+    return Projects.underWay(st, hh.id, 'byre') ? `household ${hh.id} has a byre under way` : null;
   }
   declare('byre', {
     why: (st, hh) => byreWhy(st, hh),

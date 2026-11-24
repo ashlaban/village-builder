@@ -44,7 +44,8 @@ VB['sim/playerplan'] = (() => {
       const tile = g[name],
         why = chainWhy(st, pl.pawn, name, tile);
       if (why) return why;
-      if (pp.tasks.some((x) => chainOf(x) === name && x[name] === tile))
+      // one task a chain a tile, but for one of a different `what` there (VB-1640: a barn and a byre at the house side by side)
+      if (pp.tasks.some((x) => chainOf(x) === name && x[name] === tile && x.what === g.what))
         return `the ${CHAINS[name].noun} at ${tile} is already planned`;
       if (pp.tasks.length >= PLAN_MAX) return `the plan is full (${PLAN_MAX} tasks)`;
       const at = g.at === undefined || g.at === null ? pp.tasks.length : g.at;
@@ -107,7 +108,7 @@ VB['sim/playerplan'] = (() => {
       const t = pp.tasks[i];
       const name = chainOf(t);
       if (name) {
-        const which = chainGone(st, st.pawns[st.player.pawn].household, name, t[name]);
+        const which = chainGone(st, st.pawns[st.player.pawn].household, name, t[name], t);
         if (which) {
           pp.tasks.splice(i, 1);
           pp.last = { [name]: t[name], kind: name, site: t.site, t: st.t, which };

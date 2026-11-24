@@ -91,10 +91,11 @@ VB['sim/upgrade'] = (() => {
     }
   }
   // The byre (VB-1637; one rule for every household, Kim): a head not held off projects whose farm has its cottage, animals and no byre
-  // begins one (the making `byre`, sim/byrehouse) as soon as its hands are free of any other project (byreWhy), before its first winter
-  // if it can: its animals winter in the open until it stands (sim/byre).
+  // begins one (the making `byre`, sim/byrehouse, under byreWhy) as soon as its hands are free of any other large project (its prudence,
+  // its own choice and not a refusal, VB-1640), before its first winter if it can: its animals winter in the open until it stands.
   function ownByre(st, hh) {
-    if (!hh.herds.length || hh.holder === null || Projects.heldOff(st, hh.id) || byreWhy(st, hh) !== null) return;
+    if (!hh.herds.length || hh.holder === null || Projects.heldOff(st, hh.id) || Projects.ownOf(st, hh.id)) return;
+    if (byreWhy(st, hh) !== null) return;
     issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'byre' }, source: 'pawn' });
   }
   // ---- the chain: upgrade (CHAINS.upgrade) ----
@@ -226,7 +227,7 @@ VB['sim/upgrade'] = (() => {
   // head's verb `project` and the making of its name (sim/makings; a barn: sim/aims, under barnWhy), as the head's own rule would; then its
   // stages at the house, the timber trips a stage that carries timber lacks before it (their jobs at the wood, found by their keys), the
   // timber held at home first (outTimber, as the cottage's walls take it, VB-1632). It leaves when the farm has it ('built'), or when the
-  // household or its house is gone ('gone'). One outbuilding task at a house at a time (a household builds one large project at once).
+  // household or its house is gone ('gone'). One task an outbuilding, several at a house side by side (VB-1640): each read for its task.
   function openOut(st, hid, what) {
     for (const p of projectsOf(st, 'household', hid)) if (p.what === what) return p;
     return null;
@@ -242,10 +243,10 @@ VB['sim/upgrade'] = (() => {
       const why = outWhy(st, id, farmOf(st, st.pawns[id].household), g.what);
       return why === null ? { what: g.what } : why;
     },
-    at: (st, hid, tile) => {
+    at: (st, hid, tile, task) => {
       const f = farmOf(st, hid);
       if (!f || f.house !== tile || f.household !== hid) return null;
-      const t = taskAt(st, 'outbuilding', tile),
+      const t = task && task.kind === 'outbuilding' ? task : taskAt(st, 'outbuilding', tile),
         what = t ? t.what : null;
       return { f, hh: st.households[hid], tile, what, project: what ? openOut(st, hid, what) : null };
     },
@@ -286,21 +287,25 @@ VB['sim/upgrade'] = (() => {
       where.what && !where.project && !where.f[where.what] ? headCmd(id, where.hh.id, { what: where.what }) : null,
   };
   CHAINS.outbuilding = outbuilding;
-  // The timber household hid holds at home taken into the open step of the outbuilding its played head's task names, while that step
-  // carries timber and lacks it (through sim/stores, the reason 'build'); the loads taken. At each trip of timber home, and as a stage
-  // ends (the walls open).
+  // The timber household hid holds at home taken into the open step of each outbuilding its played head's tasks name, in the plan's
+  // order, while that step carries timber and lacks it (through sim/stores, the reason 'build'); the loads taken. At each trip of timber
+  // home, and as a stage ends (the walls open).
   function outTimber(st, hid) {
     const pl = st.player,
-      f = pl && st.pawns[pl.pawn].household === hid ? farmOf(st, hid) : null,
-      t = f && taskAt(st, 'outbuilding', f.house),
-      p = t && openOut(st, hid, t.what),
-      s = p && p.steps[p.open];
-    if (!s || !s.timber) return 0;
-    const hh = st.households[hid],
-      n = Math.min(Stores.heldOf(hh, 'timber'), lacks(s, s.timber));
-    if (!(n > 0)) return 0;
-    const got = Stores.take(st, hh, 'timber', n, 'build');
-    s.wood = (s.wood || 0) + got; // the timber brought from home, as a trip's load is (sim/building)
+      f = pl && st.pawns[pl.pawn].household === hid ? farmOf(st, hid) : null;
+    if (!f || !pl.plan) return 0;
+    let got = 0;
+    for (const t of pl.plan.tasks) {
+      const p = t.kind === 'outbuilding' && t.outbuilding === f.house ? openOut(st, hid, t.what) : null,
+        s = p && p.steps[p.open];
+      if (!s || !s.timber) continue;
+      const hh = st.households[hid],
+        n = Math.min(Stores.heldOf(hh, 'timber'), lacks(s, s.timber));
+      if (!(n > 0)) continue;
+      const took = Stores.take(st, hh, 'timber', n, 'build');
+      s.wood = (s.wood || 0) + took; // the timber brought from home, as a trip's load is (sim/building)
+      got += took;
+    }
     return got;
   }
   on('timberHome', (st, { household }) => outTimber(st, household));
