@@ -20,7 +20,7 @@ VB['sim/projectplans'] = (() => {
     if (k >= 0) st.plans.projects.heirPlots.splice(k, 1);
   }
   // Whether household id's plan of `what` with `steps` would open a step of a kind another of its plans posted by sim/projects'
-  // landProject (not a plot's nor a cottage's) has: then it is marked `side` and its jobs are keyed apart by its id (VB-1623, VB-1640).
+  // landProject (not a plot's nor a cottage's) has: then it is marked `side` and its jobs are keyed apart by its id (VB-1651, VB-1668).
   // A household with one such plan at a time, or plans of kinds of their own, keeps its keys. A few plans of a few steps.
   const posted = (what) => what !== 'plot' && what !== 'cottage';
   function besideKind(st, id, what, steps) {

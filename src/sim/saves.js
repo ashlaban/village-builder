@@ -401,12 +401,13 @@ VB['sim/saves'] = (() => {
     st.w = w;
     for (const k in DERIVED) st[k] = null;
     for (const k in DERIVED) if (DERIVED[k]) DERIVED[k](st);
+    VB['sim/climate'].layGround(st); // VB-808: the ground compiled on the bands' states, from the land as loaded
     VB['sim/fieldrec'].grounded(st); // VB-1520
     VB['sim/water'].wellsLoaded(st); // VB-1584: an older save's well, a boolean, is its tile
     VB['sim/thirst'].loaded(st); // VB-1585: a save from before a pawn's own thirst loads as having drunk
     VB['sim/stores'].heapsLoaded(st); // VB-733: an older save's heap of no rock, and its quern's `rock`
     VB['sim/quern'].quernsLoaded(st);
-    VB['sim/byrehouse'].byresLoaded(st); // VB-1637: an older save's farms read as having their byres
+    VB['sim/byrehouse'].byresLoaded(st); // VB-1665: an older save's farms read as having their byres
     const R = VB['sim/rng']; // a save from before a system's stream (VB-761's `making`): its stream from the seed and its name, as at seeding
     for (const k of R.SYSTEMS) if (!st.rng[k]) st.rng[k] = R.makeStream(data.seed, k);
     grownCustoms(st); // a save from before the last custom (VB-555)

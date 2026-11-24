@@ -1,8 +1,8 @@
-// @sys sim/sleep: sleep owed (VB-1615): the SLEEP tunable, what the hours owed cost in mood (sim/mood) and health (sim/hunger), and
+// @sys sim/sleep: sleep owed (VB-1643): the SLEEP tunable, what the hours owed cost in mood (sim/mood) and health (sim/hunger), and
 //   the page's read of the played pawn's sleep. The hours are the player's (st.player.sleep): sim/player keeps them each step and carries
 //   out the verb `sleep`; unplayed pawns do not sleep by this rule yet
 VB['sim/sleep'] = (() => {
-  // @tunable SLEEP: sleep for the played pawn (VB-1615; Kim, 24 Nov: "Night work at a cost; sleep can be a planned action. Sleep
+  // @tunable SLEEP: sleep for the played pawn (VB-1643; Kim, 24 Nov: "Night work at a cost; sleep can be a planned action. Sleep
   //   deprivation affects mood and (to a lesser degree initially, health)"). Starting values.
   // need: hours of sleep a day; each hour awake owes need / (24 - need) of an hour (need 8: half an hour), each hour asleep pays one,
   //   never under 0 and at most `cap` (two days and nights awake). An ordinary day (awake 6 to 18, WORK) owes 6 by its evening.

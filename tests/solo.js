@@ -23,7 +23,7 @@ for (const seed of [3, 5, 7, 11, 42]) {
   check(again.sex === p.sex && again.born === p.born && again.given === p.given, `${tag}: seeded differently twice`);
 }
 check(sexes.size === 2, `the settler is always ${[...sexes]}`);
-// VB-1544: no house stands on day 1 (a booth farm, its cottage a plan) and its shelter is begun on the house tile itself (VB-1638: no
+// VB-1544: no house stands on day 1 (a booth farm, its cottage a plan) and its shelter is begun on the house tile itself (VB-1666: no
 // booth of st.booths); the settler sleeps under the open sky (sim/building roofless) until the shelter stands, which is within the
 // season; then a year on.
 const B = VB['sim/building'], Projects = VB['sim/projects'];

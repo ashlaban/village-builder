@@ -476,7 +476,7 @@ VB['sim/opportunities'] = (() => {
     return out;
   }
 
-  // Only the work pawn id may take, as forPawn lists it (VB-1616: the agenda's open work, over its household's and village's jobs); [] for
+  // Only the work pawn id may take, as forPawn lists it (VB-1644: the agenda's open work, over its household's and village's jobs); [] for
   // a pawn with no household. Read-only, as forPawn.
   function workFor(st, id) {
     const view = actorView(st, id),

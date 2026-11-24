@@ -144,4 +144,12 @@ const adults = (st, hh) => hh.members.filter((id) => st.pawns[id].alive && age(s
   assert.ok(short > 9000 && short < 10000, `a task too big for its hands falls short by what its window leaves undone (${short})`);
   assert.strictEqual(Hands.shortOf(st, [[{ ...j, kind: 'cook' }, 10000, 0]], c), 0, 'work help does not take is not counted');
 }
-console.log('helpers ok: hands asked, answered by kin, opinion and the day, lent for hours as helpers; the tie by the hours; the shortfall');
+// ---- reaping's window ends at the frost the head expects, not this year's drawn day (VB-1175) ----
+{
+  const { st, j } = make();
+  const W = VB['sim/weather'], y = st.weather[st.weather.length - 1], c = { season: 1, sday: 0 }, reap = { ...j, kind: 'reap' };
+  const ends = [7, 11].map((d) => ((y.frost = d), Hands.windowEnd(st, reap, c)));
+  assert.strictEqual(ends[0], ends[1], 'the drawn frost does not move the window the head reckons to');
+  assert.strictEqual(ends[0], 2 * Sim.SEASON_DAYS + W.frostExpected(st), 'the window ends at the expected frost');
+}
+console.log('helpers ok: hands asked, answered by kin, opinion and the day, lent for hours as helpers; the tie by the hours; the shortfall; the expected frost');

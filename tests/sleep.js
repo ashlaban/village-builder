@@ -1,4 +1,4 @@
-// Sleep for the played pawn (VB-1615; sim/sleep, sim/player): the hours it owes rise awake and fall asleep; the verb `sleep` sends it home
+// Sleep for the played pawn (VB-1643; sim/sleep, sim/player): the hours it owes rise awake and fall asleep; the verb `sleep` sends it home
 // until its hour, and the queue goes on after it; a night worked is felt in mood by SLEEP.mood; health is touched only once a whole night
 // or more is owed; a save keeps the hours owed. On the tiny village of tests/player.js.
 const assert = require('assert');
@@ -134,7 +134,7 @@ const FARMER = 0;
   }
 }
 
-// 5. A save keeps the hours owed and whether it sleeps; a save made before VB-1615 loads with none owed.
+// 5. A save keeps the hours owed and whether it sleeps; a save made before VB-1643 loads with none owed.
 {
   const st = make(1);
   Sim.inhabit(st, FARMER);

@@ -1,7 +1,8 @@
-// @sys sim/walking: terrain and slope costs, the discomfort routes are chosen by, tile passability and cached reach by walking steps
+// @sys sim/walking: terrain and slope costs, the ground by season compiled into one array a world (VB-808), the discomfort routes are
+// chosen by, tile passability and cached reach by walking steps
 VB['sim/walking'] = (() => {
   const { B } = VB['world/biomes'];
-  const { YEAR_DAYS } = VB['sim/rules'];
+  const { YEAR_DAYS, WINTER } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];
   // @tunable TERRAIN: walking: the cost of crossing a tile by its biome, relative to meadow; a pawn walks at SPEED / cost
   // Houses and fields cost 1 whatever the biome under them; water and snowfields are closed, and so is a river but at a ford or bridge.
@@ -87,32 +88,138 @@ VB['sim/walking'] = (() => {
   };
 
   // ---- walking costs: a step costs the mean of the two tiles' costs and the slope between them, so a route costs the same both ways ----
-  // Cost of walking across tile i, relative to meadow; Infinity where nobody walks (water, snowfields, a river away from its fords and
+  // Cost of walking across tile i, relative to meadow, on the ground of season `f` (GROUND's flags; 0 the summer's): the rule, which
+  // tileCost reads compiled. Infinity where nobody walks (water, snowfields, a river away from its fords and
   // bridges, VB-112) and a house (w.dev 3): a walk starts or ends at a house and goes round the others, so the ways bend round
   // buildings (VB-402). Greens, fields and meadows cost 1. A worn tile is walked faster by its stage (VB-110), a field or meadow too,
   // and its wear takes away a share of what its ground costs above meadow (PATHS.clear, VB-439; not at a ford or on a bridge);
   // the green (w.dev 2) wears no path.
   // A field in crop, or a meadow in grass where the practice `passage` is `ways` (sim/passage, VB-816: w.shut 1), is closed like a house
   // but along a path or a lane worn over it (stage OPEN_WAY and up: the way between the strips).
-  function tileCost(w, i) {
+  // The ground by season (VB-808; design.md, Climate and travel beyond walking, The ground by season; WINTER): ice that bears is crossed at
+  // WINTER.ice whatever lies under it (a lake, every river tile, the sea near land); snow, and the soft ground of the thaw, multiply what a
+  // tile with no lane trodden on it costs; frozen marsh is ground of WINTER.marsh in place of TERRAIN's.
+  function groundCost(w, i, f) {
+    if (f && onIce(w, i, f)) return WINTER.ice;
     if (w.water[i]) return Infinity;
+    const s = w.worn ? w.worn[i] : 0;
+    let c;
     if (w.dev && w.dev[i]) {
-      if (w.dev[i] !== 1) return w.dev[i] === 3 ? Infinity : 1;
-      const s = w.worn ? w.worn[i] : 0;
-      if (w.shut && w.shut[i] === 1 && s < OPEN_WAY) return Infinity;
-      return w.worn ? 1 / PATHS.speed[s] : 1;
+      if (w.dev[i] !== 1) c = w.dev[i] === 3 ? Infinity : 1;
+      else if (w.shut && w.shut[i] === 1 && s < OPEN_WAY) c = Infinity;
+      else c = w.worn ? 1 / PATHS.speed[s] : 1;
+    } else if (w.river && w.river[i]) {
+      const x = w.crossing[i] === 1 ? TERRAIN.ford : w.crossing[i] === 2 ? TERRAIN.bridge : Infinity;
+      c = x / PATHS.speed[s];
+    } else {
+      const b = w.biome[i],
+        t = f & GROUND.marsh && b === B.MARSH ? WINTER.marsh : (TERRAIN[b] ?? 1);
+      c = (1 + (t - 1) * (1 - PATHS.clear[s])) / PATHS.speed[s];
     }
-    const c =
-        w.river && w.river[i]
-          ? w.crossing[i] === 1
-            ? TERRAIN.ford
-            : w.crossing[i] === 2
-              ? TERRAIN.bridge
-              : Infinity
-          : 0,
-      s = w.worn ? w.worn[i] : 0;
-    if (c) return c / PATHS.speed[s];
-    return (1 + ((TERRAIN[w.biome[i]] ?? 1) - 1) * (1 - PATHS.clear[s])) / PATHS.speed[s];
+    // frozen marsh bears at WINTER.marsh with its snow (the criterion's 1.5 in frost), not again by the snow on it
+    const frozen = f & GROUND.marsh && w.biome[i] === B.MARSH && !(w.dev && w.dev[i]) && !(w.river && w.river[i]);
+    if (f & (GROUND.snow | GROUND.soft) && c < Infinity && s < LANE && !frozen)
+      c *= f & GROUND.snow ? WINTER.snow : WINTER.soft;
+    return c;
+  }
+  // Whether ice bears tile i on the ground of season f: lake water and every river tile once lake ice bears, the sea within WINTER.near
+  // tiles of land once sound ice bears.
+  function onIce(w, i, f) {
+    if (w.water[i]) {
+      if (w.ocean && w.ocean[i]) return !!(f & GROUND.sea) && seaNear(w)[i] === 1;
+      return !!(f & GROUND.lake);
+    }
+    return !!(f & GROUND.lake) && !!w.river && w.river[i] > 0;
+  }
+  // The cost of crossing tile i on the ground as it stands: compiled (w.ground), or the summer's rule before the run has compiled it.
+  function tileCost(w, i) {
+    const g = w.ground;
+    return g ? g.cost[i] : groundCost(w, i, 0);
+  }
+
+  // ---- the ground compiled (VB-808; Rules for cost 6: tileCost is read in the search's inner loop) ----
+  // GROUND: the flags of a row's season: snow lies, the marsh is frozen, lake and river ice bears, sea ice bears near land, the thaw's soft
+  // ground. Which date sets which is sim/climate's (its table of the ground); what each does to a tile is groundCost's.
+  const GROUND = Object.freeze({ snow: 1, marsh: 2, lake: 4, sea: 8, soft: 16 });
+  // @state w.ground: {cost, ice, season}: derived, never saved: cost[i] the cost of crossing tile i (groundCost on its row's season), ice[i] 1
+  //   where ice bears it, season[r] row r's season (GROUND's flags). Compiled once a run (sim/climate layGround: at a run's first step and at
+  //   a load), a tile again where its cost changed (sim/routes costChanged), a band's rows on a winter's date. Equal to the rule computed
+  //   afresh (an invariant).
+  function compileGround(w, rows) {
+    // derived from the world and the season, rebuilt on load; never saved
+    w.ground = { cost: new Float64Array(w.N), ice: new Uint8Array(w.N), season: Uint8Array.from(rows) }; // lint-allow: owner derived
+    for (let i = 0; i < w.N; i++) recost(w, i);
+    REACH.delete(w); // what stands may differ from the lists searched before (ice)
+    return w.ground;
+  }
+  // fn() run on the ground of seasons `rows` (a row's GROUND flags) in place of the ground as it stands, which is put back after: the
+  // ground of a normal winter, for the winter table of hours (sim/villagehours). Compiled afresh each call, so that nothing is kept aside.
+  function withGround(w, rows, fn) {
+    const was = w.ground;
+    w.ground = { cost: new Float64Array(w.N), ice: new Uint8Array(w.N), season: Uint8Array.from(rows) }; // lint-allow: owner as compileGround's
+    for (let i = 0; i < w.N; i++) recost(w, i);
+    try {
+      return fn();
+    } finally {
+      w.ground = was; // lint-allow: owner as compileGround's
+    }
+  }
+  // A run seeded on a world: its ground is compiled again at the first step (a world may be seeded more than once).
+  function dropGround(w) {
+    w.ground = null; // lint-allow: owner derived, as compileGround's
+    REACH.delete(w); // the lists a run before searched, perhaps over its ice
+  }
+  // Tile i's cost again, on its row's season: true if it changed.
+  function recost(w, i) {
+    const g = w.ground;
+    if (!g) return false;
+    const f = g.season[(i / w.COLS) | 0],
+      c = groundCost(w, i, f),
+      ice = f && onIce(w, i, f) ? 1 : 0,
+      was = g.cost[i];
+    g.cost[i] = c;
+    g.ice[i] = ice;
+    return was !== c;
+  }
+  // Rows lo to hi (inclusive) come to season f: their tiles are costed again; the tiles whose cost changed are counted.
+  function setRows(w, lo, hi, f) {
+    const g = w.ground;
+    if (!g) return 0;
+    let n = 0;
+    for (let r = lo; r <= hi; r++) {
+      if (g.season[r] === f) continue;
+      g.season[r] = f;
+      for (let i = r * w.COLS, e = i + w.COLS; i < e; i++) if (recost(w, i)) n++;
+    }
+    if (n) REACH.delete(w); // what stands may have changed (ice): the reach lists are searched again
+    return n;
+  }
+  // The rule computed afresh for tile i, on its row's season as compiled (the invariant's).
+  const ruleCost = (w, i) => groundCost(w, i, w.ground ? w.ground.season[(i / w.COLS) | 0] : 0);
+  // Whether ice bears tile i now (a journey's night is not spent on it, sim/legs).
+  const iced = (w, i) => !!w.ground && i >= 0 && w.ground.ice[i] === 1;
+  // The sea tiles within WINTER.near steps of land (1) or not (0), by the world alone: kept beside it, never saved.
+  const NEAR = new WeakMap(); // lint-allow: closure derived from the world alone, as REACH below; holds nothing of a run
+  function seaNear(w) {
+    let m = NEAR.get(w);
+    if (m) return m;
+    const d = new Uint8Array(w.N).fill(255);
+    for (let i = 0; i < w.N; i++) if (!w.water[i]) d[i] = 0;
+    for (let k = 1; k <= WINTER.near; k++)
+      for (let i = 0; i < w.N; i++) {
+        if (d[i] !== 255) continue;
+        for (let n = 0; n < 6; n++) {
+          const j = w.nb[i * 6 + n];
+          if (j >= 0 && d[j] === k - 1) {
+            d[i] = k;
+            break;
+          }
+        }
+      }
+    m = new Uint8Array(w.N);
+    for (let i = 0; i < w.N; i++) m[i] = w.water[i] && d[i] <= WINTER.near ? 1 : 0;
+    NEAR.set(w, m);
+    return m;
   }
   // Land a pawn can stand on: what is in walking reach counts steps over it, a house too (the reach searches of sim/hex end at houses),
   // and a closed field or meadow (VB-816: its holder works it; only crossing it is barred).
@@ -164,12 +271,15 @@ VB['sim/walking'] = (() => {
     const f = Math.exp(SLOPE.tobler * SLOPE.grade * rise);
     return f < SLOPE.max ? f : SLOPE.max;
   };
-  // Cost of the step between neighbouring tiles a and b: the mean of their costs times the slope's factor; a closed end (where a
-  // route starts or ends) counts as meadow.
+  // Cost of the step between neighbouring tiles a and b: the mean of their costs times the slope's factor (none from ice to ice: VB-808);
+  // a closed end (where a route starts or ends) counts as meadow.
   const stepCost = (w, a, b) => {
     const ca = tileCost(w, a),
       cb = tileCost(w, b);
-    return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
+    return (
+      (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) *
+      (iced(w, a) && iced(w, b) ? 1 : slopeFactor(w, a, b))
+    );
   };
 
   // A tile's cost along a trail a party would blaze (VB-786; docs/plans/VB-445.md, section 2): a wooded tile with no path through it costs
@@ -178,6 +288,8 @@ VB['sim/walking'] = (() => {
   const TRAIL = 2;
   // The worn stage from which a closed field is crossed along its way (VB-816): a path or a lane.
   const OPEN_WAY = 2;
+  // The worn stage of a lane: trodden under snow, and firm in the thaw (VB-808).
+  const LANE = 3;
   // Whether tile i is wood a trail is blazed through (VB-447): broadleaf or pine forest, not water, a river, developed ground or a path
   // already (open ground wears its own way). The one test, for the trail's cost here and its jobs (sim/trails).
   function unblazed(w, i) {
@@ -197,7 +309,10 @@ VB['sim/walking'] = (() => {
   const trailStep = (w, a, b) => {
     const ca = trailCost(w, a),
       cb = trailCost(w, b);
-    return (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) * slopeFactor(w, a, b);
+    return (
+      (((ca < Infinity ? ca : 1) + (cb < Infinity ? cb : 1)) / 2) *
+      (iced(w, a) && iced(w, b) ? 1 : slopeFactor(w, a, b))
+    );
   };
 
   // The discomfort of tile i (DISCOMFORT): its footing, less what its wear has cleared, and its wet; 0 where it is firm (a field, a
@@ -226,7 +341,7 @@ VB['sim/walking'] = (() => {
       r.parts = null;
     }
   }
-  // The walkable component of `tile` (VB-1639): tiles a pawn walks between on foot share one number, -1 for a tile it cannot stand on.
+  // The walkable component of `tile` (VB-1667): tiles a pawn walks between on foot share one number, -1 for a tile it cannot stand on.
   // Labelled once for a world, the whole map in one sweep, and kept beside its reach lists (never in `st`, the same after a load); a
   // tile whose standing changes labels it again. What a page asks of every tile (sim/camp's placing) is one lookup.
   function partOf(w, tile) {
@@ -266,7 +381,15 @@ VB['sim/walking'] = (() => {
     SLOPE,
     PATHS,
     DISCOMFORT,
+    GROUND,
     tileCost,
+    compileGround,
+    withGround,
+    dropGround,
+    recost,
+    setRows,
+    ruleCost,
+    iced,
     passable,
     through,
     ended,

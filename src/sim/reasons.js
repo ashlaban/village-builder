@@ -6,7 +6,7 @@ VB['sim/reasons'] = (() => {
   const { SEASON_DAYS, WORK, cal } = VB['sim/rules'],
     { ROLES, CHILD } = VB['sim/roles'],
     { CROPS } = VB['sim/crops'],
-    { WEATHER } = VB['sim/weather'],
+    { frostExpected } = VB['sim/weather'],
     { shiftOf } = VB['sim/climate'];
   const { KINDS } = VB['sim/kinds'],
     { MADE, target } = VB['sim/targets'],
@@ -27,12 +27,6 @@ VB['sim/reasons'] = (() => {
     num = (n) => NUM[n] || String(n),
     days = (n) => (n <= 0 ? 'today' : n === 1 ? 'within a day' : `within ${num(n)} days`);
   const planOf = (st, hid) => (hid === null || hid === undefined ? null : st.plans.households.get(hid) || null);
-  // The first frost the head expects: the most usual day of the draw on its world's climate, never this year's drawn day (Principles: the
-  // future is someone's estimate). An autumn sday.
-  function frostExpected(st) {
-    const w = WEATHER.frost;
-    return Math.max(0, Math.min(SEASON_DAYS - 1, WEATHER.frostFrom + w.indexOf(Math.max(...w)) + shiftOf(st.w).frost));
-  }
   // The days left in field task j's window as its head sees it, or null for a task with none: the sowing window of its field's crop for
   // ploughing and sowing (the calendar, known to all), the expected frost for reaping and carrying the sheaves.
   function windowLeft(st, j, c) {
@@ -164,5 +158,5 @@ VB['sim/reasons'] = (() => {
     if (!who) return r.why.charAt(0).toUpperCase() + r.why.slice(1);
     return r.why ? `${who}: ${r.why}` : who;
   }
-  return { REASONS, BY, reasonOf, reasonLine, frostExpected, windowLeft, cause };
+  return { REASONS, BY, reasonOf, reasonLine, windowLeft, cause };
 })();

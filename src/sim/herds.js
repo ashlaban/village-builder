@@ -79,7 +79,7 @@ VB['sim/herds'] = (() => {
     return null;
   };
   // where a herd stands: by its household's farm, or at the farm it waits at to be led home (herd.at, sim/droving), or at the tile it was
-  // left at when its farm's house moved (herd.tile, VB-1639: the landing)
+  // left at when its farm's house moved (herd.tile, VB-1667: the landing)
   const houseOf = (st, herd) => herd.tile ?? st.farmsteads[herd.at ?? st.households[herd.household].farmstead].house;
   // Where a farm's animals graze by day: the most open free tile within 2 steps of the house (or of `at`, where a herd stands away from
   // it), not built on, not water, not a green.

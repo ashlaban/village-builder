@@ -1,8 +1,8 @@
-// @sys sim/planchains: the chains of a task at a tile in the player's plan (VB-1621, VB-1622, VB-1625, VB-1627; VB-1629 split it from
+// @sys sim/planchains: the chains of a task at a tile in the player's plan (VB-1649, VB-1650, VB-1653, VB-1655; VB-1657 split it from
 //   sim/playerplan), declared as data (CHAINS): a field from its clearing to its sowing (plant), a meadow's hay from its mowing until it
 //   is home (hay), a field's crop from its reaping until its sheaves are in (harvest), trips of timber felled on a forest tile and carried
 //   home (fell), the timber home cut into firewood (firewood) and the first shelter placed from the camp and raised (farmstead; the
-//   upgrade of the main building, sim/upgrade's, is contributed at load, VB-1632); what
+//   upgrade of the main building, sim/upgrade's, is contributed at load, VB-1660); what
 //   stands at a tile for each (chainWhere), why it cannot be planned (chainWhy), its steps left (chainSteps) and why its task leaves the
 //   plan (chainGone). Reads only: the plan's writes are sim/playerplan's
 VB['sim/planchains'] = (() => {
@@ -20,9 +20,9 @@ VB['sim/planchains'] = (() => {
   const { VERBS } = VB['sim/commands'];
   const { WOOD_HOURS, fuelFree, timberOf } = VB['sim/chores'];
   const { woodWhy } = VB['sim/territory'];
-  // ---- a task at a tile (VB-1621, VB-1622; Kim, 24 Nov 2026): a chain of steps carried at one tile ----
+  // ---- a task at a tile (VB-1649, VB-1650; Kim, 24 Nov 2026): a chain of steps carried at one tile ----
   // A chain is declared as data (CHAINS): the land project a tile the head has marked for it begins (`mark`: 'field' or 'meadow', or
-  // null), what of the household's stands at a tile for it (`at`, given the task when it is read for one, VB-1640: {f, fd} a field,
+  // null), what of the household's stands at a tile for it (`at`, given the task when it is read for one, VB-1668: {f, fd} a field,
   // {f, m} a meadow, {plan, f} its open project making one, or null), why nothing does (`none`), why what stands there takes no task
   // now (`why`), its steps in the order the work goes after any project's (`steps`: [{kind, hours (of one piece), n (pieces: the
   // loads of a carrying, else 1), from (the game hour it may begin, while its job is not posted)}]), why it leaves the plan (`gone`:
@@ -53,7 +53,7 @@ VB['sim/planchains'] = (() => {
   // The project a marked tile would begin, as sim/plans makes it (its steps; read only).
   const markProject = (st, hid, what, tile) =>
     (what === 'field' ? fieldProject : meadowProject)(st, st.households[hid], tile);
-  // ---- plant: one field carried from its clearing to its sowing (VB-1621) ----
+  // ---- plant: one field carried from its clearing to its sowing (VB-1649) ----
   // The crop the field at `where` is sown with: its own, or for a project's the course a new field beside the farm's would take.
   function plantCrop(st, hid, where) {
     if (where.fd) return where.fd.crop;
@@ -126,7 +126,7 @@ VB['sim/planchains'] = (() => {
       return win ? { t: win.close, what: `the end of the ${crop} sowing${win.next ? ' next year' : ''}` } : null;
     },
   };
-  // ---- hay: one meadow's hay from its mowing (after the meadow's clearing, a project's) until it is home (VB-1622) ----
+  // ---- hay: one meadow's hay from its mowing (after the meadow's clearing, a project's) until it is home (VB-1650) ----
   // The haymaking window (sim/meadows: summer's first day to autumn's MOW_LAST): whether this year's is over; its opening and its end,
   // this year's or next year's once this year's is over (`next`).
   const hayOver = (c) => c.season > 2 || (c.season === 2 && c.sday > MOW_LAST);
@@ -198,7 +198,7 @@ VB['sim/planchains'] = (() => {
       return { t: win.close, what: `the end of haymaking${win.next ? ' next year' : ''}` };
     },
   };
-  // ---- harvest: one sown field reaped when ripe and its sheaves carried in; the threshing is indoor work of any day (VB-1622) ----
+  // ---- harvest: one sown field reaped when ripe and its sheaves carried in; the threshing is indoor work of any day (VB-1650) ----
   // The day a field's crop is expected ripe: its sowing and the crop's days to ripen (the year's weather, a draw, not reckoned).
   const ripeDay = (fd) => fd.sown + CROPS[fd.crop].ripe;
   const harvest = {
@@ -267,7 +267,7 @@ VB['sim/planchains'] = (() => {
       return fd.stage === 'stooks' || ripeDay(fd) * DAY < d.t ? d : at(yearOf(st) + YEAR);
     },
   };
-  // ---- fell: n loads of timber felled on a forest tile the player chose and carried home (VB-1625; Kim, 24 Nov 2026) ----
+  // ---- fell: n loads of timber felled on a forest tile the player chose and carried home (VB-1653; Kim, 24 Nov 2026) ----
   // Any tile the household's village may fell on (sim/territory woodWhy: the tiles the rule of the village's wood may give it, whatever
   // its size, within WOOD.far of its centre; a lone farm's village is its own, so the same rule). The household's farm takes the timber.
   const FELL_MAX = 20;
@@ -302,7 +302,7 @@ VB['sim/planchains'] = (() => {
     deadline: () => null,
   };
   // (the event timberHome, a trip of timber home with its loads, is counted by sim/playerplan, the plan's writer)
-  // ---- firewood: the timber home cut into firewood at the house, until it is all cut or the pile holds the season's goal (VB-1625) ----
+  // ---- firewood: the timber home cut into firewood at the house, until it is all cut or the pile holds the season's goal (VB-1653) ----
   // The pile's free wood against the season's goal (the head's plan's targets, sim/plans), and whether it is short.
   const pileOf = (st, hh) => {
     const plan = st.plans.households.get(hh.id),
@@ -342,18 +342,18 @@ VB['sim/planchains'] = (() => {
     gone: (st, { hh }) => (!pileOf(st, hh).short ? 'full' : !timberOf(hh) && !fellPlanned(st) ? 'cut' : null),
     deadline: () => null,
   };
-  // ---- farmstead: the first shelter, placed from the camp and raised (VB-1627) ----
+  // ---- farmstead: the first shelter, placed from the camp and raised (VB-1655) ----
   // On a camp (sim/camp) the head places the farmstead by its own verb (`act`: placeFarmstead, the house moved to the tile and its shelter
-  // begun there, VB-1638); then the shelter's timber trips, whose jobs stand at the wood (`keys`: found by their keys, not at the tile),
+  // begun there, VB-1666); then the shelter's timber trips, whose jobs stand at the wood (`keys`: found by their keys, not at the tile),
   // and its raising on the house tile. It leaves when the shelter stands ('raised'), or when nothing of the camp's stands for it ('gone').
-  // A save before VB-1638 may hold a booth staked beside the house instead (`staked`): its trips and raising, as before.
+  // A save before VB-1666 may hold a booth staked beside the house instead (`staked`): its trips and raising, as before.
   const Camp = VB['sim/camp'];
   const trips = (lack) => Math.max(1, Math.ceil(lack / ECON.woodPerTrip - 1e-9));
-  // VB-1639: placed off the landing, the move goes first, as steps found by their keys: each herd standing at the landing driven to the new
+  // VB-1667: placed off the landing, the move goes first, as steps found by their keys: each herd standing at the landing driven to the new
   // house (drove), each cart standing there fetched with its team, then each load left there fetched (its trips: on the household's best
   // cart once fetched, else on the back); a step's job is posted at the household's review (sim/droving, sim/lying fetchWork).
   const MOVE_KINDS = ['drove', 'fetchLeftCart', 'fetchLeftGrain', 'fetchHay', 'fetchLeftTimber'];
-  // VB-1642: each step's trips are sim/camp's moveTrips, the reckoning of the page's Sim.moveCost: `trip` {go, lift, back} one trip's
+  // VB-1670: each step's trips are sim/camp's moveTrips, the reckoning of the page's Sim.moveCost: `trip` {go, lift, back} one trip's
   // hours (the walks by the way's route hours kept with the loads, `of.walk`), `hours` their sum, `n` the trips, the loads' on the
   // carrier the household has now (a cart standing at the landing reckoned home: it is fetched first).
   function moveSteps(st, hid) {
@@ -386,7 +386,7 @@ VB['sim/planchains'] = (() => {
     }
     return out;
   }
-  // The walking hours from the landing to the house for a move whose loads keep no `walk` (a save before VB-1642): its steps at SPEED.
+  // The walking hours from the landing to the house for a move whose loads keep no `walk` (a save before VB-1670): its steps at SPEED.
   function moveWalk(st, hh, herds, l) {
     const from = l ? l.tile : st.herds[herds[0]].tile,
       to = st.farmsteads[hh.farmstead].house;
@@ -420,7 +420,7 @@ VB['sim/planchains'] = (() => {
           raise,
         ];
       }
-      if (raised) return moveSteps(st, hid); // VB-1639: the shelter raised before the move was all fetched
+      if (raised) return moveSteps(st, hid); // VB-1667: the shelter raised before the move was all fetched
       if (!camp && !staked) return [];
       const s = staked && staked.steps[staked.open],
         bid = staked ? staked.booth : null,
@@ -434,8 +434,8 @@ VB['sim/planchains'] = (() => {
     },
     gone: (st, where) =>
       where.raised && !(where.f.household !== null && moveSteps(st, where.f.household).length) ? 'raised' : null,
-    // VB-1639: while loads of the move lie at the landing, the frost the head expects (`frost`, an autumn day), when they are lost (sim/lying);
-    // VB-1642: at the first step of that day, when sim/lying's frost runs (sim/camp frostAt), not the end of its work
+    // VB-1667: while loads of the move lie at the landing, the frost the head expects (`frost`, an autumn day), when they are lost (sim/lying);
+    // VB-1670: at the first step of that day, when sim/lying's frost runs (sim/camp frostAt), not the end of its work
     deadline: (st, hid, where, frost) => {
       if (!where.shelter || frost === null || frost === undefined || !Camp.leftAt(st, st.households[hid]).loads.length)
         return null;
@@ -446,12 +446,12 @@ VB['sim/planchains'] = (() => {
       where.camp ? { actor: id, verb: 'placeFarmstead', target: tile, args: null, source: 'player' } : null,
   };
   const CHAINS = { plant, hay, harvest, fell, firewood };
-  CHAINS.farmstead = farmstead; // VB-1627
+  CHAINS.farmstead = farmstead; // VB-1655
   // The chain of task t (a task at a tile: no key), or null for a task by key.
   const chainOf = (t) => (t.key === undefined && CHAINS[t.kind] ? t.kind : null);
   // What stands at `tile` for chain `name` of household hid: the chain's own (`at`), else the tile the head has marked for its next field
   // or meadow (sim/plans, plan.tiles) as {mark, f, tile}; else, for a task already planned (`planned`), its tile as one the played head's
-  // verb `project` begins a field or meadow on (VB-1623: no mark needed; {mark, f, tile, free: true}); null for nothing.
+  // verb `project` begins a field or meadow on (VB-1651: no mark needed; {mark, f, tile, free: true}); null for nothing.
   function chainWhere(st, hid, name, tile, planned = false, task = null) {
     if (hid === null || hid === undefined || !Number.isInteger(tile) || tile < 0) return null;
     const C = CHAINS[name],
@@ -466,7 +466,7 @@ VB['sim/planchains'] = (() => {
   // The head's check, through its own verb (sim/plans' project: only the head changes its plan), or null.
   const headCmd = (id, hid, args) => ({ actor: id, verb: 'project', target: hid, args, source: 'player' });
   // Why the played pawn `id` cannot plan chain `name` at `tile`, or null; a marked tile only by the head of the household, and any other
-  // tile where the head's verb `project` would begin the chain's field or meadow now (VB-1623).
+  // tile where the head's verb `project` would begin the chain's field or meadow now (VB-1651).
   function chainWhy(st, id, name, tile) {
     const hid = st.pawns[id].household,
       C = CHAINS[name];

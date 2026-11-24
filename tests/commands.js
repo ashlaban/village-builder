@@ -269,7 +269,7 @@ assert.strictEqual(snap3(), before5, 'refused leave commands change nothing');
   Sim.inhabit(s4, hh.holder);
   for (const verb of ['skip', 'kill', 'retire']) assert.ok(/no verb/.test(Sim.queue(s4, { actor: hh.holder, verb })), `${verb} is not queued`);
   assert.deepStrictEqual(Object.keys(VERBS).filter((v) => VERBS[v].sources && VERBS[v].sources.join() === 'debug').sort(), ['kill', 'retire', 'skip'], 'the debug verbs');
-  // the player's only (VB-1615): sleep, which no pawn's own logic takes yet
+  // the player's only (VB-1643): sleep, which no pawn's own logic takes yet
   assert.deepStrictEqual(Object.keys(VERBS).filter((v) => VERBS[v].sources && VERBS[v].sources.join() === 'player'), ['sleep'], "the player's verbs");
   assert.ok(/player only/.test(issue(s4, { actor: hh.holder, verb: 'sleep', source: 'pawn' })), 'a pawn does not sleep by the verb');
   // the facade's direct mutators are debug: none is a verb, and the page calls them only from its drawer

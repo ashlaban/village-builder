@@ -1,9 +1,13 @@
-// @sys page/ui2: the new interface's shell (`?classic` shows the old one): its top bar (date, speed, menu) and the settler's strip; styles: src/ui2.css
+// @sys page/ui2: the new interface's shell, shown in the solo scenario only (`?classic`: the old one): its top bar and the settler's strip; styles: src/ui2.css
 // ======== the new interface ========
 // A second interface over the same map and the same Sim, built for a phone's thumb first and a desk's pointer second. It is the page's
 // own: it reads st and acts through Sim, as the old one does. With it on (body.ui2) the old panels are hidden, not removed: the old
 // interface's tests and tools ask for it (window.VB_CLASSIC, tests/lib/page.js), and `?classic` in the address shows it by hand.
+// It is partial work (Kim, 24 Nov 2026): it shows in the solo scenario only, from the choice of a landing on; every other scenario,
+// the start's menus and the editor are the old interface's. UI2 says it may show at all; u2Live() that it shows now.
 const UI2 = !window.VB_CLASSIC && !/[?&]classic\b/.test(location.search);
+const u2Live = () => UI2 && !demo && (!!site || (!!st && st.scenario === 'solo'));
+let u2Shown = false;
 // The speeds offered: pause and three paces, named by what they are for (a day at 1× is a slow walk; a week wants 10×).
 const U2_SPEEDS = [1, 10, 30]; // a day at 1× is a slow walk; a week wants 10×
 let u2 = null, // the shell's elements, by name
@@ -91,7 +95,6 @@ function u2Place() {
 }
 function u2Init() {
   if (!UI2) return;
-  document.body.classList.add('ui2');
   const root = document.createElement('div');
   root.className = 'u2';
   root.id = 'u2';
@@ -120,6 +123,7 @@ function u2Init() {
       <div class="u2-days" id="u2Days" role="group" aria-label="The days ahead by the hour" hidden></div>
       <div class="u2-dockrow"><div class="u2-planbar" id="u2Plan" role="group" aria-label="The plan" hidden></div>
       <div class="u2-tabs" id="u2Tabs" role="group" aria-label="Your farm"></div></div></div>`;
+  root.hidden = true;
   document.body.appendChild(root);
   u2 = Object.fromEntries(
     [root, ...root.querySelectorAll('[id]')].map((el) => [el.id.slice(2).toLowerCase() || 'u2', el]),
@@ -136,6 +140,14 @@ function u2Init() {
 // Each frame (page/frame): the date, the speed pressed and what the settler does, written only when they change.
 function u2Frame() {
   if (!UI2 || !u2) return;
+  const live = u2Live();
+  if (live !== u2Shown) {
+    u2Shown = live;
+    document.body.classList.toggle('ui2', live);
+    u2.u2.hidden = !live;
+    if (!live) u2Marks([]);
+  }
+  if (!live) return;
   const playing = !!st && !site && !demo;
   u2.date.hidden = u2.speed.hidden = !playing;
   u2.dock.hidden = u2.ribbon.hidden = u2.does.hidden = !playing || played() < 0 || !u2.welcome.hidden;

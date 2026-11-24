@@ -28,10 +28,10 @@ VB['sim/player'] = (() => {
   //   player's succession needs, VB-213), ended (null, or when the line ended: its pawn died with no successor, VB-1121), last (null, or {kind, farm, good,
   //   n, t}: the pawn's last task done or load brought home, VB-1118), days[] (at most DAYS_KEPT {t, health, before, hunger, food, why}:
   //   the pawn's health after each of its last meals, its hunger level, its household's food in days of need, and what moved its health,
-  //   why {hunger, cold, damp, ill, tired, rest}, VB-1118; tired absent in a day kept before VB-1615), sleep ({owed, asleep}, below;
-  //   absent in a save made before VB-1615)}; plain data, saved with the run
+  //   why {hunger, cold, damp, ill, tired, rest}, VB-1118; tired absent in a day kept before VB-1643), sleep ({owed, asleep}, below;
+  //   absent in a save made before VB-1643)}; plain data, saved with the run
   // @state st.player.sleep: {owed (hours of sleep the pawn owes, 0 to SLEEP.cap), asleep (boolean: it slept in the last step), at (the
-  //   step, st.tick, last reckoned: once a step, however often the queue is stepped)}, kept by sleepStep (VB-1615); read by sim/sleep for
+  //   step, st.tick, last reckoned: once a step, however often the queue is stepped)}, kept by sleepStep (VB-1643); read by sim/sleep for
   //   mood and health
   const QUEUE_MAX = 8,
     TIES_MAX = 12,
@@ -205,11 +205,11 @@ VB['sim/player'] = (() => {
     }
     if (!living(st, pl.pawn)) homeAtDark(st, pl);
   }
-  // ---- the plan's feeder (VB-1618; sim/playerplan): with automatic behaviour off, the plan feeds the queue when nothing queued by hand
+  // ---- the plan's feeder (VB-1646; sim/playerplan): with automatic behaviour off, the plan feeds the queue when nothing queued by hand
   // waits. A command queued by hand goes first, as an order for now: the plan's commands give way to it (a task left keeps its progress
   // and stays planned). In the sleeping hours the plan's work in hand is left for its sleep; else the plan's command runs to its end.
   // A trip of the move under way (the farmstead chain's droving and fetching from the landing, sim/planchains MOVE_KINDS) is not left
-  // for the sleeping hours: it goes on to its end, and the pawn sleeps after (VB-1642: on a way of 7 hours each way, the walk out left at
+  // for the sleeping hours: it goes on to its end, and the pawn sleeps after (VB-1670: on a way of 7 hours each way, the walk out left at
   // bedtime every evening had the move undone for 50 days, and the frost took the loads).
   const onTrip = (st, pl, c) =>
     c.begun !== null && c.plan.from === 'task' && MOVE_KINDS.includes(c.plan.kind) && !!st.agents[pl.pawn].job;
@@ -228,7 +228,7 @@ VB['sim/player'] = (() => {
     }
     if (next) q.push({ ...next, begun: null, ref: null });
   }
-  // ---- sleep (VB-1615; sim/sleep): the hours the played pawn owes, and the verb `sleep` ----
+  // ---- sleep (VB-1643; sim/sleep): the hours the played pawn owes, and the verb `sleep` ----
   // Asleep: under the verb `sleep`, once it stands where it sleeps; or indoors where it sleeps (its house, its booth, or its bed under the
   // open sky before the booth stands, VB-1544; away, its stay's bed) with no act in hand.
   function sleeping(st, pl, a) {
@@ -242,7 +242,7 @@ VB['sim/player'] = (() => {
   function sleepStep(st) {
     const pl = st.player;
     if (living(st, pl.pawn)) return;
-    if (!pl.sleep) pl.sleep = { owed: 0, asleep: false, at: st.tick - 1 }; // a save made before VB-1615
+    if (!pl.sleep) pl.sleep = { owed: 0, asleep: false, at: st.tick - 1 }; // a save made before VB-1643
     if (pl.sleep.at === st.tick) return;
     pl.sleep.at = st.tick;
     pl.sleep.asleep = sleeping(st, pl, st.agents[pl.pawn]);
@@ -343,7 +343,7 @@ VB['sim/player'] = (() => {
     const dh = last.health - first.before;
     if (Math.abs(dh) >= 0.5) {
       const sum = { hunger: 0, cold: 0, damp: 0, ill: 0, tired: 0, rest: 0 };
-      for (const d of D) for (const k in sum) sum[k] += d.why[k] || 0; // tired absent in a day kept before VB-1615
+      for (const d of D) for (const k in sum) sum[k] += d.why[k] || 0; // tired absent in a day kept before VB-1643
       const causes = Object.keys(sum)
         .filter((k) => sum[k] >= 0.5 && (dh < 0 ? k !== 'rest' : k === 'rest'))
         .sort((x, y) => sum[y] - sum[x])

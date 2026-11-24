@@ -1,7 +1,7 @@
-// VB-1638: the shelter, the ladder's first rung, on the house tile for every household (Kim: one rule for every household). A settler
+// VB-1666: the shelter, the ladder's first rung, on the house tile for every household (Kim: one rule for every household). A settler
 // household (sim/settle settleFarm; heirs at seed 13 on the probe island, as tests/settle.js) begins its shelter on its own house tile, no
 // booth of st.booths beside it; it sleeps under the open sky and its cottage waits until the shelter stands, then the cottage's stages are
-// worked on that same tile. A save from before VB-1638, a farm's booth staked beside its house, loads and goes on: the booth is kept as
+// worked on that same tile. A save from before VB-1666, a farm's booth staked beside its house, loads and goes on: the booth is kept as
 // its roof until its cottage is roofed (read as the shelter rung once raised).
 const assert = require('assert');
 const VB = require('../src/load.js'),
@@ -75,14 +75,14 @@ const roll = (st, f) => {
   sound(st, 'the shelter up, the cottage under way');
 }
 
-// ---- 2. a save from before VB-1638: a farm's booth staked beside the house, no shelter; kept as a booth until the cottage is roofed ----
+// ---- 2. a save from before VB-1666: a farm's booth staked beside the house, no shelter; kept as a booth until the cottage is roofed ----
 {
   const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
   const st = Sim.seed(tinyWorld(rows), 7, 'solo', null, { hand: false });
   st.naturalDeaths = false;
   const hh = st.households[0],
     f = st.farmsteads[0];
-  delete f.shelter; // as before VB-1638: the booth staked beside the house by the verb, its first roof
+  delete f.shelter; // as before VB-1666: the booth staked beside the house by the verb, its first roof
   let tile = -1;
   for (let d = 0; d < 6 && tile < 0; d++) {
     const n = st.w.nb[f.house * 6 + d];

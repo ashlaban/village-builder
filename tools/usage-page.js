@@ -4,6 +4,8 @@
 //   --dir DIR   the measured runs, one JSON file each as tools/agent-usage.js --out writes them (default docs/agents/usage)
 //   --out FILE  the page to write (default docs/usage.html)
 //   --json      print the data the page is drawn from, and write nothing
+//   --changes FILE  the log of changes that may move token use (default docs/agents/changes.md): its rows are marked on the chart over
+//               time, and the periods they start are compared in a table, as  tools/agent-usage.js --periods  does (VB-1615)
 // Reads: the run files; the task files in backlog/ (name, size, arch); and `git log` (the commits made during a session).
 // Cost is the one weighted number of tools/agent-usage.js, in fresh-input tokens: input + 1.25 × cache writes + 0.1 × cache reads + 5 × output.
 // Which task a measurement belongs to:
@@ -13,6 +15,8 @@
 //                 otherwise the task its commits name: the VB-NNN that heads at least two thirds of the commits made between its start
 //                 and five minutes after its end; a session with no such task is listed apart, as outside a task.
 // A task measured more than once (a retry, a second session) is the sum of its runs.
+// A task's independent review (VB-1619) is part of its cost and shown apart too: the reviewer's (rw), the revision after it (vw), and the
+// task's arm (review, control, ineligible). A session whose only sub-agents are reviewers worked on one task, not as an orchestrator.
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
 
@@ -33,28 +37,64 @@ function taskOfCommits(run, commits) {
   return top && top[1] >= SHARE * all ? top[0] : null;
 }
 
+// The measures of VB-1615 a task carries beside its tokens, summed over its runs; null where no run of it has the measure (a file from
+// before the measure existed). first and boot are its first run's; statuses, the outcome each run reported (sub-agents).
+const extra = () => ({ start: null, end: null, first: null, boot: null, statuses: [], mergeUndone: null, repeats: null, repeatBytes: null, testsFailed: null,
+  streak: null, continued: 0, handoverBytes: null, reconstruct: null, compactions: null, reasons: [], launched: 0, launchCalls: 0 });
+const plus = (a, b) => (b == null ? a : (a || 0) + b);
+function more(t, r) {
+  if (r.start && (!t.start || r.start < t.start)) { t.start = r.start; t.first = r.first == null ? null : r.first; t.boot = r.boot || null; }
+  if (r.end && (!t.end || r.end > t.end)) t.end = r.end;
+  if (r.status) t.statuses.push(r.status);
+  if (r.mergeUndone != null) t.mergeUndone = !!(t.mergeUndone || r.mergeUndone);
+  if (r.repeats) { t.repeats = plus(t.repeats, r.repeats.reads + r.repeats.commands);
+    t.repeatBytes = plus(t.repeatBytes, r.repeats.readBytes + r.repeats.commandBytes); }
+  if (r.tests) { t.testsFailed = plus(t.testsFailed, r.tests.failed); t.streak = Math.max(t.streak || 0, r.tests.streak); }
+  if (r.compactions != null) t.compactions = plus(t.compactions, r.compactions);
+  if (r.continuation && r.continuation.reason) t.reasons.push(r.continuation.reason);
+  if (r.continuations && r.continuations.launched) { t.launched += r.continuations.launched; t.launchCalls += r.continuations.calls; }
+  const c = r.continuation;
+  if (c && c.continues) { t.continued++; t.handoverBytes = plus(t.handoverBytes, c.handoverBytes); t.reconstruct = plus(t.reconstruct, c.contextToEdit || 0); }
+}
+
 // runs: the parsed run files; commits: [{ t, subject }]; taskInfo(id): { name, size, arch } or null.
 function model({ runs, commits, taskInfo }) {
   const byTask = new Map(), sessions = [];
   const add = (id, r) => {
-    const t = byTask.get(id) || { id, runs: 0, calls: 0, min: 0, peak: 0, i: 0, cw: 0, cr: 0, o: 0, models: [], src: r.src, date: r.date };
+    const t = byTask.get(id) || { id, runs: 0, calls: 0, min: 0, peak: 0, i: 0, cw: 0, cr: 0, o: 0, rw: 0, vw: 0, arm: null, models: [], src: r.src || 'sub-agent', date: r.date, ...extra() };
+    t.rw += r.rw || 0; t.vw += r.vw || 0; if (r.arm) t.arm = r.arm;
     t.runs++; t.calls += r.calls; t.min += r.min || 0; t.peak = Math.max(t.peak, r.peak || 0);
     t.i += r.tokens.input; t.cw += r.tokens.cacheWrite; t.cr += r.tokens.cacheRead; t.o += r.tokens.output;
     t.models.push(...r.models); if (r.date > t.date) t.date = r.date;
+    if (r.src === 'session') t.src = 'session'; // a task its session began, then handed to a sub-agent (VB-1616), is a session's
+    more(t, r);
     byTask.set(id, t);
   };
-  const apart = (kind, r, tasks) => sessions.push({ id: r.id, kind, label: r.label, date: r.date, model: families(r.models), tasks, calls: r.calls, min: +(r.min || 0).toFixed(1),
+  const apart = (kind, r, tasks) =>
+    sessions.push({ id: r.id, kind, label: r.label, date: r.date, start: r.start, model: families(r.models), tasks, calls: r.calls,
+    min: +(r.min || 0).toFixed(1),
     peak: r.peak || 0, i: r.tokens.input, cw: r.tokens.cacheWrite, cr: r.tokens.cacheRead, o: r.tokens.output, w: weighted(r.tokens) });
   for (const run of runs) {
     const subs = run.subagents || [], date = (run.start || '').slice(0, 10);
+    const ctx = run.context || {};
     const self = { id: (run.session || '').slice(0, 8), label: run.label || '-', date, models: run.models || [], calls: run.calls, tokens: run.tokens,
-      min: run.activeMin, peak: run.context && run.context.peak, src: 'session' };
+      min: run.activeMin, peak: ctx.peak, src: 'session', start: run.start, end: run.end, first: ctx.first, boot: ctx.firstEdit, series: ctx.series,
+      repeats: run.repeats, tests: run.tests, continuation: run.continuation, compactions: run.compactions, continuations: run.continuations };
     for (const s of subs) {
-      const r = { id: s.agent, label: 'sub-agent', date: (s.start || run.start || '').slice(0, 10), models: [s.model], calls: s.calls, tokens: s.tokens, min: s.activeMin, peak: s.peak, src: 'sub-agent' };
+      const r = { id: s.agent, label: 'sub-agent', date: (s.start || run.start || '').slice(0, 10), models: [s.model], calls: s.calls, tokens: s.tokens,
+        min: s.activeMin, peak: s.peak, src: 'sub-agent', start: s.start || run.start, end: s.end || s.start || run.start, first: s.first, boot: s.boot,
+          series: s.series,
+        status: s.status, mergeUndone: s.mergeUndone, repeats: s.repeats, tests: s.tests, continuation: s.continuation, compactions: s.compactions,
+        rw: s.role === 'review' ? weighted(s.tokens) : 0, vw: s.revision ? s.revision.weighted : 0, arm: s.review ? s.review.arm : null };
       if (s.task) add(s.task, r); else apart('outside', r, 0);
     }
-    const task = subs.length ? null : run.task || taskOfCommits(run, commits);
-    if (task) add(task, self); else apart(subs.length ? 'orchestrator' : 'outside', self, subs.filter((s) => s.task).length);
+    // A session with sub-agents orchestrates, and its own cost is no one task's, unless it names its one task and its sub-agents all
+    // worked on that: a session that handed the rest of its task to a fresh context (VB-1616). Its reviewer (VB-1619) is no task handed out.
+    const impl = subs.filter((s) => s.role !== 'review');
+    const task = impl.length ? (run.task && impl.every((s) => !s.task || s.task === run.task) ? run.task : null)
+      : run.task || (run.review && run.review.task) || taskOfCommits(run, commits);
+    if (run.review) Object.assign(self, { arm: run.review.arm, vw: run.review.revision ? run.review.revision.weighted : 0 });
+    if (task) add(task, self); else apart(impl.length ? 'orchestrator' : 'outside', self, impl.filter((s) => s.task).length);
   }
   const tasks = [...byTask.values()].map((t) => {
     const info = taskInfo(t.id) || {}, { models, ...rest } = t;
@@ -67,11 +107,13 @@ function model({ runs, commits, taskInfo }) {
 
 function readRuns(dir) {
   if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir).filter((f) => f.endsWith('.json')).sort().map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))).filter((r) => r.tokens && r.start && r.end);
+  return fs.readdirSync(dir).filter((f) => f.endsWith('.json')).sort().map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'))).filter((r) =>
+    r.tokens && r.start && r.end);
 }
 function gitCommits(root, since) {
   try {
-    return execFileSync('git', ['log', '--format=%aI%x09%s', ...(since ? ['--since=' + since] : [])], { cwd: root, encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
+    return execFileSync('git', ['log', '--format=%aI%x09%s', ...(since ? ['--since=' + since] : [])], {
+      cwd: root, encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
       .split('\n').filter(Boolean).map((l) => { const at = l.indexOf('\t'); return { t: Date.parse(l.slice(0, at)), subject: l.slice(at + 1) }; });
   } catch (e) { return []; }
 }
@@ -82,17 +124,47 @@ const taskInfoOf = (root) => (id) => {
   return { name: g(/^# VB-\d+: (.*)/), size: g(/^Size: (\w+)/m), arch: g(/^Arch: (.*)/m) };
 };
 
+// The periods of the change log compared (tools/lib/periods.js), for --periods of tools/agent-usage.js and for the page.
+function comparePeriods(root, data, file, from = null, to = null, peak = {}) {
+  const P = require('./lib/periods.js');
+  const info = (id) => { try { return P.fileInfo(fs.readFileSync(path.join(root, 'backlog', id + '.md'), 'utf8')); } catch (e) { return null; } };
+  const changes = P.parseChanges(fs.readFileSync(file, 'utf8'));
+  return { changes, compared: P.compare({ data, changes, info, fixList: P.fixes(root), from, to, ...peak }) };
+}
+// The page's table of periods: a row a stratum a period, with its medians, shares and the change against the period before.
+function periodTable(c) {
+  const med = (s, name) => (s.measures[name] ? s.measures[name].median : null), sh = (s, name) => (s.shares[name] ? s.shares[name].share : null);
+  return c.periods.flatMap((p) =>
+    p.strata.map((s, i) => ({ when: p.when, change: p.change, first: i === 0, stratum: s.key, n: s.n, few: s.few, done: sh(s, 'done'),
+    w: med(s, 'weighted'), q1: s.measures.weighted ? s.measures.weighted.q1 : null, q3: s.measures.weighted ? s.measures.weighted.q3 : null,
+    delta: s.change ? s.change.weighted : null, calls: med(s, 'calls'), runs: med(s, 'runs'), peak: med(s, 'peak'), boot: med(s, 'boot'),
+      repeats: med(s, 'repeats'),
+    fails: med(s, 'testsFailed'), continued: sh(s, 'continued'), reopened: sh(s, 'reopened'), boundary: sh(s, 'resetBoundary'), stuck: sh(s, 'resetStuck'),
+    launchCalls: med(s, 'launchCalls') })));
+}
+
 if (require.main === module) {
   const root = path.join(__dirname, '..'), args = process.argv.slice(2);
   const opt = (k, d) => { const i = args.indexOf(k); return i < 0 ? d : args[i + 1]; };
   const runs = readRuns(path.resolve(root, opt('--dir', 'docs/agents/usage')));
   const first = runs.map((r) => r.start).sort()[0];
   const data = model({ runs, commits: gitCommits(root, first && new Date(Date.parse(first) - 864e5).toISOString()), taskInfo: taskInfoOf(root) });
-  if (args.includes('--json')) { console.log(JSON.stringify(data)); process.exit(0); }
-  const page = fs.readFileSync(path.join(__dirname, 'lib', 'usage-page.html'), 'utf8').replace('/*DATA*/', () => JSON.stringify(data).replace(/</g, '\\u003c'));
-  const out = path.resolve(root, opt('--out', 'docs/usage.html'));
-  fs.writeFileSync(out, page);
-  const k = (n) => (n / 1e6).toFixed(1) + 'M', sum = (xs) => xs.reduce((a, x) => a + x.w, 0);
-  console.log(`usage: ${path.relative(root, out)}: ${data.tasks.length} tasks from ${data.runs} runs, weighted ${k(sum(data.tasks))}; apart, ${data.sessions.length} sessions, ${k(sum(data.sessions))}`);
+  const log = path.resolve(root, opt('--changes', 'docs/agents/changes.md'));
+  if (fs.existsSync(log)) {
+    const { changes, compared } = comparePeriods(root, data, log);
+    data.changes = changes.map((c) => ({ at: c.at, when: c.when, change: c.change }));
+    data.periods = periodTable(compared).map((r) => ({ ...r, row: changes.findIndex((c) => c.when === r.when) + 1 }));
+  }
+  if (args.includes('--json')) process.stdout.write(JSON.stringify(data) + '\n'); // no process.exit: a pipe would lose what is not yet written
+  else {
+    const page = fs.readFileSync(path.join(__dirname, 'lib', 'usage-page.html'), 'utf8').replace('/*DATA*/', () =>
+      JSON.stringify(data).replace(/</g, '\\u003c'));
+    const out = path.resolve(root, opt('--out', 'docs/usage.html'));
+    fs.writeFileSync(out, page);
+    const k = (n) => (n / 1e6).toFixed(1) + 'M', sum = (xs) => xs.reduce((a, x) => a + x.w, 0);
+    console.log(`usage: ${path.relative(root,
+      out)}: ${data.tasks.length} tasks from ${data.runs} runs, weighted ${k(sum(data.tasks))}; apart, ${data.sessions.length} sessions, ${k(
+      sum(data.sessions))}`);
+  }
 }
-module.exports = { model, taskOfCommits, weighted, readRuns };
+module.exports = { model, taskOfCommits, weighted, readRuns, gitCommits, taskInfoOf, comparePeriods, periodTable };

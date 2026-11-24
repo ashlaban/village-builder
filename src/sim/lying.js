@@ -74,7 +74,7 @@ VB['sim/lying'] = (() => {
   // tied, hay raked, logs cut, stone in its basket; a named guess, half an hour), carried as K carries, delivered as K delivers, with the
   // task's tile as it was (a felled tree's, sim/kinds wood).
   const LIFT = 0.5;
-  // What a load of each kind is, in the words the player reads (VB-1642: the fetch kinds named by what they bring, not all "a load"); the
+  // What a load of each kind is, in the words the player reads (VB-1670: the fetch kinds named by what they bring, not all "a load"); the
   // frost's log line names it the same.
   const WHAT = {
     haul: 'sheaves',
@@ -86,7 +86,7 @@ VB['sim/lying'] = (() => {
   };
   const whatOf = (kind) => (kind === 'leftCart' ? 'cart' : WHAT[kind] || 'goods');
   // Hay is taken by the rule of every load of hay (sim/meadows hayLoad): TRAVEL.hay of hay a unit of load, at most TRAVEL.hayCart a load
-  // (VB-1642: a cart had taken 300 units, 100 hay, from hay left lying, where a meadow gives it 60).
+  // (VB-1670: a cart had taken 300 units, 100 hay, from hay left lying, where a meadow gives it 60).
   const capOf = (kind, cap) => (kind === 'hay' ? Math.min(cap, TRAVEL.hayCart / TRAVEL.hay) : cap);
   function fetchKind(kind, K) {
     const what = whatOf(kind),
@@ -137,7 +137,7 @@ VB['sim/lying'] = (() => {
         post(`fetch:L${l.id}`, l.tile, { ...l.of, lying: l.id, x: l.x, y: l.y, left: l.n }, fetchKey(l.kind), l.owner);
   }
   // The autumn frost (sim/clock, with the stooks and the mown hay): every load still lying rots where it lies, and the list is empty but for
-  // a cart its household left standing at the landing when its house moved (`of.kept`, VB-1639: sim/carts' frost keeps it too).
+  // a cart its household left standing at the landing when its house moved (`of.kept`, VB-1667: sim/carts' frost keeps it too).
   function frost(st) {
     if (!st.lying) return;
     const keep = st.lying.filter((l) => l.kind === 'leftCart' && l.of.kept);

@@ -238,7 +238,7 @@ VB['sim/seasonal'] = (() => {
   const daysAhead = (c, hz) => (hz ? SEASON_DAYS - c.sday + (hz - 1) * SEASON_DAYS : 0);
   // The head's targets from the template's T, at the making of its seasonal plan: each times the head's bias. The review reads them from
   // the plan from then on (VB-252); only what it projects ahead (project, below) is added at each review. The woodpile's are a cottage's
-  // times the house's own fire (sim/house fireOf: a timber house burns less, so its household cuts less; VB-1641).
+  // times the house's own fire (sim/house fireOf: a timber house burns less, so its household cuts less; VB-1669).
   function biased(st, plan, T) {
     const P = plan.targets,
       b = plan.head ? plan.head.bias : UNBIASED,

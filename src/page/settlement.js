@@ -201,9 +201,9 @@ function boothCottage(f) {
     P.projectsOf(st, 'village', f.village).find(mine)
   );
 }
-// A camp (farmstead.camp, VB-1627: the settler who plans by hand lands with nothing built): the goods landed on the house tile, a
+// A camp (farmstead.camp, VB-1655: the settler who plans by hand lands with nothing built): the goods landed on the house tile, a
 // covered pile of sacks and a chest beside a ring of hearth stones, and nothing standing; the shelter's poles come when it is staked
-// on the tile (VB-1638), the pile then moved aside for them.
+// on the tile (VB-1666), the pile then moved aside for them.
 const CAMP_AT = [3, 6]; // the pile, from the tile's middle; the hearth to its left
 const campAt = (f) => (f.shelter ? [CAMP_AT[0] - 5, CAMP_AT[1] + 4] : CAMP_AT);
 function drawCamp(wd, f) {
@@ -253,7 +253,7 @@ function stakedPoles(g, bx, by) {
       .stroke({ width: 0.8, color: 0x96462f });
   g.ellipse(bx, by, 8.5, 2.4).stroke({ width: 0.7, color: INK, alpha: 0.45 });
 }
-// The move of a farm placed off its landing (VB-1639): the loads left lying at the landing, marked `of.moving`, drawn as the camp's pile
+// The move of a farm placed off its landing (VB-1667): the loads left lying at the landing, marked `of.moving`, drawn as the camp's pile
 // was, smaller as they are fetched; one Graphics, redrawn only when what lies changes (each frame, page/animate).
 const moveG = new PIXI.Graphics();
 let moveKey = '';
@@ -307,7 +307,7 @@ function drawBooth(wd, f, empty) {
     n = boothCottage(f) ? boothCottage(f).open : 0, // the stages done
     bx = x + YARD.booth[0],
     by = y + YARD.booth[1];
-  // the shelter on the house tile (VB-1638): poles while it is raised, the tent once it stands, worn as a booth wears; an older save's
+  // the shelter on the house tile (VB-1666): poles while it is raised, the tent once it stands, worn as a booth wears; an older save's
   // farm booth: the tent here as before, or (a farm landed by hand) on its own tile beside the house (drawBooths)
   const sh = f.shelter;
   if (sh && sh.built === null) stakedPoles(g, bx, by);
@@ -467,7 +467,7 @@ function drawFarm(wd, f) {
   // are darker (VB-301)
   const tint = empty ? (ruin ? 0x6e6a66 : 0x8e8a86) : Sim.houseTarred(st, f) ? 0x9a8a7c : 0xffffff;
   const camp = f.camp === true,
-    landed = f.camp !== undefined; // landed by hand: only what it built stands, no byre, heap, storehouse or loft (VB-1627, VB-1632)
+    landed = f.camp !== undefined; // landed by hand: only what it built stands, no byre, heap, storehouse or loft (VB-1655, VB-1660)
   if (camp) {
     yard.alpha = 0.3; // trodden ground only
     drawCamp(wd, f);
@@ -484,7 +484,7 @@ function drawFarm(wd, f) {
     }
     if (landed) lada.visible = harbre.visible = false;
     if (f.rung === 'timber') {
-      // the timber house (VB-1636): a larger house of another of the three cottages' looks, standing where the cottage stood
+      // the timber house (VB-1664): a larger house of another of the three cottages' looks, standing where the cottage stood
       stuga.texture = art.stuga[(v + 1) % 3];
       stuga.scale.set(ART_S * 1.32);
     }
@@ -508,7 +508,7 @@ function drawFarm(wd, f) {
   const wood = place(art.wood[0], hx + YARD.wood[0], hy + YARD.wood[1], 0.5, 0.9);
   wood.visible = !empty;
   const herds = !empty && st.households[f.household].herds.length > 0;
-  // the byre (VB-1637) where one stands; an older save's farm, with no record of it, has one where it keeps animals
+  // the byre (VB-1665) where one stands; an older save's farm, with no record of it, has one where it keeps animals
   const byre = f.byre === undefined ? herds && !landed : hasBuilt(f.byre);
   if (byre) place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92);
   const stack =

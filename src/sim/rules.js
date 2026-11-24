@@ -258,6 +258,13 @@ VB['sim/rules'] = (() => {
     dayWalk: 12,
     stay: 1,
   };
+  // @tunable WINTER: the ground by season (VB-808; design.md, Climate and travel beyond walking, The ground by season; docs/plans/VB-190.md,
+  // section 5.2), read by sim/walking as the winter's dates fall (sim/climate): ice, the cost of a tile of lake, river or sound ice that
+  // bears, crossed with no slope (a river needs no ford); marsh, frozen marsh's ground in place of TERRAIN's 5 (the dear ground of the
+  // journey scale, so a winter way runs straight over the mire); snow, what deep snow multiplies a tile's cost by where no lane is
+  // trodden (lanes stay trodden under snow: Worn paths); soft, the same for the days between the thaw and firm ground; near, the tiles
+  // from land within which sound ice bears. Proposed by the plan (16 Nov); estimates, not measured (docs/tuning.md).
+  const WINTER = { ice: 1, marsh: 1.5, snow: 1.3, soft: 1.3, near: 3 };
   // A booth (bod; VB-784; design.md, Moving to new land, The booth): a shelter of poles, bark and turf, `hours` of work and `wood` loads at its
   // tile, `sleeps` at most; unkept it wears `wear` of its condition a year (poles and bark: about three years) and is gone at none. A pawn
   // lodging under the open sky stakes one at its bed when its stay plans more than `worth` nights (VB-1172; design: a stay of more than a
@@ -281,7 +288,7 @@ VB['sim/rules'] = (() => {
     maxAge: 15,
     keepBullUnder: 8,
     byre: 6,
-    // a farm with no byre (VB-1637; sim/byrehouse) winters its animals in the open: each lean day of the stall winter counts openLean
+    // a farm with no byre (VB-1665; sim/byrehouse) winters its animals in the open: each lean day of the stall winter counts openLean
     // (a whole number: herd.lean counts days) towards the herd's lean, against 1 under a roof (sim/byre)
     openLean: 2,
     startMargin: 1.1,
@@ -599,10 +606,10 @@ VB['sim/rules'] = (() => {
     // built by a plot's cottage's stages (hours as theirs) with `timber` loads felled in the village's wood for its walls; a farm with one
     // loses `loss` times the grain to spoilage (ECON.storeLoss, sim/hunger) and the barn hay (HERD.hayLoss, sim/byre)
     barn: Object.freeze({ timber: 40, hours: Object.freeze([30, 60, 30]), loss: 0.5 }),
-    // a byre (VB-1637; Kim, 24 Nov 2026: "a byre of about 20 timber loads and 60 hours houses six"): its walls take `timber` loads felled
+    // a byre (VB-1665; Kim, 24 Nov 2026: "a byre of about 20 timber loads and 60 hours houses six"): its walls take `timber` loads felled
     // in the village's wood; `hours` its walls' and its roof's (sim/byrehouse); it houses HERD.byre places
     byre: Object.freeze({ timber: 20, hours: Object.freeze([40, 20]) }),
-    // the timber house (VB-1636), built up from a cottage (sim/timberhouse): its frame takes `timber` loads felled in the village's wood;
+    // the timber house (VB-1664), built up from a cottage (sim/timberhouse): its frame takes `timber` loads felled in the village's wood;
     // `hours` its frame's and its roof's, about 150 in all; its room and its smaller fire are sim/house's ROOM; a head left to its own rule
     // begins one only with `hands` working hands or more (sim/upgrade ownTimber)
     timberHouse: Object.freeze({ timber: 30, hours: Object.freeze([100, 50]), hands: 3 }),
@@ -706,6 +713,7 @@ VB['sim/rules'] = (() => {
     HELP,
     GOODWILL,
     TRAVEL,
+    WINTER,
     BOOTH,
     HERD,
     stalled,

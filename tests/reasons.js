@@ -5,7 +5,7 @@ const assert = require('assert'), { isDeepStrictEqual } = require('util');
 const VB = require('../src/load.js'), Sim = VB.sim;
 const { state } = require('./lib/probe.js');
 const { DAY, YEAR, SEASON_DAYS, WORK } = VB['sim/rules'];
-const { frostExpected } = VB['sim/reasons'];
+const { frostExpected } = VB['sim/weather'];
 const { build } = require('../tools/writes.js');
 
 const st = state();
@@ -114,6 +114,6 @@ for (const p of st.pawns) if (p.died === null) assert(Sim.reasonLine(st, p.id), 
 // no simulation module names the view: only the Sim facade reads it
 const r = build();
 const readers = r.deps.filter((d) => d.imports.includes('sim/reasons') || d.lookups.some((l) => l.key === 'sim/reasons')).map((d) => d.mod);
-// sim/agenda (VB-1616), itself a view read by no simulation module, words its causes by this one's
+// sim/agenda (VB-1644), itself a view read by no simulation module, words its causes by this one's
 assert.deepStrictEqual(readers, ['sim/agenda', 'sim'], `only sim and the agenda read sim/reasons, not ${readers.join(', ')}`);
 console.log(`reasons ok: ${seen.size} of ${VB['sim/reasons'].BY.length} kinds of chooser reached (duty is VB-1553's)`);

@@ -1,11 +1,11 @@
-// @sys sim/byrehouse: the byre as a building (VB-1637): farmstead.byre, the making `byre` (a project of the household at its house, its
+// @sys sim/byrehouse: the byre as a building (VB-1665): farmstead.byre, the making `byre` (a project of the household at its house, its
 //   stages the job kinds byrewalls and byreroof, the walls waiting for their timber), its check byreWhy, the byres the run begins with and
 //   an older save's; the stall winter it shelters is sim/byre's (a farm without one winters its animals in the open: HERD.openLean)
 VB['sim/byrehouse'] = (() => {
   const { BUILD } = VB['sim/rules'];
   const Projects = VB['sim/projects'];
   const { declare } = VB['sim/makings'];
-  // @state farmstead.byre (VB-1637): {built (game hours)} once the farm has a byre, where its animals stand through the stall winter
+  // @state farmstead.byre (VB-1665): {built (game hours)} once the farm has a byre, where its animals stand through the stall winter
   //   (HERD.byre places, sim/byre); absent or null while it has none. Every farm that stands at seeding has one (seedByres), but a camp
   //   landed by hand (noByre); a farm made in play (a settler's, sim/settle; an heir's cottage, sim/cottage) has none until its household
   //   builds it. One a farm; it goes with the farm. Written only here.
@@ -19,7 +19,7 @@ VB['sim/byrehouse'] = (() => {
       ...(kind === 'byrewalls' ? { wood: 0, timber: BUILD.byre.timber } : {}),
     }));
   // Why household hh may not begin a byre now, or null: a farm of its own with none, its cottage built, a village wood to fell its timber
-  // in, none under way; beside any other project (VB-1640; the byre is a large project, as the barn is).
+  // in, none under way; beside any other project (VB-1668; the byre is a large project, as the barn is).
   function byreWhy(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `the household has no farm of its own`;
@@ -63,7 +63,7 @@ VB['sim/byrehouse'] = (() => {
     byreroof: kind('Roofing the byre', 'Roof the byre', 'mallet', 1, ['byre']),
   };
   // ---- the byres the run begins with ----
-  // At seeding (sim/scenarios makeState): every farm has its byre, as the stall winter assumed before VB-1637.
+  // At seeding (sim/scenarios makeState): every farm has its byre, as the stall winter assumed before VB-1665.
   function seedByres(st) {
     for (const f of st.farmsteads) f.byre = { built: st.t };
   }
@@ -71,7 +71,7 @@ VB['sim/byrehouse'] = (() => {
   const noByre = (st, f) => {
     f.byre = null;
   };
-  // A save from before VB-1637: every farm reads as having its byre, as the stall winter assumed then.
+  // A save from before VB-1665: every farm reads as having its byre, as the stall winter assumed then.
   function byresLoaded(st) {
     for (const f of st.farmsteads) if (f.byre === undefined) f.byre = { built: st.t };
   }

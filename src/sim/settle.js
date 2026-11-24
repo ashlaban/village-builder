@@ -273,7 +273,7 @@ VB['sim/settle'] = (() => {
   }
   // ---- settling ----
   // The party settles on `house` in village v: a farmstead with no fields whose cottage is still to build (f.booth, the mark; the cottage a
-  // project plan of the household, sim/expansion's), its shelter begun on the house tile (VB-1638: the ladder's first rung, one rule for
+  // project plan of the household, sim/expansion's), its shelter begun on the house tile (VB-1666: the ladder's first rung, one rule for
   // every household; sim/building stakeShelter), a household with the provisions as its grain, and `field` as its first field project.
   // They sleep under the open sky until the shelter stands, and their cottage waits for it (sim/building boothWork).
   function settleFarm(st, v, home, party, house, field, prov) {

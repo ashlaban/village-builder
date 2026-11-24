@@ -135,7 +135,7 @@ const HUD_STORES = [
   ['fuel', 'Firewood', 'measures'], // a load home is Sim.ECON.woodPerTrip measures
   ['hay', 'Hay', 'loads'],
 ];
-// What the outlook of a household planned by hand left out for want of a task (parts.left, VB-1633), in words, with the way to it.
+// What the outlook of a household planned by hand left out for want of a task (parts.left, VB-1661), in words, with the way to it.
 function storeLeft(x, f, unit) {
   const fi = f.fields.findIndex((q) => q.tile === x.tile),
     mi = f.meadows.findIndex((q) => q.tile === x.tile),

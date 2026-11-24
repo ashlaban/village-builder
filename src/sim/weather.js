@@ -125,6 +125,11 @@ VB['sim/weather'] = (() => {
   const inSeason = (d) => Math.max(0, Math.min(SEASON_DAYS - 1, d));
   const thawDay = (st) => inSeason(year(st).thaw + shiftOf(st.w).thaw);
   const frostDay = (st) => inSeason(year(st).frost + shiftOf(st.w).frost);
+  // The first frost a head expects: the draw's most usual day on its world's climate, never this year's drawn day, which nobody knows
+  // before it falls (Principles: the future is someone's estimate; VB-1551, VB-1175). An autumn sday. Whatever plans ahead for the frost
+  // (the asker's window, reaping's urgency, the harvest's outlook, the review before the frost) reads this; what the frost does reads frostDay.
+  const frostExpected = (st) =>
+    inSeason(WEATHER.frostFrom + WEATHER.frost.indexOf(Math.max(...WEATHER.frost)) + shiftOf(st.w).frost);
   // Is crop k's window (its row's sow: [season, first day, last day]) open on c, the thaw passed for a crop sown in spring.
   function sowOpen(st, k, c) {
     const W = CROPS[k].sow;
@@ -144,6 +149,7 @@ VB['sim/weather'] = (() => {
     ripeShift,
     thawDay,
     frostDay,
+    frostExpected,
     sowOpen,
   };
 })();

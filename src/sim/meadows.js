@@ -142,8 +142,9 @@ VB['sim/meadows'] = (() => {
     });
     st.used.add(tile);
     woodTaken(st, tile); // a wood tile made a meadow leaves its village's wood (VB-326)
-    if (!st.w.dev[tile]) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
+    const fresh = !st.w.dev[tile];
     st.w.dev[tile] = 1;
+    if (fresh) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
     st.biomeDirty.add(tile);
   }
   // A household with animals and no land project, short of meadow for its herds' winter, stakes a tile and starts clearing it (sim/stakes);
@@ -443,8 +444,8 @@ VB['sim/meadows'] = (() => {
   };
   return {
     KINDS,
-    MOW_LAST, // the haymaking window's last autumn day (sim/agenda's deadline, VB-1616)
-    DRY_DAYS, // the days mown hay dries before it is carried (sim/planchains' hay task, VB-1622)
+    MOW_LAST, // the haymaking window's last autumn day (sim/agenda's deadline, VB-1644)
+    DRY_DAYS, // the days mown hay dries before it is carried (sim/planchains' hay task, VB-1650)
     meadowWork,
     HAY,
     UNRAKED,

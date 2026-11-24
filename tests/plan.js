@@ -1,4 +1,4 @@
-// The player's plan (VB-1618; sim/playerplan, the feeder in sim/player's playerStep): its ops and their refusals; with automatic behaviour
+// The player's plan (VB-1646; sim/playerplan, the feeder in sim/player's playerStep): its ops and their refusals; with automatic behaviour
 // off, the routine seen to once a day in order, the tasks in their order, a command queued by hand first, sleep by the plan's hours, a
 // task finished leaving the plan; a clearing of more than a day taken up again after a night slept; a save keeps the plan and goes on the
 // same; with automatic behaviour on, the plan is kept and not followed. On the tiny village of tests/player.js.
@@ -161,7 +161,7 @@ const head = (st) => st.player.queue[0];
   sound(st, 'over two days');
   sound(back, 'loaded');
 }
-// 6. VB-1621: a plant task, one field carried from its clearing to its sowing. Its refusals; on the project's tile, the clearing, the
+// 6. VB-1649: a plant task, one field carried from its clearing to its sowing. Its refusals; on the project's tile, the clearing, the
 // breaking, the hoeing and the sowing taken in that order with no further act of the player, the pawn going on to the next task while a
 // step's job is not posted yet; on a field already broken, the hoeing and the sowing only; the task leaves once the field is sown; a save
 // and a load go on the same; a window shut with the field unsown drops it.
@@ -225,7 +225,7 @@ const head = (st) => st.player.queue[0];
   fd.crop = 'fallow';
   assert.match(String(Sim.plan(st, 'add', { plant: fd.tile })), /lies fallow/);
 }
-// 7. VB-1622: the chains hay and harvest, and a marked tile. With herds and meadows, the played farmer alone (the others' hands would do
+// 7. VB-1650: the chains hay and harvest, and a marked tile. With herds and meadows, the played farmer alone (the others' hands would do
 // its tasks before it): the gaps of the sowing listed and one gone once planned; a hay task added in spring stands until the mowing is
 // posted, then carries the meadow from its mowing to its hay home with no further act; a harvest task added in summer waits for the
 // crop to ripen, then reaps it and brings the sheaves in; the refusals; a save and a load go on the same.
@@ -309,7 +309,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   st.jobs.get('clear:f0').hours = 8;
   const tile = VB['sim/fieldplans'].pickField(st, f, hh);
   assert(tile >= 0 && VB['sim/projects'].ownOf(st, 0), 'a field project open, and a tile for the next');
-  assert.match(String(Sim.plan(st, 'add', { plant: -1 })), /no tile -1/, 'a tile under 0 refused (VB-1623)');
+  assert.match(String(Sim.plan(st, 'add', { plant: -1 })), /no tile -1/, 'a tile under 0 refused (VB-1651)');
   assert.match(String(Sim.plan(st, 'add', { plant: st.farmsteads[1].house })), /no field of the household's nor a field project at \d+ \(/, 'a tile the head\'s verb refuses, with its reason');
   assert.strictEqual(Sim.command(st, { actor: FARMER, verb: 'tile', target: 0, args: { what: 'field', tile }, source: 'player' }), true);
   hh.holder = null;
@@ -322,7 +322,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   assert.deepStrictEqual([v.plant, v.step, v.stands], [tile, VB['sim/fieldplans'].fieldProject(st, hh, tile).steps[0].kind, false]);
   const begun = chainRun(st, () => VB['sim/projects'].projectsOf(st, 'household', 0).some((p) => p.what === 'field' && p.steps.some((s) => s.place === tile)), 10 * 24 * 10);
   const p = VB['sim/projects'].projectsOf(st, 'household', 0).find((q) => q.steps[q.open].place === tile);
-  assert(p && p.side && VB['sim/projects'].ownOf(st, 0) !== p, 'the project at the marked tile begun beside the first (VB-1623)');
+  assert(p && p.side && VB['sim/projects'].ownOf(st, 0) !== p, 'the project at the marked tile begun beside the first (VB-1651)');
   Sim.advance(st, 0.2);
   assert(begun.some((b) => b[1] === site && b[2] === 'clear'), 'after the first task\'s clearing, not waiting for its project to end');
   assert(begun.some((b) => b[1] === tile && b[2] === 'project'), `begun by the feeder through the head's verb: ${JSON.stringify(begun)}`);
@@ -330,7 +330,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   assert.strictEqual(st.plans.households.get(0).tiles.field, -1, 'the mark used');
   sound(st, 'marked');
 }
-// 8. VB-1623: the stall. The played head's household has a field project open that no task covers, automatic behaviour off; plant tasks on
+// 8. VB-1651: the stall. The played head's household has a field project open that no task covers, automatic behaviour off; plant tasks on
 // two more tiles (no mark) and a hay task on a fourth: each begun beside the others (their jobs keyed apart, headView().projects), both
 // fields sown and the hay home, the open project left as it was and nothing begun by the household's own rule; why each task waits on
 // the way, and the agenda laying none before its reason allows; a save and a load go on the same. An unplayed head keeps the limit of one.
@@ -348,9 +348,9 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   };
   const a = pick('field', [site]), b = pick('field', [site, a]), m = pick('meadow', [site, a, b]);
   assert(a >= 0 && b >= 0 && m >= 0, `tiles for two fields and a meadow beside the open project: ${[a, b, m]}`);
-  assert.strictEqual(may('field', a, 'pawn'), null, 'the check refuses no second for the holder\'s own rule either (VB-1640)');
+  assert.strictEqual(may('field', a, 'pawn'), null, 'the check refuses no second for the holder\'s own rule either (VB-1668)');
   assert.match(String(may('field', site)), /under way at/, 'one project a tile');
-  // the head unplayed is not refused a second either (VB-1640): its land step keeps its prudence of one
+  // the head unplayed is not refused a second either (VB-1668): its land step keeps its prudence of one
   Sim.uninhabit(st);
   assert.strictEqual(may('field', a), null, 'an unplayed head\'s verb begins a second');
   played(st);
@@ -403,11 +403,11 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
     return false;
   };
   let saved = null,
-    apart = 0; // the most land project jobs posted at once, each its own key (VB-1623: a side plan's carries its id)
+    apart = 0; // the most land project jobs posted at once, each its own key (VB-1651: a side plan's carries its id)
   const begun = chainRun(st, (s) => {
     look(s);
     apart = Math.max(apart, [...s.jobs.values()].filter((j) => j.owner.type === 'household' && j.owner.id === 0 && P.onProject(s, j)).length);
-    // begun beside the first; the fields, of its kinds, marked `side` (VB-1640: a plan of kinds of its own keeps its key)
+    // begun beside the first; the fields, of its kinds, marked `side` (VB-1668: a plan of kinds of its own keeps its key)
     const beside = P.projectsOf(s, 'household', 0).filter((p) => p.id !== first.id && p.what !== 'cottage');
     if (!saved && beside.length === 3) {
       assert(beside.filter((p) => p.what === 'field').every((p) => p.side), 'the fields beside the first are keyed apart');
@@ -438,12 +438,12 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   for (const [fd, crop] of old) back.farmsteads[0].fields[fd.id].crop = crop;
   sound(back, 'side by side, loaded');
 }
-// 9. VB-1623: the solo start for a hand planner, with no field under way; without `hand` as before. With automatic behaviour off the
+// 9. VB-1651: the solo start for a hand planner, with no field under way; without `hand` as before. With automatic behaviour off the
 // played head's household begins no project by its own rule; on again, its land step does.
 {
   const w = tinyWorld(rows), P = VB['sim/projects'];
   const st = Sim.seed(w, 7, 'solo', null, { hand: true });
-  assert.deepStrictEqual(P.projectsOf(st, 'household', 0).map((p) => p.what), [], 'nothing under way, the cottage neither (VB-1627)');
+  assert.deepStrictEqual(P.projectsOf(st, 'household', 0).map((p) => p.what), [], 'nothing under way, the cottage neither (VB-1655)');
   assert.deepStrictEqual(P.projectsOf(Sim.seed(tinyWorld(rows), 7, 'solo', null, {}), 'household', 0).map((p) => p.what), ['field', 'cottage']);
   Sim.inhabit(st, st.households[0].holder);
   Sim.setAuto(st, false);
@@ -453,7 +453,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   Sim.setAuto(st, true);
   assert(!P.heldOff(st, 0));
 }
-// 10. VB-1624: an `unposted` task names the household's own rule that holds its job back: a plant task on a field beyond what its hands
+// 10. VB-1652: an `unposted` task names the household's own rule that holds its job back: a plant task on a field beyond what its hands
 // till shows the cap; a hay task with hay enough shows that; else the next review.
 {
   const st = alone({ herds: true }), f = st.farmsteads[0], hh = st.households[0], { RULES } = VB['sim/plannext'];

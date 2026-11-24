@@ -1,4 +1,4 @@
-// @sys page/ui2build: the new interface's build menu (Sim.buildMenu, VB-1627), the placing of what is chosen on the land, and the camp told apart
+// @sys page/ui2build: the new interface's build menu (Sim.buildMenu, VB-1655), the placing of what is chosen on the land, and the camp told apart
 // ---- building: the menu, not tied to any tile, and the tap on the land that places what is chosen ----
 // Kim (24 Nov): solo starts with nothing built; the menu offers the Farmstead, placed by a tap on the land with the site's reading shown
 // there. The page's own state, never saved: hud.place, what is being placed ('farmstead') or null.
@@ -13,7 +13,7 @@ const BUILD_WHAT = {
 const placeG = new PIXI.Graphics(); // the tiles that would take what is being placed
 L.hover.addChild(placeG);
 let placeKey = '';
-// The camp of farm f (farmstead.camp): 'camp' while nothing is placed, 'staked' once its shelter is staked on the house tile (VB-1638;
+// The camp of farm f (farmstead.camp): 'camp' while nothing is placed, 'staked' once its shelter is staked on the house tile (VB-1666;
 // an older save's booth beside it); null for a farm with no camp (its shelter raised, or a farm not landed by hand).
 function hudCamp(f) {
   if (!f || f.camp !== true) return null;
@@ -27,13 +27,13 @@ const buildTasked = () => {
 };
 // The build button calls for a tap while there is a camp and no farmstead in the plan: the first thing to do.
 const buildCalls = (f) => hudCamp(f) === 'camp' && !buildTasked();
-// the whole work, as the plan reckons it (`work`, VB-1630), and what it is made of: the raising, and the timber fetched before it
+// the whole work, as the plan reckons it (`work`, VB-1658), and what it is made of: the raising, and the timber fetched before it
 const buildCost = (e) =>
   e.work > e.hours
     ? `About ${hudSpan(e.work)} of work in all: ${hudSpan(e.hours)} raising it, the rest felling ${woodTimber(e.timber)} ` +
       'and carrying it from the wood'
     : `About ${hudSpan(e.hours)} of work to raise, and ${woodTimber(e.timber)} felled and carried from the wood`;
-// ---- the ladder: what stands at the farmstead and what can follow (Sim.farmView, VB-1631), built up by an upgrade task (VB-1632) ----
+// ---- the ladder: what stands at the farmstead and what can follow (Sim.farmView, VB-1659), built up by an upgrade task (VB-1660) ----
 const LADDER = {
   camp: { name: 'Camp', icon: () => goodIcon('flour'), line: 'The goods landed, and nothing built.' },
   shelter: {
@@ -81,7 +81,7 @@ function ladderBuilding(V) {
   return `Building the ${ladderOf(b.what).name.toLowerCase()}: ${hudKind(b.step).toLowerCase()} now, about ${hudSpan(b.hoursLeft)} of work left.`;
 }
 // The card of the upgrade icon, and the build menu under the Farmstead once it stands: what stands, what can follow and what it takes:
-// the next rung of the house, its foundation, the outbuildings (Sim.farmView, VB-1631, VB-1635, VB-1637), each built by a plan task.
+// the next rung of the house, its foundation, the outbuildings (Sim.farmView, VB-1659, VB-1663, VB-1665), each built by a plan task.
 function ladderHTML(f) {
   const V = Sim.farmView(st, f.id);
   if (!V) return '';
@@ -146,7 +146,7 @@ function buildPick(what) {
   hoverDirty = true;
 }
 // The tiles round the camp that would take what is placed (Sim.placeWhy), within the reach of the site's reading; once an hour.
-// Placing is unrestricted (VB-1639; Kim: "unrestricted, but it will be more difficult to survive"): the tiles in view only are asked
+// Placing is unrestricted (VB-1667; Kim: "unrestricted, but it will be more difficult to survive"): the tiles in view only are asked
 // (Sim.placeWhy, cheap for any tile), again when the view or the hour changes; none when the land is too far out to tap a tile.
 const PLACE_MAX = 900; // tiles in view asked at most
 function placeTiles(f) {

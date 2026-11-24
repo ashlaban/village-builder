@@ -1,4 +1,4 @@
-// VB-1639: the farmstead placed anywhere reachable on foot. Placed off the landing, the house moves and nothing teleports: the grain (by
+// VB-1667: the farmstead placed anywhere reachable on foot. Placed off the landing, the house moves and nothing teleports: the grain (by
 // crop, but for the head's back load), the firewood and the hay lie at the landing as loads to fetch, the carts stand there and the herds
 // with them; the farmstead task drives the herds, fetches the carts and the loads, then fetches its timber and raises the shelter. A lone
 // farm's village follows its house. Sim.moveCost reads what a tile costs. A move of 2 steps and of 10; the stocks conserved; the
@@ -146,7 +146,7 @@ for (const n of [2, 10, 24]) {
   assert(hh.carts.every((c) => !c.at), 'the carts home');
   const after = holdings(st);
   assert.strictEqual(after.carts, before.carts);
-  // VB-1642: what the page's callout and the agenda reckon is what the move takes, within a quarter: the work of the move's trips
+  // VB-1670: what the page's callout and the agenda reckon is what the move takes, within a quarter: the work of the move's trips
   // (Sim.moveCost hours) against the pawn's hours on them, and the agenda's end of the task at placing against the roof raised
   const near = (x, y) => Math.abs(x - y) <= 0.25 * y;
   report.push(

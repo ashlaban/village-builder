@@ -315,7 +315,7 @@ function pick(sx, sy, inspect = true) {
     }
     return;
   } // where to settle takes the map's clicks (page/ui2site)
-  if (UI2 && st && !choose && played() >= 0) {
+  if (u2Live() && st && !choose && played() >= 0) {
     if (inspect) hudTap(sx, sy);
     return;
   }

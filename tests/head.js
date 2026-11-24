@@ -71,7 +71,7 @@ let made;
   const p = Projects.ownOf(st, hh.id);
   assert.ok(p && p.what === 'field' && p.steps[0].place === tile, `the land step begins the field on the chosen tile (${p && p.steps[0].place}, not ${tile})`);
   assert.strictEqual(plan.tiles.field, -1, 'the tile is used');
-  // a second: the verb refuses it to neither (VB-1640); the holder's land step begins none while one is under way, its own choice
+  // a second: the verb refuses it to neither (VB-1668); the holder's land step begins none while one is under way, its own choice
   const second = (source) => VB['sim/commands'].VERBS.project.check(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'field' }, source });
   assert.strictEqual(second('pawn'), null, 'a second project, by the head\'s verb as its rule issues it');
   assert.strictEqual(second('player'), null, 'a second project, by the played head');

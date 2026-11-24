@@ -21,17 +21,17 @@ const FAST = [
   ['node', 'tests/living.js'],
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
-  ['node', 'tests/handplan.js'], // VB-1633: by hand the outlook counts what the plan covers, one reckoning of the fire, no stone work held off, the cutting asked
-  ['node', 'tests/firewood.js'], // VB-1625: wood in two steps, felled and carried home as timber, cut at the house; the plan's fell and firewood
-  ['node', 'tests/camp.js'], // VB-1627: land first: a camp, roofless; the build menu and the refusals; the farmstead placed and its shelter raised on the house tile, the house moved
-  ['node', 'tests/move.js'], // VB-1639: the farmstead placed anywhere reachable on foot: the goods, the carts and the herds left at the landing and fetched; the village follows; Sim.moveCost
-  ['node', 'tests/upgrade.js'], // VB-1632: the shelter built up to a cottage by a task of the plan; the timber at home first; farmView next
-  ['node', 'tests/shelter.js'], // VB-1638: a settler household's shelter on its house tile, then its cottage there; an older save's booth kept
-  ['node', 'tests/farmtasks.js'], // VB-1635: the stone foundation and the barn, each by a task of the plan; the slack's wait; farmView's foundation
-  ['node', 'tests/byrehouse.js'], // VB-1637: the byre as a building: at seeding, none on a camp, an older save; the lean in the open; by the plan and by the head's rule
-  ['node', 'tests/timberhouse.js'], // VB-1636: the timber house above the cottage, the rungs' room and the crowded tenants; by the plan and by a crowded head's rule
-  ['node', 'tests/plan.js'], // VB-1618: the player's plan: its ops, the routine once a day, tasks in order, hand commands first, sleep by its hours
-  ['node', 'tests/sleep.js'], // VB-1615: the played pawn's sleep owed, the verb sleep, a night worked in mood and health
+  ['node', 'tests/handplan.js'], // VB-1661: by hand the outlook counts what the plan covers, one reckoning of the fire, no stone work held off, the cutting asked
+  ['node', 'tests/firewood.js'], // VB-1653: wood in two steps, felled and carried home as timber, cut at the house; the plan's fell and firewood
+  ['node', 'tests/camp.js'], // VB-1655: land first: a camp, roofless; the build menu and the refusals; the farmstead placed and its shelter raised on the house tile, the house moved
+  ['node', 'tests/move.js'], // VB-1667: the farmstead placed anywhere reachable on foot: the goods, the carts and the herds left at the landing and fetched; the village follows; Sim.moveCost
+  ['node', 'tests/upgrade.js'], // VB-1660: the shelter built up to a cottage by a task of the plan; the timber at home first; farmView next
+  ['node', 'tests/shelter.js'], // VB-1666: a settler household's shelter on its house tile, then its cottage there; an older save's booth kept
+  ['node', 'tests/farmtasks.js'], // VB-1663: the stone foundation and the barn, each by a task of the plan; the slack's wait; farmView's foundation
+  ['node', 'tests/byrehouse.js'], // VB-1665: the byre as a building: at seeding, none on a camp, an older save; the lean in the open; by the plan and by the head's rule
+  ['node', 'tests/timberhouse.js'], // VB-1664: the timber house above the cottage, the rungs' room and the crowded tenants; by the plan and by a crowded head's rule
+  ['node', 'tests/plan.js'], // VB-1646: the player's plan: its ops, the routine once a day, tasks in order, hand commands first, sleep by its hours
+  ['node', 'tests/sleep.js'], // VB-1643: the played pawn's sleep owed, the verb sleep, a night worked in mood and health
   ['node', 'tests/outcomes.js'], // commands' three outcomes and the queue's assignments: release, reacquire, side work, saves (VB-1405)
   ['node', 'tests/crowding.js'], // a household's crowding, its factor and its refresh, on a constructed state (VB-766)
   ['node', 'tests/sheet.js'], // the played pawn's sheet: what a command brought, what moved its levels, an illness before it kills (VB-1118)
@@ -54,8 +54,11 @@ const FAST = [
   ['node', 'tests/questions-tool.js'],
   ['node', 'tests/agent-usage.js'],
   ['node', 'tests/usage-page.js'],
+  ['node', 'tests/periods.js'], // VB-1615: the log of changes cuts periods, compared by stratum
+  ['node', 'tests/reset-estimate.js'], // VB-1615: what a context reset at T could save against the ceiling alone
   ['node', 'tests/context-size.js'],
   ['node', 'tests/same-tool.js'],
+  ['node', 'tests/review-tool.js'],
   ['node', 'tests/wood.js'],
   ['node', 'tests/cold.js'],
   ['node', 'tests/mood.js'],
@@ -78,10 +81,11 @@ const FAST = [
   ['node', 'tests/rye.js'],
   ['node', 'tests/weather.js'], // VB-354: the seasons' weather, each crop's reading, the thaw, the frost, the ripening
   ['node', 'tests/latitude.js'], // VB-807: the winter's dates by latitude, the bands, the growing year by world, dates falling, lat saved
+  ['node', 'tests/winter.js'], // VB-808: the ground by season: ice that bears, frozen marsh, snow; no night on the ice; the thaw's routes
   ['node', 'tests/peas.js'],
   ['node', 'tests/skills.js'], // time taken from causes: skill, a leg's mishap, the crop's size (VB-475)
   ['node', 'tests/reasons.js'], // VB-1551: who chose a pawn's act and why, every chooser but a duty, read-only and read by no module
-  ['node', 'tests/agenda.js'], // VB-1616: the played pawn's queue and open work at its own estimate, against their deadlines, read-only; VB-1619: its plan laid into days agrees with the feeder
+  ['node', 'tests/agenda.js'], // VB-1644: the played pawn's queue and open work at its own estimate, against their deadlines, read-only; VB-1647: its plan laid into days agrees with the feeder
   ['node', 'tests/workmanship.js'], // workmanship: the grades' odds by skill, the draw, the maker, the graded quern (VB-761)
   ['node', 'tests/estimate.js'], // the head's estimate: the causes reckoned by skill, the range, the day manned by it (VB-476)
   ['node', 'tests/crafts.js'], // crafts learnt by doing: halfway in 400 hours, a tenth a year, a novice's rate to a master's (VB-360)
@@ -105,6 +109,7 @@ const FAST = [
   ['node', 'tests/wells.js'], // VB-1584: a well's cost by the depth; a household's well dug when it pays; the green by the water; village.well a tile
   ['node', 'tests/thirst.js'], // VB-1585: a pawn's own thirst; the dry day its own; a mower leaves at 36 hours, drinks and fetches; no source refused
   ['node', 'tests/minding.js'], // VB-1602: the last one at home with a child under 7 does not leave it: lodge refused with the reason, no carrier
+  ['node', 'tests/fetchchild.js'], // VB-1240: a child under 7 moved within a day's walk is fetched by a grown of its household, not alone
   ['node', 'tests/sitewater.js'], // VB-1583: a site's water as the leader's estimate, weighed by the site search; no site refused for it
   ['node', 'tests/boothwater.js'], // VB-1601: a booth's water fetched by who sleeps there; a dry booth's day; the drink takes the fetch; the open sky; Drink offered
   ['node', 'tests/sitewell.js'], // VB-1587: a site chosen for its well: marked at the founding, dug from the booth beside the field, the fetch then the drawing
@@ -138,8 +143,8 @@ const FAST = [
   ['node', 'tests/accounts.js'], // VB-403: the balance accounts close, the people account too, and the run is unchanged
 ];
 const INTEGRATION = [
-  ['node', 'tests/ladder.js', 'founders,solo'], // VB-1631: the rungs and outbuildings as data, rungOf on every farm, Sim.farmView
-  ['node', 'tests/ladder.js', 'populous'], // VB-1631: rungOf on every farm of populous, at seeding and a year on
+  ['node', 'tests/ladder.js', 'founders,solo'], // VB-1659: the rungs and outbuildings as data, rungOf on every farm, Sim.farmView
+  ['node', 'tests/ladder.js', 'populous'], // VB-1659: rungOf on every farm of populous, at seeding and a year on
   ['node', 'tests/samepixels.js'], // VB-1500: the map-pixels tool catches a pigment and a mark moved; 2.5 s
   ['node', 'tests/events.js'],
   ['node', 'tests/grain.js'],

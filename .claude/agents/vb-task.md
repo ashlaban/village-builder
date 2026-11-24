@@ -37,20 +37,24 @@ The orchestrator writes those once, from your notes.
 7. To finish: `git merge` the run's branch again, run the checks `AGENTS.md` asks for on the result, and commit as `VB-NNN: <title>`
    on your worktree's branch. Do not push, and never leave uncommitted work, whatever the outcome. Then
    `node tools/inbox.js result ID status=done|needs-review|failed commit=SHA size=S|M|L summary=...`.
-8. The ceiling: you have 120 model calls (Kim, 18 November: every call re-reads your whole context, so a long task goes on in a fresh
-   sub-agent). `node tools/inbox.js calls` prints your count from your transcript: run it in the same call as each `npm test`
-   (`npm test; node tools/inbox.js calls`). When it says to hand over, or you see that what is left will not fit, stop building:
-   merge the run's branch, commit what you have as `VB-NNN: <title> (work in progress)`, with `npm test` passing or the failing script
-   named, tick the criteria met, and `node tools/inbox.js result ID status=continue commit=SHA summary=...`. Your last message is then
-   `VB-NNN <title>: continue <commit> on <branch>` and the handover: what is built, what is left by criterion, where to start (file
-   and function), and what cost you calls to find out. A task is continued at most twice: after that the tool refuses, and you end
-   with `needs-review`. If your prompt says you continue a task, merge the branch it names as well as the run's, and start from the
-   handover: do not read again what it already tells you.
-9. Screenshots are never committed (Kim, 18 November): take one only to check your own work, and save it outside the repository.
+8. The ceiling and the reset: you have 120 model calls (Kim, 18 November: every call re-reads your whole context, so a long task goes on
+   in a fresh sub-agent). `node tools/inbox.js calls` prints your count, context and cost: run it in the same call as each `npm test`
+   (`npm test; node tools/inbox.js calls`). Hand over when it says the ceiling is near or you see that what is left will not fit
+   (`reason=ceiling`); and, once it says you are past the context threshold, at the next boundary (`reason=boundary`: the investigation
+   done before the first edit, or a coherent part committed with `npm test` green) or when it says you may be stuck (`reason=stuck`).
+   A task that fits is not split. To hand over, merge the run's branch and follow `docs/agents/handover.md`: commit, tick, note the
+   handover, `inbox.js result ID status=continue reason=... commit=SHA`, and end with `VB-NNN <title>: continue <commit> on <branch>`.
+   When the tool refuses a third continuation at the ceiling or a second voluntary reset, end with `needs-review`. If your prompt says
+   you continue a task, merge the branch it names as well as the run's, read `node tools/inbox.js handover ID`: trust its Verified, check
+   its Unverified before you build on it, and do not read again what it already tells you.
+9. You never start a review: the orchestrator does (VB-1619). Given "Revise VB-NNN", make `AGENTS.md`'s one revision of step 5 from the
+   last review note (`node tools/inbox.js list review --task VB-NNN --json`), in at most 30 calls, merge the run's branch, run
+   `node tools/review.js confirm VB-NNN --reviewed SHA --inbox`, commit, and give your result again.
+10. Screenshots are never committed (Kim, 18 November): take one only to check your own work, and save it outside the repository.
 
 Your last message is all your caller sees, so make it the result and nothing else, in at most twelve lines:
 - `VB-NNN <title>: done <commit> on <branch>`, or `needs-review <commit> on <branch>: <the criteria unmet, or the question>`, or `failed: <what, and the state of the worktree>`
-  (or `continue`, with the handover: step 8);
+  (or `continue`: step 8);
 - counters changed; numbers before and after only where a criterion of the task names them (the night measures the rest, once);
   for a refactor, each change of behaviour in a line, or the line of `tools/same.js`;
 - the notes you left, by kind and count; the inbox holds their text.

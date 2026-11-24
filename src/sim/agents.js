@@ -551,7 +551,7 @@ VB['sim/agents'] = (() => {
     const a = st.agents[id];
     if (a.job) {
       const J = KINDS[a.job.kind],
-        K = J.words ? { ...J, ...J.words(st, a.job) } : J; // VB-1642: a kind whose words read the state (sim/byre fodder)
+        K = J.words ? { ...J, ...J.words(st, a.job) } : J; // VB-1670: a kind whose words read the state (sim/byre fodder)
       if (a.phase === 'go') return K.go;
       if (a.phase === 'back') return K.back;
       return withOxen(st, a) ? 'Ploughing with the oxen' : K.verb;

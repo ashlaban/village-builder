@@ -1,4 +1,4 @@
-// @sys sim/timberhouse: the timber house (VB-1636), the rung of the main building above the cottage: farmstead.rung, the rung stored
+// @sys sim/timberhouse: the timber house (VB-1664), the rung of the main building above the cottage: farmstead.rung, the rung stored
 //   where it cannot be derived; the making `timberhouse` (a project of the household at its house, its stages the job kinds timberframe
 //   and timberroof, the frame waiting for its timber; the household lives in its cottage meanwhile) and its check timberWhy. Its room
 //   and its smaller fire are sim/house's (ROOM); the plan's task and the head's own rule that begin it, sim/upgrade's
@@ -7,7 +7,7 @@ VB['sim/timberhouse'] = (() => {
   const Projects = VB['sim/projects'];
   const { declare } = VB['sim/makings'];
   const { log, fullName, atFarm } = VB['sim/records'];
-  // @state farmstead.rung (VB-1636): the rung the farm's main building stands at where it cannot be derived from the farm's state
+  // @state farmstead.rung (VB-1664): the rung the farm's main building stands at where it cannot be derived from the farm's state
   //   (sim/ladder rungOf derives a camp, a shelter and a cottage): absent or null below the timber house, 'timber' once it is finished. A
   //   save from before reads as the rung derived. It goes with the farm and its house; written only here.
   const STAGES = ['timberframe', 'timberroof'];

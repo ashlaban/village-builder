@@ -23,8 +23,8 @@ VB['sim/green'] = (() => {
   //   stone carried to the green)}, {kind 'sweep', place, hours}]}, or the first step alone where the green's ground has no well; at most one
   //   a village. Its tile is the village's (st.owner) and in use (st.used) from the plan's making; v.center, v.green and v.well change when
   //   the sweep is raised (a green with no well: when it is cleared) (sim/layout and sim/byhand set them at seeding); v.center also when
-  //   a lone farm's house moves (VB-1639).
-  // A lone farm's village follows its house (VB-1639): in a village of one farm and no green, its centre is that farm's house (sim/layout
+  //   a lone farm's house moves (VB-1667).
+  // A lone farm's village follows its house (VB-1667): in a village of one farm and no green, its centre is that farm's house (sim/layout
   // seeds it so); when the house moves (sim/camp's placing), the centre moves with it, the old tile free to graze and farm again, the
   // village's wood reckoned again from the new centre, and its next meeting claims outland round it (sim/territory claimOutland).
   on('houseMoved', (st, { f, from }) => {

@@ -436,7 +436,7 @@ VB['sim/byre'] = (() => {
       if (!stalled(c)) continue;
       const yesterday = { doy: (c.doy + 47) % 48 };
       if (stalled(yesterday) && c.doy !== HERD.stall[0] && hh.fodderDay !== c.day - 1)
-        for (const herd of herds) herd.lean += st.farmsteads[hh.farmstead].byre ? 1 : HERD.openLean; // in the open: faster (VB-1637)
+        for (const herd of herds) herd.lean += st.farmsteads[hh.farmstead].byre ? 1 : HERD.openLean; // in the open: faster (VB-1665)
       const need = herds.reduce((s, hd) => s + dailyHay(hd), 0);
       if (hh.hay >= need) {
         hh.hay -= need;
@@ -672,7 +672,7 @@ VB['sim/byre'] = (() => {
     fodder: {
       verb: 'Feeding and mucking out in the byre',
       go: 'Going to the byre',
-      // VB-1642: on a farm with no byre standing (farmstead.byre, sim/byrehouse) the animals are foddered where they stand
+      // VB-1670: on a farm with no byre standing (farmstead.byre, sim/byrehouse) the animals are foddered where they stand
       words: (st, j) => (byreStands(st, j) ? {} : { verb: 'Foddering the animals', go: 'Going to the animals' }),
       name: 'Fodder the animals',
       at: ['byre'],

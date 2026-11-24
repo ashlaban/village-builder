@@ -279,7 +279,7 @@ VB['sim/territory'] = (() => {
   function woodTaken(st, t) {
     for (const v of st.villages) if (v.wood && v.wood.includes(t)) reckonWood(st, v);
   }
-  // Why village v may not cut on tile t, or null (VB-1625: a tile the player chooses to fell on): the tiles reckonWood may give its wood,
+  // Why village v may not cut on tile t, or null (VB-1653: a tile the player chooses to fell on): the tiles reckonWood may give its wood,
   // whatever its size: woodland with trees standing, not in use, no other village's wood, its own land or free forest (freeFor), within
   // WOOD.far walking steps of its centre. A tile of its wood now is one. One bounded search a call: a player's act, never daily.
   function woodWhy(st, v, t) {

@@ -1,4 +1,4 @@
-// VB-1637: the byre as a building (sim/byrehouse). Every farm that stands at seeding has one, a camp landed by hand none, an older save's
+// VB-1665: the byre as a building (sim/byrehouse). Every farm that stands at seeding has one, a camp landed by hand none, an older save's
 // farms read as having theirs; a farm without one winters its animals in the open, the stall winter's lean HERD.openLean times as fast;
 // the played head builds it as a task of its plan (the chain outbuilding), the timber at home first, a save and a load mid-chain going
 // on the same; Sim.farmView lists it; a head left to its rule with animals and no byre builds one by itself. On a tiny village of three farms.
@@ -39,7 +39,7 @@ const unbuild = (f) => (f.byre = null);
   Sim.advance(st, 3);
   const saved = JSON.parse(JSON.stringify(Sim.save(st)));
   const old = Sim.load(world(), saved);
-  for (const f of old.farmsteads) delete f.byre; // as a save from before VB-1637 decodes
+  for (const f of old.farmsteads) delete f.byre; // as a save from before VB-1665 decodes
   VB['sim/byrehouse'].byresLoaded(old);
   assert(old.farmsteads.every((f) => f.byre && f.byre.built === old.t), 'an older save reads as having its byres');
   sound(old, 'older save');
