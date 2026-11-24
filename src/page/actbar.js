@@ -130,6 +130,16 @@ function menuHTML(id, opps) {
     h += actRow('data-bar="walk"', 'walk', 'Walk here', `Then ${tapWord} an open tile on the map`);
     h += actRow(cmdAttrs(home), 'home', 'Go home', 'Indoors, for yourself', home.why);
     h += actRow(cmdAttrs(idle), 'idle', 'Rest an hour', 'You wait where you are', idle.why);
+    // a drink at the nearest fresh water (VB-1570), the panel's thirst beside it
+    const drink = by.self.find((o) => o.verb === 'drink');
+    if (drink)
+      h += actRow(
+        cmdAttrs(drink),
+        'water',
+        'Drink',
+        Sim.thirstLine(st, id) || 'At the nearest fresh water you may draw at',
+        drink.why,
+      );
     // the ale evenings and rites called within reach (VB-522)
     for (const o of by.self.filter((x) => x.verb === 'attend')) {
       const ale = o.occasion.kind === 'ale';

@@ -64,7 +64,7 @@
   "storeWalk": 0.06705783738474434,
   "recordFold": 0,
   "ruleValue": 1.1098072087175188,
-  "oppAsk": 18.848840458228555,
+  "oppAsk": 19.318245319921765,
   "planReview": 0.26823134953897737,
   "dayPair": 10.419670298966192,
   "dayTake": 5.0282201732327465,
@@ -105,6 +105,7 @@
   "sourceSettled": 0.18105616093880972,
   "childMinded": 0,
   "thirstDue": 0,
+  "boothWater": 0,
   "deerCrop": 0,
   "roundRank": 0.01899972059234423
 }

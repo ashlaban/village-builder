@@ -184,6 +184,9 @@ VB.COUNTERS = {
   thirstDue:
     'Entries of the thirsty pawns taken when due: a pawn that ended a day without a drink, at 36 hours without one, and one that ' +
     'drank at night and goes in (sim/drinking; VB-1554)',
+  boothWater:
+    "Stays read for the booths' water, each review hour while any booth stands: the fetch of each booth somebody sleeps in " +
+    '(sim/building; VB-1570)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };

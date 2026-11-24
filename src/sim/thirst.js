@@ -28,12 +28,13 @@ VB['sim/thirst'] = (() => {
   // Who goes for its own drink: not a child under 7 nor one ill in bed (the bedridden), who are given their drink at home.
   const goes = (st, p) => p.died === null && age(st, p) >= CHILD_FROM && p.ill === undefined;
   // The day that ends for pawn p, asked by the meal's pass (sim/hunger feedHousehold, sim/away feedAway), which visits it already:
-  // `given`, its household's water was in (or its host's, or its booth's), so it drank at the day's meal. Returns [dry, poor]: 1 if it
+  // `given`, its household's water was in (or its host's, or its booth's), so it drank at the day's meal (`poor`: a booth's water of a
+  // marsh, charged to the pawn as its own drink of it is; a household's marsh water is its meal's to charge). Returns [dry, poor]: 1 if it
   // ended the day without a drink (thirsty: HEALTH.dry is its own), and whether it drank marsh water by itself that day. One that ended
   // the day thirsty and goes for its own drink is told to sim/drinking ('thirsty'), which holds it due at THIRST.leave.
-  function dayEnd(st, p, given) {
+  function dayEnd(st, p, given, poor = false) {
     const day = Math.floor(st.t / DAY) - 1; // the day that ended
-    if (given) drank(st, p, day * DAY + THIRST.meal);
+    if (given) drank(st, p, day * DAY + THIRST.meal, poor);
     const dry = thirsty(st, p) ? 1 : 0;
     if (dry && goes(st, p)) emit(st, 'thirsty', p.id);
     return [dry, p.marsh === day];

@@ -5,7 +5,8 @@
 VB['sim/building'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
-  const { BUILD, ECON, SEASON_DAYS, SPEED, TRAVEL, YEAR, BOOTH } = VB['sim/rules'],
+  const { BUILD, ECON, SEASON_DAYS, SPEED, TRAVEL, YEAR, BOOTH, WORK, cal } = VB['sim/rules'],
+    EVENING = VB['sim/roles'].MATCH.day.evening,
     { HOUSE, houseCondition } = VB['sim/house'];
   const { B } = VB['world/biomes'],
     { rockKey } = VB['world/geology'];
@@ -23,6 +24,8 @@ VB['sim/building'] = (() => {
   const { stoneLacking, stoneIn } = VB['sim/wells'];
   const { freeFor } = VB['sim/territory'];
   const { register } = VB['sim/commands'];
+  const Water = VB['sim/water'],
+    { FRESH } = VB['world/water'];
   // Design (Land and ecology, Timber; Agreed, Kim, 10 Nov): a cottage's walls take BUILD.timber loads (six trees, 3 loads a tree as a firewood
   // trip's); a plot's felled tiles give their trees as its wood (sim/expansion, plot.wood); a cottage or booth short of it fells the rest in
   // the village's wood before its walls are raised, as firewood trips whose load goes to the site (site.wood: a plot's or a booth's cottage's walls step).
@@ -237,6 +240,49 @@ VB['sim/building'] = (() => {
     emit(st, 'stepDone', { type: 'pawn', id: plan.holder.id, plan });
     emit(st, 'boothRaised', b);
     st.visualDirty = true;
+  }
+  // ---- a booth's water (VB-1570; design.md, Water by the site, The thirsty pawn: a pawn working away drinks and fetches at the site's
+  // source in the same way): walked for as a farm's is, by those who sleep in it ----
+  // @state booth.water: absent until the booth's fetch is first asked for, then {tile, cls, walk}: where its water is drawn, found once
+  //   by one search outward from its tile (sim/water source: the nearest source its household may draw at; tile -1 with none in reach);
+  //   booth.waterDay: absent, or the day (cal's) a load of water was last brought to it; booth.marshDay: the day its water was last a
+  //   marsh's, poor water. The day's water does not keep, and one trip by hand covers all a booth sleeps (sim/building)
+  // Reads only (a verb's check asks it): the source is kept when the booth's fetch is first asked for (boothFetch).
+  function boothSource(st, b) {
+    if (b.water) return b.water;
+    const hh = st.households[b.by],
+      f = hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
+    return Water.source(st.w, b.tile, f ? st.villages[f.village] : null);
+  }
+  // Booth b's fetch for the day of c, as the arguments a rule's post takes ([key, site, extra, kind, owner]: a job of the booth's own,
+  // which only those who sleep there are sent to, sim/away), or null: its water is in, the hour is past, or no source is in reach.
+  function boothFetch(st, b, c) {
+    if (b.waterDay === c.day || c.hour < WORK[0] - 1 || c.hour >= EVENING) return null;
+    const s = b.water || (st.booths[st.booths.indexOf(b)].water = boothSource(st, b));
+    if (s.tile < 0) return null;
+    const extra = { dest: b.tile, boothId: b.id };
+    if (s.cls === FRESH.MARSH) extra.poor = true;
+    return [`boothwater:o${b.id}`, s.tile, extra, 'boothwater', { type: 'booth', id: b.id }];
+  }
+  // Asked once for the island, while any booth stands: the fetch of each booth somebody sleeps in. Cost: the stays, a review hour.
+  function boothWaterWork(st, holder, at, c, post) {
+    if (!st.booths.length) return;
+    for (const s of st.away) {
+      VB.count.boothWater++;
+      if (s.roof !== 'booth' || s.back) continue;
+      const b = boothAt(st, s.bed),
+        j = b && boothFetch(st, b, c);
+      if (j) post(...j);
+    }
+  }
+  // A load of water is at the booth: the day's water is in for all who sleep there, and who drew it drank at the source.
+  function waterBooth(st, j, hh, f, a) {
+    const b = st.booths.find((x) => x.id === j.boothId);
+    if (b) {
+      b.waterDay = cal(st.t).day;
+      if (j.poor) b.marshDay = b.waterDay;
+    }
+    if (a) VB['sim/thirst'].drank(st, st.pawns[a.id]);
   }
   // Booths worn to nothing are gone and their tile is as it was; a stay that slept there is under the open sky from then. Daily, over the
   // live booths only.
@@ -513,6 +559,33 @@ VB['sim/building'] = (() => {
       done: finishBooth,
       available: stakedWork,
     },
+    // A booth's water (VB-1570): drawn at the booth's source and carried to its tile, the farm's fetch for those who sleep away; a job
+    // of the booth's own, lived by, so the end of work does not take it from a hand on its way
+    boothwater: {
+      verb: 'Drawing water',
+      go: 'Going for water',
+      back: 'Carrying water to the booth',
+      name: 'Fetch water for a booth',
+      at: ['water'],
+      needs: [],
+      gives: ['water'],
+      label: 'Water',
+      anim: 'draw',
+      hours: Water.WATER.draw,
+      hands: 1,
+      type: 'household',
+      carry: 'buckets',
+      to: 'site',
+      vital: true,
+      spot: (st, a, j) => {
+        const w = st.w;
+        return w.fresh[j.site] === FRESH.WELL
+          ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8]
+          : [w.hx[j.site] + a.ox * 0.2, w.hy[j.site] + 4];
+      },
+      deliver: waterBooth,
+      available: boothWaterWork,
+    },
     // Timber left lying at a boat's shore when its plan was given up (sim/plans' leftWood, VB-645): never posted, only fetched (sim/lying's
     // fetch kind), home to the woodpile as firewood.
     leftTimber: {
@@ -708,6 +781,8 @@ VB['sim/building'] = (() => {
     boothCondition,
     boothOpenTo,
     burnBooth,
+    boothSource,
+    boothFetch,
     raiseBoothWhy,
     raiseBooth,
     rotBooths,

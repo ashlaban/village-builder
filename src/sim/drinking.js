@@ -8,7 +8,9 @@ VB['sim/drinking'] = (() => {
   const { on } = VB['sim/events'];
   const Due = VB['sim/due'];
   const { log, age, commanded, villageOf, fullName } = VB['sim/records'];
-  const { here, travelling } = VB['sim/pose'];
+  const { here, travelling, stayOf } = VB['sim/pose'];
+  const Building = VB['sim/building'],
+    { boothFetch } = Building;
   const { holds, reachAfter } = VB['sim/attention'];
   const { free, start, release, freeHands, dropJob } = VB['sim/agents'];
   const { KINDS, isOpen } = VB['sim/kinds'];
@@ -25,12 +27,20 @@ VB['sim/drinking'] = (() => {
       f = hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
     return f && f.household === hh.id && st.agents[p.id].away === undefined ? f : null;
   }
+  // The booth pawn p sleeps in, away from home (its stay's roof, sim/away), or null.
+  function boothOf(st, p) {
+    const s = st.agents[p.id].away === undefined ? null : stayOf(st, p.id);
+    return s && s.roof === 'booth' && s.bed !== null ? Building.boothAt(st, s.bed) : null;
+  }
   // Where pawn p goes to drink: {tile, cls, walk}, tile -1 when no source is in reach. At home, its farm's source (sim/water: found
-  // already, so nothing is searched); away at a bed (a new site, a booth) or of no farm, the nearest source it may draw at by one search
-  // outward from where it stands (the site's source; a well only its own village's).
+  // already, so nothing is searched); one that sleeps in a booth, the booth's source, found once (sim/building, VB-1570); away at a bed
+  // under the open sky or of no farm, the nearest source it may draw at by one search outward from where it stands (the site's source;
+  // a well only its own village's).
   function sourceFor(st, p) {
     const f = homeFarm(st, p);
-    if (f) return Water.sourceOf(st, f);
+    if (f) return f.water || Water.source(st.w, f.house, st.villages[f.village]); // before its first morning: searched, not kept
+    const b = boothOf(st, p);
+    if (b) return Building.boothSource(st, b);
     const at = here(st, st.agents[p.id]),
       hh = p.household === null ? null : st.households[p.household],
       v = hh && hh.farmstead !== null ? st.villages[villageOf(st, p)] : null;
@@ -88,7 +98,8 @@ VB['sim/drinking'] = (() => {
   });
   // The pawn has drunk at a source (sim/thirst, the kind's `done`, within the job's completion): where its household's water is not
   // in and its fetch stands open at this source (or is not posted at this hour of the day, when it is posted here as the kind's own
-  // rule posts it), the pawn takes the fetch from there: the walk it made is the fetch's first half. Else, outside the working day,
+  // rule posts it), the pawn takes the fetch from there: the walk it made is the fetch's first half; and so the fetch of the booth it
+  // sleeps in, to the booth. Else, outside the working day,
   // it goes in at the next step.
   on('drank', (st, j) => {
     const p = st.pawns[j.pawn],
@@ -107,6 +118,14 @@ VB['sim/drinking'] = (() => {
             });
         if (isOpen(st, fetch) && issue(st, workCommand(p.id, key, 'pawn')) === true) return;
       }
+    }
+    // one that sleeps in a booth whose water is not in takes the booth's fetch from its source in the same way (VB-1570)
+    const b = f ? null : boothOf(st, p),
+      bj = b && boothFetch(st, b, c);
+    if (bj && bj[1] === j.site) {
+      const [key, site, extra, kind, owner] = bj,
+        fetch = st.jobs.get(key) || post(st, key, kind, owner, site, extra);
+      if (isOpen(st, fetch) && issue(st, workCommand(p.id, key, 'pawn')) === true) return;
     }
     if (c.hour >= WORK[1] || c.hour < WORK[0]) hold(st, { pawn: p.id, at: st.t, home: true });
   });
@@ -130,7 +149,7 @@ VB['sim/drinking'] = (() => {
         continue;
       }
       // on its way to drink already, or to draw its household's water, where it drinks (sim/chores)
-      if (a.job && (a.job.kind === 'drink' || a.job.kind === 'water')) continue;
+      if (a.job && (a.job.kind === 'drink' || a.job.kind === 'water' || a.job.kind === 'boothwater')) continue;
       const left = a.job ? a.job.kind : null;
       if (issue(st, { actor: p.id, verb: 'drink', source: 'pawn' }) !== true) continue;
       const hh = p.household === null ? null : st.households[p.household],

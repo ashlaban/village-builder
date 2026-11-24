@@ -131,6 +131,8 @@ VB['sim/opportunities'] = (() => {
     );
     const until = view.t + 1;
     out.push(item('idle', null, { until }, check(view, p.id, 'idle', null, { until })));
+    // a drink at the nearest source it may draw at (VB-1570): the verb's own reason where it is refused
+    out.push(item('drink', null, null, check(view, p.id, 'drink', null, null)));
     occasions(view, p, out);
     if (near === null || near === undefined) return;
     const open = Number.isInteger(near) && near >= 0 && near < view.w.N && walkable(view.w)(near);

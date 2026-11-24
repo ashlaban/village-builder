@@ -1625,6 +1625,7 @@ function checkState(st) {
       seen.add(j.pawn);
       if (!st.agents[j.pawn] || st.agents[j.pawn].away !== j.id) bad.push(`${at}: its pawn's agent.away is ${st.agents[j.pawn] && st.agents[j.pawn].away}`);
       if (!(j.food >= 0)) bad.push(`${at}: food ${j.food}`);
+      if (j.noWater !== undefined && !(Number.isInteger(j.noWater) && j.noWater <= Math.floor(st.t / VB['sim/rules'].DAY) && j.bed !== null && j.host === undefined)) bad.push(`${at}: noWater ${j.noWater}, bed ${j.bed}, host ${j.host}`); // VB-1570
       if (j.until !== undefined && (j.bed === null || !(j.until > 0) || (j.jobs || []).length)) bad.push(`${at}: a stay for an occasion until ${j.until}, bed ${j.bed}, jobs ${j.jobs}`);
       if (j.why === 'visit' && j.village !== undefined && j.bed !== null) {
         // VB-1151: a visitor's bed at his host's door: the house of another household of the village visited, under its roof, while he is its guest
@@ -1676,6 +1677,10 @@ function checkState(st) {
       if (!st.households[b.by]) bad.push(`${at}: for no household`);
       if (!(b.built <= st.t) || !(b.cond >= 0 && b.cond <= 1) || b.condAt < b.built || b.condAt > st.t) bad.push(`${at}: condition ${b.cond} at ${b.condAt}, built ${b.built}`);
       if (!(b.wood >= 0)) bad.push(`${at}: wood ${b.wood}`);
+      // its water (VB-1570): a source found once, a tile of the map or none; the day its water last came in not after today, its marsh day never after that
+      if (b.water !== undefined && !(Number.isInteger(b.water.tile) && b.water.tile >= -1 && b.water.tile < st.w.N && b.water.walk >= 0 && (b.water.tile >= 0) === (b.water.cls > 0))) bad.push(`${at}: water ${JSON.stringify(b.water)}`);
+      if (b.waterDay !== undefined && !(Number.isInteger(b.waterDay) && b.waterDay <= Math.floor(st.t / VB['sim/rules'].DAY))) bad.push(`${at}: waterDay ${b.waterDay}`);
+      if (b.marshDay !== undefined && !(b.marshDay <= b.waterDay)) bad.push(`${at}: marshDay ${b.marshDay} against waterDay ${b.waterDay}`);
       if ((under.get(b.tile) || 0) > VB['sim/rules'].BOOTH.sleeps) bad.push(`${at}: more than it sleeps`);
     });
     for (const t of under.keys()) if (!tiles.has(t)) bad.push(`a stay under a booth's roof at tile ${t}, where none stands`);

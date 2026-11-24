@@ -287,7 +287,8 @@ VB['sim/hunger'] = (() => {
   // The day's cold and wet of a night away (VB-785), by the house's rule read for the stay's roof: none, as a house with no wood and no
   // roof; a booth, as a heated house when its wood covers the day's fire (`fire`, the booth's, burnt once a day for all in it), else an
   // unheated one; a guest's, its host's today (the last of the host's logs, which its meal wrote before); a barn's, dry and GATHERING.barnCold
-  // of the open sky's cold. Returns [cold, dry].
+  // of the open sky's cold. Returns [cold, dry]. A booth's water is not the roof's: its day's fetch (sim/building, VB-1570), which
+  // sim/away reads for each who sleeps there.
   function nightCost(st, season, roof, host, fire) {
     const use = st.ECON.woodUse;
     if (roof === 'house' && host && !host.dissolved) {
