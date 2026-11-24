@@ -46,6 +46,17 @@ assert.strictEqual(d.tasks.reduce((a, t) => a + t.w, 0) + d.sessions.reduce((a, 
 assert.strictEqual(weighted({ input: 1, cacheWrite: 4, cacheRead: 10, output: 2 }), 17, 'the weights of tools/agent-usage.js');
 assert.ok(model({ runs: [], commits: [], taskInfo: () => null }).tasks.length === 0, 'no runs, no tasks');
 
+// VB-1616: a session that names its task and handed the rest to a sub-agent on it: its own cost is the task's, and the task a session's
+const handed = model({
+  runs: [run('sess0001', '2026-11-06T10:00:00Z', '2026-11-06T11:00:00Z', { task: 'VB-007', continuations: { launched: 1, calls: 3 }, subagents: [
+  { agent: 'h1', task: 'VB-007', model: 'claude-opus-5-5', calls: 4, tokens: tok(20), activeMin: 3, peak: 7, start: '2026-11-06T10:30:00Z',
+    continuation: { continues: true, handoverBytes: 400, contextToEdit: 900, reason: null } }] })], commits: [], taskInfo: () => null });
+const h7 = handed.tasks[0];
+assert.ok(handed.tasks.length === 1 && h7.w === 120 && h7.src === 'session' && h7.runs === 2 && handed.sessions.length === 0,
+  'the session and its continuation are one task');
+assert.ok(h7.launched === 1 && h7.launchCalls === 3 && h7.continued === 1 && h7.handoverBytes === 400,
+  'its continuation, the handover and the calls to start it');
+
 // VB-1615: the table of periods, a row a stratum a period, its change shown once a period
 const P = require('../tools/lib/periods.js');
 const pt = periodTable(P.compare({

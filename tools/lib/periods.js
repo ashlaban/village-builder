@@ -66,8 +66,11 @@ const MEASURES = [
   ['peak', (t) => t.peak], ['boot', (t) => t.boot], ['repeats', (t) => t.repeats], ['repeatBytes', (t) => t.repeatBytes], ['testsFailed', (t) => t.testsFailed],
   ['streak', (t) => t.streak], ['handoverBytes', (t) => (t.continued ? t.handoverBytes : null)], ['reconstruct', (t) => (t.continued ? t.reconstruct : null)],
   ['compactions', (t) => t.compactions], ['ticked', (t) => (t.criteria ? t.ticked / t.criteria : null)],
+  ['launchCalls', (t) => (t.launched ? t.launchCalls / t.launched : null)], // a session's calls to start each continuation (VB-1616)
 ];
-const SHARES = [['done', (t) => t.done], ['continued', (t) => t.runs > 1], ['mergeUndone', (t) => t.mergeUndone], ['reopened', (t) => t.reopened]];
+const SHARES = [['done', (t) => t.done], ['continued', (t) => t.runs > 1], ['mergeUndone', (t) => t.mergeUndone], ['reopened', (t) => t.reopened],
+  ['resetBoundary', (t) => (t.reasons ? t.reasons.includes('boundary') : null)], ['resetStuck', (t) => (t.reasons ? t.reasons.includes('stuck') : null)],
+  ['resetCeiling', (t) => (t.reasons ? t.reasons.includes('ceiling') : null)]];
 
 // data: tools/usage-page.js's model ({ tasks, sessions }); changes: parseChanges(); info(id): fileInfo() of its task file, or null;
 // fixList: fixes(); from, to: ms or null, limiting the tasks by their start.
@@ -102,7 +105,9 @@ function compare({ data, changes, info, fixList = [], from = null, to = null }) 
     for (const s of p.orchestrators) orch.set(s.model, [...(orch.get(s.model) || []), s]);
     for (const [model, ss] of orch) {
       strata.push({ key: `orchestrator - ${model}`, kind: 'orchestrator', size: '-', model, n: ss.length, few: ss.length < FEW,
-        measures: { weighted: stats(ss.map((s) => s.w)), calls: stats(ss.map((s) => s.calls)), peak: stats(ss.map((s) => s.peak)) }, shares: {} });
+        measures: { weighted: stats(ss.map((s) => s.w)), calls: stats(ss.map((s) => s.calls)), peak: stats(ss.map((s) => s.peak)),
+          launchCalls: stats(ss.filter((s) => s.continuations && s.continuations.launched).map((s) => s.continuations.calls / s.continuations.launched)) },
+        shares: {} });
     }
     return { from: Number.isFinite(p.from) ? new Date(p.from).toISOString() : null, to: Number.isFinite(p.to) ? new Date(p.to).toISOString() : null,
       when: p.when, change: p.change, tasks: p.tasks.length, strata };
@@ -123,17 +128,19 @@ const pct = (x) => (x == null ? '-' : Math.round(x * 100) + '%');
 function report(c) {
   const m = (s, name) => (s.measures[name] ? k(s.measures[name].median) : '-'), sh = (s, name) => (s.shares[name] ? pct(s.shares[name].share) : '-');
   return c.periods.map((p) => [`${p.when} to ${p.to ? p.to.slice(0, 16) + 'Z' : 'now'}: ${p.change} (${p.tasks} tasks)`,
-    '  stratum                           n   done  weighted a done task [quartiles]  change  calls runs peak   boot   repeats fails reopened*',
+    '  stratum                           n   done  weighted a done task [quartiles]  change  calls runs peak   boot   repeats fails reopened* reset b/s',
     ...p.strata.map((s) => {
       const w = s.measures.weighted;
       return `  ${(s.key + (s.few ? ' (few)' : '')).padEnd(32)} ${String(s.n).padStart(3)}  ${sh(s, 'done').padStart(4)}  `
         + `${(w ? `${k(w.median)} [${k(w.q1)}, ${k(w.q3)}]` : '-').padEnd(30)} ${(s.change ? (s.change.weighted >= 0 ? '+' : '') + pct(s.change.weighted) :
           '').padStart(6)}  `
         + `${m(s, 'calls').padStart(5)} ${m(s, 'runs').padStart(4)} ${m(s, 'peak').padStart(6)} ${m(s, 'boot').padStart(6)} ${m(s, 'repeats').padStart(7)} `
-        + `${m(s, 'testsFailed').padStart(5)} ${sh(s, 'reopened').padStart(8)}`;
+        + `${m(s, 'testsFailed').padStart(5)} ${sh(s,
+          'reopened').padStart(8)}  ${s.kind === 'orchestrator' ? '' : `${sh(s, 'resetBoundary')}/${sh(s, 'resetStuck')}`}`;
     })].join('\n')).join('\n') +
       `\n* a proxy. Medians; a stratum with fewer than ${c.few} tasks is marked (few) and not compared; "change" is the median weighted cost of a`
-    + ' done task against the same stratum in the period before it; a measure a period\'s files lack is "-".';
+    + ' done task against the same stratum in the period before it; a measure a period\'s files lack is "-"; reset b/s, the share of tasks with a'
+    + ' voluntary reset at a boundary and when stuck (VB-1616).';
 }
 
 module.exports = { parseChanges, periodsOf, fileInfo, fixes, compare, report, FEW };

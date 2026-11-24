@@ -111,6 +111,30 @@ expect('a continuation: the handover\'s bytes and the reconstruction', v.continu
   && v.continuation.callsToEdit === 7 && v.continuation.contextToEdit === 600, r.out);
 expect('a compaction is counted', v.compactions === 1 && v.prompts === 1, r.out);
 expect('a fresh run is no continuation', m.continuation && !m.continuation.continues && m.continuation.handoverBytes === 0, JSON.stringify(m.continuation));
+// VB-1616: the reason a run handed over with, the handover it read, and an orchestrator's continuations with the calls each took
+const c3 = path.join(dir, 'h.jsonl');
+n = 0;
+fs.writeFileSync(c3, [
+  { type: 'user', timestamp: at(30), message: {
+    role: 'user', content: 'Task VB-9, continued from `b` at abc1234; the handover: node tools/inbox.js handover VB-9' } },
+  call(1000, [['h1', 'Bash', bash('node tools/inbox.js handover VB-9')]]), res('h1', 'Verified: x'),
+  call(1100, [['h2', 'Bash', bash('node tools/inbox.js result VB-9 status=continue reason=stuck commit=abc summary=x')]]), res('h2', 'VB-9: continue (stuck)'),
+].map((l) => JSON.stringify(l)).join('\n'));
+r = run(c3, '--json');
+const h = r.ok ? JSON.parse(r.out).continuation : {};
+expect('the reason a run handed over with, and the handover it read', h.reason === 'stuck' && h.continues &&
+  h.handoverBytes === Buffer.byteLength('Task VB-9, continued from `b` at abc1234; the handover: node tools/inbox.js handover VB-9') + 11, r.out);
+const o = path.join(dir, 'o.jsonl');
+fs.writeFileSync(o, [
+  { type: 'user', timestamp: at(40), message: { role: 'user', content: 'Run the night.' } },
+  call(1000, []),
+  { type: 'user', timestamp: at(41), message: { role: 'user', content: 'VB-9 A thing: continue abc1234 on br\nthe handover...' } },
+  call(1100, []), call(1200, [['o1', 'Agent', { prompt: 'Task VB-9, continued from `br` at abc1234; ...' }]]), res('o1', 'started'),
+  call(1300, [['o2', 'Agent', { prompt: 'Task VB-10; the run\'s branch is x' }]]), res('o2', 'started'),
+].map((l) => JSON.stringify(l)).join('\n'));
+r = run(o, '--json');
+const oc = r.ok ? JSON.parse(r.out).continuations : {};
+expect('an orchestrator\'s continuations, and the calls from the news to the launch', oc.launched === 1 && oc.calls === 2, r.out);
 fs.rmSync(dir, { recursive: true, force: true });
 
 if (errors.length) { console.error('AGENT USAGE FAIL:\n  ' + errors.join('\n  ')); process.exit(1); }

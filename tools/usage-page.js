@@ -38,7 +38,7 @@ function taskOfCommits(run, commits) {
 // The measures of VB-1615 a task carries beside its tokens, summed over its runs; null where no run of it has the measure (a file from
 // before the measure existed). first and boot are its first run's; statuses, the outcome each run reported (sub-agents).
 const extra = () => ({ start: null, end: null, first: null, boot: null, statuses: [], mergeUndone: null, repeats: null, repeatBytes: null, testsFailed: null,
-  streak: null, continued: 0, handoverBytes: null, reconstruct: null, compactions: null });
+  streak: null, continued: 0, handoverBytes: null, reconstruct: null, compactions: null, reasons: [], launched: 0, launchCalls: 0 });
 const plus = (a, b) => (b == null ? a : (a || 0) + b);
 function more(t, r) {
   if (r.start && (!t.start || r.start < t.start)) { t.start = r.start; t.first = r.first == null ? null : r.first; t.boot = r.boot || null; }
@@ -49,6 +49,8 @@ function more(t, r) {
     t.repeatBytes = plus(t.repeatBytes, r.repeats.readBytes + r.repeats.commandBytes); }
   if (r.tests) { t.testsFailed = plus(t.testsFailed, r.tests.failed); t.streak = Math.max(t.streak || 0, r.tests.streak); }
   if (r.compactions != null) t.compactions = plus(t.compactions, r.compactions);
+  if (r.continuation && r.continuation.reason) t.reasons.push(r.continuation.reason);
+  if (r.continuations && r.continuations.launched) { t.launched += r.continuations.launched; t.launchCalls += r.continuations.calls; }
   const c = r.continuation;
   if (c && c.continues) { t.continued++; t.handoverBytes = plus(t.handoverBytes, c.handoverBytes); t.reconstruct = plus(t.reconstruct, c.contextToEdit || 0); }
 }
@@ -61,6 +63,7 @@ function model({ runs, commits, taskInfo }) {
     t.runs++; t.calls += r.calls; t.min += r.min || 0; t.peak = Math.max(t.peak, r.peak || 0);
     t.i += r.tokens.input; t.cw += r.tokens.cacheWrite; t.cr += r.tokens.cacheRead; t.o += r.tokens.output;
     t.models.push(...r.models); if (r.date > t.date) t.date = r.date;
+    if (r.src === 'session') t.src = 'session'; // a task its session began, then handed to a sub-agent (VB-1616), is a session's
     more(t, r);
     byTask.set(id, t);
   };
@@ -73,7 +76,7 @@ function model({ runs, commits, taskInfo }) {
     const ctx = run.context || {};
     const self = { id: (run.session || '').slice(0, 8), label: run.label || '-', date, models: run.models || [], calls: run.calls, tokens: run.tokens,
       min: run.activeMin, peak: ctx.peak, src: 'session', start: run.start, end: run.end, first: ctx.first, boot: ctx.firstEdit, series: ctx.series,
-      repeats: run.repeats, tests: run.tests, continuation: run.continuation, compactions: run.compactions };
+      repeats: run.repeats, tests: run.tests, continuation: run.continuation, compactions: run.compactions, continuations: run.continuations };
     for (const s of subs) {
       const r = { id: s.agent, label: 'sub-agent', date: (s.start || run.start || '').slice(0, 10), models: [s.model], calls: s.calls, tokens: s.tokens,
         min: s.activeMin, peak: s.peak, src: 'sub-agent', start: s.start || run.start, end: s.end || s.start || run.start, first: s.first, boot: s.boot,
@@ -81,7 +84,9 @@ function model({ runs, commits, taskInfo }) {
         status: s.status, mergeUndone: s.mergeUndone, repeats: s.repeats, tests: s.tests, continuation: s.continuation, compactions: s.compactions };
       if (s.task) add(s.task, r); else apart('outside', r, 0);
     }
-    const task = subs.length ? null : run.task || taskOfCommits(run, commits);
+    // A session with sub-agents orchestrates, and its own cost is no one task's, unless it names its one task and its sub-agents all
+    // worked on that: a session that handed the rest of its task to a fresh context (VB-1616).
+    const task = subs.length ? (run.task && subs.every((s) => !s.task || s.task === run.task) ? run.task : null) : run.task || taskOfCommits(run, commits);
     if (task) add(task, self); else apart(subs.length ? 'orchestrator' : 'outside', self, subs.filter((s) => s.task).length);
   }
   const tasks = [...byTask.values()].map((t) => {
@@ -127,7 +132,8 @@ function periodTable(c) {
     w: med(s, 'weighted'), q1: s.measures.weighted ? s.measures.weighted.q1 : null, q3: s.measures.weighted ? s.measures.weighted.q3 : null,
     delta: s.change ? s.change.weighted : null, calls: med(s, 'calls'), runs: med(s, 'runs'), peak: med(s, 'peak'), boot: med(s, 'boot'),
       repeats: med(s, 'repeats'),
-    fails: med(s, 'testsFailed'), continued: sh(s, 'continued'), reopened: sh(s, 'reopened') })));
+    fails: med(s, 'testsFailed'), continued: sh(s, 'continued'), reopened: sh(s, 'reopened'), boundary: sh(s, 'resetBoundary'), stuck: sh(s, 'resetStuck'),
+    launchCalls: med(s, 'launchCalls') })));
 }
 
 if (require.main === module) {

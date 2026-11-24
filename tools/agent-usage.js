@@ -67,9 +67,11 @@ function measure(file, sub = false) {
     wallMin: 0, activeMin: 0, prompts: 0, calls: 0, subagentCalls: 0,
     tokens: { input: 0, cacheWrite: 0, cacheRead: 0, output: 0 }, context: { first: 0, peak: 0, firstEdit: 0, series: [] }, tools: {}, largest: [], turns: [],
     repeats: { reads: 0, readBytes: 0, commands: 0, commandBytes: 0, recent: 0 }, tests: { runs: 0, failed: 0, streak: 0, current: 0 }, compactions: 0,
-    continuation: { continues: false, handoverBytes: 0, callsToEdit: null, contextToEdit: null } };
+    continuation: { continues: false, handoverBytes: 0, callsToEdit: null, contextToEdit: null, reason: null },
+    continuations: { launched: 0, calls: 0 } };
   const seen = new Set(), uses = new Map(), models = new Set();
   const read = new Set(), ran = new Set(), streaks = {}, repeatsAt = [];
+  let toldContinue = null; // the call at which an orchestrator learned that a run continues (its result, or the notification of it)
   let turn = null, last = null, lastCtx = 0, firstPrompt = true;
   const result = (c) => (typeof c === 'string' ? c.length : Array.isArray(c) ? c.reduce((s, x) => s + (x.type === 'text' ? x.text.length
     : JSON.stringify(x).length), 0) : JSON.stringify(c || '').length);
@@ -82,6 +84,7 @@ function measure(file, sub = false) {
     if (e.type === 'user' && !e.isMeta && (typeof content === 'string' || (Array.isArray(content) && content.some((c) => c.type === 'text')))
       && !(Array.isArray(content) && content.some((c) => c.type === 'tool_result'))) {
       m.prompts++;
+      if (toldContinue == null && /: continue [0-9a-f]{6,} on /.test(typeof content === 'string' ? content : text(content))) toldContinue = m.calls;
       if (firstPrompt) { // a continuing run is told so, with the handover, in its prompt (.claude/agents/vb-task.md, step 8)
         firstPrompt = false;
         const p = typeof content === 'string' ? content : text(content);
@@ -120,6 +123,13 @@ function measure(file, sub = false) {
         }
         if (cmd) ran.add(cmd);
         use.test = testOf(use);
+        // VB-1616: the reason this run handed over with; the handover it read; a fresh context launched to continue a task
+        const ended = cmd && cmd.match(/inbox\.js result \S+ .*status=continue/) && (cmd.match(/\breason=(\w+)/) || [null, 'ceiling'])[1];
+        if (ended) m.continuation.reason = ended;
+        if (cmd && /inbox\.js handover VB-\d+/.test(cmd)) use.handover = true;
+        if (['Agent', 'Task'].includes(c.name) && /continued from/i.test(String(use.input.prompt || ''))) {
+          m.continuations.launched++; m.continuations.calls += toldContinue == null ? 1 : m.calls - toldContinue; toldContinue = null;
+        }
         uses.set(c.id, use);
       }
       const u = e.message.usage;
@@ -137,6 +147,8 @@ function measure(file, sub = false) {
         if (use.repeat) repeatsAt.push(m.calls);
         if (use.repeat === 'read') { m.repeats.reads++; m.repeats.readBytes += bytes; }
         if (use.repeat === 'command') { m.repeats.commands++; m.repeats.commandBytes += bytes; }
+        if (use.handover) { m.continuation.continues = true; m.continuation.handoverBytes += bytes; }
+        if (toldContinue == null && /: continue [0-9a-f]{6,} on /.test(text(c.content))) toldContinue = m.calls;
         if (use.test) {
           const failed = c.is_error === true || FAILED.test(text(c.content));
           m.tests.runs++; if (failed) m.tests.failed++;
@@ -179,7 +191,8 @@ function subagents(file, results) {
         end: s.end,
       // a proxy: the orchestrator undid its merge for a red check or a conflict, and said so in the result (docs/agents/worker.md, 1.3)
       mergeUndone: r.status ? r.status === 'needs-review' && /\b(merge|conflict|red|npm test)\b/i.test(r.summary || '') : null,
-      series: s.context.series, repeats: s.repeats, tests: s.tests, continuation: s.continuation, compactions: s.compactions };
+      series: s.context.series, repeats: s.repeats, tests: s.tests, continuation: s.continuation, compactions: s.compactions,
+      continuations: s.continuations };
   }).filter((s) => s.calls).sort((a, b) => String(a.start).localeCompare(String(b.start)));
 }
 const median = (xs) => {

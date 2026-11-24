@@ -146,12 +146,12 @@ $('tiles').innerHTML = tiles.map(([b, s]) => `<div class="tile"><b>${b}</b><span
     svg.querySelectorAll('g[data-c]').forEach((el) => { const c = C[+el.dataset.c]; hover(el, `<b>${+el.dataset.c + 1}. ${esc(c.when)}</b><br>${esc(c.change)}`); });
   }
   const pct = (v) => v == null ? '-' : Math.round(v * 100) + '%', n = (v) => v == null ? '-' : k(v);
-  $('per').tHead.innerHTML = '<tr>' + ['Period from', 'Change', 'Stratum', 'Tasks', 'Done', 'Weighted, a done task', 'Quartiles', 'Change', 'Calls', 'Runs', 'Peak context', 'Boot', 'Repeats', 'Test failures', 'Continued', 'Reopened']
+  $('per').tHead.innerHTML = '<tr>' + ['Period from', 'Change', 'Stratum', 'Tasks', 'Done', 'Weighted, a done task', 'Quartiles', 'Change', 'Calls', 'Runs', 'Peak context', 'Boot', 'Repeats', 'Test failures', 'Continued', 'Reopened', 'Reset at a boundary', 'Reset stuck', 'Calls to continue']
     .map((h) => `<th>${h}</th>`).join('') + '</tr>';
   $('per').tBodies[0].innerHTML = P.length ? P.map((r) => `<tr${r.few ? ' class="few"' : ''}><td>${r.first ? `${r.row ? r.row + '. ' : ''}${esc(r.when)}` : ''}</td><td class="c">${r.first ? esc(r.change) : ''}</td><td>${esc(r.stratum)}${r.few ? ' (few)' : ''}</td><td>${r.n}</td>`
     + `<td>${pct(r.done)}</td><td><b>${n(r.w)}</b></td><td>${r.q1 == null ? '-' : `${k(r.q1)} – ${k(r.q3)}`}</td><td>${r.delta == null ? '' : (r.delta >= 0 ? '+' : '') + pct(r.delta)}</td>`
-    + `<td>${n(r.calls)}</td><td>${n(r.runs)}</td><td>${n(r.peak)}</td><td>${n(r.boot)}</td><td>${n(r.repeats)}</td><td>${n(r.fails)}</td><td>${pct(r.continued)}</td><td>${pct(r.reopened)}</td></tr>`).join('')
-    : '<tr><td colspan="16">No log of changes (docs/agents/changes.md), or no measured task in its periods.</td></tr>';
+    + `<td>${n(r.calls)}</td><td>${n(r.runs)}</td><td>${n(r.peak)}</td><td>${n(r.boot)}</td><td>${n(r.repeats)}</td><td>${n(r.fails)}</td><td>${pct(r.continued)}</td><td>${pct(r.reopened)}</td><td>${pct(r.boundary)}</td><td>${pct(r.stuck)}</td><td>${n(r.launchCalls)}</td></tr>`).join('')
+    : '<tr><td colspan="19">No log of changes (docs/agents/changes.md), or no measured task in its periods.</td></tr>';
 })();
 
 // ---- the share by kind of token
