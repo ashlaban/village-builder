@@ -42,3 +42,21 @@ tasks follows; function level if it pays; the list files are ignored until VB-14
 - A merge that resolved cleanly can still break the build (a semantic conflict); none of this measures those. `npm test` after each
   merge stays the check.
 - Merges are counted, not tasks: one session's branch merging main twice counts twice.
+
+## The mechanical conflicts by kind (VB-1620)
+
+`VB-1620-hunks.js` replays the conflicted merges with diff3 markers and sorts each hunk in a bookkeeping or list file:
+
+| File | Hunks | Kind |
+|------|------:|------|
+| `BACKLOG_ARCHIVE.md` | 30 | all both sides adding rows at the end |
+| `BACKLOG.md` | 62 | 30 both adding rows, 22 edits on neighbouring rows, 10 the same row changed on both sides |
+| `tests/counters.json` | 46 | 36 the same measured value re-recorded on both sides, 10 neighbouring keys |
+| `docs/design-changelog.md`, `docs/tuning.md`, `QUESTION_ARCHIVE.md` | 10 | all both adding |
+| `src/owners.json`, `src/page.json`, `tests/suites.js` | 10 | all both adding |
+| `src/manifest.json`, `src/layers.json` | 13 | a one-line array changed on both sides |
+| `src/sim.js`, `src/vb.js` | 7 | both adding, or neighbouring lines |
+
+Every kind but a row or value changed differently on both sides has a mechanical answer: rows keyed by task ID, union for files that
+only grow, a key-wise three-way merge for JSON objects, an element-wise one for arrays.
+
