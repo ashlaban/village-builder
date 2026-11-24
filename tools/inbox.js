@@ -118,7 +118,7 @@ if (cmd === 'init') {
     CREATE TABLE IF NOT EXISTS notes (n INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, kind TEXT, fields TEXT, body TEXT, applied INTEGER DEFAULT 0);
     CREATE TABLE IF NOT EXISTS results (task TEXT PRIMARY KEY, status TEXT, commit_ TEXT, size TEXT, model TEXT, summary TEXT, started TEXT,
       ended TEXT, applied INTEGER DEFAULT 0);`);
-  const seen = require('./lib/ids.js').highestId(root), last = seen.max; // above the branches in flight too (VB-1621)
+  const seen = require('./lib/ids.js').highestId(root), last = seen.max; // above the branches in flight too (VB-1674)
   atomic(() => {
     const have = get("SELECT value FROM meta WHERE key = 'next'");
     if (!have) run("INSERT INTO meta VALUES ('next', ?)", String(last + 1));
@@ -128,7 +128,7 @@ if (cmd === 'init') {
     + (seen.where !== 'this checkout' ? ` (above ${seen.where}, which holds task files up to ${pad(seen.max)})` : ''));
 } else if (cmd === 'start') {
   const task = taskId(rest[0]), n = Math.max(0, Math.min(20, rest[1] == null ? 2 : +rest[1] || 0));
-  const seen = require('./lib/ids.js').highestId(root); // a branch pushed since init (VB-1621)
+  const seen = require('./lib/ids.js').highestId(root); // a branch pushed since init (VB-1674)
   const ids = atomic(() => {
     run('INSERT OR IGNORE INTO results (task, started) VALUES (?, ?)', task, new Date().toISOString());
     const next = Math.max(+get("SELECT value FROM meta WHERE key = 'next'").value, seen.max + 1), got = [];
@@ -138,7 +138,7 @@ if (cmd === 'init') {
   });
   console.log(`${task} started; reserved for its new tasks: ${ids.join(' ') || 'none'}`);
 } else if (cmd === 'renumber') {
-  // tools/renumber.js moved this branch's new tasks to other IDs: the inbox follows, so the run goes on (VB-1621)
+  // tools/renumber.js moved this branch's new tasks to other IDs: the inbox follows, so the run goes on (VB-1674)
   const map = new Map(rest.map((p) => p.split('=')).filter((x) => x.length === 2 && /^VB-\d+$/.test(x[0]) && /^VB-\d+$/.test(x[1])));
   if (!map.size || map.size !== rest.length) fail('renumber OLD=NEW... (VB-NNN=VB-NNN)');
   const swap = (s) => (s == null ? s : String(s).replace(/VB-(\d{3,})(?!\d)/g, (m) => map.get(m) || m));

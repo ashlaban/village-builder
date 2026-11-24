@@ -65,7 +65,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - A task's brief: `node tools/brief.js ID`. Backlog: `node tools/backlog.js next|list|show ID [--brief]`; `done`, `set`, `new`,
   `close-arch`, `sync` change it.
 - Before merging main into a branch: `git fetch origin main && node tools/renumber.js --onto origin/main`, which moves the branch's new task
-  IDs that main took meanwhile (VB-1621); the merge drivers (`tools/merge.js`, set by `npm install`) then merge the backlog and lists.
+  IDs that main took meanwhile (VB-1674); the merge drivers (`tools/merge.js`, set by `npm install`) then merge the backlog and lists.
 - Inbox, in an orchestrated run: `node tools/inbox.js start|claim|note|calls|result` (a sub-agent), `init|status|apply|report|results`.
 - Questions: `node tools/questions.js list|show VB-NNN|answer|archive`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
 - Format: `npm run format` after editing `src/` (Prettier). `index.html` is derived and not in the repository (VB-450): never commit it. The
@@ -115,7 +115,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   and clears `rigDirty`, `farmDirty`, `villageDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing; the lint enforces this.
 - A new loop over a growing collection, or over pairs, adds a declared work counter in `VB.COUNTERS`.
 - A table whose entries may come in any order (icons, a tool's reports, the test lists) is marked `// @merge union` on the line before it,
-  an entry on lines of its own: entries added on two branches then merge by name (`tools/merge.js`, VB-1620). Not a table whose order is
+  an entry on lines of its own: entries added on two branches then merge by name (`tools/merge.js`, VB-1673). Not a table whose order is
   saved state or determinism (`KINDS`, rule contributions, event subscribers).
 - Determinism: all randomness comes from seeded streams (`src/sim/rng.js`): each system draws from its own, `rnd(st.rng.<system>)`, and a
   new system adds its name to `SYSTEMS` there; tests force chances with `fix` on a stream. No `Math.random`, `Date` or `performance.now` in

@@ -254,7 +254,7 @@ if (cmd === 'next') {
   if (lack.length) fail(`new needs ${lack.join(', ')} (key=value)`);
   if (p.status === 'ready') fail('a new task starts blocked or needs-review: fill in its file, then  set ID status=ready');
   if (p.id && (!/^VB-\d{3,}$/.test(p.id) || tasks.has(p.id))) fail(`id=${p.id}: ${tasks.has(p.id) ? 'taken' : 'not VB-NNN'}`);
-  // above every task file in sight: this checkout's and the branches pushed to origin lately (VB-1621), so sessions side by side differ
+  // above every task file in sight: this checkout's and the branches pushed to origin lately (VB-1674), so sessions side by side differ
   const seen = require('./lib/ids.js').highestId(root), local = Math.max(0, ...[...tasks.keys()].map(num));
   const id = p.id || 'VB-' + String(Math.max(local, seen.max) + 1).padStart(3, '0');
   if (!p.id && seen.max > local) console.log(`${id}: above ${seen.where}, which holds task files up to VB-${seen.max}`);

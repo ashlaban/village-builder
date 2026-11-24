@@ -1,5 +1,5 @@
-// scratch (VB-1618): how well a done task's text (before its notes) names the src files its VB-NNN: commits edited.
-// node docs/plans/VB-1618-predict.js   Research code, not game code.
+// scratch (VB-1671): how well a done task's text (before its notes) names the src files its VB-NNN: commits edited.
+// node docs/plans/VB-1671-predict.js   Research code, not game code.
 // For done tasks: files actually edited under src/ (commits whose subject starts "VB-NNN:") vs modules named in the task file text.
 const { execSync } = require('child_process'); const fs = require('fs'); const path = require('path');
 const sh = (c) => execSync(c, { encoding: 'utf8', maxBuffer: 1 << 28 });

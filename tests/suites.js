@@ -1,7 +1,7 @@
 // Explicit coverage tiers; see docs/testing.md. FAST is npm test; verify adds INTEGRATION; EXTENDED runs at night.
 // A script of FAST or INTEGRATION takes under 5 seconds (the runner names those over); a longer one goes to EXTENDED until it is
 // rebuilt on a small constructed state. The runner starts them in this order.
-// @merge union: its entries merge by line: a script a line; the order only schedules them (tools/merge.js, VB-1620)
+// @merge union: its entries merge by line: a script a line; the order only schedules them (tools/merge.js, VB-1673)
 const FAST = [
   ['node', 'tests/build.js'],
   ['node', 'tests/format.js'],
@@ -130,7 +130,7 @@ const FAST = [
   ['node', 'tests/quern.js'], // the hand quern (VB-009): grinding, the pot's flour, wear and hewing, on the probe's small state
   ['node', 'tests/accounts.js'], // VB-403: the balance accounts close, the people account too, and the run is unchanged
 ];
-// @merge union: its entries merge by line: a script a line; the order only schedules them (tools/merge.js, VB-1620)
+// @merge union: its entries merge by line: a script a line; the order only schedules them (tools/merge.js, VB-1673)
 const INTEGRATION = [
   ['node', 'tests/samepixels.js'], // VB-1500: the map-pixels tool catches a pigment and a mark moved; 2.5 s
   ['node', 'tests/events.js'],
@@ -144,8 +144,8 @@ const INTEGRATION = [
   ['node', 'tests/codec.js'],
   ['node', 'tests/skip.js'],
   ['node', 'tests/backlog-tool.js'],
-  ['node', 'tests/renumber.js'], // VB-1621: a branch's new task IDs that main took move, with their files and references
-  ['node', 'tests/merge.js'], // VB-1620: the merge drivers: backlog rows by ID and field, the non-mechanical conflicts kept
+  ['node', 'tests/renumber.js'], // VB-1674: a branch's new task IDs that main took move, with their files and references
+  ['node', 'tests/merge.js'], // VB-1673: the merge drivers: backlog rows by ID and field, the non-mechanical conflicts kept
   ['node', 'tests/inbox.js'],
   ['node', 'tests/waiting.js'],
   ['node', 'tests/foresight-hunger.js'], // foresight's hunger by household-years (VB-571)
@@ -295,7 +295,7 @@ const INTEGRATION = [
   ['node', 'tests/manual.js'],
   ['node', 'tests/page.js'], // VB-409: the page in jsdom on a 36 by 26 island, a few days and each panel once; the tiny map's smoke at night
 ];
-// @merge union: its entries merge by line: a script a line; the order only schedules them (tools/merge.js, VB-1620)
+// @merge union: its entries merge by line: a script a line; the order only schedules them (tools/merge.js, VB-1673)
 const EXTENDED = [
   // The slowest first, so that none starts last and runs on alone. First the long runs of whole islands, which load the late fixtures.
   ['node', 'tests/start.js', '--people'],

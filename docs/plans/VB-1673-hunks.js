@@ -1,5 +1,5 @@
-// scratch (VB-1620): the conflict hunks (diff3 style) in bookkeeping and list files of the merges since 15 Nov, by kind.
-// node docs/plans/VB-1620-hunks.js REPLAY.json [ex]   (REPLAY.json from VB-1618-replay.js; ex prints an example of each kind). Research code.
+// scratch (VB-1673): the conflict hunks (diff3 style) in bookkeeping and list files of the merges since 15 Nov, by kind.
+// node docs/plans/VB-1673-hunks.js REPLAY.json [ex]   (REPLAY.json from VB-1671-replay.js; ex prints an example of each kind). Research code.
 // For conflicted merges since 15 Nov: every conflict hunk (diff3 style) in a bookkeeping or list file, classified.
 const { execSync, spawnSync } = require('child_process'); const fs = require('fs');
 const sh = (c) => execSync(c, { encoding: 'utf8', maxBuffer: 1 << 28 });

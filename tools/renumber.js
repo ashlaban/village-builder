@@ -1,4 +1,4 @@
-// Renumber this branch's new tasks before a merge brings in a branch that took the same IDs (VB-1621). Run it before `git merge REF`:
+// Renumber this branch's new tasks before a merge brings in a branch that took the same IDs (VB-1674). Run it before `git merge REF`:
 // the tasks this branch added (task files added since the merge base) whose IDs REF holds too move, in order, to the IDs above REF's
 // highest task file, the branch's own and the other branches in flight (tools/lib/ids.js), as "How this backlog works" asks; the
 // branch's other new tasks keep their IDs, so the fewest files change. The IDs are rewritten in every file the branch changed, and a file the branch changed whose path
