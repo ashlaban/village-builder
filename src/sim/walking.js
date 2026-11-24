@@ -122,8 +122,12 @@ VB['sim/walking'] = (() => {
   // A tile a route may end at but not cross: a house, or a field or meadow closed by passage (VB-816).
   const ended = (w, i) => !!w.dev && (w.dev[i] === 3 || (!!w.shut && w.shut[i] === 1));
   // The two tests of sim/hex cutsOff, on the ground as it stands (VB-402, VB-816): `shut`, no route crosses j; `end`, j is a place a
-  // route must reach from an open tile beside it (a house, a closed field).
-  const cutTests = (w) => ({ shut: (j) => j < 0 || !through(w, j), end: (j) => j >= 0 && ended(w, j) });
+  // route must reach from an open tile beside it (a house, a closed field). A closed field counts as shut though a path or a lane
+  // crosses it now: nobody else walks it while it is closed, and its way fades.
+  const cutTests = (w) => ({
+    shut: (j) => j < 0 || !through(w, j) || (!!w.shut && w.shut[j] === 1),
+    end: (j) => j >= 0 && ended(w, j),
+  });
   // The rule for breadth-first searches of what is in walking reach (sim/hex bfs): passable tiles only.
   const walkable = (w) => (j) => passable(w, j);
   // The tiles within `steps` walking steps of `from`, in the order the breadth-first search finds them (sim/hex bfs under `walkable`,

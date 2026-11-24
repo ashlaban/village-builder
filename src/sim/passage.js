@@ -4,13 +4,15 @@
 // reaping is crossed by nobody, its holder included, but along a path or a lane worn over it; a route may start or end on it, as at a house.
 // The farm's yard is its house tile, closed already (a farmstead is one place). The custom `passage` of the village whose land it is says
 // whether a meadow in grass (from spring's first day to its mowing) may be crossed: `free`, the start of every culture, or only along its
-// ways (`ways`). A field or meadow whose closing would leave a house, a field or the green with no way to the others stays open (the test
-// VB-402 uses for a house that would close a way, sim/hex cutsOff), and is marked so.
+// ways (`ways`). A field or meadow whose closing would leave a house, a field, running water a farm may draw from or the green with no way to the
+// others stays open (the test VB-402 uses for a house that would close a way, sim/hex cutsOff), and is marked so.
 VB['sim/passage'] = (() => {
   const { cutsOff } = VB['sim/hex'];
   const { cutTests } = VB['sim/walking'];
   const { costChanged } = VB['sim/routes'];
   const { inForce } = VB['sim/customs'];
+  const { FRESH } = VB['world/water'];
+  const running = (c) => c === FRESH.BROOK || c === FRESH.STREAM || c === FRESH.RIVER;
   // @tunable PASSAGE: hayLost, the hay a crossing of a meadow in grass tramples (in units of hay): 0 until measured, so no household loses
   // hay to walkers yet and nothing leans a village to `ways` but the customs' drift and the meeting (VB-816's notes say what would)
   const PASSAGE = { hayLost: 0 };
@@ -45,7 +47,11 @@ VB['sim/passage'] = (() => {
   // land gone back) is opened.
   function passageDay(st, c) {
     const s = shutOf(st),
-      tests = cutTests(st.w);
+      w = st.w,
+      cut = cutTests(w),
+      // running water away from a ford is crossed by nobody, but a farm draws its water standing on it (sim/water): it must keep an open
+      // tile beside it as a house does (a farm finds its source again once a year, so any of it may come to be one)
+      tests = { shut: cut.shut, end: (j) => cut.end(j) || (j >= 0 && !!w.fresh && running(w.fresh[j])) };
     let n = 0;
     for (const f of st.farmsteads) {
       for (const fd of f.fields) mark(st, s, fd.tile, STANDING.has(fd.stage), tests);
