@@ -15,10 +15,12 @@
 //   list [KIND] [--task TASK] [--json]
 //                              the notes, a line each
 //   status                     the tasks started, their claims and results, and the notes not yet applied
-//   apply [--dry]              the orchestrator, after merging: marks the results in the backlog (done, needs-review), creates the noted
+//   apply [--dry] [--task TASK]
+//                              the orchestrator, after merging: marks the results in the backlog (done, needs-review), creates the noted
 //                              tasks (tools/backlog.js new id=...), appends the questions to QUESTIONS.md and the tuning rows to
-//                              docs/tuning.md; each note and result is applied once
-//   report                     the PR's "For Kim" section, in Markdown: principle candidates, teleports found, close calls, questions, new tasks
+//                              docs/tuning.md; each note and result is applied once; --task only TASK's (a PR a task, /night)
+//   report [--task TASK]       the PR's "For Kim" section, in Markdown: principle candidates, teleports found, close calls, questions, new tasks;
+//                              --task only TASK's
 //   results [--json]           the results, for  node tools/agent-usage.js --results FILE
 // kinds, with their keys:
 //   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= ref= goal=]; body: its criteria
@@ -224,12 +226,13 @@ if (cmd === 'init') {
     'November', 'December'][+m - 1]} ${y}`;
   const mark = (table, key, value) => { if (!dry) run(`UPDATE ${table} SET applied = 1 WHERE ${key} = ?`, value); };
   let count = 0;
-  for (const r of all("SELECT * FROM results WHERE applied = 0 AND status IN ('done', 'needs-review')")) {
+  const mine = (x) => !onlyTask || x.task === onlyTask;
+  for (const r of all("SELECT * FROM results WHERE applied = 0 AND status IN ('done', 'needs-review')").filter(mine)) {
     if (!fs.existsSync(path.join(root, 'backlog', r.task + '.md'))) { console.log(`${r.task}: no task file in this checkout (merge its branch first); left`); continue; }
     if (r.status === 'done') backlog('done', r.task); else backlog('set', r.task, 'status=needs-review');
     mark('results', 'task', r.task); count++;
   }
-  for (const n of notes('WHERE applied = 0')) {
+  for (const n of notes('WHERE applied = 0').filter(mine)) {
     const f = n.fields;
     if (n.kind === 'task') {
       const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`);
@@ -285,16 +288,16 @@ if (cmd === 'init') {
   }
   console.log(`${dry ? 'would apply' : 'applied'} ${count}; the PR's section:  node tools/inbox.js report`);
 } else if (cmd === 'report') {
-  const by = (kind) => notes('WHERE kind = ?', kind), out = ['## For Kim'];
+  const mine = (x) => !onlyTask || x.task === onlyTask, by = (kind) => notes('WHERE kind = ?', kind).filter(mine), out = ['## For Kim'];
   const section = (title, rows) => { if (rows.length) out.push('', `**${title}**`, ...rows); };
   section('Principle candidates', by('candidate').map((n) => `- ${one(n.fields.rule)} (${n.task})${n.body ? '\n' + n.body.split('\n').map((l) => '  ' + l).join('\n') : ''}`));
   section('Teleports found', by('teleport').map((n) => `- ${headline(n)}, found by ${n.task}`));
   section('Acts with no pawn found', by('act').map((n) => `- ${headline(n)}, found by ${n.task}`));
-  section('Tasks merged with a criterion unmet', all("SELECT * FROM results WHERE status = 'needs-review'").map((r) => `- ${r.task}${r.commit_ ? ' ' + r.commit_ : ''}: ${r.summary || 'see its task file'}`));
+  section('Tasks merged with a criterion unmet', all("SELECT * FROM results WHERE status = 'needs-review'").filter(mine).map((r) => `- ${r.task}${r.commit_ ? ' ' + r.commit_ : ''}: ${r.summary || 'see its task file'}`));
   section('Close calls', by('decision').map((n) => `- ${n.task}: ${headline(n)}`));
   section('Questions (in `QUESTIONS.md`)', by('question').map((n) => `- ${n.task}: ${headline(n)} (priority ${n.fields.priority})`));
   section('New tasks', by('task').map((n) => `- ${n.fields.id} ${one(n.fields.name)} (${n.fields.size}, ${n.fields.status || 'needs-review'}; from ${n.task}): ${one(n.fields.summary)}`));
   section('Tuning rows (in `docs/tuning.md`)', by('tuning').map((n) => `- ${headline(n)} (${n.task})`));
-  if (out.length === 1) out.push('', 'Nothing to decide: no candidates, teleports, close calls or questions tonight.');
+  if (out.length === 1) out.push('', `Nothing to decide: no candidates, teleports, close calls or questions ${onlyTask ? 'from ' + onlyTask : 'tonight'}.`);
   console.log(out.join('\n'));
 } else fail(`unknown command "${cmd}" (--help)`);
