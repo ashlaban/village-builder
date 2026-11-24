@@ -76,8 +76,9 @@ VB['sim/passage'] = (() => {
     for (const v of st.villages) if (v.commonFields) for (const fd of v.commonFields) held.add(fd.tile);
     for (let t = 0; t < s.length; t++)
       if (s[t] && !held.has(t)) {
-        if (s[t] === 1) costChanged(st, t);
+        const was = s[t];
         st.w.shut[t] = 0;
+        if (was === 1) costChanged(st, t);
       }
   }
   // The count of tiles standing but kept open by the cut-off test, and of those closed (for the reports).
@@ -91,5 +92,10 @@ VB['sim/passage'] = (() => {
       }
     return { closed, kept };
   }
-  return { PASSAGE, STANDING, passageDay, counts };
+  // A run seeded on a world (sim/scenarios): no field of a run before it stands closed (a world may be seeded more than once; VB-808 found
+  // a test's second run holding the first's marks).
+  function unshut(st) {
+    if (st.w.shut) st.w.shut.fill(0);
+  }
+  return { PASSAGE, STANDING, passageDay, counts, unshut };
 })();

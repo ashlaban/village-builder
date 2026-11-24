@@ -6,6 +6,7 @@ const VB = require('../src/load.js'),
   Sim = VB.sim,
   Jobs = VB['sim/jobs'];
 const { scenario } = require('./lib/probe.js');
+const { openGround } = require('./lib/tiny.js');
 const { TICKS, DAY, WORK, cal } = VB['sim/rules'];
 const { MATCH } = VB['sim/roles'];
 const { KINDS, carriedOn } = VB['sim/kinds'];
@@ -17,7 +18,7 @@ const check = (ok, m) => {
     console.error('EVENING FAIL:', m);
   }
 };
-const st = scenario('solo', 7),
+const st = openGround(scenario('solo', 7)), // on summer ground, as its hours were set (VB-808)
   hh = st.households[st.liveHouseholds[0]],
   id = hh.holder,
   a = st.agents[id],

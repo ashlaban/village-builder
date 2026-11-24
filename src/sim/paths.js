@@ -1,7 +1,7 @@
 // @sys sim/paths: worn paths: each crossing of a tile counts, the count halves each game year, and its stage (trodden, path, lane) shows
 VB['sim/paths'] = (() => {
   const { SEASON_DAYS } = VB['sim/rules'],
-    { PATHS } = VB['sim/walking'];
+    { PATHS, recost } = VB['sim/walking'];
   const { findRoute, costChanged } = VB['sim/routes'];
   // The stage of a count n on a tile now at stage s: up to stage k once n reaches PATHS.at[k], down only below PATHS.keep of it,
   // so a count that hovers about a threshold does not flicker between stages.
@@ -29,6 +29,7 @@ VB['sim/paths'] = (() => {
       if (i < 0 || i >= w.N || bars(w, i)) continue;
       w.wear[i] = Math.max(w.wear[i], PATHS.at[stage]);
       w.worn[i] = Math.max(w.worn[i], stage);
+      recost(w, i); // the compiled ground, if the run has one (VB-808)
       n++;
     }
     return n;
