@@ -51,11 +51,14 @@ VB['sim/sleepers'] = (() => {
   function ownRule(st, id) {
     const s = st.pawns[id].sleep,
       a = st.agents[id];
+    if (!s || !a) return; // not reckoned: a pawn with no agent
     if (!(s.owed >= SLEEP.health.over) || (s.until !== null && st.t < s.until)) return;
     if (a.job || a.path || a.phase !== null || a.occasion !== null || a.idleUntil > st.t) return;
     if (st.player && st.player.pawn === id && !st.player.auto) return;
     const hours = Math.max(1, Math.ceil(s.owed - SLEEP.mood.over));
-    if (issue(st, { actor: id, verb: 'sleep', args: { hours }, source: 'pawn' }) === true) VB.count.sleepOwn++;
+    if (issue(st, { actor: id, verb: 'sleep', args: { hours }, source: 'pawn' }) === true) {
+      VB.count.sleepOwn++;
+    }
   }
   // Each hour (sim/clock), over the living: each reckoned, and in the working day the own rule.
   function hour(st, c) {

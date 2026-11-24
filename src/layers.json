@@ -151,6 +151,7 @@
       "sim/feast",
       "sim/occasions",
       "sim/venues",
+      "sim/sleepers",
       "sim/player",
       "sim/planchains",
       "sim/playerplan",

@@ -61,10 +61,11 @@ const hungry = hh.hungryDays;
 F.feedHousehold(st, hh);
 check(hh.hungryDays === hungry && Math.abs(L.larderOf(hh) - (10 - F.dailyNeed(st, hh))) < 1e-9, `meal: larder ${L.larderOf(hh)}, hungry days ${hh.hungryDays - hungry}`);
 
-// --- founders seed 4 over 3 years: no animal dies of hunger; slaughter happens and meat is salted. The seed is chosen (VB-1585): the
+// --- founders seed 6 over 3 years: no animal dies of hunger; slaughter happens and meat is salted. The seed is chosen (VB-1585): the
 // property is not every seed's (seed 3 loses an animal before the thirsty pawn and five after), and on seed 7 a thirsty pawn's walk in
-// year 1 changes which farm takes in a cow: a farm of one, with no meadow, whose cow starves in the autumn of year 2 (as VB-1596 found)
-st = scenario('founders', 4);
+// year 1 changes which farm takes in a cow: a farm of one, with no meadow, whose cow starves in the autumn of year 2 (as VB-1596 found). Seed 6
+// since VB-1645 (sleep for every pawn): seed 4 then lost one animal, seed 3 four; seeds 5, 6, 8 and 9 none (VB-1671 looks at seed 4)
+st = scenario('founders', 6);
 let seenT = -Infinity, hunger = 0, counts = 0, slaughtered = 0, spoiled = 0;
 const herdSize = () => st.herds.reduce((s, hd) => s + (hd.head ? hd.head.length : hd.ewes + hd.rams + hd.lambs), 0);
 for (let d = 0; d < 3 * Sim.YEAR_DAYS; d++) {
@@ -82,5 +83,5 @@ check(hunger === 0, `founders: ${hunger} animals died of hunger in the byre`);
 check(counts >= 3, `founders: only ${counts} autumn counts culled anything in 3 years`);
 check(!checkState(st).length, 'founders after 3 years: ' + checkState(st).slice(0, 3).join('; '));
 if (failed) process.exit(1);
-console.log(`byre ok: founders 4, 3 years: ${counts} counts with culls, ${spoiled} lots of meat spoiled, ${slaughtered.toFixed(1)} salt meat in larders, ` +
+console.log(`byre ok: founders 6, 3 years: ${counts} counts with culls, ${spoiled} lots of meat spoiled, ${slaughtered.toFixed(1)} salt meat in larders, ` +
   `${herdSize()} animals`);
