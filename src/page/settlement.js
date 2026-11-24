@@ -202,11 +202,13 @@ function boothCottage(f) {
   );
 }
 // A camp (farmstead.camp, VB-1627: the settler who plans by hand lands with nothing built): the goods landed on the house tile, a
-// covered pile of sacks and a chest beside a ring of hearth stones, and nothing standing; the tent comes when the booth is raised.
+// covered pile of sacks and a chest beside a ring of hearth stones, and nothing standing; the shelter's poles come when it is staked
+// on the tile (VB-1638), the pile then moved aside for them.
 const CAMP_AT = [3, 6]; // the pile, from the tile's middle; the hearth to its left
+const campAt = (f) => (f.shelter ? [CAMP_AT[0] - 5, CAMP_AT[1] + 4] : CAMP_AT);
 function drawCamp(wd, f) {
-  const x = wd.hx[f.house] + CAMP_AT[0],
-    y = wd.hy[f.house] + CAMP_AT[1],
+  const x = wd.hx[f.house] + campAt(f)[0],
+    y = wd.hy[f.house] + campAt(f)[1],
     g = new PIXI.Graphics(),
     line = { width: 0.8, color: INK, join: 'round' };
   for (let k = 0; k < 7; k++) {
@@ -235,7 +237,7 @@ function drawCamp(wd, f) {
   g.zIndex = y + 1;
   L.objects.addChild(g);
 }
-// A booth staked beside a camp's house and not yet raised: its poles stand, leaning together, with no cover on them.
+// A shelter (or a booth) staked and not yet raised: its poles stand, leaning together, with no cover on them.
 function stakedPoles(g, bx, by) {
   for (const [a, b] of [
     [-7, 3],
@@ -251,6 +253,8 @@ function stakedPoles(g, bx, by) {
       .stroke({ width: 0.8, color: 0x96462f });
   g.ellipse(bx, by, 8.5, 2.4).stroke({ width: 0.7, color: INK, alpha: 0.45 });
 }
+// A building record stands (farmstead.barn, farmstead.byre: {built}); `true` in a save older than the record.
+const hasBuilt = (x) => !!x && (typeof x !== 'object' || (x.built !== null && x.built !== undefined));
 function drawBooth(wd, f, empty) {
   const x = wd.hx[f.house],
     y = wd.hy[f.house],
@@ -258,7 +262,16 @@ function drawBooth(wd, f, empty) {
     n = boothCottage(f) ? boothCottage(f).open : 0, // the stages done
     bx = x + YARD.booth[0],
     by = y + YARD.booth[1];
-  if (f.camp === undefined) tent(g, bx, by); // a farm landed by hand has its booth on its own tile (drawBooths)
+  // the shelter on the house tile (VB-1638): poles while it is raised, the tent once it stands, worn as a booth wears; an older save's
+  // farm booth: the tent here as before, or (a farm landed by hand) on its own tile beside the house (drawBooths)
+  const sh = f.shelter;
+  if (sh && sh.built === null) stakedPoles(g, bx, by);
+  else if (sh || f.camp === undefined) {
+    const t = new PIXI.Graphics();
+    tent(t, bx, by);
+    if (sh) t.alpha = 0.55 + 0.45 * Sim.boothCondition(st, sh);
+    g.addChild(t);
+  }
   cottageStage(g, x + YARD.stuga[0], y + YARD.stuga[1] - 5, n);
   if (!empty && f.camp === undefined) g.ellipse(x, y + 4, 17, 11).stroke({ width: 1.2, color: 0xf6eed8, alpha: 0.7 });
   if (empty) g.alpha = 0.55;
@@ -376,8 +389,10 @@ function drawBooths(wd) {
     add(g, wd.hy[b.tile]);
   }
   const camps = st.farmsteads.filter((f) => f.camp === true).map((f) => f.house),
+    sheltered = new Set(st.farmsteads.filter((f) => f.shelter).map((f) => f.house)), // drawn with their farm (drawBooth)
     { hexSteps } = VB['sim/hex'];
   for (const t of Sim.stakedBooths(st)) {
+    if (sheltered.has(t)) continue;
     const g = new PIXI.Graphics();
     if (camps.some((h) => hexSteps(wd, h, t) <= 1)) stakedPoles(g, wd.hx[t], wd.hy[t]);
     else g.circle(wd.hx[t], wd.hy[t] - 3, 6).stroke({ width: 1, color: INK, alpha: 0.6 });
@@ -410,12 +425,13 @@ function drawFarm(wd, f) {
   if (camp) {
     yard.alpha = 0.3; // trodden ground only
     drawCamp(wd, f);
+    if (f.shelter) drawBooth(wd, f, empty);
   } else if (f.booth) drawBooth(wd, f, empty);
   else {
     const lada = place(art.lada, hx + YARD.lada[0], hy + YARD.lada[1], 0.5, 0.93),
       harbre = place(art.harbre, hx + YARD.harbre[0], hy + YARD.harbre[1], 0.5, 0.95),
       stuga = place(art.stuga[v], hx + YARD.stuga[0], hy + YARD.stuga[1], 0.5, 0.92);
-    const barn = f.barn ? place(art.lada, hx + YARD.barn[0], hy + YARD.barn[1], 0.5, 0.93) : null; // farmstead.barn (VB-255)
+    const barn = hasBuilt(f.barn) ? place(art.lada, hx + YARD.barn[0], hy + YARD.barn[1], 0.5, 0.93) : null; // farmstead.barn (VB-255)
     for (const b of barn ? [lada, harbre, stuga, barn] : [lada, harbre, stuga]) {
       b.tint = tint;
       if (empty && !ruin) b.alpha = 0.9;
@@ -441,12 +457,14 @@ function drawFarm(wd, f) {
   const wood = place(art.wood[0], hx + YARD.wood[0], hy + YARD.wood[1], 0.5, 0.9);
   wood.visible = !empty;
   const herds = !empty && st.households[f.household].herds.length > 0;
-  if (herds && !landed) place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92);
+  // the byre (VB-1637) where one stands; an older save's farm, with no record of it, has one where it keeps animals
+  const byre = f.byre === undefined ? herds && !landed : hasBuilt(f.byre);
+  if (byre) place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92);
   const stack =
     herds || (!empty && st.households[f.household].hay > 0)
       ? place(art.haystack[0], hx + YARD.stack[0], hy + YARD.stack[1], 0.5, 0.93)
       : null;
-  const heap = herds && !landed ? place(art.manure[0], hx + YARD.heap[0], hy + YARD.heap[1], 0.5, 0.88) : null; // the dung heap by the byre (VB-137)
+  const heap = herds && byre ? place(art.manure[0], hx + YARD.heap[0], hy + YARD.heap[1], 0.5, 0.88) : null; // the dung heap by the byre (VB-137)
   if (st.w.fresh && st.w.fresh[f.house] === Water.FRESH.WELL)
     place(art.curb, hx + YARD.curb[0], hy + YARD.curb[1], 0.5, 0.85);
   if (!empty) {
@@ -467,7 +485,7 @@ function drawFarm(wd, f) {
     const near = (b) => b.by === f.household && VB['sim/hex'].hexSteps(wd, b.tile, f.house) <= 1,
       booth = f.camp === false ? st.booths.find(near) : null,
       fire = camp
-        ? [hx + CAMP_AT[0] - 13, hy + CAMP_AT[1] - 1]
+        ? [hx + campAt(f)[0] - 13, hy + campAt(f)[1] - 1]
         : booth
           ? [wd.hx[booth.tile], wd.hy[booth.tile] + 1]
           : null;

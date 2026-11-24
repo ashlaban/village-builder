@@ -261,7 +261,7 @@ function hudClick(b) {
   else if (d.hud === 'placeoff') buildPick(null);
   else if (d.hud === 'buildhere') buildHere();
   else if (d.hud === 'uptoggle') hud.up = !hud.up;
-  else if (d.hud === 'upgrade') ladderAdd(d.what);
+  else if (d.hud === 'upgrade') ladderAdd(d.kind, d.what);
   else if (d.hud === 'fell') {
     const n = +d.n;
     hudMsg(
