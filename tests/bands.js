@@ -27,7 +27,7 @@ const child = (run) => new Promise((done) => {
 (async () => {
   const t0 = Date.now(), list = [...runs.values()], lanes = Math.max(1, Math.min(os.cpus().length, list.length)), queue = [...list];
   await Promise.all(Array.from({ length: lanes }, async () => { while (queue.length) { const run = queue.shift(); run.result = await child(run); } }));
-  let failed = 0, out = 0, core = 0, wall = 0; const lines = [], ratios = new Map();
+  let failed = 0, out = 0, core = 0, wall = 0; const lines = [], ratios = new Map(), seeds = new Map(); // seeds: a band of `atLeast` -> [in band, of]
   for (const run of list) {
     const tag = `${run.setup} seed ${run.seed}, ${run.years} years`;
     if (run.result.error) { failed++; console.error(`BANDS FAIL: ${tag}: ${run.result.error}`); continue; }
@@ -42,6 +42,9 @@ const child = (run) => new Promise((done) => {
       } else if (band.kind === 'watched') {
         if (!j.ok) { failed++; console.error(`BANDS FAIL: ${j.id} at ${tag}: ${B.fmt(j.value)} outside ${B.fmt(j.lo)}..${B.fmt(j.hi)}`); }
         if (!j.ok) console.error('  ' + run.result.samples.flatMap((x) => x.invariants).slice(0, 6).join('\n  '));
+      } else if (band.assert.atLeast) { // VB-523: a target over the seeds, `atLeast` of them in band
+        const c = seeds.get(band) || seeds.set(band, [0, 0]).get(band);
+        c[0] += j.ok ? 1 : 0; c[1]++;
       } else {
         // a balance band is a target; the reduced run shows it at the full range, never failing (VB-264)
         const t = target(`bands/${band.id.split('/')[0]}/seed${run.seed}`, { where: tag, dir: 'range', target: [j.lo, j.hi], measured: j.value,
@@ -63,6 +66,12 @@ const child = (run) => new Promise((done) => {
       if (rec.status === 'out') out++;
     }
     if (g.collapse) console.log(`COLLAPSE: ${setup}: the median seed shrinks`);
+  }
+  for (const [band, [ok, n]] of seeds) {
+    const rec = target(`bands/${band.id.split('/')[0]}/seeds`, { where: `${band.assert.setup}, ${n} seeds, ${B.fmt(band.assert.lo)}..${B.fmt(band.assert.hi)}`,
+      dir: 'min', target: band.assert.atLeast, measured: ok, noise: { kind: 'seeds', spread: 0, n } });
+    console.log(`  ${band.id}: ${ok} of ${n} seeds in ${B.fmt(band.assert.lo)}..${B.fmt(band.assert.hi)} (at least ${band.assert.atLeast})`);
+    if (rec.status === 'out') out++;
   }
   if (failed) process.exit(1);
   console.log(`bands ok: ${runs.size} reduced runs, ${B.BANDS.filter((b) =>

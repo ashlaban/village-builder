@@ -7,7 +7,7 @@ VB['sim/stories'] = (() => {
   const { SOCIAL, tieOf } = VB['sim/ties'];
   const Traits = VB['sim/traits'];
   const { settlementIdOf, age } = VB['sim/records'];
-  const { on, emit } = VB['sim/events'];
+  const { on } = VB['sim/events'];
   const { remember, opinionOf } = VB['sim/relations'];
   // @tunable STORY (design.md, Stories; the numbers Proposed 15 Nov from the experiment, docs/gossip-experiment.md):
   //   keep: stories a pawn holds; a story is told in a talk, by each side once, at `tell` × (0.5 + the teller's sociability), weighed by
@@ -132,7 +132,6 @@ VB['sim/stories'] = (() => {
     for (const id of knowers) if (holds(st.pawns[id])) hold(st, id, s, K.v, 0, true);
     VB.count.storyMade++;
     if (!s.held) st.stories.delete(s.id);
-    else emit(st, 'storyMade', { story: s.id });
     return s.held ? s : null;
   }
   on('claimTaken', (st, e) => witness(st, 'claim', e.taker, e.loser, null));

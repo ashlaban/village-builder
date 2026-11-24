@@ -16,7 +16,8 @@ const W = require('../../tools/waiting.js'); // who waits to marry, and why (VB-
 const { held } = require('../../tools/crops.js'); // the crops held on the island (VB-356)
 const MAPS = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as tools/sim.js and the generation screen
 // Reduced scenarios: a scenario on a map, nothing else changed yet; toy setups (a tinyState of tests/lib/tiny.js) may join them.
-const SETUPS = { 'populous tiny': { scenario: 'populous', map: 'tiny' }, 'market tiny': { scenario: 'market', map: 'tiny' } }; // the market town: a test bed (VB-778)
+const SETUPS = { 'populous tiny': { scenario: 'populous', map: 'tiny' }, 'market tiny': { scenario: 'market', map: 'tiny' }, // the market town: a test bed (VB-778)
+  'stories tiny': { story: true } }; // VB-523: one story told among three villages (storyRun, below)
 // The full runs: populous small at four seeds (the late game's reference), founders small at sixteen (the early game's), heirs at two.
 const FULL = {
   populous: { scenario: 'populous', map: 'small', years: 30, seeds: [3, 7, 11, 42] },
@@ -56,6 +57,13 @@ const scarceYear = (s) => {
 const sumOf = (xs, f) => xs.reduce((n, x) => n + f(x), 0);
 const ratioAfter = (s, y, num, den) => { const a = after(s, y).filter((x) => x.facts), n = sumOf(a, den); return n ? sumOf(a, num) / n : NaN; };
 const PROBES = {
+  // VB-523: one story's spread (storyRun): the day over half the subject's village's adults held it, and the neighbouring village's
+  // (Infinity if never); the most of the village across the water that ever held it; of those who held it at its peak, the share holding it
+  // STORY_RUN.forgotten days after it was made
+  storyHome: (s) => s[0].story.home,
+  storyNeighbour: (s) => s[0].story.neighbour,
+  storyAcross: (s) => s[0].story.across,
+  storyKept: (s) => s[0].story.kept,
   // VB-778: the market town's deaths per head in its plot households over those of its farms, over the run (NaN where no one died among the farms)
   packedDeathRatio: (s) => {
     const c = s[s.length - 1].cohort; if (!c || !c[0].n || !c[1].n || !c[1].dead) return NaN;
@@ -219,6 +227,14 @@ for (const f of FLOORS) for (const [name, { groups, weekly, ...run }] of Object.
     ...(name === 'populous' && !f.reportOnly ? { assert: { ...range, ...(f.assertLo !== undefined ? { lo: f.assertLo } : {}), ...REDUCED } } : {}) });
 }
 
+// VB-523: the bands one story can show (design.md, Stories; target-v2 10.2), on storyRun's three villages over ten seeds. The spread and the
+// forgetting are targets over the seeds (`atLeast` of them in band, tests/bands.js), never failing; that nothing crosses the water is watched.
+const STORY_SEEDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], storyAssert = (lo, hi, atLeast) => ({ lo, hi, afterYear: 0, setup: 'stories tiny', years: 1,
+  seeds: STORY_SEEDS, ...(atLeast ? { atLeast } : {}) });
+BANDS.push({ id: 'story-home/stories', probe: 'storyHome', kind: 'balancing', assert: storyAssert(0, 12, 7) },
+  { id: 'story-neighbour/stories', probe: 'storyNeighbour', kind: 'balancing', assert: storyAssert(0, 48, 7) },
+  { id: 'story-across/stories', probe: 'storyAcross', kind: 'watched', assert: storyAssert(0, 0) },
+  { id: 'story-kept/stories', probe: 'storyKept', kind: 'balancing', assert: storyAssert(0, 0.5, 7) });
 // VB-778: in the packed place deaths per head exceed the farms' (a ratio over 1; the budget's "about 1.5 times"). A target: it may be out.
 BANDS.push({ id: 'packed-deaths/market', probe: 'packedDeathRatio', kind: 'balancing',
   report: { lo: 1, hi: Infinity, afterYear: 0, scenario: 'market', map: 'small', years: 30, seeds: [7, 42] },
@@ -235,7 +251,8 @@ function cohorts(st) {
 }
 // One run, sampled at every year end: {scenario, map, seed, years} -> {samples, secs, cpuSecs}. The run advances a day at a time, so a
 // household's days present in a year are counted, not guessed.
-function runScenario({ scenario, map, seed, years, strata = false }) {
+function runScenario({ scenario, map, seed, years, strata = false, story = false }) {
+  if (story) return storyRun(seed);
   const cpu0 = process.cpuUsage(), t0 = Date.now(), it = G.generate(seed, { cols: MAPS[map][0], rows: MAPS[map][1] }); let r; while (!(r = it.next()).done);
   const st = Sim.seed(r.value, seed, scenario), samples = [sample(st, 0, null)], cohort = scenario === 'market' ? cohorts(st) : null, col = strata ? require('../../tools/strata.js').collector(VB, st) : null;
   for (let y = 1; y <= years; y++) {
@@ -261,6 +278,44 @@ function runScenario({ scenario, map, seed, years, strata = false }) {
   if (cohort) samples[samples.length - 1].cohort = cohort.map((c) => ({ n: c.n, dead: [...c.ids].filter((id) => !st.pawns[id].alive).length }));
   const cpu = process.cpuUsage(cpu0);
   return { samples, secs: (Date.now() - t0) / 1000, cpuSecs: (cpu.user + cpu.system) / 1e6 };
+}
+// VB-523: one story among three villages (a tinyState, tests/lib/tiny.js): A (8 farms) and B (6) on one island, 14 steps apart, within an
+// ale evening's and a rite's reach of each other's lone farms; C (6) across a sound. Every household is given grain enough, and deaths are
+// off, for the land is drawn for talk, not a harvest. On day STORY_RUN.start a claim is taken in A, by its first farm's holder of its second's,
+// and its holders are counted by village each day for STORY_RUN.forgotten days. Returns {samples: [the seeding's sample with .story]}.
+const STORY_RUN = { start: 10, forgotten: 144 };
+function storyRun(seed) {
+  const cpu0 = process.cpuUsage(), t0 = Date.now(), { tinyWorld, tinyState } = require('./tiny.js'), S = VB['sim/stories'];
+  const map = Array.from({ length: 14 }, () => '.'.repeat(36) + '~~~~' + '.'.repeat(14));
+  const st = tinyState(tinyWorld(map), [{ at: [6, 7], farms: 8 }, { at: [20, 7], farms: 6 }, { at: [49, 7], farms: 6 }], { seed });
+  for (const hh of st.households) hh.grain.barley = (hh.grain.barley || 0) + 3000;
+  st.naturalDeaths = false;
+  const first = sample(st, 0, null);
+  Sim.advance(st, STORY_RUN.start * DAY);
+  const village = (id) => Sim.settlementIdOf(st, st.pawns[id]), hh = (k) => st.farmsteads[st.villages[0].farmsteads[k]].household;
+  const s = S.witness(st, 'claim', st.households[hh(0)].holder, st.households[hh(1)].holder, null);
+  const holds = (id) => !!st.pawns[id].known && st.pawns[id].known.some((e) => e.story === s.id);
+  const out = { home: Infinity, neighbour: Infinity, across: 0, kept: NaN, curve: [] };
+  let peak = [];
+  for (let d = 1; d <= STORY_RUN.forgotten; d++) {
+    Sim.advance(st, DAY);
+    const adults = [0, 0, 0], held = [0, 0, 0], now = [];
+    for (const id of st.living) {
+      if (st.pawns[id].age < 16) continue;
+      const v = village(id); adults[v]++;
+      if (holds(id)) { held[v]++; now.push(id); }
+    }
+    const share = held.map((n, v) => n / Math.max(1, adults[v]));
+    if (now.length > peak.length) peak = now;
+    if (out.home === Infinity && share[0] > 0.5) out.home = d;
+    if (out.neighbour === Infinity && share[1] > 0.5) out.neighbour = d;
+    out.across = Math.max(out.across, share[2]);
+    if ([1, 2, 4, 8, 12, 24, 48, 96, 144].includes(d)) out.curve.push({ day: d, share: share.map((x) => +x.toFixed(2)) });
+  }
+  out.kept = peak.length ? peak.filter(holds).length / peak.length : NaN;
+  first.story = out;
+  const cpu = process.cpuUsage(cpu0);
+  return { samples: [first], secs: (Date.now() - t0) / 1000, cpuSecs: (cpu.user + cpu.system) / 1e6 };
 }
 // A year's sample: living, the live households of each village, births, marriages and deaths by cause (read from the record appended
 // this year), hungry, cold (VB-327) and all household-days, the worst household's hungry share, the household-years judged and those over
@@ -327,4 +382,4 @@ function summary(samples, at = [1, 10, 20, 30, 50]) {
     hungryShare: hd ? sum('hungryDays') / hd : 0 };
 }
 const fmt = (x) => (Number.isNaN(x) ? 'none' : x === Infinity ? 'inf' : Number.isInteger(x) ? String(x) : x.toFixed(3));
-module.exports = { BANDS, PROBES, SETUPS, FULL, WEEKLY, REDUCED, GROWTH, growthTargets, MAPS, MIN_DAYS, runScenario, sample, judge, summary, fmt };
+module.exports = { BANDS, PROBES, SETUPS, STORY_RUN, storyRun, FULL, WEEKLY, REDUCED, GROWTH, growthTargets, MAPS, MIN_DAYS, runScenario, sample, judge, summary, fmt };

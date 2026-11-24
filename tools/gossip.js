@@ -22,6 +22,8 @@
 //   --sweep         each listed parameter at half and double (probabilities capped at 1; witnesses 1 and 6): the bands' measures,
 //                   stories model
 //   --json          the summaries as JSON
+// The game's own stories are sim/stories (VB-523): their numbers are its STORY table, and a run's spread, hops and strangers' opinion are
+//   tools/sim.js --report stories (tools/stories.js); this stays the reduced model the numbers were first proposed on.
 // Deterministic: all randomness comes from seeded streams (mulberry32), one for the population, one for the meetings, one for the model.
 require('./help.js')(__filename);
 

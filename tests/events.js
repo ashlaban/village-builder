@@ -4,7 +4,7 @@ const assert = require('assert');
 const { scan, problems } = require('../tools/events.js');
 const kinds = scan();
 assert.deepStrictEqual(problems(kinds), []);
-for (const k of ['claimTaken', 'borderLost', 'bullLent']) assert(kinds[k] && kinds[k].subscribers.every((s) => s.startsWith('sim/relations')), k);
+for (const k of ['claimTaken', 'borderLost', 'bullLent']) assert(kinds[k] && kinds[k].subscribers.every((s) => s.startsWith('sim/relations') || s.startsWith('sim/stories')), k); // sim/stories: a story of it (VB-523)
 assert.strictEqual(problems({ x: { emitters: ['a:1'], subscribers: [] }, y: { emitters: [], subscribers: ['b:2'] } }).length, 2, 'both kinds of orphan fail');
 
 const VB = require('../src/load.js'), Events = VB['sim/events'], { issue } = VB['sim/commands'], Sim = VB.sim, G = VB.gen;
