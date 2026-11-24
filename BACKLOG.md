@@ -242,6 +242,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-1557](backlog/VB-1557.md)<a id="VB-1557"></a> | Design: the wish reads a pawn's ties and its opinion of its head | - | 3 | S | Kim | A design pass on the yearly wish (sim/wishes), which reads ambition and hunger only: what ties and the opinion of the head would add, and what it moves of the growth targets |
 | [VB-1595](backlog/VB-1595.md)<a id="VB-1595"></a> | The leader's choice and the solo siting show each site's water | - | 3 | S | [VB-788](#VB-788) | VB-1583 built the estimate (sim/settle sites, Sim.siteWater, siteWaterWords); the choice's views are VB-788's and VB-1544's, not built yet |
 | [VB-1607](backlog/VB-1607.md)<a id="VB-1607"></a> | A site's well under settling in steps: a job of the site, and the move waits for it | - | 3 | S | [VB-787](#VB-787) | VB-1587's criteria 2 and 4, which need the move of VB-787 |
+| [VB-1617](backlog/VB-1617.md)<a id="VB-1617"></a> | Evaluate the adaptive context reset: keep, adjust or abandon it | - | 3 | S | Kim | Compare the reset's period with the ceiling's by VB-1615's tools once 15 eligible tasks are done in each, or 4 weeks on; decide by the rules VB-1616 set |
 
 </details>
 
