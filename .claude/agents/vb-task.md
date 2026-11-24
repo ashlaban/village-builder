@@ -33,12 +33,13 @@ The orchestrator writes those once, from your notes.
 2. Take the task as `AGENTS.md`, "Taking a task", says, from `node tools/brief.js ID` to ticking its criteria and writing its few lines of
    notes in `backlog/ID.md`, which is yours to edit. Read sections, not files (`tools/doc.js`); learn a tool from its `--help`.
 3. Before you first edit a file under `src/`, `node tools/inbox.js claim ID FILE...`. If another task holds one, keep your change to
-   that file small.
+   that file small. If the task has no `Touches:` line, or yours shows it wrong, write the one you now know into `backlog/ID.md`
+   (`docs/agents/tasks.md`, Touches): the functions you will edit.
 4. Allowed: what the task specifies, and the tests it needs. No new dependencies, build changes or restructuring unless the task says so.
    Others are using the machine: a time you measure is a description, not a result, so report counters and leave times to the
    nightly bench; and run nothing that appends to a shared record (`tools/bench.js`, `tools/bands.js`, `--record`).
 5. Leave a note (`node tools/inbox.js note ID KIND ...`) for each of these, as it comes up:
-   - `task`: a follow-up task, with one of your reserved IDs, its criteria as the body;
+   - `task`: a follow-up task, with one of your reserved IDs, its criteria as the body, written as `docs/agents/tasks.md` says (`touches=`);
      with `status=ready`, `goal=` and `ref=` when its criteria are stated and it holds no question for Kim (`priority=1` if it mends a red check);
    - `tuning`: a shortfall left for the tuning run; `question`: one only Kim can answer, with its proposed answers;
    - `candidate`, `teleport`, `act`, `decision`: what `AGENTS.md`, Surfacing, asks for. A teleport or an act with no pawn gets its

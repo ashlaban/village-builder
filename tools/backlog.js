@@ -10,11 +10,12 @@ const USAGE = `usage: node tools/backlog.js <command> [--root DIR]
                             one line per task (default: open tasks, in table order); S may be open, done or a status list a,b; -s adds summaries
   show ID... [--brief]      a task's file; --brief stops before its notes and reports
   done ID... [--date D]     mark done (Status: done (D)): rows to the archive, ID dropped from "Waits for:" lines, freed tasks set ready
-  set ID key=value...       status, priority, size, arch, phase, waits, cause, name, summary (status=done is the same as done)
+  set ID key=value...       status, priority, size, arch, phase, waits, cause, touches, name, summary (status=done is the same as done)
+                            touches=...: the footprint, the functions the task edits (docs/agents/tasks.md)
                             cause=VB-NNN: the task whose change introduced the defect this one mends (cause= removes it)
   new key=value...          the next free ID (above this checkout's task files and those of the branches fetched from origin and pushed in
                             the last 14 days: tools/lib/ids.js): name, status, priority, size, summary required; arch, phase, waits, cause,
-                            ref, goal optional;
+                            touches, ref, goal optional (how to write each: docs/agents/tasks.md);
                             id=VB-NNN takes a reserved ID instead (tools/inbox.js start)
   close-arch KEY            an arch with no open tasks: its row moves to the archive's closed archs
   sync [--dry]              rewrite the tables from the task files, e.g. after editing a header by hand; --dry only reports`;
@@ -201,7 +202,7 @@ function parsePairs(list) {
   return pairs;
 }
 function apply(t, p) {
-  const known = ['status', 'priority', 'size', 'arch', 'phase', 'waits', 'cause', 'name', 'summary'];
+  const known = ['status', 'priority', 'size', 'arch', 'phase', 'waits', 'cause', 'touches', 'name', 'summary'];
   for (const k of Object.keys(p)) if (!known.includes(k)) fail(`unknown key "${k}" (one of ${known.join(', ')})`);
   if (p.name) { t.name = p.name; t.text = t.text.replace(/^# .*$/m, () => `# ${t.id}: ${p.name}`); t.dirty = true; }
   if (p.priority) { if (!/^[1-3]$/.test(p.priority)) fail('priority is 1, 2 or 3'); t.priority = p.priority; put(t, 'Priority', p.priority); }
@@ -224,6 +225,14 @@ function apply(t, p) {
   if (p.cause !== undefined) {
     if (p.cause && (!tasks.has(p.cause) || p.cause === t.id)) fail(`cause=${p.cause}: ${p.cause === t.id ? 'a task is not its own cause' : 'no such task file'}`);
     put(t, 'Cause', p.cause || null); t.dirty = true;
+  }
+  if (p.touches !== undefined) { // the footprint (VB-1671, docs/agents/tasks.md): after "Design ref:", or after the header block
+    try { require('./lib/touches.js').parseTouches(p.touches); } catch (e) { fail(`touches=: ${e.message}`); }
+    const line = `Touches: ${p.touches}`;
+    if (/^Touches: .*$/m.test(t.text)) t.text = t.text.replace(/^Touches: .*$/m, () => line);
+    else if (/^Design ref: .*$/m.test(t.text)) t.text = t.text.replace(/^Design ref: .*$/m, (l) => `${l}\n${line}`);
+    else t.text = t.text.replace(/^(Goal|Acceptance criteria)\b/m, (l) => `${line}\n${l}`);
+    t.dirty = true;
   }
   if (t.status === 'blocked' && !t.waits.length) fail(`${t.id} is blocked: give waits=VB-NNN[, ...] or waits=Kim`);
   if (t.status !== 'blocked' && t.waits.length) fail(`${t.id} is ${t.status}: only blocked tasks wait (drop waits=)`);
@@ -277,7 +286,7 @@ if (cmd === 'next') {
   delete p.id;
   const t = { id, name: p.name, status: '', priority: '', size: '', arch: '-', phase: '-', waits: [], dirty: true,
     text: `# ${id}: ${p.name}\nStatus: ${p.status}\nPriority: ${p.priority}\nSize: ${p.size}\n`
-      + `Design ref: ${p.ref || '(to write)'}\nGoal: ${p.goal || '(to write)'}\nAcceptance criteria:\n- [ ] (to write)\n` };
+      + `Design ref: ${p.ref || '(to write)'}\nTouches: (to write)\nGoal: ${p.goal || '(to write)'}\nAcceptance criteria:\n- [ ] (to write)\n` };
   tasks.set(id, t);
   delete p.ref; delete p.goal;
   apply(t, p);

@@ -61,8 +61,8 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
 ## 2. When no ready task is left
 Start one general-purpose sub-agent on Opus with this section as its prompt, and "your task ID is VB-000; your reserved task IDs
 are <IDs>" (`node tools/inbox.js start VB-000`): read the design's Decided and Agreed points against the code, a section at a time
-(`node tools/doc.js --toc`), and note up to five candidate tasks, `node tools/inbox.js note VB-000 task ...`: goal, proposed
-criteria, Design ref, size, and for each the questions Kim must answer, with proposed answers, as a `question` note (`about=` the
+(`node tools/doc.js --toc`), and note up to five candidate tasks, `node tools/inbox.js note VB-000 task ...`, written as `docs/agents/tasks.md` says: goal, proposed
+criteria, Design ref, `touches=`, size, and for each the questions Kim must answer, with proposed answers, as a `question` note (`about=` the
 new task's ID); note every teleport found (`AGENTS.md`, the hard rule); report the IDs. Then `node tools/inbox.js apply`, commit and
 push. Candidates are never ready. Prefer small tasks that unblock others.
 

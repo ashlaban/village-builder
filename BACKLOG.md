@@ -291,8 +291,8 @@ tasks outside every arch last), then priority, then ID; the archive by when a ta
 (`done`, `set`, `new`, `close-arch`, `sync`) and reads the backlog without these tables (`next`, `list`, `show`); `AGENTS.md`, Commands.
 
 **Order and statuses.** Agents take only `Status: ready` tasks, in the Ready table's order: priority (1 first), then ID.
-To change what runs first, change priorities; there is no other order. A task's notes say what it may run beside (tasks that edit the
-same files run one at a time).
+To change what runs first, change priorities; there is no other order. A task's `Touches:` line names the functions it will edit, so that tasks editing different ones run side by
+side (VB-1671); how to write a task, that line included: [`docs/agents/tasks.md`](docs/agents/tasks.md).
 A task is `ready` when its goal and acceptance criteria are stated; what it leaves open, its agent decides by `AGENTS.md`, Deciding without Kim.
 `needs-review` tasks list the questions only Kim can answer (a Decided point moved, or a new thing the player can do); [`QUESTIONS.md`](QUESTIONS.md) gathers the open questions of all tasks
 in one place, with proposed answers, and answered ones move to [`QUESTION_ARCHIVE.md`](QUESTION_ARCHIVE.md).

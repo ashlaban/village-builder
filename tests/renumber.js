@@ -10,7 +10,7 @@ const node = (...a) => spawnSync(process.execPath, a, { cwd: repo, encoding: 'ut
 const write = (f, s) => { fs.mkdirSync(path.dirname(path.join(repo, f)), { recursive: true }); fs.writeFileSync(path.join(repo, f), s); };
 const read = (f) => (fs.existsSync(path.join(repo, f)) ? fs.readFileSync(path.join(repo, f), 'utf8') : '(missing ' + f + ')');
 
-for (const f of ['tools/renumber.js', 'tools/backlog.js', 'tools/help.js', 'tools/merge.js', 'tools/lib/ids.js', 'tests/backlog.js', '.gitattributes',
+for (const f of ['tools/renumber.js', 'tools/backlog.js', 'tools/help.js', 'tools/merge.js', 'tools/lib/ids.js', 'tools/lib/touches.js', 'tests/backlog.js', '.gitattributes',
   'BACKLOG.md', 'BACKLOG_ARCHIVE.md']) write(f, fs.readFileSync(path.join(root, f), 'utf8'));
 fs.cpSync(path.join(root, 'backlog'), path.join(repo, 'backlog'), { recursive: true });
 const top = Math.max(...fs.readdirSync(path.join(repo, 'backlog')).map((f) => +(/^VB-(\d+)\.md$/.exec(f) || [])[1] || 0));

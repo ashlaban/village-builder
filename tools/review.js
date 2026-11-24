@@ -336,13 +336,21 @@ async function confirm(root, id, reviewed, dry, toIn) {
   return lines.join('\n');
 }
 
+// A follow-up's footprint (VB-1671, docs/agents/tasks.md): the file the finding names, as a module key under src/, else unknown
+function touchesOf(f) {
+  const m = /((?:src|tests|tools|docs)\/[\w./-]+\.\w+)/.exec(String(f.place || ''));
+  if (!m) return 'unknown (the review finding names no file)';
+  return /^src\/.*\.(js|ts)$/.test(m[1]) ? m[1].replace(/^src\//, '').replace(/\.(js|ts)$/, '') : m[1];
+}
+
 // A blocking finding left unresolved becomes a task of its own (tools/backlog.js), ready, priority 1, naming the task as its cause.
 function openFollowup(root, id, f) {
   const bl = (...a) => { const x = cp.spawnSync(process.execPath, [path.join(__dirname, 'backlog.js'), '--root', root, ...a], { encoding: 'utf8' });
     if (x.status !== 0) throw new Error('backlog.js ' + a[0] + ': ' + (x.stderr || x.stdout).trim()); return x.stdout; };
   const one = (t, n) => String(t || '').replace(/\s+/g, ' ').replace(/\|/g, '/').slice(0, n);
   const out = bl('new', `name=Mend ${id}'s review finding ${f.id} (${f.category}, ${one(f.place, 60)})`, 'status=needs-review', 'priority=1', 'size=S',
-    `cause=${id}`, `summary=${one(f.scenario, 240)}`, `ref=${one(f.authority, 300)}`, `goal=The defect the review of ${id} found and its revision left: ${one(f.scenario, 300)}`);
+    `cause=${id}`, `summary=${one(f.scenario, 240)}`, `ref=${one(f.authority, 300)}`, `goal=The defect the review of ${id} found and its revision left: ${one(f.scenario, 300)}`,
+    `touches=${touchesOf(f)}`);
   const nid = (out.match(/(VB-\d{3,}) created/) || [])[1];
   const file = path.join(root, 'backlog', nid + '.md');
   fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('- [ ] (to write)\n',
@@ -361,7 +369,7 @@ function noteFollowup(root, id, f) {
   try {
     inbox(root, 'note', id, 'task', `id=${nid}`, `name=Mend ${id}'s review finding ${f.id} (${f.category}, ${one(f.place, 60)})`, 'priority=1', 'size=S',
       `summary=${one(f.scenario, 240)}`, 'status=ready', `cause=${id}`, `ref=${one(f.authority, 300)}`,
-      `goal=The defect the review of ${id} found and its revision left: ${one(f.scenario, 300)}`, '--body', body);
+      `goal=The defect the review of ${id} found and its revision left: ${one(f.scenario, 300)}`, `touches=${touchesOf(f)}`, '--body', body);
   } finally { fs.rmSync(body, { force: true }); }
   return nid;
 }

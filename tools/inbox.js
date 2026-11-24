@@ -31,7 +31,8 @@
 //                              --task only TASK's
 //   results [--json]           the results, for  node tools/agent-usage.js --results FILE
 // kinds, with their keys:
-//   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= cause= ref= goal=]; body: its criteria
+//   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= cause= touches= ref= goal=]; body: its criteria
+//              (how to write each, touches= the functions it will edit: docs/agents/tasks.md)
 //              (cause=VB-NNN: the task whose change introduced the defect it mends, VB-1619)
 //              (ready: goal=, ref= and the body given, and no question for Kim; priority=1 if it mends a red check)
 //   question   priority= title= [about=VB-NNN, the task it is filed under: default TASK]; body: the numbered questions, each with its proposed answer (**P:**), as in QUESTIONS.md
@@ -69,7 +70,7 @@ const COLLECT = {
   act: { name: "Acts with no pawn, collected: swept at a slice's wrap-up", arch: 'acts', goal: 'Each act listed is a pawn\'s, through a verb any pawn may use',
     summary: 'The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up' },
 };
-const OPTIONAL = { task: ['status', 'arch', 'waits', 'cause', 'ref', 'goal'], question: ['about'], teleport: ['task'],
+const OPTIONAL = { task: ['status', 'arch', 'waits', 'cause', 'touches', 'ref', 'goal'], question: ['about'], teleport: ['task'],
   review: ['verdict', 'blocking', 'advisory', 'preference', 'reviewed', 'mended', 'rebutted', 'unresolved', 'followups'] };
 const NEEDS_BODY = ['question', 'handover'];
 const HANDOVER_LINES = 60, HANDOVER_BYTES = 4096; // docs/agents/handover.md
@@ -351,7 +352,10 @@ if (cmd === 'init') {
   for (const n of notes('WHERE applied = 0').filter(mine)) {
     const f = n.fields;
     if (n.kind === 'task') {
-      const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'cause', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`);
+      // a note with no footprint gets one that says so: the agent that takes the task writes it before its first edit (VB-1671)
+      const touches = f.touches || `unknown (${n.task}'s note gave none)`;
+      const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'cause', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`)
+        .concat(`touches=${touches}`);
       // a file is never made ready with "(to write)" in it (tools/backlog.js new): a ready note's task is made, filled, then set ready
       backlog('new', `id=${f.id}`, `status=${f.status === 'ready' ? 'needs-review' : f.status || 'needs-review'}`, ...keys);
       if (n.body && !dry) {
@@ -398,6 +402,7 @@ if (cmd === 'init') {
           const next = +get("SELECT value FROM meta WHERE key = 'next'").value; run("UPDATE meta SET value = ? WHERE key = 'next'", String(next + 1));
           return pad(next); });
         backlog('new', `id=${id}`, 'status=needs-review', `name=${c.name}`, 'priority=3', 'size=M', `summary=${c.summary}`, `arch=${c.arch}`,
+          'touches=unknown (a collecting task: each line names its own place)',
           'ref=AGENTS.md, Surfacing', `goal=${c.goal}`);
         const p = path.join(dirOf, id + '.md');
         fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('- [ ] (to write)\n', line + '\n'));

@@ -65,7 +65,7 @@ expect('status: the done task, the running one with its claims, the open notes',
 r = run('', 'results', '--json');
 expect('results as JSON', r.ok && JSON.parse(r.out).find((x) => x.task === A).size === 'M', r.out);
 r = run('- [ ] The check passes.', 'note', A, 'task', `id=${pad(last + 2)}`, 'name=Mend a red check', 'priority=1', 'size=S', 'summary=Red.', 'status=ready',
-  'goal=the check passes', 'ref=tests/x.js', '--body', '-');
+  'goal=the check passes', 'ref=tests/x.js', 'touches=sim/herds (herdsDay); tests/x.js', '--body', '-');
 expect('a ready task note, with its goal and criteria', r.ok, r.out);
 const before = file('BACKLOG.md');
 r = run('', 'apply', '--dry');
@@ -74,6 +74,8 @@ r = run('', 'apply', '--task', B);
 expect("apply --task applies only that task's: none of A's", r.ok && /applied 0/.test(r.out) && file('BACKLOG.md') === before, r.out);
 r = run('', 'apply');
 expect('apply: the result, the task, the question, the tuning row and the three findings', r.ok && /applied 8/.test(r.out), r.out);
+expect('a task note\'s footprint is its Touches line; a note without one says so', /^Touches: sim\/herds \(herdsDay\); tests\/x\.js$/m.test(file(`backlog/${pad(last + 2)}.md`))
+  && /^Touches: unknown \(.+'s note gave none\)$/m.test(file(`backlog/${N}.md`)));
 const collected = (name) =>
   fs.readdirSync(path.join(dir, 'backlog')).map((f) => file('backlog/' + f)).filter((t) => t.includes(`: ${name}`) && !/^Status: done/m.test(t));
 expect('the teleports are lines of one open collecting task', collected('Teleports found, collected').length === 1

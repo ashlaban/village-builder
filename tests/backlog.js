@@ -6,6 +6,10 @@
 // `node tests/backlog.js DIR` checks the backlog of another checkout (tools/backlog.js checks the copy it changed).
 const fs = require('fs'), path = require('path');
 const root = process.argv[2] ? path.resolve(process.argv[2]) : path.join(__dirname, '..'), dir = path.join(root, 'backlog');
+const { parseTouches, fileOf } = require(path.join(__dirname, '..', 'tools', 'lib', 'touches.js')), warnings = [];
+// from this ID on a ready task carries a "Touches:" line (VB-1671): one without is named, not failed, since a branch in flight writes
+// its tasks with the tools from before the line; `tools/backlog.js new` writes it "(to write)", which a ready task may not keep
+const TOUCHES_FROM = 1675;
 const errors = [], PHASES = ['plan', 'implement', 'wrap-up'];
 const SECTIONS = { 'BACKLOG.md': { 'Ready': 'ready', 'Waiting for Kim': 'needs-review', 'Blocked': 'blocked' },
   'BACKLOG_ARCHIVE.md': { 'Done tasks': 'done' } };
@@ -38,6 +42,18 @@ for (const f of files) {
   if (arch === '-' && phase !== '-') errors.push(`backlog/${f}: a phase without an arch`);
   if (status === 'ready' && (!/^Goal: /m.test(text) || !/^Acceptance criteria\b/m.test(text) || text.includes('(to write)')))
     errors.push(`backlog/${f} is ready: it needs a "Goal:" line and "Acceptance criteria", and nothing left "(to write)"`);
+  // "Touches:" (VB-1671, docs/agents/tasks.md): its format always; a module it names exists, or is marked new (a warning: a task may wait)
+  const touches = (text.match(/^Touches: (.*)$/m) || [])[1];
+  if (touches !== undefined && touches.trim() !== '(to write)') {
+    try {
+      const t = parseTouches(touches);
+      if (t.items && status !== 'done') for (const it of t.items) {
+        if (!it.created && !fs.existsSync(path.join(root, fileOf(root, it.target)))) warnings.push(`backlog/${f}: Touches names ${it.target}, which does not exist and is not marked new`);
+      }
+    } catch (e) { errors.push(`backlog/${f}: "Touches:" ${e.message} (docs/agents/tasks.md)`); }
+  } else if (touches === undefined && status === 'ready' && +head[1].slice(3) >= TOUCHES_FROM) {
+    warnings.push(`backlog/${f} is ready without a "Touches:" line (docs/agents/tasks.md): node tools/backlog.js set ${head[1]} touches="..."`);
+  }
   tasks[head[1]] = { name: head[2], arch, status, priority: field('Priority'), size: field('Size'), waits: field('Waits for'), cause: ((text.split(/^(?!# |Status|Waits for|Cause|Priority|Size|Arch|Phase)/m)[0] || '').match(/^Cause: (.*)$/m) || [])[1] || '' };
 }
 
@@ -112,6 +128,7 @@ if (errors.length) {
   console.error('BACKLOG FAIL:\n  ' + errors.join('\n  ') + '\n(rows, order and freed tasks follow from the task files: node tools/backlog.js sync)');
   process.exit(1);
 }
+for (const w of warnings) console.log('backlog: warning: ' + w);
 const count = (st) => Object.values(tasks).filter((t) => t.status === st).length;
 console.log(`backlog: ${files.length} task files match BACKLOG.md and BACKLOG_ARCHIVE.md: ${count('ready')} ready, ${count('needs-review')} waiting`
   + ` for Kim, ${count('blocked')} blocked, ${count('done')} done; ${openArchs.length} open archs, ${closedArchs.size} closed`);

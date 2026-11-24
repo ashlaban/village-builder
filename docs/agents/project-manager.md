@@ -12,7 +12,8 @@ You cannot change the design: you change only the task files in `backlog/` (and 
    concrete implementation tasks it lacks with `node tools/backlog.js new`: `needs-review` with its questions and proposed answers in
    `QUESTIONS.md` when it needs a decision, `blocked` with `waits=` when it waits for another task, `ready` only when it states its goal,
    numbers and criteria and needs no decision.
-4. Split tasks too large for one session (size L) into S and M tasks with clear boundaries; say in each what it may run beside.
+4. Split tasks too large for one session (size L) into S and M tasks with clear boundaries. Write each as `docs/agents/tasks.md` says,
+   its `Touches:` line naming the functions it edits, so that the tasks of a split edit different ones where they can.
 5. Keep to `BACKLOG.md`, "How this backlog works" (`node tools/doc.js BACKLOG.md "How this backlog works"`): the slices' plans in order,
    a slice's tasks waiting for its plan, a task's phase in its name.
 6. Measure the run: `node tools/agent-usage.js --label project-manager --out docs/agents/usage`, and commit the file it writes.

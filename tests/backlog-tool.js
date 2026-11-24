@@ -58,6 +58,7 @@ expect('set can repair a malformed row with valid Markdown', r.ok, r.out);
 r = run(dir, 'new', 'name=Test two', 'status=ready', 'priority=1', 'size=S', 'summary=Two.');
 expect('new refuses a ready task', !r.ok, r.out);
 r = run(dir, 'new', 'name=Test two', 'status=blocked', `waits=${A}, Kim`, 'priority=1', 'size=S', 'arch=zz-test', 'summary=Two.');
+expect(`new ${B} writes "Touches: (to write)" after Design ref`, /^Design ref: .*\nTouches: \(to write\)\nGoal: /m.test(file(`backlog/${B}.md`)));
 expect(`new ${B} blocked, waiting for ${A} and Kim`, r.ok && section('BACKLOG.md', 'Blocked').includes(`| [${A}](#${A}), Kim | Two. |`), r.out);
 fs.writeFileSync(path.join(dir, `backlog/${B}.md`), file(`backlog/${B}.md`).replace(/\(to write\)/g, 'Stated.'));
 
@@ -80,6 +81,19 @@ r = run(dir, 'set', B, 'cause=VB-99999');
 expect('set refuses a cause with no task file', !r.ok, r.out);
 r = run(dir, 'set', B, `cause=${B}`);
 expect('set refuses a task as its own cause', !r.ok, r.out);
+// Touches (VB-1671, docs/agents/tasks.md): new writes the line to fill, set writes it after Design ref, a malformed one is refused
+r = run(dir, 'set', B, 'touches=sim/jobs (allot, lookForWork); page/words (showPawn); new sim/wells');
+expect(`set ${B} touches=: the line after Design ref`, r.ok && /^Design ref: .*\nTouches: sim\/jobs \(allot, lookForWork\); page\/words \(showPawn\); new sim\/wells\nGoal: /m.test(file(`backlog/${B}.md`)), r.out);
+r = run(dir, 'set', B, 'touches=sim/jobs (allot');
+expect('set refuses a malformed Touches line', !r.ok && /touches=/.test(r.out), r.out);
+const { parseTouches } = require(path.join(root, 'tools', 'lib', 'touches.js'));
+const parses = (t) => { try { return parseTouches(t); } catch { return null; } };
+expect('touches: unknown with a reason', parses('unknown (a plan task)') && parses('unknown (a plan task)').unknown === 'a plan task');
+expect('touches: items with names, a path, new', JSON.stringify(parses('sim/jobs (allot, KINDS); tests/jobs.js; new sim/wells').items)
+  === JSON.stringify([{ target: 'sim/jobs', names: ['allot', 'KINDS'], created: false }, { target: 'tests/jobs.js', names: [], created: false },
+    { target: 'sim/wells', names: [], created: true }]));
+for (const bad of ['', '(to write)', 'sim/jobs (allot lookForWork)', 'sim jobs', 'sim/jobs (a-b)', 'unknown'])
+  expect(`touches: "${bad}" is refused`, parses(bad) === null);
 r = run(dir, 'done', B);
 expect('the emptied arch is reported', r.ok && /arch zz-test has no open tasks left/.test(r.out), r.out);
 r = run(dir, 'close-arch', 'zz-test');
