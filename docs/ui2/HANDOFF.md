@@ -117,6 +117,17 @@ Drafts page (screenshots and both rounds' findings, newest first): https://claud
   10. Words: chain cards say "to a sown field" for hay and harvest (`hudStake`); the estimate's days and the pin's differ (work
       days against calendar days); "it" for the settler; "Break a field here" then a second tap to plan it.
 
+## Kim's answers after round 4 (24 November)
+- Wood: you cut wood or timber on a forest tile, and take it home, where it is 1) worked into firewood or 2) left as timber for
+  building. So the forest tile offers the cutting (any forest tile within reach, not only the one the job picked: sim work), and
+  the further working is at the house.
+- A tapped mark: shown as a mock (a pin opening its own small popup, against a pin opening its tile's callout with the mark's
+  explanation on top, the proposal); Kim's choice is not given yet: ask before building.
+- Sleep: two effects. Short term as now, but biting harder on the second and third night (one night lost is usually fine; much
+  more and the wits go quickly). Long term, health is increasingly affected.
+- Stores count what is in the plan. There is no "automatic plan": there could be automatic planning, and it is turned off. So
+  nothing the head would have planned by itself may be counted on while the player plans (the outlook's `intakes`).
+
 ## For the next session
 - Start with 1 (find and explain a standing plan), then 2, 3, 4, 5: they are why a year fails or misleads.
 - Seeing the page: `node build.js`, then patch a copy of `index.html` as `tests/browser.js` does (replace the `let st = null,`
