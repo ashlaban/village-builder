@@ -1454,6 +1454,9 @@ function checkState(st) {
     const pl = st.player, QUEUE_MAX = globalThis.VB['sim/player'].QUEUE_MAX;
     if (!st.pawns[pl.pawn] || !st.agents[pl.pawn]) bad.push(`player: pawn ${pl.pawn} does not exist`);
     if (typeof pl.auto !== 'boolean' || !(pl.since <= st.t)) bad.push(`player: auto ${pl.auto}, since ${pl.since}`);
+    // its sleep owed (VB-1615): absent in a save made before it, else {owed within 0 and SLEEP.cap, asleep}
+    const sl = pl.sleep, CAP = globalThis.VB['sim/sleep'].SLEEP.cap;
+    if (sl !== undefined && !(sl && sl.owed >= 0 && sl.owed <= CAP && typeof sl.asleep === 'boolean' && Number.isInteger(sl.at) && sl.at <= st.tick)) bad.push(`player: sleep ${JSON.stringify(sl)}`);
     if (!Array.isArray(pl.queue) || pl.queue.length > QUEUE_MAX) bad.push(`player: a queue of ${pl.queue && pl.queue.length} commands`);
     else pl.queue.forEach((c, n) => {
       if (c.source !== 'player' || c.actor !== pl.pawn || typeof c.verb !== 'string') bad.push(`player.queue[${n}]: ${JSON.stringify(c)}`);
