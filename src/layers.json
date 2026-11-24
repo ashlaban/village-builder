@@ -48,6 +48,7 @@
       "sim/ties",
       "sim/traits",
       "sim/skills",
+      "sim/workmanship",
       "sim/wishes",
       "sim/prospect",
       "sim/commands",
@@ -109,6 +110,7 @@
       "culture",
       "sim/encounters",
       "sim/relations",
+      "sim/pastimes",
       "sim/mood",
       "sim/society",
       "sim/deaths",
@@ -146,7 +148,6 @@
       "sim/drinking",
       "sim/fit",
       "sim/day",
-      "sim/idle",
       "sim/kinds",
       "sim/exchange",
       "sim/days",
@@ -173,7 +174,7 @@
       "sim/outlook",
       "sim/estimate"
     ],
-    "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview"],
+    "derived": ["sim/notable", "sim/leanings", "sim/opportunities", "sim/overview", "sim/reasons"],
     "presentation": ["draw/pigments", "draw/paths", "draw/rivers", "draw/marks", "draw/paint", "draw/bake"]
   }
 }

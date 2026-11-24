@@ -69,6 +69,8 @@ const FAST = [
   ['node', 'tests/latitude.js'], // VB-807: the winter's dates by latitude, the bands, the growing year by world, dates falling, lat saved
   ['node', 'tests/peas.js'],
   ['node', 'tests/skills.js'], // time taken from causes: skill, a leg's mishap, the crop's size (VB-475)
+  ['node', 'tests/reasons.js'], // VB-1551: who chose a pawn's act and why, every chooser but a duty, read-only and read by no module
+  ['node', 'tests/workmanship.js'], // workmanship: the grades' odds by skill, the draw, the maker, the graded quern (VB-761)
   ['node', 'tests/estimate.js'], // the head's estimate: the causes reckoned by skill, the range, the day manned by it (VB-476)
   ['node', 'tests/crafts.js'], // crafts learnt by doing: halfway in 400 hours, a tenth a year, a novice's rate to a master's (VB-360)
   ['node', 'tests/rotations.js'],
@@ -176,6 +178,8 @@ const INTEGRATION = [
   ['node', 'tests/commons.js'],
   ['node', 'tests/cottage.js'],
   ['node', 'tests/relations.js'],
+  ['node', 'tests/pastimes.js'], // VB-1552: own time, the six pastimes each reached, the verb `pastime`, the call and the cut
+  ['node', 'tests/visitors.js'], // VB-1559: a caller at the door sits with those indoors; a passer-by does not
   ['node', 'tests/encounters.js'],
   ['node', 'tests/goodwill.js'],
   ['node', 'tests/meadows.js'],

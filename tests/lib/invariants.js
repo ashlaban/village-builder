@@ -744,7 +744,9 @@ function checkState(st) {
       }
     }
     // the hand quern (VB-009): null, or a stone of a kind of the good (sandstone or granite; VB-733) made at a time not after now
-    if (h.quern !== null && !(h.quern && globalThis.VB['sim/goods'].kindRow('quern', h.quern.kind) && Number.isFinite(h.quern.made) && h.quern.made <= st.t))
+    // and of a grade of workmanship, a whole number 0 to 4 (VB-761)
+    if (h.quern !== null && !(h.quern && globalThis.VB['sim/goods'].kindRow('quern', h.quern.kind) && Number.isFinite(h.quern.made) && h.quern.made <= st.t
+      && Number.isInteger(h.quern.grade) && h.quern.grade >= 0 && h.quern.grade <= 4))
       bad.push(`households[${h.id}]: quern ${JSON.stringify(h.quern)}`);
     // dug loads (VB-359): whole loads, and no more than the stock a household digs to; its digging ground's tiles on the map
     for (const k of ['clay', 'bogOre']) if (!Number.isInteger(h[k]) || h[k] < 0 ||
@@ -783,7 +785,9 @@ function checkState(st) {
       // is leading it home (the lying load goes as it is taken up, the cart is free once it is at the house: seen with VB-1586)
       if (c.at !== undefined && !(c.by === null && Number.isInteger(c.at.tile) && c.at.t <= st.t &&
         ((st.lying || []).some((l) => l.kind === 'leftCart' && l.owner.type === 'household' && l.owner.id === h.id && l.of.cart.kind === c.kind && l.of.cart.built === c.built) ||
-          [...st.jobs.values()].some((j) => j.kind === 'fetchLeftCart' && j.owner.id === h.id && j.claims.length > 0 && j.cart && j.cart.kind === c.kind && j.cart.built === c.built))))
+          [...st.jobs.values()].some((j) => j.kind === 'fetchLeftCart' && j.owner.id === h.id && j.claims.length > 0 && j.cart && j.cart.kind === c.kind && j.cart.built === c.built) ||
+          // or a hand has taken it up and leads it home (the fetch's way back: the lying load is gone, the cart is home at the delivery; VB-1552 found the gap)
+          [...st.jobs.values()].some((j) => j.cart && j.cart.kind === c.kind && j.cart.built === c.built && j.claims.some((id) => st.agents[id].phase === 'back')))))
         bad.push(`households[${h.id}]: cart ${JSON.stringify(c)} stands out with no carrier's lying cart`);
     }
     // the larder holds foods eaten as they are (rules FOODS, VB-259)
@@ -1376,10 +1380,15 @@ function checkState(st) {
   // or while cutting the next load beside a cart with room (sim/agents stepWork, a kind's `stack`: firewood), or out with a cart taken
   // at the house, on the way and at the work (the water's barrel: the job names its cart, VB-1586)
   for (const a of st.agents) if (a.load && !(a.load > 0 && (a.phase === 'back' || (a.phase === 'work' && a.job && VB['sim/kinds'].KINDS[a.job.kind].stack) || ((a.phase === 'go' || a.phase === 'work') && a.job && a.job.cart)))) bad.push(`agents[${a.id}]: a load of ${a.load} in phase ${a.phase}`);
+  // a full task in hand (agent.job) only on the way to it, at it or bringing its load in: a hand sent home or left free has let it go, and
+  // holds no claim a task's pace is reckoned from (VB-1565; sim/agents release, the verb goHome)
+  for (const a of st.agents) if (a.job && !['go', 'work', 'back'].includes(a.phase)) bad.push(`agents[${a.id}]: holds job ${a.job.key} in phase ${a.phase}`);
   for (const h of st.households) if (h.threshed !== undefined &&
     !(Number.isInteger(h.threshed) && h.threshed >= 0)) bad.push(`households[${h.id}]: threshed ${h.threshed}`);
   // the hour of a pawn's last talk with a friend (agent.talk.friendAt, VB-062): a finite hour, no later than a talk begun now can show (two
   // talks in one hour may be shown in either order, so it may follow the latest talk's own hour)
+  // a pawn's pastime (agent.pastime, VB-1552): a kind of the table, begun no later than now, with a pawn and at a farm there are
+  for (const a of st.agents) if (a.pastime !== undefined) { const r = a.pastime; if (!(r && Object.hasOwn(VB['sim/pastimes'].PASTIMES, r.kind) && r.at <= st.t + 1e-9 && r.until >= r.at && (r.with === null || !!st.pawns[r.with]) && (r.farm === null || !!st.farmsteads[r.farm]))) bad.push(`agents[${a.id}].pastime: ${JSON.stringify(r)}`); }
   for (const a of st.agents) if (a.talk && a.talk.friendAt !== undefined && !(Number.isFinite(a.talk.friendAt) && a.talk.friendAt <= st.t + VB['sim/ties'].SOCIAL.talk.bubbleHours + 1e-9)) bad.push(`agents[${a.id}].talk: friendAt ${a.talk.friendAt}, after now (${st.t}) and a talk's bubble`);
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
   // assignments numbered (VB-1405): three slot numbers, none above the count taken, and once numbered a slot that holds a task has one

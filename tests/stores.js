@@ -69,14 +69,14 @@ assert(dissolved > 0, 'a household dissolved, and its ledger was emptied');
   const c = tinyState(tinyWorld(Array(12).fill('.'.repeat(20))), [{ at: [8, 6], farms: 2 }], { seed: 7 }), h = c.households[0];
   const CROPS = VB['sim/crops'].CROPS; // the rows with seed: fallow is a course, not a crop (VB-348)
   assert.deepStrictEqual(S.CROP_LIST, Object.keys(CROPS).filter((c) => CROPS[c].seed > 0));
-  assert.strictEqual(S.grainGood('barley'), 'grain/barley'); assert.throws(() => S.grainGood('wheat'), /unknown crop/);
+  assert.strictEqual(S.grainGood('barley'), 'grain/barley'); assert.throws(() => S.grainGood('millet'), /unknown crop/);
   S.start(c, h, { barley: 0.1 + 0.2 }); assert.strictEqual(S.grainOf(h), 0.1 + 0.2, 'one crop: its number');
   S.take(c, h, 'grain', 0.1, 'meal'); assert.strictEqual(h.grain.barley, 0.1 + 0.2 - 0.1, 'one crop: the same subtraction as ever');
   S.takeSpare(c, h, 0.05, 'meal'); assert.strictEqual(h.grain.barley, 0.1 + 0.2 - 0.1 - 0.05, 'and from its spare grain');
   assert.throws(() => S.put(c, h, 'grain', 1, 'gift'), /by its crops/, 'grain is put by its crops');
   assert.throws(() => S.put(c, h, 'grain', 1, 'gift', { barley: 2 }), /by its crops/, 'the crops sum to what is put');
   assert.throws(() => S.start(c, h, 5), /by crop/, 'a start names its crops');
-  assert.throws(() => S.start(c, h, { wheat: 5 }), /by crop/, 'only crops of the table');
+  assert.throws(() => S.start(c, h, { millet: 5 }), /by crop/, 'only crops of the table');
   assert.throws(() => S.reserve(c, h, VB['sim/plans'].planOf(c, 'household', h.id), 'grain', 1, 'seed'), /by its crop/, 'a reservation names its crop');
   assert(h.ledger.every((e) => e.good !== 'grain/barley'), 'the ledger counts grain whatever its crop');
 }

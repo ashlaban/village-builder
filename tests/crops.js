@@ -99,3 +99,25 @@ console.log('crops ok: seed shortage, weeding cadence, frost delivery boundary a
   assert(/Frost took the barley at .*, ripe and not yet reaped\./.test(lines[0].text), lines[0].text);
   assert(g.fields.every((x) => x.stage === 'stubble'));
 }
+
+// Each spring grain makes the trip from its own seed through field and barn back into its own store.
+for (const crop of ['wheat', 'oats']) {
+  const run = tinyState(w, [{ at: [8, 8], farms: 1 }], { seed: 7 });
+  const farm = run.farmsteads[0], field = farm.fields[0], owner = run.households[farm.household];
+  const job = { farm, field, crop }, hand = { id: -1, load: 0 };
+  Object.assign(field, { crop, rotation: crop, step: 1 });
+  owner.grain = { [crop]: CROPS[crop].seed };
+  KINDS.plow.done(run, job);
+  KINDS.sow.done(run, job, owner, cal(0));
+  assert.equal(Sim.grainOf(owner), 0);
+  for (let day = 1; day < 40 && field.stage !== 'ripe'; day++) {
+    setClock(run, day * DAY);
+    fieldsDay(run, cal(run.t));
+  }
+  assert.equal(field.stage, 'ripe', crop);
+  KINDS.reap.done(run, job, owner, cal(run.t));
+  KINDS.haul.load(run, hand, job, 1e9);
+  KINDS.haul.deliver(run, job, owner, farm, hand);
+  VB['sim/stores'].thresh(run, owner);
+  assert(Sim.grainOf(owner, crop) > 0, crop);
+}

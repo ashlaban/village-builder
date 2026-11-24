@@ -403,7 +403,14 @@ VB['sim/saves'] = (() => {
     VB['sim/thirst'].loaded(st); // VB-1585: a save from before a pawn's own thirst loads as having drunk
     VB['sim/stores'].heapsLoaded(st); // VB-733: an older save's heap of no rock, and its quern's `rock`
     VB['sim/quern'].quernsLoaded(st);
+    const R = VB['sim/rng']; // a save from before a system's stream (VB-761's `making`): its stream from the seed and its name, as at seeding
+    for (const k of R.SYSTEMS) if (!st.rng[k]) st.rng[k] = R.makeStream(data.seed, k);
     grownCustoms(st); // a save from before the last custom (VB-555)
+    for (const p of st.pawns)
+      if (p.cropBias) {
+        p.cropBias.wheat ??= 1;
+        p.cropBias.oats ??= 1;
+      }
     for (const p of st.pawns) if (p.att) VB['sim/attitudes'].compileLeans(p); // VB-520: compiled from the attitude, as it was saved or made
     VB['sim/agents'].loaded(st); // VB-472: the step's agents have begun; older saves' work is reckoned from now
     return st;

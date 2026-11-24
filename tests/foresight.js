@@ -65,7 +65,7 @@ assert.strictEqual(R.tierOf(GOOD), 'good');
   setClock(s.st, at(3, 0));
   const choice = R.rotationChoice(s.st, s.f, s.hh, c, s.head());
   const bias = s.st.pawns[s.hh.holder].cropBias;
-  assert(bias && Object.keys(bias).join() === 'barley,rye,peas', 'its bias on each crop drawn at its first weighing');
+  assert(bias && Object.keys(bias).join() === 'barley,rye,peas,wheat,oats', 'its bias on each crop drawn at its first weighing');
   assert(Object.values(bias).every((x) => Math.abs(x - 1) <= R.SOWING.bias * (1 - GOOD) + 1e-9), 'within bias × (1 − skill)');
   const kept = JSON.stringify(bias);
   R.rotationChoice(s.st, s.f, s.hh, c, s.head());

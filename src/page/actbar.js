@@ -140,6 +140,15 @@ function menuHTML(id, opps) {
         Sim.thirstLine(st, id) || 'At the nearest fresh water you may draw at',
         drink.why,
       );
+    // its own time (VB-1552): the pastimes open to it, by the verb `pastime`
+    for (const o of by.self.filter((x) => x.verb === 'pastime'))
+      h += actRow(
+        cmdAttrs(o),
+        o.target === 'fire' ? 'home' : o.target === 'green' ? 'green' : 'walk',
+        o.pastime.name,
+        o.pastime.note,
+        o.why,
+      );
     // the ale evenings and rites called within reach (VB-522)
     for (const o of by.self.filter((x) => x.verb === 'attend')) {
       const ale = o.occasion.kind === 'ale';

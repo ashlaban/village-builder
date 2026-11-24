@@ -57,7 +57,7 @@ const adults = (st, hh) => hh.members.filter((id) => st.pawns[id].alive && age(s
   }
   const worked = lent.map(([, e]) => e[2]);
   assert.ok(worked.every((h, i) => h > 0 && h <= lent[i][1][1] + 0.11), `each hand worked its hours and no more (${worked}, of ${lent.map(([, e]) => e[1])})`);
-  assert.ok(lent.every(([id]) => !(st.agents[id].job && st.agents[id].job.owner.id === B.id && st.agents[id].phase === 'work')), 'and left the hoeing when they were given');
+  assert.ok(lent.every(([id]) => !(st.agents[id].job && st.agents[id].job.owner.id === B.id) && !j.claims.includes(id)), 'and let the hoeing go when they were given (VB-1565)');
   assert.ok(fd.stage !== 'stubble' || j.done > 0, 'the hoeing went on');
   const after = helpers.map((h) => [tieOf(st, h, holder), opinionOf(st, h, holder), opinionOf(st, holder, h)]);
   helpers.forEach((h, k) => {
@@ -81,6 +81,30 @@ const adults = (st, hh) => hh.members.filter((id) => st.pawns[id].alive && age(s
   assert.ok(!Sim.villageLog(st, 1000).some((r) => r.ev.kind === 'helped'), 'help writes no line of the village log');
   assert.ok(Sim.grainOf(A) <= grainA && Sim.grainOf(B) <= grainB, 'nothing moved between the stores with the help');
   console.log(`  ${helpers.length} hands lent to ${fB.name}, worked ${worked.map((h) => h.toFixed(1)).join(' and ')} h; tie ${before[0][0].toFixed(2)} -> ${after[0][0].toFixed(2)}`);
+}
+
+// ---- the day's end (VB-1565): a hand lent for more hours than the day has left is let go of the task when work ends, and walks home
+// holding no claim on it, so no work is credited to a hand not there ----
+{
+  const { st, A, B, j, dropAll } = make();
+  const { WORK, DAY } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
+  Sim.advance(st, WORK[1] - 2 - (st.t % DAY)); // two hours of work left
+  assert.strictEqual(ask(st, B.holder, A.holder, { hands: 1, hours: 4 }), true, 'the ask is made');
+  const [id] = Object.keys(st.handsToday.by).map(Number);
+  let seen = false;
+  while (st.t % DAY < WORK[1] + 1) {
+    Sim.advance(st, 0.1);
+    dropAll(`household:${A.id}`);
+    A.waterDay = B.waterDay = Sim.cal(st.t).day;
+    seen = seen || (st.agents[id].job === j && st.agents[id].phase === 'work');
+    const a = st.agents[id];
+    assert.ok(!a.job || ['go', 'work', 'back'].includes(a.phase), `the helper holds job ${a.job && a.job.key} in phase ${a.phase}`);
+  }
+  assert.ok(seen, 'the helper worked the hoeing before the day ended');
+  assert.ok(st.agents[id].job !== j && !j.claims.includes(id), `the helper let the hoeing go at the day's end (phase ${st.agents[id].phase})`);
+  const bad = checkState(st).filter((m) => /holds job/.test(m));
+  assert.deepStrictEqual(bad, [], 'no agent holds a task while going home');
+  console.log(`  a helper lent at ${WORK[1] - 2}:00 for 4 hours let the hoeing go at the day's end`);
 }
 
 // ---- the answers: no one to spare, a head who dislikes the asker, the played head ----

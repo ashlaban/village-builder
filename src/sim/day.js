@@ -16,6 +16,19 @@ VB['sim/day'] = (() => {
   const { planOf } = VB['sim/plans'];
   const Estimate = VB['sim/estimate'];
   const { score, bid, matchBar, joined, allotted, workCommand, jobsFor } = VB['sim/fit'];
+  const Workmanship = VB['sim/workmanship'],
+    { GOODS } = VB['sim/goods'];
+  // A kind whose work makes a graded good at a craft (VB-761: the hewing of a quern): the household's most skilled hand at the craft
+  // takes it (sim/workmanship maker). Kinds are fixed at load: worked out once a kind, never saved.
+  const MAKES = new Map();
+  const makesGraded = (kind) => {
+    let m = MAKES.get(kind);
+    if (m === undefined) {
+      const K = KINDS[kind];
+      MAKES.set(kind, (m = !!(K.craft && K.gives && K.gives.some((g) => GOODS.get(g) && GOODS.get(g).graded))));
+    }
+    return m;
+  };
   const none = new Set();
   // Where a bid of score s goes in bids[from..], which is sorted best first: after every bid at least as good.
   function slot(bids, from, s) {
@@ -66,7 +79,16 @@ VB['sim/day'] = (() => {
       VB.count.dayPair += (jobs.length ?? jobs.size) * members.length;
       for (const j of jobs) {
         if (attentionOf(j) === 'full' && hoursLeft(st, j) <= 0) continue; // only its load is on the road
+        // a making of a graded good goes to the most skilled hand at its craft of those who may take it (VB-761)
+        const only = makesGraded(j.kind)
+          ? Workmanship.maker(
+              st,
+              members.filter((p) => eligible(st, j, p)).map((p) => p.id),
+              KINDS[j.kind].craft,
+            )
+          : null;
         for (const p of members) {
+          if (only !== null && p.id !== only) continue;
           if (!eligible(st, j, p)) continue;
           const s = score(st, p, j, c, memo, p.id === hh.holder ? stand : 0);
           if (s !== null && s > 0) pairs.push([s, p.id, j]);

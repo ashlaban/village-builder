@@ -82,7 +82,13 @@ function bear(st, m) {
   return R.childrenOf(st, m).find((c) => st.pawns[c].born > st.t - 2 * DAY);
 }
 // the days until the pregnancy is known, and one more: the asking day reads the entry (sim/asking courtDay)
-const known = (st) => VB.sim.advance(st, (COURT.known + 1) * DAY);
+// a couple named stays fond on the way, whether or not the days bring the two together (VB-1554: the memories alone fade under COURT.end)
+const known = (st, a, b) => {
+  const half = Math.floor((COURT.known + 1) / 2) * DAY;
+  VB.sim.advance(st, half);
+  if (a !== undefined) fond(st, a, b);
+  VB.sim.advance(st, (COURT.known + 1) * DAY - half);
+};
 const kinds = (st) => st.record.map((e) => e.kind);
 
 // The chance: COURT.conceive a year at the peak of the married curve, by the same curve
@@ -104,7 +110,7 @@ assert.ok(courtChance(22) < BIRTH.peak, 'less than a married woman');
   for (const id of [4, 9]) assert.strictEqual(st.pawns[id].pregnantUntil, null, `${id}, unmarried and courting nobody, does not`);
   assert.deepStrictEqual(st.courtDue, [{ woman: 2, man: 8, t: st.t + COURT.known * DAY, until: st.t + (COURT.known + COURT.wait) * DAY }]);
   sound(st, 'a child on the way');
-  known(st);
+  known(st, 8, 2);
   assert.strictEqual(st.courtDue.length, 0, 'the entry is read');
   assert.strictEqual(R.spouseOf(st, 8), 2, 'the offer is answered out of the round: they marry');
   assert.ok(st.pawns[8].ask === null && !st.offers.some((x) => x.basis === 'match'), 'the offer of the round is closed');

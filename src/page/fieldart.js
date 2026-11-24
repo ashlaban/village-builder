@@ -21,6 +21,12 @@ const FIELD_P = {
   // each crop at its stage (VB-355), drawn as the stage `as` in its own colours; barley's are the stages above. Rye stands green in
   // autumn and under snow in winter, bluer than barley as it grows and paler ripe; peas flower white and ripen olive; a fallow course
   // lies in weedy stubble (lea) until it is tilled.
+  'wheat-young': { as: 'young', base: [152, 119, 76], row: [110, 86, 55], hi: [158, 207, 114] },
+  'wheat-growing': { as: 'growing', base: [143, 159, 75], row: [104, 116, 54], hi: [198, 224, 149] },
+  'wheat-ripe': { as: 'ripe', base: [205, 154, 56], row: [149, 112, 40], hi: [255, 231, 158] },
+  'oats-young': { as: 'young', base: [142, 119, 84], row: [103, 86, 61], hi: [158, 207, 114] },
+  'oats-growing': { as: 'growing', base: [116, 155, 129], row: [84, 113, 94], hi: [198, 224, 149] },
+  'oats-ripe': { as: 'ripe', base: [201, 192, 151], row: [146, 140, 110], hi: [249, 241, 208] },
   'rye-young': { as: 'young', base: [146, 172, 92], row: [108, 142, 68], hi: [188, 216, 122] },
   'rye-snow': { as: 'young', base: [236, 240, 244], row: [204, 213, 224], hi: [112, 160, 88] },
   'rye-growing': { as: 'growing', base: [112, 156, 108], row: [78, 122, 84], hi: [166, 198, 146] },
@@ -31,6 +37,55 @@ const FIELD_P = {
   lea: { as: 'stubble', base: [200, 194, 124], row: [140, 156, 82], hi: [164, 190, 104] },
   tilled: { as: 'plowed', base: [128, 90, 64], row: [92, 62, 44], hi: [164, 120, 86] },
 };
+function drawCropPlant(g, crop, stage, x, y, stem, light) {
+  const young = stage === 'young';
+  const height = (crop === 'rye' ? 10 : crop === 'peas' ? 5 : 8) * (young ? 0.55 : 1);
+  const lean = crop === 'barley' ? 2.5 : crop === 'rye' ? 1 : 0;
+  const tip = x + lean,
+    top = y - height;
+  function leaf(dx, dy, width, length, tilt) {
+    g.beginPath();
+    g.ellipse(dx, dy, width, length, tilt, 0, Math.PI * 2);
+    g.fill();
+  }
+  function stroke(ax, ay, bx, by) {
+    g.beginPath();
+    g.moveTo(ax, ay);
+    g.lineTo(bx, by);
+    g.stroke();
+  }
+  g.strokeStyle = stem;
+  g.lineWidth = 1.2;
+  stroke(x, y, tip, top);
+  g.fillStyle = young && crop === 'peas' ? '#89bc77' : light;
+  if (crop === 'peas') {
+    leaf(x - 1.4, y - 1.4, 1.3, 2, -0.9);
+    leaf(x + 1.5, top + 1, 1.3, stage === 'ripe' ? 3 : 1.8, 0.6);
+    if (stage === 'growing') leaf(x - 1, top, 1.6, 1.5, 0);
+  } else if (young) {
+    leaf(tip, top + 1, crop === 'wheat' ? 1.5 : 0.75, 2, lean * 0.2);
+    stroke(x, y, x - (crop === 'oats' ? 3.5 : 1.5), y - 2.8);
+  } else if (crop === 'oats') {
+    for (const side of [-1, 1]) {
+      const end = tip + side * 3.3,
+        drop = top + (side < 0 ? 2 : 3.5);
+      stroke(tip, top, end, drop);
+      leaf(end, drop + 1, 1, 1.8, -side * 0.18);
+    }
+  } else if (crop === 'wheat') {
+    for (let i = 0; i < 4; i++) {
+      const side = i % 2 ? 1 : -1;
+      leaf(tip + side * 0.9, top + i * 0.95, 1, 1.7, side * 0.5);
+    }
+  } else if (crop === 'barley') {
+    leaf(tip, top + 1, 1.25, 2.3, 0.8);
+    g.strokeStyle = light;
+    g.lineWidth = 0.85;
+    for (let i = 0; i < 3; i++) stroke(tip + i - 1, top + 2 - i, tip + i * 1.3, top - 2.5);
+  } else {
+    leaf(tip, top + 1, 0.9, 3.1, 0.12);
+  }
+}
 function fieldCanvas(look, R) {
   const S = 2,
     Wc = Math.ceil(Math.sqrt(3) * R * S) + 2,
@@ -42,6 +97,7 @@ function fieldCanvas(look, R) {
     rr0 = R * S * 0.92,
     stage = FIELD_P[look].as || look,
     r = Noise.mulberry32(stage.length * 977 + 5),
+    crop = look.includes('-') ? look.split('-')[0] : 'barley',
     P = FIELD_P[look];
   const rgb = (a, f = 1) => `rgb(${(a[0] * f) | 0},${(a[1] * f) | 0},${(a[2] * f) | 0})`;
   g.save();
@@ -97,7 +153,7 @@ function fieldCanvas(look, R) {
       g.lineTo(Wc, y - 3.4);
       g.stroke();
     }
-    for (let x = off + 2; x < Wc; x += 7) {
+    for (let x = off + 2; x < Wc; x += stage === 'ripe' || stage === 'growing' ? 10 : 7) {
       if (stage === 'stubble') {
         g.strokeStyle = rgb(P.hi);
         g.lineWidth = 1.3;
@@ -110,34 +166,8 @@ function fieldCanvas(look, R) {
         g.beginPath();
         g.arc(x + 1.5, y - 0.2, 0.9, 0, 7);
         g.fill();
-      } else if (stage === 'young') {
-        g.strokeStyle = rgb(P.hi);
-        g.lineWidth = 1.4;
-        g.beginPath();
-        g.moveTo(x - 1.5, y - 3.4);
-        g.lineTo(x, y);
-        g.lineTo(x + 1.6, y - 3.6);
-        g.stroke();
-      } else if (stage === 'growing') {
-        g.strokeStyle = rgb(P.hi);
-        g.lineWidth = 1.3;
-        g.beginPath();
-        g.moveTo(x - 1.8, y - 3);
-        g.lineTo(x, y + 0.6);
-        g.lineTo(x + 1.8, y - 3);
-        g.stroke();
-        if (P.dot) {
-          // a flower on the row (peas)
-          g.fillStyle = rgb(P.hi);
-          g.beginPath();
-          g.arc(x, y - 3.2, 1.3, 0, 7);
-          g.fill();
-        }
-      } else if (stage === 'ripe') {
-        g.fillStyle = rgb(P.hi);
-        g.beginPath();
-        g.ellipse(x, y - 1.6, 1.4, 2.5, 0.35, 0, 7);
-        g.fill();
+      } else {
+        drawCropPlant(g, crop, stage, x, y + r() * 1.2, rgb(P.row, 0.73), rgb(P.hi));
       }
     }
   }
