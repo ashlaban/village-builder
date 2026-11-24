@@ -35,7 +35,7 @@ const HUD_CHAIN = {
     name: 'Build the farmstead',
     icon: () => actIcon('home'),
     offer: 'Build the farmstead here',
-    done: 'the farmstead placed, its timber carried and its booth raised',
+    done: 'the farmstead placed, its timber carried and its shelter raised',
   },
   fell: {
     name: 'Fell timber',
@@ -54,6 +54,18 @@ const HUD_CHAIN = {
     icon: () => actIcon('build'),
     offer: 'Build',
     done: 'the next building raised until its roof is on',
+  },
+  foundation: {
+    name: 'Lay a stone foundation',
+    icon: () => goodIcon('stone'),
+    offer: 'Build',
+    done: 'stone gathered and the house raised onto it',
+  },
+  outbuilding: {
+    name: 'Build an outbuilding',
+    icon: () => actIcon('build'),
+    offer: 'Build',
+    done: 'the barn or the byre built until it stands',
   },
   harvest: {
     name: 'Bring in the harvest',
@@ -90,7 +102,12 @@ const hudTaskEntry = (A, t) =>
   HUD_CHAIN[t.kind]
     ? (A && (A.plan || []).find((x) => x.kind === t.kind && x.site === t.site)) || null
     : hudEntry(A, t.key);
-const hudTaskIcon = (t) => (HUD_CHAIN[t.kind] ? HUD_CHAIN[t.kind].icon() : actIcon(KIND_ICON[t.kind] || 'hoe'));
+const hudTaskIcon = (t) =>
+  (t.kind === 'outbuilding' || t.kind === 'upgrade') && t.what && LADDER[t.what] // the building's own icon (page/ui2build)
+    ? LADDER[t.what].icon()
+    : HUD_CHAIN[t.kind]
+      ? HUD_CHAIN[t.kind].icon()
+      : actIcon(KIND_ICON[t.kind] || 'hoe');
 const hudEntry = (A, key) =>
   A
     ? (A.plan || []).find((x) => x.key === key) ||

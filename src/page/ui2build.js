@@ -6,18 +6,19 @@ const BUILD_WHAT = {
   farmstead: {
     name: 'Farmstead',
     icon: () => actIcon('home'),
-    line: 'A booth to begin with: a roof for the nights. It can be built up later.',
+    line: 'A shelter to begin with: a roof for the nights. It is built up in place later.',
     here: 'Build the farmstead here',
   },
 };
 const placeG = new PIXI.Graphics(); // the tiles that would take what is being placed
 L.hover.addChild(placeG);
 let placeKey = '';
-// The camp of farm f (farmstead.camp): 'camp' while nothing is placed, 'staked' once its booth is staked beside the house; null for a
-// farm with no camp (its booth raised, or a farm not landed by hand).
+// The camp of farm f (farmstead.camp): 'camp' while nothing is placed, 'staked' once its shelter is staked on the house tile (VB-1638;
+// an older save's booth beside it); null for a farm with no camp (its shelter raised, or a farm not landed by hand).
 function hudCamp(f) {
   if (!f || f.camp !== true) return null;
   const { hexSteps } = VB['sim/hex'];
+  if (f.shelter) return 'staked';
   return Sim.stakedBooths(st).some((t) => hexSteps(w, t, f.house) <= 1) ? 'staked' : 'camp';
 }
 const buildTasked = () => {
@@ -35,15 +36,30 @@ const buildCost = (e) =>
 // ---- the ladder: what stands at the farmstead and what can follow (Sim.farmView, VB-1631), built up by an upgrade task (VB-1632) ----
 const LADDER = {
   camp: { name: 'Camp', icon: () => goodIcon('flour'), line: 'The goods landed, and nothing built.' },
+  shelter: {
+    name: 'Shelter',
+    icon: () => actIcon('home'),
+    line: 'Poles and bark on the house tile: a roof for the nights.',
+  },
   booth: { name: 'Booth', icon: () => actIcon('home'), line: 'Poles and bark: a roof for the nights.' },
-  cottage: { name: 'Cottage', icon: () => actIcon('home'), line: 'Log walls and a turf roof: a house to winter in.' },
-  stone: {
+  cottage: {
+    name: 'Cottage',
+    icon: () => actIcon('home'),
+    line: 'Log walls and a turf roof, in place of the shelter: a house to winter in.',
+  },
+  foundation: {
     name: 'Stone foundation',
     icon: () => goodIcon('stone'),
-    line: 'The cottage raised onto stones: its sills do not rot.',
+    line: 'The house raised onto stones: it wears slower, and a well-kept house on stone gives its holder standing.',
   },
-  barn: { name: 'Barn', icon: () => goodIcon('sheaves'), line: 'A barn for the harvest: less of it lost in store.' },
+  barn: { name: 'Barn', icon: () => goodIcon('sheaves'), line: 'Grain and hay spoil half as fast in it.' },
+  byre: {
+    name: 'Byre',
+    icon: () => goodIcon('beast'),
+    line: 'Houses six animals through the winter; without one, a winter day unfed counts double.',
+  },
 };
+LADDER.stone = LADDER.foundation;
 const ladderOf = (k) => LADDER[k] || { name: siteCap(k), icon: () => actIcon('build'), line: '' };
 const ladderNeeds = (n) =>
   [
@@ -59,43 +75,38 @@ function ladderBuilding(V) {
   if (!b || !b.step) return '';
   return `Building the ${ladderOf(b.what).name.toLowerCase()}: ${hudKind(b.step).toLowerCase()} now, about ${hudSpan(b.hoursLeft)} of work left.`;
 }
-// The card of the upgrade icon, and the build menu under the Farmstead once it stands: what stands, what can follow and what it takes.
+// The card of the upgrade icon, and the build menu under the Farmstead once it stands: what stands, what can follow and what it takes:
+// the next rung of the house, its foundation, the outbuildings (Sim.farmView, VB-1631, VB-1635, VB-1637), each built by a plan task.
 function ladderHTML(f) {
   const V = Sim.farmView(st, f.id);
   if (!V) return '';
-  const row = (k, words, act) => {
-    const L = ladderOf(k);
-    return `<div class="u2-build u2-rung">${L.icon()}<span><b>${esc(L.name)}</b><span>${esc(L.line)}</span>${words}${act}</span></div>`;
-  };
-  let h = `<p class="sub">Stands now: <b>${esc(ladderOf(V.rung).name)}</b>. ${esc(ladderBuilding(V))}</p>`;
-  for (const e of V.next)
-    h += row(
-      e.what,
-      `<small>${esc(siteCap(ladderNeeds(e.needs)))}.</small>`,
-      e.planned
-        ? '<em class="ok">In the plan.</em>'
-        : e.ok
-          ? `<button type="button" class="u2-chip go" data-hud="upgrade" data-what="${esc(e.what)}">Build</button>`
-          : `<em>Not now: ${esc(e.why)}.</em>`,
-    );
-  for (const o of V.outbuildings)
-    h += row(
-      o.what,
-      '',
-      o.built
+  const row = (k, e, kind, built) => {
+    const L = ladderOf(k),
+      b = e.building && e.building.step ? e.building : null,
+      act = built
         ? '<em class="ok">It stands.</em>'
-        : o.ok
-          ? '<em>It cannot be planned yet: its task is still to come.</em>'
-          : `<em>Not now: ${esc(o.why)}.</em>`,
-    );
+        : b
+          ? `<em class="ok">Being built: ${esc(hudKind(b.step).toLowerCase())} now, about ${esc(hudSpan(b.hoursLeft))} of work left.</em>`
+          : e.planned
+            ? '<em class="ok">In the plan.</em>'
+            : e.ok
+              ? `<button type="button" class="u2-chip go" data-hud="upgrade" data-kind="${kind}" data-what="${esc(k)}">Build</button>`
+              : `<em>Not now: ${esc(String(e.why).replace(/\bhousehold \d+/g, 'the household'))}.</em>`,
+      cost = built || !e.needs ? '' : `<small>${esc(siteCap(ladderNeeds(e.needs)))}.</small>`;
+    return `<div class="u2-build u2-rung">${L.icon()}<span><b>${esc(L.name)}</b><span>${esc(L.line)}</span>${cost}${act}</span></div>`;
+  };
+  const stone = V.foundation && V.foundation.grade === 'stone' ? ', on stone' : '';
+  let h = `<p class="sub">Stands now: <b>${esc(ladderOf(V.rung).name)}</b>${stone}. ${esc(ladderBuilding(V))}</p>`;
+  for (const e of V.next) h += row(e.what, e, 'upgrade', false);
+  if (V.foundation) h += row('foundation', V.foundation, 'foundation', V.foundation.grade === 'stone');
+  for (const o of V.outbuildings) h += row(o.what, o, 'outbuilding', o.built);
   return h;
 }
-function ladderAdd(what) {
-  const { f } = hudHouse();
-  hudMsg(
-    Sim.plan(st, 'add', { upgrade: f.house, what }),
-    `Added to the plan: the ${ladderOf(what).name.toLowerCase()}.`,
-  );
+// Build: the next rung (upgrade), the foundation, or an outbuilding, as one task of the plan at the house.
+function ladderAdd(kind, what) {
+  const { f } = hudHouse(),
+    args = kind === 'foundation' ? { foundation: f.house } : { [kind]: f.house, what };
+  hudMsg(Sim.plan(st, 'add', args), `Added to the plan: the ${ladderOf(what).name.toLowerCase()}.`);
 }
 function buildHTML() {
   const M = Sim.buildMenu(st),
