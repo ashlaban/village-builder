@@ -54,6 +54,9 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2-pin.press1 { background: #f3dfa6; } .u2-pin.press2 { background: var(--red); color: #fff7ec; } .u2-pin.work { background: var(--ink2); color: var(--paper); }
 .u2-pin.plan { border-width: 2.5px; }
 .u2-pin s { position: absolute; left: -9px; top: -7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 4px; background: var(--ink2); color: var(--paper); font: 800 11px/18px var(--body); text-align: center; text-decoration: none; }
+.u2-pin.gap { animation: u2pulse 1.6s ease-in-out infinite; }
+@keyframes u2pulse { 50% { box-shadow: 0 0 0 5px rgba(168, 57, 43, 0.35); } }
+@media (prefers-reduced-motion: reduce) { .u2-pin.gap { animation: none; } }
 .u2-pin.next { border-style: dashed; opacity: 0.85; }
 .u2 .far .u2-pin { width: 22px; height: 22px; } .u2 .far .u2-pin svg { width: 15px; height: 15px; } .u2 .far .u2-pin b { display: none; }
 .u2-gauges { pointer-events: none; display: flex; gap: 3px; padding: 3px 5px; margin-top: 30px; border-radius: 8px; border: var(--line); background: var(--glass); box-shadow: 0 1px 3px rgba(15, 22, 19, 0.4); }
@@ -162,6 +165,13 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2 .u2-pc.task { margin: 0 6px 0 7px; }
 .u2-pc b { position: absolute; right: -8px; top: -6px; min-width: 17px; height: 17px; padding: 0 3px; border-radius: 9px; border: 1.5px solid var(--ink2); background: var(--paper); color: var(--ink2); font: 800 11px/14px var(--body); text-align: center; }
 .u2-pc s { position: absolute; left: -8px; top: -6px; min-width: 17px; height: 17px; padding: 0 3px; border-radius: 4px; background: var(--ink2); color: var(--paper); font: 800 11px/17px var(--body); text-align: center; text-decoration: none; }
+.u2 .u2-pc.queue { background: #d98f6a; } .u2-pc.queue s { background: var(--red); }
+.u2-legend { font-size: 13px; color: var(--soft); }
+.u2-stat { display: grid; grid-template-columns: 96px 1fr 96px; gap: 8px; align-items: center; margin: 4px 0; }
+.u2-stat span { display: flex; gap: 5px; align-items: center; font-weight: 700; } .u2-stat svg { width: 18px; height: 18px; }
+.u2-stat i { height: 10px; border-radius: 5px; border: 1.5px solid var(--ink2); background: var(--paper2); overflow: hidden; }
+.u2-stat u { display: block; height: 100%; background: var(--pine); } .u2-stat u.short { background: var(--gold2); } .u2-stat u.bad { background: var(--red); }
+.u2-stat b small { font-weight: 400; }
 .u2-pdiv { flex: none; width: 1.5px; height: 26px; background: var(--ink2); opacity: 0.35; margin: 0 2px; }
 .u2-pcard { width: min(360px, calc(100vw - 16px)); padding: 8px 10px 10px; display: grid; gap: 6px; opacity: 0.999; }
 .u2-pcard h2 { margin: 0; font: 800 19px/1.1 var(--head); } .u2-pcard p { margin: 0; } .u2-pcard .sub { color: var(--soft); font-size: 14px; }
