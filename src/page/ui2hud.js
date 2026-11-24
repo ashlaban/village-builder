@@ -314,8 +314,8 @@ function renderPlan() {
     .join('');
   h += chip(
     'sleep',
-    `sleep${P.sleep ? '' : ' off'}${owed >= 8 ? ' press2' : owed >= 4 ? ' press1' : ''}${now.what === 'sleep' ? ' on' : ''}`,
-    hudPin(actIcon('idle'), owed >= 1 ? owed : ''),
+    `sleep${P.sleep ? '' : ' off'}${owed >= 16 ? ' press2' : owed >= 8 ? ' press1' : ''}${now.what === 'sleep' ? ' on' : ''}`,
+    hudPin(actIcon('idle'), owed >= 8 ? owed : ''), // an ordinary evening owes 6: the number shows once a night is owed
     'Sleep',
   );
   h += '<i class="u2-pdiv"></i>';
@@ -367,6 +367,9 @@ function planCard(P, A, S) {
           (S.mood ? `: mood ${S.mood}` : '') +
           (S.health ? ', and health suffers' : '') +
           '.';
+    const night = (st.player.days || []).slice(-1)[0],
+      rough = night ? (night.why.cold || 0) + (night.why.damp || 0) : 0;
+    if (rough >= 0.25) sub += ' The last night was cold and damp, and took of its health: a roof would mend that.';
     sub += P.sleep
       ? ' Work in the plan stops for the night and is taken up in the morning.'
       : ' The plan’s work goes on through the night.';
@@ -534,7 +537,7 @@ function hudMarks(id, hh, f) {
     V = Sim.headView(st, hh.id),
     open = VB['sim/projects'].openOf(st, hh.id),
     site = open && Number.isInteger(open.place) ? open.place : -1,
-    plan = st.player.queue.map((q) => q.target).join(),
+    plan = st.player.queue.map((q) => q.target).join() + JSON.stringify((hudPlanned() || {}).tasks || 0),
     key = [
       Math.floor(st.t),
       hud.at,
@@ -567,16 +570,23 @@ function hudMarks(id, hh, f) {
   // a tile shows one pin, the plan's before the field's
   const A = Sim.agenda(st),
     planned = new Map();
-  if (A)
-    A.queue.forEach((e, k) => {
-      if (e.site < 0 || !e.kind || planned.has(e.site) || e.site === hud.at) return;
-      planned.set(e.site, {
-        id: `q${e.site}`,
-        tile: e.site,
-        cls: `u2-pin plan press${HUD_VERDICT[hudVerdict(e)] || 0}`,
-        html: `<s>${k + 1}</s>${hudPin(actIcon(KIND_ICON[e.kind] || 'hoe'), Number.isFinite(e.ends) ? hudDaysTo(e.ends) : '')}`,
-      });
+  const P = hudPlanned(),
+    list =
+      P && P.tasks.length
+        ? P.tasks.map((t) => ({ ...t, e: hudEntry(A, t.key) }))
+        : A
+          ? A.queue.map((e) => ({ ...e, e }))
+          : [];
+  list.forEach((t, k) => {
+    if (t.site < 0 || !t.kind || planned.has(t.site) || t.site === hud.at) return;
+    const days = t.e && Number.isFinite(t.e.ends) ? hudDaysTo(t.e.ends) : '';
+    planned.set(t.site, {
+      id: `q${t.site}`,
+      tile: t.site,
+      cls: `u2-pin plan press${(t.e && HUD_VERDICT[hudVerdict(t.e)]) || 0}`,
+      html: `<s>${k + 1}</s>${hudPin(actIcon(KIND_ICON[t.kind] || 'hoe'), days)}`,
     });
+  });
   for (let k = marks.length - 1; k >= 0; k--) if (planned.has(marks[k].tile)) marks.splice(k, 1);
   marks.push(...planned.values());
   if (O && f.house !== hud.at)
