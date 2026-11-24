@@ -39,7 +39,8 @@ VB['sim/house'] = (() => {
     ((onStone(f) ? HOUSE.termStone : HOUSE.term) + (houseTarred(st, f) ? HOUSE.termTarred - HOUSE.term : 0)) *
     houseCondition(st, f);
   // @tunable ROOM: the room of the main building (VB-1636; Kim, 24 Nov 2026: "If a household is over housing capacity tenants will
-  //   receive a mood malus"), read by sim/ladder's RUNGS beside the rungs: the people each rung sleeps without crowding, a shelter's
+  //   receive a mood malus", and "every one should be affected by crowding": every member of a crowded household, sim/mood), read by
+  //   sim/ladder's RUNGS beside the rungs: the people each rung sleeps without crowding, a shelter's
   //   BOOTH.sleeps, a cottage's `cottage` (6: a founders household, two to five, fits it; seed 7 small, 10 years), a timber house's
   //   `timber`; and `timberFire`, the day's firewood of a timber house over a cottage's (sim/hunger warmHouse). Starting values.
   const ROOM = { cottage: 6, timber: 10, timberFire: 0.8 };

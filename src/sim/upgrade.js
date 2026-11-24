@@ -105,12 +105,14 @@ VB['sim/upgrade'] = (() => {
   }
   // The timber house (VB-1636; one rule for every household, Kim): a head not held off projects whose household is crowded in its cottage
   // (sim/house crowded: more members than ROOM.cottage) begins its timber house (the making `timberhouse`, by the verb `project`, as the
-  // plan's task does) in the slack of the year (inSlack, as the stone foundation is raised), with BUILD.timberHouse.hands working hands
-  // or more, and never while another of its large projects or its stone foundation is under way (timberWhy). The crowding read first:
-  // one comparison a household an hour.
+  // plan's task does) in winter, when the fields and the hay are in (not the summer's slack: the haymaking's hands), with
+  // BUILD.timberHouse.hands working hands or more, and the making's check (timberWhy). The head's own choice, not the check's: it
+  // waits while another of its large projects is under way (Projects.ownOf); a played head's plan does not (the check has no such
+  // refusal). The crowding read first: one comparison a household an hour.
   function ownTimber(st, hh) {
-    if (hh.holder === null || !crowded(st, hh) || Projects.heldOff(st, hh.id) || !inSlack(cal(st.t))) return;
-    if (hands(st, hh) < BUILD.timberHouse.hands || timberWhy(st, hh) !== null) return;
+    if (hh.holder === null || !crowded(st, hh) || Projects.heldOff(st, hh.id) || cal(st.t).season !== 3) return;
+    if (hands(st, hh) < BUILD.timberHouse.hands || Projects.ownOf(st, hh.id)) return;
+    if (timberWhy(st, hh) !== null) return;
     issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'timberhouse' }, source: 'pawn' });
   }
   // ---- the chain: upgrade (CHAINS.upgrade) ----
@@ -119,7 +121,7 @@ VB['sim/upgrade'] = (() => {
   // at the house, the walls' timber trips before the walls while they lack it (their jobs stand at the wood: found by their keys); it
   // leaves when the roof is on ('roof'), or when the household or its house is gone ('gone'). The timber house (what 'timber', VB-1636):
   // its act begins the making `timberhouse` by the head's verb `project`, as an outbuilding task's does, then its stages as theirs, the
-  // timber at home first (outTimber); it leaves when its roof is on.
+  // timber at home first (outTimber); it leaves when it is finished.
   const trips = (lack) => Math.max(1, Math.ceil(lack / ECON.woodPerTrip - 1e-9));
   const upgrade = {
     noun: 'upgrade',

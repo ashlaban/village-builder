@@ -8,7 +8,7 @@ VB['sim/timberhouse'] = (() => {
   const { declare } = VB['sim/makings'];
   const { log, fullName, atFarm } = VB['sim/records'];
   // @state farmstead.rung (VB-1636): the rung the farm's main building stands at where it cannot be derived from the farm's state
-  //   (sim/ladder rungOf derives a camp, a shelter and a cottage): absent or null below the timber house, 'timber' once its roof is on. A
+  //   (sim/ladder rungOf derives a camp, a shelter and a cottage): absent or null below the timber house, 'timber' once it is finished. A
   //   save from before reads as the rung derived. It goes with the farm and its house; written only here.
   const STAGES = ['timberframe', 'timberroof'];
   // The steps of a timber house's project plan at house tile `house`: the frame with the timber it waits for, then the roof.
@@ -19,29 +19,23 @@ VB['sim/timberhouse'] = (() => {
       hours: BUILD.timberHouse.hours[i],
       ...(kind === 'timberframe' ? { wood: 0, timber: BUILD.timberHouse.timber } : {}),
     }));
-  // Why household hh may not begin its timber house now, or null: a farm of its own standing at a cottage (built, not a shelter; no timber
-  // house yet), a village wood to fell its timber in, no project under way (a large project, as the byre and the barn are) and no stone
-  // foundation being laid (the household's building step, sim/building, open under a house on the ground; a played head holding off
-  // projects lays none but by its plan, which decides between them: sim/ladder's stoneUnderWay).
+  // Why household hh may not begin its timber house now, or null: a farm of its own standing at a cottage (finished, not a shelter; no
+  // timber house yet) and a village wood to fell its timber in. No refusal for another project under way (the limit of one large project
+  // at a time is being taken out of every check).
   function timberWhy(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
     if (f.booth) return `${f.name} has no cottage yet`;
     if (f.rung === 'timber') return `${f.name} has a timber house`;
     if (!st.villages[f.village].wood.length) return `${st.villages[f.village].name} has no wood to fell its timber in`;
-    const p = Projects.ownOf(st, hh.id);
-    if (p) return `household ${hh.id} has a ${p.what} under way`;
-    const plan = st.plans && st.plans.households.get(hh.id);
-    return plan && plan.build && f.grade === 'ground' && !Projects.heldOff(st, hh.id)
-      ? `household ${hh.id} has a stone foundation under way`
-      : null;
+    return null;
   }
   declare('timberhouse', {
     why: (st, hh) => timberWhy(st, hh),
     begin: (st, hh, f) => ({ steps: timberSteps(f.house) }),
   });
-  // A stage done: the next opens (sim/plans); with the roof on, the farm's main building is a timber house. The holder is the farm's
-  // household (j.owner).
+  // A stage done: the next opens (sim/plans); with its last stage done, the house is finished: the farm's main building is a timber
+  // house. The holder is the farm's household (j.owner).
   function built(st, j) {
     if (j.kind !== 'timberroof') return;
     const f = j.farm,
@@ -49,7 +43,7 @@ VB['sim/timberhouse'] = (() => {
     f.rung = 'timber';
     st.biomeDirty.add(f.house);
     st.farmDirty.add(f.id);
-    log(st, `The timber house at ${f.name} has its roof; ${fullName(st.pawns[hh.holder])} and the household move in.`, {
+    log(st, `The timber house at ${f.name} is finished; ${fullName(st.pawns[hh.holder])} and the household move in.`, {
       kind: 'cottage',
       pawn: hh.holder,
       ...atFarm(f),

@@ -1,8 +1,8 @@
 // VB-1636: the timber house, the rung above the cottage (sim/timberhouse), and the room of each rung (sim/house ROOM). A household over
-// its rung's room is crowded, and its tenants (servants and members outside the head's own line) carry the mood modifier `crowded`, its
-// family not; a timber house's hearth burns ROOM.timberFire of a cottage's; the played head builds it as a task of its plan (the chain
+// its rung's room is crowded, and every one of its members carries the mood modifier `crowded` (Kim, 24 Nov 2026: "every one should be
+// affected by crowding"); a timber house's hearth burns ROOM.timberFire of a cottage's; the played head builds it as a task of its plan (the chain
 // upgrade, what 'timber'), the timber at home first, a save and a load mid-chain going on the same; Sim.farmView offers it on a cottage;
-// a crowded head left to its rule builds one by itself in the slack of the year; an older save reads as the rung derived. On a tiny
+// a crowded head left to its rule builds one by itself in winter; an older save reads as the rung derived. On a tiny
 // village of three farms.
 const assert = require('assert');
 const VB = require('../src/load.js'),
@@ -39,7 +39,7 @@ function crowd(st, to, n) {
   VB['sim/heirs'].refreshRoles(st);
 }
 
-// ---- 1. the rungs' room; a crowded house weighs on its tenants, not on the head's family ----
+// ---- 1. the rungs' room; a crowded house weighs on everyone in it ----
 {
   assert.deepStrictEqual(RUNGS.timber.needs, { timber: BUILD.timberHouse.timber, stone: 0, hours: 150 });
   assert.strictEqual(RUNGS.timber.from, 'cottage');
@@ -53,17 +53,10 @@ function crowd(st, to, n) {
     f = st.farmsteads[hh.farmstead];
   assert.strictEqual(roomOf(f), ROOM.cottage);
   assert(!crowded(st, hh), 'a founders household fits its cottage');
-  const family = [...hh.members];
   crowd(st, hh, ROOM.cottage + 1);
   assert(crowded(st, hh), `crowded: ${hh.members.length} in a cottage of ${ROOM.cottage}`);
-  const tenants = hh.members.filter((m) => !family.includes(m));
-  assert(tenants.length > 0);
-  for (const m of tenants) assert(mods(st, m).includes('crowded'), `tenant ${m} feels the crowding`);
-  for (const m of family) assert(!mods(st, m).includes('crowded'), `the head's family (${m}) does not`);
-  const child = family.find((m) => st.pawns[m].father === hh.holder || st.pawns[m].mother === hh.holder);
-  R.setServant(st, child, true);
-  assert(mods(st, child).includes('crowded'), 'a servant is a tenant, kin or not');
-  R.setServant(st, child, false);
+  for (const m of hh.members) assert(mods(st, m).includes('crowded'), `${m} feels the crowding, the head's family as well`);
+  const tenants = hh.members;
   const mood = Mood.level(st, tenants[0]);
   f.rung = 'timber'; // a test's write: the house built up
   assert.strictEqual(rungOf(st, f), 'timber');
@@ -132,9 +125,9 @@ function crowd(st, to, n) {
   assert.deepStrictEqual(w.next, [], 'nothing above the timber house yet');
   assert.match(String(Sim.plan(st, 'add', { upgrade: f.house, what: 'timber' })), /built from a cottage/);
   sound(back, 'loaded mid-chain');
-  console.log(`  by the plan: the roof on at day ${(st.t / DAY).toFixed(1)}`);
+  console.log(`  by the plan: finished on day ${(st.t / DAY).toFixed(1)}`);
 }
-// ---- 3. a crowded head left to its rule builds one by itself, in the slack; one not crowded does not ----
+// ---- 3. a crowded head left to its rule builds one by itself, in winter; one not crowded does not ----
 {
   const st = fresh();
   const hh = st.households[0],
@@ -146,7 +139,7 @@ function crowd(st, to, n) {
     if (begun === null && projectsOf(st, 'household', hh.id).some((p) => p.what === 'timberhouse')) {
       begun = st.t;
       const c = Sim.cal(st.t);
-      assert((c.season === 1 && c.sday < 6) || c.season === 3, `begun in the slack: ${JSON.stringify(c)}`);
+      assert.strictEqual(c.season, 3, `begun in winter: ${JSON.stringify(c)}`);
     }
   }
   assert(begun !== null, 'the crowded head began a timber house by itself');
@@ -155,7 +148,7 @@ function crowd(st, to, n) {
     if (g !== hh && !g.dissolved && !crowded(st, g))
       assert(st.farmsteads[g.farmstead].rung !== 'timber', 'none where the house is not crowded');
   sound(st, 'own rule');
-  console.log(`  own rule: begun on day ${(begun / DAY).toFixed(1)}, the roof on by day ${(st.t / DAY).toFixed(1)}`);
+  console.log(`  own rule: begun on day ${(begun / DAY).toFixed(1)}, finished by day ${(st.t / DAY).toFixed(1)}`);
 }
-console.log('timberhouse: the rungs\' room, a crowded house weighs on its tenants alone, the smaller fire, an older save; by the plan, the '
-  + 'timber at home first, a save mid-chain the same; by a crowded head\'s own rule, in the slack');
+console.log('timberhouse: the rungs\' room, a crowded house weighs on everyone in it, the smaller fire, an older save; by the plan, the '
+  + 'timber at home first, a save mid-chain the same; by a crowded head\'s own rule, in winter');
