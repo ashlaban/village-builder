@@ -13,6 +13,10 @@ The prompt of each Claude-scheduled task, with its role and file:
 > You are the <role> of the village builder, the GitHub repository `ashlaban/village-builder`, running unattended: nobody will
 > answer questions. Clone the repository, then read `docs/agents/<file>` on `main` and follow it.
 
+In a session, `/night [N] [--size S|M|L] [--parallel P]` (`.claude/skills/night/SKILL.md`) runs the worker by hand, with three changes:
+each task is reviewed by a `vb-reviewer` sub-agent (one fix round), merged into main through a PR of its own, and the night ends in a
+merged wrap-up PR with the bench, the usage and "For Kim"; past 150 calls it hands the night to a fresh session.
+
 The worker orchestrates: it takes the ready tasks in order and hands each to a `vb-task` sub-agent with a fresh context (Sonnet for
 size S, Opus for M and L, the strongest model offered for a plan), three or four side by side, each in a worktree of its own, keeping only the result, so the cost of a
 night grows with its tasks and not with their square (`docs/review-agent-workflow.md`, sections 7 and 8). The sub-agents share nothing
