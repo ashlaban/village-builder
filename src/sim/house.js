@@ -1,7 +1,8 @@
 // @sys sim/house: a well-kept house (VB-306; VB-419, from sim/rules): a house's condition and how it wears, tar and a stone house,
-// and the standing its term gives
+// and the standing its term gives; the room each rung of the main building has, a household over it crowded, and a timber house's
+// smaller fire (VB-1636)
 VB['sim/house'] = (() => {
-  const { YEAR } = VB['sim/rules'];
+  const { YEAR, BOOTH } = VB['sim/rules'];
   // @tunable HOUSE: a well-kept house (VB-306; design.md, Goods of place and side crafts: A well-kept house)
   // A farmstead's condition 0..1 (f.condition) is the value at f.condAt (game hours; 0 when never set) for an occupied house, and it wears
   // by closed form from then (rule 3: no daily pass), 0.1 a year, 0.067 while tarred (f.tarredUntil, game hours: a barrel lasts 6 years;
@@ -37,5 +38,20 @@ VB['sim/house'] = (() => {
   const houseTerm = (st, f) =>
     ((onStone(f) ? HOUSE.termStone : HOUSE.term) + (houseTarred(st, f) ? HOUSE.termTarred - HOUSE.term : 0)) *
     houseCondition(st, f);
-  return { HOUSE, houseTarred, houseCondition, houseTerm };
+  // @tunable ROOM: the room of the main building (VB-1636; Kim, 24 Nov 2026: "If a household is over housing capacity tenants will
+  //   receive a mood malus", and "every one should be affected by crowding": every member of a crowded household, sim/mood), read by
+  //   sim/ladder's RUNGS beside the rungs: the people each rung sleeps without crowding, a shelter's
+  //   BOOTH.sleeps, a cottage's `cottage` (6: a founders household, two to five, fits it; seed 7 small, 10 years), a timber house's
+  //   `timber`; and `timberFire`, the day's firewood of a timber house over a cottage's (sim/hunger warmHouse). Starting values.
+  const ROOM = { cottage: 6, timber: 10, timberFire: 0.8 };
+  // The people farm f's main building sleeps without crowding: none counted in a camp (no house to crowd: the open sky's cold is its
+  // cost), a shelter's BOOTH.sleeps, else its rung's (f.rung, sim/timberhouse: the timber house; absent, a cottage).
+  const roomOf = (f) => (f.camp === true ? Infinity : f.booth ? BOOTH.sleeps : ROOM[f.rung || 'cottage']);
+  // Whether household hh is crowded: more members than the room of its farm's main building. One comparison; allocates nothing.
+  const crowded = (st, hh) =>
+    !hh.dissolved && hh.farmstead !== null && hh.members.length > roomOf(st.farmsteads[hh.farmstead]);
+  // The day's firewood of household hh's hearth over a cottage's: ROOM.timberFire in a timber house, else 1.
+  const fireOf = (st, hh) =>
+    hh.farmstead !== null && st.farmsteads[hh.farmstead].rung === 'timber' ? ROOM.timberFire : 1;
+  return { HOUSE, ROOM, houseTarred, houseCondition, houseTerm, roomOf, crowded, fireOf };
 })();

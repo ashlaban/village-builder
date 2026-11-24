@@ -101,6 +101,7 @@
       "sim/wells",
       "sim/building",
       "sim/byrehouse",
+      "sim/timberhouse",
       "sim/camp",
       "sim/trails",
       "sim/drying",

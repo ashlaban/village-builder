@@ -19,7 +19,7 @@ const v0 = (st, f) => Sim.farmView(st, f.id);
 // ---- 1. the tables: each rung built from one before it, the numbers the rules' own ----
 assert.deepStrictEqual(
   Object.keys(RUNGS).map((k) => RUNGS[k].from),
-  [null, 'camp', 'shelter'],
+  [null, 'camp', 'shelter', 'cottage'],
 );
 assert.deepStrictEqual(RUNGS.shelter.needs, { timber: BOOTH.wood, stone: 0, hours: BOOTH.hours });
 assert.deepStrictEqual(RUNGS.cottage.needs, { timber: BUILD.timber, stone: 0, hours: 120 });
@@ -42,7 +42,7 @@ function expected(st, f) {
     B.stakedEach(st, (p) => (staked = staked || (st.pawns[p.holder.id].household === f.household && near(p.tile))));
     return staked ? 'camp' : 'shelter';
   }
-  return 'cottage';
+  return f.rung || 'cottage'; // the timber house stored (VB-1636)
 }
 function sweep(st, tag, seen) {
   const before = hash(st);

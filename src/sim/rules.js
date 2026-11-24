@@ -602,6 +602,10 @@ VB['sim/rules'] = (() => {
     // a byre (VB-1637; Kim, 24 Nov 2026: "a byre of about 20 timber loads and 60 hours houses six"): its walls take `timber` loads felled
     // in the village's wood; `hours` its walls' and its roof's (sim/byrehouse); it houses HERD.byre places
     byre: Object.freeze({ timber: 20, hours: Object.freeze([40, 20]) }),
+    // the timber house (VB-1636), built up from a cottage (sim/timberhouse): its frame takes `timber` loads felled in the village's wood;
+    // `hours` its frame's and its roof's, about 150 in all; its room and its smaller fire are sim/house's ROOM; a head left to its own rule
+    // begins one only with `hands` working hands or more (sim/upgrade ownTimber)
+    timberHouse: Object.freeze({ timber: 30, hours: Object.freeze([100, 50]), hands: 3 }),
   };
   // The village's office (VB-314; design.md, The alderman): standing gained while in office, and what the election weighs: a candidate's
   // standing (`standing` the weight of one point of it) against a voice's opinion of him (opinions run -1 to 1).

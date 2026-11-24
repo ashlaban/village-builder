@@ -1079,6 +1079,9 @@ function checkState(st) {
     // VB-1637: the farm's byre, one at most, built at a time not after now; none on a camp
     if (f.byre !== undefined && f.byre !== null && !(Object.keys(f.byre).join() === 'built' && f.byre.built <= st.t && f.camp !== true))
       bad.push(`farmsteads[${f.id}]: byre ${JSON.stringify(f.byre)}`);
+    // VB-1636: the rung stored where it cannot be derived, the timber house, on a farm with its cottage built (no booth)
+    if (f.rung !== undefined && f.rung !== null && !(f.rung === 'timber' && !f.booth))
+      bad.push(`farmsteads[${f.id}]: rung ${JSON.stringify(f.rung)} with booth ${JSON.stringify(f.booth)}`);
     // the house's condition (VB-306): 0..1 as last set, at a time not after now, and its tar not further than a barrel's years ahead
     if (f.condition !== undefined && !(f.condition >= 0 && f.condition <= 1)) bad.push(`farmsteads[${f.id}]: condition ${f.condition}`);
     if (f.condAt !== undefined && !(f.condAt <= st.t)) bad.push(`farmsteads[${f.id}]: condAt ${f.condAt} is in the future`);

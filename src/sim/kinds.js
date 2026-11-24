@@ -124,6 +124,7 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/textile'].KINDS); // spinning, weaving and the loom (VB-362): sim/textile's
   KINDS.firewood = Chores.KINDS.firewood; // timber cut into firewood at the house (VB-1625): sim/chores'
   Object.assign(KINDS, VB['sim/byrehouse'].KINDS); // the byre's walls and roof (VB-1637): sim/byrehouse's
+  Object.assign(KINDS, VB['sim/timberhouse'].KINDS); // the timber house's frame and roof (VB-1636): sim/timberhouse's
   // ---- where a kind is worked, what it takes and what it gives (VB-1124): each kind's record declares `at` (the places of PLACES where its
   // work is done), `needs` (the things of THINGS it takes or must find there: a good used up, a tool or a facility) and `gives` (the
   // things it makes or brings home), beside its rule, as its name and hours are. The game's guide (page/guide) reads them, and a kind
