@@ -37,7 +37,7 @@ first edit); and the share of tasks done at the first attempt.
 ## Chains
 
 `/chain SIZE [N]` (`.claude/skills/chain/SKILL.md`) runs N ready tasks of one size (default 8) one after another. Its session is a
-coordinator on Sonnet (started on another model, it hands the chain to a Sonnet session first): it starts each task as a session of its own, `/task VB-NNN` (`.claude/skills/task/SKILL.md`), on the
+coordinator, on the model its session was started on: it starts each task as a session of its own, `/task VB-NNN` (`.claude/skills/task/SKILL.md`), on the
 task's model, and merges the PR that session opens; `tools/chain.js` decides the task, the model (Sonnet for S, Opus for M and L,
 the strongest offered for a plan), the title and when to stop (N reached, no such task ready, main red, two tasks in a row
 unfinished). A task session builds, is reviewed as `AGENTS.md`, step 5, says, closes, measures itself and opens its PR; it starts no
