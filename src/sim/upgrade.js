@@ -4,7 +4,9 @@
 //   held at home taken into the walls of a cottage so begun before any is fetched; a camp's household left to itself placing its
 //   farmstead and beginning its cottage by its head's own rule (ownRung, VB-1630); the house set on stone and an outbuilding built as
 //   tasks of the plan (VB-1635: the chains `foundation`, its review asked at once, and `outbuilding`, the timber at home first); a farm
-//   with animals and no byre building one by its head's own rule (ownByre, VB-1637)
+//   with animals and no byre building one by its head's own rule (ownByre, VB-1637); the cottage built up to a timber house (VB-1636) as a
+//   task of the plan (the chain `upgrade`, what 'timber': the making `timberhouse`, sim/timberhouse, the timber at home first) and by a
+//   crowded household's head's own rule (ownTimber)
 VB['sim/upgrade'] = (() => {
   const { BUILD, ECON, DAY, SEASON_DAYS, YEAR, WORK, cal } = VB['sim/rules'];
   const { register, issue } = VB['sim/commands'];
@@ -21,6 +23,9 @@ VB['sim/upgrade'] = (() => {
   const { CHAINS, taskAt, headCmd } = VB['sim/planchains'];
   const { rungWhy, foundationWhy, outWhy, OUTBUILDINGS } = VB['sim/ladder'];
   const { byreWhy } = VB['sim/byrehouse'];
+  const { timberWhy } = VB['sim/timberhouse'];
+  const { crowded } = VB['sim/house'];
+  const { hands } = VB['sim/targets'];
   const WALLS = COTTAGE.indexOf('walls');
   // The farm of household hid while it lives, or null.
   const farmOf = (st, hid) => {
@@ -83,6 +88,7 @@ VB['sim/upgrade'] = (() => {
       VB.count.campLook++;
       const f = farmOf(st, hid);
       if (f && !f.byre && !f.booth) ownByre(st, st.households[hid]);
+      if (f && !f.booth && f.rung !== 'timber') ownTimber(st, st.households[hid]);
       if (!f || f.camp === undefined || !f.booth || Projects.heldOff(st, hid)) continue;
       const hh = st.households[hid];
       if (f.camp === true) Camp.placeOwn(st, hh, f);
@@ -97,18 +103,30 @@ VB['sim/upgrade'] = (() => {
     if (!hh.herds.length || hh.holder === null || Projects.heldOff(st, hh.id) || byreWhy(st, hh) !== null) return;
     issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'byre' }, source: 'pawn' });
   }
+  // The timber house (VB-1636; one rule for every household, Kim): a head not held off projects whose household is crowded in its cottage
+  // (sim/house crowded: more members than ROOM.cottage) begins its timber house (the making `timberhouse`, by the verb `project`, as the
+  // plan's task does) in the slack of the year (inSlack, as the stone foundation is raised), with BUILD.timberHouse.hands working hands
+  // or more, and never while another of its large projects or its stone foundation is under way (timberWhy). The crowding read first:
+  // one comparison a household an hour.
+  function ownTimber(st, hh) {
+    if (hh.holder === null || !crowded(st, hh) || Projects.heldOff(st, hh.id) || !inSlack(cal(st.t))) return;
+    if (hands(st, hh) < BUILD.timberHouse.hands || timberWhy(st, hh) !== null) return;
+    issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'timberhouse' }, source: 'pawn' });
+  }
   // ---- the chain: upgrade (CHAINS.upgrade) ----
   // At the house's tile of the household's farm: {f, hh, tile, what (the task's rung, 'cottage' before it is planned), cottage (its plan
-  // once begun, or null)}. Its act begins the cottage (beginCottage); then its stages at the house, the walls' timber trips before the
-  // walls while they lack it (their jobs stand at the wood: found by their keys); it leaves when the roof is on ('roof'), or when the
-  // household or its house is gone ('gone').
+  // once begun, or null), project (the timber house's, once begun, or null)}. Its act begins the cottage (beginCottage); then its stages
+  // at the house, the walls' timber trips before the walls while they lack it (their jobs stand at the wood: found by their keys); it
+  // leaves when the roof is on ('roof'), or when the household or its house is gone ('gone'). The timber house (what 'timber', VB-1636):
+  // its act begins the making `timberhouse` by the head's verb `project`, as an outbuilding task's does, then its stages as theirs, the
+  // timber at home first (outTimber); it leaves when its roof is on.
   const trips = (lack) => Math.max(1, Math.ceil(lack / ECON.woodPerTrip - 1e-9));
   const upgrade = {
     noun: 'upgrade',
     mark: null,
-    kinds: ['fell', 'grub', 'foundation', 'timber', 'walls', 'roof'],
+    kinds: ['fell', 'grub', 'foundation', 'timber', 'walls', 'roof', 'timberframe', 'timberroof'],
     which: ['roof', 'gone'],
-    // `what`: the rung to build, one that follows the one standing; only the cottage today
+    // `what`: the rung to build, one that follows the one standing: the cottage or the timber house
     args: (g, st, id) => {
       if (g.what === undefined || g.what === null) return 'name the rung to build (what)';
       const why = rungWhy(st, id, farmOf(st, st.pawns[id].household), g.what);
@@ -118,13 +136,24 @@ VB['sim/upgrade'] = (() => {
       const f = farmOf(st, hid);
       if (!f || f.house !== tile || f.household !== hid) return null;
       const t = taskAt(st, 'upgrade', tile);
-      return { f, hh: st.households[hid], tile, what: t ? t.what : 'cottage', cottage: cottageOf(st, hid) };
+      const what = t ? t.what : 'cottage';
+      return {
+        f,
+        hh: st.households[hid],
+        tile,
+        what,
+        cottage: cottageOf(st, hid),
+        project: what === 'timber' ? openOut(st, hid, 'timberhouse') : null,
+      };
     },
     none: (tile) => `the household's house is not at ${tile}`,
-    why: (st, { hh, cottage }) => (cottage ? `household ${hh.id} has a cottage under way` : null),
+    why: (st, { hh, what, cottage }) =>
+      what === 'cottage' && cottage ? `household ${hh.id} has a cottage under way` : null,
     // the cottage plan's stages left (all of them before it is begun), the timber trips its walls lack before the walls: before it is
     // begun, what the timber at home will not cover
-    steps: (st, hid, { f, hh, cottage: p }) => {
+    steps: (st, hid, { f, hh, what, cottage: p, project }) => {
+      if (what === 'timber')
+        return f.booth || f.rung === 'timber' ? [] : makingSteps(st, f, hh, 'timberhouse', project);
       if (!f.booth) return [];
       const list = p ? p.steps.slice(p.open) : cottagePlan(st, f).steps,
         lack = p
@@ -146,12 +175,16 @@ VB['sim/upgrade'] = (() => {
       }
       return out;
     },
-    gone: (st, { f }) => (f.booth ? null : 'roof'),
+    gone: (st, { f, what }) => ((what === 'timber' ? f.rung !== 'timber' : f.booth) ? null : 'roof'),
     deadline: () => null,
     act: (st, id, where, tile) =>
-      !where.cottage && where.f.booth && where.what === 'cottage'
-        ? { actor: id, verb: 'beginCottage', target: tile, args: null, source: 'player' }
-        : null,
+      where.what === 'timber'
+        ? !where.project && !where.f.booth && where.f.rung !== 'timber'
+          ? headCmd(id, where.hh.id, { what: 'timberhouse' })
+          : null
+        : !where.cottage && where.f.booth && where.what === 'cottage'
+          ? { actor: id, verb: 'beginCottage', target: tile, args: null, source: 'player' }
+          : null,
   };
   CHAINS.upgrade = upgrade; // contributed at load, before the first seed (VB-1632)
   // ---- the chain: foundation (CHAINS.foundation; VB-1635) ----
@@ -231,6 +264,34 @@ VB['sim/upgrade'] = (() => {
     for (const p of projectsOf(st, 'household', hid)) if (p.what === what) return p;
     return null;
   }
+  // The stages left of making `what`'s project p at farm f (all of them before it is begun, as its making would begin it), each that
+  // carries timber after the trips it lacks: before it opens, what the timber at home will not cover (an outbuilding's; the timber house's).
+  function makingSteps(st, f, hh, what, p) {
+    const list = p ? p.steps.slice(p.open) : makingOf(what).begin(st, hh, f).steps,
+      out = [];
+    let home = Stores.heldOf(hh, 'timber');
+    list.forEach((s, i) => {
+      if (s.timber) {
+        const open = !!p && i === 0;
+        let lack = open ? lacks(s, s.timber) : s.timber;
+        if (!open) {
+          const h = Math.min(home, lack);
+          lack -= h;
+          home -= h;
+        }
+        if (lack > 0)
+          out.push({
+            kind: 'timber',
+            hours: KINDS.timber.hours,
+            n: trips(lack),
+            from: -Infinity,
+            keys: p ? [`timber:b${f.id}.${p.id}`, `timber:b${f.id}.${p.id}b`] : [],
+          });
+      }
+      out.push({ kind: s.kind, hours: s.hours, n: 1, from: -Infinity });
+    });
+    return out;
+  }
   const outbuilding = {
     noun: 'outbuilding',
     mark: null,
@@ -253,46 +314,21 @@ VB['sim/upgrade'] = (() => {
     why: () => null,
     // its stages left (all of them before it is begun, as its making would begin it), each that carries timber after the trips it lacks:
     // before it opens, what the timber at home will not cover
-    steps: (st, hid, { f, hh, what, project: p }) => {
-      if (!what || f[what]) return [];
-      const list = p ? p.steps.slice(p.open) : makingOf(what).begin(st, hh, f).steps,
-        out = [];
-      let home = Stores.heldOf(hh, 'timber');
-      list.forEach((s, i) => {
-        if (s.timber) {
-          const open = !!p && i === 0;
-          let lack = open ? lacks(s, s.timber) : s.timber;
-          if (!open) {
-            const h = Math.min(home, lack);
-            lack -= h;
-            home -= h;
-          }
-          if (lack > 0)
-            out.push({
-              kind: 'timber',
-              hours: KINDS.timber.hours,
-              n: trips(lack),
-              from: -Infinity,
-              keys: p ? [`timber:b${f.id}.${p.id}`, `timber:b${f.id}.${p.id}b`] : [],
-            });
-        }
-        out.push({ kind: s.kind, hours: s.hours, n: 1, from: -Infinity });
-      });
-      return out;
-    },
+    steps: (st, hid, { f, hh, what, project: p }) => (!what || f[what] ? [] : makingSteps(st, f, hh, what, p)),
     gone: (st, { f, what }) => (what && f[what] ? 'built' : null),
     deadline: () => null,
     act: (st, id, where) =>
       where.what && !where.project && !where.f[where.what] ? headCmd(id, where.hh.id, { what: where.what }) : null,
   };
   CHAINS.outbuilding = outbuilding;
-  // The timber household hid holds at home taken into the open step of the outbuilding its played head's task names, while that step
-  // carries timber and lacks it (through sim/stores, the reason 'build'); the loads taken. At each trip of timber home, and as a stage
-  // ends (the walls open).
+  // The timber household hid holds at home taken into the open step of the outbuilding its played head's task names (or of the timber
+  // house its upgrade task names, VB-1636), while that step carries timber and lacks it (through sim/stores, the reason 'build'); the
+  // loads taken. At each trip of timber home, and as a stage ends (the walls open).
   function outTimber(st, hid) {
     const pl = st.player,
       f = pl && st.pawns[pl.pawn].household === hid ? farmOf(st, hid) : null,
-      t = f && taskAt(st, 'outbuilding', f.house),
+      u = f && taskAt(st, 'upgrade', f.house),
+      t = f && (taskAt(st, 'outbuilding', f.house) || (u && u.what === 'timber' ? { what: 'timberhouse' } : null)),
       p = t && openOut(st, hid, t.what),
       s = p && p.steps[p.open];
     if (!s || !s.timber) return 0;

@@ -1,11 +1,12 @@
-// @sys sim/ladder: the main building's rungs (a camp, a shelter, a cottage), its stone foundation (a property of the house, not a rung;
-//   VB-1635) and the outbuildings (a barn) as data, each what it is built from, needs and gives, read from the rules that build it; the
-//   rung a farm stands at (rungOf), derived from its state; and the farm's view for the page (farmView): what stands, what is being built,
-//   what could follow and why not now (VB-1631); the plan tasks' checks (rungWhy, upgradeWhy, VB-1632; foundationWhy, outWhy, VB-1635;
-//   sim/upgrade). Reads only.
+// @sys sim/ladder: the main building's rungs (a camp, a shelter, a cottage, a timber house: VB-1636), its stone foundation (a property
+//   of the house, not a rung; VB-1635) and the outbuildings (a barn) as data, each what it is built from, needs and gives, read from the
+//   rules that build it; the rung a farm stands at (rungOf), derived from its state (but the timber house, stored: farmstead.rung,
+//   sim/timberhouse); and the farm's view for the page (farmView): what stands, what is being built, what could follow and why not now
+//   (VB-1631); the plan tasks' checks (rungWhy, upgradeWhy, VB-1632; foundationWhy, outWhy, VB-1635; sim/upgrade). Reads only.
 VB['sim/ladder'] = (() => {
   const { BOOTH, BUILD } = VB['sim/rules'];
-  const { HOUSE } = VB['sim/house'];
+  const { HOUSE, ROOM } = VB['sim/house'];
+  const { timberWhy } = VB['sim/timberhouse'];
   const { hexSteps } = VB['sim/hex'];
   const { doneOf } = VB['sim/progress'];
   const Projects = VB['sim/projects'],
@@ -19,8 +20,9 @@ VB['sim/ladder'] = (() => {
   const sum = (a) => a.reduce((s, x) => s + x, 0);
   // ---- the tables: later rungs (a timber house) and outbuildings (a byre) are added here, with the rules that build them ----
   // Each rung: `from` the rung it is built from (null: the first), `needs` {timber (loads), stone (loads), hours (of work, its stages'
-  // sum)}, `gives` in the sim's own terms: `roof` (sim/hunger's: 'none' the open sky, 'booth' a booth's roof, 'house'), `sleeps` (null: its household,
-  // however many), `wear` (a year, of its condition 0..1), `standing` (the house's term, sim/house; 0 none).
+  // sum)}, `gives` in the sim's own terms: `roof` (sim/hunger's: 'none' the open sky, 'booth' a booth's roof, 'house'), `sleeps` (the
+  // house's room, sim/house ROOM: a household over it is crowded), `fire` (the day's firewood over a cottage's),
+  // `wear` (a year, of its condition 0..1), `standing` (the house's term, sim/house; 0 none).
   const RUNGS = Object.freeze({
     camp: {
       from: null,
@@ -36,7 +38,14 @@ VB['sim/ladder'] = (() => {
     cottage: {
       from: 'shelter',
       needs: { timber: BUILD.timber, stone: 0, hours: sum(COTTAGE.map((k) => COTTAGE_HOURS[k])) },
-      gives: { roof: 'house', sleeps: null, wear: HOUSE.wear, standing: HOUSE.term },
+      gives: { roof: 'house', sleeps: ROOM.cottage, fire: 1, wear: HOUSE.wear, standing: HOUSE.term },
+    },
+    // the timber house (VB-1636): built up from the cottage by a project of its own (the making `timberhouse`, sim/timberhouse), more room
+    // and a smaller fire; it wears and stands as a cottage does
+    timber: {
+      from: 'cottage',
+      needs: { timber: BUILD.timberHouse.timber, stone: 0, hours: sum(BUILD.timberHouse.hours) },
+      gives: { roof: 'house', sleeps: ROOM.timber, fire: ROOM.timberFire, wear: HOUSE.wear, standing: HOUSE.term },
     },
   });
   // The stone foundation (VB-332; Kim, 24 Nov 2026: "Maybe have the foundation as a separate property. It is also more prestigious"): not
@@ -69,7 +78,8 @@ VB['sim/ladder'] = (() => {
   // A farm with no cottage yet (f.booth): a camp while its household sleeps under the open sky (sim/building roofless: its camp, or its
   // shelter being raised or worn to nothing; in a save before VB-1638 its booth staked and not yet raised, or rotted), else a shelter
   // (standing; or, in such a save, its booth raised, or the mark of sim/settle's settlers, who slept as in a house). A
-  // farm with its cottage: a cottage, on the ground or on stone (f.grade: the foundation, a property of the house, VB-1635).
+  // farm with its cottage: a cottage, on the ground or on stone (f.grade: the foundation, a property of the house, VB-1635); or the rung
+  // stored where it cannot be derived (f.rung: the timber house, VB-1636).
   const householdOf = (st, f) => (f.household === null ? null : st.households[f.household]);
   function rungOf(st, f) {
     if (f.camp === true) return 'camp';
@@ -77,7 +87,7 @@ VB['sim/ladder'] = (() => {
       const hh = householdOf(st, f);
       return hh && roofless(st, hh) ? 'camp' : 'shelter';
     }
-    return 'cottage';
+    return f.rung || 'cottage';
   }
   // ---- what is being built now ----
   // The hours left of plan p from its open step on, the open step's done hours read from its live job (posted under `key`) or its record.
@@ -125,9 +135,10 @@ VB['sim/ladder'] = (() => {
     const done = j ? doneOf(st, j, BUILD.foundationHours) : 0;
     return { what: 'foundation', step: heap ? 'raise' : step.kind, hoursLeft: BUILD.foundationHours - done };
   }
-  // Outbuilding `what` under way at farm f (its household's project of that making): {what, step (its open stage's kind), hoursLeft}, or null.
-  function outBuilding(st, hh, f, what) {
-    const p = hh ? Projects.projectsOf(st, 'household', hh.id).find((q) => q.what === what) : null;
+  // Outbuilding `what` under way at farm f (its household's project of that making; the timber house's, the making `timberhouse`, as
+  // the rung `timber`): {what, step (its open stage's kind), hoursLeft}, or null.
+  function outBuilding(st, hh, f, what, making = what) {
+    const p = hh ? Projects.projectsOf(st, 'household', hh.id).find((q) => q.what === making) : null;
     if (!p) return null;
     const s = p.steps[p.open];
     return { what, step: s.kind, hoursLeft: hoursLeft(st, p, `${s.kind}:f${f.id}`) };
@@ -151,6 +162,8 @@ VB['sim/ladder'] = (() => {
       return { what: 'shelter', step: b.steps[b.open || 0].kind, hoursLeft: hoursLeft(st, b, `booth:o${b.booth}`) };
     const c = cottageOf(st, hh.id);
     if (c) return { what: 'cottage', step: c.steps[c.open].kind, hoursLeft: hoursLeft(st, c, `booth:f${f.id}`) };
+    const timber = outBuilding(st, hh, f, 'timber', 'timberhouse');
+    if (timber) return timber;
     const stone = stoneBuilding(st, hh, f);
     if (stone) return stone;
     for (const what of Object.keys(OUTBUILDINGS)) {
@@ -184,7 +197,11 @@ VB['sim/ladder'] = (() => {
         : cottageOf(st, hh.id)
           ? `household ${hh.id} has a cottage under way`
           : null),
+    // a timber house is begun from a cottage by its making (sim/timberhouse timberWhy), one at a time
+    timber: (st, hh, f) => own(st, hh, f) || timberRule(st, hh),
   };
+  const timberRule = (st, hh) =>
+    Projects.underWay(st, hh.id, 'timberhouse') ? `household ${hh.id} has a timber house under way` : timberWhy(st, hh);
   // the stone foundation's step (sim/building buildStep): a house from the cottage up on the ground, no project under way, none begun
   const stoneWhy = (st, hh, f) =>
     own(st, hh, f) ||
@@ -213,7 +230,8 @@ VB['sim/ladder'] = (() => {
     return own(st, hh, f) || (hh.holder !== id ? 'only the head of the household builds up its house' : null);
   }
   // Why pawn id cannot begin rung `what` of farm f now, or null (sim/upgrade's verb beginCottage): the head of the farm's household; a rung
-  // of RUNGS that follows the one standing, the farm no longer a camp; only the cottage is built today ('not yet'); none under way.
+  // of RUNGS that follows the one standing, the farm no longer a camp; the cottage (none under way) and the timber house (its making's
+  // check, none under way) are built today, a later rung not yet ('not yet').
   function rungWhy(st, id, f, what) {
     const why = headWhy(st, id, f);
     if (why) return why;
@@ -224,6 +242,7 @@ VB['sim/ladder'] = (() => {
         ? `${f.name} is still a camp: place the farmstead first`
         : `${f.name} has no roof: raise its shelter first`;
     if (RUNGS[what].from !== rung) return `a ${what} is built from a ${RUNGS[what].from}, and ${f.name} is a ${rung}`;
+    if (what === 'timber') return timberRule(st, householdOf(st, f));
     if (what !== 'cottage') return 'not yet';
     return cottageOf(st, f.household) ? `household ${f.household} has a cottage under way` : null;
   }

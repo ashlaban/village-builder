@@ -1,6 +1,7 @@
 // @sys sim/hunger: feeding households, the daily hearth and the effects of food and shelter on pawns' health
 VB['sim/hunger'] = (() => {
   const { owedBy, tiredHealth } = VB['sim/sleep'];
+  const { fireOf } = VB['sim/house'];
   const { HUNGER, HEALTH, ILLNESS, HERD, HELP, DAY, YEAR, YEAR_DAYS, PEAT, BUILD, GATHERING } = VB['sim/rules'],
     { CROPS, ROTATIONS } = VB['sim/crops'];
   const { age, farmPractice } = VB['sim/records'];
@@ -243,10 +244,12 @@ VB['sim/hunger'] = (() => {
   // A household with no roof yet (`roof` 'none'; sim/building roofless, VB-1544: a lone settler before its booth stands) lights no hearth:
   // its day is the open sky's cold (nightCost's), and it burns nothing; that cold is not the hearth's, and goes into no log (hh.cold
   // ranks the wood).
+  // A timber house's hearth burns ROOM.timberFire of a cottage's (sim/house fireOf, VB-1636); its cold is still the wood lacked over
+  // a cottage's winter use.
   function warmHouse(st, hh, season, roof) {
     if (roof === 'none') return nightCost(st, season, 'none')[0];
     const use = st.ECON.woodUse,
-      want = use[season],
+      want = use[season] * fireOf(st, hh),
       burnt = Stores.take(st, hh, 'wood', want, 'burn'); // the day's fire, what the pile holds of it (VB-328: through the stores)
     let lack = want - burnt;
     if (lack > 1e-9 && hh.peat > 0) {

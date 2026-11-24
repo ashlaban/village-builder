@@ -28,6 +28,7 @@ const FAST = [
   ['node', 'tests/shelter.js'], // VB-1638: a settler household's shelter on its house tile, then its cottage there; an older save's booth kept
   ['node', 'tests/farmtasks.js'], // VB-1635: the stone foundation and the barn, each by a task of the plan; the slack's wait; farmView's foundation
   ['node', 'tests/byrehouse.js'], // VB-1637: the byre as a building: at seeding, none on a camp, an older save; the lean in the open; by the plan and by the head's rule
+  ['node', 'tests/timberhouse.js'], // VB-1636: the timber house above the cottage, the rungs' room and the crowded tenants; by the plan and by a crowded head's rule
   ['node', 'tests/plan.js'], // VB-1618: the player's plan: its ops, the routine once a day, tasks in order, hand commands first, sleep by its hours
   ['node', 'tests/sleep.js'], // VB-1615: the played pawn's sleep owed, the verb sleep, a night worked in mood and health
   ['node', 'tests/outcomes.js'], // commands' three outcomes and the queue's assignments: release, reacquire, side work, saves (VB-1405)

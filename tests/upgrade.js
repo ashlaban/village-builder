@@ -95,7 +95,11 @@ function run(st, days = 40) {
   assert(['foundation', 'walls', 'roof'].every((k) => laid.has(k)), `the agenda lays its steps: ${[...laid]}`);
   const v = Sim.farmView(st, 0);
   assert.strictEqual(v.rung, 'cottage');
-  assert.deepStrictEqual(v.next, [], 'no rung follows the cottage yet (VB-1635: the foundation is no rung)');
+  assert.deepStrictEqual(
+    v.next.map((n) => n.what),
+    ['timber'],
+    'the timber house follows the cottage (VB-1636; VB-1635: the foundation is no rung)',
+  );
   assert.strictEqual(v.foundation.ok, true, 'the foundation may be planned');
   assert.match(String(add(st, 'stone')), /no rung stone/);
   assert.match(String(add(st, 'cottage')), /built from a shelter/, 'a cottage on a cottage');
