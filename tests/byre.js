@@ -63,7 +63,7 @@ check(hh.hungryDays === hungry && Math.abs(L.larderOf(hh) - (10 - F.dailyNeed(st
 
 // --- founders seed 4 over 3 years: no animal dies of hunger; slaughter happens and meat is salted. The seed is chosen (VB-1554): the
 // property is not every seed's (seed 3 loses an animal before the thirsty pawn and five after), and on seed 7 a thirsty pawn's walk in
-// year 1 changes which farm takes in a cow: a farm of one, with no meadow, whose cow starves in the autumn of year 2 (VB-1571)
+// year 1 changes which farm takes in a cow: a farm of one, with no meadow, whose cow starves in the autumn of year 2 (as VB-1565 found)
 st = scenario('founders', 4);
 let seenT = -Infinity, hunger = 0, counts = 0, slaughtered = 0, spoiled = 0;
 const herdSize = () => st.herds.reduce((s, hd) => s + (hd.head ? hd.head.length : hd.ewes + hd.rams + hd.lambs), 0);
