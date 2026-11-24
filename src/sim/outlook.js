@@ -17,9 +17,11 @@ VB['sim/outlook'] = (() => {
     { larderOf } = VB['sim/larder'];
   const { householdHay } = VB['sim/herds'];
   const { HAY } = VB['sim/meadows'];
-  const { fuelFree } = VB['sim/chores'];
+  const { fuelFree, timberOf } = VB['sim/chores'];
+  const { fireOf } = VB['sim/house'];
   const { hands } = VB['sim/targets'];
   const { headSkill } = VB['sim/seasonal'];
+  const { CHAINS } = VB['sim/planchains'];
   // Proposed (VB-666): `little`, a first short season whose need is covered at least this share is short a little ('short'), else badly
   // ('bad'); `woodTrips`, the firewood trips a working hand makes in a season towards the pile's goal (ECON.woodPerTrip units each), which
   // bounds the wood the plan's goal brings in a season. Named tunables of the view; nothing in the simulation reads them.
@@ -47,7 +49,11 @@ VB['sim/outlook'] = (() => {
   //   likeliest (with, leaned by its bias on the store), the best; lo <= mid <= hi, 0 to FRAME; with no head, the middle skill and no
   //   lean), seasons (the seasons of the year it is needed in: [0, 1, 2, 3], or [3] for hay), parts: {store
   //   (what is held now, in the supply's units), need (by season of the frame, from the start of the one we are in), intakes ([{what, season
-  //   (of the frame), n}], summed by what and season), spoilt (what the reckoning with intakes lets spoil within the frame)}}. Made again at
+  //   (of the frame), n}], summed by what and season), spoilt (what the reckoning with intakes lets spoil within the frame), and for a
+  //   household planned by hand (VB-1661) left ([{good, what, tile?, crop?, n}]: the intakes still to be worked that no task of the plan
+  //   covers, left out of `with`: fuel 'timber' (home, no firewood task to cut it), 'fell' (a fell task's loads, none to cut them),
+  //   'cutting' (the head's own felling to the season's goal); hay 'mown' and 'meadow' (lying, or to mow: no hay task there); food
+  //   'harvest' (a field's crop: no harvest task there, or not sown yet))}}. Made again at
   //   every review (sim/plans' event planReviewed): on the planning day, out of turn when a store crosses a target (the harvest stacked
   //   wakes it), and so at the first review of each season, which makes a stale one (made in an earlier season) anew. Plain data.
   const r2 = (x) => Math.round(x * 100) / 100,
@@ -135,6 +141,26 @@ VB['sim/outlook'] = (() => {
     for (const x of out) x.n = r1(x.n);
     return out;
   }
+  // ---- what a plan by hand covers (VB-1661; Kim, 24 Nov 2026: "Stores count what is in the plan. There is no 'automatic plan'") ----
+  // A household planned by hand: the played pawn's, with automatic behaviour off. Its outlook counts an intake still to be worked only
+  // when a task of the plan covers it; what is held, or needs no work, is counted as for any household.
+  const handOf = (st, hh) => {
+    const pl = st.player;
+    return !!pl && !pl.auto && st.pawns[pl.pawn].household === hh.id;
+  };
+  const playedOf = (st, hh) => !!st.player && st.pawns[st.player.pawn].household === hh.id;
+  const tasksOf = (st) => (st.player && st.player.plan ? st.player.plan.tasks : []);
+  // Whether a task of the plan covers chain `name` (sim/planchains CHAINS) at `tile` (any, when undefined): a task at the tile, or a task
+  // by key of one of the chain's job kinds there.
+  const covered = (st, name, tile) =>
+    tasksOf(st).some((t) =>
+      t.key === undefined
+        ? t.kind === name && (tile === undefined || t[name] === tile)
+        : CHAINS[name].kinds.includes(t.kind) && (tile === undefined || t.site === tile),
+    );
+  const STANDING = ['sown', 'growing', 'ripe', 'stooks'];
+  // A supply's reckoning with what it left out (`parts.left`) for a household planned by hand.
+  const withLeft = (s, hand, left) => (hand ? { ...s, parts: { ...s.parts, left } } : s);
   const farmOf = (st, hh) => {
     const f = hh.farmstead === null || hh.farmstead === undefined ? null : st.farmsteads[hh.farmstead];
     return f && f.household === hh.id ? f : null;
@@ -189,13 +215,19 @@ VB['sim/outlook'] = (() => {
         sheaves +
         larderOf(hh) +
         (hh.fresh && hh.fresh.length ? Pot.freshHeld(st, hh) : 0);
-    const ins = [];
+    const ins = [],
+      hand = handOf(st, hh),
+      left = [];
     if (f) {
       const per = seedPer(st, hh);
       for (const fd of f.fields)
         cropDays(fd, c, end, (day, k, first) => {
-          const gross = first && fd.stage === 'stooks' ? fd.held || 0 : FIELDS.expect * CROPS[k].yield;
-          ins.push([day, k, Math.max(0, gross - (k === 'barley' ? per : CROPS[k].seed))]);
+          const gross = first && fd.stage === 'stooks' ? fd.held || 0 : FIELDS.expect * CROPS[k].yield,
+            n = Math.max(0, gross - (k === 'barley' ? per : CROPS[k].seed));
+          // by hand, a crop standing is counted with a harvest task on its field; one not sown yet is in no task (VB-1661)
+          if (hand && !(first && STANDING.includes(fd.stage) && covered(st, 'harvest', fd.tile))) {
+            if (n > 0) left.push({ good: 'food', what: 'harvest', tile: fd.tile, crop: k, n: r1(n) });
+          } else ins.push([day, k, n]);
         });
     }
     ins.sort((a, b) => a[0] - b[0]);
@@ -214,34 +246,83 @@ VB['sim/outlook'] = (() => {
           return n;
         },
       });
-    return doubted(supply(own, w, D > 0, [0, 1, 2, 3], keep + rot, rows(ins, F), D), w, D * SEASON_DAYS, dz, 'food');
+    const out = doubted(
+      supply(own, w, D > 0, [0, 1, 2, 3], keep + rot, rows(ins, F), D),
+      w,
+      D * SEASON_DAYS,
+      dz,
+      'food',
+    );
+    return withLeft(out, hand, left);
   }
   // Fuel: firewood and peat as one supply (sim/chores' fuelFree: the pile less what a project holds back, peat at PEAT.worth), burnt at
-  // the season's ECON.woodUse. Its intake is the plan's: at the start of each season (today, for this one) the household cuts towards the
-  // season's goal, plan.targets.wood[season], at most hands × OUTLOOK.woodTrips × ECON.woodPerTrip a season (the share of it left, for
-  // the season we are in); none with no farm or no wood in its village's reach. Firewood does not spoil.
+  // the season's ECON.woodUse times the house's own fire (sim/house fireOf: a timber house's is smaller; VB-1669). Its intake is the
+  // plan's: at the start of each season (today, for this one) the household cuts towards the season's goal, plan.targets.wood[season],
+  // at most hands × OUTLOOK.woodTrips × ECON.woodPerTrip a season (the share of it left, for the season we are in); none with no farm or no wood in its
+  // village's reach. Firewood does not spoil. Timber home and not yet cut
+  // counts as firewood (VB-1653): the head has it cut by its own rule (sim/chores); for the household of a pawn planned by hand
+  // (automatic behaviour off) only while a `firewood` task of the plan covers it (sim/playerplan).
+  // For a household planned by hand (VB-1661; Kim, 24 Nov: "Stores count what is in the plan"), the head's own cutting to the goal is
+  // left out, and a fell task's loads still to come home are counted, today, only with a `firewood` task to cut them.
   function fuel(st, hh, f, plan, c, F, end, dz = null) {
-    const use = st.ECON.woodUse,
-      keep = Math.max(0, hh.farmstead === null ? (hh.wood || 0) + PEAT.worth * (hh.peat || 0) : fuelFree(st, hh)),
+    const fire = fireOf(st, hh),
+      use = st.ECON.woodUse.map((u) => u * fire),
+      hand = handOf(st, hh),
+      cut = !hand || covered(st, 'firewood'),
+      left = [],
+      keep =
+        Math.max(0, hh.farmstead === null ? (hh.wood || 0) + PEAT.worth * (hh.peat || 0) : fuelFree(st, hh)) +
+        (cut ? timberOf(hh) : 0),
       goal = plan.targets && plan.targets.wood,
       wood = f && st.villages[f.village] && st.villages[f.village].wood,
       cap = hands(st, hh) * OUTLOOK.woodTrips * st.ECON.woodPerTrip,
       cuts = !!(goal && wood && wood.length && cap > 0);
     const need = (d) => use[Math.floor((((d % YEAR_DAYS) + YEAR_DAYS) % YEAR_DAYS) / SEASON_DAYS)];
-    const ins = [];
-    const inflow = (d, held, k) => {
+    const ins = [],
+      would = [];
+    // the head's cutting to the season's goal, each cut noted in `into`
+    const cutting = (into) => (d, held, k) => {
       const first = d === c.day || (d - F) % SEASON_DAYS === 0;
       if (!cuts || !first || k >= FRAME) return 0;
       const s = (c.season + k) % 4,
-        left = k === 0 ? (SEASON_DAYS - c.sday) / SEASON_DAYS : 1,
-        n = Math.max(0, Math.min(goal[s] - held, cap * left));
-      if (n > 0) ins.push([d, 'firewood', n]);
+        part = k === 0 ? (SEASON_DAYS - c.sday) / SEASON_DAYS : 1,
+        n = Math.max(0, Math.min(goal[s] - held, cap * part));
+      if (n > 0) into.push([d, 'firewood', n]);
       return n;
     };
+    let planned = 0;
+    if (hand) {
+      const T = timberOf(hh);
+      if (!cut && T > 0) left.push({ good: 'fuel', what: 'timber', n: r1(T) });
+      for (const t of tasksOf(st))
+        if (t.key === undefined && t.kind === 'fell' && (t.got || 0) < (t.n || 1)) {
+          const n = ((t.n || 1) - (t.got || 0)) * st.ECON.woodPerTrip;
+          if (cut) planned += n;
+          else left.push({ good: 'fuel', what: 'fell', tile: t.fell, n: r1(n) });
+        }
+      if (planned > 0) ins.push([c.day, 'firewood', planned]);
+    }
+    const head = cutting(ins),
+      inflow = (d, held, k) => (d === c.day ? planned : 0) + (hand ? 0 : head(d, held, k));
     const own = walk({ from: c.day, to: end, F, keep, rot: 0, need }),
       w = walk({ from: c.day, to: end, F, keep, rot: 0, need, inflow });
-    const perSeason = ((use[0] + use[1] + use[2] + use[3]) / 4) * SEASON_DAYS;
-    return doubted(supply(own, w, true, [0, 1, 2, 3], keep, rows(ins, F), null, use, c), w, perSeason, dz, 'fuel');
+    if (hand && cuts) {
+      const mine = cutting(would);
+      walk({
+        from: c.day,
+        to: end,
+        F,
+        keep,
+        rot: 0,
+        need,
+        inflow: (d, held, k) => (d === c.day ? planned : 0) + mine(d, held, k),
+      });
+      const n = would.reduce((a, x) => a + x[2], 0);
+      if (n > 0) left.push({ good: 'fuel', what: 'cutting', n: r1(n) });
+    }
+    const perSeason = ((use[0] + use[1] + use[2] + use[3]) / 4) * SEASON_DAYS,
+      out = doubted(supply(own, w, true, [0, 1, 2, 3], keep, rows(ins, F), null, use, c), w, perSeason, dz, 'fuel');
+    return withLeft(out, hand, left);
   }
   // Hay: needed on the stall days only, which are counted as the winter's (HERD.stall: from autumn's day 8 to spring's day 4), so its
   // outlook is the share of the coming winter's stall covered, read as the winter's season of the frame plus that share (FRAME if all of
@@ -258,7 +339,9 @@ VB['sim/outlook'] = (() => {
         const doy = ((d % YEAR_DAYS) + YEAR_DAYS) % YEAR_DAYS;
         return doy >= HERD.stall[0] || doy < HERD.stall[1];
       };
-    const ins = [];
+    const ins = [],
+      hand = handOf(st, hh),
+      left = [];
     if (f && H > 0) {
       const y0 = c.day - c.doy,
         mid = y0 + SEASON_DAYS + SEASON_DAYS / 2,
@@ -266,10 +349,19 @@ VB['sim/outlook'] = (() => {
       let lying = 0,
         grass = 0;
       for (const m of f.meadows) {
+        // by hand, a meadow's hay still to bring in is counted with a hay task on it (VB-1661)
+        const by = !hand || covered(st, 'hay', m.tile);
         if (m.stage === 'mown') {
+          if (!by) {
+            if (m.held > 0) left.push({ good: 'hay', what: 'mown', tile: m.tile, n: r1(m.held) });
+            continue;
+          }
           lying += m.held || 0;
           ins.push([Math.max(c.day, (m.mown || c.day) + 1), 'mown', m.held || 0]);
-        } else if (m.stage === 'grass' && c.day <= last) grass += HAY * m.fert;
+        } else if (m.stage === 'grass' && c.day <= last) {
+          if (by) grass += HAY * m.fert;
+          else left.push({ good: 'hay', what: 'meadow', tile: m.tile, n: r1(HAY * m.fert) });
+        }
       }
       const target = plan.targets ? plan.targets.hayWinters * W : W,
         mow = Math.min(grass, Math.max(0, target - hh.hay - lying));
@@ -344,6 +436,7 @@ VB['sim/outlook'] = (() => {
         intakes: rows(ins, F),
         spoilt: r1(w.spoilt),
         share: r2(share(w)),
+        ...(hand ? { left } : {}),
       },
     };
   }
@@ -394,9 +487,12 @@ VB['sim/outlook'] = (() => {
   // in an earlier season than now (it is made again at the first review of this one); null with no plan or before its first review.
   function supplyOutlook(st, id) {
     const plan = st.plans && st.plans.households.get(id),
-      O = plan && plan.outlook;
+      hh = st.households[id],
+      c = cal(st.t),
+      // the played pawn's household's, reckoned when asked (VB-1661): by hand it counts only what the plan's tasks cover, and they, and
+      // automatic behaviour, change between its reviews
+      O = plan && hh && !hh.dissolved && playedOf(st, hh) ? reckon(st, hh, plan, c) : plan && plan.outlook;
     if (!O) return null;
-    const c = cal(st.t);
     return {
       ...JSON.parse(JSON.stringify(O)),
       stale: O.year !== c.year || O.season !== c.season,
@@ -488,5 +584,5 @@ VB['sim/outlook'] = (() => {
       hay: { ...none, seasons: [3] },
     };
   }
-  return { OUTLOOK, DOUBT, FRAME, SUPPLIES, STATES, reckon, supplyOutlook, giftOutlook, villageOutlook };
+  return { OUTLOOK, DOUBT, FRAME, SUPPLIES, STATES, reckon, supplyOutlook, giftOutlook, villageOutlook, handOf };
 })();

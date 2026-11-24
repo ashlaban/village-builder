@@ -7,7 +7,7 @@
 // modules' syntax (acorn). A line is placed in its function (the innermost named one; a job kind's property as `kind.property`).
 // - adds and takes: a store operation (by its good; a grain call is the village's when its holder or reason names a village), or a direct
 //   write: `+=`, `++` and push add; `-=`, `--`, filter, splice, shift and pop take; `=` and `*=` set. A take is a use unless its reason
-//   is a loss (spoilage, burn) or a transfer between holders (gift, share, handingOn, provisions, start), or, for a direct write, its
+//   is a loss (spoilage, burn) or a transfer between holders (gift, share, handingOn, provisions, start, moving), or, for a direct write, its
 //   function is one of the line's `losses`.
 // - reads: a read site in the simulation (not sim/stores, sim/saves or the generator) in a function that does not change the quantity;
 //   reads in its own job kinds' `available` and `urgency` are not counted (they only refill it).
@@ -47,8 +47,10 @@ const QUANTITIES = [
   { id: 'rack', of: 'household', name: 'fish by the drying rack', unit: 'rations', fields: ['household.rack'], good: 'fish', holder: 'household',
     kinds: ['rackfish', 'fish'], // fish: the catch for the pot beyond what is eaten before it spoils (sim/drying, VB-388)
     none: 'nothing to split and hang: the drying job is not posted, and another catch for the rack may be (sim/drying, VB-300)' },
-  { id: 'wood', of: 'household', name: 'the woodpile', unit: 'loads', fields: ['household.wood'], good: 'wood', holder: 'household', kinds: ['wood'],
+  { id: 'wood', of: 'household', name: 'the woodpile', unit: 'loads', fields: ['household.wood'], good: 'wood', holder: 'household', kinds: ['firewood'],
     none: 'the day\'s fire takes what there is and the house is cold (hh.cold, sim/hunger): health falls, no meal is cooked, and the firewood job comes first (VB-327)' },
+  { id: 'timber', of: 'household', name: 'timber home, not yet cut', unit: 'loads', fields: ['household.timber'], good: 'timber', holder: 'household', kinds: ['wood', 'firewood'],
+    none: 'nothing to cut at the house: the firewood job is not posted, and the felling of the woods is (sim/chores, VB-1653)' },
   { id: 'stone', of: 'household', name: 'the stone heap', unit: 'loads', fields: ['household.stone'], good: 'stone', holder: 'household',
     kinds: ['pick', 'quarry'],
     none: 'the house is not raised onto a stone foundation; stone is picked or quarried for it (sim/building, VB-332); the village\'s well, '
@@ -114,6 +116,9 @@ const QUANTITIES = [
   { id: 'booth', of: 'tile', name: 'a booth\'s condition: poles, bark and turf, worn by closed form from when it was raised', unit: '0..1',
     fields: ['booth.cond'], covers: ['booth.condAt', 'st.boothSeq'], kinds: [],
     none: 'the booth is gone and its tile as it was; a stay that slept there is under the open sky (sim/building, VB-784)' },
+  { id: 'shelter', of: 'farm', name: 'a farm\'s shelter on its house tile, the ladder\'s first rung: the timber brought to raise it, then its condition, worn by closed form as a booth\'s', unit: 'loads, then 0..1',
+    fields: ['farmstead.shelter'], kinds: ['timber', 'shelter'],
+    none: 'its household sleeps under the open sky (sim/building roofless) and its cottage waits; one worn to nothing is raised again where it stood (sim/building, VB-1666)' },
   { id: 'giftGrain', of: 'stay', name: 'a gift\'s grain on its way: on a carrier\'s back, or set aside where it lies until it is fetched', unit: 'rations',
     fields: ['st.away'], kinds: [],
     none: 'nothing is on its way: the gift has come in, or what was left lying went back to its giver\'s store when its fetcher died or left the household (sim/away, VB-291, VB-461)' },
@@ -149,7 +154,7 @@ const NOT_STOCKS = {
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'village.keep', 'village.keepBy', 'village.tarBy', 'household.yields', 'household.spoilt', 'household.hungryDays',
     'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.marshDay', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.fellShort', 'household.giftedIn', 'household.milkDay', 'household.workHours', 'village.ledger', 'village.totals', 'village.workday'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'village.commonFields',
-    'farmstead.booth', 'farmstead.barn', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
+    'farmstead.booth', 'farmstead.camp', 'farmstead.barn', 'farmstead.byre', 'farmstead.rung', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
       'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'farmstead.water', 'farmstead.wellMeant', 'village.crowded', 'village.founded',
       'village.rotation', 'farmstead.rotationBy', 'farmstead.failed', 'farmstead.left'],
   'the generated world': ['w.seed', 'w.lat', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
@@ -208,7 +213,7 @@ const OPS = { put: 'add', take: 'take', takeSpare: 'take', move: 'move', cook: '
   start: 'start', brew: 'brew',
   pour: 'take', spoilAle: 'take', villageDay: 'take', dry: 'take', cookLarder: 'add' };
 const OP_GOODS = { dug: ['clay', 'bogOre', 'peat'] };
-const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'share', 'wage', 'handingOn', 'provisions', 'start']);
+const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'share', 'wage', 'handingOn', 'provisions', 'start', 'moving']);
 const SKIP = new Set(['sim/stores', 'sim/saves']); // the stores' own operations, and saving
 // A module's named functions, innermost by line: [{name, from, to}], a job kind's properties as `kind.property`
 function functionsOf(src) {

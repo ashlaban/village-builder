@@ -120,7 +120,8 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   `docs/agents/changes.md` marked, and their periods compared (VB-1615). Its model is checked by `tests/usage-page.js`.
 - Skills and agents: `node tools/agents-page.js [--dir DIR] [--out FILE] [--json]` writes `docs/agents.html` (derived, never committed; the
   Pages workflow makes it; the main menu links it): each skill of `.claude/skills/` and agent of `.claude/agents/`, how it is started (its
-  `argument-hint` or `prompt-hint`) and its parameters, the first bullet list under its arguments or parameters heading. A new skill or agent
+  `argument-hint` or `prompt-hint`) and its parameters, the first bullet list under its arguments or parameters heading, or else after its
+  `Arguments:` line. A new skill or agent
   gives both, or `tests/agents-page.js` fails.
 - Agent usage: `node tools/agent-usage.js [--task VB-NNN] [--results FILE]` (this session's calls, tokens and tool results, and each sub-agent's, from
   their transcripts: weighted cost a done task by size, the orchestrator's share, the median boot, the share done; `--history docs/agents/usage`).

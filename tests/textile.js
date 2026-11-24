@@ -67,7 +67,7 @@ c.practices.spinning = 'women';
 
 // --- the loom, a making: why not, and its step
 const M = VB['sim/makings'].makingOf('loom');
-check(M && M.small && M.why(st, hh, f) === `household ${hh.id} has a loom`, 'a household with a loom builds none');
+check(M && M.small && M.why(st, hh, f) === `the household has a loom`, 'a household with a loom builds none');
 delete hh.loom;
 const plan = M.begin(st, hh, f);
 check(plan.steps.length === 1 && plan.steps[0].kind === 'loom' && plan.steps[0].timber === TEXTILE.loomTimber, 'the loom: one step, its timber');

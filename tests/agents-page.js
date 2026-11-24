@@ -41,6 +41,9 @@ prompt-hint: Help VB-NNN
 const a = parse(agent, 'agent', '.claude/agents/helper.md');
 assert.ok(a.hint === 'Help VB-NNN' && a.tools === 'Bash, Read', "an agent's hint is its prompt-hint");
 assert.deepStrictEqual(a.params.map((p) => p.name), ['`Help VB-NNN`', null], 'a bullet with no leading code span is a note');
+const lead = parse('---\nname: lead\n---\n# Lead\n\nArguments: `$ARGUMENTS`\n\nProse first.\n\n- `ID`: the task.\n- `--to S`: whom.\n\n## 1. Do\n- `--x`: no.\n',
+  'skill', 'x/lead/SKILL.md');
+assert.deepStrictEqual(lead.params.map((p) => p.name), ['`ID`', '`--to S`'], 'no arguments heading: the list after the Arguments: line');
 assert.strictEqual(parse('# Bare\n', 'agent', 'x/bare.md').name, 'bare', 'no frontmatter: named after its file, no parameters');
 
 const html = render([s, a]);
@@ -62,6 +65,6 @@ assert.ok(own.some((x) => x.kind === 'skill') && own.some((x) => x.kind === 'age
 for (const x of own) {
   assert.ok(x.description, `${x.file} has a description`);
   assert.ok(x.hint, `${x.file} has its ${x.kind === 'skill' ? 'argument-hint' : 'prompt-hint'} in its frontmatter`);
-  assert.ok(x.params.some((p) => p.name), `${x.file} lists its parameters under an arguments or parameters heading`);
+  assert.ok(x.params.some((p) => p.name), `${x.file} lists its parameters, under an arguments heading or after its Arguments: line`);
 }
 console.log(`agents-page: ok (${own.length} skills and agents, ${own.reduce((n, x) => n + x.params.length, 0)} parameters)`);

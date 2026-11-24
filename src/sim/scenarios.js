@@ -5,6 +5,8 @@ VB['sim/scenarios'] = (() => {
   const { YEAR, TICKS, ECON, TESTBED, SEASON_DAYS, cal } = VB['sim/rules'],
     { CROPS, ROTATIONS, openGround: farmable } = VB['sim/crops'];
   const { seal } = VB['sim/registry'];
+  const { makeCamp } = VB['sim/camp'];
+  const { seedByres, noByre } = VB['sim/byrehouse'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
     { buildHours } = VB['sim/villagehours'];
@@ -53,12 +55,14 @@ VB['sim/scenarios'] = (() => {
   const { seedOutland } = VB['sim/territory'];
   const { birthright } = VB['sim/farmclaims'];
   // Founders, or with `solo` one settler alone on a village of one farm, landed with what a founders household of the village brings.
-  function seedFounders(w, seedNum, solo = false) {
+  // hand (solo; VB-1651): the settler is planned by hand, and lands with no field or meadow under way.
+  function seedFounders(w, seedNum, solo = false, site = -1, hand = false) {
     const S = fromState((seedNum * 2654435761) ^ 0x51ed),
       rand = drawer(S);
     const comp = landComponents(w),
       minLand = Math.round((1500 * w.N) / (280 * 200)); // the required land mass scales with the map
-    const center = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= minLand);
+    // site: the tile the player chose for the settler's farm (solo; sim/landing reads it), in place of the search's
+    const center = site >= 0 ? site : findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= minLand);
     if (center < 0) throw new Error('No village site found');
     const gen = settlementGenerator(w, rand, true),
       village = gen.addVillage(center, solo ? 1 : 3),
@@ -100,31 +104,33 @@ VB['sim/scenarios'] = (() => {
     log(st, `${who} ${village.name}${lone ? ` and ${lone.name}` : ''}.`, { kind: 'settled', n, village: village.id });
     VB['sim/carts'].seedCarts(st, false);
     startStreams(st, seedNum);
-    if (solo) landAlone(st); // no cottage stands: a booth first, then the cottage (VB-1544)
+    if (solo) landAlone(st, hand); // no cottage stands: a shelter first, then the cottage (VB-1544, VB-1666)
     return st;
   }
   // The lone settler lands (VB-1544; the solo start): no cottage stands on its farm, which is a booth farm as a settler
-  // household's is (f.booth, its cottage its project plan, sim/settle's settleFarm), and the settler stakes its booth on the first open tile beside
-  // the house tile by the verb any pawn has (raiseBooth, sim/building), and raises it by its own work; it sleeps under the open sky until
-  // the booth stands (sim/building roofless), and the cottage follows as a settler household's does. Its first field is staked at the
+  // household's is (f.booth, its cottage its project plan, sim/settle's settleFarm), and its shelter is begun on the house tile by the same
+  // rule (VB-1666; sim/building stakeShelter), raised by the settler's own work; it sleeps under the open sky until the shelter stands
+  // (sim/building roofless), and the cottage follows on the same tile as a settler household's does. Its first field is staked at the
   // landing as a settler household's is (settleFarm), on the tile its head would pick (sim/fieldplans pickField): a household's land
-  // projects wait while another of its projects is under way, and the cottage's would hold the field back to the roof. The booth's tile,
-  // or null where none beside the house will take one.
-  function landAlone(st) {
+  // projects wait while another of its projects is under way, and the cottage's would hold the field back to the roof. With `hand` (a
+  // player who plans by hand; Kim, 24 Nov 2026: "begin with nothing under way") nothing is: no field, no booth, no cottage plan; the farm is
+  // a camp (sim/camp, VB-1655) until its head places the farmstead by its plan.
+  function landAlone(st, hand = false) {
     const hh = st.households[0],
       f = st.farmsteads[hh.farmstead],
-      field = pickField(st, f, hh);
+      field = hand ? -1 : pickField(st, f, hh);
     f.booth = true;
+    if (hand) {
+      makeCamp(st, f); // VB-1655: a camp, nothing under way; the head places the farmstead by its plan
+      noByre(st, f); // VB-1665: nor a byre
+      return;
+    }
     if (field >= 0) {
       stake(st, hh, field, 'field');
       makeProject(st, 'household', hh.id, fieldProject(st, hh, field));
     }
     makeProject(st, 'household', hh.id, cottagePlan(st, f));
-    for (let d = 0; d < 6; d++) {
-      const t = st.w.nb[f.house * 6 + d];
-      if (t >= 0 && issue(st, { actor: hh.holder, verb: 'raiseBooth', target: t, source: 'pawn' }) === true) return t;
-    }
-    return null;
+    VB['sim/building'].stakeShelter(st, f);
   }
   // Populous Villages: only villages, of three size bands, until the map holds the target population (POPULATION's first number a
   // map size: 800 on a Medium or Large map) or has no site left, in which case it starts with fewer; on a Medium or Large map
@@ -674,6 +680,7 @@ VB['sim/scenarios'] = (() => {
     st.record.forEach((e, i) => {
       if (e.kind === 'born' && st.pawns[e.pawn].died === null) st.pawns[e.pawn].events.unshift(i);
     });
+    seedByres(st); // VB-1665: every farm that stands at seeding has its byre
     return st;
   }
 
@@ -736,7 +743,8 @@ VB['sim/scenarios'] = (() => {
   }
   // The test switch (VB-350; tools/sim.js and tools/balance.js --rye): every village is given rye and farms in three courses.
   const giveRye = (st) => giveCrops(st, () => 'three');
-  // places: what was placed by hand, for the 'manual' scenario (seedManual). opts: {rye} (giveRye).
+  // places: what was placed by hand, for the 'manual' scenario (seedManual). opts: {rye} (giveRye), {site} (solo: the tile chosen), {hand}
+  // (solo: no field begun at the landing, VB-1651).
   function seed(w, seedNum, scenario = 'founders', places = null, opts = null) {
     if (scenario === 'manual') return seedManual(w, seedNum, places);
     const st =
@@ -744,7 +752,13 @@ VB['sim/scenarios'] = (() => {
         ? seedHeirs(w, seedNum)
         : scenario === 'populous' || scenario === 'market'
           ? seedPopulous(w, seedNum, scenario === 'market')
-          : seedFounders(w, seedNum, scenario === 'solo');
+          : seedFounders(
+              w,
+              seedNum,
+              scenario === 'solo',
+              scenario === 'solo' && opts && opts.site >= 0 ? opts.site : -1,
+              scenario === 'solo' && !!(opts && opts.hand),
+            );
     if (opts && opts.rye) giveRye(st);
     return st;
   }

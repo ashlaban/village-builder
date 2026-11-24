@@ -6,7 +6,8 @@
 //   --out FILE  the page to write (default docs/agents.html)
 //   --json      print the data the page is drawn from, and write nothing
 // Read from each file: its frontmatter's name, description, argument-hint (a skill) or prompt-hint (an agent), tools and model; its
-// first `# ` heading; and its parameters, the first bullet list under its first `## ` heading that names arguments or parameters.
+// first `# ` heading; and its parameters, the first bullet list under its first `## ` heading that names arguments or parameters, or
+// else the first bullet list after a line that starts `Arguments:` and before the first `## ` heading.
 // A bullet that starts with a `code` span and a colon is a parameter and its meaning; any other bullet is a note beside them.
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path');
@@ -20,13 +21,17 @@ function frontmatter(text) {
   return { meta, body: text.slice(m[0].length) };
 }
 
-// The bullets of the first list under the first `## ` heading that names arguments or parameters, each joined to one line.
+// The bullets of the first list under the first `## ` heading that names arguments or parameters, or else of the first list after a
+// line `Arguments: ...` above the first `## ` heading; each bullet joined to one line.
 function bullets(body) {
-  const lines = body.split('\n'), at = lines.findIndex((l) => /^## .*(argument|parameter)/i.test(l));
+  const lines = body.split('\n'), sec = lines.findIndex((l) => /^## .*(argument|parameter)/i.test(l));
+  const first = lines.findIndex((l) => /^## /.test(l)), intro = lines.findIndex((l, i) => /^Arguments:/.test(l) && (first < 0 || i < first));
+  const at = sec >= 0 ? sec : intro;
   if (at < 0) return [];
   const out = [];
   for (const l of lines.slice(at + 1)) {
     if (/^#{1,2} /.test(l)) break;
+    if (!out.length && sec < 0 && l.trim() && !/^- /.test(l)) continue; // after the Arguments: line, prose before the list
     if (/^- /.test(l)) out.push(l.slice(2).trim());
     else if (out.length && /^\s+\S/.test(l)) out[out.length - 1] += ' ' + l.trim();
     else if (out.length) break; // the list ended: a blank line or prose

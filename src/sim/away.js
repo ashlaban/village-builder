@@ -169,7 +169,7 @@ VB['sim/away'] = (() => {
     }
     const R = 1 / st.ECON.uncooked,
       spare = Math.max(0, Stores.grainOf(hh) - Stores.reserved(st, hh, 'grain')) / R;
-    return spare + 1e-9 < packOf(st, p, o.days) ? `household ${hh.id} has no food to spare for the pack` : null;
+    return spare + 1e-9 < packOf(st, p, o.days) ? `the household has no food to spare for the pack` : null;
   }
   // The pawns booth b is open to that walk home to pack for a bed at tile `at` (agent.packing, VB-1175): its beds are theirs already.
   function packingFor(st, b, at) {

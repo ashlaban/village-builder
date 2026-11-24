@@ -436,7 +436,7 @@ VB['sim/byre'] = (() => {
       if (!stalled(c)) continue;
       const yesterday = { doy: (c.doy + 47) % 48 };
       if (stalled(yesterday) && c.doy !== HERD.stall[0] && hh.fodderDay !== c.day - 1)
-        for (const herd of herds) herd.lean++;
+        for (const herd of herds) herd.lean += st.farmsteads[hh.farmstead].byre ? 1 : HERD.openLean; // in the open: faster (VB-1665)
       const need = herds.reduce((s, hd) => s + dailyHay(hd), 0);
       if (hh.hay >= need) {
         hh.hay -= need;
@@ -577,11 +577,10 @@ VB['sim/byre'] = (() => {
     if (Number.isInteger(actor)) {
       const why = living(st, actor);
       if (why) return why;
-      if (hh.holder !== actor)
-        return `pawn ${actor} is not the head of household ${id}: only its head chooses the cull`;
+      if (hh.holder !== actor) return `pawn ${actor} is not the head of the household: only its head chooses the cull`;
     } else if (!(actor && actor.household === id && hh.holder === null))
-      return `only the head of household ${id} chooses the cull`;
-    if (!hh.herds.length) return `household ${id} has no animals`;
+      return `only the head of the household chooses the cull`;
+    if (!hh.herds.length) return `the household has no animals`;
     const c = cal(st.t);
     if (c.season !== 2 || c.doy < HERD.countDay) return 'the cull is chosen in autumn, from the day of the count';
     const list = args && args.animals;
@@ -662,11 +661,19 @@ VB['sim/byre'] = (() => {
       for (const [key, kind, extra, site] of byreJobs(st, hh, c))
         post(key, site ?? f.house, { farm: f, ...extra }, kind);
   }
+  // Whether a byre stands on the farm of job j's household.
+  const byreStands = (st, j) => {
+    const hh = j.owner && j.owner.type === 'household' ? st.households[j.owner.id] : null,
+      f = hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
+    return !!(f && f.byre);
+  };
   // The job kinds (sim/kinds joins them into KINDS; a kind's fields are described there).
   const KINDS = {
     fodder: {
       verb: 'Feeding and mucking out in the byre',
       go: 'Going to the byre',
+      // VB-1670: on a farm with no byre standing (farmstead.byre, sim/byrehouse) the animals are foddered where they stand
+      words: (st, j) => (byreStands(st, j) ? {} : { verb: 'Foddering the animals', go: 'Going to the animals' }),
       name: 'Fodder the animals',
       at: ['byre'],
       needs: ['hay'],

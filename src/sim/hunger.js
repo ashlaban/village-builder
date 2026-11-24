@@ -1,5 +1,7 @@
 // @sys sim/hunger: feeding households, the daily hearth and the effects of food and shelter on pawns' health
 VB['sim/hunger'] = (() => {
+  const { owedBy, tiredHealth } = VB['sim/sleep'];
+  const { fireOf } = VB['sim/house'];
   const { HUNGER, HEALTH, ILLNESS, HERD, HELP, DAY, YEAR, YEAR_DAYS, PEAT, BUILD, GATHERING } = VB['sim/rules'],
     { CROPS, ROTATIONS } = VB['sim/crops'];
   const { age, farmPractice } = VB['sim/records'];
@@ -242,10 +244,12 @@ VB['sim/hunger'] = (() => {
   // A household with no roof yet (`roof` 'none'; sim/building roofless, VB-1544: a lone settler before its booth stands) lights no hearth:
   // its day is the open sky's cold (nightCost's), and it burns nothing; that cold is not the hearth's, and goes into no log (hh.cold
   // ranks the wood).
+  // A timber house's hearth burns ROOM.timberFire of a cottage's (sim/house fireOf, VB-1664); its cold is still the wood lacked over
+  // a cottage's winter use.
   function warmHouse(st, hh, season, roof) {
     if (roof === 'none') return nightCost(st, season, 'none')[0];
     const use = st.ECON.woodUse,
-      want = use[season],
+      want = use[season] * fireOf(st, hh),
       burnt = Stores.take(st, hh, 'wood', want, 'burn'); // the day's fire, what the pile holds of it (VB-328: through the stores)
     let lack = want - burnt;
     if (lack > 1e-9 && hh.peat > 0) {
@@ -324,7 +328,7 @@ VB['sim/hunger'] = (() => {
   // restores some on a warm day, nothing on a cold one; a dry day costs HEALTH.dry and restores nothing, a day of marsh water HEALTH.marsh
   // (VB-1582). An illness running its course (pawn.ill, sim/deaths; VB-1118) takes ILLNESS.fall
   // over its days (ILLNESS.passing of it for one that passes, VB-1246), and nothing is restored while it runs. The played pawn's day is
-  // told to sim/player (event 'health': what moved it).
+  // told to sim/player (event 'health': what moved it); its sleep owed, a whole night or more, costs health too (VB-1643).
   function updateHealth(st, p, fed, cold = 0, dry = 0, poor = false) {
     const a = age(st, p),
       frail = a < 5 || a >= 60 ? HEALTH.frail : 1,
@@ -336,8 +340,9 @@ VB['sim/hunger'] = (() => {
         p.ill === undefined
           ? 0
           : ((p.ill.passes ? ILLNESS.passing : 1) * ILLNESS.fall * DAY) / (p.ill.until - p.ill.from),
+      tired = tiredHealth(owedBy(st, p.id)), // the played pawn's sleep owed, a whole night or more (sim/sleep, VB-1643)
       rest = cold <= 0 && dry <= 0 && fed && !ill ? HEALTH.recover * act(st, p.id, 'body', 'recover') : 0; // 2.5 to 3.5 by body (VB-520)
-    p.health = Math.max(0, Math.min(100, p.health - hungry - chill - damp - ill + rest));
+    p.health = Math.max(0, Math.min(100, p.health - hungry - chill - damp - ill - tired + rest));
     if (st.player && st.player.pawn === p.id)
       emit(st, 'health', {
         pawn: p.id,
@@ -348,6 +353,7 @@ VB['sim/hunger'] = (() => {
         cold: chill,
         damp,
         ill,
+        tired,
         rest,
       });
   }

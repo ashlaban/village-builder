@@ -19,18 +19,30 @@ VB['sim/projectplans'] = (() => {
     const k = st.plans.projects.heirPlots.indexOf(plan);
     if (k >= 0) st.plans.projects.heirPlots.splice(k, 1);
   }
+  // Whether household id's plan of `what` with `steps` would open a step of a kind another of its plans posted by sim/projects'
+  // landProject (not a plot's nor a cottage's) has: then it is marked `side` and its jobs are keyed apart by its id (VB-1651, VB-1668).
+  // A household with one such plan at a time, or plans of kinds of their own, keeps its keys. A few plans of a few steps.
+  const posted = (what) => what !== 'plot' && what !== 'cottage';
+  function besideKind(st, id, what, steps) {
+    if (!posted(what)) return false;
+    for (const p of projectsOf(st, 'household', id))
+      if (posted(p.what) && p.steps.some((x) => steps.some((s) => s.kind === x.kind))) return true;
+    return false;
+  }
   // A project plan for holder {type, id}, from {what, steps, hold, ...its own fields} (sim/fields' fieldProject, sim/meadows', a plot): what
   // its steps spend is reserved from the holder's free stock (null, and no plan, when another plan holds it), `hold` kept back for after it.
   function makeProject(st, type, id, { what, steps, hold = null, ...own }) {
     const holder = holderOf(st, { type, id }),
       P = st.plans.projects,
-      spend = {};
+      spend = {},
+      side = type === 'household' && !own.side && besideKind(st, id, what, steps);
     const plan = {
       id: ++st.plans.projectSeq,
       holder: { type, id },
       kind: 'project',
       what,
       ...own,
+      ...(side ? { side: true } : {}),
       steps,
       open: 0,
       reserved: {},
