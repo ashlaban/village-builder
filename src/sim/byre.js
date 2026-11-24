@@ -252,7 +252,8 @@ VB['sim/byre'] = (() => {
     herd[k]--;
     return e.sheep;
   }
-  // The slaughter is done: the animal leaves the herd, its meat goes into the larder fresh.
+  // The slaughter is done: the animal leaves the herd, its meat goes into the larder fresh; a beast of the cattle gives its hide too, for
+  // leather (VB-911, sim/leather: the kind declared it, and nothing took it).
   function slaughterDone(st, herd, entry, hh) {
     const i = herd.cull.indexOf(entry);
     if (i < 0) return;
@@ -262,6 +263,7 @@ VB['sim/byre'] = (() => {
     if (kind) {
       addFood(st, hh, 'meat', n);
       Stores.record(st, hh, 'meat', n, 'meat');
+      if (herd.species === 'cattle') Stores.put(st, hh, 'hide', 1, 'slaughter');
     }
   }
   // Milked (VB-135): each cow in milk gives HERD.milk rations, less for the lean days of the winter, and half after a grazing day by the

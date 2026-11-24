@@ -791,6 +791,9 @@ function checkState(st) {
     if (b && !(tileOk(b.tile) && tileOk(b.house) && st.w.water[b.water] === 1 && Array.from({ length: 6 }, (_, k) => st.w.nb[b.tile * 6 + k]).includes(b.water)
       && b.built <= st.t && (b.tarred === undefined || b.tarred >= b.built && b.tarred <= st.t))) bad.push(`households[${h.id}]: boat ${JSON.stringify(b)}`);
     if (h.hides !== undefined && !(Number.isInteger(h.hides) && h.hides >= 0)) bad.push(`households[${h.id}]: hides is ${h.hides}`); // VB-424
+    // shoes and harness (VB-911): pairs held, a finite number not below 0; the harness's condition in [0, 1]
+    if (h.shoes !== undefined && !(Number.isFinite(h.shoes) && h.shoes >= 0)) bad.push(`households[${h.id}]: shoes is ${h.shoes}`);
+    if (h.harness !== undefined && !within(h.harness, 0, 1)) bad.push(`households[${h.id}]: harness is ${h.harness}`);
     // tar (VB-301): whole barrels; the pit null or on a tile of the map, in a village, dug at a time not after now
     if (h.tar !== undefined && !(Number.isInteger(h.tar) && h.tar >= 0 && h.tar <= 100)) bad.push(`households[${h.id}]: tar is ${h.tar}`);
     if (h.tarPit !== undefined && h.tarPit !== null && !(tileOk(h.tarPit.tile) && st.villages[h.tarPit.village] && h.tarPit.built <= st.t))

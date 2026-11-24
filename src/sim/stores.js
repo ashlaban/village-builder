@@ -72,6 +72,8 @@ VB['sim/stores'] = (() => {
   KINDS.push('saltboil');
   // VB-701: a bloom smelted at the household's pit, out of bog ore and firewood, and the iron a mending of its tools takes (sim/smelting)
   KINDS.push('smelt', 'mendtools');
+  KINDS.push('leather'); // VB-911: a hide cut into shoes or harness at home (sim/leather)
+  KINDS.push('slaughter'); // VB-911: the hide of a slaughtered beast of the cattle (sim/byre)
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -242,7 +244,8 @@ VB['sim/stores'] = (() => {
   const setTar = (hh, n) => {
     hh.tar = n;
   };
-  // @state household.hides: hides of roe deer held, whole numbers (VB-424; a kill gives one, sim/deer; wanted for shoes and harness), 0 at the start
+  // @state household.hides: hides held, whole numbers (VB-424; a kill gives one, sim/deer, and a slaughtered beast of the cattle one,
+  //   sim/byre, VB-911; cut into shoes and harness, sim/leather), 0 at the start
   const setHides = (hh, n) => {
     hh.hides = n;
   };

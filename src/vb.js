@@ -198,6 +198,7 @@ VB.COUNTERS = {
   boothWater:
     "Stays read for the booths' water, each review hour while any booth stands: the fetch of each booth somebody sleeps in " +
     '(sim/building; VB-1601)',
+  leatherWear: 'Households whose shoes and harness wear a day, once a day (sim/leather wearDay; VB-911)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
 };

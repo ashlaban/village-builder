@@ -116,6 +116,7 @@ VB['sim/kinds'] = (() => {
     if (K.carry && (K.load || K.stack)) KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
   KINDS.blaze = VB['sim/trails'].KINDS.blaze; // blazing a trail (VB-447): sim/trails'
   KINDS.drink = VB['sim/thirst'].KINDS.drink; // a pawn's drink at a source (VB-1585): sim/thirst's
+  Object.assign(KINDS, VB['sim/leather'].KINDS); // shoes and harness cut from a hide (VB-911): sim/leather's
   // ---- where a kind is worked, what it takes and what it gives (VB-1124): each kind's record declares `at` (the places of PLACES where its
   // work is done), `needs` (the things of THINGS it takes or must find there: a good used up, a tool or a facility) and `gives` (the
   // things it makes or brings home), beside its rule, as its name and hours are. The game's guide (page/guide) reads them, and a kind
@@ -170,6 +171,8 @@ VB['sim/kinds'] = (() => {
     'dried fish': { name: 'dried fish', good: 'dried fish', food: 'dried fish' },
     'wild food': { name: 'berries, mushrooms and nuts', food: 'gathered' },
     hide: { name: 'hides', good: 'hide' },
+    shoes: { name: 'shoes' },
+    harness: { name: "the team's harness" },
     fleece: { name: 'fleece' },
     cattle: { name: 'cattle', good: 'cattle/cow' },
     sheep: { name: 'sheep', good: 'sheep' },
@@ -268,6 +271,7 @@ VB['sim/kinds'] = (() => {
   ASK.farmAfterPlans.push(rule('burntar'), rule('tarhouse'), rule('tarboat')); // tar (VB-301, sim/tar)
   ASK.farmAfterPlans.push(rule('boilsalt')); // salt (VB-700, sim/saltpan)
   ASK.farmAfterPlans.push(rule('smelt'), rule('mendtools')); // iron and the tools (VB-701, sim/ironwork)
+  ASK.farmAfterPlans.push(rule('cobble'), rule('harness')); // shoes and harness (VB-911, sim/leather)
   (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)
   ASK.island.push(rule('blaze')); // the trails under way, each its blazer's household's (VB-447, sim/trails)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);

@@ -1,0 +1,124 @@
+{
+ "session": "4f9085bb-afe7-59de-9991-b65cb7901ef7",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T07:36:00.827Z",
+ "end": "2026-11-24T07:48:06.163Z",
+ "wallMin": 12.1,
+ "activeMin": 12.1,
+ "prompts": 1,
+ "calls": 66,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 125,
+  "cacheWrite": 139601,
+  "cacheRead": 10477122,
+  "output": 34936
+ },
+ "context": {
+  "first": 85356,
+  "peak": 203390,
+  "firstEdit": 158675
+ },
+ "tools": {
+  "Bash": {
+   "calls": 65,
+   "bytes": 178536,
+   "seconds": 392.5
+  },
+  "Write": {
+   "calls": 1,
+   "bytes": 141,
+   "seconds": 0
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 17,
+   "bytes": 57847
+  },
+  {
+   "tool": "Bash",
+   "what": "for i",
+   "calls": 2,
+   "bytes": 17691
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/quern.js",
+   "calls": 1,
+   "bytes": 14824
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 9,
+   "bytes": 14125
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 2,
+   "bytes": 12030
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 4,
+   "bytes": 11004
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 1,
+   "bytes": 9439
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 11,
+   "bytes": 8556
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7612
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 1,
+   "bytes": 4980
+  },
+  {
+   "tool": "Bash",
+   "what": "node tests/smoke.js",
+   "calls": 1,
+   "bytes": 3636
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/sim.js",
+   "calls": 1,
+   "bytes": 2788
+  }
+ ],
+ "weighted": 1397018,
+ "task": "VB-911",
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 1397018,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

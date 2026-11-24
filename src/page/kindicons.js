@@ -141,6 +141,8 @@ const KIND_ICON = {
   mend: 'fence',
   smelt: 'build',
   mendtools: 'build',
+  cobble: 'build',
+  harness: 'build',
   workfence: 'fence',
   plow: 'hoe',
   repair: 'build',
