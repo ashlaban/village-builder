@@ -119,7 +119,9 @@ VB['sim/away'] = (() => {
         fire = fires.get(booth);
       }
       const [cold, dry] = nightCost(st, season, j.roof, j.host == null ? null : st.households[j.host], fire);
-      ate(st, p, eat, need, cold, dry);
+      // its drink is its roof's, as before (a booth's and a host's water; under the open sky none: water on a journey is Open), read
+      // back as the pawn's own thirst, so that one with no water where it stays may go and drink at the site's source (VB-1554)
+      ate(st, p, eat, need, cold, ...VB['sim/thirst'].dayEnd(st, p, !dry));
       if (j.bed !== null && !j.back && stayOver(st, j, eat < need - 1e-9))
         issue(st, { actor: j.pawn, verb: 'comeHome', source: 'pawn' });
     }

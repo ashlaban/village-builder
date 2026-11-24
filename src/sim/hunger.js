@@ -10,6 +10,7 @@ VB['sim/hunger'] = (() => {
   const { dayLoss, GRAIN } = VB['sim/goods'];
   const Rules = VB['sim/registry'],
     { emit } = VB['sim/events'];
+  const Thirst = VB['sim/thirst'];
   // The seed kept for a field: the standing plan's target (from its culture's template, sim/plans; VB-252), the crop's seed (barley's) before it has one.
   function seedPer(st, hh) {
     const plan = st.plans && st.plans.households.get(hh.id);
@@ -199,16 +200,22 @@ VB['sim/hunger'] = (() => {
       if (spare > 0) Stores.takeSpare(st, hh, spare, 'raw');
       hh.hungryDays++;
     }
+    // the dry day's health is the pawn's own (VB-1554): with the day's water in, each drank at the meal; with none, who drank at a
+    // source that day loses nothing, and who did not is thirsty (sim/thirst dayEnd); marsh water a pawn drank by itself is poor too
+    const drink = (p) => {
+      const [d, m] = season === undefined ? [0, false] : Thirst.dayEnd(st, p, !dry);
+      return [d, poor || m];
+    };
     let sum = 0;
     for (const p of mem) {
-      ate(st, p, eaten.get(p), need.get(p), cold, dry, poor);
+      ate(st, p, eaten.get(p), need.get(p), cold, ...drink(p));
       hungryDay(p); // a child's hungry days, for its traits at 15 (sim/traits, VB-519)
       sum += p.hunger;
     }
     if (fed)
       for (const p of fed) {
         const n = rationOf(st, p);
-        ate(st, p, n, n, cold, dry, poor); // fed at the feast; the night's cold and a dry house still reach it at home
+        ate(st, p, n, n, cold, ...drink(p)); // fed at the feast; the night's cold and a day without a drink still reach it at home
         hungryDay(p);
         sum += p.hunger;
       }

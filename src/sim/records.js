@@ -104,6 +104,7 @@ VB['sim/records'] = (() => {
     cartBuilt: 0, // a household's new cart (VB-327)
     tarPit: 0, // a household's tar pit dug (VB-301)
     wellDug: 0, // a household's well dug by its house (VB-1553)
+    thirst: SHORT, // a pawn that left what it did to drink, THIRST.leave hours without one (sim/drinking, VB-1554)
     trail: 0, // a trail blazed through the wood (VB-447)
     setOut: 0, // a journey to a new home in another village (VB-287)
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
@@ -291,6 +292,7 @@ VB['sim/records'] = (() => {
       hunger: 0,
       hungerLog: [],
       health: 100,
+      drank: R.t || 0, // the hour it last drank (sim/thirst, VB-1554): at its making
       kinPush: null,
       visited: null,
     };

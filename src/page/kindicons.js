@@ -127,6 +127,7 @@ const KIND_ICON = {
   quarry: 'build',
   raise: 'build',
   water: 'water',
+  drink: 'water',
   cook: 'pot',
   brew: 'pot',
   thresh: 'sack',

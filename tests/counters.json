@@ -103,6 +103,7 @@
   "awayMeals": 0,
   "waterSettled": 0,
   "sourceSettled": 0.18105616093880972,
+  "thirstDue": 0,
   "deerCrop": 0,
   "roundRank": 0.01899972059234423
 }

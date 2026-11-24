@@ -523,6 +523,13 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'step',
+      when: (st) => !!st.thirstDue && st.thirstDue.length > 0,
+      owner: 'sim/drinking',
+      note: 'a pawn 36 hours without a drink leaves what it does and goes to drink (VB-1554); only those that ended a day thirsty are held',
+      run: (st) => VB['sim/drinking'].step(st),
+    },
+    {
+      every: 'step',
       at: { tick: [1, NIGHT_STEPS + 1] },
       when: cenv,
       owner: 'sim/meetings',

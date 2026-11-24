@@ -963,6 +963,9 @@ function checkState(st) {
       if (p.died !== null) bad.push(`pawns[${p.id}]: alive with died ${p.died}`);
       if (p.buffer !== undefined) bad.push(`pawns[${p.id}]: a drawn buffer (VB-520: the holder's reserve is its generosity's)`);
       if (!within(p.health, 0, 100)) bad.push(`pawns[${p.id}]: health is ${p.health}`);
+      // VB-1554: the hour it last drank (sim/thirst), never ahead of the clock; the day it last drank marsh water, if any
+      if (!(typeof p.drank === 'number' && p.drank <= st.t + 1e-9)) bad.push(`pawns[${p.id}]: drank is ${p.drank} at ${st.t}`);
+      if (p.marsh !== undefined && !(Number.isInteger(p.marsh) && p.marsh <= st.t / 24)) bad.push(`pawns[${p.id}]: marsh is ${p.marsh}`);
     } else {
       if (memberOf.has(p.id)) bad.push(`pawns[${p.id}]: dead but in household ${memberOf.get(p.id)}`);
       if (p.died === null) bad.push(`pawns[${p.id}]: dead without a died time`);
@@ -1303,6 +1306,16 @@ function checkState(st) {
     const KS = globalThis.VB['sim/kinds'].KINDS, { TICKS } = globalThis.VB['sim/rules'], A = globalThis.VB['sim/agents'];
     const q = st.workDue, inQ = new Set(q || []);
     if (q !== undefined && !Array.isArray(q)) bad.push(`workDue: ${typeof q}`);
+    // VB-1554: the thirsty pawns held due (sim/drinking): in the order of their hour, each a pawn, one thirst entry a pawn at most
+    if (st.thirstDue !== undefined) {
+      const T = st.thirstDue, seen = new Set();
+      if (!Array.isArray(T)) bad.push(`thirstDue: ${typeof T}`);
+      else T.forEach((e, i) => {
+        if (!st.pawns[e.pawn] || typeof e.at !== 'number' || (i > 0 && T[i - 1].at > e.at)) bad.push(`thirstDue[${i}]: ${JSON.stringify(e)} out of place`);
+        if (!e.home && seen.has(e.pawn)) bad.push(`thirstDue[${i}]: pawn ${e.pawn} held twice`);
+        if (!e.home) seen.add(e.pawn);
+      });
+    }
     else if (q) {
       if (inQ.size !== q.length) bad.push('workDue: a task twice');
       q.forEach((j, n) => {

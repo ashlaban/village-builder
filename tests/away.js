@@ -47,6 +47,7 @@ const meals0 = VB.count.awayMeals;
 for (let d = 1; d <= 2; d++) {
   to(st, 5);
   keep(st, hh, site);
+  p.drank = st.t; // a test's write: it has drunk (under the open sky it would go to drink at 36 hours: tests/thirst.js, VB-1554)
   assert.ok(Math.abs(s.food - (3 - d) * rationOf(st, p)) < 1e-9, `day ${d}: a ration eaten from the pack (${s.food} left)`);
   to(st, 12);
   assert.ok(a.job && a.job.key === KEY && a.phase === 'work', `day ${d}: at the task its stay names (${a.phase}, ${a.job && a.job.key})`);
