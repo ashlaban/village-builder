@@ -193,6 +193,26 @@ function selectPawn(id, pinned = true) {
   hoverDirty = true;
   showPawn(id);
 }
+// The pawn card's "Leans" line (VB-082): the two customs where its own mind differs most from its village's practice (sim/leanings), and
+// the cause it argues, with the years left. None for a child under 14, whose mind is still its upbringing's.
+function leansLine(p) {
+  const sid = Sim.settlementIdOf(st, p),
+    s = sid === null || sid === undefined ? null : st.cenv.settlements[sid],
+    a = p.advocate,
+    opt = (d, j) => `“${Customs.DIMS[d].opts[j][1]}”`;
+  const leans =
+    s && p.age >= 14
+      ? VB['sim/leanings']
+          .leansOf(p, s.practice)
+          .map((l) => `${opt(l.dim, l.opt)} on ${Customs.DIMS[l.dim].label.toLowerCase()}`)
+      : [];
+  const left = a && a.until !== undefined ? Math.max(0, Math.ceil(a.until - st.cenv.t)) : null,
+    cause = a
+      ? `argues for ${opt(a.dim, a.opt)}${left === null ? '' : `, ${left} ${left === 1 ? 'year' : 'years'} left`}`
+      : '';
+  if (!leans.length) return cause ? cause[0].toUpperCase() + cause.slice(1) : '';
+  return `Leans to ${leans.join(' and ')}${s ? ` (${s.name} holds otherwise)` : ''}${cause ? `; ${cause}` : ''}`;
+}
 function showPawn(id) {
   $('personFamily').hidden = false;
   const p = st.pawns[id],
@@ -248,9 +268,8 @@ function showPawn(id) {
       `${status}.${rel ? ` ${rel}` : ''}`,
       p.stake
         ? `Share in hand: ${p.stake} rations${Sim.shareOwed(st, p.id) ? `, ${Sim.shareOwed(st, p.id)} still owed` : ''}`
-        : p.advocate
-          ? `Argues for: ${Customs.DIMS[p.advocate.dim].opts[p.advocate.opt][1].toLowerCase()}`
-          : '',
+        : '',
+      leansLine(p),
       marryLine,
       craftsLine(id),
       Sim.thirstLine(st, id),
