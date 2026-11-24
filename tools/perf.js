@@ -6,7 +6,7 @@
 // Used by tools/sim.js: `const { load, result } = require('./perf.js')`; `load()` replaces require('../src/load.js').
 require('./help.js')(__filename);
 const { loadModules } = require('../tests/lib/load.js');
-// @merge union: its entries merge by name: a system a key; the order is only the report's (tools/merge.js, VB-1673)
+// @merge union: its entries merge by name: a system a key; the order is only the report's (tools/merge.js, VB-1679)
 const SYSTEMS = {
   'jobs refresh and matching': { 'sim/jobs': ['refreshJobs', 'lookForWork'], 'sim/day': ['takeDay', 'dutyRound'] },
   'talk and contacts': { 'sim/relations': ['talkHour'], 'sim/encounters': ['outdoors', 'partners'] },

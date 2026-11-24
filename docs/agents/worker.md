@@ -85,7 +85,7 @@ push. Candidates are never ready. Prefer small tasks that unblock others.
 - Timing is measured by the nightly bench, alone on the machine (section 3): a time a sub-agent measured beside others is a
   description, never a result.
 - Only you merge, apply and push; a sub-agent commits on its worktree's branch and writes nothing outside its worktree but the inbox.
-- `BACKLOG.md` and `BACKLOG_ARCHIVE.md` merge by task row once `npm install` has set the merge drivers (`tools/merge.js`, VB-1673): rows
+- `BACKLOG.md` and `BACKLOG_ARCHIVE.md` merge by task row once `npm install` has set the merge drivers (`tools/merge.js`, VB-1679): rows
   changed on different sides merge themselves. What conflicts still is a real clash: one ID taken by two branches (renumber yours, as
   "How this backlog works" says), a row changed two ways, or a row done on one side and changed on the other. Resolve it from the task
   files and run `node tools/backlog.js sync`, which rebuilds the tables from them. The JSON lists (`src/owners.json`, `page.json`,

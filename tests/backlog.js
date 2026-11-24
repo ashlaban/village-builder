@@ -7,7 +7,7 @@
 const fs = require('fs'), path = require('path');
 const root = process.argv[2] ? path.resolve(process.argv[2]) : path.join(__dirname, '..'), dir = path.join(root, 'backlog');
 const { parseTouches, fileOf } = require(path.join(__dirname, '..', 'tools', 'lib', 'touches.js')), warnings = [];
-// from this ID on a ready task carries a "Touches:" line (VB-1671): above every task file in sight when the line came (VB-1674 on
+// from this ID on a ready task carries a "Touches:" line (VB-1677): above every task file in sight when the line came (VB-1680 on
 // 25 November, tools/lib/ids.js), so no task a branch in flight had written then fails; one written since, without it, is mended by
 // `node tools/backlog.js set ID touches="..."`
 const TOUCHES_FROM = 1674;
@@ -43,7 +43,7 @@ for (const f of files) {
   if (arch === '-' && phase !== '-') errors.push(`backlog/${f}: a phase without an arch`);
   if (status === 'ready' && (!/^Goal: /m.test(text) || !/^Acceptance criteria\b/m.test(text) || text.includes('(to write)')))
     errors.push(`backlog/${f} is ready: it needs a "Goal:" line and "Acceptance criteria", and nothing left "(to write)"`);
-  // "Touches:" (VB-1671, docs/agents/tasks.md): its format always; a module it names exists, or is marked new (a warning: a task may wait)
+  // "Touches:" (VB-1677, docs/agents/tasks.md): its format always; a module it names exists, or is marked new (a warning: a task may wait)
   const touches = (text.match(/^Touches: (.*)$/m) || [])[1];
   if (touches !== undefined && touches.trim() !== '(to write)') {
     try {

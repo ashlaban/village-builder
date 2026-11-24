@@ -226,7 +226,7 @@ function apply(t, p) {
     if (p.cause && (!tasks.has(p.cause) || p.cause === t.id)) fail(`cause=${p.cause}: ${p.cause === t.id ? 'a task is not its own cause' : 'no such task file'}`);
     put(t, 'Cause', p.cause || null); t.dirty = true;
   }
-  if (p.touches !== undefined) { // the footprint (VB-1671, docs/agents/tasks.md): after "Design ref:", or after the header block
+  if (p.touches !== undefined) { // the footprint (VB-1677, docs/agents/tasks.md): after "Design ref:", or after the header block
     try { require('./lib/touches.js').parseTouches(p.touches); } catch (e) { fail(`touches=: ${e.message}`); }
     const line = `Touches: ${p.touches}`;
     if (/^Touches: .*$/m.test(t.text)) t.text = t.text.replace(/^Touches: .*$/m, () => line);
@@ -279,7 +279,7 @@ if (cmd === 'next') {
   if (lack.length) fail(`new needs ${lack.join(', ')} (key=value)`);
   if (p.status === 'ready') fail('a new task starts blocked or needs-review: fill in its file, then  set ID status=ready');
   if (p.id && (!/^VB-\d{3,}$/.test(p.id) || tasks.has(p.id))) fail(`id=${p.id}: ${tasks.has(p.id) ? 'taken' : 'not VB-NNN'}`);
-  // above every task file in sight: this checkout's and the branches pushed to origin lately (VB-1674), so sessions side by side differ
+  // above every task file in sight: this checkout's and the branches pushed to origin lately (VB-1680), so sessions side by side differ
   const seen = require('./lib/ids.js').highestId(root), local = Math.max(0, ...[...tasks.keys()].map(num));
   const id = p.id || 'VB-' + String(Math.max(local, seen.max) + 1).padStart(3, '0');
   if (!p.id && seen.max > local) console.log(`${id}: above ${seen.where}, which holds task files up to VB-${seen.max}`);

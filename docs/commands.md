@@ -7,10 +7,10 @@ Every tool run from `tools/` answers `--help` with its options, without running:
 - Backlog: `node tools/backlog.js next|list|show ID [--brief]` to read; `done ID...`, `set ID key=value...`, `new key=value...`,
   `close-arch KEY`, and `sync` after a task file's header is edited by hand, to change it. Each rewrites the tables and runs `tests/backlog.js`.
 - Renumbering: `node tools/renumber.js --onto origin/main [--dry]` before merging main: the branch's new task IDs that main took move above
-  every ID in sight, with their files and references, in a commit of their own; an inbox in progress follows (VB-1674).
+  every ID in sight, with their files and references, in a commit of their own; an inbox in progress follows (VB-1680).
 - Merge drivers: `node tools/merge.js --install` (run by `npm install`) sets the drivers `.gitattributes` names; git then runs
   `tools/merge.js MODE ...` itself at a merge. The backlog's tables merge by task row, the JSON lists by key and element, a module's imports and exports and the tables
-  marked `// @merge union` by name (VB-1673); `.git/vb-merge.log` lists what was merged so.
+  marked `// @merge union` by name (VB-1679); `.git/vb-merge.log` lists what was merged so.
 - A task's brief: `node tools/brief.js VB-NNN [--refs N]` prints, in one call, the task up to its criteria (its notes by size only, a
   `Flag:` line kept), its open questions, each section of `design.md` its Design ref names (whole up to N KB, default 4; a longer one
   by its subsections), the tasks that wait for it, and the rules for its kind (a change of behaviour, a refactor, the page, a plan, a wrap-up).

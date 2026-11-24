@@ -1,4 +1,4 @@
-// Merge drivers (VB-1673): git calls these for the files `.gitattributes` names, so that a conflict that is only mechanical resolves
+// Merge drivers (VB-1679): git calls these for the files `.gitattributes` names, so that a conflict that is only mechanical resolves
 // without a person or an agent. A conflict that is not mechanical stays a conflict, with the usual markers, and the driver exits 1.
 // usage: node tools/merge.js --install     set the drivers in this clone's git config (npm install runs it; worktrees share it)
 //        node tools/merge.js MODE BASE OURS THEIRS PATH

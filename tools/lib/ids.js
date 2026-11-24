@@ -1,4 +1,4 @@
-// The highest task ID in sight (VB-1674): the task files of this checkout, and those of every branch fetched from origin and pushed in
+// The highest task ID in sight (VB-1680): the task files of this checkout, and those of every branch fetched from origin and pushed in
 // the last DAYS days, read with `git ls-tree` (no fetch: the caller fetches when it wants the latest). A new ID is taken above it, so
 // two sessions working side by side do not take the same one once either has pushed. Outside a git checkout, the files alone.
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');

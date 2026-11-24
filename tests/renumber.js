@@ -1,4 +1,4 @@
-// tools/renumber.js and the ID helper (VB-1674), in a scratch repository with this checkout's backlog: main and a side branch both take
+// tools/renumber.js and the ID helper (VB-1680), in a scratch repository with this checkout's backlog: main and a side branch both take
 // the next free ID; renumbered onto main, the side branch's task, its plan file named after it and its references move to the next ID
 // above main's, a reference from before the branch stays, and `git merge main` then merges with no conflict and a backlog that checks.
 const fs = require('fs'), os = require('os'), path = require('path'), { spawnSync } = require('child_process');

@@ -1,5 +1,5 @@
-// A task's footprint, its `Touches:` line (VB-1671; docs/agents/tasks.md): what the task will edit, at function level, so a tool can tell
-// which tasks may run side by side (VB-1672). The line is a list of items separated by "; ":
+// A task's footprint, its `Touches:` line (VB-1677; docs/agents/tasks.md): what the task will edit, at function level, so a tool can tell
+// which tasks may run side by side (VB-1678). The line is a list of items separated by "; ":
 //   sim/jobs (allot, lookForWork)    a module key (src/<key>.js) with the module-level functions or tables it edits
 //   page/words                       a module key alone: the task edits it, where is not yet known
 //   tests/jobs.js                    a path, with or without names in brackets

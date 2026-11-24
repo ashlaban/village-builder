@@ -1,5 +1,5 @@
-// scratch (VB-1671): file against function overlap as predictors of a code conflict, from each merge's two sides since their base.
-// node docs/plans/VB-1671-granularity.js OUT.json   (the replay's output; about 45 s). Research code, not game code.
+// scratch (VB-1677): file against function overlap as predictors of a code conflict, from each merge's two sides since their base.
+// node docs/plans/VB-1677-granularity.js OUT.json   (the replay's output; about 45 s). Research code, not game code.
 // For each non-PR merge since 15 Nov: what each side changed since the merge base, at file and at symbol level (code files only,
 // bookkeeping and list files left out), against whether the replay found a conflict in a code file. Is symbol overlap a better predictor?
 const { execSync } = require('child_process'); const fs = require('fs');

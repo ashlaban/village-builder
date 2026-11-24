@@ -81,14 +81,14 @@ r = run(dir, 'set', B, 'cause=VB-99999');
 expect('set refuses a cause with no task file', !r.ok, r.out);
 r = run(dir, 'set', B, `cause=${B}`);
 expect('set refuses a task as its own cause', !r.ok, r.out);
-// Touches (VB-1671, docs/agents/tasks.md): new writes the line to fill, set writes it after Design ref, a malformed one is refused
+// Touches (VB-1677, docs/agents/tasks.md): new writes the line to fill, set writes it after Design ref, a malformed one is refused
 r = run(dir, 'set', B, 'touches=sim/jobs (allot, lookForWork); page/words (showPawn); new sim/wells');
 expect(`set ${B} touches=: the line after Design ref`, r.ok && /^Design ref: .*\nTouches: sim\/jobs \(allot, lookForWork\); page\/words \(showPawn\); new sim\/wells\nGoal: /m.test(file(`backlog/${B}.md`)), r.out);
 const C = 'VB-' + (Math.max(...fs.readdirSync(path.join(dir, 'backlog')).map((f) => +f.slice(3, -3) || 0)) + 1);
 r = run(dir, 'new', 'name=Test three', 'status=needs-review', 'priority=2', 'size=S', 'summary=Three.', 'ref=r', 'goal=g');
 fs.writeFileSync(path.join(dir, `backlog/${C}.md`), file(`backlog/${C}.md`).replace('- [ ] (to write)', '- [ ] Done.').replace(/^Touches: .*\n/m, ''));
 r = run(dir, 'set', C, 'status=ready');
-expect(`a ready task without a Touches line fails the check (${C}, VB-1671)`, !r.ok && /without a "Touches:" line/.test(r.out), r.out);
+expect(`a ready task without a Touches line fails the check (${C}, VB-1677)`, !r.ok && /without a "Touches:" line/.test(r.out), r.out);
 r = run(dir, 'set', C, 'touches=tests/x.js', 'status=ready');
 expect('...and passes once it has one', r.ok, r.out);
 r = run(dir, 'set', B, 'touches=sim/jobs (allot');

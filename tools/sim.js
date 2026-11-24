@@ -7,7 +7,7 @@
 //   --report hours [--from Y] [--every step|hour] [--fields N] [--team] [--household N]   (VB-337: tools/hours.js; its --help)
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
-// @merge union: its entries merge by line: a report a line; the order is only the usage line's (tools/merge.js, VB-1673)
+// @merge union: its entries merge by line: a report a line; the order is only the usage line's (tools/merge.js, VB-1679)
 const REPORTS = [
   'households',
   'pawns',

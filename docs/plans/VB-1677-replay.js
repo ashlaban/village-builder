@@ -1,5 +1,5 @@
-// scratch (VB-1671): replays every merge with git merge-tree and writes the conflicts, by file and enclosing symbol, as JSON.
-// node docs/plans/VB-1671-replay.js OUT.json   (about 20 s on the full history; needs it: git fetch --unshallow). Research code, not game code.
+// scratch (VB-1677): replays every merge with git merge-tree and writes the conflicts, by file and enclosing symbol, as JSON.
+// node docs/plans/VB-1677-replay.js OUT.json   (about 20 s on the full history; needs it: git fetch --unshallow). Research code, not game code.
 // Replay every two-parent merge with git merge-tree; record conflicted files, and for text conflicts the enclosing symbol:
 // a top-level or module-level (indent 2) declaration, the module's import block, its export list, a Markdown heading or a table row.
 const { execSync, spawnSync } = require('child_process'); const fs = require('fs');

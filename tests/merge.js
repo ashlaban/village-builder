@@ -1,4 +1,4 @@
-// tools/merge.js, the merge drivers (VB-1673), on constructed three-way cases: the backlog's task rows merge by ID and field and come out
+// tools/merge.js, the merge drivers (VB-1679), on constructed three-way cases: the backlog's task rows merge by ID and field and come out
 // in the backlog's order; JSON merges by key and element and keeps the file's layout; a JavaScript file's imports, exports and marked
 // tables merge by name when every conflict lies in them; what is not mechanical (a row changed both ways, an ID taken twice, a row removed on one side and changed on
 // the other, prose changed both ways) stays a conflict with markers; and, end to end, `git merge` in a scratch repository runs the

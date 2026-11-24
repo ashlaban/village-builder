@@ -66,10 +66,10 @@ r = run('', 'results', '--json');
 expect('results as JSON', r.ok && JSON.parse(r.out).find((x) => x.task === A).size === 'M', r.out);
 r = run('- [ ] The check passes.', 'note', A, 'task', `id=${pad(last + 2)}`, 'name=x', 'priority=1', 'size=S', 'summary=s', 'status=ready',
   'goal=g', 'ref=r', 'touches=sim/jobs (allot', '--body', '-');
-expect('a task note with a malformed touches= is refused when noted (VB-1671)', !r.ok && /touches=/.test(r.out), r.out);
+expect('a task note with a malformed touches= is refused when noted (VB-1677)', !r.ok && /touches=/.test(r.out), r.out);
 r = run('- [ ] The check passes.', 'note', A, 'task', `id=${pad(last + 2)}`, 'name=x', 'priority=1', 'size=S', 'summary=s', 'status=ready',
   'goal=g', 'ref=r', '--body', '-');
-expect('a ready task note without touches= is refused (VB-1671)', !r.ok && /touches=/.test(r.out), r.out);
+expect('a ready task note without touches= is refused (VB-1677)', !r.ok && /touches=/.test(r.out), r.out);
 r = run('- [ ] The check passes.', 'note', A, 'task', `id=${pad(last + 2)}`, 'name=Mend a red check', 'priority=1', 'size=S', 'summary=Red.', 'status=ready',
   'goal=the check passes', 'ref=tests/x.js', 'touches=sim/herds (herdsDay); tests/x.js', '--body', '-');
 expect('a ready task note, with its goal and criteria', r.ok, r.out);
@@ -216,7 +216,7 @@ expect('a reset when stuck, the handover not yet written', r.ok && /continue \(s
 r = runIn('', 'result', S2, 'status=continue', 'reason=stuck', 'commit=' + fresh);
 expect('stuck again: needs-review', !r.ok && /stuck again: end with status=needs-review/.test(r.out), r.out);
 
-// renumber (VB-1674): a branch's new tasks moved by tools/renumber.js; the reserved IDs follow, and later blocks start above them
+// renumber (VB-1680): a branch's new tasks moved by tools/renumber.js; the reserved IDs follow, and later blocks start above them
 r = run('', 'renumber', `${pad(last + 1)}=${pad(last + 90)}`);
 expect('renumber moves a reserved ID', r.ok && /rows renumbered/.test(r.out), r.out);
 r = run('', 'status');

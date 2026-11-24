@@ -1,6 +1,6 @@
 # Writing a task
 
-Every task is written the same way, wherever it is written (VB-1671): by a session with Kim, a `/task` session, a plan task, the
+Every task is written the same way, wherever it is written (VB-1677): by a session with Kim, a `/task` session, a plan task, the
 project manager, the reviewer, the nightly orchestrator from a sub-agent's note, or a `vb-task` sub-agent through that note. The rules
 for statuses, order, archs and phases are in `BACKLOG.md`, "How this backlog works"; this page is how to write one task so that an
 agent can take it alone, and a tool can tell what it may run beside.
@@ -52,8 +52,8 @@ Notes:
 ## Touches: what the task will edit
 
 The line says which functions the task will edit, so that tasks that edit different functions run side by side and tasks that edit the
-same one run one after another (VB-1672). Merges conflict where two branches edit the same lines; replayed over the merges since
-15 November, function level flags 41% fewer pairs than file level and misses no conflict (`docs/plans/VB-1671-conflicts.md`).
+same one run one after another (VB-1678). Merges conflict where two branches edit the same lines; replayed over the merges since
+15 November, function level flags 41% fewer pairs than file level and misses no conflict (`docs/plans/VB-1677-conflicts.md`).
 
 ```
 Touches: sim/jobs (allot, lookForWork); page/words (showPawn); tests/jobs.js; new sim/wells; new tests/wells.js
