@@ -149,6 +149,7 @@
       "sim/occasions",
       "sim/venues",
       "sim/player",
+      "sim/playerplan",
       "sim/trust",
       "sim/jobs",
       "sim/drinking",

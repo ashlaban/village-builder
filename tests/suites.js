@@ -21,6 +21,7 @@ const FAST = [
   ['node', 'tests/living.js'],
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
+  ['node', 'tests/plan.js'], // VB-1618: the player's plan: its ops, the routine once a day, tasks in order, hand commands first, sleep by its hours
   ['node', 'tests/sleep.js'], // VB-1615: the played pawn's sleep owed, the verb sleep, a night worked in mood and health
   ['node', 'tests/outcomes.js'], // commands' three outcomes and the queue's assignments: release, reacquire, side work, saves (VB-1405)
   ['node', 'tests/crowding.js'], // a household's crowding, its factor and its refresh, on a constructed state (VB-766)

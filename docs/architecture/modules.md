@@ -351,7 +351,8 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   (`foundHousehold`), `sim/cottage` (`finishCottage`), `sim/lifecycle` (debug `kill`, `retire`), `sim/clock` (`skip`). A verb's home is
   the module of its act, and where its body calls several, the highest in load order, so that it imports downward. The guards the
   checks share are lookups where their subject lives: `living`, `home`, `settlement` in `sim/records`, `free` in `sim/agents`. The
-  player (its queue, wish, answer and choices as head) is `sim/player`. The planner, the meeting, the moving round and the debug drawer act by
+  player (its queue, wish, answer and choices as head) is `sim/player`; the player's plan (a daily routine, sleeping hours and an
+  ordered task list, VB-1618) is `sim/playerplan`, whose `nextOf` the feeder in `playerStep` queues with automatic behaviour off. The planner, the meeting, the moving round and the debug drawer act by
   `issue(st, {actor, verb, target, args, source})` (`Sim.command` for the page); a verb checks that the act is possible and returns why not.
   A new act a pawn or the round chooses gets a verb; `tests/commands.js` checks statically that only the verbs call the acts they wrap.
   The head's plan (VB-253): `target` (hay, fields, wood, cow, within bounds), `tile` (the next field's or meadow's, under `fieldWhy` and

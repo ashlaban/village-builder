@@ -18,6 +18,7 @@
     "st.finds": "sim/prospect",
     "st.player": "sim/player",
     "st.player.sleep": "sim/player",
+    "st.player.plan": "sim/playerplan",
     "st.plans": "sim/plans",
     "st.plans.projects": "sim/projectplans",
     "st.plans.projectSeq": "sim/projectplans",

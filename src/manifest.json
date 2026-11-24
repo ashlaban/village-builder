@@ -129,6 +129,7 @@
   "sim/journeys.js",
   "sim/gifts.js",
   "sim/keep.js",
+  "sim/playerplan.js",
   "sim/player.js",
   "sim/feast.js",
   "sim/occasions.js",

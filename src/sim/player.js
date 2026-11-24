@@ -13,12 +13,13 @@ VB['sim/player'] = (() => {
   const { on } = VB['sim/events'];
   const { daysOfFood } = VB['sim/foodneed'];
   const { KINDS } = VB['sim/kinds'];
+  const { nextOf, planDay, planBegun } = VB['sim/playerplan'];
   // ---- the player (VB-169): one source, `player`, with one pawn at a time, whose queued commands go before the pawn's own logic ----
   // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
   //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun, ref}, in turn;
   //   `begun` is null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act
   //   lasts; `ref` is null, or once begun the reference its verb gave to the act it began (sim/commands perform, VB-1405), plain data;
-  //   absent in a command begun in a save made before VB-1405),
+  //   absent in a command begun in a save made before VB-1405; `plan` {from, kind, key} in a command the plan fed, sim/playerplan),
   //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), left (null while the pawn
   //   lives; from its death {t, held (the household it held, or null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those
   //   it thought friends, best first), village (the settlement whose customs name its successor, VB-1121)}: what a death erases and the
@@ -173,6 +174,7 @@ VB['sim/player'] = (() => {
   function playerStep(st) {
     const pl = st.player;
     if (pl) sleepStep(st);
+    if (pl && pl.plan && !pl.auto && !living(st, pl.pawn)) feed(st, pl);
     if (!pl || !pl.queue.length) return;
     const a = st.agents[pl.pawn],
       q = pl.queue;
@@ -193,12 +195,31 @@ VB['sim/player'] = (() => {
       if (out.status !== 'refused') {
         cmd.begun = st.t;
         cmd.ref = out.status === 'pending' ? out.ref : null;
+        if (cmd.plan) planBegun(st, cmd.plan);
         return;
       }
       q.shift();
       pl.refused = { verb: cmd.verb, why: out.why, t: st.t };
     }
     if (!living(st, pl.pawn)) homeAtDark(st, pl);
+  }
+  // ---- the plan's feeder (VB-1618; sim/playerplan): with automatic behaviour off, the plan feeds the queue when nothing queued by hand
+  // waits. A command queued by hand goes first, as an order for now: the plan's commands give way to it (a task left keeps its progress
+  // and stays planned). In the sleeping hours the plan's work in hand is left for its sleep; else the plan's command runs to its end.
+  function feed(st, pl) {
+    const q = pl.queue;
+    if (q.some((c) => !c.plan)) {
+      for (let i = q.length - 1; i >= 0; i--) if (q[i].plan) q.splice(i, 1);
+      return;
+    }
+    if (q.length && q[0].begun !== null && !active(st, q[0], q[0].ref)) q.length = 0; // its act ended: the next is fed at once
+    planDay(st);
+    const next = nextOf(st);
+    if (q.length) {
+      if (!(next && next.plan.from === 'sleep' && q[0].plan.from !== 'sleep')) return;
+      q.length = 0;
+    }
+    if (next) q.push({ ...next, begun: null, ref: null });
   }
   // ---- sleep (VB-1615; sim/sleep): the hours the played pawn owes, and the verb `sleep` ----
   // Asleep: under the verb `sleep`, once it stands where it sleeps; or indoors where it sleeps (its house, its booth, or its bed under the

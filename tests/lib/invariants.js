@@ -1464,6 +1464,18 @@ function checkState(st) {
       // its reference (VB-1405): null until begun, then plain data or null; absent only in a command begun before VB-1405
       if (c.ref === undefined ? c.begun === null : (c.ref !== null && (c.begun === null || typeof c.ref !== 'object'))) bad.push(`player.queue[${n}]: ref ${JSON.stringify(c.ref)}, begun ${c.begun}`);
     });
+    // its plan (VB-1618): absent until first planned; at most PLAN_MAX kinds of sim/kinds, each once, and tasks of distinct keys; the
+    // sleeping hours two distinct hours of the day; the routine's done kinds of its own, on a day not after today; the commands it fed marked
+    const pp = pl.plan, PP = globalThis.VB['sim/playerplan'], KS = globalThis.VB['sim/kinds'].KINDS, hr = (h) => typeof h === 'number' && h >= 0 && h < 24;
+    if (pp !== undefined && !(pp && Array.isArray(pp.routine) && pp.routine.length <= PP.PLAN_MAX && pp.routine.every((k) => KS[k])
+      && new Set(pp.routine).size === pp.routine.length && (pp.sleep === null || (pp.sleep && hr(pp.sleep.from) && hr(pp.sleep.until) && pp.sleep.from !== pp.sleep.until))
+      && Array.isArray(pp.tasks) && pp.tasks.length <= PP.PLAN_MAX && new Set(pp.tasks.map((x) => x.key)).size === pp.tasks.length
+      && pp.tasks.every((x) => typeof x.key === 'string' && KS[x.kind] && Number.isInteger(x.site)) && Number.isInteger(pp.day) && pp.day * 24 <= st.t
+      && Array.isArray(pp.done) && pp.done.every((k) => pp.routine.includes(k)) && new Set(pp.done).size === pp.done.length
+      && (pp.last === null || (typeof pp.last.key === 'string' && pp.last.t <= st.t)))) bad.push(`player.plan: ${JSON.stringify(pp)}`);
+    (Array.isArray(pl.queue) ? pl.queue : []).forEach((c, n) => {
+      if (c.plan !== undefined && !(c.plan && ['routine', 'task', 'sleep'].includes(c.plan.from))) bad.push(`player.queue[${n}].plan: ${JSON.stringify(c.plan)}`);
+    });
     const r = pl.refused;
     // what its death left (VB-213): null while the played pawn lives, and from its death the farm, spouse and friends noted then, no queue
     const lf = pl.left, dead = !!st.pawns[pl.pawn] && st.pawns[pl.pawn].died !== null, TIES_MAX = globalThis.VB['sim/player'].TIES_MAX;
