@@ -39,7 +39,8 @@ VB['sim/legs'] = (() => {
     return h >= WORK[0] && h < WORK[1];
   };
   // The pace of a walking pawn in map units of meadow a game hour.
-  const paceOf = (st, a) => SPEED * st.w.HW * (a.carry ? Carts.pace(st, a) : 1);
+  // (one on its way out with a cart taken at the house, the water's barrel, goes at the cart's pace too: VB-1555)
+  const paceOf = (st, a) => SPEED * st.w.HW * (a.carry || a.load > TRAVEL.load ? Carts.pace(st, a) : 1);
   // st.legDue's order (sim/due): by the pawn's leg's due, then its id.
   const legAt = (id, st) => st.agents[id].leg.due,
     pawnId = (id) => id;

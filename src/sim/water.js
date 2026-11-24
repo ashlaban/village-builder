@@ -13,8 +13,10 @@ VB['sim/water'] = (() => {
   const { on } = VB['sim/events'];
   // @tunable WATER: the fetch (design.md, Water by the site; Proposed, Kim's starting values of 23 November). search: the hours one way
   // beyond which a farm has no water in reach; marshShy: a household draws at a marsh only when no good source lies within this much
-  // further walk one way; draw: the hours of drawing a trip's water with a yoke of two buckets.
-  const WATER = { search: 8, marshShy: 0.5, draw: 0.1 };
+  // further walk one way; draw: the hours of drawing a trip's water with a yoke of two buckets. The fetch grows with the household
+  // (VB-1555): hand, the people a trip by hand covers for a day; child, those a child under childUnder covers, with its one bucket;
+  // cart, those a trip with a cart's barrel covers; fill, the hours of filling the barrel.
+  const WATER = { search: 8, marshShy: 0.5, draw: 0.1, hand: 6, child: 3, childUnder: 12, cart: 18, fill: 0.3 };
 
   // What tile i costs to cross with no path, no field and no house on it: its biome's cost (sim/walking TERRAIN), a river's tile only at
   // a crossing, as a ford. It reads the generated fields alone, so the walk is the same whatever has been built or worn since.
@@ -158,8 +160,9 @@ VB['sim/water'] = (() => {
       : { name: FRESHES[s.cls].name, poor: !!FRESHES[s.cls].poor, walk: s.walk, hours: tripHours(s.walk) };
   }
   // ---- a site's water, before a house stands there (VB-1552; design.md, Water by the site, The site's access, shown before placing) ----
-  // The trips a day `people` make for their water: one, until the fetch grows with the household (WATER.hand, VB-1555).
-  const trips = () => 1;
+  // The trips a day `people` make for their water, by hand: one for each WATER.hand of them (VB-1555). A site is weighed by hand alone:
+  // who settles brings no hand cart (design.md, Carts, At the start).
+  const trips = (people) => Math.max(1, Math.ceil(people / WATER.hand));
   // The daily hours a well of its own would cost a house on tile i: the drawing at the door, and the digging at the middle of the
   // ground's band (the head's estimate: never the depth) spread over WELL.payYears; Infinity where no well can be dug.
   const ownWell = (w, i, people) =>

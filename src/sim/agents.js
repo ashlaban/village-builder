@@ -117,6 +117,7 @@ VB['sim/agents'] = (() => {
     }
     const [x, y] = workSpot(st, a, j);
     a.phase = 'go';
+    if (K.setOut) a.load = K.setOut(st, a, j, teamFree); // what it sets out with: a cart taken at the house (the water's barrel, VB-1555)
     walkTo(st, a, j.site, x, y);
   }
   function dropJob(st, j) {

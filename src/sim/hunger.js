@@ -154,9 +154,11 @@ VB['sim/hunger'] = (() => {
     if (fed) mem = mem.filter((p) => !feasted(st, p));
     const cold = season === undefined ? 0 : warmHouse(st, hh, season),
       // a house with nobody at home today has no dry day (VB-1554): nothing was to be cooked there, and nobody was there to fetch
-      dry = season === undefined ? 0 : dryHouse(st, hh, mem.length > 0 || !!fed),
+      // and it is dry by the part of its people the day's loads did not cover (VB-1555)
+      people = mem.length + (fed ? fed.length : 0),
+      dry = season === undefined ? 0 : dryHouse(st, hh, people),
       // the day's water was a marsh's (hh.marshDay, sim/chores): poor water, which costs those it covers HEALTH.marsh (VB-1551)
-      poor = season !== undefined && !dry && hh.marshDay >= Math.floor(st.t / DAY) - 1;
+      poor = season !== undefined && dry < 1 && hh.marshDay >= Math.floor(st.t / DAY) - 1;
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])),
       total = [...need.values()].reduce((s, n) => s + n, 0);
     const eaten = new Map(mem.map((p) => [p, need.get(p)]));
@@ -203,9 +205,18 @@ VB['sim/hunger'] = (() => {
     }
     // the dry day's health is the pawn's own (VB-1554): with the day's water in, each drank at the meal; with none, who drank at a
     // source that day loses nothing, and who did not is thirsty (sim/thirst dayEnd); marsh water a pawn drank by itself is poor too
+    // On a day whose loads covered a part of the people (VB-1555) the water goes first to those who do not go for their own drink (a
+    // child under 7, the bedridden), then to who is thirsty, then by the members' order: who goes without can go to a source
+    let given = null;
+    if (dry > 0 && dry < 1) {
+      const all = fed ? [...mem, ...fed] : mem;
+      given = new Set();
+      for (const first of [(p) => !Thirst.goes(st, p), (p) => Thirst.thirsty(st, p), () => true])
+        for (const p of all) if (given.size < hh.waterFor && first(p)) given.add(p);
+    }
     const drink = (p) => {
-      const [d, m] = season === undefined ? [0, false] : Thirst.dayEnd(st, p, !dry);
-      return [d, poor || m];
+      const [d, m] = season === undefined ? [0, false] : Thirst.dayEnd(st, p, given ? given.has(p) : !dry);
+      return [d, (poor && (!given || given.has(p))) || m];
     };
     let sum = 0;
     for (const p of mem) {
@@ -250,11 +261,18 @@ VB['sim/hunger'] = (() => {
     return day;
   }
   // A day without water (VB-331): the day that ends, if its water was not fetched (hh.waterDay behind it), costs each member HEALTH.dry and the
-  // meal restores nothing; a house with nobody at home (`anyone` false) has no dry day.
-  // hh.dry is the mean of the last HUNGER.days days (hh.dryLog, 1 a dry day) as hh.cold is. Returns 1 on a dry day.
-  // One comparison a live household a day.
-  function dryHouse(st, hh, anyone = true) {
-    const day = anyone && hh.waterDay < Math.floor(st.t / DAY) - 1 ? 1 : 0;
+  // meal restores nothing; a house with nobody at home (`people` 0) has no dry day. With water in for a part of its `people` at home
+  // (hh.waterFor, the people the day's loads covered: VB-1555) the day is dry by the part not covered.
+  // hh.dry is the mean of the last HUNGER.days days (hh.dryLog, 1 a dry day, a part-dry day its part) as hh.cold is. Returns the day's
+  // part: 1 on a dry day. One comparison a live household a day.
+  function dryHouse(st, hh, people = 1) {
+    const ended = Math.floor(st.t / DAY) - 1,
+      day =
+        people <= 0 || hh.waterDay > ended
+          ? 0
+          : hh.waterDay < ended
+            ? 1
+            : Math.max(0, people - (hh.waterFor ?? people)) / people;
     if (day > 0 || hh.dry > 0) {
       hh.dryLog.push(day);
       if (hh.dryLog.length > HUNGER.days) hh.dryLog.shift();

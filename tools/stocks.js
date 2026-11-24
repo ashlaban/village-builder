@@ -80,7 +80,7 @@ const QUANTITIES = [
     none: 'no leather for shoes and harness: a household lacking hides values one at DEER.leather a head a year, and takes one at the fair or as a gift (sim/deer, VB-424)' },
   { id: 'wool', of: 'household', name: 'fleeces', unit: 'fleeces', fields: ['household.wool'], kinds: ['shear'],
     none: 'nothing yet: fleeces only accumulate until the winter crafts spin them (VB-121, VB-362)' },
-  { id: 'water', of: 'household', name: 'the day\'s water', unit: 'a day\'s (fetched or not)', fields: ['household.waterDay'],
+  { id: 'water', of: 'household', name: 'the day\'s water', unit: 'the people a day\'s loads cover (it does not keep)', fields: ['household.waterDay', 'household.waterFor'],
     kinds: ['water'],
     none: 'no cooking that day (the meal is eaten uncooked) and each member loses a little health (VB-331)' },
   { id: 'house', of: 'farm', name: 'house condition', unit: '0..1', fields: ['farmstead.condition'], kinds: ['repair', 'restore'],

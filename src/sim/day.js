@@ -80,7 +80,7 @@ VB['sim/day'] = (() => {
       manned = new Map(), // job -> [hours of work given, hands]
       given = new Map(), // pawn -> its first task of the first pass, with its fit
       due = new Map(), // pawn -> the task with a deadline today it is the hand for
-      heads = new Set(), // the pawns whose list a task that comes first heads (`first`: the water)
+      heads = new Map(), // pawn -> the tasks that come first at the head of its list (`first`: the water, each of the day's trips)
       spare = [];
     // best first; a pair whose task has gained hands since it was weighed falls by `join` for each (VB-102: the hands spread over the
     // tasks that can be worked at once) and waits its turn again
@@ -108,12 +108,13 @@ VB['sim/day'] = (() => {
       manned.set(j, [m[0] + h * r, m[1] + 1]);
       // water first (VB-1551): the fetch heads the list of the member best fit for it. A task with a deadline today that waits
       // unmanned goes first in its hand's list too, after a fetch, whatever its fit, and calls it (below)
-      if (K.first && !j.claims.length && !heads.has(id)) {
-        heads.add(id);
-        lists[id].unshift(j.key);
+      const head = heads.get(id) || 0;
+      if (K.first && !j.claims.length) {
+        heads.set(id, head + 1);
+        lists[id].splice(head, 0, j.key);
       } else if (K.late && !j.claims.length && !due.has(id)) {
         due.set(id, j);
-        lists[id].splice(heads.has(id) ? 1 : 0, 0, j.key);
+        lists[id].splice(head, 0, j.key);
       } else lists[id].push(j.key);
       if (full && !given.has(id)) given.set(id, [s, j]);
     }

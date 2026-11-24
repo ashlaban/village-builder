@@ -710,10 +710,13 @@ function checkState(st) {
     if (!Array.isArray(CL) || CL.length > HD || CL.some((x) => !within(x, 0, 1))) bad.push(`households[${h.id}]: coldLog ${JSON.stringify(CL)}`);
     else if (!within(h.cold, 0, 1) || Math.abs(h.cold - CL.reduce((n, x) => n + x, 0) / HD) > 1e-9 || (CL.length > 0) !== CL.some((x) => x > 0))
       bad.push(`households[${h.id}]: cold ${h.cold} against its log ${JSON.stringify(CL)}`);
-    const DL = h.dryLog; // the dry days (VB-331): as the cold, each 0 or 1
-    if (!Array.isArray(DL) || DL.length > HD || DL.some((x) => x !== 0 && x !== 1)) bad.push(`households[${h.id}]: dryLog ${JSON.stringify(DL)}`);
+    const DL = h.dryLog; // the dry days (VB-331): as the cold, each 0 or 1, or the part of its people a day's loads did not cover (VB-1555)
+    if (!Array.isArray(DL) || DL.length > HD || DL.some((x) => !within(x, 0, 1))) bad.push(`households[${h.id}]: dryLog ${JSON.stringify(DL)}`);
     else if (!within(h.dry, 0, 1) || Math.abs(h.dry - DL.reduce((n, x) => n + x, 0) / HD) > 1e-9 || (DL.length > 0) !== DL.some((x) => x > 0))
       bad.push(`households[${h.id}]: dry ${h.dry} against its log ${JSON.stringify(DL)}`);
+    // the people the day's loads cover (VB-1555): absent until the first load is brought, then a whole number of people, a load's at least
+    if (h.waterFor !== undefined && !(Number.isInteger(h.waterFor) && h.waterFor >= globalThis.VB['sim/water'].WATER.child && Number.isInteger(h.waterDay)))
+      bad.push(`households[${h.id}]: waterFor ${h.waterFor} on day ${h.waterDay}`);
     if (h.dissolved) { if (h.members.length) bad.push(`households[${h.id}]: dissolved but has members ${h.members}`); continue; }
     if (new Set(h.members).size !== h.members.length) bad.push(`households[${h.id}]: duplicate members ${h.members}`);
     for (const id of h.members) {
@@ -776,9 +779,11 @@ function checkState(st) {
     else for (const c of h.carts) {
       if (!((c.kind === 'hand' || c.kind === 'ox') && c.cond > 0 && c.cond <= 1 && c.built <= st.t && (c.by === null || !!st.pawns[c.by]))) {
         bad.push(`households[${h.id}]: cart ${JSON.stringify(c)}`); }
-      // a cart standing out (VB-649): no carrier, and a lying 'leftCart' load of the household names it
+      // a cart standing out (VB-649): no carrier, and a lying 'leftCart' load of the household names it, or a hand that has taken it up
+      // is leading it home (the lying load goes as it is taken up, the cart is free once it is at the house: seen with VB-1555)
       if (c.at !== undefined && !(c.by === null && Number.isInteger(c.at.tile) && c.at.t <= st.t &&
-        (st.lying || []).some((l) => l.kind === 'leftCart' && l.owner.type === 'household' && l.owner.id === h.id && l.of.cart.kind === c.kind && l.of.cart.built === c.built)))
+        ((st.lying || []).some((l) => l.kind === 'leftCart' && l.owner.type === 'household' && l.owner.id === h.id && l.of.cart.kind === c.kind && l.of.cart.built === c.built) ||
+          [...st.jobs.values()].some((j) => j.kind === 'fetchLeftCart' && j.owner.id === h.id && j.claims.length > 0 && j.cart && j.cart.kind === c.kind && j.cart.built === c.built))))
         bad.push(`households[${h.id}]: cart ${JSON.stringify(c)} stands out with no carrier's lying cart`);
     }
     // the larder holds foods eaten as they are (rules FOODS, VB-259)
@@ -1366,8 +1371,9 @@ function checkState(st) {
     });
   }
   // a load on the road (VB-335): a whole number of rations above 0 only while carrying home; the barn's threshed count is a whole number
-  // or while cutting the next load beside a cart with room (sim/agents stepWork, a kind's `stack`: firewood)
-  for (const a of st.agents) if (a.load && !(a.load > 0 && (a.phase === 'back' || (a.phase === 'work' && a.job && VB['sim/kinds'].KINDS[a.job.kind].stack)))) bad.push(`agents[${a.id}]: a load of ${a.load} in phase ${a.phase}`);
+  // or while cutting the next load beside a cart with room (sim/agents stepWork, a kind's `stack`: firewood), or out with a cart taken
+  // at the house, on the way and at the work (the water's barrel: the job names its cart, VB-1555)
+  for (const a of st.agents) if (a.load && !(a.load > 0 && (a.phase === 'back' || (a.phase === 'work' && a.job && VB['sim/kinds'].KINDS[a.job.kind].stack) || ((a.phase === 'go' || a.phase === 'work') && a.job && a.job.cart)))) bad.push(`agents[${a.id}]: a load of ${a.load} in phase ${a.phase}`);
   for (const h of st.households) if (h.threshed !== undefined &&
     !(Number.isInteger(h.threshed) && h.threshed >= 0)) bad.push(`households[${h.id}]: threshed ${h.threshed}`);
   // the hour of a pawn's last talk with a friend (agent.talk.friendAt, VB-062): a finite hour, no later than a talk begun now can show (two
