@@ -1,5 +1,6 @@
 {
   "letGoJobs": 0,
+  "drainAsk": 0.012293936853869796,
   "tilthRead": 0.021234981838502375,
   "routeSearch": 0.5286392847164012,
   "visitNoRoute": 0,

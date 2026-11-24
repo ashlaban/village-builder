@@ -229,6 +229,8 @@
     "farmstead.fields[].tilthAt": "sim/soil",
     "farmstead.fields[].surplus": "sim/soil",
     "farmstead.fields[].surplusYear": "sim/soil",
+    "farmstead.fields[].ditch": "sim/soil",
+    "farmstead.fields[].ditchAt": "sim/soil",
     "farmstead.fields[].rotation": "sim/courses",
     "farmstead.fields[].step": "sim/courses",
     "farmstead.fields[].crop": "sim/courses",

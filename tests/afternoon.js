@@ -20,7 +20,7 @@ const st = scenario('solo', 7),
   id = hh.holder,
   a = st.agents[id],
   f = st.farmsteads[hh.farmstead],
-  D = 3; // a day the settler clears land from the morning to past 14:00
+  D = 5; // a day the settler works from the morning to past 14:00 (day 3 until VB-721 moved the settler's field to drier ground)
 // on to the step that ends at hour h of day D (the clock's count, sim/clock: the hour's work is that step's)
 const until = (h) => {
   while (st.tick < Math.round((D * DAY + h) * TICKS)) Sim.advance(st, 1 / TICKS);

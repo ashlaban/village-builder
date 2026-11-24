@@ -99,6 +99,7 @@
       "sim/trails",
       "sim/drying",
       "sim/tar",
+      "sim/drain",
       "sim/carts",
       "sim/chores",
       "sim/green",

@@ -108,6 +108,7 @@ VB['sim/kinds'] = (() => {
   KINDS.hunt = VB['sim/deer'].KIND; // hunting roe deer (VB-139): its record is sim/deer's
   Object.assign(KINDS, Drying.KINDS, Carts.KINDS); // herding (VB-136); drying fish and the boat (VB-300): their modules'
   Object.assign(KINDS, VB['sim/tar'].KINDS); // the tar pit, burning tar, tarring the house and the boat (VB-301): sim/tar's
+  Object.assign(KINDS, VB['sim/drain'].KINDS); // ditching a wet field (VB-721): sim/drain's
   Object.assign(KINDS, VB['sim/saltpan'].KINDS); // boiling salt at a spring (VB-700): sim/saltpan's
   Object.assign(KINDS, VB['sim/ironwork'].KINDS); // smelting bog ore and mending the tools (VB-701): sim/ironwork's
   Object.assign(KINDS, VB['sim/wells'].KINDS); // a household's well, dug by its house (VB-1584): sim/wells's
