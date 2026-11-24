@@ -123,6 +123,7 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/leather'].KINDS); // shoes and harness cut from a hide (VB-911): sim/leather's
   Object.assign(KINDS, VB['sim/textile'].KINDS); // spinning, weaving and the loom (VB-362): sim/textile's
   KINDS.firewood = Chores.KINDS.firewood; // timber cut into firewood at the house (VB-1625): sim/chores'
+  Object.assign(KINDS, VB['sim/byrehouse'].KINDS); // the byre's walls and roof (VB-1637): sim/byrehouse's
   // ---- where a kind is worked, what it takes and what it gives (VB-1124): each kind's record declares `at` (the places of PLACES where its
   // work is done), `needs` (the things of THINGS it takes or must find there: a good used up, a tool or a facility) and `gives` (the
   // things it makes or brings home), beside its rule, as its name and hours are. The game's guide (page/guide) reads them, and a kind
@@ -193,6 +194,7 @@ VB['sim/kinds'] = (() => {
     meadow: { name: 'a hay meadow' },
     house: { name: 'the house' },
     barn: { name: 'a barn' },
+    byre: { name: 'a byre' },
     booth: { name: 'a booth' },
     fence: { name: 'the village fence' },
     green: { name: 'the village green' },

@@ -91,6 +91,7 @@ if (only && !only.includes('solo')) process.exit(0);
   assert.deepStrictEqual(v.next, [{ what: 'booth', needs: RUNGS.booth.needs, ok: true, why: null, planned: false }]);
   assert.deepStrictEqual(v.outbuildings, [
     { what: 'barn', built: false, needs: OUTBUILDINGS.barn.needs, ok: false, why: `${f.name} has no cottage yet`, planned: false, building: null },
+    { what: 'byre', built: false, needs: OUTBUILDINGS.byre.needs, ok: false, why: `${f.name} has no cottage yet`, planned: false, building: null },
   ]);
   assert.strictEqual(v.foundation.why, `${f.name} has no cottage yet`, 'no foundation under a booth');
   Sim.inhabit(st, st.households[0].holder);

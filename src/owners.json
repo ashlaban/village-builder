@@ -72,6 +72,7 @@
     "plan.weighed": "sim/aims",
     "plan.outlook": "sim/outlook",
     "farmstead.barn": "sim/building",
+    "farmstead.byre": "sim/byrehouse",
     "household.workHours": "sim/work",
     "st.offers": "sim/offers",
     "st.asks": "sim/asks",

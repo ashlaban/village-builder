@@ -105,6 +105,7 @@
   "sim/farmclaims.js",
   "sim/wells.js",
   "sim/building.js",
+  "sim/byrehouse.js",
   "sim/landing.js",
   "sim/camp.js",
   "sim/drying.js",

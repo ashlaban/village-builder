@@ -3,7 +3,8 @@
 //   load; the head's verb that begins the cottage (beginCottage: its plan made as sim/settle and sim/scenarios make it); and the timber
 //   held at home taken into the walls of a cottage so begun before any is fetched; a camp's household left to itself placing its
 //   farmstead and beginning its cottage by its head's own rule (ownRung, VB-1630); the house set on stone and an outbuilding built as
-//   tasks of the plan (VB-1635: the chains `foundation`, its review asked at once, and `outbuilding`, the timber at home first)
+//   tasks of the plan (VB-1635: the chains `foundation`, its review asked at once, and `outbuilding`, the timber at home first); a farm
+//   with animals and no byre building one by its head's own rule (ownByre, VB-1637)
 VB['sim/upgrade'] = (() => {
   const { BUILD, ECON, DAY, SEASON_DAYS, YEAR, WORK, cal } = VB['sim/rules'];
   const { register, issue } = VB['sim/commands'];
@@ -19,6 +20,7 @@ VB['sim/upgrade'] = (() => {
   const { COTTAGE, cottagePlan, cottageOf, wallsOf } = VB['sim/cottageplan'];
   const { CHAINS, taskAt, headCmd } = VB['sim/planchains'];
   const { rungWhy, foundationWhy, outWhy, OUTBUILDINGS } = VB['sim/ladder'];
+  const { byreWhy } = VB['sim/byrehouse'];
   const WALLS = COTTAGE.indexOf('walls');
   // The farm of household hid while it lives, or null.
   const farmOf = (st, hid) => {
@@ -73,18 +75,27 @@ VB['sim/upgrade'] = (() => {
   // from a camp with no booth staked it places the farmstead (sim/camp placeOwn); once the booth stands (camp false, f.booth) it begins
   // its cottage (beginCottage), as the solo start without `hand` makes it at the landing (sim/scenarios landAlone). Few farms are camps;
   // the rest are passed over at one read each (the work counter campLook).
-  // And the played head's foundation task asks its review (askFoundation, VB-1635).
+  // And the played head's foundation task asks its review (askFoundation, VB-1635); its outbuilding begun takes the timber at home (outTimber).
   function ownRung(st) {
     askFoundation(st);
+    if (st.player) outTimber(st, st.pawns[st.player.pawn].household); // an outbuilding whose first step is its walls (a byre, VB-1637)
     for (const hid of st.liveHouseholds) {
       VB.count.campLook++;
       const f = farmOf(st, hid);
+      if (f && !f.byre && !f.booth) ownByre(st, st.households[hid]);
       if (!f || f.camp === undefined || !f.booth || Projects.heldOff(st, hid)) continue;
       const hh = st.households[hid];
       if (f.camp === true) Camp.placeOwn(st, hh, f);
       else if (hh.holder !== null && !cottageOf(st, hid))
         issue(st, { actor: hh.holder, verb: 'beginCottage', target: f.house, source: 'pawn' });
     }
+  }
+  // The byre (VB-1637; one rule for every household, Kim): a head not held off projects whose farm has its cottage, animals and no byre
+  // begins one (the making `byre`, sim/byrehouse) as soon as its hands are free of any other project (byreWhy), before its first winter
+  // if it can: its animals winter in the open until it stands (sim/byre).
+  function ownByre(st, hh) {
+    if (!hh.herds.length || hh.holder === null || Projects.heldOff(st, hh.id) || byreWhy(st, hh) !== null) return;
+    issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'byre' }, source: 'pawn' });
   }
   // ---- the chain: upgrade (CHAINS.upgrade) ----
   // At the house's tile of the household's farm: {f, hh, tile, what (the task's rung, 'cottage' before it is planned), cottage (its plan

@@ -26,6 +26,7 @@ const FAST = [
   ['node', 'tests/camp.js'], // VB-1627: land first: a camp, roofless; the build menu and the refusals; the farmstead placed and its booth raised, the house moved
   ['node', 'tests/upgrade.js'], // VB-1632: the booth built up to a cottage by a task of the plan; the timber at home first; farmView next
   ['node', 'tests/farmtasks.js'], // VB-1635: the stone foundation and the barn, each by a task of the plan; the slack's wait; farmView's foundation
+  ['node', 'tests/byrehouse.js'], // VB-1637: the byre as a building: at seeding, none on a camp, an older save; the lean in the open; by the plan and by the head's rule
   ['node', 'tests/plan.js'], // VB-1618: the player's plan: its ops, the routine once a day, tasks in order, hand commands first, sleep by its hours
   ['node', 'tests/sleep.js'], // VB-1615: the played pawn's sleep owed, the verb sleep, a night worked in mood and health
   ['node', 'tests/outcomes.js'], // commands' three outcomes and the queue's assignments: release, reacquire, side work, saves (VB-1405)

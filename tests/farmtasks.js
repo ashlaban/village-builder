@@ -58,6 +58,7 @@ function run(st, kind, days = 80) {
   assert.deepStrictEqual(v.foundation, { grade: 'ground', needs: FOUNDATION.needs, ok: true, why: null, planned: false, building: null });
   assert.deepStrictEqual(v.outbuildings, [
     { what: 'barn', built: false, needs: OUTBUILDINGS.barn.needs, ok: true, why: null, planned: false, building: null },
+    { what: 'byre', built: true, needs: OUTBUILDINGS.byre.needs, ok: false, why: `${f.name} has a byre`, planned: false, building: null },
   ]);
   assert.match(String(Sim.plan(st, 'add', { foundation: f.house + 1 })), /house is not at/);
   assert.match(String(Sim.plan(st, 'add', { outbuilding: f.house })), /name the outbuilding/);

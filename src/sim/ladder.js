@@ -14,6 +14,8 @@ VB['sim/ladder'] = (() => {
   const { roofless, stakedEach, raiseBoothWhy, barnSteps } = VB['sim/building'];
   const { BUILDS, campWhy } = VB['sim/camp'];
   const { barnWhy } = VB['sim/aims'];
+  const { byreWhy, byreSteps } = VB['sim/byrehouse'];
+  const { HERD } = VB['sim/rules'];
   const sum = (a) => a.reduce((s, x) => s + x, 0);
   // ---- the tables: later rungs (a timber house) and outbuildings (a byre) are added here, with the rules that build them ----
   // Each rung: `from` the rung it is built from (null: the first), `needs` {timber (loads), stone (loads), hours (of work, its stages'
@@ -53,6 +55,13 @@ VB['sim/ladder'] = (() => {
       needs: { timber: BUILD.barn.timber, stone: 0, hours: sum(BUILD.barn.hours) },
       gives: { store: true, loss: BUILD.barn.loss },
       kinds: barnSteps(-1).map((s) => s.kind),
+    },
+    // the byre (VB-1637): the animals' places through the stall winter (HERD.byre, sim/byre); a farm without one winters them in the open
+    byre: {
+      from: 'cottage',
+      needs: { timber: BUILD.byre.timber, stone: 0, hours: sum(BUILD.byre.hours) },
+      gives: { places: HERD.byre },
+      kinds: byreSteps(-1).map((s) => s.kind),
     },
   });
   // ---- the rung a farm stands at, from its state as it is ----
@@ -182,7 +191,10 @@ VB['sim/ladder'] = (() => {
           ? `household ${hh.id} has a stone foundation under way`
           : busy(st, hh));
   // an outbuilding: none built, none under way, and its making's own check (a barn: sim/aims barnWhy)
-  const OUT_WHY = { barn: (st, hh, f) => own(st, hh, f) || barnWhy(st, hh) };
+  const OUT_WHY = {
+    barn: (st, hh, f) => own(st, hh, f) || barnWhy(st, hh),
+    byre: (st, hh, f) => own(st, hh, f) || byreWhy(st, hh),
+  };
   const outRule = (st, hh, f, what) =>
     f[what]
       ? `${f.name} has a ${what}`
