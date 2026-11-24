@@ -7,10 +7,11 @@ VB['sim/gifts'] = (() => {
   const Lying = VB['sim/lying'],
     { on } = VB['sim/events'];
   const { cannotOffer, giftOf, make, delivery } = VB['sim/offers'];
-  const { age, home } = VB['sim/records'];
+  const { age, home, mindsWhy } = VB['sim/records'];
   const { booked, settleGift } = VB['sim/exchange'];
   const { register } = VB['sim/commands'];
-  const HANDS = VB['sim/rules'].AGES.hands;
+  const HANDS = VB['sim/rules'].AGES.hands,
+    CHILD_FROM = VB['sim/roles'].CHILD.from;
   const Stores = VB['sim/stores'];
   const { hoursBetween } = VB['sim/villagehours'];
   const { setDown } = VB['sim/agents'];
@@ -39,13 +40,14 @@ VB['sim/gifts'] = (() => {
     return haulerOf(st, hh);
   }
   // The youngest member of household hh of 14 or more who is not away nor carrying a load home, or -1: who goes for a gift, or takes the
-  // household's quarter to the green (VB-849)
+  // household's quarter to the green (VB-849); never the last one at home with a child under 7 (VB-1571: sim/records mindsWhy)
   function haulerOf(st, hh) {
     let best = -1;
     for (const id of hh.members) {
       const p = st.pawns[id],
         a = st.agents[id];
       if (!p.alive || age(st, p) < HANDS[0] || a.away !== undefined || a.phase === 'back') continue;
+      if (mindsWhy(st, id)) continue;
       if (best < 0 || age(st, p) < age(st, st.pawns[best])) best = id;
     }
     return best;
@@ -112,6 +114,13 @@ VB['sim/gifts'] = (() => {
       const j = stayOf(st, id);
       return age(st, st.pawns[id]) >= HANDS[0] && j && j.why === 'move' && !j.back;
     });
+    // with a child under 7 in the household and more than one grown on the way, the eldest bears nothing (VB-1571): it walks straight
+    // to the new home and is there with the child, while the others bear the start, load by load
+    if (going.length > 1 && hh.members.some((id) => st.pawns[id].alive && age(st, st.pawns[id]) < CHILD_FROM)) {
+      let eldest = 0;
+      for (let i = 1; i < going.length; i++) if (st.pawns[going[i]].born < st.pawns[going[eldest]].born) eldest = i;
+      going.splice(eldest, 1);
+    }
     const borne = new Map(); // bearer -> its stops
     const lying = [];
     for (const [h, m] of piles) {
@@ -159,14 +168,22 @@ VB['sim/gifts'] = (() => {
     !g.carrier && 'farmstead' in g.to && !('farmstead' in g.from && g.from.farmstead === g.to.farmstead);
   // A household's gift to its village's store, with no carrier, is carried to the green by a member of the giving household (VB-849).
   const hauled = (g) => !g.carrier && 'farmstead' in g.from && !('farmstead' in g.to);
+  // Why none of household hh can go: `other`, unless one of them minds a child under 7 (VB-1571), and the check names that.
+  function noneWhy(st, hh, other) {
+    for (const id of hh.members) {
+      const why = mindsWhy(st, id);
+      if (why) return why;
+    }
+    return other;
+  }
   function fetchWhy(st, g) {
     if (typeof g !== 'string' && hauled(g))
-      return haulerOf(st, g.from) < 0 ? 'no one of the household can carry it' : null;
+      return haulerOf(st, g.from) < 0 ? noneWhy(st, g.from, 'no one of the household can carry it') : null;
     // a store's grain goes to a household, never at once to another store (VB-1111: what is left for settleGift is within one farmstead)
     if (typeof g !== 'string' && !('farmstead' in g.from) && !('farmstead' in g.to))
       return 'a village store gives only to a household';
     if (typeof g === 'string' || !fetched(g)) return null;
-    return fetcherOf(st, g.to) < 0 ? 'no one of the household can fetch it' : null;
+    return fetcherOf(st, g.to) < 0 ? noneWhy(st, g.to, 'no one of the household can fetch it') : null;
   }
   // A `give` command as the offer of a gift (VB-690): to the receiving household's holder, or the household or village itself where no pawn
   // holds it; the terms are the command's args

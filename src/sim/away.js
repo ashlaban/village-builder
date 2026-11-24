@@ -141,6 +141,8 @@ VB['sim/away'] = (() => {
       o = args || {};
     if (st.agents[id].away !== undefined) return `pawn ${id} is away from home already`;
     if (!hh || hh.dissolved || hh.farmstead === null) return `pawn ${id} has no home to go out from`;
+    const kept = Kin.mindsWhy(st, id); // the last one at home with a child under 7 (VB-1571)
+    if (kept) return kept;
     if (typeof o.why !== 'string' || !o.why) return 'a stay names why the pawn is away';
     if (!(Number.isInteger(o.days) && o.days >= 1)) return 'a stay plans a whole number of days, one or more';
     if (o.jobs !== undefined && !Array.isArray(o.jobs)) return 'the tasks of a stay must be a list';
