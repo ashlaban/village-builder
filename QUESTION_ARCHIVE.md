@@ -2,6 +2,58 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 24 November 2026 (principles review)
+
+## Principles review of 24 November: the proposed principles and the inconsistencies among the principles (raised 24 November 2026)
+The review is `docs/review-principles-2026-11-24/` (`tasks.md`, `prs.md`, and `synthesis.md`, whose Proposed principles and
+Inconsistencies hold the full text, rationale and evidence of each question). Asked in a session with Kim and answered there.
+
+1. **P1, The simulation has no hand of its own** (umbrella). **P:** the simulation supplies nature and chance; it never moves a thing, does
+   an act, knows ahead, judges or aims: each of those is some pawn's, with what that pawn has and can know. Nothing teleports, Every act
+   is a pawn's, The future is someone's estimate, A wait is the thing waited for and Mechanisms, not prescriptions stay as its named cases.
+   **A (Kim, 24 Nov):** As proposed.
+2. P1's extensions, each on its own. **P:** (a) no decision reads a draw before it falls or a quantity not yet realised; all of the present
+   and the past is known to all (for now), nothing of the future is (VB-1551, #211, #271, #282); (b) chance is for what nobody decides; a
+   pawn's yes or no is a threshold on what it weighs, never a die and never a count of years (the candidate of VB-682); (c) whatever state the
+   played pawn has, every pawn has; `st.player` holds only the frame (VB-1645, VB-680, VB-1613).
+   **A (Kim, 24 Nov):** All three, as proposed.
+3. **P2, Nothing is left to no one.** **P:** a party (a pawn, a household, a village, a plan) ends only as the last step of a process that
+   passes on or ends each thing in its keeping, each right it holds and each obligation it owes or is owed; a body exists from its first
+   holding to its last. A household that has died out stands as an estate until its goods have gone; VB-650's remaining goods pass with
+   the farm to whoever takes it.
+   **A (Kim, 24 Nov):** As proposed, the remaining goods passing with the farm.
+4. **P3, Title moves at once; custody moves by a journey.** **P:** what is owned may change owner where it lies, at once; where it lies
+   changes only by a journey; whoever uses a good must have it in reach. A stake is title to grain in a named store (VB-637), inherited at
+   once at death, the grain staying in its store (VB-1476); VB-672 the same.
+   **A (Kim, 24 Nov):** As proposed.
+5. **P4, A rule reads the measure, never the name**, and whether class may feed a rule (synthesis, c1). **P:** a name is read from what a
+   person, household or place does and feeds no rule; a rule reads the measure behind it; class too. Target-v2 principle 7 and `AGENTS.md`'s
+   line on categorical views are reworded to match; VB-318's two effects read the measure (income from others against need).
+   **A (Kim, 24 Nov):** As proposed: class feeds no rule.
+6. The split 600 farming / 325 town and craft / 75 elite (synthesis, c2). **P:** a probe's band, measured and reported, never steered toward
+   (target-v2 principle 17); the elite principle's words admit a measured band and still forbid a rule that aims at it.
+   **A (Kim, 24 Nov):** As proposed: a band to observe.
+7. **P7, Whoever cannot keep itself is someone's charge**: a ban, a custom or a charge? **P:** a charge: every dependant has a named living
+   minder, an obligation that passes at once like any right (P2 at the minder's death); leaving is allowed and costs what it costs the
+   child, which the parent weighs (VB-1602, VB-1606, VB-1585, VB-1240).
+   **A (Kim, 24 Nov):** A charge.
+8. Parity (synthesis, c4): `design.md` ("a choice the player is given is a choice every pawn makes") against target-v2 principle 15 ("the
+   player may be offered more options ...; never fewer"). **P:** the same verbs and checks for all; a pawn's own chooser may consider fewer
+   of them for cost; both texts say so, and cover state (2c).
+   **A (Kim, 24 Nov):** As proposed.
+9. Candidate 19, "The automatic head gets by; the surplus is the player's to find" (how good the unplayed head is). **P:** none (put to Kim).
+   **A (Kim, 24 Nov):** No: the automatic head chooses as well as its cost budget allows. The player's edge is foresight and attention, not a
+   head made weaker on purpose.
+10. **P5, One quantity, one reckoning.** **P:** a quantity has one unit, one scale and one function that reckons it; a bound is kept in the
+    unit it was argued in; an estimate is reckoned by the same function as the doing, from what the estimator knows (VB-1670, VB-1621,
+    VB-685, VB-444; the candidate of VB-444).
+    **A (Kim, 24 Nov):** As proposed.
+11. **P6, What can be undone costs something to undo.** **P:** a choice a pawn can reverse is held by the cost of reversing it, which the
+    chooser weighs; a named dead band only where the world charges none (#247, #171, #199, #234).
+    **A (Kim, 24 Nov):** As proposed.
+12. Candidate 25, "A red check ships at the nearest passing value". **P:** strike it: it lets an outcome check set a parameter.
+    **A (Kim, 24 Nov):** Struck.
+
 # Archived 18 November 2026 (VB-190)
 
 ## VB-190: roads, boats and ice (slice 10): the plan's proposed answers, on which its design text and tasks are built (raised 16 November 2026)
