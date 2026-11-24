@@ -97,14 +97,15 @@ function todayHTML(id) {
         .join('')}</ol>`
     : `<p class="sub">${
         pl.auto
-          ? 'Nothing queued: she follows the plan and does what is most needed.'
-          : 'Nothing queued, and working by the plan is off: you wait.'
+          ? `Nothing queued: ${esc(st.pawns[id].given)} does what is most needed, by the order of work.`
+          : `Nothing queued, and ${esc(st.pawns[id].given)} waits for your word: nothing is done.`
       }</p>`;
   const seen = new Set(),
     jobs = Sim.opportunities(st, id)
       .filter((o) => o.verb === 'work' && o.why === null && o.kind && !seen.has(o.kind) && seen.add(o.kind))
       .sort((a, b) => b.fit - a.fit)
-      .slice(0, 6);
+      .slice(0, 6)
+      .sort((a, b) => (Sim.KINDS[a.kind].name < Sim.KINDS[b.kind].name ? -1 : 1)); // by name: a button keeps its place from hour to hour
   h += '<h3>Do next yourself</h3>';
   h += jobs.length
     ? `<div class="u2-jobs">${jobs
@@ -115,12 +116,12 @@ function todayHTML(id) {
         )
         .join('')}</div>`
     : '<p class="sub">No work is open right now.</p>';
-  h +=
-    `<div class="u2-row2"><button type="button" class="u2-chip" data-hud="auto" aria-pressed="${pl.auto}">` +
-    `${pl.auto ? 'Works by the plan: on' : 'Works by the plan: off'}</button>` +
-    `<button type="button" class="u2-chip" data-hud="follow" aria-pressed="${followPlayed}">Follow on the map</button></div>`;
+  h += `<div class="u2-row2"><button type="button" class="u2-chip" data-hud="follow" aria-pressed="${followPlayed}">Follow on the map</button></div>`;
   const log = Sim.villageLog(st, 4);
   if (log.length) h += `<h3>Lately</h3><ul class="u2-log">${log.map((e) => `<li>${esc(e.text)}</li>`).join('')}</ul>`;
+  h +=
+    `<h3>When nothing is queued</h3><div class="u2-row2"><p class="sub">${pl.auto ? 'Works on unasked.' : 'Waits for your word.'}</p>` +
+    `<button type="button" class="u2-chip" data-hud="auto">${pl.auto ? 'Make them wait' : 'Let them work unasked'}</button></div>`;
   return h;
 }
 function fieldLine(fd, i) {
@@ -210,9 +211,12 @@ function storesHTML(hh) {
   for (const [key, label, unit] of HUD_STORES) {
     const s = O[key];
     if (s.state === 'none') continue;
-    const word =
+    const coming = s.parts.intakes.reduce((n, x) => n + x.n, 0),
+      word =
         s.state === 'safe'
-          ? 'Enough for the year ahead'
+          ? coming > 0
+            ? 'Lasts the year, if the work planned is done'
+            : 'Lasts the year ahead'
           : `Runs ${s.state === 'bad' ? 'badly ' : ''}short in ${Sim.SEASONS[(O.season + s.season) % 4]}`,
       cells = [0, 1, 2, 3]
         .map((k) => {
@@ -225,12 +229,16 @@ function storesHTML(hh) {
         .join('');
     h +=
       `<div class="u2-store ${s.state}"><div><b>${label}</b><span>${esc(word)}</span></div><div class="u2-cells">${cells}</div>` +
-      `<small>${Math.round(s.parts.store)} ${unit} in store · this season needs ${Math.round(s.parts.need[0])}` +
-      `${s.parts.intakes.length ? ' · more is planned to come in' : ''}</small></div>`;
+      `<small>${Math.round(s.parts.store)} ${unit} in store now` +
+      `${coming > 0 ? ` · about ${Math.round(coming)} more counted on from work still to do` : ''}</small></div>`;
   }
   const herds = Sim.describeHerds ? Sim.describeHerds(st, hh) : '';
   if (herds) h += `<h3>Animals</h3><p class="sub">${esc(String(herds))}</p>`;
-  return h + (O.stale ? '<p class="sub">Counted last season; it is counted again at the next review.</p>' : '');
+  return (
+    h +
+    '<p class="sub">The bars are the head’s own reckoning of the four seasons ahead, made at each morning’s review.</p>' +
+    (O.stale ? '<p class="sub">Counted last season; it is counted again at the next review.</p>' : '')
+  );
 }
 function renderHud() {
   const { id, hh, f } = hudHouse();
@@ -242,7 +250,7 @@ function renderHud() {
     key = `${hud.tab}|${hour}|${st.player.queue.length}|${st.player.auto}|${followPlayed}|${hud.msg ? hud.msg.text : ''}`;
   for (const b of u2.tabs.children) b.setAttribute('aria-pressed', String(b.dataset.tab === hud.tab));
   u2.sheet.hidden = !hud.tab;
-  if (!hud.tab || key === hud.key || u2.sheet.matches(':active')) return;
+  if (!hud.tab || key === hud.key) return;
   hud.key = key;
   const top = u2.sheet.scrollTop,
     body = hud.tab === 'today' ? todayHTML(id) : hud.tab === 'plan' ? planHTML(hh, f) : storesHTML(hh);
@@ -321,7 +329,7 @@ function hudCall(i, id, hh, f) {
   jobs.slice(0, 3).forEach((o, n) => {
     acts +=
       `<button type="button" class="u2-act${n ? '' : ' go'}" data-hud="job" data-target="${esc(o.target)}" data-site="-1">${esc(Sim.KINDS[o.kind].name)}` +
-      `<small>${o.when === 'now' ? 'She goes and does it next' : 'Queued for when it opens'}</small></button>`;
+      `<small>${o.when === 'now' ? 'Done next' : 'Queued for when it opens'}</small></button>`;
   });
   if (i !== f.house && fi < 0 && mi < 0) {
     const S = hudSites(hh);
@@ -417,9 +425,10 @@ function hudClick(b) {
   else if (d.hud === 'follow') {
     followPlayed = !followPlayed;
     if (followPlayed) flyToFarmOf(id);
-  } else if (d.hud === 'auto')
-    hudMsg(Sim.setAuto(st, !st.player.auto), st.player.auto ? 'She waits for your word.' : 'She works by the plan.');
-  else if (d.hud === 'unqueue') hudMsg(Sim.unqueue(st, +d.i), 'Removed from the queue.');
+  } else if (d.hud === 'auto') {
+    const on = !st.player.auto;
+    hudMsg(Sim.setAuto(st, on), on ? 'Works on unasked again.' : 'Waits for your word now.');
+  } else if (d.hud === 'unqueue') hudMsg(Sim.unqueue(st, +d.i), 'Removed from the queue.');
   else if (d.hud === 'job') {
     hudMsg(
       Sim.queue(st, { actor: id, verb: 'work', target: d.target }),

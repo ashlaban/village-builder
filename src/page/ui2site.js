@@ -45,8 +45,8 @@ function siteWords(r) {
         : wt.srcHours < 3
           ? [
               `${src} ${walkWords(wt.walk)} away`,
-              `A long fetch: ${dur(wt.srcHours)} a day. A ${wt.well} well by the house, about ${days} ${days === 1 ? 'day' : 'days'} of digging, ` +
-                `cuts it to ${dur(wt.hours)}.`,
+              `${siteCap(dur(wt.srcHours))} a day fetching water. A ${wt.well} well by the house, about ${days} ${days === 1 ? 'day' : 'days'} of digging, ` +
+                (dur(wt.srcHours) === dur(wt.hours) ? 'saves a little of it.' : `cuts it to ${dur(wt.hours)}.`),
             ]
           : [
               'Water only by a well',
