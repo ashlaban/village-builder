@@ -132,21 +132,65 @@ function fieldLine(fd, i) {
 const HUD_PROJECT = { field: 'a new field', meadow: 'a hay meadow', barn: 'a barn', well: 'a well' };
 const HUD_STORES = [
   ['food', 'Food', 'rations'],
-  ['fuel', 'Firewood', 'loads'],
+  ['fuel', 'Firewood', 'measures'], // a load home is Sim.ECON.woodPerTrip measures
   ['hay', 'Hay', 'loads'],
 ];
+// What the outlook of a household planned by hand left out for want of a task (parts.left, VB-1633), in words, with the way to it.
+function storeLeft(x, f, unit) {
+  const fi = f.fields.findIndex((q) => q.tile === x.tile),
+    mi = f.meadows.findIndex((q) => q.tile === x.tile),
+    at = fi >= 0 ? `field ${fi + 1}` : mi >= 0 ? `hay meadow ${mi + 1}` : 'the wood',
+    n = `about ${Math.round(x.n)} ${unit}`,
+    show = Number.isInteger(x.tile)
+      ? `<button type="button" class="u2-chip" data-hud="fly" data-tile="${x.tile}">Show</button>`
+      : '',
+    chain = (c, label) =>
+      `<button type="button" class="u2-chip" data-hud="chain" data-chain="${c}" data-tile="${x.tile}">${label}</button>`,
+    cut = '<button type="button" class="u2-chip" data-hud="cutwood">Cut firewood</button>';
+  const [words, acts] =
+    x.what === 'harvest'
+      ? [
+          `${siteCap(n)} of ${x.crop} on ${at}: no task of the plan brings in its harvest.`,
+          show + chain('harvest', 'Bring it in'),
+        ]
+      : x.what === 'mown'
+        ? [
+            `${siteCap(n)} of hay lying mown on ${at}: no task of the plan brings it home.`,
+            show + chain('hay', 'Make hay here'),
+          ]
+        : x.what === 'meadow'
+          ? [`${siteCap(n)} of hay on ${at}: no task of the plan mows it.`, show + chain('hay', 'Make hay here')]
+          : x.what === 'timber'
+            ? [`${siteCap(woodTimber(x.n))} at home: no task of the plan cuts it into firewood.`, cut]
+            : x.what === 'fell'
+              ? [
+                  `${siteCap(woodTimber(x.n))} to be felled in ${at}: no task of the plan cuts it into firewood.`,
+                  show + cut,
+                ]
+              : [
+                  `${siteCap(n)} of firewood for the year ahead: no task of the plan fells and cuts it. ${WOOD_PATH}`,
+                  '',
+                ];
+  return `<li><span>${esc(words)}</span>${acts ? `<span class="u2-row2">${acts}</span>` : ''}</li>`;
+}
+const STORE_KEY =
+  'Each bar is a good; its four cells are the seasons ahead, from now, each filled as far as the store lasts into it. ' +
+  'Green: it lasts the year; gold: it runs short; red: it runs badly short. A faded cell: none of it is needed that season. ' +
+  'Counted: what is in store, and what the tasks of the plan bring in.';
 function storesHTML(hh) {
-  const O = Sim.supplyOutlook(st, hh.id);
+  const O = Sim.supplyOutlook(st, hh.id),
+    f = st.farmsteads[hh.farmstead];
   if (!O) return '<p class="sub">Not reckoned yet: the stores are counted on the first morning.</p>';
   let h = '';
   for (const [key, label, unit] of HUD_STORES) {
     const s = O[key];
     if (s.state === 'none') continue;
     const coming = s.parts.intakes.reduce((n, x) => n + x.n, 0),
+      left = s.parts.left || [],
       word =
         s.state === 'safe'
           ? coming > 0
-            ? 'Lasts the year, if the work planned is done'
+            ? 'Lasts the year, if the tasks planned are done'
             : 'Lasts the year ahead'
           : `Runs ${s.state === 'bad' ? 'badly ' : ''}short in ${Sim.SEASONS[(O.season + s.season) % 4]}`,
       cells = [0, 1, 2, 3]
@@ -159,15 +203,21 @@ function storesHTML(hh) {
         })
         .join('');
     h +=
-      `<div class="u2-store ${s.state}"><div><b>${label}</b><span>${esc(word)}</span></div><div class="u2-cells">${cells}</div>` +
+      `<div class="u2-store ${s.state}" data-hud="storekey" data-key="${key}" role="button" tabindex="0" aria-expanded="${hud.storeKey === key}">` +
+      `<div><b>${label}</b><span>${esc(word)}</span></div><div class="u2-cells">${cells}</div>` +
       `<small>${Math.round(s.parts.store)} ${unit} in store now` +
-      `${coming > 0 ? ` · about ${Math.round(coming)} more counted on from work still to do` : ''}</small></div>`;
+      `${coming > 0 ? ` · about ${Math.round(coming)} more from the tasks of the plan` : ''}</small>` +
+      (hud.storeKey === key ? `<p class="u2-legend">${esc(STORE_KEY)}</p>` : '') +
+      '</div>' +
+      (left.length
+        ? `<ul class="u2-left"><li class="h">Not counted:</li>${left.map((x) => storeLeft(x, f, unit)).join('')}</ul>`
+        : '');
   }
   const herds = Sim.describeHerds ? Sim.describeHerds(st, hh) : '';
   if (herds) h += `<h3>Animals</h3><p class="sub">${esc(String(herds))}</p>`;
   return (
     h +
-    '<p class="sub">The bars are the head’s own reckoning of the four seasons ahead, made at each morning’s review.</p>' +
+    '<p class="sub">The bars count what is in store and what the tasks of the plan bring in, nothing else; a tap on a bar says how to read it.</p>' +
     (O.stale ? '<p class="sub">Counted last season; it is counted again at the next review.</p>' : '')
   );
 }
@@ -180,7 +230,7 @@ function renderHud() {
   hudMarks(id, hh, f);
   renderPlan();
   const hour = Math.floor(st.t),
-    key = `${hud.tab}|${hour}|${st.player.queue.length}|${st.player.auto}|${followPlayed}|${hud.msg ? hud.msg.text : ''}`;
+    key = `${hud.tab}|${hud.storeKey}|${hour}|${st.player.queue.length}|${st.player.auto}|${followPlayed}|${hud.msg ? hud.msg.text : ''}`;
   for (const b of u2.tabs.children) b.setAttribute('aria-pressed', String(b.dataset.tab === hud.tab));
   u2.sheet.hidden = !hud.tab;
   if (!hud.tab || key === hud.key) return;
@@ -241,10 +291,16 @@ function hudClick(b) {
     if (d.hud === 'pdrop') hud.pc = 'sleep';
   } else if (d.hud === 'shut') hud.at = -1;
   else if (d.hud === 'walk') hudMsg(Sim.queue(st, { actor: id, verb: 'walkTo', target: hud.at }), 'Queued: walk here.');
+  else if (d.hud === 'storekey') hud.storeKey = hud.storeKey === d.key ? null : d.key;
   else if (d.hud === 'chain')
-    hudMsg(Sim.plan(st, 'add', { [d.chain]: hud.at }), `Added to the plan: ${HUD_CHAIN[d.chain].done}.`);
-  else if (d.hud === 'fly') flyTo(w.hx[+d.tile], w.hy[+d.tile]);
-  else if (d.hud === 'follow') {
+    hudMsg(
+      Sim.plan(st, 'add', { [d.chain]: d.tile !== undefined ? +d.tile : hud.at }),
+      `Added to the plan: ${HUD_CHAIN[d.chain].done}.`,
+    );
+  else if (d.hud === 'fly') {
+    flyTo(w.hx[+d.tile], w.hy[+d.tile]);
+    if (b.closest('#u2Sheet')) ((hud.tab = null), (hud.at = +d.tile), (hud.tapAt = performance.now())); // from the stores: its tile's callout
+  } else if (d.hud === 'follow') {
     followPlayed = !followPlayed;
     if (followPlayed) flyToFarmOf(id);
   } else if (d.hud === 'unqueue') {

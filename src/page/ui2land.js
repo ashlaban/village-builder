@@ -2,38 +2,50 @@
 // ---- on the land: how things stand, and what can be done where ----
 // What took of the settler's health at its last reckoning (st.player.days, VB-1118), each an icon at the house and a sentence in its
 // callout: the warning stands on the land, its words a tap away.
+// The day kept is the last one reckoned (its `t`, at the day's end): its cold is of the roof that stood then, so a booth raised since is
+// said to have come after it. `damp` is a day without water (sim/hunger's dry day, VB-331), not the roof's.
 const HUD_AILS = [
-  ['cold', 'cold', 'The night was cold: there is no roof and fire to sleep by. A booth or a house mends that.'],
-  ['damp', 'cold', 'The night was damp: there is no roof to sleep under. A booth or a house mends that.'],
+  ['cold', 'cold', ''],
+  ['damp', 'water', 'A day without water: none was fetched for the house. Fetching water is in the daily routine.'],
   ['hunger', 'hunger', 'Hunger is taking of its health.'],
   ['tired', 'mood', 'Lack of sleep is taking of its health.'],
   ['ill', 'health', 'It is ill.'],
 ];
+// The cold of day d in words, by the roof that stood when it was reckoned and what stands now.
+function hudColdWords(d) {
+  const { hh, f } = hudHouse(),
+    { hexSteps } = VB['sim/hex'],
+    booth = f && hh ? st.booths.find((b) => b.by === hh.id && hexSteps(w, b.tile, f.house) <= 1) : null,
+    roofed = f && (!f.booth || (booth && booth.built <= d.t));
+  if (roofed) return 'The last night was cold: too little firewood for the fire. ' + WOOD_PATH;
+  const then = 'The last night was cold: there was no roof and fire to sleep by.';
+  if (booth || (f && !f.booth)) return `${then} The booth stands now: the next night is under its roof.`;
+  return `${then} ${buildCalls(f) ? 'Build a farmstead: the build button.' : 'The booth in the plan mends that.'}`;
+}
 function hudAils() {
   const d = (st.player.days || []).slice(-1)[0],
-    seen = new Set(),
-    build = buildCalls(hudHouse().f); // a camp with no farmstead planned: the roof is the build menu's
+    seen = new Set();
   return d
-    ? HUD_AILS.filter(([k, icon]) => d.why[k] >= 0.2 && !seen.has(icon) && seen.add(icon)).map(([, icon, words]) => [
+    ? HUD_AILS.filter(([k, icon]) => d.why[k] >= 0.2 && !seen.has(icon) && seen.add(icon)).map(([k, icon, words]) => [
         icon,
-        icon === 'cold' && build ? `${words} Build a farmstead: the build button.` : words,
+        k === 'cold' ? hudColdWords(d) : words,
       ])
     : [];
 }
 // The house's three bars in words: what each measures and how it stands by the head's reckoning (Sim.supplyOutlook).
+const hudLasts = (O, k) =>
+  O[k].state === 'safe'
+    ? 'lasts the year'
+    : `runs ${O[k].state === 'bad' ? 'badly ' : ''}short in ${Sim.SEASONS[(O.season + O[k].season) % 4]}`;
 function hudGauges(hh) {
   const O = Sim.supplyOutlook(st, hh.id);
   if (!O) return 'The bars under the house are food, firewood and hay: they are reckoned on the first morning.';
-  return HUD_STORES.filter(([k]) => O[k].state !== 'none')
-    .map(
-      ([k, label]) =>
-        `${label}: ${
-          O[k].state === 'safe'
-            ? 'lasts the year'
-            : `runs ${O[k].state === 'bad' ? 'badly ' : ''}short in ${Sim.SEASONS[(O.season + O[k].season) % 4]}`
-        }.`,
-    )
-    .join(' ');
+  const goods = HUD_STORES.filter(([k]) => O[k].state !== 'none'),
+    left = goods.some(([k]) => (O[k].parts.left || []).length);
+  return (
+    goods.map(([k, label]) => `${label}: ${hudLasts(O, k)}.`).join(' ') +
+    (left ? ' Some is not counted, for want of a task of the plan: Stores says what.' : '')
+  );
 }
 // The windows that press with no task of the plan for them (Sim.planGaps, VB-1622).
 const hudGaps = () => (Sim.planGaps && HUD_CHAIN ? (Sim.planGaps(st) || []).filter((g) => HUD_CHAIN[g.chain]) : []);
@@ -134,7 +146,14 @@ function hudCall(i, id, hh, f) {
     mi = (f.meadows || []).findIndex((q) => q.tile === i),
     seen = new Set(),
     jobs = Sim.opportunities(st, id).filter(
-      (o) => o.verb === 'work' && o.why === null && o.site === i && o.kind && !seen.has(o.kind) && seen.add(o.kind),
+      (o) =>
+        o.verb === 'work' &&
+        o.why === null &&
+        o.site === i &&
+        o.kind &&
+        o.kind !== 'firewood' && // the house offers its cutting as a task of its own (page/ui2wood)
+        !seen.has(o.kind) &&
+        seen.add(o.kind),
     );
   let title,
     sub,

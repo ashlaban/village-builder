@@ -16,8 +16,13 @@ const fireWarn = () => {
 const fireTitle = (F) =>
   F.wood < 1 ? 'No firewood' : `Firewood for ${F.nights} ${F.nights === 1 ? 'night' : 'nights'}`;
 // The warning's words, the band of the house's callout when its mark is tapped.
+// the same verdict as the stores' (fireView reads the outlook's fuel: VB-1633)
+const fireVerdict = (F) =>
+  F.state === 'safe' || F.season === null
+    ? 'enough for the year'
+    : `it runs ${F.state === 'bad' ? 'badly ' : ''}short in ${Sim.SEASONS[(Sim.cal(st.t).season + F.season) % 4]}`;
 const fireWords = (F) =>
-  `${fireTitle(F)}${F.cold ? ', and the house was cold' : F.wood < 1 ? '' : ', short of what the season wants'}. ${WOOD_PATH}`;
+  `${fireTitle(F)}: ${fireVerdict(F)}${F.cold ? ', and the house was cold last night' : ''}. ${WOOD_PATH}`;
 // Why forest tile i will not be felled by the played household, or null (sim/territory's woodWhy, the rule the fell task checks).
 function woodWhy(i, f) {
   if (!(w.trees[i] > 0)) return 'no trees stand here';

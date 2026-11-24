@@ -26,8 +26,12 @@ const buildTasked = () => {
 };
 // The build button calls for a tap while there is a camp and no farmstead in the plan: the first thing to do.
 const buildCalls = (f) => hudCamp(f) === 'camp' && !buildTasked();
+// the whole work, as the plan reckons it (`work`, VB-1630), and what it is made of: the raising, and the timber fetched before it
 const buildCost = (e) =>
-  `About ${hudSpan(e.hours)} of work to raise, and ${woodTimber(e.timber)} cut and carried from the wood`;
+  e.work > e.hours
+    ? `About ${hudSpan(e.work)} of work in all: ${hudSpan(e.hours)} raising it, the rest felling ${woodTimber(e.timber)} ` +
+      'and carrying it from the wood'
+    : `About ${hudSpan(e.hours)} of work to raise, and ${woodTimber(e.timber)} felled and carried from the wood`;
 // ---- the ladder: what stands at the farmstead and what can follow (Sim.farmView, VB-1631), built up by an upgrade task (VB-1632) ----
 const LADDER = {
   camp: { name: 'Camp', icon: () => goodIcon('flour'), line: 'The goods landed, and nothing built.' },
