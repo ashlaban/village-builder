@@ -94,5 +94,13 @@ check(!st.stories.has(s2.id), 'a story nobody holds is dropped');
 check(st.pawns.every((p) => p.alive || !p.known), 'the dead hold none');
 bad = checkState(st);
 check(!bad.length, `invariants after the deaths: ${bad.slice(0, 3).join('; ')}`);
+
+// the report (tools/stories.js, tools/sim.js --report stories): a year of the loaded state, its stories counted by kind, hops and spread
+const C = require('../tools/stories.js').collector(VB, back), madeBefore = back.storySeq;
+S.witness(back, 'quarrel', heads[0], heads[1], null);
+C.advanceYear();
+const rep = C.result(), y1 = rep.years[0];
+check(y1.made.quarrel >= 1 && y1.heldPerPawn > 0 && y1.hops[0] && y1.hops[0].held === 1, `the report's year: ${JSON.stringify(y1).slice(0, 200)}`);
+check(rep.spread[0].day === 0 && rep.spread[0].sampled >= back.storySeq - madeBefore - 1 && rep.cost.livingPawnDays > 0, `the report's spread and cost: ${JSON.stringify(rep.spread[0])}`);
 if (failed) process.exit(1);
-console.log('stories ok: witnessed, told, believed, saturated, forgotten, dropped, saved');
+console.log('stories ok: witnessed, told, believed, saturated, forgotten, dropped, saved; the report counts them');
