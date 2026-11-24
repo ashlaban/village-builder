@@ -7,10 +7,10 @@
 const fs = require('fs'), path = require('path');
 const root = process.argv[2] ? path.resolve(process.argv[2]) : path.join(__dirname, '..'), dir = path.join(root, 'backlog');
 const { parseTouches, fileOf } = require(path.join(__dirname, '..', 'tools', 'lib', 'touches.js')), warnings = [];
-// from this ID on a ready task carries a "Touches:" line (VB-1677): above every task file in sight when the line came (VB-1680 on
+// from this ID on a ready task carries a "Touches:" line (VB-1677): above every task file in sight when the line came (VB-1681 on
 // 25 November, tools/lib/ids.js), so no task a branch in flight had written then fails; one written since, without it, is mended by
 // `node tools/backlog.js set ID touches="..."`
-const TOUCHES_FROM = 1674;
+const TOUCHES_FROM = 1681;
 const errors = [], PHASES = ['plan', 'implement', 'wrap-up'];
 const SECTIONS = { 'BACKLOG.md': { 'Ready': 'ready', 'Waiting for Kim': 'needs-review', 'Blocked': 'blocked' },
   'BACKLOG_ARCHIVE.md': { 'Done tasks': 'done' } };
