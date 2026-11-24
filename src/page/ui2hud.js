@@ -268,21 +268,23 @@ function hudTab(tab) {
   u2.sheet.scrollTop = 0;
 }
 // ---- on the land: how things stand, and what can be done where ----
-// A field's badge: a word or two and how pressing it is.
-function fieldBadge(fd) {
+// A field's pin: the icon of what it waits for, a number of days where one counts (to ripe, or left to sow), and how pressing it is.
+// The words are the tile's callout (fieldLine), a tap away.
+function fieldPin(fd) {
   const C = VB['sim/crops'].CROPS[fd.crop],
     c = Sim.cal(st.t),
     day = Math.floor(st.t / Sim.DAY);
   if (fd.stage === 'sown' || fd.stage === 'growing')
-    return [`${fd.crop} ${Math.min(C.ripe, Math.max(0, day - fd.sown))}/${C.ripe}`, 0];
-  if (fd.stage === 'ripe') return ['ripe: reap', 2];
-  if (fd.stage === 'stooks') return ['carry in', 1];
-  if (fd.stage === 'fallow' || fd.stage === 'scrub') return ['overgrown', 1];
-  if (C.fallow) return ['fallow', 0];
+    return [goodIcon(GOOD_PATHS[fd.crop] ? fd.crop : 'seed'), C.ripe - Math.min(C.ripe, Math.max(0, day - fd.sown)), 0];
+  if (fd.stage === 'ripe') return [actIcon('mow'), '!', 2];
+  if (fd.stage === 'stooks') return [goodIcon('sheaves'), '', 1];
+  if (fd.stage === 'fallow' || fd.stage === 'scrub') return [actIcon('weed'), '', 1];
+  if (C.fallow) return [goodIcon('fallow'), '', 0];
   const open = c.season === C.sow[0] && c.sday >= C.sow[1] && c.sday <= C.sow[2],
     left = C.sow[2] - c.sday + 1;
-  return [`${fd.stage === 'plowed' ? 'sow' : 'hoe'}${open ? ` · ${left}d left` : ''}`, open ? (left <= 3 ? 2 : 1) : 0];
+  return [actIcon(fd.stage === 'plowed' ? 'sow' : 'hoe'), open ? left : '', open ? (left <= 3 ? 2 : 1) : 0];
 }
+const hudPin = (icon, n = '') => `${icon}${n === '' ? '' : `<b>${n}</b>`}`;
 // The tiles the next field or meadow may be laid on (page/plan's planSites, the head's own checks), read once an hour.
 function hudSites(hh) {
   const hour = Math.floor(st.t);
@@ -361,32 +363,31 @@ function hudMarks(id, hh, f) {
   hud.markKey = key;
   const marks = [];
   f.fields.forEach((fd, k) => {
-    const [text, press] = fieldBadge(fd);
-    if (fd.tile !== hud.at) marks.push({ id: `f${k}`, tile: fd.tile, cls: `u2-badge press${press}`, html: esc(text) });
+    const [icon, n, press] = fieldPin(fd);
+    if (fd.tile !== hud.at)
+      marks.push({ id: `f${k}`, tile: fd.tile, cls: `u2-pin press${press}`, html: hudPin(icon, n) });
   });
-  if (site >= 0 && site !== hud.at && V.project) {
-    const kn = Sim.KINDS[V.project.step];
-    marks.push({ id: 'site', tile: site, cls: 'u2-badge work', html: esc(kn ? kn.name : V.project.what) });
-  }
+  if (site >= 0 && site !== hud.at && V.project)
+    marks.push({
+      id: 'site',
+      tile: site,
+      cls: 'u2-pin work',
+      html: hudPin(actIcon(KIND_ICON[V.project.step] || 'build')),
+    });
   for (const what of ['field', 'meadow'])
     if (V.tiles[what] >= 0 && V.tiles[what] !== site && V.tiles[what] !== hud.at)
-      marks.push({
-        id: `next${what}`,
-        tile: V.tiles[what],
-        cls: 'u2-badge',
-        html: what === 'field' ? 'next field' : 'next meadow',
-      });
+      marks.push({ id: `next${what}`, tile: V.tiles[what], cls: 'u2-pin next', html: hudPin(goodIcon(what)) });
   if (O && f.house !== hud.at)
     marks.push({
       id: 'house',
       tile: f.house,
       cls: 'u2-gauges',
       html: [
-        ['food', 'food'],
+        ['food', 'grain'],
         ['fuel', 'wood'],
         ['hay', 'hay'],
       ]
-        .map(([k, name]) => `<i class="${O[k].state}"><u></u>${name}</i>`)
+        .map(([k, icon]) => `<i class="${O[k].state}">${goodIcon(icon)}<u></u></i>`)
         .join(''),
     });
   if (hud.at >= 0)
