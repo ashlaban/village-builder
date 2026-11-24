@@ -65,10 +65,12 @@ VB['sim/building'] = (() => {
   // before other work (MATCH.urgency.shelter, as the booth's): the booth roofs it meanwhile and rots in three years, and a lone settler's
   // hands go to the fields when they are due (VB-1544: the harvest lost to the frost otherwise, and the cottage never done in the
   // slack's other work). The settlers of sim/settle, whose booth is a mark with none raised (until VB-787), build at once, as before.
+  // Whether household hh's head is the played pawn with automatic behaviour off: its plan says when its house is built, not the slack
+  // (VB-1632 the cottage's stages, VB-1635 the foundation's raising).
+  const played = (st, hh) => !!st.player && !st.player.auto && hh.holder === st.player.pawn;
   function boothWork(st, hh, f, c, post) {
-    const own = homeBooth(st, hh, f),
-      hand = !!st.player && !st.player.auto && hh.holder === st.player.pawn; // VB-1632: the played head's plan says when, not the slack
-    if ((own && !slack(c) && !hand) || roofless(st, hh)) return;
+    const own = homeBooth(st, hh, f);
+    if ((own && !slack(c) && !played(st, hh)) || roofless(st, hh)) return;
     const bj = cottageJob(st, hh, f);
     if (!bj) return;
     if (own) bj[2].shelter = true;
@@ -368,13 +370,15 @@ VB['sim/building'] = (() => {
   // dig a well and the heap lacks the lining's stone (sim/wells, VB-1584): in a booth too, where the site was chosen for its well
   // (farmstead.wellMeant, VB-1587), and then for that stone alone. None while its head holds off projects (sim/projects heldOff: the
   // played head with automatic behaviour off, VB-1633; Kim, 24 Nov 2026: nothing the head would plan by itself while the player plans):
-  // the step is the head's own rule, as a project begun by it is, and one open when the hold began is closed.
+  // the step is the head's own rule, as a project begun by it is, and one open when the hold began is closed; but for the foundation
+  // alone while the player's plan holds its task (VB-1635, sim/upgrade's chain foundation: the plan's task asks the head's rule for it).
   function buildStep(st, plan, hh) {
-    if (Projects.heldOff(st, hh.id)) return null;
     const f = hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null,
-      old = plan.build || null,
-      quern = !!f && wantsStone(st, hh),
-      well = !!f && (!f.booth || !!f.wellMeant) && stoneLacking(st, hh, f) > 0,
+      held = Projects.heldOff(st, hh.id);
+    if (held && !foundationAsked(st, hh, f)) return null;
+    const old = plan.build || null,
+      quern = !held && !!f && wantsStone(st, hh),
+      well = !held && !!f && (!f.booth || !!f.wellMeant) && stoneLacking(st, hh, f) > 0,
       other = quern || well;
     if (
       !f ||
@@ -388,6 +392,13 @@ VB['sim/building'] = (() => {
     if (old && !stale && (old.kind !== 'pick' || pickable(st.w, old.tile))) return old;
     return stoneSource(st, f, quern);
   }
+  // Whether the played pawn's plan, its head household hh's, holds the foundation task of farm f's house (VB-1635).
+  const foundationAsked = (st, hh, f) =>
+    !!f &&
+    !!st.player &&
+    !!st.player.plan &&
+    hh.holder === st.player.pawn &&
+    st.player.plan.tasks.some((t) => t.kind === 'foundation' && t.foundation === f.house);
   // The slack of the year, when a house is raised: the first half of summer, and winter.
   const slack = (c) => (c.season === 1 && c.sday < SEASON_DAYS / 2) || c.season === 3;
   // The household's building step: loads to its heap, two trips at a time, while it lacks the foundation's stone; then, in the slack, the
@@ -409,7 +420,7 @@ VB['sim/building'] = (() => {
       return;
     }
     if (Stores.heldOf(hh, 'stone') >= BUILD.foundationStone) {
-      if (slack(c)) post(`raise:f${f.id}`, f.house, { farm: f }, 'raise');
+      if (slack(c) || played(st, hh)) post(`raise:f${f.id}`, f.house, { farm: f }, 'raise'); // VB-1635: the plan says when
       if (well && step.tile >= 0) post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
       return;
     }

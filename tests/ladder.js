@@ -7,22 +7,24 @@ const VB = require('../src/load.js'),
 const { island, SMALL } = require('./lib/probe.js'),
   { tinyWorld } = require('./lib/tiny.js'),
   { canon, sha, kept } = require('./lib/canon.js');
-const { RUNGS, OUTBUILDINGS, rungOf } = VB['sim/ladder'],
+const { RUNGS, FOUNDATION, OUTBUILDINGS, rungOf } = VB['sim/ladder'],
   { BOOTH, BUILD } = VB['sim/rules'],
   { HOUSE } = VB['sim/house'],
   { hexSteps } = VB['sim/hex'],
   B = VB['sim/building'];
 const hash = (st) => sha(canon(kept(st)));
+const v0 = (st, f) => Sim.farmView(st, f.id);
 
 // ---- 1. the tables: each rung built from one before it, the numbers the rules' own ----
 assert.deepStrictEqual(
   Object.keys(RUNGS).map((k) => RUNGS[k].from),
-  [null, 'camp', 'booth', 'cottage'],
+  [null, 'camp', 'booth'],
 );
 assert.deepStrictEqual(RUNGS.booth.needs, { timber: BOOTH.wood, stone: 0, hours: BOOTH.hours });
 assert.deepStrictEqual(RUNGS.cottage.needs, { timber: BUILD.timber, stone: 0, hours: 120 });
-assert.deepStrictEqual(RUNGS.stone.needs, { timber: 0, stone: BUILD.foundationStone, hours: BUILD.foundationHours });
-assert.strictEqual(RUNGS.stone.gives.wear, HOUSE.wearStone);
+assert.deepStrictEqual(FOUNDATION.needs, { timber: 0, stone: BUILD.foundationStone, hours: BUILD.foundationHours });
+assert.strictEqual(FOUNDATION.gives.wear, HOUSE.wearStone);
+assert(!RUNGS.stone, 'the foundation is no rung (VB-1635)');
 assert.strictEqual(RUNGS.cottage.gives.standing, HOUSE.term);
 assert.deepStrictEqual(OUTBUILDINGS.barn.needs, { timber: BUILD.barn.timber, stone: 0, hours: 120 });
 
@@ -38,7 +40,7 @@ function expected(st, f) {
     B.stakedEach(st, (p) => (staked = staked || (st.pawns[p.holder.id].household === f.household && near(p.tile))));
     return staked ? 'camp' : 'booth';
   }
-  return f.grade === 'stone' ? 'stone' : 'cottage';
+  return 'cottage';
 }
 function sweep(st, tag, seen) {
   const before = hash(st);
@@ -46,6 +48,8 @@ function sweep(st, tag, seen) {
     const r = rungOf(st, f);
     assert.strictEqual(r, expected(st, f), `${tag}: farm ${f.id}`);
     seen.add(r);
+    if (r === 'cottage') seen.add(v0(st, f).foundation.grade === 'stone' ? 'on stone' : 'ground');
+    assert.strictEqual(v0(st, f).foundation.grade, f.grade || 'ground', `${tag}: farm ${f.id}'s foundation`);
     const v = Sim.farmView(st, f.id);
     assert.deepStrictEqual(JSON.parse(JSON.stringify(v)), v, `${tag}: farm ${f.id}'s view is plain data`);
     assert.strictEqual(v.rung, r);
@@ -72,7 +76,7 @@ for (const [name, opts] of [
   sweep(st, `${tag}, a year on`, seen);
 }
 if (!only || only.includes('solo')) assert(seen.has('camp') && seen.has('booth'), `rungs seen: ${[...seen]}`);
-if (!only || only.includes('populous')) assert(seen.has('cottage') && seen.has('stone'), `rungs seen: ${[...seen]}`);
+if (!only || only.includes('populous')) assert(seen.has('cottage') && seen.has('ground') && seen.has('on stone'), `rungs seen: ${[...seen]}`);
 
 if (only && !only.includes('solo')) process.exit(0);
 // ---- 3. the hand-planned landing: a camp, its booth raised, then the cottage is next ----
@@ -85,7 +89,10 @@ if (only && !only.includes('solo')) process.exit(0);
   assert.strictEqual(v.rung, 'camp');
   assert.strictEqual(v.building, null);
   assert.deepStrictEqual(v.next, [{ what: 'booth', needs: RUNGS.booth.needs, ok: true, why: null, planned: false }]);
-  assert.deepStrictEqual(v.outbuildings, [{ what: 'barn', built: false, ok: false, why: `${f.name} has no cottage yet` }]);
+  assert.deepStrictEqual(v.outbuildings, [
+    { what: 'barn', built: false, needs: OUTBUILDINGS.barn.needs, ok: false, why: `${f.name} has no cottage yet`, planned: false, building: null },
+  ]);
+  assert.strictEqual(v.foundation.why, `${f.name} has no cottage yet`, 'no foundation under a booth');
   Sim.inhabit(st, st.households[0].holder);
   Sim.setAuto(st, false);
   assert.strictEqual(Sim.plan(st, 'add', { farmstead: f.house }), true);

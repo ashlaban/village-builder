@@ -31,7 +31,8 @@ VB['sim/plannext'] = (() => {
   // hands: a field beyond what its hands till (sim/fieldwork beyondHands, the plan's targets.workable); sowing: its sowing refused
   // (sim/fieldwork sowWhy: the seed, the thaw); hay: no hay wanted (sim/meadows hayWanted); timber: no timber home to cut; woodpile: the
   // pile at the season's goal (sim/chores, the firewood job's rule); booth: the booth's timber not all fetched to its tile; wood: no wood
-  // to fetch the booth's timber from; review: none of those, the job posted at the household's next review.
+  // to fetch the booth's (or an outbuilding's) timber from; stone: no stone in reach for the foundation (VB-1635); review: none of those,
+  // the job posted at the household's next review.
   const HOLDS = {
     hands: (cap, tile) =>
       `the household's hands till ${cap} field${cap === 1 ? '' : 's'}; the field at ${tile} is beyond them`,
@@ -40,7 +41,9 @@ VB['sim/plannext'] = (() => {
     timber: () => 'no timber is home to cut yet',
     woodpile: () => "the woodpile holds the season's goal",
     booth: () => "the booth's timber is not all fetched",
-    wood: () => "there is no wood to fetch the booth's timber from",
+    wood: (what = 'booth') => `there is no wood to fetch the ${what}'s timber from`,
+    stone: () => 'there is no stone to pick or quarry within reach of the house', // VB-1635: the foundation's
+
     review: () => "posted at the household's next review",
   };
   const RULES = Object.keys(HOLDS);
@@ -67,6 +70,10 @@ VB['sim/plannext'] = (() => {
       const v = st.villages[st.farmsteads[hh.farmstead].village];
       if (y.kind === 'timber' && !(st.w.trees[where.staked.tile] > 0) && !v.wood.length) return held('wood');
     }
+    // VB-1635: the foundation's stone with no source in reach; an outbuilding's timber with no wood to fell it in
+    if (name === 'foundation' && y.kind !== 'raise' && where.step && where.step.tile < 0) return held('stone');
+    if (name === 'outbuilding' && y.kind === 'timber' && !st.villages[where.f.village].wood.length)
+      return held('wood', where.what);
     return held('review');
   }
   // The staked booth's timber all in, its raising not yet posted (VB-1630): the wood step is done and the raising posted when the staked

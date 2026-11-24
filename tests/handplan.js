@@ -117,7 +117,7 @@ const handStart = (seed = 7) => {
     f = st.farmsteads[hh.farmstead],
     plan = st.plans.households.get(hh.id);
   assert(!f.booth && f.grade === 'ground' && plan.build, 'the head means to raise its house onto stone');
-  assert.strictEqual(Sim.farmView(st, f.id).building.what, 'stone');
+  assert.strictEqual(Sim.farmView(st, f.id).building.what, 'foundation');
   Sim.inhabit(st, 0);
   Sim.setAuto(st, false);
   assert.strictEqual(Sim.farmView(st, f.id).building, null, 'by hand, no stone work reported, before the next review');

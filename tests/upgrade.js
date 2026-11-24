@@ -54,7 +54,7 @@ function run(st, days = 40) {
   assert.deepStrictEqual(v.next, [
     { what: 'cottage', needs: RUNGS.cottage.needs, ok: true, why: null, planned: false },
   ]);
-  assert.match(String(add(st, 'stone')), /a stone is built from a cottage/, 'a rung that does not follow');
+  assert.match(String(add(st, 'stone')), /no rung stone/, 'the foundation is no rung (VB-1635)');
   assert.match(String(add(st, 'tower')), /no rung tower/);
   assert.match(String(add(st)), /name the rung/);
   assert.match(String(add(st, 'cottage', f.house + 1)), /house is not at/);
@@ -89,8 +89,9 @@ function run(st, days = 40) {
   assert(['foundation', 'walls', 'roof'].every((k) => laid.has(k)), `the agenda lays its steps: ${[...laid]}`);
   const v = Sim.farmView(st, 0);
   assert.strictEqual(v.rung, 'cottage');
-  assert.deepStrictEqual(v.next, [{ what: 'stone', needs: RUNGS.stone.needs, ok: false, why: 'not yet', planned: false }]);
-  assert.strictEqual(add(st, 'stone'), 'not yet');
+  assert.deepStrictEqual(v.next, [], 'no rung follows the cottage yet (VB-1635: the foundation is no rung)');
+  assert.strictEqual(v.foundation.ok, true, 'the foundation may be planned');
+  assert.match(String(add(st, 'stone')), /no rung stone/);
   assert.match(String(add(st, 'cottage')), /built from a booth/, 'a cottage on a cottage');
   sound(st, 'the roof on');
 }
