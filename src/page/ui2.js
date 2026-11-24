@@ -156,7 +156,8 @@ function u2Frame() {
     u2.day.textContent = `${s[0].toUpperCase() + s.slice(1)} · day ${c.sday + 1}`;
     u2.year.textContent = `Year ${c.year} · ${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
     const id = played(),
-      does = id >= 0 ? `${st.pawns[id].given}: ${Sim.describe(st, id)}` : '';
+      idle = id >= 0 && typeof hudWaits === 'function' ? hudIdle() : '',
+      does = id >= 0 ? `${st.pawns[id].given}: ${Sim.describe(st, id)}${idle ? `. ${idle}` : ''}` : '';
     if (does !== u2Doing) {
       u2Doing = does;
       u2.does.textContent = does;

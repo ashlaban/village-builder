@@ -134,6 +134,27 @@ Drafts page (screenshots and both rounds' findings, newest first): https://claud
 - Stores count what is in the plan. There is no "automatic plan": there could be automatic planning, and it is turned off. So
   nothing the head would have planned by itself may be counted on while the player plans (the outlook's `intakes`).
 
+## Fifth batch (24 November, third session; branch `claude/zen-gauss-hpj14o`, which holds `claude/bold-lamport-xsgshf`)
+- Round 4's stalled plan, found: a task on a tile only marked for the next field or meadow waited for the household's open project
+  (the first field's clearing, begun at settling), which no task covered, so nothing was ever done; the agenda laid the clearing
+  into every day all the same. Reproduced headless on `ot7`, site 1. The stray walk was not the cause (2,600 walks all ended).
+- Kim: "that limitation should be removed. You should be able to start work at e.g. several fields at once, and realise that you
+  need to focus on one"; and the start begins with nothing under way.
+- VB-1623 (sim, done): the played head may begin fields and meadows side by side (`headView().projects`; unplayed heads keep the
+  limit until VB-1472, with Kim); with automatic off the head begins nothing by its own rule; `Sim.seed(..., {site, hand: true})`
+  lands with nothing under way; a task at a free tile needs no mark; `planView().tasks[i].waits` and `planView().idle` name why a
+  task or the whole plan waits (`WAITS` in `src/sim/playerplan.js`). VB-1624 (ready): `unposted` should name the household rule.
+- The page: a free tile's callout offers "Plant a field here" and "Make a hay meadow here" as plan tasks (the marking step and
+  "Break a field here" are gone); a pin for every project; a task's card and the settler's pill say why it waits; a held task's
+  chip is dashed. Seen in the page: two fields and a meadow planned on the first morning, all carried on side by side.
+- Batch 2 (taps), done: a tap on a pin or the gauges is its tile's, the callout opening with the mark's words in a band on top
+  (`hudBand`, `hud.pins`); the tap that opens a callout presses nothing in it (450 ms); a task chip no longer flies the map; the
+  callout keeps clear of the deadline banner; a scouted place comes to rest in the free land between the bars.
+- Open: on a phone a callout with no room above or below covers its own tile. `tests/browser.js` fails on this branch since
+  before this session ("the page at 60 frames a second, 30x, ends 240 steps on in another state than Sim.advance headless"; also
+  at d00fdc0): it wants its own repair task. No playtest round on any of this yet.
+- Next, in order: items 3 to 7 below (1 and 2 are done).
+
 ## For the next session: the plan, in order
 Kim wants clarifying questions and small batches; sub-agents are Opus. Each numbered item is a batch.
 1. Find why a plan stands still (round 4, finding 1) and make the screen say why: when the plan holds tasks and the settler does

@@ -162,7 +162,7 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2 .u2-pc.done { opacity: 0.45; } .u2 .u2-pc.off { border-style: dashed; opacity: 0.6; } .u2 .u2-pc.empty { border-style: dashed; }
 .u2 .u2-pc.on { box-shadow: 0 0 0 3px var(--gold2); } .u2 .u2-pc[aria-pressed="true"] { background: var(--ink2); color: var(--paper); }
 .u2 .u2-pc.press1 { background: #f3dfa6; } .u2 .u2-pc.press2 { background: var(--red); color: #fff7ec; }
-.u2 .u2-pc.task { margin: 0 6px 0 7px; }
+.u2 .u2-pc.task { margin: 0 6px 0 7px; } .u2 .u2-pc.held { border-style: dashed; }
 .u2-pc b { position: absolute; right: -8px; top: -6px; min-width: 17px; height: 17px; padding: 0 3px; border-radius: 9px; border: 1.5px solid var(--ink2); background: var(--paper); color: var(--ink2); font: 800 11px/14px var(--body); text-align: center; }
 .u2-pc s { position: absolute; left: -8px; top: -6px; min-width: 17px; height: 17px; padding: 0 3px; border-radius: 4px; background: var(--ink2); color: var(--paper); font: 800 11px/17px var(--body); text-align: center; text-decoration: none; }
 .u2 .u2-pc.queue { background: #d98f6a; } .u2-pc.queue s { background: var(--red); }

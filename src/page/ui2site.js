@@ -204,7 +204,7 @@ async function siteSettle() {
   await frame();
   let sim = null;
   try {
-    sim = Sim.seed(w, site.seed, 'solo', null, { site: site.at });
+    sim = Sim.seed(w, site.seed, 'solo', null, { site: site.at, hand: true });
   } catch (e) {
     console.warn('No farm could be laid there', e);
   }

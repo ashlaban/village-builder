@@ -223,18 +223,7 @@ function hudClick(b) {
   else if (d.hud === 'walk') hudMsg(Sim.queue(st, { actor: id, verb: 'walkTo', target: hud.at }), 'Queued: walk here.');
   else if (d.hud === 'chain')
     hudMsg(Sim.plan(st, 'add', { [d.chain]: hud.at }), `Added to the plan: ${HUD_CHAIN[d.chain].done}.`);
-  else if (d.hud === 'lay') {
-    let r = Sim.head(st, 'tile', { what: d.what, tile: hud.at });
-    const busy = !!Sim.headView(st, hh.id).project;
-    if (r === true && !busy) r = Sim.head(st, 'project', { what: d.what });
-    if (r === true && !busy && d.what === 'field' && Sim.plan) Sim.plan(st, 'add', { plant: hud.at }); // a field begun is planned through
-    hudMsg(
-      r,
-      busy
-        ? `Marked: the next ${d.what === 'field' ? 'field' : 'hay meadow'} is made here. Tap it again to put it in the plan.`
-        : `Begun: ${HUD_PROJECT[d.what]} here.`,
-    );
-  } else if (d.hud === 'fly') flyTo(w.hx[+d.tile], w.hy[+d.tile]);
+  else if (d.hud === 'fly') flyTo(w.hx[+d.tile], w.hy[+d.tile]);
   else if (d.hud === 'follow') {
     followPlayed = !followPlayed;
     if (followPlayed) flyToFarmOf(id);

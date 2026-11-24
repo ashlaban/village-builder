@@ -89,10 +89,11 @@ const HUD_VERDICT = { 'in time': 0, tight: 1, late: 2 };
 // An agenda entry's verdict: its own, or the whole chain's it leads to (a field broken now, sown in time?).
 const hudVerdict = (e) => (e.then && e.then.verdict) || e.verdict || null;
 // One line of words for an agenda entry: the hours it takes as the settler reckons them, and how it stands against its deadline.
+const HUD_ENDS = { plant: 'to a sown field', hay: 'until the hay is home', harvest: 'until the sheaves are in' };
 function hudStake(e) {
   let t = `About ${hudSpan(e.hours.mid)} of work`;
   if (e.steps && e.steps.length)
-    t += ` to a sown field (${e.steps.map((x) => hudKind(x.kind).toLowerCase()).join(', ')})${e.rough ? ', roughly' : ''}`;
+    t += ` ${HUD_ENDS[e.kind] || HUD_ENDS.plant} (${e.steps.map((x) => hudKind(x.kind).toLowerCase()).join(', ')})${e.rough ? ', roughly' : ''}`;
   if (e.then) {
     const more = e.then.steps.reduce((n, x) => n + x.hours.mid, 0);
     t += `, then ${hudSpan(more)} more before ${e.then.crop} is sown`;
@@ -169,16 +170,20 @@ function hudCall(i, id, hh, f) {
         `${P ? `Do it now: ${name.toLowerCase()}` : `${name}<small>${stake || 'Done next'}</small>`}</button>`;
   });
 
-  const proj = VB['sim/projects'].openOf(st, hh.id),
-    making = !!proj && proj.place === i && !!V.project && V.project.what === 'field',
+  const here = (V.projects || []).find((p) => p.tile === i) || null, // the project under way on this tile, of several (VB-1623)
+    making = !!here && here.what === 'field',
     unsown = fi >= 0 && !['sown', 'growing', 'ripe', 'stooks'].includes(f.fields[fi].stage);
   // the chains this tile may take, by what stands on it; the sim says why not when one is pressed and refused
+  // a free tile the head's own check takes for a field or a meadow: a task there begins it in its turn, beside any other (VB-1623)
+  const none = { field: new Set(), meadow: new Set() },
+    free = i !== f.house && fi < 0 && mi < 0 && !here ? hudSites(hh) : none;
+  const offer = (c) => ((free.field.has(i) || free.meadow.has(i)) && HUD_CHAIN[c].fresh) || HUD_CHAIN[c].offer;
   const gap = hudGaps().find((g) => g.tile === i),
     marked = V.tiles.field === i ? 'plant' : V.tiles.meadow === i ? 'hay' : null,
-    making2 = !!proj && proj.place === i && !!V.project && V.project.what === 'meadow',
+    making2 = !!here && here.what === 'meadow',
     chains = [
-      (making || unsown || marked === 'plant') && 'plant',
-      Sim.planGaps && (mi >= 0 || making2 || marked === 'hay') && 'hay',
+      (making || unsown || marked === 'plant' || free.field.has(i)) && 'plant',
+      Sim.planGaps && (mi >= 0 || making2 || marked === 'hay' || free.meadow.has(i)) && 'hay',
       Sim.planGaps && fi >= 0 && !unsown && 'harvest',
     ].filter((c) => c && P && !P.tasks.some((t) => t.kind === c && t.site === i));
   if (gap)
@@ -188,23 +193,12 @@ function hudCall(i, id, hh, f) {
       chains
         .map(
           (c) =>
-            `<button type="button" class="u2-act go" data-hud="chain" data-chain="${c}">${HUD_CHAIN[c].offer}` +
+            `<button type="button" class="u2-act go" data-hud="chain" data-chain="${c}">${offer(c)}` +
             `<small>One task of the plan: ${HUD_CHAIN[c].done}</small></button>`,
         )
         .join('') + acts.replace('u2-act go', 'u2-act');
-  if (proj && proj.place === i && V.project)
-    acts += `<button type="button" class="u2-chip" data-hud="drop" data-id="${V.project.id}">Give this work up</button>`;
-  if (i !== f.house && fi < 0 && mi < 0) {
-    const S = hudSites(hh);
-    if (S.field.has(i) && V.tiles.field !== i)
-      acts +=
-        '<button type="button" class="u2-act" data-hud="lay" data-what="field">Break a field here<small>' +
-        `${V.project ? 'After the work under way' : 'Begun at once'}</small></button>`;
-    if (S.meadow.has(i) && V.tiles.meadow !== i)
-      acts +=
-        '<button type="button" class="u2-act" data-hud="lay" data-what="meadow">Make a hay meadow here<small>' +
-        `${V.project ? 'After the work under way' : 'Begun at once'}</small></button>`;
-  }
+  if (here)
+    acts += `<button type="button" class="u2-chip" data-hud="drop" data-id="${here.id}">Give this work up</button>`;
   if (!w.water[i] && !w.river[i] && i !== f.house)
     acts += '<button type="button" class="u2-chip" data-hud="walk">Walk here</button>';
   return (
@@ -232,6 +226,7 @@ function hudMarks(id, hh, f) {
       hud.tab,
       plan,
       site,
+      JSON.stringify(V.projects || 0),
       V.tiles.field,
       V.tiles.meadow,
     ].join('|');
@@ -243,14 +238,15 @@ function hudMarks(id, hh, f) {
     if (fd.tile !== hud.at)
       marks.push({ id: `f${k}`, tile: fd.tile, cls: `u2-pin press${press}`, html: hudPin(icon, n), why });
   });
-  if (site >= 0 && site !== hud.at && V.project)
-    marks.push({
-      id: 'site',
-      tile: site,
-      cls: 'u2-pin work',
-      html: hudPin(actIcon(KIND_ICON[V.project.step] || 'build')),
-      why: `Work under way here: ${hudKind(V.project.step).toLowerCase()}. The mark is its tool.`,
-    });
+  for (const p of V.projects || [])
+    if (p.tile >= 0 && p.tile !== hud.at)
+      marks.push({
+        id: `site${p.id}`,
+        tile: p.tile,
+        cls: 'u2-pin work',
+        html: hudPin(actIcon(KIND_ICON[p.step] || 'build')),
+        why: `Work under way here: ${hudKind(p.step).toLowerCase()}. The mark is its tool.`,
+      });
   for (const what of ['field', 'meadow'])
     if (V.tiles[what] >= 0 && V.tiles[what] !== site && V.tiles[what] !== hud.at)
       marks.push({

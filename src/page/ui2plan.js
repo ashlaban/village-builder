@@ -21,12 +21,14 @@ const HUD_CHAIN = {
     name: 'Plant a field',
     icon: () => goodIcon('field'),
     offer: 'Plant this field',
+    fresh: 'Plant a field here',
     done: 'the field is carried through to its sowing',
   },
   hay: {
     name: 'Make hay',
     icon: () => goodIcon('hay'),
     offer: 'Make hay here',
+    fresh: 'Make a hay meadow here',
     done: 'the meadow is mown and its hay brought home',
   },
   harvest: {
@@ -36,6 +38,30 @@ const HUD_CHAIN = {
     done: 'the field is reaped when ripe and carried in',
   },
 };
+// Why a task of the plan waits (Sim.planView's `waits`, VB-1623), in words; '' while it is worked or next.
+const hudClock = (t) => {
+  const d = Math.floor(t / Sim.DAY) - Math.floor(st.t / Sim.DAY);
+  return d <= 0 ? `at ${hudHour(Math.floor(t % Sim.DAY))}` : d === 1 ? 'tomorrow' : `in ${hudDays(d)}`;
+};
+function hudWaits(x) {
+  if (!x) return '';
+  if (x.why === 'hand') {
+    const ago = x.since === null ? '' : `, begun ${hudSpan(Math.max(1, st.t - x.since))} ago`;
+    return `Waits for the order given by hand (${commandWords(x)})${ago}: it goes first.`;
+  }
+  if (x.why === 'before') return `Waits its turn: number ${x.i + 1} in the plan is worked first.`;
+  if (x.why === 'routine') return `Waits for the day’s routine (${hudKind(x.kind).toLowerCase()}).`;
+  if (x.why === 'sleep') return `Waits for the night to end, at ${hudHour(x.until)}.`;
+  if (x.why === 'opens') return `Waits for ${x.what}, ${hudClock(x.t)}: nothing of it can be done before.`;
+  if (x.why === 'unposted')
+    return `Cannot go on now: there is no ${hudKind(x.kind).toLowerCase()} to do here at present.`;
+  return `Cannot go on: ${x.text}.`;
+}
+// Why the plan as a whole has the settler do nothing now though it holds tasks ('' when it works, or holds none).
+function hudIdle() {
+  const P = hudPlanned();
+  return P && P.followed && P.idle && (P.tasks.length || P.idle.why === 'hand') ? hudWaits(P.idle) : '';
+}
 const hudTaskEntry = (A, t) =>
   HUD_CHAIN[t.kind]
     ? (A && (A.plan || []).find((x) => x.kind === t.kind && x.site === t.site)) || null
@@ -105,9 +131,10 @@ function renderPlan() {
           const e = hudTaskEntry(A, t),
             v = e ? HUD_VERDICT[hudVerdict(e)] || 0 : 0,
             days = e && Number.isFinite(e.ends) ? hudDaysTo(e.ends) : '';
+          const held = t.waits && ['refused', 'unposted', 'hand'].includes(t.waits.why);
           return chip(
             `t:${i}`,
-            `task press${v}${now.what === 'task' && now.key && now.key === t.key ? ' on' : ''}`,
+            `task press${v}${held ? ' held' : ''}${now.what === 'task' && now.key && now.key === t.key ? ' on' : ''}`,
             `<s>${i + 1}</s>${hudPin(hudTaskIcon(t), days)}`,
             `${i + 1}. ${hudKind(t.kind)}`,
           );
@@ -172,7 +199,9 @@ function planCard(P, A, S) {
       e = t && hudTaskEntry(A, t);
     if (!t) return ((hud.pc = null), '');
     title = `${i + 1}. ${hudKind(t.kind)}${HUD_CHAIN[t.kind] && t.step ? `: ${hudKind(t.step).toLowerCase()} next` : ''}`;
-    sub = e ? hudStake(e) : 'Its work is not open now.';
+    sub = [hudWaits(t.waits), e ? `${hudStake(e)}.` : t.waits ? '' : 'Its work is not open now.']
+      .filter(Boolean)
+      .join(' ');
     const till =
       e && Number.isFinite(e.ends) ? `, the round number the days until it is done (${hudDaysTo(e.ends)})` : '';
     sub += ` On its icon, the square is its place in the plan${till}.`;
