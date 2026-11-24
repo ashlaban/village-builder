@@ -147,12 +147,13 @@ VB['sim/hunger'] = (() => {
   // A pawn away from home (VB-287, VB-783: on the road or lodging; sim/away's agent.away) eats what it carries, not its household's meal.
   // A pawn who ate at a feast in the last day (VB-458; sim/occasions writes pawn.feast) has had the day's meal: it is not fed again.
   const feasted = (st, p) => p.feast !== undefined && st.t - p.feast.t < DAY;
-  function feedHousehold(st, hh, season) {
+  // `roof` 'none': the household sleeps under the open sky tonight (VB-1544, sim/building roofless, which the clock asks).
+  function feedHousehold(st, hh, season, roof) {
     const E = st.ECON;
     let mem = hh.members.map((id) => st.pawns[id]).filter((p) => p.died === null && st.agents[p.id].away === undefined);
     const fed = mem.some((p) => feasted(st, p)) ? mem.filter((p) => feasted(st, p)) : null;
     if (fed) mem = mem.filter((p) => !feasted(st, p));
-    const cold = season === undefined ? 0 : warmHouse(st, hh, season),
+    const cold = season === undefined ? 0 : warmHouse(st, hh, season, roof),
       // a house with nobody at home today has no dry day (VB-1585): nothing was to be cooked there, and nobody was there to fetch
       // and it is dry by the part of its people the day's loads did not cover (VB-1586)
       people = mem.length + (fed ? fed.length : 0),
@@ -238,7 +239,11 @@ VB['sim/hunger'] = (() => {
   // does not cover it is cold that day by the part it lacked times the season's use over winter's, which is the wood it lacked over winter's
   // use: a summer day without wood barely counts. hh.cold is the mean of the last HUNGER.days days' cold (hh.coldLog), as a pawn's hunger is
   // of its hungerLog. Returns the day's cold. One comparison a live household a day, in the pass that burns the wood.
-  function warmHouse(st, hh, season) {
+  // A household with no roof yet (`roof` 'none'; sim/building roofless, VB-1544: a lone settler before its booth stands) lights no hearth:
+  // its day is the open sky's cold (nightCost's), and it burns nothing; that cold is not the hearth's, and goes into no log (hh.cold
+  // ranks the wood).
+  function warmHouse(st, hh, season, roof) {
+    if (roof === 'none') return nightCost(st, season, 'none')[0];
     const use = st.ECON.woodUse,
       want = use[season],
       burnt = Stores.take(st, hh, 'wood', want, 'burn'); // the day's fire, what the pile holds of it (VB-328: through the stores)

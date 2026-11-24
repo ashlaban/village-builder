@@ -220,6 +220,7 @@ VB['sim/roles'] = (() => {
       milkLateHour: 10, // milking (VB-135): in the morning, less pressing after milkLateHour
       manure: 1.7, // carting manure (VB-137): before the hoeing, as the winter's dung went out before the plough
       manureSurplus: 0.5, // dung to spare (VB-718): after the hoeing and the sowing, so that it never makes a household sow late
+      shelter: 3.5, // VB-1544: a roofless household's booth and its timber, above a cold one's wood (3), which burns in no hearth without a roof
       repair: 0.5, // the house's upkeep (VB-306): below the fields' work and the fence's mending
       herd: 1.5, // herding (VB-136): the animals' daily care, as milking and the byre
       fishCalm: 0.2,

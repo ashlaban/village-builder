@@ -201,7 +201,11 @@ VB['sim/clock'] = (() => {
         for (const liveId of st.liveHouseholds) {
           const hh = st.households[liveId];
           if (hh.dissolved) continue;
-          feedHousehold(st, hh, c.season); // the day's fire first, then the meal (VB-327: the cold reaches health)
+          // the day's fire first, then the meal (VB-327: the cold reaches health); a booth farm's household with no roof yet sleeps
+          // under the open sky (VB-1544)
+          const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead],
+            open = !!f && f.booth && VB['sim/building'].roofless(st, hh);
+          feedHousehold(st, hh, c.season, open ? 'none' : undefined);
           spoilGrain(st, hh);
           Stores.spoilAle(st, hh);
         }

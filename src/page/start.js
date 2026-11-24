@@ -23,14 +23,14 @@ const START_WORDS = {
   },
   solo: {
     name: 'Solo',
-    line: 'One young settler, alone, and land no one has broken.',
+    line: 'One young settler, alone: no roof, and land no one has broken.',
     year: [
-      ['Spring', 'Break a field, sow'],
-      ['Summer', 'Clear a meadow, make hay'],
+      ['Spring', 'Raise a booth, break a field, sow'],
+      ['Summer', 'Clear a meadow, make hay, lay a foundation'],
       ['Autumn', 'Reap it all alone'],
-      ['Winter', 'Live on stores'],
+      ['Winter', 'Raise the cottage, live on stores'],
     ],
-    stores: 'A year’s grain for one, seed to sow, a few beasts, and no fields or meadows',
+    stores: 'A year’s grain for one, seed to sow, a few beasts; no house, no fields or meadows',
   },
   heirs: {
     name: 'Heirs and empty farms',
