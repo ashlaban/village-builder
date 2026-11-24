@@ -43,6 +43,10 @@ assert.ok(orch && orch.n === 1 && orch.measures.weighted.median === 1000 && !p2.
   'orchestrators apart; outside sessions left out');
 const ranged = P.compare({ data, changes, info: () => null, from: Date.parse('2026-11-10T12:00Z') });
 assert.deepStrictEqual(ranged.periods.map((p) => p.when), ['2026-11-10T12:00Z'], '--from keeps the tasks that started after it');
+const two = { data: { tasks: [task('VB-401', '2026-11-12T13:00:00Z', 5, { peak: 200e3 }), task('VB-402', '2026-11-12T13:00:00Z', 5)], sessions: [] },
+  changes, info: () => null };
+const tall = P.compare(two), elig = P.compare({ ...two, peakFrom: 160e3 }), rest = P.compare({ ...two, peakUnder: 160e3 });
+assert.ok(tall.periods[0].tasks === 2 && elig.periods[0].tasks === 1 && rest.periods[0].tasks === 1, 'eligible by peak context, and the others');
 const text = P.report(c);
 assert.ok(/sub-agent S Sonnet +6 +83% +150 \[100, 200\] +-50%/.test(text) && /session M Opus \(few\)/.test(text) && /a proxy/.test(text),
   'the report:\n' + text);

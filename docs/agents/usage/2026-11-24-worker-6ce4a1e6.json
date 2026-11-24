@@ -4,193 +4,154 @@
  "models": [
   "claude-opus-5-5"
  ],
- "start": "2026-11-24T20:32:51.087Z",
- "end": "2026-11-24T20:46:06.383Z",
- "wallMin": 13.3,
- "activeMin": 13.3,
- "prompts": 0,
- "calls": 57,
+ "start": "2026-11-24T20:53:41.866Z",
+ "end": "2026-11-24T21:02:15.935Z",
+ "wallMin": 8.6,
+ "activeMin": 8.6,
+ "prompts": 1,
+ "calls": 30,
  "subagentCalls": 0,
  "tokens": {
-  "input": 108,
-  "cacheWrite": 122290,
-  "cacheRead": 13237656,
-  "output": 69944
+  "input": 55,
+  "cacheWrite": 56486,
+  "cacheRead": 9474950,
+  "output": 40507
  },
  "context": {
-  "first": 164761,
-  "peak": 285286,
-  "firstEdit": 184935,
+  "first": 288812,
+  "peak": 343358,
+  "firstEdit": 296140,
   "series": [
    [
     5,
-    186708
+    302533
    ],
    [
     10,
-    198850
+    310535
    ],
    [
     15,
-    204924
+    316241
    ],
    [
     20,
-    214744
+    324986
    ],
    [
     25,
-    230212
+    334498
    ],
    [
     30,
-    235583
-   ],
-   [
-    35,
-    251536
-   ],
-   [
-    40,
-    258850
-   ],
-   [
-    45,
-    265386
-   ],
-   [
-    50,
-    276404
-   ],
-   [
-    55,
-    284076
-   ],
-   [
-    57,
-    285286
+    343358
    ]
   ]
  },
  "tools": {
   "Bash": {
-   "calls": 53,
-   "bytes": 96899,
-   "seconds": 201.1
+   "calls": 28,
+   "bytes": 29486,
+   "seconds": 165.4
   },
   "Write": {
-   "calls": 4,
-   "bytes": 584,
-   "seconds": 0.1
-  },
-  "Edit": {
    "calls": 1,
-   "bytes": 87,
-   "seconds": 0.1
-  },
-  "Read": {
-   "calls": 2,
-   "bytes": 454960,
+   "bytes": 146,
    "seconds": 0
   }
  },
  "largest": [
   {
-   "tool": "Read",
-   "what": "../../../tmp/claude-0/-home-user-village-builder/6ce4a1e6-5583-536a-86c6-5b21e7169590/scratchpad/usage.png",
-   "calls": 2,
-   "bytes": 454960
-  },
-  {
    "tool": "Bash",
    "what": "sed -n",
-   "calls": 5,
-   "bytes": 19728
-  },
-  {
-   "tool": "Bash",
-   "what": "cat tests/agent-usage.js",
-   "calls": 1,
-   "bytes": 19182
+   "calls": 3,
+   "bytes": 10159
   },
   {
    "tool": "Bash",
    "what": "python3 -",
-   "calls": 23,
-   "bytes": 17073
+   "calls": 14,
+   "bytes": 9625
   },
   {
    "tool": "Bash",
-   "what": "node tools/brief.js",
+   "what": "grep -n",
+   "calls": 4,
+   "bytes": 3270
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
    "calls": 1,
-   "bytes": 14465
+   "bytes": 2161
   },
   {
    "tool": "Bash",
-   "what": "wc -l",
+   "what": "git status",
    "calls": 1,
-   "bytes": 2883
+   "bytes": 1756
   },
   {
    "tool": "Bash",
-   "what": "node tools/agent-usage.js",
+   "what": "node tools/wrap.js",
    "calls": 2,
-   "bytes": 2649
+   "bytes": 1345
   },
   {
    "tool": "Bash",
-   "what": "node tests/agent-usage.js",
+   "what": "cat >",
    "calls": 1,
-   "bytes": 2344
+   "bytes": 771
   },
   {
    "tool": "Bash",
-   "what": "cat tools/help.js",
+   "what": "-u +%Y-%m-%dT%H:%MZ)",
    "calls": 1,
-   "bytes": 2172
+   "bytes": 262
   },
   {
-   "tool": "Bash",
-   "what": "for pat",
+   "tool": "Write",
+   "what": "docs/agents/handover.md",
    "calls": 1,
-   "bytes": 1871
+   "bytes": 146
   },
   {
    "tool": "Bash",
    "what": "git add",
    "calls": 1,
-   "bytes": 1833
-  },
-  {
-   "tool": "Bash",
-   "what": "grep -n",
-   "calls": 2,
-   "bytes": 1816
+   "bytes": 137
   }
  ],
  "repeats": {
   "reads": 0,
   "readBytes": 0,
   "commands": 0,
-  "commandBytes": 0
+  "commandBytes": 0,
+  "recent": 0
  },
  "tests": {
-  "runs": 21,
-  "failed": 6,
-  "streak": 2
+  "runs": 16,
+  "failed": 4,
+  "streak": 2,
+  "current": 0
  },
  "compactions": 0,
  "continuation": {
-  "continues": false,
-  "handoverBytes": 0,
-  "callsToEdit": 4,
-  "contextToEdit": 20174
+  "continues": true,
+  "handoverBytes": 2971,
+  "callsToEdit": 3,
+  "contextToEdit": 7328,
+  "reason": "ceiling"
  },
- "weighted": 1826456,
- "task": "VB-1615",
+ "continuations": {
+  "launched": 0,
+  "calls": 0
+ },
+ "weighted": 1220693,
+ "task": "VB-1616",
  "subagents": [],
  "summary": {
-  "weightedTotal": 1826456,
+  "weightedTotal": 1220693,
   "orchestratorShare": 1,
   "bootMedian": null,
   "readMedian": null,

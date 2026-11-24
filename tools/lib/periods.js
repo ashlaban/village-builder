@@ -73,14 +73,17 @@ const SHARES = [['done', (t) => t.done], ['continued', (t) => t.runs > 1], ['mer
   ['resetCeiling', (t) => (t.reasons ? t.reasons.includes('ceiling') : null)]];
 
 // data: tools/usage-page.js's model ({ tasks, sessions }); changes: parseChanges(); info(id): fileInfo() of its task file, or null;
-// fixList: fixes(); from, to: ms or null, limiting the tasks by their start.
-function compare({ data, changes, info, fixList = [], from = null, to = null }) {
+// fixList: fixes(); from, to: ms or null, limiting the tasks by their start; peakFrom, peakUnder: tokens or null, limiting them by
+// their peak context (orchestrators are kept).
+function compare({ data, changes, info, fixList = [], from = null, to = null, peakFrom = null, peakUnder = null }) {
   const periods = periodsOf(changes).map((p) => ({ ...p, tasks: [], orchestrators: [] }));
   const at = (ms) => periods.find((p) => ms >= p.from && ms < p.to);
   const inRange = (ms) => Number.isFinite(ms) && (from == null || ms >= from) && (to == null || ms < to);
   for (const t of data.tasks) {
     const start = Date.parse(t.start || t.date), end = Date.parse(t.end || t.start || t.date);
     if (!inRange(start)) continue;
+    // eligible for a reset (VB-1616): the task's peak context reached the threshold, the same rule in every period whether or not it reset
+    if ((peakFrom != null && !(t.peak >= peakFrom)) || (peakUnder != null && !(t.peak < peakUnder))) continue;
     const file = info(t.id) || {}, status = t.statuses && t.statuses.length ? t.statuses[t.statuses.length - 1] : file.status;
     at(start).tasks.push({ ...t, status, done: status == null ? null : /^done/.test(status), ticked: file.ticked, criteria: file.criteria,
       reopened: fixList.some((f) => f.id !== t.id && f.at > end && f.at - end <= REOPEN && new RegExp(`\\b${t.id}\\b`).test(f.text)) });

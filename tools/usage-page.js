@@ -118,11 +118,11 @@ const taskInfoOf = (root) => (id) => {
 };
 
 // The periods of the change log compared (tools/lib/periods.js), for --periods of tools/agent-usage.js and for the page.
-function comparePeriods(root, data, file, from = null, to = null) {
+function comparePeriods(root, data, file, from = null, to = null, peak = {}) {
   const P = require('./lib/periods.js');
   const info = (id) => { try { return P.fileInfo(fs.readFileSync(path.join(root, 'backlog', id + '.md'), 'utf8')); } catch (e) { return null; } };
   const changes = P.parseChanges(fs.readFileSync(file, 'utf8'));
-  return { changes, compared: P.compare({ data, changes, info, fixList: P.fixes(root), from, to }) };
+  return { changes, compared: P.compare({ data, changes, info, fixList: P.fixes(root), from, to, ...peak }) };
 }
 // The page's table of periods: a row a stratum a period, with its medians, shares and the change against the period before.
 function periodTable(c) {
