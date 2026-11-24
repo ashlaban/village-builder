@@ -106,6 +106,15 @@ function checkState(st) {
       if (!st.crowdN || st.crowdN[id] !== n || st.crowd[id] !== Cr.factorOf(n)) { bad.push(`crowding: household ${id} holds ${st.crowdN && st.crowdN[id]}, a fresh count gives ${n}`); break; }
     }
   }
+  // VB-1481: a pawn holds at most one live household (a marriage hands a farm on before the holder is counted twice)
+  {
+    const seen = new Map();
+    for (const hh of st.households) {
+      if (hh.dissolved || hh.holder === null || hh.holder === undefined) continue;
+      if (seen.has(hh.holder)) bad.push(`holders: pawn ${hh.holder} holds households ${seen.get(hh.holder)} and ${hh.id}`);
+      else seen.set(hh.holder, hh.id);
+    }
+  }
   // VB-309: farms held in trust: st.liveTrusts the sorted ids of the open records of st.trusts; a live trust's farm and trustee live, its
   // household empty, its holder living with the trustee; no farm held twice
   if (st.trusts || st.liveTrusts) {

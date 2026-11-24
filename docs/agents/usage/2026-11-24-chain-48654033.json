@@ -1,0 +1,208 @@
+{
+ "session": "48654033-3fea-503f-9592-d808cb87fa9e",
+ "label": "chain",
+ "models": [
+  "claude-sonnet-5-5",
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T22:14:46.866Z",
+ "end": "2026-11-24T22:51:49.334Z",
+ "wallMin": 37,
+ "activeMin": 11.6,
+ "prompts": 3,
+ "calls": 23,
+ "subagentCalls": 0,
+ "reviewCalls": 0,
+ "tokens": {
+  "input": 48,
+  "cacheWrite": 77081,
+  "cacheRead": 2169895,
+  "output": 4955
+ },
+ "context": {
+  "first": 87477,
+  "peak": 105543,
+  "firstEdit": 0,
+  "series": [
+   [
+    5,
+    93888
+   ],
+   [
+    10,
+    96113
+   ],
+   [
+    15,
+    99441
+   ],
+   [
+    20,
+    103138
+   ],
+   [
+    23,
+    105543
+   ]
+  ]
+ },
+ "tools": {
+  "mcp__claude-code-remote__get_session": {
+   "calls": 1,
+   "bytes": 1933,
+   "seconds": 0.1
+  },
+  "Bash": {
+   "calls": 10,
+   "bytes": 1359,
+   "seconds": 19.4
+  },
+  "mcp__claude-code-remote__set_session_title": {
+   "calls": 3,
+   "bytes": 6713,
+   "seconds": 5.9
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 193,
+   "seconds": 1.1
+  },
+  "mcp__github__list_pull_requests": {
+   "calls": 2,
+   "bytes": 160,
+   "seconds": 3.9
+  },
+  "mcp__claude-code-remote__create_session": {
+   "calls": 4,
+   "bytes": 1869,
+   "seconds": 10.4
+  },
+  "mcp__claude-code-remote__send_later": {
+   "calls": 2,
+   "bytes": 216,
+   "seconds": 3.3
+  },
+  "ReadNotifications": {
+   "calls": 2,
+   "bytes": 6362,
+   "seconds": 1.6
+  },
+  "mcp__github__merge_pull_request": {
+   "calls": 2,
+   "bytes": 218,
+   "seconds": 7.3
+  },
+  "mcp__claude-code-remote__delete_trigger": {
+   "calls": 2,
+   "bytes": 2070,
+   "seconds": 9.1
+  }
+ },
+ "largest": [
+  {
+   "tool": "mcp__claude-code-remote__set_session_title",
+   "what": "",
+   "calls": 3,
+   "bytes": 6713
+  },
+  {
+   "tool": "ReadNotifications",
+   "what": "",
+   "calls": 2,
+   "bytes": 6362
+  },
+  {
+   "tool": "mcp__claude-code-remote__delete_trigger",
+   "what": "",
+   "calls": 2,
+   "bytes": 2070
+  },
+  {
+   "tool": "mcp__claude-code-remote__get_session",
+   "what": "",
+   "calls": 1,
+   "bytes": 1933
+  },
+  {
+   "tool": "mcp__claude-code-remote__create_session",
+   "what": "",
+   "calls": 4,
+   "bytes": 1869
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/chain.js",
+   "calls": 7,
+   "bytes": 1288
+  },
+  {
+   "tool": "mcp__github__merge_pull_request",
+   "what": "",
+   "calls": 2,
+   "bytes": 218
+  },
+  {
+   "tool": "mcp__claude-code-remote__send_later",
+   "what": "",
+   "calls": 2,
+   "bytes": 216
+  },
+  {
+   "tool": "ToolSearch",
+   "what": "select:mcp__github__list_pull_requests,mcp__github__merge_pull_request,SendMessage",
+   "calls": 1,
+   "bytes": 193
+  },
+  {
+   "tool": "mcp__github__list_pull_requests",
+   "what": "",
+   "calls": 2,
+   "bytes": 160
+  },
+  {
+   "tool": "Bash",
+   "what": "git fetch",
+   "calls": 3,
+   "bytes": 71
+  }
+ ],
+ "repeats": {
+  "reads": 0,
+  "readBytes": 0,
+  "commands": 0,
+  "commandBytes": 0,
+  "recent": 0
+ },
+ "tests": {
+  "runs": 0,
+  "failed": 0,
+  "streak": 0,
+  "current": 0
+ },
+ "compactions": 0,
+ "continuation": {
+  "continues": false,
+  "handoverBytes": 0,
+  "callsToEdit": null,
+  "contextToEdit": null,
+  "reason": null
+ },
+ "continuations": {
+  "launched": 0,
+  "calls": 0
+ },
+ "weighted": 338164,
+ "subagents": [],
+ "review": null,
+ "summary": {
+  "weightedTotal": 338164,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0,
+  "review": null
+ }
+}
