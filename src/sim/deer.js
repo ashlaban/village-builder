@@ -11,7 +11,6 @@ VB['sim/deer'] = (() => {
   const { addFood } = VB['sim/larder'],
     { spareUrgency } = VB['sim/hunger'];
   const Stores = VB['sim/stores'];
-  const Rules = VB['sim/registry'];
   const { log, atFarm } = VB['sim/records'];
   // The deer live by the woods and graze the open land beside them (design.md, Animals: forest edges and meadows). A region's deer are one
   // stock, as fish are a water tile's (sim/fish): no deer is followed, and none walks from one region to another (they are counted where
@@ -143,23 +142,6 @@ VB['sim/deer'] = (() => {
     Stores.put(st, hh, 'hide', DEER.hunt.hide, 'hunt'); // the hide comes home with the meat, for leather (VB-424)
     return 1;
   }
-  // Hides wanted: DEER.leather a head, rounded up, as the need's term reads it: what is lacking of them is worth the good's customary worth each.
-  const worthCtx = { good: null }; // reused: the term allocates nothing
-  const lack = (due, held) => (due > held ? due - held : 0);
-  Rules.contribute({
-    rule: 'need',
-    source: 'sim/deer',
-    key: 'hide',
-    label: 'Hides, for shoes and harness',
-    tunables: ['DEER.leather'],
-    value: (st, c) => {
-      if (c.good.id !== 'hide' || !c.hh) return 0;
-      const due = Math.ceil(c.hh.members.length * DEER.leather),
-        held = c.hh.hides || 0;
-      worthCtx.good = c.good;
-      return Rules.value(st, 'worth', worthCtx) * (lack(due, held) - lack(due, Math.max(0, held + c.n)));
-    },
-  });
   // The job kind (sim/kinds registers it, with fishing's urgency by the household's spare food): in autumn and winter, a trip to the
   // house's hunting ground; foraging work for the men alone (ROLES' exceptions), from DEER.hunt.minAge. The pawn comes home with or
   // without a kill.

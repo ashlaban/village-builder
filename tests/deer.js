@@ -110,7 +110,7 @@ for (const r of ['farmer', 'farmhand', 'son']) check(ROLES[r].prio.hunt === ROLE
   check(hh.hides === DEER.hunt.hide, 'a kill brings one hide home');
   check(hh.ledger.some((e) => e.good === 'hide') || hh.totals.some((x) => x.kind === 'hunt' && x.good === 'hide'), 'the hide is in the ledger');
   const Rules = VB['sim/registry'], hideGood = VB['sim/goods'].goodOf('hide'), Cul = VB['culture'];
-  const want = Math.ceil(hh.members.length * DEER.leather);
+  const want = VB['sim/leather'].hidesWanted(st, hh); // a year's shoes and harness (VB-911)
   hh.hides = 0;
   check(near(Rules.value(st, 'need', { hh, good: hideGood, n: 1, kept: 0 }), VB['sim/norms'].norm('worth', 'hide')), 'a household with no hide values one at its worth');
   hh.hides = want;

@@ -44,6 +44,7 @@ VB['sim/clock'] = (() => {
   const { byreDay, autumnCounts, strays, shearing } = VB['sim/byre'];
   const { herdsBack, halveGraze } = VB['sim/grazing'];
   const { recount, deerGraze, browseCrops } = VB['sim/deer'];
+  const { wearDay: leatherWear } = VB['sim/leather'];
   const { lapseClaims } = VB['sim/claims'];
   const { lapsedStakes } = VB['sim/stakes'];
   const { lapsedFarmClaims } = VB['sim/farmclaims'];
@@ -391,6 +392,12 @@ VB['sim/clock'] = (() => {
       owner: 'sim/deer',
       note: 'in summer, roe deer may get into a crop by a wood through a broken fence (VB-139)',
       run: (st) => browseCrops(st),
+    },
+    {
+      every: 'day',
+      owner: 'sim/leather',
+      note: "a day's wear of each household's shoes, and of its team's harness (VB-911)",
+      run: (st) => leatherWear(st),
     },
     // ---- the people ----
     {

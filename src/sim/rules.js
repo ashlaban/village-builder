@@ -110,10 +110,7 @@ VB['sim/rules'] = (() => {
     graze: 1.5,
     spots: 3,
     crop: { below: 0.45, chance: 0.04, loss: 0.05 },
-    hunt: { reach: 6, hours: 4, chance: 0.3, least: 1, meat: 3, minAge: 14, hide: 1 },
-    // leather for shoes and harness (VB-424): a household wants `leather` hides a year for each of its people, so a kill's hide is worth
-    // to it what is lacking of them, at the fair or in a gift
-    leather: 0.25,
+    hunt: { reach: 6, hours: 4, chance: 0.3, least: 1, meat: 3, minAge: 14, hide: 1 }, // a kill's hide: for leather (sim/leather, VB-911)
   };
   // ---- names ----
   const MALE = [

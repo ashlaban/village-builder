@@ -228,6 +228,31 @@ const toolsStat = (hh) => {
     meter: { value: hh.tools * 100 },
   };
 };
+// The household's shoes and its team's harness (VB-911, sim/leather): gear that wears; shown once counted
+const shoesStat = (hh) => {
+  if (hh.shoes === undefined) return null;
+  const want = VB['sim/leather'].shoeTarget(st, hh),
+    n = Math.round(hh.shoes * 10) / 10;
+  return {
+    icon: 'people',
+    label: 'Shoes',
+    value: `${n} of ${want}`,
+    tone: hh.shoes < 0.25 * want ? 'warn' : '',
+    title: `Shoes: ${n} pairs by the wear left in them, for ${want} walkers; a hide makes new ones, in winter or when nearly worn out`,
+    meter: { value: want ? Math.min(100, (hh.shoes / want) * 100) : 100 },
+  };
+};
+const harnessStat = (hh) => {
+  if (hh.harness === undefined) return null;
+  return {
+    icon: 'beast',
+    label: 'Harness',
+    value: `${Math.round(hh.harness * 100)}`,
+    tone: hh.harness < 0.25 ? 'warn' : '',
+    title: `The team's harness at ${Math.round(hh.harness * 100)} of 100; a hide mends half of it, in winter or when nearly worn out`,
+    meter: { value: hh.harness * 100 },
+  };
+};
 // The day's water (VB-1582): the household's fetch as it is made (VB-1604: the trips by hand and with its cart for its people at
 // home, and their hours together; by hand alone in brackets where the cart is the cheaper), from the farm's source; none where no
 // source is in reach, and why.
@@ -270,6 +295,8 @@ const houseStats = (hh) =>
     waterStat(hh),
     hh.hungryDays > 0 ? { icon: 'hunger', label: 'Hungry days', value: hh.hungryDays, tone: 'warn' } : null,
     toolsStat(hh),
+    shoesStat(hh),
+    harnessStat(hh),
   ]);
 const section = (title) => `<h3 class="card-sec">${title}</h3>`;
 // ---- materials (VB-668): held until a work asks for them, so the question is whether there is enough for what is planned ----
@@ -298,6 +325,7 @@ const MATERIALS = [
     title: 'Iron, in blooms (a tenth of a bloom mends the tools a tenth)',
   },
   { key: 'wool', label: 'Wool', icon: 'wool', field: 'wool', title: 'Wool, in fleeces, unspun' },
+  { key: 'hide', label: 'Hides', icon: 'beast', field: 'hides', title: 'Hides, for shoes and harness (VB-911)' },
 ];
 // A good's kinds as the page shows them wherever they appear (VB-733, principle 15): the good's icon, and the kind as its label and tint (a
 // rock's tint as the Ground overlay draws its bedrock, page/ground). A store by kind ({[kind]: n}) gives its kinds held, in the registry's order.
