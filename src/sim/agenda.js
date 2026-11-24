@@ -21,7 +21,8 @@ VB['sim/agenda'] = (() => {
   const { CHAINS, chainOf, chainSteps } = VB['sim/planchains'];
   const { waitsOf } = VB['sim/plannext'];
   const { heldFarms } = VB['sim/ownership'];
-  const Camp = VB['sim/camp'];
+  const Camp = VB['sim/camp'],
+    Water = VB['sim/water'];
   const { AWAKE, SLEEP, owedBy } = VB['sim/sleep'];
   const LEN = WORK[1] - WORK[0];
   // ---- time: work and walks are laid in working hours ----
@@ -184,11 +185,17 @@ VB['sim/agenda'] = (() => {
   }
   // The job of routine kind k, or where none is posted a step of the kind's hours, at the household's water for a kind drawn there.
   function routineJob(st, hid, k) {
-    const j = postedJob(st, hid, k);
-    if (j) return j;
-    const s = step(k, KINDS[k].hours ?? 0, hid),
-      f = hid === null || st.households[hid].farmstead === null ? null : st.farmsteads[st.households[hid].farmstead];
-    if (f && f.water && (KINDS[k].at || []).includes('water')) Object.assign(s, { farm: f, site: f.water.tile });
+    const j = postedJob(st, hid, k),
+      f = hid === null || st.households[hid].farmstead === null ? null : st.farmsteads[st.households[hid].farmstead],
+      // VB-1642: a house just moved has its water found on its first morning (sim/water find): the agenda reads where it will be, and a
+      // job posted at the water of the house before it moved is not the days' to come
+      water =
+        f && (KINDS[k].at || []).includes('water')
+          ? f.water || Water.source(st.w, f.house, st.villages[f.village])
+          : null;
+    if (j && !(water && j.site !== water.tile)) return j;
+    const s = step(k, KINDS[k].hours ?? 0, hid);
+    if (water) Object.assign(s, { farm: f.water ? f : { ...f, water }, site: water.tile });
     return s;
   }
   // A task at a tile's steps left (sim/planchains chainSteps; VB-1621, VB-1622) as parts of its work: {kind, key (its job's, null while
@@ -200,6 +207,18 @@ VB['sim/agenda'] = (() => {
     if (!s) return { parts: [], deadline: null };
     const on = s.where.fd ? { field: s.where.fd, farm: s.where.f } : null; // a field's step, whose normal hours are its crop's
     const parts = s.steps.map((x) => {
+      // VB-1642: a trip of the move, its walks by the way's route (sim/camp moveTrips), laid whole: it is not left for the sleeping hours
+      if (x.trip) {
+        const one = x.trip.go + x.trip.lift + x.trip.back;
+        return {
+          kind: x.kind,
+          key: x.job ? x.job.key : null,
+          e: { lo: one * x.n, mid: one * x.n, hi: one * x.n },
+          rough: !x.job,
+          from: x.job ? -Infinity : x.from,
+          trip: one,
+        };
+      }
       const e = estimate(
         st,
         id,
@@ -396,8 +415,9 @@ VB['sim/agenda'] = (() => {
           P = parts[i][part[i]],
           j = P.key === null ? null : st.jobs.get(P.key),
           site = j ? (j.site ?? tk.site) : tk.site,
-          w = (underWayAt(tk) && plan[i].starts === null) || at === site ? 0 : (walk(st, at, site) ?? 0),
-          to = Math.min(t + w + pleft[i], bed, far),
+          w = (underWayAt(tk) && plan[i].starts === null) || at === site || P.trip ? 0 : (walk(st, at, site) ?? 0),
+          // a trip of the move goes on through the sleeping hours to its end (sim/player onTrip), one trip at a time
+          to = P.trip ? Math.min(t + Math.min(pleft[i], P.trip), far) : Math.min(t + w + pleft[i], bed, far),
           did = Math.max(0, to - t - w);
         if (plan[i].starts === null) plan[i].starts = t;
         put(t, to, 'task', P.kind, P.key, tk.site);
