@@ -27,3 +27,12 @@ that worked on one task alone names it, `--task VB-NNN`, for the token use page,
 to these files or to `AGENTS.md`. Three measures say whether a night gave the most work for the least overhead: the weighted cost of
 a done task, by size; the overhead, as the orchestrator's share of the cost and the sub-agents' median boot (their context at the
 first edit); and the share of tasks done at the first attempt.
+
+## Chains
+
+`/chain SIZE [N]` (`.claude/skills/chain/SKILL.md`) runs N ready tasks of one size (default 8), one unattended session each: the
+session takes the first ready task of that size (`backlog.js next --size SIZE --unattended`), implements it as `AGENTS.md` says, has
+it reviewed by a fresh `vb-reviewer` sub-agent (`.claude/agents/vb-reviewer.md`), measures itself, merges its PR and starts the next
+session with the same command and one task fewer. A chain stops when no such task is ready, main is red, two tasks in a row end
+`needs-review`, or N is reached. The system allows 8 sessions in a chain, so for N above 8 the first session only coordinates: it runs
+chains of 7, one after another, each telling it when it ends. Chains never run side by side.
