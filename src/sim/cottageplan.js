@@ -99,7 +99,8 @@ VB['sim/cottageplan'] = (() => {
     const plan = Projects.onProject(st, j);
     if (plan) finishCottageStage(st, plan);
   }
-  // The roof on a household's cottage (its plan's last stage done): the household leaves the booth, and timber left over goes to its
+  // The roof on a household's cottage (its plan's last stage done): the household leaves its shelter, taken down (VB-1638: the cottage
+  // stands on its tile in its place; in a save before it, the booth beside the house is left to rot), and timber left over goes to its
   // woodpile.
   function roofOn(st, plan) {
     const hh = st.households[plan.holder.id],
@@ -107,9 +108,10 @@ VB['sim/cottageplan'] = (() => {
       wood = wallsOf(plan).wood;
     if (wood > 0) Stores.put(st, hh, 'wood', wood, 'timber'); // timber left over goes to the woodpile
     f.booth = null;
+    f.shelter = null; // lint-allow: owner the shelter taken down when the cottage on its tile has its roof (VB-1638)
     log(
       st,
-      `The new cottage at ${f.name} in ${st.villages[f.village].name} has its roof; ${fullName(st.pawns[hh.holder])} leaves the booth.`,
+      `The new cottage at ${f.name} in ${st.villages[f.village].name} has its roof; ${fullName(st.pawns[hh.holder])} leaves the shelter.`,
       {
         kind: 'cottage',
         pawn: hh.holder,

@@ -102,17 +102,17 @@ VB['sim/scenarios'] = (() => {
     log(st, `${who} ${village.name}${lone ? ` and ${lone.name}` : ''}.`, { kind: 'settled', n, village: village.id });
     VB['sim/carts'].seedCarts(st, false);
     startStreams(st, seedNum);
-    if (solo) landAlone(st, hand); // no cottage stands: a booth first, then the cottage (VB-1544)
+    if (solo) landAlone(st, hand); // no cottage stands: a shelter first, then the cottage (VB-1544, VB-1638)
     return st;
   }
   // The lone settler lands (VB-1544; the solo start): no cottage stands on its farm, which is a booth farm as a settler
-  // household's is (f.booth, its cottage its project plan, sim/settle's settleFarm), and the settler stakes its booth on the first open tile beside
-  // the house tile by the verb any pawn has (raiseBooth, sim/building), and raises it by its own work; it sleeps under the open sky until
-  // the booth stands (sim/building roofless), and the cottage follows as a settler household's does. Its first field is staked at the
+  // household's is (f.booth, its cottage its project plan, sim/settle's settleFarm), and its shelter is begun on the house tile by the same
+  // rule (VB-1638; sim/building stakeShelter), raised by the settler's own work; it sleeps under the open sky until the shelter stands
+  // (sim/building roofless), and the cottage follows on the same tile as a settler household's does. Its first field is staked at the
   // landing as a settler household's is (settleFarm), on the tile its head would pick (sim/fieldplans pickField): a household's land
   // projects wait while another of its projects is under way, and the cottage's would hold the field back to the roof. With `hand` (a
   // player who plans by hand; Kim, 24 Nov 2026: "begin with nothing under way") nothing is: no field, no booth, no cottage plan; the farm is
-  // a camp (sim/camp, VB-1627) until its head places the farmstead by its plan. The booth's tile, or null where none is staked.
+  // a camp (sim/camp, VB-1627) until its head places the farmstead by its plan.
   function landAlone(st, hand = false) {
     const hh = st.households[0],
       f = st.farmsteads[hh.farmstead],
@@ -120,18 +120,14 @@ VB['sim/scenarios'] = (() => {
     f.booth = true;
     if (hand) {
       makeCamp(st, f); // VB-1627: a camp, nothing under way; the head places the farmstead by its plan
-      return null;
+      return;
     }
     if (field >= 0) {
       stake(st, hh, field, 'field');
       makeProject(st, 'household', hh.id, fieldProject(st, hh, field));
     }
     makeProject(st, 'household', hh.id, cottagePlan(st, f));
-    for (let d = 0; d < 6; d++) {
-      const t = st.w.nb[f.house * 6 + d];
-      if (t >= 0 && issue(st, { actor: hh.holder, verb: 'raiseBooth', target: t, source: 'pawn' }) === true) return t;
-    }
-    return null;
+    VB['sim/building'].stakeShelter(st, f);
   }
   // Populous Villages: only villages, of three size bands, until the map holds the target population (POPULATION's first number a
   // map size: 800 on a Medium or Large map) or has no site left, in which case it starts with fewer; on a Medium or Large map

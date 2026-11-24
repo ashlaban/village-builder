@@ -1,5 +1,5 @@
-// VB-1632: the booth built up to a cottage as a task of the plan (chain `upgrade`, sim/upgrade). The refusals (a camp, a rung that does
-// not follow, one not built yet, one planned or under way); from the raised booth to the roof on by the plan alone, the head beginning
+// VB-1632: the shelter (VB-1638: on the house tile) built up to a cottage as a task of the plan (chain `upgrade`, sim/upgrade). The refusals (a camp, a rung that does
+// not follow, one not built yet, one planned or under way); from the raised shelter to the roof on by the plan alone, the head beginning
 // the cottage by its own verb, with its waits and its days in the agenda; the timber held at home taken into the walls first, and no
 // trip fetched for what it covers; Sim.farmView's next with the task's own check and `planned`; a save and a load mid-chain go on the
 // same. On the tiny land of tests/camp.js.
@@ -18,7 +18,7 @@ const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : 
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const hash = (st) => sha(canon(kept(st)));
 const add = (st, what, tile = st.farmsteads[0].house) => Sim.plan(st, 'add', { upgrade: tile, what });
-// The played solo settler by hand, its booth raised on the landing by the farmstead task.
+// The played solo settler by hand, its shelter raised on the landing by the farmstead task.
 function booth() {
   const st = Sim.seed(tinyWorld(rows), 7, 'solo', null, { hand: true });
   st.naturalDeaths = false;
@@ -79,10 +79,16 @@ function run(st, days = 40) {
     hh = st.households[0];
   assert.strictEqual(Stores.heldOf(hh, 'timber'), 0);
   assert.strictEqual(add(st, 'cottage'), true);
+  // VB-1638: built up in place: the cottage's stages on the house tile itself, worked while the household lives in the shelter there
+  for (let i = 0; i < 240 && !cottageOf(st, 0); i++) Sim.advance(st, 0.1);
+  const p = cottageOf(st, 0);
+  assert(p && p.steps.every((k) => k.place === f.house), 'the cottage on the shelter\'s tile');
+  assert(f.shelter && f.shelter.built !== null && !VB['sim/building'].roofless(st, hh), 'under the shelter meanwhile');
   const { waits, laid, trips } = run(st);
   assert.deepStrictEqual(st.player.plan.tasks, [], 'the task has left');
   assert.strictEqual(st.player.plan.last.which, 'roof', JSON.stringify(st.player.plan.last));
-  assert.strictEqual(f.booth, null, 'out of the booth');
+  assert.strictEqual(f.booth, null, 'out of the shelter');
+  assert.strictEqual(f.shelter, null, 'the shelter gone: the cottage stands in its place');
   assert.strictEqual(cottageOf(st, 0), null, 'the cottage plan finished');
   assert(trips > 0, 'timber trips fetched for the walls');
   assert(waits.has('sleep') && waits.has('unposted:walls'), `waits given: ${[...waits]}`);
@@ -92,7 +98,7 @@ function run(st, days = 40) {
   assert.deepStrictEqual(v.next, [], 'no rung follows the cottage yet (VB-1635: the foundation is no rung)');
   assert.strictEqual(v.foundation.ok, true, 'the foundation may be planned');
   assert.match(String(add(st, 'stone')), /no rung stone/);
-  assert.match(String(add(st, 'cottage')), /built from a booth/, 'a cottage on a cottage');
+  assert.match(String(add(st, 'cottage')), /built from a shelter/, 'a cottage on a cottage');
   sound(st, 'the roof on');
 }
 // ---- 3. the timber at home taken first: what it covers fetched by no trip; what is left at home stays ----

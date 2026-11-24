@@ -1,4 +1,4 @@
-// @sys sim/ladder: the main building's rungs (a camp, a booth, a cottage), its stone foundation (a property of the house, not a rung;
+// @sys sim/ladder: the main building's rungs (a camp, a shelter, a cottage), its stone foundation (a property of the house, not a rung;
 //   VB-1635) and the outbuildings (a barn) as data, each what it is built from, needs and gives, read from the rules that build it; the
 //   rung a farm stands at (rungOf), derived from its state; and the farm's view for the page (farmView): what stands, what is being built,
 //   what could follow and why not now (VB-1631); the plan tasks' checks (rungWhy, upgradeWhy, VB-1632; foundationWhy, outWhy, VB-1635;
@@ -11,13 +11,13 @@ VB['sim/ladder'] = (() => {
   const Projects = VB['sim/projects'],
     Stores = VB['sim/stores'];
   const { COTTAGE, COTTAGE_HOURS, cottageOf } = VB['sim/cottageplan'];
-  const { roofless, stakedEach, raiseBoothWhy, barnSteps } = VB['sim/building'];
+  const { roofless, stakedEach, barnSteps } = VB['sim/building'];
   const { BUILDS, campWhy } = VB['sim/camp'];
   const { barnWhy } = VB['sim/aims'];
   const sum = (a) => a.reduce((s, x) => s + x, 0);
   // ---- the tables: later rungs (a timber house) and outbuildings (a byre) are added here, with the rules that build them ----
   // Each rung: `from` the rung it is built from (null: the first), `needs` {timber (loads), stone (loads), hours (of work, its stages'
-  // sum)}, `gives` in the sim's own terms: `roof` (sim/hunger's: 'none' the open sky, 'booth', 'house'), `sleeps` (null: its household,
+  // sum)}, `gives` in the sim's own terms: `roof` (sim/hunger's: 'none' the open sky, 'booth' a booth's roof, 'house'), `sleeps` (null: its household,
   // however many), `wear` (a year, of its condition 0..1), `standing` (the house's term, sim/house; 0 none).
   const RUNGS = Object.freeze({
     camp: {
@@ -25,13 +25,14 @@ VB['sim/ladder'] = (() => {
       needs: { timber: 0, stone: 0, hours: 0 },
       gives: { roof: 'none', sleeps: 0, wear: 0, standing: 0 },
     },
-    booth: {
+    // the shelter on the house tile (VB-1638): poles, bark and turf, a booth's cost, roof, room and wear (BOOTH), built up in place
+    shelter: {
       from: 'camp',
       needs: { timber: BOOTH.wood, stone: 0, hours: BOOTH.hours },
       gives: { roof: 'booth', sleeps: BOOTH.sleeps, wear: BOOTH.wear, standing: 0 },
     },
     cottage: {
-      from: 'booth',
+      from: 'shelter',
       needs: { timber: BUILD.timber, stone: 0, hours: sum(COTTAGE.map((k) => COTTAGE_HOURS[k])) },
       gives: { roof: 'house', sleeps: null, wear: HOUSE.wear, standing: HOUSE.term },
     },
@@ -57,14 +58,15 @@ VB['sim/ladder'] = (() => {
   });
   // ---- the rung a farm stands at, from its state as it is ----
   // A farm with no cottage yet (f.booth): a camp while its household sleeps under the open sky (sim/building roofless: its camp, or its
-  // booth staked and not yet raised, or rotted), else a booth (raised; or the mark of sim/settle's settlers, who sleep as in a house). A
+  // shelter being raised or worn to nothing; in a save before VB-1638 its booth staked and not yet raised, or rotted), else a shelter
+  // (standing; or, in such a save, its booth raised, or the mark of sim/settle's settlers, who slept as in a house). A
   // farm with its cottage: a cottage, on the ground or on stone (f.grade: the foundation, a property of the house, VB-1635).
   const householdOf = (st, f) => (f.household === null ? null : st.households[f.household]);
   function rungOf(st, f) {
     if (f.camp === true) return 'camp';
     if (f.booth) {
       const hh = householdOf(st, f);
-      return hh && roofless(st, hh) ? 'camp' : 'booth';
+      return hh && roofless(st, hh) ? 'camp' : 'shelter';
     }
     return 'cottage';
   }
@@ -77,7 +79,7 @@ VB['sim/ladder'] = (() => {
       j = key ? st.jobs.get(key) : null;
     return Math.max(0, left - (j ? doneOf(st, j, s.hours) : s.done || 0));
   }
-  // The booth plan staked by a member of household hh beside farm f's house, or null.
+  // The booth plan staked by a member of household hh beside farm f's house, or null (a save before VB-1638).
   function homeStake(st, hh, f) {
     let out = null;
     stakedEach(st, (p) => {
@@ -86,13 +88,13 @@ VB['sim/ladder'] = (() => {
     return out;
   }
   // ---- the plan's tasks that cover a part of the farm ----
-  // Whether a task of the played pawn's plan covers rung `what` of farm f: the booth by the farmstead task, a later rung by an upgrade task
+  // Whether a task of the played pawn's plan covers rung `what` of farm f: the shelter by the farmstead task, a later rung by an upgrade task
   // of the house's tile naming it; the stone foundation (`foundation`) by the foundation task of the house's tile, an outbuilding by an
   // outbuilding task there naming it (VB-1635).
   function planned(st, f, what) {
     const pp = st.player && st.player.plan;
     if (!pp) return false;
-    if (what === 'booth') return pp.tasks.some((t) => t.kind === 'farmstead');
+    if (what === 'shelter') return pp.tasks.some((t) => t.kind === 'farmstead');
     if (what === 'foundation') return pp.tasks.some((t) => t.kind === 'foundation' && t.foundation === f.house);
     const kind = Object.hasOwn(OUTBUILDINGS, what) ? 'outbuilding' : 'upgrade';
     return pp.tasks.some((t) => t.kind === kind && t[kind] === f.house && t.what === what);
@@ -125,8 +127,19 @@ VB['sim/ladder'] = (() => {
   // step's kind), hoursLeft}, or null.
   function building(st, hh, f) {
     if (!hh) return null;
-    const b = f.booth ? homeStake(st, hh, f) : null;
-    if (b) return { what: 'booth', step: b.steps[b.open || 0].kind, hoursLeft: hoursLeft(st, b, `booth:o${b.booth}`) };
+    const s = f.booth ? f.shelter : null;
+    if (s && s.built === null) {
+      const j = st.jobs.get(`shelter:f${f.id}`),
+        left = BOOTH.hours - (j ? doneOf(st, j, BOOTH.hours) : s.done);
+      return {
+        what: 'shelter',
+        step: Projects.lacks(s, BOOTH.wood) > 0 ? 'timber' : 'shelter',
+        hoursLeft: Math.max(0, left),
+      };
+    }
+    const b = f.booth && !s ? homeStake(st, hh, f) : null;
+    if (b)
+      return { what: 'shelter', step: b.steps[b.open || 0].kind, hoursLeft: hoursLeft(st, b, `booth:o${b.booth}`) };
     const c = cottageOf(st, hh.id);
     if (c) return { what: 'cottage', step: c.steps[c.open].kind, hoursLeft: hoursLeft(st, c, `booth:f${f.id}`) };
     const stone = stoneBuilding(st, hh, f);
@@ -145,22 +158,14 @@ VB['sim/ladder'] = (() => {
   };
   const WHY = {
     camp: () => 'a camp is not built',
-    // the camp's head places the farmstead (sim/camp, the build menu's farmstead); a booth farm with none (rotted) stakes one beside the house as any pawn
-    // may (sim/building raiseBoothWhy), unless one is staked there
-    booth: (st, hh, f) => {
+    // the camp's head places the farmstead (sim/camp, the build menu's farmstead), which begins the shelter on the house tile; one begun
+    // (or worn to nothing, and raised again) is raised by its household's work (sim/building), not begun again
+    shelter: (st, hh, f) => {
       if (own(st, hh, f)) return own(st, hh, f);
-      if (f.camp === true) return st.player ? BUILDS.farmstead.why(st, hh.holder) : campWhy(st, hh.holder);
-      const b = homeStake(st, hh, f);
-      if (b) return `a booth is staked on tile ${b.tile}`;
-      let why = `there is no open ground beside tile ${f.house} for the booth`;
-      for (let d = 0; d < 6; d++) {
-        const n = st.w.nb[f.house * 6 + d];
-        if (n < 0) continue;
-        const w = raiseBoothWhy(st, hh.holder, n);
-        if (w === null) return null;
-        why = w;
-      }
-      return why;
+      if (f.camp === true && !f.shelter)
+        return st.player ? BUILDS.farmstead.why(st, hh.holder) : campWhy(st, hh.holder);
+      if (f.shelter || homeStake(st, hh, f)) return `the shelter at ${f.name} is being raised`;
+      return null;
     },
     // a cottage is begun on a booth farm whose household has none planned (sim/cottageplan cottagePlan)
     cottage: (st, hh, f) =>
@@ -205,7 +210,7 @@ VB['sim/ladder'] = (() => {
     if (rung === 'camp')
       return f.camp === true
         ? `${f.name} is still a camp: place the farmstead first`
-        : `${f.name} has no roof: raise its booth first`;
+        : `${f.name} has no roof: raise its shelter first`;
     if (RUNGS[what].from !== rung) return `a ${what} is built from a ${RUNGS[what].from}, and ${f.name} is a ${rung}`;
     if (what !== 'cottage') return 'not yet';
     return cottageOf(st, f.household) ? `household ${f.household} has a cottage under way` : null;
@@ -238,7 +243,7 @@ VB['sim/ladder'] = (() => {
     const next = Object.keys(RUNGS)
       .filter((k) => RUNGS[k].from === rung)
       .map((what) => {
-        const why = hand && what !== 'booth' ? upgradeWhy(st, st.player.pawn, f, what) : WHY[what](st, hh, f);
+        const why = hand && what !== 'shelter' ? upgradeWhy(st, st.player.pawn, f, what) : WHY[what](st, hh, f);
         return { what, needs: { ...RUNGS[what].needs }, ok: why === null, why, planned: planned(st, f, what) };
       });
     const fwhy = hand ? foundationWhy(st, st.player.pawn, f) : stoneWhy(st, hh, f);

@@ -272,9 +272,10 @@ VB['sim/settle'] = (() => {
     return null;
   }
   // ---- settling ----
-  // The party moves into a booth on `house` in village v: a farmstead with no fields whose cottage is still to build (f.booth, the mark;
-  // the cottage a project plan of the household, sim/expansion's), a household with the provisions as its grain, and `field` as its first
-  // field project.
+  // The party settles on `house` in village v: a farmstead with no fields whose cottage is still to build (f.booth, the mark; the cottage a
+  // project plan of the household, sim/expansion's), its shelter begun on the house tile (VB-1638: the ladder's first rung, one rule for
+  // every household; sim/building stakeShelter), a household with the provisions as its grain, and `field` as its first field project.
+  // They sleep under the open sky until the shelter stands, and their cottage waits for it (sim/building boothWork).
   function settleFarm(st, v, home, party, house, field, prov) {
     const w = st.w,
       settler = st.pawns[party.all[0]];
@@ -282,10 +283,11 @@ VB['sim/settle'] = (() => {
     f.condition = 1;
     f.condAt = st.t;
     f.emptySince = null;
-    f.booth = true; // the household lives in a booth until its cottage has its roof (sim/expansion's roofOn)
+    f.booth = true; // no cottage yet: the household lives in its shelter until its cottage has its roof (sim/cottageplan's roofOn)
     siteWell(st, f, v, party.all.length); // a site chosen for the well it means to dig: dug with the booth and the clearing (VB-1587)
     st.farmsteads.push(f);
     v.farmsteads.push(f.id);
+    VB['sim/building'].stakeShelter(st, f);
     costChanged(st, house); // routes go round the house from now on
     // the farm of a village just founded bears the village's name (Erikstorp); one that joins a village is named as a new cottage is
     f.name = v.founded && v.farmsteads.length === 1 ? v.name : farmName(st, v, f, settler);
