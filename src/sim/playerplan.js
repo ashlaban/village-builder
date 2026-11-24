@@ -1,6 +1,6 @@
 // @sys sim/playerplan: the player's plan (VB-1618; Kim, 24 Nov): a daily routine of job kinds, the sleeping hours and an ordered list of
 //   tasks, edited by the player (Sim.plan); its writes: the ops, the feeder's (planDay, planBegun, called by sim/player's playerStep) and
-//   a fell task's trips home (the event timberHome). The chains of a task at a tile are sim/planchains, what the plan has the pawn do
+//   a fell task's loads home (the event timberHome). The chains of a task at a tile are sim/planchains, what the plan has the pawn do
 //   next and why each task waits sim/plannext, the page's reads sim/planview (VB-1629)
 VB['sim/playerplan'] = (() => {
   const { DAY } = VB['sim/rules'];
@@ -13,8 +13,8 @@ VB['sim/playerplan'] = (() => {
   // @state st.player.plan: absent until the player first plans (an older save reads as empty), else {routine[] (job kinds seen to every
   //   day, in order, at most PLAN_MAX), sleep (null, or {from, until}: hours of the day, the pawn sleeps from `from` to `until`), tasks[]
   //   (at most PLAN_MAX, in order: a task by key {key (a job's key), kind, site (its tile or -1)}, or a task at a tile {<chain> (a tile),
-  //   kind: <chain> (a key of CHAINS: plant, hay, harvest, fell, firewood), site (the same tile), and a fell task's n (the trips planned,
-  //   1 to FELL_MAX) and got (those home); an upgrade task's what (the rung it builds, sim/upgrade: 'cottage')}, one a chain a tile; VB-1621,
+  //   kind: <chain> (a key of CHAINS: plant, hay, harvest, fell, firewood), site (the same tile), and a fell task's n (the loads planned,
+  //   1 to FELL_MAX) and got (the loads home); an upgrade task's what (the rung it builds, sim/upgrade: 'cottage')}, one a chain a tile; VB-1621,
   //   VB-1622, VB-1625, VB-1632), day (the game day
   //   `done` is of), done[] (the routine kinds begun on day `day`), last (null, or the last task that left the plan: {key, kind, t}, its
   //   job finished or gone; or {<chain>, kind, site, t, which (one of the chain's `which`: plant 'sown' | 'closed' (its sowing window
@@ -85,12 +85,13 @@ VB['sim/playerplan'] = (() => {
     pl.plan = pp;
     return true;
   }
-  // A trip of timber is home from `tile` (sim/chores' wood, the event timberHome): a fell task of the played household's there counts it.
-  on('timberHome', (st, { household, tile }) => {
+  // A trip of timber is home from `tile` with its `loads` (sim/chores' wood, the event timberHome): a fell task of the played household's
+  // there counts its loads, not its trips (VB-1634: a cart's trip brings several).
+  on('timberHome', (st, { household, tile, loads }) => {
     const pl = st.player;
     if (!pl || !pl.plan || st.pawns[pl.pawn].household !== household) return;
     const t = taskAt(st, 'fell', tile);
-    if (t && t.got < t.n) t.got++;
+    if (t && t.got < t.n) t.got = Math.min(t.n, t.got + (loads || 1));
   });
   // ---- the feeder's writes (sim/player's playerStep) ----
   // A new day clears the routine's `done`; a task whose job is finished or gone leaves the plan, the last one kept in `last`; a task at a

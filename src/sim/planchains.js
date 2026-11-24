@@ -265,7 +265,7 @@ VB['sim/planchains'] = (() => {
       return fd.stage === 'stooks' || ripeDay(fd) * DAY < d.t ? d : at(yearOf(st) + YEAR);
     },
   };
-  // ---- fell: n trips of timber felled on a forest tile the player chose and carried home (VB-1625; Kim, 24 Nov 2026) ----
+  // ---- fell: n loads of timber felled on a forest tile the player chose and carried home (VB-1625; Kim, 24 Nov 2026) ----
   // Any tile the household's village may fell on (sim/territory woodWhy: the tiles the rule of the village's wood may give it, whatever
   // its size, within WOOD.far of its centre; a lone farm's village is its own, so the same rule). The household's farm takes the timber.
   const FELL_MAX = 20;
@@ -283,7 +283,7 @@ VB['sim/planchains'] = (() => {
       const n = g.n === undefined || g.n === null ? 1 : g.n;
       return Number.isInteger(n) && n >= 1 && n <= FELL_MAX
         ? { n, got: 0 }
-        : `cannot plan ${g.n} trips to fell (1 to ${FELL_MAX})`;
+        : `cannot plan ${g.n} loads to fell (1 to ${FELL_MAX})`;
     },
     at: (st, hid, tile) => {
       const f = homeOf(st, hid);
@@ -299,7 +299,7 @@ VB['sim/planchains'] = (() => {
     gone: (st, { tile, n, got }) => (got >= n ? 'home' : st.w.trees[tile] > 0 ? null : 'bare'),
     deadline: () => null,
   };
-  // (the event timberHome, a trip of timber home, is counted by sim/playerplan, the plan's writer)
+  // (the event timberHome, a trip of timber home with its loads, is counted by sim/playerplan, the plan's writer)
   // ---- firewood: the timber home cut into firewood at the house, until it is all cut or the pile holds the season's goal (VB-1625) ----
   // The pile's free wood against the season's goal (the head's plan's targets, sim/plans), and whether it is short.
   const pileOf = (st, hh) => {

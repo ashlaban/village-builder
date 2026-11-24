@@ -28,6 +28,12 @@ VB['sim/chores'] = (() => {
   const fuelFree = (st, hh) => hh.wood - reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
   // The timber the household holds, felled and home, not yet cut (VB-1625; absent: none), in the woodpile's loads.
   const timberOf = (hh) => (hh.timber > 1e-9 ? hh.timber : 0);
+  // The loads a fell task of the played pawn's plan at `tile` has still to bring home (0 when there is none; sim/planchains' fell).
+  const plannedLeft = (st, tile) => {
+    const pp = st.player && st.player.plan,
+      t = pp && pp.tasks.find((x) => x.key === undefined && x.kind === 'fell' && x.fell === tile);
+    return t ? (t.n || 1) - (t.got || 0) : 0;
+  };
   // The house is cold, or its pile will not feed tonight's fire (VB-1547): the wood kinds' vital rule.
   const fireShort = (st, hh) => hh.cold > 0 || fuelFree(st, hh) < st.ECON.woodUse[cal(st.t).season];
   // @tunable WOOD_HOURS (VB-1625): the hours of one load of firewood in its two steps, felling a tree and cutting its timber at home; they
@@ -113,18 +119,24 @@ VB['sim/chores'] = (() => {
         return pileUrgency(st, hh, c, U, fuelFree(st, hh) + timberOf(hh));
       },
       // a tree felled on the job's tile (drawn from the village's wood when the job was posted, VB-326, or the one the plan chose), or on one
-      // drawn now if it was cut bare; the timber home (sim/playerplan counts a planned task's trips by the event `timberHome`)
+      // drawn now if it was cut bare; the timber home (sim/playerplan counts a planned task's loads by the event `timberHome`). A load
+      // is one tree of the tile's count felled and ECON.woodPerTrip units of timber at home; a trip brings one load on the back, or the
+      // loads cut and stacked on a cart (sim/carts) (VB-1634).
       deliver: (st, j, hh, f, a) => {
-        // a tree felled, and its timber home, for each load cut and stacked on the cart (sim/carts); one on the back
-        for (let k = Carts.loads(a); k > 0; k--) {
+        const loads = Carts.loads(a);
+        for (let k = loads; k > 0; k--) {
           Stores.put(st, hh, 'timber', st.ECON.woodPerTrip, 'felling');
           fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.farm.village]));
         }
-        emit(st, 'timberHome', { household: hh.id, tile: j.site });
+        emit(st, 'timberHome', { household: hh.id, tile: j.site, loads });
       },
+      // another load cut onto the cart: on a trip the plan sent, while its task has loads left beyond those on the cart (VB-1634: before,
+      // the pile's goal, so a cart brought more than the task's loads); else while the pile with the timber home is below the goal
       stack: (st, j, hh, c, load) =>
-        fuelFree(st, hh) + timberOf(hh) + st.ECON.woodPerTrip * Carts.loads({ load }) <
-        woodTargets(st, hh).wood[c.season],
+        j.chosen
+          ? plannedLeft(st, j.site) > Carts.loads({ load })
+          : fuelFree(st, hh) + timberOf(hh) + st.ECON.woodPerTrip * Carts.loads({ load }) <
+            woodTargets(st, hh).wood[c.season],
       // a tile drawn from the village's wood, but for a trip the plan sent to a tile of its choosing (`chosen`)
       draw: (st, j) => (j.chosen ? -1 : drawWood(st, st.villages[j.farm.village])),
       // while the village has a wood and the pile's free wood (VB-123) with the timber home is below the plan's goal for the season; a
