@@ -266,6 +266,7 @@ VB['sim/scenarios'] = (() => {
       n: R.pawns.length,
     });
     VB['sim/carts'].seedCarts(st, true);
+    VB['sim/textile'].seedLooms(st); // a farm that has stood for years has its loom (VB-362)
     startStreams(st, seedNum);
     return st;
   }
@@ -415,6 +416,7 @@ VB['sim/scenarios'] = (() => {
       n: R.pawns.length,
     });
     VB['sim/carts'].seedCarts(st, true);
+    VB['sim/textile'].seedLooms(st); // VB-362
     startStreams(st, seedNum);
     return st;
   }

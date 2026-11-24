@@ -470,7 +470,7 @@ VB['sim/byre'] = (() => {
   const milkEwes = (st, hh, c) => herdsOf(st, hh).reduce((s, hd) => s + inMilkEwes(st, hd, c), 0);
   // Summer day 1 (VB-144): each sheep of a year or more has grown a fleece, to be shorn at the fold (the job `shear`, VB-679): the flock is
   // kept in until it is (sim/grazing's driveOut), and a fleece still on the sheep at the end of summer is shed and lost (sim/herds, unshorn).
-  // Spinning and weaving wait for the winter crafts, so wool accumulates.
+  // The wool is spun at home (sim/textile, VB-362).
   function shearing(st) {
     for (const hd of st.herds) {
       if (hd.species !== 'sheep') continue;
@@ -485,7 +485,7 @@ VB['sim/byre'] = (() => {
       if (!byFold(herd)) continue;
       const n = Math.min(unshorn(herd, c), herd.ewes + herd.rams);
       if (herd.fleece !== undefined) delete herd.fleece;
-      if (n > 0) hh.wool = (hh.wool || 0) + n;
+      if (n > 0) Stores.put(st, hh, 'wool', n, 'shear'); // spun at home (sim/textile, VB-362)
     }
   }
   // Whether the herd waits at its household's fold: not out with a herder, nor standing at another farm (sim/droving).

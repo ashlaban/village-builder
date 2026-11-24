@@ -211,7 +211,8 @@ VB['sim/goods'] = (() => {
     return g;
   }
   const goods = () => [...GOODS.values()];
-  // The goods the fair trades (design.md, Quanta and worth). Wool and cheese are not goods yet (slice 6); labour days are promises (slice 5).
+  // The goods the fair trades (design.md, Quanta and worth). Wool and cheese are not goods yet (slice 6; yarn and cloth are, VB-362);
+  // labour days are promises (slice 5).
   const food = (id, lump, source, keeping) => ({
     id,
     kind: id,
@@ -250,6 +251,20 @@ VB['sim/goods'] = (() => {
     perish: null,
     keeping: true,
   }); // a roe deer's hide (VB-424)
+  // Wool to cloth (VB-362, sim/textile): a skein of yarn, and a length of woollen cloth, of the grade its weaver's skill drew (counted by
+  // grade in the household's store, sim/stores; custom's worth here is a sound length's). Not yet dealt at the fair (VB-363 wears cloth).
+  for (const id of ['yarn', 'cloth'])
+    declareGood({
+      id,
+      kind: id,
+      class: 'wares',
+      unit: id === 'yarn' ? 'skein' : 'length',
+      quantum: 1,
+      lump: id === 'yarn' ? 'skein' : 'length',
+      rations: 0,
+      perish: null,
+      keeping: true,
+    });
   declareGood({
     id: 'tar',
     kind: 'tar',

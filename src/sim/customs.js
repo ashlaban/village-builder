@@ -286,6 +286,17 @@ VB['sim/customs'] = (() => {
       ]),
       base: 'own',
     }),
+    // Whose work spinning and weaving are (VB-362; design.md, The mill and the loom: Who spins, Decided 11 Nov): it sets their ranks
+    // (sim/textile SPINNERS), and so whose winter is idle.
+    spinning: Object.freeze({
+      label: 'Spinning and weaving are',
+      opts: Object.freeze([
+        ['women', 'Women’s work'],
+        ['everyone', 'Everyone’s indoor work'],
+      ]),
+      base: 'women',
+      malleability: 0.4,
+    }),
   });
   // The culture's practice of key k: its own, or the one every culture starts with (a save made before VB-257).
   const practiceOf = (c, k) => (c && c.practices && c.practices[k] !== undefined ? c.practices[k] : PRACTICES[k].base);

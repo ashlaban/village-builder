@@ -20,7 +20,10 @@ VB['sim/norms'] = (() => {
     hide: 6, // a roe deer's hide, leather for shoes and harness (VB-424)
     iron: 30, // a bloom smelted from bog ore (VB-701; VB-364's Proposed worth): it mends a farm's tools whole
     salt: 20, // a sack of 10 measures, boiled at a spring (VB-700; Proposed): it salts 100 rations of meat, which then keep a year
-    quern: 25, // a hand quern's stone, hewn of sandstone or granite (VB-009; Proposed, slice 6's plan): a good of place
+    quern: 25,
+    yarn: 12, // a skein spun from a fleece (VB-362; Proposed, slice 6's plan)
+    // a length of woollen cloth woven from two skeins (VB-362; Proposed), a sound one: custom's multiplier by grade beside
+    cloth: 40, // a hand quern's stone, hewn of sandstone or granite (VB-009; Proposed, slice 6's plan): a good of place
     // VB-733 (Proposed; principle 17, D14: custom's row for each good and kind, never computed from the properties): a quern by its rock,
     // granite's slower grit worth less; a load of stone by its rock, the common building stones least, those with a use of their own more
     // (sandstone hews the quern; soapstone and marble wait for the pot, lime and the memorial), so that a take of any kind spends the

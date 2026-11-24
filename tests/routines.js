@@ -30,7 +30,7 @@ function green(st, v, ids) {
 
 { // the practice is declared with the customs: every generated culture holds `nothing`
   const st = fresh();
-  assert.deepStrictEqual(Object.keys(Customs.PRACTICES), ['noDecision', 'alderman', 'riteDays']);
+  assert.deepStrictEqual(Object.keys(Customs.PRACTICES), ['noDecision', 'alderman', 'riteDays', 'spinning']);
   assert.ok(st.cenv.cultures.every((c) => c.practices.noDecision === 'nothing'), 'each culture holds nothing');
   assert.strictEqual(Customs.practiceOf({}, 'noDecision'), 'nothing', 'a culture of an older save reads the base');
 }

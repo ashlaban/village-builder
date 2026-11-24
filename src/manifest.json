@@ -95,6 +95,7 @@
   "sim/byre.js",
   "sim/deer.js",
   "sim/leather.js",
+  "sim/textile.js",
   "sim/progress.js",
   "sim/cottageplan.js",
   "sim/expansion.js",
