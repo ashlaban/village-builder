@@ -50,7 +50,7 @@ VB['sim/outlook'] = (() => {
   //   lean), seasons (the seasons of the year it is needed in: [0, 1, 2, 3], or [3] for hay), parts: {store
   //   (what is held now, in the supply's units), need (by season of the frame, from the start of the one we are in), intakes ([{what, season
   //   (of the frame), n}], summed by what and season), spoilt (what the reckoning with intakes lets spoil within the frame), and for a
-  //   household planned by hand (VB-1633) left ([{good, what, tile?, crop?, n}]: the intakes still to be worked that no task of the plan
+  //   household planned by hand (VB-1661) left ([{good, what, tile?, crop?, n}]: the intakes still to be worked that no task of the plan
   //   covers, left out of `with`: fuel 'timber' (home, no firewood task to cut it), 'fell' (a fell task's loads, none to cut them),
   //   'cutting' (the head's own felling to the season's goal); hay 'mown' and 'meadow' (lying, or to mow: no hay task there); food
   //   'harvest' (a field's crop: no harvest task there, or not sown yet))}}. Made again at
@@ -141,7 +141,7 @@ VB['sim/outlook'] = (() => {
     for (const x of out) x.n = r1(x.n);
     return out;
   }
-  // ---- what a plan by hand covers (VB-1633; Kim, 24 Nov 2026: "Stores count what is in the plan. There is no 'automatic plan'") ----
+  // ---- what a plan by hand covers (VB-1661; Kim, 24 Nov 2026: "Stores count what is in the plan. There is no 'automatic plan'") ----
   // A household planned by hand: the played pawn's, with automatic behaviour off. Its outlook counts an intake still to be worked only
   // when a task of the plan covers it; what is held, or needs no work, is counted as for any household.
   const handOf = (st, hh) => {
@@ -224,7 +224,7 @@ VB['sim/outlook'] = (() => {
         cropDays(fd, c, end, (day, k, first) => {
           const gross = first && fd.stage === 'stooks' ? fd.held || 0 : FIELDS.expect * CROPS[k].yield,
             n = Math.max(0, gross - (k === 'barley' ? per : CROPS[k].seed));
-          // by hand, a crop standing is counted with a harvest task on its field; one not sown yet is in no task (VB-1633)
+          // by hand, a crop standing is counted with a harvest task on its field; one not sown yet is in no task (VB-1661)
           if (hand && !(first && STANDING.includes(fd.stage) && covered(st, 'harvest', fd.tile))) {
             if (n > 0) left.push({ good: 'food', what: 'harvest', tile: fd.tile, crop: k, n: r1(n) });
           } else ins.push([day, k, n]);
@@ -256,13 +256,13 @@ VB['sim/outlook'] = (() => {
     return withLeft(out, hand, left);
   }
   // Fuel: firewood and peat as one supply (sim/chores' fuelFree: the pile less what a project holds back, peat at PEAT.worth), burnt at
-  // the season's ECON.woodUse times the house's own fire (sim/house fireOf: a timber house's is smaller; VB-1641). Its intake is the
+  // the season's ECON.woodUse times the house's own fire (sim/house fireOf: a timber house's is smaller; VB-1669). Its intake is the
   // plan's: at the start of each season (today, for this one) the household cuts towards the season's goal, plan.targets.wood[season],
   // at most hands × OUTLOOK.woodTrips × ECON.woodPerTrip a season (the share of it left, for the season we are in); none with no farm or no wood in its
   // village's reach. Firewood does not spoil. Timber home and not yet cut
-  // counts as firewood (VB-1625): the head has it cut by its own rule (sim/chores); for the household of a pawn planned by hand
+  // counts as firewood (VB-1653): the head has it cut by its own rule (sim/chores); for the household of a pawn planned by hand
   // (automatic behaviour off) only while a `firewood` task of the plan covers it (sim/playerplan).
-  // For a household planned by hand (VB-1633; Kim, 24 Nov: "Stores count what is in the plan"), the head's own cutting to the goal is
+  // For a household planned by hand (VB-1661; Kim, 24 Nov: "Stores count what is in the plan"), the head's own cutting to the goal is
   // left out, and a fell task's loads still to come home are counted, today, only with a `firewood` task to cut them.
   function fuel(st, hh, f, plan, c, F, end, dz = null) {
     const fire = fireOf(st, hh),
@@ -349,7 +349,7 @@ VB['sim/outlook'] = (() => {
       let lying = 0,
         grass = 0;
       for (const m of f.meadows) {
-        // by hand, a meadow's hay still to bring in is counted with a hay task on it (VB-1633)
+        // by hand, a meadow's hay still to bring in is counted with a hay task on it (VB-1661)
         const by = !hand || covered(st, 'hay', m.tile);
         if (m.stage === 'mown') {
           if (!by) {
@@ -489,7 +489,7 @@ VB['sim/outlook'] = (() => {
     const plan = st.plans && st.plans.households.get(id),
       hh = st.households[id],
       c = cal(st.t),
-      // the played pawn's household's, reckoned when asked (VB-1633): by hand it counts only what the plan's tasks cover, and they, and
+      // the played pawn's household's, reckoned when asked (VB-1661): by hand it counts only what the plan's tasks cover, and they, and
       // automatic behaviour, change between its reviews
       O = plan && hh && !hh.dissolved && playedOf(st, hh) ? reckon(st, hh, plan, c) : plan && plan.outlook;
     if (!O) return null;

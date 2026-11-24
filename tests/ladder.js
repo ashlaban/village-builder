@@ -1,7 +1,7 @@
-// VB-1631: the main building's rungs and the outbuildings as data (sim/ladder), read from the rules that build them; rungOf, derived from
+// VB-1659: the main building's rungs and the outbuildings as data (sim/ladder), read from the rules that build them; rungOf, derived from
 // the state, right for every farm of founders, solo (with and without `hand`) and populous at seeding and a year on; Sim.farmView, plain
 // data that writes nothing, through the hand-planned settler's landing: a camp, its shelter being raised on the house tile, the shelter, the
-// cottage next (VB-1638).
+// cottage next (VB-1666).
 const assert = require('assert');
 const VB = require('../src/load.js'),
   Sim = VB.sim;
@@ -25,12 +25,12 @@ assert.deepStrictEqual(RUNGS.shelter.needs, { timber: BOOTH.wood, stone: 0, hour
 assert.deepStrictEqual(RUNGS.cottage.needs, { timber: BUILD.timber, stone: 0, hours: 120 });
 assert.deepStrictEqual(FOUNDATION.needs, { timber: 0, stone: BUILD.foundationStone, hours: BUILD.foundationHours });
 assert.strictEqual(FOUNDATION.gives.wear, HOUSE.wearStone);
-assert(!RUNGS.stone, 'the foundation is no rung (VB-1635)');
+assert(!RUNGS.stone, 'the foundation is no rung (VB-1663)');
 assert.strictEqual(RUNGS.cottage.gives.standing, HOUSE.term);
 assert.deepStrictEqual(OUTBUILDINGS.barn.needs, { timber: BUILD.barn.timber, stone: 0, hours: 120 });
 
 // ---- 2. rungOf, for every farm, against the state read directly ----
-// A farm with no cottage: a camp while its shelter (VB-1638) does not stand, or (a farm with none: a save before VB-1638) while no booth
+// A farm with no cottage: a camp while its shelter (VB-1666) does not stand, or (a farm with none: a save before VB-1666) while no booth
 // of its household stands beside its house and it has a camp or one staked there; a shelter else; a cottage on the ground or on stone.
 function expected(st, f) {
   if (f.camp === true) return 'camp';
@@ -42,7 +42,7 @@ function expected(st, f) {
     B.stakedEach(st, (p) => (staked = staked || (st.pawns[p.holder.id].household === f.household && near(p.tile))));
     return staked ? 'camp' : 'shelter';
   }
-  return f.rung || 'cottage'; // the timber house stored (VB-1636)
+  return f.rung || 'cottage'; // the timber house stored (VB-1664)
 }
 function sweep(st, tag, seen) {
   const before = hash(st);

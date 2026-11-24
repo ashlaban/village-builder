@@ -1,6 +1,6 @@
 // @sys sim/house: a well-kept house (VB-306; VB-419, from sim/rules): a house's condition and how it wears, tar and a stone house,
 // and the standing its term gives; the room each rung of the main building has, a household over it crowded, and a timber house's
-// smaller fire (VB-1636)
+// smaller fire (VB-1664)
 VB['sim/house'] = (() => {
   const { YEAR, BOOTH } = VB['sim/rules'];
   // @tunable HOUSE: a well-kept house (VB-306; design.md, Goods of place and side crafts: A well-kept house)
@@ -38,7 +38,7 @@ VB['sim/house'] = (() => {
   const houseTerm = (st, f) =>
     ((onStone(f) ? HOUSE.termStone : HOUSE.term) + (houseTarred(st, f) ? HOUSE.termTarred - HOUSE.term : 0)) *
     houseCondition(st, f);
-  // @tunable ROOM: the room of the main building (VB-1636; Kim, 24 Nov 2026: "If a household is over housing capacity tenants will
+  // @tunable ROOM: the room of the main building (VB-1664; Kim, 24 Nov 2026: "If a household is over housing capacity tenants will
   //   receive a mood malus", and "every one should be affected by crowding": every member of a crowded household, sim/mood), read by
   //   sim/ladder's RUNGS beside the rungs: the people each rung sleeps without crowding, a shelter's
   //   BOOTH.sleeps, a cottage's `cottage` (6: a founders household, two to five, fits it; seed 7 small, 10 years), a timber house's

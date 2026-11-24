@@ -13,7 +13,7 @@ VB['sim/projects'] = (() => {
   //   waits for a household, sim/plans' dropAll); it is not of the household's choosing (ownOf). A small construction (a cart, a boat, a tar
   //   pit: a few days' work; Kim, 21 Nov 2026) is marked `small: true` by the starter that makes it: begun and built beside any other plan,
   //   in a booth as in a house, one of a making (`what`) at a time (mayBegin), and not of the household's large projects (ownOf).
-  //   A plan begun while another of the household's under way has steps of a kind it has (VB-1623 for the played head's fields, VB-1640
+  //   A plan begun while another of the household's under way has steps of a kind it has (VB-1651 for the played head's fields, VB-1668
   //   for every head and making: sim/projectplans makeProject) is marked `side: true`, so that its steps' jobs are keyed apart
   //   (landProject); absent on every other plan, so that a run with one project at a time keeps its keys.
   //   A finished or dropped plan is removed, and a holder with none has no entry (Rules for cost, 1). st.plans.projectSeq: the last plan's id.
@@ -28,7 +28,7 @@ VB['sim/projects'] = (() => {
     return list || NONE;
   }
   // The household's first large project of its own choosing under way (a field, a meadow, a barn, a plot for its heir), or null. No check
-  // refuses a project because another is under way (VB-1640; the limit of one removed, Kim, 21 Nov 2026): this is read by the head's own
+  // refuses a project because another is under way (VB-1668; the limit of one removed, Kim, 21 Nov 2026): this is read by the head's own
   // rule, its prudence of beginning one large project at a time (the land step, the aims' yearly look, the foundation's step of
   // buildStep, the well's and the drain's looks, ownByre; how heads should choose among parallel projects is VB-1472's), by the verb
   // dropProject, and by makeProject to mark a plan `side`. A settler household's cottage and a small construction (plan.small) are not
@@ -98,7 +98,7 @@ VB['sim/projects'] = (() => {
     return null;
   }
   // Whether household id's head holds off projects (VB-253: the player chose none, plan.chosen.project, sim/plans), or is the played pawn
-  // with automatic behaviour off (VB-1623: nothing is begun that the player did not plan): no project of the household's is begun by its
+  // with automatic behaviour off (VB-1651: nothing is begun that the player did not plan): no project of the household's is begun by its
   // own rule (the land step, the head's look at a boat, a cart, a tar pit: sim/aims) until the choice is cleared or the pawn left to
   // itself; the player's own verbs go through. Allocates nothing.
   function heldOff(st, id) {
@@ -140,7 +140,7 @@ VB['sim/projects'] = (() => {
   // The open steps of the household's project plans but a plot's and a cottage's (a new field's clear and break, a meadow, a boat...), each
   // posted once the step before it is done, and not while it waits for timber (VB-300). A plot the household clears for its heir (VB-255) is
   // posted as every plot is (plotWork), a settler household's cottage by sim/building's boothWork. The key is the step's kind at the farm:
-  // a plan begun beside another with steps of a kind it has (`side`, VB-1623, VB-1640) adds its plan's id, so the keys of several plans
+  // a plan begun beside another with steps of a kind it has (`side`, VB-1651, VB-1668) adds its plan's id, so the keys of several plans
   // under way do not meet (VB-1414).
   const landProject = (st, hh, f, c, post) => {
     for (const p of projectsOf(st, 'household', hh.id)) {

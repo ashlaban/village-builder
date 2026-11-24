@@ -15,7 +15,7 @@ const HUD_AILS = [
 function hudColdWords(d) {
   const { hh, f } = hudHouse(),
     { hexSteps } = VB['sim/hex'],
-    sh = f && f.shelter && f.shelter.built !== null ? f.shelter : null, // the shelter on the house tile (VB-1638)
+    sh = f && f.shelter && f.shelter.built !== null ? f.shelter : null, // the shelter on the house tile (VB-1666)
     booth = sh || (f && hh ? st.booths.find((b) => b.by === hh.id && hexSteps(w, b.tile, f.house) <= 1) : null), // or an older save's
     roofed = f && (!f.booth || (booth && booth.built <= d.t));
   if (roofed) return 'The last night was cold: too little firewood for the fire. ' + WOOD_PATH;
@@ -48,7 +48,7 @@ function hudGauges(hh) {
     (left ? ' Some is not counted, for want of a task of the plan: Stores says what.' : '')
   );
 }
-// How many live in the house against its room (sim/house roomOf, VB-1636): crowded, every member's mood suffers until a larger house.
+// How many live in the house against its room (sim/house roomOf, VB-1664): crowded, every member's mood suffers until a larger house.
 function hudRoom(hh, f, FV) {
   const room = VB['sim/house'].roomOf(f),
     n = hh.members.length;
@@ -61,7 +61,7 @@ function hudRoom(hh, f, FV) {
     `${next ? ` A ${next} mends it: Build up.` : ''}</p>`
   );
 }
-// What of a farm's move lies at its landing (VB-1639): the loads marked `moving`, the cart left there, the herds standing there; and the
+// What of a farm's move lies at its landing (VB-1667): the loads marked `moving`, the cart left there, the herds standing there; and the
 // landing's tile, or null when nothing is left.
 function hudMoving(hh, f) {
   const lying = (st.lying || []).filter(
@@ -83,7 +83,7 @@ function hudMoving(hh, f) {
     frost = e && e.deadline ? e.deadline : null;
   return { tile, parts, frost, lying: lying.length };
 }
-// The windows that press with no task of the plan for them (Sim.planGaps, VB-1622).
+// The windows that press with no task of the plan for them (Sim.planGaps, VB-1650).
 const hudGaps = () => (Sim.planGaps && HUD_CHAIN ? (Sim.planGaps(st) || []).filter((g) => HUD_CHAIN[g.chain]) : []);
 // A field's pin: the icon of what it waits for, a number of days where one counts (to ripe, or left to sow), and how pressing it is.
 // The words are the tile's callout (fieldLine), a tap away.
@@ -265,11 +265,11 @@ function hudCall(i, id, hh, f) {
   });
 
   if (i !== f.house) acts += woodActs(i, f);
-  const here = (V.projects || []).find((p) => p.tile === i) || null, // the project under way on this tile, of several (VB-1623)
+  const here = (V.projects || []).find((p) => p.tile === i) || null, // the project under way on this tile, of several (VB-1651)
     making = !!here && here.what === 'field',
     unsown = fi >= 0 && !['sown', 'growing', 'ripe', 'stooks'].includes(f.fields[fi].stage);
   // the chains this tile may take, by what stands on it; the sim says why not when one is pressed and refused
-  // a free tile the head's own check takes for a field or a meadow: a task there begins it in its turn, beside any other (VB-1623)
+  // a free tile the head's own check takes for a field or a meadow: a task there begins it in its turn, beside any other (VB-1651)
   const none = { field: new Set(), meadow: new Set() },
     free = i !== f.house && fi < 0 && mi < 0 && !here && !placed ? hudSites(hh) : none;
   const offer = (c) => ((free.field.has(i) || free.meadow.has(i)) && HUD_CHAIN[c].fresh) || HUD_CHAIN[c].offer;

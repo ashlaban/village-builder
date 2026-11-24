@@ -1,4 +1,4 @@
-// @sys page/ui2wood: the new interface's wood (VB-1625): felling on a forest tile, firewood cut at the house, and the fire's warning there
+// @sys page/ui2wood: the new interface's wood (VB-1653): felling on a forest tile, firewood cut at the house, and the fire's warning there
 // ---- wood in two steps: timber felled at the forest tile and carried home, cut into firewood at the farmstead ----
 // Kim (24 Nov): "Fell timber at the forest tile, and then cut firewood in the home. But this should be clear (warning at the home tile, no
 // firewood. Tapping the warning gives you text 'No firewood' and a path to resolve it, 'Fell timber, then cut to firewood at the
@@ -16,7 +16,7 @@ const fireWarn = () => {
 const fireTitle = (F) =>
   F.wood < 1 ? 'No firewood' : `Firewood for ${F.nights} ${F.nights === 1 ? 'night' : 'nights'}`;
 // The warning's words, the band of the house's callout when its mark is tapped.
-// the same verdict as the stores' (fireView reads the outlook's fuel: VB-1633)
+// the same verdict as the stores' (fireView reads the outlook's fuel: VB-1661)
 const fireVerdict = (F) =>
   F.state === 'safe' || F.season === null
     ? 'enough for the year'

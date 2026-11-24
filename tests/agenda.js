@@ -1,4 +1,4 @@
-// VB-1616: the agenda, the played pawn's queue and open work against their deadlines, a view the page reads. On a small constructed state:
+// VB-1644: the agenda, the played pawn's queue and open work against their deadlines, a view the page reads. On a small constructed state:
 // two queued jobs lie end to end at the pawn's own estimate; a sowing that cannot end within its window is late; open work not queued is
 // listed with its deadline; a field project's step carries the steps after it to the sowing; the view writes nothing and no simulation
 // module names it.
@@ -105,7 +105,7 @@ const r = build();
 const readers = r.deps.filter((d) => d.imports.includes('sim/agenda') || d.lookups.some((l) => l.key === 'sim/agenda')).map((d) => d.mod);
 assert.deepStrictEqual(readers, ['sim'], `only sim reads sim/agenda, not ${readers.join(', ')}`);
 
-// VB-1619: the plan laid into days. On the tiny village of tests/plan.js with the played farmer alone (the others' hands would end its
+// VB-1647: the plan laid into days. On the tiny village of tests/plan.js with the played farmer alone (the others' hands would end its
 // tasks sooner than its own estimate says, which the view does not reckon): a routine, sleeping hours and two tasks.
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { AWAKE } = VB['sim/sleep'];
@@ -158,7 +158,7 @@ assert(T1.starts > P.t && T1.ends > (d0 + 1) * DAY && T2.starts === T1.ends && T
 assert(T1.hours.mid > 0 && T2.deadline && T2.verdict === 'in time', JSON.stringify(T2));
 const work1 = L.days.flat().filter((g) => g.key === 'clear:f0');
 assert(work1.length >= 2 && Math.abs(work1[0].to % DAY - 22) < 1e-9, 'the clearing broken off at bedtime');
-// the routine's hours a day, each kind from home; the hours owed at each day's end, by VB-1615's rule
+// the routine's hours a day, each kind from home; the hours owed at each day's end, by VB-1643's rule
 assert.deepStrictEqual(L.routine.map((r) => r.kind), ['water', 'wood']);
 assert(L.routine.every((r) => r.hours > 0) && L.routine[1].hours > L.routine[0].hours, JSON.stringify(L.routine));
 assert.strictEqual(L.owed.length, 3);
@@ -179,7 +179,7 @@ assert.strictEqual(laid(N).days[0][0].what, 'queue');
 Sim.setAuto(N, true);
 assert(laid(N).days.flat().every((g) => g.what === 'queue' || g.what === 'free'), 'not followed: queue and free');
 
-// VB-1621: a plant task laid step by step: on the project's tile its clearing (posted), then its breaking, hoeing and sowing (not posted:
+// VB-1649: a plant task laid step by step: on the project's tile its clearing (posted), then its breaking, hoeing and sowing (not posted:
 // rough, at the step's and the crop's hours), the hoeing and the sowing not before the window opens; its entry the hours of all steps
 // left, ending at the sowing's end, the barley window its deadline and the chain's verdict; on a broken field the hoeing and the sowing
 const G = alone(), gsite = G.jobs.get('clear:f0').site, gfield = G.farmsteads[0].fields[0];
@@ -202,7 +202,7 @@ Sim.plan(H, 'add', { key: 'clear:f0' });
 const PH = laid(H).plan[0];
 assert(PH.key === 'clear:f0' && PH.kind === 'clear' && !('steps' in PH) && PH.then && PH.then.steps.map((x) => x.kind).join() === 'break,plow,sow', JSON.stringify(PH));
 
-// VB-1622: a hay task and a harvest task laid as the plant task is: in spring, the hay's mowing and carrying not posted (rough), laid
+// VB-1650: a hay task and a harvest task laid as the plant task is: in spring, the hay's mowing and carrying not posted (rough), laid
 // no earlier than the haymaking opens, its deadline the haymaking's end; a field near ripe (a constructed state) its reaping from the
 // day it is expected ripe and its carrying after, its deadline the frost the head expects. Sim.planGaps lists the harvest that presses
 // with no task, and not once planned; it writes nothing.

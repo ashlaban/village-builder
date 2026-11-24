@@ -50,7 +50,7 @@ const QUANTITIES = [
   { id: 'wood', of: 'household', name: 'the woodpile', unit: 'loads', fields: ['household.wood'], good: 'wood', holder: 'household', kinds: ['firewood'],
     none: 'the day\'s fire takes what there is and the house is cold (hh.cold, sim/hunger): health falls, no meal is cooked, and the firewood job comes first (VB-327)' },
   { id: 'timber', of: 'household', name: 'timber home, not yet cut', unit: 'loads', fields: ['household.timber'], good: 'timber', holder: 'household', kinds: ['wood', 'firewood'],
-    none: 'nothing to cut at the house: the firewood job is not posted, and the felling of the woods is (sim/chores, VB-1625)' },
+    none: 'nothing to cut at the house: the firewood job is not posted, and the felling of the woods is (sim/chores, VB-1653)' },
   { id: 'stone', of: 'household', name: 'the stone heap', unit: 'loads', fields: ['household.stone'], good: 'stone', holder: 'household',
     kinds: ['pick', 'quarry'],
     none: 'the house is not raised onto a stone foundation; stone is picked or quarried for it (sim/building, VB-332); the village\'s well, '
@@ -118,7 +118,7 @@ const QUANTITIES = [
     none: 'the booth is gone and its tile as it was; a stay that slept there is under the open sky (sim/building, VB-784)' },
   { id: 'shelter', of: 'farm', name: 'a farm\'s shelter on its house tile, the ladder\'s first rung: the timber brought to raise it, then its condition, worn by closed form as a booth\'s', unit: 'loads, then 0..1',
     fields: ['farmstead.shelter'], kinds: ['timber', 'shelter'],
-    none: 'its household sleeps under the open sky (sim/building roofless) and its cottage waits; one worn to nothing is raised again where it stood (sim/building, VB-1638)' },
+    none: 'its household sleeps under the open sky (sim/building roofless) and its cottage waits; one worn to nothing is raised again where it stood (sim/building, VB-1666)' },
   { id: 'giftGrain', of: 'stay', name: 'a gift\'s grain on its way: on a carrier\'s back, or set aside where it lies until it is fetched', unit: 'rations',
     fields: ['st.away'], kinds: [],
     none: 'nothing is on its way: the gift has come in, or what was left lying went back to its giver\'s store when its fetcher died or left the household (sim/away, VB-291, VB-461)' },

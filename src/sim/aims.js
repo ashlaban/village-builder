@@ -265,7 +265,7 @@ VB['sim/aims'] = (() => {
     if (yearly) B.year = c.year;
     B.again = false;
     B.surplus = surplusOf(st, plan, hh, f, c).all;
-    // the head's prudence, its own choice and not a refusal (VB-1640): its yearly look begins a large project only with none under way
+    // the head's prudence, its own choice and not a refusal (VB-1668): its yearly look begins a large project only with none under way
     if (!B.surplus || Projects.ownOf(st, hh.id) || Projects.heldOff(st, hh.id)) return;
     const o = choose(st, menu(st, plan, hh, f));
     if (!o || !begin(st, hh, o)) return;
@@ -365,7 +365,7 @@ VB['sim/aims'] = (() => {
     A.again = true;
   });
   // Why household hh may not begin a barn now, or null (the verb barn): a farm of its own with none, no booth, none under way, a village
-  // wood to fell its timber in; beside any other project (VB-1640).
+  // wood to fell its timber in; beside any other project (VB-1668).
   function barnWhy(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
@@ -375,7 +375,7 @@ VB['sim/aims'] = (() => {
     return Projects.underWay(st, hh.id, 'barn') ? `household ${hh.id} has a barn under way` : null;
   }
   // Why household hh may not begin a farm for pawn `heir` now, or null (the verb heirFarm): an adult of the household with no farm nor
-  // plot (one under way counts: hasPlot); beside any other project (VB-1640; the site is the plot's to find).
+  // plot (one under way counts: hasPlot); beside any other project (VB-1668; the site is the plot's to find).
   function heirWhy(st, hh, heir) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;

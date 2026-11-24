@@ -1,4 +1,4 @@
-// Wood in two steps (VB-1625): timber felled in the woods and carried home (the kind wood), cut into firewood at the house (the kind
+// Wood in two steps (VB-1653): timber felled in the woods and carried home (the kind wood), cut into firewood at the house (the kind
 // firewood), for every household; the player's plan tasks `fell` (a forest tile of its choosing, n trips) and `firewood` (at the house),
 // their refusals, the page's read of the fire (Sim.fireView), and a save and a load going on the same. On the tiny village of tests/plan.js.
 const assert = require('assert');
@@ -128,7 +128,7 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert.notStrictEqual(auto, hand, 'by hand with no firewood task, the timber is not counted');
   assert.strictEqual(planned, auto, 'with a firewood task, it is');
 }
-// 4. VB-1634: a fell task's n is loads, not trips. On a hand start (the booth raised by the farmstead task), a fell task of 3 loads brings
+// 4. VB-1662: a fell task's n is loads, not trips. On a hand start (the booth raised by the farmstead task), a fell task of 3 loads brings
 // 3 loads home (3 trees felled, 3 * ECON.woodPerTrip timber), however many a cart stacks on a trip (before: 24 timber, the task counting
 // 3 trips of 5, 2 and 1 loads). Then a firewood task cuts some and the cottage takes the rest, with its own timber trips to the site; the
 // timber held is all along what was put with reason felling less what was cut or built with.

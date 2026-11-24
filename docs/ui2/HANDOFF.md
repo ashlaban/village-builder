@@ -24,21 +24,21 @@ Drafts page (screenshots and both rounds' findings, newest first): https://claud
   the days left to sow; the work site its tool; the house three goods over their meters. A queued job is a pin at its tile with its
   place in the queue (square, left) and the days until it is done (round, right), coloured by its verdict. One pin a tile.
 - The callout's job buttons say the hours and the verdict in words (`hudStake`).
-- VB-1616, `Sim.agenda(st)` (`src/sim/agenda.js`): the queue laid end to end in working hours and the open work, each with the
+- VB-1644, `Sim.agenda(st)` (`src/sim/agenda.js`): the queue laid end to end in working hours and the open work, each with the
   pawn's own estimate `{lo, mid, hi}`, its deadline, a verdict (`in time`, `tight`, `late`), and for a field project's step `then`,
   the steps left before sowing.
-- VB-1615, sleep (`src/sim/sleep.js`, `st.player.sleep`, the verb `sleep`, `Sim.sleepOf`): half an hour owed for each hour awake;
-  the mood modifier `tired` past 8 hours owed, health from a whole night owed. Only the played pawn (VB-1617 opens it to all).
+- VB-1643, sleep (`src/sim/sleep.js`, `st.player.sleep`, the verb `sleep`, `Sim.sleepOf`): half an hour owed for each hour awake;
+  the mood modifier `tired` past 8 hours owed, health from a whole night owed. Only the played pawn (VB-1645 opens it to all).
 - Measured with automatic off, before: ordered work ran through the night at no cost; nobody fetched water or cooked.
 
 ## Built in the third batch (24 November)
 - Planned by hand: at "Begin the first day" (`hudBegin`) automatic planning goes off, the routine is water, cooking, fodder and
   milking, and sleep is 22 to 6.
-- VB-1618, the plan (`src/sim/playerplan.js`, `st.player.plan`, `Sim.plan(st, op, args)`, `Sim.planView(st)`): the routine once a
+- VB-1646, the plan (`src/sim/playerplan.js`, `st.player.plan`, `Sim.plan(st, op, args)`, `Sim.planView(st)`): the routine once a
   day, the sleeping hours, tasks in order by job key; the feeder in `playerStep` follows it when the hand queue is empty; a task
   broken off for the night is taken up in the morning. A command queued by hand ("Do it now") goes first and is not broken off for
   sleep: that is how a night is worked.
-- VB-1619, `Sim.agenda(st)` gains `days` (three days of segments by the hour), `plan` (each task's hours, end, verdict), `owed`
+- VB-1647, `Sim.agenda(st)` gains `days` (three days of segments by the hour), `plan` (each task's hours, end, verdict), `owed`
   (sleep owed at each day's end) and `routine` (each kind's hours a day).
 - The plan bar (`renderPlan`, `planCard` in `src/page/ui2hud.js`): routine chips, the sleep chip (its number once a night is owed),
   then the tasks in order with their days; a chip's card holds the words and the acts (earlier, later, remove, the sleeping hours).
@@ -53,11 +53,11 @@ Drafts page (screenshots and both rounds' findings, newest first): https://claud
   one). The sleep card says so after a rough night; the house should show it as an icon.
 - The agenda's `owed` counts free daytime hours as awake, though a free pawn at home sleeps: it can read too high.
 - A task is matched by its job's key; a clearing posted again under the same key would be taken for the same task.
-- No playtest round has been run on any of the second session's work. VB-1620 splits `page/ui2hud` (over the lint's line).
+- No playtest round has been run on any of the second session's work. VB-1648 splits `page/ui2hud` (over the lint's line).
 - The agenda's estimate assumes the pawn's own hands only.
 
 ## After the third batch: plant task, roof warning, and round 3 of playtests (24 November)
-- VB-1621: a plant task (`Sim.plan(st, 'add', {plant: tile})`) carries a field from clearing to sowing as one task; the callout
+- VB-1649: a plant task (`Sim.plan(st, 'add', {plant: tile})`) carries a field from clearing to sowing as one task; the callout
   offers "Plant this field", and "Break a field here" plans the field through when begun at once. Seen in the page: one task, the
   field sown on spring day 7.
 - What took of the settler's health last night is an icon at the house (`hudAils`: no roof is the red cold mark), words in its callout.
@@ -82,10 +82,10 @@ Drafts page (screenshots and both rounds' findings, newest first): https://claud
 
 ## Fourth batch and round 4 of playtests (24 November)
 - One plan: the Today and Plan sheets are removed (Kim: for now; later one representation, possibly edited from several places).
-  Left: Stores, and the settler's card (`meHTML`: what it does and why, health, mood, what ails it, the log). VB-1620: the play
+  Left: Stores, and the settler's card (`meHTML`: what it does and why, health, mood, what ails it, the log). VB-1648: the play
   screen is `page/ui2hud` (ribbon, sheets, clicks), `page/ui2plan` (the plan bar and cards), `page/ui2land` (pins, callout),
   `page/ui2day` (the strip).
-- VB-1622: tile tasks are chains declared as data (`CHAINS` in `src/sim/playerplan.js`): `plant`, `hay`, `harvest`; a marked tile's
+- VB-1650: tile tasks are chains declared as data (`CHAINS` in `src/sim/playerplan.js`): `plant`, `hay`, `harvest`; a marked tile's
   task begins its project in its turn; `Sim.planGaps(st)` lists the windows pressing with nothing planned (red pulsing pins).
   Seen in the page: a plant task sown, a harvest task planned in spring brought in by autumn.
 - Kim's rule for explanations, to give every playtester word for word: "If you want clarification, click the thing you want
@@ -140,10 +140,10 @@ Drafts page (screenshots and both rounds' findings, newest first): https://claud
   into every day all the same. Reproduced headless on `ot7`, site 1. The stray walk was not the cause (2,600 walks all ended).
 - Kim: "that limitation should be removed. You should be able to start work at e.g. several fields at once, and realise that you
   need to focus on one"; and the start begins with nothing under way.
-- VB-1623 (sim, done): the played head may begin fields and meadows side by side (`headView().projects`; unplayed heads keep the
+- VB-1651 (sim, done): the played head may begin fields and meadows side by side (`headView().projects`; unplayed heads keep the
   limit until VB-1472, with Kim); with automatic off the head begins nothing by its own rule; `Sim.seed(..., {site, hand: true})`
   lands with nothing under way; a task at a free tile needs no mark; `planView().tasks[i].waits` and `planView().idle` name why a
-  task or the whole plan waits (`WAITS` in `src/sim/playerplan.js`). VB-1624 (ready): `unposted` should name the household rule.
+  task or the whole plan waits (`WAITS` in `src/sim/playerplan.js`). VB-1652 (ready): `unposted` should name the household rule.
 - The page: a free tile's callout offers "Plant a field here" and "Make a hay meadow here" as plan tasks (the marking step and
   "Break a field here" are gone); a pin for every project; a task's card and the settler's pill say why it waits; a held task's
   chip is dashed. Seen in the page: two fields and a meadow planned on the first morning, all carried on side by side.
@@ -168,20 +168,20 @@ Kim's answers, 24 November:
 - No playtest round for now. Work is off-loaded to Opus sub-agents (sim tasks by `vb-task`, the page by a general agent with a
   written brief and its own browser checks).
 Built (all merged on `claude/zen-gauss-hpj14o`):
-- VB-1625: wood in two steps for every household: felling (`wood`, 2 h) brings timber home (`household.timber`), cutting
+- VB-1653: wood in two steps for every household: felling (`wood`, 2 h) brings timber home (`household.timber`), cutting
   (`firewood`, 1 h) at the house; plan tasks `fell` (a tile, n trips) and `firewood`; `Sim.fireView`.
-- VB-1627: the hand start lands on a camp (`farmstead.camp`, `src/sim/camp.js`): goods and animals, nothing built, nights in the
+- VB-1655: the hand start lands on a camp (`farmstead.camp`, `src/sim/camp.js`): goods and animals, nothing built, nights in the
   open; the plan task `farmstead` places it (within 3 steps of the landing: decided without Kim, the farm record is the camp) and
-  raises the booth; `Sim.buildMenu`, `Sim.placeWhy`. VB-1630: a camp on automatic does the same by the head's own rule.
-- VB-1631: `src/sim/ladder.js`: `RUNGS` (camp, booth, cottage, stone), `OUTBUILDINGS` (barn), `Sim.farmView`. VB-1632: the plan
+  raises the booth; `Sim.buildMenu`, `Sim.placeWhy`. VB-1658: a camp on automatic does the same by the head's own rule.
+- VB-1659: `src/sim/ladder.js`: `RUNGS` (camp, booth, cottage, stone), `OUTBUILDINGS` (barn), `Sim.farmView`. VB-1660: the plan
   task `upgrade` builds the booth up to a cottage (`src/sim/upgrade.js`), timber at home first (the played household only).
-- VB-1629: sim/playerplan split into `playerplan` (state), `planchains` (CHAINS), `plannext` (nextOf, WAITS, HOLDS), `planview`.
-  VB-1624: an `unposted` wait names the household's rule (`rule`, `text`). VB-1626: `tests/browser.js` mended (a shared world).
+- VB-1657: sim/playerplan split into `playerplan` (state), `planchains` (CHAINS), `plannext` (nextOf, WAITS, HOLDS), `planview`.
+  VB-1652: an `unposted` wait names the household's rule (`rule`, `text`). VB-1654: `tests/browser.js` mended (a shared world).
 - The page: `src/page/ui2build.js` (the build button, the menu, placing with the site's reading, the upgrade card),
   `src/page/ui2wood.js` (felling on a forest tile, cutting at the house, the warning on the house's wood gauge with its path);
   the camp, the staked booth and the raised booth each drawn as what they are.
 Open:
-- VB-1633 (running at the time of writing): the outlook and `fireView` disagree on the fire; stores count only what the plan
+- VB-1661 (running at the time of writing): the outlook and `fireView` disagree on the fire; stores count only what the plan
   covers (Kim); `farmView().building` reports unplanned stone work; a firewood task waits days for a review.
 - Kim's answers wanted: what a timber house gives over today's log-walled cottage; whether "stone house" is today's stone
   foundation; what a byre gives; whether the ladder is one rule for every household; how far from the landing the Farmstead may
@@ -215,7 +215,7 @@ How to work here:
   `docs/ui2/playtest.js`. Do not rebuild `index.html` while testers play.
 - Sim work goes to Opus `vb-task` sub-agents through backlog tasks (`tools/inbox.js init --fresh`, `start ID`, then `apply` after
   merging the worktree's branch); the page is the orchestrator's. Checks: `npm test`, `npm run verify`, `node tests/smoke.js`.
-- Branch `claude/bold-lamport-xsgshf`, pushed. No PR is open; none was asked for. Open backlog: VB-1617 (sleep for every pawn),
+- Branch `claude/bold-lamport-xsgshf`, pushed. No PR is open; none was asked for. Open backlog: VB-1645 (sleep for every pawn),
   VB-1613 (the site's choice, overlapping the new start).
 
 ## What is built (first session)

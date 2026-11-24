@@ -78,13 +78,13 @@ VB['sim/drain'] = (() => {
     return id;
   }
   // Ditching a field, a making the head begins through the verb project (sim/plans; args {field}: the field's id, or none for the head's
-  // pick, fieldFor): a large project, on its own farm's wet field, beside any other (VB-1640); the head's own look begins one only with
+  // pick, fieldFor): a large project, on its own farm's wet field, beside any other (VB-1668); the head's own look begins one only with
   // no large project under way, its prudence.
   declare('drain', {
     why: (st, hh, f, args) => {
       const id = fieldFor(st, f, args);
       if (id < 0 && !(args && Number.isInteger(args.field))) return `${f.name} has no wet field to ditch`;
-      // one ditching a field: a second on another goes beside it (VB-1640)
+      // one ditching a field: a second on another goes beside it (VB-1668)
       if (Projects.projectsOf(st, 'household', hh.id).some((p) => p.what === 'drain' && p.field === id))
         return `the field ${id} is being ditched`;
       return fieldWhy(st, f, id);

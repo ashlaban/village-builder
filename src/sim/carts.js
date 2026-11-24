@@ -42,7 +42,7 @@ VB['sim/carts'] = (() => {
   // @state household.carts[].at: absent, or {tile, x, y, t}: a cart left standing where its carrier was released on the road with a load
   //   (VB-649: it dies or its household dissolves), until a hand of the household fetches it home (the lying load 'leftCart', sim/lying);
   //   while it stands the cart is out, and the team that drew it stands with it. Written only here; removed at the autumn frost if nobody
-  //   came (sim/lying), unless `kept`: a cart its household left standing at the landing when its house moved (VB-1639), on its own land
+  //   came (sim/lying), unless `kept`: a cart its household left standing at the landing when its house moved (VB-1667), on its own land
   //   and not abandoned, which the frost does not take.
   const out = (st, c) => {
     if (c.at) return true;
@@ -74,7 +74,7 @@ VB['sim/carts'] = (() => {
     c.at = { tile, x, y, t: st.t };
     return c;
   }
-  // The house of household hh moved from `from` (sim/camp's placing, VB-1639): each cart not out stands there (`kept`), with a lying
+  // The house of household hh moved from `from` (sim/camp's placing, VB-1667): each cart not out stands there (`kept`), with a lying
   // leftCart, marked moving and kept, for its hands to fetch (sim/lying keeps it at the frost; cartsFrost below).
   on('houseMoved', (st, { f, from }) => {
     const hh = f.household === null ? null : st.households[f.household];

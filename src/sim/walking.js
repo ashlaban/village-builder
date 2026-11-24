@@ -226,7 +226,7 @@ VB['sim/walking'] = (() => {
       r.parts = null;
     }
   }
-  // The walkable component of `tile` (VB-1639): tiles a pawn walks between on foot share one number, -1 for a tile it cannot stand on.
+  // The walkable component of `tile` (VB-1667): tiles a pawn walks between on foot share one number, -1 for a tile it cannot stand on.
   // Labelled once for a world, the whole map in one sweep, and kept beside its reach lists (never in `st`, the same after a load); a
   // tile whose standing changes labels it again. What a page asks of every tile (sim/camp's placing) is one lookup.
   function partOf(w, tile) {

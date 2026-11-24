@@ -34,7 +34,7 @@ for (const seed of [7, 42]) {
     validMeadows(st, f, hh, `founders ${seed}`);
   }
   check(!checkState(st).length, `founders ${seed}: ` + checkState(st).slice(0, 3).join('; '));
-  // VB-1625 (wood in two steps): at seed 42 Norrgården, which had no site in reach at the year's end before, finds one late in the year
+  // VB-1653 (wood in two steps): at seed 42 Norrgården, which had no site in reach at the year's end before, finds one late in the year
   // (a tile of the wood cut bare, the woods felled on other tiles than before) and makes its meadow in the summer of year 2: two seasons
   if (late.length) Sim.advance(st, 2 * 24 * Sim.SEASON_DAYS);
   for (const [, f] of late.splice(0))

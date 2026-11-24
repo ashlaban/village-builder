@@ -12,8 +12,8 @@ VB['sim/mood'] = (() => {
   // Starting values, each a feeling's weight on that scale (Kim, 30 Oct: "talked with a friend +5"). For a state, read from it: hungry,
   // `value` × the pawn's hunger while over `over`; cold, `value` × its household's cold (VB-327, cold's weight as hunger's until Kim sets
   // one); without water, `value` while its household's hh.dry is above 0 (VB-331); weak, `value` while health is under `under`; tired,
-  // by the played pawn's sleep owed (SLEEP.mood, sim/sleep; VB-1615); crowded, `value` for every member of a household crowded in its
-  // house (sim/house crowded: more members than its rung's room, ROOM; VB-1636; Kim, 24 Nov 2026: "every one should be affected by
+  // by the played pawn's sleep owed (SLEEP.mood, sim/sleep; VB-1643); crowded, `value` for every member of a household crowded in its
+  // house (sim/house crowded: more members than its rung's room, ROOM; VB-1664; Kim, 24 Nov 2026: "every one should be affected by
   // crowding"). For an
   // event, kept `days` from it (pawn.mods): married; a child born, both parents; grieving at the death of a spouse, child or parent;
   // talked with a friend, read from the pawn's latest talk (agent.talk) with one it holds at SOCIAL.friend or above.
@@ -89,7 +89,7 @@ VB['sim/mood'] = (() => {
     if (hh && hh.cold > 0) sum += put(out, 'cold', MOOD.cold.value * hh.cold);
     if (hh && hh.dry > 0) sum += put(out, 'dry', MOOD.dry.value);
     if (p.health < MOOD.weak.under) sum += put(out, 'weak', MOOD.weak.value);
-    const tired = tiredMood(owedBy(st, id)); // the played pawn's sleep owed (sim/sleep, VB-1615)
+    const tired = tiredMood(owedBy(st, id)); // the played pawn's sleep owed (sim/sleep, VB-1643)
     if (tired) sum += put(out, 'tired', tired);
     if (hh && crowded(st, hh)) sum += put(out, 'crowded', MOOD.crowded.value);
     if (p.mods) for (const m of p.mods) if (m.until > st.t) sum += put(out, m.key, MOOD[m.key].value);

@@ -1,7 +1,7 @@
-// @sys sim/playerplan: the player's plan (VB-1618; Kim, 24 Nov): a daily routine of job kinds, the sleeping hours and an ordered list of
+// @sys sim/playerplan: the player's plan (VB-1646; Kim, 24 Nov): a daily routine of job kinds, the sleeping hours and an ordered list of
 //   tasks, edited by the player (Sim.plan); its writes: the ops, the feeder's (planDay, planBegun, called by sim/player's playerStep) and
 //   a fell task's loads home (the event timberHome). The chains of a task at a tile are sim/planchains, what the plan has the pawn do
-//   next and why each task waits sim/plannext, the page's reads sim/planview (VB-1629)
+//   next and why each task waits sim/plannext, the page's reads sim/planview (VB-1657)
 VB['sim/playerplan'] = (() => {
   const { DAY } = VB['sim/rules'];
   const { KINDS } = VB['sim/kinds'];
@@ -14,8 +14,8 @@ VB['sim/playerplan'] = (() => {
   //   day, in order, at most PLAN_MAX), sleep (null, or {from, until}: hours of the day, the pawn sleeps from `from` to `until`), tasks[]
   //   (at most PLAN_MAX, in order: a task by key {key (a job's key), kind, site (its tile or -1)}, or a task at a tile {<chain> (a tile),
   //   kind: <chain> (a key of CHAINS: plant, hay, harvest, fell, firewood), site (the same tile), and a fell task's n (the loads planned,
-  //   1 to FELL_MAX) and got (the loads home); an upgrade task's what (the rung it builds, sim/upgrade: 'cottage')}, one a chain a tile; VB-1621,
-  //   VB-1622, VB-1625, VB-1632), day (the game day
+  //   1 to FELL_MAX) and got (the loads home); an upgrade task's what (the rung it builds, sim/upgrade: 'cottage')}, one a chain a tile; VB-1649,
+  //   VB-1650, VB-1653, VB-1660), day (the game day
   //   `done` is of), done[] (the routine kinds begun on day `day`), last (null, or the last task that left the plan: {key, kind, t}, its
   //   job finished or gone; or {<chain>, kind, site, t, which (one of the chain's `which`: plant 'sown' | 'closed' (its sowing window
   //   shut, the field unsown) | 'fallow' (the field made lies fallow this year) | 'gone' (nothing of the household's there now); hay
@@ -44,7 +44,7 @@ VB['sim/playerplan'] = (() => {
       const tile = g[name],
         why = chainWhy(st, pl.pawn, name, tile);
       if (why) return why;
-      // one task a chain a tile, but for one of a different `what` there (VB-1640: a barn and a byre at the house side by side)
+      // one task a chain a tile, but for one of a different `what` there (VB-1668: a barn and a byre at the house side by side)
       if (pp.tasks.some((x) => chainOf(x) === name && x[name] === tile && x.what === g.what))
         return `the ${CHAINS[name].noun} at ${tile} is already planned`;
       if (pp.tasks.length >= PLAN_MAX) return `the plan is full (${PLAN_MAX} tasks)`;
@@ -87,7 +87,7 @@ VB['sim/playerplan'] = (() => {
     return true;
   }
   // A trip of timber is home from `tile` with its `loads` (sim/chores' wood, the event timberHome): a fell task of the played household's
-  // there counts its loads, not its trips (VB-1634: a cart's trip brings several).
+  // there counts its loads, not its trips (VB-1662: a cart's trip brings several).
   on('timberHome', (st, { household, tile, loads }) => {
     const pl = st.player;
     if (!pl || !pl.plan || st.pawns[pl.pawn].household !== household) return;
@@ -123,7 +123,7 @@ VB['sim/playerplan'] = (() => {
   }
   // A firewood task whose cutting the head's rule would post (sim/chores: timber home, the pile below the season's goal or the house
   // cold) but has not: the plan asks its head now (the event planAsks; sim/stores wakes the plan's review, at most one such a day), so
-  // that the task does not wait for the household's planning day (VB-1633: up to three days by its head's diligence, sim/plandays).
+  // that the task does not wait for the household's planning day (VB-1661: up to three days by its head's diligence, sim/plandays).
   function askCutting(st, pp) {
     const hid = st.pawns[st.player.pawn].household,
       hh = hid === null ? null : st.households[hid];

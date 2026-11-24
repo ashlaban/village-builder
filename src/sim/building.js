@@ -2,7 +2,7 @@
 // every site that lacks it, one rule over the sites their modules name (VB-1407), and the plot's wood shared out when the plot is given;
 // raising a house onto a stone foundation, with stone picked or quarried for it (VB-332); a booth, staked as its maker's project plan and
 // raised (VB-784, VB-1172), standing until it rots, its water fetched each day by one who sleeps in it (VB-1601), the booths away from
-// home; a farm's shelter on its own house tile, the first rung of its house, raised by its household before its cottage (VB-1638)
+// home; a farm's shelter on its own house tile, the first rung of its house, raised by its household before its cottage (VB-1666)
 VB['sim/building'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
@@ -56,19 +56,19 @@ VB['sim/building'] = (() => {
       for (const n of plotTimber(st, v)) fetchTimber(v, n, post);
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id];
-        fetchTimber(v, shelterTimber(st, f) || cottageTimber(st, f), post); // the shelter's first, then its cottage's (VB-1638)
+        fetchTimber(v, shelterTimber(st, f) || cottageTimber(st, f), post); // the shelter's first, then its cottage's (VB-1666)
         for (const n of Projects.timberOf(st, f)) fetchTimber(v, n, post);
       }
     }
   }
   // Settlers build their cottage (sim/settle): the open stage of their household's cottage plan (sim/cottageplan).
-  // A household with no roof yet raises its shelter on the house tile first (VB-1544, VB-1638; design.md, Settling in steps, 3): its
-  // cottage waits. One that sleeps in its shelter (or, settled before VB-1638, in a booth of its own beside the house) raises the cottage
+  // A household with no roof yet raises its shelter on the house tile first (VB-1544, VB-1666; design.md, Settling in steps, 3): its
+  // cottage waits. One that sleeps in its shelter (or, settled before VB-1666, in a booth of its own beside the house) raises the cottage
   // in the slack of the year, as a house is raised (slack, below), and then before other work (MATCH.urgency.shelter): the shelter roofs it
   // meanwhile, and a lone settler's hands go to the fields when they are due (VB-1544: the harvest lost to the frost otherwise, and the
-  // cottage never done in the slack's other work). A farm settled before VB-1638 with no booth staked (sim/settle's mark) builds at once.
+  // cottage never done in the slack's other work). A farm settled before VB-1666 with no booth staked (sim/settle's mark) builds at once.
   // Whether household hh's head is the played pawn with automatic behaviour off: its plan says when its house is built, not the slack
-  // (VB-1632 the cottage's stages, VB-1635 the foundation's raising).
+  // (VB-1660 the cottage's stages, VB-1663 the foundation's raising).
   const played = (st, hh) => !!st.player && !st.player.auto && hh.holder === st.player.pawn;
   function boothWork(st, hh, f, c, post) {
     if (f.shelter && !shelterStands(st, f)) return shelterWork(st, hh, f, post);
@@ -79,8 +79,8 @@ VB['sim/building'] = (() => {
     if (own) bj[2].shelter = true;
     post(bj[0], f.house, bj[2], bj[1]);
   }
-  // ---- the shelter on the house tile: the ladder's first rung (VB-1638; Kim, 24 Nov 2026: the booth removed in favour of the ladder) ----
-  // @state farmstead.shelter: absent or null on a farm with no shelter (its cottage roofed; a farm settled before VB-1638, whose booth
+  // ---- the shelter on the house tile: the ladder's first rung (VB-1666; Kim, 24 Nov 2026: the booth removed in favour of the ladder) ----
+  // @state farmstead.shelter: absent or null on a farm with no shelter (its cottage roofed; a farm settled before VB-1666, whose booth
   //   staked or raised beside the house stays its roof, read as before, until its cottage is roofed); on a farm with no cottage yet
   //   (f.booth) the shelter of poles, bark and turf on its own house tile, as a booth is (BOOTH: its timber, hours, room and wear):
   //   {wood (loads brought, BOOTH.wood to raise it), done (hours of its raising, kept while the job is dropped), built (the game hour it was
@@ -160,9 +160,9 @@ VB['sim/building'] = (() => {
   function roofless(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || !f.booth) return false;
-    if (f.shelter) return !shelterStands(st, f); // VB-1638: the shelter on the house tile
+    if (f.shelter) return !shelterStands(st, f); // VB-1666: the shelter on the house tile
     if (homeBooth(st, hh, f)) return false;
-    if (f.camp === true) return true; // a camp (sim/camp, VB-1627): nothing stands on the farm
+    if (f.camp === true) return true; // a camp (sim/camp, VB-1655): nothing stands on the farm
     return !!stakedBy(st, (p) => st.pawns[p.holder.id].household === hh.id && hexSteps(st.w, p.tile, f.house) <= 1);
   }
   // Whether a booth of household hh stands beside the house of its farm f.
@@ -414,14 +414,14 @@ VB['sim/building'] = (() => {
   }
   // The building step a household's plan holds after a review: open while its house stands on the ground, lived in by it, and it has no
   // large project under way when the step would open (the head's prudence, its own choice: a household makes its land first; not for
-  // the played head's foundation task, which goes beside any other, VB-1640); its source kept while a load can still be got there.
+  // the played head's foundation task, which goes beside any other, VB-1668); its source kept while a load can still be got there.
   // It is also open, whatever the house and the land, while the household wants a quern and its heap lacks the load to hew it from (VB-009);
   // then its source is one that gives such a load, and a quarry of another rock is searched again (VB-733). And while its head means to
   // dig a well and the heap lacks the lining's stone (sim/wells, VB-1584): in a booth too, where the site was chosen for its well
   // (farmstead.wellMeant, VB-1587), and then for that stone alone. None while its head holds off projects (sim/projects heldOff: the
-  // played head with automatic behaviour off, VB-1633; Kim, 24 Nov 2026: nothing the head would plan by itself while the player plans):
+  // played head with automatic behaviour off, VB-1661; Kim, 24 Nov 2026: nothing the head would plan by itself while the player plans):
   // the step is the head's own rule, as a project begun by it is, and one open when the hold began is closed; but for the foundation
-  // alone while the player's plan holds its task (VB-1635, sim/upgrade's chain foundation: the plan's task asks the head's rule for it).
+  // alone while the player's plan holds its task (VB-1663, sim/upgrade's chain foundation: the plan's task asks the head's rule for it).
   function buildStep(st, plan, hh) {
     const f = hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null,
       held = Projects.heldOff(st, hh.id);
@@ -442,7 +442,7 @@ VB['sim/building'] = (() => {
     if (old && !stale && (old.kind !== 'pick' || pickable(st.w, old.tile))) return old;
     return stoneSource(st, f, quern);
   }
-  // Whether the played pawn's plan, its head household hh's, holds the foundation task of farm f's house (VB-1635).
+  // Whether the played pawn's plan, its head household hh's, holds the foundation task of farm f's house (VB-1663).
   const foundationAsked = (st, hh, f) =>
     !!f &&
     !!st.player &&
@@ -470,7 +470,7 @@ VB['sim/building'] = (() => {
       return;
     }
     if (Stores.heldOf(hh, 'stone') >= BUILD.foundationStone) {
-      if (slack(c) || played(st, hh)) post(`raise:f${f.id}`, f.house, { farm: f }, 'raise'); // VB-1635: the plan says when
+      if (slack(c) || played(st, hh)) post(`raise:f${f.id}`, f.house, { farm: f }, 'raise'); // VB-1663: the plan says when
       if (well && step.tile >= 0) post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
       return;
     }
@@ -653,7 +653,7 @@ VB['sim/building'] = (() => {
       urgency: (st, j, c, U) => (j.shelter ? U.shelter : U.other),
       available: stakedWork,
     },
-    // The shelter's raising (VB-1638): BOOTH.hours on the house tile once its wood lies there
+    // The shelter's raising (VB-1666): BOOTH.hours on the house tile once its wood lies there
     shelter: {
       verb: 'Raising the shelter',
       go: 'Going to raise the shelter',
@@ -714,7 +714,7 @@ VB['sim/building'] = (() => {
       carry: 'logs',
       to: 'woodpile',
       load: () => 0,
-      // VB-1639: the firewood a household left at its landing when its house moved (`j.moving`) comes home as it was, a load's share
+      // VB-1667: the firewood a household left at its landing when its house moved (`j.moving`) comes home as it was, a load's share
       deliver: (st, j, hh, f, a) =>
         j.moving
           ? Stores.put(st, hh, 'wood', (ECON.woodPerTrip * a.load) / TRAVEL.load, 'moving')

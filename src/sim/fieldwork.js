@@ -114,7 +114,7 @@ VB['sim/fieldwork'] = (() => {
       }
     return true;
   }
-  // The fields household hh's hands till when field fd of its farm f is beyond them now (underHands), else null (VB-1624: the reason the
+  // The fields household hh's hands till when field fd of its farm f is beyond them now (underHands), else null (VB-1652: the reason the
   // player's plan gives for a hoeing or a sowing not posted).
   const beyondHands = (st, hh, fd, f) =>
     underHands(st, hh, fd, cal(st.t), homeOf(st, hh, f)) ? null : handsCap(st, hh);

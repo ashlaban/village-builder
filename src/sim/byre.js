@@ -436,7 +436,7 @@ VB['sim/byre'] = (() => {
       if (!stalled(c)) continue;
       const yesterday = { doy: (c.doy + 47) % 48 };
       if (stalled(yesterday) && c.doy !== HERD.stall[0] && hh.fodderDay !== c.day - 1)
-        for (const herd of herds) herd.lean += st.farmsteads[hh.farmstead].byre ? 1 : HERD.openLean; // in the open: faster (VB-1637)
+        for (const herd of herds) herd.lean += st.farmsteads[hh.farmstead].byre ? 1 : HERD.openLean; // in the open: faster (VB-1665)
       const need = herds.reduce((s, hd) => s + dailyHay(hd), 0);
       if (hh.hay >= need) {
         hh.hay -= need;

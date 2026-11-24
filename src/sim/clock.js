@@ -148,7 +148,7 @@ VB['sim/clock'] = (() => {
       every: 'hour',
       at: { hour: [WORK[0], WORK[1]] },
       owner: 'sim/upgrade',
-      note: 'a camp left to itself: its head places the farmstead, and begins the cottage once the booth stands (VB-1630)',
+      note: 'a camp left to itself: its head places the farmstead, and begins the cottage once the booth stands (VB-1658)',
       run: (st) => ownRung(st),
     },
     {

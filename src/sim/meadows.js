@@ -443,8 +443,8 @@ VB['sim/meadows'] = (() => {
   };
   return {
     KINDS,
-    MOW_LAST, // the haymaking window's last autumn day (sim/agenda's deadline, VB-1616)
-    DRY_DAYS, // the days mown hay dries before it is carried (sim/planchains' hay task, VB-1622)
+    MOW_LAST, // the haymaking window's last autumn day (sim/agenda's deadline, VB-1644)
+    DRY_DAYS, // the days mown hay dries before it is carried (sim/planchains' hay task, VB-1650)
     meadowWork,
     HAY,
     UNRAKED,

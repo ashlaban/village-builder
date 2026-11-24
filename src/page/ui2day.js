@@ -1,5 +1,5 @@
 // @sys page/ui2day: the new interface's day strip: what the plan makes of today and the two days after, by the hour
-// Read from the agenda's layout (Sim.agenda(st).days, VB-1619: the plan laid as the settler will follow it, at its own estimate). A strip
+// Read from the agenda's layout (Sim.agenda(st).days, VB-1647: the plan laid as the settler will follow it, at its own estimate). A strip
 // a day: the night's sleep dark, the routine, each task with its icon, the hours left free pale; a line at the hour it is. A tap on a piece
 // opens the card of its chip in the plan bar (page/ui2hud), where the words are.
 const DAY_WORD = ['Today', 'Tomorrow'];

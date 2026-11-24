@@ -47,7 +47,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     for (const [fps, speed] of [[60, 30], [24, 10]]) {
       runs.push(await page.evaluate(([fps, speed, data]) => {
         const P = window.__play, { Sim } = P, home = P.st, R = VB['sim/rules'], w = P.world();
-        // each load on a world of its own, freshly generated, as Sim.load asks and the page's loader gives (VB-1626): the game's world
+        // each load on a world of its own, freshly generated, as Sim.load asks and the page's loader gives (VB-1654): the game's world
         // carries the fields its run made since (w.shut, made at the first day's sweep), which a save made before them does not reset
         const fresh = () => { const it = VB.gen.generate(w.seed, { cols: w.COLS, rows: w.ROWS, lat: w.lat }); let r; while (!(r = it.next()).done); return r.value; };
         const st = Sim.load(fresh(), JSON.parse(data)), tick0 = st.tick, faults = [], last = [];

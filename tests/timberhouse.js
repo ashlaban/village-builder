@@ -1,4 +1,4 @@
-// VB-1636: the timber house, the rung above the cottage (sim/timberhouse), and the room of each rung (sim/house ROOM). A household over
+// VB-1664: the timber house, the rung above the cottage (sim/timberhouse), and the room of each rung (sim/house ROOM). A household over
 // its rung's room is crowded, and every one of its members carries the mood modifier `crowded` (Kim, 24 Nov 2026: "every one should be
 // affected by crowding"); a timber house's hearth burns ROOM.timberFire of a cottage's; the played head builds it as a task of its plan (the chain
 // upgrade, what 'timber'), the timber at home first, a save and a load mid-chain going on the same; Sim.farmView offers it on a cottage;
@@ -150,7 +150,7 @@ function crowd(st, to, n) {
   sound(st, 'own rule');
   console.log(`  own rule: begun on day ${(begun / DAY).toFixed(1)}, finished by day ${(st.t / DAY).toFixed(1)}`);
 }
-// ---- 4. the cutting goals read the house's own fire (VB-1641): a timber house's goal is ROOM.timberFire of a cottage's ----
+// ---- 4. the cutting goals read the house's own fire (VB-1669): a timber house's goal is ROOM.timberFire of a cottage's ----
 {
   const st = fresh(),
     Seasonal = VB['sim/seasonal'],

@@ -1,4 +1,4 @@
-// VB-1633: what the screen says of the stores and the building counts on nothing the player has not planned. On small constructed
+// VB-1661: what the screen says of the stores and the building counts on nothing the player has not planned. On small constructed
 // states: (1) one reckoning of the fire, Sim.fireView's `short` the supply outlook's fuel; (2) a household planned by hand counts an
 // intake still to be worked only when a task of the plan covers it (firewood, hay, harvest), and says what it left out; every other
 // household is reckoned as before; (3) Sim.farmView's building reports no stone work the head opened by its own rule while held off;
@@ -131,7 +131,7 @@ const handStart = (seed = 7) => {
 }
 
 // 4. A hand start: fell two trips and cut them. The cutting is posted by the next review hour after the timber is home, not at the
-// household's planning day (before VB-1633: 34 hours at seed 7, 35 at seed 9).
+// household's planning day (before VB-1661: 34 hours at seed 7, 35 at seed 9).
 for (const seed of [7, 9]) {
   const st = handStart(seed);
   const hh = st.households[0],

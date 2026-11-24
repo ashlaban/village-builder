@@ -1,4 +1,4 @@
-// VB-1635: the stone foundation, a property of the house (not a rung), and the barn, each built as one task of the played head's plan
+// VB-1663: the stone foundation, a property of the house (not a rung), and the barn, each built as one task of the played head's plan
 // (sim/upgrade's chains foundation and outbuilding). With automatic behaviour off the head begins neither by itself; the refusals in the
 // head's own words; the foundation's stone gathered and the house raised by the plan alone, outside the slack of the year (the played
 // head's plan says when), and in the slack for a head left to its rule (the wait `opens`); the barn's stages and timber, the timber at
@@ -141,7 +141,7 @@ function run(st, kind, days = 80) {
   sound(back, 'loaded mid-chain');
   console.log(`  barn: waits ${[...waits].join(', ')}; laid ${[...laid].join(', ')}`);
 }
-// ---- 5. VB-1640: a barn, a byre and the foundation planned at once, each under way beside the others and carried through in the plan's
+// ---- 5. VB-1668: a barn, a byre and the foundation planned at once, each under way beside the others and carried through in the plan's
 // order; the refusals that remain (the same making twice); a save and a load with the three under way go on the same ----
 {
   const { st, hh, f } = village();
@@ -185,7 +185,7 @@ function run(st, kind, days = 80) {
   sound(back, 'three side by side, loaded');
   console.log(`  three side by side: done in ${(st.t / DAY).toFixed(0)} days`);
 }
-// ---- 6. VB-1640: an unplayed head's verb begins a field and a barn together (its own rule would not), both carried through ----
+// ---- 6. VB-1668: an unplayed head's verb begins a field and a barn together (its own rule would not), both carried through ----
 {
   const { st } = village();
   const hh = st.households.find((h) => !h.dissolved && h.holder !== null && h.holder !== 0 && h.farmstead !== null),

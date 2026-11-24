@@ -1,6 +1,6 @@
 // @sys page/ui2plan: the new interface's plan bar: every day's routine, the sleeping hours and the tasks in order as a row of icons, each with its card
 // ---- the plan: every day's routine, the sleeping hours and the tasks in order, a row of icons; the words are a tap away ----
-// Planned by hand (Kim, 24 Nov): the settler follows the plan the player lays (Sim.plan, Sim.planView; VB-1618), automatic planning off.
+// Planned by hand (Kim, 24 Nov): the settler follows the plan the player lays (Sim.plan, Sim.planView; VB-1646), automatic planning off.
 const HUD_SLEEP = { from: 22, until: 6 };
 const hudPlanned = () => (Sim.planView ? Sim.planView(st) : null);
 // The first morning: automatic planning off, the necessities as the day's routine, and the night for sleep.
@@ -11,7 +11,7 @@ function hudBegin() {
   Sim.plan(st, 'sleep', HUD_SLEEP);
 }
 const hudHour = (h) => `${String(((h % 24) + 24) % 24).padStart(2, '0')}:00`;
-// the steps of a farmstead's move from its landing (VB-1639), each by what it brings over
+// the steps of a farmstead's move from its landing (VB-1667), each by what it brings over
 const HUD_MOVE = {
   drove: 'Drive the animals over',
   fetchLeftCart: 'Fetch the cart',
@@ -23,7 +23,7 @@ const hudKind = (k) =>
   k === 'sleep' ? 'Sleep' : HUD_CHAIN[k] ? HUD_CHAIN[k].name : HUD_MOVE[k] || (Sim.KINDS[k] && Sim.KINDS[k].name) || k;
 // An agenda entry for a job's key, wherever the agenda holds it.
 // A plan task's entry in the agenda: a plant task by its tile, another by its job's key; and its icon.
-// The tasks at a tile that carry a chain of work through (VB-1621, VB-1622): the name, the icon, what the callout offers and says.
+// The tasks at a tile that carry a chain of work through (VB-1649, VB-1650): the name, the icon, what the callout offers and says.
 const HUD_CHAIN = {
   plant: {
     name: 'Plant a field',
@@ -82,7 +82,7 @@ const HUD_CHAIN = {
     done: 'the field is reaped when ripe and carried in',
   },
 };
-// Why a task of the plan waits (Sim.planView's `waits`, VB-1623), in words; '' while it is worked or next.
+// Why a task of the plan waits (Sim.planView's `waits`, VB-1651), in words; '' while it is worked or next.
 const hudClock = (t) => {
   const d = Math.floor(t / Sim.DAY) - Math.floor(st.t / Sim.DAY);
   return d <= 0 ? `at ${hudHour(Math.floor(t % Sim.DAY))}` : d === 1 ? 'tomorrow' : `in ${hudDays(d)}`;

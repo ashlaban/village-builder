@@ -1,6 +1,6 @@
 // @sys sim/planview: the page's reads of the player's plan (Sim.planView: the routine, the sleeping hours, the tasks with why each waits,
-//   what the plan has the pawn on and does next) and of the fire (Sim.fireView, VB-1625); views computed when the page asks, as sim/agenda
-//   is: they write nothing and no simulation module reads them (VB-1618; VB-1629 split them from sim/playerplan)
+//   what the plan has the pawn on and does next) and of the fire (Sim.fireView, VB-1653); views computed when the page asks, as sim/agenda
+//   is: they write nothing and no simulation module reads them (VB-1646; VB-1657 split them from sim/playerplan)
 VB['sim/planview'] = (() => {
   const { cal } = VB['sim/rules'];
   const { timberOf } = VB['sim/chores'];
@@ -22,11 +22,11 @@ VB['sim/planview'] = (() => {
       key: x && x.job ? x.job.key : null,
       step: x ? x.kind : null,
       stands: !!(x && x.job),
-      ...(t.n !== undefined ? { n: t.n, got: t.got } : {}), // a fell task's trips planned and home (VB-1625)
+      ...(t.n !== undefined ? { n: t.n, got: t.got } : {}), // a fell task's trips planned and home (VB-1653)
     };
   }
   // The routine, each kind with whether it is done today and whether a job of it is posted for the household; the sleeping hours; the
-  // tasks, each with whether its job stands and why it waits (`waits`, VB-1623); why the plan has the pawn idle (`idle`); the last task
+  // tasks, each with whether its job stands and why it waits (`waits`, VB-1651); why the plan has the pawn idle (`idle`); the last task
   // that left; what the plan has the pawn on now (the queue's head, if the plan
   // fed it) and what it would feed next. null with no pawn played.
   function planView(st) {
@@ -60,18 +60,18 @@ VB['sim/planview'] = (() => {
       followed: !pl.auto,
     };
   }
-  // ---- the page's read of the fire (VB-1625): Sim.fireView(st) ----
+  // ---- the page's read of the fire (VB-1653): Sim.fireView(st) ----
   // How the fire stands for the played pawn's household: wood (firewood held), timber (held, not yet cut), peat (held), free (the pile's
   // free fuel, sim/chores fuelFree: what a project holds back left out, peat at its worth), goal (the season's, the head's plan's), nights
   // (whole nights the free pile lasts at the season's use, ECON.woodUse, times the house's own fire, sim/house fireOf), cold (the house
-  // went cold last night), short (the house cold, or the fuel of the supply outlook not lasting its frame), state, lasts, season (VB-1633: the
+  // went cold last night), short (the house cold, or the fuel of the supply outlook not lasting its frame), state, lasts, season (VB-1661: the
   // outlook's fuel, its state, its `with`
   // and its first short season, the one reckoning the page shows; null season when it lasts), below (the pile below the season's goal,
   // the head's target for its cutting), mend (what would mend it, in order: [] when not short; 'firewood' first when timber is home and
   // the pile is below its goal or the house cold, 'fell' when no timber is or what is home falls short of the goal or of the frame),
   // planned ({fell, firewood}: whether the plan holds a task of each). null with no pawn played or no household with a farm. Plain data;
   // writes nothing.
-  // One reckoning of the fire (VB-1633): `short` reads the outlook's fuel (sim/outlook: the pile and the timber the plan cuts, walked
+  // One reckoning of the fire (VB-1661): `short` reads the outlook's fuel (sim/outlook: the pile and the timber the plan cuts, walked
   // against each season's use over the frame), not the pile against the season's goal, which is only the head's target for its cutting
   // and was short on a hand start's first morning while the outlook counted the head's cutting and said it lasted the year.
   function fireView(st) {

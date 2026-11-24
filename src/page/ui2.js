@@ -1,4 +1,4 @@
-// @sys page/ui2: the new interface's shell, shown in the solo scenario only (`?classic` shows the old one there too): its top bar (date, speed, menu) and the settler's strip; styles: src/ui2.css
+// @sys page/ui2: the new interface's shell, shown in the solo scenario only (`?classic`: the old one): its top bar and the settler's strip; styles: src/ui2.css
 // ======== the new interface ========
 // A second interface over the same map and the same Sim, built for a phone's thumb first and a desk's pointer second. It is the page's
 // own: it reads st and acts through Sim, as the old one does. With it on (body.ui2) the old panels are hidden, not removed: the old

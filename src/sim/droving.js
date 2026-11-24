@@ -13,7 +13,7 @@ VB['sim/droving'] = (() => {
   // @state herd.at: the farmstead the herd stands at while it is on st.herdsAway (its `home` the grazing tile by that farm); absent otherwise.
   //   A herd standing away is listed by no household's herds: its animals are not milked, fed or worked by anyone until they are home.
   // @state herd.tile: absent, or the tile a herd on st.herdsAway stands at when that is not its farm's house: the landing its own farm's
-  //   house moved from (VB-1639; herd.at its own farm), its `home` the grazing tile by it. Written only here, with herd.at.
+  //   house moved from (VB-1667; herd.at its own farm), its `home` the grazing tile by it. Written only here, with herd.at.
   const away = (st) => st.herdsAway || [];
   function standAway(st, herd, owner, at, tile) {
     herd.household = owner === null ? null : owner.id;
@@ -149,7 +149,7 @@ VB['sim/droving'] = (() => {
     hd.species === 'cattle'
       ? plural(hd.head.length, 'head of cattle', 'head of cattle')
       : plural(count(hd), 'sheep', 'sheep');
-  // A household's house moved (sim/camp, VB-1639): each of its herds stands at the tile the house left, the landing, its own farm's still,
+  // A household's house moved (sim/camp, VB-1667): each of its herds stands at the tile the house left, the landing, its own farm's still,
   // until one of its members drives it to the new house (the kind `drove`). Not lost at the frost: its owner has a farm.
   function leaveAt(st, hh, tile) {
     for (const id of hh.herds) standAway(st, st.herds[id], hh, hh.farmstead, tile);

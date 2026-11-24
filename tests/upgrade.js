@@ -1,4 +1,4 @@
-// VB-1632: the shelter (VB-1638: on the house tile) built up to a cottage as a task of the plan (chain `upgrade`, sim/upgrade). The refusals (a camp, a rung that does
+// VB-1660: the shelter (VB-1666: on the house tile) built up to a cottage as a task of the plan (chain `upgrade`, sim/upgrade). The refusals (a camp, a rung that does
 // not follow, one not built yet, one planned or under way); from the raised shelter to the roof on by the plan alone, the head beginning
 // the cottage by its own verb, with its waits and its days in the agenda; the timber held at home taken into the walls first, and no
 // trip fetched for what it covers; Sim.farmView's next with the task's own check and `planned`; a save and a load mid-chain go on the
@@ -54,7 +54,7 @@ function run(st, days = 40) {
   assert.deepStrictEqual(v.next, [
     { what: 'cottage', needs: RUNGS.cottage.needs, ok: true, why: null, planned: false },
   ]);
-  assert.match(String(add(st, 'stone')), /no rung stone/, 'the foundation is no rung (VB-1635)');
+  assert.match(String(add(st, 'stone')), /no rung stone/, 'the foundation is no rung (VB-1663)');
   assert.match(String(add(st, 'tower')), /no rung tower/);
   assert.match(String(add(st)), /name the rung/);
   assert.match(String(add(st, 'cottage', f.house + 1)), /house is not at/);
@@ -79,7 +79,7 @@ function run(st, days = 40) {
     hh = st.households[0];
   assert.strictEqual(Stores.heldOf(hh, 'timber'), 0);
   assert.strictEqual(add(st, 'cottage'), true);
-  // VB-1638: built up in place: the cottage's stages on the house tile itself, worked while the household lives in the shelter there
+  // VB-1666: built up in place: the cottage's stages on the house tile itself, worked while the household lives in the shelter there
   for (let i = 0; i < 240 && !cottageOf(st, 0); i++) Sim.advance(st, 0.1);
   const p = cottageOf(st, 0);
   assert(p && p.steps.every((k) => k.place === f.house), 'the cottage on the shelter\'s tile');
@@ -98,7 +98,7 @@ function run(st, days = 40) {
   assert.deepStrictEqual(
     v.next.map((n) => n.what),
     ['timber'],
-    'the timber house follows the cottage (VB-1636; VB-1635: the foundation is no rung)',
+    'the timber house follows the cottage (VB-1664; VB-1663: the foundation is no rung)',
   );
   assert.strictEqual(v.foundation.ok, true, 'the foundation may be planned');
   assert.match(String(add(st, 'stone')), /no rung stone/);

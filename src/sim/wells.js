@@ -20,7 +20,7 @@ VB['sim/wells'] = (() => {
   // Whether farm f has a well of its own, on its house's tile.
   const hasWell = (st, f) => st.w.fresh[f.house] === FRESH.WELL;
   // Why household hh, holding farm f, may not begin a well now, but for its stone; or null. The ground has none (mountain, snow, water
-  // deeper than WELL.deepest), the farm has one, or one is being dug; beside any other project (VB-1640).
+  // deeper than WELL.deepest), the farm has one, or one is being dug; beside any other project (VB-1668).
   function ground(st, hh, f) {
     if (!(st.w.waterDepth[f.house] < NO_WELL)) return `there is no well in the ground of ${f.name}`;
     if (hasWell(st, f)) return `${f.name} has a well`;
@@ -61,7 +61,7 @@ VB['sim/wells'] = (() => {
   }
   // Whether the head of household hh, holding farm f, means to dig: a well pays, its ground and its plans allow one, its land is
   // made, and it does not hold off projects (sim/projects mayBegin); and, its prudence (VB-1584's criterion: the well is long work; its
-  // own choice, not a refusal, VB-1640), no large project of the household's under way. Where the site was chosen for its well
+  // own choice, not a refusal, VB-1668), no large project of the household's under way. Where the site was chosen for its well
   // (farmstead.wellMeant) the leader weighed it before the house was placed: it is dug with the booth and the clearing, the land not
   // waited for, the cottage's and the first field's work beside it.
   const means = (st, hh, f) =>
