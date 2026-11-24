@@ -47,6 +47,7 @@ const FAST = [
   ['node', 'tests/reset-estimate.js'], // VB-1615: what a context reset at T could save against the ceiling alone
   ['node', 'tests/context-size.js'],
   ['node', 'tests/same-tool.js'],
+  ['node', 'tests/review-tool.js'],
   ['node', 'tests/wood.js'],
   ['node', 'tests/cold.js'],
   ['node', 'tests/mood.js'],

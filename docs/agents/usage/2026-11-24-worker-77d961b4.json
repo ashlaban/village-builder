@@ -1,0 +1,199 @@
+{
+ "session": "77d961b4-a321-5cda-ad2c-ea8216f9c768",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T20:16:17.599Z",
+ "end": "2026-11-24T21:27:28.999Z",
+ "wallMin": 71.2,
+ "activeMin": 63,
+ "prompts": 11,
+ "calls": 117,
+ "subagentCalls": 0,
+ "reviewCalls": 32,
+ "tokens": {
+  "input": 236,
+  "cacheWrite": 324168,
+  "cacheRead": 30095399,
+  "output": 173164
+ },
+ "context": {
+  "first": 85798,
+  "peak": 395429,
+  "firstEdit": 156975
+ },
+ "tools": {
+  "Bash": {
+   "calls": 106,
+   "bytes": 287997,
+   "seconds": 442.7
+  },
+  "AskUserQuestion": {
+   "calls": 1,
+   "bytes": 1199,
+   "seconds": 121.7
+  },
+  "Write": {
+   "calls": 4,
+   "bytes": 582,
+   "seconds": 1
+  },
+  "Read": {
+   "calls": 2,
+   "bytes": 18887,
+   "seconds": 0.1
+  },
+  "Agent": {
+   "calls": 2,
+   "bytes": 2098,
+   "seconds": 3.3
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 15,
+   "bytes": 76353
+  },
+  {
+   "tool": "Bash",
+   "what": "cat docs/agents/worker.md",
+   "calls": 1,
+   "bytes": 26784
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 3,
+   "bytes": 24544
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 29,
+   "bytes": 23150
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 8,
+   "bytes": 19112
+  },
+  {
+   "tool": "Read",
+   "what": "backlog/VB-1619.md",
+   "calls": 1,
+   "bytes": 15277
+  },
+  {
+   "tool": "Bash",
+   "what": "node -e",
+   "calls": 2,
+   "bytes": 12611
+  },
+  {
+   "tool": "Bash",
+   "what": "cat tools/help.js",
+   "calls": 1,
+   "bytes": 12393
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -il",
+   "calls": 1,
+   "bytes": 10664
+  },
+  {
+   "tool": "Bash",
+   "what": "cat .claude/agents/vb-task.md",
+   "calls": 1,
+   "bytes": 9999
+  },
+  {
+   "tool": "Bash",
+   "what": "for t",
+   "calls": 2,
+   "bytes": 9407
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 4,
+   "bytes": 7507
+  }
+ ],
+ "weighted": 4280806,
+ "task": "VB-1619",
+ "subagents": [
+  {
+   "agent": "abc1b6ef",
+   "role": "review",
+   "task": "VB-255",
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 36,
+   "tokens": {
+    "input": 72,
+    "cacheWrite": 107039,
+    "cacheRead": 2681976,
+    "output": 27564
+   },
+   "weighted": 539888,
+   "first": 14617,
+   "boot": 0,
+   "peak": 107041,
+   "activeMin": 6,
+   "start": "2026-11-24T20:53:08.235Z",
+   "end": "2026-11-24T20:59:05.942Z"
+  },
+  {
+   "agent": "ae17533f",
+   "role": "review",
+   "task": "VB-911",
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 13,
+   "tokens": {
+    "input": 26,
+    "cacheWrite": 66388,
+    "cacheRead": 600219,
+    "output": 11529
+   },
+   "weighted": 200678,
+   "first": 14617,
+   "boot": 0,
+   "peak": 66390,
+   "activeMin": 2.7,
+   "start": "2026-11-24T20:53:08.256Z",
+   "end": "2026-11-24T20:55:48.021Z"
+  }
+ ],
+ "review": {
+  "task": "VB-1619",
+  "arm": "control"
+ },
+ "summary": {
+  "weightedTotal": 5021372,
+  "orchestratorShare": 0.853,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0,
+  "review": {
+   "reviews": 2,
+   "weighted": 740566,
+   "median": 370283,
+   "revisions": 0,
+   "revisionWeighted": 0,
+   "orchestratorCalls": 32
+  }
+ }
+}

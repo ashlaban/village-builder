@@ -14,8 +14,10 @@
 //                              twice a task), or by choice past the context threshold (boundary, stuck; once a task, from the run's 30th call,
 //                              with commit= made in this run; tools/lib/ceiling.js, VB-1616)
 //   handover TASK              the latest handover note of TASK, for the context that continues it (docs/agents/handover.md)
-//   calls [AGENT]              a sub-agent's model calls so far against the ceiling of 120, from its own transcript (found by its worktree, agent-<id>),
-//                              with its context and weighted cost; outside a sub-agent's worktree, the session's own, without the ceiling
+//   calls [AGENT] [--ceiling N]  a sub-agent's model calls so far against the ceiling of 120, from its own transcript (found by its worktree, agent-<id>),
+//                              with its context and weighted cost; outside a sub-agent's worktree, the session's own, without the ceiling;
+//                              --ceiling N: another ceiling (a reviewer's, 40; VB-1619)
+//   ids TASK                   the IDs reserved for TASK's new tasks and not yet used
 //   list [KIND] [--task TASK] [--json]
 //                              the notes, a line each
 //   status                     the tasks started, their claims and results, and the notes not yet applied
@@ -25,7 +27,8 @@
 //   report                     the PR's "For Kim" section, in Markdown: principle candidates, teleports found, close calls, questions, new tasks
 //   results [--json]           the results, for  node tools/agent-usage.js --results FILE
 // kinds, with their keys:
-//   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= ref= goal=]; body: its criteria
+//   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= cause= ref= goal=]; body: its criteria
+//              (cause=VB-NNN: the task whose change introduced the defect it mends, VB-1619)
 //              (ready: goal=, ref= and the body given, and no question for Kim; priority=1 if it mends a red check)
 //   question   priority= title= [about=VB-NNN, the task it is filed under: default TASK]; body: the numbered questions, each with its proposed answer (**P:**), as in QUESTIONS.md
 //   tuning     parameter= means= measured= proposed=   a row of docs/tuning.md, Parameters waiting
@@ -33,6 +36,9 @@
 //   teleport   where= what=   a teleport found (AGENTS.md, the hard rule): apply adds it to the open collecting task, a line
 //   act        where= what=   an act with no pawn, or a choice only the player has (AGENTS.md, 16): collected likewise
 //   decision   what= why=   a close call, decided by Deciding without Kim, that Kim should see
+//   review     arm=review|control|ineligible round=arm|review|confirm [verdict= blocking= advisory= preference= reviewed=SHA mended=
+//              rebutted= unresolved= followups=]   VB-1619, written by tools/review.js (eligible, check, confirm --inbox): a task's arm,
+//              its review's verdict, and what the one revision left; the body the findings file. Never applied: report and results read it
 //   handover   (no keys)    body: the handover of a task to a fresh context, at most 60 lines and 4 KB (docs/agents/handover.md); not applied
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path'), transcript = require('./lib/transcript.js'), { execFileSync, spawnSync } = require('child_process');
@@ -45,11 +51,11 @@ const option = (k) => { const i = args.indexOf(k); if (i < 0) return null; const
 const flag = (k) => { const i = args.indexOf(k); if (i < 0) return false; args.splice(i, 1); return true; };
 const fail = (msg) => { console.error('inbox: ' + msg); process.exit(1); };
 const root = path.resolve(option('--root') || path.join(__dirname, '..'));
-const asJson = flag('--json'), dry = flag('--dry'), fresh = flag('--fresh'), bodyFrom = option('--body'), onlyTask = option('--task');
+const ceilingArg = option('--ceiling'), asJson = flag('--json'), dry = flag('--dry'), fresh = flag('--fresh'), bodyFrom = option('--body'), onlyTask = option('--task');
 const today = option('--date') || new Date().toISOString().slice(0, 10);
 
 const KINDS = { task: ['id', 'name', 'priority', 'size', 'summary'], question: ['priority', 'title'], tuning: ['parameter', 'means', 'measured', 'proposed'],
-  candidate: ['rule'], teleport: ['where', 'what'], act: ['where', 'what'], decision: ['what', 'why'], handover: [] };
+  candidate: ['rule'], teleport: ['where', 'what'], act: ['where', 'what'], decision: ['what', 'why'], handover: [], review: ['arm', 'round'] };
 // Findings are collected, not given a task each (Kim, 18 November): one open task a kind holds them, a criterion a finding, and a
 // slice's wrap-up sweeps it. apply finds that task by its name, or makes the next one.
 const COLLECT = {
@@ -59,11 +65,22 @@ const COLLECT = {
   act: { name: "Acts with no pawn, collected: swept at a slice's wrap-up", arch: 'acts', goal: 'Each act listed is a pawn\'s, through a verb any pawn may use',
     summary: 'The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up' },
 };
-const OPTIONAL = { task: ['status', 'arch', 'waits', 'ref', 'goal'], question: ['about'], teleport: ['task'] };
+const OPTIONAL = { task: ['status', 'arch', 'waits', 'cause', 'ref', 'goal'], question: ['about'], teleport: ['task'],
+  review: ['verdict', 'blocking', 'advisory', 'preference', 'reviewed', 'mended', 'rebutted', 'unresolved', 'followups'] };
 const NEEDS_BODY = ['question', 'handover'];
 const HANDOVER_LINES = 60, HANDOVER_BYTES = 4096; // docs/agents/handover.md
 // The ceiling on a run's calls and the voluntary reset (tools/lib/ceiling.js).
 const { CEILING, WARN, CONTINUATIONS, RESET_AT, VOLUNTARY_FROM, VOLUNTARY, STUCK } = require('./lib/ceiling.js');
+// A task's review, by its notes (VB-1619): the arm, the reviewer's verdict, and the confirmation after the one revision.
+const reviewOf = (task) => {
+  const rs = notes('WHERE kind = ? AND task = ?', 'review', task).map((n) => n.fields), last = (round) => rs.filter((f) => f.round === round).pop();
+  const arm = last('arm'), rev = last('review'), conf = last('confirm');
+  return rs.length ? { arm: (rev || arm || conf).arm, verdict: rev ? rev.verdict : null, blocking: rev ? +rev.blocking || 0 : null,
+    confirmed: !!conf, mended: conf ? +conf.mended || 0 : null, rebutted: conf ? +conf.rebutted || 0 : null, unresolved: conf ? +conf.unresolved || 0 : null,
+    followups: conf && conf.followups ? conf.followups : null } : null;
+};
+const reviewLine = (r) => !r ? '' : r.arm !== 'review' ? `review: ${r.arm}` : !r.verdict ? 'review: in review'
+  : `review: ${r.verdict}${r.blocking ? ` ${r.blocking} blocking` : ''}${r.confirmed ? `, confirmed${r.unresolved ? `, ${r.unresolved} unresolved (${r.followups})` : ''}` : r.verdict === 'revise' ? ', in revision' : ''}`;
 
 function dbFile() {
   const given = option('--db') || process.env.VB_INBOX;
@@ -106,7 +123,8 @@ const headline = (n) => {
   const f = n.fields;
   return one({ task: `${f.id} ${f.name}`, question: f.title, tuning: `${f.parameter}: ${f.measured}`, candidate: f.rule,
     teleport: `${f.where}: ${f.what}${f.task ? ` (${f.task})` : ''}`, act: `${f.where}: ${f.what}`, decision: `${f.what}: ${f.why}`,
-    handover: `${(n.body || '').split('\n').length} lines, ${Buffer.byteLength(n.body || '')} bytes` }[n.kind]);
+    handover: `${(n.body || '').split('\n').length} lines, ${Buffer.byteLength(n.body || '')} bytes`,
+    review: `${f.round} ${f.arm}${f.verdict ? ' ' + f.verdict : ''}${f.blocking ? ` ${f.blocking} blocking` : ''}` }[n.kind]);
 };
 
 if (cmd === 'init') {
@@ -168,6 +186,11 @@ if (cmd === 'init') {
     if (f.status === 'ready' &&
       !(f.goal && f.ref && body)) fail(
       'a noted task is ready only with its goal (goal=), its design ref (ref=) and its criteria (--body), and no question for Kim; else needs-review (the default)');
+  }
+  if (kind === 'review') {
+    if (!['review', 'control', 'ineligible'].includes(f.arm)) fail('arm is review, control or ineligible');
+    if (!['arm', 'review', 'confirm'].includes(f.round)) fail('round is arm, review or confirm');
+    if (f.verdict && !['pass', 'revise'].includes(f.verdict)) fail('verdict is pass or revise');
   }
   const n = atomic(() => {
     if (kind === 'task') {
@@ -234,7 +257,7 @@ if (cmd === 'init') {
   // The ceiling is a sub-agent's (.claude/agents/vb-task.md, step 8); past the context threshold, a session as well is told to hand over.
   const agent = rest[0] || ownAgent(), found = agent ? transcript.subagent(agent) : transcript.newest();
   if (!found) fail(agent ? `calls: no transcript agent-${agent}.jsonl under ${transcript.projects()}` : `calls: no transcript under ${transcript.projects()}`);
-  const { calls: n, context, weighted } = transcript.tally(found), left = CEILING - n;
+  const { calls: n, context, weighted } = transcript.tally(found), ceiling = +(ceilingArg || CEILING), left = ceiling - n;
   const k = (x) => (x >= 1e6 ? (x / 1e6).toFixed(1) + 'M' : x >= 1e3 ? Math.round(x / 1e3) + 'k' : String(x)),
     size = `; context ${k(context)}; weighted ${k(weighted)}`;
   // Past the threshold (VB-1616): a hint to hand over at the next boundary, and whether the run looks stuck, from its transcript's measures
@@ -249,10 +272,14 @@ if (cmd === 'init') {
       : m.repeats.recent >= STUCK ? `${m.repeats.recent} reads or commands again in the last 20 calls` : null;
     if (why) hint += `. Stuck? ${why}: if your next idea is no better than the last, hand over now, reason=stuck, the rejected hypotheses listed`;
   }
-  if (!agent) console.log(`${n} calls (a session: the ceiling of ${CEILING} is a sub-agent's)${size}${hint}`);
+  if (ceilingArg) console.log(`${n} of ${ceiling} calls${size}` + (left > Math.min(WARN, Math.round(ceiling / 8)) ? '' : (left > 0 ? `: ${left} left` : ': the ceiling is reached') + '. Write what you have now.'));
+  else if (!agent) console.log(`${n} calls (a session: the ceiling of ${CEILING} is a sub-agent's)${size}${hint}`);
   else console.log(`${n} of ${CEILING} calls${size}` +
     (left > WARN ? hint : left > 0 ? `: ${left} left. Finish within them, or hand over now (.claude/agents/vb-task.md, The ceiling)`
     : ': the ceiling is reached. Hand over now: commit, then  node tools/inbox.js result ID status=continue commit=SHA summary=...'));
+} else if (cmd === 'ids') {
+  const task = taskId(rest[0]);
+  console.log(all('SELECT id FROM ids WHERE task = ? AND used = 0 ORDER BY id', task).map((r) => r.id).join(' ') || 'none');
 } else if (cmd === 'list') {
   const kind = rest[0];
   if (kind && !KINDS[kind]) fail(`kind "${kind}": one of ${Object.keys(KINDS).join(', ')}`);
@@ -263,14 +290,15 @@ if (cmd === 'init') {
   const rs = all('SELECT * FROM results ORDER BY started');
   for (const r of rs) {
     const claims = all('SELECT file FROM claims WHERE task = ?', r.task).map((c) => c.file);
-    console.log(`${r.task} ${r.status || 'running'}${r.commit_ ? ' ' + r.commit_ : ''}${claims.length ? '; editing ' + claims.join(', ') : ''}`);
+    const rv = reviewLine(reviewOf(r.task));
+    console.log(`${r.task} ${r.status || 'running'}${r.commit_ ? ' ' + r.commit_ : ''}${claims.length ? '; editing ' + claims.join(', ') : ''}${rv ? '; ' + rv : ''}`);
   }
   const open = notes('WHERE applied = 0'), byKind = Object.keys(KINDS).map((k) => [k, open.filter((n) => n.kind === k).length]).filter(([, c]) => c);
   console.log(`${rs.length} tasks started, ${rs.filter((r) => !r.status).length} running; notes not applied: ${byKind.map(([k, c]) => `${c} ${k}`).join(', ') ||
     'none'}`);
 } else if (cmd === 'results') {
   const rs = all('SELECT * FROM results ORDER BY started').map((r) => ({ task: r.task, status: r.status || 'running', commit: r.commit_, size: r.size,
-    model: r.model, summary: r.summary, started: r.started, ended: r.ended }));
+    model: r.model, summary: r.summary, started: r.started, ended: r.ended, review: reviewOf(r.task) }));
   if (asJson) console.log(JSON.stringify(rs, null, 1));
   else console.log(rs.map((r) => `${r.task} ${r.size || '-'} ${r.status}${r.commit ? ' ' + r.commit : ''}${r.summary ? ': ' + r.summary : ''}`).join('\n') ||
     'no results');
@@ -298,7 +326,7 @@ if (cmd === 'init') {
   for (const n of notes('WHERE applied = 0')) {
     const f = n.fields;
     if (n.kind === 'task') {
-      const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`);
+      const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'cause', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`);
       // a file is never made ready with "(to write)" in it (tools/backlog.js new): a ready note's task is made, filled, then set ready
       backlog('new', `id=${f.id}`, `status=${f.status === 'ready' ? 'needs-review' : f.status || 'needs-review'}`, ...keys);
       if (n.body && !dry) {
@@ -364,6 +392,8 @@ if (cmd === 'init') {
   section('Tasks merged with a criterion unmet',
     all("SELECT * FROM results WHERE status = 'needs-review'").map((r) =>
     `- ${r.task}${r.commit_ ? ' ' + r.commit_ : ''}: ${r.summary || 'see its task file'}`));
+  section('Reviews (VB-1619)', all('SELECT task FROM results ORDER BY started').map((r) => [r.task, reviewOf(r.task)]).filter(([, v]) => v && v.arm === 'review')
+    .map(([t, v]) => `- ${t}: ${reviewLine(v).replace(/^review: /, '')}`));
   section('Close calls', by('decision').map((n) => `- ${n.task}: ${headline(n)}`));
   section('Questions (in `QUESTIONS.md`)', by('question').map((n) => `- ${n.task}: ${headline(n)} (priority ${n.fields.priority})`));
   section('New tasks',
