@@ -47,7 +47,10 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     for (const [fps, speed] of [[60, 30], [24, 10]]) {
       runs.push(await page.evaluate(([fps, speed, data]) => {
         const P = window.__play, { Sim } = P, home = P.st, R = VB['sim/rules'], w = P.world();
-        const st = Sim.load(w, JSON.parse(data)), tick0 = st.tick, faults = [], last = [];
+        // each load on a world of its own, freshly generated, as Sim.load asks and the page's loader gives (VB-1626): the game's world
+        // carries the fields its run made since (w.shut, made at the first day's sweep), which a save made before them does not reset
+        const fresh = () => { const it = VB.gen.generate(w.seed, { cols: w.COLS, rows: w.ROWS, lat: w.lat }); let r; while (!(r = it.next()).done); return r.value; };
+        const st = Sim.load(fresh(), JSON.parse(data)), tick0 = st.tick, faults = [], last = [];
         const far = (R.SPEED * w.HW / R.TICKS / VB['sim/routes'].ROUTE.minStep) * 1.01 + 1e-6;
         P.st = st; P.setSpeed(speed);
         let frames = 0, between = 0;
@@ -73,7 +76,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
             }
           }
         } finally { P.st = home; P.setSpeed(0); }
-        const hs = Sim.load(w, JSON.parse(data)); Sim.advance(hs, (st.tick - tick0) / R.TICKS); // headless, as many whole steps
+        const hs = Sim.load(fresh(), JSON.parse(data)); Sim.advance(hs, (st.tick - tick0) / R.TICKS); // headless, as many whole steps
         return { fps, speed, frames, steps: st.tick - tick0, between, faults: faults.slice(0, 5), save: JSON.stringify(Sim.save(st)),
           headless: JSON.stringify(Sim.save(hs)) };
       }, [fps, speed, data]));
@@ -82,14 +85,14 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     // Headless in node too: the same but for a pawn's stride, whose last bits differ between node's V8 and Chromium's (a float of a Math
     // function; reported, not failed: the engines' arithmetic is not this task's, VB-244).
     const VB = require('../src/load.js'), { sha } = require('./lib/canon.js'), d0 = JSON.parse(data);
-    const it = VB.gen.generate(d0.seed, { cols: d0.cols, rows: d0.rows }); let r; while (!(r = it.next()).done);
+    const fresh = () => { const it = VB.gen.generate(d0.seed, { cols: d0.cols, rows: d0.rows, lat: d0.lat }); let r; while (!(r = it.next()).done); return r.value; };
     const lines = [];
     for (const run of runs) {
       const same = run.save === run.headless;
       if (!same) fail(`the page at ${run.fps} frames a second, ${run.speed}x, ends ${run.steps} steps on in another state than Sim.advance headless`);
       if (run.faults.length) fail(`drawn between steps at ${run.fps} fps: ${run.faults.join('; ')}`);
       if (!run.between) fail(`at ${run.fps} fps no pawn was drawn between two places`);
-      const st = VB.sim.load(r.value, JSON.parse(data));
+      const st = VB.sim.load(fresh(), JSON.parse(data)); // a world of its own for each run, as in the page
       VB.sim.advance(st, run.steps / VB['sim/rules'].TICKS);
       const want = VB.sim.save(st), got = JSON.parse(run.save), fields = new Set();
       for (const k of Object.keys(want.state)) if (JSON.stringify(want.state[k]) !== JSON.stringify(got.state[k])) fields.add(k);
