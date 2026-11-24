@@ -58,7 +58,7 @@ const sumOf = (xs, f) => xs.reduce((n, x) => n + f(x), 0);
 const ratioAfter = (s, y, num, den) => { const a = after(s, y).filter((x) => x.facts), n = sumOf(a, den); return n ? sumOf(a, num) / n : NaN; };
 const PROBES = {
   // VB-523: one story's spread (storyRun): the day over half the subject's village's adults held it, and the neighbouring village's
-  // (Infinity if never); the most of the village across the water that ever held it; of those who held it at its peak, the share holding it
+  // (STORY_RUN.forgotten + 1 if never); the most of the village across the water that ever held it; of those who held it at its peak, the share holding it
   // STORY_RUN.forgotten days after it was made
   storyHome: (s) => s[0].story.home,
   storyNeighbour: (s) => s[0].story.neighbour,
@@ -295,7 +295,8 @@ function storyRun(seed) {
   const village = (id) => Sim.settlementIdOf(st, st.pawns[id]), hh = (k) => st.farmsteads[st.villages[0].farmsteads[k]].household;
   const s = S.witness(st, 'claim', st.households[hh(0)].holder, st.households[hh(1)].holder, null);
   const holds = (id) => !!st.pawns[id].known && st.pawns[id].known.some((e) => e.story === s.id);
-  const out = { home: Infinity, neighbour: Infinity, across: 0, kept: NaN, curve: [] };
+  const never = STORY_RUN.forgotten + 1; // a day past the run: finite, for the run's samples go through JSON (tests/bands.js)
+  const out = { home: never, neighbour: never, across: 0, kept: 0, curve: [] };
   let peak = [];
   for (let d = 1; d <= STORY_RUN.forgotten; d++) {
     Sim.advance(st, DAY);
@@ -307,12 +308,12 @@ function storyRun(seed) {
     }
     const share = held.map((n, v) => n / Math.max(1, adults[v]));
     if (now.length > peak.length) peak = now;
-    if (out.home === Infinity && share[0] > 0.5) out.home = d;
-    if (out.neighbour === Infinity && share[1] > 0.5) out.neighbour = d;
+    if (out.home === never && share[0] > 0.5) out.home = d;
+    if (out.neighbour === never && share[1] > 0.5) out.neighbour = d;
     out.across = Math.max(out.across, share[2]);
     if ([1, 2, 4, 8, 12, 24, 48, 96, 144].includes(d)) out.curve.push({ day: d, share: share.map((x) => +x.toFixed(2)) });
   }
-  out.kept = peak.length ? peak.filter(holds).length / peak.length : NaN;
+  out.kept = peak.length ? peak.filter(holds).length / peak.length : 0;
   first.story = out;
   const cpu = process.cpuUsage(cpu0);
   return { samples: [first], secs: (Date.now() - t0) / 1000, cpuSecs: (cpu.user + cpu.system) / 1e6 };
