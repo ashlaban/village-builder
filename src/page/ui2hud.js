@@ -2,7 +2,7 @@
 // ======== the played settler's year, day and stores ========
 // All of it reads st and acts through Sim: the head's verbs (Sim.head: project, target, order), the queue (Sim.queue, unqueue,
 // setAuto). The page's own state, never saved: hud = {tab: 'today' | 'plan' | 'stores' | null, msg: {text, bad}, key: what was drawn}.
-const hud = { tab: null, msg: null, key: '', yearKey: '' };
+const hud = { tab: null, msg: null, key: '', yearKey: '', at: -1, markKey: '', sites: null };
 const HUD_TABS = [
   ['today', 'Today'],
   ['plan', 'Plan'],
@@ -66,14 +66,16 @@ function renderYear() {
   const pct = (d) => `${((d / N) * 100).toFixed(2)}%`,
     band = (cls, a, b, label) =>
       `<i class="${cls}" style="left:${pct(a)};width:${pct(b - a + 1)}" title="${label}"><span>${label}</span></i>`;
-  u2.ribbon.className = `u2-year u2-card press${Y.press}`;
   u2.ribbon.innerHTML =
     `<div class="u2-ribbon" role="img" aria-label="The year: ${esc(Y.line)}">` +
     Sim.SEASONS.map((s, k) => `<b class="s${k}${k === Y.c.season ? ' now' : ''}">${s}</b>`).join('') +
     (Y.sow ? band('sow', Y.sow[0], Y.sow[1], 'sow') : '') +
     band('hay', Y.hay[0], Y.hay[1], 'hay') +
     Y.ripe.map((d) => band('ripe', d, d + 2, 'reap')).join('') +
-    `<u style="left:${pct(Y.c.doy + 0.5)}"></u></div><p>${esc(Y.line)}</p>`;
+    `<u style="left:${pct(Y.c.doy + 0.5)}"></u></div>`;
+  u2.alert.className = `u2-alert press${Y.press}`;
+  u2.alert.textContent = Y.line;
+  hud.press = Y.press;
 }
 // ---- the tabs ----
 function hudMsg(r, done) {
@@ -234,6 +236,8 @@ function renderHud() {
   const { id, hh, f } = hudHouse();
   if (id < 0 || !hh || !f) return;
   renderYear();
+  u2.alert.hidden = !hud.press || !!hud.tab;
+  hudMarks(id, hh, f);
   const hour = Math.floor(st.t),
     key = `${hud.tab}|${hour}|${st.player.queue.length}|${st.player.auto}|${followPlayed}|${hud.msg ? hud.msg.text : ''}`;
   for (const b of u2.tabs.children) b.setAttribute('aria-pressed', String(b.dataset.tab === hud.tab));
@@ -255,22 +259,161 @@ function hudTab(tab) {
   hud.key = '';
   u2.sheet.scrollTop = 0;
 }
-// A tap on the map, in play: the played farm's house opens its stores, one of its fields the plan, the settler today. True when taken.
+// ---- on the land: how things stand, and what can be done where ----
+// A field's badge: a word or two and how pressing it is.
+function fieldBadge(fd) {
+  const C = VB['sim/crops'].CROPS[fd.crop],
+    c = Sim.cal(st.t),
+    day = Math.floor(st.t / Sim.DAY);
+  if (fd.stage === 'sown' || fd.stage === 'growing')
+    return [`${fd.crop} ${Math.min(C.ripe, Math.max(0, day - fd.sown))}/${C.ripe}`, 0];
+  if (fd.stage === 'ripe') return ['ripe: reap', 2];
+  if (fd.stage === 'stooks') return ['carry in', 1];
+  if (fd.stage === 'fallow' || fd.stage === 'scrub') return ['overgrown', 1];
+  if (C.fallow) return ['fallow', 0];
+  const open = c.season === C.sow[0] && c.sday >= C.sow[1] && c.sday <= C.sow[2],
+    left = C.sow[2] - c.sday + 1;
+  return [`${fd.stage === 'plowed' ? 'sow' : 'hoe'}${open ? ` · ${left}d left` : ''}`, open ? (left <= 3 ? 2 : 1) : 0];
+}
+// The tiles the next field or meadow may be laid on (page/plan's planSites, the head's own checks), read once an hour.
+function hudSites(hh) {
+  const hour = Math.floor(st.t);
+  if (!hud.sites || hud.sites.hour !== hour || hud.sites.hh !== hh.id)
+    hud.sites = {
+      hour,
+      hh: hh.id,
+      field: new Set(planSites('field', hh).sites),
+      meadow: new Set(planSites('meadow', hh).sites),
+    };
+  return hud.sites;
+}
+// The callout of tile i: what it is, how it stands, and what the settler can do there.
+function hudCall(i, id, hh, f) {
+  const V = Sim.headView(st, hh.id),
+    fi = f.fields.findIndex((q) => q.tile === i),
+    mi = (f.meadows || []).findIndex((q) => q.tile === i),
+    seen = new Set(),
+    jobs = Sim.opportunities(st, id).filter(
+      (o) => o.verb === 'work' && o.why === null && o.site === i && o.kind && !seen.has(o.kind) && seen.add(o.kind),
+    );
+  let title,
+    sub,
+    acts = '';
+  if (i === f.house) {
+    title = f.name;
+    sub = `${st.pawns[id].given}: ${Sim.describe(st, id)}`;
+    acts +=
+      '<div class="u2-row2"><button type="button" class="u2-chip" data-tab="stores">Stores</button>' +
+      '<button type="button" class="u2-chip" data-tab="plan">Plan</button><button type="button" class="u2-chip" data-tab="today">Today</button></div>';
+  } else if (fi >= 0) [title, sub] = fieldLine(f.fields[fi], fi);
+  else if (mi >= 0) {
+    title = `Hay meadow ${mi + 1}`;
+    sub = 'Mown in summer for the winter’s hay.';
+  } else {
+    title = VB['world/biomes'].BIOMES[w.biome[i]].name;
+    sub =
+      V.tiles.field === i
+        ? 'Marked for the next field.'
+        : V.tiles.meadow === i
+          ? 'Marked for the next hay meadow.'
+          : waterLines(i)[0] || '';
+  }
+  jobs.slice(0, 3).forEach((o, n) => {
+    acts +=
+      `<button type="button" class="u2-act${n ? '' : ' go'}" data-hud="job" data-target="${esc(o.target)}" data-site="-1">${esc(Sim.KINDS[o.kind].name)}` +
+      `<small>${o.when === 'now' ? 'She goes and does it next' : 'Queued for when it opens'}</small></button>`;
+  });
+  if (i !== f.house && fi < 0 && mi < 0) {
+    const S = hudSites(hh);
+    if (S.field.has(i) && V.tiles.field !== i)
+      acts +=
+        '<button type="button" class="u2-act" data-hud="lay" data-what="field">Break a field here<small>' +
+        `${V.project ? 'After the work under way' : 'Begun at once'}</small></button>`;
+    if (S.meadow.has(i) && V.tiles.meadow !== i)
+      acts +=
+        '<button type="button" class="u2-act" data-hud="lay" data-what="meadow">Make a hay meadow here<small>' +
+        `${V.project ? 'After the work under way' : 'Begun at once'}</small></button>`;
+  }
+  if (!w.water[i] && !w.river[i] && i !== f.house)
+    acts += '<button type="button" class="u2-chip" data-hud="walk">Walk here</button>';
+  return (
+    `<div class="u2-verdict"><div><h2>${esc(title)}</h2>${sub ? `<p class="sub">${esc(sub)}</p>` : ''}</div>` +
+    '<button type="button" class="u2-x" data-hud="shut" aria-label="Close">×</button></div>' +
+    (hud.msg && !hud.tab ? `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>` : '') +
+    (acts ? `<div class="u2-acts">${acts}</div>` : '')
+  );
+}
+function hudMarks(id, hh, f) {
+  const O = Sim.supplyOutlook(st, hh.id),
+    V = Sim.headView(st, hh.id),
+    open = VB['sim/projects'].openOf(st, hh.id),
+    site = open && Number.isInteger(open.place) ? open.place : -1,
+    key = `${Math.floor(st.t)}|${hud.at}|${hud.msg ? hud.msg.text : ''}|${hud.tab}|${st.player.queue.length}|${site}|${V.tiles.field}|${V.tiles.meadow}`;
+  if (key === hud.markKey) return;
+  hud.markKey = key;
+  const marks = [];
+  f.fields.forEach((fd, k) => {
+    const [text, press] = fieldBadge(fd);
+    if (fd.tile !== hud.at) marks.push({ id: `f${k}`, tile: fd.tile, cls: `u2-badge press${press}`, html: esc(text) });
+  });
+  if (site >= 0 && site !== hud.at && V.project) {
+    const kn = Sim.KINDS[V.project.step];
+    marks.push({ id: 'site', tile: site, cls: 'u2-badge work', html: esc(kn ? kn.name : V.project.what) });
+  }
+  for (const what of ['field', 'meadow'])
+    if (V.tiles[what] >= 0 && V.tiles[what] !== site && V.tiles[what] !== hud.at)
+      marks.push({
+        id: `next${what}`,
+        tile: V.tiles[what],
+        cls: 'u2-badge',
+        html: what === 'field' ? 'next field' : 'next meadow',
+      });
+  if (O && f.house !== hud.at)
+    marks.push({
+      id: 'house',
+      tile: f.house,
+      cls: 'u2-gauges',
+      html: [
+        ['food', 'food'],
+        ['fuel', 'wood'],
+        ['hay', 'hay'],
+      ]
+        .map(([k, name]) => `<i class="${O[k].state}"><u></u>${name}</i>`)
+        .join(''),
+    });
+  if (hud.at >= 0)
+    marks.push({ id: 'call', tile: hud.at, cls: 'u2-call', call: true, html: hudCall(hud.at, id, hh, f) });
+  u2Marks(marks);
+}
+// A tap on the map, in play: the tile's callout opens at it; the same tile again, or water far from land, shuts it.
 function hudTap(sx, sy) {
   const { id, f } = hudHouse();
   if (id < 0 || !f) return false;
-  const [x, y] = toWorld(sx, sy),
-    i = loc(x, y, [0, 0]),
-    tab = pawnAt(x, y) === id ? 'today' : i === f.house ? 'stores' : f.fields.some((q) => q.tile === i) ? 'plan' : null;
-  if (!tab) return false;
-  if (hud.tab !== tab) hudTab(tab);
+  const i = loc(...toWorld(sx, sy), [0, 0]);
+  hud.at = i === hud.at || i < 0 ? -1 : i;
+  hud.msg = null;
+  hud.markKey = '';
+  sel = hud.at;
+  hoverDirty = true;
   return true;
 }
 function hudClick(b) {
   const d = b.dataset,
     { id, hh } = hudHouse();
   if (d.hud === 'close') hud.tab = null;
-  else if (d.hud === 'fly') flyTo(w.hx[+d.tile], w.hy[+d.tile]);
+  else if (d.hud === 'shut') hud.at = -1;
+  else if (d.hud === 'walk') hudMsg(Sim.queue(st, { actor: id, verb: 'walkTo', target: hud.at }), 'Queued: walk here.');
+  else if (d.hud === 'lay') {
+    let r = Sim.head(st, 'tile', { what: d.what, tile: hud.at });
+    const busy = !!Sim.headView(st, hh.id).project;
+    if (r === true && !busy) r = Sim.head(st, 'project', { what: d.what });
+    hudMsg(
+      r,
+      busy
+        ? `Marked: the next ${d.what === 'field' ? 'field' : 'hay meadow'} is made here.`
+        : `Begun: ${HUD_PROJECT[d.what]} here.`,
+    );
+  } else if (d.hud === 'fly') flyTo(w.hx[+d.tile], w.hy[+d.tile]);
   else if (d.hud === 'follow') {
     followPlayed = !followPlayed;
     if (followPlayed) flyToFarmOf(id);
@@ -292,7 +435,7 @@ function hudClick(b) {
     steps.splice(+d.to, 0, x);
     hudMsg(Sim.head(st, 'order', { steps }), 'The order is changed.');
   }
-  hud.key = '';
+  hud.key = hud.markKey = '';
 }
 if (UI2) {
   u2.tabs.innerHTML = HUD_TABS.map(
@@ -301,8 +444,11 @@ if (UI2) {
   u2.u2.addEventListener('click', (e) => {
     const t = e.target.closest('[data-tab]'),
       b = e.target.closest('[data-hud]');
-    if (t && st) hudTab(t.dataset.tab);
-    else if (b && st && played() >= 0) hudClick(b);
+    if (t && st && played() >= 0) {
+      if (t.closest('.u2-call')) hud.at = -1;
+      if (hud.tab !== t.dataset.tab || !t.closest('.u2-call')) hudTab(t.dataset.tab);
+      hud.markKey = '';
+    } else if (b && st && played() >= 0) hudClick(b);
     else if (e.target.closest('#u2Ribbon') && st) hudTab('plan');
     else return;
     renderHud();

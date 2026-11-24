@@ -10,6 +10,74 @@ let u2 = null, // the shell's elements, by name
   u2Clock = -1,
   u2Pace = '',
   u2Doing = '';
+// ---- marks on the land ----
+// What the interface puts on the map itself: elements anchored to tiles (a field's badge, the house's gauges, a callout with what can
+// be done there). u2Marks(list) sets them, [{id, tile, html, cls, call}]: an element is kept while its id stays and rewritten only
+// when its html changes; u2Place puts each at its tile every frame the camera or the list has changed. A callout (call) is kept inside
+// the screen and flips under its tile when there is no room above.
+const u2Anchor = new Map(); // id -> {el, tile, html, call}
+let u2PlaceKey = '';
+function u2Marks(list) {
+  const seen = new Set();
+  for (const m of list) {
+    seen.add(m.id);
+    let a = u2Anchor.get(m.id);
+    if (!a) {
+      a = { el: document.createElement('div'), html: null };
+      u2.pins.appendChild(a.el);
+      u2Anchor.set(m.id, a);
+      u2PlaceKey = '';
+    }
+    if (a.tile !== m.tile || a.call !== !!m.call) u2PlaceKey = '';
+    a.tile = m.tile;
+    a.call = !!m.call;
+    if (a.html !== m.html || a.el.className !== `u2-mark ${m.cls || ''}`) {
+      a.html = m.html;
+      a.el.className = `u2-mark ${m.cls || ''}`;
+      a.el.innerHTML = m.html;
+      u2PlaceKey = '';
+    }
+  }
+  for (const [id, a] of u2Anchor)
+    if (!seen.has(id)) {
+      a.el.remove();
+      u2Anchor.delete(id);
+    }
+}
+function u2Place() {
+  if (!u2Anchor.size || !w) return;
+  const r = stage.getBoundingClientRect(),
+    key = `${cam.x.toFixed(1)},${cam.y.toFixed(1)},${cam.z.toFixed(4)},${r.width},${r.height}`;
+  if (key === u2PlaceKey) return;
+  u2PlaceKey = key;
+  const hex = w.R * cam.z, // a tile's radius on the screen
+    top = (u2.key.hidden ? (u2.lens.hidden ? u2.top : u2.lens) : u2.key).getBoundingClientRect().bottom + 6,
+    bot =
+      Math.min(
+        r.height,
+        ...[u2.sitecard, u2.does, u2.dock, u2.sheet].filter((e) => !e.hidden).map((e) => e.getBoundingClientRect().top),
+      ) - 6;
+  u2.pins.classList.toggle('far', hex < 15);
+  for (const a of u2Anchor.values()) {
+    let x = r.left + r.width / 2 + (w.hx[a.tile] - cam.x) * cam.z,
+      y = r.top + r.height / 2 + (w.hy[a.tile] - cam.y) * cam.z,
+      below = false;
+    if (a.call) {
+      // above its tile where there is room, else under it, else where there is most, and never under the bars
+      const cw = a.el.offsetWidth,
+        ch = a.el.offsetHeight,
+        over = y - hex * 0.9 - ch >= top,
+        under = y + hex * 0.9 + ch <= bot;
+      x = Math.max(cw / 2 + 6, Math.min(r.width - cw / 2 - 6, x));
+      below = !over && (under || bot - y > y - top);
+      y += below ? hex * 0.9 : -hex * 0.9;
+      y = below ? Math.max(top, Math.min(bot - ch, y)) : Math.min(bot, Math.max(top + ch, y));
+    }
+    a.el.classList.toggle('below', below);
+    const up = a.call && !below ? '-100%' : a.call ? '0' : '-50%';
+    a.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, ${up})`;
+  }
+}
 function u2Init() {
   if (!UI2) return;
   document.body.classList.add('ui2');
@@ -19,22 +87,23 @@ function u2Init() {
   root.innerHTML = `
     <div id="u2Pins"></div>
     <div class="u2-top" id="u2Top">
-      <div class="u2-card u2-date" id="u2Date" hidden><b id="u2Day"></b><span id="u2Year"></span></div>
-      <div class="u2-card u2-speed" id="u2Speed" role="group" aria-label="Game speed" hidden>
+      <div class="u2-date" id="u2Date" hidden><b id="u2Day"></b><span id="u2Year"></span></div>
+      <button type="button" class="u2-year" id="u2Ribbon" aria-label="The year: open the plan" hidden></button>
+      <div class="u2-speed" id="u2Speed" role="group" aria-label="Game speed" hidden>
         <button type="button" id="u2Pause" class="pause" aria-label="Pause"></button>${U2_SPEEDS.map(
           (v) =>
             `<button type="button" data-u2speed="${v}" aria-pressed="false" aria-label="Speed ${v}×" title="Speed ${v}×">${v}×</button>`,
         ).join('')}</div>
-      <button type="button" class="u2-card u2-menu" id="u2Menu" aria-label="Main menu" title="Main menu" style="margin-left:auto">${ICON.menu}</button>
+      <button type="button" class="u2-menu" id="u2Menu" aria-label="Main menu" title="Main menu">${ICON.menu}</button>
     </div>
-    <button type="button" class="u2-year u2-card" id="u2Ribbon" hidden></button>
-    <div class="u2-site-head u2-card" id="u2SiteHead" hidden></div>
-    <div class="u2-lens u2-card" id="u2Lens" role="group" aria-label="What the map shows" hidden></div>
-    <div class="u2-key u2-card" id="u2Key" hidden></div>
+    <p class="u2-alert" id="u2Alert" hidden></p>
+    <div class="u2-lens" id="u2Lens" role="group" aria-label="What the map shows" hidden></div>
+    <div class="u2-key" id="u2Key" hidden></div>
     <div class="u2-mid" id="u2Mid"><div class="u2-welcome u2-card" id="u2Welcome" hidden></div></div>
-    <section class="u2-sitecard u2-card" id="u2SiteCard" aria-live="polite" hidden></section>
+    <div class="u2-sitebar" id="u2SiteCard" aria-live="polite" hidden></div>
     <section class="u2-sheet u2-card" id="u2Sheet" aria-live="polite" hidden></section>
-    <div class="u2-dock u2-card" id="u2Dock" hidden><p id="u2Does"></p><div class="u2-tabs" id="u2Tabs" role="group" aria-label="Your farm"></div></div>`;
+    <p class="u2-does" id="u2Does" hidden></p>
+    <div class="u2-dock" id="u2Dock" hidden><div class="u2-tabs" id="u2Tabs" role="group" aria-label="Your farm"></div></div>`;
   document.body.appendChild(root);
   u2 = Object.fromEntries(
     [root, ...root.querySelectorAll('[id]')].map((el) => [el.id.slice(2).toLowerCase() || 'u2', el]),
@@ -53,11 +122,13 @@ function u2Frame() {
   if (!UI2 || !u2) return;
   const playing = !!st && !site && !demo;
   u2.date.hidden = u2.speed.hidden = !playing;
-  u2.menu.style.marginLeft = playing ? '0' : 'auto';
-  u2.dock.hidden = u2.ribbon.hidden = !playing || played() < 0 || !u2.welcome.hidden;
-  if (u2.dock.hidden) u2.sheet.hidden = true;
-  else renderHud();
-  if (site) sitePins();
+  u2.dock.hidden = u2.ribbon.hidden = u2.does.hidden = !playing || played() < 0 || !u2.welcome.hidden;
+  if (u2.dock.hidden) {
+    u2.sheet.hidden = u2.alert.hidden = true;
+    if (!site) u2Marks([]);
+  } else renderHud();
+  u2Place();
+  if (site) siteMarks();
   if (!playing) return;
   const pace = speed === 0 ? `p${lastSpeed}` : `r${speed}`;
   if (pace !== u2Pace) {

@@ -4,8 +4,7 @@
 // lens: the overlay shown, msg, busy}. While it is open there is no state (st is null): the world is as generated, and Sim.seed lays
 // the farm on the tile chosen (its option `site`).
 let site = null,
-  siteKey = '',
-  sitePinKey = '';
+  siteKey = '';
 const siteG = new PIXI.Graphics(), // the ground read round the tile: one path, one fill
   siteAtG = new PIXI.Graphics(); // the tile itself
 L.hover.addChild(siteG, siteAtG);
@@ -78,9 +77,7 @@ function openSite(seed) {
   Sim.landing.lay(w);
   site = { seed, best: Sim.landing.best(w, 3), at: -1, read: null, lens: '', msg: '', busy: false };
   setSpeed(0);
-  u2.sitehead.hidden = u2.lens.hidden = u2.sitecard.hidden = false;
-  u2.sitehead.innerHTML =
-    '<h1>Where will you settle?</h1><p>One settler, a year’s grain and a few beasts. Tap the land to read it.</p>';
+  u2.lens.hidden = u2.sitecard.hidden = false;
   u2.lens.innerHTML = SITE_LENS.map(
     (l) =>
       `<button type="button" data-lens="${l.id}" aria-pressed="false"><i style="background:${l.dot}"></i>${l.name}</button>`,
@@ -90,11 +87,11 @@ function openSite(seed) {
 }
 function closeSite() {
   site = null;
-  siteKey = sitePinKey = '';
+  siteKey = '';
   siteG.clear();
   siteAtG.clear();
-  u2.pins.textContent = '';
-  u2.sitehead.hidden = u2.lens.hidden = u2.key.hidden = u2.sitecard.hidden = true;
+  u2Marks([]);
+  u2.lens.hidden = u2.key.hidden = u2.sitecard.hidden = true;
 }
 function siteLens(id) {
   site.lens = id;
@@ -120,87 +117,68 @@ function siteChoose(i, fly) {
   site.msg = '';
   renderSite();
   if (fly && i >= 0) {
-    // the tile comes to rest in the middle of the map left open: under the bars, over the card (a phone) or beside it (a desk)
+    // the tile comes to rest below the middle of the screen, the room above it left for its callout
     const z = Math.max(cam.z, clamp(30 / w.HW, zMin(), zMax)),
-      narrow = innerWidth <= 720,
-      card = u2.sitecard.getBoundingClientRect(),
-      top = (u2.key.hidden ? u2.lens : u2.key).getBoundingClientRect().bottom,
-      dx = narrow ? 0 : card.right / 2,
-      dy = narrow ? (top + card.top) / 2 - innerHeight / 2 : 0;
+      dx = 0,
+      dy = innerHeight * 0.22;
     flyTo(w.hx[i] - dx / z, w.hy[i] - dy / z, z);
   }
 }
+// What is on the land while choosing: a flag on each place scouted, and on the tile read a callout with its reading and the one act,
+// Settle here. Below the map only a line of help and the three places' buttons, for when their flags are off the screen.
 function renderSite() {
   if (!site) return;
-  const r = site.read;
-  let h = '';
-  if (!r) {
-    h +=
-      '<h2>Three places scouted</h2>' +
-      '<p class="sub">Look at these, or tap anywhere on the land. Near water, on good soil, by a wood is best.</p><div class="u2-scout">';
-    site.best.forEach((b, k) => {
-      const wd = siteWords(b);
-      h +=
-        `<button type="button" data-scout="${k}"><span class="n">${k + 1}</span><span><b>${siteVerdict(b)}</b>` +
-        `<small>${wd.water[0]} · ${wd.soil[0].toLowerCase()}</small></span>` +
-        `<span class="mini">${sitePips(b.water.band)}${sitePips(b.soil.band)}${sitePips(b.wood.band)}</span></button>`;
+  const r = site.read,
+    marks = [];
+  site.best.forEach((b, k) => {
+    if (r && b.tile === r.tile) return;
+    marks.push({
+      id: `scout${k}`,
+      tile: b.tile,
+      cls: 'u2-flag',
+      html:
+        `<button type="button" data-scout="${k}" aria-label="Scouted place ${k + 1}: ${siteVerdict(b)}"><b>${k + 1}</b>` +
+        `<span>${siteVerdict(b).replace(/^A /, '')}</span>` +
+        `<i class="mini">${sitePips(b.water.band)}${sitePips(b.soil.band)}${sitePips(b.wood.band)}</i></button>`,
     });
-    h += '</div>';
-    if (!site.best.length) h += '<p class="sub">Nothing stood out. Tap the land to read a place yourself.</p>';
-  } else {
+  });
+  if (r) {
     const wd = siteWords(r),
-      own = !site.best.some((b) => b.tile === r.tile);
-    h += `<div class="u2-verdict"><span class="u2-stamp s${r.ok ? siteGrade(r) : 'x'}" aria-hidden="true">${r.ok ? (own ? '★' : '✓') : '×'}</span>`;
-    h += `<div><h2>${siteVerdict(r)}</h2><p class="sub">${
-      r.ok ? `${own ? 'Your own find' : 'Scouted'} · ${r.stars} of 9 for water, soil and wood` : esc(r.why)
-    }</p></div></div>`;
+      k = site.best.findIndex((b) => b.tile === r.tile);
+    let h =
+      `<div class="u2-verdict"><span class="u2-stamp s${r.ok ? siteGrade(r) : 'x'}" aria-hidden="true">` +
+      `${r.ok ? (k < 0 ? '★' : k + 1) : '×'}</span>`;
+    h += `<div><h2>${siteVerdict(r)}</h2><p class="sub">${r.ok ? `${r.stars} of 9 for water, soil and wood` : esc(r.why)}</p></div>`;
+    h += '<button type="button" class="u2-x" data-site="back" aria-label="Close">×</button></div>';
     if (r.ok) {
+      // each of the three in a line, and in words the one that weighs most: the weakest (water first among equals)
+      const weak = ['water', 'soil', 'wood'].reduce((a, key) => (r[key].band < r[a].band ? key : a), 'water');
       h += '<div class="u2-rows">';
-      for (const k of ['water', 'soil', 'wood'])
-        h += `<div class="u2-row">${SITE_ICON[k]}<b>${esc(wd[k][0])}</b>${sitePips(r[k].band)}<small>${esc(wd[k][1])}</small></div>`;
-      h += '</div>';
+      for (const key of ['water', 'soil', 'wood'])
+        h += `<div class="u2-row">${SITE_ICON[key]}<b>${esc(wd[key][0])}</b>${sitePips(r[key].band)}</div>`;
+      h += `</div><p class="sub">${esc(wd[weak][1])}</p>`;
+      if (site.msg) h += `<p class="u2-msg">${esc(site.msg)}</p>`;
+      h +=
+        `<button type="button" class="u2-btn go" data-site="settle"${site.busy ? ' disabled' : ''}>` +
+        `${site.busy ? 'Raising the house…' : 'Settle here'}</button>`;
     }
-    if (site.msg) h += `<p class="u2-msg">${esc(site.msg)}</p>`;
-    h += '<div class="u2-actions"><button type="button" class="u2-btn" data-site="back">‹ Back</button>';
-    h += `<button type="button" class="u2-btn go" data-site="settle"${
-      r.ok && !site.busy ? '' : ' disabled'
-    }>${site.busy ? 'Raising the house…' : r.ok ? 'Settle here' : 'Not here'}</button></div>`;
+    marks.push({ id: 'read', tile: r.tile, cls: 'u2-call', call: true, html: h });
   }
-  u2.sitecard.innerHTML = h;
-  u2.sitecard.scrollTop = 0;
+  u2Marks(marks);
+  u2.sitecard.innerHTML =
+    (r ? '' : '<span><b>Where will you settle?</b> Tap the land to read it.</span>') +
+    '<span class="u2-scouts">Scouted:' +
+    site.best
+      .map(
+        (b, k) =>
+          `<button type="button" data-scout="${k}" aria-pressed="${!!r && b.tile === r.tile}" aria-label="Go to scouted place ${k + 1}">` +
+          `${k + 1}</button>`,
+      )
+      .join('') +
+    '</span>';
 }
-// The marks on the map: the tile read and the ground its first fields are looked for in, and a pin on each place scouted. The pins
-// are elements, placed each frame (page/ui2's u2Frame); the tile's marks are drawn again when the tile or the zoom changes.
-function sitePins() {
-  const r = stage.getBoundingClientRect(),
-    key = `${cam.x.toFixed(1)},${cam.y.toFixed(1)},${cam.z.toFixed(4)},${site.at},${r.width},${r.height}`;
-  if (key !== sitePinKey) {
-    sitePinKey = key;
-    if (u2.pins.children.length !== site.best.length + 1)
-      u2.pins.innerHTML =
-        '<span class="u2-pin own" aria-hidden="true">★</span>' +
-        site.best
-          .map(
-            (b, k) =>
-              `<button type="button" class="u2-pin" data-scout="${k}" aria-label="Scouted place ${k + 1}">${k + 1}</button>`,
-          )
-          .join('');
-    site.best.forEach((b, k) => {
-      const el = u2.pins.children[k + 1],
-        x = r.left + r.width / 2 + (w.hx[b.tile] - cam.x) * cam.z,
-        y = r.top + r.height / 2 + (w.hy[b.tile] - cam.y) * cam.z;
-      el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-      el.classList.toggle('on', b.tile === site.at);
-    });
-    const own = u2.pins.children[0],
-      mine = site.at >= 0 && !site.best.some((b) => b.tile === site.at);
-    own.hidden = !mine;
-    if (mine) {
-      const x = r.left + r.width / 2 + (w.hx[site.at] - cam.x) * cam.z,
-        y = r.top + r.height / 2 + (w.hy[site.at] - cam.y) * cam.z;
-      own.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-    }
-  }
+// The marks drawn on the map itself: the tile read, and the ground its first fields are looked for in; again when the tile or zoom changes.
+function siteMarks() {
   const mk = `${site.at}|${cam.z.toFixed(3)}`;
   if (mk === siteKey) return;
   siteKey = mk;
@@ -210,7 +188,6 @@ function sitePins() {
   const near = VB['sim/hex'].bfs(w, site.at, Sim.landing.LANDING.soilSteps, VB['sim/walking'].walkable(w)).dist;
   for (const [j] of near) if (j !== site.at) siteG.poly(hexPoly(j, 0.96));
   siteG.fill({ color: 0xffffff, alpha: 0.22 });
-  siteAtG.clear();
   siteAtG
     .poly(hexPoly(site.at, 0.92))
     .fill({ color: site.read && site.read.ok ? 0xa8392b : 0x1f2a26, alpha: 0.45 })
