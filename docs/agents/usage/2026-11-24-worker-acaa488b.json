@@ -1,0 +1,124 @@
+{
+ "session": "acaa488b-9da3-5e80-b712-bea266784da2",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T20:56:51.745Z",
+ "end": "2026-11-24T21:19:45.152Z",
+ "wallMin": 22.9,
+ "activeMin": 22.9,
+ "prompts": 1,
+ "calls": 76,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 144,
+  "cacheWrite": 137831,
+  "cacheRead": 11789699,
+  "output": 45994
+ },
+ "context": {
+  "first": 84537,
+  "peak": 201620,
+  "firstEdit": 146141
+ },
+ "tools": {
+  "Bash": {
+   "calls": 77,
+   "bytes": 153082,
+   "seconds": 910
+  },
+  "Edit": {
+   "calls": 1,
+   "bytes": 81,
+   "seconds": 0.1
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 15,
+   "bytes": 53935
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 3,
+   "bytes": 21277
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 12,
+   "bytes": 12658
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 6,
+   "bytes": 11513
+  },
+  {
+   "tool": "Bash",
+   "what": "cat backlog/VB-1602.md",
+   "calls": 1,
+   "bytes": 9313
+  },
+  {
+   "tool": "Bash",
+   "what": "for id",
+   "calls": 1,
+   "bytes": 7870
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7684
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/sim.js",
+   "calls": 1,
+   "bytes": 5325
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 11,
+   "bytes": 4165
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -i",
+   "calls": 6,
+   "bytes": 3808
+  },
+  {
+   "tool": "Bash",
+   "what": "mkdir -p",
+   "calls": 1,
+   "bytes": 1994
+  },
+  {
+   "tool": "Bash",
+   "what": "git commit",
+   "calls": 1,
+   "bytes": 1869
+  }
+ ],
+ "weighted": 1581373,
+ "task": "VB-1240",
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 1581373,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}
