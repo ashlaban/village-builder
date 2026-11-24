@@ -304,7 +304,7 @@ for (const at of ['holds', 'spouse']) {
   assert.ok(/not handed on for/.test(hand(2, {})), 'a reason is named');
   assert.strictEqual(st.households[0].holder, 0);
   // the page's control (VB-1140): the opportunity names the first in line, open to the verb's check, and why not once an offer is open
-  const ho = (id) => Sim.opportunities(st, id).find((o) => o.verb === 'offer');
+  const ho = (id) => Sim.opportunities(st, id).find((o) => o.verb === 'offer' && o.handover);
   assert.ok(
     ho(0) && ho(0).why === null && ho(0).target === 2 && ho(0).handover.first.id === 2,
     'Hand the farm on is open',

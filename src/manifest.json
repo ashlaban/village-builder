@@ -136,6 +136,7 @@
   "sim/plans.js",
   "sim/asks.js",
   "sim/estimate.js",
+  "sim/voice.js",
   "sim/fit.js",
   "sim/day.js",
   "sim/jobs.js",

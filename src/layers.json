@@ -152,6 +152,7 @@
       "sim/exchange",
       "sim/days",
       "sim/hands",
+      "sim/voice",
       "sim/keep",
       "sim/help",
       "sim/lifecycle",

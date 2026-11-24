@@ -12,7 +12,8 @@ VB['sim/fit'] = (() => {
   const { eligible } = VB['sim/eligibility'];
   const { KINDS, isOpen, carriedOn } = VB['sim/kinds'];
   const Days = VB['sim/days'];
-  const Hands = VB['sim/hands'];
+  const Hands = VB['sim/hands'],
+    Voice = VB['sim/voice'];
   const { claimPrio } = VB['sim/farmclaims'];
   const { commonPrio } = VB['sim/commons'];
   // @tunable PLOT_PRIO: who clears a new plot, by role
@@ -53,7 +54,8 @@ VB['sim/fit'] = (() => {
     st.agents[p.id].away === undefined &&
     !unplanned(st, p.id) &&
     Days.on(st, p.id) === null &&
-    Hands.on(st, p.id) === null;
+    Hands.on(st, p.id) === null &&
+    !Voice.on(st, p.id); // on leave (VB-1555)
   // The stand mask of pawn p (VB-1545): the roles its household lacks today when p is the holder at work, else 0. A pass over the
   // household's members, for a reader outside an allotment (fit); allot makes it once from its own list.
   function standOf(st, p) {

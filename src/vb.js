@@ -117,6 +117,11 @@ VB.COUNTERS = {
   foodAsked: 'Asks for food made by a hungry head at its plan review, one an asked party (sim/help askFood, VB-691)',
   handsWeighed: 'Farms of the village read by a head short of hands, to choose whom to ask (sim/hands askFor, VB-470)',
   handsLent: 'Hands lent by a head asked for help, a pawn a day (sim/hands, VB-470)',
+  leaveLook: "Members looked at after the morning's allotment for a reason to ask leave (sim/voice, VB-1555)",
+  leaveWeighed: "Entries of a member's day read by its head weighing an ask of leave (sim/voice, VB-1555)",
+  leaveAsked: 'Asks of leave made by a member of its head (sim/voice, VB-1555)',
+  leaveGiven: 'Leaves given by a head (sim/voice, VB-1555)',
+  leaveRefused: 'Asks of leave refused by a head (sim/voice, VB-1555)',
   occasionAsked:
     "Pawns weighed as guests of an occasion: a village's people at its meeting, kin and housemates at a wedding or a death " +
     '(sim/occasions, VB-126), the adults asked to an ale evening and to the rite (VB-522)',

@@ -91,6 +91,24 @@ VB['sim/pastimes'] = (() => {
     if (p.bands) for (const [id, band] of p.bands) if (band === 1) add(id);
     return out;
   }
+  // Whether pawn p has anyone it might call on in its village, at home or not (sim/voice: a reason to ask leave for a visit): its parents,
+  // children and siblings, then its close friends, living on another farm of its village; the first such, or null.
+  function someoneToVisit(st, p) {
+    const f = farmOf(st, p);
+    if (!f || villageOf(st, p) === null) return null;
+    const there = (id) => {
+      if (id === null || id === undefined) return false;
+      const q = st.pawns[id],
+        g = q && q.alive ? farmOf(st, q) : null;
+      return !!g && g !== f && g.village === f.village;
+    };
+    if (there(p.father)) return p.father;
+    if (there(p.mother)) return p.mother;
+    for (const id of childrenOf(st, p.id)) if (there(id)) return id;
+    for (const id of siblingsOf(st, p.id)) if (there(id)) return id;
+    if (p.bands) for (const [id, band] of p.bands) if (band === 1 && there(id)) return id;
+    return null;
+  }
   // How much p would be with q: liking (never one it dislikes) and familiarity, as company weighs it.
   const liking = (st, p, id) => Math.max(0, 0.05 + opinionOf(st, p.id, id)) * (1 + Math.min(tieOf(st, p.id, id), 1));
 
@@ -211,6 +229,8 @@ VB['sim/pastimes'] = (() => {
   // @state agent.pastime: {kind (a key of PASTIMES), with (the pawn it is spent with, or null), farm (the farm it is spent at, or null),
   //   at, until (game hours)} or absent: the latest pastime it chose. It is the pawn's pastime only while `of` says so: nothing clears
   //   it, as nothing clears the latest talk. Written only by the verb `pastime`; plain data, saved.
+  // @state pawn.sat: absent, or the game day the pawn last went visiting or was visited (the pastime `visit`; VB-1555). Written only
+  //   by the verb `pastime`.
   // The pastime pawn id is at now, or null: its wait still runs (the head's call and a talk's end move agent.idleUntil), it has no task
   // in hand, it is at no occasion and on no road, and the day is the one it was chosen on (the night ends it).
   function of(st, id) {
@@ -285,6 +305,8 @@ VB['sim/pastimes'] = (() => {
         source: c.source,
       });
     issue(st, { actor: a.id, verb: 'idle', args: { until }, source: c.source });
+    // a visit made or received (VB-1555: a member asks leave when it has not visited near kin or a close friend for VOICE.days)
+    if (c.target === 'visit') p.sat = st.pawns[w].sat = Math.floor(st.t / DAY);
     a.pastime = {
       kind: c.target,
       with: P.partner ? w : null,
@@ -400,5 +422,5 @@ VB['sim/pastimes'] = (() => {
     }
     return out;
   }
-  return { IDLE, PASTIME, PASTIMES, ownTime, of, line, why, options };
+  return { IDLE, PASTIME, PASTIMES, ownTime, of, line, why, options, someoneToVisit };
 })();

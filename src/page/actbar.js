@@ -106,6 +106,8 @@ function menuHTML(id, opps) {
     if (o.when === 'offer') by.offers.push(o);
     else if (o.when === 'round') by.round.push(o);
     else if (o.verb === 'work') by[o.holder && o.holder.type === 'village' ? 'village' : 'house'].push(o);
+    else if (o.verb === 'offer' && o.leave)
+      by.self.push(o); // leave asked of its head (VB-1555): its own time
     else if (o.verb === 'callAle' || o.verb === 'offer')
       by.house.push(o); // the household's act, its holder's to choose (VB-522)
     else if (o.verb === 'argue' || o.verb === 'dropCause')
@@ -148,6 +150,16 @@ function menuHTML(id, opps) {
         o.pastime.name,
         o.pastime.note,
         o.why,
+      );
+    // leave asked of its head (VB-1555): the rest of the working day free, with the head's likely answer as its pawn sees it
+    const leave = by.self.find((o) => o.verb === 'offer' && o.leave);
+    if (leave)
+      h += actRow(
+        cmdAttrs(leave),
+        'home',
+        `Ask ${leave.leave.head} for leave`,
+        `The rest of the working day to yourself; ${leave.leave.likely ? 'likely yes' : 'likely no: there is work that will not wait'}`,
+        leave.why,
       );
     // the ale evenings and rites called within reach (VB-522)
     for (const o of by.self.filter((x) => x.verb === 'attend')) {

@@ -143,6 +143,14 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'hour',
+      at: { hour: [WORK[0] - 1, WORK[1]] },
+      when: (st, c) => c.hour === WORK[0] - 1 || !!st.leaves,
+      owner: 'sim/voice',
+      note: "a member's leave begins at its hour; after the morning's allotment, the members' own asks of leave (VB-1555)",
+      run: (st, c) => VB['sim/voice'].hour(st, c),
+    },
+    {
+      every: 'hour',
       at: { hour: WORK[1] },
       owner: 'sim/agents',
       note: 'the work day ends: the tasks under work are reckoned (VB-472), tasks at the side let go, and everyone free goes home',
