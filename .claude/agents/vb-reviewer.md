@@ -2,6 +2,7 @@
 name: vb-reviewer
 description: Reviews one finished backlog task of the village builder (VB-NNN) before it is merged, with a fresh context: the diff against the task's criteria and AGENTS.md's conventions. Read-only; returns a verdict and at most ten findings. Give it the task ID, the branch and the base it forked from (usually origin/main).
 tools: Bash, Read, Grep, Glob
+model: opus
 ---
 # One review
 

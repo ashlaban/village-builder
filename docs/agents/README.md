@@ -36,3 +36,5 @@ it reviewed by a fresh `vb-reviewer` sub-agent (`.claude/agents/vb-reviewer.md`)
 session with the same command and one task fewer. A chain stops when no such task is ready, main is red, two tasks in a row end
 `needs-review`, or N is reached. The system allows 8 sessions in a chain, so for N above 8 the first session only coordinates: it runs
 chains of 7, one after another, each telling it when it ends. Chains never run side by side.
+Each session's model is chosen as the night's, by the task it will take (Sonnet for S, Opus for M and L, the strongest offered for a
+plan), and the reviewer is always Opus.

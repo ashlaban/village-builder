@@ -42,8 +42,8 @@ The system lets one chain hold at most 8 sessions, counting the first. Hence:
    orchestrator runs here.
 2. The ceiling: about 120 model calls. When what is left will not fit, stop building: commit what you have with `npm test` passing,
    tick what is met, write the handover in the task's notes (what is built, what is left by criterion, where to start), and set it `needs-review`.
-3. **Review.** With the work committed and verified, start one `vb-reviewer` sub-agent in the foreground, on the same model as
-   yours, with the prompt "Task VB-NNN; branch <yours>; base origin/main". If that agent type is not offered, start a general-purpose
+3. **Review.** With the work committed and verified, start one `vb-reviewer` sub-agent in the foreground, on `opus` whatever
+   your own model (Kim, 24 November), with the prompt "Task VB-NNN; branch <yours>; base origin/main". If that agent type is not offered, start a general-purpose
    one told to read `.claude/agents/vb-reviewer.md` and follow it. Then:
    - each `blocker` and `fix`: mend it, or say in the task's notes why it stands; then `npm run verify` again. One round: do not review again;
    - each `note`: a line in the task's notes, or a follow-up task when it is work.
@@ -62,7 +62,7 @@ The system lets one chain hold at most 8 sessions, counting the first. Hence:
    Surfacing), and last `Chain <T>, link <K>; <N - 1> to go`. Merge it with a merge commit. If main moved meanwhile, repeat step 1 once.
 3. Hand on. `R` is `R + 1` if the task ended `needs-review`, else 0.
    - **Stop** if `N` is 1, or `R` is 2 (two tasks in a row unfinished: something is wrong that a fresh session will not mend).
-   - Otherwise start the next session (`create_session`, inheriting this session's environment and model), titled
+   - Otherwise start the next session (`create_session`, inheriting this session's environment, its model by **Models** below), titled
      `Chain <T> link <K + 1>`, with `outcome_branch` `claude/chain-<T>-<K + 1>` and exactly the prompt
      `/chain SIZE <N - 1> --tag T --link <K + 1> --streak R` (plus `--report-to SESSION` if you were given one). If the system refuses
      it (the limit of 8), **stop** (reason "the chain limit").
@@ -72,11 +72,17 @@ The system lets one chain hold at most 8 sessions, counting the first. Hence:
 (count your own task if you took one; the links before you left their counts in their PRs' last line, or count the chain's merged PRs);
 and end with that line as your last message.
 
+**Models** (Kim, 24 November, as the nightly run, `docs/agents/worker.md`). A session's model is set when it is started, before it
+chooses, so whoever starts it looks ahead: the task it will take is the first of `node tools/backlog.js next 10 --size SIZE --unattended`
+that no open PR names (as in section 1, step 3). Its model is `sonnet` for size S and `opus` for M and L, and for a task named `Plan: ...` the
+strongest model offered, whatever its size: `claude-fable-5-2` today, the newest of the model IDs your system prompt lists; if
+`create_session` refuses it, `opus`. No task found: start nothing, and **stop** (reason "no ready SIZE task").
+
 ## 4. The coordinator (N above 8)
 You implement nothing; your context stays small. Every chain you start is 7 links, the 8 sessions the system allows counting you, but the last, which takes what is left.
 0. Name this session `Chain <T>: <N> SIZE tasks (coordinator)`, and on each chain's message update it to
    `Chain <T>: <count>/<N> SIZE tasks (coordinator)`; when it ends, `done · ` or `stopped · ` in front.
-1. Start the first chain: `create_session` titled `Chain <T> link 1`, `outcome_branch` `claude/chain-<T>-1`, prompt
+1. Start the first chain: `create_session`, its model by **Models**, titled `Chain <T> link 1`, `outcome_branch` `claude/chain-<T>-1`, prompt
    `/chain SIZE <min(7, N)> --tag T --link 1 --report-to <this session's id>`. Then schedule a check-in (`send_later`, 180 minutes)
    that says "chain <T>: check the running chain", and end your turn. The chain's last link will message you.
 2. On a chain's message: add its tasks taken to your count, and delete the pending check-in. If its reason was "no ready SIZE task" or
