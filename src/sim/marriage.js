@@ -44,6 +44,14 @@ VB['sim/marriage'] = (() => {
       const t = trustOfHolder(st, id); // a holder whose farm is held in trust goes back to it first (VB-309)
       if (t) goBack(st, t, 'married', 'round');
     }
+    // the home may have gone while the trusts ended (VB-1481): the couple lives where one of them now lives, on a live farm
+    if (st.households[home].dissolved) {
+      const live = [mId, fId]
+        .map((id) => st.pawns[id].household)
+        .find((h) => h !== null && !st.households[h].dissolved);
+      if (live === undefined) return; // no home to go to: no wedding (the match is made again)
+      home = live;
+    }
     m.kinPush = f.kinPush = null; // pushed at an earlier village's round, she takes the pull of the round that married her (VB-277)
     st.unions.push({ id: st.unions.length, a: mId, b: fId, start: st.t, end: null, kind: 'marriage' });
     const olds = [mId, fId].map((id) => st.pawns[id].household).filter((h) => h !== null && h !== home);
