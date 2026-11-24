@@ -6,7 +6,7 @@ const BUILD_WHAT = {
   farmstead: {
     name: 'Farmstead',
     icon: () => actIcon('home'),
-    line: 'A shelter to begin with: a roof for the nights. It is built up in place later.',
+    line: 'A shelter to begin with, to sleep under at night. It is built up in place later.',
     here: 'Build the farmstead here',
   },
 };
@@ -46,6 +46,11 @@ const LADDER = {
     name: 'Cottage',
     icon: () => actIcon('home'),
     line: 'Log walls and a turf roof, in place of the shelter: a house to winter in.',
+  },
+  timber: {
+    name: 'Timber house',
+    icon: () => goodIcon('wood'),
+    line: 'Room for ten against six, and a smaller fire: it burns less wood than a cottage.',
   },
   foundation: {
     name: 'Stone foundation',
@@ -97,7 +102,14 @@ function ladderHTML(f) {
   };
   const stone = V.foundation && V.foundation.grade === 'stone' ? ', on stone' : '';
   let h = `<p class="sub">Stands now: <b>${esc(ladderOf(V.rung).name)}</b>${stone}. ${esc(ladderBuilding(V))}</p>`;
-  for (const e of V.next) h += row(e.what, e, 'upgrade', false);
+  // the house's next rung under way is farmView's own `building` (its entry has none)
+  for (const e of V.next)
+    h += row(
+      e.what,
+      { ...e, building: V.building && V.building.what === e.what ? V.building : null },
+      'upgrade',
+      false,
+    );
   if (V.foundation) h += row('foundation', V.foundation, 'foundation', V.foundation.grade === 'stone');
   for (const o of V.outbuildings) h += row(o.what, o, 'outbuilding', o.built);
   return h;
@@ -134,23 +146,42 @@ function buildPick(what) {
   hoverDirty = true;
 }
 // The tiles round the camp that would take what is placed (Sim.placeWhy), within the reach of the site's reading; once an hour.
+// Placing is unrestricted (VB-1639; Kim: "unrestricted, but it will be more difficult to survive"): the tiles in view only are asked
+// (Sim.placeWhy, cheap for any tile), again when the view or the hour changes; none when the land is too far out to tap a tile.
+const PLACE_MAX = 900; // tiles in view asked at most
 function placeTiles(f) {
-  const hour = Math.floor(st.t),
-    key = `${hud.place}|${hour}|${f.house}`;
+  const [x0, y0, x1, y1] = viewRect(w.R),
+    q = (v) => Math.round(v / (w.R * 4)),
+    key = `${hud.place}|${Math.floor(st.t)}|${f.house}|${q(x0)},${q(y0)},${q(x1)},${q(y1)}`;
   if (hud.placeTiles && hud.placeTiles.key === key) return hud.placeTiles.set;
   const set = new Set(),
-    R = Sim.landing.LANDING.soilSteps;
-  for (const [j] of VB['sim/hex'].bfs(w, f.house, R, () => true).dist)
-    if (Sim.placeWhy(st, hud.place, j) === null) set.add(j);
+    seen = [];
+  for (let j = 0; j < w.N && seen.length <= PLACE_MAX; j++)
+    if (w.hx[j] >= x0 && w.hx[j] <= x1 && w.hy[j] >= y0 && w.hy[j] <= y1 && !w.water[j]) seen.push(j);
+  if (seen.length <= PLACE_MAX) for (const j of seen) if (Sim.placeWhy(st, hud.place, j) === null) set.add(j);
   hud.placeTiles = { key, set };
   return set;
+}
+// The move of the farm from its landing to tile i (Sim.moveCost), in words: how far, the trips, the days, and the frost.
+function moveWords(i) {
+  const M = Sim.moveCost ? Sim.moveCost(st, i) : null;
+  if (!M || !M.steps) return '';
+  const trips = (n) => `${n} ${n === 1 ? 'trip' : 'trips'}`;
+  return (
+    `${M.steps} ${M.steps === 1 ? 'tile' : 'tiles'} from the landing. The goods stay at the landing and are fetched: ` +
+    `${trips(M.trips.cart)} by cart (${trips(M.trips.back)} on the back without it), about ${hudSpan(M.hours)} of work, ` +
+    'the animals driven over first. What still lies at the landing at the frost is lost.' +
+    (M.frost ? ' The frost comes before it can all be fetched.' : '')
+  );
 }
 // Each frame in play (renderHud): the line of help while placing, and the tiles that take it marked on the map.
 function renderBuild(f) {
   if (hud.place && !Sim.buildMenu(st).some((e) => e.what === hud.place && e.ok)) hud.place = null; // it can no longer be placed
   const B = hud.place ? BUILD_WHAT[hud.place] : null;
   u2.help.hidden = !B;
-  const key = B ? `${hud.place}|${Math.floor(st.t)}|${cam.z.toFixed(3)}|${hud.at}` : '';
+  const key = B
+    ? `${hud.place}|${Math.floor(st.t)}|${cam.z.toFixed(3)}|${Math.round(cam.x / w.R)},${Math.round(cam.y / w.R)}|${hud.at}`
+    : '';
   if (B && u2.help.dataset.what !== hud.place) {
     u2.help.dataset.what = hud.place;
     u2.help.innerHTML =
@@ -183,6 +214,8 @@ function placeCall(i) {
       h += `<div class="u2-row">${SITE_ICON[k]}<b>${esc(wd[k][0])}</b>${sitePips(r[k].band)}</div>`;
     h += `</div><p class="sub">${esc(wd.water[1])} ${esc(wd.soil[1])}</p>`;
   }
+  const move = why ? '' : moveWords(i);
+  if (move) h += `<p class="u2-move${Sim.moveCost(st, i).frost ? ' bad' : ''}">${esc(move)}</p>`;
   if (hud.msg) h += `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>`;
   h += why
     ? `<p class="u2-msg">${esc(siteCap(why.replace(/\btile \d+/g, 'this tile')))}.</p>`
