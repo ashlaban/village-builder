@@ -52,6 +52,8 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2-pin svg { width: 20px; height: 20px; }
 .u2-pin b { position: absolute; right: -9px; top: -7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; border: 1.5px solid var(--ink2); background: var(--paper); color: var(--ink2); font: 800 11px/15px var(--body); text-align: center; }
 .u2-pin.press1 { background: #f3dfa6; } .u2-pin.press2 { background: var(--red); color: #fff7ec; } .u2-pin.work { background: var(--ink2); color: var(--paper); }
+.u2-pin.plan { border-width: 2.5px; }
+.u2-pin s { position: absolute; left: -9px; top: -7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 4px; background: var(--ink2); color: var(--paper); font: 800 11px/18px var(--body); text-align: center; text-decoration: none; }
 .u2-pin.next { border-style: dashed; opacity: 0.85; }
 .u2 .far .u2-pin { width: 22px; height: 22px; } .u2 .far .u2-pin svg { width: 15px; height: 15px; } .u2 .far .u2-pin b { display: none; }
 .u2-gauges { pointer-events: none; display: flex; gap: 3px; padding: 3px 5px; margin-top: 30px; border-radius: 8px; border: var(--line); background: var(--glass); box-shadow: 0 1px 3px rgba(15, 22, 19, 0.4); }

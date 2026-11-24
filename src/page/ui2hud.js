@@ -284,6 +284,32 @@ function fieldPin(fd) {
     left = C.sow[2] - c.sday + 1;
   return [actIcon(fd.stage === 'plowed' ? 'sow' : 'hoe'), open ? left : '', open ? (left <= 3 ? 2 : 1) : 0];
 }
+// A span of working hours in the player's units: hours under a day's work, else days of work to the half.
+const hudSpan = (h) => {
+  const L = Sim.WORK[1] - Sim.WORK[0];
+  if (!Number.isFinite(h)) return '?';
+  if (h < L * 0.75) return `${Math.max(1, Math.round(h))} h`;
+  const d = Math.round((h / L) * 2) / 2;
+  return `${Number.isInteger(d) ? d : d > 1 ? `${Math.floor(d)}½` : '½'} ${d === 1 ? 'day' : 'days'}`;
+};
+// The whole days from now until game hour t (1: done today).
+const hudDaysTo = (t) => Math.max(1, Math.floor(t / Sim.DAY) - Math.floor(st.t / Sim.DAY) + 1);
+const HUD_VERDICT = { 'in time': 0, tight: 1, late: 2 };
+// An agenda entry's verdict: its own, or the whole chain's it leads to (a field broken now, sown in time?).
+const hudVerdict = (e) => (e.then && e.then.verdict) || e.verdict || null;
+// One line of words for an agenda entry: the hours it takes as the settler reckons them, and how it stands against its deadline.
+function hudStake(e) {
+  let t = `About ${hudSpan(e.hours.mid)} of work`;
+  if (e.then) {
+    const more = e.then.steps.reduce((n, x) => n + x.hours.mid, 0);
+    t += `, then ${hudSpan(more)} more before ${e.then.crop} is sown`;
+    const d = e.then.deadline;
+    if (d)
+      t += `: ${e.then.verdict === 'late' ? 'too late for' : e.then.verdict === 'tight' ? 'tight for' : 'in time for'} ${d.what}`;
+  } else if (e.deadline)
+    t += `: ${e.verdict === 'late' ? 'too late for' : e.verdict === 'tight' ? 'tight for' : 'in time for'} ${e.deadline.what}`;
+  return t + (e.why ? `. ${siteCap(e.why)}` : '');
+}
 const hudPin = (icon, n = '') => `${icon}${n === '' ? '' : `<b>${n}</b>`}`;
 // The tiles the next field or meadow may be laid on (page/plan's planSites, the head's own checks), read once an hour.
 function hudSites(hh) {
@@ -328,10 +354,12 @@ function hudCall(i, id, hh, f) {
           ? 'Marked for the next hay meadow.'
           : waterLines(i)[0] || '';
   }
+  const A = Sim.agenda(st);
   jobs.slice(0, 3).forEach((o, n) => {
+    const e = A && (A.open.find((x) => x.key === o.target) || A.queue.find((x) => x.key === o.target));
     acts +=
       `<button type="button" class="u2-act${n ? '' : ' go'}" data-hud="job" data-target="${esc(o.target)}" data-site="-1">${esc(Sim.KINDS[o.kind].name)}` +
-      `<small>${o.when === 'now' ? 'Done next' : 'Queued for when it opens'}</small></button>`;
+      `<small>${e ? esc(hudStake(e)) : o.when === 'now' ? 'Done next' : 'Queued for when it opens'}</small></button>`;
   });
   if (i !== f.house && fi < 0 && mi < 0) {
     const S = hudSites(hh);
@@ -358,7 +386,17 @@ function hudMarks(id, hh, f) {
     V = Sim.headView(st, hh.id),
     open = VB['sim/projects'].openOf(st, hh.id),
     site = open && Number.isInteger(open.place) ? open.place : -1,
-    key = `${Math.floor(st.t)}|${hud.at}|${hud.msg ? hud.msg.text : ''}|${hud.tab}|${st.player.queue.length}|${site}|${V.tiles.field}|${V.tiles.meadow}`;
+    plan = st.player.queue.map((q) => q.target).join(),
+    key = [
+      Math.floor(st.t),
+      hud.at,
+      hud.msg ? hud.msg.text : '',
+      hud.tab,
+      plan,
+      site,
+      V.tiles.field,
+      V.tiles.meadow,
+    ].join('|');
   if (key === hud.markKey) return;
   hud.markKey = key;
   const marks = [];
@@ -377,6 +415,22 @@ function hudMarks(id, hh, f) {
   for (const what of ['field', 'meadow'])
     if (V.tiles[what] >= 0 && V.tiles[what] !== site && V.tiles[what] !== hud.at)
       marks.push({ id: `next${what}`, tile: V.tiles[what], cls: 'u2-pin next', html: hudPin(goodIcon(what)) });
+  // the plan's pins: each queued job at its tile, its place in the queue at one shoulder and the days until it is done at the other;
+  // a tile shows one pin, the plan's before the field's
+  const A = Sim.agenda(st),
+    planned = new Map();
+  if (A)
+    A.queue.forEach((e, k) => {
+      if (e.site < 0 || !e.kind || planned.has(e.site) || e.site === hud.at) return;
+      planned.set(e.site, {
+        id: `q${e.site}`,
+        tile: e.site,
+        cls: `u2-pin plan press${HUD_VERDICT[hudVerdict(e)] || 0}`,
+        html: `<s>${k + 1}</s>${hudPin(actIcon(KIND_ICON[e.kind] || 'hoe'), Number.isFinite(e.ends) ? hudDaysTo(e.ends) : '')}`,
+      });
+    });
+  for (let k = marks.length - 1; k >= 0; k--) if (planned.has(marks[k].tile)) marks.splice(k, 1);
+  marks.push(...planned.values());
   if (O && f.house !== hud.at)
     marks.push({
       id: 'house',
