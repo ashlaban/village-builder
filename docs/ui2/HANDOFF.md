@@ -56,6 +56,30 @@ Drafts page (screenshots and both rounds' findings, newest first): https://claud
 - No playtest round has been run on any of the second session's work. VB-1620 splits `page/ui2hud` (over the lint's line).
 - The agenda's estimate assumes the pawn's own hands only.
 
+## After the third batch: plant task, roof warning, and round 3 of playtests (24 November)
+- VB-1621: a plant task (`Sim.plan(st, 'add', {plant: tile})`) carries a field from clearing to sowing as one task; the callout
+  offers "Plant this field", and "Break a field here" plans the field through when begun at once. Seen in the page: one task, the
+  field sown on spring day 7.
+- What took of the settler's health last night is an icon at the house (`hudAils`: no roof is the red cold mark), words in its callout.
+- Round 3 (two Opus players, phone and desktop, on the build before these two; neither reached the next spring; the desktop year
+  failed: barley lost to frost, no hay, food and wood at 0 in winter). Open, by weight:
+  1. Hay cannot be planned by hand: no meadow or mowing is offered anywhere; "Make a hay meadow here" only marks the tile. Likewise
+     "Break a field here" with work under way only marks, adds nothing to the plan, and the tile then offers only "Walk here".
+  2. Two plans compete: the old sheets (Today's queue and "Do next yourself", Plan's building and order of work) against the plan
+     bar. Both players queued from Today and saw nothing in the bar. The sheets must go, or become views of the one plan.
+  3. Nothing warns when a crop is ripe or a window is closing while the plan holds no task for it (the frost took the barley unseen
+     at 30x); no reaping was planned and none offered ahead of time.
+  4. The day strip showed overlaps and work in the sleeping hours (hand-queued work laid over sleep and routine); routine kinds
+     vanish from it under a long task, so one cannot tell whether the animals are fed.
+  5. No reading of health or mood on the screen outside the sleep card; "No sleep" seemed to cost nothing (owed 4 to 7 hours).
+  6. Numbers are not understood: the round badge on pins and chips (days until done), the two numbers on a task chip, the number
+     on the sleep chip against the card's (floor against round), the strip's right-hand number, faded routine chips (done today),
+     the house's three bars. The rule "a number is days" is not learnable without a word on the first tap.
+  7. Pause does not hold after some clicks; the camera moves by itself (following), so taps land on other tiles; "Do next
+     yourself" reflows under the finger; the banner hides a callout's close on phone; the sleeping hours are forgotten by "No sleep".
+  8. Sowing offered late with contradicting words ("too late for ... to be sown today"); hoeing called ploughing.
+  Worked: the sleep card, the deadline banner and ribbon, the hours-and-verdict line in callouts, reordering a task, Stores' bars.
+
 ## What is built (first session)
 - The flag: `UI2` (`src/page/ui2.js`). On by default; `?classic` in the address, or `window.VB_CLASSIC` (set by `tests/lib/page.js`
   for the page's tests and tools), shows the old interface. The old panels are hidden by one rule in `src/ui2.css`, not removed.
