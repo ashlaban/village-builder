@@ -23,6 +23,7 @@ VB['sim/scenarios'] = (() => {
   // Also for a state made outside the scenarios (tests/lib/tiny.js).
   function startStreams(st, seedNum) {
     splitStreams(st, seedNum);
+    VB['sim/passage'].unshut(st); // a world seeded again holds no closed field of the run before
     VB['sim/weather'].seedWeather(st, cal(st.t)); // last year's seasons and this spring's (VB-354), from the weather's own stream
     const c = cal(st.t),
       W = VB['sim/weather'];

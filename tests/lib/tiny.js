@@ -74,6 +74,17 @@ function tinyState(w, villages, opt = {}) {
   if (opt.herds) { VB['sim/herds'].populousHerds(st); VB['sim/meadows'].placeMeadows(st); }
   if (opt.outland !== false) VB['sim/territory'].seedOutland(st, opt.outland !== 'claimed'); // as the populous scenario; 'claimed': as the founders
   VB['sim/scenarios'].startStreams(st, opt.seed ?? 1);
+  if (!opt.winter) openGround(st);
+  return st;
+}
+// Open ground (VB-808): every band of the climate in its summer state and no date due before the autumn's reckoning, for a test of a
+// local mechanism whose hours were set on summer ground (a run starts on spring day 1, under the last of the winter's snow and ice). The
+// winter's ground is tests/winter.js's; tinyState opens it unless given {winter: true}.
+function openGround(st) {
+  if (!st.climate) return st;
+  for (const b of st.climate.bands) b.state = 'open';
+  st.climate.due.length = 0;
+  if (st.w.ground) VB['sim/climate'].layGround(st);
   return st;
 }
 // Sets village vid's practice of the given customs: {key: option key}.
@@ -97,4 +108,4 @@ function setForesight(st, id, skill) {
 function ordinaryWeather(st) {
   for (const y of st.weather) Object.assign(y, { seasons: [0, 1, 2, 3].map(() => [0, 0]), thaw: 0, frost: VB['sim/rules'].SEASON_DAYS - 1 });
 }
-module.exports = { tinyWorld, tinyState, tileAt, setPractice, setForesight, ordinaryWeather, CHARS };
+module.exports = { tinyWorld, tinyState, tileAt, setPractice, setForesight, ordinaryWeather, openGround, CHARS };

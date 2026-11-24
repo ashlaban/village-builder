@@ -273,7 +273,7 @@ VB['sim/fieldplans'] = (() => {
     if (!n) return null;
     const hands = handsOf(st, hh),
       days = hands ? Math.ceil(hours / (hands * HARVEST_DAY)) : Infinity,
-      left = Math.max(0, VB['sim/weather'].frostDay(st) - c.sday);
+      left = Math.max(0, VB['sim/weather'].frostExpected(st) - c.sday); // the frost the head expects (VB-1175)
     return { fields: n, days, left, late: days > left, hands };
   }
   return {

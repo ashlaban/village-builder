@@ -1,0 +1,202 @@
+{
+ "session": "6ce4a1e6-5583-536a-86c6-5b21e7169590",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T20:32:51.087Z",
+ "end": "2026-11-24T20:46:06.383Z",
+ "wallMin": 13.3,
+ "activeMin": 13.3,
+ "prompts": 0,
+ "calls": 57,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 108,
+  "cacheWrite": 122290,
+  "cacheRead": 13237656,
+  "output": 69944
+ },
+ "context": {
+  "first": 164761,
+  "peak": 285286,
+  "firstEdit": 184935,
+  "series": [
+   [
+    5,
+    186708
+   ],
+   [
+    10,
+    198850
+   ],
+   [
+    15,
+    204924
+   ],
+   [
+    20,
+    214744
+   ],
+   [
+    25,
+    230212
+   ],
+   [
+    30,
+    235583
+   ],
+   [
+    35,
+    251536
+   ],
+   [
+    40,
+    258850
+   ],
+   [
+    45,
+    265386
+   ],
+   [
+    50,
+    276404
+   ],
+   [
+    55,
+    284076
+   ],
+   [
+    57,
+    285286
+   ]
+  ]
+ },
+ "tools": {
+  "Bash": {
+   "calls": 53,
+   "bytes": 96899,
+   "seconds": 201.1
+  },
+  "Write": {
+   "calls": 4,
+   "bytes": 584,
+   "seconds": 0.1
+  },
+  "Edit": {
+   "calls": 1,
+   "bytes": 87,
+   "seconds": 0.1
+  },
+  "Read": {
+   "calls": 2,
+   "bytes": 454960,
+   "seconds": 0
+  }
+ },
+ "largest": [
+  {
+   "tool": "Read",
+   "what": "../../../tmp/claude-0/-home-user-village-builder/6ce4a1e6-5583-536a-86c6-5b21e7169590/scratchpad/usage.png",
+   "calls": 2,
+   "bytes": 454960
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 5,
+   "bytes": 19728
+  },
+  {
+   "tool": "Bash",
+   "what": "cat tests/agent-usage.js",
+   "calls": 1,
+   "bytes": 19182
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 23,
+   "bytes": 17073
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 14465
+  },
+  {
+   "tool": "Bash",
+   "what": "wc -l",
+   "calls": 1,
+   "bytes": 2883
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/agent-usage.js",
+   "calls": 2,
+   "bytes": 2649
+  },
+  {
+   "tool": "Bash",
+   "what": "node tests/agent-usage.js",
+   "calls": 1,
+   "bytes": 2344
+  },
+  {
+   "tool": "Bash",
+   "what": "cat tools/help.js",
+   "calls": 1,
+   "bytes": 2172
+  },
+  {
+   "tool": "Bash",
+   "what": "for pat",
+   "calls": 1,
+   "bytes": 1871
+  },
+  {
+   "tool": "Bash",
+   "what": "git add",
+   "calls": 1,
+   "bytes": 1833
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 2,
+   "bytes": 1816
+  }
+ ],
+ "repeats": {
+  "reads": 0,
+  "readBytes": 0,
+  "commands": 0,
+  "commandBytes": 0
+ },
+ "tests": {
+  "runs": 21,
+  "failed": 6,
+  "streak": 2
+ },
+ "compactions": 0,
+ "continuation": {
+  "continues": false,
+  "handoverBytes": 0,
+  "callsToEdit": 4,
+  "contextToEdit": 20174
+ },
+ "weighted": 1826456,
+ "task": "VB-1615",
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 1826456,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}

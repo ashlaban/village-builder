@@ -2,7 +2,7 @@
 // changed tile could have touched
 VB['sim/routes'] = (() => {
   const { hexSteps } = VB['sim/hex'];
-  const { through, stepCost, trailStep, discomfort, invalidateReach, PATHS, DISCOMFORT } = VB['sim/walking'];
+  const { through, stepCost, trailStep, discomfort, invalidateReach, recost, PATHS, DISCOMFORT } = VB['sim/walking'];
   const { SPEED } = VB['sim/rules'];
   // @tunable ROUTE: the route search's bounds and its cache
   // hours: the longest walk the villages' table and a pawn's route search reach (design.md, The journey scale: 67 hours, the far side of
@@ -397,8 +397,18 @@ VB['sim/routes'] = (() => {
   const costChanged = (st, tile) => {
     if (!st.routeDirty.has(tile)) note(kept(st).today, st.w.COLS, tile);
     st.routeDirty.add(tile);
+    recost(st.w, tile); // the compiled ground (sim/walking, VB-808)
     invalidateReach(st.w, tile);
   };
+  // The ground of a band changed with the season (VB-808: a winter's date, sim/climate): the routes cached are emptied now, not at the
+  // day's end, and none set aside is taken back (thousands of tiles changed at once).
+  function groundChanged(st) {
+    VB.count.routeRefresh += st.pathCache.size;
+    st.pathCache.clear();
+    st.routeCosts = null;
+    st.routeKept = null;
+    st.routeDirty.clear();
+  }
   // Once a game day: when any tile changed cost, empty the cache (the straight-walk fallbacks with it), setting aside the routes searched
   // (above), newest last, with the day's changed tiles in the log; at most ROUTE.cacheMax routes, and none older than the log, the oldest
   // dropped first.
@@ -428,5 +438,16 @@ VB['sim/routes'] = (() => {
     st.routeDirty.clear();
   }
 
-  return { ROUTE, findRoute, routeCost, reachCosts, trailReach, route, hasRoute, costChanged, refreshRoutes };
+  return {
+    ROUTE,
+    findRoute,
+    routeCost,
+    reachCosts,
+    trailReach,
+    route,
+    hasRoute,
+    costChanged,
+    groundChanged,
+    refreshRoutes,
+  };
 })();

@@ -8,12 +8,12 @@
 // Cost is one weighted number, in fresh-input tokens: input + 1.25 × cache writes + 0.1 × cache reads + 5 × output (about the prices'
 // ratios). The summary gives the run's three measures: weighted cost a finished task by size, the overhead (the orchestrator's share
 // of the cost, and the median boot), and with --results the share of tasks done at the first attempt.
-const fs = require('fs'), os = require('os'), path = require('path');
+const fs = require('fs'), path = require('path'), transcript = require('./lib/transcript.js');
 const USAGE = `usage: node tools/agent-usage.js [FILE.jsonl] [--json] [--turns] [--since T] [--until T] [--label NAME] [--task VB-NNN] [--out DIR] [--results FILE]
-       node tools/agent-usage.js --history DIR
+       node tools/agent-usage.js --history DIR [--periods FILE [--from DATE] [--to DATE] [--eligible|--ineligible] [--json]] [--estimate [--from DATE] [--json]]
   FILE        a transcript; default the newest under ~/.claude/projects (this session's, when run from a session)
   --turns     a line per user prompt; --since/--until T limit to entries from/before an ISO time
-  --label     the run's role (worker, reviewer, project-manager); --out DIR also writes DIR/<date>-<label>-<session>.json
+  --label     the run's role (worker, reviewer, project-manager); --out DIR also writes DIR/<date>-<label>-<session>[-<task>].json
   --task      the one task this session worked on, when it ran no sub-agents: kept in the run's file as "task" (tools/usage-page.js reads it);
               leave it out for a session that worked on several tasks or on none
   --results   the tasks' outcomes, from  node tools/inbox.js results --json : joins size and status to the sub-agents by task
@@ -22,7 +22,13 @@ const USAGE = `usage: node tools/agent-usage.js [FILE.jsonl] [--json] [--turns] 
   --arm       control | ineligible: a session whose task was not reviewed (tools/review.js eligible), kept as "review" with its arm
               A sub-agent is a reviewer by its meta file (agentType vb-review) or its prompt ("Review VB-NNN"): its cost is apart from the
               task's implementation, and it is left out of the first-pass share and the cost a done task
-  --history   medians and quartiles by label over the files in DIR`;
+  --history   medians and quartiles by label over the files in DIR
+  --periods   with --history: compare the periods that the rows of FILE (docs/agents/changes.md) start, by run kind, size and model:
+              a task's cost summed over its runs, calls, runs, context, repeats, test failures, continuations and the quality proxies
+              (tools/lib/periods.js); --from/--to DATE keep the tasks that started in that range; --eligible keeps the tasks whose
+              peak context reached the reset's threshold (tools/lib/ceiling.js, VB-1616), --ineligible the others
+  --estimate  with --history: what a voluntary context reset at T tokens could save against the ceiling of 120 calls alone, over the
+              runs from --from on, for T, the handover and the calls of reading again (tools/lib/reset-estimate.js; an upper bound)`;
 
 const args = process.argv.slice(2);
 const option = (k) => { const i = args.indexOf(k); if (i < 0) return null; const v = args[i + 1]; args.splice(i, 2); return v; };
@@ -30,36 +36,53 @@ const flag = (k) => { const i = args.indexOf(k); if (i < 0) return false; args.s
 if (flag('--help') || flag('-h')) { console.log(USAGE); process.exit(0); }
 const asJson = flag('--json'), turns = flag('--turns'), since = option('--since'), until = option('--until');
 const reviewFile = option('--review'), arm = option('--arm');
-const label = option('--label') || '-', out = option('--out'), historyDir = option('--history'), resultsFile = option('--results'), task = option('--task');
+const label = option('--label') || '-', out = option('--out'), historyDir = option('--history'), periodsFile = option('--periods'),
+  estimateOnly = flag('--estimate'), eligible = flag('--eligible'), ineligible = flag('--ineligible'),
+  fromDate = option('--from'), toDate = option('--to'), resultsFile = option('--results'), task = option('--task');
 const fail = (msg) => { console.error('agent-usage: ' + msg); process.exit(1); };
 const k = (n) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(n));
 const kb = (n) => (n >= 1000 ? (n / 1000).toFixed(1) + ' KB' : n + ' B');
 
-function newest() {
-  const base = path.join(process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude'), 'projects');
-  const files = fs.existsSync(base) ? fs.readdirSync(base).flatMap((d) => {
-    const dir = path.join(base, d);
-    return fs.statSync(dir).isDirectory() ? fs.readdirSync(dir).filter((f) => f.endsWith('.jsonl')).map((f) => path.join(dir, f)) : [];
-  }) : [];
-  if (!files.length) fail(`no transcript under ${base}; give a FILE`);
-  return files.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0];
+const newest = () => transcript.newest() || fail(`no transcript under ${transcript.projects()}; give a FILE`);
+
+// Heuristics on tool inputs and results (VB-1615): what a call read, whether it ran a test, and whether that failed. A read is a file,
+// a range of one or a document section; read again with no edit to it between, it is a repeat. A command run again, identical, with no
+// edit at all between, is a repeat. A Bash command that may change files (sed -i, a redirect, git merge, checkout, reset...) is an edit.
+const READS = /^(cat|head|tail|sed -n|grep|rg|wc)\b|^node tools\/doc\.js\b/,
+  MUTATES = /\bsed -i\b|>\s*[^&\s|]|\btee\b|\bgit (merge|checkout|reset|pull|rebase|stash|switch|cherry-pick)\b|\bnpm run format\b/;
+const TEST = /\b(npm test|npm run verify)\b|\bnode (tests\/[\w.-]+\.js)/, FAILED = /\b[1-9]\d* failed\b|\bFAIL\b|^\s*AssertionError/m;
+// The keys a call reads (file path, offset and limit; or a reading Bash segment, a pipe's first part), and the files an edit names.
+function reads(use) {
+  const i = use.input || {};
+  if (use.name === 'Read' && i.file_path) return [`${path.resolve(i.file_path)}:${i.offset || 0}:${i.limit || ''}`];
+  if (use.name !== 'Bash' || typeof i.command !== 'string' || MUTATES.test(i.command)) return [];
+  return i.command.split(/&&|\|\||;|\n/).map((x) => x.split('|')[0].trim().replace(/\s+/g, ' ')).filter((x) => READS.test(x) && /\s\S*[/.]\S*/.test(x));
 }
+function testOf(use) {
+  const c = use.name === 'Bash' && typeof (use.input || {}).command === 'string' && use.input.command.match(TEST);
+  return c ? c[2] || c[1] : null;
+}
+const text = (c) => (typeof c === 'string' ? c : Array.isArray(c) ? c.map((x) => (x.type === 'text' ? x.text : '')).join('\n') : '');
 
 // The measures of one transcript.
-const weighted = (t) => Math.round(t.input + 1.25 * t.cacheWrite + 0.1 * t.cacheRead + 5 * t.output);
+const { weighted, contextOf } = transcript;
 const EDITS = ['Edit', 'Write', 'NotebookEdit'];
 // A review's own calls: the reviewer started, review.js run, a revision asked (VB-1619); the orchestrator's share of reviewing.
 const REVIEWING = (use) => (use.name === 'Agent' && use.input.subagent_type === 'vb-review') || (use.name === 'Bash' && /tools\/review\.js/.test(use.input.command || ''))
   || (use.name === 'SendMessage' && /Revise VB-\d/.test(JSON.stringify(use.input)));
 function measure(file, sub = false, from = null) {
-  const entries = fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } })
-    .filter((e) => e && e.timestamp && (!since || e.timestamp >= since) && (!until || e.timestamp < until) && (!from || e.timestamp >= from));
+  const entries = transcript.entries(file).filter((e) => e.timestamp && (!since || e.timestamp >= since) && (!until || e.timestamp < until) && (!from || e.timestamp >= from));
   const m = { session: (entries.find((e) => e.sessionId) || {}).sessionId || path.basename(file, '.jsonl'), label, models: [],
     start: entries.length ? entries[0].timestamp : null, end: entries.length ? entries[entries.length - 1].timestamp : null,
     wallMin: 0, activeMin: 0, prompts: 0, calls: 0, subagentCalls: 0, reviewCalls: 0,
-    tokens: { input: 0, cacheWrite: 0, cacheRead: 0, output: 0 }, context: { first: 0, peak: 0, firstEdit: 0 }, tools: {}, largest: [], turns: [] };
+    tokens: { input: 0, cacheWrite: 0, cacheRead: 0, output: 0 }, context: { first: 0, peak: 0, firstEdit: 0, series: [] }, tools: {}, largest: [], turns: [],
+    repeats: { reads: 0, readBytes: 0, commands: 0, commandBytes: 0, recent: 0 }, tests: { runs: 0, failed: 0, streak: 0, current: 0 }, compactions: 0,
+    continuation: { continues: false, handoverBytes: 0, callsToEdit: null, contextToEdit: null, reason: null },
+    continuations: { launched: 0, calls: 0 } };
   const seen = new Set(), uses = new Map(), models = new Set();
-  let turn = null, last = null;
+  const read = new Set(), ran = new Set(), streaks = {}, repeatsAt = [];
+  let toldContinue = null; // the call at which an orchestrator learned that a run continues (its result, or the notification of it)
+  let turn = null, last = null, lastCtx = 0, firstPrompt = true;
   const result = (c) => (typeof c === 'string' ? c.length : Array.isArray(c) ? c.reduce((s, x) => s + (x.type === 'text' ? x.text.length
     : JSON.stringify(x).length), 0) : JSON.stringify(c || '').length);
   for (const e of entries) {
@@ -67,31 +90,64 @@ function measure(file, sub = false, from = null) {
     if (last != null) m.activeMin += Math.min(t - last, 5 * 60e3) / 60e3;
     last = t;
     const content = e.message && e.message.content;
+    if ((e.type === 'system' && e.subtype === 'compact_boundary') || e.isCompactSummary) { m.compactions++; continue; }
     if (e.type === 'user' && !e.isMeta && (typeof content === 'string' || (Array.isArray(content) && content.some((c) => c.type === 'text')))
       && !(Array.isArray(content) && content.some((c) => c.type === 'tool_result'))) {
       m.prompts++;
+      if (toldContinue == null && /: continue [0-9a-f]{6,} on /.test(typeof content === 'string' ? content : text(content))) toldContinue = m.calls;
+      if (firstPrompt) { // a continuing run is told so, with the handover, in its prompt (.claude/agents/vb-task.md, step 8)
+        firstPrompt = false;
+        const p = typeof content === 'string' ? content : text(content);
+        if (/continued from/i.test(p)) m.continuation = { ...m.continuation, continues: true, handoverBytes: Buffer.byteLength(p) };
+      }
       turn = { at: e.timestamp, calls: 0, cacheRead: 0, output: 0, peak: 0 };
       m.turns.push(turn);
     }
     if (e.type === 'assistant' && e.message && e.message.usage && !seen.has(e.message.id)) {
       seen.add(e.message.id);
-      const u = e.message.usage, ctx = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0);
+      const u = e.message.usage, ctx = contextOf(u);
       if (e.isSidechain && !sub) m.subagentCalls++; else m.calls++;
       if (e.message.model) models.add(e.message.model);
       m.tokens.input += u.input_tokens || 0; m.tokens.cacheWrite += u.cache_creation_input_tokens || 0;
       m.tokens.cacheRead += u.cache_read_input_tokens || 0; m.tokens.output += u.output_tokens || 0;
       if (!m.context.first && ctx) m.context.first = ctx;
       m.context.peak = Math.max(m.context.peak, ctx);
+      if (m.calls % 5 === 0 && ctx) m.context.series.push([m.calls, ctx]);
+      if (ctx) lastCtx = ctx;
       if (turn) { turn.calls++; turn.cacheRead += u.cache_read_input_tokens || 0; turn.output += u.output_tokens || 0; turn.peak = Math.max(turn.peak, ctx); }
     }
     if (e.type === 'assistant' && Array.isArray(content)) {
-      for (const c of content) if (c.type === 'tool_use') {
-        uses.set(c.id, { name: c.name, input: c.input || {}, at: t });
-        if (REVIEWING(uses.get(c.id))) m.reviewCalls++;
+      for (const c of content.filter((c) => c.type === 'tool_use')) {
+        const use = { name: c.name, input: c.input || {}, at: t }, cmd = use.name === 'Bash' &&
+          typeof use.input.command === 'string' ? use.input.command.trim() : null;
+        if (EDITS.includes(c.name) || (cmd && MUTATES.test(cmd))) { // an edit: what was read of its file, or of anything for a Bash edit, may be read again
+          const f = use.input.file_path && path.resolve(use.input.file_path);
+          for (const key of [...read]) if (!f || key.startsWith(f + ':') || !key.startsWith('/')) read.delete(key);
+          ran.clear();
+        }
+        if (cmd && ran.has(cmd)) use.repeat = 'command';
+        else {
+          const keys = reads(use);
+          if (keys.length && keys.every((x) => read.has(x))) use.repeat = 'read';
+          keys.forEach((x) => read.add(x));
+        }
+        if (cmd) ran.add(cmd);
+        use.test = testOf(use);
+        // VB-1616: the reason this run handed over with; the handover it read; a fresh context launched to continue a task
+        const ended = cmd && cmd.match(/inbox\.js result \S+ .*status=continue/) && (cmd.match(/\breason=(\w+)/) || [null, 'ceiling'])[1];
+        if (ended) m.continuation.reason = ended;
+        if (cmd && /inbox\.js handover VB-\d+/.test(cmd)) use.handover = true;
+        if (['Agent', 'Task'].includes(c.name) && /continued from/i.test(String(use.input.prompt || ''))) {
+          m.continuations.launched++; m.continuations.calls += toldContinue == null ? 1 : m.calls - toldContinue; toldContinue = null;
+        }
+        if (REVIEWING(use)) m.reviewCalls++;
+        uses.set(c.id, use);
       }
       const u = e.message.usage;
       if (!m.context.firstEdit && u && content.some((c) => c.type === 'tool_use' && EDITS.includes(c.name))) {
-        m.context.firstEdit = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0);
+        m.context.firstEdit = contextOf(u);
+        m.continuation.callsToEdit = m.calls;
+        m.continuation.contextToEdit = m.context.firstEdit - m.context.first;
       }
     }
     if (e.type === 'user' && Array.isArray(content)) {
@@ -99,10 +155,24 @@ function measure(file, sub = false, from = null) {
         const use = uses.get(c.tool_use_id) || { name: '?', input: {}, at: t }, bytes = result(c.content);
         const tool = (m.tools[use.name] = m.tools[use.name] || { calls: 0, bytes: 0, seconds: 0 });
         tool.calls++; tool.bytes += bytes; tool.seconds += Math.max(0, (t - use.at) / 1000);
+        if (use.repeat) repeatsAt.push(m.calls);
+        if (use.repeat === 'read') { m.repeats.reads++; m.repeats.readBytes += bytes; }
+        if (use.repeat === 'command') { m.repeats.commands++; m.repeats.commandBytes += bytes; }
+        if (use.handover) { m.continuation.continues = true; m.continuation.handoverBytes += bytes; }
+        if (toldContinue == null && /: continue [0-9a-f]{6,} on /.test(text(c.content))) toldContinue = m.calls;
+        if (use.test) {
+          const failed = c.is_error === true || FAILED.test(text(c.content));
+          m.tests.runs++; if (failed) m.tests.failed++;
+          streaks[use.test] = failed ? (streaks[use.test] || 0) + 1 : 0;
+          m.tests.streak = Math.max(m.tests.streak, streaks[use.test]);
+          m.tests.current = streaks[use.test]; // the streak of the script run last: what  inbox.js calls  reads as stuck
+        }
         m.largest.push({ tool: use.name, what: what(use), bytes });
       }
     }
   }
+  m.repeats.recent = repeatsAt.filter((c) => c > m.calls - 20).length; // in the last 20 calls
+  if (lastCtx && (!m.context.series.length || m.context.series[m.context.series.length - 1][0] !== m.calls)) m.context.series.push([m.calls, lastCtx]);
   if (m.start) m.wallMin = (Date.parse(m.end) - Date.parse(m.start)) / 60e3;
   m.activeMin = +m.activeMin.toFixed(1); m.wallMin = +m.wallMin.toFixed(1); m.models = [...models];
   for (const tool of Object.values(m.tools)) tool.seconds = +tool.seconds.toFixed(1);
@@ -133,7 +203,12 @@ function subagents(file, results) {
     const role = meta.agentType === 'vb-review' || s.reviewPrompt ? 'review' : 'implement';
     return { agent: f.slice(6, -6).slice(0, 8), file: path.join(dir, f), role, task: s.task, size: r.size || null, status: role === 'review' ? null : r.status || null,
       review: role === 'review' ? null : r.review || null, model: s.models[0] || null, calls: s.calls,
-      tokens: s.tokens, weighted: s.weighted, first: s.context.first, boot: s.context.firstEdit, peak: s.context.peak, activeMin: s.activeMin, start: s.start, end: s.end };
+      tokens: s.tokens, weighted: s.weighted, first: s.context.first, boot: s.context.firstEdit, peak: s.context.peak, activeMin: s.activeMin, start: s.start,
+        end: s.end,
+      // a proxy: the orchestrator undid its merge for a red check or a conflict, and said so in the result (docs/agents/worker.md, 1.3)
+      mergeUndone: r.status ? r.status === 'needs-review' && /\b(merge|conflict|red|npm test)\b/i.test(r.summary || '') : null,
+      series: s.context.series, repeats: s.repeats, tests: s.tests, continuation: s.continuation, compactions: s.compactions,
+      continuations: s.continuations };
   }).filter((s) => s.calls).sort((a, b) => String(a.start).localeCompare(String(b.start)));
 }
 // A revision is what an implementer spent after its task's reviewer returned (the same transcript, resumed, or the session's own).
@@ -156,7 +231,8 @@ function sessionReview(file, m) {
     confirmed: !!r.confirm, reviewer: rv ? { calls: rv.calls, weighted: rv.weighted, activeMin: rv.activeMin, model: rv.model } : null,
     revision: after && g('blocking') ? { weighted: after.weighted, calls: after.calls, activeMin: after.activeMin } : null };
 }
-const median = (xs) => { const s = [...xs].sort((a, b) => a - b), i = (s.length - 1) / 2; return s.length ? Math.round((s[Math.floor(i)] + s[Math.ceil(i)]) / 2) : null; };
+const median = (xs) => {
+  const s = [...xs].sort((a, b) => a - b), i = (s.length - 1) / 2; return s.length ? Math.round((s[Math.floor(i)] + s[Math.ceil(i)]) / 2) : null; };
 // The run's three measures (null where there is nothing to measure).
 function summary(m) {
   const subs = m.subagents, tasks = subs.filter((s) => s.task && s.role !== 'review'), total = m.weighted + subs.reduce((a, s) => a + s.weighted, 0);
@@ -166,7 +242,8 @@ function summary(m) {
   const rvs = subs.filter((s) => s.role === 'review'), revised = tasks.filter((s) => s.revision);
   const review = rvs.length || m.reviewCalls ? { reviews: rvs.length, weighted: rvs.reduce((a, s) => a + s.weighted, 0), median: median(rvs.map((s) => s.weighted)),
     revisions: revised.length, revisionWeighted: revised.reduce((a, s) => a + s.revision.weighted, 0), orchestratorCalls: m.reviewCalls } : null;
-  return { weightedTotal: total, orchestratorShare: total ? +(m.weighted / total).toFixed(3) : null, bootMedian: median(subs.map((s) => s.boot).filter(Boolean)),
+  return { weightedTotal: total, orchestratorShare: total ? +(m.weighted / total).toFixed(3) : null,
+    bootMedian: median(subs.map((s) => s.boot).filter(Boolean)),
     readMedian: median(subs.filter((s) => s.boot).map((s) => s.boot - s.first)),
     weightedPerDoneTask: done.length ? Math.round(total / done.length) : null, perSize: bySize,
     firstPass: ended.length ? +(done.length / ended.length).toFixed(2) : null, tasks: ended.length, review };
@@ -193,16 +270,21 @@ function report(m) {
     'largest results: ' + m.largest.slice(0, 8).map((g) => `${g.tool} ${g.what} ${kb(g.bytes)}${g.calls > 1 ? ` (${g.calls}×)` : ''}`).join('; '),
   ];
   const s = m.summary;
-  lines.push(`weighted cost ${k(s.weightedTotal)}: the orchestrator ${k(m.weighted)} (${s.orchestratorShare == null ? '-' : Math.round(s.orchestratorShare * 100) + '%'}), `
-    + `${m.subagents.length} sub-agents ${k(s.weightedTotal - m.weighted)}; median boot ${s.bootMedian == null ? '-' : `${k(s.bootMedian)}, of which read before the first edit ${k(s.readMedian)}`}`);
-  if (s.tasks) lines.push(`tasks: ${s.tasks} ended, ${Math.round(s.firstPass * 100)}% done; weighted cost a done task ${s.weightedPerDoneTask == null ? '-' : k(s.weightedPerDoneTask)}`
+  lines.push(`weighted cost ${k(s.weightedTotal)}: the orchestrator ${k(m.weighted)} (${s.orchestratorShare == null ? '-' :
+    Math.round(s.orchestratorShare * 100) + '%'}), `
+    + `${m.subagents.length} sub-agents ${k(s.weightedTotal - m.weighted)}; median boot ${s.bootMedian == null ? '-' :
+      `${k(s.bootMedian)}, of which read before the first edit ${k(s.readMedian)}`}`);
+  if (s.tasks) lines.push(
+    `tasks: ${s.tasks} ended, ${Math.round(s.firstPass * 100)}% done; weighted cost a done task ${s.weightedPerDoneTask == null ? '-' :
+    k(s.weightedPerDoneTask)}`
     + Object.entries(s.perSize).map(([size, x]) => `; ${size} median ${k(x.median)} (${x.n})`).join(''));
   if (s.review) lines.push(`reviews (VB-1619): ${s.review.reviews}, weighted ${k(s.review.weighted)} (median ${s.review.median == null ? '-' : k(s.review.median)}); `
     + `revisions ${s.review.revisions}, weighted ${k(s.review.revisionWeighted)}; the session's calls on review ${s.review.orchestratorCalls}`);
   if (m.review) lines.push(`review of ${m.review.task}: ${m.review.arm}` + (m.review.arm !== 'review' ? '' : `, ${m.review.verdict}, ${m.review.blocking} blocking, `
     + `${m.review.advisory} advisory, ${m.review.preference} preference${m.review.reviewer ? `; reviewer ${k(m.review.reviewer.weighted)}` : ''}`
     + `${m.review.revision ? `, revision ${k(m.review.revision.weighted)}` : ''}`));
-  lines.push(...m.subagents.map((x) => `  ${x.role === 'review' ? 'review of ' : ''}${x.task || x.agent} ${x.size || '-'} ${x.status || '-'} ${x.model || '-'}: ${x.calls} calls, weighted ${k(x.weighted)}, `
+  lines.push(...m.subagents.map((x) =>
+    `  ${x.role === 'review' ? 'review of ' : ''}${x.task || x.agent} ${x.size || '-'} ${x.status || '-'} ${x.model || '-'}: ${x.calls} calls, weighted ${k(x.weighted)}, `
     + `first call ${k(x.first)}, boot ${x.boot ? k(x.boot) : '-'}, peak ${k(x.peak)}, ${x.activeMin} min`));
   if (turns) lines.push(...m.turns.map((x) => `  turn ${x.at}: ${x.calls} calls, cache reads ${k(x.cacheRead)}, output ${k(x.output)}, peak ${k(x.peak)}`));
   return lines.join('\n');
@@ -218,7 +300,8 @@ function history(dir) {
     ['output', (r) => r.tokens.output],
     ['weighted', (r) => r.summary && r.summary.weightedTotal], ['perTask', (r) => r.summary && r.summary.weightedPerDoneTask],
     ['orchPct', (r) => r.summary && r.summary.orchestratorShare * 100], ['boot', (r) => r.summary && r.summary.bootMedian],
-    ['donePct', (r) => r.summary && r.summary.firstPass * 100], ['activeMin', (r) => r.activeMin], ['toolKB', (r) => Object.values(r.tools).reduce((s, x) => s + x.bytes, 0) / 1000]];
+    ['donePct', (r) => r.summary && r.summary.firstPass * 100], ['activeMin', (r) => r.activeMin],
+      ['toolKB', (r) => Object.values(r.tools).reduce((s, x) => s + x.bytes, 0) / 1000]];
   const byLabel = new Map();
   for (const r of runs) byLabel.set(r.label, [...(byLabel.get(r.label) || []), r]);
   if (!byLabel.size) return `no runs in ${dir}`;
@@ -230,21 +313,46 @@ function history(dir) {
   }).filter(Boolean).join('\n')).join('\n');
 }
 
-if (historyDir) { console.log(history(historyDir)); process.exit(0); }
-const file = args[0] || newest();
-if (!fs.existsSync(file)) fail(`no file ${file}`);
-const m = measure(file);
-if (task && !/^VB-\d{3,}$/.test(task)) fail(`--task takes a task ID (VB-NNN), not ${task}`);
-if (task) m.task = task;
-const results = resultsFile ? JSON.parse(fs.readFileSync(resultsFile, 'utf8')) : [];
-if (arm && !['control', 'ineligible'].includes(arm)) fail('--arm is control or ineligible (a reviewed session gives --review FILE)');
-m.subagents = revisions(subagents(file, results));
-m.review = sessionReview(file, m);
-m.summary = summary(m);
-if (out) {
-  fs.mkdirSync(out, { recursive: true });
-  const name = path.join(out, `${(m.start || '').slice(0, 10)}-${m.label}-${m.session.slice(0, 8)}.json`);
-  fs.writeFileSync(name, JSON.stringify({ ...m, turns: undefined }, null, 1) + '\n');
-  console.error('agent-usage: wrote ' + name);
+// The periods of the log compared (VB-1615), from the runs in DIR as the usage page sums them into tasks.
+function periods(dir, file) {
+  const P = require('./lib/periods.js'), page = require('./usage-page.js'), root = path.join(__dirname, '..');
+  if (!fs.existsSync(file)) fail(`no file ${file}`);
+  const runs = page.readRuns(dir), first = runs.map((r) => r.start).sort()[0];
+  const data = page.model({
+    runs, commits: page.gitCommits(root, first && new Date(Date.parse(first) - 864e5).toISOString()), taskInfo: page.taskInfoOf(root) });
+  const ms = (d) => (d ? Date.parse(d) : null), { RESET_AT } = require('./lib/ceiling.js');
+  const peak = eligible ? { peakFrom: RESET_AT } : ineligible ? { peakUnder: RESET_AT } : {};
+  const { compared } = page.comparePeriods(root, data, file, ms(fromDate), ms(toDate), peak);
+  return asJson ? JSON.stringify(compared, null, 1) : P.report(compared);
 }
-console.log(asJson ? JSON.stringify(m, null, 1) : report(m));
+
+function estimate(dir) {
+  const E = require('./lib/reset-estimate.js'),
+    files = fs.readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')));
+  const e = E.estimate(E.runsOf(files, fromDate ? Date.parse(fromDate) : null));
+  return asJson ? JSON.stringify(e, null, 1) : E.report(e);
+}
+
+// no process.exit after printing: a pipe would lose what is not yet written
+if (historyDir) console.log(estimateOnly ? estimate(historyDir) : periodsFile ? periods(historyDir, periodsFile) : history(historyDir));
+else main();
+function main() {
+  const file = args[0] || newest();
+  if (!fs.existsSync(file)) fail(`no file ${file}`);
+  const m = measure(file);
+  if (task && !/^VB-\d{3,}$/.test(task)) fail(`--task takes a task ID (VB-NNN), not ${task}`);
+  if (task) m.task = task;
+  const results = resultsFile ? JSON.parse(fs.readFileSync(resultsFile, 'utf8')) : [];
+  if (arm && !['control', 'ineligible'].includes(arm)) fail('--arm is control or ineligible (a reviewed session gives --review FILE)');
+  m.subagents = revisions(subagents(file, results));
+  m.review = sessionReview(file, m);
+  m.summary = summary(m);
+  if (out) {
+    fs.mkdirSync(out, { recursive: true });
+    // with --task, the task is in the name: a session that worked on two tasks in turn measures each (--since) without overwriting
+    const name = path.join(out, `${(m.start || '').slice(0, 10)}-${m.label}-${m.session.slice(0, 8)}${task ? '-' + task : ''}.json`);
+    fs.writeFileSync(name, JSON.stringify({ ...m, turns: undefined }, null, 1) + '\n');
+    console.error('agent-usage: wrote ' + name);
+  }
+  console.log(asJson ? JSON.stringify(m, null, 1) : report(m));
+}

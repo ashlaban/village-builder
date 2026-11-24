@@ -3,7 +3,7 @@
 VB['sim/legs'] = (() => {
   const { DAY, TICKS, WORK, SPEED, HERD, TRAVEL } = VB['sim/rules'];
   const { route } = VB['sim/routes'],
-    { stepCost, tileCost } = VB['sim/walking'];
+    { stepCost, tileCost, iced } = VB['sim/walking'];
   const { tread } = VB['sim/paths'];
   const { driven } = VB['sim/grazing'];
   const Carts = VB['sim/carts'];
@@ -122,10 +122,31 @@ VB['sim/legs'] = (() => {
     if (a.phase === 'journey') {
       const day = Math.floor((t + 1) / (DAY * TICKS));
       due = Math.min(end, Math.max(t + 1, (day * DAY + WORK[1]) * TICKS - 1));
+      if (due < end) due = ashore(st, a, h, t, due);
     }
     a.leg = { kind: 'walk', t, x: a.x, y: a.y, seg: a.seg, pace, h, end, due };
     if (st.pawns[a.id].alive) enqueue(st, a);
     emit(st, 'legChanged', a); // a side task held is looked at as the leg begins (sim/agents sideCheck)
+  }
+  // Nobody sleeps on the ice (VB-808; design.md, The ground by season): a journey's leg that would stop for the night on ice, or on the
+  // way onto it, stops instead at the end of the last stretch of its walk wholly on land, the shore, to cross in the morning. Segment k
+  // of the walk runs from point k - 1 (the start for k = 0) to point k, reached at h[k] hours; a point's tile is the one it entered.
+  function ashore(st, a, h, t, due) {
+    const w = st.w,
+      P = a.path,
+      tiles = [tileAt(st, a.x, a.y)];
+    for (let k = 0; k < h.length; k++) {
+      const p = P[a.seg + 1 + k];
+      tiles.push(p[3] !== undefined && p[3] >= 0 ? p[3] : tiles[k]);
+    }
+    const e = (due - t) / TICKS,
+      wet = (k) => iced(w, tiles[k]) || iced(w, tiles[k + 1]);
+    let k = 0;
+    while (k < h.length && h[k] <= e) k++;
+    if (k >= h.length || !wet(k)) return due;
+    let j = k - 1;
+    while (j >= 0 && wet(j)) j--;
+    return j < 0 ? due : Math.max(t + 1, t + Math.floor(h[j] * TICKS));
   }
   // The tiles entered from point `from` to point `to` are trodden; the herds a herder drives wear the way too (VB-136): only a herder out
   // with them, or bringing them home, can drive any.
