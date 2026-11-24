@@ -51,7 +51,8 @@ VB['sim/kinds'] = (() => {
   //   late: a task with a deadline today: unmanned, it goes first in its hand's list and calls it when the day is allotted (sim/day; the cook).
   //   vital: a kind a household lives by, true or (st, j) => boolean: once begun it is carried to its end though the work day ends
   //   meanwhile (`carriedOn`, below; VB-1547, Kim, 23 November). evening: a vital kind a hand may also begin after the end of work, until
-  //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/day eveningCall; the water).
+  //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/day eveningCall; the water); true or, as vital, (st, j) =>
+  //   boolean (the firewood cut at home while the house is cold or the pile short, VB-1625).
   //   first: a kind that heads the list of the member best fit for it when the day is allotted (the water); trip(st, j): the hours of
   //   its trip besides its work, counted in that member's day (sim/day allot; VB-1582). setOut(st, a, j, teamFree): as its hand sets
   //   out (sim/agents start), what it takes at the house; returns the load it sets out with (the water's barrel on a cart; VB-1586).

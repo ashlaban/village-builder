@@ -28,6 +28,8 @@ VB['sim/chores'] = (() => {
   const fuelFree = (st, hh) => hh.wood - reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
   // The timber the household holds, felled and home, not yet cut (VB-1625; absent: none), in the woodpile's loads.
   const timberOf = (hh) => (hh.timber > 1e-9 ? hh.timber : 0);
+  // The house is cold, or its pile will not feed tonight's fire (VB-1547): the wood kinds' vital rule.
+  const fireShort = (st, hh) => hh.cold > 0 || fuelFree(st, hh) < st.ECON.woodUse[cal(st.t).season];
   // @tunable WOOD_HOURS (VB-1625): the hours of one load of firewood in its two steps, felling a tree and cutting its timber at home; they
   //   sum to the firewood trip's 3 hours before the split, so a load costs the labour it did.
   const WOOD_HOURS = Object.freeze({ fell: 2, cut: 1 });
@@ -101,7 +103,7 @@ VB['sim/chores'] = (() => {
       // carried home after work
       vital: (st, j) => {
         const hh = st.households[j.farm.household];
-        return !timberOf(hh) && (hh.cold > 0 || fuelFree(st, hh) < st.ECON.woodUse[cal(st.t).season]);
+        return !timberOf(hh) && fireShort(st, hh);
       },
       // 3 in a cold house with no timber to cut (VB-327: above cooking's 2.2); 2.2 when the pile and the timber are nearly out; else
       // their shortfall of the goal, and more in autumn
@@ -351,11 +353,10 @@ VB['sim/chores'] = (() => {
       hands: 1,
       type: 'wood',
       spot: (st, a, j) => [st.w.hx[j.site] + 10 + a.ox * 0.3, st.w.hy[j.site] + 8],
-      // as the trip to the woods was before the split: lived by while the house is cold or the pile will not feed tonight's fire
-      vital: (st, j) => {
-        const hh = st.households[j.farm.household];
-        return hh.cold > 0 || fuelFree(st, hh) < st.ECON.woodUse[cal(st.t).season];
-      },
+      // as the trip to the woods was before the split: lived by while the house is cold or the pile will not feed tonight's fire; and
+      // then begun after work too, until MATCH.day.evening (sim/day eveningCall), as the load of the old trip came home with its wood
+      vital: (st, j) => fireShort(st, st.households[j.farm.household]),
+      evening: (st, j) => fireShort(st, st.households[j.farm.household]),
       urgency: (st, j, c, U) => {
         const hh = st.households[j.farm.household];
         return hh.cold > 0 ? U.woodColdUrgency : pileUrgency(st, hh, c, U, fuelFree(st, hh));
