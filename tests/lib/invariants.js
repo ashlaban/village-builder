@@ -160,6 +160,18 @@ function checkState(st) {
           bad.push(`handsToday: pawn ${id} lent ${JSON.stringify(e)}`);
       }
     }
+    // VB-1555: today's leaves, each a pawn's, from an hour before the end of the working day it ends at; a pawn's days of its own ask and
+    // its last visit are whole game days, none in the future
+    if (st.leaves) {
+      const d = st.leaves;
+      if (!Number.isInteger(d.day) || !d.by || typeof d.by !== 'object') bad.push(`leaves: ${JSON.stringify(d).slice(0, 80)}`);
+      for (const [id, e] of Object.entries(d.by || {}))
+        if (!st.pawns[id] || !Array.isArray(e) || !(e[0] < e[1]) || e[1] > (d.day + 1) * 24 || (e[2] !== 0 && e[2] !== 1) || (e[3] !== null && !st.pawns[e[3]]))
+          bad.push(`leaves: pawn ${id} ${JSON.stringify(e)}`);
+    }
+    for (const p of st.pawns)
+      for (const f of ['voiced', 'sat'])
+        if (p[f] !== undefined && p[f] !== null && !(Number.isInteger(p[f]) && p[f] >= 0 && p[f] <= Math.floor(st.t / 24))) bad.push(`pawn ${p.id}.${f}: ${p[f]}`);
     if (st.daysCalls && st.daysCalls.some((c, i) => i && (st.daysCalls[i - 1][0] > c[0] || (st.daysCalls[i - 1][0] === c[0] && st.daysCalls[i - 1][1] > c[1])))) bad.push('daysCalls: not sorted');
     const made = O.rebuilt(st);
     if (JSON.stringify(made.due) !== JSON.stringify(st.obligationsDue)) bad.push(`obligations: the due-queue ${JSON.stringify(st.obligationsDue)} is not the running ones ${JSON.stringify(made.due)}`);
@@ -1523,6 +1535,11 @@ function checkState(st) {
         if (!term(o.gives) || !term(o.wants)) bad.push(`${at}: a swap of the fair: gives ${JSON.stringify(o.gives)}, wants ${JSON.stringify(o.wants)}`);
         for (const id of [o.from, o.to]) if (!st.pawns[id] || !st.pawns[id].load) bad.push(`${at}: a swap of the fair outlives the load of pawn ${id}`);
         if (keys.join() !== 'to' || o.answers[0].by !== o.to) bad.push(`${at}: a swap of the fair: answers ${keys.join()} of ${o.to}`);
+      } else if (o.basis === 'leave') { // a member's ask of leave (VB-1555): of its household's head, from an hour, a visit named or none
+        const hh = st.households[o.household], w = o.wants || {};
+        if (!hh || hh.holder !== o.to || !hh.members.includes(o.from) || o.gives !== null) bad.push(`${at}: leave of ${o.from} asked of ${o.to}, household ${o.household}`);
+        if (!Number.isFinite(w.from) || !(w.with === null || !!st.pawns[w.with])) bad.push(`${at}: leave wants ${JSON.stringify(w)}`);
+        if (keys.join() !== 'head' || o.answers[0].by !== o.to) bad.push(`${at}: answers ${keys.join()} of ${o.to}`);
       } else if (BASES[o.basis].where) { // an offer about a life: answered at a village's step of the round (a handover has no subject, VB-824)
         const g = o.gives || {}, w = o.wants || {};
         const terms = o.basis === 'handover' ? !!st.households[g.household] && ['marriage', 'retirement'].includes(g.reason)

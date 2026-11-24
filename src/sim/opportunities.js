@@ -13,6 +13,7 @@ VB['sim/opportunities'] = (() => {
     { onFarm } = VB['sim/projects'];
   const { VERBS } = VB['sim/commands'];
   const { goOnAs } = VB['sim/player'];
+  const { likely: leaveLikely } = VB['sim/voice'];
   const { advice, what: offerText } = VB['sim/offers'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { GATHERING } = VB['sim/rules'],
@@ -136,6 +137,17 @@ VB['sim/opportunities'] = (() => {
     // its own time (VB-1552): the pastimes open to it, each an item {verb: 'pastime', target: the kind, args, pastime: {name, note}}
     for (const o of VB['sim/pastimes'].options(view, p.id))
       out.push(item('pastime', o.kind, o.args, o.why, { pastime: { name: o.name, note: o.note } }));
+    // leave asked of its head (VB-1555): the rest of the working day free, with the head's likely answer as its pawn sees it
+    const hh = p.household === null ? null : view.households[p.household];
+    if (hh && !hh.dissolved && hh.holder !== null && hh.holder !== p.id) {
+      const args = { basis: 'leave', wants: { from: view.t, with: null } };
+      out.push(
+        item('offer', hh.holder, args, check(view, p.id, 'offer', hh.holder, args), {
+          holder: { type: 'household', id: hh.id },
+          leave: { head: fullName(view.pawns[hh.holder]), likely: leaveLikely(view, p.id) },
+        }),
+      );
+    }
     occasions(view, p, out);
     if (near === null || near === undefined) return;
     const open = Number.isInteger(near) && near >= 0 && near < view.w.N && walkable(view.w)(near);
