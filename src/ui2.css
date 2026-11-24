@@ -47,11 +47,16 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2-mid { flex: 1; min-height: 0; position: relative; pointer-events: none; }
 /* marks on the land */
 .u2-mark { position: absolute; left: 0; top: 0; pointer-events: auto; will-change: transform; }
-.u2 .far .u2-badge { display: none; }
-.u2-badge { pointer-events: none; padding: 1px 7px; border-radius: 999px; border: var(--line); background: var(--glass); font: 700 12px/16px var(--body); white-space: nowrap; box-shadow: 0 1px 3px rgba(15, 22, 19, 0.4); }
-.u2-badge.press1 { background: #f3dfa6; } .u2-badge.press2 { background: var(--red); color: #fff7ec; } .u2-badge.work { background: var(--ink2); color: var(--paper); }
+/* a pin: an icon in a disc, a number at its shoulder; the words are the tile's callout */
+.u2-pin { pointer-events: none; position: relative; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; border: var(--line); background: var(--glass); color: var(--ink2); box-shadow: 0 1px 3px rgba(15, 22, 19, 0.4); }
+.u2-pin svg { width: 20px; height: 20px; }
+.u2-pin b { position: absolute; right: -9px; top: -7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; border: 1.5px solid var(--ink2); background: var(--paper); color: var(--ink2); font: 800 11px/15px var(--body); text-align: center; }
+.u2-pin.press1 { background: #f3dfa6; } .u2-pin.press2 { background: var(--red); color: #fff7ec; } .u2-pin.work { background: var(--ink2); color: var(--paper); }
+.u2-pin.next { border-style: dashed; opacity: 0.85; }
+.u2 .far .u2-pin { width: 22px; height: 22px; } .u2 .far .u2-pin svg { width: 15px; height: 15px; } .u2 .far .u2-pin b { display: none; }
 .u2-gauges { pointer-events: none; display: flex; gap: 3px; padding: 3px 5px; margin-top: 30px; border-radius: 8px; border: var(--line); background: var(--glass); box-shadow: 0 1px 3px rgba(15, 22, 19, 0.4); }
-.u2-gauges i { display: grid; justify-items: center; gap: 1px; font: 700 9px/9px var(--body); font-style: normal; }
+.u2-gauges i { display: grid; justify-items: center; gap: 1px; font-style: normal; color: var(--ink2); }
+.u2-gauges svg { width: 16px; height: 16px; }
 .u2-gauges u { display: block; width: 22px; height: 7px; border-radius: 3px; border: 1.5px solid var(--ink2); background: var(--pine); }
 .u2-gauges .short u { background: var(--gold2); } .u2-gauges .bad u { background: var(--red); } .u2-gauges .none u { background: transparent; border-style: dashed; }
 .u2-flag button { display: grid; grid-template-columns: auto auto; align-items: center; gap: 0 6px; padding: 3px 8px 3px 3px; border-radius: 999px; border: var(--line); background: var(--glass); box-shadow: var(--lift); font-weight: 700; font-size: 14px; }
