@@ -31,14 +31,30 @@ Drafts page (screenshots and both rounds' findings, newest first): https://claud
   the mood modifier `tired` past 8 hours owed, health from a whole night owed. Only the played pawn (VB-1617 opens it to all).
 - Measured with automatic off, before: ordered work ran through the night at no cost; nobody fetched water or cooked.
 
-## Next
-- The plan itself (sim): the queue holds 8 one-off commands and no "every day". A routine (water, cooking, animals, sleep) and an
-  ordered list of tasks that outlive their jobs' keys, feeding the queue. Then automatic off by default in ui2 (held back until the
-  routine exists: without it the settler goes without water).
-- The plan on the screen: the day as a strip of hours (routine, tasks, sleep, hours owed), the agenda's open work as icons to add,
-  the sleep state as an icon by the settler. The Today, Plan and Stores sheets predate this direction and are to be reworked.
-- The agenda counts working hours only (06 to 18); once night work is planned, it must lay hours as the plan does.
-- A driver for screenshots with the page's state reachable: patch `index.html` as `tests/browser.js` does (`window.__play`).
+## Built in the third batch (24 November)
+- Planned by hand: at "Begin the first day" (`hudBegin`) automatic planning goes off, the routine is water, cooking, fodder and
+  milking, and sleep is 22 to 6.
+- VB-1618, the plan (`src/sim/playerplan.js`, `st.player.plan`, `Sim.plan(st, op, args)`, `Sim.planView(st)`): the routine once a
+  day, the sleeping hours, tasks in order by job key; the feeder in `playerStep` follows it when the hand queue is empty; a task
+  broken off for the night is taken up in the morning. A command queued by hand ("Do it now") goes first and is not broken off for
+  sleep: that is how a night is worked.
+- VB-1619, `Sim.agenda(st)` gains `days` (three days of segments by the hour), `plan` (each task's hours, end, verdict), `owed`
+  (sleep owed at each day's end) and `routine` (each kind's hours a day).
+- The plan bar (`renderPlan`, `planCard` in `src/page/ui2hud.js`): routine chips, the sleep chip (its number once a night is owed),
+  then the tasks in order with their days; a chip's card holds the words and the acts (earlier, later, remove, the sleeping hours).
+  Work is added from the land: a tile's callout offers "Add to the plan", and "Do it now" beside it.
+- The day strip (`src/page/ui2day.js`): today by the hour; a tap opens three days. Every planned task is pinned on the land.
+- The three sheets are icon buttons now and predate this direction.
+
+## Known after the third batch
+- A task is one job: when a clearing is done, the breaking, hoeing and sowing that follow are not in the plan until the player adds
+  each (the callout says how many days the chain takes). A task that follows its project through is the likely next sim step.
+- With the routine alone the settler loses health to cold and damp: no booth is raised unless planned (the automatic settler raises
+  one). The sleep card says so after a rough night; the house should show it as an icon.
+- The agenda's `owed` counts free daytime hours as awake, though a free pawn at home sleeps: it can read too high.
+- A task is matched by its job's key; a clearing posted again under the same key would be taken for the same task.
+- No playtest round has been run on any of the second session's work. VB-1620 splits `page/ui2hud` (over the lint's line).
+- The agenda's estimate assumes the pawn's own hands only.
 
 ## What is built (first session)
 - The flag: `UI2` (`src/page/ui2.js`). On by default; `?classic` in the address, or `window.VB_CLASSIC` (set by `tests/lib/page.js`

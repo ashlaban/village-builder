@@ -13,7 +13,7 @@ function dayStripHTML(A, P) {
   rows.forEach((segs, n) => {
     const from = (day0 + n) * D,
       owed = A.owed && Number.isFinite(A.owed[n]) ? Math.round(A.owed[n]) : 0;
-    h += `<div class="u2-day"><span class="u2-dayname">${DAY_WORD[n] || Sim.cal(from).sday + 1}</span><div class="u2-dayrow">`;
+    h += `<div class="u2-day"><span class="u2-dayname">${DAY_WORD[n] || `Day ${Sim.cal(from).sday + 1}`}</span><div class="u2-dayrow">`;
     for (const g of segs) {
       const a = Math.max(0, g.from - from),
         b = Math.min(D, g.to - from);

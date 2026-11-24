@@ -176,7 +176,9 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2-dayrow u { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--red); pointer-events: none; }
 .u2-dayowed { display: flex; align-items: center; gap: 1px; font: 800 12px var(--body); } .u2-dayowed svg { width: 14px; height: 14px; }
 .u2-dayowed.press1 { color: #8a6a17; } .u2-dayowed.press2 { color: var(--red); }
-.u2-tabs { display: flex; gap: 6px; }
+.u2-tabs { display: flex; gap: 6px; flex: none; }
+.u2-planbar { min-width: 0; flex: 0 1 auto; }
+@media (max-width: 720px) { .u2-dockrow { flex-wrap: wrap; justify-content: center; } .u2-planbar { max-width: 100%; } }
 .u2 .u2-tabs button { width: 46px; min-height: 46px; padding: 0; display: grid; place-items: center; border: var(--line); border-radius: 999px; background: var(--glass); font: 800 17px var(--head); box-shadow: var(--lift); }
 .u2 .u2-tabs button[aria-pressed="true"] { background: var(--ink2); color: var(--paper); }
 .u2-sheet { background: var(--paper); }
