@@ -39,7 +39,11 @@ VB['sim/scenarios'] = (() => {
   const { initCulture } = VB['sim/society'];
   const { seedOwners } = VB['sim/ownership'];
   const { restagger } = VB['sim/courses'];
-  const { yearlyRations, fieldsWanted } = VB['sim/fieldplans'];
+  const { yearlyRations, fieldsWanted, fieldProject, pickField } = VB['sim/fieldplans'];
+  const { issue } = VB['sim/commands'],
+    { stake } = VB['sim/stakes'],
+    { makeProject } = VB['sim/projectplans'],
+    { cottagePlan } = VB['sim/cottageplan'];
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   const { placeMeadows, meadowAt } = VB['sim/meadows'];
   const { initDeer } = VB['sim/deer'];
@@ -95,7 +99,31 @@ VB['sim/scenarios'] = (() => {
     log(st, `${who} ${village.name}${lone ? ` and ${lone.name}` : ''}.`, { kind: 'settled', n, village: village.id });
     VB['sim/carts'].seedCarts(st, false);
     startStreams(st, seedNum);
+    if (solo) landAlone(st); // no cottage stands: a booth first, then the cottage (VB-1544)
     return st;
+  }
+  // The lone settler lands (VB-1544; the solo start): no cottage stands on its farm, which is a booth farm as a settler
+  // household's is (f.booth, its cottage its project plan, sim/settle's settleFarm), and the settler stakes its booth on the first open tile beside
+  // the house tile by the verb any pawn has (raiseBooth, sim/building), and raises it by its own work; it sleeps under the open sky until
+  // the booth stands (sim/building roofless), and the cottage follows as a settler household's does. Its first field is staked at the
+  // landing as a settler household's is (settleFarm), on the tile its head would pick (sim/fieldplans pickField): a household's land
+  // projects wait while another of its projects is under way, and the cottage's would hold the field back to the roof. The booth's tile,
+  // or null where none beside the house will take one.
+  function landAlone(st) {
+    const hh = st.households[0],
+      f = st.farmsteads[hh.farmstead],
+      field = pickField(st, f, hh);
+    f.booth = true;
+    if (field >= 0) {
+      stake(st, hh, field, 'field');
+      makeProject(st, 'household', hh.id, fieldProject(st, hh, field));
+    }
+    makeProject(st, 'household', hh.id, cottagePlan(st, f));
+    for (let d = 0; d < 6; d++) {
+      const t = st.w.nb[f.house * 6 + d];
+      if (t >= 0 && issue(st, { actor: hh.holder, verb: 'raiseBooth', target: t, source: 'pawn' }) === true) return t;
+    }
+    return null;
   }
   // Populous Villages: only villages, of three size bands, until the map holds the target population (POPULATION's first number a
   // map size: 800 on a Medium or Large map) or has no site left, in which case it starts with fewer; on a Medium or Large map

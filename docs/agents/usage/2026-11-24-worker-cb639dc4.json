@@ -1,0 +1,119 @@
+{
+ "session": "cb639dc4-0ae9-5f21-955a-2240802e45fb",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T09:11:57.267Z",
+ "end": "2026-11-24T09:29:21.664Z",
+ "wallMin": 17.4,
+ "activeMin": 17.4,
+ "prompts": 1,
+ "calls": 114,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 217,
+  "cacheWrite": 209787,
+  "cacheRead": 23299113,
+  "output": 58024
+ },
+ "context": {
+  "first": 85366,
+  "peak": 273576,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 115,
+   "bytes": 286991,
+   "seconds": 470.4
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 16,
+   "bytes": 60771
+  },
+  {
+   "tool": "Bash",
+   "what": "for i",
+   "calls": 4,
+   "bytes": 31294
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/walking.js",
+   "calls": 1,
+   "bytes": 25255
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 18,
+   "bytes": 25194
+  },
+  {
+   "tool": "Bash",
+   "what": "cat src/sim/routes.js",
+   "calls": 1,
+   "bytes": 21801
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 10,
+   "bytes": 17048
+  },
+  {
+   "tool": "Bash",
+   "what": "cat tests/solo.js",
+   "calls": 1,
+   "bytes": 14984
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/sim.js",
+   "calls": 4,
+   "bytes": 10794
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 13,
+   "bytes": 9667
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 2,
+   "bytes": 7741
+  },
+  {
+   "tool": "Bash",
+   "what": "cat >",
+   "calls": 8,
+   "bytes": 7233
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rln",
+   "calls": 1,
+   "bytes": 5899
+  }
+ ],
+ "weighted": 2882482,
+ "task": "VB-1544",
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 2882482,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}
