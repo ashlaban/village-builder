@@ -37,7 +37,8 @@ function tally(file) {
     if (e.type !== 'assistant' || !e.message || !e.message.id || seen.has(e.message.id) || e.isSidechain && !/agent-/.test(path.basename(file))) continue;
     seen.add(e.message.id);
     const u = e.message.usage || {};
-    t.input += u.input_tokens || 0; t.cacheWrite += u.cache_creation_input_tokens || 0; t.cacheRead += u.cache_read_input_tokens || 0; t.output += u.output_tokens || 0;
+    t.input += u.input_tokens || 0; t.cacheWrite += u.cache_creation_input_tokens || 0;
+    t.cacheRead += u.cache_read_input_tokens || 0; t.output += u.output_tokens || 0;
     if (contextOf(u)) context = contextOf(u);
   }
   return { calls: seen.size, context, weighted: weighted(t) };
