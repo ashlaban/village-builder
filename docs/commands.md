@@ -6,6 +6,8 @@ the short list. Read one entry with `node tools/doc.js docs/commands.md QUERY`, 
 Every tool run from `tools/` answers `--help` with its options, without running: read that, not its source (a new tool starts with `tools/help.js`).
 - Backlog: `node tools/backlog.js next|list|show ID [--brief]` to read; `done ID...`, `set ID key=value...`, `new key=value...`,
   `close-arch KEY`, and `sync` after a task file's header is edited by hand, to change it. Each rewrites the tables and runs `tests/backlog.js`.
+- Renumbering: `node tools/renumber.js --onto origin/main [--dry]` before merging main: the branch's new task IDs that main took move above
+  every ID in sight, with their files and references, in a commit of their own; an inbox in progress follows (VB-1621).
 - Merge drivers: `node tools/merge.js --install` (run by `npm install`) sets the drivers `.gitattributes` names; git then runs
   `tools/merge.js MODE ...` itself at a merge. The backlog's tables merge by task row, the JSON lists by key and element, a module's imports and exports and the tables
   marked `// @merge union` by name (VB-1620); `.git/vb-merge.log` lists what was merged so.

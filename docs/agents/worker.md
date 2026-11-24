@@ -62,6 +62,8 @@ new task's ID); note every teleport found (`AGENTS.md`, the hard rule); report t
 push. Candidates are never ready. Prefer small tasks that unblock others.
 
 ## 3. Wrap up, whenever you stop
+0. Bring in main before the last push: `git fetch origin main && node tools/renumber.js --onto origin/main && git merge origin/main`,
+   then `npm test`. The renumbering moves the night's new task IDs that another session took meanwhile; the inbox follows it.
 1. `npm run nightly`: it makes the late-game fixtures the sources lack (VB-272: a local cache keyed by the sources, about 2 minutes
    for all four) and appends the bench history. This is the night's one measurement of its changes to behaviour (Kim, 18 November):
    write the PR's Targets section from it and `node tools/targets.js`. Run nothing else meanwhile, since the bench times the machine. Commit

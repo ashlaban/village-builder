@@ -3,7 +3,8 @@
 // worktree, and never edit BACKLOG.md, QUESTIONS.md or docs/tuning.md: they leave notes here, and the orchestrator writes those files
 // once, after merging (apply). Nothing durable lives here: apply and report carry it into the repository and the PR.
 // usage: node tools/inbox.js <command> [--db FILE] [--root DIR]
-//   init [--fresh]             make the file; the next free task ID is read from backlog/ (--fresh empties an earlier run's file)
+//   init [--fresh]             make the file; the next free task ID is above backlog/ and the branches fetched from origin and pushed in the
+//                              last 14 days (tools/lib/ids.js; fetch first for the latest); --fresh empties an earlier run's file
 //   start TASK [N]             a sub-agent starts on TASK: reserves N (default 2) new task IDs for it and prints them
 //   claim TASK FILE...         TASK will edit these files; prints who else holds one (exit 1) and claims them all the same
 //   note TASK KIND key=value... [--body FILE|-]
@@ -13,6 +14,7 @@
 //                              continue: a fresh context goes on from commit=: at the ceiling on calls (reason=ceiling, the default; at most
 //                              twice a task), or by choice past the context threshold (boundary, stuck; once a task, from the run's 30th call,
 //                              with commit= made in this run; tools/lib/ceiling.js, VB-1616)
+//   renumber OLD=NEW...        tools/renumber.js moved this branch's new tasks: reserved IDs, notes, claims and results follow
 //   handover TASK              the latest handover note of TASK, for the context that continues it (docs/agents/handover.md)
 //   calls [AGENT]              a sub-agent's model calls so far against the ceiling of 120, from its own transcript (found by its worktree, agent-<id>),
 //                              with its context and weighted cost; outside a sub-agent's worktree, the session's own, without the ceiling
@@ -75,7 +77,7 @@ function dbFile() {
 }
 const file = dbFile();
 const [cmd, ...rest] = args;
-if (!cmd) fail('a command: init, start, claim, note, result, list, status, apply, report, results (--help)');
+if (!cmd) fail('a command: init, start, claim, note, result, renumber, list, status, apply, report, results (--help)');
 if (cmd !== 'init' && cmd !== 'calls' && !fs.existsSync(file)) fail(`no inbox at ${file}: the orchestrator runs  node tools/inbox.js init  first`);
 if (cmd === 'init' && fresh && fs.existsSync(file)) fs.rmSync(file);
 const db = cmd === 'calls' ? null : new DatabaseSync(file); // calls reads a transcript only: a session of its own has no inbox
@@ -116,24 +118,44 @@ if (cmd === 'init') {
     CREATE TABLE IF NOT EXISTS notes (n INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, kind TEXT, fields TEXT, body TEXT, applied INTEGER DEFAULT 0);
     CREATE TABLE IF NOT EXISTS results (task TEXT PRIMARY KEY, status TEXT, commit_ TEXT, size TEXT, model TEXT, summary TEXT, started TEXT,
       ended TEXT, applied INTEGER DEFAULT 0);`);
-  const dir = path.join(root, 'backlog');
-  const last = Math.max(0, ...(fs.existsSync(dir) ? fs.readdirSync(dir) : []).map((f) => +(f.match(/^VB-(\d+)\.md$/) || [])[1] || 0));
+  const seen = require('./lib/ids.js').highestId(root), last = seen.max; // above the branches in flight too (VB-1621)
   atomic(() => {
     const have = get("SELECT value FROM meta WHERE key = 'next'");
     if (!have) run("INSERT INTO meta VALUES ('next', ?)", String(last + 1));
     else if (+have.value <= last) run("UPDATE meta SET value = ? WHERE key = 'next'", String(last + 1));
   });
-  console.log(`inbox at ${file}; the next free task ID is ${pad(+get("SELECT value FROM meta WHERE key = 'next'").value)}`);
+  console.log(`inbox at ${file}; the next free task ID is ${pad(+get("SELECT value FROM meta WHERE key = 'next'").value)}`
+    + (seen.where !== 'this checkout' ? ` (above ${seen.where}, which holds task files up to ${pad(seen.max)})` : ''));
 } else if (cmd === 'start') {
   const task = taskId(rest[0]), n = Math.max(0, Math.min(20, rest[1] == null ? 2 : +rest[1] || 0));
+  const seen = require('./lib/ids.js').highestId(root); // a branch pushed since init (VB-1621)
   const ids = atomic(() => {
     run('INSERT OR IGNORE INTO results (task, started) VALUES (?, ?)', task, new Date().toISOString());
-    const next = +get("SELECT value FROM meta WHERE key = 'next'").value, got = [];
+    const next = Math.max(+get("SELECT value FROM meta WHERE key = 'next'").value, seen.max + 1), got = [];
     for (let i = 0; i < n; i++) { got.push(pad(next + i)); run('INSERT INTO ids (id, task) VALUES (?, ?)', pad(next + i), task); }
     run("UPDATE meta SET value = ? WHERE key = 'next'", String(next + n));
     return got;
   });
   console.log(`${task} started; reserved for its new tasks: ${ids.join(' ') || 'none'}`);
+} else if (cmd === 'renumber') {
+  // tools/renumber.js moved this branch's new tasks to other IDs: the inbox follows, so the run goes on (VB-1621)
+  const map = new Map(rest.map((p) => p.split('=')).filter((x) => x.length === 2 && /^VB-\d+$/.test(x[0]) && /^VB-\d+$/.test(x[1])));
+  if (!map.size || map.size !== rest.length) fail('renumber OLD=NEW... (VB-NNN=VB-NNN)');
+  const swap = (s) => (s == null ? s : String(s).replace(/VB-(\d{3,})(?!\d)/g, (m) => map.get(m) || m));
+  const TEXT = { ids: ['id', 'task'], claims: ['task'], notes: ['task', 'fields', 'body'], results: ['task', 'summary'] };
+  const changed = atomic(() => {
+    let n = 0;
+    for (const [table, cols] of Object.entries(TEXT)) {
+      for (const row of all(`SELECT rowid AS r, ${cols.join(', ')} FROM ${table}`)) {
+        const next = cols.map((c) => swap(row[c]));
+        if (next.some((v, i) => v !== row[cols[i]])) { run(`UPDATE ${table} SET ${cols.map((c) => c + ' = ?').join(', ')} WHERE rowid = ?`, ...next, row.r); n++; }
+      }
+    }
+    const top = Math.max(...[...map.values()].map((v) => +v.slice(3)));
+    if (+get("SELECT value FROM meta WHERE key = 'next'").value <= top) run("UPDATE meta SET value = ? WHERE key = 'next'", String(top + 1));
+    return n;
+  });
+  console.log(`inbox: ${changed} rows renumbered (${[...map].map(([a, b]) => a + '=' + b).join(' ')})`);
 } else if (cmd === 'claim') {
   const task = taskId(rest[0]), files = rest.slice(1).map((f) => path.relative(root, path.resolve(root, f)));
   if (!files.length) fail('claim TASK FILE...');

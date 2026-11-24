@@ -64,6 +64,8 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 `tools/help.js`). The full reference, with each tool's cadence, fixtures and measures, is `docs/commands.md`: grep it for a name.
 - A task's brief: `node tools/brief.js ID`. Backlog: `node tools/backlog.js next|list|show ID [--brief]`; `done`, `set`, `new`,
   `close-arch`, `sync` change it.
+- Before merging main into a branch: `git fetch origin main && node tools/renumber.js --onto origin/main`, which moves the branch's new task
+  IDs that main took meanwhile (VB-1621); the merge drivers (`tools/merge.js`, set by `npm install`) then merge the backlog and lists.
 - Inbox, in an orchestrated run: `node tools/inbox.js start|claim|note|calls|result` (a sub-agent), `init|status|apply|report|results`.
 - Questions: `node tools/questions.js list|show VB-NNN|answer|archive`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
 - Format: `npm run format` after editing `src/` (Prettier). `index.html` is derived and not in the repository (VB-450): never commit it. The

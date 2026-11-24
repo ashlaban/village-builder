@@ -204,6 +204,14 @@ expect('a reset when stuck, the handover not yet written', r.ok && /continue \(s
 r = runIn('', 'result', S2, 'status=continue', 'reason=stuck', 'commit=' + fresh);
 expect('stuck again: needs-review', !r.ok && /stuck again: end with status=needs-review/.test(r.out), r.out);
 
+// renumber (VB-1621): a branch's new tasks moved by tools/renumber.js; the reserved IDs follow, and later blocks start above them
+r = run('', 'renumber', `${pad(last + 1)}=${pad(last + 90)}`);
+expect('renumber moves a reserved ID', r.ok && /rows renumbered/.test(r.out), r.out);
+r = run('', 'status');
+r = run('', 'start', ready[2] || A, '1');
+expect('a block reserved after renumbering starts above the moved ID', r.ok && r.out.includes(pad(last + 91)), r.out);
+r = run('', 'renumber', 'VB-1=oops');
+expect('renumber refuses a pair that is not VB-NNN=VB-NNN', !r.ok, r.out);
 fs.rmSync(dir, { recursive: true, force: true });
 if (errors.length) { console.error('INBOX FAIL\n  ' + errors.join('\n  ')); process.exit(1); }
-console.log('inbox: reserved IDs, claims, notes by kind, apply once and the report on a copy of the backlog');
+console.log('inbox: reserved IDs, claims, notes by kind, apply once, renumber and the report on a copy of the backlog');
