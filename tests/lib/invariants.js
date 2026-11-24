@@ -380,7 +380,7 @@ function checkState(st) {
       // small constructions (a cart, a boat, a tar pit) without number but one of a making (VB-1414); only those three are small
       if (type === 'household' && list.filter((p) => p.what !== 'cottage' && !p.small).length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
       if (type === 'household') for (const p of list) {
-        if (p.small && !['cart', 'boat', 'tarpit', 'well'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is marked small`);
+        if (p.small && !['cart', 'boat', 'tarpit', 'well', 'loom'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is marked small`);
         if (!p.small && ['cart', 'boat', 'tarpit', 'well'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is not marked small`);
         if (p.small && list.filter((q) => q.what === p.what).length > 1) bad.push(`plans: household ${id} has two ${p.what} plans`);
       }
@@ -791,6 +791,11 @@ function checkState(st) {
     if (b && !(tileOk(b.tile) && tileOk(b.house) && st.w.water[b.water] === 1 && Array.from({ length: 6 }, (_, k) => st.w.nb[b.tile * 6 + k]).includes(b.water)
       && b.built <= st.t && (b.tarred === undefined || b.tarred >= b.built && b.tarred <= st.t))) bad.push(`households[${h.id}]: boat ${JSON.stringify(b)}`);
     if (h.hides !== undefined && !(Number.isInteger(h.hides) && h.hides >= 0)) bad.push(`households[${h.id}]: hides is ${h.hides}`); // VB-424
+    // wool to cloth (VB-362): fleeces and skeins whole, not below 0; cloth five whole counts by grade; the loom built at a time not after now
+    for (const k of ['wool', 'yarn']) if (h[k] !== undefined && !(Number.isInteger(h[k]) && h[k] >= 0)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    if (h.cloth !== undefined && !(Array.isArray(h.cloth) && h.cloth.length === 5 && h.cloth.every((n) => Number.isInteger(n) && n >= 0)))
+      bad.push(`households[${h.id}]: cloth is ${JSON.stringify(h.cloth)}`);
+    if (h.loom !== undefined && !(h.loom && h.loom.built <= st.t)) bad.push(`households[${h.id}]: loom is ${JSON.stringify(h.loom)}`);
     // shoes and harness (VB-911): pairs held, a finite number not below 0; the harness's condition in [0, 1]
     if (h.shoes !== undefined && !(Number.isFinite(h.shoes) && h.shoes >= 0)) bad.push(`households[${h.id}]: shoes is ${h.shoes}`);
     if (h.harness !== undefined && !within(h.harness, 0, 1)) bad.push(`households[${h.id}]: harness is ${h.harness}`);
@@ -906,7 +911,7 @@ function checkState(st) {
   for (const holder of [...st.households, ...st.villages]) {
     if (!Array.isArray(holder.ledger)) { bad.push(`stores[${holder.id}]: missing ledger`); continue; }
     for (const e of holder.ledger) if (!ledgerKinds.includes(e.kind) || !Number.isFinite(e.n) || !Number.isFinite(e.t) || e.t > st.t
-        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'salt meat', 'smoked meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', 'peat', 'tar', 'hide', 'salt', 'iron', ...FISHES, ...WOODS].includes(e.good)
+        || e.good !== undefined && !['grain', 'meals', 'sheaves', 'meat', 'salt meat', 'smoked meat', 'milk', 'butter', 'ale', 'clay', 'bogOre', 'peat', 'tar', 'hide', 'salt', 'iron', 'wool', 'yarn', 'cloth', ...FISHES, ...WOODS].includes(e.good)
         || e.stake && !st.pawns[e.pawn]) {
       bad.push(`stores[${holder.id}]: invalid ledger entry ${JSON.stringify(e)}`);
     }

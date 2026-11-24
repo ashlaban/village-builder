@@ -102,6 +102,7 @@ VB['sim/records'] = (() => {
     gatheringHeld: 0, // who was at a host's gathering on its last day, and the ale poured (VB-295)
     fair: 0, // the fair at a gathering: its deals, what changed hands, those that failed for want of change (VB-302)
     cartBuilt: 0, // a household's new cart (VB-327)
+    loomBuilt: 0, // a household's loom built (VB-362)
     tarPit: 0, // a household's tar pit dug (VB-301)
     drained: 0, // a household's wet field ditched (VB-721)
     wellDug: 0, // a household's well dug by its house (VB-1584)

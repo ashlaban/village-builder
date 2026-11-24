@@ -37,8 +37,9 @@ VB['sim/fit'] = (() => {
   // bid (VB-102).
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
   // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), by the village's custom on a common field (sim/commons,
-  // VB-100), else by role and kind, the holder's with the ranks of the roles its household lacks (`stand`, the mask of sim/roles
-  // absentMask its caller made for the holder, else 0; VB-1545).
+  // VB-100), by the kind's own `rank` where it declares one (VB-362: spinning and weaving, by a practice and the pawn's sex), else by
+  // role and kind, the holder's with the ranks of the roles its household lacks (`stand`, the mask of sim/roles absentMask its caller
+  // made for the holder, else 0; VB-1545).
   const prioOf = (st, p, j, stand = 0) =>
     j.plot
       ? plotPrio(st, p)
@@ -46,7 +47,9 @@ VB['sim/fit'] = (() => {
         ? claimPrio(st, p, j)
         : j.common
           ? commonPrio(st, p, j)
-          : ROLES[p.role].ranks[stand][j.kind] || 0;
+          : KINDS[j.kind].rank
+            ? KINDS[j.kind].rank(st, p, j, stand)
+            : ROLES[p.role].ranks[stand][j.kind] || 0;
   // Whether the head allots member id the day: not a child under 7, one away from home (VB-287, VB-783), the player's pawn while it is
   // commanded, or one on a day owed elsewhere (sim/days) or lent as a hand.
   const allotted = (st, p) =>

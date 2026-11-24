@@ -323,6 +323,14 @@ const MATERIALS = [
     title: 'Iron, in blooms (a tenth of a bloom mends the tools a tenth)',
   },
   { key: 'wool', label: 'Wool', icon: 'wool', field: 'wool', title: 'Wool, in fleeces, unspun' },
+  { key: 'yarn', label: 'Yarn', icon: 'wool', field: 'yarn', title: 'Yarn, in skeins, spun from the fleeces (VB-362)' },
+  {
+    key: 'cloth',
+    label: 'Cloth',
+    icon: 'wool',
+    field: 'cloth',
+    title: 'Woollen cloth, in lengths, woven at the loom (VB-362)',
+  },
   { key: 'hide', label: 'Hides', icon: 'beast', field: 'hides', title: 'Hides, for shoes and harness (VB-911)' },
 ];
 // A good's kinds as the page shows them wherever they appear (VB-733, principle 15): the good's icon, and the kind as its label and tint (a

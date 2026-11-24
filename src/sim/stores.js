@@ -74,6 +74,7 @@ VB['sim/stores'] = (() => {
   KINDS.push('smelt', 'mendtools');
   KINDS.push('leather'); // VB-911: a hide cut into shoes or harness at home (sim/leather)
   KINDS.push('slaughter'); // VB-911: the hide of a slaughtered beast of the cattle (sim/byre)
+  KINDS.push('shear', 'spin', 'weave'); // VB-362: fleeces shorn at the fold (sim/byre), spun to yarn and woven to cloth (sim/textile)
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
   // Adds to the year's total; this year's totals are the last ones, so the search stops at the first earlier year.
@@ -135,6 +136,7 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && good === 'tar') return good; // barrels of tar (VB-301, sim/tar)
     if (kind === 'household' && good === 'hide') return 'hides'; // the hides of the hunt (VB-424, sim/deer)
     if (kind === 'household' && good === 'salt') return good; // salt boiled at a spring (VB-700, sim/saltpan)
+    if (kind === 'household' && (good === 'wool' || good === 'yarn' || good === 'cloth')) return good; // VB-362, sim/textile
     if (kind === 'household' && (good === 'iron' || good === 'clay' || good === 'bogOre')) return good; // blooms (VB-701); dug loads, taken by the smelting
     if (kind === 'household' && good === 'fish') return 'rack'; // the catch waiting by the drying rack (VB-300)
     throw new Error(`stores: ${kind} cannot hold ${good}`);
@@ -204,6 +206,7 @@ VB['sim/stores'] = (() => {
   // grainOf. Allocates nothing.
   function heldOf(holder, good) {
     const k = field(holder, good);
+    if (k === 'cloth') return clothHeld(holder);
     if (k !== 'stone') return holder[k] || 0;
     const store = holder.stone;
     if (good !== k) return store[kindIn(good)] || 0;
@@ -259,6 +262,33 @@ VB['sim/stores'] = (() => {
   const setIron = (hh, n) => {
     hh.iron = n;
   };
+  // @state household.wool: fleeces shorn and not yet spun, whole numbers (VB-144: shorn at the fold, sim/byre; spun, sim/textile), 0 at the start
+  const setWool = (hh, n) => {
+    hh.wool = n;
+  };
+  // @state household.yarn: skeins of yarn spun and not yet woven, whole numbers (VB-362, sim/textile), undefined (none) until the first spun
+  const setYarn = (hh, n) => {
+    hh.yarn = n;
+  };
+  // @state household.cloth: lengths of woollen cloth by grade of workmanship, five whole counts in the order of sim/workmanship's grades
+  //   (shoddy to masterwork; VB-362, VB-761: a length draws its grade at the weaving), undefined (none) until the first woven. A put names
+  //   the grade in its reason ({kind, grade}; sound when none); a take spends the least worth first (custom's worth rises with the grade).
+  const clothHeld = (hh) => (hh.cloth ? hh.cloth[0] + hh.cloth[1] + hh.cloth[2] + hh.cloth[3] + hh.cloth[4] : 0);
+  function putCloth(hh, n, why) {
+    const g = typeof why === 'object' && why.grade != null ? why.grade : 1;
+    if (!(Number.isInteger(g) && g >= 0 && g < 5)) throw new Error('stores: cloth of no grade ' + g);
+    if (!hh.cloth) hh.cloth = [0, 0, 0, 0, 0];
+    hh.cloth[g] += n;
+  }
+  function takeCloth(hh, n) {
+    let got = 0;
+    for (let g = 0; g < 5 && got < n && hh.cloth; g++) {
+      const x = Math.min(hh.cloth[g], n - got);
+      hh.cloth[g] -= x;
+      got += x;
+    }
+    return got;
+  }
   function set(holder, good, n, kind) {
     if (kind === 'pawn') setStake(holder, n);
     else if (good === 'wood') setWood(holder, n);
@@ -266,6 +296,8 @@ VB['sim/stores'] = (() => {
     else if (good === 'fish') setRack(holder, n);
     else if (good === 'tar') setTar(holder, n);
     else if (good === 'hide') setHides(holder, n);
+    else if (good === 'wool') setWool(holder, n);
+    else if (good === 'yarn') setYarn(holder, n);
     else if (good === 'salt') setSalt(holder, n);
     else if (good === 'iron') setIron(holder, n);
     else if (DUG.includes(good)) setDug(holder, good, n);
@@ -308,6 +340,11 @@ VB['sim/stores'] = (() => {
       setStone(holder, row.kind, (holder.stone[row.kind] || 0) + n);
       return n;
     }
+    if (k === 'cloth') {
+      record(st, holder, good, n, why, kind);
+      putCloth(holder, n, why);
+      return n;
+    }
     const before = holder[k] || 0;
     record(st, holder, good, n, why, kind);
     set(holder, good, before + n, kind);
@@ -327,6 +364,11 @@ VB['sim/stores'] = (() => {
       const got = takeKinds(holder, good, n);
       record(st, holder, good, -got, why, kind);
       if (got > 0) short(st, holder, kind, k, heldOf(holder, k));
+      return got;
+    }
+    if (k === 'cloth') {
+      const got = takeCloth(holder, n);
+      record(st, holder, good, -got, why, kind);
       return got;
     }
     const before = holder[k] || 0,

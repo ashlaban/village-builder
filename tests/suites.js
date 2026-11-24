@@ -259,7 +259,8 @@ const INTEGRATION = [
   ['node', 'tests/dig.js'],
   ['node', 'tests/saltpan.js'], // salt boiled at a spring, and the salting that uses it (VB-700)
   ['node', 'tests/ironwork.js'], // the tools' wear and rate, smelting bog ore and mending with iron (VB-701)
-  ['node', 'tests/leather.js'], // shoes and harness worn and made from a hide, the slaughter's hide, the hide's need (VB-911)
+  ['node', 'tests/leather.js'],
+  ['node', 'tests/textile.js'], // spinning, weaving, the loom, the practice of who spins (VB-362) // shoes and harness worn and made from a hide, the slaughter's hide, the hide's need (VB-911)
   // VB-856: land and geography, and the tools, on small generated islands and constructed states
   ['node', 'tests/rivers.js'],
   ['node', 'tests/stones.js'],
