@@ -25,6 +25,7 @@ Each run ends by measuring itself (`tools/agent-usage.js`): one file per run in 
 that worked on one task alone names it, `--task VB-NNN`, for the token use page, `tools/usage-page.js`);
 `node tools/agent-usage.js --history docs/agents/usage` gives medians and quartiles by role, to compare before and after a change
 to these files or to `AGENTS.md`. A change to agent instructions (`AGENTS.md`, `.claude/agents/`, `docs/agents/`), agent tools, models
-or the ceiling adds its row to [changes.md](changes.md) in the same commit: each row starts a period, and `--periods` compares them. Three measures say whether a night gave the most work for the least overhead: the weighted cost of
+or the ceiling adds its row to [changes.md](changes.md) in the same commit: each row starts a period, and `--periods` compares them.
+Three measures say whether a night gave the most work for the least overhead: the weighted cost of
 a done task, by size; the overhead, as the orchestrator's share of the cost and the sub-agents' median boot (their context at the
 first edit); and the share of tasks done at the first attempt.
