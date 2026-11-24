@@ -13,6 +13,10 @@ let r = run(null, 'sync', '--dry');
 expect('sync --dry on this checkout writes nothing', r.ok && /would write nothing/.test(r.out), r.out);
 r = run(null, 'next', '1');
 expect('next prints the first ready task and the counts', r.ok && /^VB-\d{3,} P\d [SML] /.test(r.out) && /\d+ ready/.test(r.out), r.out);
+r = run(null, 'next', '50', '--size', 'm', '--unattended');
+const nextIds = r.out.match(/^VB-\d{3,}/gm) || [], flagged = nextIds.filter((id) => /^- Flag: Kim takes part/m.test(fs.readFileSync(path.join(root, 'backlog', id + '.md'), 'utf8')));
+expect('next --size m --unattended lists only M tasks, none flagged for Kim', r.ok && /^VB-\d{3,} P\d M /m.test(r.out)
+  && !/^VB-\d{3,} P\d [SL] /m.test(r.out) && !flagged.length, r.out);
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-backlog-'));
 for (const f of ['BACKLOG.md', 'BACKLOG_ARCHIVE.md']) fs.copyFileSync(path.join(root, f), path.join(dir, f));

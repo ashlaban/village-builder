@@ -3,7 +3,9 @@
 // tests/backlog.js checks the result after every change. Prose outside the task tables is never touched.
 const fs = require('fs'), path = require('path'), { spawnSync } = require('child_process');
 const USAGE = `usage: node tools/backlog.js <command> [--root DIR]
-  next [N]                  the first N ready tasks (default 3), in the order they are taken, with summaries
+  next [N] [--size S|M|L] [--unattended]
+                            the first N ready tasks (default 3), in the order they are taken, with summaries; --size keeps one size;
+                            --unattended leaves out the tasks flagged "Flag: Kim takes part" (taken only in a session with Kim)
   list [IDs] [--status S] [--arch KEY] [--waits-for ID] [-s]
                             one line per task (default: open tasks, in table order); S may be open, done or a status list a,b; -s adds summaries
   show ID... [--brief]      a task's file; --brief stops before its notes and reports
@@ -19,7 +21,7 @@ const option = (k) => { const i = args.indexOf(k); if (i < 0) return null; const
 const flag = (k) => { const i = args.indexOf(k); if (i < 0) return false; args.splice(i, 1); return true; };
 const root = path.resolve(option('--root') || path.join(__dirname, '..'));
 const today = option('--date') || new Date().toISOString().slice(0, 10);
-const dry = flag('--dry'), brief = flag('--brief'), withSummary = flag('-s');
+const dry = flag('--dry'), brief = flag('--brief'), withSummary = flag('-s'), unattended = flag('--unattended'), size = option('--size');
 const filters = { status: option('--status'), arch: option('--arch'), waitsFor: option('--waits-for') };
 const fail = (msg) => { console.error('backlog: ' + msg); process.exit(1); };
 
@@ -217,14 +219,17 @@ function apply(t, p) {
 const [cmd, ...rest] = args;
 const report = [];
 if (cmd === 'next') {
-  const ready = ordered('ready'), n = +(rest[0] || 3);
+  const all = ordered('ready'), n = +(rest[0] || 3), kimTakesPart = (t) => /^- Flag: Kim takes part/m.test(t.text);
+  const ready = all.filter((t) => (!size || t.size === size.toUpperCase()) && !(unattended && kimTakesPart(t)));
   for (const t of ready.slice(0, n)) {
     const freed = [...tasks.values()].filter((u) => u.waits.includes(t.id)).map((u) => u.id + (u.waits.length === 1 ? '*' : ''));
     console.log(`${t.id} P${t.priority} ${t.size} ${t.arch}: ${t.name}\n    ${summaries.get(t.id)}`
       + (freed.length ? `\n    waited for by ${freed.join(', ')} (* only this)` : ''));
   }
   const count = (s) => ordered(s).length;
-  console.log(`${ready.length} ready (${Math.max(0, ready.length - n)} more), ${count('needs-review')} waiting for Kim, ${count('blocked')} blocked;`
+  const left = all.length - ready.length;
+  console.log(`${ready.length} ready${left ? ` of ${all.length} (${left} left out by --size or --unattended)` : ''}`
+    + ` (${Math.max(0, ready.length - n)} more), ${count('needs-review')} waiting for Kim, ${count('blocked')} blocked;`
     + ' read one with  node tools/backlog.js show ID');
 } else if (cmd === 'list') {
   const statuses = !filters.status || filters.status === 'open' ? STATUSES.slice(0, 3) : filters.status.split(',');
