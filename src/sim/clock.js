@@ -8,7 +8,7 @@ VB['sim/clock'] = (() => {
   const { spreadForest } = VB['sim/spread'];
   const { fieldsDay, fieldsFrost } = VB['sim/fields'];
   const { seasonBegins, frostDay, winterAhead } = VB['sim/weather'];
-  const { reckon: reckonWinter, fallDue: climateDue } = VB['sim/climate'];
+  const { reckon: reckonWinter, fallDue: climateDue, layGround } = VB['sim/climate'];
   const { refreshRoutes, costChanged } = VB['sim/routes'],
     { refreshHoursStep, ROW_STEPS } = VB['sim/villagehours'];
   const { fadeWear } = VB['sim/paths'];
@@ -717,6 +717,7 @@ VB['sim/clock'] = (() => {
     }
   }
   function step(st) {
+    if (!st.w.ground) layGround(st); // the ground compiled at a run's first step (VB-808; a load compiles it at once)
     stepEnds(st);
     playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
     const c = cal(st.t),

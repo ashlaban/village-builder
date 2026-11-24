@@ -42,6 +42,8 @@ VB['sim/climate'] = (() => {
   const C = CLIMATE;
   const { log } = VB['sim/records'];
   const Due = VB['sim/due'];
+  const Walk = VB['sim/walking'],
+    { groundChanged } = VB['sim/routes'];
   // The winter's dates, in the order they fall in a winter: each the first day of its kind (CLIMATE's thresholds).
   const DATES = Object.freeze(['frost', 'lakeBears', 'soundShut', 'soundBears', 'thaw', 'open']);
   const AUTUMN = 2 * SEASON_DAYS, // the day of the year (0-based) the dates are reckoned from
@@ -147,6 +149,7 @@ VB['sim/climate'] = (() => {
     if (!cl || !cl.due.length || cl.due[0].at > t) return;
     for (const e of Due.take(cl.due, t, atOf)) {
       cl.bands[e.band].state = e.date;
+      groundOfBand(st, e.band);
       if (!quiet) log(st, `${LINES[e.date]} in ${bandName(e.band)}.`, { kind: 'climate', band: e.band, date: e.date });
     }
   }
@@ -161,9 +164,29 @@ VB['sim/climate'] = (() => {
   // A run's start at hour st.t (sim/scenarios): the winter reckoned on the last autumn day 1 at or before now, in its winter's warmth;
   // what has fallen by now is set quietly.
   function seedClimate(st, c, warmth) {
+    Walk.dropGround(st.w); // compiled again at the run's first step, on the bands' states (VB-808)
     st.climate = null;
     reckon(st, c.season >= 2 ? c.year : c.year - 1, warmth);
     fallDue(st, st.t, true);
+  }
+  // ---- the ground by season (VB-808; design.md, Climate and travel beyond walking, The ground by season) ----
+  // The ground of each state of a band, as sim/walking's flags (GROUND): what each date brings, from the frost to firm ground.
+  const G = Walk.GROUND;
+  const GROUND_OF = Object.freeze({ open: 0, frost: 0, lakeBears: 0, soundShut: 0, soundBears: 0, thaw: 0 });
+  // The rows of band b, first and last.
+  const bandRows = (w, b) => [Math.ceil((b * w.ROWS) / C.bands), Math.ceil(((b + 1) * w.ROWS) / C.bands) - 1];
+  // The world's ground compiled on the bands' states (sim/walking compileGround): at a run's first step (sim/clock) and at a load.
+  function layGround(st) {
+    const w = st.w,
+      rows = new Uint8Array(w.ROWS);
+    for (let r = 0; r < w.ROWS; r++) rows[r] = GROUND_OF[bandState(st, bandOfRow(w, r))];
+    Walk.compileGround(w, rows);
+  }
+  // Band b's rows come to the ground of its state; where any tile's cost changed, the routes cached are emptied now (sim/routes).
+  function groundOfBand(st, b) {
+    if (!st.w.ground) return;
+    const [lo, hi] = bandRows(st.w, b);
+    if (Walk.setRows(st.w, lo, hi, GROUND_OF[st.climate.bands[b].state])) groundChanged(st);
   }
   // A band's state now (what VB-808 and on will read), by band or by a tile's row.
   const bandState = (st, b) => (st.climate ? st.climate.bands[b].state : 'open');
@@ -183,5 +206,6 @@ VB['sim/climate'] = (() => {
     fallDue,
     seedClimate,
     bandState,
+    layGround,
   };
 })();

@@ -1248,6 +1248,18 @@ function checkState(st) {
     for (let i = 0; i < N; i++) if (st.w.shut[i] > 2 || (st.w.shut[i] && st.w.dev[i] !== 1)) off++;
     if (st.w.shut.length !== N || off) bad.push(`w.shut: ${off} tiles marked out of place, of ${st.w.shut.length}`);
   }
+  // the ground compiled (VB-808, sim/walking w.ground): each tile's cost and ice equal the rule computed afresh on its row's season, so
+  // no change of a tile's cost has gone by sim/routes costChanged unseen
+  if (st.w.ground) {
+    const Wk = globalThis.VB['sim/walking'], g = st.w.ground;
+    let off = 0, first = -1;
+    for (let i = 0; i < N; i++) {
+      const c = Wk.ruleCost(st.w, i);
+      if (!(g.cost[i] === c || (Number.isNaN(c) && Number.isNaN(g.cost[i])))) { off++; if (first < 0) first = i; }
+    }
+    if (off || g.cost.length !== N || g.season.length !== st.w.ROWS)
+      bad.push(`w.ground: ${off} tiles costed out of step with the rule (first ${first}: ${first >= 0 ? `${g.cost[first]} against ${Wk.ruleCost(st.w, first)}` : '-'})`);
+  }
   // the generated climate (VB-342): the wind a unit vector, rain from 0 to 1 and only on land
   if (st.w.rain) {
     let off = 0;

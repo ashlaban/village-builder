@@ -148,6 +148,7 @@
     "w.graze": "sim/grazing",
     "w.tended": "sim/spread",
     "w.shut": "sim/passage",
+    "w.ground": "sim/walking",
     "w.freshWalk": "sim/water",
     "w.fresh": "sim/water",
     "farmstead.water": "sim/water",

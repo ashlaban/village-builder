@@ -76,8 +76,9 @@ VB['sim/passage'] = (() => {
     for (const v of st.villages) if (v.commonFields) for (const fd of v.commonFields) held.add(fd.tile);
     for (let t = 0; t < s.length; t++)
       if (s[t] && !held.has(t)) {
-        if (s[t] === 1) costChanged(st, t);
+        const was = s[t];
         st.w.shut[t] = 0;
+        if (was === 1) costChanged(st, t);
       }
   }
   // The count of tiles standing but kept open by the cut-off test, and of those closed (for the reports).

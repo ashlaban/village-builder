@@ -71,8 +71,9 @@ VB['sim/newground'] = (() => {
     tended(st, tile); // VB-091
     st.used.add(tile);
     woodTaken(st, tile); // a wood tile broken to a field leaves its village's wood (VB-326)
-    if (!w.dev[tile]) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
+    const fresh = !w.dev[tile];
     w.dev[tile] = 1;
+    if (fresh) costChanged(st, tile); // developed ground walks as open ground (sim/routes, tileCost)
     st.biomeDirty.add(tile);
     return fd;
   }

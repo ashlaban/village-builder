@@ -15,6 +15,8 @@ const { leaves } = require('../tests/lib/canon.js');
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as tools/sim.js
 const root = path.join(__dirname, '..');
 
+// The world's derived fields, compiled from the rest and rebuilt on load: not compared (VB-808: the ground compiled, sim/walking w.ground).
+const WORLD_DERIVED = new Set(['ground']);
 // One run of one tree, in a process of its own: the leaves of the world and of the state, a file an entry and key.
 function dump(tree, out, scenario, seed, map, years) {
   const VB = require(path.join(tree, 'src', 'load.js')), Sim = VB.sim, [cols, rows] = SIZES[map];
@@ -23,7 +25,7 @@ function dump(tree, out, scenario, seed, map, years) {
   const write = (entry, value) => {
     const dir = path.join(out, `${name}-${entry}`); fs.mkdirSync(dir, { recursive: true });
     for (const k of Object.keys(value).sort()) {
-      if (typeof value[k] !== 'function') fs.writeFileSync(path.join(dir, k + '.txt'), leaves(value[k], k, new Map(), []).join('\n') + '\n');
+      if (typeof value[k] !== 'function' && !(value === w && WORLD_DERIVED.has(k))) fs.writeFileSync(path.join(dir, k + '.txt'), leaves(value[k], k, new Map(), []).join('\n') + '\n');
     }
   };
   write('world', w);
