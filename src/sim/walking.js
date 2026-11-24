@@ -338,7 +338,43 @@ VB['sim/walking'] = (() => {
     if (r && r.stood && r.stood[tile] !== stands) {
       r.stood[tile] = stands;
       r.lists.clear();
+      r.parts = null;
     }
+  }
+  // The walkable component of `tile` (VB-1667): tiles a pawn walks between on foot share one number, -1 for a tile it cannot stand on.
+  // Labelled once for a world, the whole map in one sweep, and kept beside its reach lists (never in `st`, the same after a load); a
+  // tile whose standing changes labels it again. What a page asks of every tile (sim/camp's placing) is one lookup.
+  function partOf(w, tile) {
+    let r = REACH.get(w);
+    if (!r) REACH.set(w, (r = { lists: new Map(), stood: null, parts: null }));
+    if (!r.stood) {
+      r.stood = new Uint8Array(w.N);
+      for (let i = 0; i < w.N; i++) r.stood[i] = passable(w, i) ? 1 : 0;
+    }
+    if (!r.parts) {
+      const parts = new Int32Array(w.N).fill(-1),
+        q = new Int32Array(w.N);
+      let n = 0;
+      for (let i = 0; i < w.N; i++) {
+        if (parts[i] >= 0 || !passable(w, i)) continue;
+        let head = 0,
+          tail = 0;
+        q[tail++] = i;
+        parts[i] = n;
+        while (head < tail) {
+          const u = q[head++];
+          for (let k = 0; k < 6; k++) {
+            const v = w.nb[u * 6 + k];
+            if (v < 0 || parts[v] >= 0 || !passable(w, v)) continue;
+            parts[v] = n;
+            q[tail++] = v;
+          }
+        }
+        n++;
+      }
+      r.parts = parts;
+    }
+    return tile >= 0 && tile < w.N ? r.parts[tile] : -1;
   }
   return {
     TERRAIN,
@@ -360,6 +396,7 @@ VB['sim/walking'] = (() => {
     cutTests,
     walkable,
     reachTiles,
+    partOf,
     slopeFactor,
     stepCost,
     trailStep,

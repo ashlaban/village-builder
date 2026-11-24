@@ -112,7 +112,7 @@ VB['sim/tar'] = (() => {
       if (!wantsPit(st, v)) return `${v.name} has a tar pit, or one being dug, or no pine in its wood`;
       if (!hh || hh.dissolved || hh.farmstead === null || st.farmsteads[hh.farmstead].village !== v.id)
         return `household ${c.args && c.args.household} is not of ${v.name}`;
-      return Projects.mayBegin(st, hh, 'tarpit') ? null : `household ${hh.id} may not begin a tar pit now`;
+      return Projects.mayBegin(st, hh, 'tarpit') ? null : `the household may not begin a tar pit now`;
     },
     run: (st, c) => {
       st.villages[c.target].tarBy = c.args.household;

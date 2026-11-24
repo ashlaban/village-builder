@@ -20,14 +20,11 @@ VB['sim/wells'] = (() => {
   // Whether farm f has a well of its own, on its house's tile.
   const hasWell = (st, f) => st.w.fresh[f.house] === FRESH.WELL;
   // Why household hh, holding farm f, may not begin a well now, but for its stone; or null. The ground has none (mountain, snow, water
-  // deeper than WELL.deepest), the farm has one, one is being dug, or the household has a project of its own under way (VB-1584's
-  // criterion: with no project under way; the well is long work). The well a site was chosen for (farmstead.wellMeant) is dug beside
-  // the first field's breaking, as the cottage is raised beside it.
+  // deeper than WELL.deepest), the farm has one, or one is being dug; beside any other project (VB-1668).
   function ground(st, hh, f) {
     if (!(st.w.waterDepth[f.house] < NO_WELL)) return `there is no well in the ground of ${f.name}`;
     if (hasWell(st, f)) return `${f.name} has a well`;
-    if (Projects.underWay(st, hh.id, 'well')) return `${f.name} has a well under way`;
-    return !f.wellMeant && Projects.ownOf(st, hh.id) ? `household ${hh.id} has a project under way` : null;
+    return Projects.underWay(st, hh.id, 'well') ? `${f.name} has a well under way` : null;
   }
   // The stone a well on farm f's ground is begun with: the most its band may take, since the depth is not known before the digging.
   const lining = (st, f) => bandStone(band(st.w.waterDepth[f.house]));
@@ -63,13 +60,15 @@ VB['sim/wells'] = (() => {
     );
   }
   // Whether the head of household hh, holding farm f, means to dig: a well pays, its ground and its plans allow one, its land is
-  // made, and it does not hold off projects (sim/projects mayBegin). Where the site was chosen for its well (farmstead.wellMeant) the
-  // leader weighed it before the house was placed: it is dug with the booth and the clearing, the land not waited for.
+  // made, and it does not hold off projects (sim/projects mayBegin); and, its prudence (VB-1584's criterion: the well is long work; its
+  // own choice, not a refusal, VB-1668), no large project of the household's under way. Where the site was chosen for its well
+  // (farmstead.wellMeant) the leader weighed it before the house was placed: it is dug with the booth and the clearing, the land not
+  // waited for, the cottage's and the first field's work beside it.
   const means = (st, hh, f) =>
     f.household === hh.id &&
     Projects.mayBegin(st, hh, 'well') &&
     ground(st, hh, f) === null &&
-    (f.wellMeant || (pays(st, f) && !landFirst(st, hh, f)));
+    (f.wellMeant || (!Projects.ownOf(st, hh.id) && pays(st, f) && !landFirst(st, hh, f)));
   // ---- the well a new site was chosen for (VB-1587; design.md, Water by the site, Wells, At a new site) ----
   // The farm f just founded on its site in village v by `people` settlers: where the site's water, as its leader reckoned it before
   // placing the house (sim/water siteWater: the site search's least), is the well it means to dig, the farm is marked so. Array reads,

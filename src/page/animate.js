@@ -163,6 +163,14 @@ function drawCarts(show) {
         continue;
       }
       e.sp.visible = true;
+      if (!away && c.at) {
+        // left standing where it was unhitched (sim/carts: a load left lying, or the move's cart at the landing, VB-1667)
+        e.sp.texture = art.cart[c.kind].none[worn];
+        e.sp.scale.set(CART_S);
+        e.sp.position.set(c.at.x, c.at.y);
+        e.sp.zIndex = c.at.y;
+        continue;
+      }
       if (!away) {
         const k = home++;
         e.sp.texture = art.cart[c.kind].none[worn];
@@ -236,8 +244,10 @@ function drawHerds(c, show) {
     // out with a herder (VB-136): at its heels on the way, on the pasture while it minds them there, else by the farm
     const hr = hd.herder !== null && st.agents[hd.herder] && !st.agents[hd.herder].inside ? st.agents[hd.herder] : null;
     const at = hr && !hr.path && hr.side && hr.side.background ? hr.side.background.site : -1;
-    const cx = at >= 0 ? w.hx[at] : hr ? drawX[hr.id] - drawFacing[hr.id] * 16 : w.hx[hd.home],
-      cy = at >= 0 ? w.hy[at] : hr ? drawY[hr.id] + 3 : w.hy[hd.home];
+    // a herd left at the landing of a farm placed elsewhere stands there (herd.tile, VB-1667) until it is driven home
+    const stand = hd.tile !== undefined ? hd.tile : hd.home,
+      cx = at >= 0 ? w.hx[at] : hr ? drawX[hr.id] - drawFacing[hr.id] * 16 : w.hx[stand],
+      cy = at >= 0 ? w.hy[at] : hr ? drawY[hr.id] + 3 : w.hy[stand];
     const on = show && !out && cx > x0 && cx < x1 && cy > y0 && cy < y1;
     for (const a of e.list) {
       a.s.visible = on && !teamOut.has(a.id) && !ledOut.has(a.id);
@@ -397,6 +407,7 @@ function updateSettlement(dt) {
   drawCarts(show);
   drawLed(show);
   drawHerds(c, show);
+  drawMoveLoads(); // the loads of a farm's move lying at its landing (page/settlement)
   drawDeer(c, show); // roe deer at the forest edges in the twilight (VB-139, page/deer)
   ring.clear();
   if (selPawn >= 0 && rigs[selPawn].root.visible) {

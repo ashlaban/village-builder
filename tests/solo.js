@@ -23,24 +23,23 @@ for (const seed of [3, 5, 7, 11, 42]) {
   check(again.sex === p.sex && again.born === p.born && again.given === p.given, `${tag}: seeded differently twice`);
 }
 check(sexes.size === 2, `the settler is always ${[...sexes]}`);
-// VB-1544: no house stands on day 1 (a booth farm, its cottage a plan) and the settler has staked a booth beside the house tile by the
-// verb; it sleeps under the open sky (sim/building roofless) until the booth stands, which is within the season; then a year on.
+// VB-1544: no house stands on day 1 (a booth farm, its cottage a plan) and its shelter is begun on the house tile itself (VB-1666: no
+// booth of st.booths); the settler sleeps under the open sky (sim/building roofless) until the shelter stands, which is within the
+// season; then a year on.
 const B = VB['sim/building'], Projects = VB['sim/projects'];
 for (const seed of [7, 42]) {
   const st = scenario('solo', seed), tag = `seed ${seed}`, hh = st.households[0], f = st.farmsteads[hh.farmstead];
-  const staked = []; B.stakedEach(st, (p) => staked.push(p));
   check(f.booth === true && !st.booths.length, `${tag}: a house stands on day 1 (booth ${f.booth}, ${st.booths.length} booths)`);
   check(Projects.projectsOf(st, 'household', hh.id).some((p) => p.what === 'cottage'), `${tag}: no cottage plan`);
-  check(staked.length === 1 && staked[0].holder.id === hh.holder && st.w.nb.slice(f.house * 6, f.house * 6 + 6).includes(staked[0].tile),
-    `${tag}: the settler staked ${staked.length} booths, not one beside the house`);
-  check(B.roofless(st, hh), `${tag}: the settler is not under the open sky before the booth stands`);
+  check(f.shelter && f.shelter.built === null, `${tag}: no shelter begun on the house tile (${JSON.stringify(f.shelter)})`);
+  check(B.roofless(st, hh), `${tag}: the settler is not under the open sky before the shelter stands`);
   let day = null;
-  for (let d = 1; d <= Sim.SEASON_DAYS && day === null; d++) { Sim.advance(st, Sim.DAY); if (st.booths.some((b) => b.by === hh.id)) day = d; }
-  check(day !== null, `${tag}: no booth stands within the season`);
-  check(!B.roofless(st, hh) && f.booth === true, `${tag}: the booth stands and the cottage is still to come`);
+  for (let d = 1; d <= Sim.SEASON_DAYS && day === null; d++) { Sim.advance(st, Sim.DAY); if (B.shelterStands(st, f)) day = d; }
+  check(day !== null, `${tag}: no shelter stands within the season`);
+  check(!B.roofless(st, hh) && f.booth === true && !st.booths.length, `${tag}: the shelter stands, no booth, and the cottage is still to come`);
   let err = null;
   try { for (let q = 0; q < 4; q++) { Sim.advance(st, Sim.YEAR / 4); const bad = checkState(st); check(!bad.length, `${tag}, quarter ${q + 1}: ${bad.slice(0, 3).join('; ')}`); } } catch (e) { err = e; }
   check(!err, `${tag}: a year throws: ${err && err.stack}`);
 }
 if (failed) process.exit(1);
-console.log('solo ok: one young settler alone, no house; a booth within the season; a year on keeps the invariants');
+console.log('solo ok: one young settler alone, no house; a shelter on the house tile within the season; a year on keeps the invariants');

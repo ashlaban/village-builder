@@ -279,6 +279,22 @@ VB['sim/territory'] = (() => {
   function woodTaken(st, t) {
     for (const v of st.villages) if (v.wood && v.wood.includes(t)) reckonWood(st, v);
   }
+  // Why village v may not cut on tile t, or null (VB-1653: a tile the player chooses to fell on): the tiles reckonWood may give its wood,
+  // whatever its size: woodland with trees standing, not in use, no other village's wood, its own land or free forest (freeFor), within
+  // WOOD.far walking steps of its centre. A tile of its wood now is one. One bounded search a call: a player's act, never daily.
+  function woodWhy(st, v, t) {
+    const w = st.w;
+    if (!Number.isInteger(t) || t < 0 || t >= w.biome.length) return `there is no tile ${t}`;
+    if (!woodland(w, t) || !(w.trees[t] > 0)) return `no trees stand at ${t}`;
+    if (v.wood && v.wood.includes(t)) return null;
+    if (st.used.has(t)) return `the land at ${t} is in use`;
+    for (const u of st.villages)
+      if (u !== v && u.wood && u.wood.includes(t)) return `the trees at ${t} are ${u.name}'s wood`;
+    if (!freeFor(st, t, v.id)) return `the trees at ${t} are not ${v.name}'s to fell`;
+    if (!bfs(w, v.center, WOOD.far, walkable(w)).dist.has(t))
+      return `the trees at ${t} are beyond a day's walk of ${v.name}`;
+    return null;
+  }
   // The village whose wood holds tile t, or null (for the tile panel).
   const woodOf = (st, t) => st.villages.find((v) => v.wood && v.wood.includes(t)) || null;
   // ---- the meeting, and the start ----
@@ -313,6 +329,7 @@ VB['sim/territory'] = (() => {
     borderRule,
     reckonWood,
     woodTaken,
+    woodWhy,
     woodOf,
     landMeeting,
     seedOutland,

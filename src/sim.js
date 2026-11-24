@@ -58,6 +58,9 @@ const Sim = (() => {
   const { heirRanking } = VB['sim/heirranking'],
     { wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
   const { updateTies, refreshInterests, hooks, standingParts } = VB['sim/society'];
+  const { plan } = VB['sim/playerplan']; // the player's plan, its act (VB-1646)
+  const { planView, fireView } = VB['sim/planview']; // the plan's and the fire's reads (VB-1646, VB-1653)
+  const { sleepOf } = VB['sim/sleep']; // the played pawn's sleep owed, for the page (VB-1643)
   const { of: moodOf, word: moodWord } = VB['sim/mood']; // a pawn's mood and its modifiers, for its card (VB-062)
   const { labelsOf: traitLabels, act: traitAct } = VB['sim/traits']; // a pawn's traits in words, for its card (VB-519); one's act (VB-520)
   const { save, load } = VB['sim/saves'];
@@ -122,6 +125,7 @@ const Sim = (() => {
 
   return {
     seed,
+    landing: VB['sim/landing'],
     advance,
     save,
     load,
@@ -192,6 +196,10 @@ const Sim = (() => {
     holdingOf,
     standingParts,
     moodOf,
+    sleepOf,
+    plan,
+    planView,
+    fireView,
     moodWord,
     traitLabels,
     traitAct,
@@ -218,6 +226,8 @@ const Sim = (() => {
     thirstLine,
     reasonOf,
     reasonLine,
+    agenda: VB['sim/agenda'].agenda, // the played pawn's queue and open work against their deadlines (VB-1644), its plan laid into days (VB-1647)
+    planGaps: VB['sim/agenda'].planGaps, // the windows that press with no task of the plan covering them (VB-1650)
     RIVER,
     byRiver,
     wetFactor, // the share of a field's fertility its wetness and ditch leave now (VB-721): the field's card
@@ -245,12 +255,19 @@ const Sim = (() => {
     quernYears,
     houseTarred,
     boothCondition,
-    // VB-1172: the tiles of the booths staked and not yet raised (each its maker's plan), for the page's ring of stakes
+    // VB-1172: the tiles of the booths staked and not yet raised (each its maker's plan), for the page's ring of stakes; and (VB-1666)
+    // the house tiles of the farms whose shelter is being raised (farmstead.shelter, built null), after them
     stakedBooths: (st) => {
       const out = [];
       stakedEach(st, (plan) => out.push(plan.tile));
+      for (const f of st.farmsteads) if (f.shelter && f.shelter.built === null) out.push(f.house);
       return out;
     },
+    // VB-1655: the build menu, what the played head may build now, and why a tile will not take one (sim/camp); reads only
+    buildMenu: VB['sim/agenda'].buildMenu, // sim/camp's menu with each entry's `work`, the plan's estimate (VB-1658)
+    placeWhy: VB['sim/camp'].placeWhy,
+    moveCost: (st, tile) => VB['sim/camp'].moveCost(st, tile, VB['sim/weather'].frostExpected(st)), // VB-1667
+    farmView: VB['sim/ladder'].farmView, // VB-1659: what stands at a farm, what is being built, what could follow (sim/ladder); reads only
     boatUntarred,
     team,
     withOxen,

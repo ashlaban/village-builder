@@ -364,7 +364,8 @@ VB['sim/day'] = (() => {
       if (!lists) continue;
       for (const j of st.jobsBy.get(`household:${id}`) || none) {
         VB.count.eveningAsk++;
-        if (!KINDS[j.kind].evening || j.claims.length || !isOpen(st, j)) continue;
+        const ev = KINDS[j.kind].evening;
+        if (!ev || (ev !== true && !ev(st, j)) || j.claims.length || !isOpen(st, j)) continue;
         let best = null,
           at = Infinity;
         for (const pid of st.households[id].members) {

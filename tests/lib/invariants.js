@@ -18,10 +18,11 @@ function checkState(st) {
   const bad = [], N = st.w.N, tileOk = (i) => Number.isInteger(i) && i >= 0 && i < N;
   // the open step of a household's land project (VB-123: the plan whose open step works under a stake), or null; a cottage's plan or a
   // small construction may stand before it in the list (VB-1411, VB-1414)
-  const projectStep = (id) => {
-    const l = st.plans && st.plans.projects && st.plans.projects.household.get(id);
-    for (const p of l || []) if (p.steps[p.open] && p.steps[p.open].stake) return p.steps[p.open];
-    return null; };
+  // the staked open steps of household id's project plans (several side by side, VB-1651, VB-1668)
+  const projectSteps = (id) => {
+    const l = st.plans && st.plans.projects && st.plans.projects.household.get(id), out = [];
+    for (const p of l || []) if (p.steps[p.open] && p.steps[p.open].stake) out.push(p.steps[p.open]);
+    return out; };
   bad.push(...checkRoles(st, globalThis.VB, { allowAgeLag: true }));
   for (const [key, expected] of [
     ['living', st.pawns.filter((p) => p.alive).map((p) => p.id)],
@@ -376,9 +377,15 @@ function checkState(st) {
       const h = (type === 'household' ? st.households : type === 'village' ? st.villages : st.pawns)[id];
       if (!h || h.dissolved) bad.push(`plans: project plans of a ${type} ${id} that is gone`); // a claimant who died: until the round (sim/farmclaims)
       if (!Array.isArray(list) || !list.length) { bad.push(`plans: ${type} ${id} keeps an empty list of project plans`); continue; }
-      // today's limit (VB-1472): one large plan of the household's own choosing, a settler household's cottage beside it (VB-1411), and
-      // small constructions (a cart, a boat, a tar pit) without number but one of a making (VB-1414); only those three are small
-      if (type === 'household' && list.filter((p) => p.what !== 'cottage' && !p.small).length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
+      // no limit on the household's projects (VB-1668), but their jobs' keys never meet (sim/projects landProject): of the plans it
+      // posts (not a plot's nor a cottage's), two with steps of a kind in common are not both unmarked `side`; small constructions one
+      // of a making (VB-1414)
+      if (type === 'household') {
+        const posted = list.filter((p) => p.what !== 'plot' && p.what !== 'cottage' && !p.side);
+        for (let i = 0; i < posted.length; i++) for (let k = i + 1; k < posted.length; k++)
+          if (posted[i].steps.some((x) => posted[k].steps.some((y) => y.kind === x.kind)))
+            bad.push(`plans: household ${id}'s ${posted[i].what} and ${posted[k].what} would post jobs of one key`);
+      }
       if (type === 'household') for (const p of list) {
         if (p.small && !['cart', 'boat', 'tarpit', 'well', 'loom'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is marked small`);
         if (!p.small && ['cart', 'boat', 'tarpit', 'well'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is not marked small`);
@@ -432,6 +439,11 @@ function checkState(st) {
     const K = st.routeKept, { ROUTE } = globalThis.VB['sim/routes'];
     if (K && (K.routes.size > ROUTE.cacheMax || K.log.length > ROUTE.keepDays)) bad.push('routeKept: over ROUTE.cacheMax or ROUTE.keepDays');
   }
+  // VB-1667: a lone farm's village follows its house: a village of one farm and no green has its centre on that farm's house (sim/layout
+  // seeds it so, sim/green moves it when the house moves)
+  for (const v of st.villages)
+    if (!v.green && v.farmsteads.length === 1 && v.center !== st.farmsteads[v.farmsteads[0]].house)
+      bad.push(`village ${v.id}: one farm and no green, its centre ${v.center} not the house ${st.farmsteads[v.farmsteads[0]].house}`);
   // the walking hours between villages (VB-286): a row a village, each as long as the villages are many; 0 on the diagonal, symmetric, and
   // every other entry null or a number in (0, ROUTE.reach / SPEED]
   {
@@ -765,6 +777,8 @@ function checkState(st) {
     if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive) bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     if (grainBad(h.grain)) bad.push(`households[${h.id}]: grain ${JSON.stringify(h.grain)}`);
     for (const k of ['wood', 'peat', 'meals', 'flour', 'hungryDays']) if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
+    // timber home and not yet cut (VB-1653): absent, or loads, a finite number not negative
+    if (h.timber !== undefined && !within(h.timber, 0, 1e6)) bad.push(`households[${h.id}]: timber is ${h.timber}`);
     // the stone heap by rock (VB-733): loads of the stone's kinds, each a finite number, none negative
     const rocks = globalThis.VB['sim/goods'].kindsOf('stone');
     if (!h.stone || typeof h.stone !== 'object' || Object.keys(h.stone).some((k) => !rocks.includes(k) || !within(h.stone[k], 0, 1e6)))
@@ -1076,6 +1090,12 @@ function checkState(st) {
     // VB-255: the farm's barn, one at most, built at a time not after now
     if (f.barn !== undefined && f.barn !== null && !(Object.keys(f.barn).join() === 'built' && f.barn.built <= st.t))
       bad.push(`farmsteads[${f.id}]: barn ${JSON.stringify(f.barn)}`);
+    // VB-1665: the farm's byre, one at most, built at a time not after now; none on a camp
+    if (f.byre !== undefined && f.byre !== null && !(Object.keys(f.byre).join() === 'built' && f.byre.built <= st.t && f.camp !== true))
+      bad.push(`farmsteads[${f.id}]: byre ${JSON.stringify(f.byre)}`);
+    // VB-1664: the rung stored where it cannot be derived, the timber house, on a farm with its cottage built (no booth)
+    if (f.rung !== undefined && f.rung !== null && !(f.rung === 'timber' && !f.booth))
+      bad.push(`farmsteads[${f.id}]: rung ${JSON.stringify(f.rung)} with booth ${JSON.stringify(f.booth)}`);
     // the house's condition (VB-306): 0..1 as last set, at a time not after now, and its tar not further than a barrel's years ahead
     if (f.condition !== undefined && !(f.condition >= 0 && f.condition <= 1)) bad.push(`farmsteads[${f.id}]: condition ${f.condition}`);
     if (f.condAt !== undefined && !(f.condAt <= st.t)) bad.push(`farmsteads[${f.id}]: condAt ${f.condAt} is in the future`);
@@ -1089,7 +1109,22 @@ function checkState(st) {
     if (f.booth && st.plans && st.plans.projects) {
       const P = st.plans.projects, mine = (p) => p.what === 'cottage' && p.farmstead === f.id,
         n = [...(P.household.get(f.household) || []), ...(P.village.get(f.village) || [])].filter(mine).length;
-      if (n !== 1) bad.push(`farmsteads[${f.id}]: a booth with ${n} cottage plans`);
+      // a farm landed by hand (f.camp, VB-1655) has its cottage planned by a later task: none, or one
+      if (n !== 1 && !(n === 0 && f.camp !== undefined)) bad.push(`farmsteads[${f.id}]: a booth with ${n} cottage plans`);
+    }
+    // the camp (VB-1655): absent, or true (nothing stands: no booth of its household raised by its house) or false, on a booth farm while true
+    if (f.camp !== undefined && f.camp !== true && f.camp !== false) bad.push(`farmsteads[${f.id}]: camp ${JSON.stringify(f.camp)}`);
+    if (f.camp === true && (!f.booth || (st.booths || []).some((b) => b.by === f.household && globalThis.VB['sim/hex'].hexSteps(st.w, b.tile, f.house) <= 1)))
+      bad.push(`farmsteads[${f.id}]: a camp ${f.booth ? 'with its booth raised' : 'with no booth mark'}`);
+    // the shelter on the house tile (VB-1666): absent or null, or on a farm with no cottage yet {wood, done, built (null while raised, else
+    // not after now), cond 0..1, condAt not after now}; a camp's never stands
+    const sh = f.shelter;
+    if (sh !== undefined && sh !== null) {
+      const num = (x) => Number.isFinite(x) && x >= 0;
+      if (!f.booth) bad.push(`farmsteads[${f.id}]: a shelter on a farm with its cottage`);
+      if (!num(sh.wood) || !num(sh.done) || !(sh.cond >= 0 && sh.cond <= 1) || !(sh.condAt <= st.t) || !(sh.built === null || sh.built <= st.t))
+        bad.push(`farmsteads[${f.id}]: shelter ${JSON.stringify(sh)}`);
+      if (f.camp === true && sh.built !== null) bad.push(`farmsteads[${f.id}]: a camp with its shelter standing`);
     }
     if (f.grade !== 'ground' && f.grade !== 'stone') bad.push(`farmsteads[${f.id}]: grade ${f.grade}`); // VB-332
     for (const fd of f.fields) if (!tileOk(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} tile ${fd.tile} out of range`);
@@ -1123,8 +1158,7 @@ function checkState(st) {
     // a field or meadow in the making (its household's project plan, VB-123) is staked by its household, not owned by it (VB-158); the
     // farm holds no project of its own
     if ('project' in f) bad.push(`farmsteads[${f.id}]: a project kept on the farm`);
-    const pj = f.household === null ? null : projectStep(f.household);
-    if (pj && pj.stake && st.claims) {
+    for (const pj of f.household === null ? [] : projectSteps(f.household)) if (st.claims) {
       const c = VB['sim/claims'].claimOf(st, pj.place, { type: 'household', id: f.household });
       if (!c || c.state !== 'unrealised' || c.why !== pj.stake) bad.push(`farmsteads[${f.id}]: project on ${pj.place} not staked by its household`);
       if (st.owner[pj.place] === f.household + 1) bad.push(`farmsteads[${f.id}]: project tile ${pj.place} owned before it is made`);
@@ -1165,8 +1199,8 @@ function checkState(st) {
           if (!pl || pl.steps[pl.open].place !== tile || c.state !== 'unrealised') bad.push(`claims[${tile}]: ${k} claims it for no common field`);
         } else if (c.why === 'field' || c.why === 'meadow') { // a stake is its household's project (VB-158)
           const h = c.by.type === 'household' && st.households[c.by.id], f = h && st.farmsteads[h.farmstead];
-          const s = f && projectStep(f.household);
-          if (!s || s.place !== tile || c.state !== 'unrealised') bad.push(`claims[${tile}]: ${k} stakes it with no project there`);
+          const s = f && projectSteps(f.household).find((x) => x.place === tile);
+          if (!s || c.state !== 'unrealised') bad.push(`claims[${tile}]: ${k} stakes it with no project there`);
         }
       }
     }
@@ -1185,8 +1219,7 @@ function checkState(st) {
   for (const f of st.farmsteads) {
     if (onRiver(f.house)) bad.push(`farmsteads[${f.id}]: house on river tile ${f.house}`);
     for (const fd of f.fields) if (onRiver(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} on river tile ${fd.tile}`);
-    const pj = f.household === null ? null : projectStep(f.household);
-    if (pj && onRiver(pj.place)) bad.push(`farmsteads[${f.id}]: new field on river tile ${pj.place}`);
+    for (const pj of f.household === null ? [] : projectSteps(f.household)) if (onRiver(pj.place)) bad.push(`farmsteads[${f.id}]: new field on river tile ${pj.place}`);
     for (const m of f.meadows || []) if (onRiver(m.tile) ||
       st.w.water[m.tile]) bad.push(`farmsteads[${f.id}]: meadow ${m.id} on river or water tile ${m.tile}`);
   }
@@ -1480,12 +1513,28 @@ function checkState(st) {
     const pl = st.player, QUEUE_MAX = globalThis.VB['sim/player'].QUEUE_MAX;
     if (!st.pawns[pl.pawn] || !st.agents[pl.pawn]) bad.push(`player: pawn ${pl.pawn} does not exist`);
     if (typeof pl.auto !== 'boolean' || !(pl.since <= st.t)) bad.push(`player: auto ${pl.auto}, since ${pl.since}`);
+    // its sleep owed (VB-1643): absent in a save made before it, else {owed within 0 and SLEEP.cap, asleep}
+    const sl = pl.sleep, CAP = globalThis.VB['sim/sleep'].SLEEP.cap;
+    if (sl !== undefined && !(sl && sl.owed >= 0 && sl.owed <= CAP && typeof sl.asleep === 'boolean' && Number.isInteger(sl.at) && sl.at <= st.tick)) bad.push(`player: sleep ${JSON.stringify(sl)}`);
     if (!Array.isArray(pl.queue) || pl.queue.length > QUEUE_MAX) bad.push(`player: a queue of ${pl.queue && pl.queue.length} commands`);
     else pl.queue.forEach((c, n) => {
       if (c.source !== 'player' || c.actor !== pl.pawn || typeof c.verb !== 'string') bad.push(`player.queue[${n}]: ${JSON.stringify(c)}`);
       if (!(c.begun === null || (n === 0 && c.begun <= st.t))) bad.push(`player.queue[${n}]: begun ${c.begun}`);
       // its reference (VB-1405): null until begun, then plain data or null; absent only in a command begun before VB-1405
       if (c.ref === undefined ? c.begun === null : (c.ref !== null && (c.begun === null || typeof c.ref !== 'object'))) bad.push(`player.queue[${n}]: ref ${JSON.stringify(c.ref)}, begun ${c.begun}`);
+    });
+    // its plan (VB-1646): absent until first planned; at most PLAN_MAX kinds of sim/kinds, each once, and tasks of distinct keys; the
+    // sleeping hours two distinct hours of the day; a task at a tile (VB-1649, VB-1650) a tile under its chain's name, one a chain a tile and a `what` (VB-1668); the routine's done kinds of its own, on a day not after today; the commands it fed marked
+    const pp = pl.plan, PP = globalThis.VB['sim/playerplan'], PC = globalThis.VB['sim/planchains'], KS = globalThis.VB['sim/kinds'].KINDS, hr = (h) => typeof h === 'number' && h >= 0 && h < 24;
+    if (pp !== undefined && !(pp && Array.isArray(pp.routine) && pp.routine.length <= PP.PLAN_MAX && pp.routine.every((k) => KS[k])
+      && new Set(pp.routine).size === pp.routine.length && (pp.sleep === null || (pp.sleep && hr(pp.sleep.from) && hr(pp.sleep.until) && pp.sleep.from !== pp.sleep.until))
+      && Array.isArray(pp.tasks) && pp.tasks.length <= PP.PLAN_MAX && new Set(pp.tasks.map((x) => (x.key === undefined ? `${x.kind} ${x[x.kind]} ${x.what}` : x.key))).size === pp.tasks.length
+      && pp.tasks.every((x) => (x.key === undefined ? !!PC.CHAINS[x.kind] && Number.isInteger(x[x.kind]) && x.site === x[x.kind]
+        : typeof x.key === 'string' && KS[x.kind] && Number.isInteger(x.site))) && Number.isInteger(pp.day) && pp.day * 24 <= st.t
+      && Array.isArray(pp.done) && pp.done.every((k) => pp.routine.includes(k)) && new Set(pp.done).size === pp.done.length
+      && (pp.last === null || ((typeof pp.last.key === 'string' || (!!PC.CHAINS[pp.last.kind] && Number.isInteger(pp.last[pp.last.kind]) && PC.CHAINS[pp.last.kind].which.includes(pp.last.which))) && pp.last.t <= st.t)))) bad.push(`player.plan: ${JSON.stringify(pp)}`);
+    (Array.isArray(pl.queue) ? pl.queue : []).forEach((c, n) => {
+      if (c.plan !== undefined && !(c.plan && ['routine', 'task', 'sleep'].includes(c.plan.from))) bad.push(`player.queue[${n}].plan: ${JSON.stringify(c.plan)}`);
     });
     const r = pl.refused;
     // what its death left (VB-213): null while the played pawn lives, and from its death the farm, spouse and friends noted then, no queue
@@ -1846,6 +1895,9 @@ function checkHerds(st, bad) {
     const standing = hd.at !== undefined;
     if (standing && !(Number.isInteger(hd.at) && st.farmsteads[hd.at])) bad.push(`${where}: stands at farm ${hd.at}`);
     if (standing !== (st.herdsAway || []).includes(hd.id)) bad.push(`${where}: at ${hd.at}, ${standing ? 'not ' : ''}on herdsAway`);
+    // VB-1667: a herd left at the landing its farm's house moved from stands at a tile of the map, away, at its own household's farm
+    if (hd.tile !== undefined && !(standing && Number.isInteger(hd.tile) && hd.tile >= 0 && hd.tile < st.w.N && hd.household !== null
+      && st.households[hd.household] && st.households[hd.household].farmstead === hd.at)) bad.push(`${where}: stands at tile ${hd.tile}`);
     if (hd.household === null) {
       if (!standing && ((hd.head && hd.head.length) || hd.ewes || hd.rams || hd.lambs)) bad.push(`${where}: animals but no household`);
       continue;

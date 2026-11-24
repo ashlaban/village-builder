@@ -103,7 +103,7 @@ check(Mood.word(24) === 'miserable' && Mood.word(25) === 'low' && Mood.word(45) 
   delete st.rng.births.fix;
   check(st.pawns.length === born + 1, 'a child born');
   check(valueOf(st, couple, 'child') === MOOD.child.value && valueOf(st, man, 'child') === MOOD.child.value, `both parents: ${keys(st, couple)} / ${keys(st, man)}`);
-  check(Mood.of(st, couple).mood === 55, `mood 55: ${Mood.of(st, couple).mood}`);
+  check(Mood.of(st, couple).mood - (valueOf(st, couple, 'crowded') || 0) === 55, `mood 55 (beside a crowded house's, VB-1664): ${Mood.of(st, couple).mood}`);
   check(checkState(st).length === 0, `invariants: ${checkState(st).slice(0, 3)}`);
   // a death of their child: both parents grieve, and its siblings do not (not spouse, child or parent)
   const sib = childrenOf(st, couple).find((c) => c !== kid && c !== born && st.pawns[c].alive);

@@ -1,4 +1,4 @@
-// @sys sim/chores: the job kinds of the household's daily work at the house: cutting firewood, fetching water, cooking, brewing and
+// @sys sim/chores: the job kinds of the household's daily work at the house: felling timber and cutting it to firewood, fetching water, cooking, brewing and
 // gathering wild food; what turns something of the world (a tree, the well, the woods' berries) into something in the house
 // VB-418: these kinds have no domain module of their own. Each takes from one module (sim/forest, sim/forage: the world) and puts into
 // another (sim/stores, sim/pot), so it lives above both, in the material layer: the beginning of target-v2's production (4.3). `brew`
@@ -14,6 +14,7 @@ VB['sim/chores'] = (() => {
     AFTERNOON = VB['sim/roles'].MATCH.day.afternoon, // the afternoon's hour, when the head allots the day again (sim/day; VB-1546)
     EVENING = VB['sim/roles'].MATCH.day.evening; // the hour past which no evening task is begun (VB-1547)
   const { fellTree, drawWood } = VB['sim/forest'];
+  const { emit } = VB['sim/events'];
   const { dailyNeed, floorOf, spareDays, spareUrgency } = VB['sim/hunger'],
     Pot = VB['sim/pot'];
   const { ground: forageGround, gather } = VB['sim/forage'];
@@ -21,10 +22,32 @@ VB['sim/chores'] = (() => {
     { WATER, atHome } = Water,
     { FRESH } = VB['world/water'];
   const { age } = VB['sim/records'];
+  const { fireOf } = VB['sim/house'];
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
   const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
   // The fuel pile in wood loads: the woodpile less what a project plan holds back, and the peat held at PEAT.worth (VB-367).
   const fuelFree = (st, hh) => hh.wood - reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
+  // The timber the household holds, felled and home, not yet cut (VB-1653; absent: none), in the woodpile's loads.
+  const timberOf = (hh) => (hh.timber > 1e-9 ? hh.timber : 0);
+  // The loads a fell task of the played pawn's plan at `tile` has still to bring home (0 when there is none; sim/planchains' fell).
+  const plannedLeft = (st, tile) => {
+    const pp = st.player && st.player.plan,
+      t = pp && pp.tasks.find((x) => x.key === undefined && x.kind === 'fell' && x.fell === tile);
+    return t ? (t.n || 1) - (t.got || 0) : 0;
+  };
+  // The house is cold, or its pile will not feed tonight's fire (VB-1547), the house's own (sim/house fireOf, VB-1669): the wood kinds'
+  // vital rule.
+  const fireShort = (st, hh) => hh.cold > 0 || fuelFree(st, hh) < st.ECON.woodUse[cal(st.t).season] * fireOf(st, hh);
+  // @tunable WOOD_HOURS (VB-1653): the hours of one load of firewood in its two steps, felling a tree and cutting its timber at home; they
+  //   sum to the firewood trip's 3 hours before the split, so a load costs the labour it did.
+  const WOOD_HOURS = Object.freeze({ fell: 2, cut: 1 });
+  // The pile's urgency below the season's goal, `have` what counts towards it (VB-327): 2.2 when nearly out; else its shortfall of the
+  // goal, and more in autumn.
+  const pileUrgency = (st, hh, c, U, have) => {
+    if (have < U.woodLow) return U.woodLowUrgency;
+    const goal = woodTargets(st, hh).wood[c.season];
+    return (goal - have) / goal + (c.season === 2 ? U.woodSummer : 0);
+  };
   // The household has fewer meals than the coming meal needs, grain, fresh food (VB-119) or seed it would eat (VB-388) to cook it from, and
   // wood in the pile (VB-327: an empty pile cannot cook; the pot burns no wood of its own, the day's use is the hearth's) and the day's water
   // in (VB-331: a dry day's meal is eaten uncooked).
@@ -64,56 +87,76 @@ VB['sim/chores'] = (() => {
     return out;
   };
   const KINDS = {
+    // Wood in two steps (VB-1653; Kim, 24 Nov 2026: "Fell timber at the forest tile, and then cut firewood in the home"): a tree felled
+    // in the woods and its load carried home as timber (wood), and the timber cut into firewood at the house (firewood). The hours of a
+    // load are the old trip's, WOOD_HOURS.fell + WOOD_HOURS.cut; the urgency and the vital rule of the old trip are the step's that mends
+    // the fire: a cold house cuts the timber it holds first, else fells.
     wood: {
-      verb: 'Cutting firewood',
+      verb: 'Felling timber',
       go: 'Heading to the woods',
-      back: 'Carrying firewood home',
-      name: 'Cut firewood',
+      back: 'Carrying timber home',
+      name: 'Fell timber',
       at: ['woods'],
       needs: [],
-      gives: ['firewood'],
-      label: 'Firewood',
+      gives: ['timber'],
+      label: 'Timber',
       anim: 'chop',
-      hours: 3,
+      hours: WOOD_HOURS.fell,
       hands: 1,
       type: 'wood',
       carry: 'logs',
       to: 'woodpile',
       spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
-      // lived by while the house is cold or the pile will not feed tonight's fire (VB-1547): a load cut is carried home after work
+      // lived by while the house is cold or the pile will not feed tonight's fire (VB-1547) and no timber is home to cut: a load felled is
+      // carried home after work
       vital: (st, j) => {
         const hh = st.households[j.farm.household];
-        return hh.cold > 0 || fuelFree(st, hh) < st.ECON.woodUse[cal(st.t).season];
+        return !timberOf(hh) && fireShort(st, hh);
       },
-      // 3 in a cold house (VB-327: above cooking's 2.2); 2.2 when the pile is nearly out; else its shortfall of the goal, and more in autumn
+      // 3 in a cold house with no timber to cut (VB-327: above cooking's 2.2); 2.2 when the pile and the timber are nearly out; else
+      // their shortfall of the goal, and more in autumn
       urgency: (st, j, c, U) => {
         const hh = st.households[j.farm.household];
-        if (hh.cold > 0) return U.woodColdUrgency;
-        const free = fuelFree(st, hh); // what a project plan holds back is not for the fire (VB-123)
-        if (free < U.woodLow) return U.woodLowUrgency;
-        const goal = woodTargets(st, hh).wood[c.season];
-        return (goal - free) / goal + (c.season === 2 ? U.woodSummer : 0);
+        if (hh.cold > 0 && !timberOf(hh)) return U.woodColdUrgency;
+        return pileUrgency(st, hh, c, U, fuelFree(st, hh) + timberOf(hh));
       },
-      // a tree felled on the tile drawn from the village's wood when the job was posted (VB-326), or on one drawn now if it was cut bare
+      // a tree felled on the job's tile (drawn from the village's wood when the job was posted, VB-326, or the one the plan chose), or on one
+      // drawn now if it was cut bare; the timber home (sim/playerplan counts a planned task's loads by the event `timberHome`). A load
+      // is one tree of the tile's count felled and ECON.woodPerTrip units of timber at home; a trip brings one load on the back, or the
+      // loads cut and stacked on a cart (sim/carts) (VB-1662).
       deliver: (st, j, hh, f, a) => {
-        // a tree felled, and its wood home, for each load cut and stacked on the cart (sim/carts); one on the back
-        for (let k = Carts.loads(a); k > 0; k--) {
-          Stores.put(st, hh, 'wood', st.ECON.woodPerTrip, 'firewood');
+        const loads = Carts.loads(a);
+        for (let k = loads; k > 0; k--) {
+          Stores.put(st, hh, 'timber', st.ECON.woodPerTrip, 'felling');
           fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.farm.village]));
         }
+        emit(st, 'timberHome', { household: hh.id, tile: j.site, loads });
       },
+      // another load cut onto the cart: on a trip the plan sent, while its task has loads left beyond those on the cart (VB-1662: before,
+      // the pile's goal, so a cart brought more than the task's loads); else while the pile with the timber home is below the goal
       stack: (st, j, hh, c, load) =>
-        fuelFree(st, hh) + st.ECON.woodPerTrip * Carts.loads({ load }) < woodTargets(st, hh).wood[c.season],
-      draw: (st, j) => drawWood(st, st.villages[j.farm.village]),
-      // while the village has a wood and the pile's free wood (VB-123) is below the plan's goal for the season; a second job below its woodSecond
+        j.chosen
+          ? plannedLeft(st, j.site) > Carts.loads({ load })
+          : fuelFree(st, hh) + timberOf(hh) + st.ECON.woodPerTrip * Carts.loads({ load }) <
+            woodTargets(st, hh).wood[c.season],
+      // a tile drawn from the village's wood, but for a trip the plan sent to a tile of its choosing (`chosen`)
+      draw: (st, j) => (j.chosen ? -1 : drawWood(st, st.villages[j.farm.village])),
+      // while the village has a wood and the pile's free wood (VB-123) with the timber home is below the plan's goal for the season; a
+      // second job below its woodSecond. For the played pawn's household, a trip to the tile of each `fell` task of its plan with trips
+      // left and trees standing (sim/playerplan), whatever the pile.
       available: (st, hh, f, c, post) => {
         const wood = st.villages[f.village].wood,
           T = woodTargets(st, hh),
-          free = fuelFree(st, hh);
-        if (wood.length && free < T.wood[c.season]) {
+          have = fuelFree(st, hh) + timberOf(hh);
+        if (wood.length && have < T.wood[c.season]) {
           post(`wood:h${hh.id}`, wood[0], { farm: f });
-          if (free < T.woodSecond) post(`wood:h${hh.id}b`, wood[0], { farm: f });
+          if (have < T.woodSecond) post(`wood:h${hh.id}b`, wood[0], { farm: f });
         }
+        const pl = st.player;
+        if (pl && pl.plan && st.pawns[pl.pawn].household === hh.id)
+          for (const t of pl.plan.tasks)
+            if (t.kind === 'fell' && t.key === undefined && (t.got || 0) < (t.n || 1) && st.w.trees[t.fell] > 0)
+              post(`wood:h${hh.id}:t${t.fell}`, t.fell, { farm: f, chosen: true });
       },
     },
     water: {
@@ -311,6 +354,45 @@ VB['sim/chores'] = (() => {
         if (spareDays(st, hh) < FISH.secondDays) post(`gather:h${hh.id}:${t}b`, t, { farm: f });
       },
     },
+    firewood: {
+      verb: 'Cutting firewood',
+      go: 'Going home to cut firewood',
+      name: 'Cut firewood',
+      at: ['farm'],
+      needs: ['timber'],
+      gives: ['firewood'],
+      label: 'Firewood',
+      anim: 'chop',
+      hours: WOOD_HOURS.cut,
+      hands: 1,
+      type: 'wood',
+      spot: (st, a, j) => [st.w.hx[j.site] + 10 + a.ox * 0.3, st.w.hy[j.site] + 8],
+      // as the trip to the woods was before the split: lived by while the house is cold or the pile will not feed tonight's fire; and
+      // then begun after work too, until MATCH.day.evening (sim/day eveningCall), as the load of the old trip came home with its wood
+      vital: (st, j) => fireShort(st, st.households[j.farm.household]),
+      evening: (st, j) => fireShort(st, st.households[j.farm.household]),
+      urgency: (st, j, c, U) => {
+        const hh = st.households[j.farm.household];
+        return hh.cold > 0 ? U.woodColdUrgency : pileUrgency(st, hh, c, U, fuelFree(st, hh));
+      },
+      // a load of the timber home (ECON.woodPerTrip, or what is left) cut and stacked on the woodpile
+      done: (st, j, hh) => {
+        const n = Stores.take(st, hh, 'timber', Math.min(timberOf(hh), st.ECON.woodPerTrip), 'cutting');
+        if (n > 0) Stores.put(st, hh, 'wood', n, 'cutting');
+      },
+      // at the house, while timber is home and the house is cold or the pile's free wood is below the season's goal; a second job below
+      // its woodSecond with more than a load home
+      available: (st, hh, f, c, post) => {
+        const timber = timberOf(hh);
+        if (!timber) return;
+        const T = woodTargets(st, hh),
+          free = fuelFree(st, hh);
+        if (hh.cold > 0 || free < T.wood[c.season]) {
+          post(`firewood:h${hh.id}`, f.house, { farm: f });
+          if (free < T.woodSecond && timber > st.ECON.woodPerTrip) post(`firewood:h${hh.id}b`, f.house, { farm: f });
+        }
+      },
+    },
   };
-  return { KINDS, fuelFree, cookWanted };
+  return { KINDS, WOOD_HOURS, fuelFree, timberOf, cookWanted };
 })();

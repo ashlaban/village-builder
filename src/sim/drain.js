@@ -78,15 +78,16 @@ VB['sim/drain'] = (() => {
     return id;
   }
   // Ditching a field, a making the head begins through the verb project (sim/plans; args {field}: the field's id, or none for the head's
-  // pick, fieldFor): a large project, one at a time beside the household's others (a field, a meadow, a barn), on its own farm's wet field.
+  // pick, fieldFor): a large project, on its own farm's wet field, beside any other (VB-1668); the head's own look begins one only with
+  // no large project under way, its prudence.
   declare('drain', {
     why: (st, hh, f, args) => {
-      const p = Projects.ownOf(st, hh.id);
-      if (p) return `household ${hh.id} has a ${p.what} under way`;
       const id = fieldFor(st, f, args);
-      return id < 0 && !(args && Number.isInteger(args.field))
-        ? `${f.name} has no wet field to ditch`
-        : fieldWhy(st, f, id);
+      if (id < 0 && !(args && Number.isInteger(args.field))) return `${f.name} has no wet field to ditch`;
+      // one ditching a field: a second on another goes beside it (VB-1668)
+      if (Projects.projectsOf(st, 'household', hh.id).some((p) => p.what === 'drain' && p.field === id))
+        return `the field ${id} is being ditched`;
+      return fieldWhy(st, f, id);
     },
     begin: (st, hh, f, args) => {
       const id = fieldFor(st, f, args),
@@ -96,7 +97,7 @@ VB['sim/drain'] = (() => {
     look: {
       from: DRAIN.from,
       want: (st, hh, f) => {
-        if (Projects.ownOf(st, hh.id)) return null;
+        if (Projects.ownOf(st, hh.id)) return null; // the head's prudence: its own look waits for no large project under way
         const fd = bestField(st, f);
         return fd ? { field: fd.id } : null;
       },
