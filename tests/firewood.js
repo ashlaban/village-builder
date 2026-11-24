@@ -61,8 +61,8 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert(tile !== undefined, 'a wooded tile to choose');
   // refusals
   assert.match(String(Sim.plan(st, 'add', { fell: f.fields[0] ? f.fields[0].tile : f.house })), /no trees stand at/);
-  assert.match(String(Sim.plan(st, 'add', { fell: tile, n: 0 })), /cannot plan 0 trips/);
-  assert.match(String(Sim.plan(st, 'add', { fell: tile, n: 2.5 })), /cannot plan 2.5 trips/);
+  assert.match(String(Sim.plan(st, 'add', { fell: tile, n: 0 })), /cannot plan 0 loads/);
+  assert.match(String(Sim.plan(st, 'add', { fell: tile, n: 2.5 })), /cannot plan 2.5 loads/);
   assert.match(String(Sim.plan(st, 'add', { firewood: tile })), /house is not at/);
   Stores.take(st, hh, 'wood', hh.wood, 'burn');
   assert.match(String(Sim.plan(st, 'add', { firewood: f.house })), /no timber is home to cut/);
@@ -128,4 +128,49 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert.notStrictEqual(auto, hand, 'by hand with no firewood task, the timber is not counted');
   assert.strictEqual(planned, auto, 'with a firewood task, it is');
 }
-console.log('firewood ok: two steps for every household, no cold day in a year; fell and firewood planned by hand, their refusals; the fire read; save and load; the outlook');
+// 4. VB-1634: a fell task's n is loads, not trips. On a hand start (the booth raised by the farmstead task), a fell task of 3 loads brings
+// 3 loads home (3 trees felled, 3 * ECON.woodPerTrip timber), however many a cart stacks on a trip (before: 24 timber, the task counting
+// 3 trips of 5, 2 and 1 loads). Then a firewood task cuts some and the cottage takes the rest, with its own timber trips to the site; the
+// timber held is all along what was put with reason felling less what was cut or built with.
+{
+  const st = Sim.seed(tinyWorld(rows), 7, 'solo', null, { hand: true });
+  st.naturalDeaths = false;
+  Sim.inhabit(st, st.households[0].holder);
+  Sim.setAuto(st, false);
+  assert.strictEqual(Sim.plan(st, 'add', { farmstead: st.farmsteads[0].house }), true);
+  assert.strictEqual(Sim.plan(st, 'sleep', { from: 21, until: 6 }), true);
+  for (let i = 0; i < 20 * 240 && st.player.plan.tasks.length; i++) Sim.advance(st, 0.1);
+  assert.strictEqual(st.player.plan.last.which, 'raised');
+  const hh = st.households[0], f = st.farmsteads[0], v = st.villages[f.village], P = st.ECON.woodPerTrip;
+  const tile = v.wood.find((t) => st.w.trees[t] >= 3), trees0 = st.w.trees[tile];
+  const sum = (kind) => hh.totals.filter((e) => e.good === 'timber' && e.kind === kind).reduce((s, e) => s + e.n, 0) +
+    (hh.ledger || []).filter((e) => e.good === 'timber' && e.kind === kind).reduce((s, e) => s + e.n, 0);
+  const closes = (what) => {
+    const held = Stores.heldOf(hh, 'timber');
+    assert(Math.abs(held - (sum('felling') + sum('cutting') + sum('build'))) < 1e-9,
+      `${what}: timber ${held} against felled ${sum('felling')}, cut ${sum('cutting')}, built ${sum('build')}`);
+  };
+  assert.strictEqual(Sim.plan(st, 'add', { fell: tile, n: 3 }), true);
+  for (let i = 0; i < 8 * 240 && st.player.plan.tasks.some((t) => t.kind === 'fell'); i++) Sim.advance(st, 0.1);
+  assert.strictEqual(st.player.plan.last.which, 'home', 'the fell task done');
+  assert.strictEqual(Stores.heldOf(hh, 'timber'), 3 * P, 'three loads of timber home, no more');
+  assert.strictEqual(sum('felling'), 3 * P, 'three loads felled');
+  assert(trees0 - st.w.trees[tile] > 2 && trees0 - st.w.trees[tile] < 3 + 1e-6, `three trees felled: ${trees0} to ${st.w.trees[tile]}`);
+  closes('felled');
+  // a firewood task cuts some of it, then the cottage takes the rest, and fetches the timber its walls still lack to the site
+  assert.strictEqual(Sim.plan(st, 'add', { firewood: f.house }), true);
+  for (let i = 0; i < 4 * 240 && !(sum('cutting') < 0); i++) Sim.advance(st, 0.1);
+  assert(sum('cutting') < 0, 'some timber cut');
+  closes('cut');
+  assert.strictEqual(Sim.plan(st, 'add', { upgrade: f.house, what: 'cottage' }), true);
+  let sited = 0;
+  for (let i = 0; i < 20 * 240 && !sited; i++) {
+    Sim.advance(st, 0.1);
+    sited = (hh.ledger || []).filter((e) => e.good === 'timber' && e.kind === 'timber').length;
+    closes(`hour ${st.t.toFixed(1)}`);
+  }
+  assert(sum('build') < 0 && sited > 0, `the walls took the timber home (${sum('build')}) and a trip brought timber to the site`);
+  closes('built');
+  sound(st, 'felled, cut and built with by hand');
+}
+console.log('firewood ok: two steps for every household, no cold day in a year; fell and firewood planned by hand, their refusals; the fire read; save and load; the outlook; a fell task of n loads brings n loads, and the timber held closes against its ledger');
