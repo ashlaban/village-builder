@@ -43,6 +43,8 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2 .u2-lens button[aria-pressed="true"] { background: var(--ink2); color: var(--paper); }
 .u2-lens button[aria-pressed="true"] i { border-color: var(--paper); }
 .u2-key { align-self: center; padding: 5px 12px; font-size: 13px; display: flex; align-items: center; gap: 8px; border-radius: 12px; box-shadow: none; }
+.u2-key { flex-wrap: wrap; justify-content: center; max-width: 100%; }
+.u2-key .note { color: var(--soft); }
 .u2-key i { display: block; width: 110px; height: 12px; border-radius: 6px; border: 1.5px solid var(--ink2); }
 .u2-sitecard { flex: none; align-self: flex-start; width: min(400px, 100%); max-height: 56vh; overflow: auto; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
 .u2-sitecard h2 { margin: 0; font: 800 23px/1.1 var(--head); }

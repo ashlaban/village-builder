@@ -10,7 +10,7 @@ const siteG = new PIXI.Graphics();
 L.hover.addChild(siteG);
 const SITE_LENS = [
   { id: '', name: 'Land', dot: '#7fae5b' },
-  { id: 'freshwater', name: 'Water', dot: '#2b83ba', key: ['near', WATER_RAMP, 'far'] },
+  { id: 'freshwater', name: 'Water', dot: '#2b83ba', key: ['near', WATER_RAMP, 'far', '● a well can be dug'] },
   { id: 'fertility', name: 'Soil', dot: '#a0da39', key: ['poor', FERTILITY_RAMP, 'rich'] },
   { id: 'woodland', name: 'Wood', dot: '#2f6b4f' },
 ];
@@ -19,6 +19,7 @@ const SITE_ICON = {
   soil: ICON.fertility,
   wood: ICON.woodland,
 };
+const siteCap = (t) => t[0].toUpperCase() + t.slice(1);
 const siteHex = (c) => '#' + c.toString(16).padStart(6, '0');
 const sitePips = (b) =>
   `<span class="u2-pips b${b}" aria-label="${['poor', 'fair', 'good'][b]}"><i></i><i></i><i></i></span>`;
@@ -38,10 +39,7 @@ function siteWords(r) {
             `No water close by: you would dig a ${wt.well} well, about ${Math.round(wt.dig / 10)} days of work. Then ${perDay}.`,
           ]
         : [
-            `${wt.name[0].toUpperCase() + wt.name.slice(1).replace(/^a /, '')} ${wt.walk < 0.13 ? 'at the door' : walkWords(wt.walk) + ' away'}`.replace(
-              /^A /,
-              '',
-            ),
+            `${siteCap(wt.name.replace(/^an? /, ''))} ${wt.walk < 0.13 ? 'at the door' : walkWords(wt.walk) + ' away'}`,
             `${perDay[0].toUpperCase() + perDay.slice(1)}.`,
           ];
   const so = r.soil,
@@ -97,7 +95,9 @@ function siteLens(id) {
   for (const b of u2.lens.children) b.setAttribute('aria-pressed', String(b.dataset.lens === id));
   u2.key.hidden = !l.key;
   if (l.key)
-    u2.key.innerHTML = `<span>${l.key[0]}</span><i style="background:linear-gradient(90deg, ${l.key[1].map(siteHex).join(',')})"></i><span>${l.key[2]}</span>`;
+    u2.key.innerHTML =
+      `<span>${l.key[0]}</span><i style="background:linear-gradient(90deg, ${l.key[1].map(siteHex).join(',')})"></i>` +
+      `<span>${l.key[2]}</span>${l.key[3] ? `<span class="note">${l.key[3]}</span>` : ''}`;
 }
 // The map's tap, while choosing (page/tileinfo's pick): the tile is read where it lies; the map is not moved under the finger.
 function siteAt(sx, sy) {
@@ -111,10 +111,14 @@ function siteChoose(i, fly) {
   site.msg = '';
   renderSite();
   if (fly && i >= 0) {
+    // the tile comes to rest in the middle of the map left open: under the bars, over the card (a phone) or beside it (a desk)
     const z = Math.max(cam.z, clamp(30 / w.HW, zMin(), zMax)),
       narrow = innerWidth <= 720,
-      card = u2.sitecard.getBoundingClientRect();
-    flyTo(w.hx[i] - (narrow ? 0 : card.width / 2 / z), w.hy[i] + (narrow ? (card.height - 90) / 2 / z : 0), z);
+      card = u2.sitecard.getBoundingClientRect(),
+      top = (u2.key.hidden ? u2.lens : u2.key).getBoundingClientRect().bottom,
+      dx = narrow ? 0 : card.right / 2,
+      dy = narrow ? (top + card.top) / 2 - innerHeight / 2 : 0;
+    flyTo(w.hx[i] - dx / z, w.hy[i] - dy / z, z);
   }
 }
 function renderSite() {
