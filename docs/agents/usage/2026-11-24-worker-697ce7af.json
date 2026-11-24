@@ -1,0 +1,129 @@
+{
+ "session": "697ce7af-35f1-5b4e-914d-b33b69d887c8",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-24T20:44:50.525Z",
+ "end": "2026-11-24T20:55:53.834Z",
+ "wallMin": 11.1,
+ "activeMin": 11.1,
+ "prompts": 1,
+ "calls": 54,
+ "subagentCalls": 0,
+ "tokens": {
+  "input": 104,
+  "cacheWrite": 98845,
+  "cacheRead": 7265351,
+  "output": 17708
+ },
+ "context": {
+  "first": 85441,
+  "peak": 162634,
+  "firstEdit": 0
+ },
+ "tools": {
+  "Bash": {
+   "calls": 52,
+   "bytes": 121624,
+   "seconds": 485.6
+  },
+  "ToolSearch": {
+   "calls": 1,
+   "bytes": 47,
+   "seconds": 0
+  },
+  "Monitor": {
+   "calls": 1,
+   "bytes": 302,
+   "seconds": 0.3
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 9,
+   "bytes": 35244
+  },
+  {
+   "tool": "Bash",
+   "what": "for i",
+   "calls": 2,
+   "bytes": 26187
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 8,
+   "bytes": 11758
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 3,
+   "bytes": 8848
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7543
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 6264
+  },
+  {
+   "tool": "Bash",
+   "what": "python3 -",
+   "calls": 6,
+   "bytes": 5666
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -rn",
+   "calls": 3,
+   "bytes": 5625
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/sim.js",
+   "calls": 1,
+   "bytes": 2784
+  },
+  {
+   "tool": "Bash",
+   "what": "cat >",
+   "calls": 3,
+   "bytes": 2582
+  },
+  {
+   "tool": "Bash",
+   "what": "pkill -f",
+   "calls": 1,
+   "bytes": 2328
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -i",
+   "calls": 2,
+   "bytes": 1922
+  }
+ ],
+ "weighted": 938735,
+ "task": "VB-1175",
+ "subagents": [],
+ "summary": {
+  "weightedTotal": 938735,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0
+ }
+}
