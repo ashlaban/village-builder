@@ -39,6 +39,7 @@
       "sim/forage",
       "sim/fieldrec",
       "sim/layout",
+      "sim/landing",
       "sim/byhand",
       "sim/forest",
       "sim/people",

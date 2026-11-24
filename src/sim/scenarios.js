@@ -52,12 +52,13 @@ VB['sim/scenarios'] = (() => {
   const { seedOutland } = VB['sim/territory'];
   const { birthright } = VB['sim/farmclaims'];
   // Founders, or with `solo` one settler alone on a village of one farm, landed with what a founders household of the village brings.
-  function seedFounders(w, seedNum, solo = false) {
+  function seedFounders(w, seedNum, solo = false, site = -1) {
     const S = fromState((seedNum * 2654435761) ^ 0x51ed),
       rand = drawer(S);
     const comp = landComponents(w),
       minLand = Math.round((1500 * w.N) / (280 * 200)); // the required land mass scales with the map
-    const center = findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= minLand);
+    // site: the tile the player chose for the settler's farm (solo; sim/landing reads it), in place of the search's
+    const center = site >= 0 ? site : findSite(w, rand, comp, (i) => comp.size[comp.id[i]] >= minLand);
     if (center < 0) throw new Error('No village site found');
     const gen = settlementGenerator(w, rand, true),
       village = gen.addVillage(center, solo ? 1 : 3),
@@ -734,7 +735,7 @@ VB['sim/scenarios'] = (() => {
   }
   // The test switch (VB-350; tools/sim.js and tools/balance.js --rye): every village is given rye and farms in three courses.
   const giveRye = (st) => giveCrops(st, () => 'three');
-  // places: what was placed by hand, for the 'manual' scenario (seedManual). opts: {rye} (giveRye).
+  // places: what was placed by hand, for the 'manual' scenario (seedManual). opts: {rye} (giveRye), {site} (solo: the tile chosen).
   function seed(w, seedNum, scenario = 'founders', places = null, opts = null) {
     if (scenario === 'manual') return seedManual(w, seedNum, places);
     const st =
@@ -742,7 +743,12 @@ VB['sim/scenarios'] = (() => {
         ? seedHeirs(w, seedNum)
         : scenario === 'populous' || scenario === 'market'
           ? seedPopulous(w, seedNum, scenario === 'market')
-          : seedFounders(w, seedNum, scenario === 'solo');
+          : seedFounders(
+              w,
+              seedNum,
+              scenario === 'solo',
+              scenario === 'solo' && opts && opts.site >= 0 ? opts.site : -1,
+            );
     if (opts && opts.rye) giveRye(st);
     return st;
   }
