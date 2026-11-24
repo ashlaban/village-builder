@@ -10,7 +10,7 @@ VB['sim/building'] = (() => {
     { HOUSE, houseCondition } = VB['sim/house'];
   const { B } = VB['world/biomes'],
     { rockKey } = VB['world/geology'];
-  const { bfs } = VB['sim/hex'];
+  const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
     { findRoute } = VB['sim/routes'];
   const { log, atFarm } = VB['sim/records'];
@@ -66,7 +66,7 @@ VB['sim/building'] = (() => {
   // hands go to the fields when they are due (VB-1544: the harvest lost to the frost otherwise, and the cottage never done in the
   // slack's other work). The settlers of sim/settle, whose booth is a mark with none raised (until VB-787), build at once, as before.
   function boothWork(st, hh, f, c, post) {
-    const own = st.booths.some((b) => b.by === hh.id);
+    const own = homeBooth(st, hh, f);
     if ((own && !slack(c)) || roofless(st, hh)) return;
     const bj = cottageJob(st, hh, f);
     if (!bj) return;
@@ -106,12 +106,14 @@ VB['sim/building'] = (() => {
   // of its members staked is not yet raised. Once it stands they sleep under it, its fire their hearth's, the household's pile (the
   // booth's rule, VB-785, as a heated house); a booth farm's household that staked none (sim/settle's settlers, until VB-787 has them
   // raise one) sleeps as in a house, as before. Read once a day for a booth farm's household only; few booths stand or are staked.
+  // Its booth is the one beside the farm's house (a booth a member raises away from home, to work there, is not its roof).
   function roofless(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    if (!f || !f.booth) return false;
-    for (const b of st.booths) if (b.by === hh.id) return false;
-    return !!stakedBy(st, (p) => st.pawns[p.holder.id].household === hh.id);
+    if (!f || !f.booth || homeBooth(st, hh, f)) return false;
+    return !!stakedBy(st, (p) => st.pawns[p.holder.id].household === hh.id && hexSteps(st.w, p.tile, f.house) <= 1);
   }
+  // Whether a booth of household hh stands beside the house of its farm f.
+  const homeBooth = (st, hh, f) => st.booths.some((b) => b.by === hh.id && hexSteps(st.w, b.tile, f.house) <= 1);
   // Why pawn id cannot raise a booth at `tile`, or null: ground nobody else owns or has staked, and no booth on it or staked there.
   function raiseBoothWhy(st, id, tile) {
     const p = st.pawns[id],
