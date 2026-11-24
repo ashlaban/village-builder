@@ -51,6 +51,7 @@ VB['sim/sleepers'] = (() => {
   function ownRule(st, id) {
     const s = st.pawns[id].sleep,
       a = st.agents[id];
+    if (!s || !a) return; // not reckoned: a pawn with no agent
     if (!(s.owed >= SLEEP.health.over) || (s.until !== null && st.t < s.until)) return;
     if (a.job || a.path || a.phase !== null || a.occasion !== null || a.idleUntil > st.t) return;
     if (st.player && st.player.pawn === id && !st.player.auto) return;
