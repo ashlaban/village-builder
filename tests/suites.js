@@ -15,6 +15,7 @@ const FAST = [
   ['node', 'tests/pulls.js'],
   ['node', 'tests/customhold.js'],
   ['node', 'tests/decisions.js'],
+  ['node', 'tests/customlog.js'], // VB-082: a meeting's votes and margins in its log, near misses, leanings, a cause taken up told
   ['node', 'tests/solo.js'], // the solo start: one young settler alone, and a year on
   ['node', 'tests/alderman.js'], // VB-314: the village's alderman, chosen at its meeting
   ['node', 'tests/cacheowners.js'],

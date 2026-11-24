@@ -196,9 +196,12 @@ VB['sim/meetings'] = (() => {
     if (!s) return;
     const out = [];
     const ch = Culture.meeting(env, { ...hk, membersOf: (x) => (x === s ? people : membersOf(st, x.id)) }, s);
+    const ballots = ballotsOf(st, s.id);
     for (const x of ch) {
       const d = Customs.DIMS[x.dim],
-        txt = `At the ${s.name} meeting: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}” (was “${d.opts[x.from][1]}”).`;
+        b = ballots.find((e) => e.dim === x.dim),
+        votes = b ? `, by ${tally(d, b, x.to, false)}` : '',
+        txt = `At the ${s.name} meeting: ${d.label.toLowerCase()} is now “${d.opts[x.to][1]}” (was “${d.opts[x.from][1]}”)${votes}.`;
       log(st, txt, { kind: 'custom', village: s.id });
       out.push({ year: c.year, text: txt });
       // the causes of its people whose option has become the practice
@@ -209,6 +212,20 @@ VB['sim/meetings'] = (() => {
         Culture.endCause(env, hk, p, a, 'won');
         causeEnded(st, p);
       }
+    }
+    // the customs that came close to changing (VB-082): the meeting log only, not the record, since nothing changed
+    for (const b of ballots) {
+      const y = leader(b.support),
+        x = b.current;
+      if (b.chosen !== x || y === x || ch.some((c) => c.dim === b.dim)) continue;
+      const need = b.support[x] * (1 + b.need);
+      if (need <= 0 || b.support[y] < NEAR * need) continue;
+      const d = Customs.DIMS[b.dim];
+      out.push({
+        year: c.year,
+        text: `At the ${s.name} meeting: ${d.label.toLowerCase()} stays “${d.opts[x][1]}”, narrowly: ${tally(d, b, y)}.`,
+        close: true,
+      });
     }
     // its meeting on its green today (sim/occasions)
     const held = st.occasions.find(
@@ -224,6 +241,20 @@ VB['sim/meetings'] = (() => {
   }
   // A cause's end (VB-1112), told in the pawn's record with the last vote its village's meeting gave it (p.lastCause, Culture.endCause).
   const pct = (x) => `${Math.round(x * 100)}%`;
+  // The votes on a custom at a meeting, as the log tells them (VB-082): read from the ballots sim/decisions keeps (st.decisionLog), those of
+  // village v's meeting now (asked on this step, so at st.t), each {dim, current, chosen, support[], need: the share by which the leading
+  // way had to pass the practice}. A custom whose leading way came within NEAR of the support it needed (95% of it) came close.
+  const NEAR = 0.95;
+  const ballotsOf = (st, v) =>
+    (st.decisionLog || []).filter((b) => b.t === st.t && b.kind === 'custom' && b.body === v && b.dim !== null);
+  const leader = (S) => S.reduce((y, v, j) => (v > S[y] ? j : y), 0);
+  // "“Any child” 46% against “Sons first” 31%; needed 25% more": way y against the practice the ballot was put to; without the ways'
+  // names where the line has named them
+  function tally(d, b, y, named = true) {
+    const x = b.current,
+      way = (j) => (named ? `“${d.opts[j][1]}” ` : '');
+    return `${way(y)}${pct(b.support[y])} against ${way(x)}${pct(b.support[x])}; it needed ${pct(b.need)} more`;
+  }
   function causeEnded(st, p) {
     const lc = p.lastCause,
       d = Customs.DIMS[lc.dim],
@@ -264,7 +295,7 @@ VB['sim/meetings'] = (() => {
         out.push({ year: c.year, text: txt });
       }
     }
-    if (!out.length && !(st.meetingLog.length && st.meetingLog[0].year === c.year))
+    if (!out.length && !st.meetingLog.some((e) => e.year === c.year && !e.close))
       out.push({ year: c.year, text: 'The meetings changed nothing this year.' });
     toMeetingLog(st, out);
     st.lastMeeting = st.t;

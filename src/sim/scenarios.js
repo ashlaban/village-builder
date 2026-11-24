@@ -531,7 +531,8 @@ VB['sim/scenarios'] = (() => {
     //   claims[] (ids of the pawns working it, at most KINDS[kind].hands; VB-102), posted, live, and its source's fields (field, farm, plot, ...)}
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob; derived, not saved (`sim/saves` DERIVED)
-    // @state st.meetingLog[]: {year, text}; newest first. (The village log is a view of st.record: sim/notable, villageLog.)
+    // @state st.meetingLog[]: {year, text, close?: true where a custom came close to changing and did not (VB-082)}; newest first.
+    //   (The village log is a view of st.record: sim/notable, villageLog.)
     // @state st.record[]: {t, kind, pawn, other, household, farm, village, n, text, self, tile, reason (of a `joined` event: why it
     //   moved, VB-822)}; every event, append-only (sim/records, VB-075);
     //   seeding writes the history before the start (births, deaths, marriages), in time order, and who holds each farm at the start.
