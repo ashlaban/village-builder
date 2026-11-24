@@ -121,20 +121,44 @@ Drafts page (screenshots and both rounds' findings, newest first): https://claud
 - Wood: you cut wood or timber on a forest tile, and take it home, where it is 1) worked into firewood or 2) left as timber for
   building. So the forest tile offers the cutting (any forest tile within reach, not only the one the job picked: sim work), and
   the further working is at the house.
-- A tapped mark: shown as a mock (a pin opening its own small popup, against a pin opening its tile's callout with the mark's
-  explanation on top, the proposal); Kim's choice is not given yet: ask before building.
-- Sleep: two effects. Short term as now, but biting harder on the second and third night (one night lost is usually fine; much
-  more and the wits go quickly). Long term, health is increasingly affected.
+- A tapped mark: B, accepted for now: a tap on a pin (or anything standing on a tile) opens that tile's callout, with the mark's
+  explanation in a band on top, its icon repeated beside the words, and the act right below. No popup of a mark's own.
+- The booth: Kim does not see why a booth stands without a roof. The solo settler stakes a booth and sleeps under the open sky
+  until it is raised (VB-1544), but the map draws the tent from the first morning, so the screen shows a shelter while the nights
+  are cold. To do: draw a staked booth as staked (poles, no cover) until it is raised, and offer "Raise the booth" at the house.
+  A booth, once raised, has its roof; nothing is built roofless.
+- Sleep: two effects, both from the accumulated debt (the hours owed). Short term as now, but biting harder on the second and
+  third night (one night lost is usually fine; much more and the wits go quickly). Long term, health is increasingly affected the
+  longer the debt stands. Also: an idle settler at home sleeps by day, so five nights with no sleeping hours owed only 4 hours;
+  the cost must bite when nights are not slept.
 - Stores count what is in the plan. There is no "automatic plan": there could be automatic planning, and it is turned off. So
   nothing the head would have planned by itself may be counted on while the player plans (the outlook's `intakes`).
 
-## For the next session
-- Start with 1 (find and explain a standing plan), then 2, 3, 4, 5: they are why a year fails or misleads.
+## For the next session: the plan, in order
+Kim wants clarifying questions and small batches; sub-agents are Opus. Each numbered item is a batch.
+1. Find why a plan stands still (round 4, finding 1) and make the screen say why: when the plan holds tasks and the settler does
+   none of them, the plan bar or the settler's pill names the reason (waiting for a window, for a project, for a walk ordered by
+   hand that cannot end, for the hour). Reproduce first on `ot7`, site 1, desktop, with a plant and a hay task and a stray
+   "walk here".
+2. Taps: a tap that opens a callout must not press what appears under the finger; a pin's tap opens its tile's callout with the
+   mark's band on top (B); the map does not move unless the player asks ("Show"), and the scouted button centres its place.
+3. Wood and the booth (sim and page): cutting wood or timber offered on any forest tile within reach; the load taken home;
+   working it into firewood, or leaving it as timber, at the house; "Raise the booth" at the house; the staked booth drawn as
+   staked. Scope the sim part as a backlog task with Kim's words above.
+4. Stores count only what the plan covers (firewood to cut, hay to mow, the harvest of standing fields: each only with a task for
+   it), and say so in words on a tap.
+5. Sleep's two effects from the debt (sim), and the day sleeping of an idle settler.
+6. Explanations on a tap, everything left in round 4's finding 6; the day strip made believable (finding 7); the words (finding 10).
+7. Then a playtest round, with Kim's rule for explanations and the harness traps given to the testers.
+
+How to work here:
 - Seeing the page: `node build.js`, then patch a copy of `index.html` as `tests/browser.js` does (replace the `let st = null,`
   line to add `window.__play = { get st() { return st; }, Sim, setSpeed }`) and drive it with Playwright; the playtest harness is
   `docs/ui2/playtest.js`. Do not rebuild `index.html` while testers play.
-- Sim work goes to Opus `vb-task` sub-agents through backlog tasks (`tools/inbox.js init --fresh`, `start ID`, then `apply`); the
-  page is the orchestrator's. Kim wants clarifying questions and small batches. No PR is open; none was asked for.
+- Sim work goes to Opus `vb-task` sub-agents through backlog tasks (`tools/inbox.js init --fresh`, `start ID`, then `apply` after
+  merging the worktree's branch); the page is the orchestrator's. Checks: `npm test`, `npm run verify`, `node tests/smoke.js`.
+- Branch `claude/bold-lamport-xsgshf`, pushed. No PR is open; none was asked for. Open backlog: VB-1617 (sleep for every pawn),
+  VB-1613 (the site's choice, overlapping the new start).
 
 ## What is built (first session)
 - The flag: `UI2` (`src/page/ui2.js`). On by default; `?classic` in the address, or `window.VB_CLASSIC` (set by `tests/lib/page.js`
