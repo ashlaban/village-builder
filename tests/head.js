@@ -71,7 +71,10 @@ let made;
   const p = Projects.ownOf(st, hh.id);
   assert.ok(p && p.what === 'field' && p.steps[0].place === tile, `the land step begins the field on the chosen tile (${p && p.steps[0].place}, not ${tile})`);
   assert.strictEqual(plan.tiles.field, -1, 'the tile is used');
-  refused(st, hh, Sim.head(st, 'project', { what: 'field' }), /has a field under way/, 'a second project');
+  // a second: refused to the holder's own rule; the played head's own verb begins it beside the first (VB-1623), checked here, not run
+  const second = (source) => VB['sim/commands'].VERBS.project.check(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'field' }, source });
+  assert.match(String(second('pawn')), /has a field under way/, 'a second project, by its own rule');
+  assert.strictEqual(second('player'), null, 'a second project, by the played head');
   for (d = 0; !f.fields.some((fd) => fd.tile === tile) && d < 60; d++) Sim.advance(st, DAY);
   assert.ok(f.fields.some((fd) => fd.tile === tile), 'the field is made on the chosen tile');
   made = d;

@@ -52,7 +52,8 @@ VB['sim/scenarios'] = (() => {
   const { seedOutland } = VB['sim/territory'];
   const { birthright } = VB['sim/farmclaims'];
   // Founders, or with `solo` one settler alone on a village of one farm, landed with what a founders household of the village brings.
-  function seedFounders(w, seedNum, solo = false, site = -1) {
+  // hand (solo; VB-1623): the settler is planned by hand, and lands with no field or meadow under way.
+  function seedFounders(w, seedNum, solo = false, site = -1, hand = false) {
     const S = fromState((seedNum * 2654435761) ^ 0x51ed),
       rand = drawer(S);
     const comp = landComponents(w),
@@ -100,7 +101,7 @@ VB['sim/scenarios'] = (() => {
     log(st, `${who} ${village.name}${lone ? ` and ${lone.name}` : ''}.`, { kind: 'settled', n, village: village.id });
     VB['sim/carts'].seedCarts(st, false);
     startStreams(st, seedNum);
-    if (solo) landAlone(st); // no cottage stands: a booth first, then the cottage (VB-1544)
+    if (solo) landAlone(st, hand); // no cottage stands: a booth first, then the cottage (VB-1544)
     return st;
   }
   // The lone settler lands (VB-1544; the solo start): no cottage stands on its farm, which is a booth farm as a settler
@@ -108,12 +109,13 @@ VB['sim/scenarios'] = (() => {
   // the house tile by the verb any pawn has (raiseBooth, sim/building), and raises it by its own work; it sleeps under the open sky until
   // the booth stands (sim/building roofless), and the cottage follows as a settler household's does. Its first field is staked at the
   // landing as a settler household's is (settleFarm), on the tile its head would pick (sim/fieldplans pickField): a household's land
-  // projects wait while another of its projects is under way, and the cottage's would hold the field back to the roof. The booth's tile,
-  // or null where none beside the house will take one.
-  function landAlone(st) {
+  // projects wait while another of its projects is under way, and the cottage's would hold the field back to the roof. With `hand` (a
+  // player who plans by hand; Kim, 24 Nov 2026: "begin with nothing under way") no field is staked. The booth's tile, or null where none
+  // beside the house will take one.
+  function landAlone(st, hand = false) {
     const hh = st.households[0],
       f = st.farmsteads[hh.farmstead],
-      field = pickField(st, f, hh);
+      field = hand ? -1 : pickField(st, f, hh);
     f.booth = true;
     if (field >= 0) {
       stake(st, hh, field, 'field');
@@ -735,7 +737,8 @@ VB['sim/scenarios'] = (() => {
   }
   // The test switch (VB-350; tools/sim.js and tools/balance.js --rye): every village is given rye and farms in three courses.
   const giveRye = (st) => giveCrops(st, () => 'three');
-  // places: what was placed by hand, for the 'manual' scenario (seedManual). opts: {rye} (giveRye), {site} (solo: the tile chosen).
+  // places: what was placed by hand, for the 'manual' scenario (seedManual). opts: {rye} (giveRye), {site} (solo: the tile chosen), {hand}
+  // (solo: no field begun at the landing, VB-1623).
   function seed(w, seedNum, scenario = 'founders', places = null, opts = null) {
     if (scenario === 'manual') return seedManual(w, seedNum, places);
     const st =
@@ -748,6 +751,7 @@ VB['sim/scenarios'] = (() => {
               seedNum,
               scenario === 'solo',
               scenario === 'solo' && opts && opts.site >= 0 ? opts.site : -1,
+              scenario === 'solo' && !!(opts && opts.hand),
             );
     if (opts && opts.rye) giveRye(st);
     return st;

@@ -17,7 +17,7 @@ VB['sim/agenda'] = (() => {
   const { workFor } = VB['sim/opportunities'];
   const { here, walkHours } = VB['sim/pose'];
   const { toAxial, hexDist } = VB['world/grid'];
-  const { asleepAt, CHAINS, chainOf, chainSteps } = VB['sim/playerplan'];
+  const { asleepAt, CHAINS, chainOf, chainSteps, waitsOf } = VB['sim/playerplan'];
   const { heldFarms } = VB['sim/ownership'];
   const { AWAKE, SLEEP, owedBy } = VB['sim/sleep'];
   const LEN = WORK[1] - WORK[0];
@@ -232,6 +232,7 @@ VB['sim/agenda'] = (() => {
       end = (d0 + NDAYS) * DAY,
       far = end + BEYOND * DAY,
       sl = followed ? pp.sleep : null,
+      barred = followed ? waitsOf(st).tasks.map((w) => !!w && w.why === 'refused') : [], // VB-1623: a task its verb refuses is not laid
       c = cal(st.t),
       hourOf = (t) => t - Math.floor(t / DAY) * DAY;
     const days = Array.from({ length: NDAYS }, () => []);
@@ -299,7 +300,7 @@ VB['sim/agenda'] = (() => {
         if (chainOf(tk)) {
           const { parts: ps, deadline } = chainParts(st, id, hid, tk, frost),
             sum = (k) => ps.reduce((n, x) => n + x.e[k], 0);
-          parts.push(ps);
+          parts.push(barred[parts.length] ? ps.map((x) => ({ ...x, from: Infinity })) : ps);
           part.push(0);
           pleft.push(ps.length ? ps[0].e.mid : 0);
           left.push(sum('mid'));
@@ -328,7 +329,9 @@ VB['sim/agenda'] = (() => {
         }
         const j = st.jobs.get(tk.key),
           e = j ? estimate(st, id, j, [id]) : null;
-        parts.push(e ? [{ kind: tk.kind, key: tk.key, e, rough: false, from: -Infinity }] : []);
+        parts.push(
+          e ? [{ kind: tk.kind, key: tk.key, e, rough: false, from: barred[parts.length] ? Infinity : -Infinity }] : [],
+        );
         part.push(0);
         pleft.push(e ? e.mid : 0);
         left.push(e ? e.mid : 0);
@@ -419,7 +422,7 @@ VB['sim/agenda'] = (() => {
       const e = plan[i];
       if (chainOf(pp.tasks[i])) {
         // a task at a tile: its parts not laid reckoned on past the days searched, each from its own opening; the chain's verdict
-        if (!followed || !parts[i].length) continue;
+        if (!followed || !parts[i].length || barred[i]) continue;
         if (e.ends === null) {
           let u = Math.max(t, parts[i][part[i]].from); // the loop stops at far, or earlier with nothing to begin before this part's opening
           if (e.starts === null) e.starts = u;
@@ -430,7 +433,7 @@ VB['sim/agenda'] = (() => {
         e.verdict = verdict(e.deadline, e.ends, past(e.ends, e.hours.hi - e.hours.mid, sl));
         continue;
       }
-      if (!e.stands || !followed) continue;
+      if (!e.stands || !followed || barred[i]) continue;
       if (e.ends === null) e.ends = past(Math.max(t, far), left[i], sl);
       if (e.starts === null) e.starts = Math.max(t, far);
       const hi = past(e.ends, e.hours.hi - e.hours.mid, sl),

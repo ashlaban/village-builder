@@ -309,7 +309,8 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   st.jobs.get('clear:f0').hours = 8;
   const tile = VB['sim/fieldplans'].pickField(st, f, hh);
   assert(tile >= 0 && VB['sim/projects'].ownOf(st, 0), 'a field project open, and a tile for the next');
-  assert.match(String(Sim.plan(st, 'add', { plant: tile })), /no field of the household's nor a field project/, 'not marked: refused');
+  assert.match(String(Sim.plan(st, 'add', { plant: -1 })), /no tile -1/, 'a tile under 0 refused (VB-1623)');
+  assert.match(String(Sim.plan(st, 'add', { plant: st.farmsteads[1].house })), /no field of the household's nor a field project at \d+ \(/, 'a tile the head\'s verb refuses, with its reason');
   assert.strictEqual(Sim.command(st, { actor: FARMER, verb: 'tile', target: 0, args: { what: 'field', tile }, source: 'player' }), true);
   hh.holder = null;
   assert.match(String(Sim.plan(st, 'add', { plant: tile })), /pawn 0 is not the head of household 0/, 'refused for one not the head');
@@ -320,16 +321,138 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   const v = Sim.planView(st).tasks[1];
   assert.deepStrictEqual([v.plant, v.step, v.stands], [tile, VB['sim/fieldplans'].fieldProject(st, hh, tile).steps[0].kind, false]);
   const begun = chainRun(st, () => VB['sim/projects'].projectsOf(st, 'household', 0).some((p) => p.what === 'field' && p.steps.some((s) => s.place === tile)), 10 * 24 * 10);
-  const p = VB['sim/projects'].ownOf(st, 0);
-  assert(p && p.steps[p.open].place === tile, 'the project at the marked tile begun');
+  const p = VB['sim/projects'].projectsOf(st, 'household', 0).find((q) => q.steps[q.open].place === tile);
+  assert(p && p.side && VB['sim/projects'].ownOf(st, 0) !== p, 'the project at the marked tile begun beside the first (VB-1623)');
   Sim.advance(st, 0.2);
-  assert(begun.some((b) => b[1] === site && b[2] === 'break'), 'after the first project\'s breaking');
+  assert(begun.some((b) => b[1] === site && b[2] === 'clear'), 'after the first task\'s clearing, not waiting for its project to end');
   assert(begun.some((b) => b[1] === tile && b[2] === 'project'), `begun by the feeder through the head's verb: ${JSON.stringify(begun)}`);
   assert(st.player.plan.tasks.some((t) => t.plant === tile) && Sim.planView(st).tasks.find((t) => t.plant === tile).step === p.steps[p.open].kind, 'the task goes on with its project');
   assert.strictEqual(st.plans.households.get(0).tiles.field, -1, 'the mark used');
   sound(st, 'marked');
 }
+// 8. VB-1623: the stall. The played head's household has a field project open that no task covers, automatic behaviour off; plant tasks on
+// two more tiles (no mark) and a hay task on a fourth: each begun beside the others (their jobs keyed apart, headView().projects), both
+// fields sown and the hay home, the open project left as it was and nothing begun by the household's own rule; why each task waits on
+// the way, and the agenda laying none before its reason allows; a save and a load go on the same. An unplayed head keeps the limit of one.
+{
+  const P = VB['sim/projects'], { VERBS } = VB['sim/commands'], WHYS = Object.keys(VB['sim/playerplan'].WAITS);
+  const st = alone({ herds: true }), f = st.farmsteads[0], hh = st.households[0];
+  const old = f.fields.map((fd) => [fd, fd.crop]);
+  for (const fd of f.fields) fd.crop = 'fallow'; // the settler's hands till the new fields (sim/fieldwork underHands); put back below
+  const first = P.ownOf(st, 0), site = first.steps[first.open].place;
+  const may = (what, tile, source = 'player', actor = FARMER, target = 0) =>
+    VERBS.project.check(st, { actor, verb: 'project', target, args: { what, tile }, source });
+  const pick = (what, not) => {
+    for (let t = 0; t < st.w.N; t++) if (!not.includes(t) && may(what, t) === null) return t;
+    return -1;
+  };
+  const a = pick('field', [site]), b = pick('field', [site, a]), m = pick('meadow', [site, a, b]);
+  assert(a >= 0 && b >= 0 && m >= 0, `tiles for two fields and a meadow beside the open project: ${[a, b, m]}`);
+  assert.match(String(may('field', a, 'pawn')), /has a field under way/, 'the holder\'s own rule keeps the limit of one');
+  assert.match(String(may('field', site)), /under way at/, 'one project a tile');
+  // the head unplayed is refused a second as before
+  Sim.uninhabit(st);
+  assert.match(String(may('field', a)), /has a field under way/, 'an unplayed head is refused a second');
+  played(st);
+  assert.strictEqual(Sim.plan(st, 'add', { plant: a }), true, 'no mark needed');
+  assert.strictEqual(Sim.plan(st, 'add', { plant: b }), true);
+  assert.strictEqual(Sim.plan(st, 'add', { hay: m }), true);
+  let v = Sim.planView(st);
+  assert.deepStrictEqual(v.tasks.map((t) => t.waits), [null, { why: 'before', i: 0 }, { why: 'before', i: 0 }]);
+  assert.strictEqual(v.idle, null);
+  // refused: the head's own check (the pawn no longer the head)
+  hh.holder = null;
+  v = Sim.planView(st);
+  assert(v.tasks.every((t) => t.waits.why === 'refused' && /no field|no meadow/.test(t.waits.text)), JSON.stringify(v.tasks));
+  assert.deepStrictEqual(v.idle, v.tasks[0].waits, 'the plan idle, for its first task\'s reason');
+  assert(!Sim.agenda(st).days.flat().some((g) => g.what === 'task'), 'a refused task is not laid');
+  hh.holder = FARMER;
+  // routine: a kind seen to every day goes first
+  const rk = [...st.jobsBy.get('household:0')].find((j) => VERBS.work.check(st, { actor: FARMER, verb: 'work', target: j.key, args: null, source: 'player' }) === null && !/clear/.test(j.kind));
+  assert(rk, 'a routine kind to go first');
+  {
+    Sim.plan(st, 'routine', { kinds: [rk.kind] });
+    assert.deepStrictEqual(Sim.planView(st).tasks[0].waits, { why: 'routine', kind: rk.kind });
+    Sim.plan(st, 'routine', { kinds: [] });
+  }
+  // sleep: the sleeping hours
+  const h = Math.floor(hour(st));
+  Sim.plan(st, 'sleep', { from: h, until: (h + 2) % 24 });
+  assert.deepStrictEqual(Sim.planView(st).tasks[1].waits, { why: 'sleep', until: (h + 2) % 24 });
+  Sim.plan(st, 'sleep', null);
+  // hand: a command queued by hand goes first, and holds the plan idle, named with the hour it was begun
+  assert.strictEqual(Sim.queue(st, { actor: FARMER, verb: 'walkTo', target: st.villages[0].center }), true);
+  v = Sim.planView(st);
+  assert.deepStrictEqual(v.idle, { why: 'hand', verb: 'walkTo', target: st.villages[0].center, since: null });
+  assert.deepStrictEqual(v.tasks[0].waits, v.idle);
+  Sim.advance(st, 0.1);
+  assert.strictEqual(Sim.planView(st).idle.since, st.player.queue[0].begun);
+  assert(st.player.queue[0].begun !== null);
+  assert.strictEqual(Sim.unqueue(st, 0), true);
+  // the run: each begun in its turn beside the others
+  const seen = new Set();
+  const look = (s) => {
+    for (const t of Sim.planView(s).tasks) if (t.waits) {
+      assert(WHYS.includes(t.waits.why), `a reason of the closed list: ${t.waits.why}`);
+      seen.add(t.waits.why);
+      if (t.waits.why === 'opens') {
+        assert(t.waits.t > s.t && typeof t.waits.what === 'string');
+        assert(!Sim.agenda(s).days.flat().some((g) => g.what === 'task' && g.site === t.site && g.from < t.waits.t - 1e-6), 'laid no earlier than it opens');
+      }
+    }
+    return false;
+  };
+  let saved = null,
+    apart = 0; // the most land project jobs posted at once, each its own key (VB-1623: a side plan's carries its id)
+  const begun = chainRun(st, (s) => {
+    look(s);
+    apart = Math.max(apart, [...s.jobs.values()].filter((j) => j.owner.type === 'household' && j.owner.id === 0 && P.onProject(s, j)).length);
+    const keys = P.projectsOf(s, 'household', 0).filter((p) => p.side).length;
+    if (!saved && keys === 3) {
+      const pv = Sim.headView(s, 0);
+      assert.deepStrictEqual(pv.projects.map((p) => p.tile).sort(), [site, a, b, m].sort((x, y) => x - y), 'headView().projects');
+      assert.deepStrictEqual(pv.project.id, first.id, 'project stays the first');
+      saved = JSON.parse(JSON.stringify(Sim.save(s)));
+    }
+    return !s.player.plan.tasks.length;
+  }, 60 * 24 * 10);
+  assert(saved, 'the three begun side by side');
+  assert(apart >= 3, 'several project steps posted at once, keyed apart: ' + apart);
+  const on = (k, t) => begun.some((x) => x[1] === t && x[2] === k);
+  assert(on('project', a) && on('project', b) && on('project', m), JSON.stringify(begun));
+  assert(on('sow', a) && on('sow', b) && on('hay', m), `both fields sown and the hay home: ${JSON.stringify(begun)}`);
+  const at = (t) => f.fields.find((x) => x.tile === t);
+  assert(SOWN(at(a)) && SOWN(at(b)), 'both fields sown');
+  assert.strictEqual(f.meadows.find((x) => x.tile === m).stage, 'aftermath');
+  assert(['before', 'opens', 'unposted'].every((w) => seen.has(w)), [...seen].join());
+  assert.deepStrictEqual(P.projectsOf(st, 'household', 0).filter((p) => p.what !== 'cottage').map((p) => p.id), [first.id], 'the open project left as it was, nothing begun by the household\'s own rule');
+  for (const [fd, crop] of old) fd.crop = crop;
+  sound(st, 'side by side');
+  const back = Sim.load(tinyWorld(rows), saved), again = Sim.load(tinyWorld(rows), saved);
+  Sim.advance(back, 48);
+  Sim.advance(again, 24);
+  Sim.advance(again, 24);
+  assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
+  for (const [fd, crop] of old) back.farmsteads[0].fields[fd.id].crop = crop;
+  sound(back, 'side by side, loaded');
+}
+// 9. VB-1623: the solo start for a hand planner, with no field under way; without `hand` as before. With automatic behaviour off the
+// played head's household begins no project by its own rule; on again, its land step does.
+{
+  const w = tinyWorld(rows), P = VB['sim/projects'];
+  const st = Sim.seed(w, 7, 'solo', null, { hand: true });
+  assert.deepStrictEqual(P.projectsOf(st, 'household', 0).map((p) => p.what), ['cottage'], 'nothing under way but the cottage');
+  assert.deepStrictEqual(P.projectsOf(Sim.seed(tinyWorld(rows), 7, 'solo', null, {}), 'household', 0).map((p) => p.what), ['field', 'cottage']);
+  Sim.inhabit(st, st.households[0].holder);
+  Sim.setAuto(st, false);
+  assert(P.heldOff(st, 0));
+  Sim.advance(st, 72);
+  assert(!P.ownOf(st, 0), 'no field begun by its own rule');
+  Sim.setAuto(st, true);
+  assert(!P.heldOff(st, 0));
+}
 console.log('plan: ops and refusals; the routine once a day in order, the tasks in order, a finished task leaves; hand commands first; '
   + 'sleep by the plan\'s hours, a night worked by hand; a clearing over two days; saved and loaded; a plant task from clearing to '
   + 'sowing, shorter on a broken field, dropped when its window shuts; a hay task from mowing to hay home, a harvest task from reaping '
-  + 'to the sheaves in, the gaps; a marked tile\'s project begun by the head\'s verb');
+  + 'to the sheaves in, the gaps; a marked tile\'s project begun by the head\'s verb; fields and a meadow begun side by side by the '
+  + 'played head, why each task waits; the hand start');

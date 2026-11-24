@@ -2,11 +2,12 @@
 //   tasks, edited by the player (Sim.plan) and read by the page (Sim.planView); `nextOf` is the one choice of what the plan has the pawn
 //   do next, which sim/player's feeder queues with automatic behaviour off and the view reads without writing (VB-1619 reads it too);
 //   a task at a tile (VB-1621, VB-1622) carries one chain of steps there: a field from its clearing to its sowing (plant), a meadow's hay
-//   from its mowing until it is home (hay), a field's crop from its reaping until its sheaves are in (harvest); declared as data (CHAINS)
+//   from its mowing until it is home (hay), a field's crop from its reaping until its sheaves are in (harvest); declared as data (CHAINS);
+//   why each task waits and why the plan is idle (WAITS, waitsOf; VB-1623), by the reads nextOf makes
 VB['sim/playerplan'] = (() => {
   const { DAY, SEASON_DAYS, YEAR, WORK, TRAVEL, cal } = VB['sim/rules'];
   const { CROPS, ROTATIONS } = VB['sim/crops'];
-  const { projectsOf, ownOf } = VB['sim/projects'];
+  const { projectsOf } = VB['sim/projects'];
   const { frostDay } = VB['sim/weather'];
   const { fieldProject } = VB['sim/fieldplans'];
   const { standing } = VB['sim/fields'];
@@ -171,7 +172,13 @@ VB['sim/playerplan'] = (() => {
         open = !where.fd;
       if (!sowable(crop) || !(open || where.fd.stage === 'stubble' || where.fd.stage === 'plowed')) return [];
       const out = open || where.fd.stage === 'stubble' ? ['plow', 'sow'] : ['sow'];
-      return out.map((kind) => ({ kind, hours: C.hours[kind] ?? KINDS[kind].hours, n: 1, from: win.opens }));
+      return out.map((kind) => ({
+        kind,
+        hours: C.hours[kind] ?? KINDS[kind].hours,
+        n: 1,
+        from: win.opens,
+        what: `the ${crop} sowing`,
+      }));
     },
     // sown; this year's window shut with it unsown; the field made lies fallow
     gone: (st, { fd }) => {
@@ -228,12 +235,24 @@ VB['sim/playerplan'] = (() => {
       if (m && m.stage === 'aftermath') return out;
       if (m && m.stage === 'mown')
         return [
-          { kind: 'hay', hours: KINDS.hay.hours, n: loads(m.held, per), from: (m.mown + DRY_DAYS) * DAY + WORK[0] },
+          {
+            kind: 'hay',
+            hours: KINDS.hay.hours,
+            n: loads(m.held, per),
+            from: (m.mown + DRY_DAYS) * DAY + WORK[0],
+            what: 'the hay dry',
+          },
         ];
       if (m && !m.raked) out.push({ kind: 'rake', hours: KINDS.rake.hours, n: 1, from: Infinity, posted: true });
       const fert = m ? m.fert : meadowFert(st.w, where.plan ? where.plan.steps[where.plan.open].place : where.tile);
-      out.push({ kind: 'mow', hours: KINDS.mow.hours, n: 1, from: win.opens });
-      out.push({ kind: 'hay', hours: KINDS.hay.hours, n: loads(HAY * fert, per), from: win.opens + DRY_DAYS * DAY });
+      out.push({ kind: 'mow', hours: KINDS.mow.hours, n: 1, from: win.opens, what: 'the haymaking' });
+      out.push({
+        kind: 'hay',
+        hours: KINDS.hay.hours,
+        n: loads(HAY * fert, per),
+        from: win.opens + DRY_DAYS * DAY,
+        what: 'the hay dry',
+      });
       return out;
     },
     gone: (st, { m }) => {
@@ -266,13 +285,31 @@ VB['sim/playerplan'] = (() => {
         haul = KINDS.haul.hours;
       if (fd.stage === 'stooks')
         return [
-          { kind: 'haul', hours: haul, n: loads(fd.held, TRAVEL.load), from: (fd.reaped + dry) * DAY + WORK[0] - 1 },
+          {
+            kind: 'haul',
+            hours: haul,
+            n: loads(fd.held, TRAVEL.load),
+            from: (fd.reaped + dry) * DAY + WORK[0] - 1,
+            what: 'the sheaves dry',
+          },
         ];
       if (!SOWN.includes(fd.stage)) return [];
       const ripe = fd.stage === 'ripe' ? st.t : ripeDay(fd) * DAY + WORK[0];
       return [
-        { kind: 'reap', hours: CROPS[fd.crop].hours.reap ?? KINDS.reap.hours, n: 1, from: ripe },
-        { kind: 'haul', hours: haul, n: loads(standing(st, fd), TRAVEL.load), from: ripe + dry * DAY },
+        {
+          kind: 'reap',
+          hours: CROPS[fd.crop].hours.reap ?? KINDS.reap.hours,
+          n: 1,
+          from: ripe,
+          what: `the ${fd.crop} ripe`,
+        },
+        {
+          kind: 'haul',
+          hours: haul,
+          n: loads(standing(st, fd), TRAVEL.load),
+          from: ripe + dry * DAY,
+          what: 'the sheaves dry',
+        },
       ];
     },
     // the sheaves in (the field reaped this year and back in stubble before the frost), or the crop lost to the frost or left standing
@@ -301,32 +338,43 @@ VB['sim/playerplan'] = (() => {
   // The chain of task t (a task at a tile: no key), or null for a task by key.
   const chainOf = (t) => (t.key === undefined && CHAINS[t.kind] ? t.kind : null);
   // What stands at `tile` for chain `name` of household hid: the chain's own (`at`), else the tile the head has marked for its next field
-  // or meadow (sim/plans, plan.tiles) as {mark, f}; null for nothing.
-  function chainWhere(st, hid, name, tile) {
-    if (hid === null || hid === undefined || !Number.isInteger(tile)) return null;
+  // or meadow (sim/plans, plan.tiles) as {mark, f, tile}; else, for a task already planned (`planned`), its tile as one the played head's
+  // verb `project` begins a field or meadow on (VB-1623: no mark needed; {mark, f, tile, free: true}); null for nothing.
+  function chainWhere(st, hid, name, tile, planned = false) {
+    if (hid === null || hid === undefined || !Number.isInteger(tile) || tile < 0) return null;
     const C = CHAINS[name],
       where = C.at(st, hid, tile);
     if (where) return where;
     const plan = C.mark && st.plans.households.get(hid);
-    return plan && plan.tiles && plan.tiles[C.mark] === tile ? { mark: C.mark, f: homeOf(st, hid), tile } : null;
+    if (plan && plan.tiles && plan.tiles[C.mark] === tile) return { mark: C.mark, f: homeOf(st, hid), tile };
+    return planned && C.mark && headPlayed(st, hid) ? { mark: C.mark, f: homeOf(st, hid), tile, free: true } : null;
   }
+  // Whether household hid's head is the played pawn.
+  const headPlayed = (st, hid) => !!st.player && st.households[hid].holder === st.player.pawn;
   // The head's check, through its own verb (sim/plans' project: only the head changes its plan), or null.
   const headCmd = (id, hid, args) => ({ actor: id, verb: 'project', target: hid, args, source: 'player' });
-  // Why the played pawn `id` cannot plan chain `name` at `tile`, or null; a marked tile only by the head of the household.
+  // Why the played pawn `id` cannot plan chain `name` at `tile`, or null; a marked tile only by the head of the household, and any other
+  // tile where the head's verb `project` would begin the chain's field or meadow now (VB-1623).
   function chainWhy(st, id, name, tile) {
     const hid = st.pawns[id].household,
-      where = chainWhere(st, hid, name, tile);
-    if (!where) return CHAINS[name].none(tile);
+      C = CHAINS[name];
+    if (!Number.isInteger(tile) || tile < 0) return `there is no tile ${tile}`;
+    const where = chainWhere(st, hid, name, tile);
+    if (!where) {
+      if (!C.mark || hid === null || st.households[hid].holder !== id) return C.none(tile);
+      const why = VERBS.project.check(st, headCmd(id, hid, { what: C.mark, tile }));
+      return why === null ? null : `${C.none(tile)} (${why})`;
+    }
     if (where.plan) return null;
     if (where.mark) return VERBS.project.check(st, headCmd(id, hid, { what: null }));
-    return CHAINS[name].why(st, where, tile);
+    return C.why(st, where, tile);
   }
-  // The steps left of chain `name` at `tile` for household hid, in the order the work goes: a project's (begun, or the one a marked tile
-  // would begin) at their own hours, then the chain's: {where, steps: [{kind, job (its job posted at the tile, or null), hours, n, from}]};
-  // null where nothing of the household's stands there. A step whose job is not posted now and that is listed only while posted (`posted`)
-  // is left out. Reads only.
+  // The steps left of chain `name` at `tile` for household hid's task there, in the order the work goes: a project's (begun, or the one a
+  // marked or free tile would begin) at their own hours, then the chain's: {where, steps: [{kind, job (its job posted at the tile, or
+  // null), hours, n, from, what (what its `from` waits for, or absent)}]}; null where nothing of the household's stands there. A step
+  // whose job is not posted now and that is listed only while posted (`posted`) is left out. Reads only.
   function chainSteps(st, hid, name, tile) {
-    const where = chainWhere(st, hid, name, tile);
+    const where = chainWhere(st, hid, name, tile, true);
     if (!where) return null;
     const p = where.plan || (where.mark ? markProject(st, hid, where.mark, tile) : null),
       first = p
@@ -338,39 +386,69 @@ VB['sim/playerplan'] = (() => {
       let job = null;
       if (js && !where.mark) for (const j of js) if (j.kind === s.kind && j.site === tile) job = j;
       if (!job && s.posted) continue;
-      steps.push({ kind: s.kind, job, hours: s.hours, n: s.n, from: s.from });
+      steps.push({ kind: s.kind, job, hours: s.hours, n: s.n, from: s.from, what: s.what });
     }
     return { where, steps };
   }
   // Why a task of chain `name` leaves the plan now (one of the chain's `which`), or null: nothing of the household's stands there
-  // ('gone'); a project's tile or a marked one stands.
+  // ('gone'); a project's tile, a marked one or a free one stands.
   function chainGone(st, hid, name, tile) {
-    const where = chainWhere(st, hid, name, tile);
+    const where = chainWhere(st, hid, name, tile, true);
     if (!where) return 'gone';
     return where.plan || where.mark ? null : CHAINS[name].gone(st, where);
   }
-  // What the pawn may do now for chain task tk, as a command with its `plan` mark, or null (the task stands): on a marked tile with no
-  // project of the household's open, the project begun through the head's verb; else the first step posted at its tile, in the order the
-  // work goes, if its `work` verb lets the pawn take it.
+  // ---- why a task waits (VB-1623): the one closed list of reasons, each plain data for the page (planView's `waits` and `idle`) ----
+  // hand: a command queued by hand goes first (its verb, target and the game hour it was begun, null before); before: an earlier task (i,
+  // its index) is what the plan does next or has in hand; routine: a routine kind goes first; sleep: the sleeping hours, until `until`
+  // o'clock; opens: its next step is not posted until game hour t (what: its window opening, its crop ripe, its hay dry); unposted: its
+  // next step (kind) is open and its job not posted for the household now (posted at a review, while the household's own rule wants it:
+  // the fields its hands till, the hay it needs); refused: the verb's own reason (text).
+  const WAITS = {
+    hand: (c) => ({ why: 'hand', verb: c.verb, target: c.target ?? null, since: c.begun ?? null }),
+    before: (i) => ({ why: 'before', i }),
+    routine: (kind) => ({ why: 'routine', kind }),
+    sleep: (until) => ({ why: 'sleep', until }),
+    opens: (t, what) => ({ why: 'opens', t, what }),
+    unposted: (kind) => ({ why: 'unposted', kind }),
+    refused: (text) => ({ why: 'refused', text }),
+  };
+  // What the pawn may do now for chain task tk, as a command with its `plan` mark, or why not (a WAITS reason): on a marked or free tile,
+  // the project begun through the head's verb, beside any other of the household's (VB-1623); else the first step posted at its tile, in
+  // the order the work goes, if its `work` verb lets the pawn take it; else its first step's opening, or that its job is not posted.
   function chainCmd(st, id, tk) {
     const name = tk.kind,
       tile = tk[name],
       hid = st.pawns[id].household,
       s = chainSteps(st, hid, name, tile),
       mark = { from: 'task', chain: name, [name]: tile };
-    if (!s) return null;
+    if (!s) return WAITS.refused(CHAINS[name].none(tile));
     if (s.where.mark) {
-      if (ownOf(st, hid)) return null;
-      const cmd = headCmd(id, hid, { what: s.where.mark, tile });
-      return VERBS.project.check(st, cmd) === null ? { ...cmd, plan: { ...mark, kind: 'project', key: null } } : null;
+      const cmd = headCmd(id, hid, { what: s.where.mark, tile }),
+        why = VERBS.project.check(st, cmd);
+      return why === null ? { ...cmd, plan: { ...mark, kind: 'project', key: null } } : WAITS.refused(why);
     }
     const x = s.steps.find((y) => y.job);
-    return x && VERBS.work.check(st, workCmd(id, x.job.key)) === null
-      ? { ...workCmd(id, x.job.key), plan: { ...mark, kind: x.job.kind, key: x.job.key } }
-      : null;
+    if (x) {
+      const why = VERBS.work.check(st, workCmd(id, x.job.key));
+      return why === null
+        ? { ...workCmd(id, x.job.key), plan: { ...mark, kind: x.job.kind, key: x.job.key } }
+        : WAITS.refused(why);
+    }
+    const y = s.steps[0];
+    if (!y) return WAITS.refused(`nothing is left to do at ${tile}`);
+    return y.from > st.t ? WAITS.opens(y.from, y.what || y.kind) : WAITS.unposted(y.kind);
+  }
+  // What the pawn may do now for task t (a task at a tile, or by key): a command with its `plan` mark, or why not (a WAITS reason).
+  function taskCmd(st, id, t) {
+    if (chainOf(t)) return chainCmd(st, id, t);
+    if (!st.jobs.has(t.key)) return WAITS.refused(`there is no job ${t.key}`);
+    const why = VERBS.work.check(st, workCmd(id, t.key));
+    return why === null
+      ? { ...workCmd(id, t.key), plan: { from: 'task', kind: t.kind, key: t.key } }
+      : WAITS.refused(why);
   }
   // ---- what comes next ----
-  const handQueued = (pl) => pl.queue.some((c) => !c.plan);
+  const handOf = (pl) => pl.queue.find((c) => !c.plan) || null;
   // The first job of kind k of the pawn's household that its `work` verb would let it take now, or null.
   function routineJob(st, id, k) {
     const hid = st.pawns[id].household,
@@ -379,12 +457,12 @@ VB['sim/playerplan'] = (() => {
     return null;
   }
   // What the plan has the played pawn do next, as a command with its `plan` mark, or null: in its sleeping hours, sleep until `until`;
-  // else the first routine kind not begun today with a job of its household it may take; else the first task whose job stands and may
-  // be taken now. A command queued by hand goes first: with one queued, null. Reads only; writes nothing.
+  // else the first routine kind not begun today with a job of its household it may take; else the first task that may be taken now
+  // (taskCmd). A command queued by hand goes first: with one queued, null. Reads only; writes nothing.
   function nextOf(st) {
     const pl = st.player,
       pp = pl && pl.plan;
-    if (!pp || living(st, pl.pawn) || handQueued(pl)) return null;
+    if (!pp || living(st, pl.pawn) || handOf(pl)) return null;
     const id = pl.pawn;
     if (asleepAt(pp.sleep, cal(st.t).hour)) {
       const cmd = { actor: id, verb: 'sleep', target: null, args: { until: pp.sleep.until }, source: 'player' };
@@ -397,13 +475,50 @@ VB['sim/playerplan'] = (() => {
       if (j) return { ...workCmd(id, j.key), plan: { from: 'routine', kind: k, key: j.key } };
     }
     for (const t of pp.tasks) {
-      if (chainOf(t)) {
-        const cmd = chainCmd(st, id, t);
-        if (cmd) return cmd;
-      } else if (st.jobs.has(t.key) && VERBS.work.check(st, workCmd(id, t.key)) === null)
-        return { ...workCmd(id, t.key), plan: { from: 'task', kind: t.kind, key: t.key } };
+      const cmd = taskCmd(st, id, t);
+      if (cmd.verb) return cmd;
     }
     return null;
+  }
+  // Whether plan mark m (a command the plan fed) is task t's.
+  const markOf = (m, t) =>
+    !!m &&
+    m.from === 'task' &&
+    (chainOf(t) ? m.chain === t.kind && m[t.kind] === t[t.kind] : !m.chain && m.key === t.key);
+  // Why each task of the plan waits now (VB-1623), in the plan's order: null for the one in hand and the one the plan does next, else a
+  // WAITS reason: its own (taskCmd) first, then what goes before it (a command by hand, the sleeping hours, a routine kind, an earlier
+  // task); and `idle`: null, or why the plan as a whole has the pawn do nothing now though it holds tasks or a routine (a command by
+  // hand holding the queue, named with the hour it was begun; else the first task's reason). The reads nextOf makes; writes nothing.
+  function waitsOf(st) {
+    const pl = st.player,
+      pp = pl && pl.plan;
+    if (!pp) return { tasks: [], idle: null };
+    const id = pl.pawn,
+      dead = living(st, pl.pawn),
+      hand = handOf(pl),
+      head = pl.queue[0],
+      inHand = head && head.plan && head.begun !== null ? head.plan : null,
+      next = nextOf(st),
+      asleep = asleepAt(pp.sleep, cal(st.t).hour),
+      first = inHand || (next && next.plan);
+    const tasks = pp.tasks.map((t) => {
+      if (dead) return WAITS.refused(dead);
+      if (markOf(inHand, t) || (next && markOf(next.plan, t))) return null;
+      const own = taskCmd(st, id, t);
+      if (!own.verb) return own;
+      if (hand) return WAITS.hand(hand);
+      if (asleep || (first && first.from === 'sleep')) return WAITS.sleep(pp.sleep ? pp.sleep.until : null);
+      if (first && first.from === 'routine') return WAITS.routine(first.kind);
+      const i = first ? pp.tasks.findIndex((u) => markOf(first, u)) : -1;
+      return i >= 0 ? WAITS.before(i) : null;
+    });
+    let idle = null;
+    if (pp.tasks.length || pp.routine.length) {
+      if (hand) idle = WAITS.hand(hand);
+      else if (dead) idle = WAITS.refused(dead);
+      else if (!inHand && !next) idle = tasks.find((w) => w) || null;
+    }
+    return { tasks, idle };
   }
   // ---- the feeder's writes (sim/player's playerStep) ----
   // A new day clears the routine's `done`; a task whose job is finished or gone leaves the plan, the last one kept in `last`; a task at a
@@ -452,7 +567,8 @@ VB['sim/playerplan'] = (() => {
     };
   }
   // The routine, each kind with whether it is done today and whether a job of it is posted for the household; the sleeping hours; the
-  // tasks, each with whether its job stands; the last task that left; what the plan has the pawn on now (the queue's head, if the plan
+  // tasks, each with whether its job stands and why it waits (`waits`, VB-1623); why the plan has the pawn idle (`idle`); the last task
+  // that left; what the plan has the pawn on now (the queue's head, if the plan
   // fed it) and what it would feed next. null with no pawn played.
   function planView(st) {
     const pl = st.player;
@@ -467,18 +583,36 @@ VB['sim/playerplan'] = (() => {
     };
     const head = pl.queue[0],
       mark = head && head.plan,
-      next = nextOf(st);
+      next = nextOf(st),
+      W = waitsOf(st);
     return {
       routine: pp.routine.map((k) => ({ kind: k, done: done.includes(k), open: posted(k) })),
       sleep: pp.sleep ? { from: pp.sleep.from, until: pp.sleep.until } : null,
-      tasks: pp.tasks.map((t) =>
-        chainOf(t) ? chainView(st, hid, t) : { key: t.key, kind: t.kind, site: t.site, stands: st.jobs.has(t.key) },
-      ),
+      tasks: pp.tasks.map((t, i) => ({
+        ...(chainOf(t)
+          ? chainView(st, hid, t)
+          : { key: t.key, kind: t.kind, site: t.site, stands: st.jobs.has(t.key) }),
+        waits: W.tasks[i] || null,
+      })),
+      idle: W.idle,
       last: pp.last ? { ...pp.last } : null,
       now: mark ? { what: mark.from, kind: mark.kind, key: mark.key } : null,
       next: next ? { what: next.plan.from, kind: next.plan.kind, key: next.plan.key } : null,
       followed: !pl.auto,
     };
   }
-  return { PLAN_MAX, CHAINS, plan, planView, nextOf, planDay, planBegun, asleepAt, chainOf, chainSteps };
+  return {
+    PLAN_MAX,
+    CHAINS,
+    WAITS,
+    plan,
+    planView,
+    nextOf,
+    waitsOf,
+    planDay,
+    planBegun,
+    asleepAt,
+    chainOf,
+    chainSteps,
+  };
 })();

@@ -165,12 +165,13 @@ VB['sim/plans'] = (() => {
     emit(st, 'planReviewed', { plan, c, why }); // the head's projects (sim/aims, VB-255), its supply outlook (sim/outlook, VB-666)
   }
   // The land step (at each review of a household's plan): a new field while the household has fewer than the plan's target, else a hay
-  // meadow while it is short of one; none while its head holds off projects (VB-253). The tile is the one the plan names, while it still
+  // meadow while it is short of one; none while its head holds off projects (VB-253; sim/projects' heldOff: also the played head with
+  // automatic behaviour off, VB-1623). The tile is the one the plan names, while it still
   // passes the verb's check (cleared when it no longer does), else the holder's choice (pickField, pickMeadow); the field or meadow is
   // begun through the head's verb `project`, the holder's rule as the player's (source 'pawn'; VB-253). `built`: the houses and greens,
   // once for every farm's look (sim/fields, builtTiles).
   function landStep(st, plan, f, hh, built) {
-    if (!(plan.chosen && plan.chosen.project === 'none')) {
+    if (!Projects.heldOff(st, hh.id)) {
       if (!Projects.ownOf(st, hh.id) && f.fields.length < plan.targets.fields) landBy(st, plan, f, hh, 'field', built);
       if (!Projects.ownOf(st, hh.id) && (wantsMeadow(st, f, hh) || wantsFirstMeadow(st, f, hh)))
         landBy(st, plan, f, hh, 'meadow', built);
@@ -244,22 +245,28 @@ VB['sim/plans'] = (() => {
     choices(st.plans.households.get(id)).project = on ? 'none' : null;
   }
   // Why household hh may not begin the land project `what` on `tile` now, or null: a farm of its own, no project under way, and the
-  // tile's check (fieldWhy, meadowWhy: claims, reach, the farm's block).
-  function landWhy(st, hh, what, tile) {
+  // tile's check (fieldWhy, meadowWhy: claims, reach, the farm's block). `side` (VB-1623; Kim, 24 Nov 2026): the played head's own verb,
+  // which begins fields and meadows beside the household's other projects, one a tile; every other head keeps the limit of one, how
+  // parallel projects are limited and ranked for them being VB-1472's.
+  function landWhy(st, hh, what, tile, side = false) {
     if (what !== 'field' && what !== 'meadow') return `there is no land project ${what}`;
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `household ${hh.id} has no farm of its own`;
     const p = Projects.ownOf(st, hh.id);
-    if (p) return `household ${hh.id} has a ${p.what} under way`;
+    if (p && !side) return `household ${hh.id} has a ${p.what} under way`;
+    for (const q of projectsOf(st, 'household', hh.id))
+      if (q.steps.some((x) => x.place === tile)) return `a ${q.what} of the household's is under way at ${tile}`;
     return (what === 'field' ? fieldWhy : meadowWhy)(st, f, hh, tile);
   }
   // The new field or meadow begun on `tile` (sim/fields' beginField, sim/meadows' beginMeadow: staked, or a stake contested), its project
-  // plan made; the plan's named tile used. Nothing is begun when a contest is lost.
+  // plan made, marked `side` when begun beside another large project (sim/projects, VB-1623); the plan's named tile used. Nothing is begun
+  // when a contest is lost.
   function beginLand(st, hh, what, tile) {
     const f = st.farmsteads[hh.farmstead],
+      side = !!Projects.ownOf(st, hh.id),
       p = what === 'field' ? beginField(st, f, hh, tile) : beginMeadow(st, f, hh, tile);
     if (!p) return;
-    makeProject(st, 'household', hh.id, p);
+    makeProject(st, 'household', hh.id, side ? { ...p, side: true } : p);
     const plan = st.plans.households.get(hh.id);
     if (plan.tiles[what] === tile) plan.tiles[what] = -1;
   }
@@ -272,7 +279,8 @@ VB['sim/plans'] = (() => {
   }
   // What the head may choose, for the page (VB-256): the targets now (the head's, by its foresight and bias: VB-254), the custom's (its
   // culture's template, unbiased; the fields its household's food asks), the head's own choices, their bounds, the named tiles, the
-  // season's order and the project under way (the large one, ownOf) and the small constructions beside it (VB-1414); the head's skill
+  // season's order and the project under way (the large one, ownOf; `projects` every large one, VB-1623: the played head's fields and
+  // meadows side by side, each {id, what, step, tile}) and the small constructions beside it (VB-1414); the head's skill
   // and horizon; or null for a household with no plan. Plain data, a copy.
   function headView(st, id) {
     const plan = st.plans.households.get(id),
@@ -310,6 +318,9 @@ VB['sim/plans'] = (() => {
       order: [...sp.steps],
       orderBy: sp.by || 'template',
       project: p ? { id: p.id, what: p.what, step: p.steps[p.open].kind } : null,
+      projects: Projects.projectsOf(st, 'household', id)
+        .filter((q) => q.what !== 'cottage' && !q.small)
+        .map((q) => ({ id: q.id, what: q.what, step: q.steps[q.open].kind, tile: q.steps[q.open].place })),
       small: Projects.projectsOf(st, 'household', id)
         .filter((q) => q.small)
         .map((q) => ({ id: q.id, what: q.what, step: q.steps[q.open].kind, tile: q.steps[q.open].place })),
@@ -390,7 +401,8 @@ VB['sim/plans'] = (() => {
     run: (st, c) => setOrder(st, c.target, c.args.steps),
   });
   // project({what, tile, ...}): begin a new field or meadow (what) now, on `tile`, else the tile the plan names, else the holder's own pick;
-  // refused while a project is under way, and under the tile's checks. The land step is the holder's rule for it (sim/plans, source
+  // refused while a project is under way (but for the played head's own, from source 'player', VB-1623: one a tile), and under the
+  // tile's checks. The land step is the holder's rule for it (sim/plans, source
   // 'pawn'). what 'none': the head holds off projects (its rule begins none: the land step, its yearly look at a boat, a cart, a tar pit,
   // its menu); null clears that. Any other what is a making of sim/makings (VB-678: a boat, a cart, a tar pit, a barn, a farm for the heir
   // with args.heir), under that making's one check, the same for every head, played or not; its plan is made here.
@@ -407,8 +419,9 @@ VB['sim/plans'] = (() => {
         const M = making(what);
         return typeof M === 'string' ? M : M.why(st, hh, st.farmsteads[hh.farmstead], c.args);
       }
-      const tile = landTile(st, hh, c.args);
-      return tile < 0 ? `no tile within reach can be taken in for a ${what}` : landWhy(st, hh, what, tile);
+      const tile = landTile(st, hh, c.args),
+        side = c.source === 'player' && !!st.player && st.player.pawn === c.actor;
+      return tile < 0 ? `no tile within reach can be taken in for a ${what}` : landWhy(st, hh, what, tile, side);
     },
     run: (st, c) => {
       const what = c.args.what,

@@ -18,10 +18,11 @@ function checkState(st) {
   const bad = [], N = st.w.N, tileOk = (i) => Number.isInteger(i) && i >= 0 && i < N;
   // the open step of a household's land project (VB-123: the plan whose open step works under a stake), or null; a cottage's plan or a
   // small construction may stand before it in the list (VB-1411, VB-1414)
-  const projectStep = (id) => {
-    const l = st.plans && st.plans.projects && st.plans.projects.household.get(id);
-    for (const p of l || []) if (p.steps[p.open] && p.steps[p.open].stake) return p.steps[p.open];
-    return null; };
+  // the staked open steps of household id's project plans (several for the played head's fields and meadows side by side, VB-1623)
+  const projectSteps = (id) => {
+    const l = st.plans && st.plans.projects && st.plans.projects.household.get(id), out = [];
+    for (const p of l || []) if (p.steps[p.open] && p.steps[p.open].stake) out.push(p.steps[p.open]);
+    return out; };
   bad.push(...checkRoles(st, globalThis.VB, { allowAgeLag: true }));
   for (const [key, expected] of [
     ['living', st.pawns.filter((p) => p.alive).map((p) => p.id)],
@@ -377,8 +378,10 @@ function checkState(st) {
       if (!h || h.dissolved) bad.push(`plans: project plans of a ${type} ${id} that is gone`); // a claimant who died: until the round (sim/farmclaims)
       if (!Array.isArray(list) || !list.length) { bad.push(`plans: ${type} ${id} keeps an empty list of project plans`); continue; }
       // today's limit (VB-1472): one large plan of the household's own choosing, a settler household's cottage beside it (VB-1411), and
-      // small constructions (a cart, a boat, a tar pit) without number but one of a making (VB-1414); only those three are small
-      if (type === 'household' && list.filter((p) => p.what !== 'cottage' && !p.small).length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
+      // small constructions (a cart, a boat, a tar pit) without number but one of a making (VB-1414); only those three are small; and
+      // beside them the played head's fields and meadows begun beside another (`side`, VB-1623), one a tile
+      if (type === 'household' && list.some((p) => p.side && p.what !== 'field' && p.what !== 'meadow')) bad.push(`plans: household ${id} has a ${list.find((p) => p.side && p.what !== 'field' && p.what !== 'meadow').what} begun beside another`);
+      if (type === 'household' && list.filter((p) => p.what !== 'cottage' && !p.small && !p.side).length > 1) bad.push(`plans: household ${id} has ${list.length} project plans`);
       if (type === 'household') for (const p of list) {
         if (p.small && !['cart', 'boat', 'tarpit', 'well', 'loom'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is marked small`);
         if (!p.small && ['cart', 'boat', 'tarpit', 'well'].includes(p.what)) bad.push(`plans: household ${id}'s ${p.what} is not marked small`);
@@ -1109,8 +1112,7 @@ function checkState(st) {
     // a field or meadow in the making (its household's project plan, VB-123) is staked by its household, not owned by it (VB-158); the
     // farm holds no project of its own
     if ('project' in f) bad.push(`farmsteads[${f.id}]: a project kept on the farm`);
-    const pj = f.household === null ? null : projectStep(f.household);
-    if (pj && pj.stake && st.claims) {
+    for (const pj of f.household === null ? [] : projectSteps(f.household)) if (st.claims) {
       const c = VB['sim/claims'].claimOf(st, pj.place, { type: 'household', id: f.household });
       if (!c || c.state !== 'unrealised' || c.why !== pj.stake) bad.push(`farmsteads[${f.id}]: project on ${pj.place} not staked by its household`);
       if (st.owner[pj.place] === f.household + 1) bad.push(`farmsteads[${f.id}]: project tile ${pj.place} owned before it is made`);
@@ -1151,8 +1153,8 @@ function checkState(st) {
           if (!pl || pl.steps[pl.open].place !== tile || c.state !== 'unrealised') bad.push(`claims[${tile}]: ${k} claims it for no common field`);
         } else if (c.why === 'field' || c.why === 'meadow') { // a stake is its household's project (VB-158)
           const h = c.by.type === 'household' && st.households[c.by.id], f = h && st.farmsteads[h.farmstead];
-          const s = f && projectStep(f.household);
-          if (!s || s.place !== tile || c.state !== 'unrealised') bad.push(`claims[${tile}]: ${k} stakes it with no project there`);
+          const s = f && projectSteps(f.household).find((x) => x.place === tile);
+          if (!s || c.state !== 'unrealised') bad.push(`claims[${tile}]: ${k} stakes it with no project there`);
         }
       }
     }
@@ -1171,8 +1173,7 @@ function checkState(st) {
   for (const f of st.farmsteads) {
     if (onRiver(f.house)) bad.push(`farmsteads[${f.id}]: house on river tile ${f.house}`);
     for (const fd of f.fields) if (onRiver(fd.tile)) bad.push(`farmsteads[${f.id}]: field ${fd.id} on river tile ${fd.tile}`);
-    const pj = f.household === null ? null : projectStep(f.household);
-    if (pj && onRiver(pj.place)) bad.push(`farmsteads[${f.id}]: new field on river tile ${pj.place}`);
+    for (const pj of f.household === null ? [] : projectSteps(f.household)) if (onRiver(pj.place)) bad.push(`farmsteads[${f.id}]: new field on river tile ${pj.place}`);
     for (const m of f.meadows || []) if (onRiver(m.tile) ||
       st.w.water[m.tile]) bad.push(`farmsteads[${f.id}]: meadow ${m.id} on river or water tile ${m.tile}`);
   }
