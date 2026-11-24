@@ -40,7 +40,7 @@ VB['sim/gifts'] = (() => {
     return haulerOf(st, hh);
   }
   // The youngest member of household hh of 14 or more who is not away nor carrying a load home, or -1: who goes for a gift, or takes the
-  // household's quarter to the green (VB-849); never the last one at home with a child under 7 (VB-1571: sim/records mindsWhy)
+  // household's quarter to the green (VB-849); never the last one at home with a child under 7 (VB-1602: sim/records mindsWhy)
   function haulerOf(st, hh) {
     let best = -1;
     for (const id of hh.members) {
@@ -114,7 +114,7 @@ VB['sim/gifts'] = (() => {
       const j = stayOf(st, id);
       return age(st, st.pawns[id]) >= HANDS[0] && j && j.why === 'move' && !j.back;
     });
-    // with a child under 7 in the household and more than one grown on the way, the eldest bears nothing (VB-1571): it walks straight
+    // with a child under 7 in the household and more than one grown on the way, the eldest bears nothing (VB-1602): it walks straight
     // to the new home and is there with the child, while the others bear the start, load by load
     if (going.length > 1 && hh.members.some((id) => st.pawns[id].alive && age(st, st.pawns[id]) < CHILD_FROM)) {
       let eldest = 0;
@@ -168,7 +168,7 @@ VB['sim/gifts'] = (() => {
     !g.carrier && 'farmstead' in g.to && !('farmstead' in g.from && g.from.farmstead === g.to.farmstead);
   // A household's gift to its village's store, with no carrier, is carried to the green by a member of the giving household (VB-849).
   const hauled = (g) => !g.carrier && 'farmstead' in g.from && !('farmstead' in g.to);
-  // Why none of household hh can go: `other`, unless one of them minds a child under 7 (VB-1571), and the check names that.
+  // Why none of household hh can go: `other`, unless one of them minds a child under 7 (VB-1602), and the check names that.
   function noneWhy(st, hh, other) {
     for (const id of hh.members) {
       const why = mindsWhy(st, id);

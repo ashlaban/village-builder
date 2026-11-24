@@ -103,10 +103,10 @@ VB['sim/day'] = (() => {
       }
       const r = full ? Estimate.rateFor(st, H, id, j, m[1] === 0) : 0,
         h = r > 0 ? Math.min(cap.get(id), (left - m[0]) / r) : 0;
-      // the hours of a trip beside its work (the water's walk) are hours of its hand's day too (VB-1551)
+      // the hours of a trip beside its work (the water's walk) are hours of its hand's day too (VB-1582)
       cap.set(id, Math.max(0, cap.get(id) - h - (K.trip ? K.trip(st, j) : 0)));
       manned.set(j, [m[0] + h * r, m[1] + 1]);
-      // water first (VB-1551): the fetch heads the list of the member best fit for it. A task with a deadline today that waits
+      // water first (VB-1582): the fetch heads the list of the member best fit for it. A task with a deadline today that waits
       // unmanned goes first in its hand's list too, after a fetch, whatever its fit, and calls it (below)
       const head = heads.get(id) || 0;
       if (K.first && !j.claims.length) {

@@ -215,7 +215,7 @@ VB['sim/visits'] = (() => {
         hh = st.households[e.household];
       if (!p.alive || spouseOf(st, p.id) !== null || p.retired || p.servant || p.household !== e.household) continue;
       if (hh.dissolved || !a || a.away !== undefined || travelling(a)) continue;
-      if (mindsWhy(st, p.id)) continue; // the last one at home with a child under 7 stays (VB-1571)
+      if (mindsWhy(st, p.id)) continue; // the last one at home with a child under 7 stays (VB-1602)
       const hours = hoursFrom(st, hh, e.village);
       if (!(hours > TRAVEL.dayWalk && hours < Infinity)) continue; // the way has changed since (the table is a year's)
       // the table's hours are green to green: from where he stands the way may lie beyond the route search's reach (VB-436), and he does not

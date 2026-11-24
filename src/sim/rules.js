@@ -510,7 +510,7 @@ VB['sim/rules'] = (() => {
   // meadow it becomes when grubbed), its house at least `apart` steps from any house, green or field, with a block of `fields` fields at
   // least `fertility` times as fertile as home's and a wood (WOOD.least wooded tiles within WOOD.reach); sites score siteScore +
   // fieldWeight × the block's fertility − perHour an hour (0.15 a step at 8 steps an hour), and the best `candidates` by the first and last
-  // terms are tried; a site's water (VB-1552; design.md, Water by the site, The site's access: Proposed, Kim's starting value of 23
+  // terms are tried; a site's water (VB-1583; design.md, Water by the site, The site's access: Proposed, Kim's starting value of 23
   // November) takes perFetch a daily hour of its fetch off the score, twice an hour of nearness, which is paid once; `shown`: the best
   // sites a played leader chooses among (sim/settle sites). A small village (VB-147) has 1..smallFarms farms, its green within `join`
   // hours of home's by the villages' table.
@@ -572,7 +572,7 @@ VB['sim/rules'] = (() => {
   // household's heap and `foundationHours` of work at the house; stone is picked (`pickHours` a load) on a meadow tile holding more than
   // `keepStones` (what a meadow keeps, sim/meadows) or quarried (`quarryHours` a load) on `quarryOn`, within `stoneReach` walking steps
   // and `stoneWalk` hours' walk of the house (proposed, 11 Nov). The village's well (VB-058; sim/green) takes its stone from its
-  // households' heaps, carried to the green, and its hours and stone are by the depth of the green's ground (world/water, VB-1553);
+  // households' heaps, carried to the green, and its hours and stone are by the depth of the green's ground (world/water, VB-1584);
   // the green is cleared in `greenHours` and the sweep raised in `sweepHours` (Agreed, Kim, 30 Oct); the green lies within `greenReach`
   // walking steps of a farm's house (VB-058's own choice).
   // quarryOn: the biomes stone is quarried on, each with the rocks quarried there (null: any) (VB-733, the plan of VB-702's D7; Proposed):

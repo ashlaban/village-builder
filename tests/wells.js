@@ -1,6 +1,6 @@
-// VB-1553: wells are dug. On drawn maps (tests/lib/tiny.js): a well's hours and stone are by the depth of its tile, one rule for a
+// VB-1584: wells are dug. On drawn maps (tests/lib/tiny.js): a well's hours and stone are by the depth of its tile, one rule for a
 // household's and a village's (2 m: 24 hours and 2 loads; 10 m: 56 and 6); a household inland gathers the lining's stone, digs by its
-// house and then fetches in the drawing alone; a household beside a brook does not dig, and one of twelve at the same walk does (VB-1573);
+// house and then fetches in the drawing alone; a household beside a brook does not dig, and one of twelve at the same walk does (VB-1604);
 // no well is begun on ground with none, and the verb says why not; a village's green lies where the water is reckoned shallowest, its well's step by the depth, and a green whose
 // ground has no well is laid out without one; village.well is the well's tile, and a save with the boolean loads.
 const VB = require('../src/load.js'),
@@ -92,7 +92,7 @@ const wellPlan = (st, hh) => Projects.projectsOf(st, 'household', hh.id).find((p
   check(!wellPlan(st, hh) && w.fresh[f.house] === FRESH.NONE, 'and with stone on the heap its head begins none');
   check(project(st, hh) === true && wellPlan(st, hh), 'the played head may dig all the same');
 }
-// ---- 3b. the well is weighed by the household's day's fetch (VB-1573): a household of 12 digs where one of 4 at the same walk does not ----
+// ---- 3b. the well is weighed by the household's day's fetch (VB-1604): a household of 12 digs where one of 4 at the same walk does not ----
 {
   const four = lone(1, 10),
     { st, w, hh, f } = lone(1, 10, 12),

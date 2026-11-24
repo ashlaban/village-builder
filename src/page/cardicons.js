@@ -1,4 +1,4 @@
-// @sys page/cardicons: the icons the cards show of time and of people (VB-1558): the seasons, the traits, the bonds, the states and the occasions
+// @sys page/cardicons: the icons the cards show of time and of people (VB-1589): the seasons, the traits, the bonds, the states and the occasions
 // The four seasons (sim/weather SEASONS, spring first), one icon each, on a 14 box (VB-667: the supply component's header and its chips): a
 // sprout, a sun, a leaf, a snowflake.
 const SEASON_PATHS = [

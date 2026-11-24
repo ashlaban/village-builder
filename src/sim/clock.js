@@ -525,7 +525,7 @@ VB['sim/clock'] = (() => {
       every: 'step',
       when: (st) => !!st.thirstDue && st.thirstDue.length > 0,
       owner: 'sim/drinking',
-      note: 'a pawn 36 hours without a drink leaves what it does and goes to drink (VB-1554); only those that ended a day thirsty are held',
+      note: 'a pawn 36 hours without a drink leaves what it does and goes to drink (VB-1585); only those that ended a day thirsty are held',
       run: (st) => VB['sim/drinking'].step(st),
     },
     {

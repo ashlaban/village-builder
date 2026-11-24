@@ -1,9 +1,9 @@
 // @sys sim/water: the walk to fresh water as a field of the map (w.freshWalk): the hours on foot over pathless ground from each land tile to
 // the nearest source that is not marsh, searched once from the land as generated; and each farm's source (farmstead.water): where its
-// household draws its water, of what class and how long the walk, found by one search outward from the house (VB-1551); the wells the
-// map starts with and a well's entry on the map (w.fresh); and a site's water before a house stands there (siteFetch, siteWater: VB-1552;
-// plotFetch, a plot's site in a village: VB-1565); and the day's fetch by the people it is for (dayFetch: the trips by hand and with a
-// cart and their hours), the one reckoning the panel, the well's test and the site search read (VB-1573)
+// household draws its water, of what class and how long the walk, found by one search outward from the house (VB-1582); the wells the
+// map starts with and a well's entry on the map (w.fresh); and a site's water before a house stands there (siteFetch, siteWater: VB-1583;
+// plotFetch, a plot's site in a village: VB-1596); and the day's fetch by the people it is for (dayFetch: the trips by hand and with a
+// cart and their hours), the one reckoning the panel, the well's test and the site search read (VB-1604)
 VB['sim/water'] = (() => {
   const { minHeap } = VB['gen/rivers'];
   const { good, FRESH, FRESHES, WELL, NO_WELL, BANDS, band, bandHours, bandMid, sourceNear } = VB['world/water'];
@@ -15,7 +15,7 @@ VB['sim/water'] = (() => {
   // @tunable WATER: the fetch (design.md, Water by the site; Proposed, Kim's starting values of 23 November). search: the hours one way
   // beyond which a farm has no water in reach; marshShy: a household draws at a marsh only when no good source lies within this much
   // further walk one way; draw: the hours of drawing a trip's water with a yoke of two buckets. The fetch grows with the household
-  // (VB-1555): hand, the people a trip by hand covers for a day; child, those a child under childUnder covers, with its one bucket;
+  // (VB-1586): hand, the people a trip by hand covers for a day; child, those a child under childUnder covers, with its one bucket;
   // cart, those a trip with a cart's barrel covers; fill, the hours of filling the barrel.
   const WATER = { search: 8, marshShy: 0.5, draw: 0.1, hand: 6, child: 3, childUnder: 12, cart: 18, fill: 0.3 };
 
@@ -27,7 +27,7 @@ VB['sim/water'] = (() => {
   // field): one search outward from every source at once. A river's tile is drawn at where it runs (0); a lake at its bank, half a step
   // of the bank's ground from the water; a step costs what sim/walking's stepCost does on bare ground (the mean of its two tiles, a closed
   // end as meadow, times the slope), at SPEED tiles of meadow an hour. Infinity on water and where no source can be walked to (an islet).
-  // Wells and worn ways are not in it: it is what a pawn would guess from the land; a farm's real walk is its route's (VB-1551).
+  // Wells and worn ways are not in it: it is what a pawn would guess from the land; a farm's real walk is its route's (VB-1582).
   function walks(w) {
     const { N, nb } = w,
       walk = new Float32Array(N).fill(Infinity),
@@ -77,10 +77,10 @@ VB['sim/water'] = (() => {
   function layWalk(w) {
     // @state w.freshWalk: Float32Array per tile; hours on foot over pathless ground to the nearest source of fresh water that is not
     //   marsh (w.fresh), 0 on a river's tile, Infinity on water and where none can be walked to; laid once from the land as generated,
-    //   not saved (a load lays it again on its freshly generated world); the tile card and the Water overlay read it (VB-1550)
+    //   not saved (a load lays it again on its freshly generated world); the tile card and the Water overlay read it (VB-1581)
     if (!w.freshWalk && w.fresh) w.freshWalk = walks(w);
   }
-  // ---- a farm's source (VB-1551; design.md, Water by the site, A farm's source) ----
+  // ---- a farm's source (VB-1582; design.md, Water by the site, A farm's source) ----
   const running = (c) => c === FRESH.BROOK || c === FRESH.STREAM || c === FRESH.RIVER;
   // What a household of the farm with its house on `house`, of village v, may draw standing on tile i, a code of FRESH or 0: at a well
   // that is its own (on its house's tile) or its village's (v.well, its tile), at running water on the water's own tile, at a lake from
@@ -146,12 +146,12 @@ VB['sim/water'] = (() => {
     // @state farmstead.water: {tile, cls, walk, year}: where the farm's household draws its water: the tile it stands on to draw (a
     //   source's own tile, or a lake's bank or a marsh's edge; -1 when none lies within WATER.search hours), the source's class (w.fresh's
     //   code; 0 with none), the walk one way in hours as the ground was when it was found, and the year it was found in; absent until
-    //   the farm's first morning (sim/water find, VB-1551)
+    //   the farm's first morning (sim/water find, VB-1582)
     f.water = { ...source(st.w, f.house, st.villages[f.village]), year: yearOf(st.t) };
     return f.water;
   }
   const sourceOf = (st, f) => f.water || find(st, f);
-  // ---- the day's fetch (VB-1573; design.md, Water by the site, The fetch grows with the household, The daily cost at a site) ----
+  // ---- the day's fetch (VB-1604; design.md, Water by the site, The fetch grows with the household, The daily cost at a site) ----
   // The hours of one trip by hand to a source `walk` hours off: out with empty buckets, the drawing, home laden (TRAVEL.pace.back).
   const tripHours = (walk) => walk * (1 + 1 / TRAVEL.pace.back) + WATER.draw;
   // A cart's trip: the walk both ways at the pace of a cart of `kind` ('hand' or 'ox'), and the barrel's filling.
@@ -206,7 +206,7 @@ VB['sim/water'] = (() => {
       byHand: dayFetch(s.walk, people).hours,
     };
   }
-  // ---- a site's water, before a house stands there (VB-1552; design.md, Water by the site, The site's access, shown before placing) ----
+  // ---- a site's water, before a house stands there (VB-1583; design.md, Water by the site, The site's access, shown before placing) ----
   // A site is weighed by hand alone (dayFetch with no cart: one trip for each WATER.hand of the people): who settles brings no hand
   // cart (design.md, Carts, At the start).
   // The daily hours a well of its own would cost a house on tile i: the drawing at the door, and the digging at the middle of the
@@ -241,7 +241,7 @@ VB['sim/water'] = (() => {
     return v;
   }
   // The daily fetch in hours of a house on each tile of `tiles` (a Map or Set of the walkable tiles round the green: sim/expansion
-  // findSite's reach) for `people` joining village v on a plot (VB-1565): a Map by tile of the least of what the round's search weighs
+  // findSite's reach) for `people` joining village v on a plot (VB-1596): a Map by tile of the least of what the round's search weighs
   // (siteFetch: fresh water by the land's walk, a well of the site's own) and the walk to the village's well, where it has one. The
   // walks to the well are one search outward from the green over the ground as it is walked now, shared by all the tiles and kept
   // within them (sourceSettled: at most the tiles given), a step costed as it is walked towards the well.
@@ -330,7 +330,7 @@ VB['sim/water'] = (() => {
     if (v) for (const id of v.farmsteads) if (st.farmsteads[id].water) find(st, st.farmsteads[id]);
     if (f && f.water) find(st, f);
   }
-  // A save from before the well was a tile (VB-1553): a village's well was a boolean, the well on its green, which is its centre.
+  // A save from before the well was a tile (VB-1584): a village's well was a boolean, the well on its green, which is its centre.
   function wellsLoaded(st) {
     for (const v of st.villages) if (typeof v.well !== 'number') v.well = v.well === true ? v.center : null;
   }

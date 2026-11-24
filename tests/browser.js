@@ -239,7 +239,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if (await page.locator('#actionSheet').isVisible()) fail('a group\'s list and the sheet are open together');
   await page.click('#actBar [data-group="house"]');
   const workable = '#actMenu [data-bar="work"]:not([aria-disabled])';
-  // VB-1562: the list is drawn again four times a second, so the row seen at 30x may be of an hour gone by the time the clock stands:
+  // VB-1593: the list is drawn again four times a second, so the row seen at 30x may be of an hour gone by the time the clock stands:
   // the row clicked is one the list still offers once it has been drawn from the stopped state
   for (let tries = 0; ; tries++) {
     await page.click('[data-speed="30"]');
@@ -388,7 +388,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
       await page.click('#tabFacts'); await page.waitForTimeout(400);
       await page.click('#tabPlan'); await page.waitForSelector('#tileHouse [data-project]');
       if (await msg()) fail(`the refusal is still at the head of the Plan tab after it was closed: ${await page.locator('#tileHouse .plan-msg').textContent()}`);
-      // VB-1562: the household may have a project under way, begun by its head's rule (the work the action bar queued above may be
+      // VB-1593: the household may have a project under way, begun by its head's rule (the work the action bar queued above may be
       // its step): the card then offers "Give it up" in place of the three to begin, so it is given up first, by that button
       const under = await page.evaluate((id) => { const p = VB['sim/projects'].ownOf(window.__play.st, id); return p ? p.what : null; }, hh);
       if (under) {

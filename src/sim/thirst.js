@@ -1,4 +1,4 @@
-// @sys sim/thirst: a pawn's own thirst (VB-1554; design.md, Water by the site, The thirsty pawn): the hour it last drank (pawn.drank), from
+// @sys sim/thirst: a pawn's own thirst (VB-1585; design.md, Water by the site, The thirsty pawn): the hour it last drank (pawn.drank), from
 // which its thirst is read in closed form, so nothing ticks; the day's end of each pawn (the meal's pass asks: did it drink today), who
 // goes for its own drink, and the job kind `drink`, a drink at a source. The verb and the leaving of work are sim/drinking's
 VB['sim/thirst'] = (() => {
@@ -18,7 +18,7 @@ VB['sim/thirst'] = (() => {
   // Pawn p drank at game hour t (now, unless given), of a marsh's poor water if `poor`. Never moves the hour back.
   function drank(st, p, t = st.t, poor = false) {
     // @state pawn.drank: the game hour the pawn last drank: at home at the meal of a day whose water was in (THIRST.meal), at a source
-    //   when it drew or drank there; set at its making, and by `loaded` for a save from before VB-1554 (as having drunk). Its thirst is
+    //   when it drew or drank there; set at its making, and by `loaded` for a save from before VB-1585 (as having drunk). Its thirst is
     //   st.t - drank, never stored (sim/thirst)
     if (!(p.drank >= t)) p.drank = t;
     // @state pawn.marsh: absent, or the day (st.t / DAY, whole) the pawn last drank marsh water at a source by itself: poor water, which
@@ -39,7 +39,7 @@ VB['sim/thirst'] = (() => {
     if (dry && goes(st, p)) emit(st, 'thirsty', p.id);
     return [dry, p.marsh === day];
   }
-  // A save from before VB-1554 loads as having drunk.
+  // A save from before VB-1585 loads as having drunk.
   function loaded(st) {
     for (const p of st.pawns) if (typeof p.drank !== 'number') p.drank = st.t;
   }

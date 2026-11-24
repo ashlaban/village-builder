@@ -1,6 +1,6 @@
 // @sys world/water: fresh water on the map: the codes and names of a tile's source (w.fresh), the well's bands by the depth to the ground's
 // water (w.waterDepth) with the hours a well of each takes, and the nearest source down the walk to water (w.freshWalk)
-// design.md, Goods and the farming year, Water by the site (VB-1543; laid by VB-1550). gen/water lays the class and the depth, sim/water
+// design.md, Goods and the farming year, Water by the site (VB-1543; laid by VB-1581). gen/water lays the class and the depth, sim/water
 // the walk. Nothing here is a rule of the fetch: these are the map's names and its one reading of a depth.
 VB['world/water'] = (() => {
   // A tile's source of fresh water, w.fresh's codes: none (the sea and the shallows are salt), a lake, running water by its flow
@@ -19,9 +19,9 @@ VB['world/water'] = (() => {
   // @tunable WELL: wells by the depth to the ground's water: shallow to `shallow` metres, middling to `middling`, deep to `deepest`, beyond
   // which no well is dug (w.waterDepth holds NO_WELL there); a well's hours are `flat` (the curb and the sweep) and `perMetre` down to
   // the water, from `least` metres, the shallowest a well is; startWalk: a farm that has stood for years further than this, in hours one way, from
-  // any source starts with a well of its own (sim/water, VB-1551). Proposed, design.md, Water by the site, Wells (Kim, 23 November: starting
-  // values). payYears: the years of fetching a well's hours are spread over where a site's water is weighed (sim/water siteWater, VB-1552), and
-  // within which a household's well must pay (sim/wells, VB-1553).
+  // any source starts with a well of its own (sim/water, VB-1582). Proposed, design.md, Water by the site, Wells (Kim, 23 November: starting
+  // values). payYears: the years of fetching a well's hours are spread over where a site's water is weighed (sim/water siteWater, VB-1583), and
+  // within which a household's well must pay (sim/wells, VB-1584).
   const WELL = { shallow: 4, middling: 10, deepest: 20, flat: 16, perMetre: 4, least: 1, startWalk: 0.5, payYears: 2 };
   // w.waterDepth where no well can be dug: mountain, snowfield, water, and ground whose water lies deeper than WELL.deepest.
   const NO_WELL = Infinity;

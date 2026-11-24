@@ -28,7 +28,7 @@ function lose(season, nights, setup) {
 const WINTER = 3, SUMMER = 1;
 const night = (cold, dry) => HEALTH.cold * cold + HEALTH.dry * dry; // a night's cost for an adult
 const use = make().ECON.woodUse, day = (s) => use[s] / use[3];
-// (its water in each day, a test's write: the booth's fetch is tests/boothwater's, VB-1570)
+// (its water in each day, a test's write: the booth's fetch is tests/boothwater's, VB-1601)
 const booth = (wood) => (st, s, site) => {
   st.booths.push({ id: 0, tile: site, by: st.pawns[s.pawn].household, maker: s.pawn, guests: [], built: 0, wood, cond: 1, condAt: st.t, waterDay: 1e9 });
   s.roof = 'booth';

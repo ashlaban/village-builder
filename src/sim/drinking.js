@@ -1,4 +1,4 @@
-// @sys sim/drinking: the verb `drink` (VB-1554; design.md, Water by the site, The thirsty pawn): a pawn walks to the nearest source it
+// @sys sim/drinking: the verb `drink` (VB-1585; design.md, Water by the site, The thirsty pawn): a pawn walks to the nearest source it
 // may draw at and drinks, and where its household's water is not in takes the household's fetch from there; and the pawns that ended a
 // day without a drink, held due (st.thirstDue) until THIRST.leave hours without one, when each leaves whatever it does to drink
 VB['sim/drinking'] = (() => {
@@ -33,7 +33,7 @@ VB['sim/drinking'] = (() => {
     return s && s.roof === 'booth' && s.bed !== null ? Building.boothAt(st, s.bed) : null;
   }
   // Where pawn p goes to drink: {tile, cls, walk}, tile -1 when no source is in reach. At home, its farm's source (sim/water: found
-  // already, so nothing is searched); one that sleeps in a booth, the booth's source, found once (sim/building, VB-1570); away at a bed
+  // already, so nothing is searched); one that sleeps in a booth, the booth's source, found once (sim/building, VB-1601); away at a bed
   // under the open sky or of no farm, the nearest source it may draw at by one search outward from where it stands (the site's source;
   // a well only its own village's).
   function sourceFor(st, p) {
@@ -119,7 +119,7 @@ VB['sim/drinking'] = (() => {
         if (isOpen(st, fetch) && issue(st, workCommand(p.id, key, 'pawn')) === true) return;
       }
     }
-    // one that sleeps in a booth whose water is not in takes the booth's fetch from its source in the same way (VB-1570)
+    // one that sleeps in a booth whose water is not in takes the booth's fetch from its source in the same way (VB-1601)
     const b = f ? null : boothOf(st, p),
       bj = b && boothFetch(st, b, c);
     if (bj && bj[1] === j.site) {

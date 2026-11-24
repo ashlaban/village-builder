@@ -1,6 +1,6 @@
-// @sys sim/wells: a household's well (VB-1553): the making `well`, dug at the house on the house's own tile in the hours its ground's depth
+// @sys sim/wells: a household's well (VB-1584): the making `well`, dug at the house on the house's own tile in the hours its ground's depth
 // asks and lined with stone off the household's heap; the head's test of whether a well pays, on its planning day, and the stone it wants
-// on its heap for one; the well a new site was chosen for, which its settlers dig with the booth and the clearing (VB-1556); the well
+// on its heap for one; the well a new site was chosen for, which its settlers dig with the booth and the clearing (VB-1587); the well
 // finished is a source on the map (sim/water)
 // Design: design.md, Goods and the farming year, Water by the site (Wells: A household's well). The well's cost is world/water's one rule
 // (wellHours, wellStone), which the village's well reads too (sim/green). What a head knows before it digs is the ground's band, never
@@ -20,7 +20,7 @@ VB['sim/wells'] = (() => {
   // Whether farm f has a well of its own, on its house's tile.
   const hasWell = (st, f) => st.w.fresh[f.house] === FRESH.WELL;
   // Why household hh, holding farm f, may not begin a well now, but for its stone; or null. The ground has none (mountain, snow, water
-  // deeper than WELL.deepest), the farm has one, one is being dug, or the household has a project of its own under way (VB-1553's
+  // deeper than WELL.deepest), the farm has one, one is being dug, or the household has a project of its own under way (VB-1584's
   // criterion: with no project under way; the well is long work). The well a site was chosen for (farmstead.wellMeant) is dug beside
   // the first field's breaking, as the cottage is raised beside it.
   function ground(st, hh, f) {
@@ -42,7 +42,7 @@ VB['sim/wells'] = (() => {
       : `a ${BANDS[band(st.w.waterDepth[f.house])].name} well may take ${need} loads of stone for its lining, and the heap holds ${have} free`;
   }
   // Whether a well of its own pays farm f's household (design.md, A household's well): the hours of fetching it saves in WELL.payYears,
-  // the household's day's fetch as it is made (VB-1573; sim/water waterOf: the trips its people at home make at its source as found,
+  // the household's day's fetch as it is made (VB-1604; sim/water waterOf: the trips its people at home make at its source as found,
   // farmstead.water, with its cart where that is the cheaper) against the drawing at the door for each trip, are more than the well's
   // hours at the head's estimate, the middle of the ground's band. A farm with no water in reach reckons the farthest fetch a farm
   // makes. Numbers the farm's source already holds, and the household's members counted: nothing is searched.
@@ -70,14 +70,14 @@ VB['sim/wells'] = (() => {
     Projects.mayBegin(st, hh, 'well') &&
     ground(st, hh, f) === null &&
     (f.wellMeant || (pays(st, f) && !landFirst(st, hh, f)));
-  // ---- the well a new site was chosen for (VB-1556; design.md, Water by the site, Wells, At a new site) ----
+  // ---- the well a new site was chosen for (VB-1587; design.md, Water by the site, Wells, At a new site) ----
   // The farm f just founded on its site in village v by `people` settlers: where the site's water, as its leader reckoned it before
   // placing the house (sim/water siteWater: the site search's least), is the well it means to dig, the farm is marked so. Array reads,
   // and one bounded search from the site where the village it joins has a well.
   function siteWell(st, f, v, people) {
     // @state farmstead.wellMeant: true while the farm's site, chosen for the well its settlers mean to dig (sim/settle settleFarm), has
     //   no well yet: its household gathers the lining's stone and digs with the booth and the clearing, whatever the season and its
-    //   land; absent otherwise, and once water is struck (VB-1556)
+    //   land; absent otherwise, and once water is struck (VB-1587)
     if (siteWater(st, f.house, people, v).by === 'well') f.wellMeant = true;
   }
   // A load of stone has come onto household hh's heap (sim/building stoneHome): at a site chosen for its well the digging is begun with

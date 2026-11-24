@@ -37,7 +37,7 @@ Sim.advance(st, Sim.DAY);
 const bad = checkState(st);
 check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
 
-// VB-1550: fresh water on a drawn map, as the generator lays it (gen/water) and the walk to it (sim/water): a tile beside a lake is
+// VB-1581: fresh water on a drawn map, as the generator lays it (gen/water) and the walk to it (sim/water): a tile beside a lake is
 // shallow, a mountain has no well, marsh is a source of class marsh, the sea is none; the walk is a step from the bank, longer through
 // the wood, and to the lake, not to the marsh nearer by
 {

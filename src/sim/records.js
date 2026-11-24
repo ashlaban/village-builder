@@ -103,8 +103,8 @@ VB['sim/records'] = (() => {
     fair: 0, // the fair at a gathering: its deals, what changed hands, those that failed for want of change (VB-302)
     cartBuilt: 0, // a household's new cart (VB-327)
     tarPit: 0, // a household's tar pit dug (VB-301)
-    wellDug: 0, // a household's well dug by its house (VB-1553)
-    thirst: SHORT, // a pawn that left what it did to drink, THIRST.leave hours without one (sim/drinking, VB-1554)
+    wellDug: 0, // a household's well dug by its house (VB-1584)
+    thirst: SHORT, // a pawn that left what it did to drink, THIRST.leave hours without one (sim/drinking, VB-1585)
     trail: 0, // a trail blazed through the wood (VB-447)
     setOut: 0, // a journey to a new home in another village (VB-287)
     // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
@@ -292,7 +292,7 @@ VB['sim/records'] = (() => {
       hunger: 0,
       hungerLog: [],
       health: 100,
-      drank: R.t || 0, // the hour it last drank (sim/thirst, VB-1554): at its making
+      drank: R.t || 0, // the hour it last drank (sim/thirst, VB-1585): at its making
       kinPush: null,
       visited: null,
     };
@@ -604,7 +604,7 @@ VB['sim/records'] = (() => {
     st.pawns[id].events.push(st.record.length - 1);
   }
   const age = (st, p, t = st.t) => Math.floor((t - p.born) / YEAR);
-  // ---- nobody leaves a small child alone (VB-1571) ----
+  // ---- nobody leaves a small child alone (VB-1602) ----
   // Why pawn id may not go away from home, or null: it is at home, of CHILD.from (7) or over, and the only such member of its household
   // at home (not away: agent.away, sim/away), with a member under 7 at home too. One who minds a child does not leave (the verb lodge, a
   // gift's carrier, fetcher and hauler, a suitor's visit): the child cannot draw its water, cook nor go for its own drink, and the

@@ -1,5 +1,5 @@
 // VB-1546: the household's day is allotted again in the afternoon (MATCH.day.afternoon, 14:00), when water's urgency rises above
-// cooking's: a lone settler at work past midday, the water wanted from 13:00 at his farm's source (VB-1551), is not called from his work
+// cooking's: a lone settler at work past midday, the water wanted from 13:00 at his farm's source (VB-1582), is not called from his work
 // by its posting; the day allotted again at 14:00 has the water first, and he leaves his work for it. On the probe island's solo settler.
 const VB = require('../src/load.js'),
   Sim = VB.sim,

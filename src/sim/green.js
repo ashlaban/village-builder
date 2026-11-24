@@ -2,7 +2,7 @@
 // well may choose the work as a routine at its meeting (VB-257); its review then makes it a project plan of the village (VB-123): the
 // green's tile chosen and taken, the green cleared, stone carried to it from the households' heaps, the well dug and lined, the sweep
 // raised; then the village has its green and well, its centre on the green. The well's hours and stone are by the depth of the green's
-// ground (world/water's one rule, VB-1553), the green lies where the villagers reckon the water shallowest, and a green whose ground has
+// ground (world/water's one rule, VB-1584), the green lies where the villagers reckon the water shallowest, and a green whose ground has
 // no well is laid out without one
 VB['sim/green'] = (() => {
   const Stores = VB['sim/stores'],
@@ -19,7 +19,7 @@ VB['sim/green'] = (() => {
   const { wellDug } = VB['sim/water'];
   const { NO_WELL, band, bandMid, wellHours, wellStone } = VB['world/water'];
   // @state the green's project plan (st.plans.projects.village; sim/projects): {what: 'green', started (game hours), steps: [{kind 'green',
-  //   place, hours}, {kind 'well', place, hours, stone (the loads its lining takes: both by the depth of the tile, VB-1553), brought (loads of
+  //   place, hours}, {kind 'well', place, hours, stone (the loads its lining takes: both by the depth of the tile, VB-1584), brought (loads of
   //   stone carried to the green)}, {kind 'sweep', place, hours}]}, or the first step alone where the green's ground has no well; at most one
   //   a village. Its tile is the village's (st.owner) and in use (st.used) from the plan's making; v.center, v.green and v.well change when
   //   the sweep is raised (a green with no well: when it is cleared) (sim/layout and sim/byhand set them at seeding).
@@ -56,7 +56,7 @@ VB['sim/green'] = (() => {
   };
   // The green's tile: of the open tiles within BUILD.greenReach walking steps of an occupied farm's house, none beside a field, the one
   // where the water is shallowest as the villagers reckon it, by the ground's band (world/water: the estimate, never the metres;
-  // VB-1553); within a band the nearest to the houses' mean position (so it lies between them), the lowest id between equals; -1 for
+  // VB-1584); within a band the nearest to the houses' mean position (so it lies between them), the lowest id between equals; -1 for
   // none, or fewer than two farms.
   function greenSite(st, v) {
     const w = st.w,
@@ -105,7 +105,7 @@ VB['sim/green'] = (() => {
       );
     return { what: 'green', started: st.t, steps };
   }
-  // The loads of stone the well's step takes (a step of a save before VB-1553 has none named: the six a well took then).
+  // The loads of stone the well's step takes (a step of a save before VB-1584 has none named: the six a well took then).
   const stoneOf = (s) => s.stone ?? 6;
   // The plan made: its tile is the village's and in use from now, and the village's log tells it.
   function laidOut(st, v, plan) {
@@ -182,7 +182,7 @@ VB['sim/green'] = (() => {
     v.center = j.site;
     v.green = true;
     v.well = j.site;
-    wellDug(st, v.well, v); // a source on the map: the village's farms find their sources again (VB-1551)
+    wellDug(st, v.well, v); // a source on the map: the village's farms find their sources again (VB-1582)
     st.visualDirty = true;
     log(st, `The well sweep is raised on the new green of ${v.name}: the farms draw their water at one well.`, {
       kind: 'green',

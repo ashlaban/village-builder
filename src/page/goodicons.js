@@ -1,4 +1,4 @@
-// @sys page/goodicons: the icons of goods and measures in the panels (VB-664, VB-1558), one icon a kind wherever it is shown, in line and in stencil
+// @sys page/goodicons: the icons of goods and measures in the panels (VB-664, VB-1589), one icon a kind wherever it is shown, in line and in stencil
 // Goods and measures in the panels (VB-664): one icon a kind, wherever it is shown; 24 by 24, the action bar's stroke.
 const GOOD_PATHS = {
   grain:

@@ -408,7 +408,7 @@ function makeHTML(V) {
 }
 // The small constructions under way beside the project (a cart, a boat, a tar pit: VB-1414), a row each; the head may give each up.
 const SMALL_NAME = { cart: 'cart', boat: 'fishing boat', tarpit: 'tar pit', well: 'well' };
-// A well under way shows its ground's band and the band's range of hours until water is struck, never the metres ahead (VB-1553).
+// A well under way shows its ground's band and the band's range of hours until water is struck, never the metres ahead (VB-1584).
 function wellNote(tile) {
   const W = VB['world/water'],
     k = W.band(st.w.waterDepth[tile]),

@@ -169,7 +169,7 @@ VB['sim/fair'] = (() => {
   on('gatheringSetOut', loadUp);
   // The load goes home: its lots into the household's store (the one it was packed for, else the dealer's own), or lost with nobody to
   // take them; the dealer carries none. The swaps it offered or was offered that are still open lapse with the load they were to be
-  // made from (VB-1567: the played pawn's answer was waited for; the question leaves its prompt with the offer), before the goods go.
+  // made from (VB-1598: the played pawn's answer was waited for; the question leaves its prompt with the offer), before the goods go.
   function unload(st, p, lost = false) {
     const l = p.load,
       f = fairOf(st);

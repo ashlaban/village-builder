@@ -1,4 +1,4 @@
-// VB-1555: the fetch grows with the household. On a drawn map (tests/lib/tiny.js), a lone farm 7 steps of meadow from a brook (0.875
+// VB-1586: the fetch grows with the household. On a drawn map (tests/lib/tiny.js), a lone farm 7 steps of meadow from a brook (0.875
 // hours one way): households of 1 and 6 make one trip by hand (1.95 h), of 7 one with a cart's barrel (2.49 h) or two by hand with no
 // cart (3.89 h, and a miss the head counts), of 19 a cart's and one by hand (4.43 h); a cart trip wears the cart; at a well by the door
 // nobody takes the cart (2 trips of 0.1 h for 12); with one of two trips made the meal is cooked and the day is dry by the part of the
@@ -150,7 +150,7 @@ for (const n of [3, 6]) {
   hh.waterFor = 2.5; // a test's write
   check(checkState(st).some((m) => m.includes('waterFor')), 'the invariant sees a load that covers no whole number of people');
 }
-// ---- 5b. a cart's trip released on the way home (VB-1573: its hand dies on the road, its household dissolves): the barrel's water is
+// ---- 5b. a cart's trip released on the way home (VB-1604: its hand dies on the road, its household dissolves): the barrel's water is
 // spilt, no load lies (water has no fetch kind: the next asking of the jobs threw), and the cart stands where it was ----
 {
   const { st, hh } = farm(7, 7, [handCart()]),

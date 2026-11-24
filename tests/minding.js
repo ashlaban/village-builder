@@ -1,4 +1,4 @@
-// VB-1571: nobody leaves a small child alone. On a tiny state: a household of two adults and a child of 3; the first adult lodges away,
+// VB-1602: nobody leaves a small child alone. On a tiny state: a household of two adults and a child of 3; the first adult lodges away,
 // the second is refused with the reason (the last one at home with a child under 7), is no gift's carrier, and the child is not alone
 // at the day's end; with the first home again the second may go.
 const assert = require('assert'),

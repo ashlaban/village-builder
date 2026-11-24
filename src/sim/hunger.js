@@ -153,11 +153,11 @@ VB['sim/hunger'] = (() => {
     const fed = mem.some((p) => feasted(st, p)) ? mem.filter((p) => feasted(st, p)) : null;
     if (fed) mem = mem.filter((p) => !feasted(st, p));
     const cold = season === undefined ? 0 : warmHouse(st, hh, season),
-      // a house with nobody at home today has no dry day (VB-1554): nothing was to be cooked there, and nobody was there to fetch
-      // and it is dry by the part of its people the day's loads did not cover (VB-1555)
+      // a house with nobody at home today has no dry day (VB-1585): nothing was to be cooked there, and nobody was there to fetch
+      // and it is dry by the part of its people the day's loads did not cover (VB-1586)
       people = mem.length + (fed ? fed.length : 0),
       dry = season === undefined ? 0 : dryHouse(st, hh, people),
-      // the day's water was a marsh's (hh.marshDay, sim/chores): poor water, which costs those it covers HEALTH.marsh (VB-1551)
+      // the day's water was a marsh's (hh.marshDay, sim/chores): poor water, which costs those it covers HEALTH.marsh (VB-1582)
       poor = season !== undefined && dry < 1 && hh.marshDay >= Math.floor(st.t / DAY) - 1;
     const need = new Map(mem.map((p) => [p, age(st, p) >= 14 ? E.ration.adult : E.ration.child])),
       total = [...need.values()].reduce((s, n) => s + n, 0);
@@ -203,9 +203,9 @@ VB['sim/hunger'] = (() => {
       if (spare > 0) Stores.takeSpare(st, hh, spare, 'raw');
       hh.hungryDays++;
     }
-    // the dry day's health is the pawn's own (VB-1554): with the day's water in, each drank at the meal; with none, who drank at a
+    // the dry day's health is the pawn's own (VB-1585): with the day's water in, each drank at the meal; with none, who drank at a
     // source that day loses nothing, and who did not is thirsty (sim/thirst dayEnd); marsh water a pawn drank by itself is poor too
-    // On a day whose loads covered a part of the people (VB-1555) the water goes first to those who do not go for their own drink (a
+    // On a day whose loads covered a part of the people (VB-1586) the water goes first to those who do not go for their own drink (a
     // child under 7, the bedridden), then to who is thirsty, then by the members' order: who goes without can go to a source
     let given = null;
     if (dry > 0 && dry < 1) {
@@ -262,7 +262,7 @@ VB['sim/hunger'] = (() => {
   }
   // A day without water (VB-331): the day that ends, if its water was not fetched (hh.waterDay behind it), costs each member HEALTH.dry and the
   // meal restores nothing; a house with nobody at home (`people` 0) has no dry day. With water in for a part of its `people` at home
-  // (hh.waterFor, the people the day's loads covered: VB-1555) the day is dry by the part not covered.
+  // (hh.waterFor, the people the day's loads covered: VB-1586) the day is dry by the part not covered.
   // hh.dry is the mean of the last HUNGER.days days (hh.dryLog, 1 a dry day, a part-dry day its part) as hh.cold is. Returns the day's
   // part: 1 on a dry day. One comparison a live household a day.
   function dryHouse(st, hh, people = 1) {
@@ -287,7 +287,7 @@ VB['sim/hunger'] = (() => {
   // The day's cold and wet of a night away (VB-785), by the house's rule read for the stay's roof: none, as a house with no wood and no
   // roof; a booth, as a heated house when its wood covers the day's fire (`fire`, the booth's, burnt once a day for all in it), else an
   // unheated one; a guest's, its host's today (the last of the host's logs, which its meal wrote before); a barn's, dry and GATHERING.barnCold
-  // of the open sky's cold. Returns [cold, dry]. A booth's water is not the roof's: its day's fetch (sim/building, VB-1570), which
+  // of the open sky's cold. Returns [cold, dry]. A booth's water is not the roof's: its day's fetch (sim/building, VB-1601), which
   // sim/away reads for each who sleeps there.
   function nightCost(st, season, roof, host, fire) {
     const use = st.ECON.woodUse;
@@ -317,7 +317,7 @@ VB['sim/hunger'] = (() => {
   }
   // Health after the meal: hunger drains it, and the day's cold in the house (VB-327), both faster for the very young and the old; a full meal
   // restores some on a warm day, nothing on a cold one; a dry day costs HEALTH.dry and restores nothing, a day of marsh water HEALTH.marsh
-  // (VB-1551). An illness running its course (pawn.ill, sim/deaths; VB-1118) takes ILLNESS.fall
+  // (VB-1582). An illness running its course (pawn.ill, sim/deaths; VB-1118) takes ILLNESS.fall
   // over its days (ILLNESS.passing of it for one that passes, VB-1246), and nothing is restored while it runs. The played pawn's day is
   // told to sim/player (event 'health': what moved it).
   function updateHealth(st, p, fed, cold = 0, dry = 0, poor = false) {
@@ -326,7 +326,7 @@ VB['sim/hunger'] = (() => {
       before = p.health;
     const hungry = p.hunger > 0 ? HEALTH.drain * p.hunger * p.hunger * frail : 0,
       chill = cold > 0 ? HEALTH.cold * cold * frail : 0,
-      damp = dry > 0 ? HEALTH.dry * frail : poor ? HEALTH.marsh * frail : 0, // marsh water: the meal is cooked and restores (VB-1551)
+      damp = dry > 0 ? HEALTH.dry * frail : poor ? HEALTH.marsh * frail : 0, // marsh water: the meal is cooked and restores (VB-1582)
       ill =
         p.ill === undefined
           ? 0

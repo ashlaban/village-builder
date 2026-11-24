@@ -32,16 +32,16 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   are the presentation layer, listed after `sim.js` (VB-1503). `ArchGen` exposes the generator only (`generate`, `BIOMES`, `COVER`);
   the page reads the bake as `VB['draw/bake']` and `mulberry32` from `gen/noise`.
   Rivers (`w.river`, `w.riverTo`) and their fords (`w.crossing`) are traced by `src/gen/rivers.js`, listed before `gen.js`, which calls it, and drawn by `src/draw/rivers.js` (VB-1502).
-  Fresh water (VB-1550; design.md, Water by the site) is laid by `src/gen/water.js` after the ground: a tile's source (`w.fresh`) and the
+  Fresh water (VB-1581; design.md, Water by the site) is laid by `src/gen/water.js` after the ground: a tile's source (`w.fresh`) and the
   depth to the ground's water (`w.waterDepth`, `WATERTABLE`), shown only as a band. The walk to it (`w.freshWalk`) needs the walking
   costs, which are the simulation's, so `src/sim/water.js` lays it where a world enters a state (`makeState`, and `load` before the
   saved fields are put back): from the land as generated, never saved, never recomputed. The fetch reads them through a farm's
-  source (VB-1551); the site search weighs a site's daily fetch by them (`siteFetch`, array reads) and a leader's estimate of a site's
-  water is `siteWater` (VB-1552: the source, the well of the village joined, a well of its own by its band); the tile card and the
-  Fresh water overlay (`src/page/water.js`) show them. The day's fetch has one reckoning, `dayFetch(walk, people, cart)` (VB-1573: the
+  source (VB-1582); the site search weighs a site's daily fetch by them (`siteFetch`, array reads) and a leader's estimate of a site's
+  water is `siteWater` (VB-1583: the source, the well of the village joined, a well of its own by its band); the tile card and the
+  Fresh water overlay (`src/page/water.js`) show them. The day's fetch has one reckoning, `dayFetch(walk, people, cart)` (VB-1604: the
   trips by hand and with a cart and their hours), read by the household's panel and the well's test (`waterOf`: its people at home,
   `atHome`, and its cart), by the site's estimate (by hand alone) and by `sim/chores`, which keeps the choice a trip makes.
-  Wells (VB-1553): a well's hours and stone are `world/water`'s one rule by the depth (`wellHours`, `wellStone`); a household's well is
+  Wells (VB-1584): a well's hours and stone are `world/water`'s one rule by the depth (`wellHours`, `wellStone`); a household's well is
   `src/sim/wells.js` (the making `well` and its kind `housewell`, the head's test `pays` on its planning day, `stoneLacking`, which
   `sim/building`'s stone step reads), a village's `src/sim/green.js`; `village.well` is the well's tile, and a finished well is a source
   through `sim/water`'s `wellDug`.
@@ -432,7 +432,7 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
   a routine of its meeting: the fence closed in spring, the commons cleared in summer, who turned out and who stayed away, VB-120).
 - Agency: `sim/legs`, `sim/work`, `sim/attention`, `sim/agents` (VB-422), `sim/away` (the stays away from home, VB-783), `sim/gifts` (how a gift gets from here to there: the verbs `give` and
   `deliver`, VB-228; a new household's start laid at its old homes and borne or fetched, VB-675), `sim/occasions` (gatherings; agency since VB-228, as target-v2 4.5 has it: its verb `attend` walks the pawn), `sim/player`
-  (the player as a source of commands, VB-169, VB-228), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs` (the job board: `post`, the review hour's asks of the kinds' rules in `refreshJobs`, a member's look in `lookForWork`; it notes the holders whose tasks changed and has `sim/day` allot their days), `sim/fit` (a posted job weighed for a pawn, read-only: urgency, priority, score, the bars, the bid, `explainIdle`; the jobs a pawn weighs, `jobsFor`, and the one command that takes one, `workCommand`; read by `sim/day` and `sim/opportunities`), `sim/day` (the day's work: the head's `allot`, which alone writes `plan.day`, `takeDay`, `eveningCall`, and `dutyRound` for a pawn on a day owed or lent), `sim/idle` (the pawn that found no work: company, a stroll, the wait `IDLE`; split from `sim/jobs` by VB-1560; load order `sim/fit`, `sim/day`, `sim/idle`, `sim/jobs`), `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/gathering` (the village's choice of gathering, VB-294), `sim/meetings`, `sim/asking` (the asking day, VB-823), `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/seasonal` (a household's seasonal plan and targets: the template of the year, the head's bias and foresight), `sim/routines` (the village's routines and its review's steps), `sim/plandays` (planning days and the due-queue), `sim/plans` (the standing plans and the head's choices; split by VB-431),
+  (the player as a source of commands, VB-169, VB-228), `sim/trust` (farms held in trust by kin, VB-309), `sim/jobs` (the job board: `post`, the review hour's asks of the kinds' rules in `refreshJobs`, a member's look in `lookForWork`; it notes the holders whose tasks changed and has `sim/day` allot their days), `sim/fit` (a posted job weighed for a pawn, read-only: urgency, priority, score, the bars, the bid, `explainIdle`; the jobs a pawn weighs, `jobsFor`, and the one command that takes one, `workCommand`; read by `sim/day` and `sim/opportunities`), `sim/day` (the day's work: the head's `allot`, which alone writes `plan.day`, `takeDay`, `eveningCall`, and `dutyRound` for a pawn on a day owed or lent), `sim/idle` (the pawn that found no work: company, a stroll, the wait `IDLE`; split from `sim/jobs` by VB-1591; load order `sim/fit`, `sim/day`, `sim/idle`, `sim/jobs`), `sim/kinds`, `sim/exchange`, `sim/help`, `sim/lifecycle` (deaths, retirement, the daily life step), `sim/marriage`, `sim/gathering` (the village's choice of gathering, VB-294), `sim/meetings`, `sim/asking` (the asking day, VB-823), `sim/round` (split from it, VB-876), `sim/eligibility`, `sim/seasonal` (a household's seasonal plan and targets: the template of the year, the head's bias and foresight), `sim/routines` (the village's routines and its review's steps), `sim/plandays` (planning days and the due-queue), `sim/plans` (the standing plans and the head's choices; split by VB-431),
   `sim/estimate` (the head's estimate of a task, VB-476: its hours by the causes the head's judgement reckons with, in the order of
   `ESTIMATE.reckons`, leaned by `plan.head.bias.hours`, with an honest range; worked out when read, nothing stored; `sim/day`'s `allot` mans a
   task by it, and a window missed (`sim/fields`' event `windowMissed`) outside the range is told on the record as `misjudged`; a kind's
@@ -493,7 +493,7 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   `line` drawing. In `src/head.html`, beside the stencil's, its one rule (hidden unless the root's `data-icons` names it, and then the
   `line` drawing beside it hidden) and the styles its shapes are drawn with; then a theme names it, the `icons` field of its entry in
   `THEMES` (`src/page/options.js`), which `applyTheme` puts on the root as `data-icons`. No rule of the icons names a theme.
-  The drawings are in four files, by what they show (VB-1558), in this order in `src/page.json`, each reading only those before it:
+  The drawings are in four files, by what they show (VB-1589), in this order in `src/page.json`, each reading only those before it:
   `src/page/icons.js` (the makers `svgIcon` and `drawings`, `ICON_SETS`, and the interface's own `ICON` and `ICON_STEN`),
   `src/page/kindicons.js` (the acts' and the job kinds': `ACT_PATHS`, `ACT_STEN`, `actIcon`, `KIND_ICON`), `src/page/goodicons.js`
   (the goods' and measures': `GOOD_PATHS`, `GOOD_STEN`, `goodIcon`) and `src/page/cardicons.js` (the seasons', traits', bonds', states'

@@ -47,7 +47,7 @@ VB['sim/jobs'] = (() => {
     return j;
   }
   // A plot's steps and an empty farm's restoration are asked for the whole island, every review hour, whoever owns them.
-  // a staked booth's raising (VB-1172), a booth's water (VB-1570)
+  // a staked booth's raising (VB-1172), a booth's water (VB-1601)
   const islandJob = (j) => !!j.plot || j.kind === 'restore' || j.kind === 'booth' || j.kind === 'boothwater';
   // The due-queue's ask of each time-bound kind: its own rule (a shared rule, as the byre's, posts only that kind there).
   const DUE_RULES = WINDOWED.map((k) => [[k, KINDS[k].available]]);

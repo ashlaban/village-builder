@@ -143,7 +143,7 @@ VB['sim/offers'] = (() => {
         a.phase === 'back'
       )
         return `pawn ${args.carrier} cannot carry the gift`;
-      const kept = mindsWhy(st, p.id); // VB-1571
+      const kept = mindsWhy(st, p.id); // VB-1602
       if (kept) return kept;
       if (from.farmstead === to.farmstead) return 'nothing is carried within a farmstead';
       if (n > TRAVEL.load + 1e-9) return `one pawn carries at most ${TRAVEL.load} rations: a larger gift is fetched`;

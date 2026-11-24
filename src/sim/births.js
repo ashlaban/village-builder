@@ -80,7 +80,7 @@ VB['sim/births'] = (() => {
       pool = free.length ? free : names,
       given = pool[(rnd(st.rng.people) * pool.length) | 0];
     const id = person(
-        { pawns: st.pawns, living: st.living, rand: drawer(st.rng.people), t: st.t }, // t: the hour it first drank (VB-1554)
+        { pawns: st.pawns, living: st.living, rand: drawer(st.rng.people), t: st.t }, // t: the hour it first drank (VB-1585)
         { sex, age: 0, given, father: fatherId, mother: m.id },
       ),
       p = st.pawns[id];

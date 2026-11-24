@@ -27,7 +27,7 @@ VB['sim/expansion'] = (() => {
   const Stores = VB['sim/stores'];
   const MAX_PLOTS = 2,
     REACH = 6,
-    PLOT_PEOPLE = 2; // whom a plot's water is weighed for: the couple a plot is cleared for (one trip a day at any size until VB-1555)
+    PLOT_PEOPLE = 2; // whom a plot's water is weighed for: the couple a plot is cleared for (one trip a day at any size until VB-1586)
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   // @state village.plots[]: the village's plots built, {id, village, intended, holder (who moved in), started, farmstead, tiles: [{tile, kind
   //   'house' | 'field'}]}, appended when the cottage's household moves in (sim/cottage). A plot under way is a project plan of its village
@@ -93,7 +93,7 @@ VB['sim/expansion'] = (() => {
   // green, not crowded, where its field is worth most and its own tile least; Kim, 12 Nov); the field lies 1 to FIELD_REACH steps from it,
   // where farmed land may lie (farmedLand: beside a house, off the ring round the green, no nearer the green than the house); and the
   // farm has room (roomAt). Null when there is no room.
-  // The site's water is weighed as the round's search weighs it (VB-1565; design.md, Water by the site, The site's access): the score
+  // The site's water is weighed as the round's search weighs it (VB-1596; design.md, Water by the site, The site's access): the score
   // loses SETTLE.perFetch a daily hour of the fetch a house there would make (sim/water plotFetch: the least of fresh water, the
   // village's well and a well of its own), for a household that makes one trip (PLOT_PEOPLE). 2.4 a daily hour is an hour's nearness
   // to the green (8 steps at HOUSE.far), so a step further from the village's well costs 0.63 beside the step's 0.3, and all the water

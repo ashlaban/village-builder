@@ -71,7 +71,7 @@ at(st, 3 * Sim.YEAR_DAYS - 1);
 // the hay is in each farm's log (with five or six fields to sow for its courses, VB-353, a founders farm's stock is eaten as fast as it is mown, so its
 // stock is no measure)
 const told = Sim.villageLog(st, Infinity).map((e) => e.text).join('\n');
-// a herd with a winter to feed: a new farm's herd with no head yet has none (VB-1565: a plot's site moved, and Yttergården, founded at the end
+// a herd with a winter to feed: a new farm's herd with no head yet has none (VB-1596: a plot's site moved, and Yttergården, founded at the end
 // of year 1, has a cattle herd of no head and no meadow by year 3)
 const wintering = st.households.filter((x) => x.herds.length && Sim.winterNeed(st, x) > 0);
 check(wintering.length >= 3, `founders: ${wintering.length} households with a herd to winter`);

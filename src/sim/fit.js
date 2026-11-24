@@ -30,7 +30,7 @@ VB['sim/fit'] = (() => {
   const urgencyOf = (st, j, c) =>
     KINDS[j.kind].urgency ? KINDS[j.kind].urgency(st, j, c, MATCH.urgency) : MATCH.urgency.other;
   // A pawn's fit for a job: its role's priority for the kind times the job's urgency, less the walk; a job of a kind the household lives
-  // by (`vital`, sim/kinds carriedOn) is weighed with no walk taken off, since it must be done wherever it lies (VB-1551; design.md,
+  // by (`vital`, sim/kinds carriedOn) is weighed with no walk taken off, since it must be done wherever it lies (VB-1582; design.md,
   // Water by the site, How it is ranked). The head allots by it (allot); a
   // pawn on duty or lent bids it for the tasks of the household it works for, where a job that k pawns already work gets join^k of the
   // bid (VB-102).

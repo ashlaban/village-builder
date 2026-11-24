@@ -36,7 +36,7 @@ VB['sim/carts'] = (() => {
   //   cart or the last cart begun (the head's count; VB-678). Written only here.
   // A cart is out while the pawn named in `by` is at the job it took it for: carrying a load home, cutting a further load of firewood
   // beside it, or carting dung; or on its way out with a cart taken at the house (the water's barrel, sim/chores: a load beyond the
-  // back's on the way to the work, VB-1555); a `by` left by a pawn that died or dropped the job is free again.
+  // back's on the way to the work, VB-1586); a `by` left by a pawn that died or dropped the job is free again.
   // @state household.carts[].at: absent, or {tile, x, y, t}: a cart left standing where its carrier was released on the road with a load
   //   (VB-649: it dies or its household dissolves), until a hand of the household fetches it home (the lying load 'leftCart', sim/lying);
   //   while it stands the cart is out, and the team that drew it stands with it. Written only here; removed at the autumn frost if nobody

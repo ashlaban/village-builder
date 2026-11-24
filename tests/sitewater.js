@@ -1,8 +1,8 @@
-// VB-1552: a site's water is weighed by the site search and carried by the sites a leader chooses among. On drawn maps (tests/lib/tiny.js):
+// VB-1583: a site's water is weighed by the site search and carried by the sites a leader chooses among. On drawn maps (tests/lib/tiny.js):
 // the leader's estimate (sim/water siteWater) is the least of the walk to fresh water, the well of the village the site would join and a
 // well of its own at the middle of its band, spread over WELL.payYears; a candidate's score loses SETTLE.perFetch a daily hour, so of two
 // sites alike but for their water the nearer ranks first; and no site is refused: where there is no source and no well, one is still offered.
-// VB-1565: a plot's site in a village (sim/expansion findSite) loses the same a daily hour, its water reckoned with the village's well.
+// VB-1596: a plot's site in a village (sim/expansion findSite) loses the same a daily hour, its water reckoned with the village's well.
 const VB = require('../src/load.js'),
   Settle = VB['sim/settle'],
   Water = VB['sim/water'];
@@ -57,7 +57,7 @@ const cands = (st, v) => Settle.candidates(st, v, Settle.landInUse(st), Settle.r
     `beside a brook: the brook, a step off, 0.36 hours a day, no well (${JSON.stringify(by)})`,
   );
   check(near(by.share, by.hours / (WORK[1] - WORK[0]), 1e-9), `its share is of one hand's day (${by.share})`);
-  // for whom it is reckoned, and by hand alone (VB-1573): one trip for each six of the party; the tile card asks for one trip's people
+  // for whom it is reckoned, and by hand alone (VB-1604): one trip for each six of the party; the tile card asks for one trip's people
   const eight = siteWater(st, at(59, 12), 8, null),
     card = siteWater(st, at(59, 12));
   check(by.people === 3 && by.trips === 1, `reckoned for the party's three, in one trip (${by.people}, ${by.trips})`);
@@ -156,7 +156,7 @@ const cands = (st, v) => Settle.candidates(st, v, Settle.landInUse(st), Settle.r
   check(!!site, 'a site with no source and no well is still offered');
   check(shown.length > 0 && shown[0].water.by === 'none' && shown[0].house === site.house, `and shown as it is (${JSON.stringify(shown[0] && shown[0].water)})`);
 }
-// ---- 4. a plot's site in a village (sim/expansion findSite, VB-1565): of two sites alike but for the walk to the village's well, the nearer ----
+// ---- 4. a plot's site in a village (sim/expansion findSite, VB-1596): of two sites alike but for the walk to the village's well, the nearer ----
 {
   const X = VB['sim/expansion'],
     { hexSteps } = VB['sim/hex'];

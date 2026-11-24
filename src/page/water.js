@@ -1,4 +1,4 @@
-// @sys page/water: fresh water on the map (VB-1550): the tile card's lines of a tile's source, the walk to the nearest and the well's band, and
+// @sys page/water: fresh water on the map (VB-1581): the tile card's lines of a tile's source, the walk to the nearest and the well's band, and
 // the Fresh water overlay: land coloured by the walk to fresh water, with a mark for the band of a well there
 // ---- fresh water: the tile card's lines and the overlay (world/water; design.md, Water by the site, What is shown) ----
 // What is read: w.fresh (a tile's source), w.freshWalk (hours on foot over pathless ground to the nearest source that is not marsh) and
@@ -43,13 +43,13 @@ function waterLines(i) {
   out.push(
     hours ? `A well here: ${BANDS[k].name}, ${hours[0]} to ${hours[1]} hours of digging` : 'No well can be dug here',
   );
-  // what a farm placed here would spend on its water each day (VB-1552): the leader's estimate, as its choice of site shows it
+  // what a farm placed here would spend on its water each day (VB-1583): the leader's estimate, as its choice of site shows it
   if (st && st.w === w && w.freshWalk) out.push(`A farm here: ${siteWaterWords(Sim.siteWater(st, i)).fetch}`);
   return out;
 }
 // A site's water in words, from the leader's estimate e (Sim.siteWater; design.md, Water by the site, In the leader's choice):
 // {source: the nearest good water and the walk there and back, or that none is in reach; fetch: the day's fetch in hours, as a share of
-// one hand's day, for how many people it is reckoned, by hand alone (VB-1573: who settles brings no hand cart), and where it is drawn;
+// one hand's day, for how many people it is reckoned, by hand alone (VB-1604: who settles brings no hand cart), and where it is drawn;
 // well: the band of a well there with its range of hours, or that none can be dug}. The site choice (VB-788, VB-1544) shows the
 // three; the tile card has the first and the last in its own lines, and adds the fetch, for one trip's people.
 function siteWaterWords(e) {

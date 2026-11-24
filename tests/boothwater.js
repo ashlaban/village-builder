@@ -1,4 +1,4 @@
-// VB-1570: water at a site (design.md, Water by the site, The thirsty pawn: a pawn working away drinks and fetches at the site's source in
+// VB-1601: water at a site (design.md, Water by the site, The thirsty pawn: a pawn working away drinks and fetches at the site's source in
 // the same way). On drawn maps (tests/lib/tiny.js): a booth's water is a job of the booth's own, posted each day at the booth's source
 // (found once) and walked by one who sleeps there, before its tasks; the day it is not in, those who sleep there end their day by their
 // own thirst; one of the booth that drinks at the source by the verb takes the booth's fetch from there; a lodger under the open sky goes
@@ -28,7 +28,7 @@ const to = (st, h) => Sim.advance(st, (((h - hourOf(st)) % DAY) + DAY) % DAY || 
 const W = 60,
   KEY = 'fell:away';
 // A village of two farms; a site 24 tiles of meadow east of the first farm's house (3 hours), with a brook 3 tiles beyond it unless
-// `dry`; the grown of the first household may lodge there (its children are aged, a test's write: one of 7 or over stays, VB-1571).
+// `dry`; the grown of the first household may lodge there (its children are aged, a test's write: one of 7 or over stays, VB-1602).
 function scene(dry = false) {
   const lay = (w) => tinyState(w, [{ at: [6, 4], farms: 2, sizes: [5, 4] }], { seed: 3 });
   const house = lay(tinyWorld(Array(9).fill('.'.repeat(W)), { seed: 3 })).farmsteads[0].house;

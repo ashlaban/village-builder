@@ -62,7 +62,7 @@ assert.ok(here.length >= dealers.length * 0.6, `${here.length} of ${dealers.leng
 assert.strictEqual(F.swapWhy(st, here[0], here[0], { good: 'grain', n: 1 }, { good: 'tar', n: 1 }) !== null, true);
 assert.deepStrictEqual(issues(st), []);
 
-// a swap offered to a played pawn that has not answered when the fair ends (VB-1567), on a copy of the run at the last day's close of
+// a swap offered to a played pawn that has not answered when the fair ends (VB-1598), on a copy of the run at the last day's close of
 // dealing: when the host's dealer unpacks its load at home that night the offer lapses with it, and no deal is counted
 {
   const c = Sim.load(st.w, JSON.parse(JSON.stringify(Sim.save(st))));

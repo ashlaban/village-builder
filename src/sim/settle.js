@@ -175,7 +175,7 @@ VB['sim/settle'] = (() => {
   // House sites within SETTLE.hours of village v's green along a trail (reach: reachOf(st, v)), on meadow or wood (read as the meadow it
   // becomes when grubbed: sim/crops clearable) nobody uses, at least SETTLE.centreApart hex steps from every village centre (VB-154), by
   // siteScore less SETTLE.perHour an hour and SETTLE.perFetch a daily hour of the site's fetch for the party's `people` (sim/water
-  // siteFetch: array reads; no site is refused for its water, VB-1552), best first: [tile, hours, score]; a third of the tiles are
+  // siteFetch: array reads; no site is refused for its water, VB-1583), best first: [tile, hours, score]; a third of the tiles are
   // tried, as for the generated lone farm.
   function candidates(st, v, use, reach, people = 1) {
     const w = st.w,
@@ -228,7 +228,7 @@ VB['sim/settle'] = (() => {
   const newSite = (st, v, use, cands) => bestSites(st, v, use, cands, 1)[0] || null;
   // The sites a played leader chooses among (design.md, Settling in steps, The played pawn): the best SETTLE.shown, best first, each
   // with its water as the leader's estimate for the party's `people` (sim/water siteWater: the source and the walk, the daily fetch
-  // and its share of a hand's day, the well's band with its hours; VB-1552).
+  // and its share of a hand's day, the well's band with its hours; VB-1583).
   const sites = (st, v, use, cands, people = 1) =>
     bestSites(st, v, use, cands, SETTLE.shown).map((s) => ({ ...s, water: siteWater(st, s.house, people, null) }));
   // The name of a village founded on tile `site` by p of village `home` (sim/names: by its founder or its mother village, as the site
@@ -285,7 +285,7 @@ VB['sim/settle'] = (() => {
     f.condAt = st.t;
     f.emptySince = null;
     f.booth = true; // the household lives in a booth until its cottage has its roof (sim/expansion's roofOn)
-    siteWell(st, f, v, party.all.length); // a site chosen for the well it means to dig: dug with the booth and the clearing (VB-1556)
+    siteWell(st, f, v, party.all.length); // a site chosen for the well it means to dig: dug with the booth and the clearing (VB-1587)
     st.farmsteads.push(f);
     v.farmsteads.push(f.id);
     costChanged(st, house); // routes go round the house from now on

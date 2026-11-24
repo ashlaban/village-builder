@@ -1,4 +1,4 @@
-// @sys page/kindicons: the icons of the acts and the job kinds (VB-341, VB-1558): the action bar's groups and rows and a kind's tool, in line and in stencil
+// @sys page/kindicons: the icons of the acts and the job kinds (VB-341, VB-1589): the action bar's groups and rows and a kind's tool, in line and in stencil
 // The action bar (VB-341), 24 by 24 as drawn for the mock-up (docs/mockups/action-menu.html): its groups, its rows, and a job kind's tool.
 const ACT_PATHS = {
   me: '<circle cx="12" cy="6" r="3"/><path d="M6 21c0-5 2.5-9 6-9s6 4 6 9z"/>',

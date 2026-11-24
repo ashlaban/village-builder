@@ -1,7 +1,7 @@
 // @sys sim/building: the cottage's stages as job kinds, and what building takes (VB-328): timber felled in the village's wood and carried to
 // every site that lacks it, one rule over the sites their modules name (VB-1407), and the plot's wood shared out when the plot is given;
 // raising a house onto a stone foundation, with stone picked or quarried for it (VB-332); a booth, staked as its maker's project plan and
-// raised (VB-784, VB-1172), standing until it rots, its water fetched each day by one who sleeps in it (VB-1570)
+// raised (VB-784, VB-1172), standing until it rots, its water fetched each day by one who sleeps in it (VB-1601)
 VB['sim/building'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
@@ -241,7 +241,7 @@ VB['sim/building'] = (() => {
     emit(st, 'boothRaised', b);
     st.visualDirty = true;
   }
-  // ---- a booth's water (VB-1570; design.md, Water by the site, The thirsty pawn: a pawn working away drinks and fetches at the site's
+  // ---- a booth's water (VB-1601; design.md, Water by the site, The thirsty pawn: a pawn working away drinks and fetches at the site's
   // source in the same way): walked for as a farm's is, by those who sleep in it ----
   // @state booth.water: absent until the booth's fetch is first asked for, then {tile, cls, walk}: where its water is drawn, found once
   //   by one search outward from its tile (sim/water source: the nearest source its household may draw at; tile -1 with none in reach);
@@ -338,8 +338,8 @@ VB['sim/building'] = (() => {
   // land project under way when the step would open (a household makes its land first); its source kept while a load can still be got there.
   // It is also open, whatever the house and the land, while the household wants a quern and its heap lacks the load to hew it from (VB-009);
   // then its source is one that gives such a load, and a quarry of another rock is searched again (VB-733). And while its head means to
-  // dig a well and the heap lacks the lining's stone (sim/wells, VB-1553): in a booth too, where the site was chosen for its well
-  // (farmstead.wellMeant, VB-1556), and then for that stone alone.
+  // dig a well and the heap lacks the lining's stone (sim/wells, VB-1584): in a booth too, where the site was chosen for its well
+  // (farmstead.wellMeant, VB-1587), and then for that stone alone.
   function buildStep(st, plan, hh) {
     const f = hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null,
       old = plan.build || null,
@@ -366,9 +366,9 @@ VB['sim/building'] = (() => {
     const plan = st.plans.households.get(hh.id),
       step = plan && plan.build;
     if (!step || f.household !== hh.id) return;
-    const well = stoneLacking(st, hh, f) > 0; // the lining's stone for the well its head means to dig (VB-1553), a trip at a time
+    const well = stoneLacking(st, hh, f) > 0; // the lining's stone for the well its head means to dig (VB-1584), a trip at a time
     if (f.booth) {
-      // a booth's household gathers no stone but its site's well's (VB-1556): its cottage is laid on the ground
+      // a booth's household gathers no stone but its site's well's (VB-1587): its cottage is laid on the ground
       if (well && step.tile >= 0) post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
       return;
     }
@@ -396,7 +396,7 @@ VB['sim/building'] = (() => {
       st.biomeDirty.add(j.site);
     }
     Stores.put(st, hh, 'stone/' + (j.kind === 'quarry' ? rockAt(st.w, j.site) : 'granite'), 1, j.kind);
-    stoneIn(st, hh); // a site's well is begun with the last load of its lining (sim/wells, VB-1556)
+    stoneIn(st, hh); // a site's well is begun with the last load of its lining (sim/wells, VB-1587)
   }
   // The house raised: the foundation's stone off the heap, and the house on stone from now (its condition carried over at this hour, so the
   // closed form wears it at the stone's rate from here).
@@ -559,7 +559,7 @@ VB['sim/building'] = (() => {
       done: finishBooth,
       available: stakedWork,
     },
-    // A booth's water (VB-1570): drawn at the booth's source and carried to its tile, the farm's fetch for those who sleep away; a job
+    // A booth's water (VB-1601): drawn at the booth's source and carried to its tile, the farm's fetch for those who sleep away; a job
     // of the booth's own, lived by, so the end of work does not take it from a hand on its way
     boothwater: {
       verb: 'Drawing water',

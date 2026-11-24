@@ -50,7 +50,7 @@ VB['sim/byhand'] = (() => {
     if (!v) return false;
     v.center = tile;
     v.green = true;
-    v.well = tile; // the well's tile (VB-1553)
+    v.well = tile; // the well's tile (VB-1584)
     used.add(tile);
     for (let k = 0; k < 6; k++) {
       const j = w.nb[tile * 6 + k];

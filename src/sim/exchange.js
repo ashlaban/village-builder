@@ -223,7 +223,7 @@ VB['sim/exchange'] = (() => {
   // yes lapses (VB-861: the verb deliver refuses it); from kin beyond a day's walk by land it is carried by one of the giver's own, a
   // back-load at most (VB-291), and with no one free to go the yes lapses. The worth is booked as goodwill, as a gift's.
   // The youngest adult of 14 to 59 of household hh who is not on the road (VB-291), or -1: the one who carries a far gift; never the
-  // last one at home with a child under 7 (VB-1571: sim/records mindsWhy)
+  // last one at home with a child under 7 (VB-1602: sim/records mindsWhy)
   function carrierOf(st, hh) {
     let best = -1;
     for (const id of hh.members) {

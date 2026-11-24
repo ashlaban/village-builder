@@ -1,4 +1,4 @@
-// VB-1554: the thirsty pawn. On drawn maps (tests/lib/tiny.js): a pawn's thirst is read from the hour it last drank (pawn.drank) and a
+// VB-1585: the thirsty pawn. On drawn maps (tests/lib/tiny.js): a pawn's thirst is read from the hour it last drank (pawn.drank) and a
 // save without it loads as having drunk; the dry day's health is the pawn's own (who drank at a source loses none, who did not loses
 // HEALTH.dry; marsh water drunk costs HEALTH.marsh); a pawn mowing, 36 hours without a drink and its household's water not in, leaves the
 // mowing, drinks at the farm's source and brings the water home, and the log names the event, the pawn and the place; a pawn with no
@@ -57,7 +57,7 @@ const farmBy = (steps, size, opt = {}) => {
   check(Thirst.thirsty(st, p) && /Thirsty/.test(Sim.thirstLine(st, p.id)), `the panel says thirsty at 30 hours (${Sim.thirstLine(st, p.id)})`);
   p.drank = st.t - 40; // a test's write
   check(/Parched/.test(Sim.thirstLine(st, p.id)), 'and parched from 36');
-  for (const q of st.pawns) delete q.drank; // a save from before VB-1554
+  for (const q of st.pawns) delete q.drank; // a save from before VB-1585
   const again = Sim.load(tinyWorld(meadow(30, 13)), JSON.parse(JSON.stringify(Sim.save(st))));
   check(
     again.pawns.every((q) => q.drank === again.t) && Sim.thirstLine(again, p.id) === null,

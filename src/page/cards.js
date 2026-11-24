@@ -228,7 +228,7 @@ const toolsStat = (hh) => {
     meter: { value: hh.tools * 100 },
   };
 };
-// The day's water (VB-1551): the household's fetch as it is made (VB-1573: the trips by hand and with its cart for its people at
+// The day's water (VB-1582): the household's fetch as it is made (VB-1604: the trips by hand and with its cart for its people at
 // home, and their hours together; by hand alone in brackets where the cart is the cheaper), from the farm's source; none where no
 // source is in reach, and why.
 const tripWords = (n, how) => `${n} ${n === 1 ? 'trip' : 'trips'} ${how}`;

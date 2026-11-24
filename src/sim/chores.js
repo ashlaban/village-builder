@@ -36,7 +36,7 @@ VB['sim/chores'] = (() => {
     Stores.aleOf(st, hh) < target(st, hh, 'ale') && Stores.grainOf(hh) - floorOf(st, hh) >= BREW.grain;
   // Gathering: from summer day FORAGE.from + 1 to the end of autumn.
   const gathering = (c) => (c.season === 1 && c.sday >= FORAGE.from) || c.season === 2;
-  // ---- the day's water, which grows with the household (VB-1555; design.md, Water by the site, The fetch grows with the household) ----
+  // ---- the day's water, which grows with the household (VB-1586; design.md, Water by the site, The fetch grows with the household) ----
   // @state household.waterFor: absent until the household's first load is brought (its first day counts as fetched, for all), then
   //   the people the loads of day `waterDay` cover: WATER.hand a trip by hand, WATER.child a child's, WATER.cart a cart's barrel. The
   //   day's water does not keep: the first load of a day begins the count anew (sim/chores, the water's deliver; sim/hunger reads it)
@@ -46,7 +46,7 @@ VB['sim/chores'] = (() => {
   // What a trip under way brings: its hand's load (`cover`, set as it sets out).
   const coverOf = (j) => j.cover ?? WATER.hand;
   // The head's choice (Above the first): for `need` people still without water a cart of `kind` is the cheaper in hours than the trips
-  // by hand its barrel saves; never for those one trip by hand covers. The reckoning is sim/water's (dayFetch, VB-1573): the trip is
+  // by hand its barrel saves; never for those one trip by hand covers. The reckoning is sim/water's (dayFetch, VB-1604): the trip is
   // the cart's when the day's fetch of those people would begin with one.
   const cartPays = (walk, need, kind) => need > WATER.hand && Water.dayFetch(walk, need, kind).cart > 0;
   // The cart a barrel would go on now: a free hand cart, the faster with the same barrel, else the ox cart if its team is free
@@ -126,7 +126,7 @@ VB['sim/chores'] = (() => {
       gives: ['water'],
       label: 'Water',
       anim: 'draw',
-      hours: Water.WATER.draw, // the drawing; the walk out and the walk home laden are walked (VB-1551)
+      hours: Water.WATER.draw, // the drawing; the walk out and the walk home laden are walked (VB-1582)
       hands: 1,
       type: 'household',
       carry: 'buckets',
@@ -134,7 +134,7 @@ VB['sim/chores'] = (() => {
       window: { from: WORK[0] - 1 },
       vital: true, // a dry day costs the meal's cooking and health (VB-331): a fetch begun is finished after work (VB-1547)
       evening: true, // and one not yet begun may be, until MATCH.day.evening (Kim, 23 November: water after dark)
-      first: true, // water first: it heads the list of the member best fit for it at the allotment (VB-1551)
+      first: true, // water first: it heads the list of the member best fit for it at the allotment (VB-1582)
       // the hours of the trip besides the drawing, which the head counts in its hand's day: the walk out and home laden
       trip: (st, j) => {
         const s = j.farm.water;
@@ -181,9 +181,9 @@ VB['sim/chores'] = (() => {
       // from the afternoon (14:00), the cook's hour, above cooking's (VB-331): the hand that would cook fetches the water first
       urgency: (st, j, c, U) =>
         c.hour >= AFTERNOON ? U.waterLate : c.hour < U.waterMorningHour ? U.waterMorning : U.water,
-      // a load is in, and the day's water with the first, for the people it covers (VB-1555: the household cooks once the first load
-      // is in); marsh water is poor, and costs those it covers some health that day (sim/hunger; VB-1551); who drew it drank at the
-      // source (sim/thirst, VB-1554)
+      // a load is in, and the day's water with the first, for the people it covers (VB-1586: the household cooks once the first load
+      // is in); marsh water is poor, and costs those it covers some health that day (sim/hunger; VB-1582); who drew it drank at the
+      // source (sim/thirst, VB-1585)
       deliver: (st, j, hh, f, a) => {
         const day = cal(st.t).day;
         // (a day counted as fetched with no load brought, the household's first, has water for all: the count stays absent)
@@ -195,7 +195,7 @@ VB['sim/chores'] = (() => {
       },
       // once a day, from the hour before work until the evening's (VB-1547: the due-queue's last ask, at the end of work, leaves it
       // standing for the evening), at the farm's source (sim/water: the nearest source or well its household may draw at; found on the
-      // farm's first morning); a farm with no source in reach posts none (VB-1551). The trips its people at home need (VB-1555),
+      // farm's first morning); a farm with no source in reach posts none (VB-1582). The trips its people at home need (VB-1586),
       // each a job of its own: those under way stand; for whom they and the day's loads do not cover, a cart's trip where the
       // household's free cart is the cheaper, and trips by hand for the rest (the head's reckoning: who sets out decides, setOut).
       // Cost: a household that has its water is one comparison; else its members and its jobs, once an ask.

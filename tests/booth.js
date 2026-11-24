@@ -171,7 +171,7 @@ assert.ok(
   const h2 = s2.households[0],
     f2 = s2.farmsteads[h2.farmstead];
   Stores.put(s2, h2, 'grain', 400, 'harvest', { barley: 400 });
-  // a test's write: no child under 7 in the house, so that the last adult at home may lodge too (VB-1571)
+  // a test's write: no child under 7 in the house, so that the last adult at home may lodge too (VB-1602)
   for (const m of h2.members) if (s2.pawns[m].age < 7) s2.pawns[m].born -= 7 * VB['sim/rules'].YEAR;
   const [p1, p2] = h2.members.filter((m) => s2.pawns[m].age >= 14 && s2.pawns[m].age < 60);
   const row = Math.floor(f2.house / s2.w.COLS),
