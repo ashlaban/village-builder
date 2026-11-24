@@ -10,7 +10,7 @@ VB['sim/plannext'] = (() => {
   const Fieldwork = VB['sim/fieldwork'],
     Meadows = VB['sim/meadows'],
     Chores = VB['sim/chores']; // VB-1624: the rules HOLDS reads
-  const { lacks } = VB['sim/projects'];
+  const { lacks, ownOf } = VB['sim/projects'];
   const workCmd = (id, key) => ({ actor: id, verb: 'work', target: key, args: null, source: 'player' });
   // ---- why a task waits (VB-1623): the one closed list of reasons, each plain data for the page (planView's `waits` and `idle`) ----
   // hand: a command queued by hand goes first (its verb, target and the game hour it was begun, null before); before: an earlier task (i,
@@ -31,7 +31,8 @@ VB['sim/plannext'] = (() => {
   // hands: a field beyond what its hands till (sim/fieldwork beyondHands, the plan's targets.workable); sowing: its sowing refused
   // (sim/fieldwork sowWhy: the seed, the thaw); hay: no hay wanted (sim/meadows hayWanted); timber: no timber home to cut; woodpile: the
   // pile at the season's goal (sim/chores, the firewood job's rule); booth: the booth's timber not all fetched to its tile; wood: no wood
-  // to fetch the booth's (or an outbuilding's) timber from; stone: no stone in reach for the foundation (VB-1635); review: none of those,
+  // to fetch the booth's (or an outbuilding's) timber from; stone: no stone in reach for the foundation, project: its step not opened while
+  // a project is under way (VB-1635); review: none of those,
   // the job posted at the household's next review.
   const HOLDS = {
     hands: (cap, tile) =>
@@ -43,6 +44,7 @@ VB['sim/plannext'] = (() => {
     booth: () => "the booth's timber is not all fetched",
     wood: (what = 'booth') => `there is no wood to fetch the ${what}'s timber from`,
     stone: () => 'there is no stone to pick or quarry within reach of the house', // VB-1635: the foundation's
+    project: (what) => `the household has a ${what} under way: its land and buildings go one at a time`,
 
     review: () => "posted at the household's next review",
   };
@@ -71,6 +73,7 @@ VB['sim/plannext'] = (() => {
       if (y.kind === 'timber' && !(st.w.trees[where.staked.tile] > 0) && !v.wood.length) return held('wood');
     }
     // VB-1635: the foundation's stone with no source in reach; an outbuilding's timber with no wood to fell it in
+    if (name === 'foundation' && !where.step && ownOf(st, hid)) return held('project', ownOf(st, hid).what);
     if (name === 'foundation' && y.kind !== 'raise' && where.step && where.step.tile < 0) return held('stone');
     if (name === 'outbuilding' && y.kind === 'timber' && !st.villages[where.f.village].wood.length)
       return held('wood', where.what);
