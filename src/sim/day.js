@@ -49,7 +49,8 @@ VB['sim/day'] = (() => {
   //   {pawn id: hours}: the working hours of the horizon the head gave each member no task in (VB-470: what it may lend). Written by
   //   allot, whole, and by slotIn, a task put into the lists as they stand; a key whose job is gone is passed over; edited: absent, or
   //   {t (the game hour), by (the actor)} of the head's last change by its verbs dayOrder, dayGive and dayCall (VB-477), which stands
-  //   until the day is next allotted (allot writes the day whole, without it). Plain data, saved with the plan.
+  //   until the day is next allotted (allot writes the day whole, without it); off: absent, or the ids of the members the head called off
+  //   (dayCall), given and taking no task until the day is next allotted. Plain data, saved with the plan.
   // A member's working hours of the horizon, by the clock; what it does in them at a task is the head's belief of its rate there (VB-476).
   const dayHours = () => MATCH.day.horizon * (WORK[1] - WORK[0]);
   const hoursLeft = (st, j) => (j.hours ?? KINDS[j.kind].hours ?? 0) - doneOf(st, j);
@@ -244,7 +245,8 @@ VB['sim/day'] = (() => {
         fit = day.fits[id],
         hrs = day.hours[id];
       if (!list || !fit || !hrs || fit.length !== list.length || hrs.length !== list.length) return false;
-      if (allotted(st, p)) {
+      // one the head called off (dayCall) is given nothing until the day is next allotted
+      if (allotted(st, p) && !(day.off && day.off.includes(id))) {
         if (!(id in day.free)) return false;
         members.push(p);
       }
@@ -371,6 +373,7 @@ VB['sim/day'] = (() => {
             n = lists[pid] ? lists[pid].indexOf(j.key) : -1,
             i = n < 0 ? Number.MAX_SAFE_INTEGER : n;
           if (i >= at || p.died !== null || a.job || a.occasion !== null || travelling(a)) continue;
+          if (plan.day.off && plan.day.off.includes(pid)) continue; // called off (dayCall)
           if (allotted(st, p) && eligible(st, j, p)) [best, at] = [a, i];
         }
         if (best) issue(st, workCommand(best.id, j.key, 'planner'));
@@ -407,7 +410,7 @@ VB['sim/day'] = (() => {
         continue;
       }
       const list = plan.day.lists[a.id];
-      if (!list) continue;
+      if (!list || (plan.day.off && plan.day.off.includes(a.id))) continue;
       for (const key of list) {
         VB.count.dayTake++;
         const j = st.jobs.get(key);
@@ -530,7 +533,7 @@ VB['sim/day'] = (() => {
       edited(st, day, c);
     },
   });
-  // dayCall({member}): the member is called off: its list is emptied for the rest of the day, its hours given back (free), and it lets its
+  // dayCall({member}): the member is called off: its list is emptied and it is off (plan.day.off) until the day is next allotted, and it lets its
   // task go and walks home (the verb goHome: a load in hand is put down where it stands, sim/agents release). The cost, its walk home and
   // the load it leaves, is the timetable's callCost (sim/timetable), named before the call. Refused for one on the road or away.
   register('dayCall', {
@@ -546,12 +549,13 @@ VB['sim/day'] = (() => {
     run: (st, c) => {
       const plan = planOf(st, 'household', c.target),
         day = plan.day,
-        id = c.args.member,
-        back = (day.hours ? day.hours[id] : []).reduce((x, h) => x + h, 0);
+        id = c.args.member;
       day.lists[id] = [];
       if (day.fits) day.fits[id] = [];
       if (day.hours) day.hours[id] = [];
-      if (day.free && id in day.free) day.free[id] += back;
+      // off for the rest of the day: no task slotted in, none taken, none in the evening, its hours not lent (free 0)
+      if (day.free && id in day.free) day.free[id] = 0;
+      day.off = (day.off || []).filter((x) => x !== id).concat(id);
       edited(st, day, c);
       const ag = st.agents[id];
       if (ag.job || !ag.inside) issue(st, { actor: id, verb: 'goHome', source: c.source });

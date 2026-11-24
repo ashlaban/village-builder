@@ -5,7 +5,7 @@
 // Principle (AGENTS.md, Deciding without Kim, 14): what is shown of the future is some pawn's estimate (sim/estimate).
 VB['sim/timetable'] = (() => {
   const { SPEED } = VB['sim/rules'];
-  const { route, routeCost } = VB['sim/routes'];
+  const { findRoute, routeCost } = VB['sim/routes'];
   const { placeOf, tileAt } = VB['sim/pose'];
   const { KINDS } = VB['sim/kinds'];
   const { attentionOf, doneOf } = VB['sim/work'];
@@ -15,8 +15,17 @@ VB['sim/timetable'] = (() => {
   const { winterNeed } = VB['sim/herds'];
   const { fullName } = VB['sim/records'];
   // The walking hours between two tiles by the route a pawn would take; every judgement reckons with the walk.
-  const walkHours = (st, from, to) =>
-    from === to || from < 0 || to < 0 ? 0 : routeCost(st.w, route(st, from, to)) / SPEED;
+  // A view writes nothing (VB-477 review, F1): a route the cache holds, either way, is read; else one is searched and not kept, so that
+  // looking at the page never changes the saved cache, nor what its bound would evict. None found: the walk's own fallback.
+  function walkHours(st, from, to) {
+    if (from === to || from < 0 || to < 0) return 0;
+    const N = st.w.N,
+      back = st.pathCache.get(to * N + from),
+      p = st.pathCache.get(from * N + to) ||
+        (back && back[0] === to ? back.slice().reverse() : null) ||
+        findRoute(st.w, from, to) || [to]; // none found: as the walk's own fallback
+    return routeCost(st.w, p) / SPEED;
+  }
   // The tile pawn id stands on, or works at.
   function tileOf(st, id) {
     const a = st.agents[id];

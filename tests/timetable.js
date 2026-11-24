@@ -44,6 +44,18 @@ const head = hh.holder, [m1, m2] = hh.members.filter((m) => dayOf(hh.id).lists[m
   assert.deepStrictEqual(O.members.map((r) => r.entries.map((e) => e.key)), T.members.map((r) => r.entries.map((e) => e.key)), 'the same lists');
 }
 
+// 1b. The view writes no saved state (review F1): the route cache stays as it was, and the save is the same, after the timetable and the
+// costs are read for every member of every household.
+{
+  const before = JSON.stringify(Sim.save(st)), keys = [...st.pathCache.keys()].join();
+  for (const h of st.households) if (!h.dissolved) {
+    Sim.timetable(st, h);
+    for (const m of h.members) if (st.pawns[m].died === null) { Sim.callCost(st, m); if (Sim.taskLeft) Sim.taskLeft(st, m); }
+  }
+  assert.strictEqual([...st.pathCache.keys()].join(), keys, 'the route cache is not written by a view');
+  assert.strictEqual(JSON.stringify(Sim.save(st)), before, 'the save is the same after the view');
+}
+
 // 2. The verbs: only the head changes the day; each refuses with its reason and changes nothing.
 {
   const before = canon(dayOf(hh.id));
@@ -102,6 +114,11 @@ const head = hh.holder, [m1, m2] = hh.members.filter((m) => dayOf(hh.id).lists[m
   assert.strictEqual(st.agents[m].job, null, 'it lets its task go');
   assert.ok(st.agents[m].inside || st.agents[m].path, 'it is home, or on its way');
   checkState(st);
+  // a task posted now is not slotted to the member called off (review F2), and it takes none of its old ones
+  const anyKey = Object.values(d.lists).flat().find((k) => st.jobs.get(k));
+  if (anyKey) VB['sim/day'].slotIn(st, hh, st.jobs.get(anyKey), Sim.cal(st.t));
+  assert.deepStrictEqual(d.lists[m], [], 'nothing slotted to one called off');
+  assert.ok(d.off.includes(m), 'it is off until the day is next allotted');
   // the call stands until the day is next allotted: the member takes no task from it meanwhile
   Sim.advance(st, 0.5);
   if (dayOf(hh.id).edited) assert.deepStrictEqual(dayOf(hh.id).lists[m], [], 'no task given back before the next allotment');
