@@ -44,7 +44,7 @@ assert(!own.tiles.includes(B1.house), 'village A, owns: not the house of B1');
 const was = st.pawns[lars].role;
 assert.strictEqual(was, 'farmer', 'Lars, the holder, is its farmer');
 st.pawns[lars].role = 'son';
-assert(G.check(st).some((l) => l.startsWith(`pawns[${lars}].role`)), 'a holder whose role is son contradicts his holder edge');
+assert(G.check(st).some((l) => l.startsWith(`pawns[${lars}]: role cache`)), 'a holder whose role is son contradicts his holder edge');
 st.pawns[lars].role = was;
 // a year on: moves, births, deaths and handovers each write their edges with the caches
 st.naturalDeaths = true;

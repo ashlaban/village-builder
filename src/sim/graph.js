@@ -254,7 +254,7 @@ VB['sim/graph'] = (() => {
       if (p.died === null) {
         if (liveFrom(st, 'family', p.id).length !== 1) bad.push(`pawns[${p.id}]: not one live family edge`);
         const r = roleOf(st, p);
-        if (r !== null && r !== p.role) bad.push(`pawns[${p.id}].role ${p.role}, the edges ${r}`);
+        if (r !== null && r !== p.role) bad.push(`pawns[${p.id}]: role cache ${p.role}, the edges ${r}`);
       }
     }
     for (const hh of st.households) {

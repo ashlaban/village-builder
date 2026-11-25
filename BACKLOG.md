@@ -144,6 +144,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1695](backlog/VB-1695.md)<a id="VB-1695"></a> | Review: dead bands weighed against the cost of undoing | - | 3 | S | Each slack parameter re-examined: the chooser weighs the real cost of reversing first, and the slack is kept only for what remains |
 | [VB-1696](backlog/VB-1696.md)<a id="VB-1696"></a> | A stake names its store: title to grain where it lies | - | 3 | M | A pawn's stake becomes title to grain in a named store, which stays there when the pawn moves and passes at once when it dies |
 | [VB-1697](backlog/VB-1697.md)<a id="VB-1697"></a> | A dead-out household's remaining goods pass with the farm | - | 3 | M | Stone, flour, peat, tar, hides, salt, iron, clay, ore and the rack stay at the farmstead as the estate's and pass with the farm to whoever takes it |
+| [VB-1698](backlog/VB-1698.md)<a id="VB-1698"></a> | The membership graph: fold the dead's ended edges into the record | debt | 3 | S | Bound the graph's history in saves (rule 9) |
 
 </details>
 
