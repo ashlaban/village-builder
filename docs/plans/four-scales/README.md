@@ -415,6 +415,8 @@ with three conditions the mocks showed are needed:
   check reserves their expected hours of each day; without this an authored week crowds out the cooking.
 - *An authored step carries `by`.* When the planner's estimate says it will not be done by then, the step is at risk: a decision
   point for its author; unanswered by its deadline, the default author takes it over (adds hands, moves it), and says so on the card.
+  A controller may mark a step `kept` ("keep my order", Kim, 25 November): the default author then never takes it over, at whatever
+  cost; the card warns of the risk while it lasts.
 - *A step whose holder cannot work returns to the pool at once.*
 
 ### 3.5 Replanning
@@ -565,24 +567,30 @@ call by outer levies (obligation records worked by `sim/levies`, which takes ove
 
 ### 3.10 The path
 
-| Step | What | Unplayed behaviour | Shown by |
-| --- | --- | --- | --- |
-| 1 | Repairs: the review's option A (VB-1597, the `askFor` and `voice` skips, `wish` and `propose` as verbs) | unchanged | tests |
-| 2 | A controller per pawn: `auto` and `queue` on the pawn; `st.player` the frame | unchanged | `tools/same.js`; the inhabited-pawn test for any pawn |
-| 3 | The good is made where the work is done, for the ten kinds; piles or containers for the six with no store | **changes, slightly** | before and after on the PR; Kim decides whether it wants a run |
-| 4 | The task as a plan: the wood first, then the carrying kinds, then all; VB-1548 falls out | unchanged but for the exits repaired | `tools/same.js` up to the exits; a fuzz test kept in `tests/` |
-| 5 | One plan record with authors; the default author writes what the rules post; the rules stop reading who is played; the player's chains become goals | unchanged; the played path changes | `tools/same.js` |
-| 6 | Outer levies as obligation records with terms: `sim/days` becomes `sim/levies`; work days, hands lent and leave join it; the terms set to what happens today (the levier names, the calendar's days) | unchanged | `tools/same.js` |
-| 7 | Verbs for the ten unreachable acts, each issued by a default author that does what its rule does today | unchanged | `tests/commands.js`: no act reachable only through `Sim` |
-| 8 | **The household's levy**: the custom's table by season (one row for every adult member); the allotment's capacity is the levy; the six parts booked; giving by diligence; grant, ask, demand and take with their consequences; the strip in its colours | **changes: every balance number** | **a measurement Kim starts**; the invariant that the parts sum to `H`; a design pass on section 7 (The day's work, Own time, A member's voice) |
-| 9 | Partial repair: every arrival slotted in; a lost holder's tasks to the pool | **changes** | **a measurement Kim starts** |
-| 10 | Duties and dated steps; further hands by the window | **changes** | **a measurement Kim starts** |
-| 11 | The village's year: the levied names the day; the ladder; breach by judgement; the custom of lots | **changes** | **a measurement Kim starts**; a design pass on section 9, Days owed and Remedies |
-| 12 | Own hours as a livelihood: aims, personal goods, skill that grows (slice 8) | **changes** | slice 8's plan |
+Kim, 25 November: behaviour need not be preserved. A step is free to change any balance number; what it must pass is **the gate**:
 
-Steps 1, 2 and 4 to 7 can go ahead on agents' decisions. Step 8 is the levy as Kim decided it: realistic from the first build, so
-it cannot be had as bookkeeping first, and it revises Decided rows of `design.md` section 7. Steps 9 to 11 revise further rows of
-sections 7 and 9; each needs its design pass. Where step 8 stands among 9 to 11 is question 11.
+- *no crash and no invariant broken*: `npm run verify` and the nightly tier green (a test that asserts the old behaviour is updated on
+  purpose, never skipped or quarantined); no stuck pawn; no good lost or made from nothing (the stocks' accounts close);
+- *no village dies out*: `founders` and `populous`, seeds 7, 11 and 42, 10 years: no settlement extinct by hunger, and no collapse of
+  its people.
+
+Hunger and cost are reported before and after on each step's PR, but they are not the gate; the targets they move are Kim's to reset.
+`tools/same.js` is no longer required of any step. In order of dependency and of the risk that a step breaks the gate:
+
+| # | Step | Why here |
+| --- | --- | --- |
+| 1 | Repairs: the review's option A (VB-1597, the `askFor` and `voice` skips, `wish` and `propose` as verbs) | small, independent |
+| 2 | A controller per pawn: `auto`, `queue` and the authored list on the pawn; `st.player` the frame | the substrate of parity for every later step |
+| 3 | The task as a plan, with the good made where the work is done (the ten kinds; piles or containers for the six with no store; a trip's yield accrues with the work); VB-1548 falls out | Q7 is a precondition of the carrying kinds; a fuzz test kept in `tests/` |
+| 4 | One plan record with authors (`kept` steps included); the rules stop reading who is played; the player's chains become goals; verbs for the ten unreachable acts, each with its default author | the hierarchy itself; `tests/commands.js`: no act reachable only through `Sim` |
+| 5 | Partial repair: every arrival slotted in; a lost holder's tasks to the pool | lets the allotment absorb a shock before the levy takes hours away |
+| 6 | **The household's levy**: the custom's table by season (one row for every adult member); the allotment's capacity is the levy; the six parts booked; giving by diligence; grant, ask, demand and take, with goodwill as their cost; the strip in its colours | the core, and the step most likely to starve a village: the invariant that the parts sum to `H`; a design pass on section 7 (The day's work, Own time, A member's voice) |
+| 7 | Outer levies as obligation records with their new terms, built directly (`sim/days` becomes `sim/levies`): the levied names the day where the terms say so; the ladder; breach by judgement; the custom of lots; an estate's levy on top | a design pass on section 9, Days owed and Remedies |
+| 8 | Duties and dated steps; further hands by the window | the weakest evidence; last |
+| 9 | Own hours as a livelihood: aims, personal goods, skill that grows | slice 8's plan |
+
+Mocks may still settle a question before a step is built (and may wrap a module's function in their own process, question 12), but a
+branch with the real change, judged by the gate, is preferred.
 
 ---
 
@@ -679,6 +687,8 @@ process (never editing a file) can run the real allotment with one rule changed,
     simulation without a change to `src/`? Proposed: yes. *Why:* it removes the weakest link of the first round's evidence, and the
     levy's effect on households (Q8) can hardly be judged otherwise.
 
+*Questions 7 to 12 are answered (section 6, points 16 to 19).*
+
 **New, raised by taking the answers in** (none is decided by the text above; where 3.3 had to assume one, it says so here):
 
 *Questions 13 to 20 are answered (section 6, points 10, 11 and 13).*
@@ -756,4 +766,13 @@ Given in discussion after v2. Taken into sections 1 and 3 on 25 November.
     cases of `design.md`, Loans, obligations and cases) without elaborating them.
 15. **The working day's length does not vary by season.** The levy's load over the year is the mechanic.
 
-Questions 7 to 12 are open.
+16. **The good is made where the work is done** (question 7): yes. **A trip's yield accrues with the work** (question 8): a cut
+    fishing, hunting or gathering trip brings home what it has; only the hours not yet yielding are lost.
+17. **The default author takes back an authored step at risk** after its deadline, and says so (question 9); a controller may mark a
+    step "keep my order", and the default author then leaves it, the card warning of the risk.
+18. **Any holder may propose a routine to the meeting** (question 10); the decision stays the meeting's.
+19. **Behaviour need not be preserved; only catastrophic failure is ruled out** (questions 11 and 12). The gate of every step: no crash
+    or invariant broken, and no village dying out (`founders` and `populous`, three seeds, ten years). The order of the build is
+    section 3.10's. Mocks are allowed and may wrap a module's function, but a branch with the real change is preferred.
+
+All questions of section 5 are answered.
