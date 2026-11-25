@@ -259,6 +259,7 @@ const INTEGRATION = [
   ['node', 'tests/hunger.js'],
   ['node', 'tests/heirs.js'],
   ['node', 'tests/graph.js'], // VB-043: the membership graph agrees with the household caches; scopes on it
+  ['node', 'tests/landscope.js'], // VB-044: the Land overlay's filter takes its scope from sim/scopes
   ['node', 'tests/guardian.js'],
   ['node', 'tests/kinship.js'],
   ['node', 'tests/kinlimit.js'],
