@@ -222,8 +222,23 @@ VB['sim/graph'] = (() => {
     }
     return { household, servant, servedSince, members };
   }
+  // The role cache (pawn.role) as the edges say it, where they settle it: the holder of the household it lives in is its farmer, the spouse
+  // of that holder its wife (or farmer), one in service its farmhand or maid (unless a child or retired, which age and retirement say);
+  // null where the edges leave it to age (child, son, daughter) or retirement.
+  function roleOf(st, p) {
+    const hh = p.household;
+    if (hh === null || st.households[hh].dissolved) return null;
+    const holder = liveTo(st, 'holder', hh).map((k) => st.edges[k].from)[0];
+    if (holder === p.id) return 'farmer';
+    if (holder !== undefined && liveFrom(st, 'spouse', p.id).some((k) => st.edges[k].to === holder))
+      return p.sex === 'f' ? 'wife' : 'farmer';
+    if (p.role === 'farmer' || p.role === 'wife') return '(neither holder nor its spouse)';
+    if (p.role === 'child' || p.role === 'retired') return null;
+    return liveFrom(st, 'service', p.id).length ? (p.sex === 'm' ? 'farmhand' : 'maid') : null;
+  }
   // What in the caches the edges do not say, as lines (empty: they agree): the household caches, each live household's holder and village,
-  // each farm's line, each open union, each living pawn's one family, each village's culture and alderman (tests/lib/invariants.js).
+  // each farm's line, each open union, each living pawn's one family and the role its edges settle, each village's culture and alderman
+  // (tests/lib/invariants.js).
   function check(st) {
     if (!st.edges) return [];
     const bad = [],
@@ -238,6 +253,8 @@ VB['sim/graph'] = (() => {
         bad.push(`pawns[${p.id}].servedSince ${p.servedSince}, the edges ${d.servedSince[p.id]}`);
       if (p.died === null) {
         if (liveFrom(st, 'family', p.id).length !== 1) bad.push(`pawns[${p.id}]: not one live family edge`);
+        const r = roleOf(st, p);
+        if (r !== null && r !== p.role) bad.push(`pawns[${p.id}].role ${p.role}, the edges ${r}`);
       }
     }
     for (const hh of st.households) {

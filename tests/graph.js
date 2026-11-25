@@ -33,6 +33,19 @@ assert(desc.size > 3, 'Lars has descendants');
 const kin = S.inScope(st, { level: 'family', ids: [lars], dim: 'kin' });
 assert.deepStrictEqual(kin.pawns, [...desc].sort((a, b) => a - b), "Lars's family, is kin of: his descendants");
 assert.deepStrictEqual(kin.tiles, [], 'kin covers no tiles');
+const kerstin = st.pawns.find((p) => p.given === 'Kerstin' && p.died === null).id;
+assert(!kin.pawns.includes(kerstin), "Lars's wife is of his household, not of his descent");
+// named tiles: the house and a field of Lars's farm (A1), and the green of village A, are A's; the house of B's first farm is not
+const A1 = st.farmsteads[st.households[0].farmstead], B1 = st.farmsteads[st.households[3].farmstead];
+for (const [t, what] of [[A1.house, 'the house of A1'], [A1.fields[0].tile, 'a field of A1'], [st.villages[A].center, "A's green"]])
+  assert(own.tiles.includes(t), `village A, owns: ${what}`);
+assert(!own.tiles.includes(B1.house), 'village A, owns: not the house of B1');
+// the role cache (VB-043, review F1): a role the edges contradict is caught
+const was = st.pawns[lars].role;
+assert.strictEqual(was, 'farmer', 'Lars, the holder, is its farmer');
+st.pawns[lars].role = 'son';
+assert(G.check(st).some((l) => l.startsWith(`pawns[${lars}].role`)), 'a holder whose role is son contradicts his holder edge');
+st.pawns[lars].role = was;
 // a year on: moves, births, deaths and handovers each write their edges with the caches
 st.naturalDeaths = true;
 for (let q = 0; q < 4; q++) {
