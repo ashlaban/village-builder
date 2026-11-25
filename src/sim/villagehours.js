@@ -70,7 +70,7 @@ VB['sim/villagehours'] = (() => {
   }
   // The band whose lake ice starts the table: the middle one, or, in a winter where it has none, the first that has.
   function iceDate(st) {
-    const cl = st.climate;
+    const cl = st.climate; // drawn-allow: the ice's date, compared with today only (winterDay): the table is built as the ice comes
     if (!cl) return null;
     const mid = cl.bands[Math.floor(cl.bands.length / 2)].dates.lakeBears;
     if (mid !== null) return mid;
@@ -98,7 +98,7 @@ VB['sim/villagehours'] = (() => {
   }
   // Whether ice bears in the band of village v's green now (sim/climate's states lakeBears, soundShut, soundBears).
   function iceBears(st, v) {
-    const cl = st.climate;
+    const cl = st.climate; // drawn-allow: the band's state now, not its dates
     if (!cl) return false;
     const c = st.villages[v].center,
       s = cl.bands[bandOfRow(st.w, (c / st.w.COLS) | 0)].state;

@@ -10,7 +10,7 @@ VB['sim/planchains'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   const { CROPS, ROTATIONS } = VB['sim/crops'];
   const { projectsOf, lacks } = VB['sim/projects'];
-  const { frostDay } = VB['sim/weather'];
+  const { frostSeen } = VB['sim/weather'];
   const { fieldProject } = VB['sim/fieldplans'];
   const { standing } = VB['sim/fields'];
   const { MOW_LAST, DRY_DAYS, HAY, meadowFert, meadowProject } = VB['sim/meadows'];
@@ -140,8 +140,8 @@ VB['sim/planchains'] = (() => {
   }
   // The loads of a carrying: `amount` (of hay, or rations of sheaves) at a back's load (TRAVEL.load rations; hay TRAVEL.hay a ration).
   const loads = (amount, per) => Math.max(1, Math.ceil(amount / per - 1e-9));
-  // Whether the year's frost has come (sim/weather frostDay: the draw, as the state shows it; what a stage reached at it means).
-  const frosted = (st, c) => c.season > 2 || (c.season === 2 && c.sday >= frostDay(st));
+  // Whether the year's frost has come (sim/weather frostSeen: seen fallen, not foreseen, VB-1686; what a stage reached at it means).
+  const frosted = (st) => frostSeen(st) !== null;
   const hay = {
     noun: 'meadow',
     mark: 'meadow',
@@ -190,7 +190,7 @@ VB['sim/planchains'] = (() => {
     },
     gone: (st, { m }) => {
       const c = cal(st.t);
-      if (m.stage === 'aftermath') return frosted(st, c) ? 'rotted' : 'home';
+      if (m.stage === 'aftermath') return frosted(st) ? 'rotted' : 'home';
       return m.stage === 'grass' && hayOver(c) ? 'closed' : null;
     },
     deadline: (st) => {
@@ -248,9 +248,8 @@ VB['sim/planchains'] = (() => {
     // the sheaves in (the field reaped this year and back in stubble before the frost), or the crop lost to the frost or left standing
     gone: (st, { fd }) => {
       if (SOWN.includes(fd.stage)) return null;
-      const c = cal(st.t),
-        y = Math.floor(st.t / YEAR) * (YEAR / DAY);
-      return fd.reaped !== null && fd.reaped !== undefined && fd.reaped >= y && !frosted(st, c) ? 'in' : 'lost';
+      const y = Math.floor(st.t / YEAR) * (YEAR / DAY);
+      return fd.reaped !== null && fd.reaped !== undefined && fd.reaped >= y && !frosted(st) ? 'in' : 'lost';
     },
     // the frost the head expects (`frost`, an autumn day), or the crop's day of loss left standing when that comes first; next year's for
     // a crop not ripe before this year's
