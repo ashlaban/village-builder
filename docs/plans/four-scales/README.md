@@ -267,18 +267,21 @@ type MemberLevy = { grant: [spring: number, summer: number, autumn: number, wint
 // times the pawn's hands (age, health). Computed when read, compiled per member at the season's turn and when a grant changes.
 ```
 
-**The custom, by position and season** (hours a day of the 12; starting values, all Proposed, to be set against the measurement):
+**The custom, by position and season** (hours a day of the 12; grounded in `levy-custom.md`, Kim, 25 November: one levy for every
+adult member, whatever its position; to be set against the measurement):
 
-| Position | Spring | Summer | Autumn | Winter | Note |
+| Position | Spring | Summer | Autumn | Winter | Ground |
 | --- | --- | --- | --- | --- | --- |
 | The head pair | (none) | | | | not levied: the household's plan is theirs; what they keep is their own choice (question 13) |
-| The heir | 11 | 11 | 12 | 9 | the farm will be his; Kim's example |
-| Another son | 10 | 10 | 12 | 8 | the one with most reason to want his hours |
-| A daughter | 10 | 10 | 12 | 9 | the house's work has no slack season (question 18) |
-| Other adult kin, a lodger | 9 | 9 | 11 | 7 | |
-| A servant | 12 | 12 | 12 | 10 | by its contract; its free days are a term of it |
-| An elder (undantag) | 4 | 4 | 6 | 3 | by its contract |
-| A child of 7 to 13 | 6 | 6 | 8 | 4 | times its hands by age |
+| An adult member: the heir, another son, a daughter, other adult kin, a servant | 9.5 | 10 | 10.5 | 9.5 | inferred from law and the calendar: the Sundays and holy days (about 82 a year in Lutheran Sweden) are the member's, the rest the household's; holy days are fewest at hay and harvest |
+| A servant, in addition | | | | | a free game day at the term (the moving round), by its contract |
+| A lodger | 0 | 0 | 0 | 0 | plus 1 adult-day in summer and 1 in autumn (a guess) |
+| An elder (undantag) | 0 | 0 | 0 | 0 | sourced: the contracts set no work; what an elder does is given |
+| A child of 7 to 13 | 6 | 10 | 7 | 3 | inferred (the herding summer); the hours a guess; times its hands by age |
+
+Position does not change the hours levied (the sources show none between an heir, a younger son and a farmhand). It changes a
+member's fate: who stays at home and who goes into service (`sim/service`, the moving round), the servant's wage and portion, who
+inherits, and what the head grants. The social ladder is climbed through those, and through what a pawn does with its own hours.
 
 Against what is worked today (67 to 85% of 12 hours from spring to autumn, 50 to 55% in winter, *measured*) these levies cover the
 average household's work and fall short of the busiest; that shortfall is where giving, asking, granting and breach begin.
@@ -352,8 +355,8 @@ opinion of the head, weighed against what it wants the hours for. A diligent son
 while the hay is out; the difference shows on the strip and in the head's memory. This replaces "work beats idling" as a rule of
 the simulation with a pawn's choice, from the first build, and it is the largest change to behaviour in this design.
 
-**From slice 8: the potter.** The farmer's second son owes his household 10 hours a day in summer and 8 in winter. His own hours
-(48 in a winter, 24 in each other season, at the table's values) he spends at the clay: the pots are *his*, kept in a store of
+**From slice 8: the potter.** The farmer's second son owes his household what any adult member owes: 10 hours a day in summer and
+9.5 in winter. His own hours (30 in a winter, 24 in a summer, at the table's values, more if his head grants them) he spends at the clay: the pots are *his*, kept in a store of
 his own. His skill grows with the hours; the pots are graded (A made good is graded); he carries them to the gathering and trades
 them; his income from others rises against his need. A head who grants him more hours is his patron; a head who demands them back
 finds him taking them, or gone at the moving round. In time he lives by the craft, leaves the household (its levy ends with
@@ -365,7 +368,7 @@ Its preconditions, none of which this design builds:
 - *Markets*: the gathering and the fair exist; a town to live in is slice 9's.
 - *A right to the material* (clay, fuel) for a pawn that holds no land.
 
-Until then the levy already does its other work: it makes positions differ (an heir, a second son, a servant), it gives the head
+Until then the levy already does its other work: it gives every adult member hours of its own, it gives the head
 something to grant and the member something to ask for, and it makes an outer levy cost the household hours it can count.
 
 #### Sovereignty, the measure
@@ -571,7 +574,7 @@ call by outer levies (obligation records worked by `sim/levies`, which takes ove
 | 5 | One plan record with authors; the default author writes what the rules post; the rules stop reading who is played; the player's chains become goals | unchanged; the played path changes | `tools/same.js` |
 | 6 | Outer levies as obligation records with terms: `sim/days` becomes `sim/levies`; work days, hands lent and leave join it; the terms set to what happens today (the levier names, the calendar's days) | unchanged | `tools/same.js` |
 | 7 | Verbs for the ten unreachable acts, each issued by a default author that does what its rule does today | unchanged | `tests/commands.js`: no act reachable only through `Sim` |
-| 8 | **The household's levy**: the custom's table by position and season; the allotment's capacity is the levy; the six parts booked; giving by diligence; grant, ask, demand and take with their consequences; the strip in its colours | **changes: every balance number** | **a measurement Kim starts**; the invariant that the parts sum to `H`; a design pass on section 7 (The day's work, Own time, A member's voice) |
+| 8 | **The household's levy**: the custom's table by season (one row for every adult member); the allotment's capacity is the levy; the six parts booked; giving by diligence; grant, ask, demand and take with their consequences; the strip in its colours | **changes: every balance number** | **a measurement Kim starts**; the invariant that the parts sum to `H`; a design pass on section 7 (The day's work, Own time, A member's voice) |
 | 9 | Partial repair: every arrival slotted in; a lost holder's tasks to the pool | **changes** | **a measurement Kim starts** |
 | 10 | Duties and dated steps; further hands by the window | **changes** | **a measurement Kim starts** |
 | 11 | The village's year: the levied names the day; the ladder; breach by judgement; the custom of lots | **changes** | **a measurement Kim starts**; a design pass on section 9, Days owed and Remedies |
@@ -678,7 +681,7 @@ process (never editing a file) can run the real allotment with one rule changed,
 
 **New, raised by taking the answers in** (none is decided by the text above; where 3.3 had to assume one, it says so here):
 
-*Questions 13 to 17, 19 and 20 are answered (section 6, points 10 and 11); 18 waits for `levy-custom.md` (point 12).*
+*Questions 13 to 20 are answered (section 6, points 10, 11 and 13).*
 
 13. **Is the head pair levied?** 3.3 assumes not: the household's plan is theirs, and their own hours are what they leave
     themselves. *Why:* otherwise who grants the head leave; and a one-adult household has no levy inside it at all.
@@ -745,4 +748,12 @@ Given in discussion after v2. Taken into sections 1 and 3 on 25 November.
 12. **The custom table's values are to be grounded in historical sources** (question 18) by a research pass before the measurement
     sets them: `levy-custom.md` in this folder.
 
-Questions 7 to 12 and 18 are open.
+13. **One levy for every adult member, grounded** (question 18; revises point 4's "by position" for the hours levied): an adult
+    member owes the same hours whatever its position, at the values of `levy-custom.md` (9.5, 10, 10.5 and 9.5 hours a day, spring to
+    winter); a lodger, an elder and a child have rows of their own. Position works through fate: who stays and who goes into service,
+    the wage and portion, inheritance and the head's grants.
+14. **Breach's consequences are goodwill only for now.** The design leaves room for inspections, fines and the court (through the
+    cases of `design.md`, Loans, obligations and cases) without elaborating them.
+15. **The working day's length does not vary by season.** The levy's load over the year is the mechanic.
+
+Questions 7 to 12 are open.
