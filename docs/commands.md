@@ -5,6 +5,7 @@ the short list. Read one entry with `node tools/doc.js docs/commands.md QUERY`, 
 
 Every tool run from `tools/` answers `--help` with its options, without running: read that, not its source (a new tool starts with `tools/help.js`).
 - Backlog: `node tools/backlog.js next|list|show ID [--brief]` to read; `done ID...`, `set ID key=value...`, `new key=value...`,
+  `collect split|teleport|act where= what= [from=VB-NNN]` (a line in the kind's open collecting task, opened if none is; `tools/lib/collect.js`),
   `close-arch KEY`, and `sync` after a task file's header is edited by hand, to change it. Each rewrites the tables and runs `tests/backlog.js`.
 - Lanes: `node tools/lanes.js [N] [--size S|M|L] [--unattended]` picks the ready tasks that may run side by side, by the functions of their
   `Touches:` lines against each other, the inbox's running tasks and claims, and the branches pushed and not merged; `--check ID` for one
