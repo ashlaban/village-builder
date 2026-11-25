@@ -342,7 +342,7 @@ Present* blog (2020, first 2016).
 3. **A plot of one's own, granted as pay.** The Danish servant's lønnesæd, worked in his free weeks; the elder's right to sow flax or
    keep a cow; the crofter's croft. Own hours in the sources are usually **own hours on an own plot, granted by a contract**. *Suggests:*
    a term `plot` on a servant's or an elder's contract (a strip, a beast's fodder) is the nearest historical precedent for personal goods
-   in slice 8, and needs no market.
+   in slice 8, and needs no market. *(25 Nov: personal goods are pulled forward into the arch `plans`, `aims.md`.)*
 4. **The elder owes nothing by contract.** "The majority of contracts did not specify service." *Suggests:* the elder's row is 0, and
    what the old do is their own plot (own hours) and what they give, which the design's "given back by diligence" already carries; the
    placeholder's 3 to 6 hours were a levy the sources do not show.

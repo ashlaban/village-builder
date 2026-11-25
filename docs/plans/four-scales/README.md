@@ -26,7 +26,7 @@ everything else is a proposal or a prediction (section 4). "Claim" means a land 
    grant, asked about by the member, and breachable by either side at a social cost. **Outer levies** (a village's routine, the
    alderman's keep, a creditor's days, an estate's due) are in adult-days in a window.
 4. **Realistic levies from the first build**: below a member's working hours, so every balance number moves and Kim starts a measurement.
-5. **Own hours, before slice 8**, go to pastimes, courting, rest, and some given back to the household by the pawn's diligence. Own
+5. *(Superseded by answer 21: aims and personal goods are this arch's, `aims.md` in this folder.)* **Own hours, before slice 8**, go to pastimes, courting, rest, and some given back to the household by the pawn's diligence. Own
    hours as a road to a livelihood (the potter, 3.3) wait for personal goods and for skill that grows; they are why the levy exists.
 6. **Who names the day is a term of each levy.** Power shows in the terms, not in a rule.
 7. **Breach is one mechanism at every level**: the ladder first, then the head's judgement of what keeping costs against what this
@@ -360,7 +360,7 @@ opinion of the head, weighed against what it wants the hours for. A diligent son
 while the hay is out; the difference shows on the strip and in the head's memory. This replaces "work beats idling" as a rule of
 the simulation with a pawn's choice, from the first build, and it is the largest change to behaviour in this design.
 
-**From slice 8: the potter.** The farmer's second son owes his household what any adult member owes: 10 hours a day in summer and
+*(Superseded by answer 21 (section 6): the potter's road, personal goods and aims are designed in `aims.md` in this folder and built by this arch; skill already grows for crafts, VB-360. The paragraph is kept as written.)* **From slice 8: the potter.** The farmer's second son owes his household what any adult member owes: 10 hours a day in summer and
 9.5 in winter. His own hours (30 in a winter, 24 in a summer, at the table's values, more if his head grants them) he spends at the clay: the pots are *his*, kept in a store of
 his own. His skill grows with the hours; the pots are graded (A made good is graded); he carries them to the gathering and trades
 them; his income from others rises against his need. A head who grants him more hours is his patron; a head who demands them back
@@ -592,7 +592,7 @@ Hunger and cost are reported before and after on each step's PR, but they are no
 | 6 | **The household's levy**: the custom's table by season (one row for every adult member); the allotment's capacity is the levy; the six parts booked; giving by diligence; grant, ask, demand and take, with goodwill as their cost; the strip in its colours | the core, and the step most likely to starve a village: the invariant that the parts sum to `H`; a design pass on section 7 (The day's work, Own time, A member's voice) |
 | 7 | Outer levies as obligation records with their new terms, built directly (`sim/days` becomes `sim/levies`): the levied names the day where the terms say so; the ladder; breach by judgement; the custom of lots; an estate's levy on top | a design pass on section 9, Days owed and Remedies |
 | 8 | Duties and dated steps; further hands by the window | the weakest evidence; last |
-| 9 | Own hours as a livelihood: aims, personal goods, skill that grows | slice 8's plan |
+| 9 | Own hours as a livelihood: aims, personal goods, skill that grows | this arch, since answer 21: `aims.md`, tasks VB-1781 to VB-1798 (it was: slice 8's plan) |
 
 Mocks may still settle a question before a step is built (and may wrap a module's function in their own process, question 12), but a
 branch with the real change, judged by the gate, is preferred.
