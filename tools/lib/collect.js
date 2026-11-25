@@ -11,6 +11,8 @@ const COLLECT = {
     goal: 'Each module listed is split by its concerns, not by the line count: it falls under the lint\'s line (700 formatted lines, 15 exports) and '
       + 'leaves the lint baselines. A session takes one line: it names the module\'s responsibilities and where each belongs before any code moves, '
       + 'splits by them, and ticks the line',
+    // taken only in a session with Kim (Kim, 25 November): `backlog.js next --unattended` leaves it out
+    notes: ['- Flag: Kim takes part (Kim, 25 November): every split is taken in a session with Kim, not by an unattended run.'],
     summary: 'The modules over the lint\'s line of length or width, a line each; a session splits one by its concerns and ticks it' },
   teleport: { name: "Teleports found, collected: swept at a slice's wrap-up", arch: 'physical', size: 'M', ref: 'AGENTS.md, Surfacing',
     goal: 'Each teleport listed is mended or shown to be none: goods arrive by being carried',

@@ -322,7 +322,8 @@ if (cmd === 'next') {
     t = { id, name: c.name, status: '', priority: '', size: '', arch: '-', phase: '-', waits: [], dirty: true,
       text: `# ${id}: ${c.name}\nStatus: ready\nPriority: 3\nSize: ${c.size}\nDesign ref: ${c.ref}\n`
         + `Touches: unknown (a collecting task: each line names its own place)\nGoal: ${c.goal}\nAcceptance criteria:\n${line}\n\n`
-        + `A line a finding, added by \`node tools/backlog.js collect ${kind}\` (tools/lib/collect.js): findings of a kind are collected, not given a task each.\n` };
+        + `A line a finding, added by \`node tools/backlog.js collect ${kind}\` (tools/lib/collect.js): findings of a kind are collected, not given a task each.\n`
+        + (c.notes ? `\nNotes:\n${c.notes.join('\n')}\n` : '') };
     tasks.set(id, t);
     summaries.set(id, c.summary);
     apply(t, { status: 'ready', priority: '3', size: c.size, ...(c.arch === '-' ? {} : { arch: c.arch }) });

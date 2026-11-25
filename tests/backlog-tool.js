@@ -115,7 +115,7 @@ if (before) run(dir, 'done', before);
 r = run(dir, 'collect', 'split', 'where=sim/zz', 'what=720 lines, over 700', `from=${A}`);
 const made = openCollector(dir, 'split'), madeText = made ? file(`backlog/${made}.md`) : '';
 expect('collect opens the split collector, ready, size L, with the line', r.ok && made && made !== before && /^Status: ready$/m.test(madeText)
-  && /^Size: L$/m.test(madeText) && madeText.includes(`- [ ] From ${A}: sim/zz: 720 lines, over 700\n`)
+  && /^Size: L$/m.test(madeText) && /^- Flag: Kim takes part/m.test(madeText) && madeText.includes(`- [ ] From ${A}: sim/zz: 720 lines, over 700\n`)
   && section('BACKLOG.md', 'Ready').includes(`[${made}]`), r.out);
 r = run(dir, 'collect', 'split', 'where=sim/yy', 'what=16 exports,\n over 15');
 expect('collect appends to the open collector, the line made one line', r.ok && openCollector(dir, 'split') === made
