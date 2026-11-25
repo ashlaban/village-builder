@@ -43,6 +43,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1683](backlog/VB-1683.md)<a id="VB-1683"></a> | Invariant: every id resolves, and an ended party holds nothing | - | 2 | M | One walk over every id-typed field of st, and an ending sweep on a constructed village |
 | [VB-1693](backlog/VB-1693.md)<a id="VB-1693"></a> | Design: a dependant's charge, a named living minder in place of the ban | - | 2 | M | Whoever cannot keep itself is someone's charge (Kim, 24 Nov): the minder named, passed at death, and leaving weighed, not refused |
 | [VB-1705](backlog/VB-1705.md)<a id="VB-1705"></a> | Repair: a building's timber is booked into its holder's store while it lies at the site | - | 2 | S | sim/building's timber trip records +timber to the holder's ledger (reason timber) while the load lies at the site (j.timberFor.wood), and the build takes it from there unbooked: timber unexplained 513 a year on populous small seed 3. |
+| [VB-1738](backlog/VB-1738.md)<a id="VB-1738"></a> | Tuning and design review of Stories | talk | 2 | L | With Kim: why old stories sharpen to ±1 and never fade (VB-1681's measure), the Stories model and numbers reviewed, the fix chosen, built and measured |
 | [VB-034](backlog/VB-034.md)<a id="VB-034"></a> | Splitting land between heirs | debt | 3 | M | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. |
 | [VB-063](backlog/VB-063.md)<a id="VB-063"></a> | Wrap-up: talk travels | talk | 3 | S | Check talk, relationships and mood at full scale; report cost and patterns. |
 | [VB-083](backlog/VB-083.md)<a id="VB-083"></a> | Seasons on the map | roads | 3 | M | Seasonal tints and winter snow on the painted map. |
@@ -144,7 +145,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-1681](backlog/VB-1681.md)<a id="VB-1681"></a> | Stories: old stories sharpen to ±1 and never fade, crowding out new ones | talk | 2 | S | bound the runaway of sharpening and the restore on telling, measured on late populous saves |
 | [VB-1685](backlog/VB-1685.md)<a id="VB-1685"></a> | Invariant: a cache equals its derivation after every verb, with no lag | - | 2 | M | The birthday refresh mended so roles need no allowAgeLag, and each cache compared with a fresh derivation after each verb |
 | [VB-1709](backlog/VB-1709.md)<a id="VB-1709"></a> | Fix: a herd standing away for a household with a farm is never led home (populous small seed 11) | - | 2 | M | VB-1682 found herd 155 standing at farm 0 for household 19 from year 12 on, its drove job never done |
 | [VB-247](backlog/VB-247.md)<a id="VB-247"></a> | A job names its farm, field and meadow by id | - | 3 | M | Jobs hold the farmstead, field, meadow and fence objects themselves, which is why the save codec must find shared objects; hold ids, and the codec's sharing pass can go. |
