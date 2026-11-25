@@ -47,3 +47,23 @@ No game code is touched. The drafts page is `index.html`.
 - At the top a thin band: the mock's name, the mode it is (Work, Calendar, Look, Muster, Ledger...), and a toggle or two for its
   variants. A small corner note, collapsed by default, "Scales to / strains at": an honest line or three.
 - Quick: a few hundred lines, not polished; one screenshot to check it, then stop.
+
+## Round 2 (25 November)
+
+The owner's answers to round 1 and its review (`review-round1.md`):
+- **Threads are a component for the why**, not a mode: any mock may open the thread (or the compact why-ladder card) from a tapped
+  thing. In the household view, an arrow in each member's colour can show the coordination in its ideal form.
+- **The grammar v2 is in `scene.js`** (read its header): three frames (`now`, `plan`, `target`); whose hours by fill *and* rim
+  (pennants for outer leviers); a breach as a torn corner; the author top left (`player`, `kept`), the state top right; one number
+  with its unit in the pill's shape (`day`, `hours`, `count`). Use `icon(glyph, {frame, whose, breach, author, state, num, unit})`.
+- Take what the review kept: one sign at the place of work with the workers' dots; the cut-and-resumed route as numbered steps; the
+  time bands (binding, the head's estimate, beyond the horizon) with solid turning striped at the estimate's end; **every remedy with
+  its cost, and the default the rule will take** ("the rule will: add Nils"); the displaced edge with its cost; the why-ladder card.
+- Avoid what it dropped: the hearth ring, wood skeuomorphs, a column of placeless reasons.
+- One mark per tile is a rule of aggregation: the most urgent thing with a count pip; its callout lists the rest.
+- The day belongs to the pawn; a farmstead shows an aggregate.
+- Inspiration from mapmaking (flow maps, transit diagrams, small multiples, forecast cones, choropleths, insets) and from business
+  coordination tools (Gantt and resource histograms, rosters, Kanban, RACI, envelope budgets, flight progress strips, an inbox
+  ordered by deadline). Name the tool or map a mock borrows from, in its band.
+- **Test at scale**: each mock has a "stress" toggle where it makes sense: a household of 10, three interrupted tasks at once, six
+  open decisions, or the 20 households of `VILLAGE` (in `scene.js`).

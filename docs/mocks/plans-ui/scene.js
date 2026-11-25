@@ -5,13 +5,6 @@
 const NOW = { season: 'autumn', day: 4, hour: 10 };
 const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
 
-// ---- Whose hours (the levy's colours, design 3.7). Hatched = a breach, the other side's colour over.
-const WHOSE = {
-  household: { name: "the household's (levied)", c: '#b9832f' },
-  own: { name: 'own hours', c: '#3c8a86' },
-  owed: { name: 'owed to the village', c: '#a8473a' },
-  estate: { name: "owed to the estate", c: '#6b4f8a' },
-};
 
 // ---- The household: Backa, five people. The player plays Per, the head (household first, Kim 25 Nov).
 const PEOPLE = [
@@ -173,52 +166,123 @@ function pawnSVG(p, x, y, s = 1) {
     `<path d="M-6 6c0-9 2-14 6-14s6 5 6 14z" fill="${p.col}" stroke="#2a2018" stroke-width="1"/></g>`;
 }
 
-// ---- The icon grammar (README): glyph = what; frame = horizon; tint = whose hours; corner badge = state or author; at most one number.
-// frame: 'task' (disc) | 'day' (rounded square) | 'dated' (stake: a square on a post) | 'season' (shield) | 'year' (banner)
-// whose: WHOSE key or null; breach: 'demanded' | 'taken' (hatched); badge: 'risk' | 'blocked' | 'kept' | 'quill' | 'back' | 'done' | 'stray'
-// set: 'line' | 'stencil'. Returns an SVG string of size `size`, viewBox 0 0 40 40.
-const FRAMES = {
-  task: '<circle cx="20" cy="20" r="15"/>',
-  day: '<rect x="5" y="5" width="30" height="30" rx="7"/>',
-  dated: '<rect x="6" y="3" width="28" height="26" rx="4"/>',
-  season: '<path d="M6 5h28v14c0 9-7 14-14 17C13 33 6 28 6 19z"/>',
-  year: '<path d="M7 3h26v32l-13-7-13 7z"/>',
+// ---- The icon grammar, v2 (round 1's review, review-round1.md; the owner's yes of 25 Nov). One channel, one meaning:
+//   glyph = what.
+//   frame = how settled, three shapes: 'now' (disc: being done), 'plan' (rounded square: planned or dated), 'target' (shield: a
+//           target or an aim). How far ahead is carried by where the icon stands on a time axis, not by its shape.
+//   whose = whose hours, encoded twice, by fill and by rim: household (amber fill, plain dark rim); own (pale fill, double teal rim);
+//           owed to the village (blue fill, one pennant on top); owed to the estate (purple fill, two pennants); null (pale, no one's).
+//           Every icon has a white halo so it holds on any ground.
+//   breach = a torn corner (bottom right) in the other side's colour: 'demanded' (own hours, torn amber), 'taken' (household's, torn pale).
+//   author = top-left mark: 'player' (a pen nib on dark), 'kept' (a pin: the player's and "keep my order"); the rule's steps have none.
+//   state = top-right badge only: 'risk' | 'blocked' | 'done' | 'back' (taken back by the rule) | 'stray' (a pile lying out).
+//   num + unit = at most one number, its unit in the pill's shape: 'day' (a calendar leaf: "the day it is on"), 'hours' (a pill
+//           ending in h, signed when short: "-8h"), 'count' (a round counter: "×3"). One meaning per frame by convention: plan → day,
+//           target → hours (short, signed), now → none or count.
+// Old (round 1) options still work: frame task/day/dated/season/year and badge quill/kept map to the new channels.
+const WHOSE_STYLE = {
+  household: { fill: '#e0a43a', rim: '#2a2018', glyph: '#2a2018' },
+  own: { fill: '#eef6f4', rim: '#1f7a76', glyph: '#1f5f5c', double: true },
+  owed: { fill: '#33599e', rim: '#1b2f57', glyph: '#fff', pennants: 1 },
+  estate: { fill: '#7d3f8c', rim: '#3d1d45', glyph: '#fff', pennants: 2 },
+  none: { fill: '#f4efe4', rim: '#5a5247', glyph: '#2a2018' },
 };
-const BADGES = {
-  risk: '<circle cx="33" cy="7" r="6.5" fill="#d14b2f" stroke="#fff" stroke-width="1.5"/><path d="M33 3.5v4l2 1.5" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/>',
-  blocked: '<circle cx="33" cy="7" r="6.5" fill="#444" stroke="#fff" stroke-width="1.5"/><path d="M30 4l6 6M36 4l-6 6" stroke="#fff" stroke-width="1.6"/>',
-  kept: '<circle cx="33" cy="7" r="6.5" fill="#333" stroke="#fff" stroke-width="1.5"/><path d="M33 3v7M30.5 4h5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>',
-  quill: '<circle cx="33" cy="7" r="6.5" fill="#fff" stroke="#333" stroke-width="1.2"/><path d="M30 11l6-7M31.5 8l2.5.2" stroke="#333" stroke-width="1.4" stroke-linecap="round"/>',
-  back: '<circle cx="33" cy="7" r="6.5" fill="#e0a020" stroke="#fff" stroke-width="1.5"/><path d="M36 9a3.2 3.2 0 1 1-1-4.5M35.5 2.5v2.3h-2.3" stroke="#fff" stroke-width="1.5" fill="none"/>',
-  done: '<circle cx="33" cy="7" r="6.5" fill="#4a7a3a" stroke="#fff" stroke-width="1.5"/><path d="M30 7l2 2 4-4" stroke="#fff" stroke-width="1.7" fill="none"/>',
-  stray: '<circle cx="33" cy="7" r="6.5" fill="#fff" stroke="#8a6a2a" stroke-width="1.5"/><path d="M30 9h6M31 7h4M32 5h2" stroke="#8a6a2a" stroke-width="1.5"/>',
+const FRAMES = {
+  now: '<circle cx="20" cy="20" r="15"/>',
+  plan: '<rect x="5" y="5" width="30" height="30" rx="5"/>',
+  target: '<path d="M5 5h30v14c0 9-7.5 14.5-15 17.5C12.5 33.5 5 28 5 19z"/>',
+};
+const FRAME_ALIAS = { task: 'now', day: 'plan', dated: 'plan', season: 'target', year: 'target' };
+const STATES = {
+  risk: '<circle cx="34" cy="6" r="6.5" fill="#c8361b" stroke="#fff" stroke-width="1.5"/><path d="M34 2.5v4l2 1.5" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/>',
+  blocked: '<circle cx="34" cy="6" r="6.5" fill="#333" stroke="#fff" stroke-width="1.5"/><path d="M31 3l6 6M37 3l-6 6" stroke="#fff" stroke-width="1.6"/>',
+  back: '<circle cx="34" cy="6" r="6.5" fill="#6b6b6b" stroke="#fff" stroke-width="1.5"/><path d="M37 8a3.2 3.2 0 1 1-1-4.5M36.5 1.5v2.3h-2.3" stroke="#fff" stroke-width="1.5" fill="none"/>',
+  done: '<circle cx="34" cy="6" r="6.5" fill="#3f7a35" stroke="#fff" stroke-width="1.5"/><path d="M31 6l2 2 4-4" stroke="#fff" stroke-width="1.7" fill="none"/>',
+  stray: '<circle cx="34" cy="6" r="6.5" fill="#fff" stroke="#7a5a1a" stroke-width="1.5"/><path d="M31 8h6M32 6h4M33 4h2" stroke="#7a5a1a" stroke-width="1.5"/>',
+};
+const AUTHORS = {
+  player: '<rect x="0" y="0" width="12" height="12" rx="3" fill="#2a2018" stroke="#fff" stroke-width="1.3"/><path d="M3.5 9.5l5-6M4.5 6.5l2.3.3" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>',
+  kept: '<rect x="0" y="0" width="12" height="12" rx="3" fill="#2a2018" stroke="#fff" stroke-width="1.3"/><circle cx="6" cy="4.5" r="2.2" fill="#fff"/><path d="M6 6.5v3.5" stroke="#fff" stroke-width="1.6"/>',
+};
+// Kept for round 1's mocks (hearth segments): hatches of the two breaches, and the stripes of what is still to do.
+const WHOSE = {
+  household: { name: "the household's (levied)", c: WHOSE_STYLE.household.fill },
+  own: { name: 'own hours', c: '#2f8f8a' },
+  owed: { name: 'owed to the village', c: WHOSE_STYLE.owed.fill },
+  estate: { name: 'owed to the estate', c: WHOSE_STYLE.estate.fill },
 };
 const DEFS = `<defs>
 <pattern id="hatch-own" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="${WHOSE.household.c}"/><rect width="2.2" height="5" fill="${WHOSE.own.c}"/></pattern>
 <pattern id="hatch-hh" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="${WHOSE.own.c}"/><rect width="2.2" height="5" fill="${WHOSE.household.c}"/></pattern>
 <pattern id="hatch-todo" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#fff0"/><rect width="2" height="6" fill="#0003"/></pattern>
 </defs>`;
-// demanded: own hours worked for the household = own colour hatched with the household's (hatch-hh); taken: the reverse (hatch-own).
 function fillOf(whose, breach) {
   if (breach === 'demanded') return 'url(#hatch-hh)';
   if (breach === 'taken') return 'url(#hatch-own)';
   return whose ? WHOSE[whose].c : '#f4efe4';
 }
-function icon(glyph, { frame = 'task', whose = 'household', breach = null, badge = null, num = null, size = 40, set = 'line', ghost = false } = {}) {
-  const fill = fillOf(whose, breach), body = ICONS[set][glyph] || ICONS.line[glyph] || ICONS.line.plan;
-  const g = set === 'stencil' ? `<g fill="#fff" stroke="none">${body}</g>` : `<g fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${body}</g>`;
-  const post = frame === 'dated' ? '<path d="M20 29v9" stroke="#3a2a1a" stroke-width="3"/>' : '';
-  const scale = frame === 'dated' ? 'translate(9.5 5) scale(.88)' : frame === 'season' ? 'translate(9 6) scale(.9)' : 'translate(8 8)';
-  const num_ = num == null ? '' : `<g><rect x="1" y="27" width="${String(num).length * 6 + 8}" height="12" rx="6" fill="#fff" stroke="#3a2a1a" stroke-width="1"/><text x="${5 + String(num).length * 3}" y="36.5" font-size="9.5" font-family="system-ui,sans-serif" font-weight="700" text-anchor="middle" fill="#2a2018">${num}</text></g>`;
-  return `<svg class="pi" viewBox="0 0 40 40" width="${size}" height="${size}" style="overflow:visible${ghost ? ';opacity:.55' : ''}">${post}` +
-    `<g fill="${fill}" stroke="#2a2018" stroke-width="1.4"${ghost ? ' stroke-dasharray="3 2"' : ''}>${FRAMES[frame]}</g><g transform="${scale}"><svg viewBox="0 0 24 24" width="24" height="24" overflow="visible">${g}</svg></g>${badge ? BADGES[badge] : ''}${num_}</svg>`;
+function numPill(num, unit) {
+  const s = String(num), w = s.length * 6 + (unit === 'hours' ? 14 : 9), x = 20 - w / 2;
+  const txt = (t, cx) => `<text x="${cx}" y="45.5" font-size="9.5" font-family="system-ui,sans-serif" font-weight="700" text-anchor="middle" fill="#2a2018">${t}</text>`;
+  if (unit === 'day') return `<g><rect x="${x}" y="36" width="${w}" height="13" rx="2" fill="#fff" stroke="#2a2018"/><path d="M${x + 3} 34.5v3M${x + w - 3} 34.5v3" stroke="#2a2018" stroke-width="1.4"/>${txt(s, 20)}</g>`;
+  if (unit === 'count') return `<g><circle cx="20" cy="42" r="${Math.max(7, w / 2)}" fill="#2a2018"/><text x="20" y="45.3" font-size="9.5" font-family="system-ui,sans-serif" font-weight="700" text-anchor="middle" fill="#fff">×${s}</text></g>`;
+  return `<g><rect x="${x}" y="36" width="${w}" height="13" rx="6.5" fill="#fff" stroke="#2a2018"/>${txt(s + 'h', 20)}</g>`;
+}
+function icon(glyph, o = {}) {
+  let { frame = 'now', whose = 'household', breach = null, state = null, author = null, num = null, unit = null, size = 40, set = 'line', ghost = false, badge = null } = o;
+  frame = FRAME_ALIAS[frame] || frame;
+  if (badge === 'quill') author = author || 'player'; else if (badge === 'kept') author = 'kept'; else if (badge) state = state || badge;
+  if (num != null && !unit) unit = frame === 'plan' ? 'day' : frame === 'target' ? 'hours' : 'count';
+  const W = WHOSE_STYLE[breach === 'demanded' ? 'own' : breach === 'taken' ? 'household' : whose || 'none'];
+  const body = ICONS[set][glyph] || ICONS.line[glyph] || ICONS.line.plan;
+  const g = set === 'stencil' ? `<g fill="${W.glyph}" stroke="none">${body}</g>` : `<g fill="none" stroke="${W.glyph}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${body}</g>`;
+  const shape = FRAMES[frame], dash = ghost ? ' stroke-dasharray="3 2"' : '';
+  let s = `<g fill="none" stroke="#fff" stroke-width="5" opacity=".9">${shape}</g>`;
+  for (let i = 0; i < (W.pennants || 0); i++) s += `<path d="M${16 + i * 7} 5.5v-6.5l6.5 3.2-6.5 3.2" fill="${W.fill}" stroke="${W.rim}" stroke-width="1.1"/>`;
+  s += `<g fill="${W.fill}" stroke="${W.rim}" stroke-width="${W.double ? 2.6 : 1.6}"${dash}>${shape}</g>`;
+  if (W.double) s += `<g fill="none" stroke="#fff" stroke-width="1" transform="translate(20 20) scale(.84) translate(-20 -20)">${shape}</g>`;
+  s += `<g transform="${frame === 'target' ? 'translate(8 6.5)' : 'translate(8 8)'}"><svg viewBox="0 0 24 24" width="24" height="24" overflow="visible">${g}</svg></g>`;
+  if (breach) {
+    const T = WHOSE_STYLE[breach === 'demanded' ? 'household' : 'own'];
+    s += `<path d="M24 38l3-4 1.5 2.5 3-4 1.5 2.5 3-4 1.5 2.5V38z" fill="${T.fill}" stroke="${T.rim}" stroke-width="1.2" stroke-linejoin="round"/>`;
+  }
+  if (author) s += `<g transform="translate(-1 -1)">${AUTHORS[author]}</g>`;
+  if (state) s += STATES[state];
+  if (num != null) s += numPill(num, unit);
+  return `<svg class="pi" viewBox="0 0 40 40" width="${size}" height="${size}" style="overflow:visible${ghost ? ';opacity:.6' : ''}">${s}</svg>`;
 }
 // A legend of the grammar, for any mock that wants it.
 function grammarLegend() {
   const row = (label, items) => `<div class="lg-row"><b>${label}</b>${items.map(([h, t]) => `<span class="lg-i">${h}<small>${t}</small></span>`).join('')}</div>`;
   return `<div class="legend">` +
-    row('Frame = horizon', [['task', 'task (now)'], ['day', 'today'], ['dated', 'a dated day'], ['season', 'season target'], ['year', 'year: routine, aim']].map(([f, t]) => [icon('chop', { frame: f }), t])) +
-    row('Colour = whose hours', [[icon('chop', { whose: 'household' }), 'levied'], [icon('courting', { whose: 'own' }), 'own'], [icon('fence', { whose: 'owed' }), 'owed (village)'], [icon('cart', { whose: 'own', breach: 'demanded' }), 'demanded'], [icon('courting', { breach: 'taken' }), 'taken']]) +
-    row('Badge = state, author', Object.keys(BADGES).map((b) => [icon('chop', { badge: b }), b])) +
+    row('Frame = how settled', [[icon('chop', { frame: 'now' }), 'being done'], [icon('chop', { frame: 'plan' }), 'planned, dated'], [icon('oats', { frame: 'target' }), 'target, aim']]) +
+    row('Fill + rim = whose hours', [[icon('chop'), 'levied'], [icon('courting', { whose: 'own' }), 'own'], [icon('fence', { whose: 'owed' }), 'owed: village'], [icon('build', { whose: 'estate' }), 'owed: estate'], [icon('wood', { whose: null }), 'no one\'s']]) +
+    row('Torn corner = breach', [[icon('cart', { breach: 'demanded' }), 'demanded'], [icon('courting', { breach: 'taken' }), 'taken']]) +
+    row('Top left = author', [[icon('chop', { frame: 'plan' }), 'the rule'], [icon('chop', { frame: 'plan', author: 'player' }), 'the player'], [icon('chop', { frame: 'plan', author: 'kept' }), 'kept order']]) +
+    row('Top right = state', Object.keys(STATES).map((b) => [icon('chop', { frame: 'plan', state: b }), b])) +
+    row('One number, its unit', [[icon('chop', { frame: 'plan', num: 6 }), 'on day 6'], [icon('oats', { frame: 'target', num: -8 }), '8 hours short'], [icon('people', { num: 3 }), '3 of them']]) +
+    row('All at once', [[icon('chop', { frame: 'plan', author: 'player', state: 'risk', num: 6 }), 'Per\'s barley, at risk, day 6'], [icon('cart', { breach: 'demanded', author: 'player', num: 2 }), 'Per\'s demand of Nils']]) +
     `</div>`;
 }
+
+// ---- The village at scale (round 2): 20 households of Byn, for the muster and stress views. Deterministic fake data.
+// Each: name, adults (incl. the head pair), children, fields (lots are by fields), its autumn fence lot in adult-days, and for each of
+// the 12 autumn days what its levy days are: 'named' | 'worked' | 'lapsed' | 'breached' | 'tonamed' (still to name). Backa is ours.
+const VILLAGE = (() => {
+  const names = ['Backa', 'Norrgård', 'Övergård', 'Sörgård', 'Västergård', 'Östergård', 'Mellangård', 'Bäcken', 'Hagen', 'Lyckan',
+    'Torpet', 'Nybygget', 'Kullen', 'Ängen', 'Sjöstugan', 'Prästgården', 'Smedjan', 'Kvarnen', 'Rotet', 'Lillgården'];
+  let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const hh = names.map((name, i) => {
+    const adults = i === 0 ? 4 : 1 + Math.floor(rnd() * 5), fields = i === 0 ? 3 : 1 + Math.floor(rnd() * 4);
+    const lot = Math.max(1, Math.round(fields * 0.7)), days = Array(12).fill(null);
+    let left = lot;
+    for (let d = 0; d < 12 && left > 0; d++) if (rnd() < 0.18) { days[d] = d < 3 ? (rnd() < 0.15 ? 'breached' : rnd() < 0.1 ? 'lapsed' : 'worked') : 'named'; left--; }
+    return { name, adults, children: Math.floor(rnd() * 4), fields, lot, days, toName: left, alderman: name === 'Övergård',
+      opinion: Math.round((rnd() * 2 - 1) * 10) / 10, own: Math.round((0.15 + rnd() * 0.25) * 100) / 100 };
+  });
+  hh[0].days = Array(12).fill(null); hh[0].days[5] = 'named'; hh[0].toName = 1; // Backa: Erik on day 6, one day still to name
+  return { name: 'Byn', today: 4, routine: 'Fence mending, autumn, lots by fields', households: hh,
+    together: [{ day: 9, what: 'the bridge', kind: 'village' }], estate: { name: 'Sparre manor', days: 3, season: 'winter', names: 'levier' } };
+})();
+// Round 1's mocks read the old badge table directly; kept as an alias.
+const BADGES = { ...STATES, quill: `<g transform="translate(27 1)">${AUTHORS.player}</g>`, kept: `<g transform="translate(27 1)">${AUTHORS.kept}</g>` };
