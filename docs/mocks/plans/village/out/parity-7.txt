@@ -1,0 +1,36 @@
+== reach (populous seed 7, {"seed":7,"t":1158.5,"household":0,"head":0,"member":1,"village":0,"alderman":28,"obligation":11})
+verb, any pawn                 | a target (a store's level) [target] | any: yes | played: -
+verb, any pawn                 | the order of the season's work [order] | any: yes | played: -
+verb, any pawn                 | a tile for the next field [tile] | any: yes | played: -
+verb, any pawn                 | a project [project] | any: yes | played: -
+verb, any pawn                 | a member's day order (by the head) [dayOrder] | any: yes | played: -
+no verb (or refused by right)  | a pawn's own day order (by the member) [dayOrder] | any: pawn 1 is not the head of the household: only its head changes its plan | played: pawn 1 is not the head of the household: only its head changes its plan
+verb, any pawn                 | giving a task to another member [dayGive] | any: yes | played: -
+verb, any pawn                 | calling a member [dayCall] | any: yes | played: -
+no verb (or refused by right)  | calling a day owed [callDays] | any: there is no work for another hand | played: there is no work for another hand
+no verb (or refused by right)  | a work day (on its calendar day) [callWorkday] | any: the work day is called | played: the work day is called
+no verb (or refused by right)  | a work day on a date the alderman chooses [-] | any: no verb | played: no route
+no verb (or refused by right)  | a routine (the year's village work) [routines] | any: there is no settlement undefined | played: there is no settlement undefined
+verb, any pawn                 | a routine, by the meeting as actor [routines] | any: yes | played: -
+no verb (or refused by right)  | leave asked (a member) and answered (the head) [-] | any: no verb | played: no route
+verb, any pawn                 | help asked (food): the verb offer on the basis ask, issued by sim/help for any head (read, not executed: its args not built) [offer] | any: yes (by reading sim/help) | played: -
+no verb (or refused by right)  | hands asked (help with work) [-] | any: no verb | played: no route
+no verb (or refused by right)  | a pastime [pastime] | any: it holds no herd at the side | played: it holds no herd at the side
+no verb (or refused by right)  | a claim on a household's days a season ahead [-] | any: no verb | played: no route
+no verb (or refused by right)  | an aim of a pawn's own (a portion, a marriage) [-] | any: no verb | played: no route
+played pawn only               | a queued command [queue] | any: no verb (a Sim function of the player) | played: yes
+played pawn only               | a multi-step task at a tile (the player's chains) [plan] | any: no verb (a Sim function of the player) | played: yes
+played pawn only               | automatic behaviour off [auto] | any: no verb (a Sim function of the player) | played: yes
+no verb (or refused by right)  | a week of a pawn's own steps [-] | any: no verb | played: no route
+counts {"verb, any pawn":9,"no verb (or refused by right)":11,"played pawn only":3} cadence today {"reviewsPerHouseholdDay":0.61,"leavesPerHouseholdDay":0.107,"membersPerHousehold":1.92}
+== model (curves-populous-7.json), vital planned as any step
+empty     {"hash":"854ab9a82070","unmetVital":463,"missed":195.8,"ceiling":0,"doubleManned":0,"authored":0,"perHeadDay":0.34,"perAldermanDay":0.08,"perPawnDay":1} default author again: 854ab9a82070 hash equal: true
+random-valid x1000: ceiling exceeded 0, double-manned 0, runs with unmet vital > default + 5%: 1000, mean excess 89.3 h; worst {"hash":"c389f645b036","unmetVital":615.4,"missed":262.8,"ceiling":0,"doubleManned":0,"authored":1877,"perHeadDay":0.34,"perAldermanDay":0.08,"perPawnDay":1}
+lookahead {"hash":"f55a326cd9f2","unmetVital":777,"missed":838.4,"ceiling":0,"doubleManned":0,"authored":4021,"perHeadDay":0.34,"perAldermanDay":0.08,"perPawnDay":1}
+lookahead, village days and calls only {"hash":"c76e555db72b","unmetVital":576.3,"missed":180.6,"ceiling":0,"doubleManned":0,"authored":80,"perHeadDay":0.34,"perAldermanDay":0.08,"perPawnDay":1}
+== model (curves-populous-7.json), vital slotted in on its day (design 5.3 d)
+empty     {"hash":"dfc5e33a8e67","unmetVital":0,"missed":105.9,"ceiling":0,"doubleManned":0,"authored":0,"perHeadDay":0.34,"perAldermanDay":0.08,"perPawnDay":1} default author again: dfc5e33a8e67 hash equal: true
+random-valid x1000: ceiling exceeded 0, double-manned 0, runs with unmet vital > default + 5%: 0, mean excess 0.0 h; worst {"unmetVital":0}
+lookahead {"hash":"4117c5094e84","unmetVital":0.6,"missed":839.8,"ceiling":0,"doubleManned":0,"authored":4020,"perHeadDay":0.34,"perAldermanDay":0.08,"perPawnDay":1}
+lookahead, village days and calls only {"hash":"fd0f4d61c172","unmetVital":0.6,"missed":83.7,"ceiling":0,"doubleManned":0,"authored":80,"perHeadDay":0.34,"perAldermanDay":0.08,"perPawnDay":1}
+pawn planning its own week 1.17
