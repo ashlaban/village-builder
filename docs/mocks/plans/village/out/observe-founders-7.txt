@@ -1,6 +1,0 @@
-observed founders seed 7 small 3 y in 6.1 s -> docs/mocks/plans/village/out/curves-founders-7.json
-owner types (adult hours): {"household":14076,"village":957,"pawn":0}
-village kinds: {"mend":240,"clear":89,"break":100,"timber":73,"foundation":60,"walls":122,"roof":60,"workfence":59,"plow":25,"workclear":70,"green":13,"wellstone":2,"well":28,"sweep":16}
-owed kinds: {"fodder":6,"raise":1,"dig":43,"water":3,"plow":25,"firewood":5,"wood":21,"reap":18,"thresh":27,"smelt":12,"timber":0,"mendtools":14,"hunt":5,"milk":1,"weed":2,"haul":1,"rackfish":4,"sow":3,"barnbase":1}
-village 0 work days [{"day":48,"what":"fence","turnout":6,"hours":19.2},{"day":61,"what":"commons","turnout":3,"hours":20.3},{"day":96,"what":"fence","turnout":8,"hours":13.1},{"day":109,"what":"commons","turnout":4,"hours":23.4}]
-village 1 work days [{"day":48,"what":"fence","turnout":2,"hours":10.5},{"day":61,"what":"commons","turnout":2,"hours":9.1},{"day":96,"what":"fence","turnout":2,"hours":7.8},{"day":109,"what":"commons","turnout":2,"hours":6.5}]

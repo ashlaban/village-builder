@@ -1,1 +1,0 @@
-populous seed 11 small: 2 years, 360 living, 71 households; 35 s -> docs/mocks/plans/week/data/populous-11.jsonl

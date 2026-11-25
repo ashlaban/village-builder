@@ -4,7 +4,8 @@
 taken into sections 1 and 3). It replaces `design-v1.md` of this folder (kept for the record; the mocks tested it) and stands on its own.
 Nothing in the repository's code, `design.md` or backlog is changed by it. It rests on the review of the job system
 (`docs/review-jobs-2026-11-25/README.md`), on `design.md` sections 1, 7, 9 and 15, and on three mock studies run
-against v1: `docs/mocks/plans/task/` (Study A), `docs/mocks/plans/week/` (Study B) and `docs/mocks/plans/village/` (Study C). Type
+against v1: Study A (the task), Study B (the week) and Study C (the village). The studies and their spec were deleted on 25
+November once read (Kim); their numbers are in section 2, and their scripts in git at `4651420` (`docs/mocks/plans/`). Type
 sketches are TypeScript-style: shape and ownership, not code to build. *Measured* means measured by a mock or an earlier document;
 everything else is a proposal or a prediction (section 4). "Claim" means a land claim only; a body's hold on labour is a levy.
 
