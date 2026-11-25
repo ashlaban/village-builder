@@ -592,7 +592,7 @@ Hunger and cost are reported before and after on each step's PR, but they are no
 | 6 | **The household's levy**: the custom's table by season (one row for every adult member); the allotment's capacity is the levy; the six parts booked; giving by diligence; grant, ask, demand and take, with goodwill as their cost; the strip in its colours | the core, and the step most likely to starve a village: the invariant that the parts sum to `H`; a design pass on section 7 (The day's work, Own time, A member's voice) |
 | 7 | Outer levies as obligation records with their new terms, built directly (`sim/days` becomes `sim/levies`): the levied names the day where the terms say so; the ladder; breach by judgement; the custom of lots; an estate's levy on top | a design pass on section 9, Days owed and Remedies |
 | 8 | Duties and dated steps; further hands by the window | the weakest evidence; last |
-| 9 | Own hours as a livelihood: aims, personal goods, skill that grows | this arch, since answer 21: `aims.md`, tasks VB-1781 to VB-1798 (it was: slice 8's plan) |
+| 9 | Own hours as a livelihood: aims, personal goods, skill that grows | this arch, since answer 21: `aims.md`; its tasks VB-1781 to VB-1798 set aside in `docs/ideas/aims/` (answer 22) (it was: slice 8's plan) |
 
 Mocks may still settle a question before a step is built (and may wrap a module's function in their own process, question 12), but a
 branch with the real change, judged by the gate, is preferred.
@@ -784,5 +784,7 @@ Given in discussion after v2. Taken into sections 1 and 3 on 25 November.
 21. **Long-term plans and aims** (a pawn working towards becoming a potter, a head planning a new house for a second child) are
     designed into this model, and **personal goods are pulled forward from slice 8** into this arch (revises point 6's "wait for
     personal goods in slice 8"): the potter's road is built here. The design is `aims.md` in this folder.
+22. **The tasks of aims and personal goods are taken out of the backlog** and kept for future reference in `docs/ideas/aims/`
+    (VB-1781 to VB-1798, with their questions and tuning entries); the design (`aims.md`) stands, unbuilt.
 
 All questions of section 5 are answered.

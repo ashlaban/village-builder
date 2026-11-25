@@ -1,0 +1,6 @@
+# Ideas
+
+Designed work that is not in the backlog, kept for future reference (Kim, 25 November 2026). Each folder says what it is,
+where its design lives and how to bring it back. Task files kept here keep their IDs (`tools/lib/ids.js`).
+
+- `aims/`: long-term aims and personal goods (the potter, a house for a second child), VB-1781 to VB-1798.

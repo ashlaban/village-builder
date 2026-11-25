@@ -8,6 +8,9 @@ but Kim's two decisions (aims designed in; personal goods pulled forward); the p
 player a new act are Kim's, in `QUESTIONS.md` (12). `design.md` carries it at its own density (section 7, Aims and personal goods).
 Type sketches are shape and ownership, not code. *Reckoned* marks arithmetic on the design's values, not a measurement.
 
+**Set aside, 25 November (Kim):** its tasks (VB-1781 to VB-1798) were taken out of the backlog and kept in `docs/ideas/aims/`, with
+the questions of section 12 and the tuning entries; the design stands as written, and nothing builds it yet.
+
 ---
 
 ## 1. In short
