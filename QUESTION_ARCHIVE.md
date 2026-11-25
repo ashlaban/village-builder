@@ -2,6 +2,18 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 25 November 2026 (VB-1553)
+
+## VB-1553: Standing duties: which gives way, the memory or the haymaking checks (raised 23 November 2026)
+The mechanism of design.md section 7, Standing duties, is built and tested (`tests/duties.js`, at the proposed 1.25), and ships with `MATCH.keep` at 1: no memory, and a duty the head sets weighs nothing. On the merged branch every value above 1 turned a hard check red: `tests/hay.js` (populous 3 small: 89% of meadows mown and carried by autumn day 4 at 1.05, 1.1 and 1.2, 86% at 1.15 in a trial; 90 asked, 92% at keep 1) and `tests/meadows.js` (founders 42: a farm with animals and no meadow by its second spring, at 1.1, 1.2 and 1.25). Hands that keep to yesterday's type come later to work that opens with a season. A trial that counted every task with a window or of a project as held by all (so duties decide only among the standing chores) did not mend it (1.1: both red; 1.15: hay 86%; 1.25: meadows red), and was reverted.
+
+1. Does the memory go live before the haymaking is retuned? **P:** No: keep stays 1 until the tuning run, which raises it to 1.25 together with the haymaking's urgency (`MATCH.urgency.mowPerDay`, `rake`) so that `tests/hay.js` holds its 90%; VB-1555 and VB-1556 are built against the mechanism at 1.25 in their tests, as `tests/duties.js` is.
+   **A (Kim, 23 Nov):** The idea of standing duties is kept; this mechanism (the keep factor, the verb and its buttons) is removed (design.md section 7, Standing duties: Open).
+2. Or is the bound of `tests/hay.js` (90% in by autumn day 4) the one to move, the memory being worth three points of it? **P:** No: the hay is what the animals winter on; the check stands.
+   **A (Kim, 23 Nov):** The idea of standing duties is kept; this mechanism (the keep factor, the verb and its buttons) is removed (design.md section 7, Standing duties: Open).
+3. While keep is 1, should the Plan tab offer the head's Set and Lift buttons, which then change the record and the card's line but no one's day? **P:** Yes, as built: the choice is kept and shown ("set by the head") and weighs from the day keep is raised; say if they should be hidden until then.
+   **A (Kim, 23 Nov):** The idea of standing duties is kept; this mechanism (the keep factor, the verb and its buttons) is removed (design.md section 7, Standing duties: Open).
+
 # Archived 24 November 2026 (principles review)
 
 ## Principles review of 24 November: the proposed principles and the inconsistencies among the principles (raised 24 November 2026)
