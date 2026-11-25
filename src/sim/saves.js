@@ -317,6 +317,7 @@ VB['sim/saves'] = (() => {
     jobsBy: rebuildJobsBy,
     routeKept: null, // sim/routes, built at its first use: a route kept aside is searched again after a load, and found the same (VB-1563)
     routeCosts: null,
+    facilityIdx: null, // sim/facilities, by tile and by owner, built at its first use (VB-361)
     followers: null, // sim/followers, the followers by lord, built at its first use (VB-708)
   };
   // st.jobsBy from st.jobs: each owner's open jobs, in the order they were posted (sim/jobs post adds a job to both together)

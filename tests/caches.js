@@ -36,7 +36,7 @@ const owners = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/owners.js
 const declared = [];
 (function walk(o) { for (const [k, v] of Object.entries(o)) if (v && typeof v === 'object') v.category === 'cache' ? declared.push(k) : walk(v); })(owners);
 const COMPARED = ['st.owner', 'st.crowd', 'st.crowdN', 'st.followers', 'st.living', 'st.liveHouseholds', 'st.graph', 'st.liveTrusts', 'st.courtships',
-  'st.obligationsDue', 'st.obligationsBy', 'st.askingBy', 'agent.away', 'pawn.household', 'household.members', 'pawn.role'];
+  'st.obligationsDue', 'st.obligationsBy', 'st.facilityIdx', 'st.askingBy', 'agent.away', 'pawn.household', 'household.members', 'pawn.role'];
 assert.deepStrictEqual(declared.filter((k) => !COMPARED.includes(k) && !CACHES_UNCOMPARED[k]), [], 'a declared cache neither compared nor excused');
 assert.deepStrictEqual([...COMPARED, ...Object.keys(CACHES_UNCOMPARED)].filter((k) => !declared.includes(k)), [], 'a cache listed that src/owners.json does not declare');
 
@@ -61,7 +61,8 @@ assert.deepStrictEqual(failures, [], 'a cache differs from its derivation after 
 const NOT_YET = ['answer', 'claim', 'letIn', 'placeFarmstead', 'callWorkday', 'blaze', 'lodge', 'comeHome', 'call', 'goGathering', 'stayHome', 'swap',
   'target', 'tile', 'order', 'letField', 'dropProject', 'sowOutOfTurn', 'courses', 'dayOrder', 'dayGive', 'dayCall', 'handOn', 'move', 'plotToVillage',
   'beginCottage', 'goBack', 'goToKin', 'visit', 'sendVisit', 'foundHousehold', 'finishCottage', 'decide', 'argue', 'dropCause', 'rally', 'leave', 'takeUp',
-  'renounce', 'marry', 'skip', 'slander'];
+  'renounce', 'marry', 'skip', 'slander',
+  'found', 'upkeep']; // VB-361: no facility kind is declared in the game yet (each craft's task declares its own); tests/facilities.js carries both
 const missed = Object.keys(VERBS).filter((v) => !carried.has(v));
 assert.deepStrictEqual(missed.filter((v) => !NOT_YET.includes(v)), [], 'a verb neither carried nor listed in NOT_YET');
 assert.deepStrictEqual(NOT_YET.filter((v) => carried.has(v) || !VERBS[v]), [], 'carried now, or no longer a verb: strike it from NOT_YET');

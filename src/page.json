@@ -29,6 +29,7 @@
   "page/fieldart.js",
   "page/portraits.js",
   "page/settlement.js",
+  "page/facilityart.js",
   "page/speed.js",
   "page/animate.js",
   "page/deer.js",

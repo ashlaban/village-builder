@@ -642,6 +642,7 @@ VB['sim/scenarios'] = (() => {
       visits: [], // the suitors' visits planned (sim/visits, VB-289)
       booths: [],
       boothSeq: 0,
+      facilities: [], // built things on sites (sim/facilities, VB-361)
       finds: new Map(),
       deer: null,
     };
