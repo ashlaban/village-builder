@@ -39,15 +39,18 @@ VB['sim/gifts'] = (() => {
       if (j.why === 'fetch' && j.gift && j.gift.to === hh.id && st.pawns[j.pawn].household === hh.id) return j.pawn;
     return haulerOf(st, hh);
   }
+  // Whether an occasion not yet over is held for pawn id (a wedding's couple, VB-276): it bears and fetches nothing until it is over
+  const heldFor = (st, id) => st.occasions.some((o) => o.for.includes(id));
   // The youngest member of household hh of 14 or more who is not away nor carrying a load home, or -1: who goes for a gift, or takes the
-  // household's quarter to the green (VB-849); never the last one at home with a child under 7 (VB-1602: sim/records mindsWhy)
+  // household's quarter to the green (VB-849); never the last one at home with a child under 7 (VB-1602: sim/records mindsWhy), nor one
+  // an occasion is held for and not yet over (VB-276: a bride does not go for her dowry on the eve of her wedding)
   function haulerOf(st, hh) {
     let best = -1;
     for (const id of hh.members) {
       const p = st.pawns[id],
         a = st.agents[id];
       if (!p.alive || age(st, p) < HANDS[0] || a.away !== undefined || a.phase === 'back') continue;
-      if (mindsWhy(st, id)) continue;
+      if (mindsWhy(st, id) || heldFor(st, id)) continue;
       if (best < 0 || age(st, p) < age(st, st.pawns[best])) best = id;
     }
     return best;
@@ -103,7 +106,8 @@ VB['sim/gifts'] = (() => {
   // New household hh's grain came from `piles` [[household, n]], the homes it was taken from (a settler's stake, a parent's gift). What is
   // still in its store (a settler's journey took its pack from it) is taken out and laid at those homes, by crop in proportion, as hh's:
   // each pile is borne by the grown of hh on their way there from that farm, a share each (sim/journeys bear), else by any of them on the
-  // way, else fetched by one of hh at home (fetcherOf); with none, it lies there for the farm's hands (sim/lying, leftGrain).
+  // way, else fetched by one of hh at home (fetcherOf); with none, it lies there for the farm's hands (sim/lying, leftGrain). None bears
+  // it whose occasion is to come (heldFor: a bride walks to her wedding, and her dowry is fetched by another or lies).
   function layStart(st, hh, piles) {
     const total = piles.reduce((s, [, n]) => s + n, 0),
       n = Math.min(total, Stores.grainOf(hh));
@@ -112,7 +116,7 @@ VB['sim/gifts'] = (() => {
     Stores.take(st, hh, 'grain', n, { kind: 'provisions', laid: true }, parts);
     const going = hh.members.filter((id) => {
       const j = stayOf(st, id);
-      return age(st, st.pawns[id]) >= HANDS[0] && j && j.why === 'move' && !j.back;
+      return age(st, st.pawns[id]) >= HANDS[0] && j && j.why === 'move' && !j.back && !heldFor(st, id);
     });
     // with a child under 7 in the household and more than one grown on the way, the eldest bears nothing (VB-1602): it walks straight
     // to the new home and is there with the child, while the others bear the start, load by load

@@ -44,6 +44,7 @@ VB['sim/heirs'] = (() => {
     { dropPlan } = VB['sim/plans'],
     { emit } = VB['sim/events'];
   const { heirsPlace, heirRanking, ownFirstOf } = VB['sim/heirranking'];
+  const Terms = VB['sim/terms'];
   // The act of moving (the move command, VB-822, its only caller): pawn id changes to household hhId, for `reason`; text: the 'moved' life
   // event, when the caller says more than the farm's name (sim/settle). The pawn walks to its new home, on a journey when it lies in another
   // village (sim/journeys' moved, VB-287, by sim/events); carry false: its provisions come from the new household (settlers).
@@ -108,18 +109,22 @@ VB['sim/heirs'] = (() => {
     // shares for the siblings who do not inherit
     if (cu.heirCount !== 'one' && reason !== 'claim') {
       const sibs = siblingsOf(st, heir).filter((q) => st.pawns[q].alive);
-      const wt = (q) => (cu.daughterShare === 'half' && st.pawns[q].sex === 'f' ? 1 : 2);
-      const value = f.fields.length * SHARES.perField + Stores.grainOf(hh) * SHARES.perGrain,
+      const wt = (q) => Terms.shareWeight(st, cu, q);
+      // a widow's morning gift is hers before any division, and a dowry given is an advance on the share (sim/terms, VB-276)
+      const wd = reason === 'death' && op && op.died !== null ? spouseOf(st, op.id, op.died - 0.01) : null,
+        dower = wd !== null && st.pawns[wd].alive ? Terms.dowerOf(st, wd, hh) : 0;
+      const value = Terms.estateWorth(st, hh, dower),
         total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
       for (const q of sibs) {
         const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember; // shares never eat the seed corn or the winter's food
-        const due = Math.round((value * wt(q)) / total),
+        const due = Math.max(0, Math.round((value * wt(q)) / total) - Terms.advanceOf(st, q, hh)),
           paid = Math.min(due, Math.max(0, Math.floor(Stores.grainOf(hh) - reserve)));
         Stores.move(st, hh, st.pawns[q], 'grain', paid, { kind: 'share', pawn: q });
         const qh = st.pawns[q].household; // grain short: animals (at their customary worth) go to a sibling's household of their own (VB-140)
         const animals = due > paid && qh !== null ? payInAnimals(st, hh, st.households[qh], due - paid) : 0,
           owed = due - paid - animals;
         if (owed) oweShare(st, hh, q, owed); // the farm that pays, at each moving round (sim/obligations; sim/cottage payOwed)
+        Terms.settleAdvance(st, q, hh);
         if (due)
           personEvent(
             st,
@@ -131,6 +136,7 @@ VB['sim/heirs'] = (() => {
           );
       }
     }
+    if (cu.heirCount !== 'one' && reason !== 'claim') Terms.settleAdvance(st, heir, hh);
     personEvent(st, heir, 'inherited', `Took over ${f.name} (${reason})`, false); // recorded below
     log(
       st,
@@ -286,6 +292,7 @@ VB['sim/heirs'] = (() => {
     // its plans go while it still stands: timber at a building step is put on its woodpile (sim/plans' leftWood), which a dissolved
     // holder refuses (VB-779); then the woodpile and the barn are laid at the house for its heir (takeEstate, layEstate)
     dropPlan(st, 'household', hh.id);
+    Terms.dissolving(st, hh); // a widow's dower, paid before the estate is taken (VB-276)
     const estate = takeEstate(st, hh);
     hh.dissolved = true;
     noteDissolved(st, hh);
