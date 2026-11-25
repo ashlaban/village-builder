@@ -492,6 +492,7 @@ function storesTab(hh) {
     section('Supplies') +
     suppliesHTML(Sim.supplyOutlook(st, hh.id)) +
     stats(supplies) +
+    `<button type="button" class="card-switch" data-stores-household="${hh.id}">Stores, in days of food</button>` +
     section('Materials') +
     materialsHTML(materialsOf(hh), worksOf(hh), allMaterials) +
     section('Gear') +

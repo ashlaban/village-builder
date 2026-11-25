@@ -273,6 +273,7 @@ function showVillage(id) {
         ? section('Alderman') + pawnChip(v.alderman) // VB-314: the village's office, held by a holder chosen at its meeting
         : '') +
       section('Store') +
+      `<button type="button" class="card-switch" data-stores-village="${id}">Stores of every household</button>` +
       suppliesHTML(Sim.villageOutlook(st, id, st.player ? st.player.pawn : null), ['food']) +
       peopleHTML(S) +
       marryHTML(S) +

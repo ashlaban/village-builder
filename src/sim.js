@@ -282,6 +282,8 @@ const Sim = (() => {
     depositKnown,
     goodwillOf,
     explainAllowance,
+    inScope: VB['sim/scopes'].inScope, // a scope's pawns, households, villages, tiles and stores (VB-043)
+    storesOf: VB['sim/scopes'].storesOf, // the stores of a scope's households, a row each and their total (VB-092)
     explainFeast, // why a household does or does not lay out a feast (VB-458)
     depositLeftNow,
     woodOf,

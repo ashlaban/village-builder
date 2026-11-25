@@ -781,3 +781,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1686](backlog/VB-1686.md) | Invariant: no decision reads an unrealised draw | - | 2 | M | Fields drawn by chance for a time not yet come (the year's frost, the season's weather) read by deciders only through an expectation |
 | [VB-1682](backlog/VB-1682.md) | Fix: a sheep flock grows to half a million and hangs the byre's emergency cull (populous small seed 11) | - | 1 | M | an unbounded flock in populous small seed 11 by year 29 stalls year 30 in sim/byre emergency; a nightly populous band seed |
 | [VB-044](backlog/VB-044.md) | Overlay filters by scope, and claims on the overlay | debt | 3 | M | The ownership overlay can be filtered by any entity level and also shows claims. |
+| [VB-092](backlog/VB-092.md) | Store views for households and villages | debt | 3 | M | A stores table for any household or village scope, on the VB-043 scope model. |
