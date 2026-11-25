@@ -116,7 +116,12 @@ function menuHTML(id, opps) {
       continue; // a cause is no act: the dock's Agenda (page/drawer)
     else by.self.push(o);
   }
-  const TITLES = { round: 'At the moving round', give: 'Give grain', slander: 'Speak ill of' };
+  const TITLES = {
+    round: 'At the moving round',
+    give: 'Give grain',
+    slander: 'Speak ill of',
+    swap: 'Deal at the fair',
+  };
   let h =
     `<div class="mh">${
       m.view
@@ -128,6 +133,7 @@ function menuHTML(id, opps) {
   if (barMsg) h += `<p class="act-msg${barMsg.bad ? ' bad' : ''}" role="status">${esc(barMsg.text)}</p>`;
   if (m.view === 'round') return `${h}<div class="play">${roundBox(id, by.round, Sim.wishesOf(st, id))}</div>`;
   if (m.view === 'give') return h + giveHTML(id);
+  if (m.view === 'swap') return h + swapHTML(id);
   if (m.view === 'slander') return h + slanderHTML(by.self.find((o) => o.verb === 'slander'));
   if (m.g === 'self') {
     const home = by.self.find((o) => o.verb === 'goHome'),
@@ -189,6 +195,17 @@ function menuHTML(id, opps) {
         o.why,
       );
     }
+    // the fair (VB-303): standing at the gathering with a load, a swap with another dealer there (page/swap)
+    const fair = Sim.fairSides(st, id);
+    if (fair)
+      h += actRow(
+        'data-bar="view" data-view="swap"',
+        'offer',
+        'Deal at the fair',
+        `${fair.dealers.length} ${fair.dealers.length === 1 ? 'dealer' : 'dealers'} here with a load`,
+        fair.dealers.length ? null : 'no other dealer with a load is here now',
+        true,
+      );
     // a winter's visit (VB-292): its own, or that of a son or daughter of the house it speaks for; planned at once, set out in winter
     for (const o of by.self.filter((x) => x.verb === 'visit')) {
       const v = o.visit;
@@ -337,6 +354,8 @@ $('actMenu').addEventListener('click', (e) => {
   barMsg = null;
   if (b.dataset.give) {
     giveClick(b, id);
+  } else if (b.dataset.swap) {
+    swapClick(b, id);
   } else if (b.dataset.play) {
     const r = playClick(b);
     if (r !== true) barMsg = { text: r, bad: true };
@@ -353,6 +372,10 @@ $('actMenu').addEventListener('click', (e) => {
     if (barMenu.view === 'give') {
       gift.warn = null;
       gift.msg = '';
+    }
+    if (barMenu.view === 'swap') {
+      swap.warn = null;
+      swap.msg = '';
     }
   } else if (act === 'why')
     barMsg = { text: `${b.querySelector('.nm').firstChild.textContent}: ${b.dataset.why}.`, bad: true };

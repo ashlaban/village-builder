@@ -402,6 +402,12 @@ function updateSettlement(dt) {
     const cart = Carts.cartOf(st, st.households[pp.household], a.id);
     pose(R, cart ? { ...a, carry: null } : a, time, winter, drawStride[a.id]);
     if (cart) R.armF.rotation = R.armB.rotation = -0.9;
+    // a dealer with its load for the fair (sim/fair's pawn.load) carries it on the road in a basket on its back, while it carries
+    // nothing else; on the green it is set out (page/gathering, VB-303)
+    else if (pp.load && a.path && !a.carry && !R.back.visible) {
+      R.back.texture = atlas.basket;
+      R.back.visible = true;
+    }
   }
   drawTeams(show);
   drawCarts(show);

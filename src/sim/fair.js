@@ -309,8 +309,7 @@ VB['sim/fair'] = (() => {
       b = takeOut(q.load, wants.good, wants.n * quantum(wants.good));
     for (const x of a) q.load.lots.push({ ...x, got: true });
     for (const x of b) p.load.lots.push({ ...x, got: true });
-    const wg = gives.n * worth(gives.good),
-      wt = wants.n * worth(wants.good);
+    const { give: wg, get: wt } = worthOf(gives, wants);
     if (wg > wt) book(st, from, to, wg - wt);
     else if (wt > wg) book(st, to, from, wt - wg);
     const hp = st.households[p.load.household],
@@ -380,6 +379,52 @@ VB['sim/fair'] = (() => {
     const hh = st.households[p.load.household],
       below = floorOf(st, hh) - (Stores.grainOf(hh) + held(p.load, 'grain') - gives.n * quantum('grain'));
     return below > TOLERANCE ? { below } : null;
+  }
+  // ---- the player's swap (VB-303; design.md, The gathering, What the player sees) ----
+  // A swap's customary worth, in rations: {give, get}, of what the actor gives and of what it gets; the residual booked is give less get.
+  // One reckoning, for the swap (swapLoads) and for what its dialog says would be booked (swapTerms).
+  const worthOf = (gives, wants) => ({ give: gives.n * worth(gives.good), get: wants.n * worth(wants.good) });
+  // A load's goods as the swap dialog shows them: each good it holds a quantum of, {good, n (whole quanta), lump, worth (rations of
+  // customary worth a quantum)}
+  const sideOf = (l) =>
+    goodsIn(l).map((g) => ({
+      good: g,
+      n: Math.floor(held(l, g) / quantum(g) + TOLERANCE),
+      lump: Goods.goodOf(g).lump,
+      worth: worth(g),
+    }));
+  // The fair pawn id is at, as its dialog shows it: null when it carries no load or stands at no gathering; else {mine (its load's
+  // goods), dealers[] ({id, household, goods}: those at the same gathering, in one place with it by swapWhy's measure, with a load of another
+  // household, by id)}. Reads only.
+  function fairSides(st, id) {
+    const p = st.pawns[id],
+      a = st.agents[id];
+    if (!p || !p.alive || !p.load || !a || a.occasion == null) return null;
+    const o = st.occasions.find((x) => x.id === a.occasion);
+    if (!o || o.kind !== 'gathering') return null;
+    const dealers = [];
+    for (const d of st.fair.loads) {
+      const q = st.pawns[d],
+        b = st.agents[d];
+      if (d === id || !q.alive || !q.load || q.load.household === p.load.household || !b || b.occasion !== o.id)
+        continue;
+      dealers.push({ id: d, household: q.load.household, goods: sideOf(q.load) });
+    }
+    dealers.sort((x, y) => x.id - y.id);
+    return { mine: sideOf(p.load), dealers };
+  }
+  // A swap's terms as the dialog shows them before it is offered: {why (null, or why it cannot be offered: sim/fair's swapWhy), give and get
+  // (the customary worth, in rations, of what the player gives and of what it asks), residual (give less get: what the other would owe it,
+  // booked as goodwill; below 0, what it would owe), warning (swapWarning: grain under its household's floor)}. Reads only.
+  function swapTerms(st, id, other, gives, wants) {
+    const { give, get } = worthOf(gives, wants);
+    return {
+      why: swapWhy(st, id, other, gives, wants),
+      give,
+      get,
+      residual: give - get,
+      warning: swapWarning(st, id, gives),
+    };
   }
   // ---- finding deals (design.md, The fair: Trade partners; Cost) ----
   // Whether a deal would only pass one keeping good for another: dealer `me` needs what it would take (its need alone, with no room left
@@ -468,16 +513,7 @@ VB['sim/fair'] = (() => {
     for (const r of fairOf(st).fairs) {
       if (r.told || st.occasions.some((o) => o.kind === 'gathering' && o.village === r.host && o.start > st.t))
         continue;
-      r.told = true;
-      const moved = Object.keys(r.worth)
-        .map((g) => `${g} ${Math.round(r.worth[g])}`)
-        .join(', ');
-      log(
-        st,
-        `The fair at ${st.villages[r.host].name}: ${r.dealers} came to deal, ${r.deals} ${r.deals === 1 ? 'deal' : 'deals'} made` +
-          `${moved ? ` (rations' worth: ${moved})` : ''}, ${r.noChange} failed for want of change, ${r.hard} hard ${r.hard === 1 ? 'bargain' : 'bargains'}.`,
-        { kind: 'fair', village: r.host, n: r.deals },
-      );
+      r.told = true; // its count is told in the gathering's report (sim/gathering, VB-303), at the end of the last day
     }
   }
   // Each hour while loads are out (sim/clock): at a fair's hours its dealers deal, at its last its line is told; at any hour a dealer
@@ -493,5 +529,5 @@ VB['sim/fair'] = (() => {
     const year = cal(st.t).year;
     st.fair.fairs = st.fair.fairs.filter((r) => r.year === year || !r.told);
   }
-  return { FAIR, fairHour, swapWhy, swapWarning, held, weight };
+  return { FAIR, fairHour, swapWhy, swapWarning, held, weight, fairSides, swapTerms };
 })();

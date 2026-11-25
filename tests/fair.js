@@ -95,22 +95,41 @@ assert.deepStrictEqual(issues(st), []);
 const a = here.find((id) => F.held(st.pawns[id].load, 'grain') >= 20), b = here.find((id) => F.held(st.pawns[id].load, 'hide') >= 1 && st.pawns[id].load.household !== st.pawns[a].load.household);
 if (a !== undefined && b !== undefined) {
   Sim.inhabit(st, a);
+  // VB-303: what its swap dialog reads: both sides' goods in whole quanta at their customary worth, and the residual that would be booked
+  const sides = Sim.fairSides(st, a), other = sides && sides.dealers.find((d) => d.id === b);
+  assert.ok(sides && other && sides.mine.some((x) => x.good === 'grain' && x.n >= 2) && other.goods.some((x) => x.good === 'hide'), 'both sides shown');
+  assert.ok(sides.dealers.every((d) => d.household !== st.pawns[a].load.household), 'not its own household');
+  const shown = Sim.swapTerms(st, a, b, { good: 'grain', n: 2 }, { good: 'hide', n: 1 });
+  assert.strictEqual(shown.why, null);
+  assert.ok(shown.give > 0 && shown.get > 0, JSON.stringify(shown));
+  const owedBefore = balance(st, a, b);
+  assert.strictEqual(Sim.fairSides(st, st.pawns.find((q) => q.alive && !q.load).id), null, 'no load, no dialog');
   const terms = { basis: 'swap', gives: { good: 'grain', n: 2 }, wants: { good: 'hide', n: 1 } };
   assert.strictEqual(issue(st, { actor: a, verb: 'offer', target: b, args: terms, source: 'player' }), true);
   assert.ok(F.held(st.pawns[b].load, 'grain') >= 20, 'the other took the grain');
   assert.ok(balance(st, a, b) > 0, 'the residual is booked: the other owes the player');
+  // F4 (review): the residual the dialog showed is what was booked, sign and all
+  assert.ok(Math.abs(balance(st, a, b) - owedBefore - shown.residual) < 1e-6, `booked ${balance(st, a, b) - owedBefore}, shown ${shown.residual}`);
   assert.strictEqual(F.swapWarning(st, a, { good: 'grain', n: 1 }), null, 'a household far above its floor is not warned');
   Sim.uninhabit(st);
 }
 
 // after the last day: the fair is told, with its counts; two days on every dealer is home and its load in the store
 Sim.advance(st, end + WORK[0] - st.t);
-const line = st.record.find((e) => e && e.kind === 'fair');
+// the fair is told in the gathering's report (VB-303): it has no line of its own
+assert.ok(!st.record.some((e) => e && e.kind === 'fair'), 'the fair is told once');
+const line = st.record.find((e) => e && e.kind === 'gatheringHeld');
 assert.ok(line, 'the fair is told');
 const fair = st.fair.fairs.find((r) => r.year === 1);
 assert.ok(fair.deals >= 3 && fair.proposals >= fair.deals, `deals ${fair.deals} of ${fair.proposals} proposals`);
 assert.ok(fair.worth.grain > 0 && fair.worth.tar > 0, 'grain and tar changed hands');
 assert.match(line.text, /deals? made.*failed for want of change.*hard/);
+// VB-303: the gathering's report, in the log and the host's chronicle: who hosted, which villages came, cases and matches, the fair's deals
+const told = st.record.find((e) => e && e.kind === 'gatheringHeld');
+assert.ok(told, 'the gathering is reported');
+assert.match(told.text, /^The gathering at .+ ends: hosted by .+, with .+; \d+ were there on its last day; at the fair \d+ came to deal, \d+ deals? made \(rations' worth: .*grain \d+.*\), \d+ failed for want of change, \d+ hard bargains?/);
+assert.ok(!/border case|match/.test(told.text), 'no case or match is told until the gathering hears one (VB-297, VB-298)');
+assert.ok(Sim.chronicle(st, { village: told.village }).some((r) => /hosted by/.test(r.text)), "in the host's chronicle");
 assert.ok(st.record.filter((e) => e && e.kind === 'swap').length >= 2 * fair.deals - 2, 'each side records its deal');
 assert.deepStrictEqual(issues(st), []);
 Sim.advance(st, 2 * DAY);

@@ -375,6 +375,23 @@ const iv = setInterval(async () => {
   const iv2 = setInterval(() => { if (!doc.getElementById('menuBtn').disabled && doc.getElementById('loader').classList.contains('done')) tick(20);  if (doc.getElementById('loader').classList.contains('done') && !doc.getElementById('menuBtn').disabled) { clearInterval(iv2); doc.getElementById('chooseWatch').click(); let ok = true; try { tick(10); } catch (e) { ok = false; }
     const deadAttached = []; const walk = (n, path) => { for (const c of n.children || []) { if (c._dead) deadAttached.push(path); walk(c, path + '>' + (c.constructor.name)); } }; walk(P.APP.stage, 'stage'); doc.getElementById('settlersBtn').click(); if (!doc.querySelector('#settlers .village-block')) fail('settlers list is empty after regenerating');
     if (!ok) fail('frame error after regenerating');
+    // VB-303 (review F1): the green's loads at a gathering draw on the rebuilt layer, not on a Graphics the rebuild destroyed
+    {
+      const st2 = P.seeded, id = st2.pawns.findIndex((p) => p.alive && p.household !== null && st2.agents[p.id] && !st2.agents[p.id].path), ag = st2.agents[id];
+      const was = { fair: st2.fair, load: st2.pawns[id].load, occ: ag.occasion, path: ag.path, n: st2.occasions.length }, drawn = P.calls.ellipse || 0;
+      st2.fair = { loads: [id], fairs: [], goods: {} };
+      st2.pawns[id].load = { household: st2.pawns[id].household, until: st2.t + 9, lots: [{ good: 'grain', n: 10 }, { good: 'tar', n: 1 }] };
+      st2.occasions.push({ id: 1e6, kind: 'gathering', for: [], village: 0, farm: null, tile: 0, x: 10, y: 10, start: st2.t - 1, end: st2.t + 9, asked: [], come: [] });
+      ag.occasion = 1e6; // a pawn standing still, so no walk of its is touched
+      doc.getElementById('stage').dispatchEvent(new win.WheelEvent('wheel', { deltaY: -4000, bubbles: true, cancelable: true })); // near enough to draw it
+      tick(20);
+      try { tick(2); } finally {
+        st2.occasions.length = was.n; st2.fair = was.fair; st2.pawns[id].load = was.load; ag.occasion = was.occ;
+      }
+      if ((P.calls.ellipse || 0) <= drawn) fail('no load drawn on the green of a gathering');
+      if (/went wrong in a frame/.test(doc.getElementById('lod').textContent)) fail(`a frame failed with loads on the green: ${doc.getElementById('lod').textContent}`);
+      tick(1);
+    }
     console.log('destroyed objects still in the scene:', deadAttached.length); console.log('regen frames ran:', ok, '|', doc.getElementById('name').textContent, '| settlers', [...doc.querySelectorAll('#settlers .farm h2')].map((h) => h.textContent).join(' / ')); goodwillPanel().then(notices).then(actionBar).then(() => process.exit(P.failed ? 1 : 0)); } }, 50);
 }, 50);
 // The pawn panel's goodwill balances (VB-218): after a year of populous 7 on the tiny map, with its gifts, a holder with a balance toward
@@ -668,6 +685,34 @@ async function actionBar() {
       console.log('action bar, a visit:', own.textContent, '|', sent.textContent);
     }
     Sim.opportunities = real.o; Sim.orderVisit = real.v; Sim.visitState = real.s;
+  }
+  // the fair (VB-303): standing at a gathering with a load, the Myself list offers a swap; its form shows both sides' goods, the customary
+  // worth and the residual that would be booked, warns under the floor and queues the offer. On constructed sides (Sim.fairSides,
+  // Sim.swapTerms): the simulation's side is tests/fair.js.
+  {
+    const real = { f: Sim.fairSides, t: Sim.swapTerms }, other = st.pawns.find((p) => p.alive && p.household !== null && p.household !== holder.household);
+    const good = (g, lump, n, worth) => ({ good: g, lump, n, worth });
+    Sim.fairSides = () => ({ mine: [good('grain', 'sack', 3, 10)], dealers: [{ id: other.id, household: other.household, goods: [good('tar', 'barrel', 2, 15)] }] });
+    Sim.swapTerms = (s, id, o, gives, wants) => ({ why: null, give: gives.n * 10, get: wants.n * 15, residual: gives.n * 10 - wants.n * 15, warning: { below: 4 } });
+    q('#actBar [data-group="self"]').click(); tick(1); if (q('#actMenu').hidden) { q('#actBar [data-group="self"]').click(); tick(1); }
+    const row = q('#actMenu [data-view="swap"]');
+    if (!row || !/1 dealer here with a load/.test(row.textContent)) fail(`the Myself list offers no deal at the fair: ${row && row.textContent}`);
+    else {
+      row.click(); tick(1);
+      const form = q('#actMenu').textContent;
+      if (!/You carry 3 sacks of grain \(10 each\)/.test(form) || !/carries 2 barrels of tar \(15 each\)/.test(form)) fail(`the swap does not show both sides: ${form.slice(0, 400)}`);
+      q('#actMenu [data-swap="moreGive"]').click(); tick(1);
+      const terms = q('#actMenu').textContent;
+      if (!/2 sacks of grain, worth 20 rations, for 1 barrel of tar, worth 15/.test(terms) || !/would owe you 5 rations' worth: booked as goodwill/.test(terms)) fail(`the swap's worth and residual: ${terms.slice(0, 500)}`);
+      q('#actMenu [data-swap="go"]').click(); tick(1);
+      if (!/4 rations short of its floor/.test(q('#actMenu').textContent) || queue().includes('offer')) fail('the swap under the floor is not warned first');
+      q('#actMenu [data-swap="confirm"]').click(); tick(1);
+      const c = st.player.queue.find((x) => x.verb === 'offer');
+      if (!c || c.target !== other.id || c.args.basis !== 'swap' || c.args.gives.n !== 2 || c.args.wants.good !== 'tar') fail(`the swap is not queued: ${JSON.stringify(c)}`);
+      console.log('action bar, the fair:', JSON.stringify(c && c.args));
+      if (c) Sim.unqueue(st, st.player.queue.indexOf(c));
+    }
+    Sim.fairSides = real.f; Sim.swapTerms = real.t;
   }
   // the agenda: a cause is no act of the Village list; the dock's Agenda offers each custom's other options, queues one, and links to the customs
   q('#actBar [data-group="village"]').click(); tick(1);
