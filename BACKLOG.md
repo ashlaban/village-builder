@@ -92,6 +92,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1175](backlog/VB-1175.md)<a id="VB-1175"></a> | Teleports found, collected: swept at a slice's wrap-up | physical | 3 | M | The teleports tasks found in the code, a line each; swept together when a slice wraps up |
 | [VB-1240](backlog/VB-1240.md)<a id="VB-1240"></a> | Acts with no pawn, collected: swept at a slice's wrap-up | acts | 3 | M | The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up |
 | [VB-1354](backlog/VB-1354.md)<a id="VB-1354"></a> | Screenshots and Debug audit for VB-671 | - | 3 | S | screenshots, Debug audit |
+| [VB-1364](backlog/VB-1364.md)<a id="VB-1364"></a> | The village's loans are made by its alderman | - | 3 | S | Loans of the village (VB-312) made by the alderman, booked as goodwill |
+| [VB-1369](backlog/VB-1369.md)<a id="VB-1369"></a> | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
 | [VB-1389](backlog/VB-1389.md)<a id="VB-1389"></a> | Cost: three history targets out at small-y40 (asksWeighed, kinPairs, roundWalk) | - | 3 | S | asksWeighed, kinPairs and roundWalk grow with history at small-y40; find the loops and bound them |
 | [VB-1404](backlog/VB-1404.md)<a id="VB-1404"></a> | Measures owed to VB-775: RITE.spread 3/5/8, hours lost, cross-village marriages | - | 3 | S | RITE.spread runs, hours lost, marriages across villages, greens' share of dealing |
 | [VB-1410](backlog/VB-1410.md)<a id="VB-1410"></a> | Measure the alderman's keep (VB-463): each option forced, keepDays 2/4/7, keepShare 0.05/0.1/0.17 | - | 3 | S | Collecting task for VB-463's unmeasured numbers |
@@ -106,6 +108,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1490](backlog/VB-1490.md)<a id="VB-1490"></a> | Page: a tile turned to meadow recolours the overview without waiting for a tree change | - | 3 | S | updateSettlement calls refreshTrees only when st.treeDirty has tiles, so a change that sets only st.biomeDirty waits for the next tree change before the overview is recoloured. |
 | [VB-1494](backlog/VB-1494.md)<a id="VB-1494"></a> | A village blazes a trail to a neighbour or a daughter it has kin in | far | 3 | S | At its meeting a village decides to blaze a trail to a neighbour or a daughter it has kin in and cannot reach in a day there and back; its alderman issues blaze (sim/trails) as a village duty (VB-314; principle "Every act is a pawn's"). |
 | [VB-1505](backlog/VB-1505.md)<a id="VB-1505"></a> | sim/pose: the tile at a map point by the grid's one locator | - | 3 | S | sim/pose.tileAt repeats hexLocator's arithmetic line for line; it calls the one in world/grid |
+| [VB-1506](backlog/VB-1506.md)<a id="VB-1506"></a> | Owners for w.biome, w.trees and w.stones | - | 3 | S | about ten sim modules write the world's biome, trees and stones, and src/owners.json names no owner for them |
 | [VB-1526](backlog/VB-1526.md)<a id="VB-1526"></a> | Crops by ground: a crop's yield factor by the field's ground | - | 3 | M | An optional ground map on a CROPS row, read once in standing; the head's choice of crop reads it |
 | [VB-1537](backlog/VB-1537.md)<a id="VB-1537"></a> | The guide's second half: the deeds of sim/commands, and the rules reading a kind's at and needs | - | 3 | S | The guide (VB-1124) lists the job kinds from their at, needs and gives; the verbs of sim/commands carry no name to list, and no rule reads the declarations yet: name each verb beside its check for a Deeds chapter, and let a kind's available read its needs. |
 | [VB-1560](backlog/VB-1560.md)<a id="VB-1560"></a> | Own time reported: the shares of pastimes by role and season | - | 3 | S | A report of own time by pastime, for tuning PASTIME.weights |
@@ -149,9 +152,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-1364](backlog/VB-1364.md)<a id="VB-1364"></a> | The village's loans are made by its alderman | - | 3 | S | Loans of the village (VB-312) made by the alderman, booked as goodwill |
-| [VB-1369](backlog/VB-1369.md)<a id="VB-1369"></a> | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
-| [VB-1506](backlog/VB-1506.md)<a id="VB-1506"></a> | Owners for w.biome, w.trees and w.stones | - | 3 | S | about ten sim modules write the world's biome, trees and stones, and src/owners.json names no owner for them |
 | [VB-1587](backlog/VB-1587.md)<a id="VB-1587"></a> | A new site's well is dug by the party before the move | - | 3 | S | follows batches (b2) and (c) of VB-1543: the well as a job of the site |
 | [VB-1732](backlog/VB-1732.md)<a id="VB-1732"></a> | Loans: a store's repayment cut off on the way lies for the store | debt | 3 | S | A store's repayment haul cut off returns to the debtor; it should lie for the store |
 
