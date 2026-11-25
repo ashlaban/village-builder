@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Hour Budget</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600&display=swap">
+<style>
+/* Ledger: the season's hours as envelopes at their places (map), a burndown docked below, members with sovereignty meters at the right;
+   the "flows" variant swaps map + burndown for a Sankey of whose hours went where. */
+:root { --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --accent: #a8473a; --risk: #c8361b; color-scheme: light; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #e6e9df; color: var(--ink); font: 14px/1.35 'Alegreya Sans', system-ui, sans-serif; }
+.band { height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--card); border-bottom: 1px solid var(--line); }
+.band h1 { font: 500 17px 'Alegreya SC', Georgia, serif; margin: 0; }
+.band .mode { font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }
+.band .from { font-size: 12px; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: #fff; padding: 3px 9px; font: inherit; font-size: 13px; cursor: pointer; }
+.seg button.on { background: var(--ink); color: #fff; }
+.sp { flex: 1; }
+.wrap { display: grid; grid-template-columns: 800px 1fr; height: calc(100vh - 41px); }
+#main { position: relative; background: #8c9a6a; }
+#main svg { display: block; }
+#bd { background: var(--card); border-top: 1px solid var(--line); }
+#side { overflow-y: auto; background: var(--card); border-left: 1px solid var(--line); padding: 8px 12px; }
+#side h2 { font: 600 13px 'Alegreya Sans'; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 8px 0 4px; }
+.mem { display: grid; grid-template-columns: 38px 92px 1fr; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px dashed var(--line); cursor: pointer; }
+.mem.sm { grid-template-columns: 26px 80px 1fr; padding: 1px 0; }
+.mem .nm b { display: block; } .mem .nm small { color: var(--muted); }
+.mem.sm .nm b { display: inline; font-size: 13px; } .mem.sm .nm small { font-size: 11px; }
+.hit { cursor: pointer; }
+.dim { opacity: .25; }
+.bubble { position: absolute; z-index: 5; width: 300px; background: #fff; border: 1px solid #3a2a1a; border-radius: 8px; padding: 9px 11px; box-shadow: 0 4px 14px #0004; font-size: 13px; }
+.bubble h3 { margin: 0 0 4px; font: 600 15px 'Alegreya Sans', sans-serif; display: flex; gap: 6px; align-items: center; }
+.bubble dl { margin: 0; display: grid; grid-template-columns: 64px 1fr; gap: 1px 6px; }
+.bubble dt { color: var(--muted); } .bubble dd { margin: 0; }
+.bubble .acts { margin-top: 7px; display: grid; gap: 3px; }
+.bubble .acts button { text-align: left; font: inherit; font-size: 12.5px; border: 1px solid #3a2a1a55; background: #f3efe4; border-radius: 6px; padding: 3px 8px; cursor: pointer; display: grid; grid-template-columns: 1fr; }
+.bubble .acts button small { color: var(--muted); }
+.bubble .acts button.def { border: 2px solid var(--ink); background: #fff; }
+.bubble .acts button.def::before { content: 'the rule will: '; font-weight: 700; }
+.bubble .row { display: flex; gap: 5px; margin-top: 7px; }
+.bubble .row button { font: inherit; font-size: 12px; border: 1px solid #3a2a1a; background: #f3efe4; border-radius: 12px; padding: 2px 9px; cursor: pointer; }
+.bubble .row button.main { background: var(--ink); color: #fff; }
+.why { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; display: grid; gap: 2px; }
+.why div { display: flex; gap: 6px; align-items: center; font-size: 12.5px; }
+.why i { font-style: normal; color: var(--muted); font-size: 11px; padding-left: 26px; }
+.toast { position: absolute; left: 400px; bottom: 18px; transform: translateX(-50%); max-width: 720px; background: #23251e; color: #fff; padding: 7px 14px; border-radius: 14px; font-family: ui-monospace, monospace; font-size: 12px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 9; }
+.toast.on { opacity: 1; }
+.note { position: absolute; right: 12px; bottom: 12px; max-width: 360px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; z-index: 4; }
+.note summary { cursor: pointer; font-weight: 600; }
+.chip { position: fixed; z-index: 10; pointer-events: none; background: #e0a43a; border: 1.5px solid #2a2018; border-radius: 10px; padding: 1px 8px; font-weight: 700; font-size: 12px; }
+.key { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; }
+.key i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 3px; border: 1px solid #0003; }
+.asks { display: flex; gap: 8px; align-items: center; }
+</style>
+</head>
+<body>
+<div class="band">
+  <h1>The hour budget</h1><span class="mode">Ledger · season · autumn day 4</span>
+  <span class="from">from envelope budgets, the Sankey, the burndown</span>
+  <span class="seg" id="vV"><button data-v="env" class="on">envelopes</button><button data-v="flows">flows</button></span>
+  <span class="seg" id="vT"><button data-v="past">so far (exact)</button><button data-v="ahead" class="on">ahead (Per's estimate)</button></span>
+  <span class="sp"></span>
+  <span class="seg" id="vS"><button data-v="0" class="on">Backa, 5</button><button data-v="1">stress: 10 + estate</button></span>
+  <span class="seg" id="vA"><button data-v="mem" class="on">by member</button><button data-v="pos">by position</button></span>
+</div>
+<div class="wrap"><div id="main"></div><div id="side"></div></div>
+<details class="note"><summary>Scales to / strains at</summary>
+<p><b>Scales to:</b> four or five targets on their tiles, one envelope a tile (rye sits on the long field, where its hours go: the barn at home would stack three on one tile); a household of 5 to 10 in the side list; the Sankey at 5 members, or at 10 aggregated by position.</p>
+<p><b>Strains at:</b> envelopes count hours, not days. The budget shows 10 h free while the barley is 8 h short: the free hours fall on days 11 and 12, after its window. Only the burndown shows that, so the envelope alone misleads. The Sankey at 10 by member: breach bands of 1 to 4 h are slivers, and the labels collide. The estate's winter days have no tile and no target, so they live only in the flows and the budget. A village of 20 households: an envelope per target per household cannot stand on shared tiles. That needs a muster table, not this.</p>
+</details>
+<div class="toast" id="toast"></div>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+// ---- Extensions of the scene (this mock only). Season = autumn days 5..12 ahead (8), days 1..4 past.
+const S = { v: 'env', t: 'ahead', stress: false, agg: 'mem', sel: null, open: null };
+const EXTRA = [ // the stress household: 10 members
+  { id: 'lars', name: 'Lars', age: 24, pos: 'servant', levy: 10.5, col: '#4a4a8a', hands: 1, note: 'contract to Michaelmas; a free day at the term' },
+  { id: 'brita', name: 'Brita', age: 71, pos: 'elder', levy: 0, col: '#77776a', hands: 0.5, note: 'undantag: no work set; what she does is given' },
+  { id: 'olof', name: 'Olof', age: 35, pos: 'lodger', levy: 1, col: '#8a6a2a', hands: 1, note: '1 adult-day in autumn, no more' },
+  { id: 'mats', name: 'Mats', age: 9, pos: 'child', levy: 4.9, col: '#c07a4a', hands: 0.7 },
+  { id: 'stina', name: 'Stina', age: 8, pos: 'child', levy: 4.2, col: '#c0904a', hands: 0.6 },
+];
+const HANDS = { anna: 0.7 };
+const people = () => (S.stress ? PEOPLE.concat(EXTRA) : PEOPLE);
+const P = Object.fromEntries(PEOPLE.concat(EXTRA).map((p) => [p.id, p]));
+// The six parts (+ the head pair's own choice), booked per member. past: days 1-4 exact; ahead: days 5-12, the levy in force, estimated.
+const TALLY = {
+  past: { per: { heads: 44, kept: 4 }, karin: { heads: 44, kept: 4 }, erik: { levied: 42, given: 5, kept: 1 }, nils: { levied: 36, taken: 6, demanded: 1.5, kept: 4.5 },
+    anna: { levied: 20, kept: 13.6 }, lars: { levied: 42, kept: 6 }, brita: { given: 6, kept: 18 }, olof: { levied: 0, kept: 48 }, mats: { levied: 19.6, kept: 14 }, stina: { levied: 16.8, kept: 12 } },
+  ahead: { per: { owed: 8, heads: 80, kept: 8 }, karin: { heads: 88, kept: 8 }, erik: { owed: 8, levied: 76, given: 8, kept: 4 }, nils: { levied: 74, taken: 10, demanded: 4, kept: 8 },
+    anna: { levied: 40, kept: 27.2 }, lars: { owed: 8, levied: 76, kept: 12 }, brita: { given: 10, kept: 38 }, olof: { levied: 8, kept: 88 }, mats: { levied: 39.2, kept: 28 }, stina: { levied: 33.6, kept: 24 } },
+};
+const ESTATE = { erik: 8, lars: 8, nils: 8 }; // stress: Sparre's 3 winter days, at the lord's call (beyond the season; shown in "ahead")
+const PART = {
+  owed: { n: 'owed', c: '#33599e', from: 'levy', to: 'village' }, estate: { n: 'owed: estate', c: '#7d3f8c', from: 'levy', to: 'estate' },
+  levied: { n: 'levied', c: '#e0a43a', from: 'levy', to: 'household' }, heads: { n: "heads' choice", c: '#c99a52', from: 'heads', to: 'household' },
+  taken: { n: 'taken', c: 'url(#hatch-own)', from: 'levy', to: 'own', breach: 1 }, demanded: { n: 'demanded', c: 'url(#hatch-hh)', from: 'own', to: 'household', breach: 1 },
+  given: { n: 'given', c: '#2f8f8a', from: 'own', to: 'household' }, kept: { n: 'kept', c: '#bfe0dc', from: 'own', to: 'ownlife' },
+};
+// Targets as envelopes at their places; assigned = hours given a job by the season plan; window end; the barley short by its window.
+const ENV = [
+  { id: 'rye', good: 'rye', name: 'Rye in the barn', at: 'long', left: SEASON.targets[0].left, a: 52, win: 6, col: '#b8862a', line: [98, 84, 68, 52, 30, 8, 0, 0, 0, 0, 0, 0] },
+  { id: 'barley', good: 'oats', name: 'Barley in the barn', at: 'barley', left: SEASON.targets[1].left, a: 28, win: 10, col: '#7a7a12', line: [36, 36, 36, 36, 36, 36, 28, 20, 14, 8, 8, 8] },
+  { id: 'wood', good: 'wood', name: 'Firewood for winter', at: 'wood2', left: SEASON.targets[2].left, a: 24, win: 12, col: '#6a4a2a', line: [30, 28, 26, 24, 21, 18, 15, 12, 9, 6, 3, 0] },
+  { id: 'sow', good: 'sow', name: 'Winter rye sown (added here)', at: 'long2', left: { lo: 24, mid: 30, hi: 38 }, a: 30, win: 12, col: '#4a7a3a', line: [30, 30, 30, 30, 30, 30, 30, 30, 22, 14, 7, 0] },
+  { id: 'hay', good: 'hay', name: 'Hay', at: 'meadow', left: SEASON.targets[3].left, a: 0, win: 0, col: '#8a9a3a', line: Array(12).fill(0) },
+];
+const BUD = { levies: SEASON.budget.levy, heads: 64, outer: SEASON.budget.outer, duties: 48, other: 56 }; // to assign = 144
+const budget = () => BUD.levies + BUD.heads - BUD.outer - BUD.duties - BUD.other + (S.stress ? 84 + 33.6 + 39.2 + 8 - 40 - 24 : 0);
+const assigned = () => ENV.reduce((t, e) => t + e.a, 0);
+const short = (e) => Math.max(0, e.left.mid - e.a);
+const REMEDIES = () => [
+  S.stress ? { verb: 'assign', what: 'Lars to the barley, days 7–8', cost: 'sowing 8 h later (window to day 12)', def: 1 } : { verb: 'assign', what: 'Nils off firewood to the barley, days 7–8', cost: 'firewood 8 h behind; it has till winter', def: 1 },
+  { verb: 'ask', what: 'Ask Norrgård for a hand, day 7', cost: "a day owed back at their sowing; goodwill if they say yes" },
+  { verb: 'ask', what: 'Ask Erik and Nils for 1 h more a day, days 6–9', cost: 'they answer by their opinion of Per: Erik likely yes, Nils likely no' },
+  { verb: 'commute', what: "Commute Erik's fence day 6 (3 rations)", cost: '3 rations; Erik on the barley day 6 (+8 h)' },
+  { verb: 'breach', what: 'Demand Nils 2 h a day, days 6–9', cost: 'booked demanded; his opinion of Per falls; a memory; he may take hours back' },
+  { verb: 'plan', what: 'Lower the target: barley 30 → 24 loads', cost: 'about 20 rations short by spring' },
+];
+const pct = (x) => Math.round(x * 100) + '%';
+const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+// Sovereignty: own hours as a share of H, by right (the custom's levy) and as lived (kept + taken, so far).
+function sov(p) {
+  const h = 12 * (p.hands || HANDS[p.id] || 1), T = TALLY.past[p.id], H = sum(T);
+  const right = p.pos === 'head' ? null : (h - (p.levy || 0)) / h;
+  return { right, lived: ((T.kept || 0) + (T.taken || 0)) / H, gave: T.given || 0, dem: T.demanded || 0, took: T.taken || 0 };
+}
+// The one meter: a bar of a whole; amber = the household's, teal = own; a mark for "by right". Same shape as the envelopes' meter.
+function sovMeter(p, w = 150) {
+  const s = sov(p);
+  let g = `<svg width="${w + 30}" height="20" style="overflow:visible">${DEFS}`;
+  g += `<rect width="${w}" height="8" y="1" fill="${p.pos === 'head' ? '#c99a52' : '#e0a43a'}" stroke="#2a2018" stroke-width=".6"/>`;
+  if (s.right != null) g += `<rect x="${w * (1 - s.right)}" y="1" width="${w * s.right}" height="8" fill="#eef6f4" stroke="#1f7a76" stroke-width="1.2"/>`;
+  g += `<rect x="${w * (1 - s.lived)}" y="11" width="${w * s.lived}" height="6" fill="#2f8f8a"/><rect width="${w}" y="11" height="6" fill="none" stroke="#0003" stroke-width=".6"/>`;
+  if (s.took) g += `<rect x="${w * (1 - s.lived)}" y="11" width="${w * (s.took / sum(TALLY.past[p.id]))}" height="6" fill="url(#hatch-own)"/>`;
+  return g + `<text x="${w + 4}" y="16" font-size="11" font-weight="700">${pct(s.lived)}</text></svg>`;
+}
+function portrait(p, sz = 34) { return `<svg width="${sz}" height="${sz}" viewBox="-20 -24 40 40"><circle cy="-4" r="19" fill="#fff" stroke="${p.col}" stroke-width="2"/>${pawnSVG(p, 0, 6, 1)}</svg>`; }
+
+// ---- Envelopes on the map.
+const VBX = [100, 6, 640, 382], MH = 476;
+function meter(e, w = 54) { // amber = hours assigned; striped = hours left lo..hi (Per's estimate); tick = mid; red outline = short
+  const top = Math.max(e.left.hi, e.a, 1), k = w / top, lo = e.left.lo * k, mid = e.left.mid * k, hi = e.left.hi * k, a = e.a * k;
+  let s = `<rect width="${w}" height="8" fill="#fff" stroke="#2a2018" stroke-width=".7"/><rect width="${a}" height="8" fill="#e0a43a"/>`;
+  if (hi > lo) s += `<rect x="${lo}" width="${hi - lo}" height="8" fill="url(#hatch-todo)"/>`;
+  if (a < mid) s += `<rect x="${a}" width="${mid - a}" height="8" fill="none" stroke="${'#c8361b'}" stroke-width="1.6"/>`;
+  return s + `<path d="M${mid} -2v12" stroke="#2a2018" stroke-width="1.4"/>`;
+}
+function envelope(e) {
+  const { x, y } = at(e.at), sh = short(e), done = e.left.hi === 0;
+  const ic = icon(e.good, { frame: 'target', whose: null, num: sh ? -sh : null, state: done ? 'done' : sh ? 'risk' : null, size: 30 });
+  return `<g class="hit env${S.sel && S.sel !== e.id ? ' dim' : ''}" data-id="env:${e.id}" transform="translate(${x - 34} ${y - 34})">
+    <rect width="68" height="58" rx="5" fill="#fffdf6" fill-opacity=".9" stroke="#2a2018" stroke-width="1"/><path d="M0 2l34 16 34 -16" fill="none" stroke="#2a201833"/>
+    <g transform="translate(19 2)">${ic}</g><g transform="translate(7 45)">${meter(e)}</g></g>`;
+}
+function budgetEnv() {
+  const { x, y } = at('home'), B = budget(), free = Math.round(B - assigned());
+  const ic = icon('people', { frame: 'target', whose: 'household', num: free, unit: 'hours', size: 32 }), w = 70, k = w / B;
+  return `<g class="hit" data-id="env:budget" transform="translate(${x - 40} ${y - 30})">
+    <rect width="80" height="62" rx="5" fill="#fff6dc" stroke="#2a2018" stroke-width="1.6" stroke-dasharray="5 2"/><path d="M0 2l40 16 40 -16" fill="none" stroke="#2a201844"/>
+    <g transform="translate(24 2)">${ic}</g><g transform="translate(5 50)"><rect width="${w}" height="8" fill="#fff" stroke="#2a2018" stroke-width=".7"/><rect width="${assigned() * k}" height="8" fill="#e0a43a"/></g>
+    <text x="40" y="-4" font-size="9" text-anchor="middle" font-weight="700" fill="#2a2018">to assign: drag</text></g>`;
+}
+function mapView() {
+  let s = `<svg width="800" height="${MH}" viewBox="${VBX.join(' ')}">${DEFS}${mapSVG()}`;
+  for (const k of ['home', 'long', 'long2', 'barley', 'wood2', 'meadow', 'fence', 'green']) { const { x, y } = at(k); s += `<text x="${x}" y="${y + 40}" font-size="8" text-anchor="middle" fill="#23251ecc">${PLACES[k].name}</text>`; }
+  // the outer days as levy shields where they are owed (one per tile), pennants = owed
+  s += `<g class="hit" data-id="outer:fence" transform="translate(${at('fence').x - 12} ${at('fence').y - 22})">${icon('fence', { frame: 'plan', whose: 'owed', num: 6, size: 24 })}</g>`;
+  s += `<g class="hit" data-id="outer:bridge" transform="translate(${at('green').x + 8} ${at('green').y - 6})">${icon('village', { frame: 'plan', whose: 'owed', num: 9, size: 24 })}</g>`;
+  if (S.stress) s += `<g class="hit" data-id="outer:estate" transform="translate(${at('norr').x + 6} ${at('norr').y - 30})">${icon('build', { frame: 'plan', whose: 'estate', num: 3, unit: 'count', size: 24 })}</g>`;
+  s += ENV.map(envelope).join('') + budgetEnv();
+  // the short envelope's callout: the rule's default, one tap to the remedies
+  const b = at('barley'), sh = short(ENV[1]);
+  if (sh) s += `<g class="hit" data-id="env:barley" transform="translate(${b.x + 36} ${b.y - 6})"><rect width="128" height="30" rx="4" fill="#fff" stroke="#c8361b" stroke-width="1.4"/><text x="6" y="12" font-size="8.5" font-weight="700" fill="#c8361b">short ${sh} h by day 10 · 6 remedies</text><text x="6" y="24" font-size="8.5">the rule will: ${S.stress ? 'Lars, days 7–8' : 'Nils off firewood'}</text></g>`;
+  return s + '</svg>';
+}
+// ---- The burndown, docked below: hours left by day; total (cone ahead) vs the budget line; each target thin, the barley's window end.
+function burndown(W = 800, H = 284) {
+  const L = 44, R = 150, T = 22, Bm = 26, pw = W - L - R, ph = H - T - Bm, X = (d) => L + ((d - 1) / 11) * pw, max = 200, Y = (v) => T + ph - (v / max) * ph;
+  let s = `<svg width="${W}" height="${H}">${DEFS}<text x="10" y="15" font-size="12" font-weight="700">Hours left, autumn days 1–12</text><text x="250" y="15" font-size="11" fill="#5d6253">past exact · ahead Per's estimate (striped lo–hi) · click a line</text>`;
+  for (let v = 0; v <= max; v += 50) s += `<path d="M${L} ${Y(v)}H${L + pw}" stroke="#0001"/><text x="${L - 4}" y="${Y(v) + 3}" font-size="9" text-anchor="end">${v}h</text>`;
+  for (let d = 1; d <= 12; d++) s += `<text x="${X(d)}" y="${H - 8}" font-size="9" text-anchor="middle">${d}</text>`;
+  s += `<rect x="${X(4)}" y="${T}" width="${X(12) - X(4)}" height="${ph}" fill="#0000000a"/>`;
+  const tot = (d) => ENV.reduce((t, e) => t + e.line[d - 1] * (d > 4 ? 1 : 1), 0), r = (e, q) => (e.left.mid ? e.left[q] / e.left.mid : 1);
+  const cone = (q) => (d) => ENV.reduce((t, e) => t + e.line[d - 1] * (d > 4 ? 1 + (r(e, q) - 1) * ((d - 4) / 8 + 0.4) : 1), 0);
+  const lo = cone('lo'), hi = cone('hi'), ah = [4, 5, 6, 7, 8, 9, 10, 11, 12];
+  s += `<path d="M${ah.map((d) => X(d) + ' ' + Y(hi(d))).join('L')}L${ah.slice().reverse().map((d) => X(d) + ' ' + Y(lo(d))).join('L')}Z" fill="url(#hatch-todo)" stroke="#0003"/>`;
+  const B = budget(); // the budget line: hours of the levy in force still to come
+  s += `<path d="M${X(4)} ${Y(B)}L${X(12)} ${Y(0)}" stroke="#1b2f57" stroke-width="2.2" stroke-dasharray="7 4"/><text x="${X(4) + 4}" y="${Y(B) - 5}" font-size="10" fill="#1b2f57" font-weight="700">budget ${Math.round(B)} h</text>`;
+  const path = (f, d0, d1) => { let p = ''; for (let d = d0; d <= d1; d++) p += (d === d0 ? 'M' : 'L') + X(d) + ' ' + Y(f(d)); return p; };
+  s += `<g class="hit" data-id="bd:total"><path d="${path(tot, 1, 4)}" stroke="#23251e" stroke-width="3" fill="none"/><path d="${path(tot, 4, 12)}" stroke="#23251e" stroke-width="3" fill="none" stroke-dasharray="2 3"/></g>`;
+  s += `<text x="${X(12) + 6}" y="${Y(tot(12)) - 2}" font-size="10" font-weight="700">all targets</text>`;
+  let ly = T + 6;
+  for (const e of ENV) {
+    if (!e.line[0]) continue;
+    const f = (d) => e.line[d - 1], dim = S.sel && S.sel !== e.id ? ' class="dim"' : '';
+    s += `<g class="hit" data-id="env:${e.id}"${dim}><path d="${path(f, 1, 4)}" stroke="${e.col}" stroke-width="2" fill="none"/><path d="${path(f, 4, 12)}" stroke="${e.col}" stroke-width="2" fill="none" stroke-dasharray="4 3"/>`;
+    s += `<path d="M${X(e.win)} ${Y(0)}v-6" stroke="${e.col}" stroke-width="2"/><rect x="${W - R + 10}" y="${ly}" width="128" height="18" fill="#fff0"/><g transform="translate(${W - R + 10} ${ly - 4})">${icon(e.good, { frame: 'target', whose: null, size: 18 })}</g><text x="${W - R + 32}" y="${ly + 9}" font-size="10.5">${e.name.replace(' (added here)', '')}</text></g>`;
+    ly += 22;
+  }
+  // where the barley crosses its window's end
+  const bx = X(10), by = Y(8);
+  s += `<path d="M${bx} ${T}V${T + ph}" stroke="#c8361b" stroke-width="1.4" stroke-dasharray="3 2"/><text x="${bx + 3}" y="${T + 10}" font-size="9.5" fill="#c8361b">barley window ends</text>`;
+  s += `<g class="hit" data-id="env:barley"><circle cx="${bx}" cy="${by}" r="6" fill="#c8361b" stroke="#fff" stroke-width="1.5"/><text x="${bx + 9}" y="${by - 6}" font-size="10" font-weight="700" fill="#c8361b">−${short(ENV[1])} h left at day 10</text></g>`;
+  s += `<path d="M${X(4)} ${T}V${T + ph}" stroke="#d14b2f" stroke-width="1.6"/><text x="${X(4) + 3}" y="${T + ph - 4}" font-size="9" fill="#d14b2f">now</text>`;
+  s += `<text x="${W - R + 10}" y="${ly + 18}" font-size="10" fill="#5d6253">The total fits the budget;</text><text x="${W - R + 10}" y="${ly + 31}" font-size="10" fill="#5d6253">the barley does not fit</text><text x="${W - R + 10}" y="${ly + 44}" font-size="10" fill="#5d6253">its days.</text>`;
+  return s + '</svg>';
+}
+// ---- The flows: a Sankey of members -> (levy | heads' choice | own) -> bodies -> uses. Breaches cross between the bands.
+function groups() {
+  const ps = people();
+  if (S.agg === 'mem') return ps.map((p) => ({ id: p.id, label: p.name, col: p.col, ids: [p.id] }));
+  const by = [['head', 'head pair'], ['heir', 'adult members'], ['child', 'children'], ['elder', 'elder'], ['lodger', 'lodger']], m = { son: 'heir', servant: 'heir' };
+  return by.map(([k, n]) => ({ id: k, label: n, col: '#5d6253', ids: ps.filter((p) => (m[p.pos] || p.pos) === k).map((p) => p.id) })).filter((g) => g.ids.length);
+}
+function flowsView(W = 800, H = 760) {
+  const G = groups(), T = TALLY[S.t], est = S.t === 'ahead';
+  const val = (ids, part) => ids.reduce((t, id) => t + (part === 'estate' ? (S.stress && est ? ESTATE[id] || 0 : 0) : (T[id][part] || 0) - (part === 'levied' && S.stress && est ? ESTATE[id] || 0 : 0)), 0);
+  const cols = [[], [{ id: 'levy', label: 'the levy (household\'s)' }, { id: 'heads', label: "the head pair's (by choice)" }, { id: 'own', label: 'own hours' }],
+    [{ id: 'village', label: 'the village' }, { id: 'estate', label: 'the estate (winter)' }, { id: 'household', label: 'the household' }, { id: 'ownlife', label: 'own life' }],
+    [{ id: 'fence', label: 'fence', b: 'village' }, { id: 'bridge', label: 'bridge', b: 'village' }, { id: 'manor', label: 'manor days', b: 'estate' }, { id: 'rye', label: 'rye', b: 'household' }, { id: 'barley', label: 'barley', b: 'household' },
+      { id: 'wood', label: 'firewood', b: 'household' }, { id: 'sow', label: 'sowing', b: 'household' }, { id: 'duties', label: 'duties, house', b: 'household' }, { id: 'rest', label: 'rest', b: 'ownlife' }, { id: 'pastime', label: 'pastimes', b: 'ownlife' }, { id: 'courting', label: 'courting', b: 'ownlife' }]];
+  cols[0] = G.map((g) => ({ id: 'g:' + g.id, label: g.label, col: g.col, g }));
+  const links = [];
+  for (const g of G) for (const part of Object.keys(PART)) { const v = val(g.ids, part); if (v > 0) links.push({ s: 'g:' + g.id, t: PART[part].from, v, part, c: g.col }); }
+  const agg = {}; for (const l of links) agg[l.part] = (agg[l.part] || 0) + l.v;
+  for (const [part, v] of Object.entries(agg)) links.push({ s: PART[part].from, t: PART[part].to, v, part, c: PART[part].c, mid: 1 });
+  const split = { household: est ? { rye: 0.14, barley: 0.2, wood: 0.15, sow: 0.16, duties: 0.35 } : { rye: 0.5, wood: 0.1, duties: 0.4 }, ownlife: { rest: 0.55, pastime: 0.25, courting: 0.2 } };
+  const into = (b) => links.filter((l) => l.t === b).reduce((t, l) => t + l.v, 0);
+  if (est) { links.push({ s: 'village', t: 'fence', v: into('village') - 8, c: '#33599e' }, { s: 'village', t: 'bridge', v: 8, c: '#33599e' }); if (into('estate')) links.push({ s: 'estate', t: 'manor', v: into('estate'), c: '#7d3f8c' }); }
+  for (const b of ['household', 'ownlife']) for (const [t, f] of Object.entries(split[b])) links.push({ s: b, t, v: into(b) * f, c: b === 'household' ? '#e0a43a' : '#bfe0dc' });
+  const nodes = {}, X = [10, 250, 470, 640], NW = 12, gap = 9;
+  const total = links.filter((l) => l.s.startsWith('g:')).reduce((t, l) => t + l.v, 0), k = (H - 90 - gap * 12) / total;
+  cols.forEach((c, ci) => {
+    let y = 40;
+    for (const n of c) {
+      const vin = links.filter((l) => l.t === n.id).reduce((t, l) => t + l.v, 0), vout = links.filter((l) => l.s === n.id).reduce((t, l) => t + l.v, 0), v = Math.max(vin, vout);
+      if (!v) continue;
+      nodes[n.id] = { ...n, x: X[ci], y, h: v * k, v, oi: 0, ii: 0 }; y += v * k + gap + (ci === 1 ? 26 : ci === 2 ? 14 : 0);
+    }
+  });
+  let s = `<svg width="${W}" height="${H}">${DEFS}<rect width="${W}" height="${H}" fill="#f6f5ef"/><pattern id="est" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2.4" height="7" fill="#ffffff70"/></pattern>`;
+  s += `<text x="10" y="20" font-size="12.5" font-weight="700">${est ? 'Days 5–12, ahead: the levy in force, Per\'s estimate (striped)' : 'Days 1–4, so far: exact, as booked at each leg\'s end'}${S.stress ? ' · stress' : ''}</text>`;
+  const order = Object.keys(nodes);
+  links.sort((a, b) => order.indexOf(a.t) - order.indexOf(b.t));
+  for (const l of links) {
+    const a = nodes[l.s], b = nodes[l.t]; if (!a || !b) continue;
+    const h = l.v * k, y0 = a.y + a.oi, y1 = b.y + b.ii; a.oi += h; b.ii += h;
+    const x0 = a.x + NW, x1 = b.x, xm = (x0 + x1) / 2, d = `M${x0} ${y0}C${xm} ${y0} ${xm} ${y1} ${x1} ${y1}V${y1 + h}C${xm} ${y1 + h} ${xm} ${y0 + h} ${x0} ${y0 + h}Z`;
+    const pt = PART[l.part], br = l.mid && pt.breach, id = l.mid ? 'part:' + l.part : l.s.startsWith('g:') ? 'mem:' + l.s.slice(2) : 'body:' + l.t;
+    s += `<g class="hit" data-id="${id}"><path d="${d}" fill="${l.mid ? pt.c : l.c}" fill-opacity="${l.mid ? (br ? 1 : 0.8) : 0.45}" stroke="${br ? '#2a2018' : 'none'}" stroke-width="${br ? 1.2 : 0}" ${br ? 'stroke-dasharray="3 2"' : ''}/>${est ? `<path d="${d}" fill="url(#est)"/>` : ''}</g>`;
+    if (l.mid && h > 2) { const ty = (y0 + y1) / 2 + h / 2; s += `<text x="${xm}" y="${ty + 4}" font-size="${h > 10 ? 11 : 9.5}" text-anchor="middle" font-weight="700" fill="#23251e" pointer-events="none" paint-order="stroke" stroke="#fff" stroke-width="3">${pt.n} ${Math.round(l.v)}</text>`; }
+    if (br) { const ty = (y0 + y1) / 2 + h / 2; s += `<g class="hit" data-id="part:${l.part}" transform="translate(${xm - 58} ${ty - 12})">${icon(l.part === 'taken' ? 'courting' : 'cart', { breach: l.part, size: 24, num: Math.round(l.v), unit: 'count' })}</g>`; }
+  }
+  for (const n of Object.values(nodes)) {
+    const isG = n.id.startsWith('g:'), id = isG ? 'mem:' + n.g.id : 'body:' + n.id;
+    s += `<g class="hit" data-id="${id}"><rect x="${n.x}" y="${n.y}" width="${NW}" height="${Math.max(1, n.h)}" fill="${isG ? n.col : '#23251e'}"/>`;
+    const lx = n.x === X[3] ? n.x + NW + 4 : isG ? n.x + NW + 4 : n.x - 4, anchor = n.x === X[3] || isG ? 'start' : 'end';
+    s += `<text x="${lx}" y="${n.y + Math.min(n.h / 2, 12) + 4}" font-size="11.5" text-anchor="${anchor}" paint-order="stroke" stroke="#f6f5ef" stroke-width="3">${n.label} <tspan fill="#5d6253">${Math.round(n.v)}h</tspan></text></g>`;
+  }
+  s += `<text x="10" y="${H - 14}" font-size="11" fill="#5d6253">Left: each ${S.agg === 'mem' ? 'member' : 'position'}'s H = 12 h × days × hands. Middle: the six parts; the breaches are the dashed bands that cross (taken: levy → own life; demanded: own → household). Scale: 1 h = ${k.toFixed(2)} px.</text>`;
+  return s + '</svg>';
+}
+// ---- The side: members with sovereignty meters, the household's spread, asks, the key.
+function side() {
+  const ps = people(), sm = ps.length > 6;
+  let s = `<h2>Members · own hours, as a share of H</h2><div class="key" style="margin-bottom:4px"><span><i style="background:#eef6f4;border-color:#1f7a76"></i>own by right</span><span><i style="background:#2f8f8a"></i>own as lived (days 1–4)</span><span><i style="background:url(#)" class="tk"></i></span></div>`;
+  for (const p of ps) {
+    const o = sov(p);
+    s += `<div class="mem${sm ? ' sm' : ''}" data-id="mem:${p.id}">${portrait(p, sm ? 24 : 34)}<div class="nm"><b>${p.name}</b> <small>${p.pos}${p.levy ? ', levy ' + p.levy + ' h' : p.pos === 'head' ? ', not levied' : ', no levy'}</small></div>${sovMeter(p, sm ? 170 : 190)}</div>`;
+  }
+  // the spread: each member's lived own share as a dot on one line
+  const W = 300, xs = ps.map((p) => [p, sov(p).lived]), mn = Math.min(...xs.map((x) => x[1])), mx = Math.max(...xs.map((x) => x[1]));
+  s += `<h2>The household's spread</h2><svg width="${W + 40}" height="34"><path d="M10 16H${W + 10}" stroke="#2a2018"/><rect x="${10 + mn * W}" y="10" width="${(mx - mn) * W}" height="12" fill="#2f8f8a33"/>` +
+    xs.map(([p, v]) => `<circle cx="${10 + v * W}" cy="16" r="5" fill="${p.col}" stroke="#fff"/>`).join('') + `<text x="10" y="32" font-size="10">0%</text><text x="${W + 10}" y="32" font-size="10" text-anchor="end">100% own</text><text x="${10 + mx * W + 8}" y="12" font-size="10">${pct(mn)}–${pct(mx)}</text></svg>`;
+  s += `<h2>Asks and grants</h2><div class="asks"><span class="hit" data-id="ask:nils">${icon('courting', { frame: 'plan', whose: 'own', num: 10, size: 30 })}</span><span>Nils asks leave on day 10 (in the barley's window)</span></div>`;
+  s += `<div class="asks"><span class="hit" data-id="grant:nils">${icon('gift', { frame: 'target', whose: 'own', size: 30 })}</span><span>Grants in force: Nils' leave, day 8 (the gathering)</span></div>`;
+  s += `<h2>Whose hours</h2><div class="key">${Object.entries(PART).map(([k, p]) => `<span><svg width="16" height="11"><rect width="16" height="11" fill="${p.c}" stroke="#0004"/></svg> ${p.n}</span>`).join('')}</div>`;
+  s += `<p style="font-size:12px;color:#5d6253;margin-top:10px">Drag hours from the dashed envelope at Backa to a target to <code>plan</code>. Tap any mark for its bubble, again for its acts; "why" opens the ladder.</p>`;
+  return s.replace('<span><i style="background:url(#)" class="tk"></i></span>', '');
+}
+// ---- What a tap says, the acts it offers, and the why-ladder.
+const WHY = {
+  barley: [['oats', 'target', 'Barley 8 h short by day 10'], ['chop', 'plan', 'its window: days 5–10'], ['rye', 'plan', 'the rye takes every hand to day 6'], ['fence', 'plan', "Erik's fence day 6 (owed): −8 h", 'owed'], ['courting', 'plan', "Nils' leave day 8 (granted): −8 h", 'own'], ['village', 'plan', "Per's bridge day 9 (owed): −8 h", 'owed']],
+  budget: [['people', 'target', '10 h free, all on days 11–12'], ['chop', 'plan', 'the rye and barley windows hold the rest'], ['fence', 'plan', '3 outer days: −24 h', 'owed']],
+};
+function info(id) {
+  const [kind, a] = id.split(':');
+  if (kind === 'env' && a === 'budget') {
+    const B = budget();
+    return { gl: 'people', opt: { frame: 'target', whose: 'household' }, title: 'Labour budget, days 5–12', why: WHY.budget,
+      rows: [['levies', `${BUD.levies} h (Erik, Nils 10.5 h; Anna 5 h; × 8 days)${S.stress ? ' + Lars, Olof, Mats, Stina' : ''}`], ['heads', `+${BUD.heads} h of field work, their choice`], ['outer', `−${BUD.outer} h: fence day 6, a day to name, the bridge${S.stress ? '; winter: −24 h to Sparre' : ''}`], ['duties', `−${BUD.duties} h; other work −${BUD.other} h`], ['to assign', `${Math.round(B)} h; ${Math.round(B - assigned())} h free (all on days 11–12)`]],
+      acts: [{ verb: 'plan', what: 'Drag hours to a target', cost: 'dates its next steps to members' }, { verb: 'grant', what: 'Release the free hours to the members', cost: 'they fall to own; opinion of Per rises' }] };
+  }
+  if (kind === 'env') {
+    const e = ENV.find((x) => x.id === a), sh = short(e);
+    const acts = sh ? REMEDIES() : [{ verb: 'plan', what: 'Lower the target', cost: 'frees hours to the budget' }, { verb: 'plan', what: 'Raise the target', cost: 'takes hours from the budget' }];
+    return { gl: e.good, opt: { frame: 'target', whose: null, num: sh ? -sh : null }, title: e.name, why: e.id === 'barley' ? WHY.barley : null,
+      rows: [['left', `${e.left.lo}–${e.left.mid}–${e.left.hi} h (Per's estimate)`], ['assigned', `${e.a} h given a job`], ['window', e.win ? `to day ${e.win}` : 'done'], ['short', sh ? `${sh} h at the mid` : 'none']], acts };
+  }
+  if (kind === 'mem') {
+    const g = groups().find((x) => x.id === a), p = P[a] || P[g.ids[0]], o = sov(p);
+    if (!P[a]) return { gl: 'people', opt: { frame: 'now' }, title: g.label + ' (' + g.ids.length + ')', rows: [['members', g.ids.map((i) => P[i].name).join(', ')]], acts: [{ verb: 'grant', what: 'A standing grant to all of them', cost: 'their opinion of Per rises' }] };
+    return { gl: p.pos === 'child' ? 'child' : p.pos === 'head' ? 'holder' : 'heir', opt: { frame: 'now', whose: 'own' }, title: `${p.name}, ${p.age}, ${p.pos}`,
+      rows: [['levy', p.levy ? `${p.levy} h a day of ${12 * (p.hands || HANDS[p.id] || 1)} (autumn custom)` : p.pos === 'head' ? 'not levied: the plan is theirs' : 'none'], ['own', `by right ${o.right == null ? '—' : pct(o.right)}; as lived ${pct(o.lived)}`], ['tally', `given ${o.gave} h · demanded ${o.dem} h · taken ${o.took} h`], ['note', p.note || p.trait || '']],
+      why: p.id === 'nils' ? [['courting', 'now', 'Nils took 6 h, days 1–4', 'household'], ['courting', 'target', 'he wants: courting Lisa at Norrgård', 'own'], ['mood', 'now', 'idle; his opinion of Per: low', 'own']] : null,
+      acts: [{ verb: 'grant', what: `${p.name} +1 h a day in winter`, cost: '12 h of the winter budget; opinion of Per rises' }, { verb: 'breach', what: `Demand ${p.name} 2 h a day, days 6–9`, cost: '8 h booked demanded; opinion of Per falls; a memory' }, { verb: 'plan', what: 'Assign to a target', cost: 'dates steps within the levy' }] };
+  }
+  if (kind === 'part') { const p = PART[a]; return { gl: a === 'taken' ? 'courting' : a === 'demanded' ? 'cart' : 'people', opt: { frame: 'now', breach: p.breach ? a : null, whose: a === 'kept' || a === 'given' ? 'own' : a === 'owed' ? 'owed' : 'household' }, title: `${p.n}: ${p.from} → ${p.to}`,
+    rows: [['what', { owed: 'worked for the village under an outer levy', levied: "the household's tasks within the levy", taken: 'levy hours the member kept for itself (Nils)', demanded: 'own hours called by Per beyond the levy (Nils)', given: 'own hours given of the member\'s accord (Erik)', kept: 'pastimes, courting, rest', heads: "the head pair's own choice", estate: "Sparre's days, at the lord's call" }[a]], ['booked', S.t === 'past' ? 'exact, at each leg\'s end' : 'Per\'s estimate']],
+    acts: a === 'taken' ? [{ verb: 'answer', what: 'Accept it (noted)', cost: 'a memory of Per\'s; Nils\' standing', def: 1 }, { verb: 'breach', what: 'Call him back (demand)', cost: 'opinion falls' }, { verb: 'grant', what: 'Grant it as leave', cost: '6 h; opinion rises' }] : a === 'demanded' ? [{ verb: 'release', what: 'Give the hours back', cost: 'the haul waits for the rain' }] : [] }; }
+  if (kind === 'ask') return { gl: 'courting', opt: { frame: 'plan', whose: 'own' }, title: 'Nils asks: leave on day 10', rows: [['cost', '8 h in the barley\'s last window day: short 8 → 16 h'], ['by right', 'no: day 10 is in his levy']],
+    acts: [{ verb: 'answer', what: 'No (the barley)', cost: 'a memory of his: a no; he may take the day', def: 1 }, { verb: 'answer', what: 'Yes', cost: 'barley 16 h short; his opinion of Per rises' }, { verb: 'answer', what: 'Yes, if he gives day 11', cost: 'a trade: barley 8 h short still' }], why: WHY.barley.slice(0, 2) };
+  if (kind === 'grant') return { gl: 'gift', opt: { frame: 'target', whose: 'own' }, title: 'Grants in force', rows: [['Nils', 'leave day 8, the gathering'], ['standing', 'none by season yet']], acts: [{ verb: 'grant', what: 'Nils +1 h a day in winter', cost: '12 h of the winter budget; opinion rises' }, { verb: 'grant', what: 'Revoke day 8', cost: 'opinion falls; he may take it' }] };
+  if (kind === 'outer') { const L = a === 'estate' ? LEVIES.e1 : a === 'bridge' ? LEVIES.v2 : LEVIES.v1; return { gl: a === 'estate' ? 'build' : a === 'bridge' ? 'village' : 'fence', opt: { frame: 'plan', whose: a === 'estate' ? 'estate' : 'owed' }, title: `${L.what} (${L.from})`,
+    rows: [['days', `${L.days}, window ${L.window.join('–')}${L.season ? ' (' + L.season + ')' : ''}`], ['terms', `names: ${L.terms.names}; substitute ${L.terms.substitute ? 'yes' : 'no'}; commute ${L.terms.commute ? L.terms.commute + ' rations' : 'no'}; breach: ${L.terms.onBreach}`]],
+    acts: [{ verb: 'substitute', what: 'Send another adult', cost: 'that one\'s levy hours', def: 1 }, { verb: 'commute', what: 'Pay 3 rations instead', cost: '3 rations', }, { verb: 'ask', what: 'Ask a release', cost: 'the levier\'s judgement' }, { verb: 'breach', what: 'Do not go', cost: L.terms.onBreach }] }; }
+  if (kind === 'body') return { gl: 'target', opt: { frame: 'target', whose: null }, title: a, rows: [['what', 'where the hours went (Per\'s view)']], acts: [] };
+  if (kind === 'bd') return { gl: 'plan', opt: { frame: 'target', whose: null }, title: 'All targets vs the budget', rows: [['now', `${ENV.reduce((t, e) => t + e.left.mid, 0)} h left at the mid; budget ${Math.round(budget())} h`], ['but', 'the barley crosses its window\'s end with 8 h left']], acts: [], why: WHY.barley };
+  return null;
+}
+let bubble = null;
+const toast = (t) => { const e = document.getElementById('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3800); };
+function closeBubble() { bubble?.remove(); bubble = null; S.open = null; }
+const whyCard = (w) => `<div class="why">${w.map(([g, f, t, wh], i) => `${i ? '<i>because</i>' : ''}<div>${icon(g, { frame: f, whose: wh || (f === 'target' ? null : 'household'), size: 20 })}${t}</div>`).join('')}</div>`;
+function openBubble(id, el, acts = false) {
+  const d = info(id); if (!d) return;
+  closeBubble(); S.open = id;
+  const r = el.getBoundingClientRect();
+  bubble = document.createElement('div'); bubble.className = 'bubble';
+  bubble.innerHTML = `<h3>${icon(d.gl, { ...d.opt, size: 22 })}${d.title}</h3><dl>${d.rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>` +
+    `<div class="row">${d.acts.length ? '<button class="main" data-b="acts">Acts ▸</button>' : ''}${d.why ? '<button data-b="why">why</button>' : ''}</div><div class="acts"></div><div class="wy"></div>`;
+  bubble.style.left = Math.max(8, Math.min(innerWidth - 312, r.right + 8)) + 'px'; bubble.style.top = Math.max(46, Math.min(innerHeight - 380, r.top - 10)) + 'px';
+  document.body.append(bubble);
+  const showActs = () => { bubble.querySelector('.acts').innerHTML = d.acts.map((x, i) => `<button data-i="${i}" class="${x.def ? 'def' : ''}"><span><code>${x.verb}</code> ${x.what}</span><small>${x.cost}</small></button>`).join(''); };
+  bubble.onclick = (ev) => {
+    const b = ev.target.closest('button'); if (!b) return;
+    if (b.dataset.b === 'acts') return showActs();
+    if (b.dataset.b === 'why') { bubble.querySelector('.wy').innerHTML = whyCard(d.why); return; }
+    const x = d.acts[+b.dataset.i]; if (!x) return;
+    doAct(id, x);
+  };
+  if (acts) showActs();
+}
+function doAct(id, x) {
+  const e = ENV.find((q) => 'env:' + q.id === id);
+  if (e && x.what.startsWith('Lower the target: barley')) { e.left = { lo: 22, mid: 28, hi: 34 }; }
+  else if (e && e.id === 'barley' && x.def) { ENV[2].a -= 8; e.a += 8; }
+  toast(`would issue \`${x.verb}\` ${x.what} — ${x.cost}`); closeBubble(); render();
+}
+// ---- Drag: from the budget envelope to a target = plan.
+function plan(e) {
+  const free = Math.round(budget() - assigned()), n = 4;
+  if (e.id === 'barley') { ENV[2].a -= n; e.a += n; return toast(`would issue \`plan\` +${n} h Barley: no free hours in days 6–9, so it dates 'Reap the barley' day 7, 07–11, to Nils, off firewood (wood −${n} h; it has till winter)`); }
+  if (e.id === 'hay') return toast('would issue nothing: the hay is in (28 of 26)');
+  if (free < n) return toast(`would issue nothing: ${free} h free; lower a target or ask for hands`);
+  e.a += n; toast(`would issue \`plan\` +${n} h ${e.name}: dates its next step, day 11, 08–12, to ${e.id === 'wood' ? 'Nils' : 'Erik'} (free hours lie on days 11–12)`);
+}
+// ---- Render and events.
+function render() {
+  const m = document.getElementById('main');
+  m.innerHTML = S.v === 'env' ? mapView() + `<div id="bd">${burndown()}</div>` : flowsView();
+  document.getElementById('side').innerHTML = side();
+  document.getElementById('vA').style.display = S.v === 'flows' ? '' : 'none';
+  [...document.getElementById('vA').children].forEach((x) => x.classList.toggle('on', x.dataset.v === S.agg));
+}
+let drag = null;
+document.addEventListener('pointerdown', (ev) => {
+  const el = ev.target.closest('[data-id="env:budget"]'); if (!el) return;
+  drag = { x: ev.clientX, y: ev.clientY, el, on: false };
+});
+document.addEventListener('pointermove', (ev) => {
+  if (!drag) return;
+  if (!drag.on && Math.hypot(ev.clientX - drag.x, ev.clientY - drag.y) > 6) { drag.on = true; drag.chip = Object.assign(document.createElement('div'), { className: 'chip', textContent: '+4 h' }); document.body.append(drag.chip); closeBubble(); }
+  if (drag.on) { drag.chip.style.left = ev.clientX + 8 + 'px'; drag.chip.style.top = ev.clientY + 8 + 'px'; }
+});
+document.addEventListener('pointerup', (ev) => {
+  if (!drag) return; const d = drag; drag = null;
+  if (!d.on) return;
+  d.chip.remove(); skipClick = true; setTimeout(() => (skipClick = false), 0);
+  const t = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('[data-id^="env:"]'), e = t && ENV.find((q) => 'env:' + q.id === t.dataset.id);
+  if (e) { plan(e); render(); } else toast('drop the hours on a target envelope');
+});
+let skipClick = false;
+document.addEventListener('click', (ev) => {
+  if (skipClick) { skipClick = false; return; }
+  if (ev.target.closest('.bubble, .band, .note')) return;
+  const el = ev.target.closest('[data-id]'); if (!el) { S.sel = null; closeBubble(); return render(); }
+  const id = el.dataset.id;
+  if (id.startsWith('env:') && id !== 'env:budget') S.sel = id.slice(4);
+  if (S.open === id) { const d = info(id); if (d?.acts.length) openBubble(id, el, true); return; }
+  if (id.startsWith('env:')) { render(); const n = document.querySelector(`[data-id="${id}"]`); return openBubble(id, n || el); }
+  openBubble(id, el);
+});
+const seg = (id, f) => (document.getElementById(id).onclick = (ev) => { const v = ev.target.dataset.v; if (v === undefined) return; f(v); [...ev.currentTarget.children].forEach((x) => x.classList.toggle('on', x === ev.target)); closeBubble(); render(); });
+seg('vV', (v) => (S.v = v)); seg('vT', (v) => (S.t = v)); seg('vS', (v) => { S.stress = v === '1'; if (S.stress && S.v === 'flows') S.agg = 'pos'; }); seg('vA', (v) => (S.agg = v));
+render();
+</script>
+</body>
+</html>

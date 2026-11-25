@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Household Playbook</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600&display=swap">
+<style>
+/* One screen: a thin band, the land filling the rest; members' routes drawn on it. Bubble, toast and corner note float above. */
+:root { --paper: #e6e9df; --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --accent: #a8473a;
+  --display: 'Alegreya SC', Georgia, serif; --body: 'Alegreya Sans', system-ui, sans-serif; color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.4 var(--body); }
+.band { height: 42px; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--card); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.band h1 { font: 500 1.15rem var(--display); margin: 0; }
+.band .mode { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.band .from { font-size: 12.5px; color: var(--muted); font-style: italic; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button { font: inherit; font-size: 13px; border: 0; background: #fff; padding: 3px 9px; cursor: pointer; color: var(--ink); }
+.seg button[aria-pressed=true] { background: var(--ink); color: #fff; }
+.spacer { margin-left: auto; }
+#stage { position: absolute; inset: 42px 0 0 0; }
+#map { width: 100%; height: 100%; display: block; }
+#ahead { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 8px; padding: 8px 8px 8px 168px; }
+#ahead .day { background: #fff8; border: 1px solid var(--line); border-radius: 8px; position: relative; overflow: hidden; }
+#ahead .day h3 { position: absolute; left: 8px; top: 4px; margin: 0; font: 500 15px var(--display); }
+#ahead .day h3 small { font: 12px var(--body); color: var(--muted); margin-left: 6px; }
+#ahead .day.est { background: repeating-linear-gradient(135deg, #fff8 0 8px, #e9e6da88 8px 12px); }
+#ahead svg { width: 100%; height: 100%; display: block; }
+.leg, .st, .rung, .cable, .mk { cursor: pointer; }
+.leg:hover .ln { filter: brightness(1.25); }
+.st:hover > g > svg, .mk:hover > svg { filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 2px #000a); }
+.dim { opacity: .13; }
+#who { position: absolute; left: 10px; top: 10px; z-index: 3; display: flex; flex-direction: column; gap: 3px; width: 148px; }
+#who button { font: inherit; font-size: 13px; display: flex; align-items: center; gap: 6px; text-align: left; border: 1px solid var(--line); background: #f6f5efe8; border-radius: 6px; padding: 2px 7px; cursor: pointer; }
+#who button[aria-pressed=true] { border-color: var(--ink); background: #fff; }
+#who i { width: 18px; height: 6px; border-radius: 3px; flex: none; }
+#who small { color: var(--muted); margin-left: auto; }
+#bubble { position: absolute; z-index: 5; width: 310px; background: #fffdf7; border: 1px solid #3a2a1a; border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 18px #0003; font-size: 13.5px; }
+#bubble h4 { margin: 0 0 6px; font: 600 15px var(--body); display: flex; gap: 8px; align-items: center; }
+#bubble dl { display: grid; grid-template-columns: 70px 1fr; gap: 2px 8px; margin: 0 0 8px; }
+#bubble dt { color: var(--muted); } #bubble dd { margin: 0; }
+#bubble .row { display: flex; align-items: center; gap: 6px; padding: 2px 4px; border-radius: 6px; cursor: pointer; }
+#bubble .row:hover, #bubble .row.on { background: #f1ead8; }
+#bubble .acts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+#bubble button { font: inherit; font-size: 13px; padding: 3px 8px; border-radius: 6px; border: 1px solid #3a2a1a; background: #fff; cursor: pointer; }
+#bubble button.more { background: var(--ink); color: #fff; }
+#bubble .rem { display: grid; grid-template-columns: 96px 1fr; gap: 4px 8px; align-items: start; margin: 4px 0; }
+#bubble .rem small { color: var(--muted); }
+#bubble .deflt { margin-top: 6px; padding: 5px 7px; border-left: 3px solid var(--accent); background: #f7efe6; }
+#bubble .por { display: flex; gap: 4px; flex-wrap: wrap; } #bubble .por button { display: flex; align-items: center; gap: 3px; padding: 1px 6px 1px 1px; }
+#toast { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 7px 14px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 6; }
+#toast.on { opacity: 1; } #toast code { color: #f2c27a; }
+.note { position: absolute; right: 12px; bottom: 12px; z-index: 4; max-width: 420px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+.note summary { cursor: pointer; color: var(--muted); }
+.note p { margin: 6px 0 0; }
+.hint { position: absolute; left: 168px; bottom: 12px; font-size: 13px; color: var(--muted); background: #f6f5efcc; padding: 4px 8px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<header class="band">
+  <h1>The household as a playbook</h1><span class="mode">Plan · household</span>
+  <span class="from">after a playbook's arrows, transit maps and Minard's flow map</span>
+  <span class="seg spacer" id="mode"><button data-v="play" aria-pressed="false">the play</button><button data-v="actual" aria-pressed="true">as it goes · 10:00</button></span>
+  <span class="seg" id="zoom"><button data-v="today" aria-pressed="true">today</button><button data-v="ahead" aria-pressed="false">days ahead</button></span>
+  <span class="seg" id="bund"><button data-v="lines" aria-pressed="true">lines</button><button data-v="cables" aria-pressed="false">bundled</button></span>
+  <span class="seg" id="stress"><button data-v="5" aria-pressed="true">5</button><button data-v="10" aria-pressed="false">stress: 10</button></span>
+</header>
+<div id="stage"><svg id="map"></svg><div id="ahead" hidden></div><div id="who"></div>
+  <div class="hint">Click a line for its task, why ↑ and acts; a station for what happens there; a name to follow one member.</div></div>
+<div id="bubble" hidden></div>
+<div id="toast"></div>
+<details class="note"><summary>Scales to / strains at</summary>
+  <p><b>Scales to</b> five members on a dozen tiles: each colour reads as a person, the shared track home to the Long field is a readable bundle of 4, the meeting is one station, and the two breaches show as a line bending away and one pulled back. Minard's width tells at a glance who spends the day where. Small multiples carry six days fine with one simplified line each.</p>
+  <p><b>Strains at</b> ten: ten hues cannot be told apart (the lodger's sienna against Anna's, the servant's grey against the ink, a child's teal against the "own hours" rim), and seven parallel lines on one hex edge widen to 60 px and cover the tiles under them. Bundling into cables (×n) restores the land but loses who, which is the point of the view. The day's time is weak: travel takes no time in the data, so the hour ticks sit at departures, not along a scale. Work at home (cooking, spinning, mending) has no line at all: the home station carries most of the day as a count. A pawn's whole household moving on one land is the ideal; a village is twenty of these, never drawn at once.</p>
+  <p><b>Stress cases</b>: 1 Nils' firewood (the stray pile at Hagen wood, the hand-off pile → saw); 2 the meeting at the Long field, Nils' 14:00 detour and Per's 16:30 pull; 3 the fence day in days ahead (day 6, one to name); 4 the barley station nobody's line reaches, with remedies and the rule's default; 5 Per's authored barley at risk. New glyph: the knot (a cut task, from threads).</p>
+</details>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+// ---- The stress household: five more (a servant, two children, an elder, a lodger) and three interrupted tasks.
+const EXTRA = [
+  { id: 'maja', name: 'Maja', age: 24, pos: 'servant', col: '#55555f' },
+  { id: 'olle', name: 'Olle', age: 9, pos: 'child', col: '#d0688f' },
+  { id: 'stina', name: 'Stina', age: 7, pos: 'child', col: '#3e9cc4' },
+  { id: 'jons', name: 'Jöns', age: 71, pos: 'elder', col: '#8f8a3a' },
+  { id: 'lars', name: 'Lars', age: 30, pos: 'lodger', col: '#a5462c' },
+];
+const I = (kind, what, at, h0, h1, o = {}) => ({ kind, what, at, h: [h0, h1], whose: 'household', state: h1 <= NOW.hour ? 'done' : h0 <= NOW.hour ? 'doing' : 'planned', by: 'custom', ...o });
+const EXTRA_TODAY = {
+  maja: [I('pail', 'Milk', 'home', 6, 7, { duty: true }), I('sheaves', 'Bind sheaves (cut: the cow calving)', 'long', 7, 9.5, { cut: 1 }), I('beast', 'The calving', 'meadow', 9.5, 12),
+    I('sheaves', 'Bind sheaves (resumed)', 'long', 13, 17, { cut: 2 }), I('pot', 'Cook', 'home', 17, 18, { duty: true })],
+  olle: [I('beast', 'Mind the cattle with Anna', 'meadow', 7, 12, { duty: true }), I('water', 'Water', 'lake', 12, 13, { duty: true }), I('idle', 'Own hours', 'home', 13, 18, { whose: 'own' })],
+  stina: [I('water', 'Fetch water', 'lake', 7, 9, { duty: true }), I('idle', 'Own hours', 'home', 9, 18, { whose: 'own' })],
+  jons: [I('rake', 'Mend rakes for the barley', 'home', 6, 12), I('idle', 'Mind the yard', 'home', 12, 18, { whose: 'own' })],
+  lars: [I('tree', 'Fell 2 trees (cut: called to the rye)', 'wood1', 6, 9, { cut: 1 }), I('chop', 'Reap rye', 'long', 9, 14),
+    I('tree', 'Fell 2 trees (resumed)', 'wood1', 14, 18, { cut: 2 })],
+};
+// Nils' firewood was cut last night (the stray pile): the third interrupted task.
+let W = structuredClone({ ...TODAY, ...EXTRA_TODAY });
+W.nils[0].cut = 2; W.nils[1].cut = 2;
+
+let mode = 'actual', zoom = 'today', cables = false, stress = false, focus = null, sel = null, why = null, barleyHands = [], open = new Set();
+const members = () => (stress ? PEOPLE.concat(EXTRA) : PEOPLE);
+const MB = Object.fromEntries(PEOPLE.concat(EXTRA).map((p) => [p.id, p]));
+const hh = (h) => String(Math.floor(h)).padStart(2, '0') + (h % 1 ? ':30' : '');
+const PNAME = (k) => PLACES[k].name;
+
+// "The play": the plan as Per coordinates it, clean: the taken visit back to reaping, the demand an ordinary order.
+function list(id) {
+  let L = (W[id] || []).slice().sort((a, b) => a.h[0] - b.h[0]);
+  if (mode === 'play') L = L.map((it) => it.breach === 'taken' ? { ...it, kind: 'chop', what: 'Reap rye', at: 'long', breach: null, by: 'custom' } : it.breach ? { ...it, breach: null, whose: 'household', what: 'Haul before the rain' } : it);
+  return L;
+}
+// A member's day as legs: one per move, its width the hours spent where it arrives (Minard).
+function legsOf(m) {
+  const L = []; let last = 'home', cur = null;
+  for (const it of list(m.id)) {
+    if (!cur || it.at !== last) { cur = { m: m.id, from: last, to: it.at, t: it.h[0], items: [] }; L.push(cur); last = it.at; }
+    cur.items.push(it);
+  }
+  L.forEach((l, i) => { l.i = i; l.stay = l.from === l.to; l.hours = l.items.reduce((s, it) => s + it.h[1] - it.h[0], 0); l.w = 2 + 0.62 * l.hours; l.end = l.items.at(-1).h[1]; });
+  return L;
+}
+const now = (l) => l.t <= NOW.hour && NOW.hour < l.end;
+
+// ---- Geometry: parallel tracks where legs share a hex edge (transit style), trimmed at the stations.
+function layout(all) {
+  const segs = {};
+  for (const l of all) if (!l.stay) (segs[[l.from, l.to].sort().join('|')] ??= []).push(l);
+  for (const [k, ls] of Object.entries(segs)) {
+    const [a, b] = k.split('|').map(at), L = Math.hypot(b.x - a.x, b.y - a.y), n = { x: -(b.y - a.y) / L, y: (b.x - a.x) / L };
+    const gap = 2.2, tot = ls.reduce((s, l) => s + l.w, 0) + gap * (ls.length - 1); let c = -tot / 2;
+    for (const l of ls) { l.off = c + l.w / 2; c += l.w + gap; l.n = n; l.key = k; }
+  }
+  return segs;
+}
+function geom(l, bend = 0) {
+  const a = at(l.from), b = at(l.to), o = l.off, P = { x: a.x + l.n.x * o, y: a.y + l.n.y * o }, Q = { x: b.x + l.n.x * o, y: b.y + l.n.y * o };
+  const L = Math.hypot(Q.x - P.x, Q.y - P.y), u = { x: (Q.x - P.x) / L, y: (Q.y - P.y) / L }, tr = 13;
+  const A = { x: P.x + u.x * tr, y: P.y + u.y * tr }, B = { x: Q.x - u.x * (tr + 4), y: Q.y - u.y * (tr + 4) };
+  const C = { x: (A.x + B.x) / 2 - u.y * L * bend, y: (A.y + B.y) / 2 + u.x * L * bend };
+  const pt = (t) => ({ x: (1 - t) ** 2 * A.x + 2 * t * (1 - t) * C.x + t * t * B.x, y: (1 - t) ** 2 * A.y + 2 * t * (1 - t) * C.y + t * t * B.y });
+  return { A, B, C, pt, d: `M${A.x} ${A.y}Q${C.x} ${C.y} ${B.x} ${B.y}` };
+}
+const svgEl = document.getElementById('map');
+svgEl.setAttribute('viewBox', '96 12 610 384'); // cropped to the land the household uses
+const markers = () => '<defs>' + PEOPLE.concat(EXTRA).map((p) => `<marker id="ar-${p.id}" viewBox="0 0 10 10" refX="3" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="13" orient="auto"><path d="M0 0L10 5L0 10z" fill="${p.col}" stroke="#fff" stroke-width="1"/></marker>`).join('') +
+  '<marker id="ar-ink" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2a2018"/></marker></defs>';
+const KNOT = (x, y, t) => `<g transform="translate(${x} ${y})"><circle r="7.5" fill="#f4efe4" stroke="#2a2018" stroke-width="1.2"/><path d="M-5 2.5c1.6-7.5 8.3-7.5 7.5-1.7s-7.5 4.2-6.7-.8 5.8-5 7.5 2.5" fill="none" stroke="#2a2018" stroke-width="1.5" stroke-linecap="round"/><title>${t}</title></g>`; // new glyph: knot
+const iconAt = (x, y, html, size, cls = 'mk', data = '') => `<g class="${cls}" ${data} transform="translate(${x - size / 2} ${y - size / 2})">${html}</g>`;
+const SIGN = { home: [20, -38], long: [0, -38], norr: [-34, 4], wood2: [0, -34], meadow: [-30, 10], lake: [-30, -10], wood1: [0, -34] };
+const rank = (it) => (it.breach || it.risk ? 5 : it.cut === 1 ? 4 : it.state === 'doing' ? 3 : it.state === 'planned' ? 2 : 1);
+const icoOf = (it, size = 34, o = {}) => icon(it.kind, { frame: mode === 'actual' && it.state === 'doing' ? 'now' : 'plan', whose: it.whose, breach: mode === 'actual' ? it.breach : null,
+  author: it.by === 'per' ? 'player' : null, state: mode === 'actual' ? (it.state === 'done' ? 'done' : it.stray ? 'stray' : null) : null, size, ...o });
+
+// ---- Today: the land, each member's line, the stations, the hand-offs.
+function renderToday() {
+  const ms = members(), all = ms.flatMap(legsOf), segs = layout(all);
+  const dimL = (l) => (focus && l.m !== focus) || (why && why.m !== l.m) ? ' dim' : '';
+  let s = markers() + DEFS + mapSVG({ dim: .18 }), lines = '', ticks = '', st = '', ex = '';
+  // Legs, or cables where bundled
+  for (const [k, ls] of Object.entries(segs)) {
+    if (cables && ls.length > 1 && !open.has(k)) {
+      const g = geom({ ...ls[0], off: 0 }), w = Math.min(34, ls.reduce((a, l) => a + l.w, 0) * .55), mid = g.pt(.5);
+      lines += `<g class="cable" data-k="${k}"><path d="${g.d}" stroke="#fff" stroke-width="${w + 4}" fill="none" stroke-linecap="round"/><path d="${g.d}" stroke="#5a5247" stroke-width="${w}" fill="none" stroke-linecap="round" opacity=".88"/>` +
+        ls.map((l, i) => `<circle cx="${mid.x - (ls.length - 1) * 4 + i * 8}" cy="${mid.y + 14}" r="3.6" fill="${MB[l.m].col}" stroke="#fff"/>`).join('') +
+        `<rect x="${mid.x - 15}" y="${mid.y - 9}" width="30" height="18" rx="9" fill="#fff" stroke="#2a2018"/><text x="${mid.x}" y="${mid.y + 4}" font-size="11" font-weight="700" text-anchor="middle">×${ls.length}</text><title>${ls.length} lines share this stretch; click to open the cable</title></g>`;
+      continue;
+    }
+    for (const l of ls) {
+      const it = l.items[0], dev = mode === 'actual' && it.breach, bend = dev === 'taken' ? .32 : dev === 'demanded' ? -.32 : 0, g = geom(l, bend), col = MB[l.m].col;
+      const later = mode === 'actual' && l.t > NOW.hour, dash = later ? `stroke-dasharray="${l.w * 1.3} ${l.w * .9 + 3}"` : '';
+      lines += `<g class="leg${dimL(l)}" data-l="${l.m}:${l.i}"><path d="${g.d}" stroke="#fff" stroke-width="${l.w + 3}" fill="none" opacity=".85"/>` +
+        `<path class="ln" d="${g.d}" stroke="${dev === 'demanded' ? 'url(#hatch-hh)' : col}" stroke-width="${l.w}" fill="none" ${dash} marker-end="url(#ar-${l.m})"/>` +
+        (dev === 'demanded' ? `<path d="${g.d}" stroke="${col}" stroke-width="2" fill="none"/>` : '') + `<path d="${g.d}" stroke="transparent" stroke-width="${l.w + 8}" fill="none"/><title>${MB[l.m].name}: ${l.items.map((x) => x.what).join(', ')}</title></g>`;
+      // the hour tick: when the member sets off
+      const p = g.pt(.3);
+      ticks += `<g class="${dimL(l).trim()}" pointer-events="none"><rect x="${p.x - 8.5}" y="${p.y - 5}" width="17" height="10" rx="5" fill="#fff" stroke="${col}" stroke-width="1.3"/><text x="${p.x}" y="${p.y + 2.7}" font-size="6.8" font-weight="700" text-anchor="middle" fill="#2a2018">${hh(l.t).replace(':30', '½')}</text></g>`;
+      if (dev === 'taken') ex += iconAt(g.pt(.5).x, g.pt(.5).y - 4, icon('courting', { breach: 'taken', size: 26 }), 26, 'mk', `data-l="${l.m}:${l.i}"`);
+      if (dev === 'demanded') ex += iconAt(g.pt(.5).x, g.pt(.5).y + 2, icon('cart', { whose: 'own', breach: 'demanded', author: 'player', size: 26 }), 26, 'mk', `data-l="${l.m}:${l.i}"`);
+      if (mode === 'actual' && now(l)) ex += `<g pointer-events="none" class="${dimL(l).trim()}">${pawnSVG(MB[l.m], g.B.x - l.n.x * 0, g.B.y + 4, .75)}</g>`;
+      if (mode === 'actual' && l.items.some((x) => x.cut === 2)) ex += `<g class="${dimL(l).trim()}">${KNOT(g.pt(.6).x, g.pt(.6).y, 'Resumed after a cut: ' + l.items.find((x) => x.cut).what)}</g>`;
+    }
+  }
+  // Stations: one sign per place, the members' dots under it; three or more meet at an interchange.
+  const places = new Set(all.flatMap((l) => [l.from, l.to]));
+  for (const p of places) {
+    const items = ms.flatMap((m) => list(m.id).filter((it) => it.at === p).map((it) => ({ ...it, m: m.id })));
+    if (!items.length && p !== 'home') continue;
+    const top = items.slice().sort((a, b) => rank(b) - rank(a))[0], who = [...new Set(items.map((x) => x.m))], { x, y } = at(p);
+    // the station: a capsule of the members' dots where the lines end; its one sign stands beside, on the tile, off the tracks
+    const meet = p !== 'home' && who.length >= 3, wd = who.length * 9 + 8, [sx, sy] = SIGN[p] || [0, -36];
+    st += `<g class="st" data-st="${p}"><path d="M${x} ${y}L${x + sx} ${y + sy}" stroke="#2a2018" stroke-width="1.2"/><rect x="${x - wd / 2}" y="${y - 7}" width="${wd}" height="14" rx="7" fill="#fffdf7" stroke="#2a2018" stroke-width="${meet ? 2.6 : 1.2}"/>`;
+    if (top) st += `<g transform="translate(${x + sx - 14} ${y + sy - 14})">${icoOf(top, 28, items.length > 1 ? { num: new Set(items.map((i) => i.what)).size, unit: 'count', state: null } : {})}</g>`;
+    who.forEach((id, i) => {
+      const cx = x - (who.length - 1) * 4.5 + i * 9, arr = Math.min(...items.filter((it) => it.m === id).map((it) => it.h[0])), late = mode === 'actual' && arr > NOW.hour && p !== 'home';
+      st += `<circle cx="${cx}" cy="${y}" r="3.6" fill="${late ? '#fff' : MB[id].col}" stroke="${MB[id].col}" stroke-width="${late ? 1.6 : .8}"${late ? ' stroke-dasharray="1.6 1.2"' : ''}/>`;
+      if (late && meet) st += `<text x="${cx}" y="${y + 15}" font-size="6.5" text-anchor="middle" fill="${MB[id].col}" font-weight="700">${hh(arr)}</text>`;
+    });
+    if (meet) st += `<text x="${x + sx + 18}" y="${y + sy + 2}" font-size="8" font-style="italic" fill="#2a2018">${who.length} meet</text>`;
+    st += `<title>${PNAME(p)}: ${items.length} tasks</title></g>`;
+  }
+  // The barley: a station nobody's line reaches (Per's step, days 6 to 9), with the risk; or the hands named to it.
+  { const { x, y } = at('barley'), s1 = AHEAD[0];
+    st += `<g class="st" data-st="barley"><circle cx="${x}" cy="${y}" r="20" fill="#fffdf7cc" stroke="#2a2018" stroke-width="1.4" stroke-dasharray="4 3"/>` +
+      `<g transform="translate(${x - 14} ${y - 16})">${icon('chop', { frame: 'plan', author: 'player', state: barleyHands.length ? null : mode === 'actual' ? 'risk' : null, num: 6, size: 28 })}</g>` +
+      `<text x="${x}" y="${y + 32}" font-size="10" text-anchor="middle" font-style="italic" fill="#2a2018">${barleyHands.length ? 'from day 6' : mode === 'actual' ? "nobody's line · -" + s1.short + 'h' : "nobody's line yet"}</text></g>`;
+    barleyHands.forEach((id, i) => { const h = at('home'); ex += `<path d="M${h.x + 16 + i * 6} ${h.y + 30}Q${h.x + 50} ${y + 20} ${x - 26} ${y + 4 + i * 6}" stroke="${MB[id].col}" stroke-width="3.5" fill="none" stroke-dasharray="7 5" marker-end="url(#ar-${id})"/>`; }); }
+  // Hand-offs: Per reaps → Karin binds → Erik stooks (the Long field), and Nils' pile → saw (Hagen wood → home).
+  if (!stress || !cables) {
+    const L = at('long'), y0 = L.y - 102, chain = [['per', 'chop', 'reaps'], ['karin', 'sheaves', 'binds'], ['erik', 'sheaves', 'stooks']];
+    ex += `<g class="${focus || why ? 'dim' : ''}"><rect x="${L.x - 72}" y="${y0 - 20}" width="144" height="46" rx="8" fill="#fffdf7e6" stroke="#2a2018" stroke-dasharray="2 2"/>`;
+    chain.forEach(([id, g, t], i) => {
+      const cx = L.x - 48 + i * 48;
+      ex += `<g transform="translate(${cx - 12} ${y0 - 16})">${icon(g, { size: 24, frame: 'plan' })}</g><rect x="${cx - 12}" y="${y0 + 10}" width="24" height="4" rx="2" fill="${MB[id].col}"/><text x="${cx}" y="${y0 + 23}" font-size="8.5" text-anchor="middle">${MB[id].name} ${t}</text>`;
+      if (i) ex += `<path d="M${cx - 34} ${y0 - 4}h18" stroke="#2a2018" stroke-width="1.6" marker-end="url(#ar-ink)"/>`;
+    });
+    ex += `<path d="M${L.x} ${y0 + 26}V${L.y - 50}" stroke="#2a2018" stroke-width="1" stroke-dasharray="2 2"/><text x="${L.x + 74}" y="${y0 - 10}" font-size="9" font-style="italic">hand-off</text></g>`;
+    const a = at('wood2'), h = at('home'), mx = (a.x + h.x) / 2;
+    ex += `<g class="${focus && focus !== 'nils' || why ? 'dim' : ''}" transform="translate(${mx - 30} ${a.y + 22})"><rect x="-4" y="-4" width="68" height="34" rx="8" fill="#fffdf7e6" stroke="#2a2018" stroke-dasharray="2 2"/>` +
+      `<g>${icon('wood', { whose: null, state: 'stray', size: 24 })}</g><path d="M26 12h10" stroke="#2a2018" stroke-width="1.6" marker-end="url(#ar-ink)"/><g transform="translate(38 0)">${icon('wood', { frame: 'now', size: 24 })}</g>` +
+      `<text x="30" y="40" font-size="8.5" text-anchor="middle">the pile → the saw</text></g>`;
+  }
+  svgEl.innerHTML = s + lines + ticks + st + ex + (why ? ladder() : '');
+}
+
+// ---- The why: the thread drawn upward from the tapped line (task → step → target → the household or the village).
+const TG = (g) => SEASON.targets.find((t) => t.good === g);
+function whyOf(it) {
+  const task = { g: it.kind, f: it.state === 'doing' ? 'now' : 'plan', whose: it.whose, breach: it.breach, author: it.by === 'per' ? 'player' : null, t: it.what + ' (' + hh(it.h[0]) + '–' + hh(it.h[1]) + ')' };
+  const food = { g: 'grain', f: 'target', whose: null, t: 'Food for the year: bread for ' + members().length };
+  const rye = { g: 'rye', f: 'target', num: -TG('rye').left.mid, t: `Rye in the barn: ${TG('rye').have} of ${TG('rye').want}` };
+  if (it.breach === 'taken') return [task, { g: 'courting', f: 'target', whose: 'own', t: 'His aim: court Lisa at Norrgård' }, { g: 'married', f: 'target', whose: 'own', t: 'A match: a second son leaves the house' }];
+  if (it.breach === 'demanded') return [task, { g: 'cart', f: 'plan', whose: 'own', author: 'player', t: "Per's order: rain by evening" }, rye, food];
+  if (it.duty) return [task, { g: it.kind, f: 'plan', t: 'Duty: every day, by custom' }, { g: 'village', f: 'target', whose: 'owed', t: 'The custom: a household keeps its beasts and hearth' }];
+  if (it.kind === 'idle') return [task, { g: 'idle', f: 'plan', whose: 'own', t: 'Own hours: the levy is met' }, { g: 'village', f: 'target', whose: 'owed', t: 'The custom: so many hours a member' }];
+  if (['wood', 'tree'].includes(it.kind) || it.at === 'wood2') return [task, { g: 'wood', f: 'plan', state: 'stray', t: 'Task: firewood, 3 loads (cut last night)' }, { g: 'wood', f: 'target', num: -TG('wood').left.mid, t: `Firewood for winter: ${TG('wood').have} of ${TG('wood').want}` }, { g: 'cold', f: 'target', whose: null, t: "The winter: the house's fire" }];
+  if (it.kind === 'rake') return [task, { g: 'chop', f: 'plan', author: 'player', state: 'risk', num: 6, t: 'Step: reap the barley, days 6 to 9' }, { g: 'oats', f: 'target', num: -8, t: 'Barley in the barn: 8 h short' }, food];
+  return [task, { g: 'chop', f: 'plan', num: 6, t: 'Step: the rye in, by day 6 (window closes)' }, rye, food];
+}
+function ladder() {
+  const [id, i, j] = why.l, l = legsOf(MB[id])[i], g = geom(l), m = g.pt(.5), rungs = whyOf(l.items[j]), side = m.x > MAP_W - 330 ? -1 : 1;
+  const x0 = m.x + side * 40 + (side < 0 ? -250 : 0), h = rungs.length * 52 + 14, y0 = Math.max(8, Math.min(MAP_H - h - 8, m.y - h + 30));
+  let s = `<path d="M${m.x} ${m.y}L${x0 + (side < 0 ? 250 : 0)} ${y0 + h - 30}" stroke="${MB[id].col}" stroke-width="2" stroke-dasharray="3 3"/><rect x="${x0}" y="${y0}" width="250" height="${h}" rx="10" fill="#fffdf7f2" stroke="#2a2018"/>`;
+  rungs.forEach((r, k) => {
+    const y = y0 + h - 34 - k * 52;
+    if (k) s += `<path d="M${x0 + 26} ${y + 50}V${y + 34}" stroke="${MB[id].col}" stroke-width="3" marker-end="url(#ar-${id})"/>`;
+    s += `<g class="rung" data-r="${k}">${iconAt(x0 + 26, y + 12, icon(r.g, { frame: r.f, whose: r.whose === undefined ? 'household' : r.whose, breach: r.breach, author: r.author, state: r.state, num: r.num, size: 32 }), 32, '')}` +
+      `<text x="${x0 + 52}" y="${y + 16}" font-size="12">${r.t.length > 34 ? r.t.slice(0, 33) + '…' : r.t}</text><title>${r.t}</title></g>`;
+  });
+  return s + `<text x="${x0 + 244}" y="${y0 + 14}" font-size="10" text-anchor="end" font-style="italic" fill="#5d6253">why ↑</text>`;
+}
+
+// ---- Days ahead: six small plays (autumn days 5 to 10), one simplified line a member; days 5 to 7 binding, then Per's estimate.
+const AR = { per: { 5: ['long2'], 6: ['long2'], 7: ['long2'], 8: [], 9: ['green'], 10: [] }, karin: { 5: ['long2'], 7: ['long2'] }, erik: { 5: ['long2'], 6: ['fence'], 7: ['long2'] },
+  nils: { 5: ['wood1'], 6: ['long2'], 7: ['wood1'], 8: ['green'], 9: ['wood1'], 10: ['long2'] }, anna: { all: ['meadow', 'lake'] }, maja: { all: ['long2'] }, olle: { all: ['meadow'] }, stina: { all: ['lake'] }, jons: {}, lars: { all: ['wood1'] } };
+function renderAhead() {
+  const box = document.getElementById('ahead'), ms = members(); let html = '';
+  for (const d of [5, 6, 7, 8, 9, 10]) {
+    const est = d > 7; let s = markers() + DEFS + mapSVG({ dim: .3 });
+    ms.forEach((m, i) => {
+      let r = (AR[m.id][d] || AR[m.id].all || []);
+      if (barleyHands.includes(m.id) && d >= 6 && d <= 9) r = ['barley'];
+      const o = (i - (ms.length - 1) / 2) * 4.2, pts = [at('home'), ...r.map(at)].map((p) => `${p.x + o} ${p.y + o * .6}`);
+      if (r.length) s += `<polyline class="${focus && focus !== m.id ? 'dim' : ''}" points="${pts.join(' ')}" fill="none" stroke="${m.col}" stroke-width="4.5" stroke-linejoin="round" ${est ? 'stroke-dasharray="9 5"' : ''} marker-end="url(#ar-${m.id})"/>`;
+    });
+    const mk = (p, html, t) => { const a = at(p); s += iconAt(a.x, a.y, html, 44, 'mk', `data-t="${t}"`); };
+    mk('home', icon('home', { whose: null, size: 44 }), 'Backa');
+    if (d === 6) mk('fence', icon('fence', { frame: 'plan', whose: 'owed', num: 6, size: 44 }), "Erik's fence day (named by the meeting)");
+    if (d >= 7 && d <= 9) mk('fence', icon('fence', { frame: 'plan', whose: 'owed', ghost: true, num: '?', size: 44 }), 'Fence: one day still to name, by day 9');
+    if (d >= 6 && d <= 9) mk('barley', icon('chop', { frame: 'plan', author: 'player', state: barleyHands.length ? null : 'risk', size: 44 }), 'Reap the barley');
+    if (d === 9) mk('green', icon('village', { frame: 'plan', whose: 'owed', num: 9, size: 44 }), 'The bridge, together');
+    if (d === 8) mk('green', icon('courting', { frame: 'plan', whose: 'own', num: 8, size: 44 }), "Nils' leave: the gathering");
+    if (d >= 8) mk('home', icon('quern', { frame: 'plan', size: 44 }), 'Thresh the rye (Per, Erik)');
+    html += `<div class="day${est ? ' est' : ''}"><h3>day ${d}<small>${d <= 7 ? 'binding' : "Per's estimate"}</small></h3><svg viewBox="120 20 600 400">${s}</svg></div>`;
+  }
+  box.innerHTML = html;
+}
+
+// ---- Who: the members' chips (follow one line).
+function renderWho() {
+  document.getElementById('who').innerHTML = members().map((m) => { const h = list(m.id).filter((x) => x.whose !== 'own').reduce((s, x) => s + x.h[1] - x.h[0], 0);
+    return `<button data-m="${m.id}" aria-pressed="${focus === m.id}"><i style="background:${m.col}"></i>${m.name}<small>${m.pos} · ${h}h</small></button>`; }).join('');
+}
+function render() { renderWho(); const a = zoom === 'ahead'; document.getElementById('ahead').hidden = !a; svgEl.style.display = a ? 'none' : ''; a ? renderAhead() : renderToday(); }
+
+// ---- Bubbles: what, why, who chose, estimate, whose hours; then acts. The barley carries its remedies and the rule's default.
+const bub = document.getElementById('bubble');
+function place(e) { let x = e.clientX + 14, y = e.clientY - 20; if (x + 320 > innerWidth) x = e.clientX - 330; Object.assign(bub.style, { left: x + 'px', top: Math.max(48, Math.min(y, innerHeight - bub.offsetHeight - 10)) + 'px' }); }
+function legBubble(id, i, j, e, acts = false) {
+  const l = legsOf(MB[id])[i], it = l.items[j], m = MB[id], dur = it.h[1] - it.h[0];
+  const est = mode === 'actual' && it.state === 'done' ? dur + ' h, exact' : `${(dur * .8).toFixed(1)} to ${(dur * 1.3).toFixed(1)} h (Per's estimate)`;
+  const whose = it.breach ? WHOSE[it.breach === 'taken' ? 'household' : 'own'].name + ', ' + it.breach + (it.breach === 'taken' ? ' for his own' : ' by Per') : WHOSE[it.whose].name;
+  const rows = l.items.map((x, k) => `<div class="row${k === j ? ' on' : ''}" data-j="${k}">${icoOf(x, 24)}${x.what}<small style="margin-left:auto">${hh(x.h[0])}–${hh(x.h[1])}</small></div>`).join('');
+  const A = [['assign to…', null]];
+  if (it.breach === 'taken') A.push(['grant it', `grant ${m.name}: ${hh(it.h[0])}–${hh(it.h[1])} own`], ['call him back', `call ${m.name} -> Reap rye`]);
+  if (it.breach === 'demanded' || it.by === 'per') A.push(['release', `release ${m.name}: ${it.what}`], ['keep my order', `keep ${it.what}`]);
+  if (it.state !== 'done') A.push(['put off', `plan ${it.what}: tomorrow`]);
+  bub.innerHTML = `<h4><span style="width:14px;height:14px;border-radius:50%;background:${m.col}"></span>${m.name} → ${PNAME(l.to)}</h4>${rows}` + (acts
+    ? `<div class="acts">${A.map(([t], k) => `<button data-a="${k}">${t}</button>`).join('')}</div><div class="por" id="por"></div>`
+    : `<dl style="margin-top:6px"><dt>what</dt><dd>${it.what}, ${l.hours} h ${l.items.length > 1 ? 'here in all' : ''}</dd><dt>why</dt><dd>${whyOf(it)[1].t}</dd><dt>who chose</dt><dd>${it.by === 'per' ? 'Per (you)' : 'the rule (custom)'}</dd><dt>estimate</dt><dd>${est}</dd><dt>hours</dt><dd>${whose}</dd></dl>` +
+      `<div class="acts"><button data-why>why ↑</button><button class="more">acts ▸</button></div>`);
+  bub.hidden = false; if (e) place(e);
+  bub.querySelectorAll('.row').forEach((r) => (r.onclick = (ev) => { ev.stopPropagation(); legBubble(id, i, +r.dataset.j, null); }));
+  bub.querySelector('[data-why]')?.addEventListener('click', (ev) => { ev.stopPropagation(); why = { m: id, l: [id, i, j] }; render(); });
+  bub.querySelector('.more')?.addEventListener('click', (ev) => { ev.stopPropagation(); legBubble(id, i, j, null, true); });
+  bub.querySelectorAll('[data-a]').forEach((b) => (b.onclick = (ev) => {
+    ev.stopPropagation(); const [t, v] = A[+b.dataset.a];
+    if (v) { toast(`would issue <code>${v.split(' ')[0]}</code> ${v.split(' ').slice(1).join(' ')}`); return close(); }
+    portraits((to) => { const src = W[id], k = src.indexOf(it); if (k >= 0) { src.splice(k, 1); (W[to] ??= []).push({ ...it }); }
+      toast(`would issue <code>assign</code> ${MB[to].name} -> ${it.what} (${hh(it.h[0])}–${hh(it.h[1])})`); close(); }, id);
+  }));
+}
+function portraits(fn, not) {
+  document.getElementById('por').innerHTML = members().filter((m) => m.id !== not).map((m) => `<button data-p="${m.id}"><svg width="22" height="26" viewBox="-11 -22 22 30">${pawnSVG(m, 0, 0, 1)}</svg>${m.name}</button>`).join('');
+  document.querySelectorAll('#por [data-p]').forEach((b) => (b.onclick = (ev) => { ev.stopPropagation(); fn(b.dataset.p); }));
+}
+const REMEDIES = [
+  ['add a hand', null, 'Nils off firewood, days 6 to 9: the firewood target 10 h further behind'],
+  ['another day', 'plan Reap the barley: by day 11', 'past the window (day 10): 2 to 4 sheaves shed'],
+  ['ask release', "ask the meeting: release Erik's fence day 6", '+10.5 h if granted; the meeting may refuse; a favour owed'],
+  ['3 rations', 'commute fence day 6: 3 rations', '3 rations from the store; Erik free on day 6 (+10.5 h)'],
+  ['breach', 'breach fence day 6', '+10.5 h; the village remembers, the meeting fines'],
+  ['keep my order', 'keep Reap the barley', 'the rule will not take it back; it stays 8 h short'],
+];
+function stationBubble(p, e) {
+  if (p === 'barley') {
+    const s1 = AHEAD[0];
+    bub.innerHTML = `<h4>${icon('chop', { frame: 'plan', author: 'player', state: 'risk', num: 6, size: 28 })}Reap the barley, days 6 to 9</h4><dl><dt>what</dt><dd>Cut, bind and stook the barley field; nobody named.</dd><dt>why</dt><dd>Barley in the barn (0 of 30).</dd><dt>who chose</dt><dd>Per wrote it; the rule may take it back unless kept.</dd><dt>estimate</dt><dd>${s1.hours.lo} to ${s1.hours.hi} h (mid ${s1.hours.mid}); free hours 28: ${s1.short} h short</dd></dl>` +
+      `<b>Remedies, each with its cost</b>${REMEDIES.map(([t, v, c], k) => `<div class="rem"><button data-r="${k}">${t}</button><small>${c}</small></div>`).join('')}` +
+      `<div class="por" id="por"></div><div class="deflt">If nothing is chosen by day 5, <b>the rule will: add Nils</b> (days 6 to 9), and the firewood waits.</div>`;
+    bub.hidden = false; if (e) place(e);
+    bub.querySelectorAll('[data-r]').forEach((b) => (b.onclick = (ev) => {
+      ev.stopPropagation(); const [, v] = REMEDIES[+b.dataset.r];
+      if (v) { toast(`would issue <code>${v.split(' ')[0]}</code> ${v.split(' ').slice(1).join(' ')}`); return close(); }
+      portraits((to) => { barleyHands.push(to); toast(`would issue <code>assign</code> ${MB[to].name} -> Reap the barley (days 6 to 9)`); close(); });
+    }));
+    return;
+  }
+  const items = members().flatMap((m) => list(m.id).map((it, k) => ({ it, m })).filter((x) => x.it.at === p));
+  bub.innerHTML = `<h4>${PNAME(p)}</h4>` + items.map(({ it, m }) => `<div class="row" data-m="${m.id}" data-w="${it.what}"><span style="width:10px;height:10px;border-radius:50%;background:${m.col};flex:none"></span>${icoOf(it, 24)}${m.name}: ${it.what}<small style="margin-left:auto">${hh(it.h[0])}–${hh(it.h[1])}</small></div>`).join('') +
+    `<small style="color:#5d6253">One sign at the place; the callout lists the rest. Click a row for its why and acts.</small>`;
+  bub.hidden = false; if (e) place(e);
+  bub.querySelectorAll('.row').forEach((r) => (r.onclick = (ev) => {
+    ev.stopPropagation(); const L = legsOf(MB[r.dataset.m]); for (const l of L) { const j = l.items.findIndex((x) => x.what === r.dataset.w && x.at === p); if (j >= 0) return legBubble(r.dataset.m, l.i, j, null); }
+  }));
+}
+function close() { bub.hidden = true; render(); }
+let tt; function toast(h) { const t = document.getElementById('toast'); t.innerHTML = h; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2600); }
+
+document.getElementById('stage').addEventListener('click', (e) => {
+  const leg = e.target.closest('[data-l]'), st = e.target.closest('[data-st]'), cab = e.target.closest('.cable'), w = e.target.closest('#who [data-m]'), mk = e.target.closest('[data-t]');
+  if (w) { focus = focus === w.dataset.m ? null : w.dataset.m; why = null; bub.hidden = true; return render(); }
+  if (cab) { open.add(cab.dataset.k); return render(); }
+  if (leg) { const [id, i] = leg.dataset.l.split(':'); why = null; focus = null; render(); return legBubble(id, +i, 0, e); }
+  if (st) return stationBubble(st.dataset.st, e);
+  if (mk) { if (mk.dataset.t === 'Reap the barley') return stationBubble('barley', e); bub.innerHTML = `<h4>${mk.innerHTML.replace(/width="44" height="44"/, 'width="28" height="28"')}${mk.dataset.t}</h4><small>Ahead is Per's estimate; days 5 to 7 are binding.</small>`; bub.hidden = false; return place(e); }
+  if (e.target.closest('.rung')) return;
+  bub.hidden = true; why = null; render();
+});
+const seg = (id, fn) => document.getElementById(id).addEventListener('click', (e) => { const v = e.target.dataset.v; if (!v) return;
+  document.querySelectorAll(`#${id} button`).forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === v)); fn(v); bub.hidden = true; why = null; render(); });
+seg('mode', (v) => (mode = v)); seg('zoom', (v) => (zoom = v)); seg('bund', (v) => { cables = v === 'cables'; open.clear(); }); seg('stress', (v) => { stress = v === '10'; focus = null; });
+render();
+</script>
+</body>
+</html>
