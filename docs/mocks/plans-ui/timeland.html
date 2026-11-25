@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Time on the Land</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600&display=swap">
+<style>
+/* Calendar · time on the land: the days ahead drawn IN the landscape (forecast scrubber, small multiples, a field almanac). */
+:root { --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --accent: #33599e; color-scheme: light; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #8c9a6a; color: var(--ink); font: 14px/1.4 'Alegreya Sans', system-ui, sans-serif; }
+.band { height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--card); border-bottom: 1px solid var(--line); }
+.band h1 { font: 500 17px 'Alegreya SC', Georgia, serif; margin: 0; }
+.band .mode { font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: #fff; padding: 3px 9px; font: inherit; font-size: 13px; cursor: pointer; }
+.seg button.on { background: var(--ink); color: #fff; }
+.sp { flex: 1; }
+.who { display: inline-flex; gap: 4px; } .who button { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; box-shadow: 0 0 0 1px #0004; padding: 0; }
+.who button.on { box-shadow: 0 0 0 2px var(--ink); }
+#wrap { display: flex; height: calc(100vh - 41px); }
+#main { flex: 1; position: relative; min-width: 0; display: flex; flex-direction: column; }
+#aside { width: 286px; background: var(--card); border-left: 1px solid var(--line); padding: 8px 10px; overflow: auto; font-size: 13px; }
+#aside h2 { font: 600 13px 'Alegreya Sans'; margin: 6px 0 4px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+svg.land { display: block; width: 100%; flex: 1; min-height: 0; }
+#scrub { width: 100%; height: 128px; flex: none; background: var(--card); border-top: 1px solid var(--line); user-select: none; touch-action: none; }
+.grid6 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px; flex: 1; }
+.strip6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; padding: 4px; height: 128px; flex: none; background: var(--card); }
+.sm { background: #6d7a52; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+.sm header { font-size: 12px; padding: 2px 8px; background: #23251e; color: #fff; display: flex; gap: 8px; }
+.sm header.est { background: repeating-linear-gradient(45deg, #23251e 0 6px, #4a4c42 6px 12px); }
+.sm svg { flex: 1; width: 100%; min-height: 0; }
+.hit { cursor: pointer; }
+.meter { display: grid; grid-template-columns: 26px 1fr; gap: 2px 6px; align-items: center; margin: 5px 0; }
+.meter small { color: var(--muted); }
+.bubble { position: absolute; z-index: 5; width: 272px; background: #fff; border: 1px solid #3a2a1a; border-radius: 8px; padding: 9px 11px; box-shadow: 0 4px 14px #0004; font-size: 13px; }
+.bubble h3 { margin: 0 0 4px; font: 600 15px 'Alegreya Sans'; display: flex; gap: 6px; align-items: center; }
+.bubble dl { margin: 0; display: grid; grid-template-columns: 62px 1fr; gap: 1px 6px; } .bubble dt { color: var(--muted); } .bubble dd { margin: 0; }
+.bubble .acts { margin-top: 7px; display: flex; flex-direction: column; gap: 3px; }
+.bubble .row { display: flex; gap: 4px; flex-wrap: wrap; }
+.bubble button { font: inherit; font-size: 12px; border: 1px solid #3a2a1a; background: #f3efe4; border-radius: 10px; padding: 2px 9px; cursor: pointer; text-align: left; }
+.bubble button small { display: block; color: var(--muted); font-size: 11px; }
+.bubble button.main { background: var(--ink); color: #fff; }
+.bubble .def { background: #eef2fa; border-left: 3px solid var(--accent); padding: 2px 6px; font-size: 12px; }
+.why { position: absolute; z-index: 6; width: 230px; background: #fffdf6; border: 1px solid #3a2a1a; border-radius: 8px; padding: 7px 9px; box-shadow: 0 4px 14px #0004; font-size: 12.5px; }
+.why .r { display: flex; gap: 6px; align-items: center; } .why .ar { margin-left: 10px; color: var(--muted); font-size: 11px; }
+.toast { position: absolute; left: 40%; bottom: 140px; transform: translateX(-50%); background: #23251e; color: #fff; padding: 7px 14px; border-radius: 16px; font-family: ui-monospace, monospace; font-size: 12.5px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 9; }
+.toast.on { opacity: 1; }
+.note { position: absolute; right: 296px; top: 48px; max-width: 420px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 12.5px; z-index: 4; }
+.note summary { cursor: pointer; font-weight: 600; } .note p { margin: 4px 0; }
+.tk { cursor: pointer; }
+body[data-hd="5"] .tk[data-d="5"], body[data-hd="6"] .tk[data-d="6"], body[data-hd="7"] .tk[data-d="7"], body[data-hd="8"] .tk[data-d="8"], body[data-hd="9"] .tk[data-d="9"], body[data-hd="10"] .tk[data-d="10"] { stroke: #000; stroke-width: 3.2; }
+</style>
+</head>
+<body>
+<div class="band">
+  <h1>Time on the land</h1><span class="mode">Calendar · after weather forecast maps, the cone, small multiples, the inset</span>
+  <span class="seg" id="variant"><button data-v="A" class="on">A scrubber</button><button data-v="B">B multiples</button><button data-v="C">C almanac</button></span>
+  <span class="seg" id="bsub"><button data-v="six" class="on">six big</button><button data-v="today">today big</button></span>
+  <span class="seg" id="stress"><button data-v="0" class="on">Backa</button><button data-v="1">stress</button></span>
+  <span class="sp"></span><span style="font-size:12px;color:var(--muted)">track:</span><span class="who" id="who"></span>
+</div>
+<div id="wrap"><div id="main"></div><div id="aside"></div></div>
+<details class="note"><summary>Scales to / strains at</summary>
+<p><b>Scales to</b>: one household's week on its own land. The scrubber reads well for <i>what the land will look like</i>: the barley turning stooked, the cut edge's cone widening past day 7, Erik's track ending in a striped blob. Naming the fence day by dragging it onto the scrubber, and seeing the barley's edge fall back and the displaced arrow, is the best moment: cost appears where it lands.</p>
+<p><b>Strains at</b>: comparison across days (A shows one day at a time; you must scrub and remember). B fixes comparison but each multiple is ~320 px wide: icons survive, ghosts and pips are crowded; the reverse (today big, strip of six) is too small to read. C's ribbons are 6 px ticks: a pattern, not a plan. Stress: 6 dated items on the green and Norrgård collapse into "+n" pips, and 19 farms' fence days are lines into one tile; three interrupted tasks sit as stray signs that never move with the scrubber. Season targets and the budget found no place: they went to the margin. The six parts of the day, terms and authorship do not show at all.</p>
+<p><b>Verdict</b>: the review is right in the main. Time can live on the land for <i>consequences in place</i> (a field's progress, where people will be, what a named day displaces), not for <i>the schedule</i>. Keep a forecast scrubber as a lens of the time strip (scrub the strip, the land previews) and the cone for estimates; the plan itself needs the strip.</p>
+</details>
+<div class="toast" id="toast"></div>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+// ---- Mock state.
+const S = { v: 'A', bsub: 'six', stress: false, day: 4, sel: 'erik', barley: 'short', named: null, preview: null, nameBy: 'erik', flash: null };
+const P = Object.fromEntries(PEOPLE.map((p) => [p.id, p]));
+const DAYS = [4, 5, 6, 7, 8, 9, 10, 11, 12];
+const bandOf = (d) => (d <= 4 ? 'today' : d <= 7 ? 'binding' : d <= 10 ? 'estimate' : 'beyond');
+const $ = (id) => document.getElementById(id);
+// Where each member is, day by day (Per's estimate); remedies and a named fence day change it.
+const BASEPOS = {
+  4: { per: 'long', karin: 'home', erik: 'long', nils: 'home', anna: 'meadow' }, 5: { per: 'long', karin: 'home', erik: 'long', nils: 'wood1', anna: 'meadow' },
+  6: { per: 'barley', karin: 'home', erik: 'fence', nils: 'wood1', anna: 'meadow' }, 7: { per: 'barley', karin: 'home', erik: 'barley', nils: 'wood1', anna: 'meadow' },
+  8: { per: 'home', karin: 'home', erik: 'barley', nils: 'green', anna: 'meadow' }, 9: { per: 'green', karin: 'home', erik: 'barley', nils: 'home', anna: 'meadow' },
+  10: { per: 'home', karin: 'home', erik: 'barley', nils: 'wood1', anna: 'meadow' }, 11: { per: 'home', karin: 'home', erik: 'home', nils: 'wood1', anna: 'meadow' },
+  12: { per: 'clearing', karin: 'home', erik: 'home', nils: 'wood1', anna: 'meadow' },
+};
+const fenceDay = () => S.preview ?? S.named;
+function posAt(d) {
+  const p = { ...BASEPOS[d] };
+  if (['nils', 'back'].includes(S.barley) && d === 7) p.nils = 'barley';
+  if (S.barley === 'anna' && d === 7) { p.anna = 'barley'; p.karin = 'meadow'; }
+  if (fenceDay() === d && okDay(d)) p[S.nameBy] = 'fence';
+  return p;
+}
+// The barley: the share cut by the end of day d as [lo, hi] (Per's estimate; the span is the cone).
+const FR = {
+  short: { 4: [0, 0], 5: [0, 0], 6: [.2, .25], 7: [.45, .55], 8: [.6, .8], 9: [.72, .95], 10: [.85, 1], 11: [.95, 1], 12: [1, 1] },
+  nils: { 4: [0, 0], 5: [0, 0], 6: [.2, .25], 7: [.66, .74], 8: [.85, 1], 9: [1, 1], 10: [1, 1], 11: [1, 1], 12: [1, 1] },
+  anna: { 4: [0, 0], 5: [0, 0], 6: [.2, .25], 7: [.58, .66], 8: [.75, .95], 9: [.92, 1], 10: [1, 1], 11: [1, 1], 12: [1, 1] },
+};
+const okDay = (d) => d >= 7 && d <= 12; // notice is 3 days
+const displacedFromBarley = () => { const k = fenceDay(); return k && okDay(k) && BASEPOS[k][S.nameBy] === 'barley'; };
+function frac(d) {
+  let [lo, hi] = FR[{ kept: 'short', back: 'nils', by10: 'short' }[S.barley] || S.barley][d];
+  if (displacedFromBarley() && d >= fenceDay()) { lo = Math.max(0, lo - .22); hi = Math.max(0, hi - .18); }
+  return [lo, hi];
+}
+const atRisk = () => ['short', 'kept'].includes(S.barley) || displacedFromBarley();
+const shortH = () => (displacedFromBarley() ? 18 : ['short', 'kept'].includes(S.barley) ? 8 : 0);
+const finish = () => { const lo = DAYS.find((d) => frac(d)[1] >= 1) ?? 12, hi = DAYS.find((d) => frac(d)[0] >= 1) ?? 13; return [lo, hi]; };
+const DISP = { 7: 'Erik off the barley: barley 18 h short', 8: 'Erik off the barley, Nils on leave: barley 18 h short', 9: 'Erik off the barley on the bridge day: barley 18 h short',
+  10: 'Erik off the barley: it slips past day 10', 11: 'threshing slips a day (Per, Erik)', 12: 'Erik off the rye sowing; the window holds to 12' };
+const ladder = (who) => [
+  ['substitute', `Substitute: Per or Nils goes in ${who}'s place`, "costs that member's day"], ['name', 'Another day: 7, 10 or 11', 'notice is 3 days, so not before 7'],
+  ['ask', 'Ask release of the meeting', 'goodwill spent; may say no'], ['commute', 'Commute: pay 3 rations', 'from the store, rye'], ['breach', 'Breach: stay away', 'the village remembers; the meeting fines']];
+const levyRow = (v) => { const l = LEVIES[v]; return `${l.from}: ${l.what}; notice ${l.terms.notice} d; substitute ${l.terms.substitute ? 'yes' : 'no'}; commute ${l.terms.commute ? l.terms.commute + ' rations' : 'no'}`; };
+const WHY = {
+  barley: [['chop', { frame: 'plan', author: 'player' }, 'Reap the barley (Per wrote it)'], ['oats', { frame: 'target', num: -8 }, 'Barley in the barn: 30, none yet'], ['grain', { frame: 'target', whose: null }, "The year's bread: winter food"], ['home', { whose: null }, 'Backa holds through the winter']],
+  fence: [['fence', { frame: 'plan', whose: 'owed' }, 'Fence day (our lot)'], ['fence', { frame: 'target', whose: 'owed' }, 'The village levy: 2 adult-days, lots by fields'], ['village', { whose: 'owed' }, 'The meeting: the fence keeps the beasts out'], ['people', { whose: null }, 'Standing in the village']],
+  other: [['plan', { frame: 'plan', whose: null }, 'A step of the custom'], ['target', { frame: 'target', whose: null }, 'A season target'], ['home', { whose: null }, 'The household']],
+};
+// The stress set: six more dated items in the same days, three interrupted tasks, the 19 other farms.
+const STRESS = [
+  { id: 'x1', d: 6, at: 'norr', gl: 'wool', whose: 'own', who: ['karin'], t: 'Karin: spinning bee at Norrgård' }, { id: 'x2', d: 6, at: 'lake', gl: 'water', whose: 'household', who: ['anna'], t: 'Anna: wash day at the lake' },
+  { id: 'x3', d: 7, at: 'green', gl: 'cart', whose: 'estate', who: ['per'], t: 'Tithe cart to the manor' }, { id: 'x4', d: 7, at: 'norr', gl: 'build', whose: 'owed', who: ['erik'], t: 'Help raise the Norrgård barn' },
+  { id: 'x5', d: 8, at: 'green', gl: 'sack', whose: 'household', who: ['karin'], t: 'Market on the green' }, { id: 'x6', d: 9, at: 'green', gl: 'ale', whose: 'own', who: ['nils'], t: 'Ale after the bridge' },
+];
+const CUTS = [
+  { id: 'c1', at: 'wood2', gl: 'wood', state: 'stray', until: 7, t: "Nils' firewood: cut, a stray pile at Hagen wood" },
+  { id: 'c2', at: 'long2', gl: 'sheaves', state: 'stray', until: 10, t: 'Stooking: cut by rain, sheaves lying' },
+  { id: 'c3', at: 'clearing', gl: 'hoe', state: 'blocked', until: 13, t: 'Clearing the south field: stopped, no hands' },
+];
+const FARMS = VILLAGE.households.slice(1);
+
+// ---- What is on the land on day d: items {id, at, gl, opt, title, who, rows, acts, why, d0}.
+function items(d) {
+  const out = [], pos = posAt(d), whoAt = (k) => Object.keys(pos).filter((m) => pos[m] === k);
+  if (d <= 5) out.push({ id: 'rye', at: 'long', d0: 4, gl: 'chop', opt: { frame: d === 4 ? 'now' : 'plan', num: d === 4 ? null : 5 }, title: 'Reap the rye', who: whoAt('long'), rows: [['What', 'Reap the Long field, done by day 5'], ['Chose', 'the custom'], ['Estimate', '1 to 1.5 days left']], acts: [['assign', 'Add a hand: Nils', 'firewood waits a day']] });
+  if (d === 6) out.push({ id: 'haul', at: 'long', d0: 6, gl: 'cart', opt: { frame: 'plan', num: 6 }, title: 'Haul the rye home', who: [], rows: [['What', 'Cart the stooks home'], ['Chose', 'the custom']], acts: [] });
+  if (d === 4) out.push({ id: 'fw', at: 'home', d0: 4, gl: 'wood', opt: { frame: 'now' }, title: 'Cut firewood (Nils)', who: ['nils'], rows: [['What', TASK_FIREWOOD.goal], ['History', TASK_FIREWOOD.history]], acts: [] });
+  if (d >= 5 && d <= 7 || d === 10) out.push({ id: 'fell', at: 'wood1', d0: 5, gl: 'tree', opt: { frame: 'plan', num: 7 }, title: 'Fell 2 more trees', who: whoAt('wood1'), rows: [['What', 'Firewood: the last step of the task'], ['Chose', 'the custom (resumed task)']], acts: [['assign', 'Move Nils to the barley', 'wood target 10 h behind']] });
+  const [f0, f1] = finish();
+  if (d >= 6 && d <= f1) {
+    const B = S.barley;
+    out.push({ id: 'barley', at: 'barley', d0: 6, always: true, gl: 'chop', opt: { frame: 'plan', author: B === 'kept' ? 'kept' : B === 'back' ? null : 'player', state: atRisk() ? 'risk' : null, num: B === 'by10' ? 10 : 9 }, title: 'Reap the barley', who: whoAt('barley'),
+      rows: [['What', `Reap the barley, from day 6 by day ${B === 'by10' ? 10 : 9}`], ['Chose', B === 'back' ? 'the rule (taken back)' : B === 'kept' ? 'Per, kept' : 'Per wrote it'], ['Estimate', `30 to 44 h; done day ${f0} to ${Math.min(f1, 12)}${f1 > 12 ? '+' : ''}`], ['Today', `${Math.round(frac(d)[0] * 100)} to ${Math.round(frac(d)[1] * 100)}% cut by evening`], ['Short', shortH() ? `${shortH()} h by day 9` : 'none']],
+      rule: atRisk() && B !== 'kept' ? 'the rule will: add Nils on day 7 (firewood waits)' : B === 'kept' ? 'kept: the rule will not touch it; the shortfall is yours' : null,
+      acts: [['assign', 'Add a hand: Nils, day 7', 'off firewood; wood target 10 h behind', () => (S.barley = 'nils')], ['assign', 'Add a hand: Anna (0.7)', 'minding moves to Karin', () => (S.barley = 'anna')],
+        ['plan', 'Move by to day 10', 'the rye sowing starts a day later', () => (S.barley = 'by10')], ['keep', 'Keep my order', 'the rule may not take it back; the shortfall stays yours', () => (S.barley = 'kept')],
+        ['release', 'Let the rule take it back', 'the custom re-plans from the targets', () => (S.barley = 'back')]] });
+  }
+  if (d === 6) out.push({ id: 'fence', at: 'fence', d0: 6, gl: 'fence', opt: { frame: 'plan', whose: 'owed', num: 6 }, title: 'Village fence: our lot (Erik)', who: ['erik'], rows: [['What', 'Mend the village fence, one adult-day'], ['Chose', 'named by Per; Erik'], ['Terms', levyRow('v1')]], acts: ladder('Erik').map(([v, t, c]) => [v, t, c]) });
+  const k = fenceDay();
+  if (k === d) out.push({ id: 'fence2', at: 'fence', d0: d, gl: 'fence', opt: { frame: 'plan', whose: 'owed', author: 'player', num: d, state: okDay(d) ? null : 'blocked' }, title: okDay(d) ? `Fence: day ${d} (named)` : `Fence: day ${d} not allowed`, who: okDay(d) ? [S.nameBy] : [], rows: [['What', 'The second fence day'], ['Displaces', okDay(d) ? DISP[d] : 'notice is 3 days: not before day 7'], ['Terms', levyRow('v1')]], acts: [['name', 'Unname it', 'back to "to name"', () => (S.named = null)]] });
+  else if (!k && d >= 7 && d <= 9) out.push({ id: 'fence2', at: 'fence', d0: 7, gl: 'fence', opt: { frame: 'plan', whose: 'owed', num: '?', ghost: true }, title: 'Fence: 1 day still to name (by day 9)', who: [], rows: [['What', 'One fence day still to name, by day 9'], ['Chose', 'not yet: the household names it'], ['How', 'drag the stake onto a day of the scrubber']], rule: 'the rule will: name day 10, Erik (least displaced)', acts: [7, 10, 11].map((x) => ['name', `Name day ${x}`, DISP[x], () => (S.named = x)]) });
+  if (d === 8) out.push({ id: 'leave', at: 'green', d0: 8, gl: 'courting', opt: { frame: 'plan', whose: 'own', num: 8 }, title: "Nils' leave: the gathering", who: ['nils'], rows: [['What', 'Leave granted: the gathering on the green'], ['Chose', 'Per granted it'], ['Hours', 'own (his levy waived)']], acts: [['grant', 'Withdraw the leave', "Nils' mood falls; he may take the hours anyway"]] });
+  if (d === 9) out.push({ id: 'bridge', at: 'green', d0: 9, gl: 'village', opt: { frame: 'plan', whose: 'owed', num: 9 }, title: 'The bridge, together', who: ['per'], rows: [['What', 'The whole village, called by the alderman'], ['Terms', levyRow('v2')]], acts: [['substitute', 'Send Erik instead of Per', 'Erik off the barley: barley 10 h shorter']] });
+  if (d === 8 || d === 10) out.push({ id: 'thresh', at: 'home', d0: 8, gl: 'quern', opt: { frame: 'plan', num: 8 }, title: 'Thresh the rye', who: whoAt('home').filter((m) => m === 'per' || m === 'erik'), rows: [['What', 'Thresh the rye, day 8 by 12'], ['Estimate', '14 to 24 h']], acts: [['assign', 'Add a hand: Karin', 'spinning waits']] });
+  if (S.stress) {
+    for (const x of STRESS) if (x.d === d) out.push({ id: x.id, at: x.at, d0: d, gl: x.gl, opt: { frame: 'plan', whose: x.whose, num: d }, title: x.t, who: x.who, rows: [['What', x.t], ['Chose', 'dated, outside the custom']], acts: [['release', 'Drop it', 'goodwill or own hours lost']] });
+    for (const c of CUTS) if (d < c.until) out.push({ id: c.id, at: c.at, d0: 4, gl: c.gl, opt: { frame: 'now', state: c.state, whose: null }, title: c.t, who: [], rows: [['What', c.t], ['Resumes', c.until > 12 ? 'beyond the horizon' : 'day ' + c.until]], acts: [['assign', 'Resume now: Nils', 'off his day']] });
+  }
+  return out;
+}
+const rank = (it) => (it.opt.state === 'risk' || it.opt.state === 'blocked' ? 0 : it.opt.whose === 'owed' || it.opt.whose === 'estate' ? 1 : 2);
+const byPlace = (list) => { const m = {}; for (const it of list) (m[it.at] ||= []).push(it); for (const k in m) m[k].sort((a, b) => rank(a) - rank(b)); return m; };
+let REG = {}; // id -> item, for clicks
+
+// ---- The land on day d. o: {isz (icon size in svg units), diff (small multiples: only what changes), uid, track, ribbons}.
+const PAT = `<defs><pattern id="unc" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="#ffffff55"/><rect width="2.6" height="7" fill="#23251e88"/></pattern>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#c8361b"/></marker></defs>`;
+const stooks = (x0, x1, y) => { let s = ''; for (let x = x0 + 8; x < x1 - 4; x += 15) for (const dy of [-22, 0, 22]) s += `<path d="M${x} ${y + dy + 6}l-4 -11h8z" fill="#c9a24a" stroke="#8a6a2a" stroke-width=".8"/>`; return s; };
+function fieldState(d, uid) {
+  let s = '';
+  const cut = (k, lo, hi, est) => {
+    const { x, y } = at(k), x0 = x - HEX;
+    s += `<clipPath id="cl-${uid}-${k}"><path d="${hexPath(x, y)}"/></clipPath><g clip-path="url(#cl-${uid}-${k})">`;
+    s += `<rect x="${x0}" y="${y - HEX}" width="${2 * HEX * lo}" height="${2 * HEX}" fill="#cfb98a"/>${stooks(x0, x0 + 2 * HEX * lo, y)}`;
+    if (hi > lo) s += `<rect x="${x0 + 2 * HEX * lo}" y="${y - HEX}" width="${2 * HEX * (hi - lo)}" height="${2 * HEX}" fill="url(#unc)"/>`;
+    s += `</g>`;
+  };
+  if (d >= 5) cut('long', 1, 1); if (d >= 5) cut('long2', 1, 1);
+  const [lo, hi] = frac(d); if (hi > 0) cut('barley', lo, hi);
+  return s;
+}
+function landSVG(d, o = {}) {
+  const isz = o.isz || 40, uid = o.uid || 'm' + d;
+  let s = PAT + DEFS + mapSVG({ dim: o.diff ? 0.22 : 0 }) + fieldState(d, uid);
+  const pos = posAt(d), prev = d > 4 ? posAt(d - 1) : pos;
+  if (S.flash) { const { x, y } = at(S.flash); s += `<circle cx="${x}" cy="${y}" r="${HEX - 4}" fill="none" stroke="#c8361b" stroke-width="5" stroke-dasharray="8 5"/>`; }
+  // the other 19 farms beyond the edge (stress), their fence days drawn as lines into the fence tile
+  if (S.stress) s += farmsSVG(d, o);
+  // the selected member's track: a hurricane track, a cone of striped circles widening past the binding days
+  if (o.track) {
+    const pts = DAYS.slice(0, 7).map((dd, i) => { const c = at(posAt(dd)[S.sel]); return { x: c.x + (i - 3) * 4, y: c.y + 8 + (i % 2) * 6, dd }; });
+    s += `<polyline points="${pts.map((p) => p.x + ',' + p.y).join(' ')}" fill="none" stroke="${P[S.sel].col}" stroke-width="2.5" stroke-dasharray="${'5 3'}" opacity=".85"/>`;
+    for (const p of pts) { const r = p.dd <= 7 ? 5 : 6 + (p.dd - 7) * 9; s += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${p.dd >= 8 ? 'url(#unc)' : P[S.sel].col}" stroke="${P[S.sel].col}" stroke-width="1.2" opacity="${p.dd === d ? 1 : .55}"/><text x="${p.x + r + 2}" y="${p.y - 3}" font-size="10" font-weight="700" fill="#23251e">${p.dd}</text>`; }
+  }
+  // pawns: ghosts for days ahead, a striped halo of doubt past day 7 (on small multiples, only those who moved)
+  const groups = {};
+  for (const m of Object.keys(pos)) { if (o.diff && pos[m] === prev[m] && pos[m] !== 'barley') continue; (groups[pos[m]] ||= []).push(m); }
+  for (const [k, ms] of Object.entries(groups)) ms.forEach((m, i) => {
+    const { x, y } = at(k), px = x + (i - (ms.length - 1) / 2) * 14 * (isz / 40), py = y + 32 * Math.min(1, isz / 40) + 4;
+    if (d >= 8) s += `<circle cx="${px}" cy="${py - 6}" r="${8 + (d - 7) * 3}" fill="url(#unc)" opacity=".7"/>`;
+    s += `<g opacity="${d === 4 ? 1 : .75}">${pawnSVG(P[m], px, py, isz / 40)}</g>`;
+  });
+  // one sign per tile: the most urgent, with a count pip; a displaced edge when a named fence day pulls someone off their work
+  const list = items(d).filter((it) => !o.diff || it.d0 === d || it.always);
+  for (const [k, its] of Object.entries(byPlace(list))) {
+    const top = its[0], { x, y } = at(k); REG[top.id] = top; top.rest = its.slice(1);
+    s += `<g class="hit" data-id="${top.id}" transform="translate(${x - isz / 2} ${y - isz / 2 - 12 * isz / 40})"><svg width="${isz}" height="${isz}" overflow="visible">${icon(top.gl, { ...top.opt, size: isz })}</svg>`;
+    if (its.length > 1) s += `<circle cx="${isz + 2}" cy="${isz - 2}" r="${isz / 5}" fill="#c8361b" stroke="#fff"/><text x="${isz + 2}" y="${isz + isz / 12}" font-size="${isz / 4}" font-weight="700" fill="#fff" text-anchor="middle">+${its.length - 1}</text>`;
+    s += `</g>`;
+  }
+  const k = fenceDay();
+  if (k === d && okDay(d) && !o.diff) {
+    const from = at(BASEPOS[d][S.nameBy]), to = at('fence'), mx = (from.x + to.x) / 2, my = (from.y + to.y) / 2 - 20;
+    s += `<path d="M${from.x} ${from.y}Q${mx} ${my - 40} ${to.x - 20} ${to.y + 10}" fill="none" stroke="#c8361b" stroke-width="3" stroke-dasharray="7 4" marker-end="url(#arr)"/>`;
+    s += `<g transform="translate(${mx - 120} ${my - 62})"><rect width="240" height="22" rx="11" fill="#fff" stroke="#c8361b"/><text x="120" y="15" font-size="12" text-anchor="middle" fill="#7a1d0e">displaced: ${DISP[d]}</text></g>`;
+  } else if (k === d && !okDay(d) && !o.diff) { const t = at('fence'); s += `<g transform="translate(${t.x - 100} ${t.y + 40})"><rect width="200" height="22" rx="11" fill="#c8361b"/><text x="100" y="15" font-size="12" text-anchor="middle" fill="#fff">notice is 3 days: not before 7</text></g>`; }
+  if (o.ribbons) s += ribbonsSVG();
+  return s;
+}
+// Farms beyond the edge: a ring of small farmsteads; on day d those with a fence day there draw a line to the fence.
+function farmXY(i) {
+  const n = FARMS.length, t = i / n, W = MAP_W, H = MAP_H; // around the frame, clockwise from top-left
+  const per = 2 * (W + H), u = t * per;
+  if (u < W) return { x: u, y: -28 }; if (u < W + H) return { x: W + 30, y: u - W }; if (u < 2 * W + H) return { x: W - (u - W - H), y: H + 28 }; return { x: -30, y: H - (u - 2 * W - H) };
+}
+function farmsSVG(d, o) {
+  let s = ''; const f = at('fence');
+  FARMS.forEach((h, i) => {
+    const { x, y } = farmXY(i), st = h.days[d - 1], on = st === 'named' || st === 'worked';
+    if (on && !o.ribbons) s += `<path d="M${x} ${y}L${f.x} ${f.y}" stroke="#33599e" stroke-width="1.6" opacity=".7"/>`;
+    s += `<g><path d="M${x - 9} ${y + 5}v-8l9 -7 9 7v8z" fill="${on ? '#33599e' : '#8a5a3a'}" stroke="#2a2018"/><text x="${x}" y="${y + 16}" font-size="9" text-anchor="middle" fill="#23251e">${h.name.slice(0, 6)}</text>`;
+    if (o.ribbons) for (let j = 0; j < 6; j++) { const dd = 5 + j, sv = h.days[dd - 1]; s += `<rect class="tk" data-d="${dd}" x="${x - 18 + j * 6}" y="${y + 19}" width="5" height="6" fill="${sv ? '#33599e' : '#f4efe4'}" stroke="#2a2018" stroke-width=".5"/>`; }
+    s += `</g>`;
+  });
+  const n = FARMS.filter((h) => ['named', 'worked'].includes(h.days[d - 1])).length;
+  if (n && !o.ribbons) s += `<g transform="translate(${f.x + 22} ${f.y - 44})"><circle r="11" fill="#33599e" stroke="#fff"/><text y="4" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">×${n}</text></g>`;
+  return s;
+}
+// Variant C: each place wears six ticks (days 5..10) along its lower edges, coloured by whose hours; striped past day 7.
+function ribbonsSVG() {
+  let s = ''; const FILL = { household: '#e0a43a', own: '#2f8f8a', owed: '#33599e', estate: '#7d3f8c', null: '#d9d2c2' };
+  const per = {}; for (let d = 5; d <= 10; d++) for (const it of items(d)) (per[it.at] ||= {})[d] ||= it;
+  for (const [k, days] of Object.entries(per)) {
+    const { x, y } = at(k), A = [x - 45, y + 26], Bv = [x, y + 52], C = [x + 45, y + 26];
+    for (let j = 0; j < 6; j++) {
+      const d = 5 + j, [p, q] = j < 3 ? [A, Bv] : [Bv, C], t0 = (j % 3) / 3 + .03, t1 = (j % 3 + 1) / 3 - .03;
+      const a = [p[0] + (q[0] - p[0]) * t0, p[1] + (q[1] - p[1]) * t0], b = [p[0] + (q[0] - p[0]) * t1, p[1] + (q[1] - p[1]) * t1];
+      const inw = (pt) => [pt[0] + (x - pt[0]) * .2, pt[1] + (y - pt[1]) * .2], it = days[d];
+      const pts = [a, b, inw(b), inw(a)].map((v) => v.join(',')).join(' ');
+      if (it) REG[it.id + '@' + d] = it;
+      const col = it ? FILL[it.opt.whose === undefined ? 'household' : it.opt.whose] : '#f4efe4';
+      s += `<polygon class="tk" data-d="${d}" ${it ? `data-id="${it.id}@${d}"` : ''} points="${pts}" fill="${col}" stroke="${it?.opt.state === 'risk' ? '#c8361b' : '#2a2018'}" stroke-width="${it?.opt.state === 'risk' ? 2 : .7}"/>`;
+      if (d >= 8) s += `<polygon points="${pts}" fill="url(#unc)" pointer-events="none"/>`;
+    }
+  }
+  return s;
+}
+
+// ---- The scrubber (A): days 4..12 in three bands; the events of each day; the barley's cone; the fence stake to drag.
+const SX = (d, W) => 70 + (d - 4) * ((W - 90) / 9) + ((W - 90) / 18);
+function scrubSVG(W) {
+  const cw = (W - 90) / 9; let s = PAT;
+  for (const d of DAYS) {
+    const b = bandOf(d), x = SX(d, W) - cw / 2;
+    s += `<rect x="${x}" y="6" width="${cw - 1}" height="14" fill="${b === 'today' ? '#e8dcc0' : b === 'binding' ? '#23251e' : b === 'estimate' ? 'url(#unc)' : '#d8d6cc'}" stroke="#23251e44"/>`;
+    s += `<text x="${x + cw / 2}" y="35" font-size="12" text-anchor="middle" font-weight="${d === S.day ? 700 : 400}" fill="${d > 10 ? '#999' : '#23251e'}">day ${d}</text>`;
+    const its = items(d).filter((it) => it.id !== 'barley' && it.id !== 'fence2').slice(0, 3);
+    its.forEach((it, i) => { REG[it.id] = it; s += `<g class="hit" data-id="${it.id}" transform="translate(${x + 4 + i * 26} 42)"><svg width="22" height="22" overflow="visible">${icon(it.gl, { ...it.opt, num: null, size: 22 })}</svg></g>`; });
+  }
+  for (const [d, t, c] of [[6, 'binding', '#fff'], [9, "Per's estimate", '#23251e'], [11.5, 'beyond the horizon', '#555']]) s += `<text x="${SX(d, W)}" y="17" font-size="10" text-anchor="middle" fill="${c}" style="paint-order:stroke" stroke="${c === '#fff' ? '#23251e' : '#fff'}" stroke-width="3">${t}</text>`;
+  // the barley's track and cone: solid while binding, then a wedge from the earliest to the latest finish
+  const [f0, f1] = finish(), y = 92, x6 = SX(6, W) - cw / 2, xa = SX(Math.min(f0, 12), W) + cw / 2, xb = SX(Math.min(f1, 12), W) + cw / 2;
+  s += `<text x="8" y="${y + 4}" font-size="11" fill="#23251e">barley</text><rect x="${x6}" y="${y - 3}" width="${SX(7, W) + cw / 2 - x6}" height="6" fill="#e0a43a" stroke="#2a2018"/>`;
+  const x7 = SX(7, W) + cw / 2;
+  s += `<path d="M${x7} ${y - 3}L${xb} ${y - 12}L${xb} ${y + 12}L${x7} ${y + 3}z" fill="url(#unc)" stroke="${atRisk() ? '#c8361b' : '#2a2018'}"/>`;
+  s += `<path d="M${xa} ${y - 9}V${y + 9}" stroke="#2a2018" stroke-width="2"/><text x="${Math.min(xb + 4, W - 170)}" y="${y + 26}" font-size="11" fill="${atRisk() ? '#c8361b' : '#23251e'}">done ${f0}–${f1 > 12 ? '12+' : f1}${shortH() ? ` · −${shortH()} h by 9` : ''}</text>`;
+  REG.barley = items(7).find((i) => i.id === 'barley');
+  s += `<g class="hit" data-id="barley" transform="translate(${x6 - 26} ${y - 11})"><svg width="22" height="22" overflow="visible">${icon('chop', { frame: 'plan', author: 'player', state: atRisk() ? 'risk' : null, size: 22 })}</svg></g>`;
+  // the fence day still to name: a stake on the tray at the left, or on its day; drag it
+  const k = fenceDay(), sx = k ? SX(k, W) + cw / 2 - 30 : 10, sy = k ? 66 : 50;
+  if (!k) s += `<text x="6" y="44" font-size="10" fill="#33599e">to name ▾ drag</text>`;
+  s += `<g id="stake" data-id="fence2" style="cursor:grab" transform="translate(${sx} ${sy})"><svg width="24" height="24" overflow="visible">${icon('fence', { frame: 'plan', whose: 'owed', author: k ? 'player' : null, num: k || '?', ghost: !k, size: 24 })}</svg></g>`;
+  REG.fence2 = items(k || 7).find((i) => i.id === 'fence2');
+  // the thumb
+  const tx = SX(S.day, W);
+  s += `<rect x="${tx - cw / 2}" y="2" width="${cw}" height="${120}" fill="none" stroke="#c8361b" stroke-width="2.5" rx="4" pointer-events="none"/>`;
+  return s;
+}
+
+// ---- The season, where the land has no place for it: targets as meters in the margin, projected to the scrubbed day.
+function meter(gl, name, want, have, lo, hi, short) {
+  const W = 200, sc = (v) => Math.min(W, (v / want) * W);
+  return `<div class="meter"><span class="hit" data-fly="${name}">${icon(gl, { frame: 'target', num: short ? -short : null, size: 26 })}</span><div><b>${name}</b> <small>${have} of ${want}${short ? ', short' : ''}</small>
+  <svg width="${W + 4}" height="12">${PAT}<rect x="0" y="2" width="${W}" height="8" fill="#fff" stroke="#999"/><rect x="0" y="2" width="${sc(have)}" height="8" fill="#23251e"/><rect x="${sc(have)}" y="2" width="${Math.max(0, sc(lo) - sc(have))}" height="8" fill="#e0a43a"/><rect x="${sc(lo)}" y="2" width="${Math.max(0, sc(hi) - sc(lo))}" height="8" fill="url(#unc)" stroke="#2a2018" stroke-width=".5"/><path d="M${W} 0v12" stroke="#c8361b" stroke-width="2"/></svg></div></div>`;
+}
+function asideHTML() {
+  const d = S.v === 'A' ? S.day : 10, f = frac(d), lin = (a, b) => Math.min(1, Math.max(0, (d - a) / (b - a)));
+  const [rt, bt, wt, ht] = SEASON.targets;
+  let h = '';
+  if (S.v === 'B' && S.bsub === 'six') h += `<h2>Today · the inset</h2><svg class="hit" viewBox="15 15 840 430" width="264" height="135" style="background:#8c9a6a;border-radius:6px">${landSVG(4, { isz: 70, uid: 'ins' })}</svg>`;
+  h += `<h2>Season by day ${d} ${d > 7 ? '(Per\'s estimate)' : ''}</h2>`;
+  h += meter('rye', 'Rye in the barn', rt.want, rt.have, rt.have + 26 * lin(4, 10), rt.have + 26 * lin(4, 9), 0);
+  h += meter('oats', 'Barley in the barn', bt.want, bt.have, bt.want * f[0], bt.want * f[1], shortH());
+  h += meter('wood', 'Firewood', wt.want, wt.have, wt.have + 5 * lin(4, 7), wt.have + 6 * lin(4, 7), S.barley === 'nils' || S.barley === 'back' ? 10 : 0);
+  h += meter('hay', 'Hay', ht.want, ht.have, ht.have, ht.have, 0);
+  const left = Math.max(0, 8 - (d - 4)), bud = Math.round((SEASON.budget.levy + SEASON.budget.heads - SEASON.budget.outer) * left / 8);
+  h += `<h2>Labour budget, days ${d + 1}–12</h2>${meter('people', 'Hours left', 400, bud, bud, bud, 0)}<small>targets need ${Math.round(112 * left / 8)} to ${Math.round(140 * left / 8)} h; the binding days already hold most of it. The short ones are short of <i>days in the window</i>, not of hours: that is a time fact, and the land cannot show it.</small>`;
+  h += `<h2>Where the targets went</h2><small>Tap a shield to fly to its field. A target has a place (the barley field) but its shortfall is about a date; the budget has none. Both sit here, in the margin, the map's inset.</small>`;
+  return h;
+}
+
+// ---- Render.
+function render() {
+  REG = {}; closeWhy();
+  const M = $('main'); document.body.dataset.hd = '';
+  $('bsub').style.display = S.v === 'B' ? '' : 'none';
+  const big = (d, o) => `<svg class="land" viewBox="${S.stress ? '-70 -60 1050 660' : `0 0 ${MAP_W} ${MAP_H}`}" preserveAspectRatio="xMidYMid meet">${landSVG(d, o)}</svg>`;
+  const small = (d, isz) => { const b = bandOf(d); return `<div class="sm"><header class="${b === 'estimate' ? 'est' : ''}"><b>day ${d}</b><span>${b === 'binding' ? 'binding' : b === 'estimate' ? "Per's estimate" : ''}</span></header><svg viewBox="15 15 840 430" preserveAspectRatio="xMidYMid meet">${landSVG(d, { isz, diff: true, uid: 'sm' + d })}</svg></div>`; };
+  if (S.v === 'A') {
+    M.innerHTML = big(S.day, { track: true, uid: 'A' }) + `<div style="position:absolute;left:12px;bottom:140px;display:flex;gap:6px"><button id="play" style="font:inherit;border-radius:12px;border:1px solid #23251e;background:#fff;padding:2px 12px;cursor:pointer">▶ play 4→10</button></div><svg id="scrub"></svg>`;
+    const W = $('scrub').getBoundingClientRect().width || 990; $('scrub').setAttribute('viewBox', `0 0 ${W} 128`); $('scrub').innerHTML = scrubSVG(W);
+    $('play').onclick = play;
+  } else if (S.v === 'B') {
+    M.innerHTML = S.bsub === 'six' ? `<div class="grid6">${[5, 6, 7, 8, 9, 10].map((d) => small(d, 66)).join('')}</div>` : big(4, { uid: 'Bt' }) + `<div class="strip6">${[5, 6, 7, 8, 9, 10].map((d) => small(d, 110)).join('')}</div>`;
+  } else M.innerHTML = big(4, { ribbons: true, uid: 'C' }) + `<div style="position:absolute;left:12px;bottom:10px;background:#f6f5efe8;border-radius:8px;padding:4px 9px;font-size:12px">Each place wears days 5–10 along its lower edges (striped from 8: Per's estimate). Hover a tick: the same day lights across the land.</div>`;
+  $('aside').innerHTML = asideHTML();
+}
+let playT = null;
+function play() { clearInterval(playT); S.day = 4; render(); playT = setInterval(() => { if (S.day >= 10) return clearInterval(playT); S.day++; render(); }, 700); }
+
+// ---- Bubble, acts, why-ladder, toast.
+let bubble = null, why = null;
+const toast = (t) => { const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 2800); };
+function closeWhy() { why?.remove(); why = null; }
+function closeBubble() { bubble?.remove(); bubble = null; closeWhy(); }
+function openBubble(it, el) {
+  closeBubble(); const r = el.getBoundingClientRect();
+  bubble = document.createElement('div'); bubble.className = 'bubble';
+  const rest = (it.rest || []).map((x, i) => `<button data-rest="${i}">${icon(x.gl, { ...x.opt, num: null, size: 16 })} ${x.title}</button>`).join('');
+  bubble.innerHTML = `<h3>${icon(it.gl, { ...it.opt, size: 24 })}${it.title}</h3><dl>${it.rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}${it.who?.length ? `<dt>Hands</dt><dd>${it.who.map((m) => P[m].name).join(', ')}</dd>` : ''}</dl>
+    ${it.rule ? `<div class="def">${it.rule}</div>` : ''}${rest ? `<div class="row" style="margin-top:5px"><small>Also here:</small> ${rest}</div>` : ''}
+    <div class="acts"><div class="row">${it.acts.length ? '<button class="main" data-x="acts">Acts ▸</button>' : ''}<button data-x="why">why ▸</button></div></div>`;
+  bubble.style.left = Math.min(innerWidth - 284, r.right + 8) + 'px'; bubble.style.top = Math.max(46, Math.min(innerHeight - 330, r.top - 10)) + 'px';
+  document.body.append(bubble);
+  bubble.onclick = (ev) => {
+    const b = ev.target.closest('button'); if (!b) return; ev.stopPropagation();
+    if (b.dataset.rest) return openBubble(it.rest[+b.dataset.rest], el);
+    if (b.dataset.x === 'why') return openWhy(it, bubble);
+    if (b.dataset.x === 'acts') { bubble.querySelector('.acts').innerHTML = it.acts.map((a, i) => `<button data-a="${i}"><b>${a[1]}</b><small>${a[2]}</small></button>`).join(''); return; }
+    if (b.dataset.a) { const a = it.acts[+b.dataset.a]; a[3]?.(); toast(`would issue \`${a[0]}\` ${a[1]} → ${it.title}`); closeBubble(); render(); }
+  };
+}
+function openWhy(it, anchor) {
+  closeWhy(); const r = anchor.getBoundingClientRect(), L = WHY[it.id] || WHY[it.id?.replace(/2$/, '')] || WHY.other;
+  why = document.createElement('div'); why.className = 'why';
+  why.innerHTML = `<b>Why: ${it.title}</b>` + L.map(([g, o, t], i) => `${i ? '<div class="ar">↑ because</div>' : ''}<div class="r">${icon(g, { ...o, size: 22 })}<span>${t}</span></div>`).join('');
+  why.style.left = (r.left - 240 > 0 ? r.left - 240 : r.right + 6) + 'px'; why.style.top = r.top + 'px'; document.body.append(why);
+}
+
+// ---- Events: clicks, the scrubber's drag (the thumb, and the fence stake), ribbons' hover, the band's toggles.
+document.addEventListener('click', (ev) => {
+  if (ev.target.closest('.bubble,.why,.band,.note')) return;
+  const fly = ev.target.closest('[data-fly]');
+  if (fly) { S.flash = { 'Barley in the barn': 'barley', 'Rye in the barn': 'long', Firewood: 'home', Hay: 'meadow', 'Hours left': 'home' }[fly.dataset.fly]; render(); setTimeout(() => { S.flash = null; render(); }, 1400); return; }
+  const el = ev.target.closest('[data-id]');
+  if (el && REG[el.dataset.id]) return openBubble(REG[el.dataset.id], el);
+  closeBubble();
+});
+let drag = null;
+const dayAt = (clientX) => { const sc = $('scrub'), r = sc.getBoundingClientRect(), W = r.width, cw = (W - 90) / 9; return Math.max(4, Math.min(12, Math.round((clientX - r.left - 70 - cw / 2) / cw) + 4)); };
+document.addEventListener('pointerdown', (ev) => {
+  if (S.v !== 'A' || !ev.target.closest('#scrub') || ev.target.closest('.hit')) return;
+  closeBubble(); drag = ev.target.closest('#stake') ? 'stake' : 'thumb'; if (drag === 'thumb') move(ev);
+});
+function move(ev) {
+  if (!drag) return; const d = dayAt(ev.clientX);
+  if (drag === 'stake') { if (ev.clientY < $('scrub').getBoundingClientRect().top - 10) return; S.preview = d; }
+  if (S.day !== d || drag === 'stake') { S.day = d; render(); }
+}
+document.addEventListener('pointermove', move);
+document.addEventListener('pointerup', () => {
+  if (drag === 'stake') {
+    const d = S.preview; S.preview = null;
+    if (d == null) { drag = null; return; }
+    if (okDay(d)) { S.named = d; toast(`would issue \`name\` fence lot v1 → day ${d}, Erik (displaces: ${DISP[d]})`); } else toast(`no: notice is 3 days, day ${d} is too soon`);
+    render();
+  }
+  drag = null;
+});
+document.addEventListener('mouseover', (ev) => { const t = ev.target.closest('.tk'); document.body.dataset.hd = t ? t.dataset.d : ''; });
+for (const [id, key] of [['variant', 'v'], ['bsub', 'bsub'], ['stress', 'stress']])
+  $(id).onclick = (ev) => { const b = ev.target.closest('button'); if (!b) return; $(id).querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); S[key] = key === 'stress' ? b.dataset.v === '1' : b.dataset.v; closeBubble(); render(); };
+$('who').innerHTML = PEOPLE.map((p) => `<button title="${p.name}" data-p="${p.id}" style="background:${p.col}" class="${p.id === S.sel ? 'on' : ''}"></button>`).join('');
+$('who').onclick = (ev) => { const id = ev.target.dataset.p; if (!id) return; S.sel = id; $('who').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.p === id)); render(); };
+addEventListener('resize', render);
+const q = new URLSearchParams(location.search); if (q.get('v')) S.v = q.get('v'); if (q.get('day')) S.day = +q.get('day'); if (q.get('stress')) S.stress = true; if (q.get('named')) S.named = +q.get('named');
+document.querySelectorAll('#variant button').forEach((x) => x.classList.toggle('on', x.dataset.v === S.v));
+render();
+</script>
+</body>
+</html>
