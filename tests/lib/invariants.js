@@ -24,6 +24,7 @@ function checkState(st) {
     for (const p of l || []) if (p.steps[p.open] && p.steps[p.open].stake) out.push(p.steps[p.open]);
     return out; };
   bad.push(...checkRoles(st, globalThis.VB, { allowAgeLag: true }));
+  bad.push(...globalThis.VB['sim/graph'].check(st)); // VB-043: the household caches, holders, lines, unions, cultures and aldermen agree with the membership graph
   for (const [key, expected] of [
     ['living', st.pawns.filter((p) => p.alive).map((p) => p.id)],
     ['liveHouseholds', st.households.filter((h) => !h.dissolved).map((h) => h.id)],
