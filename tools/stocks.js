@@ -155,7 +155,7 @@ const NOT_STOCKS = {
     'household.herds', 'household.dissolved', 'farmstead.id', 'farmstead.house', 'farmstead.village', 'farmstead.household', 'farmstead.name',
     'farmstead.line', 'farmstead.rowAngle', 'farmstead.firstRotation', 'farmstead.keeps', 'village.id', 'village.riteDays', 'village.name', 'village.center', 'village.farmsteads', 'village.wood', 'village.plots', 'village.alderman'],
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'village.keep', 'village.keepBy', 'village.tarBy', 'household.yields', 'household.spoilt', 'household.hungryDays',
-    'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.marshDay', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.fellShort', 'household.giftedIn', 'household.milkDay', 'household.workHours', 'village.ledger', 'village.totals', 'village.workday'],
+    'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.marshDay', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.borrowedIn', 'household.fellShort', 'household.giftedIn', 'household.milkDay', 'household.workHours', 'village.ledger', 'village.totals', 'village.workday'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'village.commonFields',
     'farmstead.booth', 'farmstead.camp', 'farmstead.barn', 'farmstead.byre', 'farmstead.rung', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
       'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'farmstead.water', 'farmstead.wellMeant', 'village.crowded', 'village.founded',
@@ -216,7 +216,7 @@ const OPS = { put: 'add', take: 'take', takeSpare: 'take', move: 'move', cook: '
   start: 'start', brew: 'brew',
   pour: 'take', spoilAle: 'take', villageDay: 'take', dry: 'take', cookLarder: 'add' };
 const OP_GOODS = { dug: ['clay', 'bogOre', 'peat'] };
-const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'share', 'wage', 'handingOn', 'provisions', 'start', 'moving']);
+const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'loan', 'share', 'wage', 'handingOn', 'provisions', 'start', 'moving']);
 const SKIP = new Set(['sim/stores', 'sim/saves']); // the stores' own operations, and saving
 // A module's named functions, innermost by line: [{name, from, to}], a job kind's properties as `kind.property`
 function functionsOf(src) {

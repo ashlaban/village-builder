@@ -36,6 +36,7 @@ VB['sim/stores'] = (() => {
   KINDS.push('feast'); // VB-458: the food a host lays out at a wedding or a funeral ale, eaten there by those who came (sim/occasions)
   KINDS.push('wage'); // VB-637: a servant's wage, paid from its master's grain into its stake (sim/service)
   KINDS.push('moving'); // VB-1667: what a household left lying at its landing when its house moved, and fetched home (sim/camp)
+  KINDS.push('loan'); // VB-312: grain lent, and repaid at the harvest (sim/loans)
   KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-359, sim/dig)
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];

@@ -51,6 +51,7 @@ VB['sim/soil'] = (() => {
   // The manure is spread: each load the job carried raises the soil, as far as the heap still holds it; never below a fresh field's soil.
   function manureDone(st, fd, hh, loads) {
     const n = Math.max(0, Math.min(loads, hh.manure));
+    if (!(n > 0)) return; // an empty heap spreads nothing, and reads no tilth
     hh.manure -= n;
     const extra = Math.max(0, n - Math.max(0, (SOIL.cap - fd.soil) / SOIL.perLoad)); // loads beyond the soil's need (VB-718)
     if (extra > 1e-9) {

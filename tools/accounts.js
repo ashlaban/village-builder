@@ -90,6 +90,7 @@ function lineOf(holder, d) {
     if (holder === 'village') return 'out.given.fromStore';
     return d.to === 'the village store' ? 'out.given.toStore' : 'out.given.toHouseholds';
   }
+  if (k === 'loan') return n > 0 ? 'in.loans' : 'out.loans'; // VB-312: grain lent, and repaid (sim/loans)
   if (k === 'away') return n > 0 ? 'in.packsHome' : 'out.packed';
   if (k === 'share' || k === 'wage' || k === 'handingOn' || k === 'provisions' || k === 'start') return n > 0 ? 'in.handedOn' : 'out.handedOn';
   return 'other.' + k; // a kind this report does not know yet: it shows, so that it is placed

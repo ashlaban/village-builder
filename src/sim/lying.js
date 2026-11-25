@@ -14,7 +14,9 @@ VB['sim/lying'] = (() => {
   //   data, saved (with the sharing of the fields and meadows it names); absent until the first and once empty.
   // @state st.lyingSeq: the last lying load's id (ids are never reused); absent until the first.
   // What a kind's delivery reads of its task, kept with the load.
-  const OF = ['cart', 'field', 'meadow', 'farm', 'village', 'common', 'dest', 'step', 'from'];
+  // `parts` and `moving`: grain left lying (sim/building leftGrain), its crops and whether a house's move carried it (VB-312: a fetcher of
+  // it falling on the road left it with no crops, and its delivery failed)
+  const OF = ['cart', 'field', 'meadow', 'farm', 'village', 'common', 'dest', 'step', 'from', 'parts', 'moving'];
   // Pawn a, released on its way home with its load of task j (sim/agents' release), puts the load down at (x, y) on `tile`; `kind` the
   // kind that took it up (a fetch's, the kind it fetches for).
   function lay(st, a, j, kind, tile, x, y) {

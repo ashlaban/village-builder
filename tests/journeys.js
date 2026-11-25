@@ -333,7 +333,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
     const q = Sim.load(s.w, planned), hh = q.households[0];
     assert.strictEqual(q.visits.filter((e) => e.pawn === man).length, 1, 'the save holds the plan');
     Stores.take(q, hh, 'grain', Stores.grainOf(hh) - 150, 'spoilage'); // fed for now, and short of its means
-    hh.askedIn = Math.floor((due + 1) / (SEASON_DAYS * DAY)); // it has asked this season already (VB-691: its head would ask at once, and be given)
+    hh.askedIn = hh.borrowedIn = Math.floor((due + 1) / (SEASON_DAYS * DAY)); // it has asked, and asked to borrow, this season already (VB-691: its head would ask at once, and be given)
     Sim.advance(q, due + 1 - q.t);
     assert.ok(!q.away.some((x) => x.why === 'visit') && !q.visits.some((e) => e.pawn === man) && !q.pawns[man].visited, 'short of its means he does not set out');
     assert.ok(off(q).filter((e) => e.pawn === man).length === 1 && /cannot spare the food for a visit/.test(Sim.villageLog(q, 200).map((e) => e.text || e).join('\n')), 'and the log says why');

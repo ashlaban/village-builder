@@ -26,8 +26,14 @@ for (const [t, h] of [[32, 5], [32, 10], [32, 11], [40, 30], [3, 2], [20, 12], [
 const st = state();
 Sim.advance(st, DAY + (WORK[0] + 2 - (st.t % DAY))); // the second spring morning: the barley's sowing window, the jobs posted
 // a member of a household with a field project under way and fields to hoe
-const hh = st.households.find((h) => !h.dissolved && h.farmstead !== null && VB['sim/projects'].ownOf(st, h.id)),
-  id = hh.members.find((m) => Sim.age(st, st.pawns[m]) >= 16);
+// (the first such household with two fields to hoe for its member: VB-312's new custom moved the seeded run)
+const plows = (m) => Sim.opportunities(st, m).filter((o) => o.verb === 'work' && o.kind === 'plow' && st.jobs.has(o.target) && st.agents[m].job !== st.jobs.get(o.target));
+let hh = null, id;
+for (const h of st.households) {
+  if (h.dissolved || h.farmstead === null || !VB['sim/projects'].ownOf(st, h.id)) continue;
+  const m = h.members.find((k) => Sim.age(st, st.pawns[k]) >= 16);
+  if (m !== undefined && plows(m).length >= 2) { hh = h; id = m; break; }
+}
 // the view, checked to change nothing in st; a village's memo of whether it fishes (sim/drying villageFishes), which the asking of the
 // kinds fills when first read (Sim.opportunities as well), is filled first
 function view() {
