@@ -42,7 +42,9 @@ const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the f
 }
 { // kin are asked before the village store; the store covers the rest
   const st = fresh(), [a, b] = st.households, v = st.villages[st.farmsteads[a.farmstead].village];
-  for (const hh of st.households) hh.grain = { barley: hh === a || hh === b ? 0 : seedReserve(st, hh) + 1e4 };
+  // the others hold their seed and the feast's keep, no more: none is a patron above the feast's threshold (VB-464), none asks
+  const keep = (hh) => VB['sim/feast'].FEAST.above * Sim.YEAR_DAYS * dailyNeed(st, hh);
+  for (const hh of st.households) hh.grain = { barley: hh === a || hh === b ? 0 : seedReserve(st, hh) + keep(hh) };
   st.pawns[a.members[0]].father = b.members[0];
   const need = dailyNeed(st, a), buf = bufferOf(st, b.holder) * dailyNeed(st, b);
   b.grain = { barley: buf + 2 * need }; v.grain = { barley: 1000 };

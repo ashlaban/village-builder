@@ -215,6 +215,24 @@ const feastStat = (hh) => {
     wide: true,
   };
 };
+// Patronage (VB-464; sim/followers): the holder a client, with its patron and the days its household owes him a year; a patron, with
+// the client households of its holder
+const patronStat = (hh) => {
+  const F = VB['sim/followers'],
+    c = F.clientOf(st, hh),
+    n = F.clientsOf(st, hh).length;
+  if (!c && !n) return null;
+  const client = c ? `Client of ${esc(Sim.fullName(st.pawns[c.lord]))} (owes ${c.days} days a year)` : '',
+    patron = n ? `Patron of ${n} household${n === 1 ? '' : 's'}` : '';
+  return {
+    icon: 'people',
+    label: c ? 'Client' : 'Patron',
+    value: c && n ? `${n} clients` : c ? `${c.days} days` : `${n}`,
+    note: [client, patron].filter(Boolean).join('; '),
+    title: `${[client, patron].filter(Boolean).join('. ')}. A tie read from the goodwill owed above ${F.PATRON.above} days of the client's need`,
+    wide: true,
+  };
+};
 // The household's tools (VB-701, sim/ironwork): shown once worn, with what their wear costs the field work and felling
 const toolsStat = (hh) => {
   if (hh.tools === undefined) return null;
@@ -292,6 +310,7 @@ const houseStats = (hh) =>
     harvestStat(hh),
     tilthStat(st.farmsteads[hh.farmstead].fields, 'the mean of its fields'),
     feastStat(hh),
+    patronStat(hh),
     hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', title: 'Cold: no firewood' } : null,
     waterStat(hh),
     hh.hungryDays > 0 ? { icon: 'hunger', label: 'Hungry days', value: hh.hungryDays, tone: 'warn' } : null,

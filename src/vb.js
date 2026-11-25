@@ -128,6 +128,10 @@ VB.COUNTERS = {
     "A pawn's balances and followers read for its ties, at its lord's planning days after harvest (sim/followers, VB-708)",
   followerWalk: 'Steps up a chain of lords, to refuse a cycle (sim/followers, VB-708)',
   followerTies: 'Ties of a follower to a lord begun (sim/followers, VB-708)',
+  patronDays:
+    "Client households made to owe their patron's household its days, once a year each (sim/followers, VB-464)",
+  patronWeighed:
+    "Households of its village weighed for the richest patron by a hungry household's ask, a season (sim/help, VB-464)",
   followerFailed: 'Ties broken by a lord who refused his follower in need (sim/followers, VB-708)',
   aldermanBallots:
     "Voices times candidates weighed when a village's meeting elects its alderman: once a vacancy, never daily (sim/meetings, VB-314)",

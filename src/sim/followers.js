@@ -2,7 +2,8 @@
 //   of bonds (goodwill owed above PATRON.above, service; later a tenancy and days owed add rows), the live index of followers by lord, a
 //   tie begun and broken (its bond ended, or the lord failed the follower), and the standing term by followers
 VB['sim/followers'] = (() => {
-  const { YEAR_DAYS, DAY, cal } = VB['sim/rules'];
+  const { YEAR_DAYS, YEAR, DAY, SEASON_DAYS, cal } = VB['sim/rules'];
+  const Obligations = VB['sim/obligations'];
   const Rules = VB['sim/registry'];
   const { balance, remember } = VB['sim/relations'];
   const { SOCIAL } = VB['sim/ties'];
@@ -17,7 +18,10 @@ VB['sim/followers'] = (() => {
   // ballot for the alderman. `duty`: days of the follower's household's need a lord adds to what it would give its follower (the lord's
   // duty), and `yes` the days a follower adds to what it gives its lord (its yes weighed with the tie). Named estimates, no source (VB-708).
   // `ballot`: a follower's term for its lord on the alderman's ballot, on that ballot's scale (opinion plus standing), apart from `lean`.
+  // `days`: the days of work a client household owes its patron's household each year the tie holds (VB-464; design.md: 2), which do not
+  // pay the balance down.
   const PATRON = {
+    days: 2,
     above: 30,
     most: 3,
     service: 1,
@@ -248,6 +252,69 @@ VB['sim/followers'] = (() => {
     if (hh) for (const m of hh.members) if (st.pawns[m].servant) cands.add(m);
     for (const j of cands) take(st, j);
     for (const f of byId(st, lord)) follow(st, f);
+    owePatronDays(st, lord);
+  }
+  // ---- a client's days (VB-464; design.md, Patronage) ----
+  // @state household.clientIn: the year (game years since the start) in which the household, its holder a client, was last made to owe
+  //   its patron's household PATRON.days days; absent until then. Written only here: one owing a year, however many planning days.
+  const AUTUMN = 2;
+  const nextAutumn = (t) => (Math.floor(t / YEAR) + 1) * YEAR + AUTUMN * SEASON_DAYS * DAY;
+  // A client: a holder whose own tie to lord is the patron's bond (goodwill owed above PATRON.above days of its household's need), lord a
+  // holder of another household
+  function isClient(st, f, lord) {
+    const hh = householdOf(st, st.pawns[f]),
+      lh = holdingOf(st, lord);
+    return (
+      !!hh &&
+      !!lh &&
+      !hh.dissolved &&
+      hh.holder === f &&
+      hh.id !== lh.id &&
+      lordOf(st, f) === lord &&
+      BONDS[0].weight(st, f, lord) > 0
+    );
+  }
+  // On the patron's planning day after harvest, each client household owes the patron's household PATRON.days days, source `patron`
+  // (sim/days calls them), to the next autumn, once a year; the days are work, not goodwill, so the balance stands as it was. Nothing
+  // of the tie is stored but looksTo: the balance's decay ends the bond, the tie and next year's days. Over the lord's followers.
+  function owePatronDays(st, lord) {
+    const lh = holdingOf(st, lord);
+    if (!lh || lh.dissolved) return;
+    const year = Math.floor(st.t / YEAR);
+    for (const f of byId(st, lord)) {
+      VB.count.followerBonds++;
+      if (!isClient(st, f, lord)) continue;
+      const hh = householdOf(st, st.pawns[f]);
+      if (hh.clientIn === year) continue;
+      hh.clientIn = year;
+      const live = Obligations.due(st, { kind: 'household', id: lh.id }, 'creditor', 'days').some(
+        (o) => o.source === 'patron' && o.debtor.id === hh.id,
+      );
+      if (live) continue;
+      Obligations.create(st, {
+        kind: 'days',
+        debtor: { kind: 'household', id: hh.id },
+        creditor: { kind: 'household', id: lh.id },
+        owes: { days: PATRON.days },
+        due: nextAutumn(st.t),
+        source: 'patron',
+      });
+      VB.count.patronDays++;
+    }
+  }
+  // For the household's panel (VB-464): its holder's patron {lord, days} when a client, and the client households of its holder
+  function clientOf(st, hh) {
+    const f = hh.holder;
+    if (f === null || f === undefined || !st.pawns[f].alive) return null;
+    const lord = lordOf(st, f);
+    return lord !== null && isClient(st, f, lord) ? { lord, days: PATRON.days } : null;
+  }
+  function clientsOf(st, hh) {
+    const lord = hh.holder;
+    if (lord === null || lord === undefined || !st.pawns[lord].alive) return [];
+    return byId(st, lord)
+      .filter((f) => isClient(st, f, lord))
+      .map((f) => st.pawns[f].household);
   }
   // j, with no lord of its own bond, looks to the lord of its weightiest; it does not change lord while a bond holds (Kim: only when the
   // tie breaks). One that follows its head through no bond of its own takes its own lord when it has a bond.
@@ -323,5 +390,21 @@ VB['sim/followers'] = (() => {
     for (let x = lordOf(st, id); x !== null && n <= st.pawns.length; x = lordOf(st, x)) n++;
     return n;
   }
-  return { PATRON, BONDS, index, lordOf, bondTo, weightiest, review, take, followerTerm, followers, depthOf, reaches };
+  return {
+    PATRON,
+    BONDS,
+    index,
+    lordOf,
+    bondTo,
+    weightiest,
+    review,
+    take,
+    followerTerm,
+    followers,
+    depthOf,
+    reaches,
+    owePatronDays,
+    clientOf,
+    clientsOf,
+  };
 })();

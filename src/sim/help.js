@@ -152,6 +152,10 @@ VB['sim/help'] = (() => {
       if (withinDay(st, a, b)) ask(lh, lord, { good: 'grain', n: want });
       else if (byLand(st, a, b)) ask(lh, lord, { good: 'grain', n: Math.min(want, TRAVEL.load) });
     }
+    // a patron (VB-464; design.md, Patronage): the household of its village with the most grain above the feast's threshold, not one
+    // asked already, given by the gift's rule (its floor, its allowance), carried as help is, goodwill booked between the two holders
+    const pt = want >= HELP.askLeast ? patronFor(st, hh, near, lh, head) : null;
+    if (pt) ask(pt, pt.holder, { good: 'grain', n: want });
     const v = st.villages[st.farmsteads[hh.farmstead].village],
       alderman = agentOf(st, v.id);
     const refused = alderman !== null && st.pawns[by].rel.get(alderman),
@@ -165,6 +169,25 @@ VB['sim/help'] = (() => {
     if (moved) noteAsked(hh, season);
     if (want > 1e-9 && shortOfPeople(st, hh)) hh.fellShort = Math.floor(st.t / DAY);
     return true;
+  }
+  // The richest household of hh's village above the feast's threshold (rule 'feast', VB-458) whose head would be asked: not hh, nor the
+  // kin near or the lord's household asked already, nor a head who refused it this season; ties by id. Over the village's farms.
+  function patronFor(st, hh, near, lh, head) {
+    let best = null,
+      most = 0;
+    for (const fid of st.villages[st.farmsteads[hh.farmstead].village].farmsteads) {
+      const k = st.farmsteads[fid].household;
+      VB.count.patronWeighed++;
+      if (k === null || k === hh.id || (lh && k === lh.id) || near.includes(k)) continue;
+      const g = st.households[k];
+      if (g.dissolved || head(k) === null) continue;
+      const over = Rules.value(st, 'feast', { hh: g });
+      if (over > most || (over === most && best && k < best.id && over > 0)) {
+        best = g;
+        most = over;
+      }
+    }
+    return best;
   }
   on('planReviewed', (st, d) => {
     if ((d.why !== 'day' && d.why !== 'store') || d.plan.holder.type !== 'household') return;
