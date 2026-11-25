@@ -106,7 +106,7 @@ function nilsDay() {
       I('barley', 13.5, 14.25, 'chop', 'Look at the barley (Per asks: ripe?)', { by: 'per' }), I('fence', 14.25, 15.5, 'fence', 'Set the posts left at the fence (stray)', { step: 'C2', walkStep: 'C1', stray: 1 }),
       I('green', 15.5, 16, 'village', "The alderman's mark on the lot", { step: 'C3' }), I('norr', 16, 16.5, 'courting', 'Norrgård (taken)', { breach: 'taken' }), I('norr', 16.5, 17.5, 'courting', 'Norrgård (own hours)', { whose: 'own' }),
       I('home', 17.5, 18.5, 'home', 'Home', { whose: 'own' })];
-    d.forEach((x) => (x.state = st(x.h))); return d;
+    d.forEach((x) => (x.state = st(x.h), x.whose = x.whose || 'household')); return d;
   }
   const d = [I('home', 6, 6.25, 'cart', 'Fetch the cart', { step: 'F1' }), I('wood2', 6.25, 8.25, 'wood', 'Load the timber lying there (our stray pile)', { step: 'F3', walkStep: 'F2', stray: 1 }),
     I('home', 8.25, 9, 'cart', 'Haul home', { step: 'F4', haul: 1 }), I('home', 9, 11, 'wood', 'Cut to firewood', { step: 'F5' })];
@@ -121,7 +121,7 @@ function nilsDay() {
       I('home', 13.25, 14.5, 'cart', 'Haul sheaves home before the rain (the rule reorders)', { haul: 1, rain: { h: 14, what: 'Rain at 14:00, the load on the road. The rule for a load in hand: carry on home (he can walk). Arrives 14:30, the top sheaves wet.' } }),
       I('norr', 14.5, 17, 'courting', 'Visit Norrgård (taken)', { breach: 'taken' }), I('norr', 17, 18, 'courting', 'Stay on (own hours: no demand, nothing to haul in the rain)', { whose: 'own' }));
   } else { d.push(I('long', 11, 14, 'chop', 'Reap rye'), I('norr', 14, 16.5, 'courting', 'Visit Norrgård (taken)', { breach: 'taken' })); fork(); }
-  d.forEach((x) => (x.state = x.state || st(x.h))); return d;
+  d.forEach((x) => (x.state = x.state || st(x.h), x.whose = x.whose || 'household')); return d;
 }
 function olaDay() {
   const N = { band: 'need' }, Wk = { band: 'work' }, st = (h) => (h[1] <= 9 ? 'done' : h[0] < 9 ? 'doing' : 'planned');
@@ -197,7 +197,7 @@ function drawMap() {
   // days ahead: three faint trails laid on each other
   if (S.ahead) AHEAD3[S.pawn].forEach(([lab, pl], k) => {
     const off = (k - 1) * 7, pts = pl.map((p) => at(p)).map((q) => `${q.x + off},${q.y + off}`).join(' '), e = at(pl[pl.length - 1]);
-    s += `<g data-b="ahead:${k}" opacity=".55"><polyline points="${pts}" fill="none" stroke="#fff" stroke-width="5" opacity=".6"/><polyline points="${pts}" fill="none" stroke="#4a4f5e" stroke-width="2" stroke-dasharray="2 5" stroke-linecap="round"/>` +
+    s += `<g data-b="ahead:${k}" opacity=".55"><polyline points="${pts}" fill="none" stroke="#fff" stroke-width="5" opacity=".6"/><polyline points="${pts}" fill="none" stroke="#4a4f5e" stroke-width="2.6" stroke-dasharray="2 5" stroke-linecap="round"/>` +
       `<rect x="${e.x + off + 8}" y="${e.y + off + 20 + k * 2}" width="20" height="13" rx="3" fill="#fff" stroke="#4a4f5e"/><text x="${e.x + off + 18}" y="${e.y + off + 30 + k * 2}" font-size="9" text-anchor="middle" fill="#4a4f5e">${lab}</text></g>`;
   });
   // legs: casing, done solid, ahead dashed, a blaze at the middle; a carried load gets a cart; unchosen branch faint
@@ -226,7 +226,7 @@ function drawMap() {
     if (T.yest) { const a = at(T.yest[0]), b = P[0] && T.steps[0].at === T.yest[1] ? P[0] : at(T.yest[1]), cx = b.x - 4, cy = b.y + 12;
       s += `<g data-b="yest:${ti}" opacity=".5"><path d="M${a.x} ${a.y + 14}Q${(a.x + cx) / 2} ${Math.max(a.y, cy) + 34} ${cx} ${cy}" fill="none" stroke="#3a2a1a" stroke-width="2" stroke-dasharray="1 4" stroke-linecap="round"/></g>` + KNOT(cx, cy, `data-b="yest:${ti}"`); }
     if (T.alt) { const a = at(T.alt[0]), b = at(T.alt[1]);
-      s += `<g data-b="alt:${ti}" opacity=".45"><path d="M${a.x} ${a.y - 6}Q${(a.x + b.x) / 2} ${Math.min(a.y, b.y) - 60} ${b.x} ${b.y - 6}" fill="none" stroke="#3a2a1a" stroke-width="2.2" stroke-dasharray="2 3 8 3"/><text x="${(a.x + b.x) / 2}" y="${Math.min(a.y, b.y) - 34}" font-size="9.5" text-anchor="middle" font-style="italic" fill="#2a2018">alt: ${T.alt[2]}</text></g>`; }
+      s += `<g data-b="alt:${ti}" opacity=".45"><path d="M${a.x} ${a.y - 6}Q${(a.x + b.x) / 2} ${Math.min(a.y, b.y) - 60} ${b.x} ${b.y - 6}" fill="none" stroke="#3a2a1a" stroke-width="2.2" stroke-dasharray="2 3 8 3"/><text x="${(a.x + b.x) / 2}" y="${Math.min(a.y, b.y) - 34}" font-size="9.5" text-anchor="middle" font-style="italic" fill="#2a2018">alt: ${T.alt[2].split(':')[0]}</text></g>`; }
     s += `<polyline points="${P.map((q) => q.x + ',' + q.y).join(' ')}" fill="none" stroke="#fff" stroke-width="4.5" opacity=".8"/><polyline points="${P.map((q) => q.x + ',' + q.y).join(' ')}" fill="none" stroke="#3a2a1a" stroke-width="2" stroke-dasharray="1 3.5" stroke-linecap="round"/>`;
     T.steps.forEach((st, j) => { const q = P[j], fill = st.st === 'done' ? '#3a2a1a' : st.st === 'now' ? '#f2c27a' : '#fff', tc = st.st === 'done' ? '#fff' : '#2a2018';
       s += `<g data-b="step:${ti}:${j}"><circle cx="${q.x}" cy="${q.y}" r="${st.st === 'now' ? 9 : 7.5}" fill="${fill}" stroke="#2a2018" stroke-width="${st.st === 'now' ? 2.2 : 1.3}"/><text x="${q.x}" y="${q.y + 3}" font-size="${tasks().length > 1 ? 7.5 : 8.5}" font-weight="700" text-anchor="middle" fill="${tc}">${tasks().length > 1 ? st.n : st.n.slice(1)}</text></g>`; });
@@ -249,7 +249,7 @@ function drawMap() {
   // you are here
   const me = posAt(now), pw = S.pawn === 'nils' ? PEOPLE.find((p) => p.id === 'nils') : { col: LONE.col };
   s += `<g data-b="you"><circle cx="${me.x}" cy="${me.y}" r="15" fill="none" stroke="#2a2018" stroke-width="2"/>${pawnSVG(pw, me.x, me.y + 6, 1.1)}<rect x="${me.x - 46}" y="${me.y + 15}" width="92" height="15" rx="7" fill="#2a2018"/><text x="${me.x}" y="${me.y + 26}" font-size="10" fill="#fff" text-anchor="middle">you are here ${H(now)}</text></g>`;
-  s += '<g id="mcur"></g>';
+  s += '<g id="mcur" pointer-events="none"></g>';
   document.getElementById('map').innerHTML = s;
 }
 
@@ -269,7 +269,7 @@ function drawProf() {
   for (let h = a; h <= b; h += S.pawn === 'nils' ? 1 : 2) s += `<path d="M${X(h)} 26V204" stroke="#0001"/><text x="${X(h)}" y="216" font-size="10" text-anchor="middle" fill="#5d6253">${H(h).slice(0, 2)}</text>`;
   if (S.pawn === 'nils') {
     s += `<path d="M${X0} 112H${X1}" stroke="#2a2018" stroke-width="2"/><text x="${X0 - 6}" y="70" font-size="10.5" text-anchor="end" fill="#1f7a76">own</text><text x="${X0 - 6}" y="160" font-size="10.5" text-anchor="end" fill="#9a6a12">household's</text>` +
-      `<text x="${X0 - 6}" y="115" font-size="9.5" text-anchor="end" font-weight="700">levy line</text><text x="${X(16.5) + 3}" y="108" font-size="9" fill="#2a2018">10.5 h owed · 1.5 h own from 16:30</text><path d="M${X(16.5)} 106V118" stroke="#2a2018" stroke-width="2"/>`;
+      `<text x="${X0 - 6}" y="115" font-size="9.5" text-anchor="end" font-weight="700">levy line</text><text x="${X(16.5) - 14}" y="108" font-size="9" fill="#2a2018" text-anchor="end">10.5 h owed · 1.5 h own from 16:30</text><path d="M${X(16.5)} 106V118" stroke="#2a2018" stroke-width="2"/>`;
   } else {
     s += `<path d="M${X0} 120H${X1}M${X0} 168H${X1}" stroke="#0003" stroke-dasharray="3 3"/>` + [['work', 80], ['necessities', 150], ['sleep', 190]].map(([t, y]) => `<text x="${X0 - 6}" y="${y}" font-size="10.5" text-anchor="end" fill="#5d6253">${t}</text>`).join('') +
       `<rect x="${X(22)}" y="26" width="${X(30) - X(22)}" height="176" fill="#4a4f5e" opacity=".08"/><text x="${X(26)}" y="40" font-size="10" text-anchor="middle" fill="#4a4f5e">night</text>`;
@@ -299,7 +299,7 @@ function drawProf() {
   if (S.pawn === 'ola') s += `<text x="${X(24)}" y="196" font-size="9.5" fill="#c8361b" text-anchor="middle">cold: sleep counts ⅔</text>`;
   s += `<path d="M${X(now)} 20V206" stroke="#2a2018" stroke-width="2.5"/><rect x="${X(now) - 44}" y="4" width="88" height="15" rx="7" fill="#2a2018"/><text x="${X(now)}" y="15" font-size="10" fill="#fff" text-anchor="middle">you are here ${H(now)}</text>`;
   s += `<text x="${X1}" y="15" font-size="10.5" text-anchor="end" fill="#5d6253">profile: height = effort, band = ${S.pawn === 'nils' ? 'whose hours' : 'need / work / sleep'}; flat low stretches = walking. Done solid, ahead faint (his estimate).</text>`;
-  s += '<g id="pcur"></g>';
+  s += '<g id="pcur" pointer-events="none"></g>';
   const svg = document.getElementById('prof'); svg.setAttribute('viewBox', `0 0 ${PW} ${PH}`); svg.innerHTML = s;
 }
 // Linked cursor: the profile and the map move one marker.
@@ -326,7 +326,7 @@ function drawRail() {
   let r = `<div class="card"><h3>Turn by turn <span class="small">${S.pawn === 'nils' ? 'his plan, from the custom' : 'his own plan'}</span></h3><div class="tbt">` +
     nxt.map((g, k) => `<span class="lab">${labs[k]}</span><span data-b="seg:${g.i}">${icon(g.kind, { frame: k ? 'plan' : 'now', whose: S.pawn === 'nils' ? g.whose : 'household', breach: g.breach, size: 26 })}</span>` +
       `<span class="${k ? '' : 'big'}">${g.type === 'leg' ? arrow(dirOf(g)) : ''}${g.what.replace(/ \(.*\)/, '')} <span class="small">${k ? DUR(g.h[1] - g.h[0]) : 'till ' + H(g.h[1])}</span></span><button data-why="${g.i}">why</button>`).join('') + '</div>';
-  if (S.answer || S.intr === 'rain' || S.pawn === 'ola') r += ''; else r += `<div class="small" style="margin-top:4px">At 16:30 the trail forks: Per's demand to answer.</div>`;
+  if (S.answer || !ALL.some((x) => x.branch)) r += ''; else r += `<div class="small" style="margin-top:4px">At 16:30 the trail forks: Per's demand to answer.</div>`;
   r += '</div>';
   if (S.pawn === 'nils') {
     const fk = ALL.find((x) => x.branch);
