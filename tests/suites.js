@@ -223,6 +223,7 @@ const INTEGRATION = [
   ['node', 'tests/visitors.js'], // VB-1559: a caller at the door sits with those indoors; a passer-by does not
   ['node', 'tests/encounters.js'],
   ['node', 'tests/goodwill.js'],
+  ['node', 'tests/patron.js'], // VB-464: help beyond kin from the richest above the feast's threshold; a client's 2 days a year and its lean; decayed, neither
   ['node', 'tests/followers.js'], // VB-708: a tie by a bond, followed by its household, kept, a pyramid, a cycle refused, failed, met, saved
   ['node', 'tests/meadows.js'],
   ['node', 'tests/milk.js'],

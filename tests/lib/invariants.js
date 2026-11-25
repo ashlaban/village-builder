@@ -909,6 +909,9 @@ function checkState(st) {
     // an ask for food that fell short, short of people (sim/help, VB-691): the day of it, no later than today
     if (h.fellShort !== undefined && !(Number.isInteger(h.fellShort) && h.fellShort >= 0 && h.fellShort <= Math.floor(st.t / VB['sim/rules'].DAY)))
       bad.push(`households[${h.id}]: fellShort is ${h.fellShort}`);
+    // VB-464: the year its holder, a client, was last made to owe its patron days: a whole year, not ahead of now
+    if (h.clientIn !== undefined && !(Number.isInteger(h.clientIn) && h.clientIn >= 0 && h.clientIn <= Math.floor(st.t / VB['sim/rules'].YEAR)))
+      bad.push(`households[${h.id}]: clientIn is ${h.clientIn}`);
     // ale (VB-305): lots in order of their season's end, whole barrels, none kept past a season; the pours, the last BREW.maxBarrels in order of time
     {
       const keeps = globalThis.VB['sim/rules'].SEASON_DAYS * globalThis.VB['sim/rules'].DAY, B = globalThis.VB['sim/rules'].BREW;
