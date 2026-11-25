@@ -13,6 +13,7 @@ VB['sim/terms'] = (() => {
   const { herdsOf } = VB['sim/herds'];
   const { payInAnimals } = VB['sim/droving'];
   const { SHARES } = VB['sim/rules'];
+  const { fieldsOwned } = VB['sim/ownership'];
   const { emit, on } = VB['sim/events'];
   const { spouseOf, childrenOf, farmPractice, personEvent, fullName, holdingOf, atHousehold } = VB['sim/records'];
   // @tunable TERMS: a marriage's terms (VB-276; VB-233's proposals, inside Kim's answer of 9 November): the dowry is dowryShare of the
@@ -28,14 +29,11 @@ VB['sim/terms'] = (() => {
   const KEYS = ['dowry', 'gift'];
   const live = (st, id) => Number.isInteger(id) && !!st.households[id] && !st.households[id].dissolved;
   // ---- the valuation: one a household (VB.count.termsValued) ----
-  // Household hh's estate as its inheritance divides it (sim/heirs transfer; one reckoning, VB-276): its fields and its grain at SHARES'
-  // rates, less `less` (a widow's dower), never below nothing
+  // Household hh's estate as its inheritance divides it (sim/heirs transfer; one reckoning, VB-276): the fields it owns (sim/ownership,
+  // VB-311) and its grain at SHARES' rates, less `less` (a widow's dower), never below nothing
   function estateWorth(st, hh, less = 0) {
     VB.count.termsValued++;
-    return Math.max(
-      0,
-      st.farmsteads[hh.farmstead].fields.length * SHARES.perField + Stores.grainOf(hh) * SHARES.perGrain - less,
-    );
+    return Math.max(0, fieldsOwned(st, hh.id) * SHARES.perField + Stores.grainOf(hh) * SHARES.perGrain - less);
   }
   // An heir's weight in a division under custom cu: a daughter's half where the custom halves it
   const shareWeight = (st, cu, q) => (cu.daughterShare === 'half' && st.pawns[q].sex === 'f' ? 1 : 2);
