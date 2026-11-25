@@ -74,5 +74,34 @@ for (const [mod, code] of [['gen/cover', "const bad = VB['draw/bake'];"], ['sim/
   const order = r.deps.map((d) => (d.mod === mod ? dep : d));
   assert(violations(order).some((e) => e.startsWith(`src/${mod}.js:2`)), `${mod} naming a draw/ module breaks the load order`);
 }
+// VB-1686 (design.md, Principles for decisions: the future is someone's estimate): no decision reads an unrealised draw. A field tagged
+// `@drawn` (the year's frost and thaw, the winter drawn ahead, the climate's dates) is read raw only by its owner and the natural processes
+// that realise it (DRAWN); a decider reads an expectation (sim/weather frostExpected) or what it has seen (frostSeen).
+{
+  const { drawnTags, drawnReads } = require('../tools/dependencies.js'), { readSource } = require('../tools/lib/source.js');
+  const DRAWN = new Set(['sim/clock', 'sim/scenarios', 'sim/fields', 'sim/meadows']);
+  const SRC = path.join(__dirname, '..', 'src'), parseOf = (src) => parse(src, { ecmaVersion: 'latest', allowReturnOutsideFunction: true, allowAwaitOutsideFunction: true });
+  const files = JSON.parse(fs.readFileSync(path.join(SRC, 'manifest.json'), 'utf8'))
+    .map((f) => ({ mod: f.replace(/\.js$/, ''), src: readSource(path.join(SRC, f)) }))
+    .concat(JSON.parse(fs.readFileSync(path.join(SRC, 'page.json'), 'utf8')).map((f) => ({ mod: f.replace(/\.js$/, ''), src: readSource(path.join(SRC, f)) })));
+  const tags = drawnTags(files), fields = tags.map((t) => t.field).join();
+  for (const f of ['st.weather', 'st.climate']) assert(fields.includes(f), `${f} is tagged @drawn`);
+  assert(tags.some((t) => t.names.includes('frostDay')), "the year's frost is tagged @drawn, read raw by frostDay");
+  const reads = (mod, src) => drawnReads(parseOf(src), src, mod, tags).filter((r) => !DRAWN.has(mod));
+  const bad = files.flatMap((f) => reads(f.mod, f.src)).map((r) => r.text);
+  assert.deepStrictEqual(bad, [], 'a decider reads an unrealised draw: read frostExpected or frostSeen (sim/weather), bandState (sim/climate)');
+  // planted reads from an agency module fail; the expectation and the natural processes pass
+  for (const code of ["const { frostDay } = VB['sim/weather']; const f = (st) => frostDay(st);", "const W = VB['sim/weather']; const f = (st) => W.thawDay(st);",
+    "const f = (st) => VB['sim/weather'].winterAhead(st);", 'const f = (st) => st.climate.due[0].at;', 'const f = ({ climate }) => climate;',
+    'const f = (st) => st.weather[st.weather.length - 1].frost;', 'const f = (st) => st.weather.at(-1).thaw;',
+    'const f = (st) => st.weather.at(-1).seasons[3][0];', "const { cropFactor } = VB['sim/weather'];",
+    "const f = (st) => VB['sim/weather'].reading(st, [[3, 'w', 1]]);"])
+    assert(reads('sim/agenda', `VB['sim/agenda'] = (() => {\n${code}\n})();`).length >= 1, `planted read caught: ${code}`);
+  const ok = "const { frostExpected, frostSeen } = VB['sim/weather']; const f = (st) => frostExpected(st) + frostSeen(st);";
+  assert.deepStrictEqual(reads('sim/agenda', `VB['sim/agenda'] = (() => {\n${ok}\n})();`), [], 'the expectation is free to read');
+  assert.deepStrictEqual(reads('sim/agenda', 'const f = (st) => st.climate.bands[0].state; // drawn-allow: the state now'), [], 'a line allowed');
+  assert.deepStrictEqual(reads('sim/fields', "const { frostDay } = VB['sim/weather'];"), [], 'a natural process reads the draw');
+  console.log(`dependencies: ${tags.length} drawn fields read raw only by their owners and ${DRAWN.size} natural processes`);
+}
 console.log(`dependencies: layers ${total} upward calls (baseline ${Math.min(base.total, total)});`);
 console.log('dependencies: module order enforced; no cycle');
