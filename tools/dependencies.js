@@ -74,7 +74,8 @@ function upward(deps, L = loadLayers()) {
 // VB-1686: no decision reads an unrealised draw. The fields tagged `// @drawn FIELD (what): NAME, ...` beside their `@state`, each NAME an
 // export of the tagging module that reads the draw raw, or `.prop`, a property of the state itself. drawnTags(files) parses the tags from
 // [{mod, src}]; drawnReads(tree, src, mod, tags) lists where module mod names one: [{owner, name, line, text}] (the policy, who may, is the
-// caller's: tests/dependencies.js).
+// caller's: tests/dependencies.js). A line ending `// drawn-allow: <reason>` is exempt: a read of what has fallen by now, in a module that
+// is not a natural process.
 function drawnTags(files) {
   const tags = [];
   for (const { mod, src } of files)
@@ -90,7 +91,9 @@ function drawnReads(tree, src, mod, tags) {
     if (n.type === 'MemberExpression' && n.object.type === 'Identifier' && n.object.name === 'VB') return key(n);
     return n.type === 'Identifier' && alias.has(n.name) ? alias.get(n.name) : null;
   };
+  const lines = src.split('\n'), allowed = (n) => /\/\/ drawn-allow: \S/.test(lines[line(n) - 1] || '');
   const alias = new Map(), taken = new WeakSet(), found = (owner, name, n) => {
+    if (allowed(n)) return;
     for (const t of tags)
       if (t.owner !== mod && (name.startsWith('.') ? t.names.includes(name) : t.owner === owner && t.names.includes(name)))
         out.push({ owner: t.owner, name, line: line(n), text: `src/${mod}.js:${line(n)} reads ${t.field}'s draw (${name}, ${t.owner})` });

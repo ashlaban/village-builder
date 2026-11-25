@@ -36,9 +36,9 @@ VB['sim/weather'] = (() => {
   // @state st.weather: [{year, seasons: [[warmth, wetness] for each season drawn so far], thaw, frost}]: this year's weather, and last
   //   year's (rye stands across two), oldest first, nothing older; warmth and wetness from -1 to 1, thaw a spring sday, frost an autumn
   //   sday. Plain data; written only here.
-  // @drawn st.weather frost (the year's first frost, drawn in spring for a day of autumn): frostDay
+  // @drawn st.weather frost (the year's first frost, drawn in spring for a day of autumn): frostDay, .weather
   // @drawn st.weather thaw (drawn as spring begins, for a day of it): thawDay
-  // @drawn st.weather seasons (the winter's, drawn ahead on autumn day 1, VB-807): winterAhead, season
+  // @drawn st.weather seasons (the winter's, drawn ahead on autumn day 1, VB-807): winterAhead, season, reading, factor, cropFactor, ripeShift
   //   (VB-1686) Read only by this module and the natural processes that realise them (tests/dependencies.js, DRAWN); a decider reads
   //   frostExpected, or frostSeen once the frost has fallen.
   function newYear(st, year) {
