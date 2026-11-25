@@ -482,7 +482,7 @@ gathering's host.
 They run as long as they do not edit the files of the slice in progress.
 Five archs also run beside the slices, each opened by Kim: `between` (11 November), `far` (15 November), `physical` (14 November),
 `acts` (16 November) and, since 25 November, `plans` (plans at four scales and the levy: `docs/plans/four-scales/README.md`, its path
-in section 3.10; tasks VB-1743 to VB-1773, step 9 of the path left to slice 8).
+in section 3.10; tasks VB-1743 to VB-1780, step 9 of the path left to slice 8).
 
 **Size and pace.** The plan of 3 November guessed 60 to 70 tasks at one a night. The real numbers, and the estimate of when
 the rest is done, are in `docs/roadmap.html` (`tools/roadmap.js`).
