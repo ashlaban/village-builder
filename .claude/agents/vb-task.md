@@ -43,12 +43,14 @@ The orchestrator writes those once, from your notes.
    - `task`: a follow-up task, with one of your reserved IDs, its criteria as the body, written as `docs/agents/tasks.md` says (`touches=`);
      with `status=ready` when it is ready as that guide says (the note then needs `goal=`, `ref=` and `touches=`);
    - `tuning`: a shortfall left for the tuning run; `question`: one only Kim can answer, with its proposed answers;
-   - `candidate`, `teleport`, `act`, `decision`: what `AGENTS.md`, Surfacing, asks for. A teleport or an act with no pawn gets its
-     note only, never a task: the orchestrator collects it.
+   - `candidate`, `teleport`, `act`, `design`, `decision`: what `AGENTS.md`, Surfacing, asks for. A teleport, an act with no pawn or a
+     rule design.md does not say gets its note only, never a task: the orchestrator collects it.
 6. A measure you could not take, or a target that is out (Kim, 16 November: measurements and tuning do not block work): leave the
-   criterion unticked with the reason beside it in the task file, include the reason and available evidence in the result for PR closeout, and end with `done`. Work you could not build: keep and commit what you have, leave
-   its criterion unticked with the reason, and end with `needs-review`. A decision only Kim can
-   make: revert what depends on it, keep and commit what does not, note the `question`, and end with `needs-review`.
+   criterion unticked with the reason beside it in the task file, include the reason and available evidence in the result for PR closeout, and end with `done`. Work you could not build, or that waits on another task: keep and commit what
+   holds (its checks green), leave its criterion unticked naming the task that carries the rest (a `task` note, ready or blocked, if
+   none does), and end with `done`; if nothing coherent holds, end with `failed` (the task stays as it was, the reason in its notes).
+   A decision only Kim can make: revert what depends on it, keep and commit what does not, note the `question` with its proposed
+   answer, and end with `needs-review`: the one case for it (Kim, 25 November).
 7. To finish: `git merge` the run's branch again, run the checks `AGENTS.md` asks for on the result, and commit as `VB-NNN: <title>`
    on your worktree's branch. Do not push, and never leave uncommitted work, whatever the outcome. Then
    `node tools/inbox.js result ID status=done|needs-review|failed commit=SHA size=S|M|L summary=...`.
@@ -59,7 +61,7 @@ The orchestrator writes those once, from your notes.
    done before the first edit, or a coherent part committed with `npm test` green) or when it says you may be stuck (`reason=stuck`).
    A task that fits is not split. To hand over, merge the run's branch and follow `docs/agents/handover.md`: commit, tick, note the
    handover, `inbox.js result ID status=continue reason=... commit=SHA`, and end with `VB-NNN <title>: continue <commit> on <branch>`.
-   When the tool refuses a third continuation at the ceiling or a second voluntary reset, end with `needs-review`. If your prompt says
+   When the tool refuses a third continuation at the ceiling or a second voluntary reset, end as step 6 says: `done` with the rest in a task, or `failed`. If your prompt says
    you continue a task, merge the branch it names as well as the run's, read `node tools/inbox.js handover ID`: trust its Verified, check
    its Unverified before you build on it, and do not read again what it already tells you.
 9. You never start a review: the orchestrator does (VB-1619). Given "Revise VB-NNN", make `AGENTS.md`'s one revision of step 5 from the

@@ -32,7 +32,7 @@ Documents. Read the section you need, not the whole file: `node tools/doc.js FIL
    (Sonnet for S, Opus for M and L, the strongest for a plan) with only `Review ID; base <merge-base>; head <sha>`. On `revise`, revise once,
    in at most 30 calls: each blocking finding mended with a test that fails at the reviewed commit, or rebutted in the findings file; each
    advisory mended or declined; then `review.js confirm ID --reviewed SHA`. No second review. The PR's Review section: arm, verdict, outcomes.
-6. Tick the criteria met. For an outstanding measurement or missed target, leave its criterion unticked, give the reason and report the available evidence at PR closeout. Mark complete work with `node tools/backlog.js done ID`. Set incomplete work or a question requiring Kim to `needs-review`. Limit task notes to ten lines of decisions, reasons and outstanding work. A session that worked on one task alone measures itself last, `node tools/agent-usage.js --label worker --task ID --review work/review/ID.json --out docs/agents/usage` (not reviewed: `--arm control` or `ineligible`), and commits the file (the token use page, `tools/usage-page.js`, reads it); in an orchestrated run the orchestrator measures.
+6. Tick the criteria met. For an outstanding measurement or missed target, leave its criterion unticked, give the reason and report the available evidence at PR closeout. Mark complete work with `node tools/backlog.js done ID`. Work left undone does not hold the task: a criterion that waits on another task, or that this session could not build, stays unticked naming the task that carries it (opened now if none does), and the task is `done`. `needs-review` is for a question only Kim can answer, with its proposed answer in `QUESTIONS.md` (Kim, 25 November). Limit task notes to ten lines of decisions, reasons and outstanding work. A session that worked on one task alone measures itself last, `node tools/agent-usage.js --label worker --task ID --review work/review/ID.json --out docs/agents/usage` (not reviewed: `--arm control` or `ineligible`), and commits the file (the token use page, `tools/usage-page.js`, reads it); in an orchestrated run the orchestrator measures.
 7. Open the PR. For size M or a new module or state field, lead with its reads, writes, new coupling and the reason for any new abstraction or special case. For behaviour changes, report whether households were better off. Under **Targets**, give before, after, residual and cause for each target moved or intended to move, then count the other outstanding targets. Only Kim changes targets or starts a tuning run. Keep lint and ownership baselines as ratchets.
 
 Measure behaviour before and after once on the final PR result, or at nightly wrap-up on the merged branch. Measure within a task when its criterion names a number to move or when tuning. A refactor reports what became simpler and lists each intentional behaviour change.
@@ -59,7 +59,10 @@ no orchestrator, in its PR):
   decision of one kind: one line of the rule proposed, and the decisions behind it (`candidate`).
 - **A teleport found**, or an act with no pawn: one line, where and what (`teleport`, `act`). It gets no task of its own:
   `inbox.js apply` adds it to its kind's open collecting task ("Teleports found, collected", "Acts with no pawn, collected"; with no
-  orchestrator, add the line there yourself), which a slice's wrap-up sweeps.
+  orchestrator, `node tools/backlog.js collect teleport|act where= what= from=<its ID>`), which a slice's wrap-up sweeps.
+- **A rule built that `design.md` does not say** (a worker never edits it): one line, its section and the rule with its numbers
+  (`design`). It is collected like a teleport, `node tools/backlog.js collect design where=<section> what=<rule> from=<its ID>`, for a
+  design pass with Kim (Kim, 25 November).
 - **A close call**: a decision another agent could as well have made the other way (`decision`).
 
 The orchestrator gathers these at the head of the night's PR, under "For Kim" (`node tools/inbox.js report`): the candidates first,
@@ -70,7 +73,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 `tools/help.js`). The full reference, with each tool's cadence, fixtures and measures, is `docs/commands.md`: grep it for a name.
 - Writing a task, wherever it is written, its `Touches:` line included: `docs/agents/tasks.md`. Which tasks may run side by side, by the
   functions they edit and the branches in flight: `node tools/lanes.js [N]`; what one task would meet: `node tools/lanes.js --check ID`.
-- A task's brief: `node tools/brief.js ID`. Backlog: `node tools/backlog.js next|list|show ID [--brief]`; `done`, `set`, `new`,
+- A task's brief: `node tools/brief.js ID`. Backlog: `node tools/backlog.js next|list|show ID [--brief]`; `done`, `set`, `new`, `collect`,
   `close-arch`, `sync` change it.
 - Before merging main into a branch: `git fetch origin main && node tools/renumber.js --onto origin/main`, which moves the branch's new task
   IDs that main took meanwhile (VB-1680); the merge drivers (`tools/merge.js`, set by `npm install`) then merge the backlog and lists.
@@ -133,13 +136,15 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - Tunables, a new job kind and a new custom: `docs/architecture/modules.md`, Adding things.
 - A module's length is not capped (VB-413). Code goes where its concern lives, formatted by Prettier. Over 700 formatted lines (the
   400 of the packed sources, rescaled by the sweep of 13 November) the lint asks
-  for an open task that splits the module (VB-414): the task that takes it over the line opens one, titled "Refactor: split <key> ..."
-  (`sim/heirs`), names it in its PR and goes on. Never place code elsewhere to make room.
-  A split is not collected with the findings, and is where to think hardest (Kim, 18 November): its task says which responsibilities
-  the module holds and where each belongs, and the split follows those, not the line count. The seven modules the sweep left over the
-  line are in `tests/lint-baseline.json` at their lengths, which only fall.
+  for an open line that splits the module (VB-414): splits are collected, a line a module, in one open L task, "Refactor: module
+  splits, collected" (Kim, 25 November). The task that takes a module over the line adds its line,
+  `node tools/backlog.js collect split where=<key> what="<size>, over <line>" from=<its ID>` (the collector is opened if none is),
+  names it in its PR and goes on. Never place code elsewhere to make room.
+  A split is where to think hardest (Kim, 18 November): the session that takes a line of the collector says, before any code moves,
+  which responsibilities the module holds and where each belongs; the split follows those, not the line count, and the line is ticked.
+  The seven modules the sweep left over the line are in `tests/lint-baseline.json` at their lengths, which only fall.
   Width the same way (VB-415): a module over 15 exports (`tests/width-baseline.json` holds today's 21 at their counts) may add one only
-  with such a task open; the `sim` facade is not counted, nor an export read only by registries (`REGISTRIES` in `tests/lint.js`: `sim/kinds`, `sim/clock`; VB-454).
+  with such a line open; the `sim` facade is not counted, nor an export read only by registries (`REGISTRIES` in `tests/lint.js`: `sim/kinds`, `sim/clock`; VB-454).
 
 ## Architecture work
 - Read target-v2's principles (section 2) before adding a module, an owner or a call between modules. Before giving new state an owner, find

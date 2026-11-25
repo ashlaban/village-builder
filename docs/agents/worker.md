@@ -39,7 +39,7 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
    - `index.html` is derived and no longer in the repository (VB-450): a branch from before that may still conflict in it; take
      the deletion (`git rm index.html`), conclude the merge, and go on to `npm test`.
    - Any other conflict, or a red `npm test`: undo the merge (`git merge --abort`, or `git reset --hard` to the commit before it), and
-     `node tools/inbox.js result VB-NNN status=needs-review summary=<the reason>`. Never retry a task in the same night, and never
+     `node tools/inbox.js result VB-NNN status=failed summary=<the reason>`. Never retry a task in the same night, and never
      fix it yourself.
    - It reported `failed`, or left no result (`node tools/inbox.js status`): the same, without merging.
    - It reported `continue` (Kim, 18 November: a sub-agent has a ceiling of 120 model calls, since every call re-reads its context;
@@ -48,11 +48,12 @@ Aim for at least one L task, three M or five S. Keep three or four sub-agents ru
      reserved task IDs are <the same IDs>; the handover: `node tools/inbox.js handover VB-NNN`". Do not paste the handover: it is in the
      inbox, and your own context stays small. This is the one case a task is started again in a night; the inbox allows two
      continuations at the ceiling and one reset by choice a task, and refuses more.
-   - It reported `needs-review` with a commit (work not built, or a question; Kim, 15 November): merge it as any other, since the hard
-     checks decide a merge; the task stays open, under Waiting for Kim, and what is unmet goes under "For Kim" in the PR. A measure
+   - It reported `needs-review` with a commit (a question only Kim can answer, in `QUESTIONS.md`; Kim, 25 November: work not built is
+     `done`, its rest carried by a task): merge it as any other, since the hard checks decide a merge; the task stays open, under
+     Waiting for Kim, and the question goes under "For Kim" in the PR. A measure
      not taken is not this case (Kim, 16 November): that task is done, and you report its evidence and the reason for the missing measure at PR closeout.
-   - A noted task lands `ready` when its note says so (its goal, ref and criteria stated, no question). One that landed
-     `needs-review` with no question in it: fill in what it lacks and set it `ready`, priority 1 if it mends a red check.
+   - A noted task lands `ready`, or `blocked` on the task it waits for, with its goal, ref and criteria stated; `needs-review` only
+     with its question (`inbox.js note` refuses the rest).
    - A task whose notes begin "Flag: Kim takes part" is never given to a sub-agent: it is taken in a session with Kim, who
      reviews the ideas and motivations of its plan before any code moves.
 4. `node tools/inbox.js apply` marks the task in the backlog and writes the notes (new tasks, questions, tuning rows); commit as

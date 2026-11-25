@@ -33,15 +33,19 @@ expect('a first claim is free', r.ok, r.out);
 r = run('', 'claim', B, 'src/sim/herds.js', 'src/sim/stores.js');
 expect('a second claim names the holder and exits 1', !r.ok && r.out.includes(`also being edited by ${A}`), r.out);
 
-r = run('- [ ] The herd is led.', 'note', A, 'task', `id=${N}`, 'name=Herds are led | to a new farm', 'priority=2', 'size=M', 'summary=Herds walk.', '--body',
-  '-');
+r = run('- [ ] The herd is led.', 'note', A, 'task', `id=${N}`, 'name=Herds are led | to a new farm', 'priority=2', 'size=M', 'summary=Herds walk.', 'status=needs-review',
+  '--body', '-');
 expect('a task note with a reserved ID', r.ok, r.out);
-r = run('', 'note', B, 'task', `id=${N}`, 'name=x', 'priority=1', 'size=S', 'summary=s');
+r = run('', 'note', B, 'task', `id=${N}`, 'name=x', 'priority=1', 'size=S', 'summary=s', 'status=needs-review');
 expect("another task's reserved ID is refused", !r.ok && /not reserved/.test(r.out), r.out);
-r = run('', 'note', A, 'task', `id=${N}`, 'name=x', 'priority=1', 'size=S', 'summary=s');
+r = run('', 'note', A, 'task', `id=${N}`, 'name=x', 'priority=1', 'size=S', 'summary=s', 'status=needs-review');
 expect('an ID is used once', !r.ok && /already has a note/.test(r.out), r.out);
 r = run('', 'note', A, 'task', `id=${pad(last + 2)}`, 'name=x', 'priority=1', 'size=S', 'summary=s', 'status=ready');
 expect('a noted task is ready only with its goal and criteria', !r.ok && /goal/.test(r.out), r.out);
+r = run('', 'note', A, 'task', `id=${pad(last + 2)}`, 'name=x', 'priority=1', 'size=S', 'summary=s');
+expect('a task note says its status: needs-review is no default (Kim, 25 November)', !r.ok && /status=ready/.test(r.out), r.out);
+r = run('', 'note', A, 'task', `id=${pad(last + 2)}`, 'name=x', 'priority=1', 'size=S', 'summary=s', 'status=blocked');
+expect('a blocked task note names what it waits for', !r.ok && /waits=/.test(r.out), r.out);
 r = run('', 'note', A, 'tuning', 'parameter=X.y');
 expect('a note lacking keys says which', !r.ok && /means, measured, proposed/.test(r.out), r.out);
 r = run('', 'note', A, 'question', 'priority=2', 'title=a test');
@@ -102,8 +106,12 @@ expect('apply applies once', r.ok && /applied 0/.test(r.out), r.out);
 const check = spawnSync(process.execPath, [path.join(root, 'tests', 'backlog.js'), dir], { encoding: 'utf8' });
 expect('tests/backlog.js passes on the result', check.status === 0, check.stdout + check.stderr);
 r = run('', 'result', B, 'status=needs-review', 'commit=def5678', 'summary=cost not measured');
+expect('needs-review is refused without a question for Kim: work not built is done or failed', !r.ok && /question/.test(r.out) && /status=done/.test(r.out), r.out);
+r = run('1. Shall the cost be measured? **P:** no.', 'note', B, 'question', 'priority=2', 'title=the cost', '--body', '-');
+r = run('', 'result', B, 'status=needs-review', 'commit=def5678', 'summary=cost not measured');
+expect('needs-review with its question', r.ok, r.out);
 r = run('', 'apply');
-expect('a task with a criterion unmet goes to Waiting for Kim', r.ok &&
+expect('a task with its question goes to Waiting for Kim', r.ok &&
   file('BACKLOG.md').split('\n## Waiting for Kim\n')[1].split('\n## ')[0].includes(`[${B}]`), r.out);
 r = run('', 'report');
 expect('and heads the report with its reason', r.out.includes(`- ${B} def5678: cost not measured`), r.out);
@@ -142,7 +150,7 @@ r = run('', 'apply');
 expect('a continued task is not applied', r.ok && /applied 0/.test(r.out), r.out);
 run('', 'result', B, 'status=continue', 'commit=aaa2222');
 r = run('', 'result', B, 'status=continue', 'commit=aaa3333');
-expect('no third continuation', !r.ok && /needs-review/.test(r.out), r.out);
+expect('no third continuation', !r.ok && /status=done, the rest in a noted task, or status=failed/.test(r.out), r.out);
 
 // VB-1616: the handover, stored and read back; a voluntary reset only past the threshold, from the 30th call, with a commit of this run, once a task
 const cfg = path.join(dir, 'config2'), proj = path.join(cfg, 'projects', 'p'); fs.mkdirSync(proj, { recursive: true });
@@ -214,7 +222,7 @@ const S2 = 'VB-9002';
 r = runIn('', 'result', S2, 'status=continue', 'reason=stuck', 'commit=' + fresh);
 expect('a reset when stuck, the handover not yet written', r.ok && /continue \(stuck\); the handover: none yet/.test(r.out), r.out);
 r = runIn('', 'result', S2, 'status=continue', 'reason=stuck', 'commit=' + fresh);
-expect('stuck again: needs-review', !r.ok && /stuck again: end with status=needs-review/.test(r.out), r.out);
+expect('stuck again: failed', !r.ok && /stuck again: end with status=failed/.test(r.out), r.out);
 
 // renumber (VB-1680): a branch's new tasks moved by tools/renumber.js; the reserved IDs follow, and later blocks start above them
 r = run('', 'renumber', `${pad(last + 1)}=${pad(last + 90)}`);

@@ -108,7 +108,52 @@ expect('close-arch moves the arch to the archive', r.ok && !file('BACKLOG.md').i
   && section('BACKLOG_ARCHIVE.md', 'Closed archs').includes('| zz-test | Test arch | Closed 2 January 2026: A test goal. | none |'), r.out);
 r = run(dir, 'list', A, B, '--status', 'done');
 expect('list by ID', r.ok && r.out.trim().split('\n').length === 2, r.out);
+// collect: a line in the kind's open collecting task; with none open (any open one closed first), a new one, ready, of the kind's size
+const { COLLECT, openCollector } = require(path.join(root, 'tools', 'lib', 'collect.js'));
+const before = openCollector(dir, 'split');
+if (before) run(dir, 'done', before);
+r = run(dir, 'collect', 'split', 'where=sim/zz', 'what=720 lines, over 700', `from=${A}`);
+const made = openCollector(dir, 'split'), madeText = made ? file(`backlog/${made}.md`) : '';
+expect('collect opens the split collector, ready, size L, with the line', r.ok && made && made !== before && /^Status: ready$/m.test(madeText)
+  && /^Size: L$/m.test(madeText) && /^- Flag: Kim takes part/m.test(madeText) && madeText.includes(`- [ ] From ${A}: sim/zz: 720 lines, over 700\n`)
+  && section('BACKLOG.md', 'Ready').includes(`[${made}]`), r.out);
+r = run(dir, 'collect', 'split', 'where=sim/yy', 'what=16 exports,\n over 15');
+expect('collect appends to the open collector, the line made one line', r.ok && openCollector(dir, 'split') === made
+  && file(`backlog/${made}.md`).includes(`From ${A}: sim/zz: 720 lines, over 700\n- [ ] sim/yy: 16 exports, over 15\n`), r.out);
+r = run(dir, 'collect', 'split', 'where=sim/yy', 'what=16 exports, over 15');
+expect('collect does not add a line twice', r.ok && /already holds/.test(r.out)
+  && file(`backlog/${made}.md`).split('sim/yy:').length === 2, r.out);
+r = run(dir, 'collect', 'design', 'where=Traits, talk and stories', 'what=the age of account, 12');
+const designId = openCollector(dir, 'design'), designText = designId ? file(`backlog/${designId}.md`) : '';
+expect('collect design: a line in a design collector, Kim taking part', r.ok && designText.includes('- [ ] Traits, talk and stories: the age of account, 12\n')
+  && /^- Flag: Kim takes part/m.test(designText), r.out);
+r = run(dir, 'collect', 'nonsense', 'where=a', 'what=b');
+expect('collect refuses an unknown kind', !r.ok && new RegExp(Object.keys(COLLECT).join(', ')).test(r.out), r.out);
+// new with its criteria may start ready (Kim, 25 November); without them it may not
+r = run(dir, 'new', 'name=Ready at once', 'status=ready', 'priority=3', 'size=S', 'summary=s', 'goal=g', 'ref=r', 'touches=sim/jobs (post)',
+  'criteria=The first holds.\n- [ ] The second holds.');
+const readyId = (r.out.match(/(VB-\d+) created/) || [])[1];
+expect('new with goal, ref, touches and criteria starts ready, its criteria as lines', r.ok && readyId
+  && /^Status: ready$/m.test(file(`backlog/${readyId}.md`)) && file(`backlog/${readyId}.md`).includes('- [ ] The first holds.\n- [ ] The second holds.\n'), r.out);
+r = run(dir, 'new', 'name=Not ready', 'status=ready', 'priority=3', 'size=S', 'summary=s', 'goal=g');
+expect('new refuses ready without its criteria', !r.ok && /criteria=/.test(r.out), r.out);
+// tests/backlog.js: a needs-review task has its question in QUESTIONS.md; a task an open task names has a file
+const checkDir = () => spawnSync(process.execPath, [path.join(root, 'tests', 'backlog.js'), dir], { encoding: 'utf8' });
+fs.writeFileSync(path.join(dir, 'QUESTIONS.md'), '# Open questions for Kim\n\n## Priority 3\n');
+fs.writeFileSync(path.join(dir, `backlog/${readyId}.md`), file(`backlog/${readyId}.md`).replace('Status: ready', 'Status: needs-review'));
+run(dir, 'sync');
+let c = checkDir();
+expect('a needs-review task with no question in QUESTIONS.md fails the check', c.status !== 0 && c.stderr.includes(`${readyId}.md is needs-review with no question`), c.stdout + c.stderr);
+fs.appendFileSync(path.join(dir, 'QUESTIONS.md'), `\n### ${readyId}: a test (raised 2 January 2026)\n1. Is it? **P:** yes.\n`);
+c = checkDir();
+expect('with its question it passes', c.status === 0, c.stdout + c.stderr);
+const have = new Set(fs.readdirSync(path.join(dir, 'backlog')).map((f) => +f.slice(3, -3)));
+let gap = 2; while (have.has(gap)) gap++;
+const gapId = 'VB-' + String(gap).padStart(3, '0');
+fs.appendFileSync(path.join(dir, `backlog/${readyId}.md`), `- Its rest is ${gapId}.\n`);
+c = checkDir();
+expect('an open task naming a task with no file fails the check', c.status !== 0 && c.stderr.includes(`names ${gapId}, which has no file`), c.stdout + c.stderr);
 fs.rmSync(dir, { recursive: true, force: true });
 
 if (errors.length) { console.error('BACKLOG TOOL FAIL:\n  ' + errors.join('\n  ')); process.exit(1); }
-console.log('backlog tool: sync is a no-op here; new, set, done and close-arch on a copy keep the backlog check passing');
+console.log('backlog tool: sync is a no-op here; new, set, done, close-arch and collect on a copy keep the backlog check passing');

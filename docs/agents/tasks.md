@@ -7,11 +7,14 @@ agent can take it alone, and a tool can tell what it may run beside.
 
 ## How
 
-- With a backlog of your own (a session, a plan, the project manager, the reviewer): `node tools/backlog.js new name=... status=blocked|needs-review
-  priority=... size=... summary=... [arch= phase= waits= cause= ref= goal= touches=]`, then fill in what the file says "(to write)", then
-  `node tools/backlog.js set VB-NNN status=ready` when nothing undecided is left. A new task never starts ready.
+- With a backlog of your own (a session, a plan, the project manager, the reviewer): `node tools/backlog.js new name=... status=blocked|needs-review|ready
+  priority=... size=... summary=... [arch= phase= waits= cause= ref= goal= touches= criteria=]`. With its goal, ref, touches and criteria
+  (a line each) it starts `ready`; otherwise fill in what the file says "(to write)", then `node tools/backlog.js set VB-NNN status=ready`
+  when nothing undecided is left. It starts `needs-review` only for a question only Kim can answer, with its block in `QUESTIONS.md`
+  (`tests/backlog.js` checks it).
 - In an orchestrated run (a `vb-task` sub-agent): `node tools/inbox.js note VB-NNN task id=<a reserved ID> name=... priority=... size=...
-  summary=... [status=ready goal= ref= touches= ...] --body -`, the criteria as the body; the orchestrator writes the file (`inbox.js apply`).
+  summary=... status=ready|blocked|needs-review [goal= ref= touches= waits= ...] --body -`, the criteria as the body; ready with its goal, ref,
+  touches and criteria, blocked with waits=, needs-review only with a `question` note about it; the orchestrator writes the file (`inbox.js apply`).
 - The ID: `backlog.js new` takes the next free one above the task files of this checkout and of the branches pushed lately; a run's
   sub-agents use the IDs `inbox.js start` reserved. One that met main's is moved before main is merged: `node tools/renumber.js --onto origin/main`.
 

@@ -27,7 +27,7 @@ for (const k of openArchs) if (closedArchs.has(k)) errors.push(`arch "${k}" is l
 const phaseOf = (name) => (/^Plan:/.test(name) ? 'plan' : /^Wrap-up:/.test(name) ? 'wrap-up' : 'implement');
 
 const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md')).sort();
-const tasks = {};
+const tasks = {}, taskTexts = {};
 for (const f of files) {
   const text = fs.readFileSync(path.join(dir, f), 'utf8'), head = text.match(/^# (VB-\d{3,}): (.+)$/m);
   const field = (k) => ((text.match(new RegExp(`^${k}: (.*)$`, 'm')) || [])[1] || '').trim();
@@ -55,7 +55,32 @@ for (const f of files) {
   } else if (touches === undefined && status === 'ready' && +head[1].slice(3) >= TOUCHES_FROM) {
     errors.push(`backlog/${f} is ready without a "Touches:" line (docs/agents/tasks.md): node tools/backlog.js set ${head[1]} touches="..."`);
   }
+  taskTexts[head[1]] = text;
   tasks[head[1]] = { name: head[2], arch, status, priority: field('Priority'), size: field('Size'), waits: field('Waits for'), cause: ((text.split(/^(?!# |Status|Waits for|Cause|Priority|Size|Arch|Phase)/m)[0] || '').match(/^Cause: (.*)$/m) || [])[1] || '' };
+}
+
+// needs-review is for a question only Kim can answer (Kim, 25 November): each such task has its block in QUESTIONS.md, a "### " heading
+// naming it, with its proposed answer. Work not built is done, its rest carried by a task (AGENTS.md, step 6). A copy of the backlog
+// without QUESTIONS.md (the tools' tests) skips this.
+const questions = path.join(root, 'QUESTIONS.md');
+if (fs.existsSync(questions)) {
+  const heads = fs.readFileSync(questions, 'utf8').split('\n').filter((l) => l.startsWith('### ')).join('\n');
+  for (const [id, t] of Object.entries(tasks)) {
+    if (t.status === 'needs-review' && !new RegExp(`\\b${id}\\b`).test(heads)) errors.push(`backlog/${id}.md is needs-review with no question `
+      + `in QUESTIONS.md (a "### ${id}: ..." block with its proposed answer): ask it there, or set the task ready, blocked or done (AGENTS.md, step 6)`);
+  }
+}
+
+// A task an open task names has a file (Kim, 25 November: VB-247 named two follow-ups that were never written). An ID above every file
+// in this checkout may be reserved and not yet written (tools/inbox.js start): a warning; one below is a task that does not exist.
+const highest = Math.max(...Object.keys(tasks).map((id) => +id.slice(3)));
+for (const [id, t] of Object.entries(tasks)) {
+  if (t.status === 'done') continue;
+  for (const ref of new Set((taskTexts[id].match(/\bVB-\d+\b/g) || []).map((r) => 'VB-' + r.slice(3).padStart(3, '0')))) {
+    if (tasks[ref]) continue;
+    if (+ref.slice(3) > highest) warnings.push(`backlog/${id}.md names ${ref}, which has no file yet (reserved?)`);
+    else errors.push(`backlog/${id}.md names ${ref}, which has no file: write that task, or name the one that carries the work`);
+  }
 }
 
 // "Cause:" (VB-1619), optional: the task whose change introduced the defect this one mends; one existing task, not itself.
