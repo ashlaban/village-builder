@@ -7,7 +7,7 @@ VB['sim/weather'] = (() => {
   const { CROPS } = VB['sim/crops'];
   const { log } = VB['sim/records'];
   const { shiftOf } = VB['sim/climate'];
-  const { SEASON_DAYS } = VB['sim/rules'];
+  const { SEASON_DAYS, cal } = VB['sim/rules'];
   // @tunable SEASONS: the seasons' names, in the year's order
   const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
   // The draw (Agreed, 11 Nov, starting values): a season's warmth and wetness each from -1 to 1 about the normal, most seasons near it (the
@@ -36,6 +36,11 @@ VB['sim/weather'] = (() => {
   // @state st.weather: [{year, seasons: [[warmth, wetness] for each season drawn so far], thaw, frost}]: this year's weather, and last
   //   year's (rye stands across two), oldest first, nothing older; warmth and wetness from -1 to 1, thaw a spring sday, frost an autumn
   //   sday. Plain data; written only here.
+  // @drawn st.weather frost (the year's first frost, drawn in spring for a day of autumn): frostDay
+  // @drawn st.weather thaw (drawn as spring begins, for a day of it): thawDay
+  // @drawn st.weather seasons (the winter's, drawn ahead on autumn day 1, VB-807): winterAhead, season
+  //   (VB-1686) Read only by this module and the natural processes that realise them (tests/dependencies.js, DRAWN); a decider reads
+  //   frostExpected, or frostSeen once the frost has fallen.
   function newYear(st, year) {
     const r = st.rng.weather;
     st.weather.push({
@@ -130,6 +135,13 @@ VB['sim/weather'] = (() => {
   // (the asker's window, reaping's urgency, the harvest's outlook, the review before the frost) reads this; what the frost does reads frostDay.
   const frostExpected = (st) =>
     inSeason(WEATHER.frostFrom + WEATHER.frost.indexOf(Math.max(...WEATHER.frost)) + shiftOf(st.w).frost);
+  // The year's frost seen: its autumn sday once it has fallen (from its first step, when sim/clock's frost runs), else null; what a
+  // decider may know of the draw (VB-1686: frostDay is the natural processes').
+  function frostSeen(st) {
+    const c = cal(st.t),
+      d = frostDay(st);
+    return c.season > 2 || (c.season === 2 && c.sday >= d) ? d : null;
+  }
   // Is crop k's window (its row's sow: [season, first day, last day]) open on c, the thaw passed for a crop sown in spring.
   function sowOpen(st, k, c) {
     const W = CROPS[k].sow;
@@ -150,6 +162,7 @@ VB['sim/weather'] = (() => {
     thawDay,
     frostDay,
     frostExpected,
+    frostSeen,
     sowOpen,
   };
 })();
