@@ -1026,6 +1026,18 @@ function checkState(st) {
     if (!(st.lapsed instanceof Set)) bad.push(`lapsed is ${typeof st.lapsed}`);
     else for (const t of st.lapsed) if (!Number.isInteger(t) || t < 0 || t >= st.w.N || !(st.w.tended[t] > 0) || (st.w.dev[t] > 1 && !st.used.has(t))) bad.push(`lapsed: tile ${t} (dev ${st.w.dev[t]}, tended ${st.w.tended[t]})`);
   }
+  // the village's way out (sim/grazing, VB-446): absent, or chosen in a season not to come; none (to -1, no tiles), or a walk of neighbouring
+  // tiles from the green to `to`
+  for (const v of st.villages) {
+    const dw = v.droveway;
+    if (dw === undefined) continue;
+    const T = dw && dw.tiles, nb = st.w.nb;
+    const ok = dw && Number.isInteger(dw.season) && dw.season <= Math.floor(st.t / 24 / globalThis.VB['sim/rules'].SEASON_DAYS)
+      && Array.isArray(T) && (dw.to === -1 ? T.length === 0
+        : T.length > 1 && T[0] === v.center && T[T.length - 1] === dw.to
+          && T.every((t, i) => i === 0 || nb.slice(T[i - 1] * 6, T[i - 1] * 6 + 6).includes(t)));
+    if (!ok) bad.push(`villages[${v.id}]: droveway ${JSON.stringify(dw)}`);
+  }
   // the village's wood (VB-326): every tile wooded (forest, or scrub the forest has grown on open land, VB-091), in no other village's wood
   // and not in use; within the cap
   const WOOD = globalThis.VB['sim/rules'].WOOD, { B } = globalThis.VB['world/biomes'], inWood = new Map();

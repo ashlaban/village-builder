@@ -1,8 +1,10 @@
-// @sys sim/grazing: herding and grazing pressure (VB-136): the day's pasture, the herder, the pressure and the milk factor of a crowded pasture (VB-709)
+// @sys sim/grazing: herding and grazing pressure (VB-136): the pasture, the herder, the way out to the outland (VB-446), the pressure and the milk (VB-709)
 VB['sim/grazing'] = (() => {
-  const { DAY, YEAR, HERD, stalled, cal } = VB['sim/rules'];
+  const { DAY, YEAR, SEASON_DAYS, HERD, CLAIMS, stalled, cal } = VB['sim/rules'];
   const { bfs, hexSteps } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
+  const { route } = VB['sim/routes'];
+  const { claimsOn } = VB['sim/claims'];
   // docs/review-animals.md, G6: a herd adds pressure only on the tile it grazes with its herder, and the pressure halves each year, as worn
   // paths do; forest spread reads it (VB-091; GRAZE in sim/spread). A herd's herder and the day it was last taken out are the herd's
   // (st.herds[], sim/herds), written here.
@@ -61,17 +63,131 @@ VB['sim/grazing'] = (() => {
     if (greens ? greens.has(t) : st.villages.some((v) => v.center === t)) return false;
     return !st.used.has(t) || f.meadows.some((m) => m.tile === t && m.stage === 'aftermath');
   }
-  // A new pasture: a grazable tile within HERD.herding.steps steps of the house; best grass, least grazed, nearest. -1 when there is none.
-  function pasture(st, hh) {
+  // ---- the herds' way to the outland (VB-446; design.md, Worn paths, last paragraph: the cattle lanes, fägator, that led the herds through
+  // the infield to the outland pastures; Infield, outland and wilderness: the outland is the village's common pasture) ----
+  // A tile of village v's outland: its own land (its green, farms and plots are turned away by `open`, none grazable), or free land it
+  // claims as outland.
+  function ofOutland(st, v, t) {
+    const n = st.owner[t];
+    if (n === -v.id - 1) return true;
+    return n === 0 && claimsOn(st, t).some((c) => c.by.type === 'village' && c.by.id === v.id && c.why === 'outland');
+  }
+  // Open pasture for any herd: grass, no water, not in use, not a green.
+  const open = (st, t, greens) =>
+    !!HERD.herding.grass[st.w.biome[t]] && !st.w.water[t] && !st.w.river[t] && !st.used.has(t) && !greens.has(t);
+  // @state village.droveway: absent until its herds first go out, then {season (the game season it was chosen in, day / SEASON_DAYS), to
+  //   (the tile of its outland pasture the way leads to, -1 for none), tiles (the route from the green to `to`, the green first; [] for
+  //   none)}: the one way all its herds are driven out by that season, so that their crossings fall on the same tiles and wear a cattle lane
+  //   (VB-446). Chosen at the first herding of a season, by one search over the outland and one route search, and kept for the season
+  //   (Rules for cost: one search a village a season). Plain data; written here only.
+  function wayOf(st, v, c) {
+    const season = Math.floor(c.day / SEASON_DAYS);
+    if (v.droveway && v.droveway.season === season) return v.droveway;
+    const w = st.w,
+      H = HERD.herding,
+      greens = new Set(st.villages.map((u) => u.center));
+    let to = -1,
+      bs = -Infinity;
+    // the outland pasture's tile of the best grass, least grazed and nearest the green, as a household's pasture is chosen, out of the
+    // village: farther from the green than its farthest house
+    const dist = bfs(w, v.center, CLAIMS.outReach, walkable(w)).dist;
+    let yards = 0;
+    for (const fid of v.farmsteads) yards = Math.max(yards, dist.get(st.farmsteads[fid].house) ?? CLAIMS.outReach);
+    for (const [t, d] of dist) {
+      VB.count.pastureTiles++;
+      if (d <= yards || !open(st, t, greens) || !ofOutland(st, v, t)) continue;
+      const s = H.grass[w.biome[t]] - grazeOf(st, t) / H.full - H.perStep * d;
+      if (s > bs) {
+        bs = s;
+        to = t;
+      }
+    }
+    let tiles = [];
+    if (to >= 0) {
+      VB.count.droveWays++;
+      const p = route(st, v.center, to);
+      if (p[0] === v.center && p.length > 1) tiles = p.slice();
+      else to = -1; // no way by land: a fallback's straight line is never walked
+    }
+    v.droveway = { season, to, tiles };
+    return v.droveway;
+  }
+  // The household's way out this season, or null: its village's, while it leads anywhere.
+  function wayFor(st, hh, c) {
+    const v = st.villages[st.farmsteads[hh.farmstead].village];
+    if (!v || !(v.center >= 0)) return null;
+    const way = wayOf(st, v, c);
+    return way.to >= 0 ? way : null;
+  }
+  // The few steps from the way's end to a pasture by it, each to the walkable neighbour nearest the pasture, with no search; null where
+  // that is blocked (water between), for the cheapest route instead.
+  function straight(w, from, to) {
+    const p = [from],
+      pass = walkable(w);
+    for (let i = from, n = 0; i !== to; n++) {
+      if (n > HERD.herding.around) return null;
+      let next = -1,
+        nd = hexSteps(w, i, to);
+      for (let k = 0; k < 6; k++) {
+        const j = w.nb[i * 6 + k];
+        if (j < 0 || !pass(j)) continue;
+        const d = hexSteps(w, j, to);
+        if (d < nd) {
+          nd = d;
+          next = j;
+        }
+      }
+      if (next < 0) return null;
+      p.push((i = next));
+    }
+    return p;
+  }
+  // The route a herder walks with its herds between its household's pasture at the end of the way out and anywhere farther (sim/legs
+  // setOut), or null for the cheapest route: from `from` to the way's tile nearest it, along the way, and from the way's end to the
+  // pasture; the reverse coming home. Two routes from the cache and the way's tiles: no search of its own (VB-446).
+  function droveRoute(st, a, from, to, cls) {
+    const pw = st.pawns[a.id],
+      hh = pw && pw.household !== null ? st.households[pw.household] : null,
+      pa = hh && hh.pasture;
+    if (!pa || pa.to === undefined || from < 0 || to < 0) return null;
+    const j = a.side && a.side.background;
+    if (!(j && j.kind === 'herd') && !driven(st, a.id)) return null;
+    const v = st.villages[st.farmsteads[hh.farmstead].village],
+      way = v && v.droveway,
+      w = st.w;
+    if (!way || way.to !== pa.to || way.tiles.length < 2) return null;
+    const near = (t) => hexSteps(w, way.to, t) <= HERD.herding.around,
+      out = near(to) && !near(from);
+    if (!out && !(near(from) && !near(to))) return null;
+    const far = out ? from : to,
+      end = out ? to : from,
+      T = way.tiles;
+    let k = 0;
+    for (let i = 1, kd = hexSteps(w, far, T[0]); i < T.length; i++) {
+      const d = hexSteps(w, far, T[i]);
+      if (d < kd) {
+        kd = d;
+        k = i;
+      }
+    }
+    const a1 = far === T[k] ? [far] : route(st, far, T[k], cls),
+      a2 = straight(w, way.to, end) || route(st, way.to, end, cls);
+    if (a1[0] !== far || a2[0] !== way.to) return null;
+    const full = a1.concat(T.slice(k + 1), a2.slice(1));
+    return out ? full : full.reverse();
+  }
+  // A new pasture: a grazable tile within HERD.herding.steps steps of the house, or, given the village's way out this season, within
+  // HERD.herding.around steps of the way's end; best grass, least grazed, nearest. -1 when there is none.
+  function pasture(st, hh, way = null) {
     const w = st.w,
       H = HERD.herding,
       f = st.farmsteads[hh.farmstead],
       greens = new Set(st.villages.map((v) => v.center));
     let best = -1,
       bs = -Infinity;
-    for (const [t, d] of bfs(w, f.house, H.steps, walkable(w)).dist) {
+    for (const [t, d] of bfs(w, way ? way.to : f.house, way ? H.around : H.steps, walkable(w)).dist) {
       VB.count.pastureTiles++;
-      if (d < 1 || !grazable(st, hh, t, greens)) continue;
+      if ((!way && d < 1) || !grazable(st, hh, t, greens)) continue;
       const s = H.grass[w.biome[t]] - grazeOf(st, t) / H.full - H.perStep * d;
       if (s > bs) {
         bs = s;
@@ -80,24 +196,29 @@ VB['sim/grazing'] = (() => {
     }
     return best;
   }
-  // @state household.pasture: absent until the household's herds first go out, then {tile, since (the game day it was chosen)}: the
-  //   pasture its herder takes them to each grazing day (sim/grazing; VB-136). A herd keeps its pasture, as herds were kept on one ground for
-  //   days or weeks and moved on when it was eaten down: a new one is chosen only when it may no longer be grazed (a field, a meadow to be
-  //   mown, another's, out of reach of the house), or when it is grazed down (HERD.herding.downAt) and HERD.herding.keepDays have passed
+  // @state household.pasture: absent until the household's herds first go out, then {tile, since (the game day it was chosen)}, and `to`
+  //   (VB-446) when it was chosen at the end of its village's way out (village.droveway.to): the pasture its herder takes them to each
+  //   grazing day (sim/grazing; VB-136). A herd keeps its pasture, as herds were kept on one ground for days or weeks and moved on when it
+  //   was eaten down: a new one is chosen only when it may no longer be grazed (a field, a meadow to be mown, another's, out of reach of the
+  //   house, or not at the end of this season's way), or when it is grazed down (HERD.herding.downAt) and HERD.herding.keepDays have passed
   //   since it was chosen. So its routes are walked again and stay in the cache, and the search runs once in days (Rules for cost).
+  //   A village with a way out sends its herds by it, its outland being its common pasture (design.md, Infield, outland and wilderness);
+  //   one with none, or a herd with no grazable tile at its end, grazes by the house as before.
   function todaysPasture(st, hh, c) {
     const p = hh.pasture,
       H = HERD.herding,
-      f = st.farmsteads[hh.farmstead];
+      f = st.farmsteads[hh.farmstead],
+      way = wayFor(st, hh, c);
     if (
       p &&
-      hexSteps(st.w, f.house, p.tile) <= H.steps &&
+      (way && p.to === way.to ? true : p.to === undefined && hexSteps(st.w, f.house, p.tile) <= H.steps) &&
       grazable(st, hh, p.tile) &&
       (c.day - p.since < H.keepDays || grazeOf(st, p.tile) < H.downAt)
     )
       return p.tile;
-    const t = pasture(st, hh);
-    if (t >= 0) hh.pasture = { tile: t, since: c.day };
+    let t = way ? pasture(st, hh, way) : -1;
+    if (t >= 0) hh.pasture = { tile: t, since: c.day, to: way.to };
+    else if ((t = pasture(st, hh)) >= 0) hh.pasture = { tile: t, since: c.day };
     return t;
   }
   // The fleeces herd hd has still to give at the fold on day c (VB-679): those grown by the shearing day and not yet shorn, until the end of
@@ -196,6 +317,7 @@ VB['sim/grazing'] = (() => {
     grazable,
     pasture,
     todaysPasture,
+    droveRoute,
     driveOut,
     unshorn,
     driveHome,

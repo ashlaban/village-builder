@@ -188,6 +188,7 @@
     "village.ledger": "sim/stores",
     "village.totals": "sim/stores",
     "village.wood": "sim/territory",
+    "village.droveway": "sim/grazing",
     "village.center": "sim/green",
     "pawn.stake": "sim/stores",
     "pawn.sleep": "sim/sleepers",
