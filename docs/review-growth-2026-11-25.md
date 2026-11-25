@@ -12,7 +12,8 @@ sections 1 (Kim's terms, Principles), 4 (Marriage, nursing and growth; the twelv
 loom), 9 (The gift; Loans; Outer levies), 11 (Towns and regions), 13 (The balance review; The growth budget) and 16; the
 four-scales README; `docs/slices.md`. Earlier reviews that touch this one and are not repeated: `docs/review-agency.md` (a
 member's agency, 23 November), `docs/review-expansion.md` (moving to new land), `docs/review-cities.md` and
-`docs/review-markets.md` (towns and markets). Nothing here is decided; section 7 holds the questions for Kim.
+`docs/review-markets.md` (towns and markets). Section 7 holds the questions and Kim's answers of 25 November (three answered, one
+elaborated in section 8 for a decision); nothing else here is decided.
 
 ---
 
@@ -45,8 +46,8 @@ member's agency, 23 November), `docs/review-expansion.md` (moving to new land), 
 
 **Priorities** (section 6): (1) a store of value that lasts a generation, and the ways into it; (2) personal goods and the
 stake, pulled forward to the levy; (3) aims, one structure for every pawn and for the player, in the year list with a reserve;
-(4) village projects that span years, paid for by levies; (5) craft and name that outlast a pawn; (6) a road from surplus to
-land between free land and foreclosure; and, beside them all and first because it is cheap, (0) a generational report, so the
+(4) village projects that span years, paid for by levies; (5) craft and name that outlast a pawn; (6) land that can be bartered
+and sold, at a high worth (Kim, 25 November); and, beside them all and first because it is cheap, (0) a generational report, so the
 rest can be measured.
 
 ---
@@ -203,11 +204,11 @@ built, and how far it is from the slices that block it. Each is a direction for 
 | --- | --- | --- | --- | --- |
 | 0 | **A generational report** | Measuring everything below | The record, class, the bands | Nothing |
 | 1 | **A store of value that lasts a generation** | Any goal past two years | Animals, obligations, things of worth | Slice 6b for silver |
-| 2 | **Personal goods: the stake, generalised** | A use for own hours; the head's grant as investment | The servant's stake (VB-637); title moves at once | A pull forward from slice 8 |
-| 3 | **Aims, one structure for pawn and player** | Goals the pawn holds and the player sees | `aim` in the plan record; rungs; projects; VB-1472 | Priorities 1 and 2 for most aims |
+| 2 | **Personal goods: the stake, generalised** | A use for own hours; the head's grant as investment | The servant's stake (VB-637); title moves at once | Nothing: pulled forward (Kim, Q2) |
+| 3 | **Aims, one structure for pawn and player** | Goals the pawn holds and the player sees | `aim` in the plan record; rungs; projects; VB-1472 | Priorities 1 and 2 for most aims; un-postponed (Kim, Q3) |
 | 4 | **Village projects across years** | A village agenda over a generation; a reason for the office | Routines as levies; `propose`; the five-year reckoning | Slice 6 for the mill |
 | 5 | **Craft and name that outlast a pawn** | Specialist villages; a family's name | Skills (slice 6); stories (slice 7); the memorial stone | Slices 6 and 7 |
-| 6 | **A road from surplus to land in mid-game** | Families rising before year 150 | Tenancy, shares, empty farms | Kim: "Land is not sold" |
+| 6 | **Land that can be bartered and sold, at a high worth** | Families rising before year 150; a store of value | Tenancy, shares, the worth table, the offer | A design pass (Kim, Q4: land is tradeable) |
 
 ### 0. A generational report (first, because it is cheap)
 
@@ -282,12 +283,12 @@ village) and ambition a village object, with the payers' pull as the brake alrea
   standing that belongs to a line. Stories of slice 7 could carry a house's repute across a generation, read by the match score
   and the vote. The player is the line; a line with no name of its own has nothing to show for twenty years.
 
-### 6. A road from surplus to land in mid-game
+### 6. Land that can be bartered and sold, at a high worth
 
-Between free land and foreclosure a doing-well family cannot turn surplus into land. Options that keep "Land is not sold" as
-far as possible: letting land by agreement, not only by foreclosure (a household short of hands lets a field to one with
-hands to spare: a tenancy both chose); buying out a co-heir's share of a farm under a custom that splits; taking up an empty
-farm with the claimant's portion counted. Each changes a Proposed row of Land and rights, so it needs Kim (Q4).
+Between free land and foreclosure a family that does well cannot turn surplus into land. Kim's answer (Q4): land is barterable
+and tradeable, and dear; the design's statements otherwise were a stand-in to let development go on. With land tradeable,
+land is also the store of value priority 1 looks for: it does not rot, needs no fodder and passes with the farm. Section 7, Q4,
+says what a design pass must settle.
 
 ### Lower priority for this aim
 
@@ -297,18 +298,121 @@ year steps with a `by` years out carry it, and keep one record.
 
 ---
 
-## 7. Questions for Kim
+## 7. Questions for Kim, and the answers (25 November 2026)
 
-1. **Which story should a generation tell: a house that rises over generations, or each life that rises and falls?** Today's
-   design leans to the second (elite turnover, decaying standing, the office ending with its holder). The answer sets how much
-   of priorities 1, 5 and 6 should pass to heirs. *Proposed:* a house may rise over two or three generations, through land, herd
-   and name, and loses it through partible shares and bad heirs; the soft stocks stay as they are.
-2. **May personal goods come forward from slice 8 to the levy's arch or to slice 6?** *Proposed:* yes, as the generalised stake;
-   coin and silver stay with slice 8.
-3. **May ambitions be un-postponed as pawns' aims**, one structure for every pawn by parity, its first set as in priority 3?
-   *Proposed:* yes, designed with VB-1472.
-4. **Does "Land is not sold" (Proposed, 11 November) stand against letting land by agreement and buying out a co-heir?**
-   *Proposed:* land is still not sold at the fair; letting by agreement and buying out a share are allowed as obligations.
+1. **Which story should a generation tell: a house that rises over generations, or each life that rises and falls?**
+   *Open:* Kim asked for it to be elaborated; section 8 does so and proposes an answer.
+2. **May personal goods come forward from slice 8 to the levy's arch or to slice 6?** **Yes** (Kim). A pawn's stake, the
+   servant's generalised, holds what it makes or earns in its kept hours; coin and silver stay with slice 8. What follows: the
+   four-scales path's step 9 (own hours as a livelihood) loses its wait for slice 8 except for coin. The potter's road still
+   needs skill that grows (slice 6), a market in reach (the gathering, the walk to a door) and a landless pawn's right to its
+   material; the last is now the one precondition without a home, and goes to the design pass with the stake.
+3. **May ambitions be un-postponed as pawns' aims**, one structure for every pawn by parity? **Yes** (Kim). What follows: the
+   Vision's row Ambitions and section 16's open item change from postponed to designed; the first set is priority 3's table,
+   designed with VB-1472, since most aims open projects; the player's ambitions are its pawn's aims, shown in the chronicle and
+   on the strip's year zoom.
+4. **Does "Land is not sold" stand?** **No.** Kim: land should be barterable and tradeable, though dear; any hard statement
+   otherwise was a temporary measure to let development go on. Two rows say otherwise and fall: Land and rights, "Land is not
+   sold" (Proposed, 11 Nov), and the fair's row on which exchanges are proper ("land is not offered at a fair at all, until
+   slice 5's custom 'Debts are paid with' allows it"). `docs/review-markets.md` (5, "land is not on the table at a fair") is a
+   review and is left as it was written.
+
+   **What a design pass must settle.** Dear by mechanism, not by a price rule (Mechanisms, not prescriptions):
+   - *Its worth.* A field's customary worth is `SHARES.perField` (120 rations) today, used for heirs' shares and the debt
+     remedy. Land's worth should be years of what it yields its holder above the work it takes; the pass checks 120 against a
+     field's net yield on the reference runs and says how many years of yield a field costs.
+   - *Why a holder sells.* A judgement (A judgement is never a die): what it gets against what the land gives it, its heirs'
+     places (a child loses its rung "heir to the farm at home"), the means to marry, and its class by land. A household sells
+     mostly under need, as Hunger presses, the feast binds expects: land passes in dearth, as it does by debt today, but faster.
+   - *The kin's right.* Medieval Swedish law gave the kin a first right to inherited land offered for sale, and a right to
+     redeem it from an outsider (*bördsrätt*; the offer to kin, *lagbjudning*), and treated land a man had bought (*avlinge*)
+     more freely than land he had inherited (*arv*). (From the standard literature, not checked in this session.) As a custom
+     it keeps land in lines, differs between villages (Customs may prescribe) and is the brake on concentration that a market
+     in land needs beside debtors' politics.
+   - *A public act.* A sale is witnessed at the meeting, as a case is, so the village knows who holds what; title moves at once
+     (Nothing teleports exempts rights).
+   - *How it is paid.* Barter in goods of worth on the worth table (beasts, grain in whole quanta, later things of worth and
+     coin), as one offer between two households (the offer's one shape); part may be owed as an obligation over years, which is
+     priority 1's "claim that lasts".
+   - *What it does to the balance.* Land concentration is one of the three balance properties Kim named first; a land market
+     will move it sooner than the debt road (year 150). The slice band reports it, and the wrap-up names the brake that held.
 
 Close calls in this review: placing the report first (it delays design passes by a little, and every later number rests on it);
 and preferring the herd over earlier silver as the first store of value (silver has the cleaner brake, the herd is there now).
+With land tradeable the second is less pressing: land becomes the main store of value, the herd the one a landless pawn can hold.
+
+---
+
+## 8. A house or a life: question 1, elaborated
+
+### 8.1 Why the answer matters
+
+A run of 40 to 80 hours covers about 230 years (The growth budget, The pace). Holders hand on at the heir's marriage or at 60,
+men first marry at 22 to 23, so a generation, holder to heir, is about 30 years: a run holds seven or eight of them. The
+player is the line (Vision, Player role): when its pawn dies it goes on as the successor. So the question is what the player
+inherits seven times over: a position that its earlier lives built, or a fresh start near the village's middle.
+
+The Vision already leans one way: "Social hierarchy grows from a few founding homesteads". A hierarchy can only grow from
+homesteads if some of what a homestead gains outlasts its holder. If everything resets at each handover, the hierarchy is
+re-drawn each generation and never grows.
+
+### 8.2 The handover is the valve
+
+Everything that crosses a generation crosses at one event, the handover (in life, or at the holder's death). What passes today,
+and what brakes it:
+
+| What | Passes to the heir? | The brake at the handover |
+| --- | --- | --- |
+| The farm: house, fields, meadow | Whole, to one heir, under the default "one heir buys out the rest" | The siblings' shares: `SHARES.perField` a field plus the store's grain, owed by the farm and paid at each round from grain above its reserve. The richer the farm and the more children, the more it owes, for years. A brake that grows with wealth |
+| The farm, under "split between heirs" | Divided | Partible inheritance cut estates and pauperised in the balance review's mock |
+| Animals, buildings, facilities | With the farm | Shares may be paid in animals; buildings wear |
+| Obligations owed and held | To the successor | None but their terms |
+| Goodwill | Half to the new holder | Halves in 4 years |
+| Standing, office, skill | No | The heir must earn them again |
+| The head's ability | Traits partly inherited (wits, husbandry); a head's foresight drawn at becoming head | Regression toward the culture's mean: a poor heir loses ground |
+| A daughter's dowry (slice 4's terms) | Out of the house, to her husband's | Counted against her share |
+
+So the design already keeps the farm whole and brakes its wealth at the handover in proportion to it. What it lacks is anything
+for the farm to gain beyond its fields, and anything of its holder's position to hand on. In Nordic terms the house that
+persists is the farm (*gården*), not the family: the heir keeps the farm, and the younger children fall to service, a plot or a
+cottage. That is already how the design works, and the player, following the heir, rides the farm's line.
+
+### 8.3 Three answers
+
+| | A. Each life rises and falls | B. A house rises over generations, held back each generation | C. A house rises, held back only over centuries |
+| --- | --- | --- | --- |
+| **The measure**: how closely an heir's wealth rank follows its parent's at the same age | low (about 0 to 0.3) | middling (about 0.4 to 0.6) | high (0.7 and above) |
+| **What passes** | The farm as today; little else exists to pass | The farm, and what it gained: land bought or cleared, the herd, things of worth, claims; a name | All of B, and the position: the office to the heir, rank, an entailed estate |
+| **What brakes it** | Decay of every soft stock; the office ending | The siblings' shares and dowries, growing with wealth; poor heirs; dearth forcing sales; the kin's right; debtors' politics | Only what slice 8 brings: rank from outside, the Crown, war |
+| **What the player lives** | Each life a fresh climb from the middle; the line's standing flat with spikes; a bad life costs nothing later | Two or three generations to rise; one bad heir or a run of dearth can undo it; the chronicle shows the house's curve | A dynasty: the first generations decide the rest |
+| **History** | A frontier in its first generations | The Swedish free farmers: farms kept in a line for centuries, a few lines of *storbönder* rising by land and marriage, and from 1280 (the Alsnö ordinance) tax freedom for one who could furnish a horseman, a road to the elite by wealth | The nobility once closed, from the 16th and 17th centuries |
+| **Risk** | Twenty years show nothing; ambition has no object past one life | A run-away house if the brakes are weak, which the report shows | The elite closes, against An elite is what the rules leave over |
+
+(The historical column is from the standard literature and not checked in this session. The ranges of the measure are
+indicative: estimates for pre-industrial societies vary widely, and some long-run studies of surnames find status persisting at
+0.7 or more over centuries. They are a scale for the report, not targets.)
+
+### 8.4 Proposed: B
+
+A house may rise over two or three generations and lose it in one, as the free farmers' houses did.
+
+- **It is what the Vision asks** ("hierarchy grows from a few founding homesteads") and what the default custom already does
+  (the farm kept whole, the siblings' shares as a brake that grows with wealth).
+- **It gives the twenty-year arc its stakes.** An aim of a holder (priority 3: a place for each child, land, the office) is
+  partly for its heir; a choice at year 30 is felt at year 60.
+- **It needs little new.** What passes is the hard stocks; the work is giving the farm hard stocks to gain: land by sale and
+  barter (Q4), a herd and things of worth (priority 1), and a name (priority 5). The soft stocks keep their decay.
+- **Its brakes exist and should be checked, not invented:** do the siblings' shares grow with all the farm's wealth, not only
+  its fields and grain (beasts, things of worth, land bought)? Does a dowry leave the house in proportion to it? Does the
+  kin's right on a sale send land back along lines? The design pass answers these.
+- **The office stays a life's** (A's rule for it): a son who follows his father as alderman is one of the ways of choosing
+  that Kim designed on 15 November, a practice a village may hold, not a rule. Rank that passes is slice 8's (C's road), and
+  stays there.
+
+**What it would change in the design, if accepted:** a row in Vision and scope (what a generation is about); in Handover and
+shares, the shares counted on all of a farm's wealth; in the report (priority 0), the measure of 8.3 by village and by culture,
+beside the elite band, with no target; in the chronicle, a house's curve over its holders.
+
+**Deciding it:** if B, priorities 1, 5 and 6 are the house's, and priority 0's measure says whether the brakes hold. If A,
+priorities 1 and 6 still matter for a single life, and 5 drops. If C, rank and estates come forward from slice 8, which
+reopens the slice order.
