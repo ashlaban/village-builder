@@ -136,6 +136,7 @@
   "sim/away.js",
   "sim/journeys.js",
   "sim/gifts.js",
+  "sim/terms.js",
   "sim/keep.js",
   "sim/planchains.js",
   "sim/sleepers.js",

@@ -33,6 +33,7 @@ VB['sim/marriage'] = (() => {
   const { remember, opinionOf } = VB['sim/relations'],
     { raiseTie } = VB['sim/ties'];
   const { wedding } = VB['sim/occasions'];
+  const Terms = VB['sim/terms'];
   const { goBack } = VB['sim/trust'],
     { trustOfHolder } = VB['sim/ownership'];
   // A marriage (the marry command, VB-171): the union, both move to the home household, the event, ties, a spouse who held a farm of
@@ -387,12 +388,21 @@ VB['sim/marriage'] = (() => {
     if (courted) out.courted = true;
     if (hers) out.asker = 'woman';
     if (fancy !== undefined) out.fancy = fancy;
+    // its terms (VB-276): the asking side's own (the played spokesman's, args.terms) checked here, the defaults valued once, in the
+    // making (matchAnswers): the check runs twice, as the command's check and its run
+    const set = c && c.args ? c.args.terms : undefined,
+      bad = Terms.setWhy({ ...o, ...out }, set);
+    if (bad) return bad;
+    if (set !== undefined && set !== null) out.set = { ...set };
     return out;
   }
   // The answers a match asks for, all unanswered: the man's and the woman's, and each one's spokesman's where another speaks for them;
   // and, where neither is, the head of the home one of them moves to (moveWhy, VB-692: the receiving head's yes, always).
   const movers = (st, o) => [o.gives.man, o.wants.woman].filter((id) => st.pawns[id].household !== o.gives.home);
   function matchAnswers(st, o) {
+    const t = Terms.termsFor(st, o, o.set); // the terms valued, once an offer (two households' movable worth), before any answer
+    delete o.set;
+    if (typeof t !== 'string') Object.assign(o, t);
     const out = [
       ['man', o.gives.man],
       ['woman', o.wants.woman],
@@ -443,7 +453,8 @@ VB['sim/marriage'] = (() => {
   // advice (VB-275, VB-693; plan VB-682, 4.1). The head of the home says no at enmity or below towards one who would move in
   // ('enmity'). One to marry says no at enmity or below towards the other, while it courts another unless it yields ('courting'), and
   // under "not this year" (its wish ranks staying above a match, sim/wishes: 'wish'). A spokesman, and one who speaks for itself, weighs
-  // the score as it reads it, which must reach MARRIAGE.minScore ('score'), and the means of the home, read now ('means'). A courting
+  // the score as it reads it, which must reach MARRIAGE.minScore ('score'), the means of the home, read now ('means'), and the terms,
+  // each within TERMS.within of its default (sim/terms; 'terms'). A courting
   // pair's own offer asks no score: a spokesman says no to it at enmity or below towards the other side's (unplayedNo), and the means
   // and the two's hunger are read where it settles.
   function whyNo(st, o, a) {
@@ -456,7 +467,13 @@ VB['sim/marriage'] = (() => {
       if (wishOf(st, a.by, 'match') === false) return 'wish';
     }
     if (!speaks(o, a)) return null;
-    return readBy(st, o, side) < MARRIAGE.minScore ? 'score' : meansShort(st, o) ? 'means' : null;
+    return readBy(st, o, side) < MARRIAGE.minScore
+      ? 'score'
+      : meansShort(st, o)
+        ? 'means'
+        : !Terms.fair(o)
+          ? 'terms'
+          : null;
   }
   const matchYes = (st, o, a) => whyNo(st, o, a) === null;
   const WHY_NO = {
@@ -464,6 +481,7 @@ VB['sim/marriage'] = (() => {
     courting: 'courting another',
     wish: 'not this year',
     score: 'the two are ill matched',
+    terms: 'the terms are not fair',
   };
   // A match kept for the player's answer is told.
   function toldMatch(st, o) {
@@ -503,6 +521,8 @@ VB['sim/marriage'] = (() => {
           yielded.push({ id, sp, by: side.by, courted: c });
       }
     const olds = [st.pawns[o.gives.man].household, st.pawns[o.wants.woman].household]; // the households the wedding touches
+    // the terms (VB-276): an offer kept from before them is valued now, before the wedding moves the two
+    const terms = o.terms || Terms.defaults(st, o.gives.man, o.wants.woman, o.gives.home);
     const why = issue(st, {
       actor: o.gives.man,
       verb: 'marry',
@@ -511,6 +531,7 @@ VB['sim/marriage'] = (() => {
       source: 'round',
     });
     if (why !== true) return why;
+    Terms.settle(st, o.gives.man, o.wants.woman, terms, olds[1]); // the dowry led and laid, the morning gift booked to her
     for (const y of yielded) {
       const who = fullName(st.pawns[y.courted]),
         sp = fullName(st.pawns[y.sp]);

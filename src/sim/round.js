@@ -7,9 +7,9 @@ VB['sim/round'] = (() => {
   const Customs = VB['sim/customs'];
   const Crowding = VB['sim/crowding'];
   const { cal, DAY, HUNGER, MARRIAGE, ASK } = VB['sim/rules'];
-  const { log, age, spouseOf, settlementIdOf, practice, spokesmanOf } = VB['sim/records'];
+  const { log, age, spouseOf, settlementIdOf, practice, spokesmanOf, personEvent, fullName } = VB['sim/records'];
   const { countDemand, refreshRoles } = VB['sim/heirs'];
-  const { kinOk, poolFor, sideScore, matchRules, wishedMatches, askerOf, askedOf } = VB['sim/matching'];
+  const { kinOk, poolFor, sideScore, matchRules, wishedMatches, matchBar, askerOf, askedOf } = VB['sim/matching'];
   const { startPlots } = VB['sim/allotment'];
   const { claimFarms, claimableFarm, askLand } = VB['sim/farmclaims'];
   const { settleRound } = VB['sim/settle'];
@@ -203,6 +203,7 @@ VB['sim/round'] = (() => {
     callFilling(st, v); // the alderman calls the store's quarters (VB-673)
     // A pawn's wish for a match (VB-274, VB-680): false leaves it out; a partner it names is found in the walk.
     const wishers = [],
+      proposers = [], // spokesmen with a match for a member (pawn.proposal, VB-276)
       fed = (p) => p.hunger < HUNGER.marryBelow;
     // The pool, in one walk: the village's men who may marry, the women, the other villages' men (kin pressure).
     const men = [],
@@ -211,6 +212,7 @@ VB['sim/round'] = (() => {
     for (const id of pool) {
       const p = st.pawns[id];
       p.age = age(st, p);
+      if (p.proposal) proposers.push(id);
       // One who courts is in no arranged match: the pair's own offer is theirs (sim/asking)
       if (Number.isInteger(p.courting)) continue;
       const wish = p.wish ? wishOf(st, id, 'match') : null;
@@ -251,6 +253,7 @@ VB['sim/round'] = (() => {
       if (spouseOf(st, m) === f) married.push([m, f]);
       else if (r === true && heldBy(st, m, 'match')) (taken.add(m), taken.add(f));
     }
+    for (const id of proposers) proposed(st, id, v, rules, taken, married);
     kinPressure(st, v, men, women, others, taken, married, rules.homeFor);
     // One who holds no offer at the round (he found nobody he could ask within a day's walk, or was refused) plans a winter's visit
     // (sim/visits, VB-289).
@@ -258,6 +261,56 @@ VB['sim/round'] = (() => {
       if (settlementIdOf(st, p) === v && spouseOf(st, p.id) === null && !heldBy(st, p.id, 'match'))
         seekVisit(st, p.id, rules);
     if (married.length) refreshRoles(st);
+  }
+  // A spokesman's match for a member (VB-276; sim/player propose; pawn.proposal, any pawn's): at the round of the man's village, a pair
+  // that passes the round's rules (matchBar, as a wish) is offered by the spokesman `by` to the other side's, with the terms its side gives
+  // and its own yes given; the others answer as any offer's. One the round passes by is told, and stands for the next round; one whose
+  // two are no longer free, or whom `by` no longer speaks for, is dropped.
+  function proposed(st, by, v, rules, taken, married) {
+    const pr = st.pawns[by].proposal,
+      free = (id) => st.pawns[id] && st.pawns[id].alive && spouseOf(st, id) === null;
+    if (!free(pr.for) || !free(pr.partner) || spokesmanOf(st, pr.for) !== by) {
+      delete st.pawns[by].proposal; // lint-allow: owner a proposal its two can no longer take is dropped where it is read
+      return;
+    }
+    const w = matchBar(st, pr.for, pr.partner, rules),
+      man = st.pawns[pr.for].sex === 'm' ? pr.for : pr.partner;
+    if ((settlementIdOf(st, st.pawns[man]) ?? 0) !== v) return;
+    if (w.why) {
+      personEvent(
+        st,
+        by,
+        'wishLapsed',
+        `The round passed over the match you made for ${fullName(st.pawns[pr.for])}: ${w.why}`,
+        {
+          other: pr.partner,
+          reason: 'passed',
+          village: settlementIdOf(st, st.pawns[by]),
+        },
+      );
+      return;
+    }
+    const m = w.man.id,
+      f = w.woman.id;
+    if (taken.has(m) || taken.has(f)) return;
+    const r = issue(st, {
+      actor: by,
+      verb: 'offer',
+      target: spokesmanOf(st, pr.for === m ? f : m),
+      args: {
+        basis: 'match',
+        gives: { man: m, home: w.home },
+        wants: { woman: f },
+        ...(pr.terms ? { terms: pr.terms } : {}),
+        given: [pr.for === m ? 'manSide' : 'womanSide'],
+      },
+      source: 'round',
+    });
+    rules.clear();
+    if (spouseOf(st, m) === f) {
+      married.push([m, f]);
+      delete st.pawns[by].proposal; // lint-allow: owner made, it ends with the marriage
+    } else if (r === true && heldBy(st, m, 'match')) (taken.add(m), taken.add(f));
   }
   return {
     movingRound,

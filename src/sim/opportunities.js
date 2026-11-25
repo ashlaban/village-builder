@@ -437,7 +437,7 @@ VB['sim/opportunities'] = (() => {
   // speaks for, or 'the one asked'), answers (who has said what so far: [{name, key, yes}]), daysLeft, advice (what the pawn would answer
   // by its own judgement: true, false; principle "The future is someone's estimate", that pawn's estimate)}, and for a match man, woman ({id, name, age,
   // farm}), home (a
-  // household id), farm (its farm's name). The player answers with Sim.answer.
+  // household id), farm (its farm's name), terms ({dowry, gift} in rations of customary worth, or null). The player answers with Sim.answer.
   function offers(st, view, id, out) {
     const who = (i) => ({
       id: i,
@@ -477,6 +477,7 @@ VB['sim/opportunities'] = (() => {
           woman: who(o.wants.woman),
           home: o.gives.home,
           farm: view.farmsteads[view.households[o.gives.home].farmstead].name,
+          terms: o.terms ? { ...o.terms } : null, // the dowry and the morning gift, in customary worth (VB-276)
         });
       out.push(item('answer', o.id, null, null, { when: 'offer', offer }));
     }
