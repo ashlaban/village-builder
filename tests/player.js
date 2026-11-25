@@ -56,9 +56,10 @@ const FARMER = 0, WIFE = 1;
   sound(st, 'a command under way');
   // it lasts until the wood is home: the farmer is not given other work on the way
   let steps = 0;
-  while (st.player.queue.length && steps++ < 100) {
+  while (st.player.queue.length && steps++ < 1000) {
     assert.ok(a.job === wood, `on the firewood until it is done (${a.job && a.job.kind})`); Sim.advance(st, 0.1); if (st.jobs.get(wood.key) !== wood) break; }
   Sim.advance(st, 0.3);
+console.log('STEPS', steps, st.jobs.get(wood.key) === wood, st.player.queue.length);
   assert.ok(steps < 100 && st.jobs.get(wood.key) !== wood && !st.player.queue.length, 'the firewood is brought home, and the command is done');
   assert.ok(a.job || a.phase === 'home' || a.inside, 'left to itself again, the pawn does as the others: more work, or home at the end of it');
 }

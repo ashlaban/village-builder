@@ -36,7 +36,7 @@ const owners = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/owners.js
 const declared = [];
 (function walk(o) { for (const [k, v] of Object.entries(o)) if (v && typeof v === 'object') v.category === 'cache' ? declared.push(k) : walk(v); })(owners);
 const COMPARED = ['st.owner', 'st.crowd', 'st.crowdN', 'st.followers', 'st.living', 'st.liveHouseholds', 'st.graph', 'st.liveTrusts', 'st.courtships',
-  'st.obligationsDue', 'st.obligationsBy', 'st.facilityIdx', 'st.askingBy', 'agent.away', 'pawn.household', 'household.members', 'pawn.role'];
+  'st.obligationsDue', 'st.obligationsBy', 'st.facilityIdx', 'st.lyingBy', 'st.askingBy', 'agent.away', 'pawn.household', 'household.members', 'pawn.role'];
 assert.deepStrictEqual(declared.filter((k) => !COMPARED.includes(k) && !CACHES_UNCOMPARED[k]), [], 'a declared cache neither compared nor excused');
 assert.deepStrictEqual([...COMPARED, ...Object.keys(CACHES_UNCOMPARED)].filter((k) => !declared.includes(k)), [], 'a cache listed that src/owners.json does not declare');
 

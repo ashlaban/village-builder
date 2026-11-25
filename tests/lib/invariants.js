@@ -694,6 +694,17 @@ function checkState(st) {
     const flat = (m) => JSON.stringify([...m.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
     if (flat(want.tile) !== flat(st.facilityIdx.tile) || flat(want.owner) !== flat(st.facilityIdx.owner)) bad.push('facilities: the index differs from the records');
   }
+  // the piles by owner (VB-1775): st.lying's entries of each owner, in their order
+  if (st.lyingBy) {
+    const want = new Map();
+    for (const l of st.lying || []) {
+      const k = `${l.owner.type}:${l.owner.id}`;
+      if (!want.has(k)) want.set(k, []);
+      want.get(k).push(l.id);
+    }
+    const flat = (m) => JSON.stringify([...m.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
+    if (flat(want) !== flat(new Map([...st.lyingBy].map(([k, v]) => [k, v.map((l) => l.id)])))) bad.push('lying: the index by owner differs from the list');
+  }
   if (st.courtships !== undefined) {
       if (!Array.isArray(st.courtships) || [...st.courtships].sort((a, b) => a - b).join() !== men.join()) bad.push(`courtships ${JSON.stringify(st.courtships)}: the courting men are ${men.join()}`);
     }
@@ -1518,7 +1529,7 @@ function checkState(st) {
     else st.lying.forEach((l, n) => {
       const at = `lying[${n}] (${l.id})`, prev = st.lying[n - 1], o = l.owner;
       if (!Number.isInteger(l.id) || !(l.id <= st.lyingSeq) || (prev && !(prev.id < l.id && prev.t <= l.t))) bad.push(`${at}: id ${l.id} out of order, or past lyingSeq ${st.lyingSeq}`);
-      if (!KS[l.kind] || !KS[L.fetchKey(l.kind)]) bad.push(`${at}: kind ${l.kind} has no fetching`);
+      if (!KS[l.kind] || !(KS[L.fetchKey(l.kind)] || KS[l.kind].methods)) bad.push(`${at}: kind ${l.kind} has no fetching`); // a kind with methods: its stray method (VB-1775)
       if (!(l.n > 0) || !Number.isFinite(l.n)) bad.push(`${at}: a load of ${l.n}`);
       if (!Number.isInteger(l.tile) || l.tile < 0 || l.tile >= st.w.COLS * st.w.ROWS) bad.push(`${at}: on tile ${l.tile}`);
       if (!(l.t <= st.t) || !(st.t - l.t < YEAR)) bad.push(`${at}: put down at ${l.t}, a year or more ago (the frost rots it)`);
