@@ -37,10 +37,12 @@ everything else is a proposal or a prediction (section 4). "Claim" means a land 
   controls the body's agent. The played pawn's plan is this record; `st.player` holds the frame only.
 - **A task is a plan, worked out from the world** (3.2): no phase; methods as rows of steps with a precondition and an effect, read
   backwards from the goal; a stray good fetched by one general method. This removes the exit behind VB-1548 and the carrying hooks.
-- **The levy's starting values, its bookkeeping and its relation to `sim/obligations`** (3.3), all Proposed.
+- **The levy's bookkeeping and its relation to `sim/obligations`** (3.3), Proposed; its starting values are grounded in
+  `levy-custom.md` and set by the measurement.
 - **A path of nine steps** (3.10), ordered by dependency and risk; behaviour need not be preserved, and every step must pass the gate
   (no crash or invariant broken, no village dying out).
-- **Questions 7 to 12** of section 5, and the new questions that taking the answers in raised (section 5, 13 to 20).
+- Every question of section 5 is answered (section 6); what stays open is the design passes on `design.md` sections 7 and 9 that
+  steps 6 and 7 of the path need.
 
 ### What the mocks overturned
 
