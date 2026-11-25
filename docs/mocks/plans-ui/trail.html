@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Day Trail</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600&display=swap">
+<style>
+/* The pawn's day as a waymarked trail: waypoints at places, legs with blazes, the profile under it, the task's method as a side trail. */
+:root { --paper: #e6e9df; --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --accent: #2f5d4a;
+  --display: 'Alegreya SC', Georgia, serif; --body: 'Alegreya Sans', system-ui, sans-serif; color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.4 var(--body); }
+.band { height: 42px; display: flex; align-items: center; gap: 9px; padding: 0 14px; background: var(--card); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.band h1 { font: 500 1.15rem var(--display); margin: 0; }
+.band .mode { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.band .from { font-size: 12px; color: var(--muted); font-style: italic; overflow: hidden; text-overflow: ellipsis; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; flex: none; }
+.seg button { font: inherit; font-size: 13px; border: 0; background: #fff; padding: 3px 8px; cursor: pointer; color: var(--ink); }
+.seg button[aria-pressed=true] { background: var(--ink); color: #fff; }
+.spacer { margin-left: auto; }
+#mapbox { position: absolute; left: 0; top: 42px; width: 900px; height: 528px; }
+#map { width: 100%; height: 100%; display: block; user-select: none; }
+#rail { position: absolute; left: 900px; right: 0; top: 42px; height: 528px; padding: 8px 10px; overflow: auto; border-left: 1px solid var(--line); }
+#profbox { position: absolute; left: 0; right: 0; top: 570px; bottom: 0; border-top: 1px solid var(--line); background: #f1f2ec; }
+#prof { width: 100%; height: 100%; display: block; }
+svg text { font-family: system-ui, sans-serif; }
+[data-b] { cursor: pointer; } g[data-b]:hover > svg.pi { filter: drop-shadow(0 0 2px #000a); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 9px; padding: 7px 9px; margin-bottom: 8px; font-size: 13.5px; }
+.card h3 { margin: 0 0 4px; font: 500 14px var(--display); letter-spacing: .03em; display: flex; justify-content: space-between; }
+.tbt { display: grid; grid-template-columns: 26px 30px 1fr auto; gap: 2px 6px; align-items: center; }
+.tbt .lab { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.tbt .big { font-size: 15px; font-weight: 600; }
+.tbt button, .card button { font: inherit; font-size: 12px; padding: 1px 7px; border-radius: 6px; border: 1px solid #3a2a1a; background: #fff; cursor: pointer; }
+.meter { position: relative; height: 16px; border: 1px solid var(--ink); border-radius: 3px; display: flex; overflow: hidden; margin: 4px 0; }
+.meter i { display: block; height: 100%; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.small { font-size: 12px; color: var(--muted); }
+#bubble { position: absolute; z-index: 5; width: 340px; background: #fffdf7; border: 1px solid #3a2a1a; border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 18px #0003; font-size: 13.5px; }
+#bubble h4 { margin: 0 0 6px; font: 600 15px var(--body); display: flex; gap: 8px; align-items: center; }
+#bubble dl { display: grid; grid-template-columns: 74px 1fr; gap: 2px 8px; margin: 0 0 8px; }
+#bubble dt { color: var(--muted); } #bubble dd { margin: 0; }
+#bubble .acts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+#bubble button { font: inherit; font-size: 13px; padding: 3px 8px; border-radius: 6px; border: 1px solid #3a2a1a; background: #fff; cursor: pointer; }
+#bubble button.more { background: var(--ink); color: #fff; }
+#bubble .rem { display: grid; grid-template-columns: 92px 1fr; gap: 4px 8px; align-items: start; margin: 4px 0; }
+#bubble .rem small { color: var(--muted); }
+#bubble .deflt { margin-top: 6px; padding: 5px 7px; border-left: 3px solid var(--ink); background: #f1ece0; }
+#bubble .why { margin: 6px 0 0; padding: 0; list-style: none; border-left: 2px dashed #555; }
+#bubble .why li { display: flex; gap: 6px; align-items: center; padding: 2px 6px; }
+#bubble ul.list { margin: 0 0 6px; padding-left: 16px; }
+#toast { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 7px 14px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 6; }
+#toast.on { opacity: 1; } #toast code { color: #f2c27a; }
+.note { position: absolute; right: 8px; bottom: 8px; z-index: 4; width: 210px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px; font-size: 12.5px; }
+.note[open] { width: 520px; }
+.note summary { cursor: pointer; color: var(--muted); }
+.note p { margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<header class="band">
+  <h1>The day as a trail</h1><span class="mode">Pawn · today</span>
+  <span class="from">after waymarked hiking maps (waypoints, blazes, the elevation profile) and a satnav's turn-by-turn</span>
+  <span class="seg spacer" id="pawn"><button data-v="nils" aria-pressed="true">Nils (member)</button><button data-v="ola" aria-pressed="false">Ola (lone)</button></span>
+  <span class="seg" id="intr"><button data-v="none" aria-pressed="true">as planned</button><button data-v="rain" aria-pressed="false">rain 14:00</button><button data-v="call" aria-pressed="false" id="callbtn">called home 13:00</button></span>
+  <span class="seg" id="ahead"><button data-v="0" aria-pressed="true">today</button><button data-v="1" aria-pressed="false">+3 days</button></span>
+  <span class="seg" id="stress"><button data-v="0" aria-pressed="true">normal</button><button data-v="1" aria-pressed="false">stress</button></span>
+</header>
+<div id="mapbox"><svg id="map" viewBox="0 0 906 530" preserveAspectRatio="xMidYMid meet"></svg></div>
+<aside id="rail"></aside>
+<div id="profbox"><svg id="prof"></svg></div>
+<div id="bubble" hidden></div>
+<div id="toast"></div>
+<details class="note"><summary>Scales to / strains at</summary>
+  <p><b>Scales to</b>: one pawn's day of 5–9 waypoints; a return leg bows to the other side, so out and back stay two lines. The profile carries whose hours (Nils) or need/work/sleep (Ola) without a legend; hover joins the two. The side trail makes "read backwards from the world" visible: the stray pile is the step the numbering resumes from.</p>
+  <p><b>Strains at</b>: home. Every trail returns there, so its sign carries a ×N pip and its legs crowd (Ola's day: 5 visits). Nine waypoints and three side trails in stress: the numbered steps start to stack at shared places (home, the wood). Three faint days on top of today read as "places I will go", not as a plan: fine, since ahead is only dated steps, but the order within a day is lost. The fork works for one decision; two forks in a day would branch a branch. Walking time on a 6-hex map is small: the flat stretches on the profile are slivers (15 min a hex).</p>
+</details>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+// ---- New marks (this mock only; scene.js untouched): the 'cut' state (as routes.html), the knot of a cut, a rain cloud, a blaze.
+STATES.cut = '<circle cx="34" cy="6" r="6.5" fill="#fff" stroke="#2a2018" stroke-width="1.5"/><path d="M29.5 7.5h2.5M36 7.5h2.5" stroke="#2a2018" stroke-width="1.6"/><path d="M31.5 6.5q2.5-4.5 5 0" stroke="#2a2018" stroke-width="1.3" fill="none"/>';
+const KNOT = (x, y, d = '') => `<g transform="translate(${x} ${y})" ${d}><circle r="9" fill="#f4efe4" stroke="#2a2018" stroke-width="1.4"/><path d="M-6 3c2-9 10-9 9-2s-9 5-8-1 7-6 9 3" fill="none" stroke="#2a2018" stroke-width="1.6" stroke-linecap="round"/></g>`; // new glyph: knot = cut and resumed
+const RAIN = (x, y, d = '') => `<g transform="translate(${x} ${y})" ${d}><path d="M-10 2a6 6 0 0 1 4-10a8 8 0 0 1 14 2a5 5 0 0 1 2 8z" fill="#dfe6ea" stroke="#2a2018" stroke-width="1.3"/><path d="M-6 6l-2 5M0 6l-2 5M6 6l-2 5" stroke="#2f5f8a" stroke-width="1.6"/></g>`; // new glyph: rain
+const H = (h) => { const m = Math.round(h * 60), hh = Math.floor(m / 60) % 24, mm = m % 60; return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0'); };
+const DUR = (h) => (h < 1 ? Math.round(h * 60) + ' min' : (Math.round(h * 4) / 4).toString().replace('.25', '¼').replace('.5', '½').replace('.75', '¾') + ' h');
+const NAME = { per: 'Per', nils: 'Nils', ola: 'Ola', karin: 'Karin' };
+
+// ---- State
+const S = { pawn: 'nils', intr: 'none', ahead: false, stress: false, answer: null, cursor: null };
+const NOWH = () => (S.pawn === 'nils' ? 10 : 9);
+const WALK = 0.25; // h a hex
+function cube(k) { const p = PLACES[k], x = p.q - (p.r - (p.r & 1)) / 2; return [x, p.r, -x - p.r]; }
+const dist = (a, b) => { const A = cube(a), B = cube(b); return Math.max(...A.map((v, i) => Math.abs(v - B[i]))); };
+const I = (at, h0, h1, kind, what, o = {}) => ({ at, h: [h0, h1], kind, what, ...o });
+const EFF = { walk: 0.22, chop: 0.9, hoe: 0.95, cart: 0.8, wood: 0.7, pot: 0.4, water: 0.45, pail: 0.4, beast: 0.45, courting: 0.3, health: 0.6, fence: 0.8, sheaves: 0.7, village: 0.3, seed: 0.5, stone: 0.9 };
+
+// ---- The days (fake): items in time order; walks are inserted between places (they take the head of the next item).
+function nilsDay() {
+  const st = (h) => (h[1] <= 10 ? 'done' : h[0] < 10 ? 'doing' : 'planned');
+  if (S.stress) {
+    const d = [I('home', 6, 6.25, 'cart', 'Fetch the cart', { step: 'A1' }), I('wood2', 6.25, 7.75, 'wood', 'Load the timber lying there (our stray pile)', { step: 'A3', walkStep: 'A2', stray: 1 }),
+      I('home', 7.75, 8.5, 'cart', 'Haul home', { step: 'A4', haul: 1 }), I('home', 8.5, 9.5, 'wood', 'Cut to firewood (1 load of 3)', { step: 'A5' }), I('lake', 9.5, 10.5, 'water', 'Water for Karin (Anna is with the cattle)'),
+      I('long', 10.5, 12.5, 'sheaves', 'Bind the sheaves lying since the rain (stray)', { step: 'B2', walkStep: 'B1', stray: 1 }), I('meadow', 12.5, 13.5, 'beast', 'Bring the cow in'),
+      I('barley', 13.5, 14.25, 'chop', 'Look at the barley (Per asks: ripe?)', { by: 'per' }), I('fence', 14.25, 15.5, 'fence', 'Set the posts left at the fence (stray)', { step: 'C2', walkStep: 'C1', stray: 1 }),
+      I('green', 15.5, 16, 'village', "The alderman's mark on the lot", { step: 'C3' }), I('norr', 16, 16.5, 'courting', 'Norrgård (taken)', { breach: 'taken' }), I('norr', 16.5, 17.5, 'courting', 'Norrgård (own hours)', { whose: 'own' }),
+      I('home', 17.5, 18.5, 'home', 'Home', { whose: 'own' })];
+    d.forEach((x) => (x.state = st(x.h))); return d;
+  }
+  const d = [I('home', 6, 6.25, 'cart', 'Fetch the cart', { step: 'F1' }), I('wood2', 6.25, 8.25, 'wood', 'Load the timber lying there (our stray pile)', { step: 'F3', walkStep: 'F2', stray: 1 }),
+    I('home', 8.25, 9, 'cart', 'Haul home', { step: 'F4', haul: 1 }), I('home', 9, 11, 'wood', 'Cut to firewood', { step: 'F5' })];
+  const fork = () => d.push(I('long', 16.5, 17.6, 'cart', 'Load the sheaves before the rain (demanded)', { whose: 'own', breach: 'demanded', by: 'per', branch: 'comply' }),
+    I('home', 17.6, 18.4, 'cart', 'Haul them home (past 18: finish what was begun)', { whose: 'own', breach: 'demanded', by: 'per', branch: 'comply', haul: 1 }),
+    I('norr', 16.5, 18, 'courting', 'Stay at Norrgård (own hours)', { whose: 'own', branch: 'refuse' }), I('home', 18, 19, 'home', 'Home for the night', { whose: 'own', branch: 'refuse' }));
+  if (S.intr === 'call') {
+    d.push(I('long', 11, 13, 'chop', 'Reap rye', { cut: { h: 13, what: 'Reaping cut at 13:00: Per calls him home. Nothing in hand, so nothing is set down; the cut rye lies in stooks and the stand waits (the method resumes on day 5: go, reap).' } }),
+      I('home', 13, 14, 'pail', "Per's call: the cow is down, help Karin", { by: 'per' }), I('norr', 14, 16.5, 'courting', 'Visit Norrgård (taken)', { breach: 'taken' })); fork();
+  } else if (S.intr === 'rain') {
+    d.push(I('long', 11, 13.25, 'chop', 'Reap rye', { cut: { h: 13.25, what: 'Reaping cut at 13:15: the rule turns to hauling before the rain. The stand waits.' } }),
+      I('home', 13.25, 14.5, 'cart', 'Haul sheaves home before the rain (the rule reorders)', { haul: 1, rain: { h: 14, what: 'Rain at 14:00, the load on the road. The rule for a load in hand: carry on home (he can walk). Arrives 14:30, the top sheaves wet.' } }),
+      I('norr', 14.5, 17, 'courting', 'Visit Norrgård (taken)', { breach: 'taken' }), I('norr', 17, 18, 'courting', 'Stay on (own hours: no demand, nothing to haul in the rain)', { whose: 'own' }));
+  } else { d.push(I('long', 11, 14, 'chop', 'Reap rye'), I('norr', 14, 16.5, 'courting', 'Visit Norrgård (taken)', { breach: 'taken' })); fork(); }
+  d.forEach((x) => (x.state = x.state || st(x.h))); return d;
+}
+function olaDay() {
+  const N = { band: 'need' }, Wk = { band: 'work' }, st = (h) => (h[1] <= 9 ? 'done' : h[0] < 9 ? 'doing' : 'planned');
+  const sleep = (h) => [I('home', h, 22, 'health', `Sleep owed: to bed at ${H(h)} (${LONE.owedSleep} h owed)`, { band: 'sleep', owed: 1 }), I('home', 22, 30, 'health', 'Sleep (no roof: a cold night)', { band: 'sleep', cold: 1 })];
+  let d;
+  if (S.stress) d = [I('lake', 6, 6.5, 'water', 'Water', N), I('home', 6.5, 7, 'pot', 'Cook', N), I('clearing', 7, 8.5, 'stone', 'Carry off the stones dug yesterday (lying, his)', { ...Wk, step: 'P2', walkStep: 'P1', stray: 1 }),
+    I('clearing', 8.5, 10.5, 'hoe', 'Break the field', { ...Wk, step: 'P3' }), I('green', 10.5, 11.5, 'seed', 'Take up the seed sack left at the green (stray)', { ...Wk, step: 'S2', walkStep: 'S1', stray: 1 }),
+    I('norr', 11.5, 12.5, 'seed', 'Norrgård: borrow a drag', Wk), I('home', 12.5, 13.5, 'pot', 'Cook, eat', N), I('wood1', 13.5, 15.5, 'chop', 'Trim the lying tree, fell 1 more', { ...Wk, step: 'C3', walkStep: 'C1', stray: 1 }),
+    I('wood2', 15.5, 16.25, 'wood', 'Gather dead wood (firewood short)', N), I('home', 16.25, 17.5, 'cart', 'Drag home', { ...Wk, haul: 1, step: 'C4' }), I('meadow', 17.5, 18.5, 'beast', 'The cow: milk and fodder', N),
+    I('fence', 18.5, 19.25, 'fence', 'Look at the lot fence (his first year)', Wk), I('home', 19.25, 20.5, 'pot', 'Cook', N), ...sleep(20.5)];
+  else {
+    d = [I('lake', 6, 6.5, 'water', 'Water', N), I('home', 6.5, 7, 'pot', 'Cook', N), I('clearing', 7, 12, 'hoe', 'Break the south field (day 2 of ~6)', { ...Wk, task: 'plant' }), I('home', 12, 13, 'pot', 'Cook, eat', N)];
+    if (S.intr === 'rain') d.push(I('wood1', 13, 14, 'chop', 'Trim the tree lying there (his mark)', { ...Wk, step: 'C3', walkStep: 'C1', stray: 1, cut: { h: 14, what: 'Felling cut by the rain at 14:00. The trimmed log is on the drag: a load in hand goes on home. The 2 trees not felled stay standing; nothing new lies at the wood.' } }),
+      I('home', 14, 15.5, 'cart', 'Drag the log home in the rain (a load in hand: on home)', { ...Wk, haul: 1, step: 'C5', rain: { h: 14, what: 'Rain at 14:00 at the wood.' } }), I('home', 15.5, 16.5, 'wood', 'Firewood (short)', N), I('home', 16.5, 17.5, 'beast', 'Milk, fodder', N), I('home', 17.5, 19, 'pot', 'Cook, eat', N), ...sleep(19));
+    else if (S.intr === 'call') d.push(I('wood1', 13, 14.5, 'chop', 'Trim the lying tree, fell 1 more', { ...Wk, step: 'C3', walkStep: 'C1', stray: 1, cut: { h: 14.5, what: 'Felling cut at 14:30: the cow is loose (called home). Nothing in hand: the 2 felled trees lie at the wood with his mark (a stray pile of 2) for tomorrow.' } }),
+      I('meadow', 14.5, 16, 'beast', 'The cow is loose: fetch her', N), I('home', 16, 17, 'beast', 'Milk, fodder', N), I('home', 17, 18, 'wood', 'Firewood (short)', N), I('home', 18, 19.5, 'pot', 'Cook, eat', N), ...sleep(19.5));
+    else d.push(I('wood1', 13, 16, 'chop', 'Trim the lying tree, fell 2 more', { ...Wk, step: 'C3', walkStep: 'C1', stray: 1 }), I('home', 16, 17.5, 'cart', 'Drag the timber home', { ...Wk, haul: 1, step: 'C5' }),
+      I('home', 17.5, 18.5, 'beast', 'Milk, fodder', N), I('home', 18.5, 19.5, 'wood', 'Firewood (short)', N), I('home', 19.5, 20, 'pot', 'Cook', N), ...sleep(20));
+  }
+  d.forEach((x) => (x.state = st(x.h), x.whose = 'household')); return d;
+}
+// The task's method as a side trail: numbered steps at their places; yesterday's part and the cut; a faint alternative method.
+function tasks() {
+  if (S.pawn === 'nils') {
+    const F = { id: 'F', name: TASK_FIREWOOD.goal, method: 'by cart', yest: ['home', 'wood2', 'day 3: cart, go, fell 1 load; cut at nightfall'], alt: ['wood2', 'home', 'on the back, no cart: 3 trips, ~4 h'],
+      steps: TASK_FIREWOOD.steps.map((s, i) => ({ n: 'F' + (i + 1), at: s.at, g: s.icon, what: s.what, st: s.done ? 'done' : s.now ? 'now' : 'ahead' })) };
+    if (!S.stress) return [F];
+    return [{ ...F, steps: F.steps.map((s) => (s.n === 'F5' ? { ...s, n: 'A5', st: 'done' } : s.n === 'F6' ? { ...s, n: 'A6' } : { ...s, n: 'A' + s.n.slice(1) })), id: 'A', alt: null },
+      { id: 'B', name: 'Sheaves bound and stooked (Long field)', method: 'by hand', yest: ['home', 'long', 'day 3: binding cut by the rain'], steps: [{ n: 'B1', at: 'long', g: 'walk', what: 'go to the Long field', st: 'done' }, { n: 'B2', at: 'long', g: 'sheaves', what: 'bind the sheaves lying there', st: 'ahead' }, { n: 'B3', at: 'long', g: 'sheaves', what: 'stook', st: 'ahead' }] },
+      { id: 'C', name: 'Our fence lot (2 adult-days)', method: 'posts on the back', yest: ['home', 'fence', 'day 3: Erik carried posts; cut, called to the rye'], steps: [{ n: 'C1', at: 'fence', g: 'walk', what: 'go to the fence', st: 'ahead' }, { n: 'C2', at: 'fence', g: 'fence', what: 'set the posts left there', st: 'ahead' }, { n: 'C3', at: 'green', g: 'village', what: "the alderman's mark", st: 'ahead' }] }];
+  }
+  const c = LONE.tasks.cottage, C = { id: 'C', name: c.goal, method: 'drag with the cow', yest: ['home', 'wood1', 'day 2: ' + c.cut], alt: ['wood1', 'home', 'on the back, no drag: a log a trip, 3 trips'],
+    steps: [{ n: 'C1', at: 'wood1', g: 'walk', what: 'go to Hagen wood', st: 'ahead' }, { n: 'C2', at: 'wood1', g: 'tree', what: 'fell (1 of 6 done, lying)', st: 'done' }, { n: 'C3', at: 'wood1', g: 'chop', what: 'trim the lying tree, fell 2 more', st: 'now' },
+      { n: 'C4', at: 'home', g: 'beast', what: 'fetch the cow for the drag', st: 'ahead' }, { n: 'C5', at: 'home', g: 'cart', what: 'drag home', st: 'ahead' }, { n: 'C6', at: 'home', g: 'build', what: 'hew, raise walls, roof (days 4+, est 9–16 d)', st: 'ahead' }] };
+  if (!S.stress) return [C];
+  return [C, { id: 'P', name: LONE.tasks.plant.goal, method: 'by hoe', yest: ['home', 'clearing', 'day 2: stones dug, cut at nightfall'], steps: [{ n: 'P1', at: 'clearing', g: 'walk', what: 'go to the clearing', st: 'done' }, { n: 'P2', at: 'clearing', g: 'stone', what: 'carry off the stones lying there', st: 'done' }, { n: 'P3', at: 'clearing', g: 'hoe', what: 'break', st: 'now' }] },
+    { id: 'S', name: 'Seed at the clearing', method: 'carried', yest: ['norr', 'green', 'day 2: seed from Norrgård; set down at the green (fell ill)'], steps: [{ n: 'S1', at: 'green', g: 'walk', what: 'go to the green', st: 'ahead' }, { n: 'S2', at: 'green', g: 'seed', what: 'take up the sack', st: 'ahead' }, { n: 'S3', at: 'home', g: 'seed', what: 'store it dry', st: 'ahead' }] }];
+}
+const AHEAD3 = { nils: [['d5', ['home', 'long', 'home']], ['d6', ['home', 'barley', 'home', 'norr']], ['d7', ['home', 'wood1', 'home', 'barley']]],
+  ola: [['d4', ['home', 'clearing', 'home', 'wood1', 'home']], ['d5', ['home', 'lake', 'home', 'clearing', 'home']], ['d6', ['home', 'wood1', 'home', 'green']]] };
+
+// ---- Build: items to segments (legs and stays); positions along the trail.
+function build(items) {
+  const out = [], last = {}; let p = 'home', forkP = null;
+  for (const it of items) {
+    let prev = p; if (it.branch) { forkP = forkP || p; prev = last[it.branch] || forkP; }
+    if (it.haul) out.push({ ...it, type: 'leg', a: prev, b: it.at, carry: 1 });
+    else {
+      let h0 = it.h[0];
+      if (it.at !== prev) { const w = Math.min(dist(prev, it.at) * WALK, (it.h[1] - h0) * 0.6); out.push({ ...it, type: 'leg', a: prev, b: it.at, h: [h0, h0 + w], walk: 1, kind: 'walk', what: 'Walk to ' + PLACES[it.at].name, step: it.walkStep, stray: 0, cut: null, rain: null }); h0 += w; }
+      out.push({ ...it, type: 'stay', h: [h0, it.h[1]] });
+    }
+    if (it.branch) last[it.branch] = it.at; else p = it.at;
+  }
+  return out.map((s, i) => ({ ...s, i }));
+}
+let ALL = [], SEGS = [], SAMPLES = [], FORKH = null;
+function geom(s) { const A = at(s.a), B = at(s.b), dx = B.x - A.x, dy = B.y - A.y, n = Math.hypot(dx, dy) || 1, k = 0.17 * n + (s.branch === 'refuse' ? 14 : 0); return { A, B, C: { x: (A.x + B.x) / 2 - dy / n * k, y: (A.y + B.y) / 2 + dx / n * k } }; }
+function pt(s, t) { const { A, B, C } = geom(s), u = 1 - t; return { x: u * u * A.x + 2 * u * t * C.x + t * t * B.x, y: u * u * A.y + 2 * u * t * C.y + t * t * B.y }; }
+function posAt(h) {
+  let s = SEGS.find((x) => h >= x.h[0] && h <= x.h[1]);
+  if (!s) s = h < SEGS[0].h[0] ? SEGS[0] : SEGS[SEGS.length - 1];
+  if (s.type === 'stay') return { ...at(s.at), s };
+  const t = Math.max(0, Math.min(1, (h - s.h[0]) / (s.h[1] - s.h[0]))); return { ...pt(s, t), s };
+}
+const chosen = (s) => !s.branch || s.branch === (S.answer || 'comply');
+
+// ---- Map
+const COL = (s) => (S.pawn === 'ola' ? (s.band === 'need' ? '#6b6250' : '#8a5a12') : s.whose === 'own' ? '#1f7a76' : '#9a6a12');
+const iconAt = (x, y, html, size, data = '') => `<g ${data} transform="translate(${x - size / 2} ${y - size / 2})">${html}</g>`;
+function drawMap() {
+  const now = NOWH(); let s = DEFS + mapSVG({ dim: 0.18 });
+  // days ahead: three faint trails laid on each other
+  if (S.ahead) AHEAD3[S.pawn].forEach(([lab, pl], k) => {
+    const off = (k - 1) * 7, pts = pl.map((p) => at(p)).map((q) => `${q.x + off},${q.y + off}`).join(' '), e = at(pl[pl.length - 1]);
+    s += `<g data-b="ahead:${k}" opacity=".55"><polyline points="${pts}" fill="none" stroke="#fff" stroke-width="5" opacity=".6"/><polyline points="${pts}" fill="none" stroke="#4a4f5e" stroke-width="2" stroke-dasharray="2 5" stroke-linecap="round"/>` +
+      `<rect x="${e.x + off + 8}" y="${e.y + off + 20 + k * 2}" width="20" height="13" rx="3" fill="#fff" stroke="#4a4f5e"/><text x="${e.x + off + 18}" y="${e.y + off + 30 + k * 2}" font-size="9" text-anchor="middle" fill="#4a4f5e">${lab}</text></g>`;
+  });
+  // legs: casing, done solid, ahead dashed, a blaze at the middle; a carried load gets a cart; unchosen branch faint
+  for (const g of ALL.filter((x) => x.type === 'leg')) {
+    const N = 28, pts = [...Array(N + 1)].map((_, j) => ({ ...pt(g, j / N), h: g.h[0] + (g.h[1] - g.h[0]) * j / N }));
+    const done = pts.filter((q) => q.h <= now + 1e-6), ahead = pts.filter((q) => q.h >= now - (g.h[1] - g.h[0]) / N);
+    const P = (a) => a.map((q) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' '), c = COL(g), w = g.carry ? 4.5 : 3;
+    const op = g.branch && S.answer && g.branch !== S.answer ? 0.15 : g.branch && !S.answer ? 0.7 : 1;
+    s += `<g data-b="seg:${g.i}" opacity="${op}"><polyline points="${P(pts)}" fill="none" stroke="#fff" stroke-width="${w + 4}" stroke-linecap="round" opacity=".85"/>`;
+    if (done.length > 1) s += `<polyline points="${P(done)}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+    if (ahead.length > 1) s += `<polyline points="${P(ahead)}" fill="none" stroke="${c}" stroke-width="${w}" stroke-dasharray="7 5"/>`;
+    for (const t of [0.35, 0.65]) { const a = pt(g, t), b = pt(g, t + 0.02), ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+      s += `<g transform="translate(${a.x} ${a.y}) rotate(${ang})"><rect x="-5" y="-3.5" width="10" height="7" fill="#fff" stroke="#2a2018" stroke-width=".7"/><rect x="-5" y="-1.4" width="10" height="2.8" fill="${c}"/>${g.breach ? '<path d="M5 -3.5l2 3.5-2 3.5" fill="none" stroke="#2a2018" stroke-width="1"/>' : ''}</g>`; }
+    if (g.carry) { const m = pt(g, 0.5); s += iconAt(m.x, m.y - 16, icon('cart', { whose: g.whose, breach: g.breach, size: 22 }), 22); }
+    s += '</g>';
+  }
+  // the fork: Per's demand, a decision at 16:30 at Norrgård
+  const fk = ALL.find((x) => x.branch);
+  FORKH = fk ? fk.h[0] : null;
+  if (fk) { const q = at('norr'); s += `<g data-b="fork" transform="translate(${q.x - 32} ${q.y + 22})"><path d="M0 -11l11 11-11 11-11-11z" fill="${S.answer ? '#fff' : '#f2c27a'}" stroke="#2a2018" stroke-width="1.6"/><text y="4" font-size="12" font-weight="700" text-anchor="middle">${S.answer ? (S.answer === 'comply' ? '✓' : '✗') : '?'}</text><text x="15" y="4" font-size="9.5" font-weight="600">16:30 ${S.answer ? (S.answer === 'comply' ? 'complied' : 'refused') : 'answer Per'}</text></g>`; }
+  // the side trails (the task's method): yesterday's stub and the cut, the numbered steps, the alternative
+  const used = {};
+  tasks().forEach((T, ti) => {
+    const posOf = (st) => { const c = at(st.at), k = (used[st.at] = (used[st.at] || 0) + 1) - 1; return { x: c.x + 20 + k * 17 - 30 * (ti === 2), y: c.y + 30 + ti * 3 }; };
+    const P = T.steps.map(posOf);
+    if (T.yest) { const a = at(T.yest[0]), b = P[0] && T.steps[0].at === T.yest[1] ? P[0] : at(T.yest[1]), cx = b.x - 4, cy = b.y + 12;
+      s += `<g data-b="yest:${ti}" opacity=".5"><path d="M${a.x} ${a.y + 14}Q${(a.x + cx) / 2} ${Math.max(a.y, cy) + 34} ${cx} ${cy}" fill="none" stroke="#3a2a1a" stroke-width="2" stroke-dasharray="1 4" stroke-linecap="round"/></g>` + KNOT(cx, cy, `data-b="yest:${ti}"`); }
+    if (T.alt) { const a = at(T.alt[0]), b = at(T.alt[1]);
+      s += `<g data-b="alt:${ti}" opacity=".45"><path d="M${a.x} ${a.y - 6}Q${(a.x + b.x) / 2} ${Math.min(a.y, b.y) - 60} ${b.x} ${b.y - 6}" fill="none" stroke="#3a2a1a" stroke-width="2.2" stroke-dasharray="2 3 8 3"/><text x="${(a.x + b.x) / 2}" y="${Math.min(a.y, b.y) - 34}" font-size="9.5" text-anchor="middle" font-style="italic" fill="#2a2018">alt: ${T.alt[2]}</text></g>`; }
+    s += `<polyline points="${P.map((q) => q.x + ',' + q.y).join(' ')}" fill="none" stroke="#fff" stroke-width="4.5" opacity=".8"/><polyline points="${P.map((q) => q.x + ',' + q.y).join(' ')}" fill="none" stroke="#3a2a1a" stroke-width="2" stroke-dasharray="1 3.5" stroke-linecap="round"/>`;
+    T.steps.forEach((st, j) => { const q = P[j], fill = st.st === 'done' ? '#3a2a1a' : st.st === 'now' ? '#f2c27a' : '#fff', tc = st.st === 'done' ? '#fff' : '#2a2018';
+      s += `<g data-b="step:${ti}:${j}"><circle cx="${q.x}" cy="${q.y}" r="${st.st === 'now' ? 9 : 7.5}" fill="${fill}" stroke="#2a2018" stroke-width="${st.st === 'now' ? 2.2 : 1.3}"/><text x="${q.x}" y="${q.y + 3}" font-size="${tasks().length > 1 ? 7.5 : 8.5}" font-weight="700" text-anchor="middle" fill="${tc}">${tasks().length > 1 ? st.n : st.n.slice(1)}</text></g>`; });
+    const f = P[0]; s += `<text x="${f.x - 9}" y="${f.y + 21}" font-size="9" font-weight="700" fill="#3a2a1a">${T.id}: ${T.name.split(':')[0].slice(0, 26)}</text>`;
+  });
+  // cuts and rain on the day's trail, where they happen
+  ALL.filter((x) => x.cut && chosen(x)).forEach((x) => { const q = posAt(x.cut.h); s += KNOT(q.x + 14, q.y - 12, `data-b="cut:${x.i}"`) + `<text x="${q.x + 26}" y="${q.y - 8}" font-size="9.5" font-weight="700">cut ${H(x.cut.h)}</text>`; });
+  ALL.filter((x) => x.rain).forEach((x) => { const q = posAt(x.rain.h); s += RAIN(q.x - 4, q.y - 20, `data-b="rain:${x.i}"`); });
+  // waypoint signs: one a place, the most pressing item, ×N when it is visited more than once
+  const by = {}; ALL.filter((x) => x.type === 'stay' || x.carry).forEach((x) => (by[x.at] = by[x.at] || []).push(x));
+  const rank = (x) => (x.breach ? 6 : x.state === 'doing' ? 5 : x.cut ? 4 : x.stray ? 3 : x.state === 'planned' ? 2 : 1);
+  for (const [k, xs] of Object.entries(by)) {
+    const top = xs.filter((x) => !x.owed && !x.cold).sort((a, b) => rank(b) - rank(a))[0] || xs[0], c = at(k), n = xs.length;
+    const o = { frame: top.state === 'doing' ? 'now' : 'plan', whose: top.whose, breach: top.breach, state: top.stray ? 'stray' : top.cut ? 'cut' : top.state === 'done' ? 'done' : null, size: 32 };
+    if (n > 1) Object.assign(o, { num: n, unit: 'count' });
+    if (S.pawn === 'ola' && k === 'home') Object.assign(o, { state: 'risk' });
+    s += `<path d="M${c.x} ${c.y}V${c.y - 22}" stroke="#2a2018" stroke-width="1.5"/>` + iconAt(c.x, c.y - 38, icon(top.kind === 'walk' ? 'walk' : top.kind, o), 32, `data-b="sign:${k}"`);
+  }
+  if (S.pawn === 'ola') { const c = at('home'); s += iconAt(c.x - 40, c.y - 10, icon('cold', { frame: 'target', whose: null, state: 'risk', size: 26 }), 26, 'data-b="cold"'); }
+  // you are here
+  const me = posAt(now), pw = S.pawn === 'nils' ? PEOPLE.find((p) => p.id === 'nils') : { col: LONE.col };
+  s += `<g data-b="you"><circle cx="${me.x}" cy="${me.y}" r="15" fill="none" stroke="#2a2018" stroke-width="2"/>${pawnSVG(pw, me.x, me.y + 6, 1.1)}<rect x="${me.x - 46}" y="${me.y + 15}" width="92" height="15" rx="7" fill="#2a2018"/><text x="${me.x}" y="${me.y + 26}" font-size="10" fill="#fff" text-anchor="middle">you are here ${H(now)}</text></g>`;
+  s += '<g id="mcur"></g>';
+  document.getElementById('map').innerHTML = s;
+}
+
+// ---- Profile (elevation profile of the day)
+const PW = 1280, PH = 228, X0 = 92, X1 = 1250;
+const span = () => (S.pawn === 'nils' ? [6, 19] : [6, 30]);
+const X = (h) => { const [a, b] = span(); return X0 + (h - a) / (b - a) * (X1 - X0); };
+const HX = (x) => { const [a, b] = span(); return a + (x - X0) / (X1 - X0) * (b - a); };
+function bandOf(g) {
+  if (S.pawn === 'nils') return g.whose === 'own' ? { base: 112, max: 64 } : { base: 196, max: 72 };
+  return g.band === 'sleep' ? { base: 200, max: 26 } : g.band === 'need' ? { base: 168, max: 40 } : { base: 120, max: 74 };
+}
+const OLAFILL = { work: '#d39a3c', need: '#c9b48a', sleep: '#8f97ad' };
+function drawProf() {
+  const now = NOWH(), [a, b] = span(); let s = DEFS;
+  s += `<rect x="${X0}" y="26" width="${X1 - X0}" height="176" fill="#fff" opacity=".5"/>`;
+  for (let h = a; h <= b; h += S.pawn === 'nils' ? 1 : 2) s += `<path d="M${X(h)} 26V204" stroke="#0001"/><text x="${X(h)}" y="216" font-size="10" text-anchor="middle" fill="#5d6253">${H(h).slice(0, 2)}</text>`;
+  if (S.pawn === 'nils') {
+    s += `<path d="M${X0} 112H${X1}" stroke="#2a2018" stroke-width="2"/><text x="${X0 - 6}" y="70" font-size="10.5" text-anchor="end" fill="#1f7a76">own</text><text x="${X0 - 6}" y="160" font-size="10.5" text-anchor="end" fill="#9a6a12">household's</text>` +
+      `<text x="${X0 - 6}" y="115" font-size="9.5" text-anchor="end" font-weight="700">levy line</text><text x="${X(16.5) + 3}" y="108" font-size="9" fill="#2a2018">10.5 h owed · 1.5 h own from 16:30</text><path d="M${X(16.5)} 106V118" stroke="#2a2018" stroke-width="2"/>`;
+  } else {
+    s += `<path d="M${X0} 120H${X1}M${X0} 168H${X1}" stroke="#0003" stroke-dasharray="3 3"/>` + [['work', 80], ['necessities', 150], ['sleep', 190]].map(([t, y]) => `<text x="${X0 - 6}" y="${y}" font-size="10.5" text-anchor="end" fill="#5d6253">${t}</text>`).join('') +
+      `<rect x="${X(22)}" y="26" width="${X(30) - X(22)}" height="176" fill="#4a4f5e" opacity=".08"/><text x="${X(26)}" y="40" font-size="10" text-anchor="middle" fill="#4a4f5e">night</text>`;
+  }
+  // segments; the unanswered branch faint
+  const outline = [];
+  for (const g of ALL) {
+    const B = bandOf(g), e = g.e ?? EFF[g.kind] ?? 0.5, top = B.base - e * B.max, op = !chosen(g) ? (S.answer ? 0 : 0.35) : 1;
+    if (!op) continue;
+    const fill = S.pawn === 'nils' ? fillOf(g.whose, g.breach) : g.owed ? 'url(#hatch-todo)' : OLAFILL[g.band];
+    const cut = Math.max(g.h[0], Math.min(g.h[1], now));
+    s += `<g data-b="seg:${g.i}" opacity="${op}">`;
+    if (cut > g.h[0]) s += `<rect x="${X(g.h[0])}" y="${top}" width="${X(cut) - X(g.h[0])}" height="${B.base - top}" fill="${fill}" stroke="#2a2018" stroke-width=".6"/>`;
+    if (cut < g.h[1]) s += `<rect x="${X(cut)}" y="${top}" width="${X(g.h[1]) - X(cut)}" height="${B.base - top}" fill="${fill}" opacity=".55" stroke="#2a2018" stroke-width=".6" stroke-dasharray="3 2"/>`;
+    if (g.owed) s += `<rect x="${X(g.h[0])}" y="${top}" width="${X(g.h[1]) - X(g.h[0])}" height="${B.base - top}" fill="${OLAFILL.sleep}" opacity=".35"/>`;
+    if (g.cold) s += `<path d="M${X(g.h[0])} ${top - 3}H${X(g.h[1])}" stroke="#c8361b" stroke-width="2.5"/>`;
+    if (g.type === 'stay' && g.h[1] - g.h[0] >= (S.pawn === 'nils' ? 0.7 : 1.2)) { const sz = 22; s += iconAt((X(g.h[0]) + X(g.h[1])) / 2, Math.min(top + 14, B.base - 12), icon(g.kind, { frame: g.state === 'doing' ? 'now' : 'plan', whose: S.pawn === 'nils' ? g.whose : 'household', breach: g.breach, state: g.cut ? 'cut' : g.stray ? 'stray' : g.cold ? 'risk' : null, size: sz }), sz); }
+    if (g.walk && X(g.h[1]) - X(g.h[0]) > 26) s += `<text x="${(X(g.h[0]) + X(g.h[1])) / 2}" y="${top - 3}" font-size="8.5" text-anchor="middle" fill="#5d6253">walk</text>`;
+    if (g.carry) s += `<text x="${(X(g.h[0]) + X(g.h[1])) / 2}" y="${top - 3}" font-size="8.5" text-anchor="middle" fill="#5d6253">carry</text>`;
+    s += '</g>';
+    if (chosen(g)) outline.push([X(g.h[0]), top], [X(g.h[1]), top]);
+  }
+  s += `<polyline points="${outline.map((p) => p.join(',')).join(' ')}" fill="none" stroke="#2a2018" stroke-width="1.6" opacity=".7"/>`;
+  if (FORKH != null) s += `<g data-b="fork"><path d="M${X(FORKH)} 101l9 11-9 11-9-11z" fill="${S.answer ? '#fff' : '#f2c27a'}" stroke="#2a2018" stroke-width="1.5"/><text x="${X(FORKH)}" y="116" font-size="10" font-weight="700" text-anchor="middle">${S.answer ? '·' : '?'}</text></g>`;
+  ALL.filter((x) => x.cut && chosen(x)).forEach((x) => (s += `<path d="M${X(x.cut.h)} 26V204" stroke="#2a2018" stroke-dasharray="2 2"/>` + KNOT(X(x.cut.h), 36, `data-b="cut:${x.i}"`)));
+  ALL.filter((x) => x.rain).forEach((x) => (s += RAIN(X(x.rain.h) + 22, 38, `data-b="rain:${x.i}"`)));
+  if (S.pawn === 'ola') s += `<text x="${X(24)}" y="196" font-size="9.5" fill="#c8361b" text-anchor="middle">cold: sleep counts ⅔</text>`;
+  s += `<path d="M${X(now)} 20V206" stroke="#2a2018" stroke-width="2.5"/><rect x="${X(now) - 44}" y="4" width="88" height="15" rx="7" fill="#2a2018"/><text x="${X(now)}" y="15" font-size="10" fill="#fff" text-anchor="middle">you are here ${H(now)}</text>`;
+  s += `<text x="${X1}" y="15" font-size="10.5" text-anchor="end" fill="#5d6253">profile: height = effort, band = ${S.pawn === 'nils' ? 'whose hours' : 'need / work / sleep'}; flat low stretches = walking. Done solid, ahead faint (his estimate).</text>`;
+  s += '<g id="pcur"></g>';
+  const svg = document.getElementById('prof'); svg.setAttribute('viewBox', `0 0 ${PW} ${PH}`); svg.innerHTML = s;
+}
+// Linked cursor: the profile and the map move one marker.
+function setCursor(h) {
+  S.cursor = h; const pc = document.getElementById('pcur'), mc = document.getElementById('mcur');
+  if (h == null) { pc.innerHTML = mc.innerHTML = ''; return; }
+  const q = posAt(h), lab = `${H(h)} · ${q.s.what}`;
+  pc.innerHTML = `<path d="M${X(h)} 24V204" stroke="#1f5f8a" stroke-width="1.5"/><rect x="${Math.min(X(h) + 4, X1 - 250)}" y="190" width="250" height="14" fill="#fffd"/><text x="${Math.min(X(h) + 7, X1 - 247)}" y="200" font-size="10" fill="#1f5f8a">${lab.slice(0, 48)}</text>`;
+  mc.innerHTML = `<circle cx="${q.x}" cy="${q.y}" r="9" fill="#1f5f8a" fill-opacity=".25" stroke="#1f5f8a" stroke-width="2"/><rect x="${q.x + 12}" y="${q.y - 9}" width="${lab.length * 5.6 + 8}" height="16" rx="4" fill="#fffe" stroke="#1f5f8a"/><text x="${q.x + 16}" y="${q.y + 3}" font-size="10" fill="#1f5f8a">${lab}</text>`;
+}
+document.getElementById('prof').addEventListener('mousemove', (e) => { const svg = e.currentTarget, p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse()), [a, b] = span(); const h = HX(q.x); setCursor(h >= a && h <= b ? h : null); });
+document.getElementById('map').addEventListener('mousemove', (e) => {
+  const svg = e.currentTarget, p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(svg.getScreenCTM().inverse());
+  let best = null, bd = 18; for (const m of SAMPLES) { const d = Math.hypot(m.x - q.x, m.y - q.y); if (d < bd && m.leg) { bd = d; best = m; } }
+  if (best) setCursor(best.h);
+});
+
+// ---- Rail: turn-by-turn, the fork in the tray, hours, necessities, legend
+function arrow(rot) { return `<svg width="24" height="24" viewBox="-12 -12 24 24"><g transform="rotate(${rot})"><path d="M0 -10l7 8h-4v10h-6v-10h-4z" fill="#2f5d4a"/></g></svg>`; }
+function drawRail() {
+  const now = NOWH(), cur = SEGS.find((g) => now >= g.h[0] && now < g.h[1]), seq = SEGS.filter((g) => g.h[0] >= now).slice(0, 3);
+  const nxt = [cur, ...seq.filter((g) => g !== cur)].slice(0, 3), labs = ['now', 'next', 'then'];
+  const dirOf = (g) => (g.type === 'leg' ? Math.round(Math.atan2(at(g.b).x - at(g.a).x, -(at(g.b).y - at(g.a).y)) * 180 / Math.PI) : 0);
+  let r = `<div class="card"><h3>Turn by turn <span class="small">${S.pawn === 'nils' ? 'his plan, from the custom' : 'his own plan'}</span></h3><div class="tbt">` +
+    nxt.map((g, k) => `<span class="lab">${labs[k]}</span><span data-b="seg:${g.i}">${icon(g.kind, { frame: k ? 'plan' : 'now', whose: S.pawn === 'nils' ? g.whose : 'household', breach: g.breach, size: 26 })}</span>` +
+      `<span class="${k ? '' : 'big'}">${g.type === 'leg' ? arrow(dirOf(g)) : ''}${g.what.replace(/ \(.*\)/, '')} <span class="small">${k ? DUR(g.h[1] - g.h[0]) : 'till ' + H(g.h[1])}</span></span><button data-why="${g.i}">why</button>`).join('') + '</div>';
+  if (S.answer || S.intr === 'rain' || S.pawn === 'ola') r += ''; else r += `<div class="small" style="margin-top:4px">At 16:30 the trail forks: Per's demand to answer.</div>`;
+  r += '</div>';
+  if (S.pawn === 'nils') {
+    const fk = ALL.find((x) => x.branch);
+    if (fk) r += `<div class="card"><h3>To answer <span class="small">by 16:30</span></h3><div class="chips">${icon('cart', { breach: 'demanded', author: 'player', size: 30 })}<span style="flex:1">Per demands: haul before the rain, 16:30–18, <b>your own 1.5 h</b>.</span></div>` +
+      (S.answer ? `<div class="small">Answered: <b>${S.answer}</b>. <button data-b="fork">change</button></div>` : `<div class="chips" style="margin-top:4px"><button data-ans="comply">comply</button><span class="small">−1.5 h own; Lisa waits; Per +</span><button data-ans="refuse">refuse</button><span class="small">Per −0.2 opinion; "idle" sticks</span></div><div class="small">Likely by his traits: ${NILS_VIEW.demand.likely}.</div>`) + '</div>';
+    const own = S.intr === 'rain' ? 1 : S.answer === 'comply' ? 0 : 1.5;
+    r += `<div class="card"><h3>My hours today <span class="small">levy ${NILS_VIEW.levy} h</span></h3><div class="meter"><i style="width:${(10.5 - 2.5) / 12 * 100}%;background:${WHOSE.household.c}"></i><i style="width:${2.5 / 12 * 100}%;background:url(#);background-image:repeating-linear-gradient(45deg,${WHOSE.household.c} 0 3px,${WHOSE.own.c} 3px 5px)" title="taken"></i><i style="width:${1.5 / 12 * 100}%;background:${own ? WHOSE.own.c : 'repeating-linear-gradient(45deg,' + WHOSE.own.c + ' 0 3px,' + WHOSE.household.c + ' 3px 5px)'}"></i></div>` +
+      `<div class="small">8 h given · 2.5 h <b>taken</b> (Norrgård) · ${own ? own + ' h own' : '1.5 h own, demanded'}. Per thinks him idle.</div><div class="chips" style="margin-top:4px">` + NILS_VIEW.asks.map((a, k) => `<span data-b="ask:${k}">${icon('courting', { frame: 'plan', whose: 'own', state: a.state === 'granted' ? 'done' : null, size: 24 })}</span>`).join('') + `<span class="small">asks: leave d8 (granted), a lighter winter levy</span></div></div>`;
+  } else {
+    r += `<div class="card"><h3>Necessities <span class="small">recur at home</span></h3><div class="chips">` + LONE.necessities.map((n, k) => `<span data-b="need:${k}">${icon(n.kind, { frame: 'plan', state: n.short ? 'risk' : null, num: ALL.filter((x) => x.kind === n.kind && x.type === 'stay').length || 1, unit: 'count', size: 28 })}</span>`).join('') +
+      `<span data-b="sleep">${icon('health', { frame: 'target', whose: null, num: -LONE.owedSleep, size: 28 })}</span></div><div class="small">water, cook ×3, firewood short, the cow; sleep owed 3 h (to bed early, 2 h paid tonight).</div></div>` +
+      `<div class="card"><h3>At home tonight <span class="small">a problem</span></h3><div class="chips"><span data-b="cold">${icon('cold', { frame: 'target', whose: null, state: 'risk', size: 28 })}</span><span style="flex:1">No roof: a cold night; sleep counts ⅔ and the owed hours grow. The cottage task is the remedy (est 9–16 days).</span></div></div>`;
+  }
+  r += `<div class="card"><h3>Key</h3><svg width="360" height="74" style="display:block"><path d="M4 10h40" stroke="#9a6a12" stroke-width="3"/><text x="50" y="13" font-size="10">done</text><path d="M84 10h40" stroke="#9a6a12" stroke-width="3" stroke-dasharray="7 5"/><text x="130" y="13" font-size="10">ahead</text>` +
+    `<path d="M170 10h40" stroke="#1f7a76" stroke-width="3"/><text x="216" y="13" font-size="10">own hours</text><g transform="translate(290 10)"><rect x="-5" y="-3.5" width="10" height="7" fill="#fff" stroke="#2a2018" stroke-width=".7"/><rect x="-5" y="-1.4" width="10" height="2.8" fill="#9a6a12"/></g><text x="300" y="13" font-size="10">blaze</text>` +
+    `<circle cx="10" cy="36" r="7.5" fill="#3a2a1a"/><text x="10" y="39" font-size="8.5" fill="#fff" text-anchor="middle" font-weight="700">3</text><circle cx="28" cy="36" r="8.5" fill="#f2c27a" stroke="#2a2018" stroke-width="2"/><text x="28" y="39" font-size="8.5" text-anchor="middle" font-weight="700">5</text><circle cx="46" cy="36" r="7.5" fill="#fff" stroke="#2a2018"/><text x="46" y="39" font-size="8.5" text-anchor="middle" font-weight="700">6</text><text x="60" y="39" font-size="10">method's steps: done, now, ahead</text>` +
+    KNOT(236, 36) + `<text x="250" y="39" font-size="10">cut · resumed</text><path d="M4 60h40" stroke="#3a2a1a" stroke-width="2.2" stroke-dasharray="2 3 8 3" opacity=".5"/><text x="50" y="63" font-size="10">another method</text><path d="M150 52l8 8-8 8-8-8z" fill="#f2c27a" stroke="#2a2018"/><text x="164" y="63" font-size="10">a fork: to answer</text><path d="M260 60h40" stroke="#4a4f5e" stroke-width="2" stroke-dasharray="2 5"/><text x="304" y="63" font-size="10">days ahead</text></svg></div>`;
+  const rail = document.getElementById('rail'); rail.innerHTML = r;
+  rail.querySelectorAll('[data-why]').forEach((b) => (b.onclick = (e) => { e.stopPropagation(); whyCard(ALL[+b.dataset.why], e); }));
+  rail.querySelectorAll('[data-ans]').forEach((b) => (b.onclick = (e) => { e.stopPropagation(); answer(b.dataset.ans); }));
+}
+
+// ---- Bubbles, acts, the why card
+const bub = document.getElementById('bubble');
+function place(e) { let x = e.clientX + 14, y = e.clientY - 20; if (x + 350 > innerWidth) x = e.clientX - 360; bub.hidden = false; Object.assign(bub.style, { left: x + 'px', top: Math.max(48, Math.min(y, innerHeight - bub.offsetHeight - 10)) + 'px' }); }
+let tt; function toast(h) { const t = document.getElementById('toast'); t.innerHTML = h; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2800); }
+const who = () => (S.pawn === 'nils' ? 'Nils' : 'Ola');
+const chooser = (g) => (S.pawn === 'ola' ? 'Ola (his own plan; the rule fills what he leaves open)' : g.by === 'per' ? 'Per wrote it' : g.whose === 'own' ? 'Nils, his own hours' : 'the rule: the custom, inside his levy');
+function actsFor(g) {
+  const A = [];
+  if (g.state !== 'done') A.push(['reorder my day', `plan ${who()}: move "${g.what}"`], ['do it now', `plan ${who()}: "${g.what}" now`], ['put off', `plan ${who()}: "${g.what}" to day ${S.pawn === 'nils' ? 5 : 4}`]);
+  if (S.pawn === 'nils' && g.whose === 'household' && g.state !== 'done' && !g.breach) A.push(['ask leave', `ask Per: leave from "${g.what}"`], ['take the hours', `breach Nils: take "${g.what}"`]);
+  if (S.pawn === 'nils' && g.whose === 'own' && !g.breach) A.push(['give own hours', `grant Backa: ${DUR(g.h[1] - g.h[0])} of Nils' own`]);
+  if (g.breach === 'demanded') A.push(['answer…', 'fork']);
+  return A;
+}
+function show(html, acts, e) {
+  bub.innerHTML = html + `<div class="acts">${acts.map(([t, v]) => `<button data-v="${v}">${t}</button>`).join('')}</div>`; place(e);
+  bub.querySelectorAll('[data-v]').forEach((b) => (b.onclick = (ev) => { ev.stopPropagation(); const v = b.dataset.v;
+    if (v === 'fork') return forkCard(ev); if (v.startsWith('why:')) return whyCard(ALL[+v.slice(4)], ev); if (v.startsWith('answer ')) return answer(v.slice(7));
+    toast(`would issue <code>${v.split(' ')[0]}</code> ${v.slice(v.indexOf(' ') + 1)}`); bub.hidden = true; }));
+}
+function segCard(g, e) {
+  const est = g.h[0] >= NOWH() ? `${DUR((g.h[1] - g.h[0]) * 0.85)}–${DUR((g.h[1] - g.h[0]) * 1.25)} (his estimate)` : DUR(g.h[1] - g.h[0]) + ' (done, exact)';
+  let dl = `<dt>when</dt><dd>${H(g.h[0])}–${H(g.h[1])}</dd><dt>where</dt><dd>${g.type === 'leg' ? PLACES[g.a].name + ' → ' + PLACES[g.b].name + (g.carry ? ' (carrying)' : '') : PLACES[g.at].name}</dd>` +
+    `<dt>hours</dt><dd>${S.pawn === 'nils' ? (g.breach === 'taken' ? "the household's, <b>taken</b> for his own" : g.breach === 'demanded' ? 'his own, <b>demanded</b> by Per' : g.whose === 'own' ? 'his own (above the levy line)' : "the household's (levied)") : { work: 'work', need: 'a necessity', sleep: 'sleep' }[g.band]}</dd><dt>chose</dt><dd>${chooser(g)}</dd><dt>takes</dt><dd>${est}</dd>`;
+  if (g.step) dl += `<dt>step</dt><dd>${g.step} of the task's method (read from the world: ${g.stray ? 'a pile of ours lies here, so the stray method picks it up first' : 'the nearest step to the goal whose condition holds'})</dd>`;
+  if (g.cut) dl += `<dt>cut</dt><dd>${g.cut.what}</dd>`;
+  if (g.rain) dl += `<dt>rain</dt><dd>${g.rain.what}</dd>`;
+  show(`<h4>${icon(g.kind, { whose: S.pawn === 'nils' ? g.whose : 'household', breach: g.breach, frame: g.state === 'doing' ? 'now' : 'plan', state: g.cut ? 'cut' : g.stray ? 'stray' : null, size: 30 })}${g.what}</h4><dl>${dl}</dl>`, [...actsFor(g), ['why ↑', 'why:' + g.i]], e);
+}
+const WHY = {
+  wood: [['wood', { frame: 'plan', state: 'cut' }, 'Task: Firewood, 3 loads to the woodpile (cut d3, resumed)'], ['wood', { frame: 'target', num: -11 }, 'Firewood for winter: 9 of 20'], ['cold', { frame: 'target', whose: null }, 'The winter: the house\'s fire']],
+  chop: [['chop', { frame: 'plan' }, 'Reap the rye: the Long field, half cut'], ['rye', { frame: 'target', num: -26 }, 'Rye in the barn: 34 of 60'], ['grain', { frame: 'target', whose: null }, 'Food for the year: bread and seed']],
+  courting: [['courting', { whose: 'own', frame: 'target' }, `His aim: ${NILS_VIEW.aim.what} (${NILS_VIEW.aim.progress * 100}%)`], ['courting', { whose: 'own', frame: 'plan' }, NILS_VIEW.aim.needs + "; rival: the smith's son"]],
+  cart: [['cart', { breach: 'demanded', author: 'player' }, 'Per: haul before the rain'], ['sheaves', { frame: 'target' }, 'Dry sheaves in the barn']],
+};
+const WHYOLA = [['build', { frame: 'plan', state: 'cut' }, 'Task: ' + LONE.tasks.cottage.goal + ' (cut d2)'], ['cold', { frame: 'target', whose: null, state: 'risk' }, 'Problem: no roof, cold nights'], ['married', { frame: 'target', whose: null }, 'Aim: ' + LONE.aims[0].what]];
+function whyCard(g, e) {
+  const k = g.kind === 'walk' ? (ALL.find((x) => x.i === g.i + 1) || g).kind : g.kind;
+  const chain = S.pawn === 'ola' ? (g.band === 'work' && k !== 'hoe' ? WHYOLA : g.band === 'sleep' ? [['health', { frame: 'target', whose: null, num: -3 }, 'Sleep owed 3 h'], ['cold', { frame: 'target', whose: null, state: 'risk' }, 'No roof: sleep counts ⅔']] : k === 'hoe' ? [['hoe', { frame: 'plan' }, LONE.tasks.plant.goal + ', ' + LONE.tasks.plant.window], ['field', { frame: 'target', whose: null }, 'Aim: ' + LONE.aims[1].what]] : [['pot', { frame: 'target', whose: null }, 'A necessity: it recurs each day, whatever the plan']])
+    : WHY[k] || [[k, { frame: 'plan' }, g.what], ['plan', { frame: 'target' }, "Per's list for the day, inside the custom"]];
+  const steps = g.step ? `<li>${icon(g.kind, { size: 22 })}step ${g.step}: ${g.what}</li>` : `<li>${icon(g.kind, { size: 22 })}${g.what}</li>`;
+  show(`<h4>Why: ${g.what}</h4><ul class="why">${steps}${chain.map(([gl, o, t]) => `<li>${icon(gl, { ...o, size: 22 })}${t}</li>`).join('')}</ul><div class="small" style="margin-top:4px">Chosen by ${chooser(g)}.</div>`, actsFor(g), e);
+}
+function forkCard(e) {
+  show(`<h4>${icon('cart', { breach: 'demanded', author: 'player', size: 30 })}Per demands: haul before the rain</h4><dl><dt>when</dt><dd>16:30–18, then home past 18 (finish what was begun)</dd><dt>hours</dt><dd>his own 1.5 h (above the levy line)</dd><dt>likely</dt><dd>${NILS_VIEW.demand.likely}</dd></dl>` +
+    `<div class="rem"><button data-v="answer comply">comply</button><small>−1.5 h own; leaves Norrgård at 16:30; Per's opinion +0.1</small></div><div class="rem"><button data-v="answer refuse">refuse</button><small>keeps 1.5 h with Lisa; Per's opinion −0.2; standing: "idle" confirmed (memory)</small></div>` +
+    `<div class="deflt">Unanswered at 16:30, <b>the rule will: refuse</b> (his own hours, his trait).</div>`, [], e);
+}
+function answer(v) { S.answer = v; toast(`would issue <code>answer</code> Per's demand: ${v}`); bub.hidden = true; render(); }
+function info(key, e) {
+  const [t, a, b] = key.split(':');
+  if (t === 'seg') return segCard(ALL[+a], e);
+  if (t === 'fork') return forkCard(e);
+  if (t === 'sign') { const xs = ALL.filter((x) => (x.type === 'stay' || x.carry) && x.at === a);
+    return show(`<h4>${icon(xs[0].kind, { size: 30 })}${PLACES[a].name}</h4><ul class="list">${xs.map((x) => `<li>${H(x.h[0])}–${H(x.h[1])} ${x.what}${x.branch ? ` <i>(if he ${x.branch === 'comply' ? 'complies' : 'refuses'})</i>` : ''}</li>`).join('')}</ul>`, [['reorder my day', `plan ${who()}: reorder the visits to ${PLACES[a].name}`], ['details…', 'why:' + xs[0].i]], e); }
+  if (t === 'step') { const T = tasks()[+a], st = T.steps[+b];
+    return show(`<h4>${icon(st.g, { frame: st.st === 'now' ? 'now' : 'plan', state: st.st === 'done' ? 'done' : null, size: 30 })}${st.n}: ${st.what}</h4><dl><dt>task</dt><dd>${T.name}</dd><dt>method</dt><dd>${T.method}${T.alt ? '; another: ' + T.alt[2] : ''}</dd><dt>state</dt><dd>${st.st === 'now' ? 'the current step: the nearest the goal that can be taken now' : st.st}</dd><dt>read</dt><dd>from the world each time a leg ends or is cut; nothing is stored on the task</dd></dl>`,
+      [['do it now', `plan ${who()}: ${st.what} now`], ['put off', `plan ${who()}: ${T.name} to tomorrow`], ['other method', `plan ${T.name}: method "${T.alt ? T.alt[2].split(':')[0] : 'by hand'}"`]], e); }
+  if (t === 'yest') { const T = tasks()[+a];
+    return show(`<h4>${KNOT(0, 0).replace('<g', '<svg width="22" height="22" viewBox="-11 -11 22 22"><g') + '</svg>'}Cut and resumed</h4><dl><dt>task</dt><dd>${T.name}</dd><dt>cut</dt><dd>${T.yest[2]}</dd><dt>lies</dt><dd>a pile with our mark at ${PLACES[T.yest[1]].name}: the world holds the progress</dd><dt>resumed</dt><dd>by the stray method: fetch it before the kind's own steps</dd></dl>`, [['put off', `plan ${who()}: ${T.name} to tomorrow`], ['give it away', `release ${T.name}: the pile to the household`]], e); }
+  if (t === 'alt') { const T = tasks()[+a]; return show(`<h4>Another method: ${T.alt[2].split(':')[0]}</h4><dl><dt>task</dt><dd>${T.name}</dd><dt>method</dt><dd>${T.alt[2]}</dd><dt>when</dt><dd>if the ${S.pawn === 'nils' ? 'cart' : 'cow'} is wanted elsewhere</dd></dl>`, [['use it', `plan ${T.name}: method "${T.alt[2].split(':')[0]}"`]], e); }
+  if (t === 'cut') { const g = ALL[+a]; return show(`<h4>${icon(g.kind, { state: 'cut', size: 30 })}Cut at ${H(g.cut.h)}</h4><p>${g.cut.what}</p><div class="deflt"><b>The rule for a load in hand:</b> carry on home unless he cannot walk; a call sets nothing down unless the caller says so.</div>`, [['resume now', `plan ${who()}: resume "${g.what}"`]], e); }
+  if (t === 'rain') { const g = ALL[+a]; return show(`<h4>Rain at ${H(g.rain.h)}</h4><p>${g.rain.what}</p>`, [], e); }
+  if (t === 'you') return show(`<h4>${who()} · ${S.pawn === 'nils' ? 'member of Backa, 17' : 'lone settler, 24'}</h4><p class="small">${S.pawn === 'nils' ? NILS_VIEW.standing : 'Head, member and pawn at once: no levy within; necessities first.'}</p>`,
+    S.pawn === 'nils' ? [['reorder my day', 'plan Nils: reorder today'], ['ask leave', 'ask Per: leave 14:00–16:30'], ['give own hours', 'grant Backa: 1.5 h of Nils\' own']] : [['reorder my day', 'plan Ola: reorder today'], ['sleep now', 'plan Ola: pay the owed sleep']], e);
+  if (t === 'ahead') { const [lab, pl] = AHEAD3[S.pawn][+a]; return show(`<h4>Day ${lab.slice(1)}: as the day brings</h4><p>Only dated steps are drawn: ${pl.map((p) => PLACES[p].name).join(' → ')}. The rest is filled by the rule on the day.</p>`, [['plan this day', `plan ${who()}: day ${lab.slice(1)}`]], e); }
+  if (t === 'ask') { const k = NILS_VIEW.asks[+a]; return show(`<h4>Ask Per: ${k.what}</h4><p class="small">${k.state}</p>`, k.state === 'granted' ? [] : [['ask', `ask Per: ${k.what}`]], e); }
+  if (t === 'need') { const n = LONE.necessities[+a]; return show(`<h4>${icon(n.kind, { size: 30 })}${n.what}</h4><p>${n.h} h a day${n.short ? '; <b>short</b>: 2 days left' : ''}. Recurs at home, whatever the plan.</p>`, [['do it now', `plan Ola: ${n.what} now`], ['put off', `plan Ola: ${n.what} later`]], e); }
+  if (t === 'sleep' || t === 'cold') return show(`<h4>${icon(t === 'cold' ? 'cold' : 'health', { frame: 'target', whose: null, size: 30 })}${t === 'cold' ? 'No roof: a cold night' : 'Sleep owed: 3 h'}</h4><p>${t === 'cold' ? 'Sleep counts ⅔ without a roof; the owed hours grow each night until the cottage is up.' : 'To bed early tonight pays 2 h; the cold night costs ~2½ h again.'}</p>`, [['sleep now', 'plan Ola: to bed at 18:00'], ['raise a shelter roof', 'plan Ola: thatch the shelter (1 day)']], e);
+}
+document.addEventListener('click', (e) => { const el = e.target.closest('[data-b]'); if (el && !el.closest('#bubble')) { e.stopPropagation(); info(el.dataset.b, e); } else if (!e.target.closest('#bubble')) bub.hidden = true; });
+
+// ---- Render and toggles
+function render() {
+  ALL = build(S.pawn === 'nils' ? nilsDay() : olaDay()); SEGS = ALL.filter(chosen);
+  SAMPLES = []; for (const g of SEGS) for (let h = g.h[0]; h <= g.h[1]; h += 0.04) SAMPLES.push({ h, ...posAt(h), leg: g.type === 'leg' });
+  document.getElementById('callbtn').textContent = S.pawn === 'nils' ? 'called home 13:00' : 'called home 14:30';
+  drawMap(); drawProf(); drawRail(); if (S.cursor != null) setCursor(S.cursor);
+}
+for (const id of ['pawn', 'intr', 'ahead', 'stress']) document.getElementById(id).addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return; e.stopPropagation();
+  document.querySelectorAll(`#${id} button`).forEach((x) => x.setAttribute('aria-pressed', x === b));
+  S[id] = id === 'ahead' || id === 'stress' ? b.dataset.v === '1' : b.dataset.v; if (id === 'pawn') S.answer = null; S.cursor = null; bub.hidden = true; render();
+});
+render();
+</script>
+</body>
+</html>
