@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Primstav</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600&display=swap">
+<style>
+/* Throwaway mock (docs/mocks/plans-ui/README.md): the primstav as the time axis beyond today. Single light theme. */
+:root { --paper: #e6e9df; --ink: #23251e; --muted: #5d6253; --wood: #b98a55; --woodd: #6b4325; --cut: #3a2414; --accent: #a8473a;
+  --display: 'Alegreya SC', Georgia, serif; --body: 'Alegreya Sans', system-ui, sans-serif; color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--paper); color: var(--ink); font: 14px/1.4 var(--body); display: flex; flex-direction: column; overflow: hidden; }
+.band { display: flex; align-items: center; gap: 14px; padding: 6px 16px; background: #2e2418; color: #f1e6d0; flex: none; }
+.band h1 { font: 500 18px var(--display); margin: 0; }
+.band .mode { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #e0b27a; }
+.seg { display: inline-flex; border: 1px solid #8a6a46; border-radius: 6px; overflow: hidden; }
+.seg button { background: none; border: 0; color: #f1e6d0; font: 13px var(--body); padding: 3px 10px; cursor: pointer; }
+.seg button.on { background: #8a6a46; }
+.band .sp { flex: 1; }
+details.note { position: relative; font-size: 12px; }
+details.note summary { cursor: pointer; color: #e0b27a; }
+details.note div { position: absolute; right: 0; top: 22px; width: 380px; background: #fffaf0; color: var(--ink); border: 1px solid #8a6a46; border-radius: 8px; padding: 10px 12px; z-index: 30; box-shadow: 0 6px 20px #0004; }
+#mapwrap { flex: 1; position: relative; min-height: 0; background: #8fb0ba; display: flex; flex-direction: column; }
+#mapbox { flex: 1; position: relative; min-height: 0; }
+#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#panel { flex: none; background: #d9c19a; border-top: 3px solid #4a2f1a; position: relative; }
+body.B #panel { position: absolute; left: 0; right: 0; bottom: 0; background: #d9c19ae8; border: 2px solid #4a2f1a; border-radius: 10px; margin: 0 8px 8px;
+  transform-origin: var(--ox, 60%) 100%; transition: transform .45s ease, opacity .45s; }
+body.B.furled #panel { transform: scale(.02, .05); opacity: 0; pointer-events: none; }
+#stave { display: block; }
+.it { cursor: pointer; }
+.it:hover > .hl, .it.flash > .hl { stroke: #ffef9a; stroke-width: 3; }
+.it.flash { animation: fl 1s 2; }
+@keyframes fl { 50% { opacity: .35; } }
+.bub { position: fixed; z-index: 40; width: 300px; background: #fffaf0; border: 1px solid #6b4325; border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 24px #0005; font-size: 13px; }
+.bub h3 { margin: 0 0 4px; font: 500 15px var(--display); display: flex; gap: 8px; align-items: center; }
+.bub dl { margin: 0; display: grid; grid-template-columns: 74px 1fr; gap: 2px 8px; }
+.bub dt { color: var(--muted); } .bub dd { margin: 0; }
+.bub .acts { margin-top: 8px; display: grid; gap: 4px; }
+.bub .acts b { font-size: 12px; color: var(--accent); margin-top: 4px; }
+.bub button { text-align: left; background: #f1e6d0; border: 1px solid #b08a5a; border-radius: 6px; padding: 4px 8px; font: 13px var(--body); cursor: pointer; }
+.bub button:hover { background: #e8d4ae; }
+.bub button small { color: var(--muted); display: block; }
+.bub .more { margin-top: 6px; color: var(--accent); background: none; border: 0; padding: 0; }
+.toast { position: fixed; right: 16px; bottom: 16px; background: #2e2418; color: #f1e6d0; padding: 8px 12px; border-radius: 8px; z-index: 50; font: 13px ui-monospace, monospace; opacity: 0; transition: opacity .3s; }
+.toast.on { opacity: 1; }
+.mini { display: grid; gap: 3px; margin-top: 6px; }
+.mini svg { display: block; }
+</style>
+</head>
+<body class="A">
+<div class="band">
+  <h1>The primstav</h1><span class="mode">Calendar · days ahead to year</span>
+  <span class="seg" id="vseg"><button data-v="A" class="on">A: stave along the map</button><button data-v="B">B: stave on the green</button></span>
+  <span class="seg" id="zseg"><button data-z="days" class="on">Days ahead</button><button data-z="season">Season</button><button data-z="year">Year</button></span>
+  <span class="sp"></span>
+  <details class="note"><summary>Scales to / strains at</summary><div>
+    <b>Scales to:</b> one household of 5 to 7 rows; dated things that are a day or a span (levies, leaves, steps, windows); the same stave
+    zooms days, season and year with one notch grammar. Map link via hover rings and stakes works because each item has one place.<br>
+    <b>Strains at:</b> within a day (stress 1 and 2) the stave only opens a mini day from today's notch; hours inside a day do not fit a notch.
+    Two things on one member-day overlap. An unassigned step (the barley) needs its own lane above the members, which breaks "one row per member".
+    In B the unfurled stave covers the lower map, so the place being linked can sit under it. Season meters are a panel more than a carving.
+  </div></details>
+</div>
+<div id="mapwrap"><div id="mapbox"><svg id="map"></svg></div><div id="panel"><svg id="stave"></svg></div></div>
+<div class="toast" id="toast"></div>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+// ---- State of the mock (cheap mutations only).
+const S = { v: 'A', zoom: 'days', furled: true, sel: null, unnamed: null /* day once named */, barley: { badge: 'risk', by: 9, who: [] }, erikIll: false };
+const P = Object.fromEntries(PEOPLE.map((p) => [p.id, p]));
+const $ = (id) => document.getElementById(id);
+const W = 1264, L = 112;           // stave width, label column
+const ST = 66, LANE = 24;          // stave height, lane height
+// ---- Carving: a glyph cut into wood = dark fill with a pale lower lip (new helper, uses ICONS.stencil; line glyphs stroked).
+function carve(g, x, y, s = 18, col = '#3a2414') {
+  const st = ICONS.stencil[g], body = st || ICONS.line[g] || ICONS.line.plan;
+  const paint = (c) => st ? `<g fill="${c}">${body}</g>` : `<g fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round">${body}</g>`;
+  return `<svg x="${x - s / 2}" y="${y - s / 2}" width="${s}" height="${s}" viewBox="0 0 24 24" overflow="visible"><g transform="translate(.6 .9)">${paint('#f3dcb099')}</g>${paint(col)}</svg>`;
+}
+const notch = (x, y, h, w = 5, col = '#3a2414') => `<path d="M${x - w / 2} ${y}L${x} ${y + h}L${x + w / 2} ${y}" fill="${col}" stroke="#f3dcb0aa" stroke-width=".6"/>`;
+const esc = (s) => String(s).replace(/</g, '&lt;');
+// ---- The axis: days zoom and season zoom = 12 days of autumn; year = 48 notches.
+const N = () => (S.zoom === 'year' ? 48 : 12);
+const cw = () => (W - L - 16) / N();
+const X = (d) => L + (d - 1) * cw();          // left edge of day d (1-based; fractional allowed)
+const YD = (s, d) => SEASONS.indexOf(s) * 12 + d; // year index
+const today = () => (S.zoom === 'year' ? YD('autumn', NOW.day) : NOW.day);
+
+// ---- Items: {id, lane, d0, d1, g, whose, badge, at, info, acts, kind:'block'|'span'|'tick'|'band'|'shield', ...}
+function lanes() {
+  const m = PEOPLE.map((p) => ({ id: p.id, label: p.name, col: p.col }));
+  if (S.zoom === 'days') return [{ id: 'steps', label: 'Steps', g: 'plan' }, { id: 'steps2', label: '' }, { id: 'lot', label: 'Lots', g: 'fence' }, ...m];
+  if (S.zoom === 'season') return [{ id: 'w0', label: 'Windows', g: 'chop' }, { id: 'w1', label: '' }, { id: 'w2', label: '' }, { id: 't', label: 'Targets', g: 'target', h: 5 }];
+  return [{ id: 'lot', label: 'Lots, routines', g: 'fence' }, { id: 'proj', label: 'Projects', g: 'hoe' }, ...m];
+}
+const ladder = (who) => [
+  ['substitute', `Substitute: Per or Nils goes in ${who}'s place`, "the terms allow a substitute; costs that member's day"],
+  ['name', 'Another day: 7, 10 or 11', 'notice is 3 days, so not before day 7'],
+  ['ask', 'Ask release of the meeting', 'goodwill spent; the meeting may say no'],
+  ['commute', 'Commute: pay 3 rations', 'from the store, rye'],
+  ['breach', 'Breach: stay away', 'the village remembers, and the meeting fines'],
+];
+const levyInfo = (v) => { const l = LEVIES[v]; return `${l.from}: ${l.what}, ${l.days} day(s) in days ${l.window[0]} to ${l.window[1]}; names: ${l.terms.names}; notice ${l.terms.notice} d; substitute ${l.terms.substitute ? 'yes' : 'no'}; commute ${l.terms.commute ? l.terms.commute + ' rations' : 'no'}; on breach: ${l.terms.onBreach}`; };
+const disp = { 7: 'Erik off the barley that day: barley 18 h short', 10: 'threshing slips a day (Per, Erik); barley done by then', 11: 'Erik off the rye sowing; the window holds to 12' };
+function items() {
+  const out = [], z = S.zoom;
+  if (z === 'days') {
+    const b = S.barley, a = AHEAD.find((x) => x.id === 's1');
+    out.push({ id: 's1', kind: 'span', lane: 'steps', d0: 6, d1: b.by, est: [8.4, 9.7], g: 'chop', whose: 'household', badges: [b.badge, a.by_ === 'per' && b.badge !== 'back' ? 'quill' : null], at: 'barley',
+      title: 'Reap the barley', info: { What: `Reap the barley, from day 6 by day ${b.by}`, Why: 'the grain target (barley short)', Chose: b.badge === 'back' ? 'the rule (taken back)' : 'Per wrote it' + (b.badge === 'kept' ? ', kept' : ''), Estimate: `30 to 44 h (36); ${b.who.length ? 'with ' + b.who.map((w) => P[w].name).join(', ') : '8 h short by day 9'}`, Hours: "the household's" },
+      acts: [['assign', 'Add a hand: Nils', 'off firewood; wood target 10 h behind', () => { b.who.push('nils'); b.badge = null; }], ['assign', 'Add a hand: Anna (0.7)', 'minding moves to Karin', () => { b.who.push('anna'); b.badge = null; }],
+        ['plan', 'Move by to day 10', 'risk falls; the rye sowing starts a day later', () => { b.by = 10; b.badge = null; }], ['keep', 'Keep my order', 'the rule may not take it back; the shortfall stays yours', () => { b.badge = 'kept'; }],
+        ['release', 'Let the rule take it back', 'the custom re-plans the barley from the targets', () => { b.badge = 'back'; }]] });
+    out.push({ id: 's2', kind: 'span', lane: 'steps2', d0: 8, d1: 12, est: [10, 12], g: 'quern', whose: 'household', badges: [], at: 'home', title: 'Thresh the rye',
+      info: { What: 'Thresh the rye, from day 8 by 12', Why: 'the grain target', Chose: 'the rule (custom)', Estimate: '14 to 24 h (18)', Hours: "the household's: Per, Erik" }, acts: [['assign', 'Add a hand: Karin', 'spinning waits', null], ['plan', 'Do it earlier', 'clashes with the barley', null]] });
+    // the fence lot: named (Erik, 6) and the one still to name
+    out.push({ id: 'l1', kind: 'block', lane: 'erik', d0: 6, d1: 7, g: 'fence', whose: 'owed', badges: [S.erikIll ? 'blocked' : null], at: 'fence', title: 'Village fence: our lot (Erik)',
+      info: { What: 'Mend the village fence, our lot by fields', Why: 'the village levy (fence mending)', Chose: 'named by Per; Erik by lot of the household', Estimate: 'one day, 10.5 h', Hours: 'owed to the village', Terms: levyInfo('v1') },
+      acts: [['call', S.erikIll ? 'Erik is ill (shown)' : 'Erik falls ill (try the ladder)', 'see what the ladder offers', () => { S.erikIll = !S.erikIll; }], ...ladder('Erik').map(([v, t, c]) => [v, t, c, null])], ladderHead: 'If Erik cannot go' });
+    if (S.unnamed) out.push({ id: 'l2', kind: 'block', lane: 'erik', d0: S.unnamed, d1: S.unnamed + 1, g: 'fence', whose: 'owed', badges: ['quill'], at: 'fence', title: `Village fence: day ${S.unnamed} (named)`,
+      info: { What: 'The second fence day, now named', Chose: 'Per', Hours: 'owed to the village', Terms: levyInfo('v1') }, acts: [['name', 'Unname it', 'back to the lot row', () => { S.unnamed = null; }]] });
+    else out.push({ id: 'l2', kind: 'hatch', lane: 'lot', d0: 7, d1: 13, win: [1, 13], g: 'fence', whose: 'owed', at: 'fence', title: 'Fence: 1 day still to name', drag: true,
+      info: { What: 'One fence day still to name, by day 9', Why: 'the village levy: 2 adult-days, our lot', Chose: 'not yet: the household names it', Estimate: '10.5 h, one adult', Hours: 'owed to the village', Terms: levyInfo('v1') },
+      acts: [7, 10, 11].map((d) => ['name', `Name day ${d}`, disp[d], () => { S.unnamed = d; }]), ladderHead: 'Name a day (or drag the stake)' });
+    out.push({ id: 'w1', kind: 'across', d0: 9, d1: 10, g: 'village', whose: 'owed', at: 'green', title: 'Work together: the bridge',
+      info: { What: 'The bridge, the whole village together', Why: 'called by the alderman', Chose: 'the alderman', Estimate: 'one day', Hours: 'owed to the village (Per goes)', Terms: levyInfo('v2') }, acts: [['substitute', 'Send Erik instead of Per', 'Erik off threshing', null], ['commute', 'Commute', 'not allowed by the terms', null]] });
+    out.push({ id: 'g1', kind: 'block', lane: 'nils', d0: 8, d1: 9, g: 'courting', whose: 'own', badges: [], at: 'green', title: "Nils' leave: the gathering",
+      info: { What: 'Leave granted: the gathering on the green', Why: 'Nils asked (courting Lisa at Norrgård)', Chose: 'Per granted it', Hours: 'own hours (his levy waived)' }, acts: [['grant', 'Withdraw the leave', "Nils' mood falls; he may take the hours anyway", null]] });
+    for (const [who, gs] of Object.entries(DUTIES)) out.push({ id: 'd-' + who, kind: 'tick', lane: who, d0: 4, d1: 13, gs, at: 'home', whose: 'household', title: `${P[who].name}'s duties`,
+      info: { What: gs.join(', ') + ' every day', Why: 'the custom: a duty comes before the levy work', Chose: 'the custom', Hours: "the household's" }, acts: [['assign', 'Hand a duty to another', 'one at a time', null]] });
+  } else if (z === 'season') {
+    SEASON.windows.forEach((w, i) => out.push({ id: 'win' + i, kind: 'band', lane: 'w' + i, d0: w.from, d1: w.to + 1, g: w.kind === 'sow' ? 'sow' : 'chop', at: w.what.startsWith('barley') ? 'barley' : 'long', title: 'Window: ' + w.what,
+      info: { What: `${w.what}, days ${w.from} to ${w.to}`, Why: 'the template of the year', Chose: 'the custom' }, acts: [] }));
+  } else {
+    out.push({ id: 'y-fence', kind: 'block', lane: 'lot', d0: YD('autumn', 6), d1: YD('autumn', 7), g: 'fence', whose: 'owed', at: 'fence', title: 'Fence mending (lot, 2 days)', info: { What: 'routine: fence mending, 2 adult-days', Terms: levyInfo('v1') }, acts: [] });
+    out.push({ id: 'y-fence2', kind: 'hatch', lane: 'lot', d0: YD('autumn', 7), d1: YD('autumn', 13), win: [0, 0], g: 'fence', whose: 'owed', at: 'fence', title: 'Fence: 1 day to name', info: { What: 'the second fence day, to name' }, acts: [] });
+    out.push({ id: 'y-road', kind: 'block', lane: 'lot', d0: YD('spring', 5), d1: YD('spring', 6), g: 'road', whose: 'owed', at: 'green', title: 'Road lot (1 day)', info: { What: 'routine: the road lot, 1 day in spring', Chose: 'the village, by lot' }, acts: [] });
+    out.push({ id: 'y-est', kind: 'block', lane: 'lot', d0: YD('winter', 3), d1: YD('winter', 6), g: 'build', whose: 'estate', at: 'green', title: 'Day labour at the manor', info: { What: '3 days at the manor', Terms: levyInfo('e1') }, acts: [] });
+    out.push({ id: 'y-proj', kind: 'span', lane: 'proj', d0: YD('spring', 2), d1: YD('spring', 11), est: [8, 11], g: 'hoe', whose: 'household', badges: ['quill'], at: 'clearing', title: 'Clear the south field',
+      info: { What: 'Project: clear the south field next spring', Why: 'one more field for Erik’s household', Chose: 'Per', Estimate: '60 to 110 h' }, acts: [] });
+    for (const a of YEAR.aims) out.push({ id: 'aim-' + a.who, kind: 'banner', lane: a.who, d0: 47.2, d1: 48.9, g: a.kind, whose: 'own', at: a.who === 'nils' ? 'norr' : 'home', title: `${P[a.who].name}'s aim`, info: { What: a.what, Chose: P[a.who].name } , acts: [] });
+    for (const who of ['anna', 'karin', 'erik']) out.push({ id: 'yd-' + who, kind: 'tick', lane: who, d0: today(), d1: 49, gs: DUTIES[who], whose: 'household', at: 'home', title: 'duties', info: { What: DUTIES[who].join(', ') }, acts: [] });
+  }
+  return out;
+}
+// ---- The season meter: hours left lo..hi (striped), mid tick, against hours planned in the window (one meter, used alike everywhere).
+const PLANNED = { rye: 60, oats: 28, wood: 24, hay: 0 };
+function meter(x, y, w, max, t, planned) {
+  const k = w / max, r = (v) => (x + v * k).toFixed(1); const short = t.left.mid > planned;
+  return `<rect x="${x}" y="${y}" width="${w}" height="10" rx="3" fill="#f3dcb055" stroke="#6b4325"/>` +
+    `<rect x="${x}" y="${y}" width="${t.left.lo * k}" height="10" rx="3" fill="${WHOSE.household.c}"/>` +
+    `<rect x="${r(t.left.lo)}" y="${y}" width="${(t.left.hi - t.left.lo) * k}" height="10" fill="url(#est-household)"/>` +
+    `<path d="M${r(t.left.mid)} ${y - 2}v14" stroke="#2a2018" stroke-width="1.5"/>` +
+    `<path d="M${r(planned)} ${y - 5}v20" stroke="${short ? '#d14b2f' : '#4a7a3a'}" stroke-width="2.5"/>`;
+}
+
+// ---- Render the stave and its lanes.
+function render() {
+  const z = S.zoom, ln = lanes(), n = N(), c = cw();
+  let y0 = ST + 6, lane = {}, H = y0; for (const l of ln) { lane[l.id] = H; H += (l.h || 1) * LANE; } H += 6;
+  let s = `${DEFS}<defs><linearGradient id="wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c99a62"/><stop offset=".5" stop-color="#b3824d"/><stop offset="1" stop-color="#8e6236"/></linearGradient>` +
+    Object.entries(WHOSE).map(([k, w]) => `<pattern id="est-${k}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="${w.c}44"/><rect width="2.6" height="6" fill="${w.c}"/></pattern>`).join('') + `</defs>`;
+  // board of the rune lines (lighter, planed wood) and the stave itself
+  s += `<rect x="0" y="${ST}" width="${W}" height="${H - ST}" fill="#e2cda6"/>`;
+  s += `<rect x="8" y="6" width="${W - 16}" height="${ST - 12}" rx="10" fill="url(#wood)" stroke="#4a2f1a" stroke-width="2"/>`;
+  for (let i = 0; i < 9; i++) s += `<path d="M14 ${14 + i * 5}q${W / 3} ${(i % 3) - 1.5} ${W / 1.5} ${(i % 2) * 2 - 1}t${W / 3 - 28} 0" stroke="#7a4e2a33" fill="none"/>`;
+  s += carve('tree', 30, ST / 2, 22, '#4a2f1a') + `<text x="48" y="${ST / 2 + 4}" font-family="Alegreya SC,serif" font-size="13" fill="#3a2414">${z === 'year' ? 'Year' : 'Autumn'}</text>`;
+  // columns: past, today, binding, ahead (estimate), beyond the horizon
+  for (let d = 1; d <= n; d++) {
+    const x = X(d), xc = x + c / 2, t = today();
+    const past = d < t, isT = d === t, bind = z === 'days' && d > t && d <= t + 3, beyond = z === 'days' && d > t + 6;
+    if (bind) s += `<rect x="${x}" y="${ST}" width="${c}" height="${H - ST}" fill="#a8473a12"/>`;
+    if (beyond) s += `<rect x="${x}" y="${ST}" width="${c}" height="${H - ST}" fill="#ffffff55"/>`;
+    if (isT) s += `<rect x="${x}" y="${ST}" width="${c}" height="${H - ST}" fill="#ffef9a66"/>`;
+    s += `<path d="M${x} ${ST}v${H - ST}" stroke="#6b432522"/>`;
+    if (z === 'year' && (d - 1) % 12 === 0) { s += `<path d="M${x} 6v${H}" stroke="#4a2f1a" stroke-width="2"/>` + carve(['sow', 'mow', 'chop', 'cold'][(d - 1) / 12], x + 14, 20, 16) + `<text x="${x + 26}" y="25" font-size="11" fill="#3a2414" font-family="Alegreya SC,serif">${SEASONS[(d - 1) / 12]}</text>`; }
+    // the notch: deep for binding, cross-cut for past, a ring for today, scratch beyond
+    const nh = isT ? 30 : bind ? 26 : past ? 16 : beyond ? 8 : 14, ny = ST - 8 - nh;
+    if (z !== 'year' || true) s += notch(xc, ny, nh, z === 'year' ? 3 : bind ? 8 : 5, beyond ? '#3a241466' : '#3a2414');
+    if (past) s += `<path d="M${xc - 5} ${ny + 6}h10" stroke="#3a2414" stroke-width="1.5"/>`;
+    if (z !== 'year') s += `<text x="${xc + 6}" y="${ST - 10}" font-size="10" fill="#3a2414aa">${d}</text>`;
+    if (isT) s += `<g class="it" data-id="today"><circle class="hl" cx="${xc}" cy="${ny - 4}" r="7" fill="#ffef9a" stroke="#3a2414" stroke-width="1.5"/><title>today: open the day</title></g>`;
+  }
+  if (z === 'days') s += `<path d="M${X(5) + 3} ${ST - 4}h${3 * c - 6}" stroke="#a8473a" stroke-width="2.5"/><text x="${X(5) + 4}" y="${ST + 12}" font-size="10" fill="#a8473a">binding</text><text x="${X(8) + 4}" y="${ST + 12}" font-size="10" fill="#6b4325">Per's estimate</text><text x="${X(11) + 4}" y="${ST + 12}" font-size="10" fill="#6b432599">beyond the horizon</text>`;
+  // carved symbols for village days on the stave (days zoom): the fence lot, the bridge, the windows' first days
+  if (z === 'days') { s += carve("fence", X(6) + c / 2 - 20, 22, 22) + carve("village", X(9) + c / 2 - 20, 22, 22) + carve("chop", X(5) + c / 2 - 20, 22, 20) + carve("sow", X(8) + c / 2 + 24, 22, 20); }
+  // lane lines (rune lines) with portrait dots
+  for (const l of ln) {
+    const y = lane[l.id] + LANE / 2;
+    if (l.col) s += `<path d="M${L - 4} ${y}H${W - 8}" stroke="#6b4325" stroke-width="1"/><path d="M${L - 4} ${y + 1}H${W - 8}" stroke="#fff6" stroke-width="1"/><circle cx="16" cy="${y}" r="7" fill="${l.col}" stroke="#2a2018"/><text x="16" y="${y + 3.5}" font-size="9" text-anchor="middle" fill="#fff" font-weight="700">${l.label[0]}</text><text x="28" y="${y + 4}" font-size="12">${l.label}</text>`;
+    else if (l.label) s += carve(l.g, 16, y, 14, '#6b4325') + `<text x="28" y="${y + 4}" font-size="12" fill="#6b4325">${l.label}</text>`;
+  }
+  // items
+  for (const it of items()) s += drawItem(it, lane, H);
+  if (z === 'season') s += seasonTargets(lane.t);
+  $('stave').setAttribute('viewBox', `0 0 ${W} ${H}`); $('stave').setAttribute('width', '100%'); $('stave').innerHTML = s;
+  $('stave').style.height = 'auto';
+  renderMap();
+}
+function drawItem(it, lane, H) {
+  const c = cw(), x0 = X(it.d0), x1 = X(it.d1), y = lane[it.lane] != null ? lane[it.lane] : 0, col = it.whose ? WHOSE[it.whose].c : '#6b4325';
+  const sel = S.sel === it.id ? ' stroke="#ffef9a" stroke-width="3"' : '';
+  let g = `<g class="it" data-id="${it.id}">`;
+  const ic = (gl, x, yy, o = {}) => `<g transform="translate(${x - 11} ${yy - 11})">${icon(gl, { frame: 'dated', size: 22, set: 'stencil', whose: it.whose, ...o }).replace('<svg', '<svg x="0" y="0"')}</g>`;
+  if (it.kind === 'block') {
+    g += `<rect class="hl" x="${x0 + 2}" y="${y + 3}" width="${x1 - x0 - 4}" height="${LANE - 6}" rx="4" fill="${col}" stroke="#2a2018"${sel}/>` + ic(it.g, x0 + 14, y + LANE / 2, { badge: it.badges && it.badges.find(Boolean) });
+  } else if (it.kind === 'span') {
+    const e0 = X(it.est[0]), e1 = X(Math.min(it.est[1], 13));
+    g += `<rect class="hl" x="${x0 + 2}" y="${y + 6}" width="${e0 - x0}" height="${LANE - 12}" rx="3" fill="${col}" stroke="#2a2018"${sel}/><rect x="${e0}" y="${y + 6}" width="${e1 - e0}" height="${LANE - 12}" fill="url(#est-${it.whose})" stroke="#2a201855"/>`;
+    g += `<path d="M${x1} ${y + 1}v${LANE - 2}" stroke="#d14b2f" stroke-width="2.5"/><text x="${x1 + 3}" y="${y + 10}" font-size="9" fill="#a8473a">by</text>`;
+    const bs = (it.badges || []).filter(Boolean);
+    g += ic(it.g, x0 + 14, y + LANE / 2, { badge: bs[0] }) + (bs[1] ? `<g transform="translate(${x0 + 18} ${y - 2})"><svg width="16" height="16" viewBox="26 0 14 14">${BADGES[bs[1]]}</svg></g>` : '');
+    if (it.id === 's1' && S.barley.who.length) g += S.barley.who.map((w, i) => `<circle cx="${x0 + 36 + i * 12}" cy="${y + LANE / 2}" r="5" fill="${P[w].col}" stroke="#fff"/>`).join('');
+  } else if (it.kind === 'hatch') {
+    if (S.zoom === 'days') g += `<rect x="${X(1)}" y="${y + 5}" width="${x0 - X(1)}" height="${LANE - 10}" fill="url(#hatch-todo)" opacity=".5"/>`;
+    g += `<rect class="hl" x="${x0 + 2}" y="${y + 4}" width="${x1 - x0 - 4}" height="${LANE - 8}" rx="4" fill="url(#est-owed)" stroke="${col}" stroke-dasharray="4 2"${sel}/>`;
+    if (S.zoom === 'days') g += `<g class="drag" data-id="${it.id}" style="cursor:grab">${ic(it.g, x0 + c / 2, y + LANE / 2, { ghost: true })}</g><text x="${x0 + c / 2 + 16}" y="${y + 16}" font-size="11" fill="#5a1e14" font-weight="600">name a day ▸</text>`;
+  } else if (it.kind === 'across') {
+    g += `<rect class="hl" x="${x0 + 3}" y="${ST + 16}" width="${c - 6}" height="${H - ST - 22}" rx="5" fill="${col}2a" stroke="${col}" stroke-width="1.5"${sel}/>`;
+    for (let k = 0; k < 7; k++) g += `<path d="M${x0 + 8} ${ST + 30 + k * 26}l${c - 16} 8" stroke="${col}88" stroke-width="1.2"/>`;
+    g += ic(it.g, x0 + c / 2, ST + 30) + `<circle cx="${x0 + c / 2}" cy="${lane.per + LANE / 2}" r="6" fill="${P.per.col}" stroke="#fff" stroke-width="1.5"/>`;
+  } else if (it.kind === 'tick') {
+    for (let d = Math.ceil(it.d0); d < it.d1 && d <= N(); d++) { const xc = X(d) + c / 2; g += `<rect class="hl" x="${xc - 9}" y="${y + 5}" width="${it.gs.length * 12 + 2}" height="14" fill="#0000"/>` + it.gs.map((gl, i) => carve(gl, xc - 2 + i * 12, y + LANE / 2, S.zoom === 'year' ? 8 : 11, col)).join(''); if (S.zoom === 'year') d += 2; }
+  } else if (it.kind === 'band') {
+    g += `<rect class="hl" x="${x0 + 2}" y="${y + 4}" width="${x1 - x0 - 4}" height="${LANE - 8}" rx="8" fill="#8e623655" stroke="#4a2f1a"${sel}/><path d="M${x0 + 8} ${y + LANE / 2 + 2}H${x1 - 8}" stroke="#f3dcb0aa"/>` + carve(it.g, x0 + 14, y + LANE / 2, 14) + `<text x="${x0 + 26}" y="${y + 16}" font-size="11" fill="#3a2414">${esc(it.title.slice(8))}</text>`;
+  } else if (it.kind === 'banner') {
+    g += `<g transform="translate(${x0} ${y})"><rect class="hl" x="0" y="0" width="1" height="1" fill="none"/>${icon(it.g, { frame: 'year', whose: 'own', size: 24, set: 'stencil' }).replace('<svg', '<svg x="0" y="0"')}</g>`;
+  }
+  return g + `<title>${esc(it.title)}</title></g>`;
+}
+function seasonTargets(y) {
+  const max = 70, x = L + 230, w = 420;
+  const b = SEASON.budget, avail = b.levy + b.heads - b.outer;
+  let s = `<text x="${L}" y="${y + 14}" font-size="11" fill="#6b4325">hours left (Per's estimate) | planned in window</text>`;
+  SEASON.targets.forEach((t, i) => {
+    const yy = y + 22 + i * 22, pl = PLANNED[t.good];
+    s += `<g class="it" data-id="t-${t.good}"><rect class="hl" x="${L}" y="${yy - 4}" width="${x + w - L + 120}" height="20" fill="#0000"/><g transform="translate(${L} ${yy - 6})">${icon(t.good, { frame: 'season', size: 22, set: 'stencil', badge: t.left.mid > pl ? 'risk' : t.left.hi === 0 ? 'done' : null }).replace('<svg', '<svg x="0" y="0"')}</g>` +
+      `<text x="${L + 30}" y="${yy + 9}" font-size="12">${t.name}</text>${meter(x, yy + 1, w, max, t, pl)}<text x="${x + w + 8}" y="${yy + 10}" font-size="11" fill="${t.left.mid > pl ? '#a8473a' : '#4a7a3a'}">${t.left.mid > pl ? (t.left.mid - pl) + ' h short' : 'covered'}</text><title>${t.name}</title></g>`;
+  });
+  const need = SEASON.targets.reduce((a, t) => a + t.left.mid, 0);
+  s += `<g transform="translate(${x + w + 110} ${y + 26})"><text font-size="11" fill="#6b4325">labour budget, 8 days</text>` +
+    `<rect y="8" width="200" height="12" fill="#f3dcb055" stroke="#6b4325"/><rect y="8" width="${200 * need / avail}" height="12" fill="${WHOSE.household.c}"/><rect x="${200 * need / avail}" y="8" width="${200 * 106 / avail}" height="12" fill="#8a7a6a"/>` +
+    `<text y="36" font-size="11">targets ${need} h + duties 88 h + threshing 18 h</text><text y="50" font-size="11">of ${avail} h (levies ${b.levy}, heads ${b.heads}, less outer ${b.outer})</text><text y="66" font-size="11" fill="#a8473a">The season is not short; the barley window is.</text></g>`;
+  return s;
+}
+// ---- The map: terrain, pawns, one stake per tile for the dated things ahead, and the highlight sign.
+const STAKES = { barley: ['chop', 's1'], fence: ['fence', 'l1'], green: ['village', 'w1'], home: ['quern', 's2'] };
+function renderMap() {
+  const m = $('map'); m.setAttribute('viewBox', `0 0 ${MAP_W} ${MAP_H}`);
+  let s = DEFS + mapSVG();
+  for (const [k, p] of Object.entries(PLACES)) { const { x, y } = at(k); s += `<text x="${x}" y="${y + 42}" font-size="10" text-anchor="middle" fill="#23251e">${p.name}</text>`; }
+  const pos = { per: 'long', karin: 'home', erik: 'long2', nils: 'home', anna: 'meadow' };
+  PEOPLE.forEach((p, i) => { const { x, y } = at(pos[p.id]); s += pawnSVG(p, x - 14 + i * 7, y + 4); });
+  for (const [k, [g, id]] of Object.entries(STAKES)) {
+    const { x, y } = at(k), badge = id === 's1' ? S.barley.badge : id === 'l1' && S.erikIll ? 'blocked' : null, num = k === 'green' ? 2 : k === 'fence' ? (S.unnamed ? 2 : 1) : null;
+    s += `<g class="stake" data-place="${k}" style="cursor:pointer" transform="translate(${x + 14} ${y - 32})">${icon(g, { frame: 'dated', size: 30, set: 'stencil', whose: AHEAD.find((a) => a.id === id).whose || 'household', badge, num }).replace('<svg', '<svg x="0" y="0"')}</g>`;
+  }
+  if (S.v === 'B') { const { x, y } = at('green'); // the stave standing on the green
+    s += `<g id="standing" style="cursor:pointer" transform="translate(${x - 22} ${y - 46})"><rect width="9" height="56" rx="3" fill="url(#wood2)" stroke="#3a2414" stroke-width="1.5"/>${[8, 14, 20, 26, 32, 38, 44].map((yy, i) => `<path d="M0 ${yy}h${i === 3 ? 7 : 4}" stroke="#3a2414" stroke-width="1.4"/>`).join('')}<text x="12" y="-2" font-size="10" fill="#3a2414">${S.furled ? 'tap the stave' : ''}</text></g>`; }
+  s += `<defs><linearGradient id="wood2"><stop offset="0" stop-color="#c99a62"/><stop offset="1" stop-color="#8e6236"/></linearGradient></defs><g id="sign"></g>`;
+  m.innerHTML = s;
+  if (S.v === 'B') { const r = m.getBoundingClientRect(), vb = Math.min(r.width / MAP_W, r.height / MAP_H), ox = (r.width - MAP_W * vb) / 2 + at('green').x * vb; document.body.style.setProperty('--ox', ox + 'px'); }
+}
+function sign(place) {
+  const g = $('sign'); if (!g) return; if (!place) return (g.innerHTML = '');
+  const { x, y } = at(place); g.innerHTML = `<path d="${hexPath(x, y, HEX - 4)}" fill="none" stroke="#ffef9a" stroke-width="5"/><path d="${hexPath(x, y, HEX - 4)}" fill="none" stroke="#3a2414" stroke-width="1.5" stroke-dasharray="6 4"/>`;
+}
+// ---- Bubbles, acts, toasts.
+let lastClick = null;
+function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove('on'), 2600); }
+function closeBub() { document.querySelectorAll('.bub').forEach((b) => b.remove()); }
+function bubble(it, ev, open) {
+  closeBub(); const b = document.createElement('div'); b.className = 'bub';
+  const actsH = (it.acts || []).length ? `<div class="acts">${it.ladderHead ? `<b>${it.ladderHead}</b>` : ''}${it.acts.map((a, i) => `<button data-a="${i}">${a[1]}<small>${a[2]}</small></button>`).join('')}</div>` : '';
+  b.innerHTML = `<h3>${icon(it.g || 'plan', { frame: 'dated', size: 24, set: 'stencil', whose: it.whose || null })}${esc(it.title)}</h3><dl>${Object.entries(it.info || {}).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` +
+    (open ? actsH : actsH ? `<button class="more">acts ▸ (or tap again)</button>` : '');
+  document.body.appendChild(b);
+  const x = Math.min(ev.clientX + 12, innerWidth - 316), y = Math.max(8, Math.min(ev.clientY - b.offsetHeight - 12, innerHeight - b.offsetHeight - 8));
+  b.style.left = x + 'px'; b.style.top = y + 'px';
+  b.onclick = (e) => { e.stopPropagation(); const a = e.target.closest('button'); if (!a) return; if (a.classList.contains('more')) return bubble(it, ev, true);
+    const act = it.acts[+a.dataset.a]; toast(`would issue \`${act[0]}\` · ${it.title} · ${act[1]}`); if (act[3]) { act[3](); closeBub(); render(); } };
+}
+function miniDay(ev) { // today's notch opens a mini day (stress 1 and 2, minimally): each member's 6..18 as a strip
+  closeBub(); const b = document.createElement('div'); b.className = 'bub'; b.style.width = '420px';
+  const w = 330, k = w / 12;
+  b.innerHTML = `<h3>${carveSvg('home')}Today, autumn day ${NOW.day}, ${NOW.hour}:00</h3><div class="mini">` + PEOPLE.map((p) => `<svg width="400" height="22" viewBox="0 0 400 22">${DEFS}<circle cx="8" cy="11" r="6" fill="${p.col}"/><text x="18" y="15" font-size="11">${p.name}</text>` +
+    TODAY[p.id].map((t) => `<g><rect x="${60 + (t.h[0] - 6) * k}" y="3" width="${(t.h[1] - t.h[0]) * k - 1}" height="16" rx="3" fill="${fillOf(t.whose, t.breach)}" opacity="${t.state === 'done' ? .55 : 1}" stroke="#2a2018" stroke-width=".6"/>${(t.h[1] - t.h[0]) * k > 18 ? `<g transform="translate(${60 + (t.h[0] - 6) * k + 1} 2)">${icon(t.kind, { frame: 'task', size: 18, set: 'stencil', whose: t.whose, breach: t.breach, badge: t.stray ? 'stray' : t.by === 'per' ? 'quill' : null }).replace('<svg', '<svg x="0" y="0"')}</g>` : ''}<title>${esc(t.what)} ${t.h[0]}–${t.h[1]}</title></g>`).join('') +
+    `<path d="M${60 + (NOW.hour - 6) * k} 0v22" stroke="#d14b2f" stroke-width="1.5"/></svg>`).join('') + `</div><p style="margin:6px 0 0;color:#5d6253;font-size:12px">Nils: firewood from the stray pile (task cut last night), then hours taken at 14:00 and demanded at 16:30. Erik gives 1.5 h. The day belongs to the hearth, not the stave.</p>`;
+  document.body.appendChild(b); b.style.left = Math.min(ev.clientX, innerWidth - 440) + 'px'; b.style.top = Math.max(8, ev.clientY - b.offsetHeight - 14) + 'px';
+}
+const carveSvg = (g) => `<svg width="20" height="20" viewBox="0 0 24 24"><g fill="#3a2414">${ICONS.stencil[g]}</g></svg>`;
+// ---- Events.
+let drag = null;
+$('stave').addEventListener('pointerdown', (e) => { const d = e.target.closest('.drag'); if (!d) return; drag = { x: e.clientX }; e.preventDefault(); });
+addEventListener('pointerup', (e) => { if (!drag) return; const moved = Math.abs(e.clientX - drag.x) > 8; drag = null; if (!moved) return;
+  const r = $('stave').getBoundingClientRect(), u = (e.clientX - r.left) * W / r.width, d = Math.floor((u - L) / cw()) + 1;
+  const okd = Math.max(7, Math.min(12, d)); S.unnamed = okd; toast(`would issue \`name\` fence day ${okd} · ${disp[okd] || 'Erik off the field that day'}`); render(); lastClick = 'dragged'; });
+$('stave').addEventListener('click', (e) => {
+  if (lastClick === 'dragged') { lastClick = null; return; }
+  const g = e.target.closest('.it'); if (!g) return closeBub(); e.stopPropagation();
+  const id = g.dataset.id; if (id === 'today') return miniDay(e);
+  let it = items().find((x) => x.id === id);
+  if (!it && id.startsWith('t-')) { const t = SEASON.targets.find((x) => 't-' + x.good === id), pl = PLANNED[t.good];
+    it = { id, g: t.good, whose: 'household', at: { rye: 'long', oats: 'barley', wood: 'wood1', hay: 'meadow' }[t.good], title: t.name, info: { What: `${t.name}: have ${t.have}, want ${t.want}`, Estimate: `${t.left.lo} to ${t.left.hi} h left (${t.left.mid})`, Planned: `${pl} h in its window`, Chose: 'the custom, from the year\'s template' },
+      acts: t.left.mid > pl ? [['assign', 'Put Nils on it for 2 days', 'firewood falls 21 h behind', null], ['plan', 'Lower the target to 24', 'less barley for the spring', null]] : [] }; }
+  const open = lastClick === id; lastClick = id; S.sel = id; bubble(it, e, open); sign(it.at);
+});
+$('stave').addEventListener('mouseover', (e) => { const g = e.target.closest('.it'); if (!g || g.dataset.id === 'today') return; const it = items().find((x) => x.id === g.dataset.id); if (it) sign(it.at); else if (g.dataset.id.startsWith('t-')) sign({ 't-rye': 'long', 't-oats': 'barley', 't-wood': 'wood1', 't-hay': 'meadow' }[g.dataset.id]); });
+$('stave').addEventListener('mouseleave', () => sign(null));
+$('map').addEventListener('click', (e) => {
+  if (e.target.closest('#standing')) { S.furled = !S.furled; document.body.classList.toggle('furled', S.furled); renderMap(); return; }
+  const st = e.target.closest('.stake'); if (!st) return closeBub(); e.stopPropagation();
+  const place = st.dataset.place; if (S.zoom !== 'days') { S.zoom = 'days'; syncSeg(); render(); }
+  if (S.v === 'B' && S.furled) { S.furled = false; document.body.classList.remove('furled'); renderMap(); }
+  sign(place);
+  document.querySelectorAll('#stave .it').forEach((g) => { const it = items().find((x) => x.id === g.dataset.id); if (it && it.at === place) { g.classList.remove('flash'); void g.getBBox(); g.classList.add('flash'); } });
+  toast(`stave: ${items().filter((x) => x.at === place).map((x) => x.title).join(' · ') || 'nothing dated here'}`);
+});
+document.addEventListener('click', (e) => { if (!e.target.closest('.bub') && !e.target.closest('#stave') && !e.target.closest('#map')) closeBub(); });
+function syncSeg() { document.querySelectorAll('#zseg button').forEach((b) => b.classList.toggle('on', b.dataset.z === S.zoom)); document.querySelectorAll('#vseg button').forEach((b) => b.classList.toggle('on', b.dataset.v === S.v)); }
+$('zseg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; S.zoom = b.dataset.z; lastClick = null; closeBub(); syncSeg(); render(); };
+$('vseg').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; S.v = b.dataset.v; document.body.className = S.v + (S.v === 'B' && S.furled ? ' furled' : ''); syncSeg(); render(); };
+addEventListener('resize', renderMap);
+render();
+</script>
+</body>
+</html>
