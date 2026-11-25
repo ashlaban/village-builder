@@ -244,16 +244,16 @@ function whyOf(it) {
 function ladder() {
   const [id, i, j] = why.l, l = LEG[id + ':' + i];
   if (!l || l.stay) return '';
-  const g = geom(l), m = g.pt(.5), rungs = whyOf(l.items[j]), side = m.x > MAP_W - 330 ? -1 : 1;
-  const x0 = m.x + side * 40 + (side < 0 ? -250 : 0), h = rungs.length * 52 + 14, y0 = Math.max(8, Math.min(MAP_H - h - 8, m.y - h + 30));
-  let s = `<path d="M${m.x} ${m.y}L${x0 + (side < 0 ? 250 : 0)} ${y0 + h - 30}" stroke="${MB[id].col}" stroke-width="2" stroke-dasharray="3 3"/><rect x="${x0}" y="${y0}" width="250" height="${h}" rx="10" fill="#fffdf7f2" stroke="#2a2018"/>`;
+  const g = geom(l), m = g.pt(.5), rungs = whyOf(l.items[j]), CW = 168, RH = 34, side = m.x + CW + 40 > 700 ? -1 : 1;
+  const x0 = side > 0 ? m.x + 28 : m.x - 28 - CW, h = rungs.length * RH + 12, y0 = Math.max(16, Math.min(392 - h, m.y - h + 20));
+  let s = `<path d="M${m.x} ${m.y}L${side > 0 ? x0 : x0 + CW} ${y0 + h - 20}" stroke="${MB[id].col}" stroke-width="1.6" stroke-dasharray="3 3"/><rect class="wl" x="${x0}" y="${y0}" width="${CW}" height="${h}" rx="7" fill="#fffdf7f2" stroke="#2a2018" stroke-width=".8"/>`;
   rungs.forEach((r, k) => {
-    const y = y0 + h - 34 - k * 52;
-    if (k) s += `<path d="M${x0 + 26} ${y + 50}V${y + 34}" stroke="${MB[id].col}" stroke-width="3" marker-end="url(#ar-${id})"/>`;
-    s += `<g class="rung" data-r="${k}">${iconAt(x0 + 26, y + 12, icon(r.g, { frame: r.f, whose: r.whose === undefined ? 'household' : r.whose, breach: r.breach, author: r.author, state: r.state, num: r.num, size: 32 }), 32, '')}` +
-      `<text x="${x0 + 52}" y="${y + 16}" font-size="12">${r.t.length > 34 ? r.t.slice(0, 33) + '…' : r.t}</text><title>${r.t}</title></g>`;
+    const y = y0 + h - 22 - k * RH;
+    if (k) s += `<path d="M${x0 + 17} ${y + 24}V${y + 14}" stroke="${MB[id].col}" stroke-width="2.2" marker-end="url(#ar-${id})"/>`;
+    s += `<g class="rung" data-r="${k}">${iconAt(x0 + 17, y + 3, icon(r.g, { frame: r.f, whose: r.whose === undefined ? 'household' : r.whose, breach: r.breach, author: r.author, state: r.state, num: r.num, size: 22 }), 22, '')}` +
+      `<text x="${x0 + 34}" y="${y + 6}" font-size="7.6">${r.t.length > 38 ? r.t.slice(0, 37) + '…' : r.t}</text><title>${r.t}</title></g>`;
   });
-  return s + `<text x="${x0 + 244}" y="${y0 + 14}" font-size="10" text-anchor="end" font-style="italic" fill="#5d6253">why ↑</text>`;
+  return s + `<text x="${x0 + CW - 5}" y="${y0 + 9}" font-size="7" text-anchor="end" font-style="italic" fill="#5d6253">why ↑</text>`;
 }
 
 // ---- Days ahead: six small plays (autumn days 5 to 10), one simplified line a member; days 5 to 7 binding, then Per's estimate.
@@ -277,7 +277,7 @@ function renderAhead() {
     if (d === 9) mk('green', icon('village', { frame: 'plan', whose: 'owed', num: 9, size: 44 }), 'The bridge, together');
     if (d === 8) mk('green', icon('courting', { frame: 'plan', whose: 'own', num: 8, size: 44 }), "Nils' leave: the gathering");
     if (d >= 8) mk('home', icon('quern', { frame: 'plan', size: 44 }), 'Thresh the rye (Per, Erik)');
-    html += `<div class="day${est ? ' est' : ''}"><h3>day ${d}<small>${d <= 7 ? 'binding' : "Per's estimate"}</small></h3><svg viewBox="120 20 600 400">${s}</svg></div>`;
+    html += `<div class="day${est ? ' est' : ''}"><h3>day ${d}<small>${d <= 7 ? 'binding' : "Per's estimate"}</small></h3><svg viewBox="130 34 560 340">${s}</svg></div>`;
   }
   box.innerHTML = html;
 }
@@ -307,7 +307,7 @@ function legBubble(id, i, j, e, acts = false) {
       `<div class="acts"><button data-why>why ↑</button><button class="more">acts ▸</button></div>`);
   bub.hidden = false; if (e) place(e);
   bub.querySelectorAll('.row').forEach((r) => (r.onclick = (ev) => { ev.stopPropagation(); legBubble(id, i, +r.dataset.j, null); }));
-  bub.querySelector('[data-why]')?.addEventListener('click', (ev) => { ev.stopPropagation(); why = { m: id, l: [id, i, j] }; render(); });
+  bub.querySelector('[data-why]')?.addEventListener('click', (ev) => { ev.stopPropagation(); why = { m: id, l: [id, i, j] }; bub.hidden = true; render(); });
   bub.querySelector('.more')?.addEventListener('click', (ev) => { ev.stopPropagation(); legBubble(id, i, j, null, true); });
   bub.querySelectorAll('[data-a]').forEach((b) => (b.onclick = (ev) => {
     ev.stopPropagation(); const [t, v] = A[+b.dataset.a];
