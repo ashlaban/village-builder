@@ -82,14 +82,22 @@ slaughtered = st.households.reduce((s, h) => s + L.larderOf(h, 'salt meat'), 0);
 check(hunger === 0, `founders: ${hunger} animals died of hunger in the byre`);
 check(counts >= 3, `founders: only ${counts} autumn counts culled anything in 3 years`);
 check(!checkState(st).length, 'founders after 3 years: ' + checkState(st).slice(0, 3).join('; '));
-// --- a flock bounded (VB-1682): one standing away from its byre does not breed (no count and no hay of its household bound it there:
-// it grew to half a million on populous small seed 11); a flock far past its hay is culled by lots of a kind, not one entry an animal
+// --- a flock bounded (VB-1682): one standing away from its byre (it grew to half a million on populous small seed 11, reached by no count,
+// hay or hunger) lambs as at home, but has no hay where it stands: in the byre season it goes hungry and its weakest lot dies each day
+// from starveDays; a flock far past its hay is culled by lots of a kind, not one entry an animal
 {
-  const s = fresh(), h0 = s.households[0], flock = H.herdOf(s, h0, 'sheep'), was = flock.ewes + flock.rams + flock.lambs;
+  const s = fresh(), h0 = s.households[0], flock = H.herdOf(s, h0, 'sheep');
   VB['sim/droving'].leaveAt(s, h0, s.farmsteads[h0.farmstead].house);
   check(flock.at !== undefined && flock.rams > 0, 'away: the flock stands away with its ram');
-  for (let y = 0; y < 4; y++) H.spring(s);
-  check(flock.ewes + flock.rams + flock.lambs <= was, `away: the flock grew from ${was} to ${flock.ewes + flock.rams + flock.lambs} standing away`);
+  H.spring(s);
+  check(flock.lambs > 0 && flock.lambed > 0, `away: the flock lambs as at home (${flock.lambs} lambs, ${flock.lambed} lambed)`);
+  const size = () => flock.ewes + flock.rams + flock.lambs, spring = size();
+  Y.byreDay(s, cal(Sim.HERD.stall[0]));
+  check(size() === spring, 'away: nothing dies on the first unfed day');
+  for (let d = 1; d < 6; d++) Y.byreDay(s, cal(Sim.HERD.stall[0] + d));
+  check(size() === 0 && Sim.villageLog(s, Infinity).some((e) => /left standing there with no hay died/.test(e.text)),
+    `away: ${size()} of ${spring} live on past 6 stall days with no hay`);
+  check(!checkState(s).length, 'away, hungry: ' + checkState(s).slice(0, 3).join('; '));
 }
 {
   const s = fresh(), h0 = s.households[0], flock = H.herdOf(s, h0, 'sheep');

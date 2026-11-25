@@ -485,6 +485,38 @@ VB['sim/byre'] = (() => {
       }
       emergency(st, hh, c);
     }
+    if (stalled(c)) for (const id of [...(st.herdsAway || [])]) starveAway(st, st.herds[id]);
+  }
+  // A herd standing away from its byre (st.herdsAway, sim/droving) has no hay where it stands and nobody to feed it (VB-1682): each stall
+  // day it goes unfed, and from starveDays running its least valuable lot dies each day (the sheep of one kind, young first, or a head of
+  // cattle), as there is no hay there to carry any of it. This bounds a herd left away by the hay, as the autumn count bounds one at home.
+  const WEAK = ['calf', 'heifer', 'steer', 'cow', 'bull', 'ox'];
+  function starveAway(st, herd) {
+    herd.unfed = (herd.unfed || 0) + 1;
+    if (herd.unfed < HERD.starveDays) return;
+    let what = null,
+      n = 0;
+    if (herd.species === 'sheep') {
+      const k = herd.lambs > 0 ? 'lambs' : herd.ewes > 0 ? 'ewes' : herd.rams > 0 ? 'rams' : null;
+      if (!k) return;
+      n = herd[k];
+      herd[k] = 0;
+      what = n === 1 ? `a ${k.slice(0, -1)}` : `${n} ${k}`;
+    } else {
+      let h = null;
+      for (const x of herd.head) if (!h || WEAK.indexOf(x.kind) < WEAK.indexOf(h.kind)) h = x;
+      if (!h) return;
+      remove(herd, { head: h.id });
+      what = h.name;
+      n = 1;
+    }
+    tidy(herd);
+    const f = st.farmsteads[herd.at];
+    log(st, `Hunger at ${f.name}: ${what} left standing there with no hay died.`, {
+      kind: 'herdDeath',
+      n,
+      ...atFarm(f),
+    });
   }
   // Ewes in milk now (VB-144): those that lambed this spring, from turn-out to the end of summer.
   const inMilkEwes = (st, herd, c) =>

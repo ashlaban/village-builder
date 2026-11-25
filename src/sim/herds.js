@@ -213,9 +213,7 @@ VB['sim/herds'] = (() => {
       }
     }
     for (const herd of st.herds) {
-      // a herd standing away from its household's byre (herd.at, sim/droving) does not breed until it is home (VB-1682): no autumn count
-      // and no hay of its household's bound it there, so it would grow without end
-      if (herd.household === null || herd.at !== undefined) continue;
+      if (herd.household === null) continue;
       const hh = st.households[herd.household],
         house = houseOf(st, herd);
       if (herd.species === 'cattle') {
