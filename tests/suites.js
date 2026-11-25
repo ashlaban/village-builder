@@ -19,6 +19,7 @@ const FAST = [
   ['node', 'tests/decisions.js'],
   ['node', 'tests/customlog.js'], // VB-082: a meeting's votes and margins in its log, near misses, leanings, a cause taken up told
   ['node', 'tests/solo.js'], // the solo start: one young settler alone, and a year on
+  ['node', 'tests/titles.js'], // VB-311: own and use held apart: a field split off, its own passed, worked by its user, the title ended
   ['node', 'tests/alderman.js'], // VB-314: the village's alderman, chosen at its meeting
   ['node', 'tests/cacheowners.js'],
   ['node', 'tests/caches.js'], // VB-1685: each declared cache equals its derivation after each verb, no lag; no ...Changed( before its write

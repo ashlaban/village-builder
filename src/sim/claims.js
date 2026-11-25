@@ -1,7 +1,7 @@
 // @sys sim/claims: claims on tiles, realised and unrealised: strength, renewal and lapse, and the land each holds (disputes: sim/disputes)
 VB['sim/claims'] = (() => {
   const { YEAR, CLAIMS } = VB['sim/rules'];
-  const { setOwner } = VB['sim/ownership'];
+  const { setOwner, ownedCodes } = VB['sim/ownership'];
   const Projects = VB['sim/projects'];
   // A claim is a wish for a tile (unrealised: a village's outland not yet its own, a household's stake before the ground is broken) or a right
   // in force that is not ownership (realised: a family's birthright on its old farm). Ownership itself is st.owner (sim/ownership).
@@ -119,8 +119,9 @@ VB['sim/claims'] = (() => {
     };
     const HK = ['house', 'fields', 'meadows', 'other'],
       VK = ['green', 'farms', 'plots', 'outland'];
+    const owned = ownedCodes(st); // the land is counted by own (VB-311): a title's owner, else the user
     for (let t = 0; t < st.owner.length; t++) {
-      const n = st.owner[t];
+      const n = owned && owned.has(t) ? owned.get(t) : st.owner[t];
       if (n === 0) continue;
       if (n > 0) {
         const r = row(households, n - 1, HK),

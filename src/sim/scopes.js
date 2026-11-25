@@ -3,6 +3,7 @@
 VB['sim/scopes'] = (() => {
   const { liveFrom, liveTo } = VB['sim/graph'];
   const { childrenOf, kinNear } = VB['sim/records'];
+  const { ownedCodes } = VB['sim/ownership'];
   const { FOODS } = VB['sim/rules'],
     { grainOf } = VB['sim/stores'],
     { larderOf } = VB['sim/larder'],
@@ -26,7 +27,7 @@ VB['sim/scopes'] = (() => {
   // scope {level, ids, dim}: what it covers, {pawns, households, villages, tiles, stores}, each in ascending id (stores: {type, id}). The
   // level chooses the people and bodies: a pawn; a family (its head and descendants); a household (its members); a village (its households
   // by their village edges, and the village itself); a culture (its villages by theirs). The dimension chooses the tiles: owns, the tiles
-  // the households and villages own (st.owner); uses, the same until VB-311 holds use apart from ownership; claims, the tiles any of them
+  // the households and villages own (a title's owner, else the user: sim/ownership); uses, those they work (st.owner); claims, the tiles any of them
   // claims; works, their farms' fields and meadows and the villages' common fields; is kin of (`kin`), none, and the people become their
   // kin: a family's descent, or the near kin of everyone in scope (sim/records kinNear). At most the map's tiles a call: a view's read.
   function inScope(st, { level, ids, dim }) {
@@ -51,9 +52,10 @@ VB['sim/scopes'] = (() => {
         if (p.died === null && live(p.household)) hhs.add(p.household);
       }
     const tiles = new Set();
+    const owned = dim === 'owns' ? ownedCodes(st) : null;
     if (dim === 'owns' || dim === 'uses')
       for (let t = 0; t < st.owner.length; t++) {
-        const n = st.owner[t];
+        const n = owned && owned.has(t) ? owned.get(t) : st.owner[t];
         if ((n > 0 && hhs.has(n - 1)) || (n < 0 && vs.has(-n - 1))) tiles.add(t);
       }
     if (dim === 'claims') {
