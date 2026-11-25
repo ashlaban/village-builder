@@ -164,6 +164,12 @@ const PROBES = {
   cropsLost: (s) => s[0].crops.island.filter((k) => !s[s.length - 1].crops.any.includes(k)).length,
   // VB-356: the share of farms with fields whose rotation sows two crops or more, at the end (NaN for no farm with fields)
   mixedFarmShare: (s) => { const r = s[s.length - 1].rotations, n = sumOf(Object.values(r), (x) => x.n); return n ? sumOf(Object.values(r), (x) => (x.crops >= 2 ? x.n : 0)) / n : NaN; },
+  // VB-048: rations a household made of its own (grain net of seed, milk, butter, meat; tools/balance.js) over what its members needed, after
+  // year y, as a ratio of sums (households present MIN_DAYS or more; fish, gathering and gifts left out); NaN with no need counted
+  ownFoodShare: (s, y) => {
+    const a = after(s, y).filter((x) => x.food), n = sumOf(a, (x) => x.food.need);
+    return n ? sumOf(a, (x) => x.food.made) / n : NaN;
+  },
   growthSwing: (s) => {
     const g = []; for (let d = 0; d + 10 <= s.length - 1; d += 10) g.push(growthOver(s, d, d + 10));
     return g.length >= 2 && g.every(Number.isFinite) ? Math.max(...g) - Math.min(...g) : NaN;
@@ -191,6 +197,8 @@ const FLOORS = [
   // it); the share of farms sowing two crops or more, described
   { id: 'crops-lost', probe: 'cropsLost', kind: 'balancing', lo: 0, hi: 0, afterYear: 0 },
   { id: 'mixed-farms', probe: 'mixedFarmShare', kind: 'described', afterYear: 0 },
+  // VB-048: a farm's own food over its need, island-wide (the balance review: 1.29 in an ordinary year at populous 2-15; the rerun 1.27)
+  { id: 'own-food', probe: 'ownFoodShare', kind: 'described', afterYear: 1 },
   { id: 'invariants', probe: 'invariantFailures', kind: 'watched', lo: 0, hi: 0, afterYear: 0 },
   // VB-633: the marriage valve and the pace of growth, described in the full runs only, never asserted (design.md, The growth budget,
   // The band); the group `growth` is also what the medium runs report (FULL, groups)
@@ -412,10 +420,28 @@ function sample(st, year, y) {
     for (const v of Object.values(y.col.years.get(year).hours)) for (const c in h) h[c] += v[c] || 0;
     out.strata = { hours: h, heads: y.col.heads(year) };
   }
+  out.food = ownFood(st, year, y); // VB-048: the households' own food against their need
   out.tilth = tilthByHerd(VB, st); // VB-720: the fields' tilth by whether the farm keeps cattle
   out.invariants = checkState(st).slice(0, 5);
   if (out.invariants.length) out.invariants.unshift(`year ${year}`);
   return out;
+}
+// VB-048: the year's own food of the households present MIN_DAYS or more, as tools/balance.js counts it: a harvest's loads net of the seed its
+// field took, the ledger's milk, butter and meat and the year's routine milk and butter; need is the daily need over the days present
+function ownFood(st, year, y) {
+  const Stores = VB['sim/stores'], F = VB['sim/hunger'];
+  let made = 0, need = 0;
+  for (const [id, n] of y.days) {
+    const hh = st.households[id]; if (n < MIN_DAYS) continue;
+    need += F.dailyNeed(st, hh) * n;
+    for (const e of hh.ledger || []) {
+      if (e.t < y.t0 || e.t >= st.t) continue;
+      if (e.kind === 'harvest') made += e.n - (e.first ? CROPS[e.crop || 'barley'].seed : 0);
+      else if (e.kind === 'milk' || e.kind === 'butter' || e.kind === 'meat') made += e.n;
+    }
+    for (const k of ['milk', 'butter']) made += Stores.yearSum(hh, k, year);
+  }
+  return { made, need };
 }
 // A band checked on a run's samples, in mode 'assert' or 'report': {id, kind, value, lo, hi, ok}. A described band has no range and is ok.
 // A probe reads (samples, afterYear, the band's mode entry), and may give {value, note}: a value worked out, not measured, and how (VB-633).
