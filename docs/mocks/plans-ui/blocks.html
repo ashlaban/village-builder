@@ -366,7 +366,7 @@ function bubble(id, anchor) {
     if (x.dataset.x === 'close') return closeAll();
     if (x.dataset.x === 'why') { el.querySelector('.slot').innerHTML = `<div class="ladder"><b style="font-size:11.5px">why: ${t.why.map((w) => w[0]).join(' → ')}</b>${t.why.map(([k, v]) => `<div class="r"><span>${k}</span>${v}</div>`).join('')}</div>`; return; }
     if (x.dataset.x === 'acts') { el.querySelector('.slot').innerHTML = `<div class="rem">${t.acts.map(([v, l, c], i) => `<button data-act="${i}"><span><code>${v}</code> ${l}</span><small>${c || ''}</small></button>`).join('')}</div>`; return; }
-    if (x.dataset.rem != null) { const [v, l, c, relief] = t.rem[+x.dataset.rem]; toast(`would issue ${v} Ola → ${l} (${c})`); if (relief) { S.relief = relief; render(); } return; }
+    if (x.dataset.rem != null) { const [v, l, c, relief] = t.rem[+x.dataset.rem]; toast(`would issue ${v} Ola → ${l} (${c})`); if (relief) { S.relief = relief; render(); } else if (l.startsWith('Haul the timber home') && !S.today.some((b) => b.id === 'haul')) { for (const k in S.up) S.up[k] = S.up[k].filter((b) => b.id !== 'haul'); const i = S.today.findIndex((b) => b.id === 'fell'); S.today.splice(i + 1, 0, B('haul', 'cart', 'Haul the timber home', 'home', 0.5, { task: 'cottage' })); render(); } return; }
     if (x.dataset.act != null) { const [v, l] = t.acts[+x.dataset.act]; doAct(t, v, l); }
   };
 }
@@ -444,7 +444,7 @@ function drop(d) {
   } else if (p.kind === 'up') {
     if (b.habit) return toast(`refused: ${b.what} is a daily habit (${HABIT[b.kind]})`);
     removeFromSrc(d); S.up[p.d].push({ id: b.id, kind: b.kind, what: b.what, task: b.task, at: b.at, dur: b.dur, est: b.est, dated: 'on d' + p.d, fit: p.fit });
-    toast(`would issue plan Ola → ${b.what} on d${p.d}: ${p.fit}`);
+    toast(`would issue plan Ola → ${b.what} on d${p.d}${b.est ? ': ' + p.fit : ''}`);
   } else if (p.kind === 'some') {
     removeFromSrc(d);
     if (b.habit) { S.skipped.push(b); toast(`would issue release Ola → skip ${b.what} today: ${HABIT[b.kind]}`); }
