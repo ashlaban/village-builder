@@ -66,15 +66,9 @@ const today = option('--date') || new Date().toISOString().slice(0, 10);
 const KINDS = { task: ['id', 'name', 'priority', 'size', 'summary'], question: ['priority', 'title'], tuning: ['parameter', 'means', 'measured', 'proposed'],
   candidate: ['rule'], teleport: ['where', 'what'], act: ['where', 'what'], decision: ['what', 'why'], handover: [], review: ['arm', 'round'],
   footprint: ['recall', 'precision'] };
-// Findings are collected, not given a task each (Kim, 18 November): one open task a kind holds them, a criterion a finding, and a
-// slice's wrap-up sweeps it. apply finds that task by its name, or makes the next one.
-const COLLECT = {
-  teleport: { name: "Teleports found, collected: swept at a slice's wrap-up", arch: 'physical',
-    goal: 'Each teleport listed is mended or shown to be none: goods arrive by being carried',
-    summary: 'The teleports tasks found in the code, a line each; swept together when a slice wraps up' },
-  act: { name: "Acts with no pawn, collected: swept at a slice's wrap-up", arch: 'acts', goal: 'Each act listed is a pawn\'s, through a verb any pawn may use',
-    summary: 'The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up' },
-};
+// Findings are collected, not given a task each (Kim, 18 November): apply hands teleport and act notes to `backlog.js collect`, whose
+// table of collecting tasks is tools/lib/collect.js.
+const { COLLECT, openCollector } = require('./lib/collect.js');
 const OPTIONAL = { task: ['status', 'arch', 'waits', 'cause', 'touches', 'ref', 'goal'], question: ['about'], teleport: ['task'],
   review: ['verdict', 'blocking', 'advisory', 'preference', 'reviewed', 'mended', 'rebutted', 'unresolved', 'followups'], footprint: ['declared', 'edited'] };
 const NEEDS_BODY = ['question', 'handover'];
@@ -399,32 +393,11 @@ if (cmd === 'init') {
         return lines.join('\n');
       });
     } else if (COLLECT[n.kind]) {
-      const c = COLLECT[n.kind], line = `- [ ] From ${n.task}: ${one(f.where)}: ${one(f.what)}`;
-      const dirOf = path.join(root, 'backlog'), open = fs.readdirSync(dirOf).find((name) => {
-        const t = fs.readFileSync(path.join(dirOf, name), 'utf8');
-        return t.startsWith(`# ${name.replace('.md', '')}: ${c.name}\n`) && !/^Status: done/m.test(t);
-      });
-      if (open) {
-        edit('backlog/' + open, (text) => {
-          const lines = text.split('\n');
-          let at = lines.findLastIndex((l) => /^- \[[ x]\]/.test(l));
-          if (at < 0) return null;
-          while (/^ {2}\S/.test(lines[at + 1] || '')) at++;
-          lines.splice(at + 1, 0, line);
-          return lines.join('\n');
-        });
-      } else if (dry) console.log(`would open the collecting task "${c.name}"`);
-      else {
-        const id = atomic(() => {
-          const next = +get("SELECT value FROM meta WHERE key = 'next'").value; run("UPDATE meta SET value = ? WHERE key = 'next'", String(next + 1));
-          return pad(next); });
-        backlog('new', `id=${id}`, 'status=needs-review', `name=${c.name}`, 'priority=3', 'size=M', `summary=${c.summary}`, `arch=${c.arch}`,
-          'touches=unknown (a collecting task: each line names its own place)',
-          'ref=AGENTS.md, Surfacing', `goal=${c.goal}`);
-        const p = path.join(dirOf, id + '.md');
-        fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('- [ ] (to write)\n', line + '\n'));
-        backlog('set', id, 'status=ready');
-      }
+      // with no open collector, the new one takes an ID this run reserved, so that sub-agents side by side do not take it (VB-1680)
+      const id = dry || openCollector(root, n.kind) ? null : atomic(() => {
+        const next = +get("SELECT value FROM meta WHERE key = 'next'").value; run("UPDATE meta SET value = ? WHERE key = 'next'", String(next + 1));
+        return pad(next); });
+      backlog('collect', n.kind, `where=${one(f.where)}`, `what=${one(f.what)}`, `from=${n.task}`, ...(id ? [`id=${id}`] : []));
     } else continue; // candidates and decisions go to the PR (report), not to a file
     mark('notes', 'n', n.n); count++;
   }

@@ -45,4 +45,14 @@ const whole = { 'sim/clock': "const A = VB['m']; run(A);" };
 assert.deepStrictEqual(Object.keys(leftOut(['x'], exportReaders(whole).m, REG)), ['x'], 'a namespace passed whole is read in full, by a registry here');
 assert.deepStrictEqual(leftOut(['x'], exportReaders({ ...whole, p: "VB['m'].x" }).m, REG), {}, 'a non-registry reader counts');
 assert.strictEqual(splitTask('sim/stores', tasks), 'VB-4');
+{ // the split collector: an unticked line naming the key splits it; a ticked line, or a line of another collector, does not
+  const { COLLECT } = require('../tools/lib/collect.js'), text = '- [x] From VB-7: sim/ticked: 720 lines\n- [ ] From VB-8: sim/byre: 760 lines, over 700\n- [ ] sim/goods.js: 16 exports';
+  const held = [{ id: 'VB-9', title: COLLECT.split.name, status: 'ready', text }, { id: 'VB-10', title: COLLECT.teleport.name, status: 'ready', text: '- [ ] sim/herds: hay' }];
+  assert.strictEqual(splitTask('sim/byre', held), 'VB-9');
+  assert.strictEqual(splitTask('sim/goods', held), 'VB-9', 'the key may carry .js');
+  assert.strictEqual(splitTask('sim/ticked', held), null, 'a ticked line splits nothing');
+  assert.strictEqual(splitTask('sim/by', held), null, 'a key matches whole');
+  assert.strictEqual(splitTask('sim/herds', held), null, 'only the split collector counts');
+  assert.strictEqual(splitTask('sim/byre', [{ ...held[0], status: 'done (2026-11-25)' }]), null, 'a done collector splits nothing');
+}
 console.log('lintrules ok');

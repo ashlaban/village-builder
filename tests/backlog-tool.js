@@ -108,7 +108,24 @@ expect('close-arch moves the arch to the archive', r.ok && !file('BACKLOG.md').i
   && section('BACKLOG_ARCHIVE.md', 'Closed archs').includes('| zz-test | Test arch | Closed 2 January 2026: A test goal. | none |'), r.out);
 r = run(dir, 'list', A, B, '--status', 'done');
 expect('list by ID', r.ok && r.out.trim().split('\n').length === 2, r.out);
+// collect: a line in the kind's open collecting task; with none open (any open one closed first), a new one, ready, of the kind's size
+const { COLLECT, openCollector } = require(path.join(root, 'tools', 'lib', 'collect.js'));
+const before = openCollector(dir, 'split');
+if (before) run(dir, 'done', before);
+r = run(dir, 'collect', 'split', 'where=sim/zz', 'what=720 lines, over 700', `from=${A}`);
+const made = openCollector(dir, 'split'), madeText = made ? file(`backlog/${made}.md`) : '';
+expect('collect opens the split collector, ready, size L, with the line', r.ok && made && made !== before && /^Status: ready$/m.test(madeText)
+  && /^Size: L$/m.test(madeText) && madeText.includes(`- [ ] From ${A}: sim/zz: 720 lines, over 700\n`)
+  && section('BACKLOG.md', 'Ready').includes(`[${made}]`), r.out);
+r = run(dir, 'collect', 'split', 'where=sim/yy', 'what=16 exports,\n over 15');
+expect('collect appends to the open collector, the line made one line', r.ok && openCollector(dir, 'split') === made
+  && file(`backlog/${made}.md`).includes(`From ${A}: sim/zz: 720 lines, over 700\n- [ ] sim/yy: 16 exports, over 15\n`), r.out);
+r = run(dir, 'collect', 'split', 'where=sim/yy', 'what=16 exports, over 15');
+expect('collect does not add a line twice', r.ok && /already holds/.test(r.out)
+  && file(`backlog/${made}.md`).split('sim/yy:').length === 2, r.out);
+r = run(dir, 'collect', 'nonsense', 'where=a', 'what=b');
+expect('collect refuses an unknown kind', !r.ok && new RegExp(Object.keys(COLLECT).join(', ')).test(r.out), r.out);
 fs.rmSync(dir, { recursive: true, force: true });
 
 if (errors.length) { console.error('BACKLOG TOOL FAIL:\n  ' + errors.join('\n  ')); process.exit(1); }
-console.log('backlog tool: sync is a no-op here; new, set, done and close-arch on a copy keep the backlog check passing');
+console.log('backlog tool: sync is a no-op here; new, set, done, close-arch and collect on a copy keep the backlog check passing');
