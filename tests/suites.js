@@ -170,6 +170,7 @@ const INTEGRATION = [
   ['node', 'tests/backlog-tool.js'],
   ['node', 'tests/lanes.js'], // VB-1678: tasks side by side by the functions they edit, against the work in flight
   ['node', 'tests/renumber.js'], // VB-1680: a branch's new task IDs that main took move, with their files and references
+  ['node', 'tests/ids.js'], // a task set aside in docs/ideas keeps its ID: the highest ID counts the ideas
   ['node', 'tests/merge.js'], // VB-1679: the merge drivers: backlog rows by ID and field, the non-mechanical conflicts kept
   ['node', 'tests/inbox.js'],
   ['node', 'tests/chain-tool.js'],

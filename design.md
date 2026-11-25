@@ -1064,7 +1064,7 @@ Kim, 25 November (`docs/plans/four-scales/README.md`, section 6, answer 21): lon
 so that a pawn may work towards being a potter and a head may plan a new house for his second child, and personal goods are pulled
 forward from slice 8 into the arch `plans`, so that the potter's road is built there. The design is
 `docs/plans/four-scales/aims.md` (decisions, close calls and Kim's questions in its section 12); it revises Own hours as a livelihood,
-How a holder chooses: projects, and the rows that waited for slice 8. Built by the arch `plans` (VB-1781 to VB-1798); until a task
+How a holder chooses: projects, and the rows that waited for slice 8. Its tasks (VB-1781 to VB-1798) were set aside on 25 Nov (Kim) in `docs/ideas/aims/`, so nothing builds it yet; until a task
 lands the code does what the revised rows record under "was". Names of records, fields, verbs and parameters are Proposed throughout.
 
 | Aspect | Design | Status |
