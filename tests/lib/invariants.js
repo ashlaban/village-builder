@@ -526,6 +526,8 @@ function checkState(st) {
         bad.push(`gathering: village ${v.id} names hosts ${JSON.stringify(g.prefs)}`);
       if (g.hosting && !v.green) bad.push(`gathering: village ${v.id} offers to host with no green`);
       if (!['meeting', 'nothing', 'asLastYear'].includes(g.by)) bad.push(`gathering: village ${v.id} chose by ${g.by}`);
+      for (const k of ['cases', 'matches']) // VB-303: what the gathering it hosted decided, counted for its report
+        if (g[k] !== undefined && !(Number.isInteger(g[k]) && g[k] >= 0)) bad.push(`gathering: village ${v.id} counts ${k} ${g[k]}`);
       if (g.host === null) continue;
       const h = st.villages[g.host], hg = h && h.gathering;
       if (!h || !h.green || (g.year === year && !near(v.id, g.host)) || !hg || hg.host !== g.host || hg.year !== g.year)
