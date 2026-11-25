@@ -13,6 +13,7 @@ const Sim = (() => {
     spouseOf,
     childrenOf,
     siblingsOf,
+    spousesOf,
     kinship,
     kinDegree,
     villageOf,
@@ -171,6 +172,7 @@ const Sim = (() => {
     spouseOf,
     childrenOf,
     siblingsOf,
+    spousesOf, // everyone a pawn has been married to, by sim/records' index (VB-095: the family tree)
     kinship,
     kinDegree,
     describe,
