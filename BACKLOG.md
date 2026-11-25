@@ -137,6 +137,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1711](backlog/VB-1711.md)<a id="VB-1711"></a> | balance.js: made/need as a ratio of sums | - | 3 | S | the tool's made/need column is a mean of ratios that empty households inflate |
 | [VB-1720](backlog/VB-1720.md)<a id="VB-1720"></a> | The head's match for a member: a page door | fair | 3 | S | VB-276 gives the head's match for a member in the simulation (Sim.wish 'match' with {for, terms}, st.player.proposal, offered at the round); the page has no control to make one yet |
 | [VB-1728](backlog/VB-1728.md)<a id="VB-1728"></a> | Land rights: titles follow their parties' ends | debt | 3 | S | end or pass a title when its owner or user household ends |
+| [VB-1732](backlog/VB-1732.md)<a id="VB-1732"></a> | Loans: a store's repayment cut off on the way lies for the store | debt | 3 | S | A store's repayment haul cut off returns to the debtor; it should lie for the store |
 | [VB-1737](backlog/VB-1737.md)<a id="VB-1737"></a> | Refactor: module splits, collected: each over the lint's line, split by its concerns | - | 3 | L | The modules over the lint's line of length or width, a line each; a session splits one by its concerns and ticks it |
 | [VB-1739](backlog/VB-1739.md)<a id="VB-1739"></a> | A job's farm, field, meadow and stretch held as ids, and agent.job as the job's key | - | 3 | M | The job back-references VB-247 left: job.farm, job.field, job.meadow, job.stretch and agent.job as ids, read through helpers |
 | [VB-1741](backlog/VB-1741.md)<a id="VB-1741"></a> | Why fewer leave since land is asked: the small villages' asks after VB-697 | acts | 3 | S | Departures fell by half or more after VB-697 (44 to 16 at populous small seed 7, 30 years): find why, with VB-697's owed numbers |
@@ -152,8 +153,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-1587](backlog/VB-1587.md)<a id="VB-1587"></a> | A new site's well is dug by the party before the move | - | 3 | S | follows batches (b2) and (c) of VB-1543: the well as a job of the site |
-| [VB-1732](backlog/VB-1732.md)<a id="VB-1732"></a> | Loans: a store's repayment cut off on the way lies for the store | debt | 3 | S | A store's repayment haul cut off returns to the debtor; it should lie for the store |
 
 </details>
 
