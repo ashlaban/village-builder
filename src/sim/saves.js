@@ -275,8 +275,9 @@ VB['sim/saves'] = (() => {
   // Since VB-240 a record has no band (pawn.bands holds them): its slot is written 0 and not read.
   // Format 4 (VB-342): the same data, on another island: the generator's climate and rivers changed what a seed makes, and a save lies on
   // its seed's island as generated (heights, rivers and moisture are not saved), so older saves are refused.
-  const FORMAT = 4,
-    READS = [4];
+  // Format 5 (VB-247): st.idlers lists agent ids, not agents, and st.cenv holds no people (it was st.pawns); older saves are refused.
+  const FORMAT = 5,
+    READS = [5];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {

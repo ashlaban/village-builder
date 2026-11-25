@@ -145,7 +145,7 @@ const FARMER = 0;
   near(back.pawns[FARMER].sleep.owed, st.pawns[FARMER].sleep.owed, 'and goes on alike');
   // a save made from VB-1643 to VB-1645 kept the played pawn's hours on the player: the next step hands them to the pawn
   data.state.player.sleep = { owed: 5, asleep: false, at: data.state.tick };
-  delete data.state.pawns.$arr[FARMER].sleep;
+  delete data.state.pawns[FARMER].sleep;
   const old = Sim.load(tinyWorld(rows), data);
   Sim.advance(old, 0.1);
   near(old.pawns[FARMER].sleep.owed, 5 + (old.pawns[FARMER].sleep.asleep ? -1 : AWAKE) / TICKS, 'an older save hands its hours to the pawn');

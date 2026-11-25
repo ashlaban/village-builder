@@ -40,11 +40,12 @@ for (const [label, make, restore, before, after] of [
 }
 { // VB-259: a save from before the cooked store was named meals (format 2, hh.rations) is refused, as any other build's
   const st = probe.state(), data = JSON.parse(JSON.stringify(Sim.save(st)));
-  // and one from before the climate and the basins' rivers changed every seed's island (format 3, VB-342)
-  for (const old of [2, 3]) {
+  // and one from before the climate and the basins' rivers changed every seed's island (format 3, VB-342), and one whose idlers were
+  // agents (format 4, VB-247)
+  for (const old of [2, 3, 4]) {
     data.format = old;
     let why = null; try { Sim.load(probe.world(), data); } catch (e) { why = e.message; }
-    if (!new RegExp(`format ${old}, this build reads 4`).test(why || '')) { failed++; console.error(`SAVES FAIL: a format-${old} save was not refused (${why})`); }
+    if (!new RegExp(`format ${old}, this build reads 5`).test(why || '')) { failed++; console.error(`SAVES FAIL: a format-${old} save was not refused (${why})`); }
   }
 }
 // VB-239: saves of older builds are refused by their format, and no migration is kept for them (Kim, 10 Nov 2026: no one holds one)

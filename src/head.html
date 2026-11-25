@@ -382,6 +382,10 @@ body:not(.minimap-open) #minimap, body:not(.minimap-open) .map-bar > :not(#minim
 /* The Ground overlay's key (page/ground), over the minimap while the overlay is on: a swatch for each bedrock, a mark for each deposit. */
 .ground-key { width: 258px; padding: 0 14px 10px; border-radius: var(--r-2); font-size: 13px; }
 .ground-key .menu-label { margin: 10px 0 6px; }
+.land-filter { display: flex; flex-wrap: wrap; gap: 6px 10px; }
+.land-filter label { display: flex; align-items: center; gap: 5px; }
+.land-filter select { font-size: 13px; padding: 2px 4px; border-radius: var(--r-1); border: 1px solid var(--edge); background: var(--node); }
+.land-filter .land-only { flex-basis: 100%; }
 .ground-key ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
 .ground-key li { display: flex; align-items: center; gap: 7px; }
 .ground-key i { flex: none; width: 14px; height: 14px; border: 1.5px solid #2a1a0c; }

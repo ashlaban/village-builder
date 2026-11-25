@@ -32,7 +32,18 @@ VB['sim/jobs'] = (() => {
     if (!Number.isInteger(site)) throw new Error(`a task ${key} posted on no tile (${site})`); // fails where it is made (VB-255)
     let j = st.jobs.get(key);
     if (!j) {
-      j = { id: ++st.jobSeq, key, kind, owner, site, done: 0, claims: [], posted: st.t, ...extra };
+      // the owner copied: a job shares no object with another record (VB-247)
+      j = {
+        id: ++st.jobSeq,
+        key,
+        kind,
+        owner: owner && { ...owner },
+        site,
+        done: 0,
+        claims: [],
+        posted: st.t,
+        ...extra,
+      };
       st.jobs.set(key, j);
       if (KINDS[kind].draw) {
         const t = KINDS[kind].draw(st, j);
