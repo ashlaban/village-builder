@@ -24,8 +24,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8c9a6a; col
 .pulse { animation: pulse 1.1s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .15; } }
 #strip { grid-column: 1; grid-row: 3; background: var(--card); border-top: 2px solid #3a2a1a; display: flex; flex-direction: column; }
-#strip.exp { height: 29vh; } #strip.col { height: auto; }
-.shead { display: flex; align-items: center; gap: 10px; padding: 3px 10px; border-bottom: 1px solid var(--line); font-size: 13px; }
+#strip.exp { height: 31vh; } #strip.col { height: auto; }
+.shead { white-space: nowrap; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 3px 10px; border-bottom: 1px solid var(--line); font-size: 13px; }
 .shead .chips { display: inline-flex; gap: 3px; }
 .shead .chips button { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 0 7px; font: inherit; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; }
 .shead .chips button.on { outline: 2px solid var(--ink); }
@@ -54,7 +54,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8c9a6a; col
 .slip.cut { border-right: 3px dashed var(--risk); }
 .slip.resume { border-style: dashed; background: #fbf7e980; }
 .slip.window { background: repeating-linear-gradient(135deg, #33599e22 0 6px, #fff8 6px 12px); border-color: var(--owed); }
-.slip.lit, .slip:hover { outline: 2px solid var(--risk); z-index: 2; }
+.slip.lit, .slip:hover { outline: 1.5px solid var(--risk); z-index: 2; }
 .slip.drag { opacity: .85; z-index: 5; cursor: grabbing; box-shadow: 0 4px 12px #0005; }
 .slip .pi { flex: none; }
 .hist { display: flex; height: 40px; border-top: 1px solid var(--line); }
@@ -305,7 +305,7 @@ function renderMap() {
 }
 function flyTo(place, then) {
   const from = [...VB], { x, y } = place ? at(place) : { x: MAP_W / 2, y: MAP_H / 2 }, w = place ? MAP_W / 1.7 : MAP_W, h = place ? MAP_H / 1.7 : MAP_H;
-  const to = place ? [x - w / 2 - w * 0.12, y - h / 2, w, h] : [0, 0, MAP_W, MAP_H], t0 = performance.now();
+  const to = place ? [x - w / 2 + w * 0.2, y - h / 2 + h * 0.05, w, h] : [0, 0, MAP_W, MAP_H], t0 = performance.now();
   const step = (t) => { const k = Math.min(1, (t - t0) / 280), e = k * (2 - k); VB = from.map((v, i) => v + (to[i] - v) * e); $('map').setAttribute('viewBox', VB.join(' ')); if (k < 1) requestAnimationFrame(step); else then?.(); };
   requestAnimationFrame(step);
 }
@@ -357,11 +357,11 @@ function renderStrip() {
   let h = `<div class="shead"><span class="seg" id="zseg">${[['today', 'Today'], ['days', 'Days ahead'], ['season', 'Season']].map(([k, l]) => `<button data-z="${k}" class="${S.zoom === k ? 'on' : ''}">${l}</button>`).join('')}</span>
     <button id="expb" class="seg" style="padding:1px 8px;background:#fff;cursor:pointer">${S.exp ? '▾ one line' : '▴ all lanes'}</button>
     <span class="chips"><button data-sel="house" class="${S.sel === 'house' ? 'on' : ''}">Backa</button>${people().map((p) => `<button data-sel="${p.id}" class="${S.sel === p.id ? 'on' : ''}"><i style="background:${p.col}"></i>${p.name}</button>`).join('')}</span>
-    <span style="flex:1"></span><small style="color:var(--muted)">drag a slip between lanes to assign · solid = Per's estimate, striped = its range, bar = by</small></div>`;
+    <span style="flex:1"></span><small style="color:var(--muted);overflow:hidden;text-overflow:ellipsis;min-width:0;display:${S.stress ? 'none' : 'inline'}">drag a slip between lanes to assign · solid = Per's estimate, striped = its range, bar = by</small></div>`;
   h += `<div class="axis"><div style="width:96px;flex:none;padding-left:6px">${S.exp ? '' : body}</div><div class="trk">${Zc.bands.map(([a, b, l]) => `<b style="left:${X(a) + .3}%;color:#7a5a1a">${l}</b>`).join('')}${Zc.ticks.map(([t, l]) => `<span style="left:${X(t)}%;top:${S.zoom === 'today' ? 2 : 2}px;opacity:.0">${l}</span>`).join('')}</div></div>`;
   h += `<div class="lanes"><div class="bg">${Zc.bands.map(([a, b, , c]) => `<div class="bd" style="left:${X(a)}%;width:${X(b) - X(a)}%;background:${c}"></div>`).join('')}${S.zoom !== 'today' ? Array.from({ length: Zc.t1 - Zc.t0 }, (_, i) => `<div class="bd" style="left:${X(Zc.t0 + i)}%;width:0"></div><span style="position:absolute;bottom:1px;left:${X(Zc.t0 + i + .5)}%;font-size:9.5px;color:#0006;transform:translateX(-50%)">${S.zoom === 'season' && i >= 12 ? 'w' + (i - 11) : 'd' + (i + 1)}</span>`).join('') : [8, 10, 12, 14, 16].map((t) => `<span style="position:absolute;bottom:1px;left:${X(t)}%;font-size:9.5px;color:#0006">${t}:00</span>`).join('')}<div class="now" style="left:${X(Zc.now)}%"></div></div>`;
   const lanes = S.exp ? ['unheld', ...people().map((p) => p.id)] : S.sel === 'house' ? [] : [S.sel];
-  const lh = S.exp && S.stress ? 17 : 26;
+  const lh = S.exp && S.stress ? 17 : 24;
   for (const ln of lanes) {
     const p = P[ln];
     h += `<div class="lane ${ln === 'unheld' ? 'unheld' : ''} ${ln === S.sel ? 'sel' : ''}" data-lane="${ln}" style="min-height:${lh}px"><div class="lab" data-sel="${ln === 'unheld' ? 'house' : ln}">${p ? `<i style="background:${p.col}"></i>${p.name} <small>${p.levy != null ? p.levy + 'h' : p.pos}</small>` : '<b>unheld</b> <small>nobody yet</small>'}</div><div class="trk">${slipsFor(ln).map((s) => slipHTML(s, Zc)).join('')}</div></div>`;
@@ -394,7 +394,7 @@ function bubble(id, anchor, remedies) {
   b.onclick = (ev) => {
     const x = ev.target.closest('button'); if (!x) return;
     if (x.dataset.rem) { const [v, l, c] = t.rem[+x.dataset.rem]; return act(id, v, `${v} ${l.replace(/^(Name|Add|Ask|Send|Hire|Grant|Offer|Book) /, '')} -> ${t.title.split(':')[0]}  (cost: ${c})`); }
-    if (x.dataset.x === 'why') return ladder(t, b);
+    if (x.dataset.x === 'why') return ladder(t, anchor);
     if (x.dataset.x === 'rem') return bubble(id, anchor, true);
     if (x.dataset.x === 'acts') { const box = b.querySelector('.acts'); box.innerHTML = (t.acts || t.rem.map((r) => r[0])).map((v) => `<button data-v="${v}">${v}</button>`).join(''); return; }
     if (x.dataset.v) act(id, x.dataset.v, `${x.dataset.v} ${t.title}`);
@@ -404,7 +404,7 @@ function ladder(t, anchor) {
   document.querySelectorAll('.ladder').forEach((l) => l.remove());
   const l = document.createElement('div'); l.className = 'ladder';
   l.innerHTML = `<b style="font-size:12px">why: task → step → target → levy</b>` + t.why.map(([k, v], i) => `<div class="r" style="border-color:${['#e0a43a', '#c9a24a', '#3f7a35', '#2a2018'][i]}"><span>${k}</span>${v}</div>`).join('');
-  document.body.append(l); const r = anchor.getBoundingClientRect(); l.style.left = Math.max(6, r.left - 240) + 'px'; l.style.top = Math.min(innerHeight - l.offsetHeight - 8, r.top) + 'px';
+  document.body.append(l); const r = anchor.getBoundingClientRect(); l.style.left = Math.max(6, r.left - 244) + 'px'; l.style.top = Math.max(46, Math.min(innerHeight - l.offsetHeight - 8, r.top - 10)) + 'px';
 }
 function act(id, verb, msg) {
   toast('would issue `' + verb + '` ' + msg);
@@ -429,7 +429,8 @@ const DEMAND = {
 };
 function assign(slipId, lane) {
   const s = S.days.find((d) => d.id === slipId) || null, name = lane === 'unheld' ? 'nobody' : P[lane].name, t = thing(slipId);
-  const msg = lane === 'unheld' ? `release ${t.title}` : `assign ${name} -> ${t.title.replace(/^[^:]*: /, '')}${DEMAND[lane] ? ' -- ' + DEMAND[lane] : ' (within the levy, or the heads\' own choice)'}`;
+  const what = T[slipId] ? t.title.split(':')[0] : t.title.replace(/^[^:]*: /, '');
+  const msg = lane === 'unheld' ? `release ${what}` : `assign ${name} -> ${what}${DEMAND[lane] ? ' -- ' + DEMAND[lane] : ' (within the levy, or the heads\' own choice)'}`;
   toast('would issue `' + (lane === 'unheld' ? 'release' : 'assign') + '` ' + msg);
   if (s && lane !== 'ingrid') { s.lane = lane; s.who = lane === 'unheld' ? 'nobody yet' : null; if (DEMAND[lane] && lane !== 'jons') s.opt = { ...(s.opt || {}), breach: 'demanded', whose: 'own' }; if (slipId === 'barley' && lane !== 'unheld') T.barley.solved = true; }
   render();
@@ -472,6 +473,7 @@ $('strip').addEventListener('click', (ev) => {
 const segs = (id, f) => $(id).addEventListener('click', (ev) => { const v = ev.target.dataset.v; if (v == null) return; [...$(id).children].forEach((x) => x.classList.toggle('on', x === ev.target)); f(v); closeAll(); render(); });
 segs('stress', (v) => { S.stress = v === '1'; if (!S.stress && XP.some((p) => p.id === S.sel)) S.sel = 'house'; });
 segs('barseg', (v) => { S.bar = v; });
+addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { closeAll(); S.lit = null; S.focus = null; flyTo(null); render(); } });
 render();
 </script>
 </body>
