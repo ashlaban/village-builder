@@ -1,0 +1,393 @@
+{
+ "commit": "f62a621",
+ "years": 10,
+ "wallSeconds": 156,
+ "runs": [
+  {
+   "scenario": "founders",
+   "seed": 7,
+   "settlements": [
+    {
+     "id": 0,
+     "name": "Lillåker",
+     "living0": 7,
+     "living10": 16,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 1,
+     "name": "Åkern",
+     "living0": 3,
+     "living10": 4,
+     "extinct": false,
+     "why": null
+    }
+   ],
+   "stuck": 0,
+   "unexplained": 0,
+   "produced": 15433,
+   "hungryDays": 0,
+   "hungerDeaths": 0
+  },
+  {
+   "scenario": "founders",
+   "seed": 11,
+   "settlements": [
+    {
+     "id": 0,
+     "name": "Hasselberga",
+     "living0": 7,
+     "living10": 16,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 1,
+     "name": "Ängen",
+     "living0": 3,
+     "living10": 4,
+     "extinct": false,
+     "why": null
+    }
+   ],
+   "stuck": 0,
+   "unexplained": 0,
+   "produced": 16566,
+   "hungryDays": 0,
+   "hungerDeaths": 0
+  },
+  {
+   "scenario": "founders",
+   "seed": 42,
+   "settlements": [
+    {
+     "id": 0,
+     "name": "Hagsta",
+     "living0": 7,
+     "living10": 12,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 1,
+     "name": "Lunden",
+     "living0": 3,
+     "living10": 10,
+     "extinct": false,
+     "why": null
+    }
+   ],
+   "stuck": 0,
+   "unexplained": 0,
+   "produced": 14511,
+   "hungryDays": 0,
+   "hungerDeaths": 0
+  },
+  {
+   "scenario": "populous",
+   "seed": 7,
+   "settlements": [
+    {
+     "id": 0,
+     "name": "Lillåker",
+     "living0": 33,
+     "living10": 46,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 1,
+     "name": "Åsby",
+     "living0": 17,
+     "living10": 26,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 2,
+     "name": "Långlunda",
+     "living0": 32,
+     "living10": 36,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 3,
+     "name": "Lindsta",
+     "living0": 28,
+     "living10": 29,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 4,
+     "name": "Ullunda",
+     "living0": 22,
+     "living10": 24,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 5,
+     "name": "Tranlunda",
+     "living0": 18,
+     "living10": 21,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 6,
+     "name": "Gråvik",
+     "living0": 28,
+     "living10": 17,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 7,
+     "name": "Stensta",
+     "living0": 34,
+     "living10": 33,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 8,
+     "name": "Hallvik",
+     "living0": 26,
+     "living10": 33,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 9,
+     "name": "Torslunda",
+     "living0": 34,
+     "living10": 36,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 10,
+     "name": "Ängsta",
+     "living0": 22,
+     "living10": 22,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 11,
+     "name": "Almlunda",
+     "living0": 39,
+     "living10": 47,
+     "extinct": false,
+     "why": null
+    }
+   ],
+   "stuck": 0,
+   "unexplained": 80,
+   "produced": 301743,
+   "hungryDays": 217,
+   "hungerDeaths": 0
+  },
+  {
+   "scenario": "populous",
+   "seed": 11,
+   "settlements": [
+    {
+     "id": 0,
+     "name": "Örnlunda",
+     "living0": 17,
+     "living10": 26,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 1,
+     "name": "Hasselberga",
+     "living0": 35,
+     "living10": 39,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 2,
+     "name": "Torslunda",
+     "living0": 33,
+     "living10": 36,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 3,
+     "name": "Lindeberga",
+     "living0": 14,
+     "living10": 22,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 4,
+     "name": "Ängsta",
+     "living0": 39,
+     "living10": 48,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 5,
+     "name": "Ängby",
+     "living0": 26,
+     "living10": 39,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 6,
+     "name": "Frövi",
+     "living0": 56,
+     "living10": 62,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 7,
+     "name": "Ullunda",
+     "living0": 46,
+     "living10": 58,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 8,
+     "name": "Fröslunda",
+     "living0": 16,
+     "living10": 12,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 9,
+     "name": "Hallberga",
+     "living0": 63,
+     "living10": 74,
+     "extinct": false,
+     "why": null
+    }
+   ],
+   "stuck": 0,
+   "unexplained": 100,
+   "produced": 314946,
+   "hungryDays": 93,
+   "hungerDeaths": 0
+  },
+  {
+   "scenario": "populous",
+   "seed": 42,
+   "settlements": [
+    {
+     "id": 0,
+     "name": "Bergby",
+     "living0": 29,
+     "living10": 37,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 1,
+     "name": "Hagsta",
+     "living0": 24,
+     "living10": 31,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 2,
+     "name": "Frövi",
+     "living0": 52,
+     "living10": 45,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 3,
+     "name": "Ulleråker",
+     "living0": 20,
+     "living10": 22,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 4,
+     "name": "Stenåker",
+     "living0": 20,
+     "living10": 27,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 5,
+     "name": "Björksta",
+     "living0": 27,
+     "living10": 41,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 6,
+     "name": "Steninge",
+     "living0": 40,
+     "living10": 41,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 7,
+     "name": "Högby",
+     "living0": 32,
+     "living10": 47,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 8,
+     "name": "Almsta",
+     "living0": 41,
+     "living10": 42,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 9,
+     "name": "Gåslunda",
+     "living0": 18,
+     "living10": 26,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 10,
+     "name": "Strand",
+     "living0": 4,
+     "living10": 8,
+     "extinct": false,
+     "why": null
+    },
+    {
+     "id": 11,
+     "name": "Lindsta",
+     "living0": 20,
+     "living10": 22,
+     "extinct": false,
+     "why": null
+    }
+   ],
+   "stuck": 1,
+   "unexplained": 0,
+   "produced": 290270,
+   "hungryDays": 325,
+   "hungerDeaths": 0
+  }
+ ]
+}
