@@ -38,7 +38,7 @@ Find its line that starts `result VB-`. No such line: end your turn.
    - Merged: go on to 2 below.
    - Refused because it conflicts with main, the first time for this task: `send_message` to that session: "Your PR #<n> conflicts
      with main: merge origin/main into it as /task step 5 says, run npm run verify, push, and send your result line again." End your turn.
-   - Refused again, or for another reason: leave the PR open, and change the line's status to `needs-review` with
+   - Refused again, or for another reason: leave the PR open, and change the line's status to `failed` with
      `reason=PR #<n> not merged: <why in a few words>`.
 2. `delete_trigger` the pending check-in; `node tools/chain.js result <the line's words after "result">`.
 3. `node tools/chain.js status`, and `set_session_title`: `Chain <its line> (coordinator)`. Go to 2.

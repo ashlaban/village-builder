@@ -7,7 +7,7 @@ agent can take it alone, and a tool can tell what it may run beside.
 
 ## How
 
-- With a backlog of your own (a session, a plan, the project manager, the reviewer): `node tools/backlog.js new name=... status=blocked|needs-review
+- With a backlog of your own (a session, a plan, the project manager, the reviewer): `node tools/backlog.js new name=... status=blocked|needs-review|ready
   priority=... size=... summary=... [arch= phase= waits= cause= ref= goal= touches=]`, then fill in what the file says "(to write)", then
   `node tools/backlog.js set VB-NNN status=ready` when nothing undecided is left. A new task never starts ready.
 - In an orchestrated run (a `vb-task` sub-agent): `node tools/inbox.js note VB-NNN task id=<a reserved ID> name=... priority=... size=...
