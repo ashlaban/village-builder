@@ -133,6 +133,7 @@
   "sim/pose.js",
   "sim/pastimes.js",
   "sim/legs.js",
+  "sim/methods.js",
   "sim/work.js",
   "sim/attention.js",
   "sim/agents.js",

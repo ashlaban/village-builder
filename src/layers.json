@@ -146,6 +146,7 @@
     ],
     "agency": [
       "sim/legs",
+      "sim/methods",
       "sim/work",
       "sim/attention",
       "sim/agents",
