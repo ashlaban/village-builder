@@ -44,6 +44,7 @@ const FAST = [
   ['node', 'tests/wishes.js'],
   ['node', 'tests/wishlapse.js'],
   ['node', 'tests/roundoffers.js'],
+  ['node', 'tests/terms.js'], // VB-276: a marriage's terms, the dowry and the morning gift
   ['node', 'tests/handover.js'],
   ['node', 'tests/offerpreview.js'], // VB-1100: what a yes to an offer would bring, and the state after it
   ['node', 'tests/asking.js'],

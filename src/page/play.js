@@ -301,7 +301,10 @@ function offerBox(id, opps) {
             ? 'The farm is yours: take it up?'
             : 'You are asked';
     const body = match
-      ? `${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}.`
+      ? `${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}.` +
+        (o.terms
+          ? ` Her side gives a dowry worth ${o.terms.dowry} rations; his books her a morning gift worth ${o.terms.gift}.`
+          : '')
       : `${esc(o.text.charAt(0).toUpperCase() + o.text.slice(1))}.`;
     // the pawn's own judgement, as advice (principle "The future is someone's estimate": whose estimate it is)
     const advice =

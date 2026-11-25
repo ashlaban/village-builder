@@ -3,7 +3,7 @@
 VB['sim/player'] = (() => {
   const { release } = VB['sim/agents'];
   const { reckon, adopt } = VB['sim/sleepers'];
-  const { holdingOf, spouseOf, personEvent, living, villageOf, fullName } = VB['sim/records'];
+  const { holdingOf, spouseOf, personEvent, living, villageOf, fullName, spokesmanOf } = VB['sim/records'];
   const { cal, WORK, HEALTH } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
@@ -29,7 +29,10 @@ VB['sim/player'] = (() => {
   //   the pawn's health after each of its last meals, its hunger level, its household's food in days of need, and what moved its health,
   //   why {hunger, cold, damp, ill, tired, rest}, VB-1118; tired absent in a day kept before VB-1643)}; plain data, saved with the run. A
   //   save made from VB-1643 to VB-1645 holds sleep ({owed, asleep, at}): the hours its pawn owes, handed to the pawn (sim/sleepers adopt)
-  //   at the next step. The pawn's sleep is reckoned each step while it is played (sim/sleepers reckon), for the page
+  //   at the next step. The pawn's sleep is reckoned each step while it is played (sim/sleepers reckon), for the page. proposal (VB-276):
+  //   absent or null, else {for (a member the played pawn speaks for), partner (a pawn id), terms (null, or what its side gives: {dowry}
+  //   for a daughter, {gift} for a son, rations of customary worth)}: the head's match for a member, offered at the round of the man's
+  //   village as the pawn's own wish is (sim/round), until one of the two marries or dies or the player changes it
   const QUEUE_MAX = 8,
     TIES_MAX = 12,
     DAYS_KEPT = 5;
@@ -140,12 +143,15 @@ VB['sim/player'] = (() => {
     st.player.auto = !!on;
     return true;
   }
-  // The wish verb (VB-212, VB-680): the played pawn's wish at the moving round, written on the pawn as every pawn's is (pawn.wish,
+  // The wish verb (VB-212, VB-680; VB-276: a match for a member, opts {for, terms}, is the head's, propose): the played pawn's wish
+  // at the moving round, written on the pawn as every pawn's is (pawn.wish,
   // sim/wishes); the round reads it as anyone's and decides by its rules, so a wish is not checked against them here; it stays until
   // changed. True, or why it is not a wish.
-  function wish(st, kind, value) {
+  function wish(st, kind, value, opts = null) {
     const pl = st.player;
     if (!pl) return 'no pawn is played';
+    if (kind === 'match' && opts && opts.for !== undefined && opts.for !== pl.pawn)
+      return propose(st, opts.for, value, opts.terms === undefined ? null : opts.terms);
     if (!['out', 'claim', 'serve', 'match', 'settle', 'rank'].includes(kind)) return `there is no wish ${kind}`;
     // claim takes a farm id and match a pawn id (of the other sex, living and single), else null or false; out, serve and settle null,
     // true or false; rank a whole ranking (sim/wishes)
@@ -163,8 +169,38 @@ VB['sim/player'] = (() => {
       return `${value} is not one the pawn may marry`;
     return setWish(st, pl.pawn, kind, value);
   }
-  // A wish for a match ends when the one who wished or the wished partner marries (a and b have married) or dies (a is b).
-  const clearMatchWish = (st, a, b) => endPartner(st, a, b);
+  // The head's match for a member (VB-276; design.md, Marriage as a negotiation, The player's doors): the wish verb's wish for a match
+  // made for another, wish('match', partner, {for: member, terms}): the played pawn, its spokesman, proposes `partner` for `member` with
+  // the terms its side gives (null for the defaults; `{dowry}` for a daughter, `{gift}` for a son); partner null withdraws it. The round
+  // reads it as a wish, by its rules (sim/round). True, or why not.
+  function propose(st, member, partner, terms = null) {
+    const pl = st.player;
+    if (!pl) return 'no pawn is played';
+    if (partner === null) {
+      pl.proposal = null;
+      return true;
+    }
+    const m = st.pawns[member],
+      q = st.pawns[partner];
+    if (!m || !m.alive || member === pl.pawn) return `${member} is not a member the pawn may speak for`;
+    if (spokesmanOf(st, member) !== pl.pawn) return `${fullName(m)} does not have the pawn as spokesman`;
+    if (!q || !q.alive || q.sex === m.sex || spouseOf(st, partner) !== null)
+      return `${partner} is not one ${fullName(m)} may marry`;
+    const k = m.sex === 'f' ? 'dowry' : 'gift';
+    if (terms !== null && (typeof terms !== 'object' || Object.keys(terms).some((x) => x !== k)))
+      return `the side of ${fullName(m)} gives only the ${k === 'dowry' ? 'dowry' : 'morning gift'}`;
+    if (terms !== null && terms[k] !== undefined && !(Number.isFinite(terms[k]) && terms[k] >= 0))
+      return `cannot give ${terms[k]}`;
+    pl.proposal = { for: member, partner, terms: terms === null ? null : { ...terms } };
+    return true;
+  }
+  // A wish for a match ends when the one who wished or the wished partner marries (a and b have married) or dies (a is b); so does the
+  // head's match for a member.
+  const clearMatchWish = (st, a, b) => {
+    endPartner(st, a, b);
+    const pr = st.player && st.player.proposal;
+    if (pr && [pr.for, pr.partner].some((id) => id === a || id === b)) st.player.proposal = null;
+  };
   // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
   // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
   // Whether a begun act lasts is its verb's to say, from the reference it gave (sim/commands active); an act done at once lasts no longer
