@@ -144,7 +144,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-1585](backlog/VB-1585.md)<a id="VB-1585"></a> | The thirsty pawn: a pawn's own thirst, and the verb by which it leaves its work to drink and fetch | - | 2 | M | batch (d) of VB-1543: p.drank, the verb drink, the dry day's health as the pawn's own |
 | [VB-1681](backlog/VB-1681.md)<a id="VB-1681"></a> | Stories: old stories sharpen to ±1 and never fade, crowding out new ones | talk | 2 | S | bound the runaway of sharpening and the restore on telling, measured on late populous saves |
 | [VB-1685](backlog/VB-1685.md)<a id="VB-1685"></a> | Invariant: a cache equals its derivation after every verb, with no lag | - | 2 | M | The birthday refresh mended so roles need no allowAgeLag, and each cache compared with a fresh derivation after each verb |
 | [VB-1709](backlog/VB-1709.md)<a id="VB-1709"></a> | Fix: a herd standing away for a household with a farm is never led home (populous small seed 11) | - | 2 | M | VB-1682 found herd 155 standing at farm 0 for household 19 from year 12 on, its drove job never done |

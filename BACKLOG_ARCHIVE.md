@@ -808,3 +808,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1470](backlog/VB-1470.md) | Measure: the moving round at medium-ref after VB-1380 | - | 2 | S | owed by VB-1380: the round call at medium-ref |
 | [VB-1564](backlog/VB-1564.md) | Cost: a holder's opportunities cached (the asks of the jobs line) | - | 2 | M | The third part of the jobs line, 17.5%: the availability asks, and the cache design.md agrees |
 | [VB-1583](backlog/VB-1583.md) | A site's water is weighed by the site search and shown in the leader's choice | - | 2 | S | batch (b), second half, of VB-1543: SETTLE.perFetch and the site choice's water lines |
+| [VB-1585](backlog/VB-1585.md) | The thirsty pawn: a pawn's own thirst, and the verb by which it leaves its work to drink and fetch | - | 2 | M | batch (d) of VB-1543: p.drank, the verb drink, the dry day's health as the pawn's own |
