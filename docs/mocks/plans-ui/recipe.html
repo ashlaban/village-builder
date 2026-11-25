@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Task Instructions</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600;700&display=swap">
+<style>
+/* The task as instructions: a flat-pack sheet of wordless numbered steps, read backwards from the goal, with a subway "you are here". */
+:root { --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --paper: #fbf7e9; --accent: #a8473a; --cut: #8a6a1a; --ok: #3f7a35; --no: #6b6b6b; color-scheme: light; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #e9e4d4; color: var(--ink); font: 14px/1.35 'Alegreya Sans', system-ui, sans-serif; user-select: none; }
+.app { display: grid; grid-template-rows: 40px minmax(0, 1fr); grid-template-columns: 430px minmax(0, 1fr); height: 100vh; }
+.band { grid-column: 1 / 3; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--card); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.band h1 { font: 500 17px 'Alegreya SC', Georgia, serif; margin: 0; }
+.band .mode { font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }
+.band .from { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.band .sp { flex: 1; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: #fff; padding: 2px 9px; font: inherit; font-size: 13px; cursor: pointer; }
+.seg button.on { background: var(--ink); color: #fff; }
+#left { background: #8c9a6a; display: flex; flex-direction: column; min-height: 0; }
+#mapbox { position: relative; height: 262px; flex: none; overflow: hidden; }
+#world { flex: 1; background: var(--card); padding: 6px 10px; overflow-y: auto; border-top: 2px solid #3a2a1a; }
+#world h4, #sheet h4 { margin: 4px 0; font: 600 11px 'Alegreya Sans'; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.tasks { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+.tasks button { display: flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 1px 7px 1px 2px; font: inherit; font-size: 12.5px; cursor: pointer; }
+.tasks button.on { outline: 2.5px solid var(--ink); }
+.fgrp { display: flex; align-items: center; gap: 4px; margin: 3px 0; flex-wrap: wrap; }
+.fgrp > small { width: 54px; color: var(--muted); font-size: 11px; }
+.fchip { display: inline-flex; align-items: center; gap: 1px; border: 1.5px solid var(--line); border-radius: 12px; padding: 1px 4px; background: #fff; cursor: pointer; }
+.fchip.on { border-color: var(--ink); background: #fff3c4; }
+.presets { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.presets button { font: inherit; font-size: 11.5px; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 1px 7px; cursor: pointer; }
+.presets button.on { background: var(--ink); color: #fff; }
+#sheet { overflow-y: auto; padding: 8px 14px 30px; background: var(--paper); background-image: linear-gradient(#0000 23px, #00000008 24px); background-size: 100% 24px; }
+.ghead { display: flex; align-items: center; gap: 10px; }
+.ghead .who { font: 500 18px 'Alegreya SC', serif; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--ink); border-radius: 12px; overflow: hidden; }
+.stepper button { border: 0; background: #fff; width: 22px; font: 700 14px system-ui; cursor: pointer; }
+.stepper span { padding: 0 6px; font-weight: 700; }
+.stages { display: flex; align-items: center; gap: 3px; margin: 6px 0 2px; }
+.stage { display: flex; align-items: center; gap: 3px; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 1px 6px 1px 2px; cursor: pointer; font-size: 12px; }
+.stage.on { outline: 2.5px solid var(--ink); background: #fff3c4; }
+.stage.done { opacity: .6; }
+.stage + .arr { color: var(--muted); }
+.row { position: relative; border: 1px solid var(--line); border-radius: 9px; background: #fff; margin: 8px 0; padding: 4px 8px 6px; }
+.row.off { opacity: .5; background: #f2efe6; }
+.row.off .panels { filter: grayscale(.85); }
+.row.live { border: 2px solid var(--ink); box-shadow: 0 2px 8px #0002; }
+.row .rh { display: flex; align-items: center; gap: 6px; font-size: 12.5px; min-height: 26px; }
+.row .rh b { font-weight: 700; }
+.row .rh .when { display: inline-flex; gap: 2px; align-items: center; padding: 0 5px; border-radius: 10px; background: #f4efe4; }
+.row .rh .why { color: var(--muted); font-size: 12px; }
+.row .rh .est { margin-left: auto; font-size: 12px; padding: 0 6px; background: repeating-linear-gradient(135deg, #fff 0 5px, #ece6d2 5px 8px); border: 1px solid var(--line); border-radius: 8px; }
+.row .rh button { font: inherit; font-size: 11.5px; border: 1px solid #3a2a1a; background: #f3efe4; border-radius: 10px; padding: 0 7px; cursor: pointer; }
+.panels { display: flex; align-items: stretch; gap: 0; position: relative; padding: 18px 4px 18px 8px; overflow-x: auto; }
+.row.off .panels, .row.ok .panels { zoom: .62; }
+.pn { position: relative; width: 80px; flex: none; border: 1.5px solid #3a2a1a; border-radius: 6px; background: #fff; margin-right: 14px; padding: 3px 3px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+.pn::after { content: ''; position: absolute; right: -13px; top: 46%; border: 6px solid transparent; border-left: 9px solid #3a2a1a; }
+.pn:last-child::after { display: none; }
+.pn .no { position: absolute; left: -7px; top: -9px; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); color: #fff; font: 700 11px system-ui; display: grid; place-items: center; }
+.pn .pre, .pn .eff { display: flex; gap: 1px; min-height: 18px; justify-content: center; flex-wrap: wrap; }
+.pn .eff { border-top: 1px dashed var(--line); padding-top: 2px; width: 100%; }
+.pn .eff::before { content: '→'; font: 700 11px system-ui; color: var(--muted); margin-right: 1px; }
+.pn .big { display: flex; align-items: center; gap: 1px; }
+.pn.past { background: #eef3ea; border-color: #8fa58a; }
+.pn.past .no { background: var(--ok); }
+.pn.here { outline: 3px solid var(--ink); outline-offset: 2px; background: #fff3c4; }
+.pn.ahead { border-style: dashed; }
+.pn.stop { border: 2px dashed var(--cut); background: #fbf3dc; }
+.pn.torn { background: linear-gradient(90deg, #fff 0 80%, #f3e2b8 80%); border-color: var(--cut); clip-path: polygon(0 0, 100% 0, 92% 12%, 100% 24%, 90% 38%, 100% 52%, 91% 66%, 100% 80%, 92% 92%, 100% 100%, 0 100%); }
+.pn .rule { position: absolute; bottom: -15px; left: -4px; white-space: nowrap; font-size: 10px; background: var(--ink); color: #fff; border-radius: 6px; padding: 0 4px; text-align: center; z-index: 2; }
+.pn .tear { position: absolute; top: -13px; right: -6px; font-size: 10px; color: var(--cut); font-weight: 700; }
+.pn.goal { border: 2px solid var(--ink); background: var(--card); width: 70px; }
+.fx { display: inline-grid; position: relative; width: 20px; height: 20px; place-items: center; border-radius: 50%; background: #f4efe4; cursor: pointer; }
+.fx svg { width: 15px; height: 15px; }
+.fx.pair { width: 32px; border-radius: 10px; grid-auto-flow: column; }
+.fx.pair svg { width: 13px; height: 13px; }
+.fx i { position: absolute; right: -3px; bottom: -3px; width: 10px; height: 10px; border-radius: 50%; font: 700 8px/10px system-ui; text-align: center; font-style: normal; color: #fff; }
+.fx i.y { background: var(--ok); } .fx i.n { background: var(--no); }
+.metro { position: absolute; left: 0; right: 0; top: 0; height: 14px; pointer-events: none; }
+.scan { position: absolute; top: 0; height: 12px; pointer-events: none; }
+.blocked { border: 2px solid #333; border-radius: 9px; background: #fff; padding: 6px 10px; margin: 8px 0; }
+.blocked .rem { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.blocked .rem button { font: inherit; font-size: 12px; border: 1px solid #3a2a1a; background: #f3efe4; border-radius: 10px; padding: 2px 8px; cursor: pointer; display: flex; gap: 4px; align-items: center; }
+.blocked .rulewill { font-style: italic; font-size: 12.5px; margin-top: 4px; }
+.mini { display: flex; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 4px 8px; margin: 6px 0; cursor: pointer; }
+.mini.on { outline: 2.5px solid var(--ink); }
+.bubble { position: fixed; z-index: 40; width: 300px; background: #fff; border: 1px solid #3a2a1a; border-radius: 8px; padding: 8px 11px; box-shadow: 0 4px 14px #0004; font-size: 13px; }
+.bubble h3 { margin: 0 0 4px; font: 600 14.5px 'Alegreya Sans', sans-serif; display: flex; gap: 6px; align-items: center; }
+.bubble dl { margin: 0; display: grid; grid-template-columns: 64px 1fr; gap: 1px 6px; } .bubble dt { color: var(--muted); } .bubble dd { margin: 0; }
+.bubble .acts { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 4px; }
+.bubble button { font: inherit; font-size: 12px; border: 1px solid #3a2a1a; background: #f3efe4; border-radius: 12px; padding: 2px 9px; cursor: pointer; }
+.bubble button.main { background: var(--ink); color: #fff; }
+.ladder { margin: 4px 0 0; padding: 0; list-style: none; } .ladder li { padding: 2px 0 2px 14px; border-left: 2px solid var(--ink); margin-left: 6px; display: flex; gap: 5px; align-items: center; }
+#toast { position: fixed; left: 60%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 7px 14px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 60; max-width: 640px; }
+#toast.on { opacity: 1; } #toast code { color: #f2c27a; }
+.note { position: fixed; right: 10px; bottom: 10px; z-index: 30; background: #fff; border: 1px solid var(--line); border-radius: 8px; font-size: 12.5px; max-width: 420px; }
+.note summary { cursor: pointer; padding: 4px 10px; font-weight: 600; } .note div { padding: 0 10px 8px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="band"><h1>Task Instructions</h1><span class="mode">Pawn · task</span>
+    <span class="from">borrows: flat-pack assembly sheets (wordless numbered steps) · recipe cards · the subway map's "you are here"</span>
+    <span class="sp"></span>
+    <div class="seg" id="pawnSeg"><button data-p="nils" class="on">Nils</button><button data-p="ola">Ola</button></div>
+    <div class="seg" id="viewSeg"><button data-v="one" class="on">one task</button><button data-v="stress">stress: 3 cut</button></div>
+  </div>
+  <div id="left"><div id="mapbox"></div><div id="world"></div></div>
+  <div id="sheet"></div>
+</div>
+<details class="note"><summary>Scales to / strains at</summary><div>
+<b>Scales to</b> any kind of at most three methods of at most seven steps: a row each fits 1000 px; the backward scan reads as one arrow; the same panel serves a stage of a project.<br>
+<b>Strains at</b> facts that are counts (3 loads, 6 trees): a ✓ hides "2 of 3", so the loop back for more is a note, not a picture.
+Whether timber at the wood is a <i>stray</i> pile (scene.js) or the kind's own (3.2: the wood is where it fells): the sheet reads it by the cart method's load step, and keeps the stray row for a pile on the road.
+Three methods plus two rules is five rows: the greyed ones are noise once learned; a "show only the live row" toggle would be needed. Stress with 3 cut tasks becomes a list of mini sheets: fine for 3, not for 10.
+</div></details>
+<div id="toast"></div>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const G = (g, s = 15) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><g fill="none" stroke="#2a2018" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS.line[g] || ICONS.line.plan}</g></svg>`;
+// ---- Facts (read from the world; none stored on the task). grp: mutually exclusive facts. g: glyph pair.
+const FACTS = {
+  atHome: { g: ['me', 'home'], t: 'Nils is at home', grp: 'at' }, atWood: { g: ['me', 'tree'], t: 'Nils is at Hagen wood', grp: 'at' }, atRoad: { g: ['me', 'road'], t: 'Nils is on the road', grp: 'at' },
+  cartHome: { g: ['cart', 'home'], t: 'the cart stands at home', grp: 'cart' }, cartWith: { g: ['cart', 'me'], t: 'the cart is with Nils', grp: 'cart' }, cartNorr: { g: ['cart', 'no'], t: 'the cart is at Norrgård (lent)', grp: 'cart' },
+  carry: { g: ['wood', 'me'], t: 'Nils carries timber (ours)' }, pileWood: { g: ['wood', 'tree'], t: 'timber lies at Hagen wood, our mark' },
+  pileRoad: { g: ['wood', 'road'], t: 'timber set down on the road, our mark' }, yard: { g: ['wood', 'home'], t: 'timber at the farm, uncut' },
+  done: { g: ['wood', 'target'], t: 'the woodpile holds the amount' }, ill: { g: ['health', 'no'], t: 'Nils cannot walk on (ill)' },
+};
+const GROUPS = { at: ['atHome', 'atWood', 'atRoad'], cart: ['cartHome', 'cartWith', 'cartNorr'] };
+// ---- Steps: prim, glyph, thing, place, pre, eff, hours.
+const S = (prim, g, pre, eff, h, extra = {}) => ({ prim, g, pre, eff, h, ...extra });
+const PRIM = { go: '⟶', fetch: '✋', work: '⚒', load: '⤒', haul: '⇉', unload: '⤓', return: '⟲', wait: '⧗' };
+const FIREWOOD = {
+  title: 'Firewood', pawn: 'nils', glyph: 'wood', amount: 3, store: 'the woodpile at Backa',
+  rules: [
+    { name: 'a load in hand', note: 'carry on home unless he cannot walk', when: (w) => w.carry && !w.atHome, whenF: ['carry'], whyNot: 'no load in hand away from home',
+      steps: [S('haul', 'cart', ['carry'], ['atHome'], 1, { rule: 'home, past dark if need be' }), S('unload', 'wood', ['carry', 'atHome'], ['yard'], 0.3)], after: 'the cutting is then open to anyone' },
+    { name: 'the stray method', note: 'a pile of ours where the kind neither makes nor wants it', when: (w) => w.pileRoad && !w.carry, whenF: ['pileRoad'], whyNot: 'no pile of ours lying astray',
+      steps: [S('go', 'walk', [], ['atRoad'], 0.5), S('load', 'wood', ['atRoad', 'pileRoad'], ['carry'], 0.3), S('haul', 'cart', ['carry'], ['atHome'], 0.5), S('unload', 'wood', ['carry', 'atHome'], ['yard'], 0.3)] },
+  ],
+  methods: [
+    { name: 'just cut', when: (w) => w.yard, whenF: ['yard'], whyNot: 'no timber at the farm', est: '1-2h',
+      steps: [S('work', 'chop', ['yard', 'atHome'], ['done'], 1.5)] },
+    { name: 'on the back', when: (w) => w.atWood && !w.cartWith, whenF: ['atWood', '!cartWith'], whyNot: 'he is not at the wood without the cart', est: '6-9h, 3 trips',
+      steps: [S('work', 'chop', ['atWood'], ['pileWood'], 2), S('load', 'wood', ['atWood', 'pileWood'], ['carry'], 0.2), S('haul', 'walk', ['carry'], ['atHome'], 1, { rule: 'load in hand: home' }), S('unload', 'wood', ['carry', 'atHome'], ['yard'], 0.2), S('work', 'chop', ['yard', 'atHome'], ['done'], 1.5)] },
+    { name: 'with the cart', when: (w) => w.cartHome || w.cartWith, whenF: ['cartHome|cartWith'], whyNot: 'the cart is not to be had', est: '4-6h',
+      steps: [S('fetch', 'cart', ['atHome', 'cartHome'], ['cartWith'], 0.2), S('go', 'walk', ['cartWith'], ['atWood'], 0.7), S('work', 'chop', ['atWood'], ['pileWood'], 2),
+        S('load', 'wood', ['atWood', 'cartWith', 'pileWood'], ['carry'], 0.5), S('haul', 'cart', ['carry'], ['atHome'], 0.7, { rule: 'load in hand: home' }), S('unload', 'wood', ['carry', 'atHome'], ['yard'], 0.3),
+        S('work', 'chop', ['yard', 'atHome'], ['done'], 1.5), S('return', 'cart', ['done', 'cartWith', 'atHome'], ['cartHome'], 0.1)] },
+  ],
+};
+// The five rows of the firewood table, the night's cut, a stray, and blocked.
+const PRESETS = [
+  { k: 'r1', t: '① home, cart home', w: ['atHome', 'cartHome'] },
+  { k: 'r2', t: '② at the wood, no cart', w: ['atWood', 'cartHome'] },
+  { k: 'r3', t: '③ cut last night: pile at the wood', w: ['atHome', 'cartHome', 'pileWood'], cut: { step: 2, why: 'nightfall', at: 'wood2' } },
+  { k: 'r4', t: '④ called off on the road, loaded', w: ['atRoad', 'cartWith', 'carry'], cut: { step: 4, why: 'called: haul before the rain' } },
+  { k: 'r5', t: '⑤ timber at the farm', w: ['atHome', 'cartHome', 'yard'] },
+  { k: 'st', t: 'set down ill on the road → stray', w: ['atHome', 'cartHome', 'pileRoad'], cut: { step: 4, why: 'fell ill on the road: set down', at: 'road' } },
+  { k: 'bl', t: 'blocked: cart at Norrgård', w: ['atHome', 'cartNorr'] },
+];
+// Ola's multi-step tasks: stages, each a sheet of one or two methods (facts fixed for the mock, toggles still flip them).
+const OFACTS = {
+  oHome: { g: ['me', 'home'], t: 'Ola is at his shelter', grp: 'oat' }, oWood: { g: ['me', 'tree'], t: 'Ola is at Hagen wood', grp: 'oat' }, oField: { g: ['me', 'field'], t: 'Ola is at the south clearing', grp: 'oat' },
+  axe: { g: ['chop', 'me'], t: 'an axe at hand' }, felled: { g: ['tree', 'tree'], t: 'felled trees lie at the wood (1 of 6), his mark' }, six: { g: ['tree', 'target'], t: '6 trees felled' },
+  logsHome: { g: ['wood', 'home'], t: 'logs at the cottage site' }, cartLent: { g: ['cart', 'friend'], t: 'Backa lends its cart (asked: no)' },
+  hoe: { g: ['hoe', 'me'], t: 'a hoe at hand' }, broken: { g: ['field', 'hoe'], t: 'the clearing broken (day 2 of ~6)' }, seed: { g: ['seed', 'home'], t: 'seed in store (none: 0 of 2 sacks)' },
+};
+const OLA = {
+  cottage: { title: 'Cottage', glyph: 'build', amount: 1, store: 'his cottage site', cut: { stage: 0, step: 1, why: 'nightfall, 1 tree down' }, stages: [
+    { name: 'fell 6', g: 'chop', methods: [{ name: 'fell where it stands', when: (w) => w.axe, whenF: ['axe'], whyNot: 'no axe', est: '2-3 days',
+      steps: [S('go', 'walk', [], ['oWood'], 0.7), S('work', 'chop', ['oWood', 'axe'], ['six'], 15, { count: 6 })] }] },
+    { name: 'haul', g: 'cart', methods: [
+      { name: 'borrow Backa\'s cart', when: (w) => w.cartLent, whenF: ['cartLent'], whyNot: 'Backa has not lent it (ask: 1 day\'s work back)', est: '1 day', steps: [S('fetch', 'cart', [], ['cartLent'], 1), S('go', 'walk', ['cartLent'], ['oWood'], 0.7), S('load', 'wood', ['oWood', 'six'], [], 1), S('haul', 'cart', [], ['logsHome'], 3)] },
+      { name: 'drag a log at a time', when: (w) => w.six, whenF: ['six'], whyNot: 'the six are not felled yet', est: '3-4 days', steps: [S('go', 'walk', [], ['oWood'], 0.7), S('load', 'tree', ['oWood', 'felled'], [], 0.3), S('haul', 'walk', [], ['logsHome'], 1.5, { rule: 'load in hand: home', count: 6 })] }] },
+    { name: 'hew', g: 'chop', methods: [{ name: 'hew at the site', when: (w) => w.logsHome, whenF: ['logsHome'], whyNot: 'no logs at the site', est: '2 days', steps: [S('work', 'chop', ['logsHome', 'oHome'], [], 16)] }] },
+    { name: 'walls', g: 'build', methods: [{ name: 'raise alone', when: () => false, whenF: ['logsHome'], whyNot: 'needs hewn logs', est: '3-5 days', steps: [S('work', 'build', ['oHome'], [], 30)] }] },
+    { name: 'roof', g: 'home', methods: [{ name: 'turf roof', when: () => false, whenF: ['logsHome'], whyNot: 'needs walls', est: '2 days', steps: [S('work', 'home', ['oHome'], [], 16)] }] },
+  ], w: ['oHome', 'axe', 'felled'] },
+  plant: { title: 'Plant', glyph: 'seed', amount: 1, store: 'the south clearing', stages: [
+    { name: 'clear', g: 'spade', done: true, methods: [] },
+    { name: 'break', g: 'hoe', methods: [{ name: 'break with the hoe', when: (w) => w.hoe, whenF: ['hoe'], whyNot: 'no hoe', est: '4-6 days left', steps: [S('go', 'walk', [], ['oField'], 0.3), S('work', 'hoe', ['oField', 'hoe'], ['broken'], 40)] }] },
+    { name: 'hoe', g: 'hoe', methods: [{ name: 'harrow by hand', when: (w) => w.broken, whenF: ['broken'], whyNot: 'not broken yet', est: '1 day', steps: [S('work', 'rake', ['oField', 'broken'], [], 8)] }] },
+    { name: 'sow', g: 'sow', methods: [{ name: 'broadcast', when: (w) => w.seed, whenF: ['seed'], whyNot: 'no seed in store: 0 of 2 sacks', est: '½ day', steps: [S('fetch', 'seed', ['seed', 'oHome'], [], 0.3), S('go', 'walk', [], ['oField'], 0.3), S('work', 'sow', ['oField'], [], 4)] }] },
+  ], w: ['oField', 'hoe', 'axe', 'felled'] },
+};
+// ---- State
+let pawn = 'nils', view = 'one', task = 'firewood', stage = 0, preset = 'r3', W = {}, amount = 3, chosen = null, stops = [];
+const setW = (keys) => { W = {}; keys.forEach((k) => (W[k] = true)); };
+setW(PRESETS[2].w);
+const F = () => (task === 'firewood' ? FACTS : OFACTS);
+const has = (f) => (f.startsWith('!') ? !W[f.slice(1)] : f.split('|').some((x) => W[x]));
+const cur = () => (task === 'firewood' ? FIREWOOD : OLA[task]);
+const P = () => PRESETS.find((p) => p.k === preset) || { w: [], t: '' };
+// next(w): 1. the load-in-hand rule; 2. the stray method; 3. the first method whose `when` holds (or the player's choice among those);
+// scan its steps from the last: take the last whose pre holds and whose eff does not.
+function readRow(m) {
+  const scan = []; let here = -1;
+  for (let i = m.steps.length - 1; i >= 0; i--) {
+    const s = m.steps[i], pre = s.pre.every(has), eff = s.eff.length && s.eff.every(has);
+    scan.push(i); if (pre && !eff) { here = i; break; }
+  }
+  return { here, scan };
+}
+function plan() {
+  const T = cur();
+  if (task !== 'firewood') { const st = T.stages[stage]; const rows = st.methods.map((m) => ({ m, ok: m.when(W) })); const live = rows.find((r) => r.ok); return { rows, live, rules: [] }; }
+  const rules = T.rules.map((m) => ({ m, ok: m.when(W) && !(m.name === 'a load in hand' && W.ill), rule: true }));
+  const rows = T.methods.map((m) => ({ m, ok: m.when(W) }));
+  let live = rules.find((r) => r.ok);
+  if (!live) live = (chosen && rows.find((r) => r.ok && r.m.name === chosen)) || rows.find((r) => r.ok);
+  return { rows, live, rules };
+}
+// ---- Rendering
+function fx(k, dyn = true) {
+  const f = F()[k.replace('!', '').split('|')[0]]; if (!f) return '';
+  const neg = k.startsWith('!'), v = has(k);
+  return `<span class="fx pair" data-b="fact:${k}" title="${neg ? 'not: ' : ''}${f.t}">${G(f.g[0], 13)}${G(f.g[1], 13)}${neg ? '<b style="position:absolute;font:700 14px system-ui;color:#5a5247">⃠</b>' : ''}${dyn ? `<i class="${v ? 'y' : 'n'}">${v ? '✓' : '✗'}</i>` : ''}</span>`;
+}
+function panel(s, i, state, ri, extra = '') {
+  const tag = `<span style="font:700 13px system-ui;color:#5a5247">${PRIM[s.prim]}</span>`;
+  const ic = icon(s.g, { frame: state === 'here' ? 'now' : 'plan', whose: pawn === 'ola' ? 'own' : 'household', size: 34, state: state === 'past' ? 'done' : null, num: s.count || null, unit: s.count ? 'count' : null });
+  return `<div class="pn ${state} ${extra}" data-b="step:${ri}:${i}"><span class="no">${i + 1}</span><div class="pre">${s.pre.map((f) => fx(f)).join('') || '<small style="color:#999">·</small>'}</div>
+    <div class="big">${tag}${ic}</div><div class="eff">${s.eff.map((f) => fx(f)).join('')}</div>${s.rule ? `<span class="rule" data-b="rule">⚖ ${s.rule}</span>` : ''}${extra.includes('torn') ? '<span class="tear">✂ cut</span>' : ''}</div>`;
+}
+function row(r, ri, live) {
+  const isLive = live && live.m === r.m, rd = isLive ? readRow(r.m) : null, cut = task === 'firewood' ? P().cut : cur().cut && cur().cut.stage === stage ? cur().cut : null;
+  let ps = r.m.steps.map((s, i) => {
+    const st = !isLive ? 'ahead' : i < rd.here ? 'past' : i === rd.here ? 'here' : 'ahead';
+    const torn = cut && (task !== 'firewood' || r.m.name === 'with the cart') && !r.rule && i === cut.step && st !== 'here' ? ' torn' : '';
+    return panel(s, i, st, ri, torn);
+  });
+  if (isLive && stops.length && !r.rule) ps.splice(rd.here + 1, 0, ...stops.map((s, j) => `<div class="pn stop" data-b="stop:${j}"><span class="no">+</span><div class="pre">${fx('atRoad')}</div><div class="big">${icon('stone', { frame: 'plan', author: 'player', state: 'stray', size: 34 })}</div><div class="eff">${G('stone', 13)}${G('home', 13)}</div></div>`));
+  const goal = `<div class="pn goal" data-b="goal"><span class="no">★</span><div class="pre"></div><div class="big">${icon(cur().glyph, { frame: 'target', whose: pawn === 'ola' ? 'own' : 'household', num: task === 'firewood' ? amount : null, unit: 'count', size: 38 })}</div><div class="eff"></div></div>`;
+  const when = r.m.whenF.map((f) => fx(f)).join('');
+  const why = r.ok ? (isLive ? (r.rule ? 'applies first' : chosen === r.m.name ? 'your choice' : 'first whose <i>when</i> holds') : r.rule ? '' : 'applies too') : r.m.whyNot;
+  const pick = r.ok && !isLive && !r.rule && !(live && live.rule) ? `<button data-pick="${r.m.name}">take this</button>` : '';
+  const scanSvg = '';
+  return `<div class="row ${isLive ? 'live' : r.ok ? 'ok' : 'off'}" data-row="${ri}"><div class="rh">${r.rule ? icon('cause', { whose: null, size: 22 }) : `<b style="font:700 13px system-ui">${String.fromCharCode(65 + ri)}</b>`}<b>${r.m.name}</b>${r.m.note ? `<span class="why">(${r.m.note})</span>` : ''}
+    <span class="when">when ${when}</span><span class="why">${why}</span>${pick}${r.m.est ? `<span class="est">${r.m.est}</span>` : ''}</div>
+    ${isLive || r.ok || !r.rule ? `<div class="panels">${scanSvg}${ps.join('')}${r.rule ? '' : goal}</div>` : ''}${isLive && r.m.after ? `<div class="why" style="font-size:12px;margin-top:14px">then: ${r.m.after}</div>` : ''}</div>`;
+}
+// The backward reading: an arrow from the goal leftwards over the scanned panels, a ✗ over each whose needs fail, stopping at "you are here".
+function scanArrow(rd, n, extra) {
+  const pw = 114, x0 = 48 + rd.here * pw, x1 = 48 + n * pw + extra * pw + 10;
+  let marks = rd.scan.slice(0, -1).map((i) => `<text x="${48 + i * pw + 30}" y="10" font-size="11" font-weight="700" fill="#6b6b6b">✗</text>`).join('');
+  return `<svg class="scan" style="left:0;width:${x1 + 20}px" viewBox="0 0 ${x1 + 20} 12"><path d="M${x1} 6H${x0 + 6}" stroke="#23251e" stroke-width="1.6" stroke-dasharray="4 3"/><path d="M${x0 + 12} 1l-7 5 7 5" fill="none" stroke="#23251e" stroke-width="1.8"/>${marks}<circle cx="${x0 - 4}" cy="6" r="5" fill="#fff" stroke="#23251e" stroke-width="2.5"/><text x="${x0 + 22}" y="10" font-size="10" fill="#23251e">you are here ←  read from the goal</text></svg>`;
+}
+function blockedCard(p) {
+  return `<div class="blocked"><div style="display:flex;gap:8px;align-items:center">${icon('cart', { state: 'blocked', size: 34 })}<b>No step can be taken:</b> ${fx('cartNorr')} the cart is at Norrgård (lent day 3) · ${fx('atWood')} not at the wood · ${fx('yard')} no timber at home</div>
+  <div class="rem">
+    <button data-act="go Norrgård for the cart|+1.5h, Nils passes Lisa: he'd like it">${G('cart')} fetch it from Norrgård <small>+1.5h</small></button>
+    <button data-act="on the back from home|+3h, 3 trips, 6-9h">${G('walk')} on the back <small>+3h</small></button>
+    <button data-act="wait for the cart|day 5, the woodpile lasts 2 days">${G('queue')} wait for it <small>day 5</small></button>
+    <button data-act="release Nils from firewood|Erik's duty takes it, -2h his own">${G('next')} give it to Erik <small>-2h Erik's</small></button>
+  </div><div class="rulewill">the rule will: on the back from home (widens method B's <i>when</i> when no cart can be had) at 11:00 unless you choose</div></div>`;
+}
+function sheet() {
+  const T = cur(), p = plan();
+  let h = `<div class="ghead">${icon(T.glyph, { frame: 'target', whose: pawn === 'ola' ? 'own' : 'household', size: 40 })}<span class="who">${T.title} · ${pawn === 'nils' ? 'Nils, for Backa' : 'Ola, his own'}</span>`;
+  if (task === 'firewood') h += `<span class="stepper"><button data-amt="-1">−</button><span>×${amount} loads</span><button data-amt="1">+</button></span><span class="fchip ${stops.length ? 'on' : ''}" data-stop="1">${G('plus')} add a stop: ${icon('stone', { state: 'stray', size: 20, whose: null })} on the road, in passing</span>`;
+  h += `<span style="margin-left:auto;font-size:12px;color:var(--muted)">into ${T.store}</span></div>`;
+  if (T.stages) h += `<div class="stages">${T.stages.map((s, i) => `<span class="stage ${i === stage ? 'on' : ''} ${s.done ? 'done' : ''}" data-stage="${i}">${icon(s.g, { frame: i === stage ? 'now' : 'plan', whose: 'own', size: 22, state: s.done ? 'done' : T.cut && T.cut.stage === i ? 'stray' : null })}${s.name}</span>${i < T.stages.length - 1 ? '<span class="arr">→</span>' : ''}`).join('')}</div>`;
+  if (task === 'firewood' && P().cut) h += `<div style="font-size:12.5px;margin:4px 0;color:var(--cut)">✂ cut: ${P().cut.why}${P().cut.at ? ` · ${icon('wood', { state: 'stray', whose: null, size: 20 })} lies ${P().cut.at === 'road' ? 'on the road' : 'at Hagen wood'}, Backa's mark` : ''} · the torn panel is where the task stood</div>`;
+  if (task === 'firewood') { h += '<h4>first, the two rules</h4>' + p.rules.map((r, i) => row(r, 10 + i, p.live)).join(''); h += '<h4>then the kind\'s methods, first whose when holds</h4>'; }
+  if (!p.live && !(task !== 'firewood' && cur().stages[stage].done)) h += task === 'firewood' ? blockedCard() : `<div class="blocked"><b>Not yet:</b> ${cur().stages[stage].methods.map((m) => m.whyNot).join(' · ')}</div>`;
+  if (task !== 'firewood' && cur().stages[stage].done) h += `<div class="blocked" style="border-color:#3f7a35">${icon('spade', { state: 'done', whose: 'own', size: 30 })} done, spring day 1</div>`;
+  h += p.rows.map((r, i) => row(r, i, p.live)).join('');
+  return h;
+}
+function stressSheet() {
+  const L = [
+    { t: 'Firewood', g: 'wood', pile: 'Hagen wood', step: 'fetch cart', why: 'nightfall', k: 'r3' },
+    { t: 'Haul sheaves', g: 'sheaves', pile: 'Long field (stooks)', step: 'load', why: 'called to the barley' },
+    { t: 'Stones off the clearing', g: 'stone', pile: 'the road (a basket, set down ill)', step: 'stray: go, load', why: 'ill on day 3' },
+  ];
+  return `<h4>Nils: three tasks cut, each with a pile of Backa's in the world (marked ①②③ on the map)</h4>` + L.map((x, i) => `<div class="mini" data-mini="${x.k || ''}">
+    <b style="font:700 15px system-ui">${'①②③'[i]}</b>${icon(x.g, { frame: 'plan', state: 'stray', size: 34 })}<b>${x.t}</b>
+    <span class="pn torn" style="width:40px;margin:0;padding:2px"><span class="tear">✂</span>${G(x.g, 18)}</span><span class="why">${x.why}</span>→ <span>${icon(x.g, { state: 'stray', whose: null, size: 24 })} ${x.pile}</span>
+    <span style="margin-left:auto">next: <b>${x.step}</b></span></div>`).join('') + `<div class="why" style="font-size:12.5px;margin-top:8px">Each opens to its full sheet; order among them is the allotment's (the head's lists), not the sheet's.</div>`;
+}
+// The map: the task's places lit, the pawn, the cart, the piles with the household's mark.
+function mapView() {
+  const sc = 0.47, hex = (k) => hexXY(...k);
+  const road = hexXY(2, 2), lit = task === 'firewood' ? [at('home'), at('wood2'), road] : task === 'cottage' ? [at('home'), at('wood1')] : [at('home'), at('clearing')];
+  let s = mapSVG({ dim: 0.35 });
+  s += lit.map((p) => `<path d="${hexPath(p.x, p.y, 50)}" fill="#fff3c455" stroke="#23251e" stroke-width="3.5"/>`).join('');
+  const mark = (x, y, n = '', g = 'wood') => `<g transform="translate(${x - 22} ${y - 22})">${icon(g, { state: 'stray', whose: null, size: 44 }).replace('<svg', '<svg x="0" y="0"')}</g><g transform="translate(${x + 14} ${y + 8})"><rect width="20" height="20" rx="3" fill="#e0a43a" stroke="#2a2018"/><text x="10" y="15" font-size="14" font-weight="700" text-anchor="middle">${pawn === 'ola' ? 'O' : 'B'}</text></g>${n ? `<text x="${x - 30}" y="${y - 22}" font-size="22" font-weight="700">${n}</text>` : ''}`;
+  if (view === 'stress') { s += mark(at('wood2').x, at('wood2').y, '①') + mark(at('long').x, at('long').y, '②', 'sheaves') + mark(road.x, road.y, '③', 'stone'); }
+  else if (task === 'firewood') {
+    s += `<path d="M${at('home').x} ${at('home').y}L${road.x} ${road.y}L${at('wood2').x} ${at('wood2').y}" stroke="#23251e" stroke-width="5" stroke-dasharray="10 7" fill="none"/>`;
+    if (W.pileWood) s += mark(at('wood2').x, at('wood2').y + 10); if (W.pileRoad) s += mark(road.x, road.y + 10);
+    const pp = W.atWood ? at('wood2') : W.atRoad ? road : at('home'); s += pawnSVG(PEOPLE[3], pp.x - 18, pp.y - 6, 2.2);
+    const cp = W.cartNorr ? at('norr') : W.cartWith ? pp : at('home'); s += `<g transform="translate(${cp.x + 4} ${cp.y - 30}) scale(1.4)">${icon('cart', { whose: null, state: W.cartNorr ? 'blocked' : null }).replace('<svg', '<svg x="0" y="0"')}</g>`;
+  } else {
+    if (task === 'cottage') s += mark(at('wood1').x, at('wood1').y + 10);
+    const pp = W.oWood ? at('wood1') : W.oField ? at('clearing') : at('home'); s += pawnSVG({ col: LONE.col }, pp.x - 18, pp.y - 6, 2.2);
+  }
+  $('mapbox').innerHTML = `<svg viewBox="0 0 ${MAP_W} ${MAP_H}" width="${MAP_W * sc}" height="${MAP_H * sc}" style="margin:-8px 0 0 -12px">${DEFS}${s}</svg>`;
+}
+function worldPanel() {
+  const tl = pawn === 'nils' ? [['firewood', 'wood', 'Firewood']] : [['cottage', 'build', 'Cottage'], ['plant', 'seed', 'Plant']];
+  let h = `<h4>${pawn === 'nils' ? 'Nils\' tasks' : 'Ola\'s tasks'}</h4><div class="tasks">${tl.map(([k, g, t]) => `<button data-task="${k}" class="${task === k ? 'on' : ''}">${icon(g, { size: 24, whose: pawn === 'ola' ? 'own' : 'household' })}${t}</button>`).join('')}</div>`;
+  h += `<h4>world state (flip a fact: the sheet re-reads)</h4>`;
+  const fs = F(), seen = new Set();
+  for (const [k, f] of Object.entries(fs)) {
+    if (seen.has(k)) continue;
+    const grp = f.grp ? Object.keys(fs).filter((x) => fs[x].grp === f.grp) : [k]; grp.forEach((x) => seen.add(x));
+    if (!f.grp) continue;
+    h += `<div class="fgrp"><small>${f.grp.endsWith('at') ? 'where' : 'cart'}</small>${grp.map((x) => `<span class="fchip ${W[x] ? 'on' : ''}" data-fact="${x}" title="${fs[x].t}">${G(fs[x].g[0])}${G(fs[x].g[1])}</span>`).join('')}</div>`;
+  }
+  const un = Object.keys(fs).filter((x) => !fs[x].grp);
+  h += `<div class="fgrp"><small>things</small>${un.map((x) => `<span class="fchip ${W[x] ? 'on' : ''}" data-fact="${x}" title="${fs[x].t}">${G(fs[x].g[0])}${G(fs[x].g[1])}</span>`).join('')}</div>`;
+  if (task === 'firewood') h += `<h4>the table's rows</h4><div class="presets">${PRESETS.map((p) => `<button data-preset="${p.k}" class="${preset === p.k ? 'on' : ''}">${p.t}</button>`).join('')}</div>`;
+  $('world').innerHTML = h;
+}
+function render() { document.querySelectorAll('.bubble').forEach((x) => x.remove()); document.querySelectorAll('#pawnSeg button').forEach((b) => b.classList.toggle('on', b.dataset.p === pawn)); document.querySelectorAll('#viewSeg button').forEach((b) => b.classList.toggle('on', b.dataset.v === view)); mapView(); worldPanel(); $('sheet').innerHTML = view === 'stress' ? stressSheet() : sheet(); drawScans(); }
+// The backward reading, drawn after layout: from the goal leftwards, a ✗ over each step whose needs fail, stopping at "you are here".
+function drawScans() {
+  document.querySelectorAll('.row.live .panels').forEach((P0) => {
+    const ps = [...P0.querySelectorAll(':scope > .pn')], here = P0.querySelector('.pn.here'); if (!here) return;
+    const box = P0.getBoundingClientRect(), cx = (e) => { const r = e.getBoundingClientRect(); return r.left - box.left + r.width / 2; };
+    const last = ps[ps.length - 1], hi = ps.indexOf(here), x1 = cx(last), x0 = cx(here) + 22;
+    const marks = ps.slice(hi + 1, ps.length - (last.classList.contains('goal') ? 1 : 0)).filter((e) => !e.classList.contains('stop')).map((e) => `<text x="${cx(e)}" y="11" font-size="12" font-weight="700" fill="#6b6b6b" text-anchor="middle">✗</text>`).join('');
+    P0.insertAdjacentHTML('afterbegin', `<svg class="scan" style="left:0;width:${box.width}px" viewBox="0 0 ${box.width} 14"><path d="M${x1} 7H${x0}" stroke="#23251e" stroke-width="1.6" stroke-dasharray="4 3"/><path d="M${x0 + 7} 2l-7 5 7 5" fill="none" stroke="#23251e" stroke-width="1.8"/>${marks}<circle cx="${cx(here)}" cy="7" r="6" fill="#fff" stroke="#23251e" stroke-width="3"/><text x="${cx(here) - 10}" y="11" font-size="10.5" text-anchor="end" fill="#23251e">${hi > 0 ? 'you are here' : ''}</text></svg>`);
+    if (hi === 0) P0.insertAdjacentHTML('beforeend', '');
+  });
+}
+// ---- Bubbles, acts, why
+const toast = (h) => { const e = $('toast'); e.innerHTML = h; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3600); };
+function bubble(k, el, acts) {
+  document.querySelectorAll('.bubble').forEach((x) => x.remove());
+  const b = document.createElement('div'); b.className = 'bubble'; const [kind, a, c] = k.split(':'); let h = '', A = [];
+  if (kind === 'step') {
+    const p = plan(), ri = +a, r = ri >= 10 ? p.rules[ri - 10] : p.rows[ri], s = r.m.steps[+c], rd = p.live && p.live.m === r.m ? readRow(r.m) : null;
+    h = `<h3>${icon(s.g, { size: 26 })} ${c * 1 + 1}. ${s.prim} ${s.prim === 'work' ? '(' + s.g + ')' : ''}</h3><dl><dt>needs</dt><dd>${s.pre.map((f) => fx(f) + ' ' + F()[f.replace('!', '')].t).join('<br>') || 'nothing'}</dd><dt>makes</dt><dd>${s.eff.map((f) => F()[f].t).join(', ') || '(a stage\'s hours)'}</dd>
+      <dt>est.</dt><dd>${s.h}h (${(s.h * 0.8).toFixed(1)}-${(s.h * 1.4).toFixed(1)})</dd><dt>chose</dt><dd>the rule: method ${r.m.name}${rd ? (rd.here === +c ? ', <b>the step nearest the goal whose needs hold</b>' : +c < rd.here ? ', passed: a later step\'s needs already hold' : ', ahead: its needs do not hold yet') : ''}</dd>${s.rule ? `<dt>rule</dt><dd>⚖ a load in hand goes home, past dark if need be; set down only if he cannot walk (death, illness, household gone). A call sets it down only if the caller says so.</dd>` : ''}</dl>`;
+    A = [['why', 'why'], ['call off here', 'call'], ['add a stop', 'plan']];
+  } else if (kind === 'fact') { const f = F()[a.replace('!', '').split('|')[0]]; h = `<h3>${G(f.g[0], 20)}${G(f.g[1], 20)} ${f.t}</h3><dl><dt>now</dt><dd>${has(a) ? 'holds ✓' : 'does not hold ✗'} — read from the world, not stored on the task</dd><dt>who knows</dt><dd>Nils, seen at ${NOW.hour}:00</dd></dl>`; A = [['flip (mock)', 'flip']]; }
+  else if (kind === 'goal') { h = `<h3>${icon(cur().glyph, { frame: 'target', size: 26 })} the goal</h3><dl><dt>goal</dt><dd>${task === 'firewood' ? amount + ' loads of firewood into Backa\'s woodpile' : cur().title + ' at ' + cur().store}</dd><dt>whose</dt><dd>${pawn === 'nils' ? 'Backa\'s, levied hours; allotted by the custom' : 'Ola\'s own'}</dd><dt>done when</dt><dd>every step\'s effect holds</dd></dl>`; A = [['why', 'why'], ['set the amount', 'plan']]; }
+  else if (kind === 'rule') { h = `<h3>⚖ a load in hand</h3>A pawn carrying a body's goods hauls them to that body's store, past the end of the day if need be (Finishing what was begun). Set down only when it cannot walk on. 915 loads were set down in 10,000 runs under the old rule.`; A = [['set it down here (cost: a walk out and back)', 'release']]; }
+  else if (kind === 'stop') { h = `<h3>${icon('wood', { state: 'stray', author: 'player', size: 26 })} a stop you added</h3>Pick up Backa's basket of stones, set down on the road (task ③, cut), in passing: +0.3h, saves the stray method a trip of 1h tomorrow. Yours, not the rule's (the pen nib).`; A = [['remove', 'release']]; }
+  b.innerHTML = h + `<div class="acts">${A.map(([l, v]) => `<button data-v="${v}" data-l="${l}">${l}</button>`).join('')}</div>`;
+  document.body.appendChild(b); const r = el.getBoundingClientRect();
+  b.style.left = Math.min(innerWidth - 320, r.left) + 'px'; b.style.top = Math.min(innerHeight - b.offsetHeight - 8, r.bottom + 6) + 'px';
+  b.onclick = (e) => { const x = e.target.closest('button'); if (!x) return; e.stopPropagation();
+    if (x.dataset.v === 'why') return whyCard(k, b);
+    if (x.dataset.v === 'flip') { flip(a.replace('!', '').split('|')[0]); b.remove(); return; }
+    if (x.dataset.l === 'add a stop') { stops = [1]; render(); }
+    if (x.dataset.v === 'call') return toast(`would issue <code>call</code> Nils off ${cur().title.toLowerCase()} · ${W.carry ? 'the load stays in hand: he carries it home first (the rule)' : 'nothing in hand: the task is cut here, its progress lies in the world'}`);
+    toast(`would issue <code>${x.dataset.v}</code> ${x.dataset.l} <small>(${k.replace(/:/g, ' ')})</small>`); b.remove(); };
+}
+function whyCard(k, b) {
+  const p = plan(), m = p.live ? p.live.m : null, st = m && readRow(m).here >= 0 ? m.steps[readRow(m).here] : null;
+  b.innerHTML = `<h3>why: task → step → target</h3><ul class="ladder">
+    <li>${icon('home', { frame: 'target', size: 22 })} ${pawn === 'nils' ? 'Backa needs firewood for winter (Per\'s target)' : 'Ola: a roof before the cold (his aim)'}</li>
+    <li>${icon(cur().glyph, { frame: 'plan', size: 22 })} task ${cur().title}${pawn === 'nils' ? ', allotted to Nils by the custom' : ''}</li>
+    <li>${icon('queue', { whose: null, size: 22 })} method: ${m ? m.name : '— none holds'} (${p.live && p.live.rule ? 'a rule, checked first' : 'first whose when holds'})</li>
+    <li>${st ? icon(st.g, { size: 22 }) : ''} step: ${st ? st.prim : '—'} (nearest the goal whose needs hold)</li>
+    <li>${icon('target', { whose: null, size: 22 })} target: ${st ? st.eff.map((f) => F()[f].t).join(', ') : '—'}</li></ul>`;
+}
+function flip(k) {
+  const fs = F(), f = fs[k];
+  if (f.grp) Object.keys(fs).filter((x) => fs[x].grp === f.grp).forEach((x) => (W[x] = false)), (W[k] = true); else W[k] = !W[k];
+  preset = null; render(); toast(`the world changed: ${f.t} ${W[k] ? '✓' : '✗'} · the sheet re-reads from the goal`);
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.bubble')) return;
+  const t = e.target;
+  const q = (sel) => t.closest(sel);
+  if (q('[data-p]')) { pawn = q('[data-p]').dataset.p; task = pawn === 'nils' ? 'firewood' : 'cottage'; stage = pawn === 'nils' ? 0 : 0; setW(pawn === 'nils' ? P() ? P().w : PRESETS[2].w : OLA.cottage.w); document.querySelectorAll('#pawnSeg button').forEach((b) => b.classList.toggle('on', b.dataset.p === pawn)); return render(); }
+  if (q('[data-v]') && q('#viewSeg')) { view = q('[data-v]').dataset.v; if (view === 'stress') { pawn = 'nils'; task = 'firewood'; setW(P().w.length ? P().w : PRESETS[2].w); } document.querySelectorAll('#viewSeg button').forEach((b) => b.classList.toggle('on', b.dataset.v === view)); return render(); }
+  if (q('[data-task]')) { task = q('[data-task]').dataset.task; stage = task === 'plant' ? 1 : 0; setW(task === 'firewood' ? (P().w.length ? P().w : PRESETS[2].w) : OLA[task].w); return render(); }
+  if (q('[data-stage]')) { stage = +q('[data-stage]').dataset.stage; return render(); }
+  if (q('[data-preset]')) { preset = q('[data-preset]').dataset.preset; setW(P().w); chosen = null; stops = []; return render(); }
+  if (q('[data-fact]')) return flip(q('[data-fact]').dataset.fact);
+  if (q('[data-amt]')) { amount = Math.max(1, amount + +q('[data-amt]').dataset.amt); toast(`would issue <code>plan</code> Nils firewood ×${amount} loads · the goal changes, the steps do not`); return render(); }
+  if (q('[data-pick]')) { chosen = q('[data-pick]').dataset.pick; toast(`would issue <code>plan</code> Nils firewood method="${chosen}" (kept: your choice over the first that holds)`); return render(); }
+  if (q('[data-stop]')) { stops = stops.length ? [] : [1]; toast(stops.length ? 'would issue <code>plan</code> Nils firewood: add a stop: the basket of stones on the road (task ③), in passing (+0.3h)' : 'stop removed'); return render(); }
+  if (q('[data-act]')) { const [l, c] = q('[data-act]').dataset.act.split('|'); return toast(`would issue <code>plan</code> ${l} <small>(cost: ${c})</small>`); }
+  if (q('[data-mini]')) { const k = q('[data-mini]').dataset.mini; view = 'one'; if (k) { preset = k; setW(P().w); } document.querySelectorAll('#viewSeg button').forEach((b) => b.classList.toggle('on', b.dataset.v === view)); return render(); }
+  const b = q('[data-b]'); if (b) return bubble(b.dataset.b, b);
+  document.querySelectorAll('.bubble').forEach((x) => x.remove());
+});
+render();
+</script>
+</body>
+</html>

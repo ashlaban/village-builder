@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settler's Blocks</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600;700&display=swap">
+<style>
+/* The lone settler's day as time blocks (Today), the days ahead as columns (Upcoming), an inbox of tasks and aims (Someday). */
+:root { --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --paper: #fbf7e9; --accent: #6a5a8a; --risk: #c8361b; color-scheme: light; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #8c9a6a; color: var(--ink); font: 13px/1.3 'Alegreya Sans', system-ui, sans-serif; }
+.app { display: grid; grid-template-rows: 40px minmax(0, 1fr) 292px; grid-template-columns: 232px minmax(0, 1fr) 120px; height: 100vh; }
+.band { grid-column: 1 / 4; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--card); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.band h1 { font: 500 17px 'Alegreya SC', Georgia, serif; margin: 0; }
+.band .mode { font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }
+.band .from { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.band .sp { flex: 1; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button, .tog { border: 0; background: #fff; padding: 2px 9px; font: inherit; font-size: 12.5px; cursor: pointer; }
+.seg button.on, .tog.on { background: var(--ink); color: #fff; }
+.tog { border: 1px solid var(--line); border-radius: 6px; }
+/* Today */
+#today { grid-row: 2 / 4; background: var(--card); border-right: 2px solid #3a2a1a; display: flex; flex-direction: column; min-height: 0; }
+#today .th { padding: 4px 8px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 6px; }
+#today .th b { font: 500 15px 'Alegreya SC', serif; }
+#today .th small { color: var(--muted); }
+#track { position: relative; flex: 1; margin-left: 34px; margin-right: 6px; }
+#track .hr { position: absolute; left: -34px; right: 0; border-top: 1px solid #0000000f; font-size: 10px; color: var(--muted); }
+#track .hr span { position: absolute; left: 2px; top: -6px; background: var(--card); }
+#track .now { position: absolute; left: -6px; right: 0; border-top: 2px solid var(--ink); z-index: 4; pointer-events: none; }
+#track .now i { position: absolute; left: -28px; top: -8px; font: 700 9.5px ui-monospace, monospace; background: var(--ink); color: #fff; padding: 0 3px; border-radius: 3px; font-style: normal; }
+#track .free { position: absolute; left: 0; right: 0; border: 1px dashed #0002; border-radius: 4px; color: var(--muted); font-size: 11px; display: flex; align-items: center; justify-content: center; font-style: italic; }
+.blk { position: absolute; left: 0; right: 0; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 6px; background: var(--paper); border: 1px solid #5a4a32; border-left-width: 5px; border-radius: 4px; font-size: 11.5px; overflow: hidden; white-space: nowrap; cursor: grab; touch-action: none; box-sizing: border-box; }
+.blk .wk { position: absolute; left: 0; right: 0; top: 0; background: repeating-linear-gradient(90deg, #0000 0 5px, #5a4a3222 5px 7px); border-bottom: 1px dotted #5a4a3280; font-size: 9.5px; color: var(--muted); padding-left: 3px; line-height: 1; display: flex; align-items: center; }
+.blk .lb { position: relative; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.blk.habit { background: #f1eee2; border-left-color: #9a917a; border-left-style: double; }
+.blk.habit .lb::before { content: '↻ '; color: var(--muted); }
+.blk.done { filter: saturate(.4); opacity: .65; cursor: default; }
+.blk.doing { box-shadow: inset 0 0 0 1.5px var(--ink); cursor: default; }
+.blk.waits { border-color: #333; background: repeating-linear-gradient(0deg, var(--paper) 0 9px, #3331 9px 10px); }
+.blk.spill { border-bottom: 3px solid var(--risk); }
+.blk.lit, .blk:hover { outline: 2px solid var(--accent); z-index: 3; }
+.walkb { position: absolute; left: 14px; right: 30px; background: repeating-linear-gradient(90deg, #0000 0 5px, #5a4a3233 5px 7px); border-radius: 3px; font-size: 9.5px; color: var(--muted); padding-left: 4px; display: flex; align-items: center; }
+.drag { position: fixed !important; z-index: 50; opacity: .9; pointer-events: none; box-shadow: 0 6px 16px #0006; width: 190px; }
+#sleep { margin: 4px 6px 6px 6px; border: 1px solid #2e3550; border-radius: 6px; background: #3a4266; color: #e7e9f5; padding: 4px 7px; font-size: 12px; cursor: pointer; }
+#sleep.hot { outline: 3px dashed var(--risk); }
+#sleep .meter { height: 6px; background: #ffffff30; border-radius: 3px; margin-top: 3px; overflow: hidden; }
+#sleep .meter i { display: block; height: 100%; background: #e8b04a; }
+/* pills: one number, its unit in the pill's shape */
+.pl { display: inline-flex; align-items: center; gap: 2px; font: 700 10.5px system-ui, sans-serif; border: 1px solid var(--ink); background: #fff; color: var(--ink); padding: 0 5px; height: 14px; flex: none; }
+.pl.h { border-radius: 7px; }
+.pl.d { border-radius: 2px; position: relative; } .pl.d::before, .pl.d::after { content: ''; position: absolute; top: -4px; width: 1.5px; height: 5px; background: var(--ink); } .pl.d::before { left: 3px; } .pl.d::after { right: 3px; }
+.pl.n { border-radius: 8px; background: var(--ink); color: #fff; }
+.pl.dur { border-radius: 7px; } .pl.dur i { font-style: normal; font-weight: 500; padding: 0 3px; background: repeating-linear-gradient(135deg, #0000 0 3px, #0002 3px 5px); border-radius: 0 6px 6px 0; margin-right: -5px; }
+.pl.risk { border-color: var(--risk); color: var(--risk); }
+/* Map */
+#mapwrap { position: relative; overflow: hidden; min-height: 0; }
+#map { width: 100%; height: 100%; display: block; }
+.hit { cursor: pointer; }
+.pulse { animation: pulse 1.1s ease-in-out infinite; } @keyframes pulse { 50% { opacity: .2; } }
+/* Upcoming + Someday */
+#bottom { grid-column: 2; grid-row: 3; display: grid; grid-template-columns: minmax(0, 1fr) 236px; background: var(--card); border-top: 2px solid #3a2a1a; min-height: 0; }
+#upcoming { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); }
+.sh { font: 500 14px 'Alegreya SC', serif; padding: 3px 8px; display: flex; gap: 8px; align-items: center; }
+.sh small { font: 12px 'Alegreya Sans'; color: var(--muted); }
+#win { position: relative; height: 22px; margin: 0 6px 2px; }
+#win .bar { position: absolute; top: 3px; height: 16px; border: 1px solid #5b7a2a; background: #5b7a2a22; border-radius: 3px; font-size: 11px; padding-left: 4px; display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; }
+#win .bar.risk { border-color: var(--risk); background: #c8361b18; }
+#win .est { position: absolute; top: 6px; height: 10px; background: #5b7a2a; border-radius: 2px; pointer-events: none; }
+#win .rng { position: absolute; top: 6px; height: 10px; background: repeating-linear-gradient(135deg, #5b7a2a 0 3px, #0000 3px 6px); pointer-events: none; }
+#win .dl { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--risk); }
+.cols { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; padding: 0 6px 6px; flex: 1; min-height: 0; }
+.ucol { background: #fff8; border: 1px solid var(--line); border-radius: 5px; display: flex; flex-direction: column; gap: 3px; padding: 3px; min-height: 0; overflow: hidden; }
+.ucol.est { border-style: dashed; background: #fff4; }
+.ucol.drop { outline: 2px dashed var(--ink); }
+.ucol .dh { display: flex; align-items: center; gap: 4px; font-size: 11.5px; } .ucol .dh small { color: var(--muted); margin-left: auto; font-size: 10px; }
+.ucol .hab { display: flex; align-items: center; gap: 2px; font-size: 10px; color: var(--muted); border-bottom: 1px dotted var(--line); padding-bottom: 2px; cursor: pointer; }
+.ucol .bring { color: var(--muted); font-style: italic; font-size: 11px; text-align: center; margin-top: auto; }
+.ub { position: relative; border: 1px solid #5a4a32; border-left-width: 5px; border-radius: 4px; background: var(--paper); padding: 2px 4px; font-size: 11px; display: flex; flex-direction: column; gap: 1px; cursor: grab; touch-action: none; }
+.ub .r1 { display: flex; align-items: center; gap: 3px; } .ub .r1 span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.ub .why { color: var(--muted); font-size: 10.5px; } .ub .why.bad { color: var(--risk); font-weight: 600; }
+.ub.waits { border-color: #333; background: repeating-linear-gradient(0deg, var(--paper) 0 9px, #3331 9px 10px); }
+.ub.out { opacity: .45; text-decoration: line-through; }
+.ub.ill { background: #ece6e6; border-color: #8a4040; cursor: default; }
+#someday { display: flex; flex-direction: column; min-height: 0; }
+#someday .list { overflow-y: auto; padding: 0 6px 6px; display: flex; flex-direction: column; gap: 4px; }
+#someday.drop { outline: 2px dashed var(--ink); outline-offset: -3px; }
+.card { display: flex; align-items: center; gap: 5px; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 2px 5px; cursor: grab; touch-action: none; font-size: 12px; }
+.card span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card.inbox { border-left: 4px solid #e0a43a; }
+.card.aim { border-left: 4px solid var(--accent); }
+.grp { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+/* Tray */
+#tray { grid-column: 3; grid-row: 2 / 4; background: #2e2418; color: #f1e6d0; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; padding: 4px 0; }
+#tray h4 { margin: 6px 0 0; font: 600 10px 'Alegreya Sans'; letter-spacing: .08em; text-transform: uppercase; text-align: center; color: #e0b27a; }
+.ti { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 2px 3px; border: 0; background: none; color: inherit; cursor: pointer; font: inherit; font-size: 11px; width: 100%; text-align: center; }
+.ti:hover { background: #ffffff1a; } .ti .pl { margin-top: 1px; }
+.ti.hot .pi { animation: pulse 1.1s ease-in-out infinite; }
+/* Bubble, remedies, why */
+.bubble { position: fixed; z-index: 40; width: 280px; background: #fff; border: 1px solid #3a2a1a; border-radius: 8px; padding: 8px 11px; box-shadow: 0 4px 14px #0004; font-size: 12.5px; }
+.bubble h3 { margin: 0 0 4px; font: 600 14px 'Alegreya Sans', sans-serif; display: flex; gap: 6px; align-items: center; }
+.bubble dl { margin: 0; display: grid; grid-template-columns: 62px 1fr; gap: 1px 6px; } .bubble dt { color: var(--muted); } .bubble dd { margin: 0; }
+.bubble .acts { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 4px; }
+.bubble button { font: inherit; font-size: 12px; border: 1px solid #3a2a1a; background: #f3efe4; border-radius: 12px; padding: 2px 9px; cursor: pointer; }
+.bubble button.main { background: var(--ink); color: #fff; }
+.rem { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; }
+.rem button { text-align: left; border-radius: 6px; display: flex; flex-direction: column; } .rem button small { color: var(--muted); }
+.def { margin-top: 6px; border: 1px dashed var(--ink); border-radius: 6px; padding: 3px 7px; font-size: 12px; } .def em { color: var(--muted); }
+.ladder { margin-top: 6px; } .ladder .r { display: grid; grid-template-columns: 42px 1fr; gap: 4px; padding: 2px 0 2px 6px; border-left: 3px solid #9a917a; margin-left: 4px; }
+.ladder .r span { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; }
+.hint { position: fixed; z-index: 60; background: var(--ink); color: #fff; font-size: 12px; padding: 4px 8px; border-radius: 6px; pointer-events: none; max-width: 300px; }
+.hint b { color: #f0b25a; }
+.toast { position: fixed; left: 50%; top: 48px; transform: translateX(-50%); background: #23251e; color: #fff; padding: 7px 14px; border-radius: 16px; font-family: ui-monospace, monospace; font-size: 12.5px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 70; max-width: 760px; }
+.toast.on { opacity: 1; }
+details.note { position: fixed; right: 128px; top: 46px; z-index: 30; background: #fffdf4; border: 1px solid #3a2a1a; border-radius: 6px; padding: 3px 9px; max-width: 380px; font-size: 12px; }
+details.note summary { cursor: pointer; font-weight: 600; } details.note li { margin: 2px 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="band">
+    <h1>The settler's blocks</h1><span class="mode">Pawn · settler</span>
+    <span class="from">borrows from time-blocking calendars and personal task managers: Today / Upcoming / Someday, an inbox, recurring habits</span>
+    <span class="sp"></span>
+    <span class="seg" id="vwalk"><button data-v="in" class="on">walks in the block</button><button data-v="own">walks as blocks</button></span>
+    <button class="tog" id="till">fell ill on day 4</button>
+    <button class="tog" id="tstress">stress</button>
+  </header>
+  <aside id="today"></aside>
+  <main id="mapwrap"><svg id="map"></svg></main>
+  <section id="bottom"><div id="upcoming"></div><div id="someday"></div></section>
+  <aside id="tray"></aside>
+</div>
+<details class="note"><summary>Scales to / strains at</summary><ul>
+  <li><b>Scales to</b> one pawn's day: 13 blocks with walks inside stay legible at 40 px an hour; a ½ h block keeps one line.</li>
+  <li>The sequence model (blocks follow one another, walks recomputed) makes overlap impossible by construction; a fixed hour (a meeting) would need a pin and then gaps.</li>
+  <li><b>Strains at</b> ¼ h necessities (a sliver); a household (one column a member is the strip again); days-of-work estimates have no pill of their own in the grammar (the rounded "d" here is new).</li>
+  <li>Upcoming holds only dated things, so it is mostly empty; the field's progress is a window bar, not blocks: the player may want to see "break" on d4-d6 anyway.</li>
+</ul></details>
+<div class="toast" id="toast"></div>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+// ---- Data for this mock (extends LONE). Now: spring day 3, 09:00. Walking: 1/4 h a tile.
+const NOW_H = 9, PXH = 40, T0 = 6, T1 = 22, WALK = 0.25;
+const TASKC = { plant: '#5b7a2a', cottage: '#8a5a3a', pen: '#2f6a8e' };
+const TASKS = {
+  plant: { name: 'A sown field at the south clearing', step: (b) => 'break (step 2 of 4: clear ✓ break, hoe, sow)', aim: 'Three fields by next autumn', est: '6d (4-8), day 2' },
+  cottage: { name: 'A cottage in place of the shelter', step: () => 'fell 6 trees (1 lying at the wood, cut yesterday with his mark)', aim: 'A wife and a household: a cottage first; ends the cold nights', est: '12d (9-16), day 1' },
+  pen: { name: 'A pen for the cow (cut day 2: posts lying at the meadow)', step: () => 'set the posts', aim: 'Keep the cow through summer', est: '3d (2-4), day 2' },
+};
+const HABIT = {
+  water: 'no water: no cooking, the cow thirsts; health −1 tomorrow', pot: 'eats cold: mood −1', wood: 'firewood 2 days → 1: day 5 cold, health −2 a night',
+  beast: 'unmilked: the cow\'s yield drops for the season', hay: 'the cow hungers: milk −1 tomorrow', wool: 'clothes wear: cold −1 at night',
+};
+const B = (id, kind, what, at, dur, o = {}) => ({ id, kind, what, at, dur, ...o });
+function baseToday(stress) {
+  if (!stress) return [B('w1', 'water', 'Water', 'lake', 0.5, { habit: 1, state: 'done' }), B('c1', 'pot', 'Cook', 'home', 0.5, { habit: 1, state: 'done' }),
+    B('brk', 'hoe', 'Break the south field', 'clearing', 4.5, { task: 'plant', state: 'doing' }), B('c2', 'pot', 'Cook', 'home', 1, { habit: 1 }),
+    B('fell', 'chop', 'Fell timber', 'wood1', 2.5, { task: 'cottage' }), B('haul', 'cart', 'Haul the timber home', 'home', 0.5, { task: 'cottage' }),
+    B('cow', 'beast', 'The cow: milk, fodder', 'home', 1, { habit: 1 }), B('fw', 'wood', 'Firewood: split', 'home', 1, { habit: 1 })];
+  return [B('w1', 'water', 'Water', 'lake', 0.5, { habit: 1, state: 'done' }), B('c1', 'pot', 'Cook', 'home', 0.5, { habit: 1, state: 'done' }),
+    B('cow', 'beast', 'Milk the cow', 'home', 0.5, { habit: 1, state: 'done' }), B('brk', 'hoe', 'Break the south field', 'clearing', 3, { task: 'plant', state: 'doing' }),
+    B('c2', 'pot', 'Cook', 'home', 1, { habit: 1 }), B('fell', 'chop', 'Fell timber', 'wood1', 1.5, { task: 'cottage' }), B('haul', 'cart', 'Haul the timber home', 'home', 0.5, { task: 'cottage' }),
+    B('pen', 'fence', 'Set the pen posts', 'meadow', 1.5, { task: 'pen' }), B('fod', 'hay', 'Fodder', 'home', 0.5, { habit: 1 }), B('fw', 'wood', 'Firewood: split', 'home', 1, { habit: 1 }),
+    B('mend', 'wool', 'Mend', 'home', 0.5, { habit: 1 }), B('c3', 'pot', 'Cook supper', 'home', 1, { habit: 1 }), B('well', 'water', 'Dig at the well', 'home', 1.5, { task: 'cottage' })];
+}
+function baseUp(stress) {
+  const u = { 4: [], 5: [], 6: [], 7: [], 8: [], 9: [] };
+  u[4].push({ id: 'stones', kind: 'stone', what: 'Haul stones off the field', task: 'plant', dated: 'from d4', needs: 'cart' });
+  u[5].push({ id: 'seed', kind: 'seed', what: 'Fetch seed at Backa', commit: 'agreed with Per: 1 sack for 2 days at his harvest', needs: 'cart' });
+  u[6].push({ id: 'norr', kind: 'build', what: 'Help Norrgård raise a barn', commit: 'promised: their ox breaks your field on d7' });
+  u[7].push({ id: 'sow', kind: 'sow', what: 'Sow the south field', task: 'plant', dated: 'from d7, by d10' });
+  if (stress) { u[5].push({ id: 'walls', kind: 'build', what: 'Hew the logs (cut: 1 tree lying)', task: 'cottage', dated: 'from d5' }); u[8].push({ id: 'gate', kind: 'fence', what: 'Hang the pen gate (cut, resumes)', task: 'pen', dated: 'by d9' }); u[9].push({ id: 'mkt', kind: 'butter', what: 'Market at the green', commit: 'butter for nails' }); }
+  return u;
+}
+const SOMEDAY = [
+  { id: 'limp', kind: 'beast', what: 'The cow limps (seen at dawn)', inbox: 1, est: [0.1, 0.1, 0.2] },
+  { id: 'nails', kind: 'ore', what: 'Nails for the roof: ask the smith', inbox: 1, est: [0.5, 0.5, 1] },
+  { id: 'walls2', kind: 'build', what: 'Cottage: raise the walls', task: 'cottage', est: [4, 6, 8] },
+  { id: 'roof', kind: 'build', what: 'Cottage: the roof (ends the cold)', task: 'cottage', est: [2, 3, 5] },
+  { id: 'field2', kind: 'field', what: 'A second field by the meadow', est: [5, 6, 9], window: 10 },
+  { id: 'well2', kind: 'water', what: 'A well by the cottage', est: [3, 4, 6] },
+  { id: 'wife', kind: 'married', what: 'A wife and a household', aim: 1 },
+  { id: 'fields', kind: 'field', what: 'Three fields by next autumn', aim: 1 },
+];
+const S = { ill: false, stress: false, walk: 'in', relief: 0, today: baseToday(false), up: baseUp(false), some: SOMEDAY.slice(), skipped: [] };
+
+// ---- Helpers: hex distance (odd-r offset), time, pills.
+function cube(k) { const p = PLACES[k]; return [p.q - (p.r - (p.r & 1)) / 2, p.r]; }
+function dist(a, b) { if (a === b) return 0; const [x1, z1] = cube(a), [x2, z2] = cube(b); return Math.max(Math.abs(x1 - x2), Math.abs(z1 - z2), Math.abs(x1 + z1 - x2 - z2)); }
+const fmt = (h) => { h = ((h % 24) + 24) % 24; return String(Math.floor(h)).padStart(2, '0') + ':' + String(Math.round((h % 1) * 60)).padStart(2, '0'); };
+const FR = { 0.25: '¼', 0.5: '½', 0.75: '¾' };
+const dur = (h) => { const i = Math.floor(h), f = Math.round((h - i) * 4) / 4; return (i || !f ? i : '') + (FR[f] || '') + 'h'; };
+const pH = (h, risk) => `<span class="pl h${risk ? ' risk' : ''}">${typeof h === 'number' ? dur(h) : h}</span>`;
+const pD = (d, risk) => `<span class="pl d${risk ? ' risk' : ''}">d${d}</span>`;
+const pN = (n) => `<span class="pl n">×${n}</span>`;
+const pE = (e) => `<span class="pl dur">${e[1] < 1 ? dur(e[1] * 12) : e[1] + 'd'}<i>${e[1] < 1 ? '' : e[0] + '-' + e[2]}</i></span>`;
+function layout(list) {
+  let t = T0, prev = 'home';
+  return list.map((b) => { const w = dist(prev, b.at) * WALK, s = t; t += w + b.dur; const from = prev; prev = b.at; return { ...b, s, w, e: t, from }; });
+}
+const dayEnd = (L) => (L.length ? L[L.length - 1].e : T0);
+const owed = (L) => LONE.owedSleep + Math.max(0, dayEnd(L) - T1);
+function sleepCost(o) { return o <= 3 ? 'fine tonight' : o < 6 ? 'mood −1 tonight; a second night bites harder' : 'wits slow tomorrow (work −10%); health wears while it stands'; }
+// The haul waits if nothing is felled before it (the cart is at the wood, left there yesterday).
+function waits(L, b) {
+  if (b.id === 'haul') { const f = L.findIndex((x) => x.id === 'fell'), i = L.findIndex((x) => x.id === 'haul'); if (f < 0 || f > i) return 'nothing felled yet; the cart is at the wood'; }
+  if (b.needs === 'cart' && !S.today.some((x) => x.id === 'haul')) return 'the cart is at the wood (no haul brings it home)';
+  return null;
+}
+// The plant task's finish estimate (days), against its window (by d10).
+function plantEst() {
+  const planned = S.today.some((b) => b.task === 'plant') || Object.values(S.up).flat().some((b) => b.task === 'plant' && !b.out);
+  const sh = (S.ill ? 2 : 0) - S.relief + (S.today.some((b) => b.id === 'brk') ? 0 : 1);
+  return { lo: 6 + sh, mid: 7 + sh, hi: 9 + sh, by: 10, planned, risk: !planned || 9 + sh > 10 };
+}
+
+// ---- Render: Today.
+function renderToday() {
+  const L = layout(S.today), o = owed(L), el = document.getElementById('today');
+  el.innerHTML = `<div class="th"><b>Today</b><small>spring d3 · ${fmt(NOW_H)}</small><span class="sp" style="flex:1"></span>${pN(L.length)}</div><div id="track"></div>` +
+    `<div id="sleep" data-t="sleep"><div style="display:flex;align-items:center;gap:6px">☾ <b>Sleep</b> 22:00 → 06:00 <span style="flex:1"></span>${pH(o + 'h owed', o > 3)}</div>` +
+    `<div class="meter"><i style="width:${Math.min(100, o / 8 * 100)}%"></i></div><small>${dayEnd(L) > T1 ? `work runs to ${fmt(dayEnd(L))}: +${dur(dayEnd(L) - T1)} owed · ` : ''}${sleepCost(o)}</small></div>`;
+  const tr = el.querySelector('#track');
+  let h = '';
+  for (let t = T0; t <= T1; t += 2) h += `<div class="hr" style="top:${(t - T0) * PXH}px"><span>${fmt(t)}</span></div>`;
+  for (const b of L) {
+    const top = (b.s - T0) * PXH, ht = Math.max(8, (Math.min(b.e, T1 + 0.6) - b.s) * PXH - 2), wpx = b.w * PXH, wt = waits(L, b);
+    const cls = ['blk', b.habit ? 'habit' : '', b.state || '', wt ? 'waits' : '', b.e > T1 ? 'spill' : ''].join(' ');
+    const lab = `<span class="lb">${b.what}${wt ? ` · <b>waits:</b> ${wt}` : ''}</span>`;
+    const ic = icon(b.kind, { frame: b.state === 'doing' ? 'now' : 'plan', whose: b.habit ? null : 'household', author: b.habit ? null : 'player', state: wt ? 'blocked' : b.state === 'done' ? 'done' : null, size: ht > 22 ? 20 : 15 });
+    const style = `border-left-color:${b.task ? TASKC[b.task] : ''}`;
+    if (S.walk === 'own' && b.w) {
+      h += `<div class="walkb" style="top:${top}px;height:${wpx - 1}px">walk ${dur(b.w)}</div>`;
+      h += `<div class="${cls}" data-b="${b.id}" style="top:${top + wpx}px;height:${ht - wpx}px;${style}">${ic}${lab}${pH(b.dur)}</div>`;
+    } else h += `<div class="${cls}" data-b="${b.id}" style="top:${top}px;height:${ht}px;${style}">${b.w ? `<div class="wk" style="height:${wpx}px">${wpx >= 12 ? '⋯ walk ' + dur(b.w) : ''}</div>` : ''}${ic}${lab}${pH(b.dur + b.w)}</div>`;
+  }
+  const end = dayEnd(L);
+  if (end < T1 - 0.4) h += `<div class="free" style="top:${(end - T0) * PXH + 2}px;height:${(T1 - end) * PXH - 4}px">as the day brings · ${dur(T1 - end)} free</div>`;
+  h += `<div class="now" style="top:${(NOW_H - T0) * PXH}px"><i>now</i></div>`;
+  tr.innerHTML = h;
+  return L;
+}
+// ---- Render: Upcoming (6 days, 3 binding), the window bar on top.
+function renderUp() {
+  const P = plantEst(), x = (d) => ((d - 4) / 6) * 100, el = document.getElementById('upcoming');
+  const nh = S.stress ? 6 : 4, hh = S.stress ? '5h' : '4h';
+  let cols = '';
+  for (let d = 4; d <= 9; d++) {
+    const ill = S.ill && (d === 4 || d === 5);
+    let items = ill ? `<div class="ub ill"><div class="r1">${icon('health', { frame: 'now', whose: null, state: 'risk', size: 18 })}<span>Abed: fever</span></div><div class="why">nothing on ${d === 4 ? 'd4-d5' : 'this day'} gets done</div></div>` : '';
+    for (const b of S.up[d]) {
+      const out = ill, wt = !out && waits([], b);
+      items += `<div class="ub${out ? ' out' : ''}${wt ? ' waits' : ''}" data-u="${b.id}" data-d="${d}" style="border-left-color:${b.task ? TASKC[b.task] : '#9a917a'}"><div class="r1">${icon(b.kind, { frame: 'plan', author: 'player', state: wt ? 'blocked' : null, size: 18 })}<span>${b.what}</span></div>` +
+        `<div class="why${wt ? ' bad' : ''}">${wt ? 'waits: ' + wt : b.fit || b.dated || b.commit}</div></div>`;
+    }
+    cols += `<div class="ucol${d > 6 ? ' est' : ''}" data-day="${d}"><div class="dh">${pD(d)}<small>${d <= 6 ? 'binding' : "Ola's estimate"}</small></div>` +
+      `<div class="hab" data-t="habits">${['water', 'pot', 'wood', 'beast', 'hay', 'wool'].slice(0, nh).map((k) => icon(k, { frame: 'plan', whose: null, size: 13 })).join('')}<span style="flex:1"></span>↻ ${hh}</div>${items}<div class="bring">as the day brings</div></div>`;
+  }
+  el.innerHTML = `<div class="sh">Upcoming <small>only what is dated or promised; habits as one row a day</small></div>` +
+    `<div id="win"><div class="bar${P.risk ? ' risk' : ''}${P.risk ? ' pulse' : ''}" data-t="window" style="left:0;width:calc(100% - 2px)">${icon('sow', { frame: 'plan', author: 'player', state: P.risk ? 'risk' : null, size: 15 })} sow the south field by ${pD(10, P.risk)}: done ${pD(P.mid)} (${P.lo}-${P.hi})${P.planned ? '' : ' · <b>nothing planned</b>'}</div>` +
+    `<div class="est" style="left:${x(4)}%;width:${Math.max(0, x(P.lo) - x(4))}%;opacity:.35"></div><div class="rng" style="left:${x(P.lo)}%;width:${Math.min(100, x(P.hi + 1)) - x(P.lo)}%;opacity:.5"></div>` +
+    `<div class="dl" style="left:calc(100% - 2px)" title="d10 begins beyond the sixth day"></div></div><div class="cols">${cols}</div>`;
+}
+// ---- Someday / inbox.
+function renderSome() {
+  const el = document.getElementById('someday'), c = (s) => `<div class="card${s.inbox ? ' inbox' : s.aim ? ' aim' : ''}" data-s="${s.id}">${icon(s.kind, { frame: s.aim ? 'target' : 'plan', whose: s.aim ? 'own' : 'household', size: 20 })}<span>${s.what}</span>${s.aim ? '' : pE(s.est)}</div>`;
+  el.innerHTML = `<div class="sh">Someday <small>drag to a day or to Today</small></div><div class="list"><div class="grp">inbox</div>${S.some.filter((s) => s.inbox).map(c).join('')}` +
+    `<div class="grp">tasks, not dated</div>${S.some.filter((s) => !s.inbox && !s.aim).map(c).join('')}<div class="grp">aims</div>${S.some.filter((s) => s.aim).map(c).join('')}</div>`;
+}
+// ---- The tray: decision points by deadline.
+function trayItems(L) {
+  const P = plantEst(), o = owed(L), out = [], fwToday = S.today.some((b) => b.id === 'fw');
+  out.push({ g: 'at once', id: 'cold', ic: icon('cold', { frame: 'now', whose: null, state: 'risk', size: 30 }), lab: 'no roof: cold', pill: pH('tonight'), hot: 1 });
+  out.push({ g: 'today', id: 'fire', ic: icon('wood', { frame: 'now', whose: null, state: fwToday ? null : 'risk', size: 30 }), lab: 'firewood left', pill: pD(fwToday ? 5 : 4, !fwToday).replace('d' + (fwToday ? 5 : 4), (fwToday ? 2 : 1) + ' days'), hot: !fwToday });
+  if (o > 3) out.push({ g: 'today', id: 'sleep', ic: icon('mood', { frame: 'now', whose: null, state: 'risk', size: 30 }), lab: 'sleep owed', pill: pH(o + 'h', 1) });
+  out.push({ g: 'by deadline', id: 'window', ic: icon('sow', { frame: 'plan', author: 'player', state: P.risk ? 'risk' : null, size: 30 }), lab: P.risk ? 'sowing at risk' : 'sow by d10', pill: pD(10, P.risk).replace('d10', '7 days'), hot: P.risk });
+  const st = Object.values(S.up).flat().filter((b) => waits([], b));
+  const hw = waits(L, L.find((b) => b.id === 'haul') || {});
+  if (st.length || hw) out.push({ g: 'stands still', id: 'still', ic: icon('cart', { frame: 'plan', state: 'blocked', size: 30 }), lab: 'waits: the cart', pill: pN(st.length + (hw ? 1 : 0)) });
+  if (S.skipped.length) out.push({ g: 'today', id: 'skip', ic: icon(S.skipped[0].kind, { frame: 'plan', whose: null, state: 'risk', size: 30 }), lab: S.skipped[0].what + ' skipped', pill: pN(S.skipped.length) });
+  return out;
+}
+function renderTray(L) {
+  const order = ['at once', 'today', 'by deadline', 'stands still'], items = trayItems(L);
+  document.getElementById('tray').innerHTML = order.map((g) => { const it = items.filter((i) => i.g === g); return it.length ? `<h4>${g}</h4>` + it.map((i) => `<button class="ti${i.hot ? ' hot' : ''}" data-tray="${i.id}">${i.ic}<span>${i.lab}</span>${i.pill}</button>`).join('') : ''; }).join('');
+}
+// ---- The land: one sign a place with work; problems at the house; Ola where his block is; today's route dotted.
+function renderMap(L) {
+  const svg = document.getElementById('map'), P = plantEst();
+  svg.setAttribute('viewBox', `40 0 ${MAP_W - 160} ${MAP_H - 40}`);
+  const doing = L.find((b) => b.state === 'doing') || L[0], rest = L.filter((b) => b.state !== 'done');
+  let s = DEFS + mapSVG();
+  const pts = [doing.at, ...rest.map((b) => b.at)].map((k) => at(k));
+  s += `<path d="M${pts.map((p) => p.x + ' ' + p.y).join('L')}" fill="none" stroke="${LONE.col}" stroke-width="2.5" stroke-dasharray="2 6" stroke-linecap="round" opacity=".8"/>`;
+  s += `<path id="ring" d="" fill="none" stroke="${LONE.col}" stroke-width="4"/>`;
+  const sign = (key, ic, pulse) => { const p = at(key); return `<g class="hit${pulse ? ' pulse' : ''}" data-sign="${key}" transform="translate(${p.x - 20} ${p.y - 34})">${ic}</g>`; };
+  s += sign('clearing', icon('hoe', { frame: doing.at === 'clearing' ? 'now' : 'plan', author: 'player', state: P.risk ? 'risk' : null, num: 10, unit: 'day' }), P.risk);
+  s += sign('wood1', icon('chop', { frame: 'plan', author: 'player', state: 'stray' }));
+  s += sign('home', icon('cold', { frame: 'now', whose: null, state: 'risk', num: S.skipped.length ? 3 : 2, unit: 'count' }));
+  s += sign('lake', icon('water', { frame: 'plan', whose: null }));
+  if (S.stress) s += sign('meadow', icon('fence', { frame: 'plan', author: 'player', state: 'stray' }));
+  const p = at(doing.at);
+  s += `<g class="hit" data-sign="ola">${pawnSVG({ col: LONE.col }, p.x + 26, p.y + 22, 1.2)}</g>`;
+  svg.innerHTML = s;
+}
+function render() { closeAll(); const L = renderToday(); renderUp(); renderSome(); renderTray(L); renderMap(L); }
+
+// ---- Things: the bubble's content for any id (block, sign, tray item, card).
+function blockThing(b, L) {
+  const lb = L.find((x) => x.id === b.id) || b, wt = waits(L, lb), t = b.task && TASKS[b.task];
+  const rows = [['when', lb.s != null ? `${fmt(lb.s)}-${fmt(lb.e)} (walk ${dur(lb.w || 0)} from ${PLACES[lb.from || 'home'].name.split(' (')[0]})` : b.dated || b.commit],
+    ['where', PLACES[b.at || 'home'].name], ['who chose', b.habit ? 'a habit, set at the start (yours to move)' : 'you, by hand (automatic planning off)']];
+  if (t) rows.push(['estimate', t.est]); if (wt) rows.push(['waits', wt]);
+  const acts = b.habit ? [['plan', 'Move to tomorrow', 'not allowed: a habit is daily'], ['release', 'Skip today', HABIT[b.kind] || 'a cost']] : [['plan', 'Move to d4', 'frees ' + dur(b.dur || 1) + ' today'], ['release', 'Back to Someday', t ? 'the task slips a day' : '']];
+  const why = b.habit ? [['block', b.what], ['habit', 'a necessity, daily'], ['aim', 'Ola fed, warm, the cow milked']] : [['block', b.what], ['task', t ? t.name : '-'], ['step', t ? t.step(b) : '-'], ['aim', t ? t.aim : '-']];
+  return { title: b.what, ic: icon(b.kind, { frame: 'plan', whose: b.habit ? null : 'household', size: 26 }), rows, acts, why, id: b.id };
+}
+function thing(id) {
+  const L = layout(S.today), P = plantEst(), o = owed(L);
+  const blk = S.today.find((b) => b.id === id) || Object.values(S.up).flat().find((b) => b.id === id);
+  if (blk) return blockThing(blk, L);
+  const card = S.some.find((s) => s.id === id);
+  if (card) return { title: card.what, ic: icon(card.kind, { frame: card.aim ? 'target' : 'plan', whose: card.aim ? 'own' : 'household', size: 26 }), rows: card.aim ? [['kind', 'an aim, a year ahead'], ['becomes', 'dates and tasks, not a block']] : [['estimate', `${card.est[1] < 1 ? dur(card.est[1] * 12) : card.est[1] + ' days (' + card.est[0] + '-' + card.est[2] + ')'}, Ola's guess`], ['window', card.window ? 'sow by d' + card.window : 'none']], acts: [['plan', 'Drag to a day', 'shows if it fits'], ['release', 'Drop it', '']], why: [['card', card.what], ['task', card.task ? TASKS[card.task].name : '-'], ['aim', card.aim ? card.what : card.task ? TASKS[card.task].aim : 'a better holding']] };
+  const T = {
+    sleep: { title: 'Sleep, 22:00 to 06:00', ic: icon('idle', { frame: 'plan', whose: 'own', size: 26 }), rows: [['owed', `${o} hours (3 from the last nights${o > 3 ? ', ' + dur(o - 3) + ' from work into the night' : ''})`], ['cost', sleepCost(o)], ['rule', 'one night lost is fine; the 2nd and 3rd bite; a standing debt wears health']],
+      rem: [['plan', 'Sleep early tonight (20:00)', 'pays 2 h; the evening\'s work moves to d4'], ['plan', 'Rest the morning of d4', 'pays 3 h; breaking −3 h: done d8']], def: 'nothing (automatic planning is off); if it were on: sleep early', why: [['block', 'sleep'], ['habit', 'a planned act'], ['aim', 'wits and health']] },
+    window: { title: 'Sow the south field by spring d10', ic: icon('sow', { frame: 'plan', author: 'player', state: P.risk ? 'risk' : null, size: 26 }), rows: [['window', 'spring d1-d10 (later: half the yield)'], ['left', 'break ~2 days, hoe 1, sow 1'], ['done', `d${P.mid} (d${P.lo}-d${P.hi}), Ola's estimate`], ['verdict', P.risk ? (P.planned ? `at risk: the late end d${P.hi} passes d10` : 'nothing planned for it') : 'fits, with a day spare']],
+      rem: P.risk ? [['ask', 'Ask a neighbour (Per of Backa)', 'he breaks 1 day on d6; you owe a day at his harvest', 1], ['substitute', 'Hire a hand, 2 days', '3 rations (food 18 → 15)', 2], ['plan', 'Sow less: half the field', '~40% less grain this autumn', 2], ['plan', 'Work into the night d6-d7', '+4 h sleep owed (→ 7 h: wits slow)', 1]] : [['plan', 'Plan a day of breaking on d4', 'cottage slips a day']],
+      def: P.risk ? 'nothing: automatic planning is off. If it were on, the rule would hire a hand for 3 rations on d6 (the cheapest that fits).' : 'keep breaking each morning till d6', why: [['block', 'break, hoe, sow'], ['task', TASKS.plant.name], ['aim', TASKS.plant.aim]] },
+    cold: { title: 'No roof: cold nights', ic: icon('cold', { frame: 'now', whose: null, state: 'risk', size: 26 }), rows: [['what', 'he sleeps under the open sky at the staked shelter'], ['cost', 'health −2 a night (now 78)'], ['ends', 'with the cottage\'s roof: ~12 days (9-16) away']],
+      rem: [['plan', 'Raise the booth\'s cover (1 day)', 'cold ends now; the cottage slips a day'], ['plan', 'Keep a fire all night', 'firewood −½ day a night'], ['ask', 'Sleep at Backa', 'goodwill −1; walk ½ h each way']], def: 'nothing (automatic planning off); if it were on: raise the booth\'s cover on d4', why: [['problem', 'cold'], ['task', TASKS.cottage.name], ['aim', TASKS.cottage.aim]] },
+    fire: { title: 'Firewood for 2 days', ic: icon('wood', { frame: 'now', whose: null, size: 26 }), rows: [['have', '2 days at the house'], ['use', '1 day a day; +½ if a fire all night'], ['today', S.today.some((b) => b.id === 'fw') ? 'split 1 h at the house: +1 day' : 'nothing planned: 1 day left on d4']],
+      rem: [['plan', 'Fell 2 h for firewood today', '+3 days; timber 1 tree less'], ['plan', 'Split the stray tree', '+2 days; the cottage loses its log']], def: 'the habit block, 1 h a day', why: [['problem', 'firewood'], ['habit', 'Firewood, daily'], ['aim', 'warm']] },
+    still: { title: 'The plan stands still: the cart', ic: icon('cart', { frame: 'plan', state: 'blocked', size: 26 }), rows: [['waits', 'the cart is at the wood, left there yesterday when the felling was cut'], ['blocks', [...Object.values(S.up).flat().filter((b) => waits([], b)).map((b) => b.what), waits(L, L.find((b) => b.id === 'haul') || {}) ? 'Haul the timber home' : ''].filter(Boolean).join('; ')], ['why', 'no block brings the cart home']],
+      rem: [['plan', 'Haul the timber home today', '½ h after felling: brings the cart'], ['plan', 'Walk for the cart (1 h)', 'empty-handed; the timber stays']], def: 'nothing moves until you choose (automatic planning off)', why: [['block', 'waits'], ['task', TASKS.cottage.name], ['aim', TASKS.cottage.aim]] },
+    habits: { title: 'Habits, every day', ic: icon('pot', { frame: 'plan', whose: null, size: 26 }), rows: [['what', 'water ½, cook 1½, firewood 1, the cow 1' + (S.stress ? ', fodder ½, mend ½' : '')], ['place', 'slotted first each morning; movable within the day']], acts: [['plan', 'Edit the habits', 'opens the habit list']], why: [['habit', 'necessities'], ['aim', 'Ola fed, warm']] },
+    skip: { title: 'Skipped habits', ic: icon('no', { frame: 'plan', whose: null, size: 26 }), rows: S.skipped.map((b) => [b.what, HABIT[b.kind]]), rem: [['plan', 'Put them back', 'the day ends later']], def: '-', why: [['habit', 'necessities'], ['aim', 'Ola fed, warm']] },
+    ola: { title: 'Ola, 24, settler', ic: icon('me', { frame: 'now', whose: 'own', size: 26 }), rows: [['now', 'breaking the south field (day 2 of ~6)'], ['health', '78 (cold nights −2 each)'], ['mood', '52'], ['sleep', o + ' h owed']], acts: [['plan', 'Plan his day', 'Today, left']], why: [['pawn', 'head, member and pawn at once'], ['aim', 'A wife and a household']] },
+  };
+  T.sleepb = T.sleep;
+  if (id === 'clearing') return T.window;
+  if (id === 'wood1') return { title: 'Hagen wood: 1 tree felled, lying', ic: icon('chop', { frame: 'plan', author: 'player', state: 'stray', size: 26 }), rows: [['what', 'the felling was cut at nightfall yesterday; 1 tree lies with his mark'], ['today', 'fell 13:30-16:00, then haul'], ['estimate', '6 trees: 3 days (2-4)']], acts: [['plan', 'Fell here now', 'breaking stops: −3 h'], ['claim', 'Mark the lying tree', 'already his']], why: [['block', 'Fell timber'], ['task', TASKS.cottage.name], ['step', TASKS.cottage.step()], ['aim', TASKS.cottage.aim]] };
+  if (id === 'home') return { ...T.cold, title: 'The house: 2 problems', rows: [['cold', 'no roof: health −2 a night'], ['firewood', 'for 2 days'], ...T.cold.rows.slice(2)] };
+  if (id === 'lake') return blockThing(S.today.find((b) => b.kind === 'water') || baseToday(false)[0], L);
+  if (id === 'meadow') return { title: 'The pen (cut on d2)', ic: icon('fence', { frame: 'plan', state: 'stray', size: 26 }), rows: [['what', '8 posts cut, lying at the meadow'], ['next', 'set the posts, 1½ h today']], acts: [['plan', 'Resume today', '']], why: [['block', 'Set the posts'], ['task', TASKS.pen.name], ['aim', TASKS.pen.aim]] };
+  return T[id];
+}
+// ---- Bubble: info → acts (or remedies with costs and the rule's default) → why.
+function closeAll() { document.querySelectorAll('.bubble').forEach((b) => b.remove()); }
+function bubble(id, anchor) {
+  closeAll(); const t = thing(id); if (!t) return;
+  const el = document.createElement('div'); el.className = 'bubble';
+  el.innerHTML = `<h3>${t.ic}${t.title}</h3><dl>${t.rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>` +
+    (t.rem ? `<div class="rem">${t.rem.map(([v, l, c], i) => `<button data-rem="${i}"><span>${l}</span><small>${c}</small></button>`).join('')}</div><div class="def"><b>the rule will:</b> <em>${t.def}</em></div>` : '') +
+    `<div class="acts">${t.acts ? '<button class="main" data-x="acts">Acts ▸</button>' : ''}<button data-x="why">why?</button><button data-x="close">close</button></div><div class="slot"></div>`;
+  document.body.appendChild(el);
+  const r = anchor.getBoundingClientRect();
+  el.style.left = Math.max(6, Math.min(innerWidth - 290, r.right + 8)) + 'px';
+  el.style.top = Math.max(44, Math.min(innerHeight - el.offsetHeight - 8, r.top - 10)) + 'px';
+  el.onclick = (e) => {
+    e.stopPropagation(); const x = e.target.closest('button'); if (!x) return;
+    if (x.dataset.x === 'close') return closeAll();
+    if (x.dataset.x === 'why') { el.querySelector('.slot').innerHTML = `<div class="ladder"><b style="font-size:11.5px">why: ${t.why.map((w) => w[0]).join(' → ')}</b>${t.why.map(([k, v]) => `<div class="r"><span>${k}</span>${v}</div>`).join('')}</div>`; return; }
+    if (x.dataset.x === 'acts') { el.querySelector('.slot').innerHTML = `<div class="rem">${t.acts.map(([v, l, c], i) => `<button data-act="${i}"><span><code>${v}</code> ${l}</span><small>${c || ''}</small></button>`).join('')}</div>`; return; }
+    if (x.dataset.rem != null) { const [v, l, c, relief] = t.rem[+x.dataset.rem]; toast(`would issue ${v} Ola → ${l} (${c})`); if (relief) { S.relief = relief; render(); } return; }
+    if (x.dataset.act != null) { const [v, l] = t.acts[+x.dataset.act]; doAct(t, v, l); }
+  };
+}
+function doAct(t, v, l) {
+  toast(`would issue ${v} Ola → ${l}: ${t.title}`);
+  const i = S.today.findIndex((b) => b.id === t.id);
+  if (i < 0) return;
+  const b = S.today[i];
+  if (v === 'release' && b.habit) { S.skipped.push(b); S.today.splice(i, 1); }
+  else if (v === 'plan' && !b.habit) { S.today.splice(i, 1); S.up[4].push({ ...b, dated: 'moved from d3' }); }
+  else if (v === 'release') { S.today.splice(i, 1); S.some.push({ id: b.id, kind: b.kind, what: b.what, task: b.task, est: [0.2, b.dur / 12, 0.5] }); }
+  render();
+}
+let tt; function toast(m) { const el = document.getElementById('toast'); el.textContent = m; el.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('on'), 2600); }
+
+// ---- Drag: Today's blocks (reorder; over sleep: owed and its cost), Upcoming blocks and Someday cards (to a day or to Today).
+let D = null;
+function trackHour(y) { const r = document.getElementById('track').getBoundingClientRect(); return T0 + (y - r.top) / PXH; }
+function preview(x, y) {
+  const tgt = document.elementFromPoint(x, y), inTrack = tgt && tgt.closest('#track'), inSleep = tgt && tgt.closest('#sleep'), col = tgt && tgt.closest('.ucol'), some = tgt && tgt.closest('#someday');
+  document.querySelectorAll('.drop,.hot').forEach((e) => e.classList.remove('drop', 'hot'));
+  const blk = D.blk;
+  if (inTrack || inSleep) {
+    if (inSleep) document.getElementById('sleep').classList.add('hot');
+    const rest = S.today.filter((b) => b.id !== blk.id), first = rest.findIndex((b) => !b.state) < 0 ? rest.length : rest.findIndex((b) => !b.state);
+    let idx = rest.length;
+    if (!inSleep) { const h = trackHour(y), L = layout(rest); idx = L.findIndex((b, i) => i >= first && b.s + b.dur / 2 >= h); if (idx < 0) idx = rest.length; }
+    idx = Math.max(first, idx);
+    const list = [...rest.slice(0, idx), blk, ...rest.slice(idx)], L = layout(list), me = L[idx], o = owed(L), wt = waits(L, me);
+    return { kind: 'today', list, text: `${fmt(me.s)}-${fmt(me.e)} (walk ${dur(me.w)})${dayEnd(L) > T1 ? ` · <b>into sleep: +${dur(dayEnd(L) - T1)} owed → ${o} h</b>: ${sleepCost(o)}` : ' · the day ends ' + fmt(dayEnd(L))}${wt ? ` · <b>waits:</b> ${wt}` : ''}` };
+  }
+  if (col) {
+    col.classList.add('drop'); const d = +col.dataset.day, e = blk.est;
+    if (S.ill && (d === 4 || d === 5)) return { kind: 'none', text: `d${d}: abed with fever` };
+    let fit = blk.habit ? `<b>a habit cannot leave today:</b> ${HABIT[blk.kind]}` : `on d${d}`;
+    if (e && e[1] >= 1) { const lo = d + e[0] - 1, mid = d + e[1] - 1, hi = d + e[2] - 1; fit = `from d${d}: done d${mid} (d${lo}-d${hi})` + (blk.window ? (hi > blk.window ? ` · <b>at risk: the window closes d${blk.window}</b>; and the south field needs d4-d7: one of them slips` : ' · fits its window') : ' · no window'); }
+    return { kind: 'up', d, text: fit, fit: fit.replace(/<[^>]+>/g, '') };
+  }
+  if (some) { some.classList.add('drop'); return { kind: 'some', text: blk.habit ? `<b>skip ${blk.what} today?</b> ${HABIT[blk.kind]}` : 'back to Someday: undated' }; }
+  return { kind: 'none', text: 'drop on Today, a day, or Someday' };
+}
+function startDrag(e, el, blk, src) {
+  if (blk.state === 'done' || blk.state === 'doing' || blk.aim && false) return;
+  e.preventDefault(); closeAll();
+  const g = el.cloneNode(true); g.classList.add('drag'); g.style.height = Math.min(40, el.offsetHeight) + 'px'; document.body.appendChild(g);
+  const h = document.createElement('div'); h.className = 'hint'; document.body.appendChild(h);
+  D = { blk, src, g, h, x0: e.clientX, y0: e.clientY, moved: false, el };
+  const mv = (ev) => {
+    if (Math.abs(ev.clientX - D.x0) + Math.abs(ev.clientY - D.y0) > 4) D.moved = true;
+    g.style.left = ev.clientX - 20 + 'px'; g.style.top = ev.clientY - 10 + 'px';
+    D.p = preview(ev.clientX, ev.clientY); h.innerHTML = D.p.text; h.style.left = Math.min(innerWidth - 310, ev.clientX + 18) + 'px'; h.style.top = ev.clientY + 22 + 'px';
+  };
+  const up = () => {
+    removeEventListener('pointermove', mv); removeEventListener('pointerup', up); g.remove(); h.remove();
+    document.querySelectorAll('.drop,.hot').forEach((x) => x.classList.remove('drop', 'hot'));
+    const d = D; D = null;
+    if (!d.moved) return bubble(blk.id, el);
+    drop(d);
+  };
+  addEventListener('pointermove', mv); addEventListener('pointerup', up);
+  g.style.left = e.clientX - 20 + 'px'; g.style.top = e.clientY - 10 + 'px';
+}
+function removeFromSrc(d) {
+  if (d.src === 'today') S.today = S.today.filter((b) => b.id !== d.blk.id);
+  else if (d.src === 'some') S.some = S.some.filter((s) => s.id !== d.blk.id);
+  else for (const k in S.up) S.up[k] = S.up[k].filter((b) => b.id !== d.blk.id);
+}
+function drop(d) {
+  const p = d.p, b = d.blk; if (!p || p.kind === 'none') return;
+  if (b.aim) return toast(`an aim is not a block: would issue plan Ola → "${b.what}" as dates (the gathering, summer d8; own hours)`);
+  if (p.kind === 'today') {
+    if (d.src !== 'today') { removeFromSrc(d); const nb = { id: b.id, kind: b.kind, what: b.what, at: b.at || (b.kind === 'field' ? 'meadow' : 'home'), dur: b.est && b.est[1] < 1 ? b.est[1] * 12 : b.dur || 2, task: b.task }; S.today = p.list.map((x) => (x.id === b.id ? nb : x)); }
+    else S.today = p.list;
+    toast(`would issue plan Ola → ${b.what} at ${p.text.replace(/<[^>]+>/g, '').split(' ·')[0]}`);
+  } else if (p.kind === 'up') {
+    if (b.habit) return toast(`refused: ${b.what} is a daily habit (${HABIT[b.kind]})`);
+    removeFromSrc(d); S.up[p.d].push({ id: b.id, kind: b.kind, what: b.what, task: b.task, at: b.at, dur: b.dur, est: b.est, dated: 'on d' + p.d, fit: p.fit });
+    toast(`would issue plan Ola → ${b.what} on d${p.d}: ${p.fit}`);
+  } else if (p.kind === 'some') {
+    removeFromSrc(d);
+    if (b.habit) { S.skipped.push(b); toast(`would issue release Ola → skip ${b.what} today: ${HABIT[b.kind]}`); }
+    else { S.some.push({ id: b.id, kind: b.kind, what: b.what, task: b.task, est: b.est || [0.2, (b.dur || 2) / 12, 0.5] }); toast(`would issue release Ola → ${b.what} back to Someday`); }
+  }
+  render();
+}
+document.addEventListener('pointerdown', (e) => {
+  const tb = e.target.closest('.blk'), ub = e.target.closest('.ub'), cd = e.target.closest('.card');
+  if (tb) { const b = S.today.find((x) => x.id === tb.dataset.b); if (b.state) return bubble(b.id, tb); return startDrag(e, tb, b, 'today'); }
+  if (ub && ub.dataset.u) { const b = S.up[ub.dataset.d].find((x) => x.id === ub.dataset.u); return startDrag(e, ub, b, 'up'); }
+  if (cd) { const s = S.some.find((x) => x.id === cd.dataset.s); return startDrag(e, cd, s, 'some'); }
+});
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.bubble')) return;
+  const sg = e.target.closest('[data-sign]'), tr = e.target.closest('[data-tray]'), t = e.target.closest('[data-t]');
+  if (sg) return bubble(sg.dataset.sign, sg);
+  if (tr) return bubble(tr.dataset.tray, tr);
+  if (t) return bubble(t.dataset.t, t);
+  if (!e.target.closest('.blk,.ub,.card')) closeAll();
+});
+// Hover a block: its place rings on the land.
+document.addEventListener('pointerover', (e) => {
+  const tb = e.target.closest('.blk'); const ring = document.getElementById('ring'); if (!ring) return;
+  const b = tb && S.today.find((x) => x.id === tb.dataset.b);
+  ring.setAttribute('d', b ? hexPath(at(b.at).x, at(b.at).y, HEX - 3) : '');
+});
+// Band toggles.
+document.getElementById('till').onclick = (e) => { S.ill = !S.ill; S.relief = 0; e.target.classList.toggle('on', S.ill); render(); if (S.ill) toast('Ola fell ill on day 4: the blocks of d4-d5 fall out; the sowing window turns at risk'); };
+document.getElementById('tstress').onclick = (e) => { S.stress = !S.stress; e.target.classList.toggle('on', S.stress); S.today = baseToday(S.stress); S.up = baseUp(S.stress); S.skipped = []; render(); };
+document.getElementById('vwalk').onclick = (e) => { const v = e.target.dataset.v; if (!v) return; S.walk = v; for (const b of e.currentTarget.children) b.classList.toggle('on', b.dataset.v === v); render(); };
+render();
+</script>
+</body>
+</html>

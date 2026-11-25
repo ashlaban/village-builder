@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nils' Timesheet</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600;700&display=swap">
+<style>
+/* Timesheet: the levy from below, at the scale of one played pawn. The land with his places and the household's dots; a punch-clock
+   row of his day booked to the six parts with the levy line; threads with Per as a messaging app (asks, grants, a demand to answer). */
+:root { --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --accent: #1f7a76; --risk: #c8361b; --hh: #e0a43a; --own: #2f8f8a; color-scheme: light; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #e6e9df; color: var(--ink); font: 13.5px/1.35 'Alegreya Sans', system-ui, sans-serif; }
+.band { height: 40px; white-space: nowrap; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--card); border-bottom: 1px solid var(--line); }
+.band h1 { font: 500 17px 'Alegreya SC', Georgia, serif; margin: 0; }
+.band .mode { font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+.band .from { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; flex: none; }
+.seg button, .band > button { border: 0; background: #fff; padding: 3px 9px; font: inherit; font-size: 12.5px; cursor: pointer; }
+.band > button { border: 1px solid var(--line); border-radius: 6px; }
+.seg button.on { background: var(--ink); color: #fff; }
+.sp { flex: 1; }
+.wrap { display: grid; grid-template-columns: 860px 1fr; height: calc(100vh - 41px); }
+#left { display: grid; grid-template-rows: 1fr 272px; min-height: 0; }
+#map { position: relative; background: #8c9a6a; overflow: hidden; }
+#map svg.land { display: block; width: 100%; height: 100%; }
+#sheet { background: var(--card); border-top: 1px solid var(--line); padding: 4px 10px; overflow: hidden; }
+#sheet .hd { display: flex; gap: 10px; align-items: baseline; font-size: 12.5px; }
+#sheet .hd b { font-size: 14px; }
+#sheet .hd .k { display: flex; gap: 8px; margin-left: auto; color: var(--muted); }
+#sheet .hd .k i { display: inline-block; width: 13px; height: 10px; border: 1px solid #0003; border-radius: 2px; vertical-align: -1px; margin-right: 2px; }
+.tally { font-size: 12px; color: var(--muted); margin: 0 0 3px 70px; }
+.tally b { color: var(--ink); }
+.lower { display: grid; grid-template-columns: 250px 250px 1fr; gap: 12px; border-top: 1px dashed var(--line); padding-top: 4px; }
+.lower h4 { margin: 0 0 2px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.pair { display: grid; grid-template-columns: 54px 1fr 36px; gap: 3px 6px; align-items: center; font-size: 12px; }
+.pair .bar { height: 11px; background: #e9e6dc; border: 1px solid #0002; border-radius: 3px; position: relative; overflow: hidden; }
+.pair .bar span { position: absolute; top: 0; bottom: 0; }
+.mems { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
+.hit, [data-k] { cursor: pointer; }
+#side { display: grid; grid-template-rows: auto auto 1fr auto auto; min-height: 0; background: var(--card); border-left: 1px solid var(--line); }
+#tray { padding: 6px 10px; border-bottom: 1px solid var(--line); }
+#tray h4, #side h4 { margin: 2px 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.ti { display: grid; grid-template-columns: 34px 1fr 74px; gap: 6px; align-items: center; padding: 2px 4px; border-radius: 6px; }
+.ti:hover { background: #ece8dc; }
+.ti .cd { font: 700 11.5px ui-monospace, monospace; text-align: right; }
+.ti .cd.once { color: #fff; background: var(--ink); border-radius: 8px; padding: 1px 5px; text-align: center; }
+.ti small { color: var(--muted); display: block; }
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--line); padding: 0 8px; }
+.tabs button { border: 0; background: none; padding: 5px 10px; font: inherit; cursor: pointer; border-bottom: 2px solid transparent; }
+.tabs button.on { border-bottom-color: var(--ink); font-weight: 700; }
+.tabs sup { background: var(--ink); color: #fff; border-radius: 7px; padding: 0 4px; font-size: 10px; }
+#msgs { overflow-y: auto; padding: 6px 10px; background: #eceee6; display: flex; flex-direction: column; gap: 5px; }
+.msg { max-width: 82%; padding: 5px 8px; border-radius: 10px; background: #fff; border: 1px solid #0001; display: grid; grid-template-columns: 30px 1fr; gap: 6px; align-items: start; }
+.msg.out { align-self: flex-end; background: #e2f1ee; border-color: #1f7a7633; }
+.msg.sys { align-self: center; background: none; border: 1px dashed var(--line); font-size: 12px; color: var(--muted); max-width: 94%; }
+.msg.act { align-self: flex-end; background: #fff; border: 1.5px dashed var(--own); }
+.msg .meta { display: block; font-size: 10.5px; color: var(--muted); text-align: right; }
+.msg .meta .rc { color: var(--own); font-weight: 700; }
+.msg.req { border: 2px solid var(--ink); max-width: 96%; }
+.msg.hl { outline: 3px solid #e0a43a; }
+.opts { display: grid; gap: 3px; margin-top: 4px; }
+.opts button { text-align: left; font: inherit; font-size: 12px; border: 1px solid #3a2a1a55; background: #f3efe4; border-radius: 6px; padding: 2px 7px; cursor: pointer; }
+.opts button b { display: inline-block; min-width: 56px; }
+.opts button small { color: var(--muted); display: block; }
+.opts .def { font-size: 12px; border: 1px dashed var(--risk); border-radius: 6px; padding: 2px 7px; }
+.opts .def b { color: var(--risk); }
+#compose { border-top: 1px solid var(--line); padding: 5px 10px; font-size: 12.5px; }
+#compose .box { display: flex; gap: 6px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 2px 4px 2px 8px; }
+#compose .box span { flex: 1; }
+#compose .box button { border: 0; background: var(--ink); color: #fff; border-radius: 10px; padding: 2px 10px; font: inherit; cursor: pointer; }
+#compose small { color: var(--muted); }
+#told { border-top: 1px solid var(--line); padding: 4px 10px 6px; font-size: 12px; }
+#told .r { display: grid; grid-template-columns: 26px 1fr; gap: 6px; align-items: center; }
+#told .r.unk { opacity: .45; }
+.bubble { position: absolute; z-index: 20; width: 300px; background: #fff; border: 1px solid #3a2a1a; border-radius: 8px; padding: 8px 11px; box-shadow: 0 4px 14px #0004; font-size: 12.8px; }
+.bubble h3 { margin: 0 0 4px; font: 700 14px 'Alegreya Sans', sans-serif; display: flex; gap: 6px; align-items: center; }
+.bubble dl { margin: 0; display: grid; grid-template-columns: 64px 1fr; gap: 1px 6px; }
+.bubble dt { color: var(--muted); } .bubble dd { margin: 0; }
+.bubble .whyb { margin-top: 5px; font-size: 12px; border: 1px solid var(--line); background: #fff; border-radius: 10px; cursor: pointer; }
+.bubble .why { margin-top: 5px; border-top: 1px solid var(--line); padding-top: 4px; font-size: 12px; }
+.bubble .why div { padding-left: 10px; border-left: 2px solid var(--line); margin: 2px 0; }
+.toast { position: fixed; left: 430px; top: 50px; transform: translateX(-50%); background: #23251e; color: #fff; padding: 7px 14px; border-radius: 16px; font-family: ui-monospace, monospace; font-size: 12px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 30; max-width: 760px; }
+.toast.on { opacity: 1; }
+.note { position: absolute; left: 10px; top: 8px; max-width: 380px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: 12.5px; z-index: 4; }
+.note summary { cursor: pointer; font-weight: 600; }
+.note p { margin: 4px 0; }
+.travel { animation: none; }
+</style>
+</head>
+<body>
+<div class="band">
+  <h1>Timesheet</h1><span class="mode">Pawn · me · autumn day 4, 10:00</span>
+  <span class="from">after: a punch-clock timesheet · a messaging app (threads, read receipts, a request to accept or decline)</span>
+  <span class="sp"></span>
+  <span class="seg" id="vM"><button data-v="nils" class="on">Nils</button><button data-v="took">Nils: took 3× this week</button><button data-v="greta">stress: Greta, servant</button></span>
+  <button id="reset">reset</button>
+</div>
+<div class="wrap">
+  <div id="left"><div id="map"><details class="note"><summary>Scales to / strains at</summary>
+<p><b>Scales to:</b> one pawn's day of 4-7 blocks on one punch row; the levy line falls where the levy's hours run out (16:30 today), so "mine" is a place on the clock, not a sum; one head to answer, 2-3 threads, a demand and 3 asks pending (Greta) still read as a chat; the week as 6 small columns.</p>
+<p><b>Strains at:</b> the levy line is cumulative, so taking hours at 14:00 moves nothing on the clock (taken hours count toward the levy): only the hatch says it. A bargain that is granted moves the line (the levy falls to 8 h), which reads well but is the only time it moves. Messages on the land: two pawns on one tile (Greta and Karin at the long field) make the thread arc a loop; with 3 people writing, map bubbles stack. A pawn's estimate of the head's answer ("2 in 5") is a number Per never shows; whether a played pawn should see odds at all is open. Greyed targets ("as Per told me") need the knowledge model to say what was told, which does not exist.</p>
+</details></div><div id="sheet"></div></div>
+  <div id="side"><div id="tray"></div><div class="tabs" id="tabs"></div><div id="msgs"></div><div id="compose"></div><div id="told"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+// ---- New glyphs (this mock): a message (speech bubble) and a memory (a thought).
+ICONS.line.msg = '<path d="M4 5h16v10h-9l-4 4v-4H4z"/>';
+ICONS.line.memory = '<circle cx="13.5" cy="9" r="5.5"/><circle cx="6.5" cy="17" r="1.8"/><circle cx="3.5" cy="21" r="1"/>';
+// ---- The six parts (design 3.3) + "mine, unspent" (own hours not yet booked).
+const PART = {
+  owed: { c: '#33599e', css: '#33599e', n: 'owed' }, levied: { c: '#e0a43a', css: '#e0a43a', n: 'levied' },
+  taken: { c: 'url(#hatch-own)', css: 'repeating-linear-gradient(45deg,#2f8f8a 0 2px,#e0a43a 2px 5px)', n: 'taken' },
+  demanded: { c: 'url(#hatch-hh)', css: 'repeating-linear-gradient(45deg,#e0a43a 0 2px,#2f8f8a 2px 5px)', n: 'demanded' },
+  given: { c: '#8cc9bf', css: '#8cc9bf', n: 'given' }, kept: { c: '#2f8f8a', css: '#2f8f8a', n: 'kept' },
+  mine: { c: '#eef6f4', css: '#eef6f4', n: 'mine, unspent' },
+};
+const LEVYSIDE = new Set(['owed', 'levied', 'taken']);
+const S0 = { mode: 'nils', take: 'planned', demand: 'pending', own: null, winter: 'draft', thread: 'per', mem: [], extra: [] };
+let S = JSON.parse(JSON.stringify(S0));
+const greta = () => S.mode === 'greta';
+const took3 = () => S.mode === 'took';
+const B = (k, what, at, h0, h1, part, by, o = {}) => ({ k, what, at, h: [h0, h1], part, by, ...o });
+const OWN = {
+  give: { k: 'cart', what: 'Give: haul with Per', at: 'long', verb: 'work', brings: "Per's opinion + (more than complying: booked given, not demanded); the sheaves in dry", costs: '1.5 h of mine; nothing toward Lisa' },
+  pastime: { k: 'ale', what: 'Pastime: ale at the green', at: 'green', verb: 'pastime', brings: 'mood +', costs: 'Per sees you idle while the rye is out: a memory of his' },
+  courting: { k: 'courting', what: 'Court Lisa at Norrgård', at: 'norr', verb: 'pastime', brings: 'Lisa +; 1 h toward the ~6 h a week the aim needs', costs: 'the walk eats 0.5 h; Per sees you gone' },
+  rest: { k: 'idle', what: 'Rest by the fire', at: 'home', verb: 'idle', brings: 'tiredness −', costs: 'nothing booked against you; Per sees you by the fire' },
+};
+// ---- The day: the played pawn's blocks, from the state of his acts.
+function day() {
+  if (greta()) {
+    const b = [B('pail', 'Milk', 'home', 6, 7, 'levied', 'Karin', { st: 'done', why: ["Karin's duty, given to you by your contract's custom"] }),
+      B('butter', 'Churn', 'home', 7, 8.5, 'levied', 'Karin', { st: 'done' }),
+      B('sheaves', 'Bind sheaves', 'long', 8.5, 12, 'levied', 'rule', { st: 'doing', est: [11.5, 12.5], why: ['Rye in the barn (as Per told the house)', 'the morning allotment'] }),
+      B('pot', 'Help cook', 'home', 12, 13, 'levied', 'Karin', {}),
+      B('sheaves', 'Bind sheaves', 'long', 13, 16.5, 'levied', 'Per', { est: [16, 17] })];
+    b.push(own16('butter', 'Churn the cream tonight', 'home', 'Karin'));
+    return b;
+  }
+  const b = [B('cart', 'Fetch the timber left at the wood', 'wood2', 6, 9, 'levied', 'rule', { st: 'done', why: ['the firewood task, cut last night: the stray pile at Hagen wood, ours', 'Firewood for winter: 9 of 20 loads (Per told you)'] }),
+    B('wood', 'Cut firewood', 'home', 9, 11, 'levied', 'rule', { st: 'doing', est: [10.75, 11.5], why: ['Firewood for winter: 9 of 20 loads (Per told you)', 'yours since yesterday: the task is held by you'] })];
+  if (S.take === 'dropped') b.push(B('chop', 'Reap rye', 'long', 11, 16.5, 'levied', 'Per', { est: [16, 17], why: ['Rye in the barn: "two more days" (Per)', "Per's list for you this morning"] }));
+  else {
+    b.push(B('chop', 'Reap rye', 'long', 11, 14, 'levied', 'Per', { est: [13.5, 14.5], why: ['Rye in the barn: "two more days" (Per)', "Per's list for you this morning"] }));
+    if (S.take === 'granted') b.push(B('courting', 'Norrgård, with leave', 'norr', 14, 16.5, 'kept', 'Per', { grant: true, why: ['your bargain: haul at 16:30 for leave at 14:00', 'Per granted it: the levy today is 8 h'] }));
+    else b.push(B('courting', S.take === 'taken' ? 'Norrgård: hours taken' : 'Norrgård: hours to take (your plan)', 'norr', 14, 16.5, 'taken', 'me', { ghost: S.take === 'planned', why: ['your aim: court Lisa at Norrgård', 'she is at home in the afternoon (you know)'] }));
+  }
+  b.push(own16('cart', 'Haul before the rain', 'long', 'Per'));
+  return b;
+}
+function own16(k, what, at, by) { // 16:30-18: the demand, or own hours
+  const w = { why: [`${by}'s demand: "before the rain" (${by}'s estimate: rain by evening, 1 in 3)`, 'beyond your levy: a demand, yours to answer'] };
+  if (S.demand === 'pending') return B(k, what + ` (${by} demands)`, at, 16.5, 18, 'demanded', by, { ghost: true, ...w });
+  if (S.demand === 'complied') return B(k, what + ' (demanded)', at, 16.5, 18, 'demanded', by, w);
+  if (S.demand === 'bargained' || S.own === 'give') return B(k, what + ' (given)', at, 16.5, 18, 'given', 'me', w);
+  if (!S.own) return B('idle', 'Mine: not spent yet', 'home', 16.5, 18, 'mine', 'me', { why: ['you refused the demand: the hours are yours'] });
+  const o = OWN[S.own]; return B(o.k, o.what, o.at, 16.5, 18, 'kept', 'me', { why: ['your own hours, spent as you chose'] });
+}
+const LEVY = () => (S.take === 'granted' ? 8 : 10.5);
+function levyAt(b) { let acc = 0; const L = LEVY(); for (const x of b) { if (!LEVYSIDE.has(x.part)) continue; const d = x.h[1] - x.h[0]; if (acc + d >= L) return x.h[0] + (L - acc); acc += d; } return 18; }
+// ---- The week behind (6 days) in the six parts; Per's (or Karin's) memories of the played pawn, as he knows them.
+const WEEK = {
+  nils: [['S10', { levied: 10.5, kept: 1.5 }], ['S11', { levied: 10.5, kept: 1.5 }], ['S12', { levied: 10.5, given: 1, kept: 0.5 }], ['A1', { levied: 10.5, kept: 1.5 }], ['A2', { levied: 7.5, taken: 3, kept: 1.5 }], ['A3', { levied: 10.5, demanded: 1, kept: 0.5 }]],
+  took: [['S10', { levied: 10.5, kept: 1.5 }], ['S11', { levied: 10.5, kept: 1.5 }], ['S12', { levied: 10.5, kept: 1.5 }], ['A1', { levied: 8.5, taken: 2, kept: 1.5 }], ['A2', { levied: 7.5, taken: 3, kept: 1.5 }], ['A3', { levied: 8, taken: 2.5, demanded: 1, kept: 0.5 }]],
+  greta: [['S10', { levied: 10.5, demanded: 1.5 }], ['S11', { levied: 10.5, kept: 1.5 }], ['S12', { levied: 10.5, demanded: 1, kept: 0.5 }], ['A1', { owed: 8, levied: 2.5, demanded: 1.5 }], ['A2', { levied: 10.5, demanded: 1.5 }], ['A3', { levied: 10.5, given: 0.5, kept: 1 }]],
+};
+const MEMS = {
+  nils: [{ d: 'S12', t: 'gave 1 h at the stooks', s: 1 }, { d: 'A2', t: 'took 3 h from the rye (14-17)', s: -1 }],
+  took: [{ d: 'A1', t: 'took 2 h from the hay', s: -1 }, { d: 'A2', t: 'took 3 h from the rye (14-17)', s: -1 }, { d: 'A3', t: 'took 2.5 h; said nothing', s: -1 }],
+  greta: [{ d: 'A1', t: 'went to the fence for Backa, unasked', s: 1 }, { d: 'A2', t: 'churned late without a word', s: 1 }],
+};
+const mems = () => MEMS[S.mode].concat(S.mem);
+const opinion = () => Math.max(-1, Math.min(1, (greta() ? 0.35 : 0.15) + mems().reduce((a, m) => a + m.s * 0.12, 0)));
+const head = () => (greta() ? 'Karin' : 'Per');
+// ---- Threads (a messaging app). dir: in | out | sys | act | req. rc: sent | delivered | read.
+function threads() {
+  if (greta()) return {
+    karin: [{ d: 'A3 19:10', dir: 'out', g: 'courting', w: 'own', t: 'Leave on Sunday to see my mother at Torpet?', rc: 'read', pend: 'read yesterday; no answer yet' },
+      ...(S.demand === 'pending' ? [{ dir: 'req', k: 'demand', d: 'A4 09:55' }] : []), ...S.extra.filter((m) => m.th === 'karin')],
+    per: [{ d: 'S12 18:00', dir: 'sys', g: 'plan', t: 'Your contract: to the moving round (winter day 1); wage 20 rations and shoes; a free day at the term; 10.5 h by the custom.' },
+      { d: 'A2 18:20', dir: 'out', g: 'round', w: 'own', t: 'My free day at the term: day 10 instead of the moving day?', rc: 'read', pend: 'read; Per answers at his review' },
+      { d: 'A3 20:05', dir: 'out', g: 'grain', w: 'own', t: 'Half my wage now, 10 rations?', rc: 'delivered', pend: 'delivered, not read' }, ...S.extra.filter((m) => m.th === 'per')],
+    erik: [],
+  };
+  const per = [{ d: 'A1 18:10', dir: 'out', g: 'courting', w: 'own', t: 'Leave for the gathering, day 8?', rc: 'read' },
+    { d: 'A1 18:40', dir: 'in', g: 'courting', w: 'own', f: 'plan', n: 8, t: 'Granted. ✓', k: 'leave' }];
+  for (const m of MEMS[S.mode]) if (m.s < 0) per.push({ d: m.d + ' 17:00', dir: 'sys', g: 'memory', t: `You ${m.t}. Per said nothing; he will remember.`, k: 'mem' });
+  if (S.demand === 'pending') per.push({ dir: 'req', k: 'demand', d: 'A4 09:52' });
+  if (S.take === 'planned') per.push({ dir: 'act', k: 'take', d: 'A4, at 14:00' });
+  return { per: per.concat(S.extra.filter((m) => m.th === 'per')), karin: [], erik: [{ d: 'A3 07:00', dir: 'in', g: 'beast', t: 'Take the cattle for me on Sunday? I owe you one.', rc: 'read' }] };
+}
+// ---- The map.
+const scale = Math.min(860 / MAP_W, (800 - 41 - 272) / MAP_H);
+const NOWAT = () => { const b = day(); const x = b.find((x) => x.h[0] <= 10 && 10 < x.h[1]); return x.at; };
+const DOTS = () => greta()
+  ? [['per', 'long'], ['karin', 'long'], ['erik', 'long'], ['nils', 'home'], ['anna', 'meadow']]
+  : [['per', 'long'], ['karin', 'long'], ['erik', 'long'], ['anna', 'meadow']];
+const MEMBERS = { per: PEOPLE[0], karin: PEOPLE[1], erik: PEOPLE[2], nils: PEOPLE[3], anna: PEOPLE[4], greta: { id: 'greta', name: 'Greta', col: '#4a4a8a' } };
+function dotXY(id) { const list = DOTS(); const i = list.findIndex((d) => d[0] === id); const at_ = list[i][1]; const same = list.filter((d) => d[1] === at_); const j = same.findIndex((d) => d[0] === id); const p = at(at_); return { x: p.x - 18 + j * 17, y: p.y + 30 }; }
+function meXY() { const p = at(NOWAT()); return { x: p.x - 22, y: p.y + 8 }; }
+function sign(b, i, n) {
+  const st = b.st === 'done' ? 'done' : null, frame = b.st === 'doing' ? 'now' : 'plan';
+  const whose = b.part === 'kept' || b.part === 'given' || b.part === 'mine' ? 'own' : 'household';
+  const breach = b.part === 'taken' ? 'taken' : b.part === 'demanded' ? 'demanded' : null;
+  return icon(b.k, { frame, whose, breach, state: st, author: b.by === 'me' ? 'player' : null, num: n > 1 ? n : null, unit: n > 1 ? 'count' : null, ghost: !!b.ghost, size: 36 });
+}
+function renderMap() {
+  const b = day(), me = greta() ? MEMBERS.greta : MEMBERS.nils, hd = greta() ? 'karin' : 'per';
+  let s = `<svg class="land" viewBox="0 0 ${MAP_W} ${MAP_H}" preserveAspectRatio="xMidYMid meet">${DEFS}${mapSVG()}`;
+  // what he cannot see: greyed, a '?'
+  const unk = (place, g, t) => { const p = at(place); s += `<g class="hit" data-k="unk:${place}" transform="translate(${p.x - 16} ${p.y - 30})" opacity=".5">${icon(g, { frame: 'target', whose: null, ghost: true, size: 32 })}<text x="16" y="52" text-anchor="middle" font-size="14" font-weight="700" fill="#2a2018">?</text></g>`; };
+  unk('barley', 'oats'); unk('clearing', 'hoe');
+  let p = at('fence'); s += `<g class="hit" data-k="fence" transform="translate(${p.x - 16} ${p.y - 30})">${icon('fence', { frame: 'plan', whose: 'owed', num: 6, size: 32 })}</g>`;
+  if (!greta()) { p = at('green'); s += `<g class="hit" data-k="leave" transform="translate(${p.x - 16} ${p.y - 30})">${icon('courting', { frame: 'plan', whose: 'own', num: 8, size: 32 })}</g>`; }
+  // his places today: one sign per place, the most pressing first (pending, doing, next), a count pip for the rest
+  const by = {}; b.forEach((x, i) => (by[x.at] = by[x.at] || []).push(i));
+  for (const [place, is] of Object.entries(by)) {
+    const pick = is.find((i) => b[i].ghost) ?? is.find((i) => b[i].st === 'doing') ?? is.find((i) => b[i].st !== 'done') ?? is[0];
+    const q = at(place); s += `<g class="hit" data-k="b:${pick}" transform="translate(${q.x - 4} ${q.y - 40})">${sign(b[pick], pick, is.length)}</g>`;
+  }
+  // the household's members: dots at their places (what he knows: their places, not their hours)
+  for (const [id] of DOTS()) { const m = MEMBERS[id], d = dotXY(id); s += `<g class="hit" data-k="dot:${id}"><circle cx="${d.x}" cy="${d.y}" r="8" fill="${m.col}" stroke="#fff" stroke-width="1.5"/><text x="${d.x}" y="${d.y + 3.5}" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">${m.name[0]}</text></g>`; }
+  // me
+  const m = meXY(); s += `<g class="hit" data-k="me"><circle cx="${m.x}" cy="${m.y - 6}" r="17" fill="#fff8" stroke="${me.col}" stroke-width="2"/>${pawnSVG(me, m.x, m.y, 1.2)}<text x="${m.x}" y="${m.y + 22}" font-size="11" font-weight="700" text-anchor="middle" fill="#2a2018">me</text></g>`;
+  // messages on the land: a bubble at each pawn of the thread, an arc between, a message travelling when a request is in flight
+  const hdp = dotXY(hd), th = threads()[hd], pend = th.filter((x) => x.dir === 'req' || x.pend || x.dir === 'act').length;
+  const c1 = { x: (hdp.x + m.x) / 2, y: Math.min(hdp.y, m.y) - 70 };
+  const path = `M${hdp.x} ${hdp.y - 10} Q${c1.x} ${c1.y} ${m.x} ${m.y - 26}`;
+  s += `<path id="arc" d="${path}" fill="none" stroke="#2a2018" stroke-width="1.5" stroke-dasharray="4 4" opacity=".7"/>`;
+  if (S.demand === 'pending') s += `<g>${icon('msg', { whose: 'household', size: 22 }).replace('<svg ', '<svg x="-11" y="-11" ')}<animateMotion dur="3s" repeatCount="indefinite" path="${path}"/></g>`;
+  s += `<g class="hit" data-k="th:${hd}" transform="translate(${hdp.x + 4} ${hdp.y - 42})">${icon('msg', { whose: 'household', num: pend || null, unit: 'count', size: 28 })}</g>`;
+  s += `<g class="hit" data-k="th:${hd}" transform="translate(${m.x + 8} ${m.y - 58})">${icon('msg', { whose: 'own', size: 28 })}</g>`;
+  // the head's memory of me, a mark on him (not a hidden bar)
+  const neg = mems().filter((x) => x.s < 0).length;
+  if (neg) s += `<g class="hit" data-k="standing" transform="translate(${hdp.x - 34} ${hdp.y - 40})">${icon('memory', { whose: null, num: neg, unit: 'count', size: 26 })}</g>`;
+  $('map').querySelector('svg.land')?.remove();
+  $('map').insertAdjacentHTML('beforeend', s + '</svg>');
+}
+// ---- The timesheet (docked).
+const X0 = 70, HW = 62, x = (h) => X0 + (h - 6) * HW;
+function renderSheet() {
+  const b = day(), L = LEVY(), lx = levyAt(b), me = greta() ? 'Greta, 22, servant of Backa' : 'Nils, 17, second son of Backa';
+  let s = `<div class="hd"><b>${me}</b><span>levy ${L} h today${S.take === 'granted' ? ' (Per granted 2.5 h)' : ''} · own hours ${(12 - L).toFixed(1)} h · past exact, ahead my estimate</span><span class="k">${['owed', 'levied', 'taken', 'demanded', 'given', 'kept'].map((k) => `<span><i style="background:${PART[k].css}"></i>${k}</span>`).join('')}</span></div>`;
+  let g = `<svg width="840" height="104" style="display:block">${DEFS}`;
+  for (let h = 6; h <= 18; h++) g += `<text x="${x(h)}" y="30" font-size="10" text-anchor="middle" fill="#5d6253">${String(h).padStart(2, '0')}</text><path d="M${x(h)} 33v42" stroke="#0001"/>`;
+  g += `<text x="0" y="58" font-size="12" font-weight="700">today</text><text x="0" y="71" font-size="10" fill="#5d6253">A4</text>`;
+  b.forEach((it, i) => {
+    const x0 = x(it.h[0]), w = (it.h[1] - it.h[0]) * HW, ahead = it.h[0] >= 10;
+    g += `<g class="hit" data-k="b:${i}"><rect x="${x0 + 1}" y="36" width="${w - 2}" height="36" rx="4" fill="${PART[it.part].c}" stroke="${it.part === 'mine' ? '#1f7a76' : '#2a2018'}" stroke-width="${it.ghost ? 1.6 : 1}" ${it.ghost ? 'stroke-dasharray="4 3"' : ''} opacity="${ahead && !it.ghost ? 0.82 : 1}"/>`;
+    if (it.est) g += `<rect x="${x(it.est[0])}" y="36" width="${(it.est[1] - it.est[0]) * HW}" height="36" fill="url(#hatch-todo)"/>`;
+    g += `<g transform="translate(${x0 + w / 2 - 13} 41)">${sign(it, i, 1).replace(/width="36" height="36"/, 'width="26" height="26"')}</g>`;
+    g += `<text x="${x0 + w / 2}" y="86" font-size="10" text-anchor="middle" fill="#5d6253">${it.by === 'me' ? 'me' : it.by}</text></g>`;
+  });
+  g += `<path d="M${x(10)} 32v44" stroke="#2a2018" stroke-width="2"/><path d="M${x(10) - 5} 32h10l-5 6z" fill="#2a2018"/><text x="${x(10)}" y="100" font-size="10" text-anchor="middle" font-weight="700">now</text>`;
+  g += `<g class="hit" data-k="levy"><path d="M${lx} 4v84" stroke="#1f7a76" stroke-width="3"/><text x="${lx - 5}" y="12" font-size="11" text-anchor="end" fill="#2a2018">the household's, as the day brings ◂</text><text x="${lx + 5}" y="12" font-size="11" font-weight="700" fill="#1f7a76">▸ mine ${(18 - lx).toFixed(1)} h</text><text x="${lx}" y="100" font-size="10" text-anchor="middle" fill="#1f7a76" font-weight="700">levy ${L} h</text></g>`;
+  s += g + '</svg>';
+  const sum = {}, past = {}; for (const it of b) { const d = it.h[1] - it.h[0]; sum[it.part] = (sum[it.part] || 0) + d; past[it.part] = (past[it.part] || 0) + Math.max(0, Math.min(10, it.h[1]) - it.h[0]); }
+  s += `<div class="tally">punched so far: ${Object.entries(past).filter(([, v]) => v > 0).map(([k, v]) => `<b>${k} ${v} h</b>`).join(' · ')} &nbsp;|&nbsp; by evening, my estimate: ${ORDERP.filter((k) => sum[k]).map((k) => `${k} ${sum[k]} h`).join(' · ')}</div>`;
+  // the week behind, sovereignty, standing
+  const wk = WEEK[S.mode]; let w = `<svg width="250" height="100">${DEFS}`;
+  wk.forEach(([d, parts], i) => { let y = 86; const cx = 8 + i * 34;
+    for (const k of ['owed', 'levied', 'taken', 'demanded', 'given', 'kept']) if (parts[k]) { const hh = parts[k] * 6.5; y -= hh; w += `<rect class="hit" data-k="wk:${i}" x="${cx}" y="${y}" width="24" height="${hh}" fill="${PART[k].c}" stroke="#2a201855"/>`; }
+    w += `<text x="${cx + 12}" y="97" font-size="10" text-anchor="middle" fill="#5d6253">${d}</text>`;
+    if (parts.taken) w += `<g transform="translate(${cx + 2} 0)" class="hit" data-k="standing">${icon('memory', { whose: null, size: 20 })}</g>`; });
+  w += `<path d="M4 ${86 - 10.5 * 6.5}h206" stroke="#1f7a76" stroke-width="2" stroke-dasharray="5 3"/><text x="212" y="${90 - 10.5 * 6.5}" font-size="10" fill="#1f7a76">levy</text></svg>`;
+  const T = wk.reduce((a, [, p]) => { for (const k in p) a[k] = (a[k] || 0) + p[k]; return a; }, {}), H = 12 * wk.length;
+  const right = 1 - 10.5 / 12, lived = ((T.demanded || 0) + (T.given || 0) + (T.kept || 0)) / H, dm = (T.demanded || 0) / H;
+  const op = opinion(), opx = ((op + 1) / 2) * 100;
+  s += `<div class="lower"><div><h4>My last 6 days, punched</h4>${w}</div>
+  <div class="hit" data-k="sov"><h4>Sovereignty: my hours of my working hours</h4><div class="pair">
+   <span>by right</span><div class="bar"><span style="left:0;width:${right * 100}%;background:#2f8f8a"></span></div><b>${Math.round(right * 100)}%</b>
+   <span>as lived</span><div class="bar"><span style="left:0;width:${(lived - dm) * 100}%;background:#2f8f8a"></span><span style="left:${(lived - dm) * 100}%;width:${dm * 100}%;background:${PART.demanded.css}"></span></div><b>${Math.round(lived * 100)}%</b>
+   <span>and took</span><div class="bar"><span style="left:0;width:${((T.taken || 0) / H) * 100}%;background:${PART.taken.css}"></span></div><b>${T.taken || 0} h</b></div>
+   <small style="color:var(--muted)">${greta() ? 'a servant by contract: the same 10.5 h; at the term she weighs it' : 'the custom for an adult member, autumn: 10.5 of 12'}</small></div>
+  <div><h4>Standing with ${head()}</h4><div class="hit" data-k="standing" style="display:flex;gap:6px;align-items:center"><span style="font-size:12px">opinion of me</span><svg width="130" height="14"><rect x="0" y="4" width="130" height="6" rx="3" fill="#e2ddcf"/><path d="M65 1v12" stroke="#0004"/><circle cx="${opx * 1.3}" cy="7" r="5.5" fill="${op < 0 ? '#8a4a2a' : '#3f7a35'}" stroke="#fff"/></svg><b>${op > 0 ? '+' : ''}${op.toFixed(2)}</b></div>
+   <div class="mems">${mems().map((mm, i) => `<span data-k="mem:${i}" title="${mm.d}: ${mm.t}">${icon('memory', { whose: mm.s < 0 ? null : 'own', state: mm.s < 0 ? 'blocked' : 'done', size: 24 })}</span>`).join('')}<small style="color:var(--muted);margin-left:4px">${head()}'s memories of me, as I know them</small></div>
+   <small>hangs on it: ${greta() ? 'being kept on at the moving round; the wage; a reference' : 'my portion; whether Per sends me into service at the moving round'}${took3() ? '. <b>Three takings this week: a fourth is the one he will weigh</b>' : ''}</small></div></div>`;
+  $('sheet').innerHTML = s;
+}
+const ORDERP = ['owed', 'levied', 'taken', 'demanded', 'given', 'kept', 'mine'];
+// ---- The side: the tray (decision points, by deadline), threads, compose, what Per told me.
+function renderSide() {
+  const items = [];
+  if (S.demand === 'pending') items.push(['demand', icon(greta() ? 'butter' : 'cart', { breach: 'demanded', author: 'player', size: 30 }), `${head()} demands: ${greta() ? 'churn' : 'haul'} 16:30-18`, 'comply · refuse · bargain', 'at once', true]);
+  if (S.take === 'planned' && !greta()) items.push(['take', icon('courting', { breach: 'taken', author: 'player', frame: 'plan', size: 30, ghost: true }), 'Take 2.5 h: Norrgård at 14:00', took3() ? 'my plan; it would be the 4th this week' : 'my plan; its cost shown before', 'in 4 h']);
+  if (!['complied', 'bargained'].includes(S.demand) && !S.own) items.push(['own', icon('idle', { whose: 'own', frame: 'plan', size: 30 }), 'Own hours from 16:30 (1.5 h)', 'give · pastime · courting · rest', 'in 6½ h']);
+  if (greta()) items.push(['asks', icon('msg', { whose: 'own', num: 3 - S.extra.filter((m) => m.ans).length, unit: 'count', size: 30 }), 'Waiting on them: 3 asks', 'Karin 1 (read), Per 2 (read, delivered)', 'their review']);
+  $('tray').innerHTML = `<h4>To decide, by deadline</h4>` + (items.map(([k, ic, t, sub, cd, once]) => `<div class="ti" data-k="${k}">${ic}<div>${t}<small>${sub}</small></div><span class="cd${once ? ' once' : ''}">${cd}</span></div>`).join('') || '<small>nothing to decide</small>');
+  const th = threads(), names = greta() ? ['karin', 'per', 'erik'] : ['per', 'karin', 'erik'];
+  if (!th[S.thread]) S.thread = names[0];
+  $('tabs').innerHTML = names.map((n) => { const c = th[n].filter((m) => m.dir === 'req' || m.pend || m.dir === 'act').length; return `<button data-th="${n}" class="${S.thread === n ? 'on' : ''}">${MEMBERS[n].name}${c ? ` <sup>${c}</sup>` : ''}</button>`; }).join('');
+  $('msgs').innerHTML = th[S.thread].map(msgHTML).join('') || '<div class="msg sys"><span></span><span>no messages</span></div>';
+  $('msgs').scrollTop = 1e4;
+  // compose: the winter ask (Nils) or a reply to Karin (Greta)
+  if (!greta()) $('compose').innerHTML = S.winter === 'draft' ? `<div class="box">${icon('idle', { whose: 'own', frame: 'plan', size: 24 })}<span data-k="winter">A lighter levy in winter: <b>9 h</b> (custom 9.5)</span><button data-act="winterAsk">ask</button></div><small>Per's likely answer, by my estimate: <b>no, 3 in 4</b> (he thinks me idle${took3() ? ', after three takings' : ', after day 2'}). After a week with nothing taken: 2 in 5. A no is a memory of mine.</small>` : `<small>Asked: a lighter winter levy. Per answers at his evening review.</small>`;
+  else $('compose').innerHTML = `<div class="box">${icon('round', { whose: 'own', frame: 'plan', size: 24 })}<span data-k="term">Ask: stay on past the moving round, wage 24</span><button data-act="termAsk">ask</button></div><small>Per's likely answer, by my estimate: yes at 20, no at 24 (2 in 3). Not asked yet.</small>`;
+  const told = greta() ? [['wheat', 'Rye in the barn: "a week of binding" (Per, at supper)', 1], ['butter', 'Butter for the estate: "two firkins" (Karin)', 1], ['oats', 'The barley: not told', 0], ['plan', 'Who stays at the moving round: not told', 0]]
+    : [['rye', 'Rye in the barn: "two more days" (Per)', 1], ['wood', 'Firewood for winter: 9 of 20 loads; mine to fetch', 1], ['fence', 'The fence: Erik on day 6 (Per, at supper)', 1], ['oats', 'The barley: not told (Per\'s plan)', 0], ['hoe', 'The south field, next spring: not told', 0], ['build', 'The estate\'s winter days: not told', 0]];
+  $('told').innerHTML = `<h4>Backa's season, as ${greta() ? 'they' : 'Per'} told me</h4>` + told.map(([g, t, k]) => `<div class="r ${k ? '' : 'unk'}" data-k="told:${g}">${icon(g, { frame: 'target', whose: k ? 'household' : null, size: 22, ghost: !k })}<span>${t}</span></div>`).join('');
+}
+function msgHTML(m) {
+  if (m.dir === 'req') {
+    const D = demandActs();
+    return `<div class="msg req" id="m-demand">${icon(greta() ? 'butter' : 'cart', { breach: 'demanded', author: 'player', size: 30 })}<div><b>${head()}:</b> ${greta() ? '"Churn the cream tonight, 16:30-18. It will not keep."' : '"Haul the sheaves before the rain, 16:30-18."'}<br><small>beyond your levy (your own 1.5 h): a demand. ${greta() ? 'Karin is not your head; Per backs her' : ''}</small>
+     <div class="opts">${D.map(([a, l, c]) => `<button data-act="${a}"><b>${l}</b> <small>${c}</small></button>`).join('')}<div class="def"><b>the rule will:</b> ${greta() ? 'comply (a servant near her term)' : 'refuse (you want Norrgård)'}, at once</div></div><span class="meta">${m.d} · just now</span></div></div>`;
+  }
+  if (m.dir === 'act') return `<div class="msg act" id="m-take">${icon('courting', { breach: 'taken', author: 'player', frame: 'plan', ghost: true, size: 30 })}<div><b>My plan, not a message:</b> at 14:00 I leave the rye for Norrgård (2.5 h of the levy).<br><small>Per learns of it by evening, from Erik or the stubble.</small>
+     <div class="opts">${takeActs().map(([a, l, c]) => `<button data-act="${a}"><b>${l}</b> <small>${c}</small></button>`).join('')}<div class="def"><b>the rule will:</b> go at 14:00 (your plan stands)</div></div><span class="meta">${m.d}</span></div></div>`;
+  const rc = m.rc ? ` <span class="rc">${m.rc === 'read' ? '✓✓ read' : m.rc === 'delivered' ? '✓ delivered' : '· sent'}</span>` : '';
+  return `<div class="msg ${m.dir}" ${m.k ? `data-k="${m.k}"` : ''}>${icon(m.g || 'msg', { whose: m.w === undefined ? null : m.w, frame: m.f || 'now', num: m.n ?? null, size: 28 })}<div>${m.t}${m.pend ? `<br><small style="color:var(--muted)">⋯ ${m.pend}</small>` : ''}<span class="meta">${m.d || ''}${rc}</span></div></div>`;
+}
+function demandActs() {
+  if (greta()) return [['comply', 'comply', '1.5 h of mine booked demanded; Karin +; your 4th this week (a memory of yours)'],
+    ['refuse', 'refuse', "1.5 h stay yours; Karin's opinion −, a memory of hers; Per weighs it when he keeps you on at the term"],
+    ['bargain', 'bargain', 'churn, if Sunday\'s leave is granted: Karin likely yes, 3 in 5']];
+  return [['comply', 'comply', '1.5 h of mine booked demanded; Per: no change; a memory of mine ("made to haul")'],
+    ['refuse', 'refuse', `1.5 h stay mine; Per's opinion −, a memory of his${took3() ? ' (his 4th this week)' : ''}; hangs on it: my portion, a servant's place at the moving round`],
+    ['bargain', 'bargain', 'haul, if 14:00 at Norrgård is leave, not taking: Per likely yes, 2 in 5 (he needs hands before the rain)']];
+}
+function takeActs() {
+  return [['take', 'take', `2.5 h of the levy booked taken; Per's memory${took3() ? ' (his 4th this week: the one he weighs)' : ' (his 2nd this season)'}, opinion −; brings Lisa 2.5 h of the ~6 a week`],
+    ['askLeave', 'ask leave', 'Per likely no, 2 in 3, in the harvest; a no is a memory of mine'],
+    ['drop', 'drop it', 'reap until 16:30; nothing toward Lisa today']];
+}
+// ---- Acts: a toast saying what it would issue, and the mock changed where cheap.
+const toast = (t) => { const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3800); };
+const me = () => (greta() ? 'Greta' : 'Nils'), hdName = () => head();
+function act(a) {
+  closeB(); const th = greta() ? 'karin' : 'per', what = greta() ? 'churn 16:30-18' : 'haul 16:30-18';
+  const say = (t, dir = 'out', extra = {}) => S.extra.push({ th, dir, t, d: 'A4 10:0' + S.extra.length, g: 'msg', w: dir === 'out' ? 'own' : 'household', ...extra });
+  if (a === 'comply') { S.demand = 'complied'; say(greta() ? 'I\'ll churn.' : "I'll haul.", 'out', { rc: 'read' }); toast(`would issue \`answer\` ${me()} -> ${hdName()}: comply (${what}); booked demanded`); }
+  if (a === 'refuse') { S.demand = 'refused'; S.mem.push({ d: 'A4', t: `refused to ${greta() ? 'churn' : 'haul'} before the rain`, s: -1 }); say('No. Those are my own hours.', 'out', { rc: 'read' }); say(greta() ? 'Karin: "Per will hear of it."' : 'Per: "Then the sheaves get wet on your head."', 'in', { g: 'memory', w: null }); toast(`would issue \`answer\` ${me()} -> ${hdName()}: refuse (${what}); 1.5 h back to own; a memory of ${hdName()}'s`); }
+  if (a === 'bargain') { S.demand = 'bargained'; if (!greta()) S.take = 'granted'; say(greta() ? 'I\'ll churn if I may go to Torpet on Sunday.' : "I'll haul, if I may go to Norrgård at 14 with your leave.", 'out', { rc: 'read' }); say(greta() ? 'Karin: "Go on Sunday. Churn now." ✓ granted' : 'Per: "Go at 14. Be back to haul at half past four." ✓ granted', 'in', { g: 'courting', w: 'own', ans: true }); toast(`would issue \`answer\` ${me()} -> ${hdName()}: bargain; then \`grant\` ${hdName()} -> ${me()}: ${greta() ? 'leave Sunday' : 'leave 14:00-16:30 (levy today 8 h)'}`); }
+  if (a === 'take') { S.take = 'taken'; S.mem.push({ d: 'A4', t: 'took 2.5 h from the rye for Norrgård', s: -1 }); toast('would issue `breach` Nils: take 14:00-16:30 of the levy (Norrgård); booked taken at the leg\'s end'); }
+  if (a === 'drop') { S.take = 'dropped'; toast('would issue `plan` Nils: reap rye 11:00-16:30 (the take dropped)'); }
+  if (a === 'askLeave') { say('May I go to Norrgård at 14, until half past four?', 'out', { rc: 'read' }); say('Per: "Not in the harvest." ✗', 'in', { g: 'no', w: null }); toast('would issue `ask` Nils -> Per: leave 14:00-16:30; answered no (a memory of Nils\')'); }
+  if (a === 'winterAsk') { S.winter = 'asked'; say('A lighter levy this winter: 9 h?', 'out', { rc: 'delivered', pend: 'Per answers at his evening review' }); toast('would issue `ask` Nils -> Per: a standing grant, winter 9 h (custom 9.5)'); }
+  if (a === 'termAsk') { S.extra.push({ th: 'per', dir: 'out', t: 'May I stay on past the moving round, at 24 rations?', d: 'A4 10:05', g: 'round', w: 'own', rc: 'sent', pend: 'sent' }); toast('would issue `ask` Greta -> Per: stay on at the term, wage 24'); }
+  if (a.startsWith('own:')) { const o = a.slice(4); S.own = o; if (S.demand === 'pending') S.demand = o === 'give' ? 'gave' : 'refused'; if (o !== 'give' && S.demand === 'refused' && !S.mem.some((m) => m.t.startsWith('refused'))) { S.mem.push({ d: 'A4', t: 'refused to haul before the rain', s: -1 }); } if (o === 'give') S.mem.push({ d: 'A4', t: 'gave 1.5 h at the haul', s: 1 }); toast(`would issue \`${OWN[o].verb}\` ${me()}: ${OWN[o].what}, 16:30-18${o === 'give' ? ' (booked given)' : ''}`); }
+  render();
+}
+// ---- Bubbles: what, why, who chose it, the estimate; then the acts.
+function info(k) {
+  const b = day();
+  if (k.startsWith('b:')) { const it = b[+k.slice(2)], ahead = it.h[0] >= 10;
+    const acts = []; if (ahead && it.part === 'levied' && !greta()) acts.push(['take', 'take these hours', 'booked taken: Per\'s memory, opinion −'], ['askLeave', 'ask leave', 'Per likely no, 2 in 3']);
+    if (it.part === 'demanded' && S.demand === 'pending') acts.push(...demandActs());
+    if (it.part === 'mine') Object.entries(OWN).forEach(([o, v]) => acts.push(['own:' + o, v.what, v.brings + '; ' + v.costs]));
+    if (it.ghost && it.part === 'taken') acts.push(...takeActs());
+    return { ic: sign(it, 0, 1), t: it.what, rows: [['when', `${fmt(it.h[0])}-${fmt(it.h[1])}${it.est ? `, ends ${fmt(it.est[0])}-${fmt(it.est[1])} by my estimate` : ahead ? '' : ' (exact)'}`], ['where', PLACES[it.at].name], ['part', PART[it.part].n + (LEVYSIDE.has(it.part) ? ' (the household\'s side of the line)' : ' (my side)')], ['chosen by', it.by === 'me' ? 'me' : it.by === 'rule' ? 'the rule (the morning allotment)' : it.by + "'s list"]], acts, why: it.why }; }
+  if (k === 'demand') return { ic: icon('cart', { breach: 'demanded', author: 'player', size: 30 }), t: `${head()}'s demand, ${greta() ? 'churn' : 'haul'} 16:30-18`, rows: [['whose', 'my own 1.5 h, beyond the levy'], ['answer', 'at once'], ['why', greta() ? 'the cream will not keep' : 'rain by evening, 1 in 3 (Per\'s estimate)']], acts: demandActs() };
+  if (k === 'take') return { ic: icon('courting', { breach: 'taken', author: 'player', frame: 'plan', size: 30 }), t: 'Take hours: Norrgård at 14:00', rows: [['hours', '14:00-16:30, 2.5 h of the levy'], ['brings', 'Lisa: the aim needs ~6 h a week; 1.5 so far'], ['costs', 'booked taken; Per\'s memory; my standing']], acts: takeActs() };
+  if (k === 'own' || k === 'levy') return { ic: icon('idle', { whose: 'own', frame: 'plan', size: 30 }), t: `Own hours from ${fmt(levyAt(b))} (${(18 - levyAt(b)).toFixed(1)} h)`, rows: [['by right', `the levy is ${LEVY()} h: what is past the line is mine`], ['now', S.demand === 'pending' ? `${head()} demands them: choosing answers him` : 'free to spend'], ['the rule will', 'court Lisa (my want)']], acts: Object.entries(OWN).map(([o, v]) => ['own:' + o, v.what, `brings ${v.brings}; costs ${v.costs}`]) };
+  if (k.startsWith('dot:')) { const id = k.slice(4), m = MEMBERS[id]; const where = PLACES[DOTS().find((d) => d[0] === id)[1]].name;
+    return { ic: `<svg width="26" height="26"><circle cx="13" cy="13" r="11" fill="${m.col}"/></svg>`, t: m.name, rows: [['where', where + ' (seen at 6)'], ['their hours', 'not mine to know: their lists are Per\'s'], ['to me', id === 'per' ? 'my head: he grants, asks, demands' : id === 'erik' ? 'my brother: asked me for Sunday\'s cattle' : '']], acts: id === 'per' || id === 'karin' ? [['th:' + id, 'open the thread', '']] : [] }; }
+  if (k === 'me') return { ic: pawnIcon(), t: greta() ? 'Greta (me)' : 'Nils (me)', rows: [['doing', b.find((x) => x.st === 'doing').what], ['levy', `${LEVY()} h today`], ['aim', greta() ? 'stay on, or a better place at the term' : 'court Lisa at Norrgård, 30%; rival: the smith\'s son']], acts: [] };
+  if (k.startsWith('mem:') || k === 'standing') return { ic: icon('memory', { whose: null, size: 30 }), t: `${head()}'s memory of me`, rows: mems().map((m) => [m.d, (m.s < 0 ? '− ' : '+ ') + m.t]).concat([['patience', 'shown as these, not as a bar: he weighs them at the moving round and the portion']]), acts: [] };
+  if (k.startsWith('wk:')) { const [d, p] = WEEK[S.mode][+k.slice(3)]; return { ic: icon('plan', { frame: 'plan', whose: null, size: 30 }), t: `Day ${d}, punched`, rows: Object.entries(p).map(([a, v]) => [a, v + ' h']), acts: [] }; }
+  if (k === 'sov') return { ic: icon('standing', { whose: 'own', size: 30 }), t: 'Sovereignty', rows: [['by right', '1 − levy/12: what custom leaves me'], ['as lived', '(demanded + given + kept) / 12, my last 6 days'], ['took', 'beside it, not in it: hours of the levy I kept']], acts: [] };
+  if (k === 'leave') return { ic: icon('courting', { frame: 'plan', whose: 'own', num: 8, size: 30 }), t: 'Leave for the gathering, day 8', rows: [['asked', 'A1 18:10, read ✓✓'], ['answer', 'granted by Per, A1 18:40'], ['books', 'that day\'s levy hours become my own']], acts: [] };
+  if (k === 'fence') return { ic: icon('fence', { frame: 'plan', whose: 'owed', num: 6, size: 30 }), t: 'The village fence: Erik, day 6', rows: [['known', 'Per said it at supper'], ['the 2nd day', 'to name by day 9: not told who']], acts: [] };
+  if (k.startsWith('unk:') || k.startsWith('told:')) return { ic: icon('oats', { frame: 'target', whose: null, ghost: true, size: 30 }), t: 'Not told', rows: [['what', 'Per\'s plan here does not touch my hours, so I do not see it'], ['ask', 'I could ask Per at supper']], acts: [] };
+  if (k === 'winter') return { ic: icon('idle', { frame: 'plan', whose: 'own', size: 30 }), t: 'Ask: a lighter winter levy, 9 h', rows: [['custom', '9.5 h in winter'], ['likely', 'no, 3 in 4 by my estimate'], ['brings', '0.5 h a day, ~30 h a winter for Lisa']], acts: [['winterAsk', 'ask now', 'a no is a memory of mine']] };
+  if (k === 'asks') return { ic: icon('msg', { whose: 'own', size: 30 }), t: '3 asks pending', rows: [['Karin', 'leave Sunday (read)'], ['Per', 'free day moved to day 10 (read)'], ['Per', 'half the wage now (delivered)']], acts: [] };
+  if (k === 'term') return { ic: icon('round', { frame: 'plan', whose: 'own', size: 30 }), t: 'The moving round', rows: [['contract', 'to winter day 1, wage 20 and shoes'], ['likely', 'kept on at 20; no at 24, 2 in 3']], acts: [['termAsk', 'ask now', '']] };
+  return null;
+}
+const fmt = (h) => `${String(Math.floor(h)).padStart(2, '0')}:${h % 1 ? String(Math.round((h % 1) * 60)).padStart(2, '0') : '00'}`;
+const pawnIcon = () => `<svg width="26" height="30" viewBox="-13 -22 26 30">${pawnSVG(greta() ? MEMBERS.greta : MEMBERS.nils, 0, 0, 1)}</svg>`;
+function closeB() { document.querySelectorAll('.bubble').forEach((b) => b.remove()); }
+function bubble(k, el) {
+  closeB(); const I = info(k); if (!I) return;
+  const d = document.createElement('div'); d.className = 'bubble';
+  d.innerHTML = `<h3>${I.ic}${I.t}</h3><dl>${I.rows.filter((r) => r[1]).map(([a, v]) => `<dt>${a}</dt><dd>${v}</dd>`).join('')}</dl>` +
+    (I.acts.length ? `<div class="opts">${I.acts.map(([a, l, c]) => `<button data-act="${a}"><b>${l}</b> <small>${c}</small></button>`).join('')}</div>` : '') +
+    (I.why ? `<button class="whyb" data-why="1">why ▸</button><div class="why" hidden>${I.why.map((w) => `<div>${w}</div>`).join('')}<div>chosen by: ${k.startsWith('b:') ? (day()[+k.slice(2)].by) : ''}</div></div>` : '');
+  document.body.appendChild(d);
+  const r = el.getBoundingClientRect(), bw = 300, bh = d.offsetHeight;
+  d.style.left = Math.max(6, Math.min(innerWidth - bw - 8, r.right + 6)) + 'px';
+  d.style.top = Math.max(46, Math.min(innerHeight - bh - 8, r.top - 10)) + 'px';
+}
+function render() { renderMap(); renderSheet(); renderSide(); }
+document.addEventListener('click', (e) => {
+  const t = e.target;
+  if (t.closest('.note')) return;
+  const w = t.closest('[data-why]'); if (w) { w.nextElementSibling.hidden = !w.nextElementSibling.hidden; return; }
+  const a = t.closest('[data-act]'); if (a) { const v = a.dataset.act; if (v.startsWith('th:')) { S.thread = v.slice(3); closeB(); return render(); } return act(v); }
+  const th = t.closest('[data-th]'); if (th) { S.thread = th.dataset.th; return renderSide(); }
+  const k = t.closest('[data-k]');
+  if (k) { const key = k.dataset.k;
+    if (key.startsWith('th:')) { S.thread = key.slice(3); closeB(); renderSide(); const r = document.getElementById('m-demand'); if (r) r.classList.add('hl'); return; }
+    if (key === 'demand' || key === 'take') { S.thread = greta() ? 'karin' : 'per'; renderSide(); const r = document.getElementById('m-' + key); if (r) { r.classList.add('hl'); r.scrollIntoView({ block: 'nearest' }); } }
+    return bubble(key, k); }
+  if (!t.closest('.bubble')) closeB();
+});
+$('vM').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; [...$('vM').children].forEach((x) => x.classList.toggle('on', x === b)); S = JSON.parse(JSON.stringify(S0)); S.mode = b.dataset.v; S.thread = S.mode === 'greta' ? 'karin' : 'per'; closeB(); render(); };
+$('reset').onclick = () => { const m = S.mode; S = JSON.parse(JSON.stringify(S0)); S.mode = m; S.thread = m === 'greta' ? 'karin' : 'per'; closeB(); render(); };
+render();
+</script>
+</body>
+</html>

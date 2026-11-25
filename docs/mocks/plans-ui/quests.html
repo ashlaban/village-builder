@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aims Quest Log</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* A pawn's aims as a quest log: markers on the land, a journal of objectives with measured key results, the year ahead. */
+:root { --paper: #ebe7da; --ink: #23251e; --muted: #625d4f; --line: #c9c2ac; --card: #f8f5ec; --own: #1f7a76; --accent: #8a5a2a;
+  --display: 'Alegreya SC', Georgia, serif; --body: 'Alegreya Sans', system-ui, sans-serif; color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body { background: var(--paper); color: var(--ink); font: 14px/1.35 var(--body); }
+.band { height: 42px; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: var(--card); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.band h1 { font: 500 1.15rem var(--display); margin: 0; }
+.band .mode { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.band .from { font-size: 12px; color: var(--muted); font-style: italic; overflow: hidden; text-overflow: ellipsis; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; flex: none; }
+.seg button { font: inherit; font-size: 13px; border: 0; background: #fff; padding: 3px 8px; cursor: pointer; color: var(--ink); }
+.seg button[aria-pressed=true] { background: var(--ink); color: #fff; }
+.seg button:disabled { opacity: .35; cursor: default; }
+.spacer { margin-left: auto; }
+main { position: absolute; inset: 42px 0 0 0; display: flex; }
+#left { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+#mapwrap { position: relative; flex: none; height: 462px; }
+#map { width: 100%; height: 100%; display: block; }
+#year { flex: 1; border-top: 1px solid var(--line); background: var(--card); overflow: hidden; }
+#year svg { display: block; width: 100%; height: 100%; }
+#journal { width: 470px; flex: none; border-left: 1px solid var(--line); background: var(--card); overflow-y: auto; padding: 8px 10px 60px; }
+#journal.strip { width: 58px; padding: 8px 6px; overflow: hidden; }
+.jh { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.jh h2 { font: 500 17px var(--display); margin: 0; flex: 1; }
+.jh button, .card button, .offer button { font: inherit; font-size: 12.5px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--ink); background: #fff; cursor: pointer; }
+.ownline { font-size: 12.5px; color: var(--muted); margin: 0 0 6px; padding: 4px 6px; border-left: 3px solid var(--own); background: #eef6f4; }
+.sec { font: 500 13px var(--display); color: var(--accent); margin: 10px 0 4px; letter-spacing: .04em; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; margin-bottom: 6px; }
+.card.focus { border-color: var(--own); box-shadow: 0 0 0 2px #1f7a7630; }
+.card.failed { background: #f1eee8; } .card.failed .tt b { text-decoration: line-through; color: var(--muted); }
+.card.offered { border: 1.5px dashed var(--own); background: #f5fbfa; }
+.card.rumour { border-style: dashed; }
+.ch { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.tt { flex: 1; min-width: 0; } .tt b { display: block; font-size: 14.5px; } .tt small { color: var(--muted); font-size: 12px; }
+.hz { font-size: 11.5px; padding: 1px 6px; border-radius: 9px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.next { font-size: 12.5px; margin: 3px 0 3px 41px; } .next i { color: var(--muted); }
+.kr { display: grid; grid-template-columns: 150px 112px 1fr; gap: 6px; align-items: center; font-size: 12.5px; margin-left: 41px; cursor: pointer; }
+.kr .l { color: var(--muted); } .kr .v { font-weight: 600; } .kr .v small { font-weight: 400; color: var(--muted); }
+.kr.txt { grid-template-columns: 150px 1fr; }
+.hrs { margin: 4px 0 0 41px; font-size: 12px; display: flex; gap: 6px; align-items: center; color: var(--muted); }
+.feeds { margin: 5px 0 0 41px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 12px; }
+.feed { display: inline-flex; align-items: center; gap: 3px; cursor: pointer; padding: 1px 4px 1px 1px; border-radius: 6px; }
+.feed:hover, .kr:hover { background: #f1ece0; }
+.conseq { margin: 4px 0 0 41px; font-size: 12.5px; padding: 4px 6px; border-left: 3px solid #4a4038; background: #ece7dd; }
+.conf { background: #fff; border: 1px solid #b9a27a; border-radius: 8px; padding: 6px 8px; margin-bottom: 6px; }
+.conf h5 { margin: 0 0 4px; font-size: 13.5px; display: flex; gap: 6px; align-items: center; }
+.opt { display: grid; grid-template-columns: 26px 1fr; gap: 4px; font-size: 12.5px; padding: 2px 3px; border-radius: 5px; cursor: pointer; }
+.opt:hover { background: #f1ece0; } .opt small { color: var(--muted); display: block; }
+.deflt { margin-top: 4px; padding: 4px 7px; border-left: 3px solid var(--ink); background: #f1ece0; font-size: 12.5px; }
+.offer { margin: 4px 0 0 41px; font-size: 13px; font-style: italic; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.compact .krs, .compact .hrs, .compact .feeds, .compact .next { display: none; }
+.one { margin-left: 41px; font-size: 12px; color: var(--muted); }
+.stripic { display: flex; flex-direction: column; gap: 8px; align-items: center; margin-top: 8px; }
+/* the old-map cartouche: the legend of this pawn's aims, in the corner of the land */
+.cart { position: absolute; right: 12px; bottom: 10px; width: 250px; background: #f8f2e2ee; border: 3px double #6b5232; border-radius: 3px; padding: 6px 10px 7px; box-shadow: 0 2px 8px #0002; font-size: 12.5px; }
+.cart h3 { font: 500 15px var(--display); margin: 0 0 3px; text-align: center; border-bottom: 1px solid #6b523260; }
+.cart .row { display: flex; align-items: center; gap: 6px; cursor: pointer; } .cart .row small { color: var(--muted); margin-left: auto; }
+.cart .sub { font-size: 11.5px; color: var(--muted); font-style: italic; margin-top: 4px; border-top: 1px dotted #6b523260; padding-top: 2px; }
+.ic { cursor: pointer; } svg .ic:hover > svg, .ic:hover > svg { filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 2px #000a); }
+.dimmed { opacity: .25; }
+#bubble { position: absolute; z-index: 5; width: 340px; background: #fffdf7; border: 1px solid #3a2a1a; border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 18px #0003; font-size: 13px; }
+#bubble h4 { margin: 0 0 6px; font: 600 15px var(--body); display: flex; gap: 8px; align-items: center; }
+#bubble dl { display: grid; grid-template-columns: 78px 1fr; gap: 2px 8px; margin: 0 0 8px; } #bubble dt { color: var(--muted); } #bubble dd { margin: 0; }
+#bubble .acts { display: flex; flex-wrap: wrap; gap: 5px; }
+#bubble button { font: inherit; font-size: 12.5px; padding: 3px 8px; border-radius: 6px; border: 1px solid #3a2a1a; background: #fff; cursor: pointer; }
+#bubble button.more { background: var(--ink); color: #fff; }
+#bubble .why { margin: 8px 0 0; padding: 0; list-style: none; border-left: 2px dashed #555; }
+#bubble .why li { display: flex; gap: 6px; align-items: center; padding: 2px 6px; } #bubble .why .up { color: var(--muted); font-style: italic; }
+#toast { position: absolute; left: 36%; bottom: 22px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 7px 14px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 6; }
+#toast.on { opacity: 1; } #toast code { color: #f2c27a; }
+.note { position: absolute; left: 10px; top: 52px; z-index: 4; width: 210px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 12.5px; }
+.note[open] { width: 520px; } .note summary { cursor: pointer; color: var(--muted); } .note p { margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<header class="band">
+  <h1>Aims as a quest log</h1><span class="mode">Pawn · aims</span>
+  <span class="from">after an RPG quest journal, OKRs (objective, key results) and the old-map cartouche</span>
+  <span class="seg spacer" id="pawn"><button data-v="nils" aria-pressed="true">Nils (member)</button><button data-v="ola" aria-pressed="false">Ola (lone settler)</button><button data-v="per" aria-pressed="false">stress: Per, 7 aims</button></span>
+  <span class="seg" id="phase"><button data-v="d4" aria-pressed="true">autumn 4</button><button data-v="d9" aria-pressed="false">autumn 9</button></span>
+</header>
+<main>
+  <div id="left"><div id="mapwrap"><svg id="map"></svg><div class="cart" id="cart"></div></div><div id="year"></div></div>
+  <aside id="journal"></aside>
+</main>
+<details class="note"><summary>Scales to / strains at</summary>
+  <p><b>Scales to</b> a pawn with two to four aims: one shield a place, one dotted path from the pawn, the cartouche naming the placeless ones. Key results as measures (a count against an estimate's hatched end, an opinion on a signed meter, stages as pips) read better than labels and are the same meter everywhere. "What moves this aim" as links into the day and the season plan answers the reverse why in one tap. Failed and offered quests read at once (struck card, slashed shield; a dashed card with take / leave).</p>
+  <p><b>Strains at</b> Per's seven: the journal has to fall to one-line cards (key results a tap away), the markers crowd the farm's tiles and the paths fan from one pawn into a hairball; two aims on one tile need the count pip. Others' aims known by rumour use a dashed shield, which collides with the dashed "offered" quest. The year strip's gates (sowing, the gathering, the moving round) hold, but conflicts are a day's matter and the year line cannot show them. Units: "own hours a week" for Nils when a game day already stands for a week; Ola's hours are per week of six days to match, which hides his necessities' daily rhythm. A quest's "next objective" pretends to a single next step: courting's next is today's taken visit, but the gathering is the one that matters.</p>
+  <p><b>New marks:</b> state badges <i>failed</i> (slash), <i>offered</i> (?), <i>rumour</i> (~); the clay pit tile (1,4). Hatching = an estimate's range only.</p>
+</details>
+<div id="bubble" hidden></div>
+<div id="toast"></div>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+// ---- Extensions of the scene in this page only (scene.js untouched): the clay pit, three new state badges.
+PLACES.clay = { q: 1, r: 4, t: 'clay', name: 'The clay pit (common land)' };
+TERRAIN.clay = '#b98d6c';
+STATES.failed = '<circle cx="34" cy="6" r="6.5" fill="#4a4038" stroke="#fff" stroke-width="1.5"/><path d="M30.6 9.4l6.8-6.8" stroke="#fff" stroke-width="1.9"/>';
+STATES.offer = '<circle cx="34" cy="6" r="6.5" fill="#fff" stroke="#1f7a76" stroke-width="1.5"/><text x="34" y="9.4" font-size="9.5" font-weight="700" text-anchor="middle" fill="#1f7a76" font-family="system-ui">?</text>';
+STATES.rumour = '<circle cx="34" cy="6" r="6.5" fill="#fff" stroke="#5a5247" stroke-width="1.5"/><path d="M30.8 7q1.6-2.6 3.2 0t3.2 0" stroke="#5a5247" stroke-width="1.5" fill="none"/>';
+const SI = { spring: 0, summer: 1, autumn: 2, winter: 3 };
+
+// ---- The aims (fake data, by the brief). KR kinds: count (v of `of`, est = the target is an estimate), signed (-1..1), stage (pips), text.
+function nilsAims(ph) {
+  const court = { id: 'court', kind: 'courting', tier: 'main', title: 'Court Lisa at Norrgård', at: 'norr', horizon: 'season → year', state: ph === 'd4' ? 'open' : 'failed',
+    next: 'Visit Norrgård today, 14:00–16:30', nextNote: 'taken from the levy',
+    krs: [{ l: 'visits to Norrgård', v: ph === 'd4' ? 2 : 4, of: 6, est: true, note: 'this season' }, { l: "Lisa's opinion of him", v: ph === 'd4' ? 0.3 : 0.2, signed: true },
+      { l: 'a rival', text: "the smith's son (rumour: her opinion of him +0.5)" }, { l: 'own hours on it', v: ph === 'd4' ? 7 : 12, of: 14, est: true, note: 'this season' }],
+    need: { lo: 5, hi: 7 }, why: 'His want since summer (courting); for Backa a daughter-in-law and kin at Norrgård.',
+    feeds: [{ f: 'day', icon: 'courting', breach: 'taken', short: 'visit 14:00', what: 'Visit Norrgård, 14:00–16:30 (taken: levied hours)', to: 'the day plan, 14:00' },
+      { f: 'ask', icon: 'courting', whose: 'own', state: 'done', num: 8, short: 'leave, day 8', what: 'Leave for the gathering, day 8 (granted by Per)', to: 'days ahead, day 8' },
+      { f: 'ask', icon: 'idle', whose: 'own', short: 'winter hours', what: 'A lighter levy in winter: 9 h (not yet asked)', to: 'the levy' }],
+    miles: [{ s: 'autumn', d: 4, icon: 'courting', what: 'a visit (today)' }, { s: 'autumn', d: 8, icon: 'people', what: 'the gathering: dance with Lisa' }, { s: 'winter', d: 6, icon: 'courting', what: 'speak to her father' }, { s: 'spring', d: 4, icon: 'married', what: 'a wedding, if she will' }] };
+  if (ph === 'd9') { court.fail = { s: 'autumn', d: 8 }; court.conseq = "Lisa married the smith's son at the gathering (autumn 8). Nils grieves a season (mood −1); ~6 own hours a week freed; Norrgård is the smithy's kin now."; }
+  const winter = { id: 'winter', kind: 'idle', tier: 'side', title: 'More own hours this winter', at: null, horizon: 'winter', state: 'open',
+    next: 'Ask Per for a 9 h levy (the winter custom is 9.5)', krs: [{ l: 'own hours in winter', v: 30, of: 45, note: '45 if granted' }, { l: "Per's opinion of him", v: -0.2, signed: true }, { l: "Per's memory", text: 'took 3 h on day 2' + (ph === 'd4' ? '; takes 2.5 today' : '') }],
+    need: null, why: ph === 'd4' ? 'Hours for Norrgård through the winter.' : 'Hours for the clay: a grant makes Per his patron.',
+    feeds: [{ f: 'ask', icon: 'idle', whose: 'own', short: 'ask Per', what: 'Ask Per: a 9 h levy in winter', to: 'the levy (the custom table)' }],
+    miles: [{ s: 'winter', d: 1, icon: 'idle', what: 'the winter custom starts (9.5 h)' }] };
+  const potter = { id: 'potter', kind: 'clay', tier: 'offered', title: "The potter's road", at: 'clay', horizon: 'years', state: 'offered',
+    prompt: 'You have spent 30 own hours at the clay: a craft?', next: 'At the clay pit, 16:30–18 (own hours)',
+    krs: [{ l: 'skill at the clay', v: 0.2, of: 1, note: 'grows with hours' }, { l: 'pots made, his own', v: 4, of: 20, est: true, note: 'by spring' }, { l: 'right to the clay', text: 'common land: ask the meeting' }, { l: 'market', text: 'the gathering next autumn; a town later' }],
+    need: { lo: 8, hi: 10 }, why: 'What he did: 30 own hours at the clay since summer (the record), skill 0.2. From slice 8 the pots are his own.',
+    feeds: [{ f: 'day', icon: 'clay', whose: 'own', short: 'clay 16:30', what: 'At the clay 16:30–18, own hours', to: 'the day plan, 16:30' },
+      { f: 'step', icon: 'build', whose: 'own', num: 6, short: 'kiln, winter 6', what: 'Build a kiln: 3 stages, by winter day 6', to: 'his season plan' },
+      { f: 'ask', icon: 'plus', whose: 'own', short: 'grant: patron', what: 'A grant of winter hours: Per as patron', to: 'the levy' }],
+    miles: [{ s: 'winter', d: 6, icon: 'build', what: 'a kiln' }, { s: 'spring', d: 8, icon: 'pot', what: '20 pots fired' }, { s: 'autumn', d: 8, icon: 'cart', what: 'sell at the gathering' }] };
+  return ph === 'd4' ? [court, winter] : [court, potter, winter];
+}
+const OLA_AIMS = [
+  { id: 'cottage', kind: 'build', tier: 'main', title: 'A cottage in place of the shelter', at: 'wood1', horizon: 'by autumn', state: 'open',
+    next: 'Fell timber at Hagen wood, 13:00–16:00', nextNote: "yesterday's felled tree lies there with his mark",
+    krs: [{ l: 'cottage', v: 2, of: 5, stage: true, note: 'site, sill · timber, walls, roof' }, { l: 'trees felled', v: 1, of: 6, note: 'one lying cut' }, { l: 'nights without a roof', text: '9; sleep owed 3 h' }],
+    need: { lo: 18, hi: 30 }, why: 'No roof: cold nights (a problem at home); a wife and a household wait on a hearth.',
+    feeds: [{ f: 'day', icon: 'chop', whose: 'own', state: 'stray', short: 'fell 13:00', what: 'Fell timber 13:00–16:00 (resumes yesterday\'s cut)', to: 'the day plan, 13:00' },
+      { f: 'step', icon: 'cart', whose: 'own', num: 3, short: 'haul', what: 'Haul the timber home', to: 'the cottage task (step 2 of 5)' }, { f: 'step', icon: 'build', whose: 'own', short: 'raise walls', what: 'Raise the walls: summer', to: 'his season plan' }],
+    miles: [{ s: 'spring', d: 3, icon: 'chop', what: 'timber' }, { s: 'summer', d: 4, icon: 'build', what: 'walls raised' }, { s: 'summer', d: 11, icon: 'home', what: 'roofed' }] },
+  { id: 'fields', kind: 'field', tier: 'main', title: 'Three fields by next autumn', at: 'clearing', horizon: 'year · sow by spring 10', state: 'risk',
+    next: 'Break the south field: day 2 of ~6, now', krs: [{ l: 'fields sown', v: 1, of: 3, stage: true }, { l: 'south field broken', v: 2, of: 6, est: true, note: 'days' }, { l: 'seed in store', text: 'oats for 1 field; 2 short' }],
+    need: { lo: 36, hi: 44 }, why: 'Bread for one, then for a household; the meeting grants land to whoever breaks it.',
+    feeds: [{ f: 'day', icon: 'hoe', whose: 'own', short: 'break 7:00', what: 'Break the south field 7:00–12:00 (now)', to: 'the day plan, 7:00' },
+      { f: 'step', icon: 'sow', whose: 'own', num: 10, short: 'sow by 10', what: 'Sow the south field by spring day 10', to: 'the sowing window' }, { f: 'ask', icon: 'seed', whose: 'own', short: 'seed', what: 'Ask Norrgård for seed oats (to repay at harvest)', to: 'an obligation' }],
+    miles: [{ s: 'spring', d: 9, icon: 'sow', what: 'south field sown' }, { s: 'summer', d: 6, icon: 'hoe', what: 'clear the third' }, { s: 'autumn', d: 3, icon: 'sow', what: 'winter rye on the third' }] },
+  { id: 'wife', kind: 'married', tier: 'side', title: 'A wife', at: null, horizon: 'years', state: 'open', next: 'The gathering, autumn 8 (no place yet: whoever he meets)',
+    krs: [{ l: 'unmarried women he knows', text: '2, by name only' }, { l: 'visits paid', v: 0, of: 4, est: true }, { l: 'a gate', text: 'a roof first (his reckoning)' }],
+    need: { lo: 3, hi: 5 }, why: 'A household needs a wife; his necessities alone take 4 h a day.',
+    feeds: [{ f: 'step', icon: 'people', whose: 'own', num: 8, short: 'gathering', what: 'The gathering, autumn day 8', to: 'days ahead (autumn)' }, { f: 'aim', icon: 'build', whose: 'own', short: 'the cottage', what: 'The cottage (a gate)', to: 'aim: cottage' }],
+    miles: [{ s: 'autumn', d: 8, icon: 'people', what: 'the gathering' }, { s: 'winter', d: 6, icon: 'courting', what: 'courting' }] },
+  { id: 'hh', kind: 'people', tier: 'side', title: 'A household of his own', at: null, horizon: 'years', state: 'open', next: 'Follows from the others',
+    krs: [{ l: 'members', v: 1, of: 3, est: true }, { l: 'land held', text: '1 field by the meeting; 2 to break' }, { l: 'beasts', text: 'a cow' }],
+    need: null, why: 'Head, member and pawn at once today; a household lets him levy and be levied.',
+    feeds: [{ f: 'aim', icon: 'married', whose: 'own', short: 'a wife', what: 'Aim: a wife', to: 'aim' }, { f: 'aim', icon: 'field', whose: 'own', short: 'fields', what: 'Aim: three fields', to: 'aim' }],
+    miles: [{ s: 'winter', d: 12, icon: 'walk', what: 'the moving round: a farmhand?' }] },
+];
+const PER_AIMS = [
+  { id: 'barley', kind: 'oats', tier: 'main', title: 'Barley in the barn', at: 'barley', horizon: 'season', state: 'risk', author: 'player', whose: 'household', next: 'Reap the barley, days 6–9: 8 h short', krs: [{ l: 'barley in the barn', v: 0, of: 30 }, { l: 'hours short', text: '−8 h by day 9 (−2 to −14)' }], need: { lo: 30, hi: 44 }, feeds: [{ f: 'step', icon: 'chop', whose: 'household', author: 'player', state: 'risk', num: 6, short: 'reap 6–9', what: 'Reap the barley, from day 6 by day 9', to: 'days ahead' }], miles: [{ s: 'autumn', d: 9, icon: 'chop', what: 'reaped' }], why: 'grain target' },
+  { id: 'wood', kind: 'wood', tier: 'main', title: 'Firewood for winter', at: 'wood1', horizon: 'season', state: 'open', whose: 'household', next: "Nils' firewood: cut to length, now", krs: [{ l: 'loads in the woodpile', v: 9, of: 20 }], need: { lo: 18, hi: 30 }, feeds: [{ f: 'day', icon: 'wood', whose: 'household', short: 'Nils 9:00', what: 'Nils cuts firewood 9:00–11:00', to: 'the day plan' }], miles: [{ s: 'winter', d: 1, icon: 'wood', what: '20 loads' }], why: 'winter' },
+  { id: 'fence', kind: 'fence', tier: 'main', title: 'The fence lot (the village)', at: 'fence', horizon: 'season', state: 'open', whose: 'owed', next: 'Erik on day 6; one day still to name by day 9', krs: [{ l: 'days worked', v: 0, of: 2, stage: true }], need: null, feeds: [{ f: 'step', icon: 'fence', whose: 'owed', num: 6, short: 'Erik, day 6', what: 'Erik at the fence, day 6', to: 'days ahead' }], miles: [{ s: 'autumn', d: 6, icon: 'fence', what: 'Erik' }, { s: 'autumn', d: 9, icon: 'fence', what: 'name by' }], why: 'levy v1' },
+  { id: 'south', kind: 'hoe', tier: 'side', title: 'Clear the south field', at: 'clearing', horizon: 'spring', state: 'open', whose: 'household', next: 'Spring, after the sowing', krs: [{ l: 'cleared', v: 0, of: 4, est: true, note: 'days' }], need: null, feeds: [], miles: [{ s: 'spring', d: 11, icon: 'hoe', what: 'clear' }], why: 'a project of the year' },
+  { id: 'standing', kind: 'standing', tier: 'side', title: "Backa's standing at the meeting", at: null, horizon: 'year', state: 'open', whose: 'own', next: 'No fines; the bridge on day 9', krs: [{ l: "the alderman's opinion", v: 0.1, signed: true }, { l: 'fines this year', text: 'none' }], need: null, feeds: [{ f: 'step', icon: 'village', whose: 'owed', num: 9, short: 'bridge', what: 'The bridge, together, day 9', to: 'days ahead' }], miles: [{ s: 'autumn', d: 9, icon: 'village', what: 'bridge' }], why: 'his own' },
+  { id: 'erik', kind: 'married', tier: 'others', title: "Erik: marry and take the farm", at: null, horizon: 'years', state: 'open', whose: 'own', next: 'As Per knows it: a match spoken of with Övergård', krs: [{ l: 'betrothed', text: 'not yet' }, { l: 'heir', text: 'yes, the diligent one' }], need: null, feeds: [], miles: [{ s: 'summer', d: 6, icon: 'married', what: 'a wedding (Per hopes)' }], why: "Erik's aim, told to Per" },
+  { id: 'nilsc', kind: 'courting', tier: 'others', title: "Nils: courting at Norrgård?", at: 'norr', horizon: '?', state: 'rumour', whose: 'own', next: 'Known only by rumour: Karin says he went twice', krs: [{ l: 'visits', text: '~2 (rumour)' }, { l: "Lisa's opinion", text: 'unknown to Per' }], need: null, feeds: [], miles: [], why: 'rumour' },
+];
+const CONFLICTS = {
+  nils_d4: { title: 'Courting against the levy, today', a: 'court', opts: [
+    ['courting', 'taken', 'Keep the visit at 14:00 (taking)', '2.5 levied hours; the rye 2.5 h short; Per remembers (the second taking)', 'breach', 'take 2.5 h: Visit Norrgård'],
+    ['courting', null, 'Go at 16:30 on own hours', "refuses Per's demand to haul (1.5 h); the sheaves may get wet", 'answer', 'refuse: Haul before the rain'],
+    ['people', null, 'Wait for the gathering (leave granted)', 'one visit fewer: 3 of ~6 by the season\'s end', 'plan', 'drop today\'s visit']],
+    rule: 'his own default author (idle, wants Norrgård) will: keep the taking and refuse the demand' },
+  nils_d9: { title: 'The clay against given hours', a: 'potter', opts: [
+    ['clay', null, 'Own hours to the clay', 'skill +0.05 a week; Per sees no given hours', 'plan', 'own hours -> the clay'],
+    ['chop', null, 'Give 3 h to the barley', "barley −8 h → −5 h; Per's opinion +0.1; skill waits", 'plan', 'give 3 h -> Reap the barley']],
+    rule: 'his own default author will: the clay, and give 1 h if the barley is still short on day 9' },
+  ola: { title: 'The cottage against the fields, in the sowing window', a: 'fields', opts: [
+    ['chop', null, 'Fell timber today 13–16 as planned', 'sowing est. day 9–11: the late end past day 10 (at risk)', 'plan', 'keep: Fell timber'],
+    ['hoe', null, 'Fields first until sown', '7 more nights without a roof; sleep owed 3 → ~5 h; firewood short', 'plan', 'move Fell timber -> after day 10'],
+    ['build', null, 'Half days: fields mornings, timber afternoons', 'sown day 10–12; the cottage stage 3 by summer 2', 'plan', 'split the day']],
+    rule: 'his own default author (necessities first, then windows) will: fields first; the cottage from day 10' },
+  per: { title: 'The barley against Nils\' courting', a: 'barley', opts: [
+    ['cart', 'demanded', 'Demand Nils 16:30–18', 'likely refused (wants Norrgård); memory both ways', 'assign', 'Nils -> Haul (demand)'],
+    ['chop', null, 'Add Erik\'s given hours on day 7', 'Erik tires; his own 1.5 h a day go', 'ask', 'Erik: give 1.5 h, day 7']],
+    rule: 'the rule will: add Nils on day 7; take the reap back if still 8 h short by day 9' },
+};
+const WINDOWS = {
+  autumn: [{ s: 'autumn', from: 5, to: 10, what: 'barley harvest', icon: 'chop' }, { s: 'autumn', from: 8, to: 8, what: 'the gathering', icon: 'people' }, { s: 'winter', from: 12, to: 12, what: 'the moving round', icon: 'walk' }, { s: 'spring', from: 1, to: 10, what: 'sowing', icon: 'sow' }],
+  spring: [{ s: 'spring', from: 1, to: 10, what: 'sowing', icon: 'sow' }, { s: 'autumn', from: 1, to: 6, what: 'harvest', icon: 'chop' }, { s: 'autumn', from: 8, to: 8, what: 'the gathering', icon: 'people' }, { s: 'winter', from: 12, to: 12, what: 'the moving round', icon: 'walk' }],
+};
+
+let pawn = 'nils', phase = 'd4', strip = false, focus = null, takenUp = {}, leftAside = {}, whyOpen = null;
+function V() {
+  if (pawn === 'ola') return { name: 'Ola', col: LONE.col, at: 'clearing', now: ['spring', 3], own: 48, ownLine: 'No levy: all his 12 h a day are his own, less necessities (water, cooking, firewood, the cow: ~4 h). ~48 h a week for aims; sleep owed 3 h.', aims: OLA_AIMS, conf: CONFLICTS.ola, win: WINDOWS.spring };
+  if (pawn === 'per') return { name: 'Per', col: '#7a5530', at: 'long', now: ['autumn', 4], own: 70, ownLine: 'The head: the farm\'s aims are his to set; others\' aims only as he knows them (told, or rumour).', ownLabel: 'household h (the labour budget)', aims: PER_AIMS, conf: CONFLICTS.per, win: WINDOWS.autumn };
+  const aims = nilsAims(phase).filter((a) => !leftAside[a.id]).map((a) => (takenUp[a.id] ? { ...a, tier: 'side', state: 'open' } : a));
+  return { name: 'Nils', col: '#5b7a2a', at: 'home', now: ['autumn', phase === 'd4' ? 4 : 9], own: 10, ownLine: `Own hours ~10 a week (his levy: 10.5 h of 12 a day, autumn's custom).${phase === 'd4' ? ' Today: 1.5 own, 2.5 taken, 1.5 demanded of him.' : ''}`, aims, conf: CONFLICTS['nils_' + phase], win: WINDOWS.autumn };
+}
+
+// ---- Registry: every clickable thing has an entry; one delegated click opens its bubble.
+let REG = [];
+const reg = (o) => (REG.push(o), REG.length - 1);
+const stateOf = (a) => ({ open: null, risk: 'risk', failed: 'failed', offered: 'offer', rumour: 'rumour' })[a.state];
+const aimIcon = (a, size = 34) => icon(a.kind, { frame: 'target', whose: a.whose || 'own', state: stateOf(a), author: a.author, ghost: a.state === 'offered' || a.state === 'rumour', size });
+const feedIcon = (f, size = 24) => icon(f.icon, { frame: f.f === 'day' ? 'now' : f.f === 'aim' ? 'target' : 'plan', whose: f.whose || 'household', breach: f.breach, state: f.state, author: f.author, num: f.num, size });
+
+// ---- The land: markers (one shield a place, the most urgent with a count pip), dotted paths from the pawn.
+function renderMap() {
+  const v = V(), svg = document.getElementById('map');
+  svg.setAttribute('viewBox', `0 0 ${MAP_W} ${MAP_H}`);
+  const p = at(v.at), byPlace = {};
+  const rank = { risk: 0, open: 1, offered: 2, rumour: 3, failed: 4 };
+  v.aims.filter((a) => a.at).forEach((a) => (byPlace[a.at] = byPlace[a.at] || []).push(a));
+  let paths = '', marks = '';
+  for (const [k, list] of Object.entries(byPlace)) {
+    list.sort((a, b) => rank[a.state] - rank[b.state]);
+    const a = list[0], m0 = at(k), m = k === v.at ? { x: m0.x + 30, y: m0.y } : m0, dim = focus && !list.some((x) => x.id === focus) ? ' class="dimmed"' : '';
+    if (a.state !== 'failed' && k !== v.at) {
+      const mx = (p.x + m.x) / 2 + (m.y - p.y) * 0.18, my = (p.y + m.y) / 2 - (m.x - p.x) * 0.18;
+      paths += `<path${dim} d="M${p.x} ${p.y}Q${mx} ${my} ${m.x} ${m.y - 6}" fill="none" stroke="#1f5f5c" stroke-width="${a.tier === 'main' ? 3.2 : 2.4}" stroke-dasharray="0.1 7" stroke-linecap="round" opacity="${a.tier === 'main' ? 0.85 : 0.5}"/>`;
+    }
+    marks += `<g${dim}><ellipse cx="${m.x}" cy="${m.y + 12}" rx="24" ry="8" fill="none" stroke="#1f5f5c" stroke-width="1.5" stroke-dasharray="${a.state === 'failed' ? '2 3' : 'none'}" opacity=".7"/>` +
+      `<g class="ic" data-r="${reg({ t: 'aim', a })}" transform="translate(${m.x - 20} ${m.y - 40})">${icon(a.kind, { frame: 'target', whose: a.whose || 'own', state: stateOf(a), author: a.author, ghost: a.state === 'offered' || a.state === 'rumour', num: list.length > 1 ? list.length : null, unit: 'count', size: 40 })}</g></g>`;
+  }
+  svg.innerHTML = DEFS + mapSVG({ dim: 0.12 }) + `<path d="${hexPath(at('clay').x, at('clay').y, 14)}" fill="#8a5a3e" opacity=".55"/>` + paths +
+    `<g>${pawnSVG({ col: v.col }, p.x, p.y + 4, 1.8)}<text x="${p.x}" y="${p.y + 26}" text-anchor="middle" font-size="13" font-weight="700" fill="#23251e" stroke="#fff" stroke-width="3" paint-order="stroke" font-family="system-ui">${v.name}</text></g>` + marks;
+  // the cartouche: the legend of this pawn's aims; placeless ones named as such
+  const row = (a) => `<div class="row ${focus && focus !== a.id ? 'dimmed' : ''}" data-aim="${a.id}"><span class="ic" data-r="${reg({ t: 'aim', a })}">${aimIcon(a, 22)}</span>${a.title.length > 26 ? a.title.slice(0, 25) + '…' : a.title}<small>${a.at ? PLACES[a.at].name.split(' (')[0] : ''}</small></div>`;
+  const placed = v.aims.filter((a) => a.at), loose = v.aims.filter((a) => !a.at);
+  document.getElementById('cart').innerHTML = `<h3>${v.name} · his aims</h3>${placed.map(row).join('')}` + (loose.length ? `<div class="sub">no place on the land: the journal only</div>${loose.map(row).join('')}` : '') + `<div class="sub">⋯ the way from ${v.name} to each aim's next objective</div>`;
+}
+
+// ---- One meter for every key result (the same meter everywhere); hatching only for an estimate's range.
+function meter(k) {
+  const W = 108, H = 9;
+  if (k.signed) { const x = W / 2, w = Math.abs(k.v) * W / 2; return `<svg width="${W}" height="${H}"><rect width="${W}" height="${H}" rx="2" fill="#e6e1d3"/><rect x="${k.v < 0 ? x - w : x}" width="${w}" height="${H}" fill="${k.v < 0 ? '#9a7a4a' : '#1f7a76'}"/><path d="M${x} -1v${H + 2}" stroke="#23251e"/></svg>`; }
+  if (k.stage) { let s = ''; for (let i = 0; i < k.of; i++) s += `<rect x="${i * (W / k.of)}" width="${W / k.of - 3}" height="${H}" rx="2" fill="${i < k.v ? '#1f7a76' : '#e6e1d3'}"/>`; return `<svg width="${W}" height="${H}">${s}</svg>`; }
+  const hi = k.est ? k.of * 1.25 : k.of, sx = (n) => (n / hi) * W;
+  return `<svg width="${W}" height="${H}"><rect width="${W}" height="${H}" rx="2" fill="#e6e1d3"/>${k.est ? `<rect x="${sx(k.of * 0.75)}" width="${sx(k.of * 0.5)}" height="${H}" fill="url(#qhatch)"/>` : ''}<rect width="${sx(Math.min(k.v, hi))}" height="${H}" fill="#1f7a76"/></svg>`;
+}
+const krVal = (k) => k.signed ? (k.v > 0 ? '+' : '') + k.v : k.text && k.v == null ? '' : `${k.v} of ${k.est ? '~' : ''}${k.of}${k.note ? ` <small>${k.note}</small>` : ''}`;
+function hoursBar(need, own) {
+  const W = 150, max = Math.max(own, need.hi) * 1.1, sx = (n) => (n / max) * W;
+  return `<svg width="${W}" height="16"><rect y="0" width="${sx(own)}" height="6" fill="#1f7a76"/><rect y="9" width="${sx(need.lo)}" height="6" fill="#23251e"/><rect x="${sx(need.lo)}" y="9" width="${sx(need.hi - need.lo)}" height="6" fill="url(#qhatch)" stroke="#23251e" stroke-width=".6"/></svg>`;
+}
+
+// ---- The journal: main and side quests, offered, failed; then the pulls between aims and duties.
+function card(a, compact) {
+  const v = V(), r = reg({ t: 'aim', a }), open = !compact || focus === a.id;
+  const krs = a.krs.map((k) => `<div class="kr ${k.v == null && !k.signed ? 'txt' : ''}" data-r="${reg({ t: 'kr', k, a })}"><span class="l">${k.l}</span>${k.v == null && !k.signed ? `<span>${k.text}</span>` : `${meter(k)}<span class="v">${k.text ? k.text : krVal(k)}</span>`}</div>`).join('');
+  const hrs = a.need ? `<div class="hrs">needs ${a.need.lo}–${a.need.hi} h/wk ${hoursBar(a.need, v.own)} of ${v.own} ${v.ownLabel || 'own'}</div>` : '';
+  const feeds = a.feeds.length ? `<div class="feeds"><span style="color:var(--muted)">what moves it:</span>${a.feeds.map((f) => `<span class="feed" data-r="${reg({ t: 'feed', f, a })}">${feedIcon(f)}${f.short} →</span>`).join('')}</div>` : '';
+  const one = `<div class="one">${a.krs[0].l}: ${a.krs[0].v == null && !a.krs[0].signed ? a.krs[0].text : krVal(a.krs[0])}${a.krs.length > 1 ? ` · +${a.krs.length - 1} more` : ''}</div>`;
+  return `<div class="card ${a.state} ${focus === a.id ? 'focus' : ''} ${open ? '' : 'compact'}" data-aim="${a.id}">
+    <div class="ch"><span class="ic" data-r="${r}">${aimIcon(a)}</span><div class="tt"><b>${a.title}</b><small>${a.at ? 'marker: ' + PLACES[a.at].name : 'no place on the land'}</small></div><span class="hz">${a.horizon}</span></div>
+    ${a.prompt ? `<div class="offer">“${a.prompt}” <button data-act="take" data-id="${a.id}">take it up</button><button data-act="leave" data-id="${a.id}">leave it</button></div>` : ''}
+    ${a.conseq ? `<div class="conseq"><b>Failed.</b> ${a.conseq}</div>` : `<div class="next">next: ${a.next}${a.nextNote ? ` <i>(${a.nextNote})</i>` : ''}</div>`}
+    ${open ? `<div class="krs">${krs}</div>${hrs}${feeds}` : one}</div>`;
+}
+function renderJournal() {
+  const v = V(), j = document.getElementById('journal');
+  j.className = strip ? 'strip' : '';
+  if (strip) { j.innerHTML = `<div class="jh"><button data-act="strip" title="open the journal">◀</button></div><div class="stripic">${v.aims.map((a) => `<span class="ic" data-r="${reg({ t: 'aim', a })}">${aimIcon(a, 36)}</span>`).join('')}</div>`; return; }
+  const compact = v.aims.length > 4;
+  const sec = (name, list) => (list.length ? `<div class="sec">${name}</div>${list.map((a) => card(a, compact)).join('')}` : '');
+  const by = (t) => v.aims.filter((a) => a.tier === t && a.state !== 'failed');
+  const c = v.conf;
+  const conf = `<div class="sec">Pulls against duties</div><div class="conf"><h5>${icon('cause', { frame: 'plan', whose: null, size: 22 })}${c.title}</h5>${c.opts.map((o) => `<div class="opt" data-r="${reg({ t: 'opt', o, c })}">${icon(o[0], { frame: 'plan', whose: o[1] ? 'household' : 'own', breach: o[1], size: 24 })}<span>${o[2]}<small>${o[3]}</small></span></div>`).join('')}<div class="deflt">${c.rule}</div></div>`;
+  j.innerHTML = `<div class="jh"><h2>Journal · ${v.name}</h2><span class="hz">${v.now[0]} day ${v.now[1]}</span><button data-act="strip" title="collapse to a strip">▶</button></div><p class="ownline">${v.ownLine}</p>` +
+    sec(pawn === 'per' ? 'The farm and his own' : 'Main', by('main').concat(pawn === 'per' ? by('side') : [])) + sec('Offered', by('offered')) + (pawn === 'per' ? '' : sec('Side', by('side'))) +
+    conf + sec('Others\' aims, as Per knows them', by('others')) + sec('Failed', v.aims.filter((a) => a.state === 'failed'));
+}
+
+// ---- The year ahead: four seasons from now, each aim a row of milestones, the windows that gate them as bands.
+function renderYear() {
+  const v = V(), el = document.getElementById('year'), W = el.clientWidth || 800, X0 = 170, SW = (W - X0 - 14) / 4;
+  const order = [0, 1, 2, 3].map((i) => SEASONS[(SI[v.now[0]] + i) % 4]);
+  const xOf = (s, d) => X0 + order.indexOf(s) * SW + ((d - 0.5) / 12) * SW;
+  const rows = v.aims.filter((a) => a.miles.length || a.fail), RH = Math.min(30, (el.clientHeight - 64) / Math.max(rows.length, 1));
+  let s = `<defs><pattern id="qhatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#fff"/><rect width="2" height="5" fill="#23251e88"/></pattern></defs>`;
+  s += `<text x="12" y="18" font-family="Alegreya SC,serif" font-size="14">The year ahead</text>`;
+  order.forEach((se, i) => (s += `<rect x="${X0 + i * SW}" y="6" width="${SW - 2}" height="18" rx="3" fill="${i % 2 ? '#e8e3d4' : '#ded8c6'}"/><text x="${X0 + i * SW + 6}" y="19" font-size="12" font-family="system-ui">${se}</text>`));
+  const top = 30, bottom = top + 22 + rows.length * RH;
+  for (const w of v.win) {
+    const x1 = xOf(w.s, w.from) - SW / 24, x2 = xOf(w.s, w.to) + SW / 24;
+    s += `<rect x="${x1}" y="${top}" width="${x2 - x1}" height="${bottom - top}" fill="#c9a24a" opacity=".13"/><g class="ic" data-r="${reg({ t: 'win', w })}" transform="translate(${(x1 + x2) / 2 - 10} ${top})">${icon(w.icon, { frame: 'plan', whose: w.icon === 'people' || w.icon === 'walk' ? 'owed' : 'household', size: 20 })}</g>`;
+  }
+  s += `<text x="12" y="${top + 14}" font-size="11.5" fill="#625d4f" font-family="system-ui">windows that gate</text>`;
+  const nx = xOf(v.now[0], v.now[1]);
+  s += `<path d="M${nx} ${top - 4}V${bottom}" stroke="#23251e" stroke-width="2"/><text x="${nx + 3}" y="${bottom + 11}" font-size="11" font-family="system-ui">now</text>`;
+  rows.forEach((a, i) => {
+    const y = top + 22 + i * RH + RH / 2, dim = focus && focus !== a.id ? ' opacity=".25"' : '';
+    s += `<g${dim}><g class="ic" data-r="${reg({ t: 'aim', a })}" transform="translate(12 ${y - 10})">${aimIcon(a, 20)}</g><text x="38" y="${y + 4}" font-size="12" font-family="system-ui"${a.state === 'failed' ? ' text-decoration="line-through" fill="#625d4f"' : ''}>${a.title.length > 20 ? a.title.slice(0, 19) + '…' : a.title}</text>`;
+    const pts = a.miles.map((m) => xOf(m.s, m.d)), endX = a.fail ? xOf(a.fail.s, a.fail.d) : Math.max(...pts, nx);
+    s += `<path d="M${nx} ${y}H${endX}" stroke="#1f7a76" stroke-width="2" stroke-dasharray="${a.state === 'rumour' || a.state === 'offered' ? '2 4' : '6 3'}"/>`;
+    a.miles.forEach((m) => { const x = xOf(m.s, m.d), past = a.fail && x > endX; s += `<g class="ic" data-r="${reg({ t: 'mile', m, a })}" transform="translate(${x - 10} ${y - 10})"${past ? ' opacity=".3"' : ''}>${icon(m.icon, { frame: 'plan', whose: a.whose || 'own', ghost: true, size: 20 })}</g>`; });
+    if (a.fail) s += `<path d="M${endX - 6} ${y - 6}l12 12M${endX + 6} ${y - 6}l-12 12" stroke="#4a4038" stroke-width="2.5"/>`;
+    s += '</g>';
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${el.clientHeight}">${s}</svg>`;
+}
+
+// ---- Bubbles: what, why, who chose, the estimate; then acts; "why" unfolds the reverse why (what moves this aim).
+const bub = document.getElementById('bubble');
+function info(e) {
+  const v = V();
+  if (e.t === 'aim') { const a = e.a; return { h: aimIcon(a, 28) + a.title, dl: [['state', a.state + (a.horizon ? ', horizon ' + a.horizon : '')], ['place', a.at ? PLACES[a.at].name : 'none: the journal only'], ['next', a.next], ['who chose', a.state === 'offered' ? 'offered from what he did (the record)' : a.tier === 'others' ? a.why : a.author === 'player' ? 'the player (Per)' : 'his own want'], ['needs', a.need ? `${a.need.lo}–${a.need.hi} h a week, his estimate; ${v.own} ${v.ownLabel || 'own'}` : 'no hours of its own']],
+    acts: a.state === 'offered' ? [['take it up', 'plan', `aim: ${a.title}`], ['leave it', 'drop', a.title]] : a.state === 'failed' ? [['let it go', 'drop', a.title], ['try again (another)', 'plan', 'aim: courting, another']] : a.tier === 'others' ? [['ask about it', 'ask', `${a.title.split(':')[0]}: tell me`]] :
+      [['plan a step', 'plan', `step for ${a.title}: ${a.next}`], ['ask for a grant', 'ask', `Per: a grant of own hours for ${a.title}`], ['put aside', 'drop', `${a.title} (for now)`], ['take up as main', 'plan', `aim: ${a.title} main`]], why: a };
+  }
+  if (e.t === 'kr') return { h: 'Key result: ' + e.k.l, dl: [['value', e.k.v == null ? e.k.text : krVal(e.k)], ['measured', e.k.est ? 'against his estimate (hatched: the range)' : e.k.signed ? 'from the opinion record, −1 to +1' : 'from the world'], ['of aim', e.a.title]], acts: [['plan a step', 'plan', `step to move: ${e.k.l}`]], why: e.a };
+  if (e.t === 'feed') { const f = e.f; return { h: feedIcon(f, 28) + f.what, dl: [['kind', { day: 'today\'s list', step: 'a step in a plan', ask: 'an ask of the head', aim: 'another aim' }[f.f]], ['opens', f.to], ['moves', e.a.title]], acts: [[`open ${f.to}`, 'open', f.to], f.f === 'ask' ? ['ask', 'ask', `Per: ${f.what}`] : ['plan', 'plan', f.what], ['why', 'why']], why: e.a }; }
+  if (e.t === 'opt') return { h: icon(e.o[0], { frame: 'plan', whose: 'own', breach: e.o[1], size: 28 }) + e.o[2], dl: [['cost', e.o[3]], ['default', e.c.rule]], acts: [['choose this', e.o[4], e.o[5]], ['leave it to the rule', 'release', 'to his default author']] };
+  if (e.t === 'mile') return { h: icon(e.m.icon, { frame: 'plan', whose: 'own', size: 28 }) + e.m.what, dl: [['when', `${e.m.s} day ${e.m.d} (his estimate)`], ['of aim', e.a.title]], acts: [['plan a step', 'plan', `${e.m.what} by ${e.m.s} ${e.m.d}`]], why: e.a };
+  if (e.t === 'win') return { h: icon(e.w.icon, { frame: 'plan', size: 28 }) + e.w.what, dl: [['window', `${e.w.s} ${e.w.from}${e.w.to !== e.w.from ? '–' + e.w.to : ''}`], ['gates', v.aims.filter((a) => a.miles.some((m) => m.s === e.w.s && m.d >= e.w.from - 1 && m.d <= e.w.to + 1)).map((a) => a.title).join(', ') || 'none of his aims']], acts: [] };
+}
+function openBubble(e, ev) {
+  const I = info(e);
+  const why = whyOpen && I.why ? `<ul class="why"><li class="up">what moves this aim:</li>${I.why.feeds.map((f) => `<li>${feedIcon(f, 22)}${f.what} <small>→ ${f.to}</small></li>`).join('') || '<li>nothing yet: no step, no hours</li>'}<li class="up">what it is for: ${I.why.why || '—'}</li></ul>` : '';
+  bub.innerHTML = `<h4>${I.h}</h4><dl>${I.dl.map(([k, d]) => `<dt>${k}</dt><dd>${d}</dd>`).join('')}</dl><div class="acts">${I.acts.map(([l, verb, arg], i) => `<button data-i="${i}">${l}</button>`).join('')}${I.why ? `<button class="more" data-why>${whyOpen ? 'hide why' : 'why · what moves it'}</button>` : ''}</div>${why}`;
+  bub.hidden = false;
+  if (ev) { let x = ev.clientX + 14, y = ev.clientY - 20; if (x + 350 > innerWidth) x = ev.clientX - 354; Object.assign(bub.style, { left: x + 'px', top: Math.max(48, Math.min(y, innerHeight - bub.offsetHeight - 10)) + 'px' }); }
+  bub.querySelectorAll('[data-i]').forEach((b) => (b.onclick = (x) => { x.stopPropagation(); const [l, verb, arg] = I.acts[+b.dataset.i]; if (verb === 'why') { whyOpen = 1; return openBubble(e); } toast(`would issue <code>${verb}</code> ${arg}`); bub.hidden = true; }));
+  const w = bub.querySelector('[data-why]'); if (w) w.onclick = (x) => { x.stopPropagation(); whyOpen = !whyOpen; openBubble(e); };
+}
+let tt; function toast(h) { const t = document.getElementById('toast'); t.innerHTML = h; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2800); }
+
+function render() { REG = []; renderYear(); renderMap(); renderJournal(); }
+document.addEventListener('click', (ev) => {
+  const act = ev.target.closest('[data-act]');
+  if (act) { const a = act.dataset.act, id = act.dataset.id; if (a === 'strip') strip = !strip; if (a === 'take') { takenUp[id] = 1; toast(`would issue <code>plan</code> aim: the potter's road (a marker at the clay pit)`); } if (a === 'leave') { leftAside[id] = 1; toast('would issue <code>drop</code> the offer (it may come back)'); } bub.hidden = true; render(); return; }
+  const r = ev.target.closest('[data-r]');
+  if (r) { const e = REG[+r.dataset.r]; whyOpen = null; if (e.a && e.t === 'aim') { focus = e.a.id; render(); } return openBubble(e, ev); }
+  const c = ev.target.closest('.ch, .row'); if (c) { const id = c.closest('[data-aim]').dataset.aim; focus = focus === id ? null : id; render(); return; }
+  if (!ev.target.closest('#bubble')) { bub.hidden = true; if (ev.target.closest('#map')) { focus = null; render(); } }
+});
+function seg(id, fn) { const el = document.getElementById(id); el.onclick = (e) => { const b = e.target.closest('button'); if (!b || b.disabled) return; el.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b)); fn(b.dataset.v); bub.hidden = true; focus = null; render(); }; }
+seg('pawn', (v) => { pawn = v; document.querySelectorAll('#phase button').forEach((b) => (b.disabled = v !== 'nils')); });
+seg('phase', (v) => (phase = v));
+addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>
