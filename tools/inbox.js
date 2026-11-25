@@ -33,7 +33,8 @@
 //                              --task only TASK's
 //   results [--json]           the results, for  node tools/agent-usage.js --results FILE
 // kinds, with their keys:
-//   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= cause= touches= ref= goal=]; body: its criteria
+//   task       id= (one reserved by start) name= priority= size= summary= status=ready|blocked|needs-review [arch= waits= cause= touches= ref= goal=]; body: its criteria;
+//              ready with goal, ref, touches and criteria; blocked with waits=; needs-review only with a question note about= it (Kim, 25 November)
 //              (how to write each, touches= the functions it will edit: docs/agents/tasks.md)
 //              (cause=VB-NNN: the task whose change introduced the defect it mends, VB-1619)
 //              (ready: goal=, ref=, touches= and the body given, and no question for Kim; priority=1 if it mends a red check)
@@ -42,6 +43,7 @@
 //   candidate  rule=   a principle candidate (AGENTS.md, Surfacing); body: the decisions behind it
 //   teleport   where= what=   a teleport found (AGENTS.md, the hard rule): apply adds it to the open collecting task, a line
 //   act        where= what=   an act with no pawn, or a choice only the player has (AGENTS.md, 16): collected likewise
+//   design     where= what=   a rule built that design.md does not say: where= its section, what= the rule with its numbers; collected likewise
 //   decision   what= why=   a close call, decided by Deciding without Kim, that Kim should see
 //   review     arm=review|control|ineligible round=arm|review|confirm [verdict= blocking= advisory= preference= reviewed=SHA mended=
 //              rebutted= unresolved= followups=]   VB-1619, written by tools/review.js (eligible, check, confirm --inbox): a task's arm,
@@ -64,17 +66,11 @@ const ceilingArg = option('--ceiling'), asJson = flag('--json'), dry = flag('--d
 const today = option('--date') || new Date().toISOString().slice(0, 10);
 
 const KINDS = { task: ['id', 'name', 'priority', 'size', 'summary'], question: ['priority', 'title'], tuning: ['parameter', 'means', 'measured', 'proposed'],
-  candidate: ['rule'], teleport: ['where', 'what'], act: ['where', 'what'], decision: ['what', 'why'], handover: [], review: ['arm', 'round'],
+  candidate: ['rule'], teleport: ['where', 'what'], act: ['where', 'what'], design: ['where', 'what'], decision: ['what', 'why'], handover: [], review: ['arm', 'round'],
   footprint: ['recall', 'precision'] };
-// Findings are collected, not given a task each (Kim, 18 November): one open task a kind holds them, a criterion a finding, and a
-// slice's wrap-up sweeps it. apply finds that task by its name, or makes the next one.
-const COLLECT = {
-  teleport: { name: "Teleports found, collected: swept at a slice's wrap-up", arch: 'physical',
-    goal: 'Each teleport listed is mended or shown to be none: goods arrive by being carried',
-    summary: 'The teleports tasks found in the code, a line each; swept together when a slice wraps up' },
-  act: { name: "Acts with no pawn, collected: swept at a slice's wrap-up", arch: 'acts', goal: 'Each act listed is a pawn\'s, through a verb any pawn may use',
-    summary: 'The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up' },
-};
+// Findings are collected, not given a task each (Kim, 18 November): apply hands teleport and act notes to `backlog.js collect`, whose
+// table of collecting tasks is tools/lib/collect.js.
+const { COLLECT, openCollector } = require('./lib/collect.js');
 const OPTIONAL = { task: ['status', 'arch', 'waits', 'cause', 'touches', 'ref', 'goal'], question: ['about'], teleport: ['task'],
   review: ['verdict', 'blocking', 'advisory', 'preference', 'reviewed', 'mended', 'rebutted', 'unresolved', 'followups'], footprint: ['declared', 'edited'] };
 const NEEDS_BODY = ['question', 'handover'];
@@ -132,7 +128,7 @@ const notes = (where = '', ...p) => all(`SELECT * FROM notes ${where} ORDER BY n
 const headline = (n) => {
   const f = n.fields;
   return one({ task: `${f.id} ${f.name}`, question: f.title, tuning: `${f.parameter}: ${f.measured}`, candidate: f.rule,
-    teleport: `${f.where}: ${f.what}${f.task ? ` (${f.task})` : ''}`, act: `${f.where}: ${f.what}`, decision: `${f.what}: ${f.why}`,
+    teleport: `${f.where}: ${f.what}${f.task ? ` (${f.task})` : ''}`, act: `${f.where}: ${f.what}`, design: `${f.where}: ${f.what}`, decision: `${f.what}: ${f.why}`,
     handover: `${(n.body || '').split('\n').length} lines, ${Buffer.byteLength(n.body || '')} bytes`,
     review: `${f.round} ${f.arm}${f.verdict ? ' ' + f.verdict : ''}${f.blocking ? ` ${f.blocking} blocking` : ''}` }[n.kind]);
 };
@@ -225,10 +221,12 @@ if (cmd === 'init') {
   }
   if (kind === 'task') {
     if (!/^(S|M|L)$/.test(f.size)) fail('size is S, M or L');
-    if (f.status && !['blocked', 'needs-review', 'ready'].includes(f.status)) fail('a noted task is ready, blocked or needs-review (the default)');
+    if (!['blocked', 'needs-review', 'ready'].includes(f.status)) fail('a noted task says status=ready (its goal, ref, touches and criteria stated), '
+      + 'blocked (waits=) or needs-review (only with a question note about= it, for a question only Kim can answer; AGENTS.md, step 6)');
+    if (f.status === 'blocked' && !f.waits) fail('a blocked task note names what it waits for (waits=VB-NNN or Kim)');
     if (f.status === 'ready' &&
       !(f.goal && f.ref && f.touches && body)) fail(
-      'a noted task is ready only with its goal (goal=), its design ref (ref=), its footprint (touches=, docs/agents/tasks.md) and its criteria (--body), and no question for Kim; else needs-review (the default)');
+      'a noted task is ready only with its goal (goal=), its design ref (ref=), its footprint (touches=, docs/agents/tasks.md) and its criteria (--body), and no question for Kim; else blocked or needs-review');
     if (f.touches) try { require('./lib/touches.js').parseTouches(f.touches); } catch (e) { fail(`touches=: ${e.message} (docs/agents/tasks.md)`); }
   }
   if (kind === 'review') {
@@ -252,6 +250,11 @@ if (cmd === 'init') {
   if (!['done', 'needs-review', 'failed', 'continue'].includes(f.status)) fail('status=done, needs-review, failed or continue');
   let nth = 0, reason = null;
   if (f.reason && f.status !== 'continue') fail('reason= goes with status=continue');
+  // needs-review is for a question only Kim can answer (Kim, 25 November): work not built is done, its rest carried by a task
+  if (f.status === 'needs-review' && !notes('WHERE kind = ?', 'question').some((n) => (n.fields.about || n.task) === task)) {
+    fail(`status=needs-review needs ${task}'s question for Kim (note ${task} question priority= title= --body -, its proposed answer in it); `
+      + 'work not built is status=done, its criterion unticked naming the task that carries the rest, or status=failed');
+  }
   if (f.status === 'continue') {
     if (!f.commit) fail('continue needs commit=SHA: commit what you have first');
     reason = f.reason || 'ceiling';
@@ -259,13 +262,13 @@ if (cmd === 'init') {
     const meta = (key) => +(get('SELECT value FROM meta WHERE key = ?', key + task) || { value: 0 }).value;
     if (reason === 'ceiling') {
       nth = meta('continued:') + 1;
-      if (nth > CONTINUATIONS) fail(`${task} has been continued ${CONTINUATIONS} times: end with status=needs-review, the unmet criteria in summary=`);
+      if (nth > CONTINUATIONS) fail(`${task} has been continued ${CONTINUATIONS} times: end with status=done, the rest in a noted task, or status=failed, the unmet criteria in summary=`);
       run('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', 'continued:' + task, String(nth));
     } else { // a voluntary reset (VB-1616): past the threshold, late enough in the run, with something new committed, once a task
       const was = meta('voluntary:');
       if (was >= VOLUNTARY) {
         fail(reason === 'stuck' ||
-          meta('stuck:') ? `${task} has had its voluntary reset and is stuck again: end with status=needs-review, what was tried and ruled out in summary=`
+          meta('stuck:') ? `${task} has had its voluntary reset and is stuck again: end with status=failed, what was tried and ruled out in summary= (or done, the rest in a noted task)`
           : `${task} has had its voluntary reset (${VOLUNTARY} a task): go on, and hand over at the ceiling if it comes`);
       }
       const t = own();
@@ -362,6 +365,18 @@ if (cmd === 'init') {
   const mark = (table, key, value) => { if (!dry) run(`UPDATE ${table} SET applied = 1 WHERE ${key} = ?`, value); };
   let count = 0;
   const mine = (x) => !onlyTask || x.task === onlyTask;
+  // the questions first: a task set needs-review, by its result or its note, has its question in QUESTIONS.md (tests/backlog.js)
+  for (const n of notes('WHERE applied = 0 AND kind = ?', 'question').filter(mine)) {
+    const f = n.fields;
+    edit('QUESTIONS.md', (text) => {
+      const head = `\n## Priority ${f.priority}\n`, at = text.indexOf(head);
+      if (at < 0) return null;
+      const end = text.indexOf('\n## ', at + head.length), stop = end < 0 ? text.length : end;
+      const block = `### ${f.about || n.task}: ${one(f.title)} (raised ${date})\n${n.body}\n`;
+      return text.slice(0, stop).replace(/\n*$/, '\n\n') + block + text.slice(stop);
+    });
+    mark('notes', 'n', n.n); count++;
+  }
   for (const r of all("SELECT * FROM results WHERE applied = 0 AND status IN ('done', 'needs-review')").filter(mine)) {
     if (!fs.existsSync(path.join(root, 'backlog', r.task + '.md'))) {
       console.log(`${r.task}: no task file in this checkout (merge its branch first); left`); continue; }
@@ -371,23 +386,16 @@ if (cmd === 'init') {
   for (const n of notes('WHERE applied = 0').filter(mine)) {
     const f = n.fields;
     if (n.kind === 'task') {
-      // a ready note gives its footprint (checked when noted); one that is not ready keeps the line to fill (VB-1677)
+      // a ready note gives its footprint (checked when noted) and its criteria, and is made ready in one call; one that is not keeps the
+      // lines to fill (VB-1677)
       const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'cause', 'touches', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`);
-      // a file is never made ready with "(to write)" in it (tools/backlog.js new): a ready note's task is made, filled, then set ready
-      backlog('new', `id=${f.id}`, `status=${f.status === 'ready' ? 'needs-review' : f.status || 'needs-review'}`, ...keys);
-      if (n.body && !dry) {
+      backlog('new', `id=${f.id}`, `status=${f.status}`, ...keys, ...(n.body ? [`criteria=${n.body}`] : []));
+      if (!dry) {
         const p = path.join(root, 'backlog', f.id + '.md');
-        fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('- [ ] (to write)\n', n.body + '\n') + `\nNoted by ${n.task}, ${date}.\n`);
+        fs.writeFileSync(p, fs.readFileSync(p, 'utf8') + `\nNoted by ${n.task}, ${date}.\n`);
       }
-      if (f.status === 'ready') backlog('set', f.id, 'status=ready');
     } else if (n.kind === 'question') {
-      edit('QUESTIONS.md', (text) => {
-        const head = `\n## Priority ${f.priority}\n`, at = text.indexOf(head);
-        if (at < 0) return null;
-        const end = text.indexOf('\n## ', at + head.length), stop = end < 0 ? text.length : end;
-        const block = `### ${f.about || n.task}: ${one(f.title)} (raised ${date})\n${n.body}\n`;
-        return text.slice(0, stop).replace(/\n*$/, '\n\n') + block + text.slice(stop);
-      });
+      continue; // filed first, above
     } else if (n.kind === 'tuning') {
       edit('docs/tuning.md', (text) => {
         const at = text.indexOf('\n## Parameters waiting\n'), lines = text.split('\n');
@@ -399,32 +407,11 @@ if (cmd === 'init') {
         return lines.join('\n');
       });
     } else if (COLLECT[n.kind]) {
-      const c = COLLECT[n.kind], line = `- [ ] From ${n.task}: ${one(f.where)}: ${one(f.what)}`;
-      const dirOf = path.join(root, 'backlog'), open = fs.readdirSync(dirOf).find((name) => {
-        const t = fs.readFileSync(path.join(dirOf, name), 'utf8');
-        return t.startsWith(`# ${name.replace('.md', '')}: ${c.name}\n`) && !/^Status: done/m.test(t);
-      });
-      if (open) {
-        edit('backlog/' + open, (text) => {
-          const lines = text.split('\n');
-          let at = lines.findLastIndex((l) => /^- \[[ x]\]/.test(l));
-          if (at < 0) return null;
-          while (/^ {2}\S/.test(lines[at + 1] || '')) at++;
-          lines.splice(at + 1, 0, line);
-          return lines.join('\n');
-        });
-      } else if (dry) console.log(`would open the collecting task "${c.name}"`);
-      else {
-        const id = atomic(() => {
-          const next = +get("SELECT value FROM meta WHERE key = 'next'").value; run("UPDATE meta SET value = ? WHERE key = 'next'", String(next + 1));
-          return pad(next); });
-        backlog('new', `id=${id}`, 'status=needs-review', `name=${c.name}`, 'priority=3', 'size=M', `summary=${c.summary}`, `arch=${c.arch}`,
-          'touches=unknown (a collecting task: each line names its own place)',
-          'ref=AGENTS.md, Surfacing', `goal=${c.goal}`);
-        const p = path.join(dirOf, id + '.md');
-        fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('- [ ] (to write)\n', line + '\n'));
-        backlog('set', id, 'status=ready');
-      }
+      // with no open collector, the new one takes an ID this run reserved, so that sub-agents side by side do not take it (VB-1680)
+      const id = dry || openCollector(root, n.kind) ? null : atomic(() => {
+        const next = +get("SELECT value FROM meta WHERE key = 'next'").value; run("UPDATE meta SET value = ? WHERE key = 'next'", String(next + 1));
+        return pad(next); });
+      backlog('collect', n.kind, `where=${one(f.where)}`, `what=${one(f.what)}`, `from=${n.task}`, ...(id ? [`id=${id}`] : []));
     } else continue; // candidates and decisions go to the PR (report), not to a file
     mark('notes', 'n', n.n); count++;
   }
@@ -436,6 +423,7 @@ if (cmd === 'init') {
     by('candidate').map((n) => `- ${one(n.fields.rule)} (${n.task})${n.body ? '\n' + n.body.split('\n').map((l) => '  ' + l).join('\n') : ''}`));
   section('Teleports found', by('teleport').map((n) => `- ${headline(n)}, found by ${n.task}`));
   section('Acts with no pawn found', by('act').map((n) => `- ${headline(n)}, found by ${n.task}`));
+  section('Rules built that design.md does not say', by('design').map((n) => `- ${headline(n)}, from ${n.task}`));
   section('Tasks merged with a criterion unmet',
     all("SELECT * FROM results WHERE status = 'needs-review'").filter(mine).map((r) =>
     `- ${r.task}${r.commit_ ? ' ' + r.commit_ : ''}: ${r.summary || 'see its task file'}`));

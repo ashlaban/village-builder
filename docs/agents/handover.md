@@ -9,7 +9,7 @@ from the code: write what it cannot find quickly, and nothing it can.
 - **boundary**: the investigation is done and nothing under `src/` is edited yet, or a coherent part is built and committed with
   `npm test` green. Not in the middle of a change.
 - **stuck**: the same test has failed three times running, or you are reading again what you read before, and your next idea is not
-  better than the last. A fresh context with the rejected hypotheses listed may see past them; a second `stuck` ends the task `needs-review`.
+  better than the last. A fresh context with the rejected hypotheses listed may see past them; a second `stuck` ends the task `failed`, the rejected hypotheses in its notes.
 - Never below the threshold, before the run's 30th call, or with nothing committed since the run started (`inbox.js result` refuses);
   at most one voluntary reset a task. A task that fits in one context is not split.
 

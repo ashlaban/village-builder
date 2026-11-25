@@ -15,8 +15,14 @@ const USAGE = `usage: node tools/backlog.js <command> [--root DIR]
                             cause=VB-NNN: the task whose change introduced the defect this one mends (cause= removes it)
   new key=value...          the next free ID (above this checkout's task files and those of the branches fetched from origin and pushed in
                             the last 14 days: tools/lib/ids.js): name, status, priority, size, summary required; arch, phase, waits, cause,
-                            touches, ref, goal optional (how to write each: docs/agents/tasks.md);
+                            touches, ref, goal, criteria optional (how to write each: docs/agents/tasks.md); criteria= its lines, one a
+                            line ("- [ ] " added where missing); status=ready only with goal, ref, touches and criteria, else it starts
+                            blocked or needs-review (needs-review: its question in QUESTIONS.md, tests/backlog.js);
                             id=VB-NNN takes a reserved ID instead (tools/inbox.js start)
+  collect KIND where=... what=... [from=VB-NNN] [id=VB-NNN]
+                            a line "- [ ] From VB-NNN: <where>: <what>" in the open collecting task of KIND (split, design, teleport, act;
+                            tools/lib/collect.js), found by its name; with none open, the next one is opened, ready, and takes the line
+                            (id= a reserved ID for it). split: where= the module's key (sim/stores), what= its size against the line
   close-arch KEY            an arch with no open tasks: its row moves to the archive's closed archs
   sync [--dry]              rewrite the tables from the task files, e.g. after editing a header by hand; --dry only reports`;
 
@@ -277,7 +283,9 @@ if (cmd === 'next') {
 } else if (cmd === 'new') {
   const p = parsePairs(rest), lack = ['name', 'status', 'priority', 'size', 'summary'].filter((k) => !p[k]);
   if (lack.length) fail(`new needs ${lack.join(', ')} (key=value)`);
-  if (p.status === 'ready') fail('a new task starts blocked or needs-review: fill in its file, then  set ID status=ready');
+  if (p.status === 'ready' && !(p.goal && p.ref && p.touches && p.criteria)) {
+    fail('a new task is ready only with goal=, ref=, touches= and criteria=; else it starts blocked or needs-review: fill in its file, then  set ID status=ready');
+  }
   if (p.id && (!/^VB-\d{3,}$/.test(p.id) || tasks.has(p.id))) fail(`id=${p.id}: ${tasks.has(p.id) ? 'taken' : 'not VB-NNN'}`);
   // above every task file in sight: this checkout's and the branches pushed to origin lately (VB-1680), so sessions side by side differ
   const seen = require('./lib/ids.js').highestId(root), local = Math.max(0, ...[...tasks.keys()].map(num));
@@ -286,12 +294,49 @@ if (cmd === 'next') {
   delete p.id;
   const t = { id, name: p.name, status: '', priority: '', size: '', arch: '-', phase: '-', waits: [], dirty: true,
     text: `# ${id}: ${p.name}\nStatus: ${p.status}\nPriority: ${p.priority}\nSize: ${p.size}\n`
-      + `Design ref: ${p.ref || '(to write)'}\nTouches: (to write)\nGoal: ${p.goal || '(to write)'}\nAcceptance criteria:\n- [ ] (to write)\n` };
+      + `Design ref: ${p.ref || '(to write)'}\nTouches: (to write)\nGoal: ${p.goal || '(to write)'}\nAcceptance criteria:\n`
+      + (p.criteria ? p.criteria.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => (/^- \[[ x]\] /.test(l) ? l : '- [ ] ' + l)).join('\n') : '- [ ] (to write)')
+      + '\n' };
   tasks.set(id, t);
-  delete p.ref; delete p.goal;
+  delete p.ref; delete p.goal; delete p.criteria;
   apply(t, p);
   sync(report);
   console.log(`${id} created: backlog/${id}.md; fill in what says "(to write)"`);
+} else if (cmd === 'collect') {
+  const { COLLECT, lineOf, openIn } = require('./lib/collect.js'), [kind, ...kv] = rest, c = COLLECT[kind];
+  if (!c) fail(`collect KIND where=... what=...: KIND is one of ${Object.keys(COLLECT).join(', ')}`);
+  const p = parsePairs(kv), known = ['where', 'what', 'from', 'id'];
+  for (const k of Object.keys(p)) if (!known.includes(k)) fail(`collect: unknown key "${k}" (one of ${known.join(', ')})`);
+  if (!p.where || !p.what) fail('collect needs where= and what=');
+  if (p.from && !/^VB-\d{3,}$/.test(p.from)) fail(`from=${p.from}: not VB-NNN`);
+  const line = lineOf(p), texts = Object.fromEntries([...tasks.values()].map((t) => [t.id, t.text]));
+  let t = openIn(texts, kind) && tasks.get(openIn(texts, kind));
+  if (t && t.text.split('\n').some((l) => l.replace(/^- \[[ x]\]/, '- [ ]') === line)) {
+    console.log(`${t.id} already holds: ${line}`); process.exit(0);
+  }
+  if (t) {
+    const lines = t.text.split('\n');
+    let at = lines.findLastIndex((l) => /^- \[[ x]\]/.test(l));
+    if (at < 0) fail(`${t.id}: no criterion line to add after`);
+    while (/^ {2}\S/.test(lines[at + 1] || '')) at++;
+    lines.splice(at + 1, 0, line);
+    t.text = lines.join('\n'); t.dirty = true;
+  } else {
+    if (p.id && (!/^VB-\d{3,}$/.test(p.id) || tasks.has(p.id))) fail(`id=${p.id}: ${tasks.has(p.id) ? 'taken' : 'not VB-NNN'}`);
+    const seen = require('./lib/ids.js').highestId(root), local = Math.max(0, ...[...tasks.keys()].map(num));
+    const id = p.id || 'VB-' + String(Math.max(local, seen.max) + 1).padStart(3, '0');
+    t = { id, name: c.name, status: '', priority: '', size: '', arch: '-', phase: '-', waits: [], dirty: true,
+      text: `# ${id}: ${c.name}\nStatus: ready\nPriority: 3\nSize: ${c.size}\nDesign ref: ${c.ref}\n`
+        + `Touches: unknown (a collecting task: each line names its own place)\nGoal: ${c.goal}\nAcceptance criteria:\n${line}\n\n`
+        + `A line a finding, added by \`node tools/backlog.js collect ${kind}\` (tools/lib/collect.js): findings of a kind are collected, not given a task each.\n`
+        + (c.notes ? `\nNotes:\n${c.notes.join('\n')}\n` : '') };
+    tasks.set(id, t);
+    summaries.set(id, c.summary);
+    apply(t, { status: 'ready', priority: '3', size: c.size, ...(c.arch === '-' ? {} : { arch: c.arch }) });
+    report.push(`${id} opened: the collecting task of ${kind}, "${c.name}"`);
+  }
+  sync(report);
+  console.log(`${t.id} holds: ${line}`);
 } else if (cmd === 'close-arch') {
   const key = rest[0], open = [...tasks.values()].filter((t) => t.arch === key && t.status !== 'done');
   if (!openArchs.includes(key)) fail(`no open arch "${key}" in BACKLOG.md, "## Archs"`);

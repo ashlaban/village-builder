@@ -4,7 +4,7 @@
 // Existing long lines are kept in tests/lint-baseline.json and may only go down; `--update` lowers the baseline.
 // The sources are formatted by Prettier (`npm run format`; tests/format.js checks it), so a line counted here is a formatted line.
 // Length is no cap (VB-413, VB-414): a module over 700 formatted lines (the 400 of the packed sources, rescaled) needs an open
-// task that splits it ("Refactor: ..." naming its key in the title);
+// line naming its key in the split collector (`node tools/backlog.js collect split`);
 // with one it may grow. A module kept over the line without a task is in the baseline at its length, which only falls.
 // Width the same way (VB-415): a module over 15 exports, counted on its loaded namespace, may add one only with such a task open;
 // tests/width-baseline.json holds the modules over 15 at their counts, which only fall. `sim`, the facade that gathers the others, is not counted.
@@ -36,7 +36,7 @@ for (const entry of fs.readdirSync(path.join(root, 'src'), { recursive: true, wi
 let tasks = null; // the backlog's tasks, read only when a module is over the line
 const openTasks = () => tasks || (tasks = fs.readdirSync(path.join(root, 'backlog')).filter((n) => /^VB-\d+\.md$/.test(n)).map((n) => {
   const text = fs.readFileSync(path.join(root, 'backlog', n), 'utf8'), m = /^# (VB-\d+): (.*)$/m.exec(text), s = /^Status: (.*)$/m.exec(text);
-  return { id: m ? m[1] : n.slice(0, -3), title: m ? m[2] : '', status: s ? s[1] : '' };
+  return { id: m ? m[1] : n.slice(0, -3), title: m ? m[2] : '', status: s ? s[1] : '', text };
 }));
 for (const f of files.concat(pageFiles)) {
   const lines = readSource(f).split('\n');
@@ -52,7 +52,7 @@ for (const f of files.concat(pageFiles)) {
     const id = splitTask(key(f), openTasks());
     if (id) notes.push(`${f}: ${lines.length} lines, over ${SPLIT_LINES}; ${id} splits it`);
     else errors.push(`${f}:${lines.length} ${lines.length} lines, over ${b.lines > SPLIT_LINES ? `its baseline of ${b.lines}` : SPLIT_LINES}, and no open task splits it. Do not pack lines or move code to make room: `
-      + `open the task (node tools/backlog.js new name="Refactor: split ${key(f)} by concern" ...), name it in the PR, and go on`);
+      + `collect it (node tools/backlog.js collect split where=${key(f)} what="${lines.length} lines, over ${SPLIT_LINES}" from=VB-YOURS), name it in the PR, and go on`);
   }
   if (lines.length < b.lines) notes.push(`${f}: improved (lines ${b.lines} -> ${lines.length}); run lint.js --update`);
   if (long.length > b.longLines) errors.push(...long.map((n) => `${f}:${n} line over ${MAX_COLS} characters (${long.length} long lines, baseline ${b.longLines})`));
@@ -127,7 +127,8 @@ for (const f of files) {
   const id = splitTask(k, openTasks());
   if (id) notes.push(`${f}: ${n} exports, over ${was || MAX_EXPORTS}; ${id} splits it`);
   else errors.push(`${f}: ${n} exports, over ${was ? `its baseline of ${was}` : MAX_EXPORTS}, and no open task splits it. Do not fold several things into one export or export from `
-    + `another module to make room: open the task (node tools/backlog.js new name="Refactor: split ${k} by concern" ...), name it in the PR, and go on`);
+    + `another module to make room: collect it (node tools/backlog.js collect split where=${k} what="${n} exports, over ${MAX_EXPORTS}" from=VB-YOURS), `
+    + 'name it in the PR, and go on');
 }
 if (process.argv.includes('--update')) {
   fs.writeFileSync(WIDTH, JSON.stringify(wide, null, 1) + '\n');

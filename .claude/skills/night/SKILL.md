@@ -39,7 +39,7 @@ and update the count after each merge; at the end, `done · ` in front.
      `BACKLOG_ARCHIVE.md`: keep both sides' rows, then `node tools/backlog.js sync`; `index.html`: `git rm index.html`. A code conflict
      you never resolve yourself: abort, and send the implementer (SendMessage; a fresh `vb-task` by `continue` if it is past 90 calls)
      "merge `night-base` and resolve the conflict, keeping both changes' intent; give your result again". If it fails, or conflicts again,
-     leave the branch unmerged, `node tools/inbox.js result VB-NNN status=needs-review summary=conflict with main in <file>`, and go on.
+     leave the branch unmerged, `node tools/inbox.js result VB-NNN status=failed summary=conflict with main in <file>`, and go on.
    - **Apply and check**: `node tools/inbox.js apply --task VB-NNN --root <worktree>`; commit `Backlog: VB-NNN <done or needs-review>`;
      `npm run verify` (local checks only: do not wait for GitHub's). Red: as a conflict, above.
    - **Merge**: push as `claude/vb-NNN-<a short slug>`; open a PR to `main` titled `VB-NNN: <task name>`, its body the output of

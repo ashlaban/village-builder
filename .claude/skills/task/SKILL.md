@@ -39,7 +39,7 @@ or, if you handed over, that `vb-task` sub-agent, sent "Revise VB-NNN" (SendMess
 `review.js confirm`. No second review.
 
 ## 4. Close
-`AGENTS.md`, step 6: tick the criteria, `backlog.js done VB-NNN` or `set VB-NNN status=needs-review`, ten lines of notes. With no
+`AGENTS.md`, step 6: tick the criteria, `backlog.js done VB-NNN` (a criterion left undone names the task that carries it), or `set VB-NNN status=needs-review` only for a question in `QUESTIONS.md`, ten lines of notes. With no
 orchestrator, write what the task raised yourself: follow-up tasks (`tools/backlog.js new`, as `docs/agents/tasks.md` says), tuning rows (`docs/tuning.md`), questions
 (`tools/questions.js`), and the Surfacing lines (`AGENTS.md`) in their collecting tasks. Measure last:
 `node tools/agent-usage.js --label worker --task VB-NNN --review work/review/VB-NNN.json --out docs/agents/usage` (not reviewed:
