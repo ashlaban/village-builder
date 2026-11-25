@@ -149,7 +149,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-1126](backlog/VB-1126.md)<a id="VB-1126"></a> | Design: the age of account and the bands' margin in design.md | talk | 3 | S | design.md does not yet say VB-1106's two rules (SOCIAL.account 12, SOCIAL.back 0.2) |
 | [VB-1364](backlog/VB-1364.md)<a id="VB-1364"></a> | The village's loans are made by its alderman | - | 3 | S | Loans of the village (VB-312) made by the alderman, booked as goodwill |
 | [VB-1369](backlog/VB-1369.md)<a id="VB-1369"></a> | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
 | [VB-1506](backlog/VB-1506.md)<a id="VB-1506"></a> | Owners for w.biome, w.trees and w.stones | - | 3 | S | about ten sim modules write the world's biome, trees and stones, and src/owners.json names no owner for them |
