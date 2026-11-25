@@ -804,3 +804,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1538](backlog/VB-1538.md) | Refactor: split sim/goods by concern | - | 3 | S | sim/goods holds three concerns: keeping in store, grain's subtype ids by crop, and the registry of goods with their materials and kinds; split by them |
 | [VB-1539](backlog/VB-1539.md) | Refactor: split sim/building by concern | - | 3 | S | sim/building holds four concerns: timber and the cottage's stages, the booth, the stone foundation and its stone, and the barn; split by them |
 | [VB-1540](backlog/VB-1540.md) | Refactor: split sim/rules by concern | - | 3 | S | sim/rules is over 700 lines: the time constants and names stay; tables read by one domain move to it (VB-419), the rest are grouped by the domains that share them |
+| [VB-1471](backlog/VB-1471.md) | Repair the night of 21 November: invariants, fixtures and the invariants band | - | 1 | S | Extended tier red on the run of 21 Nov |
