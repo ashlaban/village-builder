@@ -52,6 +52,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8c9a6a; col
 .pl.d { border-radius: 2px; position: relative; } .pl.d::before, .pl.d::after { content: ''; position: absolute; top: -4px; width: 1.5px; height: 5px; background: var(--ink); } .pl.d::before { left: 3px; } .pl.d::after { right: 3px; }
 .pl.n { border-radius: 8px; background: var(--ink); color: #fff; }
 .pl.dur { border-radius: 7px; } .pl.dur i { font-style: normal; font-weight: 500; padding: 0 3px; background: repeating-linear-gradient(135deg, #0000 0 3px, #0002 3px 5px); border-radius: 0 6px 6px 0; margin-right: -5px; }
+.pl.cd { border-radius: 7px; background: #f1e6d0; border-color: #f1e6d0; color: #2e2418; } .pl.cd.risk { background: var(--risk); border-color: var(--risk); color: #fff; }
 .pl.risk { border-color: var(--risk); color: var(--risk); }
 /* Map */
 #mapwrap { position: relative; overflow: hidden; min-height: 0; }
@@ -66,8 +67,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #8c9a6a; col
 #win { position: relative; height: 22px; margin: 0 6px 2px; }
 #win .bar { position: absolute; top: 3px; height: 16px; border: 1px solid #5b7a2a; background: #5b7a2a22; border-radius: 3px; font-size: 11px; padding-left: 4px; display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; }
 #win .bar.risk { border-color: var(--risk); background: #c8361b18; }
-#win .est { position: absolute; top: 6px; height: 10px; background: #5b7a2a; border-radius: 2px; pointer-events: none; }
-#win .rng { position: absolute; top: 6px; height: 10px; background: repeating-linear-gradient(135deg, #5b7a2a 0 3px, #0000 3px 6px); pointer-events: none; }
+#win .est { position: absolute; top: 17px; height: 3px; background: #5b7a2a; border-radius: 2px; pointer-events: none; }
+#win .rng { position: absolute; top: 16px; height: 5px; background: repeating-linear-gradient(135deg, #5b7a2a 0 3px, #0000 3px 6px); pointer-events: none; }
 #win .dl { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--risk); }
 .cols { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; padding: 0 6px 6px; flex: 1; min-height: 0; }
 .ucol { background: #fff8; border: 1px solid var(--line); border-radius: 5px; display: flex; flex-direction: column; gap: 3px; padding: 3px; min-height: 0; overflow: hidden; }
@@ -194,6 +195,7 @@ const FR = { 0.25: '¼', 0.5: '½', 0.75: '¾' };
 const dur = (h) => { const i = Math.floor(h), f = Math.round((h - i) * 4) / 4; return (i || !f ? i : '') + (FR[f] || '') + 'h'; };
 const pH = (h, risk) => `<span class="pl h${risk ? ' risk' : ''}">${typeof h === 'number' ? dur(h) : h}</span>`;
 const pD = (d, risk) => `<span class="pl d${risk ? ' risk' : ''}">d${d}</span>`;
+const pC = (t, risk) => `<span class="pl cd${risk ? ' risk' : ''}">${t}</span>`; // a countdown: the tray only
 const pN = (n) => `<span class="pl n">×${n}</span>`;
 const pE = (e) => `<span class="pl dur">${e[1] < 1 ? dur(e[1] * 12) : e[1] + 'd'}<i>${e[1] < 1 ? '' : e[0] + '-' + e[2]}</i></span>`;
 function layout(list) {
@@ -205,7 +207,7 @@ const owed = (L) => LONE.owedSleep + Math.max(0, dayEnd(L) - T1);
 function sleepCost(o) { return o <= 3 ? 'fine tonight' : o < 6 ? 'mood −1 tonight; a second night bites harder' : 'wits slow tomorrow (work −10%); health wears while it stands'; }
 // The haul waits if nothing is felled before it (the cart is at the wood, left there yesterday).
 function waits(L, b) {
-  if (b.id === 'haul') { const f = L.findIndex((x) => x.id === 'fell'), i = L.findIndex((x) => x.id === 'haul'); if (f < 0 || f > i) return 'nothing felled yet; the cart is at the wood'; }
+  if (b.id === 'haul' && L.length) { const f = L.findIndex((x) => x.id === 'fell'), i = L.findIndex((x) => x.id === 'haul'); if (f < 0 || f > i) return 'nothing felled yet; the cart is at the wood'; }
   if (b.needs === 'cart' && !S.today.some((x) => x.id === 'haul')) return 'the cart is at the wood (no haul brings it home)';
   return null;
 }
@@ -234,7 +236,7 @@ function renderToday() {
     if (S.walk === 'own' && b.w) {
       h += `<div class="walkb" style="top:${top}px;height:${wpx - 1}px">walk ${dur(b.w)}</div>`;
       h += `<div class="${cls}" data-b="${b.id}" style="top:${top + wpx}px;height:${ht - wpx}px;${style}">${ic}${lab}${pH(b.dur)}</div>`;
-    } else h += `<div class="${cls}" data-b="${b.id}" style="top:${top}px;height:${ht}px;${style}">${b.w ? `<div class="wk" style="height:${wpx}px">${wpx >= 12 ? '⋯ walk ' + dur(b.w) : ''}</div>` : ''}${ic}${lab}${pH(b.dur + b.w)}</div>`;
+    } else h += `<div class="${cls}" data-b="${b.id}" style="top:${top}px;height:${ht}px;${style}${ht - wpx >= 16 ? ';padding-top:' + wpx + 'px' : ''}">${b.w ? `<div class="wk" style="height:${wpx}px">${wpx >= 12 && ht - wpx >= 16 ? '⋯ walk ' + dur(b.w) : ''}</div>` : ''}${ic}${lab}${pH(b.dur + b.w)}</div>`;
   }
   const end = dayEnd(L);
   if (end < T1 - 0.4) h += `<div class="free" style="top:${(end - T0) * PXH + 2}px;height:${(T1 - end) * PXH - 4}px">as the day brings · ${dur(T1 - end)} free</div>`;
@@ -272,10 +274,10 @@ function renderSome() {
 // ---- The tray: decision points by deadline.
 function trayItems(L) {
   const P = plantEst(), o = owed(L), out = [], fwToday = S.today.some((b) => b.id === 'fw');
-  out.push({ g: 'at once', id: 'cold', ic: icon('cold', { frame: 'now', whose: null, state: 'risk', size: 30 }), lab: 'no roof: cold', pill: pH('tonight'), hot: 1 });
-  out.push({ g: 'today', id: 'fire', ic: icon('wood', { frame: 'now', whose: null, state: fwToday ? null : 'risk', size: 30 }), lab: 'firewood left', pill: pD(fwToday ? 5 : 4, !fwToday).replace('d' + (fwToday ? 5 : 4), (fwToday ? 2 : 1) + ' days'), hot: !fwToday });
+  out.push({ g: 'at once', id: 'cold', ic: icon('cold', { frame: 'now', whose: null, state: 'risk', size: 30 }), lab: 'no roof: cold', pill: pC('tonight', 1), hot: 1 });
+  out.push({ g: 'today', id: 'fire', ic: icon('wood', { frame: 'now', whose: null, state: fwToday ? null : 'risk', size: 30 }), lab: 'firewood left', pill: pC((fwToday ? 2 : 1) + ' days', !fwToday), hot: !fwToday });
   if (o > 3) out.push({ g: 'today', id: 'sleep', ic: icon('mood', { frame: 'now', whose: null, state: 'risk', size: 30 }), lab: 'sleep owed', pill: pH(o + 'h', 1) });
-  out.push({ g: 'by deadline', id: 'window', ic: icon('sow', { frame: 'plan', author: 'player', state: P.risk ? 'risk' : null, size: 30 }), lab: P.risk ? 'sowing at risk' : 'sow by d10', pill: pD(10, P.risk).replace('d10', '7 days'), hot: P.risk });
+  out.push({ g: 'by deadline', id: 'window', ic: icon('sow', { frame: 'plan', author: 'player', state: P.risk ? 'risk' : null, size: 30 }), lab: P.risk ? 'sowing at risk' : 'sow by d10', pill: pC('7 days', P.risk), hot: P.risk });
   const st = Object.values(S.up).flat().filter((b) => waits([], b));
   const hw = waits(L, L.find((b) => b.id === 'haul') || {});
   if (st.length || hw) out.push({ g: 'stands still', id: 'still', ic: icon('cart', { frame: 'plan', state: 'blocked', size: 30 }), lab: 'waits: the cart', pill: pN(st.length + (hw ? 1 : 0)) });
@@ -357,7 +359,7 @@ function bubble(id, anchor) {
     `<div class="acts">${t.acts ? '<button class="main" data-x="acts">Acts ▸</button>' : ''}<button data-x="why">why?</button><button data-x="close">close</button></div><div class="slot"></div>`;
   document.body.appendChild(el);
   const r = anchor.getBoundingClientRect();
-  el.style.left = Math.max(6, Math.min(innerWidth - 290, r.right + 8)) + 'px';
+  el.style.left = (r.left > innerWidth - 300 ? r.left - 290 : Math.max(6, Math.min(innerWidth - 410, r.right + 8))) + 'px';
   el.style.top = Math.max(44, Math.min(innerHeight - el.offsetHeight - 8, r.top - 10)) + 'px';
   el.onclick = (e) => {
     e.stopPropagation(); const x = e.target.closest('button'); if (!x) return;
@@ -394,7 +396,7 @@ function preview(x, y) {
     if (!inSleep) { const h = trackHour(y), L = layout(rest); idx = L.findIndex((b, i) => i >= first && b.s + b.dur / 2 >= h); if (idx < 0) idx = rest.length; }
     idx = Math.max(first, idx);
     const list = [...rest.slice(0, idx), blk, ...rest.slice(idx)], L = layout(list), me = L[idx], o = owed(L), wt = waits(L, me);
-    return { kind: 'today', list, text: `${fmt(me.s)}-${fmt(me.e)} (walk ${dur(me.w)})${dayEnd(L) > T1 ? ` · <b>into sleep: +${dur(dayEnd(L) - T1)} owed → ${o} h</b>: ${sleepCost(o)}` : ' · the day ends ' + fmt(dayEnd(L))}${wt ? ` · <b>waits:</b> ${wt}` : ''}` };
+    return { kind: 'today', list, text: `${fmt(me.s)}-${fmt(me.e)}${me.w ? ' (walk ' + dur(me.w) + ')' : ''}${dayEnd(L) > T1 ? ` · <b>into sleep: +${dur(dayEnd(L) - T1)} owed → ${o} h</b>: ${sleepCost(o)}` : ' · the day ends ' + fmt(dayEnd(L))}${wt ? ` · <b>waits:</b> ${wt}` : ''}` };
   }
   if (col) {
     col.classList.add('drop'); const d = +col.dataset.day, e = blk.est;
@@ -415,7 +417,7 @@ function startDrag(e, el, blk, src) {
   const mv = (ev) => {
     if (Math.abs(ev.clientX - D.x0) + Math.abs(ev.clientY - D.y0) > 4) D.moved = true;
     g.style.left = ev.clientX - 20 + 'px'; g.style.top = ev.clientY - 10 + 'px';
-    D.p = preview(ev.clientX, ev.clientY); h.innerHTML = D.p.text; h.style.left = Math.min(innerWidth - 310, ev.clientX + 18) + 'px'; h.style.top = ev.clientY + 22 + 'px';
+    D.p = preview(ev.clientX, ev.clientY); h.innerHTML = D.p.text; h.style.left = Math.min(innerWidth - 310, ev.clientX + 18) + 'px'; h.style.top = (ev.clientY > innerHeight - 90 ? ev.clientY - 30 - h.offsetHeight : ev.clientY + 22) + 'px';
   };
   const up = () => {
     removeEventListener('pointermove', mv); removeEventListener('pointerup', up); g.remove(); h.remove();
