@@ -33,7 +33,8 @@
 //                              --task only TASK's
 //   results [--json]           the results, for  node tools/agent-usage.js --results FILE
 // kinds, with their keys:
-//   task       id= (one reserved by start) name= priority= size= summary= [status=ready|blocked|needs-review arch= waits= cause= touches= ref= goal=]; body: its criteria
+//   task       id= (one reserved by start) name= priority= size= summary= status=ready|blocked|needs-review [arch= waits= cause= touches= ref= goal=]; body: its criteria;
+//              ready with goal, ref, touches and criteria; blocked with waits=; needs-review only with a question note about= it (Kim, 25 November)
 //              (how to write each, touches= the functions it will edit: docs/agents/tasks.md)
 //              (cause=VB-NNN: the task whose change introduced the defect it mends, VB-1619)
 //              (ready: goal=, ref=, touches= and the body given, and no question for Kim; priority=1 if it mends a red check)
@@ -219,10 +220,12 @@ if (cmd === 'init') {
   }
   if (kind === 'task') {
     if (!/^(S|M|L)$/.test(f.size)) fail('size is S, M or L');
-    if (f.status && !['blocked', 'needs-review', 'ready'].includes(f.status)) fail('a noted task is ready, blocked or needs-review (the default)');
+    if (!['blocked', 'needs-review', 'ready'].includes(f.status)) fail('a noted task says status=ready (its goal, ref, touches and criteria stated), '
+      + 'blocked (waits=) or needs-review (only with a question note about= it, for a question only Kim can answer; AGENTS.md, step 6)');
+    if (f.status === 'blocked' && !f.waits) fail('a blocked task note names what it waits for (waits=VB-NNN or Kim)');
     if (f.status === 'ready' &&
       !(f.goal && f.ref && f.touches && body)) fail(
-      'a noted task is ready only with its goal (goal=), its design ref (ref=), its footprint (touches=, docs/agents/tasks.md) and its criteria (--body), and no question for Kim; else needs-review (the default)');
+      'a noted task is ready only with its goal (goal=), its design ref (ref=), its footprint (touches=, docs/agents/tasks.md) and its criteria (--body), and no question for Kim; else blocked or needs-review');
     if (f.touches) try { require('./lib/touches.js').parseTouches(f.touches); } catch (e) { fail(`touches=: ${e.message} (docs/agents/tasks.md)`); }
   }
   if (kind === 'review') {
@@ -246,6 +249,11 @@ if (cmd === 'init') {
   if (!['done', 'needs-review', 'failed', 'continue'].includes(f.status)) fail('status=done, needs-review, failed or continue');
   let nth = 0, reason = null;
   if (f.reason && f.status !== 'continue') fail('reason= goes with status=continue');
+  // needs-review is for a question only Kim can answer (Kim, 25 November): work not built is done, its rest carried by a task
+  if (f.status === 'needs-review' && !notes('WHERE kind = ?', 'question').some((n) => (n.fields.about || n.task) === task)) {
+    fail(`status=needs-review needs ${task}'s question for Kim (note ${task} question priority= title= --body -, its proposed answer in it); `
+      + 'work not built is status=done, its criterion unticked naming the task that carries the rest, or status=failed');
+  }
   if (f.status === 'continue') {
     if (!f.commit) fail('continue needs commit=SHA: commit what you have first');
     reason = f.reason || 'ceiling';
@@ -253,13 +261,13 @@ if (cmd === 'init') {
     const meta = (key) => +(get('SELECT value FROM meta WHERE key = ?', key + task) || { value: 0 }).value;
     if (reason === 'ceiling') {
       nth = meta('continued:') + 1;
-      if (nth > CONTINUATIONS) fail(`${task} has been continued ${CONTINUATIONS} times: end with status=needs-review, the unmet criteria in summary=`);
+      if (nth > CONTINUATIONS) fail(`${task} has been continued ${CONTINUATIONS} times: end with status=done, the rest in a noted task, or status=failed, the unmet criteria in summary=`);
       run('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', 'continued:' + task, String(nth));
     } else { // a voluntary reset (VB-1616): past the threshold, late enough in the run, with something new committed, once a task
       const was = meta('voluntary:');
       if (was >= VOLUNTARY) {
         fail(reason === 'stuck' ||
-          meta('stuck:') ? `${task} has had its voluntary reset and is stuck again: end with status=needs-review, what was tried and ruled out in summary=`
+          meta('stuck:') ? `${task} has had its voluntary reset and is stuck again: end with status=failed, what was tried and ruled out in summary= (or done, the rest in a noted task)`
           : `${task} has had its voluntary reset (${VOLUNTARY} a task): go on, and hand over at the ceiling if it comes`);
       }
       const t = own();
@@ -356,6 +364,18 @@ if (cmd === 'init') {
   const mark = (table, key, value) => { if (!dry) run(`UPDATE ${table} SET applied = 1 WHERE ${key} = ?`, value); };
   let count = 0;
   const mine = (x) => !onlyTask || x.task === onlyTask;
+  // the questions first: a task set needs-review, by its result or its note, has its question in QUESTIONS.md (tests/backlog.js)
+  for (const n of notes('WHERE applied = 0 AND kind = ?', 'question').filter(mine)) {
+    const f = n.fields;
+    edit('QUESTIONS.md', (text) => {
+      const head = `\n## Priority ${f.priority}\n`, at = text.indexOf(head);
+      if (at < 0) return null;
+      const end = text.indexOf('\n## ', at + head.length), stop = end < 0 ? text.length : end;
+      const block = `### ${f.about || n.task}: ${one(f.title)} (raised ${date})\n${n.body}\n`;
+      return text.slice(0, stop).replace(/\n*$/, '\n\n') + block + text.slice(stop);
+    });
+    mark('notes', 'n', n.n); count++;
+  }
   for (const r of all("SELECT * FROM results WHERE applied = 0 AND status IN ('done', 'needs-review')").filter(mine)) {
     if (!fs.existsSync(path.join(root, 'backlog', r.task + '.md'))) {
       console.log(`${r.task}: no task file in this checkout (merge its branch first); left`); continue; }
@@ -365,23 +385,16 @@ if (cmd === 'init') {
   for (const n of notes('WHERE applied = 0').filter(mine)) {
     const f = n.fields;
     if (n.kind === 'task') {
-      // a ready note gives its footprint (checked when noted); one that is not ready keeps the line to fill (VB-1677)
+      // a ready note gives its footprint (checked when noted) and its criteria, and is made ready in one call; one that is not keeps the
+      // lines to fill (VB-1677)
       const keys = ['name', 'priority', 'size', 'summary', 'arch', 'waits', 'cause', 'touches', 'ref', 'goal'].filter((k) => f[k]).map((k) => `${k}=${f[k]}`);
-      // a file is never made ready with "(to write)" in it (tools/backlog.js new): a ready note's task is made, filled, then set ready
-      backlog('new', `id=${f.id}`, `status=${f.status === 'ready' ? 'needs-review' : f.status || 'needs-review'}`, ...keys);
-      if (n.body && !dry) {
+      backlog('new', `id=${f.id}`, `status=${f.status}`, ...keys, ...(n.body ? [`criteria=${n.body}`] : []));
+      if (!dry) {
         const p = path.join(root, 'backlog', f.id + '.md');
-        fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('- [ ] (to write)\n', n.body + '\n') + `\nNoted by ${n.task}, ${date}.\n`);
+        fs.writeFileSync(p, fs.readFileSync(p, 'utf8') + `\nNoted by ${n.task}, ${date}.\n`);
       }
-      if (f.status === 'ready') backlog('set', f.id, 'status=ready');
     } else if (n.kind === 'question') {
-      edit('QUESTIONS.md', (text) => {
-        const head = `\n## Priority ${f.priority}\n`, at = text.indexOf(head);
-        if (at < 0) return null;
-        const end = text.indexOf('\n## ', at + head.length), stop = end < 0 ? text.length : end;
-        const block = `### ${f.about || n.task}: ${one(f.title)} (raised ${date})\n${n.body}\n`;
-        return text.slice(0, stop).replace(/\n*$/, '\n\n') + block + text.slice(stop);
-      });
+      continue; // filed first, above
     } else if (n.kind === 'tuning') {
       edit('docs/tuning.md', (text) => {
         const at = text.indexOf('\n## Parameters waiting\n'), lines = text.split('\n');

@@ -15,7 +15,9 @@ const USAGE = `usage: node tools/backlog.js <command> [--root DIR]
                             cause=VB-NNN: the task whose change introduced the defect this one mends (cause= removes it)
   new key=value...          the next free ID (above this checkout's task files and those of the branches fetched from origin and pushed in
                             the last 14 days: tools/lib/ids.js): name, status, priority, size, summary required; arch, phase, waits, cause,
-                            touches, ref, goal optional (how to write each: docs/agents/tasks.md);
+                            touches, ref, goal, criteria optional (how to write each: docs/agents/tasks.md); criteria= its lines, one a
+                            line ("- [ ] " added where missing); status=ready only with goal, ref, touches and criteria, else it starts
+                            blocked or needs-review (needs-review: its question in QUESTIONS.md, tests/backlog.js);
                             id=VB-NNN takes a reserved ID instead (tools/inbox.js start)
   collect KIND where=... what=... [from=VB-NNN] [id=VB-NNN]
                             a line "- [ ] From VB-NNN: <where>: <what>" in the open collecting task of KIND (split, teleport, act;
@@ -281,7 +283,9 @@ if (cmd === 'next') {
 } else if (cmd === 'new') {
   const p = parsePairs(rest), lack = ['name', 'status', 'priority', 'size', 'summary'].filter((k) => !p[k]);
   if (lack.length) fail(`new needs ${lack.join(', ')} (key=value)`);
-  if (p.status === 'ready') fail('a new task starts blocked or needs-review: fill in its file, then  set ID status=ready');
+  if (p.status === 'ready' && !(p.goal && p.ref && p.touches && p.criteria)) {
+    fail('a new task is ready only with goal=, ref=, touches= and criteria=; else it starts blocked or needs-review: fill in its file, then  set ID status=ready');
+  }
   if (p.id && (!/^VB-\d{3,}$/.test(p.id) || tasks.has(p.id))) fail(`id=${p.id}: ${tasks.has(p.id) ? 'taken' : 'not VB-NNN'}`);
   // above every task file in sight: this checkout's and the branches pushed to origin lately (VB-1680), so sessions side by side differ
   const seen = require('./lib/ids.js').highestId(root), local = Math.max(0, ...[...tasks.keys()].map(num));
@@ -290,9 +294,11 @@ if (cmd === 'next') {
   delete p.id;
   const t = { id, name: p.name, status: '', priority: '', size: '', arch: '-', phase: '-', waits: [], dirty: true,
     text: `# ${id}: ${p.name}\nStatus: ${p.status}\nPriority: ${p.priority}\nSize: ${p.size}\n`
-      + `Design ref: ${p.ref || '(to write)'}\nTouches: (to write)\nGoal: ${p.goal || '(to write)'}\nAcceptance criteria:\n- [ ] (to write)\n` };
+      + `Design ref: ${p.ref || '(to write)'}\nTouches: (to write)\nGoal: ${p.goal || '(to write)'}\nAcceptance criteria:\n`
+      + (p.criteria ? p.criteria.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => (/^- \[[ x]\] /.test(l) ? l : '- [ ] ' + l)).join('\n') : '- [ ] (to write)')
+      + '\n' };
   tasks.set(id, t);
-  delete p.ref; delete p.goal;
+  delete p.ref; delete p.goal; delete p.criteria;
   apply(t, p);
   sync(report);
   console.log(`${id} created: backlog/${id}.md; fill in what says "(to write)"`);
