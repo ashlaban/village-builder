@@ -1,5 +1,5 @@
 // Derive roles from the family records and member lists, independently of pawn.household and the spouse index.
-function checkRoles(st, VB, { allowAgeLag = false } = {}) {
+function checkRoles(st, VB) {
   const households = new Map(), spouses = new Map(), errors = [], YEAR = VB['sim/rules'].YEAR;
   for (const hh of st.households) if (!hh.dissolved) for (const id of hh.members) households.set(id, hh);
   for (const u of st.unions) if (u.end === null) { spouses.set(u.a, u.b); spouses.set(u.b, u.a); }
@@ -10,9 +10,7 @@ function checkRoles(st, VB, { allowAgeLag = false } = {}) {
     const expected = holds ? 'farmer' : marriedToHolder ? (p.sex === 'f' ? 'wife' : 'farmer') :
       hh && p.retired ? 'retired' : age < 14 ? 'child' : !hh || p.servant ? (p.sex === 'f' && hh ? 'maid' : 'farmhand') :
       p.sex === 'f' ? 'daughter' : 'son';
-    // Existing gameplay refreshes roles on social changes and at the annual round, not on the fourteenth birthday.
-    const birthdayLag = allowAgeLag && age === 14 && !holds && !marriedToHolder && !p.retired && p.role === 'child';
-    if (p.role !== expected && !birthdayLag) errors.push(`pawns[${p.id}]: role cache ${p.role}, expected ${expected}`);
+    if (p.role !== expected) errors.push(`pawns[${p.id}]: role cache ${p.role}, expected ${expected}`);
   }
   return errors;
 }

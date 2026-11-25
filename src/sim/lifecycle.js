@@ -93,14 +93,17 @@ VB['sim/lifecycle'] = (() => {
 
   function dailyLife(st) {
     VB.count.walkDaily += st.living.length;
-    let holders = null;
+    let holders = null,
+      grown = null;
     for (const id of st.living) {
       const p = st.pawns[id];
       p.age = age(st, p);
+      if (p.role === 'child' && p.age >= 14) (grown || (grown = [])).push(id); // a child's role ends on its birthday (VB-1685)
       if (typeof p.leanDays === 'number' && p.age >= TRAITS.setAge) setAtAge(st, id); // its values set for good (sim/traits, VB-519)
       if ((st.t - p.born) % YEAR < DAY && isHolder(st, id)) (holders || (holders = [])).push(id);
     }
     // a holder's birthday: its day to consider handing the farm on (sim/asking, VB-824)
+    if (grown) refreshRoles(st, grown);
     if (holders) for (const id of holders) emit(st, 'holderYear', { pawn: id });
     comeOfAge(st);
     wardsOfAge(st); // a ward of 18 goes back to the farm held in trust for it (sim/trust, VB-309)

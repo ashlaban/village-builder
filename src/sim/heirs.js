@@ -640,22 +640,28 @@ VB['sim/heirs'] = (() => {
     },
     run: (st, c) => {
       const a = c.args,
-        hh = st.households[c.target];
-      for (const id of [c.actor, ...(a.with || [])])
-        moveTo(st, id, c.target, a.text ?? null, a.reason !== 'settle', a.reason);
-      if (a.reason !== 'service') return;
-      const at = st.farmsteads[hh.farmstead].name;
-      setServant(st, c.actor, true);
-      personEvent(st, c.actor, 'service', a.event || `Went into service at ${at}`, false); // recorded below
-      const out = stayOf(st, c.actor) ? ', and sets out for it' : ''; // its new home lies in another village (VB-287)
-      log(st, `${a.line || `${fullName(st.pawns[c.actor])} goes into service at ${at}`}${out}.`, {
-        kind: 'service',
-        pawn: c.actor,
-        ...(a.other !== undefined ? { other: a.other } : {}),
-        ...atHousehold(st, hh),
-      });
+        hh = st.households[c.target],
+        movers = [c.actor, ...(a.with || [])],
+        from = movers.map((id) => st.pawns[id].household);
+      for (const id of movers) moveTo(st, id, c.target, a.text ?? null, a.reason !== 'settle', a.reason);
+      if (a.reason === 'service') serve(st, c, hh);
+      refreshRoles(st, membersOf(st, [...from, c.target])); // the roles of both homes are right after the move (VB-1685)
     },
   });
+  // The actor of move c goes into service at household hh: a servant, told so.
+  function serve(st, c, hh) {
+    const a = c.args;
+    const at = st.farmsteads[hh.farmstead].name;
+    setServant(st, c.actor, true);
+    personEvent(st, c.actor, 'service', a.event || `Went into service at ${at}`, false); // recorded below
+    const out = stayOf(st, c.actor) ? ', and sets out for it' : ''; // its new home lies in another village (VB-287)
+    log(st, `${a.line || `${fullName(st.pawns[c.actor])} goes into service at ${at}`}${out}.`, {
+      kind: 'service',
+      pawn: c.actor,
+      ...(a.other !== undefined ? { other: a.other } : {}),
+      ...atHousehold(st, hh),
+    });
+  }
   return {
     moveTo,
     transfer,

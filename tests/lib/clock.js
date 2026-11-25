@@ -7,6 +7,11 @@ function setClock(st, hours) {
   st.tick = whole;
   st.t = st.tick / TICKS;
   // legs and tasks due before the new time are taken at the next step (tests/lib/invariants.js allows them in a state set by hand)
+  // the roles a birthday in the days jumped over changes, as the days' life step would have (VB-1685: no lag)
+  if (Array.isArray(st.living) && Array.isArray(st.pawns)) {
+    const grown = st.living.filter((id) => st.pawns[id].role === 'child' && globalThis.VB['sim/records'].age(st, st.pawns[id]) >= 14);
+    if (grown.length) globalThis.VB['sim/heirs'].refreshRoles(st, grown);
+  }
   if (!Object.prototype.hasOwnProperty.call(st, 'clockSet')) Object.defineProperty(st, 'clockSet', { value: true, writable: true });
 }
 const moveClock = (st, hours) => setClock(st, st.t + hours);

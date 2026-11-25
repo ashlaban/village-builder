@@ -81,3 +81,67 @@ function leftOut(names, readers = {}, registries) {
   return out;
 }
 module.exports.leftOut = leftOut;
+
+// VB-1685 (the principles review of 24 November, S1): the owner of a cache is told after the write, not before. In each function of src
+// (the source text), a `...Changed(st, key, ...)` notification followed, in the same function and outside its inner functions, by a write
+// to `[key]` (an assignment or a step): `line: name(key)` for each.
+function notedBefore(src) {
+  const { tokenize } = require('../tools/wrap.js');
+  const toks = tokenize(src).filter((t) => t.t !== 'com'), v = (i) => toks[i] && toks[i].v, close = new Map(), stack = [];
+  toks.forEach((t, i) => {
+    if (['(', '[', '{'].includes(t.v)) stack.push(i);
+    else if ([')', ']', '}'].includes(t.v) && stack.length) close.set(stack.pop(), i);
+  });
+  const opens = new Map([...close].map(([o, c]) => [c, o]));
+  // a function's body: a brace after an arrow, or after the parameters of `function [name](...)`
+  const bodies = [];
+  toks.forEach((t, i) => {
+    if (t.v !== '{' || !close.has(i)) return;
+    const p = i - 1, o = v(p) === ')' ? opens.get(p) : undefined;
+    if (v(p) === '=>' || (o !== undefined && (v(o - 1) === 'function' || v(o - 2) === 'function'))) bodies.push([i, close.get(i)]);
+  });
+  const text = (a, b) => toks.slice(a, b).map((t) => t.v ?? '#').join('');
+  const WRITE = new Set(['=', '+=', '-=', '*=', '/=', '|=', '&=', '++', '--', '??=', '||=', '&&=']), out = [];
+  toks.forEach((t, i) => {
+    if (t.t !== 'word' || !/.Changed$/.test(t.v) || v(i + 1) !== '(' || v(i - 1) === 'function') return;
+    const end = close.get(i + 1), commas = [];
+    for (let k = i + 2, d = 0; k < end; k++) {
+      if (['(', '[', '{'].includes(v(k))) d++;
+      else if ([')', ']', '}'].includes(v(k))) d--;
+      else if (v(k) === ',' && d === 0) commas.push(k);
+    }
+    if (!commas.length) return;
+    const key = text(commas[0] + 1, commas[1] ?? end);
+    const fn = bodies.filter(([a, b]) => a < i && i < b).sort((x, y) => y[0] - x[0])[0];
+    if (!fn) return;
+    // a return (break, continue, throw) in the call's block, or one around it, ends the path: a write past it is on another
+    for (let k = end + 1, d = 0; k < fn[1]; k++) {
+      const inner = bodies.find(([a, b]) => a === k && b < fn[1]);
+      if (inner) { k = inner[1]; continue; }
+      if (v(k) === '{') d++;
+      else if (v(k) === '}') d--;
+      if (d <= 0 && ['return', 'break', 'continue', 'throw'].includes(v(k))) break;
+      // a setter given the key (setBiome(w, key, ...), setOwner(st, key, ...)) writes it too
+      if (toks[k].t === 'word' && /^set[A-Z]/.test(v(k)) && v(k + 1) === '(' && close.has(k + 1)) {
+        const e = close.get(k + 1), args = [];
+        for (let j = k + 2, d = 0, from = k + 2; j <= e; j++) {
+          if (j === e || (v(j) === ',' && d === 0)) { args.push(text(from, j)); from = j + 1; }
+          else if (['(', '[', '{'].includes(v(j))) d++;
+          else if ([')', ']', '}'].includes(v(j))) d--;
+        }
+        if (args.includes(key)) {
+          out.push(`${src.slice(0, t.s).split('\n').length}: ${t.v}(${key})`);
+          break;
+        }
+      }
+      if (v(k) !== '[' || !close.has(k)) continue;
+      const c = close.get(k);
+      if (text(k + 1, c) === key && (WRITE.has(v(c + 1)) || WRITE.has(v(k - 1)))) {
+        out.push(`${src.slice(0, t.s).split('\n').length}: ${t.v}(${key})`);
+        break;
+      }
+    }
+  });
+  return out;
+}
+module.exports.notedBefore = notedBefore;
