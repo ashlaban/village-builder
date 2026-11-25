@@ -678,6 +678,8 @@ process (never editing a file) can run the real allotment with one rule changed,
 
 **New, raised by taking the answers in** (none is decided by the text above; where 3.3 had to assume one, it says so here):
 
+*Questions 13 to 17, 19 and 20 are answered (section 6, points 10 and 11); 18 waits for `levy-custom.md` (point 12).*
+
 13. **Is the head pair levied?** 3.3 assumes not: the household's plan is theirs, and their own hours are what they leave
     themselves. *Why:* otherwise who grants the head leave; and a one-adult household has no levy inside it at all.
 14. **Do levy hours the allotment leaves unassigned fall to the member for that day, with a later call inside the levy still no
@@ -733,4 +735,14 @@ Given in discussion after v2. Taken into sections 1 and 3 on 25 November.
 9. **The size of a village's levy lots is a village custom** (question 6), starting "by fields" (as `wayDuty`'s lots); the meeting
    may change it, e.g. to "by adults".
 
-Questions 7 to 12 are open.
+10. **The designer's assumptions for questions 13 to 16, 19 and 20 are accepted** (as section 3.3 assumes them): the head pair is
+    not levied; levy hours the day leaves unassigned fall to the member, and a later call inside the levy is no breach; a day worked
+    under an outer levy comes out of the household's levy on the one sent; vital work is inside the levy, slotted in first; a village's
+    routine levies are obligation records (met ones pruned, as cost grows with history); giving back is a judgement (diligence and the
+    need the pawn sees), not a fixed share.
+11. **An estate's levy on a village comes on top** of the village's own levies on its households (question 17), as historically: the
+    lord's burden is felt by every household and shows in the strip.
+12. **The custom table's values are to be grounded in historical sources** (question 18) by a research pass before the measurement
+    sets them: `levy-custom.md` in this folder.
+
+Questions 7 to 12 and 18 are open.
