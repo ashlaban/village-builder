@@ -148,6 +148,7 @@
   "sim/venues.js",
   "sim/gathering.js",
   "sim/fair.js",
+  "sim/loans.js",
   "sim/seasonal.js",
   "sim/routines.js",
   "sim/plandays.js",

@@ -243,6 +243,11 @@ VB['sim/journeys'] = (() => {
     const why = { kind: 'gift', back: st.farmsteads[st.households[g.to].farmstead].name };
     for (const s of g.stops) {
       const hh = s.from === null ? null : st.households[s.from];
+      // a loan's grain, lent or repaid, is no longer the one's it lies at (VB-312): it lies there for the fetcher's household's hands
+      if (s.loan && !st.households[g.to].dissolved) {
+        Lying.leave(st, 'leftGrain', s.left, s.at, { type: 'household', id: g.to }, { of: { parts: s.parts } });
+        continue;
+      }
       Stores.put(
         st,
         hh && !hh.dissolved ? hh : st.villages[s.village ?? st.farmsteads[hh.farmstead].village],
@@ -268,7 +273,14 @@ VB['sim/journeys'] = (() => {
       j.to = v.center;
       return startLeg(st, a, j);
     }
-    Stores.put(st, v, 'grain', g.held, { kind: 'gift', from: st.farmsteads[from.farmstead].name }, g.parts);
+    Stores.put(
+      st,
+      v,
+      'grain',
+      g.held,
+      { kind: g.loan ? 'loan' : 'gift', from: st.farmsteads[from.farmstead].name },
+      g.parts,
+    );
     g.held = 0;
     g.parts = {};
     if (g.stops.length && !from.dissolved && st.pawns[a.id].household === from.id) {
@@ -313,6 +325,7 @@ VB['sim/journeys'] = (() => {
       g.from = s.name;
       g.keep = s.keep === true;
       g.start = s.start === true;
+      g.loan = s.loan === true;
       if (!(s.left > 1e-9)) g.stops.shift();
       j.to = house;
       return startLeg(st, a, j);
@@ -323,7 +336,7 @@ VB['sim/journeys'] = (() => {
       at,
       'grain',
       g.held,
-      { kind: g.start ? 'provisions' : g.keep ? 'keep' : 'gift', from: g.from },
+      { kind: g.start ? 'provisions' : g.keep ? 'keep' : g.loan ? 'loan' : 'gift', from: g.from },
       g.parts,
     );
     g.held = 0;

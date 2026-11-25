@@ -169,7 +169,12 @@ VB['sim/exchange'] = (() => {
       VB.count.giftUncarried += o.n;
     if (!isHousehold(o.to))
       Stores.move(st, o.from, o.to, 'grain', o.n, { kind: 'gift', to: 'the village store' }); // the yearly filling
-    else {
+    else if (o.loan) {
+      // a loan within one farmstead (VB-312): it changes owner where it lies, and books an obligation (sim/loans), not goodwill
+      const parts = {};
+      Stores.take(st, o.from, 'grain', o.n, { kind: 'loan', to: st.farmsteads[o.to.farmstead].name }, parts);
+      Stores.put(st, o.to, 'grain', o.n, { kind: 'loan', from: st.farmsteads[o.from.farmstead].name }, parts);
+    } else {
       // the giver's grain goes in the proportion it holds its crops (VB-347): taken first, then received
       const parts = {},
         fromName = isHousehold(o.from) ? st.farmsteads[o.from.farmstead].name : o.from.name;

@@ -243,6 +243,7 @@
     "pawn.goodwill": "sim/relations",
     "pawn.known": "sim/stories",
     "household.askedIn": "sim/help",
+    "household.borrowedIn": "sim/loans",
     "pawn.att": "sim/attitudes",
     "culture.practices": "culture",
     "culture.values": "culture",

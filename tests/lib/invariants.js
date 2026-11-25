@@ -155,7 +155,7 @@ function checkState(st) {
     all.forEach((o, i) => {
       const at = `obligation ${i}`, n = o.owes && (o.owes.rations !== undefined ? o.owes.rations : o.owes.days !== undefined ? o.owes.days : o.owes.hours);
       if (o.id !== i) bad.push(`${at}: id ${o.id}`);
-      if (!O.KINDS[o.kind] || !STATUS.includes(o.status)) bad.push(`${at}: kind ${o.kind}, status ${o.status}`);
+      if (!O.kind(o.kind) || !STATUS.includes(o.status)) bad.push(`${at}: kind ${o.kind}, status ${o.status}`);
       if (!(n > 0) || !(o.delivered >= 0) || o.delivered > n + 1e-9) bad.push(`${at}: delivered ${o.delivered} of ${n}`);
       if ((o.status === 'met') !== (o.delivered >= n - 1e-9)) bad.push(`${at}: ${o.status} with ${o.delivered} of ${n} delivered`);
       if (o.kind === 'days') {
