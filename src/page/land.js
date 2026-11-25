@@ -9,13 +9,16 @@ let landOn = false,
 // ---- the filter (VB-044; design.md, Claims, ownership and territory, Filters) ----
 // A level (everyone, households or villages), a dimension (owns: every tile a body holds; works: the fields and meadows it works, its farms'
 // and a village's common fields) and, optionally, the selected entity alone; the selected one is outlined in white. The filter is the
-// page's, never st. Its scope is cached as the owner codes it shows (st.owner's coding) and the selected entity's, rebuilt only when the
-// filter or the selection changes; a change marks every chunk stale, and the chunks are drawn again from st.owner and st.claims as for
-// any change of land: nothing is asked of the simulation. When VB-311 records titles, `owns` reads the title's owner in landCode alone.
+// page's, never st. Its scope is sim/scopes' (VB-043, the one scope model): inScope's tiles and bodies, cached, asked again only when the
+// filter, the selection or the bodies change (a change marks every chunk stale) and, at most twice a second, when land changed hands
+// (the chunks that changed are stale already); the chunks are drawn from the cache, st.owner and st.claims. When VB-311 records titles,
+// `owns` and `works` follow inScope's own reading of them.
 const landFilter = { level: 'all', dim: 'owns', only: false };
+const { inScope: landInScope } = VB['sim/scopes'];
 let landScopeKey = '',
-  landShow = null, // the owner codes in scope, or null for all
-  landHi = null; // the selected entity's owner codes (a village's: its own and its households'), or null
+  landScopeAt = -1,
+  landShow = null, // {tiles, codes}: the tiles in scope and the owner codes of its bodies (st.owner's coding), or null for all
+  landHi = null; // the selected entity's tiles in scope, or null
 // The selected household and village: a pawn's household, a farm's, a village, or the body that owns the selected tile.
 function landSelected() {
   let h = -1,
@@ -33,40 +36,50 @@ function landSelected() {
   if (h >= 0) v = st.farmsteads[st.households[h].farmstead].village;
   return [h, v];
 }
-// Rebuilds the scope when the filter or the selection changed; true when it did.
+// Rebuilds the scope: true when the filter, the selection or the bodies changed (every chunk is then stale); asked again, false, when
+// land changed hands and half a second has passed.
 function landScope() {
   const [h, v] = landSelected(),
     { level, dim, only } = landFilter,
-    key = `${level}|${dim}|${only}|${h}|${v}`;
-  if (key === landScopeKey) return false;
+    key = `${level}|${dim}|${only}|${h}|${v}|${st.households.length}|${st.edges.length}`;
+  if (key === landScopeKey && !(st.landDirty.size && (landShow || landHi) && time - landScopeAt >= 0.5)) return false;
+  const changed = key !== landScopeKey;
   landScopeKey = key;
-  const ofVillage = (vid) => {
-    const s = new Set([-vid - 1]);
-    for (const f of st.villages[vid].farmsteads) {
-      const hh = st.farmsteads[f].household;
-      if (hh !== null && hh !== undefined) s.add(hh + 1);
+  landScopeAt = time;
+  const one = level === 'household' && h >= 0 ? [h] : level === 'village' && v >= 0 ? [v] : null,
+    mine = one && landInScope(st, { level, ids: one, dim });
+  landHi = mine ? new Set(mine.tiles) : null;
+  let parts;
+  if (level !== 'all' && only) parts = mine ? [mine] : [];
+  else if (level === 'household')
+    parts = [landInScope(st, { level, ids: st.households.filter((x) => !x.dissolved).map((x) => x.id), dim })];
+  else if (level === 'village' || dim !== 'owns')
+    parts = [landInScope(st, { level: 'village', ids: st.villages.map((x) => x.id), dim })];
+  else parts = null; // everyone's land: all of it
+  landShow = parts && { tiles: new Set(), codes: new Set() };
+  if (parts)
+    for (const sc of parts) {
+      for (const t of sc.tiles) landShow.tiles.add(t);
+      for (const x of sc.households) landShow.codes.add(x + 1);
+      for (const x of sc.villages) landShow.codes.add(-x - 1);
     }
-    return s;
-  };
-  landHi = level === 'household' && h >= 0 ? new Set([h + 1]) : level === 'village' && v >= 0 ? ofVillage(v) : null;
-  landShow = only ? landHi || new Set() : null;
-  return true;
+  return changed;
 }
 // The code a tile is drawn under, by st.owner's coding, or 0 when it is out of scope; on the villages level a household's tile is drawn
-// as its village's. `worked` holds the worked tiles (for the dimension works), else null.
-function landCode(i, worked) {
+// as its village's.
+function landCode(i) {
   let n = st.owner[i];
-  if (!n || (worked && !worked.has(i)) || (landShow && !landShow.has(n))) return 0;
+  if (!n || (landShow && !landShow.tiles.has(i))) return 0;
   if (landFilter.level === 'household' && n < 0) return 0;
   if (landFilter.level === 'village' && n > 0) n = -ownerVillage(n) - 1;
   return n;
 }
 // Is a claim drawn: its claimant (a pawn as its household) in scope; on the households level, no village's.
 function claimShown(by) {
-  if (by.type === 'village') return landFilter.level !== 'household' && (!landShow || landShow.has(-by.id - 1));
+  if (by.type === 'village') return landFilter.level !== 'household' && (!landShow || landShow.codes.has(-by.id - 1));
   const h = by.type === 'household' ? by.id : st.pawns[by.id] ? st.pawns[by.id].household : null;
   if (h === null || h === undefined) return !landShow;
-  return !landShow || landShow.has(h + 1);
+  return !landShow || landShow.codes.has(h + 1);
 }
 const EDGE = [0, -60, -120, 180, 120, 60]; // the centre angle of a hex's edge towards neighbour d (the generator's direction order)
 function hslHex(h, sat, l) {
@@ -150,12 +163,12 @@ function landMarkDirty() {
   }
   st.landDirty.clear();
 }
-function drawLandChunk(tiles, g, woodOf, worked) {
+function drawLandChunk(tiles, g, woodOf) {
   const R = w.R,
     memo = new Map(),
     at = (i) => {
       let n = memo.get(i);
-      if (n === undefined) memo.set(i, (n = landCode(i, worked)));
+      if (n === undefined) memo.set(i, (n = landCode(i)));
       return n;
     };
   g.clear();
@@ -204,7 +217,7 @@ function drawLandChunk(tiles, g, woodOf, worked) {
   }
   // the selected household or village (VB-044): a white edge round its land in scope
   if (landHi) {
-    const hi = (i) => landHi.has(st.owner[i]) && at(i) !== 0;
+    const hi = (i) => landHi.has(i) && at(i) !== 0;
     let any = false;
     for (const i of tiles) {
       if (!hi(i)) continue;
@@ -245,7 +258,7 @@ function drawLandChunk(tiles, g, woodOf, worked) {
   const wood = new Map();
   for (const i of tiles) {
     const v = woodOf.get(i);
-    if (v !== undefined && landFilter.level !== 'household' && (!landShow || landShow.has(-v - 1))) {
+    if (v !== undefined && landFilter.level !== 'household' && (!landShow || landShow.codes.has(-v - 1))) {
       if (!wood.has(v)) wood.set(v, []);
       wood.get(v).push(i);
     }
@@ -296,7 +309,6 @@ function refreshLand() {
   const inView = new Set();
   for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) inView.add(cy * landCols + cx);
   let woodOf = null,
-    worked = null,
     drew = false;
   const t0 = performance.now();
   const slow = time - landAt >= 0.5; // a drawn chunk that changed is redrawn at most twice a second; a first drawing waits for nothing
@@ -314,17 +326,8 @@ function refreshLand() {
     if (!woodOf) {
       woodOf = new Map();
       for (const v of st.villages) if (v.wood) for (const i of v.wood) woodOf.set(i, v.id);
-      if (landFilter.dim === 'works') {
-        // the worked tiles: the farms' fields and meadows and the villages' common fields (sim/scopes' works)
-        worked = new Set();
-        for (const f of st.farmsteads) {
-          for (const fd of f.fields) worked.add(fd.tile);
-          for (const m of f.meadows || []) worked.add(m.tile);
-        }
-        for (const v of st.villages) for (const fd of v.commonFields || []) worked.add(fd.tile);
-      }
     }
-    drawLandChunk(tiles, c.g, woodOf, worked);
+    drawLandChunk(tiles, c.g, woodOf);
     c.drawn = true;
     landStale.delete(k);
     drew = true;

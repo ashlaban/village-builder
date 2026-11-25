@@ -156,7 +156,12 @@ const iv = setInterval(async () => {
     lived.click(); tick(5);
     { // the Land filter (VB-044) on the farm selected: its household outlined, alone; then its village
       const setF = (id, v) => { const e = doc.getElementById(id); if (e.type === 'checkbox') e.checked = v; else e.value = v; e.dispatchEvent(new win.Event('change')); };
-      setF('landLevel', 'household'); setF('landOnly', true); doc.getElementById('landBtn').click(); tick(3);
+      const polys = () => { const at = P.calls.poly || 0; doc.getElementById('landBtn').click(); tick(3); const n = (P.calls.poly || 0) - at; doc.getElementById('landBtn').click(); tick(1); return n; };
+      const everyone = polys();
+      setF('landLevel', 'household'); setF('landOnly', true);
+      const alone = polys();
+      if (!(alone > 0 && alone < everyone)) fail(`the Land filter does not narrow the tiles drawn: ${alone} shapes for the selected household alone, ${everyone} for everyone`);
+      doc.getElementById('landBtn').click(); tick(3);
       if (!/The selected household: a white edge/.test(doc.getElementById('landKey').textContent)) fail('the Land key does not outline the selected household');
       setF('landLevel', 'village'); tick(2);
       if (!/The selected village: a white edge/.test(doc.getElementById('landKey').textContent)) fail('the Land key does not outline the selected village');
