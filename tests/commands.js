@@ -337,7 +337,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
     for (let k = 0; k < 96 && s.away.length; k++) Sim.advance(s, 0.5);
     assert.ok(a.ledger.some((e) => e.kind === 'gift' && Math.abs(e.n - 30) < 1e-9), 'the gift settles as it comes in');
     assert.ok(balance(s, b.holder, a.holder) > 0, 'the giver is owed its worth: goodwill');
-    for (const [args, why] of [[{ basis: 'loan' }, /no basis/], [{ ...gift(30), wants: { good: 'grain', n: 1 } }, /wants nothing/],
+    for (const [args, why] of [[{ basis: 'nonesuch' }, /no basis/], [{ ...gift(30), wants: { good: 'grain', n: 1 } }, /wants nothing/],
       [{ ...gift(30), due: s.t - 1 }, /cannot be due/], [gift(-1), /cannot give/]])
       assert.ok(why.test(offer(s, b.holder, a.holder, args)), `refused: ${JSON.stringify(args)}`);
     assert.ok(/no open offer/.test(issue(s, { actor: a.holder, verb: 'answer', target: 0, args: { yes: true }, source: 'pawn' })), 'no open offer to answer');

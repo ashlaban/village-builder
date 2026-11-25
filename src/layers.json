@@ -179,6 +179,7 @@
       "sim/marriage",
       "sim/gathering",
       "sim/fair",
+      "sim/loans",
       "sim/meetings",
       "sim/asking",
       "sim/advice",
@@ -195,7 +196,17 @@
       "sim/outlook",
       "sim/estimate"
     ],
-    "derived": ["sim/notable", "sim/scopes", "sim/leanings", "sim/opportunities", "sim/overview", "sim/reasons", "sim/planview", "sim/agenda", "sim/timetable"],
+    "derived": [
+      "sim/notable",
+      "sim/scopes",
+      "sim/leanings",
+      "sim/opportunities",
+      "sim/overview",
+      "sim/reasons",
+      "sim/planview",
+      "sim/agenda",
+      "sim/timetable"
+    ],
     "presentation": ["draw/pigments", "draw/paths", "draw/rivers", "draw/marks", "draw/paint", "draw/bake"]
   }
 }
