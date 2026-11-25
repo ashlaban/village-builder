@@ -212,6 +212,7 @@ VB['sim/chores'] = (() => {
       hands: 1,
       type: 'wood',
       carry: 'logs', // the load drawn in a pawn's arms or on its cart
+      to: 'woodpile', // what the task fills (sim/reasons: the woodpile against the head's goal)
       spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
       // a goal (VB-1775): the tile's trees felled, their timber loaded on the cart or the back and carried home, and back for more while the
       // goal wants loads (woodNeed); a cut at any leg goes on from what lies at the tile or is in hand

@@ -130,8 +130,10 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
 }
 // 4. VB-1662: a fell task's n is loads, not trips. On a hand start (the booth raised by the farmstead task), a fell task of 3 loads brings
 // 3 loads home (3 trees felled, 3 * ECON.woodPerTrip timber), however many a cart stacks on a trip (before: 24 timber, the task counting
-// 3 trips of 5, 2 and 1 loads). Then a firewood task cuts some and the cottage takes the rest, with its own timber trips to the site; the
-// timber held is all along what was put with reason felling less what was cut or built with.
+// 3 trips of 5, 2 and 1 loads). Then a firewood task cuts the timber home, all of it here (VB-1775: a goal held to its end, the pile's
+// season's goal or the timber gone, as the firewood chain says, where before it was a back load a job and the cottage took the rest), and
+// the cottage brings its timber to the site by its own trips; the timber held is all along what was put with reason felling less what
+// was cut or built with.
 {
   const st = Sim.seed(tinyWorld(rows), 7, 'solo', null, { hand: true });
   st.naturalDeaths = false;
@@ -157,19 +159,20 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert.strictEqual(sum('felling'), 3 * P, 'three loads felled');
   assert(trees0 - st.w.trees[tile] > 2 && trees0 - st.w.trees[tile] < 3 + 1e-6, `three trees felled: ${trees0} to ${st.w.trees[tile]}`);
   closes('felled');
-  // a firewood task cuts some of it, then the cottage takes the rest, and fetches the timber its walls still lack to the site
+  // a firewood task cuts the timber home; the cottage added meanwhile, then fetches the timber its walls lack to the site
   assert.strictEqual(Sim.plan(st, 'add', { firewood: f.house }), true);
   for (let i = 0; i < 4 * 240 && !(sum('cutting') < 0); i++) Sim.advance(st, 0.1);
   assert(sum('cutting') < 0, 'some timber cut');
   closes('cut');
   assert.strictEqual(Sim.plan(st, 'add', { upgrade: f.house, what: 'cottage' }), true);
+  const trips = () => (hh.ledger || []).filter((e) => e.good === 'timber' && e.kind === 'timber').length, sited0 = trips();
   let sited = 0;
   for (let i = 0; i < 20 * 240 && !sited; i++) {
     Sim.advance(st, 0.1);
-    sited = (hh.ledger || []).filter((e) => e.good === 'timber' && e.kind === 'timber').length;
+    sited = trips() - sited0;
     closes(`hour ${st.t.toFixed(1)}`);
   }
-  assert(sum('build') < 0 && sited > 0, `the walls took the timber home (${sum('build')}) and a trip brought timber to the site`);
+  assert(sum('build') <= 0 && sited > 0, `the walls took what timber was home (${sum('build')}) and a trip brought timber to the site`);
   closes('built');
   sound(st, 'felled, cut and built with by hand');
 }
