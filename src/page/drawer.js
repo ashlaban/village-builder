@@ -1,4 +1,4 @@
-// @sys page/drawer: the dock's drawer: the Culture pane (page/culture), the Agenda and Debug
+// @sys page/drawer: the dock's drawer: the Culture pane (page/culture), the Agenda and Debug, and the Stores panel (page/storeview)
 // ======== culture, agenda and debug drawer ========
 let drawerTab = null,
   skipping = false;
@@ -7,6 +7,7 @@ const DRAWER = {
   culture: { title: 'Culture', btn: 'cultureBtn' },
   agenda: { title: 'Agenda', btn: 'agendaBtn' },
   debug: { title: 'Debug', btn: 'debugBtn' },
+  stores: { title: 'Stores', btn: null }, // opened from a card (page/storeview), not the dock
 };
 function openDrawer(tab) {
   openPanel(activePanel === tab ? null : tab);
@@ -27,7 +28,7 @@ $('agendaBtn').addEventListener('click', () => openDrawer('agenda'));
 $('drawerClose').addEventListener('click', () => {
   const tab = drawerTab;
   openPanel(null);
-  $(DRAWER[tab].btn).focus();
+  if (DRAWER[tab].btn) $(DRAWER[tab].btn).focus();
 });
 const optLabel = (d, j) => Customs.DIMS[d].opts[j][1];
 const nextMeeting = () => {
@@ -42,6 +43,7 @@ function renderDrawer() {
     return;
   if (drawerTab === 'agenda') renderAgenda();
   else if (drawerTab === 'culture') renderCulture();
+  else if (drawerTab === 'stores') renderStores();
   else updateDebug();
 }
 // ---- the agenda (the played pawn's cause): what it argues and until when, when it may take up another, the causes it may take up, by

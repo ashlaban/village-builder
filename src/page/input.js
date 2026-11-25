@@ -279,8 +279,8 @@ function openPanel(panel) {
   $('peopleSheet').hidden = panel !== 'people';
   $('settlers').hidden = panel !== 'people';
   $('tile').hidden = panel !== 'tile';
-  $('drawer').hidden = !['culture', 'agenda', 'debug'].includes(panel);
-  drawerTab = ['culture', 'agenda', 'debug'].includes(panel) ? panel : null;
+  $('drawer').hidden = !['culture', 'agenda', 'debug', 'stores'].includes(panel);
+  drawerTab = ['culture', 'agenda', 'debug', 'stores'].includes(panel) ? panel : null;
   $('settlersBtn').setAttribute('aria-pressed', String(panel === 'people'));
   $('cultureBtn').setAttribute('aria-pressed', String(panel === 'culture'));
   $('debugBtn').setAttribute('aria-pressed', String(panel === 'debug'));

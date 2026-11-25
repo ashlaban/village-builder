@@ -258,6 +258,7 @@ const INTEGRATION = [
   ['node', 'tests/stores.js'],
   ['node', 'tests/hunger.js'],
   ['node', 'tests/heirs.js'],
+  ['node', 'tests/storeview.js'], // VB-092: the stores of a scope's households, a row each, and their total
   ['node', 'tests/graph.js'], // VB-043: the membership graph agrees with the household caches; scopes on it
   ['node', 'tests/landscope.js'], // VB-044: the Land overlay's filter takes its scope from sim/scopes
   ['node', 'tests/guardian.js'],
@@ -352,6 +353,7 @@ const EXTENDED = [
   ['node', 'tests/browser-editor.js'],
   ['node', 'tests/browser-mobile.js'],
   ['node', 'tests/browser-speed.js'],
+  ['node', 'tests/browser-stores.js'], // the Stores panel from a village's card and a household's tab; a row selects its farm (VB-092)
   ['node', 'tests/browser-gathering.js'], // a gathering while it is on: its notice, its mark and its card (VB-1031, VB-1032)
   ['node', 'tests/browser-fields.js'], // a field's card: crop, course, the head's rotation choices and their answers, winter rye (VB-1146)
   ['node', 'tests/browser-overlays.js'], // the map's overlays through their list and by key, one at a time, on a phone (VB-1496)
