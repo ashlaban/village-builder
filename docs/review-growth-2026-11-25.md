@@ -13,7 +13,8 @@ loom), 9 (The gift; Loans; Outer levies), 11 (Towns and regions), 13 (The balanc
 four-scales README; `docs/slices.md`. Earlier reviews that touch this one and are not repeated: `docs/review-agency.md` (a
 member's agency, 23 November), `docs/review-expansion.md` (moving to new land), `docs/review-cities.md` and
 `docs/review-markets.md` (towns and markets). Section 7 holds the questions and Kim's answers of 25 November (three answered, one
-elaborated in section 8 for a decision); nothing else here is decided.
+elaborated in section 8 and then decided), carried into `design.md` the same day (`docs/design-changelog.md`, 0.4, a
+generation); nothing else here is decided.
 
 ---
 
@@ -301,7 +302,8 @@ year steps with a `by` years out carry it, and keep one record.
 ## 7. Questions for Kim, and the answers (25 November 2026)
 
 1. **Which story should a generation tell: a house that rises over generations, or each life that rises and falls?**
-   *Open:* Kim asked for it to be elaborated; section 8 does so and proposes an answer.
+   **B: a house rises over generations, held back each generation** (Kim, after section 8). Carried into `design.md`:
+   Vision and scope, A generation; Handover and shares; Roads to the elite, By land bought.
 2. **May personal goods come forward from slice 8 to the levy's arch or to slice 6?** **Yes** (Kim). A pawn's stake, the
    servant's generalised, holds what it makes or earns in its kept hours; coin and silver stay with slice 8. What follows: the
    four-scales path's step 9 (own hours as a livelihood) loses its wait for slice 8 except for coin. The potter's road still
@@ -392,7 +394,7 @@ cottage. That is already how the design works, and the player, following the hei
 indicative: estimates for pre-industrial societies vary widely, and some long-run studies of surnames find status persisting at
 0.7 or more over centuries. They are a scale for the report, not targets.)
 
-### 8.4 Proposed: B
+### 8.4 Proposed: B (accepted by Kim, 25 November)
 
 A house may rise over two or three generations and lose it in one, as the free farmers' houses did.
 
