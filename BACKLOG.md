@@ -145,7 +145,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-1685](backlog/VB-1685.md)<a id="VB-1685"></a> | Invariant: a cache equals its derivation after every verb, with no lag | - | 2 | M | The birthday refresh mended so roles need no allowAgeLag, and each cache compared with a fresh derivation after each verb |
 | [VB-1709](backlog/VB-1709.md)<a id="VB-1709"></a> | Fix: a herd standing away for a household with a farm is never led home (populous small seed 11) | - | 2 | M | VB-1682 found herd 155 standing at farm 0 for household 19 from year 12 on, its drove job never done |
 | [VB-247](backlog/VB-247.md)<a id="VB-247"></a> | A job names its farm, field and meadow by id | - | 3 | M | Jobs hold the farmstead, field, meadow and fence objects themselves, which is why the save codec must find shared objects; hold ids, and the codec's sharing pass can go. |
 | [VB-697](backlog/VB-697.md)<a id="VB-697"></a> | A plot or an empty farm is asked for, and the alderman answers by the custom | acts | 3 | S | Empty farms and village plots go to 'demand' by the round's custom order (claimFarms, startPlots), with only the player able to wish for one. The pawn asks; the alderman answers by the `claims` and `newLand` customs. |
