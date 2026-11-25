@@ -117,6 +117,8 @@ VB['sim/records'] = (() => {
     swap: SHORT, // a deal at the fair, each side's (VB-302)
     fellOut: SHORT,
     quarrel: SHORT, // cross words that became a quarrel (VB-520)
+    lieExposed: SHORT, // a lie told to one who knew better (sim/stories, VB-554)
+    heardOfUs: SHORT, // the played pawn heard a story of its household (sim/stories, VB-554)
     helped: SHORT, // helped another household of the village with its work (VB-106)
     workday: SHORT, // a village's work day: who turned out and who stayed away (VB-120)
     courting: GENERATION, // a courtship begun, and ended unmarried (sim/courting, VB-036)

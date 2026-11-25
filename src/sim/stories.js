@@ -333,7 +333,8 @@ VB['sim/stories'] = (() => {
   }
   // A lie told by a to b, who knows better (its told valence v; a's entry e): not believed. b holds first-hand the counter-story about the
   // lie's inventor, of −min(1, counter × |v| × (0.5 + b's honour) × (0.5 + its culture's mean honour)), and remembers the liar by it; a is
-  // told it at once and tells the lie no more. One counter-story a lie, each holder's valence its own. An event of the record.
+  // told it at once and tells the lie no more. One counter-story a lie, each holder's valence its own. An event of the record, of the
+  // hearer, `other` the liar and `reason` the lie's kind.
   function expose(st, a, b, s, v, e) {
     const liar = s.by,
       pl = st.pawns[liar];
@@ -363,7 +364,7 @@ VB['sim/stories'] = (() => {
       b,
       'lieExposed',
       `Knew better than the tale ${fullName(pl)} made up about ${fullName(st.pawns[s.subject])}`,
-      { other: liar, liar, tale: s.kind, village: settlementIdOf(st, st.pawns[b]) },
+      { other: liar, reason: s.kind, village: settlementIdOf(st, st.pawns[b]) },
     );
   }
   // Why pawn `teller` may not make up a story of `kind` about `about`, or null: a kind of TALES; a living other pawn of 16 or more; one lie
