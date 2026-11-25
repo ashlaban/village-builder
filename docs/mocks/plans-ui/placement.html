@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hands on the Land</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600;700&display=swap">
+<style>
+/* Plan: the map is the board. Each place with work carries an action space (slots); members are tokens in a household tray; placing is the allotment. */
+:root { --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --paper: #fbf7e9; --accent: #a8473a; --hh: #e0a43a; --own: #2f8f8a; --owed: #33599e; --risk: #c8361b; --cut: #8a6a1a; color-scheme: light; }
+html, body { user-select: none; margin: 0; height: 100%; overflow: hidden; background: #8c9a6a; color: var(--ink); font: 14px/1.35 'Alegreya Sans', system-ui, sans-serif; }
+.app { display: grid; grid-template-rows: 40px minmax(0, 1fr) 54px; grid-template-columns: minmax(0, 1fr) 250px; height: 100vh; }
+.band { grid-column: 1 / 3; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--card); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.band h1 { font: 500 17px 'Alegreya SC', Georgia, serif; margin: 0; }
+.band .mode { font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }
+.band .from { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.band .sp { flex: 1; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: #fff; padding: 2px 9px; font: inherit; font-size: 13px; cursor: pointer; }
+.seg button.on { background: var(--ink); color: #fff; }
+#board { position: relative; overflow: hidden; }
+#map { position: absolute; left: 0; top: 0; }
+#board.vil #map { opacity: .45; }
+/* an action space: icon + want, then a slot strip */
+.space { position: absolute; transform: translate(-50%, -50%); background: #fbf7e9ee; border: 1px solid #3a2a1a; border-radius: 7px; padding: 3px 5px 4px; box-shadow: 0 2px 5px #0003; min-width: 74px; cursor: pointer; }
+.space.hot { outline: 3px solid var(--ink); }
+.space.est { background: repeating-linear-gradient(135deg, #fbf7e9ee 0 7px, #ece6d2ee 7px 10px); }
+.space.quiet { opacity: .7; }
+.space .hd { display: flex; align-items: center; gap: 4px; font-size: 11px; line-height: 1.1; }
+.space .hd b { font-size: 11.5px; display: block; } .space .hd small { color: var(--muted); }
+.space .slots { display: flex; gap: 2px; margin-top: 3px; align-items: flex-end; flex-wrap: wrap; max-width: 150px; }
+.slot { width: 26px; height: 34px; border: 1.5px dashed #5a4a32; border-radius: 13px 13px 5px 5px; box-sizing: border-box; display: grid; place-items: center; font-size: 9px; color: var(--muted); }
+.slot.duty { border-style: solid; border-color: var(--hh); }
+.slot.hatch { border-color: var(--owed); background: repeating-linear-gradient(135deg, #33599e33 0 3px, #fff0 3px 6px); }
+.space.own { border: 2.5px double var(--own); background: #eef6f4ee; min-width: 48px; padding: 2px 4px; }
+.space.own .hd { color: #1f5f5c; }
+.demand { margin-top: 3px; font-size: 10.5px; background: #fff; border: 1px solid #b07a1a; padding: 1px 4px 1px 4px; clip-path: polygon(0 0, 100% 0, 100% 70%, 94% 100%, 88% 72%, 82% 100%, 0 100%); max-width: 150px; }
+.track { display: flex; align-items: center; gap: 1px; margin-top: 3px; font: 700 9px system-ui; }
+.track i { width: 12px; height: 12px; border-radius: 50%; display: grid; place-items: center; font-style: normal; background: #2a2018; color: #fff; }
+.track i.n { background: #fff; color: var(--ink); outline: 2px solid var(--cut); }
+.track i.t { background: #fff; color: var(--muted); border: 1px dashed var(--muted); box-sizing: border-box; }
+.track i.b { background: #6b6b6b; }
+.track .cut { width: 12px; height: 14px; background: linear-gradient(115deg, #0000 0 30%, var(--cut) 30% 42%, #0000 42% 58%, var(--cut) 58% 70%, #0000 70%); }
+.track small { font: 400 9.5px 'Alegreya Sans'; color: var(--cut); margin-left: 2px; }
+.tok { display: inline-flex; flex-direction: column; align-items: center; cursor: grab; touch-action: none; user-select: none; position: relative; }
+.tok.dim { opacity: .35; }
+.tok.ghost { opacity: .6; }
+.rulewill { font-size: 9.5px; color: var(--ink); font-style: italic; }
+.flying { position: fixed; z-index: 50; pointer-events: none; transform: translate(-50%, -50%) scale(1.25); filter: drop-shadow(0 4px 6px #0006); }
+#tray { grid-column: 2; grid-row: 2 / 4; background: #2e2418; color: #f1e6d0; overflow-y: auto; padding: 6px 8px; }
+#tray h4 { margin: 2px 0 6px; font: 600 11px 'Alegreya Sans'; letter-spacing: .08em; text-transform: uppercase; color: #e0b27a; }
+#tray .mem { display: flex; gap: 7px; align-items: center; padding: 4px 4px; border-radius: 6px; cursor: grab; }
+#tray .mem:hover, #tray .mem.on { background: #ffffff14; }
+#tray .mem .nm { font-size: 12.5px; line-height: 1.15; } #tray .mem .nm small { color: #c9b99a; display: block; font-size: 11px; }
+#tray .grp { font-size: 11px; color: #c9b99a; margin: 6px 0 2px; border-top: 1px solid #fff2; padding-top: 3px; }
+#tray .vgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+#strip { grid-column: 1; grid-row: 3; background: var(--card); border-top: 2px solid #3a2a1a; display: flex; align-items: stretch; gap: 3px; padding: 4px 8px; }
+#strip .lab { font-size: 11px; color: var(--muted); width: 70px; line-height: 1.1; align-self: center; }
+#strip button { flex: 1; border: 1px solid var(--line); background: #fff; border-radius: 5px; font: inherit; font-size: 13px; cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; }
+#strip button small { font-size: 10px; color: var(--muted); }
+#strip button.est { background: repeating-linear-gradient(135deg, #fff 0 6px, #ece6d2 6px 9px); }
+#strip button.bind { border-bottom: 3px solid var(--ink); }
+#strip button.on { outline: 2.5px solid var(--ink); background: #fff3c4; }
+#strip .marks { display: flex; gap: 1px; height: 14px; }
+.vb { position: absolute; background: #fbf7e9f4; border: 1px solid #3a2a1a; border-radius: 8px; box-shadow: 0 3px 10px #0004; padding: 6px 8px; }
+.vb .cols { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; }
+.vb .col { border: 1px solid var(--line); border-radius: 5px; min-height: 150px; padding: 2px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 2px; background: #fff; position: relative; }
+.vb .col.est { background: repeating-linear-gradient(135deg, #fff 0 6px, #ece6d2 6px 9px); }
+.vb .col.past { background: #ece6d2; }
+.vb .col.hot { outline: 3px solid var(--ink); }
+.vb .col h5 { width: 100%; margin: 0; font-size: 11px; text-align: center; }
+.vb .col .cnt { position: absolute; bottom: 1px; right: 3px; font-size: 10px; color: var(--muted); }
+.bubble { position: fixed; z-index: 40; width: 290px; background: #fff; border: 1px solid #3a2a1a; border-radius: 8px; padding: 8px 11px; box-shadow: 0 4px 14px #0004; font-size: 13px; }
+.bubble h3 { margin: 0 0 4px; font: 600 14.5px 'Alegreya Sans', sans-serif; display: flex; gap: 6px; align-items: center; }
+.bubble dl { margin: 0; display: grid; grid-template-columns: 70px 1fr; gap: 1px 6px; }
+.bubble dt { color: var(--muted); } .bubble dd { margin: 0; }
+.bubble .acts { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 4px; }
+.bubble button { font: inherit; font-size: 12px; border: 1px solid #3a2a1a; background: #f3efe4; border-radius: 12px; padding: 2px 9px; cursor: pointer; }
+.bubble button.main { background: var(--ink); color: #fff; }
+.rem { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; }
+.rem button { text-align: left; border-radius: 6px; display: flex; flex-direction: column; }
+.rem button small { color: var(--muted); }
+.def { margin-top: 6px; border: 1.5px dashed var(--ink); border-radius: 6px; padding: 3px 7px; font-size: 12.5px; }
+.rung { display: flex; gap: 6px; align-items: center; font-size: 12.5px; border-left: 3px solid #c9a24a; padding-left: 5px; margin: 2px 0; }
+#toast { position: fixed; left: 40%; bottom: 66px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 7px 14px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 60; max-width: 640px; }
+#toast.on { opacity: 1; } #toast code { color: #f2c27a; }
+.note { position: absolute; left: 10px; bottom: 8px; z-index: 30; max-width: 470px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 12.5px; }
+.note summary { cursor: pointer; color: var(--muted); }
+.note p { margin: 5px 0 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="band"><h1>Hands on the land</h1><span class="mode">Plan</span>
+    <span class="from">borrows: worker placement (Agricola: family tokens on action spaces) + a job board</span><span class="sp"></span>
+    <span class="seg" id="vStress"><button data-v="0" class="on">household of 5</button><button data-v="1">stress: 10, 3 cut</button></span>
+    <span class="seg" id="vVil"><button data-v="0" class="on">Backa</button><button data-v="1">village: the fence</button></span></div>
+  <div id="board"><svg id="map"></svg><div id="spaces"></div>
+    <details class="note"><summary>Scales to / strains at</summary>
+      <p><b>Scales to:</b> 5 to 6 tokens; dated slots, the pennant, the hatched to-name slot and the rule's ghost read at a glance on a day board; the alderman's 20 households x ~30 lot days into 12 day columns (households as tokens, days as spaces: one verb at two scales).</p>
+      <p><b>Strains at:</b> 10 members: the tray becomes a scrolling roster, the Long field takes 7 discs and wraps, a member split over three spaces is three discs; 1.5 h pips are coarse (Anna 5 h = 3⅓ pips) and the 14:00 re-allotment has no place: a board is a day, not its hours. Ahead, a token is a whole day while today it is pips: two units on one token. Village: tokens hide who goes (the household's choice); 60 households would not fit the tray, and Per would not see this board at all.</p></details>
+  </div>
+  <div id="strip"></div>
+  <div id="tray"></div>
+</div>
+<div id="toast"></div>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const SC = 1.14, PIP = 1.5;
+let day = 4, stress = false, vil = false, focus = null, hot = null;
+const IN = (k) => ({ per: 'Pe', karin: 'Ka', erik: 'Er', nils: 'Ni', anna: 'An', lars: 'La', britta: 'Br', olof: 'Ol', ella: 'El', jon: 'Jo' })[k];
+const BASE = [
+  { id: 'per', levy: null, own: 0, role: 'head, played: his own call', likely: 'his own call' },
+  { id: 'karin', levy: null, own: 0, role: 'head: her own call', duty: ['pot', 'pail'], likely: 'answers as a head; she may say no' },
+  { id: 'erik', levy: 10.5, own: 1.5, role: 'heir, diligent', duty: ['wood'], likely: 'yes, grudging (4 in 5)', ownUse: 'gives' },
+  { id: 'nils', levy: 10.5, own: 1.5, role: 'second son, idle', likely: 'refuses or drags (1 in 3 yes): wants Norrgård', ownUse: 'courting' },
+  { id: 'anna', levy: 5, own: 7, role: 'child, 12', duty: ['beast', 'water'], likely: 'yes, slowly (a child)', ownUse: 'play' },
+];
+const EXTRA = [
+  { id: 'lars', name: 'Lars', col: '#6a5a8a', levy: 12, own: 0, role: 'servant, contract to Michaelmas', contract: true, likely: 'yes: it is his contract' },
+  { id: 'britta', name: 'Britta', col: '#7a6a5a', levy: 0, own: 12, role: 'elder, no levy', likely: 'gives what her hands allow', ownUse: 'gives spinning' },
+  { id: 'olof', name: 'Olof', col: '#4a6a6a', levy: 0, own: 12, role: 'lodger: hours by bargain', lodger: true, likely: 'for a ration, yes' },
+  { id: 'ella', name: 'Ella', col: '#a07a3a', levy: 3.5, own: 8.5, role: 'child, 9', likely: 'yes' , ownUse: 'play' },
+  { id: 'jon', name: 'Jon', col: '#3a7a5a', levy: 3.5, own: 8.5, role: 'child, 8', likely: 'yes', ownUse: 'play' },
+];
+const P_ = Object.fromEntries(PEOPLE.map((p) => [p.id, p]));
+const mems = () => (stress ? BASE.concat(EXTRA) : BASE).map((m) => ({ ...P_[m.id], ...m }));
+const M = (id) => mems().find((m) => m.id === id) || EXTRA.find((m) => m.id === id);
+// Action spaces on the land. dx, dy: where the space sits from its tile's centre (map px).
+const SPACES = [
+  { id: 'long', at: 'long', g: 'chop', name: 'Long field: reap the rye', slots: 5, chunk: 3, want: (d) => (d <= 6 ? '52h left · by d6' : 'rye in'), dx: 44, dy: -66 },
+  { id: 'barley', at: 'barley', g: 'chop', o: { frame: 'plan', author: 'player', state: 'risk', num: -8, unit: 'hours' }, name: 'Reap the barley (Per\'s)', slots: 3, chunk: 10.5, want: (d) => (d < 6 ? 'from d6 · 36h' : '36h · d6–9'), dx: 30, dy: 64 },
+  { id: 'wood', at: 'wood2', g: 'wood', o: { state: 'stray' }, name: 'Hagen wood: firewood', slots: 2, chunk: 3, cut: { n: 6, after: 4, now: 5, who: 'nils', t: 'cut d3 at nightfall (1 load left as our pile); resumed 06:00 from the pile' }, want: () => '3 loads · 24h left', dx: 0, dy: -70 },
+  { id: 'home', at: 'home', g: 'pot', o: { num: 3, unit: 'count' }, name: 'Backa: cook, milk, spin', slots: 3, chunk: 3, want: () => 'hearth & byre', dx: -22, dy: 30 },
+  { id: 'meadow', at: 'meadow', g: 'beast', name: 'Meadow: the cattle, water', slots: 2, chunk: 1.5, want: () => '6h a day', dx: -54, dy: 62 },
+  { id: 'fence', at: 'fence', g: 'fence', o: { whose: 'owed' }, name: 'Village fence: our lot', slots: 2, chunk: 10.5, want: () => '2 days · 1 to name', dx: 30, dy: 60 },
+  { id: 'green', at: 'green', g: 'village', o: { whose: 'owed', frame: 'plan', num: 9 }, name: 'The bridge, together', slots: 2, chunk: 10.5, days: [9], want: () => 'called · d9', dx: -40, dy: 10 },
+  { id: 'o_home', own: true, at: 'home', name: 'own: rest, play', dx: -40, dy: -92 },
+  { id: 'o_green', own: true, at: 'green', name: 'own: pastime', dx: -80, dy: -36 },
+  { id: 'o_norr', own: true, at: 'norr', name: 'own: courting', dx: 50, dy: 8 },
+];
+const SPC = (id) => SPACES.find((s) => s.id === id);
+// Placements by day. w: hh | own | owed; br: demanded | taken; by: rule | per; st: done | doing | planned.
+let PL = {}, fenceNamed = null, ghost = { day: 7, m: 'nils', sp: 'barley' };
+function seed() {
+  const p = (m, sp, h, x = {}) => ({ m, sp, h, w: 'hh', by: 'rule', st: 'planned', ...x });
+  PL = { 4: [p('per', 'long', 9, { st: 'doing' }), p('per', 'home', 1, { duty: 1 }), p('karin', 'home', 7, { duty: 1 }), p('karin', 'long', 4, { st: 'done' }),
+    p('erik', 'long', 10.5, { st: 'doing' }), p('erik', 'long', 1.5, { w: 'own', given: 1 }), p('nils', 'wood', 5, { st: 'doing' }), p('nils', 'long', 3),
+    p('nils', 'o_norr', 2.5, { br: 'taken', by: 'nils' }), p('nils', 'long', 1.5, { w: 'own', br: 'demanded', by: 'per' }), p('anna', 'meadow', 6, { duty: 1, st: 'doing' }), p('anna', 'o_home', 6, { w: 'own', by: 'anna' })] };
+  for (let d = 5; d <= 10; d++) PL[d] = [p('karin', 'home', 4, { duty: 1 }), p('anna', 'meadow', 6, { duty: 1 }), p('erik', 'home', 1.5, { duty: 1 })];
+  PL[6].push(p('erik', 'fence', 9, { w: 'owed', named: 1, by: 'per' }));
+  PL[8].push(p('nils', 'o_green', 12, { w: 'own', by: 'nils', grant: 1 }), p('per', 'home', 6), p('erik', 'home', 6));
+  PL[9].push(p('per', 'green', 10.5, { w: 'owed' }));
+  PL[10].push(p('per', 'home', 6), p('erik', 'home', 6));
+  if (stress) {
+    PL[4].push(p('lars', 'home', 4, { cut: 1 }), p('lars', 'long', 6), p('britta', 'o_home', 9, { w: 'own', by: 'britta' }), p('britta', 'home', 3, { w: 'own', given: 1 }),
+      p('ella', 'meadow', 3.5, { cut: 1 }), p('jon', 'meadow', 3.5, { cut: 1 }));
+    for (let d = 5; d <= 10; d++) PL[d].push(p('lars', 'long', 12));
+  }
+  fenceNamed = null; ghost = { day: 7, m: 'nils', sp: 'barley' };
+}
+const CUTS2 = { home: { n: 4, after: 2, now: 3, who: 'lars', t: 'Mend the cart: cut at 12 by the rain; resumes 14:00 in the barn' }, meadow: { n: 3, after: 1, now: 2, who: 'ella', back: 1, t: 'Rake the hay: cut when the cattle broke out; the rule took step 2 back to Ella, Jon' } };
+// ---- Hours spent and left.
+function spent(m, d = day) {
+  const ps = (PL[d] || []).filter((p) => p.m === m);
+  return { lev: ps.filter((p) => p.w !== 'own').reduce((a, p) => a + p.h, 0), own: ps.filter((p) => p.w === 'own').reduce((a, p) => a + p.h, 0) };
+}
+const cap = (mm) => (mm.levy == null ? 12 : mm.levy);
+// ---- Drawing bits.
+function pips(mm) {
+  const s = spent(mm.id), head = mm.levy == null, L = cap(mm), n = Math.ceil(L / PIP - 1e-6);
+  let out = '', x = 2;
+  for (let i = 0; i < n; i++) {
+    const part = Math.min(1, (L - i * PIP) / PIP), full = (i + 1) * PIP <= L - s.lev + 1e-6, r = 3.6 * Math.sqrt(part);
+    out += head ? `<rect x="${x - r + 3.6}" y="${7.4 - r}" width="${2 * r}" height="${2 * r}" fill="${full ? '#e0a43a' : 'none'}" stroke="#e0a43a" stroke-width="1.2"/>` : `<circle cx="${x + 3.6}" cy="7.4" r="${r}" fill="${full ? '#e0a43a' : 'none'}" stroke="#e0a43a" stroke-width="1.2"/>`;
+    x += 9;
+  }
+  const on = Math.ceil(mm.own / PIP - 1e-6);
+  if (on) x += 4;
+  for (let i = 0; i < Math.min(on, 6); i++) { const full = (i + 1) * PIP <= mm.own - s.own + 1e-6; out += `<path d="M${x + 3.6} 3l4 4.4-4 4.4-4-4.4z" fill="${full ? '#7fd0c8' : 'none'}" stroke="#7fd0c8" stroke-width="1.2"/>`; x += 9; }
+  if (on > 6) out += `<text x="${x}" y="11" font-size="9" fill="#7fd0c8">+${on - 6}</text>`, x += 14;
+  return `<svg width="${x + 2}" height="15">${out}</svg>`;
+}
+function disc(mm, o = {}) {
+  const sz = o.size || 26, f = focus === mm.id, ring = f ? mm.col : '#3a2a1a', rw = f ? 3 : 1.3;
+  let s = `<circle cx="13" cy="13" r="11" fill="#f4efe4" stroke="${ring}" stroke-width="${rw}"${o.ghost ? ' stroke-dasharray="3 2"' : ''}/>` +
+    `<text x="13" y="16.5" font-size="10" font-weight="700" text-anchor="middle" fill="#2a2018" font-family="system-ui">${IN(mm.id)}</text>`;
+  if (o.br) { const T = o.br === 'demanded' ? '#e0a43a' : '#eef6f4'; s += `<path d="M15 25l2-3 1.5 2 2-3 1.5 2 2-3 1.5 2V25z" fill="${T}" stroke="#2a2018" stroke-width=".9"/>`; }
+  if (o.duty) s += `<circle cx="4" cy="4" r="4" fill="#e0a43a" stroke="#2a2018" stroke-width=".8"/>`;
+  if (o.contract) s += `<rect x="18" y="0" width="8" height="8" rx="1" fill="#fff" stroke="#2a2018" stroke-width=".8"/><path d="M19.5 3h5M19.5 5h4" stroke="#2a2018" stroke-width=".8"/>`;
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 26 26" style="overflow:visible">${s}</svg>`;
+}
+const WC = { hh: '#e0a43a', own: '#2f8f8a', owed: '#33599e' };
+function chip(mid, ps, sp) {
+  const mm = M(mid), br = ps.find((p) => p.br), duty = ps.some((p) => p.duty), tot = ps.reduce((a, p) => a + p.h, 0);
+  const bar = ps.map((p) => `<span style="display:inline-block;height:4px;width:${Math.max(2, p.h * 2)}px;background:${p.br === 'demanded' ? 'repeating-linear-gradient(135deg,#2f8f8a 0 2px,#e0a43a 2px 4px)' : p.br === 'taken' ? 'repeating-linear-gradient(135deg,#e0a43a 0 2px,#2f8f8a 2px 4px)' : WC[p.w]}"></span>`).join('');
+  const dim = focus && focus !== mid ? ' dim' : '';
+  return `<span class="tok${dim}" data-drag="1" data-m="${mid}" data-sp="${sp}" title="${mm.name} ${tot}h">${disc(mm, { br: br && br.br, duty })}<span style="display:flex;margin-top:1px">${bar}</span><span style="font-size:9px">${tot % 1 ? tot.toFixed(1) : tot}h</span></span>`;
+}
+function track(c) {
+  let s = '';
+  for (let i = 1; i <= c.n; i++) { s += `<i class="${i < c.now ? '' : i === c.now ? (c.back ? 'b' : 'n') : 't'}">${i}</i>`; if (i === c.after) s += '<span class="cut"></span>'; }
+  return `<div class="track" data-b="cut:${c.who}">${s}<small>cut · resumed</small></div>`;
+}
+// ---- The board for the chosen day.
+function renderBoard() {
+  const sv = $('map'), W = MAP_W * SC, H = MAP_H * SC;
+  sv.setAttribute('width', W); sv.setAttribute('height', H); sv.setAttribute('viewBox', `0 0 ${MAP_W} ${MAP_H}`);
+  let lines = '';
+  const box = $('spaces'); box.innerHTML = '';
+  $('board').classList.toggle('vil', vil);
+  if (vil) { sv.innerHTML = DEFS + mapSVG() ; return renderVillage(); }
+  for (const sp of SPACES) {
+    if (sp.days && !sp.days.includes(day)) continue;
+    const c = at(sp.at), x = c.x + sp.dx, y = c.y + sp.dy, ps = (PL[day] || []).filter((p) => p.sp === sp.id);
+    lines += `<path d="M${c.x} ${c.y}L${x} ${y}" stroke="#2a2018" stroke-width="1.2" stroke-dasharray="2 2"/><circle cx="${c.x}" cy="${c.y}" r="3" fill="#2a2018"/>`;
+    const el = document.createElement('div');
+    el.className = 'space' + (sp.own ? ' own' : '') + (day >= 8 ? ' est' : '') + (hot === sp.id ? ' hot' : '');
+    el.dataset.space = sp.id; el.style.left = x * SC + 'px'; el.style.top = y * SC + 'px';
+    const groups = {}; ps.forEach((p) => (groups[p.m] = groups[p.m] || []).push(p));
+    let slots = Object.entries(groups).map(([m, g]) => chip(m, g, sp.id)).join('');
+    let free = sp.own ? 0 : Math.max(0, (sp.slots || 0) - Object.keys(groups).length);
+    if (sp.id === 'fence' && !fenceNamed && day <= 9) { slots += `<span class="slot hatch" data-b="toname">?</span>`; free--; }
+    if (ghost && ghost.day === day && ghost.sp === sp.id) { const gm = M(ghost.m); slots += `<span class="tok ghost" data-b="ghost">${disc(gm, { ghost: 1 })}<span class="rulewill">rule will</span></span>`; free--; }
+    for (let i = 0; i < free; i++) slots += `<span class="slot">${day >= 5 && !ps.length && !sp.own ? '' : ''}</span>`;
+    const quiet = day >= 5 && !sp.own && !ps.length && !['barley', 'fence', 'green'].includes(sp.id);
+    if (quiet) el.classList.add('quiet');
+    const dem = ps.find((p) => p.br === 'demanded');
+    const cut = sp.cut && day === 4 ? sp.cut : stress && day === 4 && CUTS2[sp.id];
+    el.innerHTML = sp.own ? `<div class="hd" data-b="space:${sp.id}">${sp.name}</div><div class="slots">${slots || '<small style="font-size:10px;color:#5d6253">as the day brings</small>'}</div>`
+      : `<div class="hd" data-b="space:${sp.id}">${icon(sp.g, { frame: day > 4 ? 'plan' : 'now', ...(sp.o || {}), size: 28 })}<span><b>${sp.name}</b><small>${sp.want(day)}</small></span></div>` +
+        `<div class="slots">${slots}</div>` + (quiet ? '<small style="font-size:10px;color:#5d6253">as the day brings</small>' : '') + (cut ? track(cut) : '') +
+        (dem ? `<div class="demand" data-b="demand:${dem.m}">demand: ${M(dem.m).name} ${dem.h}h · likely: ${M(dem.m).likely}</div>` : '');
+    box.append(el);
+  }
+  sv.innerHTML = DEFS + mapSVG() + lines;
+}
+function renderTray() {
+  const t = $('tray');
+  if (vil) return renderVTray();
+  t.innerHTML = `<h4>Backa's tray · ${day === 4 ? 'today, 10:00' : 'day ' + day}</h4>` + mems().map((mm) => {
+    const s = spent(mm.id), left = cap(mm) - s.lev;
+    return `<div class="mem${focus === mm.id ? ' on' : ''}" data-drag="1" data-m="${mm.id}">${disc(mm, { duty: mm.duty, contract: mm.contract, size: 34 })}<div class="nm"><b>${mm.name}</b> ${mm.levy == null ? '' : mm.levy ? mm.levy + 'h levy' : 'no levy'}<br>${pips(mm)}<small>${left > 0 ? left.toFixed(1).replace('.0', '') + 'h to place' : 'levy placed'}${mm.own && mm.ownUse ? ' · own → ' + mm.ownUse : ''}</small></div></div>`;
+  }).join('') + `<div class="grp">● pips: levied hours (1.5 h each), ◆ own hours, ■ a head's own call. Hollow = placed. A dot top left = a duty. Drag a token to a slot; back here to release.</div>`;
+}
+function renderStrip() {
+  const s = $('strip');
+  if (vil) { s.innerHTML = `<span class="lab">the board's columns are the days</span><button class="on">autumn, days 1–12 · today d4</button>`; return; }
+  const mk = { 6: icon('fence', { whose: 'owed', frame: 'plan', size: 14 }) + icon('chop', { frame: 'plan', state: 'risk', size: 14 }), 7: icon('chop', { frame: 'plan', state: 'risk', size: 14 }), 8: icon('courting', { whose: 'own', frame: 'plan', size: 14 }) + icon('quern', { frame: 'plan', size: 14 }), 9: icon('village', { whose: 'owed', frame: 'plan', size: 14 }) + icon('chop', { frame: 'plan', state: 'risk', size: 14 }), 10: icon('quern', { frame: 'plan', size: 14 }) };
+  s.innerHTML = `<span class="lab">the board for day…</span>` + [4, 5, 6, 7, 8, 9, 10].map((d) => `<button data-day="${d}" class="${d === day ? 'on' : ''} ${d >= 8 ? 'est' : 'bind'}"><span>${d === 4 ? 'Today (d4)' : 'day ' + d}</span><small>${d === 4 ? 'hours' : d <= 7 ? 'binding' : "Per's estimate"}</small><span class="marks">${mk[d] || ''}</span></button>`).join('');
+}
+// ---- The village: households as tokens, the fence's days as spaces (as the alderman sees it).
+const AB = (h) => h.name.slice(0, 2);
+function renderVillage() {
+  const box = $('spaces'), f = at('fence'), el = document.createElement('div');
+  el.className = 'vb'; el.style.left = '14px'; el.style.top = '150px'; el.style.width = (MAP_W * SC - 40) + 'px';
+  let cols = '';
+  for (let d = 1; d <= 12; d++) {
+    const here = VILLAGE.households.filter((h) => h.days[d - 1]);
+    cols += `<div class="col ${d < 4 ? 'past' : d >= 8 ? 'est' : ''}" data-vday="${d}"><h5>${d === 4 ? '▾ d4' : 'd' + d}</h5>` + here.map((h) => {
+      const st = h.days[d - 1], fill = st === 'lapsed' ? '#ccc' : '#33599e';
+      return `<span class="tok" data-b="vh:${h.name}:${d}" title="${h.name}: ${st}"><svg width="26" height="26" viewBox="0 0 26 26" style="overflow:visible"><rect x="2" y="2" width="22" height="22" rx="${st === 'worked' ? 11 : 4}" fill="${fill}" stroke="#1b2f57"/><text x="13" y="17" font-size="10" font-weight="700" text-anchor="middle" fill="#fff" font-family="system-ui">${AB(h)}</text>${st === 'breached' ? '<path d="M14 25l2-3 1.5 2 2-3 1.5 2 2-3V25z" fill="#e0a43a" stroke="#2a2018" stroke-width=".8"/>' : ''}${h.alderman ? '<circle cx="23" cy="3" r="3" fill="#fff" stroke="#1b2f57"/>' : ''}</svg></span>`;
+    }).join('') + `<span class="cnt">${here.length}/6 hands</span></div>`;
+  }
+  el.innerHTML = `<div class="hd" style="display:flex;gap:6px;align-items:center;margin-bottom:4px">${icon('fence', { whose: 'owed', size: 26 })}<b>Byn's fence, autumn: lots by fields · 6 hands a day</b><small style="color:#5d6253">&nbsp;round = worked, square = named, torn = breached, grey = lapsed. Drag a household from the tray to a day to name it.</small></div><div class="cols">${cols}</div>`;
+  box.append(el);
+  $('map').innerHTML += `<path d="M${f.x} ${f.y}L${f.x - 60} ${150 / SC}" stroke="#1b2f57" stroke-width="2" stroke-dasharray="4 3"/>`;
+}
+function renderVTray() {
+  const byF = {}; VILLAGE.households.forEach((h) => (byF[h.fields] = byF[h.fields] || []).push(h));
+  $('tray').innerHTML = `<h4>Byn · 20 households · days still to name</h4>` + Object.keys(byF).sort((a, b) => b - a).map((f) => `<div class="grp">${f} field${f > 1 ? 's' : ''}: lot ${Math.max(1, Math.round(f * 0.7))} day${Math.round(f * .7) > 1 ? 's' : ''}</div><div class="vgrid">` + byF[f].map((h) => {
+    const named = h.lot - h.toName;
+    let p = ''; for (let i = 0; i < h.lot; i++) p += `<rect x="${i * 9 + 1}" y="2" width="7" height="7" fill="${i < named ? 'none' : '#6f95d8'}" stroke="#6f95d8"/>`;
+    return `<div class="mem" ${h.toName ? 'data-drag="1"' : ''} data-h="${h.name}" style="padding:2px;gap:4px${h.toName ? '' : ';opacity:.45'}"><svg width="24" height="24" viewBox="0 0 26 26"><rect x="2" y="2" width="22" height="22" rx="4" fill="#33599e" stroke="#9fb4e0"/><text x="13" y="17" font-size="10" font-weight="700" text-anchor="middle" fill="#fff" font-family="system-ui">${AB(h)}</text></svg><div class="nm" style="font-size:11px">${h.name}${h.alderman ? ' ◦' : ''}<br><svg width="${h.lot * 9 + 2}" height="11">${p}</svg></div></div>`;
+  }).join('') + '</div>').join('') + `<div class="grp">■ a day to name, □ named. ◦ the alderman. Per sees this only as the meeting tells it.</div>`;
+}
+function render() { renderBoard(); renderTray(); renderStrip(); }
+// ---- Acts.
+const toast = (h) => { const e = $('toast'); e.innerHTML = h; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3600); };
+function place(mid, spid) {
+  const mm = M(mid), sp = SPC(spid), s = spent(mid), left = cap(mm) - s.lev, L = PL[day];
+  if (ghost && ghost.sp === spid && ghost.day === day) ghost = null;
+  if (sp.own) { L.push({ m: mid, sp: spid, h: Math.max(1.5, mm.own - s.own), w: 'own', by: mid }); return toast(`would issue <code>ask</code> ${mm.name}: own hours at ${sp.name.slice(5)} — his or her choice, not an order`); }
+  if (spid === 'fence') {
+    if (fenceNamed) return toast('our lot is named: Erik d6 and ' + M(fenceNamed.m).name + ' d' + fenceNamed.day);
+    fenceNamed = { m: mid, day }; L.push({ m: mid, sp: 'fence', h: 10.5, w: 'owed', named: 1, by: 'per' });
+    return toast(`would issue <code>name</code> ${mm.name} → the village fence, day ${day} ${day - 4 >= 3 ? '(3 days\' notice: kept)' : '(<b>short notice</b>: under 3 days, the meeting may fine)'}`);
+  }
+  if (mm.lodger) { L.push({ m: mid, sp: spid, h: 6, w: 'hh', by: 'per', bargain: 1 }); return toast(`would issue <code>ask</code> Olof: 6h at ${sp.name.split(':')[0]} for 1 ration (a bargain, not a levy) · likely: yes`); }
+  if (left > 0.01) { const h = Math.min(left, day > 4 ? left : sp.chunk); L.push({ m: mid, sp: spid, h, w: 'hh', by: 'per' }); return toast(`would issue <code>assign</code> ${mm.name} → ${sp.name.split(':').pop().trim()} (${h}h${day > 4 ? ', day ' + day : ''})`); }
+  L.push({ m: mid, sp: spid, h: 1.5, w: 'own', br: 'demanded', by: 'per' });
+  toast(`would issue <code>assign</code> ${mm.name} → ${sp.name.split(':').pop().trim()} 1.5h <b>beyond the levy: a demand</b> · likely: ${mm.likely}`);
+}
+function move(mid, from, to) {
+  const ps = PL[day].filter((p) => p.m === mid && p.sp === from && p.st !== 'done');
+  if (!to) { PL[day] = PL[day].filter((p) => !ps.includes(p)); if (from === 'fence') fenceNamed = null; return toast(`would issue <code>release</code> ${M(mid).name} from ${SPC(from).name.split(':')[0]}${ps.length ? '' : ' (nothing: done is done)'}`); }
+  if (SPC(to).own !== SPC(from).own) return toast('own hours and levied hours do not swap by dragging: use the bubble (ask, grant, demand)');
+  ps.forEach((p) => (p.sp = to)); if (ghost && ghost.sp === to && ghost.day === day) ghost = null;
+  toast(`would issue <code>assign</code> ${M(mid).name} → ${SPC(to).name.split(':').pop().trim()} (moved from ${SPC(from).name.split(':')[0]})`);
+}
+function vname(hname, d) {
+  const h = VILLAGE.households.find((x) => x.name === hname);
+  if (!h.toName) return toast(hname + ' has no day left to name');
+  if (d <= 4) return toast('day ' + d + ' is past or today: a day is named at least 3 days ahead');
+  h.days[d - 1] = 'named'; h.toName--;
+  toast(`would issue <code>name</code> ${hname} → the fence, day ${d}${d - 4 < 3 ? ' (short notice)' : ''} · ${VILLAGE.households.filter((x) => x.days[d - 1]).length}/6 hands`);
+}
+// ---- Bubbles and the why card.
+function why(kind) {
+  const R = {
+    barley: [['chop', { frame: 'plan', author: 'player', state: 'risk', num: 6 }, 'Step: reap the barley, days 6 to 9 (Per wrote it)'], ['oats', { frame: 'target', num: -8 }, 'Barley in the barn: 0 of 30, 8 h short by d9'], ['grain', { frame: 'target', whose: null }, 'Food for the year: bread for 5']],
+    wood: [['wood', { state: 'stray' }, 'Task: firewood, 3 loads (cut last night, resumed)'], ['wood', { frame: 'target', num: -24 }, 'Firewood for winter: 9 of 20'], ['cold', { frame: 'target', whose: null }, "The winter: the house's fire"]],
+    fence: [['fence', { whose: 'owed', frame: 'plan' }, 'Our lot: 2 adult-days (3 fields)'], ['village', { whose: 'owed', frame: 'target' }, 'The meeting: fence mending, autumn, lots by fields'], ['beast', { frame: 'target', whose: null }, 'The cattle kept out of the fields']],
+    duty: [['beast', {}, 'Duty: every day, by custom'], ['village', { whose: 'owed', frame: 'target' }, 'The custom: a household keeps its beasts and hearth']],
+    own: [['courting', { whose: 'own' }, 'Own hours: the levy is met (or taken)'], ['married', { whose: 'own', frame: 'target' }, 'His aim: court Lisa at Norrgård']],
+  };
+  return R[kind] || [['chop', {}, 'Task: reap the rye'], ['chop', { frame: 'plan', num: 6 }, 'Step: the rye in, by day 6 (window closes)'], ['rye', { frame: 'target', num: -52 }, 'Rye in the barn: 34 of 60'], ['grain', { frame: 'target', whose: null }, 'Food for the year']];
+}
+function thing(k) {
+  const [t, a, b] = k.split(':');
+  if (t === 'mem') { const mm = M(a), s = spent(a); return { g: 'people', title: mm.name + ' · ' + mm.role, rows: [['levy', mm.levy == null ? 'none: a head, his own call (12 h)' : mm.levy + ' h a day (autumn custom)'], ['placed', s.lev.toFixed(1) + ' h levied, ' + s.own + ' h own'], ['own hours', mm.own ? mm.own + ' h: ' + (mm.ownUse || 'rest') : '—'], ['duty', mm.duty ? mm.duty.join(', ') + ': first place there each day' : '—'], ['a demand', 'likely: ' + mm.likely]], acts: [['focus', 'focus (colour him on the board)'], ['grant', 'grant leave today'], ['release', 'release all today'], ['ask', 'ask for own hours']], why: 'own' }; }
+  if (t === 'chip') { const sp = SPC(b), ps = PL[day].filter((p) => p.m === a && p.sp === b), mm = M(a); return { g: sp.g || 'idle', o: { whose: ps[0].w === 'hh' ? 'household' : ps[0].w, breach: ps.find((p) => p.br)?.br }, title: mm.name + ' at ' + sp.name.split(':')[0], rows: ps.map((p) => [p.h + ' h', `${p.w === 'hh' ? 'levied' : p.w === 'owed' ? 'owed to the village' : 'own'}${p.br ? ' (' + p.br + ')' : ''}${p.given ? ' (given)' : ''}${p.duty ? ' · duty' : ''} · chose: ${p.by === 'rule' ? 'the rule' : p.by === 'per' ? 'Per' : mm.name} · ${p.st}`]).concat([['why', p0why(ps[0])]]), acts: [['release', 'release (drag back to the tray)'], ['keep', 'keep my order'], ...(b === 'fence' ? [['substitute', 'send a hired hand (3 rations)'], ['commute', 'commute: pay 3']] : []), ...(ps.some((p) => p.br === 'taken') ? [['breach', 'call him back (a demand)'], ['grant', 'grant it as leave']] : [])], why: b === 'barley' ? 'barley' : b === 'wood' ? 'wood' : b === 'fence' ? 'fence' : ps[0].duty ? 'duty' : ps[0].w === 'own' ? 'own' : 'long' };
+  }
+  if (t === 'space' && a === 'barley' || t === 'ghost') return { g: 'chop', o: { frame: 'plan', author: 'player', state: 'risk', num: -8 }, title: 'Reap the barley: at risk', rows: [['wants', '36 h (30–44), days 6 to 9; 0 placed'], ['short', '8 h by d9 on Per\'s estimate'], ['author', 'Per (the rule may take it back unless kept)']], rem: [['assign', 'Add Nils, days 6–9', 'off firewood: wood 10 h behind'], ['plan', 'Another day, to d10', 'window closes d10; rain 1 in 3'], ['ask', 'Ask Karin', 'her spinning drops: wool 6 h behind'], ['substitute', 'Hire a hand', '3 rations a day'], ['keep', 'Keep my order', 'the rule will not take it back; the risk stays']], def: 'add Nils on day 7 (the ghost token)', why: 'barley' };
+  if (t === 'toname') return { g: 'fence', o: { whose: 'owed', frame: 'plan' }, title: 'Fence: one day still to name', rows: [['window', 'any day to d9; 3 days\' notice'], ['terms', 'substitute yes; commute 3; no carry; breach: memory + the meeting\'s fine']], rem: [['name', 'Name Nils, day 8', 'his leave (the gathering) is displaced'], ['name', 'Name Erik, day 7', 'the barley loses 10.5 h'], ['substitute', 'Send a hired hand', '3 rations'], ['commute', 'Commute', 'pay 3'], ['breach', 'Let it lapse', 'memory + the meeting\'s fine']], def: 'name Per on day 9 (he is at the bridge: the meeting will count it short)', why: 'fence' };
+  if (t === 'cut') { const c = a === 'nils' ? SPC('wood').cut : Object.values(CUTS2).find((x) => x.who === a); return { g: 'wood', o: { state: 'stray' }, title: 'Cut and resumed', rows: [['task', c.t], ['steps', `${c.n} steps; done to ${c.now - 1}; the break after ${c.after} is the cut`], ['now', 'step ' + c.now + (c.back ? ' (taken back by the rule)' : '')]], acts: [['plan', 'resume as is'], ['keep', 'keep it with ' + M(a).name], ['release', 'let the rule take it back']], why: 'wood' }; }
+  if (t === 'demand') { const mm = M(a); return { g: 'cart', o: { breach: 'demanded', author: 'player' }, title: 'Demand: ' + mm.name + ', beyond his levy', rows: [['asks', '1.5 h of his own hours'], ['likely', mm.likely], ['cost', 'goodwill; a refusal is his to make']], acts: [['commute', 'offer a ration for it'], ['release', 'withdraw the demand'], ['keep', 'insist (a breach of custom)']], why: 'long' }; }
+  if (t === 'vh') { const h = VILLAGE.households.find((x) => x.name === a); return { g: 'fence', o: { whose: 'owed', frame: 'plan', num: +b }, title: h.name + ': fence, day ' + b, rows: [['lot', h.lot + ' day(s) for ' + h.fields + ' field(s)'], ['state', h.days[b - 1]], ['to name', h.toName + ' day(s)'], ['who goes', 'the household\'s choice: the alderman sees a day, not a person']], acts: [['name', 'move to another day'], ['substitute', 'accept a substitute'], ['commute', 'commute: 3'], ['breach', 'fine (the meeting)']], why: 'fence' }; }
+  const sp = SPC(a); return { g: sp.g || 'idle', o: sp.o, title: sp.name, rows: [['wants', sp.want ? sp.want(day) : 'own hours: a member\'s choice'], ['slots', (sp.slots || '—') + ' hands'], ['estimate', day >= 8 ? "Per's estimate (beyond the binding days)" : 'binding']], acts: [['plan', 'plan more here'], ['assign', 'drag a token here to assign']], why: a === 'wood' ? 'wood' : a === 'fence' ? 'fence' : a === 'meadow' ? 'duty' : sp.own ? 'own' : 'long' };
+}
+const p0why = (p) => (p.duty ? 'a duty: it reserves the first place here each day' : p.br === 'demanded' ? "Per's order: haul before the rain" : p.br === 'taken' ? 'his aim: court Lisa (hours taken from the household)' : p.given ? 'he gives his own hours (diligent)' : p.by === 'rule' ? 'the rule: nearest target first' : 'Per placed it');
+function bubble(k, anchor, mode) {
+  document.querySelectorAll('.bubble').forEach((x) => x.remove());
+  const t = thing(k), b = document.createElement('div'); b.className = 'bubble';
+  let body = '';
+  if (mode === 'why') body = `<div style="font-size:12px;color:#5d6253">why ↑ (task → step → target)</div>` + why(t.why).reverse().map(([g, o, s]) => `<div class="rung">${icon(g, { ...o, size: 22 })}${s}</div>`).join('');
+  else body = `<dl>${t.rows.map(([a, c]) => `<dt>${a}</dt><dd>${c}</dd>`).join('')}</dl>` + (t.rem ? `<div class="rem">${t.rem.map(([v, l, c], i) => `<button data-rem="${i}"><span>${l}</span><small>${c}</small></button>`).join('')}</div><div class="def"><b>the rule will:</b> ${t.def}</div>` : '') +
+    (mode === 'acts' && t.acts ? `<div class="acts">${t.acts.map(([v, l], i) => `<button data-act="${i}">${l}</button>`).join('')}</div>` : '');
+  b.innerHTML = `<h3>${icon(t.g, { ...(t.o || {}), size: 24, num: null })}${t.title}</h3>${body}<div class="acts">${t.acts && mode !== 'acts' ? '<button class="main" data-x="acts">Acts ▸</button>' : ''}<button data-x="${mode === 'why' ? 'back' : 'why'}">${mode === 'why' ? '← back' : 'why?'}</button><button data-x="close">×</button></div>`;
+  document.body.append(b);
+  const r = anchor.getBoundingClientRect();
+  b.style.left = (r.right + 300 > innerWidth ? Math.max(6, r.left - 298) : r.right + 8) + 'px'; b.style.top = Math.max(46, Math.min(innerHeight - b.offsetHeight - 8, r.top - 10)) + 'px';
+  b.onclick = (e) => {
+    const x = e.target.closest('button'); if (!x) return;
+    if (x.dataset.x === 'close') return b.remove();
+    if (x.dataset.x) return bubble(k, anchor, x.dataset.x === 'back' ? null : x.dataset.x);
+    if (x.dataset.rem) { const [v, l, c] = t.rem[+x.dataset.rem]; doRem(k, v, l, c); return b.remove(); }
+    if (x.dataset.act) { const [v, l] = t.acts[+x.dataset.act]; b.remove(); return doAct(k, v, l); }
+  };
+}
+function doRem(k, v, l, c) {
+  toast(`would issue <code>${v}</code> ${l} <small>(cost: ${c})</small>`);
+  if (l.startsWith('Add Nils')) { for (const d of [6, 7, 8, 9]) PL[d].push({ m: 'nils', sp: 'barley', h: 10.5, w: 'hh', by: 'per', st: 'planned' }); ghost = null; }
+  if (l.startsWith('Name Nils')) { fenceNamed = { m: 'nils', day: 8 }; PL[8] = PL[8].filter((p) => !(p.m === 'nils' && p.sp === 'o_green')); PL[8].push({ m: 'nils', sp: 'fence', h: 10.5, w: 'owed', by: 'per', named: 1 }); day = 8; }
+  if (l.startsWith('Name Erik')) { fenceNamed = { m: 'erik', day: 7 }; PL[7].push({ m: 'erik', sp: 'fence', h: 10.5, w: 'owed', by: 'per', named: 1 }); day = 7; }
+  render();
+}
+function doAct(k, v, l) {
+  const [t, a, b] = k.split(':');
+  if (v === 'focus') { focus = focus === a ? null : a; render(); return; }
+  if (t === 'chip' && v === 'release') { move(a, b, null); return render(); }
+  if (t === 'mem' && v === 'release') { PL[day] = PL[day].filter((p) => !(p.m === a && p.st !== 'done')); render(); }
+  if (t === 'demand' && v === 'release') { PL[day] = PL[day].filter((p) => !(p.m === a && p.br === 'demanded')); render(); }
+  toast(`would issue <code>${v}</code> ${l} <small>(${k.replace(/:/g, ' ')})</small>`);
+}
+// ---- Pointer: tap = bubble; drag a token = place.
+let drag = null;
+document.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('.bubble,.note,#strip,.band')) return;
+  const t = e.target.closest('[data-drag]'); if (!t) return;
+  drag = { m: t.dataset.m, h: t.dataset.h, from: t.dataset.sp || null, x0: e.clientX, y0: e.clientY, src: t, el: null }; e.preventDefault();
+});
+document.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  if (!drag.el && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 5) { drag.el = drag.src.cloneNode(true); drag.el.classList.add('flying'); drag.el.style.width = drag.src.offsetWidth + 'px'; document.body.append(drag.el); }
+  if (!drag.el) return;
+  drag.el.style.left = e.clientX + 'px'; drag.el.style.top = e.clientY + 'px';
+  document.querySelectorAll('.hot').forEach((x) => x.classList.remove('hot'));
+  const u = document.elementFromPoint(e.clientX, e.clientY), sp = u && u.closest(drag.h ? '[data-vday]' : '[data-space]'); if (sp) sp.classList.add('hot');
+});
+document.addEventListener('pointerup', (e) => {
+  if (!drag) return; const d = drag; drag = null;
+  if (!d.el) { bubble(d.h ? 'vh:' + d.h + ':' + (VILLAGE.households.find((x) => x.name === d.h).days.findIndex(Boolean) + 1 || 4) : d.from ? 'chip:' + d.m + ':' + d.from : 'mem:' + d.m, d.src, null); return; }
+  d.el.remove(); document.querySelectorAll('.hot').forEach((x) => x.classList.remove('hot'));
+  const u = document.elementFromPoint(e.clientX, e.clientY);
+  if (d.h) { const c = u && u.closest('[data-vday]'); if (c) vname(d.h, +c.dataset.vday); return render(); }
+  const sp = u && u.closest('[data-space]'), tray = u && u.closest('#tray');
+  if (sp && d.from) move(d.m, d.from, sp.dataset.space); else if (sp) place(d.m, sp.dataset.space); else if (tray && d.from) move(d.m, d.from, null);
+  render();
+});
+document.addEventListener('click', (e) => {
+  const d = e.target.closest('[data-day]'); if (d) { day = +d.dataset.day; document.querySelectorAll('.bubble').forEach((x) => x.remove()); return render(); }
+  const b = e.target.closest('[data-b]'); if (b && !e.target.closest('.bubble')) bubble(b.dataset.b.startsWith('space') || b.dataset.b.includes(':') ? b.dataset.b : b.dataset.b, b, null);
+  const v = e.target.closest('.seg button'); if (v) { v.parentNode.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === v)); if (v.parentNode.id === 'vStress') { stress = v.dataset.v === '1'; seed(); } else vil = v.dataset.v === '1'; render(); }
+});
+seed(); render();
+</script>
+</body>
+</html>

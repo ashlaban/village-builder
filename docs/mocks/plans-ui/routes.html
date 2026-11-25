@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Season Route Map</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600&display=swap">
+<style>
+/* The season as a transit map on the land: stations at their places, lines to what each waits for, the critical path thick. */
+:root { --paper: #e6e9df; --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --accent: #a8473a;
+  --display: 'Alegreya SC', Georgia, serif; --body: 'Alegreya Sans', system-ui, sans-serif; color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.4 var(--body); }
+.band { height: 42px; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: var(--card); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.band h1 { font: 500 1.15rem var(--display); margin: 0; }
+.band .mode { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.band .from { font-size: 12.5px; color: var(--muted); font-style: italic; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button { font: inherit; font-size: 13px; border: 0; background: #fff; padding: 3px 8px; cursor: pointer; color: var(--ink); }
+.seg button[aria-pressed=true] { background: var(--ink); color: #fff; }
+.spacer { margin-left: auto; }
+#stage { position: absolute; inset: 42px 0 0 0; }
+#map { width: 100%; height: 100%; display: block; user-select: none; }
+.stn { cursor: grab; } .stn:hover > g > svg { filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 2px #000a); }
+.stn.fixed { cursor: pointer; }
+.dim { opacity: .15; }
+#bubble { position: absolute; z-index: 5; width: 330px; background: #fffdf7; border: 1px solid #3a2a1a; border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 18px #0003; font-size: 13.5px; }
+#bubble h4 { margin: 0 0 6px; font: 600 15px var(--body); display: flex; gap: 8px; align-items: center; }
+#bubble dl { display: grid; grid-template-columns: 74px 1fr; gap: 2px 8px; margin: 0 0 8px; }
+#bubble dt { color: var(--muted); } #bubble dd { margin: 0; }
+#bubble .acts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+#bubble button { font: inherit; font-size: 13px; padding: 3px 8px; border-radius: 6px; border: 1px solid #3a2a1a; background: #fff; cursor: pointer; }
+#bubble button.more { background: var(--ink); color: #fff; }
+#bubble .rem { display: grid; grid-template-columns: 100px 1fr; gap: 4px 8px; align-items: start; margin: 4px 0; }
+#bubble .rem small { color: var(--muted); }
+#bubble .deflt { margin-top: 6px; padding: 5px 7px; border-left: 3px solid var(--ink); background: #f1ece0; }
+#bubble .why { margin: 6px 0 0; padding: 0; list-style: none; border-left: 2px dashed #555; }
+#bubble .why li { display: flex; gap: 6px; align-items: center; padding: 2px 6px; }
+#bubble .por { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+#toast { position: absolute; left: 40%; bottom: 22px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 7px 14px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 6; }
+#toast.on { opacity: 1; } #toast code { color: #f2c27a; }
+.note { position: absolute; right: 10px; bottom: 10px; z-index: 4; width: 262px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; }
+.note[open] { width: 470px; }
+.note summary { cursor: pointer; color: var(--muted); }
+.note p { margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<header class="band">
+  <h1>The season as a route map</h1><span class="mode">Plan · season</span>
+  <span class="from">after PERT / critical-path charts and transit route maps</span>
+  <span class="seg spacer" id="colour"><button data-v="chain" aria-pressed="true">lines by chain</button><button data-v="whose" aria-pressed="false">by whose hours</button></span>
+  <span class="seg" id="bars"><button data-v="all" aria-pressed="true">windows: all</button><button data-v="sel" aria-pressed="false">critical</button></span>
+  <span class="seg" id="stress"><button data-v="0" aria-pressed="true">Backa</button><button data-v="1" aria-pressed="false">stress</button></span>
+  <span class="seg" id="village"><button data-v="0" aria-pressed="true">household</button><button data-v="1" aria-pressed="false">village works</button></span>
+</header>
+<div id="stage"><svg id="map" viewBox="0 0 1280 758"></svg></div>
+<div id="bubble" hidden></div>
+<div id="toast"></div>
+<details class="note"><summary>Scales to / strains at</summary>
+  <p><b>Scales to</b> one household's season: five chains, about twenty stations, one critical path that reads at a glance (the thick yellow barley line), slack as one signed number a station. The forward and backward pass is trivial at this size and runs live under a drag. Moving the fence day shows its displaced cost on the line it hits, before the act.</p>
+  <p><b>Strains at</b> the home tile: every chain ends there (threshing, targets, cutting), so home is an interchange of six stations in one hex; with ten members it is fourteen and the stubs cross. Window bars on every station double the ink; "critical only" is the readable setting. Route colours by chain run out at about seven (the stress lines' cyan and pink sit near the own-hours teal and the risk red). Dates live only on the bars and the line diagram below: the land carries no time axis, so a station slides only a few pixels a day and a shift of three days is easy to miss. The village fan (19 households into one fence station) is a hairball: the network is not the view for the village; the roster is.</p>
+  <p><b>Model:</b> duration = mid hours / (hands × 10 h); a levy day takes its pawn's hand from any step it holds that day; slack = latest start − start. Resource levelling beyond that is not modelled. New: the "cut and resumed" state badge (a broken line bridged).</p>
+</details>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+// New state (this mock): cut and resumed, a broken line bridged by an arc. Added in the page, scene.js untouched.
+STATES.cut = '<circle cx="34" cy="6" r="6.5" fill="#fff" stroke="#2a2018" stroke-width="1.5"/><path d="M29.5 7.5h2.5M36 7.5h2.5" stroke="#2a2018" stroke-width="1.6"/><path d="M31.5 6.5q2.5-4.5 5 0" stroke="#2a2018" stroke-width="1.3" fill="none"/>';
+
+// ---- Lines (route colours by chain; none a member hue).
+const LINES = {
+  rye: { c: '#e8740c', name: 'Rye line', whose: 'household' }, barley: { c: '#d9b300', name: 'Barley line', whose: 'household' },
+  sow: { c: '#a03a8a', name: 'Sowing line', whose: 'household' }, wood: { c: '#7a7d80', name: 'Firewood line', whose: 'household' },
+  village: { c: '#33599e', name: 'Village line', whose: 'owed' }, aim: { c: '#1f7a76', name: 'Aims (own hours)', whose: 'own' },
+  project: { c: '#3b3b3b', name: 'South field (project)', whose: 'household' },
+  wash: { c: '#2aa6c9', name: "Servant's washing", whose: 'household' }, ditch: { c: '#e5679a', name: "Lodger's ditch", whose: 'household' },
+  estate: { c: '#7d3f8c', name: "Estate's carting", whose: 'estate' }, misc: { c: '#5a5247', name: 'Ten members: odd steps', whose: 'household' },
+};
+const WHOSEC = { household: '#e0a43a', own: '#1f7a76', owed: '#33599e', estate: '#7d3f8c' };
+const NAME = { per: 'Per', karin: 'Karin', erik: 'Erik', nils: 'Nils', anna: 'Anna', maja: 'Maja (servant)', olof: 'Olof (lodger)', lars: 'Lars (farmhand)', brita: 'Brita (elder)', olle: 'Olle', stina: 'Stina' };
+const P = (k, dx = 0, dy = 0) => { const p = at(k); return { x: p.x + dx, y: p.y + dy }; };
+const H = (a) => { const p = at('home'); return { x: p.x + 34 * Math.cos(a * Math.PI / 180), y: p.y + 34 * Math.sin(a * Math.PI / 180) }; };
+// Station: id, line, glyph, what, xy, pre, h:{lo,mid,hi} hours left, hands, win:[open, close] (close: done by its end), who, pool, author, state, frame.
+const S = (o) => ({ pre: [], h: { lo: 0, mid: 0, hi: 0 }, hands: 1, win: [4, 12], who: [], frame: 'plan', ...o });
+const BASE = [
+  S({ id: 'rReap', line: 'rye', g: 'chop', what: 'Reap the rye', xy: P('long', -22, -18), h: { lo: 10, mid: 13, hi: 17 }, hands: 2, win: [1, 6], who: ['per', 'erik'], frame: 'now', state: 'doing', start: 4.33, why: 'the rye harvest' }),
+  S({ id: 'rStook', line: 'rye', g: 'sheaves', what: 'Stook the rye', xy: P('long', 20, -20), pre: ['rReap'], h: { lo: 8, mid: 10, hi: 13 }, win: [1, 7], who: ['erik'] }),
+  S({ id: 'rHaul', line: 'rye', g: 'cart', what: 'Haul the rye home', xy: P('long', -26, 28), pre: ['rStook'], h: { lo: 12, mid: 16, hi: 20 }, hands: 1.5, win: [1, 8], who: ['per'], author: 'player' }),
+  S({ id: 'rThresh', line: 'rye', g: 'quern', what: 'Thresh the rye', xy: H(0), pre: ['rHaul'], h: { lo: 14, mid: 18, hi: 24 }, hands: 2, win: [8, 12], who: ['per', 'erik'] }),
+  S({ id: 'rT', line: 'rye', g: 'rye', what: 'Rye in the barn (34 of 60)', xy: H(-60), pre: ['rThresh'], frame: 'target', win: [1, 12], target: 'rye' }),
+  S({ id: 'bReap', line: 'barley', g: 'chop', what: 'Reap the barley', xy: P('barley', 14, -18), h: { lo: 30, mid: 36, hi: 44 }, hands: 1.6, win: [7, 10], who: [], pool: ['erik', 'nils'], author: 'player' }),
+  S({ id: 'bStook', line: 'barley', g: 'sheaves', what: 'Stook the barley', xy: P('barley', 24, 20), pre: ['bReap'], h: { lo: 9, mid: 12, hi: 15 }, hands: 1.2, win: [7, 10], who: ['karin'] }),
+  S({ id: 'bHaul', line: 'barley', g: 'cart', what: 'Haul the barley home', xy: P('barley', -36, 10), pre: ['bStook'], h: { lo: 6, mid: 7.5, hi: 10 }, win: [7, 10], who: ['per'] }),
+  S({ id: 'bT', line: 'barley', g: 'oats', what: 'Barley in the barn (0 of 30)', xy: H(60), pre: ['bHaul'], frame: 'target', win: [5, 10], target: 'barley' }),
+  S({ id: 'sPlough', line: 'sow', g: 'hoe', what: 'Plough the Long field', xy: P('long2', -10, -22), pre: ['rHaul'], h: { lo: 12, mid: 16, hi: 20 }, win: [7, 12], who: ['per'] }),
+  S({ id: 'sSow', line: 'sow', g: 'sow', what: 'Sow the winter rye', xy: P('long2', 24, 12), pre: ['sPlough'], h: { lo: 6, mid: 8, hi: 10 }, win: [8, 12], who: ['per'] }),
+  S({ id: 'fFell1', line: 'wood', g: 'tree', what: 'Fell (1 load, yesterday)', xy: P('wood2', -16, -16), state: 'done', frame: 'plan', who: ['nils'], start: 3, end: 3.9 }),
+  S({ id: 'fHaul1', line: 'wood', g: 'cart', what: 'Load the stray pile and haul home', xy: P('wood2', 22, 14), pre: ['fFell1'], state: 'cut', who: ['nils'], start: 4, end: 4.25, cut: true }),
+  S({ id: 'fCut', line: 'wood', g: 'wood', what: 'Cut firewood (load 1)', xy: H(180), pre: ['fHaul1'], frame: 'now', state: 'doing', who: ['nils'], h: { lo: 1, mid: 2, hi: 3 }, start: 4.25 }),
+  S({ id: 'fFell2', line: 'wood', g: 'tree', what: 'Fell 2 more trees', xy: P('wood1', 2, -6), h: { lo: 8, mid: 10, hi: 14 }, win: [5, 12], who: [], state: 'back', back: 'Nils was given the rye at 11:00; the rule took the felling back to the pool' }),
+  S({ id: 'fHaul2', line: 'wood', g: 'cart', what: 'Haul 2 loads home', xy: P('lake', -20, 34), pre: ['fFell2'], h: { lo: 4, mid: 6, hi: 8 }, win: [5, 12], who: ['nils'] }),
+  S({ id: 'fCut2', line: 'wood', g: 'wood', what: 'Cut firewood (loads 2, 3)', xy: H(240), pre: ['fHaul2'], h: { lo: 4, mid: 6, hi: 8 }, win: [5, 12], who: ['nils'] }),
+  S({ id: 'fT', line: 'wood', g: 'wood', what: 'Firewood for winter (9 of 20)', xy: H(120), pre: ['fCut', 'fCut2'], frame: 'target', win: [1, 12], target: 'wood' }),
+  S({ id: 'vFence', line: 'village', g: 'fence', what: 'Fence lot: our day (Erik)', xy: P('fence', -18, -12), levy: true, day: 6, takes: 'erik', who: ['erik'], win: [4, 12], whose: 'owed' }),
+  S({ id: 'vFence2', line: 'village', g: 'fence', what: 'Fence lot: one day still to name (by day 9)', xy: P('fence', 22, 16), levy: true, day: null, who: [], win: [4, 12], whose: 'owed', fixedPos: true }),
+  S({ id: 'vBridge', line: 'village', g: 'village', what: 'The bridge, together (the alderman)', xy: P('green', -8, 10), levy: true, day: 9, takes: 'per', who: ['per'], whose: 'owed', fixedPos: true }),
+  S({ id: 'nLeave', line: 'aim', g: 'courting', what: "Nils' leave: the gathering", xy: P('green', 30, -14), levy: true, day: 8, who: ['nils'], whose: 'own', fixedPos: true, grant: true }),
+  S({ id: 'south', line: 'project', g: 'hoe', what: 'Clear the south field (spring)', xy: P('clearing', 0, -4), who: [], whose: 'household', fixedPos: true, far: 'A' }),
+];
+const STRESS = [
+  S({ id: 'wFetch', line: 'wash', g: 'water', what: 'Fetch water for the wash', xy: P('lake', 24, 6), win: [5, 7], h: { lo: 2, mid: 3, hi: 4 }, who: ['maja'] }),
+  S({ id: 'wWash', line: 'wash', g: 'pail', what: 'The wash, at the shore', xy: P('lake', 4, 30), pre: ['wFetch'], win: [5, 7], h: { lo: 6, mid: 8, hi: 10 }, who: ['maja'] }),
+  S({ id: 'wDry', line: 'wash', g: 'wool', what: 'Dry and fold', xy: H(210), pre: ['wWash'], win: [5, 8], h: { lo: 2, mid: 3, hi: 4 }, who: ['maja'] }),
+  S({ id: 'dDig1', line: 'ditch', g: 'spade', what: 'Dig the ditch: upper', xy: P('meadow', 6, -14), win: [5, 12], h: { lo: 8, mid: 10, hi: 14 }, who: ['olof'] }),
+  S({ id: 'dDig2', line: 'ditch', g: 'spade', what: 'Dig the ditch: lower', xy: P('meadow', 30, 34), pre: ['dDig1'], win: [5, 12], h: { lo: 8, mid: 10, hi: 14 }, who: ['olof'] }),
+  S({ id: 'eCart', line: 'estate', g: 'cart', what: "Carting for the manor: 3 days, at the lord's call (winter)", xy: H(90), who: [], whose: 'estate', levy: true, day: null, fixedPos: true, far: 'D' }),
+  ...[['brita', 'wool', 'Spin', 150], ['lars', 'beast', 'Dung out the byre', 30], ['lars', 'cart', 'Fetch seed from Norrgård', 330], ['karin', 'ale', 'Brew for the harvest ale', 270], ['per', 'meat', 'Slaughter the pig', 300],
+    ['olle', 'beast', 'Herd with Anna', 100], ['stina', 'water', 'Water, mornings', 200], ['brita', 'rake', 'Mend rakes', 240], ['olof', 'quern', 'Grind for the lodger', 180]].map(([w, g, t, a], i) =>
+    S({ id: 'm' + i, line: 'misc', g, what: t, xy: { x: at('home').x + 62 * Math.cos(a * Math.PI / 180), y: at('home').y + 58 * Math.sin(a * Math.PI / 180) }, win: [5, 12], h: { lo: 3, mid: 5, hi: 8 }, who: [w], stub: true })),
+];
+STRESS.find((s) => s.id === 'dDig2').next = 'south'; // the ditch drains the field to clear in spring: a link across seasons
+
+// ---- State of the mock
+let stress = false, village = false, colourBy = 'chain', barMode = 'all', sel = null, whyId = null, drag = null, kept = new Set(), added = {};
+const K = 7; // px of map per day along a line
+const net = () => (stress ? BASE.concat(STRESS) : BASE);
+const byId = (id) => net().find((s) => s.id === id);
+
+// ---- The pass: forward (earliest start, levy days take their pawn's hand), backward (latest start), slack.
+function pass() {
+  const L = net(), done = new Set(), order = [];
+  const visit = (s) => { if (done.has(s.id)) return; done.add(s.id); s.pre.forEach((p) => visit(byId(p))); order.push(s); };
+  L.forEach(visit);
+  const levies = L.filter((s) => s.levy && s.day != null && s.takes);
+  for (const s of order) {
+    s.succ = L.filter((t) => t.pre.includes(s.id)).map((t) => t.id);
+    s.disp = null;
+    if (s.levy || s.far) { s.S = s.day ?? s.win[1]; s.E = s.Ehi = s.S + (s.day != null ? 1 : 0); continue; }
+    if (s.state === 'done' || s.state === 'cut') { s.S = s.start; s.E = s.end; continue; }
+    const hands = s.hands + (added[s.id] || 0);
+    const es = Math.max(s.start ?? 4, s.win[0], ...s.pre.map((p) => byId(p).E));
+    s.S = Math.max(es, s.fix ?? 0);
+    let dur = s.h.mid / (hands * 10);
+    for (const l of levies) {
+      const holds = s.who.includes(l.takes) || (s.pool || []).includes(l.takes);
+      if (holds && l.day >= Math.floor(s.S) && l.day < s.S + dur) { dur += 1 / hands; s.disp = { by: l.id, hours: 10, days: 1 / hands }; }
+    }
+    s.dur = dur; s.E = s.S + dur; s.Ehi = s.S + s.h.hi / (hands * 10) + (s.disp ? s.disp.days : 0);
+  }
+  for (const s of order.slice().reverse()) {
+    if (s.levy || s.far || s.state === 'done' || s.state === 'cut') { s.LS = null; s.slack = null; continue; }
+    const lf = Math.min(s.win[1] + 1, ...s.succ.map((t) => byId(t).LS).filter((v) => v != null));
+    s.LS = lf - (s.E - s.S); s.slack = Math.round((s.LS - s.S) * 2) / 2;
+    s.crit = s.slack <= 0; s.risk = s.slack < 0;
+  }
+  if (!L.S0) for (const s of L) if (s.S0 == null) s.S0 = s.S;
+}
+// The station's direction along its line: toward its first successor, else from its first predecessor.
+function dirOf(s) {
+  const t = s.succ && s.succ[0] ? byId(s.succ[0]) : s.pre[0] ? byId(s.pre[0]) : null;
+  if (!t) return { x: 1, y: 0 };
+  let dx = t.xy.x - s.xy.x, dy = t.xy.y - s.xy.y; if (!s.succ[0]) { dx = -dx; dy = -dy; }
+  const n = Math.hypot(dx, dy) || 1; return { x: dx / n, y: dy / n };
+}
+function posOf(s) { if (s.fixedPos || s.S0 == null || s.S == null) return s.xy; const d = dirOf(s), k = (s.S - s.S0) * K; return { x: s.xy.x + d.x * k, y: s.xy.y + d.y * k }; }
+const colOf = (s) => (colourBy === 'whose' ? WHOSEC[s.whose || LINES[s.line].whose] : LINES[s.line].c);
+const fmtD = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + String(Math.abs(v)).replace('.5', '½') + 'd';
+const dayOf = (t) => Math.floor(t + 1e-6);
+
+// ---- Drawing
+const svg = document.getElementById('map'), bub = document.getElementById('bubble');
+function iconAt(x, y, html, size) { return `<g transform="translate(${x - size / 2} ${y - size / 2})">${html}</g>`; }
+function stationIcon(s, size = 26) {
+  const hollow = !s.who.length && s.frame !== 'target';
+  const state = s.risk ? 'risk' : s.state === 'doing' ? null : s.state;
+  const author = kept.has(s.id) ? 'kept' : s.author;
+  return icon(s.g, { frame: s.frame, whose: hollow ? null : s.whose || 'household', state, author, ghost: hollow, size });
+}
+function render() {
+  pass();
+  const L = net(), lit = whyId ? chainUp(byId(whyId)) : null, dimmed = (id) => (lit && !lit.has(id) ? ' class="dim"' : '');
+  let lines = '', bars = '', stns = '', over = '';
+  // lines: casing then colour; critical thick; past faded; the cut link broken.
+  for (const s of L) for (const p of s.pre.concat(s.next ? [] : [])) {
+    const a = posOf(byId(p)), b = posOf(s), crit = byId(p).crit && s.crit, past = s.state === 'done' || s.state === 'cut' || byId(p).state === 'done';
+    const w = crit ? 8 : s.stub ? 2.5 : 4.5, c = colOf(s);
+    lines += `<g${dimmed(s.id)}><path d="M${a.x} ${a.y}L${b.x} ${b.y}" stroke="#fff" stroke-width="${w + 3}" stroke-linecap="round"/>`;
+    if (s.cut) {
+      const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, nx = -(b.y - a.y), ny = b.x - a.x, n = Math.hypot(nx, ny), ux = nx / n * 8, uy = ny / n * 8, tx = (b.x - a.x) / n * 4, ty = (b.y - a.y) / n * 4;
+      lines += `<path d="M${a.x} ${a.y}L${m.x - tx} ${m.y - ty}M${m.x + tx} ${m.y + ty}L${b.x} ${b.y}" stroke="${c}" stroke-width="${w}" opacity=".5"/>` +
+        `<path d="M${m.x - tx + ux} ${m.y - ty + uy}l${-2 * ux} ${-2 * uy}M${m.x + tx + ux} ${m.y + ty + uy}l${-2 * ux} ${-2 * uy}" stroke="#2a2018" stroke-width="1.6"/>` +
+        `<text x="${m.x - 34}" y="${m.y + 22}" font-size="8" font-style="italic" fill="#2a2018">cut at nightfall · resumed 06:00</text></g>`;
+      continue;
+    }
+    lines += `<path d="M${a.x} ${a.y}L${b.x} ${b.y}" stroke="${c}" stroke-width="${w}" stroke-linecap="round" opacity="${past ? .45 : 1}"${s.line === 'aim' ? ' stroke-dasharray="7 4"' : ''}/></g>`;
+  }
+  for (const s of L) if (s.stub) { const b = posOf(s), h = at('home'); lines += `<path${dimmed(s.id)} d="M${h.x} ${h.y}L${b.x} ${b.y}" stroke="${colOf(s)}" stroke-width="2" opacity=".6"/>`; }
+  // the village line: the levy days strung together in the village's colour (a line of its own, not precedence)
+  const vl = ['vBridge', 'vFence', 'vFence2'].map((i) => posOf(byId(i)));
+  lines += `<path d="M${vl.map((p) => p.x + ' ' + p.y).join('L')}" stroke="#fff" stroke-width="8" fill="none"/><path d="M${vl.map((p) => p.x + ' ' + p.y).join('L')}" stroke="${LINES.village.c}" stroke-width="5" fill="none" stroke-dasharray="${colourBy === 'whose' ? '' : ''}"/>`;
+  // off the edge: long goals continue into the inset (cartographic continuation letters)
+  const edge = (from, pts, letter, c, dash) => `<path d="M${[from, ...pts].map((p) => p.x + ' ' + p.y).join('L')}" stroke="#fff" stroke-width="7" fill="none"/><path d="M${[from, ...pts].map((p) => p.x + ' ' + p.y).join('L')}" stroke="${c}" stroke-width="4" fill="none"${dash ? ' stroke-dasharray="7 4"' : ''}/>` +
+    `<g transform="translate(${pts[pts.length - 1].x} ${pts[pts.length - 1].y})"><path d="M0 -9l12 9-12 9z" fill="${c}"/><circle cx="22" r="9" fill="#fff" stroke="${c}" stroke-width="2"/><text x="22" y="4" font-size="11" font-weight="700" text-anchor="middle" fill="${c}">${letter}</text></g>`;
+  lines += edge(posOf(byId('south')), [{ x: 420, y: 400 }, { x: 870, y: 400 }], 'A', LINES.project.c);
+  lines += edge(at('home'), [{ x: 300, y: 300 }, { x: 250, y: 460 }, { x: 870, y: 460 }], 'B', LINES.aim.c, true);
+  lines += edge(posOf(byId('nLeave')), [P('norr', 0, -18), { x: 870, y: 52 }], 'C', LINES.aim.c, true);
+  if (stress) { lines += edge(posOf(byId('eCart')), [{ x: 470, y: 352 }, { x: 870, y: 352 }], 'D', LINES.estate.c, true); const a = posOf(byId('dDig2')), b = posOf(byId('south')); lines += `<path d="M${a.x} ${a.y}L${b.x} ${b.y}" stroke="${LINES.ditch.c}" stroke-width="3" stroke-dasharray="2 4"/>`; }
+  // village works: 19 other households, a fan of short lines into the fence station and the bridge
+  if (village) {
+    const f = posOf(byId('vFence')), g = posOf(byId('vBridge'));
+    VILLAGE.households.slice(1).forEach((hh, i) => {
+      const x = 735 + (i % 3) * 52, y = 30 + Math.floor(i / 3) * 70 + (i % 3) * 14, toName = hh.toName > 0;
+      lines += `<path d="M${x} ${y}L${f.x} ${f.y}" stroke="${LINES.village.c}" stroke-width="1.6" opacity=".55"${toName ? ' stroke-dasharray="3 3"' : ''}/><path d="M${x} ${y}L${g.x} ${g.y}" stroke="${LINES.village.c}" stroke-width="1" opacity=".3"/>`;
+      over += `<g class="stn fixed" data-hh="${i + 1}"><circle cx="${x}" cy="${y}" r="7" fill="${toName ? '#fff' : LINES.village.c}" stroke="${LINES.village.c}" stroke-width="2"/><text x="${x}" y="${y + 17}" font-size="8" text-anchor="middle">${hh.name.slice(0, 5)}</text></g>`;
+    });
+  }
+  // displaced cost: a dashed link from the levy day to the step it takes a hand from, with its hours
+  for (const s of L) if (s.disp) {
+    const a = posOf(byId(s.disp.by)), b = posOf(s), m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    over += `<path d="M${a.x} ${a.y}L${b.x} ${b.y}" stroke="${LINES.village.c}" stroke-width="2" stroke-dasharray="5 4"/><g transform="translate(${m.x} ${m.y})"><rect x="-38" y="-9" width="76" height="18" rx="9" fill="#fff" stroke="${LINES.village.c}"/><text y="4" font-size="10" font-weight="700" text-anchor="middle">displaced −${s.disp.hours}h</text></g>`;
+  }
+  // window bars along the line, beside it: the window open→close, the span thick, the hi estimate hatched, the slack whisker
+  for (const s of L) {
+    if (s.levy && s.id !== 'vFence') continue;
+    if (s.state === 'done' || s.state === 'cut' || s.stub || s.id === 'south') continue;
+    if (barMode === 'sel' && !s.crit && sel !== s.id && drag?.id !== s.id && s.id !== 'vFence') continue;
+    const d = dirOf(s), p0 = s.xy, nx = -d.y * 17, ny = d.x * 17, at0 = (t) => ({ x: p0.x + d.x * (t - s.S0) * K + nx, y: p0.y + d.y * (t - s.S0) * K + ny });
+    const o = Math.max(4, s.win[0]), c = colOf(s), A = at0(o), B = at0(s.win[1] + 1);
+    let b = `<path d="M${A.x} ${A.y}L${B.x} ${B.y}" stroke="#2a201855" stroke-width="3"/>`;
+    for (let t = o; t <= s.win[1] + 1; t++) { const q = at0(t); b += `<circle cx="${q.x}" cy="${q.y}" r="${t === s.win[1] + 1 ? 2.6 : 1}" fill="#2a2018"/>`; }
+    if (s.target) { const q = at0(s.win[1] + 1); bars += `<g${dimmed(s.id)}>${b}<text x="${q.x + 4}" y="${q.y + 3}" font-size="8">day ${s.win[1]}</text></g>`; continue; }
+    const s1 = at0(s.S), e1 = at0(Math.min(s.E, s.win[1] + 3)), e2 = at0(Math.min(s.Ehi, s.win[1] + 3)), ls = s.LS != null ? at0(s.LS) : null;
+    b += `<path d="M${e1.x} ${e1.y}L${e2.x} ${e2.y}" stroke="${c}" stroke-width="5" stroke-dasharray="2 2" opacity=".6"/><path d="M${s1.x} ${s1.y}L${e1.x} ${e1.y}" stroke="${c}" stroke-width="5"/>`;
+    if (ls && s.slack > 0) b += `<path d="M${s1.x} ${s1.y}L${ls.x} ${ls.y}" stroke="#2a2018" stroke-width="1" stroke-dasharray="1 2"/>`;
+    b += `<text x="${s1.x}" y="${s1.y - 5}" font-size="8" text-anchor="middle">${dayOf(s.S)}</text>`;
+    bars += `<g${dimmed(s.id)}>${b}</g>`;
+  }
+  // stations
+  for (const s of L) {
+    const p = posOf(s), sz = s.frame === 'target' ? 30 : s.stub ? 20 : 26, fixed = s.fixedPos || s.state === 'done' || s.state === 'cut' || s.state === 'doing' || s.frame === 'target';
+    let g = iconAt(p.x, p.y, stationIcon(s, sz), sz);
+    if (s.slack != null && !s.stub) {
+      const f = s.risk ? '#c8361b' : s.crit ? '#2a2018' : '#fff', tc = s.risk || s.crit ? '#fff' : '#2a2018', t = fmtD(s.slack);
+      g += `<g transform="translate(${p.x + sz / 2 - 2} ${p.y + sz / 2 - 2})"><path d="M0 0h${t.length * 5.6 + 6}l4 6-4 6H0z" fill="${f}" stroke="#2a2018" stroke-width=".8"/><text x="3" y="9.4" font-size="9" font-weight="700" fill="${tc}">${t}</text></g>`;
+    }
+    if (s.levy && s.day != null) g += `<text x="${p.x}" y="${p.y + 24}" font-size="9" font-weight="700" text-anchor="middle" fill="${s.whose === 'own' ? '#1f5f5c' : LINES.village.c}">day ${s.day}</text>`;
+    if (s.id === 'vFence2') g += `<text x="${p.x}" y="${p.y + 24}" font-size="8.5" text-anchor="middle" fill="${LINES.village.c}">to name ≤ 9</text>`;
+    stns += `<g class="stn${fixed ? ' fixed' : ''}" data-id="${s.id}"${dimmed(s.id)}>${g}</g>`;
+  }
+  const map = `<g transform="scale(1.1)">${DEFS}${mapSVG()}<rect x="0" y="0" width="905" height="530" fill="#fff" opacity=".28"/>${lines}${bars}${stns}${over}` +
+    `<text x="14" y="520" font-size="10" fill="#2a2018" opacity=".7">Backa · autumn, day 4, 10:00 · stations at their places; a line joins a step to what it waits for</text></g>`;
+  svg.innerHTML = map + inset() + strip();
+}
+// ---- The why: the chain from a station up to its target and the year.
+const YEARWHY = { rye: 'Food for the year: bread and seed till next harvest', barley: 'Food for the year: malt, porridge, the ale', wood: 'The winter: the house\'s fire', sow: 'Next year\'s rye: the field sown before frost' };
+function chainUp(s) { const seen = new Set([s.id]); const go = (x) => x.succ.forEach((t) => { if (!seen.has(t)) { seen.add(t); go(byId(t)); } }); go(s); return seen; }
+function whyList(s) {
+  const out = [s]; let x = s; while (x.succ && x.succ.length) { x = byId(x.succ[0]); out.push(x); }
+  return out.map((t) => `<li>${stationIcon(t, 22)}${t.what}${t.slack != null ? ` <small>(${fmtD(t.slack)})</small>` : ''}</li>`).join('') +
+    `<li>${icon('grain', { frame: 'target', whose: null, size: 22 })}${YEARWHY[s.line] || s.why || 'the custom'}</li>`;
+}
+// ---- Inset: beyond the season's edge (A south field, B Erik, C Nils, D estate); legend.
+function inset() {
+  const X = 1006, Wd = 266;
+  const box = (y, h, title) => `<rect x="${X}" y="${y}" width="${Wd}" height="${h}" fill="#f6f5ef" stroke="#2a2018" stroke-width="1"/><rect x="${X}" y="${y}" width="${Wd}" height="16" fill="#2a2018"/><text x="${X + 6}" y="${y + 12}" font-size="10.5" fill="#fff" letter-spacing=".05em">${title}</text>`;
+  const row = (y, letter, c, items, dash) => {
+    let s = `<circle cx="${X + 16}" cy="${y}" r="9" fill="#fff" stroke="${c}" stroke-width="2"/><text x="${X + 16}" y="${y + 4}" font-size="11" font-weight="700" text-anchor="middle" fill="${c}">${letter}</text>`;
+    s += `<path d="M${X + 25} ${y}H${X + 40 + (items.length - 1) * 56}" stroke="${c}" stroke-width="4"${dash ? ' stroke-dasharray="7 4"' : ''}/>`;
+    items.forEach(([g, o, t, id], i) => { const x = X + 46 + i * 56; s += `<g class="stn fixed" data-far="${id}">${iconAt(x, y, icon(g, { size: 26, ...o }), 26)}<text x="${x}" y="${y + 25}" font-size="8" text-anchor="middle">${t}</text></g>`; });
+    return s;
+  };
+  const hollow = { whose: null, ghost: true };
+  let s = box(4, 82, 'WINTER · days 1–12') + (stress
+    ? row(46, 'D', LINES.estate.c, [['cart', { whose: 'estate', ghost: true }, 'cart ×3', 'D1'], ['build', { frame: 'target', whose: 'estate' }, "lord's call", 'D2']], true)
+    : `<text x="${X + 10}" y="40" font-size="10" fill="#5d6253">(the estate's 3 carting days: stress)</text><text x="${X + 10}" y="56" font-size="10" fill="#5d6253">threshing goes on; firewood burns</text>`);
+  s += box(92, 92, 'NEXT SEASON · spring') + row(140, 'A', LINES.project.c, [['spade', hollow, 'grub', 'A1'], ['hoe', hollow, 'plough', 'A2'], ['sow', hollow, 'sow', 'A3'], ['field', { frame: 'target' }, 'south field', 'A4']]);
+  s += `<text x="${X + 8}" y="176" font-size="8.5" fill="#5d6253" font-style="italic">the year's project; nobody's line yet; ~60–90 adult-days</text>`;
+  s += box(190, 128, 'NEXT YEAR') + row(232, 'B', LINES.aim.c, [['courting', { whose: 'own' }, 'court', 'B1'], ['plan', { whose: 'own', ghost: true }, 'banns', 'B2'], ['married', { frame: 'target', whose: 'own' }, 'marry', 'B3'], ['holder', { frame: 'target', whose: 'own' }, 'the farm', 'B4']], true);
+  s += row(290, 'C', LINES.aim.c, [['courting', { whose: 'own' }, 'gathering', 'C1'], ['courting', { frame: 'target', whose: 'own' }, 'court Lisa', 'C2']], true);
+  s += `<text x="${X + 162}" y="294" font-size="8.5" fill="#5d6253" font-style="italic">Nils' aim, own hours</text>`;
+  // legend
+  let y = 330; s += box(y, 300, 'LEGEND');
+  const lg = Object.entries(LINES).filter(([k]) => stress || !['wash', 'ditch', 'estate', 'misc'].includes(k));
+  lg.forEach(([k, l], i) => { const yy = y + 28 + Math.floor(i / 2) * 15, xx = X + 8 + (i % 2) * 130; s += `<path d="M${xx} ${yy}h22" stroke="${colourBy === 'whose' ? WHOSEC[l.whose] : l.c}" stroke-width="4"${k === 'aim' ? ' stroke-dasharray="5 3"' : ''}/><text x="${xx + 27}" y="${yy + 3.5}" font-size="9">${l.name}</text>`; });
+  y += 28 + Math.ceil(lg.length / 2) * 15;
+  const it = (yy, html, t) => `${iconAt(X + 20, yy, html, 22)}<text x="${X + 38}" y="${yy + 3.5}" font-size="9.5">${t}</text>`;
+  s += `<path d="M${X + 8} ${y + 2}h24" stroke="${LINES.barley.c}" stroke-width="8"/><text x="${X + 38}" y="${y + 5.5}" font-size="9.5">critical path: no slack</text>`;
+  s += it(y + 24, icon('chop', { frame: 'plan', size: 22 }), 'a station somebody holds') + it(y + 48, icon('chop', { frame: 'plan', whose: null, ghost: true, size: 22 }), "hollow: nobody's line");
+  s += it(y + 72, icon('cart', { frame: 'plan', state: 'cut', size: 22 }), 'cut and resumed (new)') + it(y + 96, icon('tree', { frame: 'plan', state: 'back', whose: null, ghost: true, size: 22 }), 'the rule took it back');
+  y += 112;
+  s += `<g transform="translate(${X + 10} ${y})"><path d="M0 0h20l4 6-4 6H0z" fill="#fff" stroke="#2a2018" stroke-width=".8"/><text x="3" y="9.4" font-size="9" font-weight="700">+2d</text><path d="M30 0h20l4 6-4 6H30z" fill="#c8361b" stroke="#2a2018" stroke-width=".8"/><text x="33" y="9.4" font-size="9" font-weight="700" fill="#fff">−½d</text><text x="62" y="9.5" font-size="9.5">slack in days; red: at risk</text></g>`;
+  y += 20;
+  s += `<g transform="translate(${X + 10} ${y})"><path d="M0 6h70" stroke="#2a201855" stroke-width="3"/><path d="M12 6h30" stroke="#d9b300" stroke-width="5"/><path d="M42 6h14" stroke="#d9b300" stroke-width="5" stroke-dasharray="2 2" opacity=".6"/><circle cx="70" cy="6" r="2.6" fill="#2a2018"/><text x="78" y="9.5" font-size="9.5">window · span · to the high estimate · close</text></g>`;
+  return s;
+}
+// ---- The line diagram below the map: each line a row, days 4..13 (the strip owns time; the map owns place).
+function strip() {
+  const rows = [...new Set(net().filter((s) => s.line !== 'project' && !s.stub).map((s) => s.line))], x0 = 96, dx = 96, y0 = 600, rh = Math.min(19, 132 / rows.length);
+  const X = (t) => x0 + (t - 4) * dx;
+  let s = `<rect x="0" y="${y0 - 14}" width="1000" height="${758 - y0 + 14}" fill="#f6f5ef" stroke="#c3c8b6"/><text x="8" y="${y0 - 2}" font-size="10" fill="#5d6253">line diagram · days</text>`;
+  for (let d = 4; d <= 13; d++) s += `<path d="M${X(d)} ${y0 + 2}V${y0 + 6 + rows.length * rh}" stroke="#0002"/><text x="${X(d) + dx / 2}" y="${y0 - 2}" font-size="10" text-anchor="middle">${d <= 12 ? d : '→ winter'}</text>`;
+  s += `<path d="M${X(4.33)} ${y0}V${y0 + 6 + rows.length * rh}" stroke="#2a2018" stroke-width="1.5" stroke-dasharray="2 2"/>`;
+  rows.forEach((ln, i) => {
+    const y = y0 + 6 + i * rh + rh / 2, c = LINES[ln].c, ss = net().filter((t) => t.line === ln && t.S != null && !t.target && !t.far && !(t.levy && t.day == null));
+    s += `<text x="8" y="${y + 3}" font-size="9">${LINES[ln].name}</text><path d="M${x0} ${y}H${X(13)}" stroke="${c}" stroke-width="1" opacity=".4"/>`;
+    for (const t of ss) {
+      const a = X(Math.max(4, t.S)), b = X(Math.min(t.E, 13.9)), w = t.crit ? 7 : 4;
+      if (t.E < 4) continue;
+      s += `<g class="stn fixed" data-strip="1" data-id="${t.id}"><path d="M${a} ${y}H${Math.max(a + 3, b)}" stroke="${t.risk ? '#c8361b' : c}" stroke-width="${w}"${!t.who.length ? ' opacity=".5"' : ''}/>`;
+      if (t.Ehi > t.E) s += `<path d="M${b} ${y}H${X(Math.min(t.Ehi, 13.9))}" stroke="${c}" stroke-width="${w}" stroke-dasharray="2 2" opacity=".5"/>`;
+      s += `<circle cx="${a}" cy="${y}" r="3" fill="#fff" stroke="#2a2018"/></g>`;
+    }
+    for (const t of net().filter((t) => t.line === ln && (t.target || (t.levy && t.day)))) s += `<path d="M${X(t.target ? t.win[1] + 1 : t.day)} ${y - 6}v12" stroke="#2a2018" stroke-width="${t.target ? 2.5 : 1.5}"/>`;
+  });
+  return s;
+}
+// ---- Bubble, acts, why
+function place(e) { let x = e.clientX + 14, y = e.clientY - 20; if (x + 340 > innerWidth) x = e.clientX - 350; Object.assign(bub.style, { left: x + 'px', top: Math.max(48, Math.min(y, innerHeight - bub.offsetHeight - 10)) + 'px' }); }
+let tt; function toast(h) { const t = document.getElementById('toast'); t.innerHTML = h; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2800); }
+const authorOf = (s) => (kept.has(s.id) ? 'Per wrote it and keeps it: the rule will not take it back' : s.author === 'player' ? 'Per wrote it; the rule may take it back if at risk by its day' : s.levy ? (s.grant ? 'Per granted it (leave)' : 'the village: the meeting\'s lots') : s.frame === 'target' ? "the season's template, Per's targets" : 'the rule (the season template)');
+function bubbleFor(s, e) {
+  const hands = s.hands + (added[s.id] || 0), whoT = s.who.length ? s.who.map((w) => NAME[w]).join(', ') : s.pool ? `nobody's line: the day allots ${s.pool.map((w) => NAME[w]).join(' or ')} as it comes` : "nobody's line";
+  let dl = `<dt>where</dt><dd>${s.what}</dd><dt>who</dt><dd>${whoT}</dd><dt>chose</dt><dd>${authorOf(s)}</dd>`;
+  if (s.h.mid) dl += `<dt>estimate</dt><dd>${s.h.lo}–<b>${s.h.mid}</b>–${s.h.hi} h left, ${hands} hands: ${(s.h.mid / hands / 10).toFixed(1)} days at mid</dd>`;
+  if (s.S != null && !s.levy && !s.target) dl += `<dt>dates</dt><dd>day ${dayOf(s.S)} to ${dayOf(s.E - 0.01)}${s.disp ? ` (+${s.disp.days.toFixed(1)} d: the ${byId(s.disp.by).what.split(':')[0].toLowerCase()} takes ${NAME[byId(s.disp.by).takes]})` : ''}</dd>`;
+  if (s.levy) dl += `<dt>day</dt><dd>${s.day ?? 'not yet named'}; ${s.whose === 'owed' ? `lot terms: named by us, notice 3 days, substitute yes, commute 3 rations` : s.whose === 'estate' ? 'at the lord\'s call, notice 1 day, no substitute' : 'his own hours, granted'}</dd>`;
+  dl += `<dt>window</dt><dd>days ${s.win[0]}–${s.win[1]}</dd>`;
+  if (s.slack != null) dl += `<dt>slack</dt><dd><b>${fmtD(s.slack)}</b>${s.crit ? (s.risk ? ' · at risk: past its window' : ' · on the critical path') : ''}${s.Ehi > s.LS + (s.E - s.S) && !s.risk ? ' · short at the high estimate' : ''}</dd>`;
+  if (s.state === 'cut') dl += `<dt>cut</dt><dd>Begun yesterday; cut by nightfall at the wood with 1 load felled. The pile lay there with our mark; this morning the stray method took it up (load, haul) before the cutting.</dd>`;
+  if (s.back) dl += `<dt>back</dt><dd>${s.back}. Nobody holds it now.</dd>`;
+  let rem = '';
+  if (s.risk || s.id === 'bReap') rem = `<b>Remedies, each with its cost</b>` + [
+    ['add a hand', 'assign Nils -> Reap the barley, days 7–9', 'the firewood waits: −10 h on its line'],
+    ['fence day back', 'name fence lot -> day 6', 'Erik on the fence on day 6, when the rye no longer needs him'],
+    ['3 rations', 'commute fence lot: 3 rations', 'from the store; Erik free (+10 h)'],
+    ['another day', 'plan Reap the barley: by day 11', 'past the window: 2–4 sheaves shed'],
+  ].map(([t, v, c]) => `<div class="rem"><button data-v="${v}">${t}</button><small>${c}</small></div>`).join('') + `<div class="deflt">Unanswered by day 6, <b>the rule will: add Nils</b> (days 7–9); the firewood waits.</div>`;
+  bub.innerHTML = `<h4>${stationIcon(s, 30)}${s.what}</h4><dl>${dl}</dl>${rem}<div class="acts">` +
+    (s.frame === 'target' ? '<button data-v="plan target: lower">lower the target</button>' : `<button data-a="assign">assign…</button>${s.levy ? `<button data-v="name ${s.what.split(':')[0]} -> another day">name another day</button>` : '<button data-a="move">move…</button>'}<button data-v="keep ${s.what}">keep my order</button><button data-v="release ${s.what} to the rule">let the rule take it back</button>`) +
+    `<button class="more" data-a="why">why ↑</button></div><div class="por" id="por"></div>` + (whyId === s.id ? `<ul class="why">${whyList(s)}</ul>` : '');
+  bub.hidden = false; if (e) place(e);
+  bub.querySelectorAll('[data-v]').forEach((b) => (b.onclick = (ev) => {
+    ev.stopPropagation(); const v = b.dataset.v; toast(`would issue <code>${v.split(' ')[0]}</code> ${v.split(' ').slice(1).join(' ')}`);
+    if (v.startsWith('keep')) kept.add(s.id); if (v.startsWith('release')) kept.delete(s.id);
+    if (v.startsWith('name fence lot -> day 6')) byId('vFence').day = 6;
+    if (v.startsWith('assign Nils')) added.bReap = (added.bReap || 0) + 1;
+    if (v.startsWith('commute')) byId('vFence').day = null;
+    bub.hidden = true; render();
+  }));
+  bub.querySelectorAll('[data-a]').forEach((b) => (b.onclick = (ev) => {
+    ev.stopPropagation(); const a = b.dataset.a;
+    if (a === 'why') { whyId = whyId === s.id ? null : s.id; render(); return bubbleFor(s, null); }
+    if (a === 'move') { toast('drag the station along its line: each day is a step on its window bar'); return; }
+    document.getElementById('por').innerHTML = ['per', 'karin', 'erik', 'nils', 'anna'].map((m) => `<button data-p="${m}"><svg width="18" height="22" viewBox="-11 -22 22 30">${pawnSVG(PEOPLE.find((p) => p.id === m), 0, 0, 1)}</svg>${NAME[m]}</button>`).join('');
+    document.querySelectorAll('#por [data-p]').forEach((pb) => (pb.onclick = (e2) => { e2.stopPropagation(); const m = pb.dataset.p; if (!s.who.includes(m)) { s.who = s.who.concat(m); added[s.id] = (added[s.id] || 0) + 1; } toast(`would issue <code>assign</code> ${NAME[m]} -> ${s.what}`); bub.hidden = true; render(); }));
+  }));
+}
+const FAR = { A1: 'Grub the stumps (spring, after the thaw)', A2: 'Plough the cleared land', A3: 'Sow barley in the south field', A4: 'The south field in tilth: the year\'s project', B1: "Erik courts (own hours, Sundays)", B2: 'The banns: Per must agree to hand over', B3: "Erik's aim: marry", B4: 'Take the farm: the elder\'s contract for Per and Karin', C1: "Nils' leave, day 8: the gathering", C2: "Nils' aim: court Lisa at Norrgård", D1: "Carting for the manor: 3 days at the lord's call, notice 1 day", D2: 'The estate\'s due on the village, split as lots' };
+function farBubble(id, e) {
+  bub.innerHTML = `<h4>${FAR[id]}</h4><dl><dt>when</dt><dd>${id[0] === 'D' ? 'winter, a day the lord names' : id[0] === 'A' ? 'spring: Per\'s estimate, 2 weeks to 4' : 'next year: a range, one to three years'}</dd><dt>chose</dt><dd>${id[0] === 'A' ? "Per (the year's project)" : id[0] === 'D' ? 'the estate' : 'the member, own hours'}</dd><dt>why</dt><dd>${id[0] === 'B' ? 'the heir marries to take the farm; the farm needs two pairs of hands' : id[0] === 'C' ? 'a second son leaves the house by a match or service' : id[0] === 'A' ? 'more barley land: the barley is short every year' : 'the lord\'s right on the village'}</dd></dl><div class="acts"><button data-v="${id[0] === 'D' ? 'ask release of a carting day' : id[0] === 'A' ? 'plan the south field: from spring day 1' : 'grant leave on a Sunday'}">${id[0] === 'D' ? 'ask release' : id[0] === 'A' ? 'plan' : 'grant'}</button><button data-v="ask why">why ↑</button></div>`;
+  bub.hidden = false; place(e);
+  bub.querySelectorAll('[data-v]').forEach((b) => (b.onclick = (ev) => { ev.stopPropagation(); const v = b.dataset.v; toast(`would issue <code>${v.split(' ')[0]}</code> ${v.split(' ').slice(1).join(' ')}`); bub.hidden = true; }));
+}
+// ---- Drag a station along its line: re-date it; the pass recomputes live.
+function mapPt(e) { const g = svg.querySelector('g'), p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(g.getScreenCTM().inverse()); }
+svg.addEventListener('pointerdown', (e) => {
+  const far = e.target.closest('[data-far]'), hh = e.target.closest('[data-hh]');
+  if (far) return farBubble(far.dataset.far, e);
+  if (hh) { const h = VILLAGE.households[+hh.dataset.hh]; bub.innerHTML = `<h4>${h.name}</h4><dl><dt>fence lot</dt><dd>${h.lot} adult-days; ${h.toName} still to name</dd><dt>known</dt><dd>as the meeting tells it: the days named, not their hours</dd></dl><div class="acts"><button onclick="toast('would issue <code>ask</code> ${h.name}: a hand for the barley, day 7');bub.hidden=true">ask a hand</button></div>`; bub.hidden = false; return place(e); }
+  const g = e.target.closest('.stn'); if (!g) { bub.hidden = true; if (whyId) { whyId = null; render(); } return; }
+  const s = byId(g.dataset.id); if (!s) return;
+  const p = mapPt(e);
+  drag = { id: s.id, x0: e.clientX, y0: e.clientY, p0: p, S0: s.levy ? s.day : s.S, moved: false, can: !g.classList.contains('fixed') && !g.closest('[data-strip]'), e };
+});
+addEventListener('pointermove', (e) => {
+  if (!drag) return; if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 4) drag.moved = true;
+  if (!drag.moved || !drag.can) return;
+  const s = byId(drag.id), p = mapPt(e), d = s.levy ? { x: 1, y: 0 } : dirOf(s), dd = Math.round(((p.x - drag.p0.x) * d.x + (p.y - drag.p0.y) * d.y) / K);
+  const v = Math.max(s.levy ? 4 : s.win[0], Math.min(s.win[1] + 1, drag.S0 + dd));
+  if (s.levy) { if (s.day !== v) { s.day = v; bub.hidden = true; render(); } } else if (s.fix !== v) { s.fix = v; bub.hidden = true; render(); }
+});
+addEventListener('pointerup', (e) => {
+  if (!drag) return; const s = byId(drag.id), was = drag; drag = null;
+  if (!was.moved) return bubbleFor(s, was.e);
+  if (!was.can) return;
+  render();
+  toast(s.levy ? `would issue <code>name</code> ${s.what.split(':')[0]} -> day ${s.day} (${NAME[s.takes]})${net().some((t) => t.disp) ? ' · displaced: ' + net().filter((t) => t.disp).map((t) => t.what).join(', ') : ''}` : `would issue <code>plan</code> ${s.what}: from day ${dayOf(s.S)}`);
+});
+function seg(id, fn) { const el = document.getElementById(id); el.onclick = (e) => { const b = e.target.closest('button'); if (!b) return; el.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b)); fn(b.dataset.v); bub.hidden = true; render(); }; }
+seg('colour', (v) => (colourBy = v)); seg('bars', (v) => (barMode = v)); seg('stress', (v) => (stress = v === '1')); seg('village', (v) => (village = v === '1'));
+render();
+</script>
+</body>
+</html>
