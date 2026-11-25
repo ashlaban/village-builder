@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Threads of Why</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600&display=swap">
+<style>
+/* One screen: a thin band, the map filling the rest; a bubble, a toast and a corner note float above. */
+:root { --paper: #e6e9df; --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --accent: #a8473a;
+  --display: 'Alegreya SC', Georgia, serif; --body: 'Alegreya Sans', system-ui, sans-serif; color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.4 var(--body); }
+.band { height: 42px; display: flex; align-items: center; gap: 14px; padding: 0 16px; background: var(--card); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.band h1 { font: 500 1.15rem var(--display); margin: 0; }
+.band .mode { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button, .chip { font: inherit; font-size: 13px; border: 0; background: #fff; padding: 3px 9px; cursor: pointer; color: var(--ink); }
+.seg button[aria-pressed=true] { background: var(--ink); color: #fff; }
+.chips { display: flex; gap: 4px; align-items: center; margin-left: auto; font-size: 13px; color: var(--muted); }
+.chip { border: 1px solid var(--line); border-radius: 12px; }
+.chip:hover { border-color: var(--accent); }
+#stage { position: absolute; inset: 42px 0 0 0; }
+#map { width: 100%; height: 100%; display: block; }
+.nd, .rest, .pawn, .tile { cursor: pointer; }
+.nd:hover > svg, .rest:hover > svg { filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 2px #000a); }
+.nd.sel > svg { filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 3px #a8473a); }
+.rest.dim { opacity: .3; }
+.thread { fill: none; stroke-linecap: round; }
+#bubble { position: absolute; z-index: 5; width: 290px; background: #fffdf7; border: 1px solid #3a2a1a; border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 18px #0003; font-size: 13.5px; }
+#bubble h4 { margin: 0 0 6px; font: 600 15px var(--body); display: flex; gap: 8px; align-items: center; }
+#bubble dl { display: grid; grid-template-columns: 62px 1fr; gap: 2px 8px; margin: 0 0 8px; }
+#bubble dt { color: var(--muted); } #bubble dd { margin: 0; }
+#bubble .acts { display: flex; flex-wrap: wrap; gap: 5px; }
+#bubble .acts button { font: inherit; font-size: 13px; padding: 3px 8px; border-radius: 6px; border: 1px solid #3a2a1a; background: #fff; cursor: pointer; }
+#bubble .acts button.more { background: var(--ink); color: #fff; }
+#toast { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 7px 14px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 6; }
+#toast.on { opacity: 1; } #toast code { color: #f2c27a; }
+.note { position: absolute; right: 12px; bottom: 12px; z-index: 4; max-width: 380px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+.note summary { cursor: pointer; color: var(--muted); }
+.note p { margin: 6px 0 0; }
+.hint { position: absolute; left: 14px; bottom: 12px; font-size: 13px; color: var(--muted); background: #f6f5efcc; padding: 4px 8px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<header class="band">
+  <h1>Threads of why</h1><span class="mode">Look · why</span>
+  <span class="seg" id="dir"><button data-v="up" aria-pressed="true">why ↑</button><button data-v="down" aria-pressed="false">who feeds it ↓</button></span>
+  <span class="seg" id="draw"><button data-v="land" aria-pressed="true">on the land</button><button data-v="ladder" aria-pressed="false">why-ladder</button></span>
+  <span class="chips">try:<button class="chip" data-c="barley">barley stake</button><button class="chip" data-c="firewood">Nils</button><button class="chip" data-c="fence">Erik's fence day</button><button class="chip" data-c="visit">Nils at 14:00</button><button class="chip" data-c="storeDown">the barn ↓</button><button class="chip" data-c="anna">Anna</button></span>
+</header>
+<div id="stage"><svg id="map"></svg></div>
+<div id="bubble" hidden></div>
+<div id="toast"></div>
+<div class="hint">Click a pawn, a mark or a tile: its threads run up to their reasons. Click a node for why; again for its acts.</div>
+<details class="note"><summary>Scales to / strains at</summary>
+  <p><b>Scales to</b> one chain of 4 to 8 nodes at a time; reasons with places read at a glance (the levy at the fence, the target at the barn); a target's fan-down of up to about six feeders.</p>
+  <p><b>Strains at</b> many threads at once: the whole household's day drawn together is a hairball, so only one chain shows. Reasons with no place (the year's food, the winter, the village, the custom) pile into the edge column, far from the thing, and their threads cross the map; the ladder fixes that but loses the land. Nodes sharing a tile (the yard holds the store, the task and three targets) need hand-set offsets. A fan-down from the barn across a whole autumn would be dozens of threads.</p>
+  <p><b>Stress cases</b>: 1 Nils (knot = the cut, the pile at Hagen wood); 2 Nils at 14:00 and Per's 16:30 demand; 3 Erik's fence day (levy, terms, ladder of remedies); 4 the barley vs the labour budget, Nils' aim; 5 the frayed barley thread. New glyph: the knot (a cut task).</p>
+</details>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+// ---- Layout: the map plus a "no place" column at its right edge, for reasons that have no place on the land.
+const EDGE_X = MAP_W + 62, VBW = MAP_W + 132, VBH = MAP_H + 10;
+const P = (key, dx = 0, dy = 0) => { const a = at(key); return { x: a.x + dx, y: a.y + dy }; };
+const PAWN_AT = { per: P('long', -14, 12), karin: P('home', -22, 16), erik: P('long2', 0, 12), nils: P('home', 16, 16), anna: P('meadow', 0, 12) };
+const PCOL = Object.fromEntries(PEOPLE.map((p) => [p.id, p]));
+const H = (w) => WHOSE[w].c;
+// A paper-filled icon (no one's hours) would draw its white glyph on paper: darken the glyph.
+const ico = (g, o) => { const s = icon(g, o); return o.whose === null ? s.replace('stroke="#fff" stroke-width="1.9"', 'stroke="#2a2018" stroke-width="1.9"').replace('fill="#fff" stroke="none"', 'fill="#2a2018" stroke="none"') : s; };
+
+// ---- The chains. A node: lvl (hops from the clicked thing), glyph g, frame f, whose w, breach br, badge b, num n, place p (null:
+// no place, goes to the edge column), title t, info i, acts [[label, verb, effect]]. An edge: [child, parent, style, extra]; the
+// arrow points from what feeds to what it feeds, in both directions. Styles: up, fray (a break node at its middle), vs, pull,
+// demand, displace, next (a method step ahead), no.
+const actsStake = [['add a hand', 'assign Nils -> Reap the barley', 'mend'], ['move by', 'plan Reap the barley: by day 11', 'mend'], ['keep my order', 'keep Reap the barley', 'keep'], ['let the rule take it back', 'release Reap the barley', 'back']];
+const BRK_BARLEY = { g: 'people', n: '-8h', t: 'Short: 8 hours by day 9', i: { what: 'Nobody is named to the barley; the free hours of days 6 to 9 are 28 against 36 needed.', why: 'Erik is owed to the fence on day 6; Per is at the bridge on day 9.', who: "Per's estimate (the rule's sums)", est: '4 to 16 h short (mid 8)' }, acts: actsStake };
+const LEVY_ACTS = [['name another day', 'name fence: Erik, day 7'], ['substitute', 'substitute Nils for Erik, day 6'], ['ask release', 'ask the meeting: release day 6'], ['commute 3 rations', 'commute fence day: 3 rations'], ['breach (the village remembers, the meeting fines)', 'breach fence day 6']];
+const v1 = LEVIES.v1, terms = `${v1.days} adult-days, lots ${v1.lot}; names: ${v1.terms.names}; ${v1.terms.notice} days' notice; substitute yes; commute ${v1.terms.commute} rations; no carry; on breach: ${v1.terms.onBreach}`;
+const TGT = Object.fromEntries(SEASON.targets.map((t) => [t.good, t]));
+const est = (h) => `${h.lo} to ${h.hi} h (mid ${h.mid})`;
+const CH = {
+  barley: { dir: 'up', flip: 'barleyDown', anchor: 's', nodes: {
+    s: { lvl: 0, g: 'chop', f: 'dated', b: 'risk', p: P('barley', 0, -8), t: 'Reap the barley, days 6 to 9', i: { what: 'Cut, bind and stook the barley field.', why: 'Barley in the barn (season target).', who: 'Per wrote it (quill); the rule may take it back unless kept.', est: est(AHEAD[0].hours), terms: 'At risk: 8 h short by day 9.' }, acts: actsStake },
+    t: { lvl: 1, g: 'oats', f: 'season', n: '0/30', p: P('home', 30, -36), t: 'Barley in the barn', i: { what: '30 sheaves of barley in the barn by autumn\'s end.', why: 'Food for the year: bread and malt.', who: 'The custom: a holding of this size keeps barley.', est: est(TGT.oats.left) + ' still to do' }, acts: [['raise or lower the target', 'plan Barley in the barn: 24'], ['ask Norrgård for hands', 'ask Norrgård: 2 days at harvest']] },
+    bud: { lvl: 1, g: 'people', f: 'season', n: '28h', p: P('home', -32, -40), t: 'Labour budget, days 6 to 9', i: { what: 'Free household hours before day 9: 28.', why: 'Members\' levies (10.5 h an adult), less the fence day and the bridge.', who: 'The custom (levies) and the village (outer days).', est: '24 to 32 h' }, acts: [['demand hours of Nils', 'call Nils: 2.5 h own hours'], ['commute the fence day', 'commute fence day: 3 rations']] },
+    y: { lvl: 2, g: 'grain', f: 'year', p: null, t: 'Food for the year', i: { what: 'Bread, porridge and seed for five until next harvest.', why: 'The household lives on it.', who: 'Not a choice: the year.', est: 'Short by 2 to 6 weeks of bread if the barley stands.' }, acts: [] },
+  }, edges: [['s', 't', 'fray', { brk: BRK_BARLEY }], ['bud', 't', 'vs'], ['t', 'y']] },
+
+  barleyDown: { dir: 'down', flip: 'barley', anchor: 't', nodes: {
+    t: { lvl: 0, g: 'oats', f: 'season', n: '0/30', p: P('home', 30, -36), t: 'Barley in the barn: who works toward it', i: { what: 'One step feeds it; nobody is named to that step.', why: 'Food for the year.', who: 'The custom', est: est(TGT.oats.left) }, acts: [] },
+    s: { lvl: 1, g: 'chop', f: 'dated', b: 'risk', p: P('barley', 0, -8), t: 'Reap the barley, days 6 to 9', i: { what: 'The only step feeding the target.', why: 'Written by Per.', who: 'Per (quill)', est: est(AHEAD[0].hours) }, acts: actsStake },
+    h1: { lvl: 2, g: 'me', f: 'task', w: null, ghost: true, p: P('barley', -22, 30), t: 'No hand named', i: { what: 'An empty place for a hand.', why: 'Free candidates: Nils 14:00-16:30 (if his visit is refused), Erik from day 7.', who: '-', est: '-' }, acts: [['name Nils', 'assign Nils -> Reap the barley', 'mend'], ['name Erik, day 7', 'assign Erik -> Reap the barley', 'mend']] },
+    h2: { lvl: 2, g: 'me', f: 'task', w: null, ghost: true, p: P('barley', 22, 30), t: 'No hand named', i: { what: 'An empty place for a hand.', why: '-', who: '-', est: '-' }, acts: [['name Karin, afternoons', 'assign Karin -> Reap the barley', 'mend']] },
+    d: { lvl: 2, g: 'fence', f: 'dated', w: 'owed', n: 6, p: P('fence', -10, 0), t: 'Erik at the fence, day 6 (takes hours from it)', i: { what: 'Owed to the village.', why: 'Village levy: fence mending.', who: 'The meeting named Erik', est: '10.5 h', terms }, acts: LEVY_ACTS },
+  }, edges: [['h1', 's', 'next'], ['h2', 's', 'next'], ['s', 't', 'fray', { brk: BRK_BARLEY }], ['d', 's', 'displace', { n: '-10.5h', bend: -.3 }]] },
+
+  firewood: { dir: 'up', anchor: 'nils', nodes: {
+    nils: { lvl: 0, pawn: 'nils', p: PAWN_AT.nils, t: 'Nils, 17, cutting firewood', i: { what: 'Now: Cut firewood (9:00 to 11:00).', why: 'His task, taken up again this morning.', who: 'The rule gave it him', est: '-' }, acts: [] },
+    task: { lvl: 1, g: 'wood', f: 'task', p: P('home', -34, -6), t: 'Firewood: 3 loads to the woodpile', i: { what: 'A task: fetch the cart, go, load, haul, cut, fell 2 more.', why: 'Firewood for winter (season target).', who: 'The rule (custom), not a duty.', est: '18 to 30 h left for the target; this task 6 to 9 h' }, acts: [['assign Erik instead', 'assign Erik -> Firewood'], ['put it off', 'plan Firewood: after the barley']] },
+    pile: { lvl: 0, g: 'wood', f: 'task', b: 'stray', w: null, p: P('wood2', 0, -2), t: 'Our timber pile at Hagen wood', i: { what: '1 load felled, left lying with our mark.', why: 'The task was cut at nightfall yesterday; this morning it was fetched home.', who: 'The world: the method read it as "load what lies there".', est: 'fetched 6:00 to 9:00' }, acts: [] },
+    fell: { lvl: 1, g: 'tree', f: 'task', ghost: true, p: P('wood1', 0, -4), t: 'Next: fell 2 more trees', i: { what: 'The method\'s step still ahead.', why: '3 loads wanted; 1 home.', who: 'The rule', est: '4 to 6 h' }, acts: [] },
+    no: { lvl: 1, g: 'no', f: 'day', w: null, ghost: true, p: P('home', -40, 42), t: 'A duty? No', i: { what: 'Not a duty: the woodpile duty is Erik\'s, a daily hour.', why: 'This is the season target\'s work, done by whoever is free.', who: '-', est: '-' }, acts: [] },
+    t: { lvl: 2, g: 'wood', f: 'season', n: '9/20', p: P('home', 2, -52), t: 'Firewood for winter', i: { what: '20 loads by winter; 9 in the pile.', why: 'The winter: the house\'s fire.', who: 'The custom', est: est(TGT.wood.left) + ' still to do' }, acts: [['lower to 16', 'plan Firewood for winter: 16']] },
+    y: { lvl: 3, g: 'cold', f: 'year', p: null, t: 'The winter: the house\'s fire', i: { what: 'Heat and cooking for five through winter.', why: 'Cold kills; a cold house sickens.', who: 'Not a choice: the year.', est: '-' }, acts: [] },
+  }, edges: [['nils', 'task'], ['pile', 'task', 'up', { knot: true }], ['task', 'fell', 'next'], ['task', 'no', 'no'], ['task', 't'], ['t', 'y']] },
+
+  fence: { dir: 'up', anchor: 'erik', nodes: {
+    erik: { lvl: 0, pawn: 'erik', p: PAWN_AT.erik, t: 'Erik, 20, the heir (diligent)', i: { what: 'Now: reaping rye.', why: 'Named by lot to the fence on day 6.', who: '-', est: '-' }, acts: [] },
+    d: { lvl: 1, g: 'fence', f: 'dated', w: 'owed', n: 6, p: P('fence', -12, 2), t: 'Village fence: our lot, day 6 (Erik)', i: { what: 'A day at the fence, 10.5 h.', why: 'The village levy: fence mending.', who: 'The meeting named Erik, 3 days ahead.', est: '10.5 h, exact', terms }, acts: LEVY_ACTS },
+    d2: { lvl: 1, g: 'fence', f: 'dated', w: 'owed', ghost: true, n: '?', p: P('fence', 28, 18), t: 'Fence: 1 day still to name, by day 9', i: { what: 'Our second adult-day.', why: 'The same levy.', who: 'Per names it (3 days\' notice).', est: '10.5 h', terms }, acts: [['name a day', 'name fence: Nils, day 10'], ['commute 3 rations', 'commute fence day 2: 3 rations']] },
+    lv: { lvl: 2, g: 'fence', f: 'year', w: 'owed', n: 2, p: P('fence', 10, -48), t: 'Levy: fence mending (the village)', i: { what: `${v1.days} adult-days, window days ${v1.window[0]} to ${v1.window[1]}.`, why: 'The meeting\'s routine: the fence keeps the cattle off the fields.', who: 'The meeting, by lots by fields', est: '21 h', terms }, acts: LEVY_ACTS },
+    rt: { lvl: 3, g: 'fence', f: 'year', w: 'owed', p: P('green', 0, -16), t: 'Routine: Fence mending (every autumn)', i: { what: '2 days each autumn, lots by fields.', why: 'Agreed at the meeting, as of old.', who: 'The village meeting', est: '-' }, acts: [['speak at the meeting', 'ask the meeting: lots by heads']] },
+    vil: { lvl: 4, g: 'village', f: 'year', w: 'owed', p: null, t: 'The village', i: { what: 'Eleven households, one meeting.', why: 'Shared fences, roads, the bridge.', who: '-', est: '-' }, acts: [] },
+    bar: { lvl: 1, g: 'chop', f: 'dated', b: 'risk', ghost: true, p: P('barley', 0, -8), t: 'What day 6 displaces: the barley', i: { what: 'Erik\'s 10.5 h on day 6 do not go to the barley.', why: 'Day 6 opens the barley window.', who: '-', est: 'the barley 8 h short by day 9' }, acts: actsStake },
+  }, edges: [['erik', 'd'], ['d', 'lv'], ['d2', 'lv'], ['lv', 'rt'], ['rt', 'vil'], ['d', 'bar', 'displace', { n: '-10.5h', bend: -.3 }]] },
+
+  visit: { dir: 'up', anchor: 'v', nodes: {
+    v: { lvl: 0, g: 'courting', f: 'day', br: 'taken', p: P('norr', -26, 18), t: 'Nils: visit Norrgård 14:00 to 16:30 (taken)', i: { what: 'The household\'s hours, taken for his own.', why: 'His aim: court Lisa.', who: 'Nils, against the list', est: '2.5 h' }, acts: [['grant it', 'grant Nils: 14:00-16:30 own'], ['call him back', 'call Nils -> Reap rye'], ['let it pass, remember', 'breach noted: Nils']] },
+    aim: { lvl: 1, g: 'courting', f: 'year', w: 'own', p: P('norr', 30, -14), t: 'Aim: court Lisa at Norrgård', i: { what: 'Nils\' own aim for the year.', why: 'A second son needs a match to leave the house.', who: 'Nils', est: '-' }, acts: [['back it (a leave on day 8)', 'grant Nils: leave day 8']] },
+    hh: { lvl: 1, g: 'chop', f: 'day', p: P('long', 28, -26), t: 'What those hours were for: the rye', i: { what: 'Reap rye to 16:30 on the list.', why: 'Rye in the barn.', who: 'The rule', est: '2.5 h lost' }, acts: [] },
+    per: { lvl: 0, pawn: 'per', p: PAWN_AT.per, t: 'Per (you), hauling sheaves', i: { what: 'Demands 16:30 to 18:00 of Nils\' own hours.', why: 'Rain by evening; the sheaves must be in.', who: 'Per', est: '-' }, acts: [] },
+    haul: { lvl: 1, g: 'cart', f: 'day', w: 'own', br: 'demanded', p: P('long', -28, -30), t: 'Nils: haul before the rain, 16:30 to 18:00 (demanded)', i: { what: 'Own hours worked for the household.', why: 'Per\'s order.', who: 'Per (quill)', est: '1.5 h' }, acts: [['release it', 'release Nils 16:30'], ['keep my order', 'keep haul 16:30']] },
+    rye: { lvl: 2, g: 'rye', f: 'season', n: '34/60', p: P('home', 2, -52), t: 'Rye in the barn', i: { what: '60 sheaves; 34 in.', why: 'Food for the year.', who: 'The custom', est: est(TGT.rye.left) }, acts: [] },
+  }, edges: [['v', 'aim', 'pull'], ['v', 'hh', 'pull'], ['hh', 'rye'], ['per', 'haul', 'demand'], ['haul', 'rye']] },
+
+  storeDown: { dir: 'down', anchor: 'rye', nodes: {
+    rye: { lvl: 0, g: 'rye', f: 'season', n: '34/60', p: P('home', 2, -52), t: 'Rye in the barn: who works toward it', i: { what: 'Five people today, one dated step.', why: 'Food for the year.', who: 'The custom', est: est(TGT.rye.left) }, acts: [] },
+    a: { lvl: 1, g: 'cart', f: 'task', p: P('long', -26, -28), t: 'Per: haul sheaves home, 13 to 16', i: { what: 'Doing now.', why: '-', who: 'Per', est: '3 h' }, acts: [] },
+    b: { lvl: 1, g: 'chop', f: 'task', p: P('long', 26, -28), t: 'Erik: reap rye, 6 to 14', i: { what: 'Doing now.', why: '-', who: 'The rule', est: '8 h' }, acts: [] },
+    c: { lvl: 1, g: 'sheaves', f: 'task', b: 'done', p: P('long', 0, 32), t: 'Karin: bound sheaves, 8 to 12', i: { what: 'Done.', why: '-', who: 'The rule', est: '4 h, exact' }, acts: [] },
+    d: { lvl: 1, g: 'chop', f: 'day', p: P('long2', 0, -28), t: 'Nils: reap rye, 11 to 14', i: { what: 'Planned.', why: '-', who: 'The rule', est: '3 h' }, acts: [] },
+    e: { lvl: 1, g: 'quern', f: 'dated', p: P('home', -38, -4), t: 'Thresh the rye, days 8 to 12', i: { what: 'Per and Erik.', why: '-', who: 'The rule', est: est(AHEAD[1].hours) }, acts: [] },
+  }, edges: [['a', 'rye'], ['b', 'rye'], ['c', 'rye'], ['d', 'rye'], ['e', 'rye']] },
+
+  anna: { dir: 'up', anchor: 'anna', nodes: {
+    anna: { lvl: 0, pawn: 'anna', p: PAWN_AT.anna, t: 'Anna, 12, minding the cattle', i: { what: '7:00 to 12:00 at the low meadow.', why: 'Her duty.', who: 'The custom', est: '-' }, acts: [] },
+    d: { lvl: 1, g: 'beast', f: 'day', p: P('meadow', 0, -30), t: 'Duty: mind the cattle', i: { what: 'Every day of the grazing season.', why: 'A child of the house minds the beasts.', who: 'The custom', est: '5 h a day' }, acts: [] },
+    c: { lvl: 2, g: 'beast', f: 'year', p: null, t: 'The custom: a child minds the cattle', i: { what: 'An old custom of the village.', why: 'Cattle in the corn ruin a harvest.', who: 'Custom', est: '-' }, acts: [] },
+  }, edges: [['anna', 'd'], ['d', 'c']] },
+};
+
+// ---- State.
+let dir = 'up', draw = 'land', cur = 'barley', sel = null, menu = false;
+const svgEl = document.getElementById('map');
+svgEl.setAttribute('viewBox', `-8 -26 ${VBW + 8} ${VBH + 26}`);
+
+// Rest marks: one per tile, a single icon where something is going on.
+const REST = [
+  { pos: P('barley', 0, -8), svg: icon('chop', { frame: 'dated', badge: 'risk', size: 34 }), up: 'barley', down: 'barleyDown' },
+  { pos: P('home', 30, -36), svg: icon('sack', { frame: 'season', size: 32 }), up: 'storeDown', down: 'storeDown' },
+  { pos: P('fence', -12, 2), svg: icon('fence', { frame: 'dated', whose: 'owed', num: 6, size: 34 }), up: 'fence', down: 'fence' },
+  { pos: P('wood2', 0, -2), svg: ico('wood', { badge: 'stray', whose: null, size: 30 }), up: 'firewood', down: 'firewood' },
+];
+const PAWN_CH = { per: 'visit', erik: 'fence', nils: 'firewood', anna: 'anna' };
+const TILE_CH = { norr: 'visit', barley: 'barley', fence: 'fence', home: 'storeDown' };
+function base() {
+  let s = DEFS + `<defs>${Object.keys(WHOSE).map((k) => `<marker id="ar-${k}" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0 0L10 5L0 10z" fill="${H(k)}"/></marker>`).join('')}<marker id="ar-grey" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5d6253"/></marker></defs>`;
+  s += mapSVG();
+  for (const t of tiles()) if (t.key) { const { x, y } = hexXY(t.q, t.r); s += `<path class="tile" data-k="${t.key}" d="${hexPath(x, y)}" fill="transparent"/>`; }
+  s += `<rect x="${MAP_W + 8}" y="-20" width="112" height="${VBH + 10}" rx="10" fill="#f6f5ef" stroke="#c3c8b6"/><text x="${EDGE_X}" y="-4" font-size="11" text-anchor="middle" fill="#5d6253" font-style="italic">no place on the land</text>`;
+  REST.forEach((m, i) => (s += `<g class="rest" data-r="${i}" transform="translate(${m.pos.x - 17} ${m.pos.y - 17})">${m.svg}</g>`));
+  for (const p of PEOPLE) { const a = PAWN_AT[p.id]; s += `<g class="pawn" data-p="${p.id}">${pawnSVG(p, a.x, a.y, 1.15)}<circle cx="${a.x}" cy="${a.y - 6}" r="13" fill="transparent"/></g>`; }
+  return s + '<g id="dyn"></g>';
+}
+svgEl.innerHTML = base();
+const dyn = document.getElementById('dyn');
+
+// ---- Positions: on the land (each node's place, or the edge column), or the why-ladder (a column beside the anchor).
+function positions(ch) {
+  const pos = {}; let slot = 0;
+  if (draw === 'land') {
+    for (const [id, n] of Object.entries(ch.nodes)) pos[id] = n.p ? { ...n.p } : { x: EDGE_X, y: 70 + 84 * slot++ };
+    return pos;
+  }
+  const a = ch.nodes[ch.anchor].p, lv = {};
+  for (const [id, n] of Object.entries(ch.nodes)) (lv[n.lvl] ||= []).push(id);
+  const levels = Object.keys(lv).map(Number).sort((x, y) => x - y), step = 58, sgn = ch.dir === 'up' ? -1 : 1;
+  const side = a.x > MAP_W - 260 ? -1 : 1, x0 = a.x + side * 110;
+  let y0 = a.y; const span = (levels.length - 1) * step;
+  if (sgn < 0 && y0 - span < 0) y0 = span; if (sgn > 0 && y0 + span > MAP_H - 10) y0 = MAP_H - 10 - span;
+  levels.forEach((L, i) => lv[L].forEach((id, j) => (pos[id] = { x: x0 + (j - (lv[L].length - 1) / 2) * 46, y: y0 + sgn * i * step })));
+  pos.__lead = { a, b: pos[ch.anchor] };
+  return pos;
+}
+function curve(a, b, bend) {
+  const dx = b.x - a.x, dy = b.y - a.y, c = { x: (a.x + b.x) / 2 - dy * bend, y: (a.y + b.y) / 2 + dx * bend };
+  const trim = (p, q, d) => { const L = Math.hypot(q.x - p.x, q.y - p.y) || 1; return { x: p.x + (q.x - p.x) * d / L, y: p.y + (q.y - p.y) * d / L }; };
+  const A = trim(a, c, 16), B = trim(b, c, 21), mid = { x: .25 * A.x + .5 * c.x + .25 * B.x, y: .25 * A.y + .5 * c.y + .25 * B.y };
+  return { A, B, c, mid, d: `M${A.x} ${A.y}Q${c.x} ${c.y} ${B.x} ${B.y}` };
+}
+function nodeSVG(id, n, p, size = 36) {
+  if (n.pawn && draw === 'land') return `<g class="nd${sel === id ? ' sel' : ''}" data-n="${id}"><circle cx="${p.x}" cy="${p.y - 6}" r="17" fill="#fff4" stroke="${PCOL[n.pawn].col}" stroke-width="2.5" stroke-dasharray="4 3"/></g>`;
+  const ic = n.pawn ? icon('me', { frame: 'task', whose: 'household', size }) : ico(n.g, { frame: n.f, whose: n.w === undefined ? 'household' : n.w, breach: n.br, badge: n.b, num: n.n, size, ghost: n.ghost });
+  return `<g class="nd${sel === id ? ' sel' : ''}" data-n="${id}" transform="translate(${p.x - size / 2} ${p.y - size / 2})">${ic}<title>${n.t}</title></g>`;
+}
+const KNOT = (x, y) => `<g class="nd" data-n="knot" transform="translate(${x} ${y})"><circle r="9" fill="#f4efe4" stroke="#2a2018" stroke-width="1.3"/><path d="M-6 3c2-9 10-9 9-2s-9 5-8-1 7-6 9 3" fill="none" stroke="#2a2018" stroke-width="1.8" stroke-linecap="round"/><title>The cut: last night at nightfall</title></g>`; // new glyph: knot
+let brks = {};
+function render() {
+  const ch = CH[cur], pos = positions(ch); brks = {};
+  let th = '', nd = '', ex = '';
+  if (pos.__lead) {
+    const { a, b } = pos.__lead, ys = Object.values(pos).filter((p) => p.y != null).map((p) => p.y), xs = Object.values(pos).filter((p) => p.x != null).map((p) => p.x);
+    th += `<rect x="${Math.min(...xs) - 30}" y="${Math.min(...ys) - 30}" width="${Math.max(...xs) - Math.min(...xs) + 60}" height="${Math.max(...ys) - Math.min(...ys) + 60}" rx="12" fill="#f6f5efe6" stroke="#3a2a1a" stroke-width="1"/>`;
+    th += `<path d="M${a.x} ${a.y}L${b.x} ${b.y}" stroke="#3a2a1a" stroke-width="1.2" stroke-dasharray="2 3"/>`;
+  }
+  for (const [c, p, style = 'up', x = {}] of ch.edges) {
+    const nc = ch.nodes[c], np = ch.nodes[p], land = draw === 'land';
+    const w = style === 'pull' && p === 'aim' ? 'own' : (nc.w || np.w || 'household');
+    const bend = style === 'pull' || !land ? 0 : (x.bend ?? .2), cv = curve(pos[c], pos[p], bend), col = H(w);
+    const halo = (d, wd) => `<path class="thread" d="${d}" stroke="#fffc" stroke-width="${wd + 3}"/>`;
+    if (style === 'fray') {
+      const h1 = `M${cv.A.x} ${cv.A.y}Q${(cv.A.x + cv.c.x) / 2} ${(cv.A.y + cv.c.y) / 2} ${cv.mid.x} ${cv.mid.y}`, h2 = `M${cv.mid.x} ${cv.mid.y}Q${(cv.c.x + cv.B.x) / 2} ${(cv.c.y + cv.B.y) / 2} ${cv.B.x} ${cv.B.y}`;
+      th += halo(h1, 3) + `<path class="thread" d="${h1}" stroke="${col}" stroke-width="3"/>` + halo(h2, 2) + `<path class="thread" d="${h2}" stroke="${col}" stroke-width="2" stroke-dasharray="3 5" opacity=".7" marker-end="url(#ar-${w})"/>`;
+      for (const [fx, fy] of [[-9, -6], [-7, 8], [8, -8], [9, 5]]) th += `<path d="M${cv.mid.x} ${cv.mid.y}l${fx} ${fy}" stroke="${col}" stroke-width="1.4"/>`;
+      brks[c + '>' + p] = { ...x.brk, pos: cv.mid };
+    } else if (style === 'vs') th += `<path class="thread" d="${cv.d}" stroke="#5d6253" stroke-width="2" stroke-dasharray="1 4"/><text x="${cv.mid.x}" y="${cv.mid.y - 5}" font-size="11" font-style="italic" text-anchor="middle" fill="#3a2a1a">vs</text>`;
+    else if (style === 'pull') th += halo(cv.d, 5) + `<path class="thread" d="${cv.d}" stroke="${col}" stroke-width="5" marker-end="url(#ar-${w})"/>`;
+    else if (style === 'demand') th += halo(cv.d, 6) + `<path class="thread" d="${cv.d}" stroke="url(#hatch-hh)" stroke-width="6" marker-end="url(#ar-own)"/>`;
+    else if (style === 'displace') th += halo(cv.d, 2.5) + `<path class="thread" d="${cv.d}" stroke="${H('household')}" stroke-width="2.5" stroke-dasharray="8 5" marker-end="url(#ar-household)"/>` +
+      `<g transform="translate(${cv.mid.x - 22} ${cv.mid.y - 8})"><rect width="44" height="16" rx="8" fill="#fff" stroke="#3a2a1a"/><text x="22" y="12" font-size="11" font-weight="700" text-anchor="middle">${x.n}</text></g>`;
+    else if (style === 'next' || style === 'no') th += `<path class="thread" d="${cv.d}" stroke="#5d6253" stroke-width="1.8" stroke-dasharray="${style === 'no' ? '1 4' : '5 4'}" ${style === 'next' ? 'marker-end="url(#ar-grey)"' : ''}/>`;
+    else th += halo(cv.d, 3) + `<path class="thread" d="${cv.d}" stroke="${col}" stroke-width="3" marker-end="url(#ar-${w})"/>`;
+    if (x.knot) ex += KNOT(cv.mid.x, cv.mid.y);
+  }
+  for (const [id, n] of Object.entries(ch.nodes)) nd += nodeSVG(id, n, pos[id]);
+  for (const [id, b] of Object.entries(brks)) nd += nodeSVG(id, { ...b, f: 'task', w: null, b: 'risk' }, b.pos, 30);
+  dyn.innerHTML = th + ex + nd;
+  document.querySelectorAll('.rest').forEach((r) => r.classList.toggle('dim', true));
+}
+
+// ---- Bubble: first click what/why/who/estimate; second click (or "acts") the menu of acts.
+const bub = document.getElementById('bubble');
+function getNode(id) {
+  if (id === 'knot') return { g: 'wood', f: 'task', t: 'The cut: last night, at the wood', i: { what: 'Nils\' task was cut at nightfall with 1 load felled.', why: 'Night falls; a task stops where it stands.', who: 'The clock', est: 'resumed 6:00 today' }, acts: [] };
+  return CH[cur].nodes[id] || brks[id];
+}
+function openBubble(id, el) {
+  const n = getNode(id); if (!n) return;
+  menu = sel === id ? !menu : false; sel = id; render();
+  const w = n.w === undefined ? 'household' : n.w, i = n.i || {};
+  const row = (k, v) => (v ? `<dt>${k}</dt><dd>${v}</dd>` : '');
+  const head = `<h4>${n.pawn ? '' : ico(n.g, { frame: n.f, whose: w, breach: n.br, size: 26 })}${n.t}</h4>`;
+  bub.innerHTML = head + (menu
+    ? `<div class="acts">${(n.acts || []).map(([l, v, fx], k) => `<button data-a="${k}">${l}</button>`).join('') || '<i>No acts here: only reasons.</i>'}</div>`
+    : `<dl>${row('what', i.what)}${row('why', i.why)}${row('who chose', i.who)}${row('estimate', i.est)}${row('hours', n.br ? WHOSE[n.br === 'taken' ? 'own' : 'household'].name + ' (' + n.br + ')' : w && WHOSE[w] ? WHOSE[w].name : '')}${row('terms', i.terms)}</dl>` +
+      (n.acts && n.acts.length ? `<div class="acts"><button class="more">acts ▸</button></div>` : ''));
+  const r = document.querySelector(`[data-n="${CSS.escape(id)}"]`).getBoundingClientRect();
+  let left = r.right + 10, top = r.top - 10; if (left + 300 > innerWidth) left = r.left - 300; if (top + 220 > innerHeight) top = innerHeight - 230;
+  Object.assign(bub.style, { left: left + 'px', top: Math.max(48, top) + 'px' }); bub.hidden = false;
+  bub.querySelector('.more')?.addEventListener('click', (e) => { e.stopPropagation(); openBubble(id); });
+  bub.querySelectorAll('[data-a]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); act(n.acts[+b.dataset.a]); }));
+}
+function act([label, verb, fx]) {
+  toast(`would issue <code>${verb.split(' ')[0]}</code> ${verb.split(' ').slice(1).join(' ')}`);
+  for (const ch of Object.values(CH)) for (const n of Object.values(ch.nodes)) if (n.t && n.t.startsWith('Reap the barley')) {
+    if (fx === 'mend') { n.b = null; ch.edges.forEach((e) => { if (e[2] === 'fray') e[2] = 'up'; }); }
+    if (fx === 'keep') n.b = 'kept';
+    if (fx === 'back') { n.b = 'back'; n.ghost = true; }
+  }
+  bub.hidden = true; sel = null; menu = false; render();
+}
+let tt; function toast(h) { const t = document.getElementById('toast'); t.innerHTML = h; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2600); }
+function show(id) { if (!CH[id]) return toast('No thread mocked here'); cur = id; sel = null; menu = false; bub.hidden = true; if (CH[id].dir !== dir) setSeg('dir', (dir = CH[id].dir)); render(); }
+function setSeg(g, v) { document.querySelectorAll(`#${g} button`).forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === v)); }
+
+svgEl.addEventListener('click', (e) => {
+  const nd = e.target.closest('.nd'), rest = e.target.closest('.rest'), pawn = e.target.closest('.pawn'), tile = e.target.closest('.tile');
+  if (nd) return openBubble(nd.dataset.n);
+  if (rest) { const m = REST[+rest.dataset.r]; return show(dir === 'down' ? m.down || m.up : m.up || m.down); }
+  if (pawn) return PAWN_CH[pawn.dataset.p] ? show(PAWN_CH[pawn.dataset.p]) : toast(`${PCOL[pawn.dataset.p].name}: no thread mocked`);
+  if (tile && TILE_CH[tile.dataset.k]) return show(TILE_CH[tile.dataset.k]);
+  bub.hidden = true; sel = null; render();
+});
+document.getElementById('dir').addEventListener('click', (e) => { const v = e.target.dataset.v; if (!v) return; dir = v; setSeg('dir', v); const f = CH[cur].flip; if (f && CH[f].dir === v) show(f); else render(); });
+document.getElementById('draw').addEventListener('click', (e) => { const v = e.target.dataset.v; if (!v) return; draw = v; setSeg('draw', v); bub.hidden = true; render(); });
+document.querySelectorAll('.chip').forEach((c) => c.addEventListener('click', () => show(c.dataset.c)));
+render();
+</script>
+</body>
+</html>
