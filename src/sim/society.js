@@ -76,7 +76,7 @@ VB['sim/society'] = (() => {
     };
   }
   function initCulture(st, leanBySettlement, overrides = {}) {
-    const env = (st.cenv = { t: st.t / YEAR, cultures: [], settlements: [], people: st.pawns, driftMul: 1 });
+    const env = (st.cenv = { t: st.t / YEAR, cultures: [], settlements: [], driftMul: 1 });
     const customs = Customs.fromArchetype('oldNordic');
     for (const [key, opt] of Object.entries(overrides)) customs[Customs.IDX[key]] = Customs.optIndex(key, opt);
     const c = Culture.makeCulture(env, 'Nordic', customs, 0, null, TRAITS.culture.oldNordic);

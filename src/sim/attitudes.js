@@ -110,7 +110,8 @@ VB['sim/attitudes'] = (() => {
   }
 
   // ---- the daily step ----
-  // env.people: [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), standing, interest, advocate }]
+  // the people stepped: hooks.living's ids (the simulation's living, read by hooks.byId: st.pawns), or a test's env.people:
+  // [{ id, alive, age, settlement, att, anc, ties: Map(id -> weight), standing, interest, advocate }]
   const XI = new Float64Array(Math.max(...NOPT)); // scratch for one dimension's noise draws
   function dailyStep(env, hooks, dt, rand) {
     const mul = env.driftMul || 1;

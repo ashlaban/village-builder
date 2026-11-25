@@ -710,7 +710,7 @@ function checkState(st) {
   // the idle pawns of the hour (VB-074): built this hour or before, each an agent of a living pawn
   if (st.idlers) {
     if (!(st.idlers.hour <= Math.floor(st.t))) bad.push(`idlers: hour ${st.idlers.hour} is after ${Math.floor(st.t)}`);
-    for (const [v, l] of st.idlers.by) for (const b of l) if (st.agents[b.id] !== b) bad.push(`idlers: village ${v} lists ${b.id}, not an agent`);
+    for (const [v, l] of st.idlers.by) for (const id of l) if (!st.agents[id]) bad.push(`idlers: village ${v} lists ${id}, not an agent`);
   }
   // legs (VB-473): st.legDue holds the walks and waits under way, each pawn once, a living one, sorted by due then id, each due after the
   // step now (a step takes all that is due); each living pawn's leg agrees with what it does: walking a walk, resting on the road a wait,
