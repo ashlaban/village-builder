@@ -1,0 +1,1 @@
+founders seed 7 small: 3 years, 13 living, 5 households; 10 s -> docs/mocks/plans/week/data/founders-7.jsonl
