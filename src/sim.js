@@ -88,6 +88,7 @@ const Sim = (() => {
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
   const { compat, bond, bondWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
+  const { heard } = VB['sim/stories']; // what a pawn has heard, as its belief (VB-554)
   const { explainAllowance, giftWarning } = VB['sim/exchange'];
   const { kinHouseholds } = VB['sim/help'];
   // Who of household hh may carry a gift of its holder's to household `to` (VB-1111): its members the verb `give` takes as the carrier,
@@ -239,6 +240,7 @@ const Sim = (() => {
     opinionOf,
     opinionWord,
     relationsOf,
+    heard,
     reasonsOf,
     meansOf,
     marryBar,

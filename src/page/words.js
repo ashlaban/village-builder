@@ -393,13 +393,33 @@ function showRelations(id) {
     })
     .join('');
   const owed = goodwillRows(id),
-    h = (rows ? `<h3>Knows best</h3>${rows}` : '') + (owed ? `<h3>Owes and is owed</h3>${owed}` : '');
+    heard = heardRows(id),
+    h =
+      (rows ? `<h3>Knows best</h3>${rows}` : '') +
+      (owed ? `<h3>Owes and is owed</h3>${owed}` : '') +
+      (heard
+        ? `<h3>Heard</h3><p class="hint" data-belief>What ${esc(Sim.fullName(st.pawns[id]))} has heard and believes, not what is so.</p>${heard}`
+        : '');
   if (h !== relHTML) {
     relHTML = h;
     $('tileRel').innerHTML = h;
   }
   $('tileRel').hidden = !h;
   $('relationsDetails').hidden = !h;
+}
+// The stories a pawn holds (VB-554; design.md, Stories: What the player hears): whom each is about and what, from whom it was last heard,
+// through how many mouths and how well it is remembered. Its belief: nothing says whether a story is true (Sim.heard).
+function heardRows(id) {
+  return Sim.heard(st, id)
+    .map((x) => {
+      const from = x.from === null ? 'seen with its own eyes' : `from ${x.fromName}`,
+        mouths = x.mouths <= 1 ? '' : `, through ${x.mouths} mouths`;
+      return (
+        `<div class="heard ${x.good ? 'pos' : 'neg'}"><button type="button" class="op" data-pawn="${x.about}">${esc(x.name)}</button>` +
+        ` ${esc(x.what)}<i>${esc(from + mouths)}; remembered ${esc(x.remembered)}</i></div>`
+      );
+    })
+    .join('');
 }
 // A pawn's largest goodwill balances (VB-218; design.md, The gift: What the player sees), in whole rations; on a holder's panel, what
 // it would give each counterpart's household, with the parts of its allowance on hover.
