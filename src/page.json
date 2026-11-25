@@ -51,6 +51,7 @@
   "page/treelayout.js",
   "page/family.js",
   "page/drawer.js",
+  "page/storeview.js",
   "page/culture.js",
   "page/notices.js",
   "page/saves.js",
