@@ -74,10 +74,15 @@ if (fs.existsSync(questions)) {
 // A task an open task names has a file (Kim, 25 November: VB-247 named two follow-ups that were never written). An ID above every file
 // in this checkout may be reserved and not yet written (tools/inbox.js start): a warning; one below is a task that does not exist.
 const highest = Math.max(...Object.keys(tasks).map((id) => +id.slice(3)));
+// A task set aside as an idea keeps its file and ID under docs/ideas (Kim, 25 November): naming it is naming a task that exists.
+const ideaDir = path.join(root, 'docs', 'ideas');
+const walkIdeas = (d) =>
+  fs.existsSync(d) ? fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walkIdeas(path.join(d, e.name)) : [e.name])) : [];
+const ideas = new Set(walkIdeas(ideaDir).map((f) => (/^(VB-\d{3,})\.md$/.exec(f) || [])[1]).filter(Boolean));
 for (const [id, t] of Object.entries(tasks)) {
   if (t.status === 'done') continue;
   for (const ref of new Set((taskTexts[id].match(/\bVB-\d+\b/g) || []).map((r) => 'VB-' + r.slice(3).padStart(3, '0')))) {
-    if (tasks[ref]) continue;
+    if (tasks[ref] || ideas.has(ref)) continue;
     if (+ref.slice(3) > highest) warnings.push(`backlog/${id}.md names ${ref}, which has no file yet (reserved?)`);
     else errors.push(`backlog/${id}.md names ${ref}, which has no file: write that task, or name the one that carries the work`);
   }

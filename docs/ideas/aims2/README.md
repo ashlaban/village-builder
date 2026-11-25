@@ -1,5 +1,13 @@
 # The generational system: growth, wealth, aims and what passes on
 
+**Set aside, 25 November 2026 (Kim):** kept here for future reference, beside `docs/ideas/aims/`; no tasks are written and nothing
+builds it. It was designed in parallel with `docs/plans/four-scales/aims.md`, which was written meanwhile and is the standing design of
+aims and personal goods (`design.md` section 7, Aims and personal goods). Where the two overlap (aims, the stake, the farm for an heir)
+that design stands; what is this document's own is lasting wealth and the report, the handover as the valve, the land market, village
+works across years and craft and name beyond a pawn. The `design.md` rows of 25 November it rests on (A generation, Land is bartered
+and sold and the rows after it, Handover and shares, By land bought) stand. Its section 6 questions are unanswered. Where the text
+below says "this document is that design" or `aims.md` was not written, read it as of the day it was written.
+
 25 November 2026. A design pass on Kim's decisions of the same day (`docs/design-changelog.md`, 0.4, "a generation"), which followed
 the review of growth (`docs/review-growth-2026-11-25.md`, sections 6 to 8). It designs as one system how a pawn and a village pursue
 growth, wealth and goals over about twenty years, and how what a house gains passes on across generations: the review's priorities 0
@@ -204,7 +212,7 @@ Commands (scratch saves, not kept):
 node tools/sim.js --scenario populous --seed 7 --map small --years 20 --report soil --period decade --save pop7-y20.json.gz   # run 1, 3 min
 node tools/sim.js --load pop7-y20.json.gz --years 1 --report hours --every hour                                               # run 2
 node tools/sim.js --load pop7-y20.json.gz --years 20 --save pop7-y40.json.gz                                                  # run 3
-node docs/plans/generations/wealth.js pop7-y40.json.gz;  node docs/plans/generations/persist.js pop7-y20.json.gz pop7-y40.json.gz
+node docs/ideas/aims2/wealth.js pop7-y40.json.gz;  node docs/ideas/aims2/persist.js pop7-y20.json.gz pop7-y40.json.gz
 ```
 
 Found while grounding, for the surfacing lists (`AGENTS.md`, Surfacing): a pawn's stake is one number on the pawn (`pawn.stake`), so

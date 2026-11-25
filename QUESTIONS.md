@@ -42,18 +42,6 @@ The measure (VB-1554, populous small, seed 7, 2 years): the allotment is 31% of 
 2. Or may the morning's allotment move from 5:00 to the start of work at 6:00, after the due-queue has opened the morning's tasks (nobody takes a task before 6:00; the help asked for the day would be asked at 6:00)? About 12%. **P:** no, if 1 is yes: 1 covers it; alone it is too little.
    **A (Kim, 23 Nov):** No, as proposed: the slotting covers it.
 
-### VB-1553: Standing duties: which gives way, the memory or the haymaking checks (raised 23 November 2026)
-The mechanism of design.md section 7, Standing duties, is built and tested (`tests/duties.js`, at the proposed 1.25), and ships with `MATCH.keep` at 1: no memory, and a duty the head sets weighs nothing. On the merged branch every value above 1 turned a hard check red: `tests/hay.js` (populous 3 small: 89% of meadows mown and carried by autumn day 4 at 1.05, 1.1 and 1.2, 86% at 1.15 in a trial; 90 asked, 92% at keep 1) and `tests/meadows.js` (founders 42: a farm with animals and no meadow by its second spring, at 1.1, 1.2 and 1.25). Hands that keep to yesterday's type come later to work that opens with a season. A trial that counted every task with a window or of a project as held by all (so duties decide only among the standing chores) did not mend it (1.1: both red; 1.15: hay 86%; 1.25: meadows red), and was reverted.
-
-1. Does the memory go live before the haymaking is retuned? **P:** No: keep stays 1 until the tuning run, which raises it to 1.25 together with the haymaking's urgency (`MATCH.urgency.mowPerDay`, `rake`) so that `tests/hay.js` holds its 90%; VB-1555 and VB-1556 are built against the mechanism at 1.25 in their tests, as `tests/duties.js` is.
-   **A (Kim, 23 Nov):** The idea of standing duties is kept; this mechanism (the keep factor, the verb and its buttons) is removed (design.md section 7, Standing duties: Open).
-2. Or is the bound of `tests/hay.js` (90% in by autumn day 4) the one to move, the memory being worth three points of it? **P:** No: the hay is what the animals winter on; the check stands.
-   **A (Kim, 23 Nov):** The idea of standing duties is kept; this mechanism (the keep factor, the verb and its buttons) is removed (design.md section 7, Standing duties: Open).
-3. While keep is 1, should the Plan tab offer the head's Set and Lift buttons, which then change the record and the card's line but no one's day? **P:** Yes, as built: the choice is kept and shown ("set by the head") and weighs from the day keep is raised; say if they should be hidden until then.
-   **A (Kim, 23 Nov):** The idea of standing duties is kept; this mechanism (the keep factor, the verb and its buttons) is removed (design.md section 7, Standing duties: Open).
-
-## Priority 3
-
 ### VB-834: Should a busy place drift faster: a term in attitude.malleability? (raised 19 November 2026)
 tools/contact.js (populous small, seeds 7, 11, 13, 40 years): villages in the top fifth by distinct people met at venues drift 0.0079 a key a year against 0.0096 for the rest (correlation -0.28); gathering hosts 0.0082 against 0.0095. Contact alone gives no faster drift.
 Proposed answers: (a) leave it to contact: no term; (b) add a term to attitude.malleability reading those met at venues, with a range (e.g. 1 to 1.5 times), so a busy place drifts faster by mechanism.

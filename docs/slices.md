@@ -387,6 +387,10 @@ archived answer pointed the way, the orchestrator decided in Kim's place, and th
   live, one in 10 after) for this slice's plan to confirm, and the ship's year decides when a founders' island passes 1,000
   (about year 230 to 300 by births alone). Disease is designed for the town only, against its line of the budget (0.28 of a
   point of yearly growth).
+- **25 November update (Kim; `docs/plans/four-scales/aims.md`):** this slice no longer brings **personal goods**. A pawn's title to
+  what it makes and earns in its own hours, a store of its own, its goods at death and at the fair, and the aims that use them (the
+  farmer's second son who becomes a potter) are pulled forward into the arch `plans`; their tasks (VB-1781 to VB-1798) were set aside the same day in `docs/ideas/aims/` (Kim), so no arch builds them yet. This slice keeps silver
+  and coin, personal debts, a pawn's things of worth and animals (with their way out), and norms that learn from a pawn's deals.
 
 ### 3.9 The town
 
@@ -480,6 +484,10 @@ gathering's host.
 
 **Beside the slices:** small tasks that touch nothing above may run at any time: VB-159, VB-160 (since 10 November a survey of what raised yields), VB-084 (speeds), VB-091 (VB-165 was closed on 10 November).
 They run as long as they do not edit the files of the slice in progress.
+Five archs also run beside the slices, each opened by Kim: `between` (11 November), `far` (15 November), `physical` (14 November),
+`acts` (16 November) and, since 25 November, `plans` (plans at four scales and the levy: `docs/plans/four-scales/README.md`, its path
+in section 3.10; tasks VB-1743 to VB-1780; step 9 of the path, aims and personal goods, is the arch's own since 25 November,
+`docs/plans/four-scales/aims.md`; its tasks set aside in `docs/ideas/aims/`).
 
 **Size and pace.** The plan of 3 November guessed 60 to 70 tasks at one a night. The real numbers, and the estimate of when
 the rest is done, are in `docs/roadmap.html` (`tools/roadmap.js`).

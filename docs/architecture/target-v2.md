@@ -464,7 +464,8 @@ the old holder's new role (`undantag`, former alderman), standing, the claims of
 step: siblings' shares as obligations), derived roles, the record. Holdings and the body's own obligations need no step: they belong
 to the body. Goodwill is personal: at retirement a share passes to the new holder, set by custom (Decided, Kim, 3 Nov); at death
 `PersonalEstate` passes the pawn's own goods, land in its own name, personal debts and a share of its goodwill to its heirs as
-persons; office goodwill never passes. A testament is the practice `birthOrder: 'chosen'` (Decided: only where custom allows).
+persons (the goods part, a pawn's store passed by the custom `personalEstate`, is built by the arch `plans`: `design.md` section 7,
+Aims and personal goods; land in a pawn's name and personal debts wait for slice 8); office goodwill never passes. A testament is the practice `birthOrder: 'chosen'` (Decided: only where custom allows).
 The household hot path keeps a derived cache (`pawn.household`, `hh.members`, `pawn.role`) that Membership alone writes, and role
 rules declare the household's cardinality (one residence per living pawn, at most one holder).
 
@@ -607,9 +608,27 @@ interface Task { id; key: string; from: { plan: PlanId; step: number } | { stand
 interface Eligibility { eligible(st, task: Task, pawn: PawnId): { basis: Basis2; obligation?: ObligationId } | null }
 ```
 
-**Work** keeps the matcher as built (best fit first, the two-hour rule for poor fits, the urgency switch, several hands), reading
-tasks and Eligibility instead of job owners. Hours are reported to whoever owns the progress: the domain for resumable land and
-building work (a field half hoed stays half hoed, whoever comes next), the task only for work that cannot resume. **Attention**
+**Work** (revised 25 November 2026; `design.md` section 7, Plans at four scales and The levy and own hours; the reasoning is
+`docs/plans/four-scales/README.md`). The hourly matcher and the two-hour rule are gone since 15 November: the head allots the
+household's day, and the day is the unit of allotment for every pawn. What stands around it, each in the layer that owns its kind:
+
+- **One plan record** for every body (a pawn, a household, a village, later an estate), owned by Plans: steps at the year, the
+  season and the days ahead (a target, a duty, a dated step, a levy's day, a routine, a project, an aim: a goal at the year
+  horizon that writes the season's steps under it, `design.md` section 7, Aims and personal goods), each with an author (the
+  body's rule, or a verb issued by whoever controls its agent) and one link upward. The standing plan, the project plans and the
+  played pawn's plan are this record. A task names the step that opened it; `st.jobs` stays the store of today's open tasks.
+- **The task is a plan**: a goal whose kind declares methods of steps with a precondition and an effect, read backwards from the
+  goal at each leg's end. No phase is stored; progress is the domain's (a stage's hours, a pile with title, a load), as principle 4
+  already asks of resumable work, now of all work.
+- **The levy** couples the levels. A household's levy on a member (hours a day by season, by custom) is the allotment's capacity
+  for that member; it follows from membership and is no obligation. An outer levy (a village's routine, the keep, a debt's days, an
+  estate's due) is an obligation of the kind `days` with terms (principle 9), worked by the module that works days owed today. What
+  the levies leave is the pawn's own hours; sovereignty is a derived measure (4.6), read and never a switch.
+- **A controller per pawn** (principle 15; 4.7): the automatic switch, the queue and the authored steps are the pawn's state;
+  the `Sim` API is keyed by pawn and body; a controller is asked at decision points with deadlines, after which the pawn's rule answers.
+
+Hours are reported to whoever owns the progress: the domain for resumable work (a field half hoed stays half hoed, whoever comes
+next). **Attention**
 (Decided, Kim, 3 Nov): a pawn may hold one `partial` task and one `background` task at once (minding the herd while spinning), the
 background one at a reduced rate.
 
@@ -617,10 +636,11 @@ background one at a reduced rate.
 November (`sim/jobs`, `allot`): the household is the unit that allots, and a member carries its list out. Four things give the member
 an agency of its own, each in the layer that already owns its kind:
 
-- **Standing duties** are an idea with no mechanism (Kim, 23 November): the keep factor tried in the allotment was removed (VB-1553).
-  A mechanism for it would be the plan's (Plans), as the day is.
+- **Standing duties** are the duties of the days ahead (Kim, 25 November): a step of the household's plan (Plans) that puts its
+  holder first for a type of recurring work without a window; the keep factor tried in the allotment was removed (VB-1553).
 - **Own time** is Social, not Work: `sim/pastimes` owns a table of pastimes beside the encounters' table, reads no plan and no store,
-  and writes only the pawn's pastime; Work offers it the pawn it found no task for. A pastime has no opportunity, no task and no
+  and writes only the pawn's pastime; it is a use of the pawn's own hours, what its levy leaves it (25 November; it was: Work
+  offers it the pawn it found no task for). A pastime has no opportunity, no task and no
   progress.
 - **A member's voice** is Exchange's offer and answer: the bases `leave` and `duty` are rows of the table of bases (`sim/offers`),
   contributed by the module that weighs them; a yes is carried out by the plan's owner. No new channel between member and head.
@@ -938,6 +958,7 @@ marriage, culture and prices.
 | 28 | A death's cause when several contributions raise the hazard (9 Nov) | Shares must not depend on load order: split by the logarithm of each factor | review |
 | 29 | A workflow that could fail halfway (9 Nov) | It cannot: refusals from queries and checks only; the four rules of 4.1 | review |
 | 30 | Does opinion feed allowance, beside goodwill (9 Nov) | Yes, both, though they are coupled: goodwill is the quasi-currency of the deal; a high opinion makes an unfavourable deal likelier to pass | review |
+| 31 | How work is planned (25 Nov) | Plans at four scales: one plan record with authors; the day the unit of allotment; the task a plan read from the world; the levy coupling the levels, own hours the remainder, sovereignty the measure; a controller per pawn (`design.md` section 7; `docs/plans/four-scales/README.md`, section 6) | review |
 
 ## 9. Tensions resolved, and the succession probe
 

@@ -1,5 +1,5 @@
-// Throwaway (docs/plans/generations, section 2.4): a farm's lasting-wealth rank in its village at two saves of one run, all farms, the same
-// holder, and the holder's own child. Not game code; no test reads it. node docs/plans/generations/persist.js EARLY.json.gz LATE.json.gz
+// Throwaway (docs/ideas/aims2, section 2.4): a farm's lasting-wealth rank in its village at two saves of one run, all farms, the same
+// holder, and the holder's own child. Not game code; no test reads it. node docs/ideas/aims2/persist.js EARLY.json.gz LATE.json.gz
 const fs = require('fs'), zlib = require('zlib');
 const VB = require(require('path').join(__dirname, '../../../src/load.js')), G = VB.gen, Sim = VB.sim;
 const W = { cow: 40, ox: 50, heifer: 20, steer: 20, calf: 10, bull: 50 };

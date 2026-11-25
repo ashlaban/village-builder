@@ -1,5 +1,5 @@
-// Throwaway (docs/plans/generations, section 2.4): lasting wealth by household in a save (fields x 120, beasts at customary worth),
-// its spread, the stakes held and the live obligations. Not game code; no test reads it. node docs/plans/generations/wealth.js SAVE.json.gz
+// Throwaway (docs/ideas/aims2, section 2.4): lasting wealth by household in a save (fields x 120, beasts at customary worth),
+// its spread, the stakes held and the live obligations. Not game code; no test reads it. node docs/ideas/aims2/wealth.js SAVE.json.gz
 const path = require('path'), fs = require('fs'), zlib = require('zlib');
 const root = path.join(__dirname, '../../..');
 const VB = require(root + '/src/load.js'), G = VB.gen, Sim = VB.sim;

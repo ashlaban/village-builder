@@ -1,6 +1,6 @@
 # Review of the generational system's plan
 
-25 November 2026. A review of `docs/plans/generations/README.md` against Kim's decisions of 25 November (`docs/design-changelog.md`,
+25 November 2026. A review of `docs/ideas/aims2/README.md` against Kim's decisions of 25 November (`docs/design-changelog.md`,
 0.4, "a generation"; `docs/review-growth-2026-11-25.md`, sections 7 and 8), the principles of `design.md`, the job system of the arch
 `plans` (`origin/claude/dreamy-allen-vhu47g`, `docs/plans/four-scales/README.md`), `docs/cost.md` and target-v2. Nothing but this file
 was written. Section numbers are the plan's; line numbers are of its README.
