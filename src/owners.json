@@ -5,6 +5,7 @@
   "fields": {
     "st.owner": {"owner": "sim/ownership", "category": "cache"},
     "st.crowd": {"owner": "sim/crowding", "category": "cache"},
+    "st.followers": {"owner": "sim/followers", "category": "cache"},
     "st.crowdN": {"owner": "sim/crowding", "category": "cache"},
     "st.living": {"owner": "sim/records", "category": "cache"},
     "st.liveHouseholds": {"owner": "sim/records", "category": "cache"},
@@ -57,6 +58,7 @@
     "pawn.mods": "sim/mood",
     "pawn.wish": "sim/wishes",
     "pawn.ask": "sim/offers",
+    "pawn.looksTo": "sim/followers",
     "pawn.advisedIn": "sim/advice",
     "pawn.courting": "sim/courting",
     "pawn.outside": "sim/births",
