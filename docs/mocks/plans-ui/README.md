@@ -79,3 +79,13 @@ the played pawn's decision points; a countdown only in the tray. Also from the r
 the now-line, a decision, a displacement); hatching means an estimate's range only; a cut-and-resumed task needs a state of its own.
 The three directions: worker placement on the land (`placement.html`), the season as a route map (`routes.html`), and zoom that
 changes what is drawn (`zoom.html`).
+
+## Round 4 (25 November): five ideas at the pawn scale
+
+One pawn, played: **Nils as a member of Backa** (`NILS_VIEW`, `TODAY.nils`, his levy, his own hours, his aim, a demand to answer,
+asks) and **Ola, a lone settler** (`LONE`: head, member and pawn at once; necessities, sleep, multi-step tasks as goals with
+methods, one cut yesterday; aims). The pawn scale holds: the task as a plan (methods, steps read from the world, cuts and the stray
+pile), the pawn's day and days ahead, own hours and what they go to, the levy from below (asking, taking, refusing a demand), and
+long aims. The grammar v2 and the provisional defaults of Round 3 stand. The five: a trail map of the day and its tasks
+(`trail.html`), the task as assembly instructions (`recipe.html`), the member's timesheet and messages (`timesheet.html`), aims as
+a quest log (`quests.html`), and the lone settler's time-blocking (`blocks.html`).

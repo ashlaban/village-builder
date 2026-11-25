@@ -286,3 +286,34 @@ const VILLAGE = (() => {
 })();
 // Round 1's mocks read the old badge table directly; kept as an alias.
 const BADGES = { ...STATES, quill: `<g transform="translate(27 1)">${AUTHORS.player}</g>`, kept: `<g transform="translate(27 1)">${AUTHORS.kept}</g>` };
+
+// ---- The pawn scale (round 4). Two played pawns: Nils as a member of Backa (TODAY.nils, his levy 10.5 h, his aim), and a lone
+// settler, Ola, who is head, member and pawn at once (no levy within; the village's outer levies only once he has a farm).
+const LONE = {
+  name: 'Ola', age: 24, col: '#6a5a8a', day: { season: 'spring', day: 3, hour: 9 },
+  home: 'home', // the scene's yard stands in for his cottage, half built
+  necessities: [ { kind: 'water', what: 'Water', h: 0.5 }, { kind: 'pot', what: 'Cook', h: 1.5 }, { kind: 'wood', what: 'Firewood', h: 1, short: true }, { kind: 'beast', what: 'The cow: milk and fodder', h: 1 } ],
+  sleep: [22, 6], owedSleep: 3,
+  today: [
+    { kind: 'water', what: 'Water', at: 'lake', h: [6, 6.5], state: 'done' },
+    { kind: 'pot', what: 'Cook', at: 'home', h: [6.5, 7], state: 'done' },
+    { kind: 'hoe', what: 'Break the south field (day 2 of ~6)', at: 'clearing', h: [7, 12], state: 'doing', task: 'plant' },
+    { kind: 'pot', what: 'Cook', at: 'home', h: [12, 13], state: 'planned' },
+    { kind: 'chop', what: 'Fell timber for the cottage', at: 'wood1', h: [13, 16], state: 'planned', task: 'cottage', cut: true },
+    { kind: 'cart', what: 'Haul the timber home', at: 'home', h: [16, 17.5], state: 'planned', task: 'cottage' },
+    { kind: 'beast', what: 'Milk, fodder', at: 'home', h: [17.5, 18.5], state: 'planned' },
+  ],
+  tasks: { // multi-step tasks as goals with methods (design 3.2), steps read from the world
+    plant: { goal: 'A sown field at the south clearing', window: 'sow by spring day 10', steps: ['clear', 'break', 'hoe', 'sow'], at: 1, est: { lo: 4, mid: 6, hi: 8 }, unit: 'days' },
+    cottage: { goal: 'A cottage in place of the shelter', steps: ['fell 6 trees', 'haul', 'hew', 'raise walls', 'roof'], at: 0, est: { lo: 9, mid: 12, hi: 16 }, unit: 'days', cut: 'yesterday, at the wood: 1 tree felled, lying with his mark' },
+  },
+  aims: [ { kind: 'married', what: 'A wife and a household', horizon: 'year' }, { kind: 'field', what: 'Three fields by next autumn', horizon: 'year' } ],
+  problems: [ { kind: 'cold', what: 'No roof: cold nights', at: 'home' }, { kind: 'wood', what: 'Firewood for 2 days', at: 'home' } ],
+};
+// Nils as the played pawn (a member): his view of the household's plan is the head's lists up to his levy line, his own hours above it.
+const NILS_VIEW = {
+  levy: 10.5, ownToday: 1.5, standing: 'the head thinks him idle (memory: took 3 h on day 2)',
+  asks: [ { to: 'per', what: 'Leave for the gathering, day 8', state: 'granted' }, { to: 'per', what: 'A lighter levy in winter (9 h)', state: 'unasked' } ],
+  demand: { from: 'per', what: 'Haul before the rain, 16:30-18', h: 1.5, likely: 'refuse: wants Norrgård' },
+  aim: { kind: 'courting', what: 'Court Lisa at Norrgård', progress: 0.3, needs: 'own hours: ~6 h a week', rival: 'the smith\'s son' },
+};
