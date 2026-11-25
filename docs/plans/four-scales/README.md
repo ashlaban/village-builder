@@ -780,4 +780,9 @@ Given in discussion after v2. Taken into sections 1 and 3 on 25 November.
     or invariant broken, and no village dying out (`founders` and `populous`, three seeds, ten years). The order of the build is
     section 3.10's. Mocks are allowed and may wrap a module's function, but a branch with the real change is preferred.
 
+20. **The principle "No pawn decides entirely for itself" is accepted** into `design.md`, Principles for decisions.
+21. **Long-term plans and aims** (a pawn working towards becoming a potter, a head planning a new house for a second child) are
+    designed into this model, and **personal goods are pulled forward from slice 8** into this arch (revises point 6's "wait for
+    personal goods in slice 8"): the potter's road is built here. The design is `aims.md` in this folder.
+
 All questions of section 5 are answered.
