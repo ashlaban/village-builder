@@ -671,7 +671,8 @@ VB['sim/rules'] = (() => {
     // what was learned young (sim/attitudes' P.anchor). settle: times the pressure (the
     // rounds waited in a crowded village) a pawn needs before it wishes to leave at the moving round (sim/settle reads SETTLE.chance there).
     // breach: times the memories of a breach (`breach`, SOCIAL.memories) as this pawn feels them. lie (honour and ambition, VB-554): times
-    // STORY.lie, the chance a pawn with an enemy makes up a story about it (1 − honour, 0.5 + ambition); judge: times the counter-story
+    // STORY.lie, the chance a pawn with an enemy makes up a story about it (2 × (1 − honour), 1 at 0.5 as every act; 0.5 + ambition);
+    // judge: times the counter-story
     // a lie it knew better than gives of the liar (0.5 + honour; sim/stories). talk: times the chance to start a talk at
     // its turn (SOCIAL.talk.chance), at most 1; seek: times SOCIAL.seek. idleWait: times IDLE.wait (the design's 4 to 2 hours about its 3).
     // malleability: times a custom's malleability in its attitudes' drift; cause: times the chance to take up a cause. recover: times
@@ -683,7 +684,7 @@ VB['sim/rules'] = (() => {
       ambition: Object.freeze({ settle: Object.freeze([1.5, 0.5]), lie: Object.freeze([0.5, 1.5]) }),
       honour: Object.freeze({
         breach: Object.freeze([0.5, 1.5]),
-        lie: Object.freeze([1, 0]),
+        lie: Object.freeze([2, 0]),
         judge: Object.freeze([0.5, 1.5]),
       }),
       sociability: Object.freeze({ talk: Object.freeze([0.5, 1.5]), seek: Object.freeze([0.5, 1.5]) }),

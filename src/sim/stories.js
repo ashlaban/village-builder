@@ -21,8 +21,9 @@ VB['sim/stories'] = (() => {
   //   kinds: the event of the record each is made from, its domain and its valence at the source, and what it says in words (% the other
   //   party); a later slice adds a kind by one line. `lied` (VB-554) is the counter-story about a liar, in every domain ('*'), its valence
   //   set at each exposure.
-  //   lie: a pawn with an enemy invents a story about it at its talk turn at `lie` × (1 − honour) × (0.5 + ambition) (TRAITS.acts: honour
-  //   and ambition `lie`); counter: a lie exposed gives a counter-story of −min(1, `counter` × |the lie's valence| × (0.5 + the hearer's
+  //   lie: a pawn with an enemy invents a story about it at its talk turn at `lie` × 2(1 − honour) × (0.5 + ambition) (TRAITS.acts: honour
+  //   and ambition `lie`; the design's 0.005 × (1 − honour), written so the honour factor is 1 at 0.5); counter: a lie exposed gives
+  //   a counter-story of −min(1, `counter` × |the lie's valence| × (0.5 + the hearer's
   //   honour) × (0.5 + its culture's mean honour)) (TRAITS.acts.honour.judge). domains: the domain of each first-hand memory
   //   (SOCIAL.memories) a hearer may know better by; hearsay has none. `worked` is the law's good memory (one who worked beside the
   //   subject knows it pulls its weight) and a kin bond the kin domain's (sim/relations bond): the only good first-hand knowledge of the
@@ -44,7 +45,7 @@ VB['sim/stories'] = (() => {
     half: 40,
     halfFirst: 120,
     forget: 0.2,
-    lie: 0.005,
+    lie: 0.0025,
     counter: 1.5,
     kinds: {
       claim: { event: 'claimTaken', domain: 'law', v: -0.5, words: 'took a claim from %' }, // a claim taken (sim/stakes)

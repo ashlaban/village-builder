@@ -38,7 +38,7 @@ st.pawns[z].traits[IDX.honour] = 0.5;
 const chance = (id) => STORY.lie * Traits.act(st, id, 'honour', 'lie') * Traits.act(st, id, 'ambition', 'lie');
 const before = chance(x);
 st.pawns[x].traits[IDX.honour] = 0; st.pawns[x].traits[IDX.ambition] = 1;
-check(near(chance(x), 3 * before) && near(before, STORY.lie * 0.5), `the chance by honour and ambition: ${before} then ${chance(x)}`);
+check(near(chance(x), 3 * before) && near(before, STORY.lie), `the chance by honour and ambition: ${before} then ${chance(x)}`);
 st.pawns[x].traits[IDX.honour] = 0.5; st.pawns[x].traits[IDX.ambition] = 0.5;
 
 // a witness exposes, a stranger believes: x's lie about y told to u, who worked beside y (a good first-hand memory in the lie's domain),
