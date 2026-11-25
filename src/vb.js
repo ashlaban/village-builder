@@ -15,6 +15,10 @@ VB.COUNTERS = {
     "Fields read by a head's yearly look at ditching a wet field, once a year a farm after the harvest (sim/drain bestField, VB-721)",
   tilthRead: "Reads of a field's tilth, at manuring and reaping only (sim/fields tilthOf, VB-717)",
   routeSearch: 'A* searches started',
+  graphBuild:
+    "Edges read to build the membership graph's live index, at its first use after a seed or load (sim/graph, VB-043)",
+  graphScan:
+    "Edges read back along st.edges for a pawn kept on a dissolved household's record that leaves it (sim/graph leave, VB-043)",
   passageRead:
     "Fields and meadows read by the day's sweep of passage on foot, once a day (sim/passage passageDay, VB-816)",
   visitNoRoute:

@@ -4,6 +4,8 @@
   "drainAsk": 0.013411567476948869,
   "tilthRead": 0.026823134953897737,
   "routeSearch": 0.6292260407935177,
+  "graphBuild": 0,
+  "graphScan": 0,
   "passageRead": 1.7904442581726738,
   "visitNoRoute": 0,
   "moveNoRoute": 0,

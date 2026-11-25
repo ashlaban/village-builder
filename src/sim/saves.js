@@ -311,6 +311,7 @@ VB['sim/saves'] = (() => {
     living: rebuildLiving, // and liveHouseholds with it (sim/records)
     liveHouseholds: null,
     idx: null, // sim/records index, built at its first use
+    graph: null, // sim/graph's index of live edges, built at its first use
     stepAt: null, // sim/agents loaded, at the end of a load
     jobsBy: rebuildJobsBy,
     routeKept: null, // sim/routes, built at its first use: a route kept aside is searched again after a load, and found the same (VB-1563)

@@ -255,6 +255,7 @@ const INTEGRATION = [
   ['node', 'tests/stores.js'],
   ['node', 'tests/hunger.js'],
   ['node', 'tests/heirs.js'],
+  ['node', 'tests/graph.js'], // VB-043: the membership graph agrees with the household caches; scopes on it
   ['node', 'tests/guardian.js'],
   ['node', 'tests/kinship.js'],
   ['node', 'tests/kinlimit.js'],

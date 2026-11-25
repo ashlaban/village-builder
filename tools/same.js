@@ -5,6 +5,8 @@
 //   defaults: base HEAD (so: the uncommitted work against the last commit), founders and heirs, seeds 7 and 42, tiny, 2 years
 //   --base REF   the commit the work started from (`git merge-base HEAD origin/main`), a branch or a tag
 //   --renamed OLD=NEW[,..]  a field renamed since the base (VB-703): the base's leaves under `.OLD` are read as `.NEW`, and the line says so
+//   --added KEY[,..]  a key of the state the work adds (VB-043): left out of the comparison only where the base has no such key, and
+//                the line says so; the rest of the state must still be the same
 //   the derived fields a save leaves out (sim/saves DERIVED) are left out of the comparison
 //   --keep DIR   keep both trees' leaves under DIR (DIR/base, DIR/work: one file an entry and key, one line a leaf)
 //   prints `same: ...` and exits 0, or each differing entry and key with its first differing leaves (`pawns[41].household: 7 → 9`)
@@ -64,7 +66,7 @@ const run = (args) => new Promise((resolve, reject) => {
 
 async function main(argv) {
   const arg = (name, fallback) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : fallback; };
-  const known = ['--base', '--scenario', '--seeds', '--map', '--years', '--keep', '--renamed'];
+  const known = ['--base', '--scenario', '--seeds', '--map', '--years', '--keep', '--renamed', '--added'];
   const stray = argv.filter((a, i) => a.startsWith('--') ? !known.includes(a) : !known.includes(argv[i - 1]));
   if (stray.length) throw new Error(`unknown option ${stray[0]} (--help lists them)`);
   const base = arg('--base', 'HEAD'), map = arg('--map', 'tiny'), years = Number(arg('--years', 2));
@@ -72,6 +74,7 @@ async function main(argv) {
   if (!SIZES[map] || !Number.isInteger(years) || years < 0 || seeds.some((s) => !Number.isInteger(s))) throw new Error('bad --map, --years or --seeds');
   const renamed = (arg('--renamed') || '').split(',').filter(Boolean).map((r) => r.split('='));
   if (renamed.some((r) => r.length !== 2 || !r[0] || !r[1])) throw new Error('bad --renamed: OLD=NEW, comma-separated');
+  const added = (arg('--added') || '').split(',').filter(Boolean);
   const keep = arg('--keep'), tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-same-'));
   const out = keep ? path.resolve(keep) : path.join(tmp, 'out'), tree = path.join(tmp, 'base');
   const git = (...a) => cp.execFileSync('git', a, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -89,12 +92,15 @@ async function main(argv) {
     const derived = new Set(Object.keys(require(path.join(root, 'src', 'load.js'))['sim/saves'].DERIVED || {}));
     for (const d of ['base', 'work']) for (const e of fs.existsSync(path.join(out, d)) ? fs.readdirSync(path.join(out, d)) : [])
       for (const k of derived) fs.rmSync(path.join(out, d, e, k + '.txt'), { force: true });
+    // a key the work adds: left out where the base has none, so that the rest must be the same
+    for (const e of fs.existsSync(path.join(out, 'work')) ? fs.readdirSync(path.join(out, 'work')) : [])
+      for (const k of added) if (!fs.existsSync(path.join(out, 'base', e, k + '.txt'))) fs.rmSync(path.join(out, 'work', e, k + '.txt'), { force: true });
     diffs = compare(path.join(out, 'base'), path.join(out, 'work'), 5, renamed);
   } finally {
     git('worktree', 'remove', '--force', tree);
     if (!keep) fs.rmSync(tmp, { recursive: true, force: true });
   }
-  const what = `${scenarios.join(', ')} at seeds ${seeds.join(', ')}, ${map}, ${years} years, against ${base} (${commit})${renamed.length ? `, with ${renamed.map(([a, b]) => `${a} read as ${b}`).join(', ')}` : ''}`;
+  const what = `${scenarios.join(', ')} at seeds ${seeds.join(', ')}, ${map}, ${years} years, against ${base} (${commit})${renamed.length ? `, with ${renamed.map(([a, b]) => `${a} read as ${b}`).join(', ')}` : ''}${added.length ? `, ${added.join(', ')} added` : ''}`;
   if (!diffs.length) { console.log(`same: the world and the state at seeding and each year's end, ${what}`); return; }
   for (const d of diffs) console.log(`${d.file.replace(/\.txt$/, '')}: ${d.count} differing leaves\n  ${d.first.join('\n  ')}`);
   console.log(`differs: ${diffs.length} keys, ${what}${keep ? `; leaves in ${keep}` : ' (--keep DIR keeps the leaves)'}`);

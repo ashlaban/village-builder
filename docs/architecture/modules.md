@@ -403,6 +403,13 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `leaveHousehold`, `clearMembers`, `setServant`). Death retains the last household on the historical record.
   `sim/membership.foundHousehold` creates, supplies, owns and populates a farm's household; restoration reaches it by the
   `foundHousehold` command, and a completed plot reaches `sim/cottage` by `finishCottage`.
+- The membership graph (VB-043): `sim/graph` holds `st.edges`, typed edges (`resides`, `service`, `holder`, `spouse`, `village`,
+  `culture`, `alderman`, `family`, `line`) with `since` and `until`, and the index of live edges (`st.graph`, derived); ended edges stay
+  outside the index. It is the truth of membership: each writer above writes its edge with the cache it keeps (`sim/records` the
+  household caches, holders and lines, `sim/marriage` and `noteUnionEnd` the spouses, `sim/membership` the alderman, `sim/society` the
+  cultures, `sim/births` the family), and `check` (in the invariants) derives the caches from the edges alone. A new kind of membership
+  (an employer, a guild, a parish) is a new role. `sim/scopes.inScope(st, {level, ids, dim})` reads it for the views: the pawns,
+  households, villages, tiles and stores a scope covers.
 - `Culture` (`src/culture.js`) holds the customs in force: culture-wide customs and per-settlement practice, and their only writer
   (`setPractice` the one write of a settlement's practice), with the causes (`advocate`, `entrepreneurs`, `endCause`), the villages'
   meetings, the yearly reckoning and the split. `sim/attitudes` (VB-417) holds what each person holds: the attitude, its anchor and its

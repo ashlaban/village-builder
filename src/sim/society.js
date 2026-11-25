@@ -65,12 +65,14 @@ VB['sim/society'] = (() => {
       addValues, // a culture's values, the mean of its living adults' (sim/traits, VB-519)
       act: (p, name, rule) => act(st, p.id, name, rule), // what a trait does to the drift (sim/traits, VB-520)
       nameCulture: (s) => `${s.name.replace(/(by|sta|vik|nes|inge|berga|tuna|säter)$/, '') || s.name}folk`,
-      onSplit: (nc, from) =>
+      onSplit: (nc, from) => {
+        for (const s of env.settlements) if (s.culture === nc.id) VB['sim/graph'].cultureOf(st, s.id, nc.id); // VB-043
         log(
           st,
           `${nc.name}: the people of ${env.settlements[nc.centres[0]].name} now keep their own customs, apart from ${from.name}.`,
           { kind: 'split', village: nc.centres[0] },
-        ),
+        );
+      },
     };
   }
   function initCulture(st, leanBySettlement, overrides = {}) {
@@ -115,6 +117,7 @@ VB['sim/society'] = (() => {
       divergence: 0,
     };
     st.cenv.settlements.push(s);
+    VB['sim/graph'].cultureOf(st, v.id, culture);
     return s;
   }
   // tie of each settlement to its culture's centre: the walking hours between the greens plus living kin across the gap. s.distance: those

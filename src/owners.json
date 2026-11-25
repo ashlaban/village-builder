@@ -10,6 +10,8 @@
     "st.living": {"owner": "sim/records", "category": "cache"},
     "st.liveHouseholds": {"owner": "sim/records", "category": "cache"},
     "st.peopleCheck": "sim/records",
+    "st.edges": "sim/graph",
+    "st.graph": {"owner": "sim/graph", "category": "cache"},
     "st.trusts": "sim/trust",
     "st.stories": "sim/stories",
     "st.storySeq": "sim/stories",
