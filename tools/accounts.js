@@ -28,7 +28,15 @@
 //   the three households owed most, and the goodwill booked at feasts. Labour: the share of work hours working, walking, carrying and idle,
 //   by season, of those 7 and older not children (tools/idle.js countHour: the run is stepped an hour at a time).
 // The balance properties (docs/balance/cards.md): a line each, this year's value, or `no mechanism yet`.
-// --json: the years as data, a record a year ({year, food: {all, villages}, people, spread, goodwill, labour, properties}).
+// Every good's own account (VB-1684), island-wide, beside the food's: for each good the stores' ledgers and totals name (grain of any crop,
+//   sheaves, flour, meals, fish, the larder's foods, ale, wood, timber, peat, stone, tar, hides, salt, iron, clay, bog ore, wool, yarn,
+//   cloth ...), every movement booked under its reason, `in.<reason>` what came in, `out.<reason>` what went (left with a household that
+//   ended, died holding), against the change in what households, villages, pawns' stakes and gift grain on its way hold of it:
+//   `unexplained` is 0 when nothing moves the good outside the stores. The run's account of each good (`run`) adds the years' up: the
+//   report reads each year's movements at its turn, before the stores prune them (three years kept), so it holds over any length of run.
+//   Goods outside sim/stores (the hay, sim/byre) have no ledger to read and are not here.
+// --json: the years as data, a record a year ({year, food: {all, villages}, grain, goods, people, spread, goodwill, labour, properties}),
+//   and the run's account of each good (`goods`).
 // Read from the stores' ledgers and yearly totals (src/sim/stores.js) at each year's turn, and from a closing household's ledger as it
 // closes, which is counted by wrapping sim/stores' close at load, as tools/perf.js wraps its systems (tests/lib/load.js): `load()` replaces
 // require('../src/load.js'). The larder's takes and losses are in the ledger since VB-683.
@@ -54,6 +62,11 @@ const FOOD = new Set(['grain', 'sheaves', 'flour', 'fish', 'gathered', 'dried fi
 const GRAIN = new Set(['grain', 'sheaves', 'flour']);
 const LARDER = new Set(['dried fish', 'meat', 'salt meat', 'smoked meat', 'milk', 'butter']); // the larder's foods (FOODS held 'larder')
 const G = 'g:';
+// Every good's account: its lines and stocks booked under the key X + good (island-wide), as the grain's are under G + village
+const X = 'x:';
+// A ledger entry or a yearly total in a good's own account: `in.<reason>` or `out.<reason>`, by the movement's sign; null when it moves
+// nothing (the milk a crowded pasture cost)
+const goodLine = (d) => (d.kind === 'milkbite' ? null : (d.n > 0 ? 'in.' : 'out.') + d.kind);
 // A ledger entry or a yearly total of a food: the line it books to, or null when it moves food between two of a holder's stores (threshing,
 // grinding, drying) or is no movement (milkbite). holder: 'household' or 'village'; d: the entry (kind, n, crop, to, stake ...).
 function lineOf(holder, d) {
@@ -101,9 +114,11 @@ function report(VB, st, opts = {}) {
   // A holder's food entries and totals of years `from` and later, into their years' buckets.
   function readHolder(holder, type, v, from, into = flows) {
     for (const e of holder.ledger || []) {
-      if (!FOOD.has(e.good)) continue;
       const y = yearOfT(YEAR, e.t);
       if (y < from) continue;
+      const gl = goodLine(e);
+      if (gl) book(bucket(y, X + e.good, into), gl, e.n);
+      if (!FOOD.has(e.good)) continue;
       const line = lineOf(type, e);
       if (line) book(bucket(y, v, into), line, e.n);
       if (line && GRAIN.has(e.good)) book(bucket(y, G + v, into), line, e.n);
@@ -111,7 +126,10 @@ function report(VB, st, opts = {}) {
       if (line && type === 'household' && into === flows && line.startsWith('produced.') && y === counted + 1) produce.set(holder.id, (produce.get(holder.id) || 0) + e.n);
     }
     for (const x of holder.totals || []) {
-      if (x.year < from || !FOOD.has(x.good)) continue;
+      if (x.year < from) continue;
+      const gl = goodLine(x);
+      if (gl) book(bucket(x.year, X + x.good, into), gl, x.n);
+      if (!FOOD.has(x.good)) continue;
       const line = lineOf(type, x);
       if (line) book(bucket(x.year, v, into), line, x.n);
       if (line && GRAIN.has(x.good)) book(bucket(x.year, G + v, into), line, x.n);
@@ -122,20 +140,22 @@ function report(VB, st, opts = {}) {
   function stocks() {
     const s = new Map(), at = (v) => { if (!s.has(v)) s.set(v, 0); return v; };
     const put = (v, n, grain = 0) => { s.set(at(v), s.get(v) + n); s.set(at(G + v), s.get(G + v) + grain); };
+    const good = (g, n) => { if (n) s.set(at(X + g), s.get(X + g) + n); };
     for (const id of st.liveHouseholds) {
       const hh = st.households[id];
       if (hh.dissolved) continue;
       put(villageOf(hh), householdFood(hh), householdGrain(hh));
+      householdGoods(hh, good);
     }
-    for (const v of st.villages) put(v.id, Stores.grainOf(v), Stores.grainOf(v));
-    for (const p of st.pawns) if (p.alive && p.stake > 0) put(p.household !== null ? villageOf(st.households[p.household]) : 'transit', p.stake, p.stake);
-    for (const j of st.away || []) if (j.gift && j.gift.held > 0) put('transit', j.gift.held, j.gift.held);
+    for (const v of st.villages) { put(v.id, Stores.grainOf(v), Stores.grainOf(v)); good('grain', Stores.grainOf(v)); }
+    for (const p of st.pawns) if (p.alive && p.stake > 0) { put(p.household !== null ? villageOf(st.households[p.household]) : 'transit', p.stake, p.stake); good('grain', p.stake); }
+    for (const j of st.away || []) if (j.gift && j.gift.held > 0) { put('transit', j.gift.held, j.gift.held); good('grain', j.gift.held); }
     return s;
   }
   // The stakes the dead hold, by village (of the household each died in): a pawn's stake is not handed on at its death, and no movement
   // takes it (the grain goes with it), so it is an outlet, `died holding`, the year's change in these.
   function deadStakes() {
-    const s = new Map(), put = (v, n) => { s.set(v, (s.get(v) || 0) + n); s.set(G + v, (s.get(G + v) || 0) + n); };
+    const s = new Map(), put = (v, n) => { for (const k of [v, G + v, X + 'grain']) s.set(k, (s.get(k) || 0) + n); };
     for (const p of st.pawns) if (!p.alive && p.stake > 0) put(p.household !== null ? villageOf(st.households[p.household]) : 'transit', p.stake);
     return s;
   }
@@ -143,6 +163,19 @@ function report(VB, st, opts = {}) {
     let n = Stores.grainOf(hh) + (hh.flour || 0);
     for (const x of hh.unthreshed || []) n += x;
     return n;
+  }
+  // What a household holds of each good, as the stores' ledger names it (grain of any crop, a good of kinds whatever its kind): into(good, n).
+  function householdGoods(hh, into) {
+    into('grain', Stores.grainOf(hh));
+    let sheaves = 0;
+    for (const x of hh.unthreshed || []) sheaves += x;
+    into('sheaves', sheaves);
+    for (const [g, k] of HELD) into(g, hh[k] || 0);
+    for (const k in hh.stone || {}) into('stone', hh.stone[k]); // the heap by rock (heldOf refuses a closing household)
+    if (hh.cloth) into('cloth', hh.cloth.reduce((a, n) => a + n, 0));
+    for (const l of hh.ale || []) into('ale', l.n);
+    for (const b of hh.fresh || []) into(b.food, b.qty);
+    for (const l of hh.larder || []) into(l.kind, l.n);
   }
   function householdFood(hh) {
     let n = Stores.grainOf(hh) + (hh.flour || 0) + (hh.rack || 0);
@@ -170,6 +203,7 @@ function report(VB, st, opts = {}) {
       readHolder(hh, 'household', v, counted + 1, kept);
       add(bucket(Stores.yearNow(st2), v, kept), 'out.ended', householdFood(hh));
       add(bucket(Stores.yearNow(st2), G + v, kept), 'out.ended', householdGrain(hh));
+      householdGoods(hh, (g, n) => { if (n) add(bucket(Stores.yearNow(st2), X + g, kept), 'out.ended', n); });
     },
   };
   let open = opening(), dead0 = deadStakes();
@@ -222,15 +256,27 @@ function report(VB, st, opts = {}) {
     open = end;
   }
   function close(y, b, s0, s1) {
-    const isG = (k) => typeof k === 'string' && k.startsWith(G), food = (k) => !isG(k);
+    const isG = (k) => typeof k === 'string' && k.startsWith(G), isX = (k) => typeof k === 'string' && k.startsWith(X), food = (k) => !isG(k) && !isX(k);
     const ids = [...new Set([...b.keys(), ...s0.keys(), ...s1.keys()])].filter(food).sort((a, c) => (a === 'transit') - (c === 'transit') || a - c);
     const rows = ids.map((v) => account(v === 'transit' ? 'on the way' : st.villages[v].name, b.get(v) || {}, s0.get(v) || 0, s1.get(v) || 0));
     const pick = (m, f) => new Map([...m].filter(([k]) => f(k)));
     const all = account('all', sumLines([...pick(b, food).values()]), sum(pick(s0, food)), sum(pick(s1, food)));
     const grain = account('grain', sumLines([...pick(b, isG).values()]), sum(pick(s0, isG)), sum(pick(s1, isG)));
-    return { year: y, food: { all, villages: rows }, grain };
+    const goods = {};
+    for (const k of [...new Set([...b.keys(), ...s0.keys(), ...s1.keys()])].filter(isX).sort()) {
+      const g = k.slice(X.length), a = account(g, b.get(k) || {}, s0.get(k) || 0, s1.get(k) || 0);
+      goods[g] = a;
+      const r = (run[g] ||= { name: g, lines: {}, opening: a.opening, years: 0 });
+      r.lines = sumLines([r.lines, flatLines(a.lines)]);
+      r.closing = a.closing; r.years++;
+    }
+    return { year: y, food: { all, villages: rows }, grain, goods };
   }
-  return { advanceYear, result: () => ({ years }), R };
+  // the run's account of each good: its years' lines added up, from the first year's opening to the last's closing (VB-1684: the stores
+  // keep three years, this report every year it read)
+  const run = {};
+  const runGoods = () => Object.fromEntries(Object.entries(run).map(([g, r]) => [g, { ...account(g, r.lines, r.opening, r.closing), years: r.years }]));
+  return { advanceYear, result: () => ({ years, goods: runGoods() }), R };
 }
 const sum = (m) => [...m.values()].reduce((s, n) => s + n, 0);
 const r3 = (x) => (Number.isFinite(x) ? +x.toFixed(3) : null);
@@ -403,6 +449,11 @@ function hoursShare(share) {
   }
   return out;
 }
+// The stores' fields of a household that hold a good as one number, by the good the ledger names (sim/stores field)
+const HELD = [['flour', 'flour'], ['meals', 'meals'], ['wood', 'wood'], ['timber', 'timber'], ['peat', 'peat'], ['tar', 'tar'], ['hide', 'hides'],
+  ['salt', 'salt'], ['iron', 'iron'], ['clay', 'clay'], ['bogOre', 'bogOre'], ['wool', 'wool'], ['yarn', 'yarn'], ['fish', 'rack']];
+// an account's nested lines back to their flat keys ({in: {felling: 3}} -> {'in.felling': 3})
+const flatLines = (tree) => Object.fromEntries(flat(tree));
 function sumLines(list) { const o = {}; for (const b of list) for (const [k, n] of Object.entries(b)) o[k] = (o[k] || 0) + n; return o; }
 // An account from its lines and its opening and closing stocks: the lines nested ({produced: {grain: {barley}}, ...}), the totals, and
 // what is left unexplained.
@@ -484,5 +535,10 @@ function print(out) {
   console.table(last.food.villages.map((a) => ({ village: a.name, produced: Math.round(a.produced), received: Math.round(a.received), outlets: Math.round(a.outlets),
     change: Math.round(a.change), unexplained: Math.round(a.unexplained), pct: (100 * a.unexplainedShare).toFixed(1) })));
   console.log('the balance properties (docs/balance/cards.md):'); console.table(last.properties);
+  const goodRow = (a) => ({ good: a.name, opening: +a.opening.toFixed(1), in: +a.received.toFixed(1), out: +a.outlets.toFixed(1), change: +a.change.toFixed(1), unexplained: +a.unexplained.toFixed(3) });
+  console.log(`year ${last.year}, every good (island-wide; in and out by reason in --json):`);
+  console.table(Object.values(last.goods).map(goodRow));
+  console.log(`the run, ${out.years.length} year(s), every good:`);
+  console.table(Object.values(out.goods).map(goodRow));
 }
 module.exports = { load, report, print, lineOf };
