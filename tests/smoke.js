@@ -375,6 +375,23 @@ const iv = setInterval(async () => {
   const iv2 = setInterval(() => { if (!doc.getElementById('menuBtn').disabled && doc.getElementById('loader').classList.contains('done')) tick(20);  if (doc.getElementById('loader').classList.contains('done') && !doc.getElementById('menuBtn').disabled) { clearInterval(iv2); doc.getElementById('chooseWatch').click(); let ok = true; try { tick(10); } catch (e) { ok = false; }
     const deadAttached = []; const walk = (n, path) => { for (const c of n.children || []) { if (c._dead) deadAttached.push(path); walk(c, path + '>' + (c.constructor.name)); } }; walk(P.APP.stage, 'stage'); doc.getElementById('settlersBtn').click(); if (!doc.querySelector('#settlers .village-block')) fail('settlers list is empty after regenerating');
     if (!ok) fail('frame error after regenerating');
+    // VB-303 (review F1): the green's loads at a gathering draw on the rebuilt layer, not on a Graphics the rebuild destroyed
+    {
+      const st2 = P.seeded, id = st2.pawns.findIndex((p) => p.alive && p.household !== null && st2.agents[p.id]), ag = st2.agents[id];
+      const was = { fair: st2.fair, load: st2.pawns[id].load, occ: ag.occasion, path: ag.path, n: st2.occasions.length }, drawn = P.calls.ellipse || 0;
+      st2.fair = { loads: [id], fairs: [], goods: {} };
+      st2.pawns[id].load = { household: st2.pawns[id].household, until: st2.t + 9, lots: [{ good: 'grain', n: 10 }, { good: 'tar', n: 1 }] };
+      st2.occasions.push({ id: 1e6, kind: 'gathering', for: [], village: 0, farm: null, tile: 0, x: 10, y: 10, start: st2.t - 1, end: st2.t + 9, asked: [], come: [] });
+      ag.occasion = 1e6; ag.path = null;
+      doc.getElementById('stage').dispatchEvent(new win.WheelEvent('wheel', { deltaY: -4000, bubbles: true, cancelable: true })); // near enough to draw it
+      tick(20);
+      try { tick(2); } finally {
+        st2.occasions.length = was.n; st2.fair = was.fair; st2.pawns[id].load = was.load; ag.occasion = was.occ; ag.path = was.path;
+      }
+      if ((P.calls.ellipse || 0) <= drawn) fail('no load drawn on the green of a gathering');
+      if (/went wrong in a frame/.test(doc.getElementById('lod').textContent)) fail(`a frame failed with loads on the green: ${doc.getElementById('lod').textContent}`);
+      tick(1);
+    }
     console.log('destroyed objects still in the scene:', deadAttached.length); console.log('regen frames ran:', ok, '|', doc.getElementById('name').textContent, '| settlers', [...doc.querySelectorAll('#settlers .farm h2')].map((h) => h.textContent).join(' / ')); goodwillPanel().then(notices).then(actionBar).then(() => process.exit(P.failed ? 1 : 0)); } }, 50);
 }, 50);
 // The pawn panel's goodwill balances (VB-218): after a year of populous 7 on the tiny map, with its gifts, a holder with a balance toward

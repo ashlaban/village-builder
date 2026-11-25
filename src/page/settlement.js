@@ -35,7 +35,8 @@ function clearSettlement() {
     ...L.objects.removeChildren(),
     ...L.labels.removeChildren(),
   ])
-    if (s !== ring && s !== moveG) s.destroy({ children: true, context: true }); // the move's loads too: kept, and re-added (buildFarms)
+    // the move's loads and the green's loads (page/gathering) too: kept, and re-added (buildFarms)
+    if (s !== ring && s !== moveG && s !== greenG) s.destroy({ children: true, context: true });
   selPawn = -1;
   selVillage = -1;
   selFarm = -1;
@@ -360,7 +361,7 @@ function drawnBy(draw) {
 }
 function buildFarms(wd) {
   for (const s2 of [...L.fields.removeChildren(), ...L.fences.removeChildren(), ...L.objects.removeChildren()])
-    if (s2 !== ring && s2 !== moveG) s2.destroy({ children: true, context: true });
+    if (s2 !== ring && s2 !== moveG && s2 !== greenG) s2.destroy({ children: true, context: true });
   fieldSprites = [];
   rigs = [];
   houseInfo = [];
@@ -381,8 +382,9 @@ function buildFarms(wd) {
   for (const v of st.villages) villageDrawn[v.id] = drawnBy(() => drawVillage(wd, v));
   if (labelsReady && labelSigOf() !== labelSig) buildLabels(wd);
   for (const p of st.pawns) rigs.push(pawnRig(p));
-  L.objects.addChild(ring, moveG);
+  L.objects.addChild(ring, moveG, greenG);
   moveKey = '';
+  greenKey = ''; // the loads on a gathering's green (page/gathering), drawn anew on this world
   st.visualDirty = false;
   st.rigDirty.clear();
   st.farmDirty.clear();

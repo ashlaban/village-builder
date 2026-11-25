@@ -595,9 +595,10 @@ VB['sim/gathering'] = (() => {
     log(st, report(st, h, present.length, from), { kind: 'gatheringHeld', village: h, n: present.length });
   }
   // The gathering's report (VB-303; design.md, The gathering, What the player sees), the log's line at the end of its last day: who
-  // hosted, which villages came (those of the people there that day), how many were there, the border cases decided and the matches made,
-  // what changed hands at its fair (sim/fair's count of the fair, st.fair: read, never written here), what failed for want of change, and
-  // the ale poured. Reads only.
+  // hosted, which villages came (those of the people there that day), how many were there, the border cases decided and the matches made
+  // (when there are any: VB-297 and VB-298 count them),
+  // who dealt at its fair and what changed hands (sim/fair's count of the fair, st.fair: read, never written here; the fair has no line of
+  // its own), what failed for want of change, the hard bargains, and the ale poured. Reads only.
   function report(st, h, n, from) {
     const g = choiceOf(st, h),
       year = cal(st.t).year,
@@ -611,15 +612,23 @@ VB['sim/gathering'] = (() => {
             .join(', ')
         : '',
       deals = fair
-        ? `; at the fair ${count(fair.deals, 'deal', 'deals')} made${moved ? ` (rations' worth: ${moved})` : ''}, ` +
-          `${fair.noChange} failed for want of change`
+        ? `; at the fair ${count(fair.dealers, 'came', 'came')} to deal, ${count(fair.deals, 'deal', 'deals')} made` +
+          `${moved ? ` (rations' worth: ${moved})` : ''}, ${fair.noChange} failed for want of change, ` +
+          `${count(fair.hard, 'hard bargain', 'hard bargains')}`
         : '; no fair was held',
+      cases = (g && g.cases) || 0,
+      matches = (g && g.matches) || 0,
+      heard = [
+        cases && count(cases, 'border case', 'border cases') + ' decided',
+        matches && count(matches, 'match', 'matches') + ' made',
+      ]
+        .filter(Boolean)
+        .join(', '),
       ale = g && g.ale ? `; ${g.ale === 1 ? 'a barrel' : g.ale + ' barrels'} of ale poured` : '';
     return (
       `The gathering at ${st.villages[h].name} ends: hosted by ${st.villages[h].name}` +
-      `${came.length ? `, with ${list(came.map((v) => st.villages[v].name))}` : ''}; ${n} were there on its last day; ` +
-      `${count((g && g.cases) || 0, 'border case', 'border cases')} decided, ${count((g && g.matches) || 0, 'match', 'matches')} made` +
-      `${deals}${ale}.`
+      `${came.length ? `, with ${list(came.map((v) => st.villages[v].name))}` : ''}; ${n} were there on its last day` +
+      `${heard ? `; ${heard}` : ''}${deals}${ale}.`
     );
   }
   onEnd('gathering', { end: (st, o, pre, present) => dayEnd(st, o, present) });

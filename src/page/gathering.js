@@ -67,26 +67,37 @@ function drawGatherings(show) {
 }
 // The loads set out on the host's green for a gathering's days (VB-303; design.md, The gathering, What the player sees): the load of each
 // dealer there (sim/fair's pawn.load), set down in a ring about the spot where its people stand, a lump for each good it holds (a sack of
-// grain, a barrel, a bundle of hides or of fish, a bloom of iron). One Graphics, redrawn only when what is set out changes (each frame).
+// grain, a barrel, a bundle of hides or of fish, a bloom of iron). One Graphics, kept across a new world as moveG is (page/settlement's
+// buildFarms), redrawn only when what is set out changes; the key is read from st.fair.loads, the dealers, not from every agent.
 // Animals led to the fair are drawn when the fair leads them (VB-1478).
 const greenG = new PIXI.Graphics(),
   LUMP_INK = { width: 0.7, color: 0x2c201c, join: 'round' },
   LUMP_FILL = { sack: 0xd9c79c, barrel: 0x8a5a36, hide: 0x9a6a46, lot: 0xb8a27a, bloom: 0x55504c };
 let greenKey = '';
-L.objects.addChild(greenG);
 function drawGreenLoads(on) {
+  const loads = st.fair ? st.fair.loads : [],
+    here = (o, id) => {
+      const a = st.agents[id];
+      return a && a.occasion === o.id && !a.path && st.pawns[id].alive && st.pawns[id].load;
+    };
+  let key = '';
+  for (const o of on)
+    if (o.kind === 'gathering')
+      for (const id of loads)
+        if (here(o, id)) {
+          key += `${o.id}:${id}`;
+          for (const x of st.pawns[id].load.lots) if (x.n > 0) key += x.good[0] + x.good.length;
+          key += ';';
+        }
+  if (key === greenKey) return;
   const Goods = VB['sim/goods'],
     sets = [];
   for (const o of on) {
     if (o.kind !== 'gathering') continue;
-    const ids = st.agents
-      .filter((a) => a.occasion === o.id && !a.path && st.pawns[a.id].alive && st.pawns[a.id].load)
-      .map((a) => a.id);
+    const ids = loads.filter((id) => here(o, id));
     if (ids.length) sets.push({ o, ids });
   }
   const goodsOf = (id) => [...new Set(st.pawns[id].load.lots.filter((x) => x.n > 0).map((x) => x.good))];
-  const key = sets.map((x) => `${x.o.id}:${x.ids.map((id) => goodsOf(id).join('+')).join('/')}`).join();
-  if (key === greenKey) return;
   greenKey = key;
   greenG.clear();
   let low = 0;
