@@ -43,6 +43,7 @@ function makeOccMark(kind) {
 function drawGatherings(show) {
   const on = show ? occOn() : [],
     k = occScale();
+  drawGreenLoads(on);
   for (const [id, m] of occMarks)
     if (!on.some((o) => o.id === id)) {
       m.c.destroy({ children: true });
@@ -63,6 +64,64 @@ function drawGatherings(show) {
         .stroke({ width: picked ? 2.6 : 1.4, color: picked ? 0xf2c14e : 0x2c201c });
     }
   }
+}
+// The loads set out on the host's green for a gathering's days (VB-303; design.md, The gathering, What the player sees): the load of each
+// dealer there (sim/fair's pawn.load), set down in a ring about the spot where its people stand, a lump for each good it holds (a sack of
+// grain, a barrel, a bundle of hides or of fish, a bloom of iron). One Graphics, redrawn only when what is set out changes (each frame).
+// Animals led to the fair are drawn when the fair leads them (VB-1478).
+const greenG = new PIXI.Graphics(),
+  LUMP_INK = { width: 0.7, color: 0x2c201c, join: 'round' },
+  LUMP_FILL = { sack: 0xd9c79c, barrel: 0x8a5a36, hide: 0x9a6a46, lot: 0xb8a27a, bloom: 0x55504c };
+let greenKey = '';
+L.objects.addChild(greenG);
+function drawGreenLoads(on) {
+  const Goods = VB['sim/goods'],
+    sets = [];
+  for (const o of on) {
+    if (o.kind !== 'gathering') continue;
+    const ids = st.agents
+      .filter((a) => a.occasion === o.id && !a.path && st.pawns[a.id].alive && st.pawns[a.id].load)
+      .map((a) => a.id);
+    if (ids.length) sets.push({ o, ids });
+  }
+  const goodsOf = (id) => [...new Set(st.pawns[id].load.lots.filter((x) => x.n > 0).map((x) => x.good))];
+  const key = sets.map((x) => `${x.o.id}:${x.ids.map((id) => goodsOf(id).join('+')).join('/')}`).join();
+  if (key === greenKey) return;
+  greenKey = key;
+  greenG.clear();
+  let low = 0;
+  for (const { o, ids } of sets)
+    ids.forEach((id, k) => {
+      const ring = 22 + 9 * Math.floor(k / 12),
+        a = ((k % 12) / 12) * Math.PI * 2 + Math.floor(k / 12) * 0.26,
+        x = o.x + Math.cos(a) * ring,
+        y = o.y + Math.sin(a) * ring * 0.55;
+      low = Math.max(low, y);
+      goodsOf(id)
+        .slice(0, 3)
+        .forEach((g, j) => {
+          const lump = Goods.goodOf(g).lump,
+            lx = x - 4 + j * 4,
+            ly = y - j * 0.6,
+            fill = LUMP_FILL[lump] || LUMP_FILL.lot;
+          if (lump === 'sack')
+            greenG
+              .ellipse(lx, ly - 2.6, 2.6, 3)
+              .fill(fill)
+              .stroke(LUMP_INK);
+          else if (lump === 'barrel')
+            greenG
+              .roundRect(lx - 2.2, ly - 5, 4.4, 5, 1)
+              .fill(fill)
+              .stroke(LUMP_INK);
+          else
+            greenG
+              .roundRect(lx - 3, ly - 2.4, 6, 2.4, 0.8)
+              .fill(fill)
+              .stroke(LUMP_INK);
+        });
+    });
+  greenG.zIndex = low + 1;
 }
 // The occasion whose mark is at map point (x, y), or -1.
 function gatheringAt(x, y) {

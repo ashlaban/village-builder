@@ -381,6 +381,49 @@ VB['sim/fair'] = (() => {
       below = floorOf(st, hh) - (Stores.grainOf(hh) + held(p.load, 'grain') - gives.n * quantum('grain'));
     return below > TOLERANCE ? { below } : null;
   }
+  // ---- the player's swap (VB-303; design.md, The gathering, What the player sees) ----
+  // A load's goods as the swap dialog shows them: each good it holds a quantum of, {good, n (whole quanta), lump, worth (rations of
+  // customary worth a quantum)}
+  const sideOf = (l) =>
+    goodsIn(l).map((g) => ({
+      good: g,
+      n: Math.floor(held(l, g) / quantum(g) + TOLERANCE),
+      lump: Goods.goodOf(g).lump,
+      worth: worth(g),
+    }));
+  // The fair pawn id is at, as its dialog shows it: null when it carries no load or stands at no gathering; else {mine (its load's
+  // goods), dealers[] ({id, household, goods}: those at the same gathering with a load of another household, by id)}. Reads only.
+  function fairSides(st, id) {
+    const p = st.pawns[id],
+      a = st.agents[id];
+    if (!p || !p.alive || !p.load || !a || a.occasion == null) return null;
+    const o = st.occasions.find((x) => x.id === a.occasion);
+    if (!o || o.kind !== 'gathering') return null;
+    const dealers = [];
+    for (const d of st.fair.loads) {
+      const q = st.pawns[d],
+        b = st.agents[d];
+      if (d === id || !q.alive || !q.load || q.load.household === p.load.household || !b || b.occasion !== o.id)
+        continue;
+      dealers.push({ id: d, household: q.load.household, goods: sideOf(q.load) });
+    }
+    dealers.sort((x, y) => x.id - y.id);
+    return { mine: sideOf(p.load), dealers };
+  }
+  // A swap's terms as the dialog shows them before it is offered: {why (null, or why it cannot be offered: sim/fair's swapWhy), give and get
+  // (the customary worth, in rations, of what the player gives and of what it asks), residual (give less get: what the other would owe it,
+  // booked as goodwill; below 0, what it would owe), warning (swapWarning: grain under its household's floor)}. Reads only.
+  function swapTerms(st, id, other, gives, wants) {
+    const give = gives.n * worth(gives.good),
+      get = wants.n * worth(wants.good);
+    return {
+      why: swapWhy(st, id, other, gives, wants),
+      give,
+      get,
+      residual: give - get,
+      warning: swapWarning(st, id, gives),
+    };
+  }
   // ---- finding deals (design.md, The fair: Trade partners; Cost) ----
   // Whether a deal would only pass one keeping good for another: dealer `me` needs what it would take (its need alone, with no room left
   // for goods to pass on) no more than what it would give. Such a deal moves no need, only lumps between friends; nobody proposes it.
@@ -493,5 +536,5 @@ VB['sim/fair'] = (() => {
     const year = cal(st.t).year;
     st.fair.fairs = st.fair.fairs.filter((r) => r.year === year || !r.told);
   }
-  return { FAIR, fairHour, swapWhy, swapWarning, held, weight };
+  return { FAIR, fairHour, swapWhy, swapWarning, held, weight, fairSides, swapTerms };
 })();

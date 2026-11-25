@@ -123,6 +123,7 @@ const Sim = (() => {
   const { left: depositLeftNow } = VB['sim/dig']; // VB-359: loads left now, bog iron grown back
   const { woodOf } = VB['sim/territory'];
   const { offerPreview, foodDays } = VB['sim/preview']; // what a yes to an offer would bring, and a household's food in days (VB-1100)
+  const { fairSides, swapTerms } = VB['sim/fair']; // the fair the played pawn is at, and a swap's terms, for its dialog (VB-303)
 
   return {
     seed,
@@ -150,6 +151,8 @@ const Sim = (() => {
     wishesOf,
     opportunities,
     offerPreview,
+    fairSides,
+    swapTerms,
     foodDays,
     successor,
     villageSummary,

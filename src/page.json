@@ -43,6 +43,7 @@
   "page/plan.js",
   "page/day.js",
   "page/gift.js",
+  "page/swap.js",
   "page/positions.js",
   "page/choose.js",
   "page/start.js",
