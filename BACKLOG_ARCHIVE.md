@@ -783,3 +783,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-044](backlog/VB-044.md) | Overlay filters by scope, and claims on the overlay | debt | 3 | M | The ownership overlay can be filtered by any entity level and also shows claims. |
 | [VB-092](backlog/VB-092.md) | Store views for households and villages | debt | 3 | M | A stores table for any household or village scope, on the VB-043 scope model. |
 | [VB-276](backlog/VB-276.md) | Marriage terms: a dowry and a morning gift, booked in customary worth | fair | 3 | M | With slice 4's goods and worth: a dowry from the bride's side counted against her share of the inheritance, a morning gift from the groom's side that is hers if widowed; the player as head proposes and answers terms. |
+| [VB-095](backlog/VB-095.md) | Family tree by scope, fast at full scale | debt | 3 | M | The tree opens on a scope, folds the rest and draws only what is on screen. |
