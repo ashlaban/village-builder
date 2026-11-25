@@ -71,7 +71,58 @@ function upward(deps, L = loadLayers()) {
   }
   return out;
 }
-module.exports = { dependencies, violations, loadLayers, missingLayers, upward };
+// VB-1686: no decision reads an unrealised draw. The fields tagged `// @drawn FIELD (what): NAME, ...` beside their `@state`, each NAME an
+// export of the tagging module that reads the draw raw, or `.prop`, a property of the state itself. drawnTags(files) parses the tags from
+// [{mod, src}]; drawnReads(tree, src, mod, tags) lists where module mod names one: [{owner, name, line, text}] (the policy, who may, is the
+// caller's: tests/dependencies.js). A line ending `// drawn-allow: <reason>` is exempt: a read of what has fallen by now, in a module that
+// is not a natural process.
+function drawnTags(files) {
+  const tags = [];
+  for (const { mod, src } of files)
+    for (const m of src.matchAll(/^\s*\/\/ @drawn (\S+)[^:\n]*:\s*([^\n]+)$/gm))
+      tags.push({ owner: mod, field: m[1], names: m[2].split(',').map((x) => x.trim()).filter(Boolean) });
+  return tags;
+}
+function drawnReads(tree, src, mod, tags) {
+  const out = [], line = (n) => src.slice(0, n.start).split('\n').length;
+  const key = (n) => (n.computed ? (n.property.type === 'Literal' ? n.property.value : null) : n.property.name);
+  const ownerOf = (n, alias) => {
+    if (!n) return null;
+    if (n.type === 'MemberExpression' && n.object.type === 'Identifier' && n.object.name === 'VB') return key(n);
+    return n.type === 'Identifier' && alias.has(n.name) ? alias.get(n.name) : null;
+  };
+  const lines = src.split('\n'), allowed = (n) => /\/\/ drawn-allow: \S/.test(lines[line(n) - 1] || '');
+  const alias = new Map(), taken = new WeakSet(), found = (owner, name, n) => {
+    if (allowed(n)) return;
+    for (const t of tags)
+      if (t.owner !== mod && (name.startsWith('.') ? t.names.includes(name) : t.owner === owner && t.names.includes(name)))
+        out.push({ owner: t.owner, name, line: line(n), text: `src/${mod}.js:${line(n)} reads ${t.field}'s draw (${name}, ${t.owner})` });
+  };
+  function walk(n) {
+    if (!n || typeof n.type !== 'string') return;
+    if (n.type === 'VariableDeclarator' && n.init) {
+      const o = ownerOf(n.init, alias);
+      if (o && n.id.type === 'Identifier') alias.set(n.id.name, o);
+      if (o && n.id.type === 'ObjectPattern') {
+        taken.add(n.id);
+        for (const p of n.id.properties) if (p.type === 'Property' && !p.computed) found(o, p.key.name, p);
+      }
+    }
+    if (n.type === 'ObjectPattern' && !taken.has(n))
+      for (const p of n.properties) if (p.type === 'Property' && !p.computed && p.key.type === 'Identifier') found(null, '.' + p.key.name, p);
+    if (n.type === 'MemberExpression') {
+      const k = key(n), o = ownerOf(n.object, alias);
+      if (typeof k === 'string') found(o, o ? k : '.' + k, n);
+    }
+    for (const child of Object.values(n)) {
+      if (Array.isArray(child)) child.forEach(walk);
+      else if (child && typeof child.type === 'string') walk(child);
+    }
+  }
+  walk(tree);
+  return out;
+}
+module.exports = { dependencies, violations, loadLayers, missingLayers, upward, drawnTags, drawnReads };
 if (require.main === module) {
   const { build } = require('./writes.js'), r = build(), up = upward(r.deps);
   const n = r.deps.reduce((t, d) => t + d.lookups.length + (d.importSites || []).length, 0);

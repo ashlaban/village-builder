@@ -122,6 +122,8 @@ VB['sim/climate'] = (() => {
   //   band's latitude, its state (the name of the last of DATES fallen, 'open' before the first) and its dates (each of DATES a game
   //   hour, DATE_HOUR of its day, or null); due, the dates still to fall, by hour then band. Plain data; written only here. Missing in a
   //   save made before VB-807, until the next autumn.
+  // @drawn st.climate (its bands' dates and due, the winter's dates reckoned ahead on autumn day 1): .climate
+  //   (VB-1686) A decider reads a band's state now (bandState), or the normal winter's ground (normalGround).
   const atOf = (e) => e.at;
   // A date falls at DATE_HOUR of its day, when nobody is out (VB-808: no pawn is on the ice when it stops bearing).
   const DATE_HOUR = 4;
