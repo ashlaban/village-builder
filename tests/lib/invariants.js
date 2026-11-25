@@ -23,7 +23,7 @@ function checkState(st) {
     const l = st.plans && st.plans.projects && st.plans.projects.household.get(id), out = [];
     for (const p of l || []) if (p.steps[p.open] && p.steps[p.open].stake) out.push(p.steps[p.open]);
     return out; };
-  bad.push(...checkRoles(st, globalThis.VB, { allowAgeLag: true }));
+  bad.push(...checkRoles(st, globalThis.VB));
   bad.push(...globalThis.VB['sim/graph'].check(st)); // VB-043: the household caches, holders, lines, unions, cultures and aldermen agree with the membership graph
   for (const [key, expected] of [
     ['living', st.pawns.filter((p) => p.alive).map((p) => p.id)],
@@ -994,10 +994,11 @@ function checkState(st) {
       bad.push(`villages[${v.id}]: founded is ${JSON.stringify(fd)}`);
     }
   }
-  // lapsed ground (VB-1527): a Set of tiles, each let go on a known day (w.tended); a house or a green never stands on one
+  // lapsed ground (VB-1527): a Set of tiles, each let go on a known day (w.tended); a house or a green never stands on one, but for a tile
+  // taken into use again today, which leaves the set at the day's visit (sim/spread revert; VB-1685: a house raised on one, seed 42)
   if (st.lapsed !== undefined) {
     if (!(st.lapsed instanceof Set)) bad.push(`lapsed is ${typeof st.lapsed}`);
-    else for (const t of st.lapsed) if (!Number.isInteger(t) || t < 0 || t >= st.w.N || !(st.w.tended[t] > 0) || st.w.dev[t] > 1) bad.push(`lapsed: tile ${t} (dev ${st.w.dev[t]}, tended ${st.w.tended[t]})`);
+    else for (const t of st.lapsed) if (!Number.isInteger(t) || t < 0 || t >= st.w.N || !(st.w.tended[t] > 0) || (st.w.dev[t] > 1 && !st.used.has(t))) bad.push(`lapsed: tile ${t} (dev ${st.w.dev[t]}, tended ${st.w.tended[t]})`);
   }
   // the village's wood (VB-326): every tile wooded (forest, or scrub the forest has grown on open land, VB-091), in no other village's wood
   // and not in use; within the cap
@@ -2132,7 +2133,7 @@ function checkMods(st, p, bad) {
     else if (m.until > st.t + MOOD[m.key].days * DAY + 1e-9) bad.push(`${where}: until ${m.until}, past ${MOOD[m.key].days} days from now`);
   }
 }
-module.exports = { checkState };
+module.exports = { checkState }; // and checkCaches, CACHES_UNCOMPARED, at the end
 
 // VB-708: pawn.looksTo, a living pawn or null; nobody looks to itself, nor in a cycle, nor while dead; and the index of followers by lord, when
 // built, is exactly the living pawns' looksTo
@@ -2156,3 +2157,62 @@ function checkFollowers(st, bad) {
   if (key(st.followers) !== key(seen)) bad.push('st.followers does not match the pawns\' looksTo');
 }
 
+
+// VB-1685: the declared caches (src/owners.json, category cache) against a fresh derivation each, with no lag: cheap enough to run after every
+// verb (tests/caches.js). The others are named in CACHES_UNCOMPARED with the reason no derivation is compared.
+const CACHES_UNCOMPARED = {
+  'st.stepAt': 'the clock marks of the step under way, not derived from other state',
+  'st.pathCache': 'a memo of route searches keyed by their inputs; checkState bounds it',
+  'st.routeKept': 'the routes kept for a day, a memo; checkState bounds it',
+  'st.routeCosts': 'a memo of route costs keyed by their inputs',
+  'st.daysToday': "rebuilt from daysCalls at each day's first step, a day's compiled index by design (sim/days)",
+  'village.fishing': 'the reach test as of the farms it counted, tested again at a new farm by design (sim/drying)',
+};
+function checkCaches(st, { crowding = true } = {}) {
+  const VB = globalThis.VB, bad = [...checkRoles(st, VB), ...VB['sim/graph'].check(st)]; // pawn.role; pawn.household, household.members, st.graph
+  for (const [key, expected] of [['living', st.pawns.filter((p) => p.alive).map((p) => p.id)], ['liveHouseholds', st.households.filter((h) => !h.dissolved).map((h) => h.id)]])
+    if (!Array.isArray(st[key]) || st[key].join() !== expected.join()) bad.push(`${key}: live index differs from its source records`);
+  if (st.owner) for (const f of st.farmsteads) {
+    const want = f.household === null ? -f.village - 1 : f.household + 1;
+    for (const tile of [f.house, ...f.fields.map((fd) => fd.tile), ...(f.meadows || []).map((m) => m.tile)])
+      if (st.owner[tile] !== want) bad.push(`farmsteads[${f.id}]: owner cache on tile ${tile} is ${st.owner[tile]}, expected ${want}`);
+  }
+  const Cr = VB['sim/crowding'];
+  if (crowding && st.crowdN) for (const id of st.liveHouseholds) {
+    const n = Cr.fresh(st, id);
+    if (st.crowdN[id] !== n || st.crowd[id] !== Cr.factorOf(n)) bad.push(`crowding: household ${id} holds ${st.crowdN[id]}, a fresh count gives ${n}`);
+  }
+  if (st.trusts || st.liveTrusts) {
+    const open = (st.trusts || []).filter((t) => t.end === null).map((t) => t.id);
+    if ((st.liveTrusts || []).join() !== open.join()) bad.push('trusts: liveTrusts differs from the open records');
+  }
+  if (st.obligations || st.obligationsDue || st.obligationsBy) {
+    const made = VB['sim/obligations'].rebuilt(st);
+    if (JSON.stringify(made.due) !== JSON.stringify(st.obligationsDue)) bad.push('obligations: the due-queue is not the running ones');
+    for (const as of ['debtor', 'creditor']) {
+      const have = st.obligationsBy ? st.obligationsBy[as] : {}, keys = Object.keys(made.by[as]).sort();
+      if (JSON.stringify(Object.keys(have).sort()) !== JSON.stringify(keys) || keys.some((k) => JSON.stringify(have[k]) !== JSON.stringify(made.by[as][k])))
+        bad.push(`obligations: the ${as}s' lists differ from the live records`);
+    }
+  }
+  if (st.courtships !== undefined) {
+    const men = st.pawns.filter((p) => p.courting !== undefined && p.courting !== null && p.sex === 'm').map((p) => p.id);
+    if ([...st.courtships].sort((a, b) => a - b).join() !== men.join()) bad.push(`courtships ${JSON.stringify(st.courtships)}: the courting men are ${men.join()}`);
+  }
+  if (Array.isArray(st.asking) && st.askingBy) {
+    const Rec = VB['sim/records'], want = {}, by = st.askingBy;
+    for (const e of st.asking) {
+      const v = Rec.settlementIdOf(st, st.pawns[e.pawn]);
+      if (v !== null) (want[v] = want[v] || []).push(e.pawn + '@' + e.t);
+    }
+    const key = (a) => a.slice().sort((x, y) => x.split('@')[1] - y.split('@')[1] || x.split('@')[0] - y.split('@')[0]).join();
+    for (const v of new Set([...Object.keys(want), ...Object.keys(by)]))
+      if (key((by[v] || []).map((e) => e.pawn + '@' + e.t)) !== key(want[v] || [])) bad.push(`askingBy[${v}]: differs from the queue`);
+  }
+  for (const s of st.away || []) if (!st.agents[s.pawn] || st.agents[s.pawn].away !== s.id) bad.push(`away ${s.id}: its pawn's agent.away is ${st.agents[s.pawn] && st.agents[s.pawn].away}`);
+  for (const a of st.agents || []) if (a && a.away !== undefined && !(st.away || []).some((s) => s.id === a.away && s.pawn === a.id)) bad.push(`agent ${a.id}: away ${a.away}, no such stay`);
+  checkFollowers(st, bad);
+  return bad.filter((e) => !/looksTo/.test(e)); // the lords' own rules are checkState's; the index of followers is the cache
+}
+module.exports.checkCaches = checkCaches;
+module.exports.CACHES_UNCOMPARED = CACHES_UNCOMPARED;

@@ -20,6 +20,7 @@ const FAST = [
   ['node', 'tests/solo.js'], // the solo start: one young settler alone, and a year on
   ['node', 'tests/alderman.js'], // VB-314: the village's alderman, chosen at its meeting
   ['node', 'tests/cacheowners.js'],
+  ['node', 'tests/caches.js'], // VB-1685: each declared cache equals its derivation after each verb, no lag; no ...Changed( before its write
   ['node', 'tests/living.js'],
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],

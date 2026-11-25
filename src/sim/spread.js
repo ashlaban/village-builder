@@ -137,15 +137,16 @@ VB['sim/spread'] = (() => {
     const w = st.w;
     tended(st, t);
     if (!(w.trees[t] > 0) && !wooded(w, t)) return;
-    if (wooded(w, t)) {
+    const wood = wooded(w, t);
+    if (wood) {
       setBiome(w, t, B.MEADOW);
       st.biomeDirty.add(t);
       st.regrow.delete(t);
-      costChanged(st, t);
     }
     w.trees[t] = 0;
     w.treesMax[t] = 0;
     st.treeDirty.add(t);
+    if (wood) costChanged(st, t); // told after the tile's writes (VB-1685)
     woodTaken(st, t); // a village whose wood held it reckons its wood again, as for a tile cut bare (sim/forest)
   }
   // Whether farming or work keeps tile t open today: work within SPREAD.tendedDays; a household's field (in use, or its to reclaim), its

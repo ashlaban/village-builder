@@ -23,16 +23,14 @@ holder.household = hh.id;
 hh.members.push(st.households[1].holder);
 assert(checkState(st).some((e) => e.includes('in households')), 'member lists must agree in both directions');
 hh.members.pop();
-// A birthday can leave a child role until the next social refresh. Check it strictly immediately after a refresh.
+// No lag (VB-1685): a child turned fourteen and still called a child is reported at once, and the day's life step refreshes its role.
 const child = st.pawns.find((p) => p.role === 'daughter'), born = child.born;
 child.born = st.t - 14 * VB.sim.YEAR; child.age = 14; child.role = 'child';
-// (made younger by hand, she keeps her asking entry of a grown woman: VB-823's queue is not what this checks)
-assert.deepStrictEqual(checkState(st).filter((e) => !e.startsWith('asking[')), []);
-assert(checkRoles(st, VB).some((e) => e.includes('role cache')), 'strict check must reject stale roles at refresh boundaries');
-VB.sim.refreshRoles(st);
-assert.deepStrictEqual(checkRoles(st, VB), []);
+assert(checkState(st).some((e) => e.includes('role cache')), 'a stale role on the fourteenth birthday must be detected');
+VB['sim/lifecycle'].dailyLife(st);
+assert.deepStrictEqual(checkRoles(st, VB), [], 'the day of the birthday refreshes the role');
 child.born = st.t - 15 * VB.sim.YEAR; child.age = 15; child.role = 'child';
-assert(checkState(st).some((e) => e.includes('role cache')), 'birthday allowance must be bounded');
+assert(checkState(st).some((e) => e.includes('role cache')), 'a stale role a year on must be detected');
 child.born = born; child.age = VB.sim.age(st, child); VB.sim.refreshRoles(st);
 assert.deepStrictEqual(checkState(st), []);
 // The index of lines (VB-224): a farm's line written without noteLine must be detected, and noting it repairs the index.
@@ -43,4 +41,4 @@ VB['sim/records'].noteLine(st, lineFarm);
 assert.deepStrictEqual(checkState(st), []);
 lineFarm.line = oldLine; VB['sim/records'].noteLine(st, lineFarm);
 assert.deepStrictEqual(checkState(st), []);
-console.log('owner caches ok: roles, exact tile owners, membership and line index corruption detected; strict checks after refresh');
+console.log('owner caches ok: roles, exact tile owners, membership and line index corruption detected; no birthday lag');
