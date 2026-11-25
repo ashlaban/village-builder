@@ -23,6 +23,7 @@ const FAST = [
   ['node', 'tests/living.js'],
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
+  ['node', 'tests/walkweighed.js'], // VB-781: design.md's The walk weighed agrees with the rules it reckons from (until VB-1677, VB-1678)
   ['node', 'tests/handplan.js'], // VB-1661: by hand the outlook counts what the plan covers, one reckoning of the fire, no stone work held off, the cutting asked
   ['node', 'tests/firewood.js'], // VB-1653: wood in two steps, felled and carried home as timber, cut at the house; the plan's fell and firewood
   ['node', 'tests/camp.js'], // VB-1655: land first: a camp, roofless; the build menu and the refusals; the farmstead placed and its shelter raised on the house tile, the house moved
