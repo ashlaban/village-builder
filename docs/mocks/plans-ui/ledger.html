@@ -10,7 +10,7 @@
    the "flows" variant swaps map + burndown for a Sankey of whose hours went where. */
 :root { --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --accent: #a8473a; --risk: #c8361b; color-scheme: light; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: #e6e9df; color: var(--ink); font: 14px/1.35 'Alegreya Sans', system-ui, sans-serif; }
-.band { height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--card); border-bottom: 1px solid var(--line); }
+.band { height: 40px; white-space: nowrap; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--card); border-bottom: 1px solid var(--line); }
 .band h1 { font: 500 17px 'Alegreya SC', Georgia, serif; margin: 0; }
 .band .mode { font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }
 .band .from { font-size: 12px; color: var(--muted); }
@@ -25,7 +25,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #e6e9df; col
 #side { overflow-y: auto; background: var(--card); border-left: 1px solid var(--line); padding: 8px 12px; }
 #side h2 { font: 600 13px 'Alegreya Sans'; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 8px 0 4px; }
 .mem { display: grid; grid-template-columns: 38px 92px 1fr; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px dashed var(--line); cursor: pointer; }
-.mem.sm { grid-template-columns: 26px 80px 1fr; padding: 1px 0; }
+.mem.sm { grid-template-columns: 26px 150px 1fr; padding: 1px 0; }
 .mem .nm b { display: block; } .mem .nm small { color: var(--muted); }
 .mem.sm .nm b { display: inline; font-size: 13px; } .mem.sm .nm small { font-size: 11px; }
 .hit { cursor: pointer; }
@@ -58,12 +58,12 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #e6e9df; col
 <body>
 <div class="band">
   <h1>The hour budget</h1><span class="mode">Ledger · season · autumn day 4</span>
-  <span class="from">from envelope budgets, the Sankey, the burndown</span>
+  <span class="from">after: envelope budgets · Sankey · burndown</span>
   <span class="seg" id="vV"><button data-v="env" class="on">envelopes</button><button data-v="flows">flows</button></span>
-  <span class="seg" id="vT"><button data-v="past">so far (exact)</button><button data-v="ahead" class="on">ahead (Per's estimate)</button></span>
+  <span class="seg" id="vT"><button data-v="past">so far</button><button data-v="ahead" class="on">ahead</button></span>
   <span class="sp"></span>
-  <span class="seg" id="vS"><button data-v="0" class="on">Backa, 5</button><button data-v="1">stress: 10 + estate</button></span>
-  <span class="seg" id="vA"><button data-v="mem" class="on">by member</button><button data-v="pos">by position</button></span>
+  <span class="seg" id="vS"><button data-v="0" class="on">Backa 5</button><button data-v="1">stress 10</button></span>
+  <span class="seg" id="vA"><button data-v="mem" class="on">member</button><button data-v="pos">position</button></span>
 </div>
 <div class="wrap"><div id="main"></div><div id="side"></div></div>
 <details class="note"><summary>Scales to / strains at</summary>
@@ -252,8 +252,8 @@ function flowsView(W = 800, H = 760) {
     const x0 = a.x + NW, x1 = b.x, xm = (x0 + x1) / 2, d = `M${x0} ${y0}C${xm} ${y0} ${xm} ${y1} ${x1} ${y1}V${y1 + h}C${xm} ${y1 + h} ${xm} ${y0 + h} ${x0} ${y0 + h}Z`;
     const pt = PART[l.part], br = l.mid && pt.breach, id = l.mid ? 'part:' + l.part : l.s.startsWith('g:') ? 'mem:' + l.s.slice(2) : 'body:' + l.t;
     s += `<g class="hit" data-id="${id}"><path d="${d}" fill="${l.mid ? pt.c : l.c}" fill-opacity="${l.mid ? (br ? 1 : 0.8) : 0.45}" stroke="${br ? '#2a2018' : 'none'}" stroke-width="${br ? 1.2 : 0}" ${br ? 'stroke-dasharray="3 2"' : ''}/>${est ? `<path d="${d}" fill="url(#est)"/>` : ''}</g>`;
-    if (l.mid && h > 2) { const ty = (y0 + y1) / 2 + h / 2; s += `<text x="${xm}" y="${ty + 4}" font-size="${h > 10 ? 11 : 9.5}" text-anchor="middle" font-weight="700" fill="#23251e" pointer-events="none" paint-order="stroke" stroke="#fff" stroke-width="3">${pt.n} ${Math.round(l.v)}</text>`; }
-    if (br) { const ty = (y0 + y1) / 2 + h / 2; s += `<g class="hit" data-id="part:${l.part}" transform="translate(${xm - 58} ${ty - 12})">${icon(l.part === 'taken' ? 'courting' : 'cart', { breach: l.part, size: 24, num: Math.round(l.v), unit: 'count' })}</g>`; }
+    if (l.mid && h > 2) { const ty = y0 + h / 2; s += `<text x="${x0 + 6}" y="${ty + 4}" font-size="${h > 10 ? 11 : 9.5}" text-anchor="start" font-weight="700" fill="#23251e" pointer-events="none" paint-order="stroke" stroke="#fff" stroke-width="3">${pt.n} ${Math.round(l.v)}</text>`; }
+    if (br) { const tx = x0 + (x1 - x0) * 0.72, ty = y0 + (y1 - y0) * 0.85 + h / 2; s += `<g class="hit" data-id="part:${l.part}" transform="translate(${tx - 12} ${ty - 12})">${icon(l.part === 'taken' ? 'courting' : 'cart', { breach: l.part, size: 24, num: Math.round(l.v), unit: 'count' })}</g>`; }
   }
   for (const n of Object.values(nodes)) {
     const isG = n.id.startsWith('g:'), id = isG ? 'mem:' + n.g.id : 'body:' + n.id;
@@ -274,8 +274,8 @@ function side() {
   }
   // the spread: each member's lived own share as a dot on one line
   const W = 300, xs = ps.map((p) => [p, sov(p).lived]), mn = Math.min(...xs.map((x) => x[1])), mx = Math.max(...xs.map((x) => x[1]));
-  s += `<h2>The household's spread</h2><svg width="${W + 40}" height="34"><path d="M10 16H${W + 10}" stroke="#2a2018"/><rect x="${10 + mn * W}" y="10" width="${(mx - mn) * W}" height="12" fill="#2f8f8a33"/>` +
-    xs.map(([p, v]) => `<circle cx="${10 + v * W}" cy="16" r="5" fill="${p.col}" stroke="#fff"/>`).join('') + `<text x="10" y="32" font-size="10">0%</text><text x="${W + 10}" y="32" font-size="10" text-anchor="end">100% own</text><text x="${10 + mx * W + 8}" y="12" font-size="10">${pct(mn)}–${pct(mx)}</text></svg>`;
+  s += `<h2>The household's spread</h2><svg width="${W + 60}" height="34"><path d="M10 16H${W + 10}" stroke="#2a2018"/><rect x="${10 + mn * W}" y="10" width="${(mx - mn) * W}" height="12" fill="#2f8f8a33"/>` +
+    xs.map(([p, v]) => `<circle cx="${10 + v * W}" cy="16" r="5" fill="${p.col}" stroke="#fff"/>`).join('') + `<text x="10" y="32" font-size="10">0%</text><text x="${W + 10}" y="32" font-size="10" text-anchor="end">100% own</text><text x="${10 + Math.min(mx, 0.8) * W + 8}" y="10" font-size="10">${pct(mn)}–${pct(mx)}</text></svg>`;
   s += `<h2>Asks and grants</h2><div class="asks"><span class="hit" data-id="ask:nils">${icon('courting', { frame: 'plan', whose: 'own', num: 10, size: 30 })}</span><span>Nils asks leave on day 10 (in the barley's window)</span></div>`;
   s += `<div class="asks"><span class="hit" data-id="grant:nils">${icon('gift', { frame: 'target', whose: 'own', size: 30 })}</span><span>Grants in force: Nils' leave, day 8 (the gathering)</span></div>`;
   s += `<h2>Whose hours</h2><div class="key">${Object.entries(PART).map(([k, p]) => `<span><svg width="16" height="11"><rect width="16" height="11" fill="${p.c}" stroke="#0004"/></svg> ${p.n}</span>`).join('')}</div>`;

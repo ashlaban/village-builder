@@ -23,6 +23,7 @@ body { background: var(--paper); color: var(--ink); font: 15px/1.4 var(--body); 
 #stage { position: absolute; inset: 42px 0 0 0; }
 #map { width: 100%; height: 100%; display: block; }
 #ahead { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 8px; padding: 8px 8px 8px 168px; }
+#ahead[hidden] { display: none; }
 #ahead .day { background: #fff8; border: 1px solid var(--line); border-radius: 8px; position: relative; overflow: hidden; }
 #ahead .day h3 { position: absolute; left: 8px; top: 4px; margin: 0; font: 500 15px var(--display); }
 #ahead .day h3 small { font: 12px var(--body); color: var(--muted); margin-left: 6px; }
@@ -99,9 +100,9 @@ const EXTRA_TODAY = {
 };
 // Nils' firewood was cut last night (the stray pile): the third interrupted task.
 let W = structuredClone({ ...TODAY, ...EXTRA_TODAY });
-W.nils[0].cut = 2; W.nils[1].cut = 2;
+W.nils[0].cut = 2;
 
-let mode = 'actual', zoom = 'today', cables = false, stress = false, focus = null, sel = null, why = null, barleyHands = [], open = new Set();
+let LEG = {}, mode = 'actual', zoom = 'today', cables = false, stress = false, focus = null, sel = null, why = null, barleyHands = [], open = new Set();
 const members = () => (stress ? PEOPLE.concat(EXTRA) : PEOPLE);
 const MB = Object.fromEntries(PEOPLE.concat(EXTRA).map((p) => [p.id, p]));
 const hh = (h) => String(Math.floor(h)).padStart(2, '0') + (h % 1 ? ':30' : '');
@@ -157,7 +158,7 @@ const icoOf = (it, size = 34, o = {}) => icon(it.kind, { frame: mode === 'actual
 
 // ---- Today: the land, each member's line, the stations, the hand-offs.
 function renderToday() {
-  const ms = members(), all = ms.flatMap(legsOf), segs = layout(all);
+  const ms = members(), all = ms.flatMap(legsOf), segs = layout(all); LEG = Object.fromEntries(all.map((l) => [l.m + ':' + l.i, l]));
   const dimL = (l) => (focus && l.m !== focus) || (why && why.m !== l.m) ? ' dim' : '';
   let s = markers() + DEFS + mapSVG({ dim: .18 }), lines = '', ticks = '', st = '', ex = '';
   // Legs, or cables where bundled
@@ -170,7 +171,7 @@ function renderToday() {
       continue;
     }
     for (const l of ls) {
-      const it = l.items[0], dev = mode === 'actual' && it.breach, bend = dev === 'taken' ? .32 : dev === 'demanded' ? -.32 : 0, g = geom(l, bend), col = MB[l.m].col;
+      const it = l.items[0], dev = mode === 'actual' && it.breach, bend = dev ? .3 : 0 /* the two legs run opposite ways: one bends away, the other is pulled back on the other side */, g = geom(l, bend), col = MB[l.m].col;
       const later = mode === 'actual' && l.t > NOW.hour, dash = later ? `stroke-dasharray="${l.w * 1.3} ${l.w * .9 + 3}"` : '';
       lines += `<g class="leg${dimL(l)}" data-l="${l.m}:${l.i}"><path d="${g.d}" stroke="#fff" stroke-width="${l.w + 3}" fill="none" opacity=".85"/>` +
         `<path class="ln" d="${g.d}" stroke="${dev === 'demanded' ? 'url(#hatch-hh)' : col}" stroke-width="${l.w}" fill="none" ${dash} marker-end="url(#ar-${l.m})"/>` +
@@ -241,7 +242,9 @@ function whyOf(it) {
   return [task, { g: 'chop', f: 'plan', num: 6, t: 'Step: the rye in, by day 6 (window closes)' }, rye, food];
 }
 function ladder() {
-  const [id, i, j] = why.l, l = legsOf(MB[id])[i], g = geom(l), m = g.pt(.5), rungs = whyOf(l.items[j]), side = m.x > MAP_W - 330 ? -1 : 1;
+  const [id, i, j] = why.l, l = LEG[id + ':' + i];
+  if (!l || l.stay) return '';
+  const g = geom(l), m = g.pt(.5), rungs = whyOf(l.items[j]), side = m.x > MAP_W - 330 ? -1 : 1;
   const x0 = m.x + side * 40 + (side < 0 ? -250 : 0), h = rungs.length * 52 + 14, y0 = Math.max(8, Math.min(MAP_H - h - 8, m.y - h + 30));
   let s = `<path d="M${m.x} ${m.y}L${x0 + (side < 0 ? 250 : 0)} ${y0 + h - 30}" stroke="${MB[id].col}" stroke-width="2" stroke-dasharray="3 3"/><rect x="${x0}" y="${y0}" width="250" height="${h}" rx="10" fill="#fffdf7f2" stroke="#2a2018"/>`;
   rungs.forEach((r, k) => {
