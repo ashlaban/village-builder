@@ -84,6 +84,7 @@
   "sim/offers.js",
   "sim/exchange.js",
   "sim/help.js",
+  "sim/followers.js",
   "sim/deaths.js",
   "sim/notable.js",
   "sim/scopes.js",

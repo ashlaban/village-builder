@@ -98,6 +98,7 @@ VB['sim/records'] = (() => {
     renounced: 0, // an inheritance renounced by one in line who holds a place (sim/heirs, VB-824)
     meetingFailed: 0,
     days: 0, // days of work owed lapsed (sim/obligations, VB-462; the alderman's keep, VB-463)
+    follower: 0, // a tie of a follower to its lord begun or ended, with why (sim/followers, VB-708)
     alderman: 0, // the village's alderman chosen, and the office vacated (sim/meetings, VB-314)
     gathering: 0, // the villages that go to a host's gathering this winter (VB-294)
     gatheringHeld: 0, // who was at a host's gathering on its last day, and the ale poured (VB-295)

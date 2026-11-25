@@ -18,6 +18,7 @@ VB['sim/meetings'] = (() => {
   const { VILLAGE_STEPS } = VB['sim/occasions'];
   const { chooseGathering, settleGatherings } = VB['sim/gathering'];
   const { usualRotation } = VB['sim/rotations'];
+  const { PATRON } = VB['sim/followers'];
   // The year's meetings (VB-278; design.md, A village's meeting): on autumn day 10, each village's meeting on its own 6-minute step from noon,
   // in the order of village id from `year mod villages` (villageTurn, as the moving round's villages), then from 18:00 each culture's year,
   // and on the next step the
@@ -49,7 +50,8 @@ VB['sim/meetings'] = (() => {
     const a = st.villages && st.villages[body] ? st.villages[body].alderman : null;
     return a !== undefined && a !== null && st.pawns[a].alive ? a : null;
   });
-  // The office is filled by a question of its own: each voice for the holder it thinks most of, by its opinion of him and his standing
+  // The office is filled by a question of its own: each voice for the holder it thinks most of, by its opinion of him and his standing, and
+  // a follower's term for its lord (PATRON.ballot, VB-708)
   // (elected), or the farm next in the order of founding (by turns, each farm a year in its turn). A tie at the top, with no alderman to
   // decide it, goes to the holder of most standing.
   defineKind('alderman', {
@@ -64,7 +66,10 @@ VB['sim/meetings'] = (() => {
           let best = 0,
             top = -Infinity;
           for (let j = 0; j < q.cands.length; j++) {
-            const x = opinionOf(st, voice, q.cands[j]) + OFFICE.weighStanding * st.pawns[q.cands[j]].standing;
+            const x =
+              opinionOf(st, voice, q.cands[j]) +
+              OFFICE.weighStanding * st.pawns[q.cands[j]].standing +
+              (st.pawns[voice].looksTo === q.cands[j] ? PATRON.ballot : 0); // a follower leans to its lord (VB-708)
             VB.count.aldermanBallots++;
             if (x > top) {
               top = x;

@@ -173,14 +173,17 @@ const Culture = (() => {
   }
 
   // ---- yearly meeting of one settlement: local practice may move away from (or back to) the culture's custom ----
-  function support(env, members, voiceOf) {
+  // A follower's voice leans to its lord's side (VB-708): `lean` of its weight goes with the lord's attitudes (leanOf, a hook; none: its own).
+  function support(env, members, voiceOf, leanOf = null, lean = 0) {
     const S = new Float32Array(TOTAL);
     let W = 0;
     for (const p of members) {
       const v = voiceOf(p);
       if (v <= 0 || !p.alive) continue;
-      const w = v * p.standing;
-      for (let k = 0; k < TOTAL; k++) S[k] += w * p.att[k];
+      const w = v * p.standing,
+        q = leanOf && lean > 0 ? leanOf(p) : null;
+      if (q && q.att) for (let k = 0; k < TOTAL; k++) S[k] += w * ((1 - lean) * p.att[k] + lean * q.att[k]);
+      else for (let k = 0; k < TOTAL; k++) S[k] += w * p.att[k];
       W += w;
     }
     if (W > 0) for (let k = 0; k < TOTAL; k++) S[k] /= W;
@@ -207,7 +210,7 @@ const Culture = (() => {
   function meeting(env, hooks, s) {
     const c = env.cultures[s.culture],
       changes = [];
-    const { S, W } = support(env, hooks.membersOf(s), (p) => hooks.voiceOf(p, s));
+    const { S, W } = support(env, hooks.membersOf(s), (p) => hooks.voiceOf(p, s), hooks.leanOf, hooks.lean);
     s.lastSupport = S;
     s.lastVoices = W;
     if (W <= 0) return changes;

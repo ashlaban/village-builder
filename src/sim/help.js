@@ -1,4 +1,4 @@
-// @sys sim/help: food help between households: whom a hungry household's head asks (kin, then the village store's alderman, then kin
+// @sys sim/help: food help between households: whom a hungry household's head asks (kin, then its lord, the village store's alderman, then kin
 // further away), for how much and when (at its plan's review, once a season, until the harvest; VB-691), each ask an offer on the basis
 // `ask` (sim/exchange) the one asked answers; and the village store's yearly filling, called by its alderman, each quarter a command
 // `give`; the store gives and is filled only through its alderman at home (VB-673)
@@ -11,7 +11,7 @@ VB['sim/help'] = (() => {
   const { dailyNeed, storeRoom } = VB['sim/hunger'],
     { reserved, grainOf } = VB['sim/stores'];
   const { on } = VB['sim/events'],
-    { unplanned } = VB['sim/records'],
+    { unplanned, holdingOf } = VB['sim/records'],
     { assessGift } = VB['sim/exchange'];
   const Rules = VB['sim/registry'],
     { bufferOf } = VB['sim/traits'];
@@ -142,6 +142,15 @@ VB['sim/help'] = (() => {
       if (want < HELP.askLeast) break;
       const h = head(k);
       if (h !== null) ask(st.households[k], h, { good: 'grain', n: want });
+    }
+    // its lord, first after kin (VB-708): one who looks to another asks him before the village's store, unless he refused it this season
+    const lord = st.pawns[by].looksTo,
+      lh = lord !== null && lord !== undefined && st.pawns[lord].alive ? holdingOf(st, lord) : null;
+    if (want >= HELP.askLeast && lh && lh.id !== hh.id && !near.includes(lh.id) && head(lh.id) === lord) {
+      const a = st.farmsteads[lh.farmstead].village,
+        b = st.farmsteads[hh.farmstead].village;
+      if (withinDay(st, a, b)) ask(lh, lord, { good: 'grain', n: want });
+      else if (byLand(st, a, b)) ask(lh, lord, { good: 'grain', n: Math.min(want, TRAVEL.load) });
     }
     const v = st.villages[st.farmsteads[hh.farmstead].village],
       alderman = agentOf(st, v.id);

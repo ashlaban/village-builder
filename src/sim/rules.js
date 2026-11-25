@@ -691,7 +691,7 @@ VB['sim/rules'] = (() => {
       openness: Object.freeze({ malleability: Object.freeze([0.5, 1.5]), cause: Object.freeze([0, 2]) }),
       body: Object.freeze({ recover: Object.freeze([2.5 / 3, 3.5 / 3]) }),
     }),
-    breach: Object.freeze(['claim', 'border', 'refusedMatch', 'crop', 'stayedAway']),
+    breach: Object.freeze(['claim', 'border', 'refusedMatch', 'crop', 'stayedAway', 'failedUs']),
   });
   return {
     TRAITS,

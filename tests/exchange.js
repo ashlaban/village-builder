@@ -107,9 +107,9 @@ let checks = 0;
   for (const hh of st.households) {
     if (hh.dissolved) continue;
     const c = { giver: hh.holder, receiver: null, from: hh, to: hh }, e = Rules.explain(st, 'allowance', c);
-    assert.deepStrictEqual(e.parts.map((p) => p.key), ['slack', 'goodwill', 'opinion', 'reserve', 'mood']);
+    assert.deepStrictEqual(e.parts.map((p) => p.key), ['slack', 'goodwill', 'opinion', 'reserve', 'patron', 'mood']); // VB-708: the tie's term
     assert.strictEqual(e.parts[1].factor, 0, 'a null receiver: no goodwill term'); assert.strictEqual(e.parts[2].factor, 0, 'nor opinion term');
-    const calm = Math.max(0, e.unclamped - e.parts[4].factor); // the allowance without the mood term
+    const calm = Math.max(0, e.unclamped - e.parts[5].factor); // the allowance without the mood term
     assert(Math.abs(calm - surplus(st, hh)) < 1e-9, `household ${hh.id}: allowance ${calm} without mood, surplus ${surplus(st, hh)}`);
     n++; if (e.value > 0) giving++;
   }

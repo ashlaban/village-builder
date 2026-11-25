@@ -113,6 +113,11 @@ VB.COUNTERS = {
     'A swap weighed by a dealer at the fair: the dealers present times their proposals, three days a year (sim/fair, VB-302)',
   meetingWalk:
     "Pawn records walked by a village's meeting: its living, and at the first village's the island's (sim/lifecycle, VB-278)",
+  followerBonds:
+    "A pawn's balances and followers read for its ties, at its lord's planning days after harvest (sim/followers, VB-708)",
+  followerWalk: 'Steps up a chain of lords, to refuse a cycle (sim/followers, VB-708)',
+  followerTies: 'Ties of a follower to a lord begun (sim/followers, VB-708)',
+  followerFailed: 'Ties broken by a lord who refused his follower in need (sim/followers, VB-708)',
   aldermanBallots:
     "Voices times candidates weighed when a village's meeting elects its alderman: once a vacancy, never daily (sim/meetings, VB-314)",
   rotationWalk: "Farms walked by a village's meeting for its usual rotation, a village a year (sim/fields, VB-350)",
