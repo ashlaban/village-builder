@@ -1,0 +1,169 @@
+{
+ "seeds": "run i uses mulberry32(i + 1), i < 10000; the owed case 50001..51000; timing 900..1099",
+ "tableBwd": [
+  {
+   "state": "at home, cart at home, no timber",
+   "steps": "fetch, go, work(fell), work(fell), load, haul, unload, work(cut), work(cut), leaveCart, done"
+  },
+  {
+   "state": "on the forest tile, no cart",
+   "steps": "work(fell), load, haul, unload, work(cut), go, load, haul, unload, work(cut), go, work(fell), load, haul, ...(22)"
+  },
+  {
+   "state": "timber lies at the tile (night cut)",
+   "steps": "fetch, go, load, haul, unload, work(cut), work(cut), leaveCart, done"
+  },
+  {
+   "state": "called off on the road with a load",
+   "steps": "haul, unload, work(cut), work(cut), done"
+  },
+  {
+   "state": "timber already at the farm",
+   "steps": "work(cut), work(cut), done"
+  }
+ ],
+ "tableFwd": [
+  {
+   "state": "at home, cart at home, no timber",
+   "steps": "fetch, go, work(fell), work(fell), load, haul, go, haul, go, haul, go, haul, go, haul, ...(30)"
+  },
+  {
+   "state": "on the forest tile, no cart",
+   "steps": "work(fell), load, haul, go, haul, go, haul, go, haul, go, haul, go, haul, go, ...(30)"
+  },
+  {
+   "state": "timber lies at the tile (night cut)",
+   "steps": "fetch, go, load, haul, go, haul, go, haul, go, haul, go, haul, go, haul, ...(30)"
+  },
+  {
+   "state": "called off on the road with a load",
+   "steps": "fetch, go, haul, go, haul, go, haul, go, haul, go, haul, go, haul, go, ...(30)"
+  },
+  {
+   "state": "timber already at the farm",
+   "steps": "fetch, go, work(fell), work(fell), load, haul, go, haul, go, haul, go, haul, go, haul, ...(30)"
+  }
+ ],
+ "D_bwd": {
+  "runs": 10000,
+  "violations": 191,
+  "byCut": {
+   "night": 13,
+   "illness": 92,
+   "death": 86
+  },
+  "byKind": {
+   "sow": 100,
+   "hay": 48,
+   "sheaves": 43
+  },
+  "byType": {
+   "stranded": 191
+  },
+  "met": 9809,
+  "nextCalls": 198854,
+  "legs": 120455,
+  "setDowns": 915,
+  "stuckOwed": 0,
+  "owedRuns": 1421,
+  "spilt": 0
+ },
+ "D_bwdStrays": {
+  "runs": 10000,
+  "violations": 0,
+  "byCut": {},
+  "byKind": {},
+  "byType": {},
+  "met": 10000,
+  "nextCalls": 200255,
+  "legs": 121856,
+  "setDowns": 915,
+  "stuckOwed": 0,
+  "owedRuns": 1421,
+  "spilt": 0
+ },
+ "D_fwd": {
+  "runs": 10000,
+  "violations": 1879,
+  "byCut": {
+   "night": 157,
+   "owedEnd": 360,
+   "illness": 402,
+   "helper": 188,
+   "death": 411,
+   "call": 173,
+   "cartTaken": 188
+  },
+  "byKind": {
+   "sow": 1244,
+   "water": 78,
+   "firewood": 51,
+   "hay": 106,
+   "build": 194,
+   "fish": 123,
+   "sheaves": 83
+  },
+  "byType": {
+   "stranded": 1879
+  },
+  "met": 3977,
+  "nextCalls": 492645,
+  "legs": 454637,
+  "setDowns": 20988,
+  "stuckOwed": 0,
+  "owedRuns": 1421,
+  "spilt": 0,
+  "unmetResumable": {
+   "build": 1057,
+   "firewood": 1187,
+   "sheaves": 1193,
+   "hay": 707
+  }
+ },
+ "P": {
+  "runs": 10000,
+  "violations": 225,
+  "byCut": {
+   "owedEnd": 225
+  },
+  "byKind": {
+   "build": 45,
+   "fish": 49,
+   "sheaves": 41,
+   "firewood": 45,
+   "water": 22,
+   "hay": 23
+  },
+  "byType": {
+   "mass": 109,
+   "stuck:doneNoCarrier": 161,
+   "stuck": 41
+  },
+  "met": 9629,
+  "nextCalls": 0,
+  "legs": 133688,
+  "setDowns": 0,
+  "stuckOwed": 202,
+  "owedRuns": 1421,
+  "spilt": 0,
+  "unmetResumable": {
+   "hay": 146
+  }
+ },
+ "owedP": {
+  "runs": 1000,
+  "stuck": 258,
+  "mass": 0
+ },
+ "owedD": {
+  "runs": 1000,
+  "stuck": 0,
+  "mass": 0
+ },
+ "timing": {
+  "calls": 1000000,
+  "usPerCall": 0.237,
+  "x": 1000000
+ },
+ "secs": 1.271
+}

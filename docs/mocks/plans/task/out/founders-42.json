@@ -1,0 +1,133 @@
+{
+ "scenario": "founders",
+ "seed": 42,
+ "map": "small",
+ "from": 0,
+ "years": 3,
+ "secs": 4.7,
+ "skipSecs": 1.2,
+ "pawnDays": 1561,
+ "workPawnDays": 1432,
+ "tasks": 5322,
+ "awayTasks": 2757,
+ "besideShare": 0.288,
+ "besideOrPrevShare": 0.4,
+ "meanDSite": 2.55,
+ "hPerStep": 0.338,
+ "walkLegs": 6411,
+ "walkHAll": 3634.4,
+ "savedHAll": 40.2,
+ "savedShareAll": 0.011,
+ "approachShareOfWalk": 0.706,
+ "fam": {
+  "wood": {
+   "walkH": 683.7,
+   "savedH": 0.7,
+   "share": 0.001
+  },
+  "stone": {
+   "walkH": 126.6,
+   "savedH": 4.1,
+   "share": 0.032
+  },
+  "haul": {
+   "walkH": 265.2,
+   "savedH": 5.7,
+   "share": 0.022
+  }
+ },
+ "legEndsPerPawnDay": 10.06,
+ "legEndsInTaskPerWorkPawnDay": 8.02,
+ "legEndsInTaskPerPawnDay": 7.36,
+ "runs": 3641,
+ "runsOfTwoOrMore": 1094,
+ "tasksInRunsOfTwoOrMore": 2775,
+ "besideByKind": "water 312/410, gather 68/253, plow 48/194, wood 0/173, rackfish 73/163, hunt 1/161, fetchLeftTimber 5/135, fish 57/132, break 13/117, mow 12/109, weed 30/104, reap 23/104, clear 22/91, timber 2/71, haul 13/62, hay 1/56",
+ "tasksPerWorkPawnDay": 3.72,
+ "topKinds": [
+  {
+   "kind": "wood",
+   "tasks": 173,
+   "walkH": 390.9,
+   "savedH": 0.3
+  },
+  {
+   "kind": "fish",
+   "tasks": 218,
+   "walkH": 383.9,
+   "savedH": 7.8
+  },
+  {
+   "kind": "rackfish",
+   "tasks": 232,
+   "walkH": 272.3,
+   "savedH": 1
+  },
+  {
+   "kind": "water",
+   "tasks": 664,
+   "walkH": 256.3,
+   "savedH": 0
+  },
+  {
+   "kind": "hunt",
+   "tasks": 161,
+   "walkH": 239.5,
+   "savedH": 3
+  },
+  {
+   "kind": "gather",
+   "tasks": 253,
+   "walkH": 239.4,
+   "savedH": 1.7
+  },
+  {
+   "kind": "cook",
+   "tasks": 555,
+   "walkH": 218.1,
+   "savedH": 0
+  },
+  {
+   "kind": "timber",
+   "tasks": 71,
+   "walkH": 159.5,
+   "savedH": 0
+  },
+  {
+   "kind": "hay",
+   "tasks": 56,
+   "walkH": 158.9,
+   "savedH": 0.7
+  },
+  {
+   "kind": "plow",
+   "tasks": 194,
+   "walkH": 130,
+   "savedH": 1
+  },
+  {
+   "kind": "mow",
+   "tasks": 109,
+   "walkH": 119.3,
+   "savedH": 3
+  },
+  {
+   "kind": "fetchLeftTimber",
+   "tasks": 135,
+   "walkH": 86,
+   "savedH": 0
+  },
+  {
+   "kind": "weed",
+   "tasks": 104,
+   "walkH": 81.5,
+   "savedH": 1.4
+  },
+  {
+   "kind": "break",
+   "tasks": 117,
+   "walkH": 78.5,
+   "savedH": 0.7
+  }
+ ]
+}

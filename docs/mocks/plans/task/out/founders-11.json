@@ -1,0 +1,133 @@
+{
+ "scenario": "founders",
+ "seed": 11,
+ "map": "small",
+ "from": 0,
+ "years": 3,
+ "secs": 3.9,
+ "skipSecs": 1.4,
+ "pawnDays": 1728,
+ "workPawnDays": 1436,
+ "tasks": 5764,
+ "awayTasks": 3153,
+ "besideShare": 0.39,
+ "besideOrPrevShare": 0.484,
+ "meanDSite": 2.44,
+ "hPerStep": 0.315,
+ "walkLegs": 6838,
+ "walkHAll": 3666.3,
+ "savedHAll": 55.1,
+ "savedShareAll": 0.015,
+ "approachShareOfWalk": 0.716,
+ "fam": {
+  "wood": {
+   "walkH": 783.8,
+   "savedH": 4.4,
+   "share": 0.006
+  },
+  "stone": {
+   "walkH": 106.9,
+   "savedH": 4.7,
+   "share": 0.044
+  },
+  "haul": {
+   "walkH": 225.6,
+   "savedH": 1.9,
+   "share": 0.008
+  }
+ },
+ "legEndsPerPawnDay": 9.74,
+ "legEndsInTaskPerWorkPawnDay": 8.58,
+ "legEndsInTaskPerPawnDay": 7.13,
+ "runs": 3910,
+ "runsOfTwoOrMore": 1175,
+ "tasksInRunsOfTwoOrMore": 3029,
+ "besideByKind": "water 330/483, fetchLeftTimber 93/289, fish 173/228, rackfish 176/217, gather 7/211, plow 99/189, break 44/169, clear 47/129, wood 0/127, reap 44/123, mow 15/112, weed 52/111, hunt 1/102, hay 0/90, dig 0/70, haul 37/61",
+ "tasksPerWorkPawnDay": 4.01,
+ "topKinds": [
+  {
+   "kind": "dig",
+   "tasks": 70,
+   "walkH": 420.6,
+   "savedH": 1.9
+  },
+  {
+   "kind": "wood",
+   "tasks": 127,
+   "walkH": 363.4,
+   "savedH": 1.3
+  },
+  {
+   "kind": "water",
+   "tasks": 752,
+   "walkH": 282.3,
+   "savedH": -1.3
+  },
+  {
+   "kind": "fetchLeftTimber",
+   "tasks": 289,
+   "walkH": 251.6,
+   "savedH": 2.8
+  },
+  {
+   "kind": "cook",
+   "tasks": 665,
+   "walkH": 232.5,
+   "savedH": 0
+  },
+  {
+   "kind": "fish",
+   "tasks": 228,
+   "walkH": 226.5,
+   "savedH": 3.1
+  },
+  {
+   "kind": "gather",
+   "tasks": 211,
+   "walkH": 219.9,
+   "savedH": 0.3
+  },
+  {
+   "kind": "rackfish",
+   "tasks": 217,
+   "walkH": 206.4,
+   "savedH": 7.2
+  },
+  {
+   "kind": "hunt",
+   "tasks": 102,
+   "walkH": 148.7,
+   "savedH": 3.5
+  },
+  {
+   "kind": "hay",
+   "tasks": 90,
+   "walkH": 136.9,
+   "savedH": 1.9
+  },
+  {
+   "kind": "timber",
+   "tasks": 39,
+   "walkH": 129.5,
+   "savedH": 0.3
+  },
+  {
+   "kind": "mow",
+   "tasks": 112,
+   "walkH": 105.5,
+   "savedH": 0.9
+  },
+  {
+   "kind": "break",
+   "tasks": 169,
+   "walkH": 98.9,
+   "savedH": 3.1
+  },
+  {
+   "kind": "plow",
+   "tasks": 189,
+   "walkH": 81.7,
+   "savedH": 0.9
+  }
+ ]
+}
