@@ -806,3 +806,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1540](backlog/VB-1540.md) | Refactor: split sim/rules by concern | - | 3 | S | sim/rules is over 700 lines: the time constants and names stay; tables read by one domain move to it (VB-419), the rest are grouped by the domains that share them |
 | [VB-1471](backlog/VB-1471.md) | Repair the night of 21 November: invariants, fixtures and the invariants band | - | 1 | S | Extended tier red on the run of 21 Nov |
 | [VB-1470](backlog/VB-1470.md) | Measure: the moving round at medium-ref after VB-1380 | - | 2 | S | owed by VB-1380: the round call at medium-ref |
+| [VB-1564](backlog/VB-1564.md) | Cost: a holder's opportunities cached (the asks of the jobs line) | - | 2 | M | The third part of the jobs line, 17.5%: the availability asks, and the cache design.md agrees |
