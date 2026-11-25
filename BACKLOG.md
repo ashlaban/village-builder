@@ -134,6 +134,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1720](backlog/VB-1720.md)<a id="VB-1720"></a> | The head's match for a member: a page door | fair | 3 | S | VB-276 gives the head's match for a member in the simulation (Sim.wish 'match' with {for, terms}, st.player.proposal, offered at the round); the page has no control to make one yet |
 | [VB-1728](backlog/VB-1728.md)<a id="VB-1728"></a> | Land rights: titles follow their parties' ends | debt | 3 | S | end or pass a title when its owner or user household ends |
 | [VB-1737](backlog/VB-1737.md)<a id="VB-1737"></a> | Refactor: module splits, collected: each over the lint's line, split by its concerns | - | 3 | L | The modules over the lint's line of length or width, a line each; a session splits one by its concerns and ticks it |
+| [VB-1739](backlog/VB-1739.md)<a id="VB-1739"></a> | A job's farm, field, meadow and stretch held as ids, and agent.job as the job's key | - | 3 | M | The job back-references VB-247 left: job.farm, job.field, job.meadow, job.stretch and agent.job as ids, read through helpers |
 
 </details>
 
@@ -146,7 +147,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-247](backlog/VB-247.md)<a id="VB-247"></a> | A job names its farm, field and meadow by id | - | 3 | M | Jobs hold the farmstead, field, meadow and fence objects themselves, which is why the save codec must find shared objects; hold ids, and the codec's sharing pass can go. |
 | [VB-697](backlog/VB-697.md)<a id="VB-697"></a> | A plot or an empty farm is asked for, and the alderman answers by the custom | acts | 3 | S | Empty farms and village plots go to 'demand' by the round's custom order (claimFarms, startPlots), with only the player able to wish for one. The pawn asks; the alderman answers by the `claims` and `newLand` customs. |
 | [VB-722](backlog/VB-722.md)<a id="VB-722"></a> | Seed as a strain fitted to its climate (for slice 10's plan) | roads | 3 | S | Recorded for slice 10's plan: selection gives no yield trend on a game's timescale; seed from another climate band ripens late and fails more often in a cold year, a risk fading over a few crop generations. |
 | [VB-1126](backlog/VB-1126.md)<a id="VB-1126"></a> | Design: the age of account and the bands' margin in design.md | talk | 3 | S | design.md does not yet say VB-1106's two rules (SOCIAL.account 12, SOCIAL.back 0.2) |
@@ -242,6 +242,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-1595](backlog/VB-1595.md)<a id="VB-1595"></a> | The leader's choice and the solo siting show each site's water | - | 3 | S | [VB-788](#VB-788) | VB-1583 built the estimate (sim/settle sites, Sim.siteWater, siteWaterWords); the choice's views are VB-788's and VB-1544's, not built yet |
 | [VB-1607](backlog/VB-1607.md)<a id="VB-1607"></a> | A site's well under settling in steps: a job of the site, and the move waits for it | - | 3 | S | [VB-787](#VB-787) | VB-1587's criteria 2 and 4, which need the move of VB-787 |
 | [VB-1617](backlog/VB-1617.md)<a id="VB-1617"></a> | Evaluate the adaptive context reset: keep, adjust or abandon it | - | 3 | S | Kim | Compare the reset's period with the ceiling's by VB-1615's tools once 15 eligible tasks are done in each, or 4 weeks on; decide by the rules VB-1616 set |
+| [VB-1740](backlog/VB-1740.md)<a id="VB-1740"></a> | The save's last shared objects become ids, and the codec's first pass goes | - | 3 | M | [VB-1739](#VB-1739) | The rest of VB-247's census (workDue, plans, plot tiles, herds, claims, carts, common fields) as ids; then encode's first pass, $id, $ref and $arr go |
 
 </details>
 
