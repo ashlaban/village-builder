@@ -17,7 +17,8 @@ const { held } = require('../../tools/crops.js'); // the crops held on the islan
 const MAPS = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] }; // as tools/sim.js and the generation screen
 // Reduced scenarios: a scenario on a map, nothing else changed yet; toy setups (a tinyState of tests/lib/tiny.js) may join them.
 const SETUPS = { 'populous tiny': { scenario: 'populous', map: 'tiny' }, 'market tiny': { scenario: 'market', map: 'tiny' }, // the market town: a test bed (VB-778)
-  'stories tiny': { story: true } }; // VB-523: one story told among three villages (storyRun, below)
+  'stories tiny': { story: true }, // VB-523: one story told among three villages (storyRun, below)
+  'lies tiny': { story: 'lies' } }; // VB-554: a true story, and a lie with three witnesses, among the same three villages (liesRun, below)
 // The full runs: populous small at four seeds (the late game's reference), founders small at sixteen (the early game's), heirs at two.
 const FULL = {
   populous: { scenario: 'populous', map: 'small', years: 30, seeds: [3, 7, 11, 42] },
@@ -64,6 +65,10 @@ const PROBES = {
   storyNeighbour: (s) => s[0].story.neighbour,
   storyAcross: (s) => s[0].story.across,
   storyKept: (s) => s[0].story.kept,
+  // VB-554 (liesRun): how much further the true story reached than the lie, and the lie's counter-story than the lie (shares of A's and
+  // B's adults that ever held each)
+  lieLess: (s) => s[0].lies.true - s[0].lies.lie,
+  counterFurther: (s) => s[0].lies.counter - s[0].lies.lie,
   // VB-778: the market town's deaths per head in its plot households over those of its farms, over the run (NaN where no one died among the farms)
   packedDeathRatio: (s) => {
     const c = s[s.length - 1].cohort; if (!c || !c[0].n || !c[1].n || !c[1].dead) return NaN;
@@ -235,6 +240,11 @@ BANDS.push({ id: 'story-home/stories', probe: 'storyHome', kind: 'balancing', as
   { id: 'story-neighbour/stories', probe: 'storyNeighbour', kind: 'balancing', assert: storyAssert(0, 48, 7) },
   { id: 'story-across/stories', probe: 'storyAcross', kind: 'watched', assert: storyAssert(0, 0) },
   { id: 'story-kept/stories', probe: 'storyKept', kind: 'balancing', assert: storyAssert(0, 0.5, 7) });
+// VB-554: the lie bands (design.md, Stories: Bands): with three living witnesses a slander reaches fewer of A and B than the true story of
+// its kind, and its counter-story more than the lie, each in at least 7 of the 10 seeds (the experiment: 10 of 10)
+const lieAssert = { ...storyAssert(0.001, 1, 7), setup: 'lies tiny' };
+BANDS.push({ id: 'lie-less/stories', probe: 'lieLess', kind: 'balancing', assert: lieAssert },
+  { id: 'counter-further/stories', probe: 'counterFurther', kind: 'balancing', assert: lieAssert });
 // VB-778: in the packed place deaths per head exceed the farms' (a ratio over 1; the budget's "about 1.5 times"). A target: it may be out.
 BANDS.push({ id: 'packed-deaths/market', probe: 'packedDeathRatio', kind: 'balancing',
   report: { lo: 1, hi: Infinity, afterYear: 0, scenario: 'market', map: 'small', years: 30, seeds: [7, 42] },
@@ -252,6 +262,7 @@ function cohorts(st) {
 // One run, sampled at every year end: {scenario, map, seed, years} -> {samples, secs, cpuSecs}. The run advances a day at a time, so a
 // household's days present in a year are counted, not guessed.
 function runScenario({ scenario, map, seed, years, strata = false, story = false }) {
+  if (story === 'lies') return liesRun(seed);
   if (story) return storyRun(seed);
   const cpu0 = process.cpuUsage(), t0 = Date.now(), it = G.generate(seed, { cols: MAPS[map][0], rows: MAPS[map][1] }); let r; while (!(r = it.next()).done);
   const st = Sim.seed(r.value, seed, scenario), samples = [sample(st, 0, null)], cohort = scenario === 'market' ? cohorts(st) : null, col = strata ? require('../../tools/strata.js').collector(VB, st) : null;
@@ -315,6 +326,47 @@ function storyRun(seed) {
   }
   out.kept = peak.length ? peak.filter(holds).length / peak.length : 0;
   first.story = out;
+  const cpu = process.cpuUsage(cpu0);
+  return { samples: [first], secs: (Date.now() - t0) / 1000, cpuSecs: (cpu.user + cpu.system) / 1e6 };
+}
+// VB-554: the lie bands' run, on storyRun's three villages. In one state a claim is taken in A, by its first farm's holder of its second's
+// (the true story); in another of the same seed the second's holder makes the same kind of story up about the first's, three adults (two
+// of A, one of B, of neither household) having worked beside the subject: a good first-hand memory in the lie's domain (STORY.domains).
+// Over STORY_RUN.forgotten days, the share of A's and B's adults that ever held the true story, the lie and the lie's counter-story.
+function liesRun(seed) {
+  const cpu0 = process.cpuUsage(), t0 = Date.now(), { tinyWorld, tinyState } = require('./tiny.js'), S = VB['sim/stories'], R = VB['sim/relations'];
+  const map = Array.from({ length: 14 }, () => '.'.repeat(36) + '~~~~' + '.'.repeat(14));
+  let first = null;
+  const one = (lie) => {
+    const st = tinyState(tinyWorld(map), [{ at: [6, 7], farms: 8 }, { at: [20, 7], farms: 6 }, { at: [49, 7], farms: 6 }], { seed });
+    for (const hh of st.households) hh.grain.barley = (hh.grain.barley || 0) + 3000;
+    st.naturalDeaths = false;
+    first ||= sample(st, 0, null);
+    Sim.advance(st, STORY_RUN.start * DAY);
+    const village = (id) => Sim.settlementIdOf(st, st.pawns[id]), hh = (k) => st.households[st.farmsteads[st.villages[0].farmsteads[k]].household];
+    const subject = hh(0).holder, teller = hh(1).holder, grown = (id) => st.pawns[id].age >= 16;
+    let s;
+    if (!lie) s = S.witness(st, 'claim', subject, teller, null);
+    else {
+      const free = (v) => st.living.filter((id) => grown(id) && village(id) === v && !hh(0).members.includes(id) && !hh(1).members.includes(id));
+      for (const w of [...free(0).slice(0, 2), ...free(1).slice(0, 1)]) R.remember(st, w, subject, 'worked', 0.3);
+      s = S.invent(st, teller, subject, 'claim', 'enemy');
+    }
+    const holds = (id, sid) => sid !== undefined && !!st.pawns[id].known && st.pawns[id].known.some((e) => e.story === sid);
+    const seen = new Set(), held = new Set(), counter = new Set();
+    for (let d = 1; d <= STORY_RUN.forgotten; d++) {
+      Sim.advance(st, DAY);
+      for (const id of st.living) {
+        if (!grown(id) || village(id) > 1) continue;
+        seen.add(id);
+        if (holds(id, s.id)) held.add(id);
+        if (holds(id, s.counter)) counter.add(id);
+      }
+    }
+    return { reach: held.size / Math.max(1, seen.size), counter: counter.size / Math.max(1, seen.size), exposed: s.counter !== undefined };
+  };
+  const t = one(false), l = one(true);
+  first.lies = { true: +t.reach.toFixed(3), lie: +l.reach.toFixed(3), counter: +l.counter.toFixed(3), exposed: l.exposed };
   const cpu = process.cpuUsage(cpu0);
   return { samples: [first], secs: (Date.now() - t0) / 1000, cpuSecs: (cpu.user + cpu.system) / 1e6 };
 }
@@ -383,4 +435,4 @@ function summary(samples, at = [1, 10, 20, 30, 50]) {
     hungryShare: hd ? sum('hungryDays') / hd : 0 };
 }
 const fmt = (x) => (Number.isNaN(x) ? 'none' : x === Infinity ? 'inf' : Number.isInteger(x) ? String(x) : x.toFixed(3));
-module.exports = { BANDS, PROBES, SETUPS, STORY_RUN, storyRun, FULL, WEEKLY, REDUCED, GROWTH, growthTargets, MAPS, MIN_DAYS, runScenario, sample, judge, summary, fmt };
+module.exports = { BANDS, PROBES, SETUPS, STORY_RUN, storyRun, liesRun, FULL, WEEKLY, REDUCED, GROWTH, growthTargets, MAPS, MIN_DAYS, runScenario, sample, judge, summary, fmt };

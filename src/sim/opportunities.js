@@ -148,10 +148,31 @@ VB['sim/opportunities'] = (() => {
         }),
       );
     }
+    slander(view, p, out);
     occasions(view, p, out);
     if (near === null || near === undefined) return;
     const open = Number.isInteger(near) && near >= 0 && near < view.w.N && walkable(view.w)(near);
     out.push(item('walkTo', near, null, open ? check(view, p.id, 'walkTo', near, null) : 'no one can walk there'));
+  }
+
+  // ---- Speak ill of (VB-554): a tale made up about someone it knows, by the verb slander: an item {verb: 'slander', target: null, why,
+  // slander: {parties: [{id, name}] (the grown it knows best, by tie, at most SLANDER_PARTIES), kinds: [{kind, words}] (Stories' TALES)}};
+  // the party and the kind are the form's, each checked by the verb when queued ----
+  const SLANDER_PARTIES = 12;
+  function slander(view, p, out) {
+    if (p.age < SOCIAL.account) return;
+    const { STORY, TALES } = VB['sim/stories'],
+      parties = [];
+    for (const r of relationsOf(view, p.id)) {
+      if (parties.length >= SLANDER_PARTIES) break;
+      if (view.pawns[r.id].age >= 16) parties.push({ id: r.id, name: fullName(view.pawns[r.id]) });
+    }
+    const kinds = TALES.map((k) => ({ kind: k, words: STORY.kinds[k].words.replace('%', 'someone') }));
+    out.push(
+      item('slander', null, null, parties.length ? null : 'you know nobody to speak ill of', {
+        slander: { parties, kinds },
+      }),
+    );
   }
 
   // ---- handing the farm on (VB-1140): a holder's offer of its holding to the first in its line, for its retirement (the basis `handover`).
