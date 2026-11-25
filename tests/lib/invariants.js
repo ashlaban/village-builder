@@ -116,6 +116,20 @@ function checkState(st) {
       else seen.set(hh.holder, hh.id);
     }
   }
+  // VB-311: titles: each names a holding that exists (a farm by its house, a field or meadow of its farm by its tile); its owner and user
+  // live households or villages; its since, rent and kind sound
+  if (st.titles) {
+    const liveParty = (p) => !!p && Number.isInteger(p.id) && (p.type === 'village' ? !!st.villages[p.id] : p.type === 'household' && !!st.households[p.id] && !st.households[p.id].dissolved);
+    if (!(st.titles instanceof Map)) bad.push('titles: not a Map');
+    else for (const [key, t] of st.titles) {
+      const f = st.farmsteads[t.farm];
+      const holds = f && (t.kind === 'farm' ? f.house === key : t.kind === 'field' ? f.fields.some((fd) => fd.tile === key) : t.kind === 'meadow' && (f.meadows || []).some((m) => m.tile === key));
+      if (!holds) bad.push(`titles[${key}]: no ${t.kind} of farmstead ${t.farm} there`);
+      if (!liveParty(t.owner)) bad.push(`titles[${key}]: owner ${JSON.stringify(t.owner)} is not a live household or a village`);
+      if (!liveParty(t.user)) bad.push(`titles[${key}]: user ${JSON.stringify(t.user)} is not a live household or a village`);
+      if (!Number.isFinite(t.since) || t.since > st.t || !(t.rent >= 0 && t.rent <= 1)) bad.push(`titles[${key}]: since ${t.since} or rent ${t.rent} out of bounds`);
+    }
+  }
   // VB-309: farms held in trust: st.liveTrusts the sorted ids of the open records of st.trusts; a live trust's farm and trustee live, its
   // household empty, its holder living with the trustee; no farm held twice
   if (st.trusts || st.liveTrusts) {
@@ -1154,7 +1168,8 @@ function checkState(st) {
     if (st.owner) {
       const want = f.household === null ? -f.village - 1 : f.household + 1;
       for (const tile of [f.house, ...f.fields.map((fd) => fd.tile), ...(f.meadows || []).map((m) => m.tile)]) {
-        if (st.owner[tile] !== want) bad.push(`farmsteads[${f.id}]: owner cache on tile ${tile} is ${st.owner[tile]}, expected ${want}`);
+        const t = VB['sim/ownership'].titleAt(st, tile), use = t ? (t.user.type === 'household' ? t.user.id + 1 : -t.user.id - 1) : want; // VB-311
+        if (st.owner[tile] !== use) bad.push(`farmsteads[${f.id}]: owner cache on tile ${tile} is ${st.owner[tile]}, expected ${use}`);
       }
       for (const m of f.meadows || []) if (!st.used.has(m.tile)) bad.push(`farmsteads[${f.id}]: meadow ${m.id} tile ${m.tile} unused`);
     }
@@ -2189,10 +2204,13 @@ function checkCaches(st, { crowding = true } = {}) {
   const VB = globalThis.VB, bad = [...checkRoles(st, VB), ...VB['sim/graph'].check(st)]; // pawn.role; pawn.household, household.members, st.graph
   for (const [key, expected] of [['living', st.pawns.filter((p) => p.alive).map((p) => p.id)], ['liveHouseholds', st.households.filter((h) => !h.dissolved).map((h) => h.id)]])
     if (!Array.isArray(st[key]) || st[key].join() !== expected.join()) bad.push(`${key}: live index differs from its source records`);
+  const titleAt = VB['sim/ownership'].titleAt, partyCode = (p) => (p.type === 'household' ? p.id + 1 : -p.id - 1);
   if (st.owner) for (const f of st.farmsteads) {
-    const want = f.household === null ? -f.village - 1 : f.household + 1;
-    for (const tile of [f.house, ...f.fields.map((fd) => fd.tile), ...(f.meadows || []).map((m) => m.tile)])
+    const farm = f.household === null ? -f.village - 1 : f.household + 1;
+    for (const tile of [f.house, ...f.fields.map((fd) => fd.tile), ...(f.meadows || []).map((m) => m.tile)]) {
+      const t = titleAt(st, tile), want = t ? partyCode(t.user) : farm; // VB-311: a title's user works its holding
       if (st.owner[tile] !== want) bad.push(`farmsteads[${f.id}]: owner cache on tile ${tile} is ${st.owner[tile]}, expected ${want}`);
+    }
   }
   const Cr = VB['sim/crowding'];
   if (crowding && st.crowdN) for (const id of st.liveHouseholds) {
