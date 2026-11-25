@@ -144,7 +144,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-1583](backlog/VB-1583.md)<a id="VB-1583"></a> | A site's water is weighed by the site search and shown in the leader's choice | - | 2 | S | batch (b), second half, of VB-1543: SETTLE.perFetch and the site choice's water lines |
 | [VB-1585](backlog/VB-1585.md)<a id="VB-1585"></a> | The thirsty pawn: a pawn's own thirst, and the verb by which it leaves its work to drink and fetch | - | 2 | M | batch (d) of VB-1543: p.drank, the verb drink, the dry day's health as the pawn's own |
 | [VB-1681](backlog/VB-1681.md)<a id="VB-1681"></a> | Stories: old stories sharpen to ±1 and never fade, crowding out new ones | talk | 2 | S | bound the runaway of sharpening and the restore on telling, measured on late populous saves |
 | [VB-1685](backlog/VB-1685.md)<a id="VB-1685"></a> | Invariant: a cache equals its derivation after every verb, with no lag | - | 2 | M | The birthday refresh mended so roles need no allowAgeLag, and each cache compared with a fresh derivation after each verb |
