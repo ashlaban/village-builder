@@ -129,6 +129,9 @@ VB['sim/days'] = (() => {
     }
     for (const [id, e] of Object.entries(d.by))
       if (e[1] >= DAYS.hours - 1e-9 && !e[2]) {
+        // a load on the road is brought in first, as at the day's end (sim/clock, sim/hands): going home would put it down undelivered
+        const ag = st.agents[+id];
+        if (ag && ag.phase === 'back' && ag.job && ag.load > 0) continue;
         e[2] = 1;
         issue(st, { actor: +id, verb: 'goHome', source: 'planner' });
       }
