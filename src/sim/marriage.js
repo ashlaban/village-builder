@@ -54,6 +54,7 @@ VB['sim/marriage'] = (() => {
     }
     m.kinPush = f.kinPush = null; // pushed at an earlier village's round, she takes the pull of the round that married her (VB-277)
     st.unions.push({ id: st.unions.length, a: mId, b: fId, start: st.t, end: null, kind: 'marriage' });
+    VB['sim/graph'].wed(st, mId, fId);
     const olds = [mId, fId].map((id) => st.pawns[id].household).filter((h) => h !== null && h !== home);
     for (const id of [mId, fId]) {
       if (st.pawns[id].household !== home)

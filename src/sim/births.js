@@ -85,6 +85,7 @@ VB['sim/births'] = (() => {
       ),
       p = st.pawns[id];
     p.born = st.t;
+    VB['sim/graph'].born(st, id); // its family edge (VB-043)
     p.alive = true;
     p.age = 0;
     // conceived while courting, and its mother has not married since: born outside marriage, in her household (VB-555); a widow's

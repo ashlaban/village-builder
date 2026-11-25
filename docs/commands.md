@@ -56,7 +56,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   never married at 45 and who waits by cause. Its two runs on the medium map are weekly, not nightly (a populous medium run is 13 minutes
   of CPU): `node tools/bands.js --runs populous-medium,founders-medium`, which `npm run nightly` adds on Sundays.
 - No golden file (retired by VB-408, Kim, 12 November): where an older task or document asks for `tests/golden.js` or a re-recorded
-  `tests/golden.json`, `docs/testing.md` stands instead. A refactor shows its behaviour unchanged with `node tools/same.js --base REF`, REF the commit it started
+  `tests/golden.json`, `docs/testing.md` stands instead. A refactor shows its behaviour unchanged with `node tools/same.js --base REF` (`--added KEY` for a key of the state the work adds), REF the commit it started
   from: the same runs from both trees, the world and the state compared leaf by leaf, nothing recorded. Its line goes into the PR.
 - Map pixels (VB-1500): a refactor of the map's drawing (the bake, the marks, the rivers' or the paths' drawing) shows it unchanged with
   `node tools/samepixels.js --base REF`: the sea, the overview and the chunks round each village baked headless by both trees at seeds 7

@@ -112,6 +112,7 @@ VB['sim/membership'] = (() => {
   // (the last turn's). The meeting chooses him and the office is vacated by `id` null (sim/meetings).
   function setAlderman(st, v, id, farm = null) {
     v.alderman = id;
+    VB['sim/graph'].single(st, 'alderman', v.id, id);
     v.aldermanSince = id === null ? null : st.t;
     v.aldermanYear = id === null ? null : cal(st.t).year;
     if (farm !== null) v.aldermanFarm = farm;

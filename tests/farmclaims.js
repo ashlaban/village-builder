@@ -46,6 +46,7 @@ function scene(rule) {
   for (const id of [who.gunhild, who.olof]) if (st.pawns[id].household !== B0) H.moveTo(st, id, B0);
   H.moveTo(st, who.brita, A0);
   st.unions.push({ id: st.unions.length, a: who.jons, b: who.gunhild, start: st.t, end: null, kind: 'marriage' });
+  VB['sim/graph'].wed(st, who.jons, who.gunhild); // and its spouse edges (VB-043)
   if (rule) setPractice(st, 1, { claims: rule });
   st.demand = Object.values(who).concat(st.households[B0].holder); // a holder among them, who may not claim
   return { st, f, last, who };
@@ -140,6 +141,7 @@ out.push(`orders: ${Object.entries(orders).map(([k, v]) => `${k} ${v}`).join('; 
   const { st, who } = scene('anyone');
   const B = st.villages[1], al = B.farmsteads.map((id) => st.farmsteads[id].household).filter((h) => h !== null).map((h) => st.households[h].holder).find((h) => h !== null);
   B.alderman = al;
+  VB['sim/graph'].single(st, 'alderman', B.id, al); // and its edge (VB-043)
   H.refreshRoles(st);
   const n = st.offers.length;
   st.pawns[who.gunnar].wish = null;
