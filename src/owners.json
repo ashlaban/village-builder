@@ -4,6 +4,7 @@
   "plannedOwners": [],
   "fields": {
     "st.owner": {"owner": "sim/ownership", "category": "cache"},
+    "st.titles": "sim/ownership",
     "st.crowd": {"owner": "sim/crowding", "category": "cache"},
     "st.followers": {"owner": "sim/followers", "category": "cache"},
     "st.crowdN": {"owner": "sim/crowding", "category": "cache"},
@@ -112,6 +113,8 @@
     "st.away[].guest": "sim/journeys",
     "st.booths": "sim/building",
     "st.boothSeq": "sim/building",
+    "st.facilities": "sim/facilities",
+    "st.facilityIdx": {"owner": "sim/facilities", "category": "cache"},
     "agent.away": {"owner": "sim/away", "category": "cache"},
     "agent.packing": "sim/away",
     "agent.fetching": "sim/journeys",

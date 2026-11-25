@@ -19,6 +19,7 @@ const FAST = [
   ['node', 'tests/decisions.js'],
   ['node', 'tests/customlog.js'], // VB-082: a meeting's votes and margins in its log, near misses, leanings, a cause taken up told
   ['node', 'tests/solo.js'], // the solo start: one young settler alone, and a year on
+  ['node', 'tests/titles.js'], // VB-311: own and use held apart: a field split off, its own passed, worked by its user, the title ended
   ['node', 'tests/alderman.js'], // VB-314: the village's alderman, chosen at its meeting
   ['node', 'tests/cacheowners.js'],
   ['node', 'tests/caches.js'], // VB-1685: each declared cache equals its derivation after each verb, no lag; no ...Changed( before its write
@@ -114,6 +115,7 @@ const FAST = [
   ['node', 'tests/evening.js'], // VB-1547: a task lived by, begun, is finished past 18:00; the water fetched in the evening
   ['node', 'tests/water.js'], // VB-1582: a farm's source by the walk, marsh a last resort, the fetch walked and taken first, the starting wells
   ['node', 'tests/trips.js'], // VB-1586: the fetch grows with the household: trips by hand for six, a cart's barrel for eighteen; part-dry by the people uncovered
+  ['node', 'tests/facilities.js'], // VB-361: facilities founded by the verb, raised in stages from the owner's stores, mended on its planning day
   ['node', 'tests/wells.js'], // VB-1584: a well's cost by the depth; a household's well dug when it pays; the green by the water; village.well a tile
   ['node', 'tests/thirst.js'], // VB-1585: a pawn's own thirst; the dry day its own; a mower leaves at 36 hours, drinks and fetches; no source refused
   ['node', 'tests/minding.js'], // VB-1602: the last one at home with a child under 7 does not leave it: lodge refused with the reason, no carrier

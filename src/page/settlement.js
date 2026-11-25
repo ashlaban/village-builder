@@ -379,6 +379,7 @@ function buildFarms(wd) {
   drawBooths(wd);
   for (const f of st.farmsteads) farmDrawn[f.id] = drawnBy(() => drawFarm(wd, f));
   drawTarPits(wd);
+  drawFacilities(wd);
   for (const v of st.villages) villageDrawn[v.id] = drawnBy(() => drawVillage(wd, v));
   if (labelsReady && labelSigOf() !== labelSig) buildLabels(wd);
   for (const p of st.pawns) rigs.push(pawnRig(p));

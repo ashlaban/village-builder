@@ -126,6 +126,8 @@ const KIND_ICON = {
   pick: 'build',
   quarry: 'build',
   raise: 'build',
+  raisestage: 'build',
+  mendfacility: 'build',
   water: 'water',
   drink: 'water',
   cook: 'pot',

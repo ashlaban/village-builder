@@ -126,6 +126,7 @@ VB['sim/kinds'] = (() => {
   KINDS.firewood = Chores.KINDS.firewood; // timber cut into firewood at the house (VB-1653): sim/chores'
   Object.assign(KINDS, VB['sim/byrehouse'].KINDS); // the byre's walls and roof (VB-1665): sim/byrehouse's
   Object.assign(KINDS, VB['sim/timberhouse'].KINDS); // the timber house's frame and roof (VB-1664): sim/timberhouse's
+  Object.assign(KINDS, VB['sim/facilities'].KINDS); // a facility's stages raised and its upkeep (VB-361): sim/facilities'
   // ---- where a kind is worked, what it takes and what it gives (VB-1124): each kind's record declares `at` (the places of PLACES where its
   // work is done), `needs` (the things of THINGS it takes or must find there: a good used up, a tool or a facility) and `gives` (the
   // things it makes or brings home), beside its rule, as its name and hours are. The game's guide (page/guide) reads them, and a kind
@@ -202,6 +203,7 @@ VB['sim/kinds'] = (() => {
     green: { name: 'the village green' },
     well: { name: 'a well' },
     trail: { name: 'a trail' },
+    facility: { name: 'a facility: a mill, a kiln, a bloomery' },
   };
   for (const [k, K] of Object.entries(KINDS)) {
     const bad =
@@ -288,6 +290,7 @@ VB['sim/kinds'] = (() => {
   ASK.farmAfterPlans.push(rule('cobble'), rule('harness')); // shoes and harness (VB-911, sim/leather)
   ASK.farmAfterPlans.push(rule('spin'), rule('weave')); // wool to cloth (VB-362, sim/textile)
   (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)
+  ASK.village.push(rule(VB['sim/facilities'].villageWork)); // a village's facilities raised and mended (VB-361)
   ASK.island.push(rule('blaze')); // the trails under way, each its blazer's household's (VB-447, sim/trails)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, isOpen, carriedOn, PLACES, THINGS };

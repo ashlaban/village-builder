@@ -113,7 +113,8 @@
       "sim/green",
       "sim/lying",
       "sim/droving",
-      "sim/projectplans"
+      "sim/projectplans",
+      "sim/facilities"
     ],
     "social": [
       "sim/attitudes",
