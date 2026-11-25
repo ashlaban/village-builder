@@ -143,6 +143,8 @@ const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-review-backlog-')), real 
 try {
   for (const f of ['BACKLOG.md', 'BACKLOG_ARCHIVE.md']) fs.copyFileSync(path.join(real, f), path.join(copy, f));
   fs.cpSync(path.join(real, 'backlog'), path.join(copy, 'backlog'), { recursive: true });
+  // tasks set aside as ideas keep their IDs (docs/ideas): the backlog's check reads them too
+  fs.cpSync(path.join(real, 'docs', 'ideas'), path.join(copy, 'docs', 'ideas'), { recursive: true });
   const nid = openFollowup(copy, 'VB-911', { ...blocking, check: 'a test that a marriage\'s new household is not shod from nothing' });
   const text = fs.readFileSync(path.join(copy, 'backlog', nid + '.md'), 'utf8');
   assert(/^Status: ready\nCause: VB-911\nPriority: 1$/m.test(text) && /^- \[ \] a test that a marriage's new household/m.test(text) && !text.includes('(to write)'), text);
