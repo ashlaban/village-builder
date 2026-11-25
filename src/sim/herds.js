@@ -9,7 +9,7 @@ VB['sim/herds'] = (() => {
   const { emit } = VB['sim/events'];
   // @state st.herds[]: {id, species 'cattle'|'sheep', household, home (tile where it grazes by the farm), head[] (cattle), ewes, rams, lambs
   //   (sheep), lambed (ewes lambed this spring; VB-144),
-  //   cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb', lean}: marked for slaughter), cullSeq, lean (stall days without
+  //   cull[] ({id, head (cattle id) or sheep 'ewe'|'ram'|'lamb' and lot (how many, VB-1682), lean}: marked for slaughter), cullSeq, lean (stall days without
   //   fodder since the count), unfed (stall days running without full hay) (sim/byre), herder (the pawn the herds are out with, from
   //   taking them to pasture until it is home again, or null: by the farm; VB-136), herded (the game day a herder last took them out, -1
   //   never; VB-136), at (sim/droving: the farm it stands at, away from its household's),
@@ -213,7 +213,9 @@ VB['sim/herds'] = (() => {
       }
     }
     for (const herd of st.herds) {
-      if (herd.household === null) continue;
+      // a herd standing away from its household's byre (herd.at, sim/droving) does not breed until it is home (VB-1682): no autumn count
+      // and no hay of its household's bound it there, so it would grow without end
+      if (herd.household === null || herd.at !== undefined) continue;
       const hh = st.households[herd.household],
         house = houseOf(st, herd);
       if (herd.species === 'cattle') {
@@ -458,7 +460,7 @@ VB['sim/herds'] = (() => {
         .reduce((s, x) => s + x.n, 0)
         .toFixed(1),
       text: describeHerds(st, hh),
-      cull: herdsOf(st, hh).reduce((s, hd) => s + hd.cull.length, 0),
+      cull: herdsOf(st, hh).reduce((s, hd) => s + hd.cull.reduce((m, e) => m + (e.sheep ? e.lot : 1), 0), 0),
       larder: Object.fromEntries(
         ['meat', 'salt meat', 'smoked meat', 'milk', 'butter', 'dried fish'].map((k) => [
           k,

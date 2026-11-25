@@ -19,8 +19,9 @@ VB['sim/byre'] = (() => {
   const Targets = VB['sim/targets'];
   const { register, issue } = VB['sim/commands'];
   const { living } = VB['sim/records'];
-  // A herd's cull[]: animals to slaughter, {id (within the herd), head (cattle head id) or sheep ('ewe'|'ram'|'lamb'), lean}; herd.cullSeq
-  // numbers them. herd.lean counts stall days without fodder since the last count; herd.unfed stall days running without full hay (VB-134).
+  // A herd's cull[]: animals to slaughter, {id (within the herd), head (cattle head id) or sheep ('ewe'|'ram'|'lamb') and lot (how many
+  // of them, VB-1682), lean}; herd.cullSeq numbers them. herd.lean counts stall days without fodder since the last count; herd.unfed stall
+  // days running without full hay (VB-134).
 
   // Stall days still to come after the day c, while in the byre.
   const stallLeft = (c) =>
@@ -29,6 +30,8 @@ VB['sim/byre'] = (() => {
   // same kind of cattle; any sheep), its worth otherwise, and nothing if the household's hay will not carry it through the winter: the stall
   // days still to come, or a whole stall period outside it. Giving one up costs what taking it back would bring. Allocates nothing. ----
   const ANIMAL = { none: 1.5 };
+  // A lot of sheep marked for slaughter stands as at most this many slaughter jobs at once, each of one animal (VB-1682).
+  const SLAUGHTER = { atOnce: 6 };
   function headsOf(st, hh, good) {
     let n = 0;
     for (const id of hh.herds) {
@@ -88,9 +91,10 @@ VB['sim/byre'] = (() => {
         hd.rams > 0 &&
         hexSteps(st.w, house, houseOf(st, st.households[hd.household])) <= HERD.reach,
     );
-  // The household's animals not yet marked for slaughter, least valuable first: {herd, head or sheep, hay (a stall day), room (in the byre),
-  // value}. Order (Agreed, 31 Oct): rams and bulls not needed, ewe lambs, ewes, heifer calves, bull calves, heifers, steers, cows (oldest
-  // first), the bull the farms rely on, the only ram in reach, oxen last.
+  // The household's animals not yet marked for slaughter, least valuable first: {herd, head or sheep, n, hay (a stall day, of one), room
+  // (in the byre, of one), value}: a head of cattle one entry (n 1), the sheep of a kind one entry of n (VB-1682: as many entries as kinds,
+  // not as animals, so that a cull is linear in the entries, not the flock). Order (Agreed, 31 Oct): rams and bulls not needed, ewe lambs,
+  // ewes, heifer calves, bull calves, heifers, steers, cows (oldest first), the bull the farms rely on, the only ram in reach, oxen last.
   function animals(st, hh, all = false) {
     // all: those marked for slaughter too
     const out = [],
@@ -109,27 +113,33 @@ VB['sim/byre'] = (() => {
             ox: 7,
           }[h.kind];
           if (h.kind === 'bull') v = bull && bull.head === h ? 6 : 0.5;
-          out.push({ herd, head: h, hay: H[h.kind], room: h.kind === 'calf' ? 0.5 : 1, value: v });
+          out.push({ herd, head: h, n: 1, hay: H[h.kind], room: h.kind === 'calf' ? 0.5 : 1, value: v });
         }
       } else {
         const n = { ewe: herd.ewes, ram: herd.rams, lamb: herd.lambs };
-        if (!all) for (const e of herd.cull || []) n[e.sheep]--;
-        const only = !otherRam(st, herd, house);
-        for (let k = 0; k < n.lamb; k++) out.push({ herd, sheep: 'lamb', hay: H.lamb, room: 0, value: 1 });
-        for (let k = 0; k < n.ewe; k++) out.push({ herd, sheep: 'ewe', hay: H.ewe, room: 0, value: 2 });
-        for (let k = 0; k < n.ram; k++)
-          out.push({ herd, sheep: 'ram', hay: H.ram, room: 0, value: k === 0 && only ? 6 : 0.5 });
+        if (!all) for (const e of herd.cull || []) n[e.sheep] -= e.lot;
+        const only = !otherRam(st, herd, house) && n.ram > 0 ? 1 : 0;
+        const lot = (sheep, k, value) => {
+          if (k > 0) out.push({ herd, sheep, n: k, hay: H[sheep], room: 0, value });
+        };
+        lot('lamb', n.lamb, 1);
+        lot('ewe', n.ewe, 2);
+        lot('ram', only, 6);
+        lot('ram', n.ram - only, 0.5);
       }
     }
     return out.sort((x, y) => x.value - y.value);
   }
-  function cullOne(a, lean) {
+  // Marks a head of cattle, or n sheep of a kind, for slaughter: one entry.
+  function cullOne(a, lean, n = 1) {
     const herd = a.herd;
     herd.cull.push(
-      a.head ? { id: herd.cullSeq++, head: a.head.id, lean } : { id: herd.cullSeq++, sheep: a.sheep, lean },
+      a.head ? { id: herd.cullSeq++, head: a.head.id, lean } : { id: herd.cullSeq++, sheep: a.sheep, lot: n, lean },
     );
   }
-  // Words for the log: "Rosa, an old ewe and 3 ram lambs".
+  // How many of a lot of animals (an entry of `animals`) bring `need` down to `have`, each taking `unit` off it: at least 1, at most the lot.
+  const enough = (a, need, have, unit) => Math.max(1, Math.min(a.n, Math.ceil((need - have) / unit)));
+  // Words for the log: "Rosa, an old ewe and 3 ram lambs", from a Map of words to how many.
   const PLURAL = {
     'a lamb': 'lambs',
     'a ram lamb': 'ram lambs',
@@ -137,9 +147,7 @@ VB['sim/byre'] = (() => {
     'a ewe': 'ewes',
     'a ram': 'rams',
   };
-  function listWords(names) {
-    const n = new Map();
-    for (const x of names) n.set(x, (n.get(x) || 0) + 1);
+  function listWords(n) {
     const parts = [...n].map(([x, k]) => (k === 1 ? x : `${k} ${PLURAL[x] || x}`));
     return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
   }
@@ -151,14 +159,17 @@ VB['sim/byre'] = (() => {
   function autumnCount(st, hh) {
     const f = st.farmsteads[hh.farmstead],
       house = houseOf(st, hh),
-      names = [];
+      names = new Map();
+    let gone = 0;
     for (const herd of herdsOf(st, hh)) {
       herd.cull = [];
       herd.lean = 0;
     }
-    const go = (a, word) => {
-      cullOne(a, false);
-      names.push(a.head ? a.head.name : word || `a ${a.sheep}`);
+    const go = (a, word, k = a.n) => {
+      cullOne(a, false, k);
+      const w = a.head ? a.head.name : word || `a ${a.sheep}`;
+      names.set(w, (names.get(w) || 0) + k);
+      gone += k;
     };
     let list = animals(st, hh);
     let replacements = Math.max(0, 2 - list.filter((a) => a.head && a.head.kind === 'ox').length);
@@ -175,49 +186,55 @@ VB['sim/byre'] = (() => {
           else go(a);
         }
       } else if (a.sheep === 'ram' && a.value < 1) go(a);
-      else if (a.sheep === 'ewe' && rnd(st.rng.herds) < HERD.oldEwe) go(a, 'an old ewe');
+      else if (a.sheep === 'ewe') {
+        let old = 0;
+        for (let k = 0; k < a.n; k++) if (rnd(st.rng.herds) < HERD.oldEwe) old++;
+        if (old) go(a, 'an old ewe', old);
+      }
     }
     for (const herd of herdsOf(st, hh)) {
       if (herd.species !== 'sheep') continue;
       let males = Math.round(herd.lambs / 2);
       if (males && !herd.rams && !otherRam(st, herd, house)) males--; // a ram lamb is kept to serve the ewes
-      for (let k = 0; k < males; k++) go({ herd, sheep: 'lamb' }, 'a ram lamb');
+      if (males > 0) go({ herd, sheep: 'lamb' }, 'a ram lamb', males);
     }
     const hay = hh.hay + f.meadows.reduce((s, m) => s + (m.stage === 'mown' ? m.held : 0), 0);
     list = animals(st, hh);
     const margin = HERD.margins[marginOf(st, hh)];
-    let need = list.reduce((s, a) => s + a.hay, 0) * HERD.stallDays * margin,
-      room = list.reduce((s, a) => s + a.room, 0);
+    let need = list.reduce((s, a) => s + a.hay * a.n, 0) * HERD.stallDays * margin,
+      room = list.reduce((s, a) => s + a.room * a.n, 0);
     while (list.length && (need > hay + 1e-6 || room > HERD.byre)) {
-      const i = need <= hay + 1e-6 ? list.findIndex((a) => a.room > 0) : 0,
-        a = list.splice(i, 1)[0];
-      need -= a.hay * HERD.stallDays * margin;
-      room -= a.room;
-      go(a);
+      const short = need > hay + 1e-6,
+        i = short ? 0 : list.findIndex((a) => a.room > 0),
+        a = list[i],
+        unit = a.hay * HERD.stallDays * margin,
+        k = short ? enough(a, need, hay + 1e-6, unit) : 1; // a lot of sheep has no room in the byre: room culls cattle, one at a time
+      if (k === a.n) list.splice(i, 1);
+      else a.n -= k;
+      need -= unit * k;
+      room -= a.room * k;
+      go(a, undefined, k);
     }
-    if (names.length)
-      log(
-        st,
-        `The autumn count at ${f.name}: ${listWords(names)} ${names.length === 1 ? 'goes' : 'go'} to slaughter.`,
-        {
-          kind: 'slaughter',
-          n: names.length,
-          ...atFarm(f),
-        },
-      );
+    if (gone)
+      log(st, `The autumn count at ${f.name}: ${listWords(names)} ${gone === 1 ? 'goes' : 'go'} to slaughter.`, {
+        kind: 'slaughter',
+        n: gone,
+        ...atFarm(f),
+      });
   }
   // When the hay left will not last the stall days to come, the household slaughters at once what it must; that meat is lean.
   function emergency(st, hh, c) {
     const left = stallLeft(c);
     if (!left) return;
     const list = animals(st, hh);
-    let need = list.reduce((s, a) => s + a.hay, 0) * left,
+    let need = list.reduce((s, a) => s + a.hay * a.n, 0) * left,
       n = 0;
-    while (list.length && need > hh.hay) {
-      const a = list.shift();
-      need -= a.hay * left;
-      cullOne(a, true);
-      n++;
+    for (let i = 0; i < list.length && need > hh.hay; i++) {
+      const a = list[i],
+        k = enough(a, need, hh.hay, a.hay * left); // a lot of sheep by its count (VB-1682), not one entry an animal
+      need -= a.hay * left * k;
+      cullOne(a, true, k);
+      n += k;
     }
     if (n)
       log(
@@ -238,7 +255,11 @@ VB['sim/byre'] = (() => {
       return;
     }
     const n = { ewe: herd.ewes, ram: herd.rams, lamb: herd.lambs };
-    herd.cull = herd.cull.filter((e) => n[e.sheep]-- > 0);
+    for (const e of herd.cull) {
+      e.lot = Math.min(e.lot, n[e.sheep]);
+      n[e.sheep] -= e.lot;
+    }
+    herd.cull = herd.cull.filter((e) => e.lot > 0);
   }
   // An animal of the herd dies or is slaughtered: it leaves the herd. Returns its kind, or null when it is no longer there.
   function remove(herd, e) {
@@ -252,14 +273,15 @@ VB['sim/byre'] = (() => {
     herd[k]--;
     return e.sheep;
   }
-  // The slaughter is done: the animal leaves the herd, its meat goes into the larder fresh; a beast of the cattle gives its hide too, for
-  // leather (VB-911, sim/leather: the kind declared it, and nothing took it).
+  // The slaughter is done: the animal (one of a lot of sheep) leaves the herd, its meat goes into the larder fresh; a beast of the cattle
+  // gives its hide too, for leather (VB-911, sim/leather: the kind declared it, and nothing took it).
   function slaughterDone(st, herd, entry, hh) {
     const i = herd.cull.indexOf(entry);
     if (i < 0) return;
-    herd.cull.splice(i, 1);
-    const kind = remove(herd, entry),
-      n = kind ? HERD.meat[kind] * (entry.lean ? HERD.lean : 1) : 0;
+    const e = herd.cull[i];
+    if (e.sheep === undefined || --e.lot <= 0) herd.cull.splice(i, 1);
+    const kind = remove(herd, e),
+      n = kind ? HERD.meat[kind] * (e.lean ? HERD.lean : 1) : 0;
     if (kind) {
       addFood(st, hh, 'meat', n);
       Stores.record(st, hh, 'meat', n, 'meat');
@@ -522,12 +544,14 @@ VB['sim/byre'] = (() => {
       out.push([`fodder:h${hh.id}:${c.day}`, 'fodder', { hours: fodderHours(st, hh) }]);
     for (const id of hh.herds) {
       const herd = st.herds[id];
+      // a lot of sheep stands as up to SLAUGHTER.atOnce jobs, each the slaughter of one (VB-1682)
       for (const e of herd.cull)
-        out.push([
-          `slaughter:h${hh.id}:${herd.id}.${e.id}`,
-          'slaughter',
-          { herd, entry: e, hours: HERD.slaughter[herd.species] },
-        ]);
+        for (let k = 0; k < (e.sheep === undefined ? 1 : Math.min(e.lot, SLAUGHTER.atOnce)); k++)
+          out.push([
+            `slaughter:h${hh.id}:${herd.id}.${e.id}${k ? `/${k}` : ''}`,
+            'slaughter',
+            { herd, entry: e, hours: HERD.slaughter[herd.species] },
+          ]);
     }
     const meat = hh.larder.length ? larderOf(hh, 'meat') : 0;
     if (meat > 0 && larderOf(hh, 'salt meat') < Targets.target(st, hh, 'salt meat'))
@@ -607,25 +631,26 @@ VB['sim/byre'] = (() => {
   // The head's own list (the verb `cull` with args.animals): it replaces the count's, the slaughter forced by short hay (lean) kept.
   function chooseCull(st, hh, list) {
     const f = st.farmsteads[hh.farmstead],
-      names = [];
+      names = new Map(),
+      word = (w) => names.set(w, (names.get(w) || 0) + 1);
     for (const herd of herdsOf(st, hh)) herd.cull = herd.cull.filter((e) => e.lean);
     for (const e of list) {
       const herd = st.herds[e.herd];
       if (herd.species === 'cattle') {
         const head = herd.head.find((h) => h.id === e.head);
         cullOne({ herd, head }, false);
-        names.push(head.name);
+        word(head.name);
       } else {
         cullOne({ herd, sheep: e.sheep }, false);
-        names.push(`a ${e.sheep}`);
+        word(`a ${e.sheep}`);
       }
     }
     log(
       st,
-      names.length
-        ? `The autumn count at ${f.name}: ${listWords(names)} ${names.length === 1 ? 'goes' : 'go'} to slaughter.`
+      list.length
+        ? `The autumn count at ${f.name}: ${listWords(names)} ${list.length === 1 ? 'goes' : 'go'} to slaughter.`
         : `The autumn count at ${f.name}: every animal is kept.`,
-      { kind: 'slaughter', n: names.length, ...atFarm(f) },
+      { kind: 'slaughter', n: list.length, ...atFarm(f) },
     );
   }
   // cull(household, {animals}) (VB-679): the head chooses which animals go to slaughter this autumn; with no list, the count's rule

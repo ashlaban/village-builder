@@ -117,7 +117,12 @@ VB['sim/droving'] = (() => {
     } else dest.head.push(...src.head.splice(idx, 1));
     // an animal marked for slaughter may be the one that went: the cull list names only animals still there (as sim/byre's tidy)
     const left = { ewe: src.ewes, ram: src.rams, lamb: src.lambs };
-    src.cull = src.cull.filter((e) => (kind === 'ewe' ? left[e.sheep]-- > 0 : src.head.some((h) => h.id === e.head)));
+    if (kind === 'ewe')
+      for (const e of src.cull) {
+        e.lot = Math.min(e.lot, left[e.sheep]);
+        left[e.sheep] -= e.lot;
+      }
+    src.cull = src.cull.filter((e) => (kind === 'ewe' ? e.lot > 0 : src.head.some((h) => h.id === e.head)));
     const hay = Math.min(Math.round(need), Math.floor(hh.hay - winterNeed(st, hh))); // winterNeed is now the herd that stays
     if (hay > 0) {
       hh.hay -= hay;
