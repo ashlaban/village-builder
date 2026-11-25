@@ -63,6 +63,9 @@ function showTile(i) {
   if (cutBy) claims.push(`Cut for firewood by ${cutBy.name}`);
   tileWhere = where; // the tile's place in numbers is Debug's (page/drawer), not the player's card's (VB-664)
   const strength = claimStats(i);
+  const fac = st && VB['sim/facilities'].at(st, i), // a facility on the tile (VB-361): its name, owner and stage
+    fv = fac && VB['sim/facilities'].view(st, fac);
+  if (fv) claims.unshift(`${fv.name[0].toUpperCase() + fv.name.slice(1)} of ${fv.owner}, ${fv.stage}`);
   if (farm) {
     const more = tileExtras(of);
     card(farm[0], [...farm[1], ...claims], '', {

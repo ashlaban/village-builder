@@ -15,7 +15,8 @@ VB['sim/routines'] = (() => {
   const Green = VB['sim/green'],
     Workdays = VB['sim/workdays'],
     Commons = VB['sim/commons'],
-    Tar = VB['sim/tar'];
+    Tar = VB['sim/tar'],
+    Facilities = VB['sim/facilities'];
   // @state plan.routines (a village's; VB-257): the keys of VILLAGE_ROUTINES the village does this year, at most MAX_ROUTINES, each a source
   //   of the village's tasks (sim/jobs asks only their kinds); plan.routinesBy: how they were set, 'founded' (the founders' choice, until
   //   the first meeting), 'meeting' (the meeting decided), or, when it did not decide, its culture's practice noDecision ('nothing',
@@ -204,6 +205,7 @@ VB['sim/routines'] = (() => {
     commonsStep(st, plan, a);
     if (a !== null) workdayStep(st, plan, a);
     if (a !== null) Tar.chargeStep(st, v, a);
+    if (a !== null) Facilities.villageUpkeep(st, v, a); // its facilities' upkeep (VB-361)
   }
   return {
     VILLAGE_ROUTINES,

@@ -13,6 +13,7 @@ VB.COUNTERS = {
     '(sim/fieldplans letGoWhy, VB-768)',
   drainAsk:
     "Fields read by a head's yearly look at ditching a wet field, once a year a farm after the harvest (sim/drain bestField, VB-721)",
+  facilityAsk: "An owner's facilities read on its planning day for their upkeep (sim/facilities offerUpkeep, VB-361)",
   tilthRead: "Reads of a field's tilth, at manuring and reaping only (sim/fields tilthOf, VB-717)",
   routeSearch: 'A* searches started',
   graphBuild:
