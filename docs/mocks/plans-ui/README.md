@@ -67,3 +67,15 @@ The owner's answers to round 1 and its review (`review-round1.md`):
   ordered by deadline). Name the tool or map a mock borrows from, in its band.
 - **Test at scale**: each mock has a "stress" toggle where it makes sense: a household of 10, three interrupted tasks at once, six
   open decisions, or the 20 households of `VILLAGE` (in `scene.js`).
+
+## Round 3 (25 November): three more directions at the household and village scale
+
+The owner: explore three more directions at this scale, then five at the pawn scale, then a synthesis of the whole hierarchy.
+`review-round2.md` holds what round 2 carried and dropped, and eight decisions put to the owner; until answered they are
+**provisional defaults** a mock may break where its direction tests something else: the unit follows the zoom (hours today, days
+ahead, hours left against days in a window at the season); whose hours owns hue (members a dot, an initial, row order, a hue only when
+focused); the strip owns time, the land previews; ahead holds only duties, dates and dated steps ("as the day brings"); the tray holds
+the played pawn's decision points; a countdown only in the tray. Also from the review: red means at risk only (use another mark for
+the now-line, a decision, a displacement); hatching means an estimate's range only; a cut-and-resumed task needs a state of its own.
+The three directions: worker placement on the land (`placement.html`), the season as a route map (`routes.html`), and zoom that
+changes what is drawn (`zoom.html`).
