@@ -51,7 +51,7 @@ VB['sim/meetings'] = (() => {
     return a !== undefined && a !== null && st.pawns[a].alive ? a : null;
   });
   // The office is filled by a question of its own: each voice for the holder it thinks most of, by its opinion of him and his standing, and
-  // a follower's lean to its lord (PATRON.lean, VB-708)
+  // a follower's term for its lord (PATRON.ballot, VB-708)
   // (elected), or the farm next in the order of founding (by turns, each farm a year in its turn). A tie at the top, with no alderman to
   // decide it, goes to the holder of most standing.
   defineKind('alderman', {
@@ -69,7 +69,7 @@ VB['sim/meetings'] = (() => {
             const x =
               opinionOf(st, voice, q.cands[j]) +
               OFFICE.weighStanding * st.pawns[q.cands[j]].standing +
-              (st.pawns[voice].looksTo === q.cands[j] ? PATRON.lean : 0); // a follower leans to its lord (VB-708)
+              (st.pawns[voice].looksTo === q.cands[j] ? PATRON.ballot : 0); // a follower leans to its lord (VB-708)
             VB.count.aldermanBallots++;
             if (x > top) {
               top = x;

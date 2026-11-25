@@ -243,9 +243,16 @@ VB['sim/society'] = (() => {
     if (p.alive) p.standing = sumOf(standingParts(st, p));
   });
   // A tie of a follower begun or ended (sim/followers, VB-708): its lord's standing, at once.
+  // Its lords' lords too, whose terms count it at a discount (no cap on depth; a cycle is refused, so the walk ends).
   on('tieChanged', (st, e) => {
-    const p = st.pawns[e.lord];
-    if (p.alive) p.standing = sumOf(standingParts(st, p));
+    for (
+      let id = e.lord, n = 0;
+      id !== null && id !== undefined && n <= st.pawns.length;
+      id = st.pawns[id].looksTo, n++
+    ) {
+      const p = st.pawns[id];
+      if (p.alive) p.standing = sumOf(standingParts(st, p));
+    }
   });
   // A gift of food went from one household to another (sim/exchange): the giver's sum of gifts grows by its worth, at once.
   on('giftGiven', (st, e) => {

@@ -559,6 +559,7 @@ VB['sim/relations'] = (() => {
   function book(st, creditor, debtor, rations) {
     if (!(rations > 0)) throw new Error(`goodwill: cannot book ${rations}`);
     addGoodwill(st, creditor, debtor, rations);
+    emit(st, 'goodwillBooked', { creditor, debtor }); // a debt paid down may end a follower's tie at once (sim/followers, VB-708)
   }
   // At a handover, `share` of each of from's balances passes to `to`; from keeps the rest (one with `to` itself is only reduced).
   function passGoodwill(st, from, to, share) {

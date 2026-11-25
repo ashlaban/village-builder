@@ -2,7 +2,7 @@
 //   of bonds (goodwill owed above PATRON.above, service; later a tenancy and days owed add rows), the live index of followers by lord, a
 //   tie begun and broken (its bond ended, or the lord failed the follower), and the standing term by followers
 VB['sim/followers'] = (() => {
-  const { YEAR_DAYS, cal } = VB['sim/rules'];
+  const { YEAR_DAYS, DAY, cal } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
   const { balance, remember } = VB['sim/relations'];
   const { SOCIAL } = VB['sim/ties'];
@@ -16,7 +16,18 @@ VB['sim/followers'] = (() => {
   // stands higher). `lean`: a follower's lean to its lord's side, a share of its attitude at a village's meeting, and a term of its
   // ballot for the alderman. `duty`: days of the follower's household's need a lord adds to what it would give its follower (the lord's
   // duty), and `yes` the days a follower adds to what it gives its lord (its yes weighed with the tie). Named estimates, no source (VB-708).
-  const PATRON = { above: 30, most: 3, service: 1, standing: 0.1, discount: 0.5, lean: 0.3, duty: 20, yes: 10 };
+  // `ballot`: a follower's term for its lord on the alderman's ballot, on that ballot's scale (opinion plus standing), apart from `lean`.
+  const PATRON = {
+    above: 30,
+    most: 3,
+    service: 1,
+    standing: 0.1,
+    discount: 0.5,
+    lean: 0.3,
+    ballot: 0.3,
+    duty: 20,
+    yes: 10,
+  };
   // a breach towards a follower: the lord refused what he could give (VB-707's kind of memory; TRAITS.breach lists it)
   Object.assign(SOCIAL.memories, {
     failedUs: { label: 'Failed us in need', v: -0.3, cap: -0.6, days: 4 * YEAR_DAYS },
@@ -55,6 +66,14 @@ VB['sim/followers'] = (() => {
     return l === null || l === undefined ? null : l;
   };
   const followersOf = (st, id) => index(st).get(id) || EMPTY;
+  // in id order, so a loaded run (whose index is built in id order) walks them as a run that never stopped
+  const byId = (st, id) => [...followersOf(st, id)].sort((x, y) => x - y);
+  // whether id remembers that lord failed it in need (failedUs, not yet faded): it does not look to him again while it does
+  const failedBy = (st, id, lord) => {
+    const r = st.pawns[id].rel && st.pawns[id].rel.get(lord),
+      m = r && r.mem.failedUs;
+    return !!m && st.t - m.t < SOCIAL.memories.failedUs.days * DAY;
+  };
   const EMPTY = new Set();
   const householdOf = (st, p) => (p.household === null ? null : st.households[p.household]);
   // ---- the table of bonds: each row the weight of id's bond to lord (0: none), and the lords it may hold one to ----
@@ -106,7 +125,7 @@ VB['sim/followers'] = (() => {
     let best = null;
     for (const b of BONDS)
       for (const lord of b.lords(st, id)) {
-        if (lord === id || !st.pawns[lord].alive) continue;
+        if (lord === id || !st.pawns[lord].alive || failedBy(st, id, lord)) continue;
         const w = b.weight(st, id, lord);
         if (w > 0 && (!best || w > best.w || (w === best.w && lord < best.lord))) best = { lord, kind: b.kind, w };
       }
@@ -150,6 +169,7 @@ VB['sim/followers'] = (() => {
     serviceEnded: 'its service ended',
     moved: 'it left the village',
     died: 'its lord died',
+    gone: 'it died',
   };
   // A tie begun by a bond of id's own: told, and the lord's standing at once
   function begin(st, id, b) {
@@ -171,7 +191,7 @@ VB['sim/followers'] = (() => {
       p = st.pawns[id],
       hh = householdOf(st, p);
     setLord(st, id, null);
-    if (p.alive)
+    if (p.alive || why === 'gone')
       log(st, `${fullName(p)} looks to ${fullName(st.pawns[lord])} no longer: ${WHY[why]}.`, {
         kind: 'follower',
         pawn: id,
@@ -215,7 +235,7 @@ VB['sim/followers'] = (() => {
   // those bound to it with no lord take the lord of their weightiest bond, unless that closes a cycle; the heads' members follow them.
   // Over its followers, its balances (at most GOODWILL.cap) and its household's members.
   function review(st, lord) {
-    for (const f of [...followersOf(st, lord)]) {
+    for (const f of byId(st, lord)) {
       VB.count.followerBonds++;
       if (lordOf(st, f) !== lord) continue; // gone with its head's tie
       const why = broken(st, f, lord);
@@ -227,7 +247,7 @@ VB['sim/followers'] = (() => {
     const hh = holdingOf(st, lord);
     if (hh) for (const m of hh.members) if (st.pawns[m].servant) cands.add(m);
     for (const j of cands) take(st, j);
-    for (const f of followersOf(st, lord)) follow(st, f);
+    for (const f of byId(st, lord)) follow(st, f);
   }
   // j, with no lord of its own bond, looks to the lord of its weightiest; it does not change lord while a bond holds (Kim: only when the
   // tie breaks). One that follows its head through no bond of its own takes its own lord when it has a bond.
@@ -250,16 +270,24 @@ VB['sim/followers'] = (() => {
   // A death: its followers look to nobody, the dead to nobody.
   on('died', (st, d) => {
     const id = d.pawn;
-    for (const f of [...followersOf(st, id)]) {
+    for (const f of byId(st, id)) {
       const own = !!bondTo(st, f, id) || headOf(st, st.pawns[f]) === null;
       if (own) end(st, f, 'died');
       else setLord(st, f, null);
     }
-    if (lordOf(st, id) !== null) {
-      const lord = lordOf(st, id);
-      setLord(st, id, null);
-      emit(st, 'tieChanged', { follower: id, lord });
+    // its own tie ends, told (its members who followed it through no bond of their own go with it); one through its head, quietly
+    const lord = lordOf(st, id);
+    if (lord !== null) {
+      const h = headOf(st, st.pawns[id]);
+      if (bondTo(st, id, lord) || h === null || lordOf(st, h) !== lord) end(st, id, 'gone');
+      else setLord(st, id, null);
     }
+  });
+  // Where a bond ends (VB-708): a follower that pays its lord back, at once, not at his next planning day.
+  on('goodwillBooked', (st, d) => {
+    if (lordOf(st, d.creditor) !== d.debtor) return;
+    const why = broken(st, d.creditor, d.debtor);
+    if (why !== null) end(st, d.creditor, why);
   });
   // A lord who refuses his follower what he could give above his floor fails it: the tie breaks, and the follower remembers a breach.
   on('askRefused', (st, d) => {
@@ -272,7 +300,8 @@ VB['sim/followers'] = (() => {
   // of lords stands higher. Only a tie of the follower's own counts (a household's members following their head count through it).
   function followerTerm(st, id, depth = 0) {
     let s = 0;
-    for (const f of followersOf(st, id)) {
+    for (const f of byId(st, id)) {
+      VB.count.followerWalk++;
       const b = bondTo(st, f, id);
       if (!b) continue;
       s += b.w + (depth < 32 ? PATRON.discount * (followerTerm(st, f, depth + 1) / PATRON.standing) : 0);
