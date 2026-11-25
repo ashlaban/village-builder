@@ -4,8 +4,9 @@
 // @state pawn.advance: absent, or {household, n}: the dowry a woman was given by household `household`, in rations of customary worth;
 //   subtracted from her share when that household's estate is next divided (sim/heirs transfer: advanceOf, settleAdvance), then gone
 // @state pawn.morningGift: absent, or the rations of customary worth booked to a wife at her marriage (from the groom's side)
-// @state pawn.dower: absent, or a widow's morning gift, hers: counted out of the division at her husband's death (sim/heirs transfer,
-//   dowerOf), and paid to the household she moves to from the one she leaves (what it cannot pay above its reserve lapses)
+// @state pawn.dower: absent, or {household, n}: a widow's morning gift, hers, owed by the household `household` she was widowed in:
+//   counted out of the division at her husband's death (sim/heirs transfer, dowerOf), paid to the household she moves to from that one
+//   (what it cannot pay above its reserve lapses), paid to her in grain if it dissolves first (dissolving), and ended by her death
 VB['sim/terms'] = (() => {
   const Norms = VB['sim/norms'];
   const Stores = VB['sim/stores'];
@@ -27,6 +28,17 @@ VB['sim/terms'] = (() => {
   const KEYS = ['dowry', 'gift'];
   const live = (st, id) => Number.isInteger(id) && !!st.households[id] && !st.households[id].dissolved;
   // ---- the valuation: one a household (VB.count.termsValued) ----
+  // Household hh's estate as its inheritance divides it (sim/heirs transfer; one reckoning, VB-276): its fields and its grain at SHARES'
+  // rates, less `less` (a widow's dower), never below nothing
+  function estateWorth(st, hh, less = 0) {
+    VB.count.termsValued++;
+    return Math.max(
+      0,
+      st.farmsteads[hh.farmstead].fields.length * SHARES.perField + Stores.grainOf(hh) * SHARES.perGrain - less,
+    );
+  }
+  // An heir's weight in a division under custom cu: a daughter's half where the custom halves it
+  const shareWeight = (st, cu, q) => (cu.daughterShare === 'half' && st.pawns[q].sex === 'f' ? 1 : 2);
   // Household hh's movable worth in rations of customary worth: its grain (rations are the unit of account) and its livestock by kind
   // (a calf, with no worth in the table, counts nothing), the two a dowry is paid in. Reads only.
   function movableWorth(st, hh) {
@@ -51,24 +63,25 @@ VB['sim/terms'] = (() => {
       of = (q) => q !== null && q !== undefined && (q === h || q === sp || q === hp.father || q === hp.mother);
     return of(p.father) || of(p.mother) ? hh : null;
   }
-  // Pawn id's share of `worth` as household hh's inheritance custom would divide it today: by the weights of sim/heirs transfer among the
-  // holder's living children (and id), nothing where one heir takes all
-  function shareOf(st, hh, id, worth) {
+  // Pawn id's share of household hh's estate as its inheritance custom would divide it today (sim/heirs transfer: estateWorth, shareWeight)
+  // among the holder's living children (and id), nothing where one heir takes all
+  function shareOf(st, hh, id) {
     const cu = farmPractice(st, st.farmsteads[hh.farmstead]);
     if (cu.heirCount === 'one') return 0;
-    const wt = (q) => (cu.daughterShare === 'half' && st.pawns[q].sex === 'f' ? 1 : 2),
-      kids = new Set(childrenOf(st, hh.holder).filter((q) => st.pawns[q].alive));
+    const kids = new Set(childrenOf(st, hh.holder).filter((q) => st.pawns[q].alive));
     kids.add(id);
     let total = 0;
-    for (const q of kids) total += wt(q);
-    return (worth * wt(id)) / total;
+    for (const q of kids) total += shareWeight(st, cu, q);
+    return Math.round(
+      (estateWorth(st, hh, dowerOf(st, spouseOf(st, hh.holder), hh)) * shareWeight(st, cu, id)) / total,
+    );
   }
   // The default terms of a match of man and woman to live in household `home`: {dowry, gift}, whole rations of customary worth. The
   // dowry is given by her house, none where she has none or it is the home itself; the gift is booked by his (his house, the household he
   // holds, else the home).
   function defaults(st, man, woman, home) {
     const from = houseOf(st, woman),
-      dowry = from && from.id !== home ? shareOf(st, from, woman, movableWorth(st, from)) * TERMS.dowryShare : 0,
+      dowry = from && from.id !== home ? shareOf(st, from, woman) * TERMS.dowryShare : 0,
       his = houseOf(st, man) || holdingOf(st, man) || (live(st, home) ? st.households[home] : null),
       gift = his ? Math.min(TERMS.giftCap, movableWorth(st, his) * TERMS.giftShare) : 0;
     return { dowry: Math.round(dowry), gift: Math.round(gift) };
@@ -160,21 +173,53 @@ VB['sim/terms'] = (() => {
   function settleAdvance(st, id, hh) {
     if (advanceOf(st, id, hh) > 0) delete st.pawns[id].advance;
   }
-  const dowerOf = (st, id) => st.pawns[id].dower || 0;
-  // A husband's death: his widow's morning gift is hers (before the union ends and the farm is divided)
+  // The dower widow id is owed by household hh, or 0
+  const dowerOf = (st, id, hh) => {
+    const d = id === null || id === undefined ? null : st.pawns[id].dower;
+    return d && hh && d.household === hh.id ? d.n : 0;
+  };
+  // A husband's death: his widow's morning gift is hers, owed by the household she is widowed in (before the union ends and the farm is
+  // divided). A widow's death ends her dower and a wife's her gift: what was hers lies in her household, which is her estate.
   on('died', (st, e) => {
+    const p = st.pawns[e.pawn];
+    delete p.dower;
+    delete p.morningGift;
     const sp = spouseOf(st, e.pawn),
       w = sp === null ? null : st.pawns[sp];
-    if (!w || !w.alive || !(w.morningGift > 0)) return;
-    w.dower = dowerOf(st, sp) + w.morningGift;
+    if (!w || !w.alive || !(w.morningGift > 0) || !live(st, w.household)) return;
+    const hh = st.households[w.household];
+    w.dower = { household: hh.id, n: dowerOf(st, sp, hh) + w.morningGift };
     delete w.morningGift;
   });
+  // Household hh dissolves (sim/heirs, before its estate is taken): a widow of it holding her dower is paid it in its grain, into her
+  // own hands as a share is (what it lacks lapses), before she is placed elsewhere; so no later household owes it
+  function dissolving(st, hh) {
+    for (const id of hh.members) {
+      const p = st.pawns[id],
+        n = dowerOf(st, id, hh);
+      if (!p.dower) continue;
+      delete p.dower;
+      const g = Math.min(n, Math.floor(Stores.grainOf(hh)));
+      if (!(g > 0)) continue;
+      Stores.move(st, hh, p, 'grain', g, { kind: 'share', pawn: id });
+      personEvent(
+        st,
+        id,
+        'share',
+        `Took her morning gift, ${g} rations${g < n ? ` of ${n}` : ''}, as ${st.farmsteads[hh.farmstead].name} broke up`,
+        {
+          n: g,
+          ...atHousehold(st, hh),
+        },
+      );
+    }
+  }
   // A widow who moves to another household takes her dower with her, paid by the one she leaves (after its journey is set out, so that
   // she bears what is laid: sim/journeys subscribes first)
   on('rehoused', (st, e) => {
-    const p = st.pawns[e.a.id];
-    if (!(p.dower > 0) || !e.old || e.old.dissolved || e.old === e.hh || e.hh.dissolved) return;
-    const n = p.dower;
+    const p = st.pawns[e.a.id],
+      n = e.old ? dowerOf(st, p.id, e.old) : 0;
+    if (!(n > 0) || e.old.dissolved || e.old === e.hh || e.hh.dissolved) return;
     delete p.dower;
     const paid = pay(st, e.old, e.hh, n, p.id);
     if (paid > 0)
@@ -186,5 +231,19 @@ VB['sim/terms'] = (() => {
         { n: paid, ...atHousehold(st, e.hh) },
       );
   });
-  return { TERMS, movableWorth, defaults, termsFor, setWhy, fair, settle, advanceOf, settleAdvance, dowerOf };
+  return {
+    TERMS,
+    movableWorth,
+    estateWorth,
+    shareWeight,
+    dissolving,
+    defaults,
+    termsFor,
+    setWhy,
+    fair,
+    settle,
+    advanceOf,
+    settleAdvance,
+    dowerOf,
+  };
 })();

@@ -61,6 +61,7 @@
     "pawn.advance": "sim/terms",
     "pawn.morningGift": "sim/terms",
     "pawn.dower": "sim/terms",
+    "pawn.proposal": "sim/player",
     "pawn.looksTo": "sim/followers",
     "pawn.advisedIn": "sim/advice",
     "pawn.courting": "sim/courting",

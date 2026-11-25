@@ -29,10 +29,10 @@ VB['sim/player'] = (() => {
   //   the pawn's health after each of its last meals, its hunger level, its household's food in days of need, and what moved its health,
   //   why {hunger, cold, damp, ill, tired, rest}, VB-1118; tired absent in a day kept before VB-1643)}; plain data, saved with the run. A
   //   save made from VB-1643 to VB-1645 holds sleep ({owed, asleep, at}): the hours its pawn owes, handed to the pawn (sim/sleepers adopt)
-  //   at the next step. The pawn's sleep is reckoned each step while it is played (sim/sleepers reckon), for the page. proposal (VB-276):
-  //   absent or null, else {for (a member the played pawn speaks for), partner (a pawn id), terms (null, or what its side gives: {dowry}
-  //   for a daughter, {gift} for a son, rations of customary worth)}: the head's match for a member, offered at the round of the man's
-  //   village as the pawn's own wish is (sim/round), until one of the two marries or dies or the player changes it
+  //   at the next step. The pawn's sleep is reckoned each step while it is played (sim/sleepers reckon), for the page
+  // @state pawn.proposal (VB-276): absent, else {for (a member the pawn speaks for), partner (a pawn id), terms (null, or what its side
+  //   gives: {dowry} for a daughter, {gift} for a son, rations of customary worth)}: a spokesman's match for a member, any pawn's as its
+  //   wish is, offered at the round of the man's village (sim/round proposed), until one of the two marries or dies or it is changed
   const QUEUE_MAX = 8,
     TIES_MAX = 12,
     DAYS_KEPT = 5;
@@ -177,7 +177,7 @@ VB['sim/player'] = (() => {
     const pl = st.player;
     if (!pl) return 'no pawn is played';
     if (partner === null) {
-      pl.proposal = null;
+      delete st.pawns[pl.pawn].proposal;
       return true;
     }
     const m = st.pawns[member],
@@ -191,15 +191,17 @@ VB['sim/player'] = (() => {
       return `the side of ${fullName(m)} gives only the ${k === 'dowry' ? 'dowry' : 'morning gift'}`;
     if (terms !== null && terms[k] !== undefined && !(Number.isFinite(terms[k]) && terms[k] >= 0))
       return `cannot give ${terms[k]}`;
-    pl.proposal = { for: member, partner, terms: terms === null ? null : { ...terms } };
+    st.pawns[pl.pawn].proposal = { for: member, partner, terms: terms === null ? null : { ...terms } };
     return true;
   }
   // A wish for a match ends when the one who wished or the wished partner marries (a and b have married) or dies (a is b); so does the
   // head's match for a member.
   const clearMatchWish = (st, a, b) => {
     endPartner(st, a, b);
-    const pr = st.player && st.player.proposal;
-    if (pr && [pr.for, pr.partner].some((id) => id === a || id === b)) st.player.proposal = null;
+    for (const s of new Set([spokesmanOf(st, a), spokesmanOf(st, b)])) {
+      const pr = s !== null && st.pawns[s] ? st.pawns[s].proposal : undefined;
+      if (pr && [pr.for, pr.partner].some((id) => id === a || id === b)) delete st.pawns[s].proposal;
+    }
   };
   // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
   // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.

@@ -109,11 +109,11 @@ VB['sim/heirs'] = (() => {
     // shares for the siblings who do not inherit
     if (cu.heirCount !== 'one' && reason !== 'claim') {
       const sibs = siblingsOf(st, heir).filter((q) => st.pawns[q].alive);
-      const wt = (q) => (cu.daughterShare === 'half' && st.pawns[q].sex === 'f' ? 1 : 2);
+      const wt = (q) => Terms.shareWeight(st, cu, q);
       // a widow's morning gift is hers before any division, and a dowry given is an advance on the share (sim/terms, VB-276)
       const wd = reason === 'death' && op && op.died !== null ? spouseOf(st, op.id, op.died - 0.01) : null,
-        dower = wd !== null && st.pawns[wd].alive && st.pawns[wd].household === hh.id ? Terms.dowerOf(st, wd) : 0;
-      const value = Math.max(0, f.fields.length * SHARES.perField + Stores.grainOf(hh) * SHARES.perGrain - dower),
+        dower = wd !== null && st.pawns[wd].alive ? Terms.dowerOf(st, wd, hh) : 0;
+      const value = Terms.estateWorth(st, hh, dower),
         total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
       for (const q of sibs) {
         const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember; // shares never eat the seed corn or the winter's food
@@ -292,6 +292,7 @@ VB['sim/heirs'] = (() => {
     // its plans go while it still stands: timber at a building step is put on its woodpile (sim/plans' leftWood), which a dissolved
     // holder refuses (VB-779); then the woodpile and the barn are laid at the house for its heir (takeEstate, layEstate)
     dropPlan(st, 'household', hh.id);
+    Terms.dissolving(st, hh); // a widow's dower, paid before the estate is taken (VB-276)
     const estate = takeEstate(st, hh);
     hh.dissolved = true;
     noteDissolved(st, hh);

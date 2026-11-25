@@ -1681,8 +1681,11 @@ function checkState(st) {
   for (const p of st.pawns) {
     const a = p.advance;
     if (a !== undefined && !(a && Number.isInteger(a.household) && st.households[a.household] && a.n > 0)) bad.push(`pawn ${p.id}: advance ${JSON.stringify(a)}`);
-    for (const k of ['morningGift', 'dower'])
-      if (p[k] !== undefined && !(Number.isFinite(p[k]) && p[k] > 0 && p.sex === 'f')) bad.push(`pawn ${p.id}: ${k} ${p[k]}`);
+    if (p.morningGift !== undefined && !(Number.isFinite(p.morningGift) && p.morningGift > 0 && p.sex === 'f' && p.alive)) bad.push(`pawn ${p.id}: morningGift ${p.morningGift}`);
+    const d = p.dower; // a living widow's, owed by a household that stands
+    if (d !== undefined && !(d && p.alive && p.sex === 'f' && d.n > 0 && st.households[d.household] && !st.households[d.household].dissolved)) bad.push(`pawn ${p.id}: dower ${JSON.stringify(d)}`);
+    const pr = p.proposal; // a spokesman's match for a member (sim/player, VB-276)
+    if (pr !== undefined && !(pr && st.pawns[pr.for] && st.pawns[pr.partner] && pr.for !== p.id)) bad.push(`pawn ${p.id}: proposal ${JSON.stringify(pr)}`);
   }
   for (const o of Array.isArray(st.offers) ? st.offers : [])
     if (o.basis === 'match' && o.terms !== undefined && !['dowry', 'gift'].every((k) => Number.isInteger(o.terms[k]) && o.terms[k] >= 0))
