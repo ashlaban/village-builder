@@ -1,63 +1,83 @@
-// @sys page/treelayout: family records: where the people of a tree stand (everyone, one person's line, the path between two) and their relation in words
+// @sys page/treelayout: family records: where the people of a tree stand (everyone, a scope, a line, the path between two) and their relation in words
 // ======== family records ========
 const NODE_W = 168,
   NODE_H = 64,
   GAP = 30,
   SPOUSE_GAP = 18,
   ROW_H = 120;
-function layoutTree(S) {
+// The tree of everyone, or of the people `only` holds (a Set of ids), in rows by generation; `more` (a Map of pawn id to {key, label})
+// puts a chip in the row under a person, for their children not shown. Parents, children and spouses come from sim/records' indexes
+// (VB-095), so the cost follows the people laid out, not people × unions.
+function layoutTree(S, only = null, more = null) {
+  const has = only ? (id) => only.has(id) : () => true,
+    ids = only ? [...only].sort((a, b) => a - b) : S.pawns.map((p) => p.id),
+    parents = (id) => {
+      const p = S.pawns[id];
+      return [p.father, p.mother].filter((q) => q !== null && has(q));
+    },
+    sps = new Map();
+  for (const id of ids) sps.set(id, [...new Set(Sim.spousesOf(S, id))].filter(has));
+  const spouses = (id) => sps.get(id);
   const gen = new Map();
   const g = (id) => {
     if (gen.has(id)) return gen.get(id);
-    const p = S.pawns[id];
-    const v =
-      p.father === null && p.mother === null
-        ? 0
-        : 1 + Math.max(p.father !== null ? g(p.father) : 0, p.mother !== null ? g(p.mother) : 0);
+    const ps = parents(id),
+      v = ps.length ? 1 + Math.max(...ps.map(g)) : 0;
     gen.set(id, v);
     return v;
   };
-  S.pawns.forEach((p) => g(p.id));
-  // people who married in without parents on record sit in their spouse's row
+  ids.forEach(g);
+  // people who married in without parents shown sit in their spouse's row
   for (let pass = 0; pass < 3; pass++)
-    for (const u of S.unions) {
-      const a = S.pawns[u.a],
-        b = S.pawns[u.b];
-      if (a.father === null && a.mother === null && gen.get(u.a) < gen.get(u.b)) gen.set(u.a, gen.get(u.b));
-      if (b.father === null && b.mother === null && gen.get(u.b) < gen.get(u.a)) gen.set(u.b, gen.get(u.a));
-    }
+    for (const id of ids)
+      if (!parents(id).length) for (const q of spouses(id)) if (gen.get(id) < gen.get(q)) gen.set(id, gen.get(q));
   const rows = [];
-  for (const p of S.pawns) {
-    const k = gen.get(p.id);
-    (rows[k] = rows[k] || []).push(p.id);
+  for (const id of ids) {
+    const k = gen.get(id);
+    (rows[k] = rows[k] || []).push(id);
   }
-  for (let k = 0; k < rows.length; k++) rows[k] = rows[k] || [];
+  const chipsOf = new Map();
+  if (more)
+    for (const [id, c] of more) {
+      const k = gen.get(id) + 1;
+      if (!chipsOf.has(k)) chipsOf.set(k, []);
+      chipsOf.get(k).push({ ...c, of: id });
+    }
+  const nrows = Math.max(rows.length, ...[...chipsOf.keys()].map((k) => k + 1));
+  for (let k = 0; k < nrows; k++) rows[k] = rows[k] || [];
   const pos = new Map(),
-    spouses = (id) => S.unions.filter((u) => u.a === id || u.b === id).map((u) => (u.a === id ? u.b : u.a));
+    chips = [],
+    ends = [];
   let width = 0;
-  rows.forEach((ids, k) => {
-    const px = (id) => {
-      const p = S.pawns[id],
-        xs = [p.father, p.mother].filter((q) => q !== null && pos.has(q)).map((q) => pos.get(q).x);
-      if (xs.length) return xs.reduce((a, b) => a + b, 0) / xs.length;
-      const sp = spouses(id)
-        .map((q) => S.pawns[q])
-        .find((q) => q.father !== null || q.mother !== null);
-      return sp ? 1e5 : (S.pawns[id].household ?? 99) * 1000;
-    };
-    const order = [...ids].sort((a, b) => px(a) - px(b) || S.pawns[a].born - S.pawns[b].born);
+  rows.forEach((row, k) => {
+    // where each person would stand: under their parents, beside a spouse who has parents shown, else by household
+    const want = new Map();
+    for (const id of row) {
+      const xs = parents(id)
+        .filter((q) => pos.has(q))
+        .map((q) => pos.get(q).x);
+      want.set(
+        id,
+        xs.length
+          ? xs.reduce((a, b) => a + b, 0) / xs.length
+          : spouses(id).some((q) => parents(q).length)
+            ? 1e5
+            : (S.pawns[id].household ?? 99) * 1000,
+      );
+    }
+    const at = (a) => (typeof a === 'number' ? want.get(a) : pos.get(a.of).x + NODE_W),
+      born = (a) => (typeof a === 'number' ? S.pawns[a].born : Infinity);
+    const order = [...row, ...(chipsOf.get(k) || [])].sort((a, b) => at(a) - at(b) || born(a) - born(b));
     const placed = [],
       seen = new Set();
     for (const id of order) {
-      const p = S.pawns[id];
+      if (typeof id !== 'number') {
+        placed.push([id, GAP]);
+        continue;
+      }
       if (seen.has(id)) continue;
       // an in-law without parents is placed beside their spouse instead of on their own
-      if (
-        p.father === null &&
-        p.mother === null &&
-        spouses(id).some((q) => gen.get(q) === k && (S.pawns[q].father !== null || S.pawns[q].mother !== null))
-      )
-        continue;
+      if (!parents(id).length && spouses(id).some((q) => gen.get(q) === k && parents(q).length)) continue;
       seen.add(id);
       placed.push([id, GAP]);
       for (const sp of spouses(id))
@@ -66,7 +86,7 @@ function layoutTree(S) {
           placed.push([sp, SPOUSE_GAP]);
         }
     }
-    for (const id of ids)
+    for (const id of row)
       if (!seen.has(id)) {
         seen.add(id);
         placed.push([id, GAP]);
@@ -74,19 +94,88 @@ function layoutTree(S) {
     let x = 0;
     placed.forEach(([id, gap], n) => {
       if (n) x += gap;
-      pos.set(id, { x, y: k * ROW_H, gen: k });
-      x += NODE_W;
+      if (typeof id === 'number') {
+        pos.set(id, { x, y: k * ROW_H, gen: k });
+        x += NODE_W;
+      } else {
+        chips.push({ key: id.key, label: id.label, x, y: k * ROW_H + (NODE_H - CHIP_H) / 2, row: k });
+        x += CHIP_W;
+      }
     });
+    ends[k] = x;
     width = Math.max(width, x);
-    rows[k] = placed.map(([id]) => id);
+    rows[k] = placed.filter(([id]) => typeof id === 'number').map(([id]) => id);
   });
-  rows.forEach((ids) => {
-    if (!ids.length) return;
-    const last = pos.get(ids[ids.length - 1]).x + NODE_W,
-      shift = (width - last) / 2;
-    for (const id of ids) pos.get(id).x += shift;
-  });
-  return { pos, rows, width, height: rows.length * ROW_H - (ROW_H - NODE_H) };
+  const shift = ends.map((x) => (x ? (width - x) / 2 : 0));
+  for (const q of pos.values()) q.x += shift[q.gen];
+  for (const c of chips) c.x += shift[c.row];
+  // the marriages drawn: spouses in one row
+  const pairs = [];
+  for (const id of ids) for (const q of spouses(id)) if (q > id && gen.get(q) === gen.get(id)) pairs.push([id, q]);
+  return { pos, rows, chips, pairs, width, height: nrows * ROW_H - (ROW_H - NODE_H) };
+}
+// The tree of a scope (VB-095; design.md, One scope model): the living members of the selected person's household, village or culture
+// (sim/scopes inScope, VB-043), their spouses, `up` generations above them and `down` below. The children of anyone shown who are not
+// shown fold behind a "+ n more" chip under them, which opens them in place (`open`, keys `kids:<id>`); "Earlier generations" raises `up`.
+const TREE_SCOPES = ['household', 'village', 'culture'];
+function scopeOf(S, id, level) {
+  const p = S.pawns[id],
+    v = Sim.settlementIdOf(S, p),
+    // the people of a scope are the same under every dimension but kin's; claims is the cheapest to work out
+    dim = 'claims';
+  if (level === 'household') return p.household === null ? null : { level, ids: [p.household], dim };
+  if (v === null) return null;
+  if (level === 'village') return { level, ids: [v], dim };
+  const s = S.cenv && S.cenv.settlements[v];
+  return s ? { level, ids: [s.culture], dim } : null;
+}
+function layoutScope(S, focus, level, up, down, open) {
+  const scope = scopeOf(S, focus, level),
+    core = scope ? Sim.inScope(S, scope).pawns.filter((id) => S.pawns[id].died === null) : [];
+  if (!core.includes(focus)) core.push(focus);
+  const only = new Set(core);
+  for (const id of core) for (const q of Sim.spousesOf(S, id)) only.add(q);
+  let earlier = false;
+  for (let n = 0, gen = [...only]; gen.length; n++) {
+    const next = [];
+    for (const id of gen)
+      for (const q of [S.pawns[id].father, S.pawns[id].mother])
+        if (q !== null && !only.has(q)) {
+          if (n >= up) earlier = true;
+          else {
+            only.add(q);
+            next.push(q);
+          }
+        }
+    gen = next;
+  }
+  for (let n = 0, gen = core; n < down && gen.length; n++) {
+    const next = [];
+    for (const id of gen)
+      for (const c of Sim.childrenOf(S, id))
+        if (!only.has(c)) {
+          only.add(c);
+          next.push(c);
+        }
+    gen = next;
+  }
+  for (const key of open)
+    if (key.startsWith('kids:') && only.has(+key.slice(5)))
+      for (const c of Sim.childrenOf(S, +key.slice(5))) only.add(c);
+  const more = new Map();
+  for (const id of only) {
+    const n = Sim.childrenOf(S, id).filter((c) => !only.has(c)).length;
+    if (n) more.set(id, { key: `kids:${id}`, label: `+ ${n} more` });
+  }
+  const L = layoutTree(S, only, more),
+    f = L.pos.get(focus);
+  let y0 = 0;
+  if (earlier) {
+    y0 = -CHIP_H - 16;
+    L.chips.push({ key: 'up', label: 'Earlier generations', x: f.x + (NODE_W - CHIP_W) / 2, y: y0 });
+  }
+  for (const q of [...L.pos.values(), ...L.chips]) q.y -= y0;
+  return { ...L, height: L.height - y0, notes: [], partner: new Set(), more: new Map(), core: core.length };
 }
 // The line view: only one person's line is laid out (their ancestors, their father's or mother's line, or their descendants); the rest
 // folds behind chips that open in place. Its cost follows the people shown, but for one pass over the unions.

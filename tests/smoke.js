@@ -293,6 +293,34 @@ const iv = setInterval(async () => {
       if (qa('#treeSvg g.tn').length < shown[mode]) fail(`a chip of the ${mode} view hid people`);
     }
   }
+  // the scopes (VB-095): each draws its person among their household's, village's or culture's people, and a "+ n more" chip opens in place
+  for (const mode of ['household', 'village', 'culture']) {
+    q(`#treeModes [data-mode="${mode}"]`).click(); shown[mode] = qa('#treeSvg g.tn').length;
+    if (!q('#treeSvg g.tn.focus')) fail(`the ${mode} view does not show the person it is of`);
+    if (shown[mode] > all) fail(`the ${mode} view shows more people than the records hold`);
+    if (q(`#treeModes [data-mode="${mode}"]`).getAttribute('aria-selected') !== 'true') fail(`the ${mode} tab is not selected`);
+    if (!new RegExp(`living in the ${mode}`).test(doc.getElementById('treeSub').textContent)) fail(`the ${mode} view does not say its scope`);
+    const chip = q('#treeSvg g.chip[data-chip^="kids:"]');
+    if (chip) {
+      chip.dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
+      if (qa('#treeSvg g.tn').length <= shown[mode]) fail(`a "+ n more" chip of the ${mode} view opened nobody`);
+    }
+  }
+  if (shown.household > shown.culture) fail('the household shows more people than the culture');
+  // only what is in view, with a margin, is drawn (VB-095): a narrow window on everyone draws fewer, and panning changes which
+  {
+    const box = doc.getElementById('treeSvg').parentNode;
+    Object.defineProperty(box, 'clientWidth', { configurable: true, value: 100 });
+    Object.defineProperty(box, 'clientHeight', { configurable: true, value: 100 });
+    box.scrollLeft = 0; box.scrollTop = 0;
+    const few = everyone(), at0 = qa('#treeSvg g.tn').map((g) => g.dataset.pawn).join();
+    box.scrollLeft = 100000; box.dispatchEvent(new win.Event('scroll'));
+    const far = qa('#treeSvg g.tn').map((g) => g.dataset.pawn).join();
+    console.log('tree window:', few, 'of', all, 'drawn at the left edge');
+    if (all > 20 && (few >= all || far === at0)) fail(`the tree draws ${few} of ${all} in a narrow window, and panning ${far === at0 ? 'changes nothing' : 'redraws'}`);
+    delete box.clientWidth; delete box.clientHeight;
+    everyone();
+  }
   // the path: to a spouse or a child of the first living person who has one, and it names the relation
   q(`#treeModes [data-mode="line"]`).click();
   if (q('#treeSvg g.tn:not(.focus)')) {
