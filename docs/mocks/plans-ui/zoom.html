@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zoom That Redraws</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600&display=swap">
+<style>
+/* Zoom: one continuous zoom from the estate to the pawn; the representation changes with the scale (cartographic generalisation). */
+:root { --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --owed: #33599e; --own: #2f8f8a; --hh: #e0a43a; --risk: #c8361b; color-scheme: light; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #e9e7dc; color: var(--ink); font: 13px/1.35 'Alegreya Sans', system-ui, sans-serif; }
+.band { height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 12px; background: var(--card); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.band h1 { font: 500 17px 'Alegreya SC', Georgia, serif; margin: 0; }
+.band .mode { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--owed); }
+.band .from { font-size: 11px; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: #fff; padding: 3px 7px; font: inherit; font-size: 12px; cursor: pointer; }
+.seg button.on { background: var(--ink); color: #fff; }
+.sp { flex: 1; }
+#mapwrap { position: relative; height: calc(100vh - 41px - 210px); background: #cfd3bf; overflow: hidden; }
+#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: zoom-in; }
+#crumb { position: absolute; left: 10px; top: 8px; background: #fffd; border: 1px solid var(--line); border-radius: 14px; padding: 3px 10px; font-size: 14px; z-index: 3; }
+#crumb a { cursor: pointer; color: var(--muted); } #crumb a.on { color: var(--ink); font-weight: 600; } #crumb span { color: #aaa; margin: 0 4px; }
+#zoombox { position: absolute; right: 10px; top: 8px; background: #fffd; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; z-index: 3; width: 300px; }
+#zoombox input { width: 100%; margin: 0; }
+#stops { display: flex; justify-content: space-between; font-size: 11px; } #stops a { cursor: pointer; color: var(--muted); } #stops a.on { color: var(--ink); font-weight: 600; }
+#rep { font-size: 11px; color: var(--muted); }
+.hit { cursor: pointer; }
+#strip { height: 210px; border-top: 1px solid var(--line); background: var(--card); overflow: auto; position: relative; }
+#strip h4 { margin: 0; padding: 4px 10px 2px; font-size: 12px; position: sticky; top: 0; background: var(--card); z-index: 2; display: flex; gap: 10px; }
+#strip h4 small { color: var(--muted); font-weight: 400; }
+.grid { display: grid; margin: 0 10px 6px; column-gap: 2px; row-gap: 1px; font-size: 11px; align-items: center; }
+.grid .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; padding-right: 4px; }
+.grid .hd { color: var(--muted); text-align: center; font-size: 10.5px; }
+.grid .hd.today { color: var(--ink); font-weight: 700; border-bottom: 2px solid var(--ink); }
+.c { height: 100%; min-height: 8px; border-radius: 2px; background: #0000000a; display: flex; align-items: center; justify-content: center; font-size: 9.5px; color: #888; }
+.c.worked { background: var(--owed); } .c.named { background: #fff; box-shadow: inset 0 0 0 2px var(--owed); } .c.breached { background: #1b2f57; color: #fff; }
+.c.lapsed { background: #9a9a9a; } .c.unk { background: repeating-linear-gradient(90deg, #0000 0 3px, #0000000c 3px 5px); color: #999; }
+.c.past { background: #00000014; } .c.own { background: #eef6f4; box-shadow: inset 0 0 0 2px var(--own); }
+.c.hh { background: var(--hh); } .c.est { background: repeating-linear-gradient(45deg, #e0a43a 0 3px, #e0a43a55 3px 7px); }
+.c.toname { box-shadow: inset 0 0 0 1.5px var(--owed); background: repeating-linear-gradient(45deg, #33599e22 0 2px, #0000 2px 6px); }
+.bridge { background-color: #33599e1c; }
+.hours { position: relative; height: 22px; margin: 2px 10px 2px 90px; }
+.hours .blk { position: absolute; top: 0; height: 20px; border: 1px solid #2a2018; border-radius: 3px; font-size: 10.5px; overflow: hidden; white-space: nowrap; padding: 2px 3px; box-sizing: border-box; }
+.rowlbl { position: absolute; left: -82px; top: 3px; width: 78px; font-size: 11.5px; }
+.nowline { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px solid var(--ink); }
+.bubble { position: absolute; z-index: 9; width: 300px; background: #fff; border: 1px solid #3a2a1a; border-radius: 8px; padding: 8px 10px; box-shadow: 0 4px 14px #0004; font-size: 12.5px; box-sizing: border-box; }
+.bubble h3 { margin: 0 0 4px; font: 600 14.5px 'Alegreya Sans', sans-serif; display: flex; gap: 6px; align-items: center; }
+.bubble dl { margin: 0; display: grid; grid-template-columns: 70px 1fr; gap: 1px 6px; } .bubble dt { color: var(--muted); } .bubble dd { margin: 0; }
+.bubble dd.unk { color: #999; font-style: italic; }
+.bubble .acts { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+.bubble .acts button { text-align: left; font: inherit; font-size: 12px; border: 1px solid #3a2a1a; background: #f3efe4; border-radius: 6px; padding: 3px 7px; cursor: pointer; }
+.bubble .acts button small { display: block; color: var(--muted); }
+.bubble .main { font: inherit; font-size: 12px; border: 0; background: var(--ink); color: #fff; border-radius: 12px; padding: 2px 10px; cursor: pointer; margin: 6px 4px 0 0; }
+.bubble .dflt { margin-top: 5px; padding: 3px 6px; background: #eef1f8; border-left: 3px solid var(--owed); font-size: 12px; }
+.ladder { margin: 4px 0 0; padding: 0; list-style: none; font-size: 12px; } .ladder li { padding: 2px 0; border-bottom: 1px dotted #ccc; } .ladder li b { color: var(--muted); font-weight: 600; }
+.toast { position: absolute; left: 50%; bottom: 220px; transform: translateX(-50%); background: #23251e; color: #fff; padding: 7px 14px; border-radius: 16px; font-family: ui-monospace, monospace; font-size: 12px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
+.toast.on { opacity: 1; }
+.note { position: absolute; right: 10px; bottom: 220px; max-width: 400px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px; font-size: 12px; z-index: 8; }
+.note summary { cursor: pointer; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="band">
+  <h1>Zoom that redraws</h1><span class="mode">Look · Sparre › Byn › Backa · autumn day 4, 10:00</span>
+  <span class="from">borrows: cartographic generalisation (a map redraws, not rescales), semantic zoom of map apps</span>
+  <span class="sp"></span>
+  <span class="seg" id="stressT"><button data-v="20" class="on">20 households</button><button data-v="60">60 (3 villages)</button></span>
+</div>
+<div id="mapwrap">
+  <svg id="map"><g id="world"></g><g id="ov"></g></svg>
+  <div id="crumb"></div>
+  <div id="zoombox"><input id="zr" type="range" min="0" max="3" step="0.01" value="1"><div id="stops"></div><div id="rep"></div></div>
+</div>
+<div id="strip"></div>
+<details class="note"><summary>Scales to / strains at</summary>
+<p><b>Scales to:</b> one village of 20 farms: at the village scale each household is one ring (its lot days), one meter and one sign, about 40 px apart, and the hierarchy reads as one whole because the village glyph is literally the households' rings summed, and the household glyph grows into the yard's members and the places of work. The strip changing rows with the zoom (villages, households, members, hours) kept the time out of the map at every stop.</p>
+<p><b>Strains at:</b> 60 households: between the estate and the village scale the three villages' 60 rings fall to about 20 px apart, below the ring's readable size; the crossfade band (0.30 to 0.45 px per world px) then shows half-faded village glyphs over half-faded rings, which reads as mud. The honest fix is a hard threshold per village (a village switches whole, by its own on-screen size), not a global fade. Two thirds of the 60 are "?" to Per, so the far villages carry almost nothing but their named-day count. The roster strip of 60 rows scrolls three screens. A pawn stop exists only for Backa's members; a stranger's farm stops at the household with "?" dots.</p>
+</details>
+<div class="toast" id="toast"></div>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+// ---- The world: villages of hexes (axial), each farm a wedge of the infield (yard + fields), the green, the fence ring.
+const S3 = Math.sqrt(3), HS = 20, SP = HS * S3; // hex radius and centre spacing in world px
+const ax = (q, r) => ({ x: HS * S3 * (q + r / 2), y: HS * 1.5 * r });
+const hsh = (a, b, s) => { const v = Math.sin(a * 127.1 + b * 311.7 + s * 74.7) * 43758.5453; return v - Math.floor(v); };
+const ANG0 = Math.PI / 5, NS = 20, FENCE = 7.6;
+function genHH(names, seed) {
+  let sd = seed; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+  return names.map((name) => { const fields = 1 + Math.floor(rnd() * 4), lot = Math.max(1, Math.round(fields * 0.7)), days = Array(12).fill(null); let left = lot;
+    for (let d = 0; d < 12 && left > 0; d++) if (rnd() < 0.18) { days[d] = d < 3 ? (rnd() < 0.15 ? 'breached' : 'worked') : 'named'; left--; }
+    return { name, adults: 1 + Math.floor(rnd() * 5), fields, lot, days, toName: left, own: Math.round((0.15 + rnd() * 0.25) * 100) / 100 }; });
+}
+const PROBS = [['fence', { frame: 'plan', whose: 'owed' }, 'a fence day still to name'], ['people', { frame: 'now', whose: 'household' }, 'short of hands at harvest'],
+  ['health', { frame: 'now', whose: null }, 'someone sick'], ['oats', { frame: 'target' }, 'a target short'], ['cold', { frame: 'target' }, 'short of firewood']];
+const KNOW = { 'Backa': 'full', 'Norrgård': 'neighbour', 'Lillgården': 'neighbour', 'Sörgård': 'heard', 'Övergård': 'heard' };
+function makeVillage(name, ox, oy, hhs, seed, ours) {
+  const tiles = [], farms = hhs.map((h, i) => ({ ...h, i, v: name, land: [], know: ours ? KNOW[h.name] || 'meeting' : 'none' }));
+  const R = 10;
+  for (let q = -R; q <= R; q++) for (let r = -R; r <= R; r++) {
+    if (Math.abs(q + r) > R) continue;
+    const p = ax(q, r), d = Math.hypot(p.x, p.y) / SP, ang = Math.atan2(p.y, p.x), sec = Math.floor((((ang - ANG0 + Math.PI / NS) % (2 * Math.PI)) + 4 * Math.PI) % (2 * Math.PI) / (2 * Math.PI / NS));
+    const t = { x: p.x + ox, y: p.y + oy, d, sec, n: hsh(q, r, seed) };
+    if (d < 1.5) t.t = 'green'; else if (d < 2.6) t.t = 'grass';
+    else if (d < 4.6) t.t = 'grass', t.band = 1;
+    else if (d < FENCE) { t.t = d < 5.6 ? (t.n < .5 ? 'rye' : 'ryecut') : d < 6.6 ? (t.n < .6 ? 'barley' : 'fallow') : 'meadow'; farms[sec].land.push(t); t.farm = sec; }
+    else t.t = t.n < .45 ? 'forest' : t.n < .5 ? 'lake' : 'grass';
+    tiles.push(t);
+  }
+  for (const f of farms) { // the yard: the band tile nearest the sector's axis at 3.6 spacings
+    const a = ANG0 + f.i * 2 * Math.PI / NS, gx = ox + Math.cos(a) * 3.6 * SP, gy = oy + Math.sin(a) * 3.6 * SP;
+    let best = null, bd = 1e9; for (const t of tiles) if (t.band && !t.yard) { const dd = Math.hypot(t.x - gx, t.y - gy); if (dd < bd) { bd = dd; best = t; } }
+    best.t = 'yard'; best.yard = f.i; f.yard = best;
+    f.gx = f.land.reduce((s, t) => s + t.x, 0) / f.land.length; f.gy = f.land.reduce((s, t) => s + t.y, 0) / f.land.length;
+    const r = hsh(f.i, 3, seed); f.ratio = f.know === 'full' ? 28 / 36 : 0.75 + r * 0.5;
+    f.prob = r < 0.25 ? null : PROBS[Math.floor(r * 37) % PROBS.length]; f.pcount = f.prob ? 1 + Math.floor(r * 3) : 0;
+    f.heard = f.know === 'heard';
+  }
+  return { name, ox, oy, tiles, farms, ours };
+}
+// Byn, with Backa's places mapped from scene.js onto sector 0; Sörgård's breach of day 2 is what Per heard at the well.
+const BYN_HH = VILLAGE.households.map((h) => ({ ...h, days: [...h.days] }));
+BYN_HH.find((h) => h.name === 'Sörgård').days[1] = 'breached';
+BYN_HH.find((h) => h.name === 'Övergård').days[2] = 'worked';
+const W = { byn: makeVillage('Byn', 0, 0, BYN_HH, 1, true) };
+W.aby = makeVillage('Åby', 1050, -520, genHH(['Åkerby', 'Bergby', 'Dal', 'Ekeby', 'Fors', 'Gärdet', 'Holm', 'Ingla', 'Järva', 'Kåre', 'Lund', 'Mo', 'Näs', 'Ova', 'Por', 'Ryd', 'Sund', 'Tuna', 'Udd', 'Vik'], 11), 2, false);
+W.vby = makeVillage('Västerby', -1000, 480, genHH(['Alby', 'Brån', 'Celle', 'Dyn', 'Ene', 'Fall', 'Grind', 'Hult', 'Ida', 'Kärr', 'Lid', 'Myra', 'Nor', 'Oxe', 'Pål', 'Rå', 'Stav', 'Torp', 'Ulv', 'Vret'], 23), 3, false);
+const BACKA = W.byn.farms[0], MANOR = { x: 420, y: -520 };
+const PL = {}; { // Backa's places
+  PL.home = BACKA.yard; PL.green = { x: 0, y: 0 }; PL.norr = W.byn.farms[1].yard;
+  const f = [...BACKA.land].sort((a, b) => a.d - b.d || a.sec - b.sec);
+  const set = (k, t, terr) => { PL[k] = t; t.t = terr; t.key = k; };
+  set('long', f[0], 'ryecut'); set('long2', f[1], 'rye'); set('barley', f[Math.floor(f.length / 2)], 'barley'); set('meadow', f[f.length - 1], 'meadow'); set('clearing', f[f.length - 2], 'fallow');
+  const out = W.byn.tiles.filter((t) => t.sec === 0 && t.d > 8 && t.d < 9.6).sort((a, b) => a.d - b.d);
+  set('wood2', out[0], 'forest'); set('wood1', out[1], 'forest');
+  const lk = W.byn.tiles.find((t) => t.sec === 19 && t.d > 8.2); set('lake', lk, 'lake');
+  const a = ANG0 - 0.08; PL.fence = { x: Math.cos(a) * FENCE * SP, y: Math.sin(a) * FENCE * SP };
+}
+
+// ---- State and camera. z: 0 estate, 1 village, 2 household, 3 pawn. Representation follows k (screen px per world px), not z.
+const S = { z: 1, n: 20, focus: BACKA, open: null };
+const vils = () => S.n === 60 ? [W.byn, W.aby, W.vby] : [W.byn];
+const mapEl = document.getElementById('map'), wrap = document.getElementById('mapwrap');
+const vw = () => wrap.clientWidth, vh = () => wrap.clientHeight;
+function stops() {
+  const H = vh(), Wd = vw(), f = S.focus;
+  const s0 = S.n === 60 ? { x: 25, y: 0, k: Math.min(Wd / 2900, H / 1900) } : { x: 200, y: -240, k: H / 2600 };
+  const xs = [f.yard.x, ...f.land.map((t) => t.x)], ys = [f.yard.y, ...f.land.map((t) => t.y)];
+  if (f === BACKA) xs.push(PL.wood1.x), ys.push(PL.wood1.y);
+  const bw = Math.max(...xs) - Math.min(...xs) + 4 * HS, bh = Math.max(...ys) - Math.min(...ys) + 4 * HS;
+  const s2 = { x: (Math.max(...xs) + Math.min(...xs)) / 2, y: (Math.max(...ys) + Math.min(...ys)) / 2, k: Math.min(Wd / bw, H / bh) * 0.62 };
+  return [s0, { x: 0, y: 0, k: H / (2 * 10.6 * SP) }, s2, { x: (PL.home.x + PL.long.x) / 2, y: (PL.home.y + PL.long.y) / 2, k: s2.k * 1.7 }];
+}
+function cam(z) {
+  const st = stops(), i = Math.min(2, Math.floor(z)), t = z - i, a = st[i], b = st[i + 1];
+  const k = Math.exp(Math.log(a.k) * (1 - t) + Math.log(b.k) * t);
+  const w = (1 / k - 1 / a.k) / (1 / b.k - 1 / a.k || 1); // lerp in 1/k: the point under the zoom stays put
+  return { k, x: a.x + (b.x - a.x) * w, y: a.y + (b.y - a.y) * w };
+}
+const sm = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+// ---- The land (world layer): drawn once; fine marks and the generalised blob fade with k.
+function drawWorld() {
+  let base = '', fine = '', gen = '';
+  for (const V of vils()) {
+    gen += `<circle cx="${V.ox}" cy="${V.oy}" r="${(FENCE + 2.5) * SP}" fill="#a9b77a"/><circle cx="${V.ox}" cy="${V.oy}" r="${FENCE * SP}" fill="#d0bd6c"/><circle cx="${V.ox}" cy="${V.oy}" r="${4.6 * SP}" fill="#b8a47f"/><circle cx="${V.ox}" cy="${V.oy}" r="${1.5 * SP}" fill="#9fb46e"/>`;
+    for (const t of V.tiles) {
+      base += `<path d="${hexPath(t.x, t.y, HS + .4)}" fill="${TERRAIN[t.t]}" stroke="#00000014" stroke-width=".6"/>`;
+      if (t.t === 'forest') for (const [dx, dy] of [[-7, -3], [5, -6], [0, 5]]) fine += `<path d="M${t.x + dx} ${t.y + dy - 6}l4 8h-8z" fill="#3f5a33"/>`;
+      if (t.t === 'rye' || t.t === 'barley') fine += `<path d="M${t.x - 12} ${t.y - 4}h24M${t.x - 12} ${t.y + 3}h24" stroke="#00000022" stroke-width="1.2"/>`;
+      if (t.t === 'ryecut') for (const dx of [-8, 0, 8]) fine += `<path d="M${t.x + dx} ${t.y + 9}l-2.5-7h5z" fill="#c9a24a"/>`;
+      if (t.t === 'yard') fine += `<path d="M${t.x - 8} ${t.y + 4}v-7l8-6 8 6v7z" fill="#8a5a3a" stroke="#4a2f1e" stroke-width=".8"/>`;
+    }
+    base += `<circle cx="${V.ox}" cy="${V.oy}" r="${FENCE * SP}" fill="none" stroke="#6a4a2a" stroke-width="2.4" stroke-dasharray="7 4"/>`;
+    for (let i = 0; i < NS; i++) { const a = ANG0 + (i + .5) * 2 * Math.PI / NS; base += `<path d="M${V.ox + Math.cos(a) * 4.6 * SP} ${V.oy + Math.sin(a) * 4.6 * SP}L${V.ox + Math.cos(a) * FENCE * SP} ${V.oy + Math.sin(a) * FENCE * SP}" stroke="#6a4a2a55" stroke-width="1.2"/>`; }
+  }
+  fine += `<path d="M${PL.wood2.x - 9} ${PL.wood2.y + 6}h18M${PL.wood2.x - 8} ${PL.wood2.y + 2}h16" stroke="#7a5a1a" stroke-width="2.4"/>`;
+  base += `<path d="M${MANOR.x - 22} ${MANOR.y + 10}v-18l22-16 22 16v18z" fill="#9a7a9e" stroke="#3d1d45" stroke-width="2"/>`;
+  document.getElementById('world').innerHTML = `<g id="gBase">${base}</g><g id="gGen">${gen}</g><g id="gFine">${fine}</g>`;
+}
+
+// ---- Glyphs (overlay, screen px). A household: a ring of its lot days, one labour meter, its most urgent sign with a count pip.
+const DAYC = { worked: '#33599e', named: '#9fb3da', breached: '#1b2f57', lapsed: '#9a9a9a', tonamed: '#fff' };
+function arc(r, a0, a1) { const p = (a) => `${(r * Math.cos(a)).toFixed(1)} ${(r * Math.sin(a)).toFixed(1)}`; return `M${p(a0)}A${r} ${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${p(a1)}`; }
+function hhSeg(f, d) { // what Per knows of one lot day
+  const st = f.days[d];
+  if (f.know === 'none') return 'unk';
+  if (d < NOW.day - 1 && st && f.know === 'meeting') return 'unk'; // worked or breached: not heard
+  return st;
+}
+function hhGlyph(f, x, y, s, a) {
+  const lots = [...f.days.map((d, i) => d ? hhSeg(f, i) : null).filter(Boolean), ...Array(f.toName).fill(f.know === 'none' ? 'unk' : 'tonamed')];
+  const R = 12, gap = 0.18, n = lots.length; let g = `<circle r="${R + 6}" fill="#fffc" stroke="${f === BACKA ? '#23251e' : '#0003'}" stroke-width="${f === BACKA ? 2 : 1}"/>`;
+  lots.forEach((k, i) => { const a0 = -Math.PI / 2 + i * 2 * Math.PI / n + gap / 2, a1 = a0 + 2 * Math.PI / n - gap;
+    g += k === 'unk' ? `<path d="${arc(R, a0, a1)}" stroke="#bbb" stroke-width="4" fill="none" stroke-dasharray="2 2"/>`
+      : `<path d="${arc(R, a0, a1)}" stroke="${k === 'tonamed' ? '#33599e' : DAYC[k]}" stroke-width="${k === 'tonamed' ? 1.4 : 4.5}" fill="none"${k === 'tonamed' ? ' stroke-dasharray="2 1.5"' : ''}/>` + (k === 'breached' ? `<path d="${arc(R + 4, a0, a1)}" stroke="#1b2f57" stroke-width="1.2" fill="none"/>` : ''); });
+  const known = f.know === 'full' || f.know === 'neighbour';
+  g += known ? `<text y="3.5" font-size="10" text-anchor="middle" font-weight="700">${f.name[0]}</text>` : `<text y="4" font-size="11" text-anchor="middle" fill="#999" font-weight="700">?</text>`;
+  const mw = 26, my = R + 9; // the labour meter: hours to have against hours needed in the binding window
+  g += known ? `<rect x="${-mw / 2}" y="${my}" width="${mw}" height="5" fill="#fff" stroke="#2a2018" stroke-width=".8"/><rect x="${-mw / 2}" y="${my}" width="${mw * Math.min(1, f.ratio)}" height="5" fill="#2a2018"/>` + (f.ratio < 1 ? `<rect x="${-mw / 2 + mw * f.ratio}" y="${my}" width="${mw * (1 - f.ratio)}" height="5" fill="none" stroke="#c8361b" stroke-width="1.2"/>` : '')
+    : `<rect x="${-mw / 2}" y="${my}" width="${mw}" height="5" fill="none" stroke="#aaa" stroke-dasharray="2 2"/>`;
+  let p = f.prob, pc = f.pcount;
+  if (f === BACKA) p = ['chop', { frame: 'plan', author: 'player', state: 'risk' }], pc = 3;
+  if (f.know === 'heard') p = ['fence', { frame: 'plan', whose: 'owed', breach: 'taken' }], pc = 1;
+  if (!known && f.know !== 'heard') g += `<g transform="translate(9 -26)"><rect width="16" height="16" rx="4" fill="#fff" stroke="#bbb" stroke-dasharray="2 2"/><text x="8" y="12" font-size="11" text-anchor="middle" fill="#aaa">?</text></g>`;
+  else if (p) g += `<g transform="translate(7 -28)">${icon(p[0], { ...p[1], size: 20 })}</g>` + (pc > 1 ? `<circle cx="27" cy="-27" r="6" fill="#2a2018" stroke="#fff"/><text x="27" y="-24" font-size="8.5" fill="#fff" text-anchor="middle" font-weight="700">${pc}</text>` : '');
+  if (s > 0.9) g += `<text y="${my + 15}" font-size="10" text-anchor="middle" fill="#2a2018" stroke="#fffc" stroke-width="3" paint-order="stroke">${f.name}</text>`;
+  return `<g class="hit" data-k="hh:${f.v}:${f.i}" transform="translate(${x} ${y}) scale(${s})" opacity="${a}">${g}</g>`;
+}
+function vilGlyph(V, x, y, a) { // the village as one glyph: share of lot days met, own-hours spread, open problems, the estate's due
+  const F = V.farms, lot = F.reduce((s, f) => s + f.lot, 0), met = F.reduce((s, f) => s + f.days.filter((d) => d === 'worked' || d === 'named').length, 0);
+  const probs = F.filter((f) => f.prob || f === BACKA).length, share = met / lot;
+  let g = `<circle r="34" fill="#fffe" stroke="#2a2018" stroke-width="1.2"/><circle r="28" fill="none" stroke="#33599e33" stroke-width="7"/>`;
+  g += V.ours ? `<path d="${arc(28, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * share)}" stroke="#33599e" stroke-width="7" fill="none"/>` : `<circle r="28" fill="none" stroke="#bbb" stroke-width="7" stroke-dasharray="3 3"/>`;
+  const bins = [0, 0, 0, 0, 0]; for (const f of F) bins[Math.min(4, Math.floor((f.own - .15) / .05))]++;
+  const mx = Math.max(...bins);
+  bins.forEach((b, i) => { g += V.ours ? `<rect x="${-14 + i * 6}" y="${6 - 16 * b / mx}" width="5" height="${16 * b / mx}" fill="#2f8f8a"/>` : ''; });
+  g += V.ours ? `<path d="M-15 6.5h30" stroke="#2a2018" stroke-width=".8"/><text y="17" font-size="8" text-anchor="middle" fill="#5d6253">own h</text>` : `<text y="6" font-size="18" text-anchor="middle" fill="#aaa">?</text>`;
+  g += `<circle cx="26" cy="-26" r="9" fill="#2a2018" stroke="#fff" stroke-width="1.5"/><text x="26" y="-22.5" font-size="10" fill="#fff" text-anchor="middle" font-weight="700">${V.ours ? probs : '?'}</text>`;
+  g += `<g class="hit" data-k="est"><path d="M-30 -18v-26" stroke="#3d1d45" stroke-width="1.6"/><path d="M-30 -44l13 5-13 5zM-30 -36l13 5-13 5z" fill="#7d3f8c" stroke="#3d1d45" stroke-width="1"/><text x="-14" y="-36" font-size="10" fill="#3d1d45" font-weight="700">3d</text></g>`;
+  g += `<text y="50" font-size="13" text-anchor="middle" font-weight="600" stroke="#fffc" stroke-width="3" paint-order="stroke">${V.name}${V.ours ? ` · ${met}/${lot} days` : ''}</text>`;
+  return `<g class="hit" data-k="vil:${V.name}" transform="translate(${x} ${y})" opacity="${a}">${g}</g>`;
+}
+const dot = (x, y, p, r = 6) => `<g class="hit" data-k="m:${p.id}"><circle cx="${x}" cy="${y}" r="${r}" fill="#2a2018" stroke="#fff" stroke-width="1.5"/><text x="${x}" y="${y + 3.5}" font-size="${r + 2}" fill="#fff" text-anchor="middle" font-weight="700">${p.name[0]}</text></g>`;
+function hoursBar(p, x, y) { // whose hours, today: household / own / owed (and the breaches hatched)
+  let s = '', cx = x; for (const t of TODAY[p.id]) { const w = (t.h[1] - t.h[0]) * 2.6; s += `<rect x="${cx}" y="${y}" width="${w}" height="5" fill="${fillOf(t.whose, t.breach)}" stroke="#2a2018" stroke-width=".4"/>`; cx += w; } return s;
+}
+const WORK = { long: ['chop', ['per', 'karin', 'erik']], home: ['wood', ['nils']], meadow: ['beast', ['anna']] };
+function sign(k, x, y, gl, o, who = [], sz = 34) {
+  let s = `<g class="hit" data-k="b:${k}"><g transform="translate(${x - sz / 2} ${y - sz / 2})">${icon(gl, { ...o, size: sz })}</g>`;
+  who.forEach((id, i) => { s += dot(x - (who.length - 1) * 7 + i * 14, y + sz / 2 + 12, PEOPLE.find((p) => p.id === id), 6); });
+  return s + '</g>';
+}
+
+// ---- Render.
+function render() {
+  const c = cam(S.z), k = c.k, W0 = vw(), H0 = vh(), P = (x, y) => [W0 / 2 + (x - c.x) * k, H0 / 2 + (y - c.y) * k];
+  document.getElementById('world').setAttribute('transform', `translate(${W0 / 2 - c.x * k} ${H0 / 2 - c.y * k}) scale(${k})`);
+  document.getElementById('gBase').setAttribute('opacity', sm(0.12, 0.3, k));
+  document.getElementById('gGen').setAttribute('opacity', 1 - sm(0.12, 0.3, k));
+  document.getElementById('gFine').setAttribute('opacity', sm(0.9, 1.4, k));
+  const aV = 1 - sm(0.3, 0.45, k), aH = sm(0.3, 0.45, k), k2 = stops()[2].k, aD = sm(0.6, 0.92, k / k2), aP = S.focus === BACKA ? sm(1.2, 1.55, k / k2) : 0;
+  let o = '';
+  if (aV > 0.01) { for (const V of vils()) { const [x, y] = P(V.ox, V.oy); o += vilGlyph(V, x, y, aV); }
+    const [mx, my] = P(MANOR.x, MANOR.y); o += `<g class="hit" data-k="est" opacity="${aV}"><text x="${mx}" y="${my - 20 * k - 8}" font-size="12" text-anchor="middle" fill="#3d1d45" font-weight="600">Sparre manor</text></g>`; }
+  if (aH > 0.01) {
+    for (const V of vils()) for (const f of V.farms) {
+      const isF = f === S.focus, grow = isF ? Math.min(1.9, Math.max(0.7, Math.sqrt(k / 0.9))) : Math.min(1.15, Math.max(0.7, Math.sqrt(k / 0.9))), a = isF ? aH * (1 - aD) : aH * (1 - 0.35 * aD);
+      if (a < 0.01) continue; const [x, y] = P(f.gx, f.gy); o += hhGlyph(f, x, y, grow * (isF ? 1 + aD : 1), a);
+    }
+    if (W.byn.ours) { // the village's shared works: the fence lots (days still to name) and the bridge, day 9, on the green
+      const tn = W.byn.farms.reduce((s, f) => s + f.toName, 0), [fx, fy] = P(-Math.cos(ANG0) * FENCE * SP, -Math.sin(ANG0) * FENCE * SP), [gx, gy] = P(0, 0), sz = 30;
+      o += `<g opacity="${aH}"><g class="hit" data-k="w:fence" transform="translate(${fx - sz / 2} ${fy - sz / 2})">${icon('fence', { frame: 'plan', whose: 'owed', num: tn, unit: 'count', size: sz })}</g>`;
+      o += `<g class="hit" data-k="w:bridge" transform="translate(${gx - sz / 2} ${gy - sz / 2})">${icon('village', { frame: 'plan', whose: 'owed', num: 9, size: sz })}</g></g>`;
+    }
+  }
+  if (aD > 0.01) { // the household grows into its parts
+    o += `<g opacity="${aD}">`;
+    if (S.focus === BACKA) {
+      const [hx, hy] = P(PL.home.x, PL.home.y);
+      PEOPLE.forEach((p, i) => { const x = hx - 64 + i * 32, y = hy - 58; o += `<rect x="${x - 15}" y="${y - 9}" width="32" height="28" rx="5" fill="#fffd" stroke="#0002"/>` + dot(x, y, p, 7) + hoursBar(p, x - 13, y + 10); });
+      for (const [kk, [gl, who]] of Object.entries(WORK)) { const [x, y] = P(PL[kk].x, PL[kk].y); o += sign(kk, x, y + (kk === 'home' ? 14 : 0), gl, { frame: 'now' }, who); }
+      let [x, y] = P(PL.barley.x, PL.barley.y); o += sign('barley', x, y, 'chop', { frame: 'plan', author: 'player', state: 'risk', num: 9 });
+      [x, y] = P(PL.wood2.x, PL.wood2.y); o += sign('wood2', x, y, 'wood', { whose: null, state: 'stray' });
+      [x, y] = P(PL.fence.x, PL.fence.y); o += sign('fence', x, y, 'fence', { frame: 'plan', whose: 'owed', num: 6 }, ['erik']);
+    } else { const f = S.focus, [hx, hy] = P(f.yard.x, f.yard.y);
+      for (let i = 0; i < f.adults; i++) o += `<g class="hit" data-k="hh:${f.v}:${f.i}"><circle cx="${hx - (f.adults - 1) * 9 + i * 18}" cy="${hy - 30}" r="7" fill="#ccc" stroke="#fff" stroke-width="1.5"/><text x="${hx - (f.adults - 1) * 9 + i * 18}" y="${hy - 26}" font-size="10" text-anchor="middle" fill="#777">?</text></g>`;
+      o += `<text x="${hx}" y="${hy - 44}" font-size="11" text-anchor="middle" fill="#5d6253" stroke="#fffc" stroke-width="3" paint-order="stroke">${f.adults} adults · their day is theirs: Per does not see it</text>`; }
+    o += '</g>';
+  }
+  if (aP > 0.01) { // the pawn: Nils' day route (solid done, dashed ahead) and his task's method steps, numbered at their places
+    const pts = TODAY.nils.map((t) => P(PL[t.at].x, PL[t.at].y)); let d1 = '', d2 = '';
+    pts.forEach(([x, y], i) => { if (!i) return; const seg = `M${pts[i - 1][0]} ${pts[i - 1][1]}L${x} ${y}`; if (TODAY.nils[i].h[0] < NOW.hour) d1 += seg; else d2 += seg; });
+    o += `<g opacity="${aP}"><path d="${d1}" stroke="#2a2018" stroke-width="3" fill="none"/><path d="${d2}" stroke="#2a2018" stroke-width="2.5" stroke-dasharray="6 5" fill="none"/>`;
+    TODAY.nils.forEach((t, i) => { const [x, y] = pts[i]; o += `<text x="${x + 22}" y="${y - 22 - i * 3}" font-size="11" font-weight="600" stroke="#fff" stroke-width="3" paint-order="stroke">${t.h[0]}:00</text>`; });
+    const seen = {}; TASK_FIREWOOD.steps.forEach((st, i) => { const [x, y] = P(PL[st.at].x, PL[st.at].y), n = seen[st.at] = (seen[st.at] || 0) + 1, sx = x - 40 + n * 15, sy = y + 38;
+      o += `<g class="hit" data-k="step:${i}"><circle cx="${sx}" cy="${sy}" r="8" fill="${st.done ? '#ddd' : st.now ? '#2a2018' : '#fff'}" stroke="#2a2018" ${st.now || st.done ? '' : 'stroke-dasharray="2 2"'}/><text x="${sx}" y="${sy + 3.5}" font-size="10" text-anchor="middle" fill="${st.now ? '#fff' : '#2a2018'}">${i + 1}</text></g>`; });
+    o += '</g>';
+  }
+  document.getElementById('ov').innerHTML = o;
+  document.getElementById('zr').value = S.z;
+  const lvl = Math.round(S.z), names = ['Sparre', 'Byn', S.focus.name, 'Nils'];
+  document.getElementById('crumb').innerHTML = names.slice(0, S.focus === BACKA ? 4 : 3).map((n, i) => `<a data-z="${i}" class="${i === lvl ? 'on' : ''}">${n}</a>`).join('<span>›</span>');
+  document.getElementById('stops').innerHTML = ['estate', 'village', 'household', 'pawn'].map((n, i) => `<a data-z="${i}" class="${i === lvl ? 'on' : ''}">${n}</a>`).join('');
+  document.getElementById('rep').textContent = `k ${k.toFixed(2)} px/px · drawn: ${[aV > .5 && 'village glyphs', aH > .5 && 'household rings', aD > .5 && 'members + places', aP > .5 && 'route + steps'].filter(Boolean).join(', ') || 'crossfade'}`;
+  drawStrip();
+}
+
+// ---- The strip follows the zoom: villages × days, households × days, members × days, the hours of today.
+let stripMode = null;
+function drawStrip() {
+  const m = S.z < 0.5 ? 'estate' : S.z < 1.5 ? 'village' : S.z < 2.5 || S.focus !== BACKA ? 'household' : 'pawn', key = m + S.n + S.focus.name;
+  if (key === stripMode) return; stripMode = key;
+  const el = document.getElementById('strip'), D = [...Array(12).keys()];
+  const head = (lbl) => `<div></div>${D.map((d) => `<div class="hd${d + 1 === NOW.day ? ' today' : ''}${d === 8 ? ' bridge' : ''}">${d + 1}</div>`).join('')}`;
+  let h = '';
+  if (m === 'estate') {
+    h = `<h4>The estate: villages × autumn days <small>levy days named and worked, as Per knows them · the estate's due comes in winter</small></h4><div class="grid" style="grid-template-columns:120px repeat(12,1fr);grid-auto-rows:22px">${head()}`;
+    for (const V of vils()) h += `<div class="nm" data-v="${V.name}">${V.name}</div>` + D.map((d) => { const n = V.farms.filter((f) => f.days[d] && hhSeg(f, d) !== 'unk').length; return `<div class="c ${V.ours ? '' : 'unk'}" style="${n ? `background:rgba(51,89,158,${Math.min(1, n / 5)});color:#fff` : ''}">${V.ours ? n || '' : '?'}</div>`; }).join('');
+    h += `<div class="nm">Sparre manor</div><div style="grid-column:span 12;font-size:12px;color:#3d1d45">${icon('build', { whose: 'estate', frame: 'plan', size: 18 })} winter: 3 days a household at the manor, the levier names them (1 day's notice) · ${vils().reduce((s, V) => s + V.farms.length, 0) * 3} days in all</div></div>`;
+  } else if (m === 'village') {
+    const F = vils().flatMap((V) => V.farms), rank = { full: 0, neighbour: 1, heard: 2, meeting: 3, none: 4 };
+    F.sort((a, b) => rank[a.know] - rank[b.know] || b.toName - a.toName);
+    h = `<h4>The roster: ${F.length} households × autumn days <small>filled: worked · ringed: named · dark: breached · hatched: to name · ? not known to Per · column 9: the bridge</small></h4><div class="grid" style="grid-template-columns:120px repeat(12,1fr);grid-auto-rows:${S.n === 60 ? 8 : 8}px">${head()}`;
+    for (const f of F) h += `<div class="nm" data-f="${f.v}:${f.i}" style="font-size:10px;line-height:8px${f === BACKA ? ';font-weight:700' : ''}">${f.name}${f.v !== 'Byn' ? ' (' + f.v + ')' : ''}</div>` + D.map((d) => { const s = f.days[d] ? hhSeg(f, d) : (f.toName && d >= NOW.day && d < 9 ? (f.know === 'none' ? 'unk' : 'toname') : d < NOW.day - 1 ? 'past' : '');
+      return `<div class="c ${s}${d === 8 ? ' bridge' : ''}"></div>`; }).join('');
+    h += '</div>';
+  } else if (m === 'household') {
+    const f = S.focus;
+    if (f !== BACKA) { h = `<h4>${f.name}: as Per knows it <small>${f.know === 'none' ? 'another village: nothing' : 'the days named at the meeting; their members\' days are theirs'}</small></h4><div class="grid" style="grid-template-columns:120px repeat(12,1fr);grid-auto-rows:18px">${head()}<div class="nm">${f.name}</div>${D.map((d) => `<div class="c ${f.days[d] ? hhSeg(f, d) : ''}"></div>`).join('')}</div>`; }
+    else {
+      const cell = (pid, d) => { if (d < NOW.day - 1) return 'past'; const it = AHEAD.find((a) => (a.day === d + 1) && a.who.includes(pid)); if (it) return it.whose === 'own' ? 'own' : 'worked'; if (d + 1 === NOW.day) return 'hh'; return ''; };
+      h = `<h4>Backa: members × autumn days <small>days 5-7 binding · ahead holds only duties, dates and dated steps: the rest is "as the day brings" · today: amber</small></h4><div class="grid" style="grid-template-columns:120px repeat(12,1fr);grid-auto-rows:20px">${head()}`;
+      for (const p of PEOPLE) h += `<div class="nm">${p.name}${p.levy ? ` <small style="color:#888">${p.levy}h</small>` : ''}</div>` + D.map((d) => `<div class="c ${cell(p.id, d)}${d === 8 ? ' bridge' : ''}">${AHEAD.find((a) => a.day === d + 1 && a.who.includes(p.id)) ? icon(AHEAD.find((a) => a.day === d + 1 && a.who.includes(p.id)).kind, { frame: 'plan', whose: AHEAD.find((a) => a.day === d + 1 && a.who.includes(p.id)).whose, size: 16 }) : ''}</div>`).join('');
+      h += `<div class="nm" style="color:#c8361b">unheld</div>` + D.map((d) => `<div class="c ${d >= 5 && d <= 8 ? 'est' : d >= NOW.day && d < 9 ? 'toname' : ''}">${d === 5 ? icon('chop', { frame: 'plan', author: 'player', state: 'risk', size: 16 }) : d === 4 ? icon('fence', { frame: 'plan', whose: 'owed', size: 16 }) : ''}</div>`).join('') + '</div>';
+    }
+  } else {
+    const X = (hr) => ((hr - 6) / 12 * 100) + '%';
+    h = `<h4>Nils: the hours of today <small>6:00 to 18:00 · amber the household's, pale own, hatched a breach · the line is now (10:00)</small></h4>`;
+    h += `<div class="hours"><span class="rowlbl">Nils</span>${TODAY.nils.map((t) => `<div class="blk" style="left:${X(t.h[0])};width:calc(${X(t.h[1])} - ${X(t.h[0])});background:${t.breach ? (t.breach === 'taken' ? 'repeating-linear-gradient(45deg,#e0a43a 0 3px,#2f8f8a 3px 5px)' : 'repeating-linear-gradient(45deg,#2f8f8a 0 3px,#e0a43a 3px 5px)') : t.whose === 'own' ? '#eef6f4' : '#e0a43a'}">${t.what}</div>`).join('')}<div class="nowline" style="left:${X(NOW.hour)}"></div></div>`;
+    h += `<div class="hours" style="margin-top:8px"><span class="rowlbl">his task</span>${TASK_FIREWOOD.steps.map((s, i) => `<div class="blk" style="left:${i * 16.6}%;width:16%;background:${s.done ? '#ddd' : s.now ? '#2a2018;color:#fff' : '#fff;border-style:dashed'}">${i + 1}. ${s.what}</div>`).join('')}</div>`;
+    h += `<div style="margin:6px 10px 0 90px;font-size:11.5px;color:#5d6253">${TASK_FIREWOOD.goal} · ${TASK_FIREWOOD.history}</div>`;
+    h += `<div class="hours" style="margin-top:4px"><span class="rowlbl">hours</span>${[6, 8, 10, 12, 14, 16, 18].map((hr) => `<span style="position:absolute;left:${X(hr)};font-size:10px;color:#888">${hr}</span>`).join('')}</div>`;
+  }
+  el.innerHTML = h;
+}
+
+// ---- Bubbles: what Per knows, then acts, then why.
+function farmOf(v, i) { return Object.values(W).find((V) => V.name === v).farms[+i]; }
+function info(key) {
+  const [t, a, b] = key.split(':');
+  if (t === 'vil') { const V = Object.values(W).find((x) => x.name === a), F = V.farms;
+    return { gl: 'village', opt: { whose: 'owed' }, title: V.name + (V.ours ? ' (our village)' : ''), rows: V.ours ? [['lot days', `${F.reduce((s, f) => s + f.days.filter((d) => d === 'worked' || d === 'named').length, 0)} of ${F.reduce((s, f) => s + f.lot, 0)} named or worked`], ['own hours', 'spread 15% to 40% of a day; most near 25% (bars: households by share)'], ['open', F.filter((f) => f.prob).length + ' problems Per knows of, ' + F.filter((f) => f.know === 'meeting').length + ' households he knows only by the meeting'], ['estate', 'winter: 3 days a household, named by the levier']] : [['Per knows', 'its name, its alderman, the estate\'s due'], ['unknown', 'its lot days, its households, its problems']],
+      dflt: V.ours ? 'the custom will: the alderman names the 9 unnamed fence days by day 9' : 'nothing reaches Per from here but rumour',
+      acts: V.ours ? [['propose', 'to the meeting: lots by adults, not fields', 'a stand at the meeting; Övergård opposes'], ['ask', 'the alderman: who is short of hands this week', 'none']] : [['ask', `a carter going to ${V.name}: news`, 'none']],
+      why: ['The fence is mended every autumn: a routine of the meeting', 'Lots by fields: who has more land owes more days (the custom)', 'The share counts named and worked days against the lots'] }; }
+  if (t === 'est') return { gl: 'build', opt: { whose: 'estate', frame: 'plan' }, title: 'Sparre manor: the estate\'s due', rows: [['owed', '3 days of day labour per household, winter'], ['names', 'the levier, 1 day\'s notice'], ['substitute', 'no'], ['carry', 'yes: unworked days carry to spring'], ['breach', 'penalty, eviction']], dflt: 'the levier will: name Backa\'s days in winter; Per cannot choose them', acts: [['ask', 'the steward: which week in winter', 'standing with the estate, a little']], why: ['Backa holds its land of Sparre', 'The tenure carries day labour: 3 days, winter', 'The levier names: a household cannot pick the day'] };
+  if (t === 'hh') { const f = farmOf(a, b), kn = f.know, yes = kn === 'full' || kn === 'neighbour', u = (s) => `<span class="unk">${s}</span>`;
+    const rows = [['knows by', { full: 'it is his household', neighbour: 'a neighbour: he sees their fields', heard: 'the meeting, and what he heard', meeting: 'the meeting only', none: 'nothing: another village' }[kn]],
+      ['lot', kn === 'none' ? u('not known') : `${f.lot} fence days: ${f.days.filter(Boolean).length} named, ${f.toName} to name`],
+      ['labour', yes ? `${Math.round(f.ratio * 100)}% of the hours its targets need${f === BACKA ? ' (barley window: 28 of 36 h, 8 short)' : ' (Per\'s guess, from their fields)'}` : u('not known: "?"')],
+      ['problem', f === BACKA ? 'the barley at risk, a fence day to name, a stray pile' : kn === 'heard' ? 'breached a fence day (day 2 or 3): Karin heard it at the well, day 3' : yes && f.prob ? f.prob[2] : yes ? 'none he can see' : u('not known')]];
+    return { gl: 'home', opt: { whose: 'household' }, title: f.name + (f.v !== 'Byn' ? ` (${f.v})` : ''), rows, zoom: `${a}:${b}`,
+      dflt: f === BACKA ? 'the rule will: take back "Reap the barley" on day 7 unless kept' : kn === 'heard' ? 'the meeting will: fine them at the next sitting' : 'nothing Per must answer',
+      acts: f === BACKA ? [] : [['ask', `${f.name} for hands: 1 adult-day for our barley, day 7`, 'we owe a day back before spring', 'the barley is 8h short'], ['offer', `Nils for a day to ${f.name}`, '10.5 h of the household\'s', 'they ask the meeting'], ['propose', `to the meeting: ${f.name}'s breach is forgiven`, 'goodwill with the alderman, a little', 'the fine']],
+      why: kn === 'heard' ? ['Sörgård owed the fence on day 2', 'Nobody came: a breach (the torn corner)', 'Karin heard it at the well on day 3: so Per knows it'] : ['Lots by fields: ' + f.fields + ' fields owe ' + f.lot + ' fence days', 'What Per knows: ' + kn] }; }
+  if (t === 'w') return a === 'fence' ? { gl: 'fence', opt: { frame: 'plan', whose: 'owed' }, title: 'The village fence: lots', rows: [['days', W.byn.farms.reduce((s, f) => s + f.toName, 0) + ' lot days still to name, by day 9'], ['ours', 'Erik day 6; 1 still to name']], dflt: 'the alderman will: name the unnamed days on day 9', acts: [['name', 'Backa\'s day: Per, day 7', 'displaces 6 h of threshing'], ['propose', 'to the meeting: mend the north stretch first', 'none']], why: ['A routine: fence mending, autumn', 'Lots by fields: 32 days among 20 households'] }
+    : { gl: 'village', opt: { frame: 'plan', whose: 'owed' }, title: 'The bridge, day 9: work done together', rows: [['called by', 'the alderman (Övergård)'], ['ours', 'Per goes'], ['who', 'one adult a household, ' + W.byn.farms.length + ' households']], dflt: 'the custom: one adult from each', acts: [['substitute', 'Erik for Per on day 9', 'Erik\'s barley day moves'], ['ask', 'leave: the bridge, for the barley', 'standing with the alderman']], why: ['The bridge washed out in the spring flood', 'The alderman called the day, 3 days\' notice'] };
+  if (t === 'b') { const B = {
+      long: ['chop', { frame: 'now' }, 'Long field: reaping the rye', [['workers', 'Per, Karin, Erik'], ['done', '34 of 60 sheaves'], ['left', '40 to 66 h by Per\'s estimate']], 'the rule: the rye first while the window holds (to day 6)', [['assign', 'Nils -> Reap rye now', 'his firewood waits']]],
+      home: ['wood', { frame: 'now' }, 'Home: Nils cuts firewood', [['task', TASK_FIREWOOD.goal], ['from', 'the stray pile, fetched this morning'], ['next', 'fell 2 more trees']], 'the rule: firewood until 11, then the rye', [['assign', 'Nils -> Reap rye now', 'firewood -2 h']]],
+      meadow: ['beast', { frame: 'now' }, 'Low meadow: Anna minds the cattle', [['duty', 'every day, 7 to 12']], 'a duty: the custom', []],
+      barley: ['chop', { frame: 'plan', author: 'player', state: 'risk', num: 9 }, 'Reap the barley: at risk', [['by', 'day 9 (window 5 to 10)'], ['needs', '30 to 44 h'], ['have', '28 h: 8 short'], ['author', 'Per wrote it']], 'the rule will: take it back on day 7 unless kept', [['assign', 'Nils -> the barley from day 6', 'his own hours, 2.5 h a day', 'take back'], ['plan', 'another day: day 10', 'the window\'s last day', ''], ['ask', 'Norrgård for hands, day 7', 'we owe 1 day', ''], ['commute', 'hire a hand: 3 rations a day', '3 rations', ''], ['keep', 'my order as it stands', 'the risk stays', '']]],
+      wood2: ['wood', { whose: null, state: 'stray' }, 'Hagen wood: our stray pile', [['lies', '1 load felled, cut by nightfall yesterday'], ['mark', 'ours']], 'the rule: Nils fetches it (done 9:00); 2 more trees to fell', [['assign', 'Erik -> fell the 2 trees, day 7', 'stooking waits']]],
+      fence: ['fence', { frame: 'plan', whose: 'owed', num: 6 }, 'Fence day 6: Erik', [['owed', '2 adult-days, by fields'], ['named', 'Erik, day 6'], ['to name', '1 day by day 9']], 'the alderman will: name our 2nd day on day 9 (Nils, day 9 is the bridge)', [['name', 'Nils, day 7', 'Nils\' rye day moves; displaced: 10.5 h'], ['substitute', 'Per for Erik, day 6', 'Per\'s threshing'], ['commute', '3 rations for the day', '3 rations'], ['breach', 'send nobody', 'a memory + the meeting\'s fine']]] }[a];
+    return { gl: B[0], opt: B[1], title: B[2], rows: B[3], dflt: B[4], acts: B[5].map(([v, w, c, d]) => [v, w, c, d]), why: a === 'barley' ? ['Grain target: 30 barley in the barn', 'Per wrote "Reap the barley", by day 9', 'Reaping needs 36 h; the members\' free hours in the window are 28', 'So: at risk, 8 h short'] : ['The custom chose this (the rule)', 'Its target: ' + (a === 'long' ? 'rye in the barn' : a === 'fence' ? 'the village lot' : 'the household\'s winter')] }; }
+  if (t === 'm') { const p = PEOPLE.find((x) => x.id === a), it = TODAY[a].find((x) => x.h[0] <= NOW.hour && x.h[1] > NOW.hour) || TODAY[a][0];
+    return { gl: it.kind, opt: { whose: it.whose, frame: 'now' }, title: `${p.name}, ${p.age}: ${it.what}`, rows: [['levy', p.levy ? p.levy + ' h a day' : 'the head pair: their own choice'], ['today', TODAY[a].map((x) => x.what).join(' · ')]], zoomPawn: a === 'nils', dflt: 'the rule: the list above', acts: [['assign', `${p.name} -> Reap the barley`, 'what they do now waits']], why: ['The custom sets the levy: ' + (p.levy || 'none') + ' h', p.wants ? 'He wants: ' + p.wants : 'No aim of their own'] }; }
+  if (t === 'step') { const st = TASK_FIREWOOD.steps[+a]; return { gl: st.icon, opt: { frame: st.now ? 'now' : 'plan', state: st.done ? 'done' : null }, title: `Step ${+a + 1}: ${st.what}`, rows: [['method', 'read back from the goal: ' + TASK_FIREWOOD.goal], ['state', st.done ? 'done' : st.now ? 'now' : 'ahead']], dflt: 'the rule: the steps follow from the world', acts: [], why: [TASK_FIREWOOD.history] }; }
+}
+let bubble = null;
+const toast = (t) => { const e = document.getElementById('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3000); };
+function closeBubble() { bubble?.remove(); bubble = null; S.open = null; }
+function openBubble(key, x, y) {
+  closeBubble(); const d = info(key); if (!d) return; S.open = key;
+  bubble = document.createElement('div'); bubble.className = 'bubble';
+  bubble.innerHTML = `<h3>${icon(d.gl, { ...d.opt, size: 22 })}${d.title}</h3><dl>${d.rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl><div class="dflt">${d.dflt}</div><div class="acts"><div>${d.zoom ? '<button class="main" data-zoom>Zoom in ⤵</button>' : ''}${d.zoomPawn ? '<button class="main" data-pawn>His day ⤵</button>' : ''}${d.acts.length ? '<button class="main" data-open>Acts ▸</button>' : ''}<button class="main" data-why style="background:#5d6253">Why?</button></div></div>`;
+  bubble.style.left = Math.min(innerWidth - 310, x + 14) + 'px'; bubble.style.top = Math.max(46, Math.min(innerHeight - 380, y - 20)) + 'px';
+  document.body.append(bubble);
+  bubble.addEventListener('click', (e) => { e.stopPropagation();
+    if (e.target.closest('[data-zoom]')) { const [v, i] = d.zoom.split(':'); S.focus = farmOf(v, i); closeBubble(); goZ(2); return; }
+    if (e.target.closest('[data-pawn]')) { closeBubble(); goZ(3); return; }
+    if (e.target.closest('[data-open]')) { bubble.querySelector('.acts').innerHTML = d.acts.map(([v, what, cost, def], i) => `<button data-i="${i}"><b>${v}</b> ${what}<small>cost: ${cost}${def ? ' · if not: ' + def : ''}</small></button>`).join(''); return; }
+    if (e.target.closest('[data-why]')) { e.target.closest('[data-why]').remove(); bubble.querySelector('dl').insertAdjacentHTML('afterend', `<ul class="ladder">${d.why.map((w, i) => `<li><b>${i ? 'so' : 'because'}</b> ${w}</li>`).join('')}</ul>`); return; }
+    const b = e.target.closest('[data-i]'); if (!b) return; const [v, what] = d.acts[+b.dataset.i];
+    toast(`would issue \`${v}\` ${what}`); closeBubble();
+  });
+}
+
+// ---- Wiring: wheel, slider, stops, breadcrumb, clicks, double-click to zoom into a farm, the stress toggle.
+let anim = null;
+function goZ(z) { cancelAnimationFrame(anim); const z0 = S.z, t0 = performance.now(); const step = (t) => { const u = Math.min(1, (t - t0) / 600); S.z = z0 + (z - z0) * (u < .5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2); render(); if (u < 1) anim = requestAnimationFrame(step); }; anim = requestAnimationFrame(step); }
+window.setZ = (z) => { S.z = z; render(); };
+const maxZ = () => S.focus === BACKA ? 3 : 2;
+mapEl.addEventListener('wheel', (e) => { e.preventDefault(); closeBubble(); cancelAnimationFrame(anim); S.z = Math.max(0, Math.min(maxZ(), S.z - e.deltaY * 0.0015)); render(); }, { passive: false });
+document.getElementById('zr').addEventListener('input', (e) => { closeBubble(); S.z = Math.min(maxZ(), +e.target.value); render(); });
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.bubble')) return;
+  const z = e.target.closest('[data-z]'); if (z) { closeBubble(); goZ(Math.min(maxZ(), +z.dataset.z)); return; }
+  const r = e.target.closest('[data-f]'); if (r) { const [v, i] = r.dataset.f.split(':'); S.focus = farmOf(v, i); closeBubble(); goZ(2); return; }
+  const h = e.target.closest('[data-k]'); if (!h) return closeBubble();
+  if (S.open === h.dataset.k && bubble) { bubble.querySelector('[data-open]')?.click(); return; }
+  openBubble(h.dataset.k, e.clientX, e.clientY);
+});
+mapEl.addEventListener('dblclick', (e) => { const h = e.target.closest('[data-k^="hh:"]'); if (!h) return; const [, v, i] = h.dataset.k.split(':'); S.focus = farmOf(v, i); closeBubble(); goZ(2); });
+document.getElementById('stressT').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; S.n = +b.dataset.v; document.querySelectorAll('#stressT button').forEach((x) => x.classList.toggle('on', x === b)); drawWorld(); closeBubble(); render(); });
+addEventListener('resize', render);
+drawWorld(); render();
+</script>
+</body>
+</html>
