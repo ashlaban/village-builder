@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Alderman's Muster</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600&display=swap">
+<style>
+/* Muster: the alderman of Byn (Övergård's head) reads his village's levy days. A choropleth village on the left, a roster on the right. */
+:root { --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --accent: #33599e; --hurt: #c8361b; color-scheme: light; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #e9e7dc; color: var(--ink); font: 13px/1.35 'Alegreya Sans', system-ui, sans-serif; }
+.band { height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 12px; background: var(--card); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.band h1 { font: 500 17px 'Alegreya SC', Georgia, serif; margin: 0; }
+.band .mode { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }
+.band .from { font-size: 11px; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: #fff; padding: 3px 7px; font: inherit; font-size: 12px; cursor: pointer; }
+.seg button.on { background: var(--ink); color: #fff; }
+.sp { flex: 1; }
+main { display: grid; grid-template-columns: 430px 1fr; height: calc(100vh - 41px); }
+#left { border-right: 1px solid var(--line); background: #dfe3cf; position: relative; display: flex; flex-direction: column; }
+#map { width: 430px; height: 430px; display: block; }
+#key { padding: 4px 10px; display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; }
+#key i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 3px; border: 1px solid #0003; }
+#lots { margin: 4px 10px; padding: 6px 8px; background: #fff8; border: 1px solid var(--line); border-radius: 6px; font-size: 12.5px; }
+#lots b.hurt { color: var(--hurt); }
+#right { overflow: auto; position: relative; }
+table { border-collapse: separate; border-spacing: 0; margin: 0 8px 8px; }
+th, td { padding: 0; height: 30px; text-align: center; border-bottom: 1px solid #0000000d; }
+thead th { position: sticky; top: 0; background: #e9e7dc; z-index: 2; font-weight: 600; font-size: 12px; height: 34px; }
+tfoot td { position: sticky; bottom: 0; background: #e0ddcf; z-index: 2; font-weight: 600; border-top: 1px solid var(--line); }
+td.nm { text-align: left; padding: 0 6px; width: 104px; white-space: nowrap; cursor: pointer; }
+td.n, th.n { width: 30px; color: var(--muted); }
+td.lot { width: 62px; } td.lot.hurt { background: #f6d7cf; color: var(--hurt); font-weight: 700; }
+td.d, th.d { width: 34px; } th.d.today { box-shadow: inset 2px 0 var(--hurt); } td.d.past { background: #0000000a; }
+td.d.win { background: repeating-linear-gradient(45deg, #33599e22 0 3px, #fff0 3px 7px); }
+td.d.bridge, th.d.bridge { background-color: #33599e14; }
+td.s { width: 96px; }
+tr.hi td { background-color: #fff3c4 !important; }
+td .pi { cursor: pointer; vertical-align: middle; }
+tr.estate td { background: #7d3f8c14; height: 38px; }
+.stress td, .stress th { height: 13px; } .stress td.d { width: 22px; } .stress td.nm { font-size: 11px; }
+.chip { display: inline-block; width: 18px; height: 9px; border-radius: 2px; }
+.farm { cursor: pointer; } .farm.hi path.base { stroke: #1b1b1b; stroke-width: 3; }
+.hurtring { fill: none; stroke: var(--hurt); stroke-width: 2.5; stroke-dasharray: 4 2; }
+.bubble { position: absolute; z-index: 9; width: 290px; background: #fff; border: 1px solid #3a2a1a; border-radius: 8px; padding: 8px 10px; box-shadow: 0 4px 14px #0004; font-size: 12.5px; max-height: calc(100vh - 60px); overflow: auto; box-sizing: border-box; }
+.bubble h3 { margin: 0 0 4px; font: 600 14.5px 'Alegreya Sans', sans-serif; display: flex; gap: 6px; align-items: center; }
+.bubble dl { margin: 0; display: grid; grid-template-columns: 64px 1fr; gap: 1px 6px; } .bubble dt { color: var(--muted); } .bubble dd { margin: 0; }
+.bubble .acts { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+.bubble .acts button { text-align: left; font: inherit; font-size: 12px; border: 1px solid #3a2a1a; background: #f3efe4; border-radius: 6px; padding: 3px 7px; cursor: pointer; }
+.bubble .acts button small { display: block; color: var(--muted); }
+.bubble .main { font: inherit; font-size: 12px; border: 0; background: var(--ink); color: #fff; border-radius: 12px; padding: 2px 10px; cursor: pointer; margin: 6px 4px 0 0; }
+.bubble .dflt { margin-top: 5px; padding: 3px 6px; background: #eef1f8; border-left: 3px solid var(--accent); font-size: 12px; }
+.ladder { margin: 4px 0 0; padding: 0; list-style: none; } .ladder li { display: grid; grid-template-columns: 16px 1fr; gap: 4px; padding: 2px 0; border-bottom: 1px dotted #ccc; }
+.ladder li.x { color: var(--muted); } .ladder li.x s { text-decoration-color: #0006; }
+.ladder li.end { color: var(--hurt); font-weight: 600; }
+.toast { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); background: #23251e; color: #fff; padding: 7px 14px; border-radius: 16px; font-family: ui-monospace, monospace; font-size: 12px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+.toast.on { opacity: 1; }
+.note { position: absolute; right: 10px; bottom: 10px; max-width: 380px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px; font-size: 12px; z-index: 8; }
+.note summary { cursor: pointer; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="band">
+  <h1>The alderman's muster</h1><span class="mode">Muster · Byn · autumn day 4</span>
+  <span class="from">borrows: shift roster, resource scheduler, RACI, choropleth</span>
+  <span class="sp"></span>
+  <span class="seg" id="zoom"><button data-v="days" class="on">autumn days</button><button data-v="year">year</button></span>
+  <span class="seg" id="lotT"><button data-v="fields" class="on">lots by fields</button><button data-v="adults">by adults</button><button data-v="equal">equal</button></span>
+  <span class="seg" id="sortT"><button data-v="urgency" class="on">urgency</button><button data-v="lot">lot</button><button data-v="name">name</button></span>
+  <span class="seg" id="stressT"><button data-v="20" class="on">20</button><button data-v="60">60 hh</button></span>
+</div>
+<main>
+  <div id="left"><svg id="map" viewBox="-215 -215 430 430"></svg><div id="key"></div><div id="lots"></div></div>
+  <div id="right"><table id="roster"></table></div>
+</main>
+<details class="note"><summary>Scales to / strains at</summary>
+<p><b>Scales to:</b> one village of 20 households, one season of 12 days, one routine and the work done together: the roster reads like a shift rota, the map like a choropleth of who is behind. The year zoom (4 × 20) holds every routine and the estate's winter days.</p>
+<p><b>Strains at:</b> 60 households (an estate's view): the map's farms fall below a readable sign (tint only, no icon), the roster loses its icons and becomes a heatmap of ~18 px rows that still scrolls about one and a half screens, sorted by urgency across villages, so his own Byn rows scatter among farms he cannot act on; hover-to-farm still works the three maps shrink to 11 px hexes and lose every sign, and the lot toggle hurts 16 farms of 60 under 'equal' with no room to say which village. Two levies on one day in a cell (a fence day on the bridge day) show only the more urgent. The ladder's "reason as he knows it" is guesswork the design must supply (gossip, word sent): most cells will read "not known".</p>
+</details>
+<div class="toast" id="toast"></div>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+// ---- Mock state. The alderman (Övergård's head) is the played pawn: he sees days levied, named, worked, lapsed and breached; not loads.
+const S = { zoom: 'days', lots: 'fields', sort: 'urgency', n: 20, hi: null, open: null, workday: 9 };
+const TODAY_D = VILLAGE.today, NAME_BY = 9, NOTICE = 3, KEEP_LEFT = 6, TURNOUT = '17 of 20';
+const REASONS = ['sowing, one adult', 'the barley was down; both men kept at it', 'the head sick (word sent by the wife)', 'not known: no word sent'];
+// Extra villages for the stress toggle (an estate's view): the same generator shape, its own stream.
+function extra(vname, names, seed0) {
+  let seed = seed0; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  return names.map((n) => { const adults = 1 + Math.floor(rnd() * 5), fields = 1 + Math.floor(rnd() * 4), lot = Math.max(1, Math.round(fields * 0.7)), days = Array(12).fill(null); let left = lot;
+    for (let d = 0; d < 12 && left > 0; d++) if (rnd() < 0.18) { days[d] = d < 3 ? (rnd() < 0.15 ? 'breached' : rnd() < 0.1 ? 'lapsed' : 'worked') : 'named'; left--; }
+    return { name: n, adults, fields, lot, days, toName: left, village: vname }; });
+}
+const SUFF = ['gård', 'backen', 'torp', 'ängen', 'stugan', 'kullen', 'lyckan', 'hagen', 'åsen', 'dalen', 'berga', 'udden', 'myren', 'tjärn', 'holmen', 'viken', 'bo', 'sund', 'näs', 'ryd'];
+const EXTRA = [...extra('Ån', SUFF.map((s) => 'Å-' + s), 11), ...extra('Berga', SUFF.map((s) => 'B-' + s), 29)];
+VILLAGE.households.forEach((h, i) => { h.village = 'Byn'; h.id = i; h.reason = REASONS[h.adults === 1 ? 0 : i % 4]; });
+EXTRA.forEach((h, i) => { h.id = 20 + i; h.reason = REASONS[(i + 3) % 4]; });
+const ALL = () => (S.n === 60 ? [...VILLAGE.households, ...EXTRA] : VILLAGE.households);
+
+// ---- Lots under a custom: the routine's total days, split by fields (as is), by adults, or equal (largest remainder).
+function lotsUnder(list, custom) {
+  const T = list.reduce((a, h) => a + h.lot, 0), w = list.map((h) => (custom === 'fields' ? h.lot : custom === 'adults' ? h.adults : 1));
+  const W = w.reduce((a, b) => a + b, 0), raw = w.map((x) => (x * T) / W), out = raw.map(Math.floor);
+  let left = T - out.reduce((a, b) => a + b, 0);
+  raw.map((r, i) => [r - out[i], i]).sort((a, b) => b[0] - a[0]).slice(0, left).forEach(([, i]) => out[i]++);
+  return out.map((x) => Math.max(custom === 'fields' ? 1 : 0, x));
+}
+const hurt = (lot, h) => (h.adults === 1 && lot >= 2) || lot / h.adults >= 1.5;
+const count = (h, k) => h.days.filter((x) => x === k).length;
+function stateOf(h) {
+  if (count(h, 'breached')) return 'breached'; if (count(h, 'lapsed')) return 'lapsed'; if (h.toName) return 'tonamed';
+  if (count(h, 'named')) return 'named'; return 'worked';
+}
+const URG = { breached: 4, lapsed: 3, tonamed: 2, named: 1, worked: 0 };
+const TINT = { breached: '#e39a82', lapsed: '#bdb7aa', tonamed: 'url(#hatch-owed)', named: '#9fb7df', worked: '#dbe8c2' };
+const LABEL = { breached: 'breached', lapsed: 'lapsed', tonamed: 'days still to name', named: 'named, to come', worked: 'all worked' };
+
+// ---- The grammar for a levy day (fence routine, owed to the village: blue, one pennant).
+function dayIcon(k, size = 24, num = null) {
+  if (k === 'named') return icon('fence', { frame: 'plan', whose: 'owed', size });
+  if (k === 'worked') return icon('fence', { frame: 'plan', whose: 'owed', state: 'done', size });
+  if (k === 'lapsed') return icon('fence', { frame: 'plan', whose: 'owed', state: 'back', ghost: true, size });
+  if (k === 'breached') return icon('fence', { frame: 'plan', whose: 'owed', breach: 'taken', state: 'risk', size });
+  if (k === 'tonamed') return icon('fence', { frame: 'plan', whose: 'owed', ghost: true, num, unit: 'count', size });
+  return '';
+}
+function farmSign(h, size = 22) {
+  const st = stateOf(h), n = st === 'tonamed' ? h.toName : st === 'worked' ? null : count(h, st);
+  if (st === 'worked') return icon('fence', { frame: 'plan', whose: 'owed', state: 'done', size });
+  if (st === 'named') return icon('fence', { frame: 'plan', whose: 'owed', num: h.days.findIndex((x) => x === 'named') + 1, unit: 'day', size });
+  return dayIcon(st, size, n).replace('<svg ', '<svg ') + (st !== 'tonamed' && n > 1 ? '' : '');
+}
+
+// ---- The map: Byn as hexes. The green at the centre, farms on rings 2 and 3, fields beyond, the fence around, a stream with the bridge.
+const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+function ring(k) { if (!k) return [[0, 0]]; let q = -k, r = k; const out = []; for (let i = 0; i < 6; i++) for (let j = 0; j < k; j++) { out.push([q, r]); q += DIRS[i][0]; r += DIRS[i][1]; } return out; }
+const ax = (q, r, s) => ({ x: s * Math.sqrt(3) * (q + r / 2), y: s * 1.5 * r });
+function villageSVG(list, ox, oy, s, label, mine) {
+  let g = '', farms = '';
+  const r2 = ring(2), r3 = ring(3), slots = [...r2, ...r3.filter((_, i) => i % 2 === 0)].slice(0, 20), fieldT = ['ryecut', 'barley', 'meadow', 'fallow', 'ryecut', 'rye'];
+  const occupied = new Set(slots.map((p) => p.join()));
+  for (let k = 0; k <= 4; k++) ring(k).forEach(([q, r], i) => {
+    if (occupied.has(q + ',' + r)) return;
+    const { x, y } = ax(q, r, s), t = k <= 1 ? 'green' : q >= 3 && r <= 0 && k === 4 ? 'lake' : fieldT[(i + k) % 6];
+    g += `<path d="${hexPath(ox + x, oy + y, s - .5)}" fill="${TERRAIN[t]}" stroke="#0001"/>`;
+    if (t === 'rye' || t === 'barley') g += `<path d="M${ox + x - s * .55} ${oy + y}h${s * 1.1}M${ox + x - s * .55} ${oy + y - s * .3}h${s * 1.1}M${ox + x - s * .55} ${oy + y + s * .3}h${s * 1.1}" stroke="#0002" stroke-width="1.5"/>`;
+  });
+  const F = s * Math.sqrt(3) * 4.55;
+  g += `<circle cx="${ox}" cy="${oy}" r="${F}" fill="none" stroke="#6a4a2a" stroke-width="${s > 14 ? 3 : 1.5}" stroke-dasharray="7 3"/>`;
+  if (mine) {
+    const c = ax(0, 0, s), b = ax(4, -2, s);
+    g += `<g class="hitv" data-v="green"><circle cx="${c.x}" cy="${c.y}" r="${s * .5}" fill="#7d9a52"/><path d="M${c.x} ${c.y - s * .9}v${s * .7}" stroke="#6a4a2a" stroke-width="3"/><g transform="translate(${c.x - 13} ${c.y + 2})">${icon('green', { frame: 'plan', whose: 'owed', size: 26 })}</g></g>`;
+    g += `<g class="hitv" data-v="bridge" transform="translate(${b.x - 15} ${b.y - 15})"><rect x="2" y="12" width="26" height="6" fill="#8a6a3a"/>${icon('village', { frame: 'plan', whose: 'owed', num: S.workday, unit: 'day', size: 30 })}</g>`;
+  }
+  const lots = lotsUnder(list, S.lots);
+  list.forEach((h, i) => {
+    const [q, r] = slots[i], { x, y } = ax(q, r, s), st = stateOf(h), X = ox + x, Y = oy + y;
+    farms += `<g class="farm" data-hh="${h.id}"><path class="base" d="${hexPath(X, Y, s - .5)}" fill="${TINT[st]}" stroke="#0004"/>`;
+    if (S.lots !== 'fields' || s > 14) if (hurt(lots[i], h)) farms += `<circle class="hurtring" cx="${X}" cy="${Y}" r="${s * .82}"/>`;
+    if (s > 14) {
+      farms += `<path d="M${X - 7} ${Y + 9}v-7l7 -5 7 5v7z" fill="#8a5a3a" stroke="#4a2f1e" opacity=".85"/>`;
+      farms += `<g transform="translate(${X - 1} ${Y - 21})">${farmSign(h, 20)}</g>`;
+      if (h.alderman) farms += `<g transform="translate(${X - 22} ${Y - 4})">${icon('me', { whose: 'none', size: 16 })}</g>`;
+    }
+    farms += `</g>`;
+  });
+  return g + farms + `<text x="${ox}" y="${oy + F + 13}" text-anchor="middle" font-size="${s > 14 ? 13 : 11}" font-weight="600" fill="#3a3a2a">${label}</text>`;
+}
+const PATDEF = `<defs><pattern id="hatch-owed" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#d7e1f2"/><rect width="2.4" height="6" fill="#33599e"/></pattern></defs>`;
+function drawMap() {
+  const m = document.getElementById('map');
+  if (S.n === 20) { m.setAttribute('viewBox', '-215 -200 430 430'); m.innerHTML = PATDEF + villageSVG(VILLAGE.households, 0, 0, 23, 'Byn', true); }
+  else { m.setAttribute('viewBox', '-215 -215 430 430'); m.innerHTML = PATDEF + villageSVG(VILLAGE.households, -105, -95, 11, 'Byn (his)', false) + villageSVG(EXTRA.slice(0, 20), 105, -95, 11, 'Ån', false) + villageSVG(EXTRA.slice(20), 0, 110, 11, 'Berga', false); }
+  document.getElementById('key').innerHTML = Object.keys(LABEL).reverse().map((k) => `<span><i style="background:${k === 'tonamed' ? 'repeating-linear-gradient(45deg,#33599e 0 2px,#d7e1f2 2px 5px)' : TINT[k]}"></i>${LABEL[k]}</span>`).join('') + `<span><svg width="12" height="12"><circle cx="6" cy="6" r="5" class="hurtring"/></svg> lot hurts (1 adult, 2+ days; or 1.5+ a head)</span>`;
+  const list = ALL(), L = lotsUnder(list, S.lots), hurtN = list.filter((h, i) => hurt(L[i], h)), one = hurtN.filter((h) => h.adults === 1).length;
+  document.getElementById('lots').innerHTML = `Custom of lots: <b>${{ fields: 'by fields (in force)', adults: 'by adults', equal: 'equal' }[S.lots]}</b>, ${L.reduce((a, b) => a + b, 0)} adult-days. <b class="hurt">${hurtN.length} farms hurt</b>, ${one} of them one-adult.` +
+    (S.lots !== 'fields' ? ` <button class="main" id="propose" style="border:0;background:#23251e;color:#fff;border-radius:10px;padding:1px 8px;cursor:pointer;font:inherit;font-size:12px">propose to the meeting ▸</button>` : ' (the meeting set it; he may <i>propose</i> another)');
+}
+
+// ---- The roster (days) or the year zoom (seasons).
+function sorted(list) {
+  const L = lotsUnder(list, S.lots), rows = list.map((h, i) => ({ h, lot: L[i] }));
+  const urg = (h) => URG[stateOf(h)] * 10 + count(h, 'breached') * 5 + h.toName;
+  rows.sort(S.sort === 'name' ? (a, b) => a.h.name.localeCompare(b.h.name) : S.sort === 'lot' ? (a, b) => b.lot - a.lot : (a, b) => urg(b.h) - urg(a.h));
+  return rows;
+}
+function drawRoster() {
+  const t = document.getElementById('roster'), big = S.n === 20, list = ALL(), rows = sorted(list);
+  t.className = big ? '' : 'stress';
+  if (S.zoom === 'year') return drawYear(t, rows);
+  let h = `<thead><tr><th style="text-align:left;padding-left:6px">household</th><th class="n" title="adults">${icon('people', { whose: 'none', size: 18 })}</th><th class="n" title="fields">${icon('field', { whose: 'none', size: 18 })}</th><th>lot <small>(${S.lots})</small></th>`;
+  for (let d = 1; d <= 12; d++) h += `<th class="d${d === TODAY_D + 1 ? ' today' : ''}${d === S.workday ? ' bridge' : ''}">${d === S.workday && big ? icon('village', { frame: 'plan', whose: 'owed', size: 18 }) : d}</th>`;
+  h += `</tr></thead><tbody>`;
+  for (const { h: hh, lot } of rows) {
+    const hu = hurt(lot, hh), win = hh.toName > 0;
+    h += `<tr data-hh="${hh.id}"><td class="nm">${hh.alderman ? '★ ' : ''}${hh.name}${big ? '' : ` <small style="color:#888">${hh.village}</small>`}</td><td class="n">${hh.adults}</td><td class="n">${hh.fields}</td><td class="lot${hu ? ' hurt' : ''}">${lot}${lot !== hh.lot ? ` <small>(${hh.lot})</small>` : ''}</td>`;
+    let firstWin = true;
+    for (let d = 1; d <= 12; d++) {
+      const k = hh.days[d - 1], inWin = win && !k && d >= TODAY_D + NOTICE;
+      let c = '';
+      if (!big) c = k ? `<span class="chip" style="background:${TINT[k]}"></span>` : inWin ? '<span class="chip" style="background:#33599e44"></span>' : '';
+      else if (k) c = `<span data-c="${hh.id}:${d}:${k}">${dayIcon(k, 24)}</span>`;
+      else if (inWin && firstWin) { c = `<span data-c="${hh.id}:${d}:tonamed">${dayIcon('tonamed', 24, hh.toName)}</span>`; firstWin = false; }
+      else if (d === S.workday) c = `<span data-c="${hh.id}:${d}:bridge" style="opacity:.55">${icon('village', { frame: 'plan', whose: 'owed', size: 18 })}</span>`;
+      h += `<td class="d${d <= TODAY_D ? ' past' : ''}${inWin ? ' win' : ''}${d === S.workday ? ' bridge' : ''}">${c}</td>`;
+    }
+    h += `</tr>`;
+  }
+  const owed = rows.reduce((a, r) => a + r.lot, 0), worked = list.reduce((a, x) => a + count(x, 'worked'), 0);
+  h += `</tbody><tfoot><tr><td class="nm" colspan="4">worked <b>${worked}</b> of ${owed} days owed</td>`;
+  for (let d = 1; d <= 12; d++) {
+    const n = list.filter((x) => x.days[d - 1] && x.days[d - 1] !== 'lapsed').length;
+    h += `<td class="d">${d === S.workday && big ? `<span data-c="v:${d}:bridge">${icon('village', { frame: 'plan', whose: 'owed', num: list.length, unit: 'count', size: 22 })}</span>` : n || ''}</td>`;
+  }
+  t.innerHTML = h + `</tr><tr><td class="nm" colspan="16" style="font-weight:400;color:#555;white-space:normal">Day ${S.workday}: the bridge, done together, 1 adult a farm; last turnout ${TURNOUT}. Hatched: the window to name a day (${NOTICE} days' notice, by day ${NAME_BY}).</td></tr></tfoot>`;
+}
+function drawYear(t, rows) {
+  const seasons = ['spring', 'summer', 'autumn', 'winter'], big = S.n === 20;
+  const est = lotsUnder(rows.map((r) => r.h).filter((h) => h.village === 'Byn'), 'fields'); // the alderman splits the estate's 3 days as a routine's
+  let h = `<thead><tr><th style="text-align:left;padding-left:6px">household</th><th class="n">${icon('people', { whose: 'none', size: 18 })}</th><th class="n">${icon('field', { whose: 'none', size: 18 })}</th>${seasons.map((s) => `<th class="s">${s}</th>`).join('')}</tr></thead><tbody>`;
+  h += `<tr class="estate"><td class="nm" colspan="3"><b>Sparre manor</b> on Byn</td><td></td><td></td><td></td><td><span data-c="estate:0:estate">${icon('build', { frame: 'plan', whose: 'estate', num: 3, unit: 'count', size: 26 })}</span> <small>at the lord's call</small></td></tr>`;
+  rows.forEach(({ h: hh }, i) => {
+    const st = stateOf(hh), aut = st === 'worked' ? icon('fence', { frame: 'plan', whose: 'owed', state: 'done', num: hh.lot, unit: 'count', size: 24 }) : dayIcon(st, 24, st === 'tonamed' ? hh.toName : count(hh, st) || hh.lot);
+    const eLot = 3; // the estate's due: 3 days on each farm, named by the lord
+    const cells = big ? [icon('road', { frame: 'plan', whose: 'owed', state: 'done', num: 1, unit: 'count', size: 24 }), hh.alderman ? '' : icon('hay', { frame: 'plan', whose: 'owed', state: i % 7 === 3 ? 'risk' : 'done', num: 1, unit: 'count', size: 24 }), aut, eLot ? icon('build', { frame: 'plan', whose: 'estate', num: eLot, unit: 'count', size: 24 }) : '']
+      : ['#dbe8c2', '#dbe8c2', TINT[st], eLot ? '#c9a6d1' : ''].map((c) => (c ? `<span class="chip" style="background:${c.startsWith('url') ? '#9fb7df' : c}"></span>` : ''));
+    h += `<tr data-hh="${hh.id}"><td class="nm">${hh.alderman ? '★ ' : ''}${hh.name}</td><td class="n">${hh.adults}</td><td class="n">${hh.fields}</td>${cells.map((c, j) => `<td class="s"><span data-c="${hh.id}:s${j}:season">${c}</span></td>`).join('')}</tr>`;
+  });
+  t.innerHTML = h + `</tbody><tfoot><tr><td class="nm" colspan="7" style="font-weight:400;white-space:normal">Spring: road lot · summer: the alderman's keep (1 day each; ★ keeps none) · autumn: fence lots (${S.lots}) · winter: the estate's 3 days on each farm, at the lord's call (he names them; no substitutes, eviction on breach). Not shown: the households' loads.</td></tr></tfoot>`;
+}
+
+// ---- What a thing says, and its acts (each with its cost and the default the rule takes if he does nothing).
+const HH = (id) => [...VILLAGE.households, ...EXTRA][+id];
+function info(key) {
+  const [a, b, k] = key.split(':');
+  if (key === 'v:green') return { gl: 'green', opt: { frame: 'plan', whose: 'owed' }, title: 'The meeting: routines and customs', rows: [['routines', 'fence mending (autumn, 2 days a lot), road (spring), the bridge (together)'], ['lots', 'by fields, the custom (wayDuty\'s form)'], ['next', 'the meeting sits day 12']],
+    acts: [['propose', 'a routine: ditching, spring, 1 day by fields', 'his standing with the meeting; a refusal is a memory', 'no new routine'], ['propose', 'the custom of lots: by adults', 'opinion of the many-adult farms falls', 'lots stay by fields']], dflt: 'nothing changes until he proposes' };
+  if (key === 'v:bridge' || k === 'bridge') return { gl: 'village', opt: { frame: 'plan', whose: 'owed', num: S.workday, unit: 'day' }, title: `The bridge: work done together, day ${S.workday}`, rows: [['called', 'by the alderman (terms: together, 3 days\' notice, substitutes allowed, no commuting)'], ['turnout', `last time ${TURNOUT}; ${b === '9' || k !== 'bridge' ? 'all 20 farms send 1 adult' : ''}`], ['window', 'barley harvest days 5–10: a harvest date costs turnout']],
+    acts: [7, 8, 9, 10, 11, 12].map((d) => ['callWorkday', `day ${d}${d === 9 ? ' (the custom\'s)' : ''}`, d <= 10 ? 'in the barley window: turnout likely 14–17 of 20' : 'after the harvest: turnout 18–20, the bridge late', d === 9 ? 'stands' : 'day 9']), dflt: 'the rule will: day 9, the custom\'s day (earliest he may call: day 7)' };
+  if (a === 'estate') return { gl: 'build', opt: { frame: 'plan', whose: 'estate', num: 3, unit: 'count' }, title: "Sparre manor's due: 3 days, winter", rows: [['terms', 'names: the levier (at the lord\'s call), 1 day\'s notice, no substitutes, no commuting, carried over'], ['on breach', 'penalty, eviction'], ['split', 'by the alderman into lots, as a routine\'s (by fields)']], acts: [['ask', 'Sparre to release a day (a poor harvest)', 'his opinion with the steward', 'all 3 days stand']], dflt: 'the rule will: split by fields; the lord names the days' };
+  const h = HH(a); if (!h) return null;
+  const why = k === 'breached' ? h.reason : null, lot = lotsUnder(ALL(), S.lots)[ALL().indexOf(h)];
+  const rows = [['farm', `${h.name}: ${h.adults} adult${h.adults > 1 ? 's' : ''}, ${h.fields} field${h.fields > 1 ? 's' : ''}`], ['lot', `${h.lot} adult-days by fields${S.lots !== 'fields' ? `; ${lot} ${S.lots === 'adults' ? 'by adults' : 'equal'}` : ''}`], ['days', `worked ${count(h, 'worked')}, named ${count(h, 'named')}, to name ${h.toName}, lapsed ${count(h, 'lapsed')}, breached ${count(h, 'breached')}`]];
+  const rel = ['release', `a day of ${h.name}'s lot`, `goodwill +1 with ${h.name}; the fence 8 h short`, 'the day stands'];
+  const tr = ['transfer', `a day of my keep to ${h.name}`, `1 of my ${KEEP_LEFT} keep days left this year; the fence holds`, `${h.name} carries the day itself`];
+  if (k === 'breached') return { gl: 'fence', opt: { frame: 'plan', whose: 'owed', breach: 'taken', state: 'risk' }, title: `${h.name} did not come, day ${b}`, rows: [...rows, ['why', why + ' <a href="#" data-why="' + a + '">why ▸</a>']],
+    acts: [['answer', 'forgive', 'the fence 8 h short; the large farms read it as lax', ''], ['answer', 'a memory only', `${h.name}'s opinion of me −0.1`, ''], ['answer', "the meeting's fine: 3 rations", `${h.name}'s opinion −0.3; rations to the chest`, ''], ['answer', 'a case at the meeting', `goodwill −; ${h.name}'s opinion −0.5; the meeting's hour`, '']], dflt: "the rule will: memory + the meeting's fine (the routine's onBreach term)" };
+  if (k === 'lapsed') return { gl: 'fence', opt: { frame: 'plan', whose: 'owed', state: 'back' }, title: `${h.name}'s day ${b} lapsed`, rows: [...rows, ['terms', 'no carry: an unworked day lapses at the window\'s end; this one named and not worked, unanswered']], acts: [['answer', 'treat it as a breach (memory)', `${h.name}'s opinion −0.1`, '']], dflt: 'the rule did: it lapsed (he did nothing)' };
+  if (k === 'tonamed') return { gl: 'fence', opt: { frame: 'plan', whose: 'owed', ghost: true, num: h.toName, unit: 'count' }, title: `${h.name}: ${h.toName} day${h.toName > 1 ? 's' : ''} still to name`, rows: [...rows, ['window', `days ${TODAY_D + NOTICE}–12; to be named by day ${NAME_BY}`]], acts: [rel, tr], dflt: `the rule will: ${h.name}'s head names a day by day ${NAME_BY}; else its default author does` };
+  if (k === 'named' || k === 'worked') return { gl: 'fence', opt: { frame: 'plan', whose: 'owed', state: k === 'worked' ? 'done' : null }, title: `${h.name}: day ${b} ${k}`, rows: [...rows, ['who', k === 'worked' ? 'an adult came (substitutes allowed)' : 'named by the household; who comes is theirs']], acts: k === 'named' ? [rel, tr] : [], dflt: k === 'named' ? 'the rule will: the day is worked' : 'done' };
+  return { gl: 'home', opt: { frame: 'plan', whose: 'owed' }, title: h.name + (h.alderman ? ' (my own farm)' : ''), rows: [...rows, ['sign', LABEL[stateOf(h)]], ['not shown', 'its load: the alderman does not know it']], acts: [rel, tr], dflt: 'the rule will: ' + (h.toName ? `${h.name} names its days by day ${NAME_BY}` : 'the named days are worked') };
+}
+function ladderHTML(h) {
+  const one = h.adults === 1;
+  const L = [[one, 'substitute: another adult goes', one ? 'no other adult' : 'not tried (as far as he knows)'], [true, 'name another day', 'the notice had passed'], [true, 'ask me for a release or a transfer', 'not asked'], [true, 'commute', '3 rations a day; they held 1 (word of mouth)']];
+  return `<div style="font-size:12px;color:#555">As the alderman knows it: <b style="color:#222">${h.reason}</b></div><ul class="ladder">${L.map(([x, t, r]) => `<li class="x"><span>✗</span><span><s>${t}</s> <small>· ${r}</small></span></li>`).join('')}<li class="end"><span>⚡</span><span>breach: what this levier does: a memory + the meeting's fine</span></li></ul>`;
+}
+
+// ---- Bubble, acts, toast.
+let bubble = null;
+const toast = (t) => { const e = document.getElementById('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 3000); };
+function closeBubble() { bubble?.remove(); bubble = null; S.open = null; }
+function openBubble(key, el, actsNow) {
+  closeBubble(); const d = info(key); if (!d) return; S.open = key;
+  const r = el.getBoundingClientRect();
+  bubble = document.createElement('div'); bubble.className = 'bubble';
+  bubble.innerHTML = `<h3>${icon(d.gl, { ...d.opt, size: 22 })}${d.title}</h3><dl>${d.rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl><div class="dflt">${d.dflt}</div><div class="acts">${d.acts.length ? '<div><button class="main" data-open>Acts ▸</button></div>' : ''}</div>`;
+  bubble.style.left = Math.min(innerWidth - 302, r.right + 8) + 'px'; bubble.style.top = Math.max(46, Math.min(innerHeight - 330, r.top - 10)) + 'px'; bubble.style.maxHeight = (innerHeight - Math.max(46, Math.min(innerHeight - 330, r.top - 10)) - 10) + 'px';
+  document.body.append(bubble);
+  const show = () => { bubble.querySelector('.acts').innerHTML = d.acts.map(([v, what, cost, def], i) => `<button data-i="${i}"><b>${v}</b> ${what}<small>cost: ${cost}${def ? ' · if not: ' + def : ''}</small></button>`).join(''); };
+  bubble.querySelector('[data-open]')?.addEventListener('click', show);
+  bubble.addEventListener('click', (e) => { e.stopPropagation();
+    const w = e.target.closest('[data-why]'); if (w) { e.preventDefault(); bubble.querySelector('dl').insertAdjacentHTML('afterend', ladderHTML(HH(w.dataset.why))); w.remove(); return; }
+    const b = e.target.closest('[data-i]'); if (!b) return; const [v, what] = d.acts[+b.dataset.i];
+    if (v === 'callWorkday') S.workday = +what.match(/\d+/)[0];
+    toast(`would issue \`${v}\` ${what}${v === 'callWorkday' ? ' (≥ 3 days ahead)' : ''}`); closeBubble(); render();
+  });
+  if (actsNow) show();
+}
+
+// ---- Wiring: clicks, hover row ↔ farm, toggles.
+function hilite(id) {
+  S.hi = id;
+  document.querySelectorAll('tr[data-hh]').forEach((t) => t.classList.toggle('hi', t.dataset.hh === String(id)));
+  document.querySelectorAll('.farm').forEach((f) => f.classList.toggle('hi', f.dataset.hh === String(id)));
+}
+document.addEventListener('mouseover', (e) => { const t = e.target.closest('[data-hh]'); hilite(t ? t.dataset.hh : null); });
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.bubble')) return;
+  if (e.target.id === 'propose') { toast(`would issue \`propose\` the custom of lots: ${S.lots === 'adults' ? 'by adults' : 'equal'} (to the meeting, day 12)`); return; }
+  const c = e.target.closest('[data-c]'), v = e.target.closest('.hitv'), f = e.target.closest('.farm'), n = e.target.closest('td.nm');
+  let key = null, el = null;
+  if (c) { const [a, b, k] = c.dataset.c.split(':'); key = a === 'v' ? 'v:bridge' : k === 'season' ? a + ':0:farm' : `${a}:${b}:${k}`; el = c; }
+  else if (v) { key = 'v:' + v.dataset.v; el = v; }
+  else if (f) { const h = HH(f.dataset.hh), st = stateOf(h), d = h.days.findIndex((x) => x === st) + 1; key = st === 'tonamed' || st === 'worked' ? `${h.id}:0:farm` : `${h.id}:${d}:${st}`; el = f; }
+  else if (n) { const tr = n.closest('tr'); if (tr.dataset.hh) { key = tr.dataset.hh + ':0:farm'; el = n; } }
+  if (!key) return closeBubble();
+  if (S.open === key && bubble) { bubble.querySelector('[data-open]')?.click(); return; }
+  openBubble(key, el);
+});
+for (const [id, prop, num] of [['zoom', 'zoom'], ['lotT', 'lots'], ['sortT', 'sort'], ['stressT', 'n', true]])
+  document.getElementById(id).addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; S[prop] = num ? +b.dataset.v : b.dataset.v; document.querySelectorAll(`#${id} button`).forEach((x) => x.classList.toggle('on', x === b)); closeBubble(); render(); });
+function render() { drawMap(); drawRoster(); if (S.hi != null) hilite(S.hi); }
+render();
+</script>
+</body>
+</html>
