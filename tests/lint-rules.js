@@ -32,15 +32,12 @@ function counterUses(line, names) {
 }
 module.exports.counterUses = counterUses;
 
-// The open task that splits a module (VB-414): the split collector (tools/lib/collect.js; Kim, 25 November) with an unticked line naming
-// the module's key ("- [ ] From VB-NNN: sim/stores: ..."), or a task not done, titled "Refactor: ..." and naming the key (`sim/relations`)
-// in its title. tasks is [{id, title, status, text}]; a key matches whole, so `gen` is not found in `gen/rivers`. Returns the task's id or null.
+// The open task that splits a module (VB-414): the split collector (tools/lib/collect.js; Kim, 25 November) while it holds an unticked
+// line naming the module's key ("- [ ] From VB-NNN: sim/stores: ..."); a task of its own no longer counts. tasks is [{id, title, status,
+// text}]; a key matches whole, so `gen` is not found in `gen/rivers`. Returns the collector's id or null.
 function splitTask(key, tasks) {
   const { COLLECT, namesModule } = require('../tools/lib/collect.js');
-  const listed = tasks.find((k) => !/^done\b/.test(k.status) && k.title === COLLECT.split.name && namesModule(k.text || '', key));
-  if (listed) return listed.id;
-  const named = new RegExp(String.raw`(?<![\w/.-])${key.replace(/[/.]/g, '\\$&')}(?:\.js)?(?![\w/-])`);
-  const hit = tasks.find((k) => !/^done\b/.test(k.status) && /^Refactor:/.test(k.title) && named.test(k.title));
+  const hit = tasks.find((k) => !/^done\b/.test(k.status) && k.title === COLLECT.split.name && namesModule(k.text || '', key));
   return hit ? hit.id : null;
 }
 module.exports.splitTask = splitTask;

@@ -4,8 +4,7 @@
 // Existing long lines are kept in tests/lint-baseline.json and may only go down; `--update` lowers the baseline.
 // The sources are formatted by Prettier (`npm run format`; tests/format.js checks it), so a line counted here is a formatted line.
 // Length is no cap (VB-413, VB-414): a module over 700 formatted lines (the 400 of the packed sources, rescaled) needs an open
-// task that splits it: an unticked line naming its key in the split collector (`node tools/backlog.js collect split`), or a task
-// titled "Refactor: ..." naming its key;
+// line naming its key in the split collector (`node tools/backlog.js collect split`);
 // with one it may grow. A module kept over the line without a task is in the baseline at its length, which only falls.
 // Width the same way (VB-415): a module over 15 exports, counted on its loaded namespace, may add one only with such a task open;
 // tests/width-baseline.json holds the modules over 15 at their counts, which only fall. `sim`, the facade that gathers the others, is not counted.
