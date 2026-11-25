@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signs on the Land</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500&family=Alegreya+Sans:wght@400;600&display=swap">
+<style>
+/* Work · today: the map fills the screen; the household's day is a ring around the farmstead and signs at the places. */
+:root { --ink: #23251e; --muted: #5d6253; --line: #c3c8b6; --card: #f6f5ef; --accent: #a8473a; color-scheme: light; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #8c9a6a; color: var(--ink); font: 14px/1.4 'Alegreya Sans', system-ui, sans-serif; }
+.band { height: 40px; display: flex; align-items: center; gap: 14px; padding: 0 16px; background: var(--card); border-bottom: 1px solid var(--line); }
+.band h1 { font: 500 17px 'Alegreya SC', Georgia, serif; margin: 0; }
+.band .mode { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: #fff; padding: 3px 9px; font: inherit; cursor: pointer; }
+.seg button.on { background: var(--ink); color: #fff; }
+.band .sp { flex: 1; }
+.band .who { display: inline-flex; gap: 4px; align-items: center; }
+.band .who button { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; box-shadow: 0 0 0 1px #0004; }
+.band .who button.on { box-shadow: 0 0 0 2px var(--ink); }
+#map { display: block; width: 100vw; height: calc(100vh - 41px); }
+.hit { cursor: pointer; }
+.dimmed { opacity: .28; }
+.bubble { position: absolute; z-index: 5; width: 250px; background: #fff; border: 1px solid #3a2a1a; border-radius: 8px; padding: 9px 11px; box-shadow: 0 4px 14px #0004; font-size: 13px; }
+.bubble h3 { margin: 0 0 4px; font: 600 15px 'Alegreya Sans', sans-serif; display: flex; gap: 6px; align-items: center; }
+.bubble dl { margin: 0; display: grid; grid-template-columns: 62px 1fr; gap: 1px 6px; }
+.bubble dt { color: var(--muted); } .bubble dd { margin: 0; }
+.bubble .acts { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 4px; }
+.bubble .acts button { font: inherit; font-size: 12px; border: 1px solid #3a2a1a; background: #f3efe4; border-radius: 12px; padding: 2px 9px; cursor: pointer; }
+.bubble .acts button.main { background: var(--ink); color: #fff; }
+.bubble .pp { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px #0006; padding: 0 !important; }
+.toast { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); background: #23251e; color: #fff; padding: 7px 14px; border-radius: 16px; font-family: ui-monospace, monospace; font-size: 12.5px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.on { opacity: 1; }
+.note { position: absolute; right: 12px; bottom: 12px; max-width: 330px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; }
+.note summary { cursor: pointer; font-weight: 600; }
+.key { position: absolute; left: 12px; bottom: 12px; background: #f6f5efe8; border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px; font-size: 12px; display: flex; gap: 10px; align-items: center; }
+.key i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 3px; }
+</style>
+</head>
+<body>
+<div class="band">
+  <h1>Signs on the land</h1><span class="mode">Work · today · autumn day 4, 10:00</span>
+  <span class="seg" id="variant"><button data-v="rings" class="on">rings</button><button data-v="fan">fan</button><button data-v="pip">collapsed</button></span>
+  <span class="seg" id="aheadT"><button data-v="1" class="on">days ahead</button><button data-v="0">today only</button></span>
+  <span class="sp"></span><span class="muted">member:</span><span class="who" id="who"></span>
+</div>
+<svg id="map"></svg>
+<div class="key" id="key"></div>
+<details class="note"><summary>Scales to / strains at</summary>
+<p>Scales to: a household of 5 on one farmstead, a handful of places worked today, one task's route at a time (the selected member's).</p>
+<p>Strains at: 8 members (the rings pass about 75 px on the map and cover the neighbouring tiles; the glyphs on a 1-hour segment are already too small at full-map zoom; zoom in with the wheel). Several routes at once (only the selected member's is drawn; two crossing routes would tangle). Two signs on one tile (green, fence) break "one mark per tile"; a fence day ahead and a levy still to name need the ladder in a bubble, not on the land. Season targets have no place but the field they concern: firewood and rye targets would need a home somewhere.</p>
+</details>
+<div class="toast" id="toast"></div>
+<script src="icons.js"></script>
+<script src="scene.js"></script>
+<script>
+// ---- State of the mock (copies of the shared scene, changed by acts).
+const S = { variant: 'rings', ahead: true, sel: 'nils', today: structuredClone(TODAY), aheadL: structuredClone(AHEAD), open: null, acts: false, pileHauled: false };
+for (const a of S.aheadL) { a.badge = a.state === 'risk' ? 'risk' : null; a.quill = a.by_ === 'per'; }
+const P = Object.fromEntries(PEOPLE.map((p) => [p.id, p]));
+const C = at('home');
+const hours = (it) => it.h[1] - it.h[0];
+const fmtH = (h) => String(Math.floor(h)).padStart(2, '0') + ':' + (h % 1 ? '30' : '00');
+const nice = (x) => Math.round(x * 2) / 2;
+let VB = [118, 14, 672, 400]; // opens on Backa and its fields; the wheel zooms out to the whole map
+
+// ---- Geometry: a clock of 12 working hours (06-18) over 330 degrees, a gap at the top for the portraits.
+const deg = (d) => (d * Math.PI) / 180;
+const pol = (cx, cy, r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+function band(cx, cy, r, w, a0, a1) {
+  const [x0, y0] = pol(cx, cy, r + w / 2, a0), [x1, y1] = pol(cx, cy, r + w / 2, a1), [x2, y2] = pol(cx, cy, r - w / 2, a1), [x3, y3] = pol(cx, cy, r - w / 2, a0);
+  const lg = a1 - a0 > Math.PI ? 1 : 0;
+  return `M${x0} ${y0}A${r + w / 2} ${r + w / 2} 0 ${lg} 1 ${x1} ${y1}L${x2} ${y2}A${r - w / 2} ${r - w / 2} 0 ${lg} 0 ${x3} ${y3}Z`;
+}
+// Where member i's ring sits: rings = concentric, fan = one sector each around the tile.
+function layout(i) {
+  if (S.variant === 'fan') { const c = -90 + 36 + i * 72, r = 46; return { r, w: 11, ang: (h) => deg(c - 30 + (h - 6) * 5), dot: pol(C.x, C.y, r, deg(c - 34)) }; }
+  const r = 24 + i * 10.5; return { r, w: 9.5, ang: (h) => deg(-75 + (h - 6) * 27.5), dot: pol(C.x, C.y, r, deg(-90)) };
+}
+// A glyph alone (no frame), white line, for the ring's segments and route steps.
+const glyph = (name, x, y, s, col = '#fff') => `<g transform="translate(${x - 12 * s} ${y - 12 * s}) scale(${s})" fill="none" stroke="${col}" stroke-width="${2.4}" stroke-linecap="round" stroke-linejoin="round" pointer-events="none">${ICONS.line[name] || ICONS.line.plan}</g>`;
+// A framed icon from the grammar, placed with its centre at x,y; extra = a second badge on the left (quill).
+function sign(id, gl, x, y, opt, extra = '') {
+  const s = opt.size || 28;
+  return `<g class="hit" data-id="${id}" transform="translate(${x - s / 2} ${y - s / 2})">${icon(gl, { ...opt, size: s })}${extra ? `<g transform="scale(${s / 40}) translate(-26 0)">${extra}</g>` : ''}</g>`;
+}
+const dots = (ids, x, y, r = 4) => ids.map((id, k) => `<circle class="hit" data-id="who:${id}" cx="${x + (k - (ids.length - 1) / 2) * (r * 2 + 2)}" cy="${y}" r="${r}" fill="${id ? P[id].col : '#fff'}" stroke="${id ? '#fff' : '#333'}" stroke-width="1.3" ${id ? '' : 'stroke-dasharray="2 1.5"'}/>`).join('');
+const dimIf = (who) => (S.sel && who.length && !who.includes(S.sel) ? ' class="dimmed"' : '');
+
+// ---- The hearth ring.
+function hearth() {
+  let s = '';
+  if (S.variant === 'pip') { // one pip: the household's share of own hours today
+    let own = 0, all = 0;
+    for (const id in S.today) for (const it of S.today[id]) { all += hours(it); if (it.whose === 'own' && !it.breach || it.breach === 'taken') own += hours(it); }
+    const f = own / all;
+    s += `<g class="hit" data-id="pip"><circle cx="${C.x + 30}" cy="${C.y - 30}" r="13" fill="${WHOSE.household.c}" stroke="#2a2018" stroke-width="1.4"/>` +
+      `<path d="${band(C.x + 30, C.y - 30, 6.5, 13, deg(-90), deg(-90 + 360 * f))}" fill="${WHOSE.own.c}"/>` +
+      `<circle cx="${C.x + 30}" cy="${C.y - 30}" r="6" fill="#2a2018"/>${glyph('home', C.x + 30, C.y - 30, 0.42)}</g>`;
+    return s;
+  }
+  s += `<circle cx="${C.x}" cy="${C.y}" r="${S.variant === 'fan' ? 64 : 76}" fill="#f6f1e2" opacity=".55"/>`;
+  PEOPLE.forEach((p, i) => {
+    const L = layout(i), items = S.today[p.id], dim = S.sel && S.sel !== p.id ? ' class="dimmed"' : '';
+    s += `<g${dim}><path d="${band(C.x, C.y, L.r, L.w, L.ang(6), L.ang(18))}" fill="#00000012"/>`;
+    items.forEach((it, k) => {
+      const a0 = L.ang(it.h[0]) + 0.01, a1 = L.ang(it.h[1]) - 0.01, mid = L.ang((it.h[0] + it.h[1]) / 2);
+      const op = it.state === 'done' ? 0.5 : 1;
+      s += `<g class="hit" data-id="seg:${p.id}:${k}" opacity="${op}"><path d="${band(C.x, C.y, L.r, L.w, a0, a1)}" fill="${fillOf(it.whose, it.breach)}" stroke="${it.state === 'doing' ? '#1a120a' : '#2a201855'}" stroke-width="${it.state === 'doing' ? 1.4 : 0.6}"/>`;
+      if (it.state === 'planned' || it.state === 'risk') s += `<path d="${band(C.x, C.y, L.r, L.w, a0, a1)}" fill="url(#hatch-todo)" pointer-events="none"/>`;
+      if (hours(it) >= 1 && it.kind !== 'idle') { const [gx, gy] = pol(C.x, C.y, L.r, mid); s += glyph(it.kind, gx, gy, L.w / 26); }
+      if (it.accepted) { const [gx, gy] = pol(C.x, C.y, L.r + L.w / 2 + 3, mid); s += `<circle cx="${gx}" cy="${gy}" r="2.6" fill="#4a7a3a" stroke="#fff" stroke-width=".8"/>`; }
+      s += '</g>';
+    });
+    if (p.levy) { // the levy line: where the member's levied hours end
+      const a = L.ang(items[0].h[0] + p.levy), [x0, y0] = pol(C.x, C.y, L.r - L.w / 2 - 1.5, a), [x1, y1] = pol(C.x, C.y, L.r + L.w / 2 + 2.5, a);
+      s += `<g class="hit" data-id="levy:${p.id}"><path d="M${x0} ${y0}L${x1} ${y1}" stroke="#1a120a" stroke-width="2.2"/><circle cx="${x1}" cy="${y1}" r="1.8" fill="#1a120a"/></g>`;
+    }
+    s += `<circle class="hit" data-id="who:${p.id}" cx="${L.dot[0]}" cy="${L.dot[1]}" r="${S.variant === 'fan' ? 5.5 : 4.3}" fill="${p.col}" stroke="${p.played ? '#1a120a' : '#fff'}" stroke-width="${p.played ? 1.8 : 1.2}"/></g>`;
+  });
+  // now: a tick across the rings (rings) or on each fan arc
+  if (S.variant === 'rings') { const a = layout(0).ang(NOW.hour), [x0, y0] = pol(C.x, C.y, 18, a), [x1, y1] = pol(C.x, C.y, 74, a); s += `<path d="M${x0} ${y0}L${x1} ${y1}" stroke="#d14b2f" stroke-width="1.6"/><text x="${x1 + 2}" y="${y1 - 2}" font-size="8" fill="#d14b2f" font-weight="700">10</text>`; }
+  else PEOPLE.forEach((p, i) => { const L = layout(i), a = L.ang(NOW.hour), [x0, y0] = pol(C.x, C.y, L.r - 8, a), [x1, y1] = pol(C.x, C.y, L.r + 8, a); s += `<path d="M${x0} ${y0}L${x1} ${y1}" stroke="#d14b2f" stroke-width="1.4"/>`; });
+  return s;
+}
+
+// ---- Signs at places: one stake per place worked today (home's work is the ring), members as dots under it.
+function placesToday() {
+  const by = {};
+  for (const id in S.today) S.today[id].forEach((it, k) => { if (it.at === 'home') return; (by[it.at] ||= []).push({ id, k, it }); });
+  return by;
+}
+const OFF = { long: [0, -30], wood2: [16, -28], norr: [0, -24], meadow: [-14, -26], lake: [0, -24] };
+function signsToday() {
+  let s = '';
+  for (const [place, list] of Object.entries(placesToday())) {
+    const main = list.find((e) => e.it.state === 'doing') || list.find((e) => e.it.breach) || list[0], who = [...new Set(list.map((e) => e.id))];
+    const h = nice(list.reduce((t, e) => t + hours(e.it), 0)), allDone = list.every((e) => e.it.state === 'done');
+    const { x, y } = at(place), [dx, dy] = OFF[place] || [0, -26];
+    s += `<g${dimIf(who)}>${sign('place:' + place, main.it.kind, x + dx, y + dy, { frame: 'day', whose: main.it.whose, breach: main.it.breach, num: h, badge: allDone ? 'done' : main.it.accepted ? 'done' : null })}${dots(who, x + dx, y + dy + 19, 3.6)}</g>`;
+  }
+  return s;
+}
+
+// ---- The selected member's task as a route of its method's steps (Nils: the firewood); others: a faint line through today's places.
+const RT = { home: [C.x - 60, C.y + 40], wood2: at('wood2'), mid: hexXY(2, 2), wood1: at('wood1') };
+function route() {
+  if (!S.sel) return '';
+  const p = P[S.sel];
+  if (S.sel !== 'nils') {
+    const pts = []; for (const it of S.today[S.sel]) { const q = it.at === 'home' ? C : at(it.at); const l = pts[pts.length - 1]; if (!l || l.x !== q.x || l.y !== q.y) pts.push(q); }
+    return pts.length > 1 ? `<path d="${pts.map((q, i) => (i ? 'L' : 'M') + q.x + ' ' + q.y).join('')}" stroke="${p.col}" stroke-width="3" fill="none" opacity=".45" stroke-dasharray="1 6" stroke-linecap="round"/>` : '';
+  }
+  const m = RT.mid, w2 = RT.wood2, w1 = RT.wood1, hx = C.x - 74;
+  let s = `<g fill="none" stroke="${p.col}" stroke-linecap="round" stroke-linejoin="round">` +
+    `<path d="M${hx} ${C.y - 6}L${m.x} ${m.y - 6}L${w2.x + 20} ${w2.y - 6}" stroke-width="3" opacity=".35"/>` + // go (done)
+    `<path d="M${w2.x + 20} ${w2.y + 6}L${m.x} ${m.y + 6}L${hx} ${C.y + 6}" stroke-width="3" opacity=".35"/>` + // haul (done)
+    `<path d="M${hx} ${C.y - 16}Q${m.x + 10} ${m.y - 40} ${w1.x + 14} ${w1.y + 10}" stroke-width="3" stroke-dasharray="5 5" opacity=".7"/></g>`; // fell more (ahead)
+  // The stray pile at Hagen wood: logs with the household's mark (new glyph: the house mark).
+  s += `<g class="hit" data-id="pile">${S.pileHauled ? '' : '<g transform="translate(' + (w2.x - 8) + ' ' + (w2.y + 4) + ')"><rect x="-14" y="0" width="28" height="5" rx="2.5" fill="#a0703a" stroke="#4a2f1e"/><rect x="-11" y="-5" width="24" height="5" rx="2.5" fill="#b07a42" stroke="#4a2f1e"/><rect x="-6" y="-10" width="16" height="5" rx="2.5" fill="#a0703a" stroke="#4a2f1e"/></g>'}` +
+    `<g transform="translate(${w2.x + 10} ${w2.y + 18})"><rect x="-7" y="-7" width="14" height="14" rx="2" fill="#fff" stroke="${p.col}" stroke-width="1.5"/><path d="M0 -5v10M-4 -1h8M-3 -5l3 -2 3 2M-3 5l3 -3" stroke="#2a2018" stroke-width="1.3" fill="none"/></g></g>`;
+  const spots = [[hx - 24, C.y - 30], [(hx + m.x) / 2 + 4, m.y - 18], [w2.x + 30, w2.y - 22], [(hx + m.x) / 2, m.y + 22], [hx - 22, C.y + 30], [w1.x + 30, w1.y - 6]];
+  TASK_FIREWOOD.steps.forEach((st, i) => {
+    const [x, y] = spots[i], sz = st.now ? 26 : 18;
+    s += `<g${st.done ? ' opacity=".5"' : ''}>${st.now ? `<circle cx="${x}" cy="${y}" r="17" fill="none" stroke="#d14b2f" stroke-width="2"><animate attributeName="r" values="15;19;15" dur="1.6s" repeatCount="indefinite"/></circle>` : ''}` +
+      sign('step:' + i, st.icon, x, y, { frame: 'task', size: sz, whose: 'household', badge: st.done ? 'done' : null, ghost: !st.done && !st.now }) + `<text x="${x - sz / 2 - 1}" y="${y - sz / 2 + 4}" font-size="7.5" font-weight="700" fill="#2a2018" text-anchor="end">${i + 1}</text></g>`;
+  });
+  return s;
+}
+
+// ---- Days ahead: dated stakes, ghosted, the day as their one number; the barley's season shield as a meter.
+const AOFF = { s1: [-20, -24], s2: [52, -70], l1: [-16, -22], l2: [16, -22], w1: [-15, 16], g1: [15, 16] };
+function ahead() {
+  if (!S.ahead) return '';
+  let s = '';
+  for (const a of S.aheadL) {
+    const q = a.at === 'home' ? C : at(a.at), [dx, dy] = AOFF[a.id], who = a.who || [];
+    const day = a.day || a.from || (a.window ? 9 : ''), x = q.x + dx, y = q.y + dy;
+    const ghostWho = a.id === 'l2' && !a.named ? [null] : who;
+    s += `<g${dimIf(who)}>${sign('ahead:' + a.id, a.kind, x, y, { frame: 'dated', whose: a.whose || 'household', num: day, ghost: true, size: 26, badge: a.badge }, a.quill ? BADGES.quill.replace(/cx="33"/g, 'cx="33"') : '')}${dots(ghostWho.length ? ghostWho : [], x, y + 18, 3.2)}</g>`;
+  }
+  // the season shield on the barley: hours still to do (Per's estimate) against what the hands can give; one number, the shortfall
+  const b = at('barley'), t = SEASON.targets[1], s1 = S.aheadL[0], x = b.x + 22, y = b.y - 22;
+  s += sign('season:barley', 'oats', x, y, { frame: 'season', whose: null, num: s1.short > 0 ? '−' + s1.short : '✓', size: 26 });
+  const W = 34, sc = W / 50, lo = t.left.lo * sc, mid = t.left.mid * sc, hi = t.left.hi * sc, give = (t.left.mid - s1.short) * sc;
+  s += `<g transform="translate(${x - W / 2} ${y + 17})" pointer-events="none"><rect width="${W}" height="5" fill="#fff" stroke="#2a2018" stroke-width=".7"/><rect x="${lo}" width="${hi - lo}" height="5" fill="url(#hatch-todo)"/><rect width="${give}" height="5" fill="${WHOSE.household.c}"/><path d="M${mid} -1.5v8" stroke="#2a2018" stroke-width="1.2"/></g>`;
+  return s;
+}
+
+// ---- Render the map.
+const svg = document.getElementById('map');
+function render() {
+  svg.setAttribute('viewBox', VB.join(' '));
+  let s = DEFS + mapSVG();
+  for (const k of ['home', 'long', 'barley', 'wood2', 'norr', 'green', 'fence', 'meadow', 'lake']) { const { x, y } = at(k); s += `<text x="${x}" y="${y + 44}" font-size="8.5" text-anchor="middle" fill="#23251ecc">${PLACES[k].name}</text>`; }
+  s += route() + ahead() + signsToday() + hearth();
+  svg.innerHTML = s;
+  document.getElementById('who').innerHTML = PEOPLE.map((p) => `<button title="${p.name}" data-who="${p.id}" class="${S.sel === p.id ? 'on' : ''}" style="background:${p.col}"></button>`).join('') + `<button title="all" data-who="" class="${S.sel ? '' : 'on'}" style="background:#fff"></button>`;
+}
+document.getElementById('key').innerHTML = Object.entries(WHOSE).map(([k, w]) => `<span><i style="background:${w.c}"></i>${w.name}</span>`).join('') +
+  `<span><svg width="12" height="12"><defs>${DEFS.slice(6, -7)}</defs><rect width="12" height="12" fill="url(#hatch-hh)"/></svg> demanded</span><span><svg width="12" height="12"><rect width="12" height="12" fill="url(#hatch-own)"/></svg> taken</span><span style="color:#d14b2f">| now</span><span>▮ levy line</span>`;
+
+// ---- What each mark says (the bubble) and the verbs it offers.
+function info(id) {
+  const [kind, a, b] = id.split(':');
+  const est = (it) => it.state === 'done' ? `${hours(it)} h, done (exact)` : `${nice(hours(it) * 0.85)}–${hours(it)}–${nice(hours(it) * 1.3)} h (Per's estimate)`;
+  const whoseTxt = (it) => (it.breach ? `${it.breach}: ${it.breach === 'taken' ? "the household's hours, taken as own" : 'own hours, demanded by Per'}` : WHOSE[it.whose].name);
+  const chose = (it) => (it.by === 'per' ? 'Per (authored)' : it.given ? 'Erik gave them (diligent)' : it.breach === 'taken' ? 'Nils took them (idle; courting)' : 'the custom (the rule)');
+  if (kind === 'seg' || kind === 'place') {
+    const list = kind === 'seg' ? [{ id: a, k: +b, it: S.today[a][+b] }] : placesToday()[a], it = list[0].it;
+    const e = list.find((x) => x.it.breach) || list[0];
+    const acts = kind === 'seg' ? ['assign to…'] : ['plan', 'add hands'];
+    if (e.it.breach === 'taken') acts.unshift('accept', 'call him back (demand)', 'grant leave');
+    if (e.it.breach === 'demanded') acts.unshift('release (give back)');
+    if (e.it.given) acts.unshift('accept the gift', 'release');
+    return { gl: e.it.kind, opt: { frame: kind === 'seg' ? 'task' : 'day', whose: e.it.whose, breach: e.it.breach }, title: kind === 'seg' ? `${P[a].name}: ${it.what}` : PLACES[a].name,
+      rows: kind === 'seg' ? [['when', `${fmtH(it.h[0])}–${fmtH(it.h[1])}, ${it.state}`], ['why', it.duty ? 'a duty of hers' : it.stray ? 'the firewood task: our pile lies at the wood' : it.at === 'long' ? 'rye target (52 h left)' : 'the day\'s list'], ['chose', chose(it)], ['estimate', est(it)], ['whose', whoseTxt(it)]]
+        : list.map((x) => [P[x.id].name, `${x.it.what}, ${fmtH(x.it.h[0])}–${fmtH(x.it.h[1])}${x.it.breach ? ' (' + x.it.breach + ')' : ''}`]), acts, target: e };
+  }
+  if (kind === 'ahead') {
+    const x = S.aheadL.find((q) => q.id === a), L = x.levy && LEVIES[x.levy];
+    const rows = [['when', x.day ? `day ${x.day}` : x.from ? `days ${x.from}–${x.by}` : `by day 9 (window 1–12)`], ['why', x.why || (L ? `levy of ${L.from}` : x.grant ? 'his aim: courting' : '')],
+      ['chose', x.by_ === 'per' ? 'Per (authored)' : x.by_ === 'custom' ? 'the rule' : L ? L.from : 'Per granted it'], ['estimate', x.hours ? `${x.hours.lo}–${x.hours.mid}–${x.hours.hi} h; ${x.short > 0 ? x.short + ' h short by day 9' : 'covered'}` : '1 adult-day'],
+      ['whose', WHOSE[x.whose || 'household'].name + (x.who.length ? ' · ' + x.who.map((w) => P[w].name).join(', ') : '')]];
+    if (L) rows.push(['terms', `notice ${L.terms.notice} d; substitute ${L.terms.substitute ? 'yes' : 'no'}; commute ${L.terms.commute ? L.terms.commute + ' rations' : 'no'}; breach: ${L.terms.onBreach}`]);
+    const acts = a === 's1' ? ['add hands', 'move', 'keep my order', 'let the rule take it'] : a === 'l2' ? ['name…', 'substitute', 'commute (3 rations)', 'ask release'] : a === 'l1' ? ['substitute', 'commute (3 rations)', 'ask release'] : a === 'g1' ? ['revoke leave'] : ['plan', 'assign to…'];
+    return { gl: x.kind, opt: { frame: 'dated', whose: x.whose || 'household', badge: x.badge }, title: x.what, rows, acts, target: x };
+  }
+  if (kind === 'step') { const st = TASK_FIREWOOD.steps[+a]; return { gl: st.icon, opt: { frame: 'task' }, title: `Step ${+a + 1}: ${st.what}`, rows: [['task', TASK_FIREWOOD.goal], ['state', st.done ? 'done' : st.now ? 'now, at the woodpile' : 'ahead'], ['chose', 'the method, read from the world (the pile lies there)'], ['history', TASK_FIREWOOD.history], ['estimate', st.done ? 'done' : st.now ? '1.5–2–3 h' : '3–4–6 h']], acts: ['plan', 'assign to…'] }; }
+  if (kind === 'pile') return { gl: 'wood', opt: { frame: 'task', badge: 'stray' }, title: 'Stray pile: our timber at Hagen wood', rows: [['what', '1 load felled yesterday, left at nightfall'], ['mark', "Backa's house mark: others see it is ours"], ['estimate', '0–1 load left (exact: Per saw it)']], acts: ['haul now', 'leave it'] };
+  if (kind === 'levy') { const p = P[a]; return { gl: 'standing', opt: { frame: 'task', whose: 'household' }, title: `${p.name}'s levy line`, rows: [['what', `${p.levy} h of 12 are the household's (autumn custom)`], ['after', p.id === 'erik' ? 'his own: he gives 1.5 h to the stooks' : p.id === 'nils' ? 'his own: Per demands 1.5 h to haul' : 'her own hours'], ['chose', 'the custom']], acts: ['ask'] }; }
+  if (kind === 'season') { const t = SEASON.targets[1]; return { gl: 'oats', opt: { frame: 'season', whose: null }, title: 'Season: ' + t.name, rows: [['have', `${t.have} of ${t.want}`], ['left', `${t.left.lo}–${t.left.mid}–${t.left.hi} h (Per's estimate)`], ['short', `${S.aheadL[0].short} h at the mid, by day 9`], ['window', 'barley harvest, days 5–10']], acts: ['plan', 'ask'] }; }
+  if (kind === 'pip') return { gl: 'home', opt: { frame: 'day', whose: 'own' }, title: "Backa's hours today", rows: [['own', 'share shown as the teal wedge'], ['tip', 'switch to rings, or zoom in, for each member']], acts: [] };
+  return null;
+}
+
+// ---- Bubble, acts, toast.
+let bubble = null;
+const toast = (t) => { const e = document.getElementById('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 2600); };
+function closeBubble() { bubble?.remove(); bubble = null; S.open = null; S.acts = false; }
+function openBubble(id, el) {
+  const d = info(id); if (!d) return;
+  closeBubble(); S.open = id;
+  const r = el.getBoundingClientRect();
+  bubble = document.createElement('div'); bubble.className = 'bubble';
+  bubble.innerHTML = `<h3>${icon(d.gl, { ...d.opt, size: 22 })}${d.title}</h3><dl>${d.rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl><div class="acts">${d.acts.length ? '<button class="main">Acts ▸</button>' : ''}</div>`;
+  bubble.style.left = Math.min(innerWidth - 262, r.right + 8) + 'px'; bubble.style.top = Math.max(46, Math.min(innerHeight - 260, r.top - 10)) + 'px';
+  document.body.append(bubble);
+  bubble.querySelector('.main')?.addEventListener('click', () => showActs(id, d));
+}
+function showActs(id, d) {
+  S.acts = true;
+  const box = bubble.querySelector('.acts');
+  box.innerHTML = d.acts.map((v) => `<button data-act="${v}">${v}</button>`).join('');
+  box.onclick = (ev) => { const v = ev.target.dataset.act; if (v) act(id, d, v); };
+}
+function pickMember(d, cb) {
+  const box = bubble.querySelector('.acts');
+  box.innerHTML = PEOPLE.map((p) => `<button class="pp" title="${p.name}" data-p="${p.id}" style="background:${p.col}"></button>`).join('') + '<span class="muted" style="font-size:12px">pick a member</span>';
+  box.onclick = (ev) => { const id = ev.target.dataset.p; if (id) cb(id); };
+}
+function act(id, d, v) {
+  const [kind, a, b] = id.split(':'), t = d.target;
+  const done = (msg) => { toast('would issue ' + msg); closeBubble(); render(); };
+  if (v === 'assign to…' && kind === 'seg') return pickMember(d, (to) => { const it = S.today[a].splice(+b, 1)[0]; S.today[to].push(it); S.today[to].sort((x, y) => x.h[0] - y.h[0]); S.sel = to; done(`assign ${P[to].name} -> ${it.what}`); });
+  if (v === 'name…') return pickMember(d, (to) => { t.named = true; t.who = [to]; t.day = 7; t.what = `Village fence: ${P[to].name}, day 7`; done(`name ${P[to].name} -> fence, day 7 (lot v1)`); });
+  const it = t?.it;
+  if (v === 'accept') { it.accepted = true; return done(`accept Nils' taken hours (14:00–16:30), noted in his memory`); }
+  if (v === 'grant leave') { it.whose = 'own'; it.breach = null; it.what = 'Visit Norrgård (leave)'; return done(`grant Nils leave 14:00–16:30`); }
+  if (v === 'call him back (demand)') { Object.assign(it, { kind: 'chop', what: 'Reap rye (called back)', at: 'long', breach: null, whose: 'household', by: 'per' }); return done(`call Nils -> Reap rye, 14:00`); }
+  if (v === 'release (give back)') { Object.assign(it, { kind: 'idle', what: 'Own hours (released)', at: 'home', breach: null, whose: 'own' }); return done(`release Nils 16:30–18:00`); }
+  if (v === 'add hands' && kind === 'ahead') { t.who.push(['nils', 'erik', 'karin'][t.who.length] || 'per'); t.short = Math.max(0, t.short - 4); if (!t.short) t.badge = null; return done(`assign ${P[t.who.at(-1)].name} -> Reap the barley (short ${t.short} h)`); }
+  if (v === 'move') { t.from += 1; t.by += 1; return done(`plan Reap the barley -> from day ${t.from}`); }
+  if (v === 'keep my order') { t.badge = 'kept'; return done(`keep Reap the barley (the rule may not take it back)`); }
+  if (v === 'let the rule take it') { t.badge = 'back'; t.quill = false; t.by_ = 'custom'; return done(`release Reap the barley -> the custom`); }
+  if (v === 'haul now') { S.pileHauled = true; return done(`assign Nils -> haul the stray pile`); }
+  done(`${v.replace('…', '')} ${d.title}`);
+}
+
+// ---- Clicks: a mark once = bubble; twice = its acts. A portrait = select the member.
+svg.addEventListener('click', (ev) => {
+  const el = ev.target.closest('.hit'); if (!el) return closeBubble();
+  const id = el.dataset.id;
+  if (id.startsWith('who:')) { const w = id.slice(4); S.sel = S.sel === w ? null : w || null; closeBubble(); return render(); }
+  if (S.open === id && !S.acts) { const d = info(id); if (d.acts.length) showActs(id, d); return; }
+  openBubble(id, el);
+});
+document.getElementById('who').onclick = (ev) => { const w = ev.target.dataset.who; if (w === undefined) return; S.sel = w || null; closeBubble(); render(); };
+document.getElementById('variant').onclick = (ev) => { const v = ev.target.dataset.v; if (!v) return; S.variant = v; [...ev.currentTarget.children].forEach((x) => x.classList.toggle('on', x === ev.target)); closeBubble(); render(); };
+document.getElementById('aheadT').onclick = (ev) => { const v = ev.target.dataset.v; if (!v) return; S.ahead = v === '1'; [...ev.currentTarget.children].forEach((x) => x.classList.toggle('on', x === ev.target)); closeBubble(); render(); };
+// Wheel zoom about the cursor; zoomed far out the ring collapses to its pip.
+svg.addEventListener('wheel', (ev) => {
+  ev.preventDefault();
+  const k = ev.deltaY > 0 ? 1.15 : 1 / 1.15, r = svg.getBoundingClientRect(), sc = Math.max(VB[2] / r.width, VB[3] / r.height);
+  const mx = VB[0] + (ev.clientX - r.left - (r.width - VB[2] / sc) / 2) * sc, my = VB[1] + (ev.clientY - r.top - (r.height - VB[3] / sc) / 2) * sc;
+  const w = Math.min(MAP_W * 2.2, Math.max(180, VB[2] * k)), h = (w * MAP_H) / MAP_W;
+  VB = [mx - ((mx - VB[0]) * w) / VB[2], my - ((my - VB[1]) * h) / VB[3], w, h];
+  const auto = w > MAP_W * 1.6 ? 'pip' : null; if (auto && S.variant !== 'pip') { S.variant = 'pip'; S.autoPip = true; } else if (!auto && S.autoPip) { S.variant = 'rings'; S.autoPip = false; }
+  closeBubble(); render();
+}, { passive: false });
+render();
+</script>
+</body>
+</html>
