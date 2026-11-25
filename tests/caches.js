@@ -44,6 +44,9 @@ assert.deepStrictEqual([...COMPARED, ...Object.keys(CACHES_UNCOMPARED)].filter((
 const runs = [state(), scenario('founders', 7)];
 for (const st of runs) Sim.advance(st, 45 * Sim.DAY);
 const natural = carried.size;
+// the args a verb is tried with by hand, where {} cannot pass its check: a gift of a little grain (VB-446 moved the draws, and the loans of
+// VB-312 that carried it in the run no longer fall in its 45 days)
+const ARGS = { give: [{ good: 'grain', n: 1 }], repay: [{ n: 1 }] };
 // each verb not yet carried, by hand: an actor, a target of each kind and the verb's sources, until its check lets one by
 for (const verb of Object.keys(VERBS).filter((v) => !carried.has(v))) {
   for (const st of runs) {
@@ -51,7 +54,10 @@ for (const verb of Object.keys(VERBS).filter((v) => !carried.has(v))) {
     const targets = [undefined, null, ...hhs, ...actors, ...tiles, ...st.villages.map((v) => v.id), ...hhs.map((id) => ({ type: 'household', id }))];
     for (const source of VERBS[verb].sources || SOURCES) for (const actor of actors) for (const target of targets) {
       if (carried.has(verb)) break;
-      try { issue(st, { actor, verb, target, args: {}, source }); } catch { /* a check that reads args it was not given: not carried */ }
+      for (const args of ARGS[verb] || [{}]) {
+        if (carried.has(verb)) break;
+        try { issue(st, { actor, verb, target, args, source }); } catch { /* a check that reads args it was not given: not carried */ }
+      }
     }
   }
 }
@@ -59,8 +65,8 @@ assert.deepStrictEqual(failures, [], 'a cache differs from its derivation after 
 // The verbs these states do not reach yet, each needing a command built for it (an offer to answer, a plan, a booth, a trust; VB-1703).
 // The list only shrinks: a verb carried here is struck from it, a new verb is carried or added.
 const NOT_YET = ['answer', 'claim', 'letIn', 'placeFarmstead', 'callWorkday', 'blaze', 'lodge', 'comeHome', 'call', 'goGathering', 'stayHome', 'swap',
-  'target', 'tile', 'order', 'letField', 'dropProject', 'sowOutOfTurn', 'courses', 'dayOrder', 'dayGive', 'dayCall', 'handOn', 'move', 'plotToVillage',
-  'beginCottage', 'goBack', 'goToKin', 'visit', 'sendVisit', 'foundHousehold', 'finishCottage', 'decide', 'argue', 'dropCause', 'rally', 'leave', 'takeUp',
+  'target', 'tile', 'order', 'letField', 'sowOutOfTurn', 'courses', 'dayOrder', 'dayGive', 'dayCall', 'handOn', 'plotToVillage',
+  'beginCottage', 'goBack', 'goToKin', 'visit', 'sendVisit', 'foundHousehold', 'decide', 'argue', 'dropCause', 'rally', 'leave', 'takeUp',
   'renounce', 'marry', 'skip', 'slander',
   'found', 'upkeep']; // VB-361: no facility kind is declared in the game yet (each craft's task declares its own); tests/facilities.js carries both
 const missed = Object.keys(VERBS).filter((v) => !carried.has(v));
