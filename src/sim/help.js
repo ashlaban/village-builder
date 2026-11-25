@@ -153,9 +153,10 @@ VB['sim/help'] = (() => {
       else if (byLand(st, a, b)) ask(lh, lord, { good: 'grain', n: Math.min(want, TRAVEL.load) });
     }
     // a patron (VB-464; design.md, Patronage): the household of its village with the most grain above the feast's threshold, not one
-    // asked already, given by the gift's rule (its floor, its allowance), carried as help is, goodwill booked between the two holders
+    // asked already, given by the gift's rule (its floor, its allowance) and of its plenty (at most what is above the feast's threshold),
+    // carried as help is, goodwill booked between the two holders
     const pt = want >= HELP.askLeast ? patronFor(st, hh, near, lh, head) : null;
-    if (pt) ask(pt, pt.holder, { good: 'grain', n: want });
+    if (pt) ask(pt.hh, pt.hh.holder, { good: 'grain', n: Math.min(want, pt.over) }); // of its plenty: what is over its keep
     const v = st.villages[st.farmsteads[hh.farmstead].village],
       alderman = agentOf(st, v.id);
     const refused = alderman !== null && st.pawns[by].rel.get(alderman),
@@ -187,7 +188,7 @@ VB['sim/help'] = (() => {
         most = over;
       }
     }
-    return best;
+    return best ? { hh: best, over: most } : null;
   }
   on('planReviewed', (st, d) => {
     if ((d.why !== 'day' && d.why !== 'store') || d.plan.holder.type !== 'household') return;
