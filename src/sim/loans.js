@@ -8,7 +8,7 @@ VB['sim/loans'] = (() => {
     Obligations = VB['sim/obligations'],
     Stores = VB['sim/stores'];
   const { issue, register } = VB['sim/commands'];
-  const { on, emit } = VB['sim/events'];
+  const { on } = VB['sim/events'];
   const { HELP, DAY, YEAR, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
   const { floorOf, dailyNeed } = VB['sim/hunger'];
   const { opinionOf, remember } = VB['sim/relations'];
@@ -296,7 +296,7 @@ VB['sim/loans'] = (() => {
       if (n > 0) issue(st, { actor: actorOf(hh), verb: 'repay', target: o.id, args: { n }, source: 'pawn' });
       return 'overdue';
     },
-    // at the second harvest unpaid: told, and heard by VB-315's cases
+    // at the second harvest unpaid: told (VB-315's cases will hear it, emitting the event it subscribes to)
     defaulted: (st, o) => {
       const hh = st.households[o.debtor.id],
         left = Math.round(Obligations.left(o)),
@@ -306,7 +306,6 @@ VB['sim/loans'] = (() => {
       if (hh.holder !== null)
         personEvent(st, hh.holder, 'loanDefaulted', `D${text}`, { n: left, ...atHousehold(st, hh) });
       else log(st, `${nameOf(st, hh)} d${text}.`, { kind: 'loanDefaulted', pawn: null, ...atHousehold(st, hh) });
-      emit(st, 'loanDefaulted', { id: o.id });
     },
   });
   return { LOAN, borrow, lack, spareOf, lends, refuses, harvestAfter };

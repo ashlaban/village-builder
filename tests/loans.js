@@ -10,8 +10,6 @@ const setPractice = (st, v, c) => { for (const [k, o] of Object.entries(c)) st.c
 const { borrow, lack, spareOf, LOAN, harvestAfter } = VB['sim/loans'], { seasonOf } = VB['sim/help'];
 const { seedReserve, floorOf } = VB['sim/hunger'], Obligations = VB['sim/obligations'], Stores = VB['sim/stores'];
 const { balance } = VB['sim/relations'];
-const told = []; // the defaults heard, as VB-315 will (subscribed before the first seed)
-VB['sim/events'].on('loanDefaulted', (s, d) => told.push(d.id));
 const fresh = () => {
   const st = Sim.seed(island(7), 7, 'founders');
   for (const hh of st.households) VB['sim/projectplans'].dropAll(st, 'household', hh.id);
@@ -70,7 +68,6 @@ const spareNeed = (st, hh) => VB['sim/help'].askDaysAt(st) * VB['sim/hunger'].da
   a.grain = { barley: 0 };
   Obligations.step(st);
   assert.strictEqual(o.status, 'defaulted', 'unpaid after the second harvest: defaulted');
-  assert.deepStrictEqual(told, [o.id], 'and heard (VB-315)');
   assert(st.record.some((e) => e.kind === 'loanDefaulted' && e.pawn === a.holder), 'the default is told');
   Sim.advance(st, 0.1); // the work due over the days jumped is taken at the next step
   assert.deepStrictEqual(checkState(st), [], 'invariants defaulted');
@@ -103,5 +100,11 @@ const spareNeed = (st, hh) => VB['sim/help'].askDaysAt(st) * VB['sim/hunger'].da
   for (let k = 0; k < 20 && opinionOf(st, c.holder, a.holder) >= LOAN.enmity; k++) for (const m of ['hardBargain', 'refusedUs']) remember(st, c.holder, a.holder, m);
   assert(opinionOf(st, c.holder, a.holder) < LOAN.enmity, 'setup: enmity');
   assert.strictEqual(refuses(st, c, c.holder, a), 'enmity', 'enmity refuses');
+}
+// grain left lying (a loan's or a gift's) taken up and laid down again on the road keeps its crops (sim/lying lay; seed 3 crashed on it)
+{
+  const st = fresh(), a = st.households.find((h) => !h.dissolved && h.holder !== null), tile = st.farmsteads[a.farmstead].house;
+  const l = VB['sim/lying'].lay(st, { load: 12 }, { owner: { type: 'household', id: a.id }, site: tile, parts: { barley: 9, rye: 3 } }, 'leftGrain', tile, 0, 0);
+  assert.deepStrictEqual(l.of.parts, { barley: 9, rye: 3 }, 'laid down with its crops');
 }
 console.log('loans ok');

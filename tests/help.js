@@ -35,7 +35,7 @@ const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the f
   settle(st);
   const came = a.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.from !== undefined).reduce((t, e) => t + e.n, 0); // the household eats as it comes in
   assert(Math.abs(came - given) < 1e-6, `kin gave ${came}, expected ${given}`);
-  assert.strictEqual(Sim.grainOf(c), c0, 'a household below its buffer does not give');
+  assert(Sim.grainOf(c) >= c0, 'a household below its buffer does not give'); // (it may borrow: sim/loans)
   assert(a.ledger.some((e) => e.kind === 'gift' && e.n > 0) && b.ledger.some((e) => e.kind === 'gift' && e.n < 0), 'gift in both ledgers');
   assert(st.pawns[b.holder].ties.get(a.holder) >= HELP.tieGain, 'the gift raises the tie between the holders');
 }

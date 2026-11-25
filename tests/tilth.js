@@ -21,6 +21,6 @@ check(near(s1 / s0, 1.1, 0.03), `harvest ratio ${s1 / s0}`);
 a.tilth = TILTH.max + 1; a.tilthAt = 0;
 check(checkState(st).some((m) => /tilth/.test(m)), 'invariant misses a tilth above max');
 // nothing daily: a day with no dung on any heap and no crop ripe reads no tilth
-{ const q = state(), Sim = VB.sim; for (const h of q.households) h.manure = 0; for (const x of q.farmsteads) for (const fd of x.fields) fd.stage = 'stubble';
-  const n = VB.count.tilthRead; Sim.advance(q, Sim.DAY); check(VB.count.tilthRead === n, 'tilth read on a day with no manuring or reaping'); }
+{ const q = state(), Sim = VB.sim; for (const x of q.farmsteads) for (const fd of x.fields) fd.stage = 'stubble';
+  const n = VB.count.tilthRead; for (let h = 0; h < 24; h++) { for (const x of q.households) x.manure = 0; Sim.advance(q, 1); } /* a job under way spreads an empty heap */ check(VB.count.tilthRead === n, 'tilth read on a day with no manuring or reaping'); }
 if (failed) process.exit(1); console.log('tilth ok');
