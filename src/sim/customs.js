@@ -225,6 +225,17 @@ VB['sim/customs'] = (() => {
         ['ways', 'A meadow in grass is crossed only along its ways'],
       ],
     },
+    // VB-312 (design.md, Loans, obligations and cases: Interest and due; Slice 5's practices): what a grain loan is repaid with at the
+    // harvest, read where the loan is made, by the borrower's village (sim/loans)
+    {
+      key: 'loans',
+      label: 'Loans of grain are repaid',
+      m: 0.4,
+      opts: [
+        ['quarter', 'With a quarter more'],
+        ['asLent', 'As lent'],
+      ],
+    },
   ];
   const OFF = [],
     NOPT = [],
@@ -260,6 +271,7 @@ VB['sim/customs'] = (() => {
       keep: 'days',
       outside: 'after',
       passage: 'free',
+      loans: 'quarter',
       commons: 'fair', // its claims favour kin, not the village (`first` where an archetype's claims are the village's: villagers, assembly)
     },
   };

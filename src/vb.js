@@ -49,6 +49,12 @@ VB.COUNTERS = {
   asksRead: 'Open asks for a good passed by a head reading them, once a year a head (sim/asks, VB-699)',
   termsValued:
     'Households valued for a match offered, its dowry and its morning gift: two an offer (sim/terms, VB-276)',
+  loanLenders:
+    'Households and stores weighed as lenders by a household short after help, once a season, over its village (sim/loans, VB-312)',
+  loansMade: 'Loans of grain made (sim/loans, VB-312)',
+  loanLent: 'Grain lent, in rations (sim/loans, VB-312)',
+  loanRepaid: 'Grain of loans repaid, in rations (sim/loans, VB-312)',
+  loanDefaulted: 'Grain of loans defaulted, in rations unpaid after the second harvest (sim/loans, VB-312)',
   offerWeighed: 'Answers to an offer weighed by the pawn asked, at the due time (sim/offers, VB-690)',
   offersAnswered: 'Open offers answered at a village step of the moving round, a day of it each (sim/round, VB-692)',
   adviceOffered: 'Advice offered by a retired member to its head, at its spring planning day (sim/advice, VB-1316)',

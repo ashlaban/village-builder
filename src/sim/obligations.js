@@ -10,7 +10,8 @@ VB['sim/obligations'] = (() => {
   //   term to the next, or null: a single term), enforcer (a party ref, or null: social only), status ('open', 'part', 'overdue' while it
   //   lives; 'met', 'forgiven', 'lapsed', 'defaulted' once closed), delivered (of what it owes), since (the hour it was made)}; written
   //   only here; absent until the first. A `days` one (VB-462) also has source ('debt', 'keep', 'patron') and called (the days called, not
-  //   yet over: written by sim/days).
+  //   yet over: written by sim/days). A `loan` one (VB-312, sim/loans) also has lent (the grain lent, before what custom adds) and
+  //   missed (its dues passed unpaid: overdue at the first, defaulted at the second).
   // @state st.obligationsDue: the ids of the obligations whose term runs (status open or part), sorted by due, then id: the due-queue
   //   (Rules for cost, 4). A cache owned here.
   // @state st.obligationsBy: {debtor, creditor}, each a party's key ('household:3') to the sorted ids of its live obligations (open,
@@ -43,9 +44,23 @@ VB['sim/obligations'] = (() => {
       ended: (st, o) => (o.source === 'debt' ? 'overdue' : 'lapsed'),
     },
   };
+  // A kind contributed by the module whose rules carry it out (a loan: sim/loans, VB-312), before the first seed. Its row may also have
+  // ended ((st, o) => what it becomes at its due, 'overdue' or 'lapsed', unless its kind's verbs meet it there), dues (how many times a
+  // single-term obligation falls due: one still unpaid at a due before the last is overdue and due again at its next term, `missed`
+  // counting them; at the last it is defaulted) and defaulted ((st, o): told as it is).
+  // kind(name) alone reads its row, or null.
+  function kind(name, row) {
+    if (row === undefined) return KINDS[name] || null;
+    if (KINDS[name]) throw new Error(`obligation kind ${name} is declared twice`);
+    KINDS[name] = row;
+  }
   const LIVE = ['open', 'part', 'overdue'];
   const isLive = (o) => LIVE.includes(o.status);
-  const running = (o) => o.status === 'open' || o.status === 'part';
+  // In the due-queue: a term running, or overdue with a due still to come (missed under its kind's dues)
+  const running = (o) =>
+    o.status === 'open' ||
+    o.status === 'part' ||
+    (o.status === 'overdue' && o.missed !== undefined && o.missed < (KINDS[o.kind].dues || 0));
   const keyOf = (party) => `${party.kind}:${party.id}`;
   const amount = (o) =>
     o.owes.rations !== undefined ? o.owes.rations : o.owes.days !== undefined ? o.owes.days : o.owes.hours;
@@ -134,6 +149,8 @@ VB['sim/obligations'] = (() => {
       since: st.t,
     };
     if (draft.source) o.source = draft.source;
+    if (K.dues) o.missed = 0; // dues missed (a loan, VB-312)
+    if (draft.lent !== undefined) o.lent = draft.lent; // a loan's grain lent, before what custom adds (VB-312)
     if (o.owes.days !== undefined) o.called = 0; // days called and not yet over (sim/days)
     st.obligations.push(o);
     enqueue(st, o);
@@ -209,7 +226,8 @@ VB['sim/obligations'] = (() => {
     return null;
   }
   // Each step: the obligations whose term has ended, and only those (Rules for cost, 4). One of a kind with terms goes on to its next
-  // term, as it stands; one with a single term is overdue, and waits out of the queue for who enforces it (VB-315).
+  // term, as it stands; one with a single term is what its kind's `ended` makes it (overdue by default, waiting out of the queue for
+  // who enforces it, VB-315; a loan is paid there, or overdue and due again, or defaulted: sim/loans).
   function step(st) {
     const q = st.obligationsDue;
     while (q.length && st.obligations[q[0]].due <= st.t) {
@@ -219,11 +237,22 @@ VB['sim/obligations'] = (() => {
         while (o.due <= st.t) o.due += o.every;
         enqueue(st, o);
       } else {
-        const to = KINDS[o.kind].ended ? KINDS[o.kind].ended(st, o) : 'overdue';
+        const K = KINDS[o.kind],
+          to = K.ended ? K.ended(st, o) : 'overdue';
+        if (!isLive(o)) continue; // met, or lapsed, as it ended
         if (to === 'lapsed') {
           o.status = 'overdue';
           lapse(st, o.id, 'its year ended with the days not called');
-        } else o.status = to;
+        } else if (K.dues && ++o.missed >= K.dues) {
+          if (K.defaulted) K.defaulted(st, o);
+          close(st, o, 'defaulted');
+        } else {
+          o.status = to;
+          if (K.dues) {
+            o.due = K.term(o.due); // due again at its next term (a loan overdue)
+            enqueue(st, o);
+          }
+        }
       }
     }
   }
@@ -254,7 +283,7 @@ VB['sim/obligations'] = (() => {
     return out.sort((a, b) => a[0] - b[0]);
   }
   return {
-    KINDS,
+    kind, // its KINDS, contributed to and read
     create,
     isLive,
     setCalled,

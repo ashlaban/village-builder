@@ -62,8 +62,8 @@ VB['sim/gifts'] = (() => {
       name = store ? o.from.name + "'s store" : st.farmsteads[o.from.farmstead].name,
       parts = {},
       to = st.farmsteads[o.to.farmstead];
-    Stores.take(st, o.from, 'grain', o.n, { kind: o.keep ? 'keep' : 'gift', to: to.name }, parts);
-    booked(st, o.from, o.to, o.n, name);
+    Stores.take(st, o.from, 'grain', o.n, { kind: o.keep ? 'keep' : o.loan ? 'loan' : 'gift', to: to.name }, parts);
+    if (!o.loan) booked(st, o.from, o.to, o.n, name); // a loan books an obligation, not goodwill (sim/loans, VB-312)
     const stop = {
       at: store ? o.from.center : st.farmsteads[o.from.farmstead].house,
       from: store ? null : o.from.id,
@@ -73,16 +73,57 @@ VB['sim/gifts'] = (() => {
       left: o.n,
       parts,
     };
-    const a = st.agents[o.fetcher];
+    if (o.loan) stop.loan = true;
+    goFetch(st, o.fetcher, o.to, stop, store ? o.from.id : st.farmsteads[o.from.farmstead].village);
+  }
+  // Pawn `by` of household `to` fetches what lies at `stop` (in village v): a stop more of the fetch he is on, or a fetch of its own
+  function goFetch(st, by, to, stop, v) {
+    const a = st.agents[by];
     if (addFetchStop(st, a.id, stop)) return;
     setDown(st, a);
-    const v = store ? o.from.id : st.farmsteads[o.from.farmstead].village;
-    setOut(st, a, o.to, o.to, false, hoursBetween(st, to.village, v), {
-      to: o.to.id,
+    setOut(st, a, to, to, false, hoursBetween(st, st.farmsteads[to.farmstead].village, v), {
+      to: to.id,
       held: 0,
       parts: {},
       stops: [stop],
     });
+  }
+  // A loan's repayment (VB-312; Kim, 16 Nov: carried back when due), n grain of household `from` owed to household `to` or a village's
+  // store: set aside at the debtor's house as the creditor's, the reason `loan`, and fetched by one of the creditor's (fetcherOf; with
+  // none, it lies there for the creditor's hands, sim/lying), or carried to the green by one of the debtor's for a store (haulerOf);
+  // within one farmstead it changes owner where it lies. Only the verb `repay` (sim/loans) calls it. True, or why not (no one to carry it
+  // to the green: nothing is set aside).
+  function setAside(st, from, to, n) {
+    const f = st.farmsteads[from.farmstead],
+      parts = {};
+    if (!('farmstead' in to)) {
+      const by = haulerOf(st, from);
+      if (by < 0) return noneWhy(st, from, 'no one of the household can carry it');
+      Stores.take(st, from, 'grain', n, { kind: 'loan', to: to.name + "'s store" }, parts);
+      const a = st.agents[by];
+      setDown(st, a);
+      setOut(st, a, from, from, false, 1, {
+        to: from.id,
+        village: to.id,
+        haul: true,
+        loan: true,
+        held: 0,
+        parts: {},
+        stops: [{ at: f.house, from: from.id, village: null, name: f.name, left: n, parts }],
+      });
+      return true;
+    }
+    const name = st.farmsteads[to.farmstead].name;
+    Stores.take(st, from, 'grain', n, { kind: 'loan', to: name }, parts);
+    if (from.farmstead === to.farmstead) {
+      Stores.put(st, to, 'grain', n, { kind: 'loan', from: f.name }, parts);
+      return true;
+    }
+    const stop = { at: f.house, from: from.id, village: null, name: f.name, keep: false, loan: true, left: n, parts },
+      by = fetcherOf(st, to);
+    if (by >= 0) goFetch(st, by, to, stop, f.village);
+    else Lying.leave(st, 'leftGrain', n, f.house, { type: 'household', id: to.id }, { of: { parts } });
+    return true;
   }
   // A household's quarter for its village's store (VB-849: the yearly filling, carried): grain of o.from, o.n of it, is set aside at its
   // house, and o.hauler, one of its members (haulerOf), carries it to the green (`v.center`) TRAVEL.load a trip; it is in the store only as
@@ -227,5 +268,5 @@ VB['sim/gifts'] = (() => {
     },
   });
   on('startLaid', (st, e) => layStart(st, e.hh, e.piles));
-  return {};
+  return { setAside };
 })();

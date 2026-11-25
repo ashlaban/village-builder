@@ -96,7 +96,7 @@ const unbuild = (f) => (f.byre = null);
   assert.strictEqual(byreOf().planned, true);
   const before = chainSteps(st, hh.id, 'outbuilding', f.house).steps;
   assert.deepStrictEqual(before.map((y) => y.kind), ['timber', 'byrewalls', 'byreroof']);
-  assert.strictEqual(before[0].n, Math.ceil((BUILD.byre.timber - 6) / st.ECON.woodPerTrip - 1e-9), 'trips for what home does not cover');
+  assert.strictEqual(before[0].n, Math.ceil((BUILD.byre.timber - (hh.timber || 0)) / st.ECON.woodPerTrip - 1e-9), 'trips for what home does not cover');
   for (let i = 0; i < 240 && !projectsOf(st, 'household', hh.id).some((p) => p.what === 'byre'); i++) Sim.advance(st, 0.1);
   const p = projectsOf(st, 'household', hh.id).find((q) => q.what === 'byre');
   assert(p, 'begun by the task');
