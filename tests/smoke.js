@@ -110,6 +110,18 @@ const iv = setInterval(async () => {
   }
   q('[data-speed="1"]').click();
   doc.getElementById('landBtn').click(); tick(5); doc.getElementById('landBtn').click(); tick(2); // the Land overlay on and off (VB-004)
+  { // its filter (VB-044): each level and dimension, all and the selected one alone, the overlay on and off; then a farm selected, outlined
+    const setF = (id, v) => { const e = doc.getElementById(id); if (e.type === 'checkbox') e.checked = v; else e.value = v; e.dispatchEvent(new win.Event('change')); };
+    const keyText = () => doc.getElementById('landKey').textContent;
+    for (const level of ['household', 'village', 'all']) for (const dim of ['owns', 'works']) for (const only of [false, true]) {
+      setF('landLevel', level); setF('landDim', dim); setF('landOnly', only);
+      doc.getElementById('landBtn').click(); tick(3);
+      if (doc.getElementById('landKey').hidden || !/Claims/.test(keyText())) fail(`the Land overlay shows no key at ${level}, ${dim}`);
+      if (level !== 'all' && !new RegExp(`Select a ${level}`).test(keyText())) fail(`the Land key does not ask for a ${level} to be selected`);
+      doc.getElementById('landBtn').click(); tick(2);
+    }
+    setF('landLevel', 'all'); setF('landDim', 'owns'); setF('landOnly', false);
+  }
   doc.getElementById('groundBtn').click(); tick(5);
   if (doc.getElementById('groundKey').hidden || !/Bedrock/.test(doc.getElementById('groundKey').textContent)) fail('the Ground overlay shows no key');
   doc.getElementById('groundBtn').click(); tick(2); // the Ground overlay on and off
@@ -142,6 +154,14 @@ const iv = setInterval(async () => {
   {
     const lived = qa('#settlers button[data-farm]').find((b) => b.querySelector('.ppl'));
     lived.click(); tick(5);
+    { // the Land filter (VB-044) on the farm selected: its household outlined, alone; then its village
+      const setF = (id, v) => { const e = doc.getElementById(id); if (e.type === 'checkbox') e.checked = v; else e.value = v; e.dispatchEvent(new win.Event('change')); };
+      setF('landLevel', 'household'); setF('landOnly', true); doc.getElementById('landBtn').click(); tick(3);
+      if (!/The selected household: a white edge/.test(doc.getElementById('landKey').textContent)) fail('the Land key does not outline the selected household');
+      setF('landLevel', 'village'); tick(2);
+      if (!/The selected village: a white edge/.test(doc.getElementById('landKey').textContent)) fail('the Land key does not outline the selected village');
+      doc.getElementById('landBtn').click(); tick(2); setF('landLevel', 'all'); setF('landOnly', false);
+    }
     const shown = (id) => !doc.getElementById(id).hidden;
     if (!q('#tileStats .supplies, #tileStats .card-note')) fail("a farm's card shows no supplies");
     // The supply component (VB-667) on a constructed short household: its head's outlook made by sim/outlook, then food set to last half

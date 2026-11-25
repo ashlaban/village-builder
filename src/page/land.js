@@ -6,6 +6,68 @@
 // Drawn a map chunk at a time (below): only the chunks in view, and only those whose tiles changed.
 let landOn = false,
   landAt = -1;
+// ---- the filter (VB-044; design.md, Claims, ownership and territory, Filters) ----
+// A level (everyone, households or villages), a dimension (owns: every tile a body holds; works: the fields and meadows it works, its farms'
+// and a village's common fields) and, optionally, the selected entity alone; the selected one is outlined in white. The filter is the
+// page's, never st. Its scope is cached as the owner codes it shows (st.owner's coding) and the selected entity's, rebuilt only when the
+// filter or the selection changes; a change marks every chunk stale, and the chunks are drawn again from st.owner and st.claims as for
+// any change of land: nothing is asked of the simulation. When VB-311 records titles, `owns` reads the title's owner in landCode alone.
+const landFilter = { level: 'all', dim: 'owns', only: false };
+let landScopeKey = '',
+  landShow = null, // the owner codes in scope, or null for all
+  landHi = null; // the selected entity's owner codes (a village's: its own and its households'), or null
+// The selected household and village: a pawn's household, a farm's, a village, or the body that owns the selected tile.
+function landSelected() {
+  let h = -1,
+    v = -1;
+  const p = selPawn >= 0 ? st.pawns[selPawn] : null;
+  if (p) h = p.household ?? -1;
+  else if (selFarm >= 0) h = st.farmsteads[selFarm].household ?? -1;
+  else if (selVillage >= 0) v = selVillage;
+  else if (sel >= 0 && sel < st.owner.length) {
+    const n = st.owner[sel];
+    if (n > 0) h = n - 1;
+    else if (n < 0) v = -n - 1;
+  }
+  if (h >= 0 && st.households[h].dissolved) h = -1;
+  if (h >= 0) v = st.farmsteads[st.households[h].farmstead].village;
+  return [h, v];
+}
+// Rebuilds the scope when the filter or the selection changed; true when it did.
+function landScope() {
+  const [h, v] = landSelected(),
+    { level, dim, only } = landFilter,
+    key = `${level}|${dim}|${only}|${h}|${v}`;
+  if (key === landScopeKey) return false;
+  landScopeKey = key;
+  const ofVillage = (vid) => {
+    const s = new Set([-vid - 1]);
+    for (const f of st.villages[vid].farmsteads) {
+      const hh = st.farmsteads[f].household;
+      if (hh !== null && hh !== undefined) s.add(hh + 1);
+    }
+    return s;
+  };
+  landHi = level === 'household' && h >= 0 ? new Set([h + 1]) : level === 'village' && v >= 0 ? ofVillage(v) : null;
+  landShow = only ? landHi || new Set() : null;
+  return true;
+}
+// The code a tile is drawn under, by st.owner's coding, or 0 when it is out of scope; on the villages level a household's tile is drawn
+// as its village's. `worked` holds the worked tiles (for the dimension works), else null.
+function landCode(i, worked) {
+  let n = st.owner[i];
+  if (!n || (worked && !worked.has(i)) || (landShow && !landShow.has(n))) return 0;
+  if (landFilter.level === 'household' && n < 0) return 0;
+  if (landFilter.level === 'village' && n > 0) n = -ownerVillage(n) - 1;
+  return n;
+}
+// Is a claim drawn: its claimant (a pawn as its household) in scope; on the households level, no village's.
+function claimShown(by) {
+  if (by.type === 'village') return landFilter.level !== 'household' && (!landShow || landShow.has(-by.id - 1));
+  const h = by.type === 'household' ? by.id : st.pawns[by.id] ? st.pawns[by.id].household : null;
+  if (h === null || h === undefined) return !landShow;
+  return !landShow || landShow.has(h + 1);
+}
 const EDGE = [0, -60, -120, 180, 120, 60]; // the centre angle of a hex's edge towards neighbour d (the generator's direction order)
 function hslHex(h, sat, l) {
   const f = (n) => {
@@ -88,43 +150,49 @@ function landMarkDirty() {
   }
   st.landDirty.clear();
 }
-function drawLandChunk(tiles, g, woodOf) {
-  const R = w.R;
+function drawLandChunk(tiles, g, woodOf, worked) {
+  const R = w.R,
+    memo = new Map(),
+    at = (i) => {
+      let n = memo.get(i);
+      if (n === undefined) memo.set(i, (n = landCode(i, worked)));
+      return n;
+    };
   g.clear();
   for (const i of tiles) {
-    const n = st.owner[i];
+    const n = at(i);
     if (!n) continue;
-    g.poly(hexPoly(i)).fill({ color: villageColour(ownerVillage(n)), alpha: n < 0 ? 0.28 : 0.42 });
+    g.poly(hexPoly(i)).fill({ color: villageColour(ownerVillage(n)), alpha: st.owner[i] < 0 ? 0.28 : 0.42 });
   }
   // a household's outline: edges between its tiles and any other owner's or none
   for (const i of tiles) {
-    const n = st.owner[i];
+    const n = at(i);
     if (n <= 0) continue;
     for (let d = 0; d < 6; d++) {
       const j = w.nb[i * 6 + d];
-      if (j < 0 || st.owner[j] !== n) edge(g, i, d, 0.94);
+      if (j < 0 || at(j) !== n) edge(g, i, d, 0.94);
     }
     g.stroke({ width: R * 0.07, color: householdColour(st, n - 1), alpha: 0.9 });
   }
   // borders between villages' land, and of each village's land against the unheld
   for (const i of tiles) {
-    const n = st.owner[i];
+    const n = at(i);
     if (!n) continue;
     const v = ownerVillage(n);
     for (let d = 0; d < 6; d++) {
       const j = w.nb[i * 6 + d];
-      if (j >= 0 && st.owner[j] && ownerVillage(st.owner[j]) !== v) edge(g, i, d);
+      if (j >= 0 && at(j) && ownerVillage(at(j)) !== v) edge(g, i, d);
     }
   }
   g.stroke({ width: R * 0.13, color: 0x2a1a0c, alpha: 0.85 });
   // the edge of each village's land against land nobody holds, in the village's colour
   const edges = new Map();
   for (const i of tiles) {
-    const n = st.owner[i];
+    const n = at(i);
     if (!n) continue;
     for (let d = 0; d < 6; d++) {
       const j = w.nb[i * 6 + d];
-      if (j < 0 || st.owner[j] || w.water[j]) continue;
+      if (j < 0 || at(j) || w.water[j]) continue;
       const v = ownerVillage(n);
       if (!edges.has(v)) edges.set(v, []);
       edges.get(v).push([i, d]);
@@ -134,10 +202,27 @@ function drawLandChunk(tiles, g, woodOf) {
     for (const [i, d] of list) edge(g, i, d);
     g.stroke({ width: R * 0.11, color: hslHex(villageHue(v), 0.8, 0.3), alpha: 0.9 });
   }
+  // the selected household or village (VB-044): a white edge round its land in scope
+  if (landHi) {
+    const hi = (i) => landHi.has(st.owner[i]) && at(i) !== 0;
+    let any = false;
+    for (const i of tiles) {
+      if (!hi(i)) continue;
+      for (let d = 0; d < 6; d++) {
+        const j = w.nb[i * 6 + d];
+        if (j < 0 || !hi(j)) {
+          edge(g, i, d, 0.98);
+          any = true;
+        }
+      }
+    }
+    if (any) g.stroke({ width: R * 0.12, color: 0xffffff, alpha: 0.95 });
+  }
   for (const i of tiles) {
-    const list = st.claims.get(i);
-    if (!list) continue;
-    if (list.length > 1) {
+    const all = st.claims.get(i),
+      list = all && all.filter((c) => claimShown(c.by));
+    if (!list || !list.length) continue;
+    if (all.length > 1) {
       // contested: hatched
       for (const k of [-0.4, 0, 0.4])
         g.moveTo(w.hx[i] - R * 0.45 + k * R, w.hy[i] + R * 0.45).lineTo(w.hx[i] + R * 0.45 + k * R, w.hy[i] - R * 0.45);
@@ -160,7 +245,7 @@ function drawLandChunk(tiles, g, woodOf) {
   const wood = new Map();
   for (const i of tiles) {
     const v = woodOf.get(i);
-    if (v !== undefined) {
+    if (v !== undefined && landFilter.level !== 'household' && (!landShow || landShow.has(-v - 1))) {
       if (!wood.has(v)) wood.set(v, []);
       wood.get(v).push(i);
     }
@@ -201,6 +286,7 @@ function refreshLand() {
     return;
   }
   landIndex();
+  if (landScope()) landMarkAll();
   if (st.landDirty.size) landMarkDirty();
   const [x0, y0, x1, y1] = viewRect(w.R * 2),
     cx1 = Math.min(Math.floor(x1 / LAND_CHUNK), landCols - 1);
@@ -210,6 +296,7 @@ function refreshLand() {
   const inView = new Set();
   for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) inView.add(cy * landCols + cx);
   let woodOf = null,
+    worked = null,
     drew = false;
   const t0 = performance.now();
   const slow = time - landAt >= 0.5; // a drawn chunk that changed is redrawn at most twice a second; a first drawing waits for nothing
@@ -227,8 +314,17 @@ function refreshLand() {
     if (!woodOf) {
       woodOf = new Map();
       for (const v of st.villages) if (v.wood) for (const i of v.wood) woodOf.set(i, v.id);
+      if (landFilter.dim === 'works') {
+        // the worked tiles: the farms' fields and meadows and the villages' common fields (sim/scopes' works)
+        worked = new Set();
+        for (const f of st.farmsteads) {
+          for (const fd of f.fields) worked.add(fd.tile);
+          for (const m of f.meadows || []) worked.add(m.tile);
+        }
+        for (const v of st.villages) for (const fd of v.commonFields || []) worked.add(fd.tile);
+      }
     }
-    drawLandChunk(tiles, c.g, woodOf);
+    drawLandChunk(tiles, c.g, woodOf, worked);
     c.drawn = true;
     landStale.delete(k);
     drew = true;
@@ -265,13 +361,21 @@ function paintLandKey() {
     row('dash', 'border-color:#4d6b2a', "Claimed, not yet held: a dashed ring in the claimant's colour") +
     row('ring', 'border-color:#4d6b2a', 'Held by birthright: a solid ring') +
     row('line', 'border-color:#b02020;border-style:dotted', 'Claimed by several: hatched') +
-    '</ul><h2 class="menu-label">Villages in view</h2><ul>' +
+    '</ul>' +
+    (landFilter.level === 'all'
+      ? ''
+      : '<ul>' +
+        (landHi
+          ? row('line', 'border-color:#fff', `The selected ${landFilter.level}: a white edge`)
+          : `<li>Select a ${landFilter.level} to outline it${landFilter.only ? ' (none shown till then)' : ''}</li>`) +
+        '</ul>') +
+    '<h2 class="menu-label">Villages in view</h2><ul>' +
     (seen.map((v) => row('fill', `background:${hex6(villageColour(v.id))}`, esc(v.name))).join('') ||
       '<li>None in view</li>') +
     '</ul>';
   if (html !== landKeyHTML) {
     landKeyHTML = html;
-    $('landKey').innerHTML = html;
+    $('landKeyBody').innerHTML = html;
   }
 }
 function drawLand() {
@@ -280,6 +384,19 @@ function drawLand() {
   refreshLand();
   paintLandKey();
 }
+// The filter's controls, at the head of the key: a change rebuilds the scope on the next refresh.
+for (const [id, field, read] of [
+  ['landLevel', 'level', (e) => e.value],
+  ['landDim', 'dim', (e) => e.value],
+  ['landOnly', 'only', (e) => e.checked],
+])
+  $(id).addEventListener('change', (e) => {
+    landFilter[field] = read(e.target);
+    if (landOn) {
+      refreshLand();
+      paintLandKey();
+    }
+  });
 function setLand(on) {
   landOn = on;
   L.land.visible = on;
