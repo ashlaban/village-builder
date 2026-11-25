@@ -13,7 +13,9 @@ const read = (f) => (fs.existsSync(path.join(repo, f)) ? fs.readFileSync(path.jo
 for (const f of ['tools/renumber.js', 'tools/backlog.js', 'tools/help.js', 'tools/merge.js', 'tools/lib/ids.js', 'tools/lib/touches.js', 'tests/backlog.js', '.gitattributes',
   'BACKLOG.md', 'BACKLOG_ARCHIVE.md']) write(f, fs.readFileSync(path.join(root, f), 'utf8'));
 fs.cpSync(path.join(root, 'backlog'), path.join(repo, 'backlog'), { recursive: true });
-const top = Math.max(...fs.readdirSync(path.join(repo, 'backlog')).map((f) => +(/^VB-(\d+)\.md$/.exec(f) || [])[1] || 0));
+// the tasks set aside as ideas keep their IDs (tools/lib/ids.js): the scratch repository holds them too, or its next ID would be one of theirs
+if (fs.existsSync(path.join(root, 'docs/ideas'))) fs.cpSync(path.join(root, 'docs/ideas'), path.join(repo, 'docs/ideas'), { recursive: true });
+const top = require(path.join(root, 'tools/lib/ids.js')).highestId(repo).max; // the backlog's files and the ideas', before git exists
 const id = (n) => 'VB-' + n;
 write('notes.md', `An old line names ${id(top)}.\n`);
 git('init', '-q', '-b', 'main'); git('config', 'user.email', 't@example.com'); git('config', 'user.name', 't'); git('config', 'commit.gpgsign', 'false');
