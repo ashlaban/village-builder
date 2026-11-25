@@ -38,7 +38,8 @@ everything else is a proposal or a prediction (section 4). "Claim" means a land 
 - **A task is a plan, worked out from the world** (3.2): no phase; methods as rows of steps with a precondition and an effect, read
   backwards from the goal; a stray good fetched by one general method. This removes the exit behind VB-1548 and the carrying hooks.
 - **The levy's starting values, its bookkeeping and its relation to `sim/obligations`** (3.3), all Proposed.
-- **A path of twelve steps** (3.10), six of which leave unplayed behaviour unchanged.
+- **A path of nine steps** (3.10), ordered by dependency and risk; behaviour need not be preserved, and every step must pass the gate
+  (no crash or invariant broken, no village dying out).
 - **Questions 7 to 12** of section 5, and the new questions that taking the answers in raised (section 5, 13 to 20).
 
 ### What the mocks overturned
@@ -635,7 +636,7 @@ branch with the real change, judged by the gate, is preferred.
 - **Q13.** Counted in a real run from the events themselves: at most 1.0 decision points a head-day, 0.2 an alderman-day, 1.5 a pawn-day.
 
 **Not for a mock, but acceptance tests of the path:** an empty controller on every pawn hashes equal to the unplayed run (steps 2
-and 5); the six parts of every pawn-day sum to `H` (step 8); no act reachable through `Sim` is unreachable through `issue` (step 7).
+and 4); the six parts of every pawn-day sum to `H` (step 6); no act reachable through `Sim` is unreachable through `issue` (step 4).
 
 **What would refute the design, part by part.**
 
