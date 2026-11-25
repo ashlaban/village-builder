@@ -132,8 +132,8 @@ function scopeOf(S, id, level) {
 function layoutScope(S, focus, level, up, down, open) {
   const scope = scopeOf(S, focus, level),
     core = scope ? Sim.inScope(S, scope).pawns.filter((id) => S.pawns[id].died === null) : [];
-  if (!core.includes(focus)) core.push(focus);
   const only = new Set(core);
+  only.add(focus); // a dead person chosen is shown among the scope's people, not counted as one of its living
   for (const id of core) for (const q of Sim.spousesOf(S, id)) only.add(q);
   let earlier = false;
   for (let n = 0, gen = [...only]; gen.length; n++) {
@@ -178,7 +178,7 @@ function layoutScope(S, focus, level, up, down, open) {
   return { ...L, height: L.height - y0, notes: [], partner: new Set(), more: new Map(), core: core.length };
 }
 // The line view: only one person's line is laid out (their ancestors, their father's or mother's line, or their descendants); the rest
-// folds behind chips that open in place. Its cost follows the people shown, but for one pass over the unions.
+// folds behind chips that open in place. Its cost follows the people shown.
 const CHIP_W = 150,
   CHIP_H = 30,
   STEP = NODE_W + SPOUSE_GAP;
@@ -189,13 +189,7 @@ function layoutLine(S, focus, mode, up, down, open) {
     pairs = [],
     partner = new Set(),
     more = new Map(),
-    byPawn = new Map(),
     seen = new Set([focus]);
-  for (const u of S.unions)
-    for (const id of [u.a, u.b]) {
-      if (!byPawn.has(id)) byPawn.set(id, []);
-      byPawn.get(id).push(u);
-    }
   const byBirth = (a, b) => S.pawns[a].born - S.pawns[b].born || a - b;
   const put = (id, x, row) => pos.set(id, { x, y: row * ROW_H, gen: row });
   // below: each person over their children, spouses beside them; a subtree moves right as one when it would overlap its neighbour
@@ -210,10 +204,7 @@ function layoutLine(S, focus, mode, up, down, open) {
       more.set(id, all.length);
       later = true;
     }
-    const sps =
-        depth < down || !depth
-          ? (byPawn.get(id) || []).map((u) => (u.a === id ? u.b : u.a)).filter((q) => !seen.has(q))
-          : [],
+    const sps = depth < down || !depth ? Sim.spousesOf(S, id).filter((q) => !seen.has(q)) : [],
       unit = [id];
     [...new Set(sps)].forEach((q, n) => {
       seen.add(q);
@@ -371,7 +362,6 @@ function layoutLine(S, focus, mode, up, down, open) {
     pairs,
     partner,
     more,
-    byPawn,
     width: x1 - x0,
     height: y1 - y0,
   };
@@ -429,16 +419,7 @@ function findPath(S, a, b) {
       mate,
     };
   }
-  const from = new Map([[a, null]]),
-    kin = new Map();
-  for (const u of S.unions)
-    for (const [x, y] of [
-      [u.a, u.b],
-      [u.b, u.a],
-    ]) {
-      if (!kin.has(x)) kin.set(x, []);
-      kin.get(x).push(y);
-    }
+  const from = new Map([[a, null]]);
   for (let gen = [a]; gen.length && !from.has(b);) {
     const next = [],
       go = (c, q, step) => {
@@ -450,7 +431,7 @@ function findPath(S, a, b) {
     for (const c of gen) {
       go(c, S.pawns[c].father, 'up');
       go(c, S.pawns[c].mother, 'up');
-      for (const q of kin.get(c) || []) go(c, q, 'spouse');
+      for (const q of Sim.spousesOf(S, c)) go(c, q, 'spouse');
       for (const q of Sim.childrenOf(S, c)) go(c, q, 'down');
     }
     gen = next;
@@ -467,8 +448,7 @@ function findPath(S, a, b) {
 // The path as a drawing: a step up or down changes the row, a marriage or a turn starts a new column.
 function layoutPath(S, P) {
   const pos = new Map(),
-    pairs = [],
-    byPawn = new Map();
+    pairs = [];
   let col = 0,
     row = 0,
     x0 = 0,
@@ -495,12 +475,6 @@ function layoutPath(S, P) {
     q.x -= x0;
     q.y -= y0;
   }
-  for (const u of S.unions)
-    if (pos.has(u.a) && pos.has(u.b))
-      for (const id of [u.a, u.b]) {
-        if (!byPawn.has(id)) byPawn.set(id, []);
-        byPawn.get(id).push(u);
-      }
   return {
     pos,
     chips: [],
@@ -508,7 +482,6 @@ function layoutPath(S, P) {
     pairs,
     partner: new Set(),
     more: new Map(),
-    byPawn,
     width: x1 - x0,
     height: y1 - y0,
   };

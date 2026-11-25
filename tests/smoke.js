@@ -294,19 +294,44 @@ const iv = setInterval(async () => {
     }
   }
   // the scopes (VB-095): each draws its person among their household's, village's or culture's people, and a "+ n more" chip opens in place
+  let opened = 0;
   for (const mode of ['household', 'village', 'culture']) {
     q(`#treeModes [data-mode="${mode}"]`).click(); shown[mode] = qa('#treeSvg g.tn').length;
     if (!q('#treeSvg g.tn.focus')) fail(`the ${mode} view does not show the person it is of`);
+    if (mode === 'household') {
+      // every living member of the person's household is drawn, and the count names the living only
+      const S = P.st, hh = S.households[S.pawns[parent].household], live = hh.members.filter((m) => S.pawns[m].died === null);
+      const missing = live.filter((m) => !q(`#treeSvg g.tn[data-pawn="${m}"]`));
+      if (missing.length) fail(`the household view leaves out its living members ${missing.join(', ')}`);
+      if (!doc.getElementById('treeSub').textContent.includes(`${live.length} living in the household`)) fail(`the household view miscounts its living: ${doc.getElementById('treeSub').textContent}`);
+    }
     if (shown[mode] > all) fail(`the ${mode} view shows more people than the records hold`);
     if (q(`#treeModes [data-mode="${mode}"]`).getAttribute('aria-selected') !== 'true') fail(`the ${mode} tab is not selected`);
     if (!new RegExp(`living in the ${mode}`).test(doc.getElementById('treeSub').textContent)) fail(`the ${mode} view does not say its scope`);
     const chip = q('#treeSvg g.chip[data-chip^="kids:"]');
     if (chip) {
+      opened++;
       chip.dispatchEvent(new win.MouseEvent('click', { bubbles: true }));
       if (qa('#treeSvg g.tn').length <= shown[mode]) fail(`a "+ n more" chip of the ${mode} view opened nobody`);
     }
   }
+  if (!opened) fail('no scope view folds anyone behind a "+ n more" chip');
   if (shown.household > shown.culture) fail('the household shows more people than the culture');
+  // a dead person chosen: shown in their village's view, never counted among its living
+  {
+    const S = P.st, dead = S.pawns.find((p) => p.died !== null && p.household !== null && !S.households[p.household].dissolved);
+    if (dead) {
+      q('#treeModes [data-mode="village"]').click();
+      const v = S.farmsteads[S.households[dead.household].farmstead].village;
+      const living = S.households.filter((h) => !h.dissolved && S.farmsteads[h.farmstead].village === v).reduce((n, h) => n + h.members.filter((m) => S.pawns[m].died === null).length, 0);
+      // chosen as from the info panel's names, which the tree's click handler reads
+      const e = doc.createElement('button'); e.dataset.pawn = dead.id; doc.getElementById('treeInfo').appendChild(e); e.click(); doc.getElementById('treeInfo').appendChild(e); e.click(); // twice: the second makes the selected person the one the view is of
+      if (!q(`#treeSvg g.tn.focus[data-pawn="${dead.id}"]`)) fail('the village view of a dead person does not show them');
+      if (!doc.getElementById('treeSub').textContent.includes(`${living} living in the village`)) fail(`the village view of a dead person miscounts its living (${living}): ${doc.getElementById('treeSub').textContent}`);
+    }
+  }
+  // the tree's layouts read sim/records' indexes, never a pass over the unions (VB-095)
+  if (/S\.unions/.test(require('../tools/lib/source.js').readSource('src/page/treelayout.js'))) fail('src/page/treelayout.js scans S.unions');
   // only what is in view, with a margin, is drawn (VB-095): a narrow window on everyone draws fewer, and panning changes which
   {
     const box = doc.getElementById('treeSvg').parentNode;

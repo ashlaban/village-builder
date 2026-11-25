@@ -28,13 +28,8 @@ function treeLinks(L) {
       mx = (x1 + x2) / 2;
     // a spouse placed beside is linked only when nobody stands between the two
     if (x2 - x1 > GAP + 1 && (L.partner.has(ia) || L.partner.has(ib))) continue;
-    // ended: the last union of the two has ended (the line view holds the unions of the people it shows; the others ask the index)
-    let ended;
-    if (L.byPawn) {
-      const us = (L.byPawn.get(ia) || []).filter((u) => u.a === ib || u.b === ib),
-        u = us[us.length - 1];
-      ended = !!u && u.end !== null;
-    } else ended = Sim.spouseOf(st, ia) !== ib;
+    // ended: the two are no longer each other's spouse (sim/records' index)
+    const ended = Sim.spouseOf(st, ia) !== ib;
     out.push({
       box: [Math.min(x1, x2), y - 5, Math.max(x1, x2), y + 5],
       draw: (links) => {
@@ -82,7 +77,8 @@ const treeOpen = new Set();
 let treeL = null,
   treeLinkList = [],
   treeHeirs = new Set(),
-  treeDrawn = null;
+  treeDrawn = null,
+  treeFocused = false; // the view is of one person (a line, a path or a scope), who is marked and centred
 const lineMode = () =>
   treeMode !== 'all' &&
   !TREE_SCOPES.includes(treeMode) &&
@@ -163,7 +159,7 @@ function renderTree() {
   );
   treeL = L;
   treeLinkList = treeLinks(L);
-  treeL.focused = line || scope;
+  treeFocused = line || scope;
   drawTree();
 }
 // The window of the tree in view, in its own coordinates, with a margin around it; null where the page has no layout (a test's), and
@@ -221,7 +217,7 @@ function drawTreePerson(svg, L, id, q) {
     'g',
     {
       class: `tn ${p.sex}${p.id === treeSel ? ' sel' : ''}${dead ? ' dead' : ''}${
-        L.focused && (p.id === treeFocus || (treeMode === 'path' && p.id === treeOther)) ? ' focus' : ''
+        treeFocused && (p.id === treeFocus || (treeMode === 'path' && p.id === treeOther)) ? ' focus' : ''
       }`,
       transform: `translate(${q.x},${q.y})`,
       tabindex: '0',
@@ -282,7 +278,7 @@ $('treeSvg').parentNode.addEventListener('scroll', () => {
 // brings the person the line or scope is of into the middle of the scrolled view
 function centreTree() {
   const box = $('treeSvg').parentNode,
-    q = treeL && treeL.focused && treeL.pos.get(treeFocus);
+    q = treeL && treeFocused && treeL.pos.get(treeFocus);
   if (q) {
     box.scrollLeft = q.x + TREE_PAD + NODE_W / 2 - box.clientWidth / 2;
     box.scrollTop = q.y + TREE_PAD + NODE_H / 2 - box.clientHeight / 2;
