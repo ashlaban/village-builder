@@ -101,6 +101,43 @@ const spareNeed = (st, hh) => VB['sim/help'].askDaysAt(st) * VB['sim/hunger'].da
   assert(opinionOf(st, c.holder, a.holder) < LOAN.enmity, 'setup: enmity');
   assert.strictEqual(refuses(st, c, c.holder, a), 'enmity', 'enmity refuses');
 }
+{ // help has not gone round: no ask this season and above what makes one ask, so no loan (review VB-312, F10)
+  const st = fresh(), { a, c } = pair(st), { HELP } = VB['sim/rules'], need = VB['sim/hunger'].dailyNeed(st, a);
+  rich(st, c, 500);
+  a.grain = { barley: Stores.reserved(st, a, 'grain') + (HELP.askBelow + 2) * need };
+  assert(lack(st, a) >= LOAN.sack && a.askedIn === undefined, 'setup: short of the harvest, not asked');
+  assert.strictEqual(borrow(st, a), false, 'it does not borrow'); assert.strictEqual(loansOf(st).length, 0, 'no loan');
+}
+{ // a gift carried to it from beyond a day is grain on its way: it lacks less (F2)
+  const st = fresh(), { a } = pair(st);
+  const l0 = lack(st, a);
+  st.away.push({ why: 'carry', pawn: -1, gift: { to: a.id, n: 30, parts: {} } });
+  assert(Math.abs(l0 - lack(st, a) - 30) < 1e-9, `the carried 30 counted: ${l0} then ${lack(st, a)}`);
+  st.away.pop();
+}
+{ // the lender is played and answers later: what it lends then is at most what is still lacking (F1)
+  const st = fresh(), { a, c } = pair(st);
+  rich(st, c, 900);
+  st.player = { pawn: c.holder, queue: [], auto: true };
+  a.askedIn = seasonOf(st.t);
+  assert.strictEqual(borrow(st, a), true, 'it asks');
+  const o = st.offers.find((x) => x.basis === 'loan' && x.to === c.holder);
+  assert(o && loansOf(st).length === 0, 'the played lender is asked, and its answer waits');
+  a.grain.barley += lack(st, a) - 25; // meanwhile it was given most of what it lacked
+  const want = lack(st, a);
+  assert.strictEqual(VB['sim/commands'].issue(st, { actor: c.holder, verb: 'answer', target: o.id, args: { yes: true }, source: 'player' }), true, 'the player says yes');
+  const total = loansOf(st).reduce((s, x) => s + x.lent, 0);
+  assert(total > 0 && total <= want + 1e-9, `lent ${total} against a lack of ${want}`);
+}
+{ // the played debtor, its pawn not planning for it, is not made to repay at the harvest: overdue (F3)
+  const st = fresh(), { a, c } = pair(st);
+  const id = Obligations.create(st, { kind: 'loan', debtor: { kind: 'household', id: a.id }, creditor: { kind: 'household', id: c.id }, owes: { rations: 20 }, lent: 16, enforcer: { kind: 'village', id: st.farmsteads[a.farmstead].village } }), o = st.obligations[id];
+  st.player = { pawn: a.holder, queue: [], auto: false };
+  setClock(st, o.due); a.grain = { barley: floorOf(st, a) + 100 };
+  const g0 = Stores.grainOf(a);
+  Obligations.step(st);
+  assert.deepStrictEqual([o.delivered, o.status, Stores.grainOf(a)], [0, 'overdue', g0], 'nothing repaid without its choice; overdue');
+}
 // grain left lying (a loan's or a gift's) taken up and laid down again on the road keeps its crops (sim/lying lay; seed 3 crashed on it)
 {
   const st = fresh(), a = st.households.find((h) => !h.dissolved && h.holder !== null), tile = st.farmsteads[a.farmstead].house;

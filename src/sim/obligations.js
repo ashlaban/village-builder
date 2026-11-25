@@ -231,14 +231,16 @@ VB['sim/obligations'] = (() => {
   function step(st) {
     const q = st.obligationsDue;
     while (q.length && st.obligations[q[0]].due <= st.t) {
-      const o = st.obligations[q.shift()];
+      const o = st.obligations[q[0]];
       VB.count.obligationsDue++;
       if (o.every) {
+        q.shift();
         while (o.due <= st.t) o.due += o.every;
         enqueue(st, o);
       } else {
         const K = KINDS[o.kind],
-          to = K.ended ? K.ended(st, o) : 'overdue';
+          to = K.ended ? K.ended(st, o) : 'overdue'; // still queued as it ends: what it issues sees the caches whole (a loan's repay)
+        dequeue(st, o);
         if (!isLive(o)) continue; // met, or lapsed, as it ended
         if (to === 'lapsed') {
           o.status = 'overdue';

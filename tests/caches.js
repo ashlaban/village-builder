@@ -58,7 +58,7 @@ for (const verb of Object.keys(VERBS).filter((v) => !carried.has(v))) {
 assert.deepStrictEqual(failures, [], 'a cache differs from its derivation after a verb');
 // The verbs these states do not reach yet, each needing a command built for it (an offer to answer, a plan, a booth, a trust; VB-1703).
 // The list only shrinks: a verb carried here is struck from it, a new verb is carried or added.
-const NOT_YET = ['answer', 'repay', 'claim', 'letIn', 'placeFarmstead', 'callWorkday', 'blaze', 'lodge', 'comeHome', 'call', 'goGathering', 'stayHome', 'swap',
+const NOT_YET = ['answer', 'claim', 'letIn', 'placeFarmstead', 'callWorkday', 'blaze', 'lodge', 'comeHome', 'call', 'goGathering', 'stayHome', 'swap',
   'target', 'tile', 'order', 'letField', 'dropProject', 'sowOutOfTurn', 'courses', 'dayOrder', 'dayGive', 'dayCall', 'handOn', 'move', 'plotToVillage',
   'beginCottage', 'goBack', 'goToKin', 'visit', 'sendVisit', 'foundHousehold', 'finishCottage', 'decide', 'argue', 'dropCause', 'rally', 'leave', 'takeUp',
   'renounce', 'marry', 'skip', 'slander',

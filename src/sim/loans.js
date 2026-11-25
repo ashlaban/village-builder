@@ -31,11 +31,15 @@ VB['sim/loans'] = (() => {
     const end = (Math.floor(t / YEAR) * YEAR_DAYS + (AUTUMN + 1) * SEASON_DAYS) * DAY;
     return end > t ? end : end + YEAR;
   };
-  // Grain on its way to household hh: what its members fetch and have not yet brought in (a gift set aside, a loan)
+  // Grain on its way to household hh: what its members fetch and have not yet brought in (a gift set aside, a loan), and a gift a giver's
+  // man carries to it from beyond a day (sim/gifts carryGift)
   function coming(st, hh) {
     let n = 0;
     for (const j of st.away) {
-      if (j.why !== 'fetch' || !j.gift || j.gift.to !== hh.id) continue;
+      VB.count.loanComing++;
+      if (!j.gift || j.gift.to !== hh.id) continue;
+      if (j.why === 'carry') n += j.gift.n || 0;
+      if (j.why !== 'fetch') continue;
       n += j.gift.held || 0;
       for (const s of j.gift.stops) n += s.left;
     }
@@ -98,7 +102,7 @@ VB['sim/loans'] = (() => {
     weigh: (st, o) => {
       const from = Offers.partyOf(st, o.parties.to),
         to = Offers.partyOf(st, o.parties.from);
-      return lends(st, from, o.to, to, o.wants.n) > 0;
+      return lends(st, from, o.to, to, Math.min(o.wants.n, lack(st, to))) > 0;
     },
     // a no is remembered only where the lender had a sack to spare (an honest cannot is not resented, as an ask's)
     refused: (st, o, no) => {
@@ -118,7 +122,7 @@ VB['sim/loans'] = (() => {
     settle: (st, o) => {
       const from = Offers.partyOf(st, o.parties.to),
         to = Offers.partyOf(st, o.parties.from);
-      const n = lends(st, from, o.to, to, o.wants.n);
+      const n = lends(st, from, o.to, to, Math.min(o.wants.n, lack(st, to))); // at most what it lacks now (a later yes: others lent meanwhile)
       if (!(n > 0)) return `${nameOf(st, from)} has nothing to lend now`;
       const args = { good: 'grain', n, loan: true };
       if (!isHousehold(from)) args.store = from.id;
@@ -199,6 +203,11 @@ VB['sim/loans'] = (() => {
     if (hh.dissolved || hh.borrowedIn === season || by === null || by === undefined || !st.pawns[by].alive)
       return false;
     if (unplanned(st, by)) return false;
+    // help has gone round: it asked this season, or it is below what makes it ask (sim/help askFood); and no ask waits for an answer
+    const need = dailyNeed(st, hh);
+    if (hh.askedIn !== season && Stores.grainOf(hh) - Stores.reserved(st, hh, 'grain') >= HELP.askBelow * need)
+      return false;
+    if (st.offers.some((o) => o.basis === 'ask' && o.from === by)) return false;
     let want = lack(st, hh);
     if (want < LOAN.sack) return false;
     if (st.offers.some((o) => o.basis === 'loan' && o.from === by)) return false; // asked already, not yet answered
@@ -293,6 +302,8 @@ VB['sim/loans'] = (() => {
       if (!successor(st, o)) return 'lapsed';
       const hh = st.households[o.debtor.id],
         n = canPay(st, hh, o);
+      // the played holder repays by the verb as it chooses (design.md, Every act is a pawn): unpaid now, it is overdue
+      if (hh.holder !== null && unplanned(st, hh.holder)) return 'overdue';
       if (n > 0) issue(st, { actor: actorOf(hh), verb: 'repay', target: o.id, args: { n }, source: 'pawn' });
       return 'overdue';
     },

@@ -26,6 +26,7 @@ const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the f
   b.grain = { barley: seedReserve(st, b) + buf(b) + 500 }; c.grain = { barley: seedReserve(st, c) + buf(c) / 2 }; v.grain = { barley: 0 };
   const bs = surplus(st, b); assert(Math.abs(bs - 500) < 1e-6, 'surplus is grain above buffer and seed reserve');
   assert.strictEqual(surplus(st, c), 0, 'below its buffer there is no surplus');
+  for (const h of st.households) h.borrowedIn = VB['sim/help'].seasonOf(st.t); // none borrows (sim/loans)
   const g0 = Sim.grainOf(a), c0 = Sim.grainOf(c), want = askDaysAt(st) * dailyNeed(st, a) - 0;
   shareFood(st);
   const given = Math.min(want, bs);
@@ -35,7 +36,7 @@ const bufferOf = (st, id) => VB['sim/traits'].bufferOf(st, id); // VB-520: the f
   settle(st);
   const came = a.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.from !== undefined).reduce((t, e) => t + e.n, 0); // the household eats as it comes in
   assert(Math.abs(came - given) < 1e-6, `kin gave ${came}, expected ${given}`);
-  assert(Sim.grainOf(c) >= c0, 'a household below its buffer does not give'); // (it may borrow: sim/loans)
+  assert.strictEqual(Sim.grainOf(c), c0, 'a household below its buffer does not give');
   assert(a.ledger.some((e) => e.kind === 'gift' && e.n > 0) && b.ledger.some((e) => e.kind === 'gift' && e.n < 0), 'gift in both ledgers');
   assert(st.pawns[b.holder].ties.get(a.holder) >= HELP.tieGain, 'the gift raises the tie between the holders');
 }
