@@ -3,6 +3,7 @@
 // rebuilt on a small constructed state. The runner starts them in this order.
 // @merge union: its entries merge by line: a script a line; the order only schedules them (tools/merge.js, VB-1679)
 const FAST = [
+  ['node', 'tests/wrapups.js'], // VB-048: a wrap-up is not read as done while its arch's implement tasks are open
   ['node', 'tests/build.js'],
   ['node', 'tests/format.js'],
   ['node', 'tests/themes.js'], // VB-1532: every theme of THEMES sets every theme token; every var() of the stylesheet is defined
@@ -278,6 +279,7 @@ const INTEGRATION = [
   ['node', 'tests/weeding.js'],
   ['node', 'tests/soil.js'],
   ['node', 'tests/tilth.js'],
+  ['node', 'tests/ownfood.js'], // VB-048: the band own-food, a farm's own food over its need as a ratio of sums (a 2-year populous tiny run)
   ['node', 'tests/drain.js'],
   ['node', 'tests/surplus.js'],
   ['node', 'tests/hay.js'],
