@@ -1,6 +1,6 @@
 # Study C: the village's year, obligations, and parity
 
-A throwaway mock study of "Plans at four scales" (the scratchpad design under review, sections 2.2, 5 and 6, predictions P10, P12 to
+A throwaway mock study of "Plans at four scales" (`docs/plans/four-scales/design-v1.md`, sections 2.2, 5 and 6, predictions P10, P12 to
 P16), run on 25 November against the simulation as it stands. No game code; nothing here is read by `src/`, tests or tools.
 
 | Script | Kind | What it does | Cost |

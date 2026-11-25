@@ -1,6 +1,6 @@
 # Study A: the task as a plan (P1 to P4)
 
-A throwaway study of design 2.2 of "Plans at four scales" (the scratchpad `plans/design.md`, not the repository's `design.md`). It asks
+A throwaway study of design 2.2 of "Plans at four scales" (`docs/plans/four-scales/design-v1.md`, not the repository's `design.md`). It asks
 whether a task can hold no phase, its next leg worked out from the world each time a leg ends; whether that removes the rare exits and
 the per-kind hooks; and what choosing the method by where the pawn stands saves. No game code is changed; nothing here is game code.
 

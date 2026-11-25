@@ -1,6 +1,6 @@
 # Study B: the household's week and season under disruption
 
-A throwaway mock of the plans design (`design.md` of the plans scratchpad, sections 2.1, 5, 6; the spec is `mocks-spec.md`, Study B).
+A throwaway mock of the plans design (`docs/plans/four-scales/design-v1.md`, sections 2.1, 5, 6; the spec is `docs/plans/four-scales/mocks-spec.md`, Study B).
 It tests P5 to P11 against today's simulation at the working tree of 25 November 2026. No game code; nothing here is read by `src/`.
 
 - `record.js`: the observer. It steps a real run 6 minutes at a time, reads `st` and writes nothing to it. For every household-day it records
