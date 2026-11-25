@@ -1676,6 +1676,17 @@ function checkState(st) {
       if (!o || !B.subject || B.subject(st, o) !== p.id) bad.push(`pawn ${p.id}: ask ${p.ask} is no open offer about its future`);
     }
   }
+  // a marriage's terms (VB-276; sim/terms): pawn.advance absent or {household (a household id), n > 0}; pawn.morningGift and pawn.dower
+  // absent or a positive number, the morning gift on a woman; a match offer's terms {dowry, gift} whole and not negative
+  for (const p of st.pawns) {
+    const a = p.advance;
+    if (a !== undefined && !(a && Number.isInteger(a.household) && st.households[a.household] && a.n > 0)) bad.push(`pawn ${p.id}: advance ${JSON.stringify(a)}`);
+    for (const k of ['morningGift', 'dower'])
+      if (p[k] !== undefined && !(Number.isFinite(p[k]) && p[k] > 0 && p.sex === 'f')) bad.push(`pawn ${p.id}: ${k} ${p[k]}`);
+  }
+  for (const o of Array.isArray(st.offers) ? st.offers : [])
+    if (o.basis === 'match' && o.terms !== undefined && !['dowry', 'gift'].every((k) => Number.isInteger(o.terms[k]) && o.terms[k] >= 0))
+      bad.push(`offer ${o.id}: terms ${JSON.stringify(o.terms)}`);
   // the retired's spring advice (VB-1316; sim/advice): pawn.advisedIn absent, or a year not after this one, on a pawn who was retired then
   for (const p of st.pawns) {
     if (p.advisedIn === undefined) continue;
