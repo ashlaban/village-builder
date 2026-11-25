@@ -2034,7 +2034,8 @@ function checkKnown(st, p, bad) {
     if (seen.has(e.story)) bad.push(`${where}: held twice`);
     seen.add(e.story);
     if (!within(e.v, -1, 1) || !(Number.isInteger(e.hops) && e.hops >= 0) || !within(e.s, 0, 1) || !(e.t <= st.t) ||
-      !Array.isArray(e.zeal) || e.zeal.length !== 2 || !e.zeal.every((z) => within(z, 0, 1)) || typeof e.first !== 'boolean')
+      !Array.isArray(e.zeal) || e.zeal.length !== 2 || !e.zeal.every((z) => within(z, 0, 1)) || typeof e.first !== 'boolean' ||
+      (e.from !== undefined && e.from !== null && !(Number.isInteger(e.from) && st.pawns[e.from] && e.from !== p.id)))
       bad.push(`${where}: ${JSON.stringify(e)}`);
   }
 }
@@ -2045,7 +2046,8 @@ function checkStories(st, bad) {
   for (const id of st.living) for (const e of st.pawns[id].known || []) n.set(e.story, (n.get(e.story) || 0) + 1);
   for (const [id, s] of st.stories) {
     if (s.id !== id || !STORY.kinds[s.kind] || !st.pawns[s.subject] || (s.other !== null && !st.pawns[s.other]) || !within(s.v, -1, 1) ||
-      !(id < st.storySeq)) bad.push(`stories<${id}>: ${JSON.stringify(s)}`);
+      !(id < st.storySeq) || (s.lie !== undefined && (s.lie !== true || !st.pawns[s.by] || !['enemy', 'player'].includes(s.why))) ||
+      (s.counter !== undefined && !(Number.isInteger(s.counter) && s.counter > id))) bad.push(`stories<${id}>: ${JSON.stringify(s)}`);
     if (s.held !== (n.get(id) || 0) || s.held < 1) bad.push(`stories<${id}>: held ${s.held}, by ${n.get(id) || 0} living pawns`);
   }
 }

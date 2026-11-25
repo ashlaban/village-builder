@@ -9,6 +9,7 @@ let barOpen = false,
   barMsg = null,
   barHTML = '',
   tool = null,
+  slander = { who: null, kind: null }, // the Speak ill of form's draft (VB-554): the party and the kind chosen
   toolKey = '',
   flash = null,
   bannerHTML = '';
@@ -115,7 +116,7 @@ function menuHTML(id, opps) {
       continue; // a cause is no act: the dock's Agenda (page/drawer)
     else by.self.push(o);
   }
-  const TITLES = { round: 'At the moving round', give: 'Give grain' };
+  const TITLES = { round: 'At the moving round', give: 'Give grain', slander: 'Speak ill of' };
   let h =
     `<div class="mh">${
       m.view
@@ -127,6 +128,7 @@ function menuHTML(id, opps) {
   if (barMsg) h += `<p class="act-msg${barMsg.bad ? ' bad' : ''}" role="status">${esc(barMsg.text)}</p>`;
   if (m.view === 'round') return `${h}<div class="play">${roundBox(id, by.round, Sim.wishesOf(st, id))}</div>`;
   if (m.view === 'give') return h + giveHTML(id);
+  if (m.view === 'slander') return h + slanderHTML(by.self.find((o) => o.verb === 'slander'));
   if (m.g === 'self') {
     const home = by.self.find((o) => o.verb === 'goHome'),
       idle = by.self.find((o) => o.verb === 'idle');
@@ -207,6 +209,17 @@ function menuHTML(id, opps) {
         `In ${o.call.village}; you spend tomorrow evening in its yard`,
         o.why,
       );
+    // a tale made up about someone it knows (VB-554): the form, with what it risks
+    const ill = by.self.find((o) => o.verb === 'slander');
+    if (ill)
+      h += actRow(
+        'data-bar="view" data-view="slander"',
+        'offer',
+        'Speak ill of',
+        'A tale about someone you know, told as your own',
+        ill.why,
+        true,
+      );
     if (by.offers.length)
       h += actRow(
         'data-bar="sheet"',
@@ -250,6 +263,31 @@ function menuHTML(id, opps) {
   h += by.village.length ? workRows(by.village) : '<p class="act-empty">No village work you may take now.</p>';
   return h;
 }
+// The Speak ill of form (VB-554): whom (the grown it knows best) and what (a kind of tale), with the one line of what it risks.
+function slanderHTML(o) {
+  if (!o) return '<p class="act-empty">You may not speak ill of anyone now.</p>';
+  const { parties, kinds } = o.slander;
+  if (!parties.some((x) => x.id === slander.who)) slander.who = parties.length ? parties[0].id : null;
+  if (!kinds.some((x) => x.kind === slander.kind)) slander.kind = kinds[0].kind;
+  const opt = (v, label, on) => `<option value="${esc(String(v))}"${on ? ' selected' : ''}>${esc(label)}</option>`;
+  return (
+    '<div class="act-form">' +
+    `<label class="fl" for="slanderWho">Of whom</label><select id="slanderWho">${parties
+      .map((x) => opt(x.id, x.name, x.id === slander.who))
+      .join('')}</select>` +
+    `<label class="fl" for="slanderKind">That they</label><select id="slanderKind">${kinds
+      .map((x) => opt(x.kind, x.words, x.kind === slander.kind))
+      .join('')}</select>` +
+    '<p class="hint" data-risk>If it reaches one who knows them better, it is found out: then it is told of you, and worse than you told it.</p>' +
+    `<button type="button" class="primary" data-bar="slander" data-k="slander"${
+      o.why || slander.who === null ? ' disabled' : ''
+    }>Speak ill of them</button></div>`
+  );
+}
+$('actMenu').addEventListener('change', (e) => {
+  if (e.target.id === 'slanderWho') slander.who = +e.target.value;
+  else if (e.target.id === 'slanderKind') slander.kind = e.target.value;
+});
 // Called by renderActions (page/play), with the opportunities it read, or null while neither the list nor the tool is open.
 function renderBar(id, opps) {
   paintBar();
@@ -323,6 +361,12 @@ $('actMenu').addEventListener('click', (e) => {
   } else if (act === 'walk')
     startTool({ kind: 'walk', icon: 'walk', title: 'Walk here', needs: 'an open tile', keep: false });
   else if (act === 'work') workAct(id, b.dataset.kind, b.dataset.holder);
+  else if (act === 'slander') {
+    const r = Sim.queue(st, { actor: id, verb: 'slander', target: slander.who, args: { kind: slander.kind } });
+    barMsg =
+      r === true ? { text: `Queued: speak ill of ${Sim.fullName(st.pawns[slander.who])}.` } : { text: r, bad: true };
+    if (r === true) barMenu.view = null;
+  }
   barHTML = '';
   renderActions();
 });

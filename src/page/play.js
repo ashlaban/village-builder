@@ -43,6 +43,7 @@ const VERB_WORDS = {
   claim: 'Claim an empty farm',
   serve: 'Take service',
   give: 'Give grain',
+  slander: 'Speak ill of someone',
   visit: 'Visit a village',
 };
 // A command in words: a queued one, or an opportunity (which also has its kind and holder).
@@ -65,6 +66,7 @@ function commandWords(c) {
   if (c.verb === 'give' && Number.isInteger(c.target))
     return `Give ${c.args.n} grain to ${st.farmsteads[st.households[c.target].farmstead].name}`;
   if (c.verb === 'call') return `Call at ${st.farmsteads[c.target].name}`;
+  if (c.verb === 'slander' && Number.isInteger(c.target)) return `Speak ill of ${Sim.fullName(st.pawns[c.target])}`;
   if (c.verb === 'serve')
     return c.target === null ? 'Take service' : `Take service at ${holderName({ type: 'household', id: c.target })}`;
   return VERB_WORDS[c.verb] || c.verb;

@@ -55,6 +55,7 @@ VB['sim/notable'] = (() => {
     cause: 'Causes taken up',
     meeting: 'Village meetings that did not decide',
     gathering: 'Gatherings that concern the played person, as they begin',
+    heard: 'What the played person hears said of its household (VB-554)',
   };
   // A pawn's line: itself, its forebears and its descendants, this many generations up and down.
   const GENERATIONS = 4;
@@ -102,6 +103,7 @@ VB['sim/notable'] = (() => {
     if (CUSTOM.has(k)) return ['custom'];
     if (k === 'cause') return ev.reason === 'natural' ? ['cause'] : null; // taken up on its own (VB-082), not laid down or ended
     if (k === 'meetingFailed') return ['meeting'];
+    if (k === 'heardOfUs') return ev.pawn === about ? ['heard'] : null; // only the played pawn's hearing is written (sim/stories)
     if (k !== 'died' && k !== 'born' && k !== 'married') return null;
     const why = [];
     if (concerns(st, ev, about)) why.push('family');
@@ -201,6 +203,8 @@ VB['sim/notable'] = (() => {
     'gift',
     'joined',
     'helped',
+    'heardOfUs',
+    'lieExposed',
   ]);
   // A member's move between farms (a `joined` event that names the farm left, `fromFarm`: sim/heirs' moveTo), as farm `farm` tells it
   // (VB-1027): the farm left tells the leaving, the farm come to the coming; a servant's and a settler's in their own words. One event of
@@ -358,6 +362,7 @@ VB['sim/notable'] = (() => {
     help: 'Its household first receives help in a year',
     occasion: 'A wedding or a funeral ale that concerns it begins',
     wish: 'Its wish for a match lapsed, or was passed by the round',
+    heard: 'It hears a story told of its household or itself',
     offer: 'An offer that waits for its answer',
     refused: 'A command refused',
     idle: 'Nothing queued, with its automatic behaviour off',
@@ -508,6 +513,7 @@ VB['sim/notable'] = (() => {
         ? 'help'
         : null;
     if (k === 'wishLapsed') return ev.pawn === about ? 'wish' : null;
+    if (k === 'heardOfUs') return ev.pawn === about ? 'heard' : null;
     if (k === 'cause')
       return ev.pawn === about && (ev.reason === 'natural' || ev.reason === 'lapsed' || ev.reason === 'won')
         ? 'cause'

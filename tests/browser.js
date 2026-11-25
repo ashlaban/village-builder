@@ -299,6 +299,17 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.waitForTimeout(300);
   if (!(await page.evaluate(() => window.__play.st.player.queue.some((c) => c.verb === 'walkTo')))) fail('Walk here did not queue a walk');
   if (await page.evaluate(() => !!window.__play.tool())) fail('Walk here\'s tool stayed in hand after its walk was queued');
+  // Speak ill of (VB-554): the Myself row opens one form, a party and a kind, with the line of what it risks; its button queues the lie
+  await page.click('#actBar [data-group="self"]'); await page.click('#actMenu [data-view="slander"]');
+  await page.waitForSelector('#actMenu #slanderKind');
+  if (!(await page.locator('#actMenu [data-risk]').count())) fail('the Speak ill of form does not say what it risks');
+  if (await page.locator('#actMenu #slanderWho option').count()) {
+    await page.click('#actMenu [data-bar="slander"]'); await page.waitForTimeout(300);
+    const said = (await page.locator('#actMenu .act-msg').allTextContents()).join('');
+    if (!(await page.evaluate(() => window.__play.st.player.queue.some((c) => c.verb === 'slander'))) && !said) fail('Speak ill of neither queued nor said why');
+    console.log(`browser: Speak ill of: ${said || 'queued'}`);
+  }
+  await page.click('#actBar [data-group="self"]');
   await page.click('#queueBtn');
   // the automatic behaviour off, the queue emptied: in working hours the pawn takes no work once its job in hand is done
   await page.click('#playBox [data-play="auto"]');
