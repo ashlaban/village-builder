@@ -2,7 +2,8 @@
 
 25 November 2026. v2 of the design, rewritten around **the levy** after Kim's answers of the same day (section 6, in Kim's words;
 taken into sections 1 and 3). It replaces `design-v1.md` of this folder (kept for the record; the mocks tested it) and stands on its own.
-Nothing in the repository's code, `design.md` or backlog is changed by it. It rests on the review of the job system
+`design.md` was updated from it on 25 November (section 7, Plans at four scales and The levy and own hours; section 9, Outer
+levies; section 15) and is the reference; this document is the reasoning and the evidence. No code is changed by it. It rests on the review of the job system
 (`docs/review-jobs-2026-11-25/README.md`), on `design.md` sections 1, 7, 9 and 15, and on three mock studies run
 against v1: Study A (the task), Study B (the week) and Study C (the village). The studies and their spec were deleted on 25
 November once read (Kim); their numbers are in section 2, and their scripts in git at `4651420` (`docs/mocks/plans/`). Type
