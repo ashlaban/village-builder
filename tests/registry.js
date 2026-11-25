@@ -159,7 +159,7 @@ const invoke = (args) => cp.execFileSync(process.execPath, [path.join(root, 'too
 const rows = JSON.parse(invoke(['--json']));
 const row = (id) => rows.find((x) => x.rule === id);
 assert.deepStrictEqual(row('death.hazard').contributions.map((c) => c.key), ['hunger', 'frailty', 'crowding']);
-assert.deepStrictEqual(row('allowance').contributions.map((c) => c.key), ['slack', 'goodwill', 'opinion', 'mood', 'reserve']); // VB-216, VB-217, VB-220, VB-875 (as registered)
+assert.deepStrictEqual(row('allowance').contributions.map((c) => c.key), ['slack', 'goodwill', 'opinion', 'mood', 'reserve', 'patron']); // VB-216, VB-217, VB-220, VB-875, VB-708 (as registered)
 const text = invoke([]); // VB-856: read once
 assert(text.includes('HEALTH.riskBelow'));
 // VB-520: what each trait does, with the contributions that read it

@@ -4,6 +4,7 @@
 //   --report waiting                             (VB-633: who waits to marry and why, by 20 years; tools/waiting.js --help)
 //   --report soil [--period year|decade]        (VB-720: dung, tilth and the meadow ratio by farm class and village; tools/soil.js --help)
 //   --report outlook [--village N]               (VB-666: each household's supply outlook beside what came of it; tools/outlook.js --help)
+//   --report followers                          (VB-708: each village's first three by followers by decade, ties' length and ends; tools/followers.js --help)
 //   --report hours [--from Y] [--every step|hour] [--fields N] [--team] [--household N]   (VB-337: tools/hours.js; its --help)
 //   [--save FILE] [--load FILE]                 (VB-074: save the run at the end; or go on from a save, its scenario, seed and map with it;
 //                                                --years then counts on from the save's year; a FILE ending in .gz is gzipped)
@@ -36,6 +37,7 @@ const REPORTS = [
   'accounts',
   'foresight-hunger',
   'stories',
+  'followers',
 ];
 const USAGE = `usage: node tools/sim.js [--scenario founders|solo|heirs|populous|market] [--seed N] [--map probe|tiny|small|medium|large] [--years Y]
   defaults: founders, seed 7, medium, 3 years; prints one line a year, then the report if one is named
@@ -122,6 +124,7 @@ const foresight = report === 'foresight-hunger' ? require('./foresight-hunger.js
 const waiting = report === 'waiting' ? require('./waiting.js').report(VB, st) : null;
 const stories = report === 'stories' ? require('./stories.js').collector(VB, st) : null;
 const gathering = report === 'gathering' ? require('./gathering.js')(VB, st) : null;
+const followers = report === 'followers' ? require('./followers.js')(VB, st) : null; // VB-708
 const accounts = accountsTool ? accountsTool.report(VB, st) : null;
 const hours = report === 'hours' ? require('./hours.js')(VB, st, { from: +opt('from', 1), every: opt('every', 'step'), fields: opt('fields', null),
   team: args.includes('--team'), household: hhId }) : null;
@@ -129,6 +132,7 @@ for (let y = start + 1; y <= last; y++) {
   const t0 = Date.now(), hungry0 = st.households.reduce((s, h) => s + h.hungryDays, 0);
   if (accounts) accounts.advanceYear(); else if (idle) idle.advanceYear(); else if (hours) hours.advanceYear(); else if (hunger) hunger.advanceYear(); else if (waiting) waiting.advanceYear(); else if (foresight) foresight.advanceYear(); else if (soil) soil.advanceYear(); else if (stories) stories.advanceYear(); else if (perf) perfMs += perf.timeAdvance(Sim, st, Sim.YEAR); else Sim.advance(st, Sim.YEAR);
   if (gathering) gathering.year(y);
+  if (followers) followers.year(y);
   const ms = (Date.now() - t0) / Sim.YEAR_DAYS, live = st.households.filter((h) => !h.dissolved);
   const births = st.pawns.filter((p) => !p.founder && p.born >= (y - 1) * Sim.YEAR && p.born < y * Sim.YEAR).length;
   const deaths = {}; for (const p of st.pawns) if (p.died !== null && p.died >= (y - 1) * Sim.YEAR && p.died < y * Sim.YEAR) { const c = causeOf(p) || 'unknown'; deaths[c] = (deaths[c] || 0) + 1; }
@@ -162,6 +166,7 @@ function plansOf(h) {
 const tables = {
   gathering: () => gathering.result(), // VB-294
   stories: () => stories.result(), // VB-523
+  followers: () => followers.result(last), // VB-708
   'foresight-hunger': () => { const F = require('./foresight-hunger.js'), r = foresight.result(); return F.measure(r.rows); }, // VB-571
   reach: () => require('./reach.js')(st), // VB-286
   ground: () => { // VB-735
