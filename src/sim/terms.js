@@ -76,16 +76,25 @@ VB['sim/terms'] = (() => {
   // The terms of match offer o (its man, woman, home and asker read), `set` the asking side's own terms ({dowry} where the woman's side asks,
   // {gift} where the man's does; the played spokesman's): {terms, norms (the defaults, only where the terms differ from them)}, or why not
   function termsFor(st, o, set) {
+    const why = setWhy(o, set);
+    if (why) return why;
     const d = defaults(st, o.gives.man, o.wants.woman, o.gives.home);
-    if (set === undefined || set === null) return { terms: d };
+    const k = o.asker === 'woman' ? 'dowry' : 'gift',
+      v = set === undefined || set === null ? undefined : set[k];
+    if (v === undefined) return { terms: d };
+    const t = { ...d, [k]: Math.round(v) };
+    return t[k] === d[k] ? { terms: d } : { terms: t, norms: d };
+  }
+  // Why `set` is not terms the asking side of offer o may set, or null; values nothing (the offer's check: sim/marriage matchWhy)
+  function setWhy(o, set) {
+    if (set === undefined || set === null) return null;
     const k = o.asker === 'woman' ? 'dowry' : 'gift';
     if (typeof set !== 'object' || Object.keys(set).some((x) => x !== k))
       return `the side that asks sets only the ${k === 'dowry' ? 'dowry' : 'morning gift'}`;
     const v = set[k];
-    if (v === undefined) return { terms: d };
-    if (!(Number.isFinite(v) && v >= 0)) return `a ${k === 'dowry' ? 'dowry' : 'morning gift'} cannot be ${v}`;
-    const t = { ...d, [k]: Math.round(v) };
-    return t[k] === d[k] ? { terms: d } : { terms: t, norms: d };
+    if (v !== undefined && !(Number.isFinite(v) && v >= 0))
+      return `a ${k === 'dowry' ? 'dowry' : 'morning gift'} cannot be ${v}`;
+    return null;
   }
   // Whether offer o's terms are within what an unplayed spokesman accepts: each within TERMS.within times its default
   function fair(o) {
@@ -177,5 +186,5 @@ VB['sim/terms'] = (() => {
         { n: paid, ...atHousehold(st, e.hh) },
       );
   });
-  return { TERMS, movableWorth, defaults, termsFor, fair, settle, advanceOf, settleAdvance, dowerOf };
+  return { TERMS, movableWorth, defaults, termsFor, setWhy, fair, settle, advanceOf, settleAdvance, dowerOf };
 })();

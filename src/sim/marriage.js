@@ -388,14 +388,21 @@ VB['sim/marriage'] = (() => {
     if (courted) out.courted = true;
     if (hers) out.asker = 'woman';
     if (fancy !== undefined) out.fancy = fancy;
-    // its terms (VB-276), valued once here: the defaults, or the asking side's own (the played spokesman's, args.terms)
-    const t = Terms.termsFor(st, { ...o, ...out }, c && c.args ? c.args.terms : undefined);
-    return typeof t === 'string' ? t : Object.assign(out, t);
+    // its terms (VB-276): the asking side's own (the played spokesman's, args.terms) checked here, the defaults valued once, in the
+    // making (matchAnswers): the check runs twice, as the command's check and its run
+    const set = c && c.args ? c.args.terms : undefined,
+      bad = Terms.setWhy({ ...o, ...out }, set);
+    if (bad) return bad;
+    if (set !== undefined && set !== null) out.set = { ...set };
+    return out;
   }
   // The answers a match asks for, all unanswered: the man's and the woman's, and each one's spokesman's where another speaks for them;
   // and, where neither is, the head of the home one of them moves to (moveWhy, VB-692: the receiving head's yes, always).
   const movers = (st, o) => [o.gives.man, o.wants.woman].filter((id) => st.pawns[id].household !== o.gives.home);
   function matchAnswers(st, o) {
+    const t = Terms.termsFor(st, o, o.set); // the terms valued, once an offer (two households' movable worth), before any answer
+    delete o.set;
+    if (typeof t !== 'string') Object.assign(o, t);
     const out = [
       ['man', o.gives.man],
       ['woman', o.wants.woman],

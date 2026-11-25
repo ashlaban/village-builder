@@ -28,7 +28,14 @@ const map = [
 ];
 // Village 0: household 0 (holder 0, daughters 2 to 5), household 1 (holder 6, children 8 to 10); village 1, household 2.
 function world() {
-  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  const st = tinyState(
+    tinyWorld(map),
+    [
+      { at: [3, 5], farms: 2 },
+      { at: [11, 2], farms: 1 },
+    ],
+    { seed: 7 },
+  );
   for (const [id, y] of [
     [2, 21],
     [4, 20],
@@ -53,7 +60,14 @@ const offer = (st, due, terms, actor = 6, target = 0) =>
     actor,
     verb: 'offer',
     target,
-    args: { basis: 'match', gives: { man: 8, home: 1 }, wants: { woman: 2 }, due, round: true, ...(terms ? { terms } : {}) },
+    args: {
+      basis: 'match',
+      gives: { man: 8, home: 1 },
+      wants: { woman: 2 },
+      due,
+      round: true,
+      ...(terms ? { terms } : {}),
+    },
     source: 'player',
   });
 
@@ -70,7 +84,11 @@ const offer = (st, due, terms, actor = 6, target = 0) =>
     total = kids.reduce((s, q) => s + wt(q), 0);
   assert.ok(worth >= 2000, `her house is worth its grain at least (${worth})`);
   assert.strictEqual(d.dowry, cu.heirCount === 'one' ? 0 : Math.round((worth * wt(2)) / total / 2), 'the dowry');
-  assert.strictEqual(d.gift, Math.round(Math.min(40, Terms.movableWorth(st, st.households[1]) / 10)), 'the morning gift');
+  assert.strictEqual(
+    d.gift,
+    Math.round(Math.min(40, Terms.movableWorth(st, st.households[1]) / 10)),
+    'the morning gift',
+  );
   assert.ok(d.dowry > 0 && d.gift === 40, `both given here: ${JSON.stringify(d)}`);
   assert.strictEqual(Terms.defaults(st, 8, 2, 0).dowry, 0, 'no dowry where she stays at home');
 }
@@ -80,8 +98,15 @@ const offer = (st, due, terms, actor = 6, target = 0) =>
   const st = world(),
     due = roundNoon(st),
     d = Terms.defaults(st, 8, 2, 1);
+  const n0 = VB.count.termsValued;
   assert.strictEqual(offer(st, due), true);
+  assert.strictEqual(
+    VB.count.termsValued - n0,
+    2,
+    'an offer values the two households once, not at its check and again at its run',
+  );
   assert.deepStrictEqual(st.offers[0].terms, d, 'the defaults, valued once');
+  assert.strictEqual(st.offers[0].set, undefined, "the asking side's own terms are not kept beside the terms");
   assert.strictEqual(st.offers[0].norms, undefined, 'no norms beside the defaults');
   assert.ok(Terms.fair(st.offers[0]), 'the defaults are fair');
   st.offers.length = 0;
@@ -110,7 +135,10 @@ const offer = (st, due, terms, actor = 6, target = 0) =>
   assert.ok(paid > 0 && paid <= 300, `the dowry left her house: ${paid}`);
   assert.deepStrictEqual(st.pawns[2].advance, { household: 0, n: paid }, 'an advance on her share');
   assert.strictEqual(st.pawns[2].morningGift, 40, 'the morning gift is booked to her');
-  assert.ok(Stores.grainOf(st.households[1]) <= g1 + 1e-9, 'nothing teleported in: the grain lies at her old house, to be borne');
+  assert.ok(
+    Stores.grainOf(st.households[1]) <= g1 + 1e-9,
+    'nothing teleported in: the grain lies at her old house, to be borne',
+  );
   sound(st, 'after the close');
   // the division: daughters 2 and 5 weigh alike; 2's share is less by her advance
   const shares = {};
@@ -122,7 +150,10 @@ const offer = (st, due, terms, actor = 6, target = 0) =>
   const cu = R.farmPractice(st, st.farmsteads[st.households[0].farmstead]);
   if (cu.heirCount !== 'one') {
     assert.ok(shares[5] > 0, `a share for her sister (${shares[5]})`);
-    assert.ok(Math.abs(shares[5] - shares[2] - paid) <= 1 || shares[2] === 0, `less by the advance: ${JSON.stringify(shares)}`);
+    assert.ok(
+      Math.abs(shares[5] - shares[2] - paid) <= 1 || shares[2] === 0,
+      `less by the advance: ${JSON.stringify(shares)}`,
+    );
   }
   assert.strictEqual(st.pawns[2].advance, undefined, 'the advance is spent');
   // widowed: her gift is hers, and goes with her when she moves
@@ -141,7 +172,11 @@ const offer = (st, due, terms, actor = 6, target = 0) =>
 {
   const st = world();
   assert.strictEqual(Sim.inhabit(st, 0), true);
-  assert.strictEqual(typeof Sim.wish(st, 'match', 8, { for: 2, terms: { gift: 5 } }), 'string', 'her side gives the dowry');
+  assert.strictEqual(
+    typeof Sim.wish(st, 'match', 8, { for: 2, terms: { gift: 5 } }),
+    'string',
+    'her side gives the dowry',
+  );
   assert.strictEqual(typeof Sim.wish(st, 'match', 8, { for: 6 }), 'string', 'only for one it speaks for');
   assert.strictEqual(Sim.wish(st, 'match', 8, { for: 2, terms: { dowry: 200 } }), true);
   assert.deepStrictEqual(st.player.proposal, { for: 2, partner: 8, terms: { dowry: 200 } });
@@ -149,7 +184,7 @@ const offer = (st, due, terms, actor = 6, target = 0) =>
   for (let n = 0; n < VILLAGE_STEPS; n++) roundPhase(st, n, 0, now);
   const o = st.offers.find((x) => x.basis === 'match' && x.wants.woman === 2);
   const married = R.spouseOf(st, 2) === 8;
-  console.log(married ? 'the head\'s match: married at the round' : 'the head\'s match: offered, open');
+  console.log(married ? "the head's match: married at the round" : "the head's match: offered, open");
   assert.ok(married || o, 'offered at the round');
   if (o) {
     assert.strictEqual(o.from, 0, 'by the head');
