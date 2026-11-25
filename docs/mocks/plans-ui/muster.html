@@ -51,7 +51,7 @@ tr.estate td { background: #7d3f8c14; height: 38px; }
 .bubble .acts button small { display: block; color: var(--muted); }
 .bubble .main { font: inherit; font-size: 12px; border: 0; background: var(--ink); color: #fff; border-radius: 12px; padding: 2px 10px; cursor: pointer; margin: 6px 4px 0 0; }
 .bubble .dflt { margin-top: 5px; padding: 3px 6px; background: #eef1f8; border-left: 3px solid var(--accent); font-size: 12px; }
-.ladder { margin: 4px 0 0; padding: 0; list-style: none; } .ladder li { display: grid; grid-template-columns: 16px 1fr; gap: 4px; padding: 2px 0; border-bottom: 1px dotted #ccc; }
+.ladder { margin: 4px 0 0; padding: 0; list-style: none; } .ladder li { display: flex; gap: 4px; padding: 2px 0; border-bottom: 1px dotted #ccc; } .ladder li > span:first-child { flex: 0 0 14px; } .ladder li > span:last-child { flex: 1 1 auto; min-width: 0; display: block; }
 .ladder li.x { color: var(--muted); } .ladder li.x s { text-decoration-color: #0006; }
 .ladder li.end { color: var(--hurt); font-weight: 600; }
 .toast { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); background: #23251e; color: #fff; padding: 7px 14px; border-radius: 16px; font-family: ui-monospace, monospace; font-size: 12px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
