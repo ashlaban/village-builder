@@ -579,3 +579,38 @@ process (never editing a file) can run the real allotment with one rule changed,
     *Why:* 8 is small and may lower cost; 10 has the clearest gain for households; 9 has the weakest evidence.
 12. **May the next round's mocks wrap a module's function in their own process**, so that a changed rule runs in the real
     simulation without a change to `src/`? Proposed: yes. *Why:* it removes the weakest link of this round's evidence.
+
+## 6. Kim's answers (25 November 2026)
+
+Given in discussion after v2. They stand over anything above that says otherwise, until the rewrite of section 3.3 takes them in.
+
+1. **The day is the unit of allotment** (question 1): yes. Duties and dates are committed ahead, hours are allotted by the day, and
+   the days ahead are the player's main planning surface; the day is their outcome.
+2. **The levy.** Kim's sovereignty is a mechanism, not only a measure: it couples the plans of the levels and carries the society's
+   structure, in which a pawn cannot decide entirely for itself what to do without consequences. Every body holds a concrete claim on
+   the labour of those within it (an estate on its villages, a village on its households, a household on its members), and a parent
+   plan's claim is the budget a child plan runs within. Its name is **levy**: a household's levy on a member, a village's levy on a
+   household. What is left is the pawn's **own hours**; **sovereignty** is the measure, the share of a pawn's hours that are its own.
+   ("Claim" stays land claims; v2's `Claim` and `st.claims` are renamed.)
+3. **A household's levy on a member is in hours a day, by season** (e.g. all 12 at harvest, 9 in winter). The outer levies (village,
+   the alderman's keep, a creditor, an estate) are in adult-days in a window.
+4. **Changing a levy.** Custom sets the norm by position (heir, another son, a daughter, a servant's contract, an elder). The head may
+   lower it by grant; the member may ask (`sim/voice`). Either side may breach it (the head demands more, the member takes more), at
+   a social cost: opinion, standing, inheritance, a servant leaving at term.
+5. **Realistic levies from the start**, not all hours: customs set levies below a member's working hours from the first build, so
+   every balance number moves and the first build needs a measurement Kim starts.
+6. **What own hours are for, before slice 8.** Pastimes, courting, rest, and some given back to the household by the pawn's own
+   diligence, so that a diligent son differs visibly from an idle one. Own hours as a road to a livelihood (the farmer's second son
+   who makes masterwork cookware, sells it at market and in time lives by his craft in a market town) wait for personal goods in slice
+   8; they are the reason the levy exists. Skill that grows with practice (VB-475's stand-in does not) is a precondition of that road.
+7. **Who names the day of an outer levy is a term of the levy** (question 5). A village's routine: the levied household names it
+   within the window, at three days' notice, and the levier fixes a date only for work done together. An estate's due may be "at the
+   lord's call". Power shows in the terms, not in a rule.
+8. **Breach is one mechanism at every level** (question 4). A levied household may always breach. First it tries the ladder:
+   substitute another adult, name another day, ask for release or transfer, commute for goods. Breaching is the head's judgement by
+   its own estimate, weighing what keeping the day costs (its food, the sowing) against what this levier does to those who breach
+   (for a village, opinion and the meeting's fine; for an estate, penalties, eviction). There is no separate default threshold.
+9. **The size of a village's levy lots is a village custom** (question 6), starting "by fields" (as `wayDuty`'s lots); the meeting
+   may change it, e.g. to "by adults".
+
+Questions 7 to 12 are open.
