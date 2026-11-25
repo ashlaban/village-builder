@@ -20,7 +20,7 @@ const USAGE = `usage: node tools/backlog.js <command> [--root DIR]
                             blocked or needs-review (needs-review: its question in QUESTIONS.md, tests/backlog.js);
                             id=VB-NNN takes a reserved ID instead (tools/inbox.js start)
   collect KIND where=... what=... [from=VB-NNN] [id=VB-NNN]
-                            a line "- [ ] From VB-NNN: <where>: <what>" in the open collecting task of KIND (split, teleport, act;
+                            a line "- [ ] From VB-NNN: <where>: <what>" in the open collecting task of KIND (split, design, teleport, act;
                             tools/lib/collect.js), found by its name; with none open, the next one is opened, ready, and takes the line
                             (id= a reserved ID for it). split: where= the module's key (sim/stores), what= its size against the line
   close-arch KEY            an arch with no open tasks: its row moves to the archive's closed archs

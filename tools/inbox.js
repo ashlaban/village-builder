@@ -43,6 +43,7 @@
 //   candidate  rule=   a principle candidate (AGENTS.md, Surfacing); body: the decisions behind it
 //   teleport   where= what=   a teleport found (AGENTS.md, the hard rule): apply adds it to the open collecting task, a line
 //   act        where= what=   an act with no pawn, or a choice only the player has (AGENTS.md, 16): collected likewise
+//   design     where= what=   a rule built that design.md does not say: where= its section, what= the rule with its numbers; collected likewise
 //   decision   what= why=   a close call, decided by Deciding without Kim, that Kim should see
 //   review     arm=review|control|ineligible round=arm|review|confirm [verdict= blocking= advisory= preference= reviewed=SHA mended=
 //              rebutted= unresolved= followups=]   VB-1619, written by tools/review.js (eligible, check, confirm --inbox): a task's arm,
@@ -65,7 +66,7 @@ const ceilingArg = option('--ceiling'), asJson = flag('--json'), dry = flag('--d
 const today = option('--date') || new Date().toISOString().slice(0, 10);
 
 const KINDS = { task: ['id', 'name', 'priority', 'size', 'summary'], question: ['priority', 'title'], tuning: ['parameter', 'means', 'measured', 'proposed'],
-  candidate: ['rule'], teleport: ['where', 'what'], act: ['where', 'what'], decision: ['what', 'why'], handover: [], review: ['arm', 'round'],
+  candidate: ['rule'], teleport: ['where', 'what'], act: ['where', 'what'], design: ['where', 'what'], decision: ['what', 'why'], handover: [], review: ['arm', 'round'],
   footprint: ['recall', 'precision'] };
 // Findings are collected, not given a task each (Kim, 18 November): apply hands teleport and act notes to `backlog.js collect`, whose
 // table of collecting tasks is tools/lib/collect.js.
@@ -127,7 +128,7 @@ const notes = (where = '', ...p) => all(`SELECT * FROM notes ${where} ORDER BY n
 const headline = (n) => {
   const f = n.fields;
   return one({ task: `${f.id} ${f.name}`, question: f.title, tuning: `${f.parameter}: ${f.measured}`, candidate: f.rule,
-    teleport: `${f.where}: ${f.what}${f.task ? ` (${f.task})` : ''}`, act: `${f.where}: ${f.what}`, decision: `${f.what}: ${f.why}`,
+    teleport: `${f.where}: ${f.what}${f.task ? ` (${f.task})` : ''}`, act: `${f.where}: ${f.what}`, design: `${f.where}: ${f.what}`, decision: `${f.what}: ${f.why}`,
     handover: `${(n.body || '').split('\n').length} lines, ${Buffer.byteLength(n.body || '')} bytes`,
     review: `${f.round} ${f.arm}${f.verdict ? ' ' + f.verdict : ''}${f.blocking ? ` ${f.blocking} blocking` : ''}` }[n.kind]);
 };
@@ -422,6 +423,7 @@ if (cmd === 'init') {
     by('candidate').map((n) => `- ${one(n.fields.rule)} (${n.task})${n.body ? '\n' + n.body.split('\n').map((l) => '  ' + l).join('\n') : ''}`));
   section('Teleports found', by('teleport').map((n) => `- ${headline(n)}, found by ${n.task}`));
   section('Acts with no pawn found', by('act').map((n) => `- ${headline(n)}, found by ${n.task}`));
+  section('Rules built that design.md does not say', by('design').map((n) => `- ${headline(n)}, from ${n.task}`));
   section('Tasks merged with a criterion unmet',
     all("SELECT * FROM results WHERE status = 'needs-review'").filter(mine).map((r) =>
     `- ${r.task}${r.commit_ ? ' ' + r.commit_ : ''}: ${r.summary || 'see its task file'}`));

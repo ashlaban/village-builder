@@ -60,6 +60,9 @@ no orchestrator, in its PR):
 - **A teleport found**, or an act with no pawn: one line, where and what (`teleport`, `act`). It gets no task of its own:
   `inbox.js apply` adds it to its kind's open collecting task ("Teleports found, collected", "Acts with no pawn, collected"; with no
   orchestrator, `node tools/backlog.js collect teleport|act where= what= from=<its ID>`), which a slice's wrap-up sweeps.
+- **A rule built that `design.md` does not say** (a worker never edits it): one line, its section and the rule with its numbers
+  (`design`). It is collected like a teleport, `node tools/backlog.js collect design where=<section> what=<rule> from=<its ID>`, for a
+  design pass with Kim (Kim, 25 November).
 - **A close call**: a decision another agent could as well have made the other way (`decision`).
 
 The orchestrator gathers these at the head of the night's PR, under "For Kim" (`node tools/inbox.js report`): the candidates first,

@@ -43,8 +43,8 @@ The orchestrator writes those once, from your notes.
    - `task`: a follow-up task, with one of your reserved IDs, its criteria as the body, written as `docs/agents/tasks.md` says (`touches=`);
      with `status=ready` when it is ready as that guide says (the note then needs `goal=`, `ref=` and `touches=`);
    - `tuning`: a shortfall left for the tuning run; `question`: one only Kim can answer, with its proposed answers;
-   - `candidate`, `teleport`, `act`, `decision`: what `AGENTS.md`, Surfacing, asks for. A teleport or an act with no pawn gets its
-     note only, never a task: the orchestrator collects it.
+   - `candidate`, `teleport`, `act`, `design`, `decision`: what `AGENTS.md`, Surfacing, asks for. A teleport, an act with no pawn or a
+     rule design.md does not say gets its note only, never a task: the orchestrator collects it.
 6. A measure you could not take, or a target that is out (Kim, 16 November: measurements and tuning do not block work): leave the
    criterion unticked with the reason beside it in the task file, include the reason and available evidence in the result for PR closeout, and end with `done`. Work you could not build, or that waits on another task: keep and commit what
    holds (its checks green), leave its criterion unticked naming the task that carries the rest (a `task` note, ready or blocked, if

@@ -14,6 +14,13 @@ const COLLECT = {
     // taken only in a session with Kim (Kim, 25 November): `backlog.js next --unattended` leaves it out
     notes: ['- Flag: Kim takes part (Kim, 25 November): every split is taken in a session with Kim, not by an unattended run.'],
     summary: 'The modules over the lint\'s line of length or width, a line each; a session splits one by its concerns and ticks it' },
+  // a rule the code built that design.md does not say: a worker never edits design.md, so a design pass with Kim writes them (VB-1126)
+  design: { name: 'Design: rules built that design.md does not say, collected', arch: '-', size: 'M',
+    ref: 'AGENTS.md, Surfacing; design.md, Status of this snapshot (who edits it)',
+    goal: 'design.md says each rule listed, in its section, marked Decided with its date and a row of docs/design-changelog.md; or Kim strikes '
+      + 'it and a task changes the code to what the design says. Taken in a session with Kim, the lines read together',
+    summary: 'Rules the code built that design.md does not say yet, a line each: written into the design together, with Kim',
+    notes: ['- Flag: Kim takes part (Kim, 25 November): design.md is edited in a session with Kim, not by an unattended run.'] },
   teleport: { name: "Teleports found, collected: swept at a slice's wrap-up", arch: 'physical', size: 'M', ref: 'AGENTS.md, Surfacing',
     goal: 'Each teleport listed is mended or shown to be none: goods arrive by being carried',
     summary: 'The teleports tasks found in the code, a line each; swept together when a slice wraps up' },

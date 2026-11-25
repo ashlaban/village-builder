@@ -123,6 +123,10 @@ expect('collect appends to the open collector, the line made one line', r.ok && 
 r = run(dir, 'collect', 'split', 'where=sim/yy', 'what=16 exports, over 15');
 expect('collect does not add a line twice', r.ok && /already holds/.test(r.out)
   && file(`backlog/${made}.md`).split('sim/yy:').length === 2, r.out);
+r = run(dir, 'collect', 'design', 'where=Traits, talk and stories', 'what=the age of account, 12');
+const designId = openCollector(dir, 'design'), designText = designId ? file(`backlog/${designId}.md`) : '';
+expect('collect design: a line in a design collector, Kim taking part', r.ok && designText.includes('- [ ] Traits, talk and stories: the age of account, 12\n')
+  && /^- Flag: Kim takes part/m.test(designText), r.out);
 r = run(dir, 'collect', 'nonsense', 'where=a', 'what=b');
 expect('collect refuses an unknown kind', !r.ok && new RegExp(Object.keys(COLLECT).join(', ')).test(r.out), r.out);
 // new with its criteria may start ready (Kim, 25 November); without them it may not
