@@ -156,7 +156,8 @@ VB['sim/opportunities'] = (() => {
 
   // ---- handing the farm on (VB-1140): a holder's offer of its holding to the first in its line, for its retirement (the basis `handover`).
   // An item {verb: 'offer', target: the first in line (null if none), args, why (the verb's check, or why not), handover: {first, next}}, each
-  // of first and next {id, name, no}: the grown in the line asked, `no` why that pawn would not take it (its own estimate, principle 14). ----
+  // of first and next {id, name, no}: the grown in the line asked, `no` why that pawn would not take it (its own estimate, principle "The future is
+  // someone's estimate"). ----
   function handOn(view, p, hh, out) {
     const asked = [];
     heirRanking(view, hh, null, false, null, null, asked);
@@ -355,7 +356,7 @@ VB['sim/opportunities'] = (() => {
   // ---- a winter's visit (VB-292; design.md, Between villages: The player's journey): for the pawn and for each unmarried son or daughter
   // of the house it speaks for, the villages that one might visit (sim/visits visitChoices), nearest first, each an item {verb: 'visit',
   // target: the village, when: 'winter', why: the verb's own check, visit: {who (the pawn who would go), name (null for the pawn itself),
-  // place (the village's name), days, rations}}: the days and the pack are the visitor's reckoning (principle 14) ----
+  // place (the village's name), days, rations}}: the days and the pack are the visitor's reckoning (principle "The future is someone's estimate") ----
   function visits(view, p, out) {
     const hh = view.households[p.household],
       who = [p.id];
@@ -413,7 +414,8 @@ VB['sim/opportunities'] = (() => {
   // ---- offers that wait for pawn id (VB-273, VB-690): one item for each, {verb: 'answer', target: the offer's id, when: 'offer', offer} ----
   // offer: {id, basis, text (what is offered, a sentence's object), part ('the one to marry', 'head of the household' for `for`, the pawn it
   // speaks for, or 'the one asked'), answers (who has said what so far: [{name, key, yes}]), daysLeft, advice (what the pawn would answer
-  // by its own judgement: true, false; principle 14, that pawn's estimate)}, and for a match man, woman ({id, name, age, farm}), home (a
+  // by its own judgement: true, false; principle "The future is someone's estimate", that pawn's estimate)}, and for a match man, woman ({id, name, age,
+  // farm}), home (a
   // household id), farm (its farm's name). The player answers with Sim.answer.
   function offers(st, view, id, out) {
     const who = (i) => ({

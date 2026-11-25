@@ -235,7 +235,8 @@ VB['sim/voice'] = (() => {
     if (!d) return;
     for (const [id, e] of Object.entries(d.by)) if (!e[2] && st.t >= e[0] && st.t < e[1]) begin(st, +id);
   }
-  // The likely answer of pawn id's head to an ask of leave from `from`, as pawn id sees it (principle 14; everyone knows everything for
+  // The likely answer of pawn id's head to an ask of leave from `from`, as pawn id sees it (principle "The future is someone's estimate"; everyone knows
+  // everything for
   // now: sim/opportunities actorView): true, false, or null when it has no head to ask.
   function likely(st, id) {
     const hh = homeOf(st, id);

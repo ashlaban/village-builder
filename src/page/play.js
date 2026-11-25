@@ -301,7 +301,7 @@ function offerBox(id, opps) {
     const body = match
       ? `${one(o.man)} and ${one(o.woman)} would marry and live at ${esc(o.farm)}.`
       : `${esc(o.text.charAt(0).toUpperCase() + o.text.slice(1))}.`;
-    // the pawn's own judgement, as advice (principle 14: whose estimate it is)
+    // the pawn's own judgement, as advice (principle "The future is someone's estimate": whose estimate it is)
     const advice =
       o.advice === null ? '' : ` ${esc(Sim.fullName(st.pawns[id]))} would answer ${o.advice ? 'yes' : 'no'}.`;
     h +=
@@ -356,7 +356,8 @@ function renderActions() {
   if (notes.ailing.length) h += `<p class="refused">${notes.ailing.map(esc).join(' ')}</p>`;
   if (notes.yielded) h += `<p class="doing">Last done: ${esc(notes.yielded)}</p>`;
   if (notes.moved.length) h += `<ul class="moved">${notes.moved.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>`;
-  // its winter's visit (VB-292): planned, with the day it sets out; under way, with the days left by its own pack (principle 14)
+  // its winter's visit (VB-292): planned, with the day it sets out; under way, with the days left by its own pack (principle "The future is someone's
+  // estimate")
   const vs = Sim.visitState(st, id);
   if (vs) {
     const place = esc(st.villages[vs.village].name),

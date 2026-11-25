@@ -67,8 +67,9 @@ These are the invariants. Each later section applies them; a change that breaks 
    the tenancy stands.
 7. **Class, occupation, a place's label and region are derived, with hysteresis.** They are computed from rights, obligations,
    stores, hours of work and where people deal, never stored as truth. Only rank (frälse, clergy, burgher) is stored: an
-   institution grants it. Class may feed a rule, through its hysteretic value only (4.1). A place's label (market place, town) and
-   its region feed no rule at all (Decided, Kim, 16 Nov; `AGENTS.md`, Deciding without Kim, 20): a place has measures, not a tier,
+   institution grants it. Class is shown, with hysteresis, and feeds no rule (Kim, 24 Nov, replacing "class may feed a rule, through
+   its hysteretic value only"; `design.md`, A label is read, never a switch). A place's label (market place, town) and
+   its region feed no rule at all (Decided, Kim, 16 Nov; principle "A label is read, never a switch"): a place has measures, not a tier,
    no threshold on them switches anything on, and a rule that wants what a town was thought to give reads the measure itself.
 8. **A body exists only when something needs its identity:** holdings, obligations owed to or by it, an agent, or a succession
    distinct from its members'. Otherwise it is a derived view.
@@ -89,7 +90,10 @@ These are the invariants. Each later section applies them; a change that breaks 
     Parity of command (Kim, 10 Nov): every act a pawn may take is a verb the player can issue, in whatever position its pawn
     holds, unless a gameplay reason against it is written beside the verb; a pawn's own logic and the player choose among the
     same verbs under the same checks. The player may be offered more options than the pawns' logic uses (a cheap chooser must
-    serve 1,000 pawns); never fewer. So a decider's choices are arguments of a command, not branches inside the system.
+    serve 1,000 pawns); never fewer. Read with `design.md`, Every act is a pawn's (Kim, 24 Nov): the same verbs and the same
+    checks for every pawn; a pawn's own chooser may weigh fewer of them for cost, and chooses as well as that cost allows; whatever
+    state the played pawn has, every pawn has, and `st.player` holds only the frame. So a decider's choices are arguments of a
+    command, not branches inside the system.
 16. **Deciders read through an actor view.** Omniscient today; the seam where knowledge will come in. Stories (gossip) are its
     first content.
 17. **Balance loops are declared, measured and tuned, never steered at run time.** Equilibria emerge; a loop's band is a probe's
@@ -199,7 +203,7 @@ Rules named so far, in two groups. **Quantities** combine into one number: `deat
 `allowance` (owned by relations), `attitude.malleability`, `move.cost` (compiled into a cost grid per mode set and season).
 **Scores** feed a chooser that their owner keeps: `marriage.ready` (a gate), `work.priority` (per pawn and task), `leisure.choice`
 (among options); the registry gives each option's score, never the choice. A continuous derived value may feed a contribution
-directly; a categorical one (class) only through its hysteretic value. A place's label is not among them: it feeds no rule
+directly; a categorical one (class) feeds none: a rule reads the measure behind it (Kim, 24 Nov). Nor does a place's label
 (principle 7; 16 Nov), and what a rule needs of a place it reads as a measure (the people living close, those met at a venue).
 
 Built so far (VB-197): `declare`, `contribute`, `value`, `explain`, `list`, with `product` and `sum`. The review of 9 November adds:
@@ -670,8 +674,8 @@ interface Outside { step(st, t): void; arrive(st, v: Voyage): void; depart(st, v
 
 ### 4.6 Derived views
 
-Read-only, recomputed at their cadence, never stored as truth, categorical ones with hysteresis. Class may feed a rule through
-its hysteretic value; a place's label and its region feed none (principle 7).
+Read-only, recomputed at their cadence, never stored as truth, categorical ones with hysteresis. Class, a place's label and its
+region feed no rule; they are shown (principle 7; Kim, 24 Nov).
 
 - **Class** (`landless`, `cottager`, `peasant`, `specialist`, `landed`): from rights, obligations owed and held, and stores. A
   household enters `landed` when rents and stores cover its need 1.5 times for three years and leaves only after three years below
@@ -841,7 +845,8 @@ who lives in a town. 75 is about 12 to 15 elite households, a cast the player ca
 extraction and the urban sink together; the 75 by land concentration against debtors' politics and elite turnover; elite turnover
 also feeds the 325. **The target is not expected to be met before the ship:** the 325 needs about half as much craft work again
 as a farm's own, and the 75 needs the elite of slice 5. It stands until Kim changes it; it is reported with its residual and
-never fails.
+never fails: a band observed, never steered toward and never asserted by a hard check (Kim, 24 Nov; `design.md`, An elite is
+what the rules leave over).
 
 ## 7. Traces
 

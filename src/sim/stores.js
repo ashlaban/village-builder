@@ -200,7 +200,8 @@ VB['sim/stores'] = (() => {
   const setTimber = (hh, n) => {
     hh.timber = n;
   };
-  // ---- a good by kind (VB-733; design.md, The metals and the stones: Kind in state; principle 17): a store of a good with kinds is
+  // ---- a good by kind (VB-733; design.md, The metals and the stones: Kind in state; design.md, "A good, its material and its kind"): a store of a good
+  // with kinds is
   // {[kind]: n}, as grain is by crop (none held: no key, or 0). A put names the kind ('stone/granite'); a take of a kind takes it; a take of
   // the good, any kind, falls on the kind of least customary worth first (the registry's `cheapest`; D13: a head spends the common stone
   // and keeps the one with a use of its own). The ledger counts the good whatever its kind. Today the household's stone heap alone.

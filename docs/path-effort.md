@@ -46,7 +46,7 @@ None of this measures how far a person walks round to stay dry. That is a judgem
 - **Two truths on the map.** The Reach overlay draws hours; the way taken would no longer be the quickest. The overlay should say so,
   and be able to draw the way a pawn would take.
 - **Balance moves.** Longer ways round cost working hours. PR 132 switched it on by default with weight 1; this note proposes that it
-  lands at weight 0 and that the weight is set in a tuning run of Kim's (Deciding without Kim, 3).
+  lands at weight 0 and that the weight is set in a tuning run of Kim's (principle "Parameters, not patches").
 - **Cost.** One search a route, as now, on the choice cost; the compiled per-tile costs hold both numbers. If load enters the choice,
   the route cache is keyed by load class as well, and its bound (Rules for cost, 8) is shared between them: two or three classes, not
   a number a load.

@@ -328,7 +328,7 @@ archived answer pointed the way, the orchestrator decided in Kim's place, and th
   hours worked.
 - **16 November update (the plan of VB-702;** `design.md`, Goods, production and animals, The metals and the stones**):** the
   slice's second half also brings the island's own metals and the stones' other goods (Kim, 16 November, moving the decision of
-  11 November that left the metals for the ship): goods carry the kind of their material, which sets their quality (principle 17);
+  11 November that left the metals for the ship): goods carry the kind of their material, which sets their quality (design.md, "A good, its material and its kind");
   mining a found vein by hand, prospecting, the furnace; the copper kettle, bronze for the cast pot and the village's bell; silver,
   gold and amber as things of worth, and the hoard; whetstones and grindstones; soapstone pots, marble for lime, the memorial
   stone; tin twice as likely (VB-733 to VB-745). Coin and the church's uses stay with 3.8. Later the same day Kim moved two more

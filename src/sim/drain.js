@@ -3,7 +3,8 @@
 // Design: design.md, Goods and the farming year (Yield over time); docs/review-yields.md, 2.5. A field's wetness is its tile's moisture
 // (sim/crops' wetLoss, slice 10's plan VB-190, 5.1); its ditch takes away a share of the loss and silts (sim/soil's DITCH, ditchOf). A
 // head, played or not, may ditch a wet field of its own farm; one not played weighs it once a year after the harvest, by its own
-// estimate of the gain against the hours (principle 14), as it weighs a new field's site (sim/fieldplans' siteScore). A silted ditch is
+// estimate of the gain against the hours (principle "The future is someone's estimate"), as it weighs a new field's site (sim/fieldplans' siteScore). A
+// silted ditch is
 // dug again for the share silted, so drainage is kept by work, as tilth is by dung.
 VB['sim/drain'] = (() => {
   const { SEASON_DAYS, SPEED } = VB['sim/rules'];
@@ -21,7 +22,8 @@ VB['sim/drain'] = (() => {
   const DRAIN = { again: 0.6, day: 8, from: 2 * SEASON_DAYS + SEASON_DAYS / 2 };
   // Hours of ditching field fd now: the share of a new ditch's work its ditch has silted.
   const ditchHours = (st, fd) => DITCH.hours * (1 - ditchOf(st, fd));
-  // The head's estimate for field fd of farm f (principle 14): rations a year the ditch would win back, over the DITCH.years the head
+  // The head's estimate for field fd of farm f (principle "The future is someone's estimate"): rations a year the ditch would win back, over the
+  // DITCH.years the head
   // reckons it lasts, for each hour it costs (its digging, and the walks out and back a day's work), in the unit of siteScore (rations for
   // an hour). The crop is the reference crop (barley) on the field's fertility and soil; the head knows its ground's wetness. Allocates
   // nothing.

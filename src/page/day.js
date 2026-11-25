@@ -1,5 +1,6 @@
 // @sys page/day: the day's timetable in the Plan tab of a household's card (VB-477; design.md section 7, The timetable): each member's row,
-// its tasks laid end to end with their walks, each a range by the inhabited pawn's estimate (principle 14: whose reckoning it is is said;
+// its tasks laid end to end with their walks, each a range by the inhabited pawn's estimate (principle "The future is someone's estimate": whose reckoning
+// it is is said;
 // progress so far is exact), and, for the played pawn that is the head, the head's verbs on the day (Sim.head: dayOrder, dayGive,
 // dayCall), a call named with its cost before it is made (Sim.callCost)
 // ======== the day ========

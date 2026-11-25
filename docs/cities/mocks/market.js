@@ -6,8 +6,8 @@
 // household may have, one in twenty. A want loses worth each day it waits. A household can walk to a maker's village any day, or to a
 // date some village's host has called, and goes where its own estimate of what it will deal there, less the walk and the hours lost at
 // that season's worth of an hour, is best and above nothing; its estimate of a place's dates is what its village found there before
-// (principle 14). A host calls a date as a venture, one a year at most, and calls it again only if enough households of other villages
-// came (principle 16: the host calls, others answer by coming or not). No rule sets a frequency, a site or a tier.
+// (principle "The future is someone's estimate"). A host calls a date as a venture, one a year at most, and calls it again only if enough households of other villages
+// came (principle "Every act is a pawn's": the host calls, others answer by coming or not). No rule sets a frequency, a site or a tier.
 const { GAME: G, INVENTED: I, rng, table, median, mean, opt } = require('./numbers.js');
 const MAPS = require('./hours.json');
 const hourValue = G.idle.map((idle) => I.peakHourValue[1] * (1 - idle)); // an hour's worth by season: a field hour's return x the busy share

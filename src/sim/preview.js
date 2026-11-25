@@ -2,7 +2,7 @@
 //   offer is settled on a copy of the state by its basis's own rules (sim/offers' answer, the match's marry and handOn, sim/heirs, the
 //   next day's care for a farm left with no grown member, sim/service and sim/trust), and the copy is read against the state: who moves,
 //   each farm's holder after, the first heir of the home and its food. Read when the page shows an offer, never in a step; writes
-//   nothing to st. The estimate is the viewer's (principle 14); its actor view filters nothing yet, so it equals the outcome.
+//   nothing to st. The estimate is the viewer's (principle "The future is someone's estimate"); its actor view filters nothing yet, so it equals the outcome.
 VB['sim/preview'] = (() => {
   const { ECON } = VB['sim/rules'];
   const { holdingOf, childrenOf } = VB['sim/records'];
@@ -54,7 +54,8 @@ VB['sim/preview'] = (() => {
       empty: false,
     };
   }
-  // What a yes to the open offer `offerId` would bring, as `viewer` estimates it (principle 14), or null when there is no such offer:
+  // What a yes to the open offer `offerId` would bring, as `viewer` estimates it (principle "The future is someone's estimate"), or null when there is no
+  // such offer:
   // {offer, by (the viewer), home (the household it settles at), lapses (why the settling would fail, else null), moves [{pawn, from, to
   // (household ids, null for none), as ('spouse', 'child', 'ward' or 'kin')}], farms [{household, before (its holder now), holder,
   // trustee, guardian, empty}] (each farm the people hold or are first heir to, and the home), heir {before, after} (the home's first

@@ -586,7 +586,7 @@ function settlementTileInfo(i) {
       aftermath: 'Aftermath: the hay is in',
     }[m.stage];
     // what the meadow is worth, counted from its soil, in a year of ordinary weather: a fact of the ground, no forecast of this year's cut
-    // (so no pawn's estimate is named, principle 14)
+    // (so no pawn's estimate is named, principle "The future is someone's estimate")
     return [
       `Hay meadow of ${f.name}, ${st.villages[f.village].name}`,
       Sim.byRiver(w, i) ? ['Wet ground by the river'] : [],

@@ -1,9 +1,11 @@
-// @sys sim/asks: the asks for goods (VB-699; AGENTS.md, Deciding without Kim, 9, 14, 16): a household that lacks a good it needs and
+// @sys sim/asks: the asks for goods (VB-699; principle "Place matters"; principle "The future is someone's estimate"; principle "Every act is a pawn's"):
+//   a household that lacks a good it needs and
 //   cannot make where it lives asks for it, an ask open until met or a year old; a head whose place gives the good reads, once a year after
 //   the harvest, the asks of the villages it gathers with, and reckons what it can place beyond its own need: its estimate, never a price
-// Principle 9 by mechanism (Kim, 16 Nov): place decides who can make, the asks decide who does. Nothing here moves a good: an ask is met
+// Principle "Place matters" by mechanism (Kim, 16 Nov): place decides who can make, the asks decide who does. Nothing here moves a good: an ask is met
 // at the fair (the basis `swap`, sim/fair) or by a gift, and is closed when the asker next finds it holds its need. The reckoning is the
-// head's (principle 14): the asks it hears of (a poor head only its own village's), times its lean, within its spare hands and a back load.
+// head's (principle "The future is someone's estimate"): the asks it hears of (a poor head only its own village's), times its lean, within its spare hands
+// and a back load.
 // @state st.asks: absent until the first ask, else {open ({[good]: [{household, n (units wanted), made (game hours), basis ('swap' or
 //   'gift')}]}: the open asks indexed by good, at most ASKS.cap a household, none older than a year once its asker or a reader has looked;
 //   tally ({[good]: {asked, met, lapsed}}: counts since the start)}. Written only here; plain data, saved.

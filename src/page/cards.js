@@ -146,7 +146,7 @@ const woodStat = (hh) => ({
 // What the card's first tab says of the household at a glance: its supplies, as the Stores tab shows them (VB-667), and what is wrong
 // today.
 const NUM = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
-// The head's estimate of the harvest before the frost (principle 14: whose reckoning it is is said), once a crop is ripe.
+// The head's estimate of the harvest before the frost (principle "The future is someone's estimate": whose reckoning it is is said), once a crop is ripe.
 const harvestStat = (hh) => {
   const e = Sim.harvestEstimate(st, hh);
   if (!e) return null;
@@ -181,7 +181,8 @@ const kinStat = (hh) => {
 };
 // Whether the household would lay out a feast at an occasion (VB-996; the rule 'feast', Sim.explainFeast): its grain above the seed on the
 // one meter, marked at the years of food it keeps first; past the mark it feasts, its holder laying out a share of what is over by its
-// generosity (its word beside the share). The rule's parts are the title. What it holds now, counted: no estimate (principle 14).
+// generosity (its word beside the share). The rule's parts are the title. What it holds now, counted: no estimate (principle "The future is someone's
+// estimate").
 const feastStat = (hh) => {
   if (hh.holder === null || !st.pawns[hh.holder].alive) return null;
   const x = Sim.explainFeast(st, hh),
@@ -333,7 +334,7 @@ const MATERIALS = [
   },
   { key: 'hide', label: 'Hides', icon: 'beast', field: 'hides', title: 'Hides, for shoes and harness (VB-911)' },
 ];
-// A good's kinds as the page shows them wherever they appear (VB-733, principle 15): the good's icon, and the kind as its label and tint (a
+// A good's kinds as the page shows them wherever they appear (VB-733, principle "Like is shown alike"): the good's icon, and the kind as its label and tint (a
 // rock's tint as the Ground overlay draws its bedrock, page/ground). A store by kind ({[kind]: n}) gives its kinds held, in the registry's order.
 const kindTint = (good, kind) => {
   const G = VB['world/geology'];

@@ -2,7 +2,7 @@
 //   never in a step: each member's list laid end to end with its walks, each task a range by the estimate of the pawn who looks (the one the
 //   player inhabits: flaws and all); progress so far is exact. With it the cost of calling a member off, named before the call, and the
 //   stops of a run until the inhabited pawn's task ends. Writes nothing
-// Principle (AGENTS.md, Deciding without Kim, 14): what is shown of the future is some pawn's estimate (sim/estimate).
+// Principle (principle "The future is someone's estimate"): what is shown of the future is some pawn's estimate (sim/estimate).
 VB['sim/timetable'] = (() => {
   const { SPEED } = VB['sim/rules'];
   const { findRoute, routeCost } = VB['sim/routes'];

@@ -1,7 +1,7 @@
 // @sys sim/estimate: the head's estimate of a task (VB-476; design.md section 7, The estimate; docs/review-blocks.md, section 2): its hours by
 //   the causes the estimating pawn's judgement reckons with, the others at their norm, leaned by the head's lean, with an honest range; read
 //   by the head's day (sim/day allot) and told on the record when a window is missed and the truth lay outside the range
-// Principle (AGENTS.md, Deciding without Kim, 14): what is shown of the future is some pawn's estimate. Nothing is stored here: the estimate is
+// Principle (principle "The future is someone's estimate"): what is shown of the future is some pawn's estimate. Nothing is stored here: the estimate is
 // worked out when read, from the task, its hands and the head; the one thing drawn is the lean, plan.head.bias.hours (sim/seasonal).
 VB['sim/estimate'] = (() => {
   const { HUNGER, HEALTH, HERD } = VB['sim/rules'],
@@ -131,7 +131,7 @@ VB['sim/estimate'] = (() => {
   }
   const unseenOf = (r) => ESTIMATE.reckons.filter(([k]) => !r[k]).map(([k]) => k);
   // ---- read ----
-  // Pawn id's estimate of task j (AGENTS.md, Deciding without Kim, 14: whose estimate it is): the hours its work left takes with `hands`
+  // Pawn id's estimate of task j (principle "The future is someone's estimate": whose estimate it is): the hours its work left takes with `hands`
   // (pawn ids; by default its hands at work, else id alone), {lo, mid, hi, unseen (the causes not reckoned with, in the order of
   // ESTIMATE.reckons), work (the work left, in hours of a hand at the norm)}. Nothing written.
   function estimate(st, id, j, hands) {

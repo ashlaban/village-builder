@@ -3,7 +3,7 @@
 // registry; FOODS; CROPS), so that a kind added to the game appears here unchanged. Opened from the main menu and from plan mode
 // (the Plan tab's key, the plan tool's banner); it only reads.
 // What it says is what the rules have: an action's place, needs and gifts, and its hours as days of a middling hand's work. What an
-// action would bring on this farm this year is an estimate, a pawn's, and stays in plan mode (principle 14).
+// action would bring on this farm this year is an estimate, a pawn's, and stays in plan mode (principle "The future is someone's estimate").
 const GUIDE_CHAPTERS = { work: 'Work', things: 'Things', crops: 'Crops' };
 // A thing's icon in the panels' set (page/goodicons GOOD_PATHS), where its key is not already one.
 const THING_ICON = {

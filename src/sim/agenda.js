@@ -1,5 +1,6 @@
 // @sys sim/agenda: the played pawn's agenda (VB-1644; docs/ui2/HANDOFF.md): its queue laid end to end from now and the open work it may
-// take, each with the hours the pawn itself reckons it takes (sim/estimate; principle 14: what is shown of the future is some pawn's
+// take, each with the hours the pawn itself reckons it takes (sim/estimate; principle "The future is someone's estimate": what is shown of the future is
+// some pawn's
 // estimate), the deadline that presses (a field's sowing window, the frost the head expects, the haymaking window) and whether it ends in
 // time; for a step of a project making a field, the steps left before the field can be sown; and the player's plan (sim/playerplan, sim/plannext) laid
 // into today and the next two days by the feeder's rule (VB-1647: days, plan, owed, routine); and the windows that press at the household's
