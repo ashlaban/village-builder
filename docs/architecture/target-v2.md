@@ -464,7 +464,8 @@ the old holder's new role (`undantag`, former alderman), standing, the claims of
 step: siblings' shares as obligations), derived roles, the record. Holdings and the body's own obligations need no step: they belong
 to the body. Goodwill is personal: at retirement a share passes to the new holder, set by custom (Decided, Kim, 3 Nov); at death
 `PersonalEstate` passes the pawn's own goods, land in its own name, personal debts and a share of its goodwill to its heirs as
-persons; office goodwill never passes. A testament is the practice `birthOrder: 'chosen'` (Decided: only where custom allows).
+persons (the goods part, a pawn's store passed by the custom `personalEstate`, is built by the arch `plans`: `design.md` section 7,
+Aims and personal goods; land in a pawn's name and personal debts wait for slice 8); office goodwill never passes. A testament is the practice `birthOrder: 'chosen'` (Decided: only where custom allows).
 The household hot path keeps a derived cache (`pawn.household`, `hh.members`, `pawn.role`) that Membership alone writes, and role
 rules declare the household's cardinality (one residence per living pawn, at most one holder).
 
@@ -612,7 +613,8 @@ interface Eligibility { eligible(st, task: Task, pawn: PawnId): { basis: Basis2;
 household's day, and the day is the unit of allotment for every pawn. What stands around it, each in the layer that owns its kind:
 
 - **One plan record** for every body (a pawn, a household, a village, later an estate), owned by Plans: steps at the year, the
-  season and the days ahead (a target, a duty, a dated step, a levy's day, a routine, a project, an aim), each with an author (the
+  season and the days ahead (a target, a duty, a dated step, a levy's day, a routine, a project, an aim: a goal at the year
+  horizon that writes the season's steps under it, `design.md` section 7, Aims and personal goods), each with an author (the
   body's rule, or a verb issued by whoever controls its agent) and one link upward. The standing plan, the project plans and the
   played pawn's plan are this record. A task names the step that opened it; `st.jobs` stays the store of today's open tasks.
 - **The task is a plan**: a goal whose kind declares methods of steps with a precondition and an effect, read backwards from the
