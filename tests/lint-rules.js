@@ -121,6 +121,19 @@ function notedBefore(src) {
       if (v(k) === '{') d++;
       else if (v(k) === '}') d--;
       if (d <= 0 && ['return', 'break', 'continue', 'throw'].includes(v(k))) break;
+      // a setter given the key (setBiome(w, key, ...), setOwner(st, key, ...)) writes it too
+      if (toks[k].t === 'word' && /^set[A-Z]/.test(v(k)) && v(k + 1) === '(' && close.has(k + 1)) {
+        const e = close.get(k + 1), args = [];
+        for (let j = k + 2, d = 0, from = k + 2; j <= e; j++) {
+          if (j === e || (v(j) === ',' && d === 0)) { args.push(text(from, j)); from = j + 1; }
+          else if (['(', '[', '{'].includes(v(j))) d++;
+          else if ([')', ']', '}'].includes(v(j))) d--;
+        }
+        if (args.includes(key)) {
+          out.push(`${src.slice(0, t.s).split('\n').length}: ${t.v}(${key})`);
+          break;
+        }
+      }
       if (v(k) !== '[' || !close.has(k)) continue;
       const c = close.get(k);
       if (text(k + 1, c) === key && (WRITE.has(v(c + 1)) || WRITE.has(v(k - 1)))) {

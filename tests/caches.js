@@ -61,7 +61,7 @@ assert.deepStrictEqual(failures, [], 'a cache differs from its derivation after 
 const NOT_YET = ['answer', 'claim', 'letIn', 'placeFarmstead', 'callWorkday', 'blaze', 'lodge', 'comeHome', 'call', 'goGathering', 'stayHome', 'swap',
   'target', 'tile', 'order', 'letField', 'dropProject', 'sowOutOfTurn', 'courses', 'dayOrder', 'dayGive', 'dayCall', 'handOn', 'move', 'plotToVillage',
   'beginCottage', 'goBack', 'goToKin', 'visit', 'sendVisit', 'foundHousehold', 'finishCottage', 'decide', 'argue', 'dropCause', 'rally', 'leave', 'takeUp',
-  'renounce', 'marry', 'skip'];
+  'renounce', 'marry', 'skip', 'slander'];
 const missed = Object.keys(VERBS).filter((v) => !carried.has(v));
 assert.deepStrictEqual(missed.filter((v) => !NOT_YET.includes(v)), [], 'a verb neither carried nor listed in NOT_YET');
 assert.deepStrictEqual(NOT_YET.filter((v) => carried.has(v) || !VERBS[v]), [], 'carried now, or no longer a verb: strike it from NOT_YET');
@@ -77,7 +77,8 @@ assert.deepStrictEqual(early, [], 'a ...Changed( notification before the write i
 for (const [bad, src] of [[1, 'function f(st, t) { costChanged(st, t); st.w.dev[t] = 3; }'], [1, 'const g = (st, t) => { if (x) { costChanged(st, t); } w.dev[t] += 1; };'],
   [0, 'function f(st, t) { st.w.dev[t] = 3; costChanged(st, t); }'], [0, 'function f(st, t) { costChanged(st, t); st.w.dev[u] = 3; }'],
   [0, 'function f(st, t) { costChanged(st, t); const h = () => { st.w.dev[t] = 1; }; }'], [0, 'function f(st, t) { if (a) { costChanged(st, t); return; } w.dev[t] = 2; }'],
-  [1, 'function f(st, t) { if (a) { costChanged(st, t); } w.dev[t] = 2; return; }'], [0, 'function costChanged(st, t) { st.x[t] = 1; }']])
+  [1, 'function f(st, t) { if (a) { costChanged(st, t); } w.dev[t] = 2; return; }'], [1, 'function f(st, w, t) { costChanged(st, t); setBiome(w, t, B.MEADOW); }'],
+  [0, 'function f(st, w, t) { setBiome(w, t, B.MEADOW); costChanged(st, t); setOwner(st, u, null); }'], [0, 'function costChanged(st, t) { st.x[t] = 1; }']])
   assert.strictEqual(notedBefore(src).length, bad, `notedBefore on: ${src}`);
 console.log(`caches ok: ${declared.length} declared caches (${COMPARED.length} compared), after ${Object.keys(VERBS).length - missed.length} of ` +
   `${Object.keys(VERBS).length} verbs (${natural} issued by the runs); no notification before its write`);
