@@ -297,6 +297,7 @@ const INTEGRATION = [
   ['node', 'tests/herds.js'],
   ['node', 'tests/herdlead.js'], // animals that change household are led home (VB-674)
   ['node', 'tests/herding.js'],
+  ['node', 'tests/droveway.js'], // VB-446: the herds' way out to the outland, one a village a season, worn to a path through the wood
   ['node', 'tests/drying.js'],
   ['node', 'tests/forage.js'],
   ['node', 'tests/dig.js'],

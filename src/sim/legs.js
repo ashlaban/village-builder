@@ -5,7 +5,7 @@ VB['sim/legs'] = (() => {
   const { route } = VB['sim/routes'],
     { stepCost, tileCost, iced } = VB['sim/walking'];
   const { tread } = VB['sim/paths'];
-  const { driven } = VB['sim/grazing'];
+  const { driven, droveRoute } = VB['sim/grazing'];
   const Carts = VB['sim/carts'];
   const Due = VB['sim/due'];
   const { emit } = VB['sim/events'];
@@ -201,7 +201,13 @@ VB['sim/legs'] = (() => {
       from = tileAt(st, a.x, a.y),
       k = near && from >= 0 ? w.nb.indexOf(tile, from * 6) : -1,
       step = k >= from * 6 && k < from * 6 + 6,
-      p = step ? [from, tile] : from >= 0 && from !== tile ? route(st, from, tile, loadClass(st, a)) : null;
+      cls = loadClass(st, a),
+      // a herder with its herds goes by its village's way out (sim/grazing, VB-446)
+      p = step
+        ? [from, tile]
+        : from >= 0 && from !== tile
+          ? droveRoute(st, a, from, tile, cls) || route(st, from, tile, cls)
+          : null;
     const ok = p && p[0] === from,
       tiles = ok ? p.slice(1, -1) : [],
       cost = (i) => (i >= 0 && tileCost(w, i) < Infinity ? tileCost(w, i) : 1);

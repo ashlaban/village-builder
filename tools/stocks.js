@@ -157,7 +157,7 @@ const NOT_STOCKS = {
   'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'village.keep', 'village.keepBy', 'village.tarBy', 'household.yields', 'household.spoilt', 'household.hungryDays',
     'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.marshDay', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.borrowedIn', 'household.fellShort', 'household.giftedIn', 'household.milkDay', 'household.workHours', 'village.ledger', 'village.totals', 'village.workday'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'village.commonFields',
-    'farmstead.booth', 'farmstead.camp', 'farmstead.barn', 'farmstead.byre', 'farmstead.rung', 'household.pasture', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
+    'farmstead.booth', 'farmstead.camp', 'farmstead.barn', 'farmstead.byre', 'farmstead.rung', 'household.pasture', 'village.droveway', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
       'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'farmstead.water', 'farmstead.wellMeant', 'village.crowded', 'village.founded',
       'village.rotation', 'farmstead.rotationBy', 'farmstead.failed', 'farmstead.left'],
   'the generated world': ['w.seed', 'w.lat', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',

@@ -21,10 +21,12 @@ for (const h of hhs) {
 check(!checkState(st).length, 'founders at the start: ' + checkState(st).slice(0, 3).join('; '));
 // a year and spring day 3: calves and lambs. Cattle do not die over this winter, so the bull's yearly chance of dying (3%, which fell on it
 // once the Disputed claims custom shifted the random draws) does not decide a test of calving; nor does a newborn lamb's chance of dying
-// (two of three ewes' three lambs died once the afternoon's allotment shifted the herds' draws, VB-1546)
-const deathRate = Sim.HERD.death.cattle, lambDeath = Sim.HERD.lambDeath; Sim.HERD.death.cattle = 0; Sim.HERD.lambDeath = 0;
+// (two of three ewes' three lambs died once the afternoon's allotment shifted the herds' draws, VB-1546); nor does a cow's chance of calving
+// and a calf's of dying (one calf of five cows once VB-446's way out and VB-312's loans shifted the draws): every cow with a bull in reach calves
+const deathRate = Sim.HERD.death.cattle, lambDeath = Sim.HERD.lambDeath, calve = Sim.HERD.calve, calfDeath = Sim.HERD.calfDeath;
+Sim.HERD.death.cattle = 0; Sim.HERD.lambDeath = 0; Sim.HERD.calve = 1; Sim.HERD.calfDeath = 0;
 Sim.advance(st, Sim.YEAR + Sim.HERD.springDay * Sim.DAY + 6);
-Sim.HERD.death.cattle = deathRate; Sim.HERD.lambDeath = lambDeath;
+Sim.HERD.death.cattle = deathRate; Sim.HERD.lambDeath = lambDeath; Sim.HERD.calve = calve; Sim.HERD.calfDeath = calfDeath;
 const calves = st.herds.reduce((s, hd) => s + (hd.head ? hd.head.filter((h) => h.kind === 'calf').length : 0), 0);
 const lambs = st.herds.reduce((s, hd) => s + (hd.lambs || 0), 0);
 // lambs: 2 or 3 of the first farm's 3 ewes left by spring, by the draws (3 before VB-1525 shifted them; the second farm's ewes are gone in both)

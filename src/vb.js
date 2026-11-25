@@ -200,7 +200,10 @@ VB.COUNTERS = {
   cowSeek:
     "Households of its village weighed by a household's open want of a cow, on its planning day (sim/exchange; VB-390)",
   pastureTiles:
-    "Tiles within reach of a house searched for its herds' pasture, once a grazing day a household (sim/herds; VB-136)",
+    "Tiles within reach of a house searched for its herds' pasture, once a grazing day a household (sim/herds; VB-136), and of a " +
+    "green for its herds' way out, once a season a village (sim/grazing wayOf; VB-446)",
+  droveWays:
+    'Ways out to the outland chosen, a route search each, once a season a village with herds (sim/grazing wayOf; VB-446)',
   deerGround:
     'Tiles within reach of a house searched for its hunting ground, when its hunting is asked for in autumn and winter (sim/deer; VB-139)',
   workdayHolders:

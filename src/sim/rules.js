@@ -345,7 +345,10 @@ VB['sim/rules'] = (() => {
     // move it wears the tiles it crosses `move` crossings a head (sim/paths). The pressure (w.graze) halves each game year.
     // An unherded herd's cows give `milk` of their milk.
     // A herd keeps its pasture until it is grazed down to `downAt` (a middling herd's week on it), and at least `keepDays` days.
+    // The way out (VB-446): a village's herds go by one way, chosen a season, from the green to the best tile of its outland, and graze
+    // within `around` steps of its end (sim/grazing wayOf); a village with no outland to graze keeps them by the house.
     herding: {
+      around: 3,
       from: 6,
       by: 10,
       hours: 9,
