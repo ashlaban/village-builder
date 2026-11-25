@@ -190,6 +190,10 @@ name (`docs/principles-concordance.md`).
 - **What can be undone costs something to undo** (Kim, 24 November). A choice a pawn can reverse (keep a field or let it go, hold a
   custom or return, move or stay) is held by the cost of reversing it, which the chooser weighs. Only where the world charges no such
   cost is a named dead band added.
+- **No pawn decides entirely for itself** (Kim, 25 November). A pawn's hours are held in layers by the bodies it belongs to (its
+  household, its village, a creditor, later an estate), each by a levy, a concrete claim on its labour (section 7, The levy and own
+  hours; section 9, Outer levies); what is left are its own hours, and its own plans run in them. Either side may break a levy, at a
+  cost the society charges (goodwill now, cases later); a pawn that wants more of its hours asks, earns or breaks, and is answered.
 - **References.** Founders is the reference for the early game, populous for the late game (many pawns). Report heirs without a target.
 
 ## 2. World, climate and travel
