@@ -47,5 +47,5 @@ const world7 = require('./lib/probe.js').island(7); // the small island, generat
 const st = Sim.seed(world7, 7, 'founders'); Sim.advance(st, Sim.YEAR);
 const { w, ...rest } = st, text = JSON.stringify(encode(rest)), back = decode(JSON.parse(text));
 for (const k of Object.keys(rest)) assert.strictEqual(canon(back[k]), canon(rest[k]), `founders 7, year 1: ${k} differs after a trip`);
-assert.strictEqual(back.cenv.people, back.pawns, 'cenv.people is pawns itself after a trip');
+assert.ok(!('people' in back.cenv), 'the culture reads st.pawns: cenv holds no list of people (VB-247)');
 console.log(`codec ok: sharing, cycles, Maps, Sets, typed arrays, odd numbers and $ keys survive; founders 7 after a year: ${(text.length / 1024).toFixed(0)} KB of JSON, every key the same`);

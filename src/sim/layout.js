@@ -172,7 +172,7 @@ VB['sim/layout'] = (() => {
         id: out.length,
         edges: es,
         cond: 0.75 + rand() * 0.25,
-        owner,
+        owner: owner && { ...owner }, // a stretch's own: records sets each one's id when its farm is taken (VB-247)
         tile: m.tile,
         mx: (m.x1 + m.x2) / 2,
         my: (m.y1 + m.y2) / 2,
