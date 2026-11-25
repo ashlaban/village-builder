@@ -7,7 +7,7 @@ const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('BYRE FAIL:', m); } };
 const fresh = () => scenario('founders', 7);
 const cal = (doy, day = doy) => ({ doy, day, season: Math.floor(doy / 12), sday: doy % 12, hour: 0 });
-const culled = (st, hh) => H.herdsOf(st, hh).flatMap((hd) => hd.cull.map((e) => (e.sheep ? e.sheep : hd.head.find((h) => h.id === e.head).kind)));
+const culled = (st, hh) => H.herdsOf(st, hh).flatMap((hd) => hd.cull.flatMap((e) => (e.sheep ? Array(e.lot).fill(e.sheep) : [hd.head.find((h) => h.id === e.head).kind])));
 
 // --- short hay: hay for the cattle but not the sheep; the 4 ewes go, then the oldest cow; the bull, the ram and the oxen stay
 let st = fresh(), hh = st.households[0];
@@ -17,7 +17,7 @@ let c = culled(st, hh).sort().join(',');
 check(c === 'cow,ewe,ewe,ewe,ewe', `short hay: culled ${c}, wanted 4 ewes and a cow`);
 const cows = H.herdOf(st, hh, 'cattle').head.filter((h) => h.kind === 'cow'), gone = H.herdOf(st, hh, 'cattle').cull[0];
 check(gone && cows.every((h) => h.id === gone.head || h.born >= cows.find((q) => q.id === gone.head).born), 'short hay: not the oldest cow');
-const kept = Y.animals(st, hh).reduce((s, a) => s + a.hay, 0) * Sim.HERD.stallDays * Sim.HERD.margins.hay;
+const kept = Y.animals(st, hh).reduce((s, a) => s + a.hay * a.n, 0) * Sim.HERD.stallDays * Sim.HERD.margins.hay;
 check(kept <= hh.hay, `short hay: the kept animals need ${kept.toFixed(1)}, more than the hay ${hh.hay}`);
 check(!checkState(st).length, 'short hay: ' + checkState(st).slice(0, 3).join('; '));
 
@@ -43,7 +43,7 @@ check(!checkState(st).length, 'no hay: ' + checkState(st).slice(0, 3).join('; ')
 
 // --- slaughter, salting and spoiling
 st = fresh(); hh = st.households[0];
-const sheep = H.herdOf(st, hh, 'sheep'), entry = { id: 99, sheep: 'ewe', lean: false };
+const sheep = H.herdOf(st, hh, 'sheep'), entry = { id: 99, sheep: "ewe", lot: 1, lean: false };
 sheep.cull.push(entry);
 Y.slaughterDone(st, sheep, entry, hh);
 check(sheep.ewes === 3 && L.larderOf(hh, 'meat') === Sim.HERD.meat.ewe, `slaughter: ${sheep.ewes} ewes, ${L.larderOf(hh, 'meat')} meat`);
@@ -82,6 +82,43 @@ slaughtered = st.households.reduce((s, h) => s + L.larderOf(h, 'salt meat'), 0);
 check(hunger === 0, `founders: ${hunger} animals died of hunger in the byre`);
 check(counts >= 3, `founders: only ${counts} autumn counts culled anything in 3 years`);
 check(!checkState(st).length, 'founders after 3 years: ' + checkState(st).slice(0, 3).join('; '));
+// --- a flock bounded (VB-1682): one standing away from its byre (it grew to half a million on populous small seed 11, reached by no count,
+// hay or hunger) lambs as at home, but has no hay where it stands: in the byre season it goes hungry and its weakest lot dies each day
+// from starveDays; a flock far past its hay is culled by lots of a kind, not one entry an animal
+{
+  const s = fresh(), h0 = s.households[0], flock = H.herdOf(s, h0, 'sheep');
+  VB['sim/droving'].leaveAt(s, h0, s.farmsteads[h0.farmstead].house);
+  check(flock.at !== undefined && flock.rams > 0, 'away: the flock stands away with its ram');
+  H.spring(s);
+  check(flock.lambs > 0 && flock.lambed > 0, `away: the flock lambs as at home (${flock.lambs} lambs, ${flock.lambed} lambed)`);
+  const size = () => flock.ewes + flock.rams + flock.lambs, spring = size();
+  Y.byreDay(s, cal(Sim.HERD.stall[0]));
+  check(size() === spring, 'away: nothing dies on the first unfed day');
+  for (let d = 1; d < 6; d++) Y.byreDay(s, cal(Sim.HERD.stall[0] + d));
+  check(size() === 0 && Sim.villageLog(s, Infinity).some((e) => /left standing there with no hay died/.test(e.text)),
+    `away: ${size()} of ${spring} live on past 6 stall days with no hay`);
+  check(!checkState(s).length, 'away, hungry: ' + checkState(s).slice(0, 3).join('; '));
+}
+{
+  const s = fresh(), h0 = s.households[0], flock = H.herdOf(s, h0, 'sheep');
+  flock.ewes = 200000; flock.lambs = 100000; h0.hay = 50;
+  Y.emergency(s, h0, cal(40));
+  const left = Y.animals(s, h0).reduce((n, a) => n + a.hay * a.n, 0) * (47 - 40 + Sim.HERD.stall[1]), lots = flock.cull.length; // the stall days left after doy 40
+  check(lots <= 3 && flock.cull.every((e) => e.lean), `emergency: ${lots} cull entries for a flock of 300,000, wanted a lot a kind`);
+  check(left <= h0.hay + 1e-6 && culled(s, h0).filter((k) => k === "ewe" || k === "lamb").length === 300000 + flock.rams - Y.animals(s, h0).filter((a) => a.sheep).reduce((n, a) => n + a.n, 0),
+    `emergency: what is kept needs ${left}, the hay is ${h0.hay}`);
+  check(!checkState(s).length, 'emergency by lots: ' + checkState(s).slice(0, 3).join('; '));
+  const jobs = Y.byreJobs(s, h0, cal(40)).filter((j) => j[1] === 'slaughter' && j[2].herd === flock);
+  check(jobs.length <= lots * 6, `emergency: ${jobs.length} slaughter jobs stand for ${lots} lots`);
+  const e = flock.cull[0], n = e.lot, ewes = flock.ewes + flock.lambs;
+  Y.slaughterDone(s, flock, e, h0);
+  check(e.lot === n - 1 && flock.cull.includes(e) && flock.ewes + flock.lambs === ewes - 1, 'slaughter of one of a lot: the lot is one fewer');
+  s.households[0].hay = 0; flock.cull = [];
+  Y.autumnCount(s, h0);
+  check(flock.cull.length <= 5, `autumn count: ${flock.cull.length} cull entries for a flock past its hay`);
+  check(!checkState(s).length, 'autumn count by lots: ' + checkState(s).slice(0, 3).join('; '));
+}
+
 if (failed) process.exit(1);
 console.log(`byre ok: founders 6, 3 years: ${counts} counts with culls, ${spoiled} lots of meat spoiled, ${slaughtered.toFixed(1)} salt meat in larders, ` +
   `${herdSize()} animals`);
