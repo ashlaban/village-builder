@@ -36,6 +36,7 @@ VB['sim/society'] = (() => {
     { aleStanding } = VB['sim/stores'];
   const { heirRanking } = VB['sim/heirranking'];
   const { helpLean } = VB['sim/commons'];
+  const Followers = VB['sim/followers'];
   // @tunable TIE: a settlement's tie to its culture's centre, by the walking hours between
   // The tie of a settlement to its culture's centre (sim/society, VB-290): exp(-h / hours) for h walking hours between the two greens (the
   // table of VB-286), plus the kin term; over the sea or beyond walking reach, `sea` times the hex steps, in hours (/ SPEED).
@@ -51,6 +52,12 @@ VB['sim/society'] = (() => {
         return s === null ? null : env.settlements[s];
       },
       voiceOf: (p, s) => voiceOf(st, p, s),
+      // a follower leans to its lord's side (VB-708; PATRON.lean): the lord's record and the share, or null
+      leanOf: (p) => {
+        const l = p.looksTo;
+        return l === null || l === undefined || !st.pawns[l].alive ? null : st.pawns[l];
+      },
+      lean: Followers.PATRON.lean,
       ask: (q) => ask(st, q), // a meeting's question, settled by the village's procedure (sim/decisions, VB-313)
       decide: (s, dim, option) =>
         issue(st, { actor: { settlement: s.id }, verb: 'decide', args: { dim, option }, source: 'meeting' }) === true,
@@ -207,6 +214,8 @@ VB['sim/society'] = (() => {
       const ale = aleStanding(st, holdingOf(st, p.id));
       if (ale > 0) parts.push(['Ale poured', ale]);
     }
+    const led = Followers.followerTerm(st, p.id); // followers (VB-708): each by its bond's weight, their own at a discount
+    if (led > 0) parts.push(['Followers', led]);
     const given = deedNow(st, p, 'gift');
     if (given >= 1) parts.push(['Gifts given', DEED.gift * (1 - Math.exp(-given / DEED.giftScale))]);
     // the village's work days this year (VB-120): turned out, and, as a holder, stayed away
@@ -228,6 +237,11 @@ VB['sim/society'] = (() => {
   // A host poured ale (sim/occasions): its holder's standing gains at once, not at the year's round.
   on('alePoured', (st, e) => {
     const p = st.pawns[e.host];
+    if (p.alive) p.standing = sumOf(standingParts(st, p));
+  });
+  // A tie of a follower begun or ended (sim/followers, VB-708): its lord's standing, at once.
+  on('tieChanged', (st, e) => {
+    const p = st.pawns[e.lord];
     if (p.alive) p.standing = sumOf(standingParts(st, p));
   });
   // A gift of food went from one household to another (sim/exchange): the giver's sum of gifts grows by its worth, at once.

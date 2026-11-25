@@ -1072,6 +1072,7 @@ function checkState(st) {
       !(typeof p.kinPush.to === 'string' && within(p.kinPush.w, 0, 1))) bad.push(`pawns[${p.id}]: kinPush is ${JSON.stringify(p.kinPush)}`);
     if (p.landWait !== undefined && !(Number.isInteger(p.landWait) && p.landWait >= 0)) bad.push(`pawns[${p.id}]: landWait is ${p.landWait}`);
   }
+  checkFollowers(st, bad);
   checkStories(st, bad);
   const open = new Map();
   for (const u of st.unions) {
@@ -2131,3 +2132,26 @@ function checkMods(st, p, bad) {
   }
 }
 module.exports = { checkState };
+
+// VB-708: pawn.looksTo, a living pawn or null; nobody looks to itself, nor in a cycle, nor while dead; and the index of followers by lord, when
+// built, is exactly the living pawns' looksTo
+function checkFollowers(st, bad) {
+  const seen = new Map();
+  for (const p of st.pawns) {
+    const l = p.looksTo;
+    if (l === undefined || l === null) continue;
+    const where = `pawns[${p.id}].looksTo`;
+    if (!Number.isInteger(l) || !st.pawns[l]) { bad.push(`${where} is ${l}`); continue; }
+    if (!p.alive) { bad.push(`${where}: dead and looks to ${l}`); continue; }
+    if (l === p.id) bad.push(`${where}: looks to itself`);
+    if (!st.pawns[l].alive) bad.push(`${where}: looks to ${l}, who is dead`);
+    for (let x = l, n = 0; x !== null && x !== undefined; x = st.pawns[x].looksTo, n++)
+      if (x === p.id || n > st.pawns.length) { bad.push(`${where}: a cycle of lords through ${l}`); break; }
+    if (!seen.has(l)) seen.set(l, new Set());
+    seen.get(l).add(p.id);
+  }
+  if (!st.followers) return;
+  const key = (m) => [...m].map(([k, v]) => `${k}:${[...v].sort((a, b) => a - b).join(',')}`).sort().join(' ');
+  if (key(st.followers) !== key(seen)) bad.push('st.followers does not match the pawns\' looksTo');
+}
+

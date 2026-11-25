@@ -123,6 +123,7 @@
       "sim/pastimes",
       "sim/mood",
       "sim/society",
+      "sim/followers",
       "sim/deaths",
       "sim/births",
       "sim/heirranking",

@@ -17,7 +17,7 @@ VB['sim/relations'] = (() => {
   //   Terms: grain above the floor (sim/hunger), goodwill and opinion (sim/exchange), the holder's own reserve (sim/help), the giver's
   //   mood (sim/exchange, VB-875).
   const Rules = VB['sim/registry'],
-    ORDER = ['slack', 'goodwill', 'opinion', 'reserve', 'mood'];
+    ORDER = ['slack', 'goodwill', 'opinion', 'reserve', 'patron', 'mood'];
   Rules.declare({
     id: 'allowance',
     owner: 'sim/relations',

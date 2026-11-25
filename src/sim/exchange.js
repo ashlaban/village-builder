@@ -290,6 +290,7 @@ VB['sim/exchange'] = (() => {
       if (o.from === no.by || above < HELP.askLeast) return; // nothing to give: an honest cannot
       remember(st, o.from, no.by, 'refusedUs');
       remember(st, no.by, o.from, 'refusedThem');
+      emit(st, 'askRefused', { asker: o.from, by: no.by }); // could give and would not: a lord who does fails his follower (sim/followers)
       log(st, `${fullName(st.pawns[no.by])} refused ${Offers.what(st, o)}.`, {
         kind: 'offerRefused',
         pawn: no.by,
