@@ -2,6 +2,7 @@
 // spares one (booked as goodwill) or by a heifer from kin at a marriage (not booked); the animal moves only when a member has walked to the
 // giver's byre and led it home (the kind `lead`). On the small deliberate village of tests/lib/probe.js; the state invariants hold.
 const VB = require('../src/load.js'), Sim = VB.sim, H = VB['sim/herds'], X = VB['sim/exchange'], M = VB['sim/meadows'];
+const { targets: TG } = require('./lib/season.js');
 const { balance } = VB['sim/relations'], { checkState } = require('./lib/invariants.js'), { state } = require('./lib/probe.js');
 let failed = 0;
 const check = (ok, m) => { if (!ok) { failed++; console.error('COWWANT FAIL:', m); } };
@@ -103,13 +104,13 @@ function leadHome(st, buyer) {
   // the land step begins it through the head's verb (VB-253); the fields' target is met first, so the meadow is the project begun
   const P = VB['sim/plans'], begun = (s, h) => VB['sim/projects'].ownOf(s, h.id);
   const plan = st.plans.households.get(hh.id);
-  plan.targets.fields = f.fields.length;
+  TG(plan).fields = f.fields.length;
   check(M.wantsFirstMeadow(st, f, hh), 'two hands, no herd, no meadow: a first meadow is wanted');
   P.landStep(st, plan, f, hh, VB['sim/fieldplans'].builtTiles(st));
   check(begun(st, hh) && begun(st, hh).what === 'meadow', 'the land step starts the first meadow');
   const lone = state(), [lh] = pair(lone), lf = lone.farmsteads[lh.farmstead], lplan = lone.plans.households.get(lh.id);
   for (const id of lh.members) if (id !== lh.holder) lone.pawns[id].retired = true;
-  lplan.targets.fields = lf.fields.length;
+  TG(lplan).fields = lf.fields.length;
   check(!M.wantsFirstMeadow(lone, lf, lh), 'one hand: no first meadow is wanted');
   P.landStep(lone, lplan, lf, lh, VB['sim/fieldplans'].builtTiles(lone));
   check(!begun(lone, lh), 'one hand: the land step starts none');

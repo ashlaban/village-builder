@@ -29,8 +29,10 @@ VB['sim/plans'] = (() => {
   const { founded, villageSteps } = VB['sim/routines'];
   const { reviewAfter, cadence, nextSlot, enqueue, dequeue } = VB['sim/plandays'];
   const Steps = VB['sim/steps'];
-  const { seasonOf, seasonal, templateOf, cultureOf, headSkill, horizonOf, ORDER_LEAST } = VB['sim/seasonal'],
-    { chosenTargets, goodTargets, begin, reviewTargets, dropSeason, setOrder } = VB['sim/seasonal'];
+  const { seasonNow, routinesOf, seasonal, templateOf, cultureOf, headSkill, horizonOf, ORDER_LEAST } =
+      VB['sim/seasonal'],
+    { chosenTargets, goodTargets, begin, reviewTargets, setOrder } = VB['sim/seasonal'];
+  const { targetOf } = Steps;
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
   //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
   //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours: its next planning day's review), last (the day
@@ -106,10 +108,7 @@ VB['sim/plans'] = (() => {
   function dropPlan(st, type, id) {
     mapOf(st, type).delete(id);
     dropAll(st, type, id); // its project plans with it
-    if (type === 'household') {
-      dropSeason(st, id);
-      dequeue(st, id);
-    }
+    if (type === 'household') dequeue(st, id);
   }
   const planOf = (st, type, id) => mapOf(st, type).get(id);
   // The plans of every live holder, at seed, and at the load of a save made before plans (VB-258).
@@ -117,7 +116,6 @@ VB['sim/plans'] = (() => {
     st.plans = {
       households: new Map(),
       villages: new Map(),
-      seasons: new Map(),
       pawns: new Map(),
       due: [],
       projects: Projects.emptyProjects(),
@@ -143,9 +141,8 @@ VB['sim/plans'] = (() => {
       villageSteps(st, plan);
       return;
     }
-    const hh = st.households[plan.holder.id],
-      sp = seasonOf(st, hh.id);
-    if (sp.year !== c.year || sp.season !== c.season) seasonal(st, plan, c);
+    const hh = st.households[plan.holder.id];
+    if (!seasonNow(plan, c)) seasonal(st, plan, c);
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     const own = f && f.household === hh.id,
       H = plan.head ? { skill: headSkill(st, hh.id), pawn: plan.head.pawn } : null, // its foresight (VB-351)
@@ -180,7 +177,8 @@ VB['sim/plans'] = (() => {
   function landStep(st, plan, f, hh, built) {
     if (!Projects.heldOff(st, hh.id)) {
       // the head's prudence, its own choice and not a refusal (VB-1668): it begins a field or a meadow only with no large project under way
-      if (!Projects.ownOf(st, hh.id) && f.fields.length < plan.targets.fields) landBy(st, plan, f, hh, 'field', built);
+      if (!Projects.ownOf(st, hh.id) && f.fields.length < targetOf(plan, 'fields').level)
+        landBy(st, plan, f, hh, 'field', built);
       if (!Projects.ownOf(st, hh.id) && (wantsMeadow(st, f, hh) || wantsFirstMeadow(st, f, hh)))
         landBy(st, plan, f, hh, 'meadow', built);
     }
@@ -205,7 +203,7 @@ VB['sim/plans'] = (() => {
   function targetBounds(st, plan, store) {
     if (Targets.isMade(store)) return Targets.bounds(st, st.households[plan.holder.id], store);
     if (store === 'hay') return [0, HAY_MOST];
-    if (store === 'fields') return [0, plan.targets.workable];
+    if (store === 'fields') return [0, targetOf(plan, 'fields').workable];
     if (store === 'wood') return [0, 2 * st.ECON.woodWinter];
     if (store === 'cow') return [0, 1];
     return null;
@@ -241,11 +239,12 @@ VB['sim/plans'] = (() => {
   }
   // Why `steps` may not be the order of household id's routines this season, or null: the same routines as its seasonal plan's, each once.
   function orderWhy(st, id, steps) {
-    const sp = st.plans.seasons.get(id);
-    if (!sp) return `the household has no seasonal plan`;
-    if (!Array.isArray(steps) || steps.length !== sp.steps.length || new Set(steps).size !== steps.length)
-      return `the order must name each of the season's ${sp.steps.length} routines once`;
-    for (const k of steps) if (!sp.steps.includes(k)) return `${k} is not a routine of the season`;
+    const plan = st.plans.households.get(id),
+      R = plan && plan.season ? routinesOf(plan) : null;
+    if (!R) return `the household has no seasonal plan`;
+    if (!Array.isArray(steps) || steps.length !== R.length || new Set(steps).size !== steps.length)
+      return `the order must name each of the season's ${R.length} routines once`;
+    for (const k of steps) if (!R.includes(k)) return `${k} is not a routine of the season`;
     return null;
   }
   // The head holds off projects (on true) or lets its rule take them again (false).
@@ -287,10 +286,9 @@ VB['sim/plans'] = (() => {
   // {id, what, step, tile}) and the small constructions beside it (VB-1414); the head's skill
   // and horizon; or null for a household with no plan. Plain data, a copy.
   function headView(st, id) {
-    const plan = st.plans.households.get(id),
-      sp = st.plans.seasons.get(id);
-    if (!plan || !sp) return null;
-    const T = plan.targets,
+    const plan = st.plans.households.get(id);
+    if (!plan || !plan.season) return null;
+    const F = targetOf(plan, 'fields'),
       C = plan.chosen || {},
       p = Projects.ownOf(st, id),
       c = cal(st.t),
@@ -305,13 +303,13 @@ VB['sim/plans'] = (() => {
     });
     // the custom's fields beside the head's: both capped at what the hands can till; the head's bias is applied before that cap (VB-485),
     // so the two differ only where the bias moves the fields under it
-    const wanted = hh.farmstead === null ? 0 : fieldsWanted(st, hh, T.workable);
+    const wanted = hh.farmstead === null ? 0 : fieldsWanted(st, hh, F.workable);
     return {
       targets: {
-        hay: target('hay', T.hayWinters, M.hayWinters),
+        hay: target('hay', targetOf(plan, 'hay').level, M.hayWinters),
         // what the head counts on besides its fields, by source (VB-768: its own estimate, sim/yields' trusted), rations a year
-        fields: { ...target('fields', T.fields, wanted), counts: hh.farmstead === null ? [] : countsOn(st, hh) },
-        wood: target('wood', T.wood[c.season], M.wood[c.season]),
+        fields: { ...target('fields', F.level, wanted), counts: hh.farmstead === null ? [] : countsOn(st, hh) },
+        wood: target('wood', targetOf(plan, 'wood').seasons[c.season], M.wood[c.season]),
         cow: target('cow', plan.want ? 1 : 0, null),
       },
       goods: Targets.view(st, hh, C.goods, plan.placed && plan.placed.goods),
@@ -319,8 +317,8 @@ VB['sim/plans'] = (() => {
         ? { pawn: plan.head.pawn, skill, horizon: horizonOf(skill), keepsOrder: skill >= ORDER_LEAST }
         : null,
       tiles: { ...plan.tiles },
-      order: [...sp.steps],
-      orderBy: sp.by || 'template',
+      order: routinesOf(plan),
+      orderBy: plan.season.some((s) => s.what.routine && s.author === 'pawn') ? 'head' : 'template',
       project: p ? { id: p.id, what: p.what, step: p.steps[p.open].kind } : null,
       projects: Projects.projectsOf(st, 'household', id)
         .filter((q) => q.what !== 'cottage' && !q.small)

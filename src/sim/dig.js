@@ -4,6 +4,7 @@
 // and bog iron until slice 6 (VB-185), so a household digs those in its slack, and only up to DIG.stock loads of each. Peat is fuel (VB-367):
 // cut in summer into the peat stack, where it dries, and burnt in place of wood (sim/hunger warmHouse); it never grows back.
 VB['sim/dig'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { YEAR_DAYS, DAY, PEAT, cal } = VB['sim/rules'];
   const { DEPOSIT, ENDLESS } = VB['world/geology'];
   const { bfs } = VB['sim/hex'],
@@ -64,7 +65,8 @@ VB['sim/dig'] = (() => {
     const c = cal(st.t),
       plan = st.plans.households.get(hh.id);
     if (c.season !== 1 || !plan) return 0;
-    const short = plan.targets.wood[1] - (hh.wood - Stores.reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0));
+    const short =
+      targetOf(plan, 'wood').seasons[1] - (hh.wood - Stores.reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0));
     return short > 1e-9 ? Math.ceil(short / (PEAT.worth * st.ECON.woodPerTrip)) : 0;
   }
   // The goods the household still wants, below its head's target for each (VB-698): clay and bog iron while it holds fewer loads (by
@@ -146,7 +148,7 @@ VB['sim/dig'] = (() => {
     urgency: (st, j) => {
       if (j.good !== 'peat') return DIG.urgency;
       const hh = st.households[j.farm.household],
-        goal = st.plans.households.get(hh.id).targets.wood[1],
+        goal = targetOf(st.plans.households.get(hh.id), 'wood').seasons[1],
         free = hh.wood - Stores.reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
       return Math.max(DIG.urgency, (goal - free) / goal);
     },

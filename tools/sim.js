@@ -157,11 +157,12 @@ const when = (hour) => {
   return `year ${c.year} ${Sim.SEASONS[c.season]} day ${c.sday + 1} ${String(Math.floor(c.hour)).padStart(2, '0')}:00`;
 };
 function plansOf(h) {
-  const P = VB['sim/plans'], plan = P.planOf(st, 'household', h.id), sp = VB['sim/seasonal'].seasonOf(st, h.id);
+  const P = VB['sim/plans'], plan = P.planOf(st, 'household', h.id);
   if (!plan) return { household: h.id, plans: 'none (dissolved)' };
-  return { household: h.id, culture: VB['sim/seasonal'].cultureOf(st, h), targets: plain(plan.targets), reserved: plain(plan.reserved),
+  return { household: h.id, culture: VB['sim/seasonal'].cultureOf(st, h), targets: plan.season.filter((s) => s.what.target).map((s) => plain(s.what.target)), reserved: plain(plan.reserved),
     nextReview: when(plan.nextReview), cadenceDays: VB['sim/plandays'].cadence(st, plan), lastReviewDay: plan.last,
-    season: `${Sim.SEASONS[sp.season]} of year ${sp.year} (made on day ${sp.made})`, steps: sp.steps.join(', ') };
+    season: `${Sim.SEASONS[Sim.cal(plan.season[0].from * VB['sim/rules'].DAY).season]} of year ${Sim.cal(plan.season[0].from * VB['sim/rules'].DAY).year} (made on day ${plan.season[0].from})`,
+    steps: VB['sim/seasonal'].routinesOf(plan).join(', ') };
 }
 const tables = {
   gathering: () => gathering.result(), // VB-294

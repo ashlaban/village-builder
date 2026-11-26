@@ -4,6 +4,7 @@
 // and its target on tar rises by what it reckons it can place (its lean, within its spare hands and a back load); the panel shows it;
 // a met ask closes, a year-old one lapses; invariants hold and a save carries the asks.
 const assert = require('assert');
+const { targets: TG, season: SP } = require('./lib/season.js');
 const VB = require('../src/load.js'), Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
@@ -53,7 +54,7 @@ const want = Math.min(Math.floor(asked * lean + 1e-9), most, Asks.carried('tar')
 assert.strictEqual(VB.count.asksRead, 2, 'each ask passed');
 assert.ok(want > 0, 'a head that heard of an ask reckons a barrel to place');
 assert.deepStrictEqual([plan.placed.year, plan.placed.heard], [cal(st.t).year, heard], 'read this year');
-assert.strictEqual(plan.targets.goods.tar, need + want, 'the target: the need and what it reckons it can place');
+assert.strictEqual(TG(plan).goods.tar, need + want, 'the target: the need and what it reckons it can place');
 assert.strictEqual(Targets.target(st, maker, 'tar'), need + want, 'the maker reads it');
 assert.strictEqual(P.headView(st, maker.id).goods.tar.placed, want, 'the panel shows the head\'s reckoning');
 VB.resetCounts();

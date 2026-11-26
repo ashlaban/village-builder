@@ -1,6 +1,7 @@
 // @sys sim/meadows: hay meadows as built land: a tile's worth as meadow, choosing one, the meadow project (a project plan of
 // sim/plans), and the meadows of generated farms
 VB['sim/meadows'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['world/biomes'];
   const { SEASON_DAYS, TRAVEL, HERD, BUILD, cal } = VB['sim/rules'],
@@ -244,7 +245,7 @@ VB['sim/meadows'] = (() => {
   function hayWanted(st, f, hh) {
     const need = winterNeed(st, hh);
     if (!(need > 0)) return false;
-    const target = st.plans.households.get(hh.id).targets.hayWinters * need;
+    const target = targetOf(st.plans.households.get(hh.id), 'hay').level * need;
     return (
       hh.hay + f.meadows.reduce((s, m) => s + (m.stage === 'mown' ? m.held : 0), 0) <
       target + hayLostToWinter(st, f, target, need)

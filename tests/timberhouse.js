@@ -5,6 +5,7 @@
 // a crowded head left to its rule builds one by itself in winter; an older save reads as the rung derived. On a tiny
 // village of three farms.
 const assert = require('assert');
+const { targets: TG, season: SP } = require('./lib/season.js');
 const VB = require('../src/load.js'),
   Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js'),
@@ -167,8 +168,8 @@ function crowd(st, to, n) {
     plan.chosen = null;
     Seasonal.seasonal(st, plan, c);
   }
-  const T = st.plans.households.get(hh.id).targets,
-    U = st.plans.households.get(g.id).targets;
+  const T = TG(st.plans.households.get(hh.id)),
+    U = TG(st.plans.households.get(g.id));
   assert(U.wood[c.season] > 0, 'a cottage has a goal');
   for (let s = 0; s < 4; s++)
     assert(Math.abs(T.wood[s] - ROOM.timberFire * U.wood[s]) < 1e-9, `season ${s}: ${T.wood[s]} against ${U.wood[s]}`);

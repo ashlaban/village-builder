@@ -1,5 +1,6 @@
 // @sys sim/rotations: crop courses, sowing choices and village rotation customs; the head's foresight on what to sow (VB-351)
 VB['sim/rotations'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { FIELDS, cal, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'],
     { CROPS, ROTATIONS, SOIL } = VB['sim/crops'];
   const { log } = VB['sim/records'];
@@ -151,7 +152,7 @@ VB['sim/rotations'] = (() => {
     const R = ROTATIONS[key].courses,
       crops = R.filter((k) => !CROPS[k].fallow),
       plan = st.plans.households.get(hh.id),
-      hands = plan && plan.targets ? plan.targets.workable : f.fields.length;
+      hands = targetOf(plan, 'fields') ? targetOf(plan, 'fields').workable : f.fields.length;
     VB.count.rotationWalk += f.fields.length;
     let soil = 0;
     for (const fd of f.fields) soil += fd.soil;

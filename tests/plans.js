@@ -2,6 +2,7 @@
 // wanted), the land step with its seam for a tile the plan names, the year's herd count, and its reservation of seed in sim/stores.
 // On the small islands (VB-854).
 const assert = require('assert');
+const { targets: TG, season: SP } = require('./lib/season.js');
 let countYearReads = false, yearReads = 0;
 const VB = require('./lib/load.js').loadModules({ wrap: {
   'sim/registry': { value: (value) => (st, id, ctx) => {
@@ -20,9 +21,9 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
 
 { // every household's plan has its targets and its seed reservation from the start; the reservation is the fields' need, read live
   const st = fresh(), hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = Plans.planOf(st, 'household', hh.id);
-  assert.deepStrictEqual(plan.targets.wood, [st.ECON.woodTarget, st.ECON.woodWinter, st.ECON.woodWinter, st.ECON.woodTarget], 'wood by season');
-  assert.strictEqual(plan.targets.hayWinters, 2, 'hay for two winters');
-  assert.strictEqual(plan.targets.fields, F.fieldsWanted(st, hh), 'the fields wanted');
+  assert.deepStrictEqual(TG(plan).wood, [st.ECON.woodTarget, st.ECON.woodWinter, st.ECON.woodWinter, st.ECON.woodTarget], 'wood by season');
+  assert.strictEqual(TG(plan).hayWinters, 2, 'hay for two winters');
+  assert.strictEqual(TG(plan).fields, F.fieldsWanted(st, hh), 'the fields wanted');
   assert.strictEqual(plan.reasons['grain/barley'], 'seed', 'the standing plan reserves seed');
   const held = () => (VB['sim/projects'].ownOf(st, hh.id) ? CROPS.barley.seed : 0); // a land project holds its field's seed (VB-123)
   assert.strictEqual(Stores.reserved(st, hh, 'grain'), seedNeed(st, hh) + held(), 'reserved is the seed the fields need');
@@ -35,9 +36,9 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
 { // the review writes the targets and the count of seed; reserve and release check their reason and plan
   const st = fresh(), hh = st.households[0], plan = Plans.planOf(st, 'household', hh.id);
   setClock(st, DAY + WORK[0]);
-  plan.targets.fields = -5; plan.reserved['grain/barley'] = -1;
+  TG(plan).fields = -5; plan.reserved['grain/barley'] = -1;
   refreshJobs(st, cal(st.t));
-  assert.strictEqual(plan.targets.fields, F.fieldsWanted(st, hh), 'the first review writes the fields wanted');
+  assert.strictEqual(TG(plan).fields, F.fieldsWanted(st, hh), 'the first review writes the fields wanted');
   assert.strictEqual(plan.reserved['grain/barley'], seedNeed(st, hh), 'the review counts the seed reserved');
   assert.throws(() => Stores.reserve(st, hh, plan, 'grain/barley', 1, 'barn'), /unknown reservation/, 'a reason it does not know');
   assert.throws(() => Stores.reserve(st, hh, Plans.planOf(st, 'household', st.households[1].id), 'grain/barley', 1, 'seed'), /its holder's plan/,
@@ -53,18 +54,18 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
   const K = VB['sim/kinds'].KINDS, c = cal(st.t), posted = [];
   hh.wood = 1000; K.wood.available(st, hh, f, c, (key) => posted.push(key));
   assert.strictEqual(posted.length, 0, 'a full woodpile posts no wood');
-  plan.targets.wood[c.season] = 2000; K.wood.available(st, hh, f, c, (key) => posted.push(key));
+  TG(plan).wood[c.season] = 2000; K.wood.available(st, hh, f, c, (key) => posted.push(key));
   assert.strictEqual(posted.length, st.villages[f.village].wood.length ? 1 : 0, 'the plan\'s goal for the season is read');
   const M = VB['sim/meadows'];
-  if (M.hayWanted(st, f, hh) === false && hh.herds.length) { plan.targets.hayWinters = 1e9; assert(M.hayWanted(st, f, hh), 'hay winters read'); }
+  if (M.hayWanted(st, f, hh) === false && hh.herds.length) { TG(plan).hayWinters = 1e9; assert(M.hayWanted(st, f, hh), 'hay winters read'); }
 }
 { // the land step: the plan's target of fields, and a tile the plan names in place of the holder's choice
   const st = fresh(), hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = Plans.planOf(st, 'household', hh.id);
   const drop = () => VB['sim/projectplans'].dropAll(st, 'household', hh.id), open = () => VB['sim/projects'].openOf(st, hh.id);
-  drop(); plan.targets.fields = f.fields.length;
+  drop(); TG(plan).fields = f.fields.length;
   Plans.landStep(st, plan, f, hh, F.builtTiles(st));
   assert(!open() || open().kind === 'meadow', 'no new field when the plan has enough');
-  drop(); plan.targets.fields = f.fields.length + 1;
+  drop(); TG(plan).fields = f.fields.length + 1;
   const chosen = F.chooseTile(st, f);
   assert(chosen >= 0, 'a tile to choose');
   const other = F.chooseTile(st, f, (t) => t !== chosen && VB['sim/territory'].freeFor(st, t, f.village));
@@ -203,37 +204,37 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
 }
 { // one seasonal plan per household from the start, its steps the season's routines in order; the standing plan's targets copied from it
   const st = fresh('populous'), c = cal(st.t);
-  assert.strictEqual(st.plans.seasons.size, st.liveHouseholds.length, 'one seasonal plan per household');
+  assert.ok(st.liveHouseholds.every((id) => Plans.planOf(st, 'household', id).season.length), 'season steps in every household\'s plan');
   for (const id of st.liveHouseholds) {
-    const sp = VB['sim/seasonal'].seasonOf(st, id), T = Plans.planOf(st, 'household', id).targets;
-    assert.strictEqual(sp.kind, 'season');
+    const sp = SP(Plans.planOf(st, 'household', id)), T = TG(Plans.planOf(st, 'household', id));
+    assert.strictEqual(sp.made, c.day);
     assert.strictEqual(sp.season, c.season);
     assert.deepStrictEqual(sp.steps, VB['sim/seasonal'].ROUTINES[c.season], 'the season\'s routines in order');
     assert.strictEqual(T.seed, CROPS.barley.seed);
     assert.strictEqual(T.perHand, VB['sim/rules'].FIELDS.perHand);
   }
-  assert.notStrictEqual(VB['sim/seasonal'].seasonOf(st, st.liveHouseholds[0]).steps, VB['sim/seasonal'].seasonOf(st, st.liveHouseholds[1]).steps, 'each its own steps');
+  assert.notStrictEqual(Plans.planOf(st, 'household', st.liveHouseholds[0]).season[4], Plans.planOf(st, 'household', st.liveHouseholds[1]).season[4], 'each its own steps');
   assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'seasonal plan invariants');
 }
 { // the review reads the plan, not the template: one household's changed target stands until the season turns, and no other's changes;
   // at its first review of a season the plan is made again from the template; the template is compiled once a season and culture
   const st = fresh('populous'), [a, b] = st.liveHouseholds, pa = Plans.planOf(st, 'household', a), pb = Plans.planOf(st, 'household', b);
-  pa.targets.wood[1] = 99; pa.targets.perHand = 3; VB['sim/seasonal'].seasonOf(st, a).steps.reverse();
+  TG(pa).wood[1] = 99; TG(pa).perHand = 3; VB['sim/seasonal'].setOrder(st, a, [...SP(pa).steps].reverse());
   setClock(st, DAY + WORK[0]);
   refreshJobs(st, cal(st.t), true);
-  assert.strictEqual(pa.targets.wood[1], 99, 'the review reads the plan\'s target');
-  assert.strictEqual(pa.targets.workable, F.fieldsWorkable(st, st.households[a], 3), 'the fields per hand read from the plan');
-  assert.strictEqual(pb.targets.wood[1], st.ECON.woodWinter, 'no other household\'s plan changed');
-  assert.strictEqual(VB['sim/seasonal'].seasonOf(st, a).steps[0], 'fish', 'its steps as changed (the season\'s last routine first)');
+  assert.strictEqual(TG(pa).wood[1], 99, 'the review reads the plan\'s target');
+  assert.strictEqual(TG(pa).workable, F.fieldsWorkable(st, st.households[a], 3), 'the fields per hand read from the plan');
+  assert.strictEqual(TG(pb).wood[1], st.ECON.woodWinter, 'no other household\'s plan changed');
+  assert.strictEqual(SP(pa).steps[0], 'fish', 'its steps as changed (the season\'s last routine first)');
   const spring = cal(st.t);
   setClock(st, (spring.day - spring.sday + VB['sim/rules'].SEASON_DAYS) * DAY + WORK[0]); // the next season's first day
   countYearReads = true;
   refreshJobs(st, cal(st.t), true);
   countYearReads = false;
-  const sp = VB['sim/seasonal'].seasonOf(st, a);
+  const sp = SP(pa);
   assert.strictEqual(sp.season, (spring.season + 1) % 4, 'the next season\'s plan');
   assert.deepStrictEqual(sp.steps, VB['sim/seasonal'].ROUTINES[sp.season], 'its steps from the template');
-  assert.strictEqual(pa.targets.wood[1], st.ECON.woodWinter, 'the targets copied from the template again');
+  assert.strictEqual(TG(pa).wood[1], st.ECON.woodWinter, 'the targets copied from the template again');
   const cultures = new Set(st.liveHouseholds.map((id) => VB['sim/seasonal'].cultureOf(st, st.households[id])));
   assert.strictEqual(yearReads, cultures.size * (4 + 4 + new Set(VB['sim/seasonal'].ROUTINES.flat()).size), 'compiled once per culture');
   assert.deepStrictEqual(checkState(st).filter((x) => x.startsWith('plans')), [], 'seasonal plan invariants after the turn');
@@ -241,6 +242,6 @@ const fresh = (sc = 'founders') => templateHeads(VB, scenario(sc)); // heads tha
 { // a household's seasonal plan is dropped with it; a save made before seasonal plans gets them at load
   const st = fresh('populous'), id = st.liveHouseholds[0];
   Plans.dropPlan(st, 'household', id);
-  assert(!st.plans.seasons.has(id), 'dropped with the standing plan');
+  assert(!Plans.planOf(st, 'household', id), 'dropped with the standing plan');
 }
 console.log('plans ok');

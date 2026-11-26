@@ -8,6 +8,7 @@ const O = VB['sim/outlook'], { OUTLOOK, FRAME, reckon } = O;
 const Stores = VB['sim/stores'], P = VB['sim/plans'], H = VB['sim/herds'], M = VB['sim/meadows'];
 const { dailyNeed, seedPer } = VB['sim/hunger'];
 const { hands } = VB['sim/targets'];
+const { targets: TG, season: SP } = require('./lib/season.js');
 const { checkState } = require('./lib/invariants.js');
 const probe = require('./lib/probe.js');
 let failed = 0;
@@ -43,16 +44,16 @@ check(crop && crop.season === Math.floor((CROPS.barley.sow[1] + CROPS.barley.rip
 check(o1.food.with === o1.food.own, `the crop to come does not reach the summer: ${o1.food.with}`);
 
 // fuel: a pile that burns through spring, summer and autumn and half the winter, with no goal to cut towards
-const use = st.ECON.woodUse, goal = p0.targets.wood.slice();
+const use = st.ECON.woodUse, goal = TG(p0).wood.slice();
 h0.wood = SEASON_DAYS * (use[0] + use[1] + use[2] + use[3] * 0.55);
-p0.targets.wood = [0, 0, 0, 0];
+TG(p0).wood = [0, 0, 0, 0];
 o0 = reckon(st, h0, p0);
 check(near(o0.fuel.own, 3.55) && o0.fuel.with === o0.fuel.own, `fuel lasts the summer and not the winter: ${JSON.stringify(o0.fuel)}`);
 check(o0.fuel.state === 'short' && o0.fuel.season === 3, `short a little in the winter (half its need, at OUTLOOK.little ${OUTLOOK.little})`);
 check(near(o0.fuel.parts.need[3], use[3] * SEASON_DAYS, 0.1) && near(o0.fuel.parts.need[1], use[1] * SEASON_DAYS, 0.1), 'a winter season costs several summers');
 // the plan's goal brings wood in, at most the trips the hands allow in a season
 h0.wood = 0;
-p0.targets.wood = [1000, 1000, 1000, 1000];
+TG(p0).wood = [1000, 1000, 1000, 1000];
 const v0 = st.villages[0], trees = v0.wood;
 check(reckon(st, h0, p0).fuel.parts.intakes.length === 0, 'no wood in the village, none cut');
 v0.wood = [f0.house]; // a wood to cut in, for this reckoning
@@ -60,7 +61,7 @@ o0 = reckon(st, h0, p0);
 v0.wood = trees;
 const cap = hands(st, h0) * OUTLOOK.woodTrips * st.ECON.woodPerTrip, cut = o0.fuel.parts.intakes.find((x) => x.season === 0);
 check(o0.fuel.own === 0 && cut && near(cut.n, cap, 0.1), `the season's cut bounded by the hands: ${JSON.stringify(cut)} against ${cap}`);
-p0.targets.wood = goal;
+TG(p0).wood = goal;
 
 // hay: no herds, nothing needed
 check(!h0.herds.length && o0.hay.state === 'none' && o0.hay.own === FRAME && o0.hay.seasons.join() === '3', `no herds: ${JSON.stringify(o0.hay)}`);
@@ -79,7 +80,7 @@ const bare = reckon(st, h0, p0).hay;
 f0.meadows = meadows;
 check(bare.with === o0.hay.own && bare.season === 3 && bare.state === (bare.with - 3 >= OUTLOOK.little ? 'short' : 'bad'), `without meadows, short in the winter: ${JSON.stringify(bare)}`);
 const mow = o0.hay.parts.intakes.find((x) => x.what === 'meadows');
-check(mow && mow.season === 1 && near(mow.n, Math.min(M.expectedHay(f0), p0.targets.hayWinters * W - h0.hay), 0.1), `the meadows mown in summer: ${JSON.stringify(mow)}`);
+check(mow && mow.season === 1 && near(mow.n, Math.min(M.expectedHay(f0), TG(p0).hayWinters * W - h0.hay), 0.1), `the meadows mown in summer: ${JSON.stringify(mow)}`);
 check(o0.hay.with === FRAME && o0.hay.state === 'safe', `with the meadows, the winter is covered: ${JSON.stringify(o0.hay)}`);
 
 // no farm: the store alone, no crop and no wood cut

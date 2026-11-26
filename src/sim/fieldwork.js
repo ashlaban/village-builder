@@ -4,6 +4,7 @@
 // no field itself. sim/kinds joins KINDS into the registry, where a kind's fields are described; for a common field sim/commons wraps
 // the three kinds whose end is the village's (haul, clear, break).
 VB['sim/fieldwork'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const Stores = VB['sim/stores'];
   const { WORK, SEASON_DAYS, TRAVEL, cal } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];
@@ -91,7 +92,7 @@ VB['sim/fieldwork'] = (() => {
   // winter crop growing since the autumn. A household's fields are few (its hands' share and the fallow), so the walk is short.
   const handsCap = (st, hh) => {
     const plan = st.plans.households.get(hh.id);
-    return Math.max(1, plan && plan.targets ? plan.targets.workable : fieldsWorkable(st, hh));
+    return Math.max(1, targetOf(plan, 'fields') ? targetOf(plan, 'fields').workable : fieldsWorkable(st, hh));
   };
   function underHands(st, hh, fd, c, home) {
     if (home === hh) return true; // a common field, the village's own (sim/commons passes the village as both): it sows by its own rule

@@ -6,6 +6,7 @@
 //   stands at a tile for each (chainWhere), why it cannot be planned (chainWhy), its steps left (chainSteps) and why its task leaves the
 //   plan (chainGone). Reads only: the plan's writes are sim/playerplan's
 VB['sim/planchains'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { DAY, SEASON_DAYS, YEAR, WORK, TRAVEL, BOOTH, ECON, SPEED, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { CROPS, ROTATIONS } = VB['sim/crops'];
@@ -305,7 +306,7 @@ VB['sim/planchains'] = (() => {
   // The pile's free wood against the season's goal (the head's plan's targets, sim/plans), and whether it is short.
   const pileOf = (st, hh) => {
     const plan = st.plans.households.get(hh.id),
-      goal = plan && plan.targets ? plan.targets.wood[cal(st.t).season] : 0,
+      goal = targetOf(plan, 'wood') ? targetOf(plan, 'wood').seasons[cal(st.t).season] : 0,
       free = fuelFree(st, hh);
     return { free, goal, short: free < goal };
   };
