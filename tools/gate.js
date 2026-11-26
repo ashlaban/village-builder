@@ -10,8 +10,9 @@
 //     - a settlement is extinct by hunger that the base keeps alive;
 //     - a settlement has collapsed: its living at year 10 are under half its living at year 0 AND under half the base run's at year 10
 //       (a decline the base shares is not charged to the task; a settlement the base lacks is compared with its own year 0 only);
-//     - more tasks are held over 48 hours without progress than in the base: a claimed task whose `done` has not moved and whose
-//       rate is nil over 48 hours, sampled every 6 hours, each task counted once;
+//     - more tasks are held over 48 hours without progress than in the base: a claimed task whose `done`, trips made (`made`) and
+//       pile left (`left`) have not moved, whose rate is nil and none of whose hands walks with a load for it, over 48 hours, sampled
+//       every 6 hours, each task counted once;
 //     - `unexplained` is larger than the base's by more than 1 ration plus 0.1% of the run's food produced.
 //   Hunger days and deaths by hunger are printed beside the base and never fail. The base is kept at docs/gate/base.json, the
 //   result at the commit the tool landed on; the next task of the arch compares with it, and keeps its own for the one after
@@ -55,9 +56,11 @@ function run(scenario, seed) {
     if (s.t < nextSample) return;
     nextSample = s.t + STEP;
     for (const j of s.jobs.values()) {
-      const e = seen.get(j);
-      if (!j.claims.length || j.rate > 0) { seen.delete(j); continue; }
-      if (!e || e.done !== j.done) seen.set(j, { done: j.done, since: s.t });
+      const e = seen.get(j), mark = `${j.done}|${j.made}|${j.left}`;
+      // progress: its work done, its trips made or what still lies (VB-1749's trips, sim/lying's j.left), or a hand of it walking with a
+      // load for it (a trip of many hours, a far woodlot's or a pile's, whose work leg the samples miss; VB-1812)
+      if (!j.claims.length || j.rate > 0 || j.claims.some((id) => { const a = s.agents[id]; return a && a.job && a.job.key === j.key && a.carry && a.path; })) { seen.delete(j); continue; }
+      if (!e || e.mark !== mark) seen.set(j, { mark, since: s.t });
       else if (s.t - e.since >= HELD) stuck.add(j.id);
     }
     for (const j of seen.keys()) if (s.jobs.get(j.key) !== j) seen.delete(j);
