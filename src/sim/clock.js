@@ -25,7 +25,7 @@ VB['sim/clock'] = (() => {
   const { feedAway, dayAway } = VB['sim/away'],
     { fetchGoesOn } = VB['sim/journeys'];
   const { refreshJobs, lookForWork } = VB['sim/jobs'],
-    { takeDay, dutyRound, eveningCall } = VB['sim/day'],
+    { takeDay, abed, dutyRound, eveningCall } = VB['sim/day'],
     { ownTime } = VB['sim/pastimes'];
   const { issue, register } = VB['sim/commands'];
   const { playerStep } = VB['sim/player'];
@@ -749,7 +749,7 @@ VB['sim/clock'] = (() => {
     const c = cal(st.t),
       all = stepAgents(st, c),
       mine = st.controlled && st.controlled.length ? all.filter((a) => !unplanned(st, a.id)) : all, // any controller's pawn (VB-1745)
-      idle = st.away.length ? dayAway(st, mine) : mine; // a lodger works only what its stay names (VB-783)
+      idle = abed(st, st.away.length ? dayAway(st, mine) : mine); // a lodger works only what its stay names (VB-783); the ill keep to bed
     if (idle.length) {
       // each takes the next task of its day (VB-466); those it gave none look at the household's opportunities, whose day is then allotted
       // anew (VB-249), and take again; a hand lent to a neighbour works its tasks first (VB-470)

@@ -58,7 +58,8 @@ VB['sim/fit'] = (() => {
     !unplanned(st, p.id) &&
     Days.on(st, p.id) === null &&
     Hands.on(st, p.id) === null &&
-    !Voice.on(st, p.id); // on leave (VB-1555)
+    !Voice.on(st, p.id) && // on leave (VB-1555)
+    p.ill === undefined; // ill (VB-1758: an illness keeps its pawn from work)
   // The stand mask of pawn p (VB-1545): the roles its household lacks today when p is the holder at work, else 0. A pass over the
   // household's members, for a reader outside an allotment (fit); allot makes it once from its own list.
   function standOf(st, p) {

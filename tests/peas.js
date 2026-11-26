@@ -28,7 +28,8 @@ st.villages[f.village].rotation = 'peas';
 f.fields.forEach((q, i) => Object.assign(q, { rotation: 'peas', step: (i + 1) % 2, crop: ROTATIONS.peas.courses[(i + 1) % 2] }));
 fd.soil = 0.9;
 fd.stage = 'stubble'; // to be hoed first
-Stores.put(st, hh, Stores.grainGood('peas'), P.seed + 5, 'start');
+// the seed for each field at peas (VB-1758): whichever is hoed first is sown first, and the field followed may come after another
+Stores.put(st, hh, Stores.grainGood('peas'), P.seed * f.fields.filter((q) => q.crop === 'peas').length + 5, 'start');
 Stores.put(st, hh, Stores.grainGood('barley'), 300, 'start'); // fed meanwhile: a hungry household eats its seed
 const hours = {};
 let seen = null, max = 0;

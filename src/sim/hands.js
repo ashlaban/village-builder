@@ -157,6 +157,7 @@ VB['sim/hands'] = (() => {
     for (const [id, h] of spare) {
       d.by[id] = [A.id, Math.min(o.wants.hours, h, hoursLeft(st)), 0, 0];
       VB.count.handsLent++;
+      emit(st, 'leftDay', { pawn: id }); // its tasks at home to the others (sim/day; VB-1758)
       // told at once (the ask's news, the hard rule's exemption): one idling stops, and looks for the work at the next step
       const g = st.agents[id];
       if (!g.job && !g.homeward && !g.journey && g.idleUntil > st.t)

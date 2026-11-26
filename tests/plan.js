@@ -122,6 +122,8 @@ const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
 // 4. Work ordered by hand is not broken off by the sleeping hours: a night worked; the plan's sleep follows once it ends.
 {
   const st = played(make());
+  // a clearing long enough to stand at 21 (VB-1758: the members slotted to it in the day would finish its 40 hours by the evening)
+  st.jobs.get('clear:f0').hours = 400;
   Sim.plan(st, st.player.pawn, 'sleep', { from: 20, until: 6 });
   until(st, 19.5);
   Sim.controlOf(st, st.player.pawn).queue.length = 0;
