@@ -4,7 +4,7 @@
 // another (sim/stores, sim/pot), so it lives above both, in the material layer: the beginning of target-v2's production (4.3). `brew`
 // goes to the ale's module when sim/stores is split (VB-416). sim/kinds joins KINDS into the registry, where a kind's fields are described.
 VB['sim/chores'] = (() => {
-  const { targetOf } = VB['sim/steps'];
+  const { targetOf, plansIn } = VB['sim/steps'];
   const Stores = VB['sim/stores'],
     { reserved } = Stores,
     { target } = VB['sim/targets'];
@@ -31,16 +31,6 @@ VB['sim/chores'] = (() => {
   const fuelFree = (st, hh) => hh.wood - reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
   // The timber the household holds, felled and home, not yet cut (VB-1653; absent: none), in the woodpile's loads.
   const timberOf = (hh) => (hh.timber > 1e-9 ? hh.timber : 0);
-  // The plans of household hid's members (sim/controller plansIn, which loads after this module; VB-1746: the played pawn's before).
-  function plansIn(st, hid) {
-    const out = [];
-    if (st.controlled)
-      for (const id of st.controlled) {
-        const p = st.pawns[id];
-        if (p.household === hid && p.control && p.control.plan) out.push(p.control.plan);
-      }
-    return out;
-  }
   // The loads a fell task at `tile` of a plan of household hid's members has still to bring home (0 when there is none; sim/planchains'
   // fell).
   const plannedLeft = (st, hid, tile) => {
@@ -259,8 +249,8 @@ VB['sim/chores'] = (() => {
       // a tile drawn from the village's wood, but for a trip the plan sent to a tile of its choosing (`chosen`)
       draw: (st, j) => (j.chosen ? -1 : drawWood(st, st.villages[j.farm.village])),
       // while the village has a wood and the pile's free wood (VB-123) with the timber home is below the plan's goal for the season; a
-      // second job below its woodSecond. For the played pawn's household, a trip to the tile of each `fell` task of its plan with trips
-      // left and trees standing (sim/playerplan), whatever the pile.
+      // second job below its woodSecond. For each pawn's plan in the household, a trip to the tile of each `fell` task of its plan with trips
+      // left and trees standing (sim/steps' plansIn), whatever the pile.
       available: (st, hh, f, c, post) => {
         const wood = st.villages[f.village].wood,
           T = woodTargets(st, hh),

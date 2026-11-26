@@ -9,7 +9,7 @@ VB['sim/ladder'] = (() => {
   const { timberWhy } = VB['sim/timberhouse'];
   const { hexSteps } = VB['sim/hex'];
   const { doneOf } = VB['sim/progress'];
-  const { plansIn } = VB['sim/controller'];
+  const { plansIn } = VB['sim/steps'];
   const Projects = VB['sim/projects'],
     Stores = VB['sim/stores'];
   const { COTTAGE, COTTAGE_HOURS, cottageOf } = VB['sim/cottageplan'];

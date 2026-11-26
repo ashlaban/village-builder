@@ -1,10 +1,11 @@
-// @sys sim/planchains: the chains of a task at a tile in the player's plan (VB-1649, VB-1650, VB-1653, VB-1655; VB-1657 split it from
-//   sim/playerplan), declared as data (CHAINS): a field from its clearing to its sowing (plant), a meadow's hay from its mowing until it
+// @sys sim/planchains: the chains of a task at a tile in a pawn's plan (VB-1649, VB-1650, VB-1653, VB-1655; VB-1657 split it from
+//   the player's plan module; a pawn's own steps of its plan record since VB-1754, sim/steps),
+//   declared as data (CHAINS): a field from its clearing to its sowing (plant), a meadow's hay from its mowing until it
 //   is home (hay), a field's crop from its reaping until its sheaves are in (harvest), trips of timber felled on a forest tile and carried
 //   home (fell), the timber home cut into firewood (firewood) and the first shelter placed from the camp and raised (farmstead; the
 //   upgrade of the main building, sim/upgrade's, is contributed at load, VB-1660); what
 //   stands at a tile for each (chainWhere), why it cannot be planned (chainWhy), its steps left (chainSteps) and why its task leaves the
-//   plan (chainGone). Reads only: the plan's writes are sim/playerplan's
+//   plan (chainGone). Reads only: the plan's writes are sim/steps' (its ops' checks sim/controller's)
 VB['sim/planchains'] = (() => {
   const { targetOf } = VB['sim/steps'];
   const { DAY, SEASON_DAYS, YEAR, WORK, TRAVEL, BOOTH, ECON, SPEED, cal } = VB['sim/rules'];
@@ -21,7 +22,7 @@ VB['sim/planchains'] = (() => {
   const { VERBS } = VB['sim/commands'];
   const { WOOD_HOURS, fuelFree, timberOf } = VB['sim/chores'];
   const { woodWhy } = VB['sim/territory'];
-  const { plansIn, planOf } = VB['sim/controller'];
+  const { plansIn, pawnPlan: planOf } = VB['sim/steps'];
   // ---- a task at a tile (VB-1649, VB-1650; Kim, 24 Nov 2026): a chain of steps carried at one tile ----
   // A chain is declared as data (CHAINS): the land project a tile the head has marked for it begins (`mark`: 'field' or 'meadow', or
   // null), what of the household's stands at a tile for it (`at`, given the task when it is read for one, VB-1668: {f, fd} a field,
@@ -272,7 +273,7 @@ VB['sim/planchains'] = (() => {
   // Any tile the household's village may fell on (sim/territory woodWhy: the tiles the rule of the village's wood may give it, whatever
   // its size, within WOOD.far of its centre; a lone farm's village is its own, so the same rule). The household's farm takes the timber.
   const FELL_MAX = 20;
-  // The task of chain `name` at `tile` in a plan of household hid's members (sim/controller plansIn; VB-1746: the played pawn's before),
+  // The task of chain `name` at `tile` in a plan of household hid's members (sim/steps plansIn; VB-1746: the played pawn's before),
   // the first by its pawn's id, or null.
   const taskAt = (st, hid, name, tile) => {
     for (const pp of plansIn(st, hid)) {
@@ -306,7 +307,7 @@ VB['sim/planchains'] = (() => {
     gone: (st, { tile, n, got }) => (got >= n ? 'home' : st.w.trees[tile] > 0 ? null : 'bare'),
     deadline: () => null,
   };
-  // (the event timberHome, a trip of timber home with its loads, is counted by sim/playerplan, the plan's writer)
+  // (the event timberHome, a trip of timber home with its loads, is counted by sim/steps, the plan's writer)
   // ---- firewood: the timber home cut into firewood at the house, until it is all cut or the pile holds the season's goal (VB-1653) ----
   // The pile's free wood against the season's goal (the head's plan's targets, sim/plans), and whether it is short.
   const pileOf = (st, hh) => {
@@ -466,7 +467,7 @@ VB['sim/planchains'] = (() => {
     if (plan && plan.tiles && plan.tiles[C.mark] === tile) return { mark: C.mark, f: homeOf(st, hid), tile };
     return planned && C.mark && headPlans(st, hid) ? { mark: C.mark, f: homeOf(st, hid), tile, free: true } : null;
   }
-  // Whether household hid's head plans for itself: its controller holds a plan (VB-1746: any pawn's, the played head's before).
+  // Whether household hid's head plans for itself: it plans for itself (VB-1754; its controller held a plan, VB-1746: any pawn's, the played head's before).
   const headPlans = (st, hid) => planOf(st, st.households[hid].holder) !== null;
   // The head's check, through its own verb (sim/plans' project: only the head changes its plan), or null.
   const headCmd = (id, hid, args) => ({ actor: id, verb: 'project', target: hid, args, source: 'player' });

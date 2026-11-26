@@ -11,7 +11,8 @@ VB['sim/outlook'] = (() => {
   const { SEASON_DAYS, YEAR_DAYS, FIELDS, HERD, BUILD, PEAT, HELP, cal } = VB['sim/rules'],
     { CROPS, ROTATIONS } = VB['sim/crops'];
   const { on } = VB['sim/events'];
-  const { controlOf, plansIn } = VB['sim/controller'];
+  const { controlOf } = VB['sim/controller'];
+  const { plansIn } = VB['sim/steps'];
   const Stores = VB['sim/stores'],
     Goods = VB['sim/goods'];
   const Pot = VB['sim/pot'];
@@ -154,7 +155,7 @@ VB['sim/outlook'] = (() => {
   };
   // Whether a member of household hh has a controller (sim/controller; the played pawn's is one).
   const controlledIn = (st, hh) => !!st.controlled && st.controlled.some((id) => st.pawns[id].household === hh.id);
-  // The tasks of the plans of household hh's members (sim/controller plansIn; VB-1746: the played pawn's plan before).
+  // The tasks of the plans of household hh's members (sim/steps plansIn; VB-1746: the played pawn's plan before).
   const tasksOf = (st, hh) => plansIn(st, hh.id).flatMap((pp) => pp.tasks);
   // Whether a task of household hh's plans covers chain `name` (sim/planchains CHAINS) at `tile` (any, when undefined): a task at the tile, or a task
   // by key of one of the chain's job kinds there.
@@ -267,7 +268,7 @@ VB['sim/outlook'] = (() => {
   // at most hands × OUTLOOK.woodTrips × ECON.woodPerTrip a season (the share of it left, for the season we are in); none with no farm or no wood in its
   // village's reach. Firewood does not spoil. Timber home and not yet cut
   // counts as firewood (VB-1653): the head has it cut by its own rule (sim/chores); for the household of a pawn planned by hand
-  // (automatic behaviour off) only while a `firewood` task of the plan covers it (sim/playerplan).
+  // (automatic behaviour off) only while a `firewood` task of the plan covers it (sim/steps, VB-1754).
   // For a household planned by hand (VB-1661; Kim, 24 Nov: "Stores count what is in the plan"), the head's own cutting to the goal is
   // left out, and a fell task's loads still to come home are counted, today, only with a `firewood` task to cut them.
   function fuel(st, hh, f, plan, c, F, end, dz = null) {

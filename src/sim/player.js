@@ -10,13 +10,10 @@ VB['sim/player'] = (() => {
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { setWish, resetWish, endPartner, WISH } = VB['sim/wishes'];
   const { issue, active, VERBS, register } = VB['sim/commands'];
-  const { QUEUE_MAX, controlOf, attach, detach, keepOnly, put, queueStep, planners } = VB['sim/controller'];
+  const { QUEUE_MAX, controlOf, attach, detach, queueStep } = VB['sim/controller'];
   const { on } = VB['sim/events'];
   const { daysOfFood } = VB['sim/foodneed'];
   const { KINDS } = VB['sim/kinds'];
-  const { planDay, planBegun } = VB['sim/playerplan'];
-  const { nextOf } = VB['sim/plannext'];
-  const { MOVE_KINDS } = VB['sim/planchains'];
   // ---- the player (VB-169): one source, `player`, with one pawn at a time, whose controller's queue goes before the pawn's own logic ----
   // @state st.player: the frame (Kim, 24 Nov: whatever state the played pawn has, every pawn has; st.player holds only the frame; VB-1746):
   //   null, or {pawn (the inhabited pawn's id: which pawn the page shows and issues for; its switch, queue, last refusal and plan are its
@@ -218,44 +215,12 @@ VB['sim/player'] = (() => {
       if (pr && [pr.for, pr.partner].some((id) => id === a || id === b)) delete st.pawns[s].proposal;
     }
   };
-  // Each six-minute step (sim/clock), before the agents move: the played pawn's sleep is reckoned; each pawn whose controller holds a plan
-  // (sim/controller planners: none in a run where no controller has planned), with automatic behaviour off, has its plan feed its queue;
-  // then every controller's queue runs (sim/controller queueStep), a command the plan fed marking its task begun.
-  const begun = (st, cmd) => {
-    if (cmd.plan) planBegun(st, cmd.actor, cmd.plan);
-  };
+  // Each six-minute step (sim/clock), before the agents move: the played pawn's sleep is reckoned; then the controllers' step (sim/controller
+  // queueStep: each pawn's own plan looked after and fed, each queue run).
   function playerStep(st) {
     const pl = st.player;
     if (pl) reckon(st, pl.pawn);
-    if (st.controlled)
-      for (const id of planners(st)) {
-        VB.count.planFeed++;
-        if (!controlOf(st, id).auto && !living(st, id)) feed(st, id);
-      }
-    queueStep(st, begun);
-  }
-  // ---- the plan's feeder (VB-1646; sim/playerplan): with automatic behaviour off, the plan feeds the queue when nothing queued by hand
-  // waits. A command queued by hand goes first, as an order for now: the plan's commands give way to it (a task left keeps its progress
-  // and stays planned). In the sleeping hours the plan's work in hand is left for its sleep; else the plan's command runs to its end.
-  // A trip of the move under way (the farmstead chain's droving and fetching from the landing, sim/planchains MOVE_KINDS) is not left
-  // for the sleeping hours: it goes on to its end, and the pawn sleeps after (VB-1670: on a way of 7 hours each way, the walk out left at
-  // bedtime every evening had the move undone for 50 days, and the frost took the loads).
-  const onTrip = (st, id, c) =>
-    c.begun !== null && c.plan.from === 'task' && MOVE_KINDS.includes(c.plan.kind) && !!st.agents[id].job;
-  function feed(st, id) {
-    const q = controlOf(st, id).queue;
-    if (q.some((c) => !c.plan)) {
-      keepOnly(st, id, (c) => !c.plan);
-      return;
-    }
-    if (q.length && q[0].begun !== null && !active(st, q[0], q[0].ref)) keepOnly(st, id, () => false); // its act ended: the next is fed at once
-    planDay(st, id);
-    const next = nextOf(st, id);
-    if (q.length) {
-      if (!(next && next.plan.from === 'sleep' && q[0].plan.from !== 'sleep') || onTrip(st, id, q[0])) return;
-      keepOnly(st, id, () => false);
-    }
-    if (next) put(st, id, { ...next, begun: null, ref: null });
+    queueStep(st);
   }
   // ---- what the played pawn's acts brought, and what moved its levels (VB-1118) ----
   // A task finished or a load brought home by the played pawn (sim/agents): the last one is kept for its sheet.

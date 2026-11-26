@@ -269,8 +269,8 @@ VB['sim/camp'] = (() => {
   // ---- the build menu (VB-1655): what the played head may build now, a registry later rungs add to ----
   // Each: why the played pawn cannot build it now whatever the tile (`why`), why not on `tile` (`tile`), its raising's hours and its timber
   // (loads).
-  // Pawn id's plan (sim/controller planOf, which loads after this module), or null.
-  const planOf = (st, id) => (st.pawns[id] && st.pawns[id].control && st.pawns[id].control.plan) || null;
+  // Pawn id's own plan (sim/steps, VB-1754), or null.
+  const planOf = VB['sim/steps'].pawnPlan;
   const planned = (st, id, what) => !!(planOf(st, id) && planOf(st, id).tasks.some((t) => t.kind === what));
   const BUILDS = {
     farmstead: {

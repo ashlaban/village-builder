@@ -15,7 +15,7 @@ VB['sim/day'] = (() => {
   const { says } = VB['sim/methods'];
   const Days = VB['sim/days'];
   const Hands = VB['sim/hands'];
-  const { planOf, heads } = VB['sim/plans'];
+  const { planOf, heads, planOp, planFacade } = VB['sim/plans'];
   const Estimate = VB['sim/estimate'];
   const { score, bid, matchBar, joined, allotted, workCommand, jobsFor } = VB['sim/fit'];
   const Workmanship = VB['sim/workmanship'],
@@ -468,8 +468,9 @@ VB['sim/day'] = (() => {
   }
   const edited = (st, day, c) => (day.edited = { t: st.t, by: Number.isInteger(c.actor) ? c.actor : null });
   const index = (n, len) => Number.isInteger(n) && n >= 0 && n < len;
-  // dayOrder({member, from, to}): the entry at `from` of the member's list goes to `to`, its fit and hours with it.
-  register('dayOrder', {
+  // dayOrder({member, from, to}): the entry at `from` of the member's list goes to `to`, its fit and hours with it: an op of the verb
+  // `plan` on the household's plan (sim/plans), the verb dayOrder its facade (VB-1754).
+  planOp('household', 'dayOrder', {
     check: (st, c) => {
       const a = c.args || {},
         why = dayWhy(st, c, a.member);
@@ -489,6 +490,7 @@ VB['sim/day'] = (() => {
       edited(st, day, c);
     },
   });
+  register('dayOrder', planFacade('dayOrder'));
   // dayGive({key, from, to}): task `key` leaves member from's list and is given to member to, after its tasks given hands (its own entry
   // of it among the rest, if any, gives way), with the hours the giver had of it; one at work on it now works on until it next looks
   // for work. Refused when `to`

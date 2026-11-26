@@ -2,7 +2,8 @@
 // take, each with the hours the pawn itself reckons it takes (sim/estimate; principle "The future is someone's estimate": what is shown of the future is
 // some pawn's
 // estimate), the deadline that presses (a field's sowing window, the frost the head expects, the haymaking window) and whether it ends in
-// time; for a step of a project making a field, the steps left before the field can be sown; and the player's plan (sim/playerplan, sim/plannext) laid
+// time; for a step of a project making a field, the steps left before the field can be sown; and the player's plan (its own steps, sim/steps;
+// sim/controller nextOf) laid
 // into today and the next two days by the feeder's rule (VB-1647: days, plan, owed, routine); and the windows that press at the household's
 // tiles with no task of the plan covering them (VB-1650: planGaps). A view computed when the page asks, as
 // sim/reasons is: it writes nothing, draws nothing, and no simulation module reads it (tests/agenda.js)
@@ -21,10 +22,9 @@ VB['sim/agenda'] = (() => {
   const { workFor } = VB['sim/opportunities'];
   const { here, walkHours } = VB['sim/pose'];
   const { toAxial, hexDist } = VB['world/grid'];
-  const { asleepAt } = VB['sim/playerplan'];
   const { CHAINS, chainOf, chainSteps } = VB['sim/planchains'];
-  const { waitsOf } = VB['sim/plannext'];
-  const { controlOf, planOf } = VB['sim/controller'];
+  const { controlOf, waitsOf, asleepAt } = VB['sim/controller'];
+  const { pawnPlan: planOf } = VB['sim/steps'];
   const { heldFarms } = VB['sim/ownership'];
   const Camp = VB['sim/camp'],
     Water = VB['sim/water'];
@@ -146,7 +146,7 @@ VB['sim/agenda'] = (() => {
       then: thenOf(st, id, j, j.owner && j.owner.id, ends, endsHi),
     };
   }
-  // ---- the plan laid into days (VB-1647): the feeder's rule (sim/plannext nextOf, sim/player feed) followed forward in time ----
+  // ---- the plan laid into days (VB-1647): the feeder's rule (sim/controller nextOf, sim/player feed) followed forward in time ----
   const NDAYS = 3, // today and the next two
     BEYOND = 30; // days a task's end is still sought past them, for its verdict
   // The next game hour from t (t itself included) at which the day's clock reads h.

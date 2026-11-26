@@ -27,8 +27,8 @@ function booth() {
   assert.match(String(add(st, 'cottage')), /still a camp/, 'refused at the camp');
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: st.farmsteads[0].house }), true);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'sleep', { from: 21, until: 6 }), true);
-  for (let i = 0; i < 20 * 240 && st.pawns[st.player.pawn].control.plan.tasks.length; i++) Sim.advance(st, 0.1);
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.last.which, 'raised');
+  for (let i = 0; i < 20 * 240 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length; i++) Sim.advance(st, 0.1);
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'raised');
   assert.deepStrictEqual(projectsOf(st, 'household', 0), [], 'no cottage begun by itself');
   return st;
 }
@@ -37,7 +37,7 @@ function run(st, days = 40) {
   const waits = new Set(),
     laid = new Set();
   let trips = 0;
-  for (let i = 0; i < days * 240 && st.pawns[st.player.pawn].control.plan.tasks.some((t) => t.kind === 'upgrade'); i++) {
+  for (let i = 0; i < days * 240 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.some((t) => t.kind === 'upgrade'); i++) {
     Sim.advance(st, 0.1);
     for (const t of Sim.planView(st, st.player.pawn).tasks) if (t.waits) waits.add(t.waits.why + (t.waits.kind ? `:${t.waits.kind}` : ''));
     if (i % 10 === 0) for (const g of Sim.agenda(st, st.player.pawn).days.flat()) if (g.what === 'task') laid.add(g.kind);
@@ -85,8 +85,8 @@ function run(st, days = 40) {
   assert(p && p.steps.every((k) => k.place === f.house), 'the cottage on the shelter\'s tile');
   assert(f.shelter && f.shelter.built !== null && !VB['sim/building'].roofless(st, hh), 'under the shelter meanwhile');
   const { waits, laid, trips } = run(st);
-  assert.deepStrictEqual(st.pawns[st.player.pawn].control.plan.tasks, [], 'the task has left');
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.last.which, 'roof', JSON.stringify(st.pawns[st.player.pawn].control.plan.last));
+  assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks, [], 'the task has left');
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'roof', JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
   assert.strictEqual(f.booth, null, 'out of the shelter');
   assert.strictEqual(f.shelter, null, 'the shelter gone: the cottage stands in its place');
   assert.strictEqual(cottageOf(st, 0), null, 'the cottage plan finished');
@@ -119,7 +119,7 @@ function run(st, days = 40) {
   assert.strictEqual(Stores.heldOf(hh, 'timber'), 6, 'the rest stays at home');
   const { trips } = run(st);
   assert.strictEqual(trips, 0, 'no trip fetched');
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.last.which, 'roof');
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'roof');
   sound(st, 'timber from home');
 }
 // ---- 4. some at home: the walls take it, the trips fetch only the rest ----
@@ -141,7 +141,7 @@ function run(st, days = 40) {
   assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
   run(st);
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
-  assert.strictEqual(back.pawns[back.player.pawn].control.plan.last.which, 'roof');
+  assert.strictEqual(VB['sim/steps'].pawnPlan(back, back.player.pawn).last.which, 'roof');
   assert.strictEqual(back.farmsteads[0].booth, null);
   sound(back, 'loaded mid-chain');
 }

@@ -62,7 +62,7 @@ function move(st, t, placed = () => {}, days = 60) {
     raised = null,
     hungry = 0,
     low = Infinity;
-  for (let i = 0; i < days * 240 && st.pawns[st.player.pawn].control.plan.tasks.length; i++) {
+  for (let i = 0; i < days * 240 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length; i++) {
     Sim.advance(st, 0.1);
     if (at === null && f.shelter) {
       at = st.t;
@@ -139,7 +139,7 @@ for (const n of [2, 10, 24]) {
   });
   assert.strictEqual(first.step, 'drove', `the first step: the herds driven (${JSON.stringify(first)})`);
   assert(r.raised !== null, `the shelter raised ${n} steps off`);
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.last.which, 'raised');
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'raised');
   for (const k of ['drove', 'leftCart', 'leftGrain', 'leftHay', 'leftTimber', 'shelter'])
     assert(r.seen.has(k), `the view named ${k}: ${[...r.seen]}`);
   assert(!st.lying && !st.herdsAway, 'everything fetched');
@@ -170,14 +170,14 @@ for (const n of [2, 10, 24]) {
     back = Sim.load(tinyWorld(rows), saved),
     again = Sim.load(tinyWorld(rows), saved);
   const run = (s) => {
-    for (let i = 0; i < 60 * 240 && s.pawns[s.player.pawn].control.plan.tasks.length; i++) Sim.advance(s, 0.1);
+    for (let i = 0; i < 60 * 240 && VB['sim/steps'].pawnPlan(s, s.player.pawn).tasks.length; i++) Sim.advance(s, 0.1);
   };
   run(back);
   run(again);
   run(st);
   assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
-  assert.strictEqual(back.pawns[back.player.pawn].control.plan.last.which, 'raised');
+  assert.strictEqual(VB['sim/steps'].pawnPlan(back, back.player.pawn).last.which, 'raised');
   sound(back, 'moved, loaded');
 }
 // ---- 4. the frost: the loads left lying are lost, the carts and the herds kept ----
@@ -187,7 +187,7 @@ for (const n of [2, 10, 24]) {
     f = st.farmsteads[0];
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: tileAt(st, 4) }), true);
   for (let i = 0; i < 2400 && !f.shelter; i++) Sim.advance(st, 0.1);
-  st.pawns[st.player.pawn].control.plan.tasks.length = 0; // the move left undone, to the frost
+  while (VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length) Sim.plan(st, st.player.pawn, 'remove', { i: 0 }); // the move left undone, to the frost
   Sim.setAuto(st, st.player.pawn, false);
   const herds = st.herdsAway.length;
   VB['sim/lying'].frost(st);

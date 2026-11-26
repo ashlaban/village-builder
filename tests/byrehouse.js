@@ -108,14 +108,14 @@ const unbuild = (f) => (f.byre = null);
   const back = Sim.load(world(), saved),
     again = Sim.load(world(), saved);
   const run = (s) => {
-    for (let i = 0; i < 80 * 240 && s.pawns[s.player.pawn].control.plan.tasks.some((t) => t.kind === 'outbuilding'); i++) Sim.advance(s, 0.1);
+    for (let i = 0; i < 80 * 240 && VB['sim/steps'].pawnPlan(s, s.player.pawn).tasks.some((t) => t.kind === 'outbuilding'); i++) Sim.advance(s, 0.1);
   };
   run(back);
   run(again);
   assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
   run(st);
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.last.which, 'built', JSON.stringify(st.pawns[st.player.pawn].control.plan.last));
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'built', JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
   assert(f.byre && f.byre.built <= st.t, 'the farm has its byre');
   assert.strictEqual(byreOf().built, true);
   sound(back, 'loaded mid-chain');

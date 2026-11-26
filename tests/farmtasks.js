@@ -39,7 +39,7 @@ function village() {
 function run(st, kind, days = 80) {
   const waits = new Set(),
     laid = new Set();
-  for (let i = 0; i < days * 240 && st.pawns[st.player.pawn].control.plan.tasks.some((t) => t.kind === kind); i++) {
+  for (let i = 0; i < days * 240 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.some((t) => t.kind === kind); i++) {
     Sim.advance(st, 0.1);
     for (const t of Sim.planView(st, st.player.pawn).tasks) if (t.waits) waits.add(t.waits.why + (t.waits.kind ? `:${t.waits.kind}` : '') + (t.waits.why === 'refused' ? `:${t.waits.text}` : ''));
     if (i % 10 === 0) for (const g of Sim.agenda(st, st.player.pawn).days.flat()) if (g.what === 'task') laid.add(g.kind);
@@ -82,7 +82,7 @@ function run(st, kind, days = 80) {
   const t0 = st.t;
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { foundation: f.house }), true);
   const { waits, laid } = run(st, 'foundation');
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.last.which, 'raised', JSON.stringify(st.pawns[st.player.pawn].control.plan.last));
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'raised', JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
   assert.strictEqual(f.grade, 'stone');
   assert.strictEqual(VB['sim/rules'].cal(st.t).season, 0, 'raised in spring, outside the slack: the plan says when');
   assert(st.t - t0 < 80 * DAY);
@@ -139,7 +139,7 @@ function run(st, kind, days = 80) {
   assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
   const { waits, laid } = run(st, 'outbuilding');
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.last.which, 'built', JSON.stringify(st.pawns[st.player.pawn].control.plan.last));
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'built', JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
   assert(f.barn, 'the farm has its barn');
   assert(laid.has('barnwalls') && laid.has('barnroof'), `the agenda lays its steps: ${[...laid]}`);
   const v = Sim.farmView(st, f.id, st.player && st.player.pawn).outbuildings[0];
@@ -168,7 +168,7 @@ function run(st, kind, days = 80) {
     const v = Sim.farmView(s, s.households[hh.id].farmstead === null ? f.id : s.households[hh.id].farmstead, s.player && s.player.pawn);
     return [v.outbuildings.find((o) => o.what === 'barn').building, v.outbuildings.find((o) => o.what === 'byre').building, v.foundation.building];
   };
-  for (let i = 0; i < 120 * 240 && st.pawns[st.player.pawn].control.plan.tasks.some((t) => t.kind === 'outbuilding' || t.kind === 'foundation'); i++) {
+  for (let i = 0; i < 120 * 240 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.some((t) => t.kind === 'outbuilding' || t.kind === 'foundation'); i++) {
     Sim.advance(st, 0.1);
     if (!saved && under(st).every((b) => b)) {
       all = true;

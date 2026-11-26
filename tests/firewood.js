@@ -76,25 +76,25 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { fell: tile, n: 2 }), true);
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { fell: tile })), /already planned/);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { firewood: f.house }), true);
-  assert.deepStrictEqual(st.pawns[st.player.pawn].control.plan.tasks, [
+  assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks, [
     { fell: tile, kind: 'fell', site: tile, n: 2, got: 0 },
     { firewood: f.house, kind: 'firewood', site: f.house },
   ]);
   assert.deepStrictEqual(Sim.fireView(st, st.player.pawn).planned, { fell: true, firewood: true });
   const trees = st.w.trees[tile];
   let saved = null, lastFell = null, onTile = 0;
-  for (let i = 0; i < 6 * 24 * 10 && st.pawns[st.player.pawn].control.plan.tasks.length; i++) {
+  for (let i = 0; i < 6 * 24 * 10 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length; i++) {
     Sim.advance(st, 0.1);
     const c = Sim.controlOf(st, st.player.pawn).queue[0];
     if (c && c.plan && c.plan.chain === 'fell' && c.begun !== null) onTile = Math.max(onTile, st.jobs.get(c.target) ? +(st.jobs.get(c.target).site === tile) : 0);
     if (!saved && hh.timber > 0) saved = JSON.parse(JSON.stringify(Sim.save(st)));
-    if (st.pawns[st.player.pawn].control.plan.last && st.pawns[st.player.pawn].control.plan.last.kind === 'fell') lastFell = lastFell || st.pawns[st.player.pawn].control.plan.last;
+    if (VB['sim/steps'].pawnPlan(st, st.player.pawn).last && VB['sim/steps'].pawnPlan(st, st.player.pawn).last.kind === 'fell') lastFell = lastFell || VB['sim/steps'].pawnPlan(st, st.player.pawn).last;
   }
-  assert.deepStrictEqual(st.pawns[st.player.pawn].control.plan.tasks, [], 'both tasks done');
+  assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks, [], 'both tasks done');
   assert(onTile, 'the felling was at the chosen tile');
   assert.strictEqual(lastFell.which, 'home', 'the fell task left with its trips home');
   assert(st.w.trees[tile] < trees - 1.5, `two trees felled at the chosen tile, less a few days' regrowth (${trees} to ${st.w.trees[tile]})`);
-  assert(['cut', 'full'].includes(st.pawns[st.player.pawn].control.plan.last.which), `the firewood task left: ${st.pawns[st.player.pawn].control.plan.last.which}`);
+  assert(['cut', 'full'].includes(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which), `the firewood task left: ${VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which}`);
   assert(hh.wood > 0, 'firewood cut at home');
   fire = Sim.fireView(st, st.player.pawn);
   assert(fire.wood === hh.wood && fire.nights >= 1 && Array.isArray(fire.mend));
@@ -143,8 +143,8 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   Sim.setAuto(st, st.player.pawn, false);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: st.farmsteads[0].house }), true);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'sleep', { from: 21, until: 6 }), true);
-  for (let i = 0; i < 20 * 240 && st.pawns[st.player.pawn].control.plan.tasks.length; i++) Sim.advance(st, 0.1);
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.last.which, 'raised');
+  for (let i = 0; i < 20 * 240 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length; i++) Sim.advance(st, 0.1);
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'raised');
   const hh = st.households[0], f = st.farmsteads[0], v = st.villages[f.village], P = st.ECON.woodPerTrip;
   const tile = v.wood.find((t) => st.w.trees[t] >= 3), trees0 = st.w.trees[tile];
   const sum = (kind) => hh.totals.filter((e) => e.good === 'timber' && e.kind === kind).reduce((s, e) => s + e.n, 0) +
@@ -155,8 +155,8 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
       `${what}: timber ${held} against felled ${sum('felling')}, cut ${sum('cutting')}, built ${sum('build')}`);
   };
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { fell: tile, n: 3 }), true);
-  for (let i = 0; i < 8 * 240 && st.pawns[st.player.pawn].control.plan.tasks.some((t) => t.kind === 'fell'); i++) Sim.advance(st, 0.1);
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.last.which, 'home', 'the fell task done');
+  for (let i = 0; i < 8 * 240 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.some((t) => t.kind === 'fell'); i++) Sim.advance(st, 0.1);
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'home', 'the fell task done');
   assert.strictEqual(Stores.heldOf(hh, 'timber'), 3 * P, 'three loads of timber home, no more');
   assert.strictEqual(sum('felling'), 3 * P, 'three loads felled');
   assert(trees0 - st.w.trees[tile] > 2 && trees0 - st.w.trees[tile] < 3 + 1e-6, `three trees felled: ${trees0} to ${st.w.trees[tile]}`);

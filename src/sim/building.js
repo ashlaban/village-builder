@@ -6,6 +6,7 @@
 VB['sim/building'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
+  const { pawnPlan } = VB['sim/steps'];
   const { BUILD, ECON, SEASON_DAYS, SPEED, TRAVEL, YEAR, BOOTH, WORK, cal } = VB['sim/rules'],
     EVENING = VB['sim/roles'].MATCH.day.evening,
     { HOUSE, houseCondition } = VB['sim/house'];
@@ -67,11 +68,8 @@ VB['sim/building'] = (() => {
   // in the slack of the year, as a house is raised (slack, below), and then before other work (MATCH.urgency.shelter): the shelter roofs it
   // meanwhile, and a lone settler's hands go to the fields when they are due (VB-1544: the harvest lost to the frost otherwise, and the
   // cottage never done in the slack's other work). A farm settled before VB-1666 with no booth staked (sim/settle's mark) builds at once.
-  // The plan of household hh's head (its controller's, VB-1746), or null.
-  const headPlan = (st, hh) => {
-    const p = hh.holder !== null ? st.pawns[hh.holder] : null;
-    return (p && p.control && p.control.plan) || null;
-  };
+  // The own plan of household hh's head (its plan record's steps, sim/steps, VB-1754; its controller's before), or null.
+  const headPlan = (st, hh) => (hh.holder !== null ? pawnPlan(st, hh.holder) : null);
   // Whether the plan of household hh's head holds the upgrade task of farm f's cottage (VB-1660): a step its controller authored, which
   // stands: the plan says when the cottage's stages are worked, not the slack (VB-1753, design.md section 7, Authors: the default author
   // does not rewrite what is authored; it was the played head with automatic behaviour off, whoever authored the cottage).

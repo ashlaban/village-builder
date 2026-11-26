@@ -31,7 +31,7 @@ const played = (st) => {
 const run = (st, days = 20) => {
   const waits = new Set(),
     laid = new Set();
-  for (let i = 0; i < days * 240 && st.pawns[st.player.pawn].control.plan.tasks.some((t) => t.kind === 'farmstead'); i++) {
+  for (let i = 0; i < days * 240 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.some((t) => t.kind === 'farmstead'); i++) {
     Sim.advance(st, 0.1);
     for (const t of Sim.planView(st, st.player.pawn).tasks) if (t.waits) waits.add(t.waits.why + (t.waits.kind ? `:${t.waits.kind}` : ''));
     if (i % 10 === 0) for (const g of Sim.agenda(st, st.player.pawn).days.flat()) if (g.what === 'task') laid.add(g.kind);
@@ -125,8 +125,8 @@ const twoOff = (st) => {
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: land }), true);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'sleep', { from: 21, until: 6 }), true);
   const { waits, laid } = run(st);
-  assert.deepStrictEqual(st.pawns[st.player.pawn].control.plan.tasks, [], 'the task has left');
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.last.which, 'raised', JSON.stringify(st.pawns[st.player.pawn].control.plan.last));
+  assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks, [], 'the task has left');
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'raised', JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
   assert.strictEqual(f.house, land, 'the house stays on the landing');
   assert.strictEqual(st.herds[hh.herds[0]].home, home, 'the herd stays');
   assert.strictEqual(f.camp, false, 'the camp is over');
@@ -176,7 +176,7 @@ const twoOff = (st) => {
   assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
   run(st);
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
-  assert.strictEqual(back.pawns[back.player.pawn].control.plan.last.which, 'raised');
+  assert.strictEqual(VB['sim/steps'].pawnPlan(back, back.player.pawn).last.which, 'raised');
   assert(back.households[0].herds.length && !back.herdsAway, 'the herds driven home');
   for (const id of back.households[0].herds) assert(hexSteps(back.w, back.herds[id].home, t) <= 2, 'the herd grazes by the house');
   assert.strictEqual(back.farmsteads[0].camp, false);

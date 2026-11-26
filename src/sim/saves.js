@@ -284,8 +284,10 @@ VB['sim/saves'] = (() => {
   // holding them in st.player is another build's, and refused (no migration is written).
   // Format 9 (VB-1746): a pawn's plan is its controller's (pawn.control.plan), not st.player's, and st.player is the frame only (no
   // `since`, no `plan`); a save holding st.player.plan is another build's, and refused (no migration is written).
-  const FORMAT = 9,
-    READS = [9];
+  // Format 10 (VB-1754): a pawn's own plan is steps of its plan record (st.plans.pawns: plan.ahead by author 'pawn', plan.lastTask),
+  // not its controller's (no pawn.control.plan); a save of format 9 is another build's, and refused (no migration is written).
+  const FORMAT = 10,
+    READS = [10];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {
