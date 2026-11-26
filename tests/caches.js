@@ -45,6 +45,17 @@ assert.deepStrictEqual([...COMPARED, ...Object.keys(CACHES_UNCOMPARED)].filter((
 const runs = [state(), scenario('founders', 7)];
 for (const st of runs) Sim.advance(st, 50 * Sim.DAY);
 const natural = carried.size;
+// a loan booked by hand where a run took none, so that `repay` is tried on it (VB-1812: with a held cart walking at its pace the founders
+// no longer borrow by day 50); a test's write, through sim/obligations, from the household that holds the most grain to the next
+const loans = (st) => (st.obligations || []).filter((o) => o.kind === 'loan');
+for (const st of runs) {
+  if (loans(st).length) continue;
+  const grain = (h) => VB['sim/stores'].grainOf(h);
+  const [d, c] = st.liveHouseholds.map((id) => st.households[id]).filter((h) => h.farmstead !== null).sort((x, y) => grain(y) - grain(x));
+  if (d && c)
+    VB['sim/obligations'].create(st, { kind: 'loan', debtor: { kind: 'household', id: d.id }, creditor: { kind: 'household', id: c.id },
+      owes: { rations: 10 }, enforcer: { kind: 'village', id: st.farmsteads[d.farmstead].village }, lent: 10 });
+}
 // the args a verb is tried with by hand, where {} cannot pass its check: a gift of a little grain (VB-446 moved the draws, and the loans of
 // VB-312 that carried it in the run no longer fall in its 45 days)
 const ARGS = { give: [{ good: 'grain', n: 1 }], repay: [{ n: 1 }] };
@@ -52,7 +63,7 @@ const ARGS = { give: [{ good: 'grain', n: 1 }], repay: [{ n: 1 }] };
 for (const verb of Object.keys(VERBS).filter((v) => !carried.has(v))) {
   for (const st of runs) {
     const actors = st.living.slice(0, 10), hhs = st.liveHouseholds.slice(0, 5), tiles = st.farmsteads.slice(0, 3).map((f) => f.house);
-    const targets = [undefined, null, ...hhs, ...actors, ...tiles, ...st.villages.map((v) => v.id), ...hhs.map((id) => ({ type: 'household', id }))];
+    const targets = [undefined, null, ...hhs, ...actors, ...tiles, ...st.villages.map((v) => v.id), ...hhs.map((id) => ({ type: 'household', id })), ...loans(st).map((o) => o.id)];
     for (const source of VERBS[verb].sources || SOURCES) for (const actor of actors) for (const target of targets) {
       if (carried.has(verb)) break;
       for (const args of ARGS[verb] || [{}]) {

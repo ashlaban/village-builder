@@ -351,7 +351,7 @@ VB['sim/methods'] = (() => {
   // load in hand goes on by this row to the kind's place, not by the rule for a load in hand to the store. The good is named for the
   // kind unless o.good says (the building's timber, which the wood's `timber` is not). o: {op, run(st, j, g, at, a, cap): the load made
   // in the hand (cap: the loads its cart or its back holds), met(st, g), source (true: K.can.source reads what the site holds; why),
-  // to, cart (true: K.can.cartPays), hours}.
+  // to, cart (true: K.can.cartPays), hours, reload (the hours of the work once a load was made: the task's from then on)}.
   const cartOrNone = { any: [{ has: 'cart' }, { not: { free: 'cart' } }, { not: { can: 'cartPays' } }] };
   const cartStep = {
     prim: 'fetch',
@@ -397,6 +397,7 @@ VB['sim/methods'] = (() => {
           if (a.load > 0) {
             a.carry = K.carry;
             j.made = (j.made || 0) + 1;
+            if (o.reload) j.hours = o.reload;
           }
         },
       },

@@ -455,6 +455,7 @@ VB['sim/meadows'] = (() => {
     source: true,
     why: 'no hay in the meadow',
     cart: true,
+    reload: TRAVEL.hayReload,
     run: (st, j, g, at, a, cap) => {
       a.load = hayLoad(j.meadow, cap);
     },

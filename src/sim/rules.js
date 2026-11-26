@@ -248,7 +248,8 @@ VB['sim/rules'] = (() => {
   // and what an ox cart takes at most (10 on the back, 60 on a cart: hay is light, so two oxen draw twice what a sheaf cart takes; VB-394);
   // dayWalk: the walking hours of a day on a journey, 6:00 to 18:00 (VB-287): a day's provisions for each dayWalk hours of the way, and a
   // pawn with no household further than this from its new home walks there as a journey, and a village further than this is courted only
-  // after a visit (VB-289); stay: the days a visitor stays as the other village's guest
+  // after a visit (VB-289); stay: the days a visitor stays as the other village's guest; hayReload: the hours a further load of hay is
+  // raked onto a cart in, the first taking its task's (CART.reload until VB-1812)
   const TRAVEL = {
     load: 30,
     hand: 90,
@@ -256,6 +257,7 @@ VB['sim/rules'] = (() => {
     pace: { back: 0.9, hand: 0.8, ox: 0.6 },
     hay: 1 / 3,
     hayCart: 60,
+    hayReload: 1.5,
     dayWalk: 12,
     stay: 1,
   };

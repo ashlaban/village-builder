@@ -77,8 +77,14 @@ const D3 = 22; // day 18 until VB-1666
 const k12 = waterAt(D3, WORK[1] + 0.5);
 until(D3, WORK[1] + 0.9);
 check(hh.waterDay !== D3 && !a.job, `at 18:54 the water is not in (waterDay ${hh.waterDay}) and the settler is free`);
+const n3 = a.assigned.assignments;
 until(D3, WORK[1] + 1.04);
-check(a.job && a.job.key === k12, `at 19:00 the evening's call sends the settler for the water (${a.job && a.job.key})`);
+// sent at 19:00: the water in hand, or already in, drawn in the step it was taken (VB-1812: at the house's own well the goal walks
+// nowhere, so its drawing begins at once)
+check(
+  (a.job && a.job.key === k12) || (hh.waterDay === D3 && a.assigned.assignments > n3),
+  `at 19:00 the evening's call sends the settler for the water (${a.job && a.job.key}, waterDay ${hh.waterDay})`,
+);
 until(D3, MATCH.day.evening + 1);
 check(hh.waterDay === D3, `the water not in at 19:00 is in that evening (waterDay ${hh.waterDay})`);
 check(a.inside && !a.job, `and the settler, free, has gone in (inside ${a.inside})`);
