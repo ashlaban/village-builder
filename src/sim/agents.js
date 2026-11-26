@@ -218,14 +218,12 @@ VB['sim/agents'] = (() => {
     if (!(frac > 0)) return false;
     K.make(st, a, j, frac, workFor(st, a, j));
     j.done = 0;
-    if (K.methods) {
-      a.loadOf = null; // made in the hand (sim/doing)
-      j.made = (j.made || 0) + 1; // a trip's goal is its work done (sim/methods trip, VB-1749)
-    }
+    if (K.methods) a.loadOf = null; // made in the hand (sim/doing)
     if (!(a.load > 0)) {
       a.load = 0;
-      return false;
+      return false; // nothing made: the trip is not done, and the next hand takes it from none (VB-1749 review, F1)
     }
+    if (K.methods) j.made = (j.made || 0) + 1; // a trip's goal is its work done, a load made (sim/methods trip, VB-1749)
     freeHands(st, j, a.id);
     a.carry = K.carry;
     a.phase = 'back';

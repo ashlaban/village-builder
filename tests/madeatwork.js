@@ -111,6 +111,25 @@ function atWork(a, kind, site, extra, done) {
   }
   A.release(st, a);
 }
+// 3b. a hunt cut at half its hours by the working day's end with no kill (VB-1749 review, F1): nothing is carried home, the task stays
+// posted, and the next hand to take it hunts: the trip is not met by the hours spent
+{
+  const a = hand(),
+    j = atWork(a, 'hunt', wood, { farm: f }, KINDS.hunt.hours / 2);
+  st.rng.deer.fix = 0.999999; // no kill
+  A.release(st, a, true);
+  delete st.rng.deer.fix;
+  assert(a.job !== j && !(a.load > 0), 'a hunt with no kill carries nothing home');
+  assert(st.jobs.get(j.key) === j, 'the hunt stays posted');
+  const b = hand();
+  A.release(st, b);
+  A.placeAtHome(st, b);
+  j.claims.push(b.id);
+  Object.assign(b, { job: j, phase: null, inside: false });
+  const s = Doing.ask(st, b);
+  assert(s !== VB['sim/methods'].DONE && !s.blocked && (s.prim === 'go' || s.prim === 'work'), `the next hand hunts (${s.prim || s})`);
+  A.release(st, b);
+}
 // 4. every kind that makes its good at the work has a way out for its load lying: its methods' stray method (VB-1749), a fetch kind, or
 // another's (timber's)
 for (const [k, K] of Object.entries(KINDS))
