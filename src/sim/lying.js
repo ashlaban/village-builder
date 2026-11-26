@@ -1,12 +1,15 @@
 // @sys sim/lying: loads lying where their carrier fell (VB-611): a load on its way home whose carrier died on the road, or whose household
 // dissolved, is put down where it was, as a lying load the task's owner fetches (a fetch kind for each kind that carries a load) and carries
-// home; one nobody fetches rots at the autumn frost, as the stooks and the mown hay do. Writes st.lying; read by sim/kinds (the fetch kinds,
+// home; one nobody fetches rots at the autumn frost, as the stooks and the mown hay do. A good made where the work is done (VB-1748: the
+// catch, game, wild food, what is dug, salt, a basket of stone) lies so too, and the yield of a fishing, hunting or gathering trip cut at
+// its work (sim/agents cutTrip). Writes st.lying; read by sim/kinds (the fetch kinds,
 // the rule that posts them) and sim/agents (release lays a load down).
 VB['sim/lying'] = (() => {
   const { log, atHousehold } = VB['sim/records'];
   const { TRAVEL } = VB['sim/rules'];
   // @state st.lying: absent, or [{id, kind, n, tile, x, y, t, owner, of}]: the loads lying where their carrier was released on the road,
-  //   in the order they were put down (id): `kind` the job kind that carried it (haul, hay, wood, wellstone), `n` the load in that kind's
+  //   in the order they were put down (id): `kind` the job kind that carried it (haul, hay, wood, wellstone; VB-1748 the kinds that make
+  //   their good where the work is done: fish, rackfish, hunt, gather, dig, boilsalt, pick, quarry), `n` the load in that kind's
   //   units (a.load), `tile` and `x`, `y` where it lies, `t` the game hour it was put down, `owner` the task's owner ({type, id}: the
   //   household or village it was carried for), `of` what the kind's delivery reads of the task (its field or meadow, farm, village,
   //   common, dest, step, from, and `src`, the task's tile). A small live list (Rules for cost 1): an entry leaves it when its last load
@@ -37,7 +40,21 @@ VB['sim/lying'] = (() => {
   // What a kind's delivery reads of its task, kept with the load.
   // `parts` and `moving`: grain left lying (sim/building leftGrain), its crops and whether a house's move carried it (VB-312: a fetcher of
   // it falling on the road left it with no crops, and its delivery failed)
-  const OF = ['cart', 'field', 'meadow', 'farm', 'village', 'common', 'dest', 'step', 'from', 'parts', 'moving'];
+  // `good`: what a basket dug holds (sim/dig: clay, bog ore or peat; VB-1748)
+  const OF = [
+    'cart',
+    'field',
+    'meadow',
+    'farm',
+    'village',
+    'common',
+    'dest',
+    'step',
+    'from',
+    'parts',
+    'moving',
+    'good',
+  ];
   // Pawn a, released on its way home with its load of task j (sim/agents' release), puts the load down at (x, y) on `tile`; `kind` the
   // kind that took it up (a fetch's, the kind it fetches for).
   function lay(st, a, j, kind, tile, x, y) {
@@ -142,6 +159,15 @@ VB['sim/lying'] = (() => {
     leftTimber: 'timber',
     leftGrain: 'grain',
     wellstone: 'stone',
+    // the goods made where the work is done (VB-1748)
+    fish: 'fish',
+    rackfish: 'fish',
+    hunt: 'game',
+    gather: 'wild food',
+    dig: 'dug earth',
+    boilsalt: 'salt',
+    pick: 'stone',
+    quarry: 'stone',
   };
   const whatOf = (kind) => (kind === 'leftCart' ? 'cart' : WHAT[kind] || 'goods');
   // Hay is taken by the rule of every load of hay (sim/meadows hayLoad): TRAVEL.hay of hay a unit of load, at most TRAVEL.hayCart a load
@@ -180,7 +206,7 @@ VB['sim/lying'] = (() => {
       deliver: (st, j, hh, f, a) =>
         K.deliver(
           st,
-          { ...j, site: j.src, ...(j.field ? { field: { ...j.field, crop: j.crop, bin: j.bin } } : {}) },
+          { ...j, kind, site: j.src, ...(j.field ? { field: { ...j.field, crop: j.crop, bin: j.bin } } : {}) },
           hh,
           f,
           a,

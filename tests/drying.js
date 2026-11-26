@@ -8,6 +8,7 @@
 // then twice the bank's catch from it. Founders at seed 7 on the small island of tests/lib/probe.js (VB-855), to the winter: dried fish made
 // and eaten, invariants, a save; boats built are counted.
 const VB = require('../src/load.js'), Sim = VB.sim, { island, scenario } = require('./lib/probe.js'), Stores = VB['sim/stores'], D = VB['sim/drying'], Projects = VB['sim/projects'];
+const trip = require('./lib/trip.js');
 const boatOf = (s, id) => Projects.projectsOf(s, 'household', id).find((p) => p.what === 'boat') || null; // a small construction (VB-1414): not ownOf's
 const { KINDS } = VB['sim/kinds'], { FISH, DAY, YEAR_DAYS } = VB['sim/rules'], { ROLES } = VB['sim/roles'], { dailyNeed, feedHousehold } = VB['sim/hunger'], { larderOf } = VB['sim/larder'];
 const boatYear = (st) => VB['sim/aims'].lookNow(st, 'boat'), { checkState } = require('./lib/invariants.js');
@@ -44,7 +45,7 @@ check(p.length === 1 && p[0].boat === false && posts(st, 'rackfish', hh, f, cal(
   'one trip in the drying season, to the end of autumn, from the bank');
 st.t = 2 * DAY;
 const j = { ...p[0], owner: { type: 'household', id: hh.id } }, s0 = VB['sim/fish'].stock(st, j.water);
-KINDS.rackfish.deliver(st, j, hh, f);
+trip(KINDS.rackfish, st, j, hh, f);
 check(near(hh.rack, 4 * s0), `the catch waits by the rack: ${hh.rack}, not ${4 * s0}`);
 check(posts(st, 'rackfish', hh, f, cal(0, 2)).length === 0 && posts(st, 'dry', hh, f, cal(0, 2)).length === 1, 'a catch waits: hang it, fish no more');
 const lots = hh.larder.length, caught = hh.rack;
@@ -81,7 +82,7 @@ check(r1.dried === 0 && r1.k === 2 && near(r1.meals, 8), 'fresh fish 0.8 of the 
   check(posts(s3, 'rackfish', h3, f3, cal(1, 3)).length === 1, 'fishing for the rack is not held by it');
   const g3 = D.fishingPlace(s3, h3, f3), j3 = { farm: f3, water: g3.water, boat: g3.boat, owner: { type: 'household', id: h3.id } };
   Pot.putFresh(s3, h3, 'fish', 4 * n3, 'catch'); // six days of need held, and a catch on top
-  KINDS.fish.deliver(s3, j3, h3, f3);
+  trip(KINDS.fish, s3, j3, h3, f3);
   const fresh3 = Pot.freshHeld(s3, h3, 'fish'), total = fresh3 + h3.rack, room = D.wanted(s3, h3);
   check(h3.rack > 0 && near(h3.rack, Math.min(room, total - 3 * n3)) && near(fresh3, total - h3.rack),
     `beyond 3 days of need to the rack: ${h3.rack} by the rack, ${fresh3} fresh, ${room} wanted`);

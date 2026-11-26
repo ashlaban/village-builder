@@ -184,8 +184,8 @@ VB['sim/clock'] = (() => {
           if (travelling(a)) continue; // on the road it sleeps where it stopped (VB-287)
           if (fetchGoesOn(st, a)) continue; // a small child fetched to its new home, and its fetcher (sim/journeys, VB-1240)
           if (a.job && (a.phase === 'go' || a.phase === 'work') && carriedOn(st, a.job)) continue; // a task lived by, finished (VB-1547)
-          release(st, a);
-          if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
+          release(st, a, true); // a trip cut at its work carries its yield home (sim/agents tripHome, VB-1748)
+          if (!a.inside && a.phase !== 'back') issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
         }
       },
     },

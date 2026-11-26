@@ -127,20 +127,31 @@ VB['sim/deer'] = (() => {
     }
     return -1;
   }
-  // A hunt at tile `site` comes home: a kill with DEER.hunt.chance times the region's deer against its capacity (none below
-  // DEER.hunt.least), one deer fewer and DEER.hunt.meat rations of fresh meat in the larder, to be salted as the slaughter's is (sim/byre).
-  // The kills, 0 or 1.
-  function hunt(st, hh, site) {
+  // A hunt at tile `site`, as its work ends (VB-1748: the game is made where the work is done): a kill with DEER.hunt.chance times the
+  // region's deer against its capacity (none below DEER.hunt.least), `frac` of it for a hunt cut at that share of its hours; one deer
+  // fewer. The kills, 0 or 1.
+  function kill(st, site, frac = 1) {
     const D = st.deer,
       r = st.w.region[site],
       s = stock(st, r);
-    if (s < DEER.hunt.least || rnd(st.rng.deer) >= DEER.hunt.chance * Math.min(1, s / D.cap[r])) return 0;
+    if (s < DEER.hunt.least || rnd(st.rng.deer) >= frac * DEER.hunt.chance * Math.min(1, s / D.cap[r])) return 0;
     D.head[r] = s - 1;
     D.since[r] = today(st);
-    addFood(st, hh, 'meat', DEER.hunt.meat);
-    Stores.record(st, hh, 'meat', DEER.hunt.meat, 'hunt');
-    Stores.put(st, hh, 'hide', DEER.hunt.hide, 'hunt'); // the hide comes home with the meat, for leather (VB-424)
     return 1;
+  }
+  // Game brought home: `n` rations of fresh meat in the larder, to be salted as the slaughter's is (sim/byre), and the hide with it, for
+  // leather (VB-424), a carcass's share of each.
+  function game(st, hh, n) {
+    if (!(n > 0)) return;
+    addFood(st, hh, 'meat', n);
+    Stores.record(st, hh, 'meat', n, 'hunt');
+    Stores.put(st, hh, 'hide', (DEER.hunt.hide * n) / DEER.hunt.meat, 'hunt');
+  }
+  // A hunt at `site` for household hh, made and brought home at once (the tests' whole trip): the kills, 0 or 1.
+  function hunt(st, hh, site) {
+    const k = kill(st, site);
+    game(st, hh, k * DEER.hunt.meat);
+    return k;
   }
   // The job kind (sim/kinds registers it, with fishing's urgency by the household's spare food): in autumn and winter, a trip to the
   // house's hunting ground; foraging work for the men alone (ROLES' exceptions), from DEER.hunt.minAge. The pawn comes home with or
@@ -163,9 +174,11 @@ VB['sim/deer'] = (() => {
     to: 'door',
     spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.5, st.w.hy[j.site] + a.oy * 0.4],
     urgency: (st, j, c, U) => spareUrgency(st, j, U), // fishing's, by the household's spare food
-    deliver: (st, j, hh) => {
-      hunt(st, hh, j.site);
+    accrues: true,
+    make: (st, a, j, frac) => {
+      a.load = kill(st, j.site, frac) * DEER.hunt.meat;
     },
+    deliver: (st, j, hh, f, a) => game(st, hh, a.load),
     // the key names the tile, so a ground whose region is hunted out is left for the next one at the following review
     available: (st, hh, f, c, post) => {
       if (c.season < 2) return;

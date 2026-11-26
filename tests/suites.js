@@ -247,6 +247,7 @@ const INTEGRATION = [
   ['node', 'tests/ale.js'],
   ['node', 'tests/attention.js'],
   ['node', 'tests/setdown.js'],
+  ['node', 'tests/madeatwork.js'], // VB-1748: the good made where the work is done; a cut trip's yield lies, fetched home
   ['node', 'tests/standingcart.js'], // VB-649: a dead carter's cart and team stand on the road
   ['node', 'tests/leftwood.js'], // VB-645: a dropped boat's timber lies at its shore
   ['node', 'tests/start.js'],

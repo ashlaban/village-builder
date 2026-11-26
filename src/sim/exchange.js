@@ -550,7 +550,7 @@ VB['sim/exchange'] = (() => {
     to: 'barn',
     spot: (st, a, j) => [st.w.hx[j.site] - 20 + a.ox * 0.3, st.w.hy[j.site] + 5 + a.oy * 0.2], // by the giver's byre door
     urgency: (st, j, c, U) => U.other,
-    deliver: (st, j, hh) => ledHome(st, j, hh),
+    deliver: (st, j, hh) => ledHome(st, j, hh), // left at the door (VB-1748): the animal led is paid at the door, not a load made
     available: (st, hh, f, c, post) => {
       const w = wantOf(st, hh);
       if (!w || w.from === null || stalled(c)) return;
