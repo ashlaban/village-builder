@@ -165,7 +165,7 @@ const twoOff = (st) => {
   assert.deepStrictEqual(staked, [t], 'the shelter begun on it');
   assert(roofless(st, hh), 'roofless while staked');
   const views = Sim.planView(st, st.player.pawn).tasks;
-  assert.strictEqual(views[0].farmstead, t);
+  assert.strictEqual(views[0].site, t);
   sound(st, 'placed');
   Sim.advance(st, 3);
   const saved = JSON.parse(JSON.stringify(Sim.save(st)));

@@ -286,8 +286,10 @@ VB['sim/saves'] = (() => {
   // `since`, no `plan`); a save holding st.player.plan is another build's, and refused (no migration is written).
   // Format 10 (VB-1754): a pawn's own plan is steps of its plan record (st.plans.pawns: plan.ahead by author 'pawn', plan.lastTask),
   // not its controller's (no pawn.control.plan); a save of format 9 is another build's, and refused (no migration is written).
-  const FORMAT = 10,
-    READS = [10];
+  // Format 11 (VB-1777): a task at a tile is a goal its kind's methods carry, {kind, site, ...} (sim/kinds GOALS), not {<chain>: tile}, and
+  // a command its plan fed is marked by its goal kind and site; a save of format 10 is another build's, and refused (no migration is written).
+  const FORMAT = 11,
+    READS = [11];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {

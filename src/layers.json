@@ -162,7 +162,6 @@
       "sim/venues",
       "sim/sleepers",
       "sim/player",
-      "sim/planchains",
       "sim/ladder",
       "sim/upgrade",
       "sim/trust",

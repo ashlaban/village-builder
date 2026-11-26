@@ -1665,18 +1665,18 @@ function checkState(st) {
   // task null or one that left
   if (st.plans && st.plans.pawns) for (const [id, rec] of st.plans.pawns) {
     if (rec.lastTask === undefined) continue;
-    const PP = globalThis.VB['sim/controller'], PC = globalThis.VB['sim/planchains'], KS = globalThis.VB['sim/kinds'].KINDS, hr = (h) => typeof h === 'number' && h >= 0 && h < 24;
+    const PP = globalThis.VB['sim/controller'], PC = globalThis.VB['sim/kinds'], KS = globalThis.VB['sim/kinds'].KINDS, hr = (h) => typeof h === 'number' && h >= 0 && h < 24;
     const pp = globalThis.VB['sim/steps'].pawnPlan(st, id), rank = (s) => (s.what.routine !== undefined ? 0 : s.what.sleep ? 1 : s.what.goal ? 2 : 3), own = rec.ahead.filter((s) => s.author === 'pawn');
     if (!(st.pawns[id] && st.pawns[id].alive)) bad.push(`pawn ${id}: a plan of its own, not living`);
     if (!(own.every((s, i) => rank(s) < 3 && (i === 0 || rank(own[i - 1]) <= rank(s))) && own.filter((s) => s.what.sleep).length <= 1
       && pp.routine.length <= PP.PLAN_MAX && pp.routine.every((k) => KS[k]) && new Set(pp.routine).size === pp.routine.length
       && own.every((s) => s.what.routine === undefined || s.begun === undefined || s.begun * 24 <= st.t)
       && (pp.sleep === null || (hr(pp.sleep.from) && hr(pp.sleep.until) && pp.sleep.from !== pp.sleep.until))
-      && pp.tasks.length <= PP.PLAN_MAX && new Set(pp.tasks.map((x) => (x.key === undefined ? `${x.kind} ${x[x.kind]} ${x.what}` : x.key))).size === pp.tasks.length
-      && pp.tasks.every((x) => (x.key === undefined ? !!PC.CHAINS[x.kind] && Number.isInteger(x[x.kind]) && x.site === x[x.kind]
+      && pp.tasks.length <= PP.PLAN_MAX && new Set(pp.tasks.map((x) => (x.key === undefined ? `${x.kind} ${x.site} ${x.what}` : x.key))).size === pp.tasks.length
+      && pp.tasks.every((x) => (x.key === undefined ? !!PC.GOALS[x.kind] && Number.isInteger(x.site) && x[x.kind] === undefined
         : typeof x.key === 'string' && KS[x.kind] && Number.isInteger(x.site)))
       && pp.steps.every((s) => (s.from === undefined || Number.isInteger(s.from)) && (s.by === undefined || (Number.isInteger(s.by) && (s.from === undefined || s.by >= s.from))))
-      && (pp.last === null || ((typeof pp.last.key === 'string' || (!!PC.CHAINS[pp.last.kind] && Number.isInteger(pp.last[pp.last.kind]) && PC.CHAINS[pp.last.kind].which.includes(pp.last.which))) && pp.last.t <= st.t))))
+      && (pp.last === null || ((typeof pp.last.key === 'string' || (!!PC.GOALS[pp.last.kind] && Number.isInteger(pp.last.site) && PC.GOALS[pp.last.kind].which.includes(pp.last.which))) && pp.last.t <= st.t))))
       bad.push(`pawn ${id}'s own plan: ${JSON.stringify(rec.ahead)} last ${JSON.stringify(rec.lastTask)}`);
   }
   // the player (VB-169): null, or a pawn that exists, with a controller while it lives (its switch and queue are the controller's)

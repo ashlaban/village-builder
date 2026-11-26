@@ -75,7 +75,10 @@ VB['sim/building'] = (() => {
   // does not rewrite what is authored; it was the played head with automatic behaviour off, whoever authored the cottage).
   const cottageAsked = (st, hh, f) => {
     const pp = headPlan(st, hh);
-    return !!pp && pp.tasks.some((t) => t.kind === 'upgrade' && t.upgrade === f.house && t.what === 'cottage');
+    return (
+      !!pp &&
+      pp.tasks.some((t) => t.key === undefined && t.kind === 'upgrade' && t.site === f.house && t.what === 'cottage')
+    );
   };
   function boothWork(st, hh, f, c, post) {
     if (f.shelter && !shelterStands(st, f)) return shelterWork(st, hh, f, post);
@@ -453,7 +456,7 @@ VB['sim/building'] = (() => {
   // house (VB-1663): a step authored, which stands (the raising is posted when the plan says, not in the slack: VB-1753).
   const foundationAsked = (st, hh, f) => {
     const pp = f ? headPlan(st, hh) : null;
-    return !!pp && pp.tasks.some((t) => t.kind === 'foundation' && t.foundation === f.house);
+    return !!pp && pp.tasks.some((t) => t.key === undefined && t.kind === 'foundation' && t.site === f.house);
   };
   // The slack of the year, when a house is raised: the first half of summer, and winter.
   const slack = (c) => (c.season === 1 && c.sday < SEASON_DAYS / 2) || c.season === 3;

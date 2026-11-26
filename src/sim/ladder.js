@@ -116,10 +116,11 @@ VB['sim/ladder'] = (() => {
     return plansIn(st, f.household).some((pp) => plannedIn(pp, f, what));
   }
   function plannedIn(pp, f, what) {
-    if (what === 'shelter') return pp.tasks.some((t) => t.kind === 'farmstead');
-    if (what === 'foundation') return pp.tasks.some((t) => t.kind === 'foundation' && t.foundation === f.house);
+    if (what === 'shelter') return pp.tasks.some((t) => t.key === undefined && t.kind === 'farmstead');
+    if (what === 'foundation')
+      return pp.tasks.some((t) => t.key === undefined && t.kind === 'foundation' && t.site === f.house);
     const kind = Object.hasOwn(OUTBUILDINGS, what) ? 'outbuilding' : 'upgrade';
-    return pp.tasks.some((t) => t.kind === kind && t[kind] === f.house && t.what === what);
+    return pp.tasks.some((t) => t.key === undefined && t.kind === kind && t.site === f.house && t.what === what);
   }
   // the stone foundation under way: the building step of the household's plan (sim/building buildStep), which a head holding off projects
   // has none of (VB-1661: read at once, not at its next review, once the player takes the plan by hand) but for its foundation task

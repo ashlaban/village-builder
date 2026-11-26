@@ -4,8 +4,8 @@
 //   the pawn's own steps of its plan record since VB-1754)
 VB['sim/planview'] = (() => {
   const { cal, DAY } = VB['sim/rules'];
-  const { timberOf } = VB['sim/chores'];
-  const { chainOf, chainSteps, pileOf } = VB['sim/planchains'];
+  const { timberOf, pileOf } = VB['sim/chores'];
+  const { goalOf, goalSteps } = VB['sim/kinds'];
   const { pawnPlan: planOf } = VB['sim/steps'];
   const { controlOf, nextOf, waitsOf } = VB['sim/controller'];
   const today = (st) => Math.floor(st.t / DAY);
@@ -13,13 +13,12 @@ VB['sim/planview'] = (() => {
   const { supplyOutlook, reckon } = VB['sim/outlook'];
   const { fireOf } = VB['sim/house'];
   // ---- the page's read: Sim.planView(st, id) ----
-  // A task at a tile as the view shows it: its tile (under its chain's name), the kind of the step open or next (`step`, null with none
+  // A task at a tile as the view shows it: its goal kind and tile (`site`), the kind of the step open or next (`step`, null with none
   // left), whether that step's job is posted (`stands`), and its job's key (null while not posted).
   function chainView(st, hid, t) {
-    const s = chainSteps(st, hid, t.kind, t[t.kind], t),
+    const s = goalSteps(st, hid, t.kind, t.site, t),
       x = s && s.steps[0];
     return {
-      [t.kind]: t[t.kind],
       kind: t.kind,
       site: t.site,
       key: x && x.job ? x.job.key : null,
@@ -50,9 +49,7 @@ VB['sim/planview'] = (() => {
       routine: pp.routine.map((k) => ({ kind: k, done: done.includes(k), open: posted(k) })),
       sleep: pp.sleep ? { from: pp.sleep.from, until: pp.sleep.until } : null,
       tasks: pp.tasks.map((t, i) => ({
-        ...(chainOf(t)
-          ? chainView(st, hid, t)
-          : { key: t.key, kind: t.kind, site: t.site, stands: st.jobs.has(t.key) }),
+        ...(goalOf(t) ? chainView(st, hid, t) : { key: t.key, kind: t.kind, site: t.site, stands: st.jobs.has(t.key) }),
         waits: W.tasks[i] || null,
       })),
       idle: W.idle,

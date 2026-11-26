@@ -12,7 +12,7 @@ const { tinyWorld, tinyState } = require('./lib/tiny.js'),
   { checkState } = require('./lib/invariants.js');
 const { projectsOf } = VB['sim/projects'],
   { FOUNDATION, OUTBUILDINGS } = VB['sim/ladder'],
-  { chainSteps } = VB['sim/planchains'],
+  { goalSteps: chainSteps } = VB['sim/kinds'],
   { BUILD, DAY } = VB['sim/rules'],
   Stores = VB['sim/stores'];
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));

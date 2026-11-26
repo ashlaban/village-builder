@@ -1,4 +1,5 @@
-// @sys sim/fieldwork: the job kinds of a farm's fields: hoeing, sowing, weeding, reaping, bringing in, threshing, carting manure, clearing
+// @sys sim/fieldwork: the job kinds of a farm's fields and their goals (plant, harvest; VB-1777): hoeing, sowing, weeding, reaping,
+//   bringing in, threshing, carting manure, clearing
 // an overgrown field, and the two steps that make a new one (clear, break); each ends in one of sim/fields' transitions (or sim/newground's, sim/soil's)
 // VB-418: the fields' domain in two modules: sim/fields is the field's state and its year, this the work a household does on it. It writes
 // no field itself. sim/kinds joins KINDS into the registry, where a kind's fields are described; for a common field sim/commons wraps
@@ -6,9 +7,10 @@
 VB['sim/fieldwork'] = (() => {
   const { targetOf } = VB['sim/steps'];
   const Stores = VB['sim/stores'];
-  const { WORK, SEASON_DAYS, TRAVEL, cal } = VB['sim/rules'],
-    { CROPS } = VB['sim/crops'];
-  const { sowOpen, frostExpected } = VB['sim/weather'];
+  const { WORK, SEASON_DAYS, TRAVEL, DAY, YEAR, cal } = VB['sim/rules'],
+    { CROPS, ROTATIONS } = VB['sim/crops'];
+  const { sowOpen, frostExpected, frostSeen } = VB['sim/weather'];
+  const { courseFor } = VB['sim/rotations'];
   const { log, atFarm } = VB['sim/records'];
   const { scrubHours, SPREAD } = VB['sim/spread'];
   const { onProject, landProject } = VB['sim/projects'],
@@ -16,7 +18,7 @@ VB['sim/fieldwork'] = (() => {
   const { finishClear, finishBreak } = VB['sim/newground'],
     { manureWanted, manureDone } = VB['sim/soil'];
   const { hoed, sown, reaped, standing, carried, laidDown, binned, reclaimed, weeded } = VB['sim/fields'];
-  const { fieldsWorkable } = VB['sim/fieldplans'];
+  const { fieldsWorkable, fieldProject } = VB['sim/fieldplans'];
   const { heldFarms } = VB['sim/ownership'];
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
   // Several hands on one field start on different rows: the nth worker on row -12 + 6n, five rows across the tile.
@@ -418,5 +420,171 @@ VB['sim/fieldwork'] = (() => {
     run: (st, j, g) => manureDone(st, j.field, st.households[g.owner], j.hours),
   });
   KINDS.manure.can = { cartPays: () => true };
-  return { KINDS, STAGES, sowWhy, beyondHands, rowAngle, onField, fieldKey };
+  // ---- goals (VB-1777): a task at a tile carried through several steps by these kinds' methods (sim/kinds GOALS joins them) ----
+  // A field from its clearing to its sowing (plant, VB-1649) and its crop from its reaping until its sheaves are in (harvest, VB-1650),
+  // at a field of the household's farms, its own first and those it holds; a field project's tile, a marked one or a free one is the
+  // registry's reading (sim/kinds goalWhere: `mark`, `project`).
+  const SOWN = ['sown', 'growing', 'ripe', 'stooks'];
+  const yearOf = (st) => Math.floor(st.t / YEAR) * YEAR;
+  // The farms of household hid, its own first and those it holds (a household's farms are few), or [] for none.
+  function farmsOf(st, hid) {
+    const hh = hid === null || hid === undefined ? null : st.households[hid];
+    if (!hh || hh.dissolved) return [];
+    const home = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+    return home ? [home, ...heldFarms(st, hid)] : heldFarms(st, hid);
+  }
+  // The field at `tile` of household hid's farms, as {f, fd}, or null.
+  function fieldAt(st, hid, tile) {
+    for (const f of farmsOf(st, hid)) for (const fd of f.fields) if (fd.tile === tile) return { f, fd };
+    return null;
+  }
+  // The crop the field at `where` is sown with: its own, or for a project's the course a new field beside the farm's would take.
+  function plantCrop(st, hid, where) {
+    if (where.fd) return where.fd.crop;
+    const { key, i } = courseFor(st, where.f ? where.f.fields : [], st.households[hid]);
+    return ROTATIONS[key].courses[i];
+  }
+  const sowable = (k) => !CROPS[k].fallow && !!CROPS[k].sow && CROPS[k].seed > 0;
+  // Crop k's sowing window this year, or next year's once this year's has shut: {opens, close (game hours; its first day's start of work,
+  // the thaw not reckoned, and its last day's end of work), next (whether next year's)}; null for a crop not sown.
+  function sowWindow(st, k) {
+    if (!CROPS[k] || !sowable(k)) return null;
+    const W = CROPS[k].sow,
+      y0 = yearOf(st),
+      close = (y) => y + (W[0] * SEASON_DAYS + W[2]) * DAY + WORK[1],
+      y = close(y0) >= st.t ? y0 : y0 + YEAR;
+    return { opens: y + (W[0] * SEASON_DAYS + W[1]) * DAY + WORK[0], close: close(y), next: y > y0 };
+  }
+  // Whether this year's sowing window of crop k has shut: its last day is past (sim/reasons windowLeft's count).
+  const shut = (st, k) => {
+    const W = CROPS[k].sow,
+      c = cal(st.t);
+    return c.season * SEASON_DAYS + c.sday > W[0] * SEASON_DAYS + W[2];
+  };
+  // The loads of a carrying: `amount` (rations of sheaves) at a back's load (TRAVEL.load rations).
+  const loads = (amount, per) => Math.max(1, Math.ceil(amount / per - 1e-9));
+  // Whether the year's frost has come (sim/weather frostSeen: seen fallen, not foreseen, VB-1686; what a stage reached at it means).
+  const frosted = (st) => frostSeen(st) !== null;
+  const plant = {
+    noun: 'field',
+    mark: 'field',
+    project: fieldProject,
+    kinds: ['fell', 'grub', 'clear', 'break', 'plow', 'sow'],
+    which: ['sown', 'closed', 'fallow', 'gone'],
+    at: fieldAt,
+    none: (tile) => `there is no field of the household's nor a field project at ${tile}`,
+    // a field not yet sown this year with its sowing window not shut
+    why: (st, { fd }, tile) => {
+      if (!sowable(fd.crop)) return `the field at ${tile} lies ${fd.crop} this year`;
+      if (fd.stage !== 'stubble' && fd.stage !== 'plowed')
+        return SOWN.includes(fd.stage) ? `the field at ${tile} is sown` : `the field at ${tile} is ${fd.stage}`;
+      if (shut(st, fd.crop)) return `the ${fd.crop} sowing is over for this year`;
+      return null;
+    },
+    // after a project, the hoeing and the sowing of the crop the new field would take; a field's hoeing (in stubble) and sowing; the
+    // hoeing and the sowing laid no earlier than the window's opening
+    steps: (st, hid, where) => {
+      const crop = plantCrop(st, hid, where),
+        C = CROPS[crop],
+        win = sowWindow(st, crop),
+        open = !where.fd;
+      if (!sowable(crop) || !(open || where.fd.stage === 'stubble' || where.fd.stage === 'plowed')) return [];
+      const out = open || where.fd.stage === 'stubble' ? ['plow', 'sow'] : ['sow'];
+      return out.map((kind) => ({
+        kind,
+        hours: C.hours[kind] ?? KINDS[kind].hours,
+        n: 1,
+        from: win.opens,
+        what: `the ${crop} sowing`,
+      }));
+    },
+    // sown; this year's window shut with it unsown; the field made lies fallow
+    gone: (st, { fd }) => {
+      if (SOWN.includes(fd.stage)) return 'sown';
+      if (!sowable(fd.crop)) return 'fallow';
+      if (fd.stage !== 'stubble' && fd.stage !== 'plowed') return 'gone';
+      return shut(st, fd.crop) ? 'closed' : null;
+    },
+    deadline: (st, hid, where) => {
+      const crop = plantCrop(st, hid, where),
+        win = sowWindow(st, crop);
+      return win ? { t: win.close, what: `the end of the ${crop} sowing${win.next ? ' next year' : ''}` } : null;
+    },
+    // the household's rule that holds a field's hoeing or sowing back: the field beyond what its hands till (the plan's
+    // targets.workable), or its sowing refused (the seed, the thaw)
+    hold: (st, hid, where, y, tile) => {
+      if (!where.fd || (y.kind !== 'plow' && y.kind !== 'sow')) return null;
+      const hh = st.households[hid],
+        cap = beyondHands(st, hh, where.fd, where.f);
+      if (cap !== null) return ['hands', cap, tile];
+      const why = y.kind === 'sow' && where.fd.stage === 'plowed' ? sowWhy(st, hh, where.fd, cal(st.t)) : null;
+      return why ? ['sowing', why] : null;
+    },
+  };
+  // The day a field's crop is expected ripe: its sowing and the crop's days to ripen (the year's weather, a draw, not reckoned).
+  const ripeDay = (fd) => fd.sown + CROPS[fd.crop].ripe;
+  const harvest = {
+    noun: 'harvest',
+    mark: null,
+    kinds: ['reap', 'haul'],
+    which: ['in', 'lost', 'gone'],
+    at: fieldAt,
+    none: (tile) => `there is no field of the household's at ${tile}`,
+    why: (st, { fd }, tile) => (SOWN.includes(fd.stage) ? null : `the field at ${tile} is not sown`),
+    // the reaping once ripe (expected), then the carrying once the sheaves are dry, by its loads; in stooks, the carrying left
+    steps: (st, hid, { fd }) => {
+      const dry = st.ECON.dryDays,
+        haul = KINDS.haul.hours;
+      if (fd.stage === 'stooks')
+        return [
+          {
+            kind: 'haul',
+            hours: haul,
+            n: loads(fd.held, TRAVEL.load),
+            from: (fd.reaped + dry) * DAY + WORK[0] - 1,
+            what: 'the sheaves dry',
+          },
+        ];
+      if (!SOWN.includes(fd.stage)) return [];
+      const ripe = fd.stage === 'ripe' ? st.t : ripeDay(fd) * DAY + WORK[0];
+      return [
+        {
+          kind: 'reap',
+          hours: CROPS[fd.crop].hours.reap ?? KINDS.reap.hours,
+          n: 1,
+          from: ripe,
+          what: `the ${fd.crop} ripe`,
+        },
+        {
+          kind: 'haul',
+          hours: haul,
+          n: loads(standing(st, fd), TRAVEL.load),
+          from: ripe + dry * DAY,
+          what: 'the sheaves dry',
+        },
+      ];
+    },
+    // the sheaves in (the field reaped this year and back in stubble before the frost), or the crop lost to the frost or left standing
+    gone: (st, { fd }) => {
+      if (SOWN.includes(fd.stage)) return null;
+      const y = Math.floor(st.t / YEAR) * (YEAR / DAY);
+      return fd.reaped !== null && fd.reaped !== undefined && fd.reaped >= y && !frosted(st) ? 'in' : 'lost';
+    },
+    // the frost the head expects (`frost`, an autumn day), or the crop's day of loss left standing when that comes first; next year's for
+    // a crop not ripe before this year's
+    deadline: (st, hid, { fd }, frost) => {
+      if (!SOWN.includes(fd.stage)) return null;
+      const L = CROPS[fd.crop].lost,
+        at = (y) => {
+          const f = y + (2 * SEASON_DAYS + frost) * DAY + WORK[1];
+          if (!L) return { t: f, what: 'the frost' };
+          const l = y + (L[0] * SEASON_DAYS + L[1] - 1) * DAY + WORK[1];
+          return l < f ? { t: l, what: `the ${fd.crop} lost standing` } : { t: f, what: 'the frost' };
+        },
+        d = at(yearOf(st));
+      return fd.stage === 'stooks' || ripeDay(fd) * DAY < d.t ? d : at(yearOf(st) + YEAR);
+    },
+  };
+  const GOALS = { plant, harvest };
+  return { KINDS, STAGES, GOALS, sowWhy, beyondHands, rowAngle, onField, fieldKey, farmsOf };
 })();

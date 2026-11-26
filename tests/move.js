@@ -20,15 +20,18 @@ const seed = (play = true) => {
   const st = Sim.seed(tinyWorld(rows), 7, 'solo', null, { hand: true });
   st.naturalDeaths = false;
   if (!play) return st;
-  Sim.inhabit(st, st.households[0].holder);
-  Sim.setAuto(st, st.player.pawn, false);
-  Sim.plan(st, st.player.pawn, 'sleep', { from: 21, until: 6 });
+  const id = st.households[0].holder;
+  if (play !== 'unplayed') Sim.inhabit(st, id); // VB-1777: an unplayed head plans through the same verb, on its own controller
+  Sim.setAuto(st, id, false);
+  Sim.plan(st, id, 'sleep', { from: 21, until: 6 });
   return st;
 };
+// The pawn whose plan moves the house: the played one, else the head (VB-1777).
+const actor = (st) => (st.player ? st.player.pawn : st.households[0].holder);
 const stepsOf = (st, t) => stepsTo(st.w, st.farmsteads[0].house, t, st.w.N, walkable(st.w));
 // A tile `n` walking steps from the landing that takes the farmstead.
 const tileAt = (st, n) => {
-  for (let t = 0; t < st.w.N; t++) if (stepsOf(st, t) === n && Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', t) === null) return t;
+  for (let t = 0; t < st.w.N; t++) if (stepsOf(st, t) === n && Sim.placeWhy(st, actor(st), 'farmstead', t) === null) return t;
   return -1;
 };
 // What the household has, wherever it lies: grain, firewood, hay, carts and animals, at home, lying, standing at the landing.
@@ -50,10 +53,11 @@ const holdings = (st) => {
 function move(st, t, placed = () => {}, days = 60) {
   const hh = st.households[0],
     f = st.farmsteads[0];
-  const cost = Sim.moveCost(st, st.player.pawn, t),
-    MOVE = VB['sim/planchains'].MOVE_KINDS,
+  const id = actor(st),
+    cost = Sim.moveCost(st, id, t),
+    MOVE = VB['sim/kinds'].GOALS.farmstead.whole,
     a = st.agents[hh.holder];
-  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: t }), true);
+  assert.strictEqual(Sim.plan(st, id, 'add', { farmstead: t }), true);
   const seen = new Set(),
     laid = new Set();
   let at = null,
@@ -62,19 +66,19 @@ function move(st, t, placed = () => {}, days = 60) {
     raised = null,
     hungry = 0,
     low = Infinity;
-  for (let i = 0; i < days * 240 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length; i++) {
+  for (let i = 0; i < days * 240 && VB['sim/steps'].pawnPlan(st, id).tasks.length; i++) {
     Sim.advance(st, 0.1);
     if (at === null && f.shelter) {
       at = st.t;
       hungry = hh.hungryDays || 0;
-      reckoned = Sim.agenda(st, st.player.pawn).plan.find((e) => e.kind === 'farmstead').ends - st.t;
+      reckoned = Sim.agenda(st, id).plan.find((e) => e.kind === 'farmstead').ends - st.t;
       placed(st);
     }
     if (raised === null && f.shelter && f.shelter.built !== null) raised = st.t;
     if (at !== null && raised === null) low = Math.min(low, Stores.grainOf(hh));
     if (a.job && MOVE.includes(a.job.kind)) worked += 0.1;
-    for (const v of Sim.planView(st, st.player.pawn).tasks) seen.add(v.step);
-    if (i % 20 === 0) for (const g of Sim.agenda(st, st.player.pawn).days.flat()) if (g.what === 'task') laid.add(g.kind);
+    for (const v of Sim.planView(st, id).tasks) seen.add(v.step);
+    if (i % 20 === 0) for (const g of Sim.agenda(st, id).days.flat()) if (g.what === 'task') laid.add(g.kind);
   }
   return { raised, hours: raised - at, hungry: (hh.hungryDays || 0) - hungry, low, seen, laid, cost, reckoned, worked };
 }
@@ -156,6 +160,22 @@ for (const n of [2, 10, 24]) {
   assert(near(r.reckoned, r.hours), report[report.length - 1]);
   report.push(`${n} steps: roof ${Math.round(r.hours)} h after placing, ${r.hungry} hungry days (grain at home at least ${Math.round(r.low)}, ${hh.members.length} members), laid ${[...r.laid]}`);
   sound(st, `raised ${n} off`);
+}
+// ---- 2b. VB-1777: the same move for a head no one plays, through the same verb: the house moves, the shelter is raised at the same hour,
+// and what the household holds comes home as it does for the played head ----
+{
+  const played = seed(),
+    unplayed = seed('unplayed'),
+    t = tileAt(played, 10);
+  assert.strictEqual(unplayed.player, null, 'no pawn is played');
+  assert.strictEqual(tileAt(unplayed, 10), t, 'the same tile takes the farmstead');
+  const a = move(played, t),
+    b = move(unplayed, t);
+  assert(b.raised !== null && unplayed.farmsteads[0].house === t, 'the unplayed head moved its house and raised its shelter');
+  assert.strictEqual(VB['sim/steps'].pawnPlan(unplayed, actor(unplayed)).last.which, 'raised');
+  assert.strictEqual(b.raised, a.raised, `the shelter raised at the same hour (played ${a.raised}, unplayed ${b.raised})`);
+  assert.deepStrictEqual(holdings(unplayed), holdings(played), 'the same holdings home');
+  sound(unplayed, 'the unplayed move');
 }
 // ---- 3. a save and a load in the middle of a move go on the same ----
 {

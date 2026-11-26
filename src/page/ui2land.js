@@ -85,7 +85,7 @@ function hudMoving(hh, f) {
 }
 // The windows that press with no task of the plan for them (Sim.planGaps, VB-1650).
 const hudGaps = () =>
-  Sim.planGaps && HUD_CHAIN ? (Sim.planGaps(st, st.player.pawn) || []).filter((g) => HUD_CHAIN[g.chain]) : [];
+  Sim.planGaps && HUD_CHAIN ? (Sim.planGaps(st, st.player.pawn) || []).filter((g) => HUD_CHAIN[g.goal]) : [];
 // A field's pin: the icon of what it waits for, a number of days where one counts (to ripe, or left to sow), and how pressing it is.
 // The words are the tile's callout (fieldLine), a tap away.
 function fieldPin(fd) {
@@ -389,7 +389,7 @@ function hudMarks(id, hh, f) {
         id: `gap${g.tile}`,
         tile: g.tile,
         cls: 'u2-pin press2 gap',
-        html: hudPin(HUD_CHAIN[g.chain].icon(), g.days),
+        html: hudPin(HUD_CHAIN[g.goal].icon(), g.days),
         why: `Pressing, and nothing in the plan sees to it: ${hudDays(g.days)} left (the number) until ${g.deadline.what}.`,
       });
   for (let k = marks.length - 1; k >= 0; k--) if (planned.has(marks[k].tile)) marks.splice(k, 1);

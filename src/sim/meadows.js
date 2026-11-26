@@ -1,24 +1,24 @@
-// @sys sim/meadows: hay meadows as built land: a tile's worth as meadow, choosing one, the meadow project (a project plan of
+// @sys sim/meadows: hay meadows as built land, and the hay goal (VB-1777): a tile's worth as meadow, choosing one, the meadow project (a project plan of
 // sim/plans), and the meadows of generated farms
 VB['sim/meadows'] = (() => {
   const { targetOf } = VB['sim/steps'];
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['world/biomes'];
-  const { SEASON_DAYS, TRAVEL, HERD, BUILD, cal } = VB['sim/rules'],
+  const { SEASON_DAYS, TRAVEL, HERD, BUILD, WORK, DAY, YEAR, cal } = VB['sim/rules'],
     { dayLoss } = VB['sim/goods'],
     { byRiver } = VB['sim/crops'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
     { costChanged } = VB['sim/routes'];
   const { log, atFarm, atHousehold, age } = VB['sim/records'];
-  const { factor } = VB['sim/weather'];
+  const { factor, frostSeen } = VB['sim/weather'];
   const { setOwner } = VB['sim/ownership'];
   const { nextTo, farmedLand } = VB['sim/layout'];
   const { HAND_REACH } = VB['sim/byhand'];
   const { hexSteps } = VB['sim/hex'];
   const { winterNeed } = VB['sim/herds'];
   const { builtTiles } = VB['sim/fieldplans'],
-    { onField } = VB['sim/fieldwork'];
+    { onField, farmsOf } = VB['sim/fieldwork'];
   const { workStake } = VB['sim/claims'];
   const { freeFor, woodTaken } = VB['sim/territory'];
   const { stake, realiseStake, contestable, contest } = VB['sim/stakes'];
@@ -482,10 +482,89 @@ VB['sim/meadows'] = (() => {
     met: (st, g) => g.job.meadow.stage !== 'mown',
   });
   KINDS.hay.can = { source: (st, g) => cocks(g) > 1e-9, cartPays: (st, g) => cocks(g) > TRAVEL.load * TRAVEL.hay };
+  // ---- the goal (VB-1777): one meadow's hay from its mowing (after the meadow's clearing, a project's) until it is home (VB-1650), a
+  // task at a tile carried by these kinds' methods (sim/kinds GOALS joins it; a meadow project's tile, a marked or free one, is the
+  // registry's reading: `mark`, `project`) ----
+  // The haymaking window (summer's first day to autumn's MOW_LAST): whether this year's is over; its opening and its end, this year's or
+  // next year's once this year's is over (`next`).
+  const hayOver = (c) => c.season > 2 || (c.season === 2 && c.sday > MOW_LAST);
+  const yearOf = (st) => Math.floor(st.t / YEAR) * YEAR;
+  function hayWindow(st) {
+    const y = yearOf(st) + (hayOver(cal(st.t)) ? YEAR : 0);
+    return {
+      opens: y + SEASON_DAYS * DAY + WORK[0],
+      close: y + (2 * SEASON_DAYS + MOW_LAST) * DAY + WORK[1],
+      next: y > yearOf(st),
+    };
+  }
+  // The loads of a carrying of `amount` of hay at a back's load (TRAVEL.load rations; hay TRAVEL.hay a ration).
+  const loads = (amount, per) => Math.max(1, Math.ceil(amount / per - 1e-9));
+  const hay = {
+    noun: 'meadow',
+    mark: 'meadow',
+    project: meadowProject,
+    kinds: ['meadow', 'rake', 'mow', 'hay'],
+    which: ['home', 'closed', 'rotted', 'gone'],
+    at: (st, hid, tile) => {
+      for (const f of farmsOf(st, hid)) for (const m of f.meadows) if (m.tile === tile) return { f, m };
+      return null;
+    },
+    none: (tile) => `there is no meadow of the household's nor a meadow project at ${tile}`,
+    why: (st, { m }, tile) =>
+      m.stage === 'aftermath'
+        ? `the hay of the meadow at ${tile} is in`
+        : m.stage === 'grass' && hayOver(cal(st.t))
+          ? 'the haymaking is over for this year'
+          : null,
+    // a raking posted (spring), the mowing from the window's opening, the carrying once the hay has dried (DRY_DAYS), by its loads
+    steps: (st, hid, where) => {
+      const m = where.m,
+        win = hayWindow(st),
+        per = TRAVEL.load * TRAVEL.hay,
+        out = [];
+      if (m && m.stage === 'aftermath') return out;
+      if (m && m.stage === 'mown')
+        return [
+          {
+            kind: 'hay',
+            hours: KINDS.hay.hours,
+            n: loads(m.held, per),
+            from: (m.mown + DRY_DAYS) * DAY + WORK[0],
+            what: 'the hay dry',
+          },
+        ];
+      if (m && !m.raked) out.push({ kind: 'rake', hours: KINDS.rake.hours, n: 1, from: Infinity, posted: true });
+      const fert = m ? m.fert : meadowFert(st.w, where.plan ? where.plan.steps[where.plan.open].place : where.tile);
+      out.push({ kind: 'mow', hours: KINDS.mow.hours, n: 1, from: win.opens, what: 'the haymaking' });
+      out.push({
+        kind: 'hay',
+        hours: KINDS.hay.hours,
+        n: loads(HAY * fert, per),
+        from: win.opens + DRY_DAYS * DAY,
+        what: 'the hay dry',
+      });
+      return out;
+    },
+    gone: (st, { m }) => {
+      if (m.stage === 'aftermath') return frostSeen(st) !== null ? 'rotted' : 'home';
+      return m.stage === 'grass' && hayOver(cal(st.t)) ? 'closed' : null;
+    },
+    deadline: (st) => {
+      const win = hayWindow(st);
+      return { t: win.close, what: `the end of haymaking${win.next ? ' next year' : ''}` };
+    },
+    // the household's rule that holds the mowing or the raking back: no hay wanted
+    hold: (st, hid, where, y) =>
+      where.m && (y.kind === 'mow' || y.kind === 'rake') && !hayWanted(st, where.f, st.households[hid])
+        ? ['hay']
+        : null,
+  };
+  const GOALS = { hay };
   return {
     KINDS,
+    GOALS,
     MOW_LAST, // the haymaking window's last autumn day (sim/agenda's deadline, VB-1644)
-    DRY_DAYS, // the days mown hay dries before it is carried (sim/planchains' hay task, VB-1650)
+    DRY_DAYS, // the days mown hay dries before it is carried (the hay goal's, VB-1650)
     meadowWork,
     HAY,
     UNRAKED,
