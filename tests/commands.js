@@ -533,7 +533,7 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   const { tinyWorld: tw, tinyState: ts } = require('./lib/tiny.js');
   const s = ts(tw(['..............', '...FF.........', '...FF.........', '..............', '..........FF..', '..............', '..............']), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
   const act = (actor, verb, target, args, source = 'pawn') => issue(s, { actor, verb, target, args, source });
-  const P = s.pawns[0], A = 0, member = 2, mate = 9;
+  const P = s.pawns[0], A = 0, member = 2, mate = s.pawns.find((p) => p.sex === 'm' && p.alive && require('../src/load.js')['sim/records'].spouseOf(s, p.id) === null && p.id !== 0 && p.id !== 6 && p.id !== 11).id;
   assert.ok(!s.player, 'the pawn is not played');
   assert.strictEqual(act(A, 'wish', 'out', { value: false }), true, 'an unplayed pawn wishes');
   assert.deepStrictEqual(Sim.wishesOf(s, A).out, false, 'and it is on the pawn');
