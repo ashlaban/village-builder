@@ -526,3 +526,35 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   delete s2.agents[holders[1]].away;
   for (const r of tryAs(holders[1])) assert.ok(r === true || !/alderman|village gives/.test(r), `the alderman at home: ${r}`);
 }
+
+// VB-1744: wish and match are verbs, issued for any pawn under the same check; the played pawn's Sim.wish issues them.
+{
+  // village 0: household 0 (holder 0, daughters 2 to 5), household 1 (holder 6, children 8 to 10)
+  const { tinyWorld: tw, tinyState: ts } = require('./lib/tiny.js');
+  const s = ts(tw(['..............', '...FF.........', '...FF.........', '..............', '..........FF..', '..............', '..............']), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  const act = (actor, verb, target, args, source = 'pawn') => issue(s, { actor, verb, target, args, source });
+  const P = s.pawns[0], A = 0, member = 2, mate = 9;
+  assert.ok(!s.player, 'the pawn is not played');
+  assert.strictEqual(act(A, 'wish', 'out', { value: false }), true, 'an unplayed pawn wishes');
+  assert.deepStrictEqual(Sim.wishesOf(s, A).out, false, 'and it is on the pawn');
+  const before = JSON.stringify(P);
+  for (const [t, v] of [['nonsense', true], ['out', 7], ['claim', 9999], ['match', 9999], ['rank', ['stay']]])
+    assert.strictEqual(typeof act(A, 'wish', t, { value: v }), 'string', `${t} ${v} refused`);
+  assert.strictEqual(JSON.stringify(P), before, 'a refused wish changes nothing');
+  assert.strictEqual(typeof act(A, 'match', A, { partner: mate }), 'string', 'not for itself');
+  assert.strictEqual(typeof act(A, 'match', 11, { partner: 8 }), 'string', 'only for a member it speaks for');
+  assert.strictEqual(typeof act(A, 'match', member, { partner: 10 }), 'string', 'only one of the other sex');
+  assert.strictEqual(P.proposal, undefined, 'a refused match changes nothing');
+  assert.strictEqual(act(A, 'match', member, { partner: mate, terms: null }), true);
+  assert.deepStrictEqual(P.proposal, { for: member, partner: mate, terms: null }, 'the proposal is set');
+  assert.strictEqual(act(A, 'match', member, { partner: null }), true);
+  assert.strictEqual(P.proposal, undefined, 'withdrawn');
+  P.alive = false;
+  assert.strictEqual(typeof act(A, 'wish', 'out', { value: true }), 'string', 'the dead do not wish');
+  P.alive = true;
+  // the played pawn's Sim.wish is the same verb, source player
+  assert.strictEqual(Sim.inhabit(s, A), true);
+  assert.strictEqual(Sim.wish(s, 'out', true), true);
+  assert.strictEqual(Sim.wish(s, 'match', mate, { for: member }), true);
+  assert.strictEqual(P.proposal.partner, mate, 'the played pawn: the same proposal');
+}
