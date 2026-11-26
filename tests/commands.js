@@ -559,3 +559,46 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   assert.strictEqual(Sim.wish(s, s.player.pawn, 'match', mate, { for: member }), true);
   assert.strictEqual(P.proposal.partner, mate, 'the played pawn: the same proposal');
 }
+
+// VB-1689: the player has what its pawn has, no more and no less (design.md, Every act is a pawn's; target-v2 principle 15).
+{
+  const { VERBS } = VB['sim/commands'];
+  const { tinyWorld: tw, tinyState: ts } = require('./lib/tiny.js');
+  const s = ts(tw(['..............', '...FF.........', '...FF.........', '..............', '..........FF..', '..............', '..............']), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  // 1. a verb only the player may carry is allowed by name, with its reason. (None now: `sleep` is the player's and a pawn's own rule's.)
+  const PLAYER_ONLY = {};
+  const only = Object.keys(VERBS).filter((v) => VERBS[v].sources && VERBS[v].sources.length && VERBS[v].sources.every((x) => x === 'player'));
+  for (const v of only) assert.ok(PLAYER_ONLY[v], `verb ${v} is the player's alone: name it in PLAYER_ONLY with its reason (a pawn could have it)`);
+  for (const v of Object.keys(PLAYER_ONLY)) assert.ok(only.includes(v), `PLAYER_ONLY lists ${v}, which is no longer the player's alone`);
+  // 2. every verb's check gives the same result for the played and the unplayed pawn, on a grid of commands
+  const frame = (pawn) => ({ pawn, left: null, ended: null, last: null, days: [] });
+  const outcome = (c) => { try { return String(VERBS[c.verb].check(s, c)); } catch (e) { return 'threw: ' + e.message; } };
+  const argsets = [{}, { value: true }, { value: false }, { until: s.t + 2 }, { hours: 2 }, { partner: 8 }, { on: true }, { i: 0 }, { cmd: { verb: 'idle' } }, { x: 3, y: 3 }];
+  let checked = 0, accepted = 0;
+  for (const verb of Object.keys(VERBS)) {
+    const source = (VERBS[verb].sources || ['pawn'])[0];
+    for (const actor of [0, 2, 6, 11]) for (const target of [null, 0, 2, 6, 8, 'out', 'claim']) for (const args of argsets) {
+      const c = { actor, verb, target, args, source };
+      s.player = null;
+      const free = outcome(c);
+      s.player = frame(actor);
+      const played = outcome(c);
+      s.player = null;
+      assert.strictEqual(played, free, `${verb} ${JSON.stringify(c)}: its check differs for the played pawn (${played}) and the unplayed (${free})`);
+      checked++; if (free === 'null') accepted++;
+    }
+  }
+  assert.ok(accepted > 0, 'some check passed on the constructed state, so the comparison is not only refusals');
+  // 3. each field of st.player and why a pawn could not hold it: it is the frame of the one the player inhabits (the line, not a pawn)
+  const PLAYER_FIELDS = {
+    pawn: 'names which pawn the page shows: the player is one at a time, no pawn is it',
+    left: 'the line outlives its pawn: kept from its death, when the pawn and its ties are erased (VB-213)',
+    ended: 'the player\'s line ended with no successor: no pawn\'s',
+    last: 'the page\'s record of the watched line, kept only while watched so that no pawn pays for it (VB-1118)',
+    days: 'the page\'s record of the watched line\'s health, kept only while watched (VB-1118)',
+  };
+  const inh = require('../src/load.js').sim;
+  const p = ts(tw(['..............', '...FF.........']), [{ at: [3, 1], farms: 1 }], { seed: 7 });
+  assert.strictEqual(inh.inhabit(p, 0), true);
+  assert.deepStrictEqual(Object.keys(p.player).sort(), Object.keys(PLAYER_FIELDS).sort(), 'a field of st.player is listed with why no pawn could hold it; one a pawn could hold is a task');
+}
