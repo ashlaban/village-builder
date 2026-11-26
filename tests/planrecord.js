@@ -63,4 +63,32 @@ assert.strictEqual(R.agent, hh.holder);
 R.year.push('x');
 assert(!plan.year.includes('x'), 'the record shown is a copy');
 assert.strictEqual(Sim.plans(st, { kind: 'pawn', id: 0 }), null, 'a pawn that holds no step has no record');
+// the season: its targets first, steps by the default author, then its routines in order, each serving its target or the template; a
+// routine's task names its step, and its chain runs up to the target; the head's order keeps the steps, its author the head's verb; at
+// the season's turn its steps are made again (the last folded), the fields' target carried; a store's target read by Steps.targetOf
+{
+  const S = plan.season, Se = VB['sim/seasonal'], c = Sim.cal(st.t);
+  assert.deepStrictEqual(S.slice(0, 4).map((s) => s.what.target.store), ['wood', 'hay', 'seed', 'fields'], 'the targets come first');
+  assert(S.every((s) => s.author === 'custom' && s.from <= c.day && s.by === c.day - c.sday + VB['sim/rules'].SEASON_DAYS - 1), 'by the custom, this season');
+  assert.deepStrictEqual(Se.routinesOf(plan), Se.ROUTINES[c.season], "the routines in the template's order");
+  const wood = S.find((s) => s.what.routine === 'wood'), other = S.find((s) => s.what.routine && s.what.routine !== 'wood' && !['hay', 'mow'].includes(s.what.routine));
+  assert.deepStrictEqual(wood.why, { step: S[0].id, of: `household:${hh.id}` }, 'the wood routine serves the woodpile');
+  assert.deepStrictEqual(other.why, { custom: 'template' });
+  assert.strictEqual(Steps.targetOf(plan, 'wood'), S[0].what.target);
+  assert.strictEqual(Steps.targetOf(plan, 'none'), null);
+  const jw = VB['sim/jobs'].post(st, `wood:test:${hh.id}`, 'wood', { type: 'household', id: hh.id }, tile, { farm: f, chosen: true });
+  assert.strictEqual(jw.step, wood.id, "a routine's task names the routine");
+  assert.deepStrictEqual(Sim.why(st, jw).map((s) => s.id), [wood.id, S[0].id], 'its chain runs up to the target');
+  const turned = [...Se.routinesOf(plan)].reverse(), ids = new Set(S.map((s) => s.id));
+  Se.setOrder(st, hh.id, turned);
+  assert.deepStrictEqual(Se.routinesOf(plan), turned);
+  assert(plan.season.every((s) => ids.has(s.id)) && plan.season.filter((s) => s.what.routine).every((s) => s.author === 'pawn'), "the head's order keeps the steps");
+  assert.strictEqual(Sim.headView(st, hh.id).orderBy, 'head');
+  const F = Steps.targetOf(plan, 'fields'), was = { level: F.level, workable: F.workable }, first = S[0].id;
+  Se.seasonal(st, plan, Sim.cal(st.t + VB['sim/rules'].SEASON_DAYS * DAY));
+  const F2 = Steps.targetOf(plan, 'fields');
+  assert(plan.season[0].id > first && F2 !== F && F2.level === was.level && F2.workable === was.workable, 'the season made again, the fields carried');
+  assert(plan.season.every((s) => s.author === 'custom'), "the template's order again");
+  assert.deepStrictEqual(require('./lib/invariants.js').checkState(st).filter((x) => x.startsWith('plans')).filter((x) => !/not in the current season/.test(x)), [], 'the record holds');
+}
 console.log('planrecord ok');

@@ -33,12 +33,12 @@ VB['sim/plans'] = (() => {
       VB['sim/seasonal'],
     { chosenTargets, goodTargets, begin, reviewTargets, setOrder } = VB['sim/seasonal'];
   const { targetOf } = Steps;
-  // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
-  //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
+  // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, pawns and stepSeq (sim/steps),
+  //   due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
   //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours: its next planning day's review), last (the day
   //   of its last review), woke (the day of its last review woken by a store), looked (the day a member last looked for work outside the
   //   plan's tasks), dirty (sim/stores: a store crossed a target since the last review), reserved, reasons (sim/stores' reservations)}, and a
-  //   household's also {targets, tiles, counted}. One standing plan per undissolved household and per village; a dissolved household's plan
+  //   household's also {season (sim/seasonal), tiles, counted}. One standing plan per undissolved household and per village; a dissolved household's plan
   //   is dropped with it, so the maps hold only live holders (Rules for cost, 1). Its review asks each kind where it is available for the
   //   holder (refreshJobs, sim/jobs) on the holder's planning day, and out of turn when a window closes or a store crosses a target.
   // @state plan.tiles: {field, meadow}: the tile the plan names for its next field or meadow in place of the holder's choice, -1 for none;
