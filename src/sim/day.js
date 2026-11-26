@@ -15,6 +15,7 @@ VB['sim/day'] = (() => {
   const { KINDS, isOpen } = VB['sim/kinds'];
   const { says } = VB['sim/methods'];
   const Days = VB['sim/days'];
+  const Levies = VB['sim/levies'];
   const Hands = VB['sim/hands'];
   const { planOf, heads, planOp, planFacade } = VB['sim/plans'];
   const Estimate = VB['sim/estimate'];
@@ -98,7 +99,8 @@ VB['sim/day'] = (() => {
         fits,
         hours,
         est: new Map(), // job -> the work left as the head sees it, once an allotment
-        cap: new Map(members.map((p) => [p.id, dayHours()])),
+        // a member's levy left today (sim/levies capacity); the head pair, not levied, their working hours of the horizon (VB-1760)
+        cap: new Map(members.map((p) => [p.id, Levies.capacity(st, hh, p, c)])),
         manned: new Map(), // job -> [hours of work given, hands]
         given: new Map(), // pawn -> its first task of the first pass, with its fit
         due: new Map(), // pawn -> the task with a deadline today it is the hand for

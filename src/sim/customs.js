@@ -347,6 +347,26 @@ VB['sim/customs'] = (() => {
     return DIMS[k].opts[st.cenv.cultures[culture].customs[k]][0];
   };
 
+  // ---- a custom's norm: the household's levy on a member (VB-1760; design.md section 7, The levy and own hours) ----
+  // @tunable LEVY: the custom's hours a day a member owes its household, by season (spring, summer, autumn, winter), of the working day's 12
+  // Grounded in docs/plans/four-scales/levy-custom.md (the Sundays and holy days are the member's, the rest the household's), to be set by
+  // Kim's measurement (docs/tuning.md). adult: any adult member whatever its position (Kim, 25 November); child: one of 7 to 13, times
+  // its hands by age; servant: the adult row, by its contract (its free day at the term is a dated grant, VB-1763); lodger: no hours a
+  // day, and `days` adult-days of 8 hours a season (summer and autumn; no way in of a lodger is built yet, VB-1803); elder: one under a
+  // retirement contract, which names no hours. The head pair is not levied: the household's plan is theirs. One table for every culture
+  // until a culture's customs differ in it.
+  const LEVY = Object.freeze({
+    adult: Object.freeze([9.5, 10, 10.5, 9.5]),
+    child: Object.freeze([6, 10, 7, 3]),
+    servant: Object.freeze([9.5, 10, 10.5, 9.5]),
+    lodger: Object.freeze([0, 0, 0, 0]),
+    elder: Object.freeze([0, 0, 0, 0]),
+    lodgerDays: Object.freeze([0, 1, 1, 0]), // a lodger's adult-days of the season, not hours a day (VB-1803 names them)
+  });
+  // The door for a custom's norm (one table today): levyNorm(st, row, season, at), the hours a day a member of `row` owes in `season`
+  // (0 to 3) in settlement `at` (the row lodgerDays: a lodger's adult-days of the season). Pure: allocates nothing.
+  const levyNorm = (st, row, season, at) => LEVY[row][season];
+
   // An archetype's customs, an option index a custom (in the order of DIMS).
   function fromArchetype(name) {
     const a = ARCHETYPES[name];
@@ -367,5 +387,6 @@ VB['sim/customs'] = (() => {
     inForce,
     inForceAt,
     customOf,
+    levyNorm,
   };
 })();

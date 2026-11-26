@@ -27,6 +27,15 @@ for (const id of st.liveHouseholds) {
   }
 }
 
+// 1b. VB-1760: allotted now, what the head gave each member no task in (free) is within its capacity: a levied member's levy left today,
+// the head pair's working hours of the horizon.
+{
+  VB['sim/day'].allot(st, hh, c);
+  const day = dayOf(st, hh.id);
+  for (const m of Object.keys(day.free).map(Number))
+    assert.ok(day.free[m] >= 0 && day.free[m] <= VB['sim/levies'].capacity(st, hh, st.pawns[m], c) + 1e-9, `pawn ${m}: its free hours within its capacity`);
+}
+
 // 2. Allotting draws no random number and is the same twice.
 {
   const rng = canon(st.rng);

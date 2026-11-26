@@ -185,6 +185,25 @@ function checkState(st) {
           bad.push(`handsToday: pawn ${id} lent ${JSON.stringify(e)}`);
       }
     }
+    // VB-1760: the clock hours each pawn has worked today on its own household's or village's tasks, within a day, of no later day than
+    // today; each household plan's members' levies, compiled for a season not later than now, each entry [hours a day of the 12 or null
+    // (not levied), hands within 0 and 1, the role compiled at]
+    if (st.workToday) {
+      const w = st.workToday;
+      if (!Number.isInteger(w.day) || w.day > Math.floor(st.t / 24) || !w.by || typeof w.by !== 'object') bad.push(`workToday: ${JSON.stringify(w).slice(0, 80)}`);
+      else for (const [id, h] of Object.entries(w.by)) if (!st.pawns[id] || !(h >= 0 && h <= 24)) bad.push(`workToday: pawn ${id} worked ${h}`);
+    }
+    if (st.plans && st.plans.households) {
+      const { cal } = globalThis.VB['sim/rules'], c = cal(st.t), now = c.year * 4 + c.season;
+      for (const [hid, plan] of st.plans.households) {
+        const L = plan && plan.levies;
+        if (L === undefined) continue;
+        if (!L || !Number.isInteger(L.at) || L.at > now || !L.of || typeof L.of !== 'object') { bad.push(`plans.households[${hid}].levies: ${JSON.stringify(L).slice(0, 80)}`); continue; }
+        for (const [id, e] of Object.entries(L.of))
+          if (!st.pawns[id] || !Array.isArray(e) || e.length !== 3 || !(e[0] === null || (e[0] >= 0 && e[0] <= 12)) || !(e[1] >= 0 && e[1] <= 1) || typeof e[2] !== 'string')
+            bad.push(`plans.households[${hid}].levies: pawn ${id} ${JSON.stringify(e)}`);
+      }
+    }
     // VB-1555: today's leaves, each a pawn's, from an hour before the end of the working day it ends at; a pawn's days of its own ask and
     // its last visit are whole game days, none in the future
     if (st.leaves) {
