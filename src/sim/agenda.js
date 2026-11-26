@@ -284,7 +284,7 @@ VB['sim/agenda'] = (() => {
     const hand = ctl.queue.some((q) => !q.plan),
       begun = new Set();
     ctl.queue.forEach((q, i) => {
-      if (q.plan && (hand || q.plan.from !== 'routine')) return; // the sleeping hours and the tasks are laid below
+      if (q.plan && (hand || (q.plan.from !== 'routine' && q.plan.from !== 'vital'))) return; // the sleeping hours and the tasks are laid below
       const e = entries[i];
       let to;
       if (q.verb === 'sleep') {

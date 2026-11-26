@@ -95,6 +95,8 @@ function hudWaits(x) {
   }
   if (x.why === 'before') return `Waits its turn: number ${x.i + 1} in the plan is worked first.`;
   if (x.why === 'routine') return `Waits for the day’s routine (${hudKind(x.kind).toLowerCase()}).`;
+  if (x.why === 'vital')
+    return `Waits for the household’s ${hudKind(x.kind).toLowerCase()}, which nobody else is given today.`;
   if (x.why === 'sleep') return `Waits for the night to end, at ${hudHour(x.until)}.`;
   if (x.why === 'opens') return `Waits for ${x.what}, ${hudClock(x.t)}: nothing of it can be done before.`;
   if (x.why === 'unposted' && x.text) return `Cannot go on now: ${x.text}.`;

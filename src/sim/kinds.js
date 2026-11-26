@@ -59,6 +59,9 @@ VB['sim/kinds'] = (() => {
   //   meanwhile (`carriedOn`, below; VB-1547, Kim, 23 November). evening: a vital kind a hand may also begin after the end of work, until
   //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/day eveningCall; the water); true or, as vital, (st, j) =>
   //   boolean (the firewood cut at home while the house is cold or the pile short, VB-1653).
+  //   daily: a kind due each day that a household lives by (the water, the meal, the fire, milking, fodder; VB-1755, design.md section 7,
+  //   Authors): its expected hours are reserved before anything authored (sim/day reserveOf), and a pawn on its own plan takes one the
+  //   day leaves unmanned before its routine and its tasks (sim/controller nextOf).
   //   first: a kind that heads the list of the member best fit for it when the day is allotted (the water; VB-1582). The hours of its
   //   trip besides its work and what its hand takes as it sets out are its method's go step's (`trip`, `setOut`: sim/methods, VB-1821).
   //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/fit).
@@ -235,6 +238,12 @@ VB['sim/kinds'] = (() => {
     const v = KINDS[j.kind].vital;
     return v === true || (!!v && v(st, j));
   };
+  // Whether task j is daily work a household lives by now (VB-1755): a `daily` kind, while its `vital` rule, if it has one, holds (the
+  // fire: while the house is cold or the pile short, not the woodpile's stocking).
+  const dailyNow = (st, j) => {
+    const K = KINDS[j.kind];
+    return !!K.daily && (typeof K.vital !== 'function' || !!K.vital(st, j));
+  };
   // Each role's rank of every kind: its exception for the kind, else for the good a kind of strays brings (VB-1821: the hay left lying
   // ranked as the hay, VB-611; sim/methods bring), else its rank of the kind's type of work, else 0.
   const brings = (K) => (K.strays && K.strays.length ? (K.strays[0].good ?? K.strays[0]) : null);
@@ -308,5 +317,5 @@ VB['sim/kinds'] = (() => {
   ASK.village.push(rule(VB['sim/facilities'].villageWork)); // a village's facilities raised and mended (VB-361)
   ASK.island.push(rule('blaze')); // the trails under way, each its blazer's household's (VB-447, sim/trails)
   for (const e of ASK.field) for (const g of ASK.stages[e[0]]) (ASK.fieldAt[g] ||= []).push(e);
-  return { KINDS, ASK, isOpen, carriedOn, PLACES, THINGS };
+  return { KINDS, ASK, isOpen, carriedOn, dailyNow, PLACES, THINGS };
 })();

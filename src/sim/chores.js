@@ -267,6 +267,7 @@ VB['sim/chores'] = (() => {
       },
     },
     water: {
+      daily: true, // its hours reserved before anything authored (VB-1755)
       verb: 'Drawing water',
       go: 'Going for water',
       name: 'Fetch water',
@@ -331,6 +332,7 @@ VB['sim/chores'] = (() => {
       },
     },
     cook: {
+      daily: true, // its hours reserved before anything authored (VB-1755)
       verb: 'Cooking at the hearth',
       go: 'Going home to cook',
       name: 'Cook',
@@ -410,6 +412,7 @@ VB['sim/chores'] = (() => {
       },
     },
     firewood: {
+      daily: true, // its hours reserved before anything authored (VB-1755)
       verb: 'Cutting firewood',
       go: 'Going home to cut firewood',
       name: 'Cut firewood',
