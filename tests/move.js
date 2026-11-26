@@ -140,7 +140,7 @@ for (const n of [2, 10, 24]) {
   assert.strictEqual(first.step, 'drove', `the first step: the herds driven (${JSON.stringify(first)})`);
   assert(r.raised !== null, `the shelter raised ${n} steps off`);
   assert.strictEqual(st.player.plan.last.which, 'raised');
-  for (const k of ['drove', 'fetchLeftCart', 'fetchLeftGrain', 'fetchHay', 'fetchLeftTimber', 'shelter'])
+  for (const k of ['drove', 'leftCart', 'leftGrain', 'leftHay', 'leftTimber', 'shelter'])
     assert(r.seen.has(k), `the view named ${k}: ${[...r.seen]}`);
   assert(!st.lying && !st.herdsAway, 'everything fetched');
   assert(hh.carts.every((c) => !c.at), 'the carts home');

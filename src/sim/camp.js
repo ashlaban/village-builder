@@ -150,29 +150,30 @@ VB['sim/camp'] = (() => {
   }
   // ---- the move's trips (VB-1670): one reckoning for the page's callout (moveCost) and the farmstead chain's steps (sim/planchains) ----
   // A load of `n` (its kind's load units) on a carrier of `cap` load units takes ceil(n / cap) trips; hay by the rule of every load of hay
-  // (sim/meadows hayLoad, sim/lying fetchKind): TRAVEL.hay of hay a unit of load, at most TRAVEL.hayCart a trip.
+  // (sim/meadows hayLoad, sim/doing cap): TRAVEL.hay of hay a unit of load, at most TRAVEL.hayCart a trip.
   const capOf = (cap, hay) => (hay ? Math.min(cap, TRAVEL.hayCart / TRAVEL.hay) : cap);
   const tripsOf = (n, cap, hay) => Math.ceil(n / capOf(cap, hay) - 1e-9);
   // The carrier a household's loads go on: its best cart ('ox', 'hand') or the back; its load (units) and its laden pace.
   const carrierOf = (hh) => (hh.carts.some((c) => c.kind === 'ox') ? 'ox' : hh.carts.length ? 'hand' : 'back');
   const capOfCarrier = (k) => TRAVEL[k === 'ox' ? 'cart' : k === 'hand' ? 'hand' : 'load'];
-  // One trip of the move over `walk` hours of way: {go (the walk there, unladen), lift (its hours at the landing), back (the walk home at
+  // One trip of the move over `walk` hours of way: {go (the walk there, at `out`), lift (its hours at the landing), back (the walk home at
   // `pace`)}. A herd is haltered (HERD_LIFT, sim/droving's kind's hours) and led home at the pawn's own pace; a cart fetched comes home
-  // unladen (VB-1667 brings no load on it), at the team's walking pace.
+  // unladen (VB-1667 brings no load on it), on the back's pace (it is led as a load is carried, sim/carts leftCart); a load is taken up at
+  // once (the stray method's `load`, VB-1814), on the cart that walks out at its pace, laden or not (sim/carts pace).
   const HERD_LIFT = 0.5;
-  const tripOf = (walk, lift, pace) => ({ go: walk, lift, back: walk / pace });
+  const tripOf = (walk, lift, pace, out = 1) => ({ go: walk / out, lift, back: walk / pace });
   // The trips of a move: herds (driven, sim/droving), carts (fetched, sim/carts), and the loads [{n, hay}] on `carrier`, in the order the
   // farmstead chain takes them: [{kind, trips: [{go, lift, back}]}], the kinds its steps (sim/planchains moveSteps).
   function moveTrips(walk, herds, carts, loads, carrier) {
     const cap = capOfCarrier(carrier),
       pace = TRAVEL.pace[carrier],
       out = [],
-      add = (kind, n, lift, p) => {
-        if (n > 0) out.push({ kind, trips: Array.from({ length: n }, () => tripOf(walk, lift, p)) });
+      add = (kind, n, lift, p, o) => {
+        if (n > 0) out.push({ kind, trips: Array.from({ length: n }, () => tripOf(walk, lift, p, o)) });
       };
     add('drove', herds, HERD_LIFT, 1);
-    add('fetchLeftCart', carts, Lying.LIFT, 1);
-    for (const l of loads) add(l.kind, tripsOf(l.n, cap, l.hay), Lying.LIFT, pace);
+    add('leftCart', carts, 0, TRAVEL.pace.back);
+    for (const l of loads) add(l.kind, tripsOf(l.n, cap, l.hay), 0, pace, carrier === 'back' ? 1 : pace);
     return out;
   }
   const hoursOf = (steps) => steps.reduce((s, x) => s + x.trips.reduce((u, t) => u + t.go + t.lift + t.back, 0), 0);
@@ -189,9 +190,9 @@ VB['sim/camp'] = (() => {
     if (!steps) return { steps, trips: { cart: 0, back: 0 }, hours: 0, frost: false };
     const grain = Stores.grainOf(hh) - Math.min(TRAVEL.load, Stores.grainOf(hh)),
       loads = [
-        { kind: 'fetchLeftGrain', n: grain, hay: false },
-        { kind: 'fetchHay', n: hh.hay / TRAVEL.hay, hay: true },
-        { kind: 'fetchLeftTimber', n: (hh.wood / ECON.woodPerTrip) * TRAVEL.load, hay: false },
+        { kind: 'leftGrain', n: grain, hay: false },
+        { kind: 'leftHay', n: hh.hay / TRAVEL.hay, hay: true },
+        { kind: 'leftTimber', n: (hh.wood / ECON.woodPerTrip) * TRAVEL.load, hay: false },
       ].filter((l) => l.n > 1e-9),
       carrier = carrierOf(hh),
       count = (k) => loads.reduce((s, l) => s + tripsOf(l.n, capOfCarrier(k), l.hay), 0),

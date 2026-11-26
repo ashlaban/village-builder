@@ -808,7 +808,9 @@ console.log(
   {
     assert(KINDS.wood.methods && KINDS.firewood.methods, 'the wood has methods');
     assert(!KINDS[Lying.fetchKey('wood')] && !KINDS[Lying.fetchKey('firewood')], 'no fetch kind for the wood');
-    assert(KINDS[Lying.fetchKey('leftGrain')], 'a kind on its phases keeps its fetch kind');
+    // VB-1814: no fetch kind at all; the goods left lying with no goal of their own are each a goal's with the stray method alone
+    assert(!Object.keys(KINDS).some((k) => /^fetch[A-Z]/.test(k)), 'no fetch kind');
+    for (const k of Object.values(Lying.BRING)) assert(KINDS[k].methods && KINDS[k].strays, `${k}: a goal of strays`);
     const { st, hh } = row('wood');
     const l = Lying.put(st, 'wood', TRAVEL.load, st.villages[0].wood[1], title(hh));
     Sim.advance(st, 2);

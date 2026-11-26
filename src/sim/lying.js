@@ -1,9 +1,9 @@
 // @sys sim/lying: loads lying where their carrier fell (VB-611): a load on its way home whose carrier died on the road, or whose household
-// dissolved, is put down where it was, as a lying load the task's owner fetches (a fetch kind for each kind that carries a load) and carries
-// home; one nobody fetches rots at the autumn frost, as the stooks and the mown hay do. A good made where the work is done (VB-1748: the
-// catch, game, wild food, what is dug, salt, a basket of stone) lies so too, and the yield of a fishing, hunting or gathering trip cut at
-// its work (sim/agents cutTrip). Writes st.lying; read by sim/kinds (the fetch kinds,
-// the rule that posts them) and sim/agents (release lays a load down).
+// dissolved, is put down where it was, as a pile with title the stray method of the owner's goal that uses it fetches (sim/methods;
+// the goods with no goal of their own, BRING, VB-1814) and carries home; one nobody fetches rots at the autumn frost, as the stooks and
+// the mown hay do. A good made where the work is done (VB-1748: the catch, game, wild food, what is dug, salt, a basket of stone) lies so
+// too, and the yield of a fishing, hunting or gathering trip cut at its work (sim/agents cutTrip). Writes st.lying; read by sim/doing
+// (the piles of the goals' view), sim/kinds (the rule that posts the goals of BRING) and sim/agents (release lays a load down).
 VB['sim/lying'] = (() => {
   const { log, atHousehold } = VB['sim/records'];
   const { TRAVEL } = VB['sim/rules'];
@@ -54,6 +54,8 @@ VB['sim/lying'] = (() => {
     'parts',
     'moving',
     'good',
+    'kept', // a cart its household left at its landing (VB-1667), and the way's hours from there (VB-1670), if it is laid again
+    'walk',
   ];
   // Pawn a, released on its way home with its load of task j (sim/agents' release), puts the load down at (x, y) on `tile`; `kind` the
   // kind that took it up (a fetch's, the kind it fetches for).
@@ -145,13 +147,10 @@ VB['sim/lying'] = (() => {
     const l = byId(st, id);
     return l ? l.n : 0;
   };
+  // The kind of fetching a load of kind `kind` was until VB-1814 (a task of it in an older save is taken down at load, sim/agents loaded).
   const fetchKey = (kind) => 'fetch' + kind[0].toUpperCase() + kind.slice(1);
-  // The kind of fetching a load of kind `kind` (record K) left lying: picked up where it lies in LIFT hours (bundled already: sheaves
-  // tied, hay raked, logs cut, stone in its basket; a named guess, half an hour), carried as K carries, delivered as K delivers, with the
-  // task's tile as it was (a felled tree's, sim/kinds wood).
-  const LIFT = 0.5;
-  // What a load of each kind is, in the words the player reads (VB-1670: the fetch kinds named by what they bring, not all "a load"); the
-  // frost's log line names it the same.
+  // What a load of each kind is, in the words the player reads (VB-1670: named by what they bring, not all "a load"); the frost's log
+  // line names it the same.
   const WHAT = {
     haul: 'sheaves',
     hay: 'hay',
@@ -171,63 +170,27 @@ VB['sim/lying'] = (() => {
     quarry: 'stone',
   };
   const whatOf = (kind) => (kind === 'leftCart' ? 'cart' : WHAT[kind] || 'goods');
-  // Hay is taken by the rule of every load of hay (sim/meadows hayLoad): TRAVEL.hay of hay a unit of load, at most TRAVEL.hayCart a load
-  // (VB-1670: a cart had taken 300 units, 100 hay, from hay left lying, where a meadow gives it 60).
-  const capOf = (kind, cap) => (kind === 'hay' ? Math.min(cap, TRAVEL.hayCart / TRAVEL.hay) : cap);
-  function fetchKind(kind, K) {
-    const what = whatOf(kind),
-      lies = kind === 'leftCart' ? 'left standing' : 'left lying';
-    return {
-      verb: `Picking up the ${what} ${lies}`,
-      go: `Going for the ${what} ${lies}`,
-      back: K.back,
-      name: `Fetch the ${what} ${lies}`,
-      at: ['road'], // where it was left (sim/kinds PLACES; VB-1124)
-      needs: [],
-      gives: K.gives,
-      label: K.label,
-      anim: 'gather',
-      hours: LIFT,
-      hands: 1,
-      type: K.type,
-      carry: K.carry,
-      to: K.to,
-      fetch: kind,
-      spot: (st, a, j) => [j.x + a.ox * 0.3, j.y + a.oy * 0.3],
-      urgency: (st, j, c, U) => U.haul,
-      // j.left: what still lies after this load (posted with the whole load), so that the task stays open for the rest
-      load: (st, a, j, cap) => {
-        a.load = take(st, j.lying, capOf(kind, cap));
-        j.left = left(st, j.lying);
-        return a.load;
-      },
-      // taken on the back with more left lying, it counts towards the head's missing carts (sim/carts missed), as a load from the
-      // field does: a real carrying need
-      again: (j) => j.left > 0,
-      deliver: (st, j, hh, f, a) =>
-        K.deliver(
-          st,
-          { ...j, kind, site: j.src, ...(j.field ? { field: { ...j.field, crop: j.crop, bin: j.bin } } : {}) },
-          hh,
-          f,
-          a,
-        ),
-    };
-  }
-  // The review's rule (sim/kinds' ASK, at the farm and the village): the loads lying that holder owns, each a task to fetch it.
-  // A load of a kind with methods has no fetch kind (`fetched` false): the stray method of sim/methods fetches it (VB-1775).
-  function fetchWork(st, holder, at, c, post, fetched = () => true) {
-    const o = ownedBy(st, { type: holder.farmstead === undefined ? 'village' : 'household', id: holder.id });
-    if (o)
-      for (const l of o)
-        if (fetched(l.kind))
-          post(
-            `fetch:L${l.id}`,
-            l.tile,
-            { ...l.of, lying: l.id, x: l.x, y: l.y, left: l.n },
-            fetchKey(l.kind),
-            l.owner,
-          );
+  // ---- the goods left lying with no goal of their own (VB-1814; design.md section 7, A stray pile) ----
+  // The goal that brings each home, by the kind it lies as: the timber and the grain left lying (sim/building), a cart left standing
+  // (sim/carts), the hay (sim/meadows leftHay: the hay goal takes it up too while its meadow is mown). Each is a goal with the stray method
+  // alone (sim/methods bring), one an owner, posted at the owner's review while a pile of its lies; the piles themselves are found by
+  // the owner's index (Nothing searches) at each leg. Every other pile is the stray of the goal of the kind it lies as.
+  const BRING = { leftCart: 'leftCart', leftGrain: 'leftGrain', leftTimber: 'leftTimber', hay: 'leftHay' },
+    BRUNG = Object.keys(BRING);
+  // The review's rule (sim/kinds' ASK, at the farm and the village): one goal of each kind of BRING for the piles of it the holder owns,
+  // at the tile of the first (`h` a household's key, `v` a village's).
+  function bringWork(st, holder, at, c, post) {
+    const owner = { type: holder.farmstead === undefined ? 'village' : 'household', id: holder.id },
+      o = ownedBy(st, owner);
+    if (!o) return;
+    let seen = 0;
+    for (const l of o) {
+      const k = BRING[l.kind],
+        bit = k ? 1 << BRUNG.indexOf(l.kind) : 0;
+      if (!k || seen & bit) continue;
+      seen |= bit;
+      post(`${k}:${owner.type[0]}${owner.id}`, l.tile, {}, k, owner);
+    }
   }
   // The autumn frost (sim/clock, with the stooks and the mown hay): every load still lying rots where it lies, and the list is empty but for
   // a cart its household left standing at the landing when its house moved (`of.kept`, VB-1667: sim/carts' frost keeps it too).
@@ -268,10 +231,9 @@ VB['sim/lying'] = (() => {
     take,
     left,
     fetchKey,
-    fetchKind,
-    fetchWork,
+    BRING,
+    bringWork,
     frost,
-    LIFT,
     pileAt,
     amountAt,
     strayOf,

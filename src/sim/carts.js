@@ -225,8 +225,8 @@ VB['sim/carts'] = (() => {
   const atHouse = (st, a, j) => [st.w.hx[j.farm.house] + 6 + a.ox * 0.3, st.w.hy[j.farm.house] + 4 + a.oy * 0.2];
   const worst = (st, hh) => hh.carts.filter((c) => !out(st, c)).sort((a, b) => a.cond - b.cond)[0] || null;
   const KINDS = {
-    // A cart left standing on the road (VB-649; sim/lying's fetch kind is made from this): never posted, only fetched. A hand walks to it,
-    // takes it up with the team and leads both home; it is free (and the team) once it is at the house.
+    // A cart left standing on the road (VB-649): a goal of the household's while one stands (sim/lying BRING, VB-1814), its lying carts
+    // the stray method's. A hand walks to it, takes it up with the team and leads both home; it is free (and the team) once at the house.
     leftCart: {
       verb: 'Taking up the cart',
       go: 'Going for a cart left standing',
@@ -240,7 +240,8 @@ VB['sim/carts'] = (() => {
       type: 'upkeep',
       carry: 'sack',
       to: 'barn',
-      load: () => 0,
+      hands: 1,
+      urgency: (st, j, c, U) => U.haul,
       deliver: (st, j, hh) => fetched(st, hh, j.cart.kind, j.cart.built),
     },
     cart: {
@@ -285,9 +286,30 @@ VB['sim/carts'] = (() => {
       },
     },
   };
+  VB['sim/methods'].bring(KINDS.leftCart, 'leftCart');
+  // Pawn `id` takes up a cart of household hh standing at `tile` for its goal there (VB-993: its hand released at the work; VB-1814: the
+  // goal's next hand, not a fetch home): out with it, its lying cart gone; its capacity, 0 when none stands there.
+  function takeUp(st, hh, id, tile) {
+    const c = hh.carts.find((q) => q.at && q.at.tile === tile);
+    if (!c) return 0;
+    const l = (st.lying || []).find(
+      (q) =>
+        q.kind === 'leftCart' &&
+        q.owner.type === 'household' &&
+        q.owner.id === hh.id &&
+        q.of.cart &&
+        q.of.cart.kind === c.kind &&
+        q.of.cart.built === c.built,
+    );
+    if (l) Lying.take(st, l.id, 1);
+    delete c.at;
+    c.by = id;
+    return c.kind === 'ox' ? TRAVEL.cart : TRAVEL.hand;
+  }
   return {
     KINDS,
     CART,
+    takeUp,
     loads,
     take,
     holds,

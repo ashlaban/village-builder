@@ -704,8 +704,8 @@ VB['sim/building'] = (() => {
       spills: true, // a load cut on the way is spilt: nothing lies (VB-1604)
       available: boothWaterWork,
     },
-    // Timber left lying at a boat's shore when its plan was given up (sim/plans' leftWood, VB-645): never posted, only fetched (sim/lying's
-    // fetch kind), home to the woodpile as firewood.
+    // Timber left lying at a boat's shore when its plan was given up (sim/plans' leftWood, VB-645), and the firewood a house left at its
+    // landing: a goal of the owner's while any lies (sim/lying BRING, VB-1814), its piles the stray method's, home to the woodpile.
     leftTimber: {
       verb: 'Taking up timber',
       go: 'Going for timber left lying',
@@ -719,7 +719,8 @@ VB['sim/building'] = (() => {
       type: 'wood',
       carry: 'logs',
       to: 'woodpile',
-      load: () => 0,
+      hands: 1,
+      urgency: (st, j, c, U) => U.haul,
       // VB-1667: the firewood a household left at its landing when its house moved (`j.moving`) comes home as it was, a load's share
       deliver: (st, j, hh, f, a) =>
         j.moving
@@ -727,7 +728,8 @@ VB['sim/building'] = (() => {
           : Stores.put(st, hh, 'wood', ECON.woodPerTrip * Math.max(1, Math.round(a.load / TRAVEL.load)), 'timber'),
     },
     // The grain of a gift whose bearer died on the road (sim/journeys' dropStay, VB-850): lying where he fell, fetched home to the store of
-    // the household it was set aside for (its village's, if that is gone), by crop as it was.
+    // the household it was set aside for (its village's, if that is gone), by crop as it was: a goal of the owner's while any lies
+    // (sim/lying BRING, VB-1814), its piles the stray method's.
     leftGrain: {
       verb: 'Taking up grain',
       go: 'Going for grain left lying',
@@ -741,7 +743,8 @@ VB['sim/building'] = (() => {
       type: 'tilling',
       carry: 'sack',
       to: 'barn',
-      load: () => 0,
+      hands: 1,
+      urgency: (st, j, c, U) => U.haul,
       deliver: (st, j, hh, f, a) => {
         const sum = Object.values(j.parts).reduce((x, y) => x + y, 0),
           parts = {};
@@ -923,6 +926,8 @@ VB['sim/building'] = (() => {
   KINDS.boothwater.places = { booth: (st, g) => g.job.dest };
   // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
   for (const k of ['pick', 'quarry']) VB['sim/methods'].trip(KINDS[k], k);
+  // the timber and the grain left lying, brought home on a cart where one is free and the pile is more than a back load (VB-1814)
+  for (const k of ['leftTimber', 'leftGrain']) Methods.bring(KINDS[k], k, { cart: true, back: TRAVEL.load });
   return {
     UPKEEP,
     KINDS,

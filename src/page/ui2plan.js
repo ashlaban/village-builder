@@ -14,10 +14,10 @@ const hudHour = (h) => `${String(((h % 24) + 24) % 24).padStart(2, '0')}:00`;
 // the steps of a farmstead's move from its landing (VB-1667), each by what it brings over
 const HUD_MOVE = {
   drove: 'Drive the animals over',
-  fetchLeftCart: 'Fetch the cart',
-  fetchLeftGrain: 'Fetch the grain',
-  fetchHay: 'Fetch the hay',
-  fetchLeftTimber: 'Fetch the wood',
+  leftCart: 'Fetch the cart',
+  leftGrain: 'Fetch the grain',
+  leftHay: 'Fetch the hay',
+  leftTimber: 'Fetch the wood',
 };
 const hudKind = (k) =>
   k === 'sleep' ? 'Sleep' : HUD_CHAIN[k] ? HUD_CHAIN[k].name : HUD_MOVE[k] || (Sim.KINDS[k] && Sim.KINDS[k].name) || k;
