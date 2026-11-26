@@ -325,7 +325,8 @@ VB['sim/chores'] = (() => {
         c.hour >= AFTERNOON ? U.waterLate : c.hour < U.waterMorningHour ? U.waterMorning : U.water,
       // a load is in, and the day's water with the first, for the people it covers (VB-1586: the household cooks once the first load
       // is in); marsh water is poor, and costs those it covers some health that day (sim/hunger; VB-1582); who drew it drank at the
-      // source (sim/thirst, VB-1585)
+      // source (sim/thirst, VB-1585). Left at the door (VB-1748): the water is drawn at the work and stands in its buckets or barrel; the
+      // delivery books what came in, and a carrier cut on the road spills it (VB-1604)
       deliver: (st, j, hh, f, a) => {
         const day = cal(st.t).day;
         // (a day counted as fetched with no load brought, the household's first, has water for all: the count stays absent)
@@ -440,8 +441,13 @@ VB['sim/chores'] = (() => {
       to: 'door',
       urgency: (st, j, c, U) => spareUrgency(st, j, U),
       // the baskets are fresh food, cooked in the pot or eaten as they are on a day without meals (sim/pot, VB-119)
-      deliver: (st, j, hh) => {
-        Pot.putFresh(st, hh, 'gathered', gather(st, j.site), 'gathering');
+      // gathered as the work ends (VB-1748), a cut trip what its hours so far have found
+      accrues: true,
+      make: (st, a, j, frac) => {
+        a.load = gather(st, j.site, frac);
+      },
+      deliver: (st, j, hh, f, a) => {
+        if (a.load > 0) Pot.putFresh(st, hh, 'gathered', a.load, 'gathering');
       },
       // in the gathering season, at the house's gathering ground (sim/forage): one trip, two while spare food covers fewer than FISH.secondDays
       available: (st, hh, f, c, post) => {

@@ -3,6 +3,7 @@
 // spring day 3 to the end of autumn, a second trip under 12 days of spare food; urgency 0.2 at 24 days or more, MATCH.urgency.need at none (VB-1549); roles rank
 // foraging, fishing 2 for wife, maid and daughter. Founders at seed 7, 2 years: fish are landed, the state keeps its invariants.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, F = VB['sim/fish'], Stores = VB['sim/stores'];
+const trip = require('./lib/trip.js');
 const { KINDS } = VB['sim/kinds'], { FISH, DAY } = VB['sim/rules'], { ROLES, MATCH } = VB['sim/roles'], { dailyNeed } = VB['sim/hunger'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('FISH FAIL:', m); } };
@@ -52,7 +53,7 @@ if (f) {
   spare(11); check(posts(cal(1, 0)).length === 2, 'two trips under 12 days of spare food');
   spare(0); check(near(K.urgency(st, j, cal(1, 0), MATCH.urgency), MATCH.urgency.need), 'urgency need at none (VB-1549; was fishLean 2)');
   const Pot = VB['sim/pot'], held = Pot.freshHeld(st, hh, 'fish'), s = F.stock(st, g.water);
-  K.deliver(st, j, hh, f);
+  trip(K, st, j, hh, f);
   check(near(Pot.freshHeld(st, hh, 'fish') - held, 4 * s), `the catch adds ${Pot.freshHeld(st, hh, 'fish') - held} fresh fish, not ${4 * s}`);
   // the ground moves on when its water is fished out
   w.fish[g.water] = 0; w.fishDay[g.water] = Math.floor(st.t / DAY);
