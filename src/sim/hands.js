@@ -194,10 +194,11 @@ VB['sim/hands'] = (() => {
   const lentTo = (d, id) => Object.values(d.by).reduce((s, e) => s + (e[0] === id ? e[1] : 0), 0);
   // The head of household hh, short of `short` hours of help today (sim/day, at the morning's allotment), asks its village's heads,
   // its near kin first, then by its opinion of them, at most HANDS.asks of them, until the hours lent cover it; once a day. The played
-  // head asks for itself, by the same verb.
+  // head asks for itself, by the same verb. A played head on automatic with nothing queued is passed over no more than an unplayed one (VB-1743);
+  // with its automatic behaviour off (or a command queued) it asks only by the `offer` verb the player gives it, never here.
   function askFor(st, hh, short, c) {
     const h = hh.holder;
-    if (h === null || (st.player && st.player.pawn === h) || hoursLeft(st) < HANDS.least) return;
+    if (h === null || unplanned(st, h) || hoursLeft(st) < HANDS.least) return;
     const d = todays(st);
     if (d.asked.includes(hh.id)) return;
     d.asked.push(hh.id);
