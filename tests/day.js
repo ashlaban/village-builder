@@ -71,6 +71,18 @@ for (const id of st.liveHouseholds) {
   assert.strictEqual(a.job.key, open, 'the first that has room');
 }
 
+// 4b. A member the day left out and free again has its day allotted anew (VB-1597: the rule is fit's allotted).
+{
+  const s4 = make(4.5), m = s4.households[0].members.find((id) => s4.agents[id] && age(s4, s4.pawns[id]) >= CHILD.from);
+  const day = dayOf(s4, 0), a = s4.agents[m];
+  day.lists[m] = [];
+  delete day.free[m];
+  VB['sim/agents'].release(s4, a);
+  assert.ok(VB['sim/fit'].allotted(s4, s4.pawns[m]), 'free again');
+  VB['sim/day'].takeDay(s4, [a], Sim.cal(s4.t));
+  assert.ok(dayOf(s4, 0).lists[m].length > 0, 'its day is allotted anew');
+}
+
 // 5. The day is saved: a loaded run goes on as the saved one, and the state keeps its invariants.
 {
   const data = JSON.parse(JSON.stringify(Sim.save(st))), back = Sim.load(tinyWorld(rows), data);
