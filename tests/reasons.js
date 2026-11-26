@@ -33,6 +33,7 @@ const reset = () => {
   Object.assign(a, { job: null, mind: undefined, path: null, occasion: null });
   plan.day.lists = { ...keep.lists, [id]: [] };
   st.player = null;
+  delete st.pawns[id].control; // its controller (VB-1745)
   st.daysToday = null;
   st.handsToday = null;
 };
@@ -89,7 +90,7 @@ expect('village', () => { a.job = common; plan.day.lists[id] = [common.key]; }, 
 // its own choosing: a task of its household's taken without the plan
 expect('self', () => { a.job = plough; });
 // the player's order
-expect('player', () => { a.job = plough; st.player = { pawn: id, queue: [{ verb: 'work', target: plough.key }], auto: true }; });
+expect('player', () => { a.job = plough; st.pawns[id].control = { auto: true, queue: [{ verb: 'work', target: plough.key }], refused: null }; });
 // a day lent to the neighbour, at its task
 const theirs = job('break', { type: 'household', id: neighbour.id });
 expect('lent', () => { a.job = theirs; st.handsToday = { day: Math.floor(st.t / DAY), asked: [], by: { [id]: [neighbour.id, 4, 0, 0] } }; });

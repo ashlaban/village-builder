@@ -480,10 +480,10 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   // the played pawn's queued walk outlasts a talk
   walk({}); R.release(s2, g); g.path = null;
   assert.strictEqual(Sim.inhabit(s2, g.id), true); assert.strictEqual(Sim.queue(s2, { actor: g.id, verb: 'walkTo', target: far }), true);
-  Sim.advance(s2, 0.2); assert.ok(g.path && s2.player.queue.length === 1 && s2.player.queue[0].begun !== null, 'the queued walk is under way');
+  Sim.advance(s2, 0.2); assert.ok(g.path && Sim.controlOf(s2, s2.player.pawn).queue.length === 1 && Sim.controlOf(s2, s2.player.pawn).queue[0].begun !== null, 'the queued walk is under way');
   const queued = JSON.stringify(g.path); talk();
-  assert.strictEqual(JSON.stringify(g.path), queued, 'and a talk does not cut it'); assert.strictEqual(s2.player.queue.length, 1);
-  Sim.advance(s2, 0.1); assert.strictEqual(s2.player.refused, null);
+  assert.strictEqual(JSON.stringify(g.path), queued, 'and a talk does not cut it'); assert.strictEqual(Sim.controlOf(s2, s2.player.pawn).queue.length, 1);
+  Sim.advance(s2, 0.1); assert.strictEqual(Sim.controlOf(s2, s2.player.pawn).refused, null);
 }
 // VB-228: verbs are registered at load, once each, and the table closes with the registries (a state has been seeded above)
 {

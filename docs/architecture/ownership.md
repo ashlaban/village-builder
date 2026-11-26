@@ -505,7 +505,8 @@ gone. The table is `node tools/writes.js` of 18 November.
 | sim/agents | records, kinds, commands, rng, rules, routes, paths, hex, eligibility, herds, carts, grazing, relations, events, expansion, prospect, progress, lying | count:556, count:902, count:912, count:988, count:1016 |
 | sim/away | building, records, agents, rules, routes, stores, hunger, exchange, hex, relations, grazing, events, lying, commands | count:100, building:107, building:108, building:145, building:147, building:158 |
 | sim/gifts | away, offers, records, exchange, commands | - |
-| sim/player | agents, records, rules, relations, wishes, commands | - |
+| sim/controller | agents, records, rules, commands, events, pose | - |
+| sim/player | agents, records, rules, relations, wishes, commands, controller | - |
 | sim/occasions | agents, rng, rules, routes, records, commands, events, relations, stores, encounters, registry, traits, hunger | count:125, count:182, count:348, count:485, count:496, count:573, count:584 |
 | sim/plans | fields, records, rules, registry, traits, stores, kinds, hunger, projects, events, meadows, commands, exchange, lying, targets, building, green, workdays, commons, ownership | count:800, claims:988 |
 | sim/jobs | rng, rules, traits, hex, records, agents, relations, commands, eligibility, kinds, fields, farmclaims, commons, ownership, plans | count:98, count:176, count:217, count:410, count:517, count:547, count:569, count:581 |

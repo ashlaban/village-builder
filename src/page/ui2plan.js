@@ -133,7 +133,7 @@ function renderPlan() {
       Math.floor(st.t * 4),
       hud.pc,
       hud.days3,
-      st.player.auto,
+      Sim.controlOf(st, st.player.pawn).auto,
       JSON.stringify(P),
       owed,
       hud.msg ? hud.msg.text : '',
@@ -162,8 +162,8 @@ function renderPlan() {
   );
   h += '<i class="u2-pdiv"></i>';
   // work ordered for now, by hand: it goes before the plan
-  h += st.player.queue
-    .map((q, i) =>
+  h += Sim.controlOf(st, st.player.pawn)
+    .queue.map((q, i) =>
       q.plan
         ? ''
         : chip(
@@ -260,7 +260,7 @@ function planCard(P, A, S) {
       btn('pmove', 'Later', ` data-from="${i}" data-to="${i + 1}"${i < P.tasks.length - 1 ? '' : ' disabled'}`) +
       btn('premove', 'Remove', ` data-i="${i}"`);
   } else if (what === 'q') {
-    const q = st.player.queue[+arg];
+    const q = Sim.controlOf(st, st.player.pawn).queue[+arg];
     if (!q) return ((hud.pc = null), '');
     title = `Now: ${commandWords(q)}`;
     sub = 'Ordered by hand: it goes before the plan, and is not broken off for sleep.';

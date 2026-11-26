@@ -152,6 +152,7 @@
       "sim/doing",
       "sim/attention",
       "sim/agents",
+      "sim/controller",
       "sim/hosting",
       "sim/away",
       "sim/journeys",

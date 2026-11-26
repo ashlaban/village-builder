@@ -1,28 +1,24 @@
-// @sys sim/player: the player (VB-169), a source of commands with one pawn at a time: its queue, which goes before the pawn's own logic, its
-// wish, its answer and its choices as head, its pawn's death and whom it goes on as
+// @sys sim/player: the player (VB-169), a source of commands with one pawn at a time: the frame (which pawn, since when, its line's
+// record), its pawn's controller (sim/controller) reached through the verbs, its wish, its answer and its choices as head, its pawn's death
+// and whom it goes on as
 VB['sim/player'] = (() => {
-  const { unbound } = VB['sim/pose'];
-  const { release } = VB['sim/agents'];
   const { reckon, adopt } = VB['sim/sleepers'];
   const { holdingOf, spouseOf, personEvent, living, villageOf, fullName, spokesmanOf } = VB['sim/records'];
-  const { cal, WORK, HEALTH } = VB['sim/rules'],
+  const { HEALTH } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { setWish, resetWish, endPartner, WISH } = VB['sim/wishes'];
-  const { issue, perform, active, VERBS, register } = VB['sim/commands'];
+  const { issue, active, VERBS, register } = VB['sim/commands'];
+  const { QUEUE_MAX, controlOf, attach, detach, keepOnly, put, queueStep } = VB['sim/controller'];
   const { on } = VB['sim/events'];
   const { daysOfFood } = VB['sim/foodneed'];
   const { KINDS } = VB['sim/kinds'];
   const { planDay, planBegun } = VB['sim/playerplan'];
   const { nextOf } = VB['sim/plannext'];
   const { MOVE_KINDS } = VB['sim/planchains'];
-  // ---- the player (VB-169): one source, `player`, with one pawn at a time, whose queued commands go before the pawn's own logic ----
-  // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
-  //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun, ref}, in turn;
-  //   `begun` is null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act
-  //   lasts; `ref` is null, or once begun the reference its verb gave to the act it began (sim/commands perform, VB-1405), plain data;
-  //   absent in a command begun in a save made before VB-1405; `plan` {from, kind, key} in a command the plan fed, sim/playerplan),
-  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), left (null while the pawn
+  // ---- the player (VB-169): one source, `player`, with one pawn at a time, whose controller's queue goes before the pawn's own logic ----
+  // @state st.player: null, or {pawn (the inhabited pawn's id; its switch, queue and last refusal are its controller's, pawn.control,
+  //   sim/controller, VB-1745), since (game hours), left (null while the pawn
   //   lives; from its death {t, held (the household it held, or null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those
   //   it thought friends, best first), village (the settlement whose customs name its successor, VB-1121)}: what a death erases and the
   //   player's succession needs, VB-213), ended (null, or when the line ended: its pawn died with no successor, VB-1121), last (null, or {kind, farm, good,
@@ -34,8 +30,7 @@ VB['sim/player'] = (() => {
   // @state pawn.proposal (VB-276): absent, else {for (a member the pawn speaks for), partner (a pawn id), terms (null, or what its side
   //   gives: {dowry} for a daughter, {gift} for a son, rations of customary worth)}: a spokesman's match for a member, any pawn's as its
   //   wish is, offered at the round of the man's village (sim/round proposed), until one of the two marries or dies or it is changed
-  const QUEUE_MAX = 8,
-    TIES_MAX = 12,
+  const TIES_MAX = 12,
     DAYS_KEPT = 5;
   function inhabit(st, id) {
     const dead = living(st, id);
@@ -43,15 +38,13 @@ VB['sim/player'] = (() => {
     if (st.player) uninhabit(st);
     st.player = {
       pawn: id,
-      auto: true,
-      queue: [],
-      refused: null,
       since: st.t,
       left: null,
       ended: null,
       last: null,
       days: [],
     };
+    attach(st, id); // its controller: automatic, nothing queued (a controller it had before is kept)
     resetWish(st, id); // the player starts from the default wish (VB-680): its wishes are the pawn's (pawn.wish, sim/wishes)
     personEvent(st, id, 'player', 'Played by the player');
     return true;
@@ -59,11 +52,13 @@ VB['sim/player'] = (() => {
   function uninhabit(st) {
     if (!st.player) return 'no pawn is played';
     personEvent(st, st.player.pawn, 'player', 'No longer played by the player');
+    detach(st, st.player.pawn); // its own logic chooses all its acts again
     st.player = null;
     return true;
   }
-  // The played pawn dies (sim/lifecycle, before the death ends its marriage and drops its ties): the player keeps it, with an empty queue,
-  // until it goes on as another (VB-213), and what the death erases is noted: the farm it held, its spouse, those it thought friends.
+  // The played pawn dies (sim/lifecycle, before the death ends its marriage and drops its ties; its controller ended with the death,
+  // sim/controller): the player keeps it until it goes on as another (VB-213), and what the death erases is noted: the farm it held,
+  // its spouse, those it thought friends.
   // `next(st, id, village)` names its successor (successorOf, sim/heirranking, which loads later): with none, the line ends at once.
   function playerDied(st, id, next) {
     const pl = st.player;
@@ -71,7 +66,6 @@ VB['sim/player'] = (() => {
     const held = holdingOf(st, id),
       friends = relationsOf(st, id).filter((r) => r.opinion >= SOCIAL.friend);
     friends.sort((x, y) => y.opinion - x.opinion || x.id - y.id);
-    pl.queue = [];
     pl.left = {
       t: st.t,
       held: held ? held.id : null,
@@ -101,48 +95,26 @@ VB['sim/player'] = (() => {
     st.player = null;
     return inhabit(st, id);
   }
-  // Needs go on: with nothing left to do after the end of work, the player's pawn goes home, as everyone did at dark.
-  function homeAtDark(st, pl) {
-    const a = st.agents[pl.pawn],
-      h = cal(st.t).hour;
-    if ((h >= WORK[1] || h < WORK[0]) && !a.inside && unbound(a))
-      issue(st, { actor: pl.pawn, verb: 'goHome', source: 'planner' });
-  }
-  // The command joins the queue, to be checked when its turn comes; true, or why it does not: the queue is full, there is no such verb,
-  // or it is not the player's to do (a verb that names its sources and not 'player': `skip`, `kill`, `retire`, the world's and not a
-  // pawn's, VB-681; `skip` would advance time from within a step), or its actor is not the player's pawn.
+  // Sim.queue, Sim.unqueue and Sim.setAuto: the played pawn's controller's verbs (sim/controller), issued for it by the player, so a
+  // command queued joins with source 'player'. True, or why not: no pawn is played, the command's actor is not the played pawn, or the
+  // verb's reason.
   function queue(st, cmd) {
     const pl = st.player;
     if (!pl) return 'no pawn is played';
-    const V = cmd && VERBS[cmd.verb];
-    if (!V || (V.sources && !V.sources.includes('player'))) return `there is no verb ${cmd && cmd.verb} to queue`;
-    if (cmd.actor !== pl.pawn) return `pawn ${cmd.actor} is not the player's pawn`;
-    if (pl.queue.length >= QUEUE_MAX) return `the queue is full (${QUEUE_MAX} commands)`;
-    const copy = (v) => (v === undefined ? null : JSON.parse(JSON.stringify(v))); // the queue keeps its own plain data
-    pl.queue.push({
-      actor: pl.pawn,
-      verb: cmd.verb,
-      target: copy(cmd.target),
-      args: copy(cmd.args),
-      source: 'player',
-      begun: null,
-      ref: null,
-    });
-    return true;
+    const c = cmd || {};
+    if (VERBS[c.verb] && c.actor !== pl.pawn) return `pawn ${c.actor} is not the player's pawn`;
+    const what = { verb: c.verb, target: c.target, args: c.args };
+    return issue(st, { actor: pl.pawn, verb: 'queue', target: null, args: { cmd: what }, source: 'player' });
   }
-  // Takes command i off the queue. The head, once begun, only stops being the player's: the pawn goes on with the act as its own.
   function unqueue(st, i) {
     const pl = st.player;
     if (!pl) return 'no pawn is played';
-    if (!(Number.isInteger(i) && i >= 0 && i < pl.queue.length)) return `the queue has no command ${i}`;
-    pl.queue.splice(i, 1);
-    if (!pl.queue.length && !living(st, pl.pawn)) homeAtDark(st, pl);
-    return true;
+    return issue(st, { actor: pl.pawn, verb: 'unqueue', target: null, args: { i }, source: 'player' });
   }
   function setAuto(st, on) {
-    if (!st.player) return 'no pawn is played';
-    st.player.auto = !!on;
-    return true;
+    const pl = st.player;
+    if (!pl) return 'no pawn is played';
+    return issue(st, { actor: pl.pawn, verb: 'auto', target: null, args: { on: !!on }, source: 'player' });
   }
   // The wish and match verbs (VB-212, VB-680, VB-1744; VB-276: a match for a member is the head's): a pawn's own wish at the moving
   // round, written on the pawn as every pawn's is (pawn.wish, sim/wishes), and a spokesman's match for a member (pawn.proposal). Each
@@ -242,10 +214,11 @@ VB['sim/player'] = (() => {
       if (pr && [pr.for, pr.partner].some((id) => id === a || id === b)) delete st.pawns[s].proposal;
     }
   };
-  // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
-  // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
-  // Whether a begun act lasts is its verb's to say, from the reference it gave (sim/commands active); an act done at once lasts no longer
-  // than the step it was issued in. A command is begun once, and never issued again: a loaded save resumes it from its reference.
+  // Each six-minute step (sim/clock), before the agents move: the played pawn's sleep is reckoned and, with automatic behaviour off, its
+  // plan feeds its queue; then every controller's queue runs (sim/controller queueStep), a command the plan fed marking its task begun.
+  const begun = (st, cmd) => {
+    if (cmd.plan) planBegun(st, cmd.plan);
+  };
   function playerStep(st) {
     const pl = st.player;
     if (pl && pl.sleep) {
@@ -253,34 +226,8 @@ VB['sim/player'] = (() => {
       delete pl.sleep;
     }
     if (pl) reckon(st, pl.pawn);
-    if (pl && pl.plan && !pl.auto && !living(st, pl.pawn)) feed(st, pl);
-    if (!pl || !pl.queue.length) return;
-    const a = st.agents[pl.pawn],
-      q = pl.queue;
-    if (q[0].begun !== null) {
-      const ref = q[0].ref === undefined ? null : q[0].ref; // a command begun before VB-1405 kept none
-      if ((ref !== null || q[0].ref === undefined) && !living(st, pl.pawn) && active(st, q[0], ref)) return;
-      q.shift();
-    }
-    while (q.length) {
-      if (a.load > 0) return;
-      // told to walk, go home or idle, the pawn leaves the job in hand, which keeps its progress (work leaves it itself): only if it may
-      const cmd = q[0],
-        V = VERBS[cmd.verb],
-        leaves = !!a.job && !!V && !!V.frees,
-        barred = leaves ? V.check(st, cmd) : null;
-      if (leaves && !barred) release(st, a);
-      const out = barred ? { status: 'refused', why: barred } : perform(st, cmd);
-      if (out.status !== 'refused') {
-        cmd.begun = st.t;
-        cmd.ref = out.status === 'pending' ? out.ref : null;
-        if (cmd.plan) planBegun(st, cmd.plan);
-        return;
-      }
-      q.shift();
-      pl.refused = { verb: cmd.verb, why: out.why, t: st.t };
-    }
-    if (!living(st, pl.pawn)) homeAtDark(st, pl);
+    if (pl && pl.plan && !controlOf(st, pl.pawn).auto && !living(st, pl.pawn)) feed(st, pl);
+    queueStep(st, begun);
   }
   // ---- the plan's feeder (VB-1646; sim/playerplan): with automatic behaviour off, the plan feeds the queue when nothing queued by hand
   // waits. A command queued by hand goes first, as an order for now: the plan's commands give way to it (a task left keeps its progress
@@ -291,19 +238,20 @@ VB['sim/player'] = (() => {
   const onTrip = (st, pl, c) =>
     c.begun !== null && c.plan.from === 'task' && MOVE_KINDS.includes(c.plan.kind) && !!st.agents[pl.pawn].job;
   function feed(st, pl) {
-    const q = pl.queue;
+    const id = pl.pawn,
+      q = controlOf(st, id).queue;
     if (q.some((c) => !c.plan)) {
-      for (let i = q.length - 1; i >= 0; i--) if (q[i].plan) q.splice(i, 1);
+      keepOnly(st, id, (c) => !c.plan);
       return;
     }
-    if (q.length && q[0].begun !== null && !active(st, q[0], q[0].ref)) q.length = 0; // its act ended: the next is fed at once
+    if (q.length && q[0].begun !== null && !active(st, q[0], q[0].ref)) keepOnly(st, id, () => false); // its act ended: the next is fed at once
     planDay(st);
     const next = nextOf(st);
     if (q.length) {
       if (!(next && next.plan.from === 'sleep' && q[0].plan.from !== 'sleep') || onTrip(st, pl, q[0])) return;
-      q.length = 0;
+      keepOnly(st, id, () => false);
     }
-    if (next) q.push({ ...next, begun: null, ref: null });
+    if (next) put(st, id, { ...next, begun: null, ref: null });
   }
   // ---- what the played pawn's acts brought, and what moved its levels (VB-1118) ----
   // A task finished or a load brought home by the played pawn (sim/agents): the last one is kept for its sheet.

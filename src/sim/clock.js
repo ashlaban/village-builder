@@ -748,7 +748,7 @@ VB['sim/clock'] = (() => {
     playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
     const c = cal(st.t),
       all = stepAgents(st, c),
-      mine = st.player ? all.filter((a) => !unplanned(st, a.id)) : all,
+      mine = st.controlled && st.controlled.length ? all.filter((a) => !unplanned(st, a.id)) : all, // any controller's pawn (VB-1745)
       idle = st.away.length ? dayAway(st, mine) : mine; // a lodger works only what its stay names (VB-783)
     if (idle.length) {
       // each takes the next task of its day (VB-466); those it gave none look at the household's opportunities, whose day is then allotted

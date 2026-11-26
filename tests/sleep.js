@@ -51,21 +51,21 @@ const FARMER = 0;
   st.pawns[FARMER].sleep.owed = 10;
   assert.strictEqual(Sim.queue(st, { actor: FARMER, verb: 'sleep', args: { hours: 2 } }), true);
   Sim.advance(st, 0.1);
-  assert.ok(!a.job && st.player.queue[0].begun !== null, 'it leaves the job in hand');
+  assert.ok(!a.job && Sim.controlOf(st, st.player.pawn).queue[0].begun !== null, 'it leaves the job in hand');
   let steps = 0;
   while (a.path && steps++ < 100) Sim.advance(st, 0.1);
   Sim.advance(st, 0.1);
-  assert.ok(st.pawns[FARMER].sleep.asleep && st.player.queue.length === 1, 'home, it sleeps under the verb');
+  assert.ok(st.pawns[FARMER].sleep.asleep && Sim.controlOf(st, st.player.pawn).queue.length === 1, 'home, it sleeps under the verb');
   const was = st.pawns[FARMER].sleep.owed;
   Sim.advance(st, 0.5);
   near(st.pawns[FARMER].sleep.owed, was - 0.5, 'asleep in the day, it pays');
-  until(st, Sim.cal(st.player.queue[0].ref.until).hour);
+  until(st, Sim.cal(Sim.controlOf(st, st.player.pawn).queue[0].ref.until).hour);
   Sim.advance(st, 0.1);
-  assert.ok(!st.player.queue.length, 'the sleep ends at its time');
+  assert.ok(!Sim.controlOf(st, st.player.pawn).queue.length, 'the sleep ends at its time');
   for (const [args, why] of [[{ hours: 0 }, /cannot sleep/], [{ until: 24 }, /no hour/]]) {
     Sim.queue(st, { actor: FARMER, verb: 'sleep', args });
     Sim.advance(st, 0.1);
-    assert.ok(st.player.refused && st.player.refused.verb === 'sleep' && why.test(st.player.refused.why), `refused: ${JSON.stringify(st.player.refused)}`);
+    assert.ok(Sim.controlOf(st, st.player.pawn).refused && Sim.controlOf(st, st.player.pawn).refused.verb === 'sleep' && why.test(Sim.controlOf(st, st.player.pawn).refused.why), `refused: ${JSON.stringify(Sim.controlOf(st, st.player.pawn).refused)}`);
   }
   const homeless = st.pawns.find((p) => p.alive && p.household === null);
   if (homeless) assert.ok(/no place to sleep/.test(VB['sim/commands'].issue(st, { actor: homeless.id, verb: 'sleep', source: 'player' })));
@@ -75,12 +75,12 @@ const FARMER = 0;
   Sim.queue(st, { actor: FARMER, verb: 'sleep' });
   Sim.queue(st, { actor: FARMER, verb: 'walkTo', target: st.villages[0].center });
   Sim.advance(st, 0.1);
-  const u = st.player.queue[0].ref.until;
+  const u = Sim.controlOf(st, st.player.pawn).queue[0].ref.until;
   near(u % Sim.DAY, WORK[0], 'until the start of work');
   until(st, WORK[0] - 0.1);
-  assert.ok(st.player.queue[0].verb === 'sleep' && a.inside && !a.path, 'asleep until its hour');
+  assert.ok(Sim.controlOf(st, st.player.pawn).queue[0].verb === 'sleep' && a.inside && !a.path, 'asleep until its hour');
   Sim.advance(st, 0.2);
-  assert.ok(st.player.queue[0].verb === 'walkTo' && st.player.queue[0].begun === u && !a.inside, 'then the queue goes on');
+  assert.ok(Sim.controlOf(st, st.player.pawn).queue[0].verb === 'walkTo' && Sim.controlOf(st, st.player.pawn).queue[0].begun === u && !a.inside, 'then the queue goes on');
   sound(st, 'the verb');
 }
 

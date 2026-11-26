@@ -768,16 +768,16 @@ VB['sim/records'] = (() => {
   const living = (st, id) =>
     st.pawns[id] && st.pawns[id].died === null && st.agents[id] ? null : `pawn ${id} is not a living pawn`;
   const home = (st, id) => Number.isInteger(id) && st.households[id] && !st.households[id].dissolved;
-  // Lookups on a pawn against st.player (sim/player writes it): the planner's sites ask these two (docs/review-life.md, section 2).
-  // commanded: a command of the player's is queued or under way for the
-  // pawn, so nothing else moves it. unplanned: that, or the player has turned its automatic behaviour off, so the planner gives it no work.
+  // Lookups on a pawn against its controller (pawn.control; sim/controller writes it, VB-1745): the planner's sites ask these two
+  // (docs/review-life.md, section 2). commanded: a command of its controller's is queued or under way for the pawn, so nothing else moves
+  // it. unplanned: that, or its automatic behaviour is off, so the planner gives it no work.
   const commanded = (st, id) => {
-    const pl = st.player;
-    return !!pl && pl.pawn === id && pl.queue.length > 0;
+    const c = st.pawns[id] && st.pawns[id].control; // its controller (sim/controller, VB-1745), any pawn's
+    return !!c && c.queue.length > 0;
   };
   const unplanned = (st, id) => {
-    const pl = st.player;
-    return !!pl && pl.pawn === id && (pl.queue.length > 0 || !pl.auto);
+    const c = st.pawns[id] && st.pawns[id].control;
+    return !!c && (c.queue.length > 0 || !c.auto);
   };
   const settlement = (st, c) =>
     c.actor && st.cenv && st.cenv.settlements[c.actor.settlement]

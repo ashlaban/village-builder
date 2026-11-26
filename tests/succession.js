@@ -97,7 +97,7 @@ const scene = (st) => assert.deepStrictEqual([st.households[0].holder, st.househ
   Sim.inhabit(played, other);
   for (const s of [plain, played]) { Sim.killPawn(s, id, 'illness'); Sim.advance(s, Sim.DAY); }
   dropKind(played, 'player');
-  played.player = null;
+  played.player = null; for (const p of played.pawns) delete p.control; delete played.controlled; delete played.queued; // and its controller (VB-1745)
   assert.strictEqual(hash(played), hash(plain), 'another pawn\'s death is the same with a player as without');
 }
 console.log('succession ok: the successor by the customs, not the widow, a child played as a child, unlanded pawns too, a holder with '

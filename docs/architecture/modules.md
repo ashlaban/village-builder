@@ -344,7 +344,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `hooks.ask`); VB-293's marriage offers stay in `sim/offers` until a follow-up moves them.
 - Commands (VB-167 to VB-171; VB-228): `src/sim/commands.js` is the dispatcher alone (`register`, `issue`, the table `VERBS`) and imports no
   domain. Since VB-1405 `perform` gives the queue done, refused(why) or pending(ref), through the one path `issue` takes; a verb whose act
-  lasts registers `active(st, cmd, ref)`, and the queue (`sim/player`) asks it, keeping the reference in the save (work's: the pawn's
+  lasts registers `active(st, cmd, ref)`, and the queue (`sim/controller`) asks it, keeping the reference in the save (work's: the pawn's
   numbered assignment in its slot, `agent.assigned`, sim/attention). Each module registers, at load, the verbs of the acts it carries out: `sim/agents` (`work`, `walkTo`, `goHome`, `idle`,
   `haltForTalk`), `sim/away` (`lodge`, `comeHome`), `sim/building` (`raiseBooth`, `dropBooth`, `letIn`: a staked booth is its maker's project plan, VB-1172), `sim/camp` (`placeFarmstead`: the head of a camp places its farmstead, the house moved and the booth staked beside it, VB-1655), `sim/trails` (`blaze`, VB-447), `sim/gifts` (`give`, `deliver`), `sim/occasions` (`attend`, `call`), `sim/venues` (`callAle`),
   `sim/offers` (`offer`, `answer`), `sim/visits` (`visit`), `sim/plans` (the head's plan), `sim/routines` (`routines`; the alderman's `layOut`, VB-673), `sim/workdays` (`callWorkday`),
@@ -354,7 +354,9 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   (`foundHousehold`), `sim/cottage` (`finishCottage`), `sim/lifecycle` (debug `kill`, `retire`), `sim/clock` (`skip`). A verb's home is
   the module of its act, and where its body calls several, the highest in load order, so that it imports downward. The guards the
   checks share are lookups where their subject lives: `living`, `home`, `settlement` in `sim/records`, `free` in `sim/agents`. The
-  player (its queue, wish, answer and choices as head) is `sim/player`; the player's plan (a daily routine, sleeping hours and an
+  controller of a pawn (its automatic switch and queue, `pawn.control`; the verbs `auto`, `queue`, `unqueue` any pawn issues for itself;
+  the queue step over the index `st.queued`, VB-1745) is `sim/controller`; the player (the frame: which pawn, its line's record; its
+  wish, answer and choices as head; its pawn's controller made at `inhabit`) is `sim/player`; the player's plan (a daily routine, sleeping hours and an
   ordered task list, VB-1646) is `sim/playerplan` (its state and ops, and the feeder's writes `planDay`, `planBegun`); the chains of a task at a tile, declared as data (`CHAINS`), are `sim/planchains`; what the plan has the pawn do next (`nextOf`, which the feeder in `playerStep` queues with automatic behaviour off) and why each task waits (`WAITS`, `waitsOf`) are `sim/plannext`; the page's reads (`planView`, `fireView`) are `sim/planview` (VB-1657). The main building's rungs (`RUNGS`, `rungOf`, `farmView`) are `sim/ladder` (VB-1659), with the upgrade task's check (`rungWhy`, `upgradeWhy`); the timber house above the cottage is `sim/timberhouse` (VB-1664: `farmstead.rung`, the making `timberhouse`), its room, the crowding and its smaller fire `sim/house`'s `ROOM`; the upgrade chain itself, contributed to `CHAINS` at load, the head's verb `beginCottage` and the timber at home taken into the walls are `sim/upgrade` (VB-1660). The planner, the meeting, the moving round and the debug drawer act by
   `issue(st, {actor, verb, target, args, source})` (`Sim.command` for the page); a verb checks that the act is possible and returns why not.
   A new act a pawn or the round chooses gets a verb; `tests/commands.js` checks statically that only the verbs call the acts they wrap.

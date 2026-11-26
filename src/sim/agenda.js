@@ -24,6 +24,7 @@ VB['sim/agenda'] = (() => {
   const { asleepAt } = VB['sim/playerplan'];
   const { CHAINS, chainOf, chainSteps } = VB['sim/planchains'];
   const { waitsOf } = VB['sim/plannext'];
+  const { controlOf } = VB['sim/controller'];
   const { heldFarms } = VB['sim/ownership'];
   const Camp = VB['sim/camp'],
     Water = VB['sim/water'];
@@ -251,7 +252,8 @@ VB['sim/agenda'] = (() => {
     const pl = st.player,
       a = st.agents[id],
       pp = pl.plan || null,
-      followed = !!pp && !pl.auto,
+      ctl = controlOf(st, pl.pawn),
+      followed = !!pp && !ctl.auto,
       hid = st.pawns[id].household,
       hh = hid === null ? null : st.households[hid],
       home = (hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead].house : -1) ?? -1,
@@ -280,9 +282,9 @@ VB['sim/agenda'] = (() => {
     let t = st.t,
       at = here(st, a);
     // the commands queued: by hand (the plan's give way to one), or the plan's routine work under way
-    const hand = pl.queue.some((q) => !q.plan),
+    const hand = ctl.queue.some((q) => !q.plan),
       begun = new Set();
-    pl.queue.forEach((q, i) => {
+    ctl.queue.forEach((q, i) => {
       if (q.plan && (hand || q.plan.from !== 'routine')) return; // the sleeping hours and the tasks are laid below
       const e = entries[i];
       let to;
@@ -311,7 +313,7 @@ VB['sim/agenda'] = (() => {
       for (const k of pp.routine)
         routine.push({ kind: k, hours: piece(st, id, routineJob(st, hid, k), home >= 0 ? home : at, home).hours });
     // the tasks: their work left at the pawn's estimate, laid in order; the one under way is begun where the pawn is
-    const head = pl.queue[0],
+    const head = ctl.queue[0],
       mark = !hand && head && head.plan && head.plan.from === 'task' && head.begun !== null ? head.plan : null,
       underWay = mark ? mark.key : null,
       underWayAt = (tk) =>
@@ -504,7 +506,7 @@ VB['sim/agenda'] = (() => {
     let t = st.t,
       at = now,
       work = 0;
-    for (const cmd of pl.queue) {
+    for (const cmd of controlOf(st, id).queue) {
       const j = cmd.verb === 'work' ? st.jobs.get(cmd.target) : null;
       let e;
       if (j) {

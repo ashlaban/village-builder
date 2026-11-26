@@ -105,7 +105,8 @@ VB['sim/projects'] = (() => {
     const plan = st.plans && st.plans.households.get(id),
       pl = st.player,
       hh = st.households[id];
-    if (pl && !pl.auto && hh && hh.holder === pl.pawn) return true;
+    const c = pl && st.pawns[pl.pawn].control; // its controller (sim/controller): automatic behaviour off
+    if (c && !c.auto && hh && hh.holder === pl.pawn) return true;
     return !!(plan && plan.chosen && plan.chosen.project === 'none');
   }
   // Whether household hh may begin the small construction `what` now (VB-1408, VB-1414; a cart, a boat, a tar pit): it lives, is not

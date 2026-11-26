@@ -85,7 +85,7 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   let saved = null, lastFell = null, onTile = 0;
   for (let i = 0; i < 6 * 24 * 10 && st.player.plan.tasks.length; i++) {
     Sim.advance(st, 0.1);
-    const c = st.player.queue[0];
+    const c = Sim.controlOf(st, st.player.pawn).queue[0];
     if (c && c.plan && c.plan.chain === 'fell' && c.begun !== null) onTile = Math.max(onTile, st.jobs.get(c.target) ? +(st.jobs.get(c.target).site === tile) : 0);
     if (!saved && hh.timber > 0) saved = JSON.parse(JSON.stringify(Sim.save(st)));
     if (st.player.plan.last && st.player.plan.last.kind === 'fell') lastFell = lastFell || st.player.plan.last;

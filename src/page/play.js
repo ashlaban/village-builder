@@ -328,7 +328,8 @@ function offerBox(id, opps) {
 // second (page/animate), and Sim.opportunities is called once per rebuild, for both.
 function renderActions() {
   const id = played(),
-    pl = st && st.player;
+    pl = st && st.player,
+    ctl = pl ? Sim.controlOf(st, pl.pawn) : null; // its switch, queue and last refusal (sim/controller)
   if ($('actionsBtn').hidden !== id < 0) {
     $('actionsBtn').hidden = id < 0;
     $('agendaBtn').hidden = id < 0;
@@ -374,12 +375,12 @@ function renderActions() {
     }</p>`;
   }
   h +=
-    `<div class="switches"><button type="button" data-play="auto" aria-pressed="${pl.auto}">Automatic behaviour ${pl.auto ? 'on' : 'off'}</button>` +
+    `<div class="switches"><button type="button" data-play="auto" aria-pressed="${ctl.auto}">Automatic behaviour ${ctl.auto ? 'on' : 'off'}</button>` +
     `<button type="button" data-play="follow" aria-pressed="${followPlayed}">Follow</button></div>`;
   h += offerBox(id, opps);
   h += '<h3>Queue</h3>';
-  h += pl.queue.length
-    ? `<ol class="queue">${pl.queue
+  h += ctl.queue.length
+    ? `<ol class="queue">${ctl.queue
         .map(
           (c, i) =>
             `<li><span>${esc(commandWords(c))}${c.begun !== null ? ' <i>under way</i>' : ''}</span>` +
@@ -387,14 +388,14 @@ function renderActions() {
         )
         .join('')}</ol>`
     : `<p class="hint">${
-        pl.auto
+        ctl.auto
           ? 'Nothing queued: you do what your role would.'
           : 'Nothing queued, and your automatic behaviour is off: you wait, and go home at dark.'
       }</p>`;
-  if (pl.refused)
-    h += `<p class="refused">Refused at ${clockOf(pl.refused.t)}: ${esc(
-      VERB_WORDS[pl.refused.verb] || pl.refused.verb,
-    )}, ${esc(pl.refused.why)}</p>`;
+  if (ctl.refused)
+    h += `<p class="refused">Refused at ${clockOf(ctl.refused.t)}: ${esc(
+      VERB_WORDS[ctl.refused.verb] || ctl.refused.verb,
+    )}, ${esc(ctl.refused.why)}</p>`;
   h +=
     '<p class="hint">What you may do is in the bar over the dock: Myself, Household and Village. The cause you argue is under Agenda, in the dock.</p>';
   const rest = playMsg && playMsg.id === id ? `<p class="refused" role="status">${esc(playMsg.text)}</p>` : '';
@@ -424,7 +425,7 @@ function playClick(b) {
   if (act === 'find') {
     focusPawn(id);
     openPanel('actions');
-  } else if (act === 'auto') r = Sim.setAuto(st, !st.player.auto);
+  } else if (act === 'auto') r = Sim.setAuto(st, !Sim.controlOf(st, st.player.pawn).auto);
   else if (act === 'answer') {
     r = Sim.answer(st, +b.dataset.offer, b.dataset.yes === 'true');
     watchOffers();

@@ -106,7 +106,7 @@ assert(html.includes('window.__mobile'), 'page hook exists');
     assert.strictEqual(over, 0, 'the buttons of the played pawn fit the phone');
     await page.click('#playBox [data-play="auto"]');
     await page.waitForFunction(() => /off/.test(document.querySelector('#playBox [data-play="auto"]').textContent));
-    assert.strictEqual(await page.evaluate(() => window.__mobile.st.player.auto), false, 'the switch turns the automatic behaviour off');
+    assert.strictEqual(await page.evaluate(() => window.__mobile.st.pawns[window.__mobile.st.player.pawn].control.auto), false, 'the switch turns the automatic behaviour off');
     await capture('mobile-play');
     // the action bar (VB-341) over the dock: its four buttons and each group's list fit the phone, with targets of 44 px; the gift's form too
     await fits('#actBar');

@@ -7,6 +7,7 @@ VB['sim/planview'] = (() => {
   const { chainOf, chainSteps, pileOf } = VB['sim/planchains'];
   const { empty, today } = VB['sim/playerplan'];
   const { nextOf, waitsOf } = VB['sim/plannext'];
+  const { controlOf } = VB['sim/controller'];
   const { supplyOutlook, reckon } = VB['sim/outlook'];
   const { fireOf } = VB['sim/house'];
   // ---- the page's read: Sim.planView(st) ----
@@ -40,7 +41,7 @@ VB['sim/planview'] = (() => {
       if (js) for (const j of js) if (j.kind === k) return true;
       return false;
     };
-    const head = pl.queue[0],
+    const head = controlOf(st, pl.pawn).queue[0],
       mark = head && head.plan,
       next = nextOf(st),
       W = waitsOf(st);
@@ -57,7 +58,7 @@ VB['sim/planview'] = (() => {
       last: pp.last ? { ...pp.last } : null,
       now: mark ? { what: mark.from, kind: mark.kind, key: mark.key } : null,
       next: next ? { what: next.plan.from, kind: next.plan.kind, key: next.plan.key } : null,
-      followed: !pl.auto,
+      followed: !controlOf(st, pl.pawn).auto,
     };
   }
   // ---- the page's read of the fire (VB-1653): Sim.fireView(st) ----

@@ -53,6 +53,7 @@
   "talkBucket": 0.06594020676166527,
   "walkStep": 6.254260966750489,
   "sleepReckon": 23.966471081307628,
+  "queueRun": 0,
   "sleepOwn": 0,
   "walkAwake": 0.9991617770326907,
   "idleStroll": 1.8709136630343672,

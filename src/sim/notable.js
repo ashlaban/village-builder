@@ -398,7 +398,7 @@ VB['sim/notable'] = (() => {
         pass: [last.end, st.record.length],
         occ: last.occ.slice(),
         // a refusal of the stopping step not yet told is told by this skip; one made while the game stood the page has shown
-        ref: sameRefusal(pl.refused, last.seen) ? last.ref : refusalOf(pl),
+        ref: sameRefusal(refusedOf(st, pl), last.seen) ? last.ref : refusalOf(st, pl),
       };
     const hid = st.pawns[pl.pawn].household,
       hh = hid !== null ? st.households[hid] : null;
@@ -415,12 +415,18 @@ VB['sim/notable'] = (() => {
       hungry: !!hh && hh.hunger > 0,
       offer: st.offerSeq,
       occ: st.occasions.filter((o) => st.t >= o.start).map((o) => o.id), // the gatherings on when it began do not stop it
-      ref: refusalOf(pl), // a refusal made before it began does not stop it
-      seen: refusalOf(pl),
+      ref: refusalOf(st, pl), // a refusal made before it began does not stop it
+      seen: refusalOf(st, pl),
     };
   }
   // The played pawn's last refused command, as plain data for a cursor; two are the same refusal when all three agree.
-  const refusalOf = (pl) => (pl.refused ? { verb: pl.refused.verb, why: pl.refused.why, t: pl.refused.t } : null);
+  // Its controller's (pawn.control, sim/controller, VB-1745), read where it stands: sim/controller loads later.
+  const controlled = (st, pl) => st.pawns[pl.pawn].control || null;
+  const refusedOf = (st, pl) => (controlled(st, pl) ? controlled(st, pl).refused : null);
+  const refusalOf = (st, pl) => {
+    const r = refusedOf(st, pl);
+    return r ? { verb: r.verb, why: r.why, t: r.t } : null;
+  };
   const sameRefusal = (a, b) => (!a && !b) || (!!a && !!b && a.t === b.t && a.verb === b.verb && a.why === b.why);
   // ---- gatherings as they begin (VB-1031): the record tells an occasion when it is over (how many came, what was poured), which is
   // too late to see it. These read st.occasions (sim/occasions) and write nothing to st. ----
@@ -544,8 +550,10 @@ VB['sim/notable'] = (() => {
     from.at = st.t;
     from.end = st.record.length;
     if (!from.occ) from.occ = []; // a cursor of before VB-1031
-    if (from.ref === undefined) from.ref = pl.refused && pl.refused.t <= from.t ? refusalOf(pl) : null; // a cursor of before VB-1135
-    from.seen = refusalOf(pl);
+    const refused = refusedOf(st, pl),
+      ctl = controlled(st, pl);
+    if (from.ref === undefined) from.ref = refused && refused.t <= from.t ? refusalOf(st, pl) : null; // a cursor of before VB-1135
+    from.seen = refusalOf(st, pl);
     while (from.n < st.record.length) {
       if (from.pass && from.n >= from.pass[0]) {
         from.n = Math.max(from.n, from.pass[1]); // what was written while the game stood, between two skips
@@ -591,11 +599,11 @@ VB['sim/notable'] = (() => {
             : `An offer waits for an answer: ${offerText(st, o)}.`,
       };
     }
-    if (pl.refused && !sameRefusal(pl.refused, from.ref)) {
-      from.ref = refusalOf(pl);
-      return { why: 'refused', text: `A command was refused: ${pl.refused.verb}, ${pl.refused.why}.` };
+    if (refused && !sameRefusal(refused, from.ref)) {
+      from.ref = refusalOf(st, pl);
+      return { why: 'refused', text: `A command was refused: ${refused.verb}, ${refused.why}.` };
     }
-    if (!pl.auto && !pl.queue.length)
+    if (ctl && !ctl.auto && !ctl.queue.length)
       return { why: 'idle', text: `${fullName(p)} has nothing queued, and its automatic behaviour is off.` };
     if (st.t < from.eve) return null;
     // the eve (VB-1101): it stops the skip for a choice the round will read, else once SKIP_QUIET hours of a skip have gone (never longer than one

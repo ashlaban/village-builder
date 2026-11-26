@@ -58,7 +58,8 @@ for (const st of runs) {
 }
 // the args a verb is tried with by hand, where {} cannot pass its check: a gift of a little grain (VB-446 moved the draws, and the loans of
 // VB-312 that carried it in the run no longer fall in its 45 days)
-const ARGS = { give: [{ good: 'grain', n: 1 }], repay: [{ n: 1 }] };
+// VB-1745: a controller's own verbs, the switch left on and a walk home queued, then taken off
+const ARGS = { give: [{ good: 'grain', n: 1 }], repay: [{ n: 1 }], auto: [{ on: true }], queue: [{ cmd: { verb: 'goHome' } }], unqueue: [{ i: 0 }] };
 // each verb not yet carried, by hand: an actor, a target of each kind and the verb's sources, until its check lets one by
 for (const verb of Object.keys(VERBS).filter((v) => !carried.has(v))) {
   for (const st of runs) {

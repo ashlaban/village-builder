@@ -19,7 +19,7 @@ const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invarian
 const hash = (st) => sha(canon(kept(st)));
 const FARMER = 0;
 const played = (st) => { Sim.inhabit(st, FARMER); Sim.setAuto(st, false); return st; };
-const head = (st) => st.player.queue[0];
+const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
 
 // 1. The ops and their refusals.
 {
@@ -104,16 +104,16 @@ const head = (st) => st.player.queue[0];
   assert.strictEqual(head(st).plan.from, 'task');
   Sim.queue(st, { actor: FARMER, verb: 'walkTo', target: st.villages[0].center });
   Sim.advance(st, 0.1);
-  assert.ok(st.player.queue.length === 1 && !head(st).plan && head(st).verb === 'walkTo', 'the hand command goes first');
+  assert.ok(Sim.controlOf(st, st.player.pawn).queue.length === 1 && !head(st).plan && head(st).verb === 'walkTo', 'the hand command goes first');
   assert.strictEqual(Sim.planView(st).next, null, 'the plan waits for it');
   assert.deepStrictEqual(st.player.plan.tasks.map((t) => t.key), ['clear:f0'], 'the task stays planned');
   let n = 0;
-  while (st.player.queue.length && !head(st).plan && n++ < 200) Sim.advance(st, 0.1);
+  while (Sim.controlOf(st, st.player.pawn).queue.length && !head(st).plan && n++ < 200) Sim.advance(st, 0.1);
   Sim.advance(st, 0.1);
   assert.ok(head(st).plan && head(st).plan.key === 'clear:f0', 'the task is taken up again after it');
   Sim.setAuto(st, true);
   Sim.advance(st, 2);
-  assert.ok(st.player.queue.every((c) => c.begun !== null || !c.plan), 'with automatic behaviour on nothing more is fed');
+  assert.ok(Sim.controlOf(st, st.player.pawn).queue.every((c) => c.begun !== null || !c.plan), 'with automatic behaviour on nothing more is fed');
   assert.strictEqual(st.player.plan.tasks.length + (st.jobs.has('clear:f0') ? 0 : 1), 1, 'the plan is kept');
   sound(st, 'hand first');
 }
@@ -123,7 +123,7 @@ const head = (st) => st.player.queue[0];
   const st = played(make());
   Sim.plan(st, 'sleep', { from: 20, until: 6 });
   until(st, 19.5);
-  st.player.queue.length = 0;
+  Sim.controlOf(st, st.player.pawn).queue.length = 0;
   Sim.queue(st, { actor: FARMER, verb: 'work', target: 'clear:f0' });
   until(st, 21);
   assert.ok(head(st) && !head(st).plan && head(st).verb === 'work' && st.agents[FARMER].job, 'the hand-ordered work goes on at 21');
@@ -387,8 +387,8 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   assert.deepStrictEqual(v.idle, { why: 'hand', verb: 'walkTo', target: st.villages[0].center, since: null });
   assert.deepStrictEqual(v.tasks[0].waits, v.idle);
   Sim.advance(st, 0.1);
-  assert.strictEqual(Sim.planView(st).idle.since, st.player.queue[0].begun);
-  assert(st.player.queue[0].begun !== null);
+  assert.strictEqual(Sim.planView(st).idle.since, Sim.controlOf(st, st.player.pawn).queue[0].begun);
+  assert(Sim.controlOf(st, st.player.pawn).queue[0].begun !== null);
   assert.strictEqual(Sim.unqueue(st, 0), true);
   // the run: each begun in its turn beside the others
   const seen = new Set();

@@ -139,6 +139,7 @@
   "sim/doing.js",
   "sim/attention.js",
   "sim/agents.js",
+  "sim/controller.js",
   "sim/hosting.js",
   "sim/away.js",
   "sim/journeys.js",
