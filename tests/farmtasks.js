@@ -110,11 +110,17 @@ function run(st, kind, days = 80) {
 // ---- 4. the barn by the plan alone, the timber at home first; a save and a load mid-chain go on the same ----
 {
   const { st, hh, f } = village();
+  // the woodpile full for the year, so that the household cuts none of the timber home into firewood meanwhile (VB-1775: a firewood
+  // goal cuts the timber home to the season's goal, where a job before cut a back load, and the walls found none); `had`, what its wood
+  // task brought home in the two days
+  const plan = st.plans.households.get(hh.id);
+  Stores.put(st, hh, 'wood', Math.max(...Object.values(plan.targets.wood)), 'cutting');
+  const had = Stores.heldOf(hh, 'timber');
   Stores.put(st, hh, 'timber', 6, 'felling');
   assert.strictEqual(Sim.plan(st, 'add', { outbuilding: f.house, what: 'barn' }), true);
   const before = chainSteps(st, hh.id, 'outbuilding', f.house).steps;
   assert.deepStrictEqual(before.map((y) => y.kind), ['barnbase', 'timber', 'barnwalls', 'barnroof']);
-  assert.strictEqual(before[1].n, Math.ceil((BUILD.barn.timber - 6) / st.ECON.woodPerTrip - 1e-9), 'trips for what home does not cover');
+  assert.strictEqual(before[1].n, Math.ceil((BUILD.barn.timber - 6 - had) / st.ECON.woodPerTrip - 1e-9), 'trips for what home does not cover');
   for (let i = 0; i < 240 && !projectsOf(st, 'household', hh.id).some((p) => p.what === 'barn'); i++) Sim.advance(st, 0.1);
   const p = projectsOf(st, 'household', hh.id).find((q) => q.what === 'barn');
   assert(p, 'begun by the task');

@@ -118,7 +118,8 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/wells'].KINDS); // a household's well, dug by its house (VB-1584): sim/wells's
   // a load left lying where its carrier fell is fetched by its owner (VB-611): a fetch kind for each kind that carries a load (sim/lying)
   for (const [k, K] of Object.entries(KINDS))
-    if (K.carry && (K.load || K.stack)) KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
+    // a kind with methods (sim/methods) has none: its loads lying are piles its stray method fetches (VB-1775)
+    if (K.carry && (K.load || K.stack) && !K.methods) KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
   KINDS.blaze = VB['sim/trails'].KINDS.blaze; // blazing a trail (VB-447): sim/trails'
   KINDS.drink = VB['sim/thirst'].KINDS.drink; // a pawn's drink at a source (VB-1585): sim/thirst's
   Object.assign(KINDS, VB['sim/leather'].KINDS); // shoes and harness cut from a hide (VB-911): sim/leather's
@@ -289,7 +290,10 @@ VB['sim/kinds'] = (() => {
   ASK.farmAfterPlans.push(rule('smelt'), rule('mendtools')); // iron and the tools (VB-701, sim/ironwork)
   ASK.farmAfterPlans.push(rule('cobble'), rule('harness')); // shoes and harness (VB-911, sim/leather)
   ASK.farmAfterPlans.push(rule('spin'), rule('weave')); // wool to cloth (VB-362, sim/textile)
-  (ASK.farmAfterPlans.push(rule(Lying.fetchWork)), ASK.village.push(rule(Lying.fetchWork))); // loads left lying (VB-611)
+  // loads left lying (VB-611), those of a kind with a fetch kind (VB-1775)
+  const fetchLying = (st, holder, at, c, post) =>
+    Lying.fetchWork(st, holder, at, c, post, (kind) => !!KINDS[Lying.fetchKey(kind)]);
+  (ASK.farmAfterPlans.push(rule(fetchLying)), ASK.village.push(rule(fetchLying)));
   ASK.village.push(rule(VB['sim/facilities'].villageWork)); // a village's facilities raised and mended (VB-361)
   ASK.island.push(rule('blaze')); // the trails under way, each its blazer's household's (VB-447, sim/trails)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);

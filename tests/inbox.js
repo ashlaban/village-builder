@@ -8,6 +8,7 @@ for (const f of ['BACKLOG.md', 'BACKLOG_ARCHIVE.md', 'QUESTIONS.md']) fs.copyFil
 fs.mkdirSync(path.join(dir, 'backlog')); fs.mkdirSync(path.join(dir, 'docs'));
 for (const f of fs.readdirSync(path.join(root, 'backlog'))) fs.copyFileSync(path.join(root, 'backlog', f), path.join(dir, 'backlog', f));
 fs.copyFileSync(path.join(root, 'docs', 'tuning.md'), path.join(dir, 'docs', 'tuning.md'));
+if (fs.existsSync(path.join(root, 'docs', 'ideas'))) fs.cpSync(path.join(root, 'docs', 'ideas'), path.join(dir, 'docs', 'ideas'), { recursive: true }); // tasks set aside as ideas keep their IDs: the backlog check reads them
 const run = (input, ...args) => {
   const r = spawnSync(process.execPath, [tool, '--root', dir, '--db', path.join(dir, 'inbox.db'), '--date', '2026-01-02', ...args], {
     encoding: 'utf8', input: input || '' });

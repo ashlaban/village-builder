@@ -188,3 +188,18 @@ recorded and there is no `--update`: this is evidence for one change, not a base
 
 For intended behavior changes, assert the new rule on deliberate input and report relevant scenario measurements. Do not assert
 historical API lists, event wording, random population counts or entire state fingerprints merely because they currently match.
+
+## The gate (VB-1774)
+
+`node tools/gate.js [--out FILE] [--base FILE] [--json]` is the check a gated task of the four-scales arch makes (docs/plans/four-scales/README.md, 3.10):
+founders and populous, small map, seeds 7, 11 and 42, 10 years, side by side (one process a run), a line a run. Run it at night or at the
+task's end, never inside `npm test`; `tests/gate-tool.js` checks only its comparison, on constructed results.
+- It fails (exit 1) against `--base` when: a settlement is extinct by hunger that the base keeps alive; a settlement has collapsed; more
+  tasks are held over 48 hours without progress than in the base; or the food accounts' `unexplained` (sum of the years' absolute values)
+  exceeds the base's by more than 1 ration plus 0.1% of the run's food produced. Hungry household-days and deaths by hunger are printed
+  beside the base and never fail.
+- A collapse (Kim's close call, 25 November, decided by AGENTS.md, Deciding without Kim): a settlement's living at year 10 are under half
+  its living at year 0 and under half the base run's at year 10, so a decline the base shares is not charged to the task.
+- A task held over 48 hours: claimed, its `done` unmoved and its rate nil over 48 hours, sampled every 6 hours (VB-1546's count by hand).
+- The base is `docs/gate/base.json`, committed, not the fixtures' local cache: the next task finds it in its own worktree, and it is
+  small. A gated task compares with it, and the task that changes the behaviour on purpose replaces it (`--out docs/gate/base.json`).

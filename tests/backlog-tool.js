@@ -22,6 +22,7 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vb-backlog-'));
 for (const f of ['BACKLOG.md', 'BACKLOG_ARCHIVE.md']) fs.copyFileSync(path.join(root, f), path.join(dir, f));
 fs.mkdirSync(path.join(dir, 'backlog'));
 for (const f of fs.readdirSync(path.join(root, 'backlog'))) fs.copyFileSync(path.join(root, 'backlog', f), path.join(dir, 'backlog', f));
+if (fs.existsSync(path.join(root, 'docs', 'ideas'))) fs.cpSync(path.join(root, 'docs', 'ideas'), path.join(dir, 'docs', 'ideas'), { recursive: true }); // tasks set aside as ideas keep their IDs: the backlog check reads them
 const file = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
 const section = (f, heading) => (file(f).split('\n## ' + heading + '\n')[1] || '').split('\n## ')[0];
 // after a merge that kept both sides' rows: a blocked row under Ready and a ready row twice and under Blocked; sync restores the tables
