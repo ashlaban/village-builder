@@ -246,7 +246,7 @@ function village(play, auto) {
       true,
       `the farmstead authored (${play ? 'played' : 'unplayed'})`,
     );
-    for (let d = 0; d < 20 && st.pawns[id].control.plan.tasks.some((t) => t.kind === 'farmstead'); d++)
+    for (let d = 0; d < 20 && VB['sim/steps'].pawnPlan(st, id).tasks.some((t) => t.kind === 'farmstead'); d++)
       Sim.advance(st, DAY);
     assert(
       f.shelter && f.shelter.built !== null && f.camp === false,

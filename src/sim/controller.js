@@ -1,38 +1,37 @@
 // @sys sim/controller: a controller per pawn (VB-1745): whether its own logic chooses its acts (`auto`), the commands queued for it,
-// which go before that logic, and the plan its controller made for it (VB-1746: the routine, the sleeping hours and the tasks, edited
-// by sim/playerplan's ops, fed to the queue by sim/player's feeder for any pawn with automatic behaviour off); the verbs any pawn issues
-// for itself (auto, queue, unqueue), the queue step for every pawn with a command queued, and the controller's end at the pawn's death.
-// The player (sim/player) is one controller among others: its pawn's is made here
+// which go before that logic; the verbs any pawn issues for itself (auto, queue, unqueue), the queue step for every pawn with a command
+// queued, and the controller's end at the pawn's death. The steps a pawn authors for itself in its plan record (VB-1754: its routine,
+// its sleeping hours, its ordered and dated tasks, sim/steps' pawnPlan) through the verb `plan` (sim/plans; the checks of its ops
+// here, PLAN_OPS), the feeder's housekeeping of them (planDay, planBegun), what they have the pawn do next (nextOf, which sim/player's
+// feeder queues with automatic behaviour off) and why each task waits (WAITS, waitsOf; VB-1651: sim/plannext's before). The player
+// (sim/player) is one controller among others: its pawn's is made here
 VB['sim/controller'] = (() => {
   const { unbound } = VB['sim/pose'];
   const { release } = VB['sim/agents'];
   const { living } = VB['sim/records'];
-  const { cal, WORK, DAY } = VB['sim/rules'];
+  const { cal, WORK, DAY, BOOTH } = VB['sim/rules'];
   const { issue, perform, active, VERBS, register } = VB['sim/commands'];
-  const { on } = VB['sim/events'];
+  const { on, emit } = VB['sim/events'];
+  const { KINDS } = VB['sim/kinds'];
+  const { eligible } = VB['sim/eligibility'];
+  const Steps = VB['sim/steps'],
+    { pawnPlan: planOf, planners } = Steps;
+  const PLAN_MAX = 24;
+  const { CHAINS, MOVE_KINDS, chainOf, chainWhy, chainGone, chainSteps, headCmd, pileOf } = VB['sim/planchains'];
+  const Fieldwork = VB['sim/fieldwork'],
+    Meadows = VB['sim/meadows'],
+    Chores = VB['sim/chores']; // VB-1652: the rules HOLDS reads
+  const { lacks } = VB['sim/projects'];
   // @state pawn.control: absent (its own logic chooses all its acts, as every pawn's does with no controller), or {auto (boolean: true,
   //   the pawn does what its role's automatic behaviour chooses whenever nothing is queued; false, the planner leaves it alone), queue[]
   //   (at most QUEUE_MAX commands {actor: the pawn, verb, target, args, source (who queued it: 'player' for the played pawn's), begun,
   //   ref}, in turn; `begun` is null until the command is issued, then the game time: only the head is ever begun, and it stays the head
   //   while its act lasts; `ref` is null, or once begun the reference its verb gave to the act it began (sim/commands perform, VB-1405),
-  //   plain data; `plan` {from, kind, key} in a command the plan fed, sim/playerplan), refused (null, or {verb, why, t}: the last
-  //   command refused when its turn came), plan (absent until its controller first plans for it, else the plan below)}; plain data,
-  //   saved with the pawn, made by the first verb a pawn issues for itself here (or by the player's inhabit, or its first plan) and
-  //   ended, with its plan, at its death or when the player leaves it
-  // @state pawn.control.plan (VB-1646; the controller's since VB-1746, st.player.plan before): {routine[] (job kinds seen to every
-  //   day, in order, at most PLAN_MAX), sleep (null, or {from, until}: hours of the day, the pawn sleeps from `from` to `until`), tasks[]
-  //   (at most PLAN_MAX, in order: a task by key {key (a job's key), kind, site (its tile or -1)}, or a task at a tile {<chain> (a tile),
-  //   kind: <chain> (a key of CHAINS: plant, hay, harvest, fell, firewood, ...), site (the same tile), and a fell task's n (the loads
-  //   planned, 1 to FELL_MAX) and got (the loads home); an upgrade or outbuilding task's what (the rung it builds)}, one a chain a tile;
-  //   VB-1649, VB-1650, VB-1653, VB-1660), day (the game day `done` is of), done[] (the routine kinds begun on day `day`), last (null, or
-  //   the last task that left the plan: {key, kind, t}, its job finished or gone; or {<chain>, kind, site, t, which (one of the chain's
-  //   `which`: plant 'sown' | 'closed' | 'fallow' | 'gone'; hay 'home' | 'closed' | 'rotted' | 'gone'; harvest 'in' | 'lost' | 'gone';
-  //   fell 'home' | 'bare' | 'gone'; firewood 'cut' | 'full' | 'gone'; farmstead 'raised' | 'gone'; upgrade 'roof' | 'gone'; ...)})}.
-  //   Written by sim/playerplan (the ops, which put it on the controller, and the feeder's planDay and planBegun, and the fell task's
-  //   loads home): the plan's writer until VB-1754 makes it the plan record's steps. A command the plan feeds to the queue carries
-  //   `plan` {from: 'routine' | 'task' |
-  //   'sleep', kind, key}, and `chain` and <chain> (its tile) when a task at a tile fed it (kind 'project' for the project a marked tile
-  //   begins)
+  //   plain data; `plan` {from: 'routine' | 'task' | 'sleep', kind, key, and `chain` and <chain> (its tile) when a task at a tile fed it,
+  //   kind 'project' for the project a marked tile begins} in a command the pawn's own plan fed, nextOf below), refused (null, or {verb,
+  //   why, t}: the last command refused when its turn came)}; plain data, saved with the pawn, made by the first verb a pawn issues for
+  //   itself here (or by the player's inhabit) and ended at its death or when the player leaves it. Its plan is not here: the steps it
+  //   authors are its plan record's (sim/steps, VB-1754)
   // @state st.controlled: absent until the first controller is made, then the ids of the pawns with a controller, ascending; st.queued
   //   likewise the ids of those whose queue holds a command (the queue step's index). Both kept by this module only; plain data, saved
   const QUEUE_MAX = 8;
@@ -40,36 +39,6 @@ VB['sim/controller'] = (() => {
   // A pawn with no controller reads as this one: automatic, nothing queued, nothing refused. Read only.
   const NONE = Object.freeze({ auto: true, queue: Object.freeze([]), refused: null });
   const controlOf = (st, id) => (st.pawns[id] && st.pawns[id].control) || NONE;
-  // ---- the plan (VB-1746): any pawn's, its controller's ----
-  const PLAN_MAX = 24;
-  // A plan with nothing in it, as of now.
-  const emptyPlan = (st) => ({
-    routine: [],
-    sleep: null,
-    tasks: [],
-    day: Math.floor(st.t / DAY),
-    done: [],
-    last: null,
-  });
-  // Pawn id's plan, or null while its controller has made none.
-  const planOf = (st, id) => (st.pawns[id] && st.pawns[id].control && st.pawns[id].control.plan) || null;
-  // The pawns whose controller holds a plan, ascending: from the controllers' index, so a run with none does no work here.
-  function planners(st) {
-    const out = [];
-    if (st.controlled)
-      for (const id of st.controlled) if (st.pawns[id].control && st.pawns[id].control.plan) out.push(id);
-    return out;
-  }
-  // The plans of household hid's members, by their pawns' ids ([] with none): what a rule of the household reads of its members' plans.
-  function plansIn(st, hid) {
-    const out = [];
-    if (hid === null || hid === undefined || !st.controlled) return out;
-    for (const id of st.controlled) {
-      const p = st.pawns[id];
-      if (p.household === hid && p.control && p.control.plan) out.push(p.control.plan);
-    }
-    return out;
-  }
   // id added to (in) or taken from a sorted index of pawn ids
   function mark(list, id, inside) {
     let i = 0;
@@ -104,7 +73,7 @@ VB['sim/controller'] = (() => {
   }
   // At a death the controller ends, with its queue (the played pawn's death: sim/player playerDied notes the rest).
   on('died', (st, d) => detach(st, d.pawn));
-  // ---- the queue's writes, for the player's plan feeder (sim/player feed) ----
+  // ---- the queue's writes, for the plan's feeder (feed, below) ----
   // Pawn id's commands for which keep(cmd) is false leave its queue.
   function keepOnly(st, id, keep) {
     const c = st.pawns[id].control;
@@ -212,9 +181,20 @@ VB['sim/controller'] = (() => {
     }
     if (!living(st, id)) homeAtDark(st, id);
   }
-  // Every queue with a command, in the order of its pawns' ids (sim/clock, through sim/player's playerStep, before the agents move): from
-  // the index, so a run with no command queued does no work here.
-  function queueStep(st, begun = null) {
+  // The controllers' step, each six-minute step (sim/clock, through sim/player's playerStep, before the agents move): each living pawn
+  // that plans for itself (sim/steps planners: none in a run where no pawn has planned) has its plan's finished tasks leave it (planDay)
+  // and, with automatic behaviour off, its plan feed its queue (feed); then every queue with a command, in the order of its pawns' ids,
+  // from the index, so a run with no command queued does no work here; a command the plan fed marks its task begun.
+  const begun = (st, cmd) => {
+    if (cmd.plan) planBegun(st, cmd.actor, cmd.plan);
+  };
+  function queueStep(st) {
+    for (const id of planners(st)) {
+      VB.count.planFeed++;
+      if (living(st, id)) continue;
+      planDay(st, id);
+      if (!controlOf(st, id).auto) feed(st, id);
+    }
     if (!st.queued || !st.queued.length) return;
     for (const id of st.queued.slice()) {
       const c = st.pawns[id].control;
@@ -225,6 +205,381 @@ VB['sim/controller'] = (() => {
       indexed(st, id);
     }
   }
+  // ---- the plan's feeder (VB-1646; the pawn's own steps, sim/steps): with automatic behaviour off, the plan feeds the queue when nothing queued by hand
+  // waits. A command queued by hand goes first, as an order for now: the plan's commands give way to it (a task left keeps its progress
+  // and stays planned). In the sleeping hours the plan's work in hand is left for its sleep; else the plan's command runs to its end.
+  // A trip of the move under way (the farmstead chain's droving and fetching from the landing, sim/planchains MOVE_KINDS) is not left
+  // for the sleeping hours: it goes on to its end, and the pawn sleeps after (VB-1670: on a way of 7 hours each way, the walk out left at
+  // bedtime every evening had the move undone for 50 days, and the frost took the loads).
+  const onTrip = (st, id, c) =>
+    c.begun !== null && c.plan.from === 'task' && MOVE_KINDS.includes(c.plan.kind) && !!st.agents[id].job;
+  function feed(st, id) {
+    const q = controlOf(st, id).queue;
+    if (q.some((c) => !c.plan)) {
+      keepOnly(st, id, (c) => !c.plan);
+      return;
+    }
+    if (q.length && q[0].begun !== null && !active(st, q[0], q[0].ref)) keepOnly(st, id, () => false); // its act ended: the next is fed at once
+    const next = nextOf(st, id);
+    if (q.length) {
+      if (!(next && next.plan.from === 'sleep' && q[0].plan.from !== 'sleep') || onTrip(st, id, q[0])) return;
+      keepOnly(st, id, () => false);
+    }
+    if (next) put(st, id, { ...next, begun: null, ref: null });
+  }
+  // ---- a pawn's own plan (VB-1646; any pawn's since VB-1746; steps of its plan record since VB-1754, sim/steps) ----
+  const today = (st) => Math.floor(st.t / DAY);
+  // Whether hour h is within the sleeping hours s (from `from` up to `until`, across midnight when from > until).
+  const asleepAt = (s, h) => !!s && (s.from < s.until ? h >= s.from && h < s.until : h >= s.from || h < s.until);
+  const NO_PLAN = Object.freeze({ routine: [], sleep: null, tasks: [], steps: [], day: 0, done: [], last: null });
+  const ownPlan = (st, id) => planOf(st, id) || NO_PLAN;
+  // The ops of the verb `plan` on a pawn's own plan (sim/plans registers the verb and checks the actor is the pawn): each {check (why
+  // not, or null), run}, c.target the pawn, c.args the op's own. add: a task by key ({key}) or at a tile ({<chain>: tile, and the chain's
+  // own args}), at place `at` (the end if absent), dated by `from` and `by` (game days, either absent); remove {i}; move {from, to};
+  // routine {kinds}; sleep {from, until} (hours; neither: no sleeping hours).
+  const hourOf = (h) => typeof h === 'number' && h >= 0 && h < 24;
+  const index = (i, n) => Number.isInteger(i) && i >= 0 && i < n;
+  const given = (v) => v !== undefined && v !== null;
+  const chainName = (g) => Object.keys(CHAINS).find((k) => g[k] !== undefined);
+  function placeWhy(g, n) {
+    if (n >= PLAN_MAX) return `the plan is full (${PLAN_MAX} tasks)`;
+    const at = given(g.at) ? g.at : n;
+    if (!(Number.isInteger(at) && at >= 0 && at <= n)) return `there is no place ${g.at} in the plan`;
+    if ((given(g.from) && !Number.isInteger(g.from)) || (given(g.by) && !Number.isInteger(g.by)))
+      return 'a task is dated by game days';
+    return given(g.from) && given(g.by) && g.by < g.from
+      ? `a task cannot be done by day ${g.by}, before day ${g.from}`
+      : null;
+  }
+  const dated = (g) => ({ ...(given(g.from) ? { from: g.from } : {}), ...(given(g.by) ? { by: g.by } : {}) });
+  function addWhy(st, c) {
+    const id = c.target,
+      g = c.args,
+      pp = ownPlan(st, id),
+      name = chainName(g);
+    if (name) {
+      const tile = g[name],
+        why = chainWhy(st, id, name, tile);
+      if (why) return why;
+      // one task a chain a tile, but for one of a different `what` there (VB-1668: a barn and a byre at the house side by side)
+      if (pp.tasks.some((x) => chainOf(x) === name && x[name] === tile && x.what === g.what))
+        return `the ${CHAINS[name].noun} at ${tile} is already planned`;
+      const more = CHAINS[name].args ? CHAINS[name].args(g, st, id) : null;
+      return placeWhy(g, pp.tasks.length) || (typeof more === 'string' ? more : null);
+    }
+    const j = st.jobs.get(g.key);
+    if (!j) return `there is no job ${g.key}`;
+    if (!eligible(st, j, st.pawns[id])) return `job ${g.key} is not the pawn's to take`;
+    if (pp.tasks.some((x) => x.key !== undefined && x.key === g.key)) return `job ${g.key} is already planned`;
+    return placeWhy(g, pp.tasks.length);
+  }
+  function add(st, c) {
+    const id = c.target,
+      g = c.args,
+      name = chainName(g),
+      n = ownPlan(st, id).tasks.length,
+      at = given(g.at) ? g.at : n;
+    let goal;
+    if (name) {
+      const tile = g[name];
+      goal = { [name]: tile, kind: name, site: tile, ...(CHAINS[name].args ? CHAINS[name].args(g, st, id) : null) };
+    } else {
+      const j = st.jobs.get(g.key);
+      goal = { key: j.key, kind: j.kind, site: Number.isInteger(j.site) ? j.site : -1 };
+    }
+    Steps.addTask(st, id, goal, at, dated(g));
+  }
+  const PLAN_OPS = {
+    add: { check: addWhy, run: add },
+    remove: {
+      check: (st, c) =>
+        index(c.args.i, ownPlan(st, c.target).tasks.length) ? null : `the plan has no task ${c.args.i}`,
+      run: (st, c) => Steps.dropTask(st, c.target, c.args.i, null),
+    },
+    move: {
+      check: (st, c) => {
+        const n = ownPlan(st, c.target).tasks.length;
+        return index(c.args.from, n) && index(c.args.to, n)
+          ? null
+          : `the plan cannot move task ${c.args.from} to ${c.args.to}`;
+      },
+      run: (st, c) => Steps.moveTask(st, c.target, c.args.from, c.args.to),
+    },
+    routine: {
+      check: (st, c) => {
+        const ks = c.args.kinds;
+        if (!Array.isArray(ks) || ks.length > PLAN_MAX) return 'a routine is a list of job kinds';
+        const bad = ks.find((k) => typeof k !== 'string' || !KINDS[k]);
+        if (bad !== undefined) return `there is no job kind ${bad}`;
+        return new Set(ks).size !== ks.length ? 'a kind is in the routine twice' : null;
+      },
+      run: (st, c) => Steps.setRoutine(st, c.target, c.args.kinds),
+    },
+    sleep: {
+      check: (st, c) => {
+        const g = c.args;
+        if (!given(g.from) && !given(g.until)) return null;
+        return !hourOf(g.from) || !hourOf(g.until) || g.from === g.until
+          ? `cannot sleep from ${g.from} until ${g.until}`
+          : null;
+      },
+      run: (st, c) =>
+        Steps.setSleep(st, c.target, given(c.args.from) ? { from: c.args.from, until: c.args.until } : null),
+    },
+  };
+  // ---- the feeder's housekeeping (sim/player's playerStep, for each pawn that plans for itself) ----
+  // A task whose job is finished or gone leaves the plan, the last one kept in `last`; a task at a tile leaves when its chain says
+  // (chainGone); and the plan asks its head for the work it waits on (askCutting, askFarmstead).
+  function planDay(st, id) {
+    const pp = planOf(st, id),
+      hid = st.pawns[id].household;
+    for (let i = pp.tasks.length - 1; i >= 0; i--) {
+      const t = pp.tasks[i];
+      const name = chainOf(t);
+      if (name) {
+        const which = chainGone(st, hid, name, t[name], t);
+        if (which) Steps.dropTask(st, id, i, { [name]: t[name], kind: name, site: t.site, t: st.t, which });
+        continue;
+      }
+      if (!st.jobs.has(t.key)) Steps.dropTask(st, id, i, { key: t.key, kind: t.kind, t: st.t });
+    }
+    askCutting(st, hid, pp);
+    askFarmstead(st, hid, pp);
+  }
+  // A farmstead task whose next step (the move's droving and fetching, the shelter's raising once its timber is in) is open but not posted:
+  // the plan asks its head now (planAsks, as askCutting), so that a step does not wait days for the household's planning day (VB-1670:
+  // the shelter's raising had waited 34 hours for it on the tiny map). Only while the plan's review is not asked already.
+  function askFarmstead(st, hid, pp) {
+    const hh = hid === null ? null : st.households[hid],
+      t = hh && !hh.dissolved ? pp.tasks.find((k) => k.key === undefined && k.kind === 'farmstead') : null,
+      plan = t && st.plans && st.plans.households.get(hid);
+    if (!plan || plan.dirty) return;
+    const s = chainSteps(st, hid, 'farmstead', t.farmstead, t),
+      y = s && !s.where.camp ? s.steps[0] : null;
+    if (y && !y.job && y.from <= st.t) emit(st, 'planAsks', { household: hid });
+  }
+  // A firewood task whose cutting the head's rule would post (sim/chores: timber home, the pile below the season's goal or the house
+  // cold) but has not: the plan asks its head now (the event planAsks; sim/stores wakes the plan's review, at most one such a day), so
+  // that the task does not wait for the household's planning day (VB-1661: up to three days by its head's diligence, sim/plandays).
+  function askCutting(st, hid, pp) {
+    const hh = hid === null ? null : st.households[hid];
+    if (!hh || hh.dissolved || !pp.tasks.some((t) => t.key === undefined && t.kind === 'firewood')) return;
+    if (Chores.timberOf(hh) > 0 && (hh.cold > 0 || pileOf(st, hh).short) && !st.jobs.has(`firewood:h${hid}`))
+      emit(st, 'planAsks', { household: hid });
+  }
+  // A routine kind's command was begun by pawn id: it is done for the day.
+  function planBegun(st, id, mark) {
+    if (mark.from === 'routine') Steps.routineBegun(st, id, mark.kind);
+  }
+  // ---- what the pawn's own plan has it do next (VB-1646, VB-1651; sim/plannext's before VB-1754) ----
+  const workCmd = (id, key) => ({ actor: id, verb: 'work', target: key, args: null, source: 'player' });
+  // ---- why a task waits (VB-1651): the one closed list of reasons, each plain data for the page (planView's `waits` and `idle`) ----
+  // hand: a command queued by hand goes first (its verb, target and the game hour it was begun, null before); before: an earlier task (i,
+  // its index) is what the plan does next or has in hand; routine: a routine kind goes first; sleep: the sleeping hours, until `until`
+  // o'clock; opens: its next step is not posted until game hour t (what: its window opening, its crop ripe, its hay dry); unposted: its
+  // next step (kind) is open and its job not posted for the household now, `rule` (one of RULES) the household's own rule that holds it
+  // back and `text` its words for the page (HOLDS, VB-1652); refused: the verb's own reason (text).
+  const WAITS = {
+    hand: (c) => ({ why: 'hand', verb: c.verb, target: c.target ?? null, since: c.begun ?? null }),
+    before: (i) => ({ why: 'before', i }),
+    routine: (kind) => ({ why: 'routine', kind }),
+    sleep: (until) => ({ why: 'sleep', until }),
+    opens: (t, what) => ({ why: 'opens', t, what }),
+    unposted: (kind, h) => ({ why: 'unposted', kind, rule: h.rule, text: h.text }),
+    refused: (text) => ({ why: 'refused', text }),
+  };
+  // ---- the household's own rule that holds an open step's job back (VB-1652): the one closed list, HOLDS, each {rule, text} ----
+  // hands: a field beyond what its hands till (sim/fieldwork beyondHands, the plan's targets.workable); sowing: its sowing refused
+  // (sim/fieldwork sowWhy: the seed, the thaw); hay: no hay wanted (sim/meadows hayWanted); timber: no timber home to cut; woodpile: the
+  // pile at the season's goal (sim/chores, the firewood job's rule); booth: the booth's timber not all fetched to its tile; wood: no wood
+  // to fetch the booth's (or an outbuilding's) timber from; stone: no stone in reach for the foundation (the wait `project`, its step not
+  // opened while a project is under way, VB-1663, is gone with the limit, VB-1668); review: none of those,
+  // the job posted at the household's next review.
+  const HOLDS = {
+    hands: (cap, tile) =>
+      `the household's hands till ${cap} field${cap === 1 ? '' : 's'}; the field at ${tile} is beyond them`,
+    sowing: (why) => why,
+    hay: () => "the household wants no more hay: it holds its animals' winters, or keeps none",
+    timber: () => 'no timber is home to cut yet',
+    woodpile: () => "the woodpile holds the season's goal",
+    booth: () => "the shelter's timber is not all fetched",
+    wood: (what = 'booth') => `there is no wood to fetch the ${what}'s timber from`,
+    stone: () => 'there is no stone to pick or quarry within reach of the house', // VB-1663: the foundation's
+
+    review: () => "posted at the household's next review",
+  };
+  const RULES = Object.keys(HOLDS);
+  const held = (rule, ...a) => ({ rule, text: HOLDS[rule](...a) });
+  // Why open step y of chain `name` at `tile` has no job posted for household hid (where: what stands there, chainSteps'), by HOLDS.
+  function holdOf(st, hid, name, where, y, tile) {
+    const hh = st.households[hid];
+    if (name === 'plant' && where.fd && (y.kind === 'plow' || y.kind === 'sow')) {
+      const cap = Fieldwork.beyondHands(st, hh, where.fd, where.f);
+      if (cap !== null) return held('hands', cap, tile);
+      const why =
+        y.kind === 'sow' && where.fd.stage === 'plowed' ? Fieldwork.sowWhy(st, hh, where.fd, cal(st.t)) : null;
+      if (why) return held('sowing', why);
+    }
+    if (name === 'hay' && where.m && (y.kind === 'mow' || y.kind === 'rake') && !Meadows.hayWanted(st, where.f, hh))
+      return held('hay');
+    if (name === 'firewood' && y.kind === 'firewood') {
+      if (!Chores.timberOf(hh)) return held('timber');
+      if (!(hh.cold > 0) && !pileOf(st, hh).short) return held('woodpile');
+    }
+    if (name === 'farmstead' && where.shelter) {
+      // VB-1666: the shelter on the house tile, raised once its timber is in; its timber fetched from the village's wood
+      if (y.kind === 'shelter' && lacks(where.shelter, BOOTH.wood) > 0) return held('booth');
+      if (y.kind === 'timber' && !st.villages[where.f.village].wood.length) return held('wood');
+    }
+    if (name === 'farmstead' && where.staked) {
+      const s = where.staked.steps[where.staked.open];
+      if (y.kind === 'booth' && s && s.kind === 'timber') return held('booth');
+      const v = st.villages[st.farmsteads[hh.farmstead].village];
+      if (y.kind === 'timber' && !(st.w.trees[where.staked.tile] > 0) && !v.wood.length) return held('wood');
+    }
+    // VB-1663: the foundation's stone with no source in reach; an outbuilding's timber with no wood to fell it in
+    if (name === 'foundation' && y.kind !== 'raise' && where.step && where.step.tile < 0) return held('stone');
+    if (name === 'outbuilding' && y.kind === 'timber' && !st.villages[where.f.village].wood.length)
+      return held('wood', where.what);
+    return held('review');
+  }
+  // The staked booth's timber all in, its raising not yet posted (VB-1658): the wood step is done and the raising posted when the staked
+  // booths are next asked (sim/building stakedWork, the island's ask at the first step of each review hour, sim/plandays reviewHour), a
+  // wait with its hour, not work missing (the page had shown it as nothing open). The hour of that ask after game hour t.
+  const raisingDue = (where, y) => {
+    if (where.shelter) return y.kind === 'shelter' && lacks(where.shelter, BOOTH.wood) === 0; // VB-1666: its household's next ask
+    const s = where.staked && where.staked.steps[where.staked.open];
+    return y.kind === 'booth' && !!s && s.kind === 'timber' && lacks(s, s.timber) === 0;
+  };
+  function nextAsk(t) {
+    const day = Math.floor(t / DAY),
+      h = Math.floor(t - day * DAY) + 1;
+    if (h < WORK[0] - 1) return day * DAY + WORK[0] - 1;
+    if (h > WORK[1]) return (day + 1) * DAY + WORK[0] - 1;
+    return day * DAY + h;
+  }
+  // What the pawn may do now for chain task tk, as a command with its `plan` mark, or why not (a WAITS reason): on a marked or free tile,
+  // the project begun through the head's verb, beside any other of the household's (VB-1651); else the first step posted at its tile, in
+  // the order the work goes, if its `work` verb lets the pawn take it; else its first step's opening, or that its job is not posted.
+  function chainCmd(st, id, tk) {
+    const name = tk.kind,
+      tile = tk[name],
+      hid = st.pawns[id].household,
+      s = chainSteps(st, hid, name, tile, tk),
+      mark = { from: 'task', chain: name, [name]: tile };
+    if (!s) return WAITS.refused(CHAINS[name].none(tile));
+    if (s.where.mark) {
+      const cmd = headCmd(id, hid, { what: s.where.mark, tile }),
+        why = VERBS.project.check(st, cmd);
+      return why === null ? { ...cmd, plan: { ...mark, kind: 'project', key: null } } : WAITS.refused(why);
+    }
+    const act = CHAINS[name].act && CHAINS[name].act(st, id, s.where, tile); // a chain's own act first (farmstead: its placing)
+    if (act) {
+      const why = VERBS[act.verb].check(st, act);
+      return why === null ? { ...act, plan: { ...mark, kind: act.verb, key: null } } : WAITS.refused(why);
+    }
+    const x = s.steps.find((y) => y.job);
+    if (x) {
+      const why = VERBS.work.check(st, workCmd(id, x.job.key));
+      return why === null
+        ? { ...workCmd(id, x.job.key), plan: { ...mark, kind: x.job.kind, key: x.job.key } }
+        : WAITS.refused(why);
+    }
+    const y = s.steps[0];
+    if (!y) return WAITS.refused(`nothing is left to do at ${tile}`);
+    if (raisingDue(s.where, y))
+      return WAITS.opens(nextAsk(st.t), `the raising of the ${s.where.shelter ? 'shelter' : 'booth'}`);
+    return y.from > st.t
+      ? WAITS.opens(y.from, y.what || y.kind)
+      : WAITS.unposted(y.kind, holdOf(st, hid, name, s.where, y, tile));
+  }
+  // What the pawn may do now for task i of its plan pp: before the day its step is dated from (`from`), nothing (it opens that day);
+  // else taskCmd.
+  const ownCmd = (st, id, pp, i) => {
+    const s = pp.steps[i];
+    return s && s.from !== undefined && s.from > today(st)
+      ? WAITS.opens(s.from * DAY, 'the day it is planned for')
+      : taskCmd(st, id, pp.tasks[i]);
+  };
+  // What the pawn may do now for task t (a task at a tile, or by key): a command with its `plan` mark, or why not (a WAITS reason).
+  function taskCmd(st, id, t) {
+    if (chainOf(t)) return chainCmd(st, id, t);
+    if (!st.jobs.has(t.key)) return WAITS.refused(`there is no job ${t.key}`);
+    const why = VERBS.work.check(st, workCmd(id, t.key));
+    return why === null
+      ? { ...workCmd(id, t.key), plan: { from: 'task', kind: t.kind, key: t.key } }
+      : WAITS.refused(why);
+  }
+  // ---- what comes next ----
+  const handOf = (st, id) => controlOf(st, id).queue.find((c) => !c.plan) || null;
+  // The first job of kind k of the pawn's household that its `work` verb would let it take now, or null.
+  function routineJob(st, id, k) {
+    const hid = st.pawns[id].household,
+      js = hid === null ? null : st.jobsBy.get(`household:${hid}`);
+    if (js) for (const j of js) if (j.kind === k && VERBS.work.check(st, workCmd(id, j.key)) === null) return j;
+    return null;
+  }
+  // What its plan has pawn id do next, as a command with its `plan` mark, or null: in its sleeping hours, sleep until `until`;
+  // else the first routine kind not begun today with a job of its household it may take; else the first task that may be taken now
+  // (taskCmd). A command queued by hand goes first: with one queued, null. Reads only; writes nothing.
+  function nextOf(st, id) {
+    const pp = planOf(st, id);
+    if (!pp || living(st, id) || handOf(st, id)) return null;
+    if (asleepAt(pp.sleep, cal(st.t).hour)) {
+      const cmd = { actor: id, verb: 'sleep', target: null, args: { until: pp.sleep.until }, source: 'player' };
+      return VERBS.sleep.check(st, cmd) === null ? { ...cmd, plan: { from: 'sleep', kind: null, key: null } } : null;
+    }
+    const done = pp.done;
+    for (const k of pp.routine) {
+      if (done.includes(k)) continue;
+      const j = routineJob(st, id, k);
+      if (j) return { ...workCmd(id, j.key), plan: { from: 'routine', kind: k, key: j.key } };
+    }
+    for (let i = 0; i < pp.tasks.length; i++) {
+      const cmd = ownCmd(st, id, pp, i);
+      if (cmd.verb) return cmd;
+    }
+    return null;
+  }
+  // Whether plan mark m (a command the plan fed) is task t's.
+  const markOf = (m, t) =>
+    !!m &&
+    m.from === 'task' &&
+    (chainOf(t) ? m.chain === t.kind && m[t.kind] === t[t.kind] : !m.chain && m.key === t.key);
+  // Why each task of pawn id's plan waits now (VB-1651; Sim.waits(st, pawn)), in the plan's order: null for the one in hand and the one
+  // the plan does next, else a
+  // WAITS reason: its own (taskCmd) first, then what goes before it (a command by hand, the sleeping hours, a routine kind, an earlier
+  // task); and `idle`: null, or why the plan as a whole has the pawn do nothing now though it holds tasks or a routine (a command by
+  // hand holding the queue, named with the hour it was begun; else the first task's reason). The reads nextOf makes; writes nothing.
+  function waitsOf(st, id) {
+    const pp = planOf(st, id);
+    if (!pp) return { tasks: [], idle: null };
+    const dead = living(st, id),
+      hand = handOf(st, id),
+      head = controlOf(st, id).queue[0],
+      inHand = head && head.plan && head.begun !== null ? head.plan : null,
+      next = nextOf(st, id),
+      asleep = asleepAt(pp.sleep, cal(st.t).hour),
+      first = inHand || (next && next.plan);
+    const tasks = pp.tasks.map((t, i) => {
+      if (dead) return WAITS.refused(dead);
+      if (markOf(inHand, t) || (next && markOf(next.plan, t))) return null;
+      const own = ownCmd(st, id, pp, i);
+      if (!own.verb) return own;
+      if (hand) return WAITS.hand(hand);
+      if (asleep || (first && first.from === 'sleep')) return WAITS.sleep(pp.sleep ? pp.sleep.until : null);
+      if (first && first.from === 'routine') return WAITS.routine(first.kind);
+      const k = first ? pp.tasks.findIndex((u) => markOf(first, u)) : -1;
+      return k >= 0 ? WAITS.before(k) : null;
+    });
+    let idle = null;
+    if (pp.tasks.length || pp.routine.length) {
+      if (hand) idle = WAITS.hand(hand);
+      else if (dead) idle = WAITS.refused(dead);
+      else if (!inHand && !next) idle = tasks.find((w) => w) || null;
+    }
+    return { tasks, idle };
+  }
   return {
     QUEUE_MAX,
     PLAN_MAX,
@@ -232,12 +587,12 @@ VB['sim/controller'] = (() => {
     controlOf,
     attach,
     detach,
-    keepOnly,
-    put,
     queueStep,
-    emptyPlan,
-    planOf,
-    planners,
-    plansIn,
+    PLAN_OPS,
+    asleepAt,
+    WAITS,
+    RULES,
+    nextOf,
+    waitsOf,
   };
 })();

@@ -163,8 +163,6 @@
       "sim/sleepers",
       "sim/player",
       "sim/planchains",
-      "sim/playerplan",
-      "sim/plannext",
       "sim/ladder",
       "sim/upgrade",
       "sim/trust",

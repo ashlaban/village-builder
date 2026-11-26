@@ -28,7 +28,8 @@ const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
   assert.strictEqual(Sim.planView(st, -1), null, 'no view of no pawn');
   played(st);
   assert.deepStrictEqual(Sim.planView(st, st.player.pawn).tasks, [], 'no plan reads as empty');
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan, undefined, 'nothing is written until the player plans');
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn), null, 'nothing is written until the player plans');
+  assert(!st.plans.pawns.has(st.player.pawn), 'no plan record of the pawn before it plans (VB-1754)');
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { key: 'nothing' })), /no job nothing/);
   const other = [...st.jobs.values()].find((j) => j.owner.type === 'household' && j.owner.id !== 0 && j.kind === 'plow');
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { key: other.key })), /not the pawn's to take/, 'a neighbour\'s ploughing is not its to take');
@@ -37,14 +38,14 @@ const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { key: 'plow:f0.1', at: 0 }), true, 'added at the head');
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { key: 'plow:f0.2', at: 5 })), /no place 5/);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { key: 'plow:f0.2' }), true);
-  assert.deepStrictEqual(st.pawns[st.player.pawn].control.plan.tasks.map((t) => t.key), ['plow:f0.1', 'clear:f0', 'plow:f0.2']);
-  assert.deepStrictEqual(st.pawns[st.player.pawn].control.plan.tasks[1], { key: 'clear:f0', kind: 'clear', site: st.jobs.get('clear:f0').site });
+  assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.map((t) => t.key), ['plow:f0.1', 'clear:f0', 'plow:f0.2']);
+  assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks[1], { key: 'clear:f0', kind: 'clear', site: st.jobs.get('clear:f0').site });
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'move', { from: 2, to: 0 }), true);
-  assert.deepStrictEqual(st.pawns[st.player.pawn].control.plan.tasks.map((t) => t.key), ['plow:f0.2', 'plow:f0.1', 'clear:f0'], 'moved, the order kept');
+  assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.map((t) => t.key), ['plow:f0.2', 'plow:f0.1', 'clear:f0'], 'moved, the order kept');
   assert.match(String(Sim.plan(st, st.player.pawn, 'move', { from: 0, to: 3 })), /cannot move/);
   assert.match(String(Sim.plan(st, st.player.pawn, 'remove', { i: 3 })), /no task 3/);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'remove', { i: 1 }), true);
-  assert.deepStrictEqual(st.pawns[st.player.pawn].control.plan.tasks.map((t) => t.key), ['plow:f0.2', 'clear:f0']);
+  assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.map((t) => t.key), ['plow:f0.2', 'clear:f0']);
   assert.match(String(Sim.plan(st, st.player.pawn, 'routine', { kinds: ['water', 'nap'] })), /no job kind nap/);
   assert.match(String(Sim.plan(st, st.player.pawn, 'routine', { kinds: ['water', 'water'] })), /twice/);
   assert.match(String(Sim.plan(st, st.player.pawn, 'routine', { kinds: 'water' })), /list of job kinds/);
@@ -53,12 +54,12 @@ const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
   assert.match(String(Sim.plan(st, st.player.pawn, 'sleep', { from: 22, until: 24 })), /cannot sleep/);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'sleep', { from: 22, until: 6 }), true);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'sleep', null), true);
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.sleep, null);
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).sleep, null);
   assert.match(String(Sim.plan(st, st.player.pawn, 'nap', {})), /no plan op nap/);
-  const full = st.pawns[st.player.pawn].control.plan.tasks.slice();
-  while (st.pawns[st.player.pawn].control.plan.tasks.length < PLAN_MAX) st.pawns[st.player.pawn].control.plan.tasks.push({ key: `x${st.pawns[st.player.pawn].control.plan.tasks.length}`, kind: 'clear', site: -1 });
+  const n0 = VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length;
+  for (let n = n0; n < PLAN_MAX; n++) VB['sim/steps'].addTask(st, st.player.pawn, { key: `x${n}`, kind: 'clear', site: -1 }, n, {});
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { key: 'plow:f0.1' })), /plan is full/);
-  st.pawns[st.player.pawn].control.plan.tasks = full;
+  for (let n = PLAN_MAX - 1; n >= n0; n--) VB['sim/steps'].dropTask(st, st.player.pawn, n, null);
   const v = Sim.planView(st, st.player.pawn);
   assert.deepStrictEqual(v.routine.map((r) => [r.kind, r.done]), [['water', false], ['wood', false]]);
   assert.ok(v.routine[1].open && v.tasks.every((t) => t.stands) && v.now === null && v.followed);
@@ -87,8 +88,8 @@ const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
   assert.deepStrictEqual(day(1), ['water', 'wood'], 'the next day: the routine once each, in order');
   const task = begun.find((b) => b[1] === 'task');
   assert.ok(task && task[0] === 0 && task[2] === 'clear', 'then the task');
-  assert.ok(st.pawns[st.player.pawn].control.plan.tasks.length === 0, 'the cleared task leaves the plan (a fresh clearing may be posted under its key since)');
-  assert.deepStrictEqual([st.pawns[st.player.pawn].control.plan.last.key, st.pawns[st.player.pawn].control.plan.last.kind], ['clear:f0', 'clear']);
+  assert.ok(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length === 0, 'the cleared task leaves the plan (a fresh clearing may be posted under its key since)');
+  assert.deepStrictEqual([VB['sim/steps'].pawnPlan(st, st.player.pawn).last.key, VB['sim/steps'].pawnPlan(st, st.player.pawn).last.kind], ['clear:f0', 'clear']);
   const sleeps = begun.filter((b) => b[1] === 'sleep');
   assert.ok(sleeps.length >= 1 && sleeps.every((b) => b[3] >= 22), `sleep at the plan's hour: ${JSON.stringify(sleeps)}`);
   assert.ok(begun.every((b) => b[1] !== 'routine' || (b[3] >= 6 && b[3] < 22)), 'no work in the sleeping hours');
@@ -106,7 +107,7 @@ const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
   Sim.advance(st, 0.1);
   assert.ok(Sim.controlOf(st, st.player.pawn).queue.length === 1 && !head(st).plan && head(st).verb === 'walkTo', 'the hand command goes first');
   assert.strictEqual(Sim.planView(st, st.player.pawn).next, null, 'the plan waits for it');
-  assert.deepStrictEqual(st.pawns[st.player.pawn].control.plan.tasks.map((t) => t.key), ['clear:f0'], 'the task stays planned');
+  assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.map((t) => t.key), ['clear:f0'], 'the task stays planned');
   let n = 0;
   while (Sim.controlOf(st, st.player.pawn).queue.length && !head(st).plan && n++ < 200) Sim.advance(st, 0.1);
   Sim.advance(st, 0.1);
@@ -114,7 +115,7 @@ const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
   Sim.setAuto(st, st.player.pawn, true);
   Sim.advance(st, 2);
   assert.ok(Sim.controlOf(st, st.player.pawn).queue.every((c) => c.begun !== null || !c.plan), 'with automatic behaviour on nothing more is fed');
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.tasks.length + (st.jobs.has('clear:f0') ? 0 : 1), 1, 'the plan is kept');
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length + (st.jobs.has('clear:f0') ? 0 : 1), 1, 'the plan is kept');
   sound(st, 'hand first');
 }
 
@@ -154,11 +155,11 @@ const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
   assert.ok(st.pawns[FARMER].sleep.owed < 1, `the hours owed near zero in the morning: ${st.pawns[FARMER].sleep.owed}`);
   assert.ok(head(st).plan.key === 'clear:f0' && st.agents[FARMER].job === j, 'the clearing taken up again in the morning');
   const data = JSON.parse(JSON.stringify(Sim.save(st))), back = Sim.load(tinyWorld(rows), data);
-  assert.strictEqual(canon(back.pawns[back.player.pawn].control.plan), canon(st.pawns[st.player.pawn].control.plan), 'the plan comes back as saved');
+  assert.strictEqual(canon(VB['sim/steps'].pawnPlan(back, back.player.pawn)), canon(VB['sim/steps'].pawnPlan(st, st.player.pawn)), 'the plan comes back as saved');
   Sim.advance(st, 20);
   Sim.advance(back, 20);
   assert.strictEqual(hash(back), hash(st), 'the loaded run and the saved one agree');
-  assert.ok(st.pawns[st.player.pawn].control.plan.tasks.length === 0 && st.pawns[st.player.pawn].control.plan.last.key === 'clear:f0' && st.pawns[st.player.pawn].control.plan.last.t < 2 * DAY, 'the clearing done on the second day');
+  assert.ok(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length === 0 && VB['sim/steps'].pawnPlan(st, st.player.pawn).last.key === 'clear:f0' && VB['sim/steps'].pawnPlan(st, st.player.pawn).last.t < 2 * DAY, 'the clearing done on the second day');
   sound(st, 'over two days');
   sound(back, 'loaded');
 }
@@ -177,12 +178,12 @@ const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { plant: site })), /already planned/);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { plant: broken }), true, 'a field broken, in stubble, in its window');
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { plant: broken, at: 3 })), /already planned/);
-  assert.deepStrictEqual(st.pawns[st.player.pawn].control.plan.tasks[0], { plant: site, kind: 'plant', site });
+  assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks[0], { plant: site, kind: 'plant', site });
   const v = Sim.planView(st, st.player.pawn).tasks;
   assert.deepStrictEqual(v.map((t) => [t.kind, t.plant, t.step, t.stands]), [['plant', site, 'clear', true], ['plant', broken, 'plow', true]]);
   const begun = [];
   let seen = null, saved = null, stood = false;
-  for (let i = 0; i < 10 * 24 * 6 && st.pawns[st.player.pawn].control.plan.tasks.length; i++) {
+  for (let i = 0; i < 10 * 24 * 6 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length; i++) {
     Sim.advance(st, 0.1);
     const c = head(st);
     if (c && c.plan && c.plan.from === 'task' && c.begun !== null && c !== seen) {
@@ -201,13 +202,13 @@ const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
   assert(begun.findIndex((b) => b[0] === broken) < begun.findIndex((b) => b[1] === 'break'), 'the pawn went on to the next task meanwhile');
   const fd = f.fields.find((x) => x.tile === site);
   assert(fd && ['sown', 'growing'].includes(fd.stage), 'the new field is sown');
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.tasks.length, 0);
-  assert.deepStrictEqual([st.pawns[st.player.pawn].control.plan.last.plant, st.pawns[st.player.pawn].control.plan.last.kind, st.pawns[st.player.pawn].control.plan.last.which], [site, 'plant', 'sown']);
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length, 0);
+  assert.deepStrictEqual([VB['sim/steps'].pawnPlan(st, st.player.pawn).last.plant, VB['sim/steps'].pawnPlan(st, st.player.pawn).last.kind, VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which], [site, 'plant', 'sown']);
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { plant: site })), /is sown/, 'a sown field is refused');
   sound(st, 'planted');
   // the run saved at the breaking goes on the same
   const back = Sim.load(tinyWorld(rows), saved), again = Sim.load(tinyWorld(rows), saved);
-  assert(back.pawns[back.player.pawn].control.plan.tasks.some((t) => t.plant === site), 'the loaded plan keeps the plant task');
+  assert(VB['sim/steps'].pawnPlan(back, back.player.pawn).tasks.some((t) => t.plant === site), 'the loaded plan keeps the plant task');
   Sim.advance(back, 24);
   Sim.advance(again, 12);
   Sim.advance(again, 12);
@@ -220,8 +221,8 @@ const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
   const fd = st.farmsteads[0].fields[2];
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { plant: fd.tile }), true);
   Stores.take(st, hh, Stores.grainGood('barley'), Stores.grainOf(hh, 'barley'), 'seed');
-  for (let i = 0; i < 12 * 24 * 10 && st.pawns[st.player.pawn].control.plan.tasks.length; i++) Sim.advance(st, 0.1);
-  assert.deepStrictEqual([st.pawns[st.player.pawn].control.plan.last.plant, st.pawns[st.player.pawn].control.plan.last.which], [fd.tile, 'closed'], 'its window shut, the field unsown');
+  for (let i = 0; i < 12 * 24 * 10 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length; i++) Sim.advance(st, 0.1);
+  assert.deepStrictEqual([VB['sim/steps'].pawnPlan(st, st.player.pawn).last.plant, VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which], [fd.tile, 'closed'], 'its window shut, the field unsown');
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { plant: fd.tile })), /barley sowing is over/, 'refused once its window has shut');
   fd.crop = 'fallow';
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { plant: fd.tile })), /lies fallow/);
@@ -266,31 +267,31 @@ const chainRun = (st, stop, steps = 40 * 24 * 10) => {
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { harvest: st.farmsteads[1].fields[0].tile })), /no field of the household's/, 'a neighbour\'s field');
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { hay: m.tile }), true, 'a hay task added before the haymaking');
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { hay: m.tile, at: 0 })), /meadow at \d+ is already planned/);
-  assert.deepStrictEqual(st.pawns[st.player.pawn].control.plan.tasks[1], { hay: m.tile, kind: 'hay', site: m.tile });
+  assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks[1], { hay: m.tile, kind: 'hay', site: m.tile });
   const hv = Sim.planView(st, st.player.pawn).tasks[1];
   assert.deepStrictEqual([hv.kind, hv.hay, hv.step, hv.stands], ['hay', m.tile, 'mow', false], 'it stands, its mowing not posted');
   const saved = JSON.parse(JSON.stringify(Sim.save(st)));
   const summer = (s) => Sim.cal(s.t).season >= 1;
   const sown = chainRun(st, summer);
   assert(sown.some((b) => b[0] === 'plant' && b[2] === 'sow') && SOWN(fd), `the field sown on the way: ${fd.stage}`);
-  assert(st.pawns[st.player.pawn].control.plan.tasks.some((t) => t.hay === m.tile), 'the hay task stood through the spring');
+  assert(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.some((t) => t.hay === m.tile), 'the hay task stood through the spring');
   // the harvest task added in summer: it waits
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { harvest: fd.tile }), true);
   const rv = Sim.planView(st, st.player.pawn).tasks.find((t) => t.kind === 'harvest');
   assert.deepStrictEqual([rv.harvest, rv.step, rv.stands], [fd.tile, 'reap', false]);
-  const hay = chainRun(st, (s) => !s.pawns[s.player.pawn].control.plan.tasks.some((t) => t.kind === 'hay'));
+  const hay = chainRun(st, (s) => !VB['sim/steps'].pawnPlan(s, s.player.pawn).tasks.some((t) => t.kind === 'hay'));
   const at = (b, k) => b.filter((x) => x[0] === k).map((x) => x[2]);
   assert(at(hay, 'hay')[0] === 'mow' && at(hay, 'hay').includes('hay') && at(hay, 'hay').every((k, n) => k === 'mow' ? !at(hay, 'hay').slice(0, n).includes('hay') : k === 'hay'), `mown, then its hay carried: ${at(hay, 'hay')}`);
   assert.strictEqual(m.stage, 'aftermath');
-  assert.deepStrictEqual([st.pawns[st.player.pawn].control.plan.last.hay, st.pawns[st.player.pawn].control.plan.last.kind, st.pawns[st.player.pawn].control.plan.last.which], [m.tile, 'hay', 'home']);
+  assert.deepStrictEqual([VB['sim/steps'].pawnPlan(st, st.player.pawn).last.hay, VB['sim/steps'].pawnPlan(st, st.player.pawn).last.kind, VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which], [m.tile, 'hay', 'home']);
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { hay: m.tile })), /hay of the meadow at \d+ is in/);
   assert(!hay.some((b) => b[0] === 'harvest'), 'the harvest waited');
   sound(st, 'hay home');
   // the crop brought on to ripen in a few days (a constructed state: the year's draw would ripen it in autumn)
   fd.sown -= 12;
-  const reaped = chainRun(st, (s) => !s.pawns[s.player.pawn].control.plan.tasks.some((t) => t.kind === 'harvest'));
+  const reaped = chainRun(st, (s) => !VB['sim/steps'].pawnPlan(s, s.player.pawn).tasks.some((t) => t.kind === 'harvest'));
   assert(at(reaped, 'harvest')[0] === 'reap' && at(reaped, 'harvest').includes('haul'), `reaped, then its sheaves carried: ${at(reaped, 'harvest')}`);
-  assert.deepStrictEqual([st.pawns[st.player.pawn].control.plan.last.harvest, st.pawns[st.player.pawn].control.plan.last.which], [fd.tile, 'in'], JSON.stringify(st.pawns[st.player.pawn].control.plan.last));
+  assert.deepStrictEqual([VB['sim/steps'].pawnPlan(st, st.player.pawn).last.harvest, VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which], [fd.tile, 'in'], JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
   assert.strictEqual(fd.stage, 'stubble');
   assert(st.households[0].unthreshed.length > 0, 'the sheaves in the barn');
   sound(st, 'harvest in');
@@ -327,7 +328,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   Sim.advance(st, 0.2);
   assert(begun.some((b) => b[1] === site && b[2] === 'clear'), 'after the first task\'s clearing, not waiting for its project to end');
   assert(begun.some((b) => b[1] === tile && b[2] === 'project'), `begun by the feeder through the head's verb: ${JSON.stringify(begun)}`);
-  assert(st.pawns[st.player.pawn].control.plan.tasks.some((t) => t.plant === tile) && Sim.planView(st, st.player.pawn).tasks.find((t) => t.plant === tile).step === p.steps[p.open].kind, 'the task goes on with its project');
+  assert(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.some((t) => t.plant === tile) && Sim.planView(st, st.player.pawn).tasks.find((t) => t.plant === tile).step === p.steps[p.open].kind, 'the task goes on with its project');
   assert.strictEqual(st.plans.households.get(0).tiles.field, -1, 'the mark used');
   sound(st, 'marked');
 }
@@ -336,7 +337,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
 // fields sown and the hay home, the open project left as it was and nothing begun by the household's own rule; why each task waits on
 // the way, and the agenda laying none before its reason allows; a save and a load go on the same. An unplayed head keeps the limit of one.
 {
-  const P = VB['sim/projects'], { VERBS } = VB['sim/commands'], WHYS = Object.keys(VB['sim/plannext'].WAITS);
+  const P = VB['sim/projects'], { VERBS } = VB['sim/commands'], WHYS = Object.keys(VB['sim/controller'].WAITS);
   const st = alone({ herds: true }), f = st.farmsteads[0], hh = st.households[0];
   const old = f.fields.map((fd) => [fd, fd.crop]);
   for (const fd of f.fields) fd.crop = 'fallow'; // the settler's hands till the new fields (sim/fieldwork underHands); put back below
@@ -417,7 +418,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
       assert.deepStrictEqual(pv.project.id, first.id, 'project stays the first');
       saved = JSON.parse(JSON.stringify(Sim.save(s)));
     }
-    return !s.pawns[s.player.pawn].control.plan.tasks.length;
+    return !VB['sim/steps'].pawnPlan(s, s.player.pawn).tasks.length;
   }, 60 * 24 * 10);
   assert(saved, 'the three begun side by side');
   assert(apart >= 3, 'several project steps posted at once, keyed apart: ' + apart);
@@ -457,7 +458,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
 // 10. VB-1652: an `unposted` task names the household's own rule that holds its job back: a plant task on a field beyond what its hands
 // till shows the cap; a hay task with hay enough shows that; else the next review.
 {
-  const st = alone({ herds: true }), f = st.farmsteads[0], hh = st.households[0], { RULES } = VB['sim/plannext'];
+  const st = alone({ herds: true }), f = st.farmsteads[0], hh = st.households[0], { RULES } = VB['sim/controller'];
   const review = (s) => VB['sim/jobs'].refreshJobs(s, Sim.cal(s.t), true);
   const last = f.fields[f.fields.length - 1], m = f.meadows[0];
   for (const fd of f.fields) assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { plant: fd.tile }), true);
@@ -472,7 +473,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   assert.match(w.text, new RegExp(`hands till ${cap} fields?; the field at ${last.tile} is beyond them`));
   assert(RULES.includes(w.rule) && RULES.includes('review'), 'a rule of the closed list');
   assert.deepStrictEqual(JSON.parse(JSON.stringify(w)), w, 'plain data');
-  while (st.pawns[st.player.pawn].control.plan.tasks.length) Sim.plan(st, st.player.pawn, 'remove', { i: 0 });
+  while (VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length) Sim.plan(st, st.player.pawn, 'remove', { i: 0 });
   // the hay: in the haymaking, with the barn full
   Sim.advance(st, 300 - st.t);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { hay: m.tile }), true);
@@ -487,11 +488,16 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
 // not in the other (no st.player there), the same routine, task and sleep, automatic behaviour off; the same commands begun, the same
 // plan left, the same view.
 {
+  // VB-1754: the played pawn's through the facade Sim.plan, the unplayed one's through the verb `plan` itself, issued as any pawn issues
+  // it (source 'pawn'): the same steps of the plan record
+  const verb = (st, id, op, args) =>
+    Sim.command(st, { actor: id, verb: 'plan', target: { kind: 'pawn', id }, args: { ...args, op }, source: 'pawn' });
   const ops = (st, id) => {
+    const by = st.player ? Sim.plan : verb;
     assert.strictEqual(Sim.setAuto(st, id, false), true);
-    assert.strictEqual(Sim.plan(st, id, 'routine', { kinds: ['water', 'wood'] }), true);
-    assert.strictEqual(Sim.plan(st, id, 'add', { key: 'clear:f0' }), true);
-    assert.strictEqual(Sim.plan(st, id, 'sleep', { from: 22, until: 6 }), true);
+    assert.strictEqual(by(st, id, 'routine', { kinds: ['water', 'wood'] }), true);
+    assert.strictEqual(by(st, id, 'add', { key: 'clear:f0' }), true);
+    assert.strictEqual(by(st, id, 'sleep', { from: 22, until: 6 }), true);
   };
   const run = (st) => {
     const begun = [];
@@ -510,12 +516,30 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   Sim.inhabit(mine, FARMER);
   ops(mine, mine.player.pawn);
   ops(theirs, FARMER);
-  assert(!theirs.player && theirs.pawns[FARMER].control.plan, 'the unplayed pawn holds its plan, with no player');
+  assert(!theirs.player && VB['sim/steps'].pawnPlan(theirs, FARMER), 'the unplayed pawn holds its plan, with no player');
+  const rec = theirs.plans.pawns.get(FARMER);
+  assert.deepStrictEqual(rec.ahead.map((s) => [Object.keys(s.what)[0], s.author]), [['routine', 'pawn'], ['routine', 'pawn'], ['sleep', 'pawn'], ['goal', 'pawn']], 'steps of its plan record, authored by the pawn');
+  assert(!theirs.pawns[FARMER].control.plan, 'nothing of it on the controller');
+  // checked by position: no pawn plans another's; a pawn that is not the head writes no step of its household's plan
+  const other = theirs.pawns.findIndex((p, i) => i !== FARMER && p.alive);
+  assert.match(String(Sim.command(theirs, { actor: other, verb: 'plan', target: { kind: 'pawn', id: FARMER }, args: { op: 'sleep' }, source: 'pawn' })), /plans its own plan only/);
+  if (theirs.households[0].holder !== other)
+    assert.match(String(Sim.command(theirs, { actor: other, verb: 'plan', target: { kind: 'household', id: 0 }, args: { op: 'target', store: 'wood', n: 1 }, source: 'pawn' })), /only its head changes its plan|no household/);
+  assert.match(String(verb(theirs, FARMER, 'nap', {})), /no plan op nap/);
+  // a dated task waits for its day, through the verb as through the facade
+  const day = Math.floor(theirs.t / DAY) + 2;
+  for (const [s, by] of [[theirs, verb], [mine, Sim.plan]]) {
+    assert.match(String(by(s, FARMER, 'add', { key: 'plow:f0.1', from: day + 1, by: day })), /cannot be done by day/);
+    assert.strictEqual(by(s, FARMER, 'add', { key: 'plow:f0.1', at: 0, from: day, by: day + 3 }), true);
+    const w = Sim.waits(s, FARMER).tasks[0];
+    assert.deepStrictEqual([w.why, w.t], ['opens', day * DAY], JSON.stringify(w));
+    assert.strictEqual(by(s, FARMER, 'remove', { i: 0 }), true);
+  }
   assert.deepStrictEqual(Sim.planView(theirs, FARMER), Sim.planView(mine, FARMER), 'the same view, planned');
   const a = run(mine), b = run(theirs);
   assert(b.some((x) => x[1] === 'routine') && b.some((x) => x[1] === 'task') && b.some((x) => x[1] === 'sleep'), `fed from each part: ${JSON.stringify(b)}`);
   assert.deepStrictEqual(b, a, 'the same commands begun from its plan');
-  assert.deepStrictEqual(theirs.pawns[FARMER].control.plan, mine.pawns[FARMER].control.plan, 'the same plan left');
+  assert.deepStrictEqual(VB['sim/steps'].pawnPlan(theirs, FARMER), VB['sim/steps'].pawnPlan(mine, FARMER), 'the same plan left');
   assert.deepStrictEqual(Sim.planView(theirs, FARMER), Sim.planView(mine, FARMER), 'the same view, followed');
   assert.deepStrictEqual(Sim.waits(theirs, FARMER), Sim.waits(mine, FARMER), 'the same waits');
   sound(theirs, 'unplayed, planned');
@@ -529,7 +553,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
     assert.strictEqual(Sim.plan(s, FARMER, 'add', { plant: free }), true);
     Sim.advance(s, 0.2);
   }
-  const [pm, pt] = twins.map((s) => s.pawns[FARMER].control.plan);
+  const [pm, pt] = twins.map((s) => VB['sim/steps'].pawnPlan(s, FARMER));
   assert.deepStrictEqual(pm.tasks.map((t) => t.plant), [free], 'the played head keeps its task');
   assert.deepStrictEqual(pt, pm, 'the unplayed head keeps it as well');
   for (let i = 0; i < 40; i++) for (const s of twins) Sim.advance(s, 0.1);

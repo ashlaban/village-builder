@@ -328,7 +328,7 @@ VB['sim/stores'] = (() => {
     const plan = st.plans && st.plans.households.get(hh.id);
     if (plan) plan.dirty = true;
   }
-  // The player's plan asks its head for work the head's rule posts at a review (sim/playerplan, the event planAsks: a firewood task's
+  // The player's plan asks its head for work the head's rule posts at a review (sim/controller, the event planAsks: a firewood task's
   // cutting, VB-1661): the plan is woken as by a store crossing a target, the stores it reads having changed since its review.
   on('planAsks', (st, { household }) => {
     const hh = st.households[household];

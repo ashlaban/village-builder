@@ -14,11 +14,22 @@ VB['sim/steps'] = (() => {
   //   still to do by the planner's estimate, season and year steps)}. A project plan's own steps (st.plans.projects, sim/projectplans) are
   //   the steps under its year step: each also carries id, why ({step} of the project's year step), who, author and state, beside its
   //   goal (kind, place, hours and the site's fields). Done steps leave the lists; a season's are folded at its end (sim/seasonal).
-  // @state st.plans.pawns (VB-1752): a pawn's plan record, made once it holds a step (a claimant's restoration, sim/farmclaims) and gone
-  //   when it holds none. st.plans.stepSeq: the last step's id.
+  // @state st.plans.pawns (VB-1752): a pawn's plan record, made once it holds a step (a claimant's restoration, sim/farmclaims; a step
+  //   its own controller authors, VB-1754) and gone when it holds none and no `lastTask`. st.plans.stepSeq: the last step's id.
+  // @state plan.lastTask (a pawn's record; VB-1754, pawn.control.plan's before): absent until the pawn first plans for itself through the
+  //   verb `plan` (sim/plans), then null or the last task that left its plan: {key, kind, t} (its job finished or gone) or {<chain>
+  //   (a tile), kind, site, t, which (one of the chain's `which`, sim/planchains)}. A pawn's own steps, in its record's `ahead`, by
+  //   author 'pawn', in this order: its routine ({routine: a job kind}, each kind once, at most sim/controller's PLAN_MAX; `begun`: the game day its
+  //   command was last begun, absent before), its sleeping hours ({sleep: {from, until}}, hours of the day, at most one step), its
+  //   tasks ({goal}, at most sim/controller's PLAN_MAX, in the order they are done: a task by key {key (a job's key), kind, site (its tile or -1)} or a
+  //   task at a tile {<chain>: a tile, kind: <chain>, site: the same tile, and a fell task's n and got, an upgrade's or outbuilding's
+  //   what}, one a chain a tile and a what; from, by: game days, a dated task's). Written here only (the verb's ops, sim/controller's
+  //   checks; the feeder's planDay and planBegun; a fell task's loads home); read through pawnPlan, plansIn and planners
   const STATES = Object.freeze(['planned', 'open', 'at-risk', 'done', 'failed', 'dropped']),
     AUTHORS = Object.freeze(['custom', 'pawn']),
     LISTS = Object.freeze(['year', 'season', 'ahead']);
+  const { DAY } = VB['sim/rules'];
+  const { on } = VB['sim/events'];
   const keyOf = (body) => `${body.kind}:${body.id}`;
   const mapOf = (st, kind) => {
     const P = st.plans;
@@ -103,7 +114,13 @@ VB['sim/steps'] = (() => {
     if (!plan) return;
     const i = plan.year.findIndex((s) => s.what.project === p.id);
     if (i >= 0) plan.year.splice(i, 1);
-    if (p.holder.type === 'pawn' && !plan.year.length && !(plan.season || NONE).length && !plan.ahead.length)
+    if (
+      p.holder.type === 'pawn' &&
+      !plan.year.length &&
+      !(plan.season || NONE).length &&
+      !plan.ahead.length &&
+      plan.lastTask === undefined
+    )
       st.plans.pawns.delete(p.holder.id);
   }
   // ---- a task's step ----
@@ -178,7 +195,128 @@ VB['sim/steps'] = (() => {
     }
     return null;
   }
+  // ---- a pawn's own plan (VB-1754; design.md section 7, The player's plan): the steps its controller authors through the verb `plan` ----
+  const today = (st) => Math.floor(st.t / DAY);
+  // Pawn id's plan as its readers see it, or null until it first plans for itself: {routine (its kinds), sleep (null or {from, until}),
+  // tasks (the goals, the steps' own objects), steps (the task steps, by the same index), day (today), done (the routine's kinds begun
+  // today), last}. Allocates a few arrays: read where a plan is asked of, never over all pawns.
+  function pawnPlan(st, id) {
+    const plan = planFor(st, 'pawn', id);
+    if (!plan || plan.lastTask === undefined) return null;
+    const d = today(st),
+      v = { routine: [], sleep: null, tasks: [], steps: [], day: d, done: [], last: plan.lastTask };
+    for (const s of plan.ahead) {
+      const w = s.what;
+      if (w.routine !== undefined) {
+        v.routine.push(w.routine);
+        if (s.begun === d) v.done.push(w.routine);
+      } else if (w.sleep) v.sleep = w.sleep;
+      else if (w.goal) {
+        v.tasks.push(w.goal);
+        v.steps.push(s);
+      }
+    }
+    return v;
+  }
+  // The pawns that plan for themselves, ascending: from the pawns' records (a claimant's and a planner's, a few), so a run where no pawn
+  // has planned does no work here.
+  function planners(st) {
+    const out = [];
+    if (!st.plans || !st.plans.pawns.size) return out;
+    for (const [id, plan] of st.plans.pawns) if (plan.lastTask !== undefined) out.push(id);
+    return out.sort((a, b) => a - b);
+  }
+  // The plans of household hid's members that plan for themselves, by their pawns' ids ([] with none).
+  function plansIn(st, hid) {
+    const out = [];
+    if (hid === null || hid === undefined || !st.plans || !st.plans.pawns.size) return out;
+    for (const id of planners(st)) if (st.pawns[id].household === hid) out.push(pawnPlan(st, id));
+    return out;
+  }
+  // The writes (the verb's ops, sim/controller's checks before them; the feeder's): on pawn id's record, made if it has none.
+  function own(st, id) {
+    let plan = planFor(st, 'pawn', id);
+    if (!plan) st.plans.pawns.set(id, (plan = record({ reviewed: null }, 'pawn', id)));
+    if (plan.lastTask === undefined) plan.lastTask = null;
+    return plan;
+  }
+  const authored = (st, what, extra) => ({ ...make(st, what, null, extra), author: 'pawn' });
+  // The index in `ahead` of the i-th task step, or -1 past the last (the tasks are the list's last steps).
+  function goalAt(plan, i) {
+    let n = 0;
+    for (let k = 0; k < plan.ahead.length; k++) if (plan.ahead[k].what.goal && n++ === i) return k;
+    return -1;
+  }
+  const put = (list, k, s) => (k < 0 ? list.push(s) : list.splice(k, 0, s));
+  // The routine becomes `kinds`, in order; a kind kept keeps the day it was begun.
+  function setRoutine(st, id, kinds) {
+    const plan = own(st, id),
+      old = plan.ahead.filter((s) => s.what.routine !== undefined);
+    plan.ahead = [
+      ...kinds.map((k) => old.find((s) => s.what.routine === k) || authored(st, { routine: k }, {})),
+      ...plan.ahead.filter((s) => s.what.routine === undefined),
+    ];
+  }
+  // The sleeping hours become s ({from, until}), or none (null).
+  function setSleep(st, id, s) {
+    const plan = own(st, id),
+      i = plan.ahead.findIndex((x) => x.what.sleep);
+    if (i >= 0) plan.ahead.splice(i, 1);
+    if (!s) return;
+    let k = 0;
+    while (k < plan.ahead.length && plan.ahead[k].what.routine !== undefined) k++;
+    plan.ahead.splice(k, 0, authored(st, { sleep: { from: s.from, until: s.until } }, {}));
+  }
+  // Task `goal` enters the tasks at place `at`, dated by `when` ({from, by}, either absent).
+  function addTask(st, id, goal, at, when) {
+    const plan = own(st, id);
+    put(plan.ahead, goalAt(plan, at), authored(st, { goal }, when));
+  }
+  // Task i leaves the plan; `last`, if given, is kept as the last task that left.
+  function dropTask(st, id, i, last) {
+    const plan = own(st, id);
+    plan.ahead.splice(goalAt(plan, i), 1);
+    if (last) plan.lastTask = last;
+  }
+  function moveTask(st, id, from, to) {
+    const plan = own(st, id),
+      s = plan.ahead.splice(goalAt(plan, from), 1)[0];
+    put(plan.ahead, goalAt(plan, to), s);
+  }
+  // The routine's kind was begun today by its command.
+  function routineBegun(st, id, kind) {
+    const plan = planFor(st, 'pawn', id),
+      s = plan && plan.ahead.find((x) => x.what.routine === kind);
+    if (s) s.begun = today(st);
+  }
+  // A trip of timber is home from `tile` with its `loads` (sim/chores' wood, the event timberHome): a fell task there of a plan of the
+  // household's members counts its loads, not its trips (VB-1662: a cart's trip brings several); the first by its pawn's id.
+  on('timberHome', (st, { household, tile, loads }) => {
+    for (const pp of plansIn(st, household)) {
+      const t = pp.tasks.find((x) => x.key === undefined && x.kind === 'fell' && x.fell === tile);
+      if (!t) continue;
+      if (t.got < t.n) t.got = Math.min(t.n, t.got + (loads || 1));
+      return;
+    }
+  });
+  // At a death the pawn's own steps leave its record, with its last task; the record goes if it holds nothing more.
+  on('died', (st, d) => {
+    const plan = planFor(st, 'pawn', d.pawn);
+    if (!plan || plan.lastTask === undefined) return;
+    plan.ahead = plan.ahead.filter((s) => s.author !== 'pawn');
+    delete plan.lastTask;
+    if (!plan.year.length && !(plan.season || NONE).length && !plan.ahead.length) st.plans.pawns.delete(d.pawn);
+  });
   return {
+    pawnPlan,
+    planners,
+    plansIn,
+    setRoutine,
+    setSleep,
+    addTask,
+    dropTask,
+    moveTask,
+    routineBegun,
     STATES,
     AUTHORS,
     keyOf,

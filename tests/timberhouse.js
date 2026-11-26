@@ -112,14 +112,14 @@ function crowd(st, to, n) {
   const back = Sim.load(world(), saved),
     again = Sim.load(world(), saved);
   const run = (s) => {
-    for (let i = 0; i < 120 * 240 && s.pawns[s.player.pawn].control.plan.tasks.some((t) => t.kind === 'upgrade'); i++) Sim.advance(s, 0.1);
+    for (let i = 0; i < 120 * 240 && VB['sim/steps'].pawnPlan(s, s.player.pawn).tasks.some((t) => t.kind === 'upgrade'); i++) Sim.advance(s, 0.1);
   };
   run(back);
   run(again);
   assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
   run(st);
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
-  assert.strictEqual(st.pawns[st.player.pawn].control.plan.last.which, 'roof', JSON.stringify(st.pawns[st.player.pawn].control.plan.last));
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'roof', JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
   assert.strictEqual(f.rung, 'timber');
   const w = Sim.farmView(st, f.id, st.player && st.player.pawn);
   assert.strictEqual(w.rung, 'timber');

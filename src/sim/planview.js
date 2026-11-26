@@ -1,14 +1,15 @@
 // @sys sim/planview: the page's reads of a pawn's plan (Sim.planView(st, pawn), VB-1746: the routine, the sleeping hours, the tasks with why each waits,
 //   what the plan has the pawn on and does next) and of the fire (Sim.fireView, VB-1653); views computed when the page asks, as sim/agenda
-//   is: they write nothing and no simulation module reads them (VB-1646; VB-1657 split them from sim/playerplan)
+//   is: they write nothing and no simulation module reads them (VB-1646; VB-1657 split them from sim/playerplan;
+//   the pawn's own steps of its plan record since VB-1754)
 VB['sim/planview'] = (() => {
-  const { cal } = VB['sim/rules'];
+  const { cal, DAY } = VB['sim/rules'];
   const { timberOf } = VB['sim/chores'];
   const { chainOf, chainSteps, pileOf } = VB['sim/planchains'];
-  const { empty, today } = VB['sim/playerplan'];
-  const { planOf } = VB['sim/controller'];
-  const { nextOf, waitsOf } = VB['sim/plannext'];
-  const { controlOf } = VB['sim/controller'];
+  const { pawnPlan: planOf } = VB['sim/steps'];
+  const { controlOf, nextOf, waitsOf } = VB['sim/controller'];
+  const today = (st) => Math.floor(st.t / DAY);
+  const empty = (st) => ({ routine: [], sleep: null, tasks: [], steps: [], day: today(st), done: [], last: null });
   const { supplyOutlook, reckon } = VB['sim/outlook'];
   const { fireOf } = VB['sim/house'];
   // ---- the page's read: Sim.planView(st, id) ----

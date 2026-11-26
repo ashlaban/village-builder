@@ -12,7 +12,7 @@ VB['sim/upgrade'] = (() => {
   const { register, issue } = VB['sim/commands'];
   const Camp = VB['sim/camp'];
   const { living } = VB['sim/records'];
-  const { planners, plansIn } = VB['sim/controller'];
+  const { planners, plansIn } = VB['sim/steps'];
   const { on, emit } = VB['sim/events'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];

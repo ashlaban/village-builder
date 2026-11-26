@@ -22,7 +22,8 @@ VB['sim/plans'] = (() => {
     { emit } = VB['sim/events'],
     { makeProject, drop: dropProject, dropAll, dropWords } = VB['sim/projectplans'];
   const { meadowWhy, pickMeadow, beginMeadow, wantsMeadow, wantsFirstMeadow } = VB['sim/meadows'];
-  const { issue, register } = VB['sim/commands'];
+  const { issue, register, VERBS } = VB['sim/commands'];
+  const { PLAN_OPS } = VB['sim/controller'];
   const { reviewWant } = VB['sim/exchange'];
   const Targets = VB['sim/targets'];
   const { buildStep } = VB['sim/building'];
@@ -305,6 +306,8 @@ VB['sim/plans'] = (() => {
     // so the two differ only where the bias moves the fields under it
     const wanted = hh.farmstead === null ? 0 : fieldsWanted(st, hh, F.workable);
     return {
+      planOp,
+      planFacade,
       targets: {
         hay: target('hay', targetOf(plan, 'hay').level, M.hayWinters),
         // what the head counts on besides its fields, by source (VB-768: its own estimate, sim/yields' trusted), rations a year
@@ -376,61 +379,109 @@ VB['sim/plans'] = (() => {
   // plan is made again ----
   // target({store, n}): the plan's target of `store` becomes n, within its bounds (sim/plans' targetBounds: hay 0 to 3 winters, fields 0
   // to what the hands can till, wood 0 to twice the winter's goal, cow 0 or 1); n null clears it, and the holder's rule sets it again
-  register('target', {
-    check: (st, c) =>
-      heads(st, c) ||
-      (!c.args || c.args.n === undefined
-        ? 'a target names n, or null to clear it'
-        : targetWhy(st, c.target, c.args.store, c.args.n)),
-    run: (st, c) => setTarget(st, c.target, c.args.store, c.args.n),
+  // ---- the verb `plan` (VB-1754; design.md section 7, The player's plan; docs/plans/four-scales/README.md, 3.6): the agent of a body
+  // writes steps of the body's plan, checked by the actor's position, never by whether it is played: any pawn its own (target {kind:
+  // 'pawn', id}: its routine, sleeping hours and ordered or dated tasks, the ops of sim/controller's PLAN_OPS), the head of a household
+  // the household's ({kind: 'household', id}: the ops below, and sim/day's dayOrder by planOp). args {op, ...the op's own}. The verbs
+  // target, tile, order, project and dayOrder are its facades (planFacade), as Sim.plan(st, pawn, op, args) is (sim/player) ----
+  const OPS = { pawn: { ...PLAN_OPS }, household: {} };
+  // Op `op` of the plans of bodies of `kind`: {check(st, c), run(st, c)}, c with the body's id as its target and the op's own args.
+  // At load (sim/day's dayOrder).
+  const planOp = (kind, op, spec) => (OPS[kind][op] = spec);
+  // The command an op is given: the body's id its target, its own args.
+  const opCmd = (c) => {
+    const { op, ...args } = c.args;
+    return { actor: c.actor, verb: op, target: c.target.id, args, source: c.source };
+  };
+  function bodyWhy(st, c) {
+    const b = c.target;
+    if (!b || !OPS[b.kind] || !Number.isInteger(b.id)) return "a plan is a pawn's or a household's: {kind, id}";
+    if (!c.args || !OPS[b.kind][c.args.op]) return `there is no plan op ${c.args && c.args.op}`;
+    if (b.kind === 'household') return heads(st, opCmd(c));
+    if (!st.pawns[b.id]) return `there is no pawn ${b.id}`;
+    return c.actor !== b.id ? `pawn ${c.actor} plans its own plan only, not pawn ${b.id}'s` : living(st, b.id);
+  }
+  const planVerb = (household) => {
+    Object.assign(OPS.household, household);
+    return {
+      planOp,
+      planFacade,
+      check: (st, c) => bodyWhy(st, c) || OPS[c.target.kind][c.args.op].check(st, opCmd(c)),
+      run: (st, c) => OPS[c.target.kind][c.args.op].run(st, opCmd(c)),
+    };
+  };
+  // A household's verb `op` as a facade of the verb plan: target the household, args the op's own.
+  const asPlan = (c, op) => ({
+    ...c,
+    verb: 'plan',
+    target: { kind: 'household', id: c.target },
+    args: { ...(c.args || {}), op },
   });
-  // tile({what, tile}): the tile of the next field or meadow (what) becomes `tile`, under the checks of the holder's own choice (sim/fields'
-  // fieldWhy, sim/meadows' meadowWhy: claims, reach, the farm's block); tile null or -1 clears it
-  register('tile', {
-    check: (st, c) => {
-      const why = heads(st, c) || farmOf(st, c) || landWhat(c.args && c.args.what);
-      if (why || c.args.tile === null || c.args.tile === -1) return why;
-      const hh = st.households[c.target];
-      return c.args.what === 'field'
-        ? fieldWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile)
-        : meadowWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile);
-    },
-    run: (st, c) => nameTile(st, c.target, c.args.what, c.args.tile === null ? -1 : c.args.tile),
+  const planFacade = (op) => ({
+    check: (st, c) => VERBS.plan.check(st, asPlan(c, op)),
+    run: (st, c) => VERBS.plan.run(st, asPlan(c, op)),
   });
-  // order({steps}): the season's routines in this order (the seasonal plan's, each once), until the next season's plan
-  register('order', {
-    check: (st, c) => heads(st, c) || orderWhy(st, c.target, c.args && c.args.steps),
-    run: (st, c) => setOrder(st, c.target, c.args.steps),
-  });
-  // project({what, tile, ...}): begin a new field or meadow (what) now, on `tile`, else the tile the plan names, else the holder's own pick;
-  // beside any other project, one a tile (VB-1651, VB-1668), and under the tile's checks. The land step is the holder's rule for it (sim/plans, source
-  // 'pawn'). what 'none': the head holds off projects (its rule begins none: the land step, its yearly look at a boat, a cart, a tar pit,
-  // its menu); null clears that. Any other what is a making of sim/makings (VB-678: a boat, a cart, a tar pit, a barn, a farm for the heir
-  // with args.heir), under that making's one check, the same for every head, played or not; its plan is made here.
   const making = (what) => makingOf(what) || `there is no project ${what}`;
-  register('project', {
-    check: (st, c) => {
-      const what = c.args && c.args.what,
-        why = heads(st, c);
-      if (why || what === 'none' || what === null) return why;
-      const bad = farmOf(st, c);
-      if (bad) return bad;
-      const hh = st.households[c.target];
-      if (what !== 'field' && what !== 'meadow') {
-        const M = making(what);
-        return typeof M === 'string' ? M : M.why(st, hh, st.farmsteads[hh.farmstead], c.args);
-      }
-      const tile = landTile(st, hh, c.args);
-      return tile < 0 ? `no tile within reach can be taken in for a ${what}` : landWhy(st, hh, what, tile);
-    },
-    run: (st, c) => {
-      const what = c.args.what,
-        hh = st.households[c.target];
-      if (what === 'none' || what === null) holdProject(st, c.target, what === 'none');
-      else if (what === 'field' || what === 'meadow') beginLand(st, hh, what, landTile(st, hh, c.args));
-      else beginMaking(st, hh, makingOf(what), c.args);
-    },
-  });
+  register(
+    'plan',
+    planVerb({
+      target: {
+        check: (st, c) =>
+          heads(st, c) ||
+          (!c.args || c.args.n === undefined
+            ? 'a target names n, or null to clear it'
+            : targetWhy(st, c.target, c.args.store, c.args.n)),
+        run: (st, c) => setTarget(st, c.target, c.args.store, c.args.n),
+      },
+      // tile({what, tile}): the tile of the next field or meadow (what) becomes `tile`, under the checks of the holder's own choice (sim/fields'
+      // fieldWhy, sim/meadows' meadowWhy: claims, reach, the farm's block); tile null or -1 clears it
+      tile: {
+        check: (st, c) => {
+          const why = heads(st, c) || farmOf(st, c) || landWhat(c.args && c.args.what);
+          if (why || c.args.tile === null || c.args.tile === -1) return why;
+          const hh = st.households[c.target];
+          return c.args.what === 'field'
+            ? fieldWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile)
+            : meadowWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile);
+        },
+        run: (st, c) => nameTile(st, c.target, c.args.what, c.args.tile === null ? -1 : c.args.tile),
+      },
+      // order({steps}): the season's routines in this order (the seasonal plan's, each once), until the next season's plan
+      order: {
+        check: (st, c) => heads(st, c) || orderWhy(st, c.target, c.args && c.args.steps),
+        run: (st, c) => setOrder(st, c.target, c.args.steps),
+      },
+      // project({what, tile, ...}): begin a new field or meadow (what) now, on `tile`, else the tile the plan names, else the holder's own pick;
+      // beside any other project, one a tile (VB-1651, VB-1668), and under the tile's checks. The land step is the holder's rule for it (sim/plans, source
+      // 'pawn'). what 'none': the head holds off projects (its rule begins none: the land step, its yearly look at a boat, a cart, a tar pit,
+      // its menu); null clears that. Any other what is a making of sim/makings (VB-678: a boat, a cart, a tar pit, a barn, a farm for the heir
+      // with args.heir), under that making's one check, the same for every head, played or not; its plan is made here.
+      project: {
+        check: (st, c) => {
+          const what = c.args && c.args.what,
+            why = heads(st, c);
+          if (why || what === 'none' || what === null) return why;
+          const bad = farmOf(st, c);
+          if (bad) return bad;
+          const hh = st.households[c.target];
+          if (what !== 'field' && what !== 'meadow') {
+            const M = making(what);
+            return typeof M === 'string' ? M : M.why(st, hh, st.farmsteads[hh.farmstead], c.args);
+          }
+          const tile = landTile(st, hh, c.args);
+          return tile < 0 ? `no tile within reach can be taken in for a ${what}` : landWhy(st, hh, what, tile);
+        },
+        run: (st, c) => {
+          const what = c.args.what,
+            hh = st.households[c.target];
+          if (what === 'none' || what === null) holdProject(st, c.target, what === 'none');
+          else if (what === 'field' || what === 'meadow') beginLand(st, hh, what, landTile(st, hh, c.args));
+          else beginMaking(st, hh, makingOf(what), c.args);
+        },
+      },
+    }),
+  );
+  for (const op of ['target', 'tile', 'order', 'project']) register(op, planFacade(op));
   // letField({field}) (VB-768): the head lets field `field` (its id) of its farm go, its tile back to the village (sim/fields' letGo): a
   // field with no crop, sheaves or task on it (sim/fieldplans' letGoWhy); the same for every head, played or not.
   register('letField', {
@@ -525,6 +576,8 @@ VB['sim/plans'] = (() => {
     run: (st, c) => swapSteps(st, st.farmsteads[st.households[c.target].farmstead], c.args.a, c.args.b),
   });
   return {
+    planOp,
+    planFacade,
     heads,
     makePlan,
     dropPlan,
@@ -532,10 +585,8 @@ VB['sim/plans'] = (() => {
     seedPlans,
     reviewed,
     landStep,
-    targetWhy,
     setTarget,
     nameTile,
-    orderWhy,
     holdProject,
     landWhy,
     beginLand,

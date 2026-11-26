@@ -59,7 +59,6 @@ const Sim = (() => {
   const { heirRanking } = VB['sim/heirranking'],
     { wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
   const { updateTies, refreshInterests, hooks, standingParts } = VB['sim/society'];
-  const { plan } = VB['sim/playerplan']; // the player's plan, its act (VB-1646)
   const { planView, fireView } = VB['sim/planview']; // the plan's and the fire's reads (VB-1646, VB-1653)
   const { sleepOf } = VB['sim/sleep']; // the played pawn's sleep owed, for the page (VB-1643)
   const { of: moodOf, word: moodWord } = VB['sim/mood']; // a pawn's mood and its modifiers, for its card (VB-062)
@@ -221,10 +220,20 @@ const Sim = (() => {
     standingParts,
     moodOf,
     sleepOf,
-    plan, // (st, pawn, op, args): any pawn's plan, its controller's (VB-1746)
+    // (st, pawn, op, args): pawn's verb `plan` on its own plan (VB-1754; sim/plans, its ops sim/controller's PLAN_OPS), a facade
+    plan: (st, id, op, args) =>
+      Number.isInteger(id) && st.pawns[id]
+        ? command(st, {
+            actor: id,
+            verb: 'plan',
+            target: { kind: 'pawn', id },
+            args: { ...(args || {}), op },
+            source: 'player',
+          })
+        : `there is no pawn ${id}`,
     planView, // (st, pawn)
     fireView, // (st, pawn)
-    waits: VB['sim/plannext'].waitsOf, // (st, pawn): why each task of the pawn's plan waits, and why the plan is idle (VB-1651)
+    waits: VB['sim/controller'].waitsOf, // (st, pawn): why each task of the pawn's plan waits, and why the plan is idle (VB-1651)
     moodWord,
     traitLabels,
     traitAct,

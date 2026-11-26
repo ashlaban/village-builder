@@ -268,7 +268,7 @@ assert(PH.key === 'clear:f0' && PH.kind === 'clear' && !('steps' in PH) && PH.th
     assert(isDeepStrictEqual(before, s), 'the keyed views wrote to st');
     return r;
   };
-  assert(!U.player && U.pawns[0].control.plan.tasks.length === 2, 'the unplayed pawn holds its plan, with no player');
+  assert(!U.player && VB['sim/steps'].pawnPlan(U, 0).tasks.length === 2, 'the unplayed pawn holds its plan, with no player');
   const u = keyed(U), y = keyed(Y);
   assert(u.agenda && u.agenda.days.length === 3 && u.agenda.plan.length === 2, 'its plan laid into days');
   assert.deepStrictEqual(u, y, "the same agenda, gaps and menu as the played pawn's");
