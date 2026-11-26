@@ -79,7 +79,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
 {
   const s = state(), w = s.w;
   Sim.advance(s, WORK[0] + DAY - (s.t % DAY) + 3); // the next day, 9:00
-  const a = s.agents[s.living.find((id) => s.agents[id].leg && s.agents[id].leg.kind === 'wait' && !s.agents[id].side)];
+  const a = s.agents[s.living.find((id) => s.agents[id].leg && s.agents[id].leg.kind === 'wait' && !s.agents[id].mind)];
   const from = VB['sim/pose'].tileAt(s, ...VB['sim/pose'].placeOf(s, a));
   let far = -1;
   for (let i = 0; i < w.N; i++) if (!w.water[i] && VB['sim/hex'].hexSteps(w, from, i) === 8) { far = i; break; }
@@ -115,7 +115,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   A.loaded(st);
   assert(j.rate > 0 && j.at === st.tick && st.workDue.includes(j), "an older save's task under work is reckoned and queued at load");
   // a save made before VB-473 held a background task minded (its due set) out of st.workDue: loading queues its end
-  const side = (x) => (KINDS[x.kind].attention || 'full') === 'background' && x.rate > 0;
+  const side = (x) => !!KINDS[x.kind].mind && x.rate > 0;
   for (let k = 0; k < 20 * DAY * TICKS && ![...st.jobs.values()].some(side); k++) Sim.advance(st, 1 / TICKS);
   const bg = [...st.jobs.values()].find(side);
   assert(bg, 'a herd minded at the side');

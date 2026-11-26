@@ -243,7 +243,7 @@ function drawHerds(c, show) {
     }
     // out with a herder (VB-136): at its heels on the way, on the pasture while it minds them there, else by the farm
     const hr = hd.herder !== null && st.agents[hd.herder] && !st.agents[hd.herder].inside ? st.agents[hd.herder] : null;
-    const at = hr && !hr.path && hr.side && hr.side.background ? hr.side.background.site : -1;
+    const at = hr && !hr.path && hr.mind ? hr.mind[0].site : -1;
     // a herd left at the landing of a farm placed elsewhere stands there (herd.tile, VB-1667) until it is driven home
     const stand = hd.tile !== undefined ? hd.tile : hd.home,
       cx = at >= 0 ? w.hx[at] : hr ? drawX[hr.id] - drawFacing[hr.id] * 16 : w.hx[stand],

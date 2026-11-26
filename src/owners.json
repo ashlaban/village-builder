@@ -203,6 +203,7 @@
     "agent.path": "sim/legs",
     "agent.pace": "sim/agents",
     "agent.assigned": "sim/attention",
+    "agent.mind": "sim/attention",
     "agent.pastime": "sim/pastimes",
     "pawn.sat": "sim/pastimes",
     "agent.phase": "sim/agents",

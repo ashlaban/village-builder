@@ -55,7 +55,7 @@ VB['sim/encounters'] = (() => {
     return n;
   }
   // A herder at its herds: a pawn outdoors holding a herding task at the side (VB-136; sim/agents' agent.side, sim/grazing's kind 'herd').
-  const herding = (a) => !a.inside && !!a.side && !!a.side.background && a.side.background.kind === 'herd';
+  const herding = (a) => !a.inside && !!a.mind && a.mind.some((c) => c.kind === 'herd');
   // A pawn at an occasion it has arrived at, and one standing at occasion o: it set out for it and has arrived (no path left to walk).
   // A pawn inside its own household's house: indoors, and by that house's door (within a map radius of it; sim/agents' homeSpot, placeByDoor).
   // One indoors at another house (moved at night, waiting there for its journey's first leg; VB-287) is not at home (VB-561).

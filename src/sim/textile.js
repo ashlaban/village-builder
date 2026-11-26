@@ -114,7 +114,6 @@ VB['sim/textile'] = (() => {
       hands: 1,
       type: 'household',
       craft: 'spinning',
-      attention: 'background',
       yields: true,
       reach: TEXTILE.reach,
       rate: TEXTILE.rate,
@@ -178,5 +177,6 @@ VB['sim/textile'] = (() => {
       done: (st, j, hh) => Projects.stepEnds(st, j, hh, loomBuilt),
     },
   };
+  VB['sim/methods'].mind(KINDS.spin); // spinning minded beside other work, a charge held (VB-1750)
   return { TEXTILE, SPINNERS, KINDS, practice, rank, hasLoom, yarnOf, clothOf, spun, woven, seedLooms };
 })();

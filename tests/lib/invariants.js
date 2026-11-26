@@ -1470,7 +1470,7 @@ function checkState(st) {
     if (j.claims.length > globalThis.VB['sim/kinds'].KINDS[j.kind].hands) bad.push(`jobs[${j.key}]: ${j.claims.length} workers, more than its hands`);
     for (const id of j.claims) {
       const a = st.agents[id];
-      const side = a && a.side && (a.side.partial === j || a.side.background === j);
+      const side = a && a.mind && a.mind.includes(j);
       if (!a || (a.job !== j && !side)) bad.push(`jobs[${j.key}]: worked by agent ${id}, whose job is ${a && a.job ? a.job.key : 'none'}`);
     }
   }
@@ -1496,15 +1496,14 @@ function checkState(st) {
       q.forEach((j, n) => {
         const at = `workDue[${n}] (${j.key})`;
         if (st.jobs.get(j.key) !== j) bad.push(`${at}: not posted`);
-        if ((KS[j.kind].attention || 'full') === 'partial') bad.push(`${at}: a partial task`);
-        if (!(j.rate > 0) || !Number.isInteger(j.due) || !(j.due > st.tick)) bad.push(`${at}: rate ${j.rate}, due ${j.due} at tick ${st.tick}`);
+        if (!(j.rate > 0) || !Number.isInteger(j.due) || !(st.clockSet ? j.due > j.at : j.due > st.tick)) bad.push(`${at}: rate ${j.rate}, due ${j.due} at tick ${st.tick}`);
         if (n > 0 && (q[n - 1].due > j.due || (q[n - 1].due === j.due && q[n - 1].id >= j.id))) bad.push(`${at}: out of order`);
         const h = j.hours ?? KS[j.kind].hours, want = j.at + Math.max(1, Math.ceil(((h - j.done) / j.rate) * TICKS - 1e-7));
         if (j.due !== want) bad.push(`${at}: due ${j.due}, its done and rate give ${want}`);
       });
     }
     for (const j of st.jobs.values()) {
-      const at = `jobs[${j.key}]`, full = (KS[j.kind].attention || 'full') === 'full';
+      const at = `jobs[${j.key}]`, full = !KS[j.kind].mind;
       if (j.at === undefined) {
         if (j.rate !== undefined) bad.push(`${at}: a rate ${j.rate} never reckoned`);
         continue;
@@ -1555,26 +1554,28 @@ function checkState(st) {
   for (const a of st.agents) if (a.pastime !== undefined) { const r = a.pastime; if (!(r && Object.hasOwn(VB['sim/pastimes'].PASTIMES, r.kind) && r.at <= st.t + 1e-9 && r.until >= r.at && (r.with === null || !!st.pawns[r.with]) && (r.farm === null || !!st.farmsteads[r.farm]))) bad.push(`agents[${a.id}].pastime: ${JSON.stringify(r)}`); }
   for (const a of st.agents) if (a.talk && a.talk.friendAt !== undefined && !(Number.isFinite(a.talk.friendAt) && a.talk.friendAt <= st.t + VB['sim/ties'].SOCIAL.talk.bubbleHours + 1e-9)) bad.push(`agents[${a.id}].talk: friendAt ${a.talk.friendAt}, after now (${st.t}) and a talk's bubble`);
   for (const a of st.agents) if (a.job && !a.job.claims.includes(a.id)) bad.push(`agents[${a.id}]: job ${a.job.key} does not list it among its workers`);
-  // assignments numbered (VB-1405): three slot numbers, none above the count taken, and once numbered a slot that holds a task has one
+  // assignments numbered (VB-1405, VB-1750): the task in hand's number and one a charge minded, none above the count taken; a task held
+  // once numbered has one, and a charge always
+  const okN = (v, n) => v === null || (Number.isInteger(v) && v >= 1 && v <= n.assignments);
   for (const a of st.agents) {
     const n = a.assigned;
-    if (n === undefined) continue; // none taken yet, or a save made before VB-1405
-    if (!Number.isInteger(n.assignments) || Object.keys(n).length !== 4) bad.push(`agents[${a.id}].assigned: ${JSON.stringify(n)}`);
-    for (const slot of ['full', 'partial', 'background'])
-      if (!(n[slot] === null || (Number.isInteger(n[slot]) && n[slot] >= 1 && n[slot] <= n.assignments))) bad.push(`agents[${a.id}].assigned.${slot}: ${n[slot]} of ${n.assignments}`);
-    if ((a.job && n.full === null) || (a.side && a.side.partial && n.partial === null) || (a.side && a.side.background && n.background === null)) bad.push(`agents[${a.id}]: a task held with no number`);
+    if (n === undefined) { if (a.mind) bad.push(`agents[${a.id}]: minds with no assignment`); continue; } // none taken yet, or a save made before VB-1405
+    if (!Number.isInteger(n.assignments) || Object.keys(n).length !== 3 || !n.mind || typeof n.mind !== 'object') bad.push(`agents[${a.id}].assigned: ${JSON.stringify(n)}`);
+    if (!okN(n.full, n)) bad.push(`agents[${a.id}].assigned.full: ${n.full} of ${n.assignments}`);
+    for (const k in n.mind || {}) if (n.mind[k] === null || !okN(n.mind[k], n) || !(a.mind || []).some((j) => j.key === k)) bad.push(`agents[${a.id}].assigned.mind[${k}]: ${n.mind[k]}, not a charge it minds`);
+    if ((a.job && n.full === null) || (a.mind || []).some((j) => !n.mind || !(j.key in n.mind))) bad.push(`agents[${a.id}]: a task held with no number`);
   }
-  // side tasks (VB-251): at most one partial and one background task, each of its attention, posted and listing the pawn, a living one
+  // a held charge (VB-251, VB-1750): a list of one or two minded kinds, at most one that bars and one that yields, each posted and listing
+  // the pawn, a living one
   for (const a of st.agents) {
-    if (a.side === undefined) continue;
+    if (a.mind === undefined) continue;
     const K = globalThis.VB['sim/kinds'].KINDS;
-    if (!a.side || (!a.side.partial && !a.side.background)) bad.push(`agents[${a.id}]: an empty side`);
-    if (st.pawns[a.id].died !== null) bad.push(`agents[${a.id}]: a dead pawn holds a side task`);
-    for (const slot of ['partial', 'background']) {
-      const j = a.side && a.side[slot];
-      if (!j) continue;
-      if ((K[j.kind].attention || 'full') !== slot) bad.push(`agents[${a.id}]: holds ${j.key} as ${slot}, not its attention`);
-      if (st.jobs.get(j.key) !== j || !j.claims.includes(a.id)) bad.push(`agents[${a.id}]: holds ${j.key}, not posted or not listing it`);
+    if (!Array.isArray(a.mind) || !a.mind.length || a.mind.length > 2) { bad.push(`agents[${a.id}].mind: not one or two charges`); continue; }
+    if (st.pawns[a.id].died !== null) bad.push(`agents[${a.id}]: a dead pawn minds a charge`);
+    if (a.mind.length === 2 && !!K[a.mind[0].kind].yields === !!K[a.mind[1].kind].yields) bad.push(`agents[${a.id}]: two charges that both bar or both yield`);
+    for (const j of a.mind) {
+      if (!K[j.kind].mind) bad.push(`agents[${a.id}]: minds ${j.key}, not a minded kind`);
+      if (st.jobs.get(j.key) !== j || !j.claims.includes(a.id)) bad.push(`agents[${a.id}]: minds ${j.key}, not posted or not listing it`);
     }
   }
   if (st.herds) checkHerds(st, bad);

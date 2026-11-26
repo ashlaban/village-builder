@@ -49,9 +49,9 @@ VB['sim/kinds'] = (() => {
   //   stages: a field kind's, the field stages at which it can be available; refreshJobs asks it only at a field in one of them.
   //   window: a time-bound kind's (VB-249), {from: the hour of the day its work can first fall due}: the due-queue (sim/plans) asks it for
   //   each household from that hour, and again each hour while it gives work, so it waits for no review of the plan.
-  //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
-  //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
-  //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt, null, from), as it is reckoned; minAge.
+  //   mind: set by sim/methods' `mind` (VB-1750): a charge minded beside its holder's task, at `rate` of the pawn's hours, only within
+  //   `reach` steps of the task's site; a pawn holds one task, and besides it one charge that bars and one that yields (sim/attention;
+  //   herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt, null, from), as it is reckoned; minAge.
   //   yields: a background kind that bars its holder from no full task: one out of its reach lets it go (VB-362: spinning at the house);
   //   rank(st, p, j, stand): the kind's own rank for pawn p, in place of its role's (sim/fit prioOf; VB-362: by a practice and the sex).
   //   late: a task with a deadline today: unmanned, it goes first in its hand's list and calls it when the day is allotted (sim/day; the cook).
@@ -132,6 +132,14 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/byrehouse'].KINDS); // the byre's walls and roof (VB-1665): sim/byrehouse's
   Object.assign(KINDS, VB['sim/timberhouse'].KINDS); // the timber house's frame and roof (VB-1664): sim/timberhouse's
   Object.assign(KINDS, VB['sim/facilities'].KINDS); // a facility's stages raised and its upkeep (VB-361): sim/facilities'
+  // every kind that declares no methods of its own is work done at its site (sim/methods labour, VB-1750: no kind runs on the phases); an
+  // indoor kind's work stands by the door of its house (as sim/agents' spotAt)
+  for (const k in KINDS)
+    if (!KINDS[k].methods) {
+      const K = VB['sim/methods'].labour(KINDS[k]);
+      if (K.inside && !K.spot)
+        K.spot = (st, a, j) => [st.w.hx[j.site] - 12 + a.ox * 0.3, st.w.hy[j.site] + 14 + a.oy * 0.15];
+    }
   // ---- where a kind is worked, what it takes and what it gives (VB-1124): each kind's record declares `at` (the places of PLACES where its
   // work is done), `needs` (the things of THINGS it takes or must find there: a good used up, a tool or a facility) and `gives` (the
   // things it makes or brings home), beside its rule, as its name and hours are. The game's guide (page/guide) reads them, and a kind

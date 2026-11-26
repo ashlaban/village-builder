@@ -14,7 +14,7 @@ const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invarian
 const FARMER = 0, WIFE = 1;
 const base = { ...KINDS.plow, done: undefined, available: undefined, stages: undefined, urgency: undefined, again: undefined };
 Object.assign(KINDS, {
-  oTwo: { ...base, hands: 2 }, oOne: { ...base, hands: 1 }, oPart: { ...base, attention: 'partial', hands: 2 },
+  oTwo: { ...base, hands: 2 }, oOne: { ...base, hands: 1 }, oPart: { ...base, mind: true, yields: true, reach: 99, rate: 0, hands: 2 },
 });
 for (const R of Object.values(VB['sim/roles'].ROLES)) if (R.prio) R.prio.oOne = R.prio.plow || 1; // so the list and the matcher weigh it
 // A spring morning on the tiny island; the farmer is played with its automatic behaviour off, free of its task, and three test jobs
@@ -87,13 +87,13 @@ const queueWork = (st, j) => assert.strictEqual(Sim.queue(st, { actor: FARMER, v
   sound(st, 'reacquired'); sound(r.st, 'reposted');
 }
 
-// 4. Side work is pending while held, in its own slot, beside a task in hand; let go, the queue goes on.
+// 4. A charge (VB-1750: mind) is pending while held, in its own slot, beside a task in hand; let go, the queue goes on.
 {
   const { st, two, part } = make(), a = st.agents[FARMER];
   assert.strictEqual(issue(st, workCommand(FARMER, two.key, 'planner')), true);
   queueWork(st, part); playerStep(st);
-  assert.deepStrictEqual(q(st)[0].ref, { slot: 'partial', key: part.key, n: a.assigned.partial });
-  assert.ok(a.side.partial === part && a.job === two, 'held beside the task in hand');
+  assert.deepStrictEqual(q(st)[0].ref, { slot: 'mind', key: part.key, n: a.assigned.mind[part.key] });
+  assert.ok(a.mind.includes(part) && a.job === two, 'minded beside the task in hand');
   for (let i = 0; i < 3; i++) { playerStep(st); assert.strictEqual(q(st).length, 1, 'pending while held'); }
   A.release(st, a); playerStep(st); assert.strictEqual(q(st).length, 1, 'the full task let go is not the side task\'s end');
   At.unhold(st, a, part); playerStep(st); assert.strictEqual(q(st).length, 0, 'let go, it ends');

@@ -237,7 +237,6 @@ VB['sim/droving'] = (() => {
     hands: 1,
     type: 'husbandry',
     carry: 'cow',
-    to: 'barn',
     spot: (st, a, j) => [st.w.hx[j.site] - 20 + a.ox * 0.3, st.w.hy[j.site] + 5 + a.oy * 0.2], // by the byre door
     urgency: (st, j, c, U) => U.other,
     deliver: (st, j, hh) => ledHome(st, j, hh), // left at the door (VB-1748): a herd led is animals walking, not a load made
@@ -247,6 +246,16 @@ VB['sim/droving'] = (() => {
         if (hd.household === hh.id) post(`drove:H${id}`, hd.tile ?? st.farmsteads[hd.at].house, { farm: f, herd: id });
       }
     },
-  };
+  }; // the animals haltered at the site and led home, as a load in hand: set down at the door by the kind's delivery (VB-1750)
+  VB['sim/methods'].carry(KIND, 'drove', {
+    name: 'led',
+    op: 'halter',
+    led: true,
+    run: (st, j, g, at, a) => {
+      a.load = 1;
+    },
+    met: (st, g) => (g.job.made || 0) > 0,
+  });
+
   return { passHerds, startHerd, payInAnimals, leaveAt, frost, KIND };
 })();

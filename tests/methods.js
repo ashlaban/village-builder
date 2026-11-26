@@ -956,3 +956,139 @@ console.log(
   assert.deepStrictEqual(checkState(back), [], 'invariants, run on');
   console.log('methods: an older save with a fetch task of grain left lying loads, runs on, and its grain comes home by its crops');
 }
+
+// VB-1750: every kind carries methods (no kind runs on the phases); the work done at a site is `labour`'s row, its end the kind's own; the
+// charges held at the side (the herd, the spinning) are minded (`mind`); the animals led home are a load in hand, set down at the door.
+{
+  const { KINDS } = VB['sim/kinds'];
+  assert.deepStrictEqual(Object.keys(KINDS).filter((k) => !KINDS[k].methods), [], 'every kind carries methods');
+  const plans = M.compile(KINDS);
+  for (const k of ['herd', 'spin']) {
+    assert(KINDS[k].mind && plans[k].methods[0].steps.some((s) => s.prim === 'mind'), `${k} is minded`);
+  }
+  for (const k of ['plow', 'cook', 'foundation', 'restore']) {
+    const s = plans[k].methods[0].steps;
+    assert(s.length === 2 && s[0].prim === 'go' && s[1].prim === 'work' && KINDS[k].ops[s[1].op].ends, `${k} is work at its site`);
+  }
+  for (const k of ['lead', 'drove']) assert.deepStrictEqual(plans[k].uses, [k], `${k}: the animals led are a load in hand`);
+  console.log('methods: every kind carries methods; the herd and the spinning are minded; the animals led are a load in hand');
+}
+
+// VB-1750 review, F1: a leader let go on the road home (its death) lays nothing: the cow it led was never taken from the giver's herd (it is
+// moved at the door), so no pile of kind lead lies, the herds keep their animals, and the task, still posted, is unmet for its next hand.
+{
+  const Sim = VB.sim,
+    Agents = VB['sim/agents'],
+    { KINDS } = VB['sim/kinds'],
+    { post } = VB['sim/jobs'],
+    { state } = require('./lib/probe.js');
+  for (const k of ['lead', 'drove']) assert(KINDS[k].led, `${k}: its load is animals led`);
+  const st = state();
+  st.naturalDeaths = false;
+  Sim.advance(st, 2 * Sim.DAY + 9);
+  const [b, s] = [st.households[0], st.households[1]],
+    giver = st.farmsteads[s.farmstead];
+  const j = post(st, `lead:h${b.id}:${s.id}`, 'lead', { type: 'household', id: b.id }, giver.house, {
+    farm: st.farmsteads[b.farmstead],
+    from: s.id,
+  });
+  const a = st.agents[b.members.find((m) => VB['sim/records'].age(st, st.pawns[m]) >= 16)];
+  const cattle = () => st.herds.reduce((n, h) => n + (h && h.species === 'cattle' ? h.head.length : 0), 0),
+    had = cattle();
+  assert(had > 0, 'the village has cattle');
+  Agents.release(st, a);
+  Agents.start(st, a, j);
+  for (let n = 0; a.phase !== 'back' && n < 400; n++) Sim.advance(st, 0.1);
+  assert(a.phase === 'back' && a.load === 1 && j.made === 1, 'the cow haltered and led home');
+  Sim.advance(st, 0.1);
+  Sim.killPawn(st, a.id, 'illness');
+  assert.deepStrictEqual(
+    (st.lying || []).filter((l) => l.kind === 'lead' || l.kind === 'drove'),
+    [],
+    'nothing lies where the leader fell',
+  );
+  assert(st.jobs.get(j.key) === j && !KINDS.lead.met(st, { job: j }, VB['sim/doing'].VIEW), 'the task is posted and unmet');
+  assert.strictEqual(cattle(), had, 'the herds keep their animals');
+  console.log('methods: a leader dead on the road home lays nothing; the cow stays in the herd and the task is unmet');
+}
+
+// VB-1750: the field's and the building's stages cut at random on a real state (a tiny village of three farms, its first sixty days): a hand
+// at a stage's work leg is let go at the day's end (the night), let go (a call) or dies. The stage keeps its hours (sim/progress): its
+// task, still posted, is never worked from fewer than it had, and an eligible pawn goes on from them; no pawn holds a task without
+// progress or a walk for a day (no stuck task), and the invariants hold each day. node tests/methods.js [--stages N] (seeds, default 3).
+{
+  const Sim = VB.sim,
+    Agents = VB['sim/agents'],
+    { KINDS } = VB['sim/kinds'],
+    { doneOf } = VB['sim/work'],
+    { tinyWorld, tinyState } = require('./lib/tiny.js'),
+    { checkState } = require('./lib/invariants.js');
+  const FIELD = new Set(Object.keys(VB['sim/fieldwork'].KINDS)),
+    BUILD = new Set(Object.keys(VB['sim/building'].KINDS));
+  const staged = (k) => (FIELD.has(k) || BUILD.has(k)) && !!KINDS[k].ops && !!KINDS[k].ops.labour; // a stage worked at its site
+  const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
+  const SEEDS = arg('stages', 3),
+    t = { field: 0, building: 0, night: 0, call: 0, death: 0, resumed: 0, finished: 0, fewer: [], stuck: [] };
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed });
+    st.naturalDeaths = false;
+    const rng = makeStream(seed, 'stages'),
+      cut = new Map(), // a stage's task cut: the hours it had
+      since = new Map(); // a pawn's task in hand: {job, done, t} since it last went on
+    for (let h = 0; h < 60 * 24; h++) {
+      Sim.advance(st, 1);
+      // a stage followed by its key: taken down and posted again, it is the same stage, and keeps its hours (review, F6)
+      for (const [key, had] of cut) {
+        const j = st.jobs.get(key);
+        if (!j) {
+          cut.delete(key);
+          t.finished++;
+          continue;
+        }
+        const d = doneOf(st, j);
+        if (d < had - 1e-9) t.fewer.push(`${key}: ${d.toFixed(2)} of the ${had.toFixed(2)} hours it had (seed ${seed}, hour ${h})`);
+        if (d > had + 1e-9) {
+          t.resumed++;
+          cut.delete(key);
+        }
+      }
+      for (const id of st.living) {
+        const a = st.agents[id],
+          j = a.job,
+          s = since.get(id),
+          d = j ? doneOf(st, j) : 0;
+        if (!j || a.path) since.delete(id);
+        else if (!s || s.job !== j || d > s.done + 1e-9) since.set(id, { job: j, done: d, t: st.t });
+        else if (st.t - s.t > 24) {
+          t.stuck.push(`pawn ${id} on ${j.key}, phase ${a.phase} (seed ${seed}, hour ${h})`);
+          since.delete(id);
+        }
+      }
+      if (rnd(rng) < 0.15) {
+        const all = st.living.map((id) => st.agents[id]).filter((a) => a.job && a.phase === 'work' && staged(a.job.kind)),
+          built = all.filter((a) => BUILD.has(a.job.kind)),
+          at = built.length && rnd(rng) < 0.5 ? built : all; // a building's stage as often as a field's, when there is one
+        if (at.length) {
+          const a = at[Math.floor(rnd(rng) * at.length)],
+            j = a.job,
+            r = rnd(rng),
+            hh = st.households[st.pawns[a.id].household],
+            how = r < 0.4 ? 'night' : r < 0.8 || hh.members.length < 3 ? 'call' : 'death';
+          t[FIELD.has(j.kind) ? 'field' : 'building']++;
+          t[how]++;
+          if (how === 'night') Agents.release(st, a, true);
+          else if (how === 'call') Agents.release(st, a);
+          else Sim.killPawn(st, a.id, 'illness');
+          if (st.jobs.get(j.key) === j) cut.set(j.key, Math.max(cut.get(j.key) || 0, doneOf(st, j)));
+        }
+      }
+      if (h % 24 === 23) assert.deepStrictEqual(checkState(st), [], `the stages cut, seed ${seed}, day ${(h + 1) / 24}`);
+    }
+  }
+  assert.deepStrictEqual(t.fewer, [], 'a stage cut keeps its hours');
+  assert.deepStrictEqual(t.stuck, [], 'no stuck task');
+  assert(t.field > 0 && t.building > 0 && t.resumed > 0, `the stages cut and taken up again: ${JSON.stringify(t)}`);
+  console.log(
+    `methods: the field's and the building's stages cut at random (${t.field} field, ${t.building} building; ${t.night} at night, ${t.call} by a call, ${t.death} by a death): ${t.resumed} gone on from their hours, ${t.finished} finished, none stuck`,
+  );
+}

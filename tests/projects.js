@@ -15,11 +15,11 @@ const clean = (st, label) => { const bad = checkState(st); assert.deepStrictEqua
 
 // A test-only kind of work for a project's step (a barn's: two hands at the house, of the type `wood`); its task is the household's
 // project's open step (sim/kinds' landProject posts it), and doing it opens the next step (sim/plans' advance), as the land kinds do.
-KINDS.testbuild = { verb: 'Building', go: 'Going to build', name: 'Build', label: 'Build', anim: 'mallet', hours: 6, hands: 2, type: 'wood',
+KINDS.testbuild = VB['sim/methods'].labour({ verb: 'Building', go: 'Going to build', name: 'Build', label: 'Build', anim: 'mallet', hours: 6, hands: 2, type: 'wood',
   project: true, done: (st, j) => {
     const plan = VB['sim/projects'].onProject(st, j);
     if (plan) VB['sim/projectplans'].advance(st, plan);
-  } };
+  } }); // work done at its site, as sim/kinds' join makes every kind with no methods of its own (sim/methods labour)
 for (const role of Object.values(ROLES)) role.prio.testbuild = role.work.wood ?? 0;
 const BARN = (f) => ({ what: 'barn', steps: [13, 13, 14].map((n) => ({ kind: 'testbuild', place: f.house, hours: 6, spends: { wood: n } })) });
 

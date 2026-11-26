@@ -12,8 +12,7 @@ VB['sim/reasons'] = (() => {
     { MADE, target } = VB['sim/targets'],
     { fuelFree } = VB['sim/chores'];
   const { age, fullName, commanded, unplanned } = VB['sim/records'];
-  const { heldAt } = VB['sim/attention'],
-    { travelling, stayOf } = VB['sim/pose'];
+  const { travelling, stayOf } = VB['sim/pose'];
   const Days = VB['sim/days'],
     Hands = VB['sim/hands'],
     { idleLine } = VB['sim/fit'];
@@ -69,7 +68,7 @@ VB['sim/reasons'] = (() => {
     return null;
   }
   // The job pawn id has in hand: its task, else the one it holds at the side (with the herds).
-  const actOf = (a) => a.job || heldAt(a, 'background') || null;
+  const actOf = (a) => a.job || (a.mind ? a.mind[0] : null);
   const farmName = (st, hid) => {
     const hh = st.households[hid];
     return hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead].name : 'another farm';

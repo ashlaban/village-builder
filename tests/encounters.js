@@ -17,7 +17,7 @@ const place = (spots) => {
     const g = ag[id];
     A.release(st, g);
     A.standStill(st, g);
-    delete g.side;
+    delete g.mind;
     Object.assign(g, { inside, carry: null, x, y, occasion: null });
   }
 };
@@ -71,7 +71,7 @@ end(o);
 check(E.present(st, o.id).length === 0, 'an occasion over has nobody present');
 
 // 3. Herders: two at their herds 100 units apart talk, at calling distance; at 150 they do not; two pawns not herding at 100 do not
-const herd = (id) => { ag[id].side = { partial: null, background: { kind: 'herd', key: 'probe' } }; };
+const herd = (id) => { ag[id].mind = [{ kind: 'herd', key: 'probe' }]; };
 for (const [dx, herding, can] of [[100, true, true], [150, true, false], [100, false, false]]) {
   let talked = false;
   for (let k = T.from; k < T.to && !talked; k++) {
@@ -81,7 +81,7 @@ for (const [dx, herding, can] of [[100, true, true], [150, true, false], [100, f
     talked = ag[a].talk !== null && ag[a].talk.with === b;
   }
   check(talked === can, `${herding ? 'herders' : 'pawns'} ${dx} units apart ${talked ? 'talked' : 'did not talk'}`);
-  delete ag[a].side; delete ag[b].side;
+  delete ag[a].mind; delete ag[b].mind;
 }
 
 // 4. Mix: a pawn whose weight by familiarity and liking is nothing (a's opinion of b at -1) is not drawn outdoors, and is at an occasion

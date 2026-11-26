@@ -80,7 +80,7 @@ VB['sim/drinking'] = (() => {
       });
       start(st, a, j);
       a.basis = 'self';
-      if (a.side) reachAfter(st, a);
+      if (a.mind) reachAfter(st, a);
       return { slot: 'full', key, n: a.assigned.full };
     },
     active: (st, c, ref) => holds(st.agents[c.actor], ref),
