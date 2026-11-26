@@ -974,6 +974,44 @@ console.log(
   console.log('methods: every kind carries methods; the herd and the spinning are minded; the animals led are a load in hand');
 }
 
+// VB-1750 review, F1: a leader let go on the road home (its death) lays nothing: the cow it led was never taken from the giver's herd (it is
+// moved at the door), so no pile of kind lead lies, the herds keep their animals, and the task, still posted, is unmet for its next hand.
+{
+  const Sim = VB.sim,
+    Agents = VB['sim/agents'],
+    { KINDS } = VB['sim/kinds'],
+    { post } = VB['sim/jobs'],
+    { state } = require('./lib/probe.js');
+  for (const k of ['lead', 'drove']) assert(KINDS[k].led, `${k}: its load is animals led`);
+  const st = state();
+  st.naturalDeaths = false;
+  Sim.advance(st, 2 * Sim.DAY + 9);
+  const [b, s] = [st.households[0], st.households[1]],
+    giver = st.farmsteads[s.farmstead];
+  const j = post(st, `lead:h${b.id}:${s.id}`, 'lead', { type: 'household', id: b.id }, giver.house, {
+    farm: st.farmsteads[b.farmstead],
+    from: s.id,
+  });
+  const a = st.agents[b.members.find((m) => VB['sim/records'].age(st, st.pawns[m]) >= 16)];
+  const cattle = () => st.herds.reduce((n, h) => n + (h && h.species === 'cattle' ? h.head.length : 0), 0),
+    had = cattle();
+  assert(had > 0, 'the village has cattle');
+  Agents.release(st, a);
+  Agents.start(st, a, j);
+  for (let n = 0; a.phase !== 'back' && n < 400; n++) Sim.advance(st, 0.1);
+  assert(a.phase === 'back' && a.load === 1 && j.made === 1, 'the cow haltered and led home');
+  Sim.advance(st, 0.1);
+  Sim.killPawn(st, a.id, 'illness');
+  assert.deepStrictEqual(
+    (st.lying || []).filter((l) => l.kind === 'lead' || l.kind === 'drove'),
+    [],
+    'nothing lies where the leader fell',
+  );
+  assert(st.jobs.get(j.key) === j && !KINDS.lead.met(st, { job: j }, VB['sim/doing'].VIEW), 'the task is posted and unmet');
+  assert.strictEqual(cattle(), had, 'the herds keep their animals');
+  console.log('methods: a leader dead on the road home lays nothing; the cow stays in the herd and the task is unmet');
+}
+
 // VB-1750: the field's and the building's stages cut at random on a real state (a tiny village of three farms, its first sixty days): a hand
 // at a stage's work leg is let go at the day's end (the night), let go (a call) or dies. The stage keeps its hours (sim/progress): its
 // task, still posted, is never worked from fewer than it had, and an eligible pawn goes on from them; no pawn holds a task without
@@ -999,17 +1037,19 @@ console.log(
       since = new Map(); // a pawn's task in hand: {job, done, t} since it last went on
     for (let h = 0; h < 60 * 24; h++) {
       Sim.advance(st, 1);
-      for (const [j, had] of cut) {
-        if (st.jobs.get(j.key) !== j) {
-          cut.delete(j);
+      // a stage followed by its key: taken down and posted again, it is the same stage, and keeps its hours (review, F6)
+      for (const [key, had] of cut) {
+        const j = st.jobs.get(key);
+        if (!j) {
+          cut.delete(key);
           t.finished++;
           continue;
         }
         const d = doneOf(st, j);
-        if (d < had - 1e-9) t.fewer.push(`${j.key}: ${d.toFixed(2)} of the ${had.toFixed(2)} hours it had (seed ${seed}, hour ${h})`);
+        if (d < had - 1e-9) t.fewer.push(`${key}: ${d.toFixed(2)} of the ${had.toFixed(2)} hours it had (seed ${seed}, hour ${h})`);
         if (d > had + 1e-9) {
           t.resumed++;
-          cut.delete(j);
+          cut.delete(key);
         }
       }
       for (const id of st.living) {
@@ -1039,7 +1079,7 @@ console.log(
           if (how === 'night') Agents.release(st, a, true);
           else if (how === 'call') Agents.release(st, a);
           else Sim.killPawn(st, a.id, 'illness');
-          if (st.jobs.get(j.key) === j) cut.set(j, Math.max(cut.get(j) || 0, doneOf(st, j)));
+          if (st.jobs.get(j.key) === j) cut.set(j.key, Math.max(cut.get(j.key) || 0, doneOf(st, j)));
         }
       }
       if (h % 24 === 23) assert.deepStrictEqual(checkState(st), [], `the stages cut, seed ${seed}, day ${(h + 1) / 24}`);

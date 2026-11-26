@@ -31,13 +31,14 @@ VB['sim/doing'] = (() => {
   const goodOf = (good) => GOODS[good] || { lying: good, carry: KINDS[good].carry, kind: good };
   const byKind = (good) => !!goodOf(good).kind;
   const plans = Methods.compile(KINDS);
-  // A kind's plan, compiled on its first ask when the kind was added after load (a test's kind, made from a game kind; VB-1750): one that
-  // declares no methods is work done at its site, as sim/kinds' join makes every other (sim/methods labour)
-  const planOf = (k) =>
-    plans[k] ||
-    (KINDS[k]
-      ? Object.assign(plans, Methods.compile({ [k]: KINDS[k].methods ? KINDS[k] : Methods.labour(KINDS[k]) }))[k]
-      : null);
+  // A kind's plan, compiled on its first ask when the kind was added after load, or its record replaced (a test's kind, declared with its
+  // methods as a module's are; VB-1750): the plan is the record's, never a stale one of the same name
+  const planOf = (k) => {
+    const K = KINDS[k];
+    if (!K) return null;
+    const P = plans[k];
+    return P && P.kind === K ? P : Object.assign(plans, Methods.compile({ [k]: K }))[k];
+  };
   // The good a load in hand for a task of kind k is: the one its methods take up (one a kind).
   const loaded = (k) => {
     const P = planOf(k);
@@ -184,6 +185,10 @@ VB['sim/doing'] = (() => {
       K.setDown(st, a.job, a); // set down at its site: back with the stooks or the cocks there (VB-1812)
     else if (drop && K.spills) {
       // a load no pile keeps (the water in its buckets or barrel, VB-1604) is spilt: nothing lies
+    } else if (drop && K.led) {
+      // animals led, let go on the road (VB-1750 review, F1): they were never taken from the giver's herd (sim/exchange and sim/droving
+      // move them at the door), so nothing lies, and the goal is unmet again: its next hand halters them anew
+      a.job.made = Math.max(0, (a.job.made || 0) - 1);
     } else if (G.kind) {
       // a trip's good: delivered by its kind, or set down where the pawn stands with what its delivery reads (sim/lying lay); a task's
       // owner kept (a village's timber is the village's, and lies as the village's), a pile's its title's

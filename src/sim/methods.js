@@ -394,6 +394,7 @@ VB['sim/methods'] = (() => {
       methods: [{ name: o.name || 'carried', steps }],
       met: (st, g, v) => !!o.met(st, g) && !v.carrying(st, g),
     });
+    if (o.led) K.led = true; // animals led: set down off the door, nothing lies and the goal is unmet (sim/doing unload)
     K.ops = {
       [o.op]: {
         hours: o.hours,

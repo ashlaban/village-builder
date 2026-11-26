@@ -250,6 +250,7 @@ VB['sim/droving'] = (() => {
   VB['sim/methods'].carry(KIND, 'drove', {
     name: 'led',
     op: 'halter',
+    led: true,
     run: (st, j, g, at, a) => {
       a.load = 1;
     },

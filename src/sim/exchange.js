@@ -561,6 +561,7 @@ VB['sim/exchange'] = (() => {
   VB['sim/methods'].carry(KIND, 'lead', {
     name: 'led',
     op: 'halter',
+    led: true,
     run: (st, j, g, at, a) => {
       a.load = 1;
     },
