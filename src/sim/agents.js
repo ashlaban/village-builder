@@ -595,6 +595,25 @@ VB['sim/agents'] = (() => {
     for (const a of st.agents) if ('work' in a) delete a.work;
     for (const stay of st.away || []) delete stay.due; // lint-allow: owner a stay of sim/away in a save made before VB-473 loses its due
     legsOf(st);
+    // a task of a kind this build has no more (VB-1775: the wood's fetch kinds; its piles are the stray method's) is taken down, its hands
+    // freed where they stand, a load in hand set down there as its owner's pile
+    for (const j of [...st.jobs.values()]) {
+      if (KINDS[j.kind]) continue;
+      for (const id of j.claims) {
+        const b = st.agents[id];
+        if (!b || b.job !== j) continue;
+        const [x, y] = placeOf(st, b),
+          lying = Object.keys(KINDS).find((k) => Lying.fetchKey(k) === j.kind);
+        if (b.load > 0 && lying && j.owner) Lying.put(st, lying, b.load, tileAt(st, x, y), j.owner, { x, y });
+        if (b.path) halt(st, b);
+        Object.assign(b, { job: null, basis: null, phase: null, load: 0, carry: null, inside: false, anim: 'idle' });
+        waitLeg(st, b);
+      }
+      dequeue(st, j);
+      st.jobs.delete(j.key);
+      const s = j.owner && st.jobsBy.get(ownerKey(j.owner));
+      if (s) s.delete(j);
+    }
     for (const j of st.jobs.values()) {
       delete j.cast;
       if ((j.at === undefined || j.at === null) && j.claims.length) rerate(st, j, false);

@@ -110,12 +110,15 @@ VB['sim/lying'] = (() => {
   // At most `cap` taken up from the owner's pile of kind `kind` at `tile`: what was taken.
   function takeAt(st, tile, kind, owner, cap) {
     const l = pileAt(st, tile, kind, owner);
-    return l ? take(st, l.id, cap) : 0;
+    return l ? takeFrom(st, l, cap) : 0;
   }
   // A load of at most `cap` is taken up from lying load `id`: what was taken (0 when it is gone); the load leaves the list with its last.
   function take(st, id, cap) {
     const l = byId(st, id);
-    if (!l) return 0;
+    return l ? takeFrom(st, l, cap) : 0;
+  }
+  // At most `cap` taken up from lying entry l (found by its owner's index, not by id: VB-1775); it leaves the list with its last.
+  function takeFrom(st, l, cap) {
     const n = Math.min(cap, l.n);
     l.n -= n;
     if (l.n <= 1e-9) drop(st, l);

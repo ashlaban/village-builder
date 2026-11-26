@@ -826,3 +826,48 @@ console.log(
   }
   console.log('methods: the wood in a real state: the five rows, the felled pile, a load in hand, the stray pile, no fetch kind');
 }
+
+// VB-1775, review F1: a save from before the wood had methods may hold a fetch task of timber (fetchWood), a kind this build has no
+// more: loaded, the task is taken down, its hands are freed where they stand (a load in hand set down there as the household's pile),
+// and the run goes on two days with its invariants
+{
+  const Sim = VB.sim,
+    Lying = VB['sim/lying'],
+    Agents = VB['sim/agents'],
+    { KINDS } = VB['sim/kinds'],
+    { TRAVEL, DAY } = VB['sim/rules'];
+  const { tinyWorld, tinyState } = require('./lib/tiny.js'),
+    { checkState } = require('./lib/invariants.js');
+  const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
+  const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 });
+  st.naturalDeaths = false;
+  Sim.advance(st, 3);
+  const hh = st.households[0],
+    f = st.farmsteads[hh.farmstead],
+    forest = st.villages[f.village].wood[0],
+    owner = { type: 'household', id: hh.id };
+  assert(!KINDS.fetchWood, 'no fetch kind for the wood');
+  const l = Lying.put(st, 'wood', TRAVEL.load, forest, owner);
+  const [a, b] = st.pawns.filter((p) => p.alive && p.household === hh.id).map((p) => st.agents[p.id]);
+  for (const [p, key, back] of [
+    [a, `fetch:L${l.id}`, false],
+    [b, 'fetch:L999', true],
+  ]) {
+    if (p.job) Agents.release(st, p);
+    const j = { id: ++st.jobSeq, key, kind: 'fetchWood', owner, site: forest, done: 0, claims: [p.id], posted: st.t, live: true };
+    st.jobs.set(key, j);
+    Object.assign(p, { job: j, phase: back ? 'back' : 'go', load: back ? TRAVEL.load : 0, carry: back ? 'logs' : null });
+    const to = back ? f.house : forest;
+    Agents.walkTo(st, p, to, st.w.hx[to], st.w.hy[to]);
+  }
+  const data = JSON.parse(JSON.stringify(Sim.save(st)));
+  const back = Sim.load(tinyWorld(rows), data);
+  assert(![...back.jobs.values()].some((j) => !KINDS[j.kind]), 'no task of an unknown kind loaded');
+  assert(back.agents[a.id].job === null && back.agents[b.id].job === null, 'its hands freed');
+  assert(Lying.amountAt(back, forest, 'wood', owner) === TRAVEL.load, 'the pile it was to fetch still lies');
+  const laid = (back.lying || []).filter((x) => x.kind === 'wood' && x.owner.id === hh.id && x.tile !== forest);
+  assert(laid.length === 1 && laid[0].n === TRAVEL.load, 'the load in hand set down where its carrier stood');
+  Sim.advance(back, 2 * DAY);
+  assert.deepStrictEqual(checkState(back), [], 'invariants, two days on');
+  console.log('methods: an older save with a fetch task of timber loads and runs on');
+}
