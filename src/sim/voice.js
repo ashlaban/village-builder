@@ -1,5 +1,5 @@
 // @sys sim/voice: a member's voice (VB-1555; design.md section 7, A member's voice): a member asks its head for leave, free hours today
-//   from now or from an hour named to the end of the working day: an offer on the basis `leave` (sim/offers), answered by the head's day
+//   from now or from an hour named to the end of the working day: the verb ask, an offer on the basis `leave` (sim/offers), answered by the head's day
 //   (no when it gave the member hours at a task with a deadline today or a window closing today) and else by its opinion of the member and
 //   its own diligence; a yes takes the member out of the day's allotment for those hours (sim/fit allotted) and they are its own time
 //   (sim/pastimes); a no is a memory of the member's. A pawn asks of its own accord after the morning's allotment, for the afternoon, when
@@ -133,6 +133,7 @@ VB['sim/voice'] = (() => {
       });
   }
   Offers.basis('leave', {
+    asked: 'leave', // by the verb ask (sim/offers)
     books: 'nothing',
     wait: () => VOICE.wait,
     check,
@@ -200,7 +201,8 @@ VB['sim/voice'] = (() => {
       }
     }
   }
-  // Pawn id asks its head for leave from hour `from` (game hours), to visit `with` (or null)
+  // Pawn id asks its head for leave from hour `from` (game hours), to visit `with` (or null): the verb ask, by its own rule (source 'pawn',
+  // the default author; any controller issues the same verb, VB-1756)
   function ask(st, id, from, w = null) {
     const hh = homeOf(st, id);
     if (!hh) return 'it has no head to ask';
@@ -208,10 +210,10 @@ VB['sim/voice'] = (() => {
     // any head answers by its pawn's judgement at once, an unplanned one by its controller (sim/offers make, VB-1776)
     return issue(st, {
       actor: id,
-      verb: 'offer',
+      verb: 'ask',
       target: hh.holder,
       args: { basis: 'leave', wants: { from, with: w } },
-      source: 'planner',
+      source: 'pawn',
     });
   }
   // Each hour of the working day: the leaves whose hour has come begin; after the morning's allotment, the members' own asks.

@@ -78,6 +78,24 @@ const head = hh.holder, [m1, m2] = hh.members.filter((m) => dayOf(hh.id).lists[m
   assert.deepStrictEqual(Sim.timetable(st, hh).edited, d.edited, 'and the timetable says so');
 }
 
+// 3b. A pawn's own day's order (VB-1756): the op dayOrder on its own plan (the verb plan, target the pawn) reorders its own list, for a
+// member that is not the head; never another's list, nor a list it does not have; it stands as the head's change does.
+{
+  const d = dayOf(hh.id), own = (actor, id, args) => issue(st, { actor, verb: 'plan', target: { kind: 'pawn', id }, args: { op: 'dayOrder', ...args }, source: 'pawn' });
+  const mem = hh.members.find((m) => m !== head && st.pawns[m].died === null && d.lists[m] && d.lists[m].length >= 2);
+  if (mem !== undefined) {
+    const l = d.lists[mem].slice(), f = d.fits[mem].slice(), h = d.hours[mem].slice(), other = hh.members.find((m) => m !== mem && st.pawns[m].died === null);
+    assert.match(String(own(mem, other, { from: 0, to: 1 })), /its own plan only/, "not another's list");
+    assert.match(String(own(mem, mem, { from: 0, to: 99 })), /no place/);
+    assert.strictEqual(own(mem, mem, { from: 0, to: 1 }), true, 'a member reorders its own list');
+    assert.deepStrictEqual([d.lists[mem], d.fits[mem], d.hours[mem]], [[l[1], l[0], ...l.slice(2)], [f[1], f[0], ...f.slice(2)], [h[1], h[0], ...h.slice(2)]], 'its entries with their fits and hours');
+    assert.deepStrictEqual(d.edited, { t: st.t, by: mem }, 'the day says the member changed it');
+    assert.strictEqual(own(mem, mem, { from: 1, to: 0 }), true, 'and back');
+  } else assert.fail('a member besides the head has two tasks in its list');
+  const loner = st.pawns.find((p) => p.died === null && p.household === null);
+  if (loner) assert.match(String(own(loner.id, loner.id, { from: 0, to: 1 })), /no household/);
+}
+
 // 4. dayGive: a task of m1's list that m2 does not hold goes to m2, with its hours; the free hours follow.
 {
   const d = dayOf(hh.id), given = (id, k) => { const i = d.lists[id].indexOf(k); return i >= 0 && (d.fits[id][i] === null || d.fits[id][i] > 0); };

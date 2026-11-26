@@ -46,7 +46,8 @@ VB['sim/offers'] = (() => {
   // ((st, o) => the pawn whose own future it is, who holds it as pawn.ask), where ((st, o) => the village whose step of the moving round
   // answers it), what ((st, o) => its words, as `what`) and memory (false: a no is told, and nobody remembers it). The rows: gift and
   // ask (sim/exchange), match and handover (sim/marriage), land (sim/farmclaims), party (sim/settle) and place (sim/service). An offer
-  // made with args.round is due at the moving round: sim/round answers it there, or it lapses when the round ends. ----
+  // made with args.round is due at the moving round: sim/round answers it there, or it lapses when the round ends. A row may name the
+  // word it is asked for (`asked`: 'leave', sim/voice; 'hands', sim/hands' help): an offer on it is made by the verb ask, never offer. ----
   const BASES = {};
   function basis(name, row) {
     if (BASES[name]) throw new Error(`basis ${name} is declared twice`);
@@ -307,8 +308,30 @@ VB['sim/offers'] = (() => {
       living(st, c.actor) ||
       (c.args && c.args.given && c.args.given.length && c.source !== 'round'
         ? 'only the round makes an offer with answers given'
-        : cannotOffer(st, c)),
+        : c.args && BASES[c.args.basis] && BASES[c.args.basis].asked
+          ? `${BASES[c.args.basis].asked} is asked, by the verb ask`
+          : cannotOffer(st, c)),
     run: (st, c) => make(st, c, (c.args && c.args.given) || []),
+  });
+  // ask(target, {basis, wants, due}) (VB-1756; docs/plans/four-scales/README.md, 3.6): the actor asks pawn `target` for what `basis`
+  // names, a word a row of the table is asked for (`asked`: leave, hands); an offer on that row, made and answered as any, under its
+  // check, the same for every pawn. The default authors: a member's own ask of leave (sim/voice), a head short of hands (sim/hands).
+  const askedOf = (word) => Object.keys(BASES).find((b) => BASES[b].asked === word) || null;
+  const asOffer = (c) => ({
+    ...c,
+    verb: 'offer',
+    args: { basis: askedOf(c.args.basis), wants: c.args.wants, due: c.args.due },
+  });
+  register('ask', {
+    check: (st, c) =>
+      living(st, c.actor) ||
+      (!c.args || typeof c.args.basis !== 'string' || askedOf(c.args.basis) === null
+        ? `one asks for ${Object.values(BASES)
+            .filter((B) => B.asked)
+            .map((B) => B.asked)
+            .join(' or ')}, not ${JSON.stringify(c.args && c.args.basis)}`
+        : cannotOffer(st, asOffer(c))),
+    run: (st, c) => make(st, asOffer(c)),
   });
   // answer(target, {yes}): the actor answers the open offer `target`, all its answers in it at once; the offer closes at a no, or when
   // all have said yes (an unplayed pawn answers by its own judgement when the offer falls due: sim/offers)

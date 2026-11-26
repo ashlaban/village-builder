@@ -469,27 +469,41 @@ VB['sim/day'] = (() => {
   const edited = (st, day, c) => (day.edited = { t: st.t, by: Number.isInteger(c.actor) ? c.actor : null });
   const index = (n, len) => Number.isInteger(n) && n >= 0 && n < len;
   // dayOrder({member, from, to}): the entry at `from` of the member's list goes to `to`, its fit and hours with it: an op of the verb
-  // `plan` on the household's plan (sim/plans), the verb dayOrder its facade (VB-1754).
-  planOp('household', 'dayOrder', {
-    check: (st, c) => {
-      const a = c.args || {},
-        why = dayWhy(st, c, a.member);
-      if (why) return why;
-      const n = planOf(st, 'household', c.target).day.lists[a.member].length;
-      return index(a.from, n) && index(a.to, n) ? null : `no place ${a.from} or ${a.to} in a list of ${n}`;
-    },
-    run: (st, c) => {
-      const plan = planOf(st, 'household', c.target),
-        day = plan.day,
-        { member, from, to } = c.args,
-        key = day.lists[member][from],
-        fit = day.fits ? day.fits[member][from] : null;
-      const h = day.fits ? leave(day, member, from) : (day.lists[member].splice(from, 1), 0);
-      if (day.fits) enter(day, member, to, key, fit, h);
-      else day.lists[member].splice(to, 0, key);
-      edited(st, day, c);
-    },
-  });
+  // `plan` on the household's plan (sim/plans), the verb dayOrder its facade (VB-1754). A pawn's own day's order (VB-1756): the op
+  // dayOrder({from, to}) on its own plan (target {kind: 'pawn', id}) reorders its own list of its household's day, for any member with
+  // one, head or not: `own` skips the head's check, the pawn its own member. It stands, as the head's change does, until the next allotment.
+  function orderWhy(st, c, own) {
+    const a = c.args || {},
+      why = own ? ownDay(st, c.target) : dayWhy(st, c, a.member);
+    if (why) return why;
+    const member = own ? c.target : a.member,
+      n = planOf(st, 'household', st.pawns[member].household).day.lists[member].length;
+    return index(a.from, n) && index(a.to, n) ? null : `no place ${a.from} or ${a.to} in a list of ${n}`;
+  }
+  // Why pawn id cannot reorder its own list of its household's day, or null
+  function ownDay(st, id) {
+    const p = st.pawns[id],
+      hh = p.household === null ? null : st.households[p.household];
+    if (!hh || hh.dissolved || p.died !== null) return `pawn ${id} is a living member of no household`;
+    const plan = planOf(st, 'household', hh.id),
+      day = plan && plan.day;
+    if (!day) return `household ${hh.id} has no day allotted yet`;
+    return day.lists[id] ? null : `pawn ${id} has no list in the day`;
+  }
+  function reorder(st, c, own) {
+    const member = own ? c.target : c.args.member,
+      plan = planOf(st, 'household', own ? st.pawns[member].household : c.target),
+      day = plan.day,
+      { from, to } = c.args,
+      key = day.lists[member][from],
+      fit = day.fits ? day.fits[member][from] : null;
+    const h = day.fits ? leave(day, member, from) : (day.lists[member].splice(from, 1), 0);
+    if (day.fits) enter(day, member, to, key, fit, h);
+    else day.lists[member].splice(to, 0, key);
+    edited(st, day, c);
+  }
+  planOp('household', 'dayOrder', { check: (st, c) => orderWhy(st, c, false), run: (st, c) => reorder(st, c, false) });
+  planOp('pawn', 'dayOrder', { check: (st, c) => orderWhy(st, c, true), run: (st, c) => reorder(st, c, true) });
   register('dayOrder', planFacade('dayOrder'));
   // dayGive({key, from, to}): task `key` leaves member from's list and is given to member to, after its tasks given hands (its own entry
   // of it among the rest, if any, gives way), with the hours the giver had of it; one at work on it now works on until it next looks
