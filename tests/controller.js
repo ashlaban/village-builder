@@ -89,6 +89,23 @@ const unctl = (st) => {
   assert.ok(st.pawns[id].control === undefined && !st.controlled.includes(id) && !st.queued.includes(id), 'ended at its death');
   assert.ok(/not a living pawn/.test(String(own(st, id, 'auto', { on: false }))), 'a dead pawn has no controller to switch');
   sound(st, 'its pawn dead');
+  // played, a pawn's controller starts fresh, and the player's leaving ends it (VB-1745 review, F2)
+  const b = st.households[0].members.find((m) => st.pawns[m].alive && m !== id);
+  own(st, b, 'auto', { on: false });
+  own(st, b, 'queue', { cmd: { verb: 'goHome' } });
+  assert.strictEqual(Sim.inhabit(st, b), true);
+  assert.deepStrictEqual(st.pawns[b].control, { auto: true, queue: [], refused: null }, 'inhabited, its controller starts fresh');
+  assert.strictEqual(Sim.setAuto(st, false), true);
+  assert.strictEqual(Sim.uninhabit(st), true);
+  assert.strictEqual(st.pawns[b].control, undefined, 'left, its controller ends: its own logic again');
+  // the played pawn dead (F4): no controller, so the switch reads on and cannot be set until the player goes on as another
+  Sim.inhabit(st, b);
+  Sim.setAuto(st, false);
+  VB['sim/lifecycle'].killPawn(st, b);
+  assert.strictEqual(st.player.pawn, b, 'the player keeps its dead pawn');
+  assert.ok(controlOf(st, b).auto && !controlOf(st, b).queue.length, 'its switch reads on, nothing queued');
+  assert.ok(/not a living pawn/.test(String(Sim.setAuto(st, true))), 'the switch of a dead pawn is refused');
+  sound(st, 'the played pawn dead');
 }
 console.log(`controller ok: an empty controller on every pawn changes nothing in 10 days; two with automatic off left alone and their `
   + `queues run from the index; refusals make no controller; ended at a death; saved and loaded`);

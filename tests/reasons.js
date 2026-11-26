@@ -90,7 +90,12 @@ expect('village', () => { a.job = common; plan.day.lists[id] = [common.key]; }, 
 // its own choosing: a task of its household's taken without the plan
 expect('self', () => { a.job = plough; });
 // the player's order
-expect('player', () => { a.job = plough; st.pawns[id].control = { auto: true, queue: [{ verb: 'work', target: plough.key }], refused: null }; });
+expect('player', () => { a.job = plough; st.player = { pawn: id }; st.pawns[id].control = { auto: true, queue: [{ verb: 'work', target: plough.key }], refused: null }; });
+// VB-1745: an unplayed pawn's own switch and its own order are its own, not the player's
+const ownVerb = (verb, args) => VB['sim/commands'].issue(st, { actor: id, verb, target: null, args, source: 'pawn' });
+expect('self', () => { assert.strictEqual(ownVerb('auto', { on: false }), true); }, (r) => assert.ok(!/^Your/.test(r.line), r.line));
+expect('self', () => { a.job = plough; assert.strictEqual(ownVerb('auto', { on: false }), true); });
+expect('self', () => { assert.strictEqual(ownVerb('queue', { cmd: { verb: 'goHome' } }), true); }, (r) => assert.strictEqual(r.why, 'an order of its own'));
 // a day lent to the neighbour, at its task
 const theirs = job('break', { type: 'household', id: neighbour.id });
 expect('lent', () => { a.job = theirs; st.handsToday = { day: Math.floor(st.t / DAY), asked: [], by: { [id]: [neighbour.id, 4, 0, 0] } }; });

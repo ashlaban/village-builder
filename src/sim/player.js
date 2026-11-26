@@ -44,7 +44,8 @@ VB['sim/player'] = (() => {
       last: null,
       days: [],
     };
-    attach(st, id); // its controller: automatic, nothing queued (a controller it had before is kept)
+    detach(st, id); // its controller starts fresh, automatic with nothing queued, as the player's leaving ends it (VB-1745)
+    attach(st, id);
     resetWish(st, id); // the player starts from the default wish (VB-680): its wishes are the pawn's (pawn.wish, sim/wishes)
     personEvent(st, id, 'player', 'Played by the player');
     return true;
