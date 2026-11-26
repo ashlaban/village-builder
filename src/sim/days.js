@@ -132,7 +132,7 @@ VB['sim/days'] = (() => {
       if (e[1] >= DAYS.hours - 1e-9 && !e[2]) {
         // a load on the road is brought in first, by the rule for a load in hand: the day is given once it is in (VB-1548)
         const ag = st.agents[+id];
-        if (ag && ag.phase === 'back' && ag.job && ag.load > 0) continue;
+        if (ag && ag.load > 0 && ag.job && ag.load > 0) continue;
         e[2] = 1;
         emit(st, 'dayGiven', { pawn: +id });
       }

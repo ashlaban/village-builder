@@ -132,7 +132,7 @@ for (let h = 0; h < 12 * 24; h++) {
   Sim.advance(run, 1);
   for (const id of run.living) {
     const a = run.agents[id];
-    if (a.job && a.job.kind === 'hunt' && a.phase === 'work') hunters.add(id);
+    if (a.job && a.job.kind === 'hunt' && (a.leg && a.leg.kind === 'work')) hunters.add(id);
   }
   if (h % 24 === 0) bad = bad.concat(checkState(run));
 }

@@ -58,7 +58,7 @@ let present = 0, talks = 0;
 for (const o of weddings) {
   for (const id of o.for) {
     const a = st.agents[id];
-    if (a.phase === 'back' && a.occasion === null) continue; // still carrying a load home: it sets out when the load is in (canGo)
+    if (a.load > 0 && a.occasion === null) continue; // still carrying a load home: it sets out when the load is in (canGo)
     assert.strictEqual(a.occasion, o.id, `pawn ${id} is at its own wedding`);
     if (!a.path) { assert.ok(near(st, a, o), `pawn ${id} stands about the spot`); assert.strictEqual(a.idleUntil >= o.end, true); }
     assert.ok(/wedding/i.test(Sim.describe(st, id)), Sim.describe(st, id));
@@ -79,7 +79,7 @@ Sim.advance(st, 1.1);
 for (const o of weddings) for (const id of o.come) {
   const a = st.agents[id];
   assert.notStrictEqual(a.occasion, o.id, `pawn ${id} is free after the wedding`);
-  if (st.pawns[id].alive) assert.ok(a.inside || a.phase === 'home', `pawn ${id} goes home after the wedding`);
+  if (st.pawns[id].alive) assert.ok(a.inside || !!a.homeward, `pawn ${id} goes home after the wedding`);
 }
 assert.strictEqual(st.occasions.filter((o) => o.kind === 'wedding').length, 0, 'the weddings are over');
 const lines = told(st, before, 'wedding');
@@ -111,10 +111,10 @@ for (const id of [...mates, ...kin]) if (st.pawns[id].age >= 4) {
   assert.ok(ale.asked.some((g) => g.id === id) || villageOf(st, id) !== st.farmsteads[hh.farmstead].village, `pawn ${id} is asked to the ale`);
 }
 Sim.advance(st, ale.start - 0.3 - st.t);
-const working = ale.asked.filter((g) => g.leave === ale.start && st.agents[g.id].job && st.agents[g.id].phase !== 'back').map((g) => g.id);
+const working = ale.asked.filter((g) => g.leave === ale.start && st.agents[g.id].job && !(st.agents[g.id].load > 0)).map((g) => g.id);
 Sim.advance(st, 0.5);
 // but one that took up its load meanwhile, which it carries home first (as those carrying at the first look)
-for (const id of working) assert.ok(st.agents[id].occasion === ale.id || st.agents[id].phase === 'back', `pawn ${id} leaves its work for the funeral ale`);
+for (const id of working) assert.ok(st.agents[id].occasion === ale.id || st.agents[id].load > 0, `pawn ${id} leaves its work for the funeral ale`);
 assert.ok(/funeral ale/i.test(Sim.describe(st, mates[0])), Sim.describe(st, mates[0]));
 const mark2 = st.record.length;
 Sim.advance(st, 5);

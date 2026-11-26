@@ -1,6 +1,7 @@
 // @sys sim/attention: the charge a pawn minds beside its task (VB-251; `mind`, VB-1750): taken up and let go, within reach or out of it,
 // and looked at as the holder's leg begins and ends; split from sim/agents (VB-422)
 VB['sim/attention'] = (() => {
+  const { unbound } = VB['sim/pose'];
   const { cal } = VB['sim/rules'];
   const { KINDS } = VB['sim/kinds'],
     { workTick } = VB['sim/progress'];
@@ -128,7 +129,7 @@ VB['sim/attention'] = (() => {
     if (!a.mind) return;
     const walking = a.path && a.leg && a.leg.kind === 'walk';
     for (const j of a.mind.length > 1 ? [...a.mind] : a.mind) {
-      if (walking ? !inReach(st, j, endTile(st, a)) : a.phase !== null && !inReach(st, j, tileAt(st, a.x, a.y))) {
+      if (walking ? !inReach(st, j, endTile(st, a)) : !unbound(a) && !inReach(st, j, tileAt(st, a.x, a.y))) {
         unhold(st, a, j);
         continue;
       }

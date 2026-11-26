@@ -22,10 +22,10 @@ const villageOf = (st, hh) => st.farmsteads[hh.farmstead].village;
   moveTo(st, id, h1.id);
   assert.strictEqual(st.away.length, 0, 'a move within a village opens no journey');
   assert.strictEqual(st.pawns[id].household, h1.id, 'the household changes at the act');
-  assert.ok(a.x === x0 && a.y === y0 && a.phase === 'home' && a.path, 'the pawn is where it was, and walks home');
+  assert.ok(a.x === x0 && a.y === y0 && !!a.homeward && a.path, 'the pawn is where it was, and walks home');
   Sim.advance(st, 3);
   const [x, y] = homeSpot(st, a);
-  assert.ok(Math.hypot(a.x - x, a.y - y) < 1e-6 || a.phase !== 'home', 'it has reached the new door, or gone on to work');
+  assert.ok(Math.hypot(a.x - x, a.y - y) < 1e-6 || !a.homeward, 'it has reached the new door, or gone on to work');
   assert.deepStrictEqual(checkState(st), [], 'invariants after a move within a village');
 }
 
@@ -43,7 +43,7 @@ moveTo(st, bride, home.id);
 const j = st.away[0], hours = VB['sim/villagehours'].hoursBetween(st, 1, 0), days = Math.ceil(hours / TRAVEL.dayWalk);
 assert.ok(hours > TRAVEL.dayWalk && Number.isFinite(hours), `the villages lie ${hours} hours apart`);
 assert.ok(j && j.pawn === bride && j.to === st.farmsteads[home.farmstead].house && st.away.length === 1, 'one journey to her new home');
-assert.strictEqual(a.phase, 'journey', 'at 15:00 she sets out at once');
+assert.strictEqual(a.journey, 'walk', 'at 15:00 she sets out at once');
 assert.ok(Math.abs(j.food - days) < 1e-9, `provisions for ${days} days: ${j.food}`);
 assert.ok(Math.abs(grain0 - Stores.grainOf(left) - days / st.ECON.uncooked) < 1e-9, 'taken from the household she leaves');
 assert.ok(left.ledger.some((e) => e.kind === 'away' && e.pawn === bride), "a store movement with the reason 'away'");
@@ -56,7 +56,7 @@ for (let d = 0; d <= days + 1 && st.away.length; d++) {
   to(st, WORK[1]);
   if (!st.away.length) break;
   stops++;
-  assert.strictEqual(a.phase, 'road', `at 18:00 on day ${d} she has stopped`);
+  assert.strictEqual(a.journey, 'rest', `at 18:00 on day ${d} she has stopped`);
   assert.ok(!a.inside && route.has(tileAt(st, a.x, a.y)), `at 18:00 on day ${d} she is on the route, outdoors`);
   const x = a.x, y = a.y;
   Sim.advance(st, 1);
@@ -72,7 +72,7 @@ for (let d = 0; d <= days + 1 && st.away.length; d++) {
   assert.strictEqual(st.pawns[bride].hungerLog[st.pawns[bride].hungerLog.length - 1], 0, 'she ate her ration from her provisions');
   to(st, WORK[0]);
   Sim.advance(st, 0.2);
-  if (st.away.length) assert.strictEqual(a.phase, 'journey', 'at 6:00 her next leg starts');
+  if (st.away.length) assert.strictEqual(a.journey, 'walk', 'at 6:00 her next leg starts');
 }
 assert.ok(stops >= 1 && stops <= days, `${stops} nights on the road, at most ${days}`);
 to(st, WORK[1]);
@@ -97,11 +97,11 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   to(s, 20);
   for (const h of [hh, from]) Stores.take(s, h, 'grain', Stores.grainOf(h), 'spoilage');
   moveTo(s, id, hh.id);
-  assert.ok(s.away.length === 1 && s.away[0].food === 0 && s.agents[id].phase === 'road', 'at 20:00 she waits for 6:00, unprovisioned');
+  assert.ok(s.away.length === 1 && s.away[0].food === 0 && s.agents[id].journey === 'rest', 'at 20:00 she waits for 6:00, unprovisioned');
   to(s, 0);
   assert.strictEqual(s.pawns[id].hungerLog[s.pawns[id].hungerLog.length - 1], 1, 'with nothing carried, she goes hungry');
   to(s, 10);
-  assert.strictEqual(s.agents[id].phase, 'journey', 'she walks from 6:00');
+  assert.strictEqual(s.agents[id].journey, 'walk', 'she walks from 6:00');
   killPawn(s, id, 'killed');
   assert.strictEqual(s.away.length, 0, 'the journey is dropped at her death');
   const died = s.record.find((e) => e && e.kind === 'died' && e.pawn === id);
@@ -129,7 +129,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   moveTo(s, mid, hh.id);
   Sim.advance(s, 2);
   const m = s.agents[mid], [mx, my] = VB['sim/pose'].placeOf(s, m); // a walker's place, from its leg (VB-473)
-  assert.ok(m.phase === 'journey' && Math.hypot(mx - homeSpot(s, m)[0], my - homeSpot(s, m)[1]) > 200, 'the mother is far from home');
+  assert.ok(m.journey === 'walk' && Math.hypot(mx - homeSpot(s, m)[0], my - homeSpot(s, m)[1]) > 200, 'the mother is far from home');
   const p = s.pawns[mid], n = s.pawns.length;
   p.pregnantUntil = s.t; p.pregnantBy = dad;
   s.rng.births.fix = 0.99;
@@ -278,7 +278,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
   assert.ok(!s.visits.some((e) => e.pawn === man), 'the plan is taken from the queue');
   assert.ok(Math.abs(j.food - days) < 1e-9 && days === 5, `a ration a day away, ${days} days: ${j.food}`);
   assert.ok(Math.abs(g0 - Stores.grainOf(A) - days / s.ECON.uncooked) < 1e-6, "from his household's grain");
-  assert.strictEqual(a.phase, 'journey', 'he walks');
+  assert.strictEqual(a.journey, 'walk', 'he walks');
   let onRoad = null, guest = 0, t0 = s.t, home = null, hosted = null;
   for (let k = 0; k < 8 * 4 && s.away.length; k++) {
     Sim.advance(s, DAY / 4);
@@ -286,8 +286,8 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
     const x = s.away.find((y) => y.pawn === man);
     if (!x) { home = s.t; break; }
     if (x.host !== undefined && hosted === null) hosted = { ...x };
-    if (!x.back && onRoad === null && a.phase === 'road') onRoad = JSON.parse(JSON.stringify(Sim.save(s)));
-    if (x.back && a.phase === 'road' && tileAt(s, a.x, a.y) !== undefined && Math.hypot(a.x - s.w.hx[s.villages[1].center], a.y - s.w.hy[s.villages[1].center]) < 4 * s.w.R) guest++;
+    if (!x.back && onRoad === null && a.journey === 'rest') onRoad = JSON.parse(JSON.stringify(Sim.save(s)));
+    if (x.back && a.journey === 'rest' && tileAt(s, a.x, a.y) !== undefined && Math.hypot(a.x - s.w.hx[s.villages[1].center], a.y - s.w.hy[s.villages[1].center]) < 4 * s.w.R) guest++;
   }
   assert.deepStrictEqual(p.visited, { village: 1, year: M.roundYear(s.t) }, 'on arrival the visit is his: ' + JSON.stringify(p.visited));
   const kinds = p.events.map((k) => s.record[k]).filter((e) => e.t >= due).map((e) => e.kind);

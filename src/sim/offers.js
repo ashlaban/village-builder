@@ -134,16 +134,7 @@ VB['sim/offers'] = (() => {
       const p = st.pawns[args.carrier],
         a = p && st.agents[p.id];
       if (!('farmstead' in from) || !('farmstead' in to)) return 'only a household carries a gift to a household';
-      if (
-        !p ||
-        !p.alive ||
-        p.household !== from.id ||
-        p.age < 14 ||
-        p.age >= 60 ||
-        !a ||
-        onRoad(a) ||
-        a.phase === 'back'
-      )
+      if (!p || !p.alive || p.household !== from.id || p.age < 14 || p.age >= 60 || !a || onRoad(a) || a.load > 0)
         return `pawn ${args.carrier} cannot carry the gift`;
       const kept = mindsWhy(st, p.id); // VB-1602
       if (kept) return kept;

@@ -7,7 +7,7 @@ const it = G.generate(7); let r; while (!(r = it.next()).done);
 const world = r.value;
 // Heirs seed 7, Södergården (farmer, wife, a son of 29) on spring day 0. The scene starts at the first half hour at which the farmer and
 // the son are both hoeing, so it does not depend on when they take their first jobs (that moves with every change to the random draws).
-const hoeing = (a) => !!a.job && a.job.kind === 'plow' && a.phase === 'work';
+const hoeing = (a) => !!a.job && a.job.kind === 'plow' && (a.leg && a.leg.kind === 'work');
 function morning() {
   const st = Sim.seed(world, 7, 'heirs'), hh = st.households[0];
   for (const id of hh.members.slice(3)) { const p = st.pawns[id]; p.died = st.t; p.alive = false; }
@@ -23,8 +23,8 @@ function morning() {
 }
 {
   const { st, hh, farmer, son } = morning();
-  check(son.job && son.job.kind === 'plow' && son.phase === 'work', `the son is not hoeing by 15:00 (${son.job && son.job.kind}, ${son.phase})`);
-  check(farmer.job && farmer.job.kind === 'plow' && farmer.phase === 'work', 'the farmer is not hoeing by 15:00');
+  check(son.job && son.job.kind === 'plow' && (son.leg && son.leg.kind === 'work'), `the son is not hoeing by 15:00 (${son.job && son.job.kind}, ${son.leg && son.leg.kind})`);
+  check(farmer.job && farmer.job.kind === 'plow' && (farmer.leg && farmer.leg.kind === 'work'), 'the farmer is not hoeing by 15:00');
   const field = son.job, done = field.done;
   hh.wood = 5;
   Sim.advance(st, 0.6); // past the full hour, when working pawns look up, and a step after it (whole steps, VB-244)

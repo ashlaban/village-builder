@@ -49,7 +49,7 @@ module.exports = (VB, st, { from = 1, every = 'step', fields = null, team = fals
       const hh = st.households[p.household];
       if (hh.dissolved) continue;
       const r = recOf(hh, year), s = c.season;
-      if (a.job) bump(a.phase === 'work' ? r.work[s] : r.move[s], a.job.kind, dt);
+      if (a.job) bump((a.leg && a.leg.kind === 'work') ? r.work[s] : r.move[s], a.job.kind, dt);
       if (!inWork) continue;
       const age = Sim.age(st, p), rate = age >= 7 && !p.retired ? workRate(p.role, age) : 0;
       if (age >= 14 && age < 60 && !p.retired) r.hands[s] += dt;

@@ -48,7 +48,7 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
     for (const id of housed(st)) {
       const j = st.agents[id].job;
       if (!j || !before.has(id) || j.posted >= at) continue;
-      if (st.agents[id].phase === 'go') { taken++; assert.ok(before.get(id).has(j.key), `pawn ${id} took ${j.key}, which was not on its list`); }
+      if ((st.agents[id].job && st.agents[id].path && !(st.agents[id].load > 0))) { taken++; assert.ok(before.get(id).has(j.key), `pawn ${id} took ${j.key}, which was not on its list`); }
     }
   }
   assert.ok(may > 100 && barred > 100 && taken > 20, `too little was tested: ${may} offered, ${barred} barred, ${taken} taken`);

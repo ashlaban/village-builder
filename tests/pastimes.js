@@ -98,12 +98,12 @@ w.health = 30; assert.ok(fire(w, summer) > w0, 'more for the weak'); w.health = 
 assert.notStrictEqual(cal(st.t).season, 3, 'the probe is not in winter');
 const wg = free(w);
 P.ownTime(st, wg);
-assert.deepStrictEqual([wg.pastime.kind, wg.pastime.farm, wg.phase], ['fire', farmOf(w).id, null]);
+assert.deepStrictEqual([wg.pastime.kind, wg.pastime.farm, !!wg.homeward], ['fire', farmOf(w).id, false]);
 assert.ok(nearTile(wg, farmOf(w).house, 20), 'in the light seasons it sits in its yard');
 assert.strictEqual(Sim.describe(st, w.id), 'Strolling home');
 w.born = st.t - 70 * YEAR; free(w);
 P.ownTime(st, wg);
-assert.deepStrictEqual([wg.pastime.kind, wg.pastime.farm, wg.phase], ['fire', null, 'home']);
+assert.deepStrictEqual([wg.pastime.kind, wg.pastime.farm, !!wg.homeward], ['fire', null, true]);
 assert.strictEqual(Sim.describe(st, w.id), 'Going home to the fire');
 for (let h = 0; h < 30 && wg.path; h++) Sim.advance(st, 0.1);
 assert.ok(wg.inside && !wg.path, 'indoors');
@@ -137,7 +137,7 @@ A.standStill(st, herder); delete herder.mind; A.idle(st, herder, st.t + 6);
 assert.match(P.why(st, x.id, 'herd', null), /minds no herd/);
 
 // the verb: refusals change nothing; the planner's choice and the played pawn's pass the same check
-const snap = () => JSON.stringify(st.agents.map((g) => [g.x, g.y, g.path, g.phase, g.idleUntil, g.pastime]));
+const snap = () => JSON.stringify(st.agents.map((g) => [g.x, g.y, g.path, g.homeward, g.idleUntil, g.pastime]));
 const before = snap(), dead = st.pawns.find((p) => !p.alive);
 for (const [cmd, why] of [
   [{ actor: x.id, verb: 'pastime', target: 'chess' }, /there is no pastime/],

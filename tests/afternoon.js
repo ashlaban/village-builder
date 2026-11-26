@@ -36,7 +36,7 @@ const key = `water:h${hh.id}:${D}`;
 Jobs.post(st, key, 'water', { type: 'household', id: hh.id }, VB['sim/water'].sourceOf(st, f).tile, { farm: f });
 until(13.5);
 const busy = a.job;
-check(busy && a.phase === 'work' && busy.key !== key, `at 13:30 the settler works (${busy && busy.kind}, ${a.phase})`);
+check(busy && (a.leg && a.leg.kind === 'work') && busy.key !== key, `at 13:30 the settler works (${busy && busy.kind}, ${a.leg && a.leg.kind})`);
 check(st.jobs.get(key) && !st.jobs.get(key).claims.length, 'at 13:30 the water stands unfetched');
 const W = VB['sim/work'],
   left = (busy.hours ?? VB['sim/kinds'].KINDS[busy.kind].hours) - W.doneOf(st, busy);

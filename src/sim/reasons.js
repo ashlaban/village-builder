@@ -130,7 +130,7 @@ VB['sim/reasons'] = (() => {
   function noWork(st, id, p, a, c) {
     if (age(st, p) < CHILD.from) return 'too young to work';
     if (c.hour < WORK[0] || c.hour >= WORK[1]) return 'the working day is over';
-    if (a.phase === 'home') return 'going home';
+    if (!!a.homeward) return 'going home';
     const line = idleLine(st, id);
     if (line) return line;
     return p.household === null

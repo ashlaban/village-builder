@@ -61,7 +61,7 @@ const fetchDay = (n, steps, carts) => {
       const a = st.agents[id];
       if (!a.job || a.job.kind !== 'water') continue;
       ticks++;
-      if (a.job.cart && a.phase === 'go' && a.leg && a.leg.kind === 'walk') pace = a.leg.pace / (SPEED * st.w.HW);
+      if (a.job.cart && (a.job && a.path && !(a.load > 0)) && a.leg && a.leg.kind === 'walk') pace = a.leg.pace / (SPEED * st.w.HW);
     }
   }
   KINDS.water.deliver = deliver;
@@ -158,7 +158,7 @@ for (const n of [3, 6]) {
   let a = null;
   for (let k = 0; k < 2 * DAY * TICKS && !a; k++) {
     Sim.advance(st, 1 / TICKS);
-    a = hh.members.map((id) => st.agents[id]).find((b) => b.job && b.job.kind === 'water' && b.job.cart && b.phase === 'back') || null;
+    a = hh.members.map((id) => st.agents[id]).find((b) => b.job && b.job.kind === 'water' && b.job.cart && b.load > 0) || null;
   }
   check(a && a.load === TRAVEL.hand, `a hand on its way home with the barrel (${a && a.load})`);
   if (a) {

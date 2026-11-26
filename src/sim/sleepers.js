@@ -2,6 +2,7 @@
 //   the living and each step for the played pawn; the verb `sleep`, for the player and a pawn's own rule; and that rule, which sleeps a
 //   pawn that owes a whole night when it is free in the working day
 VB['sim/sleepers'] = (() => {
+  const { unbound } = VB['sim/pose'];
   const { SLEEP, AWAKE } = VB['sim/sleep'];
   const { here, bed } = VB['sim/pose'];
   const { release, free, goHome, idle } = VB['sim/agents'];
@@ -19,8 +20,8 @@ VB['sim/sleepers'] = (() => {
     const a = st.agents[id],
       s = st.pawns[id].sleep;
     if (s && s.until !== null && st.t < s.until && !a.job && a.occasion === null) return !a.path;
-    if (a.phase === 'road') return !a.leg || a.leg.kind === 'wait';
-    if (!a.inside || a.job || a.path || a.phase !== null || a.occasion !== null) return false;
+    if (a.journey === 'rest') return !a.leg || a.leg.kind === 'wait';
+    if (!a.inside || a.job || a.path || !unbound(a) || a.occasion !== null) return false;
     if (st.pawns[id].household === null && a.away === undefined) return false;
     return here(st, a) === bed(st, a);
   }
@@ -53,7 +54,7 @@ VB['sim/sleepers'] = (() => {
       a = st.agents[id];
     if (!s || !a) return; // not reckoned: a pawn with no agent
     if (!(s.owed >= SLEEP.health.over) || (s.until !== null && st.t < s.until)) return;
-    if (a.job || a.path || a.phase !== null || a.occasion !== null || a.idleUntil > st.t) return;
+    if (a.job || a.path || !unbound(a) || a.occasion !== null || a.idleUntil > st.t) return;
     if (st.player && st.player.pawn === id && !st.player.auto) return;
     const hours = Math.max(1, Math.ceil(s.owed - SLEEP.mood.over));
     if (issue(st, { actor: id, verb: 'sleep', args: { hours }, source: 'pawn' }) === true) {

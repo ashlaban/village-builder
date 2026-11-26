@@ -160,7 +160,7 @@ check(KINDS.cook.late === true, 'the cook\'s job is finished after the end of wo
       const busy = [];
       for (const id of st.living) {
         const a = st.agents[id];
-        if (a.job && a.job.kind === 'cook' && a.phase === 'work') busy.push({ a, hh: st.households[st.pawns[id].household] });
+        if (a.job && a.job.kind === 'cook' && (a.leg && a.leg.kind === 'work')) busy.push({ a, hh: st.households[st.pawns[id].household] });
       }
       Sim.advance(st, 0.2);
       for (const b of busy) if (b.a.job && b.a.job.kind === 'cook') late++;

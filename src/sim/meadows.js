@@ -312,8 +312,7 @@ VB['sim/meadows'] = (() => {
     if (
       f.meadows.some((q) => q.stage !== 'aftermath') ||
       hh.members.some(
-        (id) =>
-          id !== a.id && st.agents[id].load > 0 && st.agents[id].phase === 'back' && st.agents[id].carry === 'hay',
+        (id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].load > 0 && st.agents[id].carry === 'hay',
       )
     )
       return;

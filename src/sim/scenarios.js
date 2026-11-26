@@ -553,7 +553,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.away, st.awaySeq: the open stays away from home, journeys among them, and the next one's id (see sim/away, VB-783)
     // @state st.booths, st.boothSeq: the booths raised or being raised, and the next one's id (see sim/building, VB-784)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
-    // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, idleUntil, talk (sim/relations)};
+    // @state st.agents[]: {id, x, y, path, seg, journey, homeward, job, inside, anim, carry, face, stride, ox, oy, idleUntil, talk (sim/relations)};
     //   one per pawn, map units; side (sim/agents, VB-251): absent unless the pawn holds a partial or background task
     // @state st.visualDirty: boolean; set when the whole settlement layer must be redrawn. st.rigDirty: Set of pawn ids whose rigs the page remakes
     // @state st.farmDirty,villageDirty: Sets of farm and village ids whose drawings the page rebuilds alone, and clears (VB-442)
@@ -609,7 +609,7 @@ VB['sim/scenarios'] = (() => {
         y: 0,
         path: null,
         seg: 0,
-        phase: null,
+        journey: null,
         job: null,
         inside: true,
         anim: 'idle',

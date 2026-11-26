@@ -92,16 +92,16 @@ for (const kind of ['move', 'carry', 'fetch', 'haul', 'visit']) {
     arrive(st, a);
     for (let d = TRAVEL.stay; d > 0; d--) {
       morning(st, a);
-      assert.ok(j.stay === d - 1 && j.guest && a.phase === 'road', 'a guest with days to stay stays one more');
+      assert.ok(j.stay === d - 1 && j.guest && a.journey === 'rest', 'a guest with days to stay stays one more');
     }
   }
   morning(st, a);
-  assert.ok(j.guest === undefined && a.phase === 'journey', `a ${kind}'s next leg sets out`);
+  assert.ok(j.guest === undefined && a.journey === 'walk', `a ${kind}'s next leg sets out`);
 }
 {
   const { st, a, j } = journey('visit');
   morning(st, a);
-  assert.ok(a.phase === 'journey' && j.stay === TRAVEL.stay, 'a visitor not yet there walks on, his days as a guest untouched');
+  assert.ok(a.journey === 'walk' && j.stay === TRAVEL.stay, 'a visitor not yet there walks on, his days as a guest untouched');
 }
 
 // ---- a death away: a bearer's grain lies where he fell, what lies at the stops goes back ----

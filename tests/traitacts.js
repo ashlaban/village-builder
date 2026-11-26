@@ -84,7 +84,7 @@ const AT = [0, 0.5, 1];
 // sociability: an idle pawn seeks company at SOCIAL.seek × 0.5 to 1.5; a draw of 0.6 seeks at 1, not at 0.5
 {
   const st = make(), ids = st.living.filter((i) => st.pawns[i].age >= 16);
-  for (const i of st.living) Object.assign(st.agents[i], { inside: false, job: null, phase: null });
+  for (const i of st.living) Object.assign(st.agents[i], { inside: false, job: null });
   const a = st.agents[ids.find((i) => st.living.indexOf(i) !== Math.floor(0.6 * st.living.length))];
   st.rng.talk.fix = 0.6;
   set(st, a.id, 'sociability', 0.5);

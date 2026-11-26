@@ -62,7 +62,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
               if (st.pawns[a.id].died !== null) continue;
               const x = d.drawX[a.id], y = d.drawY[a.id], i = a.id;
               // at work on a field it walks its rows (VB-472): drawn within the tile, from the tick its work began
-              if (a.phase === 'work' && a.job && Sim.KINDS[a.job.kind].field && !a.inside) {
+              if ((a.leg && a.leg.kind === 'work') && a.job && Sim.KINDS[a.job.kind].field && !a.inside) {
                 if (!(Math.hypot(x - st.w.hx[a.job.site], y - st.w.hy[a.job.site]) <= 19)) faults.push(`frame ${frames}: pawn ${i} off its field's rows`);
                 continue;
               }
@@ -283,7 +283,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.click('[data-speed="30"]');
   await page.waitForFunction((k) => {
     const { st } = window.__play, a = st.agents[st.player.pawn];
-    return !!a.job && a.job.key === k && a.phase === 'work';
+    return !!a.job && a.job.key === k && (a.leg && a.leg.kind === 'work');
   }, target, { timeout: 120000 });
   await page.click('[data-speed="0"]');
   // Walk here: with Follow on, the pawn stands at the middle of the view, on an open tile; the tool closes the sheet, and the banner names it

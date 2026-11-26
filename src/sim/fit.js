@@ -151,7 +151,7 @@ VB['sim/fit'] = (() => {
     const a = st.agents[id],
       p = st.pawns[id],
       c = cal(st.t);
-    if (!p.alive || a.job || a.phase === 'home' || c.hour < WORK[0] || c.hour >= WORK[1] || age(st, p) < CHILD.from)
+    if (!p.alive || a.job || !!a.homeward || c.hour < WORK[0] || c.hour >= WORK[1] || age(st, p) < CHILD.from)
       return null;
     const rows = explainIdle(st, id).filter((r) => r.reason !== 'taken' && r.reason !== 'not their work');
     if (!rows.length)

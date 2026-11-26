@@ -4,6 +4,7 @@
 // Principle (principle "The future is someone's estimate"): what is shown of the future is some pawn's estimate. Nothing is stored here: the estimate is
 // worked out when read, from the task, its hands and the head; the one thing drawn is the lean, plan.head.bias.hours (sim/seasonal).
 VB['sim/estimate'] = (() => {
+  const { atWork } = VB['sim/pose'];
   const { HUNGER, HEALTH, HERD } = VB['sim/rules'],
     { workRate } = VB['sim/roles'];
   const { age, fullName, log, atFarm } = VB['sim/records'];
@@ -139,7 +140,7 @@ VB['sim/estimate'] = (() => {
       r = reckoned(J.skill),
       { work, f } = workLeft(st, j, r, J.lean);
     if (!hands) {
-      hands = (j.claims || []).filter((h) => st.agents[h].job === j && st.agents[h].phase === 'work');
+      hands = (j.claims || []).filter((h) => st.agents[h].job === j && atWork(st.agents[h]));
       if (!hands.length && id !== null && id !== undefined) hands = [id];
     }
     let rate = 0;

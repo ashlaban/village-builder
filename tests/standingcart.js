@@ -14,7 +14,7 @@ const a = st.agents[grown.find((id) => id !== hh.holder) ?? grown[1]];
 fd.stage = 'stooks'; fd.held = 90; fd.sown = 0;
 A.release(st, a); A.placeAtHome(st, a);
 const j = J.post(st, 'haul:cart' + st.t, 'haul', { type: 'household', id: hh.id }, fd.tile, { field: fd, farm: f });
-j.claims.push(a.id); a.job = j; a.phase = 'back'; a.inside = false;
+j.claims.push(a.id); a.job = j; a.inside = false;
 const cap = Carts.take(st, hh, a.id, true);
 KINDS.haul.ops.pitch.run(st, j, null, j.site, a, cap); a.carry = 'sheaf'; // VB-1812: the stooks pitched (the work leg of its goal)
 assert(Carts.oxOut(st, hh) && a.load > 30, 'a laden ox cart is out');
@@ -58,7 +58,7 @@ assert(hh.carts.length === nc - 1 && st.record.slice(n0).some((e) => e && e.kind
   const p2 = st2.agents[h2.members.filter((id) => st2.pawns[id].alive && st2.pawns[id].age >= 14)[1]];
   A.release(st2, p2); A.placeAtHome(st2, p2);
   const j2 = J.post(st2, 'manure:cart' + st2.t, 'manure', { type: 'household', id: h2.id }, f2.fields[0].tile, { field: f2.fields[0], farm: f2 });
-  j2.claims.push(p2.id); p2.job = j2; p2.phase = 'work'; p2.load = 0;
+  j2.claims.push(p2.id); p2.job = j2; p2.leg = { kind: 'work', t: 0, x: p2.x, y: p2.y, seg: 0 }; p2.load = 0;
   assert(Carts.take(st2, h2, p2.id, true) > 0, 'a cart taken');
   p2.x = st2.w.hx[f2.fields[0].tile] + 400; p2.y = st2.w.hy[f2.fields[0].tile];
   A.release(st2, p2);
@@ -75,7 +75,7 @@ assert(hh.carts.length === nc - 1 && st.record.slice(n0).some((e) => e && e.kind
   const [p3, q3] = h3.members.filter((id) => st3.pawns[id].alive && st3.pawns[id].age >= 14).map((id) => st3.agents[id]);
   A.release(st3, p3); A.placeAtHome(st3, p3);
   const j3 = J.post(st3, 'manure:site' + st3.t, 'manure', { type: 'household', id: h3.id }, fd3.tile, { field: fd3, farm: f3 });
-  j3.claims.push(p3.id); p3.job = j3; p3.phase = 'work'; p3.load = 0;
+  j3.claims.push(p3.id); p3.job = j3; p3.leg = { kind: 'work', t: 0, x: p3.x, y: p3.y, seg: 0 }; p3.load = 0;
   assert(Carts.take(st3, h3, p3.id, true) > 0, 'a cart taken');
   p3.x = st3.w.hx[fd3.tile]; p3.y = st3.w.hy[fd3.tile];
   A.release(st3, p3);
@@ -84,7 +84,7 @@ assert(hh.carts.length === nc - 1 && st.record.slice(n0).some((e) => e && e.kind
   assert(c3 && c3.at.tile === fd3.tile && c3.by === null, 'the cart stands at the site');
   // the next hand: the cart is free to it, at the site; taken up there, out with it, and no lying cart is left for a hand to fetch
   A.release(st3, q3); A.placeAtHome(st3, q3);
-  j3.claims.push(q3.id); q3.job = j3; q3.phase = null;
+  j3.claims.push(q3.id); q3.job = j3; 
   const g3 = D.goalOf(st3, q3);
   assert(D.VIEW.free(st3, g3, q3, 'cart') && D.VIEW.place(st3, g3, q3, 'cart') === fd3.tile, 'the cart at the site is free to the next hand, there');
   const s3 = D.ask(st3, q3);
@@ -108,13 +108,13 @@ assert(hh.carts.length === nc - 1 && st.record.slice(n0).some((e) => e && e.kind
   Lying.leave(st4, 'leftGrain', 30, T, own, { of: { parts: { barley: 30 } } });
   // the cart's goal: its hand at T takes the lying cart up and leads it away
   const jc4 = J.post(st4, 'leftCart:h' + h4.id, 'leftCart', own, T, {});
-  jc4.claims.push(p4.id); p4.job = jc4; p4.phase = 'go';
+  jc4.claims.push(p4.id); p4.job = jc4; 
   p4.x = st4.w.hx[T]; p4.y = st4.w.hy[T];
   assert(D.load(st4, p4, { good: 'leftCart' }) === 1 && p4.loadOf && p4.loadOf.cart, 'the lying cart taken up by its goal\'s hand');
   assert(c4.at && c4.by === null, 'the cart is not free until it is home');
   // the grain's goal at T: its hand there finds no cart standing
   const jg4 = J.post(st4, 'leftGrain:h' + h4.id, 'leftGrain', own, T, {});
-  jg4.claims.push(q4.id); q4.job = jg4; q4.phase = null;
+  jg4.claims.push(q4.id); q4.job = jg4; 
   const g4 = D.goalOf(st4, q4);
   assert(!D.VIEW.free(st4, g4, q4, 'cart'), 'a cart led away is not free to another goal at its tile');
   q4.x = st4.w.hx[T]; q4.y = st4.w.hy[T];

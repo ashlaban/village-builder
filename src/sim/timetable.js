@@ -4,6 +4,7 @@
 //   stops of a run until the inhabited pawn's task ends. Writes nothing
 // Principle (principle "The future is someone's estimate"): what is shown of the future is some pawn's estimate (sim/estimate).
 VB['sim/timetable'] = (() => {
+  const { atWork } = VB['sim/pose'];
   const { SPEED } = VB['sim/rules'];
   const { findRoute, routeCost } = VB['sim/routes'];
   const { placeOf, tileAt } = VB['sim/pose'];
@@ -29,7 +30,7 @@ VB['sim/timetable'] = (() => {
   // The tile pawn id stands on, or works at.
   function tileOf(st, id) {
     const a = st.agents[id];
-    if (a.job && a.phase === 'work') return a.job.site;
+    if (a.job && atWork(a)) return a.job.site;
     const [x, y] = placeOf(st, a);
     return tileAt(st, x, y);
   }
@@ -136,7 +137,7 @@ VB['sim/timetable'] = (() => {
       left = j && attentionOf(j) === 'full' ? Estimate.estimate(st, who, j) : null;
     return {
       walk: a.inside ? 0 : walkHours(st, tileOf(st, id), house),
-      load: a.load > 0 && a.phase === 'back' ? a.load : 0,
+      load: a.load > 0 && a.load > 0 ? a.load : 0,
       task: j ? j.key : null,
       left: left && { lo: left.lo, mid: left.mid, hi: left.hi },
     };

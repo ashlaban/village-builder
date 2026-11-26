@@ -8,6 +8,7 @@
 //   with (the pawn it means to visit, or null)]}}: today's leaves; a new day's first look closes yesterday's. Written only here.
 // @state pawn.voiced: absent, or the game day the pawn last asked its head for leave of its own accord (VOICE.days). Written only here.
 VB['sim/voice'] = (() => {
+  const { unbound } = VB['sim/pose'];
   const { DAY, WORK, SEASON_DAYS, cal } = VB['sim/rules'],
     { CHILD, MATCH } = VB['sim/roles'];
   const Offers = VB['sim/offers'];
@@ -165,7 +166,7 @@ VB['sim/voice'] = (() => {
         return;
     }
     if (a.job) release(st, a); // a hand that leaves a task is released from it (VB-1565)
-    if (a.phase === null && !a.job) Pastimes.ownTime(st, a);
+    if (unbound(a) && !a.job) Pastimes.ownTime(st, a);
   }
   // A pawn's own reason to ask, and whom it means to visit: it courts (the one it courts), or it has not visited near kin or a close friend
   // for VOICE.days (pawn.sat, sim/pastimes) and has someone in its village to visit (sim/pastimes someoneToVisit); and it has not asked

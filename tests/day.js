@@ -61,7 +61,7 @@ for (const id of st.liveHouseholds) {
 
 // 4. A pawn takes the first task of its list that it can: an idle member, its first task full, takes the next.
 {
-  const s2 = make(4.5), a = s2.agents.find((x) => s2.pawns[x.id].household === 0 && x.job && x.phase === 'work');
+  const s2 = make(4.5), a = s2.agents.find((x) => s2.pawns[x.id].household === 0 && x.job && (x.leg && x.leg.kind === 'work'));
   const list = dayOf(s2, 0).lists[a.id], had = a.job.key;
   VB['sim/agents'].release(s2, a);
   assert.strictEqual(a.job, null, 'its task let go');

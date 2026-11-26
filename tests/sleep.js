@@ -167,7 +167,7 @@ const FARMER = 0;
   const far = 11 * st.w.COLS + 1;
   VB['sim/commands'].issue(st, { actor: other, verb: 'walkTo', target: far, source: 'debug' });
   // kept out: sent back out whenever it comes in, through the night
-  const keep = () => { if (a.inside || (!a.path && a.phase === 'home')) VB['sim/commands'].issue(st, { actor: other, verb: 'walkTo', target: far, source: 'debug' }); };
+  const keep = () => { if (a.inside || (!a.path && !!a.homeward)) VB['sim/commands'].issue(st, { actor: other, verb: 'walkTo', target: far, source: 'debug' }); };
   for (let n = 0; n < (24 + WORK[0] - 1 - (WORK[1] - 1)) * TICKS; n++) { keep(); Sim.advance(st, 0.1); }
   const owed = st.pawns[other].sleep.owed;
   assert.ok(owed >= SLEEP.health.over, `a night out: ${owed} owed`);
