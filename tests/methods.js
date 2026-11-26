@@ -227,7 +227,10 @@ function endLeg(st, g, p, s, h) {
       if (!p.hands) break;
       const o = p.hands.owner;
       if (s.at !== 'here' && to === V.storeOf(st, o)) st.stores[o][p.hands.good] += p.hands.n;
-      else lay(st, p.at, p.hands.good, p.hands.n, o);
+      else {
+        lay(st, p.at, p.hands.good, p.hands.n, o);
+        Q2.down.other = (Q2.down.other || 0) + 1; // only a store gone sets a load down here, and the fuzz takes none away
+      }
       p.hands = null;
       break;
     }
@@ -244,8 +247,14 @@ function endLeg(st, g, p, s, h) {
   }
 }
 // A pawn that cannot walk on (death, illness) sets its load down where it stands, and the cart stands there.
+// Q2 (docs/plans/four-scales/README.md, section 4): the loads set down, by their cause, and the hours walked past the day's end with a
+// load brought home (a set-down avoided); told, and a set-down with its carrier able to walk on is a violation.
+const Q2 = { cause: null, down: {}, home: 0, overtime: 0 };
 function fall(st, p) {
-  if (p.hands) lay(st, p.at, p.hands.good, p.hands.n, p.hands.owner);
+  if (p.hands) {
+    lay(st, p.at, p.hands.good, p.hands.n, p.hands.owner);
+    Q2.down[Q2.cause] = (Q2.down[Q2.cause] || 0) + 1;
+  }
   p.hands = null;
   if (holdsCart(st, p)) Object.assign(st.cart, { by: null, at: p.at });
   p.step = null;
@@ -256,6 +265,10 @@ function free(st, p) {
     const s = M.next(st, null, p, V);
     if (s === M.DONE) return;
     assert(s.rule, `a free pawn is given only the rules: ${s.prim}`);
+    if (s.prim === 'haul') {
+      Q2.overtime += legHours(st, null, p, s);
+      Q2.home++;
+    }
     endLeg(st, null, p, s, 0);
   }
   assert.fail('the rule for a load in hand did not end');
@@ -480,6 +493,7 @@ function run(seed) {
         cutDone = true;
         if (cut === 'night') st.end = st.t; // the day ends here for all
         if (cut === 'call') A.called = day; // called away for the day: it carries what it holds home, and goes
+        Q2.cause = cut;
         if (cut === 'death') {
           fall(st, A);
           A.alive = false;
@@ -562,6 +576,7 @@ function run(seed) {
   }
   return out;
 }
+Object.assign(Q2, { cause: null, down: {}, home: 0, overtime: 0 }); // the fuzz's alone, not the table's
 const tally = { runs: RUNS, violations: 0, byCut: {}, asks: 0, blocked: 0 };
 for (let i = 0; i < RUNS; i++) {
   const o = run(i + 1);
@@ -574,6 +589,12 @@ for (let i = 0; i < RUNS; i++) {
   }
 }
 assert.strictEqual(tally.violations, 0, `the fuzz: ${JSON.stringify(tally)}`);
+assert(!Q2.down.other, `a load set down with its carrier able to walk on: ${JSON.stringify(Q2.down)}`);
+const downs = Object.values(Q2.down).reduce((x, y) => x + y, 0),
+  downBy =
+    Object.entries(Q2.down)
+      .map(([k, n]) => `${k} ${n}`)
+      .join(', ') || 'none';
 
 // ---- the cost of an ask (told, not asserted: others share the machine; the measured Q4 is VB-1750's) ----
 if (TIMES) {
@@ -608,7 +629,7 @@ if (TIMES) {
   );
 }
 console.log(
-  `methods: the firewood table's five rows; ${RUNS} fuzzed runs, ${tally.asks} asks, ${tally.blocked} rightly blocked, no violation`,
+  `methods: the firewood table's five rows; ${RUNS} fuzzed runs, ${tally.asks} asks, ${tally.blocked} rightly blocked, no violation; Q2: ${downs} loads set down (${downBy}), ${Q2.home} brought home past the day's end, ${(Q2.overtime / Math.max(1, Q2.home)).toFixed(2)} h walked over time each`,
 );
 
 // ---- VB-1775: the wood in a real state (a tiny village, tests/firewood.js's): sim/doing's view asked of the game's state ----

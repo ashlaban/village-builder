@@ -4,7 +4,7 @@
 // yield where it was cut, and its task begins again from none. On a small constructed state.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, A = VB['sim/agents'], J = VB['sim/jobs'], { KINDS } = VB['sim/kinds'];
-const Lying = VB['sim/lying'], Forage = VB['sim/forage'], Pot = VB['sim/pot'], { B } = VB['world/biomes'], { larderOf } = VB['sim/larder'];
+const Lying = VB['sim/lying'], Doing = VB['sim/doing'], Forage = VB['sim/forage'], Pot = VB['sim/pot'], { B } = VB['world/biomes'], { larderOf } = VB['sim/larder'];
 const { checkState } = require('./lib/invariants.js');
 const it = G.generate(7, { cols: 120, rows: 85 });
 let r;
@@ -45,17 +45,25 @@ function atWork(a, kind, site, extra, done) {
   assert(Math.abs(Forage.stock(st, wood) - (1 - 0.5 * Forage.FORAGE.take)) < 1e-6, 'the ground is picked by the hours worked');
   assert.strictEqual(j.done, 0, 'the hours yielded stay on the task');
   assert(a.job === null && a.load === 0, 'the hand is let go, its basket set down');
-  // fetched home by its fetch kind: the yield is the household's fresh food
+  // found by the stray method of a gathering goal elsewhere (sim/methods; VB-1749: no fetch kind is posted for a kind with methods), and
+  // brought home whole: the yield is the household's fresh food
   const posted = [];
-  Lying.fetchWork(st, hh, f, null, (key, site, extra, kind) => posted.push({ site, extra, kind }), (k) => !!KINDS[Lying.fetchKey(k)]);
-  const p = posted.find((x) => x.kind === 'fetchGather');
-  assert(p && p.site === l.tile, 'the pile is fetched where it lies');
+  Lying.fetchWork(st, hh, f, null, (key, site, extra, kind) => posted.push(kind), (k) => !!KINDS[Lying.fetchKey(k)]);
+  assert(!posted.includes('fetchGather'), 'no fetch kind is posted for a gathering pile');
+  const other = (() => {
+    for (let t = 0; t < st.w.N; t++) if (t !== wood && st.w.biome[t] === B.FOREST && !st.w.dev[t]) return t;
+    return -1;
+  })();
+  const b = hand(),
+    gj = atWork(b, 'gather', other, { farm: f }, 0);
+  b.phase = null;
+  const s = Doing.ask(st, b);
+  assert(s && !s.blocked && Doing.placeOf(st, b, s) === l.tile, 'the pile is fetched where it lies, by the stray method');
   const fresh0 = Pot.freshHeld(st, hh, 'gathered'),
-    b = { id: a.id, load: 0 };
-  const fj = { ...p.extra, kind: 'fetchGather', site: p.site, owner };
-  KINDS.fetchGather.load(st, b, fj, 30);
-  KINDS.fetchGather.deliver(st, fj, hh, f, b);
+    taken = Lying.takeAt(st, l.tile, 'gather', owner, Infinity);
+  KINDS.gather.deliver(st, { ...gj, ...l.of, kind: 'gather' }, hh, f, { id: b.id, load: taken });
   assert(Math.abs(Pot.freshHeld(st, hh, 'gathered') - fresh0 - 0.5 * Forage.FORAGE.trip) < 1e-6, 'the half trip comes home');
+  A.release(st, b);
   assert(!pileOf('gather'), 'nothing is left lying');
 }
 // 1b. cut at half its hours by the working day's end (sim/clock): the half yield goes home in hand, the pawn keeping its task until it is in
@@ -103,9 +111,10 @@ function atWork(a, kind, site, extra, done) {
   }
   A.release(st, a);
 }
-// 4. every kind that makes its good at the work has a way out for its load lying: a fetch kind, or another's (timber's)
+// 4. every kind that makes its good at the work has a way out for its load lying: its methods' stray method (VB-1749), a fetch kind, or
+// another's (timber's)
 for (const [k, K] of Object.entries(KINDS))
-  if (K.make && K.carry) assert(KINDS[Lying.fetchKey(K.lies || k)], `${k}: its load lying is fetched by nothing`);
+  if (K.make && K.carry) assert(K.methods || KINDS[Lying.fetchKey(K.lies || k)], `${k}: its load lying is fetched by nothing`);
 assert.deepStrictEqual(checkState(st), [], 'invariants');
 Lying.frost(st);
 assert(!pileOf('gather'), 'a pile not fetched rots at the frost');
