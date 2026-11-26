@@ -97,16 +97,17 @@ VB['sim/projects'] = (() => {
     if (P) for (const list of P.pawn.values()) for (const plan of list) if (plan.farm === id) return plan;
     return null;
   }
-  // Whether household id's head holds off projects (VB-253: the player chose none, plan.chosen.project, sim/plans), or is the played pawn
-  // with automatic behaviour off (VB-1651: nothing is begun that the player did not plan): no project of the household's is begun by its
+  // Whether household id's head holds off projects (VB-253: the player chose none, plan.chosen.project, sim/plans), or its head's
+  // automatic behaviour is off (VB-1651: nothing is begun that its controller did not plan; VB-1753: any head's switch, the pawn's state,
+  // design.md section 15, A controller for any pawn; it was the played head's alone): no project of the household's is begun by its
   // own rule (the land step, the head's look at a boat, a cart, a tar pit: sim/aims) until the choice is cleared or the pawn left to
-  // itself; the player's own verbs go through. Allocates nothing.
+  // itself; the controller's own verbs go through. Allocates nothing.
   function heldOff(st, id) {
     const plan = st.plans && st.plans.households.get(id),
-      pl = st.player,
-      hh = st.households[id];
-    const c = pl && st.pawns[pl.pawn].control; // its controller (sim/controller): automatic behaviour off
-    if (c && !c.auto && hh && hh.holder === pl.pawn) return true;
+      hh = st.households[id],
+      p = hh && hh.holder !== null ? st.pawns[hh.holder] : null;
+    const c = p && p.control; // its head's controller (sim/controller): automatic behaviour off
+    if (c && !c.auto) return true;
     return !!(plan && plan.chosen && plan.chosen.project === 'none');
   }
   // Whether household hh may begin the small construction `what` now (VB-1408, VB-1414; a cart, a boat, a tar pit): it lives, is not

@@ -117,10 +117,10 @@ const handStart = (seed = 7) => {
     f = st.farmsteads[hh.farmstead],
     plan = st.plans.households.get(hh.id);
   assert(!f.booth && f.grade === 'ground' && plan.build, 'the head means to raise its house onto stone');
-  assert.strictEqual(Sim.farmView(st, f.id).building.what, 'foundation');
+  assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).building.what, 'foundation');
   Sim.inhabit(st, 0);
   Sim.setAuto(st, st.player.pawn, false);
-  assert.strictEqual(Sim.farmView(st, f.id).building, null, 'by hand, no stone work reported, before the next review');
+  assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).building, null, 'by hand, no stone work reported, before the next review');
   Sim.advance(st, 2 * DAY);
   assert.strictEqual(plan.build, null, 'and none opened at a review');
   assert(![...st.jobs.values()].some((j) => j.owner.type === 'household' && j.owner.id === hh.id && ['pick', 'quarry', 'raise'].includes(j.kind)), 'no stone job');

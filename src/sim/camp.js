@@ -177,15 +177,16 @@ VB['sim/camp'] = (() => {
     return out;
   }
   const hoursOf = (steps) => steps.reduce((s, x) => s + x.trips.reduce((u, t) => u + t.go + t.lift + t.back, 0), 0);
-  // Sim.moveCost(st, tile) (VB-1667): what placing the played head's farmstead on `tile` costs in carrying and droving: {steps (walking
-  // steps from the landing), trips: {cart, back} (the loads' trips on the household's best cart, 0 with none, and on the back), hours
-  // (the work of the move: each trip's walks by the route, wayHours, and its lifting, moveTrips; the first from the landing, where the
-  // head stands at the camp), frost (whether that work, one hand's working days from now, ends after the frost the head expects
-  // (`frost`, its autumn day, sim/reasons frostExpected: the caller's), when the loads left lying are lost)}; null where it cannot be
-  // placed or nothing is played. Plain data; writes nothing (one route search, findRoute, outside the route cache).
-  function moveCost(st, tile, frost) {
-    if (!st.player || placeWhy(st, 'farmstead', tile) !== null) return null;
-    const { hh, f } = homeOf(st, st.player.pawn),
+  // Sim.moveCost(st, pawn, tile) (VB-1667): what placing the farmstead of the head `id` (the page asks for the played pawn) on `tile`
+  // costs in carrying and droving: {steps (walking steps from the landing), trips: {cart, back} (the loads' trips on the household's
+  // best cart, 0 with none, and on the back), hours (the work of the move: each trip's walks by the route, wayHours, and its
+  // lifting, moveTrips; the first from the landing, where the head stands at the camp), frost (whether that work, one hand's
+  // working days from now, ends after the frost the head expects (`frost`, its autumn day, sim/reasons frostExpected: the caller's),
+  // when the loads left lying are lost)}; null where it cannot be placed by that pawn. Plain data; writes nothing (one route search,
+  // findRoute, outside the route cache).
+  function moveCost(st, id, tile, frost) {
+    if (placeWhy(st, id, 'farmstead', tile) !== null) return null;
+    const { hh, f } = homeOf(st, id),
       steps = tile === f.house ? 0 : stepsTo(st.w, f.house, tile, st.w.N, walkable(st.w));
     if (!steps) return { steps, trips: { cart: 0, back: 0 }, hours: 0, frost: false };
     const grain = Stores.grainOf(hh) - Math.min(TRAVEL.load, Stores.grainOf(hh)),
@@ -290,12 +291,12 @@ VB['sim/camp'] = (() => {
       return { what, ok: why === null, why, hours: B.hours, timber: B.timber };
     });
   }
-  // Sim.placeWhy(st, what, tile): null, or why `tile` will not take `what` for the played pawn now. Reads only.
-  function placeWhy(st, what, tile) {
+  // Sim.placeWhy(st, pawn, what, tile): null, or why `tile` will not take `what` for pawn id now (the page asks for the played pawn;
+  // VB-1753: keyed by pawn, as the farmstead task's check of any controller is). Reads only.
+  function placeWhy(st, id, what, tile) {
     const B = BUILDS[what];
     if (!B) return `there is nothing called ${what} to build`;
-    if (!st.player) return 'no pawn is played';
-    const id = st.player.pawn;
+    if (!Number.isInteger(id) || !st.pawns[id]) return `there is no pawn ${id}`;
     return living(st, id) || B.why(st, id) || B.tile(st, id, tile);
   }
   return {

@@ -83,7 +83,7 @@ function ladderBuilding(V) {
 // The card of the upgrade icon, and the build menu under the Farmstead once it stands: what stands, what can follow and what it takes:
 // the next rung of the house, its foundation, the outbuildings (Sim.farmView, VB-1659, VB-1663, VB-1665), each built by a plan task.
 function ladderHTML(f) {
-  const V = Sim.farmView(st, f.id);
+  const V = Sim.farmView(st, f.id, st.player ? st.player.pawn : null);
   if (!V) return '';
   const row = (k, e, kind, built) => {
     const L = ladderOf(k),
@@ -158,13 +158,14 @@ function placeTiles(f) {
     seen = [];
   for (let j = 0; j < w.N && seen.length <= PLACE_MAX; j++)
     if (w.hx[j] >= x0 && w.hx[j] <= x1 && w.hy[j] >= y0 && w.hy[j] <= y1 && !w.water[j]) seen.push(j);
-  if (seen.length <= PLACE_MAX) for (const j of seen) if (Sim.placeWhy(st, hud.place, j) === null) set.add(j);
+  if (seen.length <= PLACE_MAX)
+    for (const j of seen) if (Sim.placeWhy(st, st.player.pawn, hud.place, j) === null) set.add(j);
   hud.placeTiles = { key, set };
   return set;
 }
 // The move of the farm from its landing to tile i (Sim.moveCost), in words: how far, the trips, the days, and the frost.
 function moveWords(i) {
-  const M = Sim.moveCost ? Sim.moveCost(st, i) : null;
+  const M = Sim.moveCost ? Sim.moveCost(st, st.player.pawn, i) : null;
   if (!M || !M.steps) return '';
   const trips = (n) => `${n} ${n === 1 ? 'trip' : 'trips'}`;
   return (
@@ -202,7 +203,7 @@ function placeCall(i) {
   const B = BUILD_WHAT[hud.place],
     r = Sim.landing.read(w, i, false),
     wd = siteWords(r),
-    why = Sim.placeWhy(st, hud.place, i),
+    why = Sim.placeWhy(st, st.player.pawn, hud.place, i),
     E = Sim.buildMenu(st, st.player.pawn).find((e) => e.what === hud.place);
   let h =
     `<div class="u2-verdict"><div><h2>${esc(VB['world/biomes'].BIOMES[w.biome[i]].name)}</h2>` +
@@ -215,7 +216,7 @@ function placeCall(i) {
     h += `</div><p class="sub">${esc(wd.water[1])} ${esc(wd.soil[1])}</p>`;
   }
   const move = why ? '' : moveWords(i);
-  if (move) h += `<p class="u2-move${Sim.moveCost(st, i).frost ? ' bad' : ''}">${esc(move)}</p>`;
+  if (move) h += `<p class="u2-move${Sim.moveCost(st, st.player.pawn, i).frost ? ' bad' : ''}">${esc(move)}</p>`;
   if (hud.msg) h += `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>`;
   h += why
     ? `<p class="u2-msg">${esc(siteCap(why.replace(/\btile \d+/g, 'this tile')))}.</p>`

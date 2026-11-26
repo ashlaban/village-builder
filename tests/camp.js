@@ -42,7 +42,7 @@ const run = (st, days = 20) => {
 const twoOff = (st) => {
   const f = st.farmsteads[0];
   return [...bfs(st.w, f.house, 2, () => true).dist.keys()].filter(
-    (t) => hexSteps(st.w, f.house, t) === 2 && Sim.placeWhy(st, 'farmstead', t) === null,
+    (t) => hexSteps(st.w, f.house, t) === 2 && Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', t) === null,
   );
 };
 
@@ -75,20 +75,20 @@ const twoOff = (st) => {
   const st = seed(),
     f = st.farmsteads[0],
     w = st.w;
-  assert.strictEqual(Sim.placeWhy(st, 'farmstead', f.house), 'no pawn is played');
+  assert.strictEqual(Sim.placeWhy(st, null, 'farmstead', f.house), 'there is no pawn null');
   assert.deepStrictEqual(Sim.buildMenu(st, -1), [], 'no menu for no pawn');
   played(st);
   const menu = Sim.buildMenu(st, st.player.pawn);
   const [{ work }] = menu;
   assert.deepStrictEqual(menu, [{ what: 'farmstead', ok: true, why: null, hours: 12, timber: 2, work }]);
   assert(work > 12, `the whole work with the timber trips: ${work}`);
-  assert.strictEqual(Sim.placeWhy(st, 'farmstead', f.house), null, 'the landing itself');
-  assert.match(String(Sim.placeWhy(st, 'cellar', f.house)), /nothing called cellar/);
-  assert.match(String(Sim.placeWhy(st, 'farmstead', -1)), /no tile -1/);
+  assert.strictEqual(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', f.house), null, 'the landing itself');
+  assert.match(String(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'cellar', f.house)), /nothing called cellar/);
+  assert.match(String(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', -1)), /no tile -1/);
   const [t] = twoOff(st);
   const tried = (fn, re, what) => {
     const undo = fn();
-    assert.match(String(Sim.placeWhy(st, 'farmstead', t)), re, what);
+    assert.match(String(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', t)), re, what);
     assert.match(String(Sim.plan(st, st.player.pawn, 'add', { farmstead: t })), re, `${what}, refused as a task`);
     undo();
   };
@@ -98,14 +98,14 @@ const twoOff = (st) => {
   tried(() => ((st.owner[t] = 9), () => (st.owner[t] = 0)), /owned or claimed by another/, 'owned by another');
   tried(() => ((w.trees[t] = 5), () => (w.trees[t] = 0)), /trees stand/, 'wooded');
   const far = [...bfs(w, f.house, 6, () => true).dist.keys()].find((u) => hexSteps(w, f.house, u) === LANDING.soilSteps + 1);
-  assert.strictEqual(Sim.placeWhy(st, 'farmstead', far), null, 'no step bound for the played head (VB-1667)');
+  assert.strictEqual(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', far), null, 'no step bound for the played head (VB-1667)');
   // walled in: every way to it blocked (the tiles round it made water; the walkable parts labelled again)
   const ring = [];
   for (let d = 0; d < 6; d++) ring.push(w.nb[t * 6 + d]);
   const near = ring.filter((u) => u >= 0 && u !== f.house && !w.water[u]),
     { invalidateReach } = VB['sim/walking'];
   for (const u of near) (w.water[u] = 1), invalidateReach(w, u);
-  assert.match(String(Sim.placeWhy(st, 'farmstead', t)), /not reachable on foot/, 'walled in');
+  assert.match(String(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', t)), /not reachable on foot/, 'walled in');
   for (const u of near) (w.water[u] = 0), invalidateReach(w, u);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: t }), true);
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { farmstead: f.house })), /planned already/, 'one at a time');
@@ -131,7 +131,7 @@ const twoOff = (st) => {
   assert.strictEqual(st.herds[hh.herds[0]].home, home, 'the herd stays');
   assert.strictEqual(f.camp, false, 'the camp is over');
   assert(f.shelter && f.shelter.built !== null && !st.booths.length, 'the shelter stands on the house tile, no booth beside it');
-  assert.strictEqual(Sim.farmView(st, f.id).rung, 'shelter');
+  assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).rung, 'shelter');
   assert(!roofless(st, hh), 'under the shelter');
   assert.deepStrictEqual(projectsOf(st, 'household', 0), [], 'no cottage begun');
   assert(waits.has('sleep') && waits.has('unposted:timber'), `waits given: ${[...waits]}`);

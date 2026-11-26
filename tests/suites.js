@@ -27,6 +27,8 @@ const FAST = [
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
   ['node', 'tests/controller.js'], // VB-1745: an empty controller on every pawn changes nothing; two with automatic off left alone; any pawn's queue
+  ['node', 'tests/played.js'], // VB-1753: every read of st.player classed, the rules' allow-list only falls; an authored step stands for any head
+  ['node', 'tests/played-reads.js'], // VB-1753: the count of tests/played.js, a read of who is played through any name
   ['node', 'tests/walkweighed.js'], // VB-781: design.md's The walk weighed agrees with the rules it reckons from (until VB-1677, VB-1678)
   ['node', 'tests/handplan.js'], // VB-1661: by hand the outlook counts what the plan covers, one reckoning of the fire, no stone work held off, the cutting asked
   ['node', 'tests/methods.js'], // VB-1747: sim/methods: the firewood table's five rows; 1,000 seeded runs under cuts, two owners, one cart, piles that rot; VB-1775: the wood in a real state
@@ -35,7 +37,7 @@ const FAST = [
   ['node', 'tests/move.js'], // VB-1667: the farmstead placed anywhere reachable on foot: the goods, the carts and the herds left at the landing and fetched; the village follows; Sim.moveCost
   ['node', 'tests/upgrade.js'], // VB-1660: the shelter built up to a cottage by a task of the plan; the timber at home first; farmView next
   ['node', 'tests/shelter.js'], // VB-1666: a settler household's shelter on its house tile, then its cottage there; an older save's booth kept
-  ['node', 'tests/farmtasks.js'], // VB-1663: the stone foundation and the barn, each by a task of the plan; the slack's wait; farmView's foundation
+  ['node', 'tests/farmtasks.js'], // VB-1663: the stone foundation and the barn, each by a task of the plan; the authored raising stands; farmView's foundation
   ['node', 'tests/byrehouse.js'], // VB-1665: the byre as a building: at seeding, none on a camp, an older save; the lean in the open; by the plan and by the head's rule
   ['node', 'tests/timberhouse.js'], // VB-1664: the timber house above the cottage, the rungs' room and the crowded tenants; by the plan and by a crowded head's rule
   ['node', 'tests/plan.js'], // VB-1646: the player's plan: its ops, the routine once a day, tasks in order, hand commands first, sleep by its hours

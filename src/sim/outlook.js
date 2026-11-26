@@ -144,13 +144,16 @@ VB['sim/outlook'] = (() => {
     return out;
   }
   // ---- what a plan by hand covers (VB-1661; Kim, 24 Nov 2026: "Stores count what is in the plan. There is no 'automatic plan'") ----
-  // A household planned by hand: the played pawn's, with automatic behaviour off. Its outlook counts an intake still to be worked only
-  // when a task of the plan covers it; what is held, or needs no work, is counted as for any household.
+  // A household planned by hand: one with a member whose automatic behaviour is off (VB-1753: any pawn's switch, read from the
+  // controllers' index; it was the played pawn's alone). Its outlook counts an intake still to be worked only when a task of the plan
+  // covers it; what is held, or needs no work, is counted as for any household.
   const handOf = (st, hh) => {
-    const pl = st.player;
-    return !!pl && !controlOf(st, pl.pawn).auto && st.pawns[pl.pawn].household === hh.id;
+    if (st.controlled)
+      for (const id of st.controlled) if (st.pawns[id].household === hh.id && !controlOf(st, id).auto) return true;
+    return false;
   };
-  const playedOf = (st, hh) => !!st.player && st.pawns[st.player.pawn].household === hh.id;
+  // Whether a member of household hh has a controller (sim/controller; the played pawn's is one).
+  const controlledIn = (st, hh) => !!st.controlled && st.controlled.some((id) => st.pawns[id].household === hh.id);
   // The tasks of the plans of household hh's members (sim/controller plansIn; VB-1746: the played pawn's plan before).
   const tasksOf = (st, hh) => plansIn(st, hh.id).flatMap((pp) => pp.tasks);
   // Whether a task of household hh's plans covers chain `name` (sim/planchains CHAINS) at `tile` (any, when undefined): a task at the tile, or a task
@@ -492,9 +495,9 @@ VB['sim/outlook'] = (() => {
     const plan = st.plans && st.plans.households.get(id),
       hh = st.households[id],
       c = cal(st.t),
-      // the played pawn's household's, reckoned when asked (VB-1661): by hand it counts only what the plan's tasks cover, and they, and
-      // automatic behaviour, change between its reviews
-      O = plan && hh && !hh.dissolved && playedOf(st, hh) ? reckon(st, hh, plan, c) : plan && plan.outlook;
+      // a household with a controlled member's (the played pawn's, VB-1661; any controller's, VB-1753), reckoned when asked: by hand it
+      // counts only what the plan's tasks cover, and they, and automatic behaviour, change between its reviews
+      O = plan && hh && !hh.dissolved && controlledIn(st, hh) ? reckon(st, hh, plan, c) : plan && plan.outlook;
     if (!O) return null;
     return {
       ...JSON.parse(JSON.stringify(O)),
