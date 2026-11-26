@@ -344,6 +344,20 @@ VB['sim/expansion'] = (() => {
     emit(st, 'stepDone', { type: plot.holder.type, id: plot.holder.id, plan: plot }); // its tiles cleared: the cottage's first stage opens (sim/plans)
     emit(st, 'plotCleared', { plot }); // who is to have it (sim/allotment)
   }
+  // A plot's steps are kinds of their own (fell and grub here, sim/fieldwork's clear and break, sim/building's cottage stages), posted for a
+  // plot too (plotWork): a job of a plot (`j.plot`) ends in its step's finish (finishStep), any other as its kind says. sim/kinds joins
+  // these kinds as this gives them, as sim/commons' common for a common field's (VB-1821: no inline case at a job's end, sim/agents).
+  const PLOT_KINDS = ['fell', 'grub', 'clear', 'break', ...COTTAGE];
+  const plotted = (KINDS) =>
+    Object.fromEntries(
+      PLOT_KINDS.map((k) => {
+        const own = KINDS[k].done;
+        return [
+          k,
+          { ...KINDS[k], done: (st, j, hh, c, by) => (j.plot ? finishStep(st, j) : own && own(st, j, hh, c, by)) },
+        ];
+      }),
+    );
   // A household's own step of felling or grubbing is done (VB-786: a settler's first field and its house on a forest site, sim/fieldplans
   // fellSteps): felling takes the trees, as a plot's does, its timber to the household's cottage walls while it lives in a booth (3 loads a
   // tree, VB-328), else to its woodpile; grubbing turns the wood into meadow. The plan's next step opens.
@@ -389,7 +403,7 @@ VB['sim/expansion'] = (() => {
       hands: Infinity,
       type: 'wood',
       // also a household's step, on a wood broken to a field (VB-1525; sim/projects' landProject posts it, sim/newground ends it) or on a
-      // settler's forest site while it lives in its booth (VB-786: finishOwnClearing); a plot's step ends in finishStep
+      // settler's forest site while it lives in its booth (VB-786: finishOwnClearing); a plot's step ends in finishStep (plotted)
       project: true,
       worked: (st, j) => j.farm && workStake(st, j),
       done: (st, j, hh) => {
@@ -415,7 +429,7 @@ VB['sim/expansion'] = (() => {
       field: true,
       spot: onField,
       // also a household's step, on a wood broken to a field (VB-1525; sim/projects' landProject posts it, sim/newground ends it) or on a
-      // settler's forest site while it lives in its booth (VB-786: finishOwnClearing); a plot's step ends in finishStep
+      // settler's forest site while it lives in its booth (VB-786: finishOwnClearing); a plot's step ends in finishStep (plotted)
       project: true,
       worked: (st, j) => j.farm && workStake(st, j),
       done: (st, j, hh) => {
@@ -430,6 +444,7 @@ VB['sim/expansion'] = (() => {
   return {
     KINDS,
     plotWork,
+    plotted,
     building,
     livePlots,
     startPlot,

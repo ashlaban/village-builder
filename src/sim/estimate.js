@@ -11,6 +11,7 @@ VB['sim/estimate'] = (() => {
   const Skills = VB['sim/skills'],
     Traits = VB['sim/traits'];
   const { KINDS } = VB['sim/kinds'];
+  const { says } = VB['sim/methods'];
   const Iron = VB['sim/ironwork'];
   const { doneOf, attentionOf, teamKind } = VB['sim/work'];
   const { hasTeam } = VB['sim/herds'];
@@ -161,7 +162,7 @@ VB['sim/estimate'] = (() => {
   const rateFor = (st, H, id, j, first) => rateBelieved(st, H.r, id, j, first);
   // For the honesty measure (tools/estimates.js): whether a task is one the measure reads (full attention, not carted), pawn id's work
   // left of it now, and the range it gives on the person-hours the hands of `hours` (a Map of pawn id to hours worked) take for that work.
-  const attended = (j) => attentionOf(j) === 'full' && !KINDS[j.kind].carted;
+  const attended = (j) => attentionOf(j) === 'full' && !says(KINDS[j.kind], 'carted');
   const workOf = (st, id, j) => {
     const J = judgement(st, id);
     return workLeft(st, j, reckoned(J.skill), J.lean).work;

@@ -19,7 +19,8 @@ for (const [k, K] of Object.entries(Sim.KINDS)) {
   if (K.field) check(typeof K.spot === 'function', `${k} is field work without a spot on the field`);
 }
 for (const [role, r] of Object.entries(Sim.ROLES)) for (const [k, K] of Object.entries(Sim.KINDS)) {
-  const want = r.except[k] ?? r.except[K.fetch] ?? r.work[K.type] ?? 0;
+  const brings = K.strays && K.strays.length ? K.strays[0].good ?? K.strays[0] : null; // a kind of strays: ranked as its good (VB-1821)
+  const want = r.except[k] ?? r.except[brings] ?? r.work[K.type] ?? 0;
   check(r.prio[k] === want, `${role} ranks ${k} ${r.prio[k]}, wanted ${want}`);
 }
 for (const [role, r] of Object.entries(Sim.ROLES)) for (const k of Object.keys(r.except)) check(Sim.KINDS[k], `${role} has an exception for unknown kind ${k}`);

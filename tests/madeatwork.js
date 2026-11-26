@@ -130,10 +130,9 @@ function atWork(a, kind, site, extra, done) {
   assert(s !== VB['sim/methods'].DONE && !s.blocked && (s.prim === 'go' || s.prim === 'work'), `the next hand hunts (${s.prim || s})`);
   A.release(st, b);
 }
-// 4. every kind that makes its good at the work has a way out for its load lying: its methods' stray method (VB-1749), a fetch kind, or
-// another's (timber's)
+// 4. every kind that makes its good at the work has a way out for its load lying: its methods' stray method (VB-1749)
 for (const [k, K] of Object.entries(KINDS))
-  if (K.make && VB['sim/doing'].carriesTo(k) !== null) assert(K.methods || KINDS[Lying.fetchKey(K.lies || k)], `${k}: its load lying is fetched by nothing`);
+  if (K.make && VB['sim/doing'].carriesTo(k) !== null) assert(K.methods, `${k}: its load lying is fetched by nothing`);
 assert.deepStrictEqual(checkState(st), [], 'invariants');
 Lying.frost(st);
 assert(!pileOf('gather'), 'a pile not fetched rots at the frost');

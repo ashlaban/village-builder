@@ -434,7 +434,6 @@ VB['sim/meadows'] = (() => {
       type: 'harvest',
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6],
       urgency: (st, j, c, U) => U.haul,
-      setDown: (st, j, a) => hayLaid(j.meadow, a.load), // a load cut at the meadow goes back with the cocks
       available: meadowWork,
     },
     // The hay left lying (a carrier fallen on the road, a moving house's left at its landing, sim/camp; VB-1814): a goal of the household's
@@ -452,7 +451,6 @@ VB['sim/meadows'] = (() => {
       hours: 0.5,
       hands: 1,
       type: 'harvest',
-      fetch: 'hay', // ranked as the hay it fetches (sim/kinds ranks, VB-611)
       urgency: (st, j, c, U) => U.haul,
     },
   };
@@ -476,6 +474,7 @@ VB['sim/meadows'] = (() => {
     why: 'no hay in the meadow',
     cart: true,
     reload: TRAVEL.hayReload,
+    setDown: (st, j, a) => hayLaid(j.meadow, a.load), // a load cut at the meadow goes back with the cocks
     run: (st, j, g, at, a, cap) => {
       a.load = hayLoad(j.meadow, cap);
     },

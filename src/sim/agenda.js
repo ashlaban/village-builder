@@ -10,6 +10,7 @@ VB['sim/agenda'] = (() => {
   const { DAY, SEASON_DAYS, YEAR, WORK, SPEED, cal } = VB['sim/rules'];
   const { CROPS, ROTATIONS } = VB['sim/crops'];
   const { KINDS } = VB['sim/kinds'];
+  const { says } = VB['sim/methods'];
   const { carriesTo } = VB['sim/doing'];
   const { estimate } = VB['sim/estimate'];
   const { windowLeft, cause } = VB['sim/reasons'];
@@ -173,9 +174,9 @@ VB['sim/agenda'] = (() => {
   // the pawn's own estimate (e), the walk home of a kind that carries home (a water trip's both ways, as sim/day counts it), and the tile
   // it ends on.
   function piece(st, id, j, at, home) {
-    const K = KINDS[j.kind] || {},
+    const T = says(KINDS[j.kind], 'trip'), // its method's go step's (VB-1821)
       e = estimate(st, id, j, [id]),
-      trip = at !== null && K.trip && j.farm ? K.trip(st, j) : 0,
+      trip = at !== null && T && j.farm ? T(st, j) : 0,
       w = at === null || trip > 0 ? 0 : (walk(st, at, j.site) ?? 0),
       carries = carriesTo(j.kind) !== null, // a kind whose method sets a load down (VB-1820: not a field `back`)
       back = trip > 0 ? trip : carries ? (walk(st, j.site, home) ?? 0) : 0;

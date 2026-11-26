@@ -20,7 +20,7 @@ const idle = (a) => { a.job = null; a.load = 0; };
 check(TRAVEL.load === 30 && TRAVEL.hand === 90 && TRAVEL.cart === 300, 'loads of 30, 90 and 300 rations');
 check(TRAVEL.pace.back === 0.9 && TRAVEL.pace.hand === 0.8 && TRAVEL.pace.ox === 0.6, 'a laden pawn walks at 0.9, 0.8 and 0.6');
 check(Array.isArray(hh.carts) && hh.cartMiss === 0, 'a household keeps its carts and its count of misses');
-check(KINDS.cart && KINDS.cart.project && KINDS.mendcart && KINDS.manure.carted && KINDS.hay.methods && KINDS.wood.methods, 'the kinds');
+check(KINDS.cart && KINDS.cart.project && KINDS.mendcart && VB['sim/methods'].says(KINDS.manure, 'carted') && KINDS.hay.methods && KINDS.wood.methods, 'the kinds');
 
 // --- taking a cart: the best one free; the ox cart only with the team
 hh.carts = [];

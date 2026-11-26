@@ -12,6 +12,8 @@ const { checkState } = require('./lib/invariants.js');
 const { FRESH } = VB['world/water'];
 const { TICKS, DAY, YEAR, HUNGER, TRAVEL, SPEED, cal } = VB['sim/rules'];
 const { KINDS } = VB['sim/kinds'];
+// the water's set-out and its trip's hours: its method's go step's (VB-1821)
+const waterSetOut = (...x) => VB['sim/methods'].says(KINDS.water, 'setOut')(...x), waterTrip = (...x) => VB['sim/methods'].says(KINDS.water, 'trip')(...x);
 const { CART } = VB['sim/carts'];
 const { WATER } = Water;
 const tripHours = (walk) => Water.dayFetch(walk, 1).hours; // one trip by hand
@@ -83,8 +85,8 @@ check(WATER.hand === 6 && WATER.child === 3 && WATER.cart === 18 && WATER.fill =
   KINDS.water.available(st, hh, f, cal(st.t), (key) => posted.push(key));
   check(posted.length === 1, `one person alone at home: one trip posted (${posted})`);
   const j = { kind: 'water', owner: { type: 'household', id: hh.id }, site: f.water.tile, farm: f, claims: [] };
-  check(KINDS.water.setOut(st, st.agents[hh.holder], j) === 0 && !j.cart && j.cover === WATER.hand, 'which it makes by hand, as six do');
-  check(near(KINDS.water.trip(st, j) + KINDS.water.hours, hand, 1e-9), `in ${hand.toFixed(2)} hours`);
+  check(waterSetOut(st, st.agents[hh.holder], j) === 0 && !j.cart && j.cover === WATER.hand, 'which it makes by hand, as six do');
+  check(near(waterTrip(st, j) + KINDS.water.hours, hand, 1e-9), `in ${hand.toFixed(2)} hours`);
 }
 for (const n of [3, 6]) {
   const r = fetchDay(n, 7, [handCart()]);
@@ -177,10 +179,10 @@ for (const n of [3, 6]) {
     a = st.agents[hh.holder],
     p = st.pawns[hh.holder],
     j = { kind: 'water', owner: { type: 'household', id: hh.id }, site: Water.sourceOf(st, f).tile, farm: f, claims: [] };
-  KINDS.water.setOut(st, a, j);
+  waterSetOut(st, a, j);
   check(j.cover === WATER.hand, `a grown hand's trip covers ${j.cover}`);
   p.born = st.t - 10 * YEAR; // a test's write: a child of 10
-  KINDS.water.setOut(st, a, j);
+  waterSetOut(st, a, j);
   check(j.cover === WATER.child, `a child of 10 carries one bucket, for ${j.cover}`);
 }
 if (failed) process.exit(1);

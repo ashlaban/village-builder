@@ -801,10 +801,9 @@ console.log(
     assert(r.legs.slice(0, 4).join() === 'go,load,haul,unload', `fetched home: ${r.legs.join(', ')}`);
     assert(!Lying.amountAt(st, away, 'wood', title(hh)) && Lying.amountAt(st, away, 'wood', title(other)) === TRAVEL.load, 'its own only');
   }
-  // the fetch kinds: none for the wood (its piles are the stray method's), one still for a kind on its phases; and no fetch task posted
+  // the fetch kinds: none (the wood's piles are the stray method's; VB-1821: the name of one gone, sim/lying fetchKey); and no fetch task posted
   {
     assert(KINDS.wood.methods && KINDS.firewood.methods, 'the wood has methods');
-    assert(!KINDS[Lying.fetchKey('wood')] && !KINDS[Lying.fetchKey('firewood')], 'no fetch kind for the wood');
     // VB-1814: no fetch kind at all; the goods left lying with no goal of their own are each a goal's with the stray method alone
     assert(!Object.keys(KINDS).some((k) => /^fetch[A-Z]/.test(k)), 'no fetch kind');
     for (const k of Object.values(Lying.BRING)) assert(KINDS[k].methods && KINDS[k].strays, `${k}: a goal of strays`);

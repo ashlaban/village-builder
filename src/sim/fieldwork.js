@@ -219,7 +219,6 @@ VB['sim/fieldwork'] = (() => {
       window: { from: WORK[0] - 1 }, // dry by the morning
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6],
       urgency: (st, j, c, U) => U.haul + frostNear(st, c, U),
-      setDown: (st, j, a) => laidDown(j.field, a.load), // a load cut at the field goes back with the stooks
       available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'stooks' && c.day >= fd.reaped + st.ECON.dryDays)
           post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, crop: fd.crop });
@@ -347,7 +346,6 @@ VB['sim/fieldwork'] = (() => {
       field: true,
       spot: onField,
       urgency: (st, j, c, U) => (j.spare ? U.manureSurplus : U.manure),
-      carted: true, // faster with a cart (sim/carts)
       // in spring, while the heap holds a load: the farm's poorest field not yet sown, for the loads it takes (manureWanted, VB-137)
       available: (st, hh, f, c, post) => {
         const dung = manureWanted(st, f, hh, c);
@@ -400,6 +398,7 @@ VB['sim/fieldwork'] = (() => {
     why: 'no stooks on the field',
     cart: true,
     to: 'barn',
+    setDown: (st, j, a) => laidDown(j.field, a.load), // a load cut at the field goes back with the stooks
     run: (st, j, g, at, a, cap) => {
       a.load = carried(j.field, cap);
     },
@@ -414,6 +413,7 @@ VB['sim/fieldwork'] = (() => {
     name: 'carted',
     op: 'spread',
     cart: true,
+    carted: true, // faster with a cart (sim/carts)
     run: (st, j, g) => manureDone(st, j.field, st.households[g.owner], j.hours),
   });
   KINDS.manure.can = { cartPays: () => true };

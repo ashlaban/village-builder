@@ -544,8 +544,8 @@ VB['sim/building'] = (() => {
     spot: (st, a, j) => [st.w.hx[j.site] + 16 + a.ox * 0.4, st.w.hy[j.site] + 2 + a.oy * 0.3],
     done: barnStage,
   });
-  // The job kinds of building (sim/kinds takes them in). The cottage's stages, all finished by sim/cottageplan: a plot's (j.plot) by the
-  // hand's finish through sim/expansion, a booth household's (j.booth, settlers) here; a plot's are posted by sim/kinds' plotWork, a booth
+  // The job kinds of building (sim/kinds takes them in). The cottage's stages, all finished by sim/cottageplan: a plot's (j.plot) by their
+  // `done` as sim/expansion's plotted gives it, a booth household's (j.booth, settlers) here; a plot's are posted by sim/kinds' plotWork, a booth
   // household's by boothWork.
   const stage = (verb, go, name, label, anim, hours) => ({
     verb,

@@ -12,6 +12,7 @@ VB['sim/day'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const { eligible } = VB['sim/eligibility'];
   const { KINDS, isOpen } = VB['sim/kinds'];
+  const { says } = VB['sim/methods'];
   const Days = VB['sim/days'];
   const Hands = VB['sim/hands'];
   const { planOf, heads } = VB['sim/plans'];
@@ -190,7 +191,8 @@ VB['sim/day'] = (() => {
         h = r > 0 ? Math.min(cap.get(id), (left - m[0]) / r) : 0;
       // the hours of a trip beside its work (the water's walk) are hours of its hand's day too (VB-1582)
       const had = cap.get(id);
-      cap.set(id, Math.max(0, had - h - (K.trip ? K.trip(st, j) : 0)));
+      const trip = says(K, 'trip'); // its method's go step's (VB-1821)
+      cap.set(id, Math.max(0, had - h - (trip ? trip(st, j) : 0)));
       manned.set(j, [m[0] + h * r, m[1] + 1]);
       // water first (VB-1582): the fetch heads the list of the member best fit for it. A task with a deadline today that waits
       // unmanned goes first in its hand's list too, after a fetch, whatever its fit, and calls it (call)

@@ -194,9 +194,10 @@ VB['sim/doing'] = (() => {
       at = VIEW.at(st, a);
     if (!(n > 0)) return;
     const drop = s === Methods.RULE.drop || storeOf(st, owner) === null;
-    const K = KINDS[a.job.kind];
-    if (drop && K.setDown && at === a.job.site)
-      K.setDown(st, a.job, a); // set down at its site: back with the stooks or the cocks there (VB-1812)
+    const K = KINDS[a.job.kind],
+      S = said(a.job.kind, good);
+    if (drop && S && S.setDown && at === a.job.site)
+      S.setDown(st, a.job, a); // set down at its site: back with the stooks or the cocks there (VB-1812; its load step's, VB-1821)
     else if (drop && K.spills) {
       // a load no pile keeps (the water in its buckets or barrel, VB-1604) is spilt: nothing lies
     } else if (drop && K.led) {
