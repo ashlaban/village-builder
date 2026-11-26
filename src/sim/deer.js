@@ -186,5 +186,7 @@ VB['sim/deer'] = (() => {
       if (t >= 0) post(`hunt:h${hh.id}:${t}`, t, { farm: f });
     },
   };
+  // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
+  VB['sim/methods'].trip(KIND, 'hunt');
   return { edgeTile, stock, density, recount, initDeer, deerGraze, browseCrops, ground, hunt, KIND };
 })();

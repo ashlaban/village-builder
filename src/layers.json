@@ -20,6 +20,7 @@
       "sim/customs",
       "sim/norms",
       "sim/rules",
+      "sim/methods",
       "sim/crops",
       "sim/roles",
       "sim/house",
@@ -146,7 +147,6 @@
     ],
     "agency": [
       "sim/legs",
-      "sim/methods",
       "sim/work",
       "sim/doing",
       "sim/attention",

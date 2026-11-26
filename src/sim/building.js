@@ -900,6 +900,8 @@ VB['sim/building'] = (() => {
       },
     },
   };
+  // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
+  for (const k of ['pick', 'quarry']) VB['sim/methods'].trip(KINDS[k], k);
   return {
     UPKEEP,
     KINDS,

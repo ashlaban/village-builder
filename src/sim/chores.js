@@ -515,5 +515,7 @@ VB['sim/chores'] = (() => {
       },
     },
   };
+  // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
+  VB['sim/methods'].trip(KINDS.gather, 'gather');
   return { KINDS, WOOD_HOURS, fuelFree, timberOf, cookWanted };
 })();

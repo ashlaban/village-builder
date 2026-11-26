@@ -168,5 +168,7 @@ VB['sim/dig'] = (() => {
       if (at) post(`dig:h${hh.id}:${at.tile}`, at.tile, { farm: f, good: at.good });
     },
   };
+  // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
+  VB['sim/methods'].trip(KIND, 'dig');
   return { DIG, KIND, GOODS, DUG, goodOf, left, digLoad, mayDig, wants, digSite };
 })();
