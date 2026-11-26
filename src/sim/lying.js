@@ -147,8 +147,6 @@ VB['sim/lying'] = (() => {
     const l = byId(st, id);
     return l ? l.n : 0;
   };
-  // The kind of fetching a load of kind `kind` was until VB-1814 (a task of it in an older save is taken down at load, sim/agents loaded).
-  const fetchKey = (kind) => 'fetch' + kind[0].toUpperCase() + kind.slice(1);
   // What a load of each kind is, in the words the player reads (VB-1670: named by what they bring, not all "a load"); the frost's log
   // line names it the same.
   const WHAT = {
@@ -230,7 +228,6 @@ VB['sim/lying'] = (() => {
     leave,
     take,
     left,
-    fetchKey,
     BRING,
     bringWork,
     frost,

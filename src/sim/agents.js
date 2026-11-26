@@ -111,8 +111,8 @@ VB['sim/agents'] = (() => {
     delete a.homeward; // a task begun is no walk home
     assign(a, 'full');
     rerate(st, j);
-    const K = KINDS[j.kind];
-    if (K.setOut) K.setOut(st, a, j, teamFree); // what it sets out with (the water's barrel, VB-1586), not a load in hand
+    const setOut = Methods.says(KINDS[j.kind], 'setOut'); // its method's (VB-1821)
+    if (setOut) setOut(st, a, j, teamFree); // what it sets out with (the water's barrel, VB-1586), not a load in hand
     onward(st, a); // its first leg read from the world (VB-1775; VB-1750: every kind a goal with methods)
   }
   function dropJob(st, j) {
@@ -152,11 +152,10 @@ VB['sim/agents'] = (() => {
     // that has no more loads to give is done with. A load no kind fetches (a barrel's water, VB-1604) is spilt: nothing lies.
     let laid = null;
     if (a.load > 0 && a.job) {
-      const K = KINDS[a.job.kind],
-        [x, y] = placeOf(st, a),
+      const [x, y] = placeOf(st, a),
         at = tileAt(st, x, y);
-      if (K.setDown && at === a.job.site) K.setDown(st, a.job, a);
-      else Doing.unload(st, a, Methods.RULE.drop, x, y); // a pile with title where it stands (VB-1775: it cannot walk on)
+      // a pile with title where it stands (VB-1775: it cannot walk on), or at its site back where its method took it up (VB-1821)
+      Doing.unload(st, a, Methods.RULE.drop, x, y);
       standCart(st, a, at, x, y); // its cart stands where it was, with the team that drew it, until a hand fetches them (VB-649)
       a.carry = null;
       laid = a.job;
@@ -523,6 +522,11 @@ VB['sim/agents'] = (() => {
   // A loaded run: a save is made between steps, so the step now has been worked and walked. A save made before VB-472 stepped its workers
   // (agent.work, the rows; job.cast, VB-471): its tasks under work are reckoned from now. One made before VB-473 has no legs (an awake list,
   // journeys with a due time): each pawn's leg is built from where it is and what it does.
+  // The kind an older save's fetch kind fetched for (until VB-1814: 'fetch' and the kind's name, its first letter raised), or undefined.
+  const fetchedFor = (kind) => {
+    const k = kind.startsWith('fetch') && kind.length > 5 ? kind[5].toLowerCase() + kind.slice(6) : null;
+    return k && KINDS[k] ? k : undefined;
+  };
   function loaded(st) {
     st.stepAt = { moving: st.tick, walked: st.tick };
     Attention.loaded(st); // a charge held as a side task before VB-1750 is minded
@@ -537,7 +541,7 @@ VB['sim/agents'] = (() => {
         const b = st.agents[id];
         if (!b || b.job !== j) continue;
         const [x, y] = placeOf(st, b),
-          lying = Object.keys(KINDS).find((k) => Lying.fetchKey(k) === j.kind);
+          lying = fetchedFor(j.kind);
         // what its delivery reads kept with it (the grain's crops, a move's mark: VB-1814)
         if (b.load > 0 && lying && j.owner) Lying.lay(st, b, j, lying, tileAt(st, x, y), x, y);
         if (b.path) halt(st, b);

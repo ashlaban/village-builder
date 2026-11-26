@@ -1,4 +1,4 @@
-// @sys sim/kinds: the registry of job kinds: it joins the records each domain module declares (KINDS), builds the fetch kinds and each role's
+// @sys sim/kinds: the registry of job kinds: it joins the records each domain module declares (KINDS), builds each role's
 // ranks, and holds the order in which sim/jobs asks the kinds' rules (ASK). A kind's record lives with its domain (VB-418)
 VB['sim/kinds'] = (() => {
   const { ROLES, STAND_KEYS } = VB['sim/roles'],
@@ -59,9 +59,8 @@ VB['sim/kinds'] = (() => {
   //   meanwhile (`carriedOn`, below; VB-1547, Kim, 23 November). evening: a vital kind a hand may also begin after the end of work, until
   //   MATCH.day.evening: open and unmanned then, it calls a hand at home (sim/day eveningCall; the water); true or, as vital, (st, j) =>
   //   boolean (the firewood cut at home while the house is cold or the pile short, VB-1653).
-  //   first: a kind that heads the list of the member best fit for it when the day is allotted (the water); trip(st, j): the hours of
-  //   its trip besides its work, counted in that member's day (sim/day allot; VB-1582). setOut(st, a, j, teamFree): as its hand sets
-  //   out (sim/agents start), what it takes at the house; returns the load it sets out with (the water's barrel on a cart; VB-1586).
+  //   first: a kind that heads the list of the member best fit for it when the day is allotted (the water; VB-1582). The hours of its
+  //   trip besides its work and what its hand takes as it sets out are its method's go step's (`trip`, `setOut`: sim/methods, VB-1821).
   //   together: worked by all together (VB-120: a work day): a bid does not fall for the hands already at the job (MATCH.join, sim/fit).
   //   norm(st, j): the job's hours for a normal crop, where its hours go by the crop's size (reap, thresh): what a head that does not
   //   reckon with the size estimates (sim/estimate, VB-476).
@@ -71,7 +70,7 @@ VB['sim/kinds'] = (() => {
     if (st.plans.villages.get(v.id).routines.includes('commons')) Commons.work(st, v, c, post, ASK.fieldAt);
   }
   // Every kind, in a fixed order: the order is part of saved state (st.plans.due holds an index into the windowed kinds, sim/plans) and of
-  // the fetch kinds' and the ranks' order, so a new kind is added at the end, whatever its module.
+  // the ranks' order, so a new kind is added at the end, whatever its module.
   // The field's kinds, and for a common field the three whose end is the village's (sim/commons).
   const F = Commons.common(Fieldwork.KINDS);
   const KINDS = {
@@ -235,11 +234,12 @@ VB['sim/kinds'] = (() => {
     const v = KINDS[j.kind].vital;
     return v === true || (!!v && v(st, j));
   };
-  // Each role's rank of every kind: its exception for the kind (a fetch kind's: the kind it fetches for, VB-611), else its rank of the
-  // kind's type of work, else 0.
+  // Each role's rank of every kind: its exception for the kind, else for the good a kind of strays brings (VB-1821: the hay left lying
+  // ranked as the hay, VB-611; sim/methods bring), else its rank of the kind's type of work, else 0.
+  const brings = (K) => (K.strays && K.strays.length ? (K.strays[0].good ?? K.strays[0]) : null);
   for (const r of Object.values(ROLES))
     r.prio = Object.fromEntries(
-      Object.entries(KINDS).map(([k, K]) => [k, r.except[k] ?? r.except[K.fetch] ?? r.work[K.type] ?? 0]),
+      Object.entries(KINDS).map(([k, K]) => [k, r.except[k] ?? r.except[brings(K)] ?? r.work[K.type] ?? 0]),
     );
   // A holder's ranks with the roles of its household's head pair absent (sim/roles STAND, VB-1545): `ranks[mask]`, for each kind the
   // highest of its own and each absent role's (bit i of the mask for STAND_KEYS[i]); ranks[0] is prio. Made once, at load.

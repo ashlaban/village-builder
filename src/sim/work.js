@@ -13,6 +13,8 @@ VB['sim/work'] = (() => {
   const { hasTeam } = VB['sim/herds'];
   const Carts = VB['sim/carts'],
     Iron = VB['sim/ironwork'];
+  const { says } = VB['sim/methods'];
+  const carted = (K) => !!says(K, 'carted'); // a kind whose work goes faster with a cart in hand: its method's work step says it (VB-1821)
   const { KINDS } = VB['sim/kinds'],
     Progress = VB['sim/progress'],
     { workTick } = Progress;
@@ -90,7 +92,7 @@ VB['sim/work'] = (() => {
     for (const id of j.claims || []) {
       if (!atWork(st, j, id)) continue;
       const a = st.agents[id],
-        hh = K.carted ? st.households[st.pawns[id].household] : null;
+        hh = carted(K) ? st.households[st.pawns[id].household] : null;
       rate +=
         rateOf(st, st.pawns[id]) *
         (a.pace ?? 1) *
@@ -170,7 +172,7 @@ VB['sim/work'] = (() => {
   function retune(st, hh) {
     if (!hh || hh.dissolved) return;
     for (const q of [...(st.jobsBy.get(`household:${hh.id}`) || [])])
-      if (q.rate > 0 && (teamKind(q) || KINDS[q.kind].carted)) {
+      if (q.rate > 0 && (teamKind(q) || carted(KINDS[q.kind]))) {
         settle(st, q);
         rerate(st, q, false);
       }

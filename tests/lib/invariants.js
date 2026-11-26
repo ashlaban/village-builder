@@ -1524,12 +1524,12 @@ function checkState(st) {
   // within st.lyingSeq; each of a kind that carries a load (one with a fetch kind), a load above 0, on a tile of the map, put down this
   // year at most (the autumn frost rots them all), owned by a household or village that exists
   if (st.lying !== undefined) {
-    const KS = globalThis.VB['sim/kinds'].KINDS, L = globalThis.VB['sim/lying'], { YEAR } = globalThis.VB['sim/rules'];
+    const KS = globalThis.VB['sim/kinds'].KINDS, { YEAR } = globalThis.VB['sim/rules'];
     if (!Array.isArray(st.lying) || !st.lying.length) bad.push(`lying: ${Array.isArray(st.lying) ? 'empty' : typeof st.lying}`);
     else st.lying.forEach((l, n) => {
       const at = `lying[${n}] (${l.id})`, prev = st.lying[n - 1], o = l.owner;
       if (!Number.isInteger(l.id) || !(l.id <= st.lyingSeq) || (prev && !(prev.id < l.id && prev.t <= l.t))) bad.push(`${at}: id ${l.id} out of order, or past lyingSeq ${st.lyingSeq}`);
-      if (!KS[l.kind] || !(KS[L.fetchKey(l.kind)] || KS[l.kind].methods)) bad.push(`${at}: kind ${l.kind} has no fetching`); // a kind with methods: its stray method (VB-1775)
+      if (!KS[l.kind] || !KS[l.kind].methods) bad.push(`${at}: kind ${l.kind} has no fetching`); // a kind with methods: its stray method (VB-1775)
       if (!(l.n > 0) || !Number.isFinite(l.n)) bad.push(`${at}: a load of ${l.n}`);
       if (!Number.isInteger(l.tile) || l.tile < 0 || l.tile >= st.w.COLS * st.w.ROWS) bad.push(`${at}: on tile ${l.tile}`);
       if (!(l.t <= st.t) || !(st.t - l.t < YEAR)) bad.push(`${at}: put down at ${l.t}, a year or more ago (the frost rots it)`);

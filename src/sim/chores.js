@@ -279,40 +279,6 @@ VB['sim/chores'] = (() => {
       vital: true, // a dry day costs the meal's cooking and health (VB-331): a fetch begun is finished after work (VB-1547)
       evening: true, // and one not yet begun may be, until MATCH.day.evening (Kim, 23 November: water after dark)
       first: true, // water first: it heads the list of the member best fit for it at the allotment (VB-1582)
-      // the hours of the trip besides the drawing, which the head counts in its hand's day: the walk out and home laden
-      trip: (st, j) => {
-        const s = j.farm.water;
-        if (!s || s.tile !== j.site) return 0;
-        return j.cart ? (2 * s.walk) / TRAVEL.pace[j.cart] : Water.dayFetch(s.walk, 1).hours - WATER.draw;
-      },
-      // As its hand sets out (sim/agents start): what the trip will cover (j.cover: a child under WATER.childUnder carries one
-      // bucket), and, where more people are still without water than a trip by hand covers, the cart: the head takes the household's
-      // free cart when its barrel is the cheaper in hours (j.cart, its kind; the filling, j.hours), and the hand goes out and comes
-      // home at the cart's pace, the cart out until it is home and worn as by any trip (sim/carts). With no cart free where one
-      // would be the cheaper, a load went on the back while more waited: a miss the head counts. Returns the load it sets out with.
-      setOut: (st, a, j, teamFree) => {
-        const p = st.pawns[a.id],
-          hh = st.households[j.owner.id],
-          s = j.farm.water,
-          young = age(st, p) < WATER.childUnder;
-        delete j.cart;
-        delete j.hours;
-        j.cover = young ? WATER.child : WATER.hand;
-        if (young || p.household !== hh.id || !s || s.tile !== j.site) return 0;
-        let need = atHome(st, hh) - waterIn(hh, cal(st.t).day);
-        for (const q of waterTrips(st, hh)) if (q !== j && q.claims.length) need -= coverOf(q);
-        if (need <= WATER.hand) return 0;
-        const c = barrelCart(st, hh, !!teamFree && teamFree(st, hh));
-        if (!c || !cartPays(s.walk, need, c.kind)) {
-          if (!c && cartPays(s.walk, need, 'hand')) Carts.missed(st, hh);
-          return 0;
-        }
-        Carts.take(st, hh, a.id, c.kind === 'ox');
-        j.cart = c.kind;
-        j.hours = WATER.fill;
-        j.cover = WATER.cart;
-        return TRAVEL.hand; // the barrel: three back loads, as a hand cart carries
-      },
       // by the curb of a well of the farm's own; by the sweep of a well on a green; else at the water's edge
       spot: (st, a, j) => {
         const w = st.w;
@@ -523,6 +489,40 @@ VB['sim/chores'] = (() => {
       hh.waterDay = day;
       if (j.poor) hh.marshDay = hh.waterDay;
       if (a) VB['sim/thirst'].drank(st, st.pawns[a.id]);
+    },
+    // the hours of the trip besides the drawing, which the head counts in its hand's day: the walk out and home laden
+    trip: (st, j) => {
+      const s = j.farm.water;
+      if (!s || s.tile !== j.site) return 0;
+      return j.cart ? (2 * s.walk) / TRAVEL.pace[j.cart] : Water.dayFetch(s.walk, 1).hours - WATER.draw;
+    },
+    // As its hand sets out (sim/agents start): what the trip will cover (j.cover: a child under WATER.childUnder carries one
+    // bucket), and, where more people are still without water than a trip by hand covers, the cart: the head takes the household's
+    // free cart when its barrel is the cheaper in hours (j.cart, its kind; the filling, j.hours), and the hand goes out and comes
+    // home at the cart's pace, the cart out until it is home and worn as by any trip (sim/carts). With no cart free where one
+    // would be the cheaper, a load went on the back while more waited: a miss the head counts. Returns the load it sets out with.
+    setOut: (st, a, j, teamFree) => {
+      const p = st.pawns[a.id],
+        hh = st.households[j.owner.id],
+        s = j.farm.water,
+        young = age(st, p) < WATER.childUnder;
+      delete j.cart;
+      delete j.hours;
+      j.cover = young ? WATER.child : WATER.hand;
+      if (young || p.household !== hh.id || !s || s.tile !== j.site) return 0;
+      let need = atHome(st, hh) - waterIn(hh, cal(st.t).day);
+      for (const q of waterTrips(st, hh)) if (q !== j && q.claims.length) need -= coverOf(q);
+      if (need <= WATER.hand) return 0;
+      const c = barrelCart(st, hh, !!teamFree && teamFree(st, hh));
+      if (!c || !cartPays(s.walk, need, c.kind)) {
+        if (!c && cartPays(s.walk, need, 'hand')) Carts.missed(st, hh);
+        return 0;
+      }
+      Carts.take(st, hh, a.id, c.kind === 'ox');
+      j.cart = c.kind;
+      j.hours = WATER.fill;
+      j.cover = WATER.cart;
+      return TRAVEL.hand; // the barrel: three back loads, as a hand cart carries
     },
     name: 'drawn at the source',
     op: 'draw',

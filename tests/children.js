@@ -6,8 +6,9 @@ const world = (seed) => { const it = G.generate(seed); let r; while (!(r = it.ne
 const P = Sim.ROLES.child.prio;
 // VB-133: children also rake meadows and carry hay (4), and never mow
 // VB-117: and fish (5, foraging); VB-136: and herd (8, from 8 years); VB-300: and fish for the drying rack (5, foraging)
-// VB-611: a load left lying is fetched at the rank of the kind that carried it (fetchHaul, fetchHay), not counted among the ten
-const fetching = (k) => VB['sim/kinds'].KINDS[k].fetch;
+// VB-611: a load left lying is fetched at the rank of the kind that carried it (fetchHaul, fetchHay), not counted among the ten; VB-1821:
+// a kind of strays alone (leftHay), ranked as the good it brings
+const fetching = (k) => !!VB['sim/kinds'].KINDS[k].strays;
 // VB-1812: the sheaves lying are the stray piles of the haul's goal, which has no fetch kind; VB-1814: the hay left lying is leftHay's
 check(!VB['sim/kinds'].KINDS.fetchHaul && !VB['sim/kinds'].KINDS.fetchHay && P.leftHay === P.hay && !P.fetchWood, 'a child fetches a load left lying at another rank than it carries one');
 check(P.water === 6 && P.weed === 5 && P.haul === 4 && P.reap === 3 && P.rake === 4 && P.hay === 4 && P.fish === 5 && P.gather === 5 && !P.mow

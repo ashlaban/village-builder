@@ -22,7 +22,11 @@ VB['sim/methods'] = (() => {
   // Any fact may carry `why`, the reason told when it is the one that blocks.
   // A step that carries a good says what a load of it is (VB-1820: no kind's fields say it): its `haul` the load drawn (`look`, agent.carry)
   // and the leg's words (`words`, sim/agents describe), its `unload` the good's delivery at its place (`deliver(st, j, hh, f, a)`, read
-  // by sim/doing for a good its kind sets down); a `work` step done indoors says so (`inside`: the pawn works in the house).
+  // by sim/doing for a good its kind sets down); a `work` step done indoors says so (`inside`: the pawn works in the house). VB-1821: a
+  // `load` step says where a load set down at its site goes (`setDown(st, j, a)`: back with the stooks or the cocks it was taken from); a
+  // `go` step what its hand takes as it sets out (`setOut(st, a, j, teamFree)`, sim/agents start: the water's barrel on a cart) and the
+  // hours of its trip besides the work (`trip(st, j)`, counted in its hand's day: sim/day, sim/agenda); a `work` step that goes faster with
+  // a cart in hand says so (`carted`: sim/work's rate).
   // A PLACE is 'site' (the goal's `at`), 'store' (the goal's owner's store), 'stray' (the stray pile's place), 'home' (the store of the
   // load's owner), 'here' (where the pawn stands), or a name the view reads (view.place: 'cart', where the cart stands).
   const AT = 1,
@@ -140,7 +144,7 @@ VB['sim/methods'] = (() => {
     { prim: 'unload', at: to, good, pre: [{ carries: good }, { at: to }], eff: [{ not: { carries: good } }] },
   ];
   // What the rows say of a load of each good (look, words, deliver), from their steps and the strays a kind brings (`{good, ...}`).
-  const SAID = ['look', 'words', 'deliver'];
+  const SAID = ['look', 'words', 'deliver', 'setDown'];
   // A kind's plan: its methods compiled, the goods it uses (what its loads take up, and its `strays`: goods it takes up only where they
   // lie stray, VB-1814, each `{good, look, words, deliver}` as a step says them), where it makes or wants them, its stray rows, what its
   // rows say of each good's load, and where its loads are set down (`to`: its first unload's place; a kind of strays only, its owner's
@@ -177,10 +181,25 @@ VB['sim/methods'] = (() => {
     for (const d of [...steps, ...(K.strays || []).filter((x) => typeof x !== 'string')])
       if (d.good && SAID.some((k) => d[k] !== undefined))
         for (const k of SAID)
-          if (d[k] !== undefined) (goods[d.good] ||= { look: null, words: null, deliver: null })[k] = d[k];
+          if (d[k] !== undefined)
+            (goods[d.good] ||= { look: null, words: null, deliver: null, setDown: null })[k] = d[k];
     const un = steps.find((s) => s.prim === 'unload'),
       to = un ? un.at : S.length ? 'store' : null;
     return { key, kind: K, methods, uses, wants, stray, none, goods, to };
+  }
+  // What kind record K's rows say of the kind at one of their steps (VB-1821: no field of the kind says it): the first step's `key` (a go
+  // step's `setOut` and `trip`, a work step's `carted`), or null where none says it. Read from the record's methods at its first ask and
+  // kept with the record: a cache of the rules, not state (a record replaced is read anew).
+  const SAYS = new WeakMap();
+  function says(K, key) {
+    if (!K || !K.methods) return null;
+    let m = SAYS.get(K);
+    if (!m) SAYS.set(K, (m = {}));
+    if (!(key in m)) {
+      m[key] = null;
+      for (const x of K.methods) for (const s of x.steps) if (m[key] === null && s[key] !== undefined) m[key] = s[key];
+    }
+    return m[key];
   }
   // The plans of a table of kinds (sim/kinds' KINDS, or a test's), by key: only the kinds that declare methods.
   function compile(kinds) {
@@ -379,7 +398,7 @@ VB['sim/methods'] = (() => {
   // kind unless o.good says (the building's timber, which the wood's `timber` is not). o: {op, run(st, j, g, at, a, cap): the load made
   // in the hand (cap: the loads its cart or its back holds), met(st, g), source (true: K.can.source reads what the site holds; why),
   // to, cart (true: K.can.cartPays), hours, reload (the hours of the work once a load was made: the task's from then on), look, words,
-  // deliver (what a load is: the steps' of `trip`)}.
+  // deliver (what a load is: the steps' of `trip`), setDown, setOut, trip (what its steps say of it, VB-1821: above)}.
   const cartOrNone = { any: [{ has: 'cart' }, { not: { free: 'cart' } }, { not: { can: 'cartPays' } }] };
   const cartStep = {
     prim: 'fetch',
@@ -394,7 +413,14 @@ VB['sim/methods'] = (() => {
       src = o.source ? [{ can: 'source', why: o.why || 'nothing to take up' }] : [];
     const steps = [
       ...(o.cart ? [cartStep] : []),
-      { prim: 'go', at: 'site', pre: o.cart ? [cartOrNone] : [], eff: [{ at: 'site' }] },
+      {
+        prim: 'go',
+        at: 'site',
+        ...(o.setOut ? { setOut: o.setOut } : {}),
+        ...(o.trip ? { trip: o.trip } : {}),
+        pre: o.cart ? [cartOrNone] : [],
+        eff: [{ at: 'site' }],
+      },
       {
         prim: 'work',
         op: o.op,
@@ -406,6 +432,7 @@ VB['sim/methods'] = (() => {
         prim: 'load',
         good,
         at: 'site',
+        ...(o.setDown ? { setDown: o.setDown } : {}),
         pre: [{ at: 'site' }, { carries: null }, { pile: good, at: 'site', min: ANY_N }],
         eff: [{ carries: good }],
       },
@@ -441,12 +468,20 @@ VB['sim/methods'] = (() => {
     return K;
   }
   // Work at the site with no load in hand (VB-1812: the manure carted): a cart fetched where one is free and the kind says it pays, go,
-  // work; met once the work is done (`job.made`), and the cart then taken back by the rule for a thing held.
+  // work; met once the work is done (`job.made`), and the cart then taken back by the rule for a thing held. o.carted: the work goes
+  // faster with the cart in hand (its step says it, VB-1821).
   function tend(K, o) {
     const steps = [
       ...(o.cart ? [cartStep] : []),
       { prim: 'go', at: 'site', pre: o.cart ? [cartOrNone] : [], eff: [{ at: 'site' }] },
-      { prim: 'work', op: o.op, at: 'site', pre: [{ at: 'site' }], eff: [{ met: true }] },
+      {
+        prim: 'work',
+        op: o.op,
+        at: 'site',
+        ...(o.carted ? { carted: true } : {}),
+        pre: [{ at: 'site' }],
+        eff: [{ met: true }],
+      },
     ];
     Object.assign(K, { methods: [{ name: o.name || 'tended', steps }], met: (st, g) => (g.job.made || 0) > 0 });
     K.ops = {
@@ -528,5 +563,5 @@ VB['sim/methods'] = (() => {
     return K;
   }
 
-  return { PRIMS, MAX, DONE, RULE, compile, next, placeOf, trip, carry, tend, bring, labour, mind };
+  return { PRIMS, MAX, DONE, RULE, compile, says, next, placeOf, trip, carry, tend, bring, labour, mind };
 })();
