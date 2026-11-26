@@ -16,7 +16,9 @@ VB['sim/kinds'] = (() => {
     Lying = VB['sim/lying'],
     Drying = VB['sim/drying'],
     Carts = VB['sim/carts'];
-  const { landProject } = VB['sim/projects'],
+  const { pawnPlan } = VB['sim/steps'],
+    { VERBS } = VB['sim/commands'];
+  const { landProject, projectsOf } = VB['sim/projects'],
     { meadowWork } = Meadows,
     { byreWork } = Byre,
     { plotWork } = Expansion,
@@ -317,5 +319,123 @@ VB['sim/kinds'] = (() => {
   ASK.village.push(rule(VB['sim/facilities'].villageWork)); // a village's facilities raised and mended (VB-361)
   ASK.island.push(rule('blaze')); // the trails under way, each its blazer's household's (VB-447, sim/trails)
   for (const e of ASK.field) for (const g of ASK.stages[e[0]]) (ASK.fieldAt[g] ||= []).push(e);
-  return { KINDS, ASK, isOpen, carriedOn, dailyNow, PLACES, THINGS };
+  // ---- goals (VB-1777; docs/plans/four-scales/README.md, 3.2): a task at a tile carried through several steps, for any pawn ----
+  // A goal kind is declared as data by the domain whose kinds carry its steps, beside their rules (GOALS): sim/fieldwork's plant and
+  // harvest, sim/meadows' hay, sim/chores' fell and firewood, sim/camp's farmstead, joined here in that order; sim/upgrade contributes
+  // upgrade, foundation and outbuilding at load, before the first seed. Each step is a job of a kind whose methods carry it (sim/methods,
+  // sim/doing). A goal kind's fields: noun; mark (the land project a marked or a free tile begins, 'field' or 'meadow', or null) and
+  // project(st, hh, tile) (the project it would make, read only); kinds (the job kinds that carry it: sim/agenda's gaps, sim/outlook's
+  // cover); which (why its task leaves); args(g, st, id) (its own args, or why not; optional); at(st, hid, tile, task) (what of the
+  // household's stands at the tile for it, or null); none(tile); why(st, where, tile, id) (why it takes no task now, or null);
+  // steps(st, hid, where) ([{kind, hours (of one piece; absent: its kind's), n (pieces: a carrying's loads, else 1), from (the game hour
+  // it may begin while its job is not posted), what (what `from` waits for), keys (its jobs found by key, not at the tile), posted
+  // (listed only while posted), trip}], in the order the work goes); gone(st, where) (one of `which`, or null while it stands);
+  // deadline(st, hid, where, frost) ({t, what} or null); and as it needs: act(st, id, where, tile) (a command of its own before its
+  // steps), hold(st, hid, where, y, tile) (the household's rule that holds open step y's job back: [rule, ...args] of sim/controller's
+  // HOLDS, or null), due(where, y) (what is raised at the next ask of the review hour, or null), ask(st, hid, task, steps) (whether the
+  // plan asks its head now; steps() the goal's steps left), whole (kinds whose trip is not left for the sleeping hours).
+  const GOALS = {
+    plant: Fieldwork.GOALS.plant,
+    hay: Meadows.GOALS.hay,
+    harvest: Fieldwork.GOALS.harvest,
+    ...Chores.GOALS,
+    ...VB['sim/camp'].GOALS,
+  };
+  // The goal kind of task t (a task at a tile: no key), or null for a task by key.
+  const goalOf = (t) => (t.key === undefined && GOALS[t.kind] ? t.kind : null);
+  const homeOf = (st, hid) => {
+    const hh = st.households[hid];
+    return hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+  };
+  // The open project of household hid making `what` (a field, a meadow) whose step stands at `tile`, or null.
+  function projectAt(st, hid, what, tile) {
+    for (const p of projectsOf(st, 'household', hid)) {
+      const s = p.steps[p.open];
+      if (p.what === what && s && s.place === tile) return p;
+    }
+    return null;
+  }
+  // Whether household hid's head plans for itself (VB-1754: it holds a plan record of its own, sim/steps pawnPlan).
+  const headPlans = (st, hid) => pawnPlan(st, st.households[hid].holder) !== null;
+  // What stands at `tile` for goal kind `name` of household hid: the kind's own (`at`); else, for a kind with a mark, its open project
+  // at the tile ({plan, f}), the tile the head has marked for its next field or meadow (sim/plans, plan.tiles; {mark, f, tile}), or, for a
+  // task already planned (`planned`), its tile as one the head's verb `project` begins a field or meadow on when the head plans for
+  // itself (VB-1651: no mark needed; {mark, f, tile, free: true}); null for nothing.
+  function goalWhere(st, hid, name, tile, planned = false, task = null) {
+    if (hid === null || hid === undefined || !Number.isInteger(tile) || tile < 0) return null;
+    const C = GOALS[name],
+      where = C.at(st, hid, tile, task);
+    if (where) return where;
+    if (!C.mark) return null;
+    const p = projectAt(st, hid, C.mark, tile);
+    if (p) return { plan: p, f: homeOf(st, hid) };
+    const plan = st.plans.households.get(hid);
+    if (plan && plan.tiles && plan.tiles[C.mark] === tile) return { mark: C.mark, f: homeOf(st, hid), tile };
+    return planned && headPlans(st, hid) ? { mark: C.mark, f: homeOf(st, hid), tile, free: true } : null;
+  }
+  // The head's check, through its own verb (sim/plans' project: only the head changes its plan), as a command.
+  const headCmd = (id, hid, args) => ({ actor: id, verb: 'project', target: hid, args, source: 'player' });
+  // Why pawn `id` cannot plan goal kind `name` at `tile`, or null, whoever plays it: a marked tile only by the head of the household,
+  // and any other tile where the head's verb `project` would begin the kind's field or meadow now (VB-1651).
+  function goalWhy(st, id, name, tile) {
+    const hid = st.pawns[id].household,
+      C = GOALS[name];
+    if (!Number.isInteger(tile) || tile < 0) return `there is no tile ${tile}`;
+    const where = goalWhere(st, hid, name, tile);
+    if (!where) {
+      if (!C.mark || hid === null || st.households[hid].holder !== id) return C.none(tile);
+      const why = VERBS.project.check(st, headCmd(id, hid, { what: C.mark, tile }));
+      return why === null ? null : `${C.none(tile)} (${why})`;
+    }
+    if (where.plan) return null;
+    if (where.mark) return VERBS.project.check(st, headCmd(id, hid, { what: null }));
+    return C.why(st, where, tile, id);
+  }
+  // The steps left of goal kind `name` at `tile` for household hid's task there, in the order the work goes: a project's (begun, or the
+  // one a marked or free tile would begin) at their own hours, then the kind's: {where, steps: [{kind, job (its job posted at the tile or
+  // by its keys, or null), hours, n, from, what (what its `from` waits for, or absent), trip}]}; null where nothing of the household's
+  // stands there. A step whose job is not posted now and that is listed only while posted (`posted`) is left out. Reads only.
+  function goalSteps(st, hid, name, tile, task = null) {
+    const where = goalWhere(st, hid, name, tile, true, task);
+    if (!where) return null;
+    const C = GOALS[name],
+      p = where.plan || (where.mark ? C.project(st, st.households[hid], tile) : null),
+      first = p
+        ? p.steps.slice(where.plan ? p.open : 0).map((s) => ({ kind: s.kind, hours: s.hours, n: 1, from: -Infinity }))
+        : [];
+    const js = st.jobsBy.get(`household:${hid}`),
+      steps = [];
+    for (const s of [...first, ...C.steps(st, hid, where)]) {
+      let job = null;
+      if (s.keys)
+        for (const k of s.keys) job = job || st.jobs.get(k) || null; // jobs found by key (the timber at the wood)
+      else if (js && !where.mark) for (const j of js) if (j.kind === s.kind && j.site === tile) job = j;
+      if (!job && s.posted) continue;
+      const hours = s.hours ?? KINDS[s.kind].hours;
+      steps.push({ kind: s.kind, job, hours, n: s.n, from: s.from, what: s.what, trip: s.trip });
+    }
+    return { where, steps };
+  }
+  // Why a task of goal kind `name` leaves the plan now (one of the kind's `which`), or null: nothing of the household's stands there
+  // ('gone'); a project's tile, a marked one or a free one stands.
+  function goalGone(st, hid, name, tile, task = null) {
+    const where = goalWhere(st, hid, name, tile, true, task);
+    if (!where) return 'gone';
+    return where.plan || where.mark ? null : GOALS[name].gone(st, where);
+  }
+  return {
+    KINDS,
+    ASK,
+    isOpen,
+    carriedOn,
+    dailyNow,
+    PLACES,
+    THINGS,
+    GOALS,
+    goalOf,
+    goalWhy,
+    goalSteps,
+    goalGone,
+    headCmd,
+  };
 })();

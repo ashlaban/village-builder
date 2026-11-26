@@ -17,13 +17,14 @@ VB['sim/steps'] = (() => {
   // @state st.plans.pawns (VB-1752): a pawn's plan record, made once it holds a step (a claimant's restoration, sim/farmclaims; a step
   //   its own controller authors, VB-1754) and gone when it holds none and no `lastTask`. st.plans.stepSeq: the last step's id.
   // @state plan.lastTask (a pawn's record; VB-1754, pawn.control.plan's before): absent until the pawn first plans for itself through the
-  //   verb `plan` (sim/plans), then null or the last task that left its plan: {key, kind, t} (its job finished or gone) or {<chain>
-  //   (a tile), kind, site, t, which (one of the chain's `which`, sim/planchains)}. A pawn's own steps, in its record's `ahead`, by
+  //   verb `plan` (sim/plans), then null or the last task that left its plan: {key, kind, t} (its job finished or gone) or {kind (a
+  //   goal kind), site (its tile), t, which (one of the goal kind's `which`, sim/kinds GOALS)}. A pawn's own steps, in its record's `ahead`, by
   //   author 'pawn', in this order: its routine ({routine: a job kind}, each kind once, at most sim/controller's PLAN_MAX; `begun`: the game day its
   //   command was last begun, absent before), its sleeping hours ({sleep: {from, until}}, hours of the day, at most one step), its
   //   tasks ({goal}, at most sim/controller's PLAN_MAX, in the order they are done: a task by key {key (a job's key), kind, site (its tile or -1)} or a
-  //   task at a tile {<chain>: a tile, kind: <chain>, site: the same tile, and a fell task's n and got, an upgrade's or outbuilding's
-  //   what}, one a chain a tile and a what; from, by: game days, a dated task's). Written here only (the verb's ops, sim/controller's
+  //   task at a tile, a goal its kind's methods carry (VB-1777) {kind (a goal kind of sim/kinds GOALS), site (its tile), and a fell
+  //   task's n and got, an upgrade's or outbuilding's what}, one a goal kind a tile and a what; from, by: game days, a dated task's).
+  //   Written here only (the verb's ops, sim/controller's
   //   checks; the feeder's planDay and planBegun; a fell task's loads home); read through pawnPlan, plansIn and planners
   const STATES = Object.freeze(['planned', 'open', 'at-risk', 'done', 'failed', 'dropped']),
     AUTHORS = Object.freeze(['custom', 'pawn']),
@@ -236,6 +237,15 @@ VB['sim/steps'] = (() => {
     for (const id of planners(st)) if (st.pawns[id].household === hid) out.push(pawnPlan(st, id));
     return out;
   }
+  // The task at a tile of goal kind `name` at `tile` in a plan of household hid's members (plansIn's order), the first by its pawn's
+  // id, or null.
+  const taskAt = (st, hid, name, tile) => {
+    for (const pp of plansIn(st, hid)) {
+      const t = pp.tasks.find((x) => x.key === undefined && x.kind === name && x.site === tile);
+      if (t) return t;
+    }
+    return null;
+  };
   // The writes (the verb's ops, sim/controller's checks before them; the feeder's): on pawn id's record, made if it has none.
   function own(st, id) {
     let plan = planFor(st, 'pawn', id);
@@ -360,7 +370,7 @@ VB['sim/steps'] = (() => {
   // household's members counts its loads, not its trips (VB-1662: a cart's trip brings several); the first by its pawn's id.
   on('timberHome', (st, { household, tile, loads }) => {
     for (const pp of plansIn(st, household)) {
-      const t = pp.tasks.find((x) => x.key === undefined && x.kind === 'fell' && x.fell === tile);
+      const t = pp.tasks.find((x) => x.key === undefined && x.kind === 'fell' && x.site === tile);
       if (!t) continue;
       if (t.got < t.n) t.got = Math.min(t.n, t.got + (loads || 1));
       return;
@@ -378,6 +388,7 @@ VB['sim/steps'] = (() => {
     pawnPlan,
     planners,
     plansIn,
+    taskAt,
     setRoutine,
     setSleep,
     addTask,

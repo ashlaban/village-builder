@@ -51,7 +51,7 @@ function move(st, t, placed = () => {}, days = 60) {
   const hh = st.households[0],
     f = st.farmsteads[0];
   const cost = Sim.moveCost(st, st.player.pawn, t),
-    MOVE = VB['sim/planchains'].MOVE_KINDS,
+    MOVE = VB['sim/kinds'].GOALS.farmstead.whole,
     a = st.agents[hh.holder];
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: t }), true);
   const seen = new Set(),

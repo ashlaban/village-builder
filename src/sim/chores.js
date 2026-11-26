@@ -4,7 +4,8 @@
 // another (sim/stores, sim/pot), so it lives above both, in the material layer: the beginning of target-v2's production (4.3). `brew`
 // goes to the ale's module when sim/stores is split (VB-416). sim/kinds joins KINDS into the registry, where a kind's fields are described.
 VB['sim/chores'] = (() => {
-  const { targetOf, plansIn } = VB['sim/steps'];
+  const { targetOf, plansIn, taskAt } = VB['sim/steps'];
+  const { woodWhy } = VB['sim/territory'];
   const Stores = VB['sim/stores'],
     { reserved } = Stores,
     { target } = VB['sim/targets'];
@@ -31,11 +32,10 @@ VB['sim/chores'] = (() => {
   const fuelFree = (st, hh) => hh.wood - reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
   // The timber the household holds, felled and home, not yet cut (VB-1653; absent: none), in the woodpile's loads.
   const timberOf = (hh) => (hh.timber > 1e-9 ? hh.timber : 0);
-  // The loads a fell task at `tile` of a plan of household hid's members has still to bring home (0 when there is none; sim/planchains'
-  // fell).
+  // The loads a fell task at `tile` of a plan of household hid's members has still to bring home (0 when there is none; the fell goal).
   const plannedLeft = (st, hid, tile) => {
     for (const pp of plansIn(st, hid)) {
-      const t = pp.tasks.find((x) => x.key === undefined && x.kind === 'fell' && x.fell === tile);
+      const t = pp.tasks.find((x) => x.key === undefined && x.kind === 'fell' && x.site === tile);
       if (t) return (t.n || 1) - (t.got || 0);
     }
     return 0;
@@ -262,8 +262,8 @@ VB['sim/chores'] = (() => {
         }
         for (const pp of plansIn(st, hh.id))
           for (const t of pp.tasks)
-            if (t.kind === 'fell' && t.key === undefined && (t.got || 0) < (t.n || 1) && st.w.trees[t.fell] > 0)
-              post(`wood:h${hh.id}:t${t.fell}`, t.fell, { farm: f, chosen: true });
+            if (t.kind === 'fell' && t.key === undefined && (t.got || 0) < (t.n || 1) && st.w.trees[t.site] > 0)
+              post(`wood:h${hh.id}:t${t.site}`, t.site, { farm: f, chosen: true });
       },
     },
     water: {
@@ -538,5 +538,91 @@ VB['sim/chores'] = (() => {
     met: (st, g) => (g.job.made || 0) > 0,
   });
   KINDS.water.spills = true;
-  return { KINDS, WOOD_HOURS, fuelFree, timberOf, cookWanted };
+  // ---- goals (VB-1777): a task at a tile carried through several steps by these kinds' methods (sim/kinds GOALS joins them) ----
+  // fell: n loads of timber felled on a forest tile and carried home (VB-1653; Kim, 24 Nov 2026), on any tile the household's village
+  // may fell on (sim/territory woodWhy: the tiles the rule of the village's wood may give it, whatever its size, within WOOD.far of its
+  // centre; a lone farm's village is its own, so the same rule); the household's farm takes the timber. Its trips home are counted on the
+  // task by sim/steps (the event timberHome).
+  const FELL_MAX = 20;
+  const homeOf = (st, hid) => {
+    const hh = st.households[hid];
+    return hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
+  };
+  const fell = {
+    noun: 'felling',
+    mark: null,
+    kinds: ['wood'],
+    which: ['home', 'bare', 'gone'],
+    args: (g) => {
+      const n = g.n === undefined || g.n === null ? 1 : g.n;
+      return Number.isInteger(n) && n >= 1 && n <= FELL_MAX
+        ? { n, got: 0 }
+        : `cannot plan ${g.n} loads to fell (1 to ${FELL_MAX})`;
+    },
+    at: (st, hid, tile) => {
+      const f = homeOf(st, hid);
+      if (!f || st.households[hid].dissolved || !st.villages[f.village]) return null;
+      const t = taskAt(st, hid, 'fell', tile);
+      return { f, tile, n: t ? t.n : 1, got: t ? t.got : 0 };
+    },
+    none: () => 'the household has no farm to carry timber home to',
+    why: (st, { f }, tile) => woodWhy(st, st.villages[f.village], tile),
+    // the trips left, each a tree felled and its timber home, while trees stand there
+    steps: (st, hid, { tile, n, got }) =>
+      st.w.trees[tile] > 0 && got < n ? [{ kind: 'wood', hours: WOOD_HOURS.fell, n: n - got, from: -Infinity }] : [],
+    gone: (st, { tile, n, got }) => (got >= n ? 'home' : st.w.trees[tile] > 0 ? null : 'bare'),
+    deadline: () => null,
+  };
+  // firewood: the timber home cut into firewood at the house, until it is all cut or the pile holds the season's goal (VB-1653).
+  // The pile's free wood against the season's goal (the head's plan's targets, sim/plans), and whether it is short.
+  const pileOf = (st, hh) => {
+    const plan = st.plans.households.get(hh.id),
+      goal = targetOf(plan, 'wood') ? targetOf(plan, 'wood').seasons[cal(st.t).season] : 0,
+      free = fuelFree(st, hh);
+    return { free, goal, short: free < goal };
+  };
+  // Whether a plan of household hid's members holds a fell task with trips left (timber to come home).
+  const fellPlanned = (st, hid) =>
+    plansIn(st, hid).some((pp) => pp.tasks.some((t) => t.key === undefined && t.kind === 'fell' && t.got < t.n));
+  const firewood = {
+    noun: 'firewood',
+    mark: null,
+    kinds: ['firewood'],
+    which: ['cut', 'full', 'gone'],
+    at: (st, hid, tile) => {
+      const f = homeOf(st, hid);
+      return f && f.house === tile && !st.households[hid].dissolved ? { f, hh: st.households[hid], tile } : null;
+    },
+    none: (tile) => `the household's house is not at ${tile}`,
+    // timber home, or a felling planned to bring it; the pile short of the season's goal
+    why: (st, { hh }) => {
+      if (!timberOf(hh) && !fellPlanned(st, hh.id)) return 'no timber is home to cut: fell timber first';
+      return pileOf(st, hh).short ? null : "the woodpile holds the season's goal";
+    },
+    // the loads left to cut: the timber home, at most the pile's shortfall, ECON.woodPerTrip a load
+    steps: (st, hid, { hh }) => {
+      const p = pileOf(st, hh),
+        per = st.ECON.woodPerTrip,
+        x = Math.min(timberOf(hh), Math.max(0, p.goal - p.free));
+      return x > 0 || fellPlanned(st, hh.id)
+        ? [{ kind: 'firewood', hours: WOOD_HOURS.cut, n: Math.max(1, Math.ceil(x / per - 1e-9)), from: -Infinity }]
+        : [];
+    },
+    gone: (st, { hh }) => (!pileOf(st, hh).short ? 'full' : !timberOf(hh) && !fellPlanned(st, hh.id) ? 'cut' : null),
+    deadline: () => null,
+    // the household's rule that holds the cutting back: no timber home, or the pile at the season's goal with the house warm
+    hold: (st, hid, where, y) => {
+      if (y.kind !== 'firewood') return null;
+      if (!timberOf(where.hh)) return ['timber'];
+      return !(where.hh.cold > 0) && !pileOf(st, where.hh).short ? ['woodpile'] : null;
+    },
+    // the plan asks its head at once for a cutting its rule would post but has not (timber home, the pile below the season's goal or
+    // the house cold; VB-1661: it waited up to three days for the household's planning day, by its head's diligence, sim/plandays)
+    ask: (st, hid) => {
+      const hh = st.households[hid];
+      return timberOf(hh) > 0 && (hh.cold > 0 || pileOf(st, hh).short) && !st.jobs.has(`firewood:h${hid}`);
+    },
+  };
+  const GOALS = { fell, firewood };
+  return { KINDS, GOALS, WOOD_HOURS, fuelFree, timberOf, pileOf, cookWanted };
 })();

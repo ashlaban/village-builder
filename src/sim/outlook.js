@@ -24,7 +24,7 @@ VB['sim/outlook'] = (() => {
   const { fireOf } = VB['sim/house'];
   const { hands } = VB['sim/targets'];
   const { headSkill } = VB['sim/seasonal'];
-  const { CHAINS } = VB['sim/planchains'];
+  const { GOALS } = VB['sim/kinds'];
   // Proposed (VB-666): `little`, a first short season whose need is covered at least this share is short a little ('short'), else badly
   // ('bad'); `woodTrips`, the firewood trips a working hand makes in a season towards the pile's goal (ECON.woodPerTrip units each), which
   // bounds the wood the plan's goal brings in a season. Named tunables of the view; nothing in the simulation reads them.
@@ -157,13 +157,13 @@ VB['sim/outlook'] = (() => {
   const controlledIn = (st, hh) => !!st.controlled && st.controlled.some((id) => st.pawns[id].household === hh.id);
   // The tasks of the plans of household hh's members (sim/steps plansIn; VB-1746: the played pawn's plan before).
   const tasksOf = (st, hh) => plansIn(st, hh.id).flatMap((pp) => pp.tasks);
-  // Whether a task of household hh's plans covers chain `name` (sim/planchains CHAINS) at `tile` (any, when undefined): a task at the tile, or a task
-  // by key of one of the chain's job kinds there.
+  // Whether a task of household hh's plans covers goal kind `name` (sim/kinds GOALS) at `tile` (any, when undefined): a task at the tile, or a task
+  // by key of one of the goal kind's job kinds there.
   const covered = (st, hh, name, tile) =>
     tasksOf(st, hh).some((t) =>
       t.key === undefined
-        ? t.kind === name && (tile === undefined || t[name] === tile)
-        : CHAINS[name].kinds.includes(t.kind) && (tile === undefined || t.site === tile),
+        ? t.kind === name && (tile === undefined || t.site === tile)
+        : GOALS[name].kinds.includes(t.kind) && (tile === undefined || t.site === tile),
     );
   const STANDING = ['sown', 'growing', 'ripe', 'stooks'];
   // A supply's reckoning with what it left out (`parts.left`) for a household planned by hand.
@@ -305,7 +305,7 @@ VB['sim/outlook'] = (() => {
         if (t.key === undefined && t.kind === 'fell' && (t.got || 0) < (t.n || 1)) {
           const n = ((t.n || 1) - (t.got || 0)) * st.ECON.woodPerTrip;
           if (cut) planned += n;
-          else left.push({ good: 'fuel', what: 'fell', tile: t.fell, n: r1(n) });
+          else left.push({ good: 'fuel', what: 'fell', tile: t.site, n: r1(n) });
         }
       if (planned > 0) ins.push([c.day, 'firewood', planned]);
     }

@@ -22,7 +22,7 @@ VB['sim/agenda'] = (() => {
   const { workFor } = VB['sim/opportunities'];
   const { here, walkHours } = VB['sim/pose'];
   const { toAxial, hexDist } = VB['world/grid'];
-  const { CHAINS, chainOf, chainSteps } = VB['sim/planchains'];
+  const { GOALS, goalOf, goalSteps } = VB['sim/kinds'];
   const { controlOf, waitsOf, asleepAt } = VB['sim/controller'];
   const { pawnPlan: planOf } = VB['sim/steps'];
   const { heldFarms } = VB['sim/ownership'];
@@ -204,12 +204,12 @@ VB['sim/agenda'] = (() => {
     if (water) Object.assign(s, { farm: f.water ? f : { ...f, water }, site: water.tile });
     return s;
   }
-  // A task at a tile's steps left (sim/planchains chainSteps; VB-1649, VB-1650) as parts of its work: {kind, key (its job's, null while
+  // A task at a tile's steps left (sim/kinds goalSteps; VB-1649, VB-1650) as parts of its work: {kind, key (its job's, null while
   // not posted), e (the pawn's estimate: of the job posted, else of the step's hours; a carrying's by its loads), rough (not posted), from
   // (the hour it may begin: a step not posted at its window's opening, or when its crop is expected ripe, its hay dry)}; with its
-  // chain's deadline (`frost`: the autumn day of the frost the head expects).
-  function chainParts(st, id, hid, tk, frost) {
-    const s = chainSteps(st, hid, tk.kind, tk[tk.kind], tk);
+  // goal kind's deadline (`frost`: the autumn day of the frost the head expects).
+  function goalParts(st, id, hid, tk, frost) {
+    const s = goalSteps(st, hid, tk.kind, tk.site, tk);
     if (!s) return { parts: [], deadline: null };
     const on = s.where.fd ? { field: s.where.fd, farm: s.where.f } : null; // a field's step, whose normal hours are its crop's
     const parts = s.steps.map((x) => {
@@ -239,7 +239,7 @@ VB['sim/agenda'] = (() => {
         from: x.job ? -Infinity : x.from,
       };
     });
-    return { parts, deadline: CHAINS[tk.kind].deadline(st, hid, s.where, frost) };
+    return { parts, deadline: GOALS[tk.kind].deadline(st, hid, s.where, frost) };
   }
   // The plan laid from now: {days (NDAYS lists of segments {from, to, what, kind, key, site}; a task at a tile's by the kind and key of
   // its step), plan (each task's entry where the layout puts it; a task at a tile's with its steps left, as `then` lays a project's), owed (the
@@ -316,8 +316,7 @@ VB['sim/agenda'] = (() => {
       mark = !hand && head && head.plan && head.plan.from === 'task' && head.begun !== null ? head.plan : null,
       underWay = mark ? mark.key : null,
       underWayAt = (tk) =>
-        !!mark &&
-        (chainOf(tk) ? mark.chain === tk.kind && mark[tk.kind] === tk[tk.kind] : !mark.chain && underWay === tk.key);
+        !!mark && (goalOf(tk) ? mark.goal === tk.kind && mark.site === tk.site : !mark.goal && underWay === tk.key);
     // each task's parts (a task by key: its job; a task at a tile: its steps left), the part laid now and its hours left
     const parts = [],
       part = [],
@@ -325,15 +324,14 @@ VB['sim/agenda'] = (() => {
       frost = pp && pp.tasks.some((tk) => tk.kind === 'harvest' || tk.kind === 'farmstead') ? frostExpected(st) : null;
     if (pp)
       for (const tk of pp.tasks) {
-        if (chainOf(tk)) {
-          const { parts: ps, deadline } = chainParts(st, id, hid, tk, frost),
+        if (goalOf(tk)) {
+          const { parts: ps, deadline } = goalParts(st, id, hid, tk, frost),
             sum = (k) => ps.reduce((n, x) => n + x.e[k], 0);
           parts.push(barred[parts.length] ? ps.map((x) => ({ ...x, from: Infinity })) : ps);
           part.push(0);
           pleft.push(ps.length ? ps[0].e.mid : 0);
           left.push(sum('mid'));
           plan.push({
-            [tk.kind]: tk[tk.kind],
             kind: tk.kind,
             site: tk.site,
             key: ps.length ? ps[0].key : null,
@@ -449,7 +447,7 @@ VB['sim/agenda'] = (() => {
     // the tasks' ends and verdicts; one not ended within the days searched is reckoned on past them, the routine aside
     for (let i = 0; i < plan.length; i++) {
       const e = plan[i];
-      if (chainOf(pp.tasks[i])) {
+      if (goalOf(pp.tasks[i])) {
         // a task at a tile: its parts not laid reckoned on past the days searched, each from its own opening; the chain's verdict
         if (!followed || !parts[i].length || barred[i]) continue;
         if (e.ends === null) {
@@ -552,7 +550,7 @@ VB['sim/agenda'] = (() => {
   // @tunable GAPS (VB-1650): ripeDays, the days before a sown field's crop is expected ripe from which it is listed with no harvest task.
   const GAPS = Object.freeze({ ripeDays: 3 });
   // The windows that press at pawn id's household's tiles with no task of its plan covering them (a task at the tile of the
-  // chain, or a task by key whose job is of the chain's kinds there): [{tile, chain, deadline {t, what}, days (left: whole days to the
+  // chain, or a task by key whose job is of the chain's kinds there): [{tile, goal, deadline {t, what}, days (left: whole days to the
   // deadline's day)}], by deadline: a field unsown in its open sowing window (plant); a meadow unmown in the haymaking window while the
   // household wants hay (hay: it mows only then, sim/meadows hayWanted); a sown field ripe, in stooks, or within GAPS.ripeDays of its
   // expected ripening (harvest). [] when id is no living pawn, or with no household. Over its farms' fields and meadows, a few tens;
@@ -571,13 +569,13 @@ VB['sim/agenda'] = (() => {
     let frost = null;
     const covered = (name, tile) =>
       tasks.some((t) =>
-        chainOf(t) ? t.kind === name && t[name] === tile : t.site === tile && CHAINS[name].kinds.includes(t.kind),
+        goalOf(t) ? t.kind === name && t.site === tile : t.site === tile && GOALS[name].kinds.includes(t.kind),
       );
     const gap = (name, tile, where) => {
       if (covered(name, tile)) return;
       if ((name === 'harvest' || name === 'farmstead') && frost === null) frost = frostExpected(st); // VB-1667: the move's loads
-      const deadline = CHAINS[name].deadline(st, hid, where, frost);
-      if (deadline) out.push({ tile, chain: name, deadline, days: Math.floor(deadline.t / DAY) - d0 });
+      const deadline = GOALS[name].deadline(st, hid, where, frost);
+      if (deadline) out.push({ tile, goal: name, deadline, days: Math.floor(deadline.t / DAY) - d0 });
     };
     const doy = c.season * SEASON_DAYS + c.sday;
     for (const f of farms) {
@@ -610,8 +608,7 @@ VB['sim/agenda'] = (() => {
       hh = hid === null ? null : st.households[hid],
       tile = hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead].house : -1;
     return menu.map((e) => {
-      const ps =
-          CHAINS[e.what] && tile >= 0 ? chainParts(st, id, hid, { kind: e.what, [e.what]: tile }, null).parts : [],
+      const ps = GOALS[e.what] && tile >= 0 ? goalParts(st, id, hid, { kind: e.what, site: tile }, null).parts : [],
         work = ps.reduce((n, x) => n + x.e.mid, 0);
       return { ...e, work: ps.length ? Math.round(work * 10) / 10 : e.hours };
     });

@@ -77,8 +77,8 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { fell: tile })), /already planned/);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { firewood: f.house }), true);
   assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks, [
-    { fell: tile, kind: 'fell', site: tile, n: 2, got: 0 },
-    { firewood: f.house, kind: 'firewood', site: f.house },
+    { kind: 'fell', site: tile, n: 2, got: 0 },
+    { kind: 'firewood', site: f.house },
   ]);
   assert.deepStrictEqual(Sim.fireView(st, st.player.pawn).planned, { fell: true, firewood: true });
   const trees = st.w.trees[tile];
@@ -86,7 +86,7 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   for (let i = 0; i < 6 * 24 * 10 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length; i++) {
     Sim.advance(st, 0.1);
     const c = Sim.controlOf(st, st.player.pawn).queue[0];
-    if (c && c.plan && c.plan.chain === 'fell' && c.begun !== null) onTile = Math.max(onTile, st.jobs.get(c.target) ? +(st.jobs.get(c.target).site === tile) : 0);
+    if (c && c.plan && c.plan.goal === 'fell' && c.begun !== null) onTile = Math.max(onTile, st.jobs.get(c.target) ? +(st.jobs.get(c.target).site === tile) : 0);
     if (!saved && hh.timber > 0) saved = JSON.parse(JSON.stringify(Sim.save(st)));
     if (VB['sim/steps'].pawnPlan(st, st.player.pawn).last && VB['sim/steps'].pawnPlan(st, st.player.pawn).last.kind === 'fell') lastFell = lastFell || VB['sim/steps'].pawnPlan(st, st.player.pawn).last;
   }

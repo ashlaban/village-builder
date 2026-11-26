@@ -145,7 +145,6 @@
   "sim/gifts.js",
   "sim/terms.js",
   "sim/keep.js",
-  "sim/planchains.js",
   "sim/controller.js",
   "sim/sleepers.js",
   "sim/player.js",

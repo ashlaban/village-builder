@@ -1,11 +1,11 @@
 // @sys sim/upgrade: the main building built up a rung as a task of the player's plan (VB-1660; Kim, 24 Nov 2026: "It should then be
-//   possible to upgrade the main building"): the chain `upgrade` (the shelter to a cottage today), contributed to sim/planchains' CHAINS at
+//   possible to upgrade the main building"): the goal `upgrade` (the shelter to a cottage today), contributed to sim/kinds' GOALS (the goal kinds, VB-1777) at
 //   load; the head's verb that begins the cottage (beginCottage: its plan made as sim/settle and sim/scenarios make it); and the timber
 //   held at home taken into the walls of a cottage so begun before any is fetched; a camp's household left to itself placing its
 //   farmstead and beginning its cottage by its head's own rule (ownRung, VB-1658); the house set on stone and an outbuilding built as
-//   tasks of the plan (VB-1663: the chains `foundation`, its review asked at once, and `outbuilding`, the timber at home first); a farm
+//   tasks of the plan (VB-1663: the goals `foundation`, its review asked at once, and `outbuilding`, the timber at home first); a farm
 //   with animals and no byre building one by its head's own rule (ownByre, VB-1665); the cottage built up to a timber house (VB-1664) as a
-//   task of the plan (the chain `upgrade`, what 'timber': the making `timberhouse`, sim/timberhouse, the timber at home first) and by a
+//   task of the plan (the goal `upgrade`, what 'timber': the making `timberhouse`, sim/timberhouse, the timber at home first) and by a
 //   crowded household's head's own rule (ownTimber)
 VB['sim/upgrade'] = (() => {
   const { BUILD, ECON, cal } = VB['sim/rules'];
@@ -17,11 +17,11 @@ VB['sim/upgrade'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
   const { projectsOf, lacks } = Projects;
-  const { KINDS } = VB['sim/kinds'];
+  const { KINDS, GOALS, headCmd } = VB['sim/kinds'];
   const { makingOf } = VB['sim/makings'];
   const { makeProject } = VB['sim/projectplans'];
   const { COTTAGE, cottagePlan, cottageOf, wallsOf } = VB['sim/cottageplan'];
-  const { CHAINS, taskAt, headCmd } = VB['sim/planchains'];
+  const { taskAt } = VB['sim/steps'];
   const { rungWhy, foundationWhy, outWhy, OUTBUILDINGS } = VB['sim/ladder'];
   const { byreWhy } = VB['sim/byrehouse'];
   const { timberWhy } = VB['sim/timberhouse'];
@@ -117,7 +117,7 @@ VB['sim/upgrade'] = (() => {
     if (timberWhy(st, hh) !== null) return;
     issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'timberhouse' }, source: 'pawn' });
   }
-  // ---- the chain: upgrade (CHAINS.upgrade) ----
+  // ---- the goal: upgrade (GOALS.upgrade) ----
   // At the house's tile of the household's farm: {f, hh, tile, what (the task's rung, 'cottage' before it is planned), cottage (its plan
   // once begun, or null), project (the timber house's, once begun, or null)}. Its act begins the cottage (beginCottage); then its stages
   // at the house, the walls' timber trips before the walls while they lack it (their jobs stand at the wood: found by their keys); it
@@ -190,8 +190,8 @@ VB['sim/upgrade'] = (() => {
           ? { actor: id, verb: 'beginCottage', target: tile, args: null, source: 'player' }
           : null,
   };
-  CHAINS.upgrade = upgrade; // contributed at load, before the first seed (VB-1660)
-  // ---- the chain: foundation (CHAINS.foundation; VB-1663) ----
+  GOALS.upgrade = upgrade; // contributed at load, before the first seed (VB-1660)
+  // ---- the goal: foundation (GOALS.foundation; VB-1663) ----
   // The house set on stone as a task of the plan: the head's own building step (sim/building buildStep, opened at a review of its plan),
   // which a head holding off projects opens for this task alone; the plan asks its head for that review at once (askFoundation,
   // the event planAsks), as a firewood task asks for its cutting (VB-1661). Then the stone's loads as the step posts them (stoneWork:
@@ -238,8 +238,10 @@ VB['sim/upgrade'] = (() => {
     },
     gone: (st, { f }) => (f.grade === 'stone' ? 'raised' : null),
     deadline: () => null,
+    // the household's rule that holds the stone back: no source in reach of the house (VB-1663)
+    hold: (st, hid, where, y) => (y.kind !== 'raise' && where.step && where.step.tile < 0 ? ['stone'] : null),
   };
-  CHAINS.foundation = foundation;
+  GOALS.foundation = foundation;
   // A foundation task of a pawn's plan (VB-1746: the played pawn's before) with no building step open: the plan asks its household's
   // head for a review (at most one a day, sim/stores).
   function askFoundation(st) {
@@ -251,7 +253,7 @@ VB['sim/upgrade'] = (() => {
       if (plan && !plan.build && !plan.dirty) emit(st, 'planAsks', { household: hid });
     }
   }
-  // ---- the chain: outbuilding (CHAINS.outbuilding; VB-1663) ----
+  // ---- the goal: outbuilding (GOALS.outbuilding; VB-1663) ----
   // Any outbuilding of sim/ladder's OUTBUILDINGS (`what`, the task's: a barn today) built as a task of the plan: its act begins it by the
   // head's verb `project` and the making of its name (sim/makings; a barn: sim/aims, under barnWhy), as the head's own rule would; then its
   // stages at the house, the timber trips a stage that carries timber lacks before it (their jobs at the wood, found by their keys), the
@@ -316,8 +318,11 @@ VB['sim/upgrade'] = (() => {
     deadline: () => null,
     act: (st, id, where) =>
       where.what && !where.project && !where.f[where.what] ? headCmd(id, where.hh.id, { what: where.what }) : null,
+    // the household's rule that holds its timber back: no wood to fell it in (VB-1663)
+    hold: (st, hid, where, y) =>
+      y.kind === 'timber' && !st.villages[where.f.village].wood.length ? ['wood', where.what] : null,
   };
-  CHAINS.outbuilding = outbuilding;
+  GOALS.outbuilding = outbuilding;
   // The timber household hid holds at home taken into the open step of each outbuilding its members' plans name (VB-1746: the played
   // pawn's plan before), in the plans' order, while that step carries timber and lacks it (through sim/stores, the reason 'build'); the
   // loads taken. At each trip of timber home, and as a stage ends (the walls open).
@@ -328,9 +333,9 @@ VB['sim/upgrade'] = (() => {
     let got = 0;
     for (const t of pps.flatMap((pp) => pp.tasks)) {
       const what =
-          t.kind === 'outbuilding' && t.outbuilding === f.house
+          t.key === undefined && t.kind === 'outbuilding' && t.site === f.house
             ? t.what
-            : t.kind === 'upgrade' && t.upgrade === f.house && t.what === 'timber'
+            : t.key === undefined && t.kind === 'upgrade' && t.site === f.house && t.what === 'timber'
               ? 'timberhouse' // the timber house its upgrade task names (VB-1664)
               : null,
         p = what ? openOut(st, hid, what) : null,
