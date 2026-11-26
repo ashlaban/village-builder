@@ -143,7 +143,7 @@ VB['sim/work'] = (() => {
     const day = Math.floor(t / TICKS / DAY);
     let w = st.workToday;
     if (!w || w.day !== day) w = st.workToday = { day, by: {} };
-    w.by[id] = (w.by[id] || 0) + dt;
+    w.by[id] = (w.by[id] || 0) + Math.min(dt, t / TICKS - day * DAY); // only today's part of a span reckoned late
   }
   // The clock hours pawn id has worked today on its own household's or village's tasks, as last reckoned (one lookup).
   const workedToday = (st, id, day) => {

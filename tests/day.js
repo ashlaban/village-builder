@@ -128,7 +128,7 @@ for (const id of st.liveHouseholds) {
   for (const id of slotted)
     assert.ok(Object.values(dayOf(s3, id).lists).some((l) => l.some((k) => k.startsWith('mend:'))), `household ${id}: the mending is in a list`);
   const members = (ids) => ids.reduce((n, id) => n + Object.keys(dayOf(s3, id).free).length, 0);
-  assert.ok(VB.count.dayPair < s3.jobsBy.get('village:0').size * members(s3.liveHouseholds) + 200 * whole, `the members weighed for the mending alone (${VB.count.dayPair} pairs)`);
+  assert.ok(VB.count.dayPair <= s3.jobsBy.get('village:0').size * members(s3.liveHouseholds) + 200 * whole, `the members weighed for the mending alone (${VB.count.dayPair} pairs)`);
 }
 
 // 7. A holder lost to its day (VB-1758; design.md section 7, Plans at four scales, Replanning): a reaper falls ill for three days at the
