@@ -679,7 +679,8 @@ function checkState(st) {
   for (const a of st.agents)
     if (a.pace !== undefined && !(Number.isFinite(a.pace) && a.pace >= paceLo && a.pace <= paceHi)) bad.push(`agent ${a.id}: pace ${a.pace}`);
   // a pawn's wish at the moving round (VB-680): absent or null (the default), else a ranking that holds each rung once, a farm that exists
-  // or null, a pawn of the other sex or null; a living pawn's is not the default written out
+  // or null, a pawn of the other sex or null, `by` absent or 'pawn' (authored by its controller, VB-1776); a living pawn's is not the
+  // default written out unless authored
   const RUNGS = globalThis.VB['sim/wishes'].WISH.rungs;
   for (const p of st.pawns) {
     const w = p.wish;
@@ -687,7 +688,8 @@ function checkState(st) {
     if (!Array.isArray(w.rank) || w.rank.length !== RUNGS.length || RUNGS.some((r) => !w.rank.includes(r))
       || !(w.farm === null || (Number.isInteger(w.farm) && !!st.farmsteads[w.farm]))
       || !(w.partner === null || (Number.isInteger(w.partner) && !!st.pawns[w.partner] && st.pawns[w.partner].sex !== p.sex))
-      || (p.alive && w.farm === null && w.partner === null && w.rank.every((r, i) => r === RUNGS[i]))) bad.push(`pawn ${p.id}: wish ${JSON.stringify(w)}`);
+      || !(w.by === undefined || w.by === 'pawn')
+      || (p.alive && w.by === undefined && w.farm === null && w.partner === null && w.rank.every((r, i) => r === RUNGS[i]))) bad.push(`pawn ${p.id}: wish ${JSON.stringify(w)}`);
   }
   // courting (VB-036; sim/courting): pawn.courting is absent, null or the id of the one it courts, the same on both sides; the two are
   // living, unmarried, of opposite sex, of COURT.minAge or more and never of a degree that may not marry (2 or less; the custom's limit

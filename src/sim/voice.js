@@ -205,22 +205,7 @@ VB['sim/voice'] = (() => {
     const hh = homeOf(st, id);
     if (!hh) return 'it has no head to ask';
     VB.count.leaveAsked++;
-    // the played head left to itself (on its own, no command waiting) answers by its pawn's judgement at once, as an unplayed head would:
-    // an inhabited pawn given no command changes nothing (tests/player.js)
-    if (st.player && st.player.pawn === hh.holder && !unplanned(st, hh.holder)) {
-      const o = { from: id, to: hh.holder, basis: 'leave', wants: { from, with: w }, made: st.t, due: st.t };
-      const r = Offers.cannotOffer(st, {
-        actor: id,
-        verb: 'offer',
-        target: hh.holder,
-        args: { basis: 'leave', wants: o.wants },
-      });
-      if (r) return r;
-      o.household = hh.id;
-      if (willing(st, hh.holder, id, cal(st.t))) return settle(st, o);
-      refused(st, o, { key: 'head', by: hh.holder });
-      return 'no';
-    }
+    // any head answers by its pawn's judgement at once, an unplanned one by its controller (sim/offers make, VB-1776)
     return issue(st, {
       actor: id,
       verb: 'offer',

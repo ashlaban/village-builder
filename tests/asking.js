@@ -156,4 +156,9 @@ const onItsDay = (id, t) => Math.abs(((((t - ASK.hour) % SEASON) + SEASON) % SEA
   delete st.rng.society.fix;
   sound(st, 'the played pawn');
 }
+const { twins } = require('./lib/twins.js');
+// VB-1776: on automatic with nothing queued, the played son asks through the season as the same son unplayed (his wish his own
+// choosing, sim/asking askFor; a call where his asking found nobody, callAround; the answers his judgement's, sim/offers make)
+twins(world, 8, (st) => VB.sim.advance(st, SEASON), 'a season of asking');
+twins(world, 4, (st) => VB.sim.advance(st, SEASON), 'a season of asking, the daughter played');
 console.log('asking: the queue and its days, an offer a seeker, the caps, a lapse, the played pawn');

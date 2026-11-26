@@ -9,8 +9,19 @@ VB['sim/advice'] = (() => {
   const { issue, VERBS } = VB['sim/commands'];
   const { YEAR, MARRIAGE, ASK, cal } = VB['sim/rules'];
   const { opinionOf } = VB['sim/relations'];
-  const { fullName, settlementIdOf, membersOf, matchByOf, spouseOf, age, spokesmanOf, practice, log, atHousehold } =
-    VB['sim/records'];
+  const {
+    fullName,
+    settlementIdOf,
+    membersOf,
+    matchByOf,
+    spouseOf,
+    age,
+    spokesmanOf,
+    practice,
+    log,
+    atHousehold,
+    unplanned,
+  } = VB['sim/records'];
   const { headView } = VB['sim/plans'];
   const { askingIn } = VB['sim/wishes'];
   const { kinOk } = VB['sim/matching'];
@@ -158,11 +169,11 @@ VB['sim/advice'] = (() => {
     return best === null ? null : { pawn: g.id, partner: best };
   }
   // The grandchildren of r in household hh whose match it may wish: unmarried, of age, holding no open offer, not the played pawn
-  function grandchildren(st, r, hh, played) {
+  function grandchildren(st, r, hh) {
     const out = [];
     for (const m of hh.members) {
       const g = st.pawns[m];
-      if (!g.alive || g.household !== hh.id || g.id === played || g.retired || Number.isInteger(g.ask)) continue;
+      if (!g.alive || g.household !== hh.id || unplanned(st, g.id) || g.retired || Number.isInteger(g.ask)) continue;
       if (!grandchildOf(st, r.id, g) || spouseOf(st, g.id) !== null) continue;
       if (age(st, g) >= (g.sex === 'm' ? MARRIAGE.menFrom : MARRIAGE.womenFrom)) out.push(g);
     }
@@ -188,7 +199,7 @@ VB['sim/advice'] = (() => {
     const t = targetAdvice(st, hh);
     if (t) offer({ verb: 'target', args: t });
     if (!HEADS.includes(matchByOf(st, p))) return;
-    for (const g of grandchildren(st, p, hh, st.player ? st.player.pawn : null)) {
+    for (const g of grandchildren(st, p, hh)) {
       const args = matchAdvice(st, p, g, hh);
       if (args) {
         offer({ verb: 'match', args });
@@ -196,17 +207,16 @@ VB['sim/advice'] = (() => {
       }
     }
   }
-  // At a household's planning day in spring (sim/plans' event planReviewed), each retired member not played that has not yet advised
+  // At a household's planning day in spring (sim/plans' event planReviewed), each retired member not unplanned that has not yet advised
   // this year advises its head (a walk of the household's members, once a planning day).
   on('planReviewed', (st, d) => {
     if (d.why !== 'day' || d.plan.holder.type !== 'household' || cal(st.t).season !== 0) return;
     const hh = st.households[d.plan.holder.id];
     if (hh.dissolved || hh.holder === null || hh.holder === undefined || !st.pawns[hh.holder].alive) return;
-    const played = st.player ? st.player.pawn : null,
-      y = yearOf(st.t);
+    const y = yearOf(st.t);
     for (const m of hh.members) {
       const p = st.pawns[m];
-      if (!p.alive || !p.retired || p.household !== hh.id || p.id === hh.holder || p.id === played) continue;
+      if (!p.alive || !p.retired || p.household !== hh.id || p.id === hh.holder || unplanned(st, p.id)) continue;
       if (p.advisedIn === y) continue;
       advise(st, p, hh);
     }

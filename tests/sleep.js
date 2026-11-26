@@ -14,6 +14,8 @@ const make = (hours = 0) => {
 };
 const hour = (st) => Sim.cal(st.t).hour;
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
+// The farmer's hours reckoned now: every pawn's, the played one's as any, are reckoned once an hour (VB-1776), and a check reads them between.
+const reckoned = (st) => (VB['sim/sleepers'].reckon(st, FARMER), st.pawns[FARMER].sleep);
 const near = (x, y, what) => assert.ok(Math.abs(x - y) < 1e-6, `${what}: ${x} against ${y}`);
 const until = (st, h) => { while (Math.abs(hour(st) - h) > 1e-6) Sim.advance(st, 0.1); };
 const FARMER = 0;
@@ -55,10 +57,10 @@ const FARMER = 0;
   let steps = 0;
   while (a.path && steps++ < 100) Sim.advance(st, 0.1);
   Sim.advance(st, 0.1);
-  assert.ok(st.pawns[FARMER].sleep.asleep && Sim.controlOf(st, st.player.pawn).queue.length === 1, 'home, it sleeps under the verb');
-  const was = st.pawns[FARMER].sleep.owed;
+  assert.ok(reckoned(st).asleep && Sim.controlOf(st, st.player.pawn).queue.length === 1, 'home, it sleeps under the verb');
+  const was = reckoned(st).owed;
   Sim.advance(st, 0.5);
-  near(st.pawns[FARMER].sleep.owed, was - 0.5, 'asleep in the day, it pays');
+  near(reckoned(st).owed, was - 0.5, 'asleep in the day, it pays');
   until(st, Sim.cal(Sim.controlOf(st, st.player.pawn).queue[0].ref.until).hour);
   Sim.advance(st, 0.1);
   assert.ok(!Sim.controlOf(st, st.player.pawn).queue.length, 'the sleep ends at its time');
@@ -93,8 +95,9 @@ const FARMER = 0;
   Sim.queue(worked, worked.player.pawn, { actor: FARMER, verb: 'idle', args: { until: worked.t + 13 } });
   for (const st of [worked, slept]) Sim.advance(st, 13);
   assert.ok(!worked.agents[FARMER].inside, 'out all night');
-  const owed = worked.pawns[FARMER].sleep.owed, mood = Mood.of(worked, FARMER).mods.find((m) => m.key === 'tired');
-  assert.ok(Math.abs(owed - 24 * AWAKE) < 0.5, `a night lost: ${owed} owed, a day and a night's waking`);
+  const owed = reckoned(worked).owed, mood = Mood.of(worked, FARMER).mods.find((m) => m.key === 'tired');
+  // within an hour's waking: reckoned once an hour, as every pawn (VB-1776), the first hour is the one it was last reckoned in
+  assert.ok(Math.abs(owed - 24 * AWAKE) <= AWAKE + 1e-9, `a night lost: ${owed} owed, a day and a night's waking`);
   assert.ok(mood && mood.value === Math.round(tiredMood(owed)) && mood.value <= -5, `tired by the tunable: ${JSON.stringify(mood)}`);
   assert.strictEqual(Sim.sleepOf(worked).mood, mood.value, 'the page reads the same term');
   assert.strictEqual(slept.pawns[FARMER].sleep.owed, 0, 'one that slept owes nothing');
@@ -195,4 +198,7 @@ const FARMER = 0;
   }
   sound(st, 'an unplayed pawn');
 }
+const { twins } = require('./lib/twins.js');
+// VB-1776: the played farmer on automatic sleeps and owes as the same farmer unplayed: its hours are reckoned once an hour, as any pawn's
+twins(() => make(), FARMER, (st) => Sim.advance(st, 30), 'a day and a night');
 console.log('sleep ok: owed awake, paid asleep, by every pawn (an unplayed one kept out is tired, and sleeps it off by its own rule); the verb leaves the job, sleeps until its hour and the queue goes on; a night worked tires by SLEEP.mood; health past a whole night only; saved');

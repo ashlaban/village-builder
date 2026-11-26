@@ -326,7 +326,22 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   assert.deepStrictEqual(Sim.wishesOf(st, a), { out: null, claim: false, serve: null, match: false, settle: false,
     rank: ['service', 'heir', 'stay', 'match', 'farm', 'plot', 'party'] }, 'the rungs after Stay are declined');
   Sim.wish(st, st.player.pawn, 'rank', [...WISH.rungs]);
-  assert.strictEqual(st.pawns[a].wish, null, 'and the default ranking is no wish');
+  assert.deepStrictEqual(st.pawns[a].wish, { rank: [...WISH.rungs], farm: null, partner: null, by: 'pawn' },
+    'and the default ranking, authored, is kept as its controller\'s (VB-1776)');
+}
+const { twins } = require('./lib/twins.js');
+// VB-1776: on automatic, the played pawn's wish is its own choosing as the unplayed one's (hungry, it puts off a match) until its
+// controller authors one; the authored wish is not rewritten
+{
+  const id = castOf().heir;
+  const [a] = twins(() => scene().st, id, (st) => {
+    st.pawns[id].hunger = VB['sim/rules'].HUNGER.marryBelow;
+    VB['sim/wishes'].chooseWishes(st);
+  }, 'its own choosing at the round');
+  assert.strictEqual(Sim.wishesOf(a, id).match, false, 'hungry, the played pawn on automatic puts off a match');
+  assert.strictEqual(Sim.wish(a, id, 'match', null), true);
+  VB['sim/wishes'].chooseWishes(a);
+  assert.strictEqual(Sim.wishesOf(a, id).match, null, 'the wish its controller authored stands');
 }
 console.log('wishes ok: every pawn\'s own wish (ambition, hunger), read alike for the unplayed; a wish to stay keeps a landless adult out of st.demand, and it neither claims nor leaves; an heir wished out enters it; '
   + 'no wish passes a rule; a farm wished for, none, and service declined; no wishes change nothing; saved and loaded; a wish for a match: not this year, a partner offered at the round, and the rules it never passes');

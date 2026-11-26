@@ -284,6 +284,7 @@ for (const at of ['holds', 'spouse']) {
 {
   const st = world({ handover: 'age60' });
   Sim.inhabit(st, 0);
+  Sim.setAuto(st, 0, false); // its controller chooses (VB-1776: on automatic, the played holder hands on as any holder)
   birthday(st, 0);
   assert.strictEqual(st.offers.length, 0, 'the custom’s time has come, and nothing offers for the played holder');
   assert.deepStrictEqual(
@@ -420,6 +421,7 @@ for (const at of ['holds', 'spouse']) {
     const r = issue(st, { actor: 2, verb: 'move', target: 1, args: { reason: 'service' }, source: 'round' });
     assert.strictEqual(r, true, `the scene: the eldest daughter serves at household 1: ${r}`);
     Sim.inhabit(st, 2);
+    Sim.setAuto(st, 2, false); // its controller answers (VB-1776: on automatic, it inherits as any heir)
     Sim.killPawn(st, 0);
     const o = st.offers.find((x) => x.basis === 'inheritance');
     assert.ok(o, 'the played heir is asked');
@@ -447,6 +449,20 @@ for (const at of ['holds', 'spouse']) {
     assert.ok(!st.offers.some((o) => o.basis === 'inheritance'));
     sound(st, 'taken up by the played heir');
   }
+}
+const { twins } = require('./lib/twins.js');
+// VB-1776: on automatic with nothing queued, the played holder at the custom's time offers the farm as the same holder unplayed, and
+// the played heir with a place elsewhere inherits at a death as any heir does (it is asked only while its controller drives it)
+{
+  const [a] = twins(() => world({ handover: 'age60' }), 0, (st) => birthday(st, 0), 'the holder at the custom’s time');
+  assert.strictEqual(a.offers.filter((o) => o.basis === 'handover').length, 1, 'the played holder on automatic offers the farm');
+  const away = () => {
+    const st = world({ handover: 'death' });
+    issue(st, { actor: 2, verb: 'move', target: 1, args: { reason: 'service' }, source: 'round' });
+    return st;
+  };
+  const [h] = twins(away, 2, (st) => Sim.killPawn(st, 0), 'the heir at a death');
+  assert.ok(!h.offers.some((o) => o.basis === 'inheritance'), 'the played heir on automatic is not asked: it inherits as any heir');
 }
 console.log(
   'handover ok: the line as asked gives the ranking, with why each of the others would not take it; a holder offers on its own day at the ' +
