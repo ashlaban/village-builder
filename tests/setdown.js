@@ -37,7 +37,7 @@ function carrier(a) {
   A.arrived(st, a); // home with the load
   assert.strictEqual(sheaves(), b0 + n, 'the load did not arrive with the hand');
   assert(!a.moving && a.load === 0 && a.job === null, 'the hand is not free after the delivery');
-  assert(a.phase === 'home' || a.phase === null || a.phase === 'journey', 'the hand does not go to its new home');
+  assert(!!a.homeward || (a.phase === null && !a.homeward && !a.journey) || a.journey === 'walk', 'the hand does not go to its new home');
   st.pawns[id].household = hh.id;
   A.release(st, a);
 }
@@ -49,7 +49,7 @@ function carrier(a) {
   A.release(st, a);
   assert.strictEqual(sheaves(), b0, 'a load set down in the field is in the barn');
   assert.strictEqual(fd.held, 30); assert.strictEqual(fd.stage, 'stooks');
-  assert(a.load === 0 && a.carry === null && a.phase === null);
+  assert(a.load === 0 && a.carry === null && (a.phase === null && !a.homeward && !a.journey));
 }
 // 3. its death on the road: the load lies where the hand fell, and is in the barn only once another hand has fetched it and carried it home
 const onRoad = (a) => {

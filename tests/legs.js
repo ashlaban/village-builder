@@ -125,7 +125,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   assert.deepStrictEqual(checkState(st), [], 'invariants after loading it');
   const back = Sim.load(st.w, old);
   assert.deepStrictEqual(checkState(back), [], 'a save with no legs loads with every pawn in its leg');
-  const walking = back.living.filter((id) => back.agents[id].path && back.agents[id].phase !== 'road');
+  const walking = back.living.filter((id) => back.agents[id].path && back.agents[id].journey !== 'rest');
   assert.ok(walking.every((id) => back.agents[id].leg.kind === 'walk' && back.legDue.includes(id)), 'a walker walks on from where it was saved');
   Sim.advance(back, DAY);
   assert.deepStrictEqual(checkState(back), [], 'and goes on');
@@ -165,13 +165,13 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   }
   const trip = s.away.find((x) => x.pawn === a.id);
   assert.ok(a.job !== j && s.pawns[a.id].household === to.id, 'the task ended and moved its pawn');
-  assert.ok(trip && (a.phase === 'journey' || a.phase === 'road') && !a.job, `on its journey (phase ${a.phase})`);
+  assert.ok(trip && (a.journey === 'walk' || a.journey === 'rest') && !a.job, `on its journey (phase ${a.phase})`);
   assert.deepStrictEqual(checkState(s), [], 'invariants as it sets out');
   for (let k = 0; k < 6 * DAY * TICKS && s.away.includes(trip); k++) {
     Sim.advance(s, 1 / TICKS);
     if (k % TICKS === 0) assert.deepStrictEqual(checkState(s), [], `invariants on the road, step ${k}`);
   }
-  assert.ok(!s.away.includes(trip) && a.phase !== 'journey' && a.phase !== 'road', 'it arrives, and its journey ends');
+  assert.ok(!s.away.includes(trip) && a.journey !== 'walk' && a.journey !== 'rest', 'it arrives, and its journey ends');
   assert.strictEqual(VB['sim/pose'].tileAt(s, ...VB['sim/pose'].placeOf(s, a)) >= 0 && s.pawns[a.id].household, to.id, 'a member of its new home');
   assert.deepStrictEqual(checkState(s), [], 'invariants after the arrival');
   console.log(`legs: a completion set pawn ${a.id} out (${j.kind}); it arrived`);

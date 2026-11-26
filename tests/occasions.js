@@ -79,7 +79,7 @@ Sim.advance(st, 1.1);
 for (const o of weddings) for (const id of o.come) {
   const a = st.agents[id];
   assert.notStrictEqual(a.occasion, o.id, `pawn ${id} is free after the wedding`);
-  if (st.pawns[id].alive) assert.ok(a.inside || a.phase === 'home', `pawn ${id} goes home after the wedding`);
+  if (st.pawns[id].alive) assert.ok(a.inside || !!a.homeward, `pawn ${id} goes home after the wedding`);
 }
 assert.strictEqual(st.occasions.filter((o) => o.kind === 'wedding').length, 0, 'the weddings are over');
 const lines = told(st, before, 'wedding');

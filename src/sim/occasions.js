@@ -13,6 +13,7 @@
 // @state st.occasionSeq: number; the next occasion's id; ids are never reused
 // @state agent.occasion: the id of the occasion the pawn set out for and stands at until its end, or null
 VB['sim/occasions'] = (() => {
+  const { unbound } = VB['sim/pose'];
   const Due = VB['sim/due'],
     dueKey = (e) => e.due; // its order (sim/due): by due, after those due at the same time
   const { release, walkTo, idle, free } = VB['sim/agents'],
@@ -241,7 +242,7 @@ VB['sim/occasions'] = (() => {
     !held(a, o) &&
     a.phase !== 'back' &&
     (a.away === undefined || lodgedFor(st, a, o)) && // on the road (VB-287), or lodging away (VB-783)
-    (o.overrides || (!a.job && (a.phase === null || a.phase === 'home')));
+    (o.overrides || (!a.job && (unbound(a) || !!a.homeward)));
   // Pawn a lodges in the host village for the gathering whose day o is (sim/gathering's stays: why 'gathering', until its end).
   function lodgedFor(st, a, o) {
     if (o.kind !== 'gathering' || travelling(a)) return false;

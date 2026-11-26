@@ -2,6 +2,7 @@
 // may draw at and drinks, and where its household's water is not in takes the household's fetch from there; and the pawns that ended a
 // day without a drink, held due (st.thirstDue) until THIRST.leave hours without one, when each leaves whatever it does to drink
 VB['sim/drinking'] = (() => {
+  const { unbound } = VB['sim/pose'];
   const { WORK, cal } = VB['sim/rules'],
     EVENING = VB['sim/roles'].MATCH.day.evening;
   const { register, issue } = VB['sim/commands'];
@@ -139,7 +140,7 @@ VB['sim/drinking'] = (() => {
         a = st.agents[e.pawn];
       if (p.died !== null) continue;
       if (e.home) {
-        if (!a.job && !a.path && !a.inside && a.phase === null && a.away === undefined && a.occasion === null)
+        if (!a.job && !a.path && !a.inside && unbound(a) && a.away === undefined && a.occasion === null)
           issue(st, { actor: p.id, verb: 'goHome', source: 'pawn' });
         continue;
       }

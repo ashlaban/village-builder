@@ -90,7 +90,7 @@ VB['sim/journeys'] = (() => {
       const f2 = a.fetching;
       if (
         f2.led
-          ? a.phase === 'home' && a.path && endTile(st, a) === f.house
+          ? !!a.homeward && a.path && endTile(st, a) === f.house
           : hh.members.some((m) => st.agents[m] && st.agents[m].awaits === a.id)
       )
         return;
@@ -537,7 +537,7 @@ VB['sim/journeys'] = (() => {
   // sent elsewhere or dead) is let go: a child is fetched again, by another if need be, or goes home alone; a fetcher goes home.
   function fetchGoesOn(st, a) {
     if (a.fetching) {
-      if (a.path && (a.fetching.led ? a.phase === 'home' : a.errand)) return true;
+      if (a.path && (a.fetching.led ? !!a.homeward : a.errand)) return true;
       delete a.fetching;
       return false;
     }

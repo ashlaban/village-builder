@@ -117,6 +117,7 @@ VB['sim/births'] = (() => {
       path: null,
       seg: 0,
       phase: null,
+      journey: null,
       job: null,
       inside: true,
       anim: 'idle',

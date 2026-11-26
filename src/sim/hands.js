@@ -159,7 +159,7 @@ VB['sim/hands'] = (() => {
       VB.count.handsLent++;
       // told at once (the ask's news, the hard rule's exemption): one idling stops, and looks for the work at the next step
       const g = st.agents[id];
-      if (!g.job && g.phase === null && g.idleUntil > st.t)
+      if (!g.job && g.phase === null && !g.homeward && !g.journey && g.idleUntil > st.t)
         issue(st, { actor: id, verb: 'idle', args: { until: st.t }, source: 'planner' });
     }
     return true;

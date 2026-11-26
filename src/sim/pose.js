@@ -92,7 +92,9 @@ VB['sim/pose'] = (() => {
   // ---- the bed (VB-783; design.md, Sleeping away from home): where a pawn's day starts and ends; the stays are sim/away's ----
   // A pawn on a journey is in phase 'journey' while it walks a leg and 'road' before its first leg and between legs, when it rests and
   // keeps its route (a.path, a.seg).
-  const travelling = (a) => a.phase === 'journey' || a.phase === 'road';
+  const travelling = (a) => a.journey === 'walk' || a.journey === 'rest';
+  // Bound for nothing: no task in hand, not walking home to its bed, on no journey (the pawn's own time, and the planner's to offer).
+  const unbound = (a) => a.phase === null && !a.homeward && !travelling(a);
   // The open stay of pawn id (st.away, by the index agent.away), or null.
   function stayOf(st, id) {
     const k = st.agents[id].away;
@@ -108,5 +110,5 @@ VB['sim/pose'] = (() => {
     if (s !== null && !s.back) return s.bed;
     return st.farmsteads[st.households[st.pawns[a.id].household].farmstead].house;
   }
-  return { tileAt, here, endTile, along, poseAt, placeOf, walkHours, poseOf, travelling, stayOf, bed };
+  return { tileAt, here, endTile, along, poseAt, placeOf, walkHours, poseOf, travelling, unbound, stayOf, bed };
 })();

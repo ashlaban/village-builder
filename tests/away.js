@@ -41,7 +41,7 @@ assert.ok(s.walk > 2.5 && s.walk < 3.5, `three hours from home: ${s.walk}`);
 assert.strictEqual(bed(st, a), site, 'its bed is the site');
 assert.ok(typeof issue(st, { actor: id, verb: 'lodge', target: site, args: { why: 'work', days: 1 }, source: 'pawn' }) === 'string', 'one stay a pawn');
 to(st, 23);
-assert.ok(a.inside && a.phase === null && Math.hypot(a.x - st.w.hx[site], a.y - st.w.hy[site]) < st.w.R * 2, 'it sleeps at its bed');
+assert.ok(a.inside && (a.phase === null && !a.homeward && !a.journey) && Math.hypot(a.x - st.w.hx[site], a.y - st.w.hy[site]) < st.w.R * 2, 'it sleeps at its bed');
 assert.deepStrictEqual(checkState(st), [], 'invariants at its bed');
 const meals0 = VB.count.awayMeals;
 for (let d = 1; d <= 2; d++) {
@@ -63,7 +63,7 @@ assert.strictEqual(VB.count.awayMeals - meals0, 2, 'a meal a day from the pack')
 to(st, 5);
 assert.ok(s.back && s.food < 1e-9 && st.away.includes(s), 'the third meal empties the pack: it turns for home');
 to(st, 7);
-assert.ok(a.phase === 'home' && a.path && bed(st, a) === f.house, 'on the third morning it walks home');
+assert.ok(!!a.homeward && a.path && bed(st, a) === f.house, 'on the third morning it walks home');
 to(st, 12);
 assert.ok(!st.away.includes(s) && a.away === undefined, 'home on the third day, its stay over');
 assert.ok(!hh.ledger.some((e) => e.kind === 'away' && e.pawn === id && e.good === 'meals'), 'nothing left to bring back');

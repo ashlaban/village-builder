@@ -100,7 +100,7 @@ const steps = (w, a, b) => {
   st.t = st.tick / TICKS;
   a.x = w.hx[from];
   a.y = w.hy[from];
-  a.phase = 'journey';
+  a.journey = 'walk';
   Legs.setOut(st, a, to, w.hx[to], w.hy[to]);
   const l = a.leg,
     stopAt = (due) => {
@@ -114,7 +114,8 @@ const steps = (w, a, b) => {
   assert(!Wk.iced(w, at) && !w.water[at], `it stops at the shore instead (tile ${at})`);
   out.push(`a journey's leg stops at the shore at ${(((l.due / TICKS) % DAY) + 0).toFixed(1)}h, not on the ice at 18:00`);
   Legs.halt(st, a);
-  a.phase = 'home';
+  a.homeward = true;
+  a.journey = null;
 
   // the thaw's day: the date falls at 4:00, the ground is soft, the cached route over the ice is gone, and no route crosses the lake
   const north = tileAt(w, 12, 2),

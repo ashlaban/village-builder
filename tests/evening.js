@@ -56,7 +56,7 @@ until(D1, WORK[1] - 0.1);
 const clearing = a.job;
 check(clearing && clearing.kind === 'clear' && a.phase === 'work', `at 17:54 the settler clears (${clearing && clearing.kind})`);
 until(D1, WORK[1] + 0.1);
-check(!a.job && (a.phase === 'home' || a.inside), `at 18:00 the clearing is let go (${a.job && a.job.kind}, ${a.phase})`);
+check(!a.job && (!!a.homeward || a.inside), `at 18:00 the clearing is let go (${a.job && a.job.kind}, ${a.phase})`);
 // 2. day 16 (day 5 until VB-721 moved the settler's field to drier ground, day 10 until VB-1544 had him raise a booth first): water
 // taken at 17:42 is still his after 18:00, and delivered that evening
 const D2 = 20; // day 16 until VB-1666

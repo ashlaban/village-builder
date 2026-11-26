@@ -1,6 +1,7 @@
 // @sys sim/player: the player (VB-169), a source of commands with one pawn at a time: its queue, which goes before the pawn's own logic, its
 // wish, its answer and its choices as head, its pawn's death and whom it goes on as
 VB['sim/player'] = (() => {
+  const { unbound } = VB['sim/pose'];
   const { release } = VB['sim/agents'];
   const { reckon, adopt } = VB['sim/sleepers'];
   const { holdingOf, spouseOf, personEvent, living, villageOf, fullName, spokesmanOf } = VB['sim/records'];
@@ -104,7 +105,7 @@ VB['sim/player'] = (() => {
   function homeAtDark(st, pl) {
     const a = st.agents[pl.pawn],
       h = cal(st.t).hour;
-    if ((h >= WORK[1] || h < WORK[0]) && !a.inside && a.phase === null)
+    if ((h >= WORK[1] || h < WORK[0]) && !a.inside && unbound(a))
       issue(st, { actor: pl.pawn, verb: 'goHome', source: 'planner' });
   }
   // The command joins the queue, to be checked when its turn comes; true, or why it does not: the queue is full, there is no such verb,

@@ -3,6 +3,7 @@
 // on a day owed or lent (sim/days, sim/hands) takes of the tasks of the household it works for; the hours of help a head lacks, asked at
 // the morning's allotment (sim/hands, VB-470). Owns plan.day
 VB['sim/day'] = (() => {
+  const { unbound } = VB['sim/pose'];
   const { WORK, TICKS } = VB['sim/rules'],
     { CHILD, MATCH, absentMask } = VB['sim/roles'];
   const { age } = VB['sim/records'];
@@ -213,7 +214,7 @@ VB['sim/day'] = (() => {
       busy = !!a.job && attentionOf(a.job) === 'full';
     if (dj && a.job !== dj && isOpen(st, dj) && c.hour <= WORK[1]) {
       // the deadline calls: from work, from the road to it, or from idling (waiting, or out for company; not at an occasion)
-      if (busy ? a.phase === 'work' || a.phase === 'go' : !a.job && a.phase === null && a.occasion === null)
+      if (busy ? a.phase === 'work' || a.phase === 'go' : !a.job && unbound(a) && a.occasion === null)
         issue(st, workCommand(a.id, dj.key, 'planner'));
       return;
     }

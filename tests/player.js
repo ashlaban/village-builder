@@ -60,7 +60,7 @@ const FARMER = 0, WIFE = 1;
     assert.ok(a.job === wood, `on the firewood until it is done (${a.job && a.job.kind})`); Sim.advance(st, 0.1); if (st.jobs.get(wood.key) !== wood) break; }
   Sim.advance(st, 0.3);
   assert.ok(steps < 100 && st.jobs.get(wood.key) !== wood && !st.player.queue.length, 'the firewood is brought home, and the command is done');
-  assert.ok(a.job || a.phase === 'home' || a.inside, 'left to itself again, the pawn does as the others: more work, or home at the end of it');
+  assert.ok(a.job || !!a.homeward || a.inside, 'left to itself again, the pawn does as the others: more work, or home at the end of it');
 }
 
 // 3. Called off (sim/jobs, allot; VB-466): the woodpile falls low, the head's day is allotted anew at the full hour, and a son leaves the
@@ -102,7 +102,7 @@ const FARMER = 0, WIFE = 1;
   assert.ok(!st.player.queue.length && !a.inside && !a.path, 'it walked to the green and stands there');
   assert.ok(st.agents.some((b) => b.job), 'while the others work');
   Sim.advance(st, 0.3);
-  assert.ok(a.phase === 'home' || a.inside, 'at the end of work it goes home'); // on its way, or home already (12 tiles an hour)
+  assert.ok(!!a.homeward || a.inside, 'at the end of work it goes home'); // on its way, or home already (12 tiles an hour)
   Sim.advance(st, 1); assert.ok(a.inside, 'and is indoors by dark');
   sound(st, 'the automatic behaviour off');
 }
@@ -113,13 +113,13 @@ const FARMER = 0, WIFE = 1;
   Sim.inhabit(st, FARMER);
   Sim.queue(st, { actor: FARMER, verb: 'walkTo', target: far });
   Sim.advance(st, 0.3);
-  assert.ok(hour(st) > WORK[1] && a.path && a.phase === null && st.player.queue.length === 1, 'still walking after the end of work');
-  assert.ok(st.agents.every((b) => b === a || b.inside || b.phase === 'home' || b.phase === 'back'), 'while the others go home');
+  assert.ok(hour(st) > WORK[1] && a.path && (a.phase === null && !a.homeward && !a.journey) && st.player.queue.length === 1, 'still walking after the end of work');
+  assert.ok(st.agents.every((b) => b === a || b.inside || !!b.homeward || b.phase === 'back'), 'while the others go home');
   let steps = 0;
   while (a.path && steps++ < 200) Sim.advance(st, 0.1);
   assert.ok(Math.hypot(a.x - st.w.hx[far], a.y - st.w.hy[far]) < 1, 'it arrives where it was sent');
   Sim.advance(st, 0.1);
-  assert.ok(a.phase === 'home' && !st.player.queue.length, 'and then goes home');
+  assert.ok(!!a.homeward && !st.player.queue.length, 'and then goes home');
 }
 
 // 7. A command is checked when its turn comes: one refused then is dropped with its reason, and the next is issued. The queue itself

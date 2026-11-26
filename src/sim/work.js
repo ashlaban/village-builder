@@ -1,6 +1,7 @@
 // @sys sim/work: a task's work as a block: its progress reckoned in closed form from the rate of the hands at it (or a background task's
 // holders minding it), its end in the due-queue st.workDue, a hand's rate and the ox team; split from sim/agents (VB-422)
 VB['sim/work'] = (() => {
+  const { unbound } = VB['sim/pose'];
   const { cal, TICKS, HUNGER, HEALTH, HERD } = VB['sim/rules'],
     { workRate } = VB['sim/roles'];
   const HANDS = VB['sim/rules'].AGES.hands;
@@ -79,7 +80,7 @@ VB['sim/work'] = (() => {
     if (!b.mind || !b.mind.includes(j)) return false;
     const l = b.leg;
     if (b.path && l && l.kind === 'walk') return inReach(st, j, tileAt(st, l.x, l.y)) && inReach(st, j, endTile(st, b));
-    return b.phase === null || inReach(st, j, tileAt(st, b.x, b.y));
+    return unbound(b) || inReach(st, j, tileAt(st, b.x, b.y));
   }
   // The hours of work j's hands do together in a game hour now: rateOf, the tools' condition (VB-701), the ox team and the cart's part
   // in carting (a hand at carting takes a free cart as it is reckoned, as it did each step); a background task's kind rate for each

@@ -771,8 +771,8 @@ function checkState(st) {
       if (p && (p.due > l.due || (p.due === l.due && q[n - 1] >= id))) bad.push(`${at}: out of order`);
     });
     for (const id of st.living) {
-      const a = st.agents[id], l = a.leg || null, k = l && l.kind, at = `agents[${id}]`, free = !a.path && a.phase === null;
-      const want = a.phase === 'road' ? ['wait'] : a.path ? ['walk'] : a.phase === 'work' ? ['work'] : free ? [null, 'wait'] : [];
+      const a = st.agents[id], l = a.leg || null, k = l && l.kind, at = `agents[${id}]`, free = !a.path && VB['sim/pose'].unbound(a);
+      const want = a.journey === 'rest' ? ['wait'] : a.path ? ['walk'] : a.phase === 'work' ? ['work'] : free ? [null, 'wait'] : [];
       if (!want.includes(k)) bad.push(`${at}: phase ${a.phase}, ${a.path ? 'walking' : 'standing'}, in a leg ${k}`);
       if (a.errand !== undefined && a.errand !== true) bad.push(`${at}: errand ${a.errand}, neither absent nor true`); // VB-228
       if ((k === 'walk' || k === 'wait') !== inQ.has(id)) bad.push(`${at}: a leg ${k}, ${inQ.has(id) ? '' : 'not '}in legDue`);
@@ -780,7 +780,7 @@ function checkState(st) {
         const n = a.path.length - l.seg - 1, last = n > 0 ? l.h[n - 1] : 0;
         if (!Array.isArray(l.h) || l.h.length !== n || l.h.some((x, i) => !(x >= (i ? l.h[i - 1] : 0)))) bad.push(`${at}: a walk's hours ${l.h} to ${n} points`);
         if (l.end !== l.t + Math.max(1, Math.ceil(last * R.TICKS - 1e-9)) || !(l.due <= l.end) || !(l.pace > 0)) bad.push(`${at}: a walk begun ${l.t}, end ${l.end}, due ${l.due}, pace ${l.pace}`);
-        if (l.due < l.end && a.phase !== 'journey') bad.push(`${at}: a walk stops short of its end, not on a journey`);
+        if (l.due < l.end && a.journey !== 'walk') bad.push(`${at}: a walk stops short of its end, not on a journey`);
       }
       if (k === null && free) {
         const next = Math.max(st.tick + 1, tickOf(a.idleUntil)), h = Math.floor(next / R.TICKS) % R.DAY;
@@ -1841,7 +1841,7 @@ function checkState(st) {
     }
     if (a.fetching !== undefined) {
       const f = a.fetching;
-      if (!f || !Number.isInteger(f.at) || f.at < 0 || f.at >= st.w.N || typeof f.led !== 'boolean' || a.phase === 'journey') bad.push(`agent ${id}: fetching ${JSON.stringify(f)} in phase ${a.phase}`);
+      if (!f || !Number.isInteger(f.at) || f.at < 0 || f.at >= st.w.N || typeof f.led !== 'boolean' || a.journey === 'walk') bad.push(`agent ${id}: fetching ${JSON.stringify(f)} on a journey`);
     }
   });
   if (st.away !== undefined) {
@@ -1866,8 +1866,8 @@ function checkState(st) {
         const host = j.host === undefined ? null : st.households[j.host];
         if (!Number.isInteger(j.bed) || j.bed < 0 || j.bed >= st.w.N || j.to !== j.bed || !(j.walk >= 0) || !Array.isArray(j.jobs)) bad.push(`${at}: a lodger's bed ${j.bed}, to ${j.to}, walk ${j.walk}`);
         if (host ? (j.roof !== 'house' && j.roof !== 'barn') || st.farmsteads[host.farmstead].house !== j.bed || (p && p.household === host.id) : j.roof !== 'none' && j.roof !== 'booth') bad.push(`${at}: roof ${j.roof}, host ${j.host}`);
-        const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
-        if (ph === 'journey' || ph === 'road') bad.push(`${at}: a lodger in phase ${ph}`);
+        const ph = st.agents[j.pawn] && st.agents[j.pawn].journey;
+        if (ph) bad.push(`${at}: a lodger on a journey (${ph})`);
         return;
       }
       if (j.roof !== (j.host !== undefined ? 'house' : 'none')) bad.push(`${at}: a journey under roof ${j.roof}`);
@@ -1887,11 +1887,11 @@ function checkState(st) {
       if (j.why === 'visit' && (!st.villages[j.village] || !(j.stay >= 0) || typeof j.back !== 'boolean' || (visiting && j.to !== st.villages[j.village].center))) bad.push(`${at}: a visit to village ${j.village}, to ${j.to}, stay ${j.stay}, back ${j.back}`);
       if (!bearing && !visiting && !g && p && p.household !== null && st.farmsteads[st.households[p.household].farmstead].house !== j.to) bad.push(`${at}: to ${j.to}, not its household's house`);
       if (!['move', 'carry', 'fetch', 'haul', 'visit'].includes(j.why) || 'due' in j) bad.push(`${at}: why ${j.why}, due ${j.due}`);
-      const ph = st.agents[j.pawn] && st.agents[j.pawn].phase;
-      if (ph !== 'journey' && ph !== 'road') bad.push(`${at}: its pawn is in phase ${ph}`);
+      const ph = st.agents[j.pawn] && st.agents[j.pawn].journey;
+      if (ph !== 'walk' && ph !== 'rest') bad.push(`${at}: its pawn is on no journey (${ph})`);
     });
     for (const a of st.agents) {
-      if ((a.phase === 'journey' || a.phase === 'road') && !seen.has(a.id)) bad.push(`agent ${a.id}: phase ${a.phase} and on no journey`);
+      if ((a.journey === 'walk' || a.journey === 'rest') && !seen.has(a.id)) bad.push(`agent ${a.id}: journey ${a.journey} and on no journey of st.away`);
       if (a.away !== undefined && !seen.has(a.id)) bad.push(`agent ${a.id}: away ${a.away}, and in no stay`);
     }
   }

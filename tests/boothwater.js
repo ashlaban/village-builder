@@ -201,10 +201,10 @@ const raise = (st, hh, site, maker) =>
   const of = () => Sim.opportunities(st, x).filter((o) => o.verb === 'drink');
   check(of().length === 1 && of()[0].why === null && of()[0].holder === null && of()[0].basis === 'self', `Drink, an act of its own (${JSON.stringify(of())})`);
   const a = st.agents[x],
-    was = a.phase;
-  a.phase = 'road'; // a test's write: on the road
+    was = a.journey;
+  a.journey = 'rest'; // a test's write: on the road
   check(/on the road/.test(of()[0].why), `refused on the road, with the verb's reason (${of()[0].why})`);
-  a.phase = was;
+  a.journey = was;
 }
 
 if (failed) process.exit(1);
