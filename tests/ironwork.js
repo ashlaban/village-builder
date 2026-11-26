@@ -12,7 +12,7 @@ const { TOOLS, IRON } = I, SEED = 8;
 // --- the kinds and the good
 const S = KINDS.smelt, M = KINDS.mendtools;
 check(S && S.hours === IRON.hours && S.hands === IRON.hands && S.craft === 'smelting', 'smelt: its hours, hands and craft');
-check(M && M.hours === TOOLS.mendHours && M.hands === 1 && M.craft === 'smithing' && M.inside, 'mendtools: one hand, in the house, smithing');
+check(M && M.hours === TOOLS.mendHours && M.hands === 1 && M.craft === 'smithing' && M.methods[0].steps.some((s) => s.inside), 'mendtools: one hand, in the house, smithing');
 check(['smelt', 'mendtools'].every((k) => ASK.farmAfterPlans.some((e) => e[0] === k)), 'both are asked at the farm');
 const G = Goods.goodOf('iron');
 check(G && G.class === 'wares' && G.unit === 'bloom' && G.quantum === 1 && G.perish === null && G.keeping, 'iron: a keeping good, a bloom');

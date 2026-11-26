@@ -137,7 +137,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   const s = state(), { moveTo, refreshRoles } = VB['sim/heirs'];
   const plain = (j) => {
     const K = KINDS[j.kind];
-    return (K.attention || 'full') === 'full' && !K.carry && !K.load && !K.stack && !j.plot;
+    return (K.attention || 'full') === 'full' && VB['sim/doing'].carriesTo(j.kind) === null && !j.plot;
   };
   let a = null;
   for (let k = 0; k < 4 * DAY * TICKS && !a; k++) {

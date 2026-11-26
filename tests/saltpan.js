@@ -13,7 +13,7 @@ const { SALT } = S, { DEPOSIT, ENDLESS } = VB['world/geology'], SEED = 8;
 
 // --- the kind, the good and the food
 const K = KINDS.boilsalt;
-check(K && K.type === 'upkeep' && K.hands === 1 && K.hours === SALT.hours && K.carry && K.to === 'door', 'boilsalt: upkeep, 1 hand, carried home');
+check(K && K.type === 'upkeep' && K.hands === 1 && K.hours === SALT.hours && VB['sim/doing'].lookOf('boilsalt') && VB['sim/doing'].carriesTo('boilsalt') === 'store', 'boilsalt: upkeep, 1 hand, carried home');
 check(ASK.farmAfterPlans.some((e) => e[0] === 'boilsalt'), 'boilsalt is asked at the farm');
 const G = Goods.goodOf('salt');
 check(G.class === 'wares' && G.unit === 'measure' && G.quantum === 10 && G.weight === 1 && G.perish === null && G.keeping, 'salt: a keeping good of the fair, a sack of 10 measures');

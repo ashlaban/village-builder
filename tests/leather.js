@@ -11,8 +11,8 @@ const { LEATHER } = L, SEED = 8;
 
 // --- the kinds: one hand, in the house, asked at the farm; the work is a job, taken by the verb `work`
 const C = KINDS.cobble, H = KINDS.harness;
-check(C && C.hours === LEATHER.shoeHours && C.hands === 1 && C.inside && C.needs.includes('hide'), 'cobble: one hand, in the house, from a hide');
-check(H && H.hours === LEATHER.harnessHours && H.hands === 1 && H.inside && H.needs.includes('hide'), 'harness: one hand, in the house, from a hide');
+check(C && C.hours === LEATHER.shoeHours && C.hands === 1 && C.methods[0].steps.some((s) => s.inside) && C.needs.includes('hide'), 'cobble: one hand, in the house, from a hide');
+check(H && H.hours === LEATHER.harnessHours && H.hands === 1 && H.methods[0].steps.some((s) => s.inside) && H.needs.includes('hide'), 'harness: one hand, in the house, from a hide');
 check(['cobble', 'harness'].every((k) => ASK.farmAfterPlans.some((e) => e[0] === k)), 'both are asked at the farm');
 
 const st = Sim.seed(island(SEED), SEED, 'populous');

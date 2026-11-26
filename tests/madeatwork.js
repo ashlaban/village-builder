@@ -61,7 +61,7 @@ function atWork(a, kind, site, extra, done) {
   assert(s && !s.blocked && Doing.placeOf(st, b, s) === l.tile, 'the pile is fetched where it lies, by the stray method');
   const fresh0 = Pot.freshHeld(st, hh, 'gathered'),
     taken = Lying.takeAt(st, l.tile, 'gather', owner, Infinity);
-  KINDS.gather.deliver(st, { ...gj, ...l.of, kind: 'gather' }, hh, f, { id: b.id, load: taken });
+  VB['sim/doing'].said('gather').deliver(st, { ...gj, ...l.of, kind: 'gather' }, hh, f, { id: b.id, load: taken });
   assert(Math.abs(Pot.freshHeld(st, hh, 'gathered') - fresh0 - 0.5 * Forage.FORAGE.trip) < 1e-6, 'the half trip comes home');
   A.release(st, b);
   assert(!pileOf('gather'), 'nothing is left lying');
@@ -86,7 +86,7 @@ function atWork(a, kind, site, extra, done) {
   const j = atWork(a, 'gather', wood, { farm: f }, KINDS.gather.hours);
   const fresh0 = Pot.freshHeld(st, hh, 'gathered');
   KINDS.gather.make(st, a, j, 1, hh); // as the work leg ends (sim/agents ended)
-  Object.assign(a, { carry: KINDS.gather.carry });
+  Object.assign(a, { carry: VB['sim/doing'].lookOf('gather') });
   assert(Math.abs(a.load - Forage.FORAGE.trip * s0) < 1e-6, `the yield is in hand (${a.load})`);
   assert(Forage.stock(st, wood) < s0, 'the ground is picked where the work is done');
   assert.strictEqual(Pot.freshHeld(st, hh, 'gathered'), fresh0, 'nothing is home yet');
@@ -106,7 +106,7 @@ function atWork(a, kind, site, extra, done) {
   const meat = a.load;
   if (meat > 0) {
     const m0 = larderOf(hh, 'meat');
-    KINDS.hunt.deliver(st, j, hh, f, a);
+    VB['sim/doing'].said('hunt').deliver(st, j, hh, f, a);
     assert(Math.abs(larderOf(hh, 'meat') - m0 - meat) < 1e-6, 'the kill comes home as meat');
   }
   A.release(st, a);
@@ -133,7 +133,7 @@ function atWork(a, kind, site, extra, done) {
 // 4. every kind that makes its good at the work has a way out for its load lying: its methods' stray method (VB-1749), a fetch kind, or
 // another's (timber's)
 for (const [k, K] of Object.entries(KINDS))
-  if (K.make && K.carry) assert(K.methods || KINDS[Lying.fetchKey(K.lies || k)], `${k}: its load lying is fetched by nothing`);
+  if (K.make && VB['sim/doing'].carriesTo(k) !== null) assert(K.methods || KINDS[Lying.fetchKey(K.lies || k)], `${k}: its load lying is fetched by nothing`);
 assert.deepStrictEqual(checkState(st), [], 'invariants');
 Lying.frost(st);
 assert(!pileOf('gather'), 'a pile not fetched rots at the frost');

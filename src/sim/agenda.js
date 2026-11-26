@@ -10,6 +10,7 @@ VB['sim/agenda'] = (() => {
   const { DAY, SEASON_DAYS, YEAR, WORK, SPEED, cal } = VB['sim/rules'];
   const { CROPS, ROTATIONS } = VB['sim/crops'];
   const { KINDS } = VB['sim/kinds'];
+  const { carriesTo } = VB['sim/doing'];
   const { estimate } = VB['sim/estimate'];
   const { windowLeft, cause } = VB['sim/reasons'];
   const { frostExpected } = VB['sim/weather'];
@@ -176,8 +177,9 @@ VB['sim/agenda'] = (() => {
       e = estimate(st, id, j, [id]),
       trip = at !== null && K.trip && j.farm ? K.trip(st, j) : 0,
       w = at === null || trip > 0 ? 0 : (walk(st, at, j.site) ?? 0),
-      back = trip > 0 ? trip : K.back ? (walk(st, j.site, home) ?? 0) : 0;
-    return { e, w, back, hours: w + e.mid + back, ends: K.back && home >= 0 ? home : (j.site ?? at) };
+      carries = carriesTo(j.kind) !== null, // a kind whose method sets a load down (VB-1820: not a field `back`)
+      back = trip > 0 ? trip : carries ? (walk(st, j.site, home) ?? 0) : 0;
+    return { e, w, back, hours: w + e.mid + back, ends: carries && home >= 0 ? home : (j.site ?? at) };
   }
   // The job of kind k posted for household hid (a household's jobs, a few tens), or null.
   function postedJob(st, hid, k) {

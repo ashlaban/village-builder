@@ -134,12 +134,11 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/facilities'].KINDS); // a facility's stages raised and its upkeep (VB-361): sim/facilities'
   // every kind that declares no methods of its own is work done at its site (sim/methods labour, VB-1750: no kind runs on the phases); an
   // indoor kind's work stands by the door of its house (as sim/agents' spotAt)
-  for (const k in KINDS)
-    if (!KINDS[k].methods) {
-      const K = VB['sim/methods'].labour(KINDS[k]);
-      if (K.inside && !K.spot)
-        K.spot = (st, a, j) => [st.w.hx[j.site] - 12 + a.ox * 0.3, st.w.hy[j.site] + 14 + a.oy * 0.15];
-    }
+  for (const k in KINDS) {
+    const K = KINDS[k].methods ? KINDS[k] : VB['sim/methods'].labour(KINDS[k]);
+    if (!K.spot && K.methods.some((m) => m.steps.some((s) => s.inside)))
+      K.spot = (st, a, j) => [st.w.hx[j.site] - 12 + a.ox * 0.3, st.w.hy[j.site] + 14 + a.oy * 0.15];
+  }
   // ---- where a kind is worked, what it takes and what it gives (VB-1124): each kind's record declares `at` (the places of PLACES where its
   // work is done), `needs` (the things of THINGS it takes or must find there: a good used up, a tool or a facility) and `gives` (the
   // things it makes or brings home), beside its rule, as its name and hours are. The game's guide (page/guide) reads them, and a kind
@@ -285,6 +284,7 @@ VB['sim/kinds'] = (() => {
     village: ['mend', 'green', 'workfence', commonWork].map(rule),
     island: [plotWork, claimWork, Building.stakedWork, Building.timberWork, 'boothwater'].map(rule), // a booth's water: VB-1601
     fieldAt: {},
+    stages: VB['sim/fieldwork'].STAGES, // the field stages each field kind is asked at (VB-1820)
   };
   // VB-359, VB-300, sim/carts (a boat or a cart is a project's step), VB-139 (hunting roe deer), VB-390 (a cow led home, sim/exchange)
   ASK.farmAfterPlans.push(
@@ -306,6 +306,6 @@ VB['sim/kinds'] = (() => {
   (ASK.farmAfterPlans.push(rule(Lying.bringWork)), ASK.village.push(rule(Lying.bringWork)));
   ASK.village.push(rule(VB['sim/facilities'].villageWork)); // a village's facilities raised and mended (VB-361)
   ASK.island.push(rule('blaze')); // the trails under way, each its blazer's household's (VB-447, sim/trails)
-  for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
+  for (const e of ASK.field) for (const g of ASK.stages[e[0]]) (ASK.fieldAt[g] ||= []).push(e);
   return { KINDS, ASK, isOpen, carriedOn, PLACES, THINGS };
 })();

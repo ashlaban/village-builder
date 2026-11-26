@@ -117,7 +117,6 @@ VB['sim/saltpan'] = (() => {
     boilsalt: {
       verb: 'Boiling salt',
       go: 'Going to the salt spring',
-      back: 'Carrying the salt home',
       name: 'Boil salt at the spring',
       at: ['spring'],
       needs: ['firewood'],
@@ -127,8 +126,6 @@ VB['sim/saltpan'] = (() => {
       hours: SALT.hours,
       hands: 1,
       type: 'upkeep',
-      carry: 'basket',
-      to: 'door',
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.4, st.w.hy[j.site] + a.oy * 0.4],
       urgency: () => SALT.urgency,
       // the boiling done (VB-1748: made where the work is done): the tree its fire burnt is felled (none if it was cut meanwhile: the pan
@@ -137,8 +134,6 @@ VB['sim/saltpan'] = (() => {
         if (j.fuel >= 0 && st.w.trees[j.fuel] > 0) fellTree(st, j.fuel);
         a.load = SALT.yield;
       },
-      // home with the salt: into the store
-      deliver: (st, j, hh, f, a) => Stores.put(st, hh, 'salt', a.load, 'saltboil'),
       // from spring to autumn, while the household wants salt and a spring in reach has wood beside it
       available: (st, hh, f, c, post) => {
         if (!SALT.seasons.includes(c.season) || !wants(st, hh)) return;
@@ -150,6 +145,11 @@ VB['sim/saltpan'] = (() => {
     },
   };
   // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
-  VB['sim/methods'].trip(KINDS.boilsalt, 'boilsalt');
+  VB['sim/methods'].trip(KINDS.boilsalt, 'boilsalt', {
+    look: 'basket',
+    words: 'Carrying the salt home',
+    // home with the salt: into the store
+    deliver: (st, j, hh, f, a) => Stores.put(st, hh, 'salt', a.load, 'saltboil'),
+  });
   return { SALT, KINDS, isSpring, springOf, wants };
 })();

@@ -13,7 +13,7 @@ const near = (a, b) => Math.abs(a - b) < 1e-6;
 
 // --- the kind and the roles
 const K = KINDS.gather;
-check(K.type === 'foraging' && K.hands === 1 && K.hours === 3 && K.carry === 'basket' && K.anim === 'forage', 'gather: foraging, 1 hand, 3 hours, carried in baskets');
+check(K.type === 'foraging' && K.hands === 1 && K.hours === 3 && VB['sim/doing'].lookOf('gather') === 'basket' && K.anim === 'forage', 'gather: foraging, 1 hand, 3 hours, carried in baskets');
 const want = { farmer: 3, wife: 4, farmhand: 3, maid: 5, son: 3, daughter: 6, retired: 3, child: 5 };
 for (const [r, n] of Object.entries(want)) check(ROLES[r].prio.gather === n, `${r} ranks gathering ${ROLES[r].prio.gather}, not ${n}`);
 

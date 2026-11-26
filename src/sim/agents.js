@@ -208,7 +208,7 @@ VB['sim/agents'] = (() => {
     }
     j.made = (j.made || 0) + 1; // a trip's goal is its work done, a load made (sim/methods trip, VB-1749)
     freeHands(st, j, a.id);
-    a.carry = K.carry;
+    a.carry = Doing.lookOf(j.kind);
     a.inside = false;
     unleg(st, a); // the work leg is over: it carries its load home
     rerate(st, j);
@@ -441,7 +441,7 @@ VB['sim/agents'] = (() => {
       j.hours = Doing.hoursOf(j, s);
       const K = KINDS[j.kind];
       a.anim = K.anim || 'idle';
-      a.inside = !!K.inside; // an indoor kind is worked in the house
+      a.inside = !!s.inside; // a step worked indoors (sim/methods labour)
       unleg(st, a); // a wait it had (begun from start) is over
       halt(st, a); // at work it walks nowhere: a route left from a walk its task cut is dropped (VB-1751)
       workAt(st, a);
@@ -454,7 +454,7 @@ VB['sim/agents'] = (() => {
       return;
     }
     const [x, y] = spotFor(st, a, to, j);
-    if (s.prim === 'haul') a.carry = a.carry || KINDS[j.kind].carry;
+    if (s.prim === 'haul') a.carry = a.carry || Doing.lookOf(j.kind);
     rerate(st, j);
     walkTo(st, a, to, x, y);
   }
@@ -619,7 +619,7 @@ VB['sim/agents'] = (() => {
     if (a.job) {
       const J = KINDS[a.job.kind],
         K = J.words ? { ...J, ...J.words(st, a.job) } : J; // VB-1670: a kind whose words read the state (sim/byre fodder)
-      if (a.load > 0) return K.back;
+      if (a.load > 0) return Doing.wordsOf(a.job.kind); // the haul leg's words, its method's
       if (!atWork(a)) return K.go;
       return withOxen(st, a) ? 'Ploughing with the oxen' : K.verb;
     }

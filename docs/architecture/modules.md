@@ -480,8 +480,11 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   `FOODS`, `HERD`, `TRAVEL` and the like) stay in `src/sim/rules.js`; `KINDS` (job kinds) in each domain's module, joined by `src/sim/kinds.js`; `RIVERS` and `FORDS` in `src/gen/rivers.js`; `LOOK`
   (worn paths) in `src/draw/paths.js`; `DIMS`, `ARCHETYPES` and `PRACTICES` in `src/sim/customs.js`.
 - A new job kind is one record in the `KINDS` of the module whose state its work changes (VB-418): numbers, type of work, labels, where to
-  stand, urgency, and what finishing and delivering do, beside the rules its `done`, `deliver` and `available` call (the field's kinds in
-  `sim/fieldwork`, the byre's in `sim/byre`, the household's daily work at the house in `sim/chores`). A kind that takes from one module and
+  stand, urgency, and what finishing does, beside the rules its `done` and `available` call (the field's kinds in
+  `sim/fieldwork`, the byre's in `sim/byre`, the household's daily work at the house in `sim/chores`). How its task goes on is its
+  `methods` (`sim/methods`; a helper's `trip`, `carry`, `bring`, `labour`): what a load is drawn as (`look`), the haul leg's words
+  (`words`), its delivery (`deliver`) and work done indoors (`inside`) are said by the method's steps, never by fields of the kind
+  (VB-1820); the field stages a field kind is asked at are `sim/fieldwork`'s `STAGES` (ASK.stages). A kind that takes from one module and
   puts into another lives in a module at or above the layer of both (`src/layers.json`), never in the lower one. `src/sim/kinds.js` is the
   registry: it describes a kind's fields, joins every module's `KINDS` in a fixed order (a new kind is added at the end: the order is part
   of saved state), and holds `ASK`, the order in which `refreshJobs` (`src/sim/jobs.js`) asks the kinds' `available`; a new kind gets its

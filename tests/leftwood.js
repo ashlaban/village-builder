@@ -14,7 +14,7 @@ const make = () => {
   return { st, hh, shore, plan };
 };
 // VB-1814: no fetch kind; a goal of the household's, the stray method alone, brings it home
-assert(!KINDS.fetchLeftTimber && KINDS.leftTimber && KINDS.leftTimber.strays.includes('leftTimber'), 'a goal of its own for timber left lying');
+assert(!KINDS.fetchLeftTimber && KINDS.leftTimber && KINDS.leftTimber.strays.some((s) => s.good === 'leftTimber'), 'a goal of its own for timber left lying');
 { // given up: the timber lies at the shore, and the plan is gone
   const { st, hh, shore, plan } = make();
   const wood = hh.wood;
@@ -29,7 +29,7 @@ assert(!KINDS.fetchLeftTimber && KINDS.leftTimber && KINDS.leftTimber.strays.inc
   const had = l.n, n = Lying.take(st, l.id, l.n);
   assert.strictEqual(n, had);
   assert(!st.lying, 'the list empties');
-  KINDS.leftTimber.deliver(st, {}, hh, st.farmsteads[hh.farmstead], { load: n });
+  VB['sim/doing'].said('leftTimber').deliver(st, {}, hh, st.farmsteads[hh.farmstead], { load: n });
   assert(Math.abs(hh.wood - wood - 9) < 1e-6, `${hh.wood - wood} of wood home`);
 }
 { // fetched by its goal: posted at the shore, a hand of the household walks there, takes it up a load at a time and carries it home

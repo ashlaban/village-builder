@@ -423,7 +423,6 @@ VB['sim/meadows'] = (() => {
     hay: {
       verb: 'Gathering the hay',
       go: 'Going for the hay',
-      back: 'Carrying hay to the barn',
       name: 'Bring in hay',
       at: ['meadow'],
       needs: ['hay'],
@@ -433,11 +432,8 @@ VB['sim/meadows'] = (() => {
       hours: 1.5,
       hands: Infinity,
       type: 'harvest',
-      carry: 'hay',
-      to: 'barn',
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6],
       urgency: (st, j, c, U) => U.haul,
-      deliver: (st, j, hh, f, a) => hayIn(st, j.meadow, hh, f, a),
       setDown: (st, j, a) => hayLaid(j.meadow, a.load), // a load cut at the meadow goes back with the cocks
       available: meadowWork,
     },
@@ -447,7 +443,6 @@ VB['sim/meadows'] = (() => {
     leftHay: {
       verb: 'Taking up hay',
       go: 'Going for hay left lying',
-      back: 'Carrying hay to the barn',
       name: 'Fetch hay left lying',
       at: ['road'],
       needs: [],
@@ -457,18 +452,24 @@ VB['sim/meadows'] = (() => {
       hours: 0.5,
       hands: 1,
       type: 'harvest',
-      carry: 'hay',
-      to: 'barn',
       fetch: 'hay', // ranked as the hay it fetches (sim/kinds ranks, VB-611)
       urgency: (st, j, c, U) => U.haul,
     },
   };
-  VB['sim/methods'].bring(KINDS.leftHay, 'hay', { cart: true, back: TRAVEL.load });
+  VB['sim/methods'].bring(KINDS.leftHay, 'hay', {
+    cart: true,
+    back: TRAVEL.load,
+    look: 'hay',
+    words: 'Carrying hay to the barn',
+  });
   // The hay as a goal (VB-1812; design.md section 7, The task as a plan): the cocks raked onto the cart (fetched first while they are more
   // than a back load) or the back, by the rule of every load of hay (hayLoad), carried to the barn, and back for more while the meadow
   // holds hay; the stooks' rule (sim/fieldwork) for a load cut.
   const cocks = (g) => (g.job.meadow.stage === 'mown' ? g.job.meadow.held : 0);
   VB['sim/methods'].carry(KINDS.hay, 'hay', {
+    look: 'hay',
+    words: 'Carrying hay to the barn',
+    deliver: (st, j, hh, f, a) => hayIn(st, j.meadow, hh, f, a),
     name: 'from the cocks',
     op: 'rake',
     source: true,

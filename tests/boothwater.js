@@ -63,7 +63,7 @@ const raise = (st, hh, site, maker) =>
 {
   const { st, hh, site, brook, grown } = scene();
   const [x, y] = grown;
-  check(KINDS.boothwater && KINDS.boothwater.vital && KINDS.boothwater.to === 'site', 'the kind boothwater, lived by, carried to its site');
+  check(KINDS.boothwater && KINDS.boothwater.vital && VB['sim/doing'].carriesTo('boothwater') === 'booth', 'the kind boothwater, lived by, carried to its site');
   to(st, 5);
   raise(st, hh, site, x);
   const b = st.booths[0];

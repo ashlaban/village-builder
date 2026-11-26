@@ -260,7 +260,6 @@ VB['sim/green'] = (() => {
     wellstone: {
       verb: 'Loading stone for the well',
       go: 'Going for stone for the well',
-      back: 'Carrying stone to the well',
       name: 'Carry stone to the well',
       at: ['green'],
       needs: ['stone'],
@@ -270,9 +269,6 @@ VB['sim/green'] = (() => {
       hours: 0.25,
       hands: 1,
       type: 'duty',
-      carry: 'basket',
-      to: 'site',
-      deliver: (st, j) => stoneLaid(st, j),
       available: greenWork,
     },
     well: {
@@ -312,6 +308,9 @@ VB['sim/green'] = (() => {
   // The stone for the well as a goal (VB-1812; design.md section 7, The task as a plan): a load taken off the household's heap at its
   // house, carried to the well (`j.dest`) and laid there; one that falls lies as the village's pile, which the stray method fetches.
   VB['sim/methods'].carry(KINDS.wellstone, 'wellstone', {
+    look: 'basket',
+    words: 'Carrying stone to the well',
+    deliver: (st, j) => stoneLaid(st, j),
     name: 'to the well',
     op: 'take',
     source: true,
