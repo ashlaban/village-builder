@@ -973,3 +973,82 @@ console.log(
   for (const k of ['lead', 'drove']) assert.deepStrictEqual(plans[k].uses, [k], `${k}: the animals led are a load in hand`);
   console.log('methods: every kind carries methods; the herd and the spinning are minded; the animals led are a load in hand');
 }
+
+// VB-1750: the field's and the building's stages cut at random on a real state (a tiny village of three farms, its first sixty days): a hand
+// at a stage's work leg is let go at the day's end (the night), let go (a call) or dies. The stage keeps its hours (sim/progress): its
+// task, still posted, is never worked from fewer than it had, and an eligible pawn goes on from them; no pawn holds a task without
+// progress or a walk for a day (no stuck task), and the invariants hold each day. node tests/methods.js [--stages N] (seeds, default 3).
+{
+  const Sim = VB.sim,
+    Agents = VB['sim/agents'],
+    { KINDS } = VB['sim/kinds'],
+    { doneOf } = VB['sim/work'],
+    { tinyWorld, tinyState } = require('./lib/tiny.js'),
+    { checkState } = require('./lib/invariants.js');
+  const FIELD = new Set(Object.keys(VB['sim/fieldwork'].KINDS)),
+    BUILD = new Set(Object.keys(VB['sim/building'].KINDS));
+  const staged = (k) => (FIELD.has(k) || BUILD.has(k)) && !!KINDS[k].ops && !!KINDS[k].ops.labour; // a stage worked at its site
+  const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
+  const SEEDS = arg('stages', 3),
+    t = { field: 0, building: 0, night: 0, call: 0, death: 0, resumed: 0, finished: 0, fewer: [], stuck: [] };
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed });
+    st.naturalDeaths = false;
+    const rng = makeStream(seed, 'stages'),
+      cut = new Map(), // a stage's task cut: the hours it had
+      since = new Map(); // a pawn's task in hand: {job, done, t} since it last went on
+    for (let h = 0; h < 60 * 24; h++) {
+      Sim.advance(st, 1);
+      for (const [j, had] of cut) {
+        if (st.jobs.get(j.key) !== j) {
+          cut.delete(j);
+          t.finished++;
+          continue;
+        }
+        const d = doneOf(st, j);
+        if (d < had - 1e-9) t.fewer.push(`${j.key}: ${d.toFixed(2)} of the ${had.toFixed(2)} hours it had (seed ${seed}, hour ${h})`);
+        if (d > had + 1e-9) {
+          t.resumed++;
+          cut.delete(j);
+        }
+      }
+      for (const id of st.living) {
+        const a = st.agents[id],
+          j = a.job,
+          s = since.get(id),
+          d = j ? doneOf(st, j) : 0;
+        if (!j || a.path) since.delete(id);
+        else if (!s || s.job !== j || d > s.done + 1e-9) since.set(id, { job: j, done: d, t: st.t });
+        else if (st.t - s.t > 24) {
+          t.stuck.push(`pawn ${id} on ${j.key}, phase ${a.phase} (seed ${seed}, hour ${h})`);
+          since.delete(id);
+        }
+      }
+      if (rnd(rng) < 0.15) {
+        const all = st.living.map((id) => st.agents[id]).filter((a) => a.job && a.phase === 'work' && staged(a.job.kind)),
+          built = all.filter((a) => BUILD.has(a.job.kind)),
+          at = built.length && rnd(rng) < 0.5 ? built : all; // a building's stage as often as a field's, when there is one
+        if (at.length) {
+          const a = at[Math.floor(rnd(rng) * at.length)],
+            j = a.job,
+            r = rnd(rng),
+            hh = st.households[st.pawns[a.id].household],
+            how = r < 0.4 ? 'night' : r < 0.8 || hh.members.length < 3 ? 'call' : 'death';
+          t[FIELD.has(j.kind) ? 'field' : 'building']++;
+          t[how]++;
+          if (how === 'night') Agents.release(st, a, true);
+          else if (how === 'call') Agents.release(st, a);
+          else Sim.killPawn(st, a.id, 'illness');
+          if (st.jobs.get(j.key) === j) cut.set(j, Math.max(cut.get(j) || 0, doneOf(st, j)));
+        }
+      }
+      if (h % 24 === 23) assert.deepStrictEqual(checkState(st), [], `the stages cut, seed ${seed}, day ${(h + 1) / 24}`);
+    }
+  }
+  assert.deepStrictEqual(t.fewer, [], 'a stage cut keeps its hours');
+  assert.deepStrictEqual(t.stuck, [], 'no stuck task');
+  assert(t.field > 0 && t.building > 0 && t.resumed > 0, `the stages cut and taken up again: ${JSON.stringify(t)}`);
+  console.log(
+    `methods: the field's and the building's stages cut at random (${t.field} field, ${t.building} building; ${t.night} at night, ${t.call} by a call, ${t.death} by a death): ${t.resumed} gone on from their hours, ${t.finished} finished, none stuck`,
+  );
+}
