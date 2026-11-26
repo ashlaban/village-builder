@@ -218,6 +218,7 @@
     "st.workDue": "sim/work",
     "st.lying": "sim/lying",
     "st.lyingSeq": "sim/lying",
+    "st.lyingBy": {"owner": "sim/lying", "category": "cache"},
     "st.herdsAway": "sim/droving",
     "job.left": "sim/lying",
     "pawn.ties": "sim/ties",

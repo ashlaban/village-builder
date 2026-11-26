@@ -28,7 +28,7 @@ const FAST = [
   ['node', 'tests/player.js'],
   ['node', 'tests/walkweighed.js'], // VB-781: design.md's The walk weighed agrees with the rules it reckons from (until VB-1677, VB-1678)
   ['node', 'tests/handplan.js'], // VB-1661: by hand the outlook counts what the plan covers, one reckoning of the fire, no stone work held off, the cutting asked
-  ['node', 'tests/methods.js'], // VB-1747: sim/methods: the firewood table's five rows; 1,000 seeded runs under cuts, two owners, one cart, piles that rot
+  ['node', 'tests/methods.js'], // VB-1747: sim/methods: the firewood table's five rows; 1,000 seeded runs under cuts, two owners, one cart, piles that rot; VB-1775: the wood in a real state
   ['node', 'tests/firewood.js'], // VB-1653: wood in two steps, felled and carried home as timber, cut at the house; the plan's fell and firewood
   ['node', 'tests/camp.js'], // VB-1655: land first: a camp, roofless; the build menu and the refusals; the farmstead placed and its shelter raised on the house tile, the house moved
   ['node', 'tests/move.js'], // VB-1667: the farmstead placed anywhere reachable on foot: the goods, the carts and the herds left at the landing and fetched; the village follows; Sim.moveCost

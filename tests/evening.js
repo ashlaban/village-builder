@@ -89,13 +89,14 @@ until(D4, 23.5);
 check(hh.waterDay !== D4 && !a.job && st.jobs.get(k14) && !st.jobs.get(k14).claims.length, 'water wanted at 20:30 is not begun');
 // 5. the wood of a cold house is lived by; of a warm house with a full pile, not
 const wood = { kind: 'wood', farm: f },
-  was = [hh.cold, hh.wood];
+  was = [hh.cold, hh.wood, hh.timber];
+hh.timber = 0; // no timber home to cut (VB-1775: the wood as methods may leave some home at this hour)
 hh.cold = 0.5;
 const cold = carriedOn(st, wood);
 hh.cold = 0;
 hh.wood = 100;
 const warm = carriedOn(st, wood);
-[hh.cold, hh.wood] = was;
+[hh.cold, hh.wood, hh.timber] = was;
 check(cold && !warm, `the wood lived by in a cold house (${cold}), not in a warm one with a full pile (${warm})`);
 if (failed) process.exit(1);
 console.log(

@@ -315,6 +315,7 @@ VB['sim/saves'] = (() => {
     graph: null, // sim/graph's index of live edges, built at its first use
     stepAt: null, // sim/agents loaded, at the end of a load
     jobsBy: rebuildJobsBy,
+    lyingBy: null, // sim/lying, the piles by owner, built at its first use (VB-1775)
     routeKept: null, // sim/routes, built at its first use: a route kept aside is searched again after a load, and found the same (VB-1563)
     routeCosts: null,
     facilityIdx: null, // sim/facilities, by tile and by owner, built at its first use (VB-361)

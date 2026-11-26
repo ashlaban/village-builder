@@ -47,7 +47,8 @@ VB['sim/carts'] = (() => {
   const out = (st, c) => {
     if (c.at) return true;
     const a = c.by === null ? null : st.agents[c.by];
-    return !!a && !!a.job && (a.phase === 'back' || a.phase === 'work' || (a.phase === 'go' && a.load > TRAVEL.load));
+    // out with its pawn on a task (a cart set out with, or fetched for a method's trip and walked empty: VB-1775)
+    return !!a && !!a.job && (a.phase === 'back' || a.phase === 'work' || a.phase === 'go');
   };
   const free = (st, hh, kind) => hh.carts.find((c) => c.kind === kind && !out(st, c)) || null;
   const cartOf = (st, hh, id) => hh.carts.find((c) => c.by === id && !c.at && out(st, c)) || null;

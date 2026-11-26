@@ -529,6 +529,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.used: Set of tile indexes taken by houses and fields
     // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids. A job: {id, key, kind, owner, site, done (work hours),
     //   claims[] (ids of the pawns working it, at most KINDS[kind].hands; VB-102), posted, live, and its source's fields (field, farm, plot, ...)}
+    //   A goal with methods (VB-1775) adds amount (the store it was posted to reach) and op (the work leg its `done` hours are of).
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob; derived, not saved (`sim/saves` DERIVED)
     // @state st.meetingLog[]: {year, text, close?: true where a custom came close to changing and did not (VB-082)}; newest first.

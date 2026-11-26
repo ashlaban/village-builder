@@ -135,6 +135,7 @@
   "sim/legs.js",
   "sim/methods.js",
   "sim/work.js",
+  "sim/doing.js",
   "sim/attention.js",
   "sim/agents.js",
   "sim/hosting.js",

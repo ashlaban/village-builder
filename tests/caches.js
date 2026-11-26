@@ -36,13 +36,14 @@ const owners = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/owners.js
 const declared = [];
 (function walk(o) { for (const [k, v] of Object.entries(o)) if (v && typeof v === 'object') v.category === 'cache' ? declared.push(k) : walk(v); })(owners);
 const COMPARED = ['st.owner', 'st.crowd', 'st.crowdN', 'st.followers', 'st.living', 'st.liveHouseholds', 'st.graph', 'st.liveTrusts', 'st.courtships',
-  'st.obligationsDue', 'st.obligationsBy', 'st.facilityIdx', 'st.askingBy', 'agent.away', 'pawn.household', 'household.members', 'pawn.role'];
+  'st.obligationsDue', 'st.obligationsBy', 'st.facilityIdx', 'st.lyingBy', 'st.askingBy', 'agent.away', 'pawn.household', 'household.members', 'pawn.role'];
 assert.deepStrictEqual(declared.filter((k) => !COMPARED.includes(k) && !CACHES_UNCOMPARED[k]), [], 'a declared cache neither compared nor excused');
 assert.deepStrictEqual([...COMPARED, ...Object.keys(CACHES_UNCOMPARED)].filter((k) => !declared.includes(k)), [], 'a cache listed that src/owners.json does not declare');
 
-// the runs: the probe village and the founders, each 45 days (the first gathering, ale, claims, a household founded, lodging)
+// the runs: the probe village and the founders, each 50 days (the first gathering, ale, claims, a household founded, lodging, a cottage
+// finished: VB-1775, with the wood as goals the founders' first cottage is roofed after day 45)
 const runs = [state(), scenario('founders', 7)];
-for (const st of runs) Sim.advance(st, 45 * Sim.DAY);
+for (const st of runs) Sim.advance(st, 50 * Sim.DAY);
 const natural = carried.size;
 // the args a verb is tried with by hand, where {} cannot pass its check: a gift of a little grain (VB-446 moved the draws, and the loans of
 // VB-312 that carried it in the run no longer fall in its 45 days)
@@ -64,7 +65,7 @@ for (const verb of Object.keys(VERBS).filter((v) => !carried.has(v))) {
 assert.deepStrictEqual(failures, [], 'a cache differs from its derivation after a verb');
 // The verbs these states do not reach yet, each needing a command built for it (an offer to answer, a plan, a booth, a trust; VB-1703).
 // The list only shrinks: a verb carried here is struck from it, a new verb is carried or added.
-const NOT_YET = ['answer', 'claim', 'letIn', 'placeFarmstead', 'callWorkday', 'blaze', 'lodge', 'comeHome', 'call', 'goGathering', 'stayHome', 'swap',
+const NOT_YET = ['answer', 'claim', 'letIn', 'placeFarmstead', 'blaze', 'lodge', 'comeHome', 'goGathering', 'stayHome', 'swap',
   'target', 'tile', 'order', 'letField', 'sowOutOfTurn', 'courses', 'dayOrder', 'dayGive', 'dayCall', 'handOn', 'plotToVillage',
   'beginCottage', 'goBack', 'goToKin', 'visit', 'sendVisit', 'foundHousehold', 'decide', 'argue', 'dropCause', 'rally', 'leave', 'takeUp',
   'renounce', 'marry', 'skip', 'slander',

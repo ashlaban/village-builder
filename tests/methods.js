@@ -610,3 +610,264 @@ if (TIMES) {
 console.log(
   `methods: the firewood table's five rows; ${RUNS} fuzzed runs, ${tally.asks} asks, ${tally.blocked} rightly blocked, no violation`,
 );
+
+// ---- VB-1775: the wood in a real state (a tiny village, tests/firewood.js's): sim/doing's view asked of the game's state ----
+// The firewood table's five rows, the work leg's tree, a pile with title taken up by another hand, a load in hand carried home past the
+// working day, set down where its carrier dies, a stray pile fetched, and no fetch kind for the wood. A row's walks are made at once (the
+// pawn set at the place its step names): the legs are the view's and the effects the game's (sim/doing load, unload, work; sim/carts).
+{
+  const Sim = VB.sim,
+    Doing = VB['sim/doing'],
+    Lying = VB['sim/lying'],
+    Carts = VB['sim/carts'],
+    Agents = VB['sim/agents'],
+    Jobs = VB['sim/jobs'],
+    { KINDS } = VB['sim/kinds'],
+    { TRAVEL, WORK, DAY, cal } = VB['sim/rules'],
+    { here } = VB['sim/pose'];
+  const { tinyWorld, tinyState } = require('./lib/tiny.js'),
+    { checkState } = require('./lib/invariants.js');
+  const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
+  const make = () => {
+    const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 });
+    st.naturalDeaths = false;
+    Sim.advance(st, 3);
+    return st;
+  };
+  const P = (st) => st.ECON.woodPerTrip;
+  const title = (hh) => ({ type: 'household', id: hh.id });
+  const setAt = (st, a, t) => Object.assign(a, { x: st.w.hx[t], y: st.w.hy[t], path: null, inside: false });
+  const members = (st, hh) => st.pawns.filter((p) => p.alive && p.household === hh.id).map((p) => st.agents[p.id]);
+  // a world for one row: household 0 with its house, forest and a hand cart or none; its pawn idle at `from`, empty-handed, on goal `kind`
+  function row(kind, { cart = true, from = 'house', timber = 0, amount = 1 } = {}) {
+    const st = make(),
+      hh = st.households[0],
+      f = st.farmsteads[hh.farmstead],
+      forest = st.villages[f.village].wood[0];
+    hh.carts = cart ? [{ kind: 'hand', cond: 1, built: st.t, by: null }] : [];
+    hh.timber = timber;
+    hh.wood = 0;
+    const a = members(st, hh)[0];
+    Object.assign(a, { load: 0, carry: null, phase: null });
+    setAt(st, a, from === 'house' ? f.house : from === 'forest' ? forest : from);
+    a.job = {
+      key: `test:${kind}`,
+      kind,
+      owner: title(hh),
+      site: kind === 'wood' ? forest : f.house,
+      farm: f,
+      claims: [a.id],
+      amount: amount * P(st),
+    };
+    return { st, hh, f, forest, a };
+  }
+  // the legs asked and carried out until the goal is met (consecutive repeats of one leg as one), with what each work leg did
+  function play(st, a, max = 60) {
+    const legs = [],
+      seen = [];
+    for (let i = 0; i < max; i++) {
+      const s = Doing.ask(st, a);
+      if (s === M.DONE) return { legs, seen, done: true };
+      if (s.blocked) return { legs: legs.concat('blocked'), seen, done: false };
+      const name = s.prim === 'work' ? s.op : s.prim;
+      if (legs[legs.length - 1] !== name) legs.push(name);
+      const at = here(st, a),
+        to = Doing.placeOf(st, a, s);
+      if (s.prim === 'load') Doing.load(st, a, s);
+      else if (s.prim === 'unload') Doing.unload(st, a, s, a.x, a.y);
+      else if (s.prim === 'work') {
+        a.phase = 'work';
+        const trees = st.w.trees[at];
+        Doing.work(st, a, s);
+        seen.push({ op: s.op, at, felled: trees - st.w.trees[at] });
+      } else if (s.prim === 'return') Carts.home(st, st.households[st.pawns[a.id].household], a.id);
+      else if (s.prim === 'fetch' && to === at) {
+        Doing.takeCart(st, a);
+        a.phase = 'go'; // out on its task with the cart, as sim/agents onward sets it
+      } else {
+        a.phase = s.prim === 'haul' ? 'back' : 'go';
+        setAt(st, a, to);
+      }
+    }
+    return { legs, seen, done: false };
+  }
+  const same = (got, want, what) => assert.deepStrictEqual(got, want, `${what}: ${got.join(', ')}`);
+
+  // row 1: at home, the cart at home, no timber: fetch the cart, go, fell, load, haul, unload, cut, leave the cart
+  {
+    const { st, hh, forest, a } = row('firewood', { amount: 2 });
+    const t0 = st.w.trees[forest];
+    const r = play(st, a);
+    assert(r.done, `row 1 met: ${r.legs.join(', ')}`);
+    same(r.legs, ['fetch', 'go', 'fell', 'load', 'haul', 'unload', 'cut', 'return'], 'row 1');
+    // the tree falls at the work leg, the felling's: two felled, a load each, at the forest
+    const fells = r.seen.filter((x) => x.op === 'fell');
+    assert(fells.length === 2 && fells.every((x) => x.at === forest && Math.abs(x.felled - 1) < 1e-9), 'a tree a fell leg');
+    assert(Math.abs(t0 - st.w.trees[forest] - 2) < 1e-9, 'two trees fewer');
+    assert(Math.abs(hh.wood - 2 * P(st)) < 1e-9 && !(hh.timber > 1e-9), `two loads cut: ${hh.wood}, ${hh.timber}`);
+    assert(hh.carts[0].by === null && !Lying.amountAt(st, forest, 'wood', title(hh)), 'the cart left at home, nothing lying');
+  }
+  // row 2: on the forest tile for another reason, no cart: fell, load on the back, haul, unload, cut, and back for more until met
+  {
+    const { st, hh, a } = row('firewood', { cart: false, from: 'forest', amount: 2 });
+    const r = play(st, a);
+    assert(r.done, `row 2 met: ${r.legs.join(', ')}`);
+    same(r.legs, ['fell', 'load', 'haul', 'unload', 'cut', 'go', 'fell', 'load', 'haul', 'unload', 'cut'], 'row 2');
+    assert(Math.abs(hh.wood - 2 * P(st)) < 1e-9, 'two loads cut');
+  }
+  // row 3: timber lies at the tile (the night cut the task): fetch the cart, go, load, haul, unload, cut; no tree felled
+  {
+    const { st, hh, forest, a } = row('firewood', { amount: 2 });
+    Lying.put(st, 'wood', 2 * TRAVEL.load, forest, title(hh));
+    const t0 = st.w.trees[forest];
+    const r = play(st, a);
+    assert(r.done, `row 3 met: ${r.legs.join(', ')}`);
+    same(r.legs, ['fetch', 'go', 'load', 'haul', 'unload', 'cut', 'return'], 'row 3');
+    assert(st.w.trees[forest] === t0 && !Lying.amountAt(st, forest, 'wood', title(hh)), 'the pile taken up, no tree felled');
+  }
+  // row 4: called off on the road with a load: haul, unload (the rule for a load in hand, the goal gone); the cutting is then open to anyone
+  {
+    const { st, hh, f, forest, a } = row('wood', { cart: false });
+    const road = st.w.nb[f.house * 6] >= 0 ? st.w.nb[f.house * 6] : forest;
+    setAt(st, a, road);
+    Object.assign(a, { load: TRAVEL.load, carry: 'logs' });
+    const s1 = M.next(st, null, a, Doing.VIEW);
+    assert(s1 === M.RULE.haul, `called off with a load: haul (${JSON.stringify(s1)})`);
+    setAt(st, a, f.house);
+    const s2 = M.next(st, null, a, Doing.VIEW);
+    assert(s2 === M.RULE.unload, 'at home: unload');
+    Doing.unload(st, a, s2, a.x, a.y);
+    assert(Math.abs(hh.timber - P(st)) < 1e-9 && a.load === 0, 'the load in the store');
+    const b = members(st, hh)[1];
+    Object.assign(b, { load: 0, carry: null });
+    setAt(st, b, forest);
+    b.job = { key: 'test:fw', kind: 'firewood', owner: title(hh), site: f.house, farm: f, claims: [b.id], amount: P(st) };
+    same(play(st, b).legs, ['go', 'cut'], 'row 4, the cutting by another hand');
+  }
+  // row 5: timber at the farm: cut
+  {
+    const { st, hh, a } = row('firewood', { timber: 3 });
+    same(play(st, a).legs, ['cut'], 'row 5');
+    assert(Math.abs(hh.wood - P(st)) < 1e-9, 'a load cut');
+  }
+  // timber felled lies at the tile as a pile with title, the household's, and is taken up by any of its hands
+  {
+    const { st, hh, forest, a } = row('wood', { cart: false, from: 'forest' });
+    const s = Doing.ask(st, a);
+    assert(s.prim === 'work' && s.op === 'fell', 'the first leg at the forest: fell');
+    Doing.work(st, a, s);
+    assert(Lying.amountAt(st, forest, 'wood', title(hh)) === TRAVEL.load, 'the felled load lies, its title the household');
+    const b = members(st, hh)[2];
+    Object.assign(b, { load: 0, carry: null });
+    setAt(st, b, forest);
+    b.job = { ...a.job, claims: [b.id] };
+    a.job = null;
+    const s2 = Doing.ask(st, b);
+    assert(s2.prim === 'load', `another hand at the tile loads it (${s2.prim})`);
+    Doing.load(st, b, s2);
+    assert(b.load === TRAVEL.load && !Lying.amountAt(st, forest, 'wood', title(hh)), 'taken up by another hand');
+  }
+  // the stray method: the household's timber lying where the wood neither makes nor wants it is fetched home; another's is not looked at
+  {
+    const { st, hh, f, forest, a } = row('wood', { cart: false });
+    const away = st.villages[f.village].wood[2],
+      other = st.households[1];
+    Lying.put(st, 'wood', TRAVEL.load, away, title(other));
+    assert(Lying.strayOf(st, title(hh), 'wood', forest, f.house) === null, "another household's pile is not this one's stray");
+    Lying.put(st, 'wood', TRAVEL.load, away, title(hh));
+    assert(st.lyingBy instanceof Map && st.lyingBy.get(`household:${hh.id}`).length === 1, 'piles indexed by owner');
+    assert(Lying.strayOf(st, title(hh), 'wood', forest, f.house) === away, "the household's stray pile found");
+    const s = Doing.ask(st, a);
+    assert(s.prim === 'go' && s.at === 'stray' && Doing.placeOf(st, a, s) === away, 'the stray pile first');
+    const r = play(st, a);
+    assert(r.legs.slice(0, 4).join() === 'go,load,haul,unload', `fetched home: ${r.legs.join(', ')}`);
+    assert(!Lying.amountAt(st, away, 'wood', title(hh)) && Lying.amountAt(st, away, 'wood', title(other)) === TRAVEL.load, 'its own only');
+  }
+  // the fetch kinds: none for the wood (its piles are the stray method's), one still for a kind on its phases; and no fetch task posted
+  {
+    assert(KINDS.wood.methods && KINDS.firewood.methods, 'the wood has methods');
+    assert(!KINDS[Lying.fetchKey('wood')] && !KINDS[Lying.fetchKey('firewood')], 'no fetch kind for the wood');
+    assert(KINDS[Lying.fetchKey('hay')], 'a kind on its phases keeps its fetch kind');
+    const { st, hh } = row('wood');
+    const l = Lying.put(st, 'wood', TRAVEL.load, st.villages[0].wood[1], title(hh));
+    Sim.advance(st, 2);
+    assert(!st.jobs.has(`fetch:L${l.id}`), 'no fetch task posted for a pile of timber');
+  }
+  // a load in hand goes home past the end of the working day; set down as a pile with title only when its carrier cannot walk on (death)
+  for (const dies of [false, true]) {
+    const st = make(),
+      hh = st.households[0],
+      f = st.farmsteads[hh.farmstead],
+      forest = st.villages[f.village].wood[0];
+    while (cal(st.t).hour < WORK[1] + 0.5 || cal(st.t).hour > WORK[1] + 1) Sim.advance(st, 0.2);
+    const a = members(st, hh).find((b) => !b.job && !b.path);
+    assert(a, 'an idle hand after the working day');
+    setAt(st, a, forest);
+    Object.assign(a, { load: TRAVEL.load, carry: 'logs' });
+    const j = Jobs.post(st, `test:wood:h${hh.id}`, 'wood', title(hh), forest, { farm: f, chosen: false, amount: 9 * P(st) });
+    const t0 = hh.timber || 0;
+    Agents.start(st, a, j);
+    assert(a.phase === 'back' && a.path && a.job === j, `past the working day, it hauls home (${a.phase})`);
+    if (dies) {
+      Sim.advance(st, 0.2);
+      const at = here(st, a);
+      VB['sim/lifecycle'].killPawn(st, a.id);
+      assert(Lying.amountAt(st, at, 'wood', title(hh)) === TRAVEL.load, "its load set down where it died, the household's");
+      assert((hh.timber || 0) === t0, 'none of it home');
+    } else {
+      for (let i = 0; i < 40 && a.load > 0; i++) Sim.advance(st, 0.1);
+      assert(a.load === 0 && Math.abs((hh.timber || 0) - t0 - P(st)) < 1e-9, `the load home: ${hh.timber}`);
+      const h = cal(st.t).hour;
+      assert(h >= WORK[1] || h < WORK[0], 'after the working day');
+      assert(!(st.lying || []).some((l) => l.owner.id === hh.id && l.kind === 'wood'), 'nothing set down on the way');
+    }
+    Sim.advance(st, DAY);
+    assert.deepStrictEqual(checkState(st), [], 'invariants');
+  }
+  console.log('methods: the wood in a real state: the five rows, the felled pile, a load in hand, the stray pile, no fetch kind');
+}
+
+// VB-1775, review F1: a save from before the wood had methods may hold a fetch task of timber (fetchWood), a kind this build has no
+// more: loaded, the task is taken down, its hands are freed where they stand (a load in hand set down there as the household's pile),
+// and the run goes on two days with its invariants
+{
+  const Sim = VB.sim,
+    Lying = VB['sim/lying'],
+    Agents = VB['sim/agents'],
+    { KINDS } = VB['sim/kinds'],
+    { TRAVEL, DAY } = VB['sim/rules'];
+  const { tinyWorld, tinyState } = require('./lib/tiny.js'),
+    { checkState } = require('./lib/invariants.js');
+  const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
+  const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 });
+  st.naturalDeaths = false;
+  Sim.advance(st, 3);
+  const hh = st.households[0],
+    f = st.farmsteads[hh.farmstead],
+    forest = st.villages[f.village].wood[0],
+    owner = { type: 'household', id: hh.id };
+  assert(!KINDS.fetchWood, 'no fetch kind for the wood');
+  const l = Lying.put(st, 'wood', TRAVEL.load, forest, owner);
+  const [a, b] = st.pawns.filter((p) => p.alive && p.household === hh.id).map((p) => st.agents[p.id]);
+  for (const [p, key, back] of [
+    [a, `fetch:L${l.id}`, false],
+    [b, 'fetch:L999', true],
+  ]) {
+    if (p.job) Agents.release(st, p);
+    const j = { id: ++st.jobSeq, key, kind: 'fetchWood', owner, site: forest, done: 0, claims: [p.id], posted: st.t, live: true };
+    st.jobs.set(key, j);
+    Object.assign(p, { job: j, phase: back ? 'back' : 'go', load: back ? TRAVEL.load : 0, carry: back ? 'logs' : null });
+    const to = back ? f.house : forest;
+    Agents.walkTo(st, p, to, st.w.hx[to], st.w.hy[to]);
+  }
+  const data = JSON.parse(JSON.stringify(Sim.save(st)));
+  const back = Sim.load(tinyWorld(rows), data);
+  assert(![...back.jobs.values()].some((j) => !KINDS[j.kind]), 'no task of an unknown kind loaded');
+  assert(back.agents[a.id].job === null && back.agents[b.id].job === null, 'its hands freed');
+  assert(Lying.amountAt(back, forest, 'wood', owner) === TRAVEL.load, 'the pile it was to fetch still lies');
+  const laid = (back.lying || []).filter((x) => x.kind === 'wood' && x.owner.id === hh.id && x.tile !== forest);
+  assert(laid.length === 1 && laid[0].n === TRAVEL.load, 'the load in hand set down where its carrier stood');
+  Sim.advance(back, 2 * DAY);
+  assert.deepStrictEqual(checkState(back), [], 'invariants, two days on');
+  console.log('methods: an older save with a fetch task of timber loads and runs on');
+}

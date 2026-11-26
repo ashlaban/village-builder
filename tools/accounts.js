@@ -137,7 +137,9 @@ function report(VB, st, opts = {}) {
       if (line && type === 'household' && into === flows && line.startsWith('produced.') && x.year === counted + 1) produce.set(holder.id, (produce.get(holder.id) || 0) + x.n);
     }
   }
-  // Food held now, by village (and 'transit': gift grain on its way): rations as held.
+  // Food held now, by village (and 'transit': a stake held by one of no household): rations as held. Gift grain on its way is in no
+  // stock, held or at its stops: it left the giver's ledger when set aside and enters the receiver's as it arrives (VB-1775: a held
+  // load counted here at a year's turn, with no line, left that year unexplained by the load and the next by its negative).
   function stocks() {
     const s = new Map(), at = (v) => { if (!s.has(v)) s.set(v, 0); return v; };
     const put = (v, n, grain = 0) => { s.set(at(v), s.get(v) + n); s.set(at(G + v), s.get(G + v) + grain); };
@@ -150,7 +152,6 @@ function report(VB, st, opts = {}) {
     }
     for (const v of st.villages) { put(v.id, Stores.grainOf(v), Stores.grainOf(v)); good('grain', Stores.grainOf(v)); }
     for (const p of st.pawns) if (p.alive && p.stake > 0) { put(p.household !== null ? villageOf(st.households[p.household]) : 'transit', p.stake, p.stake); good('grain', p.stake); }
-    for (const j of st.away || []) if (j.gift && j.gift.held > 0) { put('transit', j.gift.held, j.gift.held); good('grain', j.gift.held); }
     return s;
   }
   // The stakes the dead hold, by village (of the household each died in): a pawn's stake is not handed on at its death, and no movement
