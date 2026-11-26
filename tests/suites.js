@@ -205,6 +205,7 @@ const INTEGRATION = [
   ['node', 'tests/help.js'], // food help, with VB-461's fetched gift (VB-889)
   ['node', 'tests/interrupts.js'],
   ['node', 'tests/day.js'],
+  ['node', 'tests/authored.js'], // VB-1755: the daily work before anything authored, the plan verb's by, a step at risk, the take-back, a kept step
   ['node', 'tests/ownheir.js'],
   ['node', 'tests/daylight.js'],
   ['node', 'tests/service.js'],

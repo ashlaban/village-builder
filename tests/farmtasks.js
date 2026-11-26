@@ -39,9 +39,15 @@ function village() {
 function run(st, kind, days = 80) {
   const waits = new Set(),
     laid = new Set();
+  let ends = 0;
   for (let i = 0; i < days * 240 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.some((t) => t.kind === kind); i++) {
     Sim.advance(st, 0.1);
-    for (const t of Sim.planView(st, st.player.pawn).tasks) if (t.waits) waits.add(t.waits.why + (t.waits.kind ? `:${t.waits.kind}` : '') + (t.waits.why === 'refused' ? `:${t.waits.text}` : ''));
+    for (const t of Sim.planView(st, st.player.pawn).tasks) {
+      // VB-1755: a chain whose last step another hand finished after the plan's housekeeping (the pawn at a daily task meanwhile)
+      // reads "nothing is left" until the next step's housekeeping drops it: once, never longer
+      if (t.waits && t.waits.why === 'refused' && /^nothing is left to do/.test(t.waits.text) && ++ends <= 1) continue;
+      if (t.waits) waits.add(t.waits.why + (t.waits.kind ? `:${t.waits.kind}` : '') + (t.waits.why === 'refused' ? `:${t.waits.text}` : ''));
+    }
     if (i % 10 === 0) for (const g of Sim.agenda(st, st.player.pawn).days.flat()) if (g.what === 'task') laid.add(g.kind);
   }
   return { waits, laid };

@@ -541,10 +541,11 @@ VB['sim/controller'] = (() => {
     return null;
   }
   // A task of a kind its household lives by each day (sim/kinds `daily`: the water, the meal, the fire, milking, fodder) that stands
-  // open, unmanned and given to no other member by the household's day (no list holds it at its head or given hands), and that pawn id
-  // may take now; or null. Due and vital kinds are slotted in before anything authored (VB-1755; design.md section 7, Authors). A pass
+  // open, unmanned and not the next task of another member by the household's day (givenTo), and that pawn id
+  // may take now, unless its routine is to take that kind today; or null. Due and vital kinds are slotted in before anything authored
+  // (VB-1755; design.md section 7, Authors). A pass
   // over the household's open tasks, for a pawn on its own plan.
-  function vitalJob(st, id) {
+  function vitalJob(st, id, pp) {
     const hid = st.pawns[id].household,
       js = hid === null ? null : st.jobsBy.get(`household:${hid}`);
     if (!js) return null;
@@ -552,19 +553,20 @@ VB['sim/controller'] = (() => {
       day = plan && plan.day;
     for (const j of js) {
       VB.count.vitalAsk++;
-      if (!dailyNow(st, j) || j.claims.length || givenTo(day, j.key, id)) continue;
+      if (!dailyNow(st, j) || j.claims.length || givenTo(st, day, j.key, id)) continue;
+      if (pp.routine.includes(j.kind) && !pp.done.includes(j.kind)) continue; // its routine takes it, in its order
       if (VERBS.work.check(st, workCmd(id, j.key)) === null) return j;
     }
     return null;
   }
-  // Whether the household's day gives the task of `key` to a member other than pawn id: at the head of its list or with hands given.
-  function givenTo(day, key, id) {
-    if (!day || !day.fits) return false;
+  // Whether the household's day gives the task of `key` to a member other than pawn id as the one it takes next: the first entry of its
+  // list still posted (a later entry waits for the member's present task: the pawn may take it meanwhile).
+  function givenTo(st, day, key, id) {
+    if (!day) return false;
     for (const m in day.lists) {
       if (Number(m) === id) continue;
-      const i = day.lists[m].indexOf(key),
-        f = i >= 0 && day.fits[m] ? day.fits[m][i] : undefined;
-      if (f === null || f > 0) return true;
+      const next = day.lists[m].find((k) => st.jobs.has(k));
+      if (next === key) return true;
     }
     return false;
   }
@@ -579,7 +581,7 @@ VB['sim/controller'] = (() => {
       const cmd = { actor: id, verb: 'sleep', target: null, args: { until: pp.sleep.until }, source: 'player' };
       return VERBS.sleep.check(st, cmd) === null ? { ...cmd, plan: { from: 'sleep', kind: null, key: null } } : null;
     }
-    const v = vitalJob(st, id);
+    const v = vitalJob(st, id, pp);
     if (v) return { ...workCmd(id, v.key), plan: { from: 'vital', kind: v.kind, key: v.key } };
     const done = pp.done;
     for (const k of pp.routine) {
