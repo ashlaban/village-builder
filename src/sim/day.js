@@ -398,16 +398,9 @@ VB['sim/day'] = (() => {
       if (!plan || hh.farmstead === null) continue;
       // a member the day left out when it was allotted (commanded, away, on duty or lent then) and free now has it allotted anew (VB-470:
       // the round of help no longer gave such a one a neighbour's work)
+      // who is allotted is said once, in fit's allotted; it also leaves out a commanded pawn and one on leave, as the allotment does
       const list0 = plan.day && plan.day.lists[a.id],
-        missed =
-          !!list0 &&
-          !list0.length &&
-          !!plan.day.free &&
-          !(a.id in plan.day.free) &&
-          age(st, p) >= CHILD.from &&
-          a.away === undefined &&
-          Days.on(st, a.id) === null &&
-          Hands.on(st, a.id) === null;
+        missed = !!list0 && !list0.length && !!plan.day.free && !(a.id in plan.day.free) && allotted(st, p);
       if (!list0 || missed) allot(st, hh, c);
       if (a.job || a.path) {
         got.add(a); // the allotment called it
