@@ -13,7 +13,7 @@ const { DIG } = D, { DEPOSIT, ENDLESS } = VB['world/geology'];
 
 // --- the kind
 const K = KINDS.dig;
-check(K === D.KIND && K.type === 'upkeep' && K.hands === 1 && K.hours === 3 && K.carry && K.to, 'dig: upkeep, 1 hand, 3 hours, carried home');
+check(K === D.KIND && K.type === 'upkeep' && K.hands === 1 && K.hours === 3 && VB['sim/doing'].lookOf('dig') && VB['sim/doing'].carriesTo('dig') === 'store', 'dig: upkeep, 1 hand, 3 hours, carried home');
 check(K.urgency(null, { good: 'clay' }, null, MATCH.urgency) === MATCH.urgency.repair, 'dig weighs as the house\'s upkeep: done in the slack');
 check(ASK.farmAfterPlans.some((e) => e[0] === 'dig'), 'dig is asked at the farm');
 check(DIG.reach === 12 && DIG.stock === 4 && DIG.regrow === 1, 'reach 12, stock 4, regrowth 1 a year');

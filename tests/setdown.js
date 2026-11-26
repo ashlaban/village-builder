@@ -172,14 +172,14 @@ const fetchJob = () => {
   // set down by sim/doing's unload, which reads the pile's record the load was taken up from (VB-1814: no fetch kind's reading)
   const b = hand(),
     jj = J.post(st, 'haul:t7', 'haul', { type: 'household', id: hh.id }, fd.tile, { field: fd, farm: f }),
-    deliver = KINDS.haul.deliver;
+    deliver = VB['sim/doing'].said('haul').deliver;
   A.release(st, b);
   Object.assign(b, { job: jj, load: 30, loadOf: of, carry: 'sheaf' });
-  KINDS.haul.deliver = (st_, j) => (seen = [j.crop ?? j.field.crop, j.bin ?? j.field.bin, j.site]); // as haul's delivery reads them
+  VB['sim/doing'].said('haul').deliver = (st_, j) => (seen = [j.crop ?? j.field.crop, j.bin ?? j.field.bin, j.site]); // as haul's delivery reads them
   try {
     VB['sim/doing'].unload(st, b, {}, 0, 0);
   } finally {
-    KINDS.haul.deliver = deliver;
+    VB['sim/doing'].said('haul').deliver = deliver;
   }
   assert.deepStrictEqual(seen, ['barley', 5, fd.tile], 'a fetched load takes the crop the field has now');
   assert(b.load === 0 && b.loadOf === null, 'the load is set down');

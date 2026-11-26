@@ -7,10 +7,15 @@ for (const [k, K] of Object.entries(Sim.KINDS)) {
   for (const f of ['verb', 'go', 'name', 'label']) check(typeof K[f] === 'string' && K[f].length > 0, `${k} has no ${f}`);
   check(K.hours > 0, `${k} has no hours`);
   check(types.has(K.type), `${k}: no role ranks its type of work "${K.type}"`);
-  if (K.carry && !K.methods) check(K.back && ['door', 'woodpile', 'barn', 'site'].includes(K.to) && K.deliver, `${k} carries ${K.carry} but lacks back, to or deliver`);
-  // a kind with methods names what it fills (sim/reasons), its legs its methods'; a trip's delivery is its unload's (sim/doing, VB-1749)
-  else check((!K.deliver || K.methods) && (!K.to || K.methods), `${k} delivers but carries nothing`);
-  check(!(K.inside && K.field), `${k} is both inside and on a field`);
+  // VB-1820: what a load is, its words and its delivery are said by the kind's method, never by fields of the kind
+  for (const f of ['carry', 'to', 'deliver', 'back', 'inside', 'stages']) check(K[f] === undefined, `${k} has the field ${f}`);
+  const P = VB['sim/doing'].planOf(k), G = VB['sim/doing'].GOODS;
+  for (const g of P.uses) {
+    const s = P.goods[g] || {};
+    check(typeof s.look === 'string' && typeof s.words === 'string' && s.words.length > 0, `${k} carries ${g} but its method says no look or no words`);
+    if (!(G[g] && G[g].store)) check(typeof VB['sim/doing'].said(G[g] ? G[g].kind : g, g)?.deliver === 'function', `${k} carries ${g} but nothing delivers it`);
+  }
+  check(!(K.methods.some((m) => m.steps.some((s) => s.inside)) && K.field), `${k} is both inside and on a field`);
   if (K.field) check(typeof K.spot === 'function', `${k} is field work without a spot on the field`);
 }
 for (const [role, r] of Object.entries(Sim.ROLES)) for (const [k, K] of Object.entries(Sim.KINDS)) {

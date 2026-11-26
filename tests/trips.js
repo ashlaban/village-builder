@@ -47,10 +47,10 @@ const farm = (n, steps, carts) => {
 const fetchDay = (n, steps, carts) => {
   const { st, hh, f } = farm(n, steps, carts),
     trips = [],
-    deliver = KINDS.water.deliver;
+    deliver = VB['sim/doing'].said('water').deliver;
   let ticks = 0,
     pace = null;
-  KINDS.water.deliver = (s, j, h, ff, a) => {
+  VB['sim/doing'].said('water').deliver = (s, j, h, ff, a) => {
     trips.push({ cart: j.cart || null, cover: j.cover, pawn: a.id });
     return deliver(s, j, h, ff, a);
   };
@@ -64,7 +64,7 @@ const fetchDay = (n, steps, carts) => {
       if (a.job.cart && (a.job && a.path && !(a.load > 0)) && a.leg && a.leg.kind === 'walk') pace = a.leg.pace / (SPEED * st.w.HW);
     }
   }
-  KINDS.water.deliver = deliver;
+  VB['sim/doing'].said('water').deliver = deliver;
   return { st, hh, f, trips, hours: ticks / TICKS, pace, by: (k) => trips.filter((t) => (k === 'cart') === !!t.cart).length };
 };
 const W = 0.875, // 7 steps of meadow
@@ -132,7 +132,7 @@ for (const n of [3, 6]) {
   const posted = [];
   KINDS.water.available(st, hh, f, cal(st.t), (key) => posted.push(key));
   check(posted.length === 2 && new Set(posted).size === 2, `seven people with no cart: two trips posted, each a job of its own (${posted})`);
-  KINDS.water.deliver(st, { cover: WATER.hand }, hh, f, null);
+  VB['sim/doing'].said('water').deliver(st, { cover: WATER.hand }, hh, f, null);
   check(hh.waterDay === 1 && hh.waterFor === WATER.hand, `one load in: water for ${hh.waterFor}`);
   hh.wood = 50;
   hh.meals = 0;

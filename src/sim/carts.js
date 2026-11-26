@@ -236,13 +236,9 @@ VB['sim/carts'] = (() => {
       gives: ['cart'],
       hours: 0.5,
       label: 'Cart',
-      back: 'Leading the cart and its team home',
       type: 'upkeep',
-      carry: 'sack',
-      to: 'barn',
       hands: 1,
       urgency: (st, j, c, U) => U.haul,
-      deliver: (st, j, hh) => fetched(st, hh, j.cart.kind, j.cart.built),
     },
     cart: {
       verb: 'Building a cart',
@@ -286,7 +282,11 @@ VB['sim/carts'] = (() => {
       },
     },
   };
-  VB['sim/methods'].bring(KINDS.leftCart, 'leftCart');
+  VB['sim/methods'].bring(KINDS.leftCart, 'leftCart', {
+    look: 'sack',
+    words: 'Leading the cart and its team home',
+    deliver: (st, j, hh) => fetched(st, hh, j.cart.kind, j.cart.built),
+  });
   // Pawn `id` takes up a cart of household hh standing at `tile` for its goal there (VB-993: its hand released at the work; VB-1814: the
   // goal's next hand, not a fetch home): out with it, its lying cart gone; its capacity, 0 when none stands there. A cart stands where its
   // lying cart lies: one whose lying cart a hand has taken up is led away, though it is free (c.at cleared) only once home (VB-1814 review).

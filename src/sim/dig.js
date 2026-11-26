@@ -132,7 +132,6 @@ VB['sim/dig'] = (() => {
   const KIND = {
     verb: 'Digging',
     go: 'Going to dig',
-    back: 'Carrying the load home',
     name: 'Dig clay, bog iron or peat',
     at: ['bog'],
     needs: [],
@@ -142,8 +141,6 @@ VB['sim/dig'] = (() => {
     hours: DIG.hours,
     hands: 1,
     type: 'upkeep',
-    carry: 'basket',
-    to: 'door',
     spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.4, st.w.hy[j.site] + a.oy * 0.4],
     // peat weighs the pile's shortfall of its goal, as the firewood does, but never less than the upkeep's
     urgency: (st, j) => {
@@ -158,10 +155,6 @@ VB['sim/dig'] = (() => {
     make: (st, a, j, frac, hh) => {
       a.load = wants(st, hh, j.good) && digLoad(st, j.site) ? (j.good === 'peat' ? st.ECON.woodPerTrip : 1) : 0;
     },
-    // home with the basket: its load into the store
-    deliver: (st, j, hh, f, a) => {
-      if (a.load > 0) Stores.dug(st, hh, j.good, a.load);
-    },
     // the household's digging ground: the nearest tile within reach of the good it holds fewest loads of, while it wants one
     available: (st, hh, f, c, post) => {
       const at = digSite(st, hh, f);
@@ -169,6 +162,13 @@ VB['sim/dig'] = (() => {
     },
   };
   // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
-  VB['sim/methods'].trip(KIND, 'dig');
+  VB['sim/methods'].trip(KIND, 'dig', {
+    look: 'basket',
+    words: 'Carrying the load home',
+    // home with the basket: its load into the store
+    deliver: (st, j, hh, f, a) => {
+      if (a.load > 0) Stores.dug(st, hh, j.good, a.load);
+    },
+  });
   return { DIG, KIND, GOODS, DUG, goodOf, left, digLoad, mayDig, wants, digSite };
 })();

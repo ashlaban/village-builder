@@ -88,7 +88,7 @@ if (fd) {
 
 // --- hunting: the kind, who hunts, when and where, and the kill
 const H = KINDS.hunt;
-check(H && H.type === 'foraging' && H.hands === 1 && H.minAge === 14 && H.hours === DEER.hunt.hours && H.deliver, 'hunt: foraging, 1 hand, from 14');
+check(H && H.type === 'foraging' && H.hands === 1 && H.minAge === 14 && H.hours === DEER.hunt.hours && VB['sim/doing'].said('hunt').deliver, 'hunt: foraging, 1 hand, from 14');
 for (const r of ['wife', 'maid', 'daughter', 'retired', 'child']) check(ROLES[r].prio.hunt === 0, `${r} hunts`);
 for (const r of ['farmer', 'farmhand', 'son']) check(ROLES[r].prio.hunt === ROLES[r].work.foraging && ROLES[r].prio.hunt > 0, `${r} does not hunt`);
 {

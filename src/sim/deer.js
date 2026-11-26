@@ -159,7 +159,6 @@ VB['sim/deer'] = (() => {
   const KIND = {
     verb: 'Hunting roe deer',
     go: 'Going hunting',
-    back: 'Coming home from the hunt',
     name: 'Go hunting',
     at: ['woods'],
     needs: [],
@@ -170,15 +169,12 @@ VB['sim/deer'] = (() => {
     hands: 1,
     type: 'foraging',
     minAge: DEER.hunt.minAge,
-    carry: 'game',
-    to: 'door',
     spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.5, st.w.hy[j.site] + a.oy * 0.4],
     urgency: (st, j, c, U) => spareUrgency(st, j, U), // fishing's, by the household's spare food
     accrues: true,
     make: (st, a, j, frac) => {
       a.load = kill(st, j.site, frac) * DEER.hunt.meat;
     },
-    deliver: (st, j, hh, f, a) => game(st, hh, a.load),
     // the key names the tile, so a ground whose region is hunted out is left for the next one at the following review
     available: (st, hh, f, c, post) => {
       if (c.season < 2) return;
@@ -187,6 +183,10 @@ VB['sim/deer'] = (() => {
     },
   };
   // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
-  VB['sim/methods'].trip(KIND, 'hunt');
+  VB['sim/methods'].trip(KIND, 'hunt', {
+    look: 'game',
+    words: 'Coming home from the hunt',
+    deliver: (st, j, hh, f, a) => game(st, hh, a.load),
+  });
   return { edgeTile, stock, density, recount, initDeer, deerGraze, browseCrops, ground, hunt, KIND };
 })();

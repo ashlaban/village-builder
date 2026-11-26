@@ -30,7 +30,7 @@ check(v.wood.includes(t), `the trip's tile ${t} is in the village's wood`);
 const carrier = { load: 0 };
 VB['sim/kinds'].KINDS.timber.ops.fell.run(st, j, null, j.site, carrier); // VB-1812: the work leg of its goal
 check(w.trees[t] === trees - 1 && !site.wood && carrier.load > 0, 'its tree is felled where the work is done, its timber in hand (VB-1748)');
-VB['sim/kinds'].KINDS.timber.deliver(st, j, h0, null, carrier);
+VB['sim/doing'].said('timber').deliver(st, j, h0, null, carrier);
 check(site.wood === ECON.woodPerTrip && w.trees[t] === trees - 1, `a trip's load lies at the site (${site.wood}) and its tree is felled`);
 check(v.ledger.some((e) => e.kind === 'timber' && e.good === 'timber'), 'the village\'s ledger shows the timber');
 // the walls wait for BUILD.timber loads

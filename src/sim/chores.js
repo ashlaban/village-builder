@@ -106,7 +106,15 @@ VB['sim/chores'] = (() => {
         ],
         eff: [{ carries: 'timber' }],
       },
-      { prim: 'haul', good: 'timber', at: 'store', pre: [{ carries: 'timber' }], eff: [{ at: 'store' }] },
+      {
+        prim: 'haul',
+        good: 'timber',
+        at: 'store',
+        look: 'logs', // the load drawn in a pawn's arms or on its cart
+        words: 'Carrying timber home',
+        pre: [{ carries: 'timber' }],
+        eff: [{ at: 'store' }],
+      },
       {
         prim: 'unload',
         good: 'timber',
@@ -201,7 +209,6 @@ VB['sim/chores'] = (() => {
     wood: {
       verb: 'Felling timber',
       go: 'Heading to the woods',
-      back: 'Carrying timber home',
       name: 'Fell timber',
       at: ['woods'],
       needs: [],
@@ -211,8 +218,6 @@ VB['sim/chores'] = (() => {
       hours: WOOD_HOURS.fell,
       hands: 1,
       type: 'wood',
-      carry: 'logs', // the load drawn in a pawn's arms or on its cart
-      to: 'woodpile', // what the task fills (sim/reasons: the woodpile against the head's goal)
       spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
       // a goal (VB-1775): the tile's trees felled, their timber loaded on the cart or the back and carried home, and back for more while the
       // goal wants loads (woodNeed); a cut at any leg goes on from what lies at the tile or is in hand
@@ -261,7 +266,6 @@ VB['sim/chores'] = (() => {
     water: {
       verb: 'Drawing water',
       go: 'Going for water',
-      back: 'Carrying water home',
       name: 'Fetch water',
       at: ['water'],
       needs: [],
@@ -271,8 +275,6 @@ VB['sim/chores'] = (() => {
       hours: Water.WATER.draw, // the drawing; the walk out and the walk home laden are walked (VB-1582)
       hands: 1,
       type: 'household',
-      carry: 'buckets',
-      to: 'door',
       window: { from: WORK[0] - 1 },
       vital: true, // a dry day costs the meal's cooking and health (VB-331): a fetch begun is finished after work (VB-1547)
       evening: true, // and one not yet begun may be, until MATCH.day.evening (Kim, 23 November: water after dark)
@@ -323,19 +325,6 @@ VB['sim/chores'] = (() => {
       // from the afternoon (14:00), the cook's hour, above cooking's (VB-331): the hand that would cook fetches the water first
       urgency: (st, j, c, U) =>
         c.hour >= AFTERNOON ? U.waterLate : c.hour < U.waterMorningHour ? U.waterMorning : U.water,
-      // a load is in, and the day's water with the first, for the people it covers (VB-1586: the household cooks once the first load
-      // is in); marsh water is poor, and costs those it covers some health that day (sim/hunger; VB-1582); who drew it drank at the
-      // source (sim/thirst, VB-1585). Left at the door (VB-1748): the water is drawn at the work and stands in its buckets or barrel; the
-      // delivery books what came in, and a carrier cut on the road spills it (VB-1604)
-      deliver: (st, j, hh, f, a) => {
-        const day = cal(st.t).day;
-        // (a day counted as fetched with no load brought, the household's first, has water for all: the count stays absent)
-        if (hh.waterDay !== day) hh.waterFor = coverOf(j);
-        else if (hh.waterFor !== undefined) hh.waterFor += coverOf(j);
-        hh.waterDay = day;
-        if (j.poor) hh.marshDay = hh.waterDay;
-        if (a) VB['sim/thirst'].drank(st, st.pawns[a.id]);
-      },
       // once a day, from the hour before work until the evening's (VB-1547: the due-queue's last ask, at the end of work, leaves it
       // standing for the evening), at the farm's source (sim/water: the nearest source or well its household may draw at; found on the
       // farm's first morning); a farm with no source in reach posts none (VB-1582). The trips its people at home need (VB-1586),
@@ -384,7 +373,6 @@ VB['sim/chores'] = (() => {
       hours: 2,
       hands: 1,
       type: 'household',
-      inside: true,
       window: { from: AFTERNOON },
       late: true, // the meal's deadline is today: unmanned, it calls its hand (sim/day)
       vital: true, // the day's meal: a pot under way is finished after the end of work (VB-119; Kim, 11 Nov; VB-1547)
@@ -412,7 +400,6 @@ VB['sim/chores'] = (() => {
       hours: BREW.hours,
       hands: 1,
       type: 'household',
-      inside: true,
       urgency: (st, j, c, U) => U.brew,
       // a barrel from the grain, if it is still surplus when the work is done
       done: (st, j, hh) => {
@@ -427,7 +414,6 @@ VB['sim/chores'] = (() => {
     gather: {
       verb: 'Gathering berries, mushrooms and nuts',
       go: 'Going to the woods to gather',
-      back: 'Carrying the baskets home',
       name: 'Gather wild food',
       at: ['woods'],
       needs: [],
@@ -437,17 +423,12 @@ VB['sim/chores'] = (() => {
       hours: 3,
       hands: 1,
       type: 'foraging',
-      carry: 'basket',
-      to: 'door',
       urgency: (st, j, c, U) => spareUrgency(st, j, U),
       // the baskets are fresh food, cooked in the pot or eaten as they are on a day without meals (sim/pot, VB-119)
       // gathered as the work ends (VB-1748), a cut trip what its hours so far have found
       accrues: true,
       make: (st, a, j, frac) => {
         a.load = gather(st, j.site, frac);
-      },
-      deliver: (st, j, hh, f, a) => {
-        if (a.load > 0) Pot.putFresh(st, hh, 'gathered', a.load, 'gathering');
       },
       // in the gathering season, at the house's gathering ground (sim/forage): one trip, two while spare food covers fewer than FISH.secondDays
       available: (st, hh, f, c, post) => {
@@ -471,7 +452,6 @@ VB['sim/chores'] = (() => {
       hours: WOOD_HOURS.cut,
       hands: 1,
       type: 'wood',
-      carry: 'logs',
       spot: (st, a, j) => [st.w.hx[j.site] + 10 + a.ox * 0.3, st.w.hy[j.site] + 8],
       // a goal (VB-1775), the firewood table of docs/plans/four-scales/README.md 3.2: the timber at home cut while the pile wants loads
       // (fireNeed); with none home, felled in the village's wood, carried home and cut
@@ -515,11 +495,35 @@ VB['sim/chores'] = (() => {
       },
     },
   };
+  // worked indoors (VB-1820: the work step says it, sim/methods labour; no field of the kind)
+  VB['sim/methods'].labour(KINDS.cook, { inside: true });
+  VB['sim/methods'].labour(KINDS.brew, { inside: true });
   // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
-  VB['sim/methods'].trip(KINDS.gather, 'gather');
+  VB['sim/methods'].trip(KINDS.gather, 'gather', {
+    look: 'basket',
+    words: 'Carrying the baskets home',
+    deliver: (st, j, hh, f, a) => {
+      if (a.load > 0) Pot.putFresh(st, hh, 'gathered', a.load, 'gathering');
+    },
+  });
   // The day's water as a goal (VB-1812; design.md section 7, The task as a plan): the barrel taken as its hand sets out (setOut), the
   // water drawn at the source into the buckets or the barrel, carried home and left at the door; a load cut on the way is spilt.
   VB['sim/methods'].carry(KINDS.water, 'water', {
+    look: 'buckets',
+    words: 'Carrying water home',
+    // a load is in, and the day's water with the first, for the people it covers (VB-1586: the household cooks once the first load
+    // is in); marsh water is poor, and costs those it covers some health that day (sim/hunger; VB-1582); who drew it drank at the
+    // source (sim/thirst, VB-1585). Left at the door (VB-1748): the water is drawn at the work and stands in its buckets or barrel; the
+    // delivery books what came in, and a carrier cut on the road spills it (VB-1604)
+    deliver: (st, j, hh, f, a) => {
+      const day = cal(st.t).day;
+      // (a day counted as fetched with no load brought, the household's first, has water for all: the count stays absent)
+      if (hh.waterDay !== day) hh.waterFor = coverOf(j);
+      else if (hh.waterFor !== undefined) hh.waterFor += coverOf(j);
+      hh.waterDay = day;
+      if (j.poor) hh.marshDay = hh.waterDay;
+      if (a) VB['sim/thirst'].drank(st, st.pawns[a.id]);
+    },
     name: 'drawn at the source',
     op: 'draw',
     run: (st, j, g, at, a) => {

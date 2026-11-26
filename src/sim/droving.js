@@ -226,7 +226,6 @@ VB['sim/droving'] = (() => {
   const KIND = {
     verb: 'Haltering the animals',
     go: 'Going to fetch the animals',
-    back: 'Leading the animals home',
     name: 'Fetch the animals',
     at: ['farm'],
     needs: ['cattle', 'sheep'],
@@ -236,10 +235,8 @@ VB['sim/droving'] = (() => {
     hours: 0.5,
     hands: 1,
     type: 'husbandry',
-    carry: 'cow',
     spot: (st, a, j) => [st.w.hx[j.site] - 20 + a.ox * 0.3, st.w.hy[j.site] + 5 + a.oy * 0.2], // by the byre door
     urgency: (st, j, c, U) => U.other,
-    deliver: (st, j, hh) => ledHome(st, j, hh), // left at the door (VB-1748): a herd led is animals walking, not a load made
     available: (st, hh, f, c, post) => {
       for (const id of away(st)) {
         const hd = st.herds[id];
@@ -248,6 +245,9 @@ VB['sim/droving'] = (() => {
     },
   }; // the animals haltered at the site and led home, as a load in hand: set down at the door by the kind's delivery (VB-1750)
   VB['sim/methods'].carry(KIND, 'drove', {
+    look: 'cow',
+    words: 'Leading the animals home',
+    deliver: (st, j, hh) => ledHome(st, j, hh), // left at the door (VB-1748): a herd led is animals walking, not a load made
     name: 'led',
     op: 'halter',
     led: true,

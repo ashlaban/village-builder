@@ -142,7 +142,6 @@ VB['sim/fieldwork'] = (() => {
       urgency: inWindow,
       done: (st, j) => hoed(j.field),
       // a field in stubble, in the sowing window (a fallow field: in its tilling window, once a year; VB-348)
-      stages: ['stubble'],
       available: (st, hh, fd, c, post, f) => {
         if (
           sowing(st, fd, c) &&
@@ -178,7 +177,6 @@ VB['sim/fieldwork'] = (() => {
         sown(j.field, c);
       },
       // a hoed field, in the sowing window, while the household has the seed for it (sowWhy)
-      stages: ['plowed'],
       available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'plowed' && sowWhy(st, hh, fd, c) === null && underHands(st, hh, fd, c, homeOf(st, hh, f)))
           post('sow:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'sow'));
@@ -202,7 +200,6 @@ VB['sim/fieldwork'] = (() => {
       urgency: (st, j, c, U) => U.reap + frostNear(st, c, U),
       done: (st, j, hh, c) => reaped(st, j.field, c),
       // a ripe field
-      stages: ['ripe'],
       available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'ripe') post('reap:' + fieldKey(f, fd), fd.tile, reapJob(st, f, fd));
       },
@@ -210,7 +207,6 @@ VB['sim/fieldwork'] = (() => {
     haul: {
       verb: 'Bringing in the sheaves',
       go: 'Going for the sheaves',
-      back: 'Carrying sheaves to the barn',
       name: 'Bring in sheaves',
       at: ['field'],
       needs: ['sheaves'],
@@ -220,25 +216,10 @@ VB['sim/fieldwork'] = (() => {
       hours: 0.7,
       hands: Infinity,
       type: 'harvest',
-      carry: 'sheaf',
-      to: 'barn',
       window: { from: WORK[0] - 1 }, // dry by the morning
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6],
       urgency: (st, j, c, U) => U.haul + frostNear(st, c, U),
       setDown: (st, j, a) => laidDown(j.field, a.load), // a load cut at the field goes back with the stooks
-      deliver: (st, j, hh, f, a) => {
-        // the crop the task was posted for: the field goes on to its next course once its last load is taken up (VB-350); a load
-        // left lying goes to the barn entry of its harvest, as the pile recorded it (`j.bin`, sim/lying lay), the field's own entry
-        // untouched once it is sown anew (VB-1814: as the fetch kinds had it)
-        const seq = Stores.sheaf(st, hh, a.load, j.bin ?? j.field.bin ?? -1, j.crop ?? j.field.crop);
-        if (j.bin === undefined || j.bin === j.field.bin) binned(j.field, seq);
-        if (
-          f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') &&
-          !hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].load > 0)
-        )
-          log(st, `${f.name} has brought in its harvest.`, { kind: 'harvest', ...atFarm(f) });
-      },
-      stages: ['stooks'],
       available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'stooks' && c.day >= fd.reaped + st.ECON.dryDays)
           post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, crop: fd.crop });
@@ -260,7 +241,6 @@ VB['sim/fieldwork'] = (() => {
       spot: onField,
       done: (st, j) => weeded(j.field),
       // a growing field whose weeding is open (sim/fields)
-      stages: ['growing'],
       available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'growing' && fd.weedOpen) post('weed:' + fieldKey(f, fd), fd.tile, fieldJob(f, fd, 'weed'));
       },
@@ -277,7 +257,6 @@ VB['sim/fieldwork'] = (() => {
       hours: HOURS.thresh,
       hands: Infinity,
       type: 'threshing',
-      inside: true,
       norm: (st, j) => CROPS[st.households[j.owner.id].sheafCrops?.[0] || 'barley'].hours.thresh ?? HOURS.thresh,
       window: { from: WORK[0] - 1 },
       done: (st, j, hh) => {
@@ -348,7 +327,6 @@ VB['sim/fieldwork'] = (() => {
       spot: onField,
       done: (st, j) => reclaimed(st, j.field),
       // a field gone to grass or scrub while the farm stood empty is cleared again (VB-033)
-      stages: ['fallow', 'scrub'],
       available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'fallow' || fd.stage === 'scrub')
           post('reclaim:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, hours: reclaimHours(st, fd) });
@@ -383,6 +361,18 @@ VB['sim/fieldwork'] = (() => {
       },
     },
   };
+  // worked indoors (VB-1820: the work step says it, sim/methods labour; no field of the kind)
+  VB['sim/methods'].labour(KINDS.thresh, { inside: true });
+  // The field stages each field kind is asked at (sim/kinds' ASK.fieldAt, sim/jobs' due rules, the guide): the asking order's, declared
+  // here beside the kinds' `available`, which reads the stage again (VB-1820: no field of the kind)
+  const STAGES = {
+    plow: ['stubble'],
+    sow: ['plowed'],
+    reap: ['ripe'],
+    haul: ['stooks'],
+    weed: ['growing'],
+    reclaim: ['fallow', 'scrub'],
+  };
   // ---- the sheaves and the manure as goals (VB-1812; design.md section 7, The task as a plan): read from the world at each leg's end ----
   const Methods = VB['sim/methods'];
   // The sheaves: the stooks pitched on the cart (fetched first while they are more than a back load) or the back, carried to the barn (a
@@ -390,6 +380,20 @@ VB['sim/fieldwork'] = (() => {
   // one cut elsewhere lies as the household's pile, which the stray method of its sheaves' goal fetches.
   const stooks = (g) => (g.job.field.stage === 'stooks' ? g.job.field.held : 0);
   Methods.carry(KINDS.haul, 'haul', {
+    look: 'sheaf',
+    words: 'Carrying sheaves to the barn',
+    deliver: (st, j, hh, f, a) => {
+      // the crop the task was posted for: the field goes on to its next course once its last load is taken up (VB-350); a load
+      // left lying goes to the barn entry of its harvest, as the pile recorded it (`j.bin`, sim/lying lay), the field's own entry
+      // untouched once it is sown anew (VB-1814: as the fetch kinds had it)
+      const seq = Stores.sheaf(st, hh, a.load, j.bin ?? j.field.bin ?? -1, j.crop ?? j.field.crop);
+      if (j.bin === undefined || j.bin === j.field.bin) binned(j.field, seq);
+      if (
+        f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') &&
+        !hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].load > 0)
+      )
+        log(st, `${f.name} has brought in its harvest.`, { kind: 'harvest', ...atFarm(f) });
+    },
     name: 'from the stooks',
     op: 'pitch',
     source: true,
@@ -413,5 +417,5 @@ VB['sim/fieldwork'] = (() => {
     run: (st, j, g) => manureDone(st, j.field, st.households[g.owner], j.hours),
   });
   KINDS.manure.can = { cartPays: () => true };
-  return { KINDS, sowWhy, beyondHands, rowAngle, onField, fieldKey };
+  return { KINDS, STAGES, sowWhy, beyondHands, rowAngle, onField, fieldKey };
 })();

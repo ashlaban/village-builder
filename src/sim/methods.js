@@ -20,6 +20,9 @@ VB['sim/methods'] = (() => {
   //   {met: true}: the goal is met, kind.met(st, goal, view);
   //   {not: FACT}, {any: [FACT, ...]}; a step's list of facts holds when each holds.
   // Any fact may carry `why`, the reason told when it is the one that blocks.
+  // A step that carries a good says what a load of it is (VB-1820: no kind's fields say it): its `haul` the load drawn (`look`, agent.carry)
+  // and the leg's words (`words`, sim/agents describe), its `unload` the good's delivery at its place (`deliver(st, j, hh, f, a)`, read
+  // by sim/doing for a good its kind sets down); a `work` step done indoors says so (`inside`: the pawn works in the house).
   // A PLACE is 'site' (the goal's `at`), 'store' (the goal's owner's store), 'stray' (the stray pile's place), 'home' (the store of the
   // load's owner), 'here' (where the pawn stands), or a name the view reads (view.place: 'cart', where the cart stands).
   const AT = 1,
@@ -136,11 +139,15 @@ VB['sim/methods'] = (() => {
     { prim: 'haul', at: to, good, pre: [{ carries: good }], eff: [{ at: to }] },
     { prim: 'unload', at: to, good, pre: [{ carries: good }, { at: to }], eff: [{ not: { carries: good } }] },
   ];
+  // What the rows say of a load of each good (look, words, deliver), from their steps and the strays a kind brings (`{good, ...}`).
+  const SAID = ['look', 'words', 'deliver'];
   // A kind's plan: its methods compiled, the goods it uses (what its loads take up, and its `strays`: goods it takes up only where they
-  // lie stray, VB-1814), where it makes or wants them, its stray rows. A kind with strays may have no method of its own.
+  // lie stray, VB-1814, each `{good, look, words, deliver}` as a step says them), where it makes or wants them, its stray rows, what its
+  // rows say of each good's load, and where its loads are set down (`to`: its first unload's place; a kind of strays only, its owner's
+  // store; null for a kind that carries nothing, VB-1820: sim/agenda's walk home, sim/reasons' woodpile).
   function plan(key, K) {
     const M = K.methods,
-      S = K.strays || [];
+      S = (K.strays || []).map((x) => (typeof x === 'string' ? x : x.good));
     if (!Array.isArray(M) || (!M.length && !S.length) || M.length > MAX.methods)
       throw new Error(`sim/methods: ${key}: one to ${MAX.methods} methods`);
     const methods = M.map((m, i) => {
@@ -163,10 +170,17 @@ VB['sim/methods'] = (() => {
     for (let i = 0; i < uses.length; i++)
       if (wants[i].length > MAX.wants)
         throw new Error(`sim/methods: ${key}: ${uses[i]} read at more than ${MAX.wants} places`);
-    const to = (g) => (steps.find((s) => s.prim === 'unload' && s.good === g) || { at: 'store' }).at;
-    const stray = uses.map((g) => strayRow(g, to(g), !!K.strayCart).map((s) => step(s, `${key}, stray ${g}`)));
+    const toOf = (g) => (steps.find((s) => s.prim === 'unload' && s.good === g) || { at: 'store' }).at;
+    const stray = uses.map((g) => strayRow(g, toOf(g), !!K.strayCart).map((s) => step(s, `${key}, stray ${g}`)));
     const none = { blocked: 'no method applies', step: null, fact: null };
-    return { key, kind: K, methods, uses, wants, stray, none };
+    const goods = {};
+    for (const d of [...steps, ...(K.strays || []).filter((x) => typeof x !== 'string')])
+      if (d.good && SAID.some((k) => d[k] !== undefined))
+        for (const k of SAID)
+          if (d[k] !== undefined) (goods[d.good] ||= { look: null, words: null, deliver: null })[k] = d[k];
+    const un = steps.find((s) => s.prim === 'unload'),
+      to = un ? un.at : S.length ? 'store' : null;
+    return { key, kind: K, methods, uses, wants, stray, none, goods, to };
   }
   // The plans of a table of kinds (sim/kinds' KINDS, or a test's), by key: only the kinds that declare methods.
   function compile(kinds) {
@@ -318,9 +332,9 @@ VB['sim/methods'] = (() => {
   // haul it home and set it down in the store. The good is named for the kind (a pile of it lies as the kind, sim/lying), so the stray
   // method of the same kind's goal fetches a pile cut elsewhere. The goal is the trip: met once its work is done (`job.made`, counted by
   // the work leg and by a trip cut by the day's end that carries its yield home, sim/agents tripHome); the load in hand then goes home by
-  // the rule for a load in hand. The kind record K is given its methods, `met` and its work's op.
+  // the rule for a load in hand. The kind record K is given its methods, `met` and its work's op; o says the load (look, words, deliver).
   // @state job.made: absent until a trip's work is done (VB-1749), then the trips worked for the task (a kind of `trip`'s goal is met at one)
-  const tripRow = (good) => [
+  const tripRow = (good, o) => [
     { prim: 'go', at: 'site', pre: [], eff: [{ at: 'site' }] },
     { prim: 'work', op: 'make', at: 'site', pre: [{ at: 'site' }, { carries: null }], eff: [{ carries: good }] },
     {
@@ -330,12 +344,19 @@ VB['sim/methods'] = (() => {
       pre: [{ at: 'site' }, { carries: null }, { pile: good, at: 'site', min: ANY_N }],
       eff: [{ carries: good }],
     },
-    { prim: 'haul', good, at: 'store', pre: [{ carries: good }], eff: [{ at: 'store' }] },
-    { prim: 'unload', good, at: 'store', pre: [{ carries: good }, { at: 'store' }], eff: [{ not: { carries: good } }] },
+    { prim: 'haul', good, at: 'store', look: o.look, words: o.words, pre: [{ carries: good }], eff: [{ at: 'store' }] },
+    {
+      prim: 'unload',
+      good,
+      at: 'store',
+      deliver: o.deliver,
+      pre: [{ carries: good }, { at: 'store' }],
+      eff: [{ not: { carries: good } }],
+    },
   ];
-  function trip(K, good) {
+  function trip(K, good, o = {}) {
     // a kind's record, given its methods at load (no state)
-    Object.assign(K, { methods: [{ name: 'a trip', steps: tripRow(good) }], met: (st, g) => (g.job.made || 0) > 0 });
+    Object.assign(K, { methods: [{ name: 'a trip', steps: tripRow(good, o) }], met: (st, g) => (g.job.made || 0) > 0 });
     K.ops = {
       make: {
         run: (st, j, g, at, a) => {
@@ -357,7 +378,8 @@ VB['sim/methods'] = (() => {
   // load in hand goes on by this row to the kind's place, not by the rule for a load in hand to the store. The good is named for the
   // kind unless o.good says (the building's timber, which the wood's `timber` is not). o: {op, run(st, j, g, at, a, cap): the load made
   // in the hand (cap: the loads its cart or its back holds), met(st, g), source (true: K.can.source reads what the site holds; why),
-  // to, cart (true: K.can.cartPays), hours, reload (the hours of the work once a load was made: the task's from then on)}.
+  // to, cart (true: K.can.cartPays), hours, reload (the hours of the work once a load was made: the task's from then on), look, words,
+  // deliver (what a load is: the steps' of `trip`)}.
   const cartOrNone = { any: [{ has: 'cart' }, { not: { free: 'cart' } }, { not: { can: 'cartPays' } }] };
   const cartStep = {
     prim: 'fetch',
@@ -387,8 +409,15 @@ VB['sim/methods'] = (() => {
         pre: [{ at: 'site' }, { carries: null }, { pile: good, at: 'site', min: ANY_N }],
         eff: [{ carries: good }],
       },
-      { prim: 'haul', good, at: to, pre: [{ carries: good }], eff: [{ at: to }] },
-      { prim: 'unload', good, at: to, pre: [{ carries: good }, { at: to }], eff: [{ not: { carries: good } }] },
+      { prim: 'haul', good, at: to, look: o.look, words: o.words, pre: [{ carries: good }], eff: [{ at: to }] },
+      {
+        prim: 'unload',
+        good,
+        at: to,
+        deliver: o.deliver,
+        pre: [{ carries: good }, { at: to }],
+        eff: [{ not: { carries: good } }],
+      },
     ];
     Object.assign(K, {
       methods: [{ name: o.name || 'carried', steps }],
@@ -402,7 +431,7 @@ VB['sim/methods'] = (() => {
           a.loadOf = null; // made in the hand: its delivery reads the task
           o.run(st, j, g, at, a, cap);
           if (a.load > 0) {
-            a.carry = K.carry;
+            a.carry = o.look ?? null;
             j.made = (j.made || 0) + 1;
             if (o.reload) j.hours = o.reload;
           }
@@ -436,12 +465,13 @@ VB['sim/methods'] = (() => {
   // The timber, the grain, the hay and a cart left lying (a plan given up, a carrier fallen on the road, a house moved from its landing):
   // no goal of the owner's uses them (the wood's is the timber of its trees, the hay's the cocks of its meadow, while it is mown), so each
   // is the stray of a goal of its own, the owner's to bring home: no method but the stray one, met when none of the good lies stray and
-  // no hand of it carries a load. o: {cart (a cart fetched first where one is free and the pile is more than `back`), back}.
+  // no hand of it carries a load. o: {cart (a cart fetched first where one is free and the pile is more than `back`), back, look, words,
+  // deliver (what a load is: the steps' of `trip`)}.
   function bring(K, good, o = {}) {
     const lies = (st, g, v) => v.stray(st, g, good, null, null);
     Object.assign(K, {
       methods: [],
-      strays: [good],
+      strays: [{ good, look: o.look, words: o.words, deliver: o.deliver }],
       strayCart: !!o.cart,
       met: (st, g, v) => {
         const at = lies(st, g, v);
@@ -461,11 +491,18 @@ VB['sim/methods'] = (() => {
   // Every kind with no load to carry and no charge to hold: go to the site (an indoor kind's is its house, where it stands by the door,
   // its `spot`), and work there; the work's end is the kind's own (`ends`: sim/agents' complete runs its `done`, or finishes a plot's
   // step). Met once its work is done (`job.made`); the hours of a work cut short lie on the posted task, the stage's record (sim/progress),
-  // for whoever takes it up next.
-  function labour(K) {
+  // for whoever takes it up next. o: {inside (true: worked in the house, VB-1820: the step says it, not the kind)}.
+  function labour(K, o = {}) {
     const steps = [
       { prim: 'go', at: 'site', pre: [], eff: [{ at: 'site' }] },
-      { prim: 'work', op: 'labour', at: 'site', pre: [{ at: 'site' }], eff: [{ met: true }] },
+      {
+        prim: 'work',
+        op: 'labour',
+        at: 'site',
+        ...(o.inside ? { inside: true } : {}),
+        pre: [{ at: 'site' }],
+        eff: [{ met: true }],
+      },
     ];
     Object.assign(K, { methods: [{ name: 'worked', steps }], met: (st, g) => (g.job.made || 0) > 0 });
     K.ops = {

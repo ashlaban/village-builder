@@ -193,7 +193,7 @@ const fetchOf = (steps) => {
     hh = st.households[0],
     p = st.pawns[hh.holder],
     { ate } = VB['sim/hunger'];
-  KINDS.water.deliver(st, { poor: true }, hh);
+  VB['sim/doing'].said('water').deliver(st, { poor: true }, hh);
   check(hh.waterDay === cal(st.t).day && hh.marshDay === hh.waterDay, 'a fetch at a marsh brings the day in, marked as marsh water');
   p.health = 50;
   ate(st, p, 1, 1, 0, 0, false);

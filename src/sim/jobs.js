@@ -123,11 +123,11 @@ VB['sim/jobs'] = (() => {
         // what is opened is noted here, not for the day's allotment
         changed = new Set();
         opened = [];
-        if (KINDS[K].stages) {
-          for (const fd of f.fields) if (KINDS[K].stages.includes(fd.stage)) ask(rule, hh, fd, f);
+        const S = ASK.stages[K];
+        if (S) {
+          for (const fd of f.fields) if (S.includes(fd.stage)) ask(rule, hh, fd, f);
           // the fields of a farm it holds in trust, as its own (VB-309)
-          for (const g of heldFarms(st, id))
-            for (const fd of g.fields) if (KINDS[K].stages.includes(fd.stage)) ask(rule, hh, fd, g);
+          for (const g of heldFarms(st, id)) for (const fd of g.fields) if (S.includes(fd.stage)) ask(rule, hh, fd, g);
         } else ask(rule, hh, f, f);
         const fresh = opened;
         changed = noted;

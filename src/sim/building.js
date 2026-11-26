@@ -611,7 +611,6 @@ VB['sim/building'] = (() => {
     timber: {
       verb: 'Felling timber',
       go: 'Heading to the woods for timber',
-      back: 'Carrying timber to the building site',
       name: 'Fell timber',
       at: ['woods'],
       needs: [],
@@ -621,23 +620,9 @@ VB['sim/building'] = (() => {
       hours: 3,
       hands: 1,
       type: 'wood',
-      carry: 'logs',
-      to: 'site',
       spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
       draw: (st, j) => (j.onSite ? j.site : drawWood(st, st.villages[j.village])),
       urgency: (st, j, c, U) => (j.shelter ? U.shelter : U.other),
-      // its load lies at the site, and the ledger of the village or household building says so
-      deliver: (st, j) => {
-        const v = st.villages[j.village];
-        j.timberFor.wood = (j.timberFor.wood || 0) + ECON.woodPerTrip;
-        Stores.record(
-          st,
-          j.owner.type === 'village' ? v : st.households[j.owner.id],
-          'timber',
-          ECON.woodPerTrip,
-          'timber',
-        );
-      },
       available: timberWork,
     },
     // A booth's raising (VB-784): BOOTH.hours at its tile once its wood lies there
@@ -681,7 +666,6 @@ VB['sim/building'] = (() => {
     boothwater: {
       verb: 'Drawing water',
       go: 'Going for water',
-      back: 'Carrying water to the booth',
       name: 'Fetch water for a booth',
       at: ['water'],
       needs: [],
@@ -691,8 +675,6 @@ VB['sim/building'] = (() => {
       hours: Water.WATER.draw,
       hands: 1,
       type: 'household',
-      carry: 'buckets',
-      to: 'site',
       vital: true,
       spot: (st, a, j) => {
         const w = st.w;
@@ -700,7 +682,6 @@ VB['sim/building'] = (() => {
           ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8]
           : [w.hx[j.site] + a.ox * 0.2, w.hy[j.site] + 4];
       },
-      deliver: waterBooth, // left at the door, as the farm's water (sim/chores, VB-1748): it books what came in
       spills: true, // a load cut on the way is spilt: nothing lies (VB-1604)
       available: boothWaterWork,
     },
@@ -715,17 +696,9 @@ VB['sim/building'] = (() => {
       gives: ['timber'],
       hours: 0.5,
       label: 'Timber',
-      back: 'Carrying timber home from where it was left',
       type: 'wood',
-      carry: 'logs',
-      to: 'woodpile',
       hands: 1,
       urgency: (st, j, c, U) => U.haul,
-      // VB-1667: the firewood a household left at its landing when its house moved (`j.moving`) comes home as it was, a load's share
-      deliver: (st, j, hh, f, a) =>
-        j.moving
-          ? Stores.put(st, hh, 'wood', (ECON.woodPerTrip * a.load) / TRAVEL.load, 'moving')
-          : Stores.put(st, hh, 'wood', ECON.woodPerTrip * Math.max(1, Math.round(a.load / TRAVEL.load)), 'timber'),
     },
     // The grain of a gift whose bearer died on the road (sim/journeys' dropStay, VB-850): lying where he fell, fetched home to the store of
     // the household it was set aside for (its village's, if that is gone), by crop as it was: a goal of the owner's while any lies
@@ -739,24 +712,13 @@ VB['sim/building'] = (() => {
       gives: ['grain'],
       hours: 0.5,
       label: 'Grain',
-      back: 'Carrying grain home from where it was left',
       type: 'tilling',
-      carry: 'sack',
-      to: 'barn',
       hands: 1,
       urgency: (st, j, c, U) => U.haul,
-      deliver: (st, j, hh, f, a) => {
-        const sum = Object.values(j.parts).reduce((x, y) => x + y, 0),
-          parts = {};
-        for (const c in j.parts) parts[c] = (j.parts[c] * a.load) / sum;
-        const at = j.owner.type === 'village' ? st.villages[j.owner.id] : hh;
-        Stores.put(st, at, 'grain', a.load, j.moving ? 'moving' : { kind: 'gift', from: 'where it lay' }, parts);
-      },
     },
     pick: {
       verb: 'Picking stones',
       go: 'Going to pick stones',
-      back: 'Carrying stones home',
       name: 'Pick stones',
       at: ['land'],
       needs: [],
@@ -766,17 +728,13 @@ VB['sim/building'] = (() => {
       hours: BUILD.pickHours,
       hands: 1,
       type: 'tilling',
-      carry: 'basket',
-      to: 'barn',
       urgency: (st, j, c, U) => U.repair,
       make: stoneTaken,
-      deliver: stoneHome,
       available: stoneWork,
     },
     quarry: {
       verb: 'Breaking stone',
       go: 'Going to the quarry',
-      back: 'Carrying stone home',
       name: 'Quarry stone',
       at: ['hills'],
       needs: [],
@@ -786,11 +744,8 @@ VB['sim/building'] = (() => {
       hours: BUILD.quarryHours,
       hands: 1,
       type: 'tilling',
-      carry: 'basket',
-      to: 'barn',
       urgency: (st, j, c, U) => U.repair,
       make: stoneTaken,
-      deliver: stoneHome,
       available: stoneWork,
     },
     raise: {
@@ -903,6 +858,20 @@ VB['sim/building'] = (() => {
   // drawn at the source, carried to the booth, spilt if cut.
   const Methods = VB['sim/methods'];
   Methods.carry(KINDS.timber, 'timber', {
+    look: 'logs',
+    words: 'Carrying timber to the building site',
+    // its load lies at the site, and the ledger of the village or household building says so
+    deliver: (st, j) => {
+      const v = st.villages[j.village];
+      j.timberFor.wood = (j.timberFor.wood || 0) + ECON.woodPerTrip;
+      Stores.record(
+        st,
+        j.owner.type === 'village' ? v : st.households[j.owner.id],
+        'timber',
+        ECON.woodPerTrip,
+        'timber',
+      );
+    },
     name: 'felled for the site',
     good: 'sitetimber',
     op: 'fell',
@@ -915,6 +884,9 @@ VB['sim/building'] = (() => {
   });
   KINDS.timber.places = { dest: (st, g) => g.job.dest };
   Methods.carry(KINDS.boothwater, 'boothwater', {
+    look: 'buckets',
+    words: 'Carrying water to the booth',
+    deliver: waterBooth, // left at the door, as the farm's water (sim/chores, VB-1748): it books what came in
     name: 'drawn for the booth',
     op: 'draw',
     to: 'booth',
@@ -925,9 +897,41 @@ VB['sim/building'] = (() => {
   });
   KINDS.boothwater.places = { booth: (st, g) => g.job.dest };
   // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
-  for (const k of ['pick', 'quarry']) VB['sim/methods'].trip(KINDS[k], k);
+  Methods.trip(KINDS.pick, 'pick', {
+    look: 'basket',
+    words: 'Carrying stones home',
+    deliver: stoneHome,
+  });
+  Methods.trip(KINDS.quarry, 'quarry', {
+    look: 'basket',
+    words: 'Carrying stone home',
+    deliver: stoneHome,
+  });
   // the timber and the grain left lying, brought home on a cart where one is free and the pile is more than a back load (VB-1814)
-  for (const k of ['leftTimber', 'leftGrain']) Methods.bring(KINDS[k], k, { cart: true, back: TRAVEL.load });
+  Methods.bring(KINDS.leftTimber, 'leftTimber', {
+    cart: true,
+    back: TRAVEL.load,
+    look: 'logs',
+    words: 'Carrying timber home from where it was left',
+    // VB-1667: the firewood a household left at its landing when its house moved (`j.moving`) comes home as it was, a load's share
+    deliver: (st, j, hh, f, a) =>
+      j.moving
+        ? Stores.put(st, hh, 'wood', (ECON.woodPerTrip * a.load) / TRAVEL.load, 'moving')
+        : Stores.put(st, hh, 'wood', ECON.woodPerTrip * Math.max(1, Math.round(a.load / TRAVEL.load)), 'timber'),
+  });
+  Methods.bring(KINDS.leftGrain, 'leftGrain', {
+    cart: true,
+    back: TRAVEL.load,
+    look: 'sack',
+    words: 'Carrying grain home from where it was left',
+    deliver: (st, j, hh, f, a) => {
+      const sum = Object.values(j.parts).reduce((x, y) => x + y, 0),
+        parts = {};
+      for (const c in j.parts) parts[c] = (j.parts[c] * a.load) / sum;
+      const at = j.owner.type === 'village' ? st.villages[j.owner.id] : hh;
+      Stores.put(st, at, 'grain', a.load, j.moving ? 'moving' : { kind: 'gift', from: 'where it lay' }, parts);
+    },
+  });
   return {
     UPKEEP,
     KINDS,

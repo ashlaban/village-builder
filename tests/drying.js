@@ -19,7 +19,7 @@ const posts = (st, kind, hh, f, c) => { const out = []; KINDS[kind].available(st
 
 // --- the kinds
 check(KINDS.rackfish && KINDS.dry && KINDS.boat && KINDS.boat.project, 'the kinds rackfish, dry and boat (a project\'s step)');
-check(KINDS.rackfish.type === 'foraging' && KINDS.rackfish.carry && near(KINDS.rackfish.urgency(), 0.5), 'fishing for the rack: carried home, at 0.5');
+check(KINDS.rackfish.type === 'foraging' && VB['sim/doing'].lookOf('rackfish') && near(KINDS.rackfish.urgency(), 0.5), 'fishing for the rack: carried home, at 0.5');
 check(KINDS.dry.hours === 1 && near(KINDS.dry.urgency(), 1.6) && KINDS.boat.hours === 20, 'hanging 1 hour at 1.6; the boat 20 hours');
 check(ROLES.wife.prio.rackfish === ROLES.wife.work.foraging, 'roles rank fishing for the rack as foraging');
 

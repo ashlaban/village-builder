@@ -12,23 +12,24 @@ VB['sim/doing'] = (() => {
   const { here, placeOf: poseOf } = VB['sim/pose'];
   const { teamFree } = VB['sim/work'];
   const { emit } = VB['sim/events'];
-  // The goods a method carries: the kind its piles lie as (sim/lying), the load drawn (agent.carry), its store, and the store's units a
-  // load of TRAVEL.load holds. A load in hand is agent.load (TRAVEL's units) of its task's owner's. A good not named here is a trip's
-  // (sim/methods trip, VB-1749): named for its kind, it lies as that kind, is carried in the kind's units (a.load as its `make` gives it),
-  // taken up whole, and set down in the store by the kind's delivery (`deliver`), reading the task, or the pile's record it was taken from.
-  // A good with a `kind` is set down by that kind's delivery, not into a store: the building's timber (VB-1812), carried to its site and
-  // lying as `timber` when its carrier is cut.
+  // The goods a method carries: the kind its piles lie as (sim/lying), its store, and the store's units a load of TRAVEL.load holds. A load
+  // in hand is agent.load (TRAVEL's units) of its task's owner's; what it is drawn as (agent.carry), the haul leg's words and its delivery
+  // are said by the method that carries it (sim/methods: its haul and unload steps, VB-1820). A good not named here is a trip's (sim/methods
+  // trip, VB-1749): named for its kind, it lies as that kind, is carried in the kind's units (a.load as its `make` gives it), taken up
+  // whole, and set down in the store by the kind's delivery (its method's `deliver`), reading the task, or the pile's record it was taken
+  // from. A good with a `kind` is set down by that kind's delivery, not into a store: the building's timber (VB-1812), carried to its site
+  // and lying as `timber` when its carrier is cut.
   // The goods left lying with no goal of their own (sim/lying BRING, VB-1814) and the hay are taken up a load at a time (`loads`: the
   // cart's or the back's, hay by the rule of every load of hay), not whole as a trip's pile.
   const GOODS = {
-    timber: { lying: 'wood', carry: 'logs', store: 'timber', per: (st) => st.ECON.woodPerTrip },
-    sitetimber: { lying: 'timber', carry: 'logs', kind: 'timber' },
-    leftTimber: { lying: 'leftTimber', carry: 'logs', kind: 'leftTimber', loads: true },
-    leftGrain: { lying: 'leftGrain', carry: 'sack', kind: 'leftGrain', loads: true },
-    leftCart: { lying: 'leftCart', carry: 'sack', kind: 'leftCart', loads: true },
-    hay: { lying: 'hay', carry: 'hay', kind: 'hay', loads: true, hay: true },
+    timber: { lying: 'wood', store: 'timber', per: (st) => st.ECON.woodPerTrip },
+    sitetimber: { lying: 'timber', kind: 'timber' },
+    leftTimber: { lying: 'leftTimber', kind: 'leftTimber', loads: true },
+    leftGrain: { lying: 'leftGrain', kind: 'leftGrain', loads: true },
+    leftCart: { lying: 'leftCart', kind: 'leftCart', loads: true },
+    hay: { lying: 'hay', kind: 'hay', loads: true, hay: true },
   };
-  const goodOf = (good) => GOODS[good] || { lying: good, carry: KINDS[good].carry, kind: good };
+  const goodOf = (good) => GOODS[good] || { lying: good, kind: good };
   const byKind = (good) => !!goodOf(good).kind;
   const plans = Methods.compile(KINDS);
   // A kind's plan, compiled on its first ask when the kind was added after load, or its record replaced (a test's kind, declared with its
@@ -43,6 +44,19 @@ VB['sim/doing'] = (() => {
   const loaded = (k) => {
     const P = planOf(k);
     return P && P.uses.length ? P.uses[0] : null;
+  };
+  // What kind k's methods say of a load of good (its first loaded good): {look, words, deliver}, or null (VB-1820).
+  const said = (k, good = loaded(k)) => {
+    const P = planOf(k);
+    return P && good !== null ? P.goods[good] || null : null;
+  };
+  // the load drawn (agent.carry) and the haul leg's words of a load in hand for a task of kind k, or null
+  const lookOf = (k, good) => (said(k, good) || {}).look ?? null;
+  const wordsOf = (k) => (said(k) || {}).words ?? null;
+  // where kind k's loads are set down (its method's first unload: 'store', a place of the kind's), or null for a kind that carries none
+  const carriesTo = (k) => {
+    const P = KINDS[k] ? planOf(k) : null;
+    return P ? P.to : null;
   };
   const hhOf = (st, owner) => (owner === null || owner === undefined ? null : st.households[owner]);
   const titled = (owner) => ({ type: 'household', id: owner });
@@ -162,7 +176,7 @@ VB['sim/doing'] = (() => {
       n = l ? Lying.takeAt(st, l.tile, G.lying, title, cap(st, a, s.good)) : 0;
     if (n > 0) {
       a.load = n;
-      a.carry = G.carry;
+      a.carry = lookOf(a.job.kind, s.good);
       a.loadOf = byKind(s.good) ? of : null;
     }
     return n;
@@ -200,14 +214,14 @@ VB['sim/doing'] = (() => {
       if (drop) Lying.lay(st, a, { ...j, owner: titleOf(a.job, owner) }, G.lying, at, x, y);
       else {
         const hh = hhOf(st, owner),
-          got = KINDS[G.kind].deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
+          got = said(G.kind, good).deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
         // the played pawn's sheet tells what the trip brought (sim/player, VB-1118), as sim/agents' deposit does
         if (st.player && st.player.pawn === a.id)
           emit(st, 'yielded', {
             pawn: a.id,
             kind: G.kind,
             farm: a.job.farm ?? null,
-            good: G.carry ?? null,
+            good: lookOf(a.job.kind, good),
             n: typeof got === 'number' ? got : n,
           });
       }
@@ -227,5 +241,21 @@ VB['sim/doing'] = (() => {
   }
   // a work leg's hours: its op's, else the task's (a trip's hours as it was posted), else its kind's
   const hoursOf = (j, s) => KINDS[j.kind].ops[s.op].hours ?? j.hours ?? KINDS[j.kind].hours;
-  return { VIEW, GOODS, goalOf, ask, placeOf, takeCart, load, unload, work, hoursOf };
+  return {
+    VIEW,
+    GOODS,
+    planOf,
+    said,
+    lookOf,
+    wordsOf,
+    carriesTo,
+    goalOf,
+    ask,
+    placeOf,
+    takeCart,
+    load,
+    unload,
+    work,
+    hoursOf,
+  };
 })();

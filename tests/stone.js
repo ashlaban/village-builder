@@ -34,14 +34,14 @@ plan.build = null; check(asked(autumn).length === 0, 'no stone is wanted without
 const j = { kind: 'pick', site: stony, farm: f }, carrier = { load: 0 };
 K.pick.make(st, carrier, j);
 check(carrier.load === 1 && w.stones[stony] === 175 && !hh.stone.granite, `the stones leave the tile as the work ends (${w.stones[stony]}), the basket in hand`);
-K.pick.deliver(st, j, hh, f, carrier);
+VB['sim/doing'].said('pick').deliver(st, j, hh, f, carrier);
 check(hh.stone.granite === 1 && w.stones[stony] === 175 && hh.ledger.some((e) => e.kind === 'pick' && e.good === 'stone'), `a picked load, granite (${JSON.stringify(hh.stone)}, ${w.stones[stony]} stones left)`);
 // VB-733: a quarried load is of its tile's bedrock; the ledger counts the good whatever its kind
 if (!w.rock) w.rock = new Uint8Array(w.N);
 w.rock[tileAt(w, 23, 7)] = ROCK.SANDSTONE;
 const jq = { kind: 'quarry', site: tileAt(w, 23, 7), farm: f };
 K.quarry.make(st, carrier, jq);
-K.quarry.deliver(st, jq, hh, f, carrier);
+VB['sim/doing'].said('quarry').deliver(st, jq, hh, f, carrier);
 check(heldOf(hh, 'stone') === 2 && hh.stone.sandstone === 1 && heldOf(hh, 'stone/sandstone') === 1 && w.stones[tileAt(w, 23, 7)] === 0,
   `a quarried load of sandstone; the hills are never exhausted (${JSON.stringify(hh.stone)})`);
 check(hh.ledger.filter((e) => e.kind === 'quarry').every((e) => e.good === 'stone'), 'the ledger books stone, not its rock');

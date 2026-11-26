@@ -198,7 +198,6 @@ VB['sim/drying'] = (() => {
     rackfish: {
       verb: 'Fishing for the drying rack',
       go: 'Going fishing for the rack',
-      back: 'Carrying the catch to the rack',
       name: 'Fish for the rack',
       at: ['shore'],
       needs: [],
@@ -208,8 +207,6 @@ VB['sim/drying'] = (() => {
       hours: 3,
       hands: 1,
       type: 'foraging',
-      carry: 'fish',
-      to: 'door',
       spot: (st, a, j) => {
         const w = st.w,
           x = w.hx[j.site],
@@ -222,9 +219,6 @@ VB['sim/drying'] = (() => {
       accrues: true,
       make: (st, a, j, frac) => {
         a.load = catchOf(st, j, frac);
-      },
-      deliver: (st, j, hh, f, a) => {
-        if (a.load > 0) Stores.put(st, hh, 'fish', a.load, 'catch');
       },
       // in the drying season, in a village by fishing water, while the household holds less dried fish than its head's target (by default
       // the dried fish wanted, VB-698) and no catch waits
@@ -282,7 +276,6 @@ VB['sim/drying'] = (() => {
     fish: {
       verb: 'Fishing',
       go: 'Going fishing',
-      back: 'Carrying the catch home',
       name: 'Go fishing',
       at: ['shore'],
       needs: [],
@@ -292,8 +285,6 @@ VB['sim/drying'] = (() => {
       hours: 3,
       hands: 1,
       type: 'foraging',
-      carry: 'fish',
-      to: 'door',
       // at the water's edge: the edge of the lake or sea tile, or by the brook that runs through the middle of a river tile
       spot: (st, a, j) => {
         const w = st.w,
@@ -309,7 +300,6 @@ VB['sim/drying'] = (() => {
       make: (st, a, j, frac) => {
         a.load = catchOf(st, j, frac); // the catch made as the fishing ends (VB-1748)
       },
-      deliver: (st, j, hh, f, a) => potCatch(st, j, hh, a.load), // the catch, for the played pawn's sheet (VB-1118)
       // in the fishing season, from its boat or the house's fishing ground (sim/drying): one trip, two while spare food is under FISH.secondDays
       available: (st, hh, f, c, post) => {
         if (!fishing(c) || Pot.fishCovered(st, hh, dailyNeed(st, hh))) return; // none while fresh fish covers 2 days (VB-388)
@@ -338,7 +328,18 @@ VB['sim/drying'] = (() => {
     held: (st, hh) => larderOf(hh, 'dried fish'),
   });
   // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
-  for (const k of ['fish', 'rackfish']) VB['sim/methods'].trip(KINDS[k], k);
+  VB['sim/methods'].trip(KINDS.fish, 'fish', {
+    look: 'fish',
+    words: 'Carrying the catch home',
+    deliver: (st, j, hh, f, a) => potCatch(st, j, hh, a.load), // the catch, for the played pawn's sheet (VB-1118)
+  });
+  VB['sim/methods'].trip(KINDS.rackfish, 'rackfish', {
+    look: 'fish',
+    words: 'Carrying the catch to the rack',
+    deliver: (st, j, hh, f, a) => {
+      if (a.load > 0) Stores.put(st, hh, 'fish', a.load, 'catch');
+    },
+  });
   return {
     DRY,
     BOAT,

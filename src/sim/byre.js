@@ -811,12 +811,13 @@ VB['sim/byre'] = (() => {
       hours: 1,
       hands: 1,
       type: 'household',
-      inside: true,
       urgency: (st, j, c, U) => U.salt,
       done: (st, j, hh) => saltDone(st, hh),
       available: byreWork,
     },
   };
+  // worked indoors (VB-1820: the work step says it, sim/methods labour; no field of the kind)
+  VB['sim/methods'].labour(KINDS.salt, { inside: true });
   return {
     KINDS,
     byreWork,

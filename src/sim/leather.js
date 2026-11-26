@@ -115,7 +115,6 @@ VB['sim/leather'] = (() => {
       hours: LEATHER.shoeHours,
       hands: 1,
       type: 'upkeep',
-      inside: true,
       spot: atHouse(4, 2),
       urgency: () => LEATHER.urgency,
       done: (st, j, hh) => {
@@ -139,7 +138,6 @@ VB['sim/leather'] = (() => {
       hours: LEATHER.harnessHours,
       hands: 1,
       type: 'upkeep',
-      inside: true,
       spot: atHouse(-4, 2),
       urgency: () => LEATHER.urgency,
       done: (st, j, hh) => {
@@ -153,6 +151,9 @@ VB['sim/leather'] = (() => {
       },
     },
   };
+  // worked indoors (VB-1820: the work step says it, sim/methods labour; no field of the kind)
+  VB['sim/methods'].labour(KINDS.cobble, { inside: true });
+  VB['sim/methods'].labour(KINDS.harness, { inside: true });
   return {
     LEATHER,
     KINDS,

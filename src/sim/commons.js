@@ -227,9 +227,17 @@ VB['sim/commons'] = (() => {
   }
   // A common field shares the field's kinds (sim/fieldwork): three end otherwise for it. Its sheaves go into the village store, and its
   // clearing and breaking are the village's project, not a household's (VB-100). K: the field's kinds; sim/kinds joins what this gives.
+  // The sheaves' delivery is said by the haul's method, on its unload step (VB-1820): a common field's goes to the village store.
+  const toVillage = (deliver) => (st, j, hh, f, a) => (j.common ? brought(st, j, a) : deliver(st, j, hh, f, a));
   const common = (K) => ({
     ...K,
-    haul: { ...K.haul, deliver: (st, j, hh, f, a) => (j.common ? brought(st, j, a) : K.haul.deliver(st, j, hh, f, a)) },
+    haul: {
+      ...K.haul,
+      methods: K.haul.methods.map((m) => ({
+        ...m,
+        steps: m.steps.map((s) => (s.prim === 'unload' && s.deliver ? { ...s, deliver: toVillage(s.deliver) } : s)),
+      })),
+    },
     clear: { ...K.clear, done: (st, j, hh) => (j.common ? cleared(st, j, hh) : K.clear.done(st, j, hh)) },
     break: { ...K.break, done: (st, j) => (j.common ? brokenUp(st, j) : K.break.done(st, j)) },
   });
