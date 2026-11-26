@@ -58,7 +58,7 @@ const onRoad = (a) => {
 };
 const fetchJob = () => {
   let j = null;
-  Lying.fetchWork(st, hh, f, null, (key, site, extra, k, owner) => (j = J.post(st, key, k, owner, site, extra)));
+  Lying.bringWork(st, hh, f, null, (key, site, extra, k, owner) => (j = J.post(st, key, k, owner, site, extra)));
   return j;
 };
 {
@@ -77,8 +77,8 @@ const fetchJob = () => {
   assert.deepStrictEqual(checkState(st), [], 'the state with a load lying breaks an invariant');
   // no fetching is posted for it (VB-1812): the stray method of the household's next sheaves' goal carries it home before the stooks
   let posted = null;
-  Lying.fetchWork(st, hh, f, null, (key, site, extra, k) => (posted = k), (k) => !!KINDS[Lying.fetchKey(k)]); // as sim/kinds asks
-  assert.strictEqual(posted, null, 'a fetch kind is posted for a load a goal carries');
+  Lying.bringWork(st, hh, f, null, (key, site, extra, k) => (posted = k)); // as sim/kinds asks (VB-1814: no fetch kinds at all)
+  assert.strictEqual(posted, null, 'a goal of its own is posted for a load a goal carries');
   fd.stage = 'stooks'; fd.held = 30;
   const j = J.post(st, 'haul:stray', 'haul', { type: 'household', id: hh.id }, fd.tile, { field: fd, farm: f });
   const b = st.agents[grown.find((id) => id !== a.id)];
@@ -148,8 +148,8 @@ const fetchJob = () => {
   assert.strictEqual(D.VIEW.stray(st, hhGoal, 'wellstone', st.w.hx[f.house], st.w.hy[f.house]), null, 'a household\'s goal takes up the village\'s stone');
   // no fetching is posted (VB-1812): the stray method of the next goal for the well's stone carries it there first
   let fk = null;
-  Lying.fetchWork(st, v, v, null, (key, site, extra, k) => (fk = k), (k) => !!KINDS[Lying.fetchKey(k)]);
-  assert.strictEqual(fk, null, 'a fetch kind is posted for the stone a goal carries');
+  Lying.bringWork(st, v, v, null, (key, site, extra, k) => (fk = k));
+  assert.strictEqual(fk, null, 'a goal of its own is posted for the stone a goal carries');
   const fj = J.post(st, 'wellstone:stray', 'wellstone', own, f.house, { village: v.id, step, from: hh.id, dest: v.center });
   const villagers = st.households.filter((h) => !h.dissolved && h.id !== hh.id && st.farmsteads[h.farmstead].village === v.id)
     .flatMap((h) => h.members).filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18);
@@ -166,8 +166,24 @@ const fetchJob = () => {
 {
   const of = { field: { crop: 'rye', stage: 'growing' }, crop: 'barley', bin: 5, src: fd.tile };
   let seen = null;
-  const K = { ...KINDS.haul, deliver: (st_, j) => (seen = [j.field.crop, j.field.bin, j.site]) };
-  Lying.fetchKind('haul', K).deliver(st, { ...of }, hh, f, {});
+  // set down by sim/doing's unload, which reads the pile's record the load was taken up from (VB-1814: no fetch kind's reading)
+  const b = hand(),
+    jj = J.post(st, 'haul:t7', 'haul', { type: 'household', id: hh.id }, fd.tile, { field: fd, farm: f }),
+    deliver = KINDS.haul.deliver;
+  A.release(st, b);
+  Object.assign(b, { job: jj, load: 30, loadOf: of, carry: 'sheaf' });
+  KINDS.haul.deliver = (st_, j) => (seen = [j.crop ?? j.field.crop, j.bin ?? j.field.bin, j.site]); // as haul's delivery reads them
+  try {
+    VB['sim/doing'].unload(st, b, {}, 0, 0);
+  } finally {
+    KINDS.haul.deliver = deliver;
+  }
   assert.deepStrictEqual(seen, ['barley', 5, fd.tile], 'a fetched load takes the crop the field has now');
+  assert(b.load === 0 && b.loadOf === null, 'the load is set down');
+  // and in the barn: in its harvest's entry, the field's own entry untouched (VB-1814: the field is on its next course)
+  const fb = fd.bin;
+  Object.assign(b, { job: jj, load: 30, loadOf: { ...of, field: fd, bin: -7 }, carry: 'sheaf' });
+  VB['sim/doing'].unload(st, b, {}, 0, 0);
+  assert.strictEqual(fd.bin, fb, "a load of an earlier harvest leaves the field's barn entry as it is");
 }
 console.log('setdown ok');

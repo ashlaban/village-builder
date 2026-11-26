@@ -122,8 +122,10 @@ VB['sim/methods'] = (() => {
   // The stray method (A stray pile): a pile of a good the goal uses, its owner's, lying where its kind neither makes nor wants it, is
   // fetched to the owner's store, or to the place the kind's own rows set the good down (`to`: the building site of timber, VB-1812).
   // Tried before a kind's own; one row a good.
-  const strayRow = (good, to = 'store') => [
-    { prim: 'go', at: 'stray', good, pre: [], eff: [{ at: 'stray' }] },
+  // A kind that brings its strays on a cart (`strayCart`, the goods left lying, VB-1814) fetches one first where one is free and it pays.
+  const strayRow = (good, to = 'store', cart = false) => [
+    ...(cart ? [cartStep] : []),
+    { prim: 'go', at: 'stray', good, pre: cart ? [cartOrNone] : [], eff: [{ at: 'stray' }] },
     {
       prim: 'load',
       at: 'stray',
@@ -134,10 +136,12 @@ VB['sim/methods'] = (() => {
     { prim: 'haul', at: to, good, pre: [{ carries: good }], eff: [{ at: to }] },
     { prim: 'unload', at: to, good, pre: [{ carries: good }, { at: to }], eff: [{ not: { carries: good } }] },
   ];
-  // A kind's plan: its methods compiled, the goods it uses (what its loads take up), where it makes or wants them, its stray rows.
+  // A kind's plan: its methods compiled, the goods it uses (what its loads take up, and its `strays`: goods it takes up only where they
+  // lie stray, VB-1814), where it makes or wants them, its stray rows. A kind with strays may have no method of its own.
   function plan(key, K) {
-    const M = K.methods;
-    if (!Array.isArray(M) || !M.length || M.length > MAX.methods)
+    const M = K.methods,
+      S = K.strays || [];
+    if (!Array.isArray(M) || (!M.length && !S.length) || M.length > MAX.methods)
       throw new Error(`sim/methods: ${key}: one to ${MAX.methods} methods`);
     const methods = M.map((m, i) => {
       const where = `${key}, method ${m.name || i}`;
@@ -154,13 +158,13 @@ VB['sim/methods'] = (() => {
     });
     const steps = methods.flatMap((m) => m.steps),
       read = steps.flatMap((s) => [...s.pre, ...s.eff]).flatMap(piles);
-    const uses = [...new Set(steps.filter((s) => s.prim === 'load' && s.good).map((s) => s.good))];
+    const uses = [...new Set([...S, ...steps.filter((s) => s.prim === 'load' && s.good).map((s) => s.good)])];
     const wants = uses.map((g) => [...new Set(read.filter((x) => x[0] === g).map((x) => x[1]))]);
     for (let i = 0; i < uses.length; i++)
       if (wants[i].length > MAX.wants)
         throw new Error(`sim/methods: ${key}: ${uses[i]} read at more than ${MAX.wants} places`);
     const to = (g) => (steps.find((s) => s.prim === 'unload' && s.good === g) || { at: 'store' }).at;
-    const stray = uses.map((g) => strayRow(g, to(g)).map((s) => step(s, `${key}, stray ${g}`)));
+    const stray = uses.map((g) => strayRow(g, to(g), !!K.strayCart).map((s) => step(s, `${key}, stray ${g}`)));
     const none = { blocked: 'no method applies', step: null, fact: null };
     return { key, kind: K, methods, uses, wants, stray, none };
   }
@@ -288,6 +292,8 @@ VB['sim/methods'] = (() => {
       if (s === DONE) return v.held(st, p) ? RULE.return : DONE;
       return s;
     }
+    // a load of the goal's that no method of its own carries (a stray taken up by a kind with none, VB-1814): the rule takes it home
+    if (h && h.n > 0) return carryHome(st, p, v, h);
     return P.none;
   }
   // Where a step returned by `next` goes or is done, for its caller to walk to (the stray pile's place found again).
@@ -425,5 +431,30 @@ VB['sim/methods'] = (() => {
     return K;
   }
 
-  return { PRIMS, MAX, DONE, RULE, compile, next, placeOf, trip, carry, tend };
+  // ---- a good left lying with no goal of its own (VB-1814; design.md section 7, A stray pile) ----
+  // The timber, the grain, the hay and a cart left lying (a plan given up, a carrier fallen on the road, a house moved from its landing):
+  // no goal of the owner's uses them (the wood's is the timber of its trees, the hay's the cocks of its meadow, while it is mown), so each
+  // is the stray of a goal of its own, the owner's to bring home: no method but the stray one, met when none of the good lies stray and
+  // no hand of it carries a load. o: {cart (a cart fetched first where one is free and the pile is more than `back`), back}.
+  function bring(K, good, o = {}) {
+    const lies = (st, g, v) => v.stray(st, g, good, null, null);
+    Object.assign(K, {
+      methods: [],
+      strays: [good],
+      strayCart: !!o.cart,
+      met: (st, g, v) => {
+        const at = lies(st, g, v);
+        return (at === null || at === undefined) && !v.carrying(st, g);
+      },
+      can: {
+        cartPays: (st, g, p, v) => {
+          const at = lies(st, g, v);
+          return at !== null && at !== undefined && v.pile(st, at, good, g) > o.back;
+        },
+      },
+    });
+    return K;
+  }
+
+  return { PRIMS, MAX, DONE, RULE, compile, next, placeOf, trip, carry, tend, bring };
 })();

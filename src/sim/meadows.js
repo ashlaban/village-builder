@@ -440,11 +440,31 @@ VB['sim/meadows'] = (() => {
       urgency: (st, j, c, U) => U.haul,
       deliver: (st, j, hh, f, a) => hayIn(st, j.meadow, hh, f, a),
       setDown: (st, j, a) => hayLaid(j.meadow, a.load), // a load cut at the meadow goes back with the cocks
-      // the hay a moving house leaves at its landing (sim/camp) is fetched by a fetch kind until the piles left lying are a goal's (VB-1814)
-      fetched: true,
       available: meadowWork,
     },
+    // The hay left lying (a carrier fallen on the road, a moving house's left at its landing, sim/camp; VB-1814): a goal of the household's
+    // while any lies (sim/lying BRING), its piles the stray method's (the hay's goal takes them up too while its meadow is mown), brought
+    // to the barn on a cart where one is free and the pile is more than a back load; delivered as every load of hay (the hay's `deliver`).
+    leftHay: {
+      verb: 'Taking up hay',
+      go: 'Going for hay left lying',
+      back: 'Carrying hay to the barn',
+      name: 'Fetch hay left lying',
+      at: ['road'],
+      needs: [],
+      gives: ['hay'],
+      label: 'Hay',
+      anim: 'gather',
+      hours: 0.5,
+      hands: 1,
+      type: 'harvest',
+      carry: 'hay',
+      to: 'barn',
+      fetch: 'hay', // ranked as the hay it fetches (sim/kinds ranks, VB-611)
+      urgency: (st, j, c, U) => U.haul,
+    },
   };
+  VB['sim/methods'].bring(KINDS.leftHay, 'hay', { cart: true, back: TRAVEL.load });
   // The hay as a goal (VB-1812; design.md section 7, The task as a plan): the cocks raked onto the cart (fetched first while they are more
   // than a back load) or the back, by the rule of every load of hay (hayLoad), carried to the barn, and back for more while the meadow
   // holds hay; the stooks' rule (sim/fieldwork) for a load cut.

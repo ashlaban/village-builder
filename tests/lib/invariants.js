@@ -891,7 +891,8 @@ function checkState(st) {
       // is leading it home (the lying load goes as it is taken up, the cart is free once it is at the house: seen with VB-1586)
       if (c.at !== undefined && !(c.by === null && Number.isInteger(c.at.tile) && c.at.t <= st.t &&
         ((st.lying || []).some((l) => l.kind === 'leftCart' && l.owner.type === 'household' && l.owner.id === h.id && l.of.cart.kind === c.kind && l.of.cart.built === c.built) ||
-          [...st.jobs.values()].some((j) => j.kind === 'fetchLeftCart' && j.owner.id === h.id && j.claims.length > 0 && j.cart && j.cart.kind === c.kind && j.cart.built === c.built) ||
+          // or a hand of the leftCart goal has taken its lying cart up and leads it home (the load in hand names it, VB-1814)
+          st.agents.some((a) => a && a.load > 0 && a.loadOf && a.loadOf.cart && a.loadOf.cart.kind === c.kind && a.loadOf.cart.built === c.built && st.pawns[a.id].household === h.id) ||
           // or a hand has taken it up and leads it home (the fetch's way back: the lying load is gone, the cart is home at the delivery; VB-1552 found the gap)
           [...st.jobs.values()].some((j) => j.cart && j.cart.kind === c.kind && j.cart.built === c.built && j.claims.some((id) => st.agents[id].phase === 'back')))))
         bad.push(`households[${h.id}]: cart ${JSON.stringify(c)} stands out with no carrier's lying cart`);

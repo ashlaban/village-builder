@@ -350,8 +350,9 @@ VB['sim/planchains'] = (() => {
   const trips = (lack) => Math.max(1, Math.ceil(lack / ECON.woodPerTrip - 1e-9));
   // VB-1667: placed off the landing, the move goes first, as steps found by their keys: each herd standing at the landing driven to the new
   // house (drove), each cart standing there fetched with its team, then each load left there fetched (its trips: on the household's best
-  // cart once fetched, else on the back); a step's job is posted at the household's review (sim/droving, sim/lying fetchWork).
-  const MOVE_KINDS = ['drove', 'fetchLeftCart', 'fetchLeftGrain', 'fetchHay', 'fetchLeftTimber'];
+  // cart once fetched, else on the back); a step's job is posted at the household's review (sim/droving, sim/lying bringWork: a goal of
+  // each kind of the goods left, VB-1814).
+  const MOVE_KINDS = ['drove', 'leftCart', 'leftGrain', 'leftHay', 'leftTimber'];
   // VB-1670: each step's trips are sim/camp's moveTrips, the reckoning of the page's Sim.moveCost: `trip` {go, lift, back} one trip's
   // hours (the walks by the way's route hours kept with the loads, `of.walk`), `hours` their sum, `n` the trips, the loads' on the
   // carrier the household has now (a cart standing at the landing reckoned home: it is fetched first).
@@ -362,14 +363,14 @@ VB['sim/planchains'] = (() => {
     if (!herds.length && !carts.length && !loads.length) return out;
     const any = carts[0] || loads[0],
       walk = any && any.of.walk !== undefined ? any.of.walk : moveWalk(st, hh, herds, any),
-      keys = { drove: herds.map((id) => `drove:H${id}`), fetchLeftCart: carts.map((l) => `fetch:L${l.id}`) },
-      ls = MOVE_KINDS.slice(2).map((k) => ({ kind: k, of: loads.filter((l) => Lying.fetchKey(l.kind) === k) }));
-    for (const x of ls) keys[x.kind] = x.of.map((l) => `fetch:L${l.id}`);
+      keys = { drove: herds.map((id) => `drove:H${id}`), leftCart: carts.length ? [`leftCart:h${hid}`] : [] },
+      ls = MOVE_KINDS.slice(2).map((k) => ({ kind: k, of: loads.filter((l) => Lying.BRING[l.kind] === k) }));
+    for (const x of ls) keys[x.kind] = x.of.length ? [`${x.kind}:h${hid}`] : [];
     const m = Camp.moveTrips(
       walk,
       herds.length,
       carts.length,
-      ls.map((x) => ({ kind: x.kind, n: x.of.reduce((s, l) => s + l.n, 0), hay: x.kind === 'fetchHay' })),
+      ls.map((x) => ({ kind: x.kind, n: x.of.reduce((s, l) => s + l.n, 0), hay: x.kind === 'leftHay' })),
       Camp.carrierOf(hh),
     );
     for (const x of m) {

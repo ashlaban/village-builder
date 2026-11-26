@@ -808,7 +808,9 @@ console.log(
   {
     assert(KINDS.wood.methods && KINDS.firewood.methods, 'the wood has methods');
     assert(!KINDS[Lying.fetchKey('wood')] && !KINDS[Lying.fetchKey('firewood')], 'no fetch kind for the wood');
-    assert(KINDS[Lying.fetchKey('leftGrain')], 'a kind on its phases keeps its fetch kind');
+    // VB-1814: no fetch kind at all; the goods left lying with no goal of their own are each a goal's with the stray method alone
+    assert(!Object.keys(KINDS).some((k) => /^fetch[A-Z]/.test(k)), 'no fetch kind');
+    for (const k of Object.values(Lying.BRING)) assert(KINDS[k].methods && KINDS[k].strays, `${k}: a goal of strays`);
     const { st, hh } = row('wood');
     const l = Lying.put(st, 'wood', TRAVEL.load, st.villages[0].wood[1], title(hh));
     Sim.advance(st, 2);
@@ -891,4 +893,66 @@ console.log(
   Sim.advance(back, 2 * DAY);
   assert.deepStrictEqual(checkState(back), [], 'invariants, two days on');
   console.log('methods: an older save with a fetch task of timber loads and runs on');
+}
+
+// VB-1814: a save from before the goods left lying were goals' strays may hold a fetch task of grain left lying (fetchLeftGrain): loaded,
+// the task is taken down, a load in hand set down where its carrier stood with its crops, and the household's goal for the grain left
+// lying (sim/lying BRING) brings both piles home, each by its crops
+{
+  const Sim = VB.sim,
+    Lying = VB['sim/lying'],
+    Agents = VB['sim/agents'],
+    Stores = VB['sim/stores'],
+    { KINDS } = VB['sim/kinds'],
+    { DAY } = VB['sim/rules'];
+  const { tinyWorld, tinyState } = require('./lib/tiny.js'),
+    { checkState } = require('./lib/invariants.js');
+  const rows = Array.from({ length: 12 }, () => '................');
+  const st = tinyState(tinyWorld(rows), [{ at: [4, 6], farms: 3 }], { seed: 5 });
+  st.naturalDeaths = false;
+  Sim.advance(st, 3);
+  const hh = st.households[0],
+    f = st.farmsteads[hh.farmstead],
+    owner = { type: 'household', id: hh.id },
+    C = st.w.COLS,
+    away = 6 * C + 13;
+  assert(!KINDS.fetchLeftGrain && KINDS.leftGrain, 'no fetch kind for the grain left lying, a goal of its own');
+  const l = Lying.leave(st, 'leftGrain', 20, away, owner, { of: { parts: { barley: 20 } } });
+  const [a, b] = st.pawns.filter((p) => p.alive && p.household === hh.id && p.age >= 14).map((p) => st.agents[p.id]);
+  for (const [p, key, back] of [
+    [a, `fetch:L${l.id}`, false],
+    [b, 'fetch:L999', true],
+  ]) {
+    if (p.job) Agents.release(st, p);
+    const j = { id: ++st.jobSeq, key, kind: 'fetchLeftGrain', owner, site: away, done: 0, claims: [p.id], posted: st.t, live: true,
+      lying: back ? 999 : l.id, parts: back ? { rye: 10 } : { barley: 20 }, left: back ? 0 : 20 };
+    st.jobs.set(key, j);
+    Object.assign(p, { job: j, phase: back ? 'back' : 'go', load: back ? 10 : 0, carry: back ? 'sack' : null });
+    const to = back ? f.house : away;
+    Agents.walkTo(st, p, to, st.w.hx[to], st.w.hy[to]);
+  }
+  const data = JSON.parse(JSON.stringify(Sim.save(st)));
+  const back = Sim.load(tinyWorld(rows), data);
+  assert(![...back.jobs.values()].some((j) => !KINDS[j.kind]), 'no task of an unknown kind loaded');
+  assert(back.agents[a.id].job === null && back.agents[b.id].job === null, 'its hands freed');
+  const laid = (back.lying || []).filter((x) => x.kind === 'leftGrain' && x.owner.id === hh.id && x.tile !== away);
+  assert(laid.length === 1 && laid[0].n === 10 && laid[0].of.parts.rye === 10, 'the load in hand set down where its carrier stood, with its crops');
+  // home by its crops: every grain put by a leftGrain delivery, by crop
+  const home = {},
+    put = Stores.put;
+  Stores.put = function (st_, holder, good, n, why, parts) {
+    if (holder === back.households[hh.id] && good === 'grain' && why && why.kind === 'gift' && why.from === 'where it lay')
+      for (const c in parts) home[c] = (home[c] || 0) + parts[c];
+    return put.apply(this, arguments);
+  };
+  try {
+    for (let d = 0; d < 6 * 24 && (back.lying || []).some((x) => x.kind === 'leftGrain'); d++) Sim.advance(back, 1);
+  } finally {
+    Stores.put = put;
+  }
+  assert(!(back.lying || []).some((x) => x.kind === 'leftGrain'), 'the grain left lying is brought home');
+  assert(Math.abs((home.barley || 0) - 20) < 1e-6 && Math.abs((home.rye || 0) - 10) < 1e-6, `home by its crops: ${JSON.stringify(home)}`);
+  Sim.advance(back, DAY);
+  assert.deepStrictEqual(checkState(back), [], 'invariants, run on');
+  console.log('methods: an older save with a fetch task of grain left lying loads, runs on, and its grain comes home by its crops');
 }

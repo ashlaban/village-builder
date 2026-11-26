@@ -227,8 +227,11 @@ VB['sim/fieldwork'] = (() => {
       urgency: (st, j, c, U) => U.haul + frostNear(st, c, U),
       setDown: (st, j, a) => laidDown(j.field, a.load), // a load cut at the field goes back with the stooks
       deliver: (st, j, hh, f, a) => {
-        // the crop the task was posted for: the field goes on to its next course once its last load is taken up (VB-350)
-        binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1, j.crop ?? j.field.crop));
+        // the crop the task was posted for: the field goes on to its next course once its last load is taken up (VB-350); a load
+        // left lying goes to the barn entry of its harvest, as the pile recorded it (`j.bin`, sim/lying lay), the field's own entry
+        // untouched once it is sown anew (VB-1814: as the fetch kinds had it)
+        const seq = Stores.sheaf(st, hh, a.load, j.bin ?? j.field.bin ?? -1, j.crop ?? j.field.crop);
+        if (j.bin === undefined || j.bin === j.field.bin) binned(j.field, seq);
         if (
           f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') &&
           !hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].phase === 'back')

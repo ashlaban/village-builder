@@ -121,11 +121,9 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/saltpan'].KINDS); // boiling salt at a spring (VB-700): sim/saltpan's
   Object.assign(KINDS, VB['sim/ironwork'].KINDS); // smelting bog ore and mending the tools (VB-701): sim/ironwork's
   Object.assign(KINDS, VB['sim/wells'].KINDS); // a household's well, dug by its house (VB-1584): sim/wells's
-  // a load left lying where its carrier fell is fetched by its owner (VB-611): a fetch kind for each kind that carries a load (sim/lying)
-  for (const [k, K] of Object.entries(KINDS))
-    // a kind with methods (sim/methods) has none: its loads lying are piles its stray method fetches (VB-1775)
-    if (K.carry && (K.load || K.stack || K.fetched) && (!K.methods || K.fetched))
-      KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
+  // a load left lying where its carrier fell is the stray of its owner's goal that uses it (sim/methods; VB-1814: no fetch kinds); the
+  // hay left lying with no meadow mown is its own goal's, where the fetch kinds stood in the order
+  KINDS.leftHay = Meadows.KINDS.leftHay;
   KINDS.blaze = VB['sim/trails'].KINDS.blaze; // blazing a trail (VB-447): sim/trails'
   KINDS.drink = VB['sim/thirst'].KINDS.drink; // a pawn's drink at a source (VB-1585): sim/thirst's
   Object.assign(KINDS, VB['sim/leather'].KINDS); // shoes and harness cut from a hide (VB-911): sim/leather's
@@ -134,12 +132,6 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/byrehouse'].KINDS); // the byre's walls and roof (VB-1665): sim/byrehouse's
   Object.assign(KINDS, VB['sim/timberhouse'].KINDS); // the timber house's frame and roof (VB-1664): sim/timberhouse's
   Object.assign(KINDS, VB['sim/facilities'].KINDS); // a facility's stages raised and its upkeep (VB-361): sim/facilities'
-  // the goods made where the work is done (VB-1748: the catch, the game, wild food, what is dug, salt, stone) are fetched as the loads
-  // above are, by fetch kinds added last, so that the kinds before keep their order; a kind whose load lies as another's (`lies`: the
-  // timber as timber left lying) has none of its own
-  for (const [k, K] of Object.entries(KINDS))
-    if (K.carry && K.make && !K.lies && !K.load && !K.stack && !K.methods)
-      KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
   // ---- where a kind is worked, what it takes and what it gives (VB-1124): each kind's record declares `at` (the places of PLACES where its
   // work is done), `needs` (the things of THINGS it takes or must find there: a good used up, a tool or a facility) and `gives` (the
   // things it makes or brings home), beside its rule, as its name and hours are. The game's guide (page/guide) reads them, and a kind
@@ -302,10 +294,8 @@ VB['sim/kinds'] = (() => {
   ASK.farmAfterPlans.push(rule('smelt'), rule('mendtools')); // iron and the tools (VB-701, sim/ironwork)
   ASK.farmAfterPlans.push(rule('cobble'), rule('harness')); // shoes and harness (VB-911, sim/leather)
   ASK.farmAfterPlans.push(rule('spin'), rule('weave')); // wool to cloth (VB-362, sim/textile)
-  // loads left lying (VB-611), those of a kind with a fetch kind (VB-1775)
-  const fetchLying = (st, holder, at, c, post) =>
-    Lying.fetchWork(st, holder, at, c, post, (kind) => !!KINDS[Lying.fetchKey(kind)]);
-  (ASK.farmAfterPlans.push(rule(fetchLying)), ASK.village.push(rule(fetchLying)));
+  // the goods left lying with no goal of their own (VB-611), each brought home by a goal of its kind (sim/lying BRING, VB-1814)
+  (ASK.farmAfterPlans.push(rule(Lying.bringWork)), ASK.village.push(rule(Lying.bringWork)));
   ASK.village.push(rule(VB['sim/facilities'].villageWork)); // a village's facilities raised and mended (VB-361)
   ASK.island.push(rule('blaze')); // the trails under way, each its blazer's household's (VB-447, sim/trails)
   for (const e of ASK.field) for (const g of KINDS[e[0]].stages) (ASK.fieldAt[g] ||= []).push(e);
