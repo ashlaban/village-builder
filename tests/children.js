@@ -8,7 +8,8 @@ const P = Sim.ROLES.child.prio;
 // VB-117: and fish (5, foraging); VB-136: and herd (8, from 8 years); VB-300: and fish for the drying rack (5, foraging)
 // VB-611: a load left lying is fetched at the rank of the kind that carried it (fetchHaul, fetchHay), not counted among the ten
 const fetching = (k) => VB['sim/kinds'].KINDS[k].fetch;
-check(P.fetchHaul === P.haul && P.fetchHay === P.hay && !P.fetchWood, 'a child fetches a load left lying at another rank than it carries one');
+// VB-1812: the sheaves lying are the stray piles of the haul's goal, which has no fetch kind; the landing's hay keeps fetchHay (VB-1814)
+check(!VB['sim/kinds'].KINDS.fetchHaul && P.fetchHay === P.hay && !P.fetchWood, 'a child fetches a load left lying at another rank than it carries one');
 check(P.water === 6 && P.weed === 5 && P.haul === 4 && P.reap === 3 && P.rake === 4 && P.hay === 4 && P.fish === 5 && P.gather === 5 && !P.mow
   && P.herd === 8 && P.rackfish === 5 && Object.keys(P).filter((k) => P[k] && !fetching(k)).length === 10,
   'child priorities are not water 6, weed 5, haul 4, rake 4, hay 4, reap 3, fish 5, herd 8, rackfish 5');

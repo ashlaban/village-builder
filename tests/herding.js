@@ -24,7 +24,9 @@ check(held.length >= herdJobs.length / 2, `only ${held.length} of ${herdJobs.len
 for (const j of herdJobs) {
   const hh = st.households[j.owner.id], f = st.farmsteads[hh.farmstead];
   check(j.key === `herd:h${hh.id}:${day}`, `herd job ${j.key} not of today`);
-  check(hexSteps(st.w, f.house, j.site) <= H.steps && j.site !== f.house, `${j.key}: pasture ${hexSteps(st.w, f.house, j.site)} steps from the house`);
+  // within H.steps of the house, or a pasture on the herd's way (`to`, sim/grazing wayFor: VB-1812's run has one by day 15)
+  const onWay = hh.pasture && hh.pasture.to !== undefined && hh.pasture.tile === j.site;
+  check((onWay || hexSteps(st.w, f.house, j.site) <= H.steps) && j.site !== f.house, `${j.key}: pasture ${hexSteps(st.w, f.house, j.site)} steps from the house`);
   const aftermath = f.meadows.some((m) => m.tile === j.site && m.stage === 'aftermath'); // the farm's own meadow, mown and carried
   check((!st.used.has(j.site) || aftermath) && !(st.owner[j.site] > 0 && st.owner[j.site] !== hh.id + 1),
     `${j.key}: pasture on a field, a house or another's land`);

@@ -75,15 +75,19 @@ const fetchJob = () => {
   const l = ours()[0];
   assert.deepStrictEqual([l.kind, l.n, l.tile, l.owner.type, l.owner.id, l.of.field === fd], ['haul', n, at, 'household', hh.id, true]);
   assert.deepStrictEqual(checkState(st), [], 'the state with a load lying breaks an invariant');
-  // the household's review posts its fetching; another hand takes it, walks there, picks the load up and carries it home
-  const j = fetchJob();
-  assert(j && j.kind === 'fetchHaul' && j.site === at, 'the fetching is not posted at the tile the load lies on');
+  // no fetching is posted for it (VB-1812): the stray method of the household's next sheaves' goal carries it home before the stooks
+  let posted = null;
+  Lying.fetchWork(st, hh, f, null, (key, site, extra, k) => (posted = k), (k) => !!KINDS[Lying.fetchKey(k)]); // as sim/kinds asks
+  assert.strictEqual(posted, null, 'a fetch kind is posted for a load a goal carries');
+  fd.stage = 'stooks'; fd.held = 30;
+  const j = J.post(st, 'haul:stray', 'haul', { type: 'household', id: hh.id }, fd.tile, { field: fd, farm: f });
   const b = st.agents[grown.find((id) => id !== a.id)];
   A.release(st, b);
+  A.placeAtHome(st, b);
   A.start(st, b, j);
   let carried = false;
   for (let k = 0; k < 400 && sheaves() === b0; k++) {
-    if (b.job === j && b.phase === 'back') carried = b.load === n;
+    if (b.job === j && b.load === n && !ours().some((x) => x.id === l.id)) carried = true;
     Sim.advance(st, 0.1);
   }
   assert(carried, 'nobody carried the load from where it lay');
@@ -116,21 +120,21 @@ const fetchJob = () => {
   assert(st.record.slice(n0).some((e) => e && e.kind === 'frost'), 'the frost on a lying load is not told');
   assert.strictEqual(sheaves(), b0);
 }
-// 6. the well's stone (sim/green): a carrier killed on the way to the green; the stone lies there, is fetched and reaches the well
+// 6. the well's stone (sim/green): a carrier killed on the way to the green; the stone lies there, is carried on by the stray method of
+// the next goal for it and reaches the well
 {
   const Stores = VB['sim/stores'], v = st.villages[f.village], step = { kind: 'well', place: v.center, hours: 1, brought: 0 };
   Stores.put(st, hh, 'stone/granite', 3, 'clear');
   const stone0 = Stores.heldOf(hh, 'stone');
   const grown = hh.members.filter((id) => st.pawns[id].alive && st.pawns[id].age >= 14);
-  const villagers = st.households.filter((h) => !h.dissolved && st.farmsteads[h.farmstead].village === v.id)
-    .flatMap((h) => h.members).filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18 && id !== grown[0]);
-  const a = st.agents[grown[0]], b = st.agents[villagers[0]];
+  const a = st.agents[grown[0]];
   A.release(st, a);
   A.placeAtHome(st, a);
   const own = { type: 'village', id: v.id };
   const j = J.post(st, 'wellstone:setdown', 'wellstone', own, f.house, { village: v.id, step, from: hh.id, dest: v.center });
   j.claims.push(a.id); a.job = j; a.phase = 'back'; a.inside = false;
-  assert.strictEqual(KINDS.wellstone.load(st, a, j, 1), 1);
+  KINDS.wellstone.ops.take.run(st, j, null, j.site, a, 1); // VB-1812: the stone taken up (the work leg of its goal)
+  assert.strictEqual(a.load, 1);
   assert(a.load === 1 && Stores.heldOf(hh, 'stone') === stone0 - 1, 'the stone taken up is not in hand');
   a.carry = 'basket';
   a.x = st.w.hx[f.house] + 300; a.y = st.w.hy[f.house];
@@ -138,12 +142,17 @@ const fetchJob = () => {
   VB['sim/lifecycle'].killPawn(st, a.id, 'illness');
   assert.strictEqual(step.brought, 0, 'the stone reached the well from the road');
   const l = (st.lying || []).find((x) => x.kind === 'wellstone');
-  assert(l && l.n === 1 && l.tile === at && l.owner.type === 'village', 'the stone does not lie where its carrier fell');
-  let fj = null;
-  Lying.fetchWork(st, v, v, null, (key, site, extra, k, owner) => (fj = J.post(st, key, k, owner, site, extra)));
-  assert(fj && fj.kind === 'fetchWellstone' && fj.site === at);
-  A.release(st, b);
-  A.start(st, b, fj);
+  // the stone of the household's heap lies as its pile (VB-1812: a goal's owner is a household, the hand's for a village's task)
+  assert(l && l.n === 1 && l.tile === at && l.owner.type === 'household' && l.owner.id === hh.id, 'the stone does not lie where its carrier fell');
+  // no fetching is posted (VB-1812): the stray method of the next goal for the well's stone carries it there first
+  let fk = null;
+  Lying.fetchWork(st, v, v, null, (key, site, extra, k) => (fk = k), (k) => !!KINDS[Lying.fetchKey(k)]);
+  assert.strictEqual(fk, null, 'a fetch kind is posted for the stone a goal carries');
+  const fj = J.post(st, 'wellstone:stray', 'wellstone', own, f.house, { village: v.id, step, from: hh.id, dest: v.center });
+  const c = st.agents[grown[1]]; // a hand of the household whose pile it is
+  A.release(st, c);
+  A.placeAtHome(st, c);
+  A.start(st, c, fj);
   for (let k = 0; k < 600 && step.brought === 0; k++) Sim.advance(st, 0.1);
   assert.strictEqual(step.brought, 1, 'the fetched stone did not reach the well');
   assert(!ours().length, 'the stone still lies after it was fetched');

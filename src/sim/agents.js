@@ -526,6 +526,12 @@ VB['sim/agents'] = (() => {
       return;
     }
     const carrying = s.rule || s.prim === 'haul' || s.prim === 'unload' || s.prim === 'return';
+    if (a.moving && !carrying) {
+      // told to move while on the road (VB-581): its load set down, it lets the goal go and moves on (sim/away's moved; VB-1812)
+      release(st, a);
+      emit(st, 'moveOn', a);
+      return;
+    }
     if (
       s.blocked ||
       depth > 8 ||
