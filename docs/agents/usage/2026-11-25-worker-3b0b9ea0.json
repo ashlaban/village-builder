@@ -6,22 +6,22 @@
   "<synthetic>"
  ],
  "start": "2026-11-25T22:02:06.016Z",
- "end": "2026-11-26T16:12:03.054Z",
- "wallMin": 1090,
- "activeMin": 560.9,
+ "end": "2026-11-26T16:13:19.884Z",
+ "wallMin": 1091.2,
+ "activeMin": 562.2,
  "prompts": 20,
- "calls": 316,
+ "calls": 318,
  "subagentCalls": 0,
  "reviewCalls": 79,
  "tokens": {
-  "input": 765,
-  "cacheWrite": 475538,
-  "cacheRead": 86820816,
-  "output": 123174
+  "input": 769,
+  "cacheWrite": 477418,
+  "cacheRead": 87729408,
+  "output": 123773
  },
  "context": {
   "first": 86798,
-  "peak": 453649,
+  "peak": 455530,
   "firstEdit": 126025,
   "series": [
    [
@@ -277,16 +277,16 @@
     452709
    ],
    [
-    316,
-    453649
+    318,
+    455530
    ]
   ]
  },
  "tools": {
   "Bash": {
-   "calls": 150,
-   "bytes": 124928,
-   "seconds": 1638.5
+   "calls": 152,
+   "bytes": 127188,
+   "seconds": 1706.8
   },
   "AskUserQuestion": {
    "calls": 2,
@@ -345,8 +345,8 @@
   {
    "tool": "Bash",
    "what": "node tools/backlog.js",
-   "calls": 5,
-   "bytes": 21782
+   "calls": 6,
+   "bytes": 23286
   },
   {
    "tool": "Bash",
@@ -411,10 +411,10 @@
   "recent": 0
  },
  "tests": {
-  "runs": 68,
-  "failed": 3,
+  "runs": 70,
+  "failed": 5,
   "streak": 2,
-  "current": 0
+  "current": 2
  },
  "compactions": 0,
  "continuation": {
@@ -428,7 +428,7 @@
   "launched": 18,
   "calls": 18
  },
- "weighted": 9893139,
+ "weighted": 9989347,
  "subagents": [
   {
    "agent": "a331c05e",
@@ -8044,11 +8044,11 @@
  ],
  "review": null,
  "summary": {
-  "weightedTotal": 80020106,
-  "orchestratorShare": 0.124,
+  "weightedTotal": 80116314,
+  "orchestratorShare": 0.125,
   "bootMedian": 85225,
   "readMedian": 67053,
-  "weightedPerDoneTask": 1633063,
+  "weightedPerDoneTask": 1635027,
   "perSize": {
    "S": {
     "n": 7,
