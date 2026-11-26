@@ -1,7 +1,7 @@
 // VB-1753: tests/played.js's count of the reads of who is played: through any name, or taken apart (st.player, view.player,
 // const { player } = st), comments left out.
 const assert = require('assert');
-const { reads } = require('./lib/reads.js');
+const { reads } = require('./played.js');
 // The count itself: a read through another name, or taken apart, is a read.
 assert.deepStrictEqual(
   [
