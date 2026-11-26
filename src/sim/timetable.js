@@ -49,8 +49,13 @@ VB['sim/timetable'] = (() => {
     }
     return out;
   }
+  // Who made change `ed` of household hh's day, in words: 'the head' (its holder, or the household's own rule with none), else the member
+  // that reordered its own list (VB-1756)
+  const editor = (st, hh, ed) =>
+    ed.by === null || ed.by === hh.holder || !st.pawns[ed.by] ? 'the head' : fullName(st.pawns[ed.by]);
   // Household hh's timetable as pawn `viewer` reckons it (its head when null), or null with no day: {household, viewer, made (the hour
-  // the day was allotted), edited (the head's last change, standing until the day is next allotted, or null), members: [{id, now (the
+  // the day was allotted), edited (the last change by the verbs on the day, standing until the day is next allotted, or null: {t, by, who,
+  // the words for who made it, 'the head' or a member's name: a member reorders its own list, VB-1756}), members: [{id, now (the
   // key of the task in hand, or null), entries, rest (the keys of its list it was given no hours of: taken when the others are done or
   // closed), free (its hours of the horizon given no task)}]}. An entry: {key, kind, label, site, walk (hours from the last place),
   // lo, mid, hi (its hours, the viewer's range), start and end ({lo, mid, hi}, hours from now, laid end to end), part (the member is
@@ -120,7 +125,8 @@ VB['sim/timetable'] = (() => {
         free: day.free && id in day.free ? day.free[id] : null,
       });
     }
-    return { household: hh.id, viewer: who, made: day.made, edited: day.edited || null, members };
+    const edited = day.edited ? { ...day.edited, who: editor(st, hh, day.edited) } : null;
+    return { household: hh.id, viewer: who, made: day.made, edited, members };
   }
   // What calling member id off costs, as pawn `viewer` reckons it (the household's head when null), named before the call (the verb
   // dayCall, sim/day): walk, the hours of its walk home from where it stands; load, what it carries home now and would put down where it
@@ -226,8 +232,16 @@ VB['sim/timetable'] = (() => {
       ed = plan && plan.day && plan.day.edited ? plan.day.edited : null;
     if (ed && ed.t !== from.edited) {
       from.edited = ed.t;
-      if (ed.by !== from.pawn)
-        return { why: 'day', text: 'The head has changed the household’s day: a call, or a task given.' };
+      if (ed.by !== from.pawn) {
+        const by = editor(st, hh, ed);
+        return {
+          why: 'day',
+          text:
+            by === 'the head'
+              ? 'The head has changed the household’s day: a call, or a task given.'
+              : `${by} has changed the order of its own tasks in the household’s day.`,
+        };
+      }
     }
     for (const o of st.offers) {
       if (!(o.id >= from.offer)) continue;

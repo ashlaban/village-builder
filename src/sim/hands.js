@@ -181,6 +181,7 @@ VB['sim/hands'] = (() => {
       });
   }
   Offers.basis('help', {
+    asked: 'hands', // by the verb ask (sim/offers): ask {basis: 'hands', wants: {hands, hours}}
     books: 'nothing',
     wait: () => HANDS.wait,
     check,
@@ -194,8 +195,9 @@ VB['sim/hands'] = (() => {
   const lentTo = (d, id) => Object.values(d.by).reduce((s, e) => s + (e[0] === id ? e[1] : 0), 0);
   // The head of household hh, short of `short` hours of help today (sim/day, at the morning's allotment), asks its village's heads,
   // its near kin first, then by its opinion of them, at most HANDS.asks of them, until the hours lent cover it; once a day. The played
-  // head asks for itself, by the same verb. A played head on automatic with nothing queued is passed over no more than an unplayed one (VB-1743);
-  // with its automatic behaviour off (or a command queued) it asks only by the `offer` verb the player gives it, never here.
+  // head asks for itself, by the same verb, ask with the basis `hands` (VB-1756). A played head on automatic with nothing queued is
+  // passed over no more than an unplayed one (VB-1743); with its automatic behaviour off (or a command queued) it asks only by the
+  // `ask` its controller gives it, never here.
   function askFor(st, hh, short, c) {
     const h = hh.holder;
     if (h === null || unplanned(st, h) || hoursLeft(st) < HANDS.least) return;
@@ -222,10 +224,10 @@ VB['sim/hands'] = (() => {
       VB.count.handsAsked++;
       issue(st, {
         actor: h,
-        verb: 'offer',
+        verb: 'ask',
         target: heads[i][2],
-        args: { basis: 'help', wants: { hands, hours } },
-        source: 'planner',
+        args: { basis: 'hands', wants: { hands, hours } },
+        source: 'pawn',
       });
       rest -= lentTo(d, hh.id) - was;
     }

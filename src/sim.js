@@ -119,7 +119,18 @@ const Sim = (() => {
   // The facade's direct mutators are debug (VB-681): the world's hand, for the page's debug drawer and the tests, never a pawn's act; a
   // pawn acts by a verb (command, queue, head), whose check asks its right. tests/commands.js holds that none is a verb and that the page
   // calls them only from its drawer.
-  const DEBUG = ['setOwner', 'killPawn', 'retireHolder', 'holdMeetings', 'movingRound'];
+  // The world's rules run out of turn (refreshRoles, updateTies, refreshInterests, countDemand: the clock runs them) are its hand too (VB-1756).
+  const DEBUG = [
+    'setOwner',
+    'killPawn',
+    'retireHolder',
+    'holdMeetings',
+    'movingRound',
+    'refreshRoles',
+    'updateTies',
+    'refreshInterests',
+    'countDemand',
+  ];
   const { killPawn, retireHolder } = VB['sim/lifecycle'],
     { holdMeetings } = VB['sim/meetings'],
     { movingRound } = VB['sim/round'];

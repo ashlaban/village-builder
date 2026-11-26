@@ -142,7 +142,7 @@ VB['sim/opportunities'] = (() => {
     if (hh && !hh.dissolved && hh.holder !== null && hh.holder !== p.id) {
       const args = { basis: 'leave', wants: { from: view.t, with: null } };
       out.push(
-        item('offer', hh.holder, args, check(view, p.id, 'offer', hh.holder, args), {
+        item('ask', hh.holder, args, check(view, p.id, 'ask', hh.holder, args), {
           holder: { type: 'household', id: hh.id },
           leave: { head: fullName(view.pawns[hh.holder]), likely: leaveLikely(view, p.id) },
         }),

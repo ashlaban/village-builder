@@ -24,7 +24,7 @@ const make = () => {
   return { st, A, B, fB, fd, j, dropAll };
 };
 const ask = (st, from, to, wants, source = 'planner') =>
-  issue(st, { actor: from, verb: 'offer', target: to, args: { basis: 'help', wants }, source });
+  issue(st, { actor: from, verb: 'ask', target: to, args: { basis: 'hands', wants }, source });
 const adults = (st, hh) => hh.members.filter((id) => st.pawns[id].alive && age(st, st.pawns[id]) >= MATCH.help.minAge);
 
 // ---- the ask, the answer, the hands' work ----
@@ -33,7 +33,11 @@ const adults = (st, hh) => hh.members.filter((id) => st.pawns[id].alive && age(s
   assert.strictEqual(st.farmsteads[A.farmstead].village, fB.village, 'the two households share a village');
   const other = st.households.find((h) => st.farmsteads[h.farmstead].village !== fB.village);
   assert.ok(adults(st, A).length >= 3, 'household A has three adults');
-  assert.match(String(issue(st, { actor: B.holder, verb: 'offer', target: other.holder, args: { basis: 'help', wants: { hands: 1, hours: 4 } }, source: 'planner' })),
+  assert.match(String(issue(st, { actor: B.holder, verb: 'offer', target: A.holder, args: { basis: 'help', wants: { hands: 1, hours: 4 } }, source: 'pawn' })),
+    /asked, by the verb ask/, 'hands are asked by the verb ask, never offered (VB-1756)');
+  assert.match(String(issue(st, { actor: B.holder, verb: 'ask', target: A.holder, args: { basis: 'help', wants: { hands: 1, hours: 4 } }, source: 'pawn' })),
+    /one asks for .*hands/, 'the ask names what it asks for, hands');
+  assert.match(String(issue(st, { actor: B.holder, verb: 'ask', target: other.holder, args: { basis: 'hands', wants: { hands: 1, hours: 4 } }, source: 'planner' })),
     /within the village/, 'hands are not asked of another village');
   assert.match(String(ask(st, B.holder, A.holder, { hands: 9, hours: 4 })), /1 to 3 hands/, 'at most three hands');
   const pawn0 = st.pawns[adults(st, A)[0]];

@@ -1,4 +1,4 @@
-// A member's voice (VB-1555; design.md section 7, A member's voice): a member asks its head for leave, an offer on the basis `leave`
+// A member's voice (VB-1555; design.md section 7, A member's voice): a member asks its head for leave, the verb ask (VB-1756), an offer on the basis `leave`
 // (sim/voice). On a constructed household: a head whose day gave the member a task with a deadline today says no, and the member
 // remembers it; a head with a free day says yes by its opinion of the member, and no to one it thinks ill of; on a yes the day is allotted
 // around the member, who leaves its task and spends the hours at its own time; a leave from an hour named begins at that hour; a pawn
@@ -26,7 +26,7 @@ const make = () => {
   st.pawns[A.holder].traits[VB['sim/traits'].IDX.diligence] = 0.5; // a head of middling diligence
   return { st, A, m };
 };
-const askOf = (st, from, to, wants) => issue(st, { actor: from, verb: 'offer', target: to, args: { basis: 'leave', wants }, source: 'planner' });
+const askOf = (st, from, to, wants) => issue(st, { actor: from, verb: 'ask', target: to, args: { basis: 'leave', wants }, source: 'pawn' });
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 
 // ---- a deadline today: no, and the member remembers it ----
@@ -56,6 +56,7 @@ const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invarian
   assert.strictEqual(Voice.wanted(st, A, m, Sim.cal(st.t)), null, 'nothing with a deadline today or a window closing');
   assert.strictEqual(Voice.likely(st, m), true, 'a head of middling diligence and no ill will would say yes');
   assert.match(String(askOf(st, m, m, { from: st.t, with: null })), /not the head/, 'leave is asked of the head');
+  assert.match(String(issue(st, { actor: m, verb: 'offer', target: A.holder, args: { basis: 'leave', wants: { from: st.t, with: null } }, source: 'pawn' })), /asked, by the verb ask/, 'leave is asked by the verb ask, never offered (VB-1756)');
   assert.match(String(askOf(st, A.holder, A.holder, { from: st.t, with: null })), /not the head/, 'the head asks no one');
   assert.strictEqual(askOf(st, m, A.holder, { from: st.t - 2 * DAY + WORK[1] - 1, with: null }), true, 'from a past hour: from now');
   assert.ok(Voice.on(st, m), 'the member is on leave');
@@ -134,7 +135,7 @@ const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invarian
   const { st, A, m } = make();
   VB['sim/day'].allot(st, A, Sim.cal(st.t));
   Sim.inhabit(st, m);
-  const o = Sim.opportunities(st, m).find((x) => x.verb === 'offer' && x.leave);
+  const o = Sim.opportunities(st, m).find((x) => x.verb === 'ask' && x.leave);
   assert.ok(o, 'the played member may ask leave');
   assert.strictEqual(o.target, A.holder, 'of its head');
   assert.strictEqual(o.leave.likely, true, "with its head's likely answer");

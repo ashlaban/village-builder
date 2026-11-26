@@ -108,7 +108,7 @@ function dayHTML(hh, mine) {
   const day = st.plans.households.get(hh.id).day;
   let h = `<p class="card-note">Each task’s hours by ${dayWhose()} reckoning, as a range; what is done so far is exact.</p>`;
   if (T.edited)
-    h += `<p class="card-note day-edited">Changed by the head at ${clockOf(T.edited.t)}; it stands until the day is next allotted.</p>`;
+    h += `<p class="card-note day-edited">Changed by ${esc(T.edited.who)} at ${clockOf(T.edited.t)}; it stands until the day is next allotted.</p>`;
   for (const r of T.members) {
     const p = st.pawns[r.id],
       list = day.lists[r.id] || [];
