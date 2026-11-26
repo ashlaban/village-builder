@@ -28,6 +28,7 @@ VB['sim/plans'] = (() => {
   const { buildStep } = VB['sim/building'];
   const { founded, villageSteps } = VB['sim/routines'];
   const { reviewAfter, cadence, nextSlot, enqueue, dequeue } = VB['sim/plandays'];
+  const Steps = VB['sim/steps'];
   const { seasonOf, seasonal, templateOf, cultureOf, headSkill, horizonOf, ORDER_LEAST } = VB['sim/seasonal'],
     { chosenTargets, goodTargets, begin, reviewTargets, dropSeason, setOrder } = VB['sim/seasonal'];
   // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
@@ -84,8 +85,11 @@ VB['sim/plans'] = (() => {
       dirty: false,
       reserved: {},
       reasons: {},
+      reviewed: null,
     };
+    Steps.record(plan, type, id); // its record of steps (VB-1752)
     mapOf(st, type).set(id, plan);
+    for (const p of projectsOf(st, type, id)) Steps.link(st, p); // projects made before it (a settler's cottage)
     if (type === 'household') {
       const f = st.farmsteads[st.households[id].farmstead], // a cottage left on its farm (dropAll) is the new household's
         left =
@@ -114,9 +118,11 @@ VB['sim/plans'] = (() => {
       households: new Map(),
       villages: new Map(),
       seasons: new Map(),
+      pawns: new Map(),
       due: [],
       projects: Projects.emptyProjects(),
       projectSeq: 0,
+      stepSeq: 0,
     };
     for (const id of st.liveHouseholds) makePlan(st, 'household', id);
     for (const v of st.villages) makePlan(st, 'village', v.id);
@@ -130,6 +136,7 @@ VB['sim/plans'] = (() => {
     VB.count.planReview++;
     if (hour >= plan.nextReview) plan.nextReview = nextSlot(plan, cadence(st, plan), hour);
     plan.last = c.day;
+    plan.reviewed = hour;
     if (why === 'store') plan.woke = c.day;
     plan.dirty = false; // lint-allow: owner the review has read the stores whose crossing sim/stores flagged
     if (plan.holder.type !== 'household') {

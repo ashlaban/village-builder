@@ -64,6 +64,7 @@
       "sim/stores",
       "sim/targets",
       "sim/projects",
+      "sim/steps",
       "sim/holding",
       "sim/makings",
       "sim/dig",

@@ -278,8 +278,10 @@ VB['sim/saves'] = (() => {
   // Format 5 (VB-247): st.idlers lists agent ids, not agents, and st.cenv holds no people (it was st.pawns); older saves are refused.
   // Format 6 (VB-1751): a pawn's task has no phase (agent.phase is gone: its state is its leg and its hands), a journey's state is
   // agent.journey and the walk home agent.homeward; a save holding a pawn mid-phase is another build's, and refused.
-  const FORMAT = 6,
-    READS = [6];
+  // Format 7 (VB-1752): every body's plan is a record of steps (plan.body, year, season, ahead; st.plans.pawns, stepSeq), a project's steps
+  // carry their ids and links and a task names its step; a save without them is another build's, and refused (no migration is written).
+  const FORMAT = 7,
+    READS = [7];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {

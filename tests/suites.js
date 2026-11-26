@@ -93,6 +93,7 @@ const FAST = [
   ['node', 'tests/winter.js'], // VB-808: the ground by season: ice that bears, frozen marsh, snow; no night on the ice; the thaw's routes
   ['node', 'tests/peas.js'],
   ['node', 'tests/skills.js'], // time taken from causes: skill, a leg's mishap, the crop's size (VB-475)
+  ['node', 'tests/planrecord.js'], // VB-1752: the plan record: every body's, a project as a year step, a task's step and its chain
   ['node', 'tests/reasons.js'], // VB-1551: who chose a pawn's act and why, every chooser but a duty, read-only and read by no module
   ['node', 'tests/agenda.js'], // VB-1644: the played pawn's queue and open work at its own estimate, against their deadlines, read-only; VB-1647: its plan laid into days agrees with the feeder
   ['node', 'tests/workmanship.js'], // workmanship: the grades' odds by skill, the draw, the maker, the graded quern (VB-761)

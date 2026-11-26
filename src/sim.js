@@ -88,6 +88,22 @@ const Sim = (() => {
   const skipStop = (st, from) => skipStopWith(st, from, skipAids);
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
+  // The plan record (VB-1752; sim/steps), read through the actor view: why(st, task), the chain of steps above a task, the one that
+  // opened it first; plans(st, {kind, id}), a body's record, a copy, with its agent (the head, the alderman, the pawn itself).
+  const Steps = VB['sim/steps'];
+  const why = (st, j) => Steps.chain(actorView(st), j);
+  function plans(st, body) {
+    const view = actorView(st),
+      r = Steps.recordOf(view, body);
+    if (r)
+      r.agent =
+        body.kind === 'household'
+          ? (view.households[body.id].holder ?? null)
+          : body.kind === 'village'
+            ? (VB['sim/decisions'].agentOf(view, body.id) ?? null)
+            : body.id;
+    return r;
+  }
   const { compat, bond, bondWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
   const { heard } = VB['sim/stories']; // what a pawn has heard, as its belief (VB-554)
   const { explainAllowance, giftWarning } = VB['sim/exchange'];
@@ -232,6 +248,8 @@ const Sim = (() => {
     thirstLine,
     reasonOf,
     reasonLine,
+    why,
+    plans,
     agenda: VB['sim/agenda'].agenda, // the played pawn's queue and open work against their deadlines (VB-1644), its plan laid into days (VB-1647)
     planGaps: VB['sim/agenda'].planGaps, // the windows that press with no task of the plan covering them (VB-1650)
     RIVER,

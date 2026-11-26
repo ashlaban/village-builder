@@ -24,6 +24,7 @@
   "sim/house.js",
   "sim/registry.js",
   "sim/events.js",
+  "sim/steps.js",
   "sim/commands.js",
   "sim/decisions.js",
   "sim/rng.js",

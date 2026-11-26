@@ -148,6 +148,8 @@ VB.COUNTERS = {
     "Calls of a kind's `available` rule: by the reviews of the plans, the due-queue and members looking for work (sim/jobs; VB-258, VB-249)",
   planReview:
     "Plans reviewed: on each holder's planning day, when a window closes or a store crosses a target (sim/plans; VB-258, VB-249)",
+  planSteps:
+    "Plan steps made: a household's season steps at each season's plan, a project's year step (sim/steps; VB-1752)",
   dayPair:
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
     '(sim/day, allot; VB-466)',
