@@ -4,7 +4,7 @@ VB['sim/agents'] = (() => {
   const { living, commanded } = VB['sim/records'];
   const { isOpen } = VB['sim/kinds'];
   const { register } = VB['sim/commands'];
-  const { cal, DAY, TICKS, WORK, TRAVEL } = VB['sim/rules'];
+  const { cal, DAY, TICKS, WORK } = VB['sim/rules'];
   const { eligible } = VB['sim/eligibility'];
   const Carts = VB['sim/carts'];
   const { driveHome } = VB['sim/grazing'];
@@ -23,8 +23,6 @@ VB['sim/agents'] = (() => {
   const { tileAt, here, endTile, placeOf, travelling, stayOf, bed } = VB['sim/pose'];
   const {
     attentionOf,
-    inReach,
-    manning,
     settle,
     rerate,
     retune,
@@ -113,21 +111,8 @@ VB['sim/agents'] = (() => {
     assign(a, 'full');
     rerate(st, j);
     const K = KINDS[j.kind];
-    if (K.methods) {
-      if (K.setOut) K.setOut(st, a, j, teamFree); // what it sets out with (the water's barrel, VB-1586), not a load in hand
-      onward(st, a); // a goal with methods: its first leg read from the world (VB-1775)
-      return;
-    }
-    if (K.inside) {
-      const [x, y] = homeSpot(st, a);
-      a.phase = 'go';
-      walkTo(st, a, j.farm.house, x, y);
-      return;
-    }
-    const [x, y] = workSpot(st, a, j);
-    a.phase = 'go';
-    if (K.setOut) a.load = K.setOut(st, a, j, teamFree); // what it sets out with: a cart taken at the house (the water's barrel, VB-1586)
-    walkTo(st, a, j.site, x, y);
+    if (K.setOut) K.setOut(st, a, j, teamFree); // what it sets out with (the water's barrel, VB-1586), not a load in hand
+    onward(st, a); // its first leg read from the world (VB-1775; VB-1750: every kind a goal with methods)
   }
   function dropJob(st, j) {
     // those holding it at the side let it go at once (VB-473: a herder's task taken down)
@@ -170,10 +155,7 @@ VB['sim/agents'] = (() => {
         [x, y] = placeOf(st, a),
         at = tileAt(st, x, y);
       if (K.setDown && at === a.job.site) K.setDown(st, a.job, a);
-      else if (K.methods)
-        Doing.unload(st, a, Methods.RULE.drop, x, y); // a pile with title where it stands (VB-1775: it cannot walk on)
-      else if (K.fetch || K.load || K.stack || K.make)
-        Lying.lay(st, a, a.job, K.fetch || K.lies || a.job.kind, at, x, y);
+      else Doing.unload(st, a, Methods.RULE.drop, x, y); // a pile with title where it stands (VB-1775: it cannot walk on)
       standCart(st, a, at, x, y); // its cart stands where it was, with the team that drew it, until a hand fetches them (VB-649)
       a.carry = null;
       laid = a.job;
@@ -196,10 +178,7 @@ VB['sim/agents'] = (() => {
     }
     delete a.errand;
     a.phase = null;
-    if (left) rerate(st, left); // a hand gone: the end is told again
-    // a goal with methods stays posted while it is wanted: whoever takes it goes on from the world (VB-1812)
-    if (laid && !KINDS[laid.kind].methods && !(KINDS[laid.kind].again && KINDS[laid.kind].again(laid)))
-      dropJob(st, laid);
+    if (left) rerate(st, left); // a hand gone: the end is told again; the goal stays posted while it is wanted (VB-1812)
     a.basis = null;
     a.load = 0; // wood cut and stacked, not yet on its way, is left
     const hid = st.pawns[a.id].household;
@@ -221,12 +200,12 @@ VB['sim/agents'] = (() => {
     if (!(frac > 0)) return false;
     K.make(st, a, j, frac, workFor(st, a, j));
     j.done = 0;
-    if (K.methods) a.loadOf = null; // made in the hand (sim/doing)
+    a.loadOf = null; // made in the hand (sim/doing)
     if (!(a.load > 0)) {
       a.load = 0;
       return false; // nothing made: the trip is not done, and the next hand takes it from none (VB-1749 review, F1)
     }
-    if (K.methods) j.made = (j.made || 0) + 1; // a trip's goal is its work done, a load made (sim/methods trip, VB-1749)
+    j.made = (j.made || 0) + 1; // a trip's goal is its work done, a load made (sim/methods trip, VB-1749)
     freeHands(st, j, a.id);
     a.carry = K.carry;
     a.phase = 'back';
@@ -248,7 +227,7 @@ VB['sim/agents'] = (() => {
     if (a.load > 0) {
       const [x, y] = placeOf(st, a);
       // a goal's pile lies at its site, where its method looks for it (sim/doing's view: a spot by the water counts as the site)
-      Lying.lay(st, a, j, j.kind, K.methods ? Doing.VIEW.at(st, a) : tileAt(st, x, y), x, y);
+      Lying.lay(st, a, j, j.kind, Doing.VIEW.at(st, a), x, y);
     }
     a.load = 0;
     j.done = 0;
@@ -329,61 +308,14 @@ VB['sim/agents'] = (() => {
       emit(st, 'yielded', { pawn: a.id, kind: j.kind, farm: j.farm ?? null, good: null, n: 0 });
     dropJob(st, j);
   }
-  // Home with the load: the kind says what it brings.
-  function deposit(st, a) {
-    const j = a.job,
-      K = KINDS[j.kind];
-    const hh = workFor(st, a, j);
-    const load = a.load,
-      got = K.deliver ? K.deliver(st, j, hh, st.farmsteads[hh.farmstead], a) : undefined;
-    // the played pawn's sheet tells what the trip brought (sim/player, VB-1118): what the kind's delivery says it put, else the load carried
-    if (st.player && st.player.pawn === a.id)
-      emit(st, 'yielded', {
-        pawn: a.id,
-        kind: j.kind,
-        farm: j.farm ?? null,
-        good: K.carry ?? null,
-        n: typeof got === 'number' ? got : load,
-      });
-    if (a.job !== j) return; // a delivery that moved its pawn released it (as `ended` after a completion)
-    Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart it came on, if any, wears
-    retune(st, st.households[st.pawns[a.id].household]);
-    if (!K.again || !K.again(j)) dropJob(st, j);
-    else {
-      settle(st, j);
-      j.claims.splice(j.claims.indexOf(a.id), 1); // open for the next load
-      rerate(st, j);
-    }
-    a.carry = null;
-    a.load = 0;
-    a.job = null;
-    a.basis = null;
-    a.phase = null;
-  }
   const wantsWork = (st, a, c) =>
     !a.path && a.phase === null && c.hour >= WORK[0] && c.hour < WORK[1] && a.idleUntil <= st.t;
   // A walk has ended where it was going (walkEnd): what the pawn went for begins. One left with nothing in hand waits, and looks for work
   // at the next step.
   function arrived(st, a) {
     a.anim = 'idle';
-    if (a.job && KINDS[a.job.kind].methods && (a.phase === 'go' || a.phase === 'back')) {
-      onward(st, a); // a goal with methods: the next leg read from the world (VB-1775)
-      const h = cal(st.t).hour;
-      if ((h >= WORK[1] || h < WORK[0]) && !a.job && !a.path && !a.inside && a.phase === null && a.away === undefined)
-        goHome(st, a);
-    } else if (a.phase === 'go') {
-      const K = KINDS[a.job.kind];
-      settle(st, a.job);
-      a.phase = 'work';
-      a.anim = K.anim || 'idle';
-      a.inside = !!K.inside;
-      workAt(st, a); // the work leg
-      a.pace = Skills.workPace(st, a.id, K.type, K.craft); // its skill at the work, the leg's mishap (VB-475), its craft (VB-360)
-      rerate(st, a.job);
-    } else if (a.phase === 'back') {
-      deposit(st, a);
-      if (a.moving) emit(st, 'moveOn', a); // the move it was told of while on the road (VB-581; sim/away's moved)
-      // a load brought in after the work day, as one carried on (VB-1547): free, it goes in, as everyone free did at its end
+    if (a.job && (a.phase === 'go' || a.phase === 'back')) {
+      onward(st, a); // the next leg read from the world (VB-1775)
       const h = cal(st.t).hour;
       if ((h >= WORK[1] || h < WORK[0]) && !a.job && !a.path && !a.inside && a.phase === null && a.away === undefined)
         goHome(st, a);
@@ -406,102 +338,30 @@ VB['sim/agents'] = (() => {
     walkTo(st, a, to, x, y);
     a.phase = 'home';
   }
+  // A work leg is done: its effect where the pawn stands, if it is still the step the world asks for, and on (VB-1775, VB-1750).
   function ended(st, a) {
     const j = a.job,
       K = KINDS[j.kind];
-    if (K.methods) {
-      // a work leg of a goal with methods is done: its effect where the pawn stands, if it is still the step the world asks for, and on
-      const s = Doing.ask(st, a),
-        ends = s !== DONE && !s.blocked && s.prim === 'work' && !!K.ops[s.op].ends;
-      if (s !== DONE && !s.blocked && s.prim === 'work') {
-        Doing.work(st, a, s);
-        if (ends) {
-          complete(st, a); // the work's end is the kind's (its `done`, a plot's step finished; VB-1750)
-          // a completion that moved its pawn (a farm restored: it founds a household there) released it and set it out
-          if (a.job !== j) return;
-        } else prospected(st, a.id, here(st, a), Doing.hoursOf(j, s));
-      }
-      settle(st, j);
-      if (!ends) j.done = 0; // a task ended keeps its hours done as it is taken down
-      a.phase = null;
-      a.anim = 'idle';
-      rerate(st, j);
-      onward(st, a);
-      return;
+    const s = Doing.ask(st, a),
+      work = s !== DONE && !s.blocked && s.prim === 'work',
+      ends = work && !!K.ops[s.op].ends;
+    if (work) {
+      Doing.work(st, a, s);
+      if (ends) {
+        complete(st, a); // the work's end is the kind's (its `done`, a plot's step finished; VB-1750)
+        // a completion that moved its pawn (a farm restored: it founds a household there) released it and set it out
+        if (a.job !== j) return;
+      } else prospected(st, a.id, here(st, a), Doing.hoursOf(j, s));
     }
-    const hhW = K.carted || K.stack ? st.households[st.pawns[a.id].household] : null;
-    if (K.stack) {
-      // firewood (sim/carts): a trip's cutting is a back load; with a cart that has room for one more, the cutter stays and cuts
-      // it, while the pile is short and the working day has the hours; with no cart free and the pile still short, a miss
-      a.load = (a.load || 0) + TRAVEL.load;
-      const c = cal(st.t);
-      if (K.stack(st, j, hhW, c, a.load) && c.hour + K.hours <= WORK[1]) {
-        const cap = Carts.holds(st, hhW, a.id) || Carts.take(st, hhW, a.id, teamFree(st, hhW));
-        if (cap >= a.load + TRAVEL.load) {
-          j.done = 0;
-          rerate(st, j);
-          return;
-        }
-        if (cap === TRAVEL.load) Carts.missed(st, hhW);
-      }
-      if (a.load <= TRAVEL.load) {
-        Carts.leave(st, hhW, a.id);
-        retune(st, hhW);
-      }
-    }
-    // the good is made where the work is done (VB-1748): the tree falls, the stones leave the tile, the catch and the game are rolled,
-    // the ground is dug; the pawn carries it home as its load, and the kind's delivery only puts it into the store
-    if (K.make) K.make(st, a, j, 1, workFor(st, a, j));
-    // a load taken from the field (VB-335), on the household's best free cart or on the back (sim/carts); a load on the back
-    // with more left waiting is a miss the head counts
-    const hhL = K.load ? st.households[st.pawns[a.id].household] : null,
-      cap = K.load ? Carts.take(st, hhL, a.id, teamFree(st, hhL)) : 0;
-    const n = K.load ? K.load(st, a, j, cap) : null;
-    if (K.load && cap === TRAVEL.load && n > 0 && K.again(j)) Carts.missed(st, hhL);
-    if (K.load && n <= TRAVEL.load) {
-      Carts.leave(st, hhL, a.id); // a load for the back needs no cart
-      retune(st, hhL);
-    }
-    if (K.carry && n !== 0) {
-      if (n !== null && K.again(j)) {
-        j.done = 0;
-        if (K.reload) j.hours = K.reload;
-      } // the others go on loading
-      else freeHands(st, j, a.id);
-      a.carry = K.carry;
-      a.phase = 'back';
-      rerate(st, j); // the hand is off the work, and the hours may begin anew
-      const f = st.farmsteads[workFor(st, a, j).farmstead],
-        to = K.to === 'site' || j.common ? j.dest : f.house; // a common field's sheaves go to the green (VB-100)
-      // sheaves go to the barn door, firewood to the woodpile, water into the cottage, timber to its building site (VB-328)
-      const hx = st.w.hx[to],
-        hy = st.w.hy[to];
-      const [x, y] =
-        K.to === 'door'
-          ? homeSpot(st, a)
-          : K.to === 'woodpile' || K.to === 'site'
-            ? [hx + 7, hy + 16]
-            : [hx - 3, hy - 9];
-      walkTo(st, a, to, x, y);
-    } else {
-      complete(st, a);
-      // a completion that moved its pawn (a farm restored: it founds a household there) released it and set it out, or home: its new
-      // walk or journey is its own, and is left be
-      if (a.job !== j) return;
-      if (K.carted) {
-        Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the dung cart is back, and wears
-        retune(st, st.households[st.pawns[a.id].household]);
-      }
-      a.job = null;
-      a.basis = null;
-      a.phase = null;
-      a.inside = false;
-      if (K.inside) a.anim = 'idle';
-      waitLeg(st, a); // it looks for work at once
-    }
+    settle(st, j);
+    if (!ends) j.done = 0; // a task ended keeps its hours done as it is taken down
+    a.phase = null;
+    a.anim = 'idle';
+    rerate(st, j);
+    onward(st, a);
   }
   // ---- a goal with methods (sim/methods, VB-1775; design.md section 7, The task as a plan): the one switch is in start, arrived, ended
-  // and release; a kind without methods runs on its phases above. At each leg's end or cut the pawn's next step is read from the world
+  // and release; every kind is one (VB-1750). At each leg's end or cut the pawn's next step is read from the world
   // (sim/doing's view) and begun: a walk ('go' out, 'back' with a load), a work leg, or at once a cart taken, a load taken up or set down.
   // Past the working day only a load in hand goes on home (A load in hand), and a task lived by (VB-1547); the rest waits for tomorrow.
   const spotFor = (st, a, to, j) =>
@@ -915,7 +775,6 @@ VB['sim/agents'] = (() => {
     freeHands,
     stopWorkFor,
     complete,
-    deposit,
     wantsWork,
     arrived,
     goHome,
