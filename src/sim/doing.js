@@ -31,9 +31,13 @@ VB['sim/doing'] = (() => {
   const goodOf = (good) => GOODS[good] || { lying: good, carry: KINDS[good].carry, kind: good };
   const byKind = (good) => !!goodOf(good).kind;
   const plans = Methods.compile(KINDS);
-  // A kind's plan, compiled on its first ask when the kind was added after load (a test's kind, made from a game kind; VB-1750)
+  // A kind's plan, compiled on its first ask when the kind was added after load (a test's kind, made from a game kind; VB-1750): one that
+  // declares no methods is work done at its site, as sim/kinds' join makes every other (sim/methods labour)
   const planOf = (k) =>
-    plans[k] || (KINDS[k] && KINDS[k].methods ? Object.assign(plans, Methods.compile({ [k]: KINDS[k] }))[k] : null);
+    plans[k] ||
+    (KINDS[k]
+      ? Object.assign(plans, Methods.compile({ [k]: KINDS[k].methods ? KINDS[k] : Methods.labour(KINDS[k]) }))[k]
+      : null);
   // The good a load in hand for a task of kind k is: the one its methods take up (one a kind).
   const loaded = (k) => {
     const P = planOf(k);
