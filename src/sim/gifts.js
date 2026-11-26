@@ -49,7 +49,7 @@ VB['sim/gifts'] = (() => {
     for (const id of hh.members) {
       const p = st.pawns[id],
         a = st.agents[id];
-      if (!p.alive || age(st, p) < HANDS[0] || a.away !== undefined || a.phase === 'back') continue;
+      if (!p.alive || age(st, p) < HANDS[0] || a.away !== undefined || a.load > 0) continue;
       if (mindsWhy(st, id) || heldFor(st, id)) continue;
       if (best < 0 || age(st, p) < age(st, st.pawns[best])) best = id;
     }

@@ -148,7 +148,7 @@ VB['sim/commons'] = (() => {
     const v = st.villages[j.village],
       n = a.load || 0;
     if (n > 0) Stores.put(st, v, Stores.grainGood(j.field.crop), n, 'harvest');
-    const more = j.claims.some((id) => id !== a.id && st.agents[id].phase === 'back' && st.agents[id].load > 0);
+    const more = j.claims.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].load > 0);
     if (j.field.stage !== 'stooks' && !more)
       log(st, `${v.name} has brought in the harvest of its common field to the village store.`, {
         kind: 'harvest',

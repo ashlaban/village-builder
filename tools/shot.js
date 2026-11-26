@@ -77,7 +77,7 @@ const page_ = path.join(os.tmpdir(), `vb-shot-${process.pid}.html`); fs.writeFil
   };
   await shoot(`${tag}-island.jpg`, info.W / 2, info.H / 2, Math.min(1440 / info.W, 900 / info.H));
   if (follow) {
-    const p = await page.evaluate((k) => { const a = window.__vb.st.agents.find((q) => q.job && q.job.kind === k && q.phase === 'work' && !q.path); return a ? [a.x, a.y] : null; }, follow);
+    const p = await page.evaluate((k) => { const a = window.__vb.st.agents.find((q) => q.job && q.job.kind === k && (q.leg && q.leg.kind === 'work') && !q.path); return a ? [a.x, a.y] : null; }, follow);
     if (p) await shoot(`${tag}-follow.jpg`, p[0], p[1], +(at || '0,0,3').split(',').pop() || 3); else console.error('no pawn at work on', follow);
   } else if (at) { const [x, y, z] = at.split(',').map(Number); await shoot(`${tag}-at.jpg`, x, y, z || 0.6); }
   const big = [...info.villages].sort((a, b) => b.farms - a.farms || a.id - b.id);

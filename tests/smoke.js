@@ -47,9 +47,9 @@ const iv = setInterval(async () => {
       const a = P.st.agents[hh2.members.find((m) => !P.st.agents[m].inside && !P.st.agents[m].job)];
       hh2.carts.length = 0; hh2.carts.push({ kind: 'hand', cond: 1, built: P.st.t, by: null }); tick(3);
       const objs = objectsLayer().children;
-      const saved = { job: a.job, phase: a.phase, carry: a.carry, load: a.load };
+      const saved = { job: a.job, carry: a.carry, load: a.load };
       // a pawn with no job: one at the plough has its team drawn with it, and the team would leave with the phase (not the cart's doing)
-      a.job = a.job || { kind: 'haul', farm: P.st.farmsteads[hh2.farmstead] }; a.phase = 'back'; a.carry = 'hay'; a.load = 60; tick(3);
+      a.job = a.job || { kind: 'haul', farm: P.st.farmsteads[hh2.farmstead] }; a.carry = 'hay'; a.load = 60; tick(3);
       const home = vis();
       C.take(P.st, hh2, a.id, false); tick(3);
       const near = objs.filter((o) => o.visible && o.anchor.y === 0.85 && Math.hypot(o.position.x - a.x, o.position.y - a.y) < 14);
@@ -65,10 +65,10 @@ const iv = setInterval(async () => {
     {
       const hh3 = P.st.households.find((h) => !h.dissolved && h.farmstead !== null && h.members.some((m) => P.st.agents[m] && !P.st.agents[m].inside && !P.st.agents[m].job));
       const a = P.st.agents[hh3.members.find((m) => !P.st.agents[m].inside && !P.st.agents[m].job)], objs = objectsLayer().children;
-      const saved = { job: a.job, phase: a.phase, carry: a.carry, load: a.load, x: a.x, y: a.y, path: a.path };
+      const saved = { job: a.job, carry: a.carry, load: a.load, x: a.x, y: a.y, path: a.path };
       const cows = () => objs.filter((o) => o.visible && o.anchor.y === 0.92).length;
       const base = cows();
-      a.job = { kind: 'lead', farm: P.st.farmsteads[hh3.farmstead] }; a.phase = 'back'; a.carry = 'cow'; a.load = 0; tick(3);
+      a.job = { kind: 'lead', farm: P.st.farmsteads[hh3.farmstead] }; a.carry = 'cow'; a.load = 1; tick(3);
       if (cows() !== base + 1) fail(`a pawn leading a cow is drawn with ${cows() - base} animals beside it, not 1`);
       // with the household's want naming a giver that has a cow, the animal is the giver's: its herd does not draw it as well (VB-616)
       const givers = P.st.households.filter((h) => !h.dissolved && h.herds.some((id) => P.st.herds[id].head && P.st.herds[id].head.some((x) => x.kind === 'cow')));

@@ -772,8 +772,8 @@ function checkState(st) {
     });
     for (const id of st.living) {
       const a = st.agents[id], l = a.leg || null, k = l && l.kind, at = `agents[${id}]`, free = !a.path && VB['sim/pose'].unbound(a);
-      const want = a.journey === 'rest' ? ['wait'] : a.path ? ['walk'] : a.phase === 'work' ? ['work'] : free ? [null, 'wait'] : [];
-      if (!want.includes(k)) bad.push(`${at}: phase ${a.phase}, ${a.path ? 'walking' : 'standing'}, in a leg ${k}`);
+      const want = a.journey === 'rest' ? ['wait'] : a.path ? ['walk'] : a.job ? ['work'] : VB['sim/pose'].unbound(a) ? [null, 'wait'] : [];
+      if (!want.includes(k)) bad.push(`${at}: ${a.job ? "on task " + a.job.key : "no task"}${a.homeward ? ", homeward" : ""}${a.journey ? ", journey " + a.journey : ""}, ${a.path ? 'walking' : 'standing'}, in a leg ${k}`);
       if (a.errand !== undefined && a.errand !== true) bad.push(`${at}: errand ${a.errand}, neither absent nor true`); // VB-228
       if ((k === 'walk' || k === 'wait') !== inQ.has(id)) bad.push(`${at}: a leg ${k}, ${inQ.has(id) ? '' : 'not '}in legDue`);
       if (k === 'walk' && a.path) {
@@ -894,7 +894,7 @@ function checkState(st) {
           // or a hand of the leftCart goal has taken its lying cart up and leads it home (the load in hand names it, VB-1814)
           st.agents.some((a) => a && a.load > 0 && a.loadOf && a.loadOf.cart && a.loadOf.cart.kind === c.kind && a.loadOf.cart.built === c.built && st.pawns[a.id].household === h.id) ||
           // or a hand has taken it up and leads it home (the fetch's way back: the lying load is gone, the cart is home at the delivery; VB-1552 found the gap)
-          [...st.jobs.values()].some((j) => j.cart && j.cart.kind === c.kind && j.cart.built === c.built && j.claims.some((id) => st.agents[id].phase === 'back')))))
+          [...st.jobs.values()].some((j) => j.cart && j.cart.kind === c.kind && j.cart.built === c.built && j.claims.some((id) => st.agents[id].load > 0)))))
         bad.push(`households[${h.id}]: cart ${JSON.stringify(c)} stands out with no carrier's lying cart`);
     }
     // the larder holds foods eaten as they are (rules FOODS, VB-259)
@@ -1510,7 +1510,7 @@ function checkState(st) {
       }
       if (!Number.isInteger(j.at) || j.at > st.tick || !(j.rate >= 0) || !Number.isFinite(j.rate) || !(j.done >= 0)) bad.push(`${at}: at ${j.at}, rate ${j.rate}, done ${j.done}`);
       if (full) {
-        const hands = j.claims.filter((id) => st.agents[id].job === j && st.agents[id].phase === 'work');
+        const hands = j.claims.filter((id) => st.agents[id].job === j && (st.agents[id].leg && st.agents[id].leg.kind === 'work'));
         if (hands.length === 0 && j.rate > 0) bad.push(`${at}: a rate of ${j.rate} with no hand at work`);
         if (hands.some((id) => globalThis.VB['sim/work'].rateOf(st, st.pawns[id]) > 0) && !(j.rate > 0)) bad.push(`${at}: hands at work (${hands}) and no rate`);
         if (j.rate > 0 && !inQ.has(j)) bad.push(`${at}: under work, not in workDue`);
@@ -1542,10 +1542,12 @@ function checkState(st) {
   // a load on the road (VB-335): a whole number of rations above 0 only while carrying home; the barn's threshed count is a whole number
   // or while cutting the next load beside a cart with room (sim/agents stepWork, a kind's `stack`: firewood), or out with a cart taken
   // at the house, on the way and at the work (the water's barrel: the job names its cart, VB-1586)
-  for (const a of st.agents) if (a.load && !(a.load > 0 && (a.phase === 'back' || (a.phase === 'work' && a.job && VB['sim/kinds'].KINDS[a.job.kind].stack) || ((a.phase === 'go' || a.phase === 'work') && a.job && a.job.cart)))) bad.push(`agents[${a.id}]: a load of ${a.load} in phase ${a.phase}`);
+  // a load is in hand for a task, never at its work: a task's state is its leg and its hands (VB-1751: no phases)
+  for (const a of st.agents) if (a.load && !(a.load > 0 && a.job && !(a.leg && a.leg.kind === 'work'))) bad.push(`agents[${a.id}]: a load of ${a.load} ${a.job ? 'at its work' : 'for no task'}`);
   // a full task in hand (agent.job) only on the way to it, at it or bringing its load in: a hand sent home or left free has let it go, and
   // holds no claim a task's pace is reckoned from (VB-1565; sim/agents release, the verb goHome)
-  for (const a of st.agents) if (a.job && !['go', 'work', 'back'].includes(a.phase)) bad.push(`agents[${a.id}]: holds job ${a.job.key} in phase ${a.phase}`);
+  // a task's hand walks for it or works at it, on no journey and no walk home
+  for (const a of st.agents) if (a.job && (!(a.path || (a.leg && a.leg.kind === 'work')) || a.homeward || a.journey)) bad.push(`agents[${a.id}]: holds job ${a.job.key} ${a.path ? 'walking' : 'standing'} in a leg ${a.leg && a.leg.kind}${a.homeward ? ', homeward' : ''}${a.journey ? ', on a journey' : ''}`);
   for (const h of st.households) if (h.threshed !== undefined &&
     !(Number.isInteger(h.threshed) && h.threshed >= 0)) bad.push(`households[${h.id}]: threshed ${h.threshed}`);
   // the hour of a pawn's last talk with a friend (agent.talk.friendAt, VB-062): a finite hour, no later than a talk begun now can show (two
@@ -1821,8 +1823,8 @@ function checkState(st) {
   }
   // the stays away (VB-783; the journeys, VB-287, among them): in the order they began (by id; VB-473: a journey's legs are its pawn's), ids below
   // st.awaySeq and unique, one stay a pawn, each pawn living, the food it carries never below 0, agent.away its index (the stay's id on its
-  // pawn's agent, absent on every other). A journey (bed null, roof 'none'): `to` its household's house, and its pawn in phase 'journey' or
-  // 'road' exactly when it is on one. A lodger: its bed a tile and its walk there, `to` its bed, roof 'none' or 'house', a guest's bed the
+  // pawn's agent, absent on every other). A journey (bed null, roof 'none'): `to` its household's house, and its pawn's agent.journey 'walk' or
+  // 'rest' exactly when it is on one. A lodger: its bed a tile and its walk there, `to` its bed, roof 'none' or 'house', a guest's bed the
   // house of its host, another household (roof 'house', or 'barn' at a gathering, VB-295); its pawn never on the road; one for an occasion
   // (until) has a bed and no tasks.
   // VB-1175: a pawn walking home to pack for a stay (agent.packing) is not away yet: no stay of its own, a tile to lodge at and the verb's args

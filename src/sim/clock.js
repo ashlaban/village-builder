@@ -178,14 +178,14 @@ VB['sim/clock'] = (() => {
           const a = st.agents[liveId];
           if (st.pawns[a.id].died) continue;
           if (a.mind) dropMind(st, a); // the herds are minded in the working hours only (VB-136)
-          if (a.phase === 'back') continue; // finish the delivery first
+          if (a.load > 0) continue; // finish the delivery first
           if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
           if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)
           if (travelling(a)) continue; // on the road it sleeps where it stopped (VB-287)
           if (fetchGoesOn(st, a)) continue; // a small child fetched to its new home, and its fetcher (sim/journeys, VB-1240)
-          if (a.job && (a.phase === 'go' || a.phase === 'work') && carriedOn(st, a.job)) continue; // a task lived by, finished (VB-1547)
+          if (a.job && carriedOn(st, a.job)) continue; // a task lived by, finished (VB-1547)
           release(st, a, true); // a trip cut at its work carries its yield home (sim/agents tripHome, VB-1748)
-          if (!a.inside && a.phase !== 'back') issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
+          if (!a.inside && !(a.load > 0)) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
         }
       },
     },

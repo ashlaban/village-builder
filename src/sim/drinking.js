@@ -145,7 +145,7 @@ VB['sim/drinking'] = (() => {
         continue;
       }
       if (Thirst.thirst(st, p) < THIRST.leave || !Thirst.goes(st, p) || travelling(a)) continue;
-      if (a.phase === 'back' || a.occasion !== null || commanded(st, p.id)) {
+      if (a.load > 0 || a.occasion !== null || commanded(st, p.id)) {
         hold(st, { pawn: p.id, at: st.t + 1 });
         continue;
       }

@@ -1,7 +1,8 @@
-// @sys sim/agents: what a pawn does with its legs: the job's phases (set out, arrive, a load home, done, released), home placement, talks,
-// death, a journey's walking, the step that takes the legs and tasks due, and the verbs; its legs are sim/legs', its work sim/work's (VB-422)
+// @sys sim/agents: what a pawn does with its legs: a task's next leg read from the world (set out, arrive, a load home, done, released;
+// no phases, VB-1751), home placement, talks, death, a journey's walking, the step that takes the legs and tasks due, and the verbs;
+// its legs are sim/legs', its work sim/work's (VB-422)
 VB['sim/agents'] = (() => {
-  const { unbound } = VB['sim/pose'];
+  const { unbound, atWork } = VB['sim/pose'];
   const { living, commanded } = VB['sim/records'];
   const { isOpen } = VB['sim/kinds'];
   const { register } = VB['sim/commands'];
@@ -39,7 +40,6 @@ VB['sim/agents'] = (() => {
   //   it rests on the road and keeps its route (a.path, a.seg); null on no journey (sim/journeys, VB-287); written here only, saved.
   // The pawn is bound for nothing (sim/pose unbound): no walk home, no journey.
   const unbind = (a) => {
-    a.phase = null;
     a.journey = null;
     delete a.homeward;
   };
@@ -144,14 +144,14 @@ VB['sim/agents'] = (() => {
   // The pawn leaves its job, which keeps its progress for whoever takes it up. `homeward`: it is let go to go home (the working day's end):
   // a trip whose yield accrues, cut at its work, carries what it has home instead (tripHome), and the pawn keeps its task until it is in.
   function release(st, a, homeward = false) {
-    if (homeward && a.phase === 'work' && a.job && KINDS[a.job.kind].accrues && tripHome(st, a)) return;
+    if (homeward && atWork(a) && KINDS[a.job.kind].accrues && tripHome(st, a)) return;
     // A load on its way home is not brought in from the road: a hand that can walk on is not released until it has (VB-581: `moved`
     // waits for the delivery, and the planner, the occasions, the orders and the working day's end find it on its way home and leave it).
     // One released here puts the load down where it stands: in its own field or meadow it goes back with the stooks or the mown hay;
     // elsewhere (its death on the road, its household dissolving) it lies there for the task's owner to fetch (VB-611, sim/lying). A task
     // that has no more loads to give is done with. A load no kind fetches (a barrel's water, VB-1604) is spilt: nothing lies.
     let laid = null;
-    if (a.load > 0 && a.phase === 'back' && a.job) {
+    if (a.load > 0 && a.job) {
       const K = KINDS[a.job.kind],
         [x, y] = placeOf(st, a),
         at = tileAt(st, x, y);
@@ -170,7 +170,7 @@ VB['sim/agents'] = (() => {
     }
     const left = a.job;
     if (left) settle(st, left);
-    if (left && a.phase === 'work' && KINDS[left.kind].accrues) cutTrip(st, a, left);
+    if (left && atWork(a) && KINDS[left.kind].accrues) cutTrip(st, a, left);
     if (left) {
       const c = left.claims,
         i = c.indexOf(a.id);
@@ -209,8 +209,8 @@ VB['sim/agents'] = (() => {
     j.made = (j.made || 0) + 1; // a trip's goal is its work done, a load made (sim/methods trip, VB-1749)
     freeHands(st, j, a.id);
     a.carry = K.carry;
-    a.phase = 'back';
     a.inside = false;
+    unleg(st, a); // the work leg is over: it carries its load home
     rerate(st, j);
     const [x, y] = homeSpot(st, a);
     walkTo(st, a, st.farmsteads[workFor(st, a, j).farmstead].house, x, y);
@@ -250,19 +250,19 @@ VB['sim/agents'] = (() => {
     for (const id of [...j.claims]) {
       if (id === finisher) continue;
       const b = st.agents[id];
-      if (b.phase === 'back') continue; // a load on the road stays the job's (VB-335)
+      if (b.load > 0) continue; // a load on the road stays the job's (VB-335)
       if (minds(b, j)) {
         unhold(st, b, j);
         continue;
       }
-      if (b.phase === 'go') halt(st, b); // it stands where its walk had come to
+      if (b.path) halt(st, b); // it stands where its walk had come to
       b.job = null;
       unbind(b);
       b.inside = false;
       b.anim = 'idle';
       waitLeg(st, b); // it looks for work at once
     }
-    j.claims = j.claims.filter((id) => id === finisher || st.agents[id].phase === 'back');
+    j.claims = j.claims.filter((id) => id === finisher || st.agents[id].load > 0);
     rerate(st, j);
   }
   // Household hh is going (sim/heirs' extinct): the jobs it posted and those on its farm f go, and those working them stop, as freeHands
@@ -275,7 +275,7 @@ VB['sim/agents'] = (() => {
     for (const j of jobs) for (const id of j.claims) carriers.add(id);
     for (const id of carriers) {
       const a = st.agents[id];
-      if (!a || a.phase !== 'back' || !a.job || !st.pawns[id].alive) continue;
+      if (!a || !(a.load > 0) || !a.job || !st.pawns[id].alive) continue;
       release(st, a);
       if (a.moving)
         emit(st, 'moveOn', a); // the move it was told of (sim/journeys' moved)
@@ -314,12 +314,12 @@ VB['sim/agents'] = (() => {
   // at the next step.
   function arrived(st, a) {
     a.anim = 'idle';
-    if (a.job && (a.phase === 'go' || a.phase === 'back')) {
+    if (a.job) {
       onward(st, a); // the next leg read from the world (VB-1775)
       const h = cal(st.t).hour;
       if ((h >= WORK[1] || h < WORK[0]) && !a.job && !a.path && !a.inside && unbound(a) && a.away === undefined)
         goHome(st, a);
-    } else if (!!a.homeward) {
+    } else if (a.homeward) {
       a.inside = true;
       unbind(a);
       if (a.away === undefined) {
@@ -355,7 +355,7 @@ VB['sim/agents'] = (() => {
     }
     settle(st, j);
     if (!ends) j.done = 0; // a task ended keeps its hours done as it is taken down
-    unbind(a);
+    if (atWork(a)) unleg(st, a); // the work leg is over (a hand walking when its task's end fell due walks on)
     a.anim = 'idle';
     rerate(st, j);
     onward(st, a);
@@ -423,7 +423,6 @@ VB['sim/agents'] = (() => {
         Doing.unload(st, a, s, x, y);
       } else if (s.prim === 'fetch') {
         Doing.takeCart(st, a);
-        a.phase = 'go'; // out on its task with the cart (sim/carts out)
       } else {
         Carts.home(st, st.households[st.pawns[a.id].household], a.id); // the cart is back where it is kept, and wears
         retune(st, st.households[st.pawns[a.id].household]);
@@ -441,10 +440,10 @@ VB['sim/agents'] = (() => {
       }
       j.hours = Doing.hoursOf(j, s);
       const K = KINDS[j.kind];
-      a.phase = 'work';
       a.anim = K.anim || 'idle';
       a.inside = !!K.inside; // an indoor kind is worked in the house
       unleg(st, a); // a wait it had (begun from start) is over
+      halt(st, a); // at work it walks nowhere: a route left from a walk its task cut is dropped (VB-1751)
       workAt(st, a);
       a.pace = Skills.workPace(st, a.id, K.type, K.craft);
       rerate(st, j);
@@ -455,8 +454,7 @@ VB['sim/agents'] = (() => {
       return;
     }
     const [x, y] = spotFor(st, a, to, j);
-    a.phase = s.prim === 'haul' ? 'back' : 'go';
-    if (a.phase === 'back') a.carry = a.carry || KINDS[j.kind].carry;
+    if (s.prim === 'haul') a.carry = a.carry || KINDS[j.kind].carry;
     rerate(st, j);
     walkTo(st, a, to, x, y);
   }
@@ -543,7 +541,7 @@ VB['sim/agents'] = (() => {
         // what its delivery reads kept with it (the grain's crops, a move's mark: VB-1814)
         if (b.load > 0 && lying && j.owner) Lying.lay(st, b, j, lying, tileAt(st, x, y), x, y);
         if (b.path) halt(st, b);
-        Object.assign(b, { job: null, basis: null, phase: null, load: 0, carry: null, inside: false, anim: 'idle' });
+        Object.assign(b, { job: null, basis: null, load: 0, carry: null, inside: false, anim: 'idle' });
         waitLeg(st, b);
       }
       dequeue(st, j);
@@ -621,14 +619,14 @@ VB['sim/agents'] = (() => {
     if (a.job) {
       const J = KINDS[a.job.kind],
         K = J.words ? { ...J, ...J.words(st, a.job) } : J; // VB-1670: a kind whose words read the state (sim/byre fodder)
-      if (a.phase === 'go') return K.go;
-      if (a.phase === 'back') return K.back;
+      if (a.load > 0) return K.back;
+      if (!atWork(a)) return K.go;
       return withOxen(st, a) ? 'Ploughing with the oxen' : K.verb;
     }
     const bg = a.mind ? a.mind[0] : null;
     if (bg) return a.path ? KINDS[bg.kind].go : KINDS[bg.kind].verb; // VB-136: with the herds
     const s = a.away === undefined || travelling(a) ? null : stayOf(st, id); // a stay at a bed (VB-783)
-    if (!!a.homeward) return s && !s.back ? 'Walking to where it sleeps away' : 'Walking home';
+    if (a.homeward) return s && !s.back ? 'Walking to where it sleeps away' : 'Walking home';
     if (travelling(a)) {
       const g = stayOf(st, id).gift; // a fetch of a gift (VB-461)
       if (g && g.haul)
@@ -655,10 +653,10 @@ VB['sim/agents'] = (() => {
   // one free goes home. sim/days sends nobody home itself.
   on('dayGiven', (st, d) => {
     const a = st.agents[d.pawn];
-    if (!a || !st.pawns[a.id].alive || a.phase === 'back' || commanded(st, a.id) || travelling(a)) return;
-    if (a.occasion !== null || !!a.homeward || a.away !== undefined) return;
+    if (!a || !st.pawns[a.id].alive || a.load > 0 || commanded(st, a.id) || travelling(a)) return;
+    if (a.occasion !== null || a.homeward || a.away !== undefined) return;
     if (a.job) release(st, a, true);
-    if (!a.inside && a.phase !== 'back') goHome(st, a);
+    if (!a.inside && !(a.load > 0)) goHome(st, a);
   });
   // A charge held out of reach, with no task in hand (sim/attention hold): the pawn sets out for it (the last taken up).
   on('mindAway', (st, a) => {
@@ -723,7 +721,7 @@ VB['sim/agents'] = (() => {
     active: (st, c) => !!st.agents[c.actor].path,
     frees: true,
   });
-  // goHome: walk home and go in (phase 'home')
+  // goHome: walk home and go in (agent.homeward)
   register('goHome', {
     check: (st, c) =>
       free(st, c.actor) || (st.pawns[c.actor].household === null ? `pawn ${c.actor} has no home` : null),

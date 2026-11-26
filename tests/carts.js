@@ -13,8 +13,8 @@ const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : 
 const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 2, sizes: [5, 4] }], { seed: 4 });
 const hh = st.households[0], f = st.farmsteads[hh.farmstead], [p, q] = hh.members.map((id) => st.agents[id]);
 const cart = (kind, cond = 1) => ({ kind, cond, built: st.t, by: null });
-const busy = (a, load) => { a.job = { key: 'test', kind: 'haul', claims: [a.id] }; a.phase = 'back'; a.load = load; };
-const idle = (a) => { a.job = null; a.phase = null; a.load = 0; };
+const busy = (a, load) => { a.job = { key: 'test', kind: 'haul', claims: [a.id] }; a.load = load; };
+const idle = (a) => { a.job = null; a.load = 0; };
 
 // --- the numbers
 check(TRAVEL.load === 30 && TRAVEL.hand === 90 && TRAVEL.cart === 300, 'loads of 30, 90 and 300 rations');
@@ -94,7 +94,7 @@ check(hh.carts.length === 1 && hh.carts[0].kind === 'hand' && hh.carts[0].cond =
 // --- dung: carted faster with a cart
 hh.carts = []; idle(p);
 check(C.carting(st, hh, p.id, false) === 1, 'no cart: at the plain rate');
-hh.carts = [cart('hand')]; p.job = { key: 'test', kind: 'manure', claims: [p.id] }; p.phase = 'work'; // at the work, as sim/agents asks
+hh.carts = [cart('hand')]; p.job = { key: 'test', kind: 'manure', claims: [p.id] }; p.leg = { kind: 'work', t: 0, x: p.x, y: p.y, seg: 0 }; // at the work, as sim/agents asks
 check(C.carting(st, hh, p.id, false) === CART.manure.hand && hh.carts[0].by === p.id, 'a hand cart: faster, and the cart is taken');
 idle(p); C.leave(st, hh, p.id);
 check(hh.carts[0].by === null, 'left, it is free');

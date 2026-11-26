@@ -54,16 +54,16 @@ check(posted.length === 1 && posted[0][0] === WORK[1], `the water posted at 18:0
 const D1 = 4; // day 3 until VB-1666 put the shelter on the house tile
 until(D1, WORK[1] - 0.1);
 const clearing = a.job;
-check(clearing && clearing.kind === 'clear' && a.phase === 'work', `at 17:54 the settler clears (${clearing && clearing.kind})`);
+check(clearing && clearing.kind === 'clear' && (a.leg && a.leg.kind === 'work'), `at 17:54 the settler clears (${clearing && clearing.kind})`);
 until(D1, WORK[1] + 0.1);
-check(!a.job && (!!a.homeward || a.inside), `at 18:00 the clearing is let go (${a.job && a.job.kind}, ${a.phase})`);
+check(!a.job && (!!a.homeward || a.inside), `at 18:00 the clearing is let go (${a.job && a.job.kind}, ${a.leg && a.leg.kind})`);
 // 2. day 16 (day 5 until VB-721 moved the settler's field to drier ground, day 10 until VB-1544 had him raise a booth first): water
 // taken at 17:42 is still his after 18:00, and delivered that evening
 const D2 = 20; // day 16 until VB-1666
 const k10 = waterAt(D2, WORK[1] - 0.05); // VB-1812: drawn at the house's own well in WATER.draw, so taken just before 18:00
 check(issue(st, VB['sim/fit'].workCommand(id, k10, 'planner')) === true, 'the settler takes the water at 17:42');
 until(D2, WORK[1] - 0.1);
-const before = a.phase,
+const before = a.leg && a.leg.kind,
   n = a.assigned.assignments; // the tasks it has taken: one let go at 18:00 and called again would count anew
 until(D2, WORK[1] + 0.02);
 check(

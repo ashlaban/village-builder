@@ -222,7 +222,7 @@ VB['sim/occasions'] = (() => {
     if (!o) return `there is no occasion ${oid}`;
     if (st.t >= o.end) return `occasion ${oid} is over`;
     if (held(a, o)) return `pawn ${id} is at occasion ${a.occasion}`;
-    if (a.phase === 'back') return `pawn ${id} is carrying a load home`;
+    if (a.load > 0) return `pawn ${id} is carrying a load home`;
     return null;
   }
   // Pawn a sets out for occasion oid (the attend verb, which then walks it there and has it stand about until the end): where it stands,
@@ -240,7 +240,7 @@ VB['sim/occasions'] = (() => {
   const canGo = (st, a, o) =>
     !unplanned(st, a.id) &&
     !held(a, o) &&
-    a.phase !== 'back' &&
+    !(a.load > 0) &&
     (a.away === undefined || lodgedFor(st, a, o)) && // on the road (VB-287), or lodging away (VB-783)
     (o.overrides || (!a.job && (unbound(a) || !!a.homeward)));
   // Pawn a lodges in the host village for the gathering whose day o is (sim/gathering's stays: why 'gathering', until its end).
@@ -272,7 +272,7 @@ VB['sim/occasions'] = (() => {
       }
       // one carrying a load home is looked at again at the next step, when the load may be down (VB-466: looked at each hour, a hauler
       // whose trips took the hour was on the road with a load every time, and a village of one voice had no quorum)
-      again = Math.min(again, st.t + (a.phase === 'back' ? 1 / TICKS : 1));
+      again = Math.min(again, st.t + (a.load > 0 ? 1 / TICKS : 1));
       i++;
     }
     const nextLeave = o.asked.find((g) => g.leave > st.t);

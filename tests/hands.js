@@ -22,7 +22,7 @@ function hoe(hands) {
       if (!j) continue;
       most = Math.max(most, j.claims.length);
       // each starts on its own row: it stands at the row's start (the page walks the rows, VB-472)
-      const at = j.claims.map((id) => st.agents[id]).filter((a) => a.phase === 'work');
+      const at = j.claims.map((id) => st.agents[id]).filter((a) => (a.leg && a.leg.kind === 'work'));
       rows = Math.max(rows, new Set(at.map((a) => `${a.x.toFixed(1)},${a.y.toFixed(1)}`)).size);
     }
     return { hours: st.t - t0, most, rows, done: fd.stage !== 'stubble' };

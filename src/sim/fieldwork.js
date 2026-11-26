@@ -234,7 +234,7 @@ VB['sim/fieldwork'] = (() => {
         if (j.bin === undefined || j.bin === j.field.bin) binned(j.field, seq);
         if (
           f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') &&
-          !hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].phase === 'back')
+          !hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].load > 0)
         )
           log(st, `${f.name} has brought in its harvest.`, { kind: 'harvest', ...atFarm(f) });
       },

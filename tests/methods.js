@@ -669,7 +669,7 @@ console.log(
     hh.timber = timber;
     hh.wood = 0;
     const a = members(st, hh)[0];
-    Object.assign(a, { load: 0, carry: null, phase: null });
+    Object.assign(a, { load: 0, carry: null });
     setAt(st, a, from === 'house' ? f.house : from === 'forest' ? forest : from);
     a.job = {
       key: `test:${kind}`,
@@ -697,16 +697,13 @@ console.log(
       if (s.prim === 'load') Doing.load(st, a, s);
       else if (s.prim === 'unload') Doing.unload(st, a, s, a.x, a.y);
       else if (s.prim === 'work') {
-        a.phase = 'work';
         const trees = st.w.trees[at];
         Doing.work(st, a, s);
         seen.push({ op: s.op, at, felled: trees - st.w.trees[at] });
       } else if (s.prim === 'return') Carts.home(st, st.households[st.pawns[a.id].household], a.id);
       else if (s.prim === 'fetch' && to === at) {
         Doing.takeCart(st, a);
-        a.phase = 'go'; // out on its task with the cart, as sim/agents onward sets it
       } else {
-        a.phase = s.prim === 'haul' ? 'back' : 'go';
         setAt(st, a, to);
       }
     }
@@ -830,7 +827,7 @@ console.log(
     const j = Jobs.post(st, `test:wood:h${hh.id}`, 'wood', title(hh), forest, { farm: f, chosen: false, amount: 9 * P(st) });
     const t0 = hh.timber || 0;
     Agents.start(st, a, j);
-    assert(a.phase === 'back' && a.path && a.job === j, `past the working day, it hauls home (${a.phase})`);
+    assert(a.load > 0 && a.path && a.job === j, `past the working day, it hauls home (${a.leg && a.leg.kind})`);
     if (dies) {
       Sim.advance(st, 0.2);
       const at = here(st, a);
@@ -879,7 +876,7 @@ console.log(
     if (p.job) Agents.release(st, p);
     const j = { id: ++st.jobSeq, key, kind: 'fetchWood', owner, site: forest, done: 0, claims: [p.id], posted: st.t, live: true };
     st.jobs.set(key, j);
-    Object.assign(p, { job: j, phase: back ? 'back' : 'go', load: back ? TRAVEL.load : 0, carry: back ? 'logs' : null });
+    Object.assign(p, { job: j, load: back ? TRAVEL.load : 0, carry: back ? 'logs' : null });
     const to = back ? f.house : forest;
     Agents.walkTo(st, p, to, st.w.hx[to], st.w.hy[to]);
   }
@@ -927,7 +924,7 @@ console.log(
     const j = { id: ++st.jobSeq, key, kind: 'fetchLeftGrain', owner, site: away, done: 0, claims: [p.id], posted: st.t, live: true,
       lying: back ? 999 : l.id, parts: back ? { rye: 10 } : { barley: 20 }, left: back ? 0 : 20 };
     st.jobs.set(key, j);
-    Object.assign(p, { job: j, phase: back ? 'back' : 'go', load: back ? 10 : 0, carry: back ? 'sack' : null });
+    Object.assign(p, { job: j, load: back ? 10 : 0, carry: back ? 'sack' : null });
     const to = back ? f.house : away;
     Agents.walkTo(st, p, to, st.w.hx[to], st.w.hy[to]);
   }
@@ -998,8 +995,8 @@ console.log(
   assert(had > 0, 'the village has cattle');
   Agents.release(st, a);
   Agents.start(st, a, j);
-  for (let n = 0; a.phase !== 'back' && n < 400; n++) Sim.advance(st, 0.1);
-  assert(a.phase === 'back' && a.load === 1 && j.made === 1, 'the cow haltered and led home');
+  for (let n = 0; !(a.load > 0) && n < 400; n++) Sim.advance(st, 0.1);
+  assert(a.load > 0 && a.load === 1 && j.made === 1, 'the cow haltered and led home');
   Sim.advance(st, 0.1);
   Sim.killPawn(st, a.id, 'illness');
   assert.deepStrictEqual(
@@ -1060,12 +1057,12 @@ console.log(
         if (!j || a.path) since.delete(id);
         else if (!s || s.job !== j || d > s.done + 1e-9) since.set(id, { job: j, done: d, t: st.t });
         else if (st.t - s.t > 24) {
-          t.stuck.push(`pawn ${id} on ${j.key}, phase ${a.phase} (seed ${seed}, hour ${h})`);
+          t.stuck.push(`pawn ${id} on ${j.key}, phase ${a.leg && a.leg.kind} (seed ${seed}, hour ${h})`);
           since.delete(id);
         }
       }
       if (rnd(rng) < 0.15) {
-        const all = st.living.map((id) => st.agents[id]).filter((a) => a.job && a.phase === 'work' && staged(a.job.kind)),
+        const all = st.living.map((id) => st.agents[id]).filter((a) => a.job && (a.leg && a.leg.kind === 'work') && staged(a.job.kind)),
           built = all.filter((a) => BUILD.has(a.job.kind)),
           at = built.length && rnd(rng) < 0.5 ? built : all; // a building's stage as often as a field's, when there is one
         if (at.length) {

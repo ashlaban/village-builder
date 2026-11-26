@@ -122,7 +122,7 @@ const farmBy = (steps, size, opt = {}) => {
     if (h < 8 || h > 13) continue;
     for (const id of hh.members) {
       const a = st.agents[id];
-      if (a.job && a.job.kind === 'mow' && a.phase === 'work' && Thirst.goes(st, st.pawns[id])) who = id;
+      if (a.job && a.job.kind === 'mow' && (a.leg && a.leg.kind === 'work') && Thirst.goes(st, st.pawns[id])) who = id;
     }
   }
   check(who !== null, 'a member mows on a summer morning');

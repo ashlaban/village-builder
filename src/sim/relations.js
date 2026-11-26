@@ -436,7 +436,7 @@ VB['sim/relations'] = (() => {
   // outdoors. It is kept in the state, not a cache aside, because who is in it depends on when in the hour it was built: a run loaded
   // mid-hour must draw from the same list as the run that was saved (VB-074).
   // @state st.idlers: {hour, by: Map(village id -> agent ids[])} or absent; the idle pawns outdoors by village, as of the first ask in that hour
-  const idles = (st, b) => !b.inside && !b.job && b.phase === null && !b.homeward && !b.journey && st.pawns[b.id].alive;
+  const idles = (st, b) => !b.inside && !b.job && !b.homeward && !b.journey && st.pawns[b.id].alive;
   function idlersBy(st) {
     let c = st.idlers;
     const hour = Math.floor(st.tick / TICKS);

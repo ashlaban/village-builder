@@ -112,6 +112,6 @@ console.log('fetch: a gift set aside at once and fetched a load a trip, a store\
   assert.ok(Stores.grainOf(v) - v0 > n - 1e-6, 'all of it came in');
   assert.strictEqual(VB.count.giftUncarried, 0, 'none moved at once');
   // no member who can go: the quarter stays at home
-  for (const id of giver.members) st.agents[id].phase = 'back'; // each carrying a load home
+  for (const id of giver.members) st.agents[id].load = 1; // each carrying a load home (a test's write)
   assert.notStrictEqual(issue(st, { actor: giver.holder, verb: 'give', target: { village: 0 }, args: { good: 'grain', n: 5 }, source: 'help' }), true);
 }

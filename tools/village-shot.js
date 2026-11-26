@@ -95,7 +95,7 @@ async function shootSeed(browser, seed) {
     for (const hh of st.households.slice(0, 4)) {
       const a = hh.members.map(A).find((x) => x && st.pawns[x.id].age >= 16), f = st.farmsteads[hh.farmstead];
       if (!a || !hh.carts.length) continue;
-      a.job = { kind: 'haul', farm: f }; a.phase = 'back'; a.carry = 'hay'; a.load = 90; a.x = st.w.hx[f.house] + 40; a.y = st.w.hy[f.house] + 20; a.path = null; a.inside = false;
+      a.job = { kind: 'haul', farm: f }; a.carry = 'hay'; a.load = 90; a.x = st.w.hx[f.house] + 40; a.y = st.w.hy[f.house] + 20; a.path = null; a.inside = false;
       C.take(st, hh, a.id, hh.carts.some((c) => c.kind === 'ox'));
     }
     st.visualDirty = true;
@@ -106,7 +106,7 @@ async function shootSeed(browser, seed) {
       const a = hh.members.map(A).find((x) => x && st.pawns[x.id].age >= 16), f = st.farmsteads[hh.farmstead], plan = st.plans.households.get(hh.id);
       if (!a) continue;
       if (plan && !plan.want) plan.want = { what: 'cow', from: null, kind: 'heifer', by: null };
-      a.job = { kind: 'lead', farm: f }; a.phase = 'back'; a.carry = 'cow'; a.x = st.w.hx[f.house] + 40; a.y = st.w.hy[f.house] + 20; a.path = null; a.inside = false;
+      a.job = { kind: 'lead', farm: f }; a.carry = 'cow'; a.load = 1; a.x = st.w.hx[f.house] + 40; a.y = st.w.hy[f.house] + 20; a.path = null; a.inside = false;
     }
     st.visualDirty = true;
   });

@@ -96,7 +96,7 @@ VB['sim/journeys'] = (() => {
         return;
       delete a.fetching;
     }
-    if (a.load > 0 && a.phase === 'back' && a.job) {
+    if (a.load > 0 && a.load > 0 && a.job) {
       // a hand with a load on its way home brings it in first, and then goes (VB-581: the load is carried, not booked from the road)
       if (!a.moving) a.moving = { old: old ? old.id : null, carry };
       return;
@@ -390,7 +390,7 @@ VB['sim/journeys'] = (() => {
   // pack is laid down; rehome(st, a, j): its pawn's household changed on the road, in retarget, true to walk on to where it goes. What is
   // state, not kind (back, gift, stay), each hook tests itself: a carrier who has delivered ends as a move does.
   // A lodger's stay shares st.away and may carry the same word (a caller's 'visit'), and is told from a journey as it was before the table:
-  // arrive, morning and rehome are reached only by a pawn on the road (phase 'journey' or 'road', sim/agents' travelling), which only a
+  // arrive, morning and rehome are reached only by a pawn on the road (agent.journey 'walk' or 'rest', sim/pose travelling), which only a
   // journey's legs set; fall by any stay, but a lodger holds no gift, and a visit's fall is none.
   const fetching = {
     // a fetcher or hauler who dies: the load he held lies where he fell, and what lies at the stops goes back

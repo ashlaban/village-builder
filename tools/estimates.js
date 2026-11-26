@@ -35,7 +35,7 @@ function run({ scenario, map, seed, years, honest }) {
         s = { job: j, head: plan.head.pawn, third: third(headSkill(st, hh.id)), work: E.workOf(st, plan.head.pawn, j), hands: new Map() };
         seen.set(j.key, s);
       }
-      for (const id of j.claims) if (st.agents[id].job === j && st.agents[id].phase === 'work') s.hands.set(id, (s.hands.get(id) || 0) + STEP);
+      for (const id of j.claims) if (st.agents[id].job === j && (st.agents[id].leg && st.agents[id].leg.kind === 'work')) s.hands.set(id, (s.hands.get(id) || 0) + STEP);
     }
     for (const [k, s] of seen) {
       if (st.jobs.get(k) === s.job) continue;

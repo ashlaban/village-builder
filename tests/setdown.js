@@ -21,7 +21,7 @@ function carrier(a) {
   A.release(st, a);
   A.placeAtHome(st, a); // out of its leg
   const j = J.post(st, 'haul:setdown' + a.id + st.t + (n_++), 'haul', { type: 'household', id: hh.id }, fd.tile, { field: fd, farm: f });
-  j.claims.push(a.id); a.job = j; a.phase = 'back'; a.inside = false;
+  j.claims.push(a.id); a.job = j; a.inside = false;
   KINDS.haul.ops.pitch.run(st, j, null, j.site, a, 10); a.carry = 'sheaf'; // VB-1812: the stooks pitched (the work leg of its goal)
   return j;
 }
@@ -33,11 +33,11 @@ function carrier(a) {
   st.pawns[id].household = other.id; // as moveTo has it
   VB['sim/journeys'].moved(st, a, hh, other);
   assert.strictEqual(sheaves(), b0, 'the load was booked at the barn from the road');
-  assert(a.moving && a.phase === 'back' && a.load === n && fd.held === held, 'the hand is not still carrying its load');
+  assert(a.moving && a.load > 0 && a.load === n && fd.held === held, 'the hand is not still carrying its load');
   A.arrived(st, a); // home with the load
   assert.strictEqual(sheaves(), b0 + n, 'the load did not arrive with the hand');
   assert(!a.moving && a.load === 0 && a.job === null, 'the hand is not free after the delivery');
-  assert(!!a.homeward || (a.phase === null && !a.homeward && !a.journey) || a.journey === 'walk', 'the hand does not go to its new home');
+  assert(!!a.homeward || (!a.job && !a.homeward && !a.journey) || a.journey === 'walk', 'the hand does not go to its new home');
   st.pawns[id].household = hh.id;
   A.release(st, a);
 }
@@ -49,7 +49,7 @@ function carrier(a) {
   A.release(st, a);
   assert.strictEqual(sheaves(), b0, 'a load set down in the field is in the barn');
   assert.strictEqual(fd.held, 30); assert.strictEqual(fd.stage, 'stooks');
-  assert(a.load === 0 && a.carry === null && (a.phase === null && !a.homeward && !a.journey));
+  assert(a.load === 0 && a.carry === null && (!a.job && !a.homeward && !a.journey));
 }
 // 3. its death on the road: the load lies where the hand fell, and is in the barn only once another hand has fetched it and carried it home
 const onRoad = (a) => {
@@ -102,7 +102,9 @@ const fetchJob = () => {
   onRoad(a);
   A.stopWorkFor(st, hh, f);
   assert.strictEqual(sheaves(), b0, 'the load was booked at the barn from the road');
-  assert(ours().length === 1 && ours()[0].n > 0 && a.load === 0 && a.job === null);
+  // its load lies, the one of the field's sheaves (the household's timber felled and lying, if any, is its own: VB-1751 counts the sheaves only)
+  const sheafPiles = ours().filter((x) => x.kind === 'haul');
+  assert(sheafPiles.length === 1 && sheafPiles[0].n > 0 && a.load === 0 && a.job === null, JSON.stringify([sheafPiles.length, a.load, a.job && a.job.key]));
   // saved and loaded: the load lies on, with its field
   const w2 = (() => { const it2 = G.generate(7, { cols: 120, rows: 85 }); let r2; while (!(r2 = it2.next()).done); return r2.value; })();
   const back = Sim.load(w2, JSON.parse(JSON.stringify(Sim.save(st))));
@@ -132,7 +134,7 @@ const fetchJob = () => {
   A.placeAtHome(st, a);
   const own = { type: 'village', id: v.id };
   const j = J.post(st, 'wellstone:setdown', 'wellstone', own, f.house, { village: v.id, step, from: hh.id, dest: v.center });
-  j.claims.push(a.id); a.job = j; a.phase = 'back'; a.inside = false;
+  j.claims.push(a.id); a.job = j; a.inside = false;
   KINDS.wellstone.ops.take.run(st, j, null, j.site, a, 1); // VB-1812: the stone taken up (the work leg of its goal)
   assert.strictEqual(a.load, 1);
   assert(a.load === 1 && Stores.heldOf(hh, 'stone') === stone0 - 1, 'the stone taken up is not in hand');

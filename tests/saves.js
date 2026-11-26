@@ -45,7 +45,7 @@ for (const [label, make, restore, before, after] of [
   for (const old of [2, 3, 4]) {
     data.format = old;
     let why = null; try { Sim.load(probe.world(), data); } catch (e) { why = e.message; }
-    if (!new RegExp(`format ${old}, this build reads 5`).test(why || '')) { failed++; console.error(`SAVES FAIL: a format-${old} save was not refused (${why})`); }
+    if (!new RegExp(`format ${old}, this build reads 6`).test(why || '')) { failed++; console.error(`SAVES FAIL: a format-${old} save was not refused (${why})`); }
   }
 }
 // VB-239: saves of older builds are refused by their format, and no migration is kept for them (Kim, 10 Nov 2026: no one holds one)

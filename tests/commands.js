@@ -70,7 +70,7 @@ const a = st.agents.find((x) => st.pawns[x.id].died === null && x.job !== j);
 assert.ok(j && a, 'an open job and a living pawn');
 const had = a.job;
 assert.strictEqual(issue(st, { actor: a.id, verb: 'work', target: j.key, source: 'planner' }), true);
-assert.strictEqual(a.job, j); assert.ok(j.claims.includes(a.id)); assert.strictEqual(a.phase, 'go');
+assert.strictEqual(a.job, j); assert.ok(j.claims.includes(a.id)); assert.ok(a.path && !(a.load > 0), 'it walks out for the task');
 if (had) assert.ok(!had.claims.includes(a.id), 'the job in hand is left');
 
 // refusals change nothing: a dead actor, an unknown job, an unknown verb, a job with no room
@@ -94,7 +94,7 @@ assert.strictEqual(issue(st, { actor: b.id, verb: 'walkTo', target: there, args:
 assert.ok(b.path && b.path.length >= 2 && b.anim === 'walk', 'walking');
 assert.deepStrictEqual(b.path[b.path.length - 1].slice(0, 2), [st.w.hx[there], st.w.hy[there] + 3], 'to the spot asked');
 assert.strictEqual(issue(st, { actor: b.id, verb: 'goHome', source: 'debug' }), true);
-assert.strictEqual(b.phase, 'home'); assert.strictEqual(b.path[b.path.length - 1][3], home, 'the walk ends on the home tile');
+assert.strictEqual(b.homeward, true); assert.strictEqual(b.path[b.path.length - 1][3], home, 'the walk ends on the home tile');
 assert.strictEqual(issue(st, { actor: b.id, verb: 'idle', args: { until: st.t + 2 }, source: 'debug' }), true);
 assert.strictEqual(b.idleUntil, st.t + 2);
 // Talk pauses cannot interrupt work, entering home, or an indoor pawn, and cannot shorten an idle pause (VB-177).

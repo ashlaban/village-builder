@@ -96,12 +96,12 @@ const adults = (st, hh) => hh.members.filter((id) => st.pawns[id].alive && age(s
     Sim.advance(st, 0.1);
     dropAll(`household:${A.id}`);
     A.waterDay = B.waterDay = Sim.cal(st.t).day;
-    seen = seen || (st.agents[id].job === j && st.agents[id].phase === 'work');
+    seen = seen || (st.agents[id].job === j && (st.agents[id].leg && st.agents[id].leg.kind === 'work'));
     const a = st.agents[id];
-    assert.ok(!a.job || ['go', 'work', 'back'].includes(a.phase), `the helper holds job ${a.job && a.job.key} in phase ${a.phase}`);
+    assert.ok(!a.job || a.path || (a.leg && a.leg.kind === 'work'), `the helper holds job ${a.job && a.job.key} in a leg ${a.leg && a.leg.kind}`);
   }
   assert.ok(seen, 'the helper worked the hoeing before the day ended');
-  assert.ok(st.agents[id].job !== j && !j.claims.includes(id), `the helper let the hoeing go at the day's end (phase ${st.agents[id].phase})`);
+  assert.ok(st.agents[id].job !== j && !j.claims.includes(id), `the helper let the hoeing go at the day's end (phase ${st.agents[id].leg && st.agents[id].leg.kind})`);
   const bad = checkState(st).filter((m) => /holds job/.test(m));
   assert.deepStrictEqual(bad, [], 'no agent holds a task while going home');
   console.log(`  a helper lent at ${WORK[1] - 2}:00 for 4 hours let the hoeing go at the day's end`);

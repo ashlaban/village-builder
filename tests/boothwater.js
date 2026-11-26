@@ -128,7 +128,7 @@ const raise = (st, hh, site, maker) =>
   check(lodge(st, x, site) === true, 'one lodges in the afternoon');
   // it comes to its bed after the end of work, when no day is given out: the pawn is sent to drink, as the played pawn may be
   Sim.advance(st, 3.2);
-  check(a.away !== undefined && !a.job && b.waterDay === undefined, `at its bed after work, the booth's water not in (${a.phase})`);
+  check(a.away !== undefined && !a.job && b.waterDay === undefined, `at its bed after work, the booth's water not in (${a.leg && a.leg.kind})`);
   const day = cal(st.t).day;
   check(issue(st, { actor: x, verb: 'drink', source: 'player' }) === true, 'the verb drink is accepted');
   check(a.job && a.job.kind === 'drink' && a.job.site === brook, 'it goes to the booth\'s source, with no search of its own');

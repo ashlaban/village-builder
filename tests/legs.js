@@ -144,7 +144,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
     Sim.advance(s, 1 / TICKS);
     const id = s.living.find((x) => {
       const b = s.agents[x];
-      return b.phase === 'work' && b.job && b.job.due > s.tick + 1 && plain(b.job);
+      return (b.leg && b.leg.kind === 'work') && b.job && b.job.due > s.tick + 1 && plain(b.job);
     });
     if (id !== undefined) a = s.agents[id];
   }
@@ -165,7 +165,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   }
   const trip = s.away.find((x) => x.pawn === a.id);
   assert.ok(a.job !== j && s.pawns[a.id].household === to.id, 'the task ended and moved its pawn');
-  assert.ok(trip && (a.journey === 'walk' || a.journey === 'rest') && !a.job, `on its journey (phase ${a.phase})`);
+  assert.ok(trip && (a.journey === 'walk' || a.journey === 'rest') && !a.job, `on its journey (phase ${a.leg && a.leg.kind})`);
   assert.deepStrictEqual(checkState(s), [], 'invariants as it sets out');
   for (let k = 0; k < 6 * DAY * TICKS && s.away.includes(trip); k++) {
     Sim.advance(s, 1 / TICKS);

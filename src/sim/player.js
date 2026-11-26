@@ -225,7 +225,7 @@ VB['sim/player'] = (() => {
       q.shift();
     }
     while (q.length) {
-      if (a.phase === 'back') return;
+      if (a.load > 0) return;
       // told to walk, go home or idle, the pawn leaves the job in hand, which keeps its progress (work leaves it itself): only if it may
       const cmd = q[0],
         V = VERBS[cmd.verb],

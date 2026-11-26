@@ -28,9 +28,9 @@ function view(pid = id) {
   assert(typeof line === 'string' && line.length > 0, `a line for pawn ${pid}`);
   return { ...r, line };
 }
-const keep = { job: a.job, mind: a.mind, phase: a.phase, path: a.path, occasion: a.occasion, lists: plan.day.lists, t: st.t };
+const keep = { job: a.job, mind: a.mind, path: a.path, occasion: a.occasion, lists: plan.day.lists, t: st.t };
 const reset = () => {
-  Object.assign(a, { job: null, mind: undefined, phase: null, path: null, occasion: null });
+  Object.assign(a, { job: null, mind: undefined, path: null, occasion: null });
   plan.day.lists = { ...keep.lists, [id]: [] };
   st.player = null;
   st.daysToday = null;
@@ -104,7 +104,7 @@ if (!hadObligations) delete st.obligations;
 // no work: the idle line is the line
 expect('none', () => {}, (r) => assert(!/^No work: /.test(r.line) && r.line === r.line[0].toUpperCase() + r.line.slice(1), r.line));
 reset();
-Object.assign(a, { job: keep.job, mind: keep.mind, phase: keep.phase, path: keep.path, occasion: keep.occasion });
+Object.assign(a, { job: keep.job, mind: keep.mind, path: keep.path, occasion: keep.occasion });
 plan.day.lists = keep.lists;
 
 const all = VB['sim/reasons'].BY.filter((b) => b !== 'duty');

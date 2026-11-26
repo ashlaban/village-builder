@@ -57,8 +57,9 @@ VB['sim/legs'] = (() => {
         if (a.journey === 'rest') roadWait(st, a);
         else if (a.path)
           begin(st, a); // from where it stands now
-        else if (a.phase === 'work')
-          a.leg = was && was.t !== undefined ? { kind: 'work', t: was.t, x: was.x, y: was.y, seg: 0 } : workLeg(st, a);
+        else if (a.job)
+          // a task's hand standing is at its work, which goes on
+          a.leg = was && was.kind === 'work' ? { kind: 'work', t: was.t, x: was.x, y: was.y, seg: 0 } : workLeg(st, a);
         else if (unbound(a)) waitLeg(st, a);
       }
     }

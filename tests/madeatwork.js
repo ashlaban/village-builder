@@ -28,7 +28,7 @@ function atWork(a, kind, site, extra, done) {
   A.placeAtHome(st, a);
   const j = J.post(st, `${kind}:made${n_++}`, kind, owner, site, extra);
   j.claims.push(a.id);
-  Object.assign(a, { job: j, phase: 'work', inside: false });
+  Object.assign(a, { job: j, leg: { kind: 'work', t: 0, x: a.x, y: a.y, seg: 0 }, inside: false });
   j.done = done;
   j.at = undefined;
   j.rate = 0;
@@ -56,7 +56,7 @@ function atWork(a, kind, site, extra, done) {
   })();
   const b = hand(),
     gj = atWork(b, 'gather', other, { farm: f }, 0);
-  b.phase = null;
+  
   const s = Doing.ask(st, b);
   assert(s && !s.blocked && Doing.placeOf(st, b, s) === l.tile, 'the pile is fetched where it lies, by the stray method');
   const fresh0 = Pot.freshHeld(st, hh, 'gathered'),
@@ -72,7 +72,7 @@ function atWork(a, kind, site, extra, done) {
     s0 = Forage.stock(st, wood),
     j = atWork(a, 'gather', wood, { farm: f }, KINDS.gather.hours / 2);
   A.release(st, a, true);
-  assert(a.job === j && a.phase === 'back', 'the hand goes home with what it gathered');
+  assert(a.job === j && a.load > 0, 'the hand goes home with what it gathered');
   assert(Math.abs(a.load - 0.5 * Forage.FORAGE.trip * s0) < 1e-6, `half a trip's yield in hand (${a.load})`);
   assert(!pileOf('gather'), 'nothing is set down');
   A.release(st, a); // a death on the road: it lies
@@ -86,7 +86,7 @@ function atWork(a, kind, site, extra, done) {
   const j = atWork(a, 'gather', wood, { farm: f }, KINDS.gather.hours);
   const fresh0 = Pot.freshHeld(st, hh, 'gathered');
   KINDS.gather.make(st, a, j, 1, hh); // as the work leg ends (sim/agents ended)
-  Object.assign(a, { phase: 'back', carry: KINDS.gather.carry });
+  Object.assign(a, { carry: KINDS.gather.carry });
   assert(Math.abs(a.load - Forage.FORAGE.trip * s0) < 1e-6, `the yield is in hand (${a.load})`);
   assert(Forage.stock(st, wood) < s0, 'the ground is picked where the work is done');
   assert.strictEqual(Pot.freshHeld(st, hh, 'gathered'), fresh0, 'nothing is home yet');
@@ -125,7 +125,7 @@ function atWork(a, kind, site, extra, done) {
   A.release(st, b);
   A.placeAtHome(st, b);
   j.claims.push(b.id);
-  Object.assign(b, { job: j, phase: null, inside: false });
+  Object.assign(b, { job: j, inside: false });
   const s = Doing.ask(st, b);
   assert(s !== VB['sim/methods'].DONE && !s.blocked && (s.prim === 'go' || s.prim === 'work'), `the next hand hunts (${s.prim || s})`);
   A.release(st, b);

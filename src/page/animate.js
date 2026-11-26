@@ -6,7 +6,7 @@ function drawTeams(show) {
   teamOut.clear();
   const c = Sim.cal(st.t);
   for (const a of st.agents) {
-    if (!show || a.inside || !a.job || a.phase !== 'work') continue;
+    if (!show || a.inside || !a.job || !(a.leg && a.leg.kind === 'work')) continue;
     const hh = st.households[st.pawns[a.id].household],
       milking = a.job.kind === 'milk';
     const oxen = milking
@@ -78,7 +78,7 @@ function drawLed(show) {
   const used = new Set();
   ledOut.clear();
   for (const a of st.agents) {
-    if (!show || a.inside || a.carry !== 'cow' || a.phase !== 'back' || !a.job || !rigs[a.id].root.visible) continue;
+    if (!show || a.inside || a.carry !== 'cow' || !(a.load > 0) || !a.job || !rigs[a.id].root.visible) continue;
     const plan = st.plans.households.get(st.pawns[a.id].household),
       kind = plan && plan.want && plan.want.kind ? plan.want.kind : 'cow';
     used.add(a.id);
@@ -278,7 +278,7 @@ const ROW_PACE = 3.2; // map units an hour along a field row, unless the kind se
 // (where its work leg began, a.leg), along rows 26 units long and 6 apart, five across the tile, turning at each end.
 function rowPlace(a, at) {
   const j = a.job,
-    K = j && a.phase === 'work' && !a.inside && a.leg ? Sim.KINDS[j.kind] : null;
+    K = j && a.leg && a.leg.kind === 'work' && !a.inside && a.leg ? Sim.KINDS[j.kind] : null;
   if (!K || !K.field) return null;
   const th = VB['sim/fieldwork'].rowAngle(j),
     cx = w.hx[j.site],
@@ -386,7 +386,9 @@ function updateSettlement(dt) {
       other = tk && !a.path && !a.job && st.t >= tk.at && st.t < tk.until ? st.agents[tk.with] : null;
     // a pawn fishing faces the water (VB-117)
     const wet =
-      !a.path && a.phase === 'work' && a.job && a.job.water !== undefined ? w.hx[a.job.water] - drawX[a.id] : 0;
+      !a.path && a.leg && a.leg.kind === 'work' && a.job && a.job.water !== undefined
+        ? w.hx[a.job.water] - drawX[a.id]
+        : 0;
     const face =
       other && Math.abs(drawX[other.id] - drawX[a.id]) > 0.5
         ? Math.sign(drawX[other.id] - drawX[a.id])
@@ -479,7 +481,8 @@ function updateSettlement(dt) {
   // the tar pits smoke while someone burns tar at them (VB-301)
   if (pitInfo.length) {
     const burning = new Set();
-    for (const a of st.agents) if (a.job && a.job.kind === 'burntar' && a.phase === 'work') burning.add(a.job.site);
+    for (const a of st.agents)
+      if (a.job && a.job.kind === 'burntar' && a.leg && a.leg.kind === 'work') burning.add(a.job.site);
     for (const q of pitInfo) {
       q.smoke += ((burning.has(q.tile) ? 0.9 : 0) - q.smoke) * ease;
       const on = near && q.smoke > 0.02;
