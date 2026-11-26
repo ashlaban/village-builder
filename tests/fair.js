@@ -32,6 +32,7 @@ const before = new Map(st.households.map((hh) => [hh.id, [Stores.grainOf(hh), hh
 Sim.advance(st, start - DAY + WORK[0] + 13 - st.t);
 assert.ok(st.fair && st.fair.loads.length >= 6, `${st.fair && st.fair.loads.length} dealers loaded`);
 const dealers = st.fair.loads.slice();
+const eve = JSON.stringify(Sim.save(st)); // VB-1776's twins, below
 for (const id of dealers) {
   const l = st.pawns[id].load, hh = st.households[l.household];
   assert.strictEqual(st.pawns[id].household, hh.id, 'a dealer carries its own household\'s goods');
@@ -72,6 +73,7 @@ assert.deepStrictEqual(issues(st), []);
   const to = on.find((id) => villageOf(id) === day.village);
   assert.ok(to !== undefined && swaps().length === 0, 'a dealer of the host is on the green, and no swap is open');
   Sim.inhabit(c, to);
+  Sim.setAuto(c, to, false); // the player answers for it (VB-1776: on automatic, its pawn's judgement answers at once)
   let terms = null;
   for (const from of on)
     for (const g of F.FAIR.goods)
@@ -82,6 +84,7 @@ assert.deepStrictEqual(issues(st), []);
   const deals = c.fair.fairs[0].deals;
   assert.ok(terms && swaps().length === 1 && swaps()[0].to === to, 'the swap waits for the played pawn');
   assert.deepStrictEqual(checkState(c).filter((x) => /fair|offers\[/.test(x)), []);
+  Sim.setAuto(c, to, true); // its own logic takes it home; the swap stays open, unanswered
   Sim.advance(c, end + 2 - c.t);
   assert.strictEqual(c.pawns[to].load, null, 'the fair is over: the dealer has unpacked');
   assert.deepStrictEqual(swaps(), [], 'no swap outlives its load');
@@ -143,4 +146,11 @@ let wares = 0;
 for (const v of [0, 2]) for (const hh of hhOf(v)) wares += (hh.tar || 0) + (hh.hides || 0) - before.get(hh.id)[1] - before.get(hh.id)[2];
 assert.ok(wares > 0, 'tar and hides went to the grain villages');
 assert.deepStrictEqual(issues(st), []);
+const { twins } = require('./lib/twins.js');
+// VB-1776: on automatic with nothing queued, a played dealer deals through the fair's first day as the same dealer unplayed (its own
+// proposals, and its answers at once: sim/fair dealHour, sim/offers make)
+{
+  const [a] = twins(() => Sim.load(st.w, JSON.parse(eve)), dealers[0], (c) => Sim.advance(c, start + F.FAIR.hours[1] - c.t), 'a fair day');
+  assert.ok(a.fair.fairs[0].deals > 0, 'they dealt');
+}
 console.log(`fair: ok (${dealers.length} dealers, ${fair.deals} deals of ${fair.proposals} proposals, ${fair.noChange} for want of change, ${fair.hard} hard)`);

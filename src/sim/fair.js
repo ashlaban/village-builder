@@ -25,7 +25,7 @@ VB['sim/fair'] = (() => {
   const { floorOf } = VB['sim/hunger'];
   const { next: rnd } = VB['sim/rng'];
   const { DAY, TRAVEL, GATHERING, cal } = VB['sim/rules'];
-  const { log, personEvent, fullName, living, age } = VB['sim/records'];
+  const { log, personEvent, fullName, living, age, unplanned } = VB['sim/records'];
   const { on } = VB['sim/events'];
   const { bed, travelling, placeOf, tileAt } = VB['sim/pose'];
   const Lying = VB['sim/lying'];
@@ -278,7 +278,6 @@ VB['sim/fair'] = (() => {
       Stores.grainOf(hh) + held(p.load, 'grain') - gives.n * quantum('grain') >= floorOf(st, hh) - TOLERANCE;
     return { gain, allowance, floorOk, accept: floorOk && gain + allowance >= -TOLERANCE };
   }
-  const played = (st, id) => !!st.player && st.player.pawn === id;
   const words = (t) => {
     const g = Goods.goodOf(t.good);
     return `${t.n} ${g.lump}${t.n === 1 ? '' : 's'}${g.lump === t.good ? '' : ` of ${t.good}`}`;
@@ -468,7 +467,7 @@ VB['sim/fair'] = (() => {
       args: { basis: 'swap', gives: best.gives, wants: best.wants },
       source: 'pawn',
     });
-    if (fair.deals > before || played(st, other)) return;
+    if (fair.deals > before || unplanned(st, other)) return; // its controller answers (VB-1776)
     // at the ratio of worth, with no lump left over: what the other would give for what it is offered
     const exact = { good: best.wants.good, n: (best.gives.n * worth(best.gives.good)) / worth(best.wants.good) };
     if (weigh(st, me, other, best.gives, exact).accept && weigh(st, other, me, exact, best.gives).accept)
@@ -490,7 +489,7 @@ VB['sim/fair'] = (() => {
       if (!fair) continue;
       if (slot === 0) fair.dealers = Math.max(fair.dealers, ids.length);
       ids.sort((x, y) => x - y);
-      const mine = ids.filter((id, i) => i % slots === slot && !played(st, id));
+      const mine = ids.filter((id, i) => i % slots === slot && !unplanned(st, id)); // its own rule, not its controller's
       for (let i = mine.length - 1; i > 0; i--) {
         const j = Math.floor(rnd(st.rng.fair) * (i + 1));
         [mine[i], mine[j]] = [mine[j], mine[i]];

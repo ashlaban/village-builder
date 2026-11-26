@@ -349,6 +349,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   {
     const { s, a, b } = fresh(), a0 = Sim.grainOf(a);
     assert.strictEqual(Sim.inhabit(s, a.holder), true);
+    Sim.setAuto(s, a.holder, false); // the player answers for it (VB-1776: on automatic, its pawn's judgement answers at once)
     const ob = opinionOf(s, b.holder, a.holder), oa = opinionOf(s, a.holder, b.holder);
     assert.strictEqual(offer(s, b.holder, a.holder, gift(30)), true);
     const o = s.offers[0];

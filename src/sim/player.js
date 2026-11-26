@@ -3,7 +3,6 @@
 // (sim/controller) reached through the verbs, its wish, its choices as head, and its plan fed to its queue (the feeder, for every pawn
 // whose controller holds a plan)
 VB['sim/player'] = (() => {
-  const { reckon } = VB['sim/sleepers'];
   const { holdingOf, spouseOf, personEvent, living, villageOf, fullName, spokesmanOf } = VB['sim/records'];
   const { HEALTH } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];
@@ -26,7 +25,6 @@ VB['sim/player'] = (() => {
   //   household's food in days of need, and what moved its health, why {hunger, cold, damp, ill, tired, rest}, VB-1118); last and days
   //   are the page's record of the played line, kept only while it is watched so that no pawn pays for them}; plain data, saved with the
   //   run. The view the player reads through is the pawn's actor view (sim/opportunities actorView), made from `pawn` when asked: no field.
-  //   The pawn's sleep is reckoned each step while it is played (sim/sleepers reckon), for the page
   // @state pawn.proposal (VB-276): absent, else {for (a member the pawn speaks for), partner (a pawn id), terms (null, or what its side
   //   gives: {dowry} for a daughter, {gift} for a son, rations of customary worth)}: a spokesman's match for a member, any pawn's as its
   //   wish is, offered at the round of the man's village (sim/round proposed), until one of the two marries or dies or it is changed
@@ -215,11 +213,9 @@ VB['sim/player'] = (() => {
       if (pr && [pr.for, pr.partner].some((id) => id === a || id === b)) delete st.pawns[s].proposal;
     }
   };
-  // Each six-minute step (sim/clock), before the agents move: the played pawn's sleep is reckoned; then the controllers' step (sim/controller
-  // queueStep: each pawn's own plan looked after and fed, each queue run).
+  // Each six-minute step (sim/clock), before the agents move: the controllers' step (sim/controller queueStep: each pawn's own plan
+  // looked after and fed, each queue run). The played pawn's sleep is reckoned each hour, as every pawn's (VB-1776).
   function playerStep(st) {
-    const pl = st.player;
-    if (pl) reckon(st, pl.pawn);
     queueStep(st);
   }
   // ---- what the played pawn's acts brought, and what moved its levels (VB-1118) ----

@@ -15,9 +15,7 @@ const { readSource } = require('../tools/lib/source.js');
 const VB = require('../src/load.js'),
   Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js'),
-  { canon, sha, kept, leaves } = require('./lib/canon.js'),
-  { checkState } = require('./lib/invariants.js'),
-  { dropKind } = require('./lib/record.js');
+  { checkState } = require('./lib/invariants.js');
 const { projectsOf } = VB['sim/projects'],
   { resetWish } = VB['sim/wishes'],
   { issue } = VB['sim/commands'],
@@ -61,26 +59,9 @@ const KEPT = {
   'visits:orderVisit': [1, 'frame', "the player's order of a visit; the verb visit is any pawn's"],
   'voice:refused': [2, 'audience', 'a refusal logged where the player is one of the two'],
 };
-// Rules that still read who is played: module:function -> reads. Only falls; VB-1776 empties it.
-// @merge union
-const RULES = {
-  'advice:offer': 2,
-  'advice:on:planReviewed': 2,
-  'asking:askFor': 2,
-  'asking:callAround': 2,
-  'fair:played': 2,
-  'heirs:succession': 2,
-  'marriage:handover': 2,
-  'marriage:refusedMatch': 2,
-  'matching:wishedMatches': 2,
-  'offers:make': 2,
-  'offers:answerNow': 2,
-  'player:playerStep': 1, // the played pawn's sleep reckoned each step (sim/sleepers reckon), any other's each hour
-  'round:askAgain': 2,
-  'voice:ask': 2,
-  'wishes:chooseWishes': 2,
-  'wishes:endPartner': 1,
-};
+// Rules that read who is played: module:function -> reads. Emptied by VB-1776 (each read now the controller's, sim/records unplanned, or
+// the authored wish, sim/wishes authored; tests/lib/twins.js checks each changed rule); it stays empty.
+const RULES = {};
 // The reads in a module's code (comments left out), by the function around each: the last `function NAME(`, `const NAME = (...) =>` or
 // `on('EVENT'` above it. A read is `X.player` through any name (`st`, `view`, a copy), or `player` taken apart (`const { player } = st`).
 function reads(file, src) {
@@ -125,38 +106,16 @@ if (require.main !== module) return;
     if (!found.has(k)) errors.push(`${k}: listed but read no more: take it off the list`);
   assert.deepStrictEqual(errors, [], 'the reads of st.player in src/sim');
   const rules = Object.values(RULES).reduce((s, n) => s + n, 0);
+  assert.strictEqual(rules, 0, 'no rule reads who is played (VB-1776): the allow-list stays empty');
   console.log(
-    `  st.player: ${found.size} readers; ${Object.keys(KEPT).length} kept (frame, audience), ${Object.keys(RULES).length} rules on the allow-list (${rules} reads, VB-1776)`,
+    `  st.player: ${found.size} readers; ${Object.keys(KEPT).length} kept (frame, audience), ${Object.keys(RULES).length} rules on the allow-list (${rules} reads, VB-1776 emptied it)`,
   );
 }
 
 // ---- 2. the village of cottages: the played head and the unplayed one ----
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
-// The state with the frame taken out (st.player, its marks and the lines logged for its audience): what a rule could have read of who is played.
-function unframed(st) {
-  const s = structuredClone(st);
-  const me = s.player ? s.player.pawn : null;
-  s.player = null;
-  dropKind(s, 'player');
-  // a refusal logged where the player is one of the two: its audience (sim/hands, sim/voice); the others' stay compared
-  dropKind(s, 'offerRefused', (e) => e.pawn === me || e.other === me);
-  return s;
-}
-const hash = (st) => sha(canon(kept(unframed(st))));
-// The first leaves where two states differ (for the message).
-function differ(a, b) {
-  const la = [],
-    lb = [];
-  leaves(kept(unframed(a)), '$', new Map(), la);
-  leaves(kept(unframed(b)), '$', new Map(), lb);
-  const sb = new Set(lb);
-  return la
-    .filter((l) => !sb.has(l))
-    .slice(0, 6)
-    .join('\n');
-}
-const same = (a, b, what) => assert.strictEqual(hash(a), hash(b), `${what}:\n${differ(a, b)}`);
+const { same } = require('./lib/twins.js');
 // The village of three cottages on the ground; pawn 0 heads its household, its projects dropped. `play`: inhabited; `auto`: its switch;
 // `sleep`: the hours its plan sets.
 function village(play, auto) {
@@ -193,9 +152,8 @@ function village(play, auto) {
   });
   same(runs[0], runs[1], 'the authored foundation, the played head against the unplayed');
 }
-// 2b. Nothing authored, the switch off: neither head begins a project or a stone step by itself, and their households' building is
-// the same. The whole state is not yet: an ask of leave to a played head with its switch off waits for the player's answer, to an
-// unplayed one it is answered at once (sim/voice ask, sim/offers: rules on the allow-list above, VB-1776's).
+// 2b. Nothing authored, the switch off: neither head begins a project or a stone step by itself, and the two run to the same state: an ask of leave to a head with its switch off waits for its controller's answer, played
+// or not, and the played head's controller is the player's (sim/offers make, VB-1776).
 {
   const built = (v) => ({
     build: v.st.plans.households.get(v.hh.id).build,
@@ -212,9 +170,10 @@ function village(play, auto) {
     assert.strictEqual(v.st.plans.households.get(v.hh.id).build, null, 'with the switch off, no stone step by itself');
     assert.deepStrictEqual(built(v).projects, [], 'with the switch off, no project begun by itself');
     sound(v.st, play ? 'played, the switch off' : 'unplayed, the switch off');
-    return built(v);
+    return v;
   });
-  assert.deepStrictEqual(a, b, 'nothing authored, the switch off: the household builds the same, played or not');
+  assert.deepStrictEqual(built(a), built(b), 'nothing authored, the switch off: the household builds the same, played or not');
+  same(a.st, b.st, 'nothing authored, the switch off: the played head against the unplayed');
 }
 // 2c. Nothing authored, the switch on: the played head and the unplayed one run to the same state.
 {

@@ -18,15 +18,22 @@ VB['sim/wishes'] = (() => {
   });
   // @state pawn.wish (VB-680): absent or null for the default wish (WISH.rungs as ranked, any farm, whoever its spokesman's asking finds), else
   //   {rank (WISH.rungs in the pawn's order, best first; a rung ranked after 'stay' is one it would not take), farm (a farm id: only that
-  //   farm, or null), partner (a pawn id: that partner, or null)}. Written by the pawn's own choosing at the start of the moving round
-  //   (chooseWishes) for every living pawn of an age to marry but the played one, and by the wish verb (setWish) for the played pawn; read
-  //   through wishOf and wishesOf. Plain data, saved with the pawn.
+  //   farm, or null), partner (a pawn id: that partner, or null), and by: 'pawn' when its controller authored it through the wish verb
+  //   (VB-1776; kept so even when it is the default)}. Written by the pawn's own choosing at the start of the moving round (chooseWishes)
+  //   and on its asking day for every living pawn of an age to marry whose wish is not authored (authored: by 'pawn' while the pawn has a
+  //   controller), and by the wish verb (setWish) for any pawn; read through wishOf and wishesOf. Plain data, saved with the pawn.
   const RUNGS = WISH.rungs,
     LEAVING = ['farm', 'plot', 'party', 'service'], // the rungs that take a pawn out of its home
     FROM = Math.min(MARRIAGE.menFrom, MARRIAGE.womenFrom),
     LAND_FIRST = RUNGS.filter((r) => r !== 'party'); // the ambitious pawn's ranking: New land just above A plot
   LAND_FIRST.splice(LAND_FIRST.indexOf('plot'), 0, 'party');
   const rankOf = (p) => (p.wish ? p.wish.rank : RUNGS);
+  // Pawn id's wish was authored by its controller (the wish verb) and the controller is still there: the default author (its own
+  // choosing) does not rewrite it (design.md section 7, Plans at four scales: Authors). Once the controller ends, the next choosing does.
+  const authored = (st, id) => {
+    const p = st.pawns[id];
+    return !!(p.wish && p.wish.by === 'pawn' && p.control);
+  };
   const wanted = (rank, r) => rank.indexOf(r) < rank.indexOf('stay');
   // The ranking with rung r moved: to the head (`first`), among the wanted at its default place, or to be the first of those declined.
   function place(rank, r, how) {
@@ -41,20 +48,21 @@ VB['sim/wishes'] = (() => {
     }
     return rest;
   }
-  // The wish, kept as null when it is the default (and left absent on a pawn that never held another: the save stays small).
-  function write(p, rank, farm, partner) {
+  // The wish, kept as null when it is the default (and left absent on a pawn that never held another: the save stays small), unless
+  // authored (`by` 'pawn').
+  function write(p, rank, farm, partner, by = null) {
     const plain = farm === null && partner === null && rank.every((r, i) => r === RUNGS[i]);
-    if (!plain) p.wish = { rank, farm, partner };
+    if (by) p.wish = { rank, farm, partner, by };
+    else if (!plain) p.wish = { rank, farm, partner };
     else if (p.wish) p.wish = null;
   }
   // ---- the pawn's own choosing, at the start of the round (sim/lifecycle) ----
-  // Each living pawn of an age to marry but the played one ranks the rungs (plan, section 3): the default; New land above A plot at
+  // Each living pawn of an age to marry whose wish is not authored ranks the rungs (plan, section 3): the default; New land above A plot at
   // ambition WISH.landAmbition or more; Stay above Marry while it is at a hunger of HUNGER.marryBelow or more ("not this year"). Which farm
   // and whom it takes it leaves to the round. One walk of the living, a year (`wishWalk`).
   function chooseWishes(st) {
-    const played = st.player ? st.player.pawn : null;
     VB.count.wishWalk += st.living.length;
-    for (const id of st.living) if (id !== played) chooseWish(st, id);
+    for (const id of st.living) if (!authored(st, id)) chooseWish(st, id);
   }
   // One pawn's own choosing (the round's walk, and its asking day, VB-823): nothing for one under the age to marry.
   function chooseWish(st, id) {
@@ -91,7 +99,7 @@ VB['sim/wishes'] = (() => {
     settle: wishOf(st, id, 'settle'),
     rank: [...rankOf(st.pawns[id])],
   });
-  // ---- the wish verb's write (sim/commands: the played pawn's) ----
+  // ---- the wish verb's write (sim/player registers it: any pawn's controller authors it) ----
   // Pawn id's wish of `kind` set to `value`, the shape already checked: 'rank' takes a whole ranking of WISH.rungs; the others as wishOf
   // reads them. Staying (out false) declines every rung that leaves home; moving out (out true) declines the heir's, and either way back
   // (out null) wants the heir's; out true or null wants every rung that leaves again when it had declined them all. True, or why not.
@@ -120,14 +128,15 @@ VB['sim/wishes'] = (() => {
     } else if (kind === 'settle')
       rank = place(rank, 'party', value === true ? 'first' : value === false ? 'decline' : 'want');
     else return `there is no wish ${kind}`;
-    write(p, rank, farm, partner);
+    write(p, rank, farm, partner, 'pawn');
     return true;
   }
   // The default wish, for a pawn the player starts to play (sim/commands' inhabit): as the round would have it with no wish made.
   const resetWish = (st, id) => write(st.pawns[id], RUNGS, null, null);
-  // A wished partner ends when the one who wished or the partner marries (a and b have married) or dies (a is b): the played pawn's,
-  // and a's and b's own (sim/lifecycle). A pawn the player has left keeps its partner until its own choosing at the next round.
-  // The played pawn's wish for a match told as lapsed (VB-1113): the wished partner `q` married the other of the pair (a, b) or died
+  // A wished partner ends when the one who wished or the partner marries (a and b have married) or dies (a is b): a's and b's own, and
+  // that of each pawn with a controller (sim/lifecycle; only a controller's wish names a partner the pair is not: the own choosing names
+  // none). A pawn whose controller has ended keeps its partner until its own choosing at the next round.
+  // A controlled pawn's wish for a match told as lapsed (VB-1113): the wished partner `q` married the other of the pair (a, b) or died
   // (a is b). A personal event that stops a skip.
   function lapsed(st, id, q, a, b) {
     const w = st.pawns[q],
@@ -141,12 +150,13 @@ VB['sim/wishes'] = (() => {
     });
   }
   function endPartner(st, a, b) {
-    const pl = st.player;
-    for (const id of pl ? [a, b, pl.pawn] : [a, b]) {
+    const ids = [a, b];
+    for (const id of st.controlled || []) if (id !== a && id !== b) ids.push(id);
+    for (const id of ids) {
       const w = st.pawns[id].wish;
       if (w && w.partner !== null && (id === a || id === b || w.partner === a || w.partner === b)) {
-        if (pl && id === pl.pawn && id !== a && id !== b) lapsed(st, id, w.partner, a, b);
-        write(st.pawns[id], w.rank, w.farm, null);
+        if (id !== a && id !== b) lapsed(st, id, w.partner, a, b);
+        write(st.pawns[id], w.rank, w.farm, null, w.by || null);
       }
     }
   }
@@ -296,6 +306,7 @@ VB['sim/wishes'] = (() => {
     wishesOf,
     setWish,
     resetWish,
+    authored,
     endPartner,
     moveWhy,
     nextAsking,

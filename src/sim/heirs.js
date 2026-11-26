@@ -22,6 +22,7 @@ VB['sim/heirs'] = (() => {
     kinship,
     atHousehold,
     noteLine,
+    unplanned,
   } = VB['sim/records'];
   const { wishOf } = VB['sim/wishes'];
   const { stopWorkFor } = VB['sim/agents'],
@@ -442,10 +443,11 @@ VB['sim/heirs'] = (() => {
     }
     const hp = st.pawns[heir];
     const none = st.offers.length;
-    if (st.player && st.player.pawn === heir && hp.alive && hp.age >= 18 && hp.household !== hh.id) {
-      // The played heir is asked (VB-1142): the farm is its own at once, a right (its holder, its goodwill), and it takes it up by walking
-      // there, or renounces it (sim/marriage, the basis `inheritance`). The line stays the dead holder's, so that a renounced farm falls
-      // to the next. Meanwhile the household's other members work its fields, as for any farm whose heir is on the way.
+    if (unplanned(st, heir) && hp.alive && hp.age >= 18 && hp.household !== hh.id) {
+      // An unplanned heir is asked, its controller to answer (VB-1142, VB-1776): the farm is its own at once, a right (its holder, its
+      // goodwill), and it takes it up by walking there, or renounces it (sim/marriage, the basis `inheritance`). The line stays the
+      // dead holder's, so that a renounced farm falls to the next. Meanwhile the household's other members work its fields, as for any
+      // farm whose heir is on the way.
       const r = issue(st, {
         actor: heir,
         verb: 'offer',

@@ -19,7 +19,7 @@ VB['sim/matching'] = (() => {
   const { trustOfHolder } = VB['sim/ownership'];
   const { opinionOf } = VB['sim/relations'];
   const { hoursBetween, byLand } = VB['sim/villagehours'];
-  const { wishOf } = VB['sim/wishes'];
+  const { wishOf, authored } = VB['sim/wishes'];
   const Rules = VB['sim/registry'];
   const NONE = [];
 
@@ -302,19 +302,22 @@ VB['sim/matching'] = (() => {
   }
   // The wished matches of village v's round (VB-274, VB-680): of `wishers` ([pawn, the partner it wishes]), those that pass matchBar, by
   // the man's id ({man, woman, home, wisher}), when he is of v; a woman wished by a man of a village whose round comes later is held for
-  // him in `taken`. The played pawn's wish counts wherever it lives, since it may name a woman of v's pool (VB-288): `wishers` are those of
-  // the pool, and every other pawn's partner is cleared by its own choosing at the round's start (sim/wishes).
+  // him in `taken`. A wish its controller authored counts wherever its pawn lives, since it may name a woman of v's pool (VB-288):
+  // `wishers` are those of the pool, and every other pawn's partner is cleared by its own choosing at the round's start (sim/wishes).
+  // The controlled pawns are walked for it (st.controlled, VB-1776).
   function wishedMatches(st, wishers, v, rules, taken) {
-    const out = new Map(),
-      pl = st.player ? st.player.pawn : null,
-      plWish = pl !== null && st.pawns[pl].alive ? wishOf(st, pl, 'match') : null;
-    if (typeof plWish === 'number' && !wishers.some(([w]) => w === pl)) wishers = [...wishers, [pl, plWish]];
+    const out = new Map();
+    for (const id of st.controlled || []) {
+      if (!authored(st, id) || !st.pawns[id].alive) continue;
+      const w = wishOf(st, id, 'match');
+      if (typeof w === 'number' && !wishers.some(([x]) => x === id)) wishers = [...wishers, [id, w]];
+    }
     for (const [w, partner] of wishers) {
       const wished = matchBar(st, w, partner, rules),
         wv = wished.man ? settlementIdOf(st, wished.man) : null;
       if (wv === v) out.set(wished.man.id, { ...wished, wisher: w });
-      else if (wished.why && w === pl) {
-        // the round passes the played pawn's wish by (VB-1113): told at the round of the man's village, with the reason the round had;
+      else if (wished.why && authored(st, w)) {
+        // the round passes an authored wish by (VB-1113): told at the round of the man's village, with the reason the round had;
         // the wish stands for the next round
         const man = st.pawns[w].sex === 'm' ? st.pawns[w] : st.pawns[partner];
         if ((settlementIdOf(st, man) ?? 0) === v)

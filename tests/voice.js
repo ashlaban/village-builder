@@ -155,4 +155,17 @@ const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invarian
   assert.ok(Voice.on(st, m), 'its yes gives the leave');
   sound(st, 'the played head answered');
 }
+const { twins } = require('./lib/twins.js');
+// VB-1776: on automatic with nothing queued, the played head asked for leave answers by its pawn's judgement at once, as unplayed
+{
+  const { A, m } = make();
+  const [a] = twins(() => {
+    const s = make().st;
+    VB['sim/day'].allot(s, s.households[A.id], Sim.cal(s.t));
+    return s;
+  }, A.holder, (st) => Voice.ask(st, m, st.t), 'the head asked for leave');
+  assert.strictEqual(a.offers.filter((o) => o.basis === 'leave').length, 0, 'answered at once');
+  const [b] = twins(() => make().st, A.holder, (st) => Sim.advance(st, 2 * DAY), 'two days of its members asking');
+  sound(b, 'two days asked');
+}
 console.log('voice ok: leave asked of the head, answered by its day and its opinion, taken around the day');

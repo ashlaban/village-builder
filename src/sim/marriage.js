@@ -17,6 +17,7 @@ VB['sim/marriage'] = (() => {
     atHousehold,
     spokesmanOf,
     matchByOf,
+    unplanned,
   } = VB['sim/records'];
   const { startInLife } = VB['sim/exchange'];
   const { stayOf } = VB['sim/pose'];
@@ -159,8 +160,8 @@ VB['sim/marriage'] = (() => {
       married = sp !== null && ph.household === hh.id,
       time = cu.handover === 'marriage' ? married : cu.handover === 'age60' && po.age >= 60;
     if (hh.expected && hh.expected.heir !== heir) hh.expected = null; // another first in line
-    if (st.player && st.player.pawn === old) {
-      if (time) expect(st, hh, heir); // the played holder chooses; holding out costs it the same
+    if (unplanned(st, old)) {
+      if (time) expect(st, hh, heir); // an unplanned holder's controller chooses; holding out costs it the same (VB-1776)
       return null;
     }
     const courts = Number.isInteger(ph.courting),
@@ -564,8 +565,8 @@ VB['sim/marriage'] = (() => {
       no.by !== o.wants.woman
     )
       Courting.refused(st, o.gives.man, o.wants.woman, no.by);
-    // why, by the pawn's own judgement; the played pawn's no is its player's, and no reason is read into it
-    const why = st.player && st.player.pawn === no.by ? null : whyNo(st, o, no);
+    // why, by the pawn's own judgement; an unplanned pawn's no is its controller's, and no reason is read into it (VB-1776)
+    const why = unplanned(st, no.by) ? null : whyNo(st, o, no);
     if (why === 'means') {
       log(st, `${names(st, o)} put off marrying: the farm cannot feed another mouth.`, {
         kind: 'putOff',

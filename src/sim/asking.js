@@ -10,7 +10,8 @@
 VB['sim/asking'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, SEASON_DAYS, HUNGER, MARRIAGE, ASK, TRAVEL, cal } = VB['sim/rules'];
-  const { age, spouseOf, settlementIdOf, practice, spokesmanOf, matchByOf, holdingOf, fullName } = VB['sim/records'],
+  const { age, spouseOf, settlementIdOf, practice, spokesmanOf, matchByOf, holdingOf, fullName, unplanned } =
+      VB['sim/records'],
     { tieOf } = VB['sim/ties'];
   const { kinOk, sideScore, matchRules, courts, askerOf, askedOf, askedBy } = VB['sim/matching'];
   const { hoursBetween } = VB['sim/villagehours'];
@@ -20,7 +21,7 @@ VB['sim/asking'] = (() => {
   const { findSite } = VB['sim/expansion'];
   const { smallVillage, waitingByVillage, reachOf } = VB['sim/settle'];
   const { issue } = VB['sim/commands'];
-  const { chooseWish, wishOf, wishesOf, nextAsking, askingIn } = VB['sim/wishes'];
+  const { chooseWish, wishOf, wishesOf, nextAsking, askingIn, authored } = VB['sim/wishes'];
   const { conclude } = VB['sim/offers'];
   const Due = VB['sim/due'],
     { COURT } = VB['sim/courting'];
@@ -225,11 +226,11 @@ VB['sim/asking'] = (() => {
   }
   // ---- the asking ----
   // Pawn id's asking (plan, section 3): an open offer it holds lapses if its people have died, married or taken a place (it asks again on
-  // its next day); else it reviews its wish (not the played pawn's: the player sets it) and walks its rungs, best first, to Stay: Heir
+  // its next day); else it reviews its wish (not one its controller authored, VB-1776) and walks its rungs, best first, to Stay: Heir
   // (first in line at home: it stays, and asks no rung that leaves home), Marry (one of age: askMatch, the man's side, and a woman's by herSideAsks),
   // An empty farm (a landless adult who is not the heir it wishes to be: the farm it may claim, by the basis land), and the rest, which
   // the round's walk still asks for (and where it finds an heir staying).
-  // The played pawn's asking, and that of one it speaks for, is any pawn's, by the wish the player set (its ranking; for a match as it
+  // A controlled pawn's asking, and that of one it speaks for, is any pawn's, by the wish its controller set (its ranking; for a match as it
   // would, the one it names, or not this year: VB-693, the round's matcher having gone, which did this for it): the player answers
   // the offer. `at`: the asking is held as the last before the round, its offer due at that time (the round run
   // at once). What came of it: 'held', 'match', 'farm', 'round', 'nobody' (a rung it could ask found nobody) or 'stay'.
@@ -237,15 +238,14 @@ VB['sim/asking'] = (() => {
     const late = at !== null,
       due = late ? at : dueRound(st);
     VB.count.askings++;
-    const p = st.pawns[id],
-      played = st.player ? st.player.pawn : null;
+    const p = st.pawns[id];
     if (Number.isInteger(p.ask)) {
       const o = st.offers.find((x) => x.id === p.ask),
         why = o ? staleWhy(st, o) : null;
       if (why) conclude(st, o, why);
       return 'held';
     }
-    if (id !== played) chooseWish(st, id);
+    if (!authored(st, id)) chooseWish(st, id);
     // one who courts asks for the one it courts, whoever speaks for it, and for no other match (VB-036); the rungs of land stay open
     // to it, which may be the place the two wait for
     const courting = Number.isInteger(p.courting);
@@ -286,13 +286,13 @@ VB['sim/asking'] = (() => {
     }
     return tried ? 'nobody' : 'stay';
   }
-  // The rung of an unplayed unmarried pawn whose asking found nobody to ask (VB-1119): it calls, by the verb `call`, at the nearest farm of
-  // another village within a day's walk that holds one it does not know yet and might marry; the played pawn's call is its own to order.
+  // The rung of an unmarried pawn whose asking found nobody to ask (VB-1119): it calls, by the verb `call`, at the nearest farm of
+  // another village within a day's walk that holds one it does not know yet and might marry; not while it is unplanned (its controller's to order).
   // One look over the asking queue for a pawn whose asking found nobody (at most once a season, a pawn's asking day), the verb allows one
   // call a week; counted in callWalk.
   function callAround(st, id) {
     const p = st.pawns[id];
-    if ((st.player && st.player.pawn === id) || spouseOf(st, id) !== null || p.household === null) return;
+    if (unplanned(st, id) || spouseOf(st, id) !== null || p.household === null) return;
     const v = settlementIdOf(st, p),
       pool = [];
     for (const e of st.asking) {
