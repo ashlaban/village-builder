@@ -108,7 +108,7 @@ function swapClick(b, id) {
     if (t.why) swap.msg = t.why;
     else if (act === 'go' && t.warning) swap.warn = t.warning;
     else {
-      const r = Sim.queue(st, {
+      const r = Sim.queue(st, st.player.pawn, {
         actor: id,
         verb: 'offer',
         target: other.id,

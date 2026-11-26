@@ -155,7 +155,7 @@ function agendaClick(b) {
   if (b.dataset.why) agendaMsg = { text: `${b.textContent}: ${b.dataset.why}.`, bad: true };
   else {
     const c = JSON.parse(b.dataset.cmd),
-      r = Sim.queue(st, { actor: played(), verb: c.verb, args: c.args || null });
+      r = Sim.queue(st, st.player.pawn, { actor: played(), verb: c.verb, args: c.args || null });
     agendaMsg =
       r === true
         ? { text: `Queued: ${commandWords(c)}. It is done when your pawn comes to it.` }

@@ -23,13 +23,13 @@ function make() {
   const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 });
   Sim.advance(st, 4.5);
   for (const id of [FARMER, WIFE]) A.release(st, st.agents[id]);
-  Sim.inhabit(st, FARMER); Sim.setAuto(st, false);
+  Sim.inhabit(st, FARMER); Sim.setAuto(st, st.player.pawn, false);
   const owner = { type: 'household', id: st.pawns[FARMER].household }, site = st.farmsteads[st.households[owner.id].farmstead].house;
   const mk = (key, kind) => post(st, key, kind, owner, site, { hours: 10 });
   return { st, two: mk('o:two', 'oTwo'), one: mk('o:one', 'oOne'), part: mk('o:part', 'oPart') };
 }
 const q = (st) => Sim.controlOf(st, st.player.pawn).queue;
-const queueWork = (st, j) => assert.strictEqual(Sim.queue(st, { actor: FARMER, verb: 'work', target: j.key }), true);
+const queueWork = (st, j) => assert.strictEqual(Sim.queue(st, st.player.pawn, { actor: FARMER, verb: 'work', target: j.key }), true);
 
 // 1. The dispatcher: three outcomes, and issue's contract kept; both reach the verb's run once; a refusal changes nothing.
 {
@@ -72,7 +72,7 @@ const queueWork = (st, j) => assert.strictEqual(Sim.queue(st, { actor: FARMER, v
 // 3. Release and reacquisition: a fresh taking of the same job, and the same key posted again, are other assignments.
 {
   const { st, two } = make(), a = st.agents[FARMER];
-  queueWork(st, two); Sim.queue(st, { actor: FARMER, verb: 'idle', args: { until: st.t + 2 } }); playerStep(st);
+  queueWork(st, two); Sim.queue(st, st.player.pawn, { actor: FARMER, verb: 'idle', args: { until: st.t + 2 } }); playerStep(st);
   const n = q(st)[0].ref.n;
   A.release(st, a); assert.strictEqual(issue(st, workCommand(FARMER, two.key, 'planner')), true);
   assert.ok(a.job === two && a.assigned.full > n, 'on the same job again, a new assignment');
@@ -107,7 +107,7 @@ const queueWork = (st, j) => assert.strictEqual(Sim.queue(st, { actor: FARMER, v
   const row = O.forPawn(st, O.actorView(st, FARMER), FARMER).find((o) => o.verb === 'work' && o.target === one.key);
   assert.ok(row && row.why === null, `offered: ${row && row.why}`);
   assert.strictEqual(row.fit, bid(st, st.agents[FARMER], one, Sim.cal(st.t)), 'the list\'s fit is the matcher\'s bid');
-  queueWork(st, one); Sim.queue(st, { actor: FARMER, verb: 'idle', args: { until: st.t + 1 } });
+  queueWork(st, one); Sim.queue(st, st.player.pawn, { actor: FARMER, verb: 'idle', args: { until: st.t + 1 } });
   assert.strictEqual(issue(st, workCommand(WIFE, one.key, 'planner')), true);
   const claims = [...one.claims];
   playerStep(st);
@@ -126,7 +126,7 @@ const queueWork = (st, j) => assert.strictEqual(Sim.queue(st, { actor: FARMER, v
 // VB-1405 (no reference) resumes by the pawn as it stands: on the job, it waits; its assignment over, the queue goes on.
 {
   const { st, two } = make();
-  queueWork(st, two); Sim.queue(st, { actor: FARMER, verb: 'idle', args: { until: st.t + 2 } }); playerStep(st);
+  queueWork(st, two); Sim.queue(st, st.player.pawn, { actor: FARMER, verb: 'idle', args: { until: st.t + 2 } }); playerStep(st);
   const data = JSON.parse(JSON.stringify(Sim.save(st))), back = Sim.load(tinyWorld(rows), data);
   assert.deepStrictEqual(Sim.controlOf(back, back.player.pawn).queue[0].ref, q(st)[0].ref);
   const n = back.agents[FARMER].assigned.assignments;
@@ -136,7 +136,7 @@ const queueWork = (st, j) => assert.strictEqual(Sim.queue(st, { actor: FARMER, v
   assert.strictEqual(hash(back), hash(st), 'the loaded run and the saved one agree');
   sound(back, 'loaded mid-assignment');
   // an older save: the head begun with no reference
-  const r = make(); queueWork(r.st, r.two); Sim.queue(r.st, { actor: FARMER, verb: 'idle', args: { until: r.st.t + 2 } }); playerStep(r.st);
+  const r = make(); queueWork(r.st, r.two); Sim.queue(r.st, r.st.player.pawn, { actor: FARMER, verb: 'idle', args: { until: r.st.t + 2 } }); playerStep(r.st);
   const saved = JSON.parse(JSON.stringify(Sim.save(r.st)));
   delete saved.state.pawns[FARMER].control.queue[0].ref;
   const legacy = Sim.load(tinyWorld(rows), saved);

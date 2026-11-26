@@ -136,11 +136,11 @@ const refused = (s, verb, args, re, actor) => {
 }
 { // the played head reaches both through Sim.head; a pawn that is not the head is refused
   const s = farm('every', { barley: 400, peas: 100 });
-  assert.strictEqual(VB.sim.head(s.st, 'rotation', { rotation: 'peas' }), 'no pawn is played');
+  assert.strictEqual(VB.sim.head(s.st, -1, 'rotation', { rotation: 'peas' }), 'there is no pawn -1');
   assert.strictEqual(VB.sim.inhabit(s.st, s.hh.holder), true);
-  assert.strictEqual(VB.sim.head(s.st, 'rotation', { rotation: 'peas', hold: true }), true, 'the played head sets the rotation');
+  assert.strictEqual(VB.sim.head(s.st, s.st.player.pawn, 'rotation', { rotation: 'peas', hold: true }), true, 'the played head sets the rotation');
   const fd = s.f.fields.find((q) => q.crop === 'barley');
-  assert.strictEqual(VB.sim.head(s.st, 'sowOutOfTurn', { tile: fd.tile, crop: 'peas' }), true, 'and sows a field out of turn');
+  assert.strictEqual(VB.sim.head(s.st, s.st.player.pawn, 'sowOutOfTurn', { tile: fd.tile, crop: 'peas' }), true, 'and sows a field out of turn');
   assert(fd.turn === true && fd.crop === 'peas');
   ok(s.st, 'the played head');
   assert.strictEqual(Rotations.fieldView(s.st, s.f.house), null, 'no field on the house');

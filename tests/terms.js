@@ -183,12 +183,12 @@ const offer = (st, due, terms, actor = 6, target = 0) =>
   const st = world();
   assert.strictEqual(Sim.inhabit(st, 0), true);
   assert.strictEqual(
-    typeof Sim.wish(st, 'match', 8, { for: 2, terms: { gift: 5 } }),
+    typeof Sim.wish(st, st.player.pawn, 'match', 8, { for: 2, terms: { gift: 5 } }),
     'string',
     'her side gives the dowry',
   );
-  assert.strictEqual(typeof Sim.wish(st, 'match', 8, { for: 6 }), 'string', 'only for one it speaks for');
-  assert.strictEqual(Sim.wish(st, 'match', 8, { for: 2, terms: { dowry: 200 } }), true);
+  assert.strictEqual(typeof Sim.wish(st, st.player.pawn, 'match', 8, { for: 6 }), 'string', 'only for one it speaks for');
+  assert.strictEqual(Sim.wish(st, st.player.pawn, 'match', 8, { for: 2, terms: { dowry: 200 } }), true);
   assert.deepStrictEqual(
     st.pawns[0].proposal,
     { for: 2, partner: 8, terms: { dowry: 200 } },

@@ -152,7 +152,7 @@ const Sim = (() => {
     recordOf,
     command,
     DEBUG,
-    head,
+    head, // (st, pawn, verb, args): the pawn's choice as head (VB-1746: keyed by pawn, as each planning call below)
     headView,
     timetable, // a household's day laid end to end, each task a range by the viewer's estimate (VB-477)
     callCost, // what calling a member off costs: its walk home and the load it leaves (VB-477)
@@ -162,11 +162,11 @@ const Sim = (() => {
     inhabit,
     sheetNotes,
     uninhabit,
-    queue,
-    unqueue,
-    setAuto,
+    queue, // (st, pawn, cmd)
+    unqueue, // (st, pawn, i)
+    setAuto, // (st, pawn, on)
     controlOf,
-    wish,
+    wish, // (st, pawn, kind, value, opts)
     wishesOf,
     opportunities,
     offerPreview,
@@ -221,9 +221,10 @@ const Sim = (() => {
     standingParts,
     moodOf,
     sleepOf,
-    plan,
-    planView,
-    fireView,
+    plan, // (st, pawn, op, args): any pawn's plan, its controller's (VB-1746)
+    planView, // (st, pawn)
+    fireView, // (st, pawn)
+    waits: VB['sim/plannext'].waitsOf, // (st, pawn): why each task of the pawn's plan waits, and why the plan is idle (VB-1651)
     moodWord,
     traitLabels,
     traitAct,
@@ -252,8 +253,8 @@ const Sim = (() => {
     reasonLine,
     why,
     plans,
-    agenda: VB['sim/agenda'].agenda, // the played pawn's queue and open work against their deadlines (VB-1644), its plan laid into days (VB-1647)
-    planGaps: VB['sim/agenda'].planGaps, // the windows that press with no task of the plan covering them (VB-1650)
+    agenda: VB['sim/agenda'].agenda, // (st, pawn): the pawn's queue and open work against their deadlines (VB-1644), its plan laid into days (VB-1647)
+    planGaps: VB['sim/agenda'].planGaps, // (st, pawn): the windows that press with no task of the plan covering them (VB-1650)
     RIVER,
     byRiver,
     wetFactor, // the share of a field's fertility its wetness and ditch leave now (VB-721): the field's card
@@ -291,7 +292,7 @@ const Sim = (() => {
       return out;
     },
     // VB-1655: the build menu, what the played head may build now, and why a tile will not take one (sim/camp); reads only
-    buildMenu: VB['sim/agenda'].buildMenu, // sim/camp's menu with each entry's `work`, the plan's estimate (VB-1658)
+    buildMenu: VB['sim/agenda'].buildMenu, // (st, pawn): sim/camp's menu with each entry's `work`, the plan's estimate (VB-1658)
     placeWhy: VB['sim/camp'].placeWhy,
     moveCost: (st, tile) => VB['sim/camp'].moveCost(st, tile, VB['sim/weather'].frostExpected(st)), // VB-1667
     farmView: VB['sim/ladder'].farmView, // VB-1659: what stands at a farm, what is being built, what could follow (sim/ladder); reads only

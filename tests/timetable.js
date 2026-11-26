@@ -128,7 +128,7 @@ const head = hh.holder, [m1, m2] = hh.members.filter((m) => dayOf(hh.id).lists[m
 // 6. The played head reaches the verbs through Sim.head.
 {
   Sim.inhabit(st, head);
-  assert.strictEqual(Sim.head(st, 'dayOrder', { member: m1, from: 0, to: 0 }), true);
+  assert.strictEqual(Sim.head(st, st.player.pawn, 'dayOrder', { member: m1, from: 0, to: 0 }), true);
 }
 // 7. Until my task ends: the cursor is the page's, its stops read only; it stops at the end or cut of the played pawn's task or leg, or at
 // what concerns its household; the pawn's task on its card: its share done, exact, and the hours left by a viewer's estimate.

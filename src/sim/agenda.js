@@ -1,4 +1,4 @@
-// @sys sim/agenda: the played pawn's agenda (VB-1644; docs/ui2/HANDOFF.md): its queue laid end to end from now and the open work it may
+// @sys sim/agenda: a pawn's agenda (VB-1644; docs/ui2/HANDOFF.md; keyed by pawn, VB-1746): its queue laid end to end from now and the open work it may
 // take, each with the hours the pawn itself reckons it takes (sim/estimate; principle "The future is someone's estimate": what is shown of the future is
 // some pawn's
 // estimate), the deadline that presses (a field's sowing window, the frost the head expects, the haymaking window) and whether it ends in
@@ -24,7 +24,7 @@ VB['sim/agenda'] = (() => {
   const { asleepAt } = VB['sim/playerplan'];
   const { CHAINS, chainOf, chainSteps } = VB['sim/planchains'];
   const { waitsOf } = VB['sim/plannext'];
-  const { controlOf } = VB['sim/controller'];
+  const { controlOf, planOf } = VB['sim/controller'];
   const { heldFarms } = VB['sim/ownership'];
   const Camp = VB['sim/camp'],
     Water = VB['sim/water'];
@@ -249,10 +249,9 @@ VB['sim/agenda'] = (() => {
   // without from the day's start if a job of it is posted now), the tasks in order, broken off at the sleeping hour; else free.
   // Bounded by the queue, the plan's length and the days laid (at most NDAYS + BEYOND).
   function layout(st, id, entries) {
-    const pl = st.player,
-      a = st.agents[id],
-      pp = pl.plan || null,
-      ctl = controlOf(st, pl.pawn),
+    const a = st.agents[id],
+      pp = planOf(st, id),
+      ctl = controlOf(st, id),
       followed = !!pp && !ctl.auto,
       hid = st.pawns[id].household,
       hh = hid === null ? null : st.households[hid],
@@ -261,7 +260,7 @@ VB['sim/agenda'] = (() => {
       end = (d0 + NDAYS) * DAY,
       far = end + BEYOND * DAY,
       sl = followed ? pp.sleep : null,
-      barred = followed ? waitsOf(st).tasks.map((w) => !!w && w.why === 'refused') : [], // VB-1651: a task its verb refuses is not laid
+      barred = followed ? waitsOf(st, id).tasks.map((w) => !!w && w.why === 'refused') : [], // VB-1651: a task its verb refuses is not laid
       c = cal(st.t),
       hourOf = (t) => t - Math.floor(t / DAY) * DAY;
     const days = Array.from({ length: NDAYS }, () => []);
@@ -492,13 +491,11 @@ VB['sim/agenda'] = (() => {
     });
     return { days, plan, owed, routine };
   }
-  // The agenda of the played pawn, or null with none played (or its pawn dead): {queue, open, day}. Over its own queue and its household's
-  // and village's open work only.
-  function agenda(st) {
-    const pl = st.player;
-    if (!pl || !st.pawns[pl.pawn] || st.pawns[pl.pawn].died !== null) return null;
-    const id = pl.pawn,
-      a = st.agents[id],
+  // The agenda of pawn id (Sim.agenda(st, pawn), VB-1746), or null when it is no pawn or dead: {queue, open, day}. Over its own queue
+  // and its household's and village's open work only.
+  function agenda(st, id) {
+    if (!Number.isInteger(id) || !st.pawns[id] || st.pawns[id].died !== null) return null;
+    const a = st.agents[id],
       c = cal(st.t),
       now = here(st, a);
     const queue = [],
@@ -551,21 +548,21 @@ VB['sim/agenda'] = (() => {
     const left = c.hour >= WORK[1] ? 0 : WORK[1] - Math.max(c.hour, WORK[0]);
     return { queue, open, day: { left, queued: work }, ...layout(st, id, queue) };
   }
-  // ---- the windows that press with nothing planned (VB-1650): Sim.planGaps(st), for the page's warnings ----
+  // ---- the windows that press with nothing planned (VB-1650): Sim.planGaps(st, pawn), for the page's warnings ----
   // @tunable GAPS (VB-1650): ripeDays, the days before a sown field's crop is expected ripe from which it is listed with no harvest task.
   const GAPS = Object.freeze({ ripeDays: 3 });
-  // The windows that press at the played pawn's household's tiles with no task of the plan covering them (a task at the tile of the
+  // The windows that press at pawn id's household's tiles with no task of its plan covering them (a task at the tile of the
   // chain, or a task by key whose job is of the chain's kinds there): [{tile, chain, deadline {t, what}, days (left: whole days to the
   // deadline's day)}], by deadline: a field unsown in its open sowing window (plant); a meadow unmown in the haymaking window while the
   // household wants hay (hay: it mows only then, sim/meadows hayWanted); a sown field ripe, in stooks, or within GAPS.ripeDays of its
-  // expected ripening (harvest). [] with no pawn played or no household. Over its farms' fields and meadows, a few tens; writes nothing.
-  function planGaps(st) {
-    const pl = st.player;
-    if (!pl || !st.pawns[pl.pawn] || st.pawns[pl.pawn].died !== null) return [];
-    const hid = st.pawns[pl.pawn].household,
+  // expected ripening (harvest). [] when id is no living pawn, or with no household. Over its farms' fields and meadows, a few tens;
+  // writes nothing.
+  function planGaps(st, id) {
+    if (!Number.isInteger(id) || !st.pawns[id] || st.pawns[id].died !== null) return [];
+    const hid = st.pawns[id].household,
       hh = hid === null ? null : st.households[hid];
     if (!hh || hh.dissolved) return [];
-    const tasks = pl.plan ? pl.plan.tasks : [],
+    const tasks = planOf(st, id) ? planOf(st, id).tasks : [],
       c = cal(st.t),
       d0 = Math.floor(st.t / DAY),
       home = hh.farmstead === null ? null : st.farmsteads[hh.farmstead],
@@ -603,14 +600,13 @@ VB['sim/agenda'] = (() => {
     }
     return out.sort((a, b) => a.deadline.t - b.deadline.t || a.tile - b.tile);
   }
-  // Sim.buildMenu(st) (VB-1655; VB-1658): sim/camp's build menu, each entry with `work`, the whole of it as the plan reckons it: the hours
-  // of the steps its task would carry (its chain's, at the house: the timber trips with the raising), by the played pawn's own estimate
-  // (the middle of its range, as the plan's task shows it); `hours` stays the raising alone. Reads only.
-  function buildMenu(st) {
-    const menu = Camp.buildMenu(st);
+  // Sim.buildMenu(st, pawn) (VB-1655; VB-1658): sim/camp's build menu for pawn id, each entry with `work`, the whole of it as the plan
+  // reckons it: the hours of the steps its task would carry (its chain's, at the house: the timber trips with the raising), by the pawn's
+  // own estimate (the middle of its range, as the plan's task shows it); `hours` stays the raising alone. Reads only.
+  function buildMenu(st, id) {
+    const menu = Camp.buildMenu(st, id);
     if (!menu.length) return menu;
-    const id = st.player.pawn,
-      hid = st.pawns[id].household,
+    const hid = st.pawns[id].household,
       hh = hid === null ? null : st.households[hid],
       tile = hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead].house : -1;
     return menu.map((e) => {

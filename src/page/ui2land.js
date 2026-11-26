@@ -79,12 +79,13 @@ function hudMoving(hh, f) {
   if (herds.length) parts.push(herds.length === 1 ? 'a herd' : `${herds.length} herds`);
   const P = hudPlanned(),
     t = P && P.tasks.find((q) => q.kind === 'farmstead'),
-    e = t ? hudTaskEntry(Sim.agenda(st), t) : null,
+    e = t ? hudTaskEntry(Sim.agenda(st, st.player.pawn), t) : null,
     frost = e && e.deadline ? e.deadline : null;
   return { tile, parts, frost, lying: lying.length };
 }
 // The windows that press with no task of the plan for them (Sim.planGaps, VB-1650).
-const hudGaps = () => (Sim.planGaps && HUD_CHAIN ? (Sim.planGaps(st) || []).filter((g) => HUD_CHAIN[g.chain]) : []);
+const hudGaps = () =>
+  Sim.planGaps && HUD_CHAIN ? (Sim.planGaps(st, st.player.pawn) || []).filter((g) => HUD_CHAIN[g.chain]) : [];
 // A field's pin: the icon of what it waits for, a number of days where one counts (to ripe, or left to sow), and how pressing it is.
 // The words are the tile's callout (fieldLine), a tap away.
 function fieldPin(fd) {
@@ -224,7 +225,7 @@ function hudCall(i, id, hh, f) {
         `<button type="button" class="u2-chip up" data-hud="uptoggle" aria-pressed="${!!hud.up}">${actIcon('build')} Build up…</button>` +
         (hud.up ? `<div class="u2-ladder">${ladderHTML(f)}</div>` : '');
     }
-    acts += hudRoom(hh, f, FV) + houseWood(camp ? null : Sim.fireView(st));
+    acts += hudRoom(hh, f, FV) + houseWood(camp ? null : Sim.fireView(st, st.player.pawn));
     acts +=
       `<p class="u2-legend">${hudGauges(hh)}</p>` +
       '<div class="u2-row2"><button type="button" class="u2-chip" data-tab="stores">Stores</button>' +
@@ -245,7 +246,7 @@ function hudCall(i, id, hh, f) {
           ? 'Marked for the next hay meadow.'
           : waterLines(i)[0] || '';
   }
-  const A = Sim.agenda(st);
+  const A = Sim.agenda(st, st.player.pawn);
   const P = hudPlanned();
   jobs.slice(0, 3).forEach((o, n) => {
     const e = hudEntry(A, o.target),
@@ -357,7 +358,7 @@ function hudMarks(id, hh, f) {
       });
   // the plan's pins: each queued job at its tile, its place in the queue at one shoulder and the days until it is done at the other;
   // a tile shows one pin, the plan's before the field's
-  const A = Sim.agenda(st),
+  const A = Sim.agenda(st, st.player.pawn),
     planned = new Map();
   const P = hudPlanned(),
     list =

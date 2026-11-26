@@ -267,7 +267,7 @@ assert.strictEqual(snap3(), before5, 'refused leave commands change nothing');
   assert.strictEqual(snap4(), before, 'a verb refused for want of the right changes nothing');
   // the player's queue takes no verb that is not the player's
   Sim.inhabit(s4, hh.holder);
-  for (const verb of ['skip', 'kill', 'retire']) assert.ok(/no verb/.test(Sim.queue(s4, { actor: hh.holder, verb })), `${verb} is not queued`);
+  for (const verb of ['skip', 'kill', 'retire']) assert.ok(/no verb/.test(Sim.queue(s4, s4.player.pawn, { actor: hh.holder, verb })), `${verb} is not queued`);
   assert.deepStrictEqual(Object.keys(VERBS).filter((v) => VERBS[v].sources && VERBS[v].sources.join() === 'debug').sort(), ['kill', 'retire', 'skip'], 'the debug verbs');
   // sleep, the player's only under VB-1643, is open to a pawn's own logic (VB-1645): no verb is the player's alone
   assert.deepStrictEqual(Object.keys(VERBS).filter((v) => VERBS[v].sources && VERBS[v].sources.join() === 'player'), [], "the player's verbs");
@@ -287,7 +287,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   const make = () => { const s = Sim.seed(land(), 7, 'heirs'); Sim.advance(s, 2 * Sim.DAY); return s; };
   const a = make(), b = make(), id = a.pawns.findIndex((p) => p.died === null && p.age >= 18), dim = d0, opt = (a.cenv.settlements[0].practice[dim] + 1) % Customs.NOPT[dim];
   assert.strictEqual(issue(a, { actor: id, verb: 'dropCause', source: 'player' }), 'the pawn argues no cause', 'dropCause is refused with no cause');
-  Sim.inhabit(a, id); assert.strictEqual(Sim.queue(a, { actor: id, verb: 'argue', args: { dim, option: opt } }), true);
+  Sim.inhabit(a, id); assert.strictEqual(Sim.queue(a, a.player.pawn, { actor: id, verb: 'argue', args: { dim, option: opt } }), true);
   Sim.advance(a, 0.2);
   assert.deepStrictEqual([a.pawns[id].advocate.dim, a.pawns[id].advocate.opt], [dim, opt]);
   assert.ok(Math.abs(a.pawns[id].advocate.until - (a.cenv.t + C.P.causeEvery)) < 0.05, 'for five years');
@@ -479,7 +479,7 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   talk(); assert.strictEqual(g.path, null, 'a talk stops a stroll');
   // the played pawn's queued walk outlasts a talk
   walk({}); R.release(s2, g); g.path = null;
-  assert.strictEqual(Sim.inhabit(s2, g.id), true); assert.strictEqual(Sim.queue(s2, { actor: g.id, verb: 'walkTo', target: far }), true);
+  assert.strictEqual(Sim.inhabit(s2, g.id), true); assert.strictEqual(Sim.queue(s2, s2.player.pawn, { actor: g.id, verb: 'walkTo', target: far }), true);
   Sim.advance(s2, 0.2); assert.ok(g.path && Sim.controlOf(s2, s2.player.pawn).queue.length === 1 && Sim.controlOf(s2, s2.player.pawn).queue[0].begun !== null, 'the queued walk is under way');
   const queued = JSON.stringify(g.path); talk();
   assert.strictEqual(JSON.stringify(g.path), queued, 'and a talk does not cut it'); assert.strictEqual(Sim.controlOf(s2, s2.player.pawn).queue.length, 1);
@@ -554,7 +554,7 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   P.alive = true;
   // the played pawn's Sim.wish is the same verb, source player
   assert.strictEqual(Sim.inhabit(s, A), true);
-  assert.strictEqual(Sim.wish(s, 'out', true), true);
-  assert.strictEqual(Sim.wish(s, 'match', mate, { for: member }), true);
+  assert.strictEqual(Sim.wish(s, s.player.pawn, 'out', true), true);
+  assert.strictEqual(Sim.wish(s, s.player.pawn, 'match', mate, { for: member }), true);
   assert.strictEqual(P.proposal.partner, mate, 'the played pawn: the same proposal');
 }

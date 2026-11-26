@@ -12,7 +12,7 @@ VB['sim/upgrade'] = (() => {
   const { register, issue } = VB['sim/commands'];
   const Camp = VB['sim/camp'];
   const { living } = VB['sim/records'];
-  const { controlOf } = VB['sim/controller'];
+  const { controlOf, planners, plansIn } = VB['sim/controller'];
   const { on, emit } = VB['sim/events'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
@@ -46,12 +46,12 @@ VB['sim/upgrade'] = (() => {
     walls.wood = (walls.wood || 0) + got; // the walls' timber brought from home, as a trip's load is (sim/building)
     return got;
   }
-  // A trip of timber is home (sim/chores' wood): the played household's cottage begun by its upgrade task takes it while its walls lack it.
+  // A trip of timber is home (sim/chores' wood): the household's cottage begun by an upgrade task of its members' plans takes it while
+  // its walls lack it.
   on('timberHome', (st, { household }) => {
-    const pl = st.player,
-      f = pl && st.pawns[pl.pawn].household === household ? farmOf(st, household) : null,
+    const f = plansIn(st, household).length ? farmOf(st, household) : null,
       p = f && f.booth ? cottageOf(st, household) : null;
-    if (p && taskAt(st, 'upgrade', f.house)) homeTimber(st, st.households[household], p);
+    if (p && taskAt(st, household, 'upgrade', f.house)) homeTimber(st, st.households[household], p);
   });
   // ---- the verb: the head begins its cottage ----
   // beginCottage(tile): the head of a household living in its shelter (VB-1666) begins its cottage at its house (`tile`): the cottage plan made as a
@@ -84,7 +84,7 @@ VB['sim/upgrade'] = (() => {
   // And the played head's foundation task asks its review (askFoundation, VB-1663); its outbuilding begun takes the timber at home (outTimber).
   function ownRung(st) {
     askFoundation(st);
-    if (st.player) outTimber(st, st.pawns[st.player.pawn].household); // an outbuilding whose first step is its walls (a byre, VB-1665)
+    for (const id of planners(st)) outTimber(st, st.pawns[id].household); // an outbuilding whose first step is its walls (a byre, VB-1665)
     for (const hid of st.liveHouseholds) {
       VB.count.campLook++;
       const f = farmOf(st, hid);
@@ -139,7 +139,7 @@ VB['sim/upgrade'] = (() => {
     at: (st, hid, tile) => {
       const f = farmOf(st, hid);
       if (!f || f.house !== tile || f.household !== hid) return null;
-      const t = taskAt(st, 'upgrade', tile);
+      const t = taskAt(st, hid, 'upgrade', tile);
       const what = t ? t.what : 'cottage';
       return {
         f,
@@ -219,7 +219,7 @@ VB['sim/upgrade'] = (() => {
       return { f, hh: st.households[hid], tile, step: (plan && plan.build) || null };
     },
     none: (tile) => `the household's house is not at ${tile}`,
-    why: (st, { f }) => foundationWhy(st, st.player.pawn, f),
+    why: (st, { f }, tile, id) => foundationWhy(st, id, f),
     // the loads the heap lacks (of the step's kind; picked before the step opens), then the raising
     steps: (st, hid, { f, hh, step }) => {
       if (f.booth || f.grade !== 'ground') return [];
@@ -249,14 +249,16 @@ VB['sim/upgrade'] = (() => {
     deadline: () => null,
   };
   CHAINS.foundation = foundation;
-  // The played head's foundation task with no building step open: its plan asks its head for a review (at most one a day, sim/stores).
+  // A foundation task of a pawn's plan (VB-1746: the played pawn's before) with no building step open: the plan asks its household's
+  // head for a review (at most one a day, sim/stores).
   function askFoundation(st) {
-    const pl = st.player,
-      hid = pl && pl.plan ? st.pawns[pl.pawn].household : null,
-      f = farmOf(st, hid);
-    if (!f || f.booth || f.grade !== 'ground' || !taskAt(st, 'foundation', f.house)) return;
-    const plan = st.plans.households.get(hid);
-    if (plan && !plan.build && !plan.dirty) emit(st, 'planAsks', { household: hid });
+    for (const id of planners(st)) {
+      const hid = st.pawns[id].household,
+        f = farmOf(st, hid);
+      if (!f || f.booth || f.grade !== 'ground' || !taskAt(st, hid, 'foundation', f.house)) continue;
+      const plan = st.plans.households.get(hid);
+      if (plan && !plan.build && !plan.dirty) emit(st, 'planAsks', { household: hid });
+    }
   }
   // ---- the chain: outbuilding (CHAINS.outbuilding; VB-1663) ----
   // Any outbuilding of sim/ladder's OUTBUILDINGS (`what`, the task's: a barn today) built as a task of the plan: its act begins it by the
@@ -310,7 +312,7 @@ VB['sim/upgrade'] = (() => {
     at: (st, hid, tile, task) => {
       const f = farmOf(st, hid);
       if (!f || f.house !== tile || f.household !== hid) return null;
-      const t = task && task.kind === 'outbuilding' ? task : taskAt(st, 'outbuilding', tile),
+      const t = task && task.kind === 'outbuilding' ? task : taskAt(st, hid, 'outbuilding', tile),
         what = t ? t.what : null;
       return { f, hh: st.households[hid], tile, what, project: what ? openOut(st, hid, what) : null };
     },
@@ -325,15 +327,15 @@ VB['sim/upgrade'] = (() => {
       where.what && !where.project && !where.f[where.what] ? headCmd(id, where.hh.id, { what: where.what }) : null,
   };
   CHAINS.outbuilding = outbuilding;
-  // The timber household hid holds at home taken into the open step of each outbuilding its played head's tasks name, in the plan's
-  // order, while that step carries timber and lacks it (through sim/stores, the reason 'build'); the loads taken. At each trip of timber
-  // home, and as a stage ends (the walls open).
+  // The timber household hid holds at home taken into the open step of each outbuilding its members' plans name (VB-1746: the played
+  // pawn's plan before), in the plans' order, while that step carries timber and lacks it (through sim/stores, the reason 'build'); the
+  // loads taken. At each trip of timber home, and as a stage ends (the walls open).
   function outTimber(st, hid) {
-    const pl = st.player,
-      f = pl && st.pawns[pl.pawn].household === hid ? farmOf(st, hid) : null;
-    if (!f || !pl.plan) return 0;
+    const pps = plansIn(st, hid),
+      f = pps.length ? farmOf(st, hid) : null;
+    if (!f) return 0;
     let got = 0;
-    for (const t of pl.plan.tasks) {
+    for (const t of pps.flatMap((pp) => pp.tasks)) {
       const what =
           t.kind === 'outbuilding' && t.outbuilding === f.house
             ? t.what

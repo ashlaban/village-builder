@@ -251,8 +251,8 @@ VB['sim/camp'] = (() => {
   // if it has one that takes it, else the landing, else the nearest that takes it within reach() steps' walk (bfs order).
   function ownTile(st, hh, f) {
     const id = hh.holder,
-      pl = st.player,
-      t = pl && pl.pawn === id && pl.plan ? pl.plan.tasks.find((k) => k.kind === 'farmstead') : null;
+      pp = id === null ? null : planOf(st, id),
+      t = pp ? pp.tasks.find((k) => k.kind === 'farmstead') : null;
     if (t && tileWhy(st, id, t.farmstead) === null) return t.farmstead;
     if (tileWhy(st, id, f.house) === null) return f.house;
     for (const [u] of bfs(st.w, f.house, reach(), walkable(st.w)).dist) if (tileWhy(st, id, u) === null) return u;
@@ -268,21 +268,22 @@ VB['sim/camp'] = (() => {
   // ---- the build menu (VB-1655): what the played head may build now, a registry later rungs add to ----
   // Each: why the played pawn cannot build it now whatever the tile (`why`), why not on `tile` (`tile`), its raising's hours and its timber
   // (loads).
-  const planned = (st, what) => !!(st.player.plan && st.player.plan.tasks.some((t) => t.kind === what));
+  // Pawn id's plan (sim/controller planOf, which loads after this module), or null.
+  const planOf = (st, id) => (st.pawns[id] && st.pawns[id].control && st.pawns[id].control.plan) || null;
+  const planned = (st, id, what) => !!(planOf(st, id) && planOf(st, id).tasks.some((t) => t.kind === what));
   const BUILDS = {
     farmstead: {
-      why: (st, id) => campWhy(st, id) || (planned(st, 'farmstead') ? 'the farmstead is planned already' : null),
+      why: (st, id) => campWhy(st, id) || (planned(st, id, 'farmstead') ? 'the farmstead is planned already' : null),
       tile: tileWhy,
       hours: BOOTH.hours,
       timber: BOOTH.wood,
     },
   };
-  // The build menu: [{what, ok, why, hours, timber}] for the played pawn; [] with none played (Sim.buildMenu adds each entry's `work`,
-  // sim/agenda). Reads only.
-  function buildMenu(st) {
-    if (!st.player) return [];
-    const id = st.player.pawn,
-      dead = living(st, id);
+  // The build menu: [{what, ok, why, hours, timber}] for pawn id; [] when it is no pawn (Sim.buildMenu(st, pawn) adds each entry's
+  // `work`, sim/agenda). Reads only.
+  function buildMenu(st, id) {
+    if (!Number.isInteger(id) || !st.pawns[id]) return [];
+    const dead = living(st, id);
     return Object.keys(BUILDS).map((what) => {
       const B = BUILDS[what],
         why = dead || B.why(st, id);

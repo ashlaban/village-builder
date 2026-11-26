@@ -143,12 +143,13 @@ function dayClick(b, hh) {
   }
   if (d.plan === 'dayCall') {
     dayCalling = null;
-    return Sim.head(st, 'dayCall', { member: +d.member });
+    return Sim.head(st, st.player.pawn, 'dayCall', { member: +d.member });
   }
-  if (d.plan === 'dayOrder') return Sim.head(st, 'dayOrder', { member: +d.member, from: +d.from, to: +d.to });
+  if (d.plan === 'dayOrder')
+    return Sim.head(st, st.player.pawn, 'dayOrder', { member: +d.member, from: +d.from, to: +d.to });
   if (d.plan === 'dayGive') {
     const s = b.closest('.day-give').querySelector('select.day-to');
-    return Sim.head(st, 'dayGive', { key: d.key, from: +d.from, to: +s.value });
+    return Sim.head(st, st.player.pawn, 'dayGive', { key: d.key, from: +d.from, to: +s.value });
   }
   return null;
 }

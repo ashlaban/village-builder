@@ -118,10 +118,10 @@ function ladderHTML(f) {
 function ladderAdd(kind, what) {
   const { f } = hudHouse(),
     args = kind === 'foundation' ? { foundation: f.house } : { [kind]: f.house, what };
-  hudMsg(Sim.plan(st, 'add', args), `Added to the plan: the ${ladderOf(what).name.toLowerCase()}.`);
+  hudMsg(Sim.plan(st, st.player.pawn, 'add', args), `Added to the plan: the ${ladderOf(what).name.toLowerCase()}.`);
 }
 function buildHTML() {
-  const M = Sim.buildMenu(st),
+  const M = Sim.buildMenu(st, st.player.pawn),
     { f } = hudHouse();
   if (!M.length) return '<p class="sub">Nothing can be built now.</p>';
   // once the farmstead stands, what can follow it, as its upgrade icon shows it (one list, two ways in)
@@ -176,7 +176,7 @@ function moveWords(i) {
 }
 // Each frame in play (renderHud): the line of help while placing, and the tiles that take it marked on the map.
 function renderBuild(f) {
-  if (hud.place && !Sim.buildMenu(st).some((e) => e.what === hud.place && e.ok)) hud.place = null; // it can no longer be placed
+  if (hud.place && !Sim.buildMenu(st, st.player.pawn).some((e) => e.what === hud.place && e.ok)) hud.place = null; // it can no longer be placed
   const B = hud.place ? BUILD_WHAT[hud.place] : null;
   u2.help.hidden = !B;
   const key = B
@@ -203,7 +203,7 @@ function placeCall(i) {
     r = Sim.landing.read(w, i, false),
     wd = siteWords(r),
     why = Sim.placeWhy(st, hud.place, i),
-    E = Sim.buildMenu(st).find((e) => e.what === hud.place);
+    E = Sim.buildMenu(st, st.player.pawn).find((e) => e.what === hud.place);
   let h =
     `<div class="u2-verdict"><div><h2>${esc(VB['world/biomes'].BIOMES[w.biome[i]].name)}</h2>` +
     `<p class="sub">${why ? 'The farmstead cannot stand here.' : 'The farmstead can stand here.'}</p></div>` +
@@ -225,7 +225,7 @@ function placeCall(i) {
 }
 function buildHere() {
   const what = hud.place,
-    r = Sim.plan(st, 'add', { [what]: hud.at });
+    r = Sim.plan(st, st.player.pawn, 'add', { [what]: hud.at });
   hudMsg(r, `Added to the plan: the ${BUILD_WHAT[what].name.toLowerCase()}.`);
   if (r === true) hud.place = null;
 }

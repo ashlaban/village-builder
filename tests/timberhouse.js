@@ -83,8 +83,8 @@ function crowd(st, to, n) {
   const st = fresh();
   Sim.advance(st, 3);
   Sim.inhabit(st, 0);
-  Sim.setAuto(st, false);
-  assert.strictEqual(Sim.plan(st, 'sleep', { from: 21, until: 6 }), true);
+  Sim.setAuto(st, st.player.pawn, false);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'sleep', { from: 21, until: 6 }), true);
   const hh = st.households[st.pawns[0].household],
     f = st.farmsteads[hh.farmstead];
   for (const p of projectsOf(st, 'household', hh.id))
@@ -94,8 +94,8 @@ function crowd(st, to, n) {
   assert.deepStrictEqual(v.next, [{ what: 'timber', needs: RUNGS.timber.needs, ok: true, why: null, planned: false }]);
   console.log(`  view: ${JSON.stringify(v.next)}`);
   Stores.put(st, hh, 'timber', 6, 'felling');
-  assert.strictEqual(Sim.plan(st, 'add', { upgrade: f.house, what: 'timber' }), true);
-  assert.match(String(Sim.plan(st, 'add', { upgrade: f.house, what: 'timber' })), /already planned/);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { upgrade: f.house, what: 'timber' }), true);
+  assert.match(String(Sim.plan(st, st.player.pawn, 'add', { upgrade: f.house, what: 'timber' })), /already planned/);
   assert.strictEqual(Sim.farmView(st, f.id).next[0].planned, true);
   const before = chainSteps(st, hh.id, 'upgrade', f.house).steps;
   assert.deepStrictEqual(before.map((y) => y.kind), ['timber', 'timberframe', 'timberroof']);
@@ -112,19 +112,19 @@ function crowd(st, to, n) {
   const back = Sim.load(world(), saved),
     again = Sim.load(world(), saved);
   const run = (s) => {
-    for (let i = 0; i < 120 * 240 && s.player.plan.tasks.some((t) => t.kind === 'upgrade'); i++) Sim.advance(s, 0.1);
+    for (let i = 0; i < 120 * 240 && s.pawns[s.player.pawn].control.plan.tasks.some((t) => t.kind === 'upgrade'); i++) Sim.advance(s, 0.1);
   };
   run(back);
   run(again);
   assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
   run(st);
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
-  assert.strictEqual(st.player.plan.last.which, 'roof', JSON.stringify(st.player.plan.last));
+  assert.strictEqual(st.pawns[st.player.pawn].control.plan.last.which, 'roof', JSON.stringify(st.pawns[st.player.pawn].control.plan.last));
   assert.strictEqual(f.rung, 'timber');
   const w = Sim.farmView(st, f.id);
   assert.strictEqual(w.rung, 'timber');
   assert.deepStrictEqual(w.next, [], 'nothing above the timber house yet');
-  assert.match(String(Sim.plan(st, 'add', { upgrade: f.house, what: 'timber' })), /built from a cottage/);
+  assert.match(String(Sim.plan(st, st.player.pawn, 'add', { upgrade: f.house, what: 'timber' })), /built from a cottage/);
   sound(back, 'loaded mid-chain');
   console.log(`  by the plan: finished on day ${(st.t / DAY).toFixed(1)}`);
 }

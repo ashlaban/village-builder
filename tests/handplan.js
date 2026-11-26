@@ -20,8 +20,8 @@ const handStart = (seed = 7) => {
   const st = Sim.seed(tinyWorld(rows), seed, 'solo', null, { hand: true });
   st.naturalDeaths = false;
   Sim.inhabit(st, st.households[0].holder);
-  Sim.setAuto(st, false);
-  assert.strictEqual(Sim.plan(st, 'sleep', { from: 21, until: 6 }), true);
+  Sim.setAuto(st, st.player.pawn, false);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'sleep', { from: 21, until: 6 }), true);
   return st;
 };
 
@@ -30,7 +30,7 @@ const handStart = (seed = 7) => {
   const st = handStart();
   Sim.advance(st, 8);
   const O = Sim.supplyOutlook(st, 0),
-    fire = Sim.fireView(st);
+    fire = Sim.fireView(st, st.player.pawn);
   assert.notStrictEqual(O.fuel.state, 'safe', `the pile alone does not last the year by hand: ${JSON.stringify(O.fuel)}`);
   assert.deepStrictEqual(O.fuel.parts.intakes, [], 'no firewood counted with no task for it');
   assert.deepStrictEqual(
@@ -44,18 +44,18 @@ const handStart = (seed = 7) => {
   const f = st.farmsteads[0],
     v = st.villages[f.village],
     tile = v.wood.find((t) => st.w.trees[t] >= 3);
-  assert.strictEqual(Sim.plan(st, 'add', { fell: tile, n: 2 }), true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { fell: tile, n: 2 }), true);
   let L = Sim.supplyOutlook(st, 0).fuel.parts.left;
   assert(L.some((x) => x.what === 'fell' && x.tile === tile), `the fell's loads left out with no firewood task: ${JSON.stringify(L)}`);
-  assert.strictEqual(Sim.plan(st, 'add', { firewood: f.house }), true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { firewood: f.house }), true);
   const P = Sim.supplyOutlook(st, 0);
   L = P.fuel.parts.left;
   assert(!L.some((x) => x.what === 'fell'), 'with a firewood task, the fell is counted');
   assert.strictEqual(P.fuel.parts.intakes[0].n, 2 * st.ECON.woodPerTrip, 'two loads counted');
   assert(P.fuel.with > O.fuel.with, `it lasts longer: ${O.fuel.with} to ${P.fuel.with}`);
-  assert.strictEqual(Sim.fireView(st).short, P.fuel.state !== 'safe', 'still one reckoning');
+  assert.strictEqual(Sim.fireView(st, st.player.pawn).short, P.fuel.state !== 'safe', 'still one reckoning');
   // left to its head (automatic on): its cutting counted, nothing left out, and the read the same reckoning
-  Sim.setAuto(st, true);
+  Sim.setAuto(st, st.player.pawn, true);
   const A = Sim.supplyOutlook(st, 0);
   assert.strictEqual(A.fuel.parts.left, undefined, 'nothing left out for a household left to its head');
 }
@@ -82,7 +82,7 @@ const handStart = (seed = 7) => {
   assert(auto0.hay.parts.intakes.some((x) => x.what === 'meadows'), 'left to its head, the meadows are counted');
   assert(auto0.food.parts.intakes.length > 0, 'and the field');
   Sim.inhabit(st, h0.holder);
-  Sim.setAuto(st, false);
+  Sim.setAuto(st, st.player.pawn, false);
   const by = reckon(st, h0, p0);
   assert.deepStrictEqual(by.hay.parts.intakes, [], 'by hand, no hay counted with no hay task');
   assert.deepStrictEqual(
@@ -93,8 +93,8 @@ const handStart = (seed = 7) => {
   assert(by.food.parts.left.some((x) => x.what === 'harvest' && x.tile === fd.tile), 'the standing field left out');
   assert.strictEqual(by.food.parts.store, auto0.food.parts.store, 'what is held counted as before');
   assert.strictEqual(JSON.stringify(reckon(st, h1, p1)), other, 'another household reckoned as before');
-  assert.strictEqual(Sim.plan(st, 'add', { hay: f0.meadows[0].tile }), true);
-  assert.strictEqual(Sim.plan(st, 'add', { harvest: fd.tile }), true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { hay: f0.meadows[0].tile }), true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { harvest: fd.tile }), true);
   const planned = reckon(st, h0, p0);
   assert(planned.hay.parts.intakes.some((x) => x.what === 'meadows'), 'the meadow with a hay task counted');
   assert.deepStrictEqual(
@@ -119,12 +119,12 @@ const handStart = (seed = 7) => {
   assert(!f.booth && f.grade === 'ground' && plan.build, 'the head means to raise its house onto stone');
   assert.strictEqual(Sim.farmView(st, f.id).building.what, 'foundation');
   Sim.inhabit(st, 0);
-  Sim.setAuto(st, false);
+  Sim.setAuto(st, st.player.pawn, false);
   assert.strictEqual(Sim.farmView(st, f.id).building, null, 'by hand, no stone work reported, before the next review');
   Sim.advance(st, 2 * DAY);
   assert.strictEqual(plan.build, null, 'and none opened at a review');
   assert(![...st.jobs.values()].some((j) => j.owner.type === 'household' && j.owner.id === hh.id && ['pick', 'quarry', 'raise'].includes(j.kind)), 'no stone job');
-  Sim.setAuto(st, true);
+  Sim.setAuto(st, st.player.pawn, true);
   Sim.advance(st, 2 * DAY);
   assert(plan.build, 'left to its head, the step opens again');
   sound(st, 'held off and back');
@@ -138,8 +138,8 @@ for (const seed of [7, 9]) {
     f = st.farmsteads[0],
     v = st.villages[f.village],
     tile = v.wood.find((t) => st.w.trees[t] >= 3);
-  assert.strictEqual(Sim.plan(st, 'add', { fell: tile, n: 2 }), true);
-  assert.strictEqual(Sim.plan(st, 'add', { firewood: f.house }), true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { fell: tile, n: 2 }), true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { firewood: f.house }), true);
   let home = null,
     at = null;
   for (let i = 0; i < 8 * 240 && at === null; i++) {

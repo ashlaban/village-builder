@@ -47,23 +47,23 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
 // 1. A wish is set on the player, checked for its shape only, and kept until changed; playing another pawn starts with none.
 {
   const { st, empty } = scene();
-  assert.ok(/no pawn is played/.test(Sim.wish(st, 'out', true)), 'no wishes without a played pawn');
+  assert.ok(/there is no pawn -1/.test(Sim.wish(st, -1, 'out', true)), 'no wishes without a played pawn');
   Sim.inhabit(st, cast.claimant);
   assert.deepStrictEqual(W(st), NONE, 'a played pawn starts with no wishes');
   for (const [kind, value] of [['out', true], ['out', false], ['claim', empty.id], ['claim', false], ['serve', true], ['serve', false]]) {
     // serve true is as the pawn would: it reads null
-    assert.strictEqual(Sim.wish(st, kind, value), true, `${kind} ${value}`); assert.strictEqual(W(st)[kind], kind === 'serve' && value ? null : value);
+    assert.strictEqual(Sim.wish(st, st.player.pawn, kind, value), true, `${kind} ${value}`); assert.strictEqual(W(st)[kind], kind === 'serve' && value ? null : value);
     sound(st, `wish ${kind} ${value}`);
   }
   for (const [kind, value] of [['marry', true], ['out', 1], ['out', undefined], ['claim', true], ['claim', 999], ['claim', -1], ['serve', 'yes']]) {
-    assert.ok(typeof Sim.wish(st, kind, value) === 'string', `${kind} ${value} is no wish`);
+    assert.ok(typeof Sim.wish(st, st.player.pawn, kind, value) === 'string', `${kind} ${value} is no wish`);
   }
   assert.deepStrictEqual(W(st), { out: false, claim: false, serve: false, match: null }, 'a refused wish leaves the wishes as they were');
   Sim.movingRound(st);
   assert.deepStrictEqual(W(st), { out: false, claim: false, serve: false, match: null }, 'the wishes are kept across the round');
-  for (const kind of ['out', 'claim', 'serve']) assert.strictEqual(Sim.wish(st, kind, null), true);
+  for (const kind of ['out', 'claim', 'serve']) assert.strictEqual(Sim.wish(st, st.player.pawn, kind, null), true);
   const first = st.player.pawn;
-  Sim.wish(st, 'out', false); Sim.inhabit(st, cast.heir);
+  Sim.wish(st, st.player.pawn, 'out', false); Sim.inhabit(st, cast.heir);
   assert.deepStrictEqual(W(st), NONE, 'another pawn starts with none');
   assert.strictEqual(W(st, first).out, false, 'and the pawn left keeps its wish until its own choosing at the next round');
 }
@@ -83,7 +83,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
 {
   const { st, empty } = scene(), id = cast.single, home = st.pawns[id].household;
   assert.ok(st.demand.includes(id), 'the scene: an unmarried adult who wants out, and would be given a plot at the round');
-  Sim.inhabit(st, id); Sim.wish(st, 'out', false);
+  Sim.inhabit(st, id); Sim.wish(st, st.player.pawn, 'out', false);
   assert.strictEqual(H.staysWhy(st, st.pawns[id]), 'it wishes to stay');
   H.countDemand(st);
   assert.ok(!st.demand.includes(id), 'wished to stay, it is left out of st.demand');
@@ -93,8 +93,8 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   assert.strictEqual(ask(st, id).find((o) => o.verb === 'leave').own, null, 'though the pawn itself would move out');
   // staying ranks Stay above every rung that leaves home (VB-680), so it is no claimant even when asked alone; the rules would let it
   assert.ok(!FC.claimants(st, empty).includes(id) && FC.claimants(st, empty, [id]).length === 0, 'no claimant');
-  Sim.wish(st, 'out', null); assert.strictEqual(FC.claimants(st, empty, [id]).length, 1, 'though the rules would let it claim');
-  Sim.wish(st, 'out', false);
+  Sim.wish(st, st.player.pawn, 'out', null); assert.strictEqual(FC.claimants(st, empty, [id]).length, 1, 'though the rules would let it claim');
+  Sim.wish(st, st.player.pawn, 'out', false);
   Sim.movingRound(st);
   assert.ok(!st.demand.includes(id) && st.pawns[id].household === home && !st.pawns[id].servant, 'after the round it is at home still');
   assert.ok(!VB['sim/allotment'].hasPlot(st, id), 'no plot is cleared for it');
@@ -110,10 +110,10 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   H.countDemand(st); assert.ok(!st.demand.includes(id), 'played with no wish, it waits as before');
   const leave = () => ask(st, id).find((o) => o.verb === 'leave');
   assert.ok(/heir to the farm at home/.test(leave().why) && leave().own === leave().why);
-  Sim.wish(st, 'out', true); H.countDemand(st);
+  Sim.wish(st, st.player.pawn, 'out', true); H.countDemand(st);
   assert.ok(st.demand.includes(id), 'wished to move out, the heir is counted among those who want out');
   assert.ok(leave().why === null && /heir to the farm at home/.test(leave().own), 'the round would let it; the pawn itself would have waited');
-  Sim.wish(st, 'out', null); H.countDemand(st);
+  Sim.wish(st, st.player.pawn, 'out', null); H.countDemand(st);
   assert.ok(!st.demand.includes(id), 'and waits again when the wish is taken back');
 }
 
@@ -122,7 +122,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   const { st } = scene(), spouse = R.spouseOf(st, cast.holder);
   for (const id of [cast.holder, spouse, cast.child]) {
     if (id === null) continue;
-    Sim.inhabit(st, id); Sim.wish(st, 'out', true); H.countDemand(st);
+    Sim.inhabit(st, id); Sim.wish(st, st.player.pawn, 'out', true); H.countDemand(st);
     assert.ok(!st.demand.includes(id), `pawn ${id} is kept by a rule`);
     const why = ask(st, id).find((o) => o.verb === 'leave').why;
     assert.ok(/holds a farm|under 18/.test(why), `and is told which (${why})`);
@@ -138,19 +138,19 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   const first = () => FC.claimants(st, empty)[0], claim = () => ask(st, id).find((o) => o.verb === 'claim');
   Sim.inhabit(st, id);
   assert.ok(first() === id && claim().why === null, 'with no wish it is the first claimant');
-  Sim.wish(st, 'claim', false);
+  Sim.wish(st, st.player.pawn, 'claim', false);
   assert.ok(!FC.claimants(st, empty).includes(id) && FC.claimableFarm(st, id) === null, 'wishing for no farm, it is no claimant');
   assert.ok(/claim no farm/.test(claim().why), claim().why);
-  Sim.wish(st, 'claim', other);
+  Sim.wish(st, st.player.pawn, 'claim', other);
   assert.ok(!FC.claimants(st, empty).includes(id) && /another farm/.test(claim().why), 'nor when it wishes for another farm');
   assert.ok(st.demand.includes(id), 'it wants out all the same');
-  Sim.wish(st, 'claim', empty.id);
+  Sim.wish(st, st.player.pawn, 'claim', empty.id);
   assert.ok(first() === id && claim().why === null, 'wishing for this farm, it stands where the rule puts it');
   FC.claimFarms(st);
   assert.strictEqual(VB['sim/farmclaims'].claimOn(st, empty).by, id, 'and takes it at the round');
   // a wish for a farm does not pass the rule that the claimant wants out: an heir stays an heir
   const again = scene();
-  Sim.inhabit(again.st, cast.heir); Sim.wish(again.st, 'claim', again.empty.id); H.countDemand(again.st);
+  Sim.inhabit(again.st, cast.heir); Sim.wish(again.st, again.st.player.pawn, 'claim', again.empty.id); H.countDemand(again.st);
   assert.ok(!FC.claimants(again.st, again.empty).includes(cast.heir), 'an heir who wishes for the farm, but not to move out, is no claimant');
 }
 
@@ -162,8 +162,8 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   Sim.inhabit(st, id);
   const serve = () => ask(st, id).find((o) => o.verb === 'serve');
   assert.strictEqual(serve().why, null);
-  Sim.wish(st, 'serve', true); assert.strictEqual(serve().why, null, 'wishing to serve is as the pawn would');
-  Sim.wish(st, 'serve', false);
+  Sim.wish(st, st.player.pawn, 'serve', true); assert.strictEqual(serve().why, null, 'wishing to serve is as the pawn would');
+  Sim.wish(st, st.player.pawn, 'serve', false);
   assert.ok(/no service/.test(serve().why), serve().why);
   const home = st.pawns[id].household;
   S.takeServants(st);
@@ -175,7 +175,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
 // 8. The wishes are saved with the run.
 {
   const { st, empty } = scene();
-  Sim.inhabit(st, cast.claimant); Sim.wish(st, 'out', true); Sim.wish(st, 'claim', empty.id); Sim.wish(st, 'serve', false);
+  Sim.inhabit(st, cast.claimant); Sim.wish(st, st.player.pawn, 'out', true); Sim.wish(st, st.player.pawn, 'claim', empty.id); Sim.wish(st, st.player.pawn, 'serve', false);
   const world = () => tinyWorld(rows), data = JSON.parse(JSON.stringify(Sim.save(st))), back = Sim.load(world(), data);
   assert.deepStrictEqual(W(back), { out: true, claim: empty.id, serve: false, match: null }, 'the wishes come back as saved');
   for (const s of [st, back]) { Sim.movingRound(s); Sim.advance(s, Sim.DAY); }
@@ -201,7 +201,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   const married = (st, id) => R.spouseOf(st, id);
   const after = (seed, wish, who) => {
     const st = world(seed);
-    if (who !== undefined) { Sim.inhabit(st, who); if (wish !== undefined) assert.strictEqual(Sim.wish(st, 'match', wish), true); }
+    if (who !== undefined) { Sim.inhabit(st, who); if (wish !== undefined) assert.strictEqual(Sim.wish(st, st.player.pawn, 'match', wish), true); }
     Sim.movingRound(st); return st;
   };
   const matchItem = (st, who, partner) => O.forPawn(st, O.actorView(st, who), who).find((o) => o.verb === 'match' && o.target === partner);
@@ -215,9 +215,9 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   const { seed, m, f } = found;
   {
     const st = world(seed); Sim.inhabit(st, m);
-    assert.ok(typeof Sim.wish(st, 'match', m) === 'string', 'one cannot wish for oneself');
-    assert.ok(typeof Sim.wish(st, 'match', true) === 'string' && typeof Sim.wish(st, 'match', 99999) === 'string', 'a wish for a match is false, null or a pawn');
-    assert.strictEqual(Sim.wish(st, 'match', f), true); assert.strictEqual(W(st).match, f);
+    assert.ok(typeof Sim.wish(st, st.player.pawn, 'match', m) === 'string', 'one cannot wish for oneself');
+    assert.ok(typeof Sim.wish(st, st.player.pawn, 'match', true) === 'string' && typeof Sim.wish(st, st.player.pawn, 'match', 99999) === 'string', 'a wish for a match is false, null or a pawn');
+    assert.strictEqual(Sim.wish(st, st.player.pawn, 'match', f), true); assert.strictEqual(W(st).match, f);
     assert.strictEqual(matchItem(st, m, f).why, null, 'nothing bars the wished match');
     sound(st, 'a wish for a match');
     Sim.movingRound(st);
@@ -228,7 +228,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
     sound(st, 'the wished match made');
     // wished by the woman: her side asks him, and only him, at her asking (VB-693); his side answers the best offer it holds at the
     // round, which may be another's: the player's wish is its pawn's offer, no more
-    const w = world(seed); Sim.inhabit(w, f); Sim.wish(w, 'match', m);
+    const w = world(seed); Sim.inhabit(w, f); Sim.wish(w, w.player.pawn, 'match', m);
     assert.strictEqual(VB['sim/asking'].askFor(w, f, Math.floor(w.t / Sim.DAY) * Sim.DAY + 12), 'match', 'her asking offers the one she wishes');
     const hers = w.offers.find((o) => o.id === w.pawns[f].ask);
     assert.ok(hers && hers.asker === 'woman' && hers.gives.man === m && hers.wants.woman === f, 'her side asks him');
@@ -252,7 +252,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   }
   // a wish that fails a rule makes no offer, and the played pawn enters the matcher as usual
   const asUsual = (sd, who, partner, why) => {
-    const wished = world(sd); Sim.inhabit(wished, who); Sim.wish(wished, 'match', partner);
+    const wished = world(sd); Sim.inhabit(wished, who); Sim.wish(wished, wished.player.pawn, 'match', partner);
     assert.ok(why.test(matchItem(wished, who, partner).why), `bar ${why}: ${matchItem(wished, who, partner).why}`);
     Sim.movingRound(wished);
     const plain = after(sd, undefined, who);
@@ -273,7 +273,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   }
   {
     const st = world(seed); st.pawns[f].born -= 30 * YEAR;
-    Sim.inhabit(st, m); Sim.wish(st, 'match', f);
+    Sim.inhabit(st, m); Sim.wish(st, st.player.pawn, 'match', f);
     assert.ok(/ill matched/.test(matchItem(st, m, f).why), matchItem(st, m, f).why);
     Sim.movingRound(st);
     assert.notStrictEqual(married(st, m), f, 'the partner 30 years older is no offer');
@@ -284,13 +284,13 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
     const list = O.forPawn(st, O.actorView(st, m), m).filter((o) => o.verb === 'match');
     assert.strictEqual(list[0].target, null, 'the first item says the pawn may wish');
     assert.ok(list.length - 1 <= 8 && list.slice(1).every((o) => st.pawns[o.target].sex === 'f' && R.spouseOf(st, o.target) === null), 'at most 8 unmarried women');
-    Sim.wish(st, 'match', f); Sim.killPawn(st, f, 'illness');
+    Sim.wish(st, st.player.pawn, 'match', f); Sim.killPawn(st, f, 'illness');
     assert.strictEqual(W(st).match, null, 'the wish is cleared when the wished partner dies');
     sound(st, 'wished partner died');
   }
   // the wish is saved
   {
-    const st = world(seed); Sim.inhabit(st, m); Sim.wish(st, 'match', f);
+    const st = world(seed); Sim.inhabit(st, m); Sim.wish(st, st.player.pawn, 'match', f);
     const data = JSON.parse(JSON.stringify(Sim.save(st)));
     assert.strictEqual(W(Sim.load(tinyWorld(rows), data)).match, f, 'the wish is saved');
   }
@@ -321,11 +321,11 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   assert.ok(/no service/.test(ask(other.st, id).find((o) => o.verb === 'serve').why), 'and what it may do at the round says so');
   // a whole ranking
   Sim.inhabit(st, a);
-  assert.ok(typeof Sim.wish(st, 'rank', ['heir', 'stay']) === 'string', 'a ranking holds every rung once');
-  assert.strictEqual(Sim.wish(st, 'rank', ['service', 'heir', 'stay', 'match', 'farm', 'plot', 'party']), true);
+  assert.ok(typeof Sim.wish(st, st.player.pawn, 'rank', ['heir', 'stay']) === 'string', 'a ranking holds every rung once');
+  assert.strictEqual(Sim.wish(st, st.player.pawn, 'rank', ['service', 'heir', 'stay', 'match', 'farm', 'plot', 'party']), true);
   assert.deepStrictEqual(Sim.wishesOf(st, a), { out: null, claim: false, serve: null, match: false, settle: false,
     rank: ['service', 'heir', 'stay', 'match', 'farm', 'plot', 'party'] }, 'the rungs after Stay are declined');
-  Sim.wish(st, 'rank', [...WISH.rungs]);
+  Sim.wish(st, st.player.pawn, 'rank', [...WISH.rungs]);
   assert.strictEqual(st.pawns[a].wish, null, 'and the default ranking is no wish');
 }
 console.log('wishes ok: every pawn\'s own wish (ambition, hunger), read alike for the unplayed; a wish to stay keeps a landless adult out of st.demand, and it neither claims nor leaves; an heir wished out enters it; '

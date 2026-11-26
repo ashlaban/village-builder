@@ -282,8 +282,10 @@ VB['sim/saves'] = (() => {
   // carry their ids and links and a task names its step; a save without them is another build's, and refused (no migration is written).
   // Format 8 (VB-1745): a pawn's switch and queue are its controller's (pawn.control, st.controlled, st.queued), not st.player's; a save
   // holding them in st.player is another build's, and refused (no migration is written).
-  const FORMAT = 8,
-    READS = [8];
+  // Format 9 (VB-1746): a pawn's plan is its controller's (pawn.control.plan), not st.player's, and st.player is the frame only (no
+  // `since`, no `plan`); a save holding st.player.plan is another build's, and refused (no migration is written).
+  const FORMAT = 9,
+    READS = [9];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {

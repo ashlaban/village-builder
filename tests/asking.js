@@ -148,9 +148,9 @@ const onItsDay = (id, t) => Math.abs(((((t - ASK.hour) % SEASON) + SEASON) % SEA
   const mine = st.offers.find((x) => x.id === st.pawns[8].ask);
   assert.ok(mine.answers.every((a) => a.yes === null), 'and the player answers it, as the others, by the round');
   VB['sim/offers'].conclude(st, mine, 'the test');
-  VB.sim.wish(st, 'match', false);
+  VB.sim.wish(st, st.player.pawn, 'match', false);
   assert.notStrictEqual(askFor(st, 8), 'match', 'not this year: no match is asked for him');
-  VB.sim.wish(st, 'match', null);
+  VB.sim.wish(st, st.player.pawn, 'match', null);
   assert.strictEqual(VB.sim.inhabit(st, 6), true);
   assert.strictEqual(askFor(st, 8), 'match', 'his spokesman played: the match is asked, and the player answers for his side');
   delete st.rng.society.fix;

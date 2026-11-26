@@ -2,13 +2,13 @@
 // ---- the plan: every day's routine, the sleeping hours and the tasks in order, a row of icons; the words are a tap away ----
 // Planned by hand (Kim, 24 Nov): the settler follows the plan the player lays (Sim.plan, Sim.planView; VB-1646), automatic planning off.
 const HUD_SLEEP = { from: 22, until: 6 };
-const hudPlanned = () => (Sim.planView ? Sim.planView(st) : null);
+const hudPlanned = () => (Sim.planView ? Sim.planView(st, st.player.pawn) : null);
 // The first morning: automatic planning off, the necessities as the day's routine, and the night for sleep.
 function hudBegin() {
   if (!Sim.plan || !st || played() < 0) return;
-  Sim.setAuto(st, false);
-  Sim.plan(st, 'routine', { kinds: HUD_DAILY });
-  Sim.plan(st, 'sleep', HUD_SLEEP);
+  Sim.setAuto(st, st.player.pawn, false);
+  Sim.plan(st, st.player.pawn, 'routine', { kinds: HUD_DAILY });
+  Sim.plan(st, st.player.pawn, 'sleep', HUD_SLEEP);
 }
 const hudHour = (h) => `${String(((h % 24) + 24) % 24).padStart(2, '0')}:00`;
 // the steps of a farmstead's move from its landing (VB-1667), each by what it brings over
@@ -127,7 +127,7 @@ function renderPlan() {
   u2.plan.hidden = !P;
   if (!P) return (u2.pcard.hidden = u2.days.hidden = true);
   const S = Sim.sleepOf(st),
-    A = Sim.agenda(st),
+    A = Sim.agenda(st, st.player.pawn),
     owed = S ? Math.floor(S.owed) : 0,
     key = [
       Math.floor(st.t * 4),

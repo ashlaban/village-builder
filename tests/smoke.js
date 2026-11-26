@@ -655,7 +655,7 @@ async function actionBar() {
   const said = q('#actMenu .act-msg') ? q('#actMenu .act-msg').textContent : '';
   if (home.getAttribute('aria-disabled') === 'true' ? !/^Go home: /.test(said) : !queue().includes('goHome') || !/^Queued: Go home/.test(said)) {
     fail(`Go home from the Myself list: ${said} ${queue()}`); }
-  Sim.unqueue(st, 0);
+  Sim.unqueue(st, st.player.pawn, 0);
   // a winter's visit (VB-292): the Myself list offers it by village, with its days and its pack, for the pawn and for one it speaks for; a
   // click plans it at once (Sim.orderVisit), and the sheet says what is planned and what is under way. On constructed items: the tiny
   // map has no village beyond a day's walk (the simulation's side is tests/journeys.js).
@@ -710,7 +710,7 @@ async function actionBar() {
       const c = Sim.controlOf(st, st.player.pawn).queue.find((x) => x.verb === 'offer');
       if (!c || c.target !== other.id || c.args.basis !== 'swap' || c.args.gives.n !== 2 || c.args.wants.good !== 'tar') fail(`the swap is not queued: ${JSON.stringify(c)}`);
       console.log('action bar, the fair:', JSON.stringify(c && c.args));
-      if (c) Sim.unqueue(st, Sim.controlOf(st, st.player.pawn).queue.indexOf(c));
+      if (c) Sim.unqueue(st, st.player.pawn, Sim.controlOf(st, st.player.pawn).queue.indexOf(c));
     }
     Sim.fairSides = real.f; Sim.swapTerms = real.t;
   }
@@ -722,7 +722,7 @@ async function actionBar() {
   if (q('#drawerTitle').textContent !== 'Agenda' || !offer) { fail('the Agenda panel offers no cause'); return; }
   offer.click(); tick(1);
   if (!queue().includes('argue') || !/^Queued: /.test(q('#agendaContent [role="status"]').textContent)) fail(`a cause from the Agenda: ${queue()}`);
-  Sim.unqueue(st, 0);
+  Sim.unqueue(st, st.player.pawn, 0);
   q('#agendaContent [data-agenda="customs"]').click(); tick(1);
   if (q('#tileCustoms').hidden || !q('#tileCustoms .phrase[aria-expanded="true"]') || !q('#tileCustoms .stand')) {
     fail("the Agenda's link does not open the custom on the village's card"); }
@@ -744,7 +744,7 @@ async function actionBar() {
   const gift = Sim.controlOf(st, st.player.pawn).queue.find((c) => c.verb === 'give');
   if (!gift || gift.target !== +opt.value || gift.args.n !== 5 || !/^Queued: 5 grain/.test(q('#actMenu .act-msg').textContent)) {
     fail(`the gift was not queued: ${JSON.stringify(gift)}`); }
-  while (Sim.controlOf(st, st.player.pawn).queue.length) Sim.unqueue(st, 0);
+  while (Sim.controlOf(st, st.player.pawn).queue.length) Sim.unqueue(st, st.player.pawn, 0);
   // VB-691: the played head asks by the same form, the household's holder answering: an offer on the basis ask
   if (!q('#actMenu [data-give="ask"]')) { q('#actBar [data-group="house"]').click(); tick(1); q('#actMenu [data-view="give"]').click(); tick(1); }
   const askBtn = q('#actMenu [data-give="ask"]');
@@ -757,7 +757,7 @@ async function actionBar() {
         fail(`the ask was not queued: ${JSON.stringify(ask)}`); }
     }
   }
-  while (Sim.controlOf(st, st.player.pawn).queue.length) Sim.unqueue(st, 0);
+  while (Sim.controlOf(st, st.player.pawn).queue.length) Sim.unqueue(st, st.player.pawn, 0);
   // Walk here: the camera follows the pawn, and a tap at the view's middle (the page's 0, 0 here) is its tile
   q('#queueBtn').click(); tick(1); q('#playBox [data-play="follow"]').click(); tick(200); // the camera glides to the pawn, wherever its work has taken it
   q('#actBar [data-group="self"]').click(); tick(1); q('#actMenu [data-bar="walk"]').click(); tick(1);

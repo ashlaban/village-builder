@@ -516,13 +516,14 @@ function planClick(b, hh) {
     flyTo(w.hx[+d.tile], w.hy[+d.tile]);
     return;
   }
-  if (d.plan === 'target') r = Sim.head(st, 'target', { store: d.store, n: d.n === 'null' ? null : +d.n });
+  if (d.plan === 'target')
+    r = Sim.head(st, st.player.pawn, 'target', { store: d.store, n: d.n === 'null' ? null : +d.n });
   else if (d.plan === 'order') {
     const steps = Sim.headView(st, hh.id).order,
       [x] = steps.splice(+d.from, 1);
     steps.splice(+d.to, 0, x);
-    r = Sim.head(st, 'order', { steps });
-  } else if (d.plan === 'tile' && d.clear) r = Sim.head(st, 'tile', { what: d.what, tile: null });
+    r = Sim.head(st, st.player.pawn, 'order', { steps });
+  } else if (d.plan === 'tile' && d.clear) r = Sim.head(st, st.player.pawn, 'tile', { what: d.what, tile: null });
   else if (d.plan === 'tile') {
     const { sites, why } = planSites(d.what, hh),
       title = d.what === 'field' ? 'The next field' : 'The next hay meadow';
@@ -544,8 +545,9 @@ function planClick(b, hh) {
     });
     renderActions();
     return;
-  } else if (d.plan === 'project') r = Sim.head(st, 'project', { what: d.what === 'null' ? null : d.what });
-  else if (d.plan === 'drop') r = Sim.head(st, 'dropProject', d.id !== undefined ? { id: +d.id } : {});
+  } else if (d.plan === 'project')
+    r = Sim.head(st, st.player.pawn, 'project', { what: d.what === 'null' ? null : d.what });
+  else if (d.plan === 'drop') r = Sim.head(st, st.player.pawn, 'dropProject', d.id !== undefined ? { id: +d.id } : {});
   else if (d.plan.startsWith('day')) {
     r = dayClick(b, hh); // the day's verbs (page/day, VB-477)
     if (r === undefined) return;
@@ -636,7 +638,7 @@ function planPoint(i) {
 // reason in the banner and the tool kept for another tap; once named, the farm's card opens again on its Plan tab.
 function planTap(i) {
   const t = tool,
-    r = i < 0 ? 'no tile there' : Sim.head(st, 'tile', { what: t.what, tile: i });
+    r = i < 0 ? 'no tile there' : Sim.head(st, st.player.pawn, 'tile', { what: t.what, tile: i });
   if (r !== true) {
     tool.msg = { text: r, bad: true };
     return;

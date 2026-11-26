@@ -10,7 +10,7 @@ const woodTimber = (u) =>
   u <= 0 ? 'no timber' : `${Math.round(u)} timber (${woodLoads(u)} ${woodLoads(u) === 1 ? 'load' : 'loads'})`;
 // The fire, when it wants seeing to: short of the season's goal, or the house cold; else null.
 const fireWarn = () => {
-  const F = Sim.fireView ? Sim.fireView(st) : null;
+  const F = Sim.fireView ? Sim.fireView(st, st.player.pawn) : null;
   return F && (F.short || F.cold) ? F : null;
 };
 const fireTitle = (F) =>

@@ -31,11 +31,24 @@ VB['sim/chores'] = (() => {
   const fuelFree = (st, hh) => hh.wood - reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
   // The timber the household holds, felled and home, not yet cut (VB-1653; absent: none), in the woodpile's loads.
   const timberOf = (hh) => (hh.timber > 1e-9 ? hh.timber : 0);
-  // The loads a fell task of the played pawn's plan at `tile` has still to bring home (0 when there is none; sim/planchains' fell).
-  const plannedLeft = (st, tile) => {
-    const pp = st.player && st.player.plan,
-      t = pp && pp.tasks.find((x) => x.key === undefined && x.kind === 'fell' && x.fell === tile);
-    return t ? (t.n || 1) - (t.got || 0) : 0;
+  // The plans of household hid's members (sim/controller plansIn, which loads after this module; VB-1746: the played pawn's before).
+  function plansIn(st, hid) {
+    const out = [];
+    if (st.controlled)
+      for (const id of st.controlled) {
+        const p = st.pawns[id];
+        if (p.household === hid && p.control && p.control.plan) out.push(p.control.plan);
+      }
+    return out;
+  }
+  // The loads a fell task at `tile` of a plan of household hid's members has still to bring home (0 when there is none; sim/planchains'
+  // fell).
+  const plannedLeft = (st, hid, tile) => {
+    for (const pp of plansIn(st, hid)) {
+      const t = pp.tasks.find((x) => x.key === undefined && x.kind === 'fell' && x.fell === tile);
+      if (t) return (t.n || 1) - (t.got || 0);
+    }
+    return 0;
   };
   // The house is cold, or its pile will not feed tonight's fire (VB-1547), the house's own (sim/house fireOf, VB-1669): the wood kinds'
   // vital rule.
@@ -56,7 +69,7 @@ VB['sim/chores'] = (() => {
     return woodHave(st, hh) + Math.max(0, Math.min(short, trip)) * P;
   };
   const woodNeed = (st, j) => {
-    if (j.chosen) return plannedLeft(st, j.site);
+    if (j.chosen) return plannedLeft(st, j.owner.id, j.site);
     const hh = st.households[j.owner.id]; // a task of a save from before VB-1775 has no amount: a trip's worth now
     return Math.ceil(((j.amount ?? woodAmount(st, hh)) - woodHave(st, hh)) / st.ECON.woodPerTrip - 1e-9);
   };
@@ -257,9 +270,8 @@ VB['sim/chores'] = (() => {
           post(`wood:h${hh.id}`, wood[0], { farm: f, amount });
           if (have < T.second) post(`wood:h${hh.id}b`, wood[0], { farm: f, amount });
         }
-        const pl = st.player;
-        if (pl && pl.plan && st.pawns[pl.pawn].household === hh.id)
-          for (const t of pl.plan.tasks)
+        for (const pp of plansIn(st, hh.id))
+          for (const t of pp.tasks)
             if (t.kind === 'fell' && t.key === undefined && (t.got || 0) < (t.n || 1) && st.w.trees[t.fell] > 0)
               post(`wood:h${hh.id}:t${t.fell}`, t.fell, { farm: f, chosen: true });
       },
