@@ -158,9 +158,11 @@ VB.COUNTERS = {
     "Plan steps made: a household's season steps at each season's plan, a project's year step (sim/steps; VB-1752)",
   dayPair:
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
-    '(sim/day, allot; VB-466)',
+    "(sim/day, allot; VB-466), with a task slotted in and the household's own tasks at its review (reweigh, VB-1854)",
   dayLost:
     "Tasks of a member lost to its household's day (dead, ill, lent, on leave, away) slotted to the others (sim/day lostHolder, VB-1758)",
+  dayRose:
+    "Tasks a household's review made more urgent, slotted again into the day's lists as they stand (sim/day reweigh, VB-1854)",
   dayAllot:
     "Households' days allotted whole: at the morning, at 14:00, and when a slot-in finds nobody (sim/day, allot; VB-1758)",
   vitalAsk:

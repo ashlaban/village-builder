@@ -20,14 +20,18 @@ VB['sim/jobs'] = (() => {
   // During the review or the look under way: `changed`, the holders whose days are allotted anew at its end (their keys: every household's
   // at the morning and at 14:00, one the due-queue's slot found no hand for); `arrived`, the tasks posted, slotted into their holders'
   // days as they stand at its end (sim/day slotArrived; VB-1758). Null between calls: nothing is kept here from one step to the next.
+  // `rewoke`, the households reviewed, whose tasks the review made more urgent are slotted again (sim/day reweigh; VB-1854).
   let changed = null,
-    arrived = null;
-  // The review or the look is over: what it posted is slotted in, and the days of the holders it noted are allotted anew (sim/day).
+    arrived = null,
+    rewoke = null;
+  // The review or the look is over: what it posted is slotted in, what it made more urgent slotted again, and the days of the holders it
+  // noted are allotted anew (sim/day).
   const allotNoted = (st, c) => {
     const noted = changed,
-      came = arrived;
-    changed = arrived = null;
-    slotArrived(st, came, noted, c);
+      came = arrived,
+      again = rewoke || [];
+    changed = arrived = rewoke = null;
+    slotArrived(st, came, noted, c, again);
   };
   const changedFor = (owner) => {
     if (changed && owner) changed.add(ownerKey(owner));
@@ -90,6 +94,7 @@ VB['sim/jobs'] = (() => {
     const hour = Math.floor(st.tick / TICKS);
     changed = new Set();
     arrived = [];
+    rewoke = [];
     // a rule calls put for each job it would post: of the kind asked, owned by the farm's household, unless it names them; `only` keeps
     // the due-queue's ask to its kind
     let kind = null,
@@ -164,8 +169,9 @@ VB['sim/jobs'] = (() => {
       const mine = st.jobsBy.get(`${type}:${id}`);
       if (mine) for (const j of mine) if (!islandJob(j)) j.live = false;
       reviewed(st, plan, c, why);
-      // what the review posts is slotted into the day as it stands; the day is weighed whole at the morning and at 14:00 (VB-1758: it was
-      // allotted whole at each review)
+      // what the review posts is slotted into the day as it stands, and what its stores or windows made more urgent is slotted again
+      // (VB-1854); the day is weighed whole at the morning and at 14:00 (VB-1758: it was allotted whole at each review)
+      if (type === 'household') rewoke.push(id);
       return plan;
     };
     const takeDown = (type, id) => {
