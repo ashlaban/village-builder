@@ -114,6 +114,7 @@ VB['sim/agents'] = (() => {
     rerate(st, j);
     const K = KINDS[j.kind];
     if (K.methods) {
+      if (K.setOut) K.setOut(st, a, j, teamFree); // what it sets out with (the water's barrel, VB-1586), not a load in hand
       onward(st, a); // a goal with methods: its first leg read from the world (VB-1775)
       return;
     }
@@ -196,7 +197,9 @@ VB['sim/agents'] = (() => {
     delete a.errand;
     a.phase = null;
     if (left) rerate(st, left); // a hand gone: the end is told again
-    if (laid && !(KINDS[laid.kind].again && KINDS[laid.kind].again(laid))) dropJob(st, laid);
+    // a goal with methods stays posted while it is wanted: whoever takes it goes on from the world (VB-1812)
+    if (laid && !KINDS[laid.kind].methods && !(KINDS[laid.kind].again && KINDS[laid.kind].again(laid)))
+      dropJob(st, laid);
     a.basis = null;
     a.load = 0; // wood cut and stacked, not yet on its way, is left
     const hid = st.pawns[a.id].household;
@@ -517,10 +520,18 @@ VB['sim/agents'] = (() => {
       a.basis = null;
       a.phase = null;
       a.inside = false;
-      if (!a.path) waitLeg(st, a);
+      // past the working day, free, it goes in, as one whose load came in does (arrived; VB-1812: a goal met at its work leg)
+      if ((h >= WORK[1] || h < WORK[0]) && !a.path && a.away === undefined && st.pawns[a.id].alive) goHome(st, a);
+      else if (!a.path) waitLeg(st, a);
       return;
     }
     const carrying = s.rule || s.prim === 'haul' || s.prim === 'unload' || s.prim === 'return';
+    if (a.moving && !carrying) {
+      // told to move while on the road (VB-581): its load set down, it lets the goal go and moves on (sim/away's moved; VB-1812)
+      release(st, a);
+      emit(st, 'moveOn', a);
+      return;
+    }
     if (
       s.blocked ||
       depth > 8 ||

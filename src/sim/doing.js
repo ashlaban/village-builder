@@ -16,15 +16,22 @@ VB['sim/doing'] = (() => {
   // load of TRAVEL.load holds. A load in hand is agent.load (TRAVEL's units) of its task's owner's. A good not named here is a trip's
   // (sim/methods trip, VB-1749): named for its kind, it lies as that kind, is carried in the kind's units (a.load as its `make` gives it),
   // taken up whole, and set down in the store by the kind's delivery (`deliver`), reading the task, or the pile's record it was taken from.
+  // A good with a `kind` is set down by that kind's delivery, not into a store: the building's timber (VB-1812), carried to its site and
+  // lying as `timber` when its carrier is cut.
   const GOODS = {
     timber: { lying: 'wood', carry: 'logs', store: 'timber', per: (st) => st.ECON.woodPerTrip },
+    sitetimber: { lying: 'timber', carry: 'logs', kind: 'timber' },
   };
   const goodOf = (good) => GOODS[good] || { lying: good, carry: KINDS[good].carry, kind: good };
+  const byKind = (good) => !!goodOf(good).kind;
   const plans = Methods.compile(KINDS);
   // The good a load in hand for a task of kind k is: the one its methods take up (one a kind).
   const loaded = (k) => (plans[k] && plans[k].uses.length ? plans[k].uses[0] : null);
   const hhOf = (st, owner) => (owner === null || owner === undefined ? null : st.households[owner]);
   const titled = (owner) => ({ type: 'household', id: owner });
+  // A pile's title for a task: a village's task keeps its own (its timber, its well stone lie as the village's: title moves at once, design.md
+  // section 1), a household's, or one with no owner, the household's (VB-1812 revision)
+  const titleOf = (j, owner) => (j && j.owner && j.owner.type !== 'household' ? j.owner : titled(owner));
   // The goal of task j taken by pawn a: its kind, tile and owner (the household it is for: its own, or the pawn's for a village's).
   const ownerOf = (st, j, a) =>
     j.owner && j.owner.type === 'household' ? j.owner.id : a ? st.pawns[a.id].household : null;
@@ -42,7 +49,7 @@ VB['sim/doing'] = (() => {
   // The loads (TRAVEL's units) the pawn takes up at once: its cart's, no more than its task still wants; else a back load.
   function cap(st, a, good) {
     const c = cartHeld(st, a);
-    if (good && !GOODS[good]) return Infinity; // a trip's pile, taken up whole
+    if (good && byKind(good)) return Infinity; // a trip's pile, taken up whole
     if (!c || !a.job || !KINDS[a.job.kind].need) return TRAVEL.load;
     return Math.max(TRAVEL.load, Math.min(c, KINDS[a.job.kind].need(st, a.job) * TRAVEL.load));
   }
@@ -68,6 +75,15 @@ VB['sim/doing'] = (() => {
         ? { good: loaded(a.job.kind), n: a.load, owner: ownerOf(st, a.job, a) }
         : null,
     held: (st, a) => (cartHeld(st, a) ? 'cart' : null),
+    // a hand of the goal holds a load of it (sim/methods carry: the goal is not met while one is on its way)
+    carrying: (st, g) => {
+      const c = g.job.claims;
+      for (let i = 0; i < c.length; i++) {
+        const b = st.agents[c[i]];
+        if (b && b.job === g.job && b.load > 0) return true;
+      }
+      return false;
+    },
     has: (st, a, thing) => thing === 'cart' && cartHeld(st, a) > 0,
     // one of the goal's owner's carts is free to fetch, for one of its own (a helper brings no cart of another household)
     free: (st, g, a, thing) => {
@@ -77,9 +93,9 @@ VB['sim/doing'] = (() => {
     place: (st, g, a, name) => {
       if (name === 'cart') return storeOf(st, g.owner); // a cart not out stands at its house
       const P = KINDS[g.kind].places;
-      return P && P[name] ? P[name](st, g) : null;
+      return P && P[name] ? P[name](st, g, VIEW) : null;
     },
-    pile: (st, at, good, owner) => Lying.amountAt(st, at, goodOf(good).lying, titled(owner)),
+    pile: (st, at, good, g) => Lying.amountAt(st, at, goodOf(good).lying, titleOf(g.job, g.owner)),
     store: (st, owner, good) => {
       const hh = hhOf(st, owner),
         n = hh && GOODS[good] ? hh[GOODS[good].store] || 0 : 0;
@@ -88,7 +104,7 @@ VB['sim/doing'] = (() => {
     storeOf,
     cap: (st, a, good) => cap(st, a, good),
     stage: () => false,
-    stray: (st, g, good, x, y) => Lying.strayOf(st, titled(g.owner), goodOf(good).lying, x, y),
+    stray: (st, g, good, x, y) => Lying.strayOf(st, titleOf(g.job, g.owner), goodOf(good).lying, x, y),
   };
   // The pawn's next leg toward its task (sim/methods next): a step, Methods.DONE, or {blocked}.
   function ask(st, a, g = goalOf(st, a)) {
@@ -109,13 +125,14 @@ VB['sim/doing'] = (() => {
   // A load taken up from the owner's pile where the pawn stands: what was taken.
   function load(st, a, s, g = goalOf(st, a)) {
     const G = goodOf(s.good),
-      l = Lying.pileAt(st, VIEW.at(st, a), G.lying, titled(g.owner)),
+      title = titleOf(g.job, g.owner),
+      l = Lying.pileAt(st, VIEW.at(st, a), G.lying, title),
       of = l ? l.of : null,
-      n = l ? Lying.takeAt(st, l.tile, G.lying, titled(g.owner), cap(st, a, s.good)) : 0;
+      n = l ? Lying.takeAt(st, l.tile, G.lying, title, cap(st, a, s.good)) : 0;
     if (n > 0) {
       a.load = n;
       a.carry = G.carry;
-      a.loadOf = GOODS[s.good] ? null : of;
+      a.loadOf = byKind(s.good) ? of : null;
     }
     return n;
   }
@@ -132,10 +149,19 @@ VB['sim/doing'] = (() => {
       at = VIEW.at(st, a);
     if (!(n > 0)) return;
     const drop = s === Methods.RULE.drop || storeOf(st, owner) === null;
-    if (!GOODS[good]) {
-      // a trip's good: delivered by its kind, or set down where the pawn stands with what its delivery reads (sim/lying lay)
-      const j = { ...deliveredFor(a.job, a.loadOf, G.kind), owner: titled(owner) };
-      if (drop) Lying.lay(st, a, j, G.lying, at, x, y);
+    const K = KINDS[a.job.kind];
+    if (drop && K.setDown && at === a.job.site)
+      K.setDown(st, a.job, a); // set down at its site: back with the stooks or the cocks there (VB-1812)
+    else if (drop && K.spills) {
+      // a load no pile keeps (the water in its buckets or barrel, VB-1604) is spilt: nothing lies
+    } else if (G.kind) {
+      // a trip's good: delivered by its kind, or set down where the pawn stands with what its delivery reads (sim/lying lay); a task's
+      // owner kept (a village's timber is the village's, and lies as the village's), a pile's its title's
+      const j = {
+        ...deliveredFor(a.job, a.loadOf, G.kind),
+        owner: a.loadOf || !a.job.owner ? titled(owner) : a.job.owner,
+      };
+      if (drop) Lying.lay(st, a, { ...j, owner: titleOf(a.job, owner) }, G.lying, at, x, y);
       else {
         const hh = hhOf(st, owner),
           got = KINDS[G.kind].deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
@@ -149,7 +175,7 @@ VB['sim/doing'] = (() => {
             n: typeof got === 'number' ? got : n,
           });
       }
-    } else if (drop) Lying.put(st, G.lying, n, at, titled(owner), { x, y, of: { src: at } });
+    } else if (drop) Lying.put(st, G.lying, n, at, titleOf(a.job, owner), { x, y, of: { src: at } });
     else {
       Stores.put(st, hhOf(st, owner), G.store, (n / TRAVEL.load) * G.per(st), 'felling');
       emit(st, 'timberHome', { household: owner, tile: a.job.site, loads: Math.max(1, Math.round(n / TRAVEL.load)) });
@@ -161,7 +187,7 @@ VB['sim/doing'] = (() => {
   // The work leg of step s is done, at the tile where the pawn stands: its kind's effect (KINDS[kind].ops).
   function work(st, a, s) {
     const j = a.job;
-    KINDS[j.kind].ops[s.op].run(st, j, goalOf(st, a), VIEW.at(st, a), a);
+    KINDS[j.kind].ops[s.op].run(st, j, goalOf(st, a), VIEW.at(st, a), a, cartHeld(st, a) || TRAVEL.load);
   }
   // a work leg's hours: its op's, else the task's (a trip's hours as it was posted), else its kind's
   const hoursOf = (j, s) => KINDS[j.kind].ops[s.op].hours ?? j.hours ?? KINDS[j.kind].hours;

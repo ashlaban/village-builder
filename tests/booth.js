@@ -149,7 +149,9 @@ assert.ok(
   );
   const gp = VB['sim/projects'].projectsOf(g, 'pawn', who).find((p) => p.what === 'booth');
   let woodAt = null;
-  for (let h = 0; h < 40 * DAY && !g.booths.length; h++) {
+  // the raising is other work (MATCH.urgency.other), done when the haymaking leaves a hand: 60 days, not 40, since the hay's cart is
+  // fetched before its load and walks at its pace (VB-1812), and one left at the meadow when its hand is called away is fetched later
+  for (let h = 0; h < 60 * DAY && !g.booths.length; h++) {
     Sim.advance(g, 1);
     if (woodAt === null && gp.steps[0].wood >= BOOTH.wood) woodAt = g.t;
   }

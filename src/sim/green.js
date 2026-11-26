@@ -164,17 +164,19 @@ VB['sim/green'] = (() => {
     }
   }
   // A load taken off a household's heap for the well, at its house: 1, or 0 when the heap no longer holds one free, or the well has its stone.
-  function stoneTaken(st, j) {
+  const stoneFree = (st, j) => {
     const hh = st.households[j.from],
       s = j.step;
-    if (
-      !hh ||
-      hh.dissolved ||
-      s.brought >= stoneOf(s) ||
-      Stores.heldOf(hh, 'stone') - Stores.reserved(st, hh, 'stone') < 1
-    )
-      return 0;
-    Stores.take(st, hh, 'stone', 1, 'well');
+    return (
+      !!hh &&
+      !hh.dissolved &&
+      s.brought < stoneOf(s) &&
+      Stores.heldOf(hh, 'stone') - Stores.reserved(st, hh, 'stone') >= 1
+    );
+  };
+  function stoneTaken(st, j) {
+    if (!stoneFree(st, j)) return 0;
+    Stores.take(st, st.households[j.from], 'stone', 1, 'well');
     return 1;
   }
   // The well dug and lined with its stone.
@@ -270,8 +272,6 @@ VB['sim/green'] = (() => {
       type: 'duty',
       carry: 'basket',
       to: 'site',
-      load: (st, a, j) => (a.load = stoneTaken(st, j)), // a load of stone in hand (VB-611: one that falls lies, sim/lying)
-      again: () => false,
       deliver: (st, j) => stoneLaid(st, j),
       available: greenWork,
     },
@@ -309,5 +309,22 @@ VB['sim/green'] = (() => {
       available: greenWork,
     },
   };
+  // The stone for the well as a goal (VB-1812; design.md section 7, The task as a plan): a load taken off the household's heap at its
+  // house, carried to the well (`j.dest`) and laid there; one that falls lies as the village's pile, which the stray method fetches.
+  VB['sim/methods'].carry(KINDS.wellstone, 'wellstone', {
+    name: 'to the well',
+    op: 'take',
+    source: true,
+    why: 'no stone free on the heap',
+    to: 'well',
+    run: (st, j, g, at, a) => {
+      a.load = stoneTaken(st, j);
+    },
+    met: (st, g) => (g.job.made || 0) > 0,
+  });
+  Object.assign(KINDS.wellstone, {
+    places: { well: (st, g) => g.job.dest },
+    can: { source: (st, g) => stoneFree(st, g.job) },
+  });
   return { KINDS, greenWork, greenOf, greenSite, greenProject, laidOut, wanted, houses };
 })();

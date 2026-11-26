@@ -92,7 +92,7 @@ VB['sim/kinds'] = (() => {
     restore: Farmclaims.KINDS.restore,
     rake: Meadows.KINDS.rake,
     mow: Meadows.KINDS.mow,
-    hay: { ...Meadows.KINDS.hay, ...Carts.HAY }, // by the load: sim/carts imports sim/meadows, so the cart's part joins here
+    hay: Meadows.KINDS.hay, // by the load, as a goal (sim/meadows, VB-1812)
     fodder: Byre.KINDS.fodder,
     manure: F.manure,
     milk: Byre.KINDS.milk,
@@ -124,7 +124,8 @@ VB['sim/kinds'] = (() => {
   // a load left lying where its carrier fell is fetched by its owner (VB-611): a fetch kind for each kind that carries a load (sim/lying)
   for (const [k, K] of Object.entries(KINDS))
     // a kind with methods (sim/methods) has none: its loads lying are piles its stray method fetches (VB-1775)
-    if (K.carry && (K.load || K.stack) && !K.methods) KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
+    if (K.carry && (K.load || K.stack || K.fetched) && (!K.methods || K.fetched))
+      KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
   KINDS.blaze = VB['sim/trails'].KINDS.blaze; // blazing a trail (VB-447): sim/trails'
   KINDS.drink = VB['sim/thirst'].KINDS.drink; // a pawn's drink at a source (VB-1585): sim/thirst's
   Object.assign(KINDS, VB['sim/leather'].KINDS); // shoes and harness cut from a hide (VB-911): sim/leather's

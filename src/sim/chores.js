@@ -517,5 +517,16 @@ VB['sim/chores'] = (() => {
   };
   // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
   VB['sim/methods'].trip(KINDS.gather, 'gather');
+  // The day's water as a goal (VB-1812; design.md section 7, The task as a plan): the barrel taken as its hand sets out (setOut), the
+  // water drawn at the source into the buckets or the barrel, carried home and left at the door; a load cut on the way is spilt.
+  VB['sim/methods'].carry(KINDS.water, 'water', {
+    name: 'drawn at the source',
+    op: 'draw',
+    run: (st, j, g, at, a) => {
+      a.load = j.cart ? TRAVEL.hand : TRAVEL.load;
+    },
+    met: (st, g) => (g.job.made || 0) > 0,
+  });
+  KINDS.water.spills = true;
   return { KINDS, WOOD_HOURS, fuelFree, timberOf, cookWanted };
 })();

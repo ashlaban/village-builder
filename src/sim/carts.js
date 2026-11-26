@@ -4,8 +4,7 @@
 // hand cart, else the load goes on the back (TRAVEL). Today only sheaves are carried by the load (sim/kinds, haul); hay, firewood and manure
 // are to follow. Reads sim/herds (the team), sim/projects; writes household.carts and household.cartMiss, and declares the cart's making and ends its project.
 VB['sim/carts'] = (() => {
-  const { TRAVEL, SEASON_DAYS } = VB['sim/rules'],
-    { hayLoad, hayLaid } = VB['sim/meadows'];
+  const { TRAVEL, SEASON_DAYS } = VB['sim/rules'];
   // The tunables (the distance review, Kim, 12 Nov): a load is `load` rations on the back, `hand` on a hand cart and `cart` on an ox
   // cart (it was 90 with two oxen: Kim, 10 Nov; a back load is 25 to 30 kg, a hand cart's 100 to 150 kg on a track, an ox cart's 500 to
   // 800 kg, halved here since sheaves and hay fill a cart before they weigh it down; from memory, unchecked). pace: a laden pawn's speed
@@ -24,7 +23,6 @@ VB['sim/carts'] = (() => {
     mendHours: 3,
     misses: 6,
     manure: { hand: 1.5, ox: 2.5 },
-    reload: 1.5,
   };
   const { hasTeam } = VB['sim/herds'],
     Projects = VB['sim/projects'];
@@ -139,10 +137,13 @@ VB['sim/carts'] = (() => {
   // The ox cart is out (the team with it).
   const oxOut = (st, hh) => hh.carts.some((c) => c.kind === 'ox' && out(st, c));
   // How fast a laden pawn walks, of an unladen one's pace: with the load on its back, with a hand cart, or beside the oxen.
+  // A pawn's pace a walk (sim/legs): a cart it holds walks at the cart's pace, laden or not (the water's barrel out, VB-1586; a goal's cart
+  // fetched before its load, VB-1812); else a load in hand at the back's, and none at 1.
   function pace(st, a) {
-    if (!(a.load > TRAVEL.load)) return TRAVEL.pace.back;
-    const c = cartOf(st, st.households[st.pawns[a.id].household], a.id);
-    return c ? TRAVEL.pace[c.kind] : TRAVEL.pace.back;
+    const p = st.pawns[a.id],
+      c = p.household !== null ? cartOf(st, st.households[p.household], a.id) : null;
+    if (c) return TRAVEL.pace[c.kind];
+    return a.carry || a.load > TRAVEL.load ? TRAVEL.pace.back : 1;
   }
   // A load is home: the cart it came on wears, and one worn out is gone.
   function home(st, hh, id) {
@@ -218,15 +219,7 @@ VB['sim/carts'] = (() => {
       if (hasTeam(st, hh)) hh.carts.push({ kind: 'ox', cond: 1, built: st.t, by: null });
     }
   }
-  // What the kinds of sim/kinds take from here. Hay goes by the load, as sheaves: the first is raked together in the job's hours, a
-  // further one loaded in CART.reload (1.5 hours a load, as the job's own).
   // loads: the back loads a pawn brings home (firewood: one for each trip's cutting stacked on its cart).
-  const HAY = {
-    load: (st, a, j, cap) => (a.load = hayLoad(j.meadow, cap)),
-    again: (j) => j.meadow.held > 0,
-    setDown: (st, j, a) => hayLaid(j.meadow, a.load),
-    reload: CART.reload,
-  };
   const loads = (a) => Math.max(1, Math.round((a ? a.load : 0) / TRAVEL.load));
   // ---- the job kinds (sim/kinds registers them) ----
   const atHouse = (st, a, j) => [st.w.hx[j.farm.house] + 6 + a.ox * 0.3, st.w.hy[j.farm.house] + 4 + a.oy * 0.2];
@@ -295,7 +288,6 @@ VB['sim/carts'] = (() => {
   return {
     KINDS,
     CART,
-    HAY,
     loads,
     take,
     holds,

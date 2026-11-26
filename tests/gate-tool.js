@@ -1,5 +1,5 @@
 // tools/gate.js (VB-1774): the comparison on constructed results, without running the simulation.
-const { compare } = require('../tools/gate.js');
+const { compare, sample } = require('../tools/gate.js');
 let bad = 0;
 const expect = (name, ok) => { if (!ok) { bad++; console.error('FAIL ' + name); } };
 const S = (id, l0, l10, why = null) => ({ id, living0: l0, living10: l10, extinct: l0 > 0 && l10 === 0, why });
@@ -19,4 +19,16 @@ expect('fewer stuck tasks holds', c({ stuck: 0 }).ok);
 expect('unexplained within tolerance holds', c({ unexplained: 20 }).ok);
 expect('unexplained beyond tolerance fails', !c({ unexplained: 30 }).ok);
 if (bad) process.exit(1);
+// the held tasks' sampling (VB-1812 revision): work unchanged 48 hours is held; a hand walking laden is progress, for 48 hours at most
+{
+  const held = (laden, until) => {
+    const j = { id: 1, key: 'k', claims: [0], rate: 0, done: 0 }, s = { t: 0, jobs: new Map([['k', j]]), agents: [{ job: j, carry: null, path: null }] };
+    const seen = new Map(), stuck = new Set();
+    for (; s.t <= until; s.t += 6) { const on = laden(s.t); s.agents[0].carry = on ? 'hay' : null; s.agents[0].path = on ? [1] : null; sample(s, seen, stuck); }
+    return stuck.size;
+  };
+  expect('a task unworked 48 hours is held', held(() => false, 48) === 1);
+  expect('a hand walking laden 36 hours of 60 is progress', held((t) => t >= 24, 60) === 0);
+  expect('a hand walking laden for ever is held', held(() => true, 120) === 1);
+}
 console.log('gate-tool ok: extinct by hunger, collapse (under half its own and the base), stuck tasks, unexplained; hunger never fails');

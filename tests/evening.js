@@ -60,12 +60,12 @@ check(!a.job && (a.phase === 'home' || a.inside), `at 18:00 the clearing is let 
 // 2. day 16 (day 5 until VB-721 moved the settler's field to drier ground, day 10 until VB-1544 had him raise a booth first): water
 // taken at 17:42 is still his after 18:00, and delivered that evening
 const D2 = 20; // day 16 until VB-1666
-const k10 = waterAt(D2, 17.7);
+const k10 = waterAt(D2, WORK[1] - 0.05); // VB-1812: drawn at the house's own well in WATER.draw, so taken just before 18:00
 check(issue(st, VB['sim/fit'].workCommand(id, k10, 'planner')) === true, 'the settler takes the water at 17:42');
 until(D2, WORK[1] - 0.1);
 const before = a.phase,
   n = a.assigned.assignments; // the tasks it has taken: one let go at 18:00 and called again would count anew
-until(D2, WORK[1] + 0.1);
+until(D2, WORK[1] + 0.02);
 check(
   a.job && a.job.key === k10 && a.assigned.assignments === n,
   `after 18:00 the water begun (${before} at 17:54) is still in hand, never let go (${a.job && a.job.key})`,
@@ -77,8 +77,14 @@ const D3 = 22; // day 18 until VB-1666
 const k12 = waterAt(D3, WORK[1] + 0.5);
 until(D3, WORK[1] + 0.9);
 check(hh.waterDay !== D3 && !a.job, `at 18:54 the water is not in (waterDay ${hh.waterDay}) and the settler is free`);
-until(D3, WORK[1] + 1.1);
-check(a.job && a.job.key === k12, `at 19:00 the evening's call sends the settler for the water (${a.job && a.job.key})`);
+const n3 = a.assigned.assignments;
+until(D3, WORK[1] + 1.04);
+// sent at 19:00: the water in hand, or already in, drawn in the step it was taken (VB-1812: at the house's own well the goal walks
+// nowhere, so its drawing begins at once)
+check(
+  (a.job && a.job.key === k12) || (hh.waterDay === D3 && a.assigned.assignments > n3),
+  `at 19:00 the evening's call sends the settler for the water (${a.job && a.job.key}, waterDay ${hh.waterDay})`,
+);
 until(D3, MATCH.day.evening + 1);
 check(hh.waterDay === D3, `the water not in at 19:00 is in that evening (waterDay ${hh.waterDay})`);
 check(a.inside && !a.job, `and the settler, free, has gone in (inside ${a.inside})`);
