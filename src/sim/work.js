@@ -171,14 +171,16 @@ VB['sim/work'] = (() => {
   }
   const teamKind = (j) => j.owner && j.owner.type === 'household' && HERD.team.kinds.includes(j.kind);
   // The rate after the hands changed (settle first), and the end queued again; the household's other tasks under the ox team are
-  // reckoned again too, as the team goes to its earliest task with hands (withOxen).
+  // reckoned again too, as the team goes to its earliest task with hands (withOxen); but not one whose end falls due at this step
+  // (unsettled): its work is finished as reckoned, and reckoning it again now queued its end a step on, past its hours (VB-1760).
+  const unsettled = (st, q) => q.due !== null && q.due !== undefined && q.due <= st.tick;
   function rerate(st, j, others = true) {
     if (j.at === undefined || j.at === null) settle(st, j);
     j.rate = manning(st, j, true);
     queue(st, j);
     if (!others || !teamKind(j)) return;
     for (const q of st.jobsBy.get(ownerKey(j.owner)) || [])
-      if (q !== j && q.rate > 0 && teamKind(q)) {
+      if (q !== j && q.rate > 0 && teamKind(q) && !unsettled(st, q)) {
         settle(st, q);
         rerate(st, q, false);
       }
@@ -188,7 +190,7 @@ VB['sim/work'] = (() => {
   function retune(st, hh) {
     if (!hh || hh.dissolved) return;
     for (const q of [...(st.jobsBy.get(`household:${hh.id}`) || [])])
-      if (q.rate > 0 && (teamKind(q) || carted(KINDS[q.kind]))) {
+      if (q.rate > 0 && (teamKind(q) || carted(KINDS[q.kind])) && !unsettled(st, q)) {
         settle(st, q);
         rerate(st, q, false);
       }
