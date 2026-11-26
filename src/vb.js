@@ -159,6 +159,10 @@ VB.COUNTERS = {
   dayPair:
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
     '(sim/day, allot; VB-466)',
+  dayLost:
+    "Tasks of a member lost to its household's day (dead, ill, lent, on leave, away) slotted to the others (sim/day lostHolder, VB-1758)",
+  dayAllot:
+    "Households' days allotted whole: at the morning, at 14:00, and when a slot-in finds nobody (sim/day, allot; VB-1758)",
   vitalAsk:
     'Open tasks of its household passed by a pawn on its own plan, for a daily one the day leaves unmanned (sim/controller, VB-1755)',
   riskCheck:

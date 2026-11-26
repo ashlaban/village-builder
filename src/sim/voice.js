@@ -8,6 +8,7 @@
 //   with (the pawn it means to visit, or null)]}}: today's leaves; a new day's first look closes yesterday's. Written only here.
 // @state pawn.voiced: absent, or the game day the pawn last asked its head for leave of its own accord (VOICE.days). Written only here.
 VB['sim/voice'] = (() => {
+  const { emit } = VB['sim/events'];
   const { unbound } = VB['sim/pose'];
   const { DAY, WORK, SEASON_DAYS, cal } = VB['sim/rules'],
     { CHILD, MATCH } = VB['sim/roles'];
@@ -151,6 +152,7 @@ VB['sim/voice'] = (() => {
     const e = leaveOf(st, id);
     if (!e || e[2]) return;
     e[2] = 1;
+    emit(st, 'leftDay', { pawn: id }); // its tasks to the others (sim/day; VB-1758)
     if (unplanned(st, id)) return;
     const a = st.agents[id];
     if (e[3] !== null && Pastimes.why(st, id, 'visit', { with: e[3], until: e[1] }) === null) {

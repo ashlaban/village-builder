@@ -1029,14 +1029,16 @@ console.log(
     const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed });
     st.naturalDeaths = false;
     const rng = makeStream(seed, 'stages'),
-      cut = new Map(), // a stage's task cut: the hours it had
+      cut = new Map(), // a stage's task cut: [the hours it had, the task]
       since = new Map(); // a pawn's task in hand: {job, done, t} since it last went on
     for (let h = 0; h < 60 * 24; h++) {
       Sim.advance(st, 1);
       // a stage followed by its key: taken down and posted again, it is the same stage, and keeps its hours (review, F6)
-      for (const [key, had] of cut) {
+      for (const [key, [had, was]] of cut) {
         const j = st.jobs.get(key);
-        if (!j) {
+        // finished, or finished and the next stage of its key posted within the hour (VB-1758: the day slotted in place, the hands
+        // finish it sooner than the old allotment's timing let this probe see)
+        if (!j || (j !== was && was.done >= (was.hours ?? KINDS[was.kind].hours) - 1e-9)) {
           cut.delete(key);
           t.finished++;
           continue;
@@ -1075,7 +1077,7 @@ console.log(
           if (how === 'night') Agents.release(st, a, true);
           else if (how === 'call') Agents.release(st, a);
           else Sim.killPawn(st, a.id, 'illness');
-          if (st.jobs.get(j.key) === j) cut.set(j.key, Math.max(cut.get(j.key) || 0, doneOf(st, j)));
+          if (st.jobs.get(j.key) === j) cut.set(j.key, [Math.max((cut.get(j.key) || [0])[0], doneOf(st, j)), j]);
         }
       }
       if (h % 24 === 23) assert.deepStrictEqual(checkState(st), [], `the stages cut, seed ${seed}, day ${(h + 1) / 24}`);

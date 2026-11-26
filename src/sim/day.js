@@ -4,12 +4,13 @@
 // the morning's allotment (sim/hands, VB-470). Owns plan.day
 VB['sim/day'] = (() => {
   const { unbound, atWork } = VB['sim/pose'];
-  const { WORK, TICKS } = VB['sim/rules'],
+  const { WORK, TICKS, cal } = VB['sim/rules'],
     { CHILD, MATCH, absentMask } = VB['sim/roles'];
   const { age } = VB['sim/records'];
   const { travelling } = VB['sim/pose'],
     { rateOf, attentionOf, doneOf } = VB['sim/work'];
   const { issue, register } = VB['sim/commands'];
+  const { on } = VB['sim/events'];
   const { eligible } = VB['sim/eligibility'];
   const { KINDS, isOpen } = VB['sim/kinds'];
   const { says } = VB['sim/methods'];
@@ -68,6 +69,7 @@ VB['sim/day'] = (() => {
   function allot(st, hh, c, asking = null) {
     const plan = planOf(st, 'household', hh.id);
     if (!plan || hh.farmstead === null) return;
+    VB.count.dayAllot++;
     const lists = {},
       fits = {},
       hours = {},
@@ -331,20 +333,102 @@ VB['sim/day'] = (() => {
     }
     return true;
   }
-  // The days of the holders `changed` (their keys, as sim/jobs noted them in a review or a look), in the order of their ids: a household's
-  // own, and for a village's tasks each of its households'.
+  // The households whose days hold the tasks of `owner` ({type, id}), into `ids`: a household's own, and for a village's tasks each of its
+  // households'.
+  function daysOf(st, owner, ids = new Set()) {
+    if (!owner) return ids;
+    if (owner.type === 'household') ids.add(owner.id);
+    else if (owner.type === 'village' && st.villages[owner.id])
+      for (const fid of st.villages[owner.id].farmsteads) {
+        const hid = st.farmsteads[fid].household;
+        if (hid !== null) ids.add(hid);
+      }
+    return ids;
+  }
+  // ---- the lists edited in place (VB-1758; design.md, Plans at four scales, Replanning: a task that arrives is slotted into the lists as
+  // they stand, a lost holder's tasks go to the pool and are slotted to others; the whole day only at the morning, at 14:00 and when a
+  // slot-in finds nobody) ----
+  // Tasks `arrived` (posted at a review or by a member looking for work; sim/jobs), each slotted into the days of its holder's households
+  // as they stand, in the order they came; a household whose day cannot take one (slotIn) has its day allotted anew, which weighs the rest
+  // with it, as have the days of the holders `changed` (their keys: every household's at the morning and at 14:00, or one the due-queue's
+  // slot found no hand for). A task gone again before its turn is passed over.
+  function slotArrived(st, arrived, changed, c) {
+    const whole = new Set();
+    for (const key of changed) {
+      const [type, n] = key.split(':');
+      daysOf(st, { type, id: Number(n) }, whole);
+    }
+    for (const j of arrived) {
+      if (st.jobs.get(j.key) !== j) continue;
+      for (const id of daysOf(st, j.owner)) {
+        const hh = st.households[id];
+        if (whole.has(id) || !hh || hh.dissolved) continue;
+        if (!slotIn(st, hh, j, c)) whole.add(id);
+      }
+    }
+    allotDays(st, whole, c);
+  }
+  // Task j taken down (sim/jobs): its entries leave the lists of its holder's days, the hours given to it back to their members.
+  function slotOut(st, j) {
+    for (const id of daysOf(st, j.owner)) {
+      const plan = planOf(st, 'household', id),
+        day = plan && plan.day;
+      if (!day) continue;
+      for (const m of Object.keys(day.lists)) {
+        const i = day.lists[m].indexOf(j.key);
+        if (i < 0) continue;
+        if (!day.fits || !day.hours) {
+          day.lists[m].splice(i, 1);
+          continue;
+        }
+        const h = leave(day, m, i);
+        if (h > 0 && day.free && m in day.free) day.free[m] += h;
+      }
+    }
+  }
+  // Pawn id is lost to its household's day (it died, fell ill, was lent, took its leave or went away): the tasks it was given hands for go
+  // back to the pool at once, each slotted to the others as the lists stand (slotIn); its list is emptied and its hours taken out of the
+  // day, so that one back in the day has it allotted anew (takeDay). Out of working hours its list is only emptied: the morning weighs all.
+  function lostHolder(st, id, c = cal(st.t)) {
+    const p = st.pawns[id],
+      hh = !p || p.household == null ? null : st.households[p.household],
+      plan = hh && !hh.dissolved && hh.farmstead !== null ? planOf(st, 'household', hh.id) : null,
+      day = plan && plan.day,
+      list = day && day.lists[id];
+    if (!list || !list.length) return;
+    const keys = [];
+    for (let i = 0; i < list.length; i++)
+      if (!day.fits || day.fits[id][i] === null || day.fits[id][i] > 0) keys.push(list[i]);
+    day.lists[id] = [];
+    if (day.fits) day.fits[id] = [];
+    if (day.hours) day.hours[id] = [];
+    if (day.free) delete day.free[id];
+    if (c.hour < WORK[0] - 1 || c.hour >= WORK[1]) return;
+    VB.count.dayLost += keys.length;
+    for (const key of keys) {
+      const j = st.jobs.get(key);
+      if (j && !slotIn(st, hh, j, c)) return allot(st, hh, c);
+    }
+  }
+  on('died', (st, d) => lostHolder(st, d.pawn));
+  on('leftDay', (st, d) => lostHolder(st, d.pawn));
+  // An illness keeps its pawn from work (sim/fit allotted): it lets its task go and goes home, and its tasks go to the pool.
+  on('fellIll', (st, d) => {
+    const a = st.agents[d.pawn]; // none for a pawn made bare in a test
+    if (a && a.job) issue(st, { actor: d.pawn, verb: 'goHome', source: 'planner' });
+    lostHolder(st, d.pawn);
+  });
+  // The days of the holders `changed` (their keys, as sim/jobs noted them), in the order of their ids (daysOf).
   function allotChanged(st, changed, c) {
     const ids = new Set();
     for (const key of changed) {
-      const [type, n] = key.split(':'),
-        id = Number(n);
-      if (type === 'household') ids.add(id);
-      else if (type === 'village' && st.villages[id])
-        for (const fid of st.villages[id].farmsteads) {
-          const hid = st.farmsteads[fid].household;
-          if (hid !== null) ids.add(hid);
-        }
+      const [type, n] = key.split(':');
+      daysOf(st, { type, id: Number(n) }, ids);
     }
+    allotDays(st, ids, c);
+  }
+  // The days of households `ids` allotted whole, in the order of their ids.
+  function allotDays(st, ids, c) {
     // the households short of hands the morning's allotment finds, [[household id, hours short]], asked once it is over
     const ask = c.hour === WORK[0] - 1 ? [] : null;
     for (const id of [...ids].sort((x, y) => x - y)) {
@@ -574,5 +658,17 @@ VB['sim/day'] = (() => {
       if (ag.job || !ag.inside) issue(st, { actor: id, verb: 'goHome', source: c.source });
     },
   });
-  return { allot, slotIn, allotChanged, takeDay, dutyRound, eveningCall, dayHours, hoursLeft };
+  return {
+    allot,
+    slotIn,
+    slotArrived,
+    slotOut,
+    lostHolder,
+    allotChanged,
+    takeDay,
+    dutyRound,
+    eveningCall,
+    dayHours,
+    hoursLeft,
+  };
 })();
