@@ -66,8 +66,8 @@ VB['sim/doing'] = (() => {
     const tf = teamFree(st, hh);
     return hh.carts.some((c) => !Carts.out(st, c) && (c.kind === 'hand' || tf));
   };
-  // a cart of household hh standing at `tile` (sim/carts' household.carts[].at)
-  const stands = (hh, tile) => hh.carts.some((c) => c.at && c.at.tile === tile);
+  // a cart of household hh standing at `tile`: its lying cart lies there (sim/carts takeUp; one a hand has taken up is led away)
+  const stands = (st, hh, tile) => Lying.amountAt(st, tile, 'leftCart', titled(hh.id)) > 0;
   const VIEW = {
     plans,
     // where the pawn stands: its tile, or its task's site when it stands at the task's spot there (a fishing spot by the water may lie on
@@ -99,13 +99,15 @@ VB['sim/doing'] = (() => {
     // or standing at the goal's site, where a hand of it was released (VB-993; VB-1814: taken up by the goal's next hand)
     free: (st, g, a, thing) => {
       const hh = hhOf(st, g.owner);
-      return thing === 'cart' && !!hh && st.pawns[a.id].household === g.owner && (canTake(st, hh) || stands(hh, g.at));
+      return (
+        thing === 'cart' && !!hh && st.pawns[a.id].household === g.owner && (canTake(st, hh) || stands(st, hh, g.at))
+      );
     },
     place: (st, g, a, name) => {
       if (name === 'cart') {
         // a cart standing at the goal's site first (VB-1814), else a cart not out at its house
         const hh = hhOf(st, g.owner);
-        return hh && stands(hh, g.at) ? g.at : storeOf(st, g.owner);
+        return hh && stands(st, hh, g.at) ? g.at : storeOf(st, g.owner);
       }
       const P = KINDS[g.kind].places;
       return P && P[name] ? P[name](st, g, VIEW) : null;

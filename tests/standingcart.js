@@ -77,10 +77,10 @@ assert(hh.carts.length === nc - 1 && st.record.slice(n0).some((e) => e && e.kind
   const j3 = J.post(st3, 'manure:site' + st3.t, 'manure', { type: 'household', id: h3.id }, fd3.tile, { field: fd3, farm: f3 });
   j3.claims.push(p3.id); p3.job = j3; p3.phase = 'work'; p3.load = 0;
   assert(Carts.take(st3, h3, p3.id, true) > 0, 'a cart taken');
-  for (const c of h3.carts) if (!c.by && !c.at) c.by = -1; // the household's other carts busy: the one at the site is the only one free
   p3.x = st3.w.hx[fd3.tile]; p3.y = st3.w.hy[fd3.tile];
   A.release(st3, p3);
   const c3 = h3.carts.find((c) => c.at);
+  h3.carts.splice(0, h3.carts.length, c3); // the household's one cart: the one at the site is the only one there is
   assert(c3 && c3.at.tile === fd3.tile && c3.by === null, 'the cart stands at the site');
   // the next hand: the cart is free to it, at the site; taken up there, out with it, and no lying cart is left for a hand to fetch
   A.release(st3, q3); A.placeAtHome(st3, q3);
@@ -92,6 +92,33 @@ assert(hh.carts.length === nc - 1 && st.record.slice(n0).some((e) => e && e.kind
   q3.x = st3.w.hx[fd3.tile]; q3.y = st3.w.hy[fd3.tile];
   assert(D.takeCart(st3, q3) > 0 && c3.by === q3.id && !c3.at, 'taken up where it stands');
   assert(!(st3.lying || []).some((l) => l.kind === 'leftCart'), 'no lying cart is left for a hand to fetch');
-  for (const c of h3.carts) if (c.by === -1) c.by = null;
+}
+// VB-1814 review F2: a cart and a pile of grain at one tile; once the cart's own goal has a hand leading it away (its lying cart in hand),
+// the grain's goal's hand neither counts it free there nor takes it up: it is in one hand, not two
+{
+  const st4 = Sim.seed(r.value, 7, 'populous'), D = VB['sim/doing'];
+  const h4 = st4.households.find((h) => !h.dissolved && h.members.filter((id) => st4.pawns[id].age >= 14).length >= 2 && VB['sim/herds'].hasTeam(st4, h));
+  const f4 = st4.farmsteads[h4.farmstead], T = f4.fields[0].tile, own = { type: 'household', id: h4.id };
+  const [p4, q4] = h4.members.filter((id) => st4.pawns[id].alive && st4.pawns[id].age >= 14).map((id) => st4.agents[id]);
+  for (const x of [p4, q4]) { A.release(st4, x); A.placeAtHome(st4, x); }
+  const c4 = h4.carts[0];
+  h4.carts.splice(1); // the household's one cart
+  Object.assign(c4, { by: null, at: { tile: T, x: st4.w.hx[T], y: st4.w.hy[T], t: st4.t } });
+  Lying.leave(st4, 'leftCart', 1, T, own, { of: { cart: { kind: c4.kind, built: c4.built } } });
+  Lying.leave(st4, 'leftGrain', 30, T, own, { of: { parts: { barley: 30 } } });
+  // the cart's goal: its hand at T takes the lying cart up and leads it away
+  const jc4 = J.post(st4, 'leftCart:h' + h4.id, 'leftCart', own, T, {});
+  jc4.claims.push(p4.id); p4.job = jc4; p4.phase = 'go';
+  p4.x = st4.w.hx[T]; p4.y = st4.w.hy[T];
+  assert(D.load(st4, p4, { good: 'leftCart' }) === 1 && p4.loadOf && p4.loadOf.cart, 'the lying cart taken up by its goal\'s hand');
+  assert(c4.at && c4.by === null, 'the cart is not free until it is home');
+  // the grain's goal at T: its hand there finds no cart standing
+  const jg4 = J.post(st4, 'leftGrain:h' + h4.id, 'leftGrain', own, T, {});
+  jg4.claims.push(q4.id); q4.job = jg4; q4.phase = null;
+  const g4 = D.goalOf(st4, q4);
+  assert(!D.VIEW.free(st4, g4, q4, 'cart'), 'a cart led away is not free to another goal at its tile');
+  q4.x = st4.w.hx[T]; q4.y = st4.w.hy[T];
+  D.takeCart(st4, q4);
+  assert(c4.by === null && c4.at, 'nor taken up there by its hand');
 }
 console.log('standingcart ok');

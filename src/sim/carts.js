@@ -288,20 +288,15 @@ VB['sim/carts'] = (() => {
   };
   VB['sim/methods'].bring(KINDS.leftCart, 'leftCart');
   // Pawn `id` takes up a cart of household hh standing at `tile` for its goal there (VB-993: its hand released at the work; VB-1814: the
-  // goal's next hand, not a fetch home): out with it, its lying cart gone; its capacity, 0 when none stands there.
+  // goal's next hand, not a fetch home): out with it, its lying cart gone; its capacity, 0 when none stands there. A cart stands where its
+  // lying cart lies: one whose lying cart a hand has taken up is led away, though it is free (c.at cleared) only once home (VB-1814 review).
   function takeUp(st, hh, id, tile) {
-    const c = hh.carts.find((q) => q.at && q.at.tile === tile);
+    const l = Lying.pileAt(st, tile, 'leftCart', { type: 'household', id: hh.id }),
+      w = l && l.of.cart;
+    if (!w) return 0;
+    const c = hh.carts.find((q) => q.at && q.kind === w.kind && q.built === w.built);
     if (!c) return 0;
-    const l = (st.lying || []).find(
-      (q) =>
-        q.kind === 'leftCart' &&
-        q.owner.type === 'household' &&
-        q.owner.id === hh.id &&
-        q.of.cart &&
-        q.of.cart.kind === c.kind &&
-        q.of.cart.built === c.built,
-    );
-    if (l) Lying.take(st, l.id, 1);
+    Lying.take(st, l.id, 1);
     delete c.at;
     c.by = id;
     return c.kind === 'ox' ? TRAVEL.cart : TRAVEL.hand;
