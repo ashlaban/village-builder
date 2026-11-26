@@ -173,4 +173,26 @@ for (const id of st.liveHouseholds) {
   assert.ok(a.unmet <= 1.1 * b.unmet, `Q7: ${a.unmet} vital hours unmet, ${b.unmet} unannounced`);
   console.log(`day, Q7: a reaper ill three days: the reaping done in ${a.done} hours (${b.done} under the whole allotment), vital hours unmet ${a.unmet} (${b.unmet})`);
 }
-console.log('day ok: a day for every household, a list for each member; no random draw; best fit first and the hands spread; the first task with room is taken; saved and loaded; a village\'s review alone allots no day, its task slotted; a holder ill has its tasks slotted to the others');
+// 8. The head's review re-weighs in place (VB-1854; design.md section 7, Plans at four scales, Replanning: the head's review rung): the
+// woodpile emptied at 10:30, its crossing of the low mark wakes the head, and at the review out of turn the trip to the woods, made more
+// urgent, moves ahead in its best member's list, slotted again (slotIn) as the lists stand: no day weighed whole.
+{
+  const s = make(4.5), c8 = Sim.cal(s.t), Stores = VB['sim/stores'], hh8 = s.households[0];
+  Jobs.refreshJobs(s, c8); // the hour's due-queue and reviews are behind it
+  const day = dayOf(s, 0), made = day.made, key = 'wood:h0';
+  assert.ok(s.jobs.has(key), 'a trip to the woods stands');
+  const at = (id) => dayOf(s, 0).lists[id].indexOf(key), fit = (id) => dayOf(s, 0).fits[id][at(id)];
+  const before = Object.fromEntries(Object.keys(day.lists).map((id) => [id, [at(id), at(id) >= 0 ? fit(id) : null]]));
+  Stores.take(s, hh8, 'wood', hh8.wood, 'burn');
+  assert.ok(s.plans.households.get(0).dirty, 'the pile under its low mark wakes the head');
+  VB.resetCounts();
+  Jobs.refreshJobs(s, c8);
+  assert.ok(VB.count.planReview >= 1 && s.plans.households.get(0).woke === c8.day, 'the household is reviewed for its store');
+  assert.strictEqual(VB.count.dayAllot, 0, 'no day allotted whole');
+  assert.strictEqual(dayOf(s, 0).made, made, 'the day as it stood');
+  const moved = Object.keys(day.lists).filter((id) => at(id) >= 0 && fit(id) > 0 && (before[id][0] < 0 || at(id) < before[id][0]));
+  assert.ok(moved.length > 0, `the trip moved ahead in a list: ${JSON.stringify(before)} to ${JSON.stringify(Object.fromEntries(Object.keys(day.lists).map((id) => [id, [at(id), at(id) >= 0 ? fit(id) : null]])))}`);
+  assert.ok(VB.count.dayRose >= 1, `the trip slotted again (${VB.count.dayRose})`);
+  assert.deepStrictEqual(checkState(s), [], 'invariants after the review');
+}
+console.log('day ok: a day for every household, a list for each member; no random draw; best fit first and the hands spread; the first task with room is taken; saved and loaded; a village\'s review alone allots no day, its task slotted; a holder ill has its tasks slotted to the others; a review re-weighs in place what it made more urgent');

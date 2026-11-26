@@ -352,7 +352,8 @@ VB['sim/day'] = (() => {
   // as they stand, in the order they came; a household whose day cannot take one (slotIn) has its day allotted anew, which weighs the rest
   // with it, as have the days of the holders `changed` (their keys: every household's at the morning and at 14:00, or one the due-queue's
   // slot found no hand for). A task gone again before its turn is passed over.
-  function slotArrived(st, arrived, changed, c) {
+  // Then each household of `reviewed` (its review's, sim/jobs) has the tasks its review made more urgent slotted again (reweigh).
+  function slotArrived(st, arrived, changed, c, reviewed = []) {
     const whole = new Set();
     for (const key of changed) {
       const [type, n] = key.split(':');
@@ -366,7 +367,67 @@ VB['sim/day'] = (() => {
         if (!slotIn(st, hh, j, c)) whole.add(id);
       }
     }
+    if (reviewed.length) {
+      const came = new Set(arrived);
+      for (const id of reviewed) {
+        const hh = st.households[id];
+        if (whole.has(id) || !hh || hh.dissolved) continue;
+        if (!reweigh(st, hh, c, came)) whole.add(id);
+      }
+    }
     allotDays(st, whole, c);
+  }
+  // ---- the head's review re-weighs in place (VB-1854; design.md section 7, Plans at four scales, Replanning: the head's review rung) ----
+  // Household hh reviewed: each of its own tasks in the day's lists that its stores or windows have made more urgent since it was given
+  // its place (a store fallen below its target, a window closing) is slotted again (slotIn), as one arriving would be: its best fit now
+  // against the best it was given at (a task in no list, at 0), risen by more than the switch test's margin
+  // (MATCH.switchMargin; VB-107). A task at the head of a list (a fetch, a task due today) keeps its place; those `came` (slotted by this
+  // review) are passed over. False where a slot found nobody: its caller has the day allotted whole.
+  function reweigh(st, hh, c, came) {
+    const plan = planOf(st, 'household', hh.id),
+      day = plan && plan.day,
+      mine = st.jobsBy.get(`household:${hh.id}`);
+    if (!day || !day.fits || !mine || !mine.size || hh.farmstead === null) return true;
+    const members = [];
+    for (const id of hh.members) {
+      const p = st.pawns[id];
+      if (p.died === null && allotted(st, p) && !(day.off && day.off.includes(id))) members.push(p);
+    }
+    if (!members.length) return true;
+    // the best fit each task was given at, over the lists, and the member given it (the rest's are kept negative; a list's head, null,
+    // keeps its place)
+    const was = new Map();
+    for (const p of members) {
+      const list = day.lists[p.id],
+        fit = day.fits[p.id];
+      if (!list || !fit) continue;
+      for (let i = 0; i < list.length; i++) {
+        const f = fit[i] === null ? Infinity : Math.abs(fit[i]),
+          w = was.get(list[i]);
+        if (!w || f > w[0]) was.set(list[i], [f, p]);
+      }
+    }
+    // a task's rise is read on the member it was best fit for, whose priority for it is the highest, so whose fit an urgency raises most:
+    // one pair a task; a task in no list, on every member
+    const memo = new Map(),
+      stand = standIn(hh, members),
+      rose = [];
+    for (const j of mine) {
+      const w = was.get(j.key),
+        f0 = w ? w[0] : 0;
+      if (f0 === Infinity || came.has(j) || (attentionOf(j) === 'full' && hoursLeft(st, j) <= 0)) continue;
+      let best = 0;
+      for (const p of w ? [w[1]] : members) {
+        VB.count.dayPair++;
+        if (!eligible(st, j, p)) continue;
+        const s = score(st, p, j, c, memo, p.id === hh.holder ? stand : 0);
+        if (s !== null && s > best) best = s;
+      }
+      if (best - f0 > MATCH.switchMargin) rose.push(j);
+    }
+    VB.count.dayRose += rose.length;
+    for (const j of rose) if (st.jobs.get(j.key) === j && !slotIn(st, hh, j, c)) return false;
+    return true;
   }
   // Task j taken down (sim/jobs): its entries leave the lists of its holder's days, the hours given to it back to their members.
   function slotOut(st, j) {
