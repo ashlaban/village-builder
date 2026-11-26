@@ -249,8 +249,8 @@ VB['sim/chores'] = (() => {
       // a tile drawn from the village's wood, but for a trip the plan sent to a tile of its choosing (`chosen`)
       draw: (st, j) => (j.chosen ? -1 : drawWood(st, st.villages[j.farm.village])),
       // while the village has a wood and the pile's free wood (VB-123) with the timber home is below the plan's goal for the season; a
-      // second job below its woodSecond. For the played pawn's household, a trip to the tile of each `fell` task of its plan with trips
-      // left and trees standing (sim/playerplan), whatever the pile.
+      // second job below its woodSecond. For each pawn's plan in the household, a trip to the tile of each `fell` task of its plan with trips
+      // left and trees standing (sim/steps' plansIn), whatever the pile.
       available: (st, hh, f, c, post) => {
         const wood = st.villages[f.village].wood,
           T = woodTargets(st, hh),

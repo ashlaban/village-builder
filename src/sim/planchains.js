@@ -1,5 +1,5 @@
-// @sys sim/planchains: the chains of a task at a tile in the player's plan (VB-1649, VB-1650, VB-1653, VB-1655; VB-1657 split it from
-//   sim/playerplan; a pawn's own steps of its plan record since VB-1754, sim/steps),
+// @sys sim/planchains: the chains of a task at a tile in a pawn's plan (VB-1649, VB-1650, VB-1653, VB-1655; VB-1657 split it from
+//   the player's plan module; a pawn's own steps of its plan record since VB-1754, sim/steps),
 //   declared as data (CHAINS): a field from its clearing to its sowing (plant), a meadow's hay from its mowing until it
 //   is home (hay), a field's crop from its reaping until its sheaves are in (harvest), trips of timber felled on a forest tile and carried
 //   home (fell), the timber home cut into firewood (firewood) and the first shelter placed from the camp and raised (farmstead; the

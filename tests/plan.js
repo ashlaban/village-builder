@@ -1,4 +1,4 @@
-// The player's plan (VB-1646; sim/playerplan, the feeder in sim/player's playerStep): its ops and their refusals; with automatic behaviour
+// A pawn's plan (VB-1646; steps of its plan record since VB-1754, sim/steps; the feeder in sim/controller's queueStep): its ops and their refusals; with automatic behaviour
 // off, the routine seen to once a day in order, the tasks in their order, a command queued by hand first, sleep by the plan's hours, a
 // task finished leaving the plan; a clearing of more than a day taken up again after a night slept; a save keeps the plan and goes on the
 // same; with automatic behaviour on, the plan is kept and not followed. On the tiny village of tests/player.js.
