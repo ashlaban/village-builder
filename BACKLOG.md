@@ -53,6 +53,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1826](backlog/VB-1826.md)<a id="VB-1826"></a> | The season steps' hours left, by the head's estimate | plans | 2 | S | Season steps carry left (lo, mid, hi) by the head's estimate, for VB-1778 |
 | [VB-1836](backlog/VB-1836.md)<a id="VB-1836"></a> | The owner cache left on another farmstead's tiles in the played populous seed 7 run | - | 2 | S | checkState fails at year 2 of populous small seed 7 with household 0's head played: farmsteads[61] owner cache 63, expected 62 (pre-existing at 79c22dd7) |
 | [VB-1838](backlog/VB-1838.md)<a id="VB-1838"></a> | VB-1754's review rest: the head's view plain data again, and the twin test that compares nothing | plans | 2 | S | VB-1754's review (F2, F3): headView returns planOp and planFacade, functions, so structuredClone of it throws; tests/plan.js:560 compares control.plan of two runs, always undefined. |
+| [VB-1852](backlog/VB-1852.md)<a id="VB-1852"></a> | Repair: browser-saves' file round trip drifts after a load | - | 2 | S | the page's save of year 3 loaded runs on to a different state; failing at dd8a5cb9 already |
 | [VB-034](backlog/VB-034.md)<a id="VB-034"></a> | Splitting land between heirs | debt | 3 | M | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. |
 | [VB-063](backlog/VB-063.md)<a id="VB-063"></a> | Wrap-up: talk travels | talk | 3 | S | Check talk, relationships and mood at full scale; report cost and patterns. |
 | [VB-083](backlog/VB-083.md)<a id="VB-083"></a> | Seasons on the map | roads | 3 | M | Seasonal tints and winter snow on the painted map. |
@@ -276,6 +277,7 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-1607](backlog/VB-1607.md)<a id="VB-1607"></a> | A site's well under settling in steps: a job of the site, and the move waits for it | - | 3 | S | [VB-787](#VB-787) | VB-1587's criteria 2 and 4, which need the move of VB-787 |
 | [VB-1617](backlog/VB-1617.md)<a id="VB-1617"></a> | Evaluate the adaptive context reset: keep, adjust or abandon it | - | 3 | S | Kim | Compare the reset's period with the ceiling's by VB-1615's tools once 15 eligible tasks are done in each, or 4 weeks on; decide by the rules VB-1616 set |
 | [VB-1740](backlog/VB-1740.md)<a id="VB-1740"></a> | The save's last shared objects become ids, and the codec's first pass goes | - | 3 | M | [VB-1739](#VB-1739) | The rest of VB-247's census (workDue, plans, plot tiles, herds, claims, carts, common fields) as ids; then encode's first pass, $id, $ref and $arr go |
+| [VB-1853](backlog/VB-1853.md)<a id="VB-1853"></a> | The goal kinds' steps as rows of the method table | - | 3 | M | [VB-1773](#VB-1773) | VB-1777 left GOALS a table of world readers beside the kinds' methods (review F3); waits for the stages as facts (docs/plans/four-scales/README.md, 3.2), taken up at the arch wrap-up VB-1773 |
 
 </details>
 
