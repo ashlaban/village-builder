@@ -1,6 +1,7 @@
 // @sys sim/overview: a village at a glance (VB-162): its food against its need, the year's harvest, its people by age band, its hungry
 // households and idle hands, and the warnings; computed when asked and stored nowhere. The warnings that foretell are a pawn's estimate.
 VB['sim/overview'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { YEAR, YEAR_DAYS, SEASON_DAYS, WORK, HUNGER, FIELDS, MARRIAGE, cal } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];
   const { age, spouseOf } = VB['sim/records'];
@@ -62,7 +63,8 @@ VB['sim/overview'] = (() => {
       c = cal(st.t),
       harvest = toHarvest(st.t),
       ahead = hz ? SEASON_DAYS - c.sday + (hz - 1) * SEASON_DAYS : 1;
-    const perHand = plan && plan.targets && plan.targets.perHand > 0 ? plan.targets.perHand : FIELDS.perHand;
+    const F = targetOf(plan, 'fields'),
+      perHand = F && F.perHand > 0 ? F.perHand : FIELDS.perHand;
     return { pawn: id, horizon: hz, days: Math.min(harvest, ahead), toHarvest: harvest, perHand };
   }
   // A household's food in rations: what it may eat (sim/foodneed's foodHeld: grain, flour, larder, fresh food) less the seed held back, its

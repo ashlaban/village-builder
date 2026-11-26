@@ -3,6 +3,7 @@
 // task finished leaving the plan; a clearing of more than a day taken up again after a night slept; a save keeps the plan and goes on the
 // same; with automatic behaviour on, the plan is kept and not followed. On the tiny village of tests/player.js.
 const assert = require('assert');
+const { targets: TG, season: SP } = require('./lib/season.js');
 const VB = require('../src/load.js'), Sim = VB.sim, { DAY } = VB['sim/rules'], { PLAN_MAX } = VB['sim/playerplan'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha, kept } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
@@ -464,7 +465,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   F.perHand = 1; // the review writes the plan's targets.workable: a field a hand, fewer than its fields (a constructed state)
   F.oxenHands = 0;
   try { review(st); } finally { [F.perHand, F.oxenHands] = was; }
-  const cap = st.plans.households.get(0).targets.workable;
+  const cap = TG(st.plans.households.get(0)).workable;
   assert(cap < f.fields.length, `the cap ${cap} below the fields`);
   const w = Sim.planView(st).tasks.find((t) => t.plant === last.tile).waits;
   assert.deepStrictEqual([w.why, w.kind, w.rule], ['unposted', 'plow', 'hands'], JSON.stringify(w));

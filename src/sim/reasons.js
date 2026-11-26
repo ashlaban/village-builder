@@ -3,6 +3,7 @@
 // none) and one line of why, from the day's lists, the task's basis and what its kind declares; what presses is the head's estimate.
 // A view computed when a card asks: it writes nothing, draws nothing, and no simulation module reads it (tests/reasons.js)
 VB['sim/reasons'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { SEASON_DAYS, WORK, cal } = VB['sim/rules'],
     { ROLES, CHILD } = VB['sim/roles'],
     { CROPS } = VB['sim/crops'],
@@ -14,6 +15,7 @@ VB['sim/reasons'] = (() => {
     { fuelFree } = VB['sim/chores'];
   const { age, fullName, commanded, unplanned } = VB['sim/records'];
   const { travelling, stayOf } = VB['sim/pose'];
+  const { chain } = VB['sim/steps'];
   const Days = VB['sim/days'],
     Hands = VB['sim/hands'],
     { idleLine } = VB['sim/fit'];
@@ -52,14 +54,8 @@ VB['sim/reasons'] = (() => {
     if (hh && !hh.dissolved) {
       const plan = planOf(st, hh.id);
       // a kind that brings timber to its owner's store fills the woodpile (VB-1820: read from its method, not a field `to`)
-      if (
-        carriesTo(j.kind) === 'store' &&
-        (K.gives || []).includes('timber') &&
-        plan &&
-        plan.targets &&
-        plan.targets.wood
-      ) {
-        const goal = plan.targets.wood[c.season],
+      if (carriesTo(j.kind) === 'store' && (K.gives || []).includes('timber') && targetOf(plan, 'wood')) {
+        const goal = targetOf(plan, 'wood').seasons[c.season],
           held = fuelFree(st, hh);
         if (held < goal) return `the woodpile holds ${Math.round(held)} of the ${Math.round(goal)} the head wants`;
       }
@@ -111,7 +107,7 @@ VB['sim/reasons'] = (() => {
       if (!place) return { by: unplanned(st, id) ? 'player' : 'self', why: why || 'taken without the plan' };
       // a task with a deadline today put first in its hand's list is the head's call (sim/jobs allot)
       if (K.late && i === 0) return { by: 'call', head, place, why: why || 'due today' };
-      return { by: 'day', head, place, why };
+      return { by: 'day', head, place, why: why || planned(st, j) };
     }
     if (a.occasion !== null && a.occasion !== undefined) {
       const o = st.occasions.find((x) => x.id === a.occasion);
@@ -133,6 +129,17 @@ VB['sim/reasons'] = (() => {
     if (lent !== null) return { by: 'lent', why: `nothing to take at ${farmName(st, lent)} yet` };
     // at a pastime (sim/pastimes, VB-1552), the choice is its own: the line under it says why it has no work
     return { by: VB['sim/pastimes'].of(st, id) ? 'self' : 'none', why: noWork(st, id, p, a, c) };
+  }
+  // The plan's step behind task j, in a few words, when nothing presses (VB-1752; design.md, Reasons shown: the chain of steps): the
+  // project it is a step of, or its season's routine; null for a task no step opened.
+  function planned(st, j) {
+    const C = chain(st, j),
+      top = C.length ? C[C.length - 1] : null;
+    if (!top) return null;
+    if (top.what.project !== undefined)
+      return `a step of the new ${top.why && top.why.custom ? top.why.custom : 'work'}`;
+    if (top.what.target) return `in the season's plan, for its ${top.what.target.store}`;
+    return top.what.routine ? "in the season's plan" : null;
   }
   // Why a pawn with no work has none: too young, the working day over, else the idle line (sim/jobs idleLine).
   function noWork(st, id, p, a, c) {
@@ -165,5 +172,5 @@ VB['sim/reasons'] = (() => {
     if (!who) return r.why.charAt(0).toUpperCase() + r.why.slice(1);
     return r.why ? `${who}: ${r.why}` : who;
   }
-  return { REASONS, BY, reasonOf, reasonLine, windowLeft, cause };
+  return { REASONS, BY, reasonOf, reasonLine, windowLeft, cause, planned };
 })();

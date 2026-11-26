@@ -254,15 +254,17 @@ function checkState(st) {
             || (plan.routinesBy === 'nothing' && R.length)) bad.push(`plans: village ${id} has routines ${JSON.stringify(R)} by ${plan.routinesBy}`);
           continue;
         }
-        const T = plan.targets;
-        if (!T || T.wood.length !== 4 || !T.wood.every((x) => x > 0) || !(T.hayWinters > 0) || !(T.woodSecond >= 0) || !(T.fields >= 0) ||
-          !(T.workable >= 0) || !Number.isInteger(plan.tiles?.field) || !Number.isInteger(plan.tiles?.meadow) ||
+        // VB-1752: its targets are steps of its season (sim/seasonal): wood, hay, seed and fields
+        const TO = globalThis.VB['sim/steps'].targetOf, Tw = TO(plan, 'wood'), Th = TO(plan, 'hay'), Ts = TO(plan, 'seed'), Tf = TO(plan, 'fields');
+        if (!Tw || !Th || !Ts || !Tf || Tw.seasons.length !== 4 || !Tw.seasons.every((x) => x > 0) || !(Th.level > 0) || !(Tw.second >= 0) ||
+          !(Tf.level >= 0) || !(Tf.workable >= 0) || !Number.isInteger(plan.tiles?.field) || !Number.isInteger(plan.tiles?.meadow) ||
           plan.reasons['grain/barley'] !== 'seed') {
           bad.push(`plans: household ${id} lacks its targets, tiles or seed reservation`);
+          continue;
         }
-        // T.seed > 0: the template's rule 'year.seed' is CROPS.barley.seed and no custom contributes to it; one that took it to 0 would be
-        // the one exception (VB-485)
-        if (!(T.seed > 0) || !(T.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
+        // the seed's level > 0: the template's rule 'year.seed' is CROPS.barley.seed and no custom contributes to it; one that took it to 0
+        // would be the one exception (VB-485)
+        if (!(Ts.level > 0) || !(Tf.perHand > 0)) bad.push(`plans: household ${id} lacks its seed or fields-per-hand target`);
         // VB-254: the plan's head is its household's holder, since a time not after now, with a bias on each of the four targets within
         // Traits.HEAD.bias of 1 (and hours, VB-476: the lean of the head's estimate, absent in a save made before it, which reads 1);
         // none while the household has no holder
@@ -321,34 +323,65 @@ function checkState(st) {
         // VB-698: the head's target on each made good, absent before the first review, then one for every made good, none below 0 (Infinity
         // where the maker has no cap of its own), whole where the good is counted whole; a chosen one null or a number from 0, and the
         // compiled target is the choice
-        const G = T.goods, MADE = globalThis.VB['sim/targets'].MADE;
+        const Gs = plan.season.filter((s) => s.what.target && s.what.target.good), MADE = globalThis.VB['sim/targets'].MADE,
+          G = Gs.length ? Object.fromEntries(Gs.map((s) => [s.what.target.good, s.what.target.level])) : undefined;
+        if (Gs.length && Gs.length !== new Set(Gs.map((s) => s.what.target.good)).size) bad.push(`plans: household ${id} has a good's target twice`);
         if (G !== undefined && (Object.keys(G).length !== MADE.size ||
           ![...MADE.values()].every((m) => G[m.good] >= 0 && (!m.whole || !Number.isFinite(G[m.good]) || Number.isInteger(G[m.good])))))
           bad.push(`plans: household ${id}'s targets on its goods ${JSON.stringify(G)}`);
         if (Ch && Ch.goods && !Object.entries(Ch.goods).every(([g, n]) => MADE.has(g) && (n === null || (Number.isFinite(n) && n >= 0 && (!G || G[g] === n)))))
           bad.push(`plans: household ${id}'s head chose ${JSON.stringify(Ch.goods)} of its goods`);
-        if (Ch && Ch.fields !== null && T.fields > Ch.fields) bad.push(`plans: household ${id} wants ${T.fields} fields over its head's ${Ch.fields}`);
+        if (Ch && Ch.fields !== null && Tf.level > Ch.fields) bad.push(`plans: household ${id} wants ${Tf.level} fields over its head's ${Ch.fields}`);
       }
     }
-    // VB-252: one seasonal plan per undissolved household, its steps kinds that exist; of the current season once the standing plan has
-    // been reviewed in it (a household makes it at its first review of the season, on its planning day), else of an earlier one
-    const seasons = st.plans.seasons, KINDS = globalThis.VB['sim/kinds'].KINDS, c = globalThis.VB['sim/rules'].cal(st.t);
-    const now = c.year * 4 + c.season, start = c.day - c.sday;
-    if (!(seasons instanceof Map) || seasons.size !== st.liveHouseholds.length) {
-      bad.push(`plans: ${seasons && seasons.size} seasonal plans, live households ${st.liveHouseholds.length}`);
-    } else {
-      for (const id of st.liveHouseholds) {
-        const sp = seasons.get(id), plan = st.plans.households.get(id);
-        if (!sp || sp.kind !== 'season' || sp.holder.type !== 'household' || sp.holder.id !== id || !Array.isArray(sp.steps) ||
-          !sp.steps.every((k) => KINDS[k])) {
-          bad.push(`plans: household ${id} has no seasonal plan of its own`); continue;
-        }
-        if (sp.by !== undefined && sp.by !== 'head') bad.push(`plans: household ${id}'s seasonal order is by ${sp.by}`); // VB-253
-        const key = sp.year * 4 + sp.season;
-        if (key > now || (key !== now && plan && plan.last !== null && plan.last >= start)) {
-          bad.push(`plans: household ${id}'s seasonal plan is of year ${sp.year}, season ${sp.season}, not of the current one`);
-        }
+    // VB-252, VB-1752: every undissolved household's plan holds its season's steps: its targets first (wood, hay, seed, fields, then the
+    // made goods'), then its routines, kinds that exist, each once; all made the same day of one season (by its last day); of the current
+    // season once the standing plan has been reviewed in it (a household makes them at its first review of the season, on its planning
+    // day), else of an earlier one
+    const KINDS = globalThis.VB['sim/kinds'].KINDS, c = globalThis.VB['sim/rules'].cal(st.t), SD = globalThis.VB['sim/rules'].SEASON_DAYS;
+    const start = c.day - c.sday;
+    for (const id of st.liveHouseholds) {
+      const plan = st.plans.households.get(id), S = plan && plan.season;
+      if (!Array.isArray(S) || !S.length) { bad.push(`plans: household ${id} has no season steps`); continue; }
+      const n = S.findIndex((s) => !s.what.target), R = n < 0 ? [] : S.slice(n);
+      if (S.slice(0, 4).map((s) => s.what.target && s.what.target.store).join() !== 'wood,hay,seed,fields' ||
+        R.some((s) => !s.what.routine || !KINDS[s.what.routine]) || new Set(R.map((s) => s.what.routine)).size !== R.length) {
+        bad.push(`plans: household ${id}'s season steps ${JSON.stringify(S.map((s) => s.what))}`); continue;
       }
+      const from = S[0].from, by = S[0].by;
+      if (S.some((s) => s.from !== from || s.by !== by) || !(from <= by) || by - from >= SD || (by + 1) % SD !== 0)
+        bad.push(`plans: household ${id}'s season steps are not of one season (from ${from}, by ${by})`);
+      if (by >= start + SD || (by < start && plan.last !== null && plan.last >= start))
+        bad.push(`plans: household ${id}'s season steps end on day ${by}, not in the current season`);
+    }
+    // VB-1752: the plan record: every plan of a household, a village and a pawn has its body; each step an id of st.plans.stepSeq, none
+    // twice, a known author and state, its why null, a custom, a levy or a step that resolves; its who pawns within its planner's
+    // authority (a household's members, a village's people, the pawn itself); every project under a year step of its holder's plan
+    {
+      const Sx = globalThis.VB['sim/steps'], seen = new Set(), P = st.plans;
+      const okWhy = (w) => w === null || (w && (typeof w.custom === 'string' || w.levy !== undefined ||
+        (Number.isInteger(w.step) && typeof w.of === 'string' && !!Sx.find(st, planOfKey(w.of), w.step))));
+      const planOfKey = (k) => { const i = k.indexOf(':'); return Sx.planFor(st, k.slice(0, i), Number(k.slice(i + 1))); };
+      const within = (body, p) => { const q = st.pawns[p]; if (!q || !q.alive) return false;
+        return body.kind === 'pawn' ? p === body.id : body.kind === 'household' ? q.household === body.id : true; };
+      const step = (body, s, where) => {
+        if (!Number.isInteger(s.id) || s.id > P.stepSeq || seen.has(s.id) || !Sx.AUTHORS.includes(s.author) || !Sx.STATES.includes(s.state) ||
+          !okWhy(s.why) || !Array.isArray(s.who) || !s.who.every((p) => within(body, p)))
+          bad.push(`plans: ${body.kind} ${body.id}'s step ${s.id} (${where}) ${JSON.stringify({ why: s.why, who: s.who, author: s.author, state: s.state })}`);
+        seen.add(s.id);
+      };
+      if (!Number.isInteger(P.stepSeq) || !(P.pawns instanceof Map)) bad.push('plans: no stepSeq or pawns\' plans');
+      for (const [kind, map] of [['household', P.households], ['village', P.villages], ['pawn', P.pawns || new Map()]])
+        for (const [id, plan] of map) {
+          if (!plan.body || plan.body.kind !== kind || plan.body.id !== id || !Array.isArray(plan.year) || !Array.isArray(plan.ahead)) {
+            bad.push(`plans: ${kind} ${id}'s plan has no record ${JSON.stringify(plan.body)}`); continue;
+          }
+          for (const k of ['year', 'season', 'ahead']) for (const s of plan[k] || []) step(plan.body, s, k);
+          for (const p of (P.projects[kind] && P.projects[kind].get(id)) || []) {
+            if (!plan.year.some((y) => y.what.project === p.id)) bad.push(`plans: ${kind} ${id}'s project ${p.id} has no year step`);
+            for (const s of p.steps) step(plan.body, s, `project ${p.id}`);
+          }
+        }
     }
     // VB-249: the due-queue: sorted by hour, then household, then kind; exactly one entry per live household's plan and time-bound kind,
     // none of a dissolved household (an overdue entry is not checked: tests move the clock by hand, and the next review hour asks it)

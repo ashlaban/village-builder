@@ -38,7 +38,10 @@ check(near(I.rate(st, job('fell')), 1 - TOOLS.share / 2), 'half worn: half the s
 
 // --- the target: the mending need, in blooms
 // (the head's review compiles it into the plan, sim/seasonal goodTargets; dropped here, the target reads the need now)
-const compiled = () => delete st.plans.households.get(hh.id).targets.goods.iron;
+const compiled = () => {
+  const S = st.plans.households.get(hh.id).season, i = S.findIndex((s) => s.what.target && s.what.target.good === 'iron');
+  if (i >= 0) S.splice(i, 1);
+};
 compiled();
 check(near(Targets.target(st, hh, 'iron'), I.mendingNeed(hh)) && near(I.mendingNeed(hh), 0.5 * TOOLS.mendIron / TOOLS.mend), `the target is the mending need (${I.mendingNeed(hh)})`);
 const posted = (K, season) => { const o = []; K.available(st, hh, f, { season }, (key, site, extra) => o.push({ key, site, ...extra })); return o; };

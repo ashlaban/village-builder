@@ -113,7 +113,7 @@ const hay = (st) => st.plans.households.get(0).chosen;
   const st = world({}, true);
   const plan = st.plans.households.get(0);
   VB['sim/herds'].makeHerd(st, st.households[0], 'cattle'); // the scene: a household with a herd to feed
-  plan.targets.hayWinters = 0.1;
+  require('./lib/season.js').targets(plan).hayWinters = 0.1;
   const t = targetAdvice(st, st.households[0]);
   assert.ok(t && t.store === 'hay' && t.n > 0.1, `the old one advises the custom's hay: ${JSON.stringify(t)}`);
   lean(st, 2, 0, true);

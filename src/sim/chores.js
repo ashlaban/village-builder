@@ -4,6 +4,7 @@
 // another (sim/stores, sim/pot), so it lives above both, in the material layer: the beginning of target-v2's production (4.3). `brew`
 // goes to the ale's module when sim/stores is split (VB-416). sim/kinds joins KINDS into the registry, where a kind's fields are described.
 VB['sim/chores'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const Stores = VB['sim/stores'],
     { reserved } = Stores,
     { target } = VB['sim/targets'];
@@ -25,7 +26,7 @@ VB['sim/chores'] = (() => {
   const { age } = VB['sim/records'];
   const { fireOf } = VB['sim/house'];
   // The woodpile's goal this season, and the level under which a second hand cuts: the household's standing plan's targets (sim/plans).
-  const woodTargets = (st, hh) => st.plans.households.get(hh.id).targets;
+  const woodTargets = (st, hh) => targetOf(st.plans.households.get(hh.id), 'wood');
   // The fuel pile in wood loads: the woodpile less what a project plan holds back, and the peat held at PEAT.worth (VB-367).
   const fuelFree = (st, hh) => hh.wood - reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
   // The timber the household holds, felled and home, not yet cut (VB-1653; absent: none), in the woodpile's loads.
@@ -50,7 +51,7 @@ VB['sim/chores'] = (() => {
   const woodHave = (st, hh) => fuelFree(st, hh) + timberOf(hh);
   const woodAmount = (st, hh) => {
     const P = st.ECON.woodPerTrip,
-      short = Math.ceil((woodTargets(st, hh).wood[cal(st.t).season] - woodHave(st, hh)) / P - 1e-9),
+      short = Math.ceil((woodTargets(st, hh).seasons[cal(st.t).season] - woodHave(st, hh)) / P - 1e-9),
       trip = hh.carts.reduce((n, c) => Math.max(n, (c.kind === 'ox' ? TRAVEL.cart : TRAVEL.hand) / TRAVEL.load), 1);
     return woodHave(st, hh) + Math.max(0, Math.min(short, trip)) * P;
   };
@@ -63,7 +64,7 @@ VB['sim/chores'] = (() => {
   // one load at least), so it ends when that is cut, and goes to the woods for the rest only when the timber home is gone before.
   const fireAmount = (st, hh) => {
     const free = fuelFree(st, hh),
-      want = Math.max(woodTargets(st, hh).wood[cal(st.t).season] - free, hh.cold > 0 ? st.ECON.woodPerTrip : 0);
+      want = Math.max(woodTargets(st, hh).seasons[cal(st.t).season] - free, hh.cold > 0 ? st.ECON.woodPerTrip : 0);
     return free + Math.min(timberOf(hh), want);
   };
   const fireNeed = (st, j) => {
@@ -160,7 +161,7 @@ VB['sim/chores'] = (() => {
   // goal, and more in autumn.
   const pileUrgency = (st, hh, c, U, have) => {
     if (have < U.woodLow) return U.woodLowUrgency;
-    const goal = woodTargets(st, hh).wood[c.season];
+    const goal = woodTargets(st, hh).seasons[c.season];
     return (goal - have) / goal + (c.season === 2 ? U.woodSummer : 0);
   };
   // The household has fewer meals than the coming meal needs, grain, fresh food (VB-119) or seed it would eat (VB-388) to cook it from, and
@@ -251,10 +252,10 @@ VB['sim/chores'] = (() => {
         const wood = st.villages[f.village].wood,
           T = woodTargets(st, hh),
           have = fuelFree(st, hh) + timberOf(hh);
-        if (wood.length && have < T.wood[c.season]) {
+        if (wood.length && have < T.seasons[c.season]) {
           const amount = woodAmount(st, hh);
           post(`wood:h${hh.id}`, wood[0], { farm: f, amount });
-          if (have < T.woodSecond) post(`wood:h${hh.id}b`, wood[0], { farm: f, amount });
+          if (have < T.second) post(`wood:h${hh.id}b`, wood[0], { farm: f, amount });
         }
         const pl = st.player;
         if (pl && pl.plan && st.pawns[pl.pawn].household === hh.id)
@@ -455,7 +456,7 @@ VB['sim/chores'] = (() => {
         const amount = fireAmount(st, hh);
         if (amount > free + 1e-9) {
           post(`firewood:h${hh.id}`, f.house, { farm: f, amount });
-          if (free < T.woodSecond && timber > st.ECON.woodPerTrip)
+          if (free < T.second && timber > st.ECON.woodPerTrip)
             post(`firewood:h${hh.id}b`, f.house, { farm: f, amount });
         }
       },

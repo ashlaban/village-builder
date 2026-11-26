@@ -4,6 +4,7 @@
 //   stops of a run until the inhabited pawn's task ends. Writes nothing
 // Principle (principle "The future is someone's estimate"): what is shown of the future is some pawn's estimate (sim/estimate).
 VB['sim/timetable'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { atWork } = VB['sim/pose'];
   const { SPEED } = VB['sim/rules'];
   const { findRoute, routeCost } = VB['sim/routes'];
@@ -165,10 +166,11 @@ VB['sim/timetable'] = (() => {
   // Is household hh above its targets of hay (winters of the herds' need) and firewood (this season's loads): [hay, wood], or null.
   function aboveTargets(st, hh) {
     const plan = planOf(st, 'household', hh.id);
-    if (!plan || !plan.targets) return null;
+    const W = targetOf(plan, 'wood');
+    if (!W) return null;
     const need = winterNeed(st, hh),
-      wood = plan.targets.wood ? plan.targets.wood[cal(st.t).season] : null;
-    return [need > 0 ? hh.hay / need >= plan.targets.hayWinters : null, wood === null ? null : hh.wood >= wood];
+      wood = W.seasons[cal(st.t).season];
+    return [need > 0 ? hh.hay / need >= targetOf(plan, 'hay').level : null, wood === null ? null : hh.wood >= wood];
   }
   // Where a run until the inhabited pawn's task ends begins: {pawn, key (its task in hand, or null: the next it takes is adopted), leg,
   // hid, edited (the hour of the head's last change of the day), offer (the next offer's id), above (aboveTargets)}; null when no pawn is

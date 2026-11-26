@@ -3,6 +3,7 @@
 // barrels a pit's household keeps; no cap of their own on butter, salt meat and peat); the head's verb sets one within its bounds, at
 // once, and its makers read it (digging, salting, hewing a quern); cleared, the need again; a save carries the choices.
 const assert = require('assert');
+const { targets: TG, season: SP } = require('./lib/season.js');
 const VB = require('../src/load.js'), Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
@@ -14,7 +15,7 @@ const st = tinyState(tinyWorld(map), [{ at: [9, 6], farms: 3, sizes: [8, 3, 6] }
 const hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = st.plans.households.get(hh.id);
 const sound = (label) => { Sim.refreshRoles(st); assert.deepStrictEqual(checkState(st).slice(0, 3), [], `${label}: invariants`); };
 P.reviewed(st, plan, cal(st.t));
-const G = plan.targets.goods;
+const G = new Proxy({}, { get: (o, k) => TG(plan).goods[k] });
 
 // the registry: the goods with a maker, each declared once by its maker
 const goods = Targets.madeGoods().sort();

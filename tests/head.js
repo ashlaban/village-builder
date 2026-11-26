@@ -3,6 +3,7 @@
 // at seed 5 (7 before VB-1107's new custom shifted the draws): only the head may choose; a tile is chosen and the field is made there; a refused tile returns its reason; a raised hay
 // target is met by the next winter; a target, the hold on projects, the order and the project under way are set, checked and cleared.
 const assert = require('assert');
+const { targets: TG, season: SP } = require('./lib/season.js');
 const VB = require('../src/load.js'), Sim = VB.sim;
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
@@ -16,7 +17,7 @@ function scene(opt = {}) {
   return { st, hh, f, plan };
 }
 const sound = (st, label) => { Sim.refreshRoles(st); const bad = checkState(st); assert.deepStrictEqual(bad.slice(0, 3), [], `${label}: invariants`); };
-const snap = (st, hh) => JSON.stringify([st.plans.households.get(hh.id), st.plans.seasons.get(hh.id), Projects.ownOf(st, hh.id)]);
+const snap = (st, hh) => JSON.stringify([st.plans.households.get(hh.id), Projects.ownOf(st, hh.id)]);
 let refusals = 0;
 // A refusal returns its reason, a string matching re, and changes nothing of the plan.
 const refused = (st, hh, got, re, label) => {
@@ -30,7 +31,7 @@ const refused = (st, hh, got, re, label) => {
   const other = hh.members.find((id) => id !== hh.holder && Sim.inhabit(st, id) === true);
   refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: 3 }), /is not the head of the household/, 'a member that is not the head');
   refused(st, hh, Sim.head(st, 'tile', { what: 'field', tile: F.pickField(st, f, hh) }), /is not the head/, 'its tile');
-  refused(st, hh, Sim.head(st, 'order', { steps: [...st.plans.seasons.get(hh.id).steps].reverse() }), /is not the head/, 'its order');
+  refused(st, hh, Sim.head(st, 'order', { steps: [...SP(st.plans.households.get(hh.id)).steps].reverse() }), /is not the head/, 'its order');
   refused(st, hh, Sim.head(st, 'project', { what: 'none' }), /is not the head/, 'its project');
   refused(st, hh, Sim.head(st, 'dropProject', {}), /is not the head/, 'dropping its project');
   refused(st, hh, Sim.head(st, 'kill', {}), /not a choice of the plan/, 'another verb');
@@ -48,7 +49,7 @@ let made;
   const { st, hh, f, plan } = scene();
   assert.strictEqual(Sim.inhabit(st, hh.holder), true);
   const own = F.pickField(st, f, hh), before = snap(st, hh);
-  assert.ok(f.fields.length < plan.targets.fields && own >= 0, 'the household wants a field and has a tile to pick');
+  assert.ok(f.fields.length < TG(plan).fields && own >= 0, 'the household wants a field and has a tile to pick');
   const other = st.farmsteads[st.households[2].farmstead];
   refused(st, hh, Sim.head(st, 'tile', { what: 'field', tile: other.fields[0].tile }), /claimed|in use/, "another farm's field");
   refused(st, hh, Sim.head(st, 'tile', { what: 'field', tile: tileAt(st.w, 0, 0) }), /not within \d+ steps' walk/, 'a tile out of reach');
@@ -99,7 +100,7 @@ let made;
   assert.ok(Sim.villageLog(st, Infinity).some((e) => /its head chose to/.test(e.text)), 'told in the log');
   for (let d = 0; d < 6; d++) Sim.advance(st, DAY);
   assert.strictEqual(Projects.ownOf(st, hh.id), null, 'its rule begins none while the head holds off');
-  assert.ok(f.fields.length < plan.targets.fields, 'though it wants a field');
+  assert.ok(f.fields.length < TG(plan).fields, 'though it wants a field');
   assert.strictEqual(Sim.head(st, 'project', { what: null }), true, 'let go');
   assert.ok(!Projects.heldOff(st, hh.id));
   for (let d = 0; !Projects.ownOf(st, hh.id) && d < 12; d++) Sim.advance(st, DAY);
@@ -116,7 +117,7 @@ let made;
   // a head that reacts, with no bias (VB-254): its rule's targets are the template's
   { const t = st.pawns[hh.holder].traits, I = VB['sim/traits'].IDX; t[I.wits] = t[I.husbandry] = 0.02; } // wits and husbandry
   plan.head.bias = { wood: 1, hay: 1, seed: 1, fields: 1 };
-  const E = st.ECON, T = plan.targets, before = snap(st, hh), was = { hay: 2, wood: [E.woodTarget, E.woodWinter, E.woodWinter, E.woodTarget] };
+  const E = st.ECON, T = TG(plan), before = snap(st, hh), was = { hay: 2, wood: [E.woodTarget, E.woodWinter, E.woodWinter, E.woodTarget] };
   refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: 3.5 }), /hay must be from 0 to 3/, 'hay over three winters');
   refused(st, hh, Sim.head(st, 'target', { store: 'hay', n: -1 }), /hay must be from 0 to 3/, 'hay below none');
   refused(st, hh, Sim.head(st, 'target', { store: 'fields', n: T.workable + 1 }), /fields must be from 0 to/, 'more fields than the hands can till');
@@ -139,7 +140,7 @@ let made;
     assert.deepStrictEqual(Sim.headView(st2, hh.id), Sim.headView(st, hh.id), 'a loaded run holds the head\'s choices');
   }
   // the order of the season's routines
-  const sp = () => st.plans.seasons.get(hh.id), steps = [...sp().steps], turned = [...steps].reverse();
+  const sp = () => SP(plan), steps = [...sp().steps], turned = [...steps].reverse();
   refused(st, hh, Sim.head(st, 'order', { steps: steps.slice(1) }), /each of the season's/, 'a routine left out');
   refused(st, hh, Sim.head(st, 'order', { steps: [steps[0], ...steps.slice(0, -1)] }), /each of the season's/, 'a routine twice');
   refused(st, hh, Sim.head(st, 'order', { steps: ['nothing', ...steps.slice(1)] }), /not a routine of the season/, 'a routine of no season');
@@ -190,7 +191,7 @@ for (const raise of [false, true]) {
   while (cal(st.t).season !== 3) {
     Sim.advance(st, DAY);
     if (hh.hay > peak) { peak = hh.hay; need = winterNeed(st, hh); }
-    const c = cal(st.t), n = winterNeed(st, hh), target = st.plans.households.get(hh.id).targets.hayWinters * n;
+    const c = cal(st.t), n = winterNeed(st, hh), target = TG(st.plans.households.get(hh.id)).hayWinters * n;
     if ((c.season === 1 || c.season === 2) && M.hayWanted(st, f, hh)) wanted = Math.max(wanted, target + M.hayLostToWinter(st, f, target, n));
   }
   hay.push({ peak, need, wanted, winters: peak / need, atWinter: hh.hay / winterNeed(st, hh), meadows: f.meadows.length, expected: M.expectedHay(f) });

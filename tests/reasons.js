@@ -55,7 +55,7 @@ expect('day', () => {
 }, (r) => {
   assert.strictEqual(r.head, head);
   assert.deepStrictEqual(r.place, { at: 1, of: 3 });
-  assert.strictEqual(r.line, `${Sim.fullName(st.pawns[head])}'s day, second of three`);
+  assert.strictEqual(r.line, `${Sim.fullName(st.pawns[head])}'s day, second of three: in the season's plan`);
 });
 // a kind with a window: due every day
 const water = job('water');

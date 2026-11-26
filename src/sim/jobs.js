@@ -28,6 +28,7 @@ VB['sim/jobs'] = (() => {
   const changedFor = (owner) => {
     if (changed && owner) changed.add(ownerKey(owner));
   };
+  const { stepFor } = VB['sim/steps'];
   function post(st, key, kind, owner, site, extra) {
     if (!Number.isInteger(site)) throw new Error(`a task ${key} posted on no tile (${site})`); // fails where it is made (VB-255)
     let j = st.jobs.get(key);
@@ -42,6 +43,7 @@ VB['sim/jobs'] = (() => {
         done: 0,
         claims: [],
         posted: st.t,
+        step: stepFor(st, owner, kind, site), // the plan's step that opens it (VB-1752; sim/steps)
         ...extra,
       };
       st.jobs.set(key, j);

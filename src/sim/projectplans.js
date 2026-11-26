@@ -10,7 +10,10 @@ VB['sim/projectplans'] = (() => {
   const { issue } = VB['sim/commands'];
   const Lying = VB['sim/lying'];
   const { projectsOf, holderOf } = Projects;
+  const Steps = VB['sim/steps'];
+  // The plan out of its holder's list, and its year step out of the holder's plan record (sim/steps unlink).
   function remove(st, plan) {
+    Steps.unlink(st, plan);
     const map = st.plans.projects[plan.holder.type],
       list = map.get(plan.holder.id) || [],
       i = list.indexOf(plan);
@@ -50,6 +53,7 @@ VB['sim/projectplans'] = (() => {
     };
     if (!P[type].has(id)) P[type].set(id, []);
     P[type].get(id).push(plan);
+    Steps.link(st, plan); // a year step of its holder's plan, its steps under it (VB-1752)
     if (type === 'household' && what === 'plot') P.heirPlots.push(plan);
     for (const s of steps) for (const good in s.spends || {}) spend[good] = (spend[good] || 0) + s.spends[good];
     for (const good in spend)
@@ -70,7 +74,9 @@ VB['sim/projectplans'] = (() => {
       else Stores.release(st, holder, plan, good, 'build');
       Stores.take(st, holder, good, s.spends[good], 'build');
     }
-    if (++plan.open >= plan.steps.length) {
+    if (++plan.open < plan.steps.length)
+      Steps.advanced(st, plan, s); // its step done, the next open (VB-1752)
+    else {
       Stores.releaseAll(plan);
       remove(st, plan);
     }
@@ -170,6 +176,7 @@ VB['sim/projectplans'] = (() => {
     plan.holder = { type: d.type, id: d.id };
     if (!P[d.type].has(d.id)) P[d.type].set(d.id, []);
     P[d.type].get(d.id).push(plan);
+    Steps.link(st, plan);
   });
   // A village gives up a cleared plot nobody came for (sim/expansion, VB-646): the plan goes, its reservations released.
   on('plotReleased', (st, d) => dropProject(st, d.plan));

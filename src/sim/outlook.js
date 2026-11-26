@@ -4,9 +4,10 @@
 // Design: docs/mocks/supply-scale.html and supply-doubt.html (the UI review with Kim, 16 Nov); principle "The future is someone's estimate" (the future
 // is someone's estimate: this is the head's) and 15 (one scale for every supply). What is still to come is the plan's: the crop the head
 // expects of its fields (FIELDS.expect of the full yield, as the plan reckons when it asks how many fields), the hay of its meadows in an
-// ordinary year (sim/meadows' expectedHay), the woodpile's goal of each season (plan.targets.wood); no weather to come is read. Nothing
+// ordinary year (sim/meadows' expectedHay), the woodpile's goal of each season (its wood target's seasons); no weather to come is read. Nothing
 // reads the outlook to decide: it is a view the review keeps, so that the page never computes one.
 VB['sim/outlook'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { SEASON_DAYS, YEAR_DAYS, FIELDS, HERD, BUILD, PEAT, HELP, cal } = VB['sim/rules'],
     { CROPS, ROTATIONS } = VB['sim/crops'];
   const { on } = VB['sim/events'];
@@ -257,7 +258,7 @@ VB['sim/outlook'] = (() => {
   }
   // Fuel: firewood and peat as one supply (sim/chores' fuelFree: the pile less what a project holds back, peat at PEAT.worth), burnt at
   // the season's ECON.woodUse times the house's own fire (sim/house fireOf: a timber house's is smaller; VB-1669). Its intake is the
-  // plan's: at the start of each season (today, for this one) the household cuts towards the season's goal, plan.targets.wood[season],
+  // plan's: at the start of each season (today, for this one) the household cuts towards the season's goal, its wood target of the season,
   // at most hands × OUTLOOK.woodTrips × ECON.woodPerTrip a season (the share of it left, for the season we are in); none with no farm or no wood in its
   // village's reach. Firewood does not spoil. Timber home and not yet cut
   // counts as firewood (VB-1653): the head has it cut by its own rule (sim/chores); for the household of a pawn planned by hand
@@ -273,7 +274,7 @@ VB['sim/outlook'] = (() => {
       keep =
         Math.max(0, hh.farmstead === null ? (hh.wood || 0) + PEAT.worth * (hh.peat || 0) : fuelFree(st, hh)) +
         (cut ? timberOf(hh) : 0),
-      goal = plan.targets && plan.targets.wood,
+      goal = targetOf(plan, 'wood') && targetOf(plan, 'wood').seasons,
       wood = f && st.villages[f.village] && st.villages[f.village].wood,
       cap = hands(st, hh) * OUTLOOK.woodTrips * st.ECON.woodPerTrip,
       cuts = !!(goal && wood && wood.length && cap > 0);
@@ -363,7 +364,7 @@ VB['sim/outlook'] = (() => {
           else left.push({ good: 'hay', what: 'meadow', tile: m.tile, n: r1(HAY * m.fert) });
         }
       }
-      const target = plan.targets ? plan.targets.hayWinters * W : W,
+      const target = targetOf(plan, 'hay') ? targetOf(plan, 'hay').level * W : W,
         mow = Math.min(grass, Math.max(0, target - hh.hay - lying));
       if (mow > 0) ins.push([Math.max(c.day, Math.floor(mid)) + 1, 'meadows', mow]);
     }

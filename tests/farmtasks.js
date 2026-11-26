@@ -4,6 +4,7 @@
 // head's plan says when), and in the slack for a head left to its rule (the wait `opens`); the barn's stages and timber, the timber at
 // home first; Sim.farmView's foundation and outbuildings; a save and a load mid-chain go on the same. On a tiny village of three farms.
 const assert = require('assert');
+const { targets: TG, season: SP } = require('./lib/season.js');
 const VB = require('../src/load.js'),
   Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js'),
@@ -114,7 +115,7 @@ function run(st, kind, days = 80) {
   // goal cuts the timber home to the season's goal, where a job before cut a back load, and the walls found none); `had`, what its wood
   // task brought home in the two days
   const plan = st.plans.households.get(hh.id);
-  Stores.put(st, hh, 'wood', Math.max(...Object.values(plan.targets.wood)), 'cutting');
+  Stores.put(st, hh, 'wood', Math.max(...Object.values(TG(plan).wood)), 'cutting');
   const had = Stores.heldOf(hh, 'timber');
   Stores.put(st, hh, 'timber', 6, 'felling');
   assert.strictEqual(Sim.plan(st, 'add', { outbuilding: f.house, what: 'barn' }), true);

@@ -2,6 +2,7 @@
 // Traits.of and named by Traits.labelsOf, and a culture's values; a head's skill (wits and husbandry, and years as head); its horizon (it reacts, projects to the season's end, or a
 // season further) and its bias on each target, drawn once when it becomes head, never at a review. On a tiny village.
 const assert = require('assert');
+const { targets: TG, season: SP } = require('./lib/season.js');
 const VB = require('../src/load.js'), Sim = VB.sim;
 const T = VB['sim/traits'], P = VB['sim/plans'], { dailyBirths } = VB['sim/births'], { killPawn } = VB['sim/lifecycle'];
 const { YEAR, DAY, SEASON_DAYS, HERD, cal } = VB['sim/rules'];
@@ -197,7 +198,7 @@ const born = (st, hh) => {
 // the horizon at a review: a head that reacts keeps the template's goal; one that projects adds the wood burnt to the season's end, and a
 // far-seeing one a season more and the stall days within it; the template's own targets are untouched; a review draws nothing
 {
-  const st = templateHeads(VB, make()), hh = st.households[0], plan = P.planOf(st, 'household', hh.id), Tg = plan.targets, E = st.ECON;
+  const st = templateHeads(VB, make()), hh = st.households[0], plan = P.planOf(st, 'household', hh.id), Tg = TG(plan), E = st.ECON;
   assert.deepStrictEqual(plan.head.bias, { wood: 1, hay: 1, seed: 1, fields: 1, hours: 1 }, 'no bias');
   const goal = (c) => (c.season === 1 || c.season === 2 ? E.woodWinter : E.woodTarget);
   const at = (wits, c) => {
@@ -245,7 +246,7 @@ const born = (st, hh) => {
 // (summer has no stall). Autumn's first day (day 24): 40; 40 + 0.5 × 12 = 46 and 2 + 4/21 (days 32 to 35); 46 + 1.6 × 12 = 65.2 and
 // 2 + 16/21 (days 32 to 47).
 {
-  const st = templateHeads(VB, make()), hh = st.households[0], plan = P.planOf(st, 'household', hh.id), Tg = plan.targets;
+  const st = templateHeads(VB, make()), hh = st.households[0], plan = P.planOf(st, 'household', hh.id), Tg = TG(plan);
   const at = (wits) => {
     setSkill(st, hh.holder, wits);
     plan.head.since = st.t;
@@ -268,15 +269,15 @@ const born = (st, hh) => {
 
 // a new head's bias reaches its targets at once, at the succession, not at the next seasonal plan (VB-485)
 {
-  const st = make(), hh = st.households[0], plan = P.planOf(st, 'household', hh.id), Tg = plan.targets;
+  const st = make(), hh = st.households[0], plan = P.planOf(st, 'household', hh.id), Tg = TG(plan);
   st.naturalDeaths = false;
   Sim.advance(st, DAY);
-  const sp0 = st.plans.seasons.get(hh.id), turned = [...sp0.steps].reverse(), made = sp0.made;
+  const sp0 = SP(plan), turned = [...sp0.steps].reverse(), made = sp0.made;
   VB['sim/seasonal'].setOrder(st, hh.id, turned); // an order the old head set
   st.rng.traits.fix = 0; // the new head's biases all at their least
   killPawn(st, hh.holder, 'killed');
   delete st.rng.traits.fix;
-  const sp1 = st.plans.seasons.get(hh.id);
+  const sp1 = SP(plan);
   assert.ok(sp1.by === 'head' && sp1.made === made && JSON.stringify(sp1.steps) === JSON.stringify(turned), "the season's plan and its order outlast the succession");
   const b = plan.head.bias, M = Sim.headView(st, hh.id).targets;
   assert.ok(b.wood < 1 && b.hay < 1 && b.seed < 1, 'the new head is biased under the custom');
@@ -288,7 +289,7 @@ const born = (st, hh) => {
 // fields a hands-limited household's head wants is the unbiased one's within 2%; the cap no longer takes the high draws and leaves the low
 {
   const st = make(), F = VB['sim/fieldplans'];
-  const hh = st.households.find((h) => h.farmstead !== null), plan = P.planOf(st, 'household', hh.id), Tg = plan.targets;
+  const hh = st.households.find((h) => h.farmstead !== null), plan = P.planOf(st, 'household', hh.id), Tg = TG(plan);
   const c = cal(st.t);
   P.reviewed(st, plan, c, 'store');
   Tg.perHand = 1; // few hands: the food asks more than they can till
