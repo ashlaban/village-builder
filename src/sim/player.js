@@ -8,7 +8,7 @@ VB['sim/player'] = (() => {
   const { cal, WORK, HEALTH } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
-  const { setWish, resetWish, endPartner } = VB['sim/wishes'];
+  const { setWish, resetWish, endPartner, WISH } = VB['sim/wishes'];
   const { issue, perform, active, VERBS, register } = VB['sim/commands'];
   const { on } = VB['sim/events'];
   const { daysOfFood } = VB['sim/foodneed'];
@@ -144,16 +144,18 @@ VB['sim/player'] = (() => {
     st.player.auto = !!on;
     return true;
   }
-  // The wish verb (VB-212, VB-680; VB-276: a match for a member, opts {for, terms}, is the head's, propose): the played pawn's wish
-  // at the moving round, written on the pawn as every pawn's is (pawn.wish,
-  // sim/wishes); the round reads it as anyone's and decides by its rules, so a wish is not checked against them here; it stays until
-  // changed. True, or why it is not a wish.
-  function wish(st, kind, value, opts = null) {
-    const pl = st.player;
-    if (!pl) return 'no pawn is played';
-    if (kind === 'match' && opts && opts.for !== undefined && opts.for !== pl.pawn)
-      return propose(st, opts.for, value, opts.terms === undefined ? null : opts.terms);
-    if (!['out', 'claim', 'serve', 'match', 'settle', 'rank'].includes(kind)) return `there is no wish ${kind}`;
+  // The wish and match verbs (VB-212, VB-680, VB-1744; VB-276: a match for a member is the head's): a pawn's own wish at the moving
+  // round, written on the pawn as every pawn's is (pawn.wish, sim/wishes), and a spokesman's match for a member (pawn.proposal). Each
+  // check reads the actor's position, never whether it is played, so the played pawn's controller and any other issue them alike.
+  // The round reads a wish as anyone's and decides by its rules, so a wish is not checked against them here; it stays until changed.
+  // wish: target the kind, args {value}; match: target the member, args {partner, terms}.
+  const WISH_KINDS = ['out', 'claim', 'serve', 'match', 'settle', 'rank'];
+  function wishWhy(st, c) {
+    const p = st.pawns[c.actor],
+      kind = c.target,
+      value = c.args ? c.args.value : undefined;
+    if (!p || !p.alive) return `${c.actor} is not a pawn that lives`;
+    if (!WISH_KINDS.includes(kind)) return `there is no wish ${kind}`;
     // claim takes a farm id and match a pawn id (of the other sex, living and single), else null or false; out, serve and settle null,
     // true or false; rank a whole ranking (sim/wishes)
     const id = (kind === 'claim' || kind === 'match') && Number.isInteger(value);
@@ -166,25 +168,40 @@ VB['sim/player'] = (() => {
         ? `there is no ${kind === 'claim' ? 'farm' : 'pawn'} ${value}`
         : `${kind} cannot be wished ${JSON.stringify(value)}`;
     }
-    if (kind === 'match' && id && (target.sex === st.pawns[pl.pawn].sex || !target.alive))
+    if (kind === 'match' && id && (target.sex === p.sex || !target.alive))
       return `${value} is not one the pawn may marry`;
-    return setWish(st, pl.pawn, kind, value);
+    return null;
   }
-  // The head's match for a member (VB-276; design.md, Marriage as a negotiation, The player's doors): the wish verb's wish for a match
-  // made for another, wish('match', partner, {for: member, terms}): the played pawn, its spokesman, proposes `partner` for `member` with
-  // the terms its side gives (null for the defaults; `{dowry}` for a daughter, `{gift}` for a son); partner null withdraws it. The round
-  // reads it as a wish, by its rules (sim/round). True, or why not.
-  function propose(st, member, partner, terms = null) {
-    const pl = st.player;
-    if (!pl) return 'no pawn is played';
-    if (partner === null) {
-      delete st.pawns[pl.pawn].proposal;
-      return true;
-    }
+  register('wish', {
+    check: (st, c) => {
+      const why = wishWhy(st, c);
+      if (why) return why;
+      // a ranking's shape is checked by the write (sim/wishes): the one reason it gives
+      if (c.target === 'rank') {
+        const v = c.args.value;
+        if (!Array.isArray(v) || v.length !== WISH.rungs.length || WISH.rungs.some((r) => !v.includes(r)))
+          return `a ranking holds each of ${WISH.rungs.join(', ')} once`;
+      }
+      return null;
+    },
+    run: (st, c) => {
+      setWish(st, c.actor, c.target, c.args.value);
+    },
+  });
+  // The head's match for a member (VB-276; design.md, Marriage as a negotiation, The player's doors): the spokesman proposes
+  // args.partner for the member c.target with the terms its side gives (null for the defaults; `{dowry}` for a daughter, `{gift}` for a
+  // son); partner null withdraws it. The round reads it as a wish, by its rules (sim/round).
+  function matchWhy(st, c) {
+    const p = st.pawns[c.actor],
+      member = c.target,
+      partner = c.args ? c.args.partner : undefined,
+      terms = c.args && c.args.terms !== undefined ? c.args.terms : null;
+    if (!p || !p.alive) return `${c.actor} is not a pawn that lives`;
+    if (partner === null) return null;
     const m = st.pawns[member],
       q = st.pawns[partner];
-    if (!m || !m.alive || member === pl.pawn) return `${member} is not a member the pawn may speak for`;
-    if (spokesmanOf(st, member) !== pl.pawn) return `${fullName(m)} does not have the pawn as spokesman`;
+    if (!m || !m.alive || member === c.actor) return `${member} is not a member the pawn may speak for`;
+    if (spokesmanOf(st, member) !== c.actor) return `${fullName(m)} does not have the pawn as spokesman`;
     if (!q || !q.alive || q.sex === m.sex || spouseOf(st, partner) !== null)
       return `${partner} is not one ${fullName(m)} may marry`;
     const k = m.sex === 'f' ? 'dowry' : 'gift';
@@ -192,8 +209,29 @@ VB['sim/player'] = (() => {
       return `the side of ${fullName(m)} gives only the ${k === 'dowry' ? 'dowry' : 'morning gift'}`;
     if (terms !== null && terms[k] !== undefined && !(Number.isFinite(terms[k]) && terms[k] >= 0))
       return `cannot give ${terms[k]}`;
-    st.pawns[pl.pawn].proposal = { for: member, partner, terms: terms === null ? null : { ...terms } };
-    return true;
+    return null;
+  }
+  register('match', {
+    check: matchWhy,
+    run: (st, c) => {
+      const { partner, terms } = c.args;
+      if (partner === null) delete st.pawns[c.actor].proposal;
+      else st.pawns[c.actor].proposal = { for: c.target, partner, terms: terms ? { ...terms } : null };
+    },
+  });
+  // Sim.wish: the played pawn's wish (VB-212; a match for a member, opts {for, terms}, is the head's); the page's calls. True, or why not.
+  function wish(st, kind, value, opts = null) {
+    const pl = st.player;
+    if (!pl) return 'no pawn is played';
+    if (kind === 'match' && opts && opts.for !== undefined && opts.for !== pl.pawn)
+      return issue(st, {
+        actor: pl.pawn,
+        verb: 'match',
+        target: opts.for,
+        args: { partner: value, terms: opts.terms === undefined ? null : opts.terms },
+        source: 'player',
+      });
+    return issue(st, { actor: pl.pawn, verb: 'wish', target: kind, args: { value }, source: 'player' });
   }
   // A wish for a match ends when the one who wished or the wished partner marries (a and b have married) or dies (a is b); so does the
   // head's match for a member.

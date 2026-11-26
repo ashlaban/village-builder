@@ -80,7 +80,7 @@ const NOT_YET = ['answer', 'claim', 'letIn', 'placeFarmstead', 'blaze', 'lodge',
   'target', 'tile', 'order', 'letField', 'sowOutOfTurn', 'courses', 'dayOrder', 'dayGive', 'dayCall', 'handOn', 'plotToVillage',
   'beginCottage', 'goBack', 'goToKin', 'visit', 'sendVisit', 'foundHousehold', 'decide', 'argue', 'dropCause', 'rally', 'leave', 'takeUp',
   'renounce', 'marry', 'skip', 'slander',
-  'found', 'upkeep']; // VB-361: no facility kind is declared in the game yet (each craft's task declares its own); tests/facilities.js carries both
+  'wish', 'match', 'found', 'upkeep']; // VB-361: no facility kind is declared in the game yet (each craft's task declares its own); tests/facilities.js carries both
 const missed = Object.keys(VERBS).filter((v) => !carried.has(v));
 assert.deepStrictEqual(missed.filter((v) => !NOT_YET.includes(v)), [], 'a verb neither carried nor listed in NOT_YET');
 assert.deepStrictEqual(NOT_YET.filter((v) => carried.has(v) || !VERBS[v]), [], 'carried now, or no longer a verb: strike it from NOT_YET');

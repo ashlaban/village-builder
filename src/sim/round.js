@@ -262,7 +262,7 @@ VB['sim/round'] = (() => {
         seekVisit(st, p.id, rules);
     if (married.length) refreshRoles(st);
   }
-  // A spokesman's match for a member (VB-276; sim/player propose; pawn.proposal, any pawn's): at the round of the man's village, a pair
+  // A spokesman's match for a member (VB-276; sim/player match verb; pawn.proposal, any pawn's): at the round of the man's village, a pair
   // that passes the round's rules (matchBar, as a wish) is offered by the spokesman `by` to the other side's, with the terms its side gives
   // and its own yes given; the others answer as any offer's. One the round passes by is told, and stands for the next round; one whose
   // two are no longer free, or whom `by` no longer speaks for, is dropped.
