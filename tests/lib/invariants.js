@@ -1625,6 +1625,16 @@ function checkState(st) {
       if (sl !== undefined && !(sl && sl.owed >= 0 && sl.owed <= CAP && typeof sl.asleep === 'boolean' && Number.isInteger(sl.at) && sl.at <= st.tick && (sl.until === null || Number.isFinite(sl.until)))) bad.push(`pawns[${id}]: sleep ${JSON.stringify(sl)}`);
     }
   }
+  // the commands given through Sim.command (VB-1757): absent, or each {tick, cmd} in the order given, at a tick no later than now, its
+  // command plain data with a verb
+  if (st.commanded !== undefined) {
+    if (!Array.isArray(st.commanded)) bad.push(`commanded: ${typeof st.commanded}, not a list`);
+    else st.commanded.forEach((e, n) => {
+      const before = n ? st.commanded[n - 1].tick : 0;
+      if (!e || !Number.isInteger(e.tick) || e.tick < before || e.tick > st.tick || !e.cmd || typeof e.cmd.verb !== 'string' || JSON.stringify(e.cmd) !== JSON.stringify(JSON.parse(JSON.stringify(e.cmd))))
+        bad.push(`commanded[${n}]: ${JSON.stringify(e)}`);
+    });
+  }
   // the controllers (VB-1745): a living pawn's, each with a queue of at most QUEUE_MAX of its own commands, of which only the head may be
   // begun; st.controlled the pawns that have one and st.queued those whose queue holds a command, both ascending
   {

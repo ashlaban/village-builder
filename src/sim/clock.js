@@ -33,7 +33,7 @@ VB['sim/clock'] = (() => {
   const { talkHour, fadeRelations } = VB['sim/relations'];
   const { outdoors } = VB['sim/encounters'];
   const { dailyLife, dailyDeaths } = VB['sim/lifecycle'];
-  const { meetingStage, MEETING_STAGES, nightCulture, NIGHT_STEPS } = VB['sim/meetings'];
+  const { meetingStage, MEETING_STAGES, MEETING, nightCulture, NIGHT_STEPS } = VB['sim/meetings'];
   const { roundPhase, ROUND_STEPS } = VB['sim/round'];
   const { dueOffers } = VB['sim/offers'];
   const { askingDay } = VB['sim/asking'];
@@ -592,7 +592,7 @@ VB['sim/clock'] = (() => {
     // the moving round's from noon of day 11: a village's round a step, then its three island-wide phases from 18:00 (VB-201, VB-277) ----
     {
       every: 'year',
-      at: { season: AUTUMN, sday: 9, hour: 12, tick: [0, MEETING_STAGES] },
+      at: { ...MEETING, tick: [0, MEETING_STAGES] },
       when: cenv,
       owner: 'sim/meetings',
       note: "the meetings: a village's meeting a step, then the cultures' years and the land meeting (VB-278)",

@@ -196,6 +196,7 @@
   "sim/people.js",
   "sim/reasons.js",
   "sim/planview.js",
+  "sim/points.js",
   "sim/agenda.js",
   "sim/scenarios.js",
   "sim/clock.js",

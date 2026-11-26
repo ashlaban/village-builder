@@ -27,6 +27,7 @@ const FAST = [
   ['node', 'tests/counters.js'],
   ['node', 'tests/player.js'],
   ['node', 'tests/controller.js'], // VB-1745: an empty controller on every pawn changes nothing; two with automatic off left alone; any pawn's queue
+  ['node', 'tests/decisionpoints.js'], // VB-1757: a pawn's decision points with their deadlines, asked and nothing stored; a controller's commands recorded and replayed from a save
   ['node', 'tests/played.js'], // VB-1753: every read of st.player classed, the rules' allow-list only falls; an authored step stands for any head
   ['node', 'tests/played-reads.js'], // VB-1753: the count of tests/played.js, a read of who is played through any name
   ['node', 'tests/walkweighed.js'], // VB-781: design.md's The walk weighed agrees with the rules it reckons from (until VB-1677, VB-1678)

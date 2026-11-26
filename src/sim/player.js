@@ -9,7 +9,7 @@ VB['sim/player'] = (() => {
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { setWish, resetWish, endPartner, WISH } = VB['sim/wishes'];
   const { issue, active, VERBS, register } = VB['sim/commands'];
-  const { QUEUE_MAX, controlOf, attach, detach, queueStep } = VB['sim/controller'];
+  const { QUEUE_MAX, controlOf, attach, detach, queueStep, command } = VB['sim/controller'];
   const { on } = VB['sim/events'];
   const { daysOfFood } = VB['sim/foodneed'];
   const { KINDS } = VB['sim/kinds'];
@@ -95,7 +95,8 @@ VB['sim/player'] = (() => {
   }
   // ---- the facade's controller calls, keyed by pawn (VB-1746; design.md section 15, The API by pawn and body) ----
   // Each takes the pawn it is about, played or not, and issues its verb for it with source 'player' (a controller's input: the page's for
-  // the played pawn, an external agent's for any). The page passes the played pawn. True, or why not: id is no pawn, or the verb's reason.
+  // the played pawn, an external agent's for any), through Sim.command's door, which records it for a replay (VB-1757). The page passes the
+  // played pawn. True, or why not: id is no pawn, or the verb's reason.
   const pawnWhy = (st, id) => (Number.isInteger(id) && st.pawns[id] ? null : `there is no pawn ${id}`);
   // Sim.queue(st, id, cmd), Sim.unqueue(st, id, i) and Sim.setAuto(st, id, on): pawn id's controller's verbs (sim/controller). A command
   // queued is {verb, target, args}; one naming another actor is refused.
@@ -104,15 +105,15 @@ VB['sim/player'] = (() => {
     if (VERBS[c.verb] && c.actor !== undefined && c.actor !== id) return `pawn ${c.actor} is not pawn ${id}`;
     const what = { verb: c.verb, target: c.target, args: c.args };
     return (
-      pawnWhy(st, id) || issue(st, { actor: id, verb: 'queue', target: null, args: { cmd: what }, source: 'player' })
+      pawnWhy(st, id) || command(st, { actor: id, verb: 'queue', target: null, args: { cmd: what }, source: 'player' })
     );
   }
   function unqueue(st, id, i) {
-    return pawnWhy(st, id) || issue(st, { actor: id, verb: 'unqueue', target: null, args: { i }, source: 'player' });
+    return pawnWhy(st, id) || command(st, { actor: id, verb: 'unqueue', target: null, args: { i }, source: 'player' });
   }
   function setAuto(st, id, on) {
     return (
-      pawnWhy(st, id) || issue(st, { actor: id, verb: 'auto', target: null, args: { on: !!on }, source: 'player' })
+      pawnWhy(st, id) || command(st, { actor: id, verb: 'auto', target: null, args: { on: !!on }, source: 'player' })
     );
   }
   // The wish and match verbs (VB-212, VB-680, VB-1744; VB-276: a match for a member is the head's): a pawn's own wish at the moving
@@ -195,14 +196,14 @@ VB['sim/player'] = (() => {
     const why = pawnWhy(st, id);
     if (why) return why;
     if (kind === 'match' && opts && opts.for !== undefined && opts.for !== id)
-      return issue(st, {
+      return command(st, {
         actor: id,
         verb: 'match',
         target: opts.for,
         args: { partner: value, terms: opts.terms === undefined ? null : opts.terms },
         source: 'player',
       });
-    return issue(st, { actor: id, verb: 'wish', target: kind, args: { value }, source: 'player' });
+    return command(st, { actor: id, verb: 'wish', target: kind, args: { value }, source: 'player' });
   }
   // A wish for a match ends when the one who wished or the wished partner marries (a and b have married) or dies (a is b); so does the
   // head's match for a member.
@@ -328,7 +329,7 @@ VB['sim/player'] = (() => {
   // Decisions module takes over): true, or why not.
   function answer(st, offerId, yes) {
     if (!st.player) return 'no pawn is played';
-    return issue(st, { actor: st.player.pawn, verb: 'answer', target: offerId, args: { yes }, source: 'player' });
+    return command(st, { actor: st.player.pawn, verb: 'answer', target: offerId, args: { yes }, source: 'player' });
   }
   // Sim.head(st, id, verb, args): pawn id chooses as head of its household (VB-253, for the page's plan panel, VB-256): verb one of
   // HEAD_VERBS, at once, not queued (a choice of the plan takes no time); its target the household it holds, else the one it lives in,
@@ -351,7 +352,7 @@ VB['sim/player'] = (() => {
     if (!HEAD_VERBS.includes(verb)) return `${verb} is not a choice of the plan`;
     const held = holdingOf(st, id),
       target = held && !held.dissolved ? held.id : st.pawns[id].household;
-    return issue(st, { actor: id, verb, target, args: args || {}, source: 'player' });
+    return command(st, { actor: id, verb, target, args: args || {}, source: 'player' });
   }
   return {
     head,

@@ -87,6 +87,8 @@ VB.COUNTERS = {
     'Pawns whose sleep owed was reckoned: each living pawn once an hour, the played pawn each step (sim/sleepers, VB-1645)',
   queueRun:
     'Queues run by the queue step: each step, one a pawn whose controller holds a command (sim/controller queueStep, VB-1745)',
+  pointOffer:
+    'Open offers looked at by Sim.decisions: each offer, a call a controller makes for its pawn (sim/points decisions, VB-1757)',
   planFeed:
     'Plans looked at by the feeder: each step, one a pawn whose controller holds a plan (sim/player playerStep, VB-1746)',
   sleepOwn:

@@ -64,7 +64,10 @@ const Sim = (() => {
   const { of: moodOf, word: moodWord } = VB['sim/mood']; // a pawn's mood and its modifiers, for its card (VB-062)
   const { labelsOf: traitLabels, act: traitAct } = VB['sim/traits']; // a pawn's traits in words, for its card (VB-519); one's act (VB-520)
   const { save, load } = VB['sim/saves'];
-  const { issue: command } = VB['sim/commands'];
+  // Sim.command(st, cmd): the one door a controller issues through (VB-1757), keyed by the pawn it acts as (cmd.actor), each command
+  // recorded with its game time (sim/controller, st.commanded); Sim.decisions(st, pawn), the points open to its controller (sim/points)
+  const { command } = VB['sim/controller'],
+    { decisions } = VB['sim/points'];
   const { inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, head, sheetNotes } = VB['sim/player'];
   const { controlOf } = VB['sim/controller']; // a pawn's switch, queue and last refusal (VB-1745)
   const { headView } = VB['sim/plans'];
@@ -136,7 +139,19 @@ const Sim = (() => {
     { movingRound } = VB['sim/round'];
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
-  const { HERD, CLAIMS } = VB['sim/rules'],
+  // Sim.replay(st, entries): the commands recorded since a save (entries of st.commanded, in order: a run's own record past the length the
+  // saved state's had), given again on st, the save loaded, each at its game time, the clock advanced to it (VB-1757). The run then goes
+  // on as it went, its record again the same. The frame (which pawn is played: Sim.inhabit, uninhabit, succeed), the debug drawer's
+  // direct mutators and the page's flags are not commands and are not recorded: a run that changed them since the save is not replayed.
+  function replay(st, entries) {
+    for (const e of entries) {
+      if (e.tick < st.tick) throw new Error(`replay: a command at tick ${e.tick}, the run at ${st.tick}`);
+      advance(st, (e.tick - st.tick) / TICKS);
+      command(st, JSON.parse(JSON.stringify(e.cmd)));
+    }
+    return st;
+  }
+  const { HERD, CLAIMS, TICKS } = VB['sim/rules'],
     { SOIL } = VB['sim/crops'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, team, inMilk } = VB['sim/herds'];
   const { withOxen } = VB['sim/work'],
@@ -161,6 +176,8 @@ const Sim = (() => {
     load,
     recordOf,
     command,
+    decisions,
+    replay,
     DEBUG,
     head, // (st, pawn, verb, args): the pawn's choice as head (VB-1746: keyed by pawn, as each planning call below)
     headView,

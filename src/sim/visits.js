@@ -3,6 +3,7 @@
 //   plans a visit there by the verb `visit`; the plans wait in a due-queue and are set out in winter (visitsDue), as journeys of sim/journeys;
 //   the villages any pawn might visit (visitChoices), a visit's state for its sheet and the played pawn's order for one (VB-292)
 VB['sim/visits'] = (() => {
+  const { command } = VB['sim/controller'];
   const Due = VB['sim/due'],
     dueKey = (e) => e.due; // its order (sim/due): by due, after those due at the same time
   const { living, mindsWhy } = VB['sim/records'];
@@ -193,7 +194,8 @@ VB['sim/visits'] = (() => {
   }
   // The played pawn plans a winter's visit (VB-292; design.md, Between villages: The player's journey), for itself or, where it speaks
   // for an unmarried son or daughter of its house (sim/records spokesmanOf), for that one: the visit is the visitor's own act, by the
-  // verb `visit`, whose check holds for any pawn; at once, not queued (a plan takes no time). True, or why not.
+  // verb `visit`, whose check holds for any pawn; at once, not queued (a plan takes no time); through Sim.command's door, recorded for a
+  // replay (VB-1757). True, or why not.
   function orderVisit(st, who, v) {
     const pl = st.player,
       q = st.pawns[who];
@@ -202,8 +204,8 @@ VB['sim/visits'] = (() => {
     if (who !== pl.pawn && spokesmanOf(st, who) !== pl.pawn)
       return `${fullName(st.pawns[pl.pawn])} does not speak for ${fullName(q)}`;
     if (who !== pl.pawn)
-      return issue(st, { actor: pl.pawn, verb: 'sendVisit', target: who, args: { village: v }, source: 'player' });
-    return issue(st, { actor: who, verb: 'visit', target: v, source: 'player' });
+      return command(st, { actor: pl.pawn, verb: 'sendVisit', target: who, args: { village: v }, source: 'player' });
+    return command(st, { actor: who, verb: 'visit', target: v, source: 'player' });
   }
   // Daily at 6:00: the visits due, from the head of the queue (Rules for cost, 4). A plan is dropped where its man has died, married,
   // retired, changed household (he took a farm, his home dissolved) or is away; one whose household can no longer spare the food, or who
