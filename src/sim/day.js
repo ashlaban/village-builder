@@ -65,7 +65,7 @@ VB['sim/day'] = (() => {
   // draw. Then the head calls: a member at work leaves its task for the first of its list when that is much more urgent (switchRatio,
   // switchMargin; VB-107), a task with a deadline today (`late`: the meal)
   // calls its hand from work, from the road or from idling. The others take their tasks when they next look for work (takeDay).
-  // `asking`, in the morning's allotment (allotChanged): the list that gains [household id, hours short] when the household is short of hands.
+  // `asking`, in the morning's allotment (allotDays): the list that gains [household id, hours short] when the household is short of hands.
   function allot(st, hh, c, asking = null) {
     const plan = planOf(st, 'household', hh.id);
     if (!plan || hh.farmstead === null) return;
@@ -418,15 +418,6 @@ VB['sim/day'] = (() => {
     if (a && a.job) issue(st, { actor: d.pawn, verb: 'goHome', source: 'planner' });
     lostHolder(st, d.pawn);
   });
-  // The days of the holders `changed` (their keys, as sim/jobs noted them), in the order of their ids (daysOf).
-  function allotChanged(st, changed, c) {
-    const ids = new Set();
-    for (const key of changed) {
-      const [type, n] = key.split(':');
-      daysOf(st, { type, id: Number(n) }, ids);
-    }
-    allotDays(st, ids, c);
-  }
   // The days of households `ids` allotted whole, in the order of their ids.
   function allotDays(st, ids, c) {
     // the households short of hands the morning's allotment finds, [[household id, hours short]], asked once it is over
@@ -664,7 +655,6 @@ VB['sim/day'] = (() => {
     slotArrived,
     slotOut,
     lostHolder,
-    allotChanged,
     takeDay,
     dutyRound,
     eveningCall,

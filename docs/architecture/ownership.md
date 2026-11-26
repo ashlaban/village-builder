@@ -582,7 +582,7 @@ One row for each change of state, with its writer. *Past the owner* marks a writ
 | --- | --- | --- |
 | Each work hour, every job is marked unposted | `job.live = false` | `jobs.js:47` (refreshJobs) |
 | The fields post their work: hoe, sow, weed, reap, haul | `st.jobs`, `st.jobsBy`, `st.jobSeq`, `job.live` | `jobs.js:20-26` (post), called at `jobs.js:55-61` |
-| The head allots the household's day, each morning, at its review and when its tasks change (VB-466) | `plan.day`; no random draw | `jobs.js` (allot, allotChanged) |
+| The head allots the household's day each morning and at 14:00, a task arriving slotted into it and a lost holder's tasks slotted to the others (VB-466, VB-1758) | `plan.day`; no random draw | `day.js` (allot, slotIn, slotArrived, slotOut, lostHolder) |
 | Idle pawns are gathered; each takes the first task of its list that has room; one with none bids to help a neighbour | the helper's bid draws `st.rng.work` | `clock.js` (step), `jobs.js` (takeDay, helpers) |
 | The task taken is carried out as a command | none in the planner | `jobs.js:205` → `issue` (`commands.js:132`) → verb `work` (`commands.js:22-26`) |
 | The job in hand is left, keeping its progress | `job.claims` (splice), `agent.job`, `agent.phase`, `agent.work` | `agents.js:55-58` (release) |

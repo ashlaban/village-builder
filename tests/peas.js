@@ -28,12 +28,12 @@ st.villages[f.village].rotation = 'peas';
 f.fields.forEach((q, i) => Object.assign(q, { rotation: 'peas', step: (i + 1) % 2, crop: ROTATIONS.peas.courses[(i + 1) % 2] }));
 fd.soil = 0.9;
 fd.stage = 'stubble'; // to be hoed first
-Stores.put(st, hh, Stores.grainGood('peas'), P.seed + 5, 'start');
+// the seed for each field at peas (VB-1758): whichever is hoed first is sown first, and the field followed may come after another
+Stores.put(st, hh, Stores.grainGood('peas'), P.seed * f.fields.filter((q) => q.crop === 'peas').length + 5, 'start');
 Stores.put(st, hh, Stores.grainGood('barley'), 300, 'start'); // fed meanwhile: a hungry household eats its seed
 const hours = {};
 let seen = null, max = 0;
-// two years (VB-1758): a field plowed after the review that would post its sowing waits for the next, and may miss the first window
-for (let d = 0; d < 2 * YEAR_DAYS && !(fd.stage === 'stubble' && fd.reaped !== null); d++) {
+for (let d = 0; d < YEAR_DAYS && !(fd.stage === 'stubble' && fd.reaped !== null); d++) {
   for (let h = 0; h < DAY; h++) {
     Sim.advance(st, 1);
     for (const j of st.jobs.values()) if (j.field === fd) hours[j.kind] = j.hours ?? KINDS[j.kind].hours;
@@ -44,7 +44,7 @@ for (let d = 0; d < 2 * YEAR_DAYS && !(fd.stage === 'stubble' && fd.reaped !== n
 }
 assert(seen && seen.reaped !== null, 'the peas are sown and reaped');
 const s = cal(seen.sown * DAY);
-assert(s.year <= 2 && s.season === 0 && s.sday <= 9, `sown in spring days 1-10: ${JSON.stringify(s)}`);
+assert(s.year === 1 && s.season === 0 && s.sday <= 9, `sown in spring days 1-10: ${JSON.stringify(s)}`);
 assert(seen.reaped - seen.sown >= P.ripe && seen.reaped - seen.sown < P.ripe + 8, `ripe after ${P.ripe} days, reaped ${seen.reaped - seen.sown} on`);
 assert(seen.held > 0.7 * P.yield && seen.held < 1.3 * P.yield, `a harvest of about 60 rations: ${seen.held}`);
 assert(max >= seen.held - 1, `threshed into peas: at most ${max} held, ${seen.held} reaped`);

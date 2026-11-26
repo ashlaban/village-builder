@@ -1,7 +1,8 @@
-// The head's day (VB-466; design.md section 7, The day's work): each morning, at its review and when its tasks change, a household's head
-// allots its members' day: for each living member an ordered list of task keys, best fit first, a further hand on a task counting for
-// less, without a random draw; a pawn takes the first task of its list it can; the day is saved with the plan. On a small constructed
-// state: three farms on open ground, spring day 0, at 10:30.
+// The head's day (VB-466; design.md section 7, The day's work): each morning and at 14:00 a household's head allots its members' day: for
+// each living member an ordered list of task keys, best fit first, a further hand on a task counting for less, without a random draw; a
+// task that arrives in the day is slotted into the lists as they stand, and a holder lost has its tasks slotted to the others (VB-1758);
+// a pawn takes the first task of its list it can; the day is saved with the plan. On a small constructed state: three farms on open
+// ground, spring day 0, at 10:30.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, Jobs = VB['sim/jobs'], { KINDS } = VB['sim/kinds'], { WORK } = VB['sim/rules'], { CHILD } = VB['sim/roles'];
 const { age } = VB['sim/records'];
@@ -92,7 +93,9 @@ for (const id of st.liveHouseholds) {
   assert.deepStrictEqual(checkState(st), [], 'invariants');
 }
 
-// 6. A village's review alone changes nobody's day; a task of the village posted at it has every household's day allotted anew (VB-1554).
+// 6. A village's review alone changes nobody's day (VB-1554); a task of the village posted at it is slotted into each household's day as
+// it stands, its members alone weighed, and only a day whose slot finds no hand is allotted anew (VB-1758; design.md section 7, Plans at
+// four scales, Replanning).
 {
   const s3 = make(4.5), c3 = Sim.cal(s3.t), hour = Math.floor(s3.t), vp = s3.plans.villages.get(0);
   const made = () => s3.liveHouseholds.map((id) => dayOf(s3, id).made);
@@ -107,9 +110,62 @@ for (const id of st.liveHouseholds) {
   assert.deepStrictEqual(made(), s3.liveHouseholds.map(() => -1), 'no day allotted anew at a review that changes no task');
   for (const s of s3.villages[0].fence) s.cond = 0.2; // the fence is worn: the review posts its mending
   vp.nextReview = hour;
+  VB.resetCounts();
   Jobs.refreshJobs(s3, c3);
   assert.ok(s3.jobsBy.get('village:0').size > 0, 'the village posts the mending');
-  assert.deepStrictEqual(made(), s3.liveHouseholds.map(() => hour), 'every household of the village has its day allotted anew');
-  assert.ok(s3.liveHouseholds.some((id) => Object.values(dayOf(s3, id).lists).some((l) => l.some((k) => k.startsWith('mend:')))), 'and the mending is in a list');
+  const whole = made().filter((m) => m === hour).length, slotted = s3.liveHouseholds.filter((id) => dayOf(s3, id).made === -1);
+  assert.strictEqual(VB.count.dayAllot, whole, 'a day allotted anew only where the slot found no hand');
+  assert.ok(slotted.length >= 2 && whole < s3.liveHouseholds.length, `the days slotted as they stand (${slotted.length} of ${s3.liveHouseholds.length})`);
+  for (const id of slotted)
+    assert.ok(Object.values(dayOf(s3, id).lists).some((l) => l.some((k) => k.startsWith('mend:'))), `household ${id}: the mending is in a list`);
+  const members = (ids) => ids.reduce((n, id) => n + Object.keys(dayOf(s3, id).free).length, 0);
+  assert.ok(VB.count.dayPair < s3.jobsBy.get('village:0').size * members(s3.liveHouseholds) + 200 * whole, `the members weighed for the mending alone (${VB.count.dayPair} pairs)`);
 }
-console.log('day ok: a day for every household, a list for each member; no random draw; best fit first and the hands spread; the first task with room is taken; saved and loaded; a village\'s review alone allots no day');
+
+// 7. A holder lost to its day (VB-1758; design.md section 7, Plans at four scales, Replanning): a reaper falls ill for three days at the
+// reaping; it lets its task go and goes home, its list is emptied and its tasks are slotted to the others at once, no day weighed whole; no
+// target lowered. Q7 (docs/plans/four-scales/README.md, section 4): the three days cost no more vital hours (a vital task of the
+// household open and unmanned in a working hour) and no more of the reaping than today's allotment, the illness unannounced: its pawn
+// sent home, its tasks waiting in its list for the next whole allotment (within 10%).
+{
+  const { emit } = VB['sim/events'], { issue } = VB['sim/commands'], { doneOf } = VB['sim/work'], { isOpen } = VB['sim/kinds'];
+  const vital = (s, j) => KINDS[j.kind].vital === true || (typeof KINDS[j.kind].vital === 'function' && KINDS[j.kind].vital(s, j));
+  const reaping = (announced) => {
+    const s = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 });
+    s.makeFields = false;
+    s.naturalDeaths = false;
+    for (const fd of s.farmsteads[s.households[0].farmstead].fields) Object.assign(fd, { crop: 'barley', stage: 'ripe', sown: 0 });
+    Sim.advance(s, 4.5);
+    const mine = () => [...(s.jobsBy.get('household:0') || [])], reaps = () => mine().filter((j) => j.kind === 'reap');
+    for (const j of reaps()) j.hours = 70; // a reaping of three days for the household's hands
+    const id = s.households[0].members.find((m) => s.agents[m].job && s.agents[m].job.kind === 'reap');
+    assert.ok(id !== undefined && reaps().length === 3, 'a member at the reaping');
+    const day = dayOf(s, 0), held = day.lists[id].filter((k, i) => day.fits[id][i] === null || day.fits[id][i] > 0);
+    const targets = canon(s.plans.households.get(0).targets), left = () => reaps().reduce((n, j) => n + j.hours - doneOf(s, j), 0);
+    VB.resetCounts();
+    s.pawns[id].ill = { cause: 'illness', from: s.t, until: s.t + 3 * Sim.DAY, passes: true };
+    if (announced) emit(s, 'fellIll', { pawn: id });
+    else issue(s, { actor: id, verb: 'goHome', source: 'planner' });
+    const r = { id, held, at: { allots: VB.count.dayAllot, lost: VB.count.dayLost, list: [...dayOf(s, 0).lists[id]], job: s.agents[id].job }, unmet: 0 };
+    r.others = held.filter((k) => s.households[0].members.some((m) => m !== id && dayOf(s, 0).lists[m].includes(k)));
+    const r0 = left();
+    for (let h = 0; h < 3 * Sim.DAY; h++) {
+      Sim.advance(s, 1);
+      const hr = Sim.cal(s.t).hour;
+      if (hr >= WORK[0] && hr < WORK[1]) for (const j of mine()) if (vital(s, j) && !j.claims.length && isOpen(s, j)) r.unmet++;
+      if (r.done === undefined && !reaps().length) r.done = h + 1;
+    }
+    Object.assign(r, { reaped: r0 - left(), same: canon(s.plans.households.get(0).targets) === targets, ill: !!s.pawns[id].ill });
+    assert.deepStrictEqual(checkState(s), [], 'invariants after the illness');
+    return r;
+  };
+  const a = reaping(true), b = reaping(false);
+  assert.ok(a.held.length > 0 && a.at.lost === a.held.length && a.at.allots === 0, `its ${a.held.length} tasks to the pool, no day allotted whole (${a.at.allots})`);
+  assert.ok(a.at.list.length === 0 && a.at.job === null, 'its list emptied, its task let go');
+  assert.deepStrictEqual(a.others, a.held, 'each of its tasks in another member\'s list');
+  assert.ok(a.ill && a.same && b.same, 'no target lowered for the three days ill');
+  assert.ok(a.done !== undefined && b.done !== undefined && a.done <= 1.1 * b.done, `the reaping in ${a.done} hours, ${b.done} unannounced`);
+  assert.ok(a.unmet <= 1.1 * b.unmet, `Q7: ${a.unmet} vital hours unmet, ${b.unmet} unannounced`);
+  console.log(`day, Q7: a reaper ill three days: the reaping done in ${a.done} hours (${b.done} under the whole allotment), vital hours unmet ${a.unmet} (${b.unmet})`);
+}
+console.log('day ok: a day for every household, a list for each member; no random draw; best fit first and the hands spread; the first task with room is taken; saved and loaded; a village\'s review alone allots no day, its task slotted; a holder ill has its tasks slotted to the others');

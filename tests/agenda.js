@@ -125,6 +125,10 @@ const alone = () => {
   Sim.inhabit(s, 0);
   Sim.setAuto(s, s.player.pawn, false);
   s.jobs.get('clear:f0').hours = 8;
+  // the plow's work left fixed (VB-1758): what the others did of it in the first hours depends on when their days were allotted, and
+  // the estimate's error grows with the work left
+  const plow = s.jobs.get('plow:f0.1');
+  plow.hours = VB['sim/work'].doneOf(s, plow) + 15;
   return s;
 };
 const laid = (s) => {
