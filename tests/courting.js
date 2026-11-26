@@ -302,4 +302,18 @@ const last = (st, id, kind) => st.pawns[id].events.map((i) => st.record[i]).filt
   assert.ok(st.pawns[2].courtRefused == null, 'a no of one of the two is no head’s refusal');
   sound(st, 'played');
 }
+// 8. Review of VB-1776, F1: their open offer answered now, out of its time (the child on the way; sim/asking offerKnown, sim/offers
+//    answerNow): the woman played on automatic with nothing queued answers by her judgement at once, as the same woman unplayed
+{
+  const { twins } = require('./lib/twins.js');
+  const { offerKnown } = VB['sim/asking'];
+  const [a] = twins(() => world(true), 2, (st) => {
+    fond(st, 8, 2);
+    goodTalk(st, 8, 2);
+    offerKnown(st, { woman: 2, man: 8, t: st.t, until: st.t + DAY });
+  }, 'the courting pair answered now');
+  const o = a.offers.find((x) => x.courted && x.to === 2);
+  assert.ok(!o || o.answers.find((x) => x.key === 'woman').yes !== null, 'her answer given, played or not');
+  sound(a, 'answered now, played');
+}
 console.log('courting ok: the gate, one at a time, the offer and the marriage, the wait, the refusal and service, the endings, the played pawn');
