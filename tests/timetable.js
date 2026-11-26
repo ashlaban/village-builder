@@ -75,7 +75,7 @@ const head = hh.holder, [m1, m2] = hh.members.filter((m) => dayOf(hh.id).lists[m
   assert.deepStrictEqual(d.fits[m1], [f[1], f[0], ...f.slice(2)], 'their fits with them');
   assert.deepStrictEqual(d.hours[m1], [h[1], h[0], ...h.slice(2)], 'their hours with them');
   assert.deepStrictEqual(d.edited, { t: st.t, by: head }, 'the day says the head changed it');
-  assert.deepStrictEqual(Sim.timetable(st, hh).edited, d.edited, 'and the timetable says so');
+  assert.deepStrictEqual(Sim.timetable(st, hh).edited, { ...d.edited, who: 'the head' }, 'and the timetable says so, in words (VB-1756)');
 }
 
 // 3b. A pawn's own day's order (VB-1756): the op dayOrder on its own plan (the verb plan, target the pawn) reorders its own list, for a
@@ -90,6 +90,7 @@ const head = hh.holder, [m1, m2] = hh.members.filter((m) => dayOf(hh.id).lists[m
     assert.strictEqual(own(mem, mem, { from: 0, to: 1 }), true, 'a member reorders its own list');
     assert.deepStrictEqual([d.lists[mem], d.fits[mem], d.hours[mem]], [[l[1], l[0], ...l.slice(2)], [f[1], f[0], ...f.slice(2)], [h[1], h[0], ...h.slice(2)]], 'its entries with their fits and hours');
     assert.deepStrictEqual(d.edited, { t: st.t, by: mem }, 'the day says the member changed it');
+    assert.strictEqual(Sim.timetable(st, hh).edited.who, Sim.fullName(st.pawns[mem]), "the card names the member, not the head (review F1)");
     assert.strictEqual(own(mem, mem, { from: 1, to: 0 }), true, 'and back');
   } else assert.fail('a member besides the head has two tasks in its list');
   const loner = st.pawns.find((p) => p.died === null && p.household === null);

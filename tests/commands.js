@@ -634,6 +634,14 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   const hh = s.households.find((h) => !h.dissolved && h.members.length > 1),
     mem = hh.members.find((m) => m !== hh.holder && s.pawns[m].died === null);
   assert.ok(!/no plan op/.test(String(issue(s, { actor: mem, verb: 'plan', target: { kind: 'pawn', id: mem }, args: { op: 'dayOrder', from: 0, to: 99 }, source: 'pawn' }))), "dayOrder is an op of a pawn's own plan");
+  // each act reached is accepted for a pawn no one plays (review F4): a chain at a tile, the queue and the switch; the day's order,
+  // leave and hands in tests/timetable.js 3b, tests/voice.js and tests/helpers.js
+  assert.strictEqual(s.player, null, 'no pawn is played');
+  const farm = s.farmsteads[hh.farmstead], chained = farm.fields.map((x) => x.tile).find((t) => Sim.plan(s, hh.holder, 'add', { plant: t }) === true);
+  assert.ok(chained !== undefined, 'chain: an unplayed head plans the planting of a field of its farm, a task at a tile through several steps');
+  assert.strictEqual(Sim.queue(s, mem, { verb: 'idle', args: { until: s.t } }), true, 'queue: an unplayed pawn queues a command');
+  assert.strictEqual(Sim.unqueue(s, mem, 0), true, 'and takes it off');
+  assert.strictEqual(Sim.setAuto(s, mem, true), true, 'auto: an unplayed pawn sets its switch');
   // 2. the facade, function by function
   const ISSUES = ['command', 'head', 'queue', 'unqueue', 'setAuto', 'wish', 'answer', 'orderVisit', 'plan'];
   const FRAME = ['inhabit', 'uninhabit', 'succeed']; // st.player, the frame: which pawn the page shows (design.md section 15)
@@ -644,7 +652,27 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   const CACHES = { waterOf: 'farmstead.water, the source sim/water finds once a year (its find), kept on the farm' };
   for (const k of listed) assert.ok(typeof Sim[k] === 'function', `Sim.${k} is listed and no function of the facade`);
   for (const k of Object.keys(CACHES)) assert.ok(typeof Sim[k] === 'function' && !listed.has(k), `Sim.${k}: a cache is a read's`);
-  const reads = fns.filter((k) => !listed.has(k));
+  // the reads, listed too (review F2): a function of the facade in no list fails, so that a new one is placed by hand, and a read is
+  // still called on the state below, a second guard
+  const READS = ['save', 'recordOf', 'headView', 'timetable', 'callCost', 'taskLeft', 'taskFrom', 'taskStop', 'sheetNotes', 'controlOf',
+    'wishesOf', 'opportunities', 'offerPreview', 'fairSides', 'swapTerms', 'foodDays', 'successor', 'villageSummary', 'supplyOutlook',
+    'siteWater', 'giftOutlook', 'harvestEstimate', 'villageOutlook', 'cal', 'age', 'birthYear', 'fullName', 'spouseOf', 'childrenOf',
+    'siblingsOf', 'spousesOf', 'kinship', 'kinDegree', 'describe', 'pastimeOf', 'villageOf', 'dark', 'heirRanking', 'practice',
+    'farmPractice', 'wantsOut', 'isHolder', 'holdingOf', 'standingParts', 'moodOf', 'sleepOf', 'planView', 'fireView', 'waits', 'moodWord',
+    'traitLabels', 'traitAct', 'settlementIdOf', 'membersOf', 'voiceOf', 'hooks', 'ownerOf', 'seedReserve', 'grainOf', 'shareOwed',
+    'fieldsWanted', 'fieldView', 'plotProgress', 'placeOf', 'poseOf', 'explainIdle', 'idleLine', 'thirstLine', 'reasonOf', 'reasonLine',
+    'why', 'plans', 'agenda', 'planGaps', 'byRiver', 'wetFactor', 'ditchOf', 'tilthOf', 'compat', 'bond', 'bondWord', 'opinionOf',
+    'opinionWord', 'relationsOf', 'heard', 'reasonsOf', 'meansOf', 'marryBar', 'herdsOf', 'dailyHay', 'winterNeed', 'stalled', 'years',
+    'describeHerds', 'herdReport', 'larderOf', 'quernYears', 'houseTarred', 'boothCondition', 'stakedBooths', 'buildMenu', 'placeWhy',
+    'moveCost', 'farmView', 'boatUntarred', 'team', 'withOxen', 'inMilk', 'claimsOn', 'claimStrength', 'holdings', 'knowsDeposit',
+    'depositKnown', 'goodwillOf', 'explainAllowance', 'inScope', 'storesOf', 'explainFeast', 'depositLeftNow', 'woodOf', 'giftWarning',
+    'giftCarriers', 'kinHouseholds', 'notable', 'eventLine', 'chronicle', 'villageLog', 'skipFrom', 'skipStop', 'gatherings', 'visitState'];
+  const lists = { ISSUES, FRAME, WORLD, DEBUG: Sim.DEBUG, CACHES: Object.keys(CACHES), READS }, { misplaced } = require('./lib/facade.js');
+  assert.deepStrictEqual(misplaced(Sim, lists), [], 'each function of the Sim facade is listed once, in ISSUES (it issues a verb), FRAME, WORLD, DEBUG, CACHES or READS');
+  // a mutator planted on the facade, writing only when given a boolean, is seen as new, whatever the calls below would make of it
+  assert.deepStrictEqual(misplaced({ ...Sim, planted: (st, id, on) => { if (on === true) st.t += 0; } }, lists), ['planted'], 'a new function in no list is caught');
+  for (const k of READS) assert.ok(typeof Sim[k] === 'function', `Sim.${k} is listed as a read and no function of the facade`);
+  const reads = READS;
   const saved = (st) => JSON.stringify(Sim.save(st));
   const tries = [[s], [s, mem], [s, hh], [s, hh.id], [s, mem, mem], [s, hh, mem], [s, mem, 0], [s, { kind: 'household', id: hh.id }]];
   const changed = [];
