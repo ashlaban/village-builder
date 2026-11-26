@@ -247,6 +247,36 @@ assert(PH.key === 'clear:f0' && PH.kind === 'clear' && !('steps' in PH) && PH.th
   assert(seq.length && seq.every((k) => k === 'reap' || k === 'haul') && seq[0] === 'reap', `the reaping laid first in the three days, the mowing not before summer: ${seq}`);
 }
 
+// VB-1746: an unplayed pawn's agenda, gaps and build menu, through the keyed calls, as the played pawn's: twin states, the farmer played
+// in one and not in the other (no st.player there), the same plan; then a command queued for it by hand goes first in both.
+{
+  const twin = (play) => {
+    const s = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 });
+    s.naturalDeaths = false;
+    Sim.advance(s, 3);
+    for (const p of s.pawns) if (p.id !== 0 && p.alive) VB['sim/lifecycle'].killPawn(s, p.id);
+    Sim.advance(s, 0.1);
+    if (play) Sim.inhabit(s, 0);
+    assert.strictEqual(Sim.setAuto(s, 0, false), true);
+    assert.strictEqual(Sim.plan(s, 0, 'routine', { kinds: ['water', 'wood'] }), true);
+    assert.strictEqual(Sim.plan(s, 0, 'sleep', { from: 22, until: 6 }), true);
+    for (const key of ['clear:f0', 'plow:f0.1']) assert.strictEqual(Sim.plan(s, 0, 'add', { key }), true);
+    return s;
+  };
+  const U = twin(false), Y = twin(true), keyed = (s) => {
+    const before = structuredClone(s), r = { agenda: Sim.agenda(s, 0), gaps: Sim.planGaps(s, 0), menu: Sim.buildMenu(s, 0) };
+    assert(isDeepStrictEqual(before, s), 'the keyed views wrote to st');
+    return r;
+  };
+  assert(!U.player && U.pawns[0].control.plan.tasks.length === 2, 'the unplayed pawn holds its plan, with no player');
+  const u = keyed(U), y = keyed(Y);
+  assert(u.agenda && u.agenda.days.length === 3 && u.agenda.plan.length === 2, 'its plan laid into days');
+  assert.deepStrictEqual(u, y, "the same agenda, gaps and menu as the played pawn's");
+  for (const s of [U, Y]) assert.strictEqual(Sim.queue(s, 0, { actor: 0, verb: 'walkTo', target: s.villages[0].center }), true);
+  assert.strictEqual(Sim.agenda(U, 0).days[0][0].what, 'queue', 'its hand command first');
+  assert.deepStrictEqual(Sim.agenda(U, 0), Sim.agenda(Y, 0), "and the same as the played pawn's");
+}
+
 // the layout and the feeder agree: what the pawn did, hour by hour over the three days (sampled each tenth), against what `days` said
 // at the start: the same act (sleep, routine of a kind, a task by its key, free), but within the estimate's error of a join
 const TOL = 3, joins = L.days.flat().slice(1).map((g) => g.from);

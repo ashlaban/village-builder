@@ -483,8 +483,45 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   assert.match(h.text, /wants no more hay/);
   sound(st, 'the rules named');
 }
+// 11. VB-1746: an unplayed pawn's plan, driven through the keyed calls, as the played pawn's: on twin states, the farmer played in one and
+// not in the other (no st.player there), the same routine, task and sleep, automatic behaviour off; the same commands begun, the same
+// plan left, the same view.
+{
+  const ops = (st, id) => {
+    assert.strictEqual(Sim.setAuto(st, id, false), true);
+    assert.strictEqual(Sim.plan(st, id, 'routine', { kinds: ['water', 'wood'] }), true);
+    assert.strictEqual(Sim.plan(st, id, 'add', { key: 'clear:f0' }), true);
+    assert.strictEqual(Sim.plan(st, id, 'sleep', { from: 22, until: 6 }), true);
+  };
+  const run = (st) => {
+    const begun = [];
+    let seen = null;
+    for (let i = 0; i < 2 * 240; i++) {
+      Sim.advance(st, 0.1);
+      const c = Sim.controlOf(st, FARMER).queue[0];
+      if (c && c.plan && c.begun !== null && c !== seen) {
+        seen = c;
+        begun.push([Math.floor(st.t / DAY), c.plan.from, c.plan.kind, Math.round(hour(st) * 10) / 10]);
+      }
+    }
+    return begun;
+  };
+  const mine = make(), theirs = make();
+  Sim.inhabit(mine, FARMER);
+  ops(mine, mine.player.pawn);
+  ops(theirs, FARMER);
+  assert(!theirs.player && theirs.pawns[FARMER].control.plan, 'the unplayed pawn holds its plan, with no player');
+  assert.deepStrictEqual(Sim.planView(theirs, FARMER), Sim.planView(mine, FARMER), 'the same view, planned');
+  const a = run(mine), b = run(theirs);
+  assert(b.some((x) => x[1] === 'routine') && b.some((x) => x[1] === 'task') && b.some((x) => x[1] === 'sleep'), `fed from each part: ${JSON.stringify(b)}`);
+  assert.deepStrictEqual(b, a, 'the same commands begun from its plan');
+  assert.deepStrictEqual(theirs.pawns[FARMER].control.plan, mine.pawns[FARMER].control.plan, 'the same plan left');
+  assert.deepStrictEqual(Sim.planView(theirs, FARMER), Sim.planView(mine, FARMER), 'the same view, followed');
+  assert.deepStrictEqual(Sim.waits(theirs, FARMER), Sim.waits(mine, FARMER), 'the same waits');
+  sound(theirs, 'unplayed, planned');
+}
 console.log('plan: ops and refusals; the routine once a day in order, the tasks in order, a finished task leaves; hand commands first; '
   + 'sleep by the plan\'s hours, a night worked by hand; a clearing over two days; saved and loaded; a plant task from clearing to '
   + 'sowing, shorter on a broken field, dropped when its window shuts; a hay task from mowing to hay home, a harvest task from reaping '
   + 'to the sheaves in, the gaps; a marked tile\'s project begun by the head\'s verb; fields and a meadow begun side by side by the '
-  + 'played head, why each task waits; the hand start; the household\'s rule that holds a step back');
+  + 'played head, why each task waits; the hand start; the household\'s rule that holds a step back; an unplayed pawn\'s plan as the played one\'s');

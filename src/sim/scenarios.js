@@ -548,7 +548,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.routeCosts: Map of route key to the choice cost of a st.pathCache route its search found (sim/routes); derived
     // @state st.talks: number; talks since the start (sim/relations)
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
-    // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)
+    // @state st.player: null, or the frame of the pawn the player inhabits (see sim/player; its controller, sim/controller)
     // @state st.offers, st.offerSeq: the open offers and the next offer's id (see sim/offers)
     // @state st.occasions, st.occasionSeq: the occasions called and not over, and the next one's id (see sim/occasions)
     // @state st.away, st.awaySeq: the open stays away from home, journeys among them, and the next one's id (see sim/away, VB-783)
