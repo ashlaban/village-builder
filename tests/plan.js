@@ -519,6 +519,22 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   assert.deepStrictEqual(Sim.planView(theirs, FARMER), Sim.planView(mine, FARMER), 'the same view, followed');
   assert.deepStrictEqual(Sim.waits(theirs, FARMER), Sim.waits(mine, FARMER), 'the same waits');
   sound(theirs, 'unplayed, planned');
+  // a task at a tile no one has marked (VB-1651: the head's own verb begins its field there), the unplayed head's as the played one's:
+  // kept, not dropped as gone at the next step (review of VB-1746, F1)
+  const free = 38, twins = [make(), make()];
+  Sim.inhabit(twins[0], FARMER);
+  for (const s of twins) {
+    assert.strictEqual(Sim.setAuto(s, FARMER, false), true);
+    assert.strictEqual(s.plans.households.get(0).tiles?.field === free, false, 'the tile unmarked');
+    assert.strictEqual(Sim.plan(s, FARMER, 'add', { plant: free }), true);
+    Sim.advance(s, 0.2);
+  }
+  const [pm, pt] = twins.map((s) => s.pawns[FARMER].control.plan);
+  assert.deepStrictEqual(pm.tasks.map((t) => t.plant), [free], 'the played head keeps its task');
+  assert.deepStrictEqual(pt, pm, 'the unplayed head keeps it as well');
+  for (let i = 0; i < 40; i++) for (const s of twins) Sim.advance(s, 0.1);
+  assert.deepStrictEqual(twins[1].pawns[FARMER].control.plan, twins[0].pawns[FARMER].control.plan, 'and goes on with it the same');
+  assert.deepStrictEqual(Sim.planView(twins[1], FARMER), Sim.planView(twins[0], FARMER), 'the same view of it');
 }
 console.log('plan: ops and refusals; the routine once a day in order, the tasks in order, a finished task leaves; hand commands first; '
   + 'sleep by the plan\'s hours, a night worked by hand; a clearing over two days; saved and loaded; a plant task from clearing to '

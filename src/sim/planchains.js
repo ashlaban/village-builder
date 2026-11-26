@@ -21,7 +21,7 @@ VB['sim/planchains'] = (() => {
   const { VERBS } = VB['sim/commands'];
   const { WOOD_HOURS, fuelFree, timberOf } = VB['sim/chores'];
   const { woodWhy } = VB['sim/territory'];
-  const { plansIn } = VB['sim/controller'];
+  const { plansIn, planOf } = VB['sim/controller'];
   // ---- a task at a tile (VB-1649, VB-1650; Kim, 24 Nov 2026): a chain of steps carried at one tile ----
   // A chain is declared as data (CHAINS): the land project a tile the head has marked for it begins (`mark`: 'field' or 'meadow', or
   // null), what of the household's stands at a tile for it (`at`, given the task when it is read for one, VB-1668: {f, fd} a field,
@@ -454,8 +454,9 @@ VB['sim/planchains'] = (() => {
   // The chain of task t (a task at a tile: no key), or null for a task by key.
   const chainOf = (t) => (t.key === undefined && CHAINS[t.kind] ? t.kind : null);
   // What stands at `tile` for chain `name` of household hid: the chain's own (`at`), else the tile the head has marked for its next field
-  // or meadow (sim/plans, plan.tiles) as {mark, f, tile}; else, for a task already planned (`planned`), its tile as one the played head's
-  // verb `project` begins a field or meadow on (VB-1651: no mark needed; {mark, f, tile, free: true}); null for nothing.
+  // or meadow (sim/plans, plan.tiles) as {mark, f, tile}; else, for a task already planned (`planned`), its tile as one the head's
+  // verb `project` begins a field or meadow on, when the head plans for itself (VB-1651: no mark needed; {mark, f, tile, free: true});
+  // null for nothing.
   function chainWhere(st, hid, name, tile, planned = false, task = null) {
     if (hid === null || hid === undefined || !Number.isInteger(tile) || tile < 0) return null;
     const C = CHAINS[name],
@@ -463,10 +464,10 @@ VB['sim/planchains'] = (() => {
     if (where) return where;
     const plan = C.mark && st.plans.households.get(hid);
     if (plan && plan.tiles && plan.tiles[C.mark] === tile) return { mark: C.mark, f: homeOf(st, hid), tile };
-    return planned && C.mark && headPlayed(st, hid) ? { mark: C.mark, f: homeOf(st, hid), tile, free: true } : null;
+    return planned && C.mark && headPlans(st, hid) ? { mark: C.mark, f: homeOf(st, hid), tile, free: true } : null;
   }
-  // Whether household hid's head is the played pawn.
-  const headPlayed = (st, hid) => !!st.player && st.households[hid].holder === st.player.pawn;
+  // Whether household hid's head plans for itself: its controller holds a plan (VB-1746: any pawn's, the played head's before).
+  const headPlans = (st, hid) => planOf(st, st.households[hid].holder) !== null;
   // The head's check, through its own verb (sim/plans' project: only the head changes its plan), or null.
   const headCmd = (id, hid, args) => ({ actor: id, verb: 'project', target: hid, args, source: 'player' });
   // Why the played pawn `id` cannot plan chain `name` at `tile`, or null; a marked tile only by the head of the household, and any other
