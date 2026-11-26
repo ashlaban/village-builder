@@ -119,7 +119,7 @@ const spareNeed = (st, hh) => VB['sim/help'].askDaysAt(st) * VB['sim/hunger'].da
 { // the lender is played and answers later: what it lends then is at most what is still lacking (F1)
   const st = fresh(), { a, c } = pair(st);
   rich(st, c, 900);
-  VB.sim.inhabit(st, c.holder); VB.sim.setAuto(st, st.player.pawn, true); // its controller (VB-1745)
+  VB.sim.inhabit(st, c.holder); VB.sim.setAuto(st, st.player.pawn, false); // its controller answers (VB-1745; VB-1776: on automatic, its judgement at once)
   a.askedIn = seasonOf(st.t);
   assert.strictEqual(borrow(st, a), true, 'it asks');
   const o = st.offers.find((x) => x.basis === 'loan' && x.to === c.holder);

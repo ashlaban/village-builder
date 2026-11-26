@@ -173,7 +173,7 @@ const { twins } = require('./lib/twins.js');
     lean(st, 2, 0, true);
     return st;
   };
-  const day = (st) => VB['sim/events'].emit(st, 'planReviewed', { why: 'day', plan: st.plans.households.get(0) });
+  const day = (st) => VB['sim/events'].emit(st, 'planReviewed', { why: 'day', plan: st.plans.households.get(0), c: Sim.cal(st.t) });
   const [r] = twins(scene, 0, day, 'the retired at the planning day');
   assert.strictEqual(r.pawns[0].advisedIn, Math.floor(r.t / YEAR), 'the played retired on automatic advises');
   const [g] = twins(scene, 5, day, 'the grandchild advised for');

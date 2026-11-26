@@ -38,7 +38,7 @@ assert.ok(wed, 'the scene: a marriage in the round with a bride who speaks for h
 const man = wed.pawn, woman = wed.other, home = wed.household, head = start.households[home].holder;
 assert.ok(man !== undefined && head !== man && plain.st.households[home].holder === man, 'the scene: a son marries and takes over the farm');
 assert.deepStrictEqual(plain.st.offers, [], 'no player: every match asked is answered or lapsed by the round\'s end');
-const play = (id) => (st) => { assert.strictEqual(Sim.inhabit(st, id), true); };
+const play = (id) => (st) => { assert.strictEqual(Sim.inhabit(st, id), true); Sim.setAuto(st, id, false); }; // the player answers for it (VB-1776: on automatic, its pawn's judgement answers at once)
 
 // 1. spokesmanOf: a son of the house is spoken for by its holder; a holder, and one who speaks for itself, by itself.
 {
@@ -119,6 +119,7 @@ const round = (st) => roll(st, () => Sim.movingRound(st));
   round(st);
   assert.ok(st.offers.every((x) => x.basis === 'handover' && x.to === man), 'the match is closed; the handover asks the played heir (VB-692)');
   assert.strictEqual(R.spouseOf(st, man), woman, 'married at the round');
+  Sim.setAuto(st, man, true); // his own logic again: his household's asks of leave answered at once (VB-1776), the handover left open
   Sim.advance(st, 8 * Sim.DAY);
   assert.deepStrictEqual(st.offers, []);
   assert.strictEqual(st.pawns[woman].household, home); assert.strictEqual(st.households[home].holder, man, 'and the handover follows, unanswered, at its due time');
@@ -162,6 +163,7 @@ const round = (st) => roll(st, () => Sim.movingRound(st));
   const st = scenario('populous', SEED); st.naturalDeaths = false;
   for (const h of st.households) h.grain.barley += 5000;
   Sim.inhabit(st, man);
+  Sim.setAuto(st, man, false); // the player answers for it (VB-1776: on automatic, its pawn's judgement answers at once)
   const from = Sim.skipFrom(st);
   assert.strictEqual(from.offer, st.offerSeq);
   askAll(st);

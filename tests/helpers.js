@@ -127,6 +127,7 @@ const adults = (st, hh) => hh.members.filter((id) => st.pawns[id].alive && age(s
 {
   const { st, A, B } = make();
   Sim.inhabit(st, A.holder);
+  Sim.setAuto(st, A.holder, false); // the player answers for it (VB-1776: on automatic, its pawn's judgement answers at once)
   assert.strictEqual(ask(st, B.holder, A.holder, { hands: 1, hours: 4 }), true);
   const o = st.offers.find((x) => x.basis === 'help');
   assert.ok(o && o.answers[0].by === A.holder && !st.handsToday?.by?.[adults(st, A)[0]], 'the played head is asked, and nothing is lent before it answers');
