@@ -12,6 +12,7 @@ VB['sim/upgrade'] = (() => {
   const { register, issue } = VB['sim/commands'];
   const Camp = VB['sim/camp'];
   const { living } = VB['sim/records'];
+  const { controlOf } = VB['sim/controller'];
   const { on, emit } = VB['sim/events'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
@@ -198,7 +199,7 @@ VB['sim/upgrade'] = (() => {
   // automatic behaviour off raises outside the slack of the year, as it builds its cottage (VB-1660: the plan says when); any other head
   // raises in the slack (the wait `opens`, what: 'the slack of the year'). It leaves when the house stands on stone ('raised') or the
   // household or its house is gone ('gone').
-  const handAt = (st, hh) => !!st.player && !st.player.auto && hh.holder === st.player.pawn;
+  const handAt = (st, hh) => !!st.player && hh.holder === st.player.pawn && !controlOf(st, hh.holder).auto;
   const inSlack = (c) => (c.season === 1 && c.sday < SEASON_DAYS / 2) || c.season === 3;
   // The game hour the raising may be posted from: now in the slack (or for the played head by hand), else the next slack's first day.
   function raiseFrom(st, hh) {

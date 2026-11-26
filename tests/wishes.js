@@ -74,7 +74,7 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
   Sim.inhabit(played, cast.claimant);
   for (const st of [plain, played]) { Sim.movingRound(st); Sim.advance(st, Sim.DAY); }
   dropKind(played, 'player');
-  played.player = null;
+  played.player = null; for (const p of played.pawns) delete p.control; delete played.controlled; delete played.queued; // and its controller (VB-1745)
   for (const st of [plain, played]) delete st.pawns[cast.claimant].wish; // the player's mark: its pawn chose no wish of its own
   assert.strictEqual(hash(played), hash(plain), 'a played pawn with no wishes changes nothing at the round');
 }

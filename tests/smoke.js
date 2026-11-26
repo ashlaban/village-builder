@@ -629,7 +629,7 @@ function notices() {
 // from the Myself list, a gift from the Household list's form (Give all the same, if the floor's warning asks), and Walk here's tool takes
 // the tile tapped on the map, the camera following the pawn.
 async function actionBar() {
-  const Sim = win.Sim, st = P.st, q = (sel) => doc.querySelector(sel), queue = () => st.player.queue.map((c) => c.verb);
+  const Sim = win.Sim, st = P.st, q = (sel) => doc.querySelector(sel), queue = () => Sim.controlOf(st, st.player.pawn).queue.map((c) => c.verb);
   q('[data-speed="0"]').click();
   const holder = st.pawns.find((p) => p.alive && p.age >= 18 && Sim.isHolder(st, p.id) && Sim.holdingOf(st, p.id)
     && Sim.grainOf(Sim.holdingOf(st, p.id)) - Sim.seedReserve(st, Sim.holdingOf(st, p.id)) >= 5);
@@ -707,10 +707,10 @@ async function actionBar() {
       q('#actMenu [data-swap="go"]').click(); tick(1);
       if (!/4 rations short of its floor/.test(q('#actMenu').textContent) || queue().includes('offer')) fail('the swap under the floor is not warned first');
       q('#actMenu [data-swap="confirm"]').click(); tick(1);
-      const c = st.player.queue.find((x) => x.verb === 'offer');
+      const c = Sim.controlOf(st, st.player.pawn).queue.find((x) => x.verb === 'offer');
       if (!c || c.target !== other.id || c.args.basis !== 'swap' || c.args.gives.n !== 2 || c.args.wants.good !== 'tar') fail(`the swap is not queued: ${JSON.stringify(c)}`);
       console.log('action bar, the fair:', JSON.stringify(c && c.args));
-      if (c) Sim.unqueue(st, st.player.queue.indexOf(c));
+      if (c) Sim.unqueue(st, Sim.controlOf(st, st.player.pawn).queue.indexOf(c));
     }
     Sim.fairSides = real.f; Sim.swapTerms = real.t;
   }
@@ -737,14 +737,14 @@ async function actionBar() {
   const by = q('#giveBy'), byVal = by && by.value;
   if (!by || !by.querySelector('option[value="fetch"]')) fail('the gift\'s form does not say who carries it');
   q('#actMenu [data-give="go"]').click(); tick(1);
-  const carried = st.player.queue.find((c) => c.verb === 'give');
+  const carried = Sim.controlOf(st, st.player.pawn).queue.find((c) => c.verb === 'give');
   if (carried && (byVal === 'fetch' ? carried.args.carrier !== undefined : carried.args.carrier !== +byVal)) {
     fail(`the gift's carrier is not the one the form names (${byVal}): ${JSON.stringify(carried.args)}`); }
   if (q('#actMenu [data-give="confirm"]')) { q('#actMenu [data-give="confirm"]').click(); tick(1); }
-  const gift = st.player.queue.find((c) => c.verb === 'give');
+  const gift = Sim.controlOf(st, st.player.pawn).queue.find((c) => c.verb === 'give');
   if (!gift || gift.target !== +opt.value || gift.args.n !== 5 || !/^Queued: 5 grain/.test(q('#actMenu .act-msg').textContent)) {
     fail(`the gift was not queued: ${JSON.stringify(gift)}`); }
-  while (st.player.queue.length) Sim.unqueue(st, 0);
+  while (Sim.controlOf(st, st.player.pawn).queue.length) Sim.unqueue(st, 0);
   // VB-691: the played head asks by the same form, the household's holder answering: an offer on the basis ask
   if (!q('#actMenu [data-give="ask"]')) { q('#actBar [data-group="house"]').click(); tick(1); q('#actMenu [data-view="give"]').click(); tick(1); }
   const askBtn = q('#actMenu [data-give="ask"]');
@@ -752,12 +752,12 @@ async function actionBar() {
     if (!askBtn) fail('the gift\'s form has no ask');
     else {
       askBtn.click(); tick(1);
-      const ask = st.player.queue.find((c) => c.verb === 'offer' && c.args && c.args.basis === 'ask');
+      const ask = Sim.controlOf(st, st.player.pawn).queue.find((c) => c.verb === 'offer' && c.args && c.args.basis === 'ask');
       if (!ask || ask.target !== st.households[+opt.value].holder || ask.args.wants.n !== 5 || !/^Queued: an ask of 5 grain/.test(q('#actMenu .act-msg').textContent)) {
         fail(`the ask was not queued: ${JSON.stringify(ask)}`); }
     }
   }
-  while (st.player.queue.length) Sim.unqueue(st, 0);
+  while (Sim.controlOf(st, st.player.pawn).queue.length) Sim.unqueue(st, 0);
   // Walk here: the camera follows the pawn, and a tap at the view's middle (the page's 0, 0 here) is its tile
   q('#queueBtn').click(); tick(1); q('#playBox [data-play="follow"]').click(); tick(200); // the camera glides to the pawn, wherever its work has taken it
   q('#actBar [data-group="self"]').click(); tick(1); q('#actMenu [data-bar="walk"]').click(); tick(1);

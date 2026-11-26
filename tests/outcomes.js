@@ -28,7 +28,7 @@ function make() {
   const mk = (key, kind) => post(st, key, kind, owner, site, { hours: 10 });
   return { st, two: mk('o:two', 'oTwo'), one: mk('o:one', 'oOne'), part: mk('o:part', 'oPart') };
 }
-const q = (st) => st.player.queue;
+const q = (st) => Sim.controlOf(st, st.player.pawn).queue;
 const queueWork = (st, j) => assert.strictEqual(Sim.queue(st, { actor: FARMER, verb: 'work', target: j.key }), true);
 
 // 1. The dispatcher: three outcomes, and issue's contract kept; both reach the verb's run once; a refusal changes nothing.
@@ -111,7 +111,7 @@ const queueWork = (st, j) => assert.strictEqual(Sim.queue(st, { actor: FARMER, v
   assert.strictEqual(issue(st, workCommand(WIFE, one.key, 'planner')), true);
   const claims = [...one.claims];
   playerStep(st);
-  assert.ok(/has no room/.test(st.player.refused.why) && st.player.refused.verb === 'work');
+  assert.ok(/has no room/.test(Sim.controlOf(st, st.player.pawn).refused.why) && Sim.controlOf(st, st.player.pawn).refused.verb === 'work');
   assert.deepStrictEqual(one.claims, claims, 'the refusal took no place');
   assert.ok(q(st).length === 1 && q(st)[0].verb === 'idle' && q(st)[0].begun !== null, 'and the next command is under way');
   assert.deepStrictEqual(q(st)[0].ref, { until: q(st)[0].args.until });
@@ -128,23 +128,23 @@ const queueWork = (st, j) => assert.strictEqual(Sim.queue(st, { actor: FARMER, v
   const { st, two } = make();
   queueWork(st, two); Sim.queue(st, { actor: FARMER, verb: 'idle', args: { until: st.t + 2 } }); playerStep(st);
   const data = JSON.parse(JSON.stringify(Sim.save(st))), back = Sim.load(tinyWorld(rows), data);
-  assert.deepStrictEqual(back.player.queue[0].ref, q(st)[0].ref);
+  assert.deepStrictEqual(Sim.controlOf(back, back.player.pawn).queue[0].ref, q(st)[0].ref);
   const n = back.agents[FARMER].assigned.assignments;
   playerStep(back);
-  assert.ok(back.player.queue.length === 2 && back.agents[FARMER].assigned.assignments === n, 'resumed, not issued again');
+  assert.ok(Sim.controlOf(back, back.player.pawn).queue.length === 2 && back.agents[FARMER].assigned.assignments === n, 'resumed, not issued again');
   for (const s of [st, back]) Sim.advance(s, 2);
   assert.strictEqual(hash(back), hash(st), 'the loaded run and the saved one agree');
   sound(back, 'loaded mid-assignment');
   // an older save: the head begun with no reference
   const r = make(); queueWork(r.st, r.two); Sim.queue(r.st, { actor: FARMER, verb: 'idle', args: { until: r.st.t + 2 } }); playerStep(r.st);
   const saved = JSON.parse(JSON.stringify(Sim.save(r.st)));
-  delete saved.state.player.queue[0].ref;
+  delete saved.state.pawns[FARMER].control.queue[0].ref;
   const legacy = Sim.load(tinyWorld(rows), saved);
-  assert.strictEqual(legacy.player.queue[0].ref, undefined);
+  assert.strictEqual(Sim.controlOf(legacy, legacy.player.pawn).queue[0].ref, undefined);
   sound(legacy, 'an older save');
-  playerStep(legacy); assert.strictEqual(legacy.player.queue.length, 2, 'on the job, the old command waits');
+  playerStep(legacy); assert.strictEqual(Sim.controlOf(legacy, legacy.player.pawn).queue.length, 2, 'on the job, the old command waits');
   A.release(legacy, legacy.agents[FARMER]); playerStep(legacy);
-  assert.deepStrictEqual(legacy.player.queue.map((c) => c.verb), ['idle'], 'its assignment over, the queue goes on');
+  assert.deepStrictEqual(Sim.controlOf(legacy, legacy.player.pawn).queue.map((c) => c.verb), ['idle'], 'its assignment over, the queue goes on');
 }
 console.log('outcomes ok: done, refused and pending from one execution, issue unchanged; a release ends work though another works on; '
   + 'a fresh taking or a reposted key is another assignment; side work lasts while held; a competing claimant refused, the next issued; '

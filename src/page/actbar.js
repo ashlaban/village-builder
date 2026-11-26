@@ -27,7 +27,7 @@ function paintBar() {
   for (const b of document.querySelectorAll('#actBar [data-group]'))
     b.setAttribute('aria-expanded', String(!!(on && barMenu && barMenu.g === b.dataset.group)));
   $('queueBtn').setAttribute('aria-pressed', String(activePanel === 'actions'));
-  const n = on && pl ? String(pl.queue.length || '') : '';
+  const n = on && pl ? String(Sim.controlOf(st, pl.pawn).queue.length || '') : '';
   if ($('queueCount').textContent !== n) $('queueCount').textContent = n;
 }
 function openBar(queue = false) {

@@ -88,7 +88,10 @@ VB['sim/reasons'] = (() => {
       plan = planOf(st, p.household),
       head = plan && plan.head ? plan.head.pawn : null,
       j = actOf(a);
-    if (commanded(st, id)) return { by: 'player', why: 'you gave the order' };
+    // a controller's order or switch is the player's only on the played pawn; any other pawn's is its own (VB-1745)
+    const played = !!st.player && st.player.pawn === id;
+    if (commanded(st, id))
+      return played ? { by: 'player', why: 'you gave the order' } : { by: 'self', why: 'an order of its own' };
     if (j) {
       const K = KINDS[j.kind],
         why = cause(st, j, c),
@@ -104,7 +107,7 @@ VB['sim/reasons'] = (() => {
         place = i >= 0 ? { at: i, of: list.length } : undefined;
       if (owner.type === 'village')
         return { by: 'village', ...(head !== null && place ? { head, place } : {}), why: why || null };
-      if (!place) return { by: unplanned(st, id) ? 'player' : 'self', why: why || 'taken without the plan' };
+      if (!place) return { by: played && unplanned(st, id) ? 'player' : 'self', why: why || 'taken without the plan' };
       // a task with a deadline today put first in its hand's list is the head's call (sim/jobs allot)
       if (K.late && i === 0) return { by: 'call', head, place, why: why || 'due today' };
       return { by: 'day', head, place, why: why || planned(st, j) };
@@ -122,7 +125,10 @@ VB['sim/reasons'] = (() => {
       if (s && s.why === 'visit') return { by: 'self', why: 'a visit of its own' };
       return { by: 'self', why: 'on the road home' };
     }
-    if (unplanned(st, id)) return { by: 'player', why: 'you have turned its own plans off' };
+    if (unplanned(st, id))
+      return played
+        ? { by: 'player', why: 'you have turned its own plans off' }
+        : { by: 'self', why: 'its own plans are off' };
     const owed = Days.on(st, id),
       lent = Hands.on(st, id);
     if (owed !== null) return { by: 'owed', why: `nothing to take at ${farmName(st, owed)} yet` };

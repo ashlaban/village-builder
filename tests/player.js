@@ -26,8 +26,8 @@ const FARMER = 0, WIFE = 1;
   const plain = make(), played = make();
   assert.strictEqual(plain.player, null, 'no one plays a new run');
   assert.strictEqual(Sim.inhabit(played, FARMER), true);
-  assert.deepStrictEqual(played.player, {
-    pawn: FARMER, auto: true, queue: [], refused: null, since: played.t, left: null, ended: null, last: null, days: [] });
+  assert.deepStrictEqual(played.player, { pawn: FARMER, since: played.t, left: null, ended: null, last: null, days: [] });
+  assert.deepStrictEqual(played.pawns[FARMER].control, { auto: true, queue: [], refused: null }, 'its controller (VB-1745)');
   for (const st of [plain, played]) Sim.advance(st, 5 * Sim.DAY);
   sound(played, 'inhabited and left alone');
   const marks = (list) => list.filter((e) => e.kind === 'player');
@@ -36,7 +36,7 @@ const FARMER = 0, WIFE = 1;
   dropKind(played, 'player');
   // a help refused is told only where the player is one of the two (sim/hands refused): a line of the record, not of behaviour
   dropKind(played, 'offerRefused');
-  played.player = null;
+  played.player = null; delete played.pawns[FARMER].control; delete played.controlled; delete played.queued;
   assert.strictEqual(hash(played), hash(plain), 'an inhabited pawn with no commands changes nothing in five days');
   assert.ok(typeof Sim.inhabit(plain, 9999) === 'string', 'only a living pawn is inhabited');
 }
@@ -49,17 +49,17 @@ const FARMER = 0, WIFE = 1;
   Sim.advance(plain, 1); assert.strictEqual(jobOf(plain, 'wood').claims.length, 0, 'the planner leaves the firewood');
   Sim.inhabit(st, FARMER);
   assert.strictEqual(Sim.queue(st, { actor: FARMER, verb: 'work', target: wood.key }), true);
-  assert.strictEqual(st.player.queue[0].source, 'player'); assert.strictEqual(st.player.queue[0].begun, null);
+  assert.strictEqual(Sim.controlOf(st, st.player.pawn).queue[0].source, 'player'); assert.strictEqual(Sim.controlOf(st, st.player.pawn).queue[0].begun, null);
   Sim.advance(st, 0.1);
   assert.strictEqual(a.job, wood, 'the head of the queue is issued at the next step');
-  assert.ok(st.player.queue.length === 1 && st.player.queue[0].begun !== null, 'and stays the head while its act lasts');
+  assert.ok(Sim.controlOf(st, st.player.pawn).queue.length === 1 && Sim.controlOf(st, st.player.pawn).queue[0].begun !== null, 'and stays the head while its act lasts');
   sound(st, 'a command under way');
   // it lasts until the wood is home: the farmer is not given other work on the way
   let steps = 0;
-  while (st.player.queue.length && steps++ < 100) {
+  while (Sim.controlOf(st, st.player.pawn).queue.length && steps++ < 100) {
     assert.ok(a.job === wood, `on the firewood until it is done (${a.job && a.job.kind})`); Sim.advance(st, 0.1); if (st.jobs.get(wood.key) !== wood) break; }
   Sim.advance(st, 0.3);
-  assert.ok(steps < 100 && st.jobs.get(wood.key) !== wood && !st.player.queue.length, 'the firewood is brought home, and the command is done');
+  assert.ok(steps < 100 && st.jobs.get(wood.key) !== wood && !Sim.controlOf(st, st.player.pawn).queue.length, 'the firewood is brought home, and the command is done');
   assert.ok(a.job || !!a.homeward || a.inside, 'left to itself again, the pawn does as the others: more work, or home at the end of it');
 }
 
@@ -99,7 +99,7 @@ const FARMER = 0, WIFE = 1;
   Sim.inhabit(st, FARMER); assert.strictEqual(Sim.setAuto(st, false), true);
   Sim.queue(st, { actor: FARMER, verb: 'walkTo', target: green });
   while (hour(st) < WORK[1] - 0.2) { Sim.advance(st, 0.1); assert.strictEqual(a.job, null, `no job at ${hour(st).toFixed(1)}`); }
-  assert.ok(!st.player.queue.length && !a.inside && !a.path, 'it walked to the green and stands there');
+  assert.ok(!Sim.controlOf(st, st.player.pawn).queue.length && !a.inside && !a.path, 'it walked to the green and stands there');
   assert.ok(st.agents.some((b) => b.job), 'while the others work');
   Sim.advance(st, 0.3);
   assert.ok(!!a.homeward || a.inside, 'at the end of work it goes home'); // on its way, or home already (12 tiles an hour)
@@ -113,13 +113,13 @@ const FARMER = 0, WIFE = 1;
   Sim.inhabit(st, FARMER);
   Sim.queue(st, { actor: FARMER, verb: 'walkTo', target: far });
   Sim.advance(st, 0.3);
-  assert.ok(hour(st) > WORK[1] && a.path && (!a.job && !a.homeward && !a.journey) && st.player.queue.length === 1, 'still walking after the end of work');
+  assert.ok(hour(st) > WORK[1] && a.path && (!a.job && !a.homeward && !a.journey) && Sim.controlOf(st, st.player.pawn).queue.length === 1, 'still walking after the end of work');
   assert.ok(st.agents.every((b) => b === a || b.inside || !!b.homeward || b.load > 0), 'while the others go home');
   let steps = 0;
   while (a.path && steps++ < 200) Sim.advance(st, 0.1);
   assert.ok(Math.hypot(a.x - st.w.hx[far], a.y - st.w.hy[far]) < 1, 'it arrives where it was sent');
   Sim.advance(st, 0.1);
-  assert.ok(!!a.homeward && !st.player.queue.length, 'and then goes home');
+  assert.ok(!!a.homeward && !Sim.controlOf(st, st.player.pawn).queue.length, 'and then goes home');
 }
 
 // 7. A command is checked when its turn comes: one refused then is dropped with its reason, and the next is issued. The queue itself
@@ -133,25 +133,26 @@ const FARMER = 0, WIFE = 1;
   assert.strictEqual(Sim.queue(st, { actor: FARMER, verb: 'goHome' }), true);
   const at = st.t;
   Sim.advance(st, 0.1);
-  assert.strictEqual(st.player.refused.verb, 'work'); assert.ok(/there is no job/.test(st.player.refused.why)); assert.ok(st.player.refused.t > at);
-  assert.deepStrictEqual(st.player.queue.map((c) => c.verb), ['idle', 'goHome'], 'the refused command is dropped');
-  assert.ok(st.player.queue[0].begun !== null && a.job === null, 'and the next is under way');
+  assert.strictEqual(Sim.controlOf(st, st.player.pawn).refused.verb, 'work'); assert.ok(/there is no job/.test(Sim.controlOf(st, st.player.pawn).refused.why)); assert.ok(Sim.controlOf(st, st.player.pawn).refused.t > at);
+  assert.deepStrictEqual(Sim.controlOf(st, st.player.pawn).queue.map((c) => c.verb), ['idle', 'goHome'], 'the refused command is dropped');
+  assert.ok(Sim.controlOf(st, st.player.pawn).queue[0].begun !== null && a.job === null, 'and the next is under way');
   sound(st, 'a refused command');
-  assert.strictEqual(Sim.unqueue(st, 1), true); assert.deepStrictEqual(st.player.queue.map((c) => c.verb), ['idle']);
+  assert.strictEqual(Sim.unqueue(st, 1), true); assert.deepStrictEqual(Sim.controlOf(st, st.player.pawn).queue.map((c) => c.verb), ['idle']);
   assert.ok(typeof Sim.unqueue(st, 5) === 'string');
   Sim.advance(st, 0.5); assert.strictEqual(a.job, null, 'idling as told, in working hours');
-  Sim.advance(st, 0.8); assert.ok(!st.player.queue.length && a.job, 'until its time is up');
-  while (st.player.queue.length < QUEUE_MAX) assert.strictEqual(Sim.queue(st, { actor: FARMER, verb: 'goHome' }), true);
+  Sim.advance(st, 0.8); assert.ok(!Sim.controlOf(st, st.player.pawn).queue.length && a.job, 'until its time is up');
+  while (Sim.controlOf(st, st.player.pawn).queue.length < QUEUE_MAX) assert.strictEqual(Sim.queue(st, { actor: FARMER, verb: 'goHome' }), true);
   assert.ok(/full/.test(Sim.queue(st, { actor: FARMER, verb: 'goHome' })), 'a ninth command is refused');
   Sim.unqueue(st, 0);
   assert.ok(/no verb fly/.test(Sim.queue(st, { actor: FARMER, verb: 'fly' })), 'an unknown verb is refused');
   assert.ok(/no verb skip/.test(Sim.queue(st, { actor: FARMER, verb: 'skip', args: { hours: 1 } })), 'time is not a pawn\'s to skip');
   assert.ok(/not the player's pawn/.test(Sim.queue(st, { actor: WIFE, verb: 'goHome' })), 'another pawn\'s command is refused');
-  assert.strictEqual(st.player.queue.length, QUEUE_MAX - 1, 'refusals leave the queue as it was');
+  assert.strictEqual(Sim.controlOf(st, st.player.pawn).queue.length, QUEUE_MAX - 1, 'refusals leave the queue as it was');
   // the player moves on: the pawn is its own again, and both are on record
   assert.strictEqual(Sim.inhabit(st, WIFE), true);
   assert.deepStrictEqual(Sim.recordOf(st, { pawn: FARMER, life: true }).filter((e) => e.kind === 'player').map((e) => e.text),
     ['Played by the player', 'No longer played by the player']);
+  assert.strictEqual(st.pawns[FARMER].control, undefined, 'its controller ended with the play');
   assert.strictEqual(Sim.uninhabit(st), true); assert.strictEqual(st.player, null);
   assert.ok(typeof Sim.uninhabit(st) === 'string');
 }
@@ -166,10 +167,11 @@ const FARMER = 0, WIFE = 1;
   Sim.advance(st, 0.1);
   const data = JSON.parse(JSON.stringify(Sim.save(st))), back = Sim.load(tinyWorld(rows), data);
   assert.strictEqual(canon(back.player), canon(st.player), 'the player comes back as saved');
-  assert.strictEqual(back.agents[FARMER].job, back.jobs.get(st.player.queue[0].target), 'on the job its command names');
+  assert.strictEqual(canon(back.pawns[FARMER].control), canon(st.pawns[FARMER].control), 'and its controller');
+  assert.strictEqual(back.agents[FARMER].job, back.jobs.get(Sim.controlOf(st, st.player.pawn).queue[0].target), 'on the job its command names');
   for (const s of [st, back]) Sim.advance(s, Sim.DAY);
   assert.strictEqual(hash(back), hash(st), 'the loaded run and the saved one agree a day later');
-  assert.ok(st.player.refused && !st.player.queue.length, 'the queue ran out, its last command refused');
+  assert.ok(Sim.controlOf(st, st.player.pawn).refused && !Sim.controlOf(st, st.player.pawn).queue.length, 'the queue ran out, its last command refused');
   sound(back, 'loaded');
 }
 console.log('player ok: an inhabited pawn left alone changes nothing in 5 days; queued work goes before the planner, looking up and the call to cook; '

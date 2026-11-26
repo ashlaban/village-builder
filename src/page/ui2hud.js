@@ -230,7 +230,8 @@ function renderHud() {
   hudMarks(id, hh, f);
   renderPlan();
   const hour = Math.floor(st.t),
-    key = `${hud.tab}|${hud.storeKey}|${hour}|${st.player.queue.length}|${st.player.auto}|${followPlayed}|${hud.msg ? hud.msg.text : ''}`;
+    ctl = Sim.controlOf(st, st.player.pawn),
+    key = `${hud.tab}|${hud.storeKey}|${hour}|${ctl.queue.length}|${ctl.auto}|${followPlayed}|${hud.msg ? hud.msg.text : ''}`;
   for (const b of u2.tabs.children) b.setAttribute('aria-pressed', String(b.dataset.tab === hud.tab));
   u2.sheet.hidden = !hud.tab;
   if (!hud.tab || key === hud.key) return;

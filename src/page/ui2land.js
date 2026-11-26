@@ -313,7 +313,9 @@ function hudMarks(id, hh, f) {
     plan =
       hudAils().length +
       JSON.stringify(hudGaps()) +
-      st.player.queue.map((q) => q.target).join() +
+      Sim.controlOf(st, st.player.pawn)
+        .queue.map((q) => q.target)
+        .join() +
       JSON.stringify((hudPlanned() || {}).tasks || 0),
     key = [
       Math.floor(st.t),

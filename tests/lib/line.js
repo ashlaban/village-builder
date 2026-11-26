@@ -101,7 +101,7 @@ function playLine({ scenario = 'founders', seed = 7, map = 'small', size = null,
       if (m && Sim.wish(st, 'match', m.target) === true) line.matchWish = { t: st.t, pawn: id, partner: m.target, married: null };
     }
     // work from the list, some days: the best fit open to it, when it has nothing queued
-    if (day % 3 === 0 && !pl.queue.length) {
+    if (day % 3 === 0 && !Sim.controlOf(st, pl.pawn).queue.length) {
       const wk = opps.find((o) => o.verb === 'work' && o.why === null);
       if (wk) Sim.queue(st, { actor: id, verb: 'work', target: wk.target });
     }

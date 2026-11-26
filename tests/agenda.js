@@ -88,10 +88,10 @@ assert(T.deadline && T.verdict === 'in time' && T.ends > step.ends && T.ends <= 
 
 // a sowing that cannot end within its window: the field's sowing queued an hour before the end of its window's last day
 const f = st.farmsteads[hh.farmstead], fd = f.fields[0], key = `sow:f${f.id}.${fd.id}`;
-const keep = { t: st.t, queue: st.player.queue, had: st.jobs.get(key) };
+const keep = { t: st.t, queue: Sim.controlOf(st, st.player.pawn).queue, had: st.jobs.get(key) };
 const sow = keep.had || { key, kind: 'sow', site: fd.tile, field: fd, farm: f, owner: { type: 'household', id: hh.id }, claims: [], done: 0 };
 st.jobs.set(key, sow);
-st.player.queue = [];
+Sim.controlOf(st, st.player.pawn).queue = [];
 Sim.queue(st, { actor: id, verb: 'work', target: key });
 st.t = a.deadline.t - 1;
 const late = view().queue[0];
@@ -103,7 +103,7 @@ const tight = view().queue[0];
 assert(tight.ends <= tight.deadline.t && tight.verdict === 'tight', JSON.stringify(tight));
 if (was === undefined) delete sow.hours; else sow.hours = was;
 Object.assign(st, { t: keep.t });
-st.player.queue = keep.queue;
+Sim.controlOf(st, st.player.pawn).queue = keep.queue;
 if (keep.had) st.jobs.set(key, keep.had); else st.jobs.delete(key);
 
 // no simulation module names the view: only the Sim facade reads it
@@ -253,7 +253,7 @@ const TOL = 3, joins = L.days.flat().slice(1).map((g) => g.from);
 let n = 0, same = 0, worst = 0;
 while (P.t < (d0 + 3) * DAY - 0.05) {
   Sim.advance(P, 0.1);
-  const q = P.player.queue[0], mark = q && q.plan,
+  const q = Sim.controlOf(P, P.player.pawn).queue[0], mark = q && q.plan,
     did = mark ? `${mark.from}:${mark.from === 'task' ? mark.key : (mark.kind ?? '')}` : q ? 'queue:' : 'free:',
     g = segAt(L, P.t - 0.05),
     said = `${g.what}:${g.what === 'task' ? g.key : (g.kind ?? '')}`;

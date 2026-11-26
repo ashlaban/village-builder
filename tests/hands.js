@@ -43,7 +43,7 @@ check(!isOpen({}, { kind: 'haul', claims: [1], done: 0.7 }) && isOpen({}, { kind
   const ask = (mode) => {
     const st = Sim.seed(world, 7, 'heirs'); Sim.advance(st, 9);
     const hh = st.households[0];
-    if (mode) { Sim.inhabit(st, hh.holder); st.player.auto = mode === 'on'; }
+    if (mode) { Sim.inhabit(st, hh.holder); Sim.setAuto(st, mode === 'on'); }
     const was = VB.count.handsAsked;
     Hands.askFor(st, hh, 40, {});
     return { asks: VB.count.handsAsked - was, today: JSON.stringify(st.handsToday) };

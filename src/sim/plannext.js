@@ -5,6 +5,7 @@ VB['sim/plannext'] = (() => {
   const { cal, DAY, WORK, BOOTH } = VB['sim/rules'];
   const { VERBS } = VB['sim/commands'];
   const { living } = VB['sim/records'];
+  const { controlOf } = VB['sim/controller'];
   const { CHAINS, chainOf, chainSteps, headCmd, pileOf } = VB['sim/planchains'];
   const { asleepAt, today } = VB['sim/playerplan'];
   const Fieldwork = VB['sim/fieldwork'],
@@ -142,7 +143,7 @@ VB['sim/plannext'] = (() => {
       : WAITS.refused(why);
   }
   // ---- what comes next ----
-  const handOf = (pl) => pl.queue.find((c) => !c.plan) || null;
+  const handOf = (st, pl) => controlOf(st, pl.pawn).queue.find((c) => !c.plan) || null;
   // The first job of kind k of the pawn's household that its `work` verb would let it take now, or null.
   function routineJob(st, id, k) {
     const hid = st.pawns[id].household,
@@ -156,7 +157,7 @@ VB['sim/plannext'] = (() => {
   function nextOf(st) {
     const pl = st.player,
       pp = pl && pl.plan;
-    if (!pp || living(st, pl.pawn) || handOf(pl)) return null;
+    if (!pp || living(st, pl.pawn) || handOf(st, pl)) return null;
     const id = pl.pawn;
     if (asleepAt(pp.sleep, cal(st.t).hour)) {
       const cmd = { actor: id, verb: 'sleep', target: null, args: { until: pp.sleep.until }, source: 'player' };
@@ -189,8 +190,8 @@ VB['sim/plannext'] = (() => {
     if (!pp) return { tasks: [], idle: null };
     const id = pl.pawn,
       dead = living(st, pl.pawn),
-      hand = handOf(pl),
-      head = pl.queue[0],
+      hand = handOf(st, pl),
+      head = controlOf(st, id).queue[0],
       inHand = head && head.plan && head.begun !== null ? head.plan : null,
       next = nextOf(st),
       asleep = asleepAt(pp.sleep, cal(st.t).hour),

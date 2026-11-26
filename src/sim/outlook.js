@@ -11,6 +11,7 @@ VB['sim/outlook'] = (() => {
   const { SEASON_DAYS, YEAR_DAYS, FIELDS, HERD, BUILD, PEAT, HELP, cal } = VB['sim/rules'],
     { CROPS, ROTATIONS } = VB['sim/crops'];
   const { on } = VB['sim/events'];
+  const { controlOf } = VB['sim/controller'];
   const Stores = VB['sim/stores'],
     Goods = VB['sim/goods'];
   const Pot = VB['sim/pot'];
@@ -147,7 +148,7 @@ VB['sim/outlook'] = (() => {
   // when a task of the plan covers it; what is held, or needs no work, is counted as for any household.
   const handOf = (st, hh) => {
     const pl = st.player;
-    return !!pl && !pl.auto && st.pawns[pl.pawn].household === hh.id;
+    return !!pl && !controlOf(st, pl.pawn).auto && st.pawns[pl.pawn].household === hh.id;
   };
   const playedOf = (st, hh) => !!st.player && st.pawns[st.player.pawn].household === hh.id;
   const tasksOf = (st) => (st.player && st.player.plan ? st.player.plan.tasks : []);

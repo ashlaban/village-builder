@@ -280,8 +280,10 @@ VB['sim/saves'] = (() => {
   // agent.journey and the walk home agent.homeward; a save holding a pawn mid-phase is another build's, and refused.
   // Format 7 (VB-1752): every body's plan is a record of steps (plan.body, year, season, ahead; st.plans.pawns, stepSeq), a project's steps
   // carry their ids and links and a task names its step; a save without them is another build's, and refused (no migration is written).
-  const FORMAT = 7,
-    READS = [7];
+  // Format 8 (VB-1745): a pawn's switch and queue are its controller's (pawn.control, st.controlled, st.queued), not st.player's; a save
+  // holding them in st.player is another build's, and refused (no migration is written).
+  const FORMAT = 8,
+    READS = [8];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {

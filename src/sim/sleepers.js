@@ -6,6 +6,7 @@ VB['sim/sleepers'] = (() => {
   const { SLEEP, AWAKE } = VB['sim/sleep'];
   const { here, bed } = VB['sim/pose'];
   const { release, free, goHome, idle } = VB['sim/agents'];
+  const { controlOf } = VB['sim/controller'];
   const { living } = VB['sim/records'];
   const { register, issue } = VB['sim/commands'];
   const { WORK, DAY, TICKS } = VB['sim/rules'];
@@ -55,7 +56,7 @@ VB['sim/sleepers'] = (() => {
     if (!s || !a) return; // not reckoned: a pawn with no agent
     if (!(s.owed >= SLEEP.health.over) || (s.until !== null && st.t < s.until)) return;
     if (a.job || a.path || !unbound(a) || a.occasion !== null || a.idleUntil > st.t) return;
-    if (st.player && st.player.pawn === id && !st.player.auto) return;
+    if (!controlOf(st, id).auto) return; // its own logic is off (sim/controller)
     const hours = Math.max(1, Math.ceil(s.owed - SLEEP.mood.over));
     if (issue(st, { actor: id, verb: 'sleep', args: { hours }, source: 'pawn' }) === true) {
       VB.count.sleepOwn++;

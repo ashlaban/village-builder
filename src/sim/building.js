@@ -69,7 +69,8 @@ VB['sim/building'] = (() => {
   // cottage never done in the slack's other work). A farm settled before VB-1666 with no booth staked (sim/settle's mark) builds at once.
   // Whether household hh's head is the played pawn with automatic behaviour off: its plan says when its house is built, not the slack
   // (VB-1660 the cottage's stages, VB-1663 the foundation's raising).
-  const played = (st, hh) => !!st.player && !st.player.auto && hh.holder === st.player.pawn;
+  const played = (st, hh) =>
+    !!st.player && hh.holder === st.player.pawn && !!st.pawns[hh.holder].control && !st.pawns[hh.holder].control.auto;
   function boothWork(st, hh, f, c, post) {
     if (f.shelter && !shelterStands(st, f)) return shelterWork(st, hh, f, post);
     const own = !!f.shelter || homeBooth(st, hh, f);

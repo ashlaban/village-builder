@@ -85,6 +85,8 @@ VB.COUNTERS = {
     'Legs a step takes from the due-queue as they end: walks and waits (sim/legs dueLegs, for sim/agents stepAgents; VB-473)',
   sleepReckon:
     'Pawns whose sleep owed was reckoned: each living pawn once an hour, the played pawn each step (sim/sleepers, VB-1645)',
+  queueRun:
+    'Queues run by the queue step: each step, one a pawn whose controller holds a command (sim/controller queueStep, VB-1745)',
   sleepOwn:
     "Sleeps begun by a pawn's own rule, one that owed a whole night and was free in the working day (sim/sleepers, VB-1645)",
   walkAwake:
