@@ -28,6 +28,7 @@ const FAST = [
   ['node', 'tests/player.js'],
   ['node', 'tests/controller.js'], // VB-1745: an empty controller on every pawn changes nothing; two with automatic off left alone; any pawn's queue
   ['node', 'tests/played.js'], // VB-1753: every read of st.player classed, the rules' allow-list only falls; an authored step stands for any head
+  ['node', 'tests/played-reads.js'], // VB-1753: the count of tests/played.js, a read of who is played through any name
   ['node', 'tests/walkweighed.js'], // VB-781: design.md's The walk weighed agrees with the rules it reckons from (until VB-1677, VB-1678)
   ['node', 'tests/handplan.js'], // VB-1661: by hand the outlook counts what the plan covers, one reckoning of the fire, no stone work held off, the cutting asked
   ['node', 'tests/methods.js'], // VB-1747: sim/methods: the firewood table's five rows; 1,000 seeded runs under cuts, two owners, one cart, piles that rot; VB-1775: the wood in a real state
