@@ -34,7 +34,7 @@ for (const hh of herding()) {
   for (let h = 0; h < 10; h++) {
     Sim.advance(st, 0.5);
     for (const id of st.living) {
-      const a = st.agents[id], j = a.side && a.side.background;
+      const a = st.agents[id], j = a.mind && a.mind[0];
       if (j && j.kind === 'herd' && a.path && !seen.includes(id)) seen.push(id) && check(a.path.some((pt) => along.has(pt[3])), `herder ${id} walks out off the way`);
     }
   }

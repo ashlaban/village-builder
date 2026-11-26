@@ -20,7 +20,7 @@ VB['sim/work'] = (() => {
   const { tileAt, endTile } = VB['sim/pose'];
   // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
   const ownerKey = (o) => `${o.type}:${o.id}`;
-  const attentionOf = (j) => KINDS[j.kind].attention || 'full';
+  const attentionOf = (j) => (KINDS[j.kind].mind ? 'mind' : 'full'); // a charge minded (sim/attention), else a task in hand
   // The held task a is within reach of from tile `at`, or beyond it (a background task only).
   const inReach = (st, j, at) => at >= 0 && hexSteps(st.w, at, j.site) <= KINDS[j.kind].reach;
   // Work hours a pawn does in an hour: by role and age (children), slowed by hunger and poor health.
@@ -73,10 +73,10 @@ VB['sim/work'] = (() => {
     return b.job === j && b.phase === 'work';
   };
   // A holder minds its background task while it stands free (where it last stood was in reach), stands at other work within reach, or
-  // walks a leg that begins and ends within reach; one walking into reach keeps it, unworked (sideCheck lets go one walking out of reach).
+  // walks a leg that begins and ends within reach; one walking into reach keeps it, unworked (mindCheck lets go one walking out of reach).
   // Constant over a leg, so the task's rate is told again only as its holders' legs begin and end.
   function minding(st, b, j) {
-    if (!b.side || b.side.background !== j) return false;
+    if (!b.mind || !b.mind.includes(j)) return false;
     const l = b.leg;
     if (b.path && l && l.kind === 'walk') return inReach(st, j, tileAt(st, l.x, l.y)) && inReach(st, j, endTile(st, b));
     return b.phase === null || inReach(st, j, tileAt(st, b.x, b.y));
@@ -87,9 +87,8 @@ VB['sim/work'] = (() => {
   function manning(st, j, take = false) {
     const K = KINDS[j.kind];
     let rate = 0;
-    if (attentionOf(j) !== 'full') {
-      if (attentionOf(j) === 'background')
-        for (const id of j.claims || []) if (minding(st, st.agents[id], j)) rate += K.rate;
+    if (attentionOf(j) === 'mind') {
+      for (const id of j.claims || []) if (minding(st, st.agents[id], j)) rate += K.rate;
       return rate;
     }
     const tools = Iron.rate(st, j); // worn tools slow ploughing, reaping and felling (VB-701)
@@ -223,11 +222,11 @@ VB['sim/work'] = (() => {
     while (q && q.length && q[0].due <= st.tick) {
       const j = q[0];
       settle(st, j);
-      if (attentionOf(j) === 'background') {
+      if (attentionOf(j) === 'mind') {
         let a = null;
         for (const id of j.claims) {
           const b = st.agents[id];
-          if (b.side && b.side.background === j && (!a || id < a.id)) a = b;
+          if (b.mind && b.mind.includes(j) && (!a || id < a.id)) a = b;
         }
         if (!a) {
           unqueue(st, j);

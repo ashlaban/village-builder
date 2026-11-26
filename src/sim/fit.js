@@ -92,7 +92,7 @@ VB['sim/fit'] = (() => {
   // The matcher's bar besides: a task held at the side, or a task that would take one held out of reach (offerWhy). The player may still
   // order such a one (the verb work checks the side, not the reach): a policy of the matcher, not the evaluation.
   const matchBar = (st, a, j) =>
-    takeBar(st, a, j) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j)) || null;
+    takeBar(st, a, j) || ((a.mind || attentionOf(j) !== 'full') && offerWhy(st, a, j)) || null;
   // Pawn a's appraisal of posted job j: its bid, a number above 0 (its score, by the hands already at the job), or why it would not
   // bid, a string: the bar's (takeBar by default), 'not their work' or 'not worth the walk'. `stand`: the holder's mask where its caller
   // has it (VB-1545), else 0.

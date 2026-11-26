@@ -150,8 +150,8 @@ VB['sim/grazing'] = (() => {
       hh = pw && pw.household !== null ? st.households[pw.household] : null,
       pa = hh && hh.pasture;
     if (!pa || pa.to === undefined || from < 0 || to < 0) return null;
-    const j = a.side && a.side.background;
-    if (!(j && j.kind === 'herd') && !driven(st, a.id)) return null;
+    const herding = !!a.mind && a.mind.some((c) => c.kind === 'herd');
+    if (!herding && !driven(st, a.id)) return null;
     const v = st.villages[st.farmsteads[hh.farmstead].village],
       way = v && v.droveway,
       w = st.w;
@@ -173,8 +173,8 @@ VB['sim/grazing'] = (() => {
     const a1 = far === T[k] ? [far] : route(st, far, T[k], cls),
       a2 = straight(w, way.to, end) || route(st, way.to, end, cls);
     if (a1[0] !== far || a2[0] !== way.to) return null;
-    const full = a1.concat(T.slice(k + 1), a2.slice(1));
-    return out ? full : full.reverse();
+    const whole = a1.concat(T.slice(k + 1), a2.slice(1));
+    return out ? whole : whole.reverse();
   }
   // A new pasture: a grazable tile within HERD.herding.steps steps of the house, or, given the village's way out this season, within
   // HERD.herding.around steps of the way's end; best grass, least grazed, nearest. -1 when there is none.
@@ -276,7 +276,6 @@ VB['sim/grazing'] = (() => {
     hands: 1,
     type: 'herding',
     minAge: HERD.herding.minAge,
-    attention: 'background',
     reach: HERD.herding.reach,
     rate: HERD.herding.rate,
     window: { from: HERD.herding.from },

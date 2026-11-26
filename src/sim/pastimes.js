@@ -122,8 +122,8 @@ VB['sim/pastimes'] = (() => {
     // by the herd, for one who holds it at the side (VB-136): it waits within reach of the pasture; always, where it is open
     herd: {
       name: 'Stay by the herd',
-      who: (st, a) => (a.side && a.side.background ? null : 'it holds no herd at the side'),
-      at: (st, a) => spot(st, a.side.background.site, [16, 8], 0),
+      who: (st, a) => (a.mind && a.mind.some((c) => c.kind === 'herd') ? null : 'it minds no herd'),
+      at: (st, a) => spot(st, a.mind.find((c) => c.kind === 'herd').site, [16, 8], 0),
       words: () => null,
     },
     // company: join one it likes who is also free out of doors in its village (sim/relations companyFor, as built: at SOCIAL.seek by

@@ -19,7 +19,7 @@ VB['sim/clock'] = (() => {
   const { ownRung } = VB['sim/upgrade'];
   const { placeByDoor, release, dropJob, stepAgents, rest } = VB['sim/agents'],
     { travelling } = VB['sim/pose'],
-    { dropSides } = VB['sim/attention'],
+    { dropMind } = VB['sim/attention'],
     { reckonAll } = VB['sim/work'];
   const { placeOf } = VB['sim/pose'];
   const { feedAway, dayAway } = VB['sim/away'],
@@ -177,7 +177,7 @@ VB['sim/clock'] = (() => {
         for (const liveId of st.living) {
           const a = st.agents[liveId];
           if (st.pawns[a.id].died) continue;
-          if (a.side) dropSides(st, a); // the herds are minded in the working hours only (VB-136)
+          if (a.mind) dropMind(st, a); // the herds are minded in the working hours only (VB-136)
           if (a.phase === 'back') continue; // finish the delivery first
           if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
           if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)

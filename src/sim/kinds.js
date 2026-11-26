@@ -49,9 +49,9 @@ VB['sim/kinds'] = (() => {
   //   stages: a field kind's, the field stages at which it can be available; refreshJobs asks it only at a field in one of them.
   //   window: a time-bound kind's (VB-249), {from: the hour of the day its work can first fall due}: the due-queue (sim/plans) asks it for
   //   each household from that hour, and again each hour while it gives work, so it waits for no review of the plan.
-  //   attention: `full` (the default), `partial` (left and returned to within the hour) or `background` (done at the side, at `rate` of
-  //   the pawn's hours, only within `reach` steps of the task's site); a pawn holds one task, and besides one partial and one background
-  //   (VB-251; sim/agents; herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt, null, from), as it is reckoned; minAge.
+  //   mind: set by sim/methods' `mind` (VB-1750): a charge minded beside its holder's task, at `rate` of the pawn's hours, only within
+  //   `reach` steps of the task's site; a pawn holds one task, and besides it one charge that bars and one that yields (sim/attention;
+  //   herd the first, VB-136); held(st, j, a, c): what taking it up does; worked(st, j, dt, null, from), as it is reckoned; minAge.
   //   yields: a background kind that bars its holder from no full task: one out of its reach lets it go (VB-362: spinning at the house);
   //   rank(st, p, j, stand): the kind's own rank for pawn p, in place of its role's (sim/fit prioOf; VB-362: by a practice and the sex).
   //   late: a task with a deadline today: unmanned, it goes first in its hand's list and calls it when the day is allotted (sim/day; the cook).

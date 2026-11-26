@@ -11,7 +11,7 @@ const { TEXTILE, SPINNERS } = T, SEED = 8;
 
 // --- the kinds: spinning at the side, at the house; weaving and the loom full work in the house
 const S = KINDS.spin, W = KINDS.weave, L = KINDS.loom;
-check(S && S.attention === 'background' && S.reach === TEXTILE.reach && S.hours === TEXTILE.spinHours && S.craft === 'spinning', 'spin: background work at the house');
+check(S && S.mind && S.reach === TEXTILE.reach && S.hours === TEXTILE.spinHours && S.craft === 'spinning', 'spin: background work at the house');
 check(W && !W.attention && W.hours === TEXTILE.weaveHours && W.craft === 'weaving' && W.needs.includes('loom'), 'weave: at the loom');
 check(L && L.project && L.hours === TEXTILE.loomHours, 'the loom: a project step');
 check(['spin', 'weave'].every((k) => ASK.farmAfterPlans.some((e) => e[0] === k)), 'both are asked at the farm');

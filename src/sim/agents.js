@@ -21,20 +21,10 @@ VB['sim/agents'] = (() => {
     { DONE } = Methods;
   const Skills = VB['sim/skills'];
   const { tileAt, here, endTile, placeOf, travelling, stayOf, bed } = VB['sim/pose'];
-  const {
-    attentionOf,
-    settle,
-    rerate,
-    retune,
-    dequeue,
-    teamKind,
-    ownerKey,
-    withOxen,
-    teamFree,
-    dueWork,
-  } = VB['sim/work'];
-  const { heldAt, sideWhy, hold, unhold, dropSides, reachAfter, sideCheck, assign, inSlot, holds } =
-    VB['sim/attention'];
+  const { attentionOf, settle, rerate, retune, dequeue, teamKind, ownerKey, withOxen, teamFree, dueWork } =
+    VB['sim/work'];
+  const { minds, mindWhy, hold, unhold, dropMind, reachAfter, mindCheck, assign, inSlot, holds } = VB['sim/attention'],
+    Attention = VB['sim/attention'];
   const { legsOf, waitLeg, roadWait, unleg, halt, begin, repace, setOut, putAt, workAt, walked, dueLegs } =
     VB['sim/legs'];
   // the spot by the door of the house on tile `house`, where pawn a would stand
@@ -84,7 +74,7 @@ VB['sim/agents'] = (() => {
     delete a.moving;
     if (a.away !== undefined) emit(st, 'stillAway', a); // a pawn who dies away dies there (VB-287); a gift still to fetch stays where it lies
     release(st, a);
-    dropSides(st, a);
+    dropMind(st, a);
     halt(st, a); // where its walk had come to; its route dropped
     a.inside = true;
     unleg(st, a);
@@ -118,7 +108,7 @@ VB['sim/agents'] = (() => {
     // those holding it at the side let it go at once (VB-473: a herder's task taken down)
     for (const id of [...(j.claims || [])]) {
       const b = st.agents[id];
-      if (b && b.side && (b.side.partial === j || b.side.background === j)) unhold(st, b, j);
+      if (b && minds(b, j)) unhold(st, b, j);
     }
     dequeue(st, j);
     if (st.jobs.get(j.key) === j) st.jobs.delete(j.key);
@@ -250,7 +240,7 @@ VB['sim/agents'] = (() => {
       if (id === finisher) continue;
       const b = st.agents[id];
       if (b.phase === 'back') continue; // a load on the road stays the job's (VB-335)
-      if (b.side && (b.side.partial === j || b.side.background === j)) {
+      if (minds(b, j)) {
         unhold(st, b, j);
         continue;
       }
@@ -328,13 +318,13 @@ VB['sim/agents'] = (() => {
       } else emit(st, 'atBed', a); // at the bed of its stay, or home from it (sim/away)
     } else if (a.phase === 'journey') emit(st, 'legEnd', a); // a journey's leg has arrived (sim/journeys)
     if (!a.leg && !a.path && a.phase === null && st.pawns[a.id].alive) waitLeg(st, a, st.tick + 1);
-    sideCheck(st, a);
+    mindCheck(st, a);
   }
   // Home, letting go of its side tasks (VB-136).
   function goHome(st, a) {
     const to = bed(st, a),
       [x, y] = spotAt(st, a, to);
-    dropSides(st, a);
+    dropMind(st, a);
     walkTo(st, a, to, x, y);
     a.phase = 'home';
   }
@@ -527,6 +517,7 @@ VB['sim/agents'] = (() => {
   // journeys with a due time): each pawn's leg is built from where it is and what it does.
   function loaded(st) {
     st.stepAt = { moving: st.tick, walked: st.tick };
+    Attention.loaded(st); // a charge held as a side task before VB-1750 is minded
     for (const a of st.agents) if ('work' in a) delete a.work;
     for (const stay of st.away || []) delete stay.due; // lint-allow: owner a stay of sim/away in a save made before VB-473 loses its due
     legsOf(st);
@@ -554,7 +545,7 @@ VB['sim/agents'] = (() => {
       delete j.cast;
       if ((j.at === undefined || j.at === null) && j.claims.length) rerate(st, j, false);
       // a background task minded in a save made before VB-473 had its due but was not queued: its end is queued now
-      else if (j.rate > 0 && attentionOf(j) === 'background' && !(st.workDue || []).includes(j)) rerate(st, j, false);
+      else if (j.rate > 0 && attentionOf(j) === 'mind' && !(st.workDue || []).includes(j)) rerate(st, j, false);
     }
   }
   // ---- away from home (VB-783; design.md, Sleeping away from home): the stays are sim/away's (st.away, agent.away); what is left here is
@@ -592,7 +583,7 @@ VB['sim/agents'] = (() => {
   // Pawn a lets go of what it has in hand (its task, its side tasks, a load of its own field) before it sets out.
   function setDown(st, a) {
     release(st, a);
-    dropSides(st, a);
+    dropMind(st, a);
     a.carry = null; // the load of a hand in its own field was set down by release
   }
   // A walk in hand ends where it has come to.
@@ -624,7 +615,7 @@ VB['sim/agents'] = (() => {
       if (a.phase === 'back') return K.back;
       return withOxen(st, a) ? 'Ploughing with the oxen' : K.verb;
     }
-    const bg = heldAt(a, 'background');
+    const bg = a.mind ? a.mind[0] : null;
     if (bg) return a.path ? KINDS[bg.kind].go : KINDS[bg.kind].verb; // VB-136: with the herds
     const s = a.away === undefined || travelling(a) ? null : stayOf(st, id); // a stay at a bed (VB-783)
     if (a.phase === 'home') return s && !s.back ? 'Walking to where it sleeps away' : 'Walking home';
@@ -659,9 +650,9 @@ VB['sim/agents'] = (() => {
     if (a.job) release(st, a, true);
     if (!a.inside && a.phase !== 'back') goHome(st, a);
   });
-  // A background task held out of reach, with no task in hand (sim/attention hold): the pawn sets out for it.
-  on('sideAway', (st, a) => {
-    const j = a.side.background,
+  // A charge held out of reach, with no task in hand (sim/attention hold): the pawn sets out for it (the last taken up).
+  on('mindAway', (st, a) => {
+    const j = a.mind[a.mind.length - 1],
       [x, y] = workSpot(st, a, j);
     walkTo(st, a, j.site, x, y);
   });
@@ -681,29 +672,26 @@ VB['sim/agents'] = (() => {
           : !eligible(st, st.jobs.get(c.target), st.pawns[c.actor])
             ? `job ${c.target} is not pawn ${c.actor}'s to take`
             : attentionOf(st.jobs.get(c.target)) !== 'full'
-              ? sideWhy(st, st.agents[c.actor], st.jobs.get(c.target))
+              ? mindWhy(st, st.agents[c.actor], st.jobs.get(c.target))
               : null),
     run: (st, c) => {
       const a = st.agents[c.actor],
         j = st.jobs.get(c.target),
         slot = attentionOf(j);
       if (slot !== 'full')
-        hold(st, a, j); // a partial or background task is held beside the pawn's task (VB-251)
+        hold(st, a, j); // a charge is minded beside the pawn's task (VB-251, VB-1750)
       else {
         release(st, a);
         start(st, a, j);
         a.basis = eligible(st, j, st.pawns[a.id]);
-        if (a.side) reachAfter(st, a);
+        if (a.mind) reachAfter(st, a);
       }
-      return { slot, key: j.key, n: a.assigned[slot] };
+      return { slot, key: j.key, n: slot === 'full' ? a.assigned.full : a.assigned.mind[j.key] };
     },
     active: (st, c, ref) => {
       const a = st.agents[c.actor];
       if (ref) return holds(a, ref);
-      return ['full', 'partial', 'background'].some((slot) => {
-        const j = inSlot(a, slot);
-        return !!j && j.key === c.target;
-      });
+      return inSlot(a, 'full', c.target) || inSlot(a, 'mind', c.target);
     },
   });
   // The pawn's walk, its way home and its idling last as the pawn's own state says (its walk, out of doors; the hour), whatever

@@ -114,7 +114,6 @@ VB['sim/textile'] = (() => {
       hands: 1,
       type: 'household',
       craft: 'spinning',
-      attention: 'background',
       yields: true,
       reach: TEXTILE.reach,
       rate: TEXTILE.rate,

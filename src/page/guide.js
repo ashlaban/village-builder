@@ -81,7 +81,7 @@ function kindDetails(k, K) {
       K.stages ? `When the field is ${K.stages.join(' or ')}.` : '',
       K.minAge ? `From the age of ${K.minAge}.` : '',
       K.craft ? `A craft: ${K.craft}.` : '',
-      K.attention === 'background' ? 'Done at the side of other work.' : '',
+      K.mind ? 'Done at the side of other work.' : '',
       K.together ? 'Worked by all together, on a work day.' : '',
     ];
   return d.filter(Boolean).join(' ');
