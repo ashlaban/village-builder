@@ -131,6 +131,7 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/byrehouse'].KINDS); // the byre's walls and roof (VB-1665): sim/byrehouse's
   Object.assign(KINDS, VB['sim/timberhouse'].KINDS); // the timber house's frame and roof (VB-1664): sim/timberhouse's
   Object.assign(KINDS, VB['sim/facilities'].KINDS); // a facility's stages raised and its upkeep (VB-361): sim/facilities'
+  Object.assign(KINDS, Expansion.plotted(KINDS)); // a plot's step ends in its finish, through its kind's `done` (sim/expansion, VB-1821)
   // every kind that declares no methods of its own is work done at its site (sim/methods labour, VB-1750: no kind runs on the phases); an
   // indoor kind's work stands by the door of its house (as sim/agents' spotAt)
   for (const k in KINDS) {

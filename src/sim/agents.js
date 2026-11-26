@@ -12,7 +12,6 @@ VB['sim/agents'] = (() => {
   const { driveHome } = VB['sim/grazing'];
   const { workedTogether } = VB['sim/relations'];
   const { on, emit } = VB['sim/events'];
-  const { finishStep } = VB['sim/expansion'];
   const { worked: prospected } = VB['sim/prospect'];
   const { KINDS, carriedOn } = VB['sim/kinds'],
     { workTick } = VB['sim/progress'];
@@ -289,8 +288,8 @@ VB['sim/agents'] = (() => {
   // The household a job is done for: the job's own, or the pawn's for a village's job (a helper works for another household, VB-106).
   const workFor = (st, a, j) =>
     st.households[j.owner && j.owner.type === 'household' ? j.owner.id : st.pawns[a.id].household];
-  // The work is done: those who finished it together know each other better (sim/relations); a plot's step is finished (sim/expansion),
-  // any other job does what its kind says (sim/kinds), for the household it was done for.
+  // The work is done: those who finished it together know each other better (sim/relations); the job does what its kind says (sim/kinds:
+  // a plot's step finished through its kind's, sim/expansion plotted, VB-1821), for the household it was done for.
   function complete(st, a) {
     const j = a.job,
       hh = workFor(st, a, j),
@@ -298,11 +297,6 @@ VB['sim/agents'] = (() => {
     if (j.claims.length > 1) workedTogether(st, j.claims);
     freeHands(st, j, a.id);
     prospected(st, a.id, here(st, a), j.hours ?? K.hours ?? 0); // a hidden vein near the work may be come on (sim/prospect)
-    if (j.plot) {
-      finishStep(st, j);
-      dropJob(st, j);
-      return;
-    }
     if (K.done) K.done(st, j, hh, cal(st.t), a.id); // a.id: who finished it (a made piece's grade is its maker's, VB-761)
     if (st.player && st.player.pawn === a.id)
       emit(st, 'yielded', { pawn: a.id, kind: j.kind, farm: j.farm ?? null, good: null, n: 0 });
