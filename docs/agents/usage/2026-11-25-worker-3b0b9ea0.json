@@ -1,0 +1,8077 @@
+{
+ "session": "3b0b9ea0-8c64-5b4c-b5f5-19466e5d3ffa",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5",
+  "<synthetic>"
+ ],
+ "start": "2026-11-25T22:02:06.016Z",
+ "end": "2026-11-26T16:12:03.054Z",
+ "wallMin": 1090,
+ "activeMin": 560.9,
+ "prompts": 20,
+ "calls": 316,
+ "subagentCalls": 0,
+ "reviewCalls": 79,
+ "tokens": {
+  "input": 765,
+  "cacheWrite": 475538,
+  "cacheRead": 86820816,
+  "output": 123174
+ },
+ "context": {
+  "first": 86798,
+  "peak": 453649,
+  "firstEdit": 126025,
+  "series": [
+   [
+    5,
+    101803
+   ],
+   [
+    10,
+    108295
+   ],
+   [
+    15,
+    113148
+   ],
+   [
+    20,
+    117129
+   ],
+   [
+    25,
+    122921
+   ],
+   [
+    30,
+    127807
+   ],
+   [
+    35,
+    135143
+   ],
+   [
+    40,
+    138896
+   ],
+   [
+    45,
+    142405
+   ],
+   [
+    50,
+    148202
+   ],
+   [
+    55,
+    155153
+   ],
+   [
+    60,
+    161751
+   ],
+   [
+    65,
+    167021
+   ],
+   [
+    70,
+    171256
+   ],
+   [
+    75,
+    179833
+   ],
+   [
+    80,
+    184825
+   ],
+   [
+    85,
+    191429
+   ],
+   [
+    90,
+    196186
+   ],
+   [
+    95,
+    202776
+   ],
+   [
+    100,
+    209363
+   ],
+   [
+    105,
+    215331
+   ],
+   [
+    110,
+    221070
+   ],
+   [
+    115,
+    226845
+   ],
+   [
+    120,
+    232868
+   ],
+   [
+    125,
+    238970
+   ],
+   [
+    130,
+    244680
+   ],
+   [
+    135,
+    251550
+   ],
+   [
+    140,
+    255997
+   ],
+   [
+    145,
+    262793
+   ],
+   [
+    150,
+    269698
+   ],
+   [
+    155,
+    277180
+   ],
+   [
+    160,
+    282100
+   ],
+   [
+    165,
+    287171
+   ],
+   [
+    170,
+    292792
+   ],
+   [
+    175,
+    298716
+   ],
+   [
+    180,
+    304605
+   ],
+   [
+    185,
+    309764
+   ],
+   [
+    190,
+    315076
+   ],
+   [
+    195,
+    319353
+   ],
+   [
+    200,
+    325963
+   ],
+   [
+    205,
+    330485
+   ],
+   [
+    210,
+    337596
+   ],
+   [
+    215,
+    341768
+   ],
+   [
+    220,
+    349636
+   ],
+   [
+    225,
+    354791
+   ],
+   [
+    230,
+    358818
+   ],
+   [
+    235,
+    364610
+   ],
+   [
+    240,
+    369924
+   ],
+   [
+    245,
+    376329
+   ],
+   [
+    250,
+    382338
+   ],
+   [
+    255,
+    387082
+   ],
+   [
+    260,
+    393847
+   ],
+   [
+    265,
+    399312
+   ],
+   [
+    270,
+    404233
+   ],
+   [
+    275,
+    410445
+   ],
+   [
+    280,
+    416584
+   ],
+   [
+    285,
+    420617
+   ],
+   [
+    290,
+    427584
+   ],
+   [
+    295,
+    432775
+   ],
+   [
+    300,
+    437718
+   ],
+   [
+    305,
+    444340
+   ],
+   [
+    310,
+    449030
+   ],
+   [
+    315,
+    452709
+   ],
+   [
+    316,
+    453649
+   ]
+  ]
+ },
+ "tools": {
+  "Bash": {
+   "calls": 150,
+   "bytes": 124928,
+   "seconds": 1638.5
+  },
+  "AskUserQuestion": {
+   "calls": 2,
+   "bytes": 1486,
+   "seconds": 1279.1
+  },
+  "Agent": {
+   "calls": 76,
+   "bytes": 79724,
+   "seconds": 165.6
+  },
+  "ToolSearch": {
+   "calls": 2,
+   "bytes": 195,
+   "seconds": 0
+  },
+  "mcp__github__create_pull_request": {
+   "calls": 1,
+   "bytes": 80,
+   "seconds": 2.6
+  },
+  "mcp__github__update_pull_request": {
+   "calls": 2,
+   "bytes": 160,
+   "seconds": 3.5
+  },
+  "Write": {
+   "calls": 4,
+   "bytes": 760,
+   "seconds": 0.3
+  },
+  "Read": {
+   "calls": 1,
+   "bytes": 273,
+   "seconds": 0
+  },
+  "SendMessage": {
+   "calls": 16,
+   "bytes": 2845,
+   "seconds": 28.7
+  }
+ },
+ "largest": [
+  {
+   "tool": "Agent",
+   "what": "",
+   "calls": 76,
+   "bytes": 79724
+  },
+  {
+   "tool": "Bash",
+   "what": "git merge",
+   "calls": 25,
+   "bytes": 26232
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 5,
+   "bytes": 21782
+  },
+  {
+   "tool": "Bash",
+   "what": "cat docs/agents/worker.md",
+   "calls": 1,
+   "bytes": 10424
+  },
+  {
+   "tool": "Bash",
+   "what": "cat >>",
+   "calls": 11,
+   "bytes": 8589
+  },
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 2,
+   "bytes": 7478
+  },
+  {
+   "tool": "Bash",
+   "what": "merge-base $B",
+   "calls": 30,
+   "bytes": 7472
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 6,
+   "bytes": 6304
+  },
+  {
+   "tool": "Bash",
+   "what": "git fetch",
+   "calls": 2,
+   "bytes": 4913
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/inbox.js",
+   "calls": 22,
+   "bytes": 4229
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/lanes.js",
+   "calls": 2,
+   "bytes": 3516
+  },
+  {
+   "tool": "Bash",
+   "what": "ls .claude/worktrees/agent-a575f12c51b02582d/work/review/",
+   "calls": 1,
+   "bytes": 3500
+  }
+ ],
+ "repeats": {
+  "reads": 0,
+  "readBytes": 0,
+  "commands": 0,
+  "commandBytes": 0,
+  "recent": 0
+ },
+ "tests": {
+  "runs": 68,
+  "failed": 3,
+  "streak": 2,
+  "current": 0
+ },
+ "compactions": 0,
+ "continuation": {
+  "continues": false,
+  "handoverBytes": 0,
+  "callsToEdit": 28,
+  "contextToEdit": 39227,
+  "reason": null
+ },
+ "continuations": {
+  "launched": 18,
+  "calls": 18
+ },
+ "weighted": 9893139,
+ "subagents": [
+  {
+   "agent": "a331c05e",
+   "role": "implement",
+   "task": "VB-1747",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "control",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 49,
+   "tokens": {
+    "input": 98,
+    "cacheWrite": 152179,
+    "cacheRead": 5334701,
+    "output": 69964
+   },
+   "weighted": 1073612,
+   "first": 18042,
+   "boot": 95085,
+   "peak": 152181,
+   "activeMin": 15,
+   "start": "2026-11-25T22:04:47.024Z",
+   "end": "2026-11-25T22:19:48.665Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     35091
+    ],
+    [
+     10,
+     69217
+    ],
+    [
+     15,
+     93737
+    ],
+    [
+     20,
+     125743
+    ],
+    [
+     25,
+     130890
+    ],
+    [
+     30,
+     135736
+    ],
+    [
+     35,
+     140211
+    ],
+    [
+     40,
+     145420
+    ],
+    [
+     45,
+     149607
+    ],
+    [
+     49,
+     152181
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 19,
+    "failed": 6,
+    "streak": 3,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 16,
+    "contextToEdit": 77043,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a54cd08b",
+   "role": "implement",
+   "task": "VB-1759",
+   "size": "S",
+   "status": "done",
+   "review": {
+    "arm": "ineligible",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 34,
+   "tokens": {
+    "input": 68,
+    "cacheWrite": 141563,
+    "cacheRead": 2934728,
+    "output": 57906
+   },
+   "weighted": 760025,
+   "first": 18044,
+   "boot": 123700,
+   "peak": 141565,
+   "activeMin": 11.9,
+   "start": "2026-11-25T22:04:47.043Z",
+   "end": "2026-11-25T22:16:39.078Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     36348
+    ],
+    [
+     10,
+     57272
+    ],
+    [
+     15,
+     73433
+    ],
+    [
+     20,
+     105320
+    ],
+    [
+     25,
+     131688
+    ],
+    [
+     30,
+     139158
+    ],
+    [
+     34,
+     141565
+    ]
+   ],
+   "repeats": {
+    "reads": 1,
+    "readBytes": 11693,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 3,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 23,
+    "contextToEdit": 105656,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a6ee17a5",
+   "role": "implement",
+   "task": "VB-1774",
+   "size": "S",
+   "status": "done",
+   "review": {
+    "arm": "ineligible",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-sonnet-5-5",
+   "calls": 22,
+   "tokens": {
+    "input": 44,
+    "cacheWrite": 64390,
+    "cacheRead": 1021991,
+    "output": 18322
+   },
+   "weighted": 274341,
+   "first": 18054,
+   "boot": 51453,
+   "peak": 64392,
+   "activeMin": 7.3,
+   "start": "2026-11-25T22:04:47.142Z",
+   "end": "2026-11-25T22:12:05.124Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     35423
+    ],
+    [
+     10,
+     51453
+    ],
+    [
+     15,
+     60371
+    ],
+    [
+     20,
+     64011
+    ],
+    [
+     22,
+     64392
+    ]
+   ],
+   "repeats": {
+    "reads": 1,
+    "readBytes": 852,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 1
+   },
+   "tests": {
+    "runs": 4,
+    "failed": 1,
+    "streak": 1,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 10,
+    "contextToEdit": 33399,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a6c2b246",
+   "role": "implement",
+   "task": "VB-1548",
+   "size": "S",
+   "status": "done",
+   "review": {
+    "arm": "ineligible",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-sonnet-5-5",
+   "calls": 28,
+   "tokens": {
+    "input": 58,
+    "cacheWrite": 49712,
+    "cacheRead": 1041587,
+    "output": 10595
+   },
+   "weighted": 219332,
+   "first": 18050,
+   "boot": 0,
+   "peak": 49716,
+   "activeMin": 6,
+   "start": "2026-11-25T22:04:47.145Z",
+   "end": "2026-11-25T22:10:46.379Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     30876
+    ],
+    [
+     10,
+     37979
+    ],
+    [
+     15,
+     41638
+    ],
+    [
+     20,
+     44030
+    ],
+    [
+     25,
+     48657
+    ],
+    [
+     28,
+     49716
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 2,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a11c9e47",
+   "role": "implement",
+   "task": "VB-1775",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 73,
+   "tokens": {
+    "input": 146,
+    "cacheWrite": 178031,
+    "cacheRead": 9056297,
+    "output": 80925
+   },
+   "weighted": 1532939,
+   "first": 18044,
+   "boot": 127272,
+   "peak": 186993,
+   "activeMin": 18,
+   "start": "2026-11-25T22:23:27.678Z",
+   "end": "2026-11-25T22:41:30.046Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     36054
+    ],
+    [
+     10,
+     57871
+    ],
+    [
+     15,
+     81771
+    ],
+    [
+     20,
+     98601
+    ],
+    [
+     25,
+     107204
+    ],
+    [
+     30,
+     126201
+    ],
+    [
+     35,
+     137456
+    ],
+    [
+     40,
+     145878
+    ],
+    [
+     45,
+     152379
+    ],
+    [
+     50,
+     158722
+    ],
+    [
+     55,
+     164960
+    ],
+    [
+     60,
+     170812
+    ],
+    [
+     65,
+     179405
+    ],
+    [
+     70,
+     183757
+    ],
+    [
+     73,
+     186993
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 23,
+    "failed": 17,
+    "streak": 11,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 31,
+    "contextToEdit": 109228,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a03ce86a",
+   "role": "implement",
+   "task": "VB-1775",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 114,
+   "tokens": {
+    "input": 228,
+    "cacheWrite": 144021,
+    "cacheRead": 10890570,
+    "output": 55981
+   },
+   "weighted": 1549216,
+   "first": 18092,
+   "boot": 58901,
+   "peak": 152983,
+   "activeMin": 16.1,
+   "start": "2026-11-25T22:41:32.914Z",
+   "end": "2026-11-25T22:57:37.776Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     26240
+    ],
+    [
+     10,
+     39984
+    ],
+    [
+     15,
+     45345
+    ],
+    [
+     20,
+     50497
+    ],
+    [
+     25,
+     57554
+    ],
+    [
+     30,
+     67977
+    ],
+    [
+     35,
+     75079
+    ],
+    [
+     40,
+     83694
+    ],
+    [
+     45,
+     91196
+    ],
+    [
+     50,
+     95636
+    ],
+    [
+     55,
+     100827
+    ],
+    [
+     60,
+     106198
+    ],
+    [
+     65,
+     110391
+    ],
+    [
+     70,
+     114637
+    ],
+    [
+     75,
+     118778
+    ],
+    [
+     80,
+     123764
+    ],
+    [
+     85,
+     129122
+    ],
+    [
+     90,
+     131650
+    ],
+    [
+     95,
+     135391
+    ],
+    [
+     100,
+     140196
+    ],
+    [
+     105,
+     144701
+    ],
+    [
+     110,
+     149303
+    ],
+    [
+     114,
+     152983
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 38,
+    "failed": 15,
+    "streak": 3,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 8355,
+    "callsToEdit": 27,
+    "contextToEdit": 40809,
+    "reason": "ceiling"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a4d1ab55",
+   "role": "implement",
+   "task": "VB-1775",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 68,
+   "tokens": {
+    "input": 136,
+    "cacheWrite": 254518,
+    "cacheRead": 6217811,
+    "output": 53128
+   },
+   "weighted": 1205705,
+   "first": 18165,
+   "boot": 86437,
+   "peak": 144055,
+   "activeMin": 17.5,
+   "start": "2026-11-25T22:57:41.693Z",
+   "end": "2026-11-26T00:48:11.670Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     26121
+    ],
+    [
+     10,
+     33653
+    ],
+    [
+     15,
+     63479
+    ],
+    [
+     20,
+     79276
+    ],
+    [
+     25,
+     93388
+    ],
+    [
+     30,
+     96263
+    ],
+    [
+     35,
+     100441
+    ],
+    [
+     40,
+     113681
+    ],
+    [
+     45,
+     117582
+    ],
+    [
+     50,
+     123284
+    ],
+    [
+     55,
+     131968
+    ],
+    [
+     60,
+     137136
+    ],
+    [
+     65,
+     142509
+    ],
+    [
+     68,
+     144055
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 23,
+    "failed": 7,
+    "streak": 2,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 8322,
+    "callsToEdit": 22,
+    "contextToEdit": 68272,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 502787,
+    "calls": 20,
+    "activeMin": 3.1
+   }
+  },
+  {
+   "agent": "ad948675",
+   "role": "review",
+   "task": "VB-1775",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 33,
+   "tokens": {
+    "input": 64,
+    "cacheWrite": 266064,
+    "cacheRead": 3074178,
+    "output": 39263
+   },
+   "weighted": 836377,
+   "first": 16235,
+   "boot": 0,
+   "peak": 142671,
+   "activeMin": 12.1,
+   "start": "2026-11-25T23:07:20.495Z",
+   "end": "2026-11-26T00:45:00.224Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     71302
+    ],
+    [
+     10,
+     104744
+    ],
+    [
+     15,
+     111187
+    ],
+    [
+     20,
+     116510
+    ],
+    [
+     25,
+     124896
+    ],
+    [
+     30,
+     136199
+    ],
+    [
+     33,
+     142671
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 4,
+    "failed": 2,
+    "streak": 2,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "ae70f577",
+   "role": "implement",
+   "task": "VB-1472",
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-sonnet-5-5",
+   "calls": 14,
+   "tokens": {
+    "input": 26,
+    "cacheWrite": 156548,
+    "cacheRead": 829250,
+    "output": 2591
+   },
+   "weighted": 291591,
+   "first": 68014,
+   "boot": 0,
+   "peak": 79311,
+   "activeMin": 12.5,
+   "start": "2026-11-25T23:07:20.500Z",
+   "end": "2026-11-26T00:45:31.365Z",
+   "mergeUndone": null,
+   "series": [
+    [
+     5,
+     75584
+    ],
+    [
+     10,
+     78153
+    ],
+    [
+     14,
+     79311
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 6,
+    "failed": 4,
+    "streak": 3,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a05f7997",
+   "role": "implement",
+   "task": "VB-1748",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "control",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 98,
+   "tokens": {
+    "input": 196,
+    "cacheWrite": 181228,
+    "cacheRead": 12184219,
+    "output": 71452
+   },
+   "weighted": 1802413,
+   "first": 18101,
+   "boot": 111599,
+   "peak": 190190,
+   "activeMin": 16.8,
+   "start": "2026-11-26T00:49:22.151Z",
+   "end": "2026-11-26T01:06:07.867Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     32451
+    ],
+    [
+     10,
+     59786
+    ],
+    [
+     15,
+     72636
+    ],
+    [
+     20,
+     81706
+    ],
+    [
+     25,
+     96682
+    ],
+    [
+     30,
+     107292
+    ],
+    [
+     35,
+     113096
+    ],
+    [
+     40,
+     120224
+    ],
+    [
+     45,
+     123745
+    ],
+    [
+     50,
+     129414
+    ],
+    [
+     55,
+     140091
+    ],
+    [
+     60,
+     151139
+    ],
+    [
+     65,
+     156813
+    ],
+    [
+     70,
+     160302
+    ],
+    [
+     75,
+     164431
+    ],
+    [
+     80,
+     170967
+    ],
+    [
+     85,
+     175648
+    ],
+    [
+     90,
+     182426
+    ],
+    [
+     95,
+     186560
+    ],
+    [
+     98,
+     190190
+    ]
+   ],
+   "repeats": {
+    "reads": 1,
+    "readBytes": 1837,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 1
+   },
+   "tests": {
+    "runs": 14,
+    "failed": 6,
+    "streak": 2,
+    "current": 1
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 34,
+    "contextToEdit": 93498,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "abbfa088",
+   "role": "implement",
+   "task": null,
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-haiku-5-5",
+   "calls": 3,
+   "tokens": {
+    "input": 6,
+    "cacheWrite": 80285,
+    "cacheRead": 142188,
+    "output": 5698
+   },
+   "weighted": 143071,
+   "first": 67315,
+   "boot": 0,
+   "peak": 80287,
+   "activeMin": 0.4,
+   "start": "2026-11-26T00:49:40.920Z",
+   "end": "2026-11-26T00:50:03.129Z",
+   "mergeUndone": null,
+   "series": [
+    [
+     3,
+     80287
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a173e58d",
+   "role": "implement",
+   "task": "VB-1748",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "control",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 36,
+   "tokens": {
+    "input": 72,
+    "cacheWrite": 69147,
+    "cacheRead": 1800815,
+    "output": 20541
+   },
+   "weighted": 369292,
+   "first": 18154,
+   "boot": 0,
+   "peak": 78109,
+   "activeMin": 16.2,
+   "start": "2026-11-26T01:06:14.546Z",
+   "end": "2026-11-26T01:22:25.380Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     26911
+    ],
+    [
+     10,
+     33775
+    ],
+    [
+     15,
+     41148
+    ],
+    [
+     20,
+     49494
+    ],
+    [
+     25,
+     70528
+    ],
+    [
+     30,
+     74614
+    ],
+    [
+     35,
+     77461
+    ],
+    [
+     36,
+     78109
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 6,
+    "failed": 3,
+    "streak": 2,
+    "current": 1
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 3763,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a722b0fb",
+   "role": "implement",
+   "task": "VB-1749",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 85,
+   "tokens": {
+    "input": 172,
+    "cacheWrite": 337317,
+    "cacheRead": 10320278,
+    "output": 62707
+   },
+   "weighted": 1767381,
+   "first": 18100,
+   "boot": 67267,
+   "peak": 178337,
+   "activeMin": 26.4,
+   "start": "2026-11-26T01:23:18.559Z",
+   "end": "2026-11-26T02:09:18.824Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     41655
+    ],
+    [
+     10,
+     64261
+    ],
+    [
+     15,
+     69093
+    ],
+    [
+     20,
+     85905
+    ],
+    [
+     25,
+     107405
+    ],
+    [
+     30,
+     119791
+    ],
+    [
+     35,
+     131673
+    ],
+    [
+     40,
+     138986
+    ],
+    [
+     45,
+     141963
+    ],
+    [
+     50,
+     146691
+    ],
+    [
+     55,
+     150953
+    ],
+    [
+     60,
+     154431
+    ],
+    [
+     65,
+     159705
+    ],
+    [
+     70,
+     165236
+    ],
+    [
+     75,
+     168616
+    ],
+    [
+     80,
+     172657
+    ],
+    [
+     85,
+     178337
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 10,
+    "failed": 2,
+    "streak": 1,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 14,
+    "contextToEdit": 49167,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 213586,
+    "calls": 1,
+    "activeMin": 0.1
+   }
+  },
+  {
+   "agent": "ae147ff4",
+   "role": "implement",
+   "task": null,
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-haiku-5-5",
+   "calls": 3,
+   "tokens": {
+    "input": 6,
+    "cacheWrite": 83784,
+    "cacheRead": 144022,
+    "output": 7503
+   },
+   "weighted": 156653,
+   "first": 67315,
+   "boot": 0,
+   "peak": 83786,
+   "activeMin": 0.4,
+   "start": "2026-11-26T01:23:33.258Z",
+   "end": "2026-11-26T01:24:00.182Z",
+   "mergeUndone": null,
+   "series": [
+    [
+     3,
+     83786
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "ad628d14",
+   "role": "implement",
+   "task": "VB-1749",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 72,
+   "tokens": {
+    "input": 146,
+    "cacheWrite": 237171,
+    "cacheRead": 5953172,
+    "output": 43897
+   },
+   "weighted": 1111412,
+   "first": 18158,
+   "boot": 38684,
+   "peak": 132367,
+   "activeMin": 23.3,
+   "start": "2026-11-26T01:44:42.542Z",
+   "end": "2026-11-26T02:10:54.398Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     34279
+    ],
+    [
+     10,
+     40059
+    ],
+    [
+     15,
+     60604
+    ],
+    [
+     20,
+     68627
+    ],
+    [
+     25,
+     72395
+    ],
+    [
+     30,
+     78899
+    ],
+    [
+     35,
+     86560
+    ],
+    [
+     40,
+     93668
+    ],
+    [
+     45,
+     100704
+    ],
+    [
+     50,
+     106783
+    ],
+    [
+     55,
+     111931
+    ],
+    [
+     60,
+     118652
+    ],
+    [
+     65,
+     125384
+    ],
+    [
+     70,
+     131500
+    ],
+    [
+     72,
+     132367
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 19,
+    "failed": 7,
+    "streak": 1,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 4496,
+    "callsToEdit": 9,
+    "contextToEdit": 20526,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 382231,
+    "calls": 14,
+    "activeMin": 4.5
+   }
+  },
+  {
+   "agent": "a028fb11",
+   "role": "review",
+   "task": "VB-1749",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 34,
+   "tokens": {
+    "input": 68,
+    "cacheWrite": 124758,
+    "cacheRead": 2660570,
+    "output": 37901
+   },
+   "weighted": 611578,
+   "first": 16242,
+   "boot": 0,
+   "peak": 124760,
+   "activeMin": 7.7,
+   "start": "2026-11-26T01:58:42.741Z",
+   "end": "2026-11-26T02:06:22.060Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     53515
+    ],
+    [
+     10,
+     65520
+    ],
+    [
+     15,
+     76493
+    ],
+    [
+     20,
+     90839
+    ],
+    [
+     25,
+     103495
+    ],
+    [
+     30,
+     116372
+    ],
+    [
+     34,
+     124760
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 1,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a5ede8e1",
+   "role": "implement",
+   "task": "VB-1812",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 55,
+   "tokens": {
+    "input": 110,
+    "cacheWrite": 165202,
+    "cacheRead": 6586620,
+    "output": 66228
+   },
+   "weighted": 1196415,
+   "first": 18102,
+   "boot": 159701,
+   "peak": 174164,
+   "activeMin": 14.6,
+   "start": "2026-11-26T02:11:52.940Z",
+   "end": "2026-11-26T02:26:28.004Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     44700
+    ],
+    [
+     10,
+     69466
+    ],
+    [
+     15,
+     93668
+    ],
+    [
+     20,
+     117957
+    ],
+    [
+     25,
+     131783
+    ],
+    [
+     30,
+     140526
+    ],
+    [
+     35,
+     147654
+    ],
+    [
+     40,
+     158140
+    ],
+    [
+     45,
+     162141
+    ],
+    [
+     50,
+     166770
+    ],
+    [
+     55,
+     174164
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 6,
+    "failed": 5,
+    "streak": 4,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 42,
+    "contextToEdit": 141599,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a4d04802",
+   "role": "implement",
+   "task": null,
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-haiku-5-5",
+   "calls": 3,
+   "tokens": {
+    "input": 6,
+    "cacheWrite": 85849,
+    "cacheRead": 145174,
+    "output": 8332
+   },
+   "weighted": 163495,
+   "first": 67315,
+   "boot": 0,
+   "peak": 85851,
+   "activeMin": 0.5,
+   "start": "2026-11-26T02:11:52.943Z",
+   "end": "2026-11-26T02:12:21.749Z",
+   "mergeUndone": null,
+   "series": [
+    [
+     3,
+     85851
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "aa021610",
+   "role": "implement",
+   "task": "VB-1812",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 103,
+   "tokens": {
+    "input": 206,
+    "cacheWrite": 144498,
+    "cacheRead": 9852363,
+    "output": 52616
+   },
+   "weighted": 1429145,
+   "first": 18150,
+   "boot": 85995,
+   "peak": 153460,
+   "activeMin": 20.3,
+   "start": "2026-11-26T02:26:34.957Z",
+   "end": "2026-11-26T02:46:53.748Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     24074
+    ],
+    [
+     10,
+     38757
+    ],
+    [
+     15,
+     47090
+    ],
+    [
+     20,
+     57457
+    ],
+    [
+     25,
+     68597
+    ],
+    [
+     30,
+     76446
+    ],
+    [
+     35,
+     80339
+    ],
+    [
+     40,
+     87809
+    ],
+    [
+     45,
+     93950
+    ],
+    [
+     50,
+     98397
+    ],
+    [
+     55,
+     102980
+    ],
+    [
+     60,
+     110438
+    ],
+    [
+     65,
+     113037
+    ],
+    [
+     70,
+     118992
+    ],
+    [
+     75,
+     129563
+    ],
+    [
+     80,
+     134822
+    ],
+    [
+     85,
+     137999
+    ],
+    [
+     90,
+     141346
+    ],
+    [
+     95,
+     144767
+    ],
+    [
+     100,
+     150067
+    ],
+    [
+     103,
+     153460
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 48,
+    "failed": 14,
+    "streak": 3,
+    "current": 1
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 4674,
+    "callsToEdit": 38,
+    "contextToEdit": 67845,
+    "reason": "ceiling"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a6ac0bdd",
+   "role": "implement",
+   "task": "VB-1812",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 70,
+   "tokens": {
+    "input": 142,
+    "cacheWrite": 198817,
+    "cacheRead": 5323920,
+    "output": 43704
+   },
+   "weighted": 999575,
+   "first": 18219,
+   "boot": 27944,
+   "peak": 121005,
+   "activeMin": 29.3,
+   "start": "2026-11-26T02:47:01.665Z",
+   "end": "2026-11-26T03:43:11.358Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     27944
+    ],
+    [
+     10,
+     35977
+    ],
+    [
+     15,
+     49719
+    ],
+    [
+     20,
+     68043
+    ],
+    [
+     25,
+     72871
+    ],
+    [
+     30,
+     77913
+    ],
+    [
+     35,
+     81610
+    ],
+    [
+     40,
+     84545
+    ],
+    [
+     45,
+     87729
+    ],
+    [
+     50,
+     97789
+    ],
+    [
+     55,
+     105449
+    ],
+    [
+     60,
+     113328
+    ],
+    [
+     65,
+     117613
+    ],
+    [
+     70,
+     121005
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 19,
+    "failed": 7,
+    "streak": 3,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 3484,
+    "callsToEdit": 5,
+    "contextToEdit": 9725,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 510561,
+    "calls": 26,
+    "activeMin": 6.7
+   }
+  },
+  {
+   "agent": "a575f12c",
+   "role": "review",
+   "task": "VB-1812",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 54,
+   "tokens": {
+    "input": 108,
+    "cacheWrite": 142937,
+    "cacheRead": 5173859,
+    "output": 56486
+   },
+   "weighted": 978595,
+   "first": 16242,
+   "boot": 0,
+   "peak": 142939,
+   "activeMin": 10.9,
+   "start": "2026-11-26T03:04:45.910Z",
+   "end": "2026-11-26T03:15:40.868Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     63545
+    ],
+    [
+     10,
+     78796
+    ],
+    [
+     15,
+     86107
+    ],
+    [
+     20,
+     90246
+    ],
+    [
+     25,
+     100992
+    ],
+    [
+     30,
+     107763
+    ],
+    [
+     35,
+     112530
+    ],
+    [
+     40,
+     115727
+    ],
+    [
+     45,
+     120668
+    ],
+    [
+     50,
+     132170
+    ],
+    [
+     54,
+     142939
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a578deb0",
+   "role": "implement",
+   "task": "VB-1814",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 2,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 1,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 51,
+   "tokens": {
+    "input": 102,
+    "cacheWrite": 169342,
+    "cacheRead": 6392576,
+    "output": 62496
+   },
+   "weighted": 1163517,
+   "first": 18102,
+   "boot": 156971,
+   "peak": 178304,
+   "activeMin": 13,
+   "start": "2026-11-26T03:44:11.211Z",
+   "end": "2026-11-26T03:57:12.979Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     30268
+    ],
+    [
+     10,
+     82412
+    ],
+    [
+     15,
+     115898
+    ],
+    [
+     20,
+     130916
+    ],
+    [
+     25,
+     142444
+    ],
+    [
+     30,
+     151345
+    ],
+    [
+     35,
+     161671
+    ],
+    [
+     40,
+     168475
+    ],
+    [
+     45,
+     171705
+    ],
+    [
+     50,
+     178030
+    ],
+    [
+     51,
+     178304
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 11,
+    "failed": 8,
+    "streak": 4,
+    "current": 1
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 34,
+    "contextToEdit": 138869,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a2655d10",
+   "role": "implement",
+   "task": null,
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-haiku-5-5",
+   "calls": 3,
+   "tokens": {
+    "input": 6,
+    "cacheWrite": 88224,
+    "cacheRead": 146384,
+    "output": 9520
+   },
+   "weighted": 172524,
+   "first": 67315,
+   "boot": 0,
+   "peak": 88226,
+   "activeMin": 0.5,
+   "start": "2026-11-26T03:44:11.326Z",
+   "end": "2026-11-26T03:44:42.861Z",
+   "mergeUndone": null,
+   "series": [
+    [
+     3,
+     88226
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "afe76637",
+   "role": "implement",
+   "task": "VB-1814",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 2,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 1,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 79,
+   "tokens": {
+    "input": 160,
+    "cacheWrite": 211330,
+    "cacheRead": 6340698,
+    "output": 48835
+   },
+   "weighted": 1142567,
+   "first": 18156,
+   "boot": 115633,
+   "peak": 121258,
+   "activeMin": 25.5,
+   "start": "2026-11-26T03:57:18.921Z",
+   "end": "2026-11-26T04:27:01.307Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     28230
+    ],
+    [
+     10,
+     40691
+    ],
+    [
+     15,
+     53901
+    ],
+    [
+     20,
+     66153
+    ],
+    [
+     25,
+     70177
+    ],
+    [
+     30,
+     75737
+    ],
+    [
+     35,
+     82173
+    ],
+    [
+     40,
+     87547
+    ],
+    [
+     45,
+     93899
+    ],
+    [
+     50,
+     98009
+    ],
+    [
+     55,
+     101635
+    ],
+    [
+     60,
+     105727
+    ],
+    [
+     65,
+     111817
+    ],
+    [
+     70,
+     117264
+    ],
+    [
+     75,
+     119826
+    ],
+    [
+     79,
+     121258
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 33,
+    "failed": 10,
+    "streak": 3,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 4646,
+    "callsToEdit": 69,
+    "contextToEdit": 97477,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 510882,
+    "calls": 26,
+    "activeMin": 5.8
+   }
+  },
+  {
+   "agent": "a441d527",
+   "role": "review",
+   "task": "VB-1814",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 37,
+   "tokens": {
+    "input": 74,
+    "cacheWrite": 121844,
+    "cacheRead": 3120421,
+    "output": 43587
+   },
+   "weighted": 682356,
+   "first": 16238,
+   "boot": 0,
+   "peak": 121846,
+   "activeMin": 8.2,
+   "start": "2026-11-26T04:12:15.076Z",
+   "end": "2026-11-26T04:20:26.584Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     66327
+    ],
+    [
+     10,
+     73781
+    ],
+    [
+     15,
+     87859
+    ],
+    [
+     20,
+     95604
+    ],
+    [
+     25,
+     100061
+    ],
+    [
+     30,
+     112407
+    ],
+    [
+     35,
+     118112
+    ],
+    [
+     37,
+     121846
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a63e60a3",
+   "role": "implement",
+   "task": "VB-1750",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": "VB-1819"
+   },
+   "model": "claude-opus-5-5",
+   "calls": 83,
+   "tokens": {
+    "input": 166,
+    "cacheWrite": 154022,
+    "cacheRead": 9579986,
+    "output": 54190
+   },
+   "weighted": 1421642,
+   "first": 18102,
+   "boot": 46349,
+   "peak": 162984,
+   "activeMin": 16.3,
+   "start": "2026-11-26T04:28:33.405Z",
+   "end": "2026-11-26T04:44:53.444Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     42045
+    ],
+    [
+     10,
+     47590
+    ],
+    [
+     15,
+     79901
+    ],
+    [
+     20,
+     89450
+    ],
+    [
+     25,
+     103452
+    ],
+    [
+     30,
+     117900
+    ],
+    [
+     35,
+     121709
+    ],
+    [
+     40,
+     124457
+    ],
+    [
+     45,
+     131604
+    ],
+    [
+     50,
+     138807
+    ],
+    [
+     55,
+     141808
+    ],
+    [
+     60,
+     145996
+    ],
+    [
+     65,
+     148898
+    ],
+    [
+     70,
+     152564
+    ],
+    [
+     75,
+     157109
+    ],
+    [
+     80,
+     159609
+    ],
+    [
+     83,
+     162984
+    ]
+   ],
+   "repeats": {
+    "reads": 1,
+    "readBytes": 5549,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 21,
+    "failed": 8,
+    "streak": 2,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 8,
+    "contextToEdit": 28247,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a32ed7fb",
+   "role": "implement",
+   "task": null,
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-haiku-5-5",
+   "calls": 3,
+   "tokens": {
+    "input": 6,
+    "cacheWrite": 90837,
+    "cacheRead": 147697,
+    "output": 10801
+   },
+   "weighted": 182327,
+   "first": 67315,
+   "boot": 0,
+   "peak": 90839,
+   "activeMin": 0.6,
+   "start": "2026-11-26T04:28:33.411Z",
+   "end": "2026-11-26T04:29:09.299Z",
+   "mergeUndone": null,
+   "series": [
+    [
+     3,
+     90839
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a8e9f900",
+   "role": "implement",
+   "task": "VB-1750",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": "VB-1819"
+   },
+   "model": "claude-opus-5-5",
+   "calls": 119,
+   "tokens": {
+    "input": 240,
+    "cacheWrite": 372895,
+    "cacheRead": 13893941,
+    "output": 87004
+   },
+   "weighted": 2290773,
+   "first": 18156,
+   "boot": 45170,
+   "peak": 193509,
+   "activeMin": 28,
+   "start": "2026-11-26T04:44:58.531Z",
+   "end": "2026-11-26T05:15:31.664Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     39773
+    ],
+    [
+     10,
+     48975
+    ],
+    [
+     15,
+     51818
+    ],
+    [
+     20,
+     62523
+    ],
+    [
+     25,
+     74915
+    ],
+    [
+     30,
+     84848
+    ],
+    [
+     35,
+     91187
+    ],
+    [
+     40,
+     103388
+    ],
+    [
+     45,
+     109944
+    ],
+    [
+     50,
+     115576
+    ],
+    [
+     55,
+     118763
+    ],
+    [
+     60,
+     120879
+    ],
+    [
+     65,
+     131816
+    ],
+    [
+     70,
+     134790
+    ],
+    [
+     75,
+     139163
+    ],
+    [
+     80,
+     147466
+    ],
+    [
+     85,
+     154170
+    ],
+    [
+     90,
+     160064
+    ],
+    [
+     95,
+     164145
+    ],
+    [
+     100,
+     172695
+    ],
+    [
+     105,
+     176408
+    ],
+    [
+     110,
+     182461
+    ],
+    [
+     115,
+     188024
+    ],
+    [
+     119,
+     193509
+    ]
+   ],
+   "repeats": {
+    "reads": 2,
+    "readBytes": 9639,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 32,
+    "failed": 13,
+    "streak": 5,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 3691,
+    "callsToEdit": 7,
+    "contextToEdit": 27014,
+    "reason": "ceiling"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 291655,
+    "calls": 3,
+    "activeMin": 0.6
+   }
+  },
+  {
+   "agent": "ae13d510",
+   "role": "review",
+   "task": "VB-1750",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 33,
+   "tokens": {
+    "input": 66,
+    "cacheWrite": 132229,
+    "cacheRead": 2878814,
+    "output": 29335
+   },
+   "weighted": 599909,
+   "first": 16259,
+   "boot": 0,
+   "peak": 132231,
+   "activeMin": 7.2,
+   "start": "2026-11-26T05:07:37.606Z",
+   "end": "2026-11-26T05:14:51.544Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     69378
+    ],
+    [
+     10,
+     73335
+    ],
+    [
+     15,
+     94224
+    ],
+    [
+     20,
+     105478
+    ],
+    [
+     25,
+     113663
+    ],
+    [
+     30,
+     124314
+    ],
+    [
+     33,
+     132231
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a0b6c34c",
+   "role": "implement",
+   "task": "VB-1750",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": "VB-1819"
+   },
+   "model": "claude-opus-5-5",
+   "calls": 36,
+   "tokens": {
+    "input": 72,
+    "cacheWrite": 56224,
+    "cacheRead": 1727964,
+    "output": 18596
+   },
+   "weighted": 336128,
+   "first": 18306,
+   "boot": 62484,
+   "peak": 65186,
+   "activeMin": 7.8,
+   "start": "2026-11-26T05:15:43.631Z",
+   "end": "2026-11-26T05:23:29.242Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     32121
+    ],
+    [
+     10,
+     42776
+    ],
+    [
+     15,
+     50515
+    ],
+    [
+     20,
+     55236
+    ],
+    [
+     25,
+     58382
+    ],
+    [
+     30,
+     61306
+    ],
+    [
+     35,
+     64865
+    ],
+    [
+     36,
+     65186
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 9,
+    "failed": 3,
+    "streak": 2,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 9911,
+    "callsToEdit": 31,
+    "contextToEdit": 44178,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 336128,
+    "calls": 36,
+    "activeMin": 7.8
+   }
+  },
+  {
+   "agent": "afba9841",
+   "role": "implement",
+   "task": "VB-1751",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "pass",
+    "blocking": 0,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 97,
+   "tokens": {
+    "input": 194,
+    "cacheWrite": 186950,
+    "cacheRead": 13076826,
+    "output": 72609
+   },
+   "weighted": 1904609,
+   "first": 18098,
+   "boot": 105190,
+   "peak": 195912,
+   "activeMin": 25.6,
+   "start": "2026-11-26T05:25:04.616Z",
+   "end": "2026-11-26T05:50:40.433Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     30808
+    ],
+    [
+     10,
+     64957
+    ],
+    [
+     15,
+     85390
+    ],
+    [
+     20,
+     98987
+    ],
+    [
+     25,
+     106678
+    ],
+    [
+     30,
+     113829
+    ],
+    [
+     35,
+     121264
+    ],
+    [
+     40,
+     135108
+    ],
+    [
+     45,
+     142202
+    ],
+    [
+     50,
+     152281
+    ],
+    [
+     55,
+     158622
+    ],
+    [
+     60,
+     165187
+    ],
+    [
+     65,
+     168625
+    ],
+    [
+     70,
+     173353
+    ],
+    [
+     75,
+     178084
+    ],
+    [
+     80,
+     182836
+    ],
+    [
+     85,
+     186381
+    ],
+    [
+     90,
+     190417
+    ],
+    [
+     95,
+     193486
+    ],
+    [
+     97,
+     195912
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 29,
+    "failed": 19,
+    "streak": 8,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 23,
+    "contextToEdit": 87092,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a3a24cee",
+   "role": "implement",
+   "task": null,
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-haiku-5-5",
+   "calls": 4,
+   "tokens": {
+    "input": 8,
+    "cacheWrite": 94343,
+    "cacheRead": 243040,
+    "output": 12661
+   },
+   "weighted": 205546,
+   "first": 67315,
+   "boot": 0,
+   "peak": 94345,
+   "activeMin": 0.8,
+   "start": "2026-11-26T05:25:04.620Z",
+   "end": "2026-11-26T05:25:51.610Z",
+   "mergeUndone": null,
+   "series": [
+    [
+     4,
+     94345
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a8cedc03",
+   "role": "implement",
+   "task": "VB-1751",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "pass",
+    "blocking": 0,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 46,
+   "tokens": {
+    "input": 92,
+    "cacheWrite": 143456,
+    "cacheRead": 2263532,
+    "output": 22723
+   },
+   "weighted": 519380,
+   "first": 18157,
+   "boot": 0,
+   "peak": 77528,
+   "activeMin": 12,
+   "start": "2026-11-26T05:50:49.142Z",
+   "end": "2026-11-26T06:06:45.283Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     29693
+    ],
+    [
+     10,
+     36662
+    ],
+    [
+     15,
+     44387
+    ],
+    [
+     20,
+     49414
+    ],
+    [
+     25,
+     54737
+    ],
+    [
+     30,
+     58880
+    ],
+    [
+     35,
+     67625
+    ],
+    [
+     40,
+     72782
+    ],
+    [
+     45,
+     77117
+    ],
+    [
+     46,
+     77528
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 14,
+    "failed": 2,
+    "streak": 1,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 4341,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a8928613",
+   "role": "review",
+   "task": "VB-1751",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 50,
+   "tokens": {
+    "input": 100,
+    "cacheWrite": 137674,
+    "cacheRead": 4444745,
+    "output": 41610
+   },
+   "weighted": 824717,
+   "first": 16243,
+   "boot": 0,
+   "peak": 137676,
+   "activeMin": 10.9,
+   "start": "2026-11-26T06:07:01.159Z",
+   "end": "2026-11-26T06:17:54.937Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     24151
+    ],
+    [
+     10,
+     62182
+    ],
+    [
+     15,
+     82932
+    ],
+    [
+     20,
+     90236
+    ],
+    [
+     25,
+     94020
+    ],
+    [
+     30,
+     103359
+    ],
+    [
+     35,
+     110223
+    ],
+    [
+     40,
+     120402
+    ],
+    [
+     45,
+     129784
+    ],
+    [
+     50,
+     137676
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "acb862f5",
+   "role": "implement",
+   "task": "VB-1751",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "pass",
+    "blocking": 0,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-sonnet-5-5",
+   "calls": 11,
+   "tokens": {
+    "input": 22,
+    "cacheWrite": 83647,
+    "cacheRead": 776143,
+    "output": 2971
+   },
+   "weighted": 197050,
+   "first": 67989,
+   "boot": 0,
+   "peak": 83649,
+   "activeMin": 2.5,
+   "start": "2026-11-26T06:19:31.469Z",
+   "end": "2026-11-26T06:22:02.809Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     78458
+    ],
+    [
+     10,
+     83005
+    ],
+    [
+     11,
+     83649
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 3,
+    "failed": 1,
+    "streak": 1,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 197050,
+    "calls": 11,
+    "activeMin": 2.5
+   }
+  },
+  {
+   "agent": "ad256ec7",
+   "role": "implement",
+   "task": "VB-1820",
+   "size": "L",
+   "status": "done",
+   "review": {
+    "arm": "control",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 65,
+   "tokens": {
+    "input": 132,
+    "cacheWrite": 178324,
+    "cacheRead": 7957427,
+    "output": 72703
+   },
+   "weighted": 1382295,
+   "first": 18106,
+   "boot": 35584,
+   "peak": 178326,
+   "activeMin": 22.9,
+   "start": "2026-11-26T06:19:41.987Z",
+   "end": "2026-11-26T06:42:38.942Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     32447
+    ],
+    [
+     10,
+     44548
+    ],
+    [
+     15,
+     81342
+    ],
+    [
+     20,
+     101298
+    ],
+    [
+     25,
+     126902
+    ],
+    [
+     30,
+     141877
+    ],
+    [
+     35,
+     146961
+    ],
+    [
+     40,
+     158080
+    ],
+    [
+     45,
+     164162
+    ],
+    [
+     50,
+     167564
+    ],
+    [
+     55,
+     171492
+    ],
+    [
+     60,
+     176262
+    ],
+    [
+     65,
+     178326
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 12,
+    "failed": 4,
+    "streak": 2,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 8,
+    "contextToEdit": 17478,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "aa3f89dd",
+   "role": "implement",
+   "task": "VB-1821",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "pass",
+    "blocking": 0,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 64,
+   "tokens": {
+    "input": 128,
+    "cacheWrite": 145908,
+    "cacheRead": 6486139,
+    "output": 46251
+   },
+   "weighted": 1062382,
+   "first": 18100,
+   "boot": 48104,
+   "peak": 154870,
+   "activeMin": 18.8,
+   "start": "2026-11-26T06:43:34.192Z",
+   "end": "2026-11-26T07:02:24.808Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     31403
+    ],
+    [
+     10,
+     47418
+    ],
+    [
+     15,
+     61360
+    ],
+    [
+     20,
+     83603
+    ],
+    [
+     25,
+     96803
+    ],
+    [
+     30,
+     110598
+    ],
+    [
+     35,
+     121789
+    ],
+    [
+     40,
+     128705
+    ],
+    [
+     45,
+     136318
+    ],
+    [
+     50,
+     141615
+    ],
+    [
+     55,
+     147249
+    ],
+    [
+     60,
+     151552
+    ],
+    [
+     64,
+     154870
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 10,
+    "failed": 3,
+    "streak": 2,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 11,
+    "contextToEdit": 30004,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a12de2cd",
+   "role": "implement",
+   "task": null,
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-haiku-5-5",
+   "calls": 4,
+   "tokens": {
+    "input": 10,
+    "cacheWrite": 97462,
+    "cacheRead": 248294,
+    "output": 14232
+   },
+   "weighted": 217827,
+   "first": 67333,
+   "boot": 0,
+   "peak": 97466,
+   "activeMin": 0.8,
+   "start": "2026-11-26T06:43:40.578Z",
+   "end": "2026-11-26T06:44:29.041Z",
+   "mergeUndone": null,
+   "series": [
+    [
+     4,
+     97466
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a14a8c46",
+   "role": "review",
+   "task": "VB-1821",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 29,
+   "tokens": {
+    "input": 58,
+    "cacheWrite": 105829,
+    "cacheRead": 1974840,
+    "output": 29943
+   },
+   "weighted": 479543,
+   "first": 16254,
+   "boot": 0,
+   "peak": 105831,
+   "activeMin": 7,
+   "start": "2026-11-26T07:02:35.082Z",
+   "end": "2026-11-26T07:09:34.785Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     56329
+    ],
+    [
+     10,
+     67423
+    ],
+    [
+     15,
+     74426
+    ],
+    [
+     20,
+     81472
+    ],
+    [
+     25,
+     93509
+    ],
+    [
+     29,
+     105831
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "ae44ea86",
+   "role": "implement",
+   "task": "VB-1752",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "control",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 79,
+   "tokens": {
+    "input": 158,
+    "cacheWrite": 172858,
+    "cacheRead": 9923344,
+    "output": 71299
+   },
+   "weighted": 1565060,
+   "first": 18100,
+   "boot": 110239,
+   "peak": 172860,
+   "activeMin": 18.5,
+   "start": "2026-11-26T07:10:27.462Z",
+   "end": "2026-11-26T07:28:59.792Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     32790
+    ],
+    [
+     10,
+     78561
+    ],
+    [
+     15,
+     99061
+    ],
+    [
+     20,
+     110239
+    ],
+    [
+     25,
+     119239
+    ],
+    [
+     30,
+     123975
+    ],
+    [
+     35,
+     130973
+    ],
+    [
+     40,
+     139937
+    ],
+    [
+     45,
+     145501
+    ],
+    [
+     50,
+     148358
+    ],
+    [
+     55,
+     151367
+    ],
+    [
+     60,
+     154746
+    ],
+    [
+     65,
+     160967
+    ],
+    [
+     70,
+     166435
+    ],
+    [
+     75,
+     169601
+    ],
+    [
+     79,
+     172860
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 17,
+    "failed": 8,
+    "streak": 6,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 20,
+    "contextToEdit": 92139,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a29c8d57",
+   "role": "implement",
+   "task": "VB-1752",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "control",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 83,
+   "tokens": {
+    "input": 166,
+    "cacheWrite": 161398,
+    "cacheRead": 9961605,
+    "output": 75639
+   },
+   "weighted": 1576269,
+   "first": 18152,
+   "boot": 77033,
+   "peak": 170360,
+   "activeMin": 24.3,
+   "start": "2026-11-26T07:29:07.817Z",
+   "end": "2026-11-26T07:53:27.181Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     38090
+    ],
+    [
+     10,
+     58965
+    ],
+    [
+     15,
+     83026
+    ],
+    [
+     20,
+     90490
+    ],
+    [
+     25,
+     104932
+    ],
+    [
+     30,
+     114111
+    ],
+    [
+     35,
+     126105
+    ],
+    [
+     40,
+     132644
+    ],
+    [
+     45,
+     136490
+    ],
+    [
+     50,
+     141131
+    ],
+    [
+     55,
+     148176
+    ],
+    [
+     60,
+     155911
+    ],
+    [
+     65,
+     158728
+    ],
+    [
+     70,
+     163901
+    ],
+    [
+     75,
+     166965
+    ],
+    [
+     80,
+     169309
+    ],
+    [
+     83,
+     170360
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 23,
+    "failed": 9,
+    "streak": 3,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 4543,
+    "callsToEdit": 14,
+    "contextToEdit": 58881,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a34f86a1",
+   "role": "implement",
+   "task": "VB-1743",
+   "size": "S",
+   "status": "done",
+   "review": {
+    "arm": "ineligible",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-sonnet-5-5",
+   "calls": 15,
+   "tokens": {
+    "input": 30,
+    "cacheWrite": 36826,
+    "cacheRead": 409802,
+    "output": 4825
+   },
+   "weighted": 111168,
+   "first": 18106,
+   "boot": 31292,
+   "peak": 36828,
+   "activeMin": 2.9,
+   "start": "2026-11-26T07:54:36.585Z",
+   "end": "2026-11-26T07:57:28.857Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     26666
+    ],
+    [
+     10,
+     32602
+    ],
+    [
+     15,
+     36828
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 1,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 8,
+    "contextToEdit": 13186,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "afe63d0e",
+   "role": "implement",
+   "task": "VB-1744",
+   "size": "S",
+   "status": "done",
+   "review": {
+    "arm": "control",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-sonnet-5-5",
+   "calls": 39,
+   "tokens": {
+    "input": 80,
+    "cacheWrite": 50968,
+    "cacheRead": 1740317,
+    "output": 16118
+   },
+   "weighted": 318412,
+   "first": 18104,
+   "boot": 36289,
+   "peak": 59932,
+   "activeMin": 10,
+   "start": "2026-11-26T07:58:18.704Z",
+   "end": "2026-11-26T08:08:18.689Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     28927
+    ],
+    [
+     10,
+     39179
+    ],
+    [
+     15,
+     44543
+    ],
+    [
+     20,
+     48209
+    ],
+    [
+     25,
+     52209
+    ],
+    [
+     30,
+     55715
+    ],
+    [
+     35,
+     58705
+    ],
+    [
+     39,
+     59932
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 13,
+    "failed": 6,
+    "streak": 4,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 9,
+    "contextToEdit": 18185,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "aa5dce6c",
+   "role": "implement",
+   "task": "VB-1745",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 91,
+   "tokens": {
+    "input": 184,
+    "cacheWrite": 360608,
+    "cacheRead": 11388741,
+    "output": 70986
+   },
+   "weighted": 1944748,
+   "first": 18106,
+   "boot": 98579,
+   "peak": 186132,
+   "activeMin": 29.3,
+   "start": "2026-11-26T08:09:20.465Z",
+   "end": "2026-11-26T08:42:01.857Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     38028
+    ],
+    [
+     10,
+     54198
+    ],
+    [
+     15,
+     76054
+    ],
+    [
+     20,
+     90270
+    ],
+    [
+     25,
+     107010
+    ],
+    [
+     30,
+     115433
+    ],
+    [
+     35,
+     127586
+    ],
+    [
+     40,
+     133340
+    ],
+    [
+     45,
+     141458
+    ],
+    [
+     50,
+     148368
+    ],
+    [
+     55,
+     154987
+    ],
+    [
+     60,
+     159397
+    ],
+    [
+     65,
+     163036
+    ],
+    [
+     70,
+     166170
+    ],
+    [
+     75,
+     170281
+    ],
+    [
+     80,
+     173412
+    ],
+    [
+     85,
+     180109
+    ],
+    [
+     90,
+     185768
+    ],
+    [
+     91,
+     186132
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 22,
+    "failed": 10,
+    "streak": 3,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 22,
+    "contextToEdit": 80473,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 413564,
+    "calls": 9,
+    "activeMin": 3.9
+   }
+  },
+  {
+   "agent": "ae645f14",
+   "role": "implement",
+   "task": null,
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-haiku-5-5",
+   "calls": 3,
+   "tokens": {
+    "input": 6,
+    "cacheWrite": 101436,
+    "cacheRead": 152997,
+    "output": 16101
+   },
+   "weighted": 222606,
+   "first": 67333,
+   "boot": 0,
+   "peak": 101438,
+   "activeMin": 0.9,
+   "start": "2026-11-26T08:09:26.284Z",
+   "end": "2026-11-26T08:10:20.324Z",
+   "mergeUndone": null,
+   "series": [
+    [
+     3,
+     101438
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a07b0ca7",
+   "role": "review",
+   "task": "VB-1745",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 28,
+   "tokens": {
+    "input": 56,
+    "cacheWrite": 119763,
+    "cacheRead": 2437153,
+    "output": 36703
+   },
+   "weighted": 576990,
+   "first": 16256,
+   "boot": 0,
+   "peak": 119765,
+   "activeMin": 8.1,
+   "start": "2026-11-26T08:29:55.503Z",
+   "end": "2026-11-26T08:38:04.257Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     72262
+    ],
+    [
+     10,
+     91170
+    ],
+    [
+     15,
+     103286
+    ],
+    [
+     20,
+     109648
+    ],
+    [
+     25,
+     116176
+    ],
+    [
+     28,
+     119765
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a6673f27",
+   "role": "implement",
+   "task": "VB-1746",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 2,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 1,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 94,
+   "tokens": {
+    "input": 188,
+    "cacheWrite": 184513,
+    "cacheRead": 12003866,
+    "output": 77190
+   },
+   "weighted": 1817166,
+   "first": 18098,
+   "boot": 151083,
+   "peak": 193475,
+   "activeMin": 17.6,
+   "start": "2026-11-26T08:42:49.459Z",
+   "end": "2026-11-26T09:00:25.929Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     27576
+    ],
+    [
+     10,
+     52316
+    ],
+    [
+     15,
+     70113
+    ],
+    [
+     20,
+     90561
+    ],
+    [
+     25,
+     102072
+    ],
+    [
+     30,
+     110543
+    ],
+    [
+     35,
+     118612
+    ],
+    [
+     40,
+     126255
+    ],
+    [
+     45,
+     130880
+    ],
+    [
+     50,
+     136860
+    ],
+    [
+     55,
+     151635
+    ],
+    [
+     60,
+     158082
+    ],
+    [
+     65,
+     164408
+    ],
+    [
+     70,
+     170300
+    ],
+    [
+     75,
+     177446
+    ],
+    [
+     80,
+     181586
+    ],
+    [
+     85,
+     187027
+    ],
+    [
+     90,
+     190400
+    ],
+    [
+     94,
+     193475
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 10,
+    "failed": 5,
+    "streak": 4,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 54,
+    "contextToEdit": 132985,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a787559f",
+   "role": "implement",
+   "task": "VB-1746",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 2,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 1,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 40,
+   "tokens": {
+    "input": 82,
+    "cacheWrite": 139214,
+    "cacheRead": 2247926,
+    "output": 25731
+   },
+   "weighted": 527547,
+   "first": 18146,
+   "boot": 48132,
+   "peak": 86163,
+   "activeMin": 17.5,
+   "start": "2026-11-26T09:00:48.965Z",
+   "end": "2026-11-26T09:19:59.818Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     35025
+    ],
+    [
+     10,
+     49833
+    ],
+    [
+     15,
+     53291
+    ],
+    [
+     20,
+     58931
+    ],
+    [
+     25,
+     62984
+    ],
+    [
+     30,
+     75964
+    ],
+    [
+     35,
+     82453
+    ],
+    [
+     40,
+     86163
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 11,
+    "failed": 2,
+    "streak": 1,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 4671,
+    "callsToEdit": 9,
+    "contextToEdit": 29986,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 290106,
+    "calls": 16,
+    "activeMin": 5.4
+   }
+  },
+  {
+   "agent": "a119d0cd",
+   "role": "review",
+   "task": "VB-1746",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 26,
+   "tokens": {
+    "input": 52,
+    "cacheWrite": 130222,
+    "cacheRead": 2281140,
+    "output": 24416
+   },
+   "weighted": 513024,
+   "first": 16247,
+   "boot": 0,
+   "peak": 130224,
+   "activeMin": 6.4,
+   "start": "2026-11-26T09:08:05.429Z",
+   "end": "2026-11-26T09:14:29.593Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     59659
+    ],
+    [
+     10,
+     94129
+    ],
+    [
+     15,
+     102494
+    ],
+    [
+     20,
+     116300
+    ],
+    [
+     25,
+     128877
+    ],
+    [
+     26,
+     130224
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "ae0196db",
+   "role": "implement",
+   "task": "VB-1753",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": "VB-1837"
+   },
+   "model": "claude-opus-5-5",
+   "calls": 68,
+   "tokens": {
+    "input": 136,
+    "cacheWrite": 166880,
+    "cacheRead": 7979305,
+    "output": 54801
+   },
+   "weighted": 1280672,
+   "first": 18104,
+   "boot": 123669,
+   "peak": 175842,
+   "activeMin": 14.2,
+   "start": "2026-11-26T09:20:54.182Z",
+   "end": "2026-11-26T09:35:06.583Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     33852
+    ],
+    [
+     10,
+     57813
+    ],
+    [
+     15,
+     82226
+    ],
+    [
+     20,
+     104490
+    ],
+    [
+     25,
+     117441
+    ],
+    [
+     30,
+     121221
+    ],
+    [
+     35,
+     125512
+    ],
+    [
+     40,
+     135674
+    ],
+    [
+     45,
+     150153
+    ],
+    [
+     50,
+     156460
+    ],
+    [
+     55,
+     162799
+    ],
+    [
+     60,
+     168101
+    ],
+    [
+     65,
+     172957
+    ],
+    [
+     68,
+     175842
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 19,
+    "failed": 14,
+    "streak": 4,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 34,
+    "contextToEdit": 105565,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a02b1849",
+   "role": "implement",
+   "task": "VB-1753",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": "VB-1837"
+   },
+   "model": "claude-opus-5-5",
+   "calls": 71,
+   "tokens": {
+    "input": 144,
+    "cacheWrite": 146097,
+    "cacheRead": 3963973,
+    "output": 36733
+   },
+   "weighted": 762828,
+   "first": 18158,
+   "boot": 33604,
+   "peak": 93964,
+   "activeMin": 21.4,
+   "start": "2026-11-26T09:35:17.983Z",
+   "end": "2026-11-26T09:58:50.570Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     24435
+    ],
+    [
+     10,
+     31581
+    ],
+    [
+     15,
+     37386
+    ],
+    [
+     20,
+     43619
+    ],
+    [
+     25,
+     46640
+    ],
+    [
+     30,
+     49378
+    ],
+    [
+     35,
+     56291
+    ],
+    [
+     40,
+     60226
+    ],
+    [
+     45,
+     67760
+    ],
+    [
+     50,
+     72332
+    ],
+    [
+     55,
+     79115
+    ],
+    [
+     60,
+     83174
+    ],
+    [
+     65,
+     89189
+    ],
+    [
+     70,
+     93556
+    ],
+    [
+     71,
+     93964
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 15,
+    "failed": 2,
+    "streak": 1,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 3995,
+    "callsToEdit": 12,
+    "contextToEdit": 15446,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 430654,
+    "calls": 29,
+    "activeMin": 5.4
+   }
+  },
+  {
+   "agent": "a141612c",
+   "role": "review",
+   "task": "VB-1753",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 37,
+   "tokens": {
+    "input": 74,
+    "cacheWrite": 121720,
+    "cacheRead": 2987248,
+    "output": 31290
+   },
+   "weighted": 607399,
+   "first": 16245,
+   "boot": 0,
+   "peak": 121722,
+   "activeMin": 6.9,
+   "start": "2026-11-26T09:46:27.534Z",
+   "end": "2026-11-26T09:53:19.560Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     59826
+    ],
+    [
+     10,
+     65983
+    ],
+    [
+     15,
+     80277
+    ],
+    [
+     20,
+     92038
+    ],
+    [
+     25,
+     98650
+    ],
+    [
+     30,
+     106362
+    ],
+    [
+     35,
+     119163
+    ],
+    [
+     37,
+     121722
+    ]
+   ],
+   "repeats": {
+    "reads": 1,
+    "readBytes": 1570,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a2c6674c",
+   "role": "implement",
+   "task": "VB-1754",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "pass",
+    "blocking": 0,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 61,
+   "tokens": {
+    "input": 122,
+    "cacheWrite": 196439,
+    "cacheRead": 7970016,
+    "output": 85875
+   },
+   "weighted": 1472047,
+   "first": 18098,
+   "boot": 129731,
+   "peak": 205401,
+   "activeMin": 18.8,
+   "start": "2026-11-26T10:00:15.809Z",
+   "end": "2026-11-26T10:19:02.316Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     40531
+    ],
+    [
+     10,
+     58207
+    ],
+    [
+     15,
+     86652
+    ],
+    [
+     20,
+     115851
+    ],
+    [
+     25,
+     129731
+    ],
+    [
+     30,
+     142811
+    ],
+    [
+     35,
+     151075
+    ],
+    [
+     40,
+     165990
+    ],
+    [
+     45,
+     182279
+    ],
+    [
+     50,
+     193015
+    ],
+    [
+     55,
+     199159
+    ],
+    [
+     60,
+     203542
+    ],
+    [
+     61,
+     205401
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 11,
+    "failed": 6,
+    "streak": 4,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 25,
+    "contextToEdit": 111633,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a6574349",
+   "role": "implement",
+   "task": "VB-1754",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "pass",
+    "blocking": 0,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 19,
+   "tokens": {
+    "input": 38,
+    "cacheWrite": 33266,
+    "cacheRead": 599240,
+    "output": 8003
+   },
+   "weighted": 141560,
+   "first": 18149,
+   "boot": 0,
+   "peak": 42228,
+   "activeMin": 6.8,
+   "start": "2026-11-26T10:19:20.298Z",
+   "end": "2026-11-26T10:26:09.711Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     27212
+    ],
+    [
+     10,
+     34498
+    ],
+    [
+     15,
+     40082
+    ],
+    [
+     19,
+     42228
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 6,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 4534,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a8fce30a",
+   "role": "review",
+   "task": "VB-1754",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 52,
+   "tokens": {
+    "input": 104,
+    "cacheWrite": 169250,
+    "cacheRead": 5847065,
+    "output": 52237
+   },
+   "weighted": 1057558,
+   "first": 16245,
+   "boot": 0,
+   "peak": 169252,
+   "activeMin": 10.9,
+   "start": "2026-11-26T10:26:22.079Z",
+   "end": "2026-11-26T10:37:13.682Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     27577
+    ],
+    [
+     10,
+     81150
+    ],
+    [
+     15,
+     100713
+    ],
+    [
+     20,
+     113990
+    ],
+    [
+     25,
+     120531
+    ],
+    [
+     30,
+     126177
+    ],
+    [
+     35,
+     136961
+    ],
+    [
+     40,
+     150652
+    ],
+    [
+     45,
+     160353
+    ],
+    [
+     50,
+     167741
+    ],
+    [
+     52,
+     169252
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a2c0fa51",
+   "role": "implement",
+   "task": "VB-1776",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 0,
+    "rebutted": 1,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 83,
+   "tokens": {
+    "input": 166,
+    "cacheWrite": 180457,
+    "cacheRead": 9743088,
+    "output": 70003
+   },
+   "weighted": 1550061,
+   "first": 18102,
+   "boot": 95311,
+   "peak": 180459,
+   "activeMin": 20.5,
+   "start": "2026-11-26T10:39:33.689Z",
+   "end": "2026-11-26T11:00:02.478Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     34283
+    ],
+    [
+     10,
+     47845
+    ],
+    [
+     15,
+     60858
+    ],
+    [
+     20,
+     80071
+    ],
+    [
+     25,
+     95311
+    ],
+    [
+     30,
+     106413
+    ],
+    [
+     35,
+     118101
+    ],
+    [
+     40,
+     127352
+    ],
+    [
+     45,
+     135707
+    ],
+    [
+     50,
+     142819
+    ],
+    [
+     55,
+     154009
+    ],
+    [
+     60,
+     159438
+    ],
+    [
+     65,
+     161878
+    ],
+    [
+     70,
+     167315
+    ],
+    [
+     75,
+     171438
+    ],
+    [
+     80,
+     177735
+    ],
+    [
+     83,
+     180459
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 25,
+    "failed": 12,
+    "streak": 3,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 25,
+    "contextToEdit": 77209,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "ace7dcae",
+   "role": "implement",
+   "task": null,
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-haiku-5-5",
+   "calls": 4,
+   "tokens": {
+    "input": 8,
+    "cacheWrite": 109454,
+    "cacheRead": 265813,
+    "output": 20226
+   },
+   "weighted": 264537,
+   "first": 67333,
+   "boot": 0,
+   "peak": 109456,
+   "activeMin": 1.2,
+   "start": "2026-11-26T10:39:41.703Z",
+   "end": "2026-11-26T10:40:53.489Z",
+   "mergeUndone": null,
+   "series": [
+    [
+     4,
+     109456
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a644de6a",
+   "role": "implement",
+   "task": "VB-1776",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 0,
+    "rebutted": 1,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 43,
+   "tokens": {
+    "input": 88,
+    "cacheWrite": 84920,
+    "cacheRead": 1861857,
+    "output": 20717
+   },
+   "weighted": 396009,
+   "first": 18151,
+   "boot": 0,
+   "peak": 66065,
+   "activeMin": 14.1,
+   "start": "2026-11-26T11:00:13.195Z",
+   "end": "2026-11-26T11:15:34.650Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     25062
+    ],
+    [
+     10,
+     27515
+    ],
+    [
+     15,
+     32848
+    ],
+    [
+     20,
+     45809
+    ],
+    [
+     25,
+     54057
+    ],
+    [
+     30,
+     57143
+    ],
+    [
+     35,
+     60683
+    ],
+    [
+     40,
+     64737
+    ],
+    [
+     43,
+     66065
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 13,
+    "failed": 2,
+    "streak": 1,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 3135,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 329506,
+    "calls": 32,
+    "activeMin": 4.2
+   }
+  },
+  {
+   "agent": "aa62693a",
+   "role": "review",
+   "task": "VB-1776",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 27,
+   "tokens": {
+    "input": 54,
+    "cacheWrite": 109509,
+    "cacheRead": 1977349,
+    "output": 26687
+   },
+   "weighted": 468110,
+   "first": 16239,
+   "boot": 0,
+   "peak": 109511,
+   "activeMin": 5.9,
+   "start": "2026-11-26T11:05:18.780Z",
+   "end": "2026-11-26T11:11:15.168Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     61147
+    ],
+    [
+     10,
+     72833
+    ],
+    [
+     15,
+     84813
+    ],
+    [
+     20,
+     93992
+    ],
+    [
+     25,
+     109061
+    ],
+    [
+     27,
+     109511
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 5,
+    "failed": 4,
+    "streak": 3,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a7faf957",
+   "role": "implement",
+   "task": "VB-1755",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "control",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 69,
+   "tokens": {
+    "input": 138,
+    "cacheWrite": 161752,
+    "cacheRead": 7703345,
+    "output": 63461
+   },
+   "weighted": 1289968,
+   "first": 18102,
+   "boot": 140094,
+   "peak": 170714,
+   "activeMin": 15.5,
+   "start": "2026-11-26T11:16:31.992Z",
+   "end": "2026-11-26T11:32:00.854Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     31355
+    ],
+    [
+     10,
+     52756
+    ],
+    [
+     15,
+     75183
+    ],
+    [
+     20,
+     86632
+    ],
+    [
+     25,
+     95864
+    ],
+    [
+     30,
+     110721
+    ],
+    [
+     35,
+     123887
+    ],
+    [
+     40,
+     134147
+    ],
+    [
+     45,
+     144815
+    ],
+    [
+     50,
+     154463
+    ],
+    [
+     55,
+     159014
+    ],
+    [
+     60,
+     163791
+    ],
+    [
+     65,
+     167165
+    ],
+    [
+     69,
+     170714
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 12,
+    "failed": 7,
+    "streak": 4,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 44,
+    "contextToEdit": 121992,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a05f1484",
+   "role": "implement",
+   "task": "VB-1755",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "control",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 78,
+   "tokens": {
+    "input": 156,
+    "cacheWrite": 240505,
+    "cacheRead": 6800911,
+    "output": 50598
+   },
+   "weighted": 1233868,
+   "first": 18158,
+   "boot": 52631,
+   "peak": 127911,
+   "activeMin": 15.6,
+   "start": "2026-11-26T11:32:10.503Z",
+   "end": "2026-11-26T11:57:13.883Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     33229
+    ],
+    [
+     10,
+     52631
+    ],
+    [
+     15,
+     63594
+    ],
+    [
+     20,
+     73803
+    ],
+    [
+     25,
+     83269
+    ],
+    [
+     30,
+     86777
+    ],
+    [
+     35,
+     88883
+    ],
+    [
+     40,
+     96870
+    ],
+    [
+     45,
+     101211
+    ],
+    [
+     50,
+     105184
+    ],
+    [
+     55,
+     109817
+    ],
+    [
+     60,
+     114194
+    ],
+    [
+     65,
+     118482
+    ],
+    [
+     70,
+     120687
+    ],
+    [
+     75,
+     126531
+    ],
+    [
+     78,
+     127911
+    ]
+   ],
+   "repeats": {
+    "reads": 1,
+    "readBytes": 109,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 1
+   },
+   "tests": {
+    "runs": 24,
+    "failed": 11,
+    "streak": 3,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 4942,
+    "callsToEdit": 10,
+    "contextToEdit": 34473,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a49db0ad",
+   "role": "implement",
+   "task": "VB-1689",
+   "size": "S",
+   "status": "done",
+   "review": {
+    "arm": "ineligible",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-sonnet-5-5",
+   "calls": 12,
+   "tokens": {
+    "input": 24,
+    "cacheWrite": 38120,
+    "cacheRead": 337881,
+    "output": 4632
+   },
+   "weighted": 104622,
+   "first": 18110,
+   "boot": 0,
+   "peak": 38122,
+   "activeMin": 2.7,
+   "start": "2026-11-26T11:58:21.257Z",
+   "end": "2026-11-26T12:01:04.779Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     31731
+    ],
+    [
+     10,
+     37753
+    ],
+    [
+     12,
+     38122
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 2,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a662e474",
+   "role": "implement",
+   "task": "VB-1756",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 2,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 1,
+    "followups": "VB-1847"
+   },
+   "model": "claude-opus-5-5",
+   "calls": 91,
+   "tokens": {
+    "input": 184,
+    "cacheWrite": 319248,
+    "cacheRead": 10534604,
+    "output": 62595
+   },
+   "weighted": 1765679,
+   "first": 18098,
+   "boot": 123059,
+   "peak": 177309,
+   "activeMin": 31.1,
+   "start": "2026-11-26T12:01:50.275Z",
+   "end": "2026-11-26T12:37:58.869Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     33084
+    ],
+    [
+     10,
+     45060
+    ],
+    [
+     15,
+     69038
+    ],
+    [
+     20,
+     87881
+    ],
+    [
+     25,
+     98717
+    ],
+    [
+     30,
+     104111
+    ],
+    [
+     35,
+     116152
+    ],
+    [
+     40,
+     126865
+    ],
+    [
+     45,
+     131252
+    ],
+    [
+     50,
+     134422
+    ],
+    [
+     55,
+     137647
+    ],
+    [
+     60,
+     143001
+    ],
+    [
+     65,
+     147538
+    ],
+    [
+     70,
+     150608
+    ],
+    [
+     75,
+     157901
+    ],
+    [
+     80,
+     163818
+    ],
+    [
+     85,
+     173200
+    ],
+    [
+     90,
+     177012
+    ],
+    [
+     91,
+     177309
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 22,
+    "failed": 7,
+    "streak": 2,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 38,
+    "contextToEdit": 104961,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 618023,
+    "calls": 20,
+    "activeMin": 8.4
+   }
+  },
+  {
+   "agent": "a14d3df9",
+   "role": "review",
+   "task": "VB-1756",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 45,
+   "tokens": {
+    "input": 90,
+    "cacheWrite": 114772,
+    "cacheRead": 3372577,
+    "output": 43392
+   },
+   "weighted": 697773,
+   "first": 16243,
+   "boot": 0,
+   "peak": 114774,
+   "activeMin": 9.4,
+   "start": "2026-11-26T12:20:02.949Z",
+   "end": "2026-11-26T12:29:27.385Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     44858
+    ],
+    [
+     10,
+     59825
+    ],
+    [
+     15,
+     68537
+    ],
+    [
+     20,
+     73976
+    ],
+    [
+     25,
+     81785
+    ],
+    [
+     30,
+     93173
+    ],
+    [
+     35,
+     101348
+    ],
+    [
+     40,
+     105961
+    ],
+    [
+     45,
+     114774
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "afc74a1a",
+   "role": "implement",
+   "task": "VB-1757",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 107,
+   "tokens": {
+    "input": 216,
+    "cacheWrite": 338285,
+    "cacheRead": 12708029,
+    "output": 72847
+   },
+   "weighted": 2058110,
+   "first": 18102,
+   "boot": 110181,
+   "peak": 184563,
+   "activeMin": 30.1,
+   "start": "2026-11-26T12:39:03.766Z",
+   "end": "2026-11-26T13:11:13.728Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     38138
+    ],
+    [
+     10,
+     56775
+    ],
+    [
+     15,
+     68643
+    ],
+    [
+     20,
+     76806
+    ],
+    [
+     25,
+     90115
+    ],
+    [
+     30,
+     95115
+    ],
+    [
+     35,
+     105093
+    ],
+    [
+     40,
+     110181
+    ],
+    [
+     45,
+     117032
+    ],
+    [
+     50,
+     123572
+    ],
+    [
+     55,
+     130826
+    ],
+    [
+     60,
+     137113
+    ],
+    [
+     65,
+     142894
+    ],
+    [
+     70,
+     146949
+    ],
+    [
+     75,
+     153717
+    ],
+    [
+     80,
+     155710
+    ],
+    [
+     85,
+     160541
+    ],
+    [
+     90,
+     163480
+    ],
+    [
+     95,
+     170105
+    ],
+    [
+     100,
+     176766
+    ],
+    [
+     105,
+     183997
+    ],
+    [
+     107,
+     184563
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 25,
+    "failed": 13,
+    "streak": 2,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 40,
+    "contextToEdit": 92079,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 587431,
+    "calls": 18,
+    "activeMin": 4.1
+   }
+  },
+  {
+   "agent": "ae553418",
+   "role": "review",
+   "task": "VB-1757",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 34,
+   "tokens": {
+    "input": 68,
+    "cacheWrite": 90533,
+    "cacheRead": 2072970,
+    "output": 30778
+   },
+   "weighted": 474421,
+   "first": 16239,
+   "boot": 0,
+   "peak": 90535,
+   "activeMin": 6.7,
+   "start": "2026-11-26T13:00:17.162Z",
+   "end": "2026-11-26T13:07:00.870Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     48935
+    ],
+    [
+     10,
+     56059
+    ],
+    [
+     15,
+     61905
+    ],
+    [
+     20,
+     66829
+    ],
+    [
+     25,
+     78670
+    ],
+    [
+     30,
+     84244
+    ],
+    [
+     34,
+     90535
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a6bf5f67",
+   "role": "implement",
+   "task": "VB-1597",
+   "size": "S",
+   "status": "done",
+   "review": {
+    "arm": "ineligible",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-sonnet-5-5",
+   "calls": 17,
+   "tokens": {
+    "input": 34,
+    "cacheWrite": 32501,
+    "cacheRead": 436550,
+    "output": 4621
+   },
+   "weighted": 107420,
+   "first": 18112,
+   "boot": 28825,
+   "peak": 32503,
+   "activeMin": 3.5,
+   "start": "2026-11-26T13:12:38.499Z",
+   "end": "2026-11-26T13:16:10.746Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     25165
+    ],
+    [
+     10,
+     29659
+    ],
+    [
+     15,
+     31881
+    ],
+    [
+     17,
+     32503
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 5,
+    "failed": 3,
+    "streak": 2,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 9,
+    "contextToEdit": 10713,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a84532da",
+   "role": "implement",
+   "task": null,
+   "size": null,
+   "status": null,
+   "review": null,
+   "model": "claude-haiku-5-5",
+   "calls": 3,
+   "tokens": {
+    "input": 6,
+    "cacheWrite": 114942,
+    "cacheRead": 159670,
+    "output": 22823
+   },
+   "weighted": 273766,
+   "first": 67333,
+   "boot": 0,
+   "peak": 114944,
+   "activeMin": 1.3,
+   "start": "2026-11-26T13:13:02.131Z",
+   "end": "2026-11-26T13:14:17.604Z",
+   "mergeUndone": null,
+   "series": [
+    [
+     3,
+     114944
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a8f39ee1",
+   "role": "implement",
+   "task": "VB-1777",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 0,
+    "rebutted": 1,
+    "unresolved": 0,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 116,
+   "tokens": {
+    "input": 234,
+    "cacheWrite": 492840,
+    "cacheRead": 20189396,
+    "output": 109287
+   },
+   "weighted": 3181659,
+   "first": 18106,
+   "boot": 141673,
+   "peak": 253921,
+   "activeMin": 37.3,
+   "start": "2026-11-26T13:16:58.356Z",
+   "end": "2026-11-26T13:57:59.579Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     31961
+    ],
+    [
+     10,
+     66799
+    ],
+    [
+     15,
+     93529
+    ],
+    [
+     20,
+     114846
+    ],
+    [
+     25,
+     135810
+    ],
+    [
+     30,
+     145657
+    ],
+    [
+     35,
+     155004
+    ],
+    [
+     40,
+     163856
+    ],
+    [
+     45,
+     177517
+    ],
+    [
+     50,
+     187688
+    ],
+    [
+     55,
+     193024
+    ],
+    [
+     60,
+     199475
+    ],
+    [
+     65,
+     203360
+    ],
+    [
+     70,
+     206300
+    ],
+    [
+     75,
+     213899
+    ],
+    [
+     80,
+     222801
+    ],
+    [
+     85,
+     225289
+    ],
+    [
+     90,
+     230825
+    ],
+    [
+     95,
+     233983
+    ],
+    [
+     100,
+     237345
+    ],
+    [
+     105,
+     241886
+    ],
+    [
+     110,
+     247914
+    ],
+    [
+     115,
+     253655
+    ],
+    [
+     116,
+     253921
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 25,
+    "failed": 12,
+    "streak": 7,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 29,
+    "contextToEdit": 123567,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 664878,
+    "calls": 13,
+    "activeMin": 3
+   }
+  },
+  {
+   "agent": "ab827360",
+   "role": "review",
+   "task": "VB-1777",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 42,
+   "tokens": {
+    "input": 84,
+    "cacheWrite": 167349,
+    "cacheRead": 4685690,
+    "output": 32531
+   },
+   "weighted": 840494,
+   "first": 16244,
+   "boot": 0,
+   "peak": 167351,
+   "activeMin": 8.1,
+   "start": "2026-11-26T13:46:50.774Z",
+   "end": "2026-11-26T13:54:56.056Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     42141
+    ],
+    [
+     10,
+     93975
+    ],
+    [
+     15,
+     105214
+    ],
+    [
+     20,
+     126089
+    ],
+    [
+     25,
+     137200
+    ],
+    [
+     30,
+     145316
+    ],
+    [
+     35,
+     153464
+    ],
+    [
+     40,
+     165983
+    ],
+    [
+     42,
+     167351
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a89f675f",
+   "role": "implement",
+   "task": "VB-1758",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": "VB-1855"
+   },
+   "model": "claude-opus-5-5",
+   "calls": 89,
+   "tokens": {
+    "input": 178,
+    "cacheWrite": 169668,
+    "cacheRead": 10008882,
+    "output": 69411
+   },
+   "weighted": 1560206,
+   "first": 18138,
+   "boot": 77714,
+   "peak": 178630,
+   "activeMin": 16.7,
+   "start": "2026-11-26T14:00:25.978Z",
+   "end": "2026-11-26T14:17:09.793Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     30277
+    ],
+    [
+     10,
+     54341
+    ],
+    [
+     15,
+     66735
+    ],
+    [
+     20,
+     74764
+    ],
+    [
+     25,
+     79844
+    ],
+    [
+     30,
+     89841
+    ],
+    [
+     35,
+     101884
+    ],
+    [
+     40,
+     114728
+    ],
+    [
+     45,
+     123670
+    ],
+    [
+     50,
+     127340
+    ],
+    [
+     55,
+     132939
+    ],
+    [
+     60,
+     143395
+    ],
+    [
+     65,
+     149811
+    ],
+    [
+     70,
+     156579
+    ],
+    [
+     75,
+     163966
+    ],
+    [
+     80,
+     169372
+    ],
+    [
+     85,
+     174309
+    ],
+    [
+     89,
+     178630
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 15,
+    "failed": 5,
+    "streak": 2,
+    "current": 1
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 22,
+    "contextToEdit": 59576,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a4ccd0bf",
+   "role": "implement",
+   "task": "VB-1758",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "review",
+    "verdict": "revise",
+    "blocking": 1,
+    "confirmed": true,
+    "mended": 1,
+    "rebutted": 0,
+    "unresolved": 0,
+    "followups": "VB-1855"
+   },
+   "model": "claude-opus-5-5",
+   "calls": 114,
+   "tokens": {
+    "input": 230,
+    "cacheWrite": 606878,
+    "cacheRead": 12631115,
+    "output": 68164
+   },
+   "weighted": 2362759,
+   "first": 18195,
+   "boot": 44240,
+   "peak": 178597,
+   "activeMin": 44.8,
+   "start": "2026-11-26T14:17:15.303Z",
+   "end": "2026-11-26T15:12:43.064Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     26315
+    ],
+    [
+     10,
+     44240
+    ],
+    [
+     15,
+     61272
+    ],
+    [
+     20,
+     71609
+    ],
+    [
+     25,
+     78377
+    ],
+    [
+     30,
+     84157
+    ],
+    [
+     35,
+     94177
+    ],
+    [
+     40,
+     102838
+    ],
+    [
+     45,
+     110453
+    ],
+    [
+     50,
+     116422
+    ],
+    [
+     55,
+     121156
+    ],
+    [
+     60,
+     127715
+    ],
+    [
+     65,
+     129548
+    ],
+    [
+     70,
+     136262
+    ],
+    [
+     75,
+     139852
+    ],
+    [
+     80,
+     145394
+    ],
+    [
+     85,
+     149244
+    ],
+    [
+     90,
+     155804
+    ],
+    [
+     95,
+     162280
+    ],
+    [
+     100,
+     166007
+    ],
+    [
+     105,
+     171254
+    ],
+    [
+     110,
+     175990
+    ],
+    [
+     114,
+     178597
+    ]
+   ],
+   "repeats": {
+    "reads": 1,
+    "readBytes": 1788,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 27,
+    "failed": 11,
+    "streak": 3,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 4873,
+    "callsToEdit": 10,
+    "contextToEdit": 26045,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   },
+   "revision": {
+    "weighted": 729520,
+    "calls": 27,
+    "activeMin": 10.2
+   }
+  },
+  {
+   "agent": "a14858aa",
+   "role": "review",
+   "task": "VB-1758",
+   "size": "M",
+   "status": null,
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 33,
+   "tokens": {
+    "input": 66,
+    "cacheWrite": 105373,
+    "cacheRead": 2339383,
+    "output": 24869
+   },
+   "weighted": 490066,
+   "first": 16238,
+   "boot": 0,
+   "peak": 105375,
+   "activeMin": 6.2,
+   "start": "2026-11-26T14:56:12.821Z",
+   "end": "2026-11-26T15:02:24.798Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     56542
+    ],
+    [
+     10,
+     65986
+    ],
+    [
+     15,
+     75170
+    ],
+    [
+     20,
+     81214
+    ],
+    [
+     25,
+     90422
+    ],
+    [
+     30,
+     97253
+    ],
+    [
+     33,
+     105375
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 0,
+    "failed": 0,
+    "streak": 0,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": null,
+    "contextToEdit": null,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a8cff966",
+   "role": "implement",
+   "task": "VB-1854",
+   "size": "M",
+   "status": "done",
+   "review": {
+    "arm": "control",
+    "verdict": null,
+    "blocking": null,
+    "confirmed": false,
+    "mended": null,
+    "rebutted": null,
+    "unresolved": null,
+    "followups": null
+   },
+   "model": "claude-opus-5-5",
+   "calls": 70,
+   "tokens": {
+    "input": 140,
+    "cacheWrite": 137101,
+    "cacheRead": 6368880,
+    "output": 39003
+   },
+   "weighted": 1003419,
+   "first": 18211,
+   "boot": 75665,
+   "peak": 146063,
+   "activeMin": 15.7,
+   "start": "2026-11-26T15:14:23.342Z",
+   "end": "2026-11-26T15:30:06.713Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     28913
+    ],
+    [
+     10,
+     51310
+    ],
+    [
+     15,
+     56417
+    ],
+    [
+     20,
+     64992
+    ],
+    [
+     25,
+     73427
+    ],
+    [
+     30,
+     80000
+    ],
+    [
+     35,
+     89582
+    ],
+    [
+     40,
+     109787
+    ],
+    [
+     45,
+     112290
+    ],
+    [
+     50,
+     125403
+    ],
+    [
+     55,
+     129940
+    ],
+    [
+     60,
+     135436
+    ],
+    [
+     65,
+     139768
+    ],
+    [
+     70,
+     146063
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 16,
+    "failed": 6,
+    "streak": 2,
+    "current": 0
+   },
+   "continuation": {
+    "continues": false,
+    "handoverBytes": 0,
+    "callsToEdit": 27,
+    "contextToEdit": 57454,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "ac4c6e18",
+   "role": "implement",
+   "task": "VB-1760",
+   "size": "M",
+   "status": "done",
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 91,
+   "tokens": {
+    "input": 182,
+    "cacheWrite": 169320,
+    "cacheRead": 10431628,
+    "output": 68903
+   },
+   "weighted": 1599510,
+   "first": 18142,
+   "boot": 105709,
+   "peak": 178282,
+   "activeMin": 18.2,
+   "start": "2026-11-26T15:31:07.114Z",
+   "end": "2026-11-26T15:49:17.764Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     30782
+    ],
+    [
+     10,
+     50431
+    ],
+    [
+     15,
+     67207
+    ],
+    [
+     20,
+     79195
+    ],
+    [
+     25,
+     91851
+    ],
+    [
+     30,
+     102472
+    ],
+    [
+     35,
+     111451
+    ],
+    [
+     40,
+     116066
+    ],
+    [
+     45,
+     122370
+    ],
+    [
+     50,
+     128046
+    ],
+    [
+     55,
+     134236
+    ],
+    [
+     60,
+     140667
+    ],
+    [
+     65,
+     147642
+    ],
+    [
+     70,
+     154882
+    ],
+    [
+     75,
+     158181
+    ],
+    [
+     80,
+     167904
+    ],
+    [
+     85,
+     171905
+    ],
+    [
+     90,
+     177534
+    ],
+    [
+     91,
+     178282
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 20,
+    "failed": 11,
+    "streak": 3,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 870,
+    "callsToEdit": 33,
+    "contextToEdit": 87567,
+    "reason": "boundary"
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  },
+  {
+   "agent": "a09169e6",
+   "role": "implement",
+   "task": "VB-1760",
+   "size": "M",
+   "status": "done",
+   "review": null,
+   "model": "claude-opus-5-5",
+   "calls": 53,
+   "tokens": {
+    "input": 108,
+    "cacheWrite": 154205,
+    "cacheRead": 3166319,
+    "output": 28541
+   },
+   "weighted": 652201,
+   "first": 18193,
+   "boot": 84454,
+   "peak": 90294,
+   "activeMin": 18.9,
+   "start": "2026-11-26T15:49:28.569Z",
+   "end": "2026-11-26T16:10:52.846Z",
+   "mergeUndone": false,
+   "series": [
+    [
+     5,
+     31217
+    ],
+    [
+     10,
+     40096
+    ],
+    [
+     15,
+     47605
+    ],
+    [
+     20,
+     53181
+    ],
+    [
+     25,
+     66350
+    ],
+    [
+     30,
+     69894
+    ],
+    [
+     35,
+     75658
+    ],
+    [
+     40,
+     79759
+    ],
+    [
+     45,
+     84454
+    ],
+    [
+     50,
+     88255
+    ],
+    [
+     53,
+     90294
+    ]
+   ],
+   "repeats": {
+    "reads": 0,
+    "readBytes": 0,
+    "commands": 0,
+    "commandBytes": 0,
+    "recent": 0
+   },
+   "tests": {
+    "runs": 13,
+    "failed": 2,
+    "streak": 1,
+    "current": 0
+   },
+   "continuation": {
+    "continues": true,
+    "handoverBytes": 4600,
+    "callsToEdit": 45,
+    "contextToEdit": 66261,
+    "reason": null
+   },
+   "compactions": 0,
+   "continuations": {
+    "launched": 0,
+    "calls": 0
+   }
+  }
+ ],
+ "review": null,
+ "summary": {
+  "weightedTotal": 80020106,
+  "orchestratorShare": 0.124,
+  "bootMedian": 85225,
+  "readMedian": 67053,
+  "weightedPerDoneTask": 1633063,
+  "perSize": {
+   "S": {
+    "n": 7,
+    "median": 219332
+   },
+   "M": {
+    "n": 41,
+    "median": 1280672
+   },
+   "L": {
+    "n": 1,
+    "median": 1382295
+   }
+  },
+  "firstPass": 1,
+  "tasks": 49,
+  "review": {
+   "reviews": 16,
+   "weighted": 10738910,
+   "median": 609489,
+   "revisions": 16,
+   "revisionWeighted": 7008562,
+   "orchestratorCalls": 79
+  }
+ }
+}
