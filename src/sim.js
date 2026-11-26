@@ -141,7 +141,8 @@ const Sim = (() => {
   const { advance } = VB['sim/clock'];
   // Sim.replay(st, entries): the commands recorded since a save (entries of st.commanded, in order: a run's own record past the length the
   // saved state's had), given again on st, the save loaded, each at its game time, the clock advanced to it (VB-1757). The run then goes
-  // on as it went, its record again the same.
+  // on as it went, its record again the same. The frame (which pawn is played: Sim.inhabit, uninhabit, succeed), the debug drawer's
+  // direct mutators and the page's flags are not commands and are not recorded: a run that changed them since the save is not replayed.
   function replay(st, entries) {
     for (const e of entries) {
       if (e.tick < st.tick) throw new Error(`replay: a command at tick ${e.tick}, the run at ${st.tick}`);

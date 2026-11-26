@@ -45,11 +45,8 @@ const of = (list, point, body) =>
   assert.strictEqual(of(pts, 'ahead', body)[0].deadline, plan.nextReview, "the days ahead: its planning day");
   const allot = of(pts, 'allot', body)[0];
   assert.ok([WORK[0] - 1, 14].includes(VB['sim/rules'].cal(allot.deadline).hour), 'the allotment: the morning or 14:00');
-  assert.strictEqual(VB.count.pointOffer - n0, st.offers.length, "its pawn's offers looked at only");
-  // the alderman: the year's review of its village
+  assert.strictEqual(VB.count.pointOffer - n0, st.offers.length, 'each open offer looked at once, a call');
   const ald = VB['sim/decisions'].agentOf(st, st.villages[0].id);
-  if (ald !== null)
-    assert.strictEqual(of(Sim.decisions(st, ald), 'year', { kind: 'village', id: st.villages[0].id }).length, 1, "the alderman's year");
   // a member that is no head and plans nothing has none of these
   const member = hh.members.find((id) => id !== head && st.pawns[id].alive && id !== ald);
   assert.deepStrictEqual(
@@ -66,6 +63,18 @@ const of = (list, point, body) =>
   assert.ok(of(later, 'ahead', body)[0].deadline > ahead, 'the next planning day is the next point');
   assert.deepStrictEqual(Sim.decisions(st, 9999), [], 'no pawn, no point');
   sound(st, 'points asked');
+}
+// the alderman, once a meeting has chosen him: the year's review of his village, until the meeting's agenda closes
+{
+  const st = make(4.5),
+    v = st.villages[0];
+  VB['sim/meetings'].holdMeetings(st);
+  const ald = VB['sim/decisions'].agentOf(st, v.id);
+  assert.ok(ald !== null && ald !== undefined, 'the meeting chose an alderman');
+  const year = of(Sim.decisions(st, ald), 'year', { kind: 'village', id: v.id });
+  assert.ok(year.length === 1 && year[0].deadline === VB['sim/points'].meetingAfter(st.t), "the alderman's year, the meeting's");
+  const other = st.living.find((id) => id !== ald);
+  assert.strictEqual(of(Sim.decisions(st, other), 'year', { kind: 'village', id: v.id }).length, 0, 'no one else has it');
 }
 
 // 2. A leg's end with automatic behaviour off is a point at once, the queue first; a step at risk is its author's, until the next review.
@@ -121,7 +130,9 @@ const of = (list, point, body) =>
     true,
   );
   const o = st.offers[0],
+    n0 = VB.count.pointOffer,
     ask = of(Sim.decisions(st, INGEBORG), 'ask');
+  assert.ok(st.offers.length >= 1 && VB.count.pointOffer - n0 === st.offers.length, 'each open offer looked at once, a call');
   assert.ok(ask.length === 1 && ask[0].offer === o.id && ask[0].deadline === Math.ceil(o.due / DAY) * DAY, 'the ask, until the day it falls due turns');
   for (const p of st.living) {
     const owes = o.answers.some((a) => a.by === p && a.yes === null);
@@ -175,7 +186,51 @@ const of = (list, point, body) =>
   assert.ok(refused === 1);
 }
 
+// 5. The played pawn's order of a visit (Sim.orderVisit, the page's) goes through the door: ordered after a save, it is recorded, and the
+// replay plans the same visit (VB-1757 review, F1: it was issued past the record, and the replayed round chose another village).
+{
+  const Rec = VB['sim/records'],
+    { YEAR, SEASON_DAYS, ASK } = VB['sim/rules'];
+  const world3 = () => tinyWorld(Array(9).fill('.'.repeat(210)), { seed: 7 });
+  const s = tinyState(
+    world3(),
+    [
+      { at: [6, 4], farms: 1, sizes: [5] },
+      { at: [156, 4], farms: 1, sizes: [5] },
+      { at: [196, 4], farms: 1, sizes: [5] },
+    ],
+    { seed: 7 },
+  );
+  const hh = s.households[0],
+    man = hh.members.find((k) => k !== hh.holder && Rec.spouseOf(s, k) === null),
+    p = s.pawns[man];
+  p.sex = 'm';
+  p.born = s.t - 25.5 * YEAR;
+  p.age = 25;
+  VB['sim/wishes'].seedAsking(s);
+  VB['sim/heirs'].refreshRoles(s);
+  VB['sim/stores'].put(s, hh, 'grain', 3000, 'harvest', { barley: 3000 });
+  assert.strictEqual(Sim.inhabit(s, man), true);
+  Sim.advance(s, (2 * SEASON_DAYS + ASK.day) * DAY + 11 - s.t);
+  for (const q of s.pawns) {
+    q.hunger = 0;
+    q.hungerLog = [];
+  }
+  const saved = JSON.parse(JSON.stringify(Sim.save(s))),
+    from = (s.commanded || []).length;
+  assert.strictEqual(Sim.orderVisit(s, man, 2), true, 'a visit to the third village ordered');
+  Sim.advance(s, 10);
+  const entries = (s.commanded || []).slice(from);
+  assert.deepStrictEqual(entries.map((e) => e.cmd.verb), ['visit'], 'the order recorded');
+  const back = Sim.load(world3(), saved);
+  Sim.replay(back, entries);
+  Sim.advance(back, (s.tick - back.tick) / TICKS);
+  const visits = (st) => st.visits.filter((e) => e.pawn === man).map((e) => e.village);
+  assert.deepStrictEqual(visits(back), visits(s), 'the replay plans the same visit');
+  assert.strictEqual(hash(back), hash(s), 'and reaches the same state');
+}
+
 console.log(
   "decisionpoints ok: a head's four points and the alderman's year, each answered by the default author past its deadline; a leg's end " +
-    "at once, a step at risk until the review, an ask until due; a scripted controller's run replayed from a save to the same state",
+    "at once, a step at risk until the review, an ask until due; a scripted controller's run and an ordered visit replayed from a save to the same state",
 );

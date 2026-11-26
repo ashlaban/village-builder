@@ -641,7 +641,8 @@ VB['sim/controller'] = (() => {
   //   {tick (st.tick when it was given), cmd (a copy of the command {actor, verb, target, args, source}, plain data)}: a controller's
   //   inputs (the page's for the played pawn, an external agent's for any), so that a run is replayed from a save and those recorded
   //   since it (Sim.replay). Commands the simulation issues itself are not inputs and are not here; neither are the debug drawer's
-  //   direct mutators nor the page's flags. Written here only; plain data, saved
+  //   direct mutators, the page's flags nor the frame (Sim.inhabit, uninhabit, succeed: sim/player), so a replay holds for a run whose
+  //   frame is unchanged since its save. Written here only; plain data, saved
   function command(st, cmd) {
     const c = cmd || {};
     if (!st.commanded) st.commanded = [];
