@@ -38,6 +38,11 @@ const KEPT = {
   'notable:skipStop': [1, 'frame', "the skip stops on the played pawn's events"],
   'opportunities:successor': [3, 'frame', "the played pawn's successor, by the customs it died under (st.player.left)"],
   'opportunities:succeed': [1, 'frame', 'the player goes on as the successor'],
+  'opportunities:firsts': [
+    1,
+    'audience',
+    "(in round, after its inner firsts) the played pawn's own answer beside the round's, on its sheet and the skip's choice",
+  ],
   'player:inhabit': [2, 'frame', 'the player inhabits a pawn'],
   'player:uninhabit': [4, 'frame', 'the player leaves it'],
   'player:playerDied': [1, 'frame', "the played pawn's death, told to the player"],
@@ -77,7 +82,7 @@ const RULES = {
   'wishes:endPartner': 1,
 };
 // The reads in a module's code (comments left out), by the function around each: the last `function NAME(`, `const NAME = (...) =>` or
-// `on('EVENT'` above it.
+// `on('EVENT'` above it. A read is `X.player` through any name (`st`, `view`, a copy), or `player` taken apart (`const { player } = st`).
 function reads(file, src) {
   const out = new Map(),
     mod = path.basename(file).replace(/\.(js|ts)$/, '');
@@ -87,13 +92,38 @@ function reads(file, src) {
       /^\s*(?:function\s+(\w+)\s*\(|(?:const|let)\s+(\w+)\s*=\s*(?:\([^)]*\)|\w+)\s*=>|on\('(\w+)')/,
     );
     if (m) fn = m[1] || m[2] || `on:${m[3]}`;
-    const n = (line.replace(/\/\/.*$/, '').match(/\bst\.player\b/g) || []).length;
+    const code = line.replace(/\/\/.*$/, ''),
+      n =
+        (code.match(/\b\w+\.player\b/g) || []).length +
+        (code.match(/\{[^}]*\bplayer\b[^}]*\}\s*=(?![=>])/g) || []).length;
     if (!n) continue;
     const key = `${mod}:${fn}`;
     out.set(key, (out.get(key) || 0) + n);
   }
   return out;
 }
+// The count itself: a read through another name, or taken apart, is a read.
+assert.deepStrictEqual(
+  [
+    ...reads(
+      'x.js',
+      [
+        'function a(st) {',
+        '  const pl = view.player, me = st.player; // st.player in a comment',
+        '}',
+        'const b = (st) => {',
+        '  const { t, player } = st;',
+        '  if (x.playerish || y === 2) return;',
+        '};',
+      ].join('\n'),
+    ),
+  ],
+  [
+    ['x:a', 2],
+    ['x:b', 1],
+  ],
+  'a read of who is played counted through any name',
+);
 {
   const dir = path.join(__dirname, '..', 'src', 'sim'),
     found = new Map();
@@ -125,9 +155,11 @@ const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invarian
 // The state with the frame taken out (st.player, its marks and the lines logged for its audience): what a rule could have read of who is played.
 function unframed(st) {
   const s = structuredClone(st);
+  const me = s.player ? s.player.pawn : null;
   s.player = null;
   dropKind(s, 'player');
-  dropKind(s, 'offerRefused'); // a refusal logged where the player is one of the two: its audience (sim/hands, sim/voice)
+  // a refusal logged where the player is one of the two: its audience (sim/hands, sim/voice); the others' stay compared
+  dropKind(s, 'offerRefused', (e) => e.pawn === me || e.other === me);
   return s;
 }
 const hash = (st) => sha(canon(kept(unframed(st))));
@@ -243,6 +275,20 @@ function village(play, auto) {
     return st;
   });
   same(runs[0], runs[1], 'the authored farmstead, the played head against the unplayed');
+  // Then a cottage authored with the switch on (sim/building cottageAsked): roofed outside the slack, not held to winter, played or not.
+  for (const st of runs) {
+    const id = st.households[0].holder,
+      f = st.farmsteads[0],
+      t0 = st.t;
+    Sim.setAuto(st, id, true);
+    assert.strictEqual(Sim.plan(st, id, 'add', { upgrade: f.house, what: 'cottage' }), true, 'the cottage authored');
+    for (let d = 0; d < 30 && f.booth; d++) Sim.advance(st, DAY);
+    assert(!f.booth, `the cottage roofed by the plan within 30 days (${st.player ? 'played' : 'unplayed'})`);
+    assert.notStrictEqual(Sim.cal(st.t).season, 3, 'the authored cottage did not wait for the winter slack');
+    assert(st.t - t0 < 30 * DAY);
+    sound(st, 'the cottage roofed');
+  }
+  same(runs[0], runs[1], 'the authored cottage, the switch on, the played head against the unplayed');
 }
 console.log(
   'played.js: OK: the reads of st.player classed; an authored step stands for any head; nothing authored, played and unplayed the same',
