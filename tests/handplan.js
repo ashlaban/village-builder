@@ -16,12 +16,13 @@ const { tinyWorld, tinyState } = require('./lib/tiny.js'),
   { checkState } = require('./lib/invariants.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
-const handStart = (seed = 7) => {
+const handStart = (seed = 7, play = true) => {
   const st = Sim.seed(tinyWorld(rows), seed, 'solo', null, { hand: true });
   st.naturalDeaths = false;
-  Sim.inhabit(st, st.households[0].holder);
-  Sim.setAuto(st, st.player.pawn, false);
-  assert.strictEqual(Sim.plan(st, st.player.pawn, 'sleep', { from: 21, until: 6 }), true);
+  const id = st.households[0].holder;
+  if (play) Sim.inhabit(st, id); // VB-1777: an unplayed head plans through the same verb, on its own controller
+  Sim.setAuto(st, id, false);
+  assert.strictEqual(Sim.plan(st, id, 'sleep', { from: 21, until: 6 }), true);
   return st;
 };
 
@@ -132,14 +133,17 @@ const handStart = (seed = 7) => {
 
 // 4. A hand start: fell two trips and cut them. The cutting is posted by the next review hour after the timber is home, not at the
 // household's planning day (before VB-1661: 34 hours at seed 7, 35 at seed 9).
-for (const seed of [7, 9]) {
-  const st = handStart(seed);
-  const hh = st.households[0],
+// VB-1777: the same tasks for a head no one plays, through the same verb: the same hour home and the same hour posted.
+const posted = {};
+for (const seed of [7, 9]) for (const play of [true, false]) {
+  const st = handStart(seed, play);
+  const id = st.households[0].holder,
+    hh = st.households[0],
     f = st.farmsteads[0],
     v = st.villages[f.village],
     tile = v.wood.find((t) => st.w.trees[t] >= 3);
-  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { fell: tile, n: 2 }), true);
-  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { firewood: f.house }), true);
+  assert.strictEqual(Sim.plan(st, id, 'add', { fell: tile, n: 2 }), true);
+  assert.strictEqual(Sim.plan(st, id, 'add', { firewood: f.house }), true);
   let home = null,
     at = null;
   for (let i = 0; i < 8 * 240 && at === null; i++) {
@@ -150,5 +154,7 @@ for (const seed of [7, 9]) {
   assert(home !== null && at !== null, `seed ${seed}: timber home and its cutting posted`);
   assert(at - home <= 12, `seed ${seed}: the cutting posted ${(at - home).toFixed(1)} hours after the timber came home`);
   sound(st, 'the cutting asked for');
+  if (play) posted[seed] = [home, at];
+  else assert.deepStrictEqual([home, at], posted[seed], `seed ${seed}: the unplayed head's timber home and cutting posted as the played head's`);
 }
 console.log('handplan ok: one reckoning of the fire; by hand, the outlook counts what the plan covers and says what it left out; no stone work by the head\'s own rule while held off; the cutting asked for at once');
