@@ -2,6 +2,7 @@
 // household's woodpile once fetched home, or rotted at the autumn frost with an event, as other loads left lying.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Plans = VB['sim/plans'], Lying = VB['sim/lying'], { KINDS } = VB['sim/kinds'];
+const A = VB['sim/agents'], J = VB['sim/jobs'];
 const { TRAVEL } = VB['sim/rules'], { checkState } = require('./lib/invariants.js');
 const it = G.generate(7, { cols: 120, rows: 85 }); let r; while (!(r = it.next()).done);
 const make = () => {
@@ -12,7 +13,8 @@ const make = () => {
   plan.steps[0].wood = 9; // three loads carried to the shore
   return { st, hh, shore, plan };
 };
-assert(KINDS.fetchLeftTimber && KINDS.fetchLeftTimber.fetch === 'leftTimber', 'a fetch kind for timber left lying');
+// VB-1814: no fetch kind; a goal of the household's, the stray method alone, brings it home
+assert(!KINDS.fetchLeftTimber && KINDS.leftTimber && KINDS.leftTimber.strays.includes('leftTimber'), 'a goal of its own for timber left lying');
 { // given up: the timber lies at the shore, and the plan is gone
   const { st, hh, shore, plan } = make();
   const wood = hh.wood;
@@ -27,8 +29,29 @@ assert(KINDS.fetchLeftTimber && KINDS.fetchLeftTimber.fetch === 'leftTimber', 'a
   const had = l.n, n = Lying.take(st, l.id, l.n);
   assert.strictEqual(n, had);
   assert(!st.lying, 'the list empties');
-  KINDS.fetchLeftTimber.deliver(st, {}, hh, st.farmsteads[hh.farmstead], { load: n });
+  KINDS.leftTimber.deliver(st, {}, hh, st.farmsteads[hh.farmstead], { load: n });
   assert(Math.abs(hh.wood - wood - 9) < 1e-6, `${hh.wood - wood} of wood home`);
+}
+{ // fetched by its goal: posted at the shore, a hand of the household walks there, takes it up a load at a time and carries it home
+  const { st, hh, shore, plan } = make();
+  VB['sim/projectplans'].drop(st, plan);
+  const f = st.farmsteads[hh.farmstead];
+  let j = null;
+  Lying.bringWork(st, hh, f, null, (key, site, extra, k, owner) => (j = J.post(st, key, k, owner, site, extra)));
+  assert(j && j.kind === 'leftTimber' && j.site === shore, 'its goal is posted where it lies');
+  const b = st.agents[hh.members.find((id) => st.pawns[id].alive && st.pawns[id].age >= 14)];
+  A.release(st, b);
+  A.placeAtHome(st, b);
+  A.start(st, b, j);
+  let carried = false;
+  for (let k = 0; k < 1200 && (st.lying || []).some((l) => l.kind === 'leftTimber'); k++) {
+    Sim.advance(st, 0.1);
+    if (b.job === j && b.load > 0) carried = true;
+  }
+  assert(!(st.lying || []).some((l) => l.kind === 'leftTimber') && carried, 'its hand took the timber up');
+  for (let k = 0; k < 600 && [...st.agents].some((a) => a.job && a.job.kind === 'leftTimber'); k++) Sim.advance(st, 0.1);
+  assert(![...st.agents].some((a) => a.job && a.job.kind === 'leftTimber' && a.load > 0), 'and set it down at home');
+  assert.deepStrictEqual(checkState(st), [], 'invariants, fetched by its goal');
 }
 { // not fetched: the frost rots it, with an event
   const { st, plan } = make();

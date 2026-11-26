@@ -48,8 +48,8 @@ function atWork(a, kind, site, extra, done) {
   // found by the stray method of a gathering goal elsewhere (sim/methods; VB-1749: no fetch kind is posted for a kind with methods), and
   // brought home whole: the yield is the household's fresh food
   const posted = [];
-  Lying.fetchWork(st, hh, f, null, (key, site, extra, kind) => posted.push(kind), (k) => !!KINDS[Lying.fetchKey(k)]);
-  assert(!posted.includes('fetchGather'), 'no fetch kind is posted for a gathering pile');
+  Lying.bringWork(st, hh, f, null, (key, site, extra, kind) => posted.push(kind));
+  assert(!posted.length, 'no goal of its own is posted for a gathering pile (VB-1814: none of a kind with methods)');
   const other = (() => {
     for (let t = 0; t < st.w.N; t++) if (t !== wood && st.w.biome[t] === B.FOREST && !st.w.dev[t]) return t;
     return -1;

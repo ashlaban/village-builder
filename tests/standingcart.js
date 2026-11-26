@@ -26,14 +26,23 @@ assert(cart && cart.at && cart.at.tile === at && cart.by === null, 'the cart sta
 assert(Carts.oxOut(st, hh), 'the team stands with it: not free at the farm');
 assert(st.lying.some((l) => l.kind === 'leftCart') && st.lying.some((l) => l.kind === 'haul'), 'the cart and its load lie');
 assert.deepStrictEqual(checkState(st), [], 'invariants hold with a cart standing');
-// a hand goes for the cart: posted at its tile, and home it is free
+// a hand goes for the cart: the household's goal for it (VB-1814, no fetch kind) is posted at its tile; its hand takes it up and leads
+// it home, where it is free with its team
 let jc = null;
-Lying.fetchWork(st, hh, f, null, (key, site, extra, k, owner) => { if (k === 'fetchLeftCart') jc = J.post(st, key, k, owner, site, extra); });
-assert(jc && jc.site === at, 'the fetching is posted where the cart stands');
-const l = st.lying.find((q) => q.kind === 'leftCart');
-Lying.take(st, l.id, 1);
-KINDS.fetchLeftCart.deliver(st, jc, hh, f, st.agents[hh.holder]);
-assert(!cart.at && !Carts.oxOut(st, hh), 'home: the cart and team are free');
+Lying.bringWork(st, hh, f, null, (key, site, extra, k, owner) => { if (k === 'leftCart') jc = J.post(st, key, k, owner, site, extra); });
+assert(jc && jc.site === at && !KINDS.fetchLeftCart, 'its goal is posted where the cart stands');
+const b = st.agents[grown.find((id) => id !== a.id && st.pawns[id].alive)];
+A.release(st, b); A.placeAtHome(st, b); A.start(st, b, jc);
+let led = false;
+for (let k = 0; k < 1500 && cart.at; k++) {
+  Sim.advance(st, 0.1);
+  if (b.job === jc && b.load > 0 && cart.at) {
+    led = true;
+    if (k % 20 === 0) assert.deepStrictEqual(checkState(st), [], 'invariants, the cart led home');
+  }
+}
+assert(led && !cart.at && !Carts.oxOut(st, hh), 'home: the cart and team are free');
+assert(!st.lying || !st.lying.some((q) => q.kind === 'leftCart'), 'no cart lies');
 // not fetched: lost at the frost, named
 cart.at = { tile: at, x: 0, y: 0, t: st.t }; cart.by = null;
 Lying.leave(st, 'leftCart', 1, at, { type: 'household', id: hh.id }, { of: { cart: { kind: 'ox', built: cart.built } } });
@@ -57,5 +66,32 @@ assert(hh.carts.length === nc - 1 && st.record.slice(n0).some((e) => e && e.kind
   assert(c2 && c2.by === null && Carts.oxOut(st2, h2) === (c2.kind === 'ox'), 'the cart stands where the pawn was');
   assert(st2.lying.some((l) => l.kind === 'leftCart'), 'a hand is to fetch it');
   assert.deepStrictEqual(checkState(st2), []);
+}
+// released at its goal's site (VB-993): the goal's next hand takes the cart up where it stands (VB-1814), not a hand sent for it
+{
+  const st3 = Sim.seed(r.value, 7, 'populous'), D = VB['sim/doing'];
+  const h3 = st3.households.find((h) => !h.dissolved && h.members.filter((id) => st3.pawns[id].age >= 14).length >= 2 && VB['sim/herds'].hasTeam(st3, h));
+  const f3 = st3.farmsteads[h3.farmstead], fd3 = f3.fields[0];
+  const [p3, q3] = h3.members.filter((id) => st3.pawns[id].alive && st3.pawns[id].age >= 14).map((id) => st3.agents[id]);
+  A.release(st3, p3); A.placeAtHome(st3, p3);
+  const j3 = J.post(st3, 'manure:site' + st3.t, 'manure', { type: 'household', id: h3.id }, fd3.tile, { field: fd3, farm: f3 });
+  j3.claims.push(p3.id); p3.job = j3; p3.phase = 'work'; p3.load = 0;
+  assert(Carts.take(st3, h3, p3.id, true) > 0, 'a cart taken');
+  for (const c of h3.carts) if (!c.by && !c.at) c.by = -1; // the household's other carts busy: the one at the site is the only one free
+  p3.x = st3.w.hx[fd3.tile]; p3.y = st3.w.hy[fd3.tile];
+  A.release(st3, p3);
+  const c3 = h3.carts.find((c) => c.at);
+  assert(c3 && c3.at.tile === fd3.tile && c3.by === null, 'the cart stands at the site');
+  // the next hand: the cart is free to it, at the site; taken up there, out with it, and no lying cart is left for a hand to fetch
+  A.release(st3, q3); A.placeAtHome(st3, q3);
+  j3.claims.push(q3.id); q3.job = j3; q3.phase = null;
+  const g3 = D.goalOf(st3, q3);
+  assert(D.VIEW.free(st3, g3, q3, 'cart') && D.VIEW.place(st3, g3, q3, 'cart') === fd3.tile, 'the cart at the site is free to the next hand, there');
+  const s3 = D.ask(st3, q3);
+  assert(s3 && s3.prim === 'fetch' && D.placeOf(st3, q3, s3) === fd3.tile, `its first step fetches the cart at the site: ${s3 && s3.prim}`);
+  q3.x = st3.w.hx[fd3.tile]; q3.y = st3.w.hy[fd3.tile];
+  assert(D.takeCart(st3, q3) > 0 && c3.by === q3.id && !c3.at, 'taken up where it stands');
+  assert(!(st3.lying || []).some((l) => l.kind === 'leftCart'), 'no lying cart is left for a hand to fetch');
+  for (const c of h3.carts) if (c.by === -1) c.by = null;
 }
 console.log('standingcart ok');
