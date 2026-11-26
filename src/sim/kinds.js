@@ -32,6 +32,11 @@ VB['sim/kinds'] = (() => {
   //   spot(st, a, j): where on the site the pawn stands; urgency(st, j, c, U): the job's weight in a bid (U is MATCH.urgency; 1 without it);
   //   done(st, j, hh, c): what finishing the work does; deliver(st, j, hh, f, a): what arriving home with a load does;
   //   load(st, a, j, cap): a trip's load from the field; again(j): the job stays open for the next (haul, VB-335);
+  //   make(st, a, j, frac, hh): the good made where the work is done, as its work leg ends (VB-1748: the tree felled, the stones taken
+  //   off the tile, the catch and the game rolled, the ground dug), set on the pawn as its load (a.load, in the units its delivery
+  //   puts): its `deliver` then only puts the load into the store, and a carrier cut on the road leaves it lying (sim/lying);
+  //   accrues: a trip whose yield accrues with its hours (fishing, hunting, gathering): one cut at its work makes `frac` of its yield,
+  //   the share of its hours done, which lies where it was cut; lies: the kind whose load lying it is, if not its own (timber's);
   //   draw(st, j): the site of a job of the kind, drawn when it is first posted, in place of the site its rule names (VB-326: firewood);
   //   worked(st, j, dt, a, from): what dt hours of work by pawn a do besides the progress, run as the task is reckoned (from: its hours done
   //   before; VB-472); project: true for a stage of a land project, whose job ends with
@@ -128,6 +133,12 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/byrehouse'].KINDS); // the byre's walls and roof (VB-1665): sim/byrehouse's
   Object.assign(KINDS, VB['sim/timberhouse'].KINDS); // the timber house's frame and roof (VB-1664): sim/timberhouse's
   Object.assign(KINDS, VB['sim/facilities'].KINDS); // a facility's stages raised and its upkeep (VB-361): sim/facilities'
+  // the goods made where the work is done (VB-1748: the catch, the game, wild food, what is dug, salt, stone) are fetched as the loads
+  // above are, by fetch kinds added last, so that the kinds before keep their order; a kind whose load lies as another's (`lies`: the
+  // timber as timber left lying) has none of its own
+  for (const [k, K] of Object.entries(KINDS))
+    if (K.carry && K.make && !K.lies && !K.load && !K.stack && !K.methods)
+      KINDS[Lying.fetchKey(k)] = Lying.fetchKind(k, K);
   // ---- where a kind is worked, what it takes and what it gives (VB-1124): each kind's record declares `at` (the places of PLACES where its
   // work is done), `needs` (the things of THINGS it takes or must find there: a good used up, a tool or a facility) and `gives` (the
   // things it makes or brings home), beside its rule, as its name and hours are. The game's guide (page/guide) reads them, and a kind

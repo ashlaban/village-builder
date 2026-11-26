@@ -168,7 +168,8 @@ VB['sim/agents'] = (() => {
       if (K.setDown && at === a.job.site) K.setDown(st, a.job, a);
       else if (K.methods)
         Doing.unload(st, a, Methods.RULE.drop, x, y); // a pile with title where it stands (VB-1775: it cannot walk on)
-      else if (K.fetch || K.load || K.stack) Lying.lay(st, a, a.job, K.fetch || a.job.kind, at, x, y);
+      else if (K.fetch || K.load || K.stack || K.make)
+        Lying.lay(st, a, a.job, K.fetch || K.lies || a.job.kind, at, x, y);
       standCart(st, a, at, x, y); // its cart stands where it was, with the team that drew it, until a hand fetches them (VB-649)
       a.carry = null;
       laid = a.job;
@@ -182,6 +183,7 @@ VB['sim/agents'] = (() => {
     }
     const left = a.job;
     if (left) settle(st, left);
+    if (left && a.phase === 'work' && KINDS[left.kind].accrues) cutTrip(st, a, left);
     if (left) {
       const c = left.claims,
         i = c.indexOf(a.id);
@@ -201,6 +203,22 @@ VB['sim/agents'] = (() => {
     }
     if (!a.path) waitLeg(st, a);
     else repace(st, a); // a walk goes on, at the pace of what it now carries
+  }
+  // A trip whose yield accrues with the work (fishing, hunting, gathering; design.md section 7, The good is made where the work is done)
+  // cut at its work: what its hours so far have yielded is made, and lies where the pawn stands as a pile of the task's owner, fetched
+  // home by its fetch kind (sim/lying); the hours are the yield's, so the task begins again from none. Only the hours not yet worked are
+  // lost (VB-1748).
+  function cutTrip(st, a, j) {
+    const K = KINDS[j.kind],
+      frac = Math.min(1, (j.done || 0) / (j.hours ?? K.hours));
+    if (!(frac > 0)) return;
+    K.make(st, a, j, frac, workFor(st, a, j));
+    if (a.load > 0) {
+      const [x, y] = placeOf(st, a);
+      Lying.lay(st, a, j, j.kind, tileAt(st, x, y), x, y);
+    }
+    a.load = 0;
+    j.done = 0;
   }
   // The background task j is due (sim/work dueWork, which found its first holder a, and finished it): a lets it go, its kind's `done` runs
   // for a's household, and the task is taken down (the others let it go there); a, if it stands idle outdoors, goes home.
@@ -393,6 +411,9 @@ VB['sim/agents'] = (() => {
         retune(st, hhW);
       }
     }
+    // the good is made where the work is done (VB-1748): the tree falls, the stones leave the tile, the catch and the game are rolled,
+    // the ground is dug; the pawn carries it home as its load, and the kind's delivery only puts it into the store
+    if (K.make) K.make(st, a, j, 1, workFor(st, a, j));
     // a load taken from the field (VB-335), on the household's best free cart or on the back (sim/carts); a load on the back
     // with more left waiting is a miss the head counts
     const hhL = K.load ? st.households[st.pawns[a.id].household] : null,

@@ -131,13 +131,14 @@ VB['sim/saltpan'] = (() => {
       to: 'door',
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.4, st.w.hy[j.site] + a.oy * 0.4],
       urgency: () => SALT.urgency,
-      // home with the salt: the tree its fire burnt is felled (none if it was cut meanwhile: the pan was fed with brush), and the boiling's
-      // measures go into the store while the household still wants them
-      deliver: (st, j, hh) => {
+      // the boiling done (VB-1748: made where the work is done): the tree its fire burnt is felled (none if it was cut meanwhile: the pan
+      // was fed with brush), and its measures are the basket's
+      make: (st, a, j) => {
         if (j.fuel >= 0 && st.w.trees[j.fuel] > 0) fellTree(st, j.fuel);
-        if (!wants(st, hh)) return 0;
-        return Stores.put(st, hh, 'salt', SALT.yield, 'saltboil');
+        a.load = SALT.yield;
       },
+      // home with the salt: into the store
+      deliver: (st, j, hh, f, a) => Stores.put(st, hh, 'salt', a.load, 'saltboil'),
       // from spring to autumn, while the household wants salt and a spring in reach has wood beside it
       available: (st, hh, f, c, post) => {
         if (!SALT.seasons.includes(c.season) || !wants(st, hh)) return;

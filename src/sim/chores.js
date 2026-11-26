@@ -440,8 +440,13 @@ VB['sim/chores'] = (() => {
       to: 'door',
       urgency: (st, j, c, U) => spareUrgency(st, j, U),
       // the baskets are fresh food, cooked in the pot or eaten as they are on a day without meals (sim/pot, VB-119)
-      deliver: (st, j, hh) => {
-        Pot.putFresh(st, hh, 'gathered', gather(st, j.site), 'gathering');
+      // gathered as the work ends (VB-1748), a cut trip what its hours so far have found
+      accrues: true,
+      make: (st, a, j, frac) => {
+        a.load = gather(st, j.site, frac);
+      },
+      deliver: (st, j, hh, f, a) => {
+        if (a.load > 0) Pot.putFresh(st, hh, 'gathered', a.load, 'gathering');
       },
       // in the gathering season, at the house's gathering ground (sim/forage): one trip, two while spare food covers fewer than FISH.secondDays
       available: (st, hh, f, c, post) => {

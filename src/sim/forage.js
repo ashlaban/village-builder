@@ -23,12 +23,12 @@ VB['sim/forage'] = (() => {
   // The stock of tile i now, from 0 to 1: what was left this year, or full in a new spring.
   const stock = (st, i) => (st.w.forageYear[i] === year(st) ? st.w.forage[i] : 1);
   // A trip's gathering at tile i, in rations: FORAGE.trip times its stock; the stock falls by FORAGE.take.
-  function gather(st, i) {
+  function gather(st, i, frac = 1) {
     const w = st.w,
       s = stock(st, i);
-    w.forage[i] = Math.max(0, s - FORAGE.take);
+    w.forage[i] = Math.max(0, s - FORAGE.take * frac);
     w.forageYear[i] = year(st);
-    return FORAGE.trip * s;
+    return FORAGE.trip * s * frac;
   }
   // The gathering ground of a house: the nearest forest or heath tile within FORAGE.reach walking steps with at least FORAGE.least left
   // (ties by the search's order), or -1.

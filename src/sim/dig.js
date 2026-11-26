@@ -153,12 +153,14 @@ VB['sim/dig'] = (() => {
         free = hh.wood - Stores.reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
       return Math.max(DIG.urgency, (goal - free) / goal);
     },
-    // the load: the tile falls by one, the store rises by what it gave (none if the tile was spent meanwhile, or the stock is full); a trip
-    // of peat brings ECON.woodPerTrip units, as a firewood trip does
-    deliver: (st, j, hh) => {
-      if (wants(st, hh, j.good) && digLoad(st, j.site)) {
-        Stores.dug(st, hh, j.good, j.good === 'peat' ? st.ECON.woodPerTrip : 1);
-      }
+    // the load, dug as the work ends (VB-1748): the tile falls by one, and the basket holds what it gave (none if the tile was spent
+    // meanwhile, or the stock is full); a trip of peat brings ECON.woodPerTrip units, as a firewood trip does
+    make: (st, a, j, frac, hh) => {
+      a.load = wants(st, hh, j.good) && digLoad(st, j.site) ? (j.good === 'peat' ? st.ECON.woodPerTrip : 1) : 0;
+    },
+    // home with the basket: its load into the store
+    deliver: (st, j, hh, f, a) => {
+      if (a.load > 0) Stores.dug(st, hh, j.good, a.load);
     },
     // the household's digging ground: the nearest tile within reach of the good it holds fewest loads of, while it wants one
     available: (st, hh, f, c, post) => {

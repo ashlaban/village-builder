@@ -481,12 +481,18 @@ VB['sim/building'] = (() => {
   }
   // A load carried home onto the heap; a picked load off its tile, as clearing takes them. A quarried load is of its tile's bedrock; a
   // picked one is granite, the field stone the ice left (Decided, 11 Nov; VB-733), as is a quarry's on a world made without the ground layers.
-  function stoneHome(st, j, hh) {
+  // A basket of stone picked or broken (VB-1748: made where the work is done): the picked tile's stones fall as the work ends; the load,
+  // one heap's unit, is the pawn's.
+  function stoneTaken(st, a, j) {
     if (j.kind === 'pick') {
       st.w.stones[j.site] = Math.max(0, st.w.stones[j.site] - STONES_PER_LOAD);
       st.biomeDirty.add(j.site);
     }
-    Stores.put(st, hh, 'stone/' + (j.kind === 'quarry' ? rockAt(st.w, j.site) : 'granite'), 1, j.kind);
+    a.load = 1;
+  }
+  // Home with the basket: the stone onto the heap (a lying basket fetched: `j.site` is where it was taken, sim/lying).
+  function stoneHome(st, j, hh, f, a) {
+    Stores.put(st, hh, 'stone/' + (j.kind === 'quarry' ? rockAt(st.w, j.site) : 'granite'), a.load, j.kind);
     stoneIn(st, hh); // a site's well is begun with the last load of its lining (sim/wells, VB-1587)
   }
   // The house raised: the foundation's stone off the heap, and the house on stone from now (its condition carried over at this hour, so the
@@ -620,10 +626,16 @@ VB['sim/building'] = (() => {
       spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
       draw: (st, j) => (j.onSite ? j.site : drawWood(st, st.villages[j.village])),
       urgency: (st, j, c, U) => (j.shelter ? U.shelter : U.other),
-      // a tree felled on the drawn tile; its load lies at the site, and the ledger of the village or household building says so
+      // a tree felled on the drawn tile as the work ends (VB-1748), its timber a back load; a carrier cut on the road leaves it lying as
+      // timber left lying, fetched home as firewood (its site's step is a plan's object, which a lying load does not keep)
+      make: (st, a, j) => {
+        fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.village]));
+        a.load = TRAVEL.load;
+      },
+      lies: 'leftTimber',
+      // its load lies at the site, and the ledger of the village or household building says so
       deliver: (st, j) => {
         const v = st.villages[j.village];
-        fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, v));
         j.timberFor.wood = (j.timberFor.wood || 0) + ECON.woodPerTrip;
         Stores.record(
           st,
@@ -760,6 +772,7 @@ VB['sim/building'] = (() => {
       carry: 'basket',
       to: 'barn',
       urgency: (st, j, c, U) => U.repair,
+      make: stoneTaken,
       deliver: stoneHome,
       available: stoneWork,
     },
@@ -779,6 +792,7 @@ VB['sim/building'] = (() => {
       carry: 'basket',
       to: 'barn',
       urgency: (st, j, c, U) => U.repair,
+      make: stoneTaken,
       deliver: stoneHome,
       available: stoneWork,
     },
