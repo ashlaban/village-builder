@@ -372,7 +372,11 @@ VB['sim/meetings'] = (() => {
     for (let k = step - 1; k < env.settlements.length; k += NIGHT_STEPS)
       Attitudes.settlementStep(env, hk, 1 / YEAR_DAYS, rand, env.settlements[k]);
   }
+  // When the year's meetings begin (the calendar's, sim/clock): autumn's tenth day at noon, the agenda closing then (VB-1757: the year's
+  // review, a decision point, sim/points)
+  const MEETING = Object.freeze({ season: 2, sday: 9, hour: 12 });
   return {
+    MEETING,
     villagesOfStep,
     holdMeetings,
     meetingStage,

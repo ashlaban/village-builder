@@ -25,6 +25,7 @@
     "st.player": "sim/player",
     "st.controlled": "sim/controller",
     "st.queued": "sim/controller",
+    "st.commanded": "sim/controller",
     "st.plans": "sim/plans",
     "st.plans.projects": "sim/projectplans",
     "st.plans.projectSeq": "sim/projectplans",

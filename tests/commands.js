@@ -645,7 +645,7 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   // 2. the facade, function by function
   const ISSUES = ['command', 'head', 'queue', 'unqueue', 'setAuto', 'wish', 'answer', 'orderVisit', 'plan'];
   const FRAME = ['inhabit', 'uninhabit', 'succeed']; // st.player, the frame: which pawn the page shows (design.md section 15)
-  const WORLD = ['seed', 'load', 'advance']; // the world made, loaded, its clock run: every act within it is a verb
+  const WORLD = ['seed', 'load', 'advance', 'replay']; // the world made, loaded, its clock run (replay: with the commands recorded, VB-1757): every act within it is a verb
   const fns = Object.keys(Sim).filter((k) => typeof Sim[k] === 'function');
   const listed = new Set([...ISSUES, ...FRAME, ...WORLD, ...Sim.DEBUG]);
   // a read that fills a cache of saved state its module owns, with the cache
@@ -666,7 +666,8 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
     'describeHerds', 'herdReport', 'larderOf', 'quernYears', 'houseTarred', 'boothCondition', 'stakedBooths', 'buildMenu', 'placeWhy',
     'moveCost', 'farmView', 'boatUntarred', 'team', 'withOxen', 'inMilk', 'claimsOn', 'claimStrength', 'holdings', 'knowsDeposit',
     'depositKnown', 'goodwillOf', 'explainAllowance', 'inScope', 'storesOf', 'explainFeast', 'depositLeftNow', 'woodOf', 'giftWarning',
-    'giftCarriers', 'kinHouseholds', 'notable', 'eventLine', 'chronicle', 'villageLog', 'skipFrom', 'skipStop', 'gatherings', 'visitState'];
+    'giftCarriers', 'kinHouseholds', 'notable', 'eventLine', 'chronicle', 'villageLog', 'skipFrom', 'skipStop', 'gatherings', 'visitState',
+    'decisions'];
   const lists = { ISSUES, FRAME, WORLD, DEBUG: Sim.DEBUG, CACHES: Object.keys(CACHES), READS }, { misplaced } = require('./lib/facade.js');
   assert.deepStrictEqual(misplaced(Sim, lists), [], 'each function of the Sim facade is listed once, in ISSUES (it issues a verb), FRAME, WORLD, DEBUG, CACHES or READS');
   // a mutator planted on the facade, writing only when given a boolean, is seen as new, whatever the calls below would make of it

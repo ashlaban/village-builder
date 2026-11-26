@@ -4,7 +4,8 @@
 // its sleeping hours, its ordered and dated tasks, sim/steps' pawnPlan) through the verb `plan` (sim/plans; the checks of its ops
 // here, PLAN_OPS), the feeder's housekeeping of them (planDay, planBegun), what they have the pawn do next (nextOf, which sim/player's
 // feeder queues with automatic behaviour off) and why each task waits (WAITS, waitsOf; VB-1651: sim/plannext's before). The player
-// (sim/player) is one controller among others: its pawn's is made here
+// (sim/player) is one controller among others: its pawn's is made here. The one door a controller issues through, Sim.command, which
+// records each command with its game time for a replay (VB-1757: st.commanded)
 VB['sim/controller'] = (() => {
   const { unbound } = VB['sim/pose'];
   const { release } = VB['sim/agents'];
@@ -635,7 +636,20 @@ VB['sim/controller'] = (() => {
     }
     return { tasks, idle };
   }
+  // ---- the one door a controller issues through (VB-1757; design.md section 15, The API by pawn and body): Sim.command ----
+  // @state st.commanded: absent until the first command through Sim.command, then the commands given there, in the order given, each
+  //   {tick (st.tick when it was given), cmd (a copy of the command {actor, verb, target, args, source}, plain data)}: a controller's
+  //   inputs (the page's for the played pawn, an external agent's for any), so that a run is replayed from a save and those recorded
+  //   since it (Sim.replay). Commands the simulation issues itself are not inputs and are not here; neither are the debug drawer's
+  //   direct mutators nor the page's flags. Written here only; plain data, saved
+  function command(st, cmd) {
+    const c = cmd || {};
+    if (!st.commanded) st.commanded = [];
+    st.commanded.push({ tick: st.tick, cmd: copy(c) });
+    return issue(st, c);
+  }
   return {
+    command,
     QUEUE_MAX,
     PLAN_MAX,
     NONE,

@@ -207,6 +207,7 @@
       "sim/overview",
       "sim/reasons",
       "sim/planview",
+      "sim/points",
       "sim/agenda",
       "sim/timetable"
     ],
