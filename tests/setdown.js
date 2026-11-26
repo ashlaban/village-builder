@@ -142,14 +142,18 @@ const fetchJob = () => {
   VB['sim/lifecycle'].killPawn(st, a.id, 'illness');
   assert.strictEqual(step.brought, 0, 'the stone reached the well from the road');
   const l = (st.lying || []).find((x) => x.kind === 'wellstone');
-  // the stone of the household's heap lies as its pile (VB-1812: a goal's owner is a household, the hand's for a village's task)
-  assert(l && l.n === 1 && l.tile === at && l.owner.type === 'household' && l.owner.id === hh.id, 'the stone does not lie where its carrier fell');
+  // the village's stone lies as the village's (title moves at once, design.md section 1; VB-1812 revision), not the hand's household's
+  assert(l && l.n === 1 && l.tile === at && l.owner.type === 'village' && l.owner.id === v.id, 'the stone does not lie where its carrier fell, as the village\'s');
+  const D = VB['sim/doing'], hhGoal = { kind: 'wellstone', at: f.house, owner: hh.id, amount: 0, job: { ...j, owner: { type: 'household', id: hh.id } } };
+  assert.strictEqual(D.VIEW.stray(st, hhGoal, 'wellstone', st.w.hx[f.house], st.w.hy[f.house]), null, 'a household\'s goal takes up the village\'s stone');
   // no fetching is posted (VB-1812): the stray method of the next goal for the well's stone carries it there first
   let fk = null;
   Lying.fetchWork(st, v, v, null, (key, site, extra, k) => (fk = k), (k) => !!KINDS[Lying.fetchKey(k)]);
   assert.strictEqual(fk, null, 'a fetch kind is posted for the stone a goal carries');
   const fj = J.post(st, 'wellstone:stray', 'wellstone', own, f.house, { village: v.id, step, from: hh.id, dest: v.center });
-  const c = st.agents[grown[1]]; // a hand of the household whose pile it is
+  const villagers = st.households.filter((h) => !h.dissolved && h.id !== hh.id && st.farmsteads[h.farmstead].village === v.id)
+    .flatMap((h) => h.members).filter((id) => st.pawns[id].alive && st.pawns[id].age >= 18);
+  const c = st.agents[villagers[0] ?? grown[1]]; // a hand of another household: the village's stone is any villager's to carry
   A.release(st, c);
   A.placeAtHome(st, c);
   A.start(st, c, fj);

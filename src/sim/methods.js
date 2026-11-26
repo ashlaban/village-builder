@@ -174,7 +174,7 @@ VB['sim/methods'] = (() => {
   // ---- reading the world ----
   // The view: the readers the caller gives (the test's world, and from VB-1775 the game's), every one plain reads:
   //   plans (compile's), at(st, p) the pawn's place, hands(st, p) its load {good, n, owner} or null, held(st, p) the thing it holds or
-  //   null, has(st, p, thing), free(st, goal, p, thing), place(st, goal, p, name), pile(st, place, good, owner), store(st, owner, good),
+  //   null, has(st, p, thing), free(st, goal, p, thing), place(st, goal, p, name), pile(st, place, good, goal), store(st, owner, good),
   //   storeOf(st, owner) the owner's store's place (null once it is gone), cap(st, p, good) a load of the pawn's, stage(st, goal, name),
   //   stray(st, goal, good, a, b) the place of a pile of the goal's owner's good lying at neither place a nor b (indexed by owner, never a
   //   scan of all piles), or null.
@@ -211,7 +211,7 @@ VB['sim/methods'] = (() => {
       case FREE:
         return v.free(st, g, p, f.thing);
       case PILE:
-        return v.pile(st, where(st, f.place, g, p, v, stray), f.good, g.owner) >= least(st, f.min, g, p, v, f.good);
+        return v.pile(st, where(st, f.place, g, p, v, stray), f.good, g) >= least(st, f.min, g, p, v, f.good);
       case STORE:
         return v.store(st, g.owner, f.good) >= least(st, f.min, g, p, v, f.good);
       case STAGE:

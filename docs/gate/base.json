@@ -1,7 +1,7 @@
 {
- "commit": "12ea3d10",
+ "commit": "d1354232",
  "years": 10,
- "wallSeconds": 186,
+ "wallSeconds": 222,
  "runs": [
   {
    "scenario": "founders",
@@ -187,7 +187,7 @@
    ],
    "stuck": 0,
    "unexplained": 0,
-   "produced": 309295,
+   "produced": 309298,
    "hungryDays": 141,
    "hungerDeaths": 0
   },
@@ -290,7 +290,7 @@
      "id": 0,
      "name": "Bergby",
      "living0": 29,
-     "living10": 37,
+     "living10": 38,
      "extinct": false,
      "why": null
     },
@@ -298,7 +298,7 @@
      "id": 1,
      "name": "Hagsta",
      "living0": 24,
-     "living10": 29,
+     "living10": 24,
      "extinct": false,
      "why": null
     },
@@ -306,7 +306,7 @@
      "id": 2,
      "name": "Frövi",
      "living0": 52,
-     "living10": 44,
+     "living10": 50,
      "extinct": false,
      "why": null
     },
@@ -314,7 +314,7 @@
      "id": 3,
      "name": "Ulleråker",
      "living0": 20,
-     "living10": 23,
+     "living10": 22,
      "extinct": false,
      "why": null
     },
@@ -322,7 +322,7 @@
      "id": 4,
      "name": "Stenåker",
      "living0": 20,
-     "living10": 29,
+     "living10": 24,
      "extinct": false,
      "why": null
     },
@@ -330,7 +330,7 @@
      "id": 5,
      "name": "Björksta",
      "living0": 27,
-     "living10": 40,
+     "living10": 41,
      "extinct": false,
      "why": null
     },
@@ -338,7 +338,7 @@
      "id": 6,
      "name": "Steninge",
      "living0": 40,
-     "living10": 43,
+     "living10": 39,
      "extinct": false,
      "why": null
     },
@@ -346,7 +346,7 @@
      "id": 7,
      "name": "Högby",
      "living0": 32,
-     "living10": 37,
+     "living10": 36,
      "extinct": false,
      "why": null
     },
@@ -354,7 +354,7 @@
      "id": 8,
      "name": "Almsta",
      "living0": 41,
-     "living10": 52,
+     "living10": 46,
      "extinct": false,
      "why": null
     },
@@ -370,7 +370,7 @@
      "id": 10,
      "name": "Strand",
      "living0": 4,
-     "living10": 5,
+     "living10": 6,
      "extinct": false,
      "why": null
     },
@@ -378,15 +378,15 @@
      "id": 11,
      "name": "Lindsta",
      "living0": 20,
-     "living10": 26,
+     "living10": 22,
      "extinct": false,
      "why": null
     }
    ],
    "stuck": 0,
    "unexplained": 0,
-   "produced": 286546,
-   "hungryDays": 327,
+   "produced": 290154,
+   "hungryDays": 283,
    "hungerDeaths": 0
   }
  ]

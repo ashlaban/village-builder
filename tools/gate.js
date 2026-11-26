@@ -11,7 +11,7 @@
 //     - a settlement has collapsed: its living at year 10 are under half its living at year 0 AND under half the base run's at year 10
 //       (a decline the base shares is not charged to the task; a settlement the base lacks is compared with its own year 0 only);
 //     - more tasks are held over 48 hours without progress than in the base: a claimed task whose `done`, trips made (`made`) and
-//       pile left (`left`) have not moved, whose rate is nil and none of whose hands walks with a load for it, over 48 hours, sampled
+//       pile left (`left`) have not moved, whose rate is nil and none of whose hands walks with a load for it (48 hours at most), over 48 hours, sampled
 //       every 6 hours, each task counted once;
 //     - `unexplained` is larger than the base's by more than 1 ration plus 0.1% of the run's food produced.
 //   Hunger days and deaths by hunger are printed beside the base and never fail. The base is kept at docs/gate/base.json, the
@@ -42,6 +42,27 @@ function compare(cur, base) {
   return { ok: !fails.length, fails, rows };
 }
 
+// One sample of the held tasks: seen maps a claimed task to its last progress ({mark, since, laden}); stuck gathers the ids held. Progress
+// is its work done, its trips made or what still lies (VB-1749's trips, sim/lying's j.left); a hand of it walking with a load for it is
+// progress for HELD hours at most (a far woodlot's or a pile's trip, whose work leg the samples miss; VB-1812), so that a load walked
+// for ever is held.
+function sample(s, seen, stuck) {
+  for (const j of s.jobs.values()) {
+    if (!j.claims.length || j.rate > 0) { seen.delete(j); continue; }
+    const mark = `${j.done}|${j.made}|${j.left}`,
+      laden = j.claims.some((id) => { const a = s.agents[id]; return a && a.job && a.job.key === j.key && a.carry && a.path; });
+    let e = seen.get(j);
+    if (!e || e.mark !== mark) seen.set(j, (e = { mark, since: s.t, laden: null }));
+    if (!laden) e.laden = null;
+    else {
+      if (e.laden === null) e.laden = s.t;
+      if (s.t - e.laden < HELD) e.since = s.t;
+    }
+    if (s.t - e.since >= HELD) stuck.add(j.id);
+  }
+  for (const j of seen.keys()) if (s.jobs.get(j.key) !== j) seen.delete(j);
+}
+
 // One run, in this process: the accounts report steps the years; Sim.advance is wrapped to sample the held tasks.
 function run(scenario, seed) {
   const accounts = require('./accounts.js'), VB = accounts.load(), G = VB.gen, Sim = VB.sim;
@@ -55,15 +76,7 @@ function run(scenario, seed) {
     adv(s, dt);
     if (s.t < nextSample) return;
     nextSample = s.t + STEP;
-    for (const j of s.jobs.values()) {
-      const e = seen.get(j), mark = `${j.done}|${j.made}|${j.left}`;
-      // progress: its work done, its trips made or what still lies (VB-1749's trips, sim/lying's j.left), or a hand of it walking with a
-      // load for it (a trip of many hours, a far woodlot's or a pile's, whose work leg the samples miss; VB-1812)
-      if (!j.claims.length || j.rate > 0 || j.claims.some((id) => { const a = s.agents[id]; return a && a.job && a.job.key === j.key && a.carry && a.path; })) { seen.delete(j); continue; }
-      if (!e || e.mark !== mark) seen.set(j, { mark, since: s.t });
-      else if (s.t - e.since >= HELD) stuck.add(j.id);
-    }
-    for (const j of seen.keys()) if (s.jobs.get(j.key) !== j) seen.delete(j);
+    sample(s, seen, stuck);
   };
   const acc = accounts.report(VB, st);
   for (let y = 0; y < YEARS; y++) acc.advanceYear();
@@ -122,4 +135,4 @@ function main() {
     }
   });
 }
-if (require.main === module) main(); else module.exports = { compare, run };
+if (require.main === module) main(); else module.exports = { compare, run, sample };

@@ -175,7 +175,7 @@ const V = {
   has: (st, p, thing) => thing === 'cart' && holdsCart(st, p),
   free: (st, g, p, thing) => thing === 'cart' && st.cart.by === null && st.cart.until <= st.t,
   place: (st, g, p, name) => (name === 'cart' ? st.cart.at : null),
-  pile: (st, at, good, owner) => pileN(st, at, good, owner),
+  pile: (st, at, good, g) => pileN(st, at, good, g.owner),
   store: (st, owner, good) => st.stores[owner][good],
   storeOf: (st, owner) => (st.gone[owner] ? null : owner), // a farm's store stands at its house
   cap: (st, p) => (holdsCart(st, p) ? CART : BACK),
