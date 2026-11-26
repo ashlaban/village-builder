@@ -126,6 +126,22 @@ function handsOf(s, id) {
   return e[1];
 }
 
+// 6. The work a household lives by is slotted first within the levy (Day.vitalFirst): the best pair of a vital task (the water), its
+// member levied, goes before lesser work it fits better; a vital task the head pair fit best (the meal) keeps its place, and a vital
+// task's further pairs theirs.
+{
+  const water = { id: 1, kind: 'water', claims: [] },
+    cook = { id: 2, kind: 'cook', claims: [] },
+    plow = { id: 3, kind: 'plow', claims: [] };
+  const pairs = [[9, hh.holder, plow], [8, hh.holder, cook], [7, son, plow], [6, son, cook], [5, son, water], [4, hh.holder, water]];
+  Day.vitalFirst(st, hh, pairs);
+  assert.deepStrictEqual(
+    pairs.map(([s, id, j]) => [s, id === son ? 'son' : 'head', j.kind]),
+    [[5, 'son', 'water'], [9, 'head', 'plow'], [8, 'head', 'cook'], [7, 'son', 'plow'], [6, 'son', 'cook'], [4, 'head', 'water']],
+    "the son's water first; the head's meal and the rest in their order",
+  );
+}
+
 console.log(
-  "levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies",
+  "levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first",
 );
