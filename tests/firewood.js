@@ -44,6 +44,8 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert.strictEqual(cold, 0, 'no household-day cold in the year, of those that stood from the start');
   for (const hh of st.households) {
     if (hh.dissolved) continue;
+    // (VB-1750: a household founded in the year whose people are all gone from it, none to fell, is not asked for wood)
+    if (hh.id >= n0 && !hh.members.length) continue;
     assert(hh.wood > 0, `household ${hh.id} has wood at the year's end`);
     assert(hh.timber === undefined || hh.timber >= 0);
   }

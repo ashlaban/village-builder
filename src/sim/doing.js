@@ -31,8 +31,14 @@ VB['sim/doing'] = (() => {
   const goodOf = (good) => GOODS[good] || { lying: good, carry: KINDS[good].carry, kind: good };
   const byKind = (good) => !!goodOf(good).kind;
   const plans = Methods.compile(KINDS);
+  // A kind's plan, compiled on its first ask when the kind was added after load (a test's kind, made from a game kind; VB-1750)
+  const planOf = (k) =>
+    plans[k] || (KINDS[k] && KINDS[k].methods ? Object.assign(plans, Methods.compile({ [k]: KINDS[k] }))[k] : null);
   // The good a load in hand for a task of kind k is: the one its methods take up (one a kind).
-  const loaded = (k) => (plans[k] && plans[k].uses.length ? plans[k].uses[0] : null);
+  const loaded = (k) => {
+    const P = planOf(k);
+    return P && P.uses.length ? P.uses[0] : null;
+  };
   const hhOf = (st, owner) => (owner === null || owner === undefined ? null : st.households[owner]);
   const titled = (owner) => ({ type: 'household', id: owner });
   // A pile's title for a task: a village's task keeps its own (its timber, its well stone lie as the village's: title moves at once, design.md
@@ -126,6 +132,7 @@ VB['sim/doing'] = (() => {
   // The pawn's next leg toward its task (sim/methods next): a step, Methods.DONE, or {blocked}.
   function ask(st, a, g = goalOf(st, a)) {
     VB.count.methodAsk++;
+    if (!plans[g.kind]) planOf(g.kind);
     return Methods.next(st, g, a, VIEW);
   }
   // Where step s goes, or is done: a tile, or null (the cart's keeping place is its house).

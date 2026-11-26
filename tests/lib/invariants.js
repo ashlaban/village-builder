@@ -1497,7 +1497,7 @@ function checkState(st) {
         const at = `workDue[${n}] (${j.key})`;
         if (st.jobs.get(j.key) !== j) bad.push(`${at}: not posted`);
         if ((KS[j.kind].attention || 'full') === 'partial') bad.push(`${at}: a partial task`);
-        if (!(j.rate > 0) || !Number.isInteger(j.due) || !(j.due > st.tick)) bad.push(`${at}: rate ${j.rate}, due ${j.due} at tick ${st.tick}`);
+        if (!(j.rate > 0) || !Number.isInteger(j.due) || !(st.clockSet ? j.due > j.at : j.due > st.tick)) bad.push(`${at}: rate ${j.rate}, due ${j.due} at tick ${st.tick}`);
         if (n > 0 && (q[n - 1].due > j.due || (q[n - 1].due === j.due && q[n - 1].id >= j.id))) bad.push(`${at}: out of order`);
         const h = j.hours ?? KS[j.kind].hours, want = j.at + Math.max(1, Math.ceil(((h - j.done) / j.rate) * TICKS - 1e-7));
         if (j.due !== want) bad.push(`${at}: due ${j.due}, its done and rate give ${want}`);

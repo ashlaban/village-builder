@@ -456,5 +456,39 @@ VB['sim/methods'] = (() => {
     return K;
   }
 
-  return { PRIMS, MAX, DONE, RULE, compile, next, placeOf, trip, carry, tend, bring };
+  // ---- work done at the task's site (VB-1750; design.md section 7, The task as a plan) ----
+  // Every kind with no load to carry and no charge to hold: go to the site (an indoor kind's is its house, where it stands by the door,
+  // its `spot`), and work there; the work's end is the kind's own (`ends`: sim/agents' complete runs its `done`, or finishes a plot's
+  // step). Met once its work is done (`job.made`); the hours of a work cut short lie on the posted task, the stage's record (sim/progress),
+  // for whoever takes it up next.
+  function labour(K) {
+    const steps = [
+      { prim: 'go', at: 'site', pre: [], eff: [{ at: 'site' }] },
+      { prim: 'work', op: 'labour', at: 'site', pre: [{ at: 'site' }], eff: [{ met: true }] },
+    ];
+    Object.assign(K, { methods: [{ name: 'worked', steps }], met: (st, g) => (g.job.made || 0) > 0 });
+    K.ops = {
+      labour: {
+        ends: true,
+        run: (st, j) => {
+          j.made = (j.made || 0) + 1;
+        },
+      },
+    };
+    return K;
+  }
+  // ---- a charge held across other legs (design.md section 7, A held charge; VB-1750) ----
+  // The herd at the side, spinning beside it: a kind that is minded (`mind`) is held by its holder beside its task and its walks, within
+  // the kind's `reach` of where it stands (sim/attention holds it, the charge's one name); its row is a walk to its site and the minding
+  // there, which a pawn with nothing in hand sets out for. Its end is the kind's own, when its hours are minded (sim/agents' sideEnded).
+  function mind(K) {
+    const steps = [
+      { prim: 'go', at: 'site', pre: [], eff: [{ at: 'site' }] },
+      { prim: 'mind', at: 'site', pre: [{ at: 'site' }], eff: [{ met: true }] },
+    ];
+    Object.assign(K, { methods: [{ name: 'minded', steps }], mind: true, met: (st, g) => (g.job.made || 0) > 0 });
+    return K;
+  }
+
+  return { PRIMS, MAX, DONE, RULE, compile, next, placeOf, trip, carry, tend, bring, labour, mind };
 })();

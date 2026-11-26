@@ -411,13 +411,18 @@ VB['sim/agents'] = (() => {
       K = KINDS[j.kind];
     if (K.methods) {
       // a work leg of a goal with methods is done: its effect where the pawn stands, if it is still the step the world asks for, and on
-      const s = Doing.ask(st, a);
+      const s = Doing.ask(st, a),
+        ends = s !== DONE && !s.blocked && s.prim === 'work' && !!K.ops[s.op].ends;
       if (s !== DONE && !s.blocked && s.prim === 'work') {
         Doing.work(st, a, s);
-        prospected(st, a.id, here(st, a), Doing.hoursOf(j, s));
+        if (ends) {
+          complete(st, a); // the work's end is the kind's (its `done`, a plot's step finished; VB-1750)
+          // a completion that moved its pawn (a farm restored: it founds a household there) released it and set it out
+          if (a.job !== j) return;
+        } else prospected(st, a.id, here(st, a), Doing.hoursOf(j, s));
       }
       settle(st, j);
-      j.done = 0;
+      if (!ends) j.done = 0; // a task ended keeps its hours done as it is taken down
       a.phase = null;
       a.anim = 'idle';
       rerate(st, j);
@@ -569,14 +574,16 @@ VB['sim/agents'] = (() => {
     if (s.prim === 'work') {
       settle(st, j);
       if (j.op !== s.op) {
-        j.done = 0; // the hours on the task are a work leg's of one kind (sim/progress), begun anew for another
+        // the hours on the task are a work leg's of one kind (sim/progress), begun anew for another; a task's first leg keeps the hours it
+        // was posted with (a stage's, kept on its record while its task is posted again: VB-1407, VB-1750)
+        if (j.op !== undefined) j.done = 0;
         j.op = s.op;
       }
       j.hours = Doing.hoursOf(j, s);
       const K = KINDS[j.kind];
       a.phase = 'work';
       a.anim = K.anim || 'idle';
-      a.inside = false;
+      a.inside = !!K.inside; // an indoor kind is worked in the house
       unleg(st, a); // a wait it had (begun from start) is over
       workAt(st, a);
       a.pace = Skills.workPace(st, a.id, K.type, K.craft);

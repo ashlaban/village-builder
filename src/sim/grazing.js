@@ -305,6 +305,7 @@ VB['sim/grazing'] = (() => {
       post(key, f.house, { farm: f });
     },
   };
+  VB['sim/methods'].mind(KIND); // the herd minded at the side, a charge held across other legs (VB-1750)
   return {
     yearScale,
     grazeOf,

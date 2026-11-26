@@ -956,3 +956,20 @@ console.log(
   assert.deepStrictEqual(checkState(back), [], 'invariants, run on');
   console.log('methods: an older save with a fetch task of grain left lying loads, runs on, and its grain comes home by its crops');
 }
+
+// VB-1750: every kind carries methods (no kind runs on the phases); the work done at a site is `labour`'s row, its end the kind's own; the
+// charges held at the side (the herd, the spinning) are minded (`mind`); the animals led home are a load in hand, set down at the door.
+{
+  const { KINDS } = VB['sim/kinds'];
+  assert.deepStrictEqual(Object.keys(KINDS).filter((k) => !KINDS[k].methods), [], 'every kind carries methods');
+  const plans = M.compile(KINDS);
+  for (const k of ['herd', 'spin']) {
+    assert(KINDS[k].mind && plans[k].methods[0].steps.some((s) => s.prim === 'mind'), `${k} is minded`);
+  }
+  for (const k of ['plow', 'cook', 'foundation', 'restore']) {
+    const s = plans[k].methods[0].steps;
+    assert(s.length === 2 && s[0].prim === 'go' && s[1].prim === 'work' && KINDS[k].ops[s[1].op].ends, `${k} is work at its site`);
+  }
+  for (const k of ['lead', 'drove']) assert.deepStrictEqual(plans[k].uses, [k], `${k}: the animals led are a load in hand`);
+  console.log('methods: every kind carries methods; the herd and the spinning are minded; the animals led are a load in hand');
+}

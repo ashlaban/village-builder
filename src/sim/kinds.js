@@ -132,6 +132,14 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/byrehouse'].KINDS); // the byre's walls and roof (VB-1665): sim/byrehouse's
   Object.assign(KINDS, VB['sim/timberhouse'].KINDS); // the timber house's frame and roof (VB-1664): sim/timberhouse's
   Object.assign(KINDS, VB['sim/facilities'].KINDS); // a facility's stages raised and its upkeep (VB-361): sim/facilities'
+  // every kind that declares no methods of its own is work done at its site (sim/methods labour, VB-1750: no kind runs on the phases); an
+  // indoor kind's work stands by the door of its house (as sim/agents' spotAt)
+  for (const k in KINDS)
+    if (!KINDS[k].methods) {
+      const K = VB['sim/methods'].labour(KINDS[k]);
+      if (K.inside && !K.spot)
+        K.spot = (st, a, j) => [st.w.hx[j.site] - 12 + a.ox * 0.3, st.w.hy[j.site] + 14 + a.oy * 0.15];
+    }
   // ---- where a kind is worked, what it takes and what it gives (VB-1124): each kind's record declares `at` (the places of PLACES where its
   // work is done), `needs` (the things of THINGS it takes or must find there: a good used up, a tool or a facility) and `gives` (the
   // things it makes or brings home), beside its rule, as its name and hours are. The game's guide (page/guide) reads them, and a kind
