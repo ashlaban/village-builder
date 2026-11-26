@@ -149,5 +149,7 @@ VB['sim/saltpan'] = (() => {
       },
     },
   };
+  // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
+  VB['sim/methods'].trip(KINDS.boilsalt, 'boilsalt');
   return { SALT, KINDS, isSpring, springOf, wants };
 })();

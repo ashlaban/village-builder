@@ -15,6 +15,7 @@ VB['sim/agents'] = (() => {
   const { KINDS, carriedOn } = VB['sim/kinds'],
     { workTick } = VB['sim/progress'];
   const Lying = VB['sim/lying'];
+  const Days = VB['sim/days'];
   const Doing = VB['sim/doing'],
     Methods = VB['sim/methods'],
     { DONE } = Methods;
@@ -217,10 +218,12 @@ VB['sim/agents'] = (() => {
     if (!(frac > 0)) return false;
     K.make(st, a, j, frac, workFor(st, a, j));
     j.done = 0;
+    if (K.methods) a.loadOf = null; // made in the hand (sim/doing)
     if (!(a.load > 0)) {
       a.load = 0;
-      return false;
+      return false; // nothing made: the trip is not done, and the next hand takes it from none (VB-1749 review, F1)
     }
+    if (K.methods) j.made = (j.made || 0) + 1; // a trip's goal is its work done, a load made (sim/methods trip, VB-1749)
     freeHands(st, j, a.id);
     a.carry = K.carry;
     a.phase = 'back';
@@ -241,7 +244,8 @@ VB['sim/agents'] = (() => {
     K.make(st, a, j, frac, workFor(st, a, j));
     if (a.load > 0) {
       const [x, y] = placeOf(st, a);
-      Lying.lay(st, a, j, j.kind, tileAt(st, x, y), x, y);
+      // a goal's pile lies at its site, where its method looks for it (sim/doing's view: a spot by the water counts as the site)
+      Lying.lay(st, a, j, j.kind, K.methods ? Doing.VIEW.at(st, a) : tileAt(st, x, y), x, y);
     }
     a.load = 0;
     j.done = 0;
@@ -496,11 +500,15 @@ VB['sim/agents'] = (() => {
     to === j.site && KINDS[j.kind].spot
       ? workSpot(st, a, j)
       : [st.w.hx[to] + 7 + a.ox * 0.3, st.w.hy[to] + 16 + a.oy * 0.15];
+  // A pawn on a day owed whose hours are booked (sim/days on: no longer on duty) has given its working day: as at the day's end, only a load
+  // in hand goes on, to the creditor's store, and the pawn then goes home (VB-1749; design.md section 7, A load in hand).
+  const dayGiven = (st, a) => a.basis === 'owed' && Days.on(st, a.id) === null;
   function onward(st, a, depth = 0) {
     const j = a.job,
       g = Doing.goalOf(st, a),
       s = Doing.ask(st, a, g),
-      h = cal(st.t).hour;
+      h = cal(st.t).hour,
+      given = dayGiven(st, a);
     if (s === DONE) {
       // the goal met: its other hands stop, and it is taken down; the pawn looks for work
       freeHands(st, j, a.id);
@@ -516,11 +524,13 @@ VB['sim/agents'] = (() => {
     if (
       s.blocked ||
       depth > 8 ||
-      (!carrying && (h >= WORK[1] || h < WORK[0]) && !carriedOn(st, j) && !commanded(st, a.id))
+      (!carrying && (h >= WORK[1] || h < WORK[0]) && !carriedOn(st, j) && !commanded(st, a.id)) ||
+      (!carrying && given)
     ) {
       // nothing it can do now (the reason is the step's), or the day is over: it lets the task go, which stays posted while wanted
       if (s.blocked && st.jobs.get(j.key) === j && j.claims.length <= 1) dropJob(st, j);
       release(st, a);
+      if (given && !a.path && !a.inside && a.phase === null && a.away === undefined) goHome(st, a); // its day given, home
       return;
     }
     const at = here(st, a),
@@ -760,6 +770,16 @@ VB['sim/agents'] = (() => {
     if (a.inside) return s ? 'Away from home' : 'At home';
     return a.path ? 'Strolling' : 'Resting';
   }
+  // A pawn on a day owed has given its day's hours (sim/days step, VB-1749): its working day is over, as at the day's end (sim/clock): a
+  // trip cut at its work carries its yield home, a load in hand goes on to the creditor's store (onward, the rule for a load in hand), and
+  // one free goes home. sim/days sends nobody home itself.
+  on('dayGiven', (st, d) => {
+    const a = st.agents[d.pawn];
+    if (!a || !st.pawns[a.id].alive || a.phase === 'back' || commanded(st, a.id) || travelling(a)) return;
+    if (a.occasion !== null || a.phase === 'home' || a.away !== undefined) return;
+    if (a.job) release(st, a, true);
+    if (!a.inside && a.phase !== 'back') goHome(st, a);
+  });
   // A background task held out of reach, with no task in hand (sim/attention hold): the pawn sets out for it.
   on('sideAway', (st, a) => {
     const j = a.side.background,

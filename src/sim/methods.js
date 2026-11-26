@@ -2,7 +2,7 @@
 // declares its methods (KINDS[kind].methods), rows of steps of nine primitives, each step with the facts it needs and the facts it makes,
 // read from the world and never kept on the task; `next` takes the rule for a load in hand, then the stray method, then the first method
 // that applies, read from its last step to its first. The world is read through a view, the readers its caller gives, so the engine
-// holds no domain and no state. Wired to nothing until the wood is put on it (VB-1775).
+// holds no domain and no state. Loaded before the kinds' modules, which declare their methods with its rows (`trip`, VB-1749).
 VB['sim/methods'] = (() => {
   // ---- the vocabulary (docs/plans/four-scales/README.md, 3.2) ----
   // The primitives: what a step does; carrying it out is the caller's (sim/agents, from VB-1775).
@@ -116,6 +116,9 @@ VB['sim/methods'] = (() => {
     s.stops = s.pre.map((f) => ({ blocked: f.why, step: s, fact: f }));
     return s;
   }
+  // Any of a pile, however little: what the stray pile's finding (view.stray) finds is taken up (VB-1749: a pile under 1 was found and
+  // never taken, and its goal walked between it and its site)
+  const ANY_N = 1e-9;
   // The stray method (A stray pile): a pile of a good the goal uses, its owner's, lying where its kind neither makes nor wants it, is
   // fetched to the owner's store. Tried before a kind's own; one row a good.
   const strayRow = (good) => [
@@ -124,7 +127,7 @@ VB['sim/methods'] = (() => {
       prim: 'load',
       at: 'stray',
       good,
-      pre: [{ at: 'stray' }, { carries: null }, { pile: good, at: 'stray' }],
+      pre: [{ at: 'stray' }, { carries: null }, { pile: good, at: 'stray', min: ANY_N }],
       eff: [{ carries: good }],
     },
     { prim: 'haul', at: 'store', good, pre: [{ carries: good }], eff: [{ at: 'store' }] },
@@ -301,5 +304,41 @@ VB['sim/methods'] = (() => {
     );
   }
 
-  return { PRIMS, MAX, DONE, RULE, compile, next, placeOf };
+  // ---- a trip whose good is made at the work (VB-1749; design.md section 7, The good is made where the work is done) ----
+  // The kinds that make their good as the work ends (`make`, sim/agents): fishing, hunting, gathering, digging, boiling salt, a basket of
+  // stone. One row: go to the site, work (the good made into the hand), or take up the owner's pile lying there (a trip cut there before),
+  // haul it home and set it down in the store. The good is named for the kind (a pile of it lies as the kind, sim/lying), so the stray
+  // method of the same kind's goal fetches a pile cut elsewhere. The goal is the trip: met once its work is done (`job.made`, counted by
+  // the work leg and by a trip cut by the day's end that carries its yield home, sim/agents tripHome); the load in hand then goes home by
+  // the rule for a load in hand. The kind record K is given its methods, `met` and its work's op.
+  // @state job.made: absent until a trip's work is done (VB-1749), then the trips worked for the task (a kind of `trip`'s goal is met at one)
+  const tripRow = (good) => [
+    { prim: 'go', at: 'site', pre: [], eff: [{ at: 'site' }] },
+    { prim: 'work', op: 'make', at: 'site', pre: [{ at: 'site' }, { carries: null }], eff: [{ carries: good }] },
+    {
+      prim: 'load',
+      good,
+      at: 'site',
+      pre: [{ at: 'site' }, { carries: null }, { pile: good, at: 'site', min: ANY_N }],
+      eff: [{ carries: good }],
+    },
+    { prim: 'haul', good, at: 'store', pre: [{ carries: good }], eff: [{ at: 'store' }] },
+    { prim: 'unload', good, at: 'store', pre: [{ carries: good }, { at: 'store' }], eff: [{ not: { carries: good } }] },
+  ];
+  function trip(K, good) {
+    // a kind's record, given its methods at load (no state)
+    Object.assign(K, { methods: [{ name: 'a trip', steps: tripRow(good) }], met: (st, g) => (g.job.made || 0) > 0 });
+    K.ops = {
+      make: {
+        run: (st, j, g, at, a) => {
+          a.loadOf = null; // made in the hand: its delivery reads the task
+          K.make(st, a, j, 1, st.households[g.owner]);
+          j.made = (j.made || 0) + 1;
+        },
+      },
+    };
+    return K;
+  }
+
+  return { PRIMS, MAX, DONE, RULE, compile, next, placeOf, trip };
 })();

@@ -337,6 +337,8 @@ VB['sim/drying'] = (() => {
     },
     held: (st, hh) => larderOf(hh, 'dried fish'),
   });
+  // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
+  for (const k of ['fish', 'rackfish']) VB['sim/methods'].trip(KINDS[k], k);
   return {
     DRY,
     BOAT,

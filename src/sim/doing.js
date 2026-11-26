@@ -9,16 +9,20 @@ VB['sim/doing'] = (() => {
     Lying = VB['sim/lying'],
     Stores = VB['sim/stores'];
   const { TRAVEL } = VB['sim/rules'];
-  const { here } = VB['sim/pose'];
+  const { here, placeOf: poseOf } = VB['sim/pose'];
   const { teamFree } = VB['sim/work'];
   const { emit } = VB['sim/events'];
   // The goods a method carries: the kind its piles lie as (sim/lying), the load drawn (agent.carry), its store, and the store's units a
-  // load of TRAVEL.load holds. A load in hand is agent.load (TRAVEL's units) of its task's owner's.
+  // load of TRAVEL.load holds. A load in hand is agent.load (TRAVEL's units) of its task's owner's. A good not named here is a trip's
+  // (sim/methods trip, VB-1749): named for its kind, it lies as that kind, is carried in the kind's units (a.load as its `make` gives it),
+  // taken up whole, and set down in the store by the kind's delivery (`deliver`), reading the task, or the pile's record it was taken from.
   const GOODS = {
     timber: { lying: 'wood', carry: 'logs', store: 'timber', per: (st) => st.ECON.woodPerTrip },
   };
-  const BY_CARRY = { logs: 'timber' };
+  const goodOf = (good) => GOODS[good] || { lying: good, carry: KINDS[good].carry, kind: good };
   const plans = Methods.compile(KINDS);
+  // The good a load in hand for a task of kind k is: the one its methods take up (one a kind).
+  const loaded = (k) => (plans[k] && plans[k].uses.length ? plans[k].uses[0] : null);
   const hhOf = (st, owner) => (owner === null || owner === undefined ? null : st.households[owner]);
   const titled = (owner) => ({ type: 'household', id: owner });
   // The goal of task j taken by pawn a: its kind, tile and owner (the household it is for: its own, or the pawn's for a village's).
@@ -36,8 +40,9 @@ VB['sim/doing'] = (() => {
     return hh ? Carts.holds(st, hh, a.id) : 0;
   };
   // The loads (TRAVEL's units) the pawn takes up at once: its cart's, no more than its task still wants; else a back load.
-  function cap(st, a) {
+  function cap(st, a, good) {
     const c = cartHeld(st, a);
+    if (good && !GOODS[good]) return Infinity; // a trip's pile, taken up whole
     if (!c || !a.job || !KINDS[a.job.kind].need) return TRAVEL.load;
     return Math.max(TRAVEL.load, Math.min(c, KINDS[a.job.kind].need(st, a.job) * TRAVEL.load));
   }
@@ -48,10 +53,19 @@ VB['sim/doing'] = (() => {
   };
   const VIEW = {
     plans,
-    at: (st, a) => here(st, a),
+    // where the pawn stands: its tile, or its task's site when it stands at the task's spot there (a fishing spot by the water may lie on
+    // the tile beside the site's; VB-1749)
+    at: (st, a) => {
+      const t = here(st, a),
+        j = a.job;
+      if (!j || t === j.site || !KINDS[j.kind].spot || a.path) return t;
+      const [x, y] = KINDS[j.kind].spot(st, a, j),
+        [px, py] = poseOf(st, a);
+      return Math.abs(px - x) + Math.abs(py - y) < 1e-6 ? j.site : t;
+    },
     hands: (st, a) =>
-      a.load > 0 && a.job && BY_CARRY[a.carry]
-        ? { good: BY_CARRY[a.carry], n: a.load, owner: ownerOf(st, a.job, a) }
+      a.load > 0 && a.job && loaded(a.job.kind)
+        ? { good: loaded(a.job.kind), n: a.load, owner: ownerOf(st, a.job, a) }
         : null,
     held: (st, a) => (cartHeld(st, a) ? 'cart' : null),
     has: (st, a, thing) => thing === 'cart' && cartHeld(st, a) > 0,
@@ -65,16 +79,16 @@ VB['sim/doing'] = (() => {
       const P = KINDS[g.kind].places;
       return P && P[name] ? P[name](st, g) : null;
     },
-    pile: (st, at, good, owner) => Lying.amountAt(st, at, GOODS[good].lying, titled(owner)),
+    pile: (st, at, good, owner) => Lying.amountAt(st, at, goodOf(good).lying, titled(owner)),
     store: (st, owner, good) => {
       const hh = hhOf(st, owner),
-        n = hh ? hh[GOODS[good].store] || 0 : 0;
+        n = hh && GOODS[good] ? hh[GOODS[good].store] || 0 : 0;
       return n > 1e-9 ? n : 0;
     },
     storeOf,
-    cap: (st, a) => cap(st, a),
+    cap: (st, a, good) => cap(st, a, good),
     stage: () => false,
-    stray: (st, g, good, x, y) => Lying.strayOf(st, titled(g.owner), GOODS[good].lying, x, y),
+    stray: (st, g, good, x, y) => Lying.strayOf(st, titled(g.owner), goodOf(good).lying, x, y),
   };
   // The pawn's next leg toward its task (sim/methods next): a step, Methods.DONE, or {blocked}.
   function ask(st, a, g = goalOf(st, a)) {
@@ -89,39 +103,67 @@ VB['sim/doing'] = (() => {
     const hh = hhOf(st, st.pawns[a.id].household);
     return hh ? Carts.take(st, hh, a.id, teamFree(st, hh)) : TRAVEL.load;
   }
+  // @state agent.loadOf: absent or null, or the record of the pile a load in hand was taken up from (sim/lying's `of`: the task's tile,
+  //   field, farm, what was dug), which its delivery reads in place of the task's (VB-1749); written by sim/doing's load and unload and a
+  //   trip's work (sim/methods trip), which makes the load in hand
   // A load taken up from the owner's pile where the pawn stands: what was taken.
   function load(st, a, s, g = goalOf(st, a)) {
-    const G = GOODS[s.good],
-      n = Lying.takeAt(st, here(st, a), G.lying, titled(g.owner), cap(st, a));
+    const G = goodOf(s.good),
+      l = Lying.pileAt(st, VIEW.at(st, a), G.lying, titled(g.owner)),
+      of = l ? l.of : null,
+      n = l ? Lying.takeAt(st, l.tile, G.lying, titled(g.owner), cap(st, a, s.good)) : 0;
     if (n > 0) {
       a.load = n;
       a.carry = G.carry;
+      a.loadOf = GOODS[s.good] ? null : of;
     }
     return n;
   }
+  // The task a trip's load is delivered for: the task, as the pile it was taken from recorded it (sim/lying fetchKind's reading).
+  const deliveredFor = (j, of, kind) =>
+    of ? { ...j, ...of, kind, site: of.src ?? j.site } : j.kind === kind ? j : { ...j, kind };
   // The load in hand set down: in its owner's store (the store's units), or, its store gone or the pawn unable to walk on, as a pile with
   // title where the pawn stands (at x, y).
   function unload(st, a, s, x, y) {
-    const good = BY_CARRY[a.carry],
-      G = GOODS[good],
+    const good = loaded(a.job.kind),
+      G = goodOf(good),
       owner = ownerOf(st, a.job, a),
       n = a.load,
-      at = here(st, a);
+      at = VIEW.at(st, a);
     if (!(n > 0)) return;
-    if (s === Methods.RULE.drop || storeOf(st, owner) === null)
-      Lying.put(st, G.lying, n, at, titled(owner), { x, y, of: { src: at } });
+    const drop = s === Methods.RULE.drop || storeOf(st, owner) === null;
+    if (!GOODS[good]) {
+      // a trip's good: delivered by its kind, or set down where the pawn stands with what its delivery reads (sim/lying lay)
+      const j = { ...deliveredFor(a.job, a.loadOf, G.kind), owner: titled(owner) };
+      if (drop) Lying.lay(st, a, j, G.lying, at, x, y);
+      else {
+        const hh = hhOf(st, owner),
+          got = KINDS[G.kind].deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
+        // the played pawn's sheet tells what the trip brought (sim/player, VB-1118), as sim/agents' deposit does
+        if (st.player && st.player.pawn === a.id)
+          emit(st, 'yielded', {
+            pawn: a.id,
+            kind: G.kind,
+            farm: a.job.farm ?? null,
+            good: G.carry ?? null,
+            n: typeof got === 'number' ? got : n,
+          });
+      }
+    } else if (drop) Lying.put(st, G.lying, n, at, titled(owner), { x, y, of: { src: at } });
     else {
       Stores.put(st, hhOf(st, owner), G.store, (n / TRAVEL.load) * G.per(st), 'felling');
       emit(st, 'timberHome', { household: owner, tile: a.job.site, loads: Math.max(1, Math.round(n / TRAVEL.load)) });
     }
     a.load = 0;
     a.carry = null;
+    a.loadOf = null;
   }
   // The work leg of step s is done, at the tile where the pawn stands: its kind's effect (KINDS[kind].ops).
   function work(st, a, s) {
     const j = a.job;
-    KINDS[j.kind].ops[s.op].run(st, j, goalOf(st, a), here(st, a));
+    KINDS[j.kind].ops[s.op].run(st, j, goalOf(st, a), VIEW.at(st, a), a);
   }
-  const hoursOf = (j, s) => KINDS[j.kind].ops[s.op].hours;
+  // a work leg's hours: its op's, else the task's (a trip's hours as it was posted), else its kind's
+  const hoursOf = (j, s) => KINDS[j.kind].ops[s.op].hours ?? j.hours ?? KINDS[j.kind].hours;
   return { VIEW, GOODS, goalOf, ask, placeOf, takeCart, load, unload, work, hoursOf };
 })();
