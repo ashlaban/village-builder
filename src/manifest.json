@@ -164,6 +164,7 @@
   "sim/voice.js",
   "sim/fit.js",
   "sim/day.js",
+  "sim/authored.js",
   "sim/timetable.js",
   "sim/jobs.js",
   "sim/drinking.js",

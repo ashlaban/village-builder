@@ -1641,7 +1641,7 @@ function checkState(st) {
         if (!(q.begun === null || (n === 0 && q.begun <= st.t))) bad.push(`pawn ${id}.control.queue[${n}]: begun ${q.begun}`);
         // its reference (VB-1405): null until begun, then plain data or null; absent only in a command begun before VB-1405
         if (q.ref === undefined ? q.begun === null : (q.ref !== null && (q.begun === null || typeof q.ref !== 'object'))) bad.push(`pawn ${id}.control.queue[${n}]: ref ${JSON.stringify(q.ref)}, begun ${q.begun}`);
-        if (q.plan !== undefined && !(q.plan && ['routine', 'task', 'sleep'].includes(q.plan.from))) bad.push(`pawn ${id}.control.queue[${n}].plan: ${JSON.stringify(q.plan)}`);
+        if (q.plan !== undefined && !(q.plan && ['routine', 'vital', 'task', 'sleep'].includes(q.plan.from))) bad.push(`pawn ${id}.control.queue[${n}].plan: ${JSON.stringify(q.plan)}`);
       });
       const r = c.refused;
       if (!(r === null || (r && typeof r.verb === 'string' && typeof r.why === 'string' && r.t <= st.t))) bad.push(`pawn ${id}.control.refused: ${JSON.stringify(r)}`);

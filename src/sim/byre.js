@@ -727,6 +727,7 @@ VB['sim/byre'] = (() => {
   // The job kinds (sim/kinds joins them into KINDS; a kind's fields are described there).
   const KINDS = {
     fodder: {
+      daily: true, // its hours reserved before anything authored (VB-1755)
       verb: 'Feeding and mucking out in the byre',
       go: 'Going to the byre',
       // VB-1670: on a farm with no byre standing (farmstead.byre, sim/byrehouse) the animals are foddered where they stand
@@ -747,6 +748,7 @@ VB['sim/byre'] = (() => {
       available: byreWork,
     },
     milk: {
+      daily: true, // its hours reserved before anything authored (VB-1755)
       verb: 'Milking the cows',
       go: 'Going to milk the cows',
       name: 'Milk the cows',

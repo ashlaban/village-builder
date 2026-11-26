@@ -12,7 +12,7 @@ VB['sim/controller'] = (() => {
   const { cal, WORK, DAY, BOOTH } = VB['sim/rules'];
   const { issue, perform, active, VERBS, register } = VB['sim/commands'];
   const { on, emit } = VB['sim/events'];
-  const { KINDS } = VB['sim/kinds'];
+  const { KINDS, dailyNow } = VB['sim/kinds'];
   const { eligible } = VB['sim/eligibility'];
   const Steps = VB['sim/steps'],
     { pawnPlan: planOf, planners } = Steps;
@@ -27,7 +27,7 @@ VB['sim/controller'] = (() => {
   //   (at most QUEUE_MAX commands {actor: the pawn, verb, target, args, source (who queued it: 'player' for the played pawn's), begun,
   //   ref}, in turn; `begun` is null until the command is issued, then the game time: only the head is ever begun, and it stays the head
   //   while its act lasts; `ref` is null, or once begun the reference its verb gave to the act it began (sim/commands perform, VB-1405),
-  //   plain data; `plan` {from: 'routine' | 'task' | 'sleep', kind, key, and `chain` and <chain> (its tile) when a task at a tile fed it,
+  //   plain data; `plan` {from: 'routine' | 'vital' | 'task' | 'sleep', kind, key, and `chain` and <chain> (its tile) when a task at a tile fed it,
   //   kind 'project' for the project a marked tile begins} in a command the pawn's own plan fed, nextOf below), refused (null, or {verb,
   //   why, t}: the last command refused when its turn came)}; plain data, saved with the pawn, made by the first verb a pawn issues for
   //   itself here (or by the player's inhabit) and ended at its death or when the player leaves it. Its plan is not here: the steps it
@@ -315,6 +315,25 @@ VB['sim/controller'] = (() => {
       },
       run: (st, c) => Steps.setRoutine(st, c.target, c.args.kinds),
     },
+    // keep {i, on}: task i is kept ("keep my order": the default author never takes it back, the card warns while it is at risk), or
+    // not (on false); date {i, from, by}: task i dated anew (either absent: undated that way). VB-1755.
+    keep: {
+      check: (st, c) =>
+        index(c.args.i, ownPlan(st, c.target).tasks.length) ? null : `the plan has no task ${c.args.i}`,
+      run: (st, c) => Steps.keepTask(st, c.target, c.args.i, c.args.on !== false),
+    },
+    date: {
+      check: (st, c) => {
+        if (!index(c.args.i, ownPlan(st, c.target).tasks.length)) return `the plan has no task ${c.args.i}`;
+        const g = c.args;
+        if ((given(g.from) && !Number.isInteger(g.from)) || (given(g.by) && !Number.isInteger(g.by)))
+          return 'a task is dated by game days';
+        return given(g.from) && given(g.by) && g.by < g.from
+          ? `a task cannot be done by day ${g.by}, before day ${g.from}`
+          : null;
+      },
+      run: (st, c) => Steps.dateTask(st, c.target, c.args.i, dated(c.args)),
+    },
     sleep: {
       check: (st, c) => {
         const g = c.args;
@@ -375,7 +394,8 @@ VB['sim/controller'] = (() => {
   const workCmd = (id, key) => ({ actor: id, verb: 'work', target: key, args: null, source: 'player' });
   // ---- why a task waits (VB-1651): the one closed list of reasons, each plain data for the page (planView's `waits` and `idle`) ----
   // hand: a command queued by hand goes first (its verb, target and the game hour it was begun, null before); before: an earlier task (i,
-  // its index) is what the plan does next or has in hand; routine: a routine kind goes first; sleep: the sleeping hours, until `until`
+  // its index) is what the plan does next or has in hand; routine: a routine kind goes first; vital: a daily task its household's
+  // day leaves unmanned goes first (VB-1755); sleep: the sleeping hours, until `until`
   // o'clock; opens: its next step is not posted until game hour t (what: its window opening, its crop ripe, its hay dry); unposted: its
   // next step (kind) is open and its job not posted for the household now, `rule` (one of RULES) the household's own rule that holds it
   // back and `text` its words for the page (HOLDS, VB-1652); refused: the verb's own reason (text).
@@ -383,6 +403,7 @@ VB['sim/controller'] = (() => {
     hand: (c) => ({ why: 'hand', verb: c.verb, target: c.target ?? null, since: c.begun ?? null }),
     before: (i) => ({ why: 'before', i }),
     routine: (kind) => ({ why: 'routine', kind }),
+    vital: (kind) => ({ why: 'vital', kind }),
     sleep: (until) => ({ why: 'sleep', until }),
     opens: (t, what) => ({ why: 'opens', t, what }),
     unposted: (kind, h) => ({ why: 'unposted', kind, rule: h.rule, text: h.text }),
@@ -519,9 +540,40 @@ VB['sim/controller'] = (() => {
     if (js) for (const j of js) if (j.kind === k && VERBS.work.check(st, workCmd(id, j.key)) === null) return j;
     return null;
   }
+  // A task of a kind its household lives by each day (sim/kinds `daily`: the water, the meal, the fire, milking, fodder) that stands
+  // open, unmanned and not the next task of another member by the household's day (givenTo), and that pawn id
+  // may take now, unless its routine is to take that kind today; or null. Due and vital kinds are slotted in before anything authored
+  // (VB-1755; design.md section 7, Authors). A pass
+  // over the household's open tasks, for a pawn on its own plan.
+  function vitalJob(st, id, pp) {
+    const hid = st.pawns[id].household,
+      js = hid === null ? null : st.jobsBy.get(`household:${hid}`);
+    if (!js) return null;
+    const plan = st.plans.households.get(hid),
+      day = plan && plan.day;
+    for (const j of js) {
+      VB.count.vitalAsk++;
+      if (!dailyNow(st, j) || j.claims.length || givenTo(st, day, j.key, id)) continue;
+      if (pp.routine.includes(j.kind) && !pp.done.includes(j.kind)) continue; // its routine takes it, in its order
+      if (VERBS.work.check(st, workCmd(id, j.key)) === null) return j;
+    }
+    return null;
+  }
+  // Whether the household's day gives the task of `key` to a member other than pawn id as the one it takes next: the first entry of its
+  // list still posted (a later entry waits for the member's present task: the pawn may take it meanwhile).
+  function givenTo(st, day, key, id) {
+    if (!day) return false;
+    for (const m in day.lists) {
+      if (Number(m) === id) continue;
+      const next = day.lists[m].find((k) => st.jobs.has(k));
+      if (next === key) return true;
+    }
+    return false;
+  }
   // What its plan has pawn id do next, as a command with its `plan` mark, or null: in its sleeping hours, sleep until `until`;
-  // else the first routine kind not begun today with a job of its household it may take; else the first task that may be taken now
-  // (taskCmd). A command queued by hand goes first: with one queued, null. Reads only; writes nothing.
+  // else a daily task the household's day leaves unmanned (vitalJob); else the first routine kind not begun today with a job of its
+  // household it may take; else the first task that may be taken now (taskCmd). A command queued by hand goes first: with one
+  // queued, null. Reads only; writes nothing.
   function nextOf(st, id) {
     const pp = planOf(st, id);
     if (!pp || living(st, id) || handOf(st, id)) return null;
@@ -529,6 +581,8 @@ VB['sim/controller'] = (() => {
       const cmd = { actor: id, verb: 'sleep', target: null, args: { until: pp.sleep.until }, source: 'player' };
       return VERBS.sleep.check(st, cmd) === null ? { ...cmd, plan: { from: 'sleep', kind: null, key: null } } : null;
     }
+    const v = vitalJob(st, id, pp);
+    if (v) return { ...workCmd(id, v.key), plan: { from: 'vital', kind: v.kind, key: v.key } };
     const done = pp.done;
     for (const k of pp.routine) {
       if (done.includes(k)) continue;
@@ -569,6 +623,7 @@ VB['sim/controller'] = (() => {
       if (hand) return WAITS.hand(hand);
       if (asleep || (first && first.from === 'sleep')) return WAITS.sleep(pp.sleep ? pp.sleep.until : null);
       if (first && first.from === 'routine') return WAITS.routine(first.kind);
+      if (first && first.from === 'vital') return WAITS.vital(first.kind);
       const k = first ? pp.tasks.findIndex((u) => markOf(first, u)) : -1;
       return k >= 0 ? WAITS.before(k) : null;
     });

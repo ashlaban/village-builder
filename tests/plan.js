@@ -153,6 +153,8 @@ const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
   until(st, 6);
   Sim.advance(st, 0.2);
   assert.ok(st.pawns[FARMER].sleep.owed < 1, `the hours owed near zero in the morning: ${st.pawns[FARMER].sleep.owed}`);
+  // VB-1755: a daily task the household's day leaves unmanned (the water) goes first; then the clearing
+  for (let i = 0; i < 30 && head(st) && head(st).plan && head(st).plan.from === 'vital'; i++) Sim.advance(st, 0.1);
   assert.ok(head(st).plan.key === 'clear:f0' && st.agents[FARMER].job === j, 'the clearing taken up again in the morning');
   const data = JSON.parse(JSON.stringify(Sim.save(st))), back = Sim.load(tinyWorld(rows), data);
   assert.strictEqual(canon(VB['sim/steps'].pawnPlan(back, back.player.pawn)), canon(VB['sim/steps'].pawnPlan(st, st.player.pawn)), 'the plan comes back as saved');

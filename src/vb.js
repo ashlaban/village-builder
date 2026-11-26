@@ -157,6 +157,10 @@ VB.COUNTERS = {
   dayPair:
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
     '(sim/day, allot; VB-466)',
+  vitalAsk:
+    'Open tasks of its household passed by a pawn on its own plan, for a daily one the day leaves unmanned (sim/controller, VB-1755)',
+  riskCheck:
+    "Authored task steps weighed for their `by` at the household's review: none in a run with nothing authored (sim/day, VB-1755)",
   dayTake: 'Tasks of its list an idle pawn passes or takes (sim/day, takeDay; VB-466)',
   timetableEntry:
     "Entries of a member's list laid out in a timetable, a view asked by the page (sim/timetable, VB-477)",

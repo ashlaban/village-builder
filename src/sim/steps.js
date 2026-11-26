@@ -152,6 +152,9 @@ VB['sim/steps'] = (() => {
     state: s.state,
     why: s.why ? { ...s.why } : null,
     ...(s.left ? { left: { ...s.left } } : {}),
+    ...(s.risk ? { risk: { ...s.risk } } : {}),
+    ...(s.kept ? { kept: true } : {}),
+    ...(s.tookBack ? { tookBack: { ...s.tookBack } } : {}),
   });
   // The chain of steps above task j, the step that opened it first, each a copy (shown), up to the one whose `why` is a custom, a levy
   // or none; empty for a task no step opened. A task posted before its season's steps were folded serves this season's step of its kind.
@@ -283,6 +286,70 @@ VB['sim/steps'] = (() => {
       s = plan.ahead.splice(goalAt(plan, from), 1)[0];
     put(plan.ahead, goalAt(plan, to), s);
   }
+  // Task i is kept (on) or not: a kept step the default author never takes back (VB-1755).
+  function keepTask(st, id, i, on) {
+    const s = own(st, id).ahead[goalAt(planFor(st, 'pawn', id), i)];
+    if (on) s.kept = true;
+    else delete s.kept;
+  }
+  // Task i is dated anew by `when` ({from, by}, either absent: undated that way).
+  function dateTask(st, id, i, when) {
+    const s = own(st, id).ahead[goalAt(planFor(st, 'pawn', id), i)];
+    delete s.from;
+    delete s.by;
+    Object.assign(s, when);
+  }
+  // ---- an authored step at risk, and the take-back (VB-1755; design.md section 7, A step at risk, and the take-back; sim/day writes them
+  // at the household's review) ----
+  // @state step.risk, step.kept, step.tookBack (VB-1755): a pawn's task step at risk (state 'at-risk': its planner's estimate says it is not
+  //   done by its `by`) has risk {short (the hours short, by that estimate), since (the game hour it was first found at risk)}: its author's
+  //   controller is to be asked (a decision point, VB-1757); kept: true on a step its controller marked through the verb `plan` (op keep),
+  //   never taken back, absent else; tookBack: on a step the default author took back from a pawn's plan into its household's `ahead` (author
+  //   'custom'), {from (the pawn), t (the game hour), by (its `by` then)}, gone with its task. Written here only.
+  // Step s of a pawn's plan is at risk by `risk` ({short, since}), or no longer (null: planned again).
+  function atRisk(st, s, risk) {
+    if (risk) {
+      s.state = 'at-risk';
+      s.risk = risk;
+    } else {
+      s.state = 'planned';
+      delete s.risk;
+    }
+  }
+  // Step s leaves pawn id's plan and the default author takes it: into household hid's `ahead`, its author the rule's, due by `by`.
+  function takeBack(st, id, s, hid, by) {
+    let plan = planFor(st, 'pawn', id);
+    plan.ahead.splice(plan.ahead.indexOf(s), 1);
+    s.tookBack = { from: id, t: st.t, by: s.by };
+    s.author = 'custom';
+    s.state = 'open';
+    s.why = { custom: 'taken back' };
+    s.by = by;
+    delete s.risk;
+    delete s.kept;
+    plan = planFor(st, 'household', hid);
+    plan.ahead.push(s);
+  }
+  // A step the default author took back leaves household hid's plan (its task done or gone).
+  function dropTaken(st, hid, s) {
+    const plan = planFor(st, 'household', hid);
+    plan.ahead.splice(plan.ahead.indexOf(s), 1);
+  }
+  // The pawns of household hid that plan for themselves, ascending ([] with none: no work in a run where none has planned).
+  function plannersIn(st, hid) {
+    if (hid === null || hid === undefined || !st.plans || !st.plans.pawns.size) return NONE;
+    return planners(st).filter((id) => st.pawns[id].household === hid);
+  }
+  // The step whose goal is the task of `key` among household hid's: one the default author took back ({s, pawn: null}), else one of a
+  // member's own plan ({s, pawn}); null for none. A card's read (sim/reasons).
+  function stepOfKey(st, hid, key) {
+    const hp = hid === null || hid === undefined ? null : planFor(st, 'household', hid);
+    if (!hp) return null;
+    for (const s of hp.ahead) if (s.tookBack && s.what.goal && s.what.goal.key === key) return { s, pawn: null };
+    for (const id of plannersIn(st, hid))
+      for (const s of planFor(st, 'pawn', id).ahead) if (s.what.goal && s.what.goal.key === key) return { s, pawn: id };
+    return null;
+  }
   // The routine's kind was begun today by its command.
   function routineBegun(st, id, kind) {
     const plan = planFor(st, 'pawn', id),
@@ -317,6 +384,13 @@ VB['sim/steps'] = (() => {
     dropTask,
     moveTask,
     routineBegun,
+    keepTask,
+    dateTask,
+    atRisk,
+    takeBack,
+    dropTaken,
+    plannersIn,
+    stepOfKey,
     STATES,
     AUTHORS,
     keyOf,
