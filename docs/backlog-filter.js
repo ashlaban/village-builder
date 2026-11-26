@@ -53,23 +53,39 @@
 
   const style = document.createElement('style');
   style.textContent = `
-.bf-overview { border-collapse: collapse; font-size: 0.9em; max-width: 100%; }
-.bf-overview th, .bf-overview td { padding: 0.2em 0.5em; text-align: right; white-space: nowrap; }
-.bf-overview th:first-child, .bf-overview td:first-child { text-align: left; }
-.bf-overview td.bf-bar { width: 100%; min-width: 4em; }
-.bf-overview tfoot td { font-weight: bold; }
-.bf-overview tr.bf-current td { background: rgba(9, 105, 218, 0.12); }
-.bf-arch { background: none; border: 0; padding: 0; color: #0969da; cursor: pointer; font: inherit; text-decoration: underline; }
-.bf-meter { display: flex; height: 0.7em; border-radius: 0.35em; overflow: hidden; background: rgba(128, 128, 128, 0.2); }
+#bf-overview { display: table; width: 100%; border-collapse: collapse; font-size: 0.9em; margin: 0 0 0.5em; font-variant-numeric: tabular-nums; }
+#bf-overview th, #bf-overview td { padding: 0.3em 0.45em; border: 0; border-bottom: 1px solid rgba(128, 128, 128, 0.18); text-align: right; white-space: nowrap; background: none; }
+#bf-overview tr { background: none !important; border: 0; }
+#bf-overview thead th { font-size: 0.78em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: #6a737d; border-bottom-width: 2px; }
+#bf-overview thead a { color: inherit; text-decoration: underline dotted; }
+#bf-overview th:first-child, #bf-overview td:first-child { text-align: left; padding-left: 0.6em; }
+#bf-overview td.bf-bar { width: 100%; min-width: 3em; }
+#bf-overview td.bf-zero { color: rgba(128, 128, 128, 0.6); }
+#bf-overview tfoot td { font-weight: 600; border-bottom: 0; border-top: 2px solid rgba(128, 128, 128, 0.25); }
+#bf-overview tbody tr:hover td { background: rgba(128, 128, 128, 0.06); }
+#bf-overview tr.bf-current td { background: rgba(3, 102, 214, 0.1); }
+#bf-overview tr.bf-current td:first-child { box-shadow: inset 3px 0 #0366d6; }
+.bf-arch { background: none; border: 0; padding: 0; color: #0366d6; cursor: pointer; font: inherit; }
+.bf-arch:hover, .bf-arch:focus-visible { text-decoration: underline; }
+.bf-meter { display: flex; height: 0.55em; border-radius: 1em; overflow: hidden; background: rgba(128, 128, 128, 0.18); }
 .bf-meter span { display: block; height: 100%; }
 .bf-done { background: #2da44e; } .bf-ready { background: #54aeff; } .bf-waiting { background: #d4a72c; }
-.bf-key { font-size: 0.85em; }
-.bf-key i { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 0.2em; vertical-align: -0.05em; margin: 0 0.25em 0 0.6em; }
+.bf-key { font-size: 0.85em; color: #6a737d; }
+.bf-key i { display: inline-block; width: 0.75em; height: 0.75em; border-radius: 50%; vertical-align: -0.05em; margin: 0 0.3em 0 0.7em; }
 .bf-key i:first-child { margin-left: 0; }
-.bf-controls { display: flex; flex-wrap: wrap; gap: 0.5em 1em; align-items: center; }
-.bf-controls label { white-space: nowrap; }
-.bf-controls input[type=search] { min-width: 12em; max-width: 100%; }
+.bf-controls { display: flex; flex-wrap: wrap; gap: 0.5em 0.9em; align-items: center; padding: 0.6em 0.8em; border: 1px solid rgba(128, 128, 128, 0.25); border-radius: 8px; background: rgba(128, 128, 128, 0.06); font-size: 0.9em; }
+.bf-controls label { white-space: nowrap; color: #6a737d; }
+.bf-controls select, .bf-controls input[type=search] { font: inherit; color: inherit; padding: 0.2em 0.4em; border: 1px solid rgba(128, 128, 128, 0.4); border-radius: 6px; background: Canvas; }
+.bf-controls input[type=search] { width: 13em; max-width: 100%; }
+.bf-controls button { font: inherit; padding: 0.2em 0.8em; border: 1px solid rgba(128, 128, 128, 0.4); border-radius: 1em; background: Canvas; color: inherit; cursor: pointer; }
+.bf-controls button:hover { border-color: #0366d6; color: #0366d6; }
+.bf-controls output { font-weight: 600; }
 .bf-scroll { overflow-x: auto; }
+/* The task tables: a little tighter, the ID kept on one line. */
+h2[id] ~ details table { font-size: 0.9em; }
+h2[id] ~ details table th, h2[id] ~ details table td { padding: 0.35em 0.6em; vertical-align: top; }
+h2[id] ~ details table td:first-child { white-space: nowrap; }
+h2[id] ~ details > summary { cursor: pointer; font-weight: 600; margin: 0.3em 0; }
 `;
   document.head.append(style);
 
@@ -87,8 +103,9 @@
     + ' <i style="background: rgba(128,128,128,0.2)"></i>blocked. Choose an arch to list only its tasks.';
   const overview = document.createElement('table');
   overview.className = 'bf-overview';
+  overview.id = 'bf-overview';
   overview.innerHTML = '<thead><tr><th>Arch</th><th><a href="BACKLOG_ARCHIVE.html#done-tasks">Done</a></th><th>Ready</th>'
-    + '<th title="Waiting for Kim">Waiting</th><th>Blocked</th><th></th></tr></thead><tbody></tbody><tfoot></tfoot>';
+    + '<th title="Waiting for Kim">Wait</th><th>Blocked</th><th></th></tr></thead><tbody></tbody><tfoot></tfoot>';
   const overviewRows = new Map();
   const fill = (tr, c) => {
     const open = c.ready + c.waiting + c.blocked;
@@ -99,6 +116,7 @@
     tr.cells[2].textContent = String(c.ready);
     tr.cells[3].textContent = String(c.waiting);
     tr.cells[4].textContent = String(c.blocked);
+    for (const i of [1, 2, 3, 4]) tr.cells[i].classList.toggle('bf-zero', tr.cells[i].textContent === '0');
     tr.cells[5].title = c.done === null ? open + ' open' : Math.round(100 * done / total) + '% done, ' + open + ' open';
     tr.cells[5].firstChild.innerHTML = `<span class="bf-done" style="width:${percent(done)}"></span>`
       + `<span class="bf-ready" style="width:${percent(c.ready)}"></span><span class="bf-waiting" style="width:${percent(c.waiting)}"></span>`;
