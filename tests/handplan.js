@@ -248,7 +248,9 @@ for (const seed of [7, 9])
   ]) {
     const p = run(true, goals),
       u = run(false, goals);
-    assert(p.begun.length > 0, `${name}: the played head begins its steps`);
+    // VB-1760: with its members allotted up to their levies, the household's members may reap the field before the head begins it; the
+    // goals are then carried alike all the same (the comparison below), the harvest done and the hay left
+    assert(p.begun.length > 0 || p.left < 2, `${name}: the played head begins its steps, or its household works them`);
     assert.deepStrictEqual(u, p, `${name}: the unplayed head carries the same goals as the played one`);
   }
   {

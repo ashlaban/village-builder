@@ -12,9 +12,10 @@ VB['sim/day'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const { on } = VB['sim/events'];
   const { eligible } = VB['sim/eligibility'];
-  const { KINDS, isOpen } = VB['sim/kinds'];
+  const { KINDS, isOpen, carriedOn } = VB['sim/kinds'];
   const { says } = VB['sim/methods'];
   const Days = VB['sim/days'];
+  const Levies = VB['sim/levies'];
   const Hands = VB['sim/hands'];
   const { planOf, heads, planOp, planFacade } = VB['sim/plans'];
   const Estimate = VB['sim/estimate'];
@@ -92,13 +93,15 @@ VB['sim/day'] = (() => {
       for (const j of jobs) weigh(st, hh, members, j, c, memo, stand, pairs);
     }
     pairs.sort((x, y) => y[0] - x[0] || x[2].id - y[2].id || x[1] - y[1]);
+    vitalFirst(st, hh, pairs);
     const H = Estimate.headOf(st, hh),
       ctx = {
         lists,
         fits,
         hours,
         est: new Map(), // job -> the work left as the head sees it, once an allotment
-        cap: new Map(members.map((p) => [p.id, dayHours()])),
+        // a member's levy left today (sim/levies capacity); the head pair, not levied, their working hours of the horizon (VB-1760)
+        cap: new Map(members.map((p) => [p.id, Levies.capacity(st, hh, p, c)])),
         manned: new Map(), // job -> [hours of work given, hands]
         given: new Map(), // pawn -> its first task of the first pass, with its fit
         due: new Map(), // pawn -> the task with a deadline today it is the hand for
@@ -116,6 +119,26 @@ VB['sim/day'] = (() => {
       if (short > 0) asking.push([hh.id, short]);
     }
     for (const p of members) call(st, hh, p, ctx.due.get(p.id), ctx.given.get(p.id), c, memo, stand);
+  }
+  // Work a household lives by is inside a member's levy and slotted first (VB-1760; design.md section 7, The day's capacity): the best
+  // pair of each task of a vital kind (sim/kinds carriedOn), where its member is levied, goes before the rest, in order, so that its
+  // hours come out of the levy before lesser work's. Only the task's best pair, so the head pair, not levied, keep a vital task they fit
+  // best (a meal the wife cooks), and the hand a vital task goes to is the one it went to before.
+  function vitalFirst(st, hh, pairs) {
+    const seen = new Set(),
+      first = [],
+      rest = [];
+    for (const pair of pairs) {
+      const j = pair[2],
+        best = !seen.has(j);
+      seen.add(j);
+      if (best && carriedOn(st, j) && Levies.levied(st, hh, st.pawns[pair[1]])) first.push(pair);
+      else rest.push(pair);
+    }
+    if (!first.length) return;
+    pairs.length = 0;
+    for (const pair of first) pairs.push(pair);
+    for (const pair of rest) pairs.push(pair);
   }
   // The roles the household lacks today, whose ranks its holder takes (VB-1545): one pass over the members allotted.
   const standIn = (hh, members) =>
@@ -725,6 +748,7 @@ VB['sim/day'] = (() => {
   });
   return {
     allot,
+    vitalFirst,
     slotIn,
     slotArrived,
     slotOut,

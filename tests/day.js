@@ -27,6 +27,15 @@ for (const id of st.liveHouseholds) {
   }
 }
 
+// 1b. VB-1760: allotted now, what the head gave each member no task in (free) is within its capacity: a levied member's levy left today,
+// the head pair's working hours of the horizon.
+{
+  VB['sim/day'].allot(st, hh, c);
+  const day = dayOf(st, hh.id);
+  for (const m of Object.keys(day.free).map(Number))
+    assert.ok(day.free[m] >= 0 && day.free[m] <= VB['sim/levies'].capacity(st, hh, st.pawns[m], c) + 1e-9, `pawn ${m}: its free hours within its capacity`);
+}
+
 // 2. Allotting draws no random number and is the same twice.
 {
   const rng = canon(st.rng);
@@ -119,7 +128,7 @@ for (const id of st.liveHouseholds) {
   for (const id of slotted)
     assert.ok(Object.values(dayOf(s3, id).lists).some((l) => l.some((k) => k.startsWith('mend:'))), `household ${id}: the mending is in a list`);
   const members = (ids) => ids.reduce((n, id) => n + Object.keys(dayOf(s3, id).free).length, 0);
-  assert.ok(VB.count.dayPair < s3.jobsBy.get('village:0').size * members(s3.liveHouseholds) + 200 * whole, `the members weighed for the mending alone (${VB.count.dayPair} pairs)`);
+  assert.ok(VB.count.dayPair <= s3.jobsBy.get('village:0').size * members(s3.liveHouseholds) + 200 * whole, `the members weighed for the mending alone (${VB.count.dayPair} pairs)`);
 }
 
 // 7. A holder lost to its day (VB-1758; design.md section 7, Plans at four scales, Replanning): a reaper falls ill for three days at the

@@ -2,7 +2,7 @@
 // holders minding it), its end in the due-queue st.workDue, a hand's rate and the ox team; split from sim/agents (VB-422)
 VB['sim/work'] = (() => {
   const { unbound, atWork: inWork } = VB['sim/pose'];
-  const { cal, TICKS, HUNGER, HEALTH, HERD } = VB['sim/rules'],
+  const { cal, TICKS, DAY, HUNGER, HEALTH, HERD } = VB['sim/rules'],
     { workRate } = VB['sim/roles'];
   const HANDS = VB['sim/rules'].AGES.hands;
   const { age } = VB['sim/records'];
@@ -132,8 +132,24 @@ VB['sim/work'] = (() => {
       if (j.field && j.farm) bookHours(j.field, st.pawns[id].household === j.farm.household, dt); // VB-462: the class reads it
       if (st.agents[id].basis === 'owed') Days.worked(st, id, dt);
       else if (st.agents[id].basis === 'helper') Hands.worked(st, id, dt);
+      else countToday(st, id, dt, t);
     }
   }
+  // @state st.workToday (VB-1760): absent until the first hour worked, then {day (game day), by: {pawn id: hours}}: the clock hours each
+  //   pawn has worked today at full attention on tasks of its own household or village (a day owed or lent is booked by sim/days and
+  //   sim/hands), against which its levy left today is reckoned (sim/levies); begun afresh with the day's first hour worked. Written only
+  //   here, as a task's work is reckoned (settle): an addition a hand. VB-1761's booking of the hours takes it over.
+  function countToday(st, id, dt, t) {
+    const day = Math.floor(t / TICKS / DAY);
+    let w = st.workToday;
+    if (!w || w.day !== day) w = st.workToday = { day, by: {} };
+    w.by[id] = (w.by[id] || 0) + Math.min(dt, t / TICKS - day * DAY); // only today's part of a span reckoned late
+  }
+  // The clock hours pawn id has worked today on its own household's or village's tasks, as last reckoned (one lookup).
+  const workedToday = (st, id, day) => {
+    const w = st.workToday;
+    return w && w.day === day ? w.by[id] || 0 : 0;
+  };
   // @state household.workHours (VB-255): [season (year * 4 + season of cal, of the hours counted), hours, last]: the hours its working hands
   //   (Traits' hands: 14 to 59, not retired) worked at full attention on any task this season, and `last` those of the season before (0
   //   when that season was not the one before); absent until its first hour of work. Counted as a task's work is reckoned (settle), so it
@@ -155,14 +171,16 @@ VB['sim/work'] = (() => {
   }
   const teamKind = (j) => j.owner && j.owner.type === 'household' && HERD.team.kinds.includes(j.kind);
   // The rate after the hands changed (settle first), and the end queued again; the household's other tasks under the ox team are
-  // reckoned again too, as the team goes to its earliest task with hands (withOxen).
+  // reckoned again too, as the team goes to its earliest task with hands (withOxen); but not one whose end falls due at this step
+  // (unsettled): its work is finished as reckoned, and reckoning it again now queued its end a step on, past its hours (VB-1760).
+  const unsettled = (st, q) => q.due !== null && q.due !== undefined && q.due <= st.tick;
   function rerate(st, j, others = true) {
     if (j.at === undefined || j.at === null) settle(st, j);
     j.rate = manning(st, j, true);
     queue(st, j);
     if (!others || !teamKind(j)) return;
     for (const q of st.jobsBy.get(ownerKey(j.owner)) || [])
-      if (q !== j && q.rate > 0 && teamKind(q)) {
+      if (q !== j && q.rate > 0 && teamKind(q) && !unsettled(st, q)) {
         settle(st, q);
         rerate(st, q, false);
       }
@@ -172,7 +190,7 @@ VB['sim/work'] = (() => {
   function retune(st, hh) {
     if (!hh || hh.dissolved) return;
     for (const q of [...(st.jobsBy.get(`household:${hh.id}`) || [])])
-      if (q.rate > 0 && (teamKind(q) || carted(KINDS[q.kind]))) {
+      if (q.rate > 0 && (teamKind(q) || carted(KINDS[q.kind])) && !unsettled(st, q)) {
         settle(st, q);
         rerate(st, q, false);
       }
@@ -263,6 +281,7 @@ VB['sim/work'] = (() => {
     withOxen,
     teamFree,
     doneOf,
+    workedToday,
     reckonAll,
     dueWork,
   };
