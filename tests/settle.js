@@ -190,9 +190,9 @@ const founders = () => {
   check(checkState(r.st).length === 0, `invariants after the wishes to settle: ${checkState(r.st).slice(0, 3)}`);
   // the played pawn's, by the wish verb: the same record
   const t = setUp(); Sim.inhabit(t.st, t.m.id);
-  check(Sim.wish(t.st, 'settle', true) === true && Sim.wishesOf(t.st, t.m.id).settle === true && Wi.wishOf(t.st, t.m.id, 'settle') === true,
+  check(Sim.wish(t.st, t.st.player.pawn, 'settle', true) === true && Sim.wishesOf(t.st, t.m.id).settle === true && Wi.wishOf(t.st, t.m.id, 'settle') === true,
     'the player wishes its pawn to settle, on the pawn');
-  check(typeof Sim.wish(t.st, 'settle', 3) === 'string', 'settle is null, true or false');
+  check(typeof Sim.wish(t.st, t.st.player.pawn, 'settle', 3) === 'string', 'settle is null, true or false');
 }
 if (failed) process.exit(1);
 console.log(`settle ok: ${m.given} founded ${nv.name} ${trail.toFixed(1)} hours along a trail from ${v.name}; cottage built on day ${built}, first field sown on day ${sown}${joined}`);

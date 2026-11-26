@@ -1,11 +1,13 @@
-// @sys sim/controller: a controller per pawn (VB-1745): whether its own logic chooses its acts (`auto`) and the commands queued for it,
-// which go before that logic; the verbs any pawn issues for itself (auto, queue, unqueue), the queue step for every pawn with a command
-// queued, and the controller's end at the pawn's death. The player (sim/player) is one controller among others: its pawn's is made here
+// @sys sim/controller: a controller per pawn (VB-1745): whether its own logic chooses its acts (`auto`), the commands queued for it,
+// which go before that logic, and the plan its controller made for it (VB-1746: the routine, the sleeping hours and the tasks, edited
+// by sim/playerplan's ops, fed to the queue by sim/player's feeder for any pawn with automatic behaviour off); the verbs any pawn issues
+// for itself (auto, queue, unqueue), the queue step for every pawn with a command queued, and the controller's end at the pawn's death.
+// The player (sim/player) is one controller among others: its pawn's is made here
 VB['sim/controller'] = (() => {
   const { unbound } = VB['sim/pose'];
   const { release } = VB['sim/agents'];
   const { living } = VB['sim/records'];
-  const { cal, WORK } = VB['sim/rules'];
+  const { cal, WORK, DAY } = VB['sim/rules'];
   const { issue, perform, active, VERBS, register } = VB['sim/commands'];
   const { on } = VB['sim/events'];
   // @state pawn.control: absent (its own logic chooses all its acts, as every pawn's does with no controller), or {auto (boolean: true,
@@ -13,9 +15,24 @@ VB['sim/controller'] = (() => {
   //   (at most QUEUE_MAX commands {actor: the pawn, verb, target, args, source (who queued it: 'player' for the played pawn's), begun,
   //   ref}, in turn; `begun` is null until the command is issued, then the game time: only the head is ever begun, and it stays the head
   //   while its act lasts; `ref` is null, or once begun the reference its verb gave to the act it began (sim/commands perform, VB-1405),
-  //   plain data; `plan` {from, kind, key} in a command the player's plan fed, sim/playerplan), refused (null, or {verb, why, t}: the last
-  //   command refused when its turn came)}; plain data, saved with the pawn, made by the first verb a pawn issues for itself here (or by
-  //   the player's inhabit) and ended at its death or when the player leaves it
+  //   plain data; `plan` {from, kind, key} in a command the plan fed, sim/playerplan), refused (null, or {verb, why, t}: the last
+  //   command refused when its turn came), plan (absent until its controller first plans for it, else the plan below)}; plain data,
+  //   saved with the pawn, made by the first verb a pawn issues for itself here (or by the player's inhabit, or its first plan) and
+  //   ended, with its plan, at its death or when the player leaves it
+  // @state pawn.control.plan (VB-1646; the controller's since VB-1746, st.player.plan before): {routine[] (job kinds seen to every
+  //   day, in order, at most PLAN_MAX), sleep (null, or {from, until}: hours of the day, the pawn sleeps from `from` to `until`), tasks[]
+  //   (at most PLAN_MAX, in order: a task by key {key (a job's key), kind, site (its tile or -1)}, or a task at a tile {<chain> (a tile),
+  //   kind: <chain> (a key of CHAINS: plant, hay, harvest, fell, firewood, ...), site (the same tile), and a fell task's n (the loads
+  //   planned, 1 to FELL_MAX) and got (the loads home); an upgrade or outbuilding task's what (the rung it builds)}, one a chain a tile;
+  //   VB-1649, VB-1650, VB-1653, VB-1660), day (the game day `done` is of), done[] (the routine kinds begun on day `day`), last (null, or
+  //   the last task that left the plan: {key, kind, t}, its job finished or gone; or {<chain>, kind, site, t, which (one of the chain's
+  //   `which`: plant 'sown' | 'closed' | 'fallow' | 'gone'; hay 'home' | 'closed' | 'rotted' | 'gone'; harvest 'in' | 'lost' | 'gone';
+  //   fell 'home' | 'bare' | 'gone'; firewood 'cut' | 'full' | 'gone'; farmstead 'raised' | 'gone'; upgrade 'roof' | 'gone'; ...)})}.
+  //   Written by sim/playerplan (the ops, which put it on the controller, and the feeder's planDay and planBegun, and the fell task's
+  //   loads home): the plan's writer until VB-1754 makes it the plan record's steps. A command the plan feeds to the queue carries
+  //   `plan` {from: 'routine' | 'task' |
+  //   'sleep', kind, key}, and `chain` and <chain> (its tile) when a task at a tile fed it (kind 'project' for the project a marked tile
+  //   begins)
   // @state st.controlled: absent until the first controller is made, then the ids of the pawns with a controller, ascending; st.queued
   //   likewise the ids of those whose queue holds a command (the queue step's index). Both kept by this module only; plain data, saved
   const QUEUE_MAX = 8;
@@ -23,6 +40,36 @@ VB['sim/controller'] = (() => {
   // A pawn with no controller reads as this one: automatic, nothing queued, nothing refused. Read only.
   const NONE = Object.freeze({ auto: true, queue: Object.freeze([]), refused: null });
   const controlOf = (st, id) => (st.pawns[id] && st.pawns[id].control) || NONE;
+  // ---- the plan (VB-1746): any pawn's, its controller's ----
+  const PLAN_MAX = 24;
+  // A plan with nothing in it, as of now.
+  const emptyPlan = (st) => ({
+    routine: [],
+    sleep: null,
+    tasks: [],
+    day: Math.floor(st.t / DAY),
+    done: [],
+    last: null,
+  });
+  // Pawn id's plan, or null while its controller has made none.
+  const planOf = (st, id) => (st.pawns[id] && st.pawns[id].control && st.pawns[id].control.plan) || null;
+  // The pawns whose controller holds a plan, ascending: from the controllers' index, so a run with none does no work here.
+  function planners(st) {
+    const out = [];
+    if (st.controlled)
+      for (const id of st.controlled) if (st.pawns[id].control && st.pawns[id].control.plan) out.push(id);
+    return out;
+  }
+  // The plans of household hid's members, by their pawns' ids ([] with none): what a rule of the household reads of its members' plans.
+  function plansIn(st, hid) {
+    const out = [];
+    if (hid === null || hid === undefined || !st.controlled) return out;
+    for (const id of st.controlled) {
+      const p = st.pawns[id];
+      if (p.household === hid && p.control && p.control.plan) out.push(p.control.plan);
+    }
+    return out;
+  }
   // id added to (in) or taken from a sorted index of pawn ids
   function mark(list, id, inside) {
     let i = 0;
@@ -178,5 +225,19 @@ VB['sim/controller'] = (() => {
       indexed(st, id);
     }
   }
-  return { QUEUE_MAX, NONE, controlOf, attach, detach, keepOnly, put, queueStep };
+  return {
+    QUEUE_MAX,
+    PLAN_MAX,
+    NONE,
+    controlOf,
+    attach,
+    detach,
+    keepOnly,
+    put,
+    queueStep,
+    emptyPlan,
+    planOf,
+    planners,
+    plansIn,
+  };
 })();

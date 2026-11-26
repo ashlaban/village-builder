@@ -123,14 +123,14 @@ const HOLDER = 0, WIFE = 1;
 // 5. The player's own state: a refused command, and an empty queue with the automatic behaviour off.
 {
   const st = make(); Sim.inhabit(st, HOLDER);
-  Sim.queue(st, { actor: HOLDER, verb: 'work', target: 'no-such-job' });
+  Sim.queue(st, st.player.pawn, { actor: HOLDER, verb: 'work', target: 'no-such-job' });
   const { stop, hours } = skip(st, DAY);
   assert.ok(stop && stop.why === 'refused' && /work/.test(stop.text) && hours <= 0.11, JSON.stringify(stop));
   assert.notStrictEqual(skip(st, 1).stop && skip(st, 1).stop.why, 'refused', 'an old refusal does not stop the next skip');
-  Sim.setAuto(st, false);
+  Sim.setAuto(st, st.player.pawn, false);
   const idle = skip(st, DAY);
   assert.ok(idle.stop.why === 'idle' && idle.hours === 0, 'automatic off and nothing queued: it stops at once');
-  Sim.queue(st, { actor: HOLDER, verb: 'idle', args: { until: st.t + 2 } });
+  Sim.queue(st, st.player.pawn, { actor: HOLDER, verb: 'idle', args: { until: st.t + 2 } });
   const waited = skip(st, DAY);
   assert.ok(waited.stop.why === 'idle' && waited.hours >= 1.9 && waited.hours <= 2.3, `and when the queue runs out (${waited.hours} h)`);
 }
@@ -209,7 +209,7 @@ const HOLDER = 0, WIFE = 1;
   const from = Sim.skipFrom(st);
   Sim.advance(st, 0.1);
   assert.strictEqual(Sim.skipStop(st, from), null, 'nothing yet');
-  Sim.queue(st, { actor: HOLDER, verb: 'work', target: 'no-such-job' });
+  Sim.queue(st, st.player.pawn, { actor: HOLDER, verb: 'work', target: 'no-such-job' });
   Sim.killPawn(st, WIFE, 'illness');
   Sim.advance(st, 0.1);
   assert.ok(Sim.controlOf(st, st.player.pawn).refused && Sim.controlOf(st, st.player.pawn).refused.t >= from.t, 'refused in the step');

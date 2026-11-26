@@ -196,8 +196,8 @@ function fieldChoice(e) {
   const d = b.dataset,
     r =
       d.field === 'rotation'
-        ? Sim.head(st, 'rotation', d.key ? { rotation: d.key, hold: true } : { rotation: null })
-        : Sim.head(st, 'sowOutOfTurn', { tile: sel, crop: d.crop });
+        ? Sim.head(st, st.player.pawn, 'rotation', d.key ? { rotation: d.key, hold: true } : { rotation: null })
+        : Sim.head(st, st.player.pawn, 'sowOutOfTurn', { tile: sel, crop: d.crop });
   fieldMsg = { tile: sel, text: r === true ? `Done: ${b.getAttribute('aria-label')}.` : cap(r) + '.', bad: r !== true };
   showTile(sel);
 }

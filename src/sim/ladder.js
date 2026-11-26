@@ -9,6 +9,7 @@ VB['sim/ladder'] = (() => {
   const { timberWhy } = VB['sim/timberhouse'];
   const { hexSteps } = VB['sim/hex'];
   const { doneOf } = VB['sim/progress'];
+  const { plansIn } = VB['sim/controller'];
   const Projects = VB['sim/projects'],
     Stores = VB['sim/stores'];
   const { COTTAGE, COTTAGE_HOURS, cottageOf } = VB['sim/cottageplan'];
@@ -107,12 +108,14 @@ VB['sim/ladder'] = (() => {
     return out;
   }
   // ---- the plan's tasks that cover a part of the farm ----
-  // Whether a task of the played pawn's plan covers rung `what` of farm f: the shelter by the farmstead task, a later rung by an upgrade task
+  // Whether a task of a plan of farm f's household's members (VB-1746: the played pawn's plan before) covers rung `what` of farm f: the
+  // shelter by the farmstead task, a later rung by an upgrade task
   // of the house's tile naming it; the stone foundation (`foundation`) by the foundation task of the house's tile, an outbuilding by an
   // outbuilding task there naming it (VB-1663).
   function planned(st, f, what) {
-    const pp = st.player && st.player.plan;
-    if (!pp) return false;
+    return plansIn(st, f.household).some((pp) => plannedIn(pp, f, what));
+  }
+  function plannedIn(pp, f, what) {
     if (what === 'shelter') return pp.tasks.some((t) => t.kind === 'farmstead');
     if (what === 'foundation') return pp.tasks.some((t) => t.kind === 'foundation' && t.foundation === f.house);
     const kind = Object.hasOwn(OUTBUILDINGS, what) ? 'outbuilding' : 'upgrade';

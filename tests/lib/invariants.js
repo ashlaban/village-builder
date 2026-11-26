@@ -1643,28 +1643,28 @@ function checkState(st) {
       });
       const r = c.refused;
       if (!(r === null || (r && typeof r.verb === 'string' && typeof r.why === 'string' && r.t <= st.t))) bad.push(`pawn ${id}.control.refused: ${JSON.stringify(r)}`);
+      // its plan (VB-1646; the controller's since VB-1746): absent until first planned; at most PLAN_MAX kinds of sim/kinds, each once, and
+      // tasks of distinct keys; the sleeping hours two distinct hours of the day; a task at a tile (VB-1649, VB-1650) a tile under its
+      // chain's name, one a chain a tile and a `what` (VB-1668); the routine's done kinds of its own, on a day not after today
+      const pp = c.plan, PP = globalThis.VB['sim/controller'], PC = globalThis.VB['sim/planchains'], KS = globalThis.VB['sim/kinds'].KINDS, hr = (h) => typeof h === 'number' && h >= 0 && h < 24;
+      if (pp !== undefined && !(pp && Array.isArray(pp.routine) && pp.routine.length <= PP.PLAN_MAX && pp.routine.every((k) => KS[k])
+        && new Set(pp.routine).size === pp.routine.length && (pp.sleep === null || (pp.sleep && hr(pp.sleep.from) && hr(pp.sleep.until) && pp.sleep.from !== pp.sleep.until))
+        && Array.isArray(pp.tasks) && pp.tasks.length <= PP.PLAN_MAX && new Set(pp.tasks.map((x) => (x.key === undefined ? `${x.kind} ${x[x.kind]} ${x.what}` : x.key))).size === pp.tasks.length
+        && pp.tasks.every((x) => (x.key === undefined ? !!PC.CHAINS[x.kind] && Number.isInteger(x[x.kind]) && x.site === x[x.kind]
+          : typeof x.key === 'string' && KS[x.kind] && Number.isInteger(x.site))) && Number.isInteger(pp.day) && pp.day * 24 <= st.t
+        && Array.isArray(pp.done) && pp.done.every((k) => pp.routine.includes(k)) && new Set(pp.done).size === pp.done.length
+        && (pp.last === null || ((typeof pp.last.key === 'string' || (!!PC.CHAINS[pp.last.kind] && Number.isInteger(pp.last[pp.last.kind]) && PC.CHAINS[pp.last.kind].which.includes(pp.last.which))) && pp.last.t <= st.t)))) bad.push(`pawn ${id}.control.plan: ${JSON.stringify(pp)}`);
     }
   }
   // the player (VB-169): null, or a pawn that exists, with a controller while it lives (its switch and queue are the controller's)
   if (st.player !== null && st.player !== undefined) {
     const pl = st.player;
     if (!st.pawns[pl.pawn] || !st.agents[pl.pawn]) bad.push(`player: pawn ${pl.pawn} does not exist`);
-    if (!(pl.since <= st.t)) bad.push(`player: since ${pl.since}`);
+    // the frame only (VB-1746): which pawn, and the played line's record for the page; nothing a pawn could hold
+    const FRAME = ['pawn', 'left', 'ended', 'last', 'days']; // each with its reason in sim/player's @state st.player
+    for (const k of Object.keys(pl)) if (!FRAME.includes(k)) bad.push(`player.${k}: not a field of the frame (${FRAME.join(', ')})`);
     if ('auto' in pl || 'queue' in pl || 'refused' in pl) bad.push('player: its switch, queue and refusal are its controller\'s (VB-1745)');
     if (st.pawns[pl.pawn] && st.pawns[pl.pawn].alive && !st.pawns[pl.pawn].control) bad.push(`player: its pawn ${pl.pawn} has no controller`);
-    // its sleep owed is its pawn's since VB-1645: only a save made from VB-1643 to then holds it, until the next step hands it over
-    const sl = pl.sleep, CAP = globalThis.VB['sim/sleep'].SLEEP.cap;
-    if (sl !== undefined && !(sl && sl.owed >= 0 && sl.owed <= CAP && typeof sl.asleep === 'boolean' && Number.isInteger(sl.at) && sl.at <= st.tick)) bad.push(`player: sleep ${JSON.stringify(sl)}`);
-    // its plan (VB-1646): absent until first planned; at most PLAN_MAX kinds of sim/kinds, each once, and tasks of distinct keys; the
-    // sleeping hours two distinct hours of the day; a task at a tile (VB-1649, VB-1650) a tile under its chain's name, one a chain a tile and a `what` (VB-1668); the routine's done kinds of its own, on a day not after today; the commands it fed marked
-    const pp = pl.plan, PP = globalThis.VB['sim/playerplan'], PC = globalThis.VB['sim/planchains'], KS = globalThis.VB['sim/kinds'].KINDS, hr = (h) => typeof h === 'number' && h >= 0 && h < 24;
-    if (pp !== undefined && !(pp && Array.isArray(pp.routine) && pp.routine.length <= PP.PLAN_MAX && pp.routine.every((k) => KS[k])
-      && new Set(pp.routine).size === pp.routine.length && (pp.sleep === null || (pp.sleep && hr(pp.sleep.from) && hr(pp.sleep.until) && pp.sleep.from !== pp.sleep.until))
-      && Array.isArray(pp.tasks) && pp.tasks.length <= PP.PLAN_MAX && new Set(pp.tasks.map((x) => (x.key === undefined ? `${x.kind} ${x[x.kind]} ${x.what}` : x.key))).size === pp.tasks.length
-      && pp.tasks.every((x) => (x.key === undefined ? !!PC.CHAINS[x.kind] && Number.isInteger(x[x.kind]) && x.site === x[x.kind]
-        : typeof x.key === 'string' && KS[x.kind] && Number.isInteger(x.site))) && Number.isInteger(pp.day) && pp.day * 24 <= st.t
-      && Array.isArray(pp.done) && pp.done.every((k) => pp.routine.includes(k)) && new Set(pp.done).size === pp.done.length
-      && (pp.last === null || ((typeof pp.last.key === 'string' || (!!PC.CHAINS[pp.last.kind] && Number.isInteger(pp.last[pp.last.kind]) && PC.CHAINS[pp.last.kind].which.includes(pp.last.which))) && pp.last.t <= st.t)))) bad.push(`player.plan: ${JSON.stringify(pp)}`);
     // what its death left (VB-213): null while the played pawn lives, and from its death the farm, spouse and friends noted then, no queue
     const lf = pl.left, dead = !!st.pawns[pl.pawn] && st.pawns[pl.pawn].died !== null, TIES_MAX = globalThis.VB['sim/player'].TIES_MAX;
     if (!(pl.ended === null || (dead && pl.ended <= st.t))) bad.push(`player.ended: ${pl.ended} for a pawn ${dead ? 'dead' : 'alive'}`);

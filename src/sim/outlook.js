@@ -11,7 +11,7 @@ VB['sim/outlook'] = (() => {
   const { SEASON_DAYS, YEAR_DAYS, FIELDS, HERD, BUILD, PEAT, HELP, cal } = VB['sim/rules'],
     { CROPS, ROTATIONS } = VB['sim/crops'];
   const { on } = VB['sim/events'];
-  const { controlOf } = VB['sim/controller'];
+  const { controlOf, plansIn } = VB['sim/controller'];
   const Stores = VB['sim/stores'],
     Goods = VB['sim/goods'];
   const Pot = VB['sim/pot'];
@@ -151,11 +151,12 @@ VB['sim/outlook'] = (() => {
     return !!pl && !controlOf(st, pl.pawn).auto && st.pawns[pl.pawn].household === hh.id;
   };
   const playedOf = (st, hh) => !!st.player && st.pawns[st.player.pawn].household === hh.id;
-  const tasksOf = (st) => (st.player && st.player.plan ? st.player.plan.tasks : []);
-  // Whether a task of the plan covers chain `name` (sim/planchains CHAINS) at `tile` (any, when undefined): a task at the tile, or a task
+  // The tasks of the plans of household hh's members (sim/controller plansIn; VB-1746: the played pawn's plan before).
+  const tasksOf = (st, hh) => plansIn(st, hh.id).flatMap((pp) => pp.tasks);
+  // Whether a task of household hh's plans covers chain `name` (sim/planchains CHAINS) at `tile` (any, when undefined): a task at the tile, or a task
   // by key of one of the chain's job kinds there.
-  const covered = (st, name, tile) =>
-    tasksOf(st).some((t) =>
+  const covered = (st, hh, name, tile) =>
+    tasksOf(st, hh).some((t) =>
       t.key === undefined
         ? t.kind === name && (tile === undefined || t[name] === tile)
         : CHAINS[name].kinds.includes(t.kind) && (tile === undefined || t.site === tile),
@@ -227,7 +228,7 @@ VB['sim/outlook'] = (() => {
           const gross = first && fd.stage === 'stooks' ? fd.held || 0 : FIELDS.expect * CROPS[k].yield,
             n = Math.max(0, gross - (k === 'barley' ? per : CROPS[k].seed));
           // by hand, a crop standing is counted with a harvest task on its field; one not sown yet is in no task (VB-1661)
-          if (hand && !(first && STANDING.includes(fd.stage) && covered(st, 'harvest', fd.tile))) {
+          if (hand && !(first && STANDING.includes(fd.stage) && covered(st, hh, 'harvest', fd.tile))) {
             if (n > 0) left.push({ good: 'food', what: 'harvest', tile: fd.tile, crop: k, n: r1(n) });
           } else ins.push([day, k, n]);
         });
@@ -270,7 +271,7 @@ VB['sim/outlook'] = (() => {
     const fire = fireOf(st, hh),
       use = st.ECON.woodUse.map((u) => u * fire),
       hand = handOf(st, hh),
-      cut = !hand || covered(st, 'firewood'),
+      cut = !hand || covered(st, hh, 'firewood'),
       left = [],
       keep =
         Math.max(0, hh.farmstead === null ? (hh.wood || 0) + PEAT.worth * (hh.peat || 0) : fuelFree(st, hh)) +
@@ -296,7 +297,7 @@ VB['sim/outlook'] = (() => {
     if (hand) {
       const T = timberOf(hh);
       if (!cut && T > 0) left.push({ good: 'fuel', what: 'timber', n: r1(T) });
-      for (const t of tasksOf(st))
+      for (const t of tasksOf(st, hh))
         if (t.key === undefined && t.kind === 'fell' && (t.got || 0) < (t.n || 1)) {
           const n = ((t.n || 1) - (t.got || 0)) * st.ECON.woodPerTrip;
           if (cut) planned += n;
@@ -352,7 +353,7 @@ VB['sim/outlook'] = (() => {
         grass = 0;
       for (const m of f.meadows) {
         // by hand, a meadow's hay still to bring in is counted with a hay task on it (VB-1661)
-        const by = !hand || covered(st, 'hay', m.tile);
+        const by = !hand || covered(st, hh, 'hay', m.tile);
         if (m.stage === 'mown') {
           if (!by) {
             if (m.held > 0) left.push({ good: 'hay', what: 'mown', tile: m.tile, n: r1(m.held) });

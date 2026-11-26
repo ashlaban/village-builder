@@ -1,11 +1,11 @@
-// @sys sim/plannext: what the player's plan has the played pawn do next (nextOf: the one choice, which sim/player's feeder queues with
+// @sys sim/plannext: what a pawn's plan has it do next (nextOf(st, pawn): the one choice, which sim/player's feeder queues with
 //   automatic behaviour off and the views read without writing) and why each task waits and why the plan is idle (WAITS, waitsOf;
-//   VB-1651), by the reads nextOf makes (VB-1646; VB-1657 split it from sim/playerplan). Reads only
+//   VB-1651), by the reads nextOf makes (VB-1646; VB-1657 split it from sim/playerplan; keyed by pawn, VB-1746). Reads only
 VB['sim/plannext'] = (() => {
   const { cal, DAY, WORK, BOOTH } = VB['sim/rules'];
   const { VERBS } = VB['sim/commands'];
   const { living } = VB['sim/records'];
-  const { controlOf } = VB['sim/controller'];
+  const { controlOf, planOf } = VB['sim/controller'];
   const { CHAINS, chainOf, chainSteps, headCmd, pileOf } = VB['sim/planchains'];
   const { asleepAt, today } = VB['sim/playerplan'];
   const Fieldwork = VB['sim/fieldwork'],
@@ -143,7 +143,7 @@ VB['sim/plannext'] = (() => {
       : WAITS.refused(why);
   }
   // ---- what comes next ----
-  const handOf = (st, pl) => controlOf(st, pl.pawn).queue.find((c) => !c.plan) || null;
+  const handOf = (st, id) => controlOf(st, id).queue.find((c) => !c.plan) || null;
   // The first job of kind k of the pawn's household that its `work` verb would let it take now, or null.
   function routineJob(st, id, k) {
     const hid = st.pawns[id].household,
@@ -151,14 +151,12 @@ VB['sim/plannext'] = (() => {
     if (js) for (const j of js) if (j.kind === k && VERBS.work.check(st, workCmd(id, j.key)) === null) return j;
     return null;
   }
-  // What the plan has the played pawn do next, as a command with its `plan` mark, or null: in its sleeping hours, sleep until `until`;
+  // What its plan has pawn id do next, as a command with its `plan` mark, or null: in its sleeping hours, sleep until `until`;
   // else the first routine kind not begun today with a job of its household it may take; else the first task that may be taken now
   // (taskCmd). A command queued by hand goes first: with one queued, null. Reads only; writes nothing.
-  function nextOf(st) {
-    const pl = st.player,
-      pp = pl && pl.plan;
-    if (!pp || living(st, pl.pawn) || handOf(st, pl)) return null;
-    const id = pl.pawn;
+  function nextOf(st, id) {
+    const pp = planOf(st, id);
+    if (!pp || living(st, id) || handOf(st, id)) return null;
     if (asleepAt(pp.sleep, cal(st.t).hour)) {
       const cmd = { actor: id, verb: 'sleep', target: null, args: { until: pp.sleep.until }, source: 'player' };
       return VERBS.sleep.check(st, cmd) === null ? { ...cmd, plan: { from: 'sleep', kind: null, key: null } } : null;
@@ -180,20 +178,19 @@ VB['sim/plannext'] = (() => {
     !!m &&
     m.from === 'task' &&
     (chainOf(t) ? m.chain === t.kind && m[t.kind] === t[t.kind] : !m.chain && m.key === t.key);
-  // Why each task of the plan waits now (VB-1651), in the plan's order: null for the one in hand and the one the plan does next, else a
+  // Why each task of pawn id's plan waits now (VB-1651; Sim.waits(st, pawn)), in the plan's order: null for the one in hand and the one
+  // the plan does next, else a
   // WAITS reason: its own (taskCmd) first, then what goes before it (a command by hand, the sleeping hours, a routine kind, an earlier
   // task); and `idle`: null, or why the plan as a whole has the pawn do nothing now though it holds tasks or a routine (a command by
   // hand holding the queue, named with the hour it was begun; else the first task's reason). The reads nextOf makes; writes nothing.
-  function waitsOf(st) {
-    const pl = st.player,
-      pp = pl && pl.plan;
+  function waitsOf(st, id) {
+    const pp = planOf(st, id);
     if (!pp) return { tasks: [], idle: null };
-    const id = pl.pawn,
-      dead = living(st, pl.pawn),
-      hand = handOf(st, pl),
+    const dead = living(st, id),
+      hand = handOf(st, id),
       head = controlOf(st, id).queue[0],
       inHand = head && head.plan && head.begun !== null ? head.plan : null,
-      next = nextOf(st),
+      next = nextOf(st, id),
       asleep = asleepAt(pp.sleep, cal(st.t).hour),
       first = inHand || (next && next.plan);
     const tasks = pp.tasks.map((t) => {

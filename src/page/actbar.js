@@ -385,7 +385,12 @@ $('actMenu').addEventListener('click', (e) => {
     startTool({ kind: 'walk', icon: 'walk', title: 'Walk here', needs: 'an open tile', keep: false });
   else if (act === 'work') workAct(id, b.dataset.kind, b.dataset.holder);
   else if (act === 'slander') {
-    const r = Sim.queue(st, { actor: id, verb: 'slander', target: slander.who, args: { kind: slander.kind } });
+    const r = Sim.queue(st, st.player.pawn, {
+      actor: id,
+      verb: 'slander',
+      target: slander.who,
+      args: { kind: slander.kind },
+    });
     barMsg =
       r === true ? { text: `Queued: speak ill of ${Sim.fullName(st.pawns[slander.who])}.` } : { text: r, bad: true };
     if (r === true) barMenu.view = null;
@@ -414,7 +419,7 @@ function workAct(id, kind, holder) {
     barMsg = { text: `${Sim.KINDS[kind].name}: none you may take now.`, bad: true };
     return;
   }
-  const r = Sim.queue(st, { actor: id, verb: 'work', target: open[0].target });
+  const r = Sim.queue(st, st.player.pawn, { actor: id, verb: 'work', target: open[0].target });
   barMsg = r === true ? { text: `Queued: ${commandWords(open[0])}.` } : { text: r, bad: true };
 }
 // ---- the tool: an act that waits for a tile ----
@@ -459,7 +464,7 @@ function toolTap(pw, named, i) {
   if (tool.kind === 'walk') {
     const o = i >= 0 ? Sim.opportunities(st, id, i).find((x) => x.verb === 'walkTo') : null;
     if (!o || o.why) tool.msg = { text: `${o ? o.why : 'no one can walk there'}: ${tapWord} an open tile`, bad: true };
-    else done(Sim.queue(st, { actor: id, verb: 'walkTo', target: i }), 'Queued: walk to the tile.');
+    else done(Sim.queue(st, st.player.pawn, { actor: id, verb: 'walkTo', target: i }), 'Queued: walk to the tile.');
   } else if (tool.kind === 'work') {
     const o = Sim.opportunities(st, id).find(
       (x) => x.verb === 'work' && x.kind === tool.work && x.holder.type === tool.holder && x.site === i,
@@ -468,7 +473,7 @@ function toolTap(pw, named, i) {
       tool.msg = { text: `No ${Sim.KINDS[tool.work].name.toLowerCase()} there: ${tapWord} a marked tile`, bad: true };
     else if (o.why) tool.msg = { text: o.why, bad: true };
     else {
-      const r = Sim.queue(st, { actor: id, verb: 'work', target: o.target });
+      const r = Sim.queue(st, st.player.pawn, { actor: id, verb: 'work', target: o.target });
       tool.msg = r === true ? { text: `Queued: ${commandWords(o)}.` } : { text: r, bad: true };
     }
   } else if (tool.kind === 'give') pickGift(pw, named, i);

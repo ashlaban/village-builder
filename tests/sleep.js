@@ -49,7 +49,7 @@ const FARMER = 0;
   Sim.inhabit(st, FARMER);
   assert.ok(a.job, 'the farmer works');
   st.pawns[FARMER].sleep.owed = 10;
-  assert.strictEqual(Sim.queue(st, { actor: FARMER, verb: 'sleep', args: { hours: 2 } }), true);
+  assert.strictEqual(Sim.queue(st, st.player.pawn, { actor: FARMER, verb: 'sleep', args: { hours: 2 } }), true);
   Sim.advance(st, 0.1);
   assert.ok(!a.job && Sim.controlOf(st, st.player.pawn).queue[0].begun !== null, 'it leaves the job in hand');
   let steps = 0;
@@ -63,7 +63,7 @@ const FARMER = 0;
   Sim.advance(st, 0.1);
   assert.ok(!Sim.controlOf(st, st.player.pawn).queue.length, 'the sleep ends at its time');
   for (const [args, why] of [[{ hours: 0 }, /cannot sleep/], [{ until: 24 }, /no hour/]]) {
-    Sim.queue(st, { actor: FARMER, verb: 'sleep', args });
+    Sim.queue(st, st.player.pawn, { actor: FARMER, verb: 'sleep', args });
     Sim.advance(st, 0.1);
     assert.ok(Sim.controlOf(st, st.player.pawn).refused && Sim.controlOf(st, st.player.pawn).refused.verb === 'sleep' && why.test(Sim.controlOf(st, st.player.pawn).refused.why), `refused: ${JSON.stringify(Sim.controlOf(st, st.player.pawn).refused)}`);
   }
@@ -71,9 +71,9 @@ const FARMER = 0;
   if (homeless) assert.ok(/no place to sleep/.test(VB['sim/commands'].issue(st, { actor: homeless.id, verb: 'sleep', source: 'player' })));
   // at 22, sleep (until the start of work by default), then walk to the green: the walk is begun at 6
   until(st, 22);
-  Sim.setAuto(st, false);
-  Sim.queue(st, { actor: FARMER, verb: 'sleep' });
-  Sim.queue(st, { actor: FARMER, verb: 'walkTo', target: st.villages[0].center });
+  Sim.setAuto(st, st.player.pawn, false);
+  Sim.queue(st, st.player.pawn, { actor: FARMER, verb: 'sleep' });
+  Sim.queue(st, st.player.pawn, { actor: FARMER, verb: 'walkTo', target: st.villages[0].center });
   Sim.advance(st, 0.1);
   const u = Sim.controlOf(st, st.player.pawn).queue[0].ref.until;
   near(u % Sim.DAY, WORK[0], 'until the start of work');
@@ -89,8 +89,8 @@ const FARMER = 0;
 {
   const worked = make(), slept = make(), far = 11 * worked.w.COLS + 1;
   for (const st of [worked, slept]) { Sim.inhabit(st, FARMER); Sim.advance(st, WORK[1] - 1 - hour(st)); }
-  Sim.queue(worked, { actor: FARMER, verb: 'walkTo', target: far });
-  Sim.queue(worked, { actor: FARMER, verb: 'idle', args: { until: worked.t + 13 } });
+  Sim.queue(worked, worked.player.pawn, { actor: FARMER, verb: 'walkTo', target: far });
+  Sim.queue(worked, worked.player.pawn, { actor: FARMER, verb: 'idle', args: { until: worked.t + 13 } });
   for (const st of [worked, slept]) Sim.advance(st, 13);
   assert.ok(!worked.agents[FARMER].inside, 'out all night');
   const owed = worked.pawns[FARMER].sleep.owed, mood = Mood.of(worked, FARMER).mods.find((m) => m.key === 'tired');
@@ -143,15 +143,8 @@ const FARMER = 0;
   assert.strictEqual(canon(back.pawns[FARMER].sleep), canon(st.pawns[FARMER].sleep), 'saved and loaded');
   for (const s of [st, back]) Sim.advance(s, 1);
   near(back.pawns[FARMER].sleep.owed, st.pawns[FARMER].sleep.owed, 'and goes on alike');
-  // a save made from VB-1643 to VB-1645 kept the played pawn's hours on the player: the next step hands them to the pawn
-  data.state.player.sleep = { owed: 5, asleep: false, at: data.state.tick };
-  delete data.state.pawns[FARMER].sleep;
-  const old = Sim.load(tinyWorld(rows), data);
-  Sim.advance(old, 0.1);
-  near(old.pawns[FARMER].sleep.owed, 5 + (old.pawns[FARMER].sleep.asleep ? -1 : AWAKE) / TICKS, 'an older save hands its hours to the pawn');
-  assert.strictEqual(old.player.sleep, undefined, 'and keeps them no more');
+  // a save made from VB-1643 to VB-1645 kept the played pawn's hours on the player: such a save is another build's since VB-1746 (FORMAT 9)
   sound(back, 'loaded');
-  sound(old, 'loaded from before VB-1645');
 }
 
 // 6. Every pawn (VB-1645): an unplayed pawn owes and pays by the same rule, reckoned each hour; kept out all night, it is tired in mood

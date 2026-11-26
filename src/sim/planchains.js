@@ -21,6 +21,7 @@ VB['sim/planchains'] = (() => {
   const { VERBS } = VB['sim/commands'];
   const { WOOD_HOURS, fuelFree, timberOf } = VB['sim/chores'];
   const { woodWhy } = VB['sim/territory'];
+  const { plansIn } = VB['sim/controller'];
   // ---- a task at a tile (VB-1649, VB-1650; Kim, 24 Nov 2026): a chain of steps carried at one tile ----
   // A chain is declared as data (CHAINS): the land project a tile the head has marked for it begins (`mark`: 'field' or 'meadow', or
   // null), what of the household's stands at a tile for it (`at`, given the task when it is read for one, VB-1668: {f, fd} a field,
@@ -271,10 +272,14 @@ VB['sim/planchains'] = (() => {
   // Any tile the household's village may fell on (sim/territory woodWhy: the tiles the rule of the village's wood may give it, whatever
   // its size, within WOOD.far of its centre; a lone farm's village is its own, so the same rule). The household's farm takes the timber.
   const FELL_MAX = 20;
-  // The task of chain `name` at `tile` in the played pawn's plan, or null.
-  const taskAt = (st, name, tile) => {
-    const pp = st.player && st.player.plan;
-    return (pp && pp.tasks.find((t) => t.key === undefined && t.kind === name && t[name] === tile)) || null;
+  // The task of chain `name` at `tile` in a plan of household hid's members (sim/controller plansIn; VB-1746: the played pawn's before),
+  // the first by its pawn's id, or null.
+  const taskAt = (st, hid, name, tile) => {
+    for (const pp of plansIn(st, hid)) {
+      const t = pp.tasks.find((x) => x.key === undefined && x.kind === name && x[name] === tile);
+      if (t) return t;
+    }
+    return null;
   };
   const fell = {
     noun: 'felling',
@@ -290,7 +295,7 @@ VB['sim/planchains'] = (() => {
     at: (st, hid, tile) => {
       const f = homeOf(st, hid);
       if (!f || st.households[hid].dissolved || !st.villages[f.village]) return null;
-      const t = taskAt(st, 'fell', tile);
+      const t = taskAt(st, hid, 'fell', tile);
       return { f, tile, n: t ? t.n : 1, got: t ? t.got : 0 };
     },
     none: () => 'the household has no farm to carry timber home to',
@@ -310,11 +315,9 @@ VB['sim/planchains'] = (() => {
       free = fuelFree(st, hh);
     return { free, goal, short: free < goal };
   };
-  // Whether the played pawn's plan holds a fell task with trips left (timber to come home).
-  const fellPlanned = (st) => {
-    const pp = st.player && st.player.plan;
-    return !!pp && pp.tasks.some((t) => t.key === undefined && t.kind === 'fell' && t.got < t.n);
-  };
+  // Whether a plan of household hid's members holds a fell task with trips left (timber to come home).
+  const fellPlanned = (st, hid) =>
+    plansIn(st, hid).some((pp) => pp.tasks.some((t) => t.key === undefined && t.kind === 'fell' && t.got < t.n));
   const firewood = {
     noun: 'firewood',
     mark: null,
@@ -327,7 +330,7 @@ VB['sim/planchains'] = (() => {
     none: (tile) => `the household's house is not at ${tile}`,
     // timber home, or a felling planned to bring it; the pile short of the season's goal
     why: (st, { hh }) => {
-      if (!timberOf(hh) && !fellPlanned(st)) return 'no timber is home to cut: fell timber first';
+      if (!timberOf(hh) && !fellPlanned(st, hh.id)) return 'no timber is home to cut: fell timber first';
       return pileOf(st, hh).short ? null : "the woodpile holds the season's goal";
     },
     // the loads left to cut: the timber home, at most the pile's shortfall, ECON.woodPerTrip a load
@@ -335,11 +338,11 @@ VB['sim/planchains'] = (() => {
       const p = pileOf(st, hh),
         per = st.ECON.woodPerTrip,
         x = Math.min(timberOf(hh), Math.max(0, p.goal - p.free));
-      return x > 0 || fellPlanned(st)
+      return x > 0 || fellPlanned(st, hh.id)
         ? [{ kind: 'firewood', hours: WOOD_HOURS.cut, n: Math.max(1, Math.ceil(x / per - 1e-9)), from: -Infinity }]
         : [];
     },
-    gone: (st, { hh }) => (!pileOf(st, hh).short ? 'full' : !timberOf(hh) && !fellPlanned(st) ? 'cut' : null),
+    gone: (st, { hh }) => (!pileOf(st, hh).short ? 'full' : !timberOf(hh) && !fellPlanned(st, hh.id) ? 'cut' : null),
     deadline: () => null,
   };
   // ---- farmstead: the first shelter, placed from the camp and raised (VB-1655) ----
@@ -480,7 +483,7 @@ VB['sim/planchains'] = (() => {
     }
     if (where.plan) return null;
     if (where.mark) return VERBS.project.check(st, headCmd(id, hid, { what: null }));
-    return C.why(st, where, tile);
+    return C.why(st, where, tile, id);
   }
   // The steps left of chain `name` at `tile` for household hid's task there, in the order the work goes: a project's (begun, or the one a
   // marked or free tile would begin) at their own hours, then the chain's: {where, steps: [{kind, job (its job posted at the tile, or

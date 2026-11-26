@@ -443,13 +443,13 @@ VB['sim/building'] = (() => {
     if (old && !stale && (old.kind !== 'pick' || pickable(st.w, old.tile))) return old;
     return stoneSource(st, f, quern);
   }
-  // Whether the played pawn's plan, its head household hh's, holds the foundation task of farm f's house (VB-1663).
-  const foundationAsked = (st, hh, f) =>
-    !!f &&
-    !!st.player &&
-    !!st.player.plan &&
-    hh.holder === st.player.pawn &&
-    st.player.plan.tasks.some((t) => t.kind === 'foundation' && t.foundation === f.house);
+  // Whether the plan of household hh's head (its controller's, VB-1746; the played pawn's before) holds the foundation task of farm f's
+  // house (VB-1663).
+  const foundationAsked = (st, hh, f) => {
+    const p = !!f && hh.holder !== null ? st.pawns[hh.holder] : null,
+      pp = p && p.control ? p.control.plan : null;
+    return !!pp && pp.tasks.some((t) => t.kind === 'foundation' && t.foundation === f.house);
+  };
   // The slack of the year, when a house is raised: the first half of summer, and winter.
   const slack = (c) => (c.season === 1 && c.sday < SEASON_DAYS / 2) || c.season === 3;
   // The household's building step: loads to its heap, two trips at a time, while it lacks the foundation's stone; then, in the slack, the

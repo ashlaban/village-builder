@@ -90,20 +90,20 @@ function playLine({ scenario = 'founders', seed = 7, map = 'small', size = null,
     if (!line.wishes.length) {
       const c = opps.find((o) => o.when === 'round' && o.why === null && o.verb === 'claim'), s = opps.find((o) => o.when === 'round' && o.why === null && o.verb === 'serve' && o.target === null)
         || opps.find((o) => o.when === 'round' && o.why === null && o.verb === 'serve'), l = opps.find((o) => o.when === 'round' && o.why === null && o.verb === 'leave');
-      if (c && Sim.wish(st, 'claim', c.target) === true) line.wishes.push({ t: st.t, pawn: id, wish: 'claim', target: c.target });
-      else if (s && Sim.wish(st, 'serve', true) === true) line.wishes.push({ t: st.t, pawn: id, wish: 'serve' });
-      else if (l && Sim.wish(st, 'out', true) === true) line.wishes.push({ t: st.t, pawn: id, wish: 'out' });
+      if (c && Sim.wish(st, st.player.pawn, 'claim', c.target) === true) line.wishes.push({ t: st.t, pawn: id, wish: 'claim', target: c.target });
+      else if (s && Sim.wish(st, st.player.pawn, 'serve', true) === true) line.wishes.push({ t: st.t, pawn: id, wish: 'serve' });
+      else if (l && Sim.wish(st, st.player.pawn, 'out', true) === true) line.wishes.push({ t: st.t, pawn: id, wish: 'out' });
       // none open to it by the third year (a holder is not wanting out): it wishes to take no service, a wish the round honours as any other
-      else if (st.t >= 3 * YEAR && Sim.wish(st, 'serve', false) === true) line.wishes.push({ t: st.t, pawn: id, wish: 'serve: none' });
+      else if (st.t >= 3 * YEAR && Sim.wish(st, st.player.pawn, 'serve', false) === true) line.wishes.push({ t: st.t, pawn: id, wish: 'serve: none' });
     }
     if (!line.matchWish) {
       const m = opps.find((o) => o.verb === 'match' && typeof o.target === 'number' && o.why === null);
-      if (m && Sim.wish(st, 'match', m.target) === true) line.matchWish = { t: st.t, pawn: id, partner: m.target, married: null };
+      if (m && Sim.wish(st, st.player.pawn, 'match', m.target) === true) line.matchWish = { t: st.t, pawn: id, partner: m.target, married: null };
     }
     // work from the list, some days: the best fit open to it, when it has nothing queued
     if (day % 3 === 0 && !Sim.controlOf(st, pl.pawn).queue.length) {
       const wk = opps.find((o) => o.verb === 'work' && o.why === null);
-      if (wk) Sim.queue(st, { actor: id, verb: 'work', target: wk.target });
+      if (wk) Sim.queue(st, st.player.pawn, { actor: id, verb: 'work', target: wk.target });
     }
     return true;
   };
@@ -124,15 +124,15 @@ function playLine({ scenario = 'founders', seed = 7, map = 'small', size = null,
     // one game day, a few years in, with the automatic behaviour off: the pawn does what its queue and the dark tell it
     if (player && st.player && !st.player.left && stepDays !== null && day >= stepDays.autoOffDay && !line.autoOff) {
       const id = st.player.pawn; trail = { pawn: id, list: [] };
-      Sim.setAuto(st, false);
+      Sim.setAuto(st, st.player.pawn, false);
       const wk = Sim.opportunities(st, id).find((o) => o.verb === 'work' && o.why === null);
-      if (wk) Sim.queue(st, { actor: id, verb: 'work', target: wk.target });
-      Sim.queue(st, { actor: id, verb: 'idle', args: { until: st.t + 2 } });
+      if (wk) Sim.queue(st, st.player.pawn, { actor: id, verb: 'work', target: wk.target });
+      Sim.queue(st, st.player.pawn, { actor: id, verb: 'idle', args: { until: st.t + 2 } });
       for (let h = 0; h < DAY; h += 0.1) Sim.advance(st, 0.1);
       const list = trail.list, planner = list.filter((c) => c.source !== 'player');
       line.autoOff = { pawn: id, commands: list.length, player: list.length - planner.length,
         others: planner.map((c) => `${c.source}:${c.verb}@${(c.t % DAY).toFixed(1)}`), queued: wk ? 2 : 1 };
-      Sim.setAuto(st, true); trail = null;
+      Sim.setAuto(st, st.player.pawn, true); trail = null;
     } else if (stepDays !== null && day >= stepDays.takeFrom && day < stepDays.takeFrom + TAKE_DAYS) stepped(st, DAY, line);
     else Sim.advance(st, DAY);
     // bookkeeping that reads only the state

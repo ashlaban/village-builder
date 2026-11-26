@@ -145,7 +145,7 @@ const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invarian
   const { st, A, m } = make();
   VB['sim/day'].allot(st, A, Sim.cal(st.t));
   Sim.inhabit(st, A.holder);
-  Sim.setAuto(st, false); // the player answers for itself
+  Sim.setAuto(st, st.player.pawn, false); // the player answers for itself
   assert.strictEqual(askOf(st, m, A.holder, { from: st.t, with: null }), true);
   const o = Sim.opportunities(st, A.holder).find((x) => x.when === 'offer' && x.offer.basis === 'leave');
   assert.ok(o, 'the played head is asked');
