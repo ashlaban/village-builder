@@ -58,6 +58,19 @@ function atWork(a, kind, site, extra, done) {
   assert(Math.abs(Pot.freshHeld(st, hh, 'gathered') - fresh0 - 0.5 * Forage.FORAGE.trip) < 1e-6, 'the half trip comes home');
   assert(!pileOf('gather'), 'nothing is left lying');
 }
+// 1b. cut at half its hours by the working day's end (sim/clock): the half yield goes home in hand, the pawn keeping its task until it is in
+{
+  const a = hand(),
+    s0 = Forage.stock(st, wood),
+    j = atWork(a, 'gather', wood, { farm: f }, KINDS.gather.hours / 2);
+  A.release(st, a, true);
+  assert(a.job === j && a.phase === 'back', 'the hand goes home with what it gathered');
+  assert(Math.abs(a.load - 0.5 * Forage.FORAGE.trip * s0) < 1e-6, `half a trip's yield in hand (${a.load})`);
+  assert(!pileOf('gather'), 'nothing is set down');
+  A.release(st, a); // a death on the road: it lies
+  assert(pileOf('gather') && a.job === null, 'a carrier cut on the road leaves it lying');
+  Lying.frost(st);
+}
 // 2. a whole trip: its yield is made as the work ends, the load in hand, and only put into the store at home
 {
   const a = hand(),

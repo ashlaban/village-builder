@@ -707,7 +707,7 @@ VB['sim/building'] = (() => {
           ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8]
           : [w.hx[j.site] + a.ox * 0.2, w.hy[j.site] + 4];
       },
-      deliver: waterBooth,
+      deliver: waterBooth, // left at the door, as the farm's water (sim/chores, VB-1748): it books what came in
       available: boothWaterWork,
     },
     // Timber left lying at a boat's shore when its plan was given up (sim/plans' leftWood, VB-645): never posted, only fetched (sim/lying's

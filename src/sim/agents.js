@@ -153,8 +153,10 @@ VB['sim/agents'] = (() => {
         { x, y, of: { cart: { kind: cart.kind, built: cart.built } } },
       );
   }
-  // The pawn leaves its job, which keeps its progress for whoever takes it up.
-  function release(st, a) {
+  // The pawn leaves its job, which keeps its progress for whoever takes it up. `homeward`: it is let go to go home (the working day's end):
+  // a trip whose yield accrues, cut at its work, carries what it has home instead (tripHome), and the pawn keeps its task until it is in.
+  function release(st, a, homeward = false) {
+    if (homeward && a.phase === 'work' && a.job && KINDS[a.job.kind].accrues && tripHome(st, a)) return;
     // A load on its way home is not brought in from the road: a hand that can walk on is not released until it has (VB-581: `moved`
     // waits for the delivery, and the planner, the occasions, the orders and the working day's end find it on its way home and leave it).
     // One released here puts the load down where it stands: in its own field or meadow it goes back with the stooks or the mown hay;
@@ -204,10 +206,34 @@ VB['sim/agents'] = (() => {
     if (!a.path) waitLeg(st, a);
     else repace(st, a); // a walk goes on, at the pace of what it now carries
   }
+  // A trip whose yield accrues with the work, cut at its work by the end of the working day (VB-1748; design.md section 7, A trip's yield
+  // accrues with the work): what its hours so far have yielded is made, and the pawn carries it home as at the work's end; nothing made
+  // (a hunt with no kill), the hours are spent, and the pawn is let go. Whether it went home with a load.
+  function tripHome(st, a) {
+    const j = a.job,
+      K = KINDS[j.kind];
+    settle(st, j);
+    const frac = Math.min(1, (j.done || 0) / (j.hours ?? K.hours));
+    if (!(frac > 0)) return false;
+    K.make(st, a, j, frac, workFor(st, a, j));
+    j.done = 0;
+    if (!(a.load > 0)) {
+      a.load = 0;
+      return false;
+    }
+    freeHands(st, j, a.id);
+    a.carry = K.carry;
+    a.phase = 'back';
+    a.inside = false;
+    rerate(st, j);
+    const [x, y] = homeSpot(st, a);
+    walkTo(st, a, st.farmsteads[workFor(st, a, j).farmstead].house, x, y);
+    return true;
+  }
   // A trip whose yield accrues with the work (fishing, hunting, gathering; design.md section 7, The good is made where the work is done)
-  // cut at its work: what its hours so far have yielded is made, and lies where the pawn stands as a pile of the task's owner, fetched
-  // home by its fetch kind (sim/lying); the hours are the yield's, so the task begins again from none. Only the hours not yet worked are
-  // lost (VB-1748).
+  // cut at its work otherwise (a death, a call): what its hours so far have yielded is made, and lies where the pawn stands as a pile
+  // of the task's owner, fetched home by its fetch kind (sim/lying); the hours are the yield's, so the task begins again from none. Only
+  // the hours not yet worked are lost (VB-1748).
   function cutTrip(st, a, j) {
     const K = KINDS[j.kind],
       frac = Math.min(1, (j.done || 0) / (j.hours ?? K.hours));
