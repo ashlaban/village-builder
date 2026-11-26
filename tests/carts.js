@@ -74,7 +74,9 @@ check(hh.carts.length === 1 && hh.carts[0].kind === 'hand' && hh.carts[0].cond =
   check(near(M.hayLoad(m, TRAVEL.hand), 20 / TRAVEL.hay) && near(m.held, 0) && m.stage === 'aftermath', 'a hand cart takes the rest, 20 at most');
   const o = { stage: 'mown', held: 90 };
   check(near(M.hayLoad(o, TRAVEL.cart), 60 / TRAVEL.hay) && near(o.held, 30) && o.stage === 'mown', 'an ox cart takes 60 of a larger heap');
-  check(KINDS.hay.again({ meadow: { held: 3 } }) && !KINDS.hay.again({ meadow: { held: 0 } }) && KINDS.hay.reload === CART.reload, 'more loads while hay lies');
+  // VB-1812: the hay's goal goes back for more while hay lies in the mown meadow (its source), and is met once it is in
+  const hayAt = (held, stage) => ({ job: { meadow: { held, stage }, claims: [] } });
+  check(KINDS.hay.can.source(st, hayAt(3, 'mown')) && !KINDS.hay.can.source(st, hayAt(0, 'aftermath')), 'more loads while hay lies');
 }
 // --- timber (VB-1653: felled and carried home, cut to firewood at the house): a load in hand set down in the store, a trip's timber for
 // each load on the cart (VB-1775: the wood's unload step, sim/doing)

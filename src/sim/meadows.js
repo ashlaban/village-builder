@@ -439,9 +439,28 @@ VB['sim/meadows'] = (() => {
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6],
       urgency: (st, j, c, U) => U.haul,
       deliver: (st, j, hh, f, a) => hayIn(st, j.meadow, hh, f, a),
-      available: meadowWork, // by the load (sim/carts)
+      setDown: (st, j, a) => hayLaid(j.meadow, a.load), // a load cut at the meadow goes back with the cocks
+      // the hay a moving house leaves at its landing (sim/camp) is fetched by a fetch kind until the piles left lying are a goal's (VB-1814)
+      fetched: true,
+      available: meadowWork,
     },
   };
+  // The hay as a goal (VB-1812; design.md section 7, The task as a plan): the cocks raked onto the cart (fetched first while they are more
+  // than a back load) or the back, by the rule of every load of hay (hayLoad), carried to the barn, and back for more while the meadow
+  // holds hay; the stooks' rule (sim/fieldwork) for a load cut.
+  const cocks = (g) => (g.job.meadow.stage === 'mown' ? g.job.meadow.held : 0);
+  VB['sim/methods'].carry(KINDS.hay, 'hay', {
+    name: 'from the cocks',
+    op: 'rake',
+    source: true,
+    why: 'no hay in the meadow',
+    cart: true,
+    run: (st, j, g, at, a, cap) => {
+      a.load = hayLoad(j.meadow, cap);
+    },
+    met: (st, g) => g.job.meadow.stage !== 'mown',
+  });
+  KINDS.hay.can = { source: (st, g) => cocks(g) > 1e-9, cartPays: (st, g) => cocks(g) > TRAVEL.load * TRAVEL.hay };
   return {
     KINDS,
     MOW_LAST, // the haymaking window's last autumn day (sim/agenda's deadline, VB-1644)

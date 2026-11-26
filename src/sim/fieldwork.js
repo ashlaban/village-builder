@@ -5,7 +5,7 @@
 // the three kinds whose end is the village's (haul, clear, break).
 VB['sim/fieldwork'] = (() => {
   const Stores = VB['sim/stores'];
-  const { WORK, SEASON_DAYS, cal } = VB['sim/rules'],
+  const { WORK, SEASON_DAYS, TRAVEL, cal } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];
   const { sowOpen, frostExpected } = VB['sim/weather'];
   const { log, atFarm } = VB['sim/records'];
@@ -225,9 +225,7 @@ VB['sim/fieldwork'] = (() => {
       window: { from: WORK[0] - 1 }, // dry by the morning
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6],
       urgency: (st, j, c, U) => U.haul + frostNear(st, c, U),
-      load: (st, a, j, cap) => (a.load = carried(j.field, cap)),
-      again: (j) => j.field.stage === 'stooks',
-      setDown: (st, j, a) => laidDown(j.field, a.load),
+      setDown: (st, j, a) => laidDown(j.field, a.load), // a load cut at the field goes back with the stooks
       deliver: (st, j, hh, f, a) => {
         // the crop the task was posted for: the field goes on to its next course once its last load is taken up (VB-350)
         binned(j.field, Stores.sheaf(st, hh, a.load, j.field.bin ?? -1, j.crop ?? j.field.crop));
@@ -369,7 +367,6 @@ VB['sim/fieldwork'] = (() => {
       spot: onField,
       urgency: (st, j, c, U) => (j.spare ? U.manureSurplus : U.manure),
       carted: true, // faster with a cart (sim/carts)
-      done: (st, j, hh) => manureDone(st, j.field, hh, j.hours),
       // in spring, while the heap holds a load: the farm's poorest field not yet sown, for the loads it takes (manureWanted, VB-137)
       available: (st, hh, f, c, post) => {
         const dung = manureWanted(st, f, hh, c);
@@ -383,5 +380,35 @@ VB['sim/fieldwork'] = (() => {
       },
     },
   };
+  // ---- the sheaves and the manure as goals (VB-1812; design.md section 7, The task as a plan): read from the world at each leg's end ----
+  const Methods = VB['sim/methods'];
+  // The sheaves: the stooks pitched on the cart (fetched first while they are more than a back load) or the back, carried to the barn (a
+  // common field's to the green, `j.dest`: VB-100), and back for more while stooks stand; a load cut at the field goes back with them,
+  // one cut elsewhere lies as the household's pile, which the stray method of its sheaves' goal fetches.
+  const stooks = (g) => (g.job.field.stage === 'stooks' ? g.job.field.held : 0);
+  Methods.carry(KINDS.haul, 'haul', {
+    name: 'from the stooks',
+    op: 'pitch',
+    source: true,
+    why: 'no stooks on the field',
+    cart: true,
+    to: 'barn',
+    run: (st, j, g, at, a, cap) => {
+      a.load = carried(j.field, cap);
+    },
+    met: (st, g) => g.job.field.stage !== 'stooks',
+  });
+  Object.assign(KINDS.haul, {
+    places: { barn: (st, g, v) => (g.job.common ? g.job.dest : v.storeOf(st, g.owner)) },
+    can: { source: (st, g) => stooks(g) > 0, cartPays: (st, g) => stooks(g) > TRAVEL.load },
+  });
+  // The manure: carted from the heap to the field (the cart fetched first where one is free) and spread there; no load in hand.
+  Methods.tend(KINDS.manure, {
+    name: 'carted',
+    op: 'spread',
+    cart: true,
+    run: (st, j, g) => manureDone(st, j.field, st.households[g.owner], j.hours),
+  });
+  KINDS.manure.can = { cartPays: () => true };
   return { KINDS, sowWhy, beyondHands, rowAngle, onField, fieldKey };
 })();

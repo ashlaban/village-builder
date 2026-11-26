@@ -28,7 +28,7 @@ check(jobs.length === 2 && jobs.every((j) => j.kind === 'timber' && j.owner.type
 const j = J.post(st, jobs[0].key, 'timber', jobs[0].owner, jobs[0].site, jobs[0].extra), t = j.site, trees = w.trees[t];
 check(v.wood.includes(t), `the trip's tile ${t} is in the village's wood`);
 const carrier = { load: 0 };
-VB['sim/kinds'].KINDS.timber.make(st, carrier, j);
+VB['sim/kinds'].KINDS.timber.ops.fell.run(st, j, null, j.site, carrier); // VB-1812: the work leg of its goal
 check(w.trees[t] === trees - 1 && !site.wood && carrier.load > 0, 'its tree is felled where the work is done, its timber in hand (VB-1748)');
 VB['sim/kinds'].KINDS.timber.deliver(st, j, h0, null, carrier);
 check(site.wood === ECON.woodPerTrip && w.trees[t] === trees - 1, `a trip's load lies at the site (${site.wood}) and its tree is felled`);

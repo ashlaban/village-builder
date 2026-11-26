@@ -808,7 +808,7 @@ console.log(
   {
     assert(KINDS.wood.methods && KINDS.firewood.methods, 'the wood has methods');
     assert(!KINDS[Lying.fetchKey('wood')] && !KINDS[Lying.fetchKey('firewood')], 'no fetch kind for the wood');
-    assert(KINDS[Lying.fetchKey('hay')], 'a kind on its phases keeps its fetch kind');
+    assert(KINDS[Lying.fetchKey('leftGrain')], 'a kind on its phases keeps its fetch kind');
     const { st, hh } = row('wood');
     const l = Lying.put(st, 'wood', TRAVEL.load, st.villages[0].wood[1], title(hh));
     Sim.advance(st, 2);

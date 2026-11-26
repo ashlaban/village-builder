@@ -120,8 +120,9 @@ VB['sim/methods'] = (() => {
   // never taken, and its goal walked between it and its site)
   const ANY_N = 1e-9;
   // The stray method (A stray pile): a pile of a good the goal uses, its owner's, lying where its kind neither makes nor wants it, is
-  // fetched to the owner's store. Tried before a kind's own; one row a good.
-  const strayRow = (good) => [
+  // fetched to the owner's store, or to the place the kind's own rows set the good down (`to`: the building site of timber, VB-1812).
+  // Tried before a kind's own; one row a good.
+  const strayRow = (good, to = 'store') => [
     { prim: 'go', at: 'stray', good, pre: [], eff: [{ at: 'stray' }] },
     {
       prim: 'load',
@@ -130,8 +131,8 @@ VB['sim/methods'] = (() => {
       pre: [{ at: 'stray' }, { carries: null }, { pile: good, at: 'stray', min: ANY_N }],
       eff: [{ carries: good }],
     },
-    { prim: 'haul', at: 'store', good, pre: [{ carries: good }], eff: [{ at: 'store' }] },
-    { prim: 'unload', at: 'store', good, pre: [{ carries: good }, { at: 'store' }], eff: [{ not: { carries: good } }] },
+    { prim: 'haul', at: to, good, pre: [{ carries: good }], eff: [{ at: to }] },
+    { prim: 'unload', at: to, good, pre: [{ carries: good }, { at: to }], eff: [{ not: { carries: good } }] },
   ];
   // A kind's plan: its methods compiled, the goods it uses (what its loads take up), where it makes or wants them, its stray rows.
   function plan(key, K) {
@@ -158,7 +159,8 @@ VB['sim/methods'] = (() => {
     for (let i = 0; i < uses.length; i++)
       if (wants[i].length > MAX.wants)
         throw new Error(`sim/methods: ${key}: ${uses[i]} read at more than ${MAX.wants} places`);
-    const stray = uses.map((g) => strayRow(g).map((s) => step(s, `${key}, stray ${g}`)));
+    const to = (g) => (steps.find((s) => s.prim === 'unload' && s.good === g) || { at: 'store' }).at;
+    const stray = uses.map((g) => strayRow(g, to(g)).map((s) => step(s, `${key}, stray ${g}`)));
     const none = { blocked: 'no method applies', step: null, fact: null };
     return { key, kind: K, methods, uses, wants, stray, none };
   }
@@ -340,5 +342,87 @@ VB['sim/methods'] = (() => {
     return K;
   }
 
-  return { PRIMS, MAX, DONE, RULE, compile, next, placeOf, trip };
+  // ---- a load taken up or made at the work and carried to a place (VB-1812; design.md section 7, The task as a plan) ----
+  // The sheaves and the hay from the stooks and cocks of their field and meadow, timber felled for a building site, water drawn, stone
+  // for the well. One row: a cart fetched first where the kind says it pays (`cart`), go to the site, work (the load into the hand: the
+  // stooks pitched, the tree felled, the water drawn), or take up the owner's pile lying there, haul it to the place the kind carries to
+  // (`to`: the owner's store, or a place of the kind's, K.places, as the building site `j.dest`), and set it down there (the kind's
+  // delivery). The goal is the kind's own end (o.met: the stooks all in, a trip's work done) and no hand of it holding a load: so a
+  // load in hand goes on by this row to the kind's place, not by the rule for a load in hand to the store. The good is named for the
+  // kind unless o.good says (the building's timber, which the wood's `timber` is not). o: {op, run(st, j, g, at, a, cap): the load made
+  // in the hand (cap: the loads its cart or its back holds), met(st, g), source (true: K.can.source reads what the site holds; why),
+  // to, cart (true: K.can.cartPays), hours}.
+  const cartOrNone = { any: [{ has: 'cart' }, { not: { free: 'cart' } }, { not: { can: 'cartPays' } }] };
+  const cartStep = {
+    prim: 'fetch',
+    thing: 'cart',
+    at: 'cart',
+    pre: [{ not: { has: 'cart' } }, { free: 'cart' }, { can: 'cartPays' }],
+    eff: [cartOrNone],
+  };
+  function carry(K, key, o) {
+    const good = o.good || key,
+      to = o.to || 'store',
+      src = o.source ? [{ can: 'source', why: o.why || 'nothing to take up' }] : [];
+    const steps = [
+      ...(o.cart ? [cartStep] : []),
+      { prim: 'go', at: 'site', pre: o.cart ? [cartOrNone] : [], eff: [{ at: 'site' }] },
+      {
+        prim: 'work',
+        op: o.op,
+        at: 'site',
+        pre: [{ at: 'site' }, { carries: null }, ...src],
+        eff: [{ carries: good }],
+      },
+      {
+        prim: 'load',
+        good,
+        at: 'site',
+        pre: [{ at: 'site' }, { carries: null }, { pile: good, at: 'site', min: ANY_N }],
+        eff: [{ carries: good }],
+      },
+      { prim: 'haul', good, at: to, pre: [{ carries: good }], eff: [{ at: to }] },
+      { prim: 'unload', good, at: to, pre: [{ carries: good }, { at: to }], eff: [{ not: { carries: good } }] },
+    ];
+    Object.assign(K, {
+      methods: [{ name: o.name || 'carried', steps }],
+      met: (st, g, v) => !!o.met(st, g) && !v.carrying(st, g),
+    });
+    K.ops = {
+      [o.op]: {
+        hours: o.hours,
+        run: (st, j, g, at, a, cap) => {
+          a.loadOf = null; // made in the hand: its delivery reads the task
+          o.run(st, j, g, at, a, cap);
+          if (a.load > 0) {
+            a.carry = K.carry;
+            j.made = (j.made || 0) + 1;
+          }
+        },
+      },
+    };
+    return K;
+  }
+  // Work at the site with no load in hand (VB-1812: the manure carted): a cart fetched where one is free and the kind says it pays, go,
+  // work; met once the work is done (`job.made`), and the cart then taken back by the rule for a thing held.
+  function tend(K, o) {
+    const steps = [
+      ...(o.cart ? [cartStep] : []),
+      { prim: 'go', at: 'site', pre: o.cart ? [cartOrNone] : [], eff: [{ at: 'site' }] },
+      { prim: 'work', op: o.op, at: 'site', pre: [{ at: 'site' }], eff: [{ met: true }] },
+    ];
+    Object.assign(K, { methods: [{ name: o.name || 'tended', steps }], met: (st, g) => (g.job.made || 0) > 0 });
+    K.ops = {
+      [o.op]: {
+        hours: o.hours,
+        run: (st, j, g, at, a) => {
+          o.run(st, j, g, at, a);
+          j.made = (j.made || 0) + 1;
+        },
+      },
+    };
+    return K;
+  }
+
+  return { PRIMS, MAX, DONE, RULE, compile, next, placeOf, trip, carry, tend };
 })();

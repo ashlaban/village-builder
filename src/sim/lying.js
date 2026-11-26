@@ -157,6 +157,7 @@ VB['sim/lying'] = (() => {
     hay: 'hay',
     wood: 'timber',
     leftTimber: 'timber',
+    timber: 'timber', // the building's, cut on its way to the site (VB-1812)
     leftGrain: 'grain',
     wellstone: 'stone',
     // the goods made where the work is done (VB-1748)

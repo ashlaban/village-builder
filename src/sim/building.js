@@ -626,13 +626,6 @@ VB['sim/building'] = (() => {
       spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
       draw: (st, j) => (j.onSite ? j.site : drawWood(st, st.villages[j.village])),
       urgency: (st, j, c, U) => (j.shelter ? U.shelter : U.other),
-      // a tree felled on the drawn tile as the work ends (VB-1748), its timber a back load; a carrier cut on the road leaves it lying as
-      // timber left lying, fetched home as firewood (its site's step is a plan's object, which a lying load does not keep)
-      make: (st, a, j) => {
-        fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.village]));
-        a.load = TRAVEL.load;
-      },
-      lies: 'leftTimber',
       // its load lies at the site, and the ledger of the village or household building says so
       deliver: (st, j) => {
         const v = st.villages[j.village];
@@ -708,6 +701,7 @@ VB['sim/building'] = (() => {
           : [w.hx[j.site] + a.ox * 0.2, w.hy[j.site] + 4];
       },
       deliver: waterBooth, // left at the door, as the farm's water (sim/chores, VB-1748): it books what came in
+      spills: true, // a load cut on the way is spilt: nothing lies (VB-1604)
       available: boothWaterWork,
     },
     // Timber left lying at a boat's shore when its plan was given up (sim/plans' leftWood, VB-645): never posted, only fetched (sim/lying's
@@ -900,6 +894,33 @@ VB['sim/building'] = (() => {
       },
     },
   };
+  // The timber and the booth's water as goals (VB-1812; design.md section 7, The task as a plan). The timber: a tree felled on the drawn
+  // tile as the work ends (VB-1748), its timber a back load carried to the building site (`j.dest`); a carrier cut on the way leaves it
+  // lying as the household's timber, which the stray method of its next timber goal carries to that goal's site. The booth's water:
+  // drawn at the source, carried to the booth, spilt if cut.
+  const Methods = VB['sim/methods'];
+  Methods.carry(KINDS.timber, 'timber', {
+    name: 'felled for the site',
+    good: 'sitetimber',
+    op: 'fell',
+    to: 'dest',
+    run: (st, j, g, at, a) => {
+      fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.village]));
+      a.load = TRAVEL.load;
+    },
+    met: (st, g) => (g.job.made || 0) > 0,
+  });
+  KINDS.timber.places = { dest: (st, g) => g.job.dest };
+  Methods.carry(KINDS.boothwater, 'boothwater', {
+    name: 'drawn for the booth',
+    op: 'draw',
+    to: 'booth',
+    run: (st, j, g, at, a) => {
+      a.load = TRAVEL.load;
+    },
+    met: (st, g) => (g.job.made || 0) > 0,
+  });
+  KINDS.boothwater.places = { booth: (st, g) => g.job.dest };
   // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
   for (const k of ['pick', 'quarry']) VB['sim/methods'].trip(KINDS[k], k);
   return {

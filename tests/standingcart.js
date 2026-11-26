@@ -16,7 +16,7 @@ A.release(st, a); A.placeAtHome(st, a);
 const j = J.post(st, 'haul:cart' + st.t, 'haul', { type: 'household', id: hh.id }, fd.tile, { field: fd, farm: f });
 j.claims.push(a.id); a.job = j; a.phase = 'back'; a.inside = false;
 const cap = Carts.take(st, hh, a.id, true);
-KINDS.haul.load(st, a, j, cap); a.carry = 'sheaf';
+KINDS.haul.ops.pitch.run(st, j, null, j.site, a, cap); a.carry = 'sheaf'; // VB-1812: the stooks pitched (the work leg of its goal)
 assert(Carts.oxOut(st, hh) && a.load > 30, 'a laden ox cart is out');
 a.x = st.w.hx[fd.tile] + 400; a.y = st.w.hy[fd.tile]; fd.stage = 'stubble'; fd.held = 0;
 const at = VB['sim/pose'].tileAt(st, a.x, a.y);

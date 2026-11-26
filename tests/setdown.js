@@ -22,7 +22,7 @@ function carrier(a) {
   A.placeAtHome(st, a); // out of its leg
   const j = J.post(st, 'haul:setdown' + a.id + st.t + (n_++), 'haul', { type: 'household', id: hh.id }, fd.tile, { field: fd, farm: f });
   j.claims.push(a.id); a.job = j; a.phase = 'back'; a.inside = false;
-  KINDS.haul.load(st, a, j, 10); a.carry = 'sheaf';
+  KINDS.haul.ops.pitch.run(st, j, null, j.site, a, 10); a.carry = 'sheaf'; // VB-1812: the stooks pitched (the work leg of its goal)
   return j;
 }
 // 1. told to move to another household, on the road with the load: the load is not in the barn until the hand arrives with it
