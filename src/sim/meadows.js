@@ -1,4 +1,4 @@
-// @sys sim/meadows: hay meadows as built land: a tile's worth as meadow, choosing one, the meadow project (a project plan of
+// @sys sim/meadows: hay meadows as built land, and the hay goal (VB-1777): a tile's worth as meadow, choosing one, the meadow project (a project plan of
 // sim/plans), and the meadows of generated farms
 VB['sim/meadows'] = (() => {
   const { targetOf } = VB['sim/steps'];

@@ -1,4 +1,5 @@
-// @sys sim/chores: the job kinds of the household's daily work at the house: felling timber and cutting it to firewood, fetching water, cooking, brewing and
+// @sys sim/chores: the job kinds and goals (fell, firewood; VB-1777) of the household's daily work at the house: felling timber and
+//   cutting it to firewood, fetching water, cooking, brewing and
 // gathering wild food; what turns something of the world (a tree, the well, the woods' berries) into something in the house
 // VB-418: these kinds have no domain module of their own. Each takes from one module (sim/forest, sim/forage: the world) and puts into
 // another (sim/stores, sim/pot), so it lives above both, in the material layer: the beginning of target-v2's production (4.3). `brew`

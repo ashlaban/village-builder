@@ -1,4 +1,5 @@
-// @sys sim/camp: the camp of a settler who plans by hand (VB-1655; Kim, 24 Nov 2026: "land first, place from the menu"): the farm kept on
+// @sys sim/camp: the camp of a settler who plans by hand, and the farmstead goal (VB-1777) (VB-1655; Kim, 24 Nov 2026: "land first, place
+//   from the menu"): the farm kept on
 //   the landing tile with nothing on it, roofless (sim/building roofless), until its head places the farmstead (the verb `placeFarmstead`:
 //   the house moved to the tile chosen anywhere reachable on foot, the shelter begun on it, VB-1666, VB-1667) and its shelter stands; the
 //   goods, the carts and the herds left at the landing when the house moves, to be fetched (leaveLanding, VB-1667), and what that costs

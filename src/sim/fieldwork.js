@@ -1,4 +1,5 @@
-// @sys sim/fieldwork: the job kinds of a farm's fields: hoeing, sowing, weeding, reaping, bringing in, threshing, carting manure, clearing
+// @sys sim/fieldwork: the job kinds of a farm's fields and their goals (plant, harvest; VB-1777): hoeing, sowing, weeding, reaping,
+//   bringing in, threshing, carting manure, clearing
 // an overgrown field, and the two steps that make a new one (clear, break); each ends in one of sim/fields' transitions (or sim/newground's, sim/soil's)
 // VB-418: the fields' domain in two modules: sim/fields is the field's state and its year, this the work a household does on it. It writes
 // no field itself. sim/kinds joins KINDS into the registry, where a kind's fields are described; for a common field sim/commons wraps
