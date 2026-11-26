@@ -50,7 +50,7 @@ function run(st, days = 40) {
 {
   const st = booth(),
     f = st.farmsteads[0];
-  let v = Sim.farmView(st, 0);
+  let v = Sim.farmView(st, 0, st.player && st.player.pawn);
   assert.deepStrictEqual(v.next, [
     { what: 'cottage', needs: RUNGS.cottage.needs, ok: true, why: null, planned: false },
   ]);
@@ -60,7 +60,7 @@ function run(st, days = 40) {
   assert.match(String(add(st, 'cottage', f.house + 1)), /house is not at/);
   assert.strictEqual(add(st, 'cottage'), true);
   assert.match(String(add(st, 'cottage')), /already planned/, 'one at a time');
-  v = Sim.farmView(st, 0);
+  v = Sim.farmView(st, 0, st.player && st.player.pawn);
   assert.deepStrictEqual(v.next, [
     { what: 'cottage', needs: RUNGS.cottage.needs, ok: false, why: 'the cottage is planned already', planned: true },
   ]);
@@ -68,8 +68,8 @@ function run(st, days = 40) {
   assert(cottageOf(st, 0), 'begun by the task');
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'remove', { i: 0 }), true);
   assert.match(String(add(st, 'cottage')), /cottage under way/, 'under way');
-  assert.match(Sim.farmView(st, 0).next[0].why, /cottage under way/);
-  assert.strictEqual(Sim.farmView(st, 0).next[0].planned, false);
+  assert.match(Sim.farmView(st, 0, st.player && st.player.pawn).next[0].why, /cottage under way/);
+  assert.strictEqual(Sim.farmView(st, 0, st.player && st.player.pawn).next[0].planned, false);
   sound(st, 'refusals');
 }
 // ---- 2. from the booth to the roof by the plan alone, no timber at home: its trips fetched; a stone foundation 'not yet' ----
@@ -93,7 +93,7 @@ function run(st, days = 40) {
   assert(trips > 0, 'timber trips fetched for the walls');
   assert(waits.has('sleep') && waits.has('unposted:walls'), `waits given: ${[...waits]}`);
   assert(['foundation', 'walls', 'roof'].every((k) => laid.has(k)), `the agenda lays its steps: ${[...laid]}`);
-  const v = Sim.farmView(st, 0);
+  const v = Sim.farmView(st, 0, st.player && st.player.pawn);
   assert.strictEqual(v.rung, 'cottage');
   assert.deepStrictEqual(
     v.next.map((n) => n.what),

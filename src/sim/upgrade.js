@@ -8,11 +8,11 @@
 //   task of the plan (the chain `upgrade`, what 'timber': the making `timberhouse`, sim/timberhouse, the timber at home first) and by a
 //   crowded household's head's own rule (ownTimber)
 VB['sim/upgrade'] = (() => {
-  const { BUILD, ECON, DAY, SEASON_DAYS, YEAR, WORK, cal } = VB['sim/rules'];
+  const { BUILD, ECON, cal } = VB['sim/rules'];
   const { register, issue } = VB['sim/commands'];
   const Camp = VB['sim/camp'];
   const { living } = VB['sim/records'];
-  const { controlOf, planners, plansIn } = VB['sim/controller'];
+  const { planners, plansIn } = VB['sim/controller'];
   const { on, emit } = VB['sim/events'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
@@ -193,20 +193,12 @@ VB['sim/upgrade'] = (() => {
   CHAINS.upgrade = upgrade; // contributed at load, before the first seed (VB-1660)
   // ---- the chain: foundation (CHAINS.foundation; VB-1663) ----
   // The house set on stone as a task of the plan: the head's own building step (sim/building buildStep, opened at a review of its plan),
-  // which a played head holding off projects opens for this task alone; the plan asks its head for that review at once (askFoundation,
+  // which a head holding off projects opens for this task alone; the plan asks its head for that review at once (askFoundation,
   // the event planAsks), as a firewood task asks for its cutting (VB-1661). Then the stone's loads as the step posts them (stoneWork:
-  // picked or quarried, two trips at a time, found by their keys at the source), and the raising at the house. The played head with
-  // automatic behaviour off raises outside the slack of the year, as it builds its cottage (VB-1660: the plan says when); any other head
-  // raises in the slack (the wait `opens`, what: 'the slack of the year'). It leaves when the house stands on stone ('raised') or the
-  // household or its house is gone ('gone').
-  const handAt = (st, hh) => !!st.player && hh.holder === st.player.pawn && !controlOf(st, hh.holder).auto;
-  const inSlack = (c) => (c.season === 1 && c.sday < SEASON_DAYS / 2) || c.season === 3;
-  // The game hour the raising may be posted from: now in the slack (or for the played head by hand), else the next slack's first day.
-  function raiseFrom(st, hh) {
-    const c = cal(st.t);
-    if (handAt(st, hh) || inSlack(c)) return -Infinity;
-    return Math.floor(st.t / YEAR) * YEAR + (c.season === 0 ? 1 : 3) * SEASON_DAYS * DAY + WORK[0];
-  }
+  // picked or quarried, two trips at a time, found by their keys at the source), and the raising at the house, outside the slack of the
+  // year as the cottage's stages are (VB-1660: the plan says when): the task is a step its controller authored, and it stands, whoever
+  // the controller (VB-1753; it was the played head with automatic behaviour off, any other raising in the slack). It leaves when the
+  // house stands on stone ('raised') or the household or its house is gone ('gone').
   const foundation = {
     noun: 'stone foundation',
     mark: null,
@@ -239,8 +231,7 @@ VB['sim/upgrade'] = (() => {
         kind: 'raise',
         hours: BUILD.foundationHours,
         n: 1,
-        from: raiseFrom(st, hh),
-        what: 'the slack of the year',
+        from: -Infinity,
         keys: [`raise:f${f.id}`],
       });
       return out;

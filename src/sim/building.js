@@ -67,14 +67,22 @@ VB['sim/building'] = (() => {
   // in the slack of the year, as a house is raised (slack, below), and then before other work (MATCH.urgency.shelter): the shelter roofs it
   // meanwhile, and a lone settler's hands go to the fields when they are due (VB-1544: the harvest lost to the frost otherwise, and the
   // cottage never done in the slack's other work). A farm settled before VB-1666 with no booth staked (sim/settle's mark) builds at once.
-  // Whether household hh's head is the played pawn with automatic behaviour off: its plan says when its house is built, not the slack
-  // (VB-1660 the cottage's stages, VB-1663 the foundation's raising).
-  const played = (st, hh) =>
-    !!st.player && hh.holder === st.player.pawn && !!st.pawns[hh.holder].control && !st.pawns[hh.holder].control.auto;
+  // The plan of household hh's head (its controller's, VB-1746), or null.
+  const headPlan = (st, hh) => {
+    const p = hh.holder !== null ? st.pawns[hh.holder] : null;
+    return (p && p.control && p.control.plan) || null;
+  };
+  // Whether the plan of household hh's head holds the upgrade task of farm f's cottage (VB-1660): a step its controller authored, which
+  // stands: the plan says when the cottage's stages are worked, not the slack (VB-1753, design.md section 7, Authors: the default author
+  // does not rewrite what is authored; it was the played head with automatic behaviour off, whoever authored the cottage).
+  const cottageAsked = (st, hh, f) => {
+    const pp = headPlan(st, hh);
+    return !!pp && pp.tasks.some((t) => t.kind === 'upgrade' && t.upgrade === f.house && t.what === 'cottage');
+  };
   function boothWork(st, hh, f, c, post) {
     if (f.shelter && !shelterStands(st, f)) return shelterWork(st, hh, f, post);
     const own = !!f.shelter || homeBooth(st, hh, f);
-    if ((own && !slack(c) && !played(st, hh)) || roofless(st, hh)) return;
+    if ((own && !slack(c) && !cottageAsked(st, hh, f)) || roofless(st, hh)) return;
     const bj = cottageJob(st, hh, f);
     if (!bj) return;
     if (own) bj[2].shelter = true;
@@ -444,10 +452,9 @@ VB['sim/building'] = (() => {
     return stoneSource(st, f, quern);
   }
   // Whether the plan of household hh's head (its controller's, VB-1746; the played pawn's before) holds the foundation task of farm f's
-  // house (VB-1663).
+  // house (VB-1663): a step authored, which stands (the raising is posted when the plan says, not in the slack: VB-1753).
   const foundationAsked = (st, hh, f) => {
-    const p = !!f && hh.holder !== null ? st.pawns[hh.holder] : null,
-      pp = p && p.control ? p.control.plan : null;
+    const pp = f ? headPlan(st, hh) : null;
     return !!pp && pp.tasks.some((t) => t.kind === 'foundation' && t.foundation === f.house);
   };
   // The slack of the year, when a house is raised: the first half of summer, and winter.
@@ -471,7 +478,7 @@ VB['sim/building'] = (() => {
       return;
     }
     if (Stores.heldOf(hh, 'stone') >= BUILD.foundationStone) {
-      if (slack(c) || played(st, hh)) post(`raise:f${f.id}`, f.house, { farm: f }, 'raise'); // VB-1663: the plan says when
+      if (slack(c) || foundationAsked(st, hh, f)) post(`raise:f${f.id}`, f.house, { farm: f }, 'raise'); // the plan says when (VB-1663, VB-1753)
       if (well && step.tile >= 0) post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
       return;
     }

@@ -28,7 +28,7 @@ const seed = (play = true) => {
 const stepsOf = (st, t) => stepsTo(st.w, st.farmsteads[0].house, t, st.w.N, walkable(st.w));
 // A tile `n` walking steps from the landing that takes the farmstead.
 const tileAt = (st, n) => {
-  for (let t = 0; t < st.w.N; t++) if (stepsOf(st, t) === n && Sim.placeWhy(st, 'farmstead', t) === null) return t;
+  for (let t = 0; t < st.w.N; t++) if (stepsOf(st, t) === n && Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', t) === null) return t;
   return -1;
 };
 // What the household has, wherever it lies: grain, firewood, hay, carts and animals, at home, lying, standing at the landing.
@@ -50,7 +50,7 @@ const holdings = (st) => {
 function move(st, t, placed = () => {}, days = 60) {
   const hh = st.households[0],
     f = st.farmsteads[0];
-  const cost = Sim.moveCost(st, t),
+  const cost = Sim.moveCost(st, st.player.pawn, t),
     MOVE = VB['sim/planchains'].MOVE_KINDS,
     a = st.agents[hh.holder];
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: t }), true);
@@ -86,21 +86,21 @@ function move(st, t, placed = () => {}, days = 60) {
     w = st.w,
     t = tileAt(st, 12);
   assert(t >= 0, 'a tile 12 steps off takes the farmstead: no step bound for the played head');
-  const c = Sim.moveCost(st, t);
+  const c = Sim.moveCost(st, st.player.pawn, t);
   assert.deepStrictEqual(Object.keys(c), ['steps', 'trips', 'hours', 'frost']);
   assert.strictEqual(c.steps, 12);
   assert(c.trips.cart > 0 && c.trips.back > c.trips.cart && c.hours > 0, JSON.stringify(c));
-  assert.deepStrictEqual(Sim.moveCost(st, f.house), { steps: 0, trips: { cart: 0, back: 0 }, hours: 0, frost: false });
-  assert(Sim.moveCost(st, tileAt(st, 2)).hours < c.hours, 'nearer is cheaper');
-  assert.strictEqual(Sim.moveCost(st, -1), null);
+  assert.deepStrictEqual(Sim.moveCost(st, st.player.pawn, f.house), { steps: 0, trips: { cart: 0, back: 0 }, hours: 0, frost: false });
+  assert(Sim.moveCost(st, st.player.pawn, tileAt(st, 2)).hours < c.hours, 'nearer is cheaper');
+  assert.strictEqual(Sim.moveCost(st, st.player.pawn, -1), null);
   // an island: walled off by water all round, the walkable parts labelled again
   const isl = tileAt(st, 6),
     ring = [];
   for (let d = 0; d < 6; d++) if (w.nb[isl * 6 + d] >= 0) ring.push(w.nb[isl * 6 + d]);
   for (const u of ring) (w.water[u] = 1), invalidateReach(w, u);
-  assert.match(String(Sim.placeWhy(st, 'farmstead', isl)), /not reachable on foot from the camp/);
+  assert.match(String(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', isl)), /not reachable on foot from the camp/);
   for (const u of ring) (w.water[u] = 0), invalidateReach(w, u);
-  assert.strictEqual(Sim.placeWhy(st, 'farmstead', isl), null);
+  assert.strictEqual(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', isl), null);
   sound(st, 'refusals');
   // unplayed, the head's own rule places on the landing, and nothing moves
   const own = seed(false),

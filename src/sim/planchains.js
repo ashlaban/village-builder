@@ -404,8 +404,8 @@ VB['sim/planchains'] = (() => {
     which: ['raised', 'gone'],
     at: (st, hid, tile) => Camp.campAt(st, hid, tile),
     none: (tile) => `there is no camp to place a farmstead from, nor a farmstead under way at ${tile}`,
-    why: (st, where, tile) =>
-      where.camp ? Camp.placeWhy(st, 'farmstead', tile) : where.raised ? `the farmstead at ${tile} stands` : null,
+    why: (st, where, tile, id) =>
+      where.camp ? Camp.placeWhy(st, id, 'farmstead', tile) : where.raised ? `the farmstead at ${tile} stands` : null,
     steps: (st, hid, { f, camp, staked, shelter, raised }) => {
       if (shelter || (camp && !staked)) {
         const lack = lacks(shelter || {}, BOOTH.wood),

@@ -75,7 +75,7 @@ const unbuild = (f) => (f.byre = null);
     f = st.farmsteads[hh.farmstead];
   for (const p of projectsOf(st, 'household', hh.id))
     VB['sim/commands'].issue(st, { actor: 0, verb: 'dropProject', target: hh.id, args: { id: p.id }, source: 'player' });
-  const byreOf = () => Sim.farmView(st, f.id).outbuildings.find((o) => o.what === 'byre');
+  const byreOf = () => Sim.farmView(st, f.id, st.player && st.player.pawn).outbuildings.find((o) => o.what === 'byre');
   assert.deepStrictEqual(byreOf(), {
     what: 'byre',
     built: true,

@@ -215,7 +215,7 @@ function hudCall(i, id, hh, f) {
       sub = `The farmstead is placed: its shelter is staked here, and stands once its timber is carried and it is raised. ${sub}`;
     if (camp === 'camp' && !buildTasked())
       acts += `<button type="button" class="u2-act go" data-tab="build">${actIcon('build')} Build…<small>The build menu</small></button>`;
-    const FV = camp ? null : Sim.farmView(st, f.id);
+    const FV = camp ? null : Sim.farmView(st, f.id, st.player ? st.player.pawn : null);
     if (FV) {
       if (FV.rung !== 'camp') title = `${f.name}: ${ladderOf(FV.rung).name.toLowerCase()}`;
       const now = ladderBuilding(FV);
@@ -395,7 +395,7 @@ function hudMarks(id, hh, f) {
   for (let k = marks.length - 1; k >= 0; k--) if (planned.has(marks[k].tile)) marks.splice(k, 1);
   marks.push(...planned.values());
   const F = fireWarn(),
-    FV = hudCamp(f) ? null : Sim.farmView(st, f.id);
+    FV = hudCamp(f) ? null : Sim.farmView(st, f.id, st.player ? st.player.pawn : null);
   if (FV && FV.rung !== 'camp' && f.house !== hud.at)
     marks.push({
       id: 'up',
