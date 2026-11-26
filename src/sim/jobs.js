@@ -1,5 +1,6 @@
 // @sys sim/jobs: the job board: a task posted and taken down; each review hour the due-queue's and the reviews' asks of the kinds' rules
-// (sim/kinds), and the asks of a member without a task; the holders whose tasks changed have their days allotted anew (sim/day)
+// (sim/kinds), and the asks of a member without a task; a task posted is slotted into its holder's days as they stand, which are allotted
+// anew at the morning, at 14:00 and where a slot finds nobody (sim/day; VB-1758)
 VB['sim/jobs'] = (() => {
   const { WORK, TICKS } = VB['sim/rules'],
     { CHILD, MATCH } = VB['sim/roles'];
@@ -13,21 +14,29 @@ VB['sim/jobs'] = (() => {
     { routineAsks } = VB['sim/routines'],
     { reviewWhy, mayLook, WINDOWED, dueNow, again } = VB['sim/plandays'];
   const { onProject } = VB['sim/projects'];
-  const { allotChanged, slotIn } = VB['sim/day'];
+  const { slotArrived, slotOut, slotIn } = VB['sim/day'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
-  // The holders whose tasks were posted or taken down during the review or the look under way: their days are allotted anew at its end
-  // (allotChanged). Null between calls: nothing is kept here from one step to the next.
-  let changed = null;
-  // The review or the look is over: the days of the holders it noted are allotted anew (sim/day).
+  // During the review or the look under way: `changed`, the holders whose days are allotted anew at its end (their keys: every household's
+  // at the morning and at 14:00, one the due-queue's slot found no hand for); `arrived`, the tasks posted, slotted into their holders'
+  // days as they stand at its end (sim/day slotArrived; VB-1758). Null between calls: nothing is kept here from one step to the next.
+  // `rewoke`, the households reviewed, whose tasks the review made more urgent are slotted again (sim/day reweigh; VB-1854).
+  let changed = null,
+    arrived = null,
+    rewoke = null;
+  // The review or the look is over: what it posted is slotted in, what it made more urgent slotted again, and the days of the holders it
+  // noted are allotted anew (sim/day).
   const allotNoted = (st, c) => {
-    const noted = changed;
-    changed = null;
-    allotChanged(st, noted, c);
+    const noted = changed,
+      came = arrived,
+      again = rewoke || [];
+    changed = arrived = rewoke = null;
+    slotArrived(st, came, noted, c, again);
   };
   const changedFor = (owner) => {
     if (changed && owner) changed.add(ownerKey(owner));
   };
+  const { stepFor } = VB['sim/steps'];
   function post(st, key, kind, owner, site, extra) {
     if (!Number.isInteger(site)) throw new Error(`a task ${key} posted on no tile (${site})`); // fails where it is made (VB-255)
     let j = st.jobs.get(key);
@@ -42,6 +51,7 @@ VB['sim/jobs'] = (() => {
         done: 0,
         claims: [],
         posted: st.t,
+        step: stepFor(st, owner, kind, site), // the plan's step that opens it (VB-1752; sim/steps)
         ...extra,
       };
       st.jobs.set(key, j);
@@ -52,7 +62,7 @@ VB['sim/jobs'] = (() => {
       const ok = ownerKey(owner);
       if (!st.jobsBy.has(ok)) st.jobsBy.set(ok, new Set());
       st.jobsBy.get(ok).add(j);
-      changedFor(owner);
+      if (arrived && owner) arrived.push(j);
     }
     j.live = true;
     return j;
@@ -73,7 +83,7 @@ VB['sim/jobs'] = (() => {
   function sweep(st, j) {
     if (j.live || (j.claims.length && !KINDS[j.kind].project)) return;
     if (j.claims.length) freeHands(st, j, -1);
-    changedFor(j.owner);
+    slotOut(st, j); // its hours back to the members it was given to (sim/day)
     dropJob(st, j);
   }
   // Each review hour (VB-249; design.md section 7, Planning days): the due-queue opens the time-bound kinds that fall due (sim/plans); each
@@ -83,6 +93,8 @@ VB['sim/jobs'] = (() => {
   function refreshJobs(st, c, everyone = false) {
     const hour = Math.floor(st.tick / TICKS);
     changed = new Set();
+    arrived = [];
+    rewoke = [];
     // a rule calls put for each job it would post: of the kind asked, owned by the farm's household, unless it names them; `only` keeps
     // the due-queue's ask to its kind
     let kind = null,
@@ -119,18 +131,18 @@ VB['sim/jobs'] = (() => {
         only = K;
         own = { type: 'household', id };
         const rule = DUE_RULES[k],
-          noted = changed;
-        // what is opened is noted here, not for the day's allotment
-        changed = new Set();
+          came = arrived;
+        // what is opened is slotted here, not at the review's end
+        arrived = null;
         opened = [];
-        if (KINDS[K].stages) {
-          for (const fd of f.fields) if (KINDS[K].stages.includes(fd.stage)) ask(rule, hh, fd, f);
+        const S = ASK.stages[K];
+        if (S) {
+          for (const fd of f.fields) if (S.includes(fd.stage)) ask(rule, hh, fd, f);
           // the fields of a farm it holds in trust, as its own (VB-309)
-          for (const g of heldFarms(st, id))
-            for (const fd of g.fields) if (KINDS[K].stages.includes(fd.stage)) ask(rule, hh, fd, g);
+          for (const g of heldFarms(st, id)) for (const fd of g.fields) if (S.includes(fd.stage)) ask(rule, hh, fd, g);
         } else ask(rule, hh, f, f);
         const fresh = opened;
-        changed = noted;
+        arrived = came;
         opened = null;
         only = null;
         const now = st.jobsBy.get(`household:${id}`);
@@ -138,14 +150,10 @@ VB['sim/jobs'] = (() => {
         for (const j of fresh)
           if (whole || !j.live || j.owner.type !== 'household' || j.owner.id !== id || !slotIn(st, hh, j, c))
             changedFor(j.owner);
-        // a task with a deadline today that waits unmanned, opened before: its hand is called (allot)
-        if (
-          gave &&
-          KINDS[K].late &&
-          now &&
-          [...now].some((j) => j.kind === K && !j.claims.length && !fresh.includes(j))
-        )
-          changed.add(`household:${id}`);
+        // a task with a deadline today that waits unmanned, opened before: slotted anew, so that its hand is called (slotIn)
+        if (gave && KINDS[K].late && now && !whole)
+          for (const j of [...now])
+            if (j.kind === K && !j.claims.length && !fresh.includes(j) && !slotIn(st, hh, j, c)) changedFor(j.owner);
       }
       gaveAt.push(gave);
     }
@@ -161,8 +169,9 @@ VB['sim/jobs'] = (() => {
       const mine = st.jobsBy.get(`${type}:${id}`);
       if (mine) for (const j of mine) if (!islandJob(j)) j.live = false;
       reviewed(st, plan, c, why);
-      // a review reads the stores anew, so its tasks' urgency: a household's day is allotted at its review (a village's: below)
-      if (type === 'household') changed.add(`${type}:${id}`);
+      // what the review posts is slotted into the day as it stands, and what its stores or windows made more urgent is slotted again
+      // (VB-1854); the day is weighed whole at the morning and at 14:00 (VB-1758: it was allotted whole at each review)
+      if (type === 'household') rewoke.push(id);
       return plan;
     };
     const takeDown = (type, id) => {
@@ -199,8 +208,8 @@ VB['sim/jobs'] = (() => {
         if (kind === null || routineAsks(plan, kind)) ASK.village[i][1](st, v, v, c, put, undefined);
       }
       takeDown('village', v.id);
-      // Its households' days are allotted anew when its tasks change: one posted or taken down is noted where it is (post, sweep). Its
-      // review alone changes nobody's day (VB-1554; design.md section 7, The day's work: "when its tasks or its village's change").
+      // A task it posts is slotted into its households' days (post), one taken down leaves them (sweep); its review alone changes
+      // nobody's day (VB-1554).
     }
     // ---- the island: plots, and empty farms being restored, every review hour; and a farm's land project that has ended (given up,
     // or contested away, sim/stakes) takes its task down at once, its hands freed, whatever the holder's planning day ----
@@ -214,7 +223,7 @@ VB['sim/jobs'] = (() => {
       }
     }
     // each morning, and again in the afternoon when its urgencies change (MATCH.day.afternoon; VB-1546), every household's day is
-    // allotted; in the day, those whose tasks or whose village's changed, or that were reviewed
+    // allotted; in the day, what was posted is slotted in (VB-1758)
     if (c.hour === WORK[0] - 1 || c.hour === MATCH.day.afternoon || everyone)
       for (const id of st.liveHouseholds) changed.add(`household:${id}`);
     allotNoted(st, c);
@@ -229,6 +238,7 @@ VB['sim/jobs'] = (() => {
     let kind = null,
       own = null;
     changed = new Set();
+    arrived = [];
     const put = (key, site, extra, k = kind, owner = own) => {
       post(st, key, k, owner, site, extra);
     };

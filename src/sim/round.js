@@ -7,7 +7,8 @@ VB['sim/round'] = (() => {
   const Customs = VB['sim/customs'];
   const Crowding = VB['sim/crowding'];
   const { cal, DAY, HUNGER, MARRIAGE, ASK } = VB['sim/rules'];
-  const { log, age, spouseOf, settlementIdOf, practice, spokesmanOf, personEvent, fullName } = VB['sim/records'];
+  const { log, age, spouseOf, settlementIdOf, practice, spokesmanOf, personEvent, fullName, unplanned } =
+    VB['sim/records'];
   const { countDemand, refreshRoles } = VB['sim/heirs'];
   const { kinOk, poolFor, sideScore, matchRules, wishedMatches, matchBar, askerOf, askedOf } = VB['sim/matching'];
   const { startPlots } = VB['sim/allotment'];
@@ -18,7 +19,7 @@ VB['sim/round'] = (() => {
   const { callFilling } = VB['sim/help'];
   const { refreshStanding } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
-  const { chooseWishes, wishOf } = VB['sim/wishes'];
+  const { chooseWishes, wishOf, authored } = VB['sim/wishes'];
   const { heldBy, conclude, BASES } = VB['sim/offers'];
   const { VILLAGE_STEPS } = VB['sim/occasions'];
   const { villagesOfStep } = VB['sim/meetings'];
@@ -182,12 +183,14 @@ VB['sim/round'] = (() => {
   }
   // Pawn id, refused by `not` on day d of the round, asks anew that evening through its spokesman, due the next day (VB-692): by the
   // asking's rule for one pawn (sim/asking's askMatch), the one who refused excepted. Not on the last day (no next day), and not for
-  // the played pawn or where it speaks for the one refused (the player asks by the offer verb).
+  // an unplanned pawn or where an unplanned one speaks for the one refused, nor for one whose controller authored the partner it
+  // wishes (its controller asks by the offer verb; VB-1776).
   function askAgain(st, id, not, d, now) {
-    const p = st.pawns[id],
-      played = st.player ? st.player.pawn : null;
+    const p = st.pawns[id];
     if (d >= ASK.passes - 1 || !p.alive || spouseOf(st, id) !== null || heldBy(st, id, 'match')) return;
-    if (id === played || spokesmanOf(st, id) === played || (p.ask !== undefined && p.ask !== null)) return;
+    if (unplanned(st, id) || unplanned(st, spokesmanOf(st, id)) || (authored(st, id) && p.wish.partner !== null))
+      return;
+    if (p.ask !== undefined && p.ask !== null) return;
     askMatch(st, id, Math.floor(now / DAY) * DAY + DAY + 12, { not });
   }
   // A village's round (VB-277, VB-693; design.md, A village's round): its alderman calls its households to fill its store; the played pawn's wished match
@@ -262,7 +265,7 @@ VB['sim/round'] = (() => {
         seekVisit(st, p.id, rules);
     if (married.length) refreshRoles(st);
   }
-  // A spokesman's match for a member (VB-276; sim/player propose; pawn.proposal, any pawn's): at the round of the man's village, a pair
+  // A spokesman's match for a member (VB-276; sim/player match verb; pawn.proposal, any pawn's): at the round of the man's village, a pair
   // that passes the round's rules (matchBar, as a wish) is offered by the spokesman `by` to the other side's, with the terms its side gives
   // and its own yes given; the others answer as any offer's. One the round passes by is told, and stands for the next round; one whose
   // two are no longer free, or whom `by` no longer speaks for, is dropped.

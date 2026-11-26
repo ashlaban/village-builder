@@ -117,6 +117,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   never married at 45); the spread between households; goodwill; labour by season; the balance properties of `docs/balance/cards.md`;
   and every good's own account, island-wide, a year's and the run's (VB-1684): in and out by reason against the change in stock.
   `node tools/store-flows.js --scenario populous --seeds 7 --years 15 [--rule NAME]`: the village stores' yearly flows (VB-406).
+  `node tools/gate.js [--out FILE] [--base FILE] [--json]` (VB-1774; `docs/testing.md`, The gate): the six runs of a gated task (founders and populous, small, seeds 7, 11, 42, 10 years, side by side, some 10 to 15 minutes), a line a run, and the comparison with `docs/gate/base.json`; exits non-zero when the gate fails.
 - Also: `node tools/gossip.js` (VB-187's experiment: stories against opinion averaging in a reduced scenario; `docs/gossip-experiment.md`), `node
   tools/rules.js` (rule owners; a pawn's death hazard), `node tools/customs.js` (each custom's readers in `src/sim`, by the door or by `practice()`; VB-231), `node tools/writes.js` (each field's writers and readers; dependencies and cycles), `node
   tests/dependencies.js` (no lookups into later modules but command dispatch), `npm run calibrate` (customs; `node tests/calibrate.js natural 2 50` is

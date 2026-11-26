@@ -100,6 +100,7 @@ const hay = (st) => st.plans.households.get(0).chosen;
 {
   const st = world();
   Sim.inhabit(st, 2);
+  Sim.setAuto(st, 2, false); // the player answers for it (VB-1776: on automatic, its pawn's judgement answers at once)
   lean(st, 2, 0, false);
   assert.strictEqual(advice(st, 0, 2, { verb: 'target', args: { store: 'hay', n: 1.5 } }), true);
   assert.strictEqual(st.offers.length, 1, 'the played head’s answer is waited for');
@@ -113,7 +114,7 @@ const hay = (st) => st.plans.households.get(0).chosen;
   const st = world({}, true);
   const plan = st.plans.households.get(0);
   VB['sim/herds'].makeHerd(st, st.households[0], 'cattle'); // the scene: a household with a herd to feed
-  plan.targets.hayWinters = 0.1;
+  require('./lib/season.js').targets(plan).hayWinters = 0.1;
   const t = targetAdvice(st, st.households[0]);
   assert.ok(t && t.store === 'hay' && t.n > 0.1, `the old one advises the custom's hay: ${JSON.stringify(t)}`);
   lean(st, 2, 0, true);
@@ -155,6 +156,28 @@ function matchScene(matchBy) {
       'under the couple the grandparent has no say',
     );
   assert.ok(R.spokesmanOf(st, 5) === 2, 'the head speaks for the grandchild');
+}
+const { twins } = require('./lib/twins.js');
+// VB-1776: on automatic with nothing queued, the played head answers advice at once as unplayed; the played retired advises at the
+// planning day (sim/advice planReviewed) and the played grandchild is advised for, as the same pawns unplayed
+{
+  const [h] = twins(world, 2, (st) => {
+    lean(st, 2, 0, false);
+    advice(st, 0, 2, { verb: 'target', args: { store: 'hay', n: 1.5 } });
+  }, 'the head advised');
+  assert.strictEqual(h.offers.length, 0, 'the played head on automatic answers at once');
+  const scene = () => {
+    const { st, man } = matchScene('heads');
+    if (!askingIn(st, 0).some((e) => e.pawn === man)) enqueue(st, man, st.t);
+    for (let i = 0; i < 6; i++) remember(st, 0, man, 'ale');
+    lean(st, 2, 0, true);
+    return st;
+  };
+  const day = (st) => VB['sim/events'].emit(st, 'planReviewed', { why: 'day', plan: st.plans.households.get(0), c: Sim.cal(st.t) });
+  const [r] = twins(scene, 0, day, 'the retired at the planning day');
+  assert.strictEqual(r.pawns[0].advisedIn, Math.floor(r.t / YEAR), 'the played retired on automatic advises');
+  const [g] = twins(scene, 5, day, 'the grandchild advised for');
+  assert.ok(g.offers.some((o) => o.basis === 'match' && o.wants.woman === 5), 'the played grandchild on automatic is advised for');
 }
 console.log(
   'advice ok: only the retired advise their own head on its verbs; taken by opinion and standing, carried out by the head, a no ' +

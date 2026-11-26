@@ -3,6 +3,7 @@
 // a bold one: the bold one wants fewer fields; a household with no second source wants what it wants today; one good year lets no field
 // go; a field let go leaves the farm, its tile the village's again, and no field id is used twice.
 const VB = require('../src/load.js');
+const { targets: TG } = require('./lib/season.js');
 const { FIELDS, cal } = VB['sim/rules'];
 const Y = VB['sim/yields'], F = VB['sim/fieldplans'], Traits = VB['sim/traits'], { issue } = VB['sim/commands'];
 const { checkState } = require('./lib/invariants.js');
@@ -46,7 +47,7 @@ check(F.fieldToLetGo(st, planA, fa, A, c) === null, 'one good year of fish lets 
 remember(A, years.map((x) => 4 * x));
 VB['sim/seasonal'].reviewTargets(st, planA, A, c);
 const n0 = fa.fields.length, made0 = n0 + (fa.left ? fa.left.gone : 0);
-if (planA.targets.fields < Math.min(n0, alone(A))) {
+if (TG(planA).fields < Math.min(n0, alone(A))) {
   const fd = F.fieldToLetGo(st, planA, fa, A, c);
   check(fd !== null, 'the freed field is chosen');
   if (fd) {
@@ -57,7 +58,7 @@ if (planA.targets.fields < Math.min(n0, alone(A))) {
     check(fa.fields.length + fa.left.gone === made0, 'the fields made are counted');
     check(F.fieldToLetGo(st, planA, fa, A, c) === null, 'a second field the same year');
   }
-} else check(false, `no field freed: wants ${planA.targets.fields} of ${n0}`);
+} else check(false, `no field freed: wants ${TG(planA).fields} of ${n0}`);
 // a field with a crop is not let go
 const sown = fb.fields[0];
 sown.stage = 'growing';

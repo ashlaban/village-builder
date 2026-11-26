@@ -4,6 +4,7 @@
 // and bog iron until slice 6 (VB-185), so a household digs those in its slack, and only up to DIG.stock loads of each. Peat is fuel (VB-367):
 // cut in summer into the peat stack, where it dries, and burnt in place of wood (sim/hunger warmHouse); it never grows back.
 VB['sim/dig'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { YEAR_DAYS, DAY, PEAT, cal } = VB['sim/rules'];
   const { DEPOSIT, ENDLESS } = VB['world/geology'];
   const { bfs } = VB['sim/hex'],
@@ -64,7 +65,8 @@ VB['sim/dig'] = (() => {
     const c = cal(st.t),
       plan = st.plans.households.get(hh.id);
     if (c.season !== 1 || !plan) return 0;
-    const short = plan.targets.wood[1] - (hh.wood - Stores.reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0));
+    const short =
+      targetOf(plan, 'wood').seasons[1] - (hh.wood - Stores.reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0));
     return short > 1e-9 ? Math.ceil(short / (PEAT.worth * st.ECON.woodPerTrip)) : 0;
   }
   // The goods the household still wants, below its head's target for each (VB-698): clay and bog iron while it holds fewer loads (by
@@ -132,7 +134,6 @@ VB['sim/dig'] = (() => {
   const KIND = {
     verb: 'Digging',
     go: 'Going to dig',
-    back: 'Carrying the load home',
     name: 'Dig clay, bog iron or peat',
     at: ['bog'],
     needs: [],
@@ -142,23 +143,19 @@ VB['sim/dig'] = (() => {
     hours: DIG.hours,
     hands: 1,
     type: 'upkeep',
-    carry: 'basket',
-    to: 'door',
     spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.4, st.w.hy[j.site] + a.oy * 0.4],
     // peat weighs the pile's shortfall of its goal, as the firewood does, but never less than the upkeep's
     urgency: (st, j) => {
       if (j.good !== 'peat') return DIG.urgency;
       const hh = st.households[j.farm.household],
-        goal = st.plans.households.get(hh.id).targets.wood[1],
+        goal = targetOf(st.plans.households.get(hh.id), 'wood').seasons[1],
         free = hh.wood - Stores.reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
       return Math.max(DIG.urgency, (goal - free) / goal);
     },
-    // the load: the tile falls by one, the store rises by what it gave (none if the tile was spent meanwhile, or the stock is full); a trip
-    // of peat brings ECON.woodPerTrip units, as a firewood trip does
-    deliver: (st, j, hh) => {
-      if (wants(st, hh, j.good) && digLoad(st, j.site)) {
-        Stores.dug(st, hh, j.good, j.good === 'peat' ? st.ECON.woodPerTrip : 1);
-      }
+    // the load, dug as the work ends (VB-1748): the tile falls by one, and the basket holds what it gave (none if the tile was spent
+    // meanwhile, or the stock is full); a trip of peat brings ECON.woodPerTrip units, as a firewood trip does
+    make: (st, a, j, frac, hh) => {
+      a.load = wants(st, hh, j.good) && digLoad(st, j.site) ? (j.good === 'peat' ? st.ECON.woodPerTrip : 1) : 0;
     },
     // the household's digging ground: the nearest tile within reach of the good it holds fewest loads of, while it wants one
     available: (st, hh, f, c, post) => {
@@ -166,5 +163,14 @@ VB['sim/dig'] = (() => {
       if (at) post(`dig:h${hh.id}:${at.tile}`, at.tile, { farm: f, good: at.good });
     },
   };
+  // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
+  VB['sim/methods'].trip(KIND, 'dig', {
+    look: 'basket',
+    words: 'Carrying the load home',
+    // home with the basket: its load into the store
+    deliver: (st, j, hh, f, a) => {
+      if (a.load > 0) Stores.dug(st, hh, j.good, a.load);
+    },
+  });
   return { DIG, KIND, GOODS, DUG, goodOf, left, digLoad, mayDig, wants, digSite };
 })();

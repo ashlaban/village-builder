@@ -79,7 +79,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
 {
   const s = state(), w = s.w;
   Sim.advance(s, WORK[0] + DAY - (s.t % DAY) + 3); // the next day, 9:00
-  const a = s.agents[s.living.find((id) => s.agents[id].leg && s.agents[id].leg.kind === 'wait' && !s.agents[id].side)];
+  const a = s.agents[s.living.find((id) => s.agents[id].leg && s.agents[id].leg.kind === 'wait' && !s.agents[id].mind)];
   const from = VB['sim/pose'].tileAt(s, ...VB['sim/pose'].placeOf(s, a));
   let far = -1;
   for (let i = 0; i < w.N; i++) if (!w.water[i] && VB['sim/hex'].hexSteps(w, from, i) === 8) { far = i; break; }
@@ -115,7 +115,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   A.loaded(st);
   assert(j.rate > 0 && j.at === st.tick && st.workDue.includes(j), "an older save's task under work is reckoned and queued at load");
   // a save made before VB-473 held a background task minded (its due set) out of st.workDue: loading queues its end
-  const side = (x) => (KINDS[x.kind].attention || 'full') === 'background' && x.rate > 0;
+  const side = (x) => !!KINDS[x.kind].mind && x.rate > 0;
   for (let k = 0; k < 20 * DAY * TICKS && ![...st.jobs.values()].some(side); k++) Sim.advance(st, 1 / TICKS);
   const bg = [...st.jobs.values()].find(side);
   assert(bg, 'a herd minded at the side');
@@ -125,7 +125,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   assert.deepStrictEqual(checkState(st), [], 'invariants after loading it');
   const back = Sim.load(st.w, old);
   assert.deepStrictEqual(checkState(back), [], 'a save with no legs loads with every pawn in its leg');
-  const walking = back.living.filter((id) => back.agents[id].path && back.agents[id].phase !== 'road');
+  const walking = back.living.filter((id) => back.agents[id].path && back.agents[id].journey !== 'rest');
   assert.ok(walking.every((id) => back.agents[id].leg.kind === 'walk' && back.legDue.includes(id)), 'a walker walks on from where it was saved');
   Sim.advance(back, DAY);
   assert.deepStrictEqual(checkState(back), [], 'and goes on');
@@ -137,14 +137,14 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   const s = state(), { moveTo, refreshRoles } = VB['sim/heirs'];
   const plain = (j) => {
     const K = KINDS[j.kind];
-    return (K.attention || 'full') === 'full' && !K.carry && !K.load && !K.stack && !j.plot;
+    return (K.attention || 'full') === 'full' && VB['sim/doing'].carriesTo(j.kind) === null && !j.plot;
   };
   let a = null;
   for (let k = 0; k < 4 * DAY * TICKS && !a; k++) {
     Sim.advance(s, 1 / TICKS);
     const id = s.living.find((x) => {
       const b = s.agents[x];
-      return b.phase === 'work' && b.job && b.job.due > s.tick + 1 && plain(b.job);
+      return (b.leg && b.leg.kind === 'work') && b.job && b.job.due > s.tick + 1 && plain(b.job);
     });
     if (id !== undefined) a = s.agents[id];
   }
@@ -165,13 +165,13 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   }
   const trip = s.away.find((x) => x.pawn === a.id);
   assert.ok(a.job !== j && s.pawns[a.id].household === to.id, 'the task ended and moved its pawn');
-  assert.ok(trip && (a.phase === 'journey' || a.phase === 'road') && !a.job, `on its journey (phase ${a.phase})`);
+  assert.ok(trip && (a.journey === 'walk' || a.journey === 'rest') && !a.job, `on its journey (phase ${a.leg && a.leg.kind})`);
   assert.deepStrictEqual(checkState(s), [], 'invariants as it sets out');
   for (let k = 0; k < 6 * DAY * TICKS && s.away.includes(trip); k++) {
     Sim.advance(s, 1 / TICKS);
     if (k % TICKS === 0) assert.deepStrictEqual(checkState(s), [], `invariants on the road, step ${k}`);
   }
-  assert.ok(!s.away.includes(trip) && a.phase !== 'journey' && a.phase !== 'road', 'it arrives, and its journey ends');
+  assert.ok(!s.away.includes(trip) && a.journey !== 'walk' && a.journey !== 'rest', 'it arrives, and its journey ends');
   assert.strictEqual(VB['sim/pose'].tileAt(s, ...VB['sim/pose'].placeOf(s, a)) >= 0 && s.pawns[a.id].household, to.id, 'a member of its new home');
   assert.deepStrictEqual(checkState(s), [], 'invariants after the arrival');
   console.log(`legs: a completion set pawn ${a.id} out (${j.kind}); it arrived`);

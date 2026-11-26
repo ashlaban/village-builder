@@ -45,14 +45,14 @@ VB['sim/fish'] = (() => {
     return runsDown(w, i) ? Math.min(1, w.fish[i] + FISH.recover * (today(st) - w.fishDay[i])) : 1;
   }
   // A trip's catch at water tile i, in rations: FISH.trip times its stock; the stock falls by FISH.take (not the sea's nor a large lake's).
-  function landCatch(st, i) {
+  function landCatch(st, i, frac = 1) {
     const w = st.w,
       s = stock(st, i);
     if (runsDown(w, i)) {
-      w.fish[i] = Math.max(0, s - FISH.take);
+      w.fish[i] = Math.max(0, s - FISH.take * frac);
       w.fishDay[i] = today(st);
     }
-    return FISH.trip * s;
+    return FISH.trip * s * frac;
   }
   // The fishing ground of a house: the nearest bank (walkable land, not a river, next to water) within FISH.reach walking steps whose
   // richest neighbouring water holds at least FISH.least; ties by the search's order. {shore, water}, or null.

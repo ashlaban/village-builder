@@ -78,10 +78,10 @@ function kindDetails(k, K) {
           ? `Up to ${K.hands} hands at once.`
           : '',
       K.window ? `From ${K.window.from}:00.` : '',
-      K.stages ? `When the field is ${K.stages.join(' or ')}.` : '',
+      VB['sim/kinds'].ASK.stages[k] ? `When the field is ${VB['sim/kinds'].ASK.stages[k].join(' or ')}.` : '',
       K.minAge ? `From the age of ${K.minAge}.` : '',
       K.craft ? `A craft: ${K.craft}.` : '',
-      K.attention === 'background' ? 'Done at the side of other work.' : '',
+      K.mind ? 'Done at the side of other work.' : '',
       K.together ? 'Worked by all together, on a work day.' : '',
     ];
   return d.filter(Boolean).join(' ');

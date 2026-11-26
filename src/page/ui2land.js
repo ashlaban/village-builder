@@ -79,12 +79,13 @@ function hudMoving(hh, f) {
   if (herds.length) parts.push(herds.length === 1 ? 'a herd' : `${herds.length} herds`);
   const P = hudPlanned(),
     t = P && P.tasks.find((q) => q.kind === 'farmstead'),
-    e = t ? hudTaskEntry(Sim.agenda(st), t) : null,
+    e = t ? hudTaskEntry(Sim.agenda(st, st.player.pawn), t) : null,
     frost = e && e.deadline ? e.deadline : null;
   return { tile, parts, frost, lying: lying.length };
 }
 // The windows that press with no task of the plan for them (Sim.planGaps, VB-1650).
-const hudGaps = () => (Sim.planGaps && HUD_CHAIN ? (Sim.planGaps(st) || []).filter((g) => HUD_CHAIN[g.chain]) : []);
+const hudGaps = () =>
+  Sim.planGaps && HUD_CHAIN ? (Sim.planGaps(st, st.player.pawn) || []).filter((g) => HUD_CHAIN[g.goal]) : [];
 // A field's pin: the icon of what it waits for, a number of days where one counts (to ripe, or left to sow), and how pressing it is.
 // The words are the tile's callout (fieldLine), a tap away.
 function fieldPin(fd) {
@@ -214,7 +215,7 @@ function hudCall(i, id, hh, f) {
       sub = `The farmstead is placed: its shelter is staked here, and stands once its timber is carried and it is raised. ${sub}`;
     if (camp === 'camp' && !buildTasked())
       acts += `<button type="button" class="u2-act go" data-tab="build">${actIcon('build')} Build…<small>The build menu</small></button>`;
-    const FV = camp ? null : Sim.farmView(st, f.id);
+    const FV = camp ? null : Sim.farmView(st, f.id, st.player ? st.player.pawn : null);
     if (FV) {
       if (FV.rung !== 'camp') title = `${f.name}: ${ladderOf(FV.rung).name.toLowerCase()}`;
       const now = ladderBuilding(FV);
@@ -224,7 +225,7 @@ function hudCall(i, id, hh, f) {
         `<button type="button" class="u2-chip up" data-hud="uptoggle" aria-pressed="${!!hud.up}">${actIcon('build')} Build up…</button>` +
         (hud.up ? `<div class="u2-ladder">${ladderHTML(f)}</div>` : '');
     }
-    acts += hudRoom(hh, f, FV) + houseWood(camp ? null : Sim.fireView(st));
+    acts += hudRoom(hh, f, FV) + houseWood(camp ? null : Sim.fireView(st, st.player.pawn));
     acts +=
       `<p class="u2-legend">${hudGauges(hh)}</p>` +
       '<div class="u2-row2"><button type="button" class="u2-chip" data-tab="stores">Stores</button>' +
@@ -245,7 +246,7 @@ function hudCall(i, id, hh, f) {
           ? 'Marked for the next hay meadow.'
           : waterLines(i)[0] || '';
   }
-  const A = Sim.agenda(st);
+  const A = Sim.agenda(st, st.player.pawn);
   const P = hudPlanned();
   jobs.slice(0, 3).forEach((o, n) => {
     const e = hudEntry(A, o.target),
@@ -313,7 +314,9 @@ function hudMarks(id, hh, f) {
     plan =
       hudAils().length +
       JSON.stringify(hudGaps()) +
-      st.player.queue.map((q) => q.target).join() +
+      Sim.controlOf(st, st.player.pawn)
+        .queue.map((q) => q.target)
+        .join() +
       JSON.stringify((hudPlanned() || {}).tasks || 0),
     key = [
       Math.floor(st.t),
@@ -355,7 +358,7 @@ function hudMarks(id, hh, f) {
       });
   // the plan's pins: each queued job at its tile, its place in the queue at one shoulder and the days until it is done at the other;
   // a tile shows one pin, the plan's before the field's
-  const A = Sim.agenda(st),
+  const A = Sim.agenda(st, st.player.pawn),
     planned = new Map();
   const P = hudPlanned(),
     list =
@@ -386,13 +389,13 @@ function hudMarks(id, hh, f) {
         id: `gap${g.tile}`,
         tile: g.tile,
         cls: 'u2-pin press2 gap',
-        html: hudPin(HUD_CHAIN[g.chain].icon(), g.days),
+        html: hudPin(HUD_CHAIN[g.goal].icon(), g.days),
         why: `Pressing, and nothing in the plan sees to it: ${hudDays(g.days)} left (the number) until ${g.deadline.what}.`,
       });
   for (let k = marks.length - 1; k >= 0; k--) if (planned.has(marks[k].tile)) marks.splice(k, 1);
   marks.push(...planned.values());
   const F = fireWarn(),
-    FV = hudCamp(f) ? null : Sim.farmView(st, f.id);
+    FV = hudCamp(f) ? null : Sim.farmView(st, f.id, st.player ? st.player.pawn : null);
   if (FV && FV.rung !== 'camp' && f.house !== hud.at)
     marks.push({
       id: 'up',

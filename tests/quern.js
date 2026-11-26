@@ -16,7 +16,7 @@ const { QUERN } = Q;
 check(QUERN.years === 20 && QUERN.renewYears === 2 && Goods.kindRow('quern', 'granite').grit === 0.8 && QUERN.perHour === 4 && QUERN.flourDays === 10 && QUERN.hewHours === 12,
   'a quern lasts 20 years, wanted 2 before; granite 0.8; 4 grain an hour; 10 days of flour; 12 hours to hew');
 check(ECON.unground === 1.25 && near(FOODS.grain.worth, 0.8) && FOODS.flour.worth === 1 && FOODS.flour.source === 'grain', 'grain 1.25 a ration unground; flour 1:1, one source with grain');
-check(KINDS.grind && KINDS.grind.inside && KINDS.grind.type === 'household' && KINDS.hewQuern && KINDS.hewQuern.hours === 12, 'the two kinds');
+check(KINDS.grind && KINDS.grind.methods[0].steps.some((s) => s.inside) && KINDS.grind.type === 'household' && KINDS.hewQuern && KINDS.hewQuern.hours === 12, 'the two kinds');
 check(ASK.farmAfterPlans.some((e) => e[0] === 'grind') && ASK.farmAfterPlans.some((e) => e[0] === 'hewQuern'), 'both asked at the farm');
 const pr = (role) => ROLES[role].prio.grind;
 check(pr('wife') === 7 && pr('maid') === 7 && pr('daughter') === 6 && pr('retired') === 3 && pr('farmer') === 1 && pr('son') === 1 && pr('farmhand') === 1,

@@ -19,13 +19,13 @@ VB['sim/clock'] = (() => {
   const { ownRung } = VB['sim/upgrade'];
   const { placeByDoor, release, dropJob, stepAgents, rest } = VB['sim/agents'],
     { travelling } = VB['sim/pose'],
-    { dropSides } = VB['sim/attention'],
+    { dropMind } = VB['sim/attention'],
     { reckonAll } = VB['sim/work'];
   const { placeOf } = VB['sim/pose'];
   const { feedAway, dayAway } = VB['sim/away'],
     { fetchGoesOn } = VB['sim/journeys'];
   const { refreshJobs, lookForWork } = VB['sim/jobs'],
-    { takeDay, dutyRound, eveningCall } = VB['sim/day'],
+    { takeDay, abed, dutyRound, eveningCall } = VB['sim/day'],
     { ownTime } = VB['sim/pastimes'];
   const { issue, register } = VB['sim/commands'];
   const { playerStep } = VB['sim/player'];
@@ -33,7 +33,7 @@ VB['sim/clock'] = (() => {
   const { talkHour, fadeRelations } = VB['sim/relations'];
   const { outdoors } = VB['sim/encounters'];
   const { dailyLife, dailyDeaths } = VB['sim/lifecycle'];
-  const { meetingStage, MEETING_STAGES, nightCulture, NIGHT_STEPS } = VB['sim/meetings'];
+  const { meetingStage, MEETING_STAGES, MEETING, nightCulture, NIGHT_STEPS } = VB['sim/meetings'];
   const { roundPhase, ROUND_STEPS } = VB['sim/round'];
   const { dueOffers } = VB['sim/offers'];
   const { askingDay } = VB['sim/asking'];
@@ -177,15 +177,15 @@ VB['sim/clock'] = (() => {
         for (const liveId of st.living) {
           const a = st.agents[liveId];
           if (st.pawns[a.id].died) continue;
-          if (a.side) dropSides(st, a); // the herds are minded in the working hours only (VB-136)
-          if (a.phase === 'back') continue; // finish the delivery first
+          if (a.mind) dropMind(st, a); // the herds are minded in the working hours only (VB-136)
+          if (a.load > 0) continue; // finish the delivery first
           if (commanded(st, a.id)) continue; // the player's command says otherwise (VB-169)
           if (a.occasion !== null) continue; // at an occasion until its end (sim/occasions, VB-126)
           if (travelling(a)) continue; // on the road it sleeps where it stopped (VB-287)
           if (fetchGoesOn(st, a)) continue; // a small child fetched to its new home, and its fetcher (sim/journeys, VB-1240)
-          if (a.job && (a.phase === 'go' || a.phase === 'work') && carriedOn(st, a.job)) continue; // a task lived by, finished (VB-1547)
-          release(st, a);
-          if (!a.inside) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
+          if (a.job && carriedOn(st, a.job)) continue; // a task lived by, finished (VB-1547)
+          release(st, a, true); // a trip cut at its work carries its yield home (sim/agents tripHome, VB-1748)
+          if (!a.inside && !(a.load > 0)) issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
         }
       },
     },
@@ -592,7 +592,7 @@ VB['sim/clock'] = (() => {
     // the moving round's from noon of day 11: a village's round a step, then its three island-wide phases from 18:00 (VB-201, VB-277) ----
     {
       every: 'year',
-      at: { season: AUTUMN, sday: 9, hour: 12, tick: [0, MEETING_STAGES] },
+      at: { ...MEETING, tick: [0, MEETING_STAGES] },
       when: cenv,
       owner: 'sim/meetings',
       note: "the meetings: a village's meeting a step, then the cultures' years and the land meeting (VB-278)",
@@ -748,8 +748,8 @@ VB['sim/clock'] = (() => {
     playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
     const c = cal(st.t),
       all = stepAgents(st, c),
-      mine = st.player ? all.filter((a) => !unplanned(st, a.id)) : all,
-      idle = st.away.length ? dayAway(st, mine) : mine; // a lodger works only what its stay names (VB-783)
+      mine = st.controlled && st.controlled.length ? all.filter((a) => !unplanned(st, a.id)) : all, // any controller's pawn (VB-1745)
+      idle = abed(st, st.away.length ? dayAway(st, mine) : mine); // a lodger works only what its stay names (VB-783); the ill keep to bed
     if (idle.length) {
       // each takes the next task of its day (VB-466); those it gave none look at the household's opportunities, whose day is then allotted
       // anew (VB-249), and take again; a hand lent to a neighbour works its tasks first (VB-470)

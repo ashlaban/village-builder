@@ -4,6 +4,7 @@ VB['sim/deaths'] = (() => {
   const { YEAR, YEAR_DAYS, DAY, ILLNESS } = VB['sim/rules'],
     { CROWD } = VB['sim/crowding'];
   const Rules = VB['sim/registry'];
+  const { emit } = VB['sim/events'];
   const Crowding = VB['sim/crowding'];
   Rules.declare({
     id: 'death.hazard',
@@ -80,12 +81,15 @@ VB['sim/deaths'] = (() => {
     }
     if (days !== undefined) {
       p.ill = { cause, from: st.t, until: st.t + days * DAY };
+      emit(st, 'fellIll', { pawn: p.id }); // it keeps from work (sim/fit allotted), its tasks to the pool (sim/day; VB-1758)
       return null;
     }
     if (cause !== null) return cause;
     const base = baseCause((st.t - p.born) / YEAR);
-    if (u < ILLNESS.incidence[base] / YEAR_DAYS)
+    if (u < ILLNESS.incidence[base] / YEAR_DAYS) {
       p.ill = { cause: base, from: st.t, until: st.t + ILLNESS.days[base] * DAY, passes: true };
+      emit(st, 'fellIll', { pawn: p.id });
+    }
     return null;
   }
   return { hazard, CAUSES, COLD, deathRoll, dayOfDeath };

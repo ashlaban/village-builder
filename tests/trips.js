@@ -12,6 +12,8 @@ const { checkState } = require('./lib/invariants.js');
 const { FRESH } = VB['world/water'];
 const { TICKS, DAY, YEAR, HUNGER, TRAVEL, SPEED, cal } = VB['sim/rules'];
 const { KINDS } = VB['sim/kinds'];
+// the water's set-out and its trip's hours: its method's go step's (VB-1821)
+const waterSetOut = (...x) => VB['sim/methods'].says(KINDS.water, 'setOut')(...x), waterTrip = (...x) => VB['sim/methods'].says(KINDS.water, 'trip')(...x);
 const { CART } = VB['sim/carts'];
 const { WATER } = Water;
 const tripHours = (walk) => Water.dayFetch(walk, 1).hours; // one trip by hand
@@ -47,10 +49,10 @@ const farm = (n, steps, carts) => {
 const fetchDay = (n, steps, carts) => {
   const { st, hh, f } = farm(n, steps, carts),
     trips = [],
-    deliver = KINDS.water.deliver;
+    deliver = VB['sim/doing'].said('water').deliver;
   let ticks = 0,
     pace = null;
-  KINDS.water.deliver = (s, j, h, ff, a) => {
+  VB['sim/doing'].said('water').deliver = (s, j, h, ff, a) => {
     trips.push({ cart: j.cart || null, cover: j.cover, pawn: a.id });
     return deliver(s, j, h, ff, a);
   };
@@ -61,10 +63,10 @@ const fetchDay = (n, steps, carts) => {
       const a = st.agents[id];
       if (!a.job || a.job.kind !== 'water') continue;
       ticks++;
-      if (a.job.cart && a.phase === 'go' && a.leg && a.leg.kind === 'walk') pace = a.leg.pace / (SPEED * st.w.HW);
+      if (a.job.cart && (a.job && a.path && !(a.load > 0)) && a.leg && a.leg.kind === 'walk') pace = a.leg.pace / (SPEED * st.w.HW);
     }
   }
-  KINDS.water.deliver = deliver;
+  VB['sim/doing'].said('water').deliver = deliver;
   return { st, hh, f, trips, hours: ticks / TICKS, pace, by: (k) => trips.filter((t) => (k === 'cart') === !!t.cart).length };
 };
 const W = 0.875, // 7 steps of meadow
@@ -83,8 +85,8 @@ check(WATER.hand === 6 && WATER.child === 3 && WATER.cart === 18 && WATER.fill =
   KINDS.water.available(st, hh, f, cal(st.t), (key) => posted.push(key));
   check(posted.length === 1, `one person alone at home: one trip posted (${posted})`);
   const j = { kind: 'water', owner: { type: 'household', id: hh.id }, site: f.water.tile, farm: f, claims: [] };
-  check(KINDS.water.setOut(st, st.agents[hh.holder], j) === 0 && !j.cart && j.cover === WATER.hand, 'which it makes by hand, as six do');
-  check(near(KINDS.water.trip(st, j) + KINDS.water.hours, hand, 1e-9), `in ${hand.toFixed(2)} hours`);
+  check(waterSetOut(st, st.agents[hh.holder], j) === 0 && !j.cart && j.cover === WATER.hand, 'which it makes by hand, as six do');
+  check(near(waterTrip(st, j) + KINDS.water.hours, hand, 1e-9), `in ${hand.toFixed(2)} hours`);
 }
 for (const n of [3, 6]) {
   const r = fetchDay(n, 7, [handCart()]);
@@ -132,7 +134,7 @@ for (const n of [3, 6]) {
   const posted = [];
   KINDS.water.available(st, hh, f, cal(st.t), (key) => posted.push(key));
   check(posted.length === 2 && new Set(posted).size === 2, `seven people with no cart: two trips posted, each a job of its own (${posted})`);
-  KINDS.water.deliver(st, { cover: WATER.hand }, hh, f, null);
+  VB['sim/doing'].said('water').deliver(st, { cover: WATER.hand }, hh, f, null);
   check(hh.waterDay === 1 && hh.waterFor === WATER.hand, `one load in: water for ${hh.waterFor}`);
   hh.wood = 50;
   hh.meals = 0;
@@ -158,7 +160,7 @@ for (const n of [3, 6]) {
   let a = null;
   for (let k = 0; k < 2 * DAY * TICKS && !a; k++) {
     Sim.advance(st, 1 / TICKS);
-    a = hh.members.map((id) => st.agents[id]).find((b) => b.job && b.job.kind === 'water' && b.job.cart && b.phase === 'back') || null;
+    a = hh.members.map((id) => st.agents[id]).find((b) => b.job && b.job.kind === 'water' && b.job.cart && b.load > 0) || null;
   }
   check(a && a.load === TRAVEL.hand, `a hand on its way home with the barrel (${a && a.load})`);
   if (a) {
@@ -177,10 +179,10 @@ for (const n of [3, 6]) {
     a = st.agents[hh.holder],
     p = st.pawns[hh.holder],
     j = { kind: 'water', owner: { type: 'household', id: hh.id }, site: Water.sourceOf(st, f).tile, farm: f, claims: [] };
-  KINDS.water.setOut(st, a, j);
+  waterSetOut(st, a, j);
   check(j.cover === WATER.hand, `a grown hand's trip covers ${j.cover}`);
   p.born = st.t - 10 * YEAR; // a test's write: a child of 10
-  KINDS.water.setOut(st, a, j);
+  waterSetOut(st, a, j);
   check(j.cover === WATER.child, `a child of 10 carries one bucket, for ${j.cover}`);
 }
 if (failed) process.exit(1);

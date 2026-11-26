@@ -36,10 +36,10 @@ for (const h of st.households) {
 }
 // the view, checked to change nothing in st; a village's memo of whether it fishes (sim/drying villageFishes), which the asking of the
 // kinds fills when first read (Sim.opportunities as well), is filled first
-function view() {
+function view(who = st.player ? st.player.pawn : -1) {
   Sim.opportunities(st, id);
   const before = structuredClone(st),
-    r = Sim.agenda(st);
+    r = Sim.agenda(st, who);
   assert(isDeepStrictEqual(before, st), 'the agenda wrote to st');
   return r;
 }
@@ -48,8 +48,8 @@ const work = Sim.opportunities(st, id).filter((o) => o.verb === 'work' && st.job
 const hoes = work.filter((o) => o.kind === 'plow');
 assert(hoes.length >= 2, `two fields to hoe, not ${hoes.length}`);
 Sim.inhabit(st, id);
-for (const o of hoes.slice(0, 2)) assert.strictEqual(Sim.queue(st, { actor: id, verb: 'work', target: o.target }), true);
-assert.strictEqual(Sim.queue(st, { actor: id, verb: 'goHome' }), true);
+for (const o of hoes.slice(0, 2)) assert.strictEqual(Sim.queue(st, st.player.pawn, { actor: id, verb: 'work', target: o.target }), true);
+assert.strictEqual(Sim.queue(st, st.player.pawn, { actor: id, verb: 'goHome' }), true);
 
 const ag = view(), [a, b, home] = ag.queue;
 // two queued jobs end to end, each at the pawn's own estimate with its own hands
@@ -71,11 +71,11 @@ assert(Math.abs(ag.day.queued - (a.hours.mid + a.walk + b.hours.mid + b.walk + h
 // open work not queued, with its deadline: the other fields to hoe, by the barley's window; and its cause
 const queued = new Set([a.key, b.key]);
 assert(ag.open.every((e) => !queued.has(e.key)), 'nothing queued is open');
-assert.strictEqual(Sim.unqueue(st, 1), true); // the second hoeing taken off the queue is open work again
+assert.strictEqual(Sim.unqueue(st, st.player.pawn, 1), true); // the second hoeing taken off the queue is open work again
 const other = view().open.find((e) => e.key === b.key);
 assert(other && other.deadline && other.deadline.t === a.deadline.t && other.verdict === 'in time', 'an open hoeing and its window');
 assert.deepStrictEqual(other.hours, b.hours, 'begun now, its hours as queued');
-assert.strictEqual(Sim.queue(st, { actor: id, verb: 'work', target: b.key }), true);
+assert.strictEqual(Sim.queue(st, st.player.pawn, { actor: id, verb: 'work', target: b.key }), true);
 assert(ag.open.every((e) => 'why' in e && 'barred' in e && e.starts === st.t));
 
 // a field project's step: the steps after it to the sowing, the later ones at the crop's hours (rough), and the verdict of the chain
@@ -88,11 +88,11 @@ assert(T.deadline && T.verdict === 'in time' && T.ends > step.ends && T.ends <= 
 
 // a sowing that cannot end within its window: the field's sowing queued an hour before the end of its window's last day
 const f = st.farmsteads[hh.farmstead], fd = f.fields[0], key = `sow:f${f.id}.${fd.id}`;
-const keep = { t: st.t, queue: st.player.queue, had: st.jobs.get(key) };
+const keep = { t: st.t, queue: Sim.controlOf(st, st.player.pawn).queue, had: st.jobs.get(key) };
 const sow = keep.had || { key, kind: 'sow', site: fd.tile, field: fd, farm: f, owner: { type: 'household', id: hh.id }, claims: [], done: 0 };
 st.jobs.set(key, sow);
-st.player.queue = [];
-Sim.queue(st, { actor: id, verb: 'work', target: key });
+Sim.controlOf(st, st.player.pawn).queue = [];
+Sim.queue(st, st.player.pawn, { actor: id, verb: 'work', target: key });
 st.t = a.deadline.t - 1;
 const late = view().queue[0];
 assert(late.deadline.t === a.deadline.t && late.ends > late.deadline.t && late.verdict === 'late', JSON.stringify(late));
@@ -103,7 +103,7 @@ const tight = view().queue[0];
 assert(tight.ends <= tight.deadline.t && tight.verdict === 'tight', JSON.stringify(tight));
 if (was === undefined) delete sow.hours; else sow.hours = was;
 Object.assign(st, { t: keep.t });
-st.player.queue = keep.queue;
+Sim.controlOf(st, st.player.pawn).queue = keep.queue;
 if (keep.had) st.jobs.set(key, keep.had); else st.jobs.delete(key);
 
 // no simulation module names the view: only the Sim facade reads it
@@ -123,20 +123,24 @@ const alone = () => {
   for (const p of s.pawns) if (p.id !== 0 && p.alive) VB['sim/lifecycle'].killPawn(s, p.id);
   Sim.advance(s, 0.1);
   Sim.inhabit(s, 0);
-  Sim.setAuto(s, false);
+  Sim.setAuto(s, s.player.pawn, false);
   s.jobs.get('clear:f0').hours = 8;
+  // the plow's work left fixed (VB-1758): what the others did of it in the first hours depends on when their days were allotted, and
+  // the estimate's error grows with the work left
+  const plow = s.jobs.get('plow:f0.1');
+  plow.hours = VB['sim/work'].doneOf(s, plow) + 15;
   return s;
 };
 const laid = (s) => {
-  const before = structuredClone(s), r = Sim.agenda(s);
+  const before = structuredClone(s), r = Sim.agenda(s, s.player.pawn);
   assert(isDeepStrictEqual(before, s), 'the agenda wrote to st');
   return r;
 };
 const segAt = (r, t) => r.days.flat().find((g) => t >= g.from && t < g.to);
 const P = alone();
-assert.strictEqual(Sim.plan(P, 'routine', { kinds: ['water', 'wood'] }), true);
-assert.strictEqual(Sim.plan(P, 'sleep', { from: 22, until: 6 }), true);
-for (const key of ['clear:f0', 'plow:f0.1']) assert.strictEqual(Sim.plan(P, 'add', { key }), true);
+assert.strictEqual(Sim.plan(P, P.player.pawn, 'routine', { kinds: ['water', 'wood'] }), true);
+assert.strictEqual(Sim.plan(P, P.player.pawn, 'sleep', { from: 22, until: 6 }), true);
+for (const key of ['clear:f0', 'plow:f0.1']) assert.strictEqual(Sim.plan(P, P.player.pawn, 'add', { key }), true);
 const L = laid(P), d0 = Math.floor(P.t / DAY);
 // three days, each its segments in order and end to end, from now to the third midnight
 assert.strictEqual(L.days.length, 3);
@@ -174,26 +178,26 @@ assert(Math.abs(L.owed[0] - Math.max(0, P.pawns[P.player.pawn].sleep.owed + awak
 
 // with no sleeping hours the work is laid through the night, and the hours owed mount
 const N = alone();
-Sim.plan(N, 'add', { key: 'clear:f0' });
+Sim.plan(N, N.player.pawn, 'add', { key: 'clear:f0' });
 N.jobs.get('clear:f0').hours = 40;
 const LN = laid(N);
 assert(LN.days[1].length === 1 && LN.days[1][0].what === 'task', 'a night worked: the next day a task from midnight to midnight');
 assert(LN.owed[1] > LN.owed[0] && LN.owed[1] > 12, `the hours owed mount: ${LN.owed}`);
 // a command queued by hand goes first; with automatic behaviour on, the plan is not followed
-assert.strictEqual(Sim.queue(N, { actor: 0, verb: 'walkTo', target: N.villages[0].center }), true);
+assert.strictEqual(Sim.queue(N, N.player.pawn, { actor: 0, verb: 'walkTo', target: N.villages[0].center }), true);
 assert.strictEqual(laid(N).days[0][0].what, 'queue');
-Sim.setAuto(N, true);
+Sim.setAuto(N, N.player.pawn, true);
 assert(laid(N).days.flat().every((g) => g.what === 'queue' || g.what === 'free'), 'not followed: queue and free');
 
 // VB-1649: a plant task laid step by step: on the project's tile its clearing (posted), then its breaking, hoeing and sowing (not posted:
 // rough, at the step's and the crop's hours), the hoeing and the sowing not before the window opens; its entry the hours of all steps
 // left, ending at the sowing's end, the barley window its deadline and the chain's verdict; on a broken field the hoeing and the sowing
 const G = alone(), gsite = G.jobs.get('clear:f0').site, gfield = G.farmsteads[0].fields[0];
-assert.strictEqual(Sim.plan(G, 'add', { plant: gsite }), true);
-assert.strictEqual(Sim.plan(G, 'add', { plant: gfield.tile }), true);
+assert.strictEqual(Sim.plan(G, G.player.pawn, 'add', { plant: gsite }), true);
+assert.strictEqual(Sim.plan(G, G.player.pawn, 'add', { plant: gfield.tile }), true);
 const LG = laid(G), [PA, PB] = LG.plan, CB = VB['sim/crops'].CROPS.barley.sow;
 assert.deepStrictEqual(PA.steps.map((x) => [x.kind, x.rough]), [['clear', false], ['break', true], ['plow', true], ['sow', true]]);
-assert.deepStrictEqual([PA.kind, PA.plant, PA.step, PA.stands, PA.rough, PA.key], ['plant', gsite, 'clear', true, true, 'clear:f0']);
+assert.deepStrictEqual([PA.kind, PA.site, PA.step, PA.stands, PA.rough, PA.key], ['plant', gsite, 'clear', true, true, 'clear:f0']);
 assert(Math.abs(PA.hours.mid - PA.steps.reduce((n, x) => n + x.hours.mid, 0)) < 1e-9, 'the hours of all steps left');
 assert.strictEqual(PA.deadline.t, (CB[0] * VB['sim/rules'].SEASON_DAYS + CB[2]) * DAY + WORK[1], 'the barley window its deadline');
 assert(/barley sowing/.test(PA.deadline.what) && PA.verdict === 'in time' && PA.starts === G.t && PA.ends > PA.starts + PA.hours.mid, JSON.stringify(PA));
@@ -204,7 +208,7 @@ assert.deepStrictEqual([...new Set(gseq)], [`${gsite}:clear`, `${gsite}:break`, 
 assert(LG.days.flat().some((g) => g.kind === 'break' && g.key === null), 'a step not posted is laid with no key');
 // a plain task by key that is a step of the project is as it was: its own job, and `then` to the sowing
 const H = alone();
-Sim.plan(H, 'add', { key: 'clear:f0' });
+Sim.plan(H, H.player.pawn, 'add', { key: 'clear:f0' });
 const PH = laid(H).plan[0];
 assert(PH.key === 'clear:f0' && PH.kind === 'clear' && !('steps' in PH) && PH.then && PH.then.steps.map((x) => x.kind).join() === 'break,plow,sow', JSON.stringify(PH));
 
@@ -219,24 +223,24 @@ assert(PH.key === 'clear:f0' && PH.kind === 'clear' && !('steps' in PH) && PH.th
   for (const p of K.pawns) if (p.id !== 0 && p.alive) VB['sim/lifecycle'].killPawn(K, p.id);
   Sim.advance(K, 0.1);
   Sim.inhabit(K, 0);
-  Sim.setAuto(K, false);
+  Sim.setAuto(K, K.player.pawn, false);
   const { SEASON_DAYS } = VB['sim/rules'], { MOW_LAST } = VB['sim/meadows'], m = K.farmsteads[0].meadows[0], fd = K.farmsteads[0].fields[1];
   const today = Math.floor(K.t / DAY);
   fd.stage = 'growing';
   fd.sown = today - VB['sim/crops'].CROPS[fd.crop].ripe + 2; // ripe in two days
   const gaps = () => {
-    const before = structuredClone(K), r = Sim.planGaps(K);
+    const before = structuredClone(K), r = Sim.planGaps(K, K.player.pawn);
     assert(isDeepStrictEqual(before, K), 'planGaps wrote to st');
     return r;
   };
   const g = gaps().find((x) => x.tile === fd.tile);
-  assert(g && g.chain === 'harvest' && g.deadline.what === 'the frost' && g.days > 2, JSON.stringify(g));
-  assert.strictEqual(Sim.plan(K, 'add', { hay: m.tile }), true);
-  assert.strictEqual(Sim.plan(K, 'add', { harvest: fd.tile }), true);
+  assert(g && g.goal === 'harvest' && g.deadline.what === 'the frost' && g.days > 2, JSON.stringify(g));
+  assert.strictEqual(Sim.plan(K, K.player.pawn, 'add', { hay: m.tile }), true);
+  assert.strictEqual(Sim.plan(K, K.player.pawn, 'add', { harvest: fd.tile }), true);
   assert(!gaps().some((x) => x.tile === fd.tile), 'gone once planned');
   const LK = laid(K), [HA, HR] = LK.plan, open = (SEASON_DAYS * DAY) + WORK[0];
   assert.deepStrictEqual(HA.steps.map((x) => [x.kind, x.rough]), [['mow', true], ['hay', true]], JSON.stringify(HA.steps));
-  assert.deepStrictEqual([HA.kind, HA.hay, HA.step, HA.stands, HA.rough], ['hay', m.tile, 'mow', false, true]);
+  assert.deepStrictEqual([HA.kind, HA.site, HA.step, HA.stands, HA.rough], ['hay', m.tile, 'mow', false, true]);
   assert(HA.deadline.t === (2 * SEASON_DAYS + MOW_LAST) * DAY + WORK[1] && HA.deadline.what === 'the end of haymaking', JSON.stringify(HA.deadline));
   assert(HA.starts >= open && HA.ends > HA.starts && HA.verdict === 'in time', JSON.stringify(HA));
   assert(Math.abs(HA.hours.mid - HA.steps.reduce((n, x) => n + x.hours.mid, 0)) < 1e-9, 'the hours of all steps left');
@@ -247,13 +251,43 @@ assert(PH.key === 'clear:f0' && PH.kind === 'clear' && !('steps' in PH) && PH.th
   assert(seq.length && seq.every((k) => k === 'reap' || k === 'haul') && seq[0] === 'reap', `the reaping laid first in the three days, the mowing not before summer: ${seq}`);
 }
 
+// VB-1746: an unplayed pawn's agenda, gaps and build menu, through the keyed calls, as the played pawn's: twin states, the farmer played
+// in one and not in the other (no st.player there), the same plan; then a command queued for it by hand goes first in both.
+{
+  const twin = (play) => {
+    const s = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 });
+    s.naturalDeaths = false;
+    Sim.advance(s, 3);
+    for (const p of s.pawns) if (p.id !== 0 && p.alive) VB['sim/lifecycle'].killPawn(s, p.id);
+    Sim.advance(s, 0.1);
+    if (play) Sim.inhabit(s, 0);
+    assert.strictEqual(Sim.setAuto(s, 0, false), true);
+    assert.strictEqual(Sim.plan(s, 0, 'routine', { kinds: ['water', 'wood'] }), true);
+    assert.strictEqual(Sim.plan(s, 0, 'sleep', { from: 22, until: 6 }), true);
+    for (const key of ['clear:f0', 'plow:f0.1']) assert.strictEqual(Sim.plan(s, 0, 'add', { key }), true);
+    return s;
+  };
+  const U = twin(false), Y = twin(true), keyed = (s) => {
+    const before = structuredClone(s), r = { agenda: Sim.agenda(s, 0), gaps: Sim.planGaps(s, 0), menu: Sim.buildMenu(s, 0) };
+    assert(isDeepStrictEqual(before, s), 'the keyed views wrote to st');
+    return r;
+  };
+  assert(!U.player && VB['sim/steps'].pawnPlan(U, 0).tasks.length === 2, 'the unplayed pawn holds its plan, with no player');
+  const u = keyed(U), y = keyed(Y);
+  assert(u.agenda && u.agenda.days.length === 3 && u.agenda.plan.length === 2, 'its plan laid into days');
+  assert.deepStrictEqual(u, y, "the same agenda, gaps and menu as the played pawn's");
+  for (const s of [U, Y]) assert.strictEqual(Sim.queue(s, 0, { actor: 0, verb: 'walkTo', target: s.villages[0].center }), true);
+  assert.strictEqual(Sim.agenda(U, 0).days[0][0].what, 'queue', 'its hand command first');
+  assert.deepStrictEqual(Sim.agenda(U, 0), Sim.agenda(Y, 0), "and the same as the played pawn's");
+}
+
 // the layout and the feeder agree: what the pawn did, hour by hour over the three days (sampled each tenth), against what `days` said
 // at the start: the same act (sleep, routine of a kind, a task by its key, free), but within the estimate's error of a join
 const TOL = 3, joins = L.days.flat().slice(1).map((g) => g.from);
 let n = 0, same = 0, worst = 0;
 while (P.t < (d0 + 3) * DAY - 0.05) {
   Sim.advance(P, 0.1);
-  const q = P.player.queue[0], mark = q && q.plan,
+  const q = Sim.controlOf(P, P.player.pawn).queue[0], mark = q && q.plan,
     did = mark ? `${mark.from}:${mark.from === 'task' ? mark.key : (mark.kind ?? '')}` : q ? 'queue:' : 'free:',
     g = segAt(L, P.t - 0.05),
     said = `${g.what}:${g.what === 'task' ? g.key : (g.kind ?? '')}`;

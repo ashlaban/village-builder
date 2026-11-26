@@ -52,7 +52,7 @@ const roll = (st, f) => {
   assert(Sim.stakedBooths(st).includes(f.house), 'the page reads it being raised on the house tile');
   assert(B.roofless(st, hh), 'under the open sky until it stands');
   assert.strictEqual(rungOf(st, f), 'camp');
-  assert.strictEqual(Sim.farmView(st, f.id).building.what, 'shelter');
+  assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).building.what, 'shelter');
   sound(st, 'settled');
   let stood = null,
     staged = false;

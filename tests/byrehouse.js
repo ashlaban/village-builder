@@ -10,7 +10,7 @@ const { tinyWorld, tinyState } = require('./lib/tiny.js'),
   { checkState } = require('./lib/invariants.js');
 const { projectsOf } = VB['sim/projects'],
   { OUTBUILDINGS } = VB['sim/ladder'],
-  { chainSteps } = VB['sim/planchains'],
+  { goalSteps: chainSteps } = VB['sim/kinds'],
   { BUILD, HERD, DAY } = VB['sim/rules'],
   { herdsOf } = VB['sim/herds'],
   { byreDay } = VB['sim/byre'],
@@ -69,13 +69,13 @@ const unbuild = (f) => (f.byre = null);
   const st = fresh();
   Sim.advance(st, 3);
   Sim.inhabit(st, 0);
-  Sim.setAuto(st, false);
-  assert.strictEqual(Sim.plan(st, 'sleep', { from: 21, until: 6 }), true);
+  Sim.setAuto(st, st.player.pawn, false);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'sleep', { from: 21, until: 6 }), true);
   const hh = st.households[st.pawns[0].household],
     f = st.farmsteads[hh.farmstead];
   for (const p of projectsOf(st, 'household', hh.id))
     VB['sim/commands'].issue(st, { actor: 0, verb: 'dropProject', target: hh.id, args: { id: p.id }, source: 'player' });
-  const byreOf = () => Sim.farmView(st, f.id).outbuildings.find((o) => o.what === 'byre');
+  const byreOf = () => Sim.farmView(st, f.id, st.player && st.player.pawn).outbuildings.find((o) => o.what === 'byre');
   assert.deepStrictEqual(byreOf(), {
     what: 'byre',
     built: true,
@@ -85,14 +85,14 @@ const unbuild = (f) => (f.byre = null);
     planned: false,
     building: null,
   });
-  assert.match(String(Sim.plan(st, 'add', { outbuilding: f.house, what: 'byre' })), /has a byre/);
+  assert.match(String(Sim.plan(st, st.player.pawn, 'add', { outbuilding: f.house, what: 'byre' })), /has a byre/);
   unbuild(f);
   Sim.advance(st, 2 * DAY);
   assert(!projectsOf(st, 'household', hh.id).some((p) => p.what === 'byre'), 'by hand, not begun by itself');
   assert.deepStrictEqual(byreOf(), { what: 'byre', built: false, needs: OUTBUILDINGS.byre.needs, ok: true, why: null, planned: false, building: null });
   console.log(`  view: ${JSON.stringify(byreOf())}`);
   Stores.put(st, hh, 'timber', 6, 'felling');
-  assert.strictEqual(Sim.plan(st, 'add', { outbuilding: f.house, what: 'byre' }), true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { outbuilding: f.house, what: 'byre' }), true);
   assert.strictEqual(byreOf().planned, true);
   const before = chainSteps(st, hh.id, 'outbuilding', f.house).steps;
   assert.deepStrictEqual(before.map((y) => y.kind), ['timber', 'byrewalls', 'byreroof']);
@@ -108,14 +108,14 @@ const unbuild = (f) => (f.byre = null);
   const back = Sim.load(world(), saved),
     again = Sim.load(world(), saved);
   const run = (s) => {
-    for (let i = 0; i < 80 * 240 && s.player.plan.tasks.some((t) => t.kind === 'outbuilding'); i++) Sim.advance(s, 0.1);
+    for (let i = 0; i < 80 * 240 && VB['sim/steps'].pawnPlan(s, s.player.pawn).tasks.some((t) => t.kind === 'outbuilding'); i++) Sim.advance(s, 0.1);
   };
   run(back);
   run(again);
   assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
   run(st);
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
-  assert.strictEqual(st.player.plan.last.which, 'built', JSON.stringify(st.player.plan.last));
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'built', JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
   assert(f.byre && f.byre.built <= st.t, 'the farm has its byre');
   assert.strictEqual(byreOf().built, true);
   sound(back, 'loaded mid-chain');

@@ -6,6 +6,7 @@
 // (wellHours, wellStone), which the village's well reads too (sim/green). What a head knows before it digs is the ground's band, never
 // the depth: it weighs the band's middle, sets aside the band's most stone, and meets the depth when water is struck.
 VB['sim/wells'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { FRESH, WELL, NO_WELL, BANDS, band, bandMid, bandStone, wellHours, wellStone } = VB['world/water'];
   const { YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
   const { WATER, dayFetch, waterOf, wellDug, siteWater } = VB['sim/water'];
@@ -56,7 +57,8 @@ VB['sim/wells'] = (() => {
   function landFirst(st, hh, f) {
     const plan = st.plans.households.get(hh.id);
     return (
-      (!!plan && !!plan.targets && f.fields.length < plan.targets.fields) || (hh.herds.length > 0 && !f.meadows.length)
+      (!!targetOf(plan, 'fields') && f.fields.length < targetOf(plan, 'fields').level) ||
+      (hh.herds.length > 0 && !f.meadows.length)
     );
   }
   // Whether the head of household hh, holding farm f, means to dig: a well pays, its ground and its plans allow one, its land is

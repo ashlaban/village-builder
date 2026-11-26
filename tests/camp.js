@@ -24,17 +24,17 @@ const seed = (hand = true) => {
 };
 const played = (st) => {
   Sim.inhabit(st, st.households[0].holder);
-  Sim.setAuto(st, false);
+  Sim.setAuto(st, st.player.pawn, false);
   return st;
 };
 // Runs until the farmstead task has left the plan (or `days` pass), noting each wait's kind and each agenda kind seen.
 const run = (st, days = 20) => {
   const waits = new Set(),
     laid = new Set();
-  for (let i = 0; i < days * 240 && st.player.plan.tasks.some((t) => t.kind === 'farmstead'); i++) {
+  for (let i = 0; i < days * 240 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.some((t) => t.kind === 'farmstead'); i++) {
     Sim.advance(st, 0.1);
-    for (const t of Sim.planView(st).tasks) if (t.waits) waits.add(t.waits.why + (t.waits.kind ? `:${t.waits.kind}` : ''));
-    if (i % 10 === 0) for (const g of Sim.agenda(st).days.flat()) if (g.what === 'task') laid.add(g.kind);
+    for (const t of Sim.planView(st, st.player.pawn).tasks) if (t.waits) waits.add(t.waits.why + (t.waits.kind ? `:${t.waits.kind}` : ''));
+    if (i % 10 === 0) for (const g of Sim.agenda(st, st.player.pawn).days.flat()) if (g.what === 'task') laid.add(g.kind);
   }
   return { waits, laid };
 };
@@ -42,7 +42,7 @@ const run = (st, days = 20) => {
 const twoOff = (st) => {
   const f = st.farmsteads[0];
   return [...bfs(st.w, f.house, 2, () => true).dist.keys()].filter(
-    (t) => hexSteps(st.w, f.house, t) === 2 && Sim.placeWhy(st, 'farmstead', t) === null,
+    (t) => hexSteps(st.w, f.house, t) === 2 && Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', t) === null,
   );
 };
 
@@ -75,21 +75,21 @@ const twoOff = (st) => {
   const st = seed(),
     f = st.farmsteads[0],
     w = st.w;
-  assert.strictEqual(Sim.placeWhy(st, 'farmstead', f.house), 'no pawn is played');
-  assert.deepStrictEqual(Sim.buildMenu(st), []);
+  assert.strictEqual(Sim.placeWhy(st, null, 'farmstead', f.house), 'there is no pawn null');
+  assert.deepStrictEqual(Sim.buildMenu(st, -1), [], 'no menu for no pawn');
   played(st);
-  const menu = Sim.buildMenu(st);
+  const menu = Sim.buildMenu(st, st.player.pawn);
   const [{ work }] = menu;
   assert.deepStrictEqual(menu, [{ what: 'farmstead', ok: true, why: null, hours: 12, timber: 2, work }]);
   assert(work > 12, `the whole work with the timber trips: ${work}`);
-  assert.strictEqual(Sim.placeWhy(st, 'farmstead', f.house), null, 'the landing itself');
-  assert.match(String(Sim.placeWhy(st, 'cellar', f.house)), /nothing called cellar/);
-  assert.match(String(Sim.placeWhy(st, 'farmstead', -1)), /no tile -1/);
+  assert.strictEqual(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', f.house), null, 'the landing itself');
+  assert.match(String(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'cellar', f.house)), /nothing called cellar/);
+  assert.match(String(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', -1)), /no tile -1/);
   const [t] = twoOff(st);
   const tried = (fn, re, what) => {
     const undo = fn();
-    assert.match(String(Sim.placeWhy(st, 'farmstead', t)), re, what);
-    assert.match(String(Sim.plan(st, 'add', { farmstead: t })), re, `${what}, refused as a task`);
+    assert.match(String(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', t)), re, what);
+    assert.match(String(Sim.plan(st, st.player.pawn, 'add', { farmstead: t })), re, `${what}, refused as a task`);
     undo();
   };
   tried(() => ((w.water[t] = 1), () => (w.water[t] = 0)), /water/, 'water');
@@ -98,21 +98,21 @@ const twoOff = (st) => {
   tried(() => ((st.owner[t] = 9), () => (st.owner[t] = 0)), /owned or claimed by another/, 'owned by another');
   tried(() => ((w.trees[t] = 5), () => (w.trees[t] = 0)), /trees stand/, 'wooded');
   const far = [...bfs(w, f.house, 6, () => true).dist.keys()].find((u) => hexSteps(w, f.house, u) === LANDING.soilSteps + 1);
-  assert.strictEqual(Sim.placeWhy(st, 'farmstead', far), null, 'no step bound for the played head (VB-1667)');
+  assert.strictEqual(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', far), null, 'no step bound for the played head (VB-1667)');
   // walled in: every way to it blocked (the tiles round it made water; the walkable parts labelled again)
   const ring = [];
   for (let d = 0; d < 6; d++) ring.push(w.nb[t * 6 + d]);
   const near = ring.filter((u) => u >= 0 && u !== f.house && !w.water[u]),
     { invalidateReach } = VB['sim/walking'];
   for (const u of near) (w.water[u] = 1), invalidateReach(w, u);
-  assert.match(String(Sim.placeWhy(st, 'farmstead', t)), /not reachable on foot/, 'walled in');
+  assert.match(String(Sim.placeWhy(st, st.player ? st.player.pawn : null, 'farmstead', t)), /not reachable on foot/, 'walled in');
   for (const u of near) (w.water[u] = 0), invalidateReach(w, u);
-  assert.strictEqual(Sim.plan(st, 'add', { farmstead: t }), true);
-  assert.match(String(Sim.plan(st, 'add', { farmstead: f.house })), /planned already/, 'one at a time');
-  const est = Sim.agenda(st).plan[0].hours.mid; // VB-1658: the menu's work is the plan's estimate (a task at t, here: the same steps)
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: t }), true);
+  assert.match(String(Sim.plan(st, st.player.pawn, 'add', { farmstead: f.house })), /planned already/, 'one at a time');
+  const est = Sim.agenda(st, st.player.pawn).plan[0].hours.mid; // VB-1658: the menu's work is the plan's estimate (a task at t, here: the same steps)
   assert.strictEqual(work, Math.round(est * 10) / 10, `the menu's work and the plan's estimate (${est})`);
-  assert.deepStrictEqual(Sim.buildMenu(st)[0].ok, false);
-  assert.match(Sim.buildMenu(st)[0].why, /planned already/);
+  assert.deepStrictEqual(Sim.buildMenu(st, st.player.pawn)[0].ok, false);
+  assert.match(Sim.buildMenu(st, st.player.pawn)[0].why, /planned already/);
   sound(st, 'refusals');
 }
 // ---- 3. the chain on the landing tile: placed, the timber fetched, the booth raised; the camp over, no cottage begun ----
@@ -122,16 +122,16 @@ const twoOff = (st) => {
     f = st.farmsteads[0],
     land = f.house,
     home = st.herds[hh.herds[0]].home;
-  assert.strictEqual(Sim.plan(st, 'add', { farmstead: land }), true);
-  assert.strictEqual(Sim.plan(st, 'sleep', { from: 21, until: 6 }), true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: land }), true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'sleep', { from: 21, until: 6 }), true);
   const { waits, laid } = run(st);
-  assert.deepStrictEqual(st.player.plan.tasks, [], 'the task has left');
-  assert.strictEqual(st.player.plan.last.which, 'raised', JSON.stringify(st.player.plan.last));
+  assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks, [], 'the task has left');
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'raised', JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
   assert.strictEqual(f.house, land, 'the house stays on the landing');
   assert.strictEqual(st.herds[hh.herds[0]].home, home, 'the herd stays');
   assert.strictEqual(f.camp, false, 'the camp is over');
   assert(f.shelter && f.shelter.built !== null && !st.booths.length, 'the shelter stands on the house tile, no booth beside it');
-  assert.strictEqual(Sim.farmView(st, f.id).rung, 'shelter');
+  assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).rung, 'shelter');
   assert(!roofless(st, hh), 'under the shelter');
   assert.deepStrictEqual(projectsOf(st, 'household', 0), [], 'no cottage begun');
   assert(waits.has('sleep') && waits.has('unposted:timber'), `waits given: ${[...waits]}`);
@@ -151,7 +151,7 @@ const twoOff = (st) => {
   assert(f.water, 'the water found');
   const t = twoOff(st)[0],
     v = st.villages[f.village];
-  assert.strictEqual(Sim.plan(st, 'add', { farmstead: t }), true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: t }), true);
   for (let i = 0; i < 2400 && f.house === land; i++) Sim.advance(st, 0.1);
   assert.strictEqual(f.house, t, 'the house moved to the tile');
   assert(st.used.has(t) && !st.used.has(land), 'the tiles in use');
@@ -164,8 +164,8 @@ const twoOff = (st) => {
   const staked = Sim.stakedBooths(st);
   assert.deepStrictEqual(staked, [t], 'the shelter begun on it');
   assert(roofless(st, hh), 'roofless while staked');
-  const views = Sim.planView(st).tasks;
-  assert.strictEqual(views[0].farmstead, t);
+  const views = Sim.planView(st, st.player.pawn).tasks;
+  assert.strictEqual(views[0].site, t);
   sound(st, 'placed');
   Sim.advance(st, 3);
   const saved = JSON.parse(JSON.stringify(Sim.save(st)));
@@ -176,7 +176,7 @@ const twoOff = (st) => {
   assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
   run(st);
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
-  assert.strictEqual(back.player.plan.last.which, 'raised');
+  assert.strictEqual(VB['sim/steps'].pawnPlan(back, back.player.pawn).last.which, 'raised');
   assert(back.households[0].herds.length && !back.herdsAway, 'the herds driven home');
   for (const id of back.households[0].herds) assert(hexSteps(back.w, back.herds[id].home, t) <= 2, 'the herd grazes by the house');
   assert.strictEqual(back.farmsteads[0].camp, false);
@@ -188,11 +188,11 @@ const twoOff = (st) => {
     hh = st.households[0],
     f = st.farmsteads[0];
   Sim.inhabit(st, hh.holder);
-  Sim.setAuto(st, false);
+  Sim.setAuto(st, st.player.pawn, false);
   Sim.advance(st, 30);
   assert.strictEqual(f.camp, true, 'automatic behaviour off: the camp waits for the player');
   assert.deepStrictEqual(Sim.stakedBooths(st), [], 'nothing placed by its own rule');
-  Sim.setAuto(st, true);
+  Sim.setAuto(st, st.player.pawn, true);
   let placed = null,
     raised = null;
   for (let i = 0; i < 24 * 10 * 30 && !projectsOf(st, 'household', 0).some((p) => p.what === 'cottage'); i++) {

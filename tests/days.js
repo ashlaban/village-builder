@@ -89,4 +89,17 @@ assert.strictEqual(st.obligations[debt].status, 'overdue', "a debt's days stand"
 assert.strictEqual(st.obligations[keep].status, 'lapsed', "the keep's days lapse");
 assert.strictEqual(st.record.slice(n0).filter((e) => /lapsed/.test(e.text || '')).length, 1, 'told once');
 assert.deepStrictEqual(checkState(st).filter((b) => /obligation|days/.test(b)), []);
+// hours booked while the creditor's load is on the road: it is brought in before the pawn goes home (VB-1548)
+{
+  const Days = VB['sim/days'], ag = st.agents[hand], was = [ag.job, ag.load, st.daysToday];
+  st.daysToday = { day: today(), by: { [hand]: [oid, DAYS.hours, 0] } };
+  const e = st.daysToday.by[hand];
+  ag.job = j; ag.load = 1;
+  Days.step(st);
+  assert.strictEqual(e[2], 0, 'a load on the road: no goHome yet');
+  ag.load = 0; ag.job = null;
+  Days.step(st);
+  assert.strictEqual(e[2], 1, 'the load delivered: the hand goes home');
+  [ag.job, ag.load, st.daysToday] = was;
+}
 console.log("days ok: a day called, worked on the creditor's field as others' hours, home at night; a keep lapses, a debt stands");

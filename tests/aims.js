@@ -2,6 +2,7 @@
 // and drops it when the surplus is gone a whole season; a barn halves what the farm loses to spoilage, of grain and of barn hay. On a tiny
 // village.
 const assert = require('assert');
+const { targets: TG, season: SP } = require('./lib/season.js');
 const VB = require('../src/load.js'), Sim = VB.sim;
 const A = VB['sim/aims'], P = VB['sim/plans'], Projects = VB['sim/projects'], Stores = VB['sim/stores'], Traits = VB['sim/traits'];
 const { spoilGrain } = VB['sim/hunger'], { spoilHay } = VB['sim/byre'], { issue } = VB['sim/commands'];
@@ -60,9 +61,9 @@ function surplusState() {
   for (const p of [...Projects.projectsOf(st, 'household', hh.id)]) VB['sim/projectplans'].drop(st, p);
   Stores.put(st, hh, Stores.grainGood('barley'), 5000, 'harvest');
   Stores.put(st, hh, 'wood', 200, 'firewood');
-  hh.hay = plan.targets.hayWinters * VB['sim/herds'].winterNeed(st, hh) + 5;
-  plan.targets.fields = f.fields.length; // lint-allow: owner the test meets the fields' target
-  plan.targets.workable = f.fields.length + 2; // lint-allow: owner and gives hands for more
+  hh.hay = TG(plan).hayWinters * VB['sim/herds'].winterNeed(st, hh) + 5;
+  TG(plan).fields = f.fields.length; // lint-allow: owner the test meets the fields' target
+  TG(plan).workable = f.fields.length + 2; // lint-allow: owner and gives hands for more
   hh.workHours = [c.year * 4 + c.season, 0, 0]; // lint-allow: owner idle all the last season
   delete plan.aim; // lint-allow: owner no look at the surplus yet
   return { st, hh, f, plan, c };

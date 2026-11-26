@@ -9,9 +9,9 @@ function countHour(Sim, st, share, onIdle) {
     const p = st.pawns[a.id];
     if (!p.alive || Sim.age(st, p) < 7 || p.role === 'child') continue;
     const row = (share[p.role] ||= {}), s = (row[SEASONS[c.season]] ||= { working: 0, walking: 0, carrying: 0, idle: 0 });
-    if (a.job && a.phase === 'work') s.working++;
-    else if (a.job && a.phase === 'go') s.walking++;
-    else if (a.job && a.phase === 'back') s.carrying++;
+    if (a.job && (a.leg && a.leg.kind === 'work')) s.working++;
+    else if (a.job && (a.job && a.path && !(a.load > 0))) s.walking++;
+    else if (a.job && a.load > 0) s.carrying++;
     else {
       s.idle++;
       if (onIdle) onIdle(a);
@@ -44,7 +44,7 @@ module.exports = (Sim, st) => {
       if (p.alive && was && a.job && a.job !== was && st.jobs.get(was.key) === was) {
         if (a.job.kind === 'cook' && Sim.cal(st.t).hour >= 14) switches.cook++; else switches.other++;
       }
-      if (a.job && a.phase === 'work') last.set(a.id, a.job); else if (!a.job) last.delete(a.id);
+      if (a.job && (a.leg && a.leg.kind === 'work')) last.set(a.id, a.job); else if (!a.job) last.delete(a.id);
     }
     if (first) { first = false; pawnsSeen = st.agents.filter((a) => st.pawns[a.id].alive && Sim.age(st, st.pawns[a.id]) >= 7 && st.pawns[a.id].role !== 'child').length; }
   }

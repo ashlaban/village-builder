@@ -125,9 +125,9 @@ const QUANTITIES = [
   { id: 'giftGrain', of: 'stay', name: 'a gift\'s grain on its way: on a carrier\'s back, or set aside where it lies until it is fetched', unit: 'rations',
     fields: ['st.away'], kinds: [],
     none: 'nothing is on its way: the gift has come in, or what was left lying went back to its giver\'s store when its fetcher died or left the household (sim/away, VB-291, VB-461)' },
-  { id: 'lying', of: 'tile', name: 'a load lying where its carrier fell', unit: 'its kind\'s loads (rations of sheaves, hay loads, firewood, stone)',
+  { id: 'lying', of: 'tile', name: 'a load lying where its carrier fell, a pile with title: also the goods made where the work is done (VB-1748: the catch, game, gathered food, dug clay, ore and peat, salt, a basket of stone) and a cut trip\'s yield', unit: 'its kind\'s loads (rations of sheaves, fish, meat and wild food, hay loads, firewood, baskets of stone and of dug earth, measures of salt)',
     fields: ['st.lying'], covers: ['st.lyingSeq'], kinds: [], losses: ['sim/lying:frost'],
-    none: 'nothing lies on the road: every load is in hand or home; one left lying is fetched by its owner\'s next hand (the fetch kinds) '
+    none: 'nothing lies on the road: every load is in hand or home; one left lying is fetched by its owner\'s next hand (the fetch kinds; a felled tree\'s timber as timber left lying, firewood) '
       + 'or rots at the autumn frost (sim/lying, VB-611); a cart left standing with its load (household.carts[].at, VB-649) is fetched home with its team '
       + 'by a hand of its household, or is lost at the frost and named (cartGone)' },
   { id: 'trees', of: 'tile', name: 'a tile\'s trees', unit: 'trees', fields: ['w.trees'], kinds: ['fell', 'grub'], covers: ['w.treesMax'],

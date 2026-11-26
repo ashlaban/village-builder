@@ -58,7 +58,8 @@ VB['sim/fit'] = (() => {
     !unplanned(st, p.id) &&
     Days.on(st, p.id) === null &&
     Hands.on(st, p.id) === null &&
-    !Voice.on(st, p.id); // on leave (VB-1555)
+    !Voice.on(st, p.id) && // on leave (VB-1555)
+    p.ill === undefined; // ill (VB-1758: an illness keeps its pawn from work)
   // The stand mask of pawn p (VB-1545): the roles its household lacks today when p is the holder at work, else 0. A pass over the
   // household's members, for a reader outside an allotment (fit); allot makes it once from its own list.
   function standOf(st, p) {
@@ -92,7 +93,7 @@ VB['sim/fit'] = (() => {
   // The matcher's bar besides: a task held at the side, or a task that would take one held out of reach (offerWhy). The player may still
   // order such a one (the verb work checks the side, not the reach): a policy of the matcher, not the evaluation.
   const matchBar = (st, a, j) =>
-    takeBar(st, a, j) || ((a.side || attentionOf(j) !== 'full') && offerWhy(st, a, j)) || null;
+    takeBar(st, a, j) || ((a.mind || attentionOf(j) !== 'full') && offerWhy(st, a, j)) || null;
   // Pawn a's appraisal of posted job j: its bid, a number above 0 (its score, by the hands already at the job), or why it would not
   // bid, a string: the bar's (takeBar by default), 'not their work' or 'not worth the walk'. `stand`: the holder's mask where its caller
   // has it (VB-1545), else 0.
@@ -151,7 +152,7 @@ VB['sim/fit'] = (() => {
     const a = st.agents[id],
       p = st.pawns[id],
       c = cal(st.t);
-    if (!p.alive || a.job || a.phase === 'home' || c.hour < WORK[0] || c.hour >= WORK[1] || age(st, p) < CHILD.from)
+    if (!p.alive || a.job || !!a.homeward || c.hour < WORK[0] || c.hour >= WORK[1] || age(st, p) < CHILD.from)
       return null;
     const rows = explainIdle(st, id).filter((r) => r.reason !== 'taken' && r.reason !== 'not their work');
     if (!rows.length)

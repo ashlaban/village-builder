@@ -114,11 +114,9 @@ VB['sim/textile'] = (() => {
       hands: 1,
       type: 'household',
       craft: 'spinning',
-      attention: 'background',
       yields: true,
       reach: TEXTILE.reach,
       rate: TEXTILE.rate,
-      inside: true,
       rank,
       spot: atHouse(-3, 3),
       urgency: () => TEXTILE.urgency,
@@ -147,7 +145,6 @@ VB['sim/textile'] = (() => {
       hands: 1,
       type: 'household',
       craft: 'weaving',
-      inside: true,
       rank,
       spot: atHouse(3, 3),
       urgency: () => TEXTILE.urgency,
@@ -173,10 +170,13 @@ VB['sim/textile'] = (() => {
       type: 'upkeep',
       craft: 'building',
       project: true,
-      inside: true,
       spot: atHouse(3, 3),
       done: (st, j, hh) => Projects.stepEnds(st, j, hh, loomBuilt),
     },
   };
+  // worked indoors (VB-1820: the work step says it, sim/methods labour; no field of the kind)
+  VB['sim/methods'].labour(KINDS.weave, { inside: true });
+  VB['sim/methods'].labour(KINDS.loom, { inside: true });
+  VB['sim/methods'].mind(KINDS.spin); // spinning minded beside other work, a charge held (VB-1750)
   return { TEXTILE, SPINNERS, KINDS, practice, rank, hasLoom, yarnOf, clothOf, spun, woven, seedLooms };
 })();

@@ -4,12 +4,14 @@
 // Principle (principle "The future is someone's estimate"): what is shown of the future is some pawn's estimate. Nothing is stored here: the estimate is
 // worked out when read, from the task, its hands and the head; the one thing drawn is the lean, plan.head.bias.hours (sim/seasonal).
 VB['sim/estimate'] = (() => {
+  const { atWork } = VB['sim/pose'];
   const { HUNGER, HEALTH, HERD } = VB['sim/rules'],
     { workRate } = VB['sim/roles'];
   const { age, fullName, log, atFarm } = VB['sim/records'];
   const Skills = VB['sim/skills'],
     Traits = VB['sim/traits'];
   const { KINDS } = VB['sim/kinds'];
+  const { says } = VB['sim/methods'];
   const Iron = VB['sim/ironwork'];
   const { doneOf, attentionOf, teamKind } = VB['sim/work'];
   const { hasTeam } = VB['sim/herds'];
@@ -139,7 +141,7 @@ VB['sim/estimate'] = (() => {
       r = reckoned(J.skill),
       { work, f } = workLeft(st, j, r, J.lean);
     if (!hands) {
-      hands = (j.claims || []).filter((h) => st.agents[h].job === j && st.agents[h].phase === 'work');
+      hands = (j.claims || []).filter((h) => st.agents[h].job === j && atWork(st.agents[h]));
       if (!hands.length && id !== null && id !== undefined) hands = [id];
     }
     let rate = 0;
@@ -160,7 +162,7 @@ VB['sim/estimate'] = (() => {
   const rateFor = (st, H, id, j, first) => rateBelieved(st, H.r, id, j, first);
   // For the honesty measure (tools/estimates.js): whether a task is one the measure reads (full attention, not carted), pawn id's work
   // left of it now, and the range it gives on the person-hours the hands of `hours` (a Map of pawn id to hours worked) take for that work.
-  const attended = (j) => attentionOf(j) === 'full' && !KINDS[j.kind].carted;
+  const attended = (j) => attentionOf(j) === 'full' && !says(KINDS[j.kind], 'carted');
   const workOf = (st, id, j) => {
     const J = judgement(st, id);
     return workLeft(st, j, reckoned(J.skill), J.lean).work;

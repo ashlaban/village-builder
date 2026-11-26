@@ -12,7 +12,7 @@ assert(man && women.length && other);
 assert.strictEqual(Sim.inhabit(st, man.id), true);
 const told = () => st.pawns[man.id].events.map((i) => st.record[i]).filter((e) => e.kind === 'wishLapsed');
 const she = women[0];
-assert.strictEqual(Sim.wish(st, 'match', she.id), true);
+assert.strictEqual(Sim.wish(st, st.player.pawn, 'match', she.id), true);
 // the wished partner marries another: the wish is cleared, and the pawn told
 VB['sim/player'].clearMatchWish(st, other.id, she.id);
 assert.strictEqual(Sim.wishesOf(st, man.id).match, null, 'the wish is cleared');
@@ -22,7 +22,7 @@ const from = { ...N.skipFrom(st, null), n: st.record.length - 1 };
 assert.strictEqual(N.skipStop(st, from).why, 'wish', 'the skip stops on it');
 // the round passes a wish by on its rules: a girl too young, told at the round, and the wish stands
 const girl = women.find((p) => p.age < 14) || (() => { const g = women[1]; g.born = st.t - 8 * VB['sim/rules'].YEAR; return g; })();
-assert.strictEqual(Sim.wish(st, 'match', girl.id), true);
+assert.strictEqual(Sim.wish(st, st.player.pawn, 'match', girl.id), true);
 const before = told().length;
 MT.wishedMatches(st, [], 0, MT.matchRules(st), new Set());
 assert.strictEqual(told().length, before + 1, 'the round tells the wish passed by');

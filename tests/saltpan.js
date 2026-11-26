@@ -4,6 +4,7 @@
 // (sim/byre) takes HERD.saltPerRation a ration of meat; the meat it has no salt for is smoked and keeps HERD.smokeDays, not a year.
 // Populous at seed 8 on the small island of tests/lib/probe.js, a spring laid by hand beside a household's house.
 const VB = require('../src/load.js'), Sim = VB.sim, { island } = require('./lib/probe.js'), Geo = VB['gen/geology'], S = VB['sim/saltpan'];
+const trip = require('./lib/trip.js');
 const { KINDS, ASK } = VB['sim/kinds'], { DAY, HERD, FOODS } = VB['sim/rules'], Byre = VB['sim/byre'], L = VB['sim/larder'];
 const Targets = VB['sim/targets'], Goods = VB['sim/goods'];
 const { checkState } = require('./lib/invariants.js');
@@ -12,7 +13,7 @@ const { SALT } = S, { DEPOSIT, ENDLESS } = VB['world/geology'], SEED = 8;
 
 // --- the kind, the good and the food
 const K = KINDS.boilsalt;
-check(K && K.type === 'upkeep' && K.hands === 1 && K.hours === SALT.hours && K.carry && K.to === 'door', 'boilsalt: upkeep, 1 hand, carried home');
+check(K && K.type === 'upkeep' && K.hands === 1 && K.hours === SALT.hours && VB['sim/doing'].lookOf('boilsalt') && VB['sim/doing'].carriesTo('boilsalt') === 'store', 'boilsalt: upkeep, 1 hand, carried home');
 check(ASK.farmAfterPlans.some((e) => e[0] === 'boilsalt'), 'boilsalt is asked at the farm');
 const G = Goods.goodOf('salt');
 check(G.class === 'wares' && G.unit === 'measure' && G.quantum === 10 && G.weight === 1 && G.perish === null && G.keeping, 'salt: a keeping good of the fair, a sack of 10 measures');
@@ -42,14 +43,14 @@ check(VB.count.saltGround === 0, `asked again, the household searched ${VB.count
 // a boiling carried home: the tree felled, the salt in the store through the ledger, the spring as it was
 if (p.length) {
   const trees = w.trees[p[0].fuel], j = { kind: 'boilsalt', site: spring, fuel: p[0].fuel, farm: f, owner: { type: 'household', id: hh.id } };
-  st.t += DAY; const got = K.deliver(st, j, hh, f);
+  st.t += DAY; const got = trip(K, st, j, hh, f);
   check(got === SALT.yield && hh.salt === SALT.yield, `a boiling gives ${hh.salt} measures`);
   check(w.trees[p[0].fuel] < trees, 'the boiling burnt a tree');
   check(w.depositLeft[spring] === ENDLESS, 'the spring flows on');
   const e = hh.ledger[hh.ledger.length - 1];
   check(e.kind === 'saltboil' && e.good === 'salt' && e.n === SALT.yield, `through the ledger: ${JSON.stringify(e)}`);
   check(posts().length === 0, 'at its target the household posts no boiling');
-  check(K.deliver(st, j, hh, f) === 0 && hh.salt === SALT.yield, 'a boiling carried home at the target is not put');
+  check(trip(K, st, j, hh, f) === SALT.yield && hh.salt === 2 * SALT.yield, 'a boiling carried home at the target is put still: the salt in hand is a good (VB-1748)');
 }
 // --- the need term: a measure short of the target is worth the good's worth a measure, a measure beyond it nothing
 { const Rules = VB['sim/registry'], need = (n) => Rules.value(st, 'need', { hh, good: G, n, kept: 0 }), was = hh.salt;

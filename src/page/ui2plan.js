@@ -2,22 +2,22 @@
 // ---- the plan: every day's routine, the sleeping hours and the tasks in order, a row of icons; the words are a tap away ----
 // Planned by hand (Kim, 24 Nov): the settler follows the plan the player lays (Sim.plan, Sim.planView; VB-1646), automatic planning off.
 const HUD_SLEEP = { from: 22, until: 6 };
-const hudPlanned = () => (Sim.planView ? Sim.planView(st) : null);
+const hudPlanned = () => (Sim.planView ? Sim.planView(st, st.player.pawn) : null);
 // The first morning: automatic planning off, the necessities as the day's routine, and the night for sleep.
 function hudBegin() {
   if (!Sim.plan || !st || played() < 0) return;
-  Sim.setAuto(st, false);
-  Sim.plan(st, 'routine', { kinds: HUD_DAILY });
-  Sim.plan(st, 'sleep', HUD_SLEEP);
+  Sim.setAuto(st, st.player.pawn, false);
+  Sim.plan(st, st.player.pawn, 'routine', { kinds: HUD_DAILY });
+  Sim.plan(st, st.player.pawn, 'sleep', HUD_SLEEP);
 }
 const hudHour = (h) => `${String(((h % 24) + 24) % 24).padStart(2, '0')}:00`;
 // the steps of a farmstead's move from its landing (VB-1667), each by what it brings over
 const HUD_MOVE = {
   drove: 'Drive the animals over',
-  fetchLeftCart: 'Fetch the cart',
-  fetchLeftGrain: 'Fetch the grain',
-  fetchHay: 'Fetch the hay',
-  fetchLeftTimber: 'Fetch the wood',
+  leftCart: 'Fetch the cart',
+  leftGrain: 'Fetch the grain',
+  leftHay: 'Fetch the hay',
+  leftTimber: 'Fetch the wood',
 };
 const hudKind = (k) =>
   k === 'sleep' ? 'Sleep' : HUD_CHAIN[k] ? HUD_CHAIN[k].name : HUD_MOVE[k] || (Sim.KINDS[k] && Sim.KINDS[k].name) || k;
@@ -95,6 +95,8 @@ function hudWaits(x) {
   }
   if (x.why === 'before') return `Waits its turn: number ${x.i + 1} in the plan is worked first.`;
   if (x.why === 'routine') return `Waits for the day’s routine (${hudKind(x.kind).toLowerCase()}).`;
+  if (x.why === 'vital')
+    return `Waits for the household’s ${hudKind(x.kind).toLowerCase()}, which nobody else is given today.`;
   if (x.why === 'sleep') return `Waits for the night to end, at ${hudHour(x.until)}.`;
   if (x.why === 'opens') return `Waits for ${x.what}, ${hudClock(x.t)}: nothing of it can be done before.`;
   if (x.why === 'unposted' && x.text) return `Cannot go on now: ${x.text}.`;
@@ -127,13 +129,13 @@ function renderPlan() {
   u2.plan.hidden = !P;
   if (!P) return (u2.pcard.hidden = u2.days.hidden = true);
   const S = Sim.sleepOf(st),
-    A = Sim.agenda(st),
+    A = Sim.agenda(st, st.player.pawn),
     owed = S ? Math.floor(S.owed) : 0,
     key = [
       Math.floor(st.t * 4),
       hud.pc,
       hud.days3,
-      st.player.auto,
+      Sim.controlOf(st, st.player.pawn).auto,
       JSON.stringify(P),
       owed,
       hud.msg ? hud.msg.text : '',
@@ -162,8 +164,8 @@ function renderPlan() {
   );
   h += '<i class="u2-pdiv"></i>';
   // work ordered for now, by hand: it goes before the plan
-  h += st.player.queue
-    .map((q, i) =>
+  h += Sim.controlOf(st, st.player.pawn)
+    .queue.map((q, i) =>
       q.plan
         ? ''
         : chip(
@@ -260,7 +262,7 @@ function planCard(P, A, S) {
       btn('pmove', 'Later', ` data-from="${i}" data-to="${i + 1}"${i < P.tasks.length - 1 ? '' : ' disabled'}`) +
       btn('premove', 'Remove', ` data-i="${i}"`);
   } else if (what === 'q') {
-    const q = st.player.queue[+arg];
+    const q = Sim.controlOf(st, st.player.pawn).queue[+arg];
     if (!q) return ((hud.pc = null), '');
     title = `Now: ${commandWords(q)}`;
     sub = 'Ordered by hand: it goes before the plan, and is not broken off for sleep.';

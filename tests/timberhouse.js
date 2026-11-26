@@ -5,6 +5,7 @@
 // a crowded head left to its rule builds one by itself in winter; an older save reads as the rung derived. On a tiny
 // village of three farms.
 const assert = require('assert');
+const { targets: TG, season: SP } = require('./lib/season.js');
 const VB = require('../src/load.js'),
   Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js'),
@@ -12,7 +13,7 @@ const { tinyWorld, tinyState } = require('./lib/tiny.js'),
   { checkState } = require('./lib/invariants.js');
 const { projectsOf } = VB['sim/projects'],
   { RUNGS, rungOf } = VB['sim/ladder'],
-  { chainSteps } = VB['sim/planchains'],
+  { goalSteps: chainSteps } = VB['sim/kinds'],
   { BUILD, DAY, BOOTH } = VB['sim/rules'],
   { ROOM, roomOf, crowded } = VB['sim/house'],
   Mood = VB['sim/mood'],
@@ -82,20 +83,20 @@ function crowd(st, to, n) {
   const st = fresh();
   Sim.advance(st, 3);
   Sim.inhabit(st, 0);
-  Sim.setAuto(st, false);
-  assert.strictEqual(Sim.plan(st, 'sleep', { from: 21, until: 6 }), true);
+  Sim.setAuto(st, st.player.pawn, false);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'sleep', { from: 21, until: 6 }), true);
   const hh = st.households[st.pawns[0].household],
     f = st.farmsteads[hh.farmstead];
   for (const p of projectsOf(st, 'household', hh.id))
     VB['sim/commands'].issue(st, { actor: 0, verb: 'dropProject', target: hh.id, args: { id: p.id }, source: 'player' });
-  const v = Sim.farmView(st, f.id);
+  const v = Sim.farmView(st, f.id, st.player && st.player.pawn);
   assert.strictEqual(v.rung, 'cottage');
   assert.deepStrictEqual(v.next, [{ what: 'timber', needs: RUNGS.timber.needs, ok: true, why: null, planned: false }]);
   console.log(`  view: ${JSON.stringify(v.next)}`);
   Stores.put(st, hh, 'timber', 6, 'felling');
-  assert.strictEqual(Sim.plan(st, 'add', { upgrade: f.house, what: 'timber' }), true);
-  assert.match(String(Sim.plan(st, 'add', { upgrade: f.house, what: 'timber' })), /already planned/);
-  assert.strictEqual(Sim.farmView(st, f.id).next[0].planned, true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { upgrade: f.house, what: 'timber' }), true);
+  assert.match(String(Sim.plan(st, st.player.pawn, 'add', { upgrade: f.house, what: 'timber' })), /already planned/);
+  assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).next[0].planned, true);
   const before = chainSteps(st, hh.id, 'upgrade', f.house).steps;
   assert.deepStrictEqual(before.map((y) => y.kind), ['timber', 'timberframe', 'timberroof']);
   assert.strictEqual(before[0].n, Math.ceil((BUILD.timberHouse.timber - 6) / st.ECON.woodPerTrip - 1e-9), 'trips for what home does not cover');
@@ -104,26 +105,26 @@ function crowd(st, to, n) {
   assert(p, 'begun by the task');
   Sim.advance(st, 1); // the head's hour: the timber at home goes into the frame
   assert(p.steps[0].wood >= 6, `the frame took the timber at home: ${p.steps[0].wood}`);
-  assert.strictEqual(Sim.farmView(st, f.id).building.what, 'timber');
+  assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).building.what, 'timber');
   assert.strictEqual(rungOf(st, f), 'cottage', 'the household lives in its cottage meanwhile');
   Sim.advance(st, 2 * DAY);
   const saved = JSON.parse(JSON.stringify(Sim.save(st)));
   const back = Sim.load(world(), saved),
     again = Sim.load(world(), saved);
   const run = (s) => {
-    for (let i = 0; i < 120 * 240 && s.player.plan.tasks.some((t) => t.kind === 'upgrade'); i++) Sim.advance(s, 0.1);
+    for (let i = 0; i < 120 * 240 && VB['sim/steps'].pawnPlan(s, s.player.pawn).tasks.some((t) => t.kind === 'upgrade'); i++) Sim.advance(s, 0.1);
   };
   run(back);
   run(again);
   assert.strictEqual(hash(back), hash(again), 'a loaded run goes on the same');
   run(st);
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
-  assert.strictEqual(st.player.plan.last.which, 'roof', JSON.stringify(st.player.plan.last));
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'roof', JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
   assert.strictEqual(f.rung, 'timber');
-  const w = Sim.farmView(st, f.id);
+  const w = Sim.farmView(st, f.id, st.player && st.player.pawn);
   assert.strictEqual(w.rung, 'timber');
   assert.deepStrictEqual(w.next, [], 'nothing above the timber house yet');
-  assert.match(String(Sim.plan(st, 'add', { upgrade: f.house, what: 'timber' })), /built from a cottage/);
+  assert.match(String(Sim.plan(st, st.player.pawn, 'add', { upgrade: f.house, what: 'timber' })), /built from a cottage/);
   sound(back, 'loaded mid-chain');
   console.log(`  by the plan: finished on day ${(st.t / DAY).toFixed(1)}`);
 }
@@ -167,8 +168,8 @@ function crowd(st, to, n) {
     plan.chosen = null;
     Seasonal.seasonal(st, plan, c);
   }
-  const T = st.plans.households.get(hh.id).targets,
-    U = st.plans.households.get(g.id).targets;
+  const T = TG(st.plans.households.get(hh.id)),
+    U = TG(st.plans.households.get(g.id));
   assert(U.wood[c.season] > 0, 'a cottage has a goal');
   for (let s = 0; s < 4; s++)
     assert(Math.abs(T.wood[s] - ROOM.timberFire * U.wood[s]) < 1e-9, `season ${s}: ${T.wood[s]} against ${U.wood[s]}`);

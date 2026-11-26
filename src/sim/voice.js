@@ -1,5 +1,5 @@
 // @sys sim/voice: a member's voice (VB-1555; design.md section 7, A member's voice): a member asks its head for leave, free hours today
-//   from now or from an hour named to the end of the working day: an offer on the basis `leave` (sim/offers), answered by the head's day
+//   from now or from an hour named to the end of the working day: the verb ask, an offer on the basis `leave` (sim/offers), answered by the head's day
 //   (no when it gave the member hours at a task with a deadline today or a window closing today) and else by its opinion of the member and
 //   its own diligence; a yes takes the member out of the day's allotment for those hours (sim/fit allotted) and they are its own time
 //   (sim/pastimes); a no is a memory of the member's. A pawn asks of its own accord after the morning's allotment, for the afternoon, when
@@ -8,6 +8,8 @@
 //   with (the pawn it means to visit, or null)]}}: today's leaves; a new day's first look closes yesterday's. Written only here.
 // @state pawn.voiced: absent, or the game day the pawn last asked its head for leave of its own accord (VOICE.days). Written only here.
 VB['sim/voice'] = (() => {
+  const { emit } = VB['sim/events'];
+  const { unbound } = VB['sim/pose'];
   const { DAY, WORK, SEASON_DAYS, cal } = VB['sim/rules'],
     { CHILD, MATCH } = VB['sim/roles'];
   const Offers = VB['sim/offers'];
@@ -132,6 +134,7 @@ VB['sim/voice'] = (() => {
       });
   }
   Offers.basis('leave', {
+    asked: 'leave', // by the verb ask (sim/offers)
     books: 'nothing',
     wait: () => VOICE.wait,
     check,
@@ -149,6 +152,7 @@ VB['sim/voice'] = (() => {
     const e = leaveOf(st, id);
     if (!e || e[2]) return;
     e[2] = 1;
+    emit(st, 'leftDay', { pawn: id }); // its tasks to the others (sim/day; VB-1758)
     if (unplanned(st, id)) return;
     const a = st.agents[id];
     if (e[3] !== null && Pastimes.why(st, id, 'visit', { with: e[3], until: e[1] }) === null) {
@@ -165,7 +169,7 @@ VB['sim/voice'] = (() => {
         return;
     }
     if (a.job) release(st, a); // a hand that leaves a task is released from it (VB-1565)
-    if (a.phase === null && !a.job) Pastimes.ownTime(st, a);
+    if (unbound(a) && !a.job) Pastimes.ownTime(st, a);
   }
   // A pawn's own reason to ask, and whom it means to visit: it courts (the one it courts), or it has not visited near kin or a close friend
   // for VOICE.days (pawn.sat, sim/pastimes) and has someone in its village to visit (sim/pastimes someoneToVisit); and it has not asked
@@ -199,33 +203,19 @@ VB['sim/voice'] = (() => {
       }
     }
   }
-  // Pawn id asks its head for leave from hour `from` (game hours), to visit `with` (or null)
+  // Pawn id asks its head for leave from hour `from` (game hours), to visit `with` (or null): the verb ask, by its own rule (source 'pawn',
+  // the default author; any controller issues the same verb, VB-1756)
   function ask(st, id, from, w = null) {
     const hh = homeOf(st, id);
     if (!hh) return 'it has no head to ask';
     VB.count.leaveAsked++;
-    // the played head left to itself (on its own, no command waiting) answers by its pawn's judgement at once, as an unplayed head would:
-    // an inhabited pawn given no command changes nothing (tests/player.js)
-    if (st.player && st.player.pawn === hh.holder && !unplanned(st, hh.holder)) {
-      const o = { from: id, to: hh.holder, basis: 'leave', wants: { from, with: w }, made: st.t, due: st.t };
-      const r = Offers.cannotOffer(st, {
-        actor: id,
-        verb: 'offer',
-        target: hh.holder,
-        args: { basis: 'leave', wants: o.wants },
-      });
-      if (r) return r;
-      o.household = hh.id;
-      if (willing(st, hh.holder, id, cal(st.t))) return settle(st, o);
-      refused(st, o, { key: 'head', by: hh.holder });
-      return 'no';
-    }
+    // any head answers by its pawn's judgement at once, an unplanned one by its controller (sim/offers make, VB-1776)
     return issue(st, {
       actor: id,
-      verb: 'offer',
+      verb: 'ask',
       target: hh.holder,
       args: { basis: 'leave', wants: { from, with: w } },
-      source: 'planner',
+      source: 'pawn',
     });
   }
   // Each hour of the working day: the leaves whose hour has come begin; after the morning's allotment, the members' own asks.

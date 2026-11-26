@@ -54,18 +54,18 @@ check(posted.length === 1 && posted[0][0] === WORK[1], `the water posted at 18:0
 const D1 = 4; // day 3 until VB-1666 put the shelter on the house tile
 until(D1, WORK[1] - 0.1);
 const clearing = a.job;
-check(clearing && clearing.kind === 'clear' && a.phase === 'work', `at 17:54 the settler clears (${clearing && clearing.kind})`);
+check(clearing && clearing.kind === 'clear' && (a.leg && a.leg.kind === 'work'), `at 17:54 the settler clears (${clearing && clearing.kind})`);
 until(D1, WORK[1] + 0.1);
-check(!a.job && (a.phase === 'home' || a.inside), `at 18:00 the clearing is let go (${a.job && a.job.kind}, ${a.phase})`);
+check(!a.job && (!!a.homeward || a.inside), `at 18:00 the clearing is let go (${a.job && a.job.kind}, ${a.leg && a.leg.kind})`);
 // 2. day 16 (day 5 until VB-721 moved the settler's field to drier ground, day 10 until VB-1544 had him raise a booth first): water
 // taken at 17:42 is still his after 18:00, and delivered that evening
 const D2 = 20; // day 16 until VB-1666
-const k10 = waterAt(D2, 17.7);
+const k10 = waterAt(D2, WORK[1] - 0.05); // VB-1812: drawn at the house's own well in WATER.draw, so taken just before 18:00
 check(issue(st, VB['sim/fit'].workCommand(id, k10, 'planner')) === true, 'the settler takes the water at 17:42');
 until(D2, WORK[1] - 0.1);
-const before = a.phase,
+const before = a.leg && a.leg.kind,
   n = a.assigned.assignments; // the tasks it has taken: one let go at 18:00 and called again would count anew
-until(D2, WORK[1] + 0.1);
+until(D2, WORK[1] + 0.02);
 check(
   a.job && a.job.key === k10 && a.assigned.assignments === n,
   `after 18:00 the water begun (${before} at 17:54) is still in hand, never let go (${a.job && a.job.key})`,
@@ -77,8 +77,14 @@ const D3 = 22; // day 18 until VB-1666
 const k12 = waterAt(D3, WORK[1] + 0.5);
 until(D3, WORK[1] + 0.9);
 check(hh.waterDay !== D3 && !a.job, `at 18:54 the water is not in (waterDay ${hh.waterDay}) and the settler is free`);
-until(D3, WORK[1] + 1.1);
-check(a.job && a.job.key === k12, `at 19:00 the evening's call sends the settler for the water (${a.job && a.job.key})`);
+const n3 = a.assigned.assignments;
+until(D3, WORK[1] + 1.04);
+// sent at 19:00: the water in hand, or already in, drawn in the step it was taken (VB-1812: at the house's own well the goal walks
+// nowhere, so its drawing begins at once)
+check(
+  (a.job && a.job.key === k12) || (hh.waterDay === D3 && a.assigned.assignments > n3),
+  `at 19:00 the evening's call sends the settler for the water (${a.job && a.job.key}, waterDay ${hh.waterDay})`,
+);
 until(D3, MATCH.day.evening + 1);
 check(hh.waterDay === D3, `the water not in at 19:00 is in that evening (waterDay ${hh.waterDay})`);
 check(a.inside && !a.job, `and the settler, free, has gone in (inside ${a.inside})`);
@@ -89,13 +95,14 @@ until(D4, 23.5);
 check(hh.waterDay !== D4 && !a.job && st.jobs.get(k14) && !st.jobs.get(k14).claims.length, 'water wanted at 20:30 is not begun');
 // 5. the wood of a cold house is lived by; of a warm house with a full pile, not
 const wood = { kind: 'wood', farm: f },
-  was = [hh.cold, hh.wood];
+  was = [hh.cold, hh.wood, hh.timber];
+hh.timber = 0; // no timber home to cut (VB-1775: the wood as methods may leave some home at this hour)
 hh.cold = 0.5;
 const cold = carriedOn(st, wood);
 hh.cold = 0;
 hh.wood = 100;
 const warm = carriedOn(st, wood);
-[hh.cold, hh.wood] = was;
+[hh.cold, hh.wood, hh.timber] = was;
 check(cold && !warm, `the wood lived by in a cold house (${cold}), not in a warm one with a full pile (${warm})`);
 if (failed) process.exit(1);
 console.log(

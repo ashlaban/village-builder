@@ -117,7 +117,6 @@ VB['sim/saltpan'] = (() => {
     boilsalt: {
       verb: 'Boiling salt',
       go: 'Going to the salt spring',
-      back: 'Carrying the salt home',
       name: 'Boil salt at the spring',
       at: ['spring'],
       needs: ['firewood'],
@@ -127,16 +126,13 @@ VB['sim/saltpan'] = (() => {
       hours: SALT.hours,
       hands: 1,
       type: 'upkeep',
-      carry: 'basket',
-      to: 'door',
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.4, st.w.hy[j.site] + a.oy * 0.4],
       urgency: () => SALT.urgency,
-      // home with the salt: the tree its fire burnt is felled (none if it was cut meanwhile: the pan was fed with brush), and the boiling's
-      // measures go into the store while the household still wants them
-      deliver: (st, j, hh) => {
+      // the boiling done (VB-1748: made where the work is done): the tree its fire burnt is felled (none if it was cut meanwhile: the pan
+      // was fed with brush), and its measures are the basket's
+      make: (st, a, j) => {
         if (j.fuel >= 0 && st.w.trees[j.fuel] > 0) fellTree(st, j.fuel);
-        if (!wants(st, hh)) return 0;
-        return Stores.put(st, hh, 'salt', SALT.yield, 'saltboil');
+        a.load = SALT.yield;
       },
       // from spring to autumn, while the household wants salt and a spring in reach has wood beside it
       available: (st, hh, f, c, post) => {
@@ -148,5 +144,12 @@ VB['sim/saltpan'] = (() => {
       },
     },
   };
+  // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
+  VB['sim/methods'].trip(KINDS.boilsalt, 'boilsalt', {
+    look: 'basket',
+    words: 'Carrying the salt home',
+    // home with the salt: into the store
+    deliver: (st, j, hh, f, a) => Stores.put(st, hh, 'salt', a.load, 'saltboil'),
+  });
   return { SALT, KINDS, isSpring, springOf, wants };
 })();

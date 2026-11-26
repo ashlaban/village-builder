@@ -39,8 +39,8 @@ if (args.includes('--cost')) {
       for (let d = 0; d < days; d++) {
         const pl = st.player;
         if (pl && !pl.left) {
-          const ops = Sim.opportunities(st, pl.pawn), w = d % 3 === 0 && !pl.queue.length && ops.find((o) => o.verb === 'work' && o.why === null);
-          if (w) Sim.queue(st, { actor: pl.pawn, verb: 'work', target: w.target });
+          const ops = Sim.opportunities(st, pl.pawn), w = d % 3 === 0 && !Sim.controlOf(st, pl.pawn).queue.length && ops.find((o) => o.verb === 'work' && o.why === null);
+          if (w) Sim.queue(st, st.player.pawn, { actor: pl.pawn, verb: 'work', target: w.target });
         }
         Sim.advance(st, 24);
       }

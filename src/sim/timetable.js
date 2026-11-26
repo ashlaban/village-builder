@@ -4,6 +4,8 @@
 //   stops of a run until the inhabited pawn's task ends. Writes nothing
 // Principle (principle "The future is someone's estimate"): what is shown of the future is some pawn's estimate (sim/estimate).
 VB['sim/timetable'] = (() => {
+  const { targetOf } = VB['sim/steps'];
+  const { atWork } = VB['sim/pose'];
   const { SPEED } = VB['sim/rules'];
   const { findRoute, routeCost } = VB['sim/routes'];
   const { placeOf, tileAt } = VB['sim/pose'];
@@ -29,7 +31,7 @@ VB['sim/timetable'] = (() => {
   // The tile pawn id stands on, or works at.
   function tileOf(st, id) {
     const a = st.agents[id];
-    if (a.job && a.phase === 'work') return a.job.site;
+    if (a.job && atWork(a)) return a.job.site;
     const [x, y] = placeOf(st, a);
     return tileAt(st, x, y);
   }
@@ -47,8 +49,13 @@ VB['sim/timetable'] = (() => {
     }
     return out;
   }
+  // Who made change `ed` of household hh's day, in words: 'the head' (its holder, or the household's own rule with none), else the member
+  // that reordered its own list (VB-1756)
+  const editor = (st, hh, ed) =>
+    ed.by === null || ed.by === hh.holder || !st.pawns[ed.by] ? 'the head' : fullName(st.pawns[ed.by]);
   // Household hh's timetable as pawn `viewer` reckons it (its head when null), or null with no day: {household, viewer, made (the hour
-  // the day was allotted), edited (the head's last change, standing until the day is next allotted, or null), members: [{id, now (the
+  // the day was allotted), edited (the last change by the verbs on the day, standing until the day is next allotted, or null: {t, by, who,
+  // the words for who made it, 'the head' or a member's name: a member reorders its own list, VB-1756}), members: [{id, now (the
   // key of the task in hand, or null), entries, rest (the keys of its list it was given no hours of: taken when the others are done or
   // closed), free (its hours of the horizon given no task)}]}. An entry: {key, kind, label, site, walk (hours from the last place),
   // lo, mid, hi (its hours, the viewer's range), start and end ({lo, mid, hi}, hours from now, laid end to end), part (the member is
@@ -118,7 +125,8 @@ VB['sim/timetable'] = (() => {
         free: day.free && id in day.free ? day.free[id] : null,
       });
     }
-    return { household: hh.id, viewer: who, made: day.made, edited: day.edited || null, members };
+    const edited = day.edited ? { ...day.edited, who: editor(st, hh, day.edited) } : null;
+    return { household: hh.id, viewer: who, made: day.made, edited, members };
   }
   // What calling member id off costs, as pawn `viewer` reckons it (the household's head when null), named before the call (the verb
   // dayCall, sim/day): walk, the hours of its walk home from where it stands; load, what it carries home now and would put down where it
@@ -136,7 +144,7 @@ VB['sim/timetable'] = (() => {
       left = j && attentionOf(j) === 'full' ? Estimate.estimate(st, who, j) : null;
     return {
       walk: a.inside ? 0 : walkHours(st, tileOf(st, id), house),
-      load: a.load > 0 && a.phase === 'back' ? a.load : 0,
+      load: a.load > 0 && a.load > 0 ? a.load : 0,
       task: j ? j.key : null,
       left: left && { lo: left.lo, mid: left.mid, hi: left.hi },
     };
@@ -164,10 +172,11 @@ VB['sim/timetable'] = (() => {
   // Is household hh above its targets of hay (winters of the herds' need) and firewood (this season's loads): [hay, wood], or null.
   function aboveTargets(st, hh) {
     const plan = planOf(st, 'household', hh.id);
-    if (!plan || !plan.targets) return null;
+    const W = targetOf(plan, 'wood');
+    if (!W) return null;
     const need = winterNeed(st, hh),
-      wood = plan.targets.wood ? plan.targets.wood[cal(st.t).season] : null;
-    return [need > 0 ? hh.hay / need >= plan.targets.hayWinters : null, wood === null ? null : hh.wood >= wood];
+      wood = W.seasons[cal(st.t).season];
+    return [need > 0 ? hh.hay / need >= targetOf(plan, 'hay').level : null, wood === null ? null : hh.wood >= wood];
   }
   // Where a run until the inhabited pawn's task ends begins: {pawn, key (its task in hand, or null: the next it takes is adopted), leg,
   // hid, edited (the hour of the head's last change of the day), offer (the next offer's id), above (aboveTargets)}; null when no pawn is
@@ -223,8 +232,16 @@ VB['sim/timetable'] = (() => {
       ed = plan && plan.day && plan.day.edited ? plan.day.edited : null;
     if (ed && ed.t !== from.edited) {
       from.edited = ed.t;
-      if (ed.by !== from.pawn)
-        return { why: 'day', text: 'The head has changed the household’s day: a call, or a task given.' };
+      if (ed.by !== from.pawn) {
+        const by = editor(st, hh, ed);
+        return {
+          why: 'day',
+          text:
+            by === 'the head'
+              ? 'The head has changed the household’s day: a call, or a task given.'
+              : `${by} has changed the order of its own tasks in the household’s day.`,
+        };
+      }
     }
     for (const o of st.offers) {
       if (!(o.id >= from.offer)) continue;

@@ -4,6 +4,7 @@
 // to its first amount, clay nothing; a save keeps the tiles and the stores, and one without them loads with none dug.
 // Populous at seed 8 on the small island of tests/lib/probe.js (VB-855), half a year: households dig and the state keeps its invariants.
 const VB = require('../src/load.js'), Sim = VB.sim, { island } = require('./lib/probe.js'), D = VB['sim/dig'], Stores = VB['sim/stores'];
+const trip = require('./lib/trip.js');
 const { KINDS, ASK } = VB['sim/kinds'], { DAY, YEAR } = VB['sim/rules'], { MATCH } = VB['sim/roles'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('DIG FAIL:', m); } };
@@ -12,7 +13,7 @@ const { DIG } = D, { DEPOSIT, ENDLESS } = VB['world/geology'];
 
 // --- the kind
 const K = KINDS.dig;
-check(K === D.KIND && K.type === 'upkeep' && K.hands === 1 && K.hours === 3 && K.carry && K.to, 'dig: upkeep, 1 hand, 3 hours, carried home');
+check(K === D.KIND && K.type === 'upkeep' && K.hands === 1 && K.hours === 3 && VB['sim/doing'].lookOf('dig') && VB['sim/doing'].carriesTo('dig') === 'store', 'dig: upkeep, 1 hand, 3 hours, carried home');
 check(K.urgency(null, { good: 'clay' }, null, MATCH.urgency) === MATCH.urgency.repair, 'dig weighs as the house\'s upkeep: done in the slack');
 check(ASK.farmAfterPlans.some((e) => e[0] === 'dig'), 'dig is asked at the farm');
 check(DIG.reach === 12 && DIG.stock === 4 && DIG.regrow === 1, 'reach 12, stock 4, regrowth 1 a year');
@@ -38,7 +39,7 @@ if (hc) {
   check(VB.count.digGround === 0, `asked again, the household searched ${VB.count.digGround} tiles`);
   // a load dug and carried home
   const j = { kind: 'dig', site: t, good: 'clay', farm: f, owner: { type: 'household', id: hc.id } };
-  st.t += DAY; K.deliver(st, j, hc, f);
+  st.t += DAY; trip(K, st, j, hc, f);
   check(w.depositLeft[t] === before - 1 && hc.clay === 1, `a load: the tile ${before} -> ${w.depositLeft[t]}, the store ${hc.clay}`);
   const e = hc.ledger[hc.ledger.length - 1];
   check(e.kind === 'dig' && e.good === 'clay' && e.n === 1, `through the ledger: ${JSON.stringify(e)}`);
@@ -50,18 +51,18 @@ if (hc) {
   const was = [hc.clay, hc.bogOre];
   hc.clay = DIG.stock; hc.bogOre = DIG.stock;
   check(posts(hc).length === 0, 'a household with 4 loads of each posts no digging');
-  const left = w.depositLeft[t]; K.deliver(st, j, hc, f);
+  const left = w.depositLeft[t]; trip(K, st, j, hc, f);
   check(hc.clay === DIG.stock && w.depositLeft[t] === left, 'a load at the stock is not dug');
   hc.clay = was[0]; hc.bogOre = was[1];
   // a spent tile keeps its kind, and the ground moves on
-  w.depositLeft[t] = 1; K.deliver(st, j, hc, f);
+  w.depositLeft[t] = 1; trip(K, st, j, hc, f);
   check(w.depositLeft[t] === 0 && w.deposit[t] === DEPOSIT.CLAY, 'a spent tile keeps its deposit');
   const next = posts(hc);
   check(!next.some((q) => q.site === t), 'a spent tile is not dug again');
-  const got = hc.clay; K.deliver(st, j, hc, f);
+  const got = hc.clay; trip(K, st, j, hc, f);
   check(hc.clay === got, 'a load from a spent tile is none');
   // an endless tile stays endless
-  w.depositLeft[t] = ENDLESS; K.deliver(st, j, hc, f);
+  w.depositLeft[t] = ENDLESS; trip(K, st, j, hc, f);
   check(w.depositLeft[t] === ENDLESS && D.left(st, t) === ENDLESS && hc.clay === got + 1, 'an endless tile gives a load and stays endless');
   w.depositLeft[t] = 0; // back as it was (no dug tile is made endless)
 }

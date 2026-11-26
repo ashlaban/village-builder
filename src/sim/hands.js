@@ -157,9 +157,10 @@ VB['sim/hands'] = (() => {
     for (const [id, h] of spare) {
       d.by[id] = [A.id, Math.min(o.wants.hours, h, hoursLeft(st)), 0, 0];
       VB.count.handsLent++;
+      emit(st, 'leftDay', { pawn: id }); // its tasks at home to the others (sim/day; VB-1758)
       // told at once (the ask's news, the hard rule's exemption): one idling stops, and looks for the work at the next step
       const g = st.agents[id];
-      if (!g.job && g.phase === null && g.idleUntil > st.t)
+      if (!g.job && !g.homeward && !g.journey && g.idleUntil > st.t)
         issue(st, { actor: id, verb: 'idle', args: { until: st.t }, source: 'planner' });
     }
     return true;
@@ -181,6 +182,7 @@ VB['sim/hands'] = (() => {
       });
   }
   Offers.basis('help', {
+    asked: 'hands', // by the verb ask (sim/offers): ask {basis: 'hands', wants: {hands, hours}}
     books: 'nothing',
     wait: () => HANDS.wait,
     check,
@@ -194,10 +196,12 @@ VB['sim/hands'] = (() => {
   const lentTo = (d, id) => Object.values(d.by).reduce((s, e) => s + (e[0] === id ? e[1] : 0), 0);
   // The head of household hh, short of `short` hours of help today (sim/day, at the morning's allotment), asks its village's heads,
   // its near kin first, then by its opinion of them, at most HANDS.asks of them, until the hours lent cover it; once a day. The played
-  // head asks for itself, by the same verb.
+  // head asks for itself, by the same verb, ask with the basis `hands` (VB-1756). A played head on automatic with nothing queued is
+  // passed over no more than an unplayed one (VB-1743); with its automatic behaviour off (or a command queued) it asks only by the
+  // `ask` its controller gives it, never here.
   function askFor(st, hh, short, c) {
     const h = hh.holder;
-    if (h === null || (st.player && st.player.pawn === h) || hoursLeft(st) < HANDS.least) return;
+    if (h === null || unplanned(st, h) || hoursLeft(st) < HANDS.least) return;
     const d = todays(st);
     if (d.asked.includes(hh.id)) return;
     d.asked.push(hh.id);
@@ -221,10 +225,10 @@ VB['sim/hands'] = (() => {
       VB.count.handsAsked++;
       issue(st, {
         actor: h,
-        verb: 'offer',
+        verb: 'ask',
         target: heads[i][2],
-        args: { basis: 'help', wants: { hands, hours } },
-        source: 'planner',
+        args: { basis: 'hands', wants: { hands, hours } },
+        source: 'pawn',
       });
       rest -= lentTo(d, hh.id) - was;
     }
@@ -266,9 +270,9 @@ VB['sim/hands'] = (() => {
       // the hours worked so far: those booked, and those of the block under way not yet reckoned (sim/work settles a block lazily)
       const a = st.agents[id],
         j = a.job,
-        now = j && a.phase === 'work' && j.owner.id === e[0] && j.rate > 0 ? (st.tick - j.at) / TICKS : 0;
+        now = j && a.leg && a.leg.kind === 'work' && j.owner.id === e[0] && j.rate > 0 ? (st.tick - j.at) / TICKS : 0;
       if (!over && e[2] + now < e[1] - 1e-9) continue;
-      if (a.phase === 'back') continue; // a load on the road is brought in first, as at the day's end (sim/clock)
+      if (a.load > 0) continue; // a load on the road is brought in first, as at the day's end (sim/clock)
       e[2] += now; // booked here: the reckoning its going home makes is not booked again (worked: once ended, no more)
       ended(st, +id, e);
       if (st.pawns[id].alive) issue(st, { actor: +id, verb: 'goHome', source: 'planner' });

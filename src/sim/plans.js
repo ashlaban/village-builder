@@ -22,20 +22,24 @@ VB['sim/plans'] = (() => {
     { emit } = VB['sim/events'],
     { makeProject, drop: dropProject, dropAll, dropWords } = VB['sim/projectplans'];
   const { meadowWhy, pickMeadow, beginMeadow, wantsMeadow, wantsFirstMeadow } = VB['sim/meadows'];
-  const { issue, register } = VB['sim/commands'];
+  const { issue, register, VERBS } = VB['sim/commands'];
+  const { PLAN_OPS } = VB['sim/controller'];
   const { reviewWant } = VB['sim/exchange'];
   const Targets = VB['sim/targets'];
   const { buildStep } = VB['sim/building'];
   const { founded, villageSteps } = VB['sim/routines'];
   const { reviewAfter, cadence, nextSlot, enqueue, dequeue } = VB['sim/plandays'];
-  const { seasonOf, seasonal, templateOf, cultureOf, headSkill, horizonOf, ORDER_LEAST } = VB['sim/seasonal'],
-    { chosenTargets, goodTargets, begin, reviewTargets, dropSeason, setOrder } = VB['sim/seasonal'];
-  // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, seasons: Map of household id to its
-  //   seasonal plan, due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
+  const Steps = VB['sim/steps'];
+  const { seasonNow, routinesOf, seasonal, templateOf, cultureOf, headSkill, horizonOf, ORDER_LEAST } =
+      VB['sim/seasonal'],
+    { chosenTargets, goodTargets, begin, reviewTargets, setOrder } = VB['sim/seasonal'];
+  const { targetOf } = Steps;
+  // @state st.plans: {households: Map of household id to plan, villages: Map of village id to plan, pawns and stepSeq (sim/steps),
+  //   due: the due-queue, projects and projectSeq: the project plans (sim/projects, VB-123)}; a standing plan is
   //   {holder: {type: 'household' | 'village', id}, kind: 'standing', nextReview (game hours: its next planning day's review), last (the day
   //   of its last review), woke (the day of its last review woken by a store), looked (the day a member last looked for work outside the
   //   plan's tasks), dirty (sim/stores: a store crossed a target since the last review), reserved, reasons (sim/stores' reservations)}, and a
-  //   household's also {targets, tiles, counted}. One standing plan per undissolved household and per village; a dissolved household's plan
+  //   household's also {season (sim/seasonal), tiles, counted}. One standing plan per undissolved household and per village; a dissolved household's plan
   //   is dropped with it, so the maps hold only live holders (Rules for cost, 1). Its review asks each kind where it is available for the
   //   holder (refreshJobs, sim/jobs) on the holder's planning day, and out of turn when a window closes or a store crosses a target.
   // @state plan.tiles: {field, meadow}: the tile the plan names for its next field or meadow in place of the holder's choice, -1 for none;
@@ -84,8 +88,11 @@ VB['sim/plans'] = (() => {
       dirty: false,
       reserved: {},
       reasons: {},
+      reviewed: null,
     };
+    Steps.record(plan, type, id); // its record of steps (VB-1752)
     mapOf(st, type).set(id, plan);
+    for (const p of projectsOf(st, type, id)) Steps.link(st, p); // projects made before it (a settler's cottage)
     if (type === 'household') {
       const f = st.farmsteads[st.households[id].farmstead], // a cottage left on its farm (dropAll) is the new household's
         left =
@@ -102,10 +109,7 @@ VB['sim/plans'] = (() => {
   function dropPlan(st, type, id) {
     mapOf(st, type).delete(id);
     dropAll(st, type, id); // its project plans with it
-    if (type === 'household') {
-      dropSeason(st, id);
-      dequeue(st, id);
-    }
+    if (type === 'household') dequeue(st, id);
   }
   const planOf = (st, type, id) => mapOf(st, type).get(id);
   // The plans of every live holder, at seed, and at the load of a save made before plans (VB-258).
@@ -113,10 +117,11 @@ VB['sim/plans'] = (() => {
     st.plans = {
       households: new Map(),
       villages: new Map(),
-      seasons: new Map(),
+      pawns: new Map(),
       due: [],
       projects: Projects.emptyProjects(),
       projectSeq: 0,
+      stepSeq: 0,
     };
     for (const id of st.liveHouseholds) makePlan(st, 'household', id);
     for (const v of st.villages) makePlan(st, 'village', v.id);
@@ -130,15 +135,15 @@ VB['sim/plans'] = (() => {
     VB.count.planReview++;
     if (hour >= plan.nextReview) plan.nextReview = nextSlot(plan, cadence(st, plan), hour);
     plan.last = c.day;
+    plan.reviewed = hour;
     if (why === 'store') plan.woke = c.day;
     plan.dirty = false; // lint-allow: owner the review has read the stores whose crossing sim/stores flagged
     if (plan.holder.type !== 'household') {
       villageSteps(st, plan);
       return;
     }
-    const hh = st.households[plan.holder.id],
-      sp = seasonOf(st, hh.id);
-    if (sp.year !== c.year || sp.season !== c.season) seasonal(st, plan, c);
+    const hh = st.households[plan.holder.id];
+    if (!seasonNow(plan, c)) seasonal(st, plan, c);
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     const own = f && f.household === hh.id,
       H = plan.head ? { skill: headSkill(st, hh.id), pawn: plan.head.pawn } : null, // its foresight (VB-351)
@@ -173,7 +178,8 @@ VB['sim/plans'] = (() => {
   function landStep(st, plan, f, hh, built) {
     if (!Projects.heldOff(st, hh.id)) {
       // the head's prudence, its own choice and not a refusal (VB-1668): it begins a field or a meadow only with no large project under way
-      if (!Projects.ownOf(st, hh.id) && f.fields.length < plan.targets.fields) landBy(st, plan, f, hh, 'field', built);
+      if (!Projects.ownOf(st, hh.id) && f.fields.length < targetOf(plan, 'fields').level)
+        landBy(st, plan, f, hh, 'field', built);
       if (!Projects.ownOf(st, hh.id) && (wantsMeadow(st, f, hh) || wantsFirstMeadow(st, f, hh)))
         landBy(st, plan, f, hh, 'meadow', built);
     }
@@ -198,7 +204,7 @@ VB['sim/plans'] = (() => {
   function targetBounds(st, plan, store) {
     if (Targets.isMade(store)) return Targets.bounds(st, st.households[plan.holder.id], store);
     if (store === 'hay') return [0, HAY_MOST];
-    if (store === 'fields') return [0, plan.targets.workable];
+    if (store === 'fields') return [0, targetOf(plan, 'fields').workable];
     if (store === 'wood') return [0, 2 * st.ECON.woodWinter];
     if (store === 'cow') return [0, 1];
     return null;
@@ -234,11 +240,12 @@ VB['sim/plans'] = (() => {
   }
   // Why `steps` may not be the order of household id's routines this season, or null: the same routines as its seasonal plan's, each once.
   function orderWhy(st, id, steps) {
-    const sp = st.plans.seasons.get(id);
-    if (!sp) return `the household has no seasonal plan`;
-    if (!Array.isArray(steps) || steps.length !== sp.steps.length || new Set(steps).size !== steps.length)
-      return `the order must name each of the season's ${sp.steps.length} routines once`;
-    for (const k of steps) if (!sp.steps.includes(k)) return `${k} is not a routine of the season`;
+    const plan = st.plans.households.get(id),
+      R = plan && plan.season ? routinesOf(plan) : null;
+    if (!R) return `the household has no seasonal plan`;
+    if (!Array.isArray(steps) || steps.length !== R.length || new Set(steps).size !== steps.length)
+      return `the order must name each of the season's ${R.length} routines once`;
+    for (const k of steps) if (!R.includes(k)) return `${k} is not a routine of the season`;
     return null;
   }
   // The head holds off projects (on true) or lets its rule take them again (false).
@@ -280,10 +287,9 @@ VB['sim/plans'] = (() => {
   // {id, what, step, tile}) and the small constructions beside it (VB-1414); the head's skill
   // and horizon; or null for a household with no plan. Plain data, a copy.
   function headView(st, id) {
-    const plan = st.plans.households.get(id),
-      sp = st.plans.seasons.get(id);
-    if (!plan || !sp) return null;
-    const T = plan.targets,
+    const plan = st.plans.households.get(id);
+    if (!plan || !plan.season) return null;
+    const F = targetOf(plan, 'fields'),
       C = plan.chosen || {},
       p = Projects.ownOf(st, id),
       c = cal(st.t),
@@ -298,13 +304,15 @@ VB['sim/plans'] = (() => {
     });
     // the custom's fields beside the head's: both capped at what the hands can till; the head's bias is applied before that cap (VB-485),
     // so the two differ only where the bias moves the fields under it
-    const wanted = hh.farmstead === null ? 0 : fieldsWanted(st, hh, T.workable);
+    const wanted = hh.farmstead === null ? 0 : fieldsWanted(st, hh, F.workable);
     return {
+      planOp,
+      planFacade,
       targets: {
-        hay: target('hay', T.hayWinters, M.hayWinters),
+        hay: target('hay', targetOf(plan, 'hay').level, M.hayWinters),
         // what the head counts on besides its fields, by source (VB-768: its own estimate, sim/yields' trusted), rations a year
-        fields: { ...target('fields', T.fields, wanted), counts: hh.farmstead === null ? [] : countsOn(st, hh) },
-        wood: target('wood', T.wood[c.season], M.wood[c.season]),
+        fields: { ...target('fields', F.level, wanted), counts: hh.farmstead === null ? [] : countsOn(st, hh) },
+        wood: target('wood', targetOf(plan, 'wood').seasons[c.season], M.wood[c.season]),
         cow: target('cow', plan.want ? 1 : 0, null),
       },
       goods: Targets.view(st, hh, C.goods, plan.placed && plan.placed.goods),
@@ -312,8 +320,8 @@ VB['sim/plans'] = (() => {
         ? { pawn: plan.head.pawn, skill, horizon: horizonOf(skill), keepsOrder: skill >= ORDER_LEAST }
         : null,
       tiles: { ...plan.tiles },
-      order: [...sp.steps],
-      orderBy: sp.by || 'template',
+      order: routinesOf(plan),
+      orderBy: plan.season.some((s) => s.what.routine && s.author === 'pawn') ? 'head' : 'template',
       project: p ? { id: p.id, what: p.what, step: p.steps[p.open].kind } : null,
       projects: Projects.projectsOf(st, 'household', id)
         .filter((q) => q.what !== 'cottage' && !q.small)
@@ -371,61 +379,109 @@ VB['sim/plans'] = (() => {
   // plan is made again ----
   // target({store, n}): the plan's target of `store` becomes n, within its bounds (sim/plans' targetBounds: hay 0 to 3 winters, fields 0
   // to what the hands can till, wood 0 to twice the winter's goal, cow 0 or 1); n null clears it, and the holder's rule sets it again
-  register('target', {
-    check: (st, c) =>
-      heads(st, c) ||
-      (!c.args || c.args.n === undefined
-        ? 'a target names n, or null to clear it'
-        : targetWhy(st, c.target, c.args.store, c.args.n)),
-    run: (st, c) => setTarget(st, c.target, c.args.store, c.args.n),
+  // ---- the verb `plan` (VB-1754; design.md section 7, The player's plan; docs/plans/four-scales/README.md, 3.6): the agent of a body
+  // writes steps of the body's plan, checked by the actor's position, never by whether it is played: any pawn its own (target {kind:
+  // 'pawn', id}: its routine, sleeping hours and ordered or dated tasks, the ops of sim/controller's PLAN_OPS), the head of a household
+  // the household's ({kind: 'household', id}: the ops below, and sim/day's dayOrder by planOp). args {op, ...the op's own}. The verbs
+  // target, tile, order, project and dayOrder are its facades (planFacade), as Sim.plan(st, pawn, op, args) is (sim/player) ----
+  const OPS = { pawn: { ...PLAN_OPS }, household: {} };
+  // Op `op` of the plans of bodies of `kind`: {check(st, c), run(st, c)}, c with the body's id as its target and the op's own args.
+  // At load (sim/day's dayOrder).
+  const planOp = (kind, op, spec) => (OPS[kind][op] = spec);
+  // The command an op is given: the body's id its target, its own args.
+  const opCmd = (c) => {
+    const { op, ...args } = c.args;
+    return { actor: c.actor, verb: op, target: c.target.id, args, source: c.source };
+  };
+  function bodyWhy(st, c) {
+    const b = c.target;
+    if (!b || !OPS[b.kind] || !Number.isInteger(b.id)) return "a plan is a pawn's or a household's: {kind, id}";
+    if (!c.args || !OPS[b.kind][c.args.op]) return `there is no plan op ${c.args && c.args.op}`;
+    if (b.kind === 'household') return heads(st, opCmd(c));
+    if (!st.pawns[b.id]) return `there is no pawn ${b.id}`;
+    return c.actor !== b.id ? `pawn ${c.actor} plans its own plan only, not pawn ${b.id}'s` : living(st, b.id);
+  }
+  const planVerb = (household) => {
+    Object.assign(OPS.household, household);
+    return {
+      planOp,
+      planFacade,
+      check: (st, c) => bodyWhy(st, c) || OPS[c.target.kind][c.args.op].check(st, opCmd(c)),
+      run: (st, c) => OPS[c.target.kind][c.args.op].run(st, opCmd(c)),
+    };
+  };
+  // A household's verb `op` as a facade of the verb plan: target the household, args the op's own.
+  const asPlan = (c, op) => ({
+    ...c,
+    verb: 'plan',
+    target: { kind: 'household', id: c.target },
+    args: { ...(c.args || {}), op },
   });
-  // tile({what, tile}): the tile of the next field or meadow (what) becomes `tile`, under the checks of the holder's own choice (sim/fields'
-  // fieldWhy, sim/meadows' meadowWhy: claims, reach, the farm's block); tile null or -1 clears it
-  register('tile', {
-    check: (st, c) => {
-      const why = heads(st, c) || farmOf(st, c) || landWhat(c.args && c.args.what);
-      if (why || c.args.tile === null || c.args.tile === -1) return why;
-      const hh = st.households[c.target];
-      return c.args.what === 'field'
-        ? fieldWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile)
-        : meadowWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile);
-    },
-    run: (st, c) => nameTile(st, c.target, c.args.what, c.args.tile === null ? -1 : c.args.tile),
+  const planFacade = (op) => ({
+    check: (st, c) => VERBS.plan.check(st, asPlan(c, op)),
+    run: (st, c) => VERBS.plan.run(st, asPlan(c, op)),
   });
-  // order({steps}): the season's routines in this order (the seasonal plan's, each once), until the next season's plan
-  register('order', {
-    check: (st, c) => heads(st, c) || orderWhy(st, c.target, c.args && c.args.steps),
-    run: (st, c) => setOrder(st, c.target, c.args.steps),
-  });
-  // project({what, tile, ...}): begin a new field or meadow (what) now, on `tile`, else the tile the plan names, else the holder's own pick;
-  // beside any other project, one a tile (VB-1651, VB-1668), and under the tile's checks. The land step is the holder's rule for it (sim/plans, source
-  // 'pawn'). what 'none': the head holds off projects (its rule begins none: the land step, its yearly look at a boat, a cart, a tar pit,
-  // its menu); null clears that. Any other what is a making of sim/makings (VB-678: a boat, a cart, a tar pit, a barn, a farm for the heir
-  // with args.heir), under that making's one check, the same for every head, played or not; its plan is made here.
   const making = (what) => makingOf(what) || `there is no project ${what}`;
-  register('project', {
-    check: (st, c) => {
-      const what = c.args && c.args.what,
-        why = heads(st, c);
-      if (why || what === 'none' || what === null) return why;
-      const bad = farmOf(st, c);
-      if (bad) return bad;
-      const hh = st.households[c.target];
-      if (what !== 'field' && what !== 'meadow') {
-        const M = making(what);
-        return typeof M === 'string' ? M : M.why(st, hh, st.farmsteads[hh.farmstead], c.args);
-      }
-      const tile = landTile(st, hh, c.args);
-      return tile < 0 ? `no tile within reach can be taken in for a ${what}` : landWhy(st, hh, what, tile);
-    },
-    run: (st, c) => {
-      const what = c.args.what,
-        hh = st.households[c.target];
-      if (what === 'none' || what === null) holdProject(st, c.target, what === 'none');
-      else if (what === 'field' || what === 'meadow') beginLand(st, hh, what, landTile(st, hh, c.args));
-      else beginMaking(st, hh, makingOf(what), c.args);
-    },
-  });
+  register(
+    'plan',
+    planVerb({
+      target: {
+        check: (st, c) =>
+          heads(st, c) ||
+          (!c.args || c.args.n === undefined
+            ? 'a target names n, or null to clear it'
+            : targetWhy(st, c.target, c.args.store, c.args.n)),
+        run: (st, c) => setTarget(st, c.target, c.args.store, c.args.n),
+      },
+      // tile({what, tile}): the tile of the next field or meadow (what) becomes `tile`, under the checks of the holder's own choice (sim/fields'
+      // fieldWhy, sim/meadows' meadowWhy: claims, reach, the farm's block); tile null or -1 clears it
+      tile: {
+        check: (st, c) => {
+          const why = heads(st, c) || farmOf(st, c) || landWhat(c.args && c.args.what);
+          if (why || c.args.tile === null || c.args.tile === -1) return why;
+          const hh = st.households[c.target];
+          return c.args.what === 'field'
+            ? fieldWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile)
+            : meadowWhy(st, st.farmsteads[hh.farmstead], hh, c.args.tile);
+        },
+        run: (st, c) => nameTile(st, c.target, c.args.what, c.args.tile === null ? -1 : c.args.tile),
+      },
+      // order({steps}): the season's routines in this order (the seasonal plan's, each once), until the next season's plan
+      order: {
+        check: (st, c) => heads(st, c) || orderWhy(st, c.target, c.args && c.args.steps),
+        run: (st, c) => setOrder(st, c.target, c.args.steps),
+      },
+      // project({what, tile, ...}): begin a new field or meadow (what) now, on `tile`, else the tile the plan names, else the holder's own pick;
+      // beside any other project, one a tile (VB-1651, VB-1668), and under the tile's checks. The land step is the holder's rule for it (sim/plans, source
+      // 'pawn'). what 'none': the head holds off projects (its rule begins none: the land step, its yearly look at a boat, a cart, a tar pit,
+      // its menu); null clears that. Any other what is a making of sim/makings (VB-678: a boat, a cart, a tar pit, a barn, a farm for the heir
+      // with args.heir), under that making's one check, the same for every head, played or not; its plan is made here.
+      project: {
+        check: (st, c) => {
+          const what = c.args && c.args.what,
+            why = heads(st, c);
+          if (why || what === 'none' || what === null) return why;
+          const bad = farmOf(st, c);
+          if (bad) return bad;
+          const hh = st.households[c.target];
+          if (what !== 'field' && what !== 'meadow') {
+            const M = making(what);
+            return typeof M === 'string' ? M : M.why(st, hh, st.farmsteads[hh.farmstead], c.args);
+          }
+          const tile = landTile(st, hh, c.args);
+          return tile < 0 ? `no tile within reach can be taken in for a ${what}` : landWhy(st, hh, what, tile);
+        },
+        run: (st, c) => {
+          const what = c.args.what,
+            hh = st.households[c.target];
+          if (what === 'none' || what === null) holdProject(st, c.target, what === 'none');
+          else if (what === 'field' || what === 'meadow') beginLand(st, hh, what, landTile(st, hh, c.args));
+          else beginMaking(st, hh, makingOf(what), c.args);
+        },
+      },
+    }),
+  );
+  for (const op of ['target', 'tile', 'order', 'project']) register(op, planFacade(op));
   // letField({field}) (VB-768): the head lets field `field` (its id) of its farm go, its tile back to the village (sim/fields' letGo): a
   // field with no crop, sheaves or task on it (sim/fieldplans' letGoWhy); the same for every head, played or not.
   register('letField', {
@@ -520,6 +576,8 @@ VB['sim/plans'] = (() => {
     run: (st, c) => swapSteps(st, st.farmsteads[st.households[c.target].farmstead], c.args.a, c.args.b),
   });
   return {
+    planOp,
+    planFacade,
     heads,
     makePlan,
     dropPlan,
@@ -527,10 +585,8 @@ VB['sim/plans'] = (() => {
     seedPlans,
     reviewed,
     landStep,
-    targetWhy,
     setTarget,
     nameTile,
-    orderWhy,
     holdProject,
     landWhy,
     beginLand,

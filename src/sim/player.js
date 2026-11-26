@@ -1,40 +1,34 @@
-// @sys sim/player: the player (VB-169), a source of commands with one pawn at a time: its queue, which goes before the pawn's own logic, its
-// wish, its answer and its choices as head, its pawn's death and whom it goes on as
+// @sys sim/player: the player (VB-169), a source of commands with one pawn at a time: the frame (which pawn, and its line's record for
+// the page), its pawn's death and whom it goes on as; and the facade's controller calls, keyed by pawn (VB-1746): any pawn's controller
+// (sim/controller) reached through the verbs, its wish, its choices as head, and its plan fed to its queue (the feeder, for every pawn
+// whose controller holds a plan)
 VB['sim/player'] = (() => {
-  const { release } = VB['sim/agents'];
-  const { reckon, adopt } = VB['sim/sleepers'];
   const { holdingOf, spouseOf, personEvent, living, villageOf, fullName, spokesmanOf } = VB['sim/records'];
-  const { cal, WORK, HEALTH } = VB['sim/rules'],
+  const { HEALTH } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
-  const { setWish, resetWish, endPartner } = VB['sim/wishes'];
-  const { issue, perform, active, VERBS, register } = VB['sim/commands'];
+  const { setWish, resetWish, endPartner, WISH } = VB['sim/wishes'];
+  const { issue, active, VERBS, register } = VB['sim/commands'];
+  const { QUEUE_MAX, controlOf, attach, detach, queueStep, command } = VB['sim/controller'];
   const { on } = VB['sim/events'];
   const { daysOfFood } = VB['sim/foodneed'];
   const { KINDS } = VB['sim/kinds'];
-  const { planDay, planBegun } = VB['sim/playerplan'];
-  const { nextOf } = VB['sim/plannext'];
-  const { MOVE_KINDS } = VB['sim/planchains'];
-  // ---- the player (VB-169): one source, `player`, with one pawn at a time, whose queued commands go before the pawn's own logic ----
-  // @state st.player: null, or {pawn (the inhabited pawn's id), auto (boolean: left to itself, the pawn does what its role's automatic
-  //   behaviour chooses), queue[] (at most QUEUE_MAX commands {actor: pawn, verb, target, args, source: 'player', begun, ref}, in turn;
-  //   `begun` is null until the command is issued, then the game time: only the head is ever begun, and it stays the head while its act
-  //   lasts; `ref` is null, or once begun the reference its verb gave to the act it began (sim/commands perform, VB-1405), plain data;
-  //   absent in a command begun in a save made before VB-1405; `plan` {from, kind, key} in a command the plan fed, sim/playerplan),
-  //   refused (null, or {verb, why, t}: the last command refused when its turn came), since (game hours), left (null while the pawn
-  //   lives; from its death {t, held (the household it held, or null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those
-  //   it thought friends, best first), village (the settlement whose customs name its successor, VB-1121)}: what a death erases and the
-  //   player's succession needs, VB-213), ended (null, or when the line ended: its pawn died with no successor, VB-1121), last (null, or {kind, farm, good,
-  //   n, t}: the pawn's last task done or load brought home, VB-1118), days[] (at most DAYS_KEPT {t, health, before, hunger, food, why}:
-  //   the pawn's health after each of its last meals, its hunger level, its household's food in days of need, and what moved its health,
-  //   why {hunger, cold, damp, ill, tired, rest}, VB-1118; tired absent in a day kept before VB-1643)}; plain data, saved with the run. A
-  //   save made from VB-1643 to VB-1645 holds sleep ({owed, asleep, at}): the hours its pawn owes, handed to the pawn (sim/sleepers adopt)
-  //   at the next step. The pawn's sleep is reckoned each step while it is played (sim/sleepers reckon), for the page
+  // ---- the player (VB-169): one source, `player`, with one pawn at a time, whose controller's queue goes before the pawn's own logic ----
+  // @state st.player: the frame (Kim, 24 Nov: whatever state the played pawn has, every pawn has; st.player holds only the frame; VB-1746):
+  //   null, or {pawn (the inhabited pawn's id: which pawn the page shows and issues for; its switch, queue, last refusal and plan are its
+  //   controller's, pawn.control, sim/controller), left (null while the pawn lives; from its death {t, held (the household it held, or
+  //   null), spouse (pawn id or null), ties[] (at most TIES_MAX {id, why}: those it thought friends, best first), village (the settlement
+  //   whose customs name its successor, VB-1121)}: kept here, not on the pawn, because it is the player's line that goes on and a death
+  //   erases what the succession reads, VB-213), ended (null, or when the line ended: its pawn died with no successor, VB-1121; the line
+  //   is the player's, no pawn's), last (null, or {kind, farm, good, n, t}: the pawn's last task done or load brought home, VB-1118), days[]
+  //   (at most DAYS_KEPT {t, health, before, hunger, food, why}: the pawn's health after each of its last meals, its hunger level, its
+  //   household's food in days of need, and what moved its health, why {hunger, cold, damp, ill, tired, rest}, VB-1118); last and days
+  //   are the page's record of the played line, kept only while it is watched so that no pawn pays for them}; plain data, saved with the
+  //   run. The view the player reads through is the pawn's actor view (sim/opportunities actorView), made from `pawn` when asked: no field.
   // @state pawn.proposal (VB-276): absent, else {for (a member the pawn speaks for), partner (a pawn id), terms (null, or what its side
   //   gives: {dowry} for a daughter, {gift} for a son, rations of customary worth)}: a spokesman's match for a member, any pawn's as its
   //   wish is, offered at the round of the man's village (sim/round proposed), until one of the two marries or dies or it is changed
-  const QUEUE_MAX = 8,
-    TIES_MAX = 12,
+  const TIES_MAX = 12,
     DAYS_KEPT = 5;
   function inhabit(st, id) {
     const dead = living(st, id);
@@ -42,15 +36,13 @@ VB['sim/player'] = (() => {
     if (st.player) uninhabit(st);
     st.player = {
       pawn: id,
-      auto: true,
-      queue: [],
-      refused: null,
-      since: st.t,
       left: null,
       ended: null,
       last: null,
       days: [],
     };
+    detach(st, id); // its controller starts fresh, automatic with nothing queued, as the player's leaving ends it (VB-1745)
+    attach(st, id);
     resetWish(st, id); // the player starts from the default wish (VB-680): its wishes are the pawn's (pawn.wish, sim/wishes)
     personEvent(st, id, 'player', 'Played by the player');
     return true;
@@ -58,11 +50,13 @@ VB['sim/player'] = (() => {
   function uninhabit(st) {
     if (!st.player) return 'no pawn is played';
     personEvent(st, st.player.pawn, 'player', 'No longer played by the player');
+    detach(st, st.player.pawn); // its own logic chooses all its acts again
     st.player = null;
     return true;
   }
-  // The played pawn dies (sim/lifecycle, before the death ends its marriage and drops its ties): the player keeps it, with an empty queue,
-  // until it goes on as another (VB-213), and what the death erases is noted: the farm it held, its spouse, those it thought friends.
+  // The played pawn dies (sim/lifecycle, before the death ends its marriage and drops its ties; its controller ended with the death,
+  // sim/controller): the player keeps it until it goes on as another (VB-213), and what the death erases is noted: the farm it held,
+  // its spouse, those it thought friends.
   // `next(st, id, village)` names its successor (successorOf, sim/heirranking, which loads later): with none, the line ends at once.
   function playerDied(st, id, next) {
     const pl = st.player;
@@ -70,7 +64,6 @@ VB['sim/player'] = (() => {
     const held = holdingOf(st, id),
       friends = relationsOf(st, id).filter((r) => r.opinion >= SOCIAL.friend);
     friends.sort((x, y) => y.opinion - x.opinion || x.id - y.id);
-    pl.queue = [];
     pl.left = {
       t: st.t,
       held: held ? held.id : null,
@@ -100,59 +93,41 @@ VB['sim/player'] = (() => {
     st.player = null;
     return inhabit(st, id);
   }
-  // Needs go on: with nothing left to do after the end of work, the player's pawn goes home, as everyone did at dark.
-  function homeAtDark(st, pl) {
-    const a = st.agents[pl.pawn],
-      h = cal(st.t).hour;
-    if ((h >= WORK[1] || h < WORK[0]) && !a.inside && a.phase === null)
-      issue(st, { actor: pl.pawn, verb: 'goHome', source: 'planner' });
+  // ---- the facade's controller calls, keyed by pawn (VB-1746; design.md section 15, The API by pawn and body) ----
+  // Each takes the pawn it is about, played or not, and issues its verb for it with source 'player' (a controller's input: the page's for
+  // the played pawn, an external agent's for any), through Sim.command's door, which records it for a replay (VB-1757). The page passes the
+  // played pawn. True, or why not: id is no pawn, or the verb's reason.
+  const pawnWhy = (st, id) => (Number.isInteger(id) && st.pawns[id] ? null : `there is no pawn ${id}`);
+  // Sim.queue(st, id, cmd), Sim.unqueue(st, id, i) and Sim.setAuto(st, id, on): pawn id's controller's verbs (sim/controller). A command
+  // queued is {verb, target, args}; one naming another actor is refused.
+  function queue(st, id, cmd) {
+    const c = cmd || {};
+    if (VERBS[c.verb] && c.actor !== undefined && c.actor !== id) return `pawn ${c.actor} is not pawn ${id}`;
+    const what = { verb: c.verb, target: c.target, args: c.args };
+    return (
+      pawnWhy(st, id) || command(st, { actor: id, verb: 'queue', target: null, args: { cmd: what }, source: 'player' })
+    );
   }
-  // The command joins the queue, to be checked when its turn comes; true, or why it does not: the queue is full, there is no such verb,
-  // or it is not the player's to do (a verb that names its sources and not 'player': `skip`, `kill`, `retire`, the world's and not a
-  // pawn's, VB-681; `skip` would advance time from within a step), or its actor is not the player's pawn.
-  function queue(st, cmd) {
-    const pl = st.player;
-    if (!pl) return 'no pawn is played';
-    const V = cmd && VERBS[cmd.verb];
-    if (!V || (V.sources && !V.sources.includes('player'))) return `there is no verb ${cmd && cmd.verb} to queue`;
-    if (cmd.actor !== pl.pawn) return `pawn ${cmd.actor} is not the player's pawn`;
-    if (pl.queue.length >= QUEUE_MAX) return `the queue is full (${QUEUE_MAX} commands)`;
-    const copy = (v) => (v === undefined ? null : JSON.parse(JSON.stringify(v))); // the queue keeps its own plain data
-    pl.queue.push({
-      actor: pl.pawn,
-      verb: cmd.verb,
-      target: copy(cmd.target),
-      args: copy(cmd.args),
-      source: 'player',
-      begun: null,
-      ref: null,
-    });
-    return true;
+  function unqueue(st, id, i) {
+    return pawnWhy(st, id) || command(st, { actor: id, verb: 'unqueue', target: null, args: { i }, source: 'player' });
   }
-  // Takes command i off the queue. The head, once begun, only stops being the player's: the pawn goes on with the act as its own.
-  function unqueue(st, i) {
-    const pl = st.player;
-    if (!pl) return 'no pawn is played';
-    if (!(Number.isInteger(i) && i >= 0 && i < pl.queue.length)) return `the queue has no command ${i}`;
-    pl.queue.splice(i, 1);
-    if (!pl.queue.length && !living(st, pl.pawn)) homeAtDark(st, pl);
-    return true;
+  function setAuto(st, id, on) {
+    return (
+      pawnWhy(st, id) || command(st, { actor: id, verb: 'auto', target: null, args: { on: !!on }, source: 'player' })
+    );
   }
-  function setAuto(st, on) {
-    if (!st.player) return 'no pawn is played';
-    st.player.auto = !!on;
-    return true;
-  }
-  // The wish verb (VB-212, VB-680; VB-276: a match for a member, opts {for, terms}, is the head's, propose): the played pawn's wish
-  // at the moving round, written on the pawn as every pawn's is (pawn.wish,
-  // sim/wishes); the round reads it as anyone's and decides by its rules, so a wish is not checked against them here; it stays until
-  // changed. True, or why it is not a wish.
-  function wish(st, kind, value, opts = null) {
-    const pl = st.player;
-    if (!pl) return 'no pawn is played';
-    if (kind === 'match' && opts && opts.for !== undefined && opts.for !== pl.pawn)
-      return propose(st, opts.for, value, opts.terms === undefined ? null : opts.terms);
-    if (!['out', 'claim', 'serve', 'match', 'settle', 'rank'].includes(kind)) return `there is no wish ${kind}`;
+  // The wish and match verbs (VB-212, VB-680, VB-1744; VB-276: a match for a member is the head's): a pawn's own wish at the moving
+  // round, written on the pawn as every pawn's is (pawn.wish, sim/wishes), and a spokesman's match for a member (pawn.proposal). Each
+  // check reads the actor's position, never whether it is played, so the played pawn's controller and any other issue them alike.
+  // The round reads a wish as anyone's and decides by its rules, so a wish is not checked against them here; it stays until changed.
+  // wish: target the kind, args {value}; match: target the member, args {partner, terms}.
+  const WISH_KINDS = ['out', 'claim', 'serve', 'match', 'settle', 'rank'];
+  function wishWhy(st, c) {
+    const p = st.pawns[c.actor],
+      kind = c.target,
+      value = c.args ? c.args.value : undefined;
+    if (!p || !p.alive) return `${c.actor} is not a pawn that lives`;
+    if (!WISH_KINDS.includes(kind)) return `there is no wish ${kind}`;
     // claim takes a farm id and match a pawn id (of the other sex, living and single), else null or false; out, serve and settle null,
     // true or false; rank a whole ranking (sim/wishes)
     const id = (kind === 'claim' || kind === 'match') && Number.isInteger(value);
@@ -165,25 +140,40 @@ VB['sim/player'] = (() => {
         ? `there is no ${kind === 'claim' ? 'farm' : 'pawn'} ${value}`
         : `${kind} cannot be wished ${JSON.stringify(value)}`;
     }
-    if (kind === 'match' && id && (target.sex === st.pawns[pl.pawn].sex || !target.alive))
+    if (kind === 'match' && id && (target.sex === p.sex || !target.alive))
       return `${value} is not one the pawn may marry`;
-    return setWish(st, pl.pawn, kind, value);
+    return null;
   }
-  // The head's match for a member (VB-276; design.md, Marriage as a negotiation, The player's doors): the wish verb's wish for a match
-  // made for another, wish('match', partner, {for: member, terms}): the played pawn, its spokesman, proposes `partner` for `member` with
-  // the terms its side gives (null for the defaults; `{dowry}` for a daughter, `{gift}` for a son); partner null withdraws it. The round
-  // reads it as a wish, by its rules (sim/round). True, or why not.
-  function propose(st, member, partner, terms = null) {
-    const pl = st.player;
-    if (!pl) return 'no pawn is played';
-    if (partner === null) {
-      delete st.pawns[pl.pawn].proposal;
-      return true;
-    }
+  register('wish', {
+    check: (st, c) => {
+      const why = wishWhy(st, c);
+      if (why) return why;
+      // a ranking's shape is checked by the write (sim/wishes): the one reason it gives
+      if (c.target === 'rank') {
+        const v = c.args.value;
+        if (!Array.isArray(v) || v.length !== WISH.rungs.length || WISH.rungs.some((r) => !v.includes(r)))
+          return `a ranking holds each of ${WISH.rungs.join(', ')} once`;
+      }
+      return null;
+    },
+    run: (st, c) => {
+      setWish(st, c.actor, c.target, c.args.value);
+    },
+  });
+  // The head's match for a member (VB-276; design.md, Marriage as a negotiation, The player's doors): the spokesman proposes
+  // args.partner for the member c.target with the terms its side gives (null for the defaults; `{dowry}` for a daughter, `{gift}` for a
+  // son); partner null withdraws it. The round reads it as a wish, by its rules (sim/round).
+  function matchWhy(st, c) {
+    const p = st.pawns[c.actor],
+      member = c.target,
+      partner = c.args ? c.args.partner : undefined,
+      terms = c.args && c.args.terms !== undefined ? c.args.terms : null;
+    if (!p || !p.alive) return `${c.actor} is not a pawn that lives`;
+    if (partner === null) return null;
     const m = st.pawns[member],
       q = st.pawns[partner];
-    if (!m || !m.alive || member === pl.pawn) return `${member} is not a member the pawn may speak for`;
-    if (spokesmanOf(st, member) !== pl.pawn) return `${fullName(m)} does not have the pawn as spokesman`;
+    if (!m || !m.alive || member === c.actor) return `${member} is not a member the pawn may speak for`;
+    if (spokesmanOf(st, member) !== c.actor) return `${fullName(m)} does not have the pawn as spokesman`;
     if (!q || !q.alive || q.sex === m.sex || spouseOf(st, partner) !== null)
       return `${partner} is not one ${fullName(m)} may marry`;
     const k = m.sex === 'f' ? 'dowry' : 'gift';
@@ -191,8 +181,29 @@ VB['sim/player'] = (() => {
       return `the side of ${fullName(m)} gives only the ${k === 'dowry' ? 'dowry' : 'morning gift'}`;
     if (terms !== null && terms[k] !== undefined && !(Number.isFinite(terms[k]) && terms[k] >= 0))
       return `cannot give ${terms[k]}`;
-    st.pawns[pl.pawn].proposal = { for: member, partner, terms: terms === null ? null : { ...terms } };
-    return true;
+    return null;
+  }
+  register('match', {
+    check: matchWhy,
+    run: (st, c) => {
+      const { partner, terms } = c.args;
+      if (partner === null) delete st.pawns[c.actor].proposal;
+      else st.pawns[c.actor].proposal = { for: c.target, partner, terms: terms ? { ...terms } : null };
+    },
+  });
+  // Sim.wish(st, id, kind, value, opts): pawn id's wish (VB-212; a match for a member, opts {for, terms}, is the head's). True, or why not.
+  function wish(st, id, kind, value, opts = null) {
+    const why = pawnWhy(st, id);
+    if (why) return why;
+    if (kind === 'match' && opts && opts.for !== undefined && opts.for !== id)
+      return command(st, {
+        actor: id,
+        verb: 'match',
+        target: opts.for,
+        args: { partner: value, terms: opts.terms === undefined ? null : opts.terms },
+        source: 'player',
+      });
+    return command(st, { actor: id, verb: 'wish', target: kind, args: { value }, source: 'player' });
   }
   // A wish for a match ends when the one who wished or the wished partner marries (a and b have married) or dies (a is b); so does the
   // head's match for a member.
@@ -203,68 +214,10 @@ VB['sim/player'] = (() => {
       if (pr && [pr.for, pr.partner].some((id) => id === a || id === b)) delete st.pawns[s].proposal;
     }
   };
-  // Each six-minute step (sim/clock), before the agents move: a begun head whose act has ended leaves the queue, and the next command is
-  // issued; one refused then is dropped, its reason kept in `refused`. A load being carried home is delivered first, as at the end of work.
-  // Whether a begun act lasts is its verb's to say, from the reference it gave (sim/commands active); an act done at once lasts no longer
-  // than the step it was issued in. A command is begun once, and never issued again: a loaded save resumes it from its reference.
+  // Each six-minute step (sim/clock), before the agents move: the controllers' step (sim/controller queueStep: each pawn's own plan
+  // looked after and fed, each queue run). The played pawn's sleep is reckoned each hour, as every pawn's (VB-1776).
   function playerStep(st) {
-    const pl = st.player;
-    if (pl && pl.sleep) {
-      adopt(st, pl.pawn, pl.sleep); // a save made before VB-1645
-      delete pl.sleep;
-    }
-    if (pl) reckon(st, pl.pawn);
-    if (pl && pl.plan && !pl.auto && !living(st, pl.pawn)) feed(st, pl);
-    if (!pl || !pl.queue.length) return;
-    const a = st.agents[pl.pawn],
-      q = pl.queue;
-    if (q[0].begun !== null) {
-      const ref = q[0].ref === undefined ? null : q[0].ref; // a command begun before VB-1405 kept none
-      if ((ref !== null || q[0].ref === undefined) && !living(st, pl.pawn) && active(st, q[0], ref)) return;
-      q.shift();
-    }
-    while (q.length) {
-      if (a.phase === 'back') return;
-      // told to walk, go home or idle, the pawn leaves the job in hand, which keeps its progress (work leaves it itself): only if it may
-      const cmd = q[0],
-        V = VERBS[cmd.verb],
-        leaves = !!a.job && !!V && !!V.frees,
-        barred = leaves ? V.check(st, cmd) : null;
-      if (leaves && !barred) release(st, a);
-      const out = barred ? { status: 'refused', why: barred } : perform(st, cmd);
-      if (out.status !== 'refused') {
-        cmd.begun = st.t;
-        cmd.ref = out.status === 'pending' ? out.ref : null;
-        if (cmd.plan) planBegun(st, cmd.plan);
-        return;
-      }
-      q.shift();
-      pl.refused = { verb: cmd.verb, why: out.why, t: st.t };
-    }
-    if (!living(st, pl.pawn)) homeAtDark(st, pl);
-  }
-  // ---- the plan's feeder (VB-1646; sim/playerplan): with automatic behaviour off, the plan feeds the queue when nothing queued by hand
-  // waits. A command queued by hand goes first, as an order for now: the plan's commands give way to it (a task left keeps its progress
-  // and stays planned). In the sleeping hours the plan's work in hand is left for its sleep; else the plan's command runs to its end.
-  // A trip of the move under way (the farmstead chain's droving and fetching from the landing, sim/planchains MOVE_KINDS) is not left
-  // for the sleeping hours: it goes on to its end, and the pawn sleeps after (VB-1670: on a way of 7 hours each way, the walk out left at
-  // bedtime every evening had the move undone for 50 days, and the frost took the loads).
-  const onTrip = (st, pl, c) =>
-    c.begun !== null && c.plan.from === 'task' && MOVE_KINDS.includes(c.plan.kind) && !!st.agents[pl.pawn].job;
-  function feed(st, pl) {
-    const q = pl.queue;
-    if (q.some((c) => !c.plan)) {
-      for (let i = q.length - 1; i >= 0; i--) if (q[i].plan) q.splice(i, 1);
-      return;
-    }
-    if (q.length && q[0].begun !== null && !active(st, q[0], q[0].ref)) q.length = 0; // its act ended: the next is fed at once
-    planDay(st);
-    const next = nextOf(st);
-    if (q.length) {
-      if (!(next && next.plan.from === 'sleep' && q[0].plan.from !== 'sleep') || onTrip(st, pl, q[0])) return;
-      q.length = 0;
-    }
-    if (next) q.push({ ...next, begun: null, ref: null });
+    queueStep(st);
   }
   // ---- what the played pawn's acts brought, and what moved its levels (VB-1118) ----
   // A task finished or a load brought home by the played pawn (sim/agents): the last one is kept for its sheet.
@@ -279,7 +232,6 @@ VB['sim/player'] = (() => {
     if (!pl || pl.pawn !== d.pawn) return;
     const household = st.pawns[d.pawn].household;
     const food = household === null ? null : daysOfFood(st, st.households[household]);
-    if (!pl.days) pl.days = []; // a save made before VB-1118
     pl.days.push({
       t: st.t,
       health: d.after,
@@ -377,11 +329,11 @@ VB['sim/player'] = (() => {
   // Decisions module takes over): true, or why not.
   function answer(st, offerId, yes) {
     if (!st.player) return 'no pawn is played';
-    return issue(st, { actor: st.player.pawn, verb: 'answer', target: offerId, args: { yes }, source: 'player' });
+    return command(st, { actor: st.player.pawn, verb: 'answer', target: offerId, args: { yes }, source: 'player' });
   }
-  // The played pawn chooses as head of its household (VB-253, for the page's plan panel, VB-256): verb one of HEAD_VERBS, at once, not
-  // queued (a choice of the plan takes no time); its target the household it holds, else the one it lives in, so a pawn that is not the
-  // head is refused with the reason. True, or why not.
+  // Sim.head(st, id, verb, args): pawn id chooses as head of its household (VB-253, for the page's plan panel, VB-256): verb one of
+  // HEAD_VERBS, at once, not queued (a choice of the plan takes no time); its target the household it holds, else the one it lives in,
+  // so a pawn that is not the head is refused with the reason. True, or why not.
   const HEAD_VERBS = [
     'target',
     'tile',
@@ -394,13 +346,13 @@ VB['sim/player'] = (() => {
     'dayGive',
     'dayCall',
   ];
-  function head(st, verb, args) {
-    const pl = st.player;
-    if (!pl) return 'no pawn is played';
+  function head(st, id, verb, args) {
+    const why = pawnWhy(st, id);
+    if (why) return why;
     if (!HEAD_VERBS.includes(verb)) return `${verb} is not a choice of the plan`;
-    const held = holdingOf(st, pl.pawn),
-      target = held && !held.dissolved ? held.id : st.pawns[pl.pawn].household;
-    return issue(st, { actor: pl.pawn, verb, target, args: args || {}, source: 'player' });
+    const held = holdingOf(st, id),
+      target = held && !held.dissolved ? held.id : st.pawns[id].household;
+    return command(st, { actor: id, verb, target, args: args || {}, source: 'player' });
   }
   return {
     head,

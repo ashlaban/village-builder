@@ -13,14 +13,14 @@ const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : 
 const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 2, sizes: [5, 4] }], { seed: 4 });
 const hh = st.households[0], f = st.farmsteads[hh.farmstead], [p, q] = hh.members.map((id) => st.agents[id]);
 const cart = (kind, cond = 1) => ({ kind, cond, built: st.t, by: null });
-const busy = (a, load) => { a.job = { key: 'test', kind: 'haul', claims: [a.id] }; a.phase = 'back'; a.load = load; };
-const idle = (a) => { a.job = null; a.phase = null; a.load = 0; };
+const busy = (a, load) => { a.job = { key: 'test', kind: 'haul', claims: [a.id] }; a.load = load; };
+const idle = (a) => { a.job = null; a.load = 0; };
 
 // --- the numbers
 check(TRAVEL.load === 30 && TRAVEL.hand === 90 && TRAVEL.cart === 300, 'loads of 30, 90 and 300 rations');
 check(TRAVEL.pace.back === 0.9 && TRAVEL.pace.hand === 0.8 && TRAVEL.pace.ox === 0.6, 'a laden pawn walks at 0.9, 0.8 and 0.6');
 check(Array.isArray(hh.carts) && hh.cartMiss === 0, 'a household keeps its carts and its count of misses');
-check(KINDS.cart && KINDS.cart.project && KINDS.mendcart && KINDS.manure.carted && KINDS.hay.load && KINDS.wood.stack, 'the kinds');
+check(KINDS.cart && KINDS.cart.project && KINDS.mendcart && VB['sim/methods'].says(KINDS.manure, 'carted') && KINDS.hay.methods && KINDS.wood.methods, 'the kinds');
 
 // --- taking a cart: the best one free; the ox cart only with the team
 hh.carts = [];
@@ -74,20 +74,27 @@ check(hh.carts.length === 1 && hh.carts[0].kind === 'hand' && hh.carts[0].cond =
   check(near(M.hayLoad(m, TRAVEL.hand), 20 / TRAVEL.hay) && near(m.held, 0) && m.stage === 'aftermath', 'a hand cart takes the rest, 20 at most');
   const o = { stage: 'mown', held: 90 };
   check(near(M.hayLoad(o, TRAVEL.cart), 60 / TRAVEL.hay) && near(o.held, 30) && o.stage === 'mown', 'an ox cart takes 60 of a larger heap');
-  check(KINDS.hay.again({ meadow: { held: 3 } }) && !KINDS.hay.again({ meadow: { held: 0 } }) && KINDS.hay.reload === CART.reload, 'more loads while hay lies');
+  // VB-1812: the hay's goal goes back for more while hay lies in the mown meadow (its source), and is met once it is in
+  const hayAt = (held, stage) => ({ job: { meadow: { held, stage }, claims: [] } });
+  check(KINDS.hay.can.source(st, hayAt(3, 'mown')) && !KINDS.hay.can.source(st, hayAt(0, 'aftermath')), 'more loads while hay lies');
 }
-// --- timber (VB-1653: felled and carried home, cut to firewood at the house): a load for each tree felled stacked on the cart
+// --- timber (VB-1653: felled and carried home, cut to firewood at the house): a load in hand set down in the store, a trip's timber for
+// each load on the cart (VB-1775: the wood's unload step, sim/doing)
 {
-  const v = st.villages[0], w0 = hh.timber || 0, j = { site: v.wood[0], farm: f };
-  KINDS.wood.deliver(st, j, hh, f, { load: 0 });
-  check(near(hh.timber - w0, st.ECON.woodPerTrip), 'a back load of timber');
-  KINDS.wood.deliver(st, j, hh, f, { load: 3 * TRAVEL.load });
+  const v = st.villages[0], w0 = hh.timber || 0, Doing = VB['sim/doing'];
+  p.job = { key: 'test', kind: 'wood', owner: { type: 'household', id: hh.id }, site: v.wood[0], farm: f, claims: [p.id] };
+  Object.assign(p, { load: TRAVEL.load, carry: 'logs' });
+  Doing.unload(st, p, { prim: 'unload', good: 'timber' }, 0, 0);
+  check(near(hh.timber - w0, st.ECON.woodPerTrip) && p.load === 0 && p.carry === null, 'a back load of timber');
+  Object.assign(p, { load: 3 * TRAVEL.load, carry: 'logs' });
+  Doing.unload(st, p, { prim: 'unload', good: 'timber' }, 0, 0);
   check(near(hh.timber - w0, 4 * st.ECON.woodPerTrip), 'three loads on a cart are three trips\' timber');
+  p.job = null;
 }
 // --- dung: carted faster with a cart
 hh.carts = []; idle(p);
 check(C.carting(st, hh, p.id, false) === 1, 'no cart: at the plain rate');
-hh.carts = [cart('hand')]; p.job = { key: 'test', kind: 'manure', claims: [p.id] }; p.phase = 'work'; // at the work, as sim/agents asks
+hh.carts = [cart('hand')]; p.job = { key: 'test', kind: 'manure', claims: [p.id] }; p.leg = { kind: 'work', t: 0, x: p.x, y: p.y, seg: 0 }; // at the work, as sim/agents asks
 check(C.carting(st, hh, p.id, false) === CART.manure.hand && hh.carts[0].by === p.id, 'a hand cart: faster, and the cart is taken');
 idle(p); C.leave(st, hh, p.id);
 check(hh.carts[0].by === null, 'left, it is free');

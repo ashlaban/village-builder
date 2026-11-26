@@ -14,6 +14,8 @@ const make = (hours = 0) => {
 };
 const hour = (st) => Sim.cal(st.t).hour;
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
+// The farmer's hours reckoned now: every pawn's, the played one's as any, are reckoned once an hour (VB-1776), and a check reads them between.
+const reckoned = (st) => (VB['sim/sleepers'].reckon(st, FARMER), st.pawns[FARMER].sleep);
 const near = (x, y, what) => assert.ok(Math.abs(x - y) < 1e-6, `${what}: ${x} against ${y}`);
 const until = (st, h) => { while (Math.abs(hour(st) - h) > 1e-6) Sim.advance(st, 0.1); };
 const FARMER = 0;
@@ -49,38 +51,38 @@ const FARMER = 0;
   Sim.inhabit(st, FARMER);
   assert.ok(a.job, 'the farmer works');
   st.pawns[FARMER].sleep.owed = 10;
-  assert.strictEqual(Sim.queue(st, { actor: FARMER, verb: 'sleep', args: { hours: 2 } }), true);
+  assert.strictEqual(Sim.queue(st, st.player.pawn, { actor: FARMER, verb: 'sleep', args: { hours: 2 } }), true);
   Sim.advance(st, 0.1);
-  assert.ok(!a.job && st.player.queue[0].begun !== null, 'it leaves the job in hand');
+  assert.ok(!a.job && Sim.controlOf(st, st.player.pawn).queue[0].begun !== null, 'it leaves the job in hand');
   let steps = 0;
   while (a.path && steps++ < 100) Sim.advance(st, 0.1);
   Sim.advance(st, 0.1);
-  assert.ok(st.pawns[FARMER].sleep.asleep && st.player.queue.length === 1, 'home, it sleeps under the verb');
-  const was = st.pawns[FARMER].sleep.owed;
+  assert.ok(reckoned(st).asleep && Sim.controlOf(st, st.player.pawn).queue.length === 1, 'home, it sleeps under the verb');
+  const was = reckoned(st).owed;
   Sim.advance(st, 0.5);
-  near(st.pawns[FARMER].sleep.owed, was - 0.5, 'asleep in the day, it pays');
-  until(st, Sim.cal(st.player.queue[0].ref.until).hour);
+  near(reckoned(st).owed, was - 0.5, 'asleep in the day, it pays');
+  until(st, Sim.cal(Sim.controlOf(st, st.player.pawn).queue[0].ref.until).hour);
   Sim.advance(st, 0.1);
-  assert.ok(!st.player.queue.length, 'the sleep ends at its time');
+  assert.ok(!Sim.controlOf(st, st.player.pawn).queue.length, 'the sleep ends at its time');
   for (const [args, why] of [[{ hours: 0 }, /cannot sleep/], [{ until: 24 }, /no hour/]]) {
-    Sim.queue(st, { actor: FARMER, verb: 'sleep', args });
+    Sim.queue(st, st.player.pawn, { actor: FARMER, verb: 'sleep', args });
     Sim.advance(st, 0.1);
-    assert.ok(st.player.refused && st.player.refused.verb === 'sleep' && why.test(st.player.refused.why), `refused: ${JSON.stringify(st.player.refused)}`);
+    assert.ok(Sim.controlOf(st, st.player.pawn).refused && Sim.controlOf(st, st.player.pawn).refused.verb === 'sleep' && why.test(Sim.controlOf(st, st.player.pawn).refused.why), `refused: ${JSON.stringify(Sim.controlOf(st, st.player.pawn).refused)}`);
   }
   const homeless = st.pawns.find((p) => p.alive && p.household === null);
   if (homeless) assert.ok(/no place to sleep/.test(VB['sim/commands'].issue(st, { actor: homeless.id, verb: 'sleep', source: 'player' })));
   // at 22, sleep (until the start of work by default), then walk to the green: the walk is begun at 6
   until(st, 22);
-  Sim.setAuto(st, false);
-  Sim.queue(st, { actor: FARMER, verb: 'sleep' });
-  Sim.queue(st, { actor: FARMER, verb: 'walkTo', target: st.villages[0].center });
+  Sim.setAuto(st, st.player.pawn, false);
+  Sim.queue(st, st.player.pawn, { actor: FARMER, verb: 'sleep' });
+  Sim.queue(st, st.player.pawn, { actor: FARMER, verb: 'walkTo', target: st.villages[0].center });
   Sim.advance(st, 0.1);
-  const u = st.player.queue[0].ref.until;
+  const u = Sim.controlOf(st, st.player.pawn).queue[0].ref.until;
   near(u % Sim.DAY, WORK[0], 'until the start of work');
   until(st, WORK[0] - 0.1);
-  assert.ok(st.player.queue[0].verb === 'sleep' && a.inside && !a.path, 'asleep until its hour');
+  assert.ok(Sim.controlOf(st, st.player.pawn).queue[0].verb === 'sleep' && a.inside && !a.path, 'asleep until its hour');
   Sim.advance(st, 0.2);
-  assert.ok(st.player.queue[0].verb === 'walkTo' && st.player.queue[0].begun === u && !a.inside, 'then the queue goes on');
+  assert.ok(Sim.controlOf(st, st.player.pawn).queue[0].verb === 'walkTo' && Sim.controlOf(st, st.player.pawn).queue[0].begun === u && !a.inside, 'then the queue goes on');
   sound(st, 'the verb');
 }
 
@@ -89,12 +91,13 @@ const FARMER = 0;
 {
   const worked = make(), slept = make(), far = 11 * worked.w.COLS + 1;
   for (const st of [worked, slept]) { Sim.inhabit(st, FARMER); Sim.advance(st, WORK[1] - 1 - hour(st)); }
-  Sim.queue(worked, { actor: FARMER, verb: 'walkTo', target: far });
-  Sim.queue(worked, { actor: FARMER, verb: 'idle', args: { until: worked.t + 13 } });
+  Sim.queue(worked, worked.player.pawn, { actor: FARMER, verb: 'walkTo', target: far });
+  Sim.queue(worked, worked.player.pawn, { actor: FARMER, verb: 'idle', args: { until: worked.t + 13 } });
   for (const st of [worked, slept]) Sim.advance(st, 13);
   assert.ok(!worked.agents[FARMER].inside, 'out all night');
-  const owed = worked.pawns[FARMER].sleep.owed, mood = Mood.of(worked, FARMER).mods.find((m) => m.key === 'tired');
-  assert.ok(Math.abs(owed - 24 * AWAKE) < 0.5, `a night lost: ${owed} owed, a day and a night's waking`);
+  const owed = reckoned(worked).owed, mood = Mood.of(worked, FARMER).mods.find((m) => m.key === 'tired');
+  // within an hour's waking: reckoned once an hour, as every pawn (VB-1776), the first hour is the one it was last reckoned in
+  assert.ok(Math.abs(owed - 24 * AWAKE) <= AWAKE + 1e-9, `a night lost: ${owed} owed, a day and a night's waking`);
   assert.ok(mood && mood.value === Math.round(tiredMood(owed)) && mood.value <= -5, `tired by the tunable: ${JSON.stringify(mood)}`);
   assert.strictEqual(Sim.sleepOf(worked).mood, mood.value, 'the page reads the same term');
   assert.strictEqual(slept.pawns[FARMER].sleep.owed, 0, 'one that slept owes nothing');
@@ -143,15 +146,8 @@ const FARMER = 0;
   assert.strictEqual(canon(back.pawns[FARMER].sleep), canon(st.pawns[FARMER].sleep), 'saved and loaded');
   for (const s of [st, back]) Sim.advance(s, 1);
   near(back.pawns[FARMER].sleep.owed, st.pawns[FARMER].sleep.owed, 'and goes on alike');
-  // a save made from VB-1643 to VB-1645 kept the played pawn's hours on the player: the next step hands them to the pawn
-  data.state.player.sleep = { owed: 5, asleep: false, at: data.state.tick };
-  delete data.state.pawns[FARMER].sleep;
-  const old = Sim.load(tinyWorld(rows), data);
-  Sim.advance(old, 0.1);
-  near(old.pawns[FARMER].sleep.owed, 5 + (old.pawns[FARMER].sleep.asleep ? -1 : AWAKE) / TICKS, 'an older save hands its hours to the pawn');
-  assert.strictEqual(old.player.sleep, undefined, 'and keeps them no more');
+  // a save made from VB-1643 to VB-1645 kept the played pawn's hours on the player: such a save is another build's since VB-1746 (FORMAT 9)
   sound(back, 'loaded');
-  sound(old, 'loaded from before VB-1645');
 }
 
 // 6. Every pawn (VB-1645): an unplayed pawn owes and pays by the same rule, reckoned each hour; kept out all night, it is tired in mood
@@ -167,7 +163,7 @@ const FARMER = 0;
   const far = 11 * st.w.COLS + 1;
   VB['sim/commands'].issue(st, { actor: other, verb: 'walkTo', target: far, source: 'debug' });
   // kept out: sent back out whenever it comes in, through the night
-  const keep = () => { if (a.inside || (!a.path && a.phase === 'home')) VB['sim/commands'].issue(st, { actor: other, verb: 'walkTo', target: far, source: 'debug' }); };
+  const keep = () => { if (a.inside || (!a.path && !!a.homeward)) VB['sim/commands'].issue(st, { actor: other, verb: 'walkTo', target: far, source: 'debug' }); };
   for (let n = 0; n < (24 + WORK[0] - 1 - (WORK[1] - 1)) * TICKS; n++) { keep(); Sim.advance(st, 0.1); }
   const owed = st.pawns[other].sleep.owed;
   assert.ok(owed >= SLEEP.health.over, `a night out: ${owed} owed`);
@@ -202,4 +198,7 @@ const FARMER = 0;
   }
   sound(st, 'an unplayed pawn');
 }
+const { twins } = require('./lib/twins.js');
+// VB-1776: the played farmer on automatic sleeps and owes as the same farmer unplayed: its hours are reckoned once an hour, as any pawn's
+twins(() => make(), FARMER, (st) => Sim.advance(st, 30), 'a day and a night');
 console.log('sleep ok: owed awake, paid asleep, by every pawn (an unplayed one kept out is tired, and sleeps it off by its own rule); the verb leaves the job, sleeps until its hour and the queue goes on; a night worked tires by SLEEP.mood; health past a whole night only; saved');

@@ -3,6 +3,7 @@
 //   the verb `pastime`, which the played pawn has too, and the pawn's pastime (agent.pastime). A pastime is a walk and a wait: it reads
 //   no plan, no store and no mood, makes and uses no good, and has only the effects of the encounter it puts the pawn in (sim/encounters)
 VB['sim/pastimes'] = (() => {
+  const { unbound } = VB['sim/pose'];
   const { next: rnd } = VB['sim/rng'];
   const { DAY, AGES, cal } = VB['sim/rules'],
     { CHILD } = VB['sim/roles'];
@@ -45,7 +46,7 @@ VB['sim/pastimes'] = (() => {
   };
   const given = (st, id) => st.pawns[id].given;
   // Free out of doors, as sim/relations' company reads it: whom a pawn may join.
-  const idles = (st, b) => !b.inside && !b.job && b.phase === null && st.pawns[b.id].alive;
+  const idles = (st, b) => !b.inside && !b.job && unbound(b) && st.pawns[b.id].alive;
   // At home for a caller: in its own house, or standing out of doors within PASTIME.yard of it; not one away or on the road.
   function atFarm(st, id) {
     const b = st.agents[id],
@@ -122,8 +123,8 @@ VB['sim/pastimes'] = (() => {
     // by the herd, for one who holds it at the side (VB-136): it waits within reach of the pasture; always, where it is open
     herd: {
       name: 'Stay by the herd',
-      who: (st, a) => (a.side && a.side.background ? null : 'it holds no herd at the side'),
-      at: (st, a) => spot(st, a.side.background.site, [16, 8], 0),
+      who: (st, a) => (a.mind && a.mind.some((c) => c.kind === 'herd') ? null : 'it minds no herd'),
+      at: (st, a) => spot(st, a.mind.find((c) => c.kind === 'herd').site, [16, 8], 0),
       words: () => null,
     },
     // company: join one it likes who is also free out of doors in its village (sim/relations companyFor, as built: at SOCIAL.seek by
@@ -238,7 +239,7 @@ VB['sim/pastimes'] = (() => {
       r = a && a.pastime;
     if (!r || a.job || a.occasion !== null || travelling(a)) return null;
     if (!(a.idleUntil > st.t && st.t < r.until) || Math.floor(st.t / DAY) !== Math.floor(r.at / DAY)) return null;
-    if (a.phase !== null && !(a.phase === 'home' && r.kind === 'fire')) return null;
+    if (!unbound(a) && !(!!a.homeward && r.kind === 'fire')) return null;
     return st.pawns[id].alive ? r : null;
   }
   // A caller sits with those indoors (VB-1559): one at the pastime `visit`, arrived (its walk over, within PASTIME.yard of the house it

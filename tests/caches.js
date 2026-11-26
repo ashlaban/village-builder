@@ -36,22 +36,35 @@ const owners = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/owners.js
 const declared = [];
 (function walk(o) { for (const [k, v] of Object.entries(o)) if (v && typeof v === 'object') v.category === 'cache' ? declared.push(k) : walk(v); })(owners);
 const COMPARED = ['st.owner', 'st.crowd', 'st.crowdN', 'st.followers', 'st.living', 'st.liveHouseholds', 'st.graph', 'st.liveTrusts', 'st.courtships',
-  'st.obligationsDue', 'st.obligationsBy', 'st.facilityIdx', 'st.askingBy', 'agent.away', 'pawn.household', 'household.members', 'pawn.role'];
+  'st.obligationsDue', 'st.obligationsBy', 'st.facilityIdx', 'st.lyingBy', 'st.askingBy', 'agent.away', 'pawn.household', 'household.members', 'pawn.role'];
 assert.deepStrictEqual(declared.filter((k) => !COMPARED.includes(k) && !CACHES_UNCOMPARED[k]), [], 'a declared cache neither compared nor excused');
 assert.deepStrictEqual([...COMPARED, ...Object.keys(CACHES_UNCOMPARED)].filter((k) => !declared.includes(k)), [], 'a cache listed that src/owners.json does not declare');
 
-// the runs: the probe village and the founders, each 45 days (the first gathering, ale, claims, a household founded, lodging)
+// the runs: the probe village and the founders, each 50 days (the first gathering, ale, claims, a household founded, lodging, a cottage
+// finished: VB-1775, with the wood as goals the founders' first cottage is roofed after day 45)
 const runs = [state(), scenario('founders', 7)];
-for (const st of runs) Sim.advance(st, 45 * Sim.DAY);
+for (const st of runs) Sim.advance(st, 50 * Sim.DAY);
 const natural = carried.size;
+// a loan booked by hand where a run took none, so that `repay` is tried on it (VB-1812: with a held cart walking at its pace the founders
+// no longer borrow by day 50); a test's write, through sim/obligations, from the household that holds the most grain to the next
+const loans = (st) => (st.obligations || []).filter((o) => o.kind === 'loan');
+for (const st of runs) {
+  if (loans(st).length) continue;
+  const grain = (h) => VB['sim/stores'].grainOf(h);
+  const [d, c] = st.liveHouseholds.map((id) => st.households[id]).filter((h) => h.farmstead !== null).sort((x, y) => grain(y) - grain(x));
+  if (d && c)
+    VB['sim/obligations'].create(st, { kind: 'loan', debtor: { kind: 'household', id: d.id }, creditor: { kind: 'household', id: c.id },
+      owes: { rations: 10 }, enforcer: { kind: 'village', id: st.farmsteads[d.farmstead].village }, lent: 10 });
+}
 // the args a verb is tried with by hand, where {} cannot pass its check: a gift of a little grain (VB-446 moved the draws, and the loans of
 // VB-312 that carried it in the run no longer fall in its 45 days)
-const ARGS = { give: [{ good: 'grain', n: 1 }], repay: [{ n: 1 }] };
+// VB-1745: a controller's own verbs, the switch left on and a walk home queued, then taken off
+const ARGS = { give: [{ good: 'grain', n: 1 }], repay: [{ n: 1 }], auto: [{ on: true }], queue: [{ cmd: { verb: 'goHome' } }], unqueue: [{ i: 0 }] };
 // each verb not yet carried, by hand: an actor, a target of each kind and the verb's sources, until its check lets one by
 for (const verb of Object.keys(VERBS).filter((v) => !carried.has(v))) {
   for (const st of runs) {
     const actors = st.living.slice(0, 10), hhs = st.liveHouseholds.slice(0, 5), tiles = st.farmsteads.slice(0, 3).map((f) => f.house);
-    const targets = [undefined, null, ...hhs, ...actors, ...tiles, ...st.villages.map((v) => v.id), ...hhs.map((id) => ({ type: 'household', id }))];
+    const targets = [undefined, null, ...hhs, ...actors, ...tiles, ...st.villages.map((v) => v.id), ...hhs.map((id) => ({ type: 'household', id })), ...loans(st).map((o) => o.id)];
     for (const source of VERBS[verb].sources || SOURCES) for (const actor of actors) for (const target of targets) {
       if (carried.has(verb)) break;
       for (const args of ARGS[verb] || [{}]) {
@@ -64,11 +77,11 @@ for (const verb of Object.keys(VERBS).filter((v) => !carried.has(v))) {
 assert.deepStrictEqual(failures, [], 'a cache differs from its derivation after a verb');
 // The verbs these states do not reach yet, each needing a command built for it (an offer to answer, a plan, a booth, a trust; VB-1703).
 // The list only shrinks: a verb carried here is struck from it, a new verb is carried or added.
-const NOT_YET = ['answer', 'claim', 'letIn', 'placeFarmstead', 'callWorkday', 'blaze', 'lodge', 'comeHome', 'call', 'goGathering', 'stayHome', 'swap',
+const NOT_YET = ['answer', 'claim', 'letIn', 'placeFarmstead', 'blaze', 'lodge', 'comeHome', 'goGathering', 'stayHome', 'swap',
   'target', 'tile', 'order', 'letField', 'sowOutOfTurn', 'courses', 'dayOrder', 'dayGive', 'dayCall', 'handOn', 'plotToVillage',
   'beginCottage', 'goBack', 'goToKin', 'visit', 'sendVisit', 'foundHousehold', 'decide', 'argue', 'dropCause', 'rally', 'leave', 'takeUp',
   'renounce', 'marry', 'skip', 'slander',
-  'found', 'upkeep']; // VB-361: no facility kind is declared in the game yet (each craft's task declares its own); tests/facilities.js carries both
+  'wish', 'match', 'found', 'upkeep']; // VB-361: no facility kind is declared in the game yet (each craft's task declares its own); tests/facilities.js carries both
 const missed = Object.keys(VERBS).filter((v) => !carried.has(v));
 assert.deepStrictEqual(missed.filter((v) => !NOT_YET.includes(v)), [], 'a verb neither carried nor listed in NOT_YET');
 assert.deepStrictEqual(NOT_YET.filter((v) => carried.has(v) || !VERBS[v]), [], 'carried now, or no longer a verb: strike it from NOT_YET');

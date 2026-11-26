@@ -62,7 +62,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
               if (st.pawns[a.id].died !== null) continue;
               const x = d.drawX[a.id], y = d.drawY[a.id], i = a.id;
               // at work on a field it walks its rows (VB-472): drawn within the tile, from the tick its work began
-              if (a.phase === 'work' && a.job && Sim.KINDS[a.job.kind].field && !a.inside) {
+              if ((a.leg && a.leg.kind === 'work') && a.job && Sim.KINDS[a.job.kind].field && !a.inside) {
                 if (!(Math.hypot(x - st.w.hx[a.job.site], y - st.w.hy[a.job.site]) <= 19)) faults.push(`frame ${frames}: pawn ${i} off its field's rows`);
                 continue;
               }
@@ -264,16 +264,16 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     await page.evaluate(() => window.__play.look(0)); // the map's corner, open sea
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2); await page.waitForTimeout(300);
     const said = await page.locator('#actBanner').textContent();
-    if (!/(tap|click) a marked tile/.test(said) || await page.evaluate(() => window.__play.st.player.queue.length)) fail(`a tile with no such work: ${said}`);
+    if (!/(tap|click) a marked tile/.test(said) || await page.evaluate(() => window.__play.Sim.controlOf(window.__play.st, window.__play.st.player.pawn).queue.length)) fail(`a tile with no such work: ${said}`);
     await page.evaluate((i) => window.__play.look(i), inTool.sites[0]);
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2); await page.waitForTimeout(300);
-    target = await page.evaluate(() => { const q = window.__play.st.player.queue.find((c) => c.verb === 'work'); return q ? q.target : null; });
+    target = await page.evaluate(() => { const q = window.__play.Sim.controlOf(window.__play.st, window.__play.st.player.pawn).queue.find((c) => c.verb === 'work'); return q ? q.target : null; });
     if (!target || !/Queued/.test(await page.locator('#actBanner').textContent())) fail('the marked tile did not queue the work');
     if (!(await page.evaluate(() => !!window.__play.tool()))) fail('the work\'s tool did not stay in hand');
     await page.click('#actBanner button[data-tool="end"]');
     if (await page.evaluate(() => !!window.__play.tool()) || await page.locator('#actBanner').isVisible()) fail('Done did not put the tool away');
   } else {
-    target = await page.evaluate(() => { const q = window.__play.st.player.queue.find((c) => c.verb === 'work'); return q ? q.target : null; });
+    target = await page.evaluate(() => { const q = window.__play.Sim.controlOf(window.__play.st, window.__play.st.player.pawn).queue.find((c) => c.verb === 'work'); return q ? q.target : null; });
     const said = await page.locator('#actMenu .act-msg').allTextContents();
     if (!/Queued/.test(said.join(''))) fail(`the list does not say the work was queued: ${said}`);
   }
@@ -283,7 +283,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   await page.click('[data-speed="30"]');
   await page.waitForFunction((k) => {
     const { st } = window.__play, a = st.agents[st.player.pawn];
-    return !!a.job && a.job.key === k && a.phase === 'work';
+    return !!a.job && a.job.key === k && (a.leg && a.leg.kind === 'work');
   }, target, { timeout: 120000 });
   await page.click('[data-speed="0"]');
   // Walk here: with Follow on, the pawn stands at the middle of the view, on an open tile; the tool closes the sheet, and the banner names it
@@ -297,7 +297,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   }
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await page.waitForTimeout(300);
-  if (!(await page.evaluate(() => window.__play.st.player.queue.some((c) => c.verb === 'walkTo')))) fail('Walk here did not queue a walk');
+  if (!(await page.evaluate(() => window.__play.Sim.controlOf(window.__play.st, window.__play.st.player.pawn).queue.some((c) => c.verb === 'walkTo')))) fail('Walk here did not queue a walk');
   if (await page.evaluate(() => !!window.__play.tool())) fail('Walk here\'s tool stayed in hand after its walk was queued');
   // Speak ill of (VB-554): the Myself row opens one form, a party and a kind, with the line of what it risks; its button queues the lie
   await page.click('#actBar [data-group="self"]'); await page.click('#actMenu [data-view="slander"]');
@@ -306,7 +306,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   if (await page.locator('#actMenu #slanderWho option').count()) {
     await page.click('#actMenu [data-bar="slander"]'); await page.waitForTimeout(300);
     const said = (await page.locator('#actMenu .act-msg').allTextContents()).join('');
-    if (!(await page.evaluate(() => window.__play.st.player.queue.some((c) => c.verb === 'slander'))) && !said) fail('Speak ill of neither queued nor said why');
+    if (!(await page.evaluate(() => window.__play.Sim.controlOf(window.__play.st, window.__play.st.player.pawn).queue.some((c) => c.verb === 'slander'))) && !said) fail('Speak ill of neither queued nor said why');
     console.log(`browser: Speak ill of: ${said || 'queued'}`);
   }
   await page.click('#actBar [data-group="self"]');
@@ -319,7 +319,7 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     for (let n = 0; n < 2400 && (a.job || !working()); n++) Sim.advance(st, 0.1);
     let free = 0;
     for (let n = 0; n < 40 && working(); n++) { Sim.advance(st, 0.1); if (a.job) return `took ${a.job.kind} at ${Sim.cal(st.t).hour.toFixed(1)}`; free++; }
-    return st.player.auto ? 'the switch is still on' : free >= 10 ? null : `only ${free} steps seen in working hours`;
+    return Sim.controlOf(st, st.player.pawn).auto ? 'the switch is still on' : free >= 10 ? null : `only ${free} steps seen in working hours`;
   });
   if (idle) fail(`automatic behaviour off: ${idle}`);
   await page.waitForTimeout(600);

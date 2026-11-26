@@ -46,6 +46,7 @@ const Sim = (() => {
   // its pastime and with whom (sim/pastimes, VB-1552),
   const describe = (st, id) => occasionLabel(st, st.agents[id]) || pastimeLine(st, id) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/fit'];
+  const { levyOf } = VB['sim/levies'];
   const { line: thirstLine } = VB['sim/thirst'];
   const { reasonOf, reasonLine } = VB['sim/reasons']; // who chose a pawn's act, and why, for its card (VB-1551)
   const { seedReserve } = VB['sim/hunger'],
@@ -59,14 +60,17 @@ const Sim = (() => {
   const { heirRanking } = VB['sim/heirranking'],
     { wantsOut, refreshRoles, countDemand } = VB['sim/heirs'];
   const { updateTies, refreshInterests, hooks, standingParts } = VB['sim/society'];
-  const { plan } = VB['sim/playerplan']; // the player's plan, its act (VB-1646)
   const { planView, fireView } = VB['sim/planview']; // the plan's and the fire's reads (VB-1646, VB-1653)
   const { sleepOf } = VB['sim/sleep']; // the played pawn's sleep owed, for the page (VB-1643)
   const { of: moodOf, word: moodWord } = VB['sim/mood']; // a pawn's mood and its modifiers, for its card (VB-062)
   const { labelsOf: traitLabels, act: traitAct } = VB['sim/traits']; // a pawn's traits in words, for its card (VB-519); one's act (VB-520)
   const { save, load } = VB['sim/saves'];
-  const { issue: command } = VB['sim/commands'];
+  // Sim.command(st, cmd): the one door a controller issues through (VB-1757), keyed by the pawn it acts as (cmd.actor), each command
+  // recorded with its game time (sim/controller, st.commanded); Sim.decisions(st, pawn), the points open to its controller (sim/points)
+  const { command } = VB['sim/controller'],
+    { decisions } = VB['sim/points'];
   const { inhabit, uninhabit, queue, unqueue, setAuto, wish, answer, head, sheetNotes } = VB['sim/player'];
+  const { controlOf } = VB['sim/controller']; // a pawn's switch, queue and last refusal (VB-1745)
   const { headView } = VB['sim/plans'];
   const { timetable, callCost, taskLeft, taskFrom, taskStop } = VB['sim/timetable'];
   const { wishesOf } = VB['sim/wishes']; // a pawn's wish at the moving round, kind by kind (VB-680)
@@ -88,6 +92,22 @@ const Sim = (() => {
   const skipStop = (st, from) => skipStopWith(st, from, skipAids);
   // What a pawn may do here (and at tile `near`), read through its actor view (sim/opportunities).
   const opportunities = (st, id, near = null) => forPawn(st, actorView(st, id), id, near);
+  // The plan record (VB-1752; sim/steps), read through the actor view: why(st, task), the chain of steps above a task, the one that
+  // opened it first; plans(st, {kind, id}), a body's record, a copy, with its agent (the head, the alderman, the pawn itself).
+  const Steps = VB['sim/steps'];
+  const why = (st, j) => Steps.chain(actorView(st), j);
+  function plans(st, body) {
+    const view = actorView(st),
+      r = Steps.recordOf(view, body);
+    if (r)
+      r.agent =
+        body.kind === 'household'
+          ? (view.households[body.id].holder ?? null)
+          : body.kind === 'village'
+            ? (VB['sim/decisions'].agentOf(view, body.id) ?? null)
+            : body.id;
+    return r;
+  }
   const { compat, bond, bondWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];
   const { heard } = VB['sim/stories']; // what a pawn has heard, as its belief (VB-554)
   const { explainAllowance, giftWarning } = VB['sim/exchange'];
@@ -103,13 +123,36 @@ const Sim = (() => {
   // The facade's direct mutators are debug (VB-681): the world's hand, for the page's debug drawer and the tests, never a pawn's act; a
   // pawn acts by a verb (command, queue, head), whose check asks its right. tests/commands.js holds that none is a verb and that the page
   // calls them only from its drawer.
-  const DEBUG = ['setOwner', 'killPawn', 'retireHolder', 'holdMeetings', 'movingRound'];
+  // The world's rules run out of turn (refreshRoles, updateTies, refreshInterests, countDemand: the clock runs them) are its hand too (VB-1756).
+  const DEBUG = [
+    'setOwner',
+    'killPawn',
+    'retireHolder',
+    'holdMeetings',
+    'movingRound',
+    'refreshRoles',
+    'updateTies',
+    'refreshInterests',
+    'countDemand',
+  ];
   const { killPawn, retireHolder } = VB['sim/lifecycle'],
     { holdMeetings } = VB['sim/meetings'],
     { movingRound } = VB['sim/round'];
   const { seed } = VB['sim/scenarios'];
   const { advance } = VB['sim/clock'];
-  const { HERD, CLAIMS } = VB['sim/rules'],
+  // Sim.replay(st, entries): the commands recorded since a save (entries of st.commanded, in order: a run's own record past the length the
+  // saved state's had), given again on st, the save loaded, each at its game time, the clock advanced to it (VB-1757). The run then goes
+  // on as it went, its record again the same. The frame (which pawn is played: Sim.inhabit, uninhabit, succeed), the debug drawer's
+  // direct mutators and the page's flags are not commands and are not recorded: a run that changed them since the save is not replayed.
+  function replay(st, entries) {
+    for (const e of entries) {
+      if (e.tick < st.tick) throw new Error(`replay: a command at tick ${e.tick}, the run at ${st.tick}`);
+      advance(st, (e.tick - st.tick) / TICKS);
+      command(st, JSON.parse(JSON.stringify(e.cmd)));
+    }
+    return st;
+  }
+  const { HERD, CLAIMS, TICKS } = VB['sim/rules'],
     { SOIL } = VB['sim/crops'];
   const { herdsOf, dailyHay, winterNeed, stalled, years, describeHerds, herdReport, team, inMilk } = VB['sim/herds'];
   const { withOxen } = VB['sim/work'],
@@ -134,8 +177,10 @@ const Sim = (() => {
     load,
     recordOf,
     command,
+    decisions,
+    replay,
     DEBUG,
-    head,
+    head, // (st, pawn, verb, args): the pawn's choice as head (VB-1746: keyed by pawn, as each planning call below)
     headView,
     timetable, // a household's day laid end to end, each task a range by the viewer's estimate (VB-477)
     callCost, // what calling a member off costs: its walk home and the load it leaves (VB-477)
@@ -145,10 +190,11 @@ const Sim = (() => {
     inhabit,
     sheetNotes,
     uninhabit,
-    queue,
-    unqueue,
-    setAuto,
-    wish,
+    queue, // (st, pawn, cmd)
+    unqueue, // (st, pawn, i)
+    setAuto, // (st, pawn, on)
+    controlOf,
+    wish, // (st, pawn, kind, value, opts)
     wishesOf,
     opportunities,
     offerPreview,
@@ -203,9 +249,20 @@ const Sim = (() => {
     standingParts,
     moodOf,
     sleepOf,
-    plan,
-    planView,
-    fireView,
+    // (st, pawn, op, args): pawn's verb `plan` on its own plan (VB-1754; sim/plans, its ops sim/controller's PLAN_OPS), a facade
+    plan: (st, id, op, args) =>
+      Number.isInteger(id) && st.pawns[id]
+        ? command(st, {
+            actor: id,
+            verb: 'plan',
+            target: { kind: 'pawn', id },
+            args: { ...(args || {}), op },
+            source: 'player',
+          })
+        : `there is no pawn ${id}`,
+    planView, // (st, pawn)
+    fireView, // (st, pawn)
+    waits: VB['sim/controller'].waitsOf, // (st, pawn): why each task of the pawn's plan waits, and why the plan is idle (VB-1651)
     moodWord,
     traitLabels,
     traitAct,
@@ -229,11 +286,14 @@ const Sim = (() => {
     poseOf, // and its facing and stride, for the page until it draws from legs (VB-474)
     explainIdle,
     idleLine,
+    levyOf, // the hours a day a member owes its household by its levy (VB-1760)
     thirstLine,
     reasonOf,
     reasonLine,
-    agenda: VB['sim/agenda'].agenda, // the played pawn's queue and open work against their deadlines (VB-1644), its plan laid into days (VB-1647)
-    planGaps: VB['sim/agenda'].planGaps, // the windows that press with no task of the plan covering them (VB-1650)
+    why,
+    plans,
+    agenda: VB['sim/agenda'].agenda, // (st, pawn): the pawn's queue and open work against their deadlines (VB-1644), its plan laid into days (VB-1647)
+    planGaps: VB['sim/agenda'].planGaps, // (st, pawn): the windows that press with no task of the plan covering them (VB-1650)
     RIVER,
     byRiver,
     wetFactor, // the share of a field's fertility its wetness and ditch leave now (VB-721): the field's card
@@ -271,9 +331,9 @@ const Sim = (() => {
       return out;
     },
     // VB-1655: the build menu, what the played head may build now, and why a tile will not take one (sim/camp); reads only
-    buildMenu: VB['sim/agenda'].buildMenu, // sim/camp's menu with each entry's `work`, the plan's estimate (VB-1658)
-    placeWhy: VB['sim/camp'].placeWhy,
-    moveCost: (st, tile) => VB['sim/camp'].moveCost(st, tile, VB['sim/weather'].frostExpected(st)), // VB-1667
+    buildMenu: VB['sim/agenda'].buildMenu, // (st, pawn): sim/camp's menu with each entry's `work`, the plan's estimate (VB-1658)
+    placeWhy: VB['sim/camp'].placeWhy, // (st, pawn, what, tile)
+    moveCost: (st, pawn, tile) => VB['sim/camp'].moveCost(st, pawn, tile, VB['sim/weather'].frostExpected(st)), // VB-1667
     farmView: VB['sim/ladder'].farmView, // VB-1659: what stands at a farm, what is being built, what could follow (sim/ladder); reads only
     boatUntarred,
     team,

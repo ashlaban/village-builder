@@ -127,7 +127,6 @@ VB['sim/quern'] = (() => {
       hands: 1,
       type: 'household',
       craft: 'milling', // VB-360
-      inside: true,
       spot: atHome(-2, 4),
       urgency: () => QUERN.urgency.grind,
       done: (st, j, hh) => {
@@ -166,6 +165,8 @@ VB['sim/quern'] = (() => {
       },
     },
   };
+  // worked indoors (VB-1820: the work step says it, sim/methods labour; no field of the kind)
+  VB['sim/methods'].labour(KINDS.grind, { inside: true });
   // The quern as a good of the fair (design.md, The mill and the loom: a good of place; Culture's worth table holds it at 25 rations).
   Goods.declareGood({
     id: 'quern',

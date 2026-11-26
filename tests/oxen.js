@@ -19,7 +19,9 @@ function hoe(hh, fieldIx, hands) {
   const j = J.post(st, `plow:test${hh.id}.${fieldIx}`, 'plow', { type: 'household', id: hh.id }, fd.tile, { field: fd, farm: f });
   const ags = hands.map((id) => st.agents[id]);
   // each arrives at the field (VB-472: the task's rate is reckoned as a hand joins)
-  for (const a of ags) { A.release(st, a); j.claims.push(a.id); a.job = j; a.phase = 'go'; a.path = null; a.inside = false; A.arrived(st, a); }
+  // (VB-1750: it stands at its spot on the field first: the task's next step is read from where it stands)
+  const K = VB['sim/kinds'].KINDS.plow, spot = (a) => (K.spot ? K.spot(st, a, j) : [st.w.hx[j.site], st.w.hy[j.site]]);
+  for (const a of ags) { A.release(st, a); j.claims.push(a.id); a.job = j; a.path = null; a.inside = false; VB['sim/legs'].putAt(st, a, ...spot(a)); A.arrived(st, a); }
   return { j, ags };
 }
 const rate = (a) => VB['sim/work'].rateOf(st, st.pawns[a.id]) * (a.pace ?? 1); // the hand's rate over its work leg: skill and mishap (VB-475)
@@ -58,7 +60,7 @@ for (let k = 0; k < 2 * Sim.YEAR * 10; k++) {
   const was = new Map(); for (const q of s2.jobs.values()) if (T.kinds.includes(q.kind)) was.set(q, q.done);
   Sim.advance(s2, 0.1);
   for (const [q, d] of was) work.set(q.owner.id, (work.get(q.owner.id) || 0) + q.done - d);
-  for (const a of s2.agents) if (a.job && a.phase === 'work' && T.kinds.includes(a.job.kind)) hours.set(a.job.owner.id, (hours.get(a.job.owner.id) || 0) + 0.1);
+  for (const a of s2.agents) if (a.job && (a.leg && a.leg.kind === 'work') && T.kinds.includes(a.job.kind)) hours.set(a.job.owner.id, (hours.get(a.job.owner.id) || 0) + 0.1);
 }
 const per = (h) => (work.get(h.id) || 0) / Math.max(1e-9, hours.get(h.id) || 0); // work hours done per pawn-hour
 const others = s2.households.filter((h) => h !== teamHH && hours.get(h.id));

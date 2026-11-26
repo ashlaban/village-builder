@@ -1,7 +1,8 @@
 // @sys sim/work: a task's work as a block: its progress reckoned in closed form from the rate of the hands at it (or a background task's
 // holders minding it), its end in the due-queue st.workDue, a hand's rate and the ox team; split from sim/agents (VB-422)
 VB['sim/work'] = (() => {
-  const { cal, TICKS, HUNGER, HEALTH, HERD } = VB['sim/rules'],
+  const { unbound, atWork: inWork } = VB['sim/pose'];
+  const { cal, TICKS, DAY, HUNGER, HEALTH, HERD } = VB['sim/rules'],
     { workRate } = VB['sim/roles'];
   const HANDS = VB['sim/rules'].AGES.hands;
   const { age } = VB['sim/records'];
@@ -12,6 +13,8 @@ VB['sim/work'] = (() => {
   const { hasTeam } = VB['sim/herds'];
   const Carts = VB['sim/carts'],
     Iron = VB['sim/ironwork'];
+  const { says } = VB['sim/methods'];
+  const carted = (K) => !!says(K, 'carted'); // a kind whose work goes faster with a cart in hand: its method's work step says it (VB-1821)
   const { KINDS } = VB['sim/kinds'],
     Progress = VB['sim/progress'],
     { workTick } = Progress;
@@ -20,7 +23,7 @@ VB['sim/work'] = (() => {
   const { tileAt, endTile } = VB['sim/pose'];
   // st.jobs by key, and st.jobsBy by owner ('household:3', 'village:1'); every job leaves both together.
   const ownerKey = (o) => `${o.type}:${o.id}`;
-  const attentionOf = (j) => KINDS[j.kind].attention || 'full';
+  const attentionOf = (j) => (KINDS[j.kind].mind ? 'mind' : 'full'); // a charge minded (sim/attention), else a task in hand
   // The held task a is within reach of from tile `at`, or beyond it (a background task only).
   const inReach = (st, j, at) => at >= 0 && hexSteps(st.w, at, j.site) <= KINDS[j.kind].reach;
   // Work hours a pawn does in an hour: by role and age (children), slowed by hunger and poor health.
@@ -30,13 +33,7 @@ VB['sim/work'] = (() => {
   // and the household has a team. Derived each time, so the team is never in two fields.
   function withOxen(st, a) {
     const j = a.job;
-    if (
-      !j ||
-      a.phase !== 'work' ||
-      j.claims[0] !== a.id ||
-      j.owner.type !== 'household' ||
-      !HERD.team.kinds.includes(j.kind)
-    )
+    if (!j || !inWork(a) || j.claims[0] !== a.id || j.owner.type !== 'household' || !HERD.team.kinds.includes(j.kind))
       return false;
     let first = null;
     for (const q of st.jobsBy.get(ownerKey(j.owner)) || [])
@@ -70,16 +67,16 @@ VB['sim/work'] = (() => {
   const hoursOfJob = (j) => j.hours ?? KINDS[j.kind].hours;
   const atWork = (st, j, id) => {
     const b = st.agents[id];
-    return b.job === j && b.phase === 'work';
+    return b.job === j && inWork(b);
   };
   // A holder minds its background task while it stands free (where it last stood was in reach), stands at other work within reach, or
-  // walks a leg that begins and ends within reach; one walking into reach keeps it, unworked (sideCheck lets go one walking out of reach).
+  // walks a leg that begins and ends within reach; one walking into reach keeps it, unworked (mindCheck lets go one walking out of reach).
   // Constant over a leg, so the task's rate is told again only as its holders' legs begin and end.
   function minding(st, b, j) {
-    if (!b.side || b.side.background !== j) return false;
+    if (!b.mind || !b.mind.includes(j)) return false;
     const l = b.leg;
     if (b.path && l && l.kind === 'walk') return inReach(st, j, tileAt(st, l.x, l.y)) && inReach(st, j, endTile(st, b));
-    return b.phase === null || inReach(st, j, tileAt(st, b.x, b.y));
+    return unbound(b) || inReach(st, j, tileAt(st, b.x, b.y));
   }
   // The hours of work j's hands do together in a game hour now: rateOf, the tools' condition (VB-701), the ox team and the cart's part
   // in carting (a hand at carting takes a free cart as it is reckoned, as it did each step); a background task's kind rate for each
@@ -87,16 +84,15 @@ VB['sim/work'] = (() => {
   function manning(st, j, take = false) {
     const K = KINDS[j.kind];
     let rate = 0;
-    if (attentionOf(j) !== 'full') {
-      if (attentionOf(j) === 'background')
-        for (const id of j.claims || []) if (minding(st, st.agents[id], j)) rate += K.rate;
+    if (attentionOf(j) === 'mind') {
+      for (const id of j.claims || []) if (minding(st, st.agents[id], j)) rate += K.rate;
       return rate;
     }
     const tools = Iron.rate(st, j); // worn tools slow ploughing, reaping and felling (VB-701)
     for (const id of j.claims || []) {
       if (!atWork(st, j, id)) continue;
       const a = st.agents[id],
-        hh = K.carted ? st.households[st.pawns[id].household] : null;
+        hh = carted(K) ? st.households[st.pawns[id].household] : null;
       rate +=
         rateOf(st, st.pawns[id]) *
         (a.pace ?? 1) *
@@ -136,8 +132,24 @@ VB['sim/work'] = (() => {
       if (j.field && j.farm) bookHours(j.field, st.pawns[id].household === j.farm.household, dt); // VB-462: the class reads it
       if (st.agents[id].basis === 'owed') Days.worked(st, id, dt);
       else if (st.agents[id].basis === 'helper') Hands.worked(st, id, dt);
+      else countToday(st, id, dt, t);
     }
   }
+  // @state st.workToday (VB-1760): absent until the first hour worked, then {day (game day), by: {pawn id: hours}}: the clock hours each
+  //   pawn has worked today at full attention on tasks of its own household or village (a day owed or lent is booked by sim/days and
+  //   sim/hands), against which its levy left today is reckoned (sim/levies); begun afresh with the day's first hour worked. Written only
+  //   here, as a task's work is reckoned (settle): an addition a hand. VB-1761's booking of the hours takes it over.
+  function countToday(st, id, dt, t) {
+    const day = Math.floor(t / TICKS / DAY);
+    let w = st.workToday;
+    if (!w || w.day !== day) w = st.workToday = { day, by: {} };
+    w.by[id] = (w.by[id] || 0) + Math.min(dt, t / TICKS - day * DAY); // only today's part of a span reckoned late
+  }
+  // The clock hours pawn id has worked today on its own household's or village's tasks, as last reckoned (one lookup).
+  const workedToday = (st, id, day) => {
+    const w = st.workToday;
+    return w && w.day === day ? w.by[id] || 0 : 0;
+  };
   // @state household.workHours (VB-255): [season (year * 4 + season of cal, of the hours counted), hours, last]: the hours its working hands
   //   (Traits' hands: 14 to 59, not retired) worked at full attention on any task this season, and `last` those of the season before (0
   //   when that season was not the one before); absent until its first hour of work. Counted as a task's work is reckoned (settle), so it
@@ -159,14 +171,16 @@ VB['sim/work'] = (() => {
   }
   const teamKind = (j) => j.owner && j.owner.type === 'household' && HERD.team.kinds.includes(j.kind);
   // The rate after the hands changed (settle first), and the end queued again; the household's other tasks under the ox team are
-  // reckoned again too, as the team goes to its earliest task with hands (withOxen).
+  // reckoned again too, as the team goes to its earliest task with hands (withOxen); but not one whose end falls due at this step
+  // (unsettled): its work is finished as reckoned, and reckoning it again now queued its end a step on, past its hours (VB-1760).
+  const unsettled = (st, q) => q.due !== null && q.due !== undefined && q.due <= st.tick;
   function rerate(st, j, others = true) {
     if (j.at === undefined || j.at === null) settle(st, j);
     j.rate = manning(st, j, true);
     queue(st, j);
     if (!others || !teamKind(j)) return;
     for (const q of st.jobsBy.get(ownerKey(j.owner)) || [])
-      if (q !== j && q.rate > 0 && teamKind(q)) {
+      if (q !== j && q.rate > 0 && teamKind(q) && !unsettled(st, q)) {
         settle(st, q);
         rerate(st, q, false);
       }
@@ -176,7 +190,7 @@ VB['sim/work'] = (() => {
   function retune(st, hh) {
     if (!hh || hh.dissolved) return;
     for (const q of [...(st.jobsBy.get(`household:${hh.id}`) || [])])
-      if (q.rate > 0 && (teamKind(q) || KINDS[q.kind].carted)) {
+      if (q.rate > 0 && (teamKind(q) || carted(KINDS[q.kind])) && !unsettled(st, q)) {
         settle(st, q);
         rerate(st, q, false);
       }
@@ -223,11 +237,11 @@ VB['sim/work'] = (() => {
     while (q && q.length && q[0].due <= st.tick) {
       const j = q[0];
       settle(st, j);
-      if (attentionOf(j) === 'background') {
+      if (attentionOf(j) === 'mind') {
         let a = null;
         for (const id of j.claims) {
           const b = st.agents[id];
-          if (b.side && b.side.background === j && (!a || id < a.id)) a = b;
+          if (b.mind && b.mind.includes(j) && (!a || id < a.id)) a = b;
         }
         if (!a) {
           unqueue(st, j);
@@ -267,6 +281,7 @@ VB['sim/work'] = (() => {
     withOxen,
     teamFree,
     doneOf,
+    workedToday,
     reckonAll,
     dueWork,
   };

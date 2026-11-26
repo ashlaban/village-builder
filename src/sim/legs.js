@@ -1,6 +1,7 @@
 // @sys sim/legs: a pawn's leg (a walk, a wait or work) and the one due-queue of walks and waits: a walk set out on, begun, cut, its pace
 // told again and ended, its tiles trodden; split from sim/agents (VB-422). What a walk's end means for the pawn is sim/agents'
 VB['sim/legs'] = (() => {
+  const { unbound } = VB['sim/pose'];
   const { DAY, TICKS, WORK, SPEED, HERD, TRAVEL } = VB['sim/rules'];
   const { route } = VB['sim/routes'],
     { stepCost, tileCost, iced } = VB['sim/walking'];
@@ -40,7 +41,7 @@ VB['sim/legs'] = (() => {
   };
   // The pace of a walking pawn in map units of meadow a game hour.
   // (one on its way out with a cart taken at the house, the water's barrel, goes at the cart's pace too: VB-1586)
-  const paceOf = (st, a) => SPEED * st.w.HW * (a.carry || a.load > TRAVEL.load ? Carts.pace(st, a) : 1);
+  const paceOf = (st, a) => SPEED * st.w.HW * Carts.pace(st, a);
   // st.legDue's order (sim/due): by the pawn's leg's due, then its id.
   const legAt = (id, st) => st.agents[id].leg.due,
     pawnId = (id) => id;
@@ -53,12 +54,13 @@ VB['sim/legs'] = (() => {
         if (!p.alive || !a) continue;
         const was = a.leg;
         a.leg = null;
-        if (a.phase === 'road') roadWait(st, a);
+        if (a.journey === 'rest') roadWait(st, a);
         else if (a.path)
           begin(st, a); // from where it stands now
-        else if (a.phase === 'work')
-          a.leg = was && was.t !== undefined ? { kind: 'work', t: was.t, x: was.x, y: was.y, seg: 0 } : workLeg(st, a);
-        else if (a.phase === null) waitLeg(st, a);
+        else if (a.job)
+          // a task's hand standing is at its work, which goes on
+          a.leg = was && was.kind === 'work' ? { kind: 'work', t: was.t, x: was.x, y: was.y, seg: 0 } : workLeg(st, a);
+        else if (unbound(a)) waitLeg(st, a);
       }
     }
     return st.legDue;
@@ -89,7 +91,7 @@ VB['sim/legs'] = (() => {
       a.leg = { kind: 'wait', t: st.tick, due };
       enqueue(st, a);
     }
-    emit(st, 'legChanged', a); // a side task held is looked at as the leg begins (sim/agents sideCheck)
+    emit(st, 'legChanged', a); // a charge minded is looked at as the leg begins (sim/attention mindCheck)
   }
   // A pawn on a journey rests on the road until its next leg, at the next 6:00 (VB-287).
   function roadWait(st, a) {
@@ -119,14 +121,14 @@ VB['sim/legs'] = (() => {
     const t = walkTick(st),
       end = t + Math.max(1, Math.ceil(s * TICKS - 1e-9));
     let due = end;
-    if (a.phase === 'journey') {
+    if (a.journey === 'walk') {
       const day = Math.floor((t + 1) / (DAY * TICKS));
       due = Math.min(end, Math.max(t + 1, (day * DAY + WORK[1]) * TICKS - 1));
       if (due < end) due = ashore(st, a, h, t, due);
     }
     a.leg = { kind: 'walk', t, x: a.x, y: a.y, seg: a.seg, pace, h, end, due };
     if (st.pawns[a.id].alive) enqueue(st, a);
-    emit(st, 'legChanged', a); // a side task held is looked at as the leg begins (sim/agents sideCheck)
+    emit(st, 'legChanged', a); // a charge minded is looked at as the leg begins (sim/attention mindCheck)
   }
   // Nobody sleeps on the ice (VB-808; design.md, The ground by season): a journey's leg that would stop for the night on ice, or on the
   // way onto it, stops instead at the end of the last stretch of its walk wholly on land, the shore, to cross in the morning. Segment k
@@ -154,7 +156,7 @@ VB['sim/legs'] = (() => {
     for (let i = from + 1; i <= to; i++) {
       VB.count.walkPoint++;
       const t = a.path[i][3] ?? -1;
-      if (t >= 0) tread(st.w, t, a.side || a.phase === 'home' ? 1 + HERD.herding.move * driven(st, a.id) : 1);
+      if (t >= 0) tread(st.w, t, a.mind || !!a.homeward ? 1 + HERD.herding.move * driven(st, a.id) : 1);
     }
   }
   // hours reach, facing the way it went (a.x, a.y, a.seg, and the page's face and stride: written at a leg's start and end only).

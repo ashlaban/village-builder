@@ -4,12 +4,15 @@
 // Design: docs/mocks/supply-scale.html and supply-doubt.html (the UI review with Kim, 16 Nov); principle "The future is someone's estimate" (the future
 // is someone's estimate: this is the head's) and 15 (one scale for every supply). What is still to come is the plan's: the crop the head
 // expects of its fields (FIELDS.expect of the full yield, as the plan reckons when it asks how many fields), the hay of its meadows in an
-// ordinary year (sim/meadows' expectedHay), the woodpile's goal of each season (plan.targets.wood); no weather to come is read. Nothing
+// ordinary year (sim/meadows' expectedHay), the woodpile's goal of each season (its wood target's seasons); no weather to come is read. Nothing
 // reads the outlook to decide: it is a view the review keeps, so that the page never computes one.
 VB['sim/outlook'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { SEASON_DAYS, YEAR_DAYS, FIELDS, HERD, BUILD, PEAT, HELP, cal } = VB['sim/rules'],
     { CROPS, ROTATIONS } = VB['sim/crops'];
   const { on } = VB['sim/events'];
+  const { controlOf } = VB['sim/controller'];
+  const { plansIn } = VB['sim/steps'];
   const Stores = VB['sim/stores'],
     Goods = VB['sim/goods'];
   const Pot = VB['sim/pot'];
@@ -21,7 +24,7 @@ VB['sim/outlook'] = (() => {
   const { fireOf } = VB['sim/house'];
   const { hands } = VB['sim/targets'];
   const { headSkill } = VB['sim/seasonal'];
-  const { CHAINS } = VB['sim/planchains'];
+  const { GOALS } = VB['sim/kinds'];
   // Proposed (VB-666): `little`, a first short season whose need is covered at least this share is short a little ('short'), else badly
   // ('bad'); `woodTrips`, the firewood trips a working hand makes in a season towards the pile's goal (ECON.woodPerTrip units each), which
   // bounds the wood the plan's goal brings in a season. Named tunables of the view; nothing in the simulation reads them.
@@ -142,21 +145,25 @@ VB['sim/outlook'] = (() => {
     return out;
   }
   // ---- what a plan by hand covers (VB-1661; Kim, 24 Nov 2026: "Stores count what is in the plan. There is no 'automatic plan'") ----
-  // A household planned by hand: the played pawn's, with automatic behaviour off. Its outlook counts an intake still to be worked only
-  // when a task of the plan covers it; what is held, or needs no work, is counted as for any household.
+  // A household planned by hand: one with a member whose automatic behaviour is off (VB-1753: any pawn's switch, read from the
+  // controllers' index; it was the played pawn's alone). Its outlook counts an intake still to be worked only when a task of the plan
+  // covers it; what is held, or needs no work, is counted as for any household.
   const handOf = (st, hh) => {
-    const pl = st.player;
-    return !!pl && !pl.auto && st.pawns[pl.pawn].household === hh.id;
+    if (st.controlled)
+      for (const id of st.controlled) if (st.pawns[id].household === hh.id && !controlOf(st, id).auto) return true;
+    return false;
   };
-  const playedOf = (st, hh) => !!st.player && st.pawns[st.player.pawn].household === hh.id;
-  const tasksOf = (st) => (st.player && st.player.plan ? st.player.plan.tasks : []);
-  // Whether a task of the plan covers chain `name` (sim/planchains CHAINS) at `tile` (any, when undefined): a task at the tile, or a task
-  // by key of one of the chain's job kinds there.
-  const covered = (st, name, tile) =>
-    tasksOf(st).some((t) =>
+  // Whether a member of household hh has a controller (sim/controller; the played pawn's is one).
+  const controlledIn = (st, hh) => !!st.controlled && st.controlled.some((id) => st.pawns[id].household === hh.id);
+  // The tasks of the plans of household hh's members (sim/steps plansIn; VB-1746: the played pawn's plan before).
+  const tasksOf = (st, hh) => plansIn(st, hh.id).flatMap((pp) => pp.tasks);
+  // Whether a task of household hh's plans covers goal kind `name` (sim/kinds GOALS) at `tile` (any, when undefined): a task at the tile, or a task
+  // by key of one of the goal kind's job kinds there.
+  const covered = (st, hh, name, tile) =>
+    tasksOf(st, hh).some((t) =>
       t.key === undefined
-        ? t.kind === name && (tile === undefined || t[name] === tile)
-        : CHAINS[name].kinds.includes(t.kind) && (tile === undefined || t.site === tile),
+        ? t.kind === name && (tile === undefined || t.site === tile)
+        : GOALS[name].kinds.includes(t.kind) && (tile === undefined || t.site === tile),
     );
   const STANDING = ['sown', 'growing', 'ripe', 'stooks'];
   // A supply's reckoning with what it left out (`parts.left`) for a household planned by hand.
@@ -225,7 +232,7 @@ VB['sim/outlook'] = (() => {
           const gross = first && fd.stage === 'stooks' ? fd.held || 0 : FIELDS.expect * CROPS[k].yield,
             n = Math.max(0, gross - (k === 'barley' ? per : CROPS[k].seed));
           // by hand, a crop standing is counted with a harvest task on its field; one not sown yet is in no task (VB-1661)
-          if (hand && !(first && STANDING.includes(fd.stage) && covered(st, 'harvest', fd.tile))) {
+          if (hand && !(first && STANDING.includes(fd.stage) && covered(st, hh, 'harvest', fd.tile))) {
             if (n > 0) left.push({ good: 'food', what: 'harvest', tile: fd.tile, crop: k, n: r1(n) });
           } else ins.push([day, k, n]);
         });
@@ -257,23 +264,23 @@ VB['sim/outlook'] = (() => {
   }
   // Fuel: firewood and peat as one supply (sim/chores' fuelFree: the pile less what a project holds back, peat at PEAT.worth), burnt at
   // the season's ECON.woodUse times the house's own fire (sim/house fireOf: a timber house's is smaller; VB-1669). Its intake is the
-  // plan's: at the start of each season (today, for this one) the household cuts towards the season's goal, plan.targets.wood[season],
+  // plan's: at the start of each season (today, for this one) the household cuts towards the season's goal, its wood target of the season,
   // at most hands × OUTLOOK.woodTrips × ECON.woodPerTrip a season (the share of it left, for the season we are in); none with no farm or no wood in its
   // village's reach. Firewood does not spoil. Timber home and not yet cut
   // counts as firewood (VB-1653): the head has it cut by its own rule (sim/chores); for the household of a pawn planned by hand
-  // (automatic behaviour off) only while a `firewood` task of the plan covers it (sim/playerplan).
+  // (automatic behaviour off) only while a `firewood` task of the plan covers it (sim/steps, VB-1754).
   // For a household planned by hand (VB-1661; Kim, 24 Nov: "Stores count what is in the plan"), the head's own cutting to the goal is
   // left out, and a fell task's loads still to come home are counted, today, only with a `firewood` task to cut them.
   function fuel(st, hh, f, plan, c, F, end, dz = null) {
     const fire = fireOf(st, hh),
       use = st.ECON.woodUse.map((u) => u * fire),
       hand = handOf(st, hh),
-      cut = !hand || covered(st, 'firewood'),
+      cut = !hand || covered(st, hh, 'firewood'),
       left = [],
       keep =
         Math.max(0, hh.farmstead === null ? (hh.wood || 0) + PEAT.worth * (hh.peat || 0) : fuelFree(st, hh)) +
         (cut ? timberOf(hh) : 0),
-      goal = plan.targets && plan.targets.wood,
+      goal = targetOf(plan, 'wood') && targetOf(plan, 'wood').seasons,
       wood = f && st.villages[f.village] && st.villages[f.village].wood,
       cap = hands(st, hh) * OUTLOOK.woodTrips * st.ECON.woodPerTrip,
       cuts = !!(goal && wood && wood.length && cap > 0);
@@ -294,11 +301,11 @@ VB['sim/outlook'] = (() => {
     if (hand) {
       const T = timberOf(hh);
       if (!cut && T > 0) left.push({ good: 'fuel', what: 'timber', n: r1(T) });
-      for (const t of tasksOf(st))
+      for (const t of tasksOf(st, hh))
         if (t.key === undefined && t.kind === 'fell' && (t.got || 0) < (t.n || 1)) {
           const n = ((t.n || 1) - (t.got || 0)) * st.ECON.woodPerTrip;
           if (cut) planned += n;
-          else left.push({ good: 'fuel', what: 'fell', tile: t.fell, n: r1(n) });
+          else left.push({ good: 'fuel', what: 'fell', tile: t.site, n: r1(n) });
         }
       if (planned > 0) ins.push([c.day, 'firewood', planned]);
     }
@@ -350,7 +357,7 @@ VB['sim/outlook'] = (() => {
         grass = 0;
       for (const m of f.meadows) {
         // by hand, a meadow's hay still to bring in is counted with a hay task on it (VB-1661)
-        const by = !hand || covered(st, 'hay', m.tile);
+        const by = !hand || covered(st, hh, 'hay', m.tile);
         if (m.stage === 'mown') {
           if (!by) {
             if (m.held > 0) left.push({ good: 'hay', what: 'mown', tile: m.tile, n: r1(m.held) });
@@ -363,7 +370,7 @@ VB['sim/outlook'] = (() => {
           else left.push({ good: 'hay', what: 'meadow', tile: m.tile, n: r1(HAY * m.fert) });
         }
       }
-      const target = plan.targets ? plan.targets.hayWinters * W : W,
+      const target = targetOf(plan, 'hay') ? targetOf(plan, 'hay').level * W : W,
         mow = Math.min(grass, Math.max(0, target - hh.hay - lying));
       if (mow > 0) ins.push([Math.max(c.day, Math.floor(mid)) + 1, 'meadows', mow]);
     }
@@ -489,9 +496,9 @@ VB['sim/outlook'] = (() => {
     const plan = st.plans && st.plans.households.get(id),
       hh = st.households[id],
       c = cal(st.t),
-      // the played pawn's household's, reckoned when asked (VB-1661): by hand it counts only what the plan's tasks cover, and they, and
-      // automatic behaviour, change between its reviews
-      O = plan && hh && !hh.dissolved && playedOf(st, hh) ? reckon(st, hh, plan, c) : plan && plan.outlook;
+      // a household with a controlled member's (the played pawn's, VB-1661; any controller's, VB-1753), reckoned when asked: by hand it
+      // counts only what the plan's tasks cover, and they, and automatic behaviour, change between its reviews
+      O = plan && hh && !hh.dissolved && controlledIn(st, hh) ? reckon(st, hh, plan, c) : plan && plan.outlook;
     if (!O) return null;
     return {
       ...JSON.parse(JSON.stringify(O)),

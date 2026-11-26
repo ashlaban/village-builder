@@ -7,6 +7,8 @@
 var VB = (globalThis.VB = globalThis.VB || {});
 // Work measurements only: never part of st or an input to a simulation decision.
 VB.COUNTERS = {
+  methodAsk:
+    "A task's next leg read from the world, at each leg's end or cut (sim/methods next, through sim/doing; VB-1775)",
   campLook: 'Households read each working hour for a camp left to itself (sim/upgrade ownRung, VB-1658)',
   letGoJobs:
     "Jobs read to see whether a field a household might let go has a task on it, on its head's planning day after the harvest " +
@@ -83,6 +85,12 @@ VB.COUNTERS = {
     'Legs a step takes from the due-queue as they end: walks and waits (sim/legs dueLegs, for sim/agents stepAgents; VB-473)',
   sleepReckon:
     'Pawns whose sleep owed was reckoned: each living pawn once an hour, the played pawn each step (sim/sleepers, VB-1645)',
+  queueRun:
+    'Queues run by the queue step: each step, one a pawn whose controller holds a command (sim/controller queueStep, VB-1745)',
+  pointOffer:
+    'Open offers looked at by Sim.decisions: each offer, a call a controller makes for its pawn (sim/points decisions, VB-1757)',
+  planFeed:
+    'Plans looked at by the feeder: each step, one a pawn whose controller holds a plan (sim/player playerStep, VB-1746)',
   sleepOwn:
     "Sleeps begun by a pawn's own rule, one that owed a whole night and was free in the working day (sim/sleepers, VB-1645)",
   walkAwake:
@@ -146,9 +154,23 @@ VB.COUNTERS = {
     "Calls of a kind's `available` rule: by the reviews of the plans, the due-queue and members looking for work (sim/jobs; VB-258, VB-249)",
   planReview:
     "Plans reviewed: on each holder's planning day, when a window closes or a store crosses a target (sim/plans; VB-258, VB-249)",
+  planSteps:
+    "Plan steps made: a household's season steps at each season's plan, a project's year step (sim/steps; VB-1752)",
   dayPair:
     "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
-    '(sim/day, allot; VB-466)',
+    "(sim/day, allot; VB-466), with a task slotted in and the household's own tasks at its review (reweigh, VB-1854)",
+  dayLost:
+    "Tasks of a member lost to its household's day (dead, ill, lent, on leave, away) slotted to the others (sim/day lostHolder, VB-1758)",
+  dayRose:
+    "Tasks a household's review made more urgent, slotted again into the day's lists as they stand (sim/day reweigh, VB-1854)",
+  levyCompile:
+    "Members' levies compiled on their household's plan: at the season's turn, a member new to it or of a changed role (sim/levies, VB-1760)",
+  dayAllot:
+    "Households' days allotted whole: at the morning, at 14:00, and when a slot-in finds nobody (sim/day, allot; VB-1758)",
+  vitalAsk:
+    'Open tasks of its household passed by a pawn on its own plan, for a daily one the day leaves unmanned (sim/controller, VB-1755)',
+  riskCheck:
+    "Authored task steps weighed for their `by` at the household's review: none in a run with nothing authored (sim/day, VB-1755)",
   dayTake: 'Tasks of its list an idle pawn passes or takes (sim/day, takeDay; VB-466)',
   timetableEntry:
     "Entries of a member's list laid out in a timetable, a view asked by the page (sim/timetable, VB-477)",

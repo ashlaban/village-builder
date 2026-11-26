@@ -528,7 +528,9 @@ VB['sim/scenarios'] = (() => {
     //   tests may turn it off; see sim/fields, sim/meadows)
     // @state st.used: Set of tile indexes taken by houses and fields
     // @state st.jobs: Map of job key to open job; st.jobSeq: number; counter for job ids. A job: {id, key, kind, owner, site, done (work hours),
-    //   claims[] (ids of the pawns working it, at most KINDS[kind].hands; VB-102), posted, live, and its source's fields (field, farm, plot, ...)}
+    //   claims[] (ids of the pawns working it, at most KINDS[kind].hands; VB-102), posted, live, step (the id of the plan's step that
+    //   opened it, or null: sim/steps stepFor, VB-1752), and its source's fields (field, farm, plot, ...)}
+    //   A goal with methods (VB-1775) adds amount (the store it was posted to reach) and op (the work leg its `done` hours are of).
     // @state st.jobsBy: Map of owner ('household:<id>' or 'village:<id>') to the Set of its open jobs (by id);
     //   kept with st.jobs by post and dropJob; derived, not saved (`sim/saves` DERIVED)
     // @state st.meetingLog[]: {year, text, close?: true where a custom came close to changing and did not (VB-082)}; newest first.
@@ -546,13 +548,13 @@ VB['sim/scenarios'] = (() => {
     // @state st.routeCosts: Map of route key to the choice cost of a st.pathCache route its search found (sim/routes); derived
     // @state st.talks: number; talks since the start (sim/relations)
     // @state st.driftMul: number; multiplier on attitude drift, set by the page. st.naturalDeaths: boolean; set by the page
-    // @state st.player: null, or the pawn the player inhabits and its queue of commands (see sim/commands)
+    // @state st.player: null, or the frame of the pawn the player inhabits (see sim/player; its controller, sim/controller)
     // @state st.offers, st.offerSeq: the open offers and the next offer's id (see sim/offers)
     // @state st.occasions, st.occasionSeq: the occasions called and not over, and the next one's id (see sim/occasions)
     // @state st.away, st.awaySeq: the open stays away from home, journeys among them, and the next one's id (see sim/away, VB-783)
     // @state st.booths, st.boothSeq: the booths raised or being raised, and the next one's id (see sim/building, VB-784)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
-    // @state st.agents[]: {id, x, y, path, seg, phase, job, inside, anim, carry, face, stride, ox, oy, idleUntil, talk (sim/relations)};
+    // @state st.agents[]: {id, x, y, path, seg, journey, homeward, job, inside, anim, carry, face, stride, ox, oy, idleUntil, talk (sim/relations)};
     //   one per pawn, map units; side (sim/agents, VB-251): absent unless the pawn holds a partial or background task
     // @state st.visualDirty: boolean; set when the whole settlement layer must be redrawn. st.rigDirty: Set of pawn ids whose rigs the page remakes
     // @state st.farmDirty,villageDirty: Sets of farm and village ids whose drawings the page rebuilds alone, and clears (VB-442)
@@ -608,7 +610,7 @@ VB['sim/scenarios'] = (() => {
         y: 0,
         path: null,
         seg: 0,
-        phase: null,
+        journey: null,
         job: null,
         inside: true,
         anim: 'idle',

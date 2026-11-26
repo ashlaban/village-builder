@@ -1,5 +1,6 @@
 // @sys sim/hunger: feeding households, the daily hearth and the effects of food and shelter on pawns' health
 VB['sim/hunger'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { owedBy, tiredHealth } = VB['sim/sleep'];
   const { fireOf } = VB['sim/house'];
   const { HUNGER, HEALTH, ILLNESS, HERD, HELP, DAY, YEAR, YEAR_DAYS, PEAT, BUILD, GATHERING } = VB['sim/rules'],
@@ -16,7 +17,8 @@ VB['sim/hunger'] = (() => {
   // The seed kept for a field: the standing plan's target (from its culture's template, sim/plans; VB-252), the crop's seed (barley's) before it has one.
   function seedPer(st, hh) {
     const plan = st.plans && st.plans.households.get(hh.id);
-    return (plan && plan.targets && plan.targets.seed) ?? CROPS.barley.seed;
+    const S = targetOf(plan, 'seed');
+    return S ? S.level : CROPS.barley.seed;
   }
   // The seed the household's fields not yet sown this year need: the standing plan's reservation of grain (sim/plans reserves it at each
   // review; sim/stores counts it with this rule when it is read, so a field sown since counts at once); a land project holds back its new

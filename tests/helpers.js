@@ -24,7 +24,7 @@ const make = () => {
   return { st, A, B, fB, fd, j, dropAll };
 };
 const ask = (st, from, to, wants, source = 'planner') =>
-  issue(st, { actor: from, verb: 'offer', target: to, args: { basis: 'help', wants }, source });
+  issue(st, { actor: from, verb: 'ask', target: to, args: { basis: 'hands', wants }, source });
 const adults = (st, hh) => hh.members.filter((id) => st.pawns[id].alive && age(st, st.pawns[id]) >= MATCH.help.minAge);
 
 // ---- the ask, the answer, the hands' work ----
@@ -33,7 +33,11 @@ const adults = (st, hh) => hh.members.filter((id) => st.pawns[id].alive && age(s
   assert.strictEqual(st.farmsteads[A.farmstead].village, fB.village, 'the two households share a village');
   const other = st.households.find((h) => st.farmsteads[h.farmstead].village !== fB.village);
   assert.ok(adults(st, A).length >= 3, 'household A has three adults');
-  assert.match(String(issue(st, { actor: B.holder, verb: 'offer', target: other.holder, args: { basis: 'help', wants: { hands: 1, hours: 4 } }, source: 'planner' })),
+  assert.match(String(issue(st, { actor: B.holder, verb: 'offer', target: A.holder, args: { basis: 'help', wants: { hands: 1, hours: 4 } }, source: 'pawn' })),
+    /asked, by the verb ask/, 'hands are asked by the verb ask, never offered (VB-1756)');
+  assert.match(String(issue(st, { actor: B.holder, verb: 'ask', target: A.holder, args: { basis: 'help', wants: { hands: 1, hours: 4 } }, source: 'pawn' })),
+    /one asks for .*hands/, 'the ask names what it asks for, hands');
+  assert.match(String(issue(st, { actor: B.holder, verb: 'ask', target: other.holder, args: { basis: 'hands', wants: { hands: 1, hours: 4 } }, source: 'planner' })),
     /within the village/, 'hands are not asked of another village');
   assert.match(String(ask(st, B.holder, A.holder, { hands: 9, hours: 4 })), /1 to 3 hands/, 'at most three hands');
   const pawn0 = st.pawns[adults(st, A)[0]];
@@ -96,12 +100,12 @@ const adults = (st, hh) => hh.members.filter((id) => st.pawns[id].alive && age(s
     Sim.advance(st, 0.1);
     dropAll(`household:${A.id}`);
     A.waterDay = B.waterDay = Sim.cal(st.t).day;
-    seen = seen || (st.agents[id].job === j && st.agents[id].phase === 'work');
+    seen = seen || (st.agents[id].job === j && (st.agents[id].leg && st.agents[id].leg.kind === 'work'));
     const a = st.agents[id];
-    assert.ok(!a.job || ['go', 'work', 'back'].includes(a.phase), `the helper holds job ${a.job && a.job.key} in phase ${a.phase}`);
+    assert.ok(!a.job || a.path || (a.leg && a.leg.kind === 'work'), `the helper holds job ${a.job && a.job.key} in a leg ${a.leg && a.leg.kind}`);
   }
   assert.ok(seen, 'the helper worked the hoeing before the day ended');
-  assert.ok(st.agents[id].job !== j && !j.claims.includes(id), `the helper let the hoeing go at the day's end (phase ${st.agents[id].phase})`);
+  assert.ok(st.agents[id].job !== j && !j.claims.includes(id), `the helper let the hoeing go at the day's end (phase ${st.agents[id].leg && st.agents[id].leg.kind})`);
   const bad = checkState(st).filter((m) => /holds job/.test(m));
   assert.deepStrictEqual(bad, [], 'no agent holds a task while going home');
   console.log(`  a helper lent at ${WORK[1] - 2}:00 for 4 hours let the hoeing go at the day's end`);
@@ -127,6 +131,7 @@ const adults = (st, hh) => hh.members.filter((id) => st.pawns[id].alive && age(s
 {
   const { st, A, B } = make();
   Sim.inhabit(st, A.holder);
+  Sim.setAuto(st, A.holder, false); // the player answers for it (VB-1776: on automatic, its pawn's judgement answers at once)
   assert.strictEqual(ask(st, B.holder, A.holder, { hands: 1, hours: 4 }), true);
   const o = st.offers.find((x) => x.basis === 'help');
   assert.ok(o && o.answers[0].by === A.holder && !st.handsToday?.by?.[adults(st, A)[0]], 'the played head is asked, and nothing is lent before it answers');

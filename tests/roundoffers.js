@@ -152,7 +152,7 @@ const steps = (st, d, now, to = VILLAGE_STEPS) => {
 
 // 3. A refusal on day 1 answered anew on day 2, and a lapse after day 3. Man 10 is played: his match with woman 4, who hates him, is due
 // on day 1 and refused at her village's step; that evening his side asks woman 5 (the player's offer: the round asks nothing anew for
-// the played pawn), due day 2, and she says yes at her village's step on day 2. One asked on day 3's evening is still open when the
+// the played pawn with its automatic behaviour off), due day 2, and she says yes at her village's step on day 2. One asked on day 3's evening is still open when the
 // round ends, and lapses.
 const hate = (st, a, b) => {
   for (const k of ['claim', 'claim', 'claim', 'border', 'border', 'border']) remember(st, a, b, k);
@@ -161,6 +161,7 @@ const hate = (st, a, b) => {
 {
   const st = world();
   assert.strictEqual(Sim.inhabit(st, 10), true);
+  Sim.setAuto(st, 10, false); // the player answers and asks for him (VB-1776: on automatic, his side asks anew as for any man)
   hate(st, 4, 10);
   const d1 = roundNoon(st, 0),
     ask = (woman, due) =>
@@ -226,6 +227,25 @@ const hate = (st, a, b) => {
     'the lapse is told',
   );
   sound(st, 'after the round');
+}
+const { twins } = require('./lib/twins.js');
+// VB-1776: on automatic with nothing queued, the played woman refuses the match as she would unplayed (her judgement at once, its
+// reason read: sim/offers make, sim/marriage refusedMatch), and the played man, refused, has his side ask anew (sim/round askAgain)
+for (const id of [4, 10]) {
+  const [a] = twins(world, id, (st) => {
+    hate(st, 4, 10);
+    const d1 = roundNoon(st, 0);
+    issue(st, {
+      actor: 6,
+      verb: 'offer',
+      target: 0,
+      args: { basis: 'match', gives: { man: 10, home: 1 }, wants: { woman: 4 }, due: d1, round: true },
+      source: 'round',
+    });
+    steps(st, 1, d1);
+  }, id === 4 ? 'the woman refuses' : 'the man refused');
+  assert.strictEqual(R.spouseOf(a, 10), null, 'refused');
+  if (id === 10) assert.ok(a.offers.some((o) => o.basis === 'match' && o.gives.man === 10 && o.wants.woman !== 4), 'his side asks anew');
 }
 console.log(
   'roundoffers ok: whose yes a move needs (the pawn, the head it comes to, the head left for a marriage or a minor; no minor in service ' +

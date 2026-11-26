@@ -114,8 +114,8 @@ const without = (lists, key) =>
   // a grinding for every member, so that each who may work is at work when the meal is posted
   for (const m of hh.members) Jobs.post(st, `grind:test:${m}`, 'grind', owner(hh), fm.house, { farm: fm });
   Day.allot(st, hh, Sim.cal(st.t));
-  for (let n = 0; n < 20 && !hh.members.some((m) => st.agents[m].phase === 'work'); n++) Sim.advance(st, 0.1);
-  const working = hh.members.filter((m) => st.agents[m].phase === 'work');
+  for (let n = 0; n < 20 && !hh.members.some((m) => (st.agents[m].leg && st.agents[m].leg.kind === 'work')); n++) Sim.advance(st, 0.1);
+  const working = hh.members.filter((m) => (st.agents[m].leg && st.agents[m].leg.kind === 'work'));
   assert.ok(working.length > 0, 'members are at work');
   const f = st.farmsteads[hh.farmstead],
     c = Sim.cal(st.t),
@@ -136,7 +136,7 @@ const without = (lists, key) =>
   );
   const a = st.agents[hand];
   assert.ok(working.includes(Number(hand)), `the meal's hand was at work (${hand}; at work ${working})`);
-  assert.strictEqual(a.job, j, `its hand is called to it from its work (${a.job && a.job.key}, ${a.phase})`);
+  assert.strictEqual(a.job, j, `its hand is called to it from its work (${a.job && a.job.key}, ${a.leg && a.leg.kind})`);
 }
 
 // 4. the best fit has no hours left: the task goes to the next fit, and on the first's list after its tasks given hands

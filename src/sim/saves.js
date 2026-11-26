@@ -276,8 +276,20 @@ VB['sim/saves'] = (() => {
   // Format 4 (VB-342): the same data, on another island: the generator's climate and rivers changed what a seed makes, and a save lies on
   // its seed's island as generated (heights, rivers and moisture are not saved), so older saves are refused.
   // Format 5 (VB-247): st.idlers lists agent ids, not agents, and st.cenv holds no people (it was st.pawns); older saves are refused.
-  const FORMAT = 5,
-    READS = [5];
+  // Format 6 (VB-1751): a pawn's task has no phase (agent.phase is gone: its state is its leg and its hands), a journey's state is
+  // agent.journey and the walk home agent.homeward; a save holding a pawn mid-phase is another build's, and refused.
+  // Format 7 (VB-1752): every body's plan is a record of steps (plan.body, year, season, ahead; st.plans.pawns, stepSeq), a project's steps
+  // carry their ids and links and a task names its step; a save without them is another build's, and refused (no migration is written).
+  // Format 8 (VB-1745): a pawn's switch and queue are its controller's (pawn.control, st.controlled, st.queued), not st.player's; a save
+  // holding them in st.player is another build's, and refused (no migration is written).
+  // Format 9 (VB-1746): a pawn's plan is its controller's (pawn.control.plan), not st.player's, and st.player is the frame only (no
+  // `since`, no `plan`); a save holding st.player.plan is another build's, and refused (no migration is written).
+  // Format 10 (VB-1754): a pawn's own plan is steps of its plan record (st.plans.pawns: plan.ahead by author 'pawn', plan.lastTask),
+  // not its controller's (no pawn.control.plan); a save of format 9 is another build's, and refused (no migration is written).
+  // Format 11 (VB-1777): a task at a tile is a goal its kind's methods carry, {kind, site, ...} (sim/kinds GOALS), not {<chain>: tile}, and
+  // a command its plan fed is marked by its goal kind and site; a save of format 10 is another build's, and refused (no migration is written).
+  const FORMAT = 11,
+    READS = [11];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {
@@ -315,6 +327,7 @@ VB['sim/saves'] = (() => {
     graph: null, // sim/graph's index of live edges, built at its first use
     stepAt: null, // sim/agents loaded, at the end of a load
     jobsBy: rebuildJobsBy,
+    lyingBy: null, // sim/lying, the piles by owner, built at its first use (VB-1775)
     routeKept: null, // sim/routes, built at its first use: a route kept aside is searched again after a load, and found the same (VB-1563)
     routeCosts: null,
     facilityIdx: null, // sim/facilities, by tile and by owner, built at its first use (VB-361)

@@ -3,17 +3,21 @@
 // on a day owed or lent (sim/days, sim/hands) takes of the tasks of the household it works for; the hours of help a head lacks, asked at
 // the morning's allotment (sim/hands, VB-470). Owns plan.day
 VB['sim/day'] = (() => {
-  const { WORK, TICKS } = VB['sim/rules'],
+  const { unbound, atWork } = VB['sim/pose'];
+  const { WORK, TICKS, cal } = VB['sim/rules'],
     { CHILD, MATCH, absentMask } = VB['sim/roles'];
   const { age } = VB['sim/records'];
   const { travelling } = VB['sim/pose'],
     { rateOf, attentionOf, doneOf } = VB['sim/work'];
   const { issue, register } = VB['sim/commands'];
+  const { on } = VB['sim/events'];
   const { eligible } = VB['sim/eligibility'];
-  const { KINDS, isOpen } = VB['sim/kinds'];
+  const { KINDS, isOpen, carriedOn } = VB['sim/kinds'];
+  const { says } = VB['sim/methods'];
   const Days = VB['sim/days'];
+  const Levies = VB['sim/levies'];
   const Hands = VB['sim/hands'];
-  const { planOf, heads } = VB['sim/plans'];
+  const { planOf, heads, planOp, planFacade } = VB['sim/plans'];
   const Estimate = VB['sim/estimate'];
   const { score, bid, matchBar, joined, allotted, workCommand, jobsFor } = VB['sim/fit'];
   const Workmanship = VB['sim/workmanship'],
@@ -62,10 +66,11 @@ VB['sim/day'] = (() => {
   // draw. Then the head calls: a member at work leaves its task for the first of its list when that is much more urgent (switchRatio,
   // switchMargin; VB-107), a task with a deadline today (`late`: the meal)
   // calls its hand from work, from the road or from idling. The others take their tasks when they next look for work (takeDay).
-  // `asking`, in the morning's allotment (allotChanged): the list that gains [household id, hours short] when the household is short of hands.
+  // `asking`, in the morning's allotment (allotDays): the list that gains [household id, hours short] when the household is short of hands.
   function allot(st, hh, c, asking = null) {
     const plan = planOf(st, 'household', hh.id);
     if (!plan || hh.farmstead === null) return;
+    VB.count.dayAllot++;
     const lists = {},
       fits = {},
       hours = {},
@@ -88,13 +93,15 @@ VB['sim/day'] = (() => {
       for (const j of jobs) weigh(st, hh, members, j, c, memo, stand, pairs);
     }
     pairs.sort((x, y) => y[0] - x[0] || x[2].id - y[2].id || x[1] - y[1]);
+    vitalFirst(st, hh, pairs);
     const H = Estimate.headOf(st, hh),
       ctx = {
         lists,
         fits,
         hours,
         est: new Map(), // job -> the work left as the head sees it, once an allotment
-        cap: new Map(members.map((p) => [p.id, dayHours()])),
+        // a member's levy left today (sim/levies capacity); the head pair, not levied, their working hours of the horizon (VB-1760)
+        cap: new Map(members.map((p) => [p.id, Levies.capacity(st, hh, p, c)])),
         manned: new Map(), // job -> [hours of work given, hands]
         given: new Map(), // pawn -> its first task of the first pass, with its fit
         due: new Map(), // pawn -> the task with a deadline today it is the hand for
@@ -112,6 +119,26 @@ VB['sim/day'] = (() => {
       if (short > 0) asking.push([hh.id, short]);
     }
     for (const p of members) call(st, hh, p, ctx.due.get(p.id), ctx.given.get(p.id), c, memo, stand);
+  }
+  // Work a household lives by is inside a member's levy and slotted first (VB-1760; design.md section 7, The day's capacity): the best
+  // pair of each task of a vital kind (sim/kinds carriedOn), where its member is levied, goes before the rest, in order, so that its
+  // hours come out of the levy before lesser work's. Only the task's best pair, so the head pair, not levied, keep a vital task they fit
+  // best (a meal the wife cooks), and the hand a vital task goes to is the one it went to before.
+  function vitalFirst(st, hh, pairs) {
+    const seen = new Set(),
+      first = [],
+      rest = [];
+    for (const pair of pairs) {
+      const j = pair[2],
+        best = !seen.has(j);
+      seen.add(j);
+      if (best && carriedOn(st, j) && Levies.levied(st, hh, st.pawns[pair[1]])) first.push(pair);
+      else rest.push(pair);
+    }
+    if (!first.length) return;
+    pairs.length = 0;
+    for (const pair of first) pairs.push(pair);
+    for (const pair of rest) pairs.push(pair);
   }
   // The roles the household lacks today, whose ranks its holder takes (VB-1545): one pass over the members allotted.
   const standIn = (hh, members) =>
@@ -189,7 +216,8 @@ VB['sim/day'] = (() => {
         h = r > 0 ? Math.min(cap.get(id), (left - m[0]) / r) : 0;
       // the hours of a trip beside its work (the water's walk) are hours of its hand's day too (VB-1582)
       const had = cap.get(id);
-      cap.set(id, Math.max(0, had - h - (K.trip ? K.trip(st, j) : 0)));
+      const trip = says(K, 'trip'); // its method's go step's (VB-1821)
+      cap.set(id, Math.max(0, had - h - (trip ? trip(st, j) : 0)));
       manned.set(j, [m[0] + h * r, m[1] + 1]);
       // water first (VB-1582): the fetch heads the list of the member best fit for it. A task with a deadline today that waits
       // unmanned goes first in its hand's list too, after a fetch, whatever its fit, and calls it (call)
@@ -213,11 +241,11 @@ VB['sim/day'] = (() => {
       busy = !!a.job && attentionOf(a.job) === 'full';
     if (dj && a.job !== dj && isOpen(st, dj) && c.hour <= WORK[1]) {
       // the deadline calls: from work, from the road to it, or from idling (waiting, or out for company; not at an occasion)
-      if (busy ? a.phase === 'work' || a.phase === 'go' : !a.job && a.phase === null && a.occasion === null)
+      if (busy ? a.job && !(a.load > 0) : !a.job && unbound(a) && a.occasion === null)
         issue(st, workCommand(a.id, dj.key, 'planner'));
       return;
     }
-    if (!top || !busy || a.phase !== 'work' || a.job === top[1] || !isOpen(st, top[1])) return;
+    if (!top || !busy || !atWork(a) || a.job === top[1] || !isOpen(st, top[1])) return;
     if (
       hoursLeft(st, a.job) > rateOf(st, p) &&
       top[0] >
@@ -328,20 +356,167 @@ VB['sim/day'] = (() => {
     }
     return true;
   }
-  // The days of the holders `changed` (their keys, as sim/jobs noted them in a review or a look), in the order of their ids: a household's
-  // own, and for a village's tasks each of its households'.
-  function allotChanged(st, changed, c) {
-    const ids = new Set();
+  // The households whose days hold the tasks of `owner` ({type, id}), into `ids`: a household's own, and for a village's tasks each of its
+  // households'.
+  function daysOf(st, owner, ids = new Set()) {
+    if (!owner) return ids;
+    if (owner.type === 'household') ids.add(owner.id);
+    else if (owner.type === 'village' && st.villages[owner.id])
+      for (const fid of st.villages[owner.id].farmsteads) {
+        const hid = st.farmsteads[fid].household;
+        if (hid !== null) ids.add(hid);
+      }
+    return ids;
+  }
+  // ---- the lists edited in place (VB-1758; design.md, Plans at four scales, Replanning: a task that arrives is slotted into the lists as
+  // they stand, a lost holder's tasks go to the pool and are slotted to others; the whole day only at the morning, at 14:00 and when a
+  // slot-in finds nobody) ----
+  // Tasks `arrived` (posted at a review or by a member looking for work; sim/jobs), each slotted into the days of its holder's households
+  // as they stand, in the order they came; a household whose day cannot take one (slotIn) has its day allotted anew, which weighs the rest
+  // with it, as have the days of the holders `changed` (their keys: every household's at the morning and at 14:00, or one the due-queue's
+  // slot found no hand for). A task gone again before its turn is passed over.
+  // Then each household of `reviewed` (its review's, sim/jobs) has the tasks its review made more urgent slotted again (reweigh).
+  function slotArrived(st, arrived, changed, c, reviewed = []) {
+    const whole = new Set();
     for (const key of changed) {
-      const [type, n] = key.split(':'),
-        id = Number(n);
-      if (type === 'household') ids.add(id);
-      else if (type === 'village' && st.villages[id])
-        for (const fid of st.villages[id].farmsteads) {
-          const hid = st.farmsteads[fid].household;
-          if (hid !== null) ids.add(hid);
-        }
+      const [type, n] = key.split(':');
+      daysOf(st, { type, id: Number(n) }, whole);
     }
+    for (const j of arrived) {
+      if (st.jobs.get(j.key) !== j) continue;
+      for (const id of daysOf(st, j.owner)) {
+        const hh = st.households[id];
+        if (whole.has(id) || !hh || hh.dissolved) continue;
+        if (!slotIn(st, hh, j, c)) whole.add(id);
+      }
+    }
+    if (reviewed.length) {
+      const came = new Set(arrived);
+      for (const id of reviewed) {
+        const hh = st.households[id];
+        if (whole.has(id) || !hh || hh.dissolved) continue;
+        if (!reweigh(st, hh, c, came)) whole.add(id);
+      }
+    }
+    allotDays(st, whole, c);
+  }
+  // ---- the head's review re-weighs in place (VB-1854; design.md section 7, Plans at four scales, Replanning: the head's review rung) ----
+  // Household hh reviewed: each of its own tasks in the day's lists that its stores or windows have made more urgent since it was given
+  // its place (a store fallen below its target, a window closing) is slotted again (slotIn), as one arriving would be: its best fit now
+  // against the best it was given at (a task in no list, at 0), risen by more than the switch test's margin
+  // (MATCH.switchMargin; VB-107). A task at the head of a list (a fetch, a task due today) keeps its place; those `came` (slotted by this
+  // review) are passed over. False where a slot found nobody: its caller has the day allotted whole.
+  function reweigh(st, hh, c, came) {
+    const plan = planOf(st, 'household', hh.id),
+      day = plan && plan.day,
+      mine = st.jobsBy.get(`household:${hh.id}`);
+    if (!day || !day.fits || !mine || !mine.size || hh.farmstead === null) return true;
+    const members = [];
+    for (const id of hh.members) {
+      const p = st.pawns[id];
+      if (p.died === null && allotted(st, p) && !(day.off && day.off.includes(id))) members.push(p);
+    }
+    if (!members.length) return true;
+    // the best fit each task was given at, over the lists, and the member given it (the rest's are kept negative; a list's head, null,
+    // keeps its place)
+    const was = new Map();
+    for (const p of members) {
+      const list = day.lists[p.id],
+        fit = day.fits[p.id];
+      if (!list || !fit) continue;
+      for (let i = 0; i < list.length; i++) {
+        const f = fit[i] === null ? Infinity : Math.abs(fit[i]),
+          w = was.get(list[i]);
+        if (!w || f > w[0]) was.set(list[i], [f, p]);
+      }
+    }
+    // a task's rise is read on the member it was best fit for, whose priority for it is the highest, so whose fit an urgency raises most:
+    // one pair a task; a task in no list, on every member
+    const memo = new Map(),
+      stand = standIn(hh, members),
+      rose = [];
+    for (const j of mine) {
+      const w = was.get(j.key),
+        f0 = w ? w[0] : 0;
+      if (f0 === Infinity || came.has(j) || (attentionOf(j) === 'full' && hoursLeft(st, j) <= 0)) continue;
+      let best = 0;
+      for (const p of w ? [w[1]] : members) {
+        VB.count.dayPair++;
+        if (!eligible(st, j, p)) continue;
+        const s = score(st, p, j, c, memo, p.id === hh.holder ? stand : 0);
+        if (s !== null && s > best) best = s;
+      }
+      if (best - f0 > MATCH.switchMargin) rose.push(j);
+    }
+    VB.count.dayRose += rose.length;
+    for (const j of rose) if (st.jobs.get(j.key) === j && !slotIn(st, hh, j, c)) return false;
+    return true;
+  }
+  // Task j taken down (sim/jobs): its entries leave the lists of its holder's days, the hours given to it back to their members.
+  function slotOut(st, j) {
+    for (const id of daysOf(st, j.owner)) {
+      const plan = planOf(st, 'household', id),
+        day = plan && plan.day;
+      if (!day) continue;
+      for (const m of Object.keys(day.lists)) {
+        const i = day.lists[m].indexOf(j.key);
+        if (i < 0) continue;
+        if (!day.fits || !day.hours) {
+          day.lists[m].splice(i, 1);
+          continue;
+        }
+        const h = leave(day, m, i);
+        if (h > 0 && day.free && m in day.free) day.free[m] += h;
+      }
+    }
+  }
+  // Pawn id is lost to its household's day (it died, fell ill, was lent, took its leave or went away): the tasks it was given hands for go
+  // back to the pool at once, each slotted to the others as the lists stand (slotIn); its list is emptied and its hours taken out of the
+  // day, so that one back in the day has it allotted anew (takeDay). Out of working hours its list is only emptied: the morning weighs all.
+  function lostHolder(st, id, c = cal(st.t)) {
+    const p = st.pawns[id],
+      hh = !p || p.household == null ? null : st.households[p.household],
+      plan = hh && !hh.dissolved && hh.farmstead !== null ? planOf(st, 'household', hh.id) : null,
+      day = plan && plan.day,
+      list = day && day.lists[id];
+    if (!list || !list.length) return;
+    const keys = [];
+    for (let i = 0; i < list.length; i++)
+      if (!day.fits || day.fits[id][i] === null || day.fits[id][i] > 0) keys.push(list[i]);
+    day.lists[id] = [];
+    if (day.fits) day.fits[id] = [];
+    if (day.hours) day.hours[id] = [];
+    if (day.free) delete day.free[id];
+    if (c.hour < WORK[0] - 1 || c.hour >= WORK[1]) return;
+    VB.count.dayLost += keys.length;
+    for (const key of keys) {
+      const j = st.jobs.get(key);
+      if (j && !slotIn(st, hh, j, c)) return allot(st, hh, c);
+    }
+  }
+  on('died', (st, d) => lostHolder(st, d.pawn));
+  on('leftDay', (st, d) => lostHolder(st, d.pawn));
+  // An illness keeps its pawn from work (sim/fit allotted): it lets its task go and goes home, where it keeps to bed (abed), and its
+  // tasks go to the pool.
+  on('fellIll', (st, d) => {
+    const a = st.agents[d.pawn]; // none for a pawn made bare in a test
+    if (a && a.job) issue(st, { actor: d.pawn, verb: 'goHome', source: 'planner' });
+    lostHolder(st, d.pawn);
+  });
+  // The idle pawns in bed (VB-1758; design.md section 7, Plans at four scales: an ill pawn cannot walk on): one ill is given no task, no look
+  // at the household's opportunities and no pastime; out of doors it goes home, inside it rests the hour. The others, to be given work.
+  function abed(st, idle) {
+    const up = [];
+    for (const a of idle) {
+      if (st.pawns[a.id].ill === undefined) up.push(a);
+      else if (a.inside || st.pawns[a.id].household === null)
+        issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + 1 }, source: 'planner' });
+      else issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
+    }
+    return up;
+  }
+  // The days of households `ids` allotted whole, in the order of their ids.
+  function allotDays(st, ids, c) {
     // the households short of hands the morning's allotment finds, [[household id, hours short]], asked once it is over
     const ask = c.hour === WORK[0] - 1 ? [] : null;
     for (const id of [...ids].sort((x, y) => x - y)) {
@@ -395,16 +570,9 @@ VB['sim/day'] = (() => {
       if (!plan || hh.farmstead === null) continue;
       // a member the day left out when it was allotted (commanded, away, on duty or lent then) and free now has it allotted anew (VB-470:
       // the round of help no longer gave such a one a neighbour's work)
+      // who is allotted is said once, in fit's allotted; it also leaves out a commanded pawn and one on leave, as the allotment does
       const list0 = plan.day && plan.day.lists[a.id],
-        missed =
-          !!list0 &&
-          !list0.length &&
-          !!plan.day.free &&
-          !(a.id in plan.day.free) &&
-          age(st, p) >= CHILD.from &&
-          a.away === undefined &&
-          Days.on(st, a.id) === null &&
-          Hands.on(st, a.id) === null;
+        missed = !!list0 && !list0.length && !!plan.day.free && !(a.id in plan.day.free) && allotted(st, p);
       if (!list0 || missed) allot(st, hh, c);
       if (a.job || a.path) {
         got.add(a); // the allotment called it
@@ -465,27 +633,43 @@ VB['sim/day'] = (() => {
   }
   const edited = (st, day, c) => (day.edited = { t: st.t, by: Number.isInteger(c.actor) ? c.actor : null });
   const index = (n, len) => Number.isInteger(n) && n >= 0 && n < len;
-  // dayOrder({member, from, to}): the entry at `from` of the member's list goes to `to`, its fit and hours with it.
-  register('dayOrder', {
-    check: (st, c) => {
-      const a = c.args || {},
-        why = dayWhy(st, c, a.member);
-      if (why) return why;
-      const n = planOf(st, 'household', c.target).day.lists[a.member].length;
-      return index(a.from, n) && index(a.to, n) ? null : `no place ${a.from} or ${a.to} in a list of ${n}`;
-    },
-    run: (st, c) => {
-      const plan = planOf(st, 'household', c.target),
-        day = plan.day,
-        { member, from, to } = c.args,
-        key = day.lists[member][from],
-        fit = day.fits ? day.fits[member][from] : null;
-      const h = day.fits ? leave(day, member, from) : (day.lists[member].splice(from, 1), 0);
-      if (day.fits) enter(day, member, to, key, fit, h);
-      else day.lists[member].splice(to, 0, key);
-      edited(st, day, c);
-    },
-  });
+  // dayOrder({member, from, to}): the entry at `from` of the member's list goes to `to`, its fit and hours with it: an op of the verb
+  // `plan` on the household's plan (sim/plans), the verb dayOrder its facade (VB-1754). A pawn's own day's order (VB-1756): the op
+  // dayOrder({from, to}) on its own plan (target {kind: 'pawn', id}) reorders its own list of its household's day, for any member with
+  // one, head or not: `own` skips the head's check, the pawn its own member. It stands, as the head's change does, until the next allotment.
+  function orderWhy(st, c, own) {
+    const a = c.args || {},
+      why = own ? ownDay(st, c.target) : dayWhy(st, c, a.member);
+    if (why) return why;
+    const member = own ? c.target : a.member,
+      n = planOf(st, 'household', st.pawns[member].household).day.lists[member].length;
+    return index(a.from, n) && index(a.to, n) ? null : `no place ${a.from} or ${a.to} in a list of ${n}`;
+  }
+  // Why pawn id cannot reorder its own list of its household's day, or null
+  function ownDay(st, id) {
+    const p = st.pawns[id],
+      hh = p.household === null ? null : st.households[p.household];
+    if (!hh || hh.dissolved || p.died !== null) return `pawn ${id} is a living member of no household`;
+    const plan = planOf(st, 'household', hh.id),
+      day = plan && plan.day;
+    if (!day) return `household ${hh.id} has no day allotted yet`;
+    return day.lists[id] ? null : `pawn ${id} has no list in the day`;
+  }
+  function reorder(st, c, own) {
+    const member = own ? c.target : c.args.member,
+      plan = planOf(st, 'household', own ? st.pawns[member].household : c.target),
+      day = plan.day,
+      { from, to } = c.args,
+      key = day.lists[member][from],
+      fit = day.fits ? day.fits[member][from] : null;
+    const h = day.fits ? leave(day, member, from) : (day.lists[member].splice(from, 1), 0);
+    if (day.fits) enter(day, member, to, key, fit, h);
+    else day.lists[member].splice(to, 0, key);
+    edited(st, day, c);
+  }
+  planOp('household', 'dayOrder', { check: (st, c) => orderWhy(st, c, false), run: (st, c) => reorder(st, c, false) });
+  planOp('pawn', 'dayOrder', { check: (st, c) => orderWhy(st, c, true), run: (st, c) => reorder(st, c, true) });
+  register('dayOrder', planFacade('dayOrder'));
   // dayGive({key, from, to}): task `key` leaves member from's list and is given to member to, after its tasks given hands (its own entry
   // of it among the rest, if any, gives way), with the hours the giver had of it; one at work on it now works on until it next looks
   // for work. Refused when `to`
@@ -562,5 +746,18 @@ VB['sim/day'] = (() => {
       if (ag.job || !ag.inside) issue(st, { actor: id, verb: 'goHome', source: c.source });
     },
   });
-  return { allot, slotIn, allotChanged, takeDay, dutyRound, eveningCall, dayHours, hoursLeft };
+  return {
+    allot,
+    vitalFirst,
+    slotIn,
+    slotArrived,
+    slotOut,
+    lostHolder,
+    takeDay,
+    abed,
+    dutyRound,
+    eveningCall,
+    dayHours,
+    hoursLeft,
+  };
 })();

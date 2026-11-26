@@ -159,7 +159,7 @@ function queueGift(id) {
   const by = giftWay(givesFor(id)).by,
     args = Number.isInteger(by) ? { good: 'grain', n: gift.n, carrier: by } : { good: 'grain', n: gift.n },
     how = Number.isInteger(by) ? `, carried by ${Sim.fullName(st.pawns[by])}` : by ? ', for them to fetch' : '';
-  const r = Sim.queue(st, { actor: id, verb: 'give', target: gift.to, args });
+  const r = Sim.queue(st, st.player.pawn, { actor: id, verb: 'give', target: gift.to, args });
   if (r === true)
     barMsg = { text: `Queued: ${gift.n} grain to ${st.farmsteads[st.households[gift.to].farmstead].name}${how}.` };
   else gift.msg = r;
@@ -172,7 +172,7 @@ function queueAsk(id) {
   if (!(Number.isInteger(gift.n) && gift.n >= 1)) gift.msg = 'Ask for a whole number of rations, 1 or more.';
   else if (to.holder === null) gift.msg = `${st.farmsteads[to.farmstead].name} has no holder to ask.`;
   else {
-    const r = Sim.queue(st, {
+    const r = Sim.queue(st, st.player.pawn, {
       actor: id,
       verb: 'offer',
       target: to.holder,

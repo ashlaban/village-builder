@@ -6,6 +6,7 @@
 VB['sim/building'] = (() => {
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
+  const { pawnPlan } = VB['sim/steps'];
   const { BUILD, ECON, SEASON_DAYS, SPEED, TRAVEL, YEAR, BOOTH, WORK, cal } = VB['sim/rules'],
     EVENING = VB['sim/roles'].MATCH.day.evening,
     { HOUSE, houseCondition } = VB['sim/house'];
@@ -67,13 +68,22 @@ VB['sim/building'] = (() => {
   // in the slack of the year, as a house is raised (slack, below), and then before other work (MATCH.urgency.shelter): the shelter roofs it
   // meanwhile, and a lone settler's hands go to the fields when they are due (VB-1544: the harvest lost to the frost otherwise, and the
   // cottage never done in the slack's other work). A farm settled before VB-1666 with no booth staked (sim/settle's mark) builds at once.
-  // Whether household hh's head is the played pawn with automatic behaviour off: its plan says when its house is built, not the slack
-  // (VB-1660 the cottage's stages, VB-1663 the foundation's raising).
-  const played = (st, hh) => !!st.player && !st.player.auto && hh.holder === st.player.pawn;
+  // The own plan of household hh's head (its plan record's steps, sim/steps, VB-1754; its controller's before), or null.
+  const headPlan = (st, hh) => (hh.holder !== null ? pawnPlan(st, hh.holder) : null);
+  // Whether the plan of household hh's head holds the upgrade task of farm f's cottage (VB-1660): a step its controller authored, which
+  // stands: the plan says when the cottage's stages are worked, not the slack (VB-1753, design.md section 7, Authors: the default author
+  // does not rewrite what is authored; it was the played head with automatic behaviour off, whoever authored the cottage).
+  const cottageAsked = (st, hh, f) => {
+    const pp = headPlan(st, hh);
+    return (
+      !!pp &&
+      pp.tasks.some((t) => t.key === undefined && t.kind === 'upgrade' && t.site === f.house && t.what === 'cottage')
+    );
+  };
   function boothWork(st, hh, f, c, post) {
     if (f.shelter && !shelterStands(st, f)) return shelterWork(st, hh, f, post);
     const own = !!f.shelter || homeBooth(st, hh, f);
-    if ((own && !slack(c) && !played(st, hh)) || roofless(st, hh)) return;
+    if ((own && !slack(c) && !cottageAsked(st, hh, f)) || roofless(st, hh)) return;
     const bj = cottageJob(st, hh, f);
     if (!bj) return;
     if (own) bj[2].shelter = true;
@@ -442,13 +452,12 @@ VB['sim/building'] = (() => {
     if (old && !stale && (old.kind !== 'pick' || pickable(st.w, old.tile))) return old;
     return stoneSource(st, f, quern);
   }
-  // Whether the played pawn's plan, its head household hh's, holds the foundation task of farm f's house (VB-1663).
-  const foundationAsked = (st, hh, f) =>
-    !!f &&
-    !!st.player &&
-    !!st.player.plan &&
-    hh.holder === st.player.pawn &&
-    st.player.plan.tasks.some((t) => t.kind === 'foundation' && t.foundation === f.house);
+  // Whether the plan of household hh's head (its controller's, VB-1746; the played pawn's before) holds the foundation task of farm f's
+  // house (VB-1663): a step authored, which stands (the raising is posted when the plan says, not in the slack: VB-1753).
+  const foundationAsked = (st, hh, f) => {
+    const pp = f ? headPlan(st, hh) : null;
+    return !!pp && pp.tasks.some((t) => t.key === undefined && t.kind === 'foundation' && t.site === f.house);
+  };
   // The slack of the year, when a house is raised: the first half of summer, and winter.
   const slack = (c) => (c.season === 1 && c.sday < SEASON_DAYS / 2) || c.season === 3;
   // The household's building step: loads to its heap, two trips at a time, while it lacks the foundation's stone; then, in the slack, the
@@ -470,7 +479,7 @@ VB['sim/building'] = (() => {
       return;
     }
     if (Stores.heldOf(hh, 'stone') >= BUILD.foundationStone) {
-      if (slack(c) || played(st, hh)) post(`raise:f${f.id}`, f.house, { farm: f }, 'raise'); // VB-1663: the plan says when
+      if (slack(c) || foundationAsked(st, hh, f)) post(`raise:f${f.id}`, f.house, { farm: f }, 'raise'); // the plan says when (VB-1663, VB-1753)
       if (well && step.tile >= 0) post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
       return;
     }
@@ -481,12 +490,18 @@ VB['sim/building'] = (() => {
   }
   // A load carried home onto the heap; a picked load off its tile, as clearing takes them. A quarried load is of its tile's bedrock; a
   // picked one is granite, the field stone the ice left (Decided, 11 Nov; VB-733), as is a quarry's on a world made without the ground layers.
-  function stoneHome(st, j, hh) {
+  // A basket of stone picked or broken (VB-1748: made where the work is done): the picked tile's stones fall as the work ends; the load,
+  // one heap's unit, is the pawn's.
+  function stoneTaken(st, a, j) {
     if (j.kind === 'pick') {
       st.w.stones[j.site] = Math.max(0, st.w.stones[j.site] - STONES_PER_LOAD);
       st.biomeDirty.add(j.site);
     }
-    Stores.put(st, hh, 'stone/' + (j.kind === 'quarry' ? rockAt(st.w, j.site) : 'granite'), 1, j.kind);
+    a.load = 1;
+  }
+  // Home with the basket: the stone onto the heap (a lying basket fetched: `j.site` is where it was taken, sim/lying).
+  function stoneHome(st, j, hh, f, a) {
+    Stores.put(st, hh, 'stone/' + (j.kind === 'quarry' ? rockAt(st.w, j.site) : 'granite'), a.load, j.kind);
     stoneIn(st, hh); // a site's well is begun with the last load of its lining (sim/wells, VB-1587)
   }
   // The house raised: the foundation's stone off the heap, and the house on stone from now (its condition carried over at this hour, so the
@@ -538,8 +553,8 @@ VB['sim/building'] = (() => {
     spot: (st, a, j) => [st.w.hx[j.site] + 16 + a.ox * 0.4, st.w.hy[j.site] + 2 + a.oy * 0.3],
     done: barnStage,
   });
-  // The job kinds of building (sim/kinds takes them in). The cottage's stages, all finished by sim/cottageplan: a plot's (j.plot) by the
-  // hand's finish through sim/expansion, a booth household's (j.booth, settlers) here; a plot's are posted by sim/kinds' plotWork, a booth
+  // The job kinds of building (sim/kinds takes them in). The cottage's stages, all finished by sim/cottageplan: a plot's (j.plot) by their
+  // `done` as sim/expansion's plotted gives it, a booth household's (j.booth, settlers) here; a plot's are posted by sim/kinds' plotWork, a booth
   // household's by boothWork.
   const stage = (verb, go, name, label, anim, hours) => ({
     verb,
@@ -605,7 +620,6 @@ VB['sim/building'] = (() => {
     timber: {
       verb: 'Felling timber',
       go: 'Heading to the woods for timber',
-      back: 'Carrying timber to the building site',
       name: 'Fell timber',
       at: ['woods'],
       needs: [],
@@ -615,24 +629,9 @@ VB['sim/building'] = (() => {
       hours: 3,
       hands: 1,
       type: 'wood',
-      carry: 'logs',
-      to: 'site',
       spot: (st, a, j) => [st.w.hx[j.site] - 8 + a.ox * 0.4, st.w.hy[j.site] + 6],
       draw: (st, j) => (j.onSite ? j.site : drawWood(st, st.villages[j.village])),
       urgency: (st, j, c, U) => (j.shelter ? U.shelter : U.other),
-      // a tree felled on the drawn tile; its load lies at the site, and the ledger of the village or household building says so
-      deliver: (st, j) => {
-        const v = st.villages[j.village];
-        fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, v));
-        j.timberFor.wood = (j.timberFor.wood || 0) + ECON.woodPerTrip;
-        Stores.record(
-          st,
-          j.owner.type === 'village' ? v : st.households[j.owner.id],
-          'timber',
-          ECON.woodPerTrip,
-          'timber',
-        );
-      },
       available: timberWork,
     },
     // A booth's raising (VB-784): BOOTH.hours at its tile once its wood lies there
@@ -676,7 +675,6 @@ VB['sim/building'] = (() => {
     boothwater: {
       verb: 'Drawing water',
       go: 'Going for water',
-      back: 'Carrying water to the booth',
       name: 'Fetch water for a booth',
       at: ['water'],
       needs: [],
@@ -686,8 +684,6 @@ VB['sim/building'] = (() => {
       hours: Water.WATER.draw,
       hands: 1,
       type: 'household',
-      carry: 'buckets',
-      to: 'site',
       vital: true,
       spot: (st, a, j) => {
         const w = st.w;
@@ -695,11 +691,11 @@ VB['sim/building'] = (() => {
           ? [w.hx[j.site] - 10 + a.ox * 0.2, w.hy[j.site] + 8]
           : [w.hx[j.site] + a.ox * 0.2, w.hy[j.site] + 4];
       },
-      deliver: waterBooth,
+      spills: true, // a load cut on the way is spilt: nothing lies (VB-1604)
       available: boothWaterWork,
     },
-    // Timber left lying at a boat's shore when its plan was given up (sim/plans' leftWood, VB-645): never posted, only fetched (sim/lying's
-    // fetch kind), home to the woodpile as firewood.
+    // Timber left lying at a boat's shore when its plan was given up (sim/plans' leftWood, VB-645), and the firewood a house left at its
+    // landing: a goal of the owner's while any lies (sim/lying BRING, VB-1814), its piles the stray method's, home to the woodpile.
     leftTimber: {
       verb: 'Taking up timber',
       go: 'Going for timber left lying',
@@ -709,19 +705,13 @@ VB['sim/building'] = (() => {
       gives: ['timber'],
       hours: 0.5,
       label: 'Timber',
-      back: 'Carrying timber home from where it was left',
       type: 'wood',
-      carry: 'logs',
-      to: 'woodpile',
-      load: () => 0,
-      // VB-1667: the firewood a household left at its landing when its house moved (`j.moving`) comes home as it was, a load's share
-      deliver: (st, j, hh, f, a) =>
-        j.moving
-          ? Stores.put(st, hh, 'wood', (ECON.woodPerTrip * a.load) / TRAVEL.load, 'moving')
-          : Stores.put(st, hh, 'wood', ECON.woodPerTrip * Math.max(1, Math.round(a.load / TRAVEL.load)), 'timber'),
+      hands: 1,
+      urgency: (st, j, c, U) => U.haul,
     },
     // The grain of a gift whose bearer died on the road (sim/journeys' dropStay, VB-850): lying where he fell, fetched home to the store of
-    // the household it was set aside for (its village's, if that is gone), by crop as it was.
+    // the household it was set aside for (its village's, if that is gone), by crop as it was: a goal of the owner's while any lies
+    // (sim/lying BRING, VB-1814), its piles the stray method's.
     leftGrain: {
       verb: 'Taking up grain',
       go: 'Going for grain left lying',
@@ -731,23 +721,13 @@ VB['sim/building'] = (() => {
       gives: ['grain'],
       hours: 0.5,
       label: 'Grain',
-      back: 'Carrying grain home from where it was left',
       type: 'tilling',
-      carry: 'sack',
-      to: 'barn',
-      load: () => 0,
-      deliver: (st, j, hh, f, a) => {
-        const sum = Object.values(j.parts).reduce((x, y) => x + y, 0),
-          parts = {};
-        for (const c in j.parts) parts[c] = (j.parts[c] * a.load) / sum;
-        const at = j.owner.type === 'village' ? st.villages[j.owner.id] : hh;
-        Stores.put(st, at, 'grain', a.load, j.moving ? 'moving' : { kind: 'gift', from: 'where it lay' }, parts);
-      },
+      hands: 1,
+      urgency: (st, j, c, U) => U.haul,
     },
     pick: {
       verb: 'Picking stones',
       go: 'Going to pick stones',
-      back: 'Carrying stones home',
       name: 'Pick stones',
       at: ['land'],
       needs: [],
@@ -757,16 +737,13 @@ VB['sim/building'] = (() => {
       hours: BUILD.pickHours,
       hands: 1,
       type: 'tilling',
-      carry: 'basket',
-      to: 'barn',
       urgency: (st, j, c, U) => U.repair,
-      deliver: stoneHome,
+      make: stoneTaken,
       available: stoneWork,
     },
     quarry: {
       verb: 'Breaking stone',
       go: 'Going to the quarry',
-      back: 'Carrying stone home',
       name: 'Quarry stone',
       at: ['hills'],
       needs: [],
@@ -776,10 +753,8 @@ VB['sim/building'] = (() => {
       hours: BUILD.quarryHours,
       hands: 1,
       type: 'tilling',
-      carry: 'basket',
-      to: 'barn',
       urgency: (st, j, c, U) => U.repair,
-      deliver: stoneHome,
+      make: stoneTaken,
       available: stoneWork,
     },
     raise: {
@@ -886,6 +861,86 @@ VB['sim/building'] = (() => {
       },
     },
   };
+  // The timber and the booth's water as goals (VB-1812; design.md section 7, The task as a plan). The timber: a tree felled on the drawn
+  // tile as the work ends (VB-1748), its timber a back load carried to the building site (`j.dest`); a carrier cut on the way leaves it
+  // lying as the household's timber, which the stray method of its next timber goal carries to that goal's site. The booth's water:
+  // drawn at the source, carried to the booth, spilt if cut.
+  const Methods = VB['sim/methods'];
+  Methods.carry(KINDS.timber, 'timber', {
+    look: 'logs',
+    words: 'Carrying timber to the building site',
+    // its load lies at the site, and the ledger of the village or household building says so
+    deliver: (st, j) => {
+      const v = st.villages[j.village];
+      j.timberFor.wood = (j.timberFor.wood || 0) + ECON.woodPerTrip;
+      Stores.record(
+        st,
+        j.owner.type === 'village' ? v : st.households[j.owner.id],
+        'timber',
+        ECON.woodPerTrip,
+        'timber',
+      );
+    },
+    name: 'felled for the site',
+    good: 'sitetimber',
+    op: 'fell',
+    to: 'dest',
+    run: (st, j, g, at, a) => {
+      fellTree(st, st.w.trees[j.site] > 0 ? j.site : drawWood(st, st.villages[j.village]));
+      a.load = TRAVEL.load;
+    },
+    met: (st, g) => (g.job.made || 0) > 0,
+  });
+  KINDS.timber.places = { dest: (st, g) => g.job.dest };
+  Methods.carry(KINDS.boothwater, 'boothwater', {
+    look: 'buckets',
+    words: 'Carrying water to the booth',
+    deliver: waterBooth, // left at the door, as the farm's water (sim/chores, VB-1748): it books what came in
+    name: 'drawn for the booth',
+    op: 'draw',
+    to: 'booth',
+    run: (st, j, g, at, a) => {
+      a.load = TRAVEL.load;
+    },
+    met: (st, g) => (g.job.made || 0) > 0,
+  });
+  KINDS.boothwater.places = { booth: (st, g) => g.job.dest };
+  // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
+  Methods.trip(KINDS.pick, 'pick', {
+    look: 'basket',
+    words: 'Carrying stones home',
+    deliver: stoneHome,
+  });
+  Methods.trip(KINDS.quarry, 'quarry', {
+    look: 'basket',
+    words: 'Carrying stone home',
+    deliver: stoneHome,
+  });
+  // the timber and the grain left lying, brought home on a cart where one is free and the pile is more than a back load (VB-1814)
+  Methods.bring(KINDS.leftTimber, 'leftTimber', {
+    cart: true,
+    back: TRAVEL.load,
+    look: 'logs',
+    words: 'Carrying timber home from where it was left',
+    // VB-1667: the firewood a household left at its landing when its house moved (`j.moving`) comes home as it was, a load's share
+    deliver: (st, j, hh, f, a) =>
+      j.moving
+        ? Stores.put(st, hh, 'wood', (ECON.woodPerTrip * a.load) / TRAVEL.load, 'moving')
+        : Stores.put(st, hh, 'wood', ECON.woodPerTrip * Math.max(1, Math.round(a.load / TRAVEL.load)), 'timber'),
+  });
+  Methods.bring(KINDS.leftGrain, 'leftGrain', {
+    cart: true,
+    back: TRAVEL.load,
+    look: 'sack',
+    words: 'Carrying grain home from where it was left',
+    deliver: (st, j, hh, f, a) => {
+      const sum = Object.values(j.parts).reduce((x, y) => x + y, 0),
+        parts = {};
+      for (const c in j.parts) parts[c] = (j.parts[c] * a.load) / sum;
+      const at = j.owner.type === 'village' ? st.villages[j.owner.id] : hh;
+      Stores.put(st, at, 'grain', a.load, j.moving ? 'moving' : { kind: 'gift', from: 'where it lay' }, parts);
+    },
+  });
   return {
     UPKEEP,
     KINDS,

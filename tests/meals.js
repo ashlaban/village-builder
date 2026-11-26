@@ -47,7 +47,7 @@ for (const sc of ['founders', 'heirs', 'populous']) {
   const c = cal(st.t), mate = hh.members.filter((m) => st.pawns[m].role === 'wife')[0], a = st.agents[mate];
   hh.meals = 0; hh.grain = { barley: 100 }; hh.cookDay = -1;
   const wood = { id: 99, key: 'wood:x', kind: 'wood', owner: { type: 'household', id: hh.id }, site: st.villages[f.village].wood[0], done: 1.5, claims: [], posted: st.t, farm: f, live: true };
-  st.jobs.set(wood.key, wood); start(st, a, wood); a.path = null; a.phase = 'work';
+  st.jobs.set(wood.key, wood); start(st, a, wood); a.path = null; a.leg = { kind: 'work', t: 0, x: a.x, y: a.y, seg: 0 };
   refreshJobs(st, c, true); // every holder reviewed: the cook's task is asked for, and the head calls its hand (VB-466)
   assert.strictEqual(a.job.kind, 'cook', 'the cook goes home to cook'); assert.strictEqual(wood.claims.length, 0); assert.strictEqual(wood.done, 1.5);
   assert(st.jobs.has('wood:x'), 'the other job stays on the board');

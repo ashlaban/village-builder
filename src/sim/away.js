@@ -46,6 +46,7 @@ VB['sim/away'] = (() => {
   function open(st, s) {
     st.away.push(s);
     st.agents[s.pawn].away = s.id;
+    emit(st, 'leftDay', { pawn: s.pawn }); // its tasks at home to the others (sim/day; VB-1758)
   }
   // A new stay's id (st.awaySeq): ids are never reused.
   const nextStay = (st) => st.awaySeq++;

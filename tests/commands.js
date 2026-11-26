@@ -70,7 +70,7 @@ const a = st.agents.find((x) => st.pawns[x.id].died === null && x.job !== j);
 assert.ok(j && a, 'an open job and a living pawn');
 const had = a.job;
 assert.strictEqual(issue(st, { actor: a.id, verb: 'work', target: j.key, source: 'planner' }), true);
-assert.strictEqual(a.job, j); assert.ok(j.claims.includes(a.id)); assert.strictEqual(a.phase, 'go');
+assert.strictEqual(a.job, j); assert.ok(j.claims.includes(a.id)); assert.ok(a.path && !(a.load > 0), 'it walks out for the task');
 if (had) assert.ok(!had.claims.includes(a.id), 'the job in hand is left');
 
 // refusals change nothing: a dead actor, an unknown job, an unknown verb, a job with no room
@@ -94,7 +94,7 @@ assert.strictEqual(issue(st, { actor: b.id, verb: 'walkTo', target: there, args:
 assert.ok(b.path && b.path.length >= 2 && b.anim === 'walk', 'walking');
 assert.deepStrictEqual(b.path[b.path.length - 1].slice(0, 2), [st.w.hx[there], st.w.hy[there] + 3], 'to the spot asked');
 assert.strictEqual(issue(st, { actor: b.id, verb: 'goHome', source: 'debug' }), true);
-assert.strictEqual(b.phase, 'home'); assert.strictEqual(b.path[b.path.length - 1][3], home, 'the walk ends on the home tile');
+assert.strictEqual(b.homeward, true); assert.strictEqual(b.path[b.path.length - 1][3], home, 'the walk ends on the home tile');
 assert.strictEqual(issue(st, { actor: b.id, verb: 'idle', args: { until: st.t + 2 }, source: 'debug' }), true);
 assert.strictEqual(b.idleUntil, st.t + 2);
 // Talk pauses cannot interrupt work, entering home, or an indoor pawn, and cannot shorten an idle pause (VB-177).
@@ -267,13 +267,13 @@ assert.strictEqual(snap3(), before5, 'refused leave commands change nothing');
   assert.strictEqual(snap4(), before, 'a verb refused for want of the right changes nothing');
   // the player's queue takes no verb that is not the player's
   Sim.inhabit(s4, hh.holder);
-  for (const verb of ['skip', 'kill', 'retire']) assert.ok(/no verb/.test(Sim.queue(s4, { actor: hh.holder, verb })), `${verb} is not queued`);
+  for (const verb of ['skip', 'kill', 'retire']) assert.ok(/no verb/.test(Sim.queue(s4, s4.player.pawn, { actor: hh.holder, verb })), `${verb} is not queued`);
   assert.deepStrictEqual(Object.keys(VERBS).filter((v) => VERBS[v].sources && VERBS[v].sources.join() === 'debug').sort(), ['kill', 'retire', 'skip'], 'the debug verbs');
   // sleep, the player's only under VB-1643, is open to a pawn's own logic (VB-1645): no verb is the player's alone
   assert.deepStrictEqual(Object.keys(VERBS).filter((v) => VERBS[v].sources && VERBS[v].sources.join() === 'player'), [], "the player's verbs");
   assert.deepStrictEqual(VERBS.sleep.sources, ['player', 'pawn'], 'sleep: the player and the pawn');
   // the facade's direct mutators are debug: none is a verb, and the page calls them only from its drawer
-  assert.deepStrictEqual(Sim.DEBUG, ['setOwner', 'killPawn', 'retireHolder', 'holdMeetings', 'movingRound']);
+  assert.deepStrictEqual(Sim.DEBUG, ['setOwner', 'killPawn', 'retireHolder', 'holdMeetings', 'movingRound', 'refreshRoles', 'updateTies', 'refreshInterests', 'countDemand']);
   for (const n of Sim.DEBUG) assert.ok(!VERBS[n] && typeof Sim[n] === 'function', `${n} is debug, no verb`);
   const pages = fs.readdirSync(path.join(__dirname, '../src/page')).filter((f) => Sim.DEBUG.some((n) => readSource('src/page/' + f).includes('Sim.' + n + '(')));
   assert.deepStrictEqual(pages, ['drawer.js'], 'only the debug drawer calls the debug mutators');
@@ -287,7 +287,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   const make = () => { const s = Sim.seed(land(), 7, 'heirs'); Sim.advance(s, 2 * Sim.DAY); return s; };
   const a = make(), b = make(), id = a.pawns.findIndex((p) => p.died === null && p.age >= 18), dim = d0, opt = (a.cenv.settlements[0].practice[dim] + 1) % Customs.NOPT[dim];
   assert.strictEqual(issue(a, { actor: id, verb: 'dropCause', source: 'player' }), 'the pawn argues no cause', 'dropCause is refused with no cause');
-  Sim.inhabit(a, id); assert.strictEqual(Sim.queue(a, { actor: id, verb: 'argue', args: { dim, option: opt } }), true);
+  Sim.inhabit(a, id); assert.strictEqual(Sim.queue(a, a.player.pawn, { actor: id, verb: 'argue', args: { dim, option: opt } }), true);
   Sim.advance(a, 0.2);
   assert.deepStrictEqual([a.pawns[id].advocate.dim, a.pawns[id].advocate.opt], [dim, opt]);
   assert.ok(Math.abs(a.pawns[id].advocate.until - (a.cenv.t + C.P.causeEvery)) < 0.05, 'for five years');
@@ -349,6 +349,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
   {
     const { s, a, b } = fresh(), a0 = Sim.grainOf(a);
     assert.strictEqual(Sim.inhabit(s, a.holder), true);
+    Sim.setAuto(s, a.holder, false); // the player answers for it (VB-1776: on automatic, its pawn's judgement answers at once)
     const ob = opinionOf(s, b.holder, a.holder), oa = opinionOf(s, a.holder, b.holder);
     assert.strictEqual(offer(s, b.holder, a.holder, gift(30)), true);
     const o = s.offers[0];
@@ -479,11 +480,11 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   talk(); assert.strictEqual(g.path, null, 'a talk stops a stroll');
   // the played pawn's queued walk outlasts a talk
   walk({}); R.release(s2, g); g.path = null;
-  assert.strictEqual(Sim.inhabit(s2, g.id), true); assert.strictEqual(Sim.queue(s2, { actor: g.id, verb: 'walkTo', target: far }), true);
-  Sim.advance(s2, 0.2); assert.ok(g.path && s2.player.queue.length === 1 && s2.player.queue[0].begun !== null, 'the queued walk is under way');
+  assert.strictEqual(Sim.inhabit(s2, g.id), true); assert.strictEqual(Sim.queue(s2, s2.player.pawn, { actor: g.id, verb: 'walkTo', target: far }), true);
+  Sim.advance(s2, 0.2); assert.ok(g.path && Sim.controlOf(s2, s2.player.pawn).queue.length === 1 && Sim.controlOf(s2, s2.player.pawn).queue[0].begun !== null, 'the queued walk is under way');
   const queued = JSON.stringify(g.path); talk();
-  assert.strictEqual(JSON.stringify(g.path), queued, 'and a talk does not cut it'); assert.strictEqual(s2.player.queue.length, 1);
-  Sim.advance(s2, 0.1); assert.strictEqual(s2.player.refused, null);
+  assert.strictEqual(JSON.stringify(g.path), queued, 'and a talk does not cut it'); assert.strictEqual(Sim.controlOf(s2, s2.player.pawn).queue.length, 1);
+  Sim.advance(s2, 0.1); assert.strictEqual(Sim.controlOf(s2, s2.player.pawn).refused, null);
 }
 // VB-228: verbs are registered at load, once each, and the table closes with the registries (a state has been seeded above)
 {
@@ -525,4 +526,188 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   for (const r of tryAs(holders[1])) assert.ok(/is away/.test(r), `the alderman away: ${r}`);
   delete s2.agents[holders[1]].away;
   for (const r of tryAs(holders[1])) assert.ok(r === true || !/alderman|village gives/.test(r), `the alderman at home: ${r}`);
+}
+
+// VB-1744: wish and match are verbs, issued for any pawn under the same check; the played pawn's Sim.wish issues them.
+{
+  // village 0: household 0 (holder 0, daughters 2 to 5), household 1 (holder 6, children 8 to 10)
+  const { tinyWorld: tw, tinyState: ts } = require('./lib/tiny.js');
+  const s = ts(tw(['..............', '...FF.........', '...FF.........', '..............', '..........FF..', '..............', '..............']), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  const act = (actor, verb, target, args, source = 'pawn') => issue(s, { actor, verb, target, args, source });
+  const P = s.pawns[0], A = 0, member = 2, mate = s.pawns.find((p) => p.sex === 'm' && p.alive && require('../src/load.js')['sim/records'].spouseOf(s, p.id) === null && p.id !== 0 && p.id !== 6 && p.id !== 11).id;
+  assert.ok(!s.player, 'the pawn is not played');
+  assert.strictEqual(act(A, 'wish', 'out', { value: false }), true, 'an unplayed pawn wishes');
+  assert.deepStrictEqual(Sim.wishesOf(s, A).out, false, 'and it is on the pawn');
+  const before = JSON.stringify(P);
+  for (const [t, v] of [['nonsense', true], ['out', 7], ['claim', 9999], ['match', 9999], ['rank', ['stay']]])
+    assert.strictEqual(typeof act(A, 'wish', t, { value: v }), 'string', `${t} ${v} refused`);
+  assert.strictEqual(JSON.stringify(P), before, 'a refused wish changes nothing');
+  assert.strictEqual(typeof act(A, 'match', A, { partner: mate }), 'string', 'not for itself');
+  assert.strictEqual(typeof act(A, 'match', 11, { partner: 8 }), 'string', 'only for a member it speaks for');
+  assert.strictEqual(typeof act(A, 'match', member, { partner: 10 }), 'string', 'only one of the other sex');
+  assert.strictEqual(P.proposal, undefined, 'a refused match changes nothing');
+  assert.strictEqual(act(A, 'match', member, { partner: mate, terms: null }), true);
+  assert.deepStrictEqual(P.proposal, { for: member, partner: mate, terms: null }, 'the proposal is set');
+  assert.strictEqual(act(A, 'match', member, { partner: null }), true);
+  assert.strictEqual(P.proposal, undefined, 'withdrawn');
+  P.alive = false;
+  assert.strictEqual(typeof act(A, 'wish', 'out', { value: true }), 'string', 'the dead do not wish');
+  P.alive = true;
+  // the played pawn's Sim.wish is the same verb, source player
+  assert.strictEqual(Sim.inhabit(s, A), true);
+  assert.strictEqual(Sim.wish(s, s.player.pawn, 'out', true), true);
+  assert.strictEqual(Sim.wish(s, s.player.pawn, 'match', mate, { for: member }), true);
+  assert.strictEqual(P.proposal.partner, mate, 'the played pawn: the same proposal');
+}
+
+// VB-1689: the player has what its pawn has, no more and no less (design.md, Every act is a pawn's; target-v2 principle 15).
+{
+  const { VERBS } = VB['sim/commands'];
+  const { tinyWorld: tw, tinyState: ts } = require('./lib/tiny.js');
+  const s = ts(tw(['..............', '...FF.........', '...FF.........', '..............', '..........FF..', '..............', '..............']), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  // 1. a verb only the player may carry is allowed by name, with its reason. (None now: `sleep` is the player's and a pawn's own rule's.)
+  const PLAYER_ONLY = {};
+  const only = Object.keys(VERBS).filter((v) => VERBS[v].sources && VERBS[v].sources.length && VERBS[v].sources.every((x) => x === 'player'));
+  for (const v of only) assert.ok(PLAYER_ONLY[v], `verb ${v} is the player's alone: name it in PLAYER_ONLY with its reason (a pawn could have it)`);
+  for (const v of Object.keys(PLAYER_ONLY)) assert.ok(only.includes(v), `PLAYER_ONLY lists ${v}, which is no longer the player's alone`);
+  // 2. every verb's check gives the same result for the played and the unplayed pawn, on a grid of commands
+  const frame = (pawn) => ({ pawn, left: null, ended: null, last: null, days: [] });
+  const outcome = (c) => { try { return String(VERBS[c.verb].check(s, c)); } catch (e) { return 'threw: ' + e.message; } };
+  const argsets = [{}, { value: true }, { value: false }, { until: s.t + 2 }, { hours: 2 }, { partner: 8 }, { on: true }, { i: 0 }, { cmd: { verb: 'idle' } }, { x: 3, y: 3 },
+    // VB-1756's verbs: ask (leave, hands) and the pawn's own day's order on its plan
+    { basis: 'leave', wants: { from: s.t, with: null } }, { basis: 'hands', wants: { hands: 1, hours: 4 } }, { op: 'dayOrder', from: 0, to: 1 }];
+  let checked = 0, accepted = 0;
+  for (const verb of Object.keys(VERBS)) {
+    const source = (VERBS[verb].sources || ['pawn'])[0];
+    for (const actor of [0, 2, 6, 11]) for (const target of [null, 0, 2, 6, 8, 'out', 'claim', { kind: 'pawn', id: actor }]) for (const args of argsets) {
+      const c = { actor, verb, target, args, source };
+      s.player = null;
+      const free = outcome(c);
+      s.player = frame(actor);
+      const played = outcome(c);
+      s.player = null;
+      assert.strictEqual(played, free, `${verb} ${JSON.stringify(c)}: its check differs for the played pawn (${played}) and the unplayed (${free})`);
+      checked++; if (free === 'null') accepted++;
+    }
+  }
+  assert.ok(accepted > 0, 'some check passed on the constructed state, so the comparison is not only refusals');
+  // 3. each field of st.player and why a pawn could not hold it: it is the frame of the one the player inhabits (the line, not a pawn)
+  const PLAYER_FIELDS = {
+    pawn: 'names which pawn the page shows: the player is one at a time, no pawn is it',
+    left: 'the line outlives its pawn: kept from its death, when the pawn and its ties are erased (VB-213)',
+    ended: 'the player\'s line ended with no successor: no pawn\'s',
+    last: 'the page\'s record of the watched line, kept only while watched so that no pawn pays for it (VB-1118)',
+    days: 'the page\'s record of the watched line\'s health, kept only while watched (VB-1118)',
+  };
+  const inh = require('../src/load.js').sim;
+  const p = ts(tw(['..............', '...FF.........']), [{ at: [3, 1], farms: 1 }], { seed: 7 });
+  assert.strictEqual(inh.inhabit(p, 0), true);
+  assert.deepStrictEqual(Object.keys(p.player).sort(), Object.keys(PLAYER_FIELDS).sort(), 'a field of st.player is listed with why no pawn could hold it; one a pawn could hold is a task');
+}
+
+// VB-1756: no act reachable only through Sim (design.md section 15, A controller for any pawn; docs/plans/four-scales/README.md, 3.6).
+// 1. Each act of the design's list is a verb any pawn may issue where its position allows, or waits in ACTS_LEFT on the task that brings
+// it, an open one: the list empties as they land. 2. Every function of the Sim facade is listed by what it does to st: it reads, issues a
+// verb, moves the frame, makes or runs the world, or is debug's; a new one is listed, a read that changes the save fails, and one listed
+// as issuing a verb that reaches no verb's check fails. Sim.landing reads a world before any state, Culture is the culture model's tables.
+{
+  const { VERBS } = VB['sim/commands'];
+  const ACTS = {
+    queue: ['queue', 'unqueue'], // the pawn's controller (VB-1745)
+    auto: ['auto'],
+    chain: ['plan'], // op add with a chain's tile, on the pawn's own plan; VB-1777 makes it a goal its kind's methods carry
+    ownDay: ['plan'], // op dayOrder on the pawn's own plan: its own list of its household's day (tests/timetable.js 3b)
+    leave: ['ask'], // basis leave, of its head (tests/voice.js); st.leaves stays until VB-1763's dated grant
+    hands: ['ask'], // basis hands, of another head of the village (tests/helpers.js)
+  };
+  const ACTS_LEFT = {
+    aim: 'VB-1784', // set aside in docs/ideas/aims/ (25 Nov)
+    workdayDate: 'VB-1768', // the alderman dates the work day; today the calendar does
+    levyAhead: 'VB-1767', // a levy laid on a household's days a season ahead
+  };
+  for (const [act, verbs] of Object.entries(ACTS)) for (const v of verbs) assert.ok(VERBS[v], `the act ${act} is reached by the verb ${v}`);
+  const archive = fs.readFileSync(path.join(__dirname, '../BACKLOG_ARCHIVE.md'), 'utf8');
+  for (const [act, id] of Object.entries(ACTS_LEFT))
+    assert.ok(!archive.includes(`[${id}](`), `${id} has landed: the act ${act} is reached now, move it from ACTS_LEFT to ACTS with its verb`);
+  const s = Sim.seed(island(7), 7, 'founders');
+  Sim.advance(s, 3 * Sim.DAY + 4);
+  const hh = s.households.find((h) => !h.dissolved && h.members.length > 1),
+    mem = hh.members.find((m) => m !== hh.holder && s.pawns[m].died === null);
+  assert.ok(!/no plan op/.test(String(issue(s, { actor: mem, verb: 'plan', target: { kind: 'pawn', id: mem }, args: { op: 'dayOrder', from: 0, to: 99 }, source: 'pawn' }))), "dayOrder is an op of a pawn's own plan");
+  // each act reached is accepted for a pawn no one plays (review F4): a chain at a tile, the queue and the switch; the day's order,
+  // leave and hands in tests/timetable.js 3b, tests/voice.js and tests/helpers.js
+  assert.strictEqual(s.player, null, 'no pawn is played');
+  const farm = s.farmsteads[hh.farmstead], chained = farm.fields.map((x) => x.tile).find((t) => Sim.plan(s, hh.holder, 'add', { plant: t }) === true);
+  assert.ok(chained !== undefined, 'chain: an unplayed head plans the planting of a field of its farm, a task at a tile through several steps');
+  assert.strictEqual(Sim.queue(s, mem, { verb: 'idle', args: { until: s.t } }), true, 'queue: an unplayed pawn queues a command');
+  assert.strictEqual(Sim.unqueue(s, mem, 0), true, 'and takes it off');
+  assert.strictEqual(Sim.setAuto(s, mem, true), true, 'auto: an unplayed pawn sets its switch');
+  // 2. the facade, function by function
+  const ISSUES = ['command', 'head', 'queue', 'unqueue', 'setAuto', 'wish', 'answer', 'orderVisit', 'plan'];
+  const FRAME = ['inhabit', 'uninhabit', 'succeed']; // st.player, the frame: which pawn the page shows (design.md section 15)
+  const WORLD = ['seed', 'load', 'advance', 'replay']; // the world made, loaded, its clock run (replay: with the commands recorded, VB-1757): every act within it is a verb
+  const fns = Object.keys(Sim).filter((k) => typeof Sim[k] === 'function');
+  const listed = new Set([...ISSUES, ...FRAME, ...WORLD, ...Sim.DEBUG]);
+  // a read that fills a cache of saved state its module owns, with the cache
+  const CACHES = { waterOf: 'farmstead.water, the source sim/water finds once a year (its find), kept on the farm' };
+  for (const k of listed) assert.ok(typeof Sim[k] === 'function', `Sim.${k} is listed and no function of the facade`);
+  for (const k of Object.keys(CACHES)) assert.ok(typeof Sim[k] === 'function' && !listed.has(k), `Sim.${k}: a cache is a read's`);
+  // the reads, listed too (review F2): a function of the facade in no list fails, so that a new one is placed by hand, and a read is
+  // still called on the state below, a second guard
+  const READS = ['save', 'levyOf', 'recordOf', 'headView', 'timetable', 'callCost', 'taskLeft', 'taskFrom', 'taskStop', 'sheetNotes', 'controlOf',
+    'wishesOf', 'opportunities', 'offerPreview', 'fairSides', 'swapTerms', 'foodDays', 'successor', 'villageSummary', 'supplyOutlook',
+    'siteWater', 'giftOutlook', 'harvestEstimate', 'villageOutlook', 'cal', 'age', 'birthYear', 'fullName', 'spouseOf', 'childrenOf',
+    'siblingsOf', 'spousesOf', 'kinship', 'kinDegree', 'describe', 'pastimeOf', 'villageOf', 'dark', 'heirRanking', 'practice',
+    'farmPractice', 'wantsOut', 'isHolder', 'holdingOf', 'standingParts', 'moodOf', 'sleepOf', 'planView', 'fireView', 'waits', 'moodWord',
+    'traitLabels', 'traitAct', 'settlementIdOf', 'membersOf', 'voiceOf', 'hooks', 'ownerOf', 'seedReserve', 'grainOf', 'shareOwed',
+    'fieldsWanted', 'fieldView', 'plotProgress', 'placeOf', 'poseOf', 'explainIdle', 'idleLine', 'thirstLine', 'reasonOf', 'reasonLine',
+    'why', 'plans', 'agenda', 'planGaps', 'byRiver', 'wetFactor', 'ditchOf', 'tilthOf', 'compat', 'bond', 'bondWord', 'opinionOf',
+    'opinionWord', 'relationsOf', 'heard', 'reasonsOf', 'meansOf', 'marryBar', 'herdsOf', 'dailyHay', 'winterNeed', 'stalled', 'years',
+    'describeHerds', 'herdReport', 'larderOf', 'quernYears', 'houseTarred', 'boothCondition', 'stakedBooths', 'buildMenu', 'placeWhy',
+    'moveCost', 'farmView', 'boatUntarred', 'team', 'withOxen', 'inMilk', 'claimsOn', 'claimStrength', 'holdings', 'knowsDeposit',
+    'depositKnown', 'goodwillOf', 'explainAllowance', 'inScope', 'storesOf', 'explainFeast', 'depositLeftNow', 'woodOf', 'giftWarning',
+    'giftCarriers', 'kinHouseholds', 'notable', 'eventLine', 'chronicle', 'villageLog', 'skipFrom', 'skipStop', 'gatherings', 'visitState',
+    'decisions'];
+  const lists = { ISSUES, FRAME, WORLD, DEBUG: Sim.DEBUG, CACHES: Object.keys(CACHES), READS }, { misplaced } = require('./lib/facade.js');
+  assert.deepStrictEqual(misplaced(Sim, lists), [], 'each function of the Sim facade is listed once, in ISSUES (it issues a verb), FRAME, WORLD, DEBUG, CACHES or READS');
+  // a mutator planted on the facade, writing only when given a boolean, is seen as new, whatever the calls below would make of it
+  assert.deepStrictEqual(misplaced({ ...Sim, planted: (st, id, on) => { if (on === true) st.t += 0; } }, lists), ['planted'], 'a new function in no list is caught');
+  for (const k of READS) assert.ok(typeof Sim[k] === 'function', `Sim.${k} is listed as a read and no function of the facade`);
+  const reads = READS;
+  const saved = (st) => JSON.stringify(Sim.save(st));
+  const tries = [[s], [s, mem], [s, hh], [s, hh.id], [s, mem, mem], [s, hh, mem], [s, mem, 0], [s, { kind: 'household', id: hh.id }]];
+  const changed = [];
+  for (const k of reads.filter((x) => !CACHES[x])) {
+    const before = saved(s);
+    for (const args of tries) try { Sim[k](...args); } catch (e) { /* a read given arguments it does not take */ }
+    if (saved(s) !== before) changed.push(k);
+  }
+  assert.deepStrictEqual(changed, [], "a function of the Sim facade that changes st issues a verb (ISSUES), or is the frame, the world or debug's");
+  // each listed as issuing a verb reaches a verb's check
+  let reached = 0;
+  const kept = {};
+  for (const v of Object.keys(VERBS)) {
+    const c0 = (kept[v] = VERBS[v].check);
+    VERBS[v].check = (st, c) => { reached++; return c0(st, c); };
+  }
+  assert.strictEqual(Sim.inhabit(s, mem), true);
+  const calls = {
+    command: () => Sim.command(s, { actor: mem, verb: 'idle', args: { until: s.t }, source: 'player' }),
+    head: () => Sim.head(s, hh.holder, 'dayOrder', { member: mem, from: 0, to: 0 }),
+    queue: () => Sim.queue(s, mem, { verb: 'idle', args: { until: s.t } }),
+    unqueue: () => Sim.unqueue(s, mem, 0),
+    setAuto: () => Sim.setAuto(s, mem, true),
+    wish: () => Sim.wish(s, mem, 'out', false),
+    answer: () => Sim.answer(s, 9999, true),
+    orderVisit: () => Sim.orderVisit(s, mem, 0),
+    plan: () => Sim.plan(s, mem, 'dayOrder', { from: 0, to: 0 }),
+  };
+  assert.deepStrictEqual(Object.keys(calls).sort(), [...ISSUES].sort());
+  try {
+    for (const k of ISSUES) { const r0 = reached; calls[k](); assert.ok(reached > r0, `Sim.${k} issues a verb`); }
+  } finally {
+    for (const v of Object.keys(kept)) VERBS[v].check = kept[v];
+  }
+  Sim.uninhabit(s);
+  console.log(`commands ok (VB-1756): ${Object.keys(ACTS).length} acts of the design's list reached by verbs, ${Object.keys(ACTS_LEFT).length} left on their tasks; of the facade's ${fns.length} functions ${ISSUES.length} issue verbs, ${reads.length} only read`);
 }

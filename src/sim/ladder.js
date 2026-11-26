@@ -9,11 +9,12 @@ VB['sim/ladder'] = (() => {
   const { timberWhy } = VB['sim/timberhouse'];
   const { hexSteps } = VB['sim/hex'];
   const { doneOf } = VB['sim/progress'];
+  const { plansIn } = VB['sim/steps'];
   const Projects = VB['sim/projects'],
     Stores = VB['sim/stores'];
   const { COTTAGE, COTTAGE_HOURS, cottageOf } = VB['sim/cottageplan'];
   const { roofless, stakedEach, barnSteps } = VB['sim/building'];
-  const { BUILDS, campWhy } = VB['sim/camp'];
+  const { BUILDS } = VB['sim/camp'];
   const { barnWhy } = VB['sim/aims'];
   const { byreWhy, byreSteps } = VB['sim/byrehouse'];
   const { HERD } = VB['sim/rules'];
@@ -107,16 +108,19 @@ VB['sim/ladder'] = (() => {
     return out;
   }
   // ---- the plan's tasks that cover a part of the farm ----
-  // Whether a task of the played pawn's plan covers rung `what` of farm f: the shelter by the farmstead task, a later rung by an upgrade task
+  // Whether a task of a plan of farm f's household's members (VB-1746: the played pawn's plan before) covers rung `what` of farm f: the
+  // shelter by the farmstead task, a later rung by an upgrade task
   // of the house's tile naming it; the stone foundation (`foundation`) by the foundation task of the house's tile, an outbuilding by an
   // outbuilding task there naming it (VB-1663).
   function planned(st, f, what) {
-    const pp = st.player && st.player.plan;
-    if (!pp) return false;
-    if (what === 'shelter') return pp.tasks.some((t) => t.kind === 'farmstead');
-    if (what === 'foundation') return pp.tasks.some((t) => t.kind === 'foundation' && t.foundation === f.house);
+    return plansIn(st, f.household).some((pp) => plannedIn(pp, f, what));
+  }
+  function plannedIn(pp, f, what) {
+    if (what === 'shelter') return pp.tasks.some((t) => t.key === undefined && t.kind === 'farmstead');
+    if (what === 'foundation')
+      return pp.tasks.some((t) => t.key === undefined && t.kind === 'foundation' && t.site === f.house);
     const kind = Object.hasOwn(OUTBUILDINGS, what) ? 'outbuilding' : 'upgrade';
-    return pp.tasks.some((t) => t.kind === kind && t[kind] === f.house && t.what === what);
+    return pp.tasks.some((t) => t.key === undefined && t.kind === kind && t.site === f.house && t.what === what);
   }
   // the stone foundation under way: the building step of the household's plan (sim/building buildStep), which a head holding off projects
   // has none of (VB-1661: read at once, not at its next review, once the player takes the plan by hand) but for its foundation task
@@ -180,8 +184,7 @@ VB['sim/ladder'] = (() => {
     // (or worn to nothing, and raised again) is raised by its household's work (sim/building), not begun again
     shelter: (st, hh, f) => {
       if (own(st, hh, f)) return own(st, hh, f);
-      if (f.camp === true && !f.shelter)
-        return st.player ? BUILDS.farmstead.why(st, hh.holder) : campWhy(st, hh.holder);
+      if (f.camp === true && !f.shelter) return BUILDS.farmstead.why(st, hh.holder); // the farmstead task's check: planned already
       if (f.shelter || homeStake(st, hh, f)) return `the shelter at ${f.name} is being raised`;
       return null;
     },
@@ -254,23 +257,24 @@ VB['sim/ladder'] = (() => {
     headWhy(st, id, f) ||
     outRule(st, householdOf(st, f), f, what) ||
     (planned(st, f, what) ? `the ${what} is planned already` : null);
-  // Sim.farmView(st, farmId): plain data for the page, writing nothing: {rung, building (null, or {what, step, hoursLeft}; what a rung,
+  // Sim.farmView(st, farmId, pawn): plain data for the page, writing nothing: {rung, building (null, or {what, step, hoursLeft}; what a rung,
   // 'foundation' or an outbuilding), next: [{what, needs, ok, why, planned}] (the rungs built from the one standing), foundation: {grade,
   // needs, ok, why, planned, building (null, or as building's)}, outbuildings: [{what, built, needs, ok, why, planned, building}]}; null for
-  // no such farm. For the played head ok and why are its plan task's check; for any other household the head's own rule's.
-  function farmView(st, id) {
+  // no such farm. Asked by `pawn` (the page: the played pawn), the farm's head, ok and why are its plan task's check (what its
+  // controller may author); asked by no pawn or another, the head's own rule's (VB-1753: keyed by pawn, not by who is played).
+  function farmView(st, id, pawn = null) {
     const f = st.farmsteads[id];
     if (!f) return null;
     const hh = householdOf(st, f),
       rung = rungOf(st, f),
-      hand = !!st.player && !!hh && hh.holder === st.player.pawn;
+      hand = pawn !== null && pawn !== undefined && !!hh && hh.holder === pawn;
     const next = Object.keys(RUNGS)
       .filter((k) => RUNGS[k].from === rung)
       .map((what) => {
-        const why = hand && what !== 'shelter' ? upgradeWhy(st, st.player.pawn, f, what) : WHY[what](st, hh, f);
+        const why = hand && what !== 'shelter' ? upgradeWhy(st, pawn, f, what) : WHY[what](st, hh, f);
         return { what, needs: { ...RUNGS[what].needs }, ok: why === null, why, planned: planned(st, f, what) };
       });
-    const fwhy = hand ? foundationWhy(st, st.player.pawn, f) : stoneWhy(st, hh, f);
+    const fwhy = hand ? foundationWhy(st, pawn, f) : stoneWhy(st, hh, f);
     const foundation = {
       grade: f.grade || 'ground',
       needs: { ...FOUNDATION.needs },
@@ -280,7 +284,7 @@ VB['sim/ladder'] = (() => {
       building: stoneBuilding(st, hh, f),
     };
     const outbuildings = Object.keys(OUTBUILDINGS).map((what) => {
-      const why = hand ? outWhy(st, st.player.pawn, f, what) : outRule(st, hh, f, what);
+      const why = hand ? outWhy(st, pawn, f, what) : outRule(st, hh, f, what);
       return {
         what,
         built: !!f[what],

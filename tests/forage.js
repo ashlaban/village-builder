@@ -4,6 +4,7 @@
 // Founders at seed 7 on the small island of tests/lib/probe.js (VB-855), to the end of its first autumn: food is gathered, the state keeps
 // its invariants, a save keeps the stocks.
 const VB = require('../src/load.js'), Sim = VB.sim, { island, scenario } = require('./lib/probe.js'), F = VB['sim/forage'], Stores = VB['sim/stores'];
+const trip = require('./lib/trip.js');
 const { KINDS } = VB['sim/kinds'], { DAY, YEAR_DAYS } = VB['sim/rules'], { ROLES, MATCH } = VB['sim/roles'], { FORAGE } = VB['sim/forage'], { dailyNeed } = VB['sim/hunger'];
 const { checkState } = require('./lib/invariants.js');
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('FORAGE FAIL:', m); } };
@@ -12,7 +13,7 @@ const near = (a, b) => Math.abs(a - b) < 1e-6;
 
 // --- the kind and the roles
 const K = KINDS.gather;
-check(K.type === 'foraging' && K.hands === 1 && K.hours === 3 && K.carry === 'basket' && K.anim === 'forage', 'gather: foraging, 1 hand, 3 hours, carried in baskets');
+check(K.type === 'foraging' && K.hands === 1 && K.hours === 3 && VB['sim/doing'].lookOf('gather') === 'basket' && K.anim === 'forage', 'gather: foraging, 1 hand, 3 hours, carried in baskets');
 const want = { farmer: 3, wife: 4, farmhand: 3, maid: 5, son: 3, daughter: 6, retired: 3, child: 5 };
 for (const [r, n] of Object.entries(want)) check(ROLES[r].prio.gather === n, `${r} ranks gathering ${ROLES[r].prio.gather}, not ${n}`);
 
@@ -43,7 +44,7 @@ if (f) {
   spare(11); check(posts(cal(1, 6)).length === 2, 'two trips under 12 days of spare food');
   spare(0); check(near(K.urgency(st, j, cal(1, 6), MATCH.urgency), MATCH.urgency.need), 'urgency need at none (VB-1549; was fishLean 2)');
   const Pot = VB['sim/pot'], held = Pot.freshHeld(st, hh, 'gathered');
-  K.deliver(st, j, hh, f);
+  trip(K, st, j, hh, f);
   check(near(Pot.freshHeld(st, hh, 'gathered') - held, 2.5), `the baskets add ${Pot.freshHeld(st, hh, 'gathered') - held} gathered food, not 2.5`);
   // the ground moves on when its tile is picked bare
   w.forage[t] = 0.1; w.forageYear[t] = Math.floor(st.t / DAY / YEAR_DAYS);

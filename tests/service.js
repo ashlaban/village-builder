@@ -46,20 +46,20 @@ if (lone) {
   const member = st3.agents[h.members.find((id) => st3.pawns[id].age >= 18)];
   const carry = (a, key) => {
     const j = post(st3, key, 'haul', own, fd.tile, { field: fd, farm: f });
-    j.claims.push(a.id); a.job = j; a.phase = 'back'; a.load = 2; a.basis = a === member ? 'member' : 'helper'; a.path = null;
+    j.claims.push(a.id); a.job = j; a.load = 2; a.basis = a === member ? 'member' : 'helper'; a.path = null;
   };
   carry(helper, 'haul:test-helper');
   carry(member, 'haul:test-member');
   let thresher = null;
   if (threshing) {
     const j = post(st3, `thresh:h${h.id}`, 'thresh', own, f.house, { farm: f });
-    j.claims.push(threshing.id); threshing.job = j; threshing.phase = 'work'; threshing.basis = 'helper'; thresher = threshing;
+    j.claims.push(threshing.id); threshing.job = j; threshing.leg = { kind: 'work', t: 0, x: threshing.x, y: threshing.y, seg: 0 }; threshing.basis = 'helper'; thresher = threshing;
   }
   const sheaves0 = h.unthreshed.reduce((x, n) => x + n, 0);
   let threw = null;
   try {
     extinct(st3, h);
-    for (const a of [helper, member]) if (a.phase === 'back') A.arrived(st3, a); // home with the load, as the step would bring it
+    for (const a of [helper, member]) if (a.load > 0) A.arrived(st3, a); // home with the load, as the step would bring it
     if (thresher && thresher.job) A.complete(st3, thresher);
   } catch (e) { threw = e.message; }
   check(threw === null, `a dissolved household's work threw: ${threw}`);

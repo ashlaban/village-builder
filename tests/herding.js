@@ -9,7 +9,7 @@ let failed = 0, remembered = 'no memory to check'; const check = (ok, m) => { if
 
 // --- the kind and who herds (Kim, 31 Oct)
 const K = KINDS.herd, prio = (role) => Sim.ROLES[role].prio.herd;
-check(K.attention === 'background' && K.minAge === 8 && K.hours === 9 && K.window.from === 6 && K.reach > 0, 'herd is not a background kind of 9 hours from 8');
+check(K.mind && K.minAge === 8 && K.hours === 9 && K.window.from === 6 && K.reach > 0, 'herd is not a background kind of 9 hours from 8');
 check(prio('child') === 8 && prio('daughter') === 6 && prio('son') === 5 && prio('retired') === 4 && prio('farmhand') === 3 && prio('farmer') === 2
   && !prio('wife') && !prio('maid'), 'herding priorities are not child 8, daughter 6, son 5, retired 4, farmhand 3, farmer 2');
 
@@ -24,14 +24,16 @@ check(held.length >= herdJobs.length / 2, `only ${held.length} of ${herdJobs.len
 for (const j of herdJobs) {
   const hh = st.households[j.owner.id], f = st.farmsteads[hh.farmstead];
   check(j.key === `herd:h${hh.id}:${day}`, `herd job ${j.key} not of today`);
-  check(hexSteps(st.w, f.house, j.site) <= H.steps && j.site !== f.house, `${j.key}: pasture ${hexSteps(st.w, f.house, j.site)} steps from the house`);
+  // within H.steps of the house, or a pasture on the herd's way (`to`, sim/grazing wayFor: VB-1812's run has one by day 15)
+  const onWay = hh.pasture && hh.pasture.to !== undefined && hh.pasture.tile === j.site;
+  check((onWay || hexSteps(st.w, f.house, j.site) <= H.steps) && j.site !== f.house, `${j.key}: pasture ${hexSteps(st.w, f.house, j.site)} steps from the house`);
   const aftermath = f.meadows.some((m) => m.tile === j.site && m.stage === 'aftermath'); // the farm's own meadow, mown and carried
   check((!st.used.has(j.site) || aftermath) && !(st.owner[j.site] > 0 && st.owner[j.site] !== hh.id + 1),
     `${j.key}: pasture on a field, a house or another's land`);
   for (const id of j.claims) {
     const p = st.pawns[id], a = st.agents[id];
     check(p.household === hh.id && Sim.age(st, p) >= H.minAge, `${j.key}: herder ${id} of household ${p.household}, aged ${Sim.age(st, p)}`);
-    check(a.side && a.side.background === j, `${j.key}: herder ${id} does not hold it at the side`);
+    check(a.mind && a.mind.includes(j), `${j.key}: herder ${id} does not hold it at the side`);
     for (const hid of hh.herds) check(st.herds[hid].herder === id && st.herds[hid].herded === day, `${j.key}: herd ${hid} not out with ${id}`);
   }
 }
@@ -51,7 +53,7 @@ for (const j of done) {
   if (nb >= 0) check(Z.grazeOf(st, nb) >= 0.95 * H.nb * H.hours * Z.herdLoad(st, hh), `${j.key}: a neighbour's pressure ${Z.grazeOf(st, nb).toFixed(1)}`);
 }
 // after the working day nobody minds a herd at the side: each herder has let go and is home or on its way (the herds by it)
-check(st.living.every((id) => !st.agents[id].side), 'a side task held at 20:00');
+check(st.living.every((id) => !st.agents[id].mind), 'a side task held at 20:00');
 // no herding in the byre season
 Sim.advance(st, (Sim.HERD.stall[0] + 1) * Sim.DAY + 8 - st.t);
 check(![...st.jobs.values()].some((j) => j.kind === 'herd'), 'a herd job in the byre season');

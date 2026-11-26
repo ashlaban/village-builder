@@ -3,6 +3,8 @@
 // or from day PEAT.late of summer, while its fuel pile (wood and peat) is under the winter's goal, up to the shortfall; peat does not grow back.
 // On a tiny village, with a peat tile placed by hand.
 const VB = require('../src/load.js');
+const { targets: TG } = require('./lib/season.js');
+const trip = require('./lib/trip.js');
 const { feedHousehold } = VB['sim/hunger'], { KINDS } = VB['sim/kinds'], D = VB['sim/dig'], Stores = VB['sim/stores'];
 const { PEAT, YEAR, DAY, SEASON_DAYS, ECON } = VB['sim/rules'], { DEPOSIT } = VB['world/geology'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
@@ -44,7 +46,7 @@ check(PEAT.worth === 0.5 && PEAT.far === 8, 'PEAT.worth 0.5, PEAT.far 8');
   if (t) {
     w.deposit[t[0]] = DEPOSIT.PEAT; w.depositLeft[t[0]] = 100;
     const posts = () => { const out = []; K.available(st, hh, f, null, (key, site, extra) => out.push({ key, site, ...extra })); return out; };
-    const goal = () => st.plans.households.get(hh.id).targets.wood[1];
+    const goal = () => TG(st.plans.households.get(hh.id)).wood[1];
     hh.digAt = undefined; hh.clay = hh.bogOre = D.DIG.stock;
     const at = (day) => { st.t = (SUMMER * SEASON_DAYS + day) * DAY; };
     at(0); hh.wood = 0; hh.peat = 0; hh.peatCut = undefined;
@@ -64,7 +66,7 @@ check(PEAT.worth === 0.5 && PEAT.far === 8, 'PEAT.worth 0.5, PEAT.far 8');
     // a trip: the tile falls by one, the store rises by ECON.woodPerTrip, through the ledger; and it never grows back
     at(0); hh.digAt = undefined; hh.peatCut = undefined;
     const j = { kind: 'dig', site: t[0], good: 'peat', farm: f, owner: { type: 'household', id: hh.id } };
-    K.deliver(st, j, hh, f);
+    trip(K, st, j, hh, f);
     check(w.depositLeft[t[0]] === 99 && hh.peat === ECON.woodPerTrip, `a trip: tile ${w.depositLeft[t[0]]}, peat ${hh.peat}`);
     const e = hh.ledger[hh.ledger.length - 1];
     check(e.kind === 'dig' && e.good === 'peat' && e.n === ECON.woodPerTrip, `through the ledger: ${JSON.stringify(e)}`);

@@ -98,12 +98,12 @@ w.health = 30; assert.ok(fire(w, summer) > w0, 'more for the weak'); w.health = 
 assert.notStrictEqual(cal(st.t).season, 3, 'the probe is not in winter');
 const wg = free(w);
 P.ownTime(st, wg);
-assert.deepStrictEqual([wg.pastime.kind, wg.pastime.farm, wg.phase], ['fire', farmOf(w).id, null]);
+assert.deepStrictEqual([wg.pastime.kind, wg.pastime.farm, !!wg.homeward], ['fire', farmOf(w).id, false]);
 assert.ok(nearTile(wg, farmOf(w).house, 20), 'in the light seasons it sits in its yard');
 assert.strictEqual(Sim.describe(st, w.id), 'Strolling home');
 w.born = st.t - 70 * YEAR; free(w);
 P.ownTime(st, wg);
-assert.deepStrictEqual([wg.pastime.kind, wg.pastime.farm, wg.phase], ['fire', null, 'home']);
+assert.deepStrictEqual([wg.pastime.kind, wg.pastime.farm, !!wg.homeward], ['fire', null, true]);
 assert.strictEqual(Sim.describe(st, w.id), 'Going home to the fire');
 for (let h = 0; h < 30 && wg.path; h++) Sim.advance(st, 0.1);
 assert.ok(wg.inside && !wg.path, 'indoors');
@@ -127,17 +127,17 @@ SOCIAL.seek = 0;
 only('green', 'fire', 'play', 'visit');
 // (the side task set by hand, as tests/encounters.js does: a pasture three tiles from the green)
 const herder = free(adults[2]), pasture = st.w.nb[st.w.nb[st.w.nb[st.villages[farmOf(adults[2]).village].center * 6] * 6] * 6];
-herder.side = { partial: null, background: { kind: 'herd', key: 'probe', site: pasture } };
+herder.mind = [{ kind: 'herd', key: 'probe', site: pasture }];
 herder.idleUntil = 0;
 P.ownTime(st, herder);
 assert.strictEqual(herder.pastime.kind, 'herd'); assert.strictEqual(P.line(st, herder.id), null, 'the card says the herding');
 assert.ok(herder.path && nearTile(herder, pasture, 20), 'by the herd');
 assert.strictEqual(Sim.describe(st, herder.id), VB['sim/kinds'].KINDS.herd.go);
-A.standStill(st, herder); delete herder.side; A.idle(st, herder, st.t + 6);
-assert.match(P.why(st, x.id, 'herd', null), /holds no herd/);
+A.standStill(st, herder); delete herder.mind; A.idle(st, herder, st.t + 6);
+assert.match(P.why(st, x.id, 'herd', null), /minds no herd/);
 
 // the verb: refusals change nothing; the planner's choice and the played pawn's pass the same check
-const snap = () => JSON.stringify(st.agents.map((g) => [g.x, g.y, g.path, g.phase, g.idleUntil, g.pastime]));
+const snap = () => JSON.stringify(st.agents.map((g) => [g.x, g.y, g.path, g.homeward, g.idleUntil, g.pastime]));
 const before = snap(), dead = st.pawns.find((p) => !p.alive);
 for (const [cmd, why] of [
   [{ actor: x.id, verb: 'pastime', target: 'chess' }, /there is no pastime/],

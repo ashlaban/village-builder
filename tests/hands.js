@@ -22,7 +22,7 @@ function hoe(hands) {
       if (!j) continue;
       most = Math.max(most, j.claims.length);
       // each starts on its own row: it stands at the row's start (the page walks the rows, VB-472)
-      const at = j.claims.map((id) => st.agents[id]).filter((a) => a.phase === 'work');
+      const at = j.claims.map((id) => st.agents[id]).filter((a) => (a.leg && a.leg.kind === 'work'));
       rows = Math.max(rows, new Set(at.map((a) => `${a.x.toFixed(1)},${a.y.toFixed(1)}`)).size);
     }
     return { hours: st.t - t0, most, rows, done: fd.stage !== 'stubble' };
@@ -37,5 +37,21 @@ check(all.hours < 0.6 * one.hours, `all hands took ${all.hours} h, one hoer ${on
 // a carried job whose work is done waits for its carrier: it is not open, whatever its hands
 check(!isOpen({}, { kind: 'haul', claims: [1], done: 0.7 }) && isOpen({}, { kind: 'haul', claims: [1], done: 0.3 }) && !isOpen({}, { kind: 'wood', claims: [1], done: 0 }),
   'open jobs: a finished haul or a taken firewood job counts as open, or a haul with work left does not');
+// A played head on automatic with nothing queued asks for hands as the same household unplayed does; with the switch off it does not (VB-1743)
+{
+  const Hands = VB['sim/hands'];
+  const ask = (mode) => {
+    const st = Sim.seed(world, 7, 'heirs'); Sim.advance(st, 9);
+    const hh = st.households[0];
+    if (mode) { Sim.inhabit(st, hh.holder); Sim.setAuto(st, st.player.pawn, mode === 'on'); }
+    const was = VB.count.handsAsked;
+    Hands.askFor(st, hh, 40, {});
+    return { asks: VB.count.handsAsked - was, today: JSON.stringify(st.handsToday) };
+  };
+  const plain = ask(null), on = ask('on'), off = ask('off');
+  check(plain.asks > 0, 'an unplayed short household asked for no hands');
+  check(on.asks === plain.asks && on.today === plain.today, `played on automatic: ${JSON.stringify(on)}, unplayed: ${JSON.stringify(plain)}`);
+  check(off.asks === 0 && off.today === undefined, 'a played head with its automatic behaviour off asked through askFor');
+}
 console.log(`hands ok: one hoer ${one.hours.toFixed(1)} h, all hands ${all.hours.toFixed(1)} h with up to ${all.most} hoers on ${all.rows} rows`);
 if (failed) process.exit(1);

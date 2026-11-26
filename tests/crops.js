@@ -45,8 +45,8 @@ KINDS.reap.done(st, j, hh, c);
 const held = fd.held;
 assert(held > 0);
 const hand = { id: -1, load: 0 };
-KINDS.haul.load(st, hand, j, 1e9); // the whole field in one load
-KINDS.haul.deliver(st, j, hh, f, hand);
+KINDS.haul.ops.pitch.run(st, j, null, fd.tile, hand, 1e9); // the whole field in one load (VB-1812: the stooks pitched)
+VB['sim/doing'].said('haul').deliver(st, j, hh, f, hand);
 const waiting = { ...fd, id: f.fields.length, stage: 'stooks', sown: 0, held: 17 };
 f.fields.push(waiting);
 const frostBefore = st.record.filter((e) => e.kind === 'frost').length;
@@ -116,8 +116,8 @@ for (const crop of ['wheat', 'oats']) {
   }
   assert.equal(field.stage, 'ripe', crop);
   KINDS.reap.done(run, job, owner, cal(run.t));
-  KINDS.haul.load(run, hand, job, 1e9);
-  KINDS.haul.deliver(run, job, owner, farm, hand);
+  KINDS.haul.ops.pitch.run(run, job, null, job.site, hand, 1e9); // VB-1812: the stooks pitched (the work leg of its goal)
+  VB['sim/doing'].said('haul').deliver(run, job, owner, farm, hand);
   VB['sim/stores'].thresh(run, owner);
   assert(Sim.grainOf(owner, crop) > 0, crop);
 }

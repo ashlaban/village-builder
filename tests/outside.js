@@ -83,11 +83,13 @@ function bear(st, m) {
 }
 // the days until the pregnancy is known, and one more: the asking day reads the entry (sim/asking courtDay)
 // a couple named stays fond on the way, whether or not the days bring the two together (VB-1554: the memories alone fade under COURT.end)
+// (VB-1750: kept fond each day, not once half way: with every task on its methods the days bring them together less, and their liking
+// cooled past COURT.end before the asking day)
 const known = (st, a, b) => {
-  const half = Math.floor((COURT.known + 1) / 2) * DAY;
-  VB.sim.advance(st, half);
-  if (a !== undefined) fond(st, a, b);
-  VB.sim.advance(st, (COURT.known + 1) * DAY - half);
+  for (let d = 0; d < COURT.known + 1; d++) {
+    VB.sim.advance(st, DAY);
+    if (a !== undefined) fond(st, a, b);
+  }
 };
 const kinds = (st) => st.record.map((e) => e.kind);
 
@@ -125,6 +127,10 @@ assert.ok(courtChance(22) < BIRTH.peak, 'less than a married woman');
 //    recorded and known; their marriage later makes it born in marriage
 {
   const st = world();
+  // and stay without one: his father's household holds off its projects, so clears him no plot meanwhile (VB-1775: with the wood as
+  // goals its hands were free to begin one, and the plot gave the two a match before the birth)
+  // (VB-1749: with the trips as goals too, a neighbour's hands cleared one: every household holds off its projects)
+  for (const hh of st.households) VB['sim/plans'].holdProject(st, hh.id, true);
   court(st, 10, 4);
   conceive(st);
   assert.ok(st.pawns[4].pregnantCourting, 'she conceives');

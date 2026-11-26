@@ -3,17 +3,19 @@
 // none) and one line of why, from the day's lists, the task's basis and what its kind declares; what presses is the head's estimate.
 // A view computed when a card asks: it writes nothing, draws nothing, and no simulation module reads it (tests/reasons.js)
 VB['sim/reasons'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { SEASON_DAYS, WORK, cal } = VB['sim/rules'],
     { ROLES, CHILD } = VB['sim/roles'],
     { CROPS } = VB['sim/crops'],
     { frostExpected } = VB['sim/weather'],
     { shiftOf } = VB['sim/climate'];
+  const { carriesTo } = VB['sim/doing'];
   const { KINDS } = VB['sim/kinds'],
     { MADE, target } = VB['sim/targets'],
     { fuelFree } = VB['sim/chores'];
   const { age, fullName, commanded, unplanned } = VB['sim/records'];
-  const { heldAt } = VB['sim/attention'],
-    { travelling, stayOf } = VB['sim/pose'];
+  const { travelling, stayOf } = VB['sim/pose'];
+  const { chain, stepOfKey } = VB['sim/steps'];
   const Days = VB['sim/days'],
     Hands = VB['sim/hands'],
     { idleLine } = VB['sim/fit'];
@@ -51,8 +53,9 @@ VB['sim/reasons'] = (() => {
     const hh = j.owner && j.owner.type === 'household' ? st.households[j.owner.id] : null;
     if (hh && !hh.dissolved) {
       const plan = planOf(st, hh.id);
-      if (K.to === 'woodpile' && plan && plan.targets && plan.targets.wood) {
-        const goal = plan.targets.wood[c.season],
+      // a kind that brings timber to its owner's store fills the woodpile (VB-1820: read from its method, not a field `to`)
+      if (carriesTo(j.kind) === 'store' && (K.gives || []).includes('timber') && targetOf(plan, 'wood')) {
+        const goal = targetOf(plan, 'wood').seasons[c.season],
           held = fuelFree(st, hh);
         if (held < goal) return `the woodpile holds ${Math.round(held)} of the ${Math.round(goal)} the head wants`;
       }
@@ -69,7 +72,7 @@ VB['sim/reasons'] = (() => {
     return null;
   }
   // The job pawn id has in hand: its task, else the one it holds at the side (with the herds).
-  const actOf = (a) => a.job || heldAt(a, 'background') || null;
+  const actOf = (a) => a.job || (a.mind ? a.mind[0] : null);
   const farmName = (st, hid) => {
     const hh = st.households[hid];
     return hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead].name : 'another farm';
@@ -77,6 +80,26 @@ VB['sim/reasons'] = (() => {
   // Who chose pawn id's present act and why: {by (one of BY), head (the head whose day or call it is), place ({at, of}: the task's place
   // in the member's list), why (what presses, in a few words; null on the head's day or the village's work when nothing does: who chose
   // and the place in the list are then the reason)}; null for a pawn not living. Writes nothing, draws nothing.
+  function reasonWith(st, id) {
+    const r = reasonOf(st, id);
+    if (!r) return r;
+    const a = st.agents[id],
+      j = actOf(a),
+      f = j ? stepOfKey(st, st.pawns[id].household, j.key) : null;
+    if (!f || !(f.s.tookBack || f.s.state === 'at-risk')) return r;
+    const step = f.s.tookBack
+      ? { tookBack: { ...f.s.tookBack }, by: f.s.by }
+      : { atRisk: true, by: f.s.by, short: f.s.risk.short, kept: !!f.s.kept, pawn: f.pawn };
+    return { ...r, step };
+  }
+  // The words of a task's step at risk or taken back (VB-1755; design.md section 7, A step at risk, and the take-back): the card says so.
+  function stepWords(st, id, x) {
+    const whose = (q) => (q === id ? 'its own' : `${fullName(st.pawns[q])}'s`);
+    if (x.tookBack)
+      return `taken back from ${whose(x.tookBack.from)} plan by the household's day: it would not be done by day ${x.tookBack.by}`;
+    return `${x.kept ? 'kept to its plan, at risk' : 'at risk'}: ${x.short} hours short of done by day ${x.by}`;
+  }
+  // Who chose pawn id's present act, and why (before its step's warning, reasonWith).
   function reasonOf(st, id) {
     const p = st.pawns[id],
       a = st.agents[id];
@@ -85,7 +108,10 @@ VB['sim/reasons'] = (() => {
       plan = planOf(st, p.household),
       head = plan && plan.head ? plan.head.pawn : null,
       j = actOf(a);
-    if (commanded(st, id)) return { by: 'player', why: 'you gave the order' };
+    // a controller's order or switch is the player's only on the played pawn; any other pawn's is its own (VB-1745)
+    const played = !!st.player && st.player.pawn === id;
+    if (commanded(st, id))
+      return played ? { by: 'player', why: 'you gave the order' } : { by: 'self', why: 'an order of its own' };
     if (j) {
       const K = KINDS[j.kind],
         why = cause(st, j, c),
@@ -101,10 +127,10 @@ VB['sim/reasons'] = (() => {
         place = i >= 0 ? { at: i, of: list.length } : undefined;
       if (owner.type === 'village')
         return { by: 'village', ...(head !== null && place ? { head, place } : {}), why: why || null };
-      if (!place) return { by: unplanned(st, id) ? 'player' : 'self', why: why || 'taken without the plan' };
+      if (!place) return { by: played && unplanned(st, id) ? 'player' : 'self', why: why || 'taken without the plan' };
       // a task with a deadline today put first in its hand's list is the head's call (sim/jobs allot)
       if (K.late && i === 0) return { by: 'call', head, place, why: why || 'due today' };
-      return { by: 'day', head, place, why };
+      return { by: 'day', head, place, why: why || planned(st, j) };
     }
     if (a.occasion !== null && a.occasion !== undefined) {
       const o = st.occasions.find((x) => x.id === a.occasion);
@@ -119,7 +145,10 @@ VB['sim/reasons'] = (() => {
       if (s && s.why === 'visit') return { by: 'self', why: 'a visit of its own' };
       return { by: 'self', why: 'on the road home' };
     }
-    if (unplanned(st, id)) return { by: 'player', why: 'you have turned its own plans off' };
+    if (unplanned(st, id))
+      return played
+        ? { by: 'player', why: 'you have turned its own plans off' }
+        : { by: 'self', why: 'its own plans are off' };
     const owed = Days.on(st, id),
       lent = Hands.on(st, id);
     if (owed !== null) return { by: 'owed', why: `nothing to take at ${farmName(st, owed)} yet` };
@@ -127,11 +156,22 @@ VB['sim/reasons'] = (() => {
     // at a pastime (sim/pastimes, VB-1552), the choice is its own: the line under it says why it has no work
     return { by: VB['sim/pastimes'].of(st, id) ? 'self' : 'none', why: noWork(st, id, p, a, c) };
   }
+  // The plan's step behind task j, in a few words, when nothing presses (VB-1752; design.md, Reasons shown: the chain of steps): the
+  // project it is a step of, or its season's routine; null for a task no step opened.
+  function planned(st, j) {
+    const C = chain(st, j),
+      top = C.length ? C[C.length - 1] : null;
+    if (!top) return null;
+    if (top.what.project !== undefined)
+      return `a step of the new ${top.why && top.why.custom ? top.why.custom : 'work'}`;
+    if (top.what.target) return `in the season's plan, for its ${top.what.target.store}`;
+    return top.what.routine ? "in the season's plan" : null;
+  }
   // Why a pawn with no work has none: too young, the working day over, else the idle line (sim/jobs idleLine).
   function noWork(st, id, p, a, c) {
     if (age(st, p) < CHILD.from) return 'too young to work';
     if (c.hour < WORK[0] || c.hour >= WORK[1]) return 'the working day is over';
-    if (a.phase === 'home') return 'going home';
+    if (!!a.homeward) return 'going home';
     const line = idleLine(st, id);
     if (line) return line;
     return p.household === null
@@ -140,7 +180,7 @@ VB['sim/reasons'] = (() => {
   }
   // The reason as the card's one line, under what the pawn is doing: who chose, with the place in the list, then why. Null when none.
   function reasonLine(st, id) {
-    const r = reasonOf(st, id);
+    const r = reasonWith(st, id);
     if (!r) return null;
     const name = (h, low) => (h === id ? (low ? 'its own' : 'Its own') : `${fullName(st.pawns[h])}'s`),
       at = !r.place ? '' : r.place.of === 1 ? ', its one task' : `, ${ord(r.place.at)} of ${num(r.place.of)}`;
@@ -155,8 +195,9 @@ VB['sim/reasons'] = (() => {
       self: () => 'Its own choosing',
       none: () => null, // the idle line says it whole
     }[r.by]();
-    if (!who) return r.why.charAt(0).toUpperCase() + r.why.slice(1);
-    return r.why ? `${who}: ${r.why}` : who;
+    const step = r.step ? ` (${stepWords(st, id, r.step)})` : '';
+    if (!who) return r.why.charAt(0).toUpperCase() + r.why.slice(1) + step;
+    return (r.why ? `${who}: ${r.why}` : who) + step;
   }
-  return { REASONS, BY, reasonOf, reasonLine, windowLeft, cause };
+  return { REASONS, BY, reasonOf: reasonWith, reasonLine, windowLeft, cause, planned };
 })();

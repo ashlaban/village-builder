@@ -6,6 +6,7 @@
 // timing: every head's review falls on a field's first sowing day; a field of one crop, soil, sowing day and weeding yields the same under
 // a poor and a good head; a farm of barley alone untouched by any of it; the invariants of each state.
 const assert = require('assert'), VB = require('../src/load.js');
+const { targets: TG } = require('./lib/season.js');
 const { DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'], { CROPS, ROTATIONS } = VB['sim/crops'];
 const F = VB['sim/fields'], R = VB['sim/rotations'], Plans = VB['sim/plans'], Aims = VB['sim/aims'], Stores = VB['sim/stores'];
 const { setClock } = require('./lib/clock.js');
@@ -161,8 +162,8 @@ assert.strictEqual(R.tierOf(GOOD), 'good');
 // ---- the trial: a good head's project ----
 {
   const s = farm('every', 'every', { barley: 400, peas: 30 }, GOOD);
-  s.plan.targets.fields = 0;
-  s.plan.targets.workable = 3;
+  TG(s.plan).fields = 0;
+  TG(s.plan).workable = 3;
   const menu = Aims.menu(s.st, s.plan, s.hh, s.f);
   assert(menu.some((o) => o.what === 'trial' && o.crop === 'peas'), `a trial on the menu: ${JSON.stringify(menu)}`);
   const ord = farm('every', 'every', { barley: 400, peas: 30 }, ORDINARY);

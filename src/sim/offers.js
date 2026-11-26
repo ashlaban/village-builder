@@ -17,7 +17,7 @@
 VB['sim/offers'] = (() => {
   const Due = VB['sim/due'],
     dueKey = (e) => e.due; // its order (sim/due): by due, after those due at the same time
-  const { living } = VB['sim/records'];
+  const { living, unplanned } = VB['sim/records'];
   const { register } = VB['sim/commands'];
   const { DAY, YEAR, TRAVEL } = VB['sim/rules'];
   const { remember } = VB['sim/relations'];
@@ -46,7 +46,8 @@ VB['sim/offers'] = (() => {
   // ((st, o) => the pawn whose own future it is, who holds it as pawn.ask), where ((st, o) => the village whose step of the moving round
   // answers it), what ((st, o) => its words, as `what`) and memory (false: a no is told, and nobody remembers it). The rows: gift and
   // ask (sim/exchange), match and handover (sim/marriage), land (sim/farmclaims), party (sim/settle) and place (sim/service). An offer
-  // made with args.round is due at the moving round: sim/round answers it there, or it lapses when the round ends. ----
+  // made with args.round is due at the moving round: sim/round answers it there, or it lapses when the round ends. A row may name the
+  // word it is asked for (`asked`: 'leave', sim/voice; 'hands', sim/hands' help): an offer on it is made by the verb ask, never offer. ----
   const BASES = {};
   function basis(name, row) {
     if (BASES[name]) throw new Error(`basis ${name} is declared twice`);
@@ -134,16 +135,7 @@ VB['sim/offers'] = (() => {
       const p = st.pawns[args.carrier],
         a = p && st.agents[p.id];
       if (!('farmstead' in from) || !('farmstead' in to)) return 'only a household carries a gift to a household';
-      if (
-        !p ||
-        !p.alive ||
-        p.household !== from.id ||
-        p.age < 14 ||
-        p.age >= 60 ||
-        !a ||
-        onRoad(a) ||
-        a.phase === 'back'
-      )
+      if (!p || !p.alive || p.household !== from.id || p.age < 14 || p.age >= 60 || !a || onRoad(a) || a.load > 0)
         return `pawn ${args.carrier} cannot carry the gift`;
       const kept = mindsWhy(st, p.id); // VB-1602
       if (kept) return kept;
@@ -210,15 +202,15 @@ VB['sim/offers'] = (() => {
     if (s !== null) st.pawns[s].ask = o.id;
   }
   // Make the offer of command c (the verb `offer`, and `give` for a gift), checked. Its answers are drawn up; `given` lists the keys said
-  // yes in the making (the played pawn's own wish). Due at once, the unplayed answer now; one that waits for the played pawn is kept for
-  // the basis's wait; one due later is kept until then. A no closes it, all yes settles it. Returns 'open', 'yes', 'no' or 'lapsed'.
+  // yes in the making (the maker's own wish). Due at once, each pawn's judgement answers now but an unplanned one's (sim/records: its
+  // automatic behaviour off, or a command queued), whose controller answers: that offer is kept for the basis's wait (VB-1776); one
+  // due later is kept until then. A no closes it, all yes settles it. Returns 'open', 'yes', 'no' or 'lapsed'.
   function make(st, c, given = []) {
     const o = offerOf(st, c),
-      B = BASES[o.basis],
-      played = st.player ? st.player.pawn : null;
+      B = BASES[o.basis];
     o.answers = B.answers(st, o);
     for (const a of o.answers) if (given.includes(a.key)) a.yes = true;
-    if (o.due <= st.t) for (const a of o.answers) if (a.yes === null && a.by !== played) a.yes = judge(st, o, a);
+    if (o.due <= st.t) for (const a of o.answers) if (a.yes === null && !unplanned(st, a.by)) a.yes = judge(st, o, a);
     if (!o.answers.some((a) => a.yes === false) && o.answers.some((a) => a.yes === null)) {
       if (o.due <= st.t) o.due = st.t + B.wait(st) * DAY;
       keep(st, o);
@@ -272,15 +264,14 @@ VB['sim/offers'] = (() => {
     while (st.offers.length && st.offers[0].due <= st.t) conclude(st, st.offers[0]);
   }
   // The open offer o is answered now, out of its time (a courting pair's offer of the round, their child on the way: VB-555): due now
-  // and no longer at the round, each unanswered answer of an unplayed pawn given by its judgement, as when it is made due at once; one
-  // the played pawn has still to give keeps it open for the basis's wait. 'open', 'yes', 'no' or 'lapsed'.
+  // and no longer at the round, each unanswered answer given by its pawn's judgement but an unplanned pawn's, as when it is made due at
+  // once; one an unplanned pawn has still to give keeps it open for the basis's wait. 'open', 'yes', 'no' or 'lapsed'.
   function answerNow(st, o) {
-    const at = st.offers.indexOf(o),
-      played = st.player ? st.player.pawn : null;
+    const at = st.offers.indexOf(o);
     if (at >= 0) st.offers.splice(at, 1);
     delete o.round;
     o.due = st.t;
-    for (const a of o.answers) if (a.yes === null && a.by !== played) a.yes = judge(st, o, a);
+    for (const a of o.answers) if (a.yes === null && !unplanned(st, a.by)) a.yes = judge(st, o, a);
     if (!o.answers.some((a) => a.yes === false) && o.answers.some((a) => a.yes === null)) {
       o.due = st.t + BASES[o.basis].wait(st) * DAY;
       Due.append(st.offers, o, o.due, dueKey);
@@ -290,7 +281,7 @@ VB['sim/offers'] = (() => {
   }
   // The open offer o ends now (VB-692): each unanswered answer given by its pawn's judgement (once each), and it closes; or, given `why`
   // (the moving round ended with it open), it lapses unanswered. 'yes', 'no' or 'lapsed'. `early`: it is answered out of its time
-  // (answerNow), and may stay open for the played pawn ('open').
+  // (answerNow), and may stay open for an unplanned pawn ('open').
   function conclude(st, o, why = null, early = false) {
     if (early) return answerNow(st, o);
     if (why === null) {
@@ -317,8 +308,30 @@ VB['sim/offers'] = (() => {
       living(st, c.actor) ||
       (c.args && c.args.given && c.args.given.length && c.source !== 'round'
         ? 'only the round makes an offer with answers given'
-        : cannotOffer(st, c)),
+        : c.args && BASES[c.args.basis] && BASES[c.args.basis].asked
+          ? `${BASES[c.args.basis].asked} is asked, by the verb ask`
+          : cannotOffer(st, c)),
     run: (st, c) => make(st, c, (c.args && c.args.given) || []),
+  });
+  // ask(target, {basis, wants, due}) (VB-1756; docs/plans/four-scales/README.md, 3.6): the actor asks pawn `target` for what `basis`
+  // names, a word a row of the table is asked for (`asked`: leave, hands); an offer on that row, made and answered as any, under its
+  // check, the same for every pawn. The default authors: a member's own ask of leave (sim/voice), a head short of hands (sim/hands).
+  const askedOf = (word) => Object.keys(BASES).find((b) => BASES[b].asked === word) || null;
+  const asOffer = (c) => ({
+    ...c,
+    verb: 'offer',
+    args: { basis: askedOf(c.args.basis), wants: c.args.wants, due: c.args.due },
+  });
+  register('ask', {
+    check: (st, c) =>
+      living(st, c.actor) ||
+      (!c.args || typeof c.args.basis !== 'string' || askedOf(c.args.basis) === null
+        ? `one asks for ${Object.values(BASES)
+            .filter((B) => B.asked)
+            .map((B) => B.asked)
+            .join(' or ')}, not ${JSON.stringify(c.args && c.args.basis)}`
+        : cannotOffer(st, asOffer(c))),
+    run: (st, c) => make(st, asOffer(c)),
   });
   // answer(target, {yes}): the actor answers the open offer `target`, all its answers in it at once; the offer closes at a no, or when
   // all have said yes (an unplayed pawn answers by its own judgement when the offer falls due: sim/offers)

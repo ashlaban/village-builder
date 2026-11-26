@@ -14,7 +14,7 @@ const { RUNGS, FOUNDATION, OUTBUILDINGS, rungOf } = VB['sim/ladder'],
   { hexSteps } = VB['sim/hex'],
   B = VB['sim/building'];
 const hash = (st) => sha(canon(kept(st)));
-const v0 = (st, f) => Sim.farmView(st, f.id);
+const v0 = (st, f) => Sim.farmView(st, f.id, st.player && st.player.pawn);
 
 // ---- 1. the tables: each rung built from one before it, the numbers the rules' own ----
 assert.deepStrictEqual(
@@ -52,7 +52,7 @@ function sweep(st, tag, seen) {
     seen.add(r);
     if (r === 'cottage') seen.add(v0(st, f).foundation.grade === 'stone' ? 'on stone' : 'ground');
     assert.strictEqual(v0(st, f).foundation.grade, f.grade || 'ground', `${tag}: farm ${f.id}'s foundation`);
-    const v = Sim.farmView(st, f.id);
+    const v = Sim.farmView(st, f.id, st.player && st.player.pawn);
     assert.deepStrictEqual(JSON.parse(JSON.stringify(v)), v, `${tag}: farm ${f.id}'s view is plain data`);
     assert.strictEqual(v.rung, r);
     assert(v.next.every((n) => RUNGS[n.what].from === r && n.ok === (n.why === null)), `${tag}: farm ${f.id}'s next`);
@@ -87,7 +87,7 @@ if (only && !only.includes('solo')) process.exit(0);
   const st = Sim.seed(tinyWorld(rows), 7, 'solo', null, { hand: true }),
     f = st.farmsteads[0];
   st.naturalDeaths = false;
-  let v = Sim.farmView(st, 0);
+  let v = Sim.farmView(st, 0, st.player && st.player.pawn);
   assert.strictEqual(v.rung, 'camp');
   assert.strictEqual(v.building, null);
   assert.deepStrictEqual(v.next, [{ what: 'shelter', needs: RUNGS.shelter.needs, ok: true, why: null, planned: false }]);
@@ -97,14 +97,14 @@ if (only && !only.includes('solo')) process.exit(0);
   ]);
   assert.strictEqual(v.foundation.why, `${f.name} has no cottage yet`, 'no foundation under a shelter');
   Sim.inhabit(st, st.households[0].holder);
-  Sim.setAuto(st, false);
-  assert.strictEqual(Sim.plan(st, 'add', { farmstead: f.house }), true);
-  assert.match(Sim.farmView(st, 0).next[0].why, /planned already/, 'the shelter planned');
-  assert.strictEqual(Sim.farmView(st, 0).next[0].planned, true);
+  Sim.setAuto(st, st.player.pawn, false);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: f.house }), true);
+  assert.match(Sim.farmView(st, 0, st.player && st.player.pawn).next[0].why, /planned already/, 'the shelter planned');
+  assert.strictEqual(Sim.farmView(st, 0, st.player && st.player.pawn).next[0].planned, true);
   let raising = null;
   for (let i = 0; i < 20 * 240 && f.camp !== false; i++) {
     Sim.advance(st, 0.1);
-    const b = Sim.farmView(st, 0).building;
+    const b = Sim.farmView(st, 0, st.player && st.player.pawn).building;
     if (b) {
       assert.strictEqual(b.what, 'shelter');
       assert(b.hoursLeft <= BOOTH.hours && b.hoursLeft >= 0);
@@ -112,7 +112,7 @@ if (only && !only.includes('solo')) process.exit(0);
     }
   }
   assert(raising !== null, 'the shelter seen being raised');
-  v = Sim.farmView(st, 0);
+  v = Sim.farmView(st, 0, st.player && st.player.pawn);
   assert.strictEqual(v.rung, 'shelter');
   assert.strictEqual(v.building, null);
   assert.deepStrictEqual(v.next, [{ what: 'cottage', needs: RUNGS.cottage.needs, ok: true, why: null, planned: false }]);

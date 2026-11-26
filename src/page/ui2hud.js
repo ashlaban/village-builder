@@ -230,7 +230,8 @@ function renderHud() {
   hudMarks(id, hh, f);
   renderPlan();
   const hour = Math.floor(st.t),
-    key = `${hud.tab}|${hud.storeKey}|${hour}|${st.player.queue.length}|${st.player.auto}|${followPlayed}|${hud.msg ? hud.msg.text : ''}`;
+    ctl = Sim.controlOf(st, st.player.pawn),
+    key = `${hud.tab}|${hud.storeKey}|${hour}|${ctl.queue.length}|${ctl.auto}|${followPlayed}|${hud.msg ? hud.msg.text : ''}`;
   for (const b of u2.tabs.children) b.setAttribute('aria-pressed', String(b.dataset.tab === hud.tab));
   u2.sheet.hidden = !hud.tab;
   if (!hud.tab || key === hud.key) return;
@@ -265,36 +266,48 @@ function hudClick(b) {
   else if (d.hud === 'fell') {
     const n = +d.n;
     hudMsg(
-      Sim.plan(st, 'add', { fell: +d.tile, n }),
+      Sim.plan(st, st.player.pawn, 'add', { fell: +d.tile, n }),
       `Added to the plan: felling, ${n} ${n === 1 ? 'load' : 'loads'}.`,
     );
   } else if (d.hud === 'cutwood')
-    hudMsg(Sim.plan(st, 'add', { firewood: hudHouse().f.house }), 'Added to the plan: cutting firewood.');
-  else if (d.hud === 'planadd') hudMsg(Sim.plan(st, 'add', { key: d.target }), 'Added to the plan.');
+    hudMsg(
+      Sim.plan(st, st.player.pawn, 'add', { firewood: hudHouse().f.house }),
+      'Added to the plan: cutting firewood.',
+    );
+  else if (d.hud === 'planadd') hudMsg(Sim.plan(st, st.player.pawn, 'add', { key: d.target }), 'Added to the plan.');
   else if (d.hud === 'premove') {
-    hudMsg(Sim.plan(st, 'remove', { i: +d.i }), 'Taken out of the plan.');
+    hudMsg(Sim.plan(st, st.player.pawn, 'remove', { i: +d.i }), 'Taken out of the plan.');
     hud.pc = null;
   } else if (d.hud === 'pmove') {
-    const r = Sim.plan(st, 'move', { from: +d.from, to: +d.to });
+    const r = Sim.plan(st, st.player.pawn, 'move', { from: +d.from, to: +d.to });
     hudMsg(r, 'The order is changed.');
     if (r === true) hud.pc = `t:${d.to}`;
   } else if (d.hud === 'psleep')
     hudMsg(
-      Sim.plan(st, 'sleep', d.off ? null : { from: ((+d.from % 24) + 24) % 24, until: ((+d.until % 24) + 24) % 24 }),
+      Sim.plan(
+        st,
+        st.player.pawn,
+        'sleep',
+        d.off ? null : { from: ((+d.from % 24) + 24) % 24, until: ((+d.until % 24) + 24) % 24 },
+      ),
       d.off ? 'No hours for sleep now.' : 'The sleeping hours are changed.',
     );
   else if (d.hud === 'pdrop' || d.hud === 'padd') {
     const now = hudPlanned().routine.map((r) => r.kind),
       kinds =
         d.hud === 'padd' ? HUD_DAILY.filter((k) => now.includes(k) || k === d.kind) : now.filter((k) => k !== d.kind);
-    hudMsg(Sim.plan(st, 'routine', { kinds }), d.hud === 'padd' ? 'Back in the routine.' : 'Dropped from the routine.');
+    hudMsg(
+      Sim.plan(st, st.player.pawn, 'routine', { kinds }),
+      d.hud === 'padd' ? 'Back in the routine.' : 'Dropped from the routine.',
+    );
     if (d.hud === 'pdrop') hud.pc = 'sleep';
   } else if (d.hud === 'shut') hud.at = -1;
-  else if (d.hud === 'walk') hudMsg(Sim.queue(st, { actor: id, verb: 'walkTo', target: hud.at }), 'Queued: walk here.');
+  else if (d.hud === 'walk')
+    hudMsg(Sim.queue(st, st.player.pawn, { actor: id, verb: 'walkTo', target: hud.at }), 'Queued: walk here.');
   else if (d.hud === 'storekey') hud.storeKey = hud.storeKey === d.key ? null : d.key;
   else if (d.hud === 'chain')
     hudMsg(
-      Sim.plan(st, 'add', { [d.chain]: d.tile !== undefined ? +d.tile : hud.at }),
+      Sim.plan(st, st.player.pawn, 'add', { [d.chain]: d.tile !== undefined ? +d.tile : hud.at }),
       `Added to the plan: ${HUD_CHAIN[d.chain].done}.`,
     );
   else if (d.hud === 'fly') {
@@ -304,14 +317,14 @@ function hudClick(b) {
     followPlayed = !followPlayed;
     if (followPlayed) flyToFarmOf(id);
   } else if (d.hud === 'unqueue') {
-    hudMsg(Sim.unqueue(st, +d.i), 'Taken off.');
+    hudMsg(Sim.unqueue(st, st.player.pawn, +d.i), 'Taken off.');
     hud.pc = null;
   } else if (d.hud === 'job') {
     hudMsg(
-      Sim.queue(st, { actor: id, verb: 'work', target: d.target }),
+      Sim.queue(st, st.player.pawn, { actor: id, verb: 'work', target: d.target }),
       `Queued: ${b.firstChild.textContent.toLowerCase()}.`,
     );
-  } else if (d.hud === 'drop') hudMsg(Sim.head(st, 'dropProject', { id: +d.id }), 'Given up.');
+  } else if (d.hud === 'drop') hudMsg(Sim.head(st, st.player.pawn, 'dropProject', { id: +d.id }), 'Given up.');
   hud.key = hud.markKey = hud.planKey = '';
 }
 if (UI2) {

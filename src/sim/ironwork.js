@@ -161,7 +161,6 @@ VB['sim/ironwork'] = (() => {
       hands: 1,
       type: 'upkeep',
       craft: 'smithing',
-      inside: true,
       spot: atHouse(0, 0),
       urgency: () => IRON.urgency,
       done: (st, j, hh) => {
@@ -174,5 +173,7 @@ VB['sim/ironwork'] = (() => {
       },
     },
   };
+  // worked indoors (VB-1820: the work step says it, sim/methods labour; no field of the kind)
+  VB['sim/methods'].labour(KINDS.mendtools, { inside: true });
   return { TOOLS, IRON, KINDS, condition, rate, wear, wants, mendingNeed, smelted, mended };
 })();

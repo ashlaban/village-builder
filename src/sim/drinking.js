@@ -2,6 +2,7 @@
 // may draw at and drinks, and where its household's water is not in takes the household's fetch from there; and the pawns that ended a
 // day without a drink, held due (st.thirstDue) until THIRST.leave hours without one, when each leaves whatever it does to drink
 VB['sim/drinking'] = (() => {
+  const { unbound } = VB['sim/pose'];
   const { WORK, cal } = VB['sim/rules'],
     EVENING = VB['sim/roles'].MATCH.day.evening;
   const { register, issue } = VB['sim/commands'];
@@ -80,7 +81,7 @@ VB['sim/drinking'] = (() => {
       });
       start(st, a, j);
       a.basis = 'self';
-      if (a.side) reachAfter(st, a);
+      if (a.mind) reachAfter(st, a);
       return { slot: 'full', key, n: a.assigned.full };
     },
     active: (st, c, ref) => holds(st.agents[c.actor], ref),
@@ -139,18 +140,19 @@ VB['sim/drinking'] = (() => {
         a = st.agents[e.pawn];
       if (p.died !== null) continue;
       if (e.home) {
-        if (!a.job && !a.path && !a.inside && a.phase === null && a.away === undefined && a.occasion === null)
+        if (!a.job && !a.path && !a.inside && unbound(a) && a.away === undefined && a.occasion === null)
           issue(st, { actor: p.id, verb: 'goHome', source: 'pawn' });
         continue;
       }
       if (Thirst.thirst(st, p) < THIRST.leave || !Thirst.goes(st, p) || travelling(a)) continue;
-      if (a.phase === 'back' || a.occasion !== null || commanded(st, p.id)) {
+      if (a.load > 0 || a.occasion !== null || commanded(st, p.id)) {
         hold(st, { pawn: p.id, at: st.t + 1 });
         continue;
       }
       // on its way to drink already, or to draw its household's water, where it drinks (sim/chores)
       if (a.job && (a.job.kind === 'drink' || a.job.kind === 'water' || a.job.kind === 'boothwater')) continue;
-      const left = a.job ? a.job.kind : null;
+      const left = a.job ? a.job.kind : null,
+        src = sourceFor(st, p); // the source it goes to: read before, as one at its source drinks at once and holds no task after
       if (issue(st, { actor: p.id, verb: 'drink', source: 'pawn' }) !== true) continue;
       const hh = p.household === null ? null : st.households[p.household],
         f = hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
@@ -158,11 +160,11 @@ VB['sim/drinking'] = (() => {
         st,
         `${fullName(p)}${f ? ` of ${f.name}` : ''}, ${Math.floor(Thirst.thirst(st, p))} hours without a drink, ${
           left ? `left ${KINDS[left].name.toLowerCase()}` : 'went'
-        } to drink at ${FRESHES[a.job.cls].name}.`,
+        } to drink at ${FRESHES[src.cls].name}.`,
         {
           kind: 'thirst',
           pawn: p.id,
-          tile: a.job.site,
+          tile: src.tile,
           ...(left ? { reason: left } : {}),
           ...(f ? { household: hh.id, farm: f.id, village: f.village } : {}),
         },

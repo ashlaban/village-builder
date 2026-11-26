@@ -65,6 +65,7 @@ const spareNeed = (st, hh) => VB['sim/help'].askDaysAt(st) * VB['sim/hunger'].da
   assert(c.ledger.some((e) => e.kind === 'loan' && e.n > 0), 'carried back to the lender');
   assert.deepStrictEqual(checkState(st), [], 'invariants overdue');
   setClock(st, o.due);
+  VB['sim/lying'].frost(st); // the autumn frost the jump passed over rots what lies (VB-1775: a felled tree's timber lies as a pile)
   a.grain = { barley: 0 };
   Obligations.step(st);
   assert.strictEqual(o.status, 'defaulted', 'unpaid after the second harvest: defaulted');
@@ -118,7 +119,7 @@ const spareNeed = (st, hh) => VB['sim/help'].askDaysAt(st) * VB['sim/hunger'].da
 { // the lender is played and answers later: what it lends then is at most what is still lacking (F1)
   const st = fresh(), { a, c } = pair(st);
   rich(st, c, 900);
-  st.player = { pawn: c.holder, queue: [], auto: true };
+  VB.sim.inhabit(st, c.holder); VB.sim.setAuto(st, st.player.pawn, false); // its controller answers (VB-1745; VB-1776: on automatic, its judgement at once)
   a.askedIn = seasonOf(st.t);
   assert.strictEqual(borrow(st, a), true, 'it asks');
   const o = st.offers.find((x) => x.basis === 'loan' && x.to === c.holder);
@@ -132,7 +133,7 @@ const spareNeed = (st, hh) => VB['sim/help'].askDaysAt(st) * VB['sim/hunger'].da
 { // the played debtor, its pawn not planning for it, is not made to repay at the harvest: overdue (F3)
   const st = fresh(), { a, c } = pair(st);
   const id = Obligations.create(st, { kind: 'loan', debtor: { kind: 'household', id: a.id }, creditor: { kind: 'household', id: c.id }, owes: { rations: 20 }, lent: 16, enforcer: { kind: 'village', id: st.farmsteads[a.farmstead].village } }), o = st.obligations[id];
-  st.player = { pawn: a.holder, queue: [], auto: false };
+  VB.sim.inhabit(st, a.holder); VB.sim.setAuto(st, st.player.pawn, false); // its controller (VB-1745)
   setClock(st, o.due); a.grain = { barley: floorOf(st, a) + 100 };
   const g0 = Stores.grainOf(a);
   Obligations.step(st);

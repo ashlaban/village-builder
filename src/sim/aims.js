@@ -5,6 +5,7 @@
 // a whole season. And once a year the head weighs each small construction (a boat, a cart, a tar pit) by its making's own test (VB-678);
 // all of them begun through the verb project, which the played head has as any head
 VB['sim/aims'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { barnSteps } = VB['sim/building'];
   const { emit } = VB['sim/events'];
   const { HERD, DAY, SEASON_DAYS, YEAR_DAYS, WORK, MARRIAGE, cal } = VB['sim/rules'];
@@ -76,12 +77,16 @@ VB['sim/aims'] = (() => {
   // (targets.ahead, VB-254): a far-seeing head lays that in from what it has, and a capable head reaches a surplus more often (design.md
   // section 7, projects).
   function targetsMet(st, plan, hh, f, c) {
-    const T = plan.targets,
-      A = T.ahead || NO_AHEAD;
-    if (f.fields.length < T.fields || hh.wood < T.wood[c.season] - (A.season === c.season ? A.wood : 0)) return false;
-    return !hh.herds.length || hh.hay >= (T.hayWinters - A.hay) * winterNeed(st, hh);
+    const W = targetOf(plan, 'wood'),
+      H = targetOf(plan, 'hay'),
+      A = W.ahead;
+    if (
+      f.fields.length < targetOf(plan, 'fields').level ||
+      hh.wood < W.seasons[c.season] - (A.season === c.season ? A.wood : 0)
+    )
+      return false;
+    return !hh.herds.length || hh.hay >= (H.level - H.ahead) * winterNeed(st, hh);
   }
-  const NO_AHEAD = Object.freeze({ season: -1, wood: 0, hay: 0 });
   // Does the household have a surplus now ({met, food, idle}: each part, and all).
   function surplusOf(st, plan, hh, f, c) {
     const met = targetsMet(st, plan, hh, f, c),
@@ -116,10 +121,10 @@ VB['sim/aims'] = (() => {
     const head = hh.holder,
       ambition = 1 + Traits.of(st, head, 'ambition'),
       generosity = 1 + Traits.of(st, head, 'generosity'),
-      T = plan.targets,
+      T = targetOf(plan, 'fields'),
       out = [];
     // a field beyond the target, unless the head counts on its other sources for a field's food already (VB-768): it would let it go again
-    if (f.fields.length >= T.fields && f.fields.length < T.workable && !freesFields(st, plan, hh)) {
+    if (f.fields.length >= T.level && f.fields.length < T.workable && !freesFields(st, plan, hh)) {
       const tile = pickField(st, f, hh);
       if (tile >= 0) out.push({ what: 'field', weight: AIMS.base * ambition, tile });
     }

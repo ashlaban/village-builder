@@ -65,7 +65,7 @@ const HINTS = {
   'sim/facilities': { fac: 'st.facilities[]', I: 'st.facilityIdx' }, 'sim/pot': { units: 'local' }, 'sim/hands': { d: 'st.handsToday' }, 'sim/voice': { d: 'st.leaves', e: 'st.leaves' }, // VB-1555: today's leaves
   'sim/day': { asking: 'local', cap: 'local', due: 'local', lists: 'plan.day', fits: 'plan.day', ctx: 'plan.day' }, // VB-470: today's lent hands; the morning's asks
   'sim/fair': { l: 'local', x: 'local' }, 'sim/larder': { lots: 'local', by: 'local' }, // a dealer's load and its lots, inside pawn.load and written only by sim/fair (VB-302)
-  'sim/lifecycle': { households: 'local', people: 'local', u: 'union' }, 'sim/meetings': { people: 'local' }, 'sim/plans': { T: 'plan.targets' }, 'sim/seasonal': { T: 'plan.targets' }, 'sim/aims': { A: 'plan.aim', B: 'plan.aim' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
+  'sim/lifecycle': { households: 'local', people: 'local', u: 'union' }, 'sim/meetings': { people: 'local' }, 'sim/steps': { s: 'plan.steps[]' }, 'sim/seasonal': { W: 'plan.season[]', H: 'plan.season[]', F: 'plan.season[]', A: 'plan.season[]', G: 'plan.season[]', S: 'plan.season' }, 'sim/aims': { A: 'plan.aim', B: 'plan.aim' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
     R: 'st', A1: 'farmstead', A2: 'farmstead', B1: 'farmstead', f: 'farmstead' },
 };
 const KEYWORDS = new Set(['return', 'typeof', 'instanceof', 'in', 'of', 'new', 'case', 'delete', 'void', 'throw', 'await', 'yield', 'if', 'while',

@@ -148,12 +148,47 @@ const onItsDay = (id, t) => Math.abs(((((t - ASK.hour) % SEASON) + SEASON) % SEA
   const mine = st.offers.find((x) => x.id === st.pawns[8].ask);
   assert.ok(mine.answers.every((a) => a.yes === null), 'and the player answers it, as the others, by the round');
   VB['sim/offers'].conclude(st, mine, 'the test');
-  VB.sim.wish(st, 'match', false);
+  VB.sim.wish(st, st.player.pawn, 'match', false);
   assert.notStrictEqual(askFor(st, 8), 'match', 'not this year: no match is asked for him');
-  VB.sim.wish(st, 'match', null);
+  VB.sim.wish(st, st.player.pawn, 'match', null);
   assert.strictEqual(VB.sim.inhabit(st, 6), true);
   assert.strictEqual(askFor(st, 8), 'match', 'his spokesman played: the match is asked, and the player answers for his side');
   delete st.rng.society.fix;
   sound(st, 'the played pawn');
+}
+const { twins } = require('./lib/twins.js');
+// VB-1776: on automatic with nothing queued, the played son asks through the season as the same son unplayed (his wish his own
+// choosing, sim/asking askFor; a call where his asking found nobody, callAround; the answers his judgement's, sim/offers make)
+twins(world, 8, (st) => VB.sim.advance(st, SEASON), 'a season of asking');
+twins(world, 4, (st) => VB.sim.advance(st, SEASON), 'a season of asking, the daughter played');
+// The two rules of the asking day the season above may not reach (review of VB-1776, F1), each made to act. askFor: the son hungry
+// on his asking day, his own choosing puts off the match ("not this year"), played or not, and he asks none. callAround: his asking
+// finds nobody (every woman of his village too hungry to marry), and he calls at the farm of one of age in the other village.
+const askingOf = (st, id) => {
+  // his entry due now, at the head of the queue (the others later in the season): the asking day holds it at once (sim/asking askingDay)
+  const e = st.asking.find((x) => x.pawn === id);
+  st.asking = [{ ...e, t: st.t }, ...st.asking.filter((x) => x !== e)];
+  VB['sim/asking'].askingDay(st);
+};
+{
+  const [a] = twins(world, 8, (st) => {
+    st.rng.society.fix = 0.1;
+    st.pawns[8].hunger = 0.6;
+    askingOf(st, 8);
+  }, 'askFor, the son hungry');
+  assert.ok(!Number.isInteger(a.pawns[8].ask), 'hungry: no match is asked, played or not');
+  assert.strictEqual(VB['sim/wishes'].wishOf(a, 8, 'match'), false, 'his own choosing: not this year');
+}
+{
+  const hungry = () => {
+    const st = world();
+    st.pawns[13].born = st.t - 20 * YEAR - DAY;
+    st.pawns[13].age = 20;
+    for (const id of [2, 4, 5, 13]) st.pawns[id].hunger = 0.6; // the women of age: too hungry to be asked, not to be called on
+    seedAsking(st);
+    return st;
+  };
+  const [a] = twins(hungry, 8, (st) => askingOf(st, 8), 'callAround, his asking finding nobody');
+  assert.strictEqual(a.pawns[8].called, a.t, 'he calls at her farm, played or not (sim/occasions callAt)');
 }
 console.log('asking: the queue and its days, an offer a seeker, the caps, a lapse, the played pawn');

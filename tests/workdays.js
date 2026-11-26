@@ -39,7 +39,7 @@ const lone = st.households[3];
 for (const id of [...lone.members]) if (id !== lone.holder) Sim.killPawn(st, id, 'illness');
 Sim.refreshRoles(st);
 Sim.inhabit(st, lone.holder);
-Sim.setAuto(st, false);
+Sim.setAuto(st, st.player.pawn, false);
 // the other holders: holder 0 is tied to the lone holder, holder 1 is not
 const [h0, h1] = [st.households[0].holder, st.households[1].holder];
 addTie(st, h0, lone.holder, 0.5);

@@ -12,7 +12,7 @@ const { TOOLS, IRON } = I, SEED = 8;
 // --- the kinds and the good
 const S = KINDS.smelt, M = KINDS.mendtools;
 check(S && S.hours === IRON.hours && S.hands === IRON.hands && S.craft === 'smelting', 'smelt: its hours, hands and craft');
-check(M && M.hours === TOOLS.mendHours && M.hands === 1 && M.craft === 'smithing' && M.inside, 'mendtools: one hand, in the house, smithing');
+check(M && M.hours === TOOLS.mendHours && M.hands === 1 && M.craft === 'smithing' && M.methods[0].steps.some((s) => s.inside), 'mendtools: one hand, in the house, smithing');
 check(['smelt', 'mendtools'].every((k) => ASK.farmAfterPlans.some((e) => e[0] === k)), 'both are asked at the farm');
 const G = Goods.goodOf('iron');
 check(G && G.class === 'wares' && G.unit === 'bloom' && G.quantum === 1 && G.perish === null && G.keeping, 'iron: a keeping good, a bloom');
@@ -38,7 +38,10 @@ check(near(I.rate(st, job('fell')), 1 - TOOLS.share / 2), 'half worn: half the s
 
 // --- the target: the mending need, in blooms
 // (the head's review compiles it into the plan, sim/seasonal goodTargets; dropped here, the target reads the need now)
-const compiled = () => delete st.plans.households.get(hh.id).targets.goods.iron;
+const compiled = () => {
+  const S = st.plans.households.get(hh.id).season, i = S.findIndex((s) => s.what.target && s.what.target.good === 'iron');
+  if (i >= 0) S.splice(i, 1);
+};
 compiled();
 check(near(Targets.target(st, hh, 'iron'), I.mendingNeed(hh)) && near(I.mendingNeed(hh), 0.5 * TOOLS.mendIron / TOOLS.mend), `the target is the mending need (${I.mendingNeed(hh)})`);
 const posted = (K, season) => { const o = []; K.available(st, hh, f, { season }, (key, site, extra) => o.push({ key, site, ...extra })); return o; };

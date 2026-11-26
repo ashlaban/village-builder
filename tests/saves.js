@@ -42,10 +42,10 @@ for (const [label, make, restore, before, after] of [
   const st = probe.state(), data = JSON.parse(JSON.stringify(Sim.save(st)));
   // and one from before the climate and the basins' rivers changed every seed's island (format 3, VB-342), and one whose idlers were
   // agents (format 4, VB-247)
-  for (const old of [2, 3, 4]) {
+  for (const old of [2, 3, 4, 6, 7]) { // and one from before the plan record (format 6, VB-1752), and the controller (format 7, VB-1745)
     data.format = old;
     let why = null; try { Sim.load(probe.world(), data); } catch (e) { why = e.message; }
-    if (!new RegExp(`format ${old}, this build reads 5`).test(why || '')) { failed++; console.error(`SAVES FAIL: a format-${old} save was not refused (${why})`); }
+    if (!new RegExp(`format ${old}, this build reads ${VB["sim/saves"].FORMAT}`).test(why || '')) { failed++; console.error(`SAVES FAIL: a format-${old} save was not refused (${why})`); }
   }
 }
 // VB-239: saves of older builds are refused by their format, and no migration is kept for them (Kim, 10 Nov 2026: no one holds one)

@@ -10,7 +10,7 @@ VB['sim/days'] = (() => {
   const { floorOf } = VB['sim/hunger'];
   const { age } = VB['sim/records'];
   const { KINDS, isOpen } = VB['sim/kinds'];
-  const { on: onEvent } = VB['sim/events'];
+  const { on: onEvent, emit } = VB['sim/events'];
   const { register, issue } = VB['sim/commands'];
   // @tunable DAYS: a day of work owed, and the notice it is called with
   // Days owed (VB-462; design.md, Remedies, The alderman's keep): a day is `hours` of work of one adult, called for a day at least `notice`
@@ -18,7 +18,7 @@ VB['sim/days'] = (() => {
   const DAYS = { notice: 3, hours: 8 };
   // @state st.daysCalls: [[day (game day), pawn id, obligation id]], sorted by day, then pawn: the days called and not yet come, absent until
   //   the first call (a due-queue, Rules for cost, 4). Written only here.
-  // @state st.daysToday: {day, by: {pawn id: [obligation id, hours worked today, 1 once sent home]}}: the pawns on duty today, the compiled
+  // @state st.daysToday: {day, by: {pawn id: [obligation id, hours worked today, 1 once its day is given]}}: the pawns on duty today, the compiled
   //   index of a task's check (Rules for cost, 6); a cache rebuilt from daysCalls at each day's first step. Written only here.
   const today = (st) => Math.floor(st.t / DAY);
   // The household a pawn works for today, or null: one lookup, for the check of every task.
@@ -103,7 +103,8 @@ VB['sim/days'] = (() => {
       issue(st, { actor: hh.holder, verb: 'callDays', target: o.id, args: {}, source: 'planner' });
   });
   // A day's first step: yesterday's calls are over (what was not worked stays owed); today's come on duty, unless their household sends
-  // none. Then those who have given their hours go home.
+  // none. Then those who have given their hours are told so (`dayGiven`): their working day is over, and sim/agents' rule for it (a load
+  // in hand carried to the creditor's store first, then home) is theirs; sim/days sends nobody home itself (VB-1749).
   function step(st) {
     const D = today(st);
     let d = st.daysToday;
@@ -129,8 +130,11 @@ VB['sim/days'] = (() => {
     }
     for (const [id, e] of Object.entries(d.by))
       if (e[1] >= DAYS.hours - 1e-9 && !e[2]) {
+        // a load on the road is brought in first, by the rule for a load in hand: the day is given once it is in (VB-1548)
+        const ag = st.agents[+id];
+        if (ag && ag.load > 0 && ag.job && ag.load > 0) continue;
         e[2] = 1;
-        issue(st, { actor: +id, verb: 'goHome', source: 'planner' });
+        emit(st, 'dayGiven', { pawn: +id });
       }
   }
   // Pawn id has worked dt hours on a task of its creditor's: booked against the days owed, at most DAYS.hours a day.

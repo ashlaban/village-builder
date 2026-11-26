@@ -7,6 +7,7 @@
 // constant before (DIG.stock, BREW.stock, the dried fish wanted, the barrels a pit's household keeps): a held stock below the target is
 // work to post. A target is on a good, never on a grade of workmanship (Kim, 16 Nov; VB-702).
 VB['sim/targets'] = (() => {
+  const { targetOf } = VB['sim/steps'];
   const { BREW, AGES } = VB['sim/rules'];
   const Rules = VB['sim/registry'];
   const { age } = VB['sim/records'];
@@ -56,8 +57,8 @@ VB['sim/targets'] = (() => {
   function target(st, hh, good) {
     const P = st.plans && st.plans.households,
       plan = P && P.get && P.get(hh.id),
-      G = plan && plan.targets.goods;
-    const n = G && G[good];
+      G = targetOf(plan, good);
+    const n = G ? G.level : undefined;
     return n === undefined ? need(st, hh, good) : n;
   }
   // The bounds of a good's target for household hh, [least, most]: 0 to its need (where finite) and what the place and the hands allow

@@ -31,7 +31,8 @@ for (const rule of ['village', 'labour', 'intended']) {
   }
   check(X.plotJobs(st).length >= 2, `${rule}: jobs are posted`);
   plot.hours[c.id] = 30; plot.hours[b.id] = 10;
-  for (const tr of X.tilesOf(plot)) while (tr.i < tr.steps.length) X.finishStep(st, { plot, tr });
+  // each tile's step ends through its kind's `done`, as every job does (VB-1821: sim/expansion plotted; no inline case in sim/agents)
+  for (const tr of X.tilesOf(plot)) for (let n = 0; tr.i < tr.steps.length && n < 9; n++) { const k = tr.steps[tr.i]; VB['sim/kinds'].KINDS[k].done(st, { kind: k, plot, tr }, null, null, null); }
   check(plot.open === 1 && plot.steps[1].kind === 'foundation', `${rule}: plot done, its cottage's first stage open`);
   const want = rule === 'village' ? (b.born <= c.born ? b.id : c.id) : rule === 'labour' ? c.id : a.id;
   check(plot.to === want, `${rule}: expected ${want}, got ${plot.to}`);

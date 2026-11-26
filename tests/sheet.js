@@ -17,9 +17,9 @@ const hh = st.households[0], id = hh.members.find((m) => st.pawns[m].age >= 16 &
 // 1. a queued fishing trip ends, and the sheet names the catch
 assert.strictEqual(Sim.inhabit(st, id), true);
 assert.strictEqual(Sim.sheetNotes(st).yielded, null, 'no act yet');
-assert.strictEqual(Sim.queue(st, { actor: id, verb: 'work', target: j.key }), true);
-for (let s = 0; st.player.queue.length && s < 24 * 10; s++) Sim.advance(st, 0.1);
-assert.ok(!st.player.queue.length, 'the trip is done');
+assert.strictEqual(Sim.queue(st, st.player.pawn, { actor: id, verb: 'work', target: j.key }), true);
+for (let s = 0; Sim.controlOf(st, st.player.pawn).queue.length && s < 24 * 10; s++) Sim.advance(st, 0.1);
+assert.ok(!Sim.controlOf(st, st.player.pawn).queue.length, 'the trip is done');
 const L = st.player.last;
 assert.ok(L && L.kind === 'fish' && L.good === 'fish' && L.n > 0, `the catch is kept: ${JSON.stringify(L)}`);
 const words = Sim.sheetNotes(st).yielded;
