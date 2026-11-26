@@ -412,12 +412,25 @@ VB['sim/day'] = (() => {
   }
   on('died', (st, d) => lostHolder(st, d.pawn));
   on('leftDay', (st, d) => lostHolder(st, d.pawn));
-  // An illness keeps its pawn from work (sim/fit allotted): it lets its task go and goes home, and its tasks go to the pool.
+  // An illness keeps its pawn from work (sim/fit allotted): it lets its task go and goes home, where it keeps to bed (abed), and its
+  // tasks go to the pool.
   on('fellIll', (st, d) => {
     const a = st.agents[d.pawn]; // none for a pawn made bare in a test
     if (a && a.job) issue(st, { actor: d.pawn, verb: 'goHome', source: 'planner' });
     lostHolder(st, d.pawn);
   });
+  // The idle pawns in bed (VB-1758; design.md section 7, Plans at four scales: an ill pawn cannot walk on): one ill is given no task, no look
+  // at the household's opportunities and no pastime; out of doors it goes home, inside it rests the hour. The others, to be given work.
+  function abed(st, idle) {
+    const up = [];
+    for (const a of idle) {
+      if (st.pawns[a.id].ill === undefined) up.push(a);
+      else if (a.inside || st.pawns[a.id].household === null)
+        issue(st, { actor: a.id, verb: 'idle', args: { until: st.t + 1 }, source: 'planner' });
+      else issue(st, { actor: a.id, verb: 'goHome', source: 'planner' });
+    }
+    return up;
+  }
   // The days of households `ids` allotted whole, in the order of their ids.
   function allotDays(st, ids, c) {
     // the households short of hands the morning's allotment finds, [[household id, hours short]], asked once it is over
@@ -656,6 +669,7 @@ VB['sim/day'] = (() => {
     slotOut,
     lostHolder,
     takeDay,
+    abed,
     dutyRound,
     eveningCall,
     dayHours,

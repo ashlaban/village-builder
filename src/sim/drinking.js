@@ -151,7 +151,8 @@ VB['sim/drinking'] = (() => {
       }
       // on its way to drink already, or to draw its household's water, where it drinks (sim/chores)
       if (a.job && (a.job.kind === 'drink' || a.job.kind === 'water' || a.job.kind === 'boothwater')) continue;
-      const left = a.job ? a.job.kind : null;
+      const left = a.job ? a.job.kind : null,
+        src = sourceFor(st, p); // the source it goes to: read before, as one at its source drinks at once and holds no task after
       if (issue(st, { actor: p.id, verb: 'drink', source: 'pawn' }) !== true) continue;
       const hh = p.household === null ? null : st.households[p.household],
         f = hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
@@ -159,11 +160,11 @@ VB['sim/drinking'] = (() => {
         st,
         `${fullName(p)}${f ? ` of ${f.name}` : ''}, ${Math.floor(Thirst.thirst(st, p))} hours without a drink, ${
           left ? `left ${KINDS[left].name.toLowerCase()}` : 'went'
-        } to drink at ${FRESHES[a.job.cls].name}.`,
+        } to drink at ${FRESHES[src.cls].name}.`,
         {
           kind: 'thirst',
           pawn: p.id,
-          tile: a.job.site,
+          tile: src.tile,
           ...(left ? { reason: left } : {}),
           ...(f ? { household: hh.id, farm: f.id, village: f.village } : {}),
         },

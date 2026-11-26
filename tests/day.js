@@ -125,8 +125,9 @@ for (const id of st.liveHouseholds) {
 // 7. A holder lost to its day (VB-1758; design.md section 7, Plans at four scales, Replanning): a reaper falls ill for three days at the
 // reaping; it lets its task go and goes home, its list is emptied and its tasks are slotted to the others at once, no day weighed whole; no
 // target lowered. Q7 (docs/plans/four-scales/README.md, section 4): the three days cost no more vital hours (a vital task of the
-// household open and unmanned in a working hour) and no more of the reaping than today's allotment, the illness unannounced: its pawn
-// sent home, its tasks waiting in its list for the next whole allotment (within 10%).
+// household open and unmanned in a working hour) and no more of the reaping than the illness unannounced: its pawn sent home, its tasks
+// waiting in its list for the next whole allotment (within 10%). The unannounced arm is a counterfactual under this allotment, in which an
+// ill pawn is allotted nothing: before VB-1758 an ill pawn worked on through its illness.
 {
   const { emit } = VB['sim/events'], { issue } = VB['sim/commands'], { doneOf } = VB['sim/work'], { isOpen } = VB['sim/kinds'];
   const vital = (s, j) => KINDS[j.kind].vital === true || (typeof KINDS[j.kind].vital === 'function' && KINDS[j.kind].vital(s, j));
@@ -153,6 +154,9 @@ for (const id of st.liveHouseholds) {
       Sim.advance(s, 1);
       const hr = Sim.cal(s.t).hour;
       if (hr >= WORK[0] && hr < WORK[1]) for (const j of mine()) if (vital(s, j) && !j.claims.length && isOpen(s, j)) r.unmet++;
+      // in bed while ill (abed): no task and no pastime, inside but on its way home
+      const ag = s.agents[id];
+      if (s.pawns[id].ill && hr >= WORK[0] && hr < WORK[1] && (ag.job || ag.pastime || (!ag.inside && !ag.path))) r.up = (r.up || 0) + 1;
       if (r.done === undefined && !reaps().length) r.done = h + 1;
     }
     Object.assign(r, { reaped: r0 - left(), same: canon(s.plans.households.get(0).targets) === targets, ill: !!s.pawns[id].ill });
@@ -162,6 +166,7 @@ for (const id of st.liveHouseholds) {
   const a = reaping(true), b = reaping(false);
   assert.ok(a.held.length > 0 && a.at.lost === a.held.length && a.at.allots === 0, `its ${a.held.length} tasks to the pool, no day allotted whole (${a.at.allots})`);
   assert.ok(a.at.list.length === 0 && a.at.job === null, 'its list emptied, its task let go');
+  assert.ok(!a.up && !b.up, `the ill pawn keeps to bed in working hours (${a.up || 0} and ${b.up || 0} hours up)`);
   assert.deepStrictEqual(a.others, a.held, 'each of its tasks in another member\'s list');
   assert.ok(a.ill && a.same && b.same, 'no target lowered for the three days ill');
   assert.ok(a.done !== undefined && b.done !== undefined && a.done <= 1.1 * b.done, `the reaping in ${a.done} hours, ${b.done} unannounced`);
