@@ -13,7 +13,7 @@
   const MODE = window.__roadMode;
   if (!MODE) return;
   const TOL = 0.42, // Douglas-Peucker tolerance, in hex radii: a zigzag of hex centres (0.43 R off its line) draws straight
-    LOOP = 12, // a link that closes a loop of fewer tiles than this is not drawn: two rows of worn tiles side by side draw as one way
+    FILLET = 1.6, // the largest radius a corner is rounded to, in hex radii (a hairpin turns on a half circle, not a square)
     WIDTH = { main: 9.5, side: 7.5, gate: 5.5 };
   let cache = null;
   const sig = (w) => {
@@ -63,21 +63,48 @@
       adj.get(e.a).push(e.b);
       adj.get(e.b).push(e.a);
     }
-    // a loop is kept only if it is long (the tree's way between its ends is LOOP - 1 links or more)
-    const hops = (a, b, max) => {
-      let fr = [a], seen = new Set([a]);
-      for (let d = 1; d <= max; d++) {
-        const nx = [];
-        for (const x of fr) for (const y of adj.get(x)) { if (y === b) return d; if (!seen.has(y)) { seen.add(y); nx.push(y); } }
-        fr = nx;
+    // a loop is kept only if it goes round something: a tile inside it that is not on it. A triangle or two rows side by side
+    // (a ladder) enclose nothing and are not drawn; a ring round one field is.
+    const treePath = (a, b) => {
+      const prev = new Map([[a, -1]]), q = [a];
+      while (q.length) { const x = q.shift(); if (x === b) break; for (const y of adj.get(x)) if (!prev.has(y)) { prev.set(y, x); q.push(y); } }
+      if (!prev.has(b)) return null;
+      const out = [];
+      for (let x = b; x >= 0; x = prev.get(x)) out.push(x);
+      return out;
+    };
+    const encloses = (loop) => {
+      const on = new Set(loop);
+      let c0 = Infinity, c1 = -Infinity, r0 = Infinity, r1 = -Infinity;
+      for (const i of loop) { const c = i % w.COLS, r = (i / w.COLS) | 0; c0 = Math.min(c0, c); c1 = Math.max(c1, c); r0 = Math.min(r0, r); r1 = Math.max(r1, r); }
+      c0--; c1++; r0--; r1++;
+      const inBox = (i) => { const c = i % w.COLS, r = (i / w.COLS) | 0; return c >= c0 && c <= c1 && r >= r0 && r <= r1; };
+      const seen = new Set(), q = [];
+      for (let r = Math.max(0, r0); r <= r1; r++) for (let c = Math.max(0, c0); c <= c1; c++) {
+        if (r !== r0 && r !== r1 && c !== c0 && c !== c1) continue;
+        const i = r * w.COLS + c;
+        if (c < w.COLS && i < w.N && !on.has(i)) { seen.add(i); q.push(i); }
       }
-      return Infinity;
+      while (q.length) { const x = q.pop(); for (let k = 0; k < 6; k++) { const y = w.nb[x * 6 + k]; if (y >= 0 && inBox(y) && !on.has(y) && !seen.has(y)) { seen.add(y); q.push(y); } } }
+      for (let r = Math.max(0, r0); r <= r1; r++) for (let c = Math.max(0, c0); c <= Math.min(w.COLS - 1, c1); c++) { const i = r * w.COLS + c; if (!on.has(i) && !seen.has(i)) return true; }
+      return false;
     };
     for (const e of rest) {
       if (deg(e.a) >= cap || deg(e.b) >= cap) continue;
-      if (hops(e.a, e.b, LOOP - 2) < LOOP - 1) continue;
+      const loop = treePath(e.a, e.b);
+      if (!loop || !encloses(loop)) continue;
       adj.get(e.a).push(e.b);
       adj.get(e.b).push(e.a);
+    }
+    // a stub of one tile left by a triangle (it touches the way it branches from on both sides) is not a way: it is dropped
+    const touches = (i, j) => { for (let k = 0; k < 6; k++) if (w.nb[i * 6 + k] === j) return true; return false; };
+    for (const i of nodes) {
+      const ns = adj.get(i);
+      if (ns.length !== 1) continue;
+      const x = ns[0], xs = adj.get(x);
+      if (xs.length < 3 || !xs.some((y) => y !== i && touches(i, y))) continue;
+      ns.length = 0;
+      xs.splice(xs.indexOf(i), 1);
     }
     if (MODE === 'B') for (let n = houses.length - 1; n >= 0; n--) if (adj.get(houses[n].door).length + houses.filter((q) => q.door === houses[n].door).length > cap) houses.splice(n, 1);
     return { nodes, adj, houses, str };
@@ -143,6 +170,18 @@
       if (bd <= tol) return [pts[0], pts.at(-1)];
       return [...dp(pts.slice(0, bi + 1), tol).slice(0, -1), ...dp(pts.slice(bi), tol)];
     };
+    // each corner rounded by a curve from a point before it to a point after it, as far out as FILLET or half the shorter side
+    const fillet = (pts, rmax) => {
+      if (pts.length < 3) return pts;
+      const o = [pts[0]];
+      for (let k = 1; k < pts.length - 1; k++) {
+        const A = pts[k - 1], P0 = pts[k], B = pts[k + 1], la = Math.hypot(A[0] - P0[0], A[1] - P0[1]), lb = Math.hypot(B[0] - P0[0], B[1] - P0[1]);
+        const d = Math.min(rmax, la / 2, lb / 2), u = unit(P0, A), v = unit(P0, B), p1 = [P0[0] + u[0] * d, P0[1] + u[1] * d], p2 = [P0[0] + v[0] * d, P0[1] + v[1] * d];
+        for (let t = 0; t <= 1.0001; t += 1 / 8) o.push([(1 - t) ** 2 * p1[0] + 2 * (1 - t) * t * P0[0] + t * t * p2[0], (1 - t) ** 2 * p1[1] + 2 * (1 - t) * t * P0[1] + t * t * p2[1]]);
+      }
+      o.push(pts.at(-1));
+      return o;
+    };
     const chaikin = (pts, n) => {
       for (let r = 0; r < n; r++) {
         if (pts.length < 3) return pts;
@@ -159,7 +198,7 @@
     };
     for (const s of strokes) {
       const loop = s.tiles.length > 2 && s.tiles[0] === s.tiles.at(-1);
-      s.line = chaikin(dp(s.tiles.map((i) => P(w, i)), TOL * R), 3);
+      s.line = fillet(dp(s.tiles.map((i) => P(w, i)), TOL * R), FILLET * R);
       s.loop = loop;
     }
     // which stroke runs through each tile, the strongest first
@@ -171,7 +210,7 @@
       for (const end of [0, 1]) {
         const i = end ? s.tiles.at(-1) : s.tiles[0], t = through.get(i);
         if (!t || t === s || (adj.get(i).length < 2)) continue;
-        const L = s.line, prev = end ? L[Math.max(0, L.length - 2 - (L.length > 4 ? 2 : 0))] : L[Math.min(L.length - 1, 1 + (L.length > 4 ? 2 : 0))];
+        const L = s.line, prev = end ? L[Math.max(0, L.length - 2)] : L[Math.min(L.length - 1, 1)];
         const [q] = nearOn(prev, t.line);
         if (!q) continue;
         // drop the rounded points past prev, and run straight from prev to the meeting point
