@@ -193,6 +193,10 @@ const Levies = VB['sim/levies'],
   const days = SEASON_DAYS - Sim.cal(st.t).sday;
   assert.ok(Math.abs(balance(st, A.holder, m) - owed - 2 * days * hands * GOODWILL.hour) < 1e-6, 'goodwill to the head, the worth of the hours granted');
   assert.match(String(grantOf(A.holder, m, { hours: 1 })), /has a grant for that season/, 'one a season');
+  const levied = Levies.levyOf(st, m);
+  assert.match(String(grantOf(A.holder, m, { hours: 1, season: Grants.seasonKey(Sim.cal(st.t)) + 1 })), /standing grant in force/,
+    'a standing grant is not withdrawn within its season by one of the next');
+  assert.ok(Math.abs(Levies.levyOf(st, m) - levied) < 1e-9 && planOf(st, 'household', A.id).grants.season[m][1] === 2, 'the grant stays');
   review();
   assert.ok(Math.abs(planOf(st, 'household', A.id).budget.total - (total0 - 2 * days * hands)) < 1e-6, 'the labour budget counts the grant out');
   // a dated grant of several whole days: the member is on leave and owes nothing those days, booked out of the budget
@@ -233,8 +237,8 @@ const Levies = VB['sim/levies'],
   assert.ok(Levies.tallyOf(st, A, c).before[m][1] > 0, 'it took levy hours the season before');
   const ask = (x) => issue(st, { actor: m, verb: 'ask', target: A.holder, args: { basis: 'lighter', wants: { hours: x } }, source: 'pawn' });
   const steps = plan.season || (plan.season = []);
-  steps.push({ id: -1, left: { mid: 1e6 } }); // a season that would not fit
-  assert.strictEqual(Voice.fitsLess(st, A, 0), false);
+  steps.push({ id: -1, by: c.day - c.sday + SEASON_DAYS - 1, left: { mid: 1e6 } }); // a season that would not fit
+  assert.strictEqual(Levies.fitsLess(st, A, m, 0, c), false);
   const before = opinionOf(st, m, A.holder),
     n = VB.count.lighterAsked;
   Voice.lighter(st, A, c);
@@ -242,7 +246,18 @@ const Levies = VB['sim/levies'],
   assert.ok(!plan.grants || !plan.grants.season[m], 'no: the budget less the hours would not fit');
   assert.ok(opinionOf(st, m, A.holder) < before, 'a no is a memory of the member');
   steps.pop();
-  assert.ok(Voice.fitsLess(st, A, Grants.handsOf(st, st.pawns[m]) * SEASON_DAYS), 'its own season fits with the hours off');
+  assert.ok(Levies.fitsLess(st, A, m, 1, c), 'its own season fits with the hours off');
+  {
+    // a game week short though the season's total covers it: no, by fit's weekly comparison (one reckoning of the season's fit)
+    VB['sim/events'].emit(st, 'planReviewed', { plan, c });
+    const B = plan.budget,
+      wk = Math.floor(c.sday / (SEASON_DAYS / 3));
+    const due = (plan.season || []).reduce((a, s) => a + (s.left && s.left.mid > 0 ? s.left.mid : 0), 0);
+    steps.push({ id: -2, by: c.day, left: { mid: B.weeks[wk] + 1 } });
+    assert.ok(wk < 2 && due + B.weeks[wk] + 1 < B.total, 'the season total would cover it (the case is a short week only)');
+    assert.strictEqual(Levies.fitsLess(st, A, m, 0, c), false, 'short in this game week: it does not fit');
+    steps.pop();
+  }
   const k = A.members.filter((id) => id !== m && id !== A.holder);
   for (const id of k) assert.ok(!Levies.tallyOf(st, A, c).before[id], 'the others took none, and do not ask');
   assert.strictEqual(ask(1), true);

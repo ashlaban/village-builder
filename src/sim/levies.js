@@ -490,7 +490,11 @@ VB['sim/levies'] = (() => {
     let s = '';
     for (const id of hh.members) if (st.pawns[id].died === null) s += id + st.pawns[id].role[0] + ',';
     const G = grantsOf(st, hh);
-    if (G) s += `g${G.dated.length}/${Object.keys(G.season).length}`;
+    if (G) {
+      // the grants themselves, not their count: a grant pruned and another written in one call change the budget
+      for (const g of G.dated) s += `d${g[0]}.${g[1]}.${g[2]}.${g[3]}`;
+      for (const id of Object.keys(G.season)) s += `s${id}.${G.season[id][0]}.${G.season[id][1]}`;
+    }
     let n = 0;
     for (const o of Obligations.due(st, { kind: 'household', id: hh.id }, 'debtor', 'days'))
       if (Obligations.isLive(o)) n += Obligations.left(o);
@@ -508,6 +512,13 @@ VB['sim/levies'] = (() => {
     if (B && B.at === key && B.sig === sig) return B;
     VB.count.budgetReckoned++;
     const from = c.sday,
+      [weeks, outer] = weeksOf(st, hh, c);
+    return (plan.budget = { at: key, from, sig, weeks, total: weeks[0] + weeks[1] + weeks[2], outer });
+  }
+  // The levy hours of household hh's members in each game week of the season of c, from its day on, less the outer levies' days: [weeks,
+  // the outer days owed].
+  function weeksOf(st, hh, c) {
+    const from = c.sday,
       first = c.day - c.sday,
       weeks = [0, 0, 0];
     for (let d = from; d < SEASON_DAYS; d++)
@@ -518,7 +529,51 @@ VB['sim/levies'] = (() => {
       }
     const [w, outer] = outerDays(st, hh, c, from);
     for (let k = 0; k < 3; k++) weeks[k] = Math.max(0, weeks[k] - w[k] * DAYS.hours);
-    return (plan.budget = { at: key, from, sig, weeks, total: weeks[0] + weeks[1] + weeks[2], outer });
+    return [weeks, outer];
+  }
+  // The hours of plan's season due by each game week against `weeks` (levy hours a week), by the cumulative weekly comparison of fit:
+  // {short (the largest shortfall), week (where it falls), rows ([week, step]), ends}.
+  function shortOf(st, plan, hh, c, weeks) {
+    const ends = new Map();
+    for (const j of st.jobsBy.get(`household:${hh.id}`) || []) {
+      if (j.step === undefined || j.step === null) continue;
+      const e = windowEnd(st, j, c);
+      if (e !== null && !(ends.get(j.step) <= e)) ends.set(j.step, e);
+    }
+    const need = [0, 0, 0],
+      rows = [];
+    for (const s of plan.season || []) {
+      if (!s.left || !(s.left.mid > 0)) continue;
+      VB.count.fitRow++;
+      const k = weekOf(s, c, ends);
+      need[k] += s.left.mid;
+      rows.push([k, s]);
+    }
+    let short = 0,
+      week = 2,
+      n = 0,
+      b = 0;
+    for (let k = 0; k < 3; k++) {
+      n += need[k];
+      b += weeks[k];
+      if (n - b > short + 1e-9) [short, week] = [n - b, k];
+    }
+    return { short, week, rows, ends };
+  }
+  // fitsLess(st, hh, id, hours, c): would household hh's season, from today, still fit by fit's weekly comparison were member id's levy
+  // `hours` a day by the clock lower for the rest of it (hours times hands, at most its levy in force each day). Reckoned afresh: the
+  // budget from today against the hours left now. False where it has no plan, or is short already.
+  function fitsLess(st, hh, id, hours, c = cal(st.t)) {
+    const plan = planOf(st, 'household', hh.id);
+    if (!plan || !plan.season) return false;
+    const [weeks] = weeksOf(st, hh, c),
+      first = c.day - c.sday,
+      hands = Math.max(0, handsOf(st, st.pawns[id]));
+    for (let d = c.sday; d < SEASON_DAYS; d++) {
+      const k = Math.floor(d / WEEK);
+      weeks[k] = Math.max(0, weeks[k] - Math.min(levyOf(st, id, first + d) || 0, hours * hands));
+    }
+    return !(shortOf(st, plan, hh, c, weeks).short > 1e-9);
   }
   // The game week (0 to 2) of the season of c by which step s is due: a routine's, the earliest window its open tasks close in (sim/hands
   // windowEnd: the sowing, the frost before the harvest is in; `ends`, a day of the year by step id), else the step's last day; never
@@ -560,30 +615,7 @@ VB['sim/levies'] = (() => {
     const key = seasonKey(c);
     VB.count.fitJudged++;
     const B = budget(st, hh, c),
-      ends = new Map();
-    for (const j of st.jobsBy.get(`household:${hh.id}`) || []) {
-      if (j.step === undefined || j.step === null) continue;
-      const e = windowEnd(st, j, c);
-      if (e !== null && !(ends.get(j.step) <= e)) ends.set(j.step, e);
-    }
-    const need = [0, 0, 0],
-      rows = [];
-    for (const s of plan.season) {
-      if (!s.left || !(s.left.mid > 0)) continue;
-      VB.count.fitRow++;
-      const k = weekOf(s, c, ends);
-      need[k] += s.left.mid;
-      rows.push([k, s]);
-    }
-    let short = 0,
-      week = 2,
-      n = 0,
-      b = 0;
-    for (let k = 0; k < 3; k++) {
-      n += need[k];
-      b += B.weeks[k];
-      if (n - b > short + 1e-9) [short, week] = [n - b, k];
-    }
+      { short, week, rows, ends } = shortOf(st, plan, hh, c, B.weeks);
     const was = plan.fit,
       F = (plan.fit = { at: key, short, week });
     if (was && Number.isInteger(was.servant) && was.servant >= c.year) F.servant = was.servant;
@@ -678,7 +710,7 @@ VB['sim/levies'] = (() => {
     levyOf,
     levied,
     capacity,
-    owedToday,
+    fitsLess,
     PARTS,
     hours,
     tallyOf,

@@ -87,25 +87,12 @@ VB['sim/voice'] = (() => {
     if (day === today(st) ? wanted(st, hh, id, c) : wantedAhead(st, hh, day, c)) return false;
     return leaning(st, h, id);
   }
-  // Would head h lighten member id's levy by `hours` a day for the rest of the season: no where its budget less them would not fit its
-  // season by its estimate (sim/levies fitsLess), else by its leaning.
+  // Would head h lighten member id's levy by `hours` a day for the rest of the season: no where its season, from today, would not fit
+  // by its weekly comparison less them (sim/levies fitsLess), else by its leaning.
   function lightens(st, h, id, hours, c) {
     const hh = homeOf(st, id);
     if (!hh || hh.holder !== h) return false;
-    return fitsLess(st, hh, hours * Grants.handsOf(st, st.pawns[id]) * (SEASON_DAYS - c.sday)) && leaning(st, h, id);
-  }
-  // Whether household hh's season fits its labour budget (sim/levies plan.budget, as last reckoned) less `hours` (hours times hands), by
-  // its head's estimate: the hours left of its season's steps (the estimate's mid) within the budget's total.
-  function fitsLess(st, hh, hours) {
-    const plan = planOf(st, 'household', hh.id),
-      B = plan && plan.budget;
-    if (!B) return false;
-    let need = 0;
-    for (const s of plan.season || []) {
-      VB.count.fitRow++;
-      if (s.left && s.left.mid > 0) need += s.left.mid;
-    }
-    return need <= B.total - hours + 1e-9;
+    return Levies.fitsLess(st, hh, id, hours, c) && leaning(st, h, id);
   }
 
   // ---- the head's grant (VB-1763; design.md, The levy and own hours: Grant and ask) ----
@@ -146,7 +133,13 @@ VB['sim/voice'] = (() => {
         return `cannot grant ${T.hours} hours a day`;
       if (!Number.isInteger(key) || key < Grants.seasonKey(now) || key > Grants.seasonKey(now) + 1)
         return 'a standing grant is of this season or the next';
-      return Grants.standing(G, id, key) > 0 ? `${fullName(p)} has a grant for that season` : null;
+      // one standing grant a member, never withdrawn within the season it names (design.md, A season that does not fit)
+      const held = G && G.season[id];
+      if (held && held[0] >= Grants.seasonKey(now))
+        return held[0] === key
+          ? `${fullName(p)} has a grant for that season`
+          : `${fullName(p)} has a standing grant in force`;
+      return null;
     }
     const day = T.day === undefined ? today : T.day,
       days = T.days === undefined ? 1 : T.days,
@@ -445,7 +438,6 @@ VB['sim/voice'] = (() => {
     lighter,
     begin,
     wanted,
-    fitsLess,
     grant,
     grantWhy,
   };
