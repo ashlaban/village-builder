@@ -159,6 +159,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1909](backlog/VB-1909.md)<a id="VB-1909"></a> | A stone oven in the house: a part of stone only that burns less wood | - | 3 | S | farmstead.hearth ('open' default, 'oven'): a part of the house beside the foundation, 4 loads of stone and 20 work hours, the day's firewood 0.9 of what it was; split from VB-369, which keeps the roof. |
 | [VB-1915](backlog/VB-1915.md)<a id="VB-1915"></a> | Grant and ask: the lighter ask once a season at its turn, leave ahead weighed over its days, the hourly pass counted | - | 3 | S | Advisory findings of VB-1763's review (F4, F6, F7, F8) |
 | [VB-1923](backlog/VB-1923.md)<a id="VB-1923"></a> | Q10: read displaced hours where windows bind | - | 3 | S | Q10 read where windows bind |
+| [VB-1929](backlog/VB-1929.md)<a id="VB-1929"></a> | Plan: a rich farmer's wooden church, the first large work | ship | 3 | M | Decided 27 Nov (Kim): a rich farmer raises a wooden church beside his own farm, with levy days on his neighbours; it needs a design pass for its stages, its owner, its levy and what the village gains. |
+| [VB-1930](backlog/VB-1930.md)<a id="VB-1930"></a> | Plan: land bartered and sold, with the kin's right | debt | 3 | M | Decided 25 Nov (Kim): land is bartered and sold, and dear by mechanism; the offer, the holder's reasons, the kin's right, a public act and payment are Proposed and need a design pass before any task builds them. |
 
 </details>
 
@@ -171,6 +173,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-1472](backlog/VB-1472.md)<a id="VB-1472"></a> | Design: how a holder's parallel projects are limited and ranked | - | 2 | M | What replaces 'at most one project': the limit and the ranking of a holder's parallel projects |
 
 </details>
 
@@ -254,7 +257,6 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-1780](backlog/VB-1780.md)<a id="VB-1780"></a> | The page: outer levies, the alderman's year, and the doors of the ladder, the meeting and the duties on the strip | plans | 2 | M | [VB-1772](#VB-1772) | Steps 7 and 8 build verbs the player cannot yet reach: the strip shows outer levies in their windows with their terms, the alderman's year (levied, named, worked, lapsed, breached), and the doors for name, substitute, commute, breach, release and transfer, propose, a duty's assign and a dated step. |
 | [VB-1803](backlog/VB-1803.md)<a id="VB-1803"></a> | A lodger's harvest days: a member taken in owes an adult-day in summer and one in autumn | plans | 3 | S | [VB-1772](#VB-1772) | the lodger's two adult-days, waiting for a lodger to exist |
 | [VB-1123](backlog/VB-1123.md)<a id="VB-1123"></a> | Page: plan mode: the household's season planned on the map, in place of the Plan tab | - | 2 | L | [VB-1765](#VB-1765) | Plan mode replaces the Plan tab: a bar of the season a member with the actions on it, actions chosen from a tile's menu, problems marked where they are, and the outcome read on the needs (survival's thresholds, by the head's estimate); no target is stepped. Requirements, walks and Kim's decisions of 17 and 18 Nov; mocks A to L. |
-| [VB-1472](backlog/VB-1472.md)<a id="VB-1472"></a> | Design: how a holder's parallel projects are limited and ranked | - | 2 | M | Kim | What replaces 'at most one project': the limit and the ranking of a holder's parallel projects |
 | [VB-1602](backlog/VB-1602.md)<a id="VB-1602"></a> | A child under 7 left alone at home while its household is away | - | 2 | S | [VB-1693](#VB-1693) | populous 7: a child under 7 alone at home twice for 12 days, dry and uncooked for |
 | [VB-1606](backlog/VB-1606.md)<a id="VB-1606"></a> | A settler alone with a child under 7 bears its start for days while the child sits alone | - | 2 | S | [VB-1693](#VB-1693) | The one path VB-1602 left: a lone settler's bearing of its start (11 child-days alone on seed 7) |
 | [VB-1618](backlog/VB-1618.md)<a id="VB-1618"></a> | Evaluate independent review: reviewed tasks against held-out ones, and Kim's decision | - | 2 | S | Kim | When the window of VB-1619 closes (60 held-out tasks done, then 14 days), review.js eval by arm: escapes and their ratio's interval, cost, catches, false blockers and the break-even; Kim keeps, narrows or stops the review |
@@ -270,6 +272,8 @@ By arch, in the order of the Archs table, then priority and ID. Each waits for t
 | [VB-1617](backlog/VB-1617.md)<a id="VB-1617"></a> | Evaluate the adaptive context reset: keep, adjust or abandon it | - | 3 | S | Kim | Compare the reset's period with the ceiling's by VB-1615's tools once 15 eligible tasks are done in each, or 4 weeks on; decide by the rules VB-1616 set |
 | [VB-1740](backlog/VB-1740.md)<a id="VB-1740"></a> | The save's last shared objects become ids, and the codec's first pass goes | - | 3 | M | [VB-1739](#VB-1739) | The rest of VB-247's census (workDue, plans, plot tiles, herds, claims, carts, common fields) as ids; then encode's first pass, $id, $ref and $arr go |
 | [VB-1853](backlog/VB-1853.md)<a id="VB-1853"></a> | The goal kinds' steps as rows of the method table | - | 3 | M | [VB-1773](#VB-1773) | VB-1777 left GOALS a table of world readers beside the kinds' methods (review F3); waits for the stages as facts (docs/plans/four-scales/README.md, 3.2), taken up at the arch wrap-up VB-1773 |
+| [VB-1927](backlog/VB-1927.md)<a id="VB-1927"></a> | A log building is taken down and raised elsewhere for hours and no new timber | - | 3 | M | [VB-1911](#VB-1911) | Decided 27 Nov (Kim): a log building may be taken down and raised elsewhere, so an empty farm's buildings are worth fetching; no code does it. |
+| [VB-1928](backlog/VB-1928.md)<a id="VB-1928"></a> | A kiln and bathhouse in the yard dries wet sheaves, malts barley and is the bath | - | 3 | M | [VB-1911](#VB-1911) | Decided 27 Nov (Kim): a kiln and bathhouse (ria, bastu) set apart for its fire answers the wet autumn VB-1910 makes cost grain; VB-368's kiln is for brick and lime, a different one. |
 
 </details>
 
