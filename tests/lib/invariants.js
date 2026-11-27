@@ -1035,6 +1035,9 @@ function checkState(st) {
     // VB-464: the year its holder, a client, was last made to owe its patron days: a whole year, not ahead of now
     if (h.clientIn !== undefined && !(Number.isInteger(h.clientIn) && h.clientIn >= 0 && h.clientIn <= Math.floor(st.t / VB['sim/rules'].YEAR)))
       bad.push(`households[${h.id}]: clientIn is ${h.clientIn}`);
+    // VB-459: the year (cal's, from 1) of its last harvest home: a whole year, not ahead of now
+    if (h.harvestIn !== undefined && !(Number.isInteger(h.harvestIn) && h.harvestIn >= 1 && h.harvestIn <= VB['sim/rules'].cal(st.t).year))
+      bad.push(`households[${h.id}]: harvestIn is ${h.harvestIn}`);
     // ale (VB-305): lots in order of their season's end, whole barrels, none kept past a season; the pours, the last BREW.maxBarrels in order of time
     {
       const keeps = globalThis.VB['sim/rules'].SEASON_DAYS * globalThis.VB['sim/rules'].DAY, B = globalThis.VB['sim/rules'].BREW;
