@@ -7,7 +7,7 @@ VB['sim/estimate'] = (() => {
   const { atWork } = VB['sim/pose'];
   const { CROPS } = VB['sim/crops'],
     Targets = VB['sim/targets'];
-  const { HUNGER, HEALTH, HERD, FIELDS } = VB['sim/rules'],
+  const { HUNGER, HEALTH, HERD, FIELDS, DAY, cal } = VB['sim/rules'],
     { workRate } = VB['sim/roles'];
   const { age, fullName, log, atFarm } = VB['sim/records'];
   const Skills = VB['sim/skills'],
@@ -20,6 +20,8 @@ VB['sim/estimate'] = (() => {
   const { headSkill } = VB['sim/seasonal'];
   const { fieldKey } = VB['sim/fieldwork'];
   const { on } = VB['sim/events'];
+  const Water = VB['sim/water'],
+    { dayHours } = VB['sim/byre'];
   // @tunable ESTIMATE (VB-476; design.md section 7, The estimate; Kim, 15 Nov: the worker's skill moves the time taken, the head's the
   //   estimate; a poor head's range is honest and wide):
   //   reckons: the causes a judgement reckons with, in the order skill as head brings them in, each from the skill named: hunger and health
@@ -274,7 +276,7 @@ VB['sim/estimate'] = (() => {
   // target's from its store's shortfall against its level (wood: the loads it lacks, fell and cut; hay: the mowing and carrying its
   // shortfall wants; fields: a clearing and a breaking each field it lacks;
   // seed: a sowing a field's seed it lacks; a made good: its maker's hours a unit it lacks), a routine's:
-  // the head's estimate of the open tasks it opened (VB-1868). One estimate a target step with work
+  // the head's estimate of the open tasks it opened (VB-1868), and a daily routine's its work on the days left (VB-1906). One estimate a target step with work
   // left; it feeds no rule yet (VB-1778 sets it against the labour budget).
   // The hours a unit of each made good takes, by its maker's kind (VB-1867).
   const PER = {
@@ -330,6 +332,38 @@ VB['sim/estimate'] = (() => {
     }
     return null;
   }
+  // The hours a daily routine step s (sim/kinds `daily`: the meal, the water, the milking, the fodder) still wants on the days of the
+  // season after today, by head id's estimate (VB-1906), {lo, mid, hi}, or null for none: the water, the day's fetch the head weighs
+  // (sim/water waterOf, its walks known) each day; the byre's, each day's job as it would be posted then (sim/byre dayHours: the fodder
+  // while the herds are stalled, the milking while animals are in milk); another lived by every day (`vital` true), its hours a day.
+  function dailyLeft(st, hh, c, s, id) {
+    const k = s.what.routine,
+      K = KINDS[k],
+      days = s.by - c.day;
+    if (!K || !K.daily || !(days > 0)) return null;
+    if (k === 'water') {
+      const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead],
+        W = f && f.water ? Water.waterOf(st, f) : null,
+        h = W && !W.none ? W.hours * days : 0;
+      return h > 0 ? { lo: h, mid: h, hi: h } : null;
+    }
+    let H = 0;
+    if (k === 'fodder' || k === 'milk') for (let d = 1; d <= days; d++) H += dayHours(st, hh, k, cal(st.t + d * DAY));
+    else if (K.vital === true) H = (K.hours || 0) * days;
+    if (!(H > 0)) return null;
+    const e =
+      id === null
+        ? null
+        : estimate(st, id, {
+            kind: k,
+            hours: H,
+            done: 0,
+            rate: 0,
+            owner: { type: 'household', id: hh.id },
+            claims: [],
+          });
+    return e && Number.isFinite(e.mid) ? { lo: e.lo, mid: e.mid, hi: e.hi } : { lo: H, mid: H, hi: H };
+  }
   function setLeft(st, plan, hh, c) {
     const id = plan.head ? plan.head.pawn : null,
       mine = st.jobsBy.get(`household:${hh.id}`);
@@ -346,6 +380,13 @@ VB['sim/estimate'] = (() => {
             sum.mid += f ? e.mid : e.work;
             sum.hi += f ? e.hi : e.work;
           }
+        // a daily routine: and its work on each day of the season left (VB-1906), so the budget is set against all the season's work
+        const D = dailyLeft(st, hh, c, s, id);
+        if (D) {
+          sum.lo += D.lo;
+          sum.mid += D.mid;
+          sum.hi += D.hi;
+        }
         s.left = sum; // lint-allow: owner as below
         continue;
       }

@@ -545,8 +545,14 @@ VB['sim/levies'] = (() => {
     for (const s of plan.season || []) {
       if (!s.left || !(s.left.mid > 0)) continue;
       VB.count.fitRow++;
-      const k = weekOf(s, c, ends);
-      need[k] += s.left.mid;
+      const k = weekOf(s, c, ends),
+        R = s.what && s.what.routine;
+      if (R && KINDS[R] && KINDS[R].daily) {
+        // a daily routine's hours are due day by day (VB-1906): spread evenly over the days from today to its last, by game week
+        const last = Math.min(SEASON_DAYS - 1, s.by - (c.day - c.sday)),
+          n = Math.max(1, last - c.sday + 1);
+        for (let d = c.sday; d <= Math.max(c.sday, last); d++) need[Math.floor(d / WEEK)] += s.left.mid / n;
+      } else need[k] += s.left.mid;
       rows.push([k, s]);
     }
     let short = 0,

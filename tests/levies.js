@@ -670,6 +670,53 @@ let fitSeen = '';
   fitSeen = `; the labour budget ${Math.round(B.total)} hours, a season ${Math.round(F.short)} hours short answered`;
 }
 
+// 10. The season's daily routines in its hours left (VB-1906): the meal, the water, the milking and the fodder count their work on each
+// day of the season left by the head's estimate, so a household whose targets fit but whose daily work with them does not is flagged at
+// its first review.
+{
+  const s = make(30);
+  const c = cal(s.t),
+    h = s.households[0],
+    plan = s.plans.households.get(h.id),
+    days = plan.season[0].by - c.day,
+    daily = (x) => !!(x.what.routine && KINDS[x.what.routine].daily),
+    sum = (f) => plan.season.filter(f).reduce((a, x) => a + (x.left ? x.left.mid : 0), 0),
+    review = () => VB['sim/plans'].reviewed(s, plan, cal(s.t), 'store');
+  const cook = plan.season.find((x) => x.what.routine === 'cook'),
+    water = plan.season.find((x) => x.what.routine === 'water'),
+    W = VB['sim/water'].waterOf(s, s.farmsteads[h.farmstead]);
+  assert.ok(days > 0 && cook.left.mid >= days * KINDS.cook.hours * 0.5, `the meal's hours left a day each day (${cook.left.mid})`);
+  assert.ok(water.left.mid >= W.hours * days - 1e-9, `the water's fetch each day left (${water.left.mid}, ${W.hours})`);
+  assert.ok(plan.fit && plan.fit.short === 0, 'its season, daily work and all, fits');
+  // tar placed to fill the budget but for half the daily work: its targets fit, and the daily work with them does not
+  const D = sum(daily),
+    T = sum((x) => !daily(x));
+  plan.placed = { year: c.year, goods: { tar: 10 }, heard: [] };
+  review();
+  const tar = plan.season.find((x) => x.what.target && x.what.target.good === 'tar'),
+    per = tar.left.mid / 10; // the head's hours a barrel of tar
+  // the fit judged once a season: raised barrel by barrel (each review reckons the hours left again) until the targets alone come
+  // within the daily work of the budget, then judged afresh
+  let n = Math.floor((plan.budget.total - T - D) / per),
+    T2 = 0;
+  for (; n < 1000; n++) {
+    plan.placed.goods.tar = n;
+    review();
+    T2 = sum((x) => !daily(x));
+    if (T2 + sum(daily) > plan.budget.total) break;
+  }
+  delete plan.fit;
+  review();
+  assert.ok(D > 0 && T2 <= plan.budget.total, `the targets alone fit (${Math.round(T2)} of ${Math.round(plan.budget.total)})`);
+  assert.ok(
+    plan.fit.short > 0 && sum(daily) + T2 > plan.budget.total,
+    `with the daily work it does not: flagged at its first review (${Math.round(plan.fit.short)} short, ${Math.round(D)} daily, ${tar.what.target.level} tar)`,
+  );
+  assert.strictEqual(s.record.filter((e) => e.kind === 'seasonShort').length, 1, 'and said');
+  assert.deepStrictEqual(checkState(s), [], 'invariants with the daily work counted');
+  fitSeen += `; the daily work ${Math.round(D)} hours of the season counted`;
+}
+
 console.log(
   `levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first; each leg's hours booked into the six parts, a day summing to H, the tally folded; a demand named and answered by the member's judgement, a breach's hours taken, goodwill booked both ways; own hours given by the member's judgement, the diligent son's ${ownSeen}${fitSeen}`,
 );
