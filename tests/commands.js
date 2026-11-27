@@ -358,7 +358,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
     const item = Sim.opportunities(s, a.holder).find((x) => x.verb === 'answer' && x.target === o.id);
     assert.ok(item && item.offer.advice === true && item.offer.basis === 'gift' && /a gift of 30 grain/.test(item.offer.text), 'the advice: the pawn\'s own yes');
     assert.ok(/no answer to give/.test(issue(s, { actor: b.holder, verb: 'answer', target: o.id, args: { yes: true }, source: 'pawn' })), 'the giver has none to give');
-    assert.strictEqual(Sim.answer(s, o.id, false), true);
+    assert.strictEqual(Sim.answer(s, s.player.pawn, o.id, false), true);
     assert.deepStrictEqual(s.offers, [], 'a no closes it');
     assert.strictEqual(Sim.grainOf(a), a0, 'nothing moves');
     assert.ok(opinionOf(s, b.holder, a.holder) < ob && opinionOf(s, a.holder, b.holder) < oa, 'both remember the refusal');
@@ -690,7 +690,6 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
     const c0 = (kept[v] = VERBS[v].check);
     VERBS[v].check = (st, c) => { reached++; return c0(st, c); };
   }
-  assert.strictEqual(Sim.inhabit(s, mem), true);
   const calls = {
     command: () => Sim.command(s, { actor: mem, verb: 'idle', args: { until: s.t }, source: 'player' }),
     head: () => Sim.head(s, hh.holder, 'dayOrder', { member: mem, from: 0, to: 0 }),
@@ -698,10 +697,11 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
     unqueue: () => Sim.unqueue(s, mem, 0),
     setAuto: () => Sim.setAuto(s, mem, true),
     wish: () => Sim.wish(s, mem, 'out', false),
-    answer: () => Sim.answer(s, 9999, true),
-    orderVisit: () => Sim.orderVisit(s, mem, 0),
+    answer: () => Sim.answer(s, mem, 9999, true),
+    orderVisit: () => Sim.orderVisit(s, mem, mem, 0),
     plan: () => Sim.plan(s, mem, 'dayOrder', { from: 0, to: 0 }),
   };
+  assert.ok(!s.player, 'no pawn is played for these calls');
   assert.deepStrictEqual(Object.keys(calls).sort(), [...ISSUES].sort());
   try {
     for (const k of ISSUES) { const r0 = reached; calls[k](); assert.ok(reached > r0, `Sim.${k} issues a verb`); }

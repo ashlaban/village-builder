@@ -95,6 +95,7 @@ function crowd(st, to, n) {
   console.log(`  view: ${JSON.stringify(v.next)}`);
   Stores.put(st, hh, 'timber', 6, 'felling');
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { upgrade: f.house, what: 'timber' }), true);
+  Sim.plan(st, st.player.pawn, 'keep', { i: VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length - 1 }); // VB-1842: not taken back as late
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { upgrade: f.house, what: 'timber' })), /already planned/);
   assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).next[0].planned, true);
   const before = chainSteps(st, hh.id, 'upgrade', f.house).steps;

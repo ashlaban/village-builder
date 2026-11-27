@@ -427,12 +427,12 @@ function playClick(b) {
     openPanel('actions');
   } else if (act === 'auto') r = Sim.setAuto(st, st.player.pawn, !Sim.controlOf(st, st.player.pawn).auto);
   else if (act === 'answer') {
-    r = Sim.answer(st, +b.dataset.offer, b.dataset.yes === 'true');
+    r = Sim.answer(st, st.player.pawn, +b.dataset.offer, b.dataset.yes === 'true');
     watchOffers();
   } else if (act === 'follow') followPlayed = !followPlayed;
   else if (act === 'unqueue') r = Sim.unqueue(st, st.player.pawn, +b.dataset.i);
   else if (act === 'wish') r = Sim.wish(st, st.player.pawn, b.dataset.kind, JSON.parse(b.dataset.value));
-  else if (act === 'visit') r = Sim.orderVisit(st, +b.dataset.who, +b.dataset.village);
+  else if (act === 'visit') r = Sim.orderVisit(st, st.player.pawn, +b.dataset.who, +b.dataset.village);
   else if (act === 'do') {
     const c = JSON.parse(b.dataset.cmd);
     r = Sim.queue(st, st.player.pawn, {

@@ -75,7 +75,7 @@ function playLine({ scenario = 'founders', seed = 7, map = 'small', size = null,
       line.offers.seen.add(o.target);
       const n = line.offers.seen.size;
       if (n % 3 === 0) { line.offers.silent++; continue; }
-      const yes = n !== 1; if (Sim.answer(st, o.target, yes) === true) line.offers[yes ? 'yes' : 'no']++;
+      const yes = n !== 1; if (Sim.answer(st, id, o.target, yes) === true) line.offers[yes ? 'yes' : 'no']++;
     }
     const opps = Sim.opportunities(st, id), open = (v, f = () => true) => opps.find((o) => o.verb === v && o.why === null && f(o));
     // one cause argued, once the pawn is an adult

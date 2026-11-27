@@ -50,13 +50,11 @@ const KEPT = {
   'player:yieldWords': [1, 'audience', "the played pawn's sheet"],
   'player:movedWords': [1, 'audience', "the played pawn's sheet"],
   'player:ailingWords': [1, 'audience', "the played pawn's sheet"],
-  'player:answer': [2, 'frame', "the player's answer, by the verb answer, any pawn's"],
   'reasons:reasonOf': [2, 'audience', 'the card says "you gave the order" on the played pawn only (VB-1745)'],
   'sleep:sleepOf': [1, 'frame', "the page's read of the played pawn's sleep"],
   'stories:notice': [1, 'audience', 'a story the played pawn comes to hold, an event of its life for the skip'],
   'timetable:taskFrom': [1, 'frame', "the skip until the played pawn's task ends"],
   'timetable:taskStop': [1, 'frame', "the same skip's stop"],
-  'visits:orderVisit': [1, 'frame', "the player's order of a visit; the verb visit is any pawn's"],
   'voice:refused': [2, 'audience', 'a refusal logged where the player is one of the two'],
 };
 // Rules that read who is played: module:function -> reads. Emptied by VB-1776 (each read now the controller's, sim/records unplanned, or
@@ -143,6 +141,7 @@ function village(play, auto) {
       true,
       `the foundation authored (${play ? 'played' : 'unplayed'})`,
     );
+    Sim.plan(v.st, 0, 'keep', { i: VB['sim/steps'].pawnPlan(v.st, 0).tasks.length - 1 }); // VB-1842: not taken back as late
     Stores.put(v.st, v.hh, 'stone/granite', BUILD.foundationStone, 'pick');
     for (let d = 0; d < 30 && v.f.grade !== 'stone'; d++) Sim.advance(v.st, DAY);
     assert.strictEqual(v.f.grade, 'stone', `the house set on stone by the plan (${play ? 'played' : 'unplayed'})`);
@@ -205,6 +204,7 @@ function village(play, auto) {
       true,
       `the farmstead authored (${play ? 'played' : 'unplayed'})`,
     );
+    Sim.plan(st, id, 'keep', { i: VB['sim/steps'].pawnPlan(st, id).tasks.length - 1 }); // VB-1842: not taken back as late
     for (let d = 0; d < 20 && VB['sim/steps'].pawnPlan(st, id).tasks.some((t) => t.kind === 'farmstead'); d++)
       Sim.advance(st, DAY);
     assert(
@@ -222,6 +222,7 @@ function village(play, auto) {
       t0 = st.t;
     Sim.setAuto(st, id, true);
     assert.strictEqual(Sim.plan(st, id, 'add', { upgrade: f.house, what: 'cottage' }), true, 'the cottage authored');
+    Sim.plan(st, id, 'keep', { i: VB['sim/steps'].pawnPlan(st, id).tasks.length - 1 }); // VB-1842: not taken back as late
     for (let d = 0; d < 30 && f.booth; d++) Sim.advance(st, DAY);
     assert(!f.booth, `the cottage roofed by the plan within 30 days (${st.player ? 'played' : 'unplayed'})`);
     assert.notStrictEqual(Sim.cal(st.t).season, 3, 'the authored cottage did not wait for the winter slack');
