@@ -63,6 +63,7 @@ const HINTS = {
   'sim/claims': { c: 'claim', r: 'local' }, 'sim/trust': { t: 'st.trusts' }, 'sim/offers': { o: 'st.offers' }, 'sim/clock': { s: 'fence' }, 'sim/meadows': { m: 'farmstead.meadows[]' }, 'sim/births': { m: 'pawn' },
   'sim/commands': { q: 'pawn' }, 'sim/notable': { from: 'local' }, 'sim/timetable': { from: 'local' }, 'sim/agents': { g: 'agent', stay: 'st.away[]' }, 'sim/away': { g: 'local', rest: 'local', stay: 'st.away[]' }, 'sim/journeys': { g: 'local' }, 'sim/expansion': { walls: 'plan.steps[]' }, 'sim/allotment': { live: 'local' }, 'sim/building': { walls: 'plan.steps[]' }, 'sim/upgrade': { walls: 'plan.steps[]' }, // a plot's walls step (VB-1407)
   'sim/facilities': { fac: 'st.facilities[]', I: 'st.facilityIdx' }, 'sim/pot': { units: 'local' }, 'sim/hands': { d: 'st.handsToday' }, 'sim/voice': { d: 'st.leaves', e: 'st.leaves' }, // VB-1555: today's leaves
+  'sim/fit': { memo: 'local' }, 'sim/occasions': { memo: 'local' }, // scratch maps of one pass (VB-1848)
   'sim/day': { asking: 'local', cap: 'local', due: 'local', lists: 'plan.day', fits: 'plan.day', ctx: 'plan.day' }, // VB-470: today's lent hands; the morning's asks
   'sim/levies': { r: 'agent.book', T: 'plan.tally', U: 'local', sum: 'plan.tally', e: 'plan.tally', old: 'agent.book' }, 'sim/legs': { l: 'agent.leg' }, // VB-1761: a pawn's booked hours, a plan's tally
   'sim/fair': { l: 'local', x: 'local' }, 'sim/larder': { lots: 'local', by: 'local' }, // a dealer's load and its lots, inside pawn.load and written only by sim/fair (VB-302)
