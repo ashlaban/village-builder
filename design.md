@@ -94,6 +94,28 @@ slices of `docs/slices.md` build towards them, and the sections below say how fa
 - **Inspiration.** The acoup blog (Bret Devereaux), especially "Bread, How Did They Make It?", "Clothing, How Did They Make It?" and "Life,
   Work, Death and the Peasant".
 
+### The core loop (Kim, 26 November 2026)
+
+Decided (Kim, 27 November). It says what the planning is about; the sections below and the page are read against it.
+
+**The day is short and the work is long.** A game day stands for about a week and passes in under a minute at 1×. A field takes
+several days to break, a harvest several more to reap and thresh, a cottage most of a season. Every evening the pawn walks home,
+eats and sleeps; every morning it walks out again. So a day's end is a stitch in the work, not a seam: work is cut and taken up
+as a matter of course (Progress lives in the world), and where a pawn stands when the light goes hardly matters.
+
+What the player weighs is therefore not the path through a day but the share of the days: which work gets the household's few
+days, in what order, by whose hands, so that each is done before its window closes: the sowing before the season turns, the hay
+before the rain, firewood and a roof before the frost. The game is a steward's, not a dispatcher's. Its currency is days and
+hands against windows, read through a pawn's uncertain estimate (The future is someone's estimate), and its skill is knowing what
+to leave undone.
+
+The numbers behind it: 12 days a season (section 3); work from 6:00 to 18:00, home by evening; a walk of 12 tiles an hour, so a
+field a few tiles off costs minutes of the day; a new field 60 work hours to break before 20 of ploughing, barley 15 to reap and
+20 to thresh, a cottage 120. What follows for the page: the days ahead are the main planning surface, each piece of work in days
+against its window; today is what is happening and why, not where planning is done; no paths are drawn on the land, a walk being
+part of its work; a cut is ordinary and marked only when something is lost by it; and leaving work undone is an act like adding
+it, with its cost shown.
+
 ### Principles for decisions (Kim, 12 and 14 November 2026; extended 24 November)
 
 Decided, in a discussion of the open questions and a revision two days later. They say how a question is answered when the sections
@@ -413,7 +435,7 @@ Named before building (Rules for cost, 9), at about 1,000 living on medium, in t
 
 ## 3. Time and calendar
 
-A year has 4 seasons of 12 days, so one game day stands for about a week; at 1× a day lasts 48 seconds and a year about 38 minutes.
+A year has 4 seasons of 12 days, so one game day stands for about a week; at 1× a day lasts 48 seconds and a year about 38 minutes. What this compression means for play is section 1, The core loop.
 
 | Aspect | Design | Status |
 | --- | --- | --- |
