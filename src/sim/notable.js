@@ -445,11 +445,13 @@ VB['sim/notable'] = (() => {
           ? `The wedding of ${who.join(' and ')} begins at ${at}.`
           : o.kind === 'funeral'
             ? `The funeral ale for ${who.join(' and ')} begins at ${at}.`
-            : o.kind === 'call'
-              ? `${who[0]} calls at ${at}.`
-              : o.kind === 'gathering'
-                ? `The gathering meets on ${at}.`
-                : `An ale evening begins at ${at}${who.length ? `, opened by ${who[0]}` : ''}.`;
+            : o.kind === 'harvest'
+              ? `The harvest home of ${who[0]} begins at ${at}.`
+              : o.kind === 'call'
+                ? `${who[0]} calls at ${at}.`
+                : o.kind === 'gathering'
+                  ? `The gathering meets on ${at}.`
+                  : `An ale evening begins at ${at}${who.length ? `, opened by ${who[0]}` : ''}.`;
   }
   // Does occasion o concern pawn id: it is asked to it or has set out for it; it is held for one of its household or line (a wedding,
   // a funeral ale, its own house's ale evening); or it is the meeting or the rite of its village, or a day of its village's gathering.

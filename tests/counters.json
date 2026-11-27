@@ -160,6 +160,7 @@
   "lighterGiven": 0,
   "occasionAsked": 0.03464654931545124,
   "callWalk": 0.020117351215423303,
+  "harvestCalled": 0,
   "aleCalled": 0,
   "riteCalled": 0.003352891869237217,
   "feastServed": 0,

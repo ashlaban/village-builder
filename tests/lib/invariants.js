@@ -213,6 +213,9 @@ function checkState(st) {
     for (const a of st.agents) {
       // VB-1779: a breach's hours run to a tick (agent.taking); the goodwill gathered toward the head is under a ration, owed to a pawn
       if (a && a.taking !== undefined && !Number.isFinite(a.taking)) bad.push(`agents[${a.id}].taking: ${a.taking}`);
+      // VB-1926: a call that waits for a load in hand (agent.calledTo {key, by}) is held only by a hand with a task in hand
+      if (a && a.calledTo !== undefined && (!a.job || typeof a.calledTo.key !== 'string' || !Number.isFinite(a.calledTo.by)))
+        bad.push(`agents[${a.id}].calledTo: ${JSON.stringify(a.calledTo)} with ${a.job ? 'a task' : 'no task'} in hand`);
       const r = a && a.book;
       if (!r) continue;
       if (r.gw !== undefined && (!(Math.abs(r.gw) < 1 + 1e-9) || !st.pawns[r.gwTo])) bad.push(`agents[${a.id}].book.gw: ${r.gw} toward ${r.gwTo}`);
@@ -1035,6 +1038,9 @@ function checkState(st) {
     // VB-464: the year its holder, a client, was last made to owe its patron days: a whole year, not ahead of now
     if (h.clientIn !== undefined && !(Number.isInteger(h.clientIn) && h.clientIn >= 0 && h.clientIn <= Math.floor(st.t / VB['sim/rules'].YEAR)))
       bad.push(`households[${h.id}]: clientIn is ${h.clientIn}`);
+    // VB-459: the year (cal's, from 1) of its last harvest home: a whole year, not ahead of now
+    if (h.harvestIn !== undefined && !(Number.isInteger(h.harvestIn) && h.harvestIn >= 1 && h.harvestIn <= VB['sim/rules'].cal(st.t).year))
+      bad.push(`households[${h.id}]: harvestIn is ${h.harvestIn}`);
     // ale (VB-305): lots in order of their season's end, whole barrels, none kept past a season; the pours, the last BREW.maxBarrels in order of time
     {
       const keeps = globalThis.VB['sim/rules'].SEASON_DAYS * globalThis.VB['sim/rules'].DAY, B = globalThis.VB['sim/rules'].BREW;

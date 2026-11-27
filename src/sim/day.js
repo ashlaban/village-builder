@@ -390,14 +390,15 @@ VB['sim/day'] = (() => {
   // The head calls member p (design.md section 7, The head calls): to `dj`, the task with a deadline today it is the hand for, from work,
   // from the road or from idling; else from its work to `top`, the first of its list, when that is much more urgent (switchRatio,
   // switchMargin; VB-107).
+  // A call is not urgent (VB-1926; design.md, A load in hand): one with a load in hand brings it in first and comes after (the verb work,
+  // args.call). No rule of the head's marks a call urgent; the head that is played does, by its verb (call, args.urgent).
   function call(st, hh, p, dj, top, c, memo, stand) {
     const a = st.agents[p.id],
       busy = !!a.job && attentionOf(a.job) === 'full';
     if (a.taking > st.tick) return; // keeping hours of its levy for itself (breach)
     if (dj && a.job !== dj && isOpen(st, dj) && c.hour <= WORK[1]) {
       // the deadline calls: from work, from the road to it, or from idling (waiting, or out for company; not at an occasion)
-      if (busy ? a.job && !(a.load > 0) : !a.job && unbound(a) && a.occasion === null)
-        issue(st, workCommand(a.id, dj.key, 'planner'));
+      if (busy ? !a.calledTo : !a.job && unbound(a) && a.occasion === null) issue(st, calling(st, a.id, dj.key, false));
       return;
     }
     if (!top || !busy || !atWork(a) || a.job === top[1] || !isOpen(st, top[1])) return;
@@ -408,6 +409,12 @@ VB['sim/day'] = (() => {
     )
       issue(st, workCommand(a.id, top[1].key, 'planner'));
   }
+  // The head's call of member id to task `key`: the work command, marked a call (urgent or not) for the load in hand (sim/agents work).
+  // Not urgent, the member aims to be at it within MATCH.day.within hours (args.by).
+  const calling = (st, id, key, urgent) => ({
+    ...workCommand(id, key, 'planner'),
+    args: { call: true, urgent: !!urgent, by: st.t + MATCH.day.within },
+  });
   // ---- the slot (VB-1558; design.md section 7, The day's work: "a task the due-queue opens in the day is weighed alone") ----
   // Task j, newly due for household hh, put into the day's lists as they stand: each member allotted is weighed for it alone, and the pass
   // of the allotment (man) gives it hands by its fit among the tasks already there and within the members' hours left (plan.day.free); a
@@ -926,8 +933,10 @@ VB['sim/day'] = (() => {
     if (day.lists && day.lists[id] && day.lists[id].includes(c.args.key)) return 0;
     return pastLevy(st, hh, id, h, day);
   }
-  // call({member, key}) (VB-1779): the member is called to task `key` now, from work, from the road home or from idling, as the head's
-  // call (design.md section 7, The head calls): a work command the head opened. Past its levy left a demand (above).
+  // call({member, key, urgent}) (VB-1779): the member is called to task `key`, from work, from the road home or from idling, as the head's
+  // call (design.md section 7, The head calls): a work command the head opened. Not urgent (the default), a load in hand is brought to its
+  // body's store first and the member then comes, aiming to be there within MATCH.day.within hours; urgent, the load is set down where it
+  // stands, a pile, and the member comes now (VB-1926). Past its levy left a demand (above), either kind: the demand's yes calls again.
   // call({member}): the member is called off: its list is emptied and it is off (plan.day.off) until the day is next allotted, and it lets its
   // task go and walks home (the verb goHome: a load in hand is brought in first, or on an urgent call
   // (args.urgent) put down where it stands, VB-1893). The cost, its walk home and
@@ -952,7 +961,7 @@ VB['sim/day'] = (() => {
         const past = c.args.demand === true ? callPast(st, c) : 0;
         if (past > 1e-9) return demand(st, c, c.args.member, past);
         edited(st, planOf(st, 'household', c.target).day, c);
-        return issue(st, workCommand(c.args.member, c.args.key, 'planner'));
+        return issue(st, calling(st, c.args.member, c.args.key, c.args.urgent));
       }
       const plan = planOf(st, 'household', c.target),
         day = plan.day,
