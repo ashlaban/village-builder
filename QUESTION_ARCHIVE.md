@@ -2,6 +2,13 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 27 November 2026 (VB-1779)
+
+## VB-1779: goodwill for the head's own work past the levy (review F1) against the gate (raised 27 November 2026)
+1. The review of VB-1779 (F1) asked that the head's own work past the levy, with no demand made (its allotment's rest of the list; about a quarter of levied hours until VB-1762 makes it given), be booked demanded but owe no goodwill. With F1 the gate fails: populous 11, settlement 8 falls from 16 to 7 (base 15). The cause traced: heads then owe their members far less, so their gratitude to members falls, demands grow cheap (about 4 times as many) and takes vanish; settlement 8 has no hunger and no loss of health, but its grown children marry out rather than found farmsteads at home, and in the gated run a widow marries away and her four minors go in trust to kin elsewhere. Over five reshuffled runs settlement 8 ends at 7 to 12 with F1, 9 to 19 without; the world's living are the same. design.md (What a breach costs) says hours demanded are booked as goodwill the head owes. Does F1 stand now?
+   **P:** No: F1 stays reverted until VB-1762 makes that work given (design.md as it reads: every hour booked demanded owes goodwill; the gate holds); VB-1762 carries the change of goodwill and answers to its own gate. Else: F1 restored, the gate's failure accepted as a local shift of one two-household settlement, and docs/gate/base.json rebased on it.
+   **A (Kim, 27 Nov):** Keep it reverted, as design.md books it (every hour demanded is goodwill the head owes).
+
 # Archived 27 November 2026 (VB-1894)
 
 ## VB-1894: A planner's steps given back when it cannot work: for good, and for any illness (raised 27 November 2026)
