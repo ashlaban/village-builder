@@ -135,7 +135,8 @@ function renderYear() {
       .map((x) => `<span class="u2-ychip" aria-hidden="true">${x.icon}${x.n ? `<b>${esc(x.n)}</b>` : ''}</span>`)
       .join('')}</button>` +
     (Y.go
-      ? `<button type="button" class="u2-ygo" data-hud="ygo" data-tile="${Y.go.tile}" data-chain="${Y.go.chain}" aria-label="${esc(`${HUD_CHAIN[Y.go.chain].name}: show where`)}" ` +
+      ? `<button type="button" class="u2-ygo" data-hud="ygo" data-tile="${Y.go.tile}" data-chain="${Y.go.chain}" ` +
+        `aria-label="${esc(`${HUD_CHAIN[Y.go.chain].name}: show where`)}" ` +
         `title="${esc(HUD_CHAIN[Y.go.chain].name)}">${actIcon('target')}${HUD_CHAIN[Y.go.chain].icon()}<span>${YEAR_GO[Y.go.chain]}</span></button>`
       : '') +
     (hud.yinfo === 'year' ? `<span class="u2-ywords">${esc(Y.line)}.</span>` : '');
