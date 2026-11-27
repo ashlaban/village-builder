@@ -127,7 +127,7 @@ const hudEntry = (A, key) =>
 function renderPlan() {
   const P = hudPlanned();
   u2.plan.hidden = !P;
-  if (!P) return (u2.pcard.hidden = u2.days.hidden = true);
+  if (!P) return (u2.pcard.hidden = u2.days.hidden = u2.ahead.hidden = true);
   const S = Sim.sleepOf(st),
     A = Sim.agenda(st, st.player.pawn),
     owed = S ? Math.floor(S.owed) : 0,
@@ -139,6 +139,7 @@ function renderPlan() {
       JSON.stringify(P),
       owed,
       hud.msg ? hud.msg.text : '',
+      hud.pmove ? `${hud.pmove.from}>${hud.pmove.to}` : '',
     ].join('|');
   if (key === hud.planKey) return;
   hud.planKey = key;
@@ -162,9 +163,8 @@ function renderPlan() {
     hudPin(actIcon('idle'), owed >= 8 ? Math.round(S.owed) : ''), // an ordinary evening owes 6: the number shows once a night is owed
     'Sleep',
   );
-  h += '<i class="u2-pdiv"></i>';
   // work ordered for now, by hand: it goes before the plan
-  h += Sim.controlOf(st, st.player.pawn)
+  const more = Sim.controlOf(st, st.player.pawn)
     .queue.map((q, i) =>
       q.plan
         ? ''
@@ -176,26 +176,14 @@ function renderPlan() {
           ),
     )
     .join('');
-  h += P.tasks.length
-    ? P.tasks
-        .map((t, i) => {
-          const e = hudTaskEntry(A, t),
-            v = e ? HUD_VERDICT[hudVerdict(e)] || 0 : 0,
-            days = e && Number.isFinite(e.ends) ? hudDaysTo(e.ends) : '';
-          const held = t.waits && ['refused', 'unposted', 'hand'].includes(t.waits.why);
-          return chip(
-            `t:${i}`,
-            `task press${v}${held ? ' held' : ''}${now.what === 'task' && now.key && now.key === t.key ? ' on' : ''}`,
-            `<s>${i + 1}</s>${hudPin(hudTaskIcon(t), days)}`,
-            `${i + 1}. ${hudKind(t.kind)}`,
-          );
-        })
-        .join('')
-    : chip('empty', 'empty', hudPin(goodIcon('tile'), '+'), 'Plan work');
+  // the tasks are on the Ahead lane (page/ui2ahead), each a bar in game days against its deadline; with none, the way to plan one
+  const tail = more + (P.tasks.length ? '' : chip('empty', 'empty', hudPin(goodIcon('tile'), '+'), 'Plan work'));
+  if (tail) h += `<i class="u2-pdiv"></i>${tail}`;
   u2.plan.innerHTML = h;
   u2.pcard.hidden = !hud.pc;
   if (hud.pc) u2.pcard.innerHTML = planCard(P, A, S);
   renderDay(A, P);
+  renderAhead(A, P);
 }
 // The words behind a chip of the plan, and what can be done with it.
 function planCard(P, A, S) {
@@ -204,6 +192,7 @@ function planCard(P, A, S) {
       `<button type="button" class="u2-chip" data-hud="${act}"${extra}>${label}</button>`;
   let title,
     sub,
+    warn = '',
     acts = '';
   if (what === 'r') {
     const r = P.routine.find((x) => x.kind === arg);
@@ -250,12 +239,19 @@ function planCard(P, A, S) {
       e = t && hudTaskEntry(A, t);
     if (!t) return ((hud.pc = null), '');
     title = `${i + 1}. ${hudKind(t.kind)}${HUD_CHAIN[t.kind] && t.step ? `: ${hudKind(t.step).toLowerCase()} next` : ''}`;
-    sub = [hudWaits(t.waits), e ? `${hudStake(e)}.` : t.waits ? '' : 'Its work is not open now.']
+    sub = [hudWaits(t.waits), e ? `${hudStake(e)}.` : t.waits ? '' : 'Its work is not open now.', laneTaskWords(e, i)]
       .filter(Boolean)
       .join(' ');
     const till =
-      e && Number.isFinite(e.ends) ? `, the round number the days until it is done (${hudDaysTo(e.ends)})` : '';
-    sub += ` On its icon, the square is its place in the plan${till}.`;
+      e && Number.isFinite(e.ends) ? `, the round number the game days until it is done (${hudDaysTo(e.ends)})` : '';
+    sub += ` On the land, its pin's square is its place in the plan${till}.`;
+    // a reorder that would make another task worse waits here for the player's word (page/ui2ahead laneKnock)
+    const pm = hud.pmove && hud.pmove.from === i ? hud.pmove : null;
+    if (pm)
+      warn =
+        `<p class="u2-msg">${esc(pm.worse.map(laneKnockWords).join(' '))}</p>` +
+        `<div class="u2-row2">${btn('pmove', pm.to < i ? 'Move earlier anyway' : 'Move later anyway', ` data-from="${i}" data-to="${pm.to}" data-sure="1"`)}` +
+        `${btn('pmovecancel', 'Keep the order')}</div>`;
     acts +=
       (t.site >= 0 ? btn('fly', 'Show', ` data-tile="${t.site}"`) : '') +
       btn('pmove', 'Earlier', ` data-from="${i}" data-to="${i - 1}"${i > 0 ? '' : ' disabled'}`) +
@@ -267,6 +263,10 @@ function planCard(P, A, S) {
     title = `Now: ${commandWords(q)}`;
     sub = 'Ordered by hand: it goes before the plan, and is not broken off for sleep.';
     acts += btn('unqueue', q.begun !== null ? 'Stop' : 'Remove', ` data-i="${arg}"`);
+  } else if (what === 'g') {
+    const g = laneGapCard(+arg);
+    if (!g) return ((hud.pc = null), '');
+    ({ title, sub, acts } = g);
   } else {
     title = 'Nothing planned';
     sub = `Tap the land where work is to be done, and add it to the plan. ${st.pawns[played()].given} does the day’s routine and then waits.`;
@@ -275,6 +275,7 @@ function planCard(P, A, S) {
     `<div class="u2-verdict"><div><h2>${esc(title)}</h2><p class="sub">${esc(sub)}</p></div>` +
     '<button type="button" class="u2-x" data-hud="pshut" aria-label="Close">×</button></div>' +
     (hud.msg ? `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>` : '') +
-    (acts ? `<div class="u2-row2">${acts}</div>` : '')
+    warn +
+    (acts && !warn ? `<div class="u2-row2">${acts}</div>` : '')
   );
 }

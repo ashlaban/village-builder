@@ -257,7 +257,7 @@ function hudClick(b) {
   const d = b.dataset,
     { id, hh } = hudHouse();
   if (d.hud === 'close') hud.tab = null;
-  else if (d.hud === 'pshut') hud.pc = null;
+  else if (d.hud === 'pshut') hud.pc = hud.pmove = null;
   else if (d.hud === 'buildpick') buildPick(d.what);
   else if (d.hud === 'placeoff') buildPick(null);
   else if (d.hud === 'buildhere') buildHere();
@@ -279,9 +279,18 @@ function hudClick(b) {
     hudMsg(Sim.plan(st, st.player.pawn, 'remove', { i: +d.i }), 'Taken out of the plan.');
     hud.pc = null;
   } else if (d.hud === 'pmove') {
-    const r = Sim.plan(st, st.player.pawn, 'move', { from: +d.from, to: +d.to });
-    hudMsg(r, 'The order is changed.');
-    if (r === true) hud.pc = `t:${d.to}`;
+    // the knock-on first (page/ui2ahead): a move that makes another task tight or late waits for the player's word
+    const worse = d.sure ? [] : laneKnock(+d.from, +d.to);
+    hud.pmove = worse.length ? { from: +d.from, to: +d.to, worse } : null;
+    hud.msg = null;
+    if (!worse.length) {
+      const r = Sim.plan(st, st.player.pawn, 'move', { from: +d.from, to: +d.to });
+      hudMsg(r, 'The order is changed.');
+      if (r === true) hud.pc = `t:${d.to}`;
+    }
+  } else if (d.hud === 'pmovecancel') {
+    hud.pmove = null;
+    hudMsg(true, 'The order is kept.');
   } else if (d.hud === 'psleep')
     hudMsg(
       Sim.plan(
@@ -340,7 +349,7 @@ if (UI2) {
       pc = e.target.closest('[data-pc]');
     if (pc && st && played() >= 0) {
       hud.pc = hud.pc === pc.dataset.pc ? null : pc.dataset.pc;
-      hud.msg = null;
+      hud.msg = hud.pmove = null;
       hud.planKey = '';
       return renderHud(); // the map stays where it is: a task's card has "Show" for its place
     }
