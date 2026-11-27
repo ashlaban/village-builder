@@ -227,6 +227,70 @@ function handsOf(s, id) {
   assert.ok(VB.count.hoursBook > 0, 'bookings counted');
 }
 
+// 9. (review of VB-1761) One levy line: a member compiled at lower health and healed since, booked under the head for exactly the
+// allotment's capacity (the row's clock hours), has nothing demanded; a day read before the leg in progress ends shows what its end
+// books; the run's legs carry who opened them, the planner's the head's.
+{
+  const { emit } = VB['sim/events'],
+    { TICKS } = VB['sim/rules'];
+  const s = make(4.5),
+    h = s.households[0],
+    sp = spouseOf(s, h.holder),
+    m = h.members.find((id) => id !== h.holder && id !== sp && age(s, s.pawns[id]) >= 14 && !s.pawns[id].retired),
+    p = s.pawns[m];
+  const health = p.health;
+  p.health = 60;
+  s.plans.households.get(h.id).levies = undefined;
+  Levies.levyOf(s, m); // compiled at health 60
+  p.health = 100; // healed: the allotment's capacity is still the row's clock hours
+  const row = s.plans.households.get(h.id).levies.of[m][0],
+    day = Math.floor(s.t / DAY) + 2,
+    at = (hour) => (day * DAY + hour) * TICKS,
+    tick = s.tick,
+    t0 = s.t;
+  const end = (a, from, to, by) => {
+    a.leg = { kind: 'work', t: at(from), by };
+    s.tick = at(to);
+    s.t = s.tick / TICKS;
+    emit(s, 'legOver', a);
+  };
+  const a = { id: m, leg: null };
+  end(a, 6, 6, 'head');
+  end(a, 6, 6 + row, 'head');
+  assert.ok(a.book.p[2] < 1e-9 && Math.abs(a.book.p[1] - row * a.book.hands) < 1e-9, `the capacity's hours all levied (${a.book.p})`);
+  // read before the leg in progress ends: the day shown is what its end books
+  const real = s.agents[m],
+    keep = [real.book, real.leg];
+  real.book = a.book;
+  real.leg = { kind: 'work', t: at(6 + row), by: 'head' };
+  s.tick = (day + 1) * DAY * TICKS + WORK[0] * TICKS;
+  s.t = s.tick / TICKS;
+  const before = Sim.hours(s, m, day, day)[0];
+  emit(s, 'legOver', real);
+  const after = Sim.hours(s, m, day, day)[0];
+  assert.deepStrictEqual(before, after, 'a past day read before the leg in progress ends is the day it books');
+  [real.book, real.leg] = keep;
+  s.tick = tick;
+  s.t = t0;
+  p.health = health;
+}
+{
+  const s = make(2),
+    seen = { head: 0, pawn: 0, owed: 0 };
+  for (let k = 0; k < 4 * 24; k++) {
+    Sim.advance(s, 1);
+    for (const a of s.agents) {
+      const l = a && a.leg,
+        j = a && a.job;
+      if (!l || l.kind === 'wait' || !j || !j.owner || (j.owner.type !== 'household' && j.owner.type !== 'village')) continue;
+      const want = a.basis === 'owed' || a.basis === 'helper' ? 'owed' : a.opener === 'head' ? 'head' : 'pawn';
+      assert.strictEqual(l.by, want, `pawn ${a.id}'s ${l.kind} leg of ${j.kind} carries who opened it`);
+      seen[want]++;
+    }
+  }
+  assert.ok(seen.head > 0, `the head's allotment opens legs (${JSON.stringify(seen)})`);
+}
+
 console.log(
   "levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first; each leg's hours booked into the six parts, a day summing to H, the tally folded",
 );

@@ -111,9 +111,10 @@ VB['sim/levies'] = (() => {
   //   folded), of: {pawn id: [demanded, taken, given]}}}: the season's tally by member (the head pair have none), folded into the year's
   //   count by the first booking of a later season (a later year's begins the count afresh). Written only here; plain data, saved.
   const isHead = (st, hh, p) => p.id === hh.holder || (hh.holder !== null && spouseOf(st, hh.holder) === p.id);
-  // Pawn p's levy on game day `day`, in hours times hands, never written: this season's compiled entry where there is one, else worked
-  // out (so the booking compiles nothing the allotment would compile later, with other hands); null for the head pair or one in no
-  // household, 0 for one not levied (a child under 7).
+  // Pawn p's levy on game day `day`, in hours of the clock (the row's), never written: this season's compiled entry where there is one,
+  // else worked out (so the booking compiles nothing the allotment would compile later, with other hands); null for the head pair or one
+  // in no household, 0 for one not levied (a child under 7). The booking takes it times the day's hands, the same hands its booked
+  // hours are counted in, so its levy line falls where the allotment's capacity does: the row's clock hours (One quantity, one reckoning).
   function levyOn(st, p, day) {
     const hh = p.household === null ? null : st.households[p.household];
     if (!hh || hh.dissolved || isHead(st, hh, p)) return null;
@@ -122,8 +123,9 @@ VB['sim/levies'] = (() => {
       L = plan && plan.levies,
       f = L && L.at === seasonKey(c) ? L.of[p.id] : null,
       e = f && f[2] === p.role ? f : compileRead(st, hh, p, c.season);
-    return e[0] === null ? 0 : e[0] * e[1];
+    return e[0] === null ? 0 : e[0];
   }
+  const byHands = (row, hands) => (row === null ? null : row * hands);
   const handsNow = (st, p) => Math.max(0, handsOf(st, p));
   // The day `day`'s record begins: the one before goes into the days behind (the oldest's array reused).
   function roll(st, p, r, day) {
@@ -135,7 +137,7 @@ VB['sim/levies'] = (() => {
     }
     r.day = day;
     r.hands = handsNow(st, p);
-    r.levy = levyOn(st, p, day);
+    r.levy = byHands(levyOn(st, p, day), r.hands);
     r.p = [0, 0, 0, 0, 0, 0];
   }
   // The season's tally of household hh: member p's `k` (0 demanded, 1 taken, 2 given) grows by h, on game day `day`.
@@ -232,7 +234,8 @@ VB['sim/levies'] = (() => {
   }
   // hours(st, pawn, from, until): pawn `pawn`'s days from game day `from` to `until`, each {day, state ('past': exact; 'today': booked so
   // far; 'ahead': only the levy in force), H, levy, right, and for a past day or today the six parts and lived}; a past day older than the
-  // six behind is left out. Read only: a day not yet closed (no leg has ended since) is closed in a copy, its hours in no leg kept.
+  // six behind is left out. Read only: a day not yet closed (no leg has ended since) is closed in a copy, the leg in progress booked by
+  // who opened it and the hours in no leg kept, as its end will book them.
   function hours(st, pawn, from, until) {
     const p = st.pawns[pawn],
       a = st.agents[pawn],
@@ -250,8 +253,14 @@ VB['sim/levies'] = (() => {
             past: b.past.map((e) => e.slice()),
           }
         : null;
-    if (r && p.alive && r.day !== null && r.day < today)
-      span(st, p, r, r.at, (today * DAY + WORK[0]) * TICKS, undefined, false);
+    if (r && p.alive && r.day !== null && r.day < today) {
+      // closed in the copy as the leg in progress will close it: its hours by who opened it, the rest in no leg, kept
+      const end = (today * DAY + WORK[0]) * TICKS,
+        l = a.leg,
+        from = l ? Math.min(Math.max(r.at, l.t), end) : end;
+      if (from > r.at) span(st, p, r, r.at, from, undefined, false);
+      span(st, p, r, from, end, l ? l.by : undefined, false);
+    }
     const held = new Map();
     if (r && r.day !== null) {
       for (const e of r.past) held.set(e[0], dayOf(e[0], e[1], e[2], e.slice(3), 'past'));
@@ -260,7 +269,9 @@ VB['sim/levies'] = (() => {
     for (let d = from; d <= until; d++) {
       if (held.has(d)) out.push(held.get(d));
       else if (d >= today && p.alive)
-        out.push(dayOf(d, handsNow(st, p), levyOn(st, p, d), null, d === today ? 'today' : 'ahead'));
+        out.push(
+          dayOf(d, handsNow(st, p), byHands(levyOn(st, p, d), handsNow(st, p)), null, d === today ? 'today' : 'ahead'),
+        );
     }
     return out;
   }

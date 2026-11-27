@@ -56,6 +56,7 @@ VB['sim/legs'] = (() => {
         const a = st.agents[p.id];
         if (!p.alive || !a) continue;
         const was = a.leg;
+        if (was) emit(st, 'legOver', a); // an older save's leg: its hours so far booked before it is built again (sim/levies)
         a.leg = null;
         if (a.journey === 'rest') roadWait(st, a);
         else if (a.path)
