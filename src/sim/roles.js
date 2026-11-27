@@ -170,7 +170,10 @@ VB['sim/roles'] = (() => {
     // (VB-1547): the hour after the end of work past which no task is begun, even of a kind that may be begun in the evening (the
     // water, sim/kinds `evening`): 20:00, so that a half-hour fetch is home before the dark at every season (sim/rules dark: 21:00 at
     // its earliest, midwinter).
-    day: { horizon: 0.5, afternoon: 14, evening: 20 },
+    // `within` (VB-1926): the hours within which a member called while it has a load in hand, the call not urgent, aims to be at the
+    // task it is called to, its load brought in first (design.md, A load in hand): a target its plan aims at, shown on its card; nothing
+    // lapses if it is later.
+    day: { horizon: 0.5, afternoon: 14, evening: 20, within: 1 },
     floor: 0.1, // a good fit (priority above poorFit) always bids at least the floor
     distanceWeight: 0.15,
     join: 0.8,

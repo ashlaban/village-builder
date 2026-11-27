@@ -383,6 +383,9 @@ function checkState(st) {
     for (const a of st.agents) {
       // VB-1779: a breach's hours run to a tick (agent.taking); the goodwill gathered toward the head is under a ration, owed to a pawn
       if (a && a.taking !== undefined && !Number.isFinite(a.taking)) bad.push(`agents[${a.id}].taking: ${a.taking}`);
+      // VB-1926: a call that waits for a load in hand (agent.calledTo {key, by}) is held only by a hand with a task in hand
+      if (a && a.calledTo !== undefined && (!a.job || typeof a.calledTo.key !== 'string' || !Number.isFinite(a.calledTo.by)))
+        bad.push(`agents[${a.id}].calledTo: ${JSON.stringify(a.calledTo)} with ${a.job ? 'a task' : 'no task'} in hand`);
       const r = a && a.book;
       if (!r) continue;
       if (r.gw !== undefined && (!(Math.abs(r.gw) < 1 + 1e-9) || !st.pawns[r.gwTo]))
