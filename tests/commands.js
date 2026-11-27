@@ -621,11 +621,11 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
     lighter: ['ask'], // basis lighter, of its head, answered by a standing grant (tests/voice.js; VB-1763)
     grant: ['grant'], // the head lowers a member's levy, standing or dated (tests/voice.js; VB-1763)
     hands: ['ask'], // basis hands, of another head of the village (tests/helpers.js)
+    levyAhead: ['levy', 'name'], // a levy laid on a household's days with its terms by the levier's agent, its days named by the levied head (tests/levies.js; VB-1767)
   };
   const ACTS_LEFT = {
     aim: 'VB-1784', // set aside in docs/ideas/aims/ (25 Nov)
     workdayDate: 'VB-1768', // the alderman dates the work day; today the calendar does
-    levyAhead: 'VB-1767', // a levy laid on a household's days a season ahead
   };
   for (const [act, verbs] of Object.entries(ACTS)) for (const v of verbs) assert.ok(VERBS[v], `the act ${act} is reached by the verb ${v}`);
   const archive = fs.readFileSync(path.join(__dirname, '../BACKLOG_ARCHIVE.md'), 'utf8');
