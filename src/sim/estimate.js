@@ -333,22 +333,33 @@ VB['sim/estimate'] = (() => {
     return null;
   }
   // The hours a daily routine step s (sim/kinds `daily`: the meal, the water, the milking, the fodder) still wants on the days of the
-  // season after today, by head id's estimate (VB-1906), {lo, mid, hi}, or null for none: the water, the day's fetch the head weighs
-  // (sim/water waterOf, its walks known) each day; the byre's, each day's job as it would be posted then (sim/byre dayHours: the fodder
-  // while the herds are stalled, the milking while animals are in milk); another lived by every day (`vital` true), its hours a day.
-  function dailyLeft(st, hh, c, s, id) {
+  // season left by head id's estimate (VB-1906), {lo, mid, hi}, or null for none: the days after today, and today where its work is
+  // neither done (the household's day marker) nor standing as an open task of the step (`open`, whose estimate setLeft counts already: a
+  // first review before the day's meal is posted counts the day's meal). The water, the day's fetch the head weighs (sim/water waterOf):
+  // its drawing by the estimate, its walks at the norm every judgement reckons with; the byre's, each day's job as it would be posted
+  // then (sim/byre dayHours: the fodder while the herds are stalled, the milking while animals are in milk); another lived by every day
+  // (`vital` true), its hours a day.
+  const DONE_DAY = { cook: 'cookDay', water: 'waterDay', milk: 'milkDay', fodder: 'fodderDay' };
+  function dailyLeft(st, hh, c, s, id, open) {
     const k = s.what.routine,
-      K = KINDS[k],
-      days = s.by - c.day;
-    if (!K || !K.daily || !(days > 0)) return null;
+      K = KINDS[k];
+    if (!K || !K.daily) return null;
+    const from = !open && !(DONE_DAY[k] && hh[DONE_DAY[k]] === c.day) ? 0 : 1, // today counted here, or not
+      days = s.by - c.day + 1 - from;
+    if (!(days > 0)) return null;
+    let H = 0,
+      walk = 0;
     if (k === 'water') {
       const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead],
-        W = f && f.water ? Water.waterOf(st, f) : null,
-        h = W && !W.none ? W.hours * days : 0;
-      return h > 0 ? { lo: h, mid: h, hi: h } : null;
-    }
-    let H = 0;
-    if (k === 'fodder' || k === 'milk') for (let d = 1; d <= days; d++) H += dayHours(st, hh, k, cal(st.t + d * DAY));
+        W = f && f.water ? Water.waterOf(st, f) : null;
+      if (!W || W.none) return null;
+      H = (W.hand + W.cart) * Water.WATER.draw * days; // the drawing, the work the head estimates
+      walk = Math.max(0, W.hours * days - H);
+    } else if (k === 'fodder' || k === 'milk')
+      for (let d = from; d < from + days; d++) {
+        VB.count.dailyDay++;
+        H += dayHours(st, hh, k, cal(st.t + d * DAY));
+      }
     else if (K.vital === true) H = (K.hours || 0) * days;
     if (!(H > 0)) return null;
     const e =
@@ -362,7 +373,8 @@ VB['sim/estimate'] = (() => {
             owner: { type: 'household', id: hh.id },
             claims: [],
           });
-    return e && Number.isFinite(e.mid) ? { lo: e.lo, mid: e.mid, hi: e.hi } : { lo: H, mid: H, hi: H };
+    const E = e && Number.isFinite(e.mid) ? e : { lo: H, mid: H, hi: H };
+    return { lo: E.lo + walk, mid: E.mid + walk, hi: E.hi + walk };
   }
   function setLeft(st, plan, hh, c) {
     const id = plan.head ? plan.head.pawn : null,
@@ -371,9 +383,11 @@ VB['sim/estimate'] = (() => {
       if (!s.what.target) {
         // a routine: the head's estimate of the open tasks it opened (j.step), among the household's own (VB-1868)
         const sum = { lo: 0, mid: 0, hi: 0 };
+        let open = false;
         if (mine && id !== null)
           for (const j of mine) {
             if (j.step !== s.id) continue;
+            open = true;
             const e = estimate(st, id, j);
             const f = Number.isFinite(e.mid);
             sum.lo += f ? e.lo : e.work;
@@ -381,7 +395,7 @@ VB['sim/estimate'] = (() => {
             sum.hi += f ? e.hi : e.work;
           }
         // a daily routine: and its work on each day of the season left (VB-1906), so the budget is set against all the season's work
-        const D = dailyLeft(st, hh, c, s, id);
+        const D = dailyLeft(st, hh, c, s, id, open);
         if (D) {
           sum.lo += D.lo;
           sum.mid += D.mid;

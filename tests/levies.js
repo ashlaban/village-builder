@@ -685,7 +685,29 @@ let fitSeen = '';
   const cook = plan.season.find((x) => x.what.routine === 'cook'),
     water = plan.season.find((x) => x.what.routine === 'water'),
     W = VB['sim/water'].waterOf(s, s.farmsteads[h.farmstead]);
-  assert.ok(days > 0 && cook.left.mid >= days * KINDS.cook.hours * 0.5, `the meal's hours left a day each day (${cook.left.mid})`);
+  // the meal's left: the head's estimate of each day's meal left, today's counted once (its open task's, else a day of the kind's
+  // hours where the meal is not yet cooked: review F1, a first review before the meal is posted)
+  {
+    const E = VB['sim/estimate'],
+      head = plan.head.pawn,
+      job = (hours) => ({ kind: 'cook', hours, done: 0, rate: 0, owner: { type: 'household', id: h.id }, claims: [] }),
+      open = [...(s.jobsBy.get(`household:${h.id}`) || [])].filter((j) => j.step === cook.id),
+      n = days + (open.length || h.cookDay === c.day ? 0 : 1),
+      want = open.reduce((a, j) => a + E.estimate(s, head, j).mid, 0) + E.estimate(s, head, job(n * KINDS.cook.hours)).mid;
+    assert.ok(days > 0 && Math.abs(cook.left.mid - want) < 1e-6, `the meal's hours left each day (${cook.left.mid}, ${want})`);
+    // the same review with no meal standing nor cooked today: today's meal counted (F1)
+    const saved = s.jobsBy.get(`household:${h.id}`),
+      was = h.cookDay;
+    s.jobsBy.set(`household:${h.id}`, new Set([...(saved || [])].filter((j) => j.step !== cook.id)));
+    h.cookDay = -1;
+    review();
+    const all = E.estimate(s, head, job((days + 1) * KINDS.cook.hours)).mid;
+    assert.ok(Math.abs(cook.left.mid - all) < 1e-6, `before the meal is posted, today's counted (${cook.left.mid}, ${all})`);
+    if (saved) s.jobsBy.set(`household:${h.id}`, saved);
+    else s.jobsBy.delete(`household:${h.id}`);
+    h.cookDay = was;
+    review();
+  }
   assert.ok(water.left.mid >= W.hours * days - 1e-9, `the water's fetch each day left (${water.left.mid}, ${W.hours})`);
   assert.ok(plan.fit && plan.fit.short === 0, 'its season, daily work and all, fits');
   // tar placed to fill the budget but for half the daily work: its targets fit, and the daily work with them does not
