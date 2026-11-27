@@ -10,12 +10,12 @@ VB['sim/feast'] = (() => {
   const Rules = VB['sim/registry'],
     Traits = VB['sim/traits'],
     { dailyNeed } = VB['sim/hunger'];
-  // @tunable FEAST: what a host lays out at a feast, and when it is due
+  // @tunable FEAST: what a host lays out at a feast, and when it is due (`notice`: the days ahead a harvest home is called, VB-459)
   // The feast (VB-458; design.md, The gift: The feast, What a feast books; Kim, 13 Nov): at a wedding or a funeral ale at its farm, a
   // household whose grain stands above its seed and `above` years of its need lays out food: `share` of what it holds beyond that (times its
   // holder's generosity, TRAITS.acts.generosity.feast), and at most `perGuest` rations a ration of need of those who came (a day's food
   // three times over, the ale poured counted at its grain). Those who ate have eaten the day's meal; guest households owe the host goodwill.
-  const FEAST = { above: 2, share: 0.25, perGuest: 3 };
+  const FEAST = { above: 2, share: 0.25, perGuest: 3, notice: 3 };
   // The host household pours its ale for those who came (VB-305; a barrel serves BREW.guests): as many barrels as it has for them, used up through
   // sim/stores with the reason 'pour', at most `most` (an ale evening's one). Each guest of another household remembers the host's holder
   // for it (SOCIAL.memories.ale), and the host's standing is told to sim/society ('alePoured'). Returns the barrels poured.
