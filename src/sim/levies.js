@@ -164,6 +164,16 @@ VB['sim/levies'] = (() => {
       GIVE.want * wantOf(st, p)
     );
   }
+  // Does member p give one leg of task j, the first of its list past the levy with room, of its own hours (J > 0: What own hours are for;
+  // VB-1762): read when it comes to its own hours, and again at each given leg's end; `view` (sim/fit explainIdle) reads it and counts no
+  // leg. One with no head to judge gives nothing.
+  function gives(st, hh, p, j, view = false) {
+    if (!((judgement(st, hh, p, needOf(st, hh, j)) ?? 0) > 0)) return false;
+    if (!view) {
+      VB.count.giveLeg++;
+    }
+    return true;
+  }
   // Does member p comply with a demand of task j (J + GIVE.press > 0); and would it take a levied leg of task j (J < −GIVE.hold).
   const complies = (st, hh, p, j) => (judgement(st, hh, p, needOf(st, hh, j)) ?? 0) + GIVE.press > 0;
   const takes = (st, hh, p, j) => (judgement(st, hh, p, needOf(st, hh, j)) ?? 0) < -GIVE.hold;
@@ -423,6 +433,7 @@ VB['sim/levies'] = (() => {
     leftToday,
     GIVE,
     DEMAND,
+    gives,
     complies,
     takes,
     demands,

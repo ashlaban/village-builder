@@ -393,6 +393,44 @@ function handsOf(s, id) {
   }
 }
 
+// 12. (VB-1762) Own hours given by the pawn's judgement: of two sons alike but in diligence (0.8 and 0.2; their traits else the same),
+// over a season with fields, the diligent one gives at least three times the hours of the idle one to the household's work of its own
+// accord (its legs opened by the pawn), and what it gives past its levy is booked given.
+let ownSeen = '';
+{
+  const { TICKS } = VB['sim/rules'],
+    D = VB['sim/traits'].IDX.diligence;
+  const s = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 });
+  Sim.advance(s, 4.5);
+  const h = s.households[2],
+    sp = spouseOf(s, h.holder),
+    [x, y] = h.members.filter((id) => id !== h.holder && id !== sp && age(s, s.pawns[id]) >= 14);
+  assert.ok(x !== undefined && y !== undefined, 'a household of two grown sons');
+  s.pawns[y].traits = s.pawns[x].traits.slice();
+  s.pawns[x].traits[D] = 0.8;
+  s.pawns[y].traits[D] = 0.2;
+  const own = { [x]: 0, [y]: 0 },
+    given = { [x]: 0, [y]: 0 };
+  const legs0 = VB.count.giveLeg;
+  for (let d = 0; d < SEASON_DAYS - 1; d++) {
+    // each step a son is in a leg of the household's work it opened itself counts a step given of its own accord
+    for (let k = 0; k < DAY * TICKS; k++) {
+      Sim.advance(s, 1 / TICKS);
+      for (const id of [x, y]) {
+        const l = s.agents[id].leg;
+        if (l && l.by === 'pawn') own[id] += 1 / TICKS;
+      }
+    }
+    const yd = Math.floor(s.t / DAY) - 1;
+    for (const id of [x, y]) given[id] += Sim.hours(s, id, yd, yd)[0].given;
+  }
+  assert.ok(VB.count.giveLeg > legs0, 'legs given by judgement');
+  assert.ok(own[x] >= 3 * own[y] && own[x] > 0, `the diligent son gives three times the idle one's hours (${own[x].toFixed(1)}, ${own[y].toFixed(1)})`);
+  assert.ok(given[x] > 0 && given[x] >= given[y], `hours past the levy booked given (${given[x].toFixed(1)}, ${given[y].toFixed(1)})`);
+  assert.deepStrictEqual(checkState(s), [], 'invariants after a season of own hours');
+  ownSeen = `${own[x].toFixed(0)} hours against ${own[y].toFixed(0)}, ${given[x].toFixed(0)} of them past the levy`;
+}
+
 console.log(
-  "levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first; each leg's hours booked into the six parts, a day summing to H, the tally folded; a demand named and answered by the member's judgement, a breach's hours taken, goodwill booked both ways",
+  `levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first; each leg's hours booked into the six parts, a day summing to H, the tally folded; a demand named and answered by the member's judgement, a breach's hours taken, goodwill booked both ways; own hours given by the member's judgement, the diligent son's ${ownSeen}`,
 );

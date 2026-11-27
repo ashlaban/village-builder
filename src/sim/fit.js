@@ -16,6 +16,7 @@ VB['sim/fit'] = (() => {
     Voice = VB['sim/voice'];
   const { claimPrio } = VB['sim/farmclaims'];
   const { commonPrio } = VB['sim/commons'];
+  const Levies = VB['sim/levies'];
   // @tunable PLOT_PRIO: who clears a new plot, by role
   // Who clears a new plot for the village (see sim/expansion): by role; those waiting for the plot take 9 whatever their role.
   const PLOT_PRIO = { waiting: 9, farmhand: 7, maid: 7, son: 5, daughter: 5, farmer: 3 };
@@ -136,15 +137,31 @@ VB['sim/fit'] = (() => {
     const r = appraise(st, st.agents[p.id], j, c, undefined, takeBar, stand);
     return typeof r === 'number' ? { bid: r, reason: null } : { bid: null, reason: r };
   }
-  // Why a pawn gets no job: every open job it may take with its bid, or the reason it gets none. Best first. Draws no random
-  // numbers and writes nothing to st.
+  // Why a pawn gets no job: every open job it may take with its bid, or the reason it gets none. Best first. A levied member with no
+  // levy left today is on its own hours (VB-1762): a job it would bid for and that its judgement gives nothing to says so, the choice
+  // its own (sim/levies gives). Draws no random numbers and writes nothing to st.
+  const KEPT = 'its own hours: it gives none';
   function explainIdle(st, id) {
     const p = st.pawns[id],
       c = cal(st.t),
       out = [],
-      stand = standOf(st, p);
+      stand = standOf(st, p),
+      hh = p.household === null ? null : st.households[p.household],
+      own =
+        !!hh &&
+        !hh.dissolved &&
+        age(st, p) >= CHILD.from &&
+        Levies.levied(st, hh, p) &&
+        !(Levies.capacity(st, hh, p, c) > 1e-9);
     for (const j of st.jobs.values())
-      if (eligible(st, j, p)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c, stand) });
+      if (eligible(st, j, p)) {
+        const r = fit(st, p, j, c, stand);
+        out.push({
+          job: j.key,
+          kind: j.kind,
+          ...(own && r.bid !== null && !Levies.gives(st, hh, p, j, true) ? { bid: null, reason: KEPT } : r),
+        });
+      }
     return out.sort((x, y) => (y.bid ?? -Infinity) - (x.bid ?? -Infinity));
   }
   // One line for the pawn panel: the best reason an idle adult has no work; null when it has a job or it is not working time.
