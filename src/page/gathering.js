@@ -13,6 +13,7 @@ const OCC_WORDS = {
   rite: 'The rite',
   wedding: 'A wedding',
   funeral: 'A funeral ale',
+  harvest: 'A harvest home',
   ale: 'An ale evening',
   call: 'A call at a farm',
   gathering: 'The gathering',
@@ -185,9 +186,11 @@ function showGathering() {
       ? `For ${o.for.map(name).join(' and ')}`
       : o.kind === 'funeral'
         ? `For ${o.for.map(name).join(' and ')}, who died`
-        : o.kind === 'ale' && o.for.length
-          ? `Opened by ${name(o.for[0])}`
-          : '';
+        : o.kind === 'harvest'
+          ? `Held by ${name(o.for[0])}`
+          : o.kind === 'ale' && o.for.length
+            ? `Opened by ${name(o.for[0])}`
+            : '';
   card(
     OCC_WORDS[o.kind],
     [
