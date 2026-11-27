@@ -156,7 +156,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1907](backlog/VB-1907.md)<a id="VB-1907"></a> | A season's fit end to end: the morning ask and the round's servant checked, plan.fit read through one accessor | - | 3 | S | Cause: VB-1778 (review F9, F10); a check of the planned help asked and the servant taken, and plan.fit's readers behind sim/levies |
 | [VB-1909](backlog/VB-1909.md)<a id="VB-1909"></a> | A stone oven in the house: a part of stone only that burns less wood | - | 3 | S | farmstead.hearth ('open' default, 'oven'): a part of the house beside the foundation, 4 loads of stone and 20 work hours, the day's firewood 0.9 of what it was; split from VB-369, which keeps the roof. |
 | [VB-1915](backlog/VB-1915.md)<a id="VB-1915"></a> | Grant and ask: the lighter ask once a season at its turn, leave ahead weighed over its days, the hourly pass counted | - | 3 | S | Advisory findings of VB-1763's review (F4, F6, F7, F8) |
-| [VB-1920](backlog/VB-1920.md)<a id="VB-1920"></a> | Q10: hours displaced by naming outer days three days ahead against the calendar's days | plans | 3 | S | A harness measuring the four-scales plan's Q10 on populous small seed 7, 3 years |
+| [VB-1923](backlog/VB-1923.md)<a id="VB-1923"></a> | Q10: read displaced hours where windows bind | - | 3 | S | Q10 read where windows bind |
 
 </details>
 
