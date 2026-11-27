@@ -70,6 +70,7 @@ function woodActs(i, f, facts) {
     return '';
   }
   const one = 'One load: a tree felled and its timber carried home. One task of the plan.';
+  facts.push(recipeFact('fell', 'fellr'));
   facts.push({ k: 'fellhow', chip: false, icon: actIcon('chop'), why: `Fell timber here. ${one}` });
   return (
     '<div class="u2-row2">' +
@@ -97,6 +98,7 @@ function fireAct(F, f, facts) {
   }
   if (k === 'firewood') {
     const why = `Cut firewood: ${woodTimber(F.timber)} at home, cut at the house.`;
+    facts.push(recipeFact('firewood', 'mendr'));
     facts.push({ k: 'mend', chip: false, icon: goodIcon('wood'), why });
     return (
       `<button type="button" class="u2-act go" data-hud="cutwood" aria-label="${esc(why)}" title="${esc(why)}">` +

@@ -413,7 +413,7 @@ VB['sim/controller'] = (() => {
     wood: (what = 'booth') => `there is no wood to fetch the ${what}'s timber from`,
     stone: () => 'there is no stone to pick or quarry within reach of the house', // VB-1663: the foundation's
 
-    review: () => "posted at the household's next review",
+    review: () => "waits for the household's next planning day",
   };
   const RULES = Object.keys(HOLDS);
   const held = (rule, ...a) => ({ rule, text: HOLDS[rule](...a) });

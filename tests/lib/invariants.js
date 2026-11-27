@@ -167,6 +167,8 @@ function checkState(st) {
         if (!(o.asked >= 0) || !(o.worked >= 0) || o.worked > o.delivered + 1e-9) bad.push(`${at}: asked ${o.asked}, worked ${o.worked} of ${o.delivered}`);
         if (!Array.isArray(o.named) || o.named.some((e, i) => !Number.isInteger(e.day) || (i && o.named[i - 1].day >= e.day) || (e.pawn !== null && !st.pawns[e.pawn]))) bad.push(`${at}: named ${JSON.stringify(o.named)}`);
         if (!['open', 'part', 'overdue'].includes(o.status) && o.named.length) bad.push(`${at}: closed with days named`);
+        // VB-1769: the breaches its levier's agent has still to answer, none once it closes
+        if (!Array.isArray(o.breaches) || o.breaches.some((b) => !Number.isInteger(b.day) || !(b.K >= 0) || !st.pawns[b.by]) || (!['open', 'part', 'overdue'].includes(o.status) && o.breaches.length)) bad.push(`${at}: breaches ${JSON.stringify(o.breaches)}`);
       }
       if (o.status === 'open' && o.delivered > 0 && o.kind !== 'days') bad.push(`${at}: open with ${o.delivered} delivered`);
       // VB-637: a servant's wage is owed by a household to a pawn, in rations, its master's village the enforcer

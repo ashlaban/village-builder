@@ -56,6 +56,23 @@ VB.COUNTERS = {
   leviesLooked:
     "Outer levies read at a day's first step, through the obligations' due-queue (sim/levies step, VB-1767)",
   leviesWeighed: 'Tasks of a household weighed for the windowed work a day named would displace (sim/levies, VB-1767)',
+  pointLevy: 'Outer levies read for the decision points of a pawn its controller asks for (sim/points, VB-1769)',
+  outerCost: "A levied head's reckoning of what keeping a day of an outer levy costs, K (sim/levies costOf, VB-1769)",
+  outerDayJudged:
+    'Days of an outer levy come, judged by the levied head before it sends its adult (sim/levies keepDay, VB-1769)',
+  ladderTried:
+    'Days of an outer levy whose keeping cost passed its worth, the ladder tried (sim/levies keepDay, VB-1769)',
+  daySubstituted: 'Days of an outer levy sent another adult through the verb substitute (sim/levies, VB-1769)',
+  releaseAsked: "Asks for the release of an outer levy's day made by the levied head's rule (sim/levies, VB-1769)",
+  releaseGranted: "Asks for an outer levy's day granted, by release or transfer (sim/levies, VB-1769)",
+  dayReleased: "Days of an outer levy struck by its levier's agent through the verb release (sim/levies, VB-1769)",
+  dayTransferred:
+    "Days of an outer levy lent by its levier's agent to another household (sim/levies transfer, VB-1769)",
+  dayCommuted: "Days of an outer levy paid in grain at the terms' rate through the verb commute (sim/levies, VB-1769)",
+  dayBreached: 'Days of an outer levy breached by the levied head (sim/levies breach, VB-1769)',
+  breachAnswered: "Breaches answered by the levier's agent at its planning day (sim/levies, VB-1769)",
+  breachForgiven: "Breaches forgiven by the levier's agent through the verb forgive (sim/levies, VB-1769)",
+  debtRelaid: "A debt's days left at its year's end laid again as a new year's levy (sim/levies, VB-1769)",
   obligationsDue: 'Obligations whose term ended at a step, taken off the due-queue (sim/obligations, VB-310)',
   asksRead: 'Open asks for a good passed by a head reading them, once a year a head (sim/asks, VB-699)',
   termsValued:

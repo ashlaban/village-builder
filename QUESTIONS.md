@@ -35,6 +35,12 @@ weather); the shortfalls are rows of `docs/tuning.md` (Crops, VB-356).
    tuning row "The seasons' timing" (VB-354) settles it; no threshing for winter (design.md, What crops touch): the autumn is not crowded by
    it (the harvest is the peak of the fields' hours, summer of all hours).
 
+### VB-1472: Is the labour budget the limit on a holder's parallel large projects? (raised 25 November 2026, moved here 27 November)
+The rule that a household keeps at most one project is out of the design (Kim, 21 Nov); what takes its place is open (`backlog/VB-1472.md`). The
+aims design (`docs/plans/four-scales/aims.md`, parked: designed, not scheduled) proposes an answer.
+1. **Is the labour budget the limit on a holder's parallel large projects?** **P:** yes: any number, each sized to the season's spare after the
+   work the household lives by, ranked by its `by`; a `home` aim's plot is not the menu's one project.
+
 ### VB-1554: The day's allotment is the largest part of the jobs line: may a task newly due be slotted in, not the day weighed anew? (raised 23 November 2026)
 The measure (VB-1554, populous small, seed 7, 2 years): the allotment is 31% of the jobs line and its largest part; a household's day is allotted 4.4 times a day (the morning 1, the milking's opening at 6:00 0.55, the cooking's at 14:00 0.8, the village's review 0.7, its own review 0.4, a member's look 0.5, others 0.5), each time every member against every task. Within the Decided rule ("when its tasks change, every member is weighed for every task") only the village's review could go: dayPair 21.4 to 19.3 a pawn-day, a tenth, not the third the task asked.
 1. May a task the due-queue opens (the milking, the cooking, fodder) be weighed alone, each member for that task, and slotted into the lists as they stand, the whole day weighed anew only at the morning, the review and a look? About 30% of the pairs weighed. **P:** yes: the head knows in the morning that the milking and the meal come; the lists otherwise stand, and the call for a task with a deadline stays.

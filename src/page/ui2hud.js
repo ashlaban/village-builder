@@ -49,7 +49,7 @@ function hudYear(hh, f) {
     press,
     win = null,
     chips = [];
-  const left = (icon, n, label) => ({ icon, n: String(n), label });
+  const left = (icon, n, label) => ({ icon, n: String(n), label, unit: n === 1 ? 'day' : 'days' }); // game days, the label says
   if (buildCalls(f)) {
     line = 'Nothing is built yet: the build button places your farmstead';
     press = 1;
@@ -70,7 +70,7 @@ function hudYear(hh, f) {
   } else if (c.doy < hay[0]) {
     line = `Haymaking opens in ${laneDays(hay[0] - c.doy)}`;
     press = 0;
-    chips = [{ icon: actIcon('wait') + actIcon('hay'), n: String(hay[0] - c.doy), label: line }];
+    chips = [left(actIcon('wait') + actIcon('hay'), hay[0] - c.doy, line)];
   } else if (c.doy <= hay[1]) {
     const n = hay[1] - c.doy + 1;
     line = `Haymaking: ${laneDays(n)} left to mow`;
@@ -78,7 +78,8 @@ function hudYear(hh, f) {
     win = 'hay';
     chips = [left(actIcon('hay'), n, line)];
   } else if (c.season < 3) {
-    line = `Winter in ${laneDays(3 * S - c.doy)}: bring in the harvest and the wood`;
+    const out = fields.some((x) => ['sown', 'growing', 'ripe', 'stooks'].includes(x.stage)); // a crop still on its field
+    line = `Winter in ${laneDays(3 * S - c.doy)}${out ? ': bring in the harvest and the wood' : ''}`;
     press = 3 * S - c.doy <= 4 ? 1 : 0;
     win = 'harvest';
     chips = [left(goodIcon('cold'), 3 * S - c.doy, `Winter in ${laneDays(3 * S - c.doy)}`)];
@@ -132,7 +133,11 @@ function renderYear() {
   u2.alert.innerHTML =
     `<button type="button" class="u2-yline" data-hud="pinfo" data-slot="yinfo" data-k="year" aria-pressed="${hud.yinfo === 'year'}" ` +
     `aria-label="${esc(Y.line)}" title="${esc(Y.line)}">${Y.chips
-      .map((x) => `<span class="u2-ychip" aria-hidden="true">${x.icon}${x.n ? `<b>${esc(x.n)}</b>` : ''}</span>`)
+      .map(
+        (x) =>
+          `<span class="u2-ychip" aria-hidden="true">${x.icon}${x.n ? `<b>${esc(x.n)}</b>` : ''}` +
+          `${x.unit ? `<small>${x.unit}</small>` : ''}</span>`,
+      )
       .join('')}</button>` +
     (Y.go
       ? `<button type="button" class="u2-ygo" data-hud="ygo" data-tile="${Y.go.tile}" data-chain="${Y.go.chain}" ` +
@@ -164,7 +169,7 @@ function meHTML(id) {
     lines.push(`Owes ${Math.round(S.owed)} ${Math.round(S.owed) === 1 ? 'hour' : 'hours'} of sleep.`);
   h += lines.length
     ? `<ul class="u2-log">${lines.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`
-    : '<p class="sub">Nothing ails it.</p>';
+    : `<p class="sub">Nothing ails ${p.sex === 'm' ? 'him' : 'her'}.</p>`;
   h += `<div class="u2-row2"><button type="button" class="u2-chip" data-hud="follow" aria-pressed="${followPlayed}">Follow on the map</button></div>`;
   const log = Sim.villageLog(st, 5);
   if (log.length) h += `<h3>Lately</h3><ul class="u2-log">${log.map((e) => `<li>${esc(e.text)}</li>`).join('')}</ul>`;
@@ -485,7 +490,8 @@ if (UI2) {
   ).join('');
   u2.u2.addEventListener('click', (e) => {
     // the tap that opened a callout presses nothing in it: what appears under the finger is not what was aimed at
-    if (e.target.closest('.u2-call') && performance.now() - (hud.tapAt || 0) < 450) return;
+    // nor a tap while the camera still flies to it (the window's act, Show): the card moves until the flight ends
+    if (e.target.closest('.u2-call') && (performance.now() - (hud.tapAt || 0) < 450 || intro)) return;
     const t = e.target.closest('[data-tab]'),
       b = e.target.closest('[data-hud]'),
       pc = e.target.closest('[data-pc]');

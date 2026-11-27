@@ -33,7 +33,8 @@ const onFrame = (tk) => {
     if (keys.has('arrowup') || keys.has('w')) cam.y -= sp * dt;
     if (keys.has('arrowdown') || keys.has('s')) cam.y += sp * dt;
   }
-  if (followPlayed && st && !intro && !drag && !pinch) followCamera();
+  // a tile's callout open in the new interface holds the camera: following would move its buttons under the finger
+  if (followPlayed && st && !intro && !drag && !pinch && !(UI2 && hud.at >= 0)) followCamera();
   // the showcase island behind the menu: the camera drifts slowly about its village
   if (demo && demoAt) {
     const k = reduceMotion ? 0 : 1;

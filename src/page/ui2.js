@@ -71,10 +71,24 @@ function u2Place() {
     let x = r.left + r.width / 2 + (w.hx[a.tile] - cam.x) * cam.z,
       y = r.top + r.height / 2 + (w.hy[a.tile] - cam.y) * cam.z,
       below = false;
+    if (a.call && a.held && a.held.key === `${key}|${a.tile}`) {
+      // the camera has not moved and only the callout's content changed (a chip's words opened, a message): its top stays where the
+      // finger left it and it grows downwards, scrolling within the land left below (the playtests of 27 Nov: a card that grew
+      // upwards moved its buttons under the finger)
+      a.el.style.maxHeight = '';
+      const room = Math.max(120, bot - a.held.top),
+        tall = a.el.offsetHeight > room;
+      a.el.classList.toggle('scroll', tall);
+      if (tall) a.el.style.maxHeight = `${room}px`;
+      a.el.classList.toggle('held', a.held.top + a.el.offsetHeight > a.held.y0); // grown over its own tile: no arrow
+      a.el.style.transform = `translate(${a.held.x.toFixed(1)}px, ${a.held.top.toFixed(1)}px) translate(-50%, 0)`;
+      continue;
+    }
     if (a.call) {
       // above its tile where there is room, else under it, else where there is most, and never under the bars
       // a callout taller than the land between the bars scrolls within it, its top and its close never under a bar
       a.el.style.maxHeight = '';
+      a.el.classList.remove('held');
       const room = Math.max(120, bot - top),
         tall = a.el.offsetHeight > room;
       a.el.classList.toggle('scroll', tall);
@@ -85,8 +99,10 @@ function u2Place() {
         under = y + hex * 0.9 + ch <= bot;
       x = Math.max(cw / 2 + 6, Math.min(r.width - cw / 2 - 6, x));
       below = !over && (under || bot - y > y - top);
+      const y0 = y;
       y += below ? hex * 0.9 : -hex * 0.9;
       y = below ? Math.max(top, Math.min(bot - ch, y)) : Math.min(bot, Math.max(top + ch, y));
+      a.held = { key: `${key}|${a.tile}`, x, top: below ? y : y - ch, y0: below ? Infinity : y0 - hex * 0.5 };
     }
     a.el.classList.toggle('below', below);
     const up = a.call && !below ? '-100%' : a.call ? '0' : '-50%';

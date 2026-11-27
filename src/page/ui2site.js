@@ -232,7 +232,7 @@ function u2Welcome(id, f) {
   u2.welcome.innerHTML =
     (f.camp === true
       ? `<h2>Landed at ${esc(f.name)}</h2><p>${who}It is the first morning of spring. Your goods and animals are landed, and ` +
-        `nothing is built: the nights are spent under the open sky. First, the build button below (${actIcon('build')}): ` +
+        `nothing is built: the nights are spent under the open sky. First, ${actIcon('build')} Build, below: ` +
         'place your farmstead, a shelter to sleep under, a tap on the land: here, or wherever you can walk to (the goods then follow).</p>' +
         '<p>Then break a field and sow before the season turns; make hay in summer; reap in autumn; live on your stores through winter.</p>'
       : `<h2>${esc(f.name)} stands</h2><p>${who}It is the first morning of spring. Break a field and sow before the season turns; ` +
