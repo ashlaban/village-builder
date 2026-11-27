@@ -250,7 +250,8 @@ VB['draw/rivers'] = (() => {
   }
   // Paints the rivers of one map chunk onto ctx, over the baked land and under the decorations. lv: draw/bake LV[level]; full: level 0.
   // The paint only takes where the chunk already holds land (or the foam along a shore), so a river ends at the painted coastline.
-  function drawChunk(w, ctx, lv, cx, cy, full) {
+  // look: the rows' season looks (draw/season rowLooks), or none: a river is iced as a lake is, by its tile's row (VB-083).
+  function drawChunk(w, ctx, lv, cx, cy, full, look = null) {
     const { R, HW, AP, COLS, ROWS } = w,
       sc = lv.scale,
       x0 = cx * lv.size,
@@ -262,8 +263,17 @@ VB['draw/rivers'] = (() => {
       r1 = Math.min(ROWS - 1, Math.ceil((y1 + M - R) / (1.5 * R)));
     const c0 = Math.max(0, Math.floor((x0 - M - AP) / HW)),
       c1 = Math.min(COLS - 1, Math.ceil((x1 + M - AP) / HW));
-    const all = [];
-    for (let row = r0; row <= r1; row++) for (let col = c0; col <= c1; col++) all.push(...lines(w, row * COLS + col));
+    const all = [],
+      ice = []; // the ice of each line, by its tile's row
+    for (let row = r0; row <= r1; row++)
+      for (let col = c0; col <= c1; col++) {
+        const ls = lines(w, row * COLS + col),
+          k = look ? VB['draw/season'].lakeOf(look[row]) : 0;
+        for (const pts of ls) {
+          all.push(pts);
+          ice.push(k);
+        }
+      }
     if (!all.length) return;
     const minH = (full ? 0.35 : 0.45) / sc; // a half-width of at least this many texels, so brooks still show on the overview
     const dry = all.map((pts) => pts.filter((p) => p[3] === 1));
@@ -276,16 +286,34 @@ VB['draw/rivers'] = (() => {
     ];
     ctx.setTransform(sc, 0, 0, sc, -x0 * sc, -y0 * sc);
     ctx.globalCompositeOperation = 'source-atop';
-    // a small pool where each river rises
-    const springs = all
-      .filter((pts) => pts.spring)
-      .map((pts) => [pts[0][0], pts[0][1], 2 * (3.5 + 2.5 * dot(w, pts[0][0], pts[0][1], 30)), 1]);
-    for (const [colour, h, landOnly] of layers) {
-      ctx.beginPath();
-      for (const pts of landOnly ? dry : all) if (pts.length > 1) outline(ctx, pts, h);
-      for (const sp of springs) if (h(sp) > 0) pool(w, ctx, sp[0], sp[1], h(sp));
-      ctx.fillStyle = colour;
-      ctx.fill();
+    // open water in its colours; ice in the ice's (draw/season ICE_CSS), with no pale line down the middle
+    const iceCss = VB['draw/season'].ICE_CSS;
+    for (let li = 0; li < layers.length; li++) {
+      const [colour, h, landOnly] = layers[li];
+      for (let k = 0; k < 3; k++) {
+        if (k && li === 2) continue;
+        let any = false;
+        ctx.beginPath();
+        all.forEach((pts, n) => {
+          if (ice[n] !== k) return;
+          const p = landOnly ? dry[n] : pts;
+          if (p.length > 1) {
+            outline(ctx, p, h);
+            any = true;
+          }
+          if (pts.spring) {
+            // a small pool where the river rises
+            const sp = [pts[0][0], pts[0][1], 2 * (3.5 + 2.5 * dot(w, pts[0][0], pts[0][1], 30)), 1];
+            if (h(sp) > 0) {
+              pool(w, ctx, sp[0], sp[1], h(sp));
+              any = true;
+            }
+          }
+        });
+        if (!any) continue;
+        ctx.fillStyle = k && li === 1 ? iceCss[k] : colour;
+        ctx.fill();
+      }
     }
     if (sc >= 1 / 3) {
       crossings(w, ctx, all);

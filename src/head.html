@@ -134,6 +134,10 @@ body {
 .clock { border-radius: var(--r-2); padding: 8px 10px 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; max-width: 700px; } /* one row with Skip and Main menu (VB-338) */
 .clock strong { display: block; font-size: 19px; }
 .clock span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.clock .ice-key { display: flex; flex-direction: column; gap: 2px; } /* the key of the ice, while any is on the map (VB-083) */
+.clock .ice-key[hidden] { display: none; }
+.clock .ice-key span { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.clock .ice-key i { display: inline-block; width: 14px; height: 10px; border: 1px solid #2c201c; border-radius: 2px; }
 .speed { display: flex; flex-wrap: wrap; gap: 4px; }
 /* The top bar's controls are icons (VB-338): pause, the speeds as one to five arrows, and at its end the eye that hides the interface. */
 .clock .icon-btn { width: 44px; height: 44px; flex: none; }
