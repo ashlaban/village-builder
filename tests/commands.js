@@ -697,10 +697,11 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
     unqueue: () => Sim.unqueue(s, mem, 0),
     setAuto: () => Sim.setAuto(s, mem, true),
     wish: () => Sim.wish(s, mem, 'out', false),
-    answer: () => { return Sim.answer(s, mem, 9999, true); },
-    orderVisit: () => { return Sim.orderVisit(s, mem, mem, 0); },
+    answer: () => Sim.answer(s, mem, 9999, true),
+    orderVisit: () => Sim.orderVisit(s, mem, mem, 0),
     plan: () => Sim.plan(s, mem, 'dayOrder', { from: 0, to: 0 }),
   };
+  assert.ok(!s.player, 'no pawn is played for these calls');
   assert.deepStrictEqual(Object.keys(calls).sort(), [...ISSUES].sort());
   try {
     for (const k of ISSUES) { const r0 = reached; calls[k](); assert.ok(reached > r0, `Sim.${k} issues a verb`); }
