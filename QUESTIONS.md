@@ -45,3 +45,25 @@ The measure (VB-1554, populous small, seed 7, 2 years): the allotment is 31% of 
 ### VB-834: Should a busy place drift faster: a term in attitude.malleability? (raised 19 November 2026)
 tools/contact.js (populous small, seeds 7, 11, 13, 40 years): villages in the top fifth by distinct people met at venues drift 0.0079 a key a year against 0.0096 for the rest (correlation -0.28); gathering hosts 0.0082 against 0.0095. Contact alone gives no faster drift.
 Proposed answers: (a) leave it to contact: no term; (b) add a term to attitude.malleability reading those met at venues, with a range (e.g. 1 to 1.5 times), so a busy place drifts faster by mechanism.
+
+### VB-1892: The take-back of a step first found at risk past its by (raised 27 November 2026)
+1. **A step first found at risk only after its `by`: is it taken back at once, or does its author get one review to answer?** VB-1886 found that 8 of the 15 `by` misses on the deadline arm were first found at risk past their `by` (the head's estimate said on time until then), and the other 7 were never weighed between the `by` and the task's end; today the take-back also needs an earlier review to have found the step at risk, so none was taken back. The design says the author is asked, and "unanswered by the deadline" the default author takes over (answer 17: after its deadline).
+   **P:** At once, at the first review past the `by`: the `by` was the author's deadline, and a controller that wants the step left marks it kept. The decision point stays open from the first at-risk finding to that review.
+2. **May a member's dated step bring its household's review out of turn on its `by` day and the day after?** README 3.5 allows the head's review "out of turn once a day for one cause"; today a slow head reviews every third day, so the deadline can pass two days unweighed.
+   **P:** Yes, once a day, only for households with a member on its own plan (no cost in a run where none plans for itself).
+3. **Which side of the head's range makes a step at risk?** Today the check uses the estimate's centre (`mid`); README 3.5 makes the head's own range "the band inside which nothing is at risk".
+   **P:** Leave the centre for this task (a step past its `by` is at risk whatever the band); the band is a separate change if Kim wants the hysteresis.
+
+### VB-1893: Who may set a load down by a call, and when the called hand is off (raised 27 November 2026)
+1. **Who may set a load down by saying so?** The Decided row says "a call sets a load down only when the caller says so, the cost shown first". Calls that send a carrier home today: the head's `dayCall`, a controller's queued `goHome`, an occasion's summons (`sim/occasions`), a pastime at home.
+   **P:** Only a command that names `setDown`: the head's call and the pawn's own controller. The rules' summons (occasions, pastimes, drink) never set a load down: they wait for it to be brought in, as the day's end and a lent hand's hours already do (`sim/clock`, `sim/hands`).
+2. **Does a member called off while it brings a load in count as off from the call or from the delivery?** The hours of the walk home with the load are booked to the task's owner today (the six parts, VB-1761).
+   **P:** From the delivery: the walk with the load is the task's (booked as its work), and the call takes effect when the load is in, as a levied day that ends on the road does (VB-1548).
+
+## Priority 3
+
+### VB-1894: A planner's steps given back when it cannot work: for good, and for any illness (raised 27 November 2026)
+1. **When the planner is well again or back, do its steps return to its own plan?** The take-back moves a step to the household's plan for good (VB-1755).
+   **P:** No: they stay the household's, as at a take-back; the card says why, and the controller may author them again (a decision point at its next review).
+2. **Does an illness of a day or less count?** VB-1758 returns a lost holder's day-list tasks at once whatever the illness's length.
+   **P:** Yes, at once, as the day's lists do: the step's author is a controller, and the default author cannot know the illness will be short (The future is someone's estimate).

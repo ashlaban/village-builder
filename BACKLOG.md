@@ -162,6 +162,9 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-1892](backlog/VB-1892.md)<a id="VB-1892"></a> | An authored step past its by is taken back the next morning, whatever the head's planning cadence | plans | 2 | S | VB-1886: the take-back never fired for a head's authored tasks, since the review first finds a step at risk only past its by, and takes it back only at a second review; a step due today brings the review out of turn |
+| [VB-1893](backlog/VB-1893.md)<a id="VB-1893"></a> | A call does not set a load down: a hand sent home with a load in hand brings it in first | plans | 2 | S | goHome releases the job in hand, and release lays a load where the pawn stands; dayCall and a controller's queued goHome so set down a load on the way home, which the Decided rule forbids unless the caller says so, the cost shown first |
+| [VB-1894](backlog/VB-1894.md)<a id="VB-1894"></a> | A planner who falls ill or is called away gives its authored steps back to the household's day at once | plans | 3 | S | VB-1758 returns a lost holder's tasks to the pool from the day's lists only; a pawn on its own plan that falls ill or is called away keeps its authored steps, which wait for the at-risk review and its by, against the Decided third condition of Authors |
 
 </details>
 
