@@ -473,7 +473,7 @@ VB['sim/chores'] = (() => {
   VB['sim/methods'].labour(KINDS.cook, { inside: true });
   VB['sim/methods'].labour(KINDS.brew, { inside: true });
   // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
-  VB['sim/methods'].trip(KINDS.gather, 'gather', {
+  VB['sim/methods'].trip(KINDS.gather, 'wild', {
     look: 'basket',
     words: 'Carrying the baskets home',
     deliver: (st, j, hh, f, a) => {

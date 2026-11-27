@@ -151,8 +151,8 @@ assert.ok(
   let woodAt = null;
   // the raising is other work (MATCH.urgency.other), done when the haymaking leaves a hand: some 41.7 days on, at VB-1812's end as after
   // VB-1814 (a cart left at the meadow is taken up by its next hand, not fetched home), 40 before VB-1812, since the hay's cart is fetched
-  // before its load and walks at its pace (VB-1812)
-  for (let h = 0; h < 42 * DAY && !g.booths.length; h++) {
+  // before its load and walks at its pace (VB-1812); the day moves with the hands' trips (37.7 to 45.8 across VB-1813 and VB-1810), so the bound is 50
+  for (let h = 0; h < 50 * DAY && !g.booths.length; h++) {
     Sim.advance(g, 1);
     if (woodAt === null && gp.steps[0].wood >= BOOTH.wood) woodAt = g.t;
   }

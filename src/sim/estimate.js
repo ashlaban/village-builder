@@ -14,7 +14,7 @@ VB['sim/estimate'] = (() => {
   const { says } = VB['sim/methods'];
   const Iron = VB['sim/ironwork'];
   const { doneOf, attentionOf, teamKind } = VB['sim/work'];
-  const { hasTeam } = VB['sim/herds'];
+  const { hasTeam, winterNeed } = VB['sim/herds'];
   const { headSkill } = VB['sim/seasonal'];
   const { fieldKey } = VB['sim/fieldwork'];
   const { on } = VB['sim/events'];
@@ -235,6 +235,58 @@ VB['sim/estimate'] = (() => {
       { kind: 'misjudged', pawn: id, reason: cause, ...atFarm(f) },
     );
   }
+  // The hours each season step still wants by the head's estimate (VB-1826: its rates and its lean), `left` {lo, mid, hi}: a
+  // target's from its store's shortfall against its level (wood: the loads it lacks, fell and cut; hay: the mowing and carrying its
+  // shortfall wants; fields: a clearing and a breaking each field it lacks; seed and the made goods: none yet, VB-1867), a routine's none
+  // yet (VB-1868). One estimate a target step with work left; it feeds no rule yet (VB-1778 sets it against the labour budget).
+  function workOfTarget(st, hh, c, T) {
+    const k = T.what.target;
+    if (k.store === 'wood') {
+      const lack = k.seasons[c.season] - (hh.wood || 0);
+      if (!(lack > 0)) return null;
+      return { kind: 'wood', hours: Math.ceil(lack / st.ECON.woodPerTrip) * (KINDS.wood.hours || 3) };
+    }
+    if (k.store === 'hay' && hh.farmstead !== null) {
+      const need = Math.max(0, winterNeed(st, hh));
+      let held = hh.hay || 0;
+      for (const m of st.farmsteads[hh.farmstead].meadows) if (m.stage === 'mown') held += m.held;
+      const lack = k.level * need - held;
+      if (!(lack > 0)) return null;
+      return { kind: 'mow', hours: (lack / 30) * (KINDS.mow.hours + KINDS.hay.hours) };
+    }
+    if (k.store === 'fields' && hh.farmstead !== null) {
+      const lack = k.level - st.farmsteads[hh.farmstead].fields.length;
+      if (!(lack > 0)) return null;
+      return { kind: 'clear', hours: lack * (KINDS.clear.hours + KINDS.break.hours) };
+    }
+    return null;
+  }
+  function setLeft(st, plan, hh, c) {
+    const id = plan.head ? plan.head.pawn : null;
+    for (const s of plan.season) {
+      const w = s.what.target ? workOfTarget(st, hh, c, s) : null;
+      if (!w) {
+        s.left = { lo: 0, mid: 0, hi: 0 }; // lint-allow: owner the estimate is the head's, sim/estimate (sim/seasonal sits before it)
+        continue;
+      }
+      const e =
+        id === null
+          ? null
+          : estimate(st, id, {
+              kind: w.kind,
+              hours: w.hours,
+              done: 0,
+              rate: 0,
+              owner: { type: 'household', id: hh.id },
+              claims: [],
+            });
+      s.left = // lint-allow: owner as above
+        e && Number.isFinite(e.mid) ? { lo: e.lo, mid: e.mid, hi: e.hi } : { lo: w.hours, mid: w.hours, hi: w.hours };
+    }
+  }
+  on('planReviewed', (st, d) => {
+    if (d.plan.holder.type === 'household') setLeft(st, d.plan, st.households[d.plan.holder.id], d.c);
+  });
   on('windowMissed', missed);
   return { ESTIMATE, judgement, reckoned, estimate, headOf, workFor, rateFor, attended, workOf, span };
 })();

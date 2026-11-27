@@ -164,7 +164,7 @@ VB['sim/dig'] = (() => {
     },
   };
   // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
-  VB['sim/methods'].trip(KIND, 'dig', {
+  VB['sim/methods'].trip(KIND, 'earth', {
     look: 'basket',
     words: 'Carrying the load home',
     // home with the basket: its load into the store

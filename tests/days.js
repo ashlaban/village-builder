@@ -5,7 +5,7 @@ const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { eligible } = VB['sim/eligibility'], Jobs = VB['sim/jobs'], O = VB['sim/obligations'], { issue } = VB['sim/commands'];
 const { age } = VB['sim/records'], { DAY } = VB['sim/rules'], { MATCH } = VB['sim/roles'], { DAYS } = VB['sim/days'];
-const { checkState } = require('./lib/invariants.js');
+const { checkState } = require('./lib/invariants.js'), Days = VB['sim/days'];
 const st = tinyState(tinyWorld(Array(20).fill('.'.repeat(36))), [{ at: [8, 10], farms: 2, sizes: [4, 4] }], { seed: 4 });
 Sim.advance(st, 3);
 const [A, B] = [st.households[0], st.households[1]], fA = st.farmsteads[A.farmstead], fB = st.farmsteads[B.farmstead];
@@ -103,3 +103,44 @@ assert.deepStrictEqual(checkState(st).filter((b) => /obligation|days/.test(b)), 
   [ag.job, ag.load, st.daysToday] = was;
 }
 console.log("days ok: a day called, worked on the creditor's field as others' hours, home at night; a keep lapses, a debt stands");
+// VB-1813: an owed hand whose hours are booked while it is cut at a creditor's trip (a basket of stone picked: the load made, carried to the
+// creditor's store by the methods) and on a wood haul (the load in hand set in the creditor's store) sets the load in the store, then walks home
+// (sim/agents dayGiven, onward); the store is the creditor's, never the debtor's
+{
+  const { tinyWorld, tinyState } = require('./lib/tiny.js'), Agents = VB['sim/agents'], Stores = VB['sim/stores'], { cal } = VB['sim/rules'];
+  const rows = Array.from({ length: 14 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF' : '.'.repeat(36)));
+  const mkst = () => {
+    const s = tinyState(tinyWorld(rows), [{ at: [8, 8], farms: 2, sizes: [4, 4] }], { seed: 4 });
+    s.naturalDeaths = false;
+    Sim.advance(s, 3);
+    while (cal(s.t).hour < 8) Sim.advance(s, 0.25);
+    return s;
+  };
+  for (const kind of ['gather', 'wood']) {
+    const s = mkst(), [CA, CB] = [s.households[0], s.households[1]], fa = s.farmsteads[CA.farmstead], ob = O.create(s, { kind: 'days', debtor: { kind: 'household', id: CB.id }, creditor: { kind: 'household', id: CA.id }, owes: { days: 2 }, source: 'debt' });
+    const h = CB.members.find((m) => s.pawns[m].alive && age(s, s.pawns[m]) >= MATCH.help.minAge), ag = s.agents[h];
+    const site = s.villages[fa.village].wood[0];
+    assert.ok(site >= 0, `${kind}: a site`);
+    const jj = Jobs.post(s, `${kind}:test`, kind, { type: 'household', id: CA.id }, site, { farm: fa });
+    const mark = (x) => { s.daysToday = { day: Math.floor(s.t / DAY), by: { [h]: [ob, x, 0] } }; };
+    mark(0);
+    VB['sim/agents'].release(s, ag);
+    ag.basis = 'owed';
+    Agents.start(s, ag, jj);
+    const held = (hh) => (kind === 'gather' ? hh.fresh.reduce((x, b) => x + b.qty, 0) : Stores.heldOf(hh, 'timber') + (hh.wood || 0)), stone = () => held(CA), mine = () => held(CB), was = [stone(), mine()];
+    let n = 0;
+    if (kind === 'gather') {
+      while (!(ag.leg && ag.leg.kind === 'work') && n++ < 400) Sim.advance(s, 0.1);
+      for (let i = 0; i < 5; i++) Sim.advance(s, 0.1); // half an hour of its two hours worked
+    }
+    else while (!(ag.load > 0) && n++ < 600) Sim.advance(s, 0.1);
+    assert.ok(n < 400 && ag.job === jj && (kind === 'wood' || ag.leg.kind === 'work'), `${kind}: the hand is at the trip (${n}, ${ag.job && ag.job.key})`);
+    const hours = DAYS.hours;
+    mark(hours);
+    if (kind === 'gather') Days.step(s);
+    let i = 0;
+    for (; i < 25 && (ag.job || !ag.inside); i++) Sim.advance(s, 0.1); // well within the hours it would take to work on
+    assert.ok(!ag.job && ag.inside && !(ag.load > 0), `${kind}: the load set down, the hand home (${ag.job && ag.job.key}, ${ag.load}, inside ${ag.inside})`);
+    assert.ok(stone() > was[0] && mine() === was[1], `${kind}: the load is in the creditor's store (${was[0]} to ${stone()}; its own ${mine()})`);
+  }
+}

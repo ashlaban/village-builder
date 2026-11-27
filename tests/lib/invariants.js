@@ -1611,7 +1611,7 @@ function checkState(st) {
     else st.lying.forEach((l, n) => {
       const at = `lying[${n}] (${l.id})`, prev = st.lying[n - 1], o = l.owner;
       if (!Number.isInteger(l.id) || !(l.id <= st.lyingSeq) || (prev && !(prev.id < l.id && prev.t <= l.t))) bad.push(`${at}: id ${l.id} out of order, or past lyingSeq ${st.lyingSeq}`);
-      if (!KS[l.kind] || !KS[l.kind].methods) bad.push(`${at}: kind ${l.kind} has no fetching`); // a kind with methods: its stray method (VB-1775)
+      if (!(KS[l.kind] && KS[l.kind].methods) && !Object.keys(KS).some((k) => globalThis.VB['sim/doing'].planOf(k).uses.includes(l.kind))) bad.push(`${at}: kind ${l.kind} has no fetching`); // a kind with methods: its stray method (VB-1775)
       if (!(l.n > 0) || !Number.isFinite(l.n)) bad.push(`${at}: a load of ${l.n}`);
       if (!Number.isInteger(l.tile) || l.tile < 0 || l.tile >= st.w.COLS * st.w.ROWS) bad.push(`${at}: on tile ${l.tile}`);
       if (!(l.t <= st.t) || !(st.t - l.t < YEAR)) bad.push(`${at}: put down at ${l.t}, a year or more ago (the frost rots it)`);

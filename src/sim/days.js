@@ -28,6 +28,12 @@ VB['sim/days'] = (() => {
     const e = d.by[id];
     return e && e[1] < DAYS.hours - 1e-9 ? st.obligations[e[0]].creditor.id : null;
   }
+  // Whether pawn id has booked its day's hours today: its day owed is given (sim/agents' hours a pawn may work now read it)
+  function given(st, id) {
+    const d = st.daysToday,
+      e = d && d.day === today(st) ? d.by[id] : null;
+    return !!e && e[1] >= DAYS.hours - 1e-9;
+  }
   const farmOf = (st, hh) => (hh.farmstead === null ? null : st.farmsteads[hh.farmstead]);
   // The hours of work the household has open now: its tasks with room, what is left of each.
   function openHours(st, hh) {
@@ -149,5 +155,5 @@ VB['sim/days'] = (() => {
     if (Obligations.isLive(o))
       Obligations.fulfil(st, o.id, Math.min(n / DAYS.hours, Obligations.left(o)), 'days worked');
   }
-  return { DAYS, on, worked, step };
+  return { DAYS, on, given, worked, step };
 })();
