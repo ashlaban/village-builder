@@ -327,10 +327,11 @@ VB['sim/steps'] = (() => {
     }
   }
   // Step s leaves pawn id's plan and the default author takes it: into household hid's `ahead`, its author the rule's, due by `by`.
-  function takeBack(st, id, s, hid, by) {
+  function takeBack(st, id, s, hid, by, why) {
     let plan = planFor(st, 'pawn', id);
     plan.ahead.splice(plan.ahead.indexOf(s), 1);
     s.tookBack = { from: id, t: st.t, by: s.by };
+    if (why) s.tookBack.why = why; // its holder could not work (VB-1894): 'fell ill', 'was called away', 'died'
     s.author = 'custom';
     s.state = 'open';
     s.why = { custom: 'taken back' };
@@ -384,8 +385,12 @@ VB['sim/steps'] = (() => {
       return;
     }
   });
-  // At a death the pawn's own steps leave its record, with its last task; the record goes if it holds nothing more.
+  // At a death the pawn's own steps leave its record, with its last task; the record goes if it holds nothing more. Before that the
+  // default author (sim/authored, VB-1894) takes back the open tasks, through onGone.
+  let gone = null;
+  const onGone = (fn) => (gone = fn);
   on('died', (st, d) => {
+    if (gone) gone(st, d.pawn);
     const plan = planFor(st, 'pawn', d.pawn);
     if (!plan || plan.lastTask === undefined) return;
     plan.ahead = plan.ahead.filter((s) => s.author !== 'pawn');
@@ -407,6 +412,7 @@ VB['sim/steps'] = (() => {
     dateTask,
     atRisk,
     takeBack,
+    onGone,
     dropTaken,
     plannersIn,
     stepOfKey,

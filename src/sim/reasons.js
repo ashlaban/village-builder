@@ -89,14 +89,17 @@ VB['sim/reasons'] = (() => {
     if (!f || !(f.s.tookBack || f.s.state === 'at-risk')) return r;
     const step = f.s.tookBack
       ? { tookBack: { ...f.s.tookBack }, by: f.s.by }
-      : { atRisk: true, by: f.s.by, short: f.s.risk.short, kept: !!f.s.kept, pawn: f.pawn };
+      : { atRisk: true, by: f.s.by, short: f.s.risk.short, why: f.s.risk.why, kept: !!f.s.kept, pawn: f.pawn };
     return { ...r, step };
   }
   // The words of a task's step at risk or taken back (VB-1755; design.md section 7, A step at risk, and the take-back): the card says so.
   function stepWords(st, id, x) {
     const whose = (q) => (q === id ? 'its own' : `${fullName(st.pawns[q])}'s`);
     if (x.tookBack)
-      return `taken back from ${whose(x.tookBack.from)} plan by the household's day: it would not be done by day ${x.tookBack.by}`;
+      return x.tookBack.why
+        ? `taken back from ${whose(x.tookBack.from)} plan by the household's day: its holder ${x.tookBack.why}`
+        : `taken back from ${whose(x.tookBack.from)} plan by the household's day: it would not be done by day ${x.tookBack.by}`;
+    if (x.why) return `${x.kept ? 'kept to its plan, at risk' : 'at risk'}: its holder ${x.why}`;
     return `${x.kept ? 'kept to its plan, at risk' : 'at risk'}: ${x.short} hours short of done by day ${x.by}`;
   }
   // Who chose pawn id's present act, and why (before its step's warning, reasonWith).

@@ -1,7 +1,7 @@
 {
- "commit": "44753419",
+ "commit": "a536186c",
  "years": 10,
- "wallSeconds": 261,
+ "wallSeconds": 659,
  "runs": [
   {
    "scenario": "founders",
@@ -26,7 +26,7 @@
    ],
    "stuck": 0,
    "unexplained": 0,
-   "produced": 15217,
+   "produced": 16051,
    "hungryDays": 0,
    "hungerDeaths": 0
   },
@@ -53,8 +53,8 @@
    ],
    "stuck": 0,
    "unexplained": 0,
-   "produced": 16819,
-   "hungryDays": 4,
+   "produced": 16314,
+   "hungryDays": 5,
    "hungerDeaths": 0
   },
   {
@@ -80,7 +80,7 @@
    ],
    "stuck": 0,
    "unexplained": 0,
-   "produced": 14235,
+   "produced": 14034,
    "hungryDays": 0,
    "hungerDeaths": 0
   },
@@ -92,7 +92,7 @@
      "id": 0,
      "name": "Lillåker",
      "living0": 33,
-     "living10": 38,
+     "living10": 37,
      "extinct": false,
      "why": null
     },
@@ -100,7 +100,7 @@
      "id": 1,
      "name": "Åsby",
      "living0": 17,
-     "living10": 18,
+     "living10": 23,
      "extinct": false,
      "why": null
     },
@@ -108,7 +108,7 @@
      "id": 2,
      "name": "Långlunda",
      "living0": 32,
-     "living10": 39,
+     "living10": 40,
      "extinct": false,
      "why": null
     },
@@ -116,7 +116,7 @@
      "id": 3,
      "name": "Lindsta",
      "living0": 28,
-     "living10": 29,
+     "living10": 27,
      "extinct": false,
      "why": null
     },
@@ -124,7 +124,7 @@
      "id": 4,
      "name": "Ullunda",
      "living0": 22,
-     "living10": 30,
+     "living10": 25,
      "extinct": false,
      "why": null
     },
@@ -132,7 +132,7 @@
      "id": 5,
      "name": "Tranlunda",
      "living0": 18,
-     "living10": 16,
+     "living10": 27,
      "extinct": false,
      "why": null
     },
@@ -140,7 +140,7 @@
      "id": 6,
      "name": "Gråvik",
      "living0": 28,
-     "living10": 19,
+     "living10": 25,
      "extinct": false,
      "why": null
     },
@@ -148,7 +148,7 @@
      "id": 7,
      "name": "Stensta",
      "living0": 34,
-     "living10": 25,
+     "living10": 44,
      "extinct": false,
      "why": null
     },
@@ -164,7 +164,7 @@
      "id": 9,
      "name": "Torslunda",
      "living0": 34,
-     "living10": 45,
+     "living10": 39,
      "extinct": false,
      "why": null
     },
@@ -172,7 +172,7 @@
      "id": 10,
      "name": "Ängsta",
      "living0": 22,
-     "living10": 37,
+     "living10": 17,
      "extinct": false,
      "why": null
     },
@@ -180,15 +180,15 @@
      "id": 11,
      "name": "Almlunda",
      "living0": 39,
-     "living10": 44,
+     "living10": 36,
      "extinct": false,
      "why": null
     }
    ],
    "stuck": 0,
    "unexplained": 0,
-   "produced": 306770,
-   "hungryDays": 83,
+   "produced": 294345,
+   "hungryDays": 192,
    "hungerDeaths": 0
   },
   {
@@ -199,7 +199,7 @@
      "id": 0,
      "name": "Örnlunda",
      "living0": 17,
-     "living10": 24,
+     "living10": 15,
      "extinct": false,
      "why": null
     },
@@ -207,7 +207,7 @@
      "id": 1,
      "name": "Hasselberga",
      "living0": 35,
-     "living10": 42,
+     "living10": 48,
      "extinct": false,
      "why": null
     },
@@ -215,7 +215,7 @@
      "id": 2,
      "name": "Torslunda",
      "living0": 33,
-     "living10": 35,
+     "living10": 44,
      "extinct": false,
      "why": null
     },
@@ -223,7 +223,7 @@
      "id": 3,
      "name": "Lindeberga",
      "living0": 14,
-     "living10": 25,
+     "living10": 24,
      "extinct": false,
      "why": null
     },
@@ -231,7 +231,7 @@
      "id": 4,
      "name": "Ängsta",
      "living0": 39,
-     "living10": 44,
+     "living10": 43,
      "extinct": false,
      "why": null
     },
@@ -239,7 +239,7 @@
      "id": 5,
      "name": "Ängby",
      "living0": 26,
-     "living10": 37,
+     "living10": 41,
      "extinct": false,
      "why": null
     },
@@ -247,7 +247,7 @@
      "id": 6,
      "name": "Frövi",
      "living0": 56,
-     "living10": 57,
+     "living10": 51,
      "extinct": false,
      "why": null
     },
@@ -255,7 +255,7 @@
      "id": 7,
      "name": "Ullunda",
      "living0": 46,
-     "living10": 63,
+     "living10": 46,
      "extinct": false,
      "why": null
     },
@@ -263,7 +263,7 @@
      "id": 8,
      "name": "Fröslunda",
      "living0": 16,
-     "living10": 19,
+     "living10": 16,
      "extinct": false,
      "why": null
     },
@@ -271,15 +271,15 @@
      "id": 9,
      "name": "Hallberga",
      "living0": 63,
-     "living10": 68,
+     "living10": 71,
      "extinct": false,
      "why": null
     }
    ],
    "stuck": 0,
    "unexplained": 0,
-   "produced": 318774,
-   "hungryDays": 140,
+   "produced": 303959,
+   "hungryDays": 119,
    "hungerDeaths": 0
   },
   {
@@ -290,7 +290,7 @@
      "id": 0,
      "name": "Bergby",
      "living0": 29,
-     "living10": 33,
+     "living10": 32,
      "extinct": false,
      "why": null
     },
@@ -298,7 +298,7 @@
      "id": 1,
      "name": "Hagsta",
      "living0": 24,
-     "living10": 28,
+     "living10": 30,
      "extinct": false,
      "why": null
     },
@@ -306,7 +306,7 @@
      "id": 2,
      "name": "Frövi",
      "living0": 52,
-     "living10": 56,
+     "living10": 55,
      "extinct": false,
      "why": null
     },
@@ -314,7 +314,7 @@
      "id": 3,
      "name": "Ulleråker",
      "living0": 20,
-     "living10": 21,
+     "living10": 26,
      "extinct": false,
      "why": null
     },
@@ -322,7 +322,7 @@
      "id": 4,
      "name": "Stenåker",
      "living0": 20,
-     "living10": 37,
+     "living10": 32,
      "extinct": false,
      "why": null
     },
@@ -330,7 +330,7 @@
      "id": 5,
      "name": "Björksta",
      "living0": 27,
-     "living10": 40,
+     "living10": 36,
      "extinct": false,
      "why": null
     },
@@ -338,7 +338,7 @@
      "id": 6,
      "name": "Steninge",
      "living0": 40,
-     "living10": 46,
+     "living10": 45,
      "extinct": false,
      "why": null
     },
@@ -346,7 +346,7 @@
      "id": 7,
      "name": "Högby",
      "living0": 32,
-     "living10": 50,
+     "living10": 44,
      "extinct": false,
      "why": null
     },
@@ -354,7 +354,7 @@
      "id": 8,
      "name": "Almsta",
      "living0": 41,
-     "living10": 48,
+     "living10": 52,
      "extinct": false,
      "why": null
     },
@@ -362,7 +362,7 @@
      "id": 9,
      "name": "Gåslunda",
      "living0": 18,
-     "living10": 26,
+     "living10": 21,
      "extinct": false,
      "why": null
     },
@@ -378,15 +378,15 @@
      "id": 11,
      "name": "Lindsta",
      "living0": 20,
-     "living10": 21,
+     "living10": 26,
      "extinct": false,
      "why": null
     }
    ],
    "stuck": 0,
    "unexplained": 0,
-   "produced": 297667,
-   "hungryDays": 139,
+   "produced": 289780,
+   "hungryDays": 173,
    "hungerDeaths": 0
   }
  ]
