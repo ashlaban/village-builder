@@ -102,6 +102,19 @@ VB['sim/agents'] = (() => {
   // Where on the site a pawn stands to do the job: as its kind says, else the middle of the tile.
   const workSpot = (st, a, j) =>
     KINDS[j.kind].spot ? KINDS[j.kind].spot(st, a, j) : [st.w.hx[j.site], st.w.hy[j.site]];
+  // A hand of the goal's owner sets out for a load that goes home on a cart (its cart's step says `miss`: sheaves, hay, timber), with no
+  // cart in hand, none free and one paying (the kind's cartPays): it carries on its back while more waits, a miss the head counts (sim/carts
+  // missed, VB-1810; the water's barrel counts its own, sim/chores setOut). A helper of another household brings no cart, and counts none.
+  function cartMissed(st, a, j) {
+    const K = KINDS[j.kind],
+      V = Doing.VIEW,
+      hh = st.households[j.owner.id];
+    if (j.owner.type !== 'household' || !hh || st.pawns[a.id].household !== hh.id) return;
+    if (!Methods.says(K, 'miss') || !K.can || !K.can.cartPays) return;
+    const g = Doing.goalOf(st, a);
+    if (V.has(st, a, 'cart') || V.free(st, g, a, 'cart') || !K.can.cartPays(st, g, a, V)) return;
+    Carts.missed(st, hh);
+  }
   // The pawn joins the job's workers (j.claims) and sets out for it.
   function start(st, a, j) {
     settle(st, j);
@@ -112,6 +125,7 @@ VB['sim/agents'] = (() => {
     rerate(st, j);
     const setOut = Methods.says(KINDS[j.kind], 'setOut'); // its method's (VB-1821)
     if (setOut) setOut(st, a, j, teamFree); // what it sets out with (the water's barrel, VB-1586), not a load in hand
+    cartMissed(st, a, j); // no cart free for a load that goes home on one: a miss (VB-1810); a free one is fetched at the house first
     onward(st, a); // its first leg read from the world (VB-1775; VB-1750: every kind a goal with methods)
   }
   function dropJob(st, j) {

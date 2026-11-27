@@ -407,12 +407,15 @@ VB['sim/methods'] = (() => {
     pre: [{ not: { has: 'cart' } }, { free: 'cart' }, { can: 'cartPays' }],
     eff: [cartOrNone],
   };
+  // A load that goes home on a cart says so at its cart's step (`miss`, VB-1810): a hand of it that sets out with none free while one
+  // would pay carries on its back while more waits, a miss the head counts (sim/doing cartMissed).
+  const loadCart = { ...cartStep, miss: true };
   function carry(K, key, o) {
     const good = o.good || key,
       to = o.to || 'store',
       src = o.source ? [{ can: 'source', why: o.why || 'nothing to take up' }] : [];
     const steps = [
-      ...(o.cart ? [cartStep] : []),
+      ...(o.cart ? [loadCart] : []),
       {
         prim: 'go',
         at: 'site',

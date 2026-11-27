@@ -90,6 +90,7 @@ VB['sim/chores'] = (() => {
         at: 'cart',
         pre: [{ not: { has: 'cart' } }, { free: 'cart' }, { can: 'cartPays' }, had],
         eff: [cartOrNone],
+        miss: true, // the timber goes home on it: one wanted and none free is a miss (sim/doing cartMissed, VB-1810)
       },
       { prim: 'go', at, pre: [cartOrNone, had], eff: [{ at }] },
       {
