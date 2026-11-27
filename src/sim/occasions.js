@@ -268,8 +268,8 @@ VB['sim/occasions'] = (() => {
     if (!grainIn(st, f) || !(surplus(st, hh) > 0)) return null;
     const day = dayOf(st.t) + FEAST.notice * DAY,
       g = harvestGuests(st, hh, day);
-    hh.harvestIn = year; // one try a year: a host with nobody to ask does not search again each planning day
-    if (g.n === 0) return null;
+    if (g.n === 0) return null; // nobody free to ask today: a later planning day may find some
+    hh.harvestIn = year;
     VB.count.harvestCalled++;
     return call(st, 'harvest', day, yard(st, f), g.ids, g.hours, [hh.holder]);
   }
