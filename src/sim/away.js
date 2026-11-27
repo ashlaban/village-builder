@@ -15,6 +15,7 @@ VB['sim/away'] = (() => {
   const { stayOf, travelling, tileAt, placeOf } = VB['sim/pose'];
   const { hostWhy } = VB['sim/hosting'];
   const { hexSteps } = VB['sim/hex'];
+  const Sites = VB['sim/sites'];
   // @tunable AWAY: sleeping away from home (VB-783; design.md, Sleeping away from home): pack, the rations a pawn away carries at most (12 days of the
   // 30 rations a back carries, the rest of the load being tools and seed); walk, the walking hours there and back over which a place is
   // worked from a bed there rather than from home (a third of the working day); yard, the steps from its house within which a pawn is at
@@ -334,6 +335,39 @@ VB['sim/away'] = (() => {
     }
     return rest || idle;
   }
+  // The site workers' lodging (VB-787; design.md, Settling in steps, 3): of the free pawns `idle` in the first hours of the working day, a
+  // member of a site's party who works there (sim/sites worksAt), its trail blazed, whose walk there and back is over AWAY.walk, lodges at
+  // the site's booth tile with a pack for the days its work wants (AWAY.pack at most), the site's jobs its stay's: there it stakes and
+  // raises its booth (stakeIfRough) and works; with none open it comes home (dayAway). Tried once a day a pawn (site.tried), so one whose
+  // household cannot spare the pack stays and works at home. One near enough works there from home, as any job. The pawns not set out.
+  function siteLodgers(st, idle, c) {
+    if (!st.sites.length || c.hour < WORK[0] || c.hour >= WORK[0] + 2) return idle;
+    const day = Math.floor(st.t / DAY);
+    let out = null;
+    for (let i = 0; i < idle.length; i++) {
+      const a = idle[i],
+        s = a.away === undefined && !travelling(a) ? Sites.siteOf(st, a.id) : null,
+        keep = () => out && out.push(a);
+      if (!s || s.stage !== 'building' || s.booth === null || s.tried[a.id] === day || !Sites.worksAt(st, s, a.id)) {
+        keep();
+        continue;
+      }
+      s.tried[a.id] = day;
+      const hh = st.pawns[a.id].household === null ? null : st.households[st.pawns[a.id].household],
+        walk = hh && hh.farmstead !== null ? walkHours(st, houseOf(st, hh), s.booth) : 0;
+      if (2 * walk <= AWAY.walk) {
+        keep();
+        continue;
+      }
+      const workers = s.party.all.filter((id) => Sites.worksAt(st, s, id)).length,
+        days = Math.max(1, Math.min(AWAY.pack, Math.ceil(Sites.hoursLeft(st, s) / (workers * (WORK[1] - WORK[0])))));
+      const args = { why: 'site', days, jobs: Sites.jobKeys(s), walk };
+      if (issue(st, { actor: a.id, verb: 'lodge', target: s.booth, args, source: 'pawn' }) === true)
+        out ||= idle.slice(0, i);
+      else keep();
+    }
+    return out || idle;
+  }
   // A pawn away has come to its bed (sim/agents' arrived): one that turned for home is home, and its stay ends; what is left of its pack
   // goes into its household's meals, and the herds it brought home are by the farm.
   function atBed(st, a) {
@@ -391,6 +425,7 @@ VB['sim/away'] = (() => {
     unlodge,
     feedAway,
     dayAway,
+    siteLodgers,
     lodgeWhy,
   };
 })();

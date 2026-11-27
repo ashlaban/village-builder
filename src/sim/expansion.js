@@ -460,5 +460,7 @@ VB['sim/expansion'] = (() => {
     activePlots,
     MAX_PLOTS,
     plotTimber,
+    stepsFor,
+    stepHours,
   };
 })();

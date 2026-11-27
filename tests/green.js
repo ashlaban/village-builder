@@ -56,7 +56,7 @@ st.households[settler.household].grain.barley += 2000; // a family that can spar
 const site = X.findSite(st, v);
 assert.ok(site, 'room to settle beside the lone farm');
 const party = { all: [settler.id], followers: [] };
-assert.strictEqual(issue(st, { actor: settler.id, verb: 'leave', args: { from: home.id, village: v.id, party, house: site.house, field: site.field }, source: 'round' }), true);
+assert.strictEqual(require('./lib/settled.js')(VB, st, settler.id, { from: home.id, village: v.id, party, house: site.house, field: site.field }), true);
 const joined = st.t, oldCentre = v.center;
 assert.strictEqual(Green.houses(st, v).length, 2, 'two occupied farms');
 assert.ok(VB['sim/routines'].VILLAGE_ROUTINES.green.available(st, v) && VB['sim/routines'].chooseRoutines(st, v).includes('green'), 'the meeting may choose it');

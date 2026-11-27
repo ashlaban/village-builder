@@ -196,7 +196,7 @@ assert.ok(S3.provisions(st3, [settler.id]), 'provisions for the settler');
 const fromV = st3.villages[Sim.settlementIdOf(st3, settler)], use3 = S3.landInUse(st3), site3 = S3.newSite(st3, fromV, use3, S3.candidates(st3, fromV, use3, S3.reachOf(st3, fromV)));
 if (site3) {
   const nf = st3.farmsteads.length, nv = st3.villages.length, party = { all: [settler.id], followers: [] };
-  assert.strictEqual(issue(st3, { actor: settler.id, verb: 'leave', args: { from: fromV.id, party, house: site3.house, field: site3.field, wood: site3.wood }, source: 'round' }), true);
+  assert.strictEqual(require('./lib/settled.js')(VB, st3, settler.id, { from: fromV.id, party, house: site3.house, field: site3.field }), true);
   assert.strictEqual(st3.farmsteads.length, nf + 1); assert.strictEqual(st3.villages.length, nv + 1);
   assert.strictEqual(st3.households[settler.household].farmstead, nf, 'the settler lives on the new farm');
   R3.push(['leave', 1]);
@@ -220,9 +220,9 @@ const before5 = snap3(), lead = st3.pawns.find((p) => p.died === null && p.age >
 for (const [cmd, why] of [
   [{ actor: lead.id, verb: 'foundHousehold', target: 99999, args: { members: [lead.id], grain: 0 } }, /empty farm/],
   [{ actor: null, verb: 'finishCottage', target: 99999, args: { village: 0 } }, /finished cottage/],
-  [{ actor: lead.id, verb: 'leave', args: { from: 999, party: { all: [lead.id] }, house: 0, field: 1 } }, /no village/],
-  [{ actor: lead.id, verb: 'leave', args: { from: 0, party: { all: [dead.id] }, house: 0, field: 1 } }, /led by the actor/],
-  [{ actor: lead.id, verb: 'leave', args: { from: 0, party: { all: [lead.id] }, house: -5, field: 1 } }, /must be tiles/],
+  [{ actor: lead.id, verb: 'stakeSite', args: { from: 999, party: { all: [lead.id] }, house: 0, field: 1 } }, /no village/],
+  [{ actor: lead.id, verb: 'stakeSite', args: { from: 0, party: { all: [dead.id] }, house: 0, field: 1 } }, /led by the actor/],
+  [{ actor: lead.id, verb: 'stakeSite', args: { from: 0, party: { all: [lead.id] }, house: -5, field: 1 } }, /must be tiles/],
 ]) { const res = issue(st3, { source: 'debug', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); R3.push(['leave refusal', 1]); }
 assert.strictEqual(snap3(), before5, 'refused leave commands change nothing');
 // VB-681: a verb's check holds for any pawn; the sources are one list, and the world's verbs are debug's only
