@@ -1,43 +1,78 @@
-// @sys sim/days: days of work owed (VB-462; design.md, Loans, obligations and cases: Remedies; Households and other bodies: The alderman's keep):
-// the creditor's holder calls a day on its planning day, for a day at least DAYS.notice ahead, from one adult of an owing household; the
-// called adult takes tasks of the creditor's plan on the basis `owed` for DAYS.hours of work, walking there and home; each hour worked
-// is booked against the obligation (kind `days` of sim/obligations). A debt, the alderman's keep and a patron's due are its sources.
+// @sys sim/days: the day's duty of the outer levies (VB-462, VB-1767; design.md, Outer levies, Worked): the compiled index of the pawns
+// on a day named today, read by the check of every task (the basis `owed`) and by the modules below sim/levies, which seats it at the
+// day's first step; each hour a pawn on duty works is booked here against its household's levy (kind `days` of sim/obligations).
 VB['sim/days'] = (() => {
   const { DAY } = VB['sim/rules'];
   const Obligations = VB['sim/obligations'];
-  // @tunable DAYS: a day of work owed, and the notice it is called with
-  // Days owed (VB-462; design.md, Remedies, The alderman's keep): a day is `hours` of work of one adult, called for a day at least `notice`
-  // days ahead by the creditor's holder, as tasks of its plan.
-  const DAYS = { notice: 3, hours: 8 };
-  // @state st.daysCalls: [[day (game day), pawn id, obligation id]], sorted by day, then pawn: the days called and not yet come, absent until
-  //   the first call (a due-queue, Rules for cost, 4). Written only here.
+  // @tunable OUTER: an outer levy's day (VB-1767; design.md, Outer levies, The terms, the ladder and the breach): a day is `hours` work
+  // hours of one adult, named at least `notice` days ahead; `worth` rations its worth (the worth table's day's work, every commuting
+  // source's rate); `hunger`, `breach` and `lotMax` are the head's breach judgement's and the routine's lots' (VB-1768, VB-1769).
+  const OUTER = { hours: 8, notice: 3, worth: 3, hunger: 2, breach: 2, lotMax: 3 };
+  // The terms of an outer levy by its source (design.md's table): who names the day, the notice, whether another adult may be sent,
+  // the rate it may be commuted at (null: not for sale), whether the days unworked at the window's end carry over, what a breach costs.
+  const TERMS = {
+    routine: {
+      names: 'levied',
+      notice: OUTER.notice,
+      substitute: true,
+      commute: null,
+      carry: false,
+      onBreach: 'memory',
+    },
+    keep: {
+      names: 'levied',
+      notice: OUTER.notice,
+      substitute: true,
+      commute: OUTER.worth,
+      carry: false,
+      onBreach: 'memory',
+    },
+    debt: {
+      names: 'levied',
+      notice: OUTER.notice,
+      substitute: true,
+      commute: OUTER.worth,
+      carry: false,
+      onBreach: 'memory',
+    },
+    patron: {
+      names: 'levied',
+      notice: OUTER.notice,
+      substitute: true,
+      commute: OUTER.worth,
+      carry: false,
+      onBreach: 'memory',
+    },
+    due: { names: 'levier', notice: OUTER.notice, substitute: false, commute: null, carry: true, onBreach: 'memory' },
+  };
   // @state st.daysToday: {day, by: {pawn id: [obligation id, hours worked today, 1 once its day is given]}}: the pawns on duty today, the compiled
-  //   index of a task's check (Rules for cost, 6); a cache rebuilt from daysCalls at each day's first step. Written only here.
+  //   index of a task's check (Rules for cost, 6); a cache rebuilt from the levies' days named at each day's first step (sim/levies step).
+  //   Written only here.
   const today = (st) => Math.floor(st.t / DAY);
   // The household a pawn works for today, or null: one lookup, for the check of every task.
   function on(st, id) {
     const d = st.daysToday;
     if (!d || d.day !== today(st)) return null;
     const e = d.by[id];
-    return e && e[1] < DAYS.hours - 1e-9 ? st.obligations[e[0]].creditor.id : null;
+    return e && e[1] < OUTER.hours - 1e-9 ? st.obligations[e[0]].creditor.id : null;
   }
   // Whether pawn id has booked its day's hours today: its day owed is given (sim/agents' hours a pawn may work now read it)
   function given(st, id) {
     const d = st.daysToday,
       e = d && d.day === today(st) ? d.by[id] : null;
-    return !!e && e[1] >= DAYS.hours - 1e-9;
+    return !!e && e[1] >= OUTER.hours - 1e-9;
   }
-  // Pawn id has worked dt hours on a task of its creditor's: booked against the days owed, at most DAYS.hours a day.
+  // Pawn id has worked dt hours on a task of its creditor's: booked against the days owed, at most OUTER.hours a day.
   function worked(st, id, dt) {
     const d = st.daysToday,
       e = d && d.by[id];
     if (!e) return;
-    const n = Math.min(dt, DAYS.hours - e[1]);
+    const n = Math.min(dt, OUTER.hours - e[1]);
     if (!(n > 0)) return;
     e[1] += n;
     const o = st.obligations[e[0]];
     if (Obligations.isLive(o))
-      Obligations.fulfil(st, o.id, Math.min(n / DAYS.hours, Obligations.left(o)), 'days worked');
+      Obligations.fulfil(st, o.id, Math.min(n / OUTER.hours, Obligations.left(o)), 'days worked');
   }
   // The day's index begun for game day D, empty (sim/levies' step seats its pawns): the index itself.
   function begin(st, D) {
@@ -51,5 +86,5 @@ VB['sim/days'] = (() => {
   function markGiven(st, id) {
     st.daysToday.by[id][2] = 1;
   }
-  return { DAYS, on, given, worked, begin, seat, markGiven };
+  return { OUTER, TERMS, on, given, worked, begin, seat, markGiven };
 })();
