@@ -11,6 +11,7 @@ VB['sim/camp'] = (() => {
   const { on } = VB['sim/events'];
   const { bfs, hexSteps, stepsTo } = VB['sim/hex'];
   const { walkable, partOf } = VB['sim/walking'];
+  const { faceGate, clearGate, sansGate } = VB['sim/entrances'];
   const { pawnPlan: planOf } = VB['sim/steps'];
   const Stores = VB['sim/stores'],
     Lying = VB['sim/lying'],
@@ -96,6 +97,8 @@ VB['sim/camp'] = (() => {
     setOwner(st, old, null);
     setOwner(st, tile, { type: 'household', id: hh.id });
     f.house = tile; // lint-allow: owner the farm placed from its camp (VB-1655)
+    clearGate(st.w, old);
+    faceGate(st.w, tile, f.village === null ? -1 : st.villages[f.village].center); // VB-1951
     costChanged(st, old);
     costChanged(st, tile);
     woodTaken(st, tile);
@@ -114,9 +117,10 @@ VB['sim/camp'] = (() => {
   // farmstead goal reckons its trips by (VB-1670).
   // The walking hours of the way from tile a to tile b, by the route a pawn takes (sim/routes findRoute at the costs in force, unladen;
   // VB-1670: the hex steps at a meadow's pace had reckoned a quarter of it on the tiny map's shore); the steps at SPEED with no route.
+  // The way from the landing `a` to the site `b`, as it is once the house has left the landing: by no gate of the house there (VB-1951).
   function wayHours(st, a, b) {
     if (a === b) return 0;
-    const p = findRoute(st.w, a, b, Infinity);
+    const p = sansGate(st.w, a, () => findRoute(st.w, a, b, Infinity));
     return p ? routeCost(st.w, p) / SPEED : stepsTo(st.w, a, b, st.w.N, walkable(st.w)) / SPEED;
   }
   function leaveLanding(st, hh, f, tile, walk) {

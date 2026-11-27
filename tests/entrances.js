@@ -1,0 +1,77 @@
+// VB-1951: a house's gate (sim/entrances; Kim, 27 Nov 2026). On a drawn map (tests/lib/tiny.js): every generated house has a gate on a
+// side a route may cross, facing its village's green when no way is worn near; a route leaves and enters a house by its gate when going
+// round costs no more than ENTRY.off steps, and by the near side when it costs more (the gate is a strong preference, not a wall); a walk
+// that uses the gate passes its point; a gate opening on land no route crosses is missed by nobody; a loaded run keeps its gates.
+const VB = require('../src/load.js'),
+  Sim = VB.sim;
+const { tinyWorld, tinyState } = require('./lib/tiny.js');
+const { faceGate, gatePoint } = VB['sim/entrances'];
+const { ENTRY, gateMiss, through } = VB['sim/walking'];
+const { findRoute } = VB['sim/routes'];
+const { hexSteps } = VB['sim/hex'];
+let failed = 0;
+const check = (ok, m) => {
+  if (!ok) {
+    failed++;
+    console.error('ENTRANCES FAIL:', m);
+  }
+};
+const meadow = (cols, rows) => Array.from({ length: rows }, () => '.'.repeat(cols));
+const w = tinyWorld(meadow(24, 13)),
+  st = tinyState(w, [{ at: [8, 6], farms: 3, sizes: [3, 3, 3] }], { seed: 7 }),
+  v = st.villages[0];
+for (const f of st.farmsteads) {
+  const s = w.gate[f.house],
+    n = s >= 0 ? w.nb[f.house * 6 + s] : -1;
+  check(s >= 0 && through(w, n), `farm ${f.id} has a gate on a side a route crosses (${s})`);
+  if (f.house !== v.center && hexSteps(w, f.house, v.center) > 1)
+    check(hexSteps(w, n, v.center) < hexSteps(w, f.house, v.center), `farm ${f.id}'s gate faces the green`);
+}
+// A house alone on open meadow, its gate set by hand: west (the side toward a tile two columns west).
+const h = st.farmsteads[0].house,
+  side = (to) => [0, 1, 2, 3, 4, 5].find((d) => w.nb[h * 6 + d] === to);
+const ring = [0, 1, 2, 3, 4, 5].map((d) => w.nb[h * 6 + d]).filter((j) => j >= 0 && through(w, j));
+check(ring.length === 6, 'the test house stands on open ground on every side');
+w.gate[h] = 0;
+const gateN = w.nb[h * 6 + 0];
+// to a neighbour of the gate's neighbour, one step round: by the gate
+const byGate = ring.find((j) => j !== gateN && hexSteps(w, j, gateN) === 1);
+const p1 = findRoute(w, h, byGate);
+check(p1 && p1[1] === gateN, `a route one step round leaves by the gate (${p1 && p1.join(' ')})`);
+// to the tile behind the house, far round: by the near side
+const opposite = w.nb[h * 6 + 3],
+  behind = [0, 1, 2, 3, 4, 5]
+    .map((d) => w.nb[opposite * 6 + d])
+    .find((j) => j >= 0 && j !== h && hexSteps(w, j, h) === 2 && hexSteps(w, j, gateN) === 3);
+const p2 = behind !== undefined && findRoute(w, h, behind);
+check(
+  p2 && p2[1] !== gateN && gateMiss(w, h, p2[1]) === 1,
+  `a route far round leaves by the near side (${p2 && p2.join(' ')})`,
+);
+check(ENTRY.off > 0, 'missing the gate is chosen as longer');
+// a walk by the gate passes its point
+const g = gatePoint(w, h);
+check(
+  g && Math.abs(g[0] - (w.hx[h] + w.hx[gateN]) / 2) < 1e-9,
+  'the gate point is on the side between the house and the gate tile',
+);
+// a gate onto water is missed by nobody
+const wasWater = w.water[gateN];
+w.water[gateN] = 1;
+VB['sim/walking'].recost(w, gateN);
+check(gateMiss(w, h, w.nb[h * 6 + 3]) === 0, 'a gate onto water is missed by nobody');
+w.water[gateN] = wasWater;
+VB['sim/walking'].recost(w, gateN);
+// faceGate again toward the green: a side, and a loaded run keeps the gates
+faceGate(w, h, v.center);
+const again = Sim.load(tinyWorld(meadow(24, 13)), JSON.parse(JSON.stringify(Sim.save(st))));
+check(
+  st.farmsteads.every((f) => again.w.gate[f.house] === w.gate[f.house]),
+  'a loaded run keeps its gates',
+);
+// the run walks: a game day passes with no error
+Sim.advance(st, VB['sim/rules'].DAY);
+if (failed) process.exit(1);
+console.log(
+  'entrances ok: gates set toward the green, kept on a load; a route goes round to the gate by up to ENTRY.off steps, else the near side',
+);

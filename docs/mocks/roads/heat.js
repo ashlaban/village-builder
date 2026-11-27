@@ -1,4 +1,4 @@
-// usage: node docs/mocks/roads/heat.js [--seed 3] [--farms 10] [--years 4] [--weight W] [--out DIR]
+// usage: node docs/mocks/roads/heat.js [--seed 3] [--farms 10] [--years 4] [--weight W] [--tag NAME] [--out DIR]
 //   --weight: DISCOMFORT.weight (sim/walking) set before the run, so that routes keep to worn ways (it steers the choice alone)
 //   --offway X: an experiment: every passable tile (fields too) gets the discomfort X, taken away by wear as PATHS.clear takes the
 //   ground's cost, so that a walker minds leaving a worn way anywhere; implies --weight 1 unless given
@@ -9,8 +9,8 @@
 const root = require('path').join(__dirname, '..', '..', '..'), fs = require('fs'), path = require('path'), os = require('os');
 const { chromium } = require(root + '/node_modules/playwright');
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
-const offway = opt('offway', null), weight = opt('weight', offway === null ? null : '1'),
-  tag = (weight === null ? '' : `-w${weight}`) + (offway === null ? '' : `-o${offway}`), seed = +opt('seed', 3), farms = +opt('farms', 10), years = +opt('years', 4), cols = 60, rows = 42;
+const label = opt('tag', ''), offway = opt('offway', null), weight = opt('weight', offway === null ? null : '1'),
+  tag = (weight === null ? '' : `-w${weight}`) + (offway === null ? '' : `-o${offway}`) + (label ? `-${label}` : ''), seed = +opt('seed', 3), farms = +opt('farms', 10), years = +opt('years', 4), cols = 60, rows = 42;
 const outDir = path.resolve(opt('out', path.join(__dirname, 'img', 'heat')));
 const shot = fs.readFileSync(root + '/tools/village-shot.js', 'utf8');
 const seedSrc = shot.slice(shot.indexOf('function seedVillage('), shot.indexOf('\n}\n', shot.indexOf('function seedVillage(')) + 2);
@@ -81,7 +81,7 @@ fs.mkdirSync(outDir, { recursive: true });
       st.visualDirty = true;
       let bin = ''; const u8 = new Uint8Array(grid.buffer); for (let i = 0; i < u8.length; i += 8192) bin += String.fromCharCode(...u8.subarray(i, i + 8192));
       return { cols: w.COLS, rows: w.ROWS, R: w.R, hx: Array.from(w.hx), hy: Array.from(w.hy), water: Array.from(w.water), river: Array.from(w.river),
-        dev: Array.from(w.dev), worn: Array.from(w.worn), name: v.name, centre: v.center, well: v.well,
+        dev: Array.from(w.dev), worn: Array.from(w.worn), gate: w.gate ? Array.from(w.gate) : null, nb: Array.from(w.nb), name: v.name, centre: v.center, well: v.well,
         houses: fsx.map((fm) => fm.house), fields: fsx.flatMap((fm) => fm.fields.map((fd) => fd.tile)),
         pop: st.pawns.filter((p) => p.alive).length, box: [x0, y0, x1, y1], S, GW, GH, grid: btoa(bin), walks, steps, onWay,
         lanes: tiles.length && Array.from(w.worn).filter((s) => s >= 3).length, paths: Array.from(w.worn).filter((s) => s === 2).length };

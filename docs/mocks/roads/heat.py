@@ -54,6 +54,13 @@ for f in d['fields']:
 for h in d['houses']:
     x, y = px(d['hx'][h], d['hy'][h])
     dr.rectangle((x - 12, y - 10, x + 12, y + 10), outline=(255, 255, 255), width=3)
+for h in d['houses']:  # a house's gate (VB-1951): a green bar on the side it opens
+    g = d.get('gate')
+    if g and g[h] >= 0:
+        n = d['nb'][h * 6 + g[h]]
+        gx, gy = (d['hx'][h] + d['hx'][n]) / 2, (d['hy'][h] + d['hy'][n]) / 2
+        x, y = px(gx, gy)
+        dr.ellipse((x - 9, y - 9, x + 9, y + 9), fill=(80, 230, 120), outline=(0, 0, 0), width=2)
 if d.get('well') is not None and d['well'] >= 0:
     x, y = px(d['hx'][d['well']], d['hy'][d['well']])
     dr.ellipse((x - 8, y - 8, x + 8, y + 8), outline=(120, 200, 255), width=3)
@@ -76,7 +83,7 @@ for v in [1, 10, 100, 1000, 10000]:
     dr.line((xx, by + 22, xx, by + 30), fill=(200, 200, 200))
     dr.text((xx - 10, by + 30), str(v), fill=(200, 200, 200), font=font)
 dr.text((bx + bw + 70, by - 2), 'walks a year through the spot (log scale)', fill=(200, 200, 200), font=font)
-dr.text((bx + bw + 70, by + 28), 'white box: house   yellow: field   blue ring: well', fill=(200, 200, 200), font=font)
+dr.text((bx + bw + 70, by + 28), 'white box: house   green dot: gate   yellow: field   blue ring: well', fill=(200, 200, 200), font=font)
 out = src.replace('.json', '.png')
 base.save(out)
 print(out, base.size, 'max', mx)

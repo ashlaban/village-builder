@@ -36,6 +36,7 @@
   "sim/water.js",
   "sim/routes.js",
   "sim/paths.js",
+  "sim/entrances.js",
   "sim/fish.js",
   "sim/forage.js",
   "sim/fieldrec.js",

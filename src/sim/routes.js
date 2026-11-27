@@ -2,7 +2,8 @@
 // changed tile could have touched
 VB['sim/routes'] = (() => {
   const { hexSteps } = VB['sim/hex'];
-  const { through, stepCost, trailStep, discomfort, invalidateReach, recost, PATHS, DISCOMFORT } = VB['sim/walking'];
+  const { through, gateMiss, stepCost, trailStep, discomfort, invalidateReach, recost, PATHS, DISCOMFORT } =
+    VB['sim/walking'];
   const { SPEED } = VB['sim/rules'];
   // @tunable ROUTE: the route search's bounds and its cache
   // hours: the longest walk the villages' table and a pawn's route search reach (design.md, The journey scale: 67 hours, the far side of
@@ -130,7 +131,7 @@ VB['sim/routes'] = (() => {
       }
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
-        if (j < 0 || shut[j] === run || (j !== to && !through(w, j))) continue;
+        if (j < 0 || shut[j] === run || (j !== to && !through(w, j)) || gateMiss(w, i, j)) continue; // a house's gate (VB-1951)
         const t = step(w, i, j),
           tj = time[i] + t,
           gj = g[i] + (k ? t * (1 + (k * (discomfort(w, i) + discomfort(w, j))) / 2) : t);
@@ -177,7 +178,7 @@ VB['sim/routes'] = (() => {
       }
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
-        if (j < 0 || shut[j] === run || (tgt[j] !== run && !through(w, j))) continue;
+        if (j < 0 || shut[j] === run || (tgt[j] !== run && !through(w, j)) || gateMiss(w, i, j)) continue;
         const gj = g[i] + stepCost(w, i, j);
         if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
         g[j] = gj;
@@ -211,7 +212,7 @@ VB['sim/routes'] = (() => {
       if (i !== from && !through(w, i)) continue;
       for (let d = 0; d < 6; d++) {
         const j = w.nb[i * 6 + d];
-        if (j < 0 || shut[j] === run || !(through(w, j) || (w.dev && w.dev[j] === 3))) continue;
+        if (j < 0 || shut[j] === run || !(through(w, j) || (w.dev && w.dev[j] === 3)) || gateMiss(w, i, j)) continue;
         const gj = g[i] + trailStep(w, i, j);
         if (gj > maxCost || (mark[j] === run && gj >= g[j])) continue;
         g[j] = gj;

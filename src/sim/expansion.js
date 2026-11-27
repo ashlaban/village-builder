@@ -194,6 +194,7 @@ VB['sim/expansion'] = (() => {
       woodTaken(st, tr.tile);
       if (tr.kind === 'house') {
         w.dev[tr.tile] = 3;
+        VB['sim/entrances'].faceGate(w, tr.tile, v.center); // its gate (VB-1951)
         costChanged(st, tr.tile);
       } // the house's ground: routes go round it from now on
     }

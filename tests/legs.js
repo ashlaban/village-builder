@@ -95,7 +95,7 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the run');
   A.walkTo(s, a, home, w.hx[home], w.hy[home]); // the cut
   assert.ok(Math.hypot(a.leg.x - x, a.leg.y - y) < 1e-9 && a.leg.t === s.tick, 'the next walk begins where the cut left it, from the step now');
   tiles.forEach((t, i) => {
-    if (t < 0) return;
+    if (t < 0 || w.dev[t] > 1) return; // the green and houses wear no way (sim/paths); a house's gate opens on the green (VB-1951)
     const dw = w.wear[t] - wear0[i], entered = i < reached;
     assert.ok(entered ? dw >= 1 - 1e-5 : Math.abs(dw) < 1e-6 || tiles.indexOf(t) < reached, `tile ${t} (${i}) ${entered ? 'entered and trodden' : 'not reached, not trodden'}: ${dw}`);
   });

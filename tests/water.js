@@ -96,6 +96,7 @@ const fetchOf = (steps) => {
     hh = st.households[0],
     f = st.farmsteads[hh.farmstead];
   w.fresh[f.house] = FRESH.NONE; // a test's write: without the well a farm that has stood 7 steps off starts with (case 4)
+  w.gate[f.house] = -1; // a test's write: a house open on every side, as before gates (VB-1951; tests/entrances.js tests the gate)
   let ticks = 0,
     list = null,
     scores = null,

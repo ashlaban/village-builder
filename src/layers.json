@@ -36,6 +36,7 @@
       "sim/routes",
       "sim/villagehours",
       "sim/paths",
+      "sim/entrances",
       "sim/fish",
       "sim/forage",
       "sim/fieldrec",

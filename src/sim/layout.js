@@ -8,6 +8,7 @@ VB['sim/layout'] = (() => {
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
   const { initWear, wearIn } = VB['sim/paths'];
+  const { initGates, faceGate } = VB['sim/entrances'];
   const { newField } = VB['sim/fieldrec'];
   const { initFish } = VB['sim/fish'],
     { initForage } = VB['sim/forage'];
@@ -185,6 +186,7 @@ VB['sim/layout'] = (() => {
     used.add(house);
     for (const j of fields) used.add(j);
     if (w.dev) w.dev[house] = 3; // a house raised in play; a generated one is marked when the land is finished (finishLand)
+    if (w.dev) faceGate(w, house, village ? village.center : -1); // its gate, toward the nearest way or the green (VB-1951)
     const a = (((w.hrnd[house] * 6) | 0) * Math.PI) / 3;
     return {
       id,
@@ -383,6 +385,9 @@ VB['sim/layout'] = (() => {
     for (const f of farmsteads) w.dev[f.house] = 3; // a house: no way wears through it (sim/paths)
     for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (draw/paths)
     initWear(w);
+    initGates(w); // each house's gate, toward its village's green: the ways worn in after go through them (VB-1951)
+    for (const f of farmsteads)
+      faceGate(w, f.house, f.village === null ? -1 : villages.find((v) => v.id === f.village).center);
     initFish(w);
     initForage(w);
     w.graze = new Float32Array(w.N); // grazing pressure, none yet (sim/herds, VB-136)

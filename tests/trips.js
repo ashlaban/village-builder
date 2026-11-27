@@ -40,6 +40,7 @@ const farm = (n, steps, carts) => {
     hh = st.households[0],
     f = st.farmsteads[hh.farmstead];
   w.fresh[f.house] = steps ? FRESH.NONE : FRESH.WELL; // a test's write: the well a farm that has stood far from water starts with
+  w.gate[f.house] = -1; // a test's write: a house open on every side, as before gates (VB-1951; tests/entrances.js tests the gate)
   hh.carts = carts; // a test's write
   // a test's write: nobody under 12, whose one bucket covers 3 (case 6), so that the trips counted are grown hands'
   for (const id of hh.members) if (st.pawns[id].born > st.t - 12.5 * YEAR) st.pawns[id].born = st.t - 12.5 * YEAR;
@@ -86,7 +87,8 @@ check(WATER.hand === 6 && WATER.child === 3 && WATER.cart === 18 && WATER.fill =
   check(posted.length === 1, `one person alone at home: one trip posted (${posted})`);
   const j = { kind: 'water', owner: { type: 'household', id: hh.id }, site: f.water.tile, farm: f, claims: [] };
   check(waterSetOut(st, st.agents[hh.holder], j) === 0 && !j.cart && j.cover === WATER.hand, 'which it makes by hand, as six do');
-  check(near(waterTrip(st, j) + KINDS.water.hours, hand, 1e-9), `in ${hand.toFixed(2)} hours`);
+  // the trip by the farm's walk as found (0.871: VB-1951's gates move the ways the seeding wears in, so a step of the 7 is worn)
+  check(near(waterTrip(st, j) + KINDS.water.hours, tripHours(f.water.walk), 1e-9) && near(f.water.walk, W, 0.01), `in ${hand.toFixed(2)} hours (${waterTrip(st, j) + KINDS.water.hours}, ${JSON.stringify(f.water)})`);
 }
 for (const n of [3, 6]) {
   const r = fetchDay(n, 7, [handCart()]);
