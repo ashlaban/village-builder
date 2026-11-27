@@ -251,8 +251,8 @@ VB['sim/legs'] = (() => {
       a.path.push([w.hx[t] + a.ox * 0.4, w.hy[t] + a.oy * 0.4, stepCost(w, p[s], t), t]);
     }
     const last = ok ? stepCost(w, p[p.length - 2], tile) : cost(tile);
-    if (into) a.path.push([into[0], into[1], last, tile]);
-    a.path.push([x, y, last, into ? -1 : ok ? tile : -1]);
+    if (into) a.path.push([into[0], into[1], last, -1]); // the gate's point; the house is entered at the walk's end, as without one
+    a.path.push([x, y, last, ok ? tile : -1]);
     a.seg = 0;
     begin(st, a);
   }

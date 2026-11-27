@@ -7,7 +7,7 @@ const VB = require('../src/load.js'),
   Sim = VB.sim,
   Water = VB['sim/water'],
   Thirst = VB['sim/thirst'];
-const { tinyWorld, tinyState } = require('./lib/tiny.js');
+const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 const { FRESH } = VB['world/water'];
 const { TICKS, DAY, YEAR, HUNGER, TRAVEL, SPEED, cal } = VB['sim/rules'];
@@ -29,18 +29,16 @@ const meadow = (cols, rows) => Array.from({ length: rows }, () => '.'.repeat(col
 const handCart = () => ({ kind: 'hand', cond: 1, built: 0, by: null });
 // A lone farm of `n` people, its brook `steps` tiles east of the house (0: a well by the door), with the carts given.
 const farm = (n, steps, carts) => {
-  const lay = (ww) => tinyState(ww, [{ at: [8, 6], farms: 1, sizes: [n] }], { seed: 7 });
-  const w = tinyWorld(meadow(30, 13));
+  const w = tinyWorld(meadow(30, 13)),
+    h = tileAt(w, 8, 6);
   if (steps) {
-    const i = lay(tinyWorld(meadow(30, 13))).farmsteads[0].house + steps;
-    w.river[i] = 1;
-    w.fresh[i] = FRESH.BROOK;
+    w.river[h + steps] = 1;
+    w.fresh[h + steps] = FRESH.BROOK;
   }
-  const st = lay(w),
+  const st = tinyState(w, [{ house: [8, 6], sizes: [n] }], { seed: 7, gates: false }),
     hh = st.households[0],
     f = st.farmsteads[hh.farmstead];
   w.fresh[f.house] = steps ? FRESH.NONE : FRESH.WELL; // a test's write: the well a farm that has stood far from water starts with
-  w.gate[f.house] = -1; // a test's write: a house open on every side, as before gates (VB-1951; tests/entrances.js tests the gate)
   hh.carts = carts; // a test's write
   // a test's write: nobody under 12, whose one bucket covers 3 (case 6), so that the trips counted are grown hands'
   for (const id of hh.members) if (st.pawns[id].born > st.t - 12.5 * YEAR) st.pawns[id].born = st.t - 12.5 * YEAR;

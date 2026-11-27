@@ -18,6 +18,7 @@ function setup(st) {
   hh.grain = { barley: 1e4 }; hh.meals = 0; hh.larder = []; hh.fresh = [];
   const [a, b, c] = hh.members.map((id) => st.pawns[id]);
   a.born = st.t - 30 * YEAR; b.born = st.t - 2 * YEAR; c.born = st.t - 70 * YEAR;
+  VB['sim/heirs'].refreshRoles(st, hh.members); // the role cache as the new ages say it
   // body 0.5: a fed, warm day restores HEALTH.recover (VB-520: 2.5 to 3.5 by body)
   for (const id of hh.members) { const p = st.pawns[id]; p.health = 80; p.hunger = 0; p.hungerLog = []; p.traits[VB['sim/traits'].IDX.body] = 0.5; }
   return { hh, a, b, c };

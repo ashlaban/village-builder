@@ -51,21 +51,32 @@ function tinyWorld(rows, opt = {}) {
 // The tile index at column col, row row.
 const tileAt = (w, col, row) => row * w.COLS + col;
 
-// A state on world w with villages at given tiles: [{at: [col, row], farms, sizes: [household sizes]}], built as the populous scenario builds
+// A state on world w with villages at given tiles: [{at: [col, row], farms, sizes: [household sizes]}] (or {house: [col, row], sizes:
+// [size]}: a lone farm whose house stands on that tile), built as the populous scenario builds
 // its villages (houses along a street through the green, or close round it, each farm's fields one block beyond the yards), with its
 // households, culture and owners.
 // opt.seed (default 1); opt.customs: practice to set in every village, e.g. {dispute: 'kin'}; opt.herds: the populous herds and meadows;
+// opt.gates: false opens every house on every side (a test of something else than the gate, VB-1951);
 // opt.outland: true (default) the villages hold their outland, 'claimed' they have only claimed it, false neither. Nothing is advanced: st.t is the start of year 1.
 function tinyState(w, villages, opt = {}) {
   const { settlementGenerator } = VB['sim/layout'], { populousHouseholds, drawSize } = VB['sim/people'];
   const { nameKit } = VB['sim/records'], { makeState } = VB['sim/scenarios'], { initCulture } = VB['sim/society'];
-  const S = VB['sim/rng'].fromState(((opt.seed ?? 1) * 2654435761) ^ 0x7177), rand = VB['sim/rng'].drawer(S), gen = settlementGenerator(w, rand), sizes = [];
+  // the land is laid by a stream of its own (VB-1951), so that the people drawn after it do not move when the layout's rules change
+  const S = VB['sim/rng'].fromState(((opt.seed ?? 1) * 2654435761) ^ 0x7177), rand = VB['sim/rng'].drawer(S), sizes = [];
+  const gen = settlementGenerator(w, VB['sim/rng'].drawer(VB['sim/rng'].fromState(((opt.seed ?? 1) * 2246822519) ^ 0x1a7d)));
   for (const v of villages) {
+    if (v.house) { // a lone farm whose house stands on this very tile, placed by hand (sim/byhand farmAt), its fields as the generator's
+      const f = VB['sim/byhand'].farmAt(w, gen, Array.isArray(v.house) ? tileAt(w, v.house[0], v.house[1]) : v.house);
+      if (!f) throw new Error(`tinyState: no farm can stand at ${v.house}`);
+      sizes[f.id] = v.sizes ? v.sizes[0] : drawSize(rand);
+      continue;
+    }
     const c = Array.isArray(v.at) ? tileAt(w, v.at[0], v.at[1]) : v.at;
     const made = gen.addVillage(c, v.farms);
     made.farmsteads.forEach((fid, k) => { sizes[fid] = v.sizes ? v.sizes[k] : drawSize(rand); });
   }
   const { used, farmsteads, villages: vs } = gen.finish();
+  if (opt.gates === false) w.gate.fill(-1); // opt.gates false: every house open on every side, as before gates (VB-1951)
   const R = { rand, pawns: [], unions: [], ...nameKit(rand) };
   const households = populousHouseholds(R, farmsteads, sizes);
   const st = makeState(w, S, R, households, farmsteads, vs, used, 'populous');

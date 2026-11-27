@@ -41,7 +41,7 @@ const lay = (w, depth) => {
 };
 const world = () => {
   const w = tinyWorld(rows),
-    st = tinyState(w, [{ at: [36, 12], farms: 2, sizes: [3, 3] }], { seed: 7 });
+    st = tinyState(w, [{ at: [36, 12], farms: 2, sizes: [3, 3] }], { seed: 7, gates: false });
   return { w, st, v: st.villages[0], at: (c, r) => tileAt(w, c, r) };
 };
 const cands = (st, v) => Settle.candidates(st, v, Settle.landInUse(st), Settle.reachOf(st, v), 3);
@@ -178,12 +178,29 @@ const cands = (st, v) => Settle.candidates(st, v, Settle.landInUse(st), Settle.r
   const d = hexSteps(w, v.center, plain.house);
   let other = -1,
     by = -1;
-  for (let k = 0; k < 6 && other < 0; k++) {
+  // a site beside the green as the first is (VB-1951: a plot places no field, and stands by the green): a lane worn onto it alone
+  for (let k = 0; d === 1 && k < 6 && other < 0; k++) {
+    const b = w.nb[v.center * 6 + k];
+    if (b < 0 || st.used.has(b) || b === plain.house || hexSteps(w, b, plain.house) < 2) continue;
+    w.worn[b] = 3;
+    VB['sim/walking'].recost(w, b);
+    const s = unweighed(),
+      t = X.findSite(st, v);
+    if (process.env.DBG) console.log('b', b, 'plain', plain.house, 's', s && s.house, 't', t && t.house, walk(b), walk(plain.house));
+    if (s && s.house === plain.house && t && t.house === b) {
+      other = b;
+      by = v.center;
+      break;
+    }
+    w.worn[b] = 0;
+    VB['sim/walking'].recost(w, b);
+  }
+  for (let k = 0; d > 1 && k < 6 && other < 0; k++) {
     const a = w.nb[v.center * 6 + k];
     if (a < 0 || st.used.has(a) || hexSteps(w, a, plain.house) < 2) continue;
     for (let m = 0; m < 6; m++) {
       const b = w.nb[a * 6 + m];
-      if (b < 0 || st.used.has(b) || b === plain.house || hexSteps(w, v.center, b) !== d || hexSteps(w, b, plain.house) < 3) continue;
+      if (b < 0 || st.used.has(b) || b === plain.house || hexSteps(w, v.center, b) !== d || hexSteps(w, b, plain.house) < Math.min(3, d + 1)) continue;
       w.worn[a] = w.worn[b] = 3;
       const s = unweighed(),
         t = X.findSite(st, v);
@@ -195,7 +212,7 @@ const cands = (st, v) => Settle.candidates(st, v, Settle.landInUse(st), Settle.r
       w.worn[a] = w.worn[b] = 0;
     }
   }
-  check(d === 2 && other >= 0, `a site as far from the green as the first (${d} steps), alike in the plot's score, a worn way to it`);
+  check(d >= 1 && other >= 0, `a site as far from the green as the first (${d} steps), alike in the plot's score, a worn way to it`);
   if (other >= 0) {
     check(unweighed().house === plain.house, 'the plot score alone does not tell them apart: unweighed, the first is chosen still');
     check(
@@ -209,7 +226,7 @@ const cands = (st, v) => Settle.candidates(st, v, Settle.landInUse(st), Settle.r
   w.fresh[v.center] = FRESH.NONE;
   const dry = X.findSite(st, v);
   check(siteWater(st, plain.house, 2, v).by === 'none', 'a village with no water at all');
-  check(dry && dry.house === plain.house && dry.field === plain.field, 'a plot is still found where no site has water, the same as unweighed');
+  check(dry && dry.house === plain.house && dry.land === plain.land, 'a plot is still found where no site has water, the same as unweighed');
 }
 if (failed) process.exit(1);
 console.log("sitewater ok: the leader's estimate (source, village well, own well), the search weighs the fetch, no site refused for its water; a plot's site by the walk to the village's well");

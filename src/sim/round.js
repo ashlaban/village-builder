@@ -119,7 +119,7 @@ VB['sim/round'] = (() => {
       startPlots(
         st,
         (id) => claimableFarm(st, id) === null,
-        (v, id, site) => askLand(st, id, v.id, { plot: v.id, house: site.house, field: site.field }),
+        (v, id, site) => askLand(st, id, v.id, { plot: v.id, house: site.house }),
       );
     } else if (n === VILLAGE_STEPS + 1)
       settleRound(st); // adults of a crowded village may leave for new land (docs/review-expansion.md)
