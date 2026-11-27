@@ -66,42 +66,101 @@ const LADDER = {
 };
 LADDER.stone = LADDER.foundation;
 const ladderOf = (k) => LADDER[k] || { name: siteCap(k), icon: () => actIcon('build'), line: '' };
-const ladderNeeds = (n) =>
-  [
-    n.hours ? `about ${hudSpan(n.hours)} of work` : '',
-    n.timber ? woodTimber(n.timber) : '',
-    n.stone ? `${n.stone} stone` : '',
-  ]
-    .filter(Boolean)
-    .join(', ');
 // What is being built at farm f now, in words, or ''.
 function ladderBuilding(V) {
   const b = V && V.building;
   if (!b || !b.step) return '';
   return `Building the ${ladderOf(b.what).name.toLowerCase()}: ${hudKind(b.step).toLowerCase()} now, about ${hudSpan(b.hoursLeft)} of work left.`;
 }
+// What a building takes, as chips: the work (stopwatch), the timber, the stone; pre: the row's key prefix. needs: {hours, timber, stone}.
+function buildNeedFacts(n, pre, workWhy) {
+  if (!n) return [];
+  return [
+    n.hours
+      ? {
+          k: `${pre}w`,
+          icon: actIcon('clock'),
+          n: laneSpanN(n.hours),
+          label: `${hudSpan(n.hours)} of work`,
+          why: workWhy || `About ${hudSpan(n.hours)} of work.`,
+        }
+      : null,
+    n.timber
+      ? {
+          k: `${pre}t`,
+          icon: actIcon('timber'),
+          n: String(Math.round(n.timber)),
+          label: woodTimber(n.timber),
+          why: `${siteCap(woodTimber(n.timber))}, felled and carried from the wood.`,
+        }
+      : null,
+    n.stone
+      ? {
+          k: `${pre}s`,
+          icon: goodIcon('stone'),
+          n: String(n.stone),
+          label: `${n.stone} stone`,
+          why: `${n.stone} stone.`,
+        }
+      : null,
+  ].filter(Boolean);
+}
 // The card of the upgrade icon, and the build menu under the Farmstead once it stands: what stands, what can follow and what it takes:
 // the next rung of the house, its foundation, the outbuildings (Sim.farmView, VB-1659, VB-1663, VB-1665), each built by a plan task.
-function ladderHTML(f) {
+// A row is its icon, its name, the chips of what it takes and how it stands, and Build; its words behind its own "i" or the slot's.
+function ladderHTML(f, slot = 'cinfo') {
   const V = Sim.farmView(st, f.id, st.player ? st.player.pawn : null);
   if (!V) return '';
   const row = (k, e, kind, built) => {
     const L = ladderOf(k),
+      pre = `r-${k}-`,
       b = e.building && e.building.step ? e.building : null,
-      act = built
-        ? '<em class="ok">It stands.</em>'
+      facts = [{ k: `${pre}line`, chip: false, icon: L.icon(), why: L.line }];
+    if (!built) facts.push(...buildNeedFacts(e.needs, pre));
+    facts.push(
+      built
+        ? { k: `${pre}ok`, icon: actIcon('vok'), n: '', cls: 'v0', label: 'It stands', why: 'It stands.' }
         : b
-          ? `<em class="ok">Being built: ${esc(hudKind(b.step).toLowerCase())} now, about ${esc(hudSpan(b.hoursLeft))} of work left.</em>`
+          ? {
+              k: `${pre}ok`,
+              icon: actIcon('build'),
+              n: laneSpanN(b.hoursLeft),
+              cls: 'v1',
+              label: 'Being built',
+              why: `Being built: ${hudKind(b.step).toLowerCase()} now, about ${hudSpan(b.hoursLeft)} of work left.`,
+            }
           : e.planned
-            ? '<em class="ok">In the plan.</em>'
+            ? { k: `${pre}ok`, icon: actIcon('queue'), n: '', label: 'In the plan', why: 'In the plan.' }
             : e.ok
-              ? `<button type="button" class="u2-chip go" data-hud="upgrade" data-kind="${kind}" data-what="${esc(k)}">Build</button>`
-              : `<em>Not now: ${esc(String(e.why).replace(/\bhousehold \d+/g, 'the household'))}.</em>`,
-      cost = built || !e.needs ? '' : `<small>${esc(siteCap(ladderNeeds(e.needs)))}.</small>`;
-    return `<div class="u2-build u2-rung">${L.icon()}<span><b>${esc(L.name)}</b><span>${esc(L.line)}</span>${cost}${act}</span></div>`;
+              ? {
+                  k: `${pre}ok`,
+                  icon: actIcon('vok'),
+                  n: '',
+                  cls: 'v0',
+                  label: 'Can be built',
+                  why: 'Can be built now: Build adds it to the plan.',
+                }
+              : {
+                  k: `${pre}ok`,
+                  icon: actIcon('no'),
+                  n: '',
+                  cls: 'v2',
+                  label: 'Not now',
+                  why: `Not now: ${String(e.why).replace(/\bhousehold \d+/g, 'the household')}.`,
+                },
+    );
+    const act =
+      !built && !b && !e.planned && e.ok
+        ? `<button type="button" class="u2-chip go" data-hud="upgrade" data-kind="${kind}" data-what="${esc(k)}" ` +
+          `aria-label="${esc(`Build the ${L.name.toLowerCase()}`)}">${actIcon('plus')} Build</button>`
+        : '';
+    return (
+      `<div class="u2-build u2-rung">${L.icon()}<span><span class="u2-rhead"><b>${esc(L.name)}</b>${factI(slot, pre, `${L.name}: what it means`)}</span>` +
+      `<span class="u2-facts">${factChips(facts, slot)}${act}</span>${factWords(facts, slot, pre)}</span></div>`
+    );
   };
   const stone = V.foundation && V.foundation.grade === 'stone' ? ', on stone' : '';
-  let h = `<p class="sub">Stands now: <b>${esc(ladderOf(V.rung).name)}</b>${stone}. ${esc(ladderBuilding(V))}</p>`;
+  let h = `<p class="sub">Stands now: <b>${esc(ladderOf(V.rung).name)}</b>${stone}.</p>`;
   // the house's next rung under way is farmView's own `building` (its entry has none)
   for (const e of V.next)
     h += row(
@@ -125,17 +184,33 @@ function buildHTML() {
     { f } = hudHouse();
   if (!M.length) return '<p class="sub">Nothing can be built now.</p>';
   // once the farmstead stands, what can follow it, as its upgrade icon shows it (one list, two ways in)
-  if (f && !hudCamp(f)) return `<h3>The farmstead</h3>${ladderHTML(f)}`;
-  return (
-    M.map((e) => {
-      const B = BUILD_WHAT[e.what] || { name: siteCap(e.what), icon: () => actIcon('build'), line: '' };
-      return (
-        `<button type="button" class="u2-build" data-hud="buildpick" data-what="${esc(e.what)}"${e.ok ? '' : ' disabled'}>` +
-        `${B.icon()}<span><b>${esc(B.name)}</b><span>${esc(B.line)}</span><small>${esc(buildCost(e))}.</small>` +
-        `${e.ok ? '' : `<em>Not now: ${esc(e.why)}.</em>`}</span></button>`
-      );
-    }).join('') + (M.some((e) => e.ok) ? '<p class="sub">Choose one, then tap the land where it is to stand.</p>' : '')
-  );
+  if (f && !hudCamp(f)) return `<h3>The farmstead</h3>${ladderHTML(f, 'binfo')}`;
+  // an entry: its icon and name (the button that places it), then chips of its cost (work, timber) and an ok or no mark; words behind "i"
+  return M.map((e) => {
+    const B = BUILD_WHAT[e.what] || { name: siteCap(e.what), icon: () => actIcon('build'), line: '' },
+      pre = `m-${e.what}-`,
+      facts = [
+        { k: `${pre}line`, chip: false, icon: B.icon(), why: B.line },
+        ...buildNeedFacts({ hours: Math.max(e.work || 0, e.hours || 0), timber: e.timber }, pre, `${buildCost(e)}.`),
+        e.ok
+          ? {
+              k: `${pre}ok`,
+              icon: actIcon('vok'),
+              n: '',
+              cls: 'v0',
+              label: 'Can be built',
+              why: 'Can be built now: choose it, then tap the land where it is to stand.',
+            }
+          : { k: `${pre}ok`, icon: actIcon('no'), n: '', cls: 'v2', label: 'Not now', why: `Not now: ${e.why}.` },
+      ];
+    return (
+      `<div class="u2-build u2-rung">${B.icon()}<span><span class="u2-rhead">` +
+      `<button type="button" class="u2-chip go" data-hud="buildpick" data-what="${esc(e.what)}"${e.ok ? '' : ' disabled'} ` +
+      `aria-label="${esc(`${B.name}: choose it, then tap the land`)}">${actIcon('plus')} ${esc(B.name)}</button>` +
+      `${factI('binfo', pre, `${B.name}: what it means`)}</span>` +
+      `<span class="u2-facts">${factChips(facts, 'binfo')}</span>${factWords(facts, 'binfo', pre)}</span></div>`
+    );
+  }).join('');
 }
 function buildPick(what) {
   hud.place = what || null;
@@ -186,7 +261,7 @@ function renderBuild(f) {
   if (B && u2.help.dataset.what !== hud.place) {
     u2.help.dataset.what = hud.place;
     u2.help.innerHTML =
-      `${B.icon()}<span>Tap the land where the ${B.name.toLowerCase()} is to stand. The marked tiles take it.</span>` +
+      `${B.icon()}<span>Tap a marked tile</span>` +
       '<button type="button" class="u2-chip" data-hud="placeoff">Cancel</button>';
   } else if (!B) delete u2.help.dataset.what;
   for (const b of u2.tabs.children)
@@ -204,24 +279,68 @@ function placeCall(i) {
     r = Sim.landing.read(w, i, false),
     wd = siteWords(r),
     why = Sim.placeWhy(st, st.player.pawn, hud.place, i),
-    E = Sim.buildMenu(st, st.player.pawn).find((e) => e.what === hud.place);
+    E = Sim.buildMenu(st, st.player.pawn).find((e) => e.what === hud.place),
+    facts = [
+      why
+        ? {
+            k: 'can',
+            icon: actIcon('no'),
+            n: '',
+            cls: 'v2',
+            label: 'Cannot stand here',
+            why: `The ${B.name.toLowerCase()} cannot stand here: ${siteCap(why.replace(/\btile \d+/g, 'this tile'))}.`,
+          }
+        : {
+            k: 'can',
+            icon: actIcon('vok'),
+            n: '',
+            cls: 'v0',
+            label: 'Can stand here',
+            why: `The ${B.name.toLowerCase()} can stand here.`,
+          },
+    ];
+  if (!w.water[i]) facts.push({ k: 'site', chip: false, icon: goodIcon('tile'), why: `${wd.water[1]} ${wd.soil[1]}` });
+  const move = why ? '' : moveWords(i);
+  if (move) {
+    const M = Sim.moveCost(st, st.player.pawn, i);
+    facts.push({
+      k: 'move',
+      icon: goodIcon('cart'),
+      n: String(M.steps),
+      cls: M.frost ? 'v2' : '',
+      label: `${M.steps} ${M.steps === 1 ? 'tile' : 'tiles'} from the landing`,
+      why: move,
+    });
+  }
+  const cost =
+    !why && E
+      ? buildNeedFacts({ hours: Math.max(E.work || 0, E.hours || 0), timber: E.timber }, 'c-', `${buildCost(E)}.`)
+      : [];
+  if (!why)
+    facts.push({
+      k: 'who',
+      chip: false,
+      icon: actIcon('plus'),
+      why: `Added to the plan, done by ${st.pawns[played()].given}.`,
+    });
   let h =
-    `<div class="u2-verdict"><div><h2>${esc(VB['world/biomes'].BIOMES[w.biome[i]].name)}</h2>` +
-    `<p class="sub">${why ? 'The farmstead cannot stand here.' : 'The farmstead can stand here.'}</p></div>` +
-    '<button type="button" class="u2-x" data-hud="shut" aria-label="Close">×</button></div>';
+    `<div class="u2-verdict"><h2>${esc(VB['world/biomes'].BIOMES[w.biome[i]].name)}</h2>${factI('cinfo')}` +
+    '<button type="button" class="u2-x" data-hud="shut" aria-label="Close">×</button></div>' +
+    `<div class="u2-facts">${factChips(facts, 'cinfo')}</div>`;
   if (!w.water[i]) {
     h += '<div class="u2-rows">';
     for (const k of ['water', 'soil', 'wood'])
       h += `<div class="u2-row">${SITE_ICON[k]}<b>${esc(wd[k][0])}</b>${sitePips(r[k].band)}</div>`;
-    h += `</div><p class="sub">${esc(wd.water[1])} ${esc(wd.soil[1])}</p>`;
+    h += '</div>';
   }
-  const move = why ? '' : moveWords(i);
-  if (move) h += `<p class="u2-move${Sim.moveCost(st, st.player.pawn, i).frost ? ' bad' : ''}">${esc(move)}</p>`;
+  h += factWords([...facts, ...cost], 'cinfo');
   if (hud.msg) h += `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>`;
-  h += why
-    ? `<p class="u2-msg">${esc(siteCap(why.replace(/\btile \d+/g, 'this tile')))}.</p>`
-    : `<div class="u2-acts"><button type="button" class="u2-act go" data-hud="buildhere">${esc(B.here)}` +
-      `<small>${E ? `${esc(buildCost(E))}. ` : ''}Added to the plan, done by ${esc(st.pawns[played()].given)}</small></button></div>`;
+  if (!why)
+    h +=
+      `<div class="u2-acts"><button type="button" class="u2-act go" data-hud="buildhere" aria-label="${esc(B.here)}">` +
+      `${actIcon('plus')}${B.icon()} Build here</button>` +
+      (cost.length ? `<div class="u2-facts">${factChips(cost, 'cinfo')}</div>` : '') +
+      '</div>';
   return h;
 }
 function buildHere() {

@@ -218,6 +218,42 @@ function laneWaitFact(x) {
   else if (x.why === 'hand') f.icon += actIcon('walk');
   return f;
 }
+// An agenda entry's verdict as a fact: the coloured ring (green in time, gold tight, red late), or null.
+function laneVerdictFact(e) {
+  const v = hudVerdict(e),
+    d = laneDeadline(e);
+  if (!v) return null;
+  const word = v === 'late' ? 'Too late' : v === 'tight' ? 'Tight' : 'In time';
+  return {
+    k: 'verdict',
+    icon: laneVerdictIcon(v),
+    n: '',
+    cls: `v${HUD_VERDICT[v]}`,
+    label: v,
+    why:
+      `${word} for ${d ? d.what : 'its deadline'}` +
+      (e.then ? `, ${e.then.crop} sown` : '') +
+      ', by the settler’s estimate. Green in time, gold tight, red late.',
+  };
+}
+// An agenda entry's work as a fact: the stopwatch and its span, the chain's steps to sowing counted in.
+function laneWorkFact(e) {
+  const more = e.then ? e.then.steps.reduce((n, x) => n + x.hours.mid, 0) : 0,
+    steps = e.steps && e.steps.length ? e.steps.map((x) => hudKind(x.kind).toLowerCase()).join(', ') : '';
+  return {
+    k: 'work',
+    icon: actIcon('clock'),
+    n: laneSpanN(e.hours.mid + more),
+    label: `${hudSpan(e.hours.mid + more)} of work`,
+    why:
+      `Work: about ${hudSpan(e.hours.mid)}` +
+      (e.hours.hi > e.hours.mid ? `, ${hudSpan(e.hours.hi)} if it goes slowly` : '') +
+      (steps ? ` (${steps})` : '') +
+      (e.rough ? ', roughly' : '') +
+      (more ? `, then ${hudSpan(more)} more until ${e.then.crop} is sown` : '') +
+      '.',
+  };
+}
 // The facts of the plan's task i: what it waits for, its verdict, its work, its deadline, at risk; then the lane's and the pin's words.
 function laneTaskFacts(t, e, i) {
   const out = [],
@@ -234,36 +270,8 @@ function laneTaskFacts(t, e, i) {
     });
   }
   if (t.waits) out.push(laneWaitFact(t.waits));
-  if (v) {
-    const word = v === 'late' ? 'Too late' : v === 'tight' ? 'Tight' : 'In time';
-    out.push({
-      k: 'verdict',
-      icon: laneVerdictIcon(v),
-      n: '',
-      cls: `v${HUD_VERDICT[v]}`,
-      label: v,
-      why:
-        `${word} for ${d ? d.what : 'its deadline'}` +
-        (e.then ? `, ${e.then.crop} sown` : '') +
-        ', by the settler’s estimate. Green in time, gold tight, red late.',
-    });
-  }
-  if (e && e.hours) {
-    const more = e.then ? e.then.steps.reduce((n, x) => n + x.hours.mid, 0) : 0,
-      steps = e.steps && e.steps.length ? e.steps.map((x) => hudKind(x.kind).toLowerCase()).join(', ') : '';
-    out.push({
-      k: 'work',
-      icon: actIcon('clock'),
-      n: laneSpanN(e.hours.mid + more),
-      label: `${hudSpan(e.hours.mid + more)} of work`,
-      why:
-        `Work: about ${hudSpan(e.hours.mid)}` +
-        (e.hours.hi > e.hours.mid ? `, ${hudSpan(e.hours.hi)} if it goes slowly` : '') +
-        (steps ? ` (${steps})` : '') +
-        (more ? `, then ${hudSpan(more)} more until ${e.then.crop} is sown` : '') +
-        '.',
-    });
-  }
+  if (v) out.push(laneVerdictFact(e));
+  if (e && e.hours) out.push(laneWorkFact(e));
   if (d) out.push(laneDeadFact(d, v === 'late' ? 'v2' : ''));
   const s = laneSteps()[i];
   if (s && s.state === 'at-risk') {
