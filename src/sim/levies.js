@@ -11,6 +11,12 @@ VB['sim/levies'] = (() => {
   const { planOf } = VB['sim/plans'];
   const { workedToday } = VB['sim/work'];
   const { on } = VB['sim/events'];
+  const { SEASON_DAYS, GOODWILL } = VB['sim/rules'];
+  const { of: traitOf } = VB['sim/traits'];
+  const { opinionOf, balance, book: bookGoodwill } = VB['sim/relations'];
+  const { KINDS } = VB['sim/kinds'];
+  const { windowEnd } = VB['sim/hands'];
+  const { VOICE } = VB['sim/voice'];
   // @state plan.levies (a household's plan's; sim/plans holds the plan): absent until first read, then {at (the season compiled: year × 4
   //   + season), of: {pawn id: [hours (the row's hours a day, by the clock; null for one not levied: the head pair, a child under 7), hands
   //   (age and health, as compiled), role (the pawn's role then)]}}: each member's levy in force this season, compiled at the season's
@@ -91,18 +97,86 @@ VB['sim/levies'] = (() => {
       dayLeft = WORK[1] - Math.min(WORK[1], Math.max(WORK[0], c.hour));
     return Math.max(0, Math.min(left, dayLeft));
   }
+  // ---- the member's judgement and the head's demand (VB-1779; design.md section 7, The levy and own hours: The member's judgement, The
+  // head's demand, Demand and take, What a breach costs) ----
+  // @tunable GIVE: the member's judgement J = base + diligence × (2d − 1) + need × n + opinion × o + goodwill × g − want × w (The member's
+  // judgement); open: n for a task merely open; court: w while it courts; press: a demand is complied with when J + press > 0; hold: a
+  // levied leg's hours are taken when J < −hold. Starting values, Proposed (VB-1759).
+  const GIVE = {
+    base: 0,
+    diligence: 0.6,
+    need: 0.6,
+    opinion: 0.3,
+    goodwill: 0.3,
+    want: 0.6,
+    open: 0.3,
+    court: 0.8,
+    press: 0.4,
+    hold: 0.8,
+  };
+  // @tunable DEMAND: weight, the head demands h hours when the work at risk R > weight × h × V + G (The head's demand): the goodwill booked
+  // and as much again for the giving it will lose.
+  const DEMAND = { weight: 2 };
+  const unit = (x) => Math.max(-1, Math.min(1, x));
+  const DAYWORK = GOODWILL.hour * 8; // a day's work in rations (the worth table's: 3)
+  // The need member p of household hh sees in task j (n): 1 when j has a deadline today (`late`) or a window closing within
+  // VOICE.closing days, or a member of its household went hungry yesterday; GIVE.open when j is merely open; 0 for no task.
+  function needOf(st, hh, j, c = cal(st.t)) {
+    if (!j) return 0;
+    if (KINDS[j.kind].late) return 1;
+    const end = windowEnd(st, j, c);
+    if (end !== null && end - (c.season * SEASON_DAYS + c.sday) < VOICE.closing) return 1;
+    for (const id of hh.members) {
+      const q = st.pawns[id],
+        log = q.died === null && q.hungerLog;
+      if (log && log.length && log[log.length - 1] > 0.01) return 1;
+    }
+    return GIVE.open;
+  }
+  // What member p wants its hours for (w), the strongest of: rest, the hours it has worked today over its working day's 12; a visit owed,
+  // the days since it sat with near kin or a close friend (pawn.sat) over VOICE.days, at most 1; courting, GIVE.court; an aim's step, 0
+  // until built.
+  function wantOf(st, p) {
+    const day = Math.floor(st.t / DAY),
+      rest = (workedToday(st, p.id, day) + owedToday(st, p.id, day)) / (WORK[1] - WORK[0]),
+      visit = Number.isInteger(p.sat) ? Math.min(1, (day - p.sat) / VOICE.days) : 0;
+    return Math.max(rest, visit, Number.isInteger(p.courting) ? GIVE.court : 0);
+  }
+  // judgement(st, hh, p, n): member p's judgement J of household hh's head, by what it knows now, for a task of need n (needOf); null for
+  // one with no head to judge. No draw.
+  function judgement(st, hh, p, n) {
+    const h = hh.holder;
+    if (h === null || h === p.id || !st.pawns[h] || st.pawns[h].died !== null) return null;
+    VB.count.giveJudged++;
+    return (
+      GIVE.base +
+      GIVE.diligence * (2 * traitOf(st, p.id, 'diligence') - 1) +
+      GIVE.need * n +
+      GIVE.opinion * unit(opinionOf(st, p.id, h)) +
+      GIVE.goodwill * unit(balance(st, h, p.id) / DAYWORK) -
+      GIVE.want * wantOf(st, p)
+    );
+  }
+  // Does member p comply with a demand of task j (J + GIVE.press > 0); and would it take a levied leg of task j (J < −GIVE.hold).
+  const complies = (st, hh, p, j) => (judgement(st, hh, p, needOf(st, hh, j)) ?? 0) + GIVE.press > 0;
+  const takes = (st, hh, p, j) => (judgement(st, hh, p, needOf(st, hh, j)) ?? 0) < -GIVE.hold;
+  // Whether the head of household hh demands h hours of member p for work at risk worth R rations (The head's demand): R > weight × h ×
+  // V + G, V an hour's worth (GOODWILL.hour), G the goodwill it already owes the member, in rations.
+  const demands = (st, hh, p, h, R) =>
+    R > DEMAND.weight * h * GOODWILL.hour + (hh.holder === null ? 0 : balance(st, p.id, hh.holder));
   // ---- own hours, booked (VB-1761; design.md section 7, The levy and own hours: Own hours, booked; Whose an hour is; Sovereignty) ----
   // The six parts, in this order: owed (an outer levy, hands lent), levied (the household's work within the levy left), demanded (its
   // work past it, at the head's call), given (the same of the pawn's own accord, and the head pair's), kept (its own: a pastime, a visit,
   // rest, leave, a walk or a wait with no task, a task of its own such as its drink, any working hour in no leg) and taken (levy hours
-  // kept by a breach: none until a member's take is built, VB-1762).
+  // kept by a breach, VB-1779).
   const PARTS = ['owed', 'levied', 'demanded', 'given', 'kept', 'taken'];
   const BEHIND = 6; // the strip's six days behind (Sim.hours)
   const TD = DAY * TICKS;
   // @state agent.book (VB-1761): absent until the pawn's first leg ends, then {day (the game day booked), at (the tick booked to), hands
   //   (its hands at the day's first booking: the day's H is 12 times them), levy (its levy that day in hours times hands; null for the head
   //   pair, who are not levied, and one in no household), p: [owed, levied, demanded, given, kept, taken] (hours times hands so far
-  //   today), past: up to six [day, hands, levy, ...the six parts] of the days before, the latest first}. Everything from `at` on is
+  //   today), past: up to six [day, hands, levy, ...the six parts] of the days before, the latest first; gw, gwTo (VB-1779): absent, or
+  //   the goodwill in rations gathered toward its head gwTo and not yet booked, under a ration}. Everything from `at` on is
   //   unbooked; each working hour (06:00 to 18:00) of a day is booked once, at a leg's end, so a day closed sums to 12 times its hands;
   //   the night is unbooked. Of the parts nothing older than the six days behind is kept: they are what Sim.hours shows of the past (the
   //   strip's days behind), and the season's count is the tally's. Written only here; plain data, saved.
@@ -127,6 +201,14 @@ VB['sim/levies'] = (() => {
   }
   const byHands = (row, hands) => (row === null ? null : row * hands);
   const handsNow = (st, p) => Math.max(0, handsOf(st, p));
+  // Pawn p's levy left today in clock hours, read only (compiling nothing, for a view: sim/points), as capacity reckons it: 0 for one
+  // not levied, null for the head pair or one in no household.
+  function leftToday(st, p) {
+    const row = levyOn(st, p, Math.floor(st.t / DAY));
+    if (row === null) return null;
+    const day = Math.floor(st.t / DAY);
+    return Math.max(0, row - workedToday(st, p.id, day) - owedToday(st, p.id, day));
+  }
   // The day `day`'s record begins: the one before goes into the days behind (the oldest's array reused).
   function roll(st, p, r, day) {
     if (r.day !== null) {
@@ -162,9 +244,11 @@ VB['sim/levies'] = (() => {
     T.at = key;
     T.of = {};
   }
-  // h hours times hands of a leg opened by `by` ('owed', 'head', 'pawn', or none: the pawn's own) booked into record r of pawn p: up to
-  // the levy left today (the levy less the hours booked owed and levied) owed or levied, the rest demanded (owed or the head's) or given
-  // (the pawn's); the head pair's household work given, their outer days owed; one in no household keeps its hours. Two parts at most.
+  // h hours times hands of a leg opened by `by` ('owed', 'head', 'pawn', 'taken' (a breach's: VB-1779), or none: the pawn's own) booked
+  // into record r of pawn p: up to the levy left today (the levy less the hours booked owed, levied and taken) owed, levied or taken, the
+  // rest demanded (owed or the head's), given (the pawn's) or kept (taken past the levy); the head pair's household work given, their
+  // outer days owed; one in no household keeps its hours. Two parts at most. Hours demanded and taken are goodwill between the member and
+  // its head (What a breach costs): `tallied` (a booking, not Sim.hours' copy) books them.
   function put(st, p, r, h, by, tallied) {
     const P = r.p,
       hh = p.household === null ? null : st.households[p.household];
@@ -173,17 +257,41 @@ VB['sim/levies'] = (() => {
       return;
     }
     if (r.levy === null) {
-      P[by === 'owed' ? 0 : 3] += h;
+      P[by === 'owed' ? 0 : by === 'taken' ? 4 : 3] += h;
       return;
     }
-    const left = Math.max(0, r.levy - P[0] - P[1]),
+    const left = Math.max(0, r.levy - P[0] - P[1] - P[5]),
       within = Math.min(h, left),
       past = h - within;
+    if (by === 'taken') {
+      P[5] += within;
+      P[4] += past;
+      if (tallied && within > 0) {
+        tally(st, hh, p, 1, within, r.day);
+        owe(st, hh, p, r, -within);
+      }
+      return;
+    }
     P[by === 'owed' ? 0 : 1] += within;
     if (past <= 0) return;
     const k = by === 'pawn' ? 3 : 2;
     P[k] += past;
     if (tallied) tally(st, hh, p, k === 2 ? 0 : 2, past, r.day);
+    if (tallied && k === 2 && by !== 'owed') owe(st, hh, p, r, past);
+  }
+  // Goodwill between member p and its head for h hours times hands (> 0 demanded: the head owes; < 0 taken: the member owes), in a day's
+  // work's units (The gift: GOODWILL.hour rations an hour), gathered on the record (r.gw) and booked once it comes to a whole ration
+  // (GOODWILL.forget: less would be forgotten as it is booked).
+  function owe(st, hh, p, r, h) {
+    const head = hh.holder;
+    if (head === null || head === p.id || !st.pawns[head] || !st.pawns[head].alive) return;
+    if (r.gwTo !== head) [r.gw, r.gwTo] = [0, head];
+    r.gw += h * GOODWILL.hour;
+    if (Math.abs(r.gw) < GOODWILL.forget) return;
+    VB.count.breachBooked++;
+    if (r.gw > 0) bookGoodwill(st, p.id, head, r.gw);
+    else bookGoodwill(st, head, p.id, -r.gw);
+    r.gw = 0;
   }
   // The ticks [from, to) booked to `by` in record r: each day's working hours in it, a day's record begun as the span passes into it.
   function span(st, p, r, from, to, by, tallied = true) {
@@ -210,9 +318,17 @@ VB['sim/levies'] = (() => {
       const d = Math.floor(Math.min(l.t, st.tick) / TD);
       r = a.book = { day: null, at: d * TD, hands: 0, levy: null, p: null, past: [] };
     }
-    const from = Math.min(Math.max(r.at, l.t), st.tick);
-    if (from > r.at) span(st, p, r, r.at, from, undefined);
-    span(st, p, r, from, st.tick, l.by);
+    const from = Math.min(Math.max(r.at, l.t), st.tick),
+      // the hours of a breach (agent.taking, VB-1779) are taken while it lasts, in a leg of the pawn's own or in none
+      tk = Number.isFinite(a.taking) ? Math.min(a.taking, st.tick) : -Infinity;
+    if (from > r.at) spanTaking(st, p, r, r.at, from, undefined, tk);
+    spanTaking(st, p, r, from, st.tick, l.by, tk);
+    if (Number.isFinite(a.taking) && a.taking <= st.tick) delete a.taking;
+  }
+  function spanTaking(st, p, r, from, to, by, tk) {
+    if (by || tk <= from) return span(st, p, r, from, to, by);
+    span(st, p, r, from, Math.min(to, tk), 'taken');
+    if (tk < to) span(st, p, r, tk, to, by);
   }
   on('legOver', book);
   // A day's six parts as Sim.hours shows them, and its sovereignty: by right 1 less the levy over H, as lived the hours demanded, given
@@ -288,5 +404,20 @@ VB['sim/levies'] = (() => {
     return { season: key, of: U.of, year: U.year.at, yearOf: U.year.of };
   }
   const copyOf = (o) => Object.fromEntries(Object.entries(o).map(([k, e]) => [k, e.slice()]));
-  return { rowOf, levyOf, levied, capacity, owedToday, PARTS, hours, tallyOf };
+  return {
+    rowOf,
+    levyOf,
+    levied,
+    capacity,
+    owedToday,
+    PARTS,
+    hours,
+    tallyOf,
+    leftToday,
+    GIVE,
+    DEMAND,
+    complies,
+    takes,
+    demands,
+  };
 })();

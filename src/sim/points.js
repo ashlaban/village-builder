@@ -11,6 +11,9 @@ VB['sim/points'] = (() => {
   const { controlOf } = VB['sim/controller'];
   const { unbound } = VB['sim/pose'];
   const { MEETING } = VB['sim/meetings'];
+  const Levies = VB['sim/levies'];
+  const { TICKS } = VB['sim/rules'];
+  const { travelling } = VB['sim/pose'];
   const SEASON = SEASON_DAYS * DAY,
     YEAR = YEAR_DAYS * DAY;
   // The hours of the day's two allotments (sim/jobs refreshJobs, sim/day allot): the morning's, an hour before work, and the afternoon's.
@@ -50,6 +53,11 @@ VB['sim/points'] = (() => {
     if (hh.farmstead !== null) {
       const a = allotAfter(st.t);
       out.push({ point: 'allot', body, which: a.which ? 'afternoon' : 'morning', deadline: a.at });
+      // work at risk with the levies spent (VB-1779): demand more, or not, by the hour
+      const risk = plan.day && plan.day.risk;
+      if (risk && plan.day.made === Math.floor(st.tick / TICKS))
+        for (const [key, work] of risk)
+          if (st.jobs.has(key)) out.push({ point: 'demand', body, key, work, deadline: Math.floor(st.t) + 1 });
     }
   }
   // Sim.decisions(st, id): the decision points open to pawn id's controller now, by deadline (then as listed), each {point, deadline (a
@@ -62,7 +70,11 @@ VB['sim/points'] = (() => {
   //   leg: its automatic behaviour off, its queue empty and nothing in hand: at once;
   //   ask (offer: its id, basis): an offer it has an answer to give, until the day's turn after it falls due (sim/offers), when its judgement
   //     answers.
-  // The levy's points join this list (VB-1763, VB-1769).
+  //   demand (body, key, work): work at risk its allotment left with the levies spent (VB-1779), the head's to demand or not, by the hour;
+  //   demanded (offer): a demand of its head's past its levy (an offer on the basis `demand`), to comply with or refuse, at once (its
+  //     judgement answers at the day's turn);
+  //   take (levy): hours of its levy left today, a levied member's to take for itself (the verb breach) or not, at once.
+  // The levy's other points join this list (VB-1763, VB-1769).
   function decisions(st, id) {
     const p = Number.isInteger(id) ? st.pawns[id] : null;
     if (!p || p.died !== null) return [];
@@ -82,12 +94,29 @@ VB['sim/points'] = (() => {
         if (s.state === 'at-risk')
           out.push({ point: 'risk', step: s.id, short: s.risk.short, by: s.by, deadline: plan.nextReview });
     }
+    // hours of its levy left today, in the working day, at home and not taking already (sim/day takeWhy, read only here)
+    const left = hh && hh.holder !== null && hh.holder !== id ? Levies.leftToday(st, p) : null,
+      ag = st.agents[id],
+      hour = st.t % DAY;
+    if (
+      left > 1e-9 &&
+      hour >= WORK[0] &&
+      hour < WORK[1] &&
+      !(ag.taking > st.tick) &&
+      !travelling(ag) &&
+      ag.away === undefined
+    )
+      out.push({ point: 'take', levy: Math.min(left, WORK[1] - hour), deadline: st.t });
     const c = controlOf(st, id);
     if (!c.auto && !c.queue.length && unbound(st.agents[id])) out.push({ point: 'leg', deadline: st.t });
     for (const o of st.offers) {
       VB.count.pointOffer++;
       if (o.answers.some((a) => a.by === id && a.yes === null))
-        out.push({ point: 'ask', offer: o.id, basis: o.basis, deadline: dueAt(o.due) });
+        out.push(
+          o.basis === 'demand'
+            ? { point: 'demanded', offer: o.id, key: o.wants.key, hours: o.wants.hours, deadline: dueAt(o.due) }
+            : { point: 'ask', offer: o.id, basis: o.basis, deadline: dueAt(o.due) },
+        );
     }
     return out
       .map((x, i) => [x, i])
