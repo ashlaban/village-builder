@@ -328,7 +328,8 @@ VB['sim/pastimes'] = (() => {
     frees: true,
   });
 
-  // ---- the choice (it was sim/jobs' idleAbout): a pawn the planner found no task has the wait to itself. One who holds a herd at the
+  // ---- the choice (it was sim/jobs' idleAbout): a pawn the planner found no task, or a levied member on its own hours that gave none of
+  // them (sim/day takeDay, VB-1762), has the wait to itself. One who holds a herd at the
   // side stays by it; else it may join one it likes who is free (company, at its chance); else it draws among the pastimes open to it
   // by their weights, and whom it calls on by its liking, on the stream `talk`. One with nothing open waits where it is. ----
   const list = [],
