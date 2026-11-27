@@ -40,16 +40,23 @@ VB['sim/points'] = (() => {
     if (plan.reviewed === null || plan.reviewed === undefined || plan.reviewed < s0) return plan.nextReview;
     return nextSlot(plan, cadence(st, plan), s0 + SEASON - 1);
   }
-  // Whether the head has a choice in its next allotment (VB-1848): the household allots two or more members (a division to make), or the
-  // day the rule would allot (sim/day weighDay, read as of the hour of the allotment) differs in its lists from the day standing. One
-  // member, and a day the rule leaves as it is: nothing for the head to choose, so no point.
+  // Whether the rule's day would put work on a member it did not stand for (tasks done since, or no longer owed, drop out of the day and
+  // change nothing): some member's list holds a task not in its standing list.
+  function moved(would, standing) {
+    for (const id in would) {
+      const had = new Set(standing[id] || []);
+      for (const t of would[id]) if (!had.has(t)) return true;
+    }
+    return false;
+  }
+  // Whether the head has a choice in its next allotment (VB-1884): the day the rule would allot (sim/day weighDay, as of the hour of the
+  // allotment) moves work to a member the day standing did not give it (who does what); else the rule's day is the day standing, and
+  // there is nothing to choose. A household with no day standing yet: its allotted members, if any.
   function choice(st, hh, plan) {
     let n = 0;
     for (const id of hh.members) if (st.pawns[id].died === null && allotted(st, st.pawns[id])) n++;
-    if (n >= 2) return true;
     if (!plan.day) return n > 0;
-    const w = weighDay(st, hh, cal(allotAfter(st.t).at));
-    return JSON.stringify(w.lists) !== JSON.stringify(plan.day.lists);
+    return moved(weighDay(st, hh, cal(allotAfter(st.t).at)).lists, plan.day.lists);
   }
   // The points of pawn id, living, as agent of household hid's plan (its head): the year's review (the meeting's agenda closing), the
   // season's (its first review), the days ahead (its planning day), and the next of the day's two allotments (a household on a farm).
@@ -61,8 +68,8 @@ VB['sim/points'] = (() => {
     out.push({ point: 'year', body, deadline: meetingAfter(st.t) });
     out.push({ point: 'season', body, deadline: seasonReview(st, plan) });
     out.push({ point: 'ahead', body, deadline: plan.nextReview });
+    const a = allotAfter(st.t);
     if (hh.farmstead !== null && choice(st, hh, plan)) {
-      const a = allotAfter(st.t);
       out.push({ point: 'allot', body, which: a.which ? 'afternoon' : 'morning', deadline: a.at });
     }
   }
