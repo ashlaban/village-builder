@@ -787,7 +787,7 @@ VB['sim/day'] = (() => {
       if (cred === null || busy.has(a)) continue;
       let best = null,
         top = 0;
-      for (const j of st.jobsBy.get(`household:${cred}`) || none) {
+      for (const j of st.jobsBy.get(`${owed !== null ? Days.kindOn(st, a.id) : 'household'}:${cred}`) || none) {
         const s = bid(st, a, j, c, memo);
         if (s > top) [best, top] = [j, s];
       }

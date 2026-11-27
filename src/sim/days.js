@@ -56,6 +56,20 @@ VB['sim/days'] = (() => {
     const e = d.by[id];
     return e && e[1] < OUTER.hours - 1e-9 ? st.obligations[e[0]].creditor.id : null;
   }
+  // The kind of the body pawn id works for today ('household' | 'village'), or null: Days.on's id is of that kind (VB-1768: a routine's
+  // day is the village's).
+  function kindOn(st, id) {
+    const d = st.daysToday;
+    if (!d || d.day !== today(st)) return null;
+    const e = d.by[id];
+    return e && e[1] < OUTER.hours - 1e-9 ? st.obligations[e[0]].creditor.kind : null;
+  }
+  // Pawn id's duty today is over before its hours (a routine's work done, its days released, VB-1768): nothing more is booked.
+  function release(st, id) {
+    const d = st.daysToday,
+      e = d && d.day === today(st) ? d.by[id] : null;
+    if (e) e[1] = OUTER.hours;
+  }
   // Whether pawn id has booked its day's hours today: its day owed is given (sim/agents' hours a pawn may work now read it)
   function given(st, id) {
     const d = st.daysToday,
@@ -86,5 +100,5 @@ VB['sim/days'] = (() => {
   function markGiven(st, id) {
     st.daysToday.by[id][2] = 1;
   }
-  return { OUTER, TERMS, on, given, worked, begin, seat, markGiven };
+  return { OUTER, TERMS, on, kindOn, release, given, worked, begin, seat, markGiven };
 })();

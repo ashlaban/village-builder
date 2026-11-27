@@ -221,11 +221,11 @@ VB['sim/society'] = (() => {
     if (led > 0) parts.push(['Followers', led]);
     const given = deedNow(st, p, 'gift');
     if (given >= 1) parts.push(['Gifts given', DEED.gift * (1 - Math.exp(-given / DEED.giftScale))]);
-    // the village's work days this year (VB-120): turned out, and, as a holder, stayed away
+    // the village's work days this year (VB-120): turned out (staying away costs goodwill owed the alderman now, a breach of the
+    // routine's levy, VB-1768; pawn.workdays.missed is its record)
     const wd = p.workdays;
     if (wd && wd.year === cal(st.t).year) {
       if (wd.came) parts.push(['Turned out for the work days', wd.came * WORKDAY.came]);
-      if (wd.missed) parts.push(['Stayed away from the work day', wd.missed * WORKDAY.missed]);
     }
     return parts;
   }
