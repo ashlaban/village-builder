@@ -320,11 +320,27 @@ VB['sim/meetings'] = (() => {
     return { voices, came, quorum: voices > 0 && came >= voices * QUORUM };
   }
   const quorumAt = (st, s, o, people) => attendance(st, s, o, people).quorum;
+  // The meeting hears the work its routines left undone at their seasons' ends since the last (sim/routines plan.routineLeft), as a
+  // neglected stretch is named: a line in the village's record; the choice weighs it (chooseRoutines).
+  function neglected(st, v) {
+    const plan = st.plans.villages.get(v.id),
+      R = plan.routineLeft,
+      left = R && R.by === plan.routinesBy + plan.routinesYear ? R.days : {},
+      parts = Object.keys(left)
+        .filter((k) => left[k] > 0)
+        .map((k) => `${left[k]} ${left[k] === 1 ? 'day' : 'days'} of ${VILLAGE_ROUTINES[k].label.toLowerCase()}`);
+    if (parts.length)
+      log(st, `The meeting of ${v.name} heard of the village's work left undone: ${parts.join('; ')}.`, {
+        kind: 'meeting',
+        village: v.id,
+      });
+  }
   function routinesMeeting(st, s, o, people = membersOf(st, s.id)) {
     const v = st.villages[s.id];
     if (!v || !people.length) return null;
     const { voices, came, quorum } = attendance(st, s, o, people),
       list = quorum ? chooseRoutines(st, v) : null;
+    neglected(st, v); // the work the routines left undone, heard before the choice (VB-1768)
     if (list) {
       issue(st, {
         actor: { settlement: s.id },

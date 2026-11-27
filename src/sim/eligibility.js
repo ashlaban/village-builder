@@ -11,7 +11,8 @@ VB['sim/eligibility'] = (() => {
   // here, in their place in the order. A task is {owner: {type, id}}: a job, or the owner of a work opportunity not yet posted.
   const BASES = [
     // a pawn called for a day of work owed (sim/days) takes the tasks of the household that is owed, and no other, for its hours (VB-462)
-    ['owed', (st, t, p) => t.owner.type === 'household' && Days.on(st, p.id) === t.owner.id],
+    // (a routine's day, VB-1768: the village's tasks)
+    ['owed', (st, t, p) => Days.on(st, p.id) === t.owner.id && Days.kindOn(st, p.id) === t.owner.type],
     ['servant', (st, t, p) => t.owner.type === 'household' && t.owner.id === p.household && p.servant],
     ['member', (st, t, p) => t.owner.type === 'household' && t.owner.id === p.household],
     ['villager', (st, t, p) => t.owner.type === 'village' && villageOf(st, p) === t.owner.id],

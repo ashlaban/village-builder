@@ -124,6 +124,13 @@ VB['sim/steps'] = (() => {
     )
       st.plans.pawns.delete(p.holder.id);
   }
+  // A village's routines as steps of its year (sim/routines, VB-1768): each `what` {routine, kinds}, by the default author, open, its
+  // `why` the decision that set them ({custom: by}); those of the routines set before leave.
+  function setRoutines(st, plan, whats, by) {
+    if (!plan.year) return;
+    plan.year = plan.year.filter((s) => !s.what.kinds);
+    for (const what of whats) plan.year.push(make(st, what, { custom: by }, { state: 'open' }));
+  }
   // ---- a task's step ----
   // The id of the step that opens a task of `kind` at `site` for `owner`, or null: the open step of the owner's project of that kind (at
   // the site, else any), else its season's routine of that kind. At a task's posting (sim/jobs post). Allocates nothing.
@@ -142,6 +149,9 @@ VB['sim/steps'] = (() => {
     if (any !== null) return any;
     const plan = planFor(st, owner.type, owner.id);
     if (plan) for (const s of plan.season || NONE) if (s.what.routine === kind) return s.id;
+    // a village's routine of the year (sim/routines, VB-1768), by the kinds it is the source of
+    if (plan && owner.type === 'village')
+      for (const s of plan.year || NONE) if (s.what.kinds && s.what.kinds.includes(kind)) return s.id;
     return null;
   }
   // A step as a view shows it: a copy, with the body whose plan holds it.
@@ -427,6 +437,7 @@ VB['sim/steps'] = (() => {
     advanced,
     unlink,
     stepFor,
+    setRoutines,
     chain,
     recordOf,
     targetOf,
