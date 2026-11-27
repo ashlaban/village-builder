@@ -194,4 +194,31 @@ for (const seed of [1, 2, 3]) {
   assert(step() && step().state === 'at-risk', 'the step stays on the pawn\'s plan, at risk');
   checkState(s);
 }
+// 6. The take-back is the next morning whatever the head's cadence (VB-1892): a household with a member on its own plan is reviewed at the
+// first review hour of the day after the step's by, though its own next review is far off; taken back there, or, kept, it stays and warns.
+for (const kept of [false, true]) {
+  const s = make();
+  for (const p of s.pawns) if (p.id > 1 && p.alive) VB['sim/lifecycle'].killPawn(s, p.id);
+  Sim.advance(s, 0.1);
+  const P = s.plans.households.get(0),
+    step = () => Steps.pawnPlan(s, 0).steps[0];
+  assert.strictEqual(Sim.setAuto(s, 0, false), true);
+  assert.strictEqual(Sim.plan(s, 0, 'add', { key: 'plow:f0.0', by: 2 }), true);
+  if (kept) assert.strictEqual(Sim.plan(s, 0, 'keep', { i: 0 }), true);
+  assert.strictEqual(Sim.plan(s, 0, 'sleep', { from: 9, until: 8 }), true);
+  P.nextReview = 1e9; // a cadence that would not look for days
+  const first = (d) => d * DAY + WORK[0] - 1;
+  while (s.t < first(3) - 0.5) Sim.advance(s, 0.1);
+  assert(Steps.pawnPlan(s, 0).steps.length === 1 && !P.ahead.some((x) => x.tookBack), 'still its own on the by day');
+  const r0 = VB.count.riskCheck;
+  while (s.t < first(3) + 0.3) Sim.advance(s, 0.1);
+  assert(VB.count.riskCheck > r0, 'weighed at the first review past its by');
+  if (kept) assert(Steps.pawnPlan(s, 0).steps.length === 1 && step().kept && !P.ahead.some((x) => x.tookBack), 'kept: it stays');
+  else {
+    const taken = P.ahead.find((x) => x.tookBack);
+    assert(taken && Steps.pawnPlan(s, 0).steps.length === 0, 'taken back at that review');
+    assert(Object.values(P.day.lists).some((l) => l.includes('plow:f0.0')), 'slotted into the day');
+  }
+  checkState(s);
+}
 console.log('authored: ok');

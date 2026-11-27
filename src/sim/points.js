@@ -108,9 +108,11 @@ VB['sim/points'] = (() => {
     if (pp && plan) {
       const body = { kind: 'pawn', id };
       out.push({ point: 'ahead', body, deadline: plan.nextReview });
+      // the review at which the default author would answer: the first review hour past the step's by (VB-1892)
+      const riskAnswer = (by) => (by + 1) * DAY + WORK[0] - 1;
       for (const s of pp.steps)
         if (s.state === 'at-risk')
-          out.push({ point: 'risk', step: s.id, short: s.risk.short, by: s.by, deadline: plan.nextReview });
+          out.push({ point: 'risk', step: s.id, short: s.risk.short, by: s.by, deadline: riskAnswer(s.by) });
     }
     // hours of its levy left today, in the working day, at home and not taking already (sim/day takeWhy, read only here)
     const left = hh && hh.holder !== null && hh.holder !== id ? Levies.leftToday(st, p) : null,
