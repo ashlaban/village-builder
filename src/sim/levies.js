@@ -284,26 +284,7 @@ VB['sim/levies'] = (() => {
     const k = by === 'pawn' ? 3 : 2;
     P[k] += past;
     if (tallied) tally(st, hh, p, k === 2 ? 0 : 2, past, r.day);
-    if (!tallied || k !== 2 || by === 'owed') return;
-    // goodwill only for hours a demand asked and the member weighed (agent.asked): the head's own work past the levy with no demand made
-    // is booked demanded but owes nothing (VB-1779 review, F1)
-    const ag = st.agents[p.id],
-      m = ag && ag.asked && ag.asked.day === r.day ? Math.min(past, ag.asked.hours) : 0;
-    if (!(m > 0)) return;
-    ag.asked.hours -= m;
-    if (!(ag.asked.hours > 1e-9)) delete ag.asked;
-    owe(st, hh, p, r, m);
-  }
-  // A demand pawn id has met (sim/day's basis `demand`): its next `hours` hours (times hands) demanded today are goodwill its head owes.
-  // @state agent.asked (VB-1779): absent, or {day (the game day of the demand), hours (hours times hands demanded and not yet worked)}.
-  //   Written only here and by put; plain data, saved.
-  function asked(st, id, hours) {
-    const ag = st.agents[id],
-      p = st.pawns[id];
-    if (!ag || !p || !(hours > 0)) return;
-    const day = Math.floor(st.tick / TD),
-      h = hours * Math.max(1, handsNow(st, p));
-    ag.asked = ag.asked && ag.asked.day === day ? { day, hours: ag.asked.hours + h } : { day, hours: h };
+    if (tallied && k === 2 && by !== 'owed') owe(st, hh, p, r, past);
   }
   // Goodwill between member p and its head for h hours times hands (> 0 demanded: the head owes; < 0 taken: the member owes), in a day's
   // work's units (The gift: GOODWILL.hour rations an hour), gathered on the record (r.gw) and booked once it comes to a whole ration
@@ -436,7 +417,6 @@ VB['sim/levies'] = (() => {
     levied,
     capacity,
     owedToday,
-    asked,
     PARTS,
     hours,
     tallyOf,

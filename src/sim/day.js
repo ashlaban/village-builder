@@ -225,7 +225,6 @@ VB['sim/day'] = (() => {
         hh = st.households[o.household],
         day = planOf(st, 'household', hh.id).day;
       VB.count.demandMet++;
-      Levies.asked(st, o.to, w.hours);
       if (w.verb !== 'default') {
         const r = issue(st, {
           actor: o.from,
