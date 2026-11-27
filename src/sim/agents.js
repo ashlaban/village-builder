@@ -26,7 +26,7 @@ VB['sim/agents'] = (() => {
     VB['sim/work'];
   const { minds, mindWhy, hold, unhold, dropMind, reachAfter, mindCheck, assign, inSlot, holds } = VB['sim/attention'],
     Attention = VB['sim/attention'];
-  const { legsOf, waitLeg, roadWait, unleg, halt, begin, repace, setOut, putAt, workAt, walked, dueLegs } =
+  const { legsOf, waitLeg, roadWait, unleg, halt, begin, repace, setOut, putAt, workAt, walked, dueLegs, restamp } =
     VB['sim/legs'];
   // the spot by the door of the house on tile `house`, where pawn a would stand
   const spotAt = (st, a, house) => [st.w.hx[house] - 12 + a.ox * 0.3, st.w.hy[house] + 14 + a.oy * 0.15];
@@ -689,8 +689,12 @@ VB['sim/agents'] = (() => {
         hold(st, a, j); // a charge is minded beside the pawn's task (VB-251, VB-1750)
       else {
         release(st, a);
+        // @state agent.opener (VB-1761): who opened the task in hand, 'head' (the planner's command: the head's allotment, call or duty)
+        //   or 'pawn' (its own, or the player's); read only by its legs' `by` (sim/legs). Written only here.
+        a.opener = c.source === 'planner' ? 'head' : 'pawn';
         start(st, a, j);
         a.basis = eligible(st, j, st.pawns[a.id]);
+        restamp(st, a); // the leg it set out on, told its basis (sim/legs, VB-1761)
         if (a.mind) reachAfter(st, a);
       }
       return { slot, key: j.key, n: slot === 'full' ? a.assigned.full : a.assigned.mind[j.key] };
