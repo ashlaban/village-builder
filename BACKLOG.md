@@ -151,7 +151,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1818](backlog/VB-1818.md)<a id="VB-1818"></a> | Kinds: the control fields no code reads after VB-1750 taken out | - | 3 | S | the kinds' own to and meadows' reload, dead since the phases went, removed |
 | [VB-1840](backlog/VB-1840.md)<a id="VB-1840"></a> | The page tells the player what automatic answers, and its sleep as of now | - | 3 | S | After VB-1776 the played pawn on automatic answers at-once offers itself and its sleep is reckoned hourly: the page says so and reads sleep as of now |
 | [VB-1841](backlog/VB-1841.md)<a id="VB-1841"></a> | An older save keeps the player's wish | - | 3 | S | A save from before VB-1776 loses the played pawn's chosen wish to its own choosing: mark it authored on load |
-| [VB-1894](backlog/VB-1894.md)<a id="VB-1894"></a> | A planner who falls ill or is called away gives its authored steps back to the household's day at once | plans | 3 | S | VB-1758 returns a lost holder's tasks to the pool from the day's lists only; a pawn on its own plan that falls ill or is called away keeps its authored steps, which wait for the at-risk review and its by, against the Decided third condition of Authors |
 | [VB-1897](backlog/VB-1897.md)<a id="VB-1897"></a> | The page confirms a demand before it is issued | - | 3 | S | assign and call past the levy are demands: the page says so and asks to confirm |
 
 </details>
