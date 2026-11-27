@@ -292,3 +292,35 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 /* the move of a farm placed off its landing, and a crowded house: a plain line, red when it costs */
 .u2-move { margin: 0; padding: 6px 10px; border-radius: 10px; background: var(--paper2); font-size: 14px; }
 .u2-move.bad { background: #f3dfa6; font-weight: 700; } .u2-move svg { width: 16px; height: 16px; vertical-align: -3px; display: inline-block; }
+/* the icons-first sweep (Kim, 27 Nov): the callout, the year's line, the stores and the build menu as chips; the words behind a tap or "i" */
+.u2 .u2-band { width: 100%; border: 0; text-align: left; justify-content: space-between; cursor: pointer; color: var(--ink2); font: inherit; }
+.u2 .u2-band[aria-pressed="true"] { background: var(--paper); color: var(--ink2); box-shadow: inset 0 0 0 2px var(--gold2); }
+.u2-band > .u2-i { display: grid; place-items: center; }
+p.u2-pinfo { display: block; }
+.u2-call .u2-verdict h2 { flex: 1; min-width: 0; }
+.u2-call .u2-verdict .u2-x { margin-left: 0; }
+.u2 .u2-call .u2-act { display: inline-flex; align-items: center; gap: 4px; }
+.u2-call .u2-act svg, .u2-call .u2-chip svg, .u2-sheet .u2-chip svg { width: 20px; height: 20px; flex: none; vertical-align: -4px; }
+.u2 .u2-call .u2-chip, .u2 .u2-sheet .u2-chip { display: inline-flex; align-items: center; gap: 4px; }
+.u2-chains .u2-act, .u2-jobrow .u2-act { flex: 1 1 auto; }
+.u2-cjob { display: grid; gap: 4px; }
+.u2-jobrow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.u2-jobname { flex: 1; display: inline-flex; align-items: center; gap: 6px; font-size: 15px; } .u2-jobname svg { width: 22px; height: 22px; flex: none; }
+.u2-call .u2-act b, .u2-call .u2-chip b { font-weight: 800; }
+.u2-alert:has(.u2-yline) { padding: 2px 4px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px 8px; }
+.u2 .u2-yline { display: inline-flex; gap: 8px; align-items: center; min-height: 36px; padding: 0 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.u2 .u2-yline[aria-pressed="true"] { background: rgba(31, 42, 38, 0.12); color: inherit; border-radius: 999px; }
+.u2-ychip { display: inline-flex; align-items: center; gap: 3px; } .u2-ychip svg { width: 22px; height: 22px; } .u2-ychip b { font: 800 17px/1 var(--body); font-variant-numeric: tabular-nums; }
+.u2-ychip .gap { display: grid; place-items: center; width: 26px; height: 26px; border: 1.5px dashed currentColor; border-radius: 6px; } .u2-ychip .gap svg { width: 18px; height: 18px; }
+.u2-ywords { padding: 0 8px 4px; font-size: 14px; }
+.u2-shead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .u2-shead > svg { width: 26px; height: 26px; flex: none; }
+.u2-shead .u2-facts { margin-left: auto; }
+.u2-cells span { display: grid; place-items: center; height: 21px; } .u2-cells span svg { width: 16px; height: 16px; }
+.u2 .u2-fact.left { border-style: dashed; }
+.u2-fact .gap svg { width: 18px; height: 18px; }
+.u2 .u2-fact .gap { width: 24px; height: 24px; }
+.u2-rhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.u2 .u2-rung .u2-i { width: 30px; height: 30px; font-size: 16px; }
+.u2 div.u2-build:hover { background: var(--paper2); }
+.u2-build .u2-facts { align-items: center; }
+.u2-build > span { min-width: 0; }

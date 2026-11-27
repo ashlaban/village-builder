@@ -366,16 +366,7 @@ function planCard(P, A, S) {
       why: `Tap the land where work is to be done, and add it to the plan. ${st.pawns[played()].given} does the day’s routine and then waits.`,
     });
   }
-  const num = (f) => (f.n === '' || f.n === undefined ? '' : `<b>${esc(f.n)}</b>`),
-    chips = facts
-      .filter((f) => f.chip !== false)
-      .map(
-        (f) =>
-          `<button type="button" class="u2-fact ${f.cls || ''}" data-hud="pinfo" data-k="${esc(f.k)}" aria-pressed="${hud.pinfo === f.k}" ` +
-          `aria-label="${esc(f.label || f.why)}" title="${esc(f.label || f.why)}">${f.icon}${num(f)}</button>`,
-      )
-      .join(''),
-    shown = hud.pinfo === 'all' ? facts : facts.filter((f) => f.k === hud.pinfo),
+  const chips = factChips(facts, 'pinfo'),
     head =
       what === 't'
         ? `<button type="button" class="u2-pico" data-hud="pinfo" data-k="place" aria-pressed="${hud.pinfo === 'place'}" ` +
@@ -383,19 +374,10 @@ function planCard(P, A, S) {
         : `<span class="u2-pico">${icon}</span>`;
   return (
     `<div class="u2-verdict">${head}<h2>${esc(title)}</h2>` +
-    (facts.length
-      ? `<button type="button" class="u2-i" data-hud="pinfo" data-k="all" aria-pressed="${hud.pinfo === 'all'}" ` +
-        'aria-label="What it means" title="What it means">i</button>'
-      : '') +
+    (facts.length ? factI('pinfo') : '') +
     '<button type="button" class="u2-x" data-hud="pshut" aria-label="Close">×</button></div>' +
     (chips ? `<div class="u2-facts">${chips}</div>` : '') +
-    (shown.length
-      ? `<ul class="u2-pinfo">${shown
-          .map(
-            (f) => `<li><span class="u2-fact ${f.cls || ''}">${f.icon}${num(f)}</span><span>${esc(f.why)}</span></li>`,
-          )
-          .join('')}</ul>`
-      : '') +
+    factWords(facts, 'pinfo') +
     (hud.msg ? `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>` : '') +
     warn +
     (acts && !warn ? `<div class="u2-row2">${acts}</div>` : '')

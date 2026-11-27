@@ -38,58 +38,103 @@ function woodNear(f) {
   return (hud.woodNear = best);
 }
 const fellTask = (i) => (hudPlanned() || { tasks: [] }).tasks.find((t) => t.kind === 'fell' && t.site === i) || null;
-const fellBtn = (tile, n, cls, label, small) =>
-  `<button type="button" class="${cls}" data-hud="fell" data-tile="${tile}" data-n="${n}">${label}${small ? `<small>${esc(small)}</small>` : ''}</button>`;
-// The acts of a forest tile's callout: fell here, one load or more, or why not; or the task already planned here.
-function woodActs(i, f) {
+// A fell button: the axe and the loads, its sentence its label to a screen reader and behind the callout's "i".
+const fellBtn = (tile, n, cls, label, why) =>
+  `<button type="button" class="${cls}" data-hud="fell" data-tile="${tile}" data-n="${n}"${
+    why ? ` aria-label="${esc(why)}" title="${esc(why)}"` : ''
+  }>${label}</button>`;
+// The acts of a forest tile's callout: fell here, one load or more, or why not; or the task already planned here. Its words go to the
+// callout's facts (page/ui2land hudCall).
+function woodActs(i, f, facts) {
   if (!(w.trees[i] > 0) || !hudPlanned()) return '';
   const t = fellTask(i);
-  const inplan = (icon, what, more = '') =>
-    `<p class="u2-inplan">${actIcon(icon)}<span><b>${what}</b> is in the plan${more}.</span></p>`;
-  if (t) return inplan('chop', 'Felling', ` here: ${t.got} of ${t.n} ${t.n === 1 ? 'load' : 'loads'} home`);
+  if (t) {
+    facts.push({
+      k: 'fell',
+      icon: actIcon('chop') + actIcon('queue'),
+      n: `${t.got}/${t.n}`,
+      label: 'Felling is in the plan',
+      why: `Felling is in the plan here: ${t.got} of ${t.n} ${t.n === 1 ? 'load' : 'loads'} home.`,
+    });
+    return '';
+  }
   const why = woodWhy(i, f);
-  if (why) return `<p class="u2-legend">Not for felling: ${esc(why)}.</p>`;
+  if (why) {
+    facts.push({
+      k: 'fell',
+      icon: actIcon('no') + actIcon('chop'),
+      n: '',
+      label: 'Not for felling',
+      why: `Not for felling: ${String(why).replace(/\b(at|tile) \d+\b/g, 'here')}.`,
+    });
+    return '';
+  }
+  const one = 'One load: a tree felled and its timber carried home. One task of the plan.';
+  facts.push({ k: 'fellhow', chip: false, icon: actIcon('chop'), why: `Fell timber here. ${one}` });
   return (
-    fellBtn(
-      i,
-      1,
-      'u2-act go',
-      'Fell timber here',
-      'One load: a tree felled and its timber carried home. One task of the plan.',
-    ) + `<div class="u2-row2">${WOOD_LOADS.map((n) => fellBtn(i, n, 'u2-chip', `${n} loads`)).join('')}</div>`
+    '<div class="u2-row2">' +
+    fellBtn(i, 1, 'u2-act go', `${actIcon('plus')}${actIcon('chop')} Fell <b>1</b>`, `Fell timber here: ${one}`) +
+    WOOD_LOADS.map((n) =>
+      fellBtn(i, n, 'u2-chip', `${actIcon('chop')} <b>${n}</b>`, `Fell timber here: ${n} loads, one task of the plan.`),
+    ).join('') +
+    '</div>'
   );
 }
-// The first act that mends the fire (fireView's mend), as a button, or the words that it is planned.
-function fireAct(F, f) {
+// The first act that mends the fire (fireView's mend), as a button, or a chip that it is planned; its words to the callout's facts.
+function fireAct(F, f, facts) {
   const k = F.mend[0];
   if (!k) return '';
   if (F.planned[k]) {
     const what = k === 'fell' ? 'Felling' : 'Cutting firewood';
-    return `<p class="u2-inplan">${actIcon(k === 'fell' ? 'chop' : 'build')}<span><b>${what}</b> is in the plan.</span></p>`;
+    facts.push({
+      k: 'mend',
+      icon: actIcon(k === 'fell' ? 'chop' : 'build') + actIcon('queue'),
+      n: '',
+      label: `${what} is in the plan`,
+      why: `${what} is in the plan.`,
+    });
+    return '';
   }
-  if (k === 'firewood')
+  if (k === 'firewood') {
+    const why = `Cut firewood: ${woodTimber(F.timber)} at home, cut at the house.`;
+    facts.push({ k: 'mend', chip: false, icon: goodIcon('wood'), why });
     return (
-      '<button type="button" class="u2-act go" data-hud="cutwood">Cut firewood' +
-      `<small>${esc(woodTimber(F.timber))} at home, cut at the house</small></button>`
+      `<button type="button" class="u2-act go" data-hud="cutwood" aria-label="${esc(why)}" title="${esc(why)}">` +
+      `${actIcon('plus')}${goodIcon('wood')} Cut firewood</button>`
     );
+  }
   const near = woodNear(f),
     n = Math.min(20, woodLoads(Math.max(1, F.goal - F.free - F.timber)));
-  return near.tile < 0
-    ? '<p class="u2-legend">No wood to fell within a day’s reach.</p>'
-    : fellBtn(
-        near.tile,
-        n,
-        'u2-act go',
-        `Fell timber: ${n} ${n === 1 ? 'load' : 'loads'}`,
-        `At the nearest wood, ${near.d} ${near.d === 1 ? 'tile' : 'tiles'} off, carried home as timber. Or tap any forest tile.`,
-      );
+  if (near.tile < 0) {
+    facts.push({
+      k: 'mend',
+      icon: actIcon('no') + actIcon('chop'),
+      n: '',
+      cls: 'v2',
+      why: 'No wood to fell within a day’s reach.',
+    });
+    return '';
+  }
+  const why =
+    `Fell timber: ${n} ${n === 1 ? 'load' : 'loads'} at the nearest wood, ${near.d} ${near.d === 1 ? 'tile' : 'tiles'} off, ` +
+    'carried home as timber. Or tap any forest tile.';
+  facts.push({ k: 'mend', chip: false, icon: actIcon('chop'), why });
+  return fellBtn(near.tile, n, 'u2-act go', `${actIcon('plus')}${actIcon('chop')} Fell <b>${n}</b>`, why);
 }
-// The house's lines on wood: what lies at home, and cutting it when it can be cut.
+// The house's wood: a chip of what lies at home ({fact}), and cutting it when it can be cut ({act}).
 function houseWood(F) {
-  if (!F) return '';
-  let h = `<p class="u2-legend">${goodIcon('wood')} ${esc(fireTitle(F))}; ${esc(woodTimber(F.timber))} at home to cut.</p>`;
-  if (F.planned.firewood) return h;
-  if ((F.timber > 0 || F.planned.fell) && F.short)
-    h += `<button type="button" class="u2-chip" data-hud="cutwood">Cut firewood</button>`;
-  return h;
+  if (!F) return { fact: null, act: '' };
+  const fact = {
+    k: 'wood',
+    icon: goodIcon('wood'),
+    n: String(F.nights),
+    cls: F.short ? (F.wood < 1 ? 'v2' : 'v1') : '',
+    label: fireTitle(F),
+    why: `${fireTitle(F)}; ${woodTimber(F.timber)} at home to cut.`,
+  };
+  if (F.planned.firewood || !((F.timber > 0 || F.planned.fell) && F.short)) return { fact, act: '' };
+  return {
+    fact,
+    act: `<button type="button" class="u2-chip" data-hud="cutwood" aria-label="Cut firewood">${actIcon('plus')}${goodIcon('wood')} Cut firewood</button>`,
+  };
 }
