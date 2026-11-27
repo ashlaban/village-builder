@@ -37,7 +37,8 @@ const map = [
 // Village 0: household 0 (holder 0, his wife 1, daughters 2 to 5) and household 1 (holder 6, his wife 7, sons 8 and 10, daughter 9);
 // village 1: household 2. Aged: the heirs 2 (21) and 8 (22); 4 (20) and 10 (21), who are heirs to nothing; 9 (17); 5 (15).
 function world(eve = false) {
-  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  // seed 982 and these sizes draw this scene (VB-1951 moved the draws; tests/roundoffers, suit, terms and handover share it)
+  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2, sizes: [6, 5] }, { at: [11, 2], farms: 1, sizes: [4] }], { seed: 982 });
   const aged = (id, years) => {
     st.pawns[id].born = st.t - years * YEAR - DAY;
     st.pawns[id].age = years;

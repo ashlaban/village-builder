@@ -18,7 +18,7 @@ assert.deepStrictEqual(at, [...at].sort((x, y) => x - y), 'brought in in order o
 
 // ---- a state ----
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
-const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 1 }], { seed: 4 });
+const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 1 }], { seed: 1 }); // seed 1 since VB-1951 moved the draws
 st.makeFields = false;
 Sim.advance(st, 4.5);
 const hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = st.plans.households.get(hh.id), head = plan.head.pawn;

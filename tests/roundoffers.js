@@ -31,7 +31,7 @@ const map = [
 // The children are aged as each case needs: 2 (21), 4 (20), 5 (19), 8 (a man of 22), 10 (a man of 20); 9 young. The steps below are
 // run as a later day of the round (d 1), so that the first day's choosers stay out of the scene: only the offers made here are answered.
 function world() {
-  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2, sizes: [6, 5] }, { at: [11, 2], farms: 1, sizes: [4] }], { seed: 982 });
   const aged = (id, years) => {
     st.pawns[id].born = st.t - years * YEAR - DAY;
     st.pawns[id].age = years;

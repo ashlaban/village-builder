@@ -38,11 +38,11 @@ function world(customs, at = null) {
   const st = tinyState(
     tinyWorld(map),
     [
-      { at: [3, 5], farms: 2 },
-      { at: [11, 2], farms: 1 },
+      { at: [3, 5], farms: 2, sizes: [6, 5] },
+      { at: [11, 2], farms: 1, sizes: [4] },
     ],
     {
-      seed: 7,
+      seed: 982,
       customs: { widow: 'keep', ...customs },
     },
   );
@@ -399,6 +399,7 @@ for (const at of ['holds', 'spouse']) {
     st.pawns[id].age = id + 5;
   }
   refreshRoles(st);
+  VB['sim/wishes'].seedAsking(st); // the ages were changed after the state was seeded: no minor asks
   Sim.killPawn(st, 0);
   assert.strictEqual(st.households[0].holder, 1, 'the widow keeps the farm for the minor heir');
   assert.strictEqual(st.households[0].guardian, 1, 'as guardian (the guardian rule stands)');

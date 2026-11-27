@@ -6,7 +6,7 @@ const Stores = VB['sim/stores'];
 const { feedHousehold } = VB['sim/hunger'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const w = tinyWorld(Array.from({ length: 18 }, () => '.'.repeat(24)));
-const st = tinyState(w, [{ at: [8, 8], farms: 2 }], { seed: 7 });
+const st = tinyState(w, [{ at: [8, 8], farms: 2 }], { seed: 1 }); // seed 1 since VB-1951 moved the draws
 const hh = st.households[st.farmsteads[0].household];
 const B = CROPS.barley.seed, R = CROPS.rye.seed;
 const put = (b, r) => { hh.grain = { barley: b, rye: r }; };
