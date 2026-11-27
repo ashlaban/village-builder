@@ -62,7 +62,7 @@ st.front.add(ft); w.biome[tileAt(w, (ft % w.COLS), Math.floor(ft / w.COLS) - 1)]
 days(3);
 check(w.trees[ft] === 0, 'a field in use stays open');
 const hh = st.households[f.household];
-VB['sim/ownership'].farmToVillage(st, f); f.household = null;
+VB['sim/ownership'].farmTo(st, f, { type: 'village', id: f.village }); f.household = null;
 days(3);
 check(w.trees[ft] > 0, "an empty farm's field gains trees");
 const wasF = w.trees[ft];

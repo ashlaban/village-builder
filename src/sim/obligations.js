@@ -42,6 +42,15 @@ VB['sim/obligations'] = (() => {
         return end > t ? end : end + YEAR;
       },
     },
+    // the share of a harvest owed the owner of land its user works (VB-034, sim/heirland: half of an heir's fields' until its house
+    // stands): owed as the sheaves come in, paid at the moving round from the grain above the user's reserve, as a share is
+    rent: {
+      every: YEAR,
+      term: (t) => {
+        const end = (Math.floor(t / YEAR) * YEAR_DAYS + AUTUMN * SEASON_DAYS + ASK.day + 1) * DAY;
+        return end > t ? end : end + YEAR;
+      },
+    },
     // an outer levy (VB-462, VB-1767; sim/levies): owes {days}, a source of TERMS; it runs to its due (the year's end unless laid with
     // one). A debt's days then stand (overdue: VB-315 says what follows), and so do those whose terms carry; the rest lapse, told once.
     days: {
