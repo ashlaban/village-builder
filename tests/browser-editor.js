@@ -370,9 +370,9 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
           }
         : { farms: 0, villages: 0 };
     });
-  // land tiles on the open map, the best meadows first (or those 4 to 8 steps from a tile), to press on until one takes
-  const tries = (near) =>
-    page.evaluate((near) => {
+  // land tiles on the open map, the best meadows first (or those 4 to `far` steps from a tile, at most `n`), to press on until one takes
+  const tries = (near, far = 8, n = 40) =>
+    page.evaluate(([near, far, n]) => {
       const w = window.__ed.w,
         c = window.__ed.cam,
         r = document.getElementById('stage').getBoundingClientRect(),
@@ -393,14 +393,14 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
         if (w.water[i] || w.biome[i] !== 5 || w.river[i] || x < 420 || x > 1180 || y < 120 || y > 740) continue;
         if (
           near >= 0
-            ? steps(i, near) < 4 || steps(i, near) > 8
+            ? steps(i, near) < 4 || steps(i, near) > far
             : ![0, 1, 2, 3, 4, 5].every((d) => w.nb[i * 6 + d] >= 0 && w.biome[w.nb[i * 6 + d]] === 5)
         )
           continue;
         out.push({ x, y });
       }
-      return out.slice(0, 40);
-    }, near);
+      return out.slice(0, n);
+    }, [near, far, n]);
   const pressUntil = async (list, more) => {
     for (const p of list) {
       await page.mouse.click(p.x, p.y);
@@ -471,7 +471,9 @@ const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
     });
   const f0 = await folk();
   await page.click('#edPlaces [data-place="empty"]');
-  if (!(await pressUntil(await tries(v1.centre), async () => (await folk()).bare > f0.bare)))
+  // on the forested island (VB-780) the meadow by the green is taken by the household and its field: the farm is sought further out, still
+  // within SETTLE.centreApart (12 steps) of the centre, so that it is of the village
+  if (!(await pressUntil(await tries(v1.centre, 11, 120), async () => (await folk()).bare > f0.bare)))
     fail('no empty farm could be placed near the village');
   const f1 = await folk();
   if (f1.n !== f0.n || f1.hh !== f0.hh || !/1 empty farm/.test(await page.locator('#edPlaced').innerText()))
