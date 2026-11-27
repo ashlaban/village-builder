@@ -506,6 +506,11 @@ VB['sim/exchange'] = (() => {
     const from = st.households[w.from],
       kind = w.kind,
       worth = worthOf(kind);
+    // a deal is between two living holders: when one has died on the way, it lapses and the want is open again
+    if (w.by === 'deal' && [from.holder, hh.holder].some((h) => h !== null && !st.pawns[h].alive)) {
+      open(w);
+      return;
+    }
     if (!(payInAnimals(st, from, hh, worth, [kind], true) > 0)) {
       open(w);
       return;
