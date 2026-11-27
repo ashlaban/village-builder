@@ -1422,7 +1422,13 @@ function checkState(st) {
     if (v.well !== null && !v.green) bad.push(`villages[${v.id}]: a well without a green`);
     if (v.well !== null && (v.well !== v.center || st.w.fresh[v.well] !== VB['world/water'].FRESH.WELL)) bad.push(`villages[${v.id}]: well ${v.well}, centre ${v.center}, not a well on the map`);
     const greens = projects.filter((pl) => pl.what === 'green');
-    if (projects.some((pl) => !['plot', 'green', 'commons', 'facility', 'upkeep'].includes(pl.what))) bad.push(`villages[${v.id}]: a project of an unknown kind`);
+    if (projects.some((pl) => !['plot', 'green', 'commons', 'facility', 'upkeep', 'cottage'].includes(pl.what))) bad.push(`villages[${v.id}]: a project of an unknown kind`);
+    // VB-1411: a settler's cottage left by a household that ended passes to its village, kept with the farm (a booth of this village) for the
+    // household that comes
+    for (const pl of projects.filter((q) => q.what === 'cottage')) {
+      const f = st.farmsteads[pl.farmstead];
+      if (!f || f.village !== v.id || !f.booth) bad.push(`villages[${v.id}]: holds a cottage for farmstead ${pl.farmstead}, not a booth of its own`);
+    }
     // a common field under way (VB-100): at most one, its clearing and breaking on one tile, in use
     const commons = projects.filter((pl) => pl.what === 'commons');
     if (commons.length > 1 || commons.some((pl) => pl.steps.map((x) => x.kind).join() !== 'clear,break' ||
