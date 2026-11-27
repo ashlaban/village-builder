@@ -75,8 +75,9 @@ const lanePct = (v) => `${v.toFixed(2)}%`;
 function laneHTML(A, P) {
   const S = laneScale(),
     steps = laneSteps(),
-    gaps = hudGaps();
-  if (!P.tasks.length && !gaps.length) return '';
+    gaps = hudGaps(),
+    lying = laneLying();
+  if (!P.tasks.length && !gaps.length && !lying.length) return '';
   const D = Sim.DAY,
     now = S.x(st.t);
   let head = '';
@@ -151,6 +152,22 @@ function laneHTML(A, P) {
       `<button type="button" class="u2-lgap${hud.pc === pc ? ' sel' : ''}" data-pc="${pc}" style="${span}" ` +
       `aria-label="${esc(`${name}: nothing planned, ${laneDays(g.days)} left before ${g.deadline.what}`)}" title="${esc(`${name}: nothing planned`)}">` +
       `${HUD_CHAIN[g.goal].icon()}</button></div>`;
+  }
+  for (const x of lying) {
+    const pc = `l:${x.tile}/${x.kind}`,
+      name = LYING_NAME[x.kind] || 'Goods',
+      b = x.deadline.t >= S.end ? 100 : S.x(x.deadline.t);
+    rows +=
+      `<div class="u2-lrow">${dead(x.deadline, pc, true, name)}` +
+      `<button type="button" class="u2-lgap lie${hud.pc === pc ? ' sel' : ''}" data-pc="${pc}" ` +
+      `style="left:${lanePct(now)};width:${lanePct(Math.max(3, b - now))}" ` +
+      `aria-label="${esc(`${name} left out: lost at the frost, ${laneDate(x.deadline.t)}, unless fetched`)}" title="${esc(`${name} left out`)}">` +
+      `${goodIcon(LYING_ICON[x.kind] || 'tile')}</button>` +
+      (x.deadline.t < (S.day0 + LANE.full) * D // the "!" once the frost is within the days at full width
+        ? `<button type="button" class="u2-lrisk" data-pc="${pc}" style="left:min(${lanePct(b)}, 100% - 9px)" ` +
+          `aria-label="${esc(`${name}: at risk`)}" title="At risk">!</button>`
+        : '') +
+      '</div>';
   }
   return `<div class="u2-lhead">${head}</div><div class="u2-lbody">${grid}<u style="left:${lanePct(now)}"></u>${rows}</div>`;
 }
@@ -325,6 +342,81 @@ function laneTaskFacts(t, e, i) {
       '.',
   });
   return out;
+}
+// ---- goods left lying before the frost (the playtests of 27 Nov: the ox cart lost to the frost, unwarned) ----
+// The played household's loads left lying (st.lying: a cart left standing, timber, grain, hay put down on the road), each lost at the
+// autumn frost unless fetched, but a cart kept at the landing (`of.kept`), which the frost does not take; with the frost the head expects
+// (sim/weather frostExpected, an estimate, as every deadline on the lane) and the job that fetches it (posted at the household's review,
+// sim/lying bringWork), or none. None after the frost, nor with a task of the plan fetching it. [{tile, kind, n, deadline, key}].
+const LYING_ICON = { leftCart: 'cart', leftTimber: 'timber', leftGrain: 'grain', hay: 'hay' };
+const LYING_NAME = { leftCart: 'The cart', leftTimber: 'Timber', leftGrain: 'Grain', hay: 'Hay' };
+function laneLying() {
+  const { hh } = hudHouse();
+  if (!hh || !st.lying) return [];
+  const c = Sim.cal(st.t),
+    d = VB['sim/weather'].frostExpected(st),
+    t = Math.floor(st.t / Sim.YEAR) * Sim.YEAR + (2 * Sim.SEASON_DAYS + d) * Sim.DAY;
+  if (c.season > 2 || t <= st.t) return [];
+  const P = hudPlanned(),
+    BRING = VB['sim/lying'].BRING,
+    out = [];
+  for (const l of st.lying) {
+    if (!l.owner || l.owner.type !== 'household' || l.owner.id !== hh.id || (l.of && l.of.kept)) continue;
+    if (out.some((x) => x.tile === l.tile && x.kind === l.kind)) continue;
+    const key = BRING[l.kind] ? `${BRING[l.kind]}:h${hh.id}` : null;
+    if (key && P && P.tasks.some((q) => q.key === key)) continue;
+    out.push({
+      tile: l.tile,
+      kind: l.kind,
+      n: l.n,
+      deadline: { t, what: 'the frost' },
+      key: key && st.jobs.has(key) ? key : null,
+    });
+  }
+  return out;
+}
+// The card of goods left lying: what and where, the frost, the days left, and the fetching added to the plan where it is posted.
+function laneLyingCard(arg) {
+  const [tile, kind] = String(arg).split('/'),
+    x = laneLying().find((q) => q.tile === +tile && q.kind === kind);
+  if (!x) return null;
+  const icon = `<span class="gap">${goodIcon(LYING_ICON[x.kind] || 'tile')}</span>`,
+    name = LYING_NAME[x.kind] || 'Goods',
+    days = Math.max(0, Math.floor(x.deadline.t / Sim.DAY) - Math.floor(st.t / Sim.DAY));
+  return {
+    title: `${name} left out`,
+    icon,
+    facts: [
+      {
+        k: 'lying',
+        chip: false,
+        icon,
+        why: `${name} lies out here, and the frost takes what is still out when it comes. Fetch it home before then.`,
+      },
+      laneDeadFact(x.deadline, 'v2'),
+      {
+        k: 'left',
+        icon: actIcon('wait'),
+        n: String(days),
+        label: `${laneDays(days)} left`,
+        why: `${laneDays(days)} left before the frost.`,
+      },
+      x.key
+        ? null
+        : {
+            k: 'posted',
+            chip: false,
+            icon: actIcon('wait'),
+            why: 'Its fetching is posted at the household’s next planning day; then it can be added to the plan.',
+          },
+    ].filter(Boolean),
+    acts:
+      (x.key
+        ? `<button type="button" class="u2-chip go" data-hud="planadd" data-target="${esc(x.key)}">` +
+          `${actIcon('plus')}${goodIcon(LYING_ICON[x.kind] || 'tile')}${esc(HUD_MOVE[VB['sim/lying'].BRING[x.kind]] || 'Fetch')}</button>`
+        : '') +
+      `<button type="button" class="u2-chip" data-hud="fly" data-tile="${x.tile}">${actIcon('target')}Show</button>`,
+  };
 }
 // The card of a window with nothing planned: its icon, its deadline and the days left, and the act that plans it, the callout's own.
 function laneGapCard(tile) {

@@ -354,6 +354,10 @@ function planCard(P, A, S) {
       why: 'Ordered by hand: it goes before the plan, and is not broken off for sleep.',
     });
     acts += btn('unqueue', q.begun !== null ? 'Stop' : 'Remove', ` data-i="${arg}"`);
+  } else if (what === 'l') {
+    const g = laneLyingCard(arg);
+    if (!g) return ((hud.pc = null), '');
+    ({ title, icon, facts, acts } = g);
   } else if (what === 'g') {
     const g = laneGapCard(+arg);
     if (!g) return ((hud.pc = null), '');
