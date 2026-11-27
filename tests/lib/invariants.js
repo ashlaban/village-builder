@@ -235,6 +235,20 @@ function checkState(st) {
           bad.push(`plans.households[${hid}].tally: ${JSON.stringify(T).slice(0, 120)}`);
       }
     }
+    // VB-1778: each household plan's labour budget, of a season not later than now, three game weeks none below 0 summing to its total;
+    // its season's fit, short and demand never below 0, what it lowered never below 0, its help planned within a day's span
+    if (st.plans && st.plans.households) {
+      const { cal } = globalThis.VB['sim/rules'], c = cal(st.t), now = c.year * 4 + c.season;
+      for (const [hid, plan] of st.plans.households) {
+        const B = plan && plan.budget, F = plan && plan.fit;
+        if (B !== undefined && (!B || !Number.isInteger(B.at) || B.at > now || !Array.isArray(B.weeks) || B.weeks.length !== 3 || !B.weeks.every((x) => x >= 0) || Math.abs(B.weeks[0] + B.weeks[1] + B.weeks[2] - B.total) > 1e-6 || !(B.outer >= 0)))
+          bad.push(`plans.households[${hid}].budget: ${JSON.stringify(B).slice(0, 120)}`);
+        if (F !== undefined && (!F || !Number.isInteger(F.at) || F.at > now || !(F.short >= 0) || !(F.week >= 0 && F.week <= 2)
+          || (F.demand !== undefined && !(F.demand >= 0)) || (F.lowered && !Object.values(F.lowered).every((x) => x >= 0))
+          || (F.help && !F.help.every((h) => h.length === 5 && h[2] <= h[3] && h[4] >= 0))))
+          bad.push(`plans.households[${hid}].fit: ${JSON.stringify(F).slice(0, 120)}`);
+      }
+    }
     // VB-1555: today's leaves, each a pawn's, from an hour before the end of the working day it ends at; a pawn's days of its own ask and
     // its last visit are whole game days, none in the future
     if (st.leaves) {

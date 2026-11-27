@@ -3,7 +3,7 @@
 // check of the verb plan's add and date on a pawn's own plan that refuses a task that cannot be done by its `by`, the `by` an undated task
 // is given, and at the household's review the at-risk check of its members' authored tasks and the take-back
 VB['sim/authored'] = (() => {
-  const { WORK, TICKS, DAY } = VB['sim/rules'],
+  const { WORK, TICKS, DAY, cal } = VB['sim/rules'],
     { CHILD } = VB['sim/roles'];
   const { age } = VB['sim/records'];
   const { eligible } = VB['sim/eligibility'];
@@ -161,7 +161,7 @@ VB['sim/authored'] = (() => {
   // At the review of household plan's plan (sim/plans' planReviewed): the steps the default author took back leave once their task is
   // done or gone; each task of its members' own plans (by key, or at a tile: its chain's steps left) is weighed, in its plan's order, by
   // the head's estimate against its `by`: short, it is at risk (its `risk` the hours short and the hour first found); no longer short,
-  // planned again; at risk since an earlier review, past its `by` and not kept, the default author takes it back (takeBack). Its
+  // planned again; still open at the first review past its `by` and not kept, the default author takes it back (takeBack). Its
   // members' own task steps only: no work in a run where none plans for itself.
   function reviewAuthored(st, plan, c) {
     const hid = plan.holder.id,
@@ -188,9 +188,9 @@ VB['sim/authored'] = (() => {
         const short = need - until(st, s.by, per);
         if (short <= 0) {
           if (s.state === 'at-risk') Steps.atRisk(st, s, null);
-        } else if (s.state === 'at-risk' && d > s.by && !s.kept && s.risk.since < hour) {
+        } else if (d > s.by && !s.kept) {
           if (takeBack(st, hh, id, s, g, H, c)) need -= e;
-          else Steps.atRisk(st, s, { short: roundH(short), since: s.risk.since }); // no other hand: it stays, at risk, with its one hand
+          else Steps.atRisk(st, s, { short: roundH(short), since: s.risk ? s.risk.since : hour }); // no other hand: it stays, at risk, with its one hand
         } else Steps.atRisk(st, s, { short: roundH(short), since: s.risk ? s.risk.since : hour });
       }
     }
@@ -200,7 +200,7 @@ VB['sim/authored'] = (() => {
   // that it is given hands now (the day weighs it at its next allotment if the slot cannot); a task at a tile is the day's to take up.
   // Returns false, the step left on the pawn's plan, when no hand of the household's day could work it (a played pawn with auto off works its
   // own plan only: the household's plan has no one to do it).
-  function takeBack(st, hh, id, s, g, H, c) {
+  function takeBack(st, hh, id, s, g, H, c, why) {
     const j = g.key !== undefined ? st.jobs.get(g.key) : null,
       hands = hh.members.filter((m) => {
         const p = st.pawns[m];
@@ -210,10 +210,33 @@ VB['sim/authored'] = (() => {
     const e = j
       ? Estimate.estimate(st, H.id, j, hands).mid
       : (Estimate.goalEstimate(st, H.id, hh.id, g, hands) || { mid: Infinity }).mid;
-    Steps.takeBack(st, id, s, hh.id, today(st) + (Number.isFinite(e) ? Math.ceil(e / SPAN) : 0));
+    Steps.takeBack(st, id, s, hh.id, today(st) + (Number.isFinite(e) ? Math.ceil(e / SPAN) : 0), why);
     if (j) slotIn(st, hh, j, c);
     return true;
   }
+  // A member on its own plan cannot work (VB-1894; design.md section 7, Authors: a step whose holder cannot work returns to the pool at
+  // once): its open steps are taken back now, by the default author, with the card's reason `why`, unless kept (at an illness or leave:
+  // it stays, at risk, with the reason). With no other hand in the household's day it keeps them; at a death `dead`, a step kept or
+  // with no hand is dropped with the plan (sim/steps).
+  function giveBack(st, id, why, dead) {
+    const p = st.pawns[id],
+      hh = p && p.household != null ? st.households[p.household] : null;
+    if (!hh || hh.dissolved || !Steps.plannersIn(st, hh.id).includes(id)) return;
+    const pp = Steps.pawnPlan(st, id),
+      H = Estimate.headOf(st, hh),
+      c = cal(st.t),
+      hour = Math.floor(st.tick / TICKS);
+    for (const s of pp.steps.slice()) {
+      const g = s.what.goal;
+      if (g.key !== undefined && !st.jobs.has(g.key)) continue;
+      VB.count.riskCheck++;
+      if (!s.kept && takeBack(st, hh, id, s, g, H, c, why)) continue;
+      if (!dead) Steps.atRisk(st, s, { short: 0, since: s.risk ? s.risk.since : hour, why });
+    }
+  }
+  on('fellIll', (st, d) => giveBack(st, d.pawn, 'fell ill', false));
+  on('leftDay', (st, d) => giveBack(st, d.pawn, 'was called away', false));
+  Steps.onGone((st, id) => giveBack(st, id, 'died', true));
   on('planReviewed', (st, d) => {
     if (d.plan.holder.type === 'household') reviewAuthored(st, d.plan, d.c);
   });

@@ -165,7 +165,10 @@ VB.COUNTERS = {
   dayRose:
     "Tasks a household's review made more urgent, slotted again into the day's lists as they stand (sim/day reweigh, VB-1854)",
   giveJudged:
-    "A member's judgement read: a demand answered, a levied leg's start weighed for a take (sim/levies judgement, VB-1779)",
+    "A member's judgement read: a demand answered, a levied leg's start weighed for a take, its own hours weighed for giving " +
+    '(sim/levies judgement, VB-1779, VB-1762)',
+  giveLeg:
+    "Legs of a member's own hours given to its household's or village's work by its judgement (sim/levies gives, VB-1762)",
   breachBooked:
     'Goodwill booked between a member and its head for hours demanded or taken, a ration at a time (sim/levies, VB-1779)',
   riskWeighed: 'Tasks of an allotment weighed for work at risk the levies leave unmanned (sim/day atRisk, VB-1779)',
@@ -175,6 +178,11 @@ VB.COUNTERS = {
   demandRefused: 'Demands refused, a memory of the head (sim/day, VB-1779)',
   breachTaken: 'Hours of the levy taken by a member for itself, a breach each (sim/day breach, VB-1779)',
   hoursBook: "Legs' ends whose working hours were booked into the six parts of a pawn's day (sim/levies book, VB-1761)",
+  budgetReckoned:
+    "Households' labour budgets reckoned: at the season's first review and when the members or the outer days change (sim/levies budget, VB-1778)",
+  fitJudged:
+    "Households' seasons judged against their labour budget, once a season at its first review (sim/levies fit, VB-1778)",
+  fitRow: 'Season steps with hours left set against the labour budget at a fit (sim/levies fit, VB-1778)',
   levyCompile:
     "Members' levies compiled on their household's plan: at the season's turn, a member new to it or of a changed role (sim/levies, VB-1760)",
   dayAllot:

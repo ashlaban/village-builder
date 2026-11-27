@@ -43,6 +43,7 @@ assert.strictEqual(plan.placed, undefined, 'a spring review reads no asks');
 const kept = st.villages.map((v) => v.gathering);
 for (const v of st.villages) v.gathering = { chosen: 'asLastYear', hosting: v.id === A.id, prefs: [A.id], year: 1, host: A.id, by: null }; // lint-allow: owner a test settles the gathering
 autumn(0);
+plan.fit = { at: cal(st.t).year * 4 + cal(st.t).season, short: 0, week: 2 }; // lint-allow: owner its season judged to fit (VB-1778: a short one lowers the tar), so the target is the asks' alone
 VB.resetCounts();
 review(maker);
 const skill = VB['sim/seasonal'].headSkill(st, maker.id), lean = plan.head.bias.hours;

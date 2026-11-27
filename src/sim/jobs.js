@@ -15,6 +15,7 @@ VB['sim/jobs'] = (() => {
     { reviewWhy, mayLook, WINDOWED, dueNow, again } = VB['sim/plandays'];
   const { onProject } = VB['sim/projects'];
   const { slotArrived, slotOut, slotIn } = VB['sim/day'];
+  const Levies = VB['sim/levies'];
   // Sources (fields, households, village fences) post jobs; each job names an owner. A pawn may take a job
   // owned by its own household, or by its village if it lives there. Servants count as household members.
   // During the review or the look under way: `changed`, the holders whose days are allotted anew at its end (their keys: every household's
@@ -231,7 +232,7 @@ VB['sim/jobs'] = (() => {
   // A member without a task acts on the household's opportunities (design.md section 7, Acting without the plan; VB-249): when matching
   // gave it none of the plan's tasks, the kinds of its household's fields and farm are asked as a review asks them, at most once a
   // household a day (sim/plans, mayLook), and what they report is posted for it to take; nothing is taken down. The pawns whose household
-  // looked, to be matched again.
+  // looked, to be matched again. A levied member past its levy today does not look (VB-1762: no rule fills its own hours).
   function lookForWork(st, idle, c) {
     const out = [],
       looked = new Set();
@@ -253,6 +254,8 @@ VB['sim/jobs'] = (() => {
       const p = st.pawns[a.id],
         hh = p.household === null ? null : st.households[p.household];
       if (!hh || hh.dissolved || hh.farmstead === null || age(st, p) < CHILD.from) continue;
+      // a levied member with no levy left today is on its own hours: nothing is looked up to fill them (VB-1762)
+      if (Levies.levied(st, hh, p) && !(Levies.capacity(st, hh, p, c) > 1e-9)) continue;
       const f = st.farmsteads[hh.farmstead],
         plan = planOf(st, 'household', hh.id);
       if (f.household !== hh.id || !plan) continue;

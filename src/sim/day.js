@@ -27,7 +27,6 @@ VB['sim/day'] = (() => {
     { unplanned, fullName, living } = VB['sim/records'],
     Pastimes = VB['sim/pastimes'],
     { release } = VB['sim/agents'],
-    { FIELDS } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];
   // A kind whose work makes a graded good at a craft (VB-761: the hewing of a quern): the household's most skilled hand at the craft
   // takes it (sim/workmanship maker). Kinds are fixed at load: worked out once a kind, never saved.
@@ -71,7 +70,8 @@ VB['sim/day'] = (() => {
   // its fit (score); best fit first, a further hand on a task counting for less (join), a task is given hands until they cover its work
   // left as the head estimates it (sim/estimate, VB-476: the causes its judgement reckons with, leaned by its lean), each member up to its
   // working hours of the horizon at the rate the head believes it works that task at; then each member's list goes on with the other
-  // tasks it may take, by its fit, so that no one stands idle while there is work (design.md section 7, Work beats idling). No random
+  // tasks it may take, by its fit: a levied member's list past its levy, which it gives its own hours to only by its judgement (takeDay;
+  // VB-1762: Work beats idling, replaced), and the head pair's, whose plan it is. No random
   // draw. Then the head calls: a member at work leaves its task for the first of its list when that is much more urgent (switchRatio,
   // switchMargin; VB-107), a task with a deadline today (`late`: the meal)
   // calls its hand from work, from the road or from idling. The others take their tasks when they next look for work (takeDay).
@@ -87,7 +87,7 @@ VB['sim/day'] = (() => {
     if (asking && ctx.est.size) {
       const tasks = [];
       for (const [j, left] of ctx.est) tasks.push([j, left, (ctx.manned.get(j) || [0])[0]]);
-      const short = Hands.shortOf(st, tasks, c);
+      const short = Math.max(Hands.shortOf(st, tasks, c), Hands.plannedHelp(st, hh, c)); // and what its season's fit planned (VB-1778)
       if (short > 0) asking.push([hh.id, short]);
     }
     demandAtRisk(st, hh, w.H, w.pairs, ctx, c, plan);
@@ -140,7 +140,7 @@ VB['sim/day'] = (() => {
   }
   // ---- the head's demand (VB-1779; design.md section 7, The levy and own hours: The head's demand, Demand and take) ----
   // The work at risk the allotment left unmanned, [[task, work left unmanned, rations at risk]]: a field step whose window its hands given
-  // today cannot cover (sim/hands shortOf, by the head's estimate), its target's yield (FIELDS.expect of its crop's) times the share of
+  // today cannot cover (sim/hands shortOf, by the head's estimate), its target's yield (sim/estimate fieldYield) times the share of
   // its work unmanned; a task due today (`late`), a ration a living member for the share unmanned (the day's food it stands for).
   function atRisk(st, hh, ctx, c) {
     const out = [];
@@ -153,7 +153,7 @@ VB['sim/day'] = (() => {
       let R = 0;
       if (K.late) R = (hh.members.filter((id) => st.pawns[id].died === null).length * u) / left;
       else if (j.field && CROPS[j.field.crop] && Hands.shortOf(st, [[j, left, m[0]]], c) > 0)
-        R = (FIELDS.expect * CROPS[j.field.crop].yield * u) / left;
+        R = (Estimate.fieldYield(j.field.crop) * u) / left; // sim/estimate's one reckoning of a field's yield
       if (R > 0) out.push([j, u, R]);
     }
     return out;
@@ -655,7 +655,7 @@ VB['sim/day'] = (() => {
   // tasks go to the pool.
   on('fellIll', (st, d) => {
     const a = st.agents[d.pawn]; // none for a pawn made bare in a test
-    if (a && a.job) issue(st, { actor: d.pawn, verb: 'goHome', source: 'planner' });
+    if (a && a.job) issue(st, { actor: d.pawn, verb: 'goHome', args: { urgent: true }, source: 'planner' }); // cannot walk on: load put down (VB-1893)
     lostHolder(st, d.pawn);
   });
   // The idle pawns in bed (VB-1758; design.md section 7, Plans at four scales: an ill pawn cannot walk on): one ill is given no task, no look
@@ -736,14 +736,25 @@ VB['sim/day'] = (() => {
       const list = plan.day.lists[a.id];
       if (!list || (plan.day.off && plan.day.off.includes(a.id))) continue;
       if (a.taking > st.tick) continue; // keeping hours of its levy for itself (breach)
-      for (const key of list) {
+      // a levied member takes the head's tasks of its list while its levy has room today; past it, and once no such task is left, its
+      // hours are its own (VB-1762; design.md section 7, What own hours are for): it weighs giving one leg of the first task past the
+      // levy that has room (sim/levies gives), and else goes to its own time. The head pair, not levied, work their own plan's list.
+      const levied = list.length > 0 && age(st, p) >= CHILD.from && Levies.levied(st, hh, p),
+        room = !levied || Levies.capacity(st, hh, p, c) > 1e-9,
+        fits = plan.day.fits && plan.day.fits[a.id];
+      let past = null;
+      for (let i = 0; i < list.length; i++) {
+        const key = list[i];
         VB.count.dayTake++;
         const j = st.jobs.get(key);
         if (!j || !canTake(st, a, j)) continue;
+        if (levied && (!room || (fits && fits[i] !== null && fits[i] < 0))) {
+          if (!past) past = j;
+          continue;
+        }
         // at the start of a levied leg the member may take its hours instead (sim/levies takes: J < -GIVE.hold)
         if (!unplanned(st, a.id) && takeWhy(st, a.id) === null && Levies.takes(st, hh, p, j)) {
           const left = Levies.capacity(st, hh, p, c),
-            i = list.indexOf(key),
             h = plan.day.hours && plan.day.hours[a.id][i] > 0 ? Math.min(left, plan.day.hours[a.id][i]) : left;
           if (issue(st, { actor: a.id, verb: 'breach', args: { hours: h }, source: 'pawn' }) === true) {
             got.add(a);
@@ -755,6 +766,13 @@ VB['sim/day'] = (() => {
           break;
         }
       }
+      if (
+        !got.has(a) &&
+        past &&
+        Levies.gives(st, hh, p, past) &&
+        issue(st, workCommand(a.id, past.key, 'pawn')) === true
+      )
+        got.add(a); // given: booked levied up to the levy left, the rest given (sim/levies)
     }
     return got;
   }
@@ -911,7 +929,8 @@ VB['sim/day'] = (() => {
   // call({member, key}) (VB-1779): the member is called to task `key` now, from work, from the road home or from idling, as the head's
   // call (design.md section 7, The head calls): a work command the head opened. Past its levy left a demand (above).
   // call({member}): the member is called off: its list is emptied and it is off (plan.day.off) until the day is next allotted, and it lets its
-  // task go and walks home (the verb goHome: a load in hand is put down where it stands, sim/agents release). The cost, its walk home and
+  // task go and walks home (the verb goHome: a load in hand is brought in first, or on an urgent call
+  // (args.urgent) put down where it stands, VB-1893). The cost, its walk home and
   // the load it leaves, is the timetable's callCost (sim/timetable), named before the call. Refused for one on the road or away.
   register('call', {
     check: (st, c) => {
@@ -946,7 +965,8 @@ VB['sim/day'] = (() => {
       day.off = (day.off || []).filter((x) => x !== id).concat(id);
       edited(st, day, c);
       const ag = st.agents[id];
-      if (ag.job || !ag.inside) issue(st, { actor: id, verb: 'goHome', source: c.source });
+      if (ag.job || !ag.inside)
+        issue(st, { actor: id, verb: 'goHome', args: c.args.urgent ? { urgent: true } : undefined, source: c.source });
     },
   });
   // ---- the member's take (VB-1779; design.md section 7, The levy and own hours: Demand and take, The member's judgement) ----
