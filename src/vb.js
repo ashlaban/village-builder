@@ -169,6 +169,8 @@ VB.COUNTERS = {
     "Members' levies compiled on their household's plan: at the season's turn, a member new to it or of a changed role (sim/levies, VB-1760)",
   dayAllot:
     "Households' days allotted whole: at the morning, at 14:00, and when a slot-in finds nobody (sim/day, allot; VB-1758)",
+  dayWould:
+    "Days weighed without being allotted: a head's allotment point asked whether the rule would change the day standing (sim/points, VB-1848)",
   vitalAsk:
     'Open tasks of its household passed by a pawn on its own plan, for a daily one the day leaves unmanned (sim/controller, VB-1755)',
   riskCheck:

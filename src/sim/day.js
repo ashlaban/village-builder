@@ -71,6 +71,22 @@ VB['sim/day'] = (() => {
     const plan = planOf(st, 'household', hh.id);
     if (!plan || hh.farmstead === null) return;
     VB.count.dayAllot++;
+    const w = weighDay(st, hh, c);
+    plan.day = { made: Math.floor(st.tick / TICKS), lists: w.lists, fits: w.fits, hours: w.hours, free: w.free };
+    // the morning's allotment: the hours of help the head's estimate says the household lacks to finish its field work in its windows
+    const ctx = w.ctx;
+    if (asking && ctx.est.size) {
+      const tasks = [];
+      for (const [j, left] of ctx.est) tasks.push([j, left, (ctx.manned.get(j) || [0])[0]]);
+      const short = Hands.shortOf(st, tasks, c);
+      if (short > 0) asking.push([hh.id, short]);
+    }
+    for (const p of w.members) call(st, hh, p, ctx.due.get(p.id), ctx.given.get(p.id), c, w.memo, w.stand);
+  }
+  // The day the rule would allot household hh, as it stands now, and nothing written (allot's first part; sim/points reads it, VB-1848):
+  // {lists, fits, hours, free, members (those allotted), ctx, memo, stand}. Counts dayWould.
+  function weighDay(st, hh, c) {
+    VB.count.dayWould++;
     const lists = {},
       fits = {},
       hours = {},
@@ -110,15 +126,7 @@ VB['sim/day'] = (() => {
     man(st, H, pairs, ctx);
     const free = {};
     for (const p of members) free[p.id] = ctx.cap.get(p.id);
-    plan.day = { made: Math.floor(st.tick / TICKS), lists, fits, hours, free };
-    // the morning's allotment: the hours of help the head's estimate says the household lacks to finish its field work in its windows
-    if (asking && ctx.est.size) {
-      const tasks = [];
-      for (const [j, left] of ctx.est) tasks.push([j, left, (ctx.manned.get(j) || [0])[0]]);
-      const short = Hands.shortOf(st, tasks, c);
-      if (short > 0) asking.push([hh.id, short]);
-    }
-    for (const p of members) call(st, hh, p, ctx.due.get(p.id), ctx.given.get(p.id), c, memo, stand);
+    return { lists, fits, hours, free, members, ctx, memo, stand };
   }
   // Work a household lives by is inside a member's levy and slotted first (VB-1760; design.md section 7, The day's capacity): the best
   // pair of each task of a vital kind (sim/kinds carriedOn), where its member is levied, goes before the rest, in order, so that its
@@ -748,6 +756,7 @@ VB['sim/day'] = (() => {
   });
   return {
     allot,
+    weighDay,
     vitalFirst,
     slotIn,
     slotArrived,
