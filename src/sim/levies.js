@@ -85,15 +85,22 @@ VB['sim/levies'] = (() => {
       f = h && h.day === day ? h.by[id] : null;
     return (e ? e[1] : 0) + (f ? f[2] : 0);
   }
+  // The hours of its levy pawn id has taken today (a breach, VB-1779), by the clock: its booking's, the hours times hands over its hands.
+  function takenToday(st, id, day) {
+    const a = st.agents[id],
+      r = a && a.book;
+    return r && r.day === day && r.hands > 0 ? r.p[5] / r.hands : 0;
+  }
   // The head's day's capacity for member p of household hh at calendar c, in hours of its working day by the clock (sim/day allot): its
-  // levy left today, the levy in force less the hours of the household's work and of outer levies it has done today, at most the
+  // levy left today, the levy in force less the hours of the household's work and of outer levies it has done today and those it has
+  // taken (VB-1779), at most the
   // working day left; for the head pair, not levied, the working hours of the allotment's horizon as before (MATCH.day.horizon).
   // A clock hour of a member is its hands' worth of the levy, so the levy left in clock hours is the row's hours less the hours done.
   function capacity(st, hh, p, c) {
     const e = entry(st, hh, p, c);
     if (!e || e[0] === null) return MATCH.day.horizon * (WORK[1] - WORK[0]);
     const day = Math.floor(st.t / DAY),
-      left = e[0] - workedToday(st, p.id, day) - owedToday(st, p.id, day),
+      left = e[0] - workedToday(st, p.id, day) - owedToday(st, p.id, day) - takenToday(st, p.id, day),
       dayLeft = WORK[1] - Math.min(WORK[1], Math.max(WORK[0], c.hour));
     return Math.max(0, Math.min(left, dayLeft));
   }
@@ -207,7 +214,7 @@ VB['sim/levies'] = (() => {
     const row = levyOn(st, p, Math.floor(st.t / DAY));
     if (row === null) return null;
     const day = Math.floor(st.t / DAY);
-    return Math.max(0, row - workedToday(st, p.id, day) - owedToday(st, p.id, day));
+    return Math.max(0, row - workedToday(st, p.id, day) - owedToday(st, p.id, day) - takenToday(st, p.id, day));
   }
   // The day `day`'s record begins: the one before goes into the days behind (the oldest's array reused).
   function roll(st, p, r, day) {
