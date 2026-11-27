@@ -21,7 +21,8 @@ VB['sim/expansion'] = (() => {
     { onField } = VB['sim/fieldwork'],
     { finishFell, finishGrub } = VB['sim/newground'],
     { workStake } = VB['sim/claims'];
-  const { FIELD_REACH, FIELD_NEAR, HOUSE, farmedLand, houseScore } = VB['sim/layout'];
+  const { FIELD_REACH, FIELD_RULE, HOUSE, farmedLand, houseScore } = VB['sim/layout'];
+  const { gateSide, gateSteps, faceGate } = VB['sim/entrances'];
   const { COTTAGE, villageOf, wallsOf, timberNeed, waitsForTimber, cottageSteps, finishCottageStage, cottageOf } =
     VB['sim/cottageplan'];
   const Stores = VB['sim/stores'];
@@ -143,9 +144,8 @@ VB['sim/expansion'] = (() => {
       if (w.biome[t] === B.MOUNTAIN || w.biome[t] === B.SNOW || !near(t)) continue;
       cand.push([t, d]);
     }
-    const fieldScore = (t) => fertility(w, t) - (0.5 * w.stones[t]) / 255;
     const fieldOk = (t) => farmable(w, t) && !wooded(w, t) && !built.has(t);
-    const fieldCandidates = cand.filter(([t]) => fieldOk(t)).map(([t]) => [t, fieldScore(t)]);
+    const fieldCandidates = cand.filter(([t]) => fieldOk(t)).map(([t]) => t);
     const { shut, end: house } = cutTests(w); // a closed field counts as a house does (VB-816)
     let best = null,
       bs = -Infinity;
@@ -153,12 +153,14 @@ VB['sim/expansion'] = (() => {
       const may = farmedLand(w, st.villages, v, h, st);
       // a house may not close a way, since no route crosses one, nor close the green in (VB-402)
       if (cutsOff(w, h, shut, house) || (v.green && rimFull(w, v.center, h, house))) continue;
+      // its field as the generator and a head place one (FIELD_RULE), by the walk out of the gate the house would have (VB-1951)
+      const out = gateSteps(w, h, FIELD_REACH, gateSide(w, h, v.center));
       let f = -1,
         fs = -Infinity;
-      for (const [t, score] of fieldCandidates) {
-        const steps = hexSteps(w, h, t);
-        if (steps < 1 || steps > FIELD_REACH || fields.has(t) || !may(t)) continue;
-        const sc = score - FIELD_NEAR * steps;
+      for (const t of fieldCandidates) {
+        const steps = out.get(t);
+        if (!(steps >= 1) || fields.has(t) || !may(t)) continue;
+        const sc = FIELD_RULE.score(w, t, steps);
         if (sc > fs) {
           fs = sc;
           f = t;
@@ -169,7 +171,10 @@ VB['sim/expansion'] = (() => {
       let touch = 0;
       for (let k = 0; k < 6; k++) if (built.has(w.nb[h * 6 + k])) touch++;
       // the generator's score of a house site (sim/layout houseScore), where its field is worth most and its own tile least
-      let s = houseScore(w, h, d, touch) + (f >= 0 ? HOUSE.byLand * fs - HOUSE.spare * fertility(w, h) : -Infinity);
+      // the house's own score as the generator's: its land's fertility, not the field's site score (sim/layout settlementGenerator)
+      let s =
+        houseScore(w, h, d, touch) +
+        (f >= 0 ? HOUSE.byLand * fertility(w, f) - HOUSE.spare * fertility(w, h) : -Infinity);
       if (water && s > bs) s -= SETTLE.perFetch * (fetch ||= plotFetch(w, v, reach, PLOT_PEOPLE)).get(h);
       if (s > bs) {
         bs = s;
@@ -194,7 +199,7 @@ VB['sim/expansion'] = (() => {
       woodTaken(st, tr.tile);
       if (tr.kind === 'house') {
         w.dev[tr.tile] = 3;
-        VB['sim/entrances'].faceGate(w, tr.tile, v.center); // its gate (VB-1951)
+        faceGate(w, tr.tile, v.center); // its gate, on the side its field was chosen by (VB-1951)
         costChanged(st, tr.tile);
       } // the house's ground: routes go round it from now on
     }
