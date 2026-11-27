@@ -71,7 +71,8 @@ VB['sim/day'] = (() => {
   // its fit (score); best fit first, a further hand on a task counting for less (join), a task is given hands until they cover its work
   // left as the head estimates it (sim/estimate, VB-476: the causes its judgement reckons with, leaned by its lean), each member up to its
   // working hours of the horizon at the rate the head believes it works that task at; then each member's list goes on with the other
-  // tasks it may take, by its fit, so that no one stands idle while there is work (design.md section 7, Work beats idling). No random
+  // tasks it may take, by its fit: a levied member's list past its levy, which it gives its own hours to only by its judgement (takeDay;
+  // VB-1762: Work beats idling, replaced), and the head pair's, whose plan it is. No random
   // draw. Then the head calls: a member at work leaves its task for the first of its list when that is much more urgent (switchRatio,
   // switchMargin; VB-107), a task with a deadline today (`late`: the meal)
   // calls its hand from work, from the road or from idling. The others take their tasks when they next look for work (takeDay).
@@ -736,14 +737,25 @@ VB['sim/day'] = (() => {
       const list = plan.day.lists[a.id];
       if (!list || (plan.day.off && plan.day.off.includes(a.id))) continue;
       if (a.taking > st.tick) continue; // keeping hours of its levy for itself (breach)
-      for (const key of list) {
+      // a levied member takes the head's tasks of its list while its levy has room today; past it, and once no such task is left, its
+      // hours are its own (VB-1762; design.md section 7, What own hours are for): it weighs giving one leg of the first task past the
+      // levy that has room (sim/levies gives), and else goes to its own time. The head pair, not levied, work their own plan's list.
+      const levied = list.length > 0 && age(st, p) >= CHILD.from && Levies.levied(st, hh, p),
+        room = !levied || Levies.capacity(st, hh, p, c) > 1e-9,
+        fits = plan.day.fits && plan.day.fits[a.id];
+      let past = null;
+      for (let i = 0; i < list.length; i++) {
+        const key = list[i];
         VB.count.dayTake++;
         const j = st.jobs.get(key);
         if (!j || !canTake(st, a, j)) continue;
+        if (levied && (!room || (fits && fits[i] !== null && fits[i] < 0))) {
+          if (!past) past = j;
+          continue;
+        }
         // at the start of a levied leg the member may take its hours instead (sim/levies takes: J < -GIVE.hold)
         if (!unplanned(st, a.id) && takeWhy(st, a.id) === null && Levies.takes(st, hh, p, j)) {
           const left = Levies.capacity(st, hh, p, c),
-            i = list.indexOf(key),
             h = plan.day.hours && plan.day.hours[a.id][i] > 0 ? Math.min(left, plan.day.hours[a.id][i]) : left;
           if (issue(st, { actor: a.id, verb: 'breach', args: { hours: h }, source: 'pawn' }) === true) {
             got.add(a);
@@ -755,6 +767,13 @@ VB['sim/day'] = (() => {
           break;
         }
       }
+      if (
+        !got.has(a) &&
+        past &&
+        Levies.gives(st, hh, p, past) &&
+        issue(st, workCommand(a.id, past.key, 'pawn')) === true
+      )
+        got.add(a); // given: booked levied up to the levy left, the rest given (sim/levies)
     }
     return got;
   }

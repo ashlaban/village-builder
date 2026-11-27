@@ -165,7 +165,10 @@ VB.COUNTERS = {
   dayRose:
     "Tasks a household's review made more urgent, slotted again into the day's lists as they stand (sim/day reweigh, VB-1854)",
   giveJudged:
-    "A member's judgement read: a demand answered, a levied leg's start weighed for a take (sim/levies judgement, VB-1779)",
+    "A member's judgement read: a demand answered, a levied leg's start weighed for a take, its own hours weighed for giving " +
+    '(sim/levies judgement, VB-1779, VB-1762)',
+  giveLeg:
+    "Legs of a member's own hours given to its household's or village's work by its judgement (sim/levies gives, VB-1762)",
   breachBooked:
     'Goodwill booked between a member and its head for hours demanded or taken, a ration at a time (sim/levies, VB-1779)',
   riskWeighed: 'Tasks of an allotment weighed for work at risk the levies leave unmanned (sim/day atRisk, VB-1779)',

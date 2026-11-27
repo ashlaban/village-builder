@@ -16,6 +16,8 @@ VB['sim/fit'] = (() => {
     Voice = VB['sim/voice'];
   const { claimPrio } = VB['sim/farmclaims'];
   const { commonPrio } = VB['sim/commons'];
+  const Levies = VB['sim/levies'],
+    { planOf } = VB['sim/plans'];
   // @tunable PLOT_PRIO: who clears a new plot, by role
   // Who clears a new plot for the village (see sim/expansion): by role; those waiting for the plot take 9 whatever their role.
   const PLOT_PRIO = { waiting: 9, farmhand: 7, maid: 7, son: 5, daughter: 5, farmer: 3 };
@@ -136,15 +138,40 @@ VB['sim/fit'] = (() => {
     const r = appraise(st, st.agents[p.id], j, c, undefined, takeBar, stand);
     return typeof r === 'number' ? { bid: r, reason: null } : { bid: null, reason: r };
   }
-  // Why a pawn gets no job: every open job it may take with its bid, or the reason it gets none. Best first. Draws no random
-  // numbers and writes nothing to st.
+  // Why a pawn gets no job: every open job it may take with its bid, or the reason it gets none. Best first. A levied member with no
+  // levy left today, or at a job its list holds past its levy, is on its own hours (VB-1762): a job it would bid for and that its
+  // judgement gives nothing to says so, the choice its own (sim/levies gives). Draws no random numbers and writes nothing to st.
+  const KEPT = 'its own hours: it gives none';
+  // The keys of levied member p's list the allotment gave no hours (fit < 0): past its levy even with levy left, as sim/day takeDay
+  // reads them (review of VB-1762, F1).
+  function pastLevy(st, hh, p, levied) {
+    const out = new Set(),
+      plan = levied ? planOf(st, 'household', hh.id) : null,
+      day = plan && plan.day,
+      list = day && day.lists[p.id],
+      fits = day && day.fits && day.fits[p.id];
+    if (list && fits) for (let i = 0; i < list.length; i++) if (fits[i] !== null && fits[i] < 0) out.add(list[i]);
+    return out;
+  }
   function explainIdle(st, id) {
     const p = st.pawns[id],
       c = cal(st.t),
       out = [],
-      stand = standOf(st, p);
+      stand = standOf(st, p),
+      hh = p.household === null ? null : st.households[p.household],
+      levied = !!hh && !hh.dissolved && age(st, p) >= CHILD.from && Levies.levied(st, hh, p),
+      own = levied && !(Levies.capacity(st, hh, p, c) > 1e-9),
+      past = pastLevy(st, hh, p, levied);
     for (const j of st.jobs.values())
-      if (eligible(st, j, p)) out.push({ job: j.key, kind: j.kind, ...fit(st, p, j, c, stand) });
+      if (eligible(st, j, p)) {
+        const r = fit(st, p, j, c, stand),
+          mine = own || past.has(j.key);
+        out.push({
+          job: j.key,
+          kind: j.kind,
+          ...(mine && r.bid !== null && !Levies.gives(st, hh, p, j, true) ? { bid: null, reason: KEPT } : r),
+        });
+      }
     return out.sort((x, y) => (y.bid ?? -Infinity) - (x.bid ?? -Infinity));
   }
   // One line for the pawn panel: the best reason an idle adult has no work; null when it has a job or it is not working time.
