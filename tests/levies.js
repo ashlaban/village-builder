@@ -142,6 +142,91 @@ function handsOf(s, id) {
   );
 }
 
+// 7. Own hours, booked (VB-1761): at each leg's end its working hours, a clock hour times the pawn's hands, fall into one of six parts by
+// who opened it and the levy left today. A constructed leg of each opening, on a levied member and on the head.
+{
+  const { emit } = VB['sim/events'],
+    { TICKS } = VB['sim/rules'];
+  const s = make(4.5),
+    h = s.households[0],
+    sp = spouseOf(s, h.holder),
+    m = h.members.find((id) => id !== h.holder && id !== sp && age(s, s.pawns[id]) >= 14 && !s.pawns[id].retired);
+  const day = Math.floor(s.t / DAY) + 2,
+    at = (hour) => (day * DAY + hour) * TICKS,
+    tick = s.tick,
+    t0 = s.t;
+  // a leg of pawn id from `from` to `to` (hours of the day), opened by `by`, ends: its hours booked into a scratch record
+  const leg = (a, from, to, by) => {
+    a.leg = { kind: 'work', t: at(from), ...(by ? { by } : {}) };
+    s.tick = to < 24 ? at(to) : (day + 1) * DAY * TICKS + (to - 24) * TICKS;
+    s.t = s.tick / TICKS;
+    emit(s, 'legOver', a);
+  };
+  const son = { id: m, leg: null },
+    head = { id: h.holder, leg: null };
+  leg(son, 6, 6, 'head'); // the day's first booking begins its record at 06:00
+  const r = son.book,
+    L = r.levy,
+    hands = r.hands;
+  assert.ok(L > 0 && hands > 0, `the member is levied (${L}) and has hands (${hands})`);
+  leg(son, 7, 10, 'owed'); // 06:00 to 07:00 in no leg: kept; then a day owed, out of the levy left
+  assert.ok(Math.abs(r.p[4] - hands) < 1e-9 && Math.abs(r.p[0] - 3 * hands) < 1e-9, 'kept, then owed');
+  leg(son, 10, 14, 'pawn'); // its own accord: levied within the levy left
+  assert.ok(Math.abs(r.p[1] - 4 * hands) < 1e-9, 'its own accord within the levy: levied');
+  const left = L - 7 * hands; // the levy left: the levy less owed and levied
+  leg(son, 14, 17, 'head'); // the head's work across the levy line: two parts
+  assert.ok(Math.abs(r.p[1] - (4 * hands + Math.min(left, 3 * hands))) < 1e-9, "the head's work: levied up to the levy left");
+  assert.ok(Math.abs(r.p[2] - Math.max(0, 3 * hands - left)) < 1e-9, 'and demanded past it');
+  leg(son, 17, 30, 'pawn'); // past the levy, of its own accord: given; the night unbooked; the next day's 06:00 to 06:00 nothing
+  assert.ok(Math.abs(r.p[3]) < 1e-9 && r.day === day + 1, 'the next day begun at 06:00');
+  const closed = r.past[0];
+  assert.strictEqual(closed[0], day, 'the day closed is in the days behind');
+  assert.ok(Math.abs(closed[3 + 3] - hands) < 1e-9, 'its own accord past the levy: given, the night unbooked');
+  const sum = closed.slice(3).reduce((x, y) => x + y, 0);
+  assert.ok(Math.abs(sum - 12 * hands) < 1e-9, `the six parts sum to H = 12 × its hands (${sum})`);
+  const T = s.plans.households.get(h.id).tally;
+  assert.ok(T && Math.abs(T.of[m][0] - r.past[0][3 + 2]) < 1e-9 && Math.abs(T.of[m][2] - hands) < 1e-9, "the season's tally: demanded, given");
+  // the head: not levied, its household's work given, an outer day owed, a pastime kept
+  leg(head, 6, 6, 'head');
+  leg(head, 8, 12, 'head');
+  leg(head, 12, 14, 'owed');
+  leg(head, 14, 18, undefined);
+  const g = head.book.p,
+    hh2 = head.book.hands;
+  assert.ok(Math.abs(g[3] - 4 * hh2) < 1e-9 && Math.abs(g[0] - 2 * hh2) < 1e-9 && Math.abs(g[4] - 6 * hh2) < 1e-9, 'the head: given, owed, kept');
+  assert.ok(!(T.of[h.holder]), 'the head pair have no tally');
+  // Sim.hours: the days behind exact, today's booked so far, a day ahead the levy only; sovereignty by right and as lived
+  s.agents[m].book = son.book; // the scratch record read as the member's
+  const H = Sim.hours(s, m, day, day + 3),
+    [d0] = H;
+  assert.deepStrictEqual(H.map((o) => o.state), ['past', 'today', 'ahead', 'ahead'], 'past, today, ahead');
+  assert.strictEqual(d0.state, 'past', 'a past day');
+  assert.ok(Math.abs(d0.right - (1 - L / (12 * hands))) < 1e-9, 'by right: 1 less the levy over H');
+  assert.ok(Math.abs(d0.lived - (d0.demanded + d0.given + d0.kept) / d0.H) < 1e-9, 'as lived: demanded, given and kept over H');
+  s.tick = tick;
+  s.t = t0;
+  // the season's end folds the tally into the year's count
+  const later = cal((day + SEASON_DAYS) * DAY + WORK[0]),
+    t2 = Levies.tallyOf(s, h, later);
+  assert.ok(Object.keys(t2.of).length === 0 && Math.abs(t2.yearOf[m][2] - hands) < 1e-9, "folded into the year's count");
+}
+
+// 8. On the run: every pawn-day closed sums to H (the invariant), and Sim.hours shows the six days behind and a day ahead.
+{
+  const s = make(8 * DAY),
+    today = Math.floor(s.t / DAY),
+    m = s.households[0].members.find((id) => Levies.levyOf(s, id) > 0);
+  assert.deepStrictEqual(checkState(s), [], 'invariants: the six parts sum to H');
+  const H = Sim.hours(s, m, today - 10, today + 1);
+  assert.deepStrictEqual(H.map((o) => o.state), ['past', 'past', 'past', 'past', 'past', 'past', 'today', 'ahead'], 'six days behind, today, a day ahead');
+  for (const o of H.slice(0, 6)) {
+    const sum = VB['sim/levies'].PARTS.reduce((x, k) => x + o[k], 0);
+    assert.ok(Math.abs(sum - o.H) < 1e-6 && o.H > 0, `day ${o.day}: the parts sum to H (${sum}, ${o.H})`);
+  }
+  assert.ok(H.slice(0, 6).some((o) => o.levied > 0), 'levied hours are booked');
+  assert.ok(VB.count.hoursBook > 0, 'bookings counted');
+}
+
 console.log(
-  "levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first",
+  "levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first; each leg's hours booked into the six parts, a day summing to H, the tally folded",
 );

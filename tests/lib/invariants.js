@@ -204,6 +204,34 @@ function checkState(st) {
             bad.push(`plans.households[${hid}].levies: pawn ${id} ${JSON.stringify(e)}`);
       }
     }
+    // VB-1761: each pawn's booked hours: for every pawn-day closed the six parts, none below 0, sum to H (12 times its hands); today's
+    // to no more; at most six days behind, the latest first and before the day booked; booked to no later tick than now. Each household
+    // plan's tally of the season and the year, by member, never below 0.
+    for (const a of st.agents) {
+      const r = a && a.book;
+      if (!r) continue;
+      const parts = (P) => Array.isArray(P) && P.length === 6 && P.every((x) => x >= -1e-9);
+      const sum = (P) => P.reduce((x, y) => x + y, 0);
+      if (!Number.isInteger(r.day) || !(r.at <= st.tick) || !(r.hands >= 0) || !parts(r.p) || sum(r.p) > 12 * r.hands + 1e-6 || !Array.isArray(r.past) || r.past.length > 6) {
+        bad.push(`agents[${a.id}].book: ${JSON.stringify(r).slice(0, 120)}`);
+        continue;
+      }
+      let last = r.day;
+      for (const e of r.past) {
+        const P = e.slice(3);
+        if (e.length !== 9 || !(e[0] < last) || !(e[1] >= 0) || !parts(P) || Math.abs(sum(P) - 12 * e[1]) > 1e-6 * Math.max(1, 12 * e[1]))
+          bad.push(`agents[${a.id}].book: day ${e[0]}'s six parts ${JSON.stringify(P)} do not sum to H = 12 × ${e[1]}`);
+        last = e[0];
+      }
+    }
+    if (st.plans && st.plans.households) {
+      const ok = (o) => o && typeof o === 'object' && Object.entries(o).every(([id, e]) => Array.isArray(e) && e.length === 3 && e.every((x) => x >= -1e-9) && st.pawns[id]);
+      for (const [hid, plan] of st.plans.households) {
+        const T = plan && plan.tally;
+        if (T !== undefined && (!T || !Number.isInteger(T.at) || !ok(T.of) || !T.year || !(T.year.at <= Math.floor(T.at / 4)) || !ok(T.year.of)))
+          bad.push(`plans.households[${hid}].tally: ${JSON.stringify(T).slice(0, 120)}`);
+      }
+    }
     // VB-1555: today's leaves, each a pawn's, from an hour before the end of the working day it ends at; a pawn's days of its own ask and
     // its last visit are whole game days, none in the future
     if (st.leaves) {

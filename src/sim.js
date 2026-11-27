@@ -46,7 +46,7 @@ const Sim = (() => {
   // its pastime and with whom (sim/pastimes, VB-1552),
   const describe = (st, id) => occasionLabel(st, st.agents[id]) || pastimeLine(st, id) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/fit'];
-  const { levyOf } = VB['sim/levies'];
+  const { levyOf, hours } = VB['sim/levies'];
   const { line: thirstLine } = VB['sim/thirst'];
   const { reasonOf, reasonLine } = VB['sim/reasons']; // who chose a pawn's act, and why, for its card (VB-1551)
   const { seedReserve } = VB['sim/hunger'],
@@ -287,6 +287,7 @@ const Sim = (() => {
     explainIdle,
     idleLine,
     levyOf, // the hours a day a member owes its household by its levy (VB-1760)
+    hours, // a pawn's days: the six parts of its working hours, the six behind exact, and its sovereignty (VB-1761)
     thirstLine,
     reasonOf,
     reasonLine,
