@@ -1562,8 +1562,7 @@ VB['sim/levies'] = (() => {
   // At a village's review: a routine whose work is done (no hours of its tasks left) has its lots' days left released by the alderman,
   // and those of its households on duty today go home (design.md, Lots).
   function releaseDone(st, plan, v, a) {
-    const Ob = Obligations,
-      L = Ob.due(st, { kind: 'village', id: v.id }, 'creditor', 'days');
+    const L = Obligations.due(st, { kind: 'village', id: v.id }, 'creditor', 'days');
     if (!L.length) return;
     const done = new Map();
     for (const o of L) {
@@ -1575,7 +1574,7 @@ VB['sim/levies'] = (() => {
       if (!done.get(k)) continue;
       const d = st.daysToday;
       if (d) for (const id in d.by) if (d.by[id][0] === o.id) Days.release(st, +id);
-      const n = Ob.left(o);
+      const n = Obligations.left(o);
       if (n > 1e-9) issue(st, { actor: a, verb: 'release', target: o.id, args: { days: n }, source: 'planner' });
     }
   }
