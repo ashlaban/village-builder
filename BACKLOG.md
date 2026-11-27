@@ -45,7 +45,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1705](backlog/VB-1705.md)<a id="VB-1705"></a> | Repair: a building's timber is booked into its holder's store while it lies at the site | - | 2 | S | sim/building's timber trip records +timber to the holder's ledger (reason timber) while the load lies at the site (j.timberFor.wood), and the build takes it from there unbooked: timber unexplained 513 a year on populous small seed 3. |
 | [VB-1709](backlog/VB-1709.md)<a id="VB-1709"></a> | Fix: a herd standing away for a household with a farm is never led home (populous small seed 11) | - | 2 | M | VB-1682 found herd 155 standing at farm 0 for household 19 from year 12 on, its drove job never done |
 | [VB-1738](backlog/VB-1738.md)<a id="VB-1738"></a> | Tuning and design review of Stories | talk | 2 | L | With Kim: why old stories sharpen to ±1 and never fade (VB-1681's measure), the Stories model and numbers reviewed, the fix chosen, built and measured |
-| [VB-1779](backlog/VB-1779.md)<a id="VB-1779"></a> | Demand and take: a call beyond the levy is a demand, levy hours kept are taken, and goodwill is their cost | plans | 2 | M | Either side may breach the levy: a head's assign or call beyond a member's levy is a demand the member complies with or refuses; a member takes hours within its levy for itself; each is booked and costs goodwill. Built before giving, so the head's way to call beyond the levy stands when Work beats idling goes. |
 | [VB-1808](backlog/VB-1808.md)<a id="VB-1808"></a> | A firewood goal keeps the timber a building counts on | - | 2 | S | VB-1775 review F3: one firewood task cuts all the timber home up to the season's goal, the timber a barn or cottage step counts on with it |
 | [VB-1815](backlog/VB-1815.md)<a id="VB-1815"></a> | A household's last load of sheaves cut on the road is posted again before the frost | - | 2 | S | the haul re-posted after its last carrier is cut |
 | [VB-1836](backlog/VB-1836.md)<a id="VB-1836"></a> | The owner cache left on another farmstead's tiles in the played populous seed 7 run | - | 2 | S | checkState fails at year 2 of populous small seed 7 with household 0's head played: farmsteads[61] owner cache 63, expected 62 (pre-existing at 79c22dd7) |
@@ -153,6 +152,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1840](backlog/VB-1840.md)<a id="VB-1840"></a> | The page tells the player what automatic answers, and its sleep as of now | - | 3 | S | After VB-1776 the played pawn on automatic answers at-once offers itself and its sleep is reckoned hourly: the page says so and reads sleep as of now |
 | [VB-1841](backlog/VB-1841.md)<a id="VB-1841"></a> | An older save keeps the player's wish | - | 3 | S | A save from before VB-1776 loses the played pawn's chosen wish to its own choosing: mark it authored on load |
 | [VB-1894](backlog/VB-1894.md)<a id="VB-1894"></a> | A planner who falls ill or is called away gives its authored steps back to the household's day at once | plans | 3 | S | VB-1758 returns a lost holder's tasks to the pool from the day's lists only; a pawn on its own plan that falls ill or is called away keeps its authored steps, which wait for the at-risk review and its by, against the Decided third condition of Authors |
+| [VB-1897](backlog/VB-1897.md)<a id="VB-1897"></a> | The page confirms a demand before it is issued | - | 3 | S | assign and call past the levy are demands: the page says so and asks to confirm |
 
 </details>
 
@@ -165,6 +165,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
+| [VB-1779](backlog/VB-1779.md)<a id="VB-1779"></a> | Demand and take: a call beyond the levy is a demand, levy hours kept are taken, and goodwill is their cost | plans | 2 | M | Either side may breach the levy: a head's assign or call beyond a member's levy is a demand the member complies with or refuses; a member takes hours within its levy for itself; each is booked and costs goodwill. Built before giving, so the head's way to call beyond the levy stands when Work beats idling goes. |
 
 </details>
 
