@@ -76,7 +76,7 @@ const ok = (st, label) => { const bad = checkState(st); check(!bad.length, `${la
   const pick = VB['sim/fieldplans'].chooseTile(st, fB);
   check(pick < 0 || (st.owner[pick] !== -A.id - 1 && T.freeFor(st, pick, Bv.id)), `B's farm took in ${pick}, owned by ${st.owner[pick]}`);
   const site = VB['sim/expansion'].findSite(st, Bv);
-  check(!site || [site.house, site.field].every((t) => T.freeFor(st, t, Bv.id)), 'a plot of B on B\'s land or wilderness');
+  check(!site || [site.house, site.land].every((t) => T.freeFor(st, t, Bv.id)), 'a plot of B on B\'s land or wilderness');
   // settlers: every owned or claimed tile is taken land for a new village
   const use = VB['sim/settle'].landInUse(st);
   check([...outA, wild].every((t) => use.taken.has(t)), 'settlers keep off village land and claims');

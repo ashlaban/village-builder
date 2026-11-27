@@ -171,30 +171,19 @@ const cands = (st, v) => Settle.candidates(st, v, Settle.landInUse(st), Settle.r
       return s;
     },
     walk = (t) => siteWater(st, t, 2, v).village.walk;
-  const plain = unweighed(),
-    even = X.findSite(st, v);
+  let plain = unweighed();
+  const even = X.findSite(st, v);
   check(plain && even && even.house === plain.house, 'on even ground the water moves no plot: every site as near the green walks as far');
+  // VB-1951: a plot places no field and stands by the green, whose rim leaves no second site as near: that site is taken (a test's
+  // write), and the next, a step further out, is the first of the two
+  if (hexSteps(w, v.center, plain.house) === 1) {
+    st.used.add(plain.house);
+    plain = unweighed();
+  }
   // a worn way from the green to another site as far from it, which the plot's own score does not read
   const d = hexSteps(w, v.center, plain.house);
   let other = -1,
     by = -1;
-  // a site beside the green as the first is (VB-1951: a plot places no field, and stands by the green): a lane worn onto it alone
-  for (let k = 0; d === 1 && k < 6 && other < 0; k++) {
-    const b = w.nb[v.center * 6 + k];
-    if (b < 0 || st.used.has(b) || b === plain.house || hexSteps(w, b, plain.house) < 2) continue;
-    w.worn[b] = 3;
-    VB['sim/walking'].recost(w, b);
-    const s = unweighed(),
-      t = X.findSite(st, v);
-    if (process.env.DBG) console.log('b', b, 'plain', plain.house, 's', s && s.house, 't', t && t.house, walk(b), walk(plain.house));
-    if (s && s.house === plain.house && t && t.house === b) {
-      other = b;
-      by = v.center;
-      break;
-    }
-    w.worn[b] = 0;
-    VB['sim/walking'].recost(w, b);
-  }
   for (let k = 0; d > 1 && k < 6 && other < 0; k++) {
     const a = w.nb[v.center * 6 + k];
     if (a < 0 || st.used.has(a) || hexSteps(w, a, plain.house) < 2) continue;

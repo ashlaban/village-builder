@@ -25,7 +25,7 @@ function scene(rule) {
   const map = Array.from({ length: 10 }, () => '.'.repeat(30) + '~' + '.'.repeat(13));
   const st = tinyState(tinyWorld(map),
     [{ at: [5, 5], farms: 3, sizes: [8, 8, 8] }, { at: [16, 5], farms: 2, sizes: [8, 8] }, { at: [38, 5], farms: 1, sizes: [8] }],
-    { seed: 4 });
+    { seed: 3 }); // seed 3 draws the cast (VB-1951 moved the draws)
   // the cast, by their place in the households the tiny world draws, renamed and given the ages of the scene: unmarried grown or
   // growing children of B's two farms, of A's first and of C's
   const kids = (hid, sex) => st.households[hid].members.map((id) => st.pawns[id]).filter((q) => q.alive && q.sex === sex && q.id !== st.households[hid].holder

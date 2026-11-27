@@ -14,7 +14,7 @@ const { DAY, YEAR } = VB['sim/rules'],
 const minds = (s, id) => mindsWhy(s, id) !== null;
 const hourOf = (st) => st.t - Math.floor(st.t / DAY) * DAY;
 const to = (st, h) => Sim.advance(st, (((h - hourOf(st)) % DAY) + DAY) % DAY || DAY); // to the next h:00
-const st = tinyState(tinyWorld(Array(9).fill('.'.repeat(60)), { seed: 3 }), [{ at: [6, 4], farms: 2, sizes: [3, 4] }], { seed: 3 });
+const st = tinyState(tinyWorld(Array(9).fill('.'.repeat(60)), { seed: 3 }), [{ at: [6, 4], farms: 2, sizes: [3, 4] }], { seed: 1 }); // seed 1: a farmer, his wife and a small child (VB-1951 moved the draws)
 const hh = st.households[0],
   f = st.farmsteads[hh.farmstead];
 assert.strictEqual(hh.members.length, 3, 'a household of three');
