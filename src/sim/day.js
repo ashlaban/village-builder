@@ -52,9 +52,9 @@ VB['sim/day'] = (() => {
   //   the hours of the member's day it was given (given, further: VB-1558); free:
   //   {pawn id: hours}: the working hours of the horizon the head gave each member no task in (VB-470: what it may lend). Written by
   //   allot, whole, and by slotIn, a task put into the lists as they stand; a key whose job is gone is passed over; edited: absent, or
-  //   {t (the game hour), by (the actor)} of the head's last change by its verbs dayOrder, dayGive and dayCall (VB-477), which stands
+  //   {t (the game hour), by (the actor)} of the head's last change by its verbs dayOrder, assign and call (VB-477), which stands
   //   until the day is next allotted (allot writes the day whole, without it); off: absent, or the ids of the members the head called off
-  //   (dayCall), given and taking no task until the day is next allotted. Plain data, saved with the plan.
+  //   (call), given and taking no task until the day is next allotted. Plain data, saved with the plan.
   // A member's working hours of the horizon, by the clock; what it does in them at a task is the head's belief of its rate there (VB-476).
   const dayHours = () => MATCH.day.horizon * (WORK[1] - WORK[0]);
   const hoursLeft = (st, j) => (j.hours ?? KINDS[j.kind].hours ?? 0) - doneOf(st, j);
@@ -273,7 +273,7 @@ VB['sim/day'] = (() => {
         fit = day.fits[id],
         hrs = day.hours[id];
       if (!list || !fit || !hrs || fit.length !== list.length || hrs.length !== list.length) return false;
-      // one the head called off (dayCall) is given nothing until the day is next allotted
+      // one the head called off (call) is given nothing until the day is next allotted
       if (allotted(st, p) && !(day.off && day.off.includes(id))) {
         if (!(id in day.free)) return false;
         members.push(p);
@@ -549,7 +549,7 @@ VB['sim/day'] = (() => {
             n = lists[pid] ? lists[pid].indexOf(j.key) : -1,
             i = n < 0 ? Number.MAX_SAFE_INTEGER : n;
           if (i >= at || p.died !== null || a.job || a.occasion !== null || travelling(a)) continue;
-          if (plan.day.off && plan.day.off.includes(pid)) continue; // called off (dayCall)
+          if (plan.day.off && plan.day.off.includes(pid)) continue; // called off (call)
           if (allotted(st, p) && eligible(st, j, p)) [best, at] = [a, i];
         }
         if (best) issue(st, workCommand(best.id, j.key, 'planner'));
@@ -670,11 +670,11 @@ VB['sim/day'] = (() => {
   planOp('household', 'dayOrder', { check: (st, c) => orderWhy(st, c, false), run: (st, c) => reorder(st, c, false) });
   planOp('pawn', 'dayOrder', { check: (st, c) => orderWhy(st, c, true), run: (st, c) => reorder(st, c, true) });
   register('dayOrder', planFacade('dayOrder'));
-  // dayGive({key, from, to}): task `key` leaves member from's list and is given to member to, after its tasks given hands (its own entry
+  // assign({key, from, to}): task `key` leaves member from's list and is given to member to, after its tasks given hands (its own entry
   // of it among the rest, if any, gives way), with the hours the giver had of it; one at work on it now works on until it next looks
   // for work. Refused when `to`
   // may not take it (sim/eligibility).
-  register('dayGive', {
+  register('assign', {
     check: (st, c) => {
       const a = c.args || {},
         why = dayWhy(st, c, a.from) || dayWhy(st, c, a.to);
@@ -718,10 +718,10 @@ VB['sim/day'] = (() => {
       edited(st, day, c);
     },
   });
-  // dayCall({member}): the member is called off: its list is emptied and it is off (plan.day.off) until the day is next allotted, and it lets its
+  // call({member}): the member is called off: its list is emptied and it is off (plan.day.off) until the day is next allotted, and it lets its
   // task go and walks home (the verb goHome: a load in hand is put down where it stands, sim/agents release). The cost, its walk home and
   // the load it leaves, is the timetable's callCost (sim/timetable), named before the call. Refused for one on the road or away.
-  register('dayCall', {
+  register('call', {
     check: (st, c) => {
       const a = c.args || {},
         why = dayWhy(st, c, a.member);

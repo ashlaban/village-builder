@@ -33,7 +33,7 @@ const set = (t) => {
   st.tick = Math.round(t * TICKS);
 };
 set(st.t - (st.t % DAY) + 8);
-const call = (target = hw.farmstead) => issue(st, { actor: man, verb: 'call', target, source: 'player' });
+const call = (target = hw.farmstead) => issue(st, { actor: man, verb: 'callAt', target, source: 'player' });
 const calls = () => st.occasions.filter((o) => o.kind === 'call');
 const known = () => OP.forPawn(st, OP.actorView(st, man), man).filter((i) => i.verb === 'match' && i.target === woman);
 Sim.inhabit(st, man);

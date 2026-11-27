@@ -343,8 +343,8 @@ VB['sim/player'] = (() => {
     'rotation',
     'sowOutOfTurn',
     'dayOrder',
-    'dayGive',
-    'dayCall',
+    'assign',
+    'call',
   ];
   function head(st, id, verb, args) {
     const why = pawnWhy(st, id);

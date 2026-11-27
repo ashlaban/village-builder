@@ -1,12 +1,12 @@
 // @sys page/day: the day's timetable in the Plan tab of a household's card (VB-477; design.md section 7, The timetable): each member's row,
 // its tasks laid end to end with their walks, each a range by the inhabited pawn's estimate (principle "The future is someone's estimate": whose reckoning
 // it is is said;
-// progress so far is exact), and, for the played pawn that is the head, the head's verbs on the day (Sim.head: dayOrder, dayGive,
-// dayCall), a call named with its cost before it is made (Sim.callCost)
+// progress so far is exact), and, for the played pawn that is the head, the head's verbs on the day (Sim.head: dayOrder, assign,
+// call), a call named with its cost before it is made (Sim.callCost)
 // ======== the day ========
-// The page's own state: the member whose call is asked and waits for its confirmation (dayCalling, a pawn id, or null), and the member
+// The page's own state: the member whose call is asked and waits for its confirmation (calling, a pawn id, or null), and the member
 // chosen in each Give list (daySel: "member:key" to a pawn id), kept across the tab's redraws.
-let dayCalling = null;
+let calling = null;
 const daySel = new Map();
 // Hours in words: minutes under an hour, else to the half hour.
 const dayHours = (h) => (h < 1 ? `${Math.max(0, Math.round(h * 60))} min` : `${Math.round(h * 2) / 2} h`);
@@ -49,7 +49,7 @@ function dayEntry(T, r, k, list, mine) {
                 `<option value="${m.id}"${sel === m.id ? ' selected' : ''}>${esc(Sim.fullName(st.pawns[m.id]))}</option>`,
             )
             .join('')}</select>${planBtn(
-            { plan: 'dayGive', key: e.key, from: r.id },
+            { plan: 'assign', key: e.key, from: r.id },
             'Give',
             `Give ${e.label.toLowerCase()} to the member chosen`,
           )}`
@@ -61,10 +61,10 @@ function dayEntry(T, r, k, list, mine) {
   return `<li class="day-entry${now ? ' now' : ''}"${title}><span class="day-what">${what}</span>${ctl}</li>`;
 }
 // The call of member id: a button that asks, then its cost and the confirmation (the call is made on the second press).
-function dayCallHTML(id) {
-  if (dayCalling !== id) {
+function callHTML(id) {
+  if (calling !== id) {
     const ask = `Call ${Sim.fullName(st.pawns[id])} home: see what it costs first`;
-    return `<p class="plan-ctl menu">${planBtn({ plan: 'dayCallAsk', member: id }, 'Call home…', ask, true, 'wide')}</p>`;
+    return `<p class="plan-ctl menu">${planBtn({ plan: 'callAsk', member: id }, 'Call home…', ask, true, 'wide')}</p>`;
   }
   const c = Sim.callCost(st, id, dayViewer()),
     name = Sim.fullName(st.pawns[id]);
@@ -78,8 +78,8 @@ function dayCallHTML(id) {
   ];
   return (
     `<p class="card-note day-cost" role="status">A call costs: ${esc(words.join('; '))}.</p>` +
-    `<p class="plan-ctl menu">${planBtn({ plan: 'dayCall', member: id }, 'Call home now', `Call ${name} home now`, true, 'wide')}${planBtn(
-      { plan: 'dayCallNo' },
+    `<p class="plan-ctl menu">${planBtn({ plan: 'call', member: id }, 'Call home now', `Call ${name} home now`, true, 'wide')}${planBtn(
+      { plan: 'callNo' },
       'Leave at work',
       `Leave ${name} at its work`,
       true,
@@ -125,7 +125,7 @@ function dayHTML(hh, mine) {
           .map((j) => Sim.KINDS[j.kind].label.toLowerCase())
           .join(', '),
       )}.</p>`;
-    if (mine) h += dayCallHTML(r.id);
+    if (mine) h += callHTML(r.id);
     h += '</div>';
   }
   return h;
@@ -133,23 +133,23 @@ function dayHTML(hh, mine) {
 // A choice of the day's section, from planClick: its answer, true or why not, or undefined for one that only changes the page.
 function dayClick(b, hh) {
   const d = b.dataset;
-  if (d.plan === 'dayCallAsk') {
-    dayCalling = +d.member;
+  if (d.plan === 'callAsk') {
+    calling = +d.member;
     return undefined;
   }
-  if (d.plan === 'dayCallNo') {
-    dayCalling = null;
+  if (d.plan === 'callNo') {
+    calling = null;
     return undefined;
   }
-  if (d.plan === 'dayCall') {
-    dayCalling = null;
-    return Sim.head(st, st.player.pawn, 'dayCall', { member: +d.member });
+  if (d.plan === 'call') {
+    calling = null;
+    return Sim.head(st, st.player.pawn, 'call', { member: +d.member });
   }
   if (d.plan === 'dayOrder')
     return Sim.head(st, st.player.pawn, 'dayOrder', { member: +d.member, from: +d.from, to: +d.to });
-  if (d.plan === 'dayGive') {
+  if (d.plan === 'assign') {
     const s = b.closest('.day-give').querySelector('select.day-to');
-    return Sim.head(st, st.player.pawn, 'dayGive', { key: d.key, from: +d.from, to: +s.value });
+    return Sim.head(st, st.player.pawn, 'assign', { key: d.key, from: +d.from, to: +s.value });
   }
   return null;
 }

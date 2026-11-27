@@ -392,10 +392,10 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
     {
       await page.waitForSelector('#tileHouse .day-row', { timeout: 5000 }).catch(() => fail('the Plan tab shows no row of the day'));
       if (!/by your reckoning/.test(await page.locator('#tileHouse').textContent())) fail('the day does not say whose reckoning its ranges are');
-      await page.locator('#tileHouse [data-plan="dayCallAsk"]').first().click();
+      await page.locator('#tileHouse [data-plan="callAsk"]').first().click();
       const cost = await page.locator('#tileHouse .day-cost').textContent().catch(() => '');
       if (!/A call costs: .*(walks home|is at home).*(carries)/.test(cost)) fail(`no cost named before the call: ${cost}`);
-      await page.click('#tileHouse [data-plan="dayCallNo"]');
+      await page.click('#tileHouse [data-plan="callNo"]');
       if (await page.locator('#tileHouse .day-cost').count()) fail('the cost stays after Leave at work');
       const down = page.locator('#tileHouse [data-plan="dayOrder"][aria-label^="Leave"]:not([disabled])');
       if (await down.count()) {
