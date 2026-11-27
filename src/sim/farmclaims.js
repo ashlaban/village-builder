@@ -201,10 +201,10 @@ VB['sim/farmclaims'] = (() => {
   }
   // ---- the basis `land` of sim/offers (VB-692; plan VB-682, sections 2 and 4.4): {from (a landless adult), to (who speaks for the
   // village: its eldest living holder until it has an alderman, VB-314), wants {farm} (an empty farm's id) or {plot (a village id), house
-  // (the site, or absent for the village to find one; a plot places no field, VB-1951)}}. The one asked answers by the village's custom, today's rule: a farm to the
-  // first of its claimants (claimants), a plot to one with none coming; where the asker speaks for the village itself, nobody else is
-  // asked. A yes is the claim (the claim verb) or the plot begun for the asker (sim/expansion, on the event plotGranted). A no is told,
-  // and nobody remembers it (a custom's no; the grievance is the claims review's). ----
+  // (the site, or absent for the village to find one; a plot places no field, VB-1951)}}. The one asked answers by the village's custom,
+  // today's rule: a farm to the first of its claimants (claimants), a plot to one with none coming; where the asker speaks for the
+  // village itself, nobody else is asked. A yes is the claim (the claim verb) or the plot begun for the asker (sim/expansion, on the
+  // event plotGranted). A no is told, and nobody remembers it (a custom's no; the grievance is the claims review's). ----
   function speakerOf(st, vid) {
     const al = st.villages[vid].alderman; // the village's agent (VB-314), while the office is filled
     if (al !== undefined && al !== null && st.pawns[al].alive) return al;
