@@ -211,15 +211,20 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2 .u2-kn .u2-fact { min-height: 28px; min-width: 28px; padding: 0 4px; }
 .u2 .u2-pcard .u2-chip { display: inline-flex; align-items: center; gap: 3px; padding: 0 9px; font-size: 13px; }
 .u2-pcard .u2-row2 { gap: 6px; }
-/* the days ahead by the hour: one strip a day */
-.u2-days { display: grid; gap: 3px; width: min(520px, calc(100vw - 16px)); padding: 5px 10px; border-radius: 12px; border: var(--line); background: var(--glass); box-shadow: var(--lift); opacity: 0.999; cursor: pointer; }
-.u2-day { display: grid; grid-template-columns: 62px 1fr 34px; gap: 6px; align-items: center; }
+/* Today (page/ui2day): a thin row of icons in the order of the day, not by the hour; the days after on a tap */
+.u2-days { display: grid; gap: 3px; width: min(520px, calc(100vw - 16px)); box-sizing: border-box; padding: 4px 8px; border-radius: 12px; border: var(--line); background: var(--glass); box-shadow: var(--lift); opacity: 0.999; cursor: pointer; }
+.u2-day { display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center; }
 .u2-dayname { font: 700 12px var(--body); color: var(--soft); }
-.u2-dayrow { position: relative; height: 22px; border-radius: 6px; background: var(--paper2); overflow: hidden; }
-.u2 .u2-seg { position: absolute; top: 0; bottom: 0; padding: 0; border: 0; border-right: 1px solid var(--paper); display: grid; place-items: center; min-width: 2px; color: var(--ink2); }
-.u2-seg svg { width: 15px; height: 15px; }
-.u2 .u2-seg.sleep { background: var(--ink2); color: var(--paper); } .u2 .u2-seg.routine { background: #9fc3cf; } .u2 .u2-seg.task { background: #e3c36a; } .u2 .u2-seg.queue { background: #d98f6a; }
-.u2-dayrow u { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--red); pointer-events: none; }
+.u2-dayrow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-height: 28px; }
+.u2 .u2-dpc { position: relative; flex: none; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 7px; border: 1.5px solid var(--ink2); color: var(--ink2); background: var(--paper); }
+.u2-dpc svg { width: 17px; height: 17px; }
+.u2 .u2-dpc.routine { background: #cfe2e8; } .u2 .u2-dpc.task { background: #f0d99a; } .u2 .u2-dpc.queue { background: #d98f6a; } .u2 .u2-dpc.sleep { background: var(--ink2); color: var(--paper); }
+.u2 .u2-dpc.done { opacity: 0.38; filter: grayscale(1); } .u2 .u2-dpc.wait { border-style: dashed; background: var(--paper); }
+.u2 .u2-dpc.now { box-shadow: 0 0 0 2.5px var(--gold2); } .u2 .u2-dpc.now::after { content: ''; position: absolute; left: 50%; bottom: -6px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--red); }
+.u2 .u2-dpc[aria-pressed="true"] { outline: 2px solid var(--ink2); outline-offset: 1px; }
+.u2-dres { position: absolute; right: -5px; top: -5px; width: 13px; height: 13px; display: grid; place-items: center; border-radius: 50%; background: var(--paper); }
+.u2-dres svg { width: 12px; height: 12px; } .u2-dres circle { fill: var(--paper); stroke: var(--ink2); stroke-width: 1.3; } .u2-dres path { fill: var(--ink2); stroke: none; }
+.u2-fact .u2-dres { position: static; width: 16px; height: 16px; } .u2-fact .u2-dres svg { width: 15px; height: 15px; }
 .u2-dayowed { display: flex; align-items: center; gap: 1px; font: 800 12px var(--body); } .u2-dayowed svg { width: 14px; height: 14px; }
 .u2-dayowed.press1 { color: #8a6a17; } .u2-dayowed.press2 { color: var(--red); }
 /* the Ahead lane (page/ui2ahead): the game days to the season's end, the next six at full width; a task a row, its bar from its start to
@@ -245,6 +250,9 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2-ldead svg { position: relative; width: 15px; height: 15px; padding: 1px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--ink2); }
 .u2 .u2-ldead.late::before { background: var(--red); } .u2 .u2-ldead.late svg { border-color: var(--red); }
 .u2 .u2-ldead.out { margin-left: -18px; } .u2-ldead.out::before { display: none; }
+.u2-lkeep { flex: none; display: grid; place-items: center; width: 14px; height: 14px; margin-left: 1px; border-radius: 50%; background: var(--paper); border: 1px solid var(--ink2); color: var(--ink2); }
+.u2 .u2-lbar .u2-lkeep svg { width: 10px; height: 10px; }
+.u2 .u2-chip.keep[aria-pressed="true"] { background: var(--ink2); color: var(--paper); }
 .u2 .u2-lrisk { position: absolute; top: -2px; width: 18px; height: 18px; margin-left: -9px; padding: 0; border-radius: 50%; border: 1.5px solid var(--ink2); background: var(--red); color: #fff7ec; font: 800 12px/14px var(--body); z-index: 3; }
 .u2-tabs { display: flex; gap: 6px; flex: none; }
 .u2-planbar { min-width: 0; flex: 0 1 auto; }

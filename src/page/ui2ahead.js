@@ -112,6 +112,7 @@ function laneHTML(A, P) {
       name = `${i + 1}. ${hudKind(t.kind)}`,
       pc = `t:${i}`,
       sel = hud.pc === pc ? ' sel' : '',
+      keep = s && s.kept ? `<i class="u2-lkeep" aria-label="Kept">${actIcon('pin')}</i>` : '',
       riskMark = (left) =>
         `<button type="button" class="u2-lrisk" data-pc="${pc}" style="left:${left}" ` +
         `aria-label="${esc(`${name}: at risk`)}" title="At risk">!</button>`;
@@ -126,12 +127,12 @@ function laneHTML(A, P) {
         `<button type="button" class="u2-lbar v${HUD_VERDICT[v] || 0}${v ? '' : ' none'}${more ? ' more' : ''}${sel}" data-pc="${pc}" ` +
         `style="left:min(${lanePct(a)}, 100% - 22px);width:${lanePct(c - a)};--mid:${(((b - a) / Math.max(0.01, c - a)) * 100).toFixed(1)}%" ` +
         `aria-label="${esc(`${name}: ${laneDate(e.starts)} to ${laneDate(e.ends)}${v ? `, ${v}` : ''}`)}" title="${esc(name)}">` +
-        `${hudTaskIcon(t)}</button>`;
+        `${hudTaskIcon(t)}${keep}</button>`;
       if (risk) r += riskMark(`min(${lanePct(c)}, 100% - 9px)`);
     } else
       r +=
         `<button type="button" class="u2-lbar unlaid${sel}" data-pc="${pc}" style="left:0;width:22px" ` +
-        `aria-label="${esc(`${name}: not laid in the days ahead`)}" title="${esc(name)}">${hudTaskIcon(t)}</button>` +
+        `aria-label="${esc(`${name}: not laid in the days ahead`)}" title="${esc(name)}">${hudTaskIcon(t)}${keep}</button>` +
         (risk ? riskMark('24px') : '');
     if (d) r = dead(d, pc, v === 'late', name) + r;
     rows += `<div class="u2-lrow">${r}</div>`;
@@ -285,7 +286,10 @@ function laneTaskFacts(t, e, i) {
       why:
         `At risk: ${h ? `${h} ${h === 1 ? 'hour' : 'hours'} short` : 'short'} of being done` +
         (Number.isFinite(s.by) ? ` by ${laneDate(s.by * Sim.DAY)}` : '') +
-        '. On the lane, the red mark.',
+        (s.kept
+          ? '. Kept: the household will not take it back, so it stays yours to finish or to leave undone.'
+          : '. Unless it is kept, the household may take it back once that day is past.') +
+        ' On the lane, the red mark.',
     });
   }
   if (!e && !t.waits)
@@ -374,3 +378,14 @@ function laneKnock(from, to) {
 }
 const laneKnockWords = (k) =>
   `${k.noun} becomes ${k.to === 'late' ? 'late' : 'tight'} for ${k.deadline.what} (${laneDate(k.deadline.t)}).`;
+
+// ---- keep (VB-1755: the verb plan's op keep) ----
+// The Keep toggle of the plan's task i: the pin, pressed while kept (the household never takes it back).
+function laneKeepButton(i) {
+  const s = laneSteps()[i],
+    on = !!(s && s.kept);
+  return (
+    `<button type="button" class="u2-chip keep" data-hud="pkeep" data-i="${i}" data-on="${on ? '' : '1'}" aria-pressed="${on}" ` +
+    `aria-label="${on ? 'Kept: tap to let go' : 'Keep: the household never takes it back'}" title="Keep">${actIcon('pin')}Keep</button>`
+  );
+}
