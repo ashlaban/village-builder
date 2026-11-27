@@ -105,5 +105,17 @@ assert.strictEqual(Sim.plans(st, { kind: 'pawn', id: 0 }), null, 'a pawn that ho
   W.seasons[c.season] = 0;
   VB["sim/plans"].reviewed(st, pl, c);
   assert.strictEqual(left().mid, 0, 'one met has none');
+  // VB-1867: seed and a made good below their level have hours left too
+  const S = Steps.targetOf(pl, 'seed'),
+    leftOf = (store) => pl.season.find((x) => x.what.target && x.what.target.store === store).left;
+  S.level = (hh2.grain.barley || 0) + 50;
+  VB['sim/plans'].reviewed(st, pl, c);
+  let ls = leftOf('seed');
+  assert(ls.lo <= ls.mid && ls.mid <= ls.hi && ls.mid > 0, 'a seed target below its level has hours left');
+  pl.chosen = Object.assign(pl.chosen || { goods: {} }, {});
+  pl.chosen.goods = Object.assign(pl.chosen.goods || {}, { ale: VB['sim/targets'].MADE.get('ale').held(st, hh2) + 3 });
+  VB['sim/plans'].reviewed(st, pl, c);
+  ls = leftOf('ale');
+  assert(ls.lo <= ls.mid && ls.mid <= ls.hi && ls.mid > 0, 'a made good below its level has hours left');
 }
 console.log('planrecord ok');
