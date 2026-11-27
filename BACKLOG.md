@@ -153,7 +153,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1841](backlog/VB-1841.md)<a id="VB-1841"></a> | An older save keeps the player's wish | - | 3 | S | A save from before VB-1776 loses the played pawn's chosen wish to its own choosing: mark it authored on load |
 | [VB-1842](backlog/VB-1842.md)<a id="VB-1842"></a> | A task at a tile on a pawn's own plan is dated, at risk and taken back as a task by key | plans | 3 | S | Chains get an estimate, a by and the at-risk check |
 | [VB-1843](backlog/VB-1843.md)<a id="VB-1843"></a> | Q12 measured: a scripted controller levelling five heads' loads against the default author | plans | 3 | M | The windows missed with five heads authoring their own plans, populous small seed 7, 2 years |
-| [VB-1846](backlog/VB-1846.md)<a id="VB-1846"></a> | Sim.answer and Sim.orderVisit keyed by pawn | plans | 3 | S | The last two facade calls that find their actor in st.player take the pawn, as the rest of the API by pawn does |
 | [VB-1848](backlog/VB-1848.md)<a id="VB-1848"></a> | Decision points: an allotment is a point only where the head has a choice | plans | 3 | S | The two allotments a day give 2.0 of a head's 2.69 points a head-day against Q13's 1.0 |
 
 </details>

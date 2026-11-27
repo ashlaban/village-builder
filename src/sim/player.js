@@ -325,11 +325,9 @@ VB['sim/player'] = (() => {
   }
   // The notes of the played pawn's sheet (VB-1118), made when asked: what its last act yielded, what moved its levels, who ails.
   const sheetNotes = (st) => ({ yielded: yieldWords(st), moved: movedWords(st), ailing: ailingWords(st) });
-  // The played pawn answers the open marriage offer offerId (VB-293; the first question asked through Decisions.answer, which slice 5's
-  // Decisions module takes over): true, or why not.
-  function answer(st, offerId, yes) {
-    if (!st.player) return 'no pawn is played';
-    return command(st, { actor: st.player.pawn, verb: 'answer', target: offerId, args: { yes }, source: 'player' });
+  // Pawn `pawn` answers the open offer offerId (VB-293; keyed by the pawn that acts, VB-1846): true, or why not.
+  function answer(st, pawn, offerId, yes) {
+    return command(st, { actor: pawn, verb: 'answer', target: offerId, args: { yes }, source: 'player' });
   }
   // Sim.head(st, id, verb, args): pawn id chooses as head of its household (VB-253, for the page's plan panel, VB-256): verb one of
   // HEAD_VERBS, at once, not queued (a choice of the plan takes no time); its target the household it holds, else the one it lives in,
