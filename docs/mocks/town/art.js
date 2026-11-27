@@ -1375,13 +1375,24 @@ function tmHexes(w, H) {
 // neighbour's (its door, as a farm's). Then each quarter's buildings are placed along the ways through it, on both sides, never on them:
 // candidate feet on a grid in the hex, a building's footing (16 wide, 6 deep) clear of every way's band, nearest the way
 // first, none overlapping, up to the quarter's count.
+function tmRoadCurves(w) {
+  if (window.__roadsChords) return window.__roadsChords(w);
+  const out = [];
+  for (let i = 0; i < w.N; i++) if (w.worn[i] >= 3 || w.dev[i] === 2) out.push(...VB['draw/paths'].segments(w, i));
+  return out;
+}
 function tmStraight(w, S) {
   const C = (c, r) => {
     const i = r * w.COLS + c;
     return [w.hx[i], w.hy[i]];
   };
   const ways = [];
-  for (const st0 of S.streets) {
+  if (S.fromRoads) // the roads as the page paints them (draw/paths, or the road mock's A or B: docs/mocks/roads): each curve as two chords
+    for (const g of tmRoadCurves(w)) {
+      const m = [(g[0] + 2 * g[2] + g[4]) / 4, (g[1] + 2 * g[3] + g[5]) / 4];
+      ways.push({ a: [g[0], g[1]], b: m, w: g[6] }, { a: m, b: [g[4], g[5]], w: g[6] });
+    }
+  for (const st0 of S.streets || []) {
     const pts = st0.tiles.map(([c, r]) => C(c, r));
     const ext = (a, b) => [a[0] + (a[0] - b[0]) * 0.5, a[1] + (a[1] - b[1]) * 0.5];
     const line = [st0.open0 ? ext(pts[0], pts[1]) : pts[0], ...pts, st0.open1 ? ext(pts.at(-1), pts.at(-2)) : pts.at(-1)];

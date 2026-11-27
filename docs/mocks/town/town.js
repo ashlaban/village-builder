@@ -8,6 +8,7 @@
 //   --only K   only the shot named K (see plan.js's shots)
 //   --plan F   another plan (plan-hex.js: each hex a quarter of houses, as a farm is a hex of buildings)
 //   --night    the shots at dusk as well (not yet)
+//   --roads M  the roads drawn by the road mock (docs/mocks/roads/roads.js), M = A or B; shot names get -A or -B
 // Writes <name>.jpg for each of plan.js's shots, desk (1440 by 900) and phone (390 by 844).
 const root = require('path').join(__dirname, '..', '..', '..'), fs = require('fs'), path = require('path'), os = require('os');
 const { chromium } = require(root + '/node_modules/playwright');
@@ -31,7 +32,7 @@ const HOOKS = [
   ['Sim.seed(wd, seed, scenario, custom ? custom.places : null)', 'window.__seedTown(wd, seed)'],
   ['})();\n</script>\n</body>', artSrc + '\n})();\n</script>\n</body>'],
 ];
-let html = require(root + '/tests/lib/page').builtPage();
+let html = require(path.join(__dirname, '..', 'roads', 'hook.js')).patch(require(root + '/tests/lib/page').builtPage(), opt('roads', null));
 for (const [from, to] of HOOKS) {
   if (!html.includes(from)) throw new Error(`hook not found: the page script changed (${from.slice(0, 60)})`);
   html = html.replace(from, () => to);
@@ -110,7 +111,7 @@ async function main() {
         await page.waitForTimeout(2500);
         await page.waitForFunction(() => document.getElementById('lod').hidden, null, { timeout: 90000 }).catch(() => console.error('painting not finished for', s.name));
         await page.waitForTimeout(800);
-        const file = path.join(outDir, s.whole || has('labels') ? `${s.name}.jpg` : `${dev}-${s.name}.jpg`);
+        const file = path.join(outDir, s.whole || has('labels') ? `${s.name}.jpg` : `${dev}-${s.name}${opt('roads', null) ? '-' + opt('roads') : ''}.jpg`);
         await page.screenshot({ path: file, type: 'jpeg', quality: 88 });
         console.log(file);
       }
