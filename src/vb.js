@@ -178,6 +178,11 @@ VB.COUNTERS = {
   demandRefused: 'Demands refused, a memory of the head (sim/day, VB-1779)',
   breachTaken: 'Hours of the levy taken by a member for itself, a breach each (sim/day breach, VB-1779)',
   hoursBook: "Legs' ends whose working hours were booked into the six parts of a pawn's day (sim/levies book, VB-1761)",
+  budgetReckoned:
+    "Households' labour budgets reckoned: at the season's first review and when the members or the outer days change (sim/levies budget, VB-1778)",
+  fitJudged:
+    "Households' seasons judged against their labour budget, once a season at its first review (sim/levies fit, VB-1778)",
+  fitRow: 'Season steps with hours left set against the labour budget at a fit (sim/levies fit, VB-1778)',
   levyCompile:
     "Members' levies compiled on their household's plan: at the season's turn, a member new to it or of a changed role (sim/levies, VB-1760)",
   dayAllot:

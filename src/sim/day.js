@@ -88,7 +88,7 @@ VB['sim/day'] = (() => {
     if (asking && ctx.est.size) {
       const tasks = [];
       for (const [j, left] of ctx.est) tasks.push([j, left, (ctx.manned.get(j) || [0])[0]]);
-      const short = Hands.shortOf(st, tasks, c);
+      const short = Math.max(Hands.shortOf(st, tasks, c), Hands.plannedHelp(st, hh, c)); // and what its season's fit planned (VB-1778)
       if (short > 0) asking.push([hh.id, short]);
     }
     demandAtRisk(st, hh, w.H, w.pairs, ctx, c, plan);

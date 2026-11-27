@@ -290,12 +290,14 @@ VB['sim/estimate'] = (() => {
     'dried fish': () => ({ kind: 'rackfish', hours: KINDS.rackfish.hours / 4 + KINDS.dry.hours / 10 }),
     tar: () => ({ kind: 'burntar', hours: KINDS.burntar.hours }),
   };
+  // The work target step T still wants: {kind, lack (what its store lacks of its level, in the store's units), hours}, or null; read by
+  // setLeft and by the labour budget's fit (sim/levies, VB-1778: a target lowered by the lack its hours buy).
   function workOfTarget(st, hh, c, T) {
     const k = T.what.target;
     if (k.store === 'wood') {
       const lack = k.seasons[c.season] - (hh.wood || 0);
       if (!(lack > 0)) return null;
-      return { kind: 'wood', hours: Math.ceil(lack / st.ECON.woodPerTrip) * (KINDS.wood.hours || 3) };
+      return { kind: 'wood', lack, hours: Math.ceil(lack / st.ECON.woodPerTrip) * (KINDS.wood.hours || 3) };
     }
     if (k.store === 'hay' && hh.farmstead !== null) {
       const need = Math.max(0, winterNeed(st, hh));
@@ -303,24 +305,24 @@ VB['sim/estimate'] = (() => {
       for (const m of st.farmsteads[hh.farmstead].meadows) if (m.stage === 'mown') held += m.held;
       const lack = k.level * need - held;
       if (!(lack > 0)) return null;
-      return { kind: 'mow', hours: (lack / 30) * (KINDS.mow.hours + KINDS.hay.hours) };
+      return { kind: 'mow', lack, hours: (lack / 30) * (KINDS.mow.hours + KINDS.hay.hours) };
     }
     if (k.store === 'fields' && hh.farmstead !== null) {
       const lack = k.level - st.farmsteads[hh.farmstead].fields.length;
       if (!(lack > 0)) return null;
-      return { kind: 'clear', hours: lack * (KINDS.clear.hours + KINDS.break.hours) };
+      return { kind: 'clear', lack, hours: lack * (KINDS.clear.hours + KINDS.break.hours) };
     }
     if (k.store === 'seed') {
       const lack = k.level - (hh.grain ? hh.grain.barley || 0 : 0);
       if (!(lack > 0)) return null;
-      return { kind: 'sow', hours: (lack / CROPS.barley.seed) * KINDS.sow.hours };
+      return { kind: 'sow', lack, hours: (lack / CROPS.barley.seed) * KINDS.sow.hours };
     }
     if (k.good && PER[k.good]) {
       const M = Targets.MADE.get(k.good),
         lack = k.level - (M ? M.held(st, hh) : 0);
       if (!(lack > 0) || !Number.isFinite(lack)) return null;
       const P = PER[k.good](st);
-      return { kind: P.kind, hours: lack * P.hours };
+      return { kind: P.kind, lack, hours: lack * P.hours };
     }
     return null;
   }
@@ -367,5 +369,18 @@ VB['sim/estimate'] = (() => {
     if (d.plan.holder.type === 'household') setLeft(st, d.plan, st.households[d.plan.holder.id], d.c);
   });
   on('windowMissed', missed);
-  return { ESTIMATE, judgement, reckoned, estimate, goalEstimate, headOf, workFor, rateFor, attended, workOf, span };
+  return {
+    ESTIMATE,
+    judgement,
+    reckoned,
+    estimate,
+    goalEstimate,
+    headOf,
+    workFor,
+    rateFor,
+    attended,
+    workOf,
+    span,
+    workOfTarget,
+  };
 })();

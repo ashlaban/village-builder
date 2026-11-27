@@ -394,7 +394,26 @@ VB['sim/seasonal'] = (() => {
     chosenTargets(plan);
     project(st, plan, c);
     goodTargets(st, plan, hh);
+    lowerTargets(plan, c);
   }
+  // The targets the head lowered at its season's first review, because the season did not fit its labour budget (sim/levies fit,
+  // VB-1778; design.md section 7, A season that does not fit): plan.fit.lowered, {store: what it gave up, in the store's units}, taken
+  // off the level of this season's fields and made goods once they are written of today's values (so it is never taken twice), at
+  // least 0 and whole where the store is counted whole (a field, a whole good); none on a target the head chose (plan.chosen). The seed,
+  // the woodpile and the hay are never lowered (sim/levies).
+  function lowerTargets(plan, c) {
+    const L = plan.fit && plan.fit.at === seasonKey(c) ? plan.fit.lowered : null;
+    if (!L) return;
+    const C = plan.chosen;
+    for (const [store, n] of Object.entries(L)) {
+      const G = targetOf(plan, store);
+      if (!G || (store === 'fields' ? C && C.fields !== null : C && C.goods && C.goods[store] != null)) continue;
+      const M = store === 'fields' ? null : Targets.MADE.get(store),
+        whole = store === 'fields' || (M && M.whole);
+      G.level = Math.max(0, whole ? Math.floor(G.level - n + 1e-9) : G.level - n);
+    }
+  }
+  on('targetsLowered', (st, d) => lowerTargets(d.plan, d.c));
   // Whether household plan `plan`'s season steps are of the season of c (made in it: `by` is its last day).
   const seasonNow = (plan, c) => !!plan.season && plan.season.length > 0 && plan.season[0].by >= c.day;
   // The season's routines in the head's order, until the next season's steps are made (recorded; VB-023's enforcement was not merged):

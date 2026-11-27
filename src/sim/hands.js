@@ -233,6 +233,17 @@ VB['sim/hands'] = (() => {
       rest -= lentTo(d, hh.id) - was;
     }
   }
+  // The hours of help household hh plans to ask today, its season not fitting its labour budget (sim/levies fit, VB-1778: plan.fit's
+  // help): of each short step whose window is open today, its hours spread over the window's days; 0 where its season fits. Read by
+  // the morning's ask (sim/day allot) beside what the day's estimate finds short (shortOf).
+  function plannedHelp(st, hh, c) {
+    const plan = st.plans && st.plans.households.get(hh.id),
+      F = plan && plan.fit;
+    if (!F || F.at !== c.year * 4 + c.season || !F.help || !F.help.length) return 0;
+    let h = 0;
+    for (const [, , from, until, hours] of F.help) if (c.day >= from && c.day <= until) h += hours / (until - from + 1);
+    return h;
+  }
   // ---- the hands' day ----
   // Lent pawn id worked dt hours on a task of the household it helps (sim/work)
   function worked(st, id, dt) {
@@ -278,5 +289,5 @@ VB['sim/hands'] = (() => {
       if (st.pawns[id].alive) issue(st, { actor: +id, verb: 'goHome', source: 'planner' });
     }
   }
-  return { HANDS, on, worked, release, step, askFor, shortOf, spareOf, windowEnd };
+  return { HANDS, on, worked, release, step, askFor, shortOf, spareOf, windowEnd, plannedHelp };
 })();

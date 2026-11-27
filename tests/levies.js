@@ -10,6 +10,7 @@ const { WORK, DAY, SEASON_DAYS, cal } = VB['sim/rules'],
   { CHILD, MATCH } = VB['sim/roles'];
 const { age, spouseOf } = VB['sim/records'];
 const { levyNorm } = VB['sim/customs'];
+const { KINDS } = VB['sim/kinds'];
 const Levies = VB['sim/levies'],
   Day = VB['sim/day'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'),
@@ -459,6 +460,68 @@ let ownSeen = '';
   ownSeen = `${own[x].toFixed(0)} hours against ${own[y].toFixed(0)}, ${given[x].toFixed(0)} of them past the levy`;
 }
 
+// 9. The labour budget (VB-1778; design.md section 7, The labour budget, A season that does not fit): a household's budget for a season
+// is its members' levies over the season's days (the head pair at the adult row times their hands: the plan is theirs), by its three
+// game weeks, less the outer levies' days; reckoned at its first review and again when the members change. A season that fits is left
+// alone; one whose steps' hours left exceed it is flagged at its first review and answered in design.md's order: help asked in the short
+// step's window and a servant at the moving round, then the target whose hours buy least lowered, then the rest demanded; a line said.
+let fitSeen = '';
+{
+  const s = make(30);
+  const c = cal(s.t),
+    h = s.households[0],
+    plan = s.plans.households.get(h.id),
+    B = plan.budget,
+    review = () => VB['sim/plans'].reviewed(s, plan, cal(s.t), 'store');
+  assert.ok(B && B.at === c.year * 4 + c.season && B.weeks.length === 3, 'the budget is reckoned at the first review');
+  let a = 0;
+  for (const id of h.members) {
+    const p = s.pawns[id],
+      l = Levies.levyOf(s, id);
+    if (p.died !== null) continue;
+    if (l !== null) a += l;
+    else if (id === h.holder || spouseOf(s, h.holder) === id) a += levyNorm(s, 'adult', c.season, 0) * plan.levies.of[id][1];
+  }
+  assert.ok(Math.abs(B.total - a * (SEASON_DAYS - B.from)) < 1e-6, `the budget: the levies over the season's days (${B.total}, ${a})`);
+  assert.ok(plan.fit && plan.fit.short === 0 && !plan.fit.help && !plan.fit.lowered, 'a season that fits is left alone');
+  assert.strictEqual(s.record.filter((e) => e.kind === 'seasonShort').length, 0, 'nothing said of a season that fits');
+  const n = VB.count.budgetReckoned;
+  review();
+  assert.ok(plan.budget === B && VB.count.budgetReckoned === n, 'reviewed again: nothing reckoned again');
+  // a member gone: the budget is reckoned again, lower
+  const gone = h.members.find((id) => Levies.levyOf(s, id) > 0),
+    save = h.members.slice();
+  h.members = h.members.filter((id) => id !== gone);
+  review();
+  assert.ok(plan.budget.total < B.total - 1e-9 && VB.count.budgetReckoned === n + 1, 'a member gone: reckoned again');
+  h.members = save;
+  review();
+  // the season made not to fit: the head reckons it can place a great deal of tar (sim/asks), more than its people owe the season
+  plan.placed = { year: c.year, goods: { tar: Math.ceil(plan.budget.total / KINDS.burntar.hours) * 2 }, heard: [] };
+  delete plan.fit;
+  review();
+  const F = plan.fit,
+    tar = plan.season.find((x) => x.what.target && x.what.target.good === 'tar');
+  assert.ok(F.short > 0 && F.at === c.year * 4 + c.season, `flagged short at its first review (${F.short})`);
+  assert.strictEqual(F.servant, c.year, "a servant wanted at this year's moving round");
+  assert.ok(F.lowered.tar > 0 && tar.what.target.level < plan.placed.goods.tar, `the tar, whose hours buy least, lowered (${JSON.stringify(F)})`);
+  assert.ok(F.demand >= 0 && F.demand < F.short, `the rest demanded (${F.demand} of ${F.short})`);
+  const told = s.record.filter((e) => e.kind === 'seasonShort');
+  assert.ok(told.length === 1 && /lowered its target of tar/.test(told[0].text), told.map((e) => e.text).join());
+  // the next review of the season judges nothing again, and the lowering stands
+  const m = VB.count.fitJudged,
+    level = tar.what.target.level;
+  review();
+  assert.ok(VB.count.fitJudged === m && Math.abs(tar.what.target.level - level) < 1e-9, 'judged once a season; the lowering stands');
+  // help in the sowing window, where the sowing is short: its planned hours asked in the morning, spread over the window's days
+  const sow = plan.season.find((x) => x.what.routine === 'sow');
+  F.help = [[sow.id, 'sow', c.day, c.day + 3, 40]];
+  assert.ok(Math.abs(VB['sim/hands'].plannedHelp(s, h, cal(s.t)) - 10) < 1e-9, 'help planned: 40 hours over four days, 10 today');
+  assert.deepStrictEqual(checkState(s), [], 'invariants with a season that does not fit');
+  assert.ok(Sim.plans(s, { kind: 'household', id: h.id }).fit.short > 0, 'Sim.plans reads the budget and the fit beside the steps');
+  fitSeen = `; the labour budget ${Math.round(B.total)} hours, a season ${Math.round(F.short)} hours short answered`;
+}
+
 console.log(
-  `levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first; each leg's hours booked into the six parts, a day summing to H, the tally folded; a demand named and answered by the member's judgement, a breach's hours taken, goodwill booked both ways; own hours given by the member's judgement, the diligent son's ${ownSeen}`,
+  `levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first; each leg's hours booked into the six parts, a day summing to H, the tally folded; a demand named and answered by the member's judgement, a breach's hours taken, goodwill booked both ways; own hours given by the member's judgement, the diligent son's ${ownSeen}${fitSeen}`,
 );
