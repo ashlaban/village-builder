@@ -43,6 +43,14 @@ const ACT_PATHS = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
   ale: '<path d="M6 7h10v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zM16 10h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2M6 7c0-2 2-3 4-2 1-1.5 4-1.5 5 .5"/>', // a tankard
+  // a task against its deadline (page/ui2plan's card, ui2 lane-v2): its verdict a ring with a mark (in time, tight, late), the work a
+  // stopwatch, a wait an hourglass
+  vok: '<circle cx="12" cy="12" r="8.5"/><path d="M8 12.5l2.8 2.8L16.5 9"/>',
+  vtight: '<circle cx="12" cy="12" r="8.5"/><path d="M7.5 12h9"/>',
+  vlate: '<circle cx="12" cy="12" r="8.5"/><path d="M9 9l6 6M15 9l-6 6"/>',
+  clock: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.8 2M10 2.8h4M12 2.8V6"/>',
+  pin: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>', // keep
+  wait: '<path d="M6 3h12M6 21h12M7.5 3c0 5 9 4.5 9 9s-9 4-9 9M16.5 3c0 5-9 4.5-9 9s9 4 9 9"/>',
 };
 // The same acts as stencils (VB-1162), by ACT_PATHS' keys.
 const HOUSE_STEN = 'M2.5 11.5l9.5-8.5 9.5 8.5h-2.8V21H5.3v-9.5z';
@@ -104,6 +112,14 @@ const ACT_STEN = {
   plus: '<path class="l" d="M12 5v14M5 12h14"/>',
   minus: '<path class="l" d="M5 12h14"/>',
   ale: '<path d="M5.5 6h10v14.5h-10z"/><path d="M5 3.5h11v2.2H5z"/><path class="l" d="M16 9.5h2c1.8 0 1.8 6 0 6h-2"/>',
+  vok: '<circle cx="12" cy="12" r="9.2"/><path class="c" d="M7.8 12.5l3 3L16.5 9"/>',
+  vtight: '<circle cx="12" cy="12" r="9.2"/><path class="c" d="M7.3 12h9.4"/>',
+  vlate: '<circle cx="12" cy="12" r="9.2"/><path class="c" d="M8.7 8.7l6.6 6.6M15.3 8.7l-6.6 6.6"/>',
+  clock: '<circle cx="12" cy="13.5" r="8"/><path class="c" d="M12 9.5v4l2.8 2"/><path class="l" d="M10 2.5h4"/>',
+  pin: '<path d="M12 21.8s-7-6.5-7-11.6a7 7 0 0 1 14 0c0 5.1-7 11.6-7 11.6z"/><circle class="c" cx="12" cy="10" r="2.3"/>',
+  wait:
+    '<path d="M5.5 2.5h13v2.2c0 3.6-4.3 5.3-4.3 7.3s4.3 3.7 4.3 7.3v2.2h-13v-2.2c0-3.6 4.3-5.3 4.3-7.3S5.5 8.3 5.5 4.7z"/>' +
+    '<path class="c" d="M8.5 19.5h7"/>',
 };
 const actIcon = (k) =>
   drawings(svgIcon(24, 24, ACT_PATHS[k] || ACT_PATHS.hoe, ICON_STROKE), {

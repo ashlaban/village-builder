@@ -91,11 +91,24 @@ VB['sim/plandays'] = (() => {
   // A village whose meeting chose work days, at the first review hour of a work day: it calls its village out (VB-120).
   const workdayDue = (plan, c) =>
     plan.holder.type === 'village' && c.hour === FIRST && !!Workdays.dayOf(c) && plan.routines.includes('workdays');
+  // A household with a member on its own plan, one of whose open steps has its `by` today or yesterday, at the first review hour: its
+  // authored step is weighed on its `by` day and the day after, whatever its head's cadence (VB-1892). Walks planners only.
+  function byDue(st, plan, c) {
+    if (plan.holder.type !== 'household' || c.hour !== FIRST) return false;
+    const Steps = VB['sim/steps'];
+    for (const id of Steps.plannersIn(st, plan.holder.id))
+      for (const s of Steps.pawnPlan(st, id).steps) if (s.by === c.day || s.by === c.day - 1) return true;
+    return false;
+  }
   // Why the holder's plan is reviewed at this hour, or null: its planning day ('day'); a window closing today, its fields due today, or a
   // village's work day, once ('window'); a store that crossed a target, at most one such review a day ('store').
   function reviewWhy(st, plan, hour, c) {
     if (hour >= plan.nextReview) return 'day';
-    if (plan.last !== c.day && (closing(st, c, plan) || fieldsDue(st, plan, c) || workdayDue(plan, c))) return 'window';
+    if (
+      plan.last !== c.day &&
+      (closing(st, c, plan) || fieldsDue(st, plan, c) || workdayDue(plan, c) || byDue(st, plan, c))
+    )
+      return 'window';
     return plan.dirty && plan.woke !== c.day ? 'store' : null;
   }
   // A member without a task looks at the household's opportunities: true at most once a household a day (VB-249).

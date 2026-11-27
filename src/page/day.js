@@ -71,20 +71,27 @@ function callHTML(id) {
   if (!c) return '';
   const words = [
     c.walk > 0 ? `${name} walks home ${dayHours(c.walk)}` : `${name} is at home`,
-    c.load > 0 ? `the ${Math.round(c.load * 10) / 10} it carries is put down where it stands` : 'it carries nothing',
+    c.load > 0
+      ? `the ${Math.round(c.load * 10) / 10} it carries is brought in first, in about ${dayHours(c.bring)}` +
+        ` (or, called at once, put down where it stands: ${dayHours(c.fetch)} out and back to fetch it)`
+      : 'it carries nothing',
     c.task && c.left
       ? `its task in hand, ${dayRange(c.left)} left by ${dayWhose()} reckoning, waits`
       : 'it has no task in hand',
   ];
   return (
     `<p class="card-note day-cost" role="status">A call costs: ${esc(words.join('; '))}.</p>` +
-    `<p class="plan-ctl menu">${planBtn({ plan: 'call', member: id }, 'Call home now', `Call ${name} home now`, true, 'wide')}${planBtn(
-      { plan: 'callNo' },
-      'Leave at work',
-      `Leave ${name} at its work`,
-      true,
-      'wide',
-    )}</p>`
+    `<p class="plan-ctl menu">${planBtn({ plan: 'call', member: id }, 'Call home', `Call ${name} home`, true, 'wide')}${
+      c.load > 0
+        ? planBtn(
+            { plan: 'call', member: id, urgent: 1 },
+            'Call at once',
+            `Call ${name} at once, the load set down`,
+            true,
+            'wide',
+          )
+        : ''
+    }${planBtn({ plan: 'callNo' }, 'Leave at work', `Leave ${name} at its work`, true, 'wide')}</p>`
   );
 }
 // Whose reckoning the ranges are, in words.
@@ -143,7 +150,7 @@ function dayClick(b, hh) {
   }
   if (d.plan === 'call') {
     calling = null;
-    return Sim.head(st, st.player.pawn, 'call', { member: +d.member });
+    return Sim.head(st, st.player.pawn, 'call', d.urgent ? { member: +d.member, urgent: true } : { member: +d.member });
   }
   if (d.plan === 'dayOrder')
     return Sim.head(st, st.player.pawn, 'dayOrder', { member: +d.member, from: +d.from, to: +d.to });
