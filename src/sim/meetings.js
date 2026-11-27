@@ -331,7 +331,7 @@ VB['sim/meetings'] = (() => {
         .map((k) => `${left[k]} ${left[k] === 1 ? 'day' : 'days'} of ${VILLAGE_ROUTINES[k].label.toLowerCase()}`);
     if (parts.length)
       log(st, `The meeting of ${v.name} heard of the village's work left undone: ${parts.join('; ')}.`, {
-        kind: 'meeting',
+        kind: 'workLeft',
         village: v.id,
       });
   }

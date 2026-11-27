@@ -828,6 +828,8 @@ VB['sim/levies'] = (() => {
           terms: { ...TERMS[a.source], ...(a.terms || {}) },
           window: a.window,
           why: a.why || null,
+          // a village's routine is enforced by the village (design.md, Lots; VB-1768)
+          ...(a.source === 'routine' ? { enforcer: creditor } : {}),
         });
       // on a village, on top of the levies already laid on its households (design.md, An estate's levy): each lot its own record
       const parts =
@@ -1422,8 +1424,9 @@ VB['sim/levies'] = (() => {
       const o = st.obligations[e[0]];
       VB.count.routineMissed++;
       if (o.source !== 'routine' || e[1] > 1e-9 || !Obligations.isLive(o) || o.terms.names === 'together') continue;
-      const work = (st.jobsBy.get(`village:${o.creditor.id}`) || []).some((j) => isOpen(st, j)),
-        agent = agentOf(st, o.creditor);
+      let work = false;
+      for (const j of st.jobsBy.get(`village:${o.creditor.id}`) || []) if (isOpen(st, j)) work = true;
+      const agent = agentOf(st, o.creditor);
       if (work) missedDay(st, o, d.day, `${fullName(st.pawns[+id])} was named and did not come`);
       else if (agent !== null && agent !== undefined && st.pawns[agent] && st.pawns[agent].alive)
         issue(st, {
@@ -1526,11 +1529,24 @@ VB['sim/levies'] = (() => {
   }
   // A village's first review in a season, its alderman `a` at home: the work its routines left undone at last season's end is kept for
   // the meeting, and each routine not done together is sized and laid in lots for the season: the hours left of its tasks over
-  // OUTER.hours, rounded up (design.md, Lots).
+  // OUTER.hours, rounded up (design.md, Lots). A routine whose tasks are not yet posted at the season's turn (they are posted at the same
+  // review, after this) is sized at the first review of the season that finds them, its window from that day.
   function seasonLots(st, plan, v, a) {
     const c = cal(st.t),
       at = Math.floor(c.day / SEASON_DAYS);
-    if (plan.lotsAt === at) return;
+    if (plan.lotsAt !== at) turnLots(st, plan, v, a, at);
+    const window = [c.day, c.day - c.sday + SEASON_DAYS - 1];
+    for (const k of plan.routines) {
+      if (Routines.VILLAGE_ROUTINES[k].together || plan.lotsOf.includes(k)) continue;
+      const D = Math.ceil(hoursLeft(st, v, k, a) / OUTER.hours - 1e-9);
+      if (D > 0) {
+        plan.lotsOf.push(k);
+        layLots(st, v, a, k, D, window, false);
+      }
+    }
+  }
+  // The season's turn of a village's lots: the work left by last season's routines kept for the meeting, the season's record begun.
+  function turnLots(st, plan, v, a, at) {
     if (plan.lotsAt !== undefined) {
       const by = plan.routinesBy + plan.routinesYear;
       if (!plan.routineLeft || plan.routineLeft.by !== by) plan.routineLeft = { by, days: {} };
@@ -1542,15 +1558,6 @@ VB['sim/levies'] = (() => {
     plan.lotsAt = at;
     plan.lotsOf = [];
     for (const s in plan.lotsHad || {}) if (+s < at) delete plan.lotsHad[s];
-    const window = [c.day, c.day - c.sday + SEASON_DAYS - 1];
-    for (const k of plan.routines) {
-      if (Routines.VILLAGE_ROUTINES[k].together) continue;
-      const D = Math.ceil(hoursLeft(st, v, k, a) / OUTER.hours - 1e-9);
-      if (D > 0) {
-        plan.lotsOf.push(k);
-        layLots(st, v, a, k, D, window, false);
-      }
-    }
   }
   // At a village's review: a routine whose work is done (no hours of its tasks left) has its lots' days left released by the alderman,
   // and those of its households on duty today go home (design.md, Lots).

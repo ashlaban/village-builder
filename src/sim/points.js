@@ -129,19 +129,6 @@ VB['sim/points'] = (() => {
         if (o.terms.carry && Ob.left(o) > 1e-9 && o.due - st.t <= o.terms.notice * DAY)
           out.push({ point: 'lapse', levy: o.id, left: Ob.left(o), deadline: o.due });
       }
-      // a work day to call (VB-1768): the alderman's, OUTER.notice days before the custom's day, when his review calls it by rule
-      const call =
-        party.kind === 'village' && plan && plan.routines.includes('workdays')
-          ? Routines.nextCall(st, st.villages[party.id])
-          : null;
-      if (call)
-        out.push({
-          point: 'workday',
-          body: party,
-          day: call.day,
-          what: call.what,
-          deadline: Math.max(st.t, call.at * DAY),
-        });
     }
   }
   const unplannedHead = (st, id) => VB['sim/records'].unplanned(st, id);
@@ -170,8 +157,15 @@ VB['sim/points'] = (() => {
       hh = hid === null || hid === undefined ? null : st.households[hid];
     if (hh && hh.holder === id) headPoints(st, hid, out);
     for (const v of st.villages)
-      if (agentOf(st, v.id) === id)
-        out.push({ point: 'year', body: { kind: 'village', id: v.id }, deadline: meetingAfter(st.t) });
+      if (agentOf(st, v.id) === id) {
+        const body = { kind: 'village', id: v.id },
+          plan = st.plans && st.plans.villages.get(v.id);
+        out.push({ point: 'year', body, deadline: meetingAfter(st.t) });
+        // a work day to call (VB-1768): OUTER.notice days before the custom's day, when his review calls it by rule
+        const call = plan && plan.routines.includes('workdays') ? Routines.nextCall(st, v) : null;
+        if (call)
+          out.push({ point: 'workday', body, day: call.day, what: call.what, deadline: Math.max(st.t, call.at * DAY) });
+      }
     const pp = pawnPlan(st, id),
       plan = hh && !hh.dissolved && st.plans ? st.plans.households.get(hid) : null;
     if (pp && plan) {

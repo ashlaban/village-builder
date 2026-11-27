@@ -149,7 +149,7 @@ VB['sim/workdays'] = (() => {
     const share = Math.min(WORKDAY.hours, total / Math.max(1, adults)),
       done = rec.what === 'fence' ? worn(v).length === 0 : rec.cleared,
       lots = new Map();
-    for (const o of Ob.due(st, VILLAGE(v), 'creditor', 'days'))
+    for (const o of Ob.due(st, { kind: 'village', id: v.id }, 'creditor', 'days'))
       if (o.source === 'routine' && o.terms.names === 'together' && o.window && o.window[0] === c.day)
         lots.set(o.debtor.id, o);
     const came = [],
@@ -165,16 +165,16 @@ VB['sim/workdays'] = (() => {
       if (!o) continue;
       const left = Ob.left(o);
       if (!any && !done && x.hh.holder !== null && st.pawns[x.hh.holder].alive) {
-        if (
-          Levies.missedDay(
-            st,
+        if (Ob.isLive(o)) {
+          // its breach, booked by sim/levies (missedDay)
+          emit(st, 'workdayMissed', {
             o,
-            c.day,
-            `the household stayed away from the work day ${TASK[rec.what]}`,
-            Math.ceil(left - 1e-9),
-          )
-        )
+            day: c.day,
+            why: `the household stayed away from the work day ${TASK[rec.what]}`,
+            n: Math.ceil(left - 1e-9),
+          });
           away.push(x.hh);
+        }
       } else if (left > 1e-9 && agent !== null && !unplanned(st, agent))
         issue(st, { actor: agent, verb: 'release', target: o.id, args: { days: left }, source: 'planner' });
     }
