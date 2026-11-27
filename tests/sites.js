@@ -92,5 +92,20 @@ console.log(`  moved on day ${moved}; at most ${lodged} lodged; saves at ${Objec
   bad4 = checkState(t.st);
   check(!bad4.length, `invariants after the site is given up: ${bad4.slice(0, 3).join('; ')}`);
 }
+// 5. a member who comes to hold a household (here the leader, heir to its parents) leaves the party and stays at its holding: the next
+// adult leads, and the move takes no holder from its household (the gate's crash, populous 11: a head who moved left its house headless)
+{
+  const t = setUp(), { killPawn } = VB['sim/lifecycle'], home5 = t.st.households[t.m.household];
+  for (const id of [home5.holder, Sim.spouseOf(t.st, home5.holder)]) if (id !== null) killPawn(t.st, id, 'killed');
+  const heir = home5.holder;
+  check(t.s.party.all.includes(heir) && Sim.isHolder(t.st, heir), `a member of the party is heir to the home (${heir})`);
+  Sim.advance(t.st, 24);
+  const s5 = t.st.sites[0];
+  check(s5 && !s5.party.all.includes(heir) && s5.leader !== heir, `the heir leaves the party (${s5 && s5.party.all})`);
+  for (let d = 0; d < 2 * Sim.YEAR_DAYS && t.st.sites.length; d++) Sim.advance(t.st, 24);
+  check(home5.holder === heir && t.st.pawns[heir].household === home5.id, 'the heir stays the head of its household, living there');
+  const bad5 = checkState(t.st);
+  check(!bad5.length, `invariants after the heir stays: ${bad5.slice(0, 3).join('; ')}`);
+}
 if (failed) process.exit(1);
 console.log('sites ok: staked at the round, built from home, founded at the move');

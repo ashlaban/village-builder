@@ -4,7 +4,7 @@
 VB['sim/sites'] = (() => {
   const { on } = VB['sim/events'];
   const { issue } = VB['sim/commands'];
-  const { log, fullName } = VB['sim/records'];
+  const { log, fullName, isHolder, spouseOf, childrenOf } = VB['sim/records'];
   const { ECON, BUILD } = VB['sim/rules'];
   const CL = VB['sim/claims'];
   const { keptDone } = VB['sim/progress'];
@@ -137,7 +137,7 @@ VB['sim/sites'] = (() => {
   function siteWork(st, holder, at, c, post) {
     if (!st.sites || !st.sites.length) return;
     for (const s of [...st.sites]) {
-      if (!st.pawns[s.leader].alive && !follow(st, s)) continue;
+      if (!prune(st, s)) continue;
       const owner = ownerOf(st, s);
       if (!owner || s.stage === 'roofed') continue;
       if (s.stage === 'trail') {
@@ -217,7 +217,7 @@ VB['sim/sites'] = (() => {
   // The move is tried (the verb leave, its check the provisions): when the roof's job ends, and on the leader's household's planning day.
   // Short of it, the log says why once a season.
   function tryMove(st, s) {
-    if (!roofed(s) || !st.pawns[s.leader].alive) return;
+    if (!roofed(s) || !prune(st, s)) return;
     const r = issue(st, { actor: s.leader, verb: 'leave', target: s.id, source: 'pawn' });
     if (r === true || typeof r !== 'string') return;
     const season = Math.floor(st.t / (VB['sim/rules'].DAY * VB['sim/rules'].SEASON_DAYS));
@@ -237,10 +237,30 @@ VB['sim/sites'] = (() => {
         return;
       }
   });
-  // The leader of site s has died: the party's next adult living leads, the stake passing to it; with none, the site is given up.
+  // Whether pawn id stays in a site's party: alive, holding no household, nor married to one who holds one (a member who has taken a
+  // farm since the stake, or married into one, stays there; VB-787's gate, populous 11: a holder who left with a party left its household
+  // without its head).
+  const stays = (st, id) => {
+    if (!st.pawns[id].alive || isHolder(st, id)) return false;
+    const sp = spouseOf(st, id);
+    return sp === null || !isHolder(st, sp);
+  };
+  // Site s's party without those who no longer stay, and their children under 18 with them; its leader gone, the next adult leads
+  // (follow). Whether the site goes on.
+  function prune(st, s) {
+    if (s.party.all.every((id) => stays(st, id))) return true;
+    const gone = new Set(s.party.all.filter((id) => !stays(st, id)));
+    for (const id of [...gone]) for (const c of childrenOf(st, id)) if (st.pawns[c].age < 18) gone.add(c);
+    s.party.followers = s.party.followers.filter((id) => !gone.has(id));
+    const leaderGone = gone.has(s.leader);
+    s.party.all = s.party.all.filter((id) => !gone.has(id) || (leaderGone && id === s.leader));
+    IX.delete(st);
+    return !leaderGone || follow(st, s);
+  }
+  // The leader of site s has died, or no longer stays: the party's next adult living leads, the stake passing to it; with none, the site is given up.
   function follow(st, s) {
-    s.party.all = s.party.all.filter((id) => st.pawns[id].alive);
-    s.party.followers = s.party.followers.filter((id) => st.pawns[id].alive);
+    s.party.all = s.party.all.filter((id) => id !== s.leader && stays(st, id));
+    s.party.followers = s.party.followers.filter((id) => stays(st, id));
     const next = s.party.all.find((id) => st.pawns[id].age >= 18 && st.pawns[id].household !== null);
     const old = leaderClaim(s);
     if (next === undefined) {
