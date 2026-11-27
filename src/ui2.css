@@ -292,6 +292,7 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2 .u2-chip.go { background: var(--red); color: #fff7ec; justify-self: start; }
 .u2 .u2-chip svg, .u2-legend svg { width: 16px; height: 16px; vertical-align: -3px; display: inline-block; }
 .u2-call.scroll { overflow-y: auto; overscroll-behavior: contain; opacity: 0.999; } .u2-call.scroll::after { display: none; }
+.u2-call.held::after { display: none; }
 /* the stores: a bar's key on its tap; what no task of the plan covers, under its bar */
 .u2-store[data-hud] { cursor: pointer; } .u2-store .u2-legend { margin-top: 4px; }
 .u2-left { list-style: none; margin: -2px 0 4px; padding: 0 0 0 10px; display: grid; gap: 6px; font-size: 14px; border-left: 3px dashed var(--soft); }
@@ -321,6 +322,7 @@ p.u2-pinfo { display: block; }
 .u2-ychip { display: inline-flex; align-items: center; gap: 3px; } .u2-ychip svg { width: 22px; height: 22px; } .u2-ychip b { font: 800 17px/1 var(--body); font-variant-numeric: tabular-nums; }
 .u2-ychip .gap { display: grid; place-items: center; width: 26px; height: 26px; border: 1.5px dashed currentColor; border-radius: 6px; } .u2-ychip .gap svg { width: 18px; height: 18px; }
 .u2-ywords { padding: 0 8px 4px; font-size: 14px; }
+.u2-ychip small { font: 700 11px/1 var(--body); opacity: 0.8; align-self: flex-end; margin-bottom: 3px; }
 .u2 .u2-ygo { display: inline-flex; align-items: center; gap: 3px; min-height: 36px; padding: 0 10px; border: var(--line); border-radius: 999px; background: #fff7ec; color: #20170a; font: inherit; cursor: pointer; }
 .u2 .u2-ygo svg { width: 20px; height: 20px; } .u2 .u2-ygo span { margin-left: 2px; }
 .u2-shead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .u2-shead > svg { width: 26px; height: 26px; flex: none; }
@@ -334,3 +336,7 @@ p.u2-pinfo { display: block; }
 .u2 div.u2-build:hover { background: var(--paper2); }
 .u2-build .u2-facts { align-items: center; }
 .u2-build > span { min-width: 0; }
+
+/* a job's recipe (Kim, 27 Nov): the place framed as a tile, the arrow between what it takes and what it gives */
+.u2-fact.recipe { gap: 1px; } .u2 .recipe .u2-rat { display: inline-grid; place-items: center; border: 1.5px solid currentColor; border-radius: 5px; padding: 0 1px; margin-right: 3px; }
+.u2 .recipe .u2-rat svg { width: 16px; height: 16px; } .u2 .recipe .u2-rto svg { width: 14px; height: 14px; opacity: 0.7; }
