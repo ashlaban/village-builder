@@ -69,15 +69,15 @@ const round = (st) => roll(st, () => Sim.movingRound(st));
   // only a pawn with an answer still to give answers, once, and only an open offer (VB-690: the verb is any pawn's)
   const none = st.living.find((id) => !o.answers.some((a) => a.by === id));
   assert.ok(/no answer to give/.test(Sim.command(st, { actor: none, verb: 'answer', target: o.id, args: { yes: true }, source: 'player' })));
-  assert.ok(/no open offer/.test(Sim.answer(st, st.offerSeq, true)));
-  assert.ok(/cannot answer/.test(Sim.answer(st, o.id, 'yes')));
+  assert.ok(/no open offer/.test(Sim.answer(st, st.player.pawn, st.offerSeq, true)));
+  assert.ok(/cannot answer/.test(Sim.answer(st, st.player.pawn, o.id, 'yes')));
 }
 
 // 3. Yes is his answer; the others give theirs at the round, which marries them in the offer's home, and the handover follows as it would
 // have, once the played heir says yes to it.
 {
   const { st, o } = offered();
-  assert.strictEqual(Sim.answer(st, o.id, true), true);
+  assert.strictEqual(Sim.answer(st, st.player.pawn, o.id, true), true);
   assert.ok(st.offers.includes(o) && R.spouseOf(st, man) === null, 'the others answer at the round');
   round(st);
   assert.strictEqual(R.spouseOf(st, man), woman);
@@ -86,7 +86,7 @@ const round = (st) => roll(st, () => Sim.movingRound(st));
   const h = st.offers.find((x) => x.basis === 'handover');
   assert.ok(h && h.to === man && st.offers.length === 1, `the handover asks the played heir: ${JSON.stringify(st.offers)}`);
   sound(st, 'the handover offered');
-  assert.strictEqual(Sim.answer(st, h.id, true), true);
+  assert.strictEqual(Sim.answer(st, st.player.pawn, h.id, true), true);
   assert.strictEqual(st.households[home].holder, plain.st.households[home].holder, 'the farm passes to him as at the round');
   assert.deepStrictEqual(st.offers, []);
   sound(st, 'an offer accepted');
@@ -96,7 +96,7 @@ const round = (st) => roll(st, () => Sim.movingRound(st));
 // his honour feels it (VB-520).
 {
   const { st, o } = offered(), was = opinionOf(st, head, man);
-  assert.strictEqual(Sim.answer(st, o.id, false), true);
+  assert.strictEqual(Sim.answer(st, st.player.pawn, o.id, false), true);
   assert.strictEqual(R.spouseOf(st, man), null); assert.strictEqual(R.spouseOf(st, woman), null);
   const ev = told(st, 0, 'matchRefused');
   assert.ok(ev.length === 1 && ev[0].pawn === man && ev[0].other === woman && ev[0].by === man && ev[0].text.startsWith(Sim.fullName(st.pawns[man])),
@@ -107,7 +107,7 @@ const round = (st) => roll(st, () => Sim.movingRound(st));
   assert.ok(Math.abs(opinionOf(st, head, man) - (was - fall)) < 1e-9, `the head's opinion falls by 0.2 times his honour's (${fall}; ${was} to ${opinionOf(st, head, man)})`);
   assert.strictEqual(st.households[home].holder, head, 'no marriage, no handover');
   assert.ok(!st.offers.includes(o));
-  assert.ok(/no open offer/.test(Sim.answer(st, o.id, true)), 'a closed offer takes no answer');
+  assert.ok(/no open offer/.test(Sim.answer(st, st.player.pawn, o.id, true)), 'a closed offer takes no answer');
   sound(st, 'an offer refused');
 }
 
@@ -131,7 +131,7 @@ const round = (st) => roll(st, () => Sim.movingRound(st));
   const { st } = scene(play(head), false), o = st.offers.find((x) => x.basis === 'match' && x.gives.man === man && x.wants.woman === woman);
   assert.ok(o && o.answers.some((a) => a.key === 'manSide' && a.by === head && a.yes === null), 'the son\'s match waits for the head');
   const was = opinionOf(st, head, man);
-  assert.strictEqual(Sim.answer(st, o.id, false), true);
+  assert.strictEqual(Sim.answer(st, st.player.pawn, o.id, false), true);
   assert.strictEqual(opinionOf(st, head, man), was, 'refusing as a spokesman is remembered by no one');
   assert.strictEqual(R.spouseOf(st, man), null);
 }

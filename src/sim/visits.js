@@ -192,19 +192,18 @@ VB['sim/visits'] = (() => {
     if (hands.length < 1) return `${fullName(h)} cannot spare ${fullName(q)}: no other hand would stay at home`;
     return visitWhy(st, id, v);
   }
-  // The played pawn plans a winter's visit (VB-292; design.md, Between villages: The player's journey), for itself or, where it speaks
+  // Pawn `pawn` plans a winter's visit (VB-292, by the acting pawn VB-1846; design.md, Between villages), for itself or, where it speaks
   // for an unmarried son or daughter of its house (sim/records spokesmanOf), for that one: the visit is the visitor's own act, by the
   // verb `visit`, whose check holds for any pawn; at once, not queued (a plan takes no time); through Sim.command's door, recorded for a
   // replay (VB-1757). True, or why not.
-  function orderVisit(st, who, v) {
-    const pl = st.player,
-      q = st.pawns[who];
-    if (!pl) return 'no pawn is played';
+  function orderVisit(st, pawn, who, v) {
+    const q = st.pawns[who];
+    if (!st.pawns[pawn]) return `there is no pawn ${pawn}`;
     if (!q) return `there is no pawn ${who}`;
-    if (who !== pl.pawn && spokesmanOf(st, who) !== pl.pawn)
-      return `${fullName(st.pawns[pl.pawn])} does not speak for ${fullName(q)}`;
-    if (who !== pl.pawn)
-      return command(st, { actor: pl.pawn, verb: 'sendVisit', target: who, args: { village: v }, source: 'player' });
+    if (who !== pawn && spokesmanOf(st, who) !== pawn)
+      return `${fullName(st.pawns[pawn])} does not speak for ${fullName(q)}`;
+    if (who !== pawn)
+      return command(st, { actor: pawn, verb: 'sendVisit', target: who, args: { village: v }, source: 'player' });
     return command(st, { actor: who, verb: 'visit', target: v, source: 'player' });
   }
   // Daily at 6:00: the visits due, from the head of the queue (Rules for cost, 4). A plan is dropped where its man has died, married,

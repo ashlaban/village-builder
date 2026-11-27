@@ -218,7 +218,7 @@ const of = (list, point, body) =>
   }
   const saved = JSON.parse(JSON.stringify(Sim.save(s))),
     from = (s.commanded || []).length;
-  assert.strictEqual(Sim.orderVisit(s, man, 2), true, 'a visit to the third village ordered');
+  assert.strictEqual(Sim.orderVisit(s, man, man, 2), true, 'a visit to the third village ordered');
   Sim.advance(s, 10);
   const entries = (s.commanded || []).slice(from);
   assert.deepStrictEqual(entries.map((e) => e.cmd.verb), ['visit'], 'the order recorded');
