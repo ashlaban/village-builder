@@ -655,7 +655,7 @@ VB['sim/day'] = (() => {
   // tasks go to the pool.
   on('fellIll', (st, d) => {
     const a = st.agents[d.pawn]; // none for a pawn made bare in a test
-    if (a && a.job) issue(st, { actor: d.pawn, verb: 'goHome', source: 'planner' });
+    if (a && a.job) issue(st, { actor: d.pawn, verb: 'goHome', args: { urgent: true }, source: 'planner' }); // cannot walk on: load put down (VB-1893)
     lostHolder(st, d.pawn);
   });
   // The idle pawns in bed (VB-1758; design.md section 7, Plans at four scales: an ill pawn cannot walk on): one ill is given no task, no look
@@ -911,7 +911,8 @@ VB['sim/day'] = (() => {
   // call({member, key}) (VB-1779): the member is called to task `key` now, from work, from the road home or from idling, as the head's
   // call (design.md section 7, The head calls): a work command the head opened. Past its levy left a demand (above).
   // call({member}): the member is called off: its list is emptied and it is off (plan.day.off) until the day is next allotted, and it lets its
-  // task go and walks home (the verb goHome: a load in hand is put down where it stands, sim/agents release). The cost, its walk home and
+  // task go and walks home (the verb goHome: a load in hand is brought in first, or on an urgent call
+  // (args.urgent) put down where it stands, VB-1893). The cost, its walk home and
   // the load it leaves, is the timetable's callCost (sim/timetable), named before the call. Refused for one on the road or away.
   register('call', {
     check: (st, c) => {
@@ -946,7 +947,8 @@ VB['sim/day'] = (() => {
       day.off = (day.off || []).filter((x) => x !== id).concat(id);
       edited(st, day, c);
       const ag = st.agents[id];
-      if (ag.job || !ag.inside) issue(st, { actor: id, verb: 'goHome', source: c.source });
+      if (ag.job || !ag.inside)
+        issue(st, { actor: id, verb: 'goHome', args: c.args.urgent ? { urgent: true } : undefined, source: c.source });
     },
   });
   // ---- the member's take (VB-1779; design.md section 7, The levy and own hours: Demand and take, The member's judgement) ----

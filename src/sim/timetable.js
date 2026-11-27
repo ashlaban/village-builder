@@ -142,9 +142,15 @@ VB['sim/timetable'] = (() => {
       house = st.farmsteads[hh.farmstead].house,
       j = a.job,
       left = j && attentionOf(j) === 'full' ? Estimate.estimate(st, who, j) : null;
+    const walk = a.inside ? 0 : walkHours(st, tileOf(st, id), house),
+      load = a.load > 0 ? a.load : 0;
     return {
-      walk: a.inside ? 0 : walkHours(st, tileOf(st, id), house),
-      load: a.load > 0 && a.load > 0 ? a.load : 0,
+      walk,
+      load,
+      // a call that is not urgent brings the load in first: about when the hand is in (hours; the walk to the store is the walk home,
+      // by the head's estimate); an urgent one sets it down where it stands and the walk out and back to fetch it is the cost (VB-1893)
+      bring: load > 0 ? walk : 0,
+      fetch: load > 0 ? 2 * walk : 0,
       task: j ? j.key : null,
       left: left && { lo: left.lo, mid: left.mid, hi: left.hi },
     };

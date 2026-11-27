@@ -176,6 +176,7 @@ VB['sim/agents'] = (() => {
       a.job = null;
     }
     delete a.errand;
+    delete a.sentHome;
     unbind(a);
     if (left) rerate(st, left); // a hand gone: the end is told again; the goal stays posted while it is wanted (VB-1812)
     a.basis = null;
@@ -366,7 +367,7 @@ VB['sim/agents'] = (() => {
   // The hours a pawn may work now: the working day, or past it a task lived by (VB-1547) or the player's command, and never a day owed
   // already given (VB-1813: one rule for the day's end and the day given).
   const mayWork = (st, a, j) => {
-    if (dayGiven(st, a)) return false;
+    if (dayGiven(st, a) || a.sentHome) return false;
     const h = cal(st.t).hour;
     return (h >= WORK[0] && h < WORK[1]) || carriedOn(st, j) || commanded(st, a.id);
   };
@@ -375,7 +376,7 @@ VB['sim/agents'] = (() => {
       g = Doing.goalOf(st, a),
       s = Doing.ask(st, a, g),
       h = cal(st.t).hour,
-      given = dayGiven(st, a);
+      given = dayGiven(st, a) || !!a.sentHome; // sent home with its load in hand: the delivery done, it goes in (VB-1893)
     if (s === DONE) {
       // the goal met: its other hands stop, and it is taken down; the pawn looks for work
       freeHands(st, j, a.id);
@@ -385,7 +386,8 @@ VB['sim/agents'] = (() => {
       unbind(a);
       a.inside = false;
       // past the working day, free, it goes in, as one whose load came in does (arrived; VB-1812: a goal met at its work leg)
-      if ((h >= WORK[1] || h < WORK[0]) && !a.path && a.away === undefined && st.pawns[a.id].alive) goHome(st, a);
+      if ((given || h >= WORK[1] || h < WORK[0]) && !a.path && a.away === undefined && st.pawns[a.id].alive)
+        goHome(st, a);
       else if (!a.path) waitLeg(st, a);
       return;
     }
@@ -732,6 +734,13 @@ VB['sim/agents'] = (() => {
       // the job in hand is let go first, whoever sends it home (the queue, the day's end, a lent hand's hours given, its own time):
       // a hand on its way home works no task (VB-1565)
       const a = st.agents[c.actor];
+      // except a load in hand on a call that is not urgent (design.md section 7, a load in hand; VB-1893): it is brought to its owner's
+      // store first, by the rule, and the pawn goes in when it is down (a.sentHome, read by onward). Urgent, or a pawn that cannot walk
+      // on (its caller says so, urgent): the load is put down where it stands, as release does.
+      if (a.job && a.load > 0 && !(c.args && c.args.urgent) && !a.inside) {
+        a.sentHome = true;
+        return { home: 'after the load' };
+      }
       if (a.job) release(st, a);
       goHome(st, a);
       return { home: true };
