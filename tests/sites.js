@@ -40,6 +40,8 @@ const playsOn = (stage) => {
   for (const k of ['sites', 'households', 'away', 'booths', 'villages']) check(canon(back[k]) === canon(run[k]), `a save at ${stage}: ${k} as the unbroken run`);
 };
 let moved = null, lodged = 0;
+saves[s.stage] = -1; // the save at the stake, before its trail is blazed
+playsOn(s.stage);
 for (let d = 0; d < 2 * Sim.YEAR_DAYS && moved === null; d++) {
   Sim.advance(st, 24);
   lodged = Math.max(lodged, st.away.filter((a) => a.why === 'site').length);
@@ -70,6 +72,25 @@ console.log(`  moved on day ${moved}; at most ${lodged} lodged; saves at ${Objec
     away += t.st.away.filter((a) => a.why === 'site').length;
   }
   check(away === 0, `nobody lodges from a home with nothing to spare (${away})`);
+}
+// 4. a leader who dies is followed by the party's next adult, the stake passing to it; with nobody left, the site is given up
+{
+  const t = setUp(), { killPawn } = VB['sim/lifecycle'];
+  killPawn(t.st, t.m.id, 'killed');
+  Sim.advance(t.st, 24);
+  const s4 = t.st.sites[0];
+  check(s4 && s4.leader === t.sib.id && !s4.party.all.includes(t.m.id), `the sibling leads the site (${s4 && s4.leader})`);
+  check(told(t.st, 'siteLeader'), 'the new leader is told');
+  check(s4 && t.st.claims.get(s4.house).some((c) => c.by.type === 'pawn' && c.by.id === t.sib.id), "the stake is the new leader's");
+  let bad4 = checkState(t.st);
+  check(!bad4.length, `invariants after the leader's death: ${bad4.slice(0, 3).join('; ')}`);
+  killPawn(t.st, t.sib.id, 'killed');
+  Sim.advance(t.st, 24);
+  check(!t.st.sites.length && told(t.st, 'siteGivenUp'), 'with nobody left to lead, the site is given up');
+  const left = t.st.claims.get(s4.house) || [];
+  check(!left.some((c) => c.by.type === 'pawn'), 'its stake is dropped');
+  bad4 = checkState(t.st);
+  check(!bad4.length, `invariants after the site is given up: ${bad4.slice(0, 3).join('; ')}`);
 }
 if (failed) process.exit(1);
 console.log('sites ok: staked at the round, built from home, founded at the move');

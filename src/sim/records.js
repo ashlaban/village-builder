@@ -56,6 +56,12 @@ VB['sim/records'] = (() => {
     moved: 0,
     joined: 0,
     left: 0,
+    siteStaked: 0, // a site of a new farm staked at the round, its trail blazed, its cottage roofed (sim/sites, VB-787)
+    siteTrail: 0,
+    siteRoofed: 0,
+    siteWaits: 0, // the move from a roofed site waits, with why, once a season
+    siteLeader: 0, // the party's next adult leads the site after its leader's death
+    siteGivenUp: 0,
     stayed: 0,
     settled: 0,
     noLand: 0,

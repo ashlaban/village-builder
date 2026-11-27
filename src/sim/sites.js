@@ -2,7 +2,7 @@
 // house tile and first field cleared and its cottage built by the party's members from their old households, until the move founds the
 // household (sim/settle's verb leave); the site's jobs, their ends, the leader's stake on its tiles, and the leader who follows a dead one
 VB['sim/sites'] = (() => {
-  const { emit, on } = VB['sim/events'];
+  const { on } = VB['sim/events'];
   const { issue } = VB['sim/commands'];
   const { log, fullName } = VB['sim/records'];
   const { ECON, BUILD } = VB['sim/rules'];
@@ -89,7 +89,6 @@ VB['sim/sites'] = (() => {
     if (issue(st, { actor: leader, verb: 'blaze', args: { from: home, to: s.house }, source: 'pawn' }) === true)
       s.stage = 'trail';
     st.villageDirty.add(s.from);
-    emit(st, 'siteStaked', s);
     return s;
   }
   // The booth's tile: the nearest open tile beside the house that is not the field, nobody's, unused. Null where there is none.
@@ -149,7 +148,6 @@ VB['sim/sites'] = (() => {
           pawn: s.leader,
           village: s.from,
         });
-        emit(st, 'siteTrail', s);
       }
       const base = { siteId: s.id, party: s.party.all };
       for (const tr of s.plot.places)
@@ -192,7 +190,6 @@ VB['sim/sites'] = (() => {
         pawn: s.leader,
         village: s.from,
       });
-      emit(st, 'siteRoofed', s);
       tryMove(st, s);
       return;
     }
