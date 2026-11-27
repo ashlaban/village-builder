@@ -398,7 +398,7 @@ VB['sim/day'] = (() => {
     if (a.taking > st.tick) return; // keeping hours of its levy for itself (breach)
     if (dj && a.job !== dj && isOpen(st, dj) && c.hour <= WORK[1]) {
       // the deadline calls: from work, from the road to it, or from idling (waiting, or out for company; not at an occasion)
-      if (busy ? !a.calledTo : !a.job && unbound(a) && a.occasion === null) issue(st, calling(a.id, dj.key, false));
+      if (busy ? !a.calledTo : !a.job && unbound(a) && a.occasion === null) issue(st, calling(st, a.id, dj.key, false));
       return;
     }
     if (!top || !busy || !atWork(a) || a.job === top[1] || !isOpen(st, top[1])) return;
@@ -410,7 +410,11 @@ VB['sim/day'] = (() => {
       issue(st, workCommand(a.id, top[1].key, 'planner'));
   }
   // The head's call of member id to task `key`: the work command, marked a call (urgent or not) for the load in hand (sim/agents work).
-  const calling = (id, key, urgent) => ({ ...workCommand(id, key, 'planner'), args: { call: true, urgent: !!urgent } });
+  // Not urgent, the member aims to be at it within MATCH.day.within hours (args.by).
+  const calling = (st, id, key, urgent) => ({
+    ...workCommand(id, key, 'planner'),
+    args: { call: true, urgent: !!urgent, by: st.t + MATCH.day.within },
+  });
   // ---- the slot (VB-1558; design.md section 7, The day's work: "a task the due-queue opens in the day is weighed alone") ----
   // Task j, newly due for household hh, put into the day's lists as they stand: each member allotted is weighed for it alone, and the pass
   // of the allotment (man) gives it hands by its fit among the tasks already there and within the members' hours left (plan.day.free); a
@@ -957,7 +961,7 @@ VB['sim/day'] = (() => {
         const past = c.args.demand === true ? callPast(st, c) : 0;
         if (past > 1e-9) return demand(st, c, c.args.member, past);
         edited(st, planOf(st, 'household', c.target).day, c);
-        return issue(st, calling(c.args.member, c.args.key, c.args.urgent));
+        return issue(st, calling(st, c.args.member, c.args.key, c.args.urgent));
       }
       const plan = planOf(st, 'household', c.target),
         day = plan.day,

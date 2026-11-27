@@ -6,7 +6,6 @@ VB['sim/agents'] = (() => {
   const { living, commanded } = VB['sim/records'];
   const { isOpen } = VB['sim/kinds'];
   const { register, issue } = VB['sim/commands'];
-  const { MATCH } = VB['sim/roles'];
   const { cal, DAY, TICKS, WORK } = VB['sim/rules'];
   const { eligible } = VB['sim/eligibility'];
   const Carts = VB['sim/carts'];
@@ -711,7 +710,7 @@ VB['sim/agents'] = (() => {
         // args.by. An urgent call, or one to a hand with nothing in hand, sends it now: a load is set down where it stands (release).
         // @state agent.calledTo (VB-1926): absent, or {key, by} of the head's call that waits for the load in hand to be brought in: the
         //   task called and the game time the hand aims to be at it. Written only here; cleared by release and when answered (onward).
-        a.calledTo = { key: j.key, by: c.args.by ?? st.t + MATCH.day.within };
+        a.calledTo = { key: j.key, by: Number.isFinite(c.args.by) ? c.args.by : st.t };
         return { slot: 'call', key: j.key };
       } else {
         release(st, a);
@@ -764,6 +763,7 @@ VB['sim/agents'] = (() => {
       // on (its caller says so, urgent): the load is put down where it stands, as release does.
       if (a.job && a.load > 0 && !(c.args && c.args.urgent) && !a.inside) {
         a.sentHome = true;
+        delete a.calledTo; // a call home after a call to a task stands in its place (VB-1926 review, F1)
         return { home: 'after the load' };
       }
       if (a.job) release(st, a);

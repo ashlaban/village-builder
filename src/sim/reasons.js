@@ -123,7 +123,7 @@ VB['sim/reasons'] = (() => {
       return {
         by: 'call',
         head,
-        why: `brings its load in first, then ${to ? KINDS[to.kind].label.toLowerCase() : 'the task called'}, by about ${by}`,
+        why: `brings its load in first, then ${to ? KINDS[to.kind].label.toLowerCase() : 'the task called'}, aiming to be there by ${by}`,
       };
     }
     if (j) {

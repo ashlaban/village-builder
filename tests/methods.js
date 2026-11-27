@@ -1009,6 +1009,8 @@ console.log(
     }
     assert(a.job === to && VB['sim/pose'].atWork(a), `at the task called (urgent ${urgent})`);
     came[urgent] = st.t - t1;
+    if (!urgent)
+      assert(came[urgent] <= VB['sim/roles'].MATCH.day.within + 0.25, `there within about the hour: ${came[urgent]} h`);
     if (!urgent) {
       assert(home !== null && home <= t1 + came[urgent], 'the load reached the store before the member came');
       assert(!(st.lying || []).some((l) => l.owner.id === hh.id && l.kind === 'wood'), 'nothing set down on the way');
@@ -1016,6 +1018,42 @@ console.log(
     assert.deepStrictEqual(checkState(st), [], 'invariants');
   }
   assert(came[true] < came[false], `urgent, it is there sooner (${came[true]} h, against ${came[false]} h)`);
+  // VB-1926 review, F1: a call home after a call to a task that waits for the load stands in its place: once the load is in the member
+  // goes in, and does not set out for the task called
+  {
+    const st = make(),
+      hh = st.households[0],
+      f = st.farmsteads[hh.farmstead],
+      forest = st.villages[f.village].wood[0];
+    while (cal(st.t).hour < WORK[0] + 1 || cal(st.t).hour > WORK[0] + 3) Sim.advance(st, 0.2);
+    const day = st.plans.households.get(hh.id).day,
+      a = members(st, hh).find((b) => !b.job && !b.path && b.id !== hh.holder && day.lists[b.id]);
+    setAt(st, a, forest);
+    Object.assign(a, { load: TRAVEL.load, carry: 'logs' });
+    const j = Jobs.post(st, `test:wood:h${hh.id}`, 'wood', title(hh), forest, {
+        farm: f,
+        chosen: false,
+        amount: 9 * P(st),
+      }),
+      fd = f.fields[0];
+    fd.stage = 'stubble';
+    const to = Jobs.post(st, `test:plow:h${hh.id}`, 'plow', title(hh), fd.tile, { field: fd, farm: f });
+    Agents.start(st, a, j);
+    Sim.advance(st, 0.1);
+    assert.strictEqual(
+      Sim.head(st, hh.holder, 'call', { member: a.id, key: to.key, demand: true }),
+      true,
+      'called to the task',
+    );
+    assert(a.calledTo, 'the load first');
+    assert.strictEqual(Sim.head(st, hh.holder, 'call', { member: a.id }), true, 'then called home');
+    for (let i = 0; i < 60 && !(a.inside && a.load === 0); i++) Sim.advance(st, 0.1);
+    assert(
+      a.inside && a.job !== to && !a.calledTo,
+      `called home, it goes in: job ${a.job && a.job.key}, inside ${a.inside}`,
+    );
+    assert.deepStrictEqual(checkState(st), [], 'invariants');
+  }
   console.log(
     'methods: the wood in a real state: the five rows, the felled pile, a load in hand, the stray pile, no fetch kind',
   );
