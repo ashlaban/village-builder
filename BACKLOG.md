@@ -48,7 +48,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1761](backlog/VB-1761.md)<a id="VB-1761"></a> | A pawn's hours booked in six parts at each leg's end, and the season's tally | plans | 2 | M | Each leg's hours fall to exactly one of owed, levied, demanded, given, kept and taken, which sum to the pawn's working hours (an invariant); demanded, taken and given are tallied by member on the household's plan and folded at the season's end; Sim.hours for past days. |
 | [VB-1808](backlog/VB-1808.md)<a id="VB-1808"></a> | A firewood goal keeps the timber a building counts on | - | 2 | S | VB-1775 review F3: one firewood task cuts all the timber home up to the season's goal, the timber a barn or cottage step counts on with it |
 | [VB-1815](backlog/VB-1815.md)<a id="VB-1815"></a> | A household's last load of sheaves cut on the road is posted again before the frost | - | 2 | S | the haul re-posted after its last carrier is cut |
-| [VB-1826](backlog/VB-1826.md)<a id="VB-1826"></a> | The season steps' hours left, by the head's estimate | plans | 2 | S | Season steps carry left (lo, mid, hi) by the head's estimate, for VB-1778 |
 | [VB-1836](backlog/VB-1836.md)<a id="VB-1836"></a> | The owner cache left on another farmstead's tiles in the played populous seed 7 run | - | 2 | S | checkState fails at year 2 of populous small seed 7 with household 0's head played: farmsteads[61] owner cache 63, expected 62 (pre-existing at 79c22dd7) |
 | [VB-1838](backlog/VB-1838.md)<a id="VB-1838"></a> | VB-1754's review rest: the head's view plain data again, and the twin test that compares nothing | plans | 2 | S | VB-1754's review (F2, F3): headView returns planOp and planFacade, functions, so structuredClone of it throws; tests/plan.js:560 compares control.plan of two runs, always undefined. |
 | [VB-1852](backlog/VB-1852.md)<a id="VB-1852"></a> | Repair: browser-saves' file round trip drifts after a load | - | 2 | S | the page's save of year 3 loaded runs on to a different state; failing at dd8a5cb9 already |
@@ -158,6 +157,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1843](backlog/VB-1843.md)<a id="VB-1843"></a> | Q12 measured: a scripted controller levelling five heads' loads against the default author | plans | 3 | M | The windows missed with five heads authoring their own plans, populous small seed 7, 2 years |
 | [VB-1846](backlog/VB-1846.md)<a id="VB-1846"></a> | Sim.answer and Sim.orderVisit keyed by pawn | plans | 3 | S | The last two facade calls that find their actor in st.player take the pawn, as the rest of the API by pawn does |
 | [VB-1848](backlog/VB-1848.md)<a id="VB-1848"></a> | Decision points: an allotment is a point only where the head has a choice | plans | 3 | S | The two allotments a day give 2.0 of a head's 2.69 points a head-day against Q13's 1.0 |
+| [VB-1867](backlog/VB-1867.md)<a id="VB-1867"></a> | Season steps' left for seed and made goods | - | 3 | S | Seed and made-good targets carry left |
+| [VB-1868](backlog/VB-1868.md)<a id="VB-1868"></a> | Routine steps' left from the tasks they open | - | 3 | S | Routine steps carry left from their tasks |
 
 </details>
 
