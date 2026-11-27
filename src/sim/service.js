@@ -8,7 +8,7 @@ VB['sim/service'] = (() => {
   const { refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { hoursBetween, withinDay, byLand } = VB['sim/villagehours'];
-  const { MARRIAGE, AGES, SHARES, YEAR, DAY } = VB['sim/rules'];
+  const { MARRIAGE, AGES, SHARES, YEAR, DAY, cal } = VB['sim/rules'];
   const Stores = VB['sim/stores'];
   const Obligations = VB['sim/obligations'];
   const { floorOf } = VB['sim/hunger'];
@@ -317,6 +317,12 @@ VB['sim/service'] = (() => {
   // it could not pay one (VB-637), nor does a lone holder's (takeServants) but where its farm is held in trust (VB-309: a rescue, as
   // takeIn is). One its master owes more than SERVICE.unpaid years' wages goes home (unpaidLeave), else asks for a place as one a head
   // refused does (`leavers`), whatever the hands at home.
+  // Whether household hh would take a servant at this year's moving round, a season of its year not fitting its labour budget (sim/levies
+  // fit, VB-1778: plan.fit's servant, the year of the round it wants one at).
+  const wantsServant = (st, hh) => {
+    const plan = st.plans && st.plans.households.get(hh.id);
+    return !!plan && !!plan.fit && plan.fit.servant === cal(st.t).year;
+  };
   const fieldsOf = (st, hh) => Math.max(1, farmOf(st, hh).fields.length);
   const handsPerField = (st, hh) => hands(st, hh) / fieldsOf(st, hh);
   const parentIn = (st, q, hh) =>
@@ -331,7 +337,7 @@ VB['sim/service'] = (() => {
           !taken.has(h.id) &&
           !trustOf(st, h.id) &&
           farmOf(st, h).fields.length > 0 &&
-          handsPerField(st, h) < SERVICE.short &&
+          (handsPerField(st, h) < SERVICE.short || wantsServant(st, h)) && // or a season short of hours (VB-1778)
           !belowFloor(st, h),
       );
     if (!short.length) return;

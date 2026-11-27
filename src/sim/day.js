@@ -27,7 +27,6 @@ VB['sim/day'] = (() => {
     { unplanned, fullName, living } = VB['sim/records'],
     Pastimes = VB['sim/pastimes'],
     { release } = VB['sim/agents'],
-    { FIELDS } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];
   // A kind whose work makes a graded good at a craft (VB-761: the hewing of a quern): the household's most skilled hand at the craft
   // takes it (sim/workmanship maker). Kinds are fixed at load: worked out once a kind, never saved.
@@ -88,7 +87,7 @@ VB['sim/day'] = (() => {
     if (asking && ctx.est.size) {
       const tasks = [];
       for (const [j, left] of ctx.est) tasks.push([j, left, (ctx.manned.get(j) || [0])[0]]);
-      const short = Hands.shortOf(st, tasks, c);
+      const short = Math.max(Hands.shortOf(st, tasks, c), Hands.plannedHelp(st, hh, c)); // and what its season's fit planned (VB-1778)
       if (short > 0) asking.push([hh.id, short]);
     }
     demandAtRisk(st, hh, w.H, w.pairs, ctx, c, plan);
@@ -141,7 +140,7 @@ VB['sim/day'] = (() => {
   }
   // ---- the head's demand (VB-1779; design.md section 7, The levy and own hours: The head's demand, Demand and take) ----
   // The work at risk the allotment left unmanned, [[task, work left unmanned, rations at risk]]: a field step whose window its hands given
-  // today cannot cover (sim/hands shortOf, by the head's estimate), its target's yield (FIELDS.expect of its crop's) times the share of
+  // today cannot cover (sim/hands shortOf, by the head's estimate), its target's yield (sim/estimate fieldYield) times the share of
   // its work unmanned; a task due today (`late`), a ration a living member for the share unmanned (the day's food it stands for).
   function atRisk(st, hh, ctx, c) {
     const out = [];
@@ -154,7 +153,7 @@ VB['sim/day'] = (() => {
       let R = 0;
       if (K.late) R = (hh.members.filter((id) => st.pawns[id].died === null).length * u) / left;
       else if (j.field && CROPS[j.field.crop] && Hands.shortOf(st, [[j, left, m[0]]], c) > 0)
-        R = (FIELDS.expect * CROPS[j.field.crop].yield * u) / left;
+        R = (Estimate.fieldYield(j.field.crop) * u) / left; // sim/estimate's one reckoning of a field's yield
       if (R > 0) out.push([j, u, R]);
     }
     return out;
