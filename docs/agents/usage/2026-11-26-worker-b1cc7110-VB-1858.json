@@ -1,0 +1,224 @@
+{
+ "session": "b1cc7110-8ca1-51ae-9fad-4465f8d0bd88",
+ "label": "worker",
+ "models": [
+  "claude-opus-5-5"
+ ],
+ "start": "2026-11-26T21:03:29.460Z",
+ "end": "2026-11-27T08:44:11.903Z",
+ "wallMin": 700.7,
+ "activeMin": 18.5,
+ "prompts": 3,
+ "calls": 48,
+ "subagentCalls": 0,
+ "reviewCalls": 1,
+ "tokens": {
+  "input": 91,
+  "cacheWrite": 150708,
+  "cacheRead": 5052666,
+  "output": 19224
+ },
+ "context": {
+  "first": 71276,
+  "peak": 145635,
+  "firstEdit": 86012,
+  "series": [
+   [
+    5,
+    80813
+   ],
+   [
+    10,
+    85236
+   ],
+   [
+    15,
+    89418
+   ],
+   [
+    20,
+    97819
+   ],
+   [
+    25,
+    110726
+   ],
+   [
+    30,
+    118796
+   ],
+   [
+    35,
+    128034
+   ],
+   [
+    40,
+    132821
+   ],
+   [
+    45,
+    141344
+   ],
+   [
+    48,
+    145635
+   ]
+  ]
+ },
+ "tools": {
+  "mcp__hearthbot__update_progress_checklist": {
+   "calls": 5,
+   "bytes": 75,
+   "seconds": 1.4
+  },
+  "Bash": {
+   "calls": 44,
+   "bytes": 112254,
+   "seconds": 360.5
+  },
+  "Write": {
+   "calls": 1,
+   "bytes": 77,
+   "seconds": 0.1
+  },
+  "mcp__hearthbot__post_message": {
+   "calls": 4,
+   "bytes": 536,
+   "seconds": 1.1
+  },
+  "mcp__hearthbot__no_reply_needed": {
+   "calls": 2,
+   "bytes": 58,
+   "seconds": 0.3
+  },
+  "Skill": {
+   "calls": 1,
+   "bytes": 21,
+   "seconds": 1.3
+  }
+ },
+ "largest": [
+  {
+   "tool": "Bash",
+   "what": "sed -n",
+   "calls": 6,
+   "bytes": 39102
+  },
+  {
+   "tool": "Bash",
+   "what": "git log",
+   "calls": 2,
+   "bytes": 14617
+  },
+  {
+   "tool": "Bash",
+   "what": "grep -n",
+   "calls": 5,
+   "bytes": 10074
+  },
+  {
+   "tool": "Bash",
+   "what": "git checkout",
+   "calls": 2,
+   "bytes": 8072
+  },
+  {
+   "tool": "Bash",
+   "what": "git status",
+   "calls": 1,
+   "bytes": 7407
+  },
+  {
+   "tool": "Bash",
+   "what": "head -c",
+   "calls": 1,
+   "bytes": 5150
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/backlog.js",
+   "calls": 1,
+   "bytes": 4181
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/doc.js",
+   "calls": 2,
+   "bytes": 3102
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/gate.js",
+   "calls": 2,
+   "bytes": 2862
+  },
+  {
+   "tool": "Bash",
+   "what": "node tools/brief.js",
+   "calls": 1,
+   "bytes": 2546
+  },
+  {
+   "tool": "Bash",
+   "what": "(node tools/gate.js",
+   "calls": 1,
+   "bytes": 2196
+  },
+  {
+   "tool": "Bash",
+   "what": "until grep",
+   "calls": 2,
+   "bytes": 2191
+  }
+ ],
+ "repeats": {
+  "reads": 1,
+  "readBytes": 31,
+  "commands": 0,
+  "commandBytes": 0,
+  "recent": 0
+ },
+ "tests": {
+  "runs": 6,
+  "failed": 0,
+  "streak": 0,
+  "current": 0
+ },
+ "compactions": 0,
+ "continuation": {
+  "continues": false,
+  "handoverBytes": 0,
+  "callsToEdit": 12,
+  "contextToEdit": 14736,
+  "reason": null
+ },
+ "continuations": {
+  "launched": 0,
+  "calls": 0
+ },
+ "weighted": 789863,
+ "task": "VB-1858",
+ "subagents": [],
+ "review": {
+  "task": "VB-1858",
+  "arm": "ineligible"
+ },
+ "summary": {
+  "weightedTotal": 789863,
+  "orchestratorShare": 1,
+  "bootMedian": null,
+  "readMedian": null,
+  "weightedPerDoneTask": null,
+  "perSize": {},
+  "firstPass": null,
+  "tasks": 0,
+  "review": {
+   "reviews": 0,
+   "weighted": 0,
+   "median": null,
+   "revisions": 0,
+   "revisionWeighted": 0,
+   "orchestratorCalls": 1
+  }
+ }
+}
