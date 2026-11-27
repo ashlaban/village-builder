@@ -121,6 +121,7 @@ const FAST = [
   ['node', 'tests/evening.js'], // VB-1547: a task lived by, begun, is finished past 18:00; the water fetched in the evening
   ['node', 'tests/water.js'], // VB-1582: a farm's source by the walk, marsh a last resort, the fetch walked and taken first, the starting wells
   ['node', 'tests/trips.js'], // VB-1586: the fetch grows with the household: trips by hand for six, a cart's barrel for eighteen; part-dry by the people uncovered
+  ['node', 'tests/entrances.js'], // VB-1951: a house's gate: set toward the green, a route in and out by it alone, its point walked, kept on a load
   ['node', 'tests/cartout.js'], // VB-1810: the cart a load goes home on taken at the house and walked out at its pace; a miss for one wanted and none free
   ['node', 'tests/facilities.js'], // VB-361: facilities founded by the verb, raised in stages from the owner's stores, mended on its planning day
   ['node', 'tests/wells.js'], // VB-1584: a well's cost by the depth; a household's well dug when it pays; the green by the water; village.well a tile

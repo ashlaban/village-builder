@@ -1,12 +1,12 @@
 // VB-1951: a house's gate (sim/entrances; Kim, 27 Nov 2026). On a drawn map (tests/lib/tiny.js): every generated house has a gate on a
-// side a route may cross, facing its village's green when no way is worn near; a route leaves and enters a house by its gate when going
-// round costs no more than ENTRY.off steps, and by the near side when it costs more (the gate is a strong preference, not a wall); a walk
-// that uses the gate passes its point; a gate opening on land no route crosses is missed by nobody; a loaded run keeps its gates.
+// side a route may cross, facing its village's green when no way is worn near; a route leaves and enters a house by its gate alone,
+// however far round (Kim, 27 Nov: a hard rule); a walk passes the gate's point; a gate opening on land no route crosses is missed by
+// nobody; a loaded run keeps its gates.
 const VB = require('../src/load.js'),
   Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const { faceGate, gatePoint } = VB['sim/entrances'];
-const { ENTRY, gateMiss, through } = VB['sim/walking'];
+const { gateMiss, through } = VB['sim/walking'];
 const { findRoute } = VB['sim/routes'];
 const { hexSteps } = VB['sim/hex'];
 let failed = 0;
@@ -38,17 +38,16 @@ const gateN = w.nb[h * 6 + 0];
 const byGate = ring.find((j) => j !== gateN && hexSteps(w, j, gateN) === 1);
 const p1 = findRoute(w, h, byGate);
 check(p1 && p1[1] === gateN, `a route one step round leaves by the gate (${p1 && p1.join(' ')})`);
-// to the tile behind the house, far round: by the near side
+// to the tile behind the house: by the gate all the same, out and back (Kim, 27 Nov: a hard rule)
 const opposite = w.nb[h * 6 + 3],
   behind = [0, 1, 2, 3, 4, 5]
     .map((d) => w.nb[opposite * 6 + d])
     .find((j) => j >= 0 && j !== h && hexSteps(w, j, h) === 2 && hexSteps(w, j, gateN) === 3);
-const p2 = behind !== undefined && findRoute(w, h, behind);
-check(
-  p2 && p2[1] !== gateN && gateMiss(w, h, p2[1]) === 1,
-  `a route far round leaves by the near side (${p2 && p2.join(' ')})`,
-);
-check(ENTRY.off > 0, 'missing the gate is chosen as longer');
+const p2 = behind !== undefined && findRoute(w, h, behind),
+  back = behind !== undefined && findRoute(w, behind, h);
+check(p2 && p2[1] === gateN, `a route to the tile behind the house leaves by the gate (${p2 && p2.join(' ')})`);
+check(back && back[back.length - 2] === gateN, `and the way back enters by it (${back && back.join(' ')})`);
+check(gateMiss(w, h, opposite) === 1, 'a step out by the back misses the gate');
 // a walk by the gate passes its point
 const g = gatePoint(w, h);
 check(
@@ -73,5 +72,5 @@ check(
 Sim.advance(st, VB['sim/rules'].DAY);
 if (failed) process.exit(1);
 console.log(
-  'entrances ok: gates set toward the green, kept on a load; a route goes round to the gate by up to ENTRY.off steps, else the near side',
+  'entrances ok: gates set toward the green, kept on a load; a route leaves and enters a house by its gate alone',
 );
