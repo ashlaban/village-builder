@@ -1370,6 +1370,65 @@ function tmHexes(w, H) {
   }
   if (H.edges !== false) for (const p of segs) tmWay(p, H.street || 7);
 }
+// Straight streets on the hex grid's lines (Kim, 27 November): each street is a run of tiles in a row or on a diagonal, drawn straight
+// through their middles and on to the edges at its ends; a quarter off the streets gets one straight way from its middle to the
+// neighbour's (its door, as a farm's). Then each quarter's buildings are placed along the ways through it, on both sides, never on them:
+// candidate feet on a grid in the hex, a building's footing (16 wide, 6 deep) clear of every way's band, nearest the way
+// first, none overlapping, up to the quarter's count.
+function tmStraight(w, S) {
+  const C = (c, r) => {
+    const i = r * w.COLS + c;
+    return [w.hx[i], w.hy[i]];
+  };
+  const ways = [];
+  for (const st0 of S.streets) {
+    const pts = st0.tiles.map(([c, r]) => C(c, r));
+    const ext = (a, b) => [a[0] + (a[0] - b[0]) * 0.5, a[1] + (a[1] - b[1]) * 0.5];
+    const line = [st0.open0 ? ext(pts[0], pts[1]) : pts[0], ...pts, st0.open1 ? ext(pts.at(-1), pts.at(-2)) : pts.at(-1)];
+    ways.push({ a: line[0], b: line.at(-1), w: st0.w || 9 });
+    tmWay(line, st0.w || 9);
+  }
+  for (const s of S.spurs || []) {
+    const a = C(...s.from),
+      b = C(...s.to);
+    ways.push({ a, b, w: 6 });
+    tmWay([a, b], 6);
+  }
+  const dSeg = (p, s) => {
+    const dx = s.b[0] - s.a[0],
+      dy = s.b[1] - s.a[1],
+      t = Math.max(0, Math.min(1, ((p[0] - s.a[0]) * dx + (p[1] - s.a[1]) * dy) / (dx * dx + dy * dy)));
+    return Math.hypot(p[0] - s.a[0] - t * dx, p[1] - s.a[1] - t * dy);
+  };
+  const out = [];
+  for (const q of S.quarters) {
+    const [cx, cy] = C(...q.at),
+      picks = [],
+      cand = [];
+    for (let y = -10; y <= 24; y += 3)
+      for (let x = -18; x <= 18; x += 3) {
+        const fx = cx + x,
+          fy = cy + y;
+        // inside the hex (pointy top, R 28), a little in from its edges
+        if (Math.abs(x) > 19 || Math.abs(x) * 0.5 + Math.abs(y) * 0.866 > 23) continue;
+        let clear = Infinity;
+        for (let sx = -7; sx <= 7; sx += 3.5)
+          for (let sy = -6; sy <= 0; sy += 3) // the foot and the ground before the door: a house may stand in front of a way, as seen from above
+            for (const wy of ways) clear = Math.min(clear, dSeg([fx + sx, fy + sy], wy) - wy.w / 2);
+        if (clear < 1.2) continue;
+        cand.push({ x: fx, y: fy, clear });
+      }
+    cand.sort((a, b) => a.clear - b.clear || a.y - b.y);
+    for (const c of cand) {
+      if (picks.length >= q.n) break;
+      if (picks.some((p) => Math.abs(p.x - c.x) < 15 && Math.abs(p.y - c.y) < 14)) continue;
+      picks.push(c);
+    }
+    picks.sort((a, b) => a.y - b.y || a.x - b.x);
+    picks.forEach((p, k) => out.push({ q, k, x: p.x, y: p.y }));
+  }
+  return out;
+}
 function townLabels() {
   const w = st.w;
   for (let i = 0; i < w.N; i++) {
@@ -1425,6 +1484,15 @@ function townDraw(P) {
   for (const sw of P.stoneWalls || []) tmStoneWall(pts(sw));
   for (const f of P.fences || []) tmFence(pts(f), 9000 + (P.fences.indexOf(f) | 0));
   for (const p of P.palisade || []) tmPalisade(pts(p));
+  if (P.straight) {
+    const spots = tmStraight(w, P.straight);
+    for (const s of spots) {
+      const t = s.q.items[s.k];
+      if (!t) continue;
+      const i = s.q.at[1] * w.COLS + s.q.at[0];
+      tmThing(w, { ...t, at: [s.q.at[0], s.q.at[1], s.x - w.hx[i], s.y - w.hy[i]] });
+    }
+  }
   for (const t of P.things || []) tmThing(w, t);
   for (const c of P.crosses || []) tmCross(...at(...c));
   for (const p of P.people || []) tmPerson(...at(...p.at), p.c, p.seed || 1);

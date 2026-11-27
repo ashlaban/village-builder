@@ -6,6 +6,7 @@ river on the north shore, drawn in the farm art's manner (`src/page/farmart.js`)
 
     node docs/mocks/town/town.js            # the shots in img/, desk and phone (about a minute)
     node docs/mocks/town/town.js --labels   # the island with each land tile's col,row, to place things by hand
+    node docs/mocks/town/town.js --plan docs/mocks/town/plan-straight.js  # v4: straight streets on hex lines through the quarters
     node docs/mocks/town/town.js --plan docs/mocks/town/plan-farm.js  # v3: quarters planned and connected as farms
     node docs/mocks/town/town.js --plan docs/mocks/town/plan-hex.js   # v2: each hex a quarter, streets on hex edges, no palisade
 
@@ -25,3 +26,4 @@ river on the north shore, drawn in the farm art's manner (`src/page/farmart.js`)
 | `img/desk-hex-town.jpg`, `img/desk-hex-surroundings.jpg` | v2 (`plan-hex.js`, Kim 27 Nov): a quarter of houses per hex like a farm, roads through the hexes as the game's lanes run (Kim 27 Nov), no palisade; garden hex, fields and a toll bar mark the edge |
 | `img/phone-*.jpg` | the same on a phone |
 | `img/desk-farm-town.jpg`, `img/desk-farm-surroundings.jpg` | v3 (`plan-farm.js`, Kim 27 Nov): larger (16 quarters, ~64 dwellings); each quarter a house tile planned in the farm's yard slots, its way run to its door by draw/paths, lanes on the hexes between |
+| `img/desk-straight-town.jpg`, `img/desk-straight-surroundings.jpg` | v4 (`plan-straight.js`, Kim 27 Nov): v1's street-lined houses on v3's quarters; streets are straight runs of hexes along rows and diagonals, through quarters; houses placed by a rule along the ways; off-street quarters get a straight way to a neighbour |
