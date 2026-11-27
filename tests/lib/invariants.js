@@ -159,9 +159,14 @@ function checkState(st) {
       if (!(n > 0) || !(o.delivered >= 0) || o.delivered > n + 1e-9) bad.push(`${at}: delivered ${o.delivered} of ${n}`);
       if ((o.status === 'met') !== (o.delivered >= n - 1e-9)) bad.push(`${at}: ${o.status} with ${o.delivered} of ${n} delivered`);
       if (o.kind === 'days') {
-        // VB-462: days owed: a source, and called days that are whole, not more than are left, and none once closed
-        if (!['debt', 'keep', 'patron'].includes(o.source)) bad.push(`${at}: source ${o.source}`);
-        if (!Number.isInteger(o.called) || o.called < 0 || (['met', 'forgiven', 'lapsed', 'defaulted'].includes(o.status) ? false : o.called > Math.ceil(n - o.delivered - 1e-9) + 1)) bad.push(`${at}: called ${o.called} of ${n - o.delivered} left`);
+        // VB-462: days owed: a source
+        if (!['debt', 'keep', 'patron', 'routine', 'due'].includes(o.source)) bad.push(`${at}: source ${o.source}`);
+        // VB-1767: an outer levy's terms, window, days asked and named (by day, distinct, within the window), days worked
+        if (!o.terms || !['levied', 'levier', 'together'].includes(o.terms.names) || !(o.terms.notice >= 0)) bad.push(`${at}: terms ${JSON.stringify(o.terms)}`);
+        if (o.window !== null && !(Array.isArray(o.window) && o.window[0] <= o.window[1])) bad.push(`${at}: window ${JSON.stringify(o.window)}`);
+        if (!(o.asked >= 0) || !(o.worked >= 0) || o.worked > o.delivered + 1e-9) bad.push(`${at}: asked ${o.asked}, worked ${o.worked} of ${o.delivered}`);
+        if (!Array.isArray(o.named) || o.named.some((e, i) => !Number.isInteger(e.day) || (i && o.named[i - 1].day >= e.day) || (e.pawn !== null && !st.pawns[e.pawn]))) bad.push(`${at}: named ${JSON.stringify(o.named)}`);
+        if (!['open', 'part', 'overdue'].includes(o.status) && o.named.length) bad.push(`${at}: closed with days named`);
       }
       if (o.status === 'open' && o.delivered > 0 && o.kind !== 'days') bad.push(`${at}: open with ${o.delivered} delivered`);
       // VB-637: a servant's wage is owed by a household to a pawn, in rations, its master's village the enforcer
@@ -171,10 +176,6 @@ function checkState(st) {
       if (['open', 'part', 'overdue'].includes(o.status) && !(exists(o.debtor) && exists(o.creditor) && (o.enforcer === null || exists(o.enforcer))))
         bad.push(`${at}: a party of it does not exist (${JSON.stringify([o.debtor, o.creditor, o.enforcer])})`);
     });
-    for (const [day, pawn, oid] of st.daysCalls || []) {
-      const o = all[oid];
-      if (!o || o.kind !== 'days' || !st.pawns[pawn] || !Number.isInteger(day)) bad.push(`daysCalls: [${day}, ${pawn}, ${oid}]`);
-    }
     // VB-470: today's lent hands, each a living pawn lent to another live household, its hours worked within those given
     if (st.handsToday) {
       const d = st.handsToday;
@@ -271,7 +272,6 @@ function checkState(st) {
     for (const p of st.pawns)
       for (const f of ['voiced', 'sat'])
         if (p[f] !== undefined && p[f] !== null && !(Number.isInteger(p[f]) && p[f] >= 0 && p[f] <= Math.floor(st.t / 24))) bad.push(`pawn ${p.id}.${f}: ${p[f]}`);
-    if (st.daysCalls && st.daysCalls.some((c, i) => i && (st.daysCalls[i - 1][0] > c[0] || (st.daysCalls[i - 1][0] === c[0] && st.daysCalls[i - 1][1] > c[1])))) bad.push('daysCalls: not sorted');
     const made = O.rebuilt(st);
     if (JSON.stringify(made.due) !== JSON.stringify(st.obligationsDue)) bad.push(`obligations: the due-queue ${JSON.stringify(st.obligationsDue)} is not the running ones ${JSON.stringify(made.due)}`);
     for (const as of ['debtor', 'creditor']) {
@@ -1631,9 +1631,12 @@ function checkState(st) {
   }
   // loads lying where their carrier fell (VB-611, sim/lying): absent or a non-empty list in the order put down, ids distinct, rising and
   // within st.lyingSeq; each of a kind that carries a load (one with a fetch kind), a load above 0, on a tile of the map, put down this
-  // year at most (the autumn frost rots them all), owned by a household or village that exists
+  // year and the frost's drift at most (the autumn frost rots them all), owned by a household or village that exists
   if (st.lying !== undefined) {
-    const KS = globalThis.VB['sim/kinds'].KINDS, { YEAR } = globalThis.VB['sim/rules'];
+    const KS = globalThis.VB['sim/kinds'].KINDS, { YEAR, DAY, SEASON_DAYS } = globalThis.VB['sim/rules'];
+    // from one frost to the next: the frost's day is drawn each year within autumn (sim/weather frostDay), so a load laid just after an
+    // early frost can lie past a year until a late one (heirs seed 42, year 13 of the extended tier, 27 Nov 2026)
+    const LIES = YEAR + (SEASON_DAYS - 1) * DAY;
     if (!Array.isArray(st.lying) || !st.lying.length) bad.push(`lying: ${Array.isArray(st.lying) ? 'empty' : typeof st.lying}`);
     else st.lying.forEach((l, n) => {
       const at = `lying[${n}] (${l.id})`, prev = st.lying[n - 1], o = l.owner;
@@ -1641,7 +1644,7 @@ function checkState(st) {
       if (!(KS[l.kind] && KS[l.kind].methods) && !Object.keys(KS).some((k) => globalThis.VB['sim/doing'].planOf(k).uses.includes(l.kind))) bad.push(`${at}: kind ${l.kind} has no fetching`); // a kind with methods: its stray method (VB-1775)
       if (!(l.n > 0) || !Number.isFinite(l.n)) bad.push(`${at}: a load of ${l.n}`);
       if (!Number.isInteger(l.tile) || l.tile < 0 || l.tile >= st.w.COLS * st.w.ROWS) bad.push(`${at}: on tile ${l.tile}`);
-      if (!(l.t <= st.t) || !(st.t - l.t < YEAR)) bad.push(`${at}: put down at ${l.t}, a year or more ago (the frost rots it)`);
+      if (!(l.t <= st.t) || !(st.t - l.t < LIES)) bad.push(`${at}: put down at ${l.t}, before the last frost (the frost rots it)`);
       if (!o || !((o.type === 'household' && st.households[o.id]) || (o.type === 'village' && st.villages[o.id]))) bad.push(`${at}: owner ${JSON.stringify(o)}`);
       if (!l.of || !Number.isInteger(l.of.src)) bad.push(`${at}: no task tile`);
       if (l.kind === 'leftCart' && !(o && o.type === 'household' && st.households[o.id] && st.households[o.id].carts.some((c) => c.at && c.kind === l.of.cart.kind && c.built === l.of.cart.built)))
@@ -2402,7 +2405,7 @@ const CACHES_UNCOMPARED = {
   'st.pathCache': 'a memo of route searches keyed by their inputs; checkState bounds it',
   'st.routeKept': 'the routes kept for a day, a memo; checkState bounds it',
   'st.routeCosts': 'a memo of route costs keyed by their inputs',
-  'st.daysToday': "rebuilt from daysCalls at each day's first step, a day's compiled index by design (sim/days)",
+  'st.daysToday': "rebuilt from the levies' days named at each day's first step, a day's compiled index by design (sim/days, sim/levies)",
   'village.fishing': 'the reach test as of the farms it counted, tested again at a new farm by design (sim/drying)',
 };
 function checkCaches(st, { crowding = true } = {}) {

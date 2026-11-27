@@ -9,8 +9,12 @@ VB['sim/obligations'] = (() => {
   //   {kind: 'household' | 'village' | 'pawn', id}), owes ({rations: n} or {hours: n}), due (the hour its term ends), every (hours from one
   //   term to the next, or null: a single term), enforcer (a party ref, or null: social only), status ('open', 'part', 'overdue' while it
   //   lives; 'met', 'forgiven', 'lapsed', 'defaulted' once closed), delivered (of what it owes), since (the hour it was made)}; written
-  //   only here; absent until the first. A `days` one (VB-462) also has source ('debt', 'keep', 'patron') and called (the days called, not
-  //   yet over: written by sim/days). A `loan` one (VB-312, sim/loans) also has lent (the grain lent, before what custom adds) and
+  //   only here; absent until the first. A `days` one, an outer levy (VB-462, VB-1767; design.md, Outer levies), also has source ('debt',
+  //   'keep', 'patron', 'routine', 'due'), terms ({names: 'levied' | 'levier' | 'together', notice (days), substitute, commute (rations a
+  //   day, or null), carry, onBreach}: the draft's, sim/days TERMS by source), window ([first, last] game day the days asked may
+  //   be named in, or null until its levier asks), asked (the days asked in the window, less the hours worked of them over OUTER.hours),
+  //   named ([{day, pawn (an id, or null: picked on the day)}], by day: the days named and not yet come) and worked (the days worked).
+  //   A `loan` one (VB-312, sim/loans) also has lent (the grain lent, before what custom adds) and
   //   missed (its dues passed unpaid: overdue at the first, defaulted at the second).
   // @state st.obligationsDue: the ids of the obligations whose term runs (status open or part), sorted by due, then id: the due-queue
   //   (Rules for cost, 4). A cache owned here.
@@ -36,12 +40,12 @@ VB['sim/obligations'] = (() => {
         return end > t ? end : end + YEAR;
       },
     },
-    // days of work owed (VB-462, sim/days): owes {days}, source 'debt' | 'keep' | 'patron'; it runs to the year's end. A debt's days then
-    // stand (overdue: VB-315 says what follows); those of the keep and of a patron's due lapse, told once.
+    // an outer levy (VB-462, VB-1767; sim/levies): owes {days}, a source of TERMS; it runs to its due (the year's end unless laid with
+    // one). A debt's days then stand (overdue: VB-315 says what follows), and so do those whose terms carry; the rest lapse, told once.
     days: {
       every: null,
       term: (t) => (Math.floor(t / YEAR) + 1) * YEAR,
-      ended: (st, o) => (o.source === 'debt' ? 'overdue' : 'lapsed'),
+      ended: (st, o) => (o.source === 'debt' || (o.terms && o.terms.carry) ? 'overdue' : 'lapsed'),
     },
   };
   // A kind contributed by the module whose rules carry it out (a loan: sim/loans, VB-312), before the first seed. Its row may also have
@@ -111,6 +115,7 @@ VB['sim/obligations'] = (() => {
   // A closed obligation leaves the queue and both parties' lists; its record stays.
   function close(st, o, status) {
     st.obligations[o.id].status = status;
+    if (o.kind === 'days') st.obligations[o.id].named = []; // its days named are over with it (Rules for cost, 9)
     dequeue(st, o);
     unindex(st, 'debtor', o.debtor, o.id);
     unindex(st, 'creditor', o.creditor, o.id);
@@ -151,7 +156,14 @@ VB['sim/obligations'] = (() => {
     if (draft.source) o.source = draft.source;
     if (K.dues) o.missed = 0; // dues missed (a loan, VB-312)
     if (draft.lent !== undefined) o.lent = draft.lent; // a loan's grain lent, before what custom adds (VB-312)
-    if (o.owes.days !== undefined) o.called = 0; // days called and not yet over (sim/days)
+    if (o.kind === 'days') {
+      // an outer levy's terms, window and days named (sim/levies)
+      o.terms = { ...draft.terms };
+      o.window = draft.window ? [draft.window[0], draft.window[1]] : null;
+      o.asked = o.window ? o.owes.days : 0;
+      o.named = [];
+      o.worked = 0;
+    }
     st.obligations.push(o);
     enqueue(st, o);
     index(st, 'debtor', o.debtor, o.id);
@@ -182,6 +194,10 @@ VB['sim/obligations'] = (() => {
       if (!(part > 0)) continue;
       n -= part;
       o.delivered += part;
+      if (o.kind === 'days') {
+        if (!goods) o.worked += part; // hours worked, not a day commuted for goods
+        o.asked = Math.max(0, o.asked - part);
+      }
       // Met within rounding (parts of hours or rations summed: 3.9999999999999996 of 4), and then booked as whole (VB-1175's run).
       if (left(o) <= 1e-9) {
         o.delivered = amount(o);
@@ -190,10 +206,13 @@ VB['sim/obligations'] = (() => {
     }
     return null;
   }
-  // n days of days-obligation id are called (+1) or over (-1): its `called` (sim/days).
-  function setCalled(st, id, by) {
+  // An outer levy's working fields, written by sim/levies through this one door (VB-1767): any of {window, asked, named} (its days
+  // asked in a window by its levier, named by whoever its terms say).
+  function setLevy(st, id, fields) {
     const o = st.obligations[id];
-    o.called = Math.max(0, o.called + by);
+    if (fields.window !== undefined) o.window = fields.window && [fields.window[0], fields.window[1]];
+    if (fields.asked !== undefined) o.asked = fields.asked;
+    if (fields.named !== undefined) o.named = fields.named.map((e) => ({ day: e.day, pawn: e.pawn }));
   }
   // The creditor's pawn `by` lets go of what is left of obligation id.
   function forgive(st, id, by) {
@@ -288,7 +307,7 @@ VB['sim/obligations'] = (() => {
     kind, // its KINDS, contributed to and read
     create,
     isLive,
-    setCalled,
+    setLevy,
     due,
     owed,
     fulfil,

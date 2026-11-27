@@ -368,6 +368,7 @@ VB['sim/heirs'] = (() => {
   // empty with a holder who never came (the extended tier's invariants, 27 Nov 2026: heirs seed 42, year 12).
   function heirFor(st, hh, ranking, leaving = null, companion = null) {
     ranking = ranking.filter((id) => {
+      if (away.has(id)) return false;
       const h = st.pawns[id].household;
       return h === null || h === hh.id || reachable(st, st.households[h], hh);
     });
@@ -479,9 +480,22 @@ VB['sim/heirs'] = (() => {
   // its village who has waited longest for land (then the oldest), else to a minor heir (sim/service then brings a guardian or empties it),
   // else it stands empty and its grain and animals go with the holder. The holder's minor children go with them, unless one of them keeps
   // the farm; a minor holder's guardianship of it ends.
+  // Those leaving with a hand-on still under way (handOn below): the giver and the spouse who follows it are not asked to take a place
+  // handed on further down the same chain (an heir's own place passed on in turn, transfer), else the spouse took one and was then moved
+  // away from it with the giver (the extended tier's fixtures, 27 Nov 2026: small-y40, a holder who lived elsewhere). Empty between acts.
+  const away = new Set();
   function handOn(st, hh, giver, home, reason = 'marriage') {
     const spouse = spouseOf(st, giver);
     const follows = reason === 'heir' && spouse !== null && st.pawns[spouse].household === hh.id;
+    const added = [giver, follows ? spouse : null].filter((id) => id !== null && !away.has(id));
+    for (const id of added) away.add(id);
+    try {
+      handOnNow(st, hh, giver, home, reason, spouse, follows);
+    } finally {
+      for (const id of added) away.delete(id);
+    }
+  }
+  function handOnNow(st, hh, giver, home, reason, spouse, follows) {
     const ranking = heirRanking(st, hh).filter((id) => !follows || id !== spouse),
       heir = heirFor(st, hh, ranking, giver, follows ? spouse : null);
     const keeps =

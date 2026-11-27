@@ -275,7 +275,8 @@ VB['sim/followers'] = (() => {
     );
   }
   // On the patron's planning day after harvest, each client household owes the patron's household PATRON.days days, source `patron`
-  // (sim/days calls them), to the next autumn, once a year; the days are work, not goodwill, so the balance stands as it was. Nothing
+  // (laid by the verb levy, its days asked and named in sim/levies), to the next autumn, once a year; the days are work, not
+  // goodwill, so the balance stands as it was. Nothing
   // of the tie is stored but looksTo: the balance's decay ends the bond, the tie and next year's days. Over the lord's followers.
   function owePatronDays(st, lord) {
     const lh = holdingOf(st, lord);
@@ -291,14 +292,15 @@ VB['sim/followers'] = (() => {
         (o) => o.source === 'patron' && o.debtor.id === hh.id,
       );
       if (live) continue;
-      Obligations.create(st, {
-        kind: 'days',
-        debtor: { kind: 'household', id: hh.id },
-        creditor: { kind: 'household', id: lh.id },
-        owes: { days: PATRON.days },
-        due: nextAutumn(st.t),
-        source: 'patron',
+      // laid by the patron's household's holder through the verb levy, its days asked as the keep's are (sim/levies, VB-1767)
+      if (lh.holder === null) continue;
+      const done = VB['sim/commands'].issue(st, {
+        actor: lh.holder,
+        verb: 'levy',
+        args: { debtor: { kind: 'household', id: hh.id }, source: 'patron', days: PATRON.days, due: nextAutumn(st.t) },
+        source: 'planner',
       });
+      if (done !== true) continue;
       VB.count.patronDays++;
     }
   }

@@ -303,8 +303,14 @@ VB['sim/away'] = (() => {
         if (rest) rest.push(a);
         continue;
       }
-      if (!rest) rest = idle.slice(0, i);
       const s = stayOf(st, a.id);
+      if (!s.jobs && s.until === undefined) {
+        // a journey's stay (a carrier's, a fetcher's: no tasks named) between its legs, as one opened this very step: its course is the
+        // journey's (sim/journeys), not a lodger's day (the extended tier's bands, 27 Nov 2026: market tiny seed 7 threw here)
+        if (rest) rest.push(a);
+        continue;
+      }
+      if (!rest) rest = idle.slice(0, i);
       if (s.back) {
         issue(st, { actor: a.id, verb: 'goHome', source: 'pawn' });
         continue;

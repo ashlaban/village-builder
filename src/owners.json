@@ -106,7 +106,6 @@
     "st.obligations": "sim/obligations",
     "st.obligationsDue": { "owner": "sim/obligations", "category": "cache" },
     "st.obligationsBy": { "owner": "sim/obligations", "category": "cache" },
-    "st.daysCalls": "sim/days",
     "st.daysToday": { "owner": "sim/days", "category": "cache" },
     "st.handsToday": "sim/hands",
     "pawn.voiced": "sim/voice",
