@@ -138,4 +138,40 @@ for (const seed of [1, 2, 3]) {
   assert(Steps.pawnPlan(s, 0).steps.length === 1 && step().kept && step().state === 'at-risk', 'still its own, at risk');
   checkState(s);
 }
+// 4. A task at a tile (VB-1842): estimated from the steps its chain has left, so the verb dates it, refuses it past what fits, and the
+// review finds it at risk and takes it back unless kept, as a task by key.
+{
+  const s = make();
+  for (const p of s.pawns) if (p.id > 1 && p.alive) VB['sim/lifecycle'].killPawn(s, p.id);
+  Sim.advance(s, 0.1);
+  const P = s.plans.households.get(0),
+    site = s.jobs.get('clear:f0').site,
+    review = () => VB['sim/plans'].reviewed(s, P, Sim.cal(s.t), 'store'),
+    step = () => Steps.pawnPlan(s, 0).steps[0];
+  assert.strictEqual(Sim.setAuto(s, 0, false), true);
+  const no = Sim.plan(s, 0, 'add', { plant: site, by: today(s) });
+  assert(typeof no === 'string' && /cannot do plant at \d+ by day 0/.test(no), `a task at a tile that cannot be done by its by is refused: ${no}`);
+  assert.strictEqual(Sim.plan(s, 0, 'add', { plant: site }), true);
+  assert(Number.isInteger(step().by) && step().by >= today(s), `an undated task at a tile is given a by: ${step().by}`);
+  const r0 = VB.count.riskCheck;
+  Steps.dateTask(s, 0, 0, { by: today(s) });
+  review();
+  assert(VB.count.riskCheck > r0, 'its chain weighed at the review');
+  assert(step().state === 'at-risk' && step().risk.short > 0, `short of its by: at risk ${JSON.stringify(step().risk)}`);
+  Steps.dateTask(s, 0, 0, { by: 20 });
+  review();
+  assert(step().state === 'planned' && !step().risk, 'in time again: planned again');
+  Steps.dateTask(s, 0, 0, { by: today(s) });
+  review();
+  Steps.keepTask(s, 0, 0, true);
+  review();
+  assert(step().state === 'at-risk' && Steps.pawnPlan(s, 0).steps.length === 1, 'kept: never taken back');
+  Steps.keepTask(s, 0, 0, false);
+  s.t += DAY; // past its by, with the risk found at an earlier review
+  step().risk.since -= 1;
+  review();
+  const taken = P.ahead.find((x) => x.tookBack);
+  assert(taken && taken.author === 'custom' && Steps.pawnPlan(s, 0).steps.length === 0, 'past its by and not kept: taken back');
+  checkState(s);
+}
 console.log('authored: ok');

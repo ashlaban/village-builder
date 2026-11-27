@@ -143,6 +143,7 @@ function village(play, auto) {
       true,
       `the foundation authored (${play ? 'played' : 'unplayed'})`,
     );
+    Sim.plan(v.st, 0, 'keep', { i: VB['sim/steps'].pawnPlan(v.st, 0).tasks.length - 1 }); // VB-1842: not taken back as late
     Stores.put(v.st, v.hh, 'stone/granite', BUILD.foundationStone, 'pick');
     for (let d = 0; d < 30 && v.f.grade !== 'stone'; d++) Sim.advance(v.st, DAY);
     assert.strictEqual(v.f.grade, 'stone', `the house set on stone by the plan (${play ? 'played' : 'unplayed'})`);
@@ -205,6 +206,7 @@ function village(play, auto) {
       true,
       `the farmstead authored (${play ? 'played' : 'unplayed'})`,
     );
+    Sim.plan(st, id, 'keep', { i: VB['sim/steps'].pawnPlan(st, id).tasks.length - 1 }); // VB-1842: not taken back as late
     for (let d = 0; d < 20 && VB['sim/steps'].pawnPlan(st, id).tasks.some((t) => t.kind === 'farmstead'); d++)
       Sim.advance(st, DAY);
     assert(
@@ -222,6 +224,7 @@ function village(play, auto) {
       t0 = st.t;
     Sim.setAuto(st, id, true);
     assert.strictEqual(Sim.plan(st, id, 'add', { upgrade: f.house, what: 'cottage' }), true, 'the cottage authored');
+    Sim.plan(st, id, 'keep', { i: VB['sim/steps'].pawnPlan(st, id).tasks.length - 1 }); // VB-1842: not taken back as late
     for (let d = 0; d < 30 && f.booth; d++) Sim.advance(st, DAY);
     assert(!f.booth, `the cottage roofed by the plan within 30 days (${st.player ? 'played' : 'unplayed'})`);
     assert.notStrictEqual(Sim.cal(st.t).season, 3, 'the authored cottage did not wait for the winter slack');

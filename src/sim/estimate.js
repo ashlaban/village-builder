@@ -12,7 +12,7 @@ VB['sim/estimate'] = (() => {
   const { age, fullName, log, atFarm } = VB['sim/records'];
   const Skills = VB['sim/skills'],
     Traits = VB['sim/traits'];
-  const { KINDS } = VB['sim/kinds'];
+  const { KINDS, goalSteps } = VB['sim/kinds'];
   const { says } = VB['sim/methods'];
   const Iron = VB['sim/ironwork'];
   const { doneOf, attentionOf, teamKind } = VB['sim/work'];
@@ -151,6 +151,39 @@ VB['sim/estimate'] = (() => {
     const mid = rate > 0 ? work / rate : Infinity,
       [dn, up] = reach(J.skill, r, f);
     return { lo: mid * (1 - dn), mid, hi: mid * (1 + up), unseen: unseenOf(r), work };
+  }
+  // Pawn id's estimate of a task at a tile tk ({kind, site, ...}, a goal's: sim/kinds GOALS) of household hid: the sum of its steps left
+  // (goalSteps), each by the job posted or else a step of the kind's hours, a carrying by its loads; {lo, mid, hi}, or null where nothing of
+  // the household's stands there; `from`, the hour the last of its steps not posted may begin (-Infinity: none). Nothing written.
+  function goalEstimate(st, id, hid, tk, hands) {
+    const s = goalSteps(st, hid, tk.kind, tk.site, tk);
+    if (!s) return null;
+    const on = s.where.fd ? { field: s.where.fd, farm: s.where.f } : null,
+      out = { lo: 0, mid: 0, hi: 0, from: -Infinity };
+    for (const x of s.steps) {
+      if (!x.job && Number.isFinite(x.from)) out.from = Math.max(out.from, x.from);
+      let e;
+      if (x.trip) {
+        const one = (x.trip.go + x.trip.lift + x.trip.back) * x.n;
+        e = { lo: one, mid: one, hi: one };
+      } else {
+        const j = x.job || {
+          key: `${x.kind}:goal`,
+          kind: x.kind,
+          hours: x.hours,
+          done: 0,
+          claims: [],
+          owner: { type: 'household', id: hid },
+          ...on,
+        };
+        e = estimate(st, id, j, hands || [id]);
+        if (x.n !== 1) e = { lo: e.lo * x.n, mid: e.mid * x.n, hi: e.hi * x.n };
+      }
+      out.lo += e.lo;
+      out.mid += e.mid;
+      out.hi += e.hi;
+    }
+    return out;
   }
   // For the head's day (sim/day allot): the head's judgement of its household, once an allotment; the work it sees left of task j; the
   // hours of work it believes member id does in an hour at j (first: its first hand).
@@ -317,5 +350,5 @@ VB['sim/estimate'] = (() => {
     if (d.plan.holder.type === 'household') setLeft(st, d.plan, st.households[d.plan.holder.id], d.c);
   });
   on('windowMissed', missed);
-  return { ESTIMATE, judgement, reckoned, estimate, headOf, workFor, rateFor, attended, workOf, span };
+  return { ESTIMATE, judgement, reckoned, estimate, goalEstimate, headOf, workFor, rateFor, attended, workOf, span };
 })();
