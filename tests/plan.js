@@ -563,7 +563,10 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   assert.deepStrictEqual(pm.tasks.map((t) => t.site), [free], 'the played head keeps its task');
   assert.deepStrictEqual(pt, pm, 'the unplayed head keeps it as well');
   for (let i = 0; i < 40; i++) for (const s of twins) Sim.advance(s, 0.1);
-  assert.deepStrictEqual(twins[1].pawns[FARMER].control.plan, twins[0].pawns[FARMER].control.plan, 'and goes on with it the same');
+  const [am, at] = twins.map((s) => VB['sim/steps'].pawnPlan(s, FARMER));
+  assert(am && at, 'both still hold a plan record');
+  assert.deepStrictEqual(at, am, 'and goes on with it the same');
+  assert.deepStrictEqual(structuredClone(VB['sim/plans'].headView(twins[1], twins[1].pawns[FARMER].household ?? 0)), VB['sim/plans'].headView(twins[1], twins[1].pawns[FARMER].household ?? 0), 'the head\'s view is plain data');
   assert.deepStrictEqual(Sim.planView(twins[1], FARMER), Sim.planView(twins[0], FARMER), 'the same view of it');
 }
 console.log('plan: ops and refusals; the routine once a day in order, the tasks in order, a finished task leaves; hand commands first; '
