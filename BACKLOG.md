@@ -50,6 +50,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1815](backlog/VB-1815.md)<a id="VB-1815"></a> | A household's last load of sheaves cut on the road is posted again before the frost | - | 2 | S | the haul re-posted after its last carrier is cut |
 | [VB-1836](backlog/VB-1836.md)<a id="VB-1836"></a> | The owner cache left on another farmstead's tiles in the played populous seed 7 run | - | 2 | S | checkState fails at year 2 of populous small seed 7 with household 0's head played: farmsteads[61] owner cache 63, expected 62 (pre-existing at 79c22dd7) |
 | [VB-1852](backlog/VB-1852.md)<a id="VB-1852"></a> | Repair: browser-saves' file round trip drifts after a load | - | 2 | S | the page's save of year 3 loaded runs on to a different state; failing at dd8a5cb9 already |
+| [VB-1892](backlog/VB-1892.md)<a id="VB-1892"></a> | An authored step past its by is taken back the next morning, whatever the head's planning cadence | plans | 2 | S | VB-1886: the take-back never fired for a head's authored tasks, since the review first finds a step at risk only past its by, and takes it back only at a second review; a step due today brings the review out of turn |
+| [VB-1893](backlog/VB-1893.md)<a id="VB-1893"></a> | A call does not set a load down: a hand sent home with a load in hand brings it in first | plans | 2 | S | goHome releases the job in hand, and release lays a load where the pawn stands; dayCall and a controller's queued goHome so set down a load on the way home, which the Decided rule forbids unless the caller says so, the cost shown first |
 | [VB-034](backlog/VB-034.md)<a id="VB-034"></a> | Splitting land between heirs | debt | 3 | M | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. |
 | [VB-063](backlog/VB-063.md)<a id="VB-063"></a> | Wrap-up: talk travels | talk | 3 | S | Check talk, relationships and mood at full scale; report cost and patterns. |
 | [VB-083](backlog/VB-083.md)<a id="VB-083"></a> | Seasons on the map | roads | 3 | M | Seasonal tints and winter snow on the painted map. |
@@ -150,6 +152,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1818](backlog/VB-1818.md)<a id="VB-1818"></a> | Kinds: the control fields no code reads after VB-1750 taken out | - | 3 | S | the kinds' own to and meadows' reload, dead since the phases went, removed |
 | [VB-1840](backlog/VB-1840.md)<a id="VB-1840"></a> | The page tells the player what automatic answers, and its sleep as of now | - | 3 | S | After VB-1776 the played pawn on automatic answers at-once offers itself and its sleep is reckoned hourly: the page says so and reads sleep as of now |
 | [VB-1841](backlog/VB-1841.md)<a id="VB-1841"></a> | An older save keeps the player's wish | - | 3 | S | A save from before VB-1776 loses the played pawn's chosen wish to its own choosing: mark it authored on load |
+| [VB-1894](backlog/VB-1894.md)<a id="VB-1894"></a> | A planner who falls ill or is called away gives its authored steps back to the household's day at once | plans | 3 | S | VB-1758 returns a lost holder's tasks to the pool from the day's lists only; a pawn on its own plan that falls ill or is called away keeps its authored steps, which wait for the at-risk review and its by, against the Decided third condition of Authors |
 
 </details>
 
@@ -162,9 +165,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-1892](backlog/VB-1892.md)<a id="VB-1892"></a> | An authored step past its by is taken back the next morning, whatever the head's planning cadence | plans | 2 | S | VB-1886: the take-back never fired for a head's authored tasks, since the review first finds a step at risk only past its by, and takes it back only at a second review; a step due today brings the review out of turn |
-| [VB-1893](backlog/VB-1893.md)<a id="VB-1893"></a> | A call does not set a load down: a hand sent home with a load in hand brings it in first | plans | 2 | S | goHome releases the job in hand, and release lays a load where the pawn stands; dayCall and a controller's queued goHome so set down a load on the way home, which the Decided rule forbids unless the caller says so, the cost shown first |
-| [VB-1894](backlog/VB-1894.md)<a id="VB-1894"></a> | A planner who falls ill or is called away gives its authored steps back to the household's day at once | plans | 3 | S | VB-1758 returns a lost holder's tasks to the pool from the day's lists only; a pawn on its own plan that falls ill or is called away keeps its authored steps, which wait for the at-risk review and its by, against the Decided third condition of Authors |
 
 </details>
 
