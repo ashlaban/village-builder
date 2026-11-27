@@ -196,7 +196,7 @@ VB['sim/ladder'] = (() => {
     timber: (st, hh, f) => own(st, hh, f) || timberRule(st, hh),
   };
   const timberRule = (st, hh) =>
-    Projects.underWay(st, hh.id, 'timberhouse') ? `the household has a timber house under way` : timberWhy(st, hh);
+    Projects.underWay(st, hh.id, 'timberhouse') ? `the household has a farmhouse under way` : timberWhy(st, hh);
   // the stone foundation's step (sim/building buildStep): a house from the cottage up on the ground, none begun; beside any other project
   // (VB-1668)
   const stoneWhy = (st, hh, f) =>

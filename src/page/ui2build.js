@@ -48,7 +48,7 @@ const LADDER = {
     line: 'Log walls and a turf roof, in place of the shelter: a house to winter in.',
   },
   timber: {
-    name: 'Timber house',
+    name: 'Farmhouse',
     icon: () => goodIcon('wood'),
     line: 'Room for ten against six, and a smaller fire: it burns less wood than a cottage.',
   },
