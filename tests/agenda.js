@@ -30,8 +30,9 @@ Sim.advance(st, DAY + (WORK[0] + 2 - (st.t % DAY))); // the second spring mornin
 const plows = (m) => Sim.opportunities(st, m).filter((o) => o.verb === 'work' && o.kind === 'plow' && st.jobs.has(o.target) && st.agents[m].job !== st.jobs.get(o.target));
 let hh = null, id;
 for (const h of st.households) {
-  if (h.dissolved || h.farmstead === null || !VB['sim/projects'].ownOf(st, h.id)) continue;
-  const m = h.members.find((k) => Sim.age(st, st.pawns[k]) >= 16);
+  const own = h.dissolved || h.farmstead === null ? null : VB['sim/projects'].ownOf(st, h.id);
+  if (!own || own.what !== 'field') continue; // a field project (VB-1951: the probe's first with a project of its own may make a meadow)
+  const m = h.members.find((k) => Sim.age(st, st.pawns[k]) >= 16 && plows(k).length >= 2);
   if (m !== undefined && plows(m).length >= 2) { hh = h; id = m; break; }
 }
 // the view, checked to change nothing in st; a village's memo of whether it fishes (sim/drying villageFishes), which the asking of the
@@ -124,7 +125,7 @@ const alone = () => {
   Sim.advance(s, 0.1);
   Sim.inhabit(s, 0);
   Sim.setAuto(s, s.player.pawn, false);
-  s.jobs.get('clear:f0').hours = 8;
+  s.jobs.get('clear:f0').hours = 10; // more than what is left of the first day (VB-1951: with 8 it ended by 22)
   // the plow's work left fixed (VB-1758): what the others did of it in the first hours depends on when their days were allotted, and
   // the estimate's error grows with the work left
   const plow = s.jobs.get('plow:f0.1');

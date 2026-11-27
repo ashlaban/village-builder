@@ -551,7 +551,13 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
   sound(theirs, 'unplayed, planned');
   // a task at a tile no one has marked (VB-1651: the head's own verb begins its field there), the unplayed head's as the played one's:
   // kept, not dropped as gone at the next step (review of VB-1746, F1)
-  const free = 38, twins = [make(), make()];
+  // the first tile the head's verb would begin a field on (VB-1951: tile 38 until the layout moved), tried on a state of its own
+  const free = (() => {
+    const s = make();
+    Sim.setAuto(s, FARMER, false);
+    for (let t = 0; t < s.w.N; t++) if (s.plans.households.get(0).tiles?.field !== t && Sim.plan(structuredClone(s), FARMER, 'add', { plant: t }) === true) return t;
+    return -1;
+  })(), twins = [make(), make()];
   Sim.inhabit(twins[0], FARMER);
   for (const s of twins) {
     assert.strictEqual(Sim.setAuto(s, FARMER, false), true);
