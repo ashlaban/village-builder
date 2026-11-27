@@ -164,6 +164,7 @@ VB.COUNTERS = {
     "Tasks of a member lost to its household's day (dead, ill, lent, on leave, away) slotted to the others (sim/day lostHolder, VB-1758)",
   dayRose:
     "Tasks a household's review made more urgent, slotted again into the day's lists as they stand (sim/day reweigh, VB-1854)",
+  hoursBook: "Legs' ends whose working hours were booked into the six parts of a pawn's day (sim/levies book, VB-1761)",
   levyCompile:
     "Members' levies compiled on their household's plan: at the season's turn, a member new to it or of a changed role (sim/levies, VB-1760)",
   dayAllot:

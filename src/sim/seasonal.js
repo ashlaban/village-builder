@@ -175,7 +175,7 @@ VB['sim/seasonal'] = (() => {
       by = c.day - c.sday + SEASON_DAYS - 1,
       list = [];
     const target = (t) => {
-      const s = Steps.make(st, { target: t }, { custom: 'template' }, { from, by });
+      const s = Steps.make(st, { target: t }, { custom: 'template' }, { from, by, left: { lo: 0, mid: 0, hi: 0 } });
       list.push(s);
       return s;
     };
@@ -189,7 +189,13 @@ VB['sim/seasonal'] = (() => {
     }
     for (const k of T.steps) {
       const t = SERVES[k] === 'wood' ? wood : SERVES[k] === 'hay' ? hay : null;
-      list.push(Steps.make(st, { routine: k }, t ? { step: t.id, of } : { custom: 'template' }, { from, by }));
+      list.push(
+        Steps.make(st, { routine: k }, t ? { step: t.id, of } : { custom: 'template' }, {
+          from,
+          by,
+          left: { lo: 0, mid: 0, hi: 0 },
+        }),
+      );
     }
     plan.season = list;
     biased(st, plan, T);
@@ -362,7 +368,7 @@ VB['sim/seasonal'] = (() => {
           st,
           { target: { store: good, good, level } },
           { custom: 'template' },
-          { from: S[0].from, by: S[0].by },
+          { from: S[0].from, by: S[0].by, left: { lo: 0, mid: 0, hi: 0 } },
         );
         S.splice(targetsEnd(S), 0, s);
       }

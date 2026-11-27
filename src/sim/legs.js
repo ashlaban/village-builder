@@ -20,7 +20,10 @@ VB['sim/legs'] = (() => {
   //   a wait {kind 'wait', t, due}: a free pawn (or one resting on the road) whose pause ends at step `due`, in the working hours;
   //   work {kind 'work', t, x, y, seg 0}: the tick and place its work began (its end is its task's, in st.workDue; the page walks a
   //     field's rows from it).
-  //   Written only here, at a leg's start and end; plain data, saved.
+  //   A walk or work leg of a task of its household's or village's carries `by`, who opened it (VB-1761; Whose an hour is): 'owed' (a
+  //   day owed or hands lent, the basis), 'head' (its head's allotment, call or duty: the planner's command) or 'pawn' (of its own accord:
+  //   its own or the player's command); a leg with none (a wait, a walk with no task, a task of its own) is the pawn's own.
+  //   Written only here, at a leg's start and end (`by` again as the task's basis is set: restamp); plain data, saved.
   // @state st.legDue: the ids of the pawns whose walk or wait is under way, each once, sorted by their leg's due, then id: one due-queue for
   //   walks, waits and the legs of journeys (Rules for cost 4), bounded by the living; plain data, saved; built from the pawns' state when
   //   absent (a fresh run, an older save). A step takes what is due (stepAgents) and nothing else.
@@ -53,19 +56,41 @@ VB['sim/legs'] = (() => {
         const a = st.agents[p.id];
         if (!p.alive || !a) continue;
         const was = a.leg;
+        if (was) emit(st, 'legOver', a); // an older save's leg: its hours so far booked before it is built again (sim/levies)
         a.leg = null;
         if (a.journey === 'rest') roadWait(st, a);
         else if (a.path)
           begin(st, a); // from where it stands now
         else if (a.job)
           // a task's hand standing is at its work, which goes on
-          a.leg = was && was.kind === 'work' ? { kind: 'work', t: was.t, x: was.x, y: was.y, seg: 0 } : workLeg(st, a);
+          a.leg =
+            was && was.kind === 'work'
+              ? stamp(a, { kind: 'work', t: was.t, x: was.x, y: was.y, seg: 0 })
+              : workLeg(st, a);
         else if (unbound(a)) waitLeg(st, a);
       }
     }
     return st.legDue;
   }
-  const workLeg = (st, a) => ({ kind: 'work', t: st.tick, x: a.x, y: a.y, seg: 0 });
+  const workLeg = (st, a) => stamp(a, { kind: 'work', t: st.tick, x: a.x, y: a.y, seg: 0 });
+  // Who opened the leg of pawn a's task (agent.leg's `by`), or undefined: the pawn's own.
+  function whose(a) {
+    const j = a.job,
+      o = j && j.owner;
+    if (!o || (o.type !== 'household' && o.type !== 'village')) return undefined;
+    if (a.basis === 'owed' || a.basis === 'helper') return 'owed';
+    return a.opener === 'head' ? 'head' : 'pawn';
+  }
+  function stamp(a, l) {
+    const by = whose(a);
+    if (by) l.by = by;
+    else delete l.by;
+    return l;
+  }
+  // The task's basis is set (sim/agents' command work): the leg it set out on is told who opened it again.
+  function restamp(st, a) {
+    if (a.leg && a.leg.kind !== 'wait') stamp(a, a.leg);
+  }
   function enqueue(st, a) {
     const q = st.legDue;
     if (!Number.isFinite(a.leg.due)) throw new Error(`pawn ${a.id}'s ${a.leg.kind} leg is due at no step`); // a NaN jams the queue (VB-255)
@@ -75,6 +100,7 @@ VB['sim/legs'] = (() => {
   function unleg(st, a) {
     const l = a.leg,
       q = st.legDue;
+    if (l) emit(st, 'legOver', a); // its hours are booked (sim/levies, VB-1761)
     if (l && (l.kind === 'walk' || l.kind === 'wait') && q) {
       Due.remove(q, a.id, l.due, a.id, legAt, pawnId, st);
     }
@@ -126,7 +152,7 @@ VB['sim/legs'] = (() => {
       due = Math.min(end, Math.max(t + 1, (day * DAY + WORK[1]) * TICKS - 1));
       if (due < end) due = ashore(st, a, h, t, due);
     }
-    a.leg = { kind: 'walk', t, x: a.x, y: a.y, seg: a.seg, pace, h, end, due };
+    a.leg = stamp(a, { kind: 'walk', t, x: a.x, y: a.y, seg: a.seg, pace, h, end, due });
     if (st.pawns[a.id].alive) enqueue(st, a);
     emit(st, 'legChanged', a); // a charge minded is looked at as the leg begins (sim/attention mindCheck)
   }
@@ -249,10 +275,11 @@ VB['sim/legs'] = (() => {
     while (q.length && legAt(q[0], st) <= st.tick) {
       const a = st.agents[q.shift()],
         l = a.leg;
+      emit(st, 'legOver', a); // its hours are booked (sim/levies, VB-1761)
       a.leg = null;
       VB.count.walkStep++;
       fn(st, a, l);
     }
   }
-  return { legsOf, waitLeg, roadWait, unleg, halt, begin, repace, setOut, putAt, workAt, walked, dueLegs };
+  return { legsOf, waitLeg, roadWait, unleg, halt, begin, repace, setOut, putAt, workAt, walked, dueLegs, restamp };
 })();

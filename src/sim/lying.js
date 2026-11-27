@@ -158,14 +158,13 @@ VB['sim/lying'] = (() => {
     leftGrain: 'grain',
     wellstone: 'stone',
     // the goods made where the work is done (VB-1748)
+    // named by what they are, not by the kind that made them (VB-1813): a pile of stone is found by any goal that uses stone
     fish: 'fish',
-    rackfish: 'fish',
-    hunt: 'game',
-    gather: 'wild food',
-    dig: 'dug earth',
-    boilsalt: 'salt',
-    pick: 'stone',
-    quarry: 'stone',
+    game: 'game',
+    wild: 'wild food',
+    earth: 'dug earth',
+    salt: 'salt',
+    stone: 'stone',
   };
   const whatOf = (kind) => (kind === 'leftCart' ? 'cart' : WHAT[kind] || 'goods');
   // ---- the goods left lying with no goal of their own (VB-1814; design.md section 7, A stray pile) ----
