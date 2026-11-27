@@ -174,4 +174,24 @@ for (const seed of [1, 2, 3]) {
   assert(taken && taken.author === 'custom' && Steps.pawnPlan(s, 0).steps.length === 0, 'past its by and not kept: taken back');
   checkState(s);
 }
+// 5. A solo hand (VB-1879): the only member is the played pawn on its own plan (auto off), so no hand of the household's day is left to
+// take an at-risk step over: it stays on the pawn's plan, at risk, rather than leave for a plan no one works.
+{
+  const s = make();
+  for (const p of s.pawns) if (p.id > 0 && p.alive) VB['sim/lifecycle'].killPawn(s, p.id);
+  Sim.advance(s, 0.1);
+  const P = s.plans.households.get(0),
+    site = s.jobs.get('clear:f0').site,
+    step = () => Steps.pawnPlan(s, 0).steps[0];
+  assert.strictEqual(Sim.setAuto(s, 0, false), true);
+  assert.strictEqual(Sim.plan(s, 0, 'add', { plant: site }), true);
+  Steps.dateTask(s, 0, 0, { by: today(s) });
+  VB['sim/plans'].reviewed(s, P, Sim.cal(s.t), 'store');
+  s.t += DAY;
+  step().risk.since -= 1;
+  VB['sim/plans'].reviewed(s, P, Sim.cal(s.t), 'store');
+  assert(!P.ahead.some((x) => x.tookBack), 'a solo hand: nothing taken back to the household');
+  assert(step() && step().state === 'at-risk', 'the step stays on the pawn\'s plan, at risk');
+  checkState(s);
+}
 console.log('authored: ok');
