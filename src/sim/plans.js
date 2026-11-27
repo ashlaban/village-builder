@@ -306,8 +306,6 @@ VB['sim/plans'] = (() => {
     // so the two differ only where the bias moves the fields under it
     const wanted = hh.farmstead === null ? 0 : fieldsWanted(st, hh, F.workable);
     return {
-      planOp,
-      planFacade,
       targets: {
         hay: target('hay', targetOf(plan, 'hay').level, M.hayWinters),
         // what the head counts on besides its fields, by source (VB-768: its own estimate, sim/yields' trusted), rations a year
@@ -404,8 +402,6 @@ VB['sim/plans'] = (() => {
   const planVerb = (household) => {
     Object.assign(OPS.household, household);
     return {
-      planOp,
-      planFacade,
       check: (st, c) => bodyWhy(st, c) || OPS[c.target.kind][c.args.op].check(st, opCmd(c)),
       run: (st, c) => OPS[c.target.kind][c.args.op].run(st, opCmd(c)),
     };
