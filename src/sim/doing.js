@@ -171,7 +171,8 @@ VB['sim/doing'] = (() => {
   //   trip's work (sim/methods trip), which makes the load in hand
   // A load taken up from the owner's pile where the pawn stands: what was taken.
   function load(st, a, s, g = goalOf(st, a)) {
-    const G = goodOf(s.good),
+    const more = wanted(st, a, g),
+      G = goodOf(s.good),
       title = titleOf(g.job, g.owner),
       l = Lying.pileAt(st, VIEW.at(st, a), G.lying, title),
       of = l ? l.of : null,
@@ -180,6 +181,7 @@ VB['sim/doing'] = (() => {
       a.load = n;
       a.carry = lookOf(a.job.kind, s.good);
       a.loadOf = byKind(s.good) ? of : null;
+      if (more) backLoad(st, a, g);
     }
     return n;
   }
@@ -240,9 +242,28 @@ VB['sim/doing'] = (() => {
   }
   // The work leg of step s is done, at the tile where the pawn stands: its kind's effect (KINDS[kind].ops).
   function work(st, a, s) {
-    const j = a.job;
-    KINDS[j.kind].ops[s.op].run(st, j, goalOf(st, a), VIEW.at(st, a), a, cartHeld(st, a) || TRAVEL.load);
+    const j = a.job,
+      g = goalOf(st, a),
+      more = wanted(st, a, g);
+    KINDS[j.kind].ops[s.op].run(st, j, g, VIEW.at(st, a), a, cartHeld(st, a) || TRAVEL.load);
+    if (more) backLoad(st, a, g);
   }
+  // A load that goes home on a cart (its cart's step says `miss`: sheaves, hay, timber), made or taken up on the back by a hand of its
+  // owner with no cart in hand while more waited (the kind's cartPays, read before): a miss the head counts (sim/carts missed; VB-1810).
+  // The water's barrel counts its own (sim/chores setOut). Whether a cart was wanted: the hand of the owner holds none and one pays.
+  function wanted(st, a, g) {
+    const K = KINDS[a.job.kind];
+    if (!Methods.says(K, 'miss') || !K.can || !K.can.cartPays || a.load > 0) return false;
+    return (
+      st.pawns[a.id].household === g.owner &&
+      !!hhOf(st, g.owner) &&
+      !cartHeld(st, a) &&
+      !!K.can.cartPays(st, g, a, VIEW)
+    );
+  }
+  const backLoad = (st, a, g) => {
+    if (a.load > 0) Carts.missed(st, hhOf(st, g.owner));
+  };
   // a work leg's hours: its op's, else the task's (a trip's hours as it was posted), else its kind's
   const hoursOf = (j, s) => KINDS[j.kind].ops[s.op].hours ?? j.hours ?? KINDS[j.kind].hours;
   return {

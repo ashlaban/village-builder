@@ -1028,7 +1028,7 @@ console.log(
 // VB-1750: the field's and the building's stages cut at random on a real state (a tiny village of three farms, its first sixty days): a hand
 // at a stage's work leg is let go at the day's end (the night), let go (a call) or dies. The stage keeps its hours (sim/progress): its
 // task, still posted, is never worked from fewer than it had, and an eligible pawn goes on from them; no pawn holds a task without
-// progress or a walk for a day (no stuck task), and the invariants hold each day. node tests/methods.js [--stages N] (seeds, default 3).
+// progress or a walk for a day (no stuck task), and the invariants hold each day. node tests/methods.js [--stages N] (seeds, default 4).
 {
   const Sim = VB.sim,
     Agents = VB['sim/agents'],
@@ -1040,7 +1040,7 @@ console.log(
     BUILD = new Set(Object.keys(VB['sim/building'].KINDS));
   const staged = (k) => (FIELD.has(k) || BUILD.has(k)) && !!KINDS[k].ops && !!KINDS[k].ops.labour; // a stage worked at its site
   const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
-  const SEEDS = arg('stages', 3),
+  const SEEDS = arg('stages', 4), // four: with three the building's stages were cut but twice in 158 (VB-1810)
     t = { field: 0, building: 0, night: 0, call: 0, death: 0, resumed: 0, finished: 0, fewer: [], stuck: [] };
   for (let seed = 1; seed <= SEEDS; seed++) {
     const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed });
