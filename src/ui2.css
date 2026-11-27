@@ -245,6 +245,7 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2 .u2-lbar.sel, .u2 .u2-lgap.sel { box-shadow: 0 0 0 3px var(--gold2); }
 .u2-lbar svg, .u2-lgap svg { width: 15px; height: 15px; flex: none; }
 .u2 .u2-lgap { background: repeating-linear-gradient(135deg, rgba(192, 138, 30, 0.3) 0 4px, rgba(247, 240, 223, 0.6) 4px 8px); border-style: dashed; }
+.u2 .u2-lgap.lie { background: repeating-linear-gradient(135deg, rgba(170, 52, 38, 0.22) 0 4px, rgba(247, 240, 223, 0.6) 4px 8px); border-color: var(--red); color: var(--red); } /* goods left out: the frost takes them */
 .u2 .u2-ldead { position: absolute; top: 0; bottom: 0; width: 18px; margin-left: -9px; padding: 0; border: 0; background: none; z-index: 2; display: flex; align-items: flex-end; justify-content: center; }
 .u2-ldead::before { content: ""; position: absolute; top: 0; bottom: 6px; left: 8px; width: 2px; background: var(--ink2); }
 .u2-ldead svg { position: relative; width: 15px; height: 15px; padding: 1px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--ink2); }
