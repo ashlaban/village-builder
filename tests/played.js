@@ -50,13 +50,11 @@ const KEPT = {
   'player:yieldWords': [1, 'audience', "the played pawn's sheet"],
   'player:movedWords': [1, 'audience', "the played pawn's sheet"],
   'player:ailingWords': [1, 'audience', "the played pawn's sheet"],
-  'player:answer': [2, 'frame', "the player's answer, by the verb answer, any pawn's"],
   'reasons:reasonOf': [2, 'audience', 'the card says "you gave the order" on the played pawn only (VB-1745)'],
   'sleep:sleepOf': [1, 'frame', "the page's read of the played pawn's sleep"],
   'stories:notice': [1, 'audience', 'a story the played pawn comes to hold, an event of its life for the skip'],
   'timetable:taskFrom': [1, 'frame', "the skip until the played pawn's task ends"],
   'timetable:taskStop': [1, 'frame', "the same skip's stop"],
-  'visits:orderVisit': [1, 'frame', "the player's order of a visit; the verb visit is any pawn's"],
   'voice:refused': [2, 'audience', 'a refusal logged where the player is one of the two'],
 };
 // Rules that read who is played: module:function -> reads. Emptied by VB-1776 (each read now the controller's, sim/records unplanned, or
