@@ -39,7 +39,7 @@ function atWork(a, kind, site, extra, done) {
   const a = hand(),
     j = atWork(a, 'gather', wood, { farm: f }, KINDS.gather.hours / 2);
   A.release(st, a);
-  const l = pileOf('gather');
+  const l = pileOf('wild');
   assert(l, 'the hours gathered left nothing');
   assert(Math.abs(l.n - 0.5 * Forage.FORAGE.trip) < 1e-6, `half a trip's yield lies (${l.n})`);
   assert(Math.abs(Forage.stock(st, wood) - (1 - 0.5 * Forage.FORAGE.take)) < 1e-6, 'the ground is picked by the hours worked');
@@ -60,23 +60,25 @@ function atWork(a, kind, site, extra, done) {
   const s = Doing.ask(st, b);
   assert(s && !s.blocked && Doing.placeOf(st, b, s) === l.tile, 'the pile is fetched where it lies, by the stray method');
   const fresh0 = Pot.freshHeld(st, hh, 'gathered'),
-    taken = Lying.takeAt(st, l.tile, 'gather', owner, Infinity);
+    taken = Lying.takeAt(st, l.tile, 'wild', owner, Infinity);
   VB['sim/doing'].said('gather').deliver(st, { ...gj, ...l.of, kind: 'gather' }, hh, f, { id: b.id, load: taken });
   assert(Math.abs(Pot.freshHeld(st, hh, 'gathered') - fresh0 - 0.5 * Forage.FORAGE.trip) < 1e-6, 'the half trip comes home');
   A.release(st, b);
-  assert(!pileOf('gather'), 'nothing is left lying');
+  assert(!pileOf('wild'), 'nothing is left lying');
 }
 // 1b. cut at half its hours by the working day's end (sim/clock): the half yield goes home in hand, the pawn keeping its task until it is in
 {
   const a = hand(),
     s0 = Forage.stock(st, wood),
     j = atWork(a, 'gather', wood, { farm: f }, KINDS.gather.hours / 2);
+  Object.assign(a, { x: st.w.hx[wood], y: st.w.hy[wood] }); // cut at its work in the wood, not at home
   A.release(st, a, true);
+  assert(a.path, "it walks home by the methods");
   assert(a.job === j && a.load > 0, 'the hand goes home with what it gathered');
   assert(Math.abs(a.load - 0.5 * Forage.FORAGE.trip * s0) < 1e-6, `half a trip's yield in hand (${a.load})`);
-  assert(!pileOf('gather'), 'nothing is set down');
+  assert(!pileOf('wild'), 'nothing is set down');
   A.release(st, a); // a death on the road: it lies
-  assert(pileOf('gather') && a.job === null, 'a carrier cut on the road leaves it lying');
+  assert(pileOf('wild') && a.job === null, 'a carrier cut on the road leaves it lying');
   Lying.frost(st);
 }
 // 2. a whole trip: its yield is made as the work ends, the load in hand, and only put into the store at home
@@ -93,7 +95,7 @@ function atWork(a, kind, site, extra, done) {
   // the carrier dies on the road: the basket lies where it stood
   const n = a.load;
   A.release(st, a);
-  const l = pileOf('gather');
+  const l = pileOf('wild');
   assert(l && Math.abs(l.n - n) < 1e-9, 'a dead carrier\'s yield exists, lying');
 }
 // 3. a hunt: the game is rolled at the work; a kill in hand is meat and a hide at home
@@ -135,5 +137,5 @@ for (const [k, K] of Object.entries(KINDS))
   if (K.make && VB['sim/doing'].carriesTo(k) !== null) assert(K.methods, `${k}: its load lying is fetched by nothing`);
 assert.deepStrictEqual(checkState(st), [], 'invariants');
 Lying.frost(st);
-assert(!pileOf('gather'), 'a pile not fetched rots at the frost');
+assert(!pileOf('wild'), 'a pile not fetched rots at the frost');
 console.log('madeatwork ok: a cut gathering trip leaves half its yield lying, fetched home; a whole trip made at the work; a hunt\'s kill in hand');

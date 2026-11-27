@@ -29,8 +29,10 @@ VB['sim/doing'] = (() => {
     leftCart: { lying: 'leftCart', kind: 'leftCart', loads: true },
     hay: { lying: 'hay', kind: 'hay', loads: true, hay: true },
   };
-  const goodOf = (good) => GOODS[good] || { lying: good, kind: good };
-  const byKind = (good) => !!goodOf(good).kind;
+  // A good named by what it is is a trip's pile by default (VB-1813: stone, fish, game, not the kind that made it): `trip`, set down and
+  // delivered by the kind of the task that carries it
+  const goodOf = (good) => GOODS[good] || { lying: good, trip: true };
+  const byKind = (good) => !!goodOf(good).trip || !!goodOf(good).kind;
   const plans = Methods.compile(KINDS);
   // A kind's plan, compiled on its first ask when the kind was added after load, or its record replaced (a test's kind, declared with its
   // methods as a module's are; VB-1750): the plan is the record's, never a stale one of the same name
@@ -82,7 +84,7 @@ VB['sim/doing'] = (() => {
     const c = cartHeld(st, a),
       G = good ? goodOf(good) : null;
     if (G && G.loads) return G.hay ? Math.min(c || TRAVEL.load, TRAVEL.hayCart / TRAVEL.hay) : c || TRAVEL.load;
-    if (G && G.kind) return Infinity; // a trip's pile, taken up whole
+    if (G && (G.kind || G.trip)) return Infinity; // a trip's pile, taken up whole
     if (!c || !a.job || !KINDS[a.job.kind].need) return TRAVEL.load;
     return Math.max(TRAVEL.load, Math.min(c, KINDS[a.job.kind].need(st, a.job) * TRAVEL.load));
   }
@@ -204,23 +206,24 @@ VB['sim/doing'] = (() => {
       // animals led, let go on the road (VB-1750 review, F1): they were never taken from the giver's herd (sim/exchange and sim/droving
       // move them at the door), so nothing lies, and the goal is unmet again: its next hand halters them anew
       a.job.made = Math.max(0, (a.job.made || 0) - 1);
-    } else if (G.kind) {
+    } else if (G.kind || G.trip) {
       // a trip's good: delivered by its kind, or set down where the pawn stands with what its delivery reads (sim/lying lay); a task's
       // owner kept (a village's timber is the village's, and lies as the village's), a pile's its title's
       // a good left lying with no goal of its own keeps its title (a village's grain to the village's store, VB-1814)
-      const j = {
-        ...deliveredFor(a.job, a.loadOf, G.kind),
-        owner: K.strays ? titleOf(a.job, owner) : a.loadOf || !a.job.owner ? titled(owner) : a.job.owner,
-      };
+      const kind = G.kind || a.job.kind,
+        j = {
+          ...deliveredFor(a.job, a.loadOf, kind),
+          owner: K.strays ? titleOf(a.job, owner) : a.loadOf || !a.job.owner ? titled(owner) : a.job.owner,
+        };
       if (drop) Lying.lay(st, a, { ...j, owner: titleOf(a.job, owner) }, G.lying, at, x, y);
       else {
         const hh = hhOf(st, owner),
-          got = said(G.kind, good).deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
+          got = said(kind, good).deliver(st, j, hh, st.farmsteads[hh.farmstead], a);
         // the played pawn's sheet tells what the trip brought (sim/player, VB-1118), as sim/agents' deposit does
         if (st.player && st.player.pawn === a.id)
           emit(st, 'yielded', {
             pawn: a.id,
-            kind: G.kind,
+            kind,
             farm: a.job.farm ?? null,
             good: lookOf(a.job.kind, good),
             n: typeof got === 'number' ? got : n,

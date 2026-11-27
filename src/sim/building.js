@@ -906,12 +906,12 @@ VB['sim/building'] = (() => {
   });
   KINDS.boothwater.places = { booth: (st, g) => g.job.dest };
   // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
-  Methods.trip(KINDS.pick, 'pick', {
+  Methods.trip(KINDS.pick, 'stone', {
     look: 'basket',
     words: 'Carrying stones home',
     deliver: stoneHome,
   });
-  Methods.trip(KINDS.quarry, 'quarry', {
+  Methods.trip(KINDS.quarry, 'stone', {
     look: 'basket',
     words: 'Carrying stone home',
     deliver: stoneHome,

@@ -801,6 +801,23 @@ console.log(
     assert(r.legs.slice(0, 4).join() === 'go,load,haul,unload', `fetched home: ${r.legs.join(', ')}`);
     assert(!Lying.amountAt(st, away, 'wood', title(hh)) && Lying.amountAt(st, away, 'wood', title(other)) === TRAVEL.load, 'its own only');
   }
+  // VB-1813: a trip's good is named by what it is: the stone a pick trip set down is the stray of a quarry goal of its owner, and the fish
+  // of a fishing trip the stray of a rackfish goal (the pile lies as `stone`, `fish`, not as the kind that made it)
+  for (const [made, wants, good] of [['pick', 'quarry', 'stone'], ['fish', 'rackfish', 'fish']]) {
+    const { st, hh, f, a } = row(wants, { cart: false }),
+      away = st.villages[f.village].wood[2];
+    assert(Doing.planOf(made).uses[0] === good && Doing.planOf(wants).uses[0] === good, `${made} and ${wants} use ${good}`);
+    Object.assign(a, { load: TRAVEL.load, carry: null });
+    a.job = { ...a.job, kind: made, key: `test:${made}`, site: away };
+    setAt(st, a, away);
+    Doing.unload(st, a, M.RULE.drop, a.x, a.y);
+    assert(Lying.amountAt(st, away, good, title(hh)) > 0 && (made === good || !Lying.amountAt(st, away, made, title(hh))), `${made}'s load lies as ${good}`);
+    a.job = { ...a.job, kind: wants, key: `test:${wants}`, site: f.house };
+    setAt(st, a, f.house);
+    assert(Lying.strayOf(st, title(hh), good, f.house, f.house) === away, `the pile is found by a ${wants} goal`);
+    const s = Doing.ask(st, a);
+    assert(s.prim === 'go' && s.at === 'stray' && Doing.placeOf(st, a, s) === away, `${wants} goes to the stray ${good} first`);
+  }
   // the fetch kinds: none (the wood's piles are the stray method's; VB-1821: the name of one gone, sim/lying fetchKey); and no fetch task posted
   {
     assert(KINDS.wood.methods && KINDS.firewood.methods, 'the wood has methods');

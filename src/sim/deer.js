@@ -183,7 +183,7 @@ VB['sim/deer'] = (() => {
     },
   };
   // the trips that make their good at the work go on from the world (VB-1749: sim/methods trip)
-  VB['sim/methods'].trip(KIND, 'hunt', {
+  VB['sim/methods'].trip(KIND, 'game', {
     look: 'game',
     words: 'Coming home from the hunt',
     deliver: (st, j, hh, f, a) => game(st, hh, a.load),

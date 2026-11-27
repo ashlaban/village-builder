@@ -208,10 +208,9 @@ VB['sim/agents'] = (() => {
     freeHands(st, j, a.id);
     a.carry = Doing.lookOf(j.kind);
     a.inside = false;
-    unleg(st, a); // the work leg is over: it carries its load home
+    unleg(st, a); // the work leg is over: its load in hand goes home by the methods (the rule for a load in hand)
     rerate(st, j);
-    const [x, y] = homeSpot(st, a);
-    walkTo(st, a, st.farmsteads[workFor(st, a, j).farmstead].house, x, y);
+    onward(st, a);
     return true;
   }
   // A trip whose yield accrues with the work (fishing, hunting, gathering; design.md section 7, The good is made where the work is done)
@@ -226,7 +225,7 @@ VB['sim/agents'] = (() => {
     if (a.load > 0) {
       const [x, y] = placeOf(st, a);
       // a goal's pile lies at its site, where its method looks for it (sim/doing's view: a spot by the water counts as the site)
-      Lying.lay(st, a, j, j.kind, Doing.VIEW.at(st, a), x, y);
+      Lying.lay(st, a, j, Doing.planOf(j.kind).uses[0], Doing.VIEW.at(st, a), x, y);
     }
     a.load = 0;
     j.done = 0;
@@ -361,9 +360,16 @@ VB['sim/agents'] = (() => {
     to === j.site && KINDS[j.kind].spot
       ? workSpot(st, a, j)
       : [st.w.hx[to] + 7 + a.ox * 0.3, st.w.hy[to] + 16 + a.oy * 0.15];
-  // A pawn on a day owed whose hours are booked (sim/days on: no longer on duty) has given its working day: as at the day's end, only a load
-  // in hand goes on, to the creditor's store, and the pawn then goes home (VB-1749; design.md section 7, A load in hand).
-  const dayGiven = (st, a) => a.basis === 'owed' && Days.on(st, a.id) === null;
+  // A pawn on a day owed whose hours are booked (sim/days given: no longer on duty) has given its working day: as at the day's end, only a
+  // load in hand goes on, to the creditor's store, and the pawn then goes home (VB-1749; design.md section 7, A load in hand).
+  const dayGiven = (st, a) => Days.given(st, a.id);
+  // The hours a pawn may work now: the working day, or past it a task lived by (VB-1547) or the player's command, and never a day owed
+  // already given (VB-1813: one rule for the day's end and the day given).
+  const mayWork = (st, a, j) => {
+    if (dayGiven(st, a)) return false;
+    const h = cal(st.t).hour;
+    return (h >= WORK[0] && h < WORK[1]) || carriedOn(st, j) || commanded(st, a.id);
+  };
   function onward(st, a, depth = 0) {
     const j = a.job,
       g = Doing.goalOf(st, a),
@@ -390,12 +396,7 @@ VB['sim/agents'] = (() => {
       emit(st, 'moveOn', a);
       return;
     }
-    if (
-      s.blocked ||
-      depth > 8 ||
-      (!carrying && (h >= WORK[1] || h < WORK[0]) && !carriedOn(st, j) && !commanded(st, a.id)) ||
-      (!carrying && given)
-    ) {
+    if (s.blocked || depth > 8 || (!carrying && !mayWork(st, a, j))) {
       // nothing it can do now (the reason is the step's), or the day is over: it lets the task go, which stays posted while wanted
       if (s.blocked && st.jobs.get(j.key) === j && j.claims.length <= 1) dropJob(st, j);
       release(st, a);
