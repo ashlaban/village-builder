@@ -50,4 +50,15 @@ const orphan = (s, hh) => { for (const m of hh.members) { s.pawns[m].age = 8; s.
     assert(h !== null && !s.households[h].dissolved && s.farmsteads[s.households[h].farmstead].village === 0, `child ${m} went over the sea`);
   }
 }
-console.log('over the sea ok: the move verb refuses a home with no way by land, the route check counts no fallback, island orphans stay');
+// an heir over the sea is passed over (the extended tier's invariants, 27 Nov 2026: a farm handed on to an heir who could not move to it
+// stood empty with that heir its holder): the first in line by land takes it, and with none by land, nobody does
+{
+  const s = make(), [w1, w2] = s.households.filter((h) => s.farmsteads[h.farmstead].village === 0);
+  const e = s.households.find((h) => s.farmsteads[h.farmstead].village === 1);
+  const grown = (h) => h.members.find((m) => s.pawns[m].alive && s.pawns[m].age >= 18 && m !== h.holder) ?? h.holder;
+  const { heirFor } = VB['sim/heirs'], far = grown(e), near = grown(w2);
+  assert.strictEqual(heirFor(s, w1, [far, near]), near, 'the heir over the sea was not passed over');
+  assert.strictEqual(heirFor(s, w1, [far]), null, 'an heir over the sea alone takes the farm');
+  assert.strictEqual(heirFor(s, e, [far]), far, 'an heir on its own island is passed over');
+}
+console.log('over the sea ok: the move verb refuses a home with no way by land, the route check counts no fallback, island orphans stay, an heir over the sea is passed over');
