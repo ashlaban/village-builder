@@ -102,6 +102,13 @@ These are the invariants. Each later section applies them; a change that breaks 
     built at load; contributions and subscribers run in a fixed order; every random draw comes from a named seeded stream.
 19. **A command changes everything or nothing.** Refusals come from queries and from a command's check, never from an owner's
     write (4.1, Workflows; Decided, Kim, 9 Nov).
+20. **Declared beside the owner; joined, never appended to** (proposed, VB-1406; a clause of 18 if Kim prefers). What a feature
+    adds to a shared list (a module's place, a field's owner, a test's tier, a work counter, a tunable, an older save's migration,
+    an event kind's record, a name of `Sim`, a card's row) is declared by the module that owns it, beside its code; the list is
+    joined at load or by a tool, in a declared order, never by load order. A shared file that every feature appends a line to is a
+    registry to dissolve, not a module to split: `sim/kinds` (VB-418) and `sim/commands` (VB-228) are the pattern, and splitting by
+    size only moves such a list (`docs/plans/VB-1406-overlap.md`). Where the joined order is saved state or determinism (`KINDS`,
+    event subscribers, rule contributions), the order is declared and shown unchanged by `tools/same.js`.
 
 ## 3. Layers and modules
 
@@ -1062,6 +1069,11 @@ VB-173 to VB-180 (`ownership.md` section 7) fit this target unchanged in order. 
 - **VB-177 (a pawn's movement):** room for modes and legs beside walking (4.2).
 - **VB-178 (ties):** opinion and goodwill as separate quantities in relations (4.4).
 - **VB-179 (the crop's life):** progress on resumable work belongs to the field, not the job (4.5).
+- **VB-1406 (declare beside the owner, principle 20):** the lists every task appends to (`tests/suites.js`, `VB.COUNTERS`,
+  `src/layers.json`, `src/owners.json`, `src/manifest.json`, the `Sim` facade, the save migrations in `sim/saves`, the event kinds'
+  tables, `sim/rules`' export block, `src/head.html`'s one stylesheet and the cards' rows) become declarations by their owners, joined
+  in a fixed order, one task a step (the steps and their order: `docs/plans/VB-1406-overlap.md`, section 5). No Decided mechanism
+  moves: `design.md` names `src/sim/rules.js` as where numbers live ("Households short of people"), a place, not a mechanism.
 
 ### 11.3 Proposed tasks, in order of dependency
 
