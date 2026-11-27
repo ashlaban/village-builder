@@ -360,7 +360,9 @@ VB['sim/seasonal'] = (() => {
         // beyond the need, what the head reckons it can place of the asks it read (sim/asks, VB-699: plan.placed)
         level =
           (n === undefined || n === null ? Targets.need(st, hh, good) : n) +
-          ((plan.placed && plan.placed.goods[good]) || 0),
+          ((plan.placed && plan.placed.goods[good]) || 0) +
+          // and, for dried fish, what its head took for the fair as a project of its own surplus (sim/aims, VB-644)
+          (good === 'dried fish' && plan.aim && plan.aim.fair ? plan.aim.fair : 0),
         G = targetOf(plan, good);
       if (G) G.level = level;
       else {

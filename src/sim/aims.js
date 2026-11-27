@@ -42,12 +42,15 @@ VB['sim/aims'] = (() => {
     hands: VB['sim/rules'].AGES.hands,
   });
   const KIND = Object.freeze(['field', 'claim', 'heir', 'barn', 'trial']);
+  const Targets = VB['sim/targets'];
   // @state plan.aim (a household's standing plan; VB-255): absent until its first review after an autumn count, then {year (the year of cal
   //   of its last yearly look at the surplus), surplus (what that look, or the last one after a project ended, found), again (true when a
   //   project of the head's ended: it looks again at its next review), project (the id of the head's project plan under way, or null), what
   //   (its kind of KIND, or null), since (game hours: when it was taken, or null), shortSince (game hours since the food has stood under the
   //   surplus while it is under way, or null), trial (absent, or the crop of a trial taken: VB-351; it has no project plan, and ends when
-  //   a field is sown with the crop out of turn, or the seed is gone)}. Written only here.
+  //   a field is sown with the crop out of turn, or the seed is gone), fair (absent, or the rations of dried fish beyond its household's year
+  //   that the head took for the fair at its last yearly look: VB-644, no project plan; sim/seasonal's goodTargets adds it to the target)}.
+  //   Written only here.
   // The household's working hands: members alive, of AIMS.hands' ages, not retired (as sim/agents counts their work: household.workHours).
   function handsOf(st, hh) {
     let n = 0;
@@ -139,7 +142,19 @@ VB['sim/aims'] = (() => {
     if (!f.barn && !f.booth && st.villages[f.village].wood.length) out.push({ what: 'barn', weight: AIMS.base });
     const crop = trialCrop(st, plan, hh, f);
     if (crop) out.push({ what: 'trial', weight: AIMS.base * ambition, crop });
+    // dried fish for the fair (VB-644): in a village by fishing water, rations beyond the household's year that its spare hands can fish and
+    // hang and a back load carries; no project plan, a target (VB-698), weighed by the head's lean as the asks' reckoning is (VB-699)
+    const n = fairDried(st, hh, f);
+    if (n > 0) out.push({ what: 'fair', weight: AIMS.base * (plan.head ? plan.head.bias.hours : 1), n });
     return out;
+  }
+  // The rations of dried fish beyond its year that household hh can make for the fair: what its spare hands bring (sim/targets' bound), within
+  // a back load (sim/asks' carried); 0 where its village does not fish.
+  function fairDried(st, hh, f) {
+    if (!VB['sim/drying'].villageFishes(st, st.villages[f.village])) return 0;
+    const M = Targets.MADE.get('dried fish'),
+      most = M.most(st, hh, f, Targets.hands(st, hh) * Targets.TARGET.spareHours);
+    return Math.floor(Math.min(most, VB['sim/asks'].carried('dried fish')));
   }
   // A trial (VB-351; design.md, How the head chooses what to sow: a trial is a project): a good head (sim/rotations' tierOf) whose store
   // holds a field's seed of a crop its farm's rotation does not grow tries it on one field; the first such crop of CROPS, or null.
@@ -270,9 +285,24 @@ VB['sim/aims'] = (() => {
     if (yearly) B.year = c.year;
     B.again = false;
     B.surplus = surplusOf(st, plan, hh, f, c).all;
+    if (yearly && B.fair) {
+      delete B.fair; // each year's look takes the head's fair project again or lets it go
+      Seasonal.goodTargets(st, plan, hh);
+    }
     // the head's prudence, its own choice and not a refusal (VB-1668): its yearly look begins a large project only with none under way
     if (!B.surplus || Projects.ownOf(st, hh.id) || Projects.heldOff(st, hh.id)) return;
     const o = choose(st, menu(st, plan, hh, f));
+    if (o && o.what === 'fair') {
+      B.fair = o.n;
+      Seasonal.goodTargets(st, plan, hh);
+      tell(
+        st,
+        hh,
+        'projectTaken',
+        `${fullName(st.pawns[hh.holder])} of ${f.name} sets out to dry ${o.n} rations of fish for the fair.`,
+      );
+      return;
+    }
     if (!o || !begin(st, hh, o)) return;
     if (o.what === 'trial') {
       Object.assign(B, { trial: o.crop, what: 'trial', since: st.t });
