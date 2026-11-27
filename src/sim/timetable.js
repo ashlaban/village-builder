@@ -129,7 +129,7 @@ VB['sim/timetable'] = (() => {
     return { household: hh.id, viewer: who, made: day.made, edited, members };
   }
   // What calling member id off costs, as pawn `viewer` reckons it (the household's head when null), named before the call (the verb
-  // dayCall, sim/day): walk, the hours of its walk home from where it stands; load, what it carries home now and would put down where it
+  // call, sim/day): walk, the hours of its walk home from where it stands; load, what it carries home now and would put down where it
   // stands (0 when none); task, the key of its task in hand (or null) and left, the viewer's range of that task's hours left with its hands
   // ({lo, mid, hi}, or null).
   function callCost(st, id, viewer = null) {

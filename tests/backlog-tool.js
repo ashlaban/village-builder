@@ -140,7 +140,9 @@ r = run(dir, 'new', 'name=Not ready', 'status=ready', 'priority=3', 'size=S', 's
 expect('new refuses ready without its criteria', !r.ok && /criteria=/.test(r.out), r.out);
 // tests/backlog.js: a needs-review task has its question in QUESTIONS.md; a task an open task names has a file
 const checkDir = () => spawnSync(process.execPath, [path.join(root, 'tests', 'backlog.js'), dir], { encoding: 'utf8' });
-fs.writeFileSync(path.join(dir, 'QUESTIONS.md'), '# Open questions for Kim\n\n## Priority 3\n');
+// the real questions kept, so a real task waiting for Kim still finds its block
+const realQuestions = fs.readFileSync(path.join(root, 'QUESTIONS.md'), 'utf8');
+fs.writeFileSync(path.join(dir, 'QUESTIONS.md'), /\n## Priority 3\n/.test(realQuestions) ? realQuestions : realQuestions + '\n## Priority 3\n');
 fs.writeFileSync(path.join(dir, `backlog/${readyId}.md`), file(`backlog/${readyId}.md`).replace('Status: ready', 'Status: needs-review'));
 run(dir, 'sync');
 let c = checkDir();

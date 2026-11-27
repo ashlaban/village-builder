@@ -395,8 +395,8 @@ VB['sim/occasions'] = (() => {
     st.pawns[id].called = st.t;
     call(st, 'call', dayOf(st.t) + DAY, yard(st, f), g.ids, g.hours, [id]);
   }
-  // call(farmstead): walk to another household's farm within a day's walk and stay the evening (VB-1119)
-  register('call', {
+  // callAt(farmstead): walk to another household's farm within a day's walk and stay the evening (VB-1119)
+  register('callAt', {
     check: (st, c) => free(st, c.actor) || cannotCall(st, c.actor, c.target),
     run: (st, c) => callAt(st, c.actor, c.target),
   });
