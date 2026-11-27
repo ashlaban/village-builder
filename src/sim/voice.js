@@ -11,7 +11,7 @@
 //   the season before.
 // @state pawn.voiced: absent, or the game day the pawn last asked its head for leave of its own accord (VOICE.days). Written only here.
 VB['sim/voice'] = (() => {
-  const { emit, on: listen } = VB['sim/events'];
+  const { emit, on } = VB['sim/events'];
   const { unbound } = VB['sim/pose'];
   const { DAY, WORK, SEASON_DAYS, cal } = VB['sim/rules'],
     { CHILD, MATCH } = VB['sim/roles'];
@@ -119,7 +119,7 @@ VB['sim/voice'] = (() => {
   }
   // At every review of a household's plan, after its budget (sim/levies, whose listener comes first; a grant past counts in no
   // budget): its grants past dropped.
-  listen('planReviewed', (st, d) => {
+  on('planReviewed', (st, d) => {
     if (d.plan.holder.type !== 'household' || !d.plan.grants) return;
     const hh = st.households[d.plan.holder.id];
     if (!hh.dissolved) prune(st, hh, d.plan.grants);
@@ -413,7 +413,7 @@ VB['sim/voice'] = (() => {
       askLighter(st, pid, VOICE.lighter);
     }
   }
-  listen('seasonJudged', (st, d) => lighter(st, d.hh, d.c));
+  on('seasonJudged', (st, d) => lighter(st, d.hh, d.c));
   // Pawn id asks its head a lighter levy of `hours` a day for the rest of the season: the verb ask, by its own rule (source 'pawn').
   function askLighter(st, id, hours) {
     const hh = homeOf(st, id);
