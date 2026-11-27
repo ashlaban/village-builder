@@ -10,13 +10,21 @@ VB['sim/levies'] = (() => {
   const { levyNorm } = VB['sim/customs'];
   const { planOf } = VB['sim/plans'];
   const { workedToday } = VB['sim/work'];
-  const { on } = VB['sim/events'];
+  const { on, emit } = VB['sim/events'];
   const { SEASON_DAYS, GOODWILL } = VB['sim/rules'];
   const { of: traitOf } = VB['sim/traits'];
   const { opinionOf, balance, book: bookGoodwill } = VB['sim/relations'];
   const { KINDS } = VB['sim/kinds'];
   const { windowEnd } = VB['sim/hands'];
   const { VOICE } = VB['sim/voice'];
+  const { ASK } = VB['sim/rules'],
+    { MADE } = VB['sim/targets'];
+  const Obligations = VB['sim/obligations'],
+    { DAYS } = VB['sim/days'];
+  const { workOfTarget, fieldYield } = VB['sim/estimate'];
+  const { fullName, log, atFarm, unplanned } = VB['sim/records'];
+  const Norms = VB['sim/norms'],
+    { goodOf } = VB['sim/goods'];
   // @state plan.levies (a household's plan's; sim/plans holds the plan): absent until first read, then {at (the season compiled: year × 4
   //   + season), of: {pawn id: [hours (the row's hours a day, by the clock; null for one not levied: the head pair, a child under 7), hands
   //   (age and health, as compiled), role (the pawn's role then)]}}: each member's levy in force this season, compiled at the season's
@@ -421,6 +429,240 @@ VB['sim/levies'] = (() => {
     return { season: key, of: U.of, year: U.year.at, yearOf: U.year.of };
   }
   const copyOf = (o) => Object.fromEntries(Object.entries(o).map(([k, e]) => [k, e.slice()]));
+  // ---- the labour budget (VB-1778; design.md section 7, The levy and own hours: The labour budget, A season that does not fit) ----
+  // @state plan.budget (a household's plan's): absent until its first review, then {at (the season: year × 4 + season), from (the day
+  //   of the season, 0 to SEASON_DAYS - 1, it was reckoned from), sig (the members, their roles and the outer days it was reckoned on),
+  //   weeks: [the levy hours of each of the season's three game weeks from `from` on, hours times hands, less the outer levies' days in
+  //   it, at least 0], total (their sum), outer (the adult-days of outer levies counted out)}: reckoned at the season's first review and
+  //   again at a review that finds the members, a role or the outer days changed. Plain data, saved with the plan. Written only here.
+  // @state plan.fit (a household's plan's): absent until its first review, then {at (the season), short (the hours its steps' hours left,
+  //   by the head's estimate's mid, exceed the budget by, at the worst game week counted from the season's start: 0 when the season fits),
+  //   week (that game week, 0 to 2), servant (the game year of the moving round at which it would take a servant, or absent), and where
+  //   short: help [[step id, kind, from day, until day (game days), hours]] (the help it plans to ask in each short step's window),
+  //   lowered {store: what it gave up, in the store's units}, demand (the hours left to demand day by day)}: judged once, at the season's
+  //   first review. Plain data, saved with the plan. Written only here; sim/seasonal lowerTargets applies `lowered` (told by the event
+  //   targetsLowered), sim/hands plannedHelp reads `help`, sim/service `servant`; a standing grant (VB-1763) is not renewed while `short`.
+  const WEEK = SEASON_DAYS / 3;
+  // The levy hours a day member p brings its household's season plan, times its hands: its levy (levyOf); for the head pair, not levied
+  // (the plan is theirs), the adult row's hours times their hands, the hours of their own they give the household's work by custom.
+  function budgetHours(st, hh, p, c) {
+    const head = isHead(st, hh, p);
+    if (!head && rowOf(st, hh, p) === null) return 0; // a child under 7, compiled only where it is allotted
+    const e = entry(st, hh, p, c);
+    if (!e) return 0;
+    if (e[0] !== null) return e[0] * e[1];
+    return head && !p.retired ? levyNorm(st, 'adult', c.season, villageOf(st, p)) * e[1] : 0;
+  }
+  // The outer levies' days of household hh this season from day `from` on, by game week: each day called (sim/days' calls) in its week,
+  // and of each obligation's days owed and not yet called, this season's share of them (spread evenly over the seasons left to its due
+  // date, this one counted: a year's days owed are not all charged to every season), in the first week its creditor could call them for
+  // (DAYS.notice ahead); [days a week, total].
+  function outerDays(st, hh, c, from) {
+    const first = c.day - c.sday,
+      w = [0, 0, 0];
+    let n = 0;
+    for (const [day, pawn] of st.daysCalls || []) {
+      const d = day - first;
+      if (d < from || d >= SEASON_DAYS || st.pawns[pawn].household !== hh.id) continue;
+      w[Math.floor(d / WEEK)]++;
+      n++;
+    }
+    let uncalled = 0;
+    for (const o of Obligations.due(st, { kind: 'household', id: hh.id }, 'debtor', 'days'))
+      if (Obligations.isLive(o)) {
+        const owed = Math.max(0, Math.ceil(Obligations.left(o) - o.called - 1e-9)),
+          seasons = Math.max(1, Math.ceil((o.due - st.t) / (SEASON_DAYS * DAY) - 1e-9));
+        uncalled += Math.ceil(owed / seasons - 1e-9);
+      }
+    if (uncalled > 0) {
+      const d = Math.min(SEASON_DAYS - 1, c.sday + DAYS.notice);
+      w[Math.floor(d / WEEK)] += uncalled;
+      n += uncalled;
+    }
+    return [w, n];
+  }
+  // What household hh's budget was reckoned on: its members, their roles, and the outer days owed (called or not).
+  function sigOf(st, hh) {
+    let s = '';
+    for (const id of hh.members) if (st.pawns[id].died === null) s += id + st.pawns[id].role[0] + ',';
+    let n = 0;
+    for (const o of Obligations.due(st, { kind: 'household', id: hh.id }, 'debtor', 'days'))
+      if (Obligations.isLive(o)) n += Obligations.left(o);
+    return s + ':' + Math.round(n * 100);
+  }
+  // budget(st, hh, c): household hh's labour budget for the season of c (plan.budget), reckoned where it is a new season or what it
+  // was reckoned on has changed; null where it has no plan. The levy of known stays away and dated grants would come out of it here:
+  // none is built yet (VB-1763).
+  function budget(st, hh, c = cal(st.t)) {
+    const plan = planOf(st, 'household', hh.id);
+    if (!plan) return null;
+    const key = seasonKey(c),
+      sig = sigOf(st, hh),
+      B = plan.budget;
+    if (B && B.at === key && B.sig === sig) return B;
+    VB.count.budgetReckoned++;
+    const from = c.sday,
+      weeks = [0, 0, 0];
+    let a = 0;
+    for (const id of hh.members) {
+      const p = st.pawns[id];
+      if (p.died === null) a += budgetHours(st, hh, p, c);
+    }
+    for (let d = from; d < SEASON_DAYS; d++) weeks[Math.floor(d / WEEK)] += a;
+    const [w, outer] = outerDays(st, hh, c, from);
+    for (let k = 0; k < 3; k++) weeks[k] = Math.max(0, weeks[k] - w[k] * DAYS.hours);
+    return (plan.budget = { at: key, from, sig, weeks, total: weeks[0] + weeks[1] + weeks[2], outer });
+  }
+  // The game week (0 to 2) of the season of c by which step s is due: a routine's, the earliest window its open tasks close in (sim/hands
+  // windowEnd: the sowing, the frost before the harvest is in; `ends`, a day of the year by step id), else the step's last day; never
+  // a week already past.
+  function weekOf(s, c, ends) {
+    const first = c.day - c.sday;
+    let d = Math.min(SEASON_DAYS - 1, s.by - first);
+    const e = ends.get(s.id);
+    if (e !== undefined) d = Math.min(d, e - c.season * SEASON_DAYS);
+    return Math.max(Math.floor(c.sday / WEEK), Math.floor(Math.max(0, d) / WEEK));
+  }
+  // What the hours of target step s buy, in rations an hour, by the head's reckoning, and what its store lacks: {perHour, lack}, or null
+  // for one it would not lower: the seed, which every head holds back first (Reservations); the woodpile and the hay, which custom puts
+  // no worth on (a winter's fire and fodder, not priced against an hour); a target the head chose. A field: its crop less its seed in a
+  // year (sim/estimate fieldYield of barley, the one reckoning the head's demand weighs a field step's yield by); a made good: custom's
+  // worth a unit.
+  function yieldOf(st, plan, hh, c, s) {
+    const T = s.what.target,
+      C = plan.chosen;
+    let worth = null;
+    if (T.store === 'fields' && !(C && C.fields !== null)) worth = fieldYield('barley');
+    else if (T.good && !(C && C.goods && C.goods[T.good] != null)) {
+      const q = Norms.norm('worth', T.good);
+      if (q !== undefined) worth = q / goodOf(T.good).quantum;
+    }
+    if (worth === null) return null;
+    const w = workOfTarget(st, hh, c, s);
+    return w && w.lack > 0 && s.left.mid > 0 ? { perHour: (worth * w.lack) / s.left.mid, lack: w.lack } : null;
+  }
+  const r1 = (x) => Math.round(x);
+  // The head of household hh judges its season against its budget, at the season's first review (after its estimate of each step's
+  // hours left, sim/estimate setLeft): by each game week, the hours due by its end against the budget's to its end, so a short game week
+  // is seen as the season's total is. Where it does not fit, its default author answers in design.md's order, each by its estimate: help
+  // asked in each short step's window that help takes (MATCH.help.kinds; sim/day asks it, sim/hands plannedHelp) and a servant at the
+  // moving round (sim/service), counted on until given by neither; then a target lowered, the one whose hours buy least first, while an hour of it
+  // buys less than a demanded hour costs (DEMAND.weight × GOODWILL.hour); then the rest demanded day by day (sim/day, VB-1779). The
+  // answer is said in a line of the record. A head on its own commands (unplanned) is told the shortfall, and answers it itself.
+  function fit(st, plan, hh, c) {
+    const key = seasonKey(c);
+    VB.count.fitJudged++;
+    const B = budget(st, hh, c),
+      ends = new Map();
+    for (const j of st.jobsBy.get(`household:${hh.id}`) || []) {
+      if (j.step === undefined || j.step === null) continue;
+      const e = windowEnd(st, j, c);
+      if (e !== null && !(ends.get(j.step) <= e)) ends.set(j.step, e);
+    }
+    const need = [0, 0, 0],
+      rows = [];
+    for (const s of plan.season) {
+      if (!s.left || !(s.left.mid > 0)) continue;
+      VB.count.fitRow++;
+      const k = weekOf(s, c, ends);
+      need[k] += s.left.mid;
+      rows.push([k, s]);
+    }
+    let short = 0,
+      week = 2,
+      n = 0,
+      b = 0;
+    for (let k = 0; k < 3; k++) {
+      n += need[k];
+      b += B.weeks[k];
+      if (n - b > short + 1e-9) [short, week] = [n - b, k];
+    }
+    const was = plan.fit,
+      F = (plan.fit = { at: key, short, week });
+    if (was && Number.isInteger(was.servant) && was.servant >= c.year) F.servant = was.servant;
+    if (!(short > 1e-9)) return F;
+    F.help = [];
+    F.lowered = {};
+    F.demand = short;
+    const head = hh.holder,
+      by = rows.filter((r) => r[0] <= week).map((r) => r[1]);
+    if (head !== null && unplanned(st, head)) {
+      // the head on its own commands is told the shortfall only: how to answer it is its own decision (Every act is a pawn's)
+      delete F.servant;
+      F.demand = 0;
+      say(st, hh, head, F);
+      return F;
+    }
+    // (1) hands asked: in the window of each step due by the short week that help takes, the earliest due first, until the help planned
+    // covers the shortfall (never more than it); and a servant at the next moving round (autumn's, ASK.day)
+    const first = c.day - c.sday;
+    let ask = short;
+    for (const [, s] of rows.filter((r) => r[0] <= week).sort((x, y) => x[0] - y[0] || x[1].id - y[1].id)) {
+      const k = s.what.routine;
+      if (!(ask > 1e-9)) break;
+      if (!k || !MATCH.help.kinds.includes(k)) continue;
+      const until = ends.has(s.id) ? Math.min(s.by, first + ends.get(s.id) - c.season * SEASON_DAYS) : s.by,
+        h = Math.min(s.left.mid, ask);
+      F.help.push([s.id, k, c.day, Math.max(c.day, until), h]);
+      ask -= h;
+    }
+    F.servant = c.season < 2 || (c.season === 2 && c.sday < ASK.day) ? c.year : c.year + 1;
+    // (2) a target lowered, the cheapest first, while an hour of it buys less than a demanded hour would cost
+    const bar = DEMAND.weight * GOODWILL.hour,
+      cand = [];
+    for (const s of by) {
+      if (!s.what.target) continue;
+      const y = yieldOf(st, plan, hh, c, s);
+      if (y && y.perHour < bar) cand.push([y.perHour, s, y.lack]);
+    }
+    cand.sort((x, y) => x[0] - y[0] || x[1].id - y[1].id);
+    let rest = short;
+    for (const [, s, lack] of cand) {
+      if (!(rest > 1e-9)) break;
+      const store = s.what.target.store,
+        M = store === 'fields' ? null : MADE.get(store),
+        per = s.left.mid / lack; // the hours a unit of the store's lack costs
+      let n = (lack * Math.min(rest, s.left.mid)) / s.left.mid;
+      // a store counted whole (a field, a whole good) is lowered by whole units, one where the cut reaches most of one; the rest is demanded
+      if (store === 'fields' || (M && M.whole)) n = Math.min(lack, Math.round(n));
+      if (!(n > 1e-9)) continue;
+      F.lowered[store] = n;
+      rest -= n * per;
+    }
+    if (Object.keys(F.lowered).length) emit(st, 'targetsLowered', { plan, c }); // sim/seasonal lowerTargets
+    // (3) the rest, demanded day by day
+    F.demand = Math.max(0, rest);
+    say(st, hh, head, F);
+    return F;
+  }
+  // The line of the record that says how the head answered a season that did not fit.
+  function say(st, hh, head, F) {
+    if (hh.farmstead === null) return;
+    const f = st.farmsteads[hh.farmstead],
+      who = head === null ? `The household of ${f.name}` : `${fullName(st.pawns[head])} of ${f.name}`,
+      parts = [];
+    if (F.help.length)
+      parts.push(`will ask for help with the ${F.help.map((h) => KINDS[h[1]].label.toLowerCase()).join(', ')}`);
+    if (F.servant !== undefined) parts.push('will take a servant at the moving round if one is to be had');
+    const L = Object.keys(F.lowered);
+    if (L.length) parts.push(`lowered its target of ${L.join(', ')}`);
+    if (F.demand > 1e-9) parts.push(`will ask ${r1(F.demand)} hours more of the household`);
+    log(
+      st,
+      `${who} reckoned the season's work ${r1(F.short)} hours more than the household owes it by the ` +
+        `${['first', 'second', 'third'][F.week]} week${parts.length ? `, and ${parts.join('; ')}` : ''}.`,
+      { kind: 'seasonShort', pawn: head ?? undefined, ...atFarm(f) },
+    );
+  }
+  // At every review of a household's plan, after its steps' hours left (sim/estimate, whose listener comes first): its budget, reckoned
+  // where something has changed, and at the season's first review its fit judged.
+  on('planReviewed', (st, d) => {
+    if (d.plan.holder.type !== 'household') return;
+    const hh = st.households[d.plan.holder.id];
+    if (hh.dissolved || !d.plan.season) return;
+    budget(st, hh, d.c);
+    if (!d.plan.fit || d.plan.fit.at !== seasonKey(d.c)) fit(st, d.plan, hh, d.c);
+  });
   return {
     rowOf,
     levyOf,
