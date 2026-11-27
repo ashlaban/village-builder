@@ -7,7 +7,7 @@ VB['sim/estimate'] = (() => {
   const { atWork } = VB['sim/pose'];
   const { CROPS } = VB['sim/crops'],
     Targets = VB['sim/targets'];
-  const { HUNGER, HEALTH, HERD, FIELDS } = VB['sim/rules'],
+  const { HUNGER, HEALTH, HERD, FIELDS, DAY, cal } = VB['sim/rules'],
     { workRate } = VB['sim/roles'];
   const { age, fullName, log, atFarm } = VB['sim/records'];
   const Skills = VB['sim/skills'],
@@ -20,6 +20,8 @@ VB['sim/estimate'] = (() => {
   const { headSkill } = VB['sim/seasonal'];
   const { fieldKey } = VB['sim/fieldwork'];
   const { on } = VB['sim/events'];
+  const Water = VB['sim/water'],
+    { dayHours } = VB['sim/byre'];
   // @tunable ESTIMATE (VB-476; design.md section 7, The estimate; Kim, 15 Nov: the worker's skill moves the time taken, the head's the
   //   estimate; a poor head's range is honest and wide):
   //   reckons: the causes a judgement reckons with, in the order skill as head brings them in, each from the skill named: hunger and health
@@ -274,7 +276,7 @@ VB['sim/estimate'] = (() => {
   // target's from its store's shortfall against its level (wood: the loads it lacks, fell and cut; hay: the mowing and carrying its
   // shortfall wants; fields: a clearing and a breaking each field it lacks;
   // seed: a sowing a field's seed it lacks; a made good: its maker's hours a unit it lacks), a routine's:
-  // the head's estimate of the open tasks it opened (VB-1868). One estimate a target step with work
+  // the head's estimate of the open tasks it opened (VB-1868), and a daily routine's its work on the days left (VB-1906). One estimate a target step with work
   // left; it feeds no rule yet (VB-1778 sets it against the labour budget).
   // The hours a unit of each made good takes, by its maker's kind (VB-1867).
   const PER = {
@@ -330,6 +332,50 @@ VB['sim/estimate'] = (() => {
     }
     return null;
   }
+  // The hours a daily routine step s (sim/kinds `daily`: the meal, the water, the milking, the fodder) still wants on the days of the
+  // season left by head id's estimate (VB-1906), {lo, mid, hi}, or null for none: the days after today, and today where its work is
+  // neither done (the household's day marker) nor standing as an open task of the step (`open`, whose estimate setLeft counts already: a
+  // first review before the day's meal is posted counts the day's meal). The water, the day's fetch the head weighs (sim/water waterOf):
+  // its drawing by the estimate, its walks at the norm every judgement reckons with; the byre's, each day's job as it would be posted
+  // then (sim/byre dayHours: the fodder while the herds are stalled, the milking while animals are in milk); another lived by every day
+  // (`vital` true), its hours a day.
+  const DONE_DAY = { cook: 'cookDay', water: 'waterDay', milk: 'milkDay', fodder: 'fodderDay' };
+  function dailyLeft(st, hh, c, s, id, open) {
+    const k = s.what.routine,
+      K = KINDS[k];
+    if (!K || !K.daily) return null;
+    const from = !open && !(DONE_DAY[k] && hh[DONE_DAY[k]] === c.day) ? 0 : 1, // today counted here, or not
+      days = s.by - c.day + 1 - from;
+    if (!(days > 0)) return null;
+    let H = 0,
+      walk = 0;
+    if (k === 'water') {
+      const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead],
+        W = f && f.water ? Water.waterOf(st, f) : null;
+      if (!W || W.none) return null;
+      H = (W.hand + W.cart) * Water.WATER.draw * days; // the drawing, the work the head estimates
+      walk = Math.max(0, W.hours * days - H);
+    } else if (k === 'fodder' || k === 'milk')
+      for (let d = from; d < from + days; d++) {
+        VB.count.dailyDay++;
+        H += dayHours(st, hh, k, cal(st.t + d * DAY));
+      }
+    else if (K.vital === true) H = (K.hours || 0) * days;
+    if (!(H > 0)) return null;
+    const e =
+      id === null
+        ? null
+        : estimate(st, id, {
+            kind: k,
+            hours: H,
+            done: 0,
+            rate: 0,
+            owner: { type: 'household', id: hh.id },
+            claims: [],
+          });
+    const E = e && Number.isFinite(e.mid) ? e : { lo: H, mid: H, hi: H };
+    return { lo: E.lo + walk, mid: E.mid + walk, hi: E.hi + walk };
+  }
   function setLeft(st, plan, hh, c) {
     const id = plan.head ? plan.head.pawn : null,
       mine = st.jobsBy.get(`household:${hh.id}`);
@@ -337,15 +383,24 @@ VB['sim/estimate'] = (() => {
       if (!s.what.target) {
         // a routine: the head's estimate of the open tasks it opened (j.step), among the household's own (VB-1868)
         const sum = { lo: 0, mid: 0, hi: 0 };
+        let open = false;
         if (mine && id !== null)
           for (const j of mine) {
             if (j.step !== s.id) continue;
+            open = true;
             const e = estimate(st, id, j);
             const f = Number.isFinite(e.mid);
             sum.lo += f ? e.lo : e.work;
             sum.mid += f ? e.mid : e.work;
             sum.hi += f ? e.hi : e.work;
           }
+        // a daily routine: and its work on each day of the season left (VB-1906), so the budget is set against all the season's work
+        const D = dailyLeft(st, hh, c, s, id, open);
+        if (D) {
+          sum.lo += D.lo;
+          sum.mid += D.mid;
+          sum.hi += D.hi;
+        }
         s.left = sum; // lint-allow: owner as below
         continue;
       }

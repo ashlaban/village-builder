@@ -352,7 +352,10 @@ function hudCall(i, id, hh, f) {
       (making || unsown || marked === 'plant' || free.field.has(i)) && 'plant',
       Sim.planGaps && (mi >= 0 || making2 || marked === 'hay' || free.meadow.has(i)) && 'hay',
       Sim.planGaps && fi >= 0 && !unsown && 'harvest',
-    ].filter((c) => c && P && !P.tasks.some((t) => t.kind === c && t.site === i));
+    ]
+      .filter((c) => c && P && !P.tasks.some((t) => t.kind === c && t.site === i))
+      // the window's act opened this card (page/ui2hud yearGo): its chain first, the one pressed for
+      .sort((a, b) => (hud.goAt && hud.goAt.tile === i ? (b === hud.goAt.chain) - (a === hud.goAt.chain) : 0));
   if (gap)
     say(
       'gap',

@@ -108,14 +108,18 @@ function laneHTML(A, P) {
       s = steps[i],
       v = e ? hudVerdict(e) : null,
       d = laneDeadline(e),
-      risk = s && s.state === 'at-risk',
+      // the lane's own word: a task whose end falls past its window, or tight with its deadline in the days at full width, is marked
+      // though the plan's step is not at risk (a harvest is laid on the ripening, which may fall a day before the frost)
+      late = v === 'late',
+      near = v === 'tight' && d && d.t < (S.day0 + LANE.full) * D,
+      risk = (s && s.state === 'at-risk') || late || near,
       name = `${i + 1}. ${hudKind(t.kind)}`,
       pc = `t:${i}`,
       sel = hud.pc === pc ? ' sel' : '',
       keep = s && s.kept ? `<i class="u2-lkeep" aria-label="Kept">${actIcon('pin')}</i>` : '',
       riskMark = (left) =>
         `<button type="button" class="u2-lrisk" data-pc="${pc}" style="left:${left}" ` +
-        `aria-label="${esc(`${name}: at risk`)}" title="At risk">!</button>`;
+        `aria-label="${esc(`${name}: ${late ? 'too late' : 'at risk'}`)}" title="${late ? 'Too late' : 'At risk'}">!</button>`;
     let r = '';
     if (e && Number.isFinite(e.ends) && Number.isFinite(e.starts)) {
       const a = S.x(Math.max(st.t, e.starts)),

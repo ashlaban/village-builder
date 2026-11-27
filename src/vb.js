@@ -213,6 +213,8 @@ VB.COUNTERS = {
     "Dated grants on a household's plan looked at, for a member's levy in force, the budget or a leave begun (sim/levies, sim/voice; VB-1763)",
   budgetDay:
     "Members' days of a season read for their levy in force by a household's labour budget reckoned (sim/levies budget, VB-1763)",
+  dailyDay:
+    "Days of a season left read for a household's daily byre work by its head's estimate at a plan review (sim/estimate dailyLeft, VB-1906)",
   lighterLook: "Members looked at at the season's turn for an ask of a lighter levy (sim/voice, VB-1763)",
   lighterAsked: 'Asks of a lighter levy made by a member of its head (sim/voice, VB-1763)',
   lighterGiven: 'Lighter levies granted by a head (sim/voice, VB-1763)',
