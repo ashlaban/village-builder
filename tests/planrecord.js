@@ -91,4 +91,19 @@ assert.strictEqual(Sim.plans(st, { kind: 'pawn', id: 0 }), null, 'a pawn that ho
   assert(plan.season.every((s) => s.author === 'custom'), "the template's order again");
   assert.deepStrictEqual(require('./lib/invariants.js').checkState(st).filter((x) => x.startsWith('plans')).filter((x) => !/not in the current season/.test(x)), [], 'the record holds');
 }
+// VB-1826: a season step's hours left by its head's estimate: a wood target below its level has lo <= mid <= hi, more than 0; met, 0
+{
+  const hh2 = st.households.find((h) => !h.dissolved && st.plans.households.get(h.id).head);
+  const pl = st.plans.households.get(hh2.id),
+    W = Steps.targetOf(pl, "wood");
+  const c = VB['sim/rules'].cal(st.t);
+  const left = () => pl.season.find((s) => s.what.target && s.what.target.store === 'wood').left;
+  W.seasons[c.season] = hh2.wood + 5 * st.ECON.woodPerTrip;
+  VB["sim/plans"].reviewed(st, pl, c);
+  const l = left();
+  assert(l.lo <= l.mid && l.mid <= l.hi && l.mid > 0, 'a wood target below its level has hours left');
+  W.seasons[c.season] = 0;
+  VB["sim/plans"].reviewed(st, pl, c);
+  assert.strictEqual(left().mid, 0, 'one met has none');
+}
 console.log('planrecord ok');
