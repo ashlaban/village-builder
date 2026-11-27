@@ -390,6 +390,10 @@ function hudClick(b) {
       hudMsg(r, 'The order is changed.');
       if (r === true) hud.pc = `t:${d.to}`;
     }
+  } else if (d.hud === 'pkeep') {
+    const r = Sim.plan(st, st.player.pawn, 'keep', { i: +d.i, on: !!d.on }); // the pressed pin says it: words only on a refusal
+    hud.msg = null;
+    if (r !== true) hudMsg(r, '');
   } else if (d.hud === 'pmovecancel') {
     hud.pmove = hud.pinfo = null;
     hudMsg(true, 'The order is kept.');
