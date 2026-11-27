@@ -167,6 +167,11 @@ function green(st, v, ids) {
   const once = lots.length;
   review(st, 3);
   assert.strictEqual(st.obligations.filter((o) => o.source === 'routine').length, once, 'laid once a season');
+  // the routines set again mid-season (the meeting's day, here by asLastYear): the routine keeps its step, so its lots' why still reach it
+  VB['sim/routines'].setRoutines(st, v.id, ['fence'], 'asLastYear');
+  const again = VB['sim/steps'].find(st, plan, lots[0].why.step);
+  assert.ok(again && again.what.routine === 'fence' && again.id === step.id, 'the step of the why found after the re-set');
+  assert.deepStrictEqual(again.why, { custom: 'asLastYear' }, 'its why the new decision');
   // the work done: the days left released
   for (const x of v.fence) x.cond = 1;
   review(st, 4); review(st, 5);
@@ -182,6 +187,16 @@ function green(st, v, ids) {
   const told = st.record.find((e) => typeof e === 'object' && e.kind === 'workLeft' && /work left undone/.test(e.text));
   assert.ok(told && told.text.includes(`${plan.routineLeft.days.fence} day`) && /fence/i.test(told.text), told && told.text);
   assert.ok(plan.routines.includes('fence'), 'the fence chosen again');
+  { // the work left weighs in the choice: a routine ranked last comes first with many days of it left
+    const R = VB['sim/routines'], base = R.chooseRoutines(st, v), was = plan.routineLeft;
+    assert.ok(base && base.length > 1, `routines to rank: ${base}`);
+    const k = base[base.length - 1];
+    plan.routineLeft = { by: plan.routinesBy + plan.routinesYear, days: { [k]: 1000 } }; // lint-allow: owner a test's scene
+    assert.strictEqual(R.chooseRoutines(st, v)[0], k, `${k} weighed by its work left`);
+    plan.routineLeft = { by: 'another setting', days: { [k]: 1000 } }; // lint-allow: owner a test's scene: left under routines set before
+    assert.deepStrictEqual(R.chooseRoutines(st, v), base, 'work left under other routines not weighed');
+    plan.routineLeft = was; // lint-allow: owner the scene undone
+  }
   assert.deepStrictEqual(checkState(st).filter((x) => /plans|obligation|levy/.test(x)), [], 'invariants');
 }
 console.log('routines ok: founded, chosen by the meeting, posted on the villager basis; no quorum with nothing and asLastYear; ties; the verb\'s refusals; the routines\' lots laid, released and their work left told');

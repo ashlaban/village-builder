@@ -92,9 +92,7 @@ const K = VB['sim/kinds'].KINDS;
 assert.ok(jobs.every((j) => K[j.kind].hands === Infinity && K[j.kind].together), 'unlimited hands, all together');
 to(Y2 + WORK[0] + 1);
 assert.ok(jobs.some((j) => j.claims.length), 'the work is taken up');
-// late in the day, a stretch is struck again so that the work is not done at its end: the lone household's stay-away breaches
-to(Y2 + WORK[1] - 0.3);
-v.fence[0].cond = 0.5; // lint-allow: owner a test's scene: the work left undone at the day's end
+// the others close the fence; the lone household that stayed away breaches all the same (design.md, Village work days)
 const breached0 = VB.count.dayBreached;
 to(Y2 + WORK[1] + 0.1);
 assert.ok(![...st.jobs.values()].some((j) => W.isWorkdayJob(j)), "the day's jobs are taken down at its end");
@@ -145,6 +143,7 @@ assert.strictEqual(clear.hours, st.households.slice(0, 4).flatMap(adultsOf).leng
 to(S2 + WORK[1] + 0.1);
 assert.strictEqual(held().length, 2, 'the second day noted');
 assert.ok(held()[1].text.includes('commons'));
+assert.strictEqual(lp.workdays.missed, 2, 'away again');
 // a save keeps it
 const back = Sim.load(st.w, JSON.parse(JSON.stringify(Sim.save(st))));
 assert.deepStrictEqual(back.villages[v.id].workday, v.workday);

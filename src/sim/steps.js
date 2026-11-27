@@ -125,11 +125,17 @@ VB['sim/steps'] = (() => {
       st.plans.pawns.delete(p.holder.id);
   }
   // A village's routines as steps of its year (sim/routines, VB-1768): each `what` {routine, kinds}, by the default author, open, its
-  // `why` the decision that set them ({custom: by}); those of the routines set before leave.
+  // `why` the decision that set them ({custom: by}); a routine set again keeps its step (its id, which the levies' why name), the others
+  // leave.
   function setRoutines(st, plan, whats, by) {
     if (!plan.year) return;
+    const had = new Map(plan.year.filter((s) => s.what.kinds).map((s) => [s.what.routine, s]));
     plan.year = plan.year.filter((s) => !s.what.kinds);
-    for (const what of whats) plan.year.push(make(st, what, { custom: by }, { state: 'open' }));
+    for (const what of whats) {
+      const s = had.get(what.routine);
+      if (s) Object.assign(s, { what, why: { custom: by } });
+      plan.year.push(s || make(st, what, { custom: by }, { state: 'open' }));
+    }
   }
   // ---- a task's step ----
   // The id of the step that opens a task of `kind` at `site` for `owner`, or null: the open step of the owner's project of that kind (at

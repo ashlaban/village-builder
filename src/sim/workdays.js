@@ -132,7 +132,7 @@ VB['sim/workdays'] = (() => {
   }
   // The end of a work day (sim/clock, at the end of work; VB-1768): each adult who worked WORKDAY.hours turned out. Each household levied
   // for the day (its lot, terms `together`) none of whose adults worked their share (WORKDAY.hours, or the hours the village worked over
-  // its adults when that is less) while the work was not done stayed away: it breaches its lot (sim/levies missedDay: the day's worth
+  // its adults when that is less) stayed away: it breaches its lot (sim/levies missedDay: the day's worth
   // as goodwill its head owes the alderman, opinion following; pawn.workdays.missed its record), and each other holder of the village
   // with a tie to it remembers. What is left of the lots of those who came, or of all once the work is done, the alderman releases. The
   // village's log tells the day. A day is judged where it was called. Returns the pawns whose standing changed.
@@ -164,7 +164,7 @@ VB['sim/workdays'] = (() => {
       const o = lots.get(x.hh.id);
       if (!o) continue;
       const left = Ob.left(o);
-      if (!any && !done && x.hh.holder !== null && st.pawns[x.hh.holder].alive) {
+      if (!any && x.hh.holder !== null && st.pawns[x.hh.holder].alive) {
         if (Ob.isLive(o)) {
           // its breach, booked by sim/levies (missedDay)
           emit(st, 'workdayMissed', {

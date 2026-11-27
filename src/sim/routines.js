@@ -86,7 +86,8 @@ VB['sim/routines'] = (() => {
   function chooseRoutines(st, v, founders = false) {
     const cands = [],
       plan = st.plans.villages.get(v.id),
-      left = (plan && plan.routineLeft) || {};
+      R = plan && plan.routineLeft,
+      left = R && R.by === plan.routinesBy + plan.routinesYear ? R.days : {};
     for (const k of Object.keys(VILLAGE_ROUTINES)) {
       const R = VILLAGE_ROUTINES[k];
       if (!(founders && R.meeting) && R.available(st, v))
@@ -324,6 +325,5 @@ VB['sim/routines'] = (() => {
     stepOf,
     owns,
     nextCall,
-    customDays,
   };
 })();

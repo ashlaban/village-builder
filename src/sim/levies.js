@@ -1569,9 +1569,9 @@ VB['sim/levies'] = (() => {
       if (o.source !== 'routine' || !o.why || o.terms.names === 'together') continue;
       const s = Steps.find(st, plan, o.why.step),
         k = s && s.what.routine;
-      if (!k) continue;
-      if (!done.has(k)) done.set(k, !plan.routines.includes(k) || hoursLeft(st, v, k, a) <= 0);
-      if (!done.get(k)) continue;
+      // a routine no longer set (its step gone) has nothing left to work
+      if (k && !done.has(k)) done.set(k, !plan.routines.includes(k) || hoursLeft(st, v, k, a) <= 0);
+      if (k && !done.get(k)) continue;
       const d = st.daysToday;
       if (d) for (const id in d.by) if (d.by[id][0] === o.id) Days.release(st, +id);
       const n = Obligations.left(o);
@@ -1618,8 +1618,6 @@ VB['sim/levies'] = (() => {
     leviesOf,
     lotsOf,
     split,
-    missedDay,
-    agentOf,
     costOf,
     keepDay,
     unnamed,
