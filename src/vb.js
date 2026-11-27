@@ -207,6 +207,15 @@ VB.COUNTERS = {
   leaveAsked: 'Asks of leave made by a member of its head (sim/voice, VB-1555)',
   leaveGiven: 'Leaves given by a head (sim/voice, VB-1555)',
   leaveRefused: 'Asks of leave refused by a head (sim/voice, VB-1555)',
+  grantGiven:
+    "Grants of a member's levy written on its household's plan: a head's, standing or dated, and a servant's free day (sim/levies, VB-1763)",
+  grantLook:
+    "Dated grants on a household's plan looked at, for a member's levy in force, the budget or a leave begun (sim/levies, sim/voice; VB-1763)",
+  budgetDay:
+    "Members' days of a season read for their levy in force by a household's labour budget reckoned (sim/levies budget, VB-1763)",
+  lighterLook: "Members looked at at the season's turn for an ask of a lighter levy (sim/voice, VB-1763)",
+  lighterAsked: 'Asks of a lighter levy made by a member of its head (sim/voice, VB-1763)',
+  lighterGiven: 'Lighter levies granted by a head (sim/voice, VB-1763)',
   occasionAsked:
     "Pawns weighed as guests of an occasion: a village's people at its meeting, kin and housemates at a wedding or a death " +
     '(sim/occasions, VB-126), the adults asked to an ale evening and to the rite (VB-522)',

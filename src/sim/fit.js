@@ -13,7 +13,7 @@ VB['sim/fit'] = (() => {
   const { KINDS, isOpen, carriedOn } = VB['sim/kinds'];
   const Days = VB['sim/days'];
   const Hands = VB['sim/hands'],
-    Voice = VB['sim/voice'];
+    Grants = VB['sim/grants'];
   const { claimPrio } = VB['sim/farmclaims'];
   const { commonPrio } = VB['sim/commons'];
   const Levies = VB['sim/levies'],
@@ -60,7 +60,7 @@ VB['sim/fit'] = (() => {
     !unplanned(st, p.id) &&
     Days.on(st, p.id) === null &&
     Hands.on(st, p.id) === null &&
-    !Voice.on(st, p.id) && // on leave (VB-1555)
+    !Grants.on(st, p.id) && // on leave (VB-1555; its head's dated grant, VB-1763)
     p.ill === undefined; // ill (VB-1758: an illness keeps its pawn from work)
   // The stand mask of pawn p (VB-1545): the roles its household lacks today when p is the holder at work, else 0. A pass over the
   // household's members, for a reader outside an allotment (fit); allot makes it once from its own list.

@@ -617,7 +617,9 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
     auto: ['auto'],
     chain: ['plan'], // op add with a chain's tile, on the pawn's own plan; VB-1777 makes it a goal its kind's methods carry
     ownDay: ['plan'], // op dayOrder on the pawn's own plan: its own list of its household's day (tests/timetable.js 3b)
-    leave: ['ask'], // basis leave, of its head (tests/voice.js); st.leaves stays until VB-1763's dated grant
+    leave: ['ask'], // basis leave, of its head, answered by its dated grant (tests/voice.js; VB-1763)
+    lighter: ['ask'], // basis lighter, of its head, answered by a standing grant (tests/voice.js; VB-1763)
+    grant: ['grant'], // the head lowers a member's levy, standing or dated (tests/voice.js; VB-1763)
     hands: ['ask'], // basis hands, of another head of the village (tests/helpers.js)
   };
   const ACTS_LEFT = {

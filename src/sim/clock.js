@@ -162,9 +162,8 @@ VB['sim/clock'] = (() => {
     {
       every: 'hour',
       at: { hour: [WORK[0] - 1, WORK[1]] },
-      when: (st, c) => c.hour === WORK[0] - 1 || !!st.leaves,
       owner: 'sim/voice',
-      note: "a member's leave begins at its hour; after the morning's allotment, the members' own asks of leave (VB-1555)",
+      note: "a member's leave (its head's dated grant) begins at its hour; after the morning's allotment, the members' own asks of leave (VB-1555, VB-1763)",
       run: (st, c) => VB['sim/voice'].hour(st, c),
     },
     {
