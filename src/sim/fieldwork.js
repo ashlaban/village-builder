@@ -19,7 +19,8 @@ VB['sim/fieldwork'] = (() => {
     { manureWanted, manureDone } = VB['sim/soil'];
   const { hoed, sown, reaped, standing, carried, laidDown, binned, reclaimed, weeded } = VB['sim/fields'];
   const { fieldsWorkable, fieldProject } = VB['sim/fieldplans'];
-  const { heldFarms } = VB['sim/ownership'];
+  const { heldFarms } = VB['sim/ownership'],
+    { emit } = VB['sim/events'];
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
   // Several hands on one field start on different rows: the nth worker on row -12 + 6n, five rows across the tile.
   const firstRow = (j, a) => -12 + 6 * (Math.max(0, j.claims.indexOf(a.id)) % 5);
@@ -389,6 +390,7 @@ VB['sim/fieldwork'] = (() => {
       // untouched once it is sown anew (VB-1814: as the fetch kinds had it)
       const seq = Stores.sheaf(st, hh, a.load, j.bin ?? j.field.bin ?? -1, j.crop ?? j.field.crop);
       if (j.bin === undefined || j.bin === j.field.bin) binned(j.field, seq);
+      if (st.titles && st.titles.size) emit(st, 'sheavesIn', { hh, field: j.field, n: a.load }); // a rent on it (sim/heirland, VB-034)
       if (
         f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') &&
         !hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].load > 0)

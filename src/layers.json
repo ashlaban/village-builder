@@ -132,6 +132,7 @@
       "sim/births",
       "sim/heirranking",
       "sim/terms",
+      "sim/heirland",
       "sim/heirs",
       "sim/membership",
       "sim/cottage",

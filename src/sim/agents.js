@@ -674,6 +674,22 @@ VB['sim/agents'] = (() => {
     if (a.job) release(st, a, true);
     if (!a.inside && !(a.load > 0)) goHome(st, a);
   });
+  // Field fd passes to another farm (VB-034: an heir's field, as its house stands; sim/heirland): the tasks on it go, and those working
+  // them stop, a load in hand put down where its carrier stands, as at a household's end (stopWorkFor).
+  on('fieldPassing', (st, { field }) => {
+    for (const j of [...st.jobs.values()]) {
+      if (j.field !== field) continue;
+      for (const id of [...j.claims]) {
+        const a = st.agents[id];
+        if (a && a.load > 0 && a.job === j && st.pawns[id].alive) {
+          release(st, a);
+          standStill(st, a);
+        }
+      }
+      freeHands(st, j, -1);
+      dropJob(st, j);
+    }
+  });
   // A charge held out of reach, with no task in hand (sim/attention hold): the pawn sets out for it (the last taken up).
   on('mindAway', (st, a) => {
     const j = a.mind[a.mind.length - 1],

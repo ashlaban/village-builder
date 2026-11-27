@@ -4,7 +4,7 @@
 VB['sim/membership'] = (() => {
   const { living } = VB['sim/records'];
   const { makeHousehold, joinHousehold, setServant, home } = VB['sim/records'];
-  const { setOwner } = VB['sim/ownership'];
+  const { farmTo } = VB['sim/ownership'];
   const Stores = VB['sim/stores'];
   const { ECON, TRAVEL, cal } = VB['sim/rules'],
     { MATCH } = VB['sim/roles'];
@@ -64,9 +64,7 @@ VB['sim/membership'] = (() => {
       }
     st.households.push(hh);
     makePlan(st, 'household', hh.id);
-    for (const t of [f.house, ...f.fields.map((fd) => fd.tile), ...f.meadows.map((m) => m.tile)]) {
-      setOwner(st, t, { type: 'household', id: hh.id });
-    }
+    farmTo(st, f, { type: 'household', id: hh.id }); // with the use of its fields split off to an heir (VB-034)
     for (const id of members) {
       if (unhomed && st.pawns[id].household === null) joinHousehold(st, hh, id);
       else {

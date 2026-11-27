@@ -117,7 +117,7 @@ function checkState(st) {
     }
   }
   // VB-311: titles: each names a holding that exists (a farm by its house, a field or meadow of its farm by its tile); its owner and user
-  // live households or villages; its since, rent and kind sound
+  // live households or villages (the owner a living pawn on the basis `inherited`, VB-034); its since, rent and kind sound
   if (st.titles) {
     const liveParty = (p) => !!p && Number.isInteger(p.id) && (p.type === 'village' ? !!st.villages[p.id] : p.type === 'household' && !!st.households[p.id] && !st.households[p.id].dissolved);
     if (!(st.titles instanceof Map)) bad.push('titles: not a Map');
@@ -125,7 +125,8 @@ function checkState(st) {
       const f = st.farmsteads[t.farm];
       const holds = f && (t.kind === 'farm' ? f.house === key : t.kind === 'field' ? f.fields.some((fd) => fd.tile === key) : t.kind === 'meadow' && (f.meadows || []).some((m) => m.tile === key));
       if (!holds) bad.push(`titles[${key}]: no ${t.kind} of farmstead ${t.farm} there`);
-      if (!liveParty(t.owner)) bad.push(`titles[${key}]: owner ${JSON.stringify(t.owner)} is not a live household or a village`);
+      const heirOwns = t.owner && t.owner.type === 'pawn' && st.pawns[t.owner.id] && st.pawns[t.owner.id].alive && t.basis === 'inherited'; // VB-034
+      if (!liveParty(t.owner) && !heirOwns) bad.push(`titles[${key}]: owner ${JSON.stringify(t.owner)} is not a live household, a village or a living heir`);
       if (!liveParty(t.user)) bad.push(`titles[${key}]: user ${JSON.stringify(t.user)} is not a live household or a village`);
       if (!Number.isFinite(t.since) || t.since > st.t || !(t.rent >= 0 && t.rent <= 1)) bad.push(`titles[${key}]: since ${t.since} or rent ${t.rent} out of bounds`);
     }
