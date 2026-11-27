@@ -860,3 +860,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1834](backlog/VB-1834.md) | One reading of the plans of a household, indexed and counted | plans | 3 | S | planOf and plansIn are copied in sim/chores and sim/camp, and plansIn walks every controlled pawn per household |
 | [VB-1867](backlog/VB-1867.md) | Season steps' left for seed and made goods | - | 3 | S | Seed and made-good targets carry left |
 | [VB-1811](backlog/VB-1811.md) | A pile's fetch is not held for days by a hand that has not set out | plans | 3 | S | The gate's one held task after VB-1748 is a fetchHay claimed by a child who sets out 39 hours later; the base holds the same kind 31 hours |
+| [VB-1868](backlog/VB-1868.md) | Routine steps' left from the tasks they open | - | 3 | S | Routine steps carry left from their tasks |

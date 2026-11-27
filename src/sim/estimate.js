@@ -240,8 +240,9 @@ VB['sim/estimate'] = (() => {
   // The hours each season step still wants by the head's estimate (VB-1826: its rates and its lean), `left` {lo, mid, hi}: a
   // target's from its store's shortfall against its level (wood: the loads it lacks, fell and cut; hay: the mowing and carrying its
   // shortfall wants; fields: a clearing and a breaking each field it lacks;
-  // seed: a sowing a field's seed it lacks; a made good: its maker's hours a unit it lacks), a routine's none
-  // yet (VB-1868). One estimate a target step with work left; it feeds no rule yet (VB-1778 sets it against the labour budget).
+  // seed: a sowing a field's seed it lacks; a made good: its maker's hours a unit it lacks), a routine's:
+  // the head's estimate of the open tasks it opened (VB-1868). One estimate a target step with work
+  // left; it feeds no rule yet (VB-1778 sets it against the labour budget).
   // The hours a unit of each made good takes, by its maker's kind (VB-1867).
   const PER = {
     ale: () => ({ kind: 'brew', hours: KINDS.brew.hours }),
@@ -291,8 +292,24 @@ VB['sim/estimate'] = (() => {
     return null;
   }
   function setLeft(st, plan, hh, c) {
-    const id = plan.head ? plan.head.pawn : null;
+    const id = plan.head ? plan.head.pawn : null,
+      mine = st.jobsBy.get(`household:${hh.id}`);
     for (const s of plan.season) {
+      if (!s.what.target) {
+        // a routine: the head's estimate of the open tasks it opened (j.step), among the household's own (VB-1868)
+        const sum = { lo: 0, mid: 0, hi: 0 };
+        if (mine && id !== null)
+          for (const j of mine) {
+            if (j.step !== s.id) continue;
+            const e = estimate(st, id, j);
+            const f = Number.isFinite(e.mid);
+            sum.lo += f ? e.lo : e.work;
+            sum.mid += f ? e.mid : e.work;
+            sum.hi += f ? e.hi : e.work;
+          }
+        s.left = sum; // lint-allow: owner as below
+        continue;
+      }
       const w = s.what.target ? workOfTarget(st, hh, c, s) : null;
       if (!w) {
         s.left = { lo: 0, mid: 0, hi: 0 }; // lint-allow: owner the estimate is the head's, sim/estimate (sim/seasonal sits before it)
