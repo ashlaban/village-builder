@@ -21,5 +21,5 @@ river on the north shore, drawn in the farm art's manner (`src/page/farmart.js`)
 | `img/desk-town.jpg` | the whole town at the closest zoom |
 | `img/desk-surroundings.jpg` | the town with its fields, mills, commons and the two villages it serves |
 | `img/island.jpg` | the island |
-| `img/desk-hex-town.jpg`, `img/desk-hex-surroundings.jpg` | v2 (`plan-hex.js`, Kim 27 Nov): a quarter of houses per hex like a farm, streets along hex edges, no palisade; garden hex, fields and a toll bar mark the edge |
+| `img/desk-hex-town.jpg`, `img/desk-hex-surroundings.jpg` | v2 (`plan-hex.js`, Kim 27 Nov): a quarter of houses per hex like a farm, roads through the hexes as the game's lanes run (Kim 27 Nov), no palisade; garden hex, fields and a toll bar mark the edge |
 | `img/phone-*.jpg` | the same on a phone |

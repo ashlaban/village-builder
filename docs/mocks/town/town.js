@@ -68,7 +68,8 @@ function seedTown(w, seed, P) {
   VB['sim/scenarios'].startStreams(st, seed);
   VB['sim/carts'].seedCarts(st, true);
   if (!P.labels) for (const k of Object.keys(P.tiles || {})) for (const cr of P.tiles[k]) if (!w.water[T(cr)]) w.dev[T(cr)] = Math.max(w.dev[T(cr)], 1);
-  if (!P.labels) for (const road of P.roads || []) for (const cr of road) { const t = T(cr); if (!w.water[t]) { w.worn[t] = 3; if (w.crossing) w.crossing[t] = 99; } }
+  if (!P.labels) for (const road of P.roads || []) for (const cr of road) { const t = T(cr); if (!w.water[t]) { w.worn[t] = 3; if (w.wear) w.wear[t] = Math.max(w.wear[t], cr[2] || 20); } }
+  if (!P.labels) for (const cr of P.greens || []) w.dev[T(cr)] = 2; // an open place the ways cross (draw/paths), as a village green
   return st;
 }
 

@@ -1,6 +1,6 @@
 // The town again, each hex a quarter (Kim, 27 November: "houses belong to a hex, similar to a farm but maybe a quarter"): a hex holds
 // a group of buildings round its own trodden yard, as a farm's hex holds its cottage, barn and storehouse; streets run along the edges
-// between quarters; the market is one hex, the church and its yard two. No palisade (there is no violence in the game): the town ends
+// through the hexes, centre to centre, as the game's lanes run in the countryside; the market is one hex, the church and its yard two. No palisade (there is no violence in the game): the town ends
 // where its yard hexes end, with a ring of kitchen-garden hexes on the landward side, the town's fenced fields beyond, and a toll bar
 // where the road comes in. About 60 dwellings, some 350 people. Points are [col, row, dx, dy] as in plan.js.
 const base = require('./plan.js');
@@ -14,36 +14,35 @@ const H = [
 ];
 const house = (c, r, dx, dy, k, extra = {}) => ({ k: 'house', at: [c, r, dx, dy], v: k % 3, o: { ...H[k % H.length], ...extra }, sc: 1.2 });
 const rich = (k) => ({ wall: k % 2 ? 'daub' : 'brick', roof: 'tile', loft: true });
-// A quarter of plots: five town houses round a yard, three behind and two before, a well curb and a woodpile, as a farm's hex holds
-// its buildings; `r1` makes one of them half-timber or brick.
+// A quarter: buildings stand towards the hex's six corners and leave its middle and the ways to its six edges open, so that a road
+// passes through the hex as a lane passes through a farm's country (Kim, 27 November: "roads should work as in the countryside").
+// The corners, as [dx, dy] of a building's foot: top, upper left and right, lower left and right; the bottom corner keeps a well.
+const C = { t: [0, -16], ul: [-16, -7], ur: [16, -7], ll: [-16, 13], lr: [16, 13], b: [0, 21] };
+const at4 = (c, r, k, d = [0, 0]) => [c, r, C[k][0] + d[0], C[k][1] + d[1]];
+// A quarter of plots: five town houses round the hex, a well curb at the bottom corner; `r1` makes one half-timber or brick.
 const plots = (c, r, s, r1 = -1) => [
-  house(c, r, -15, -3, s, s === r1 ? rich(s) : {}),
-  house(c, r, 0, -5, s + 1),
-  house(c, r, 15, -3, s + 2, s + 2 === r1 ? rich(s + 2) : {}),
-  house(c, r, -8, 18, s + 3, s + 3 === r1 ? rich(s + 3) : {}),
-  house(c, r, 9, 18, s + 4),
-  { k: 'art', name: 'curb', at: [c, r, 1, 6], sc: 0.8 },
-  { k: 'art', name: 'wood', v: 2, at: [c, r, 20, 10], sc: 0.8 },
+  ...['t', 'ul', 'ur', 'll', 'lr'].map((k, j) => ({ ...house(c, r, ...C[k], s + j, s + j === r1 ? rich(s + j) : {}), sc: 1.1 })),
+  { k: 'art', name: 'curb', at: at4(c, r, 'b'), sc: 0.8 },
 ];
 const merchants = (c, r, s) => [
-  { k: 'merchant', at: [c, r, -9, 2], v: s, sc: 1.1 },
-  { k: 'merchant', at: [c, r, 9, 2], v: s + 1, sc: 1.1 },
-  house(c, r, -9, 20, s + 2, rich(s + 1)),
-  { k: 'barrels', at: [c, r, 9, 16], v: 5 },
-  { k: 'sacks', at: [c, r, 17, 22] },
+  { k: 'merchant', at: at4(c, r, 'ul'), v: s, sc: 1.05 },
+  { k: 'merchant', at: at4(c, r, 'ur'), v: s + 1, sc: 1.05 },
+  { ...house(c, r, ...C.ll, s + 2, rich(s + 1)), sc: 1.1 },
+  { k: 'barrels', at: at4(c, r, 'lr'), v: 5 },
+  { k: 'sacks', at: at4(c, r, 't', [0, 2]) },
 ];
 const fishers = (c, r, s) => [
-  { k: 'sjobod', at: [c, r, -12, -10], v: s, sc: 1.1 },
-  { k: 'sjobod', at: [c, r, 10, -12], v: s + 1, sc: 1.1 },
-  { k: 'rack', at: [c, r, -2, 6] },
-  house(c, r, -10, 20, s),
-  house(c, r, 10, 20, s + 4),
+  { k: 'sjobod', at: at4(c, r, 'ul', [0, -4]), v: s, sc: 1.05 },
+  { k: 'sjobod', at: at4(c, r, 'ur', [0, -4]), v: s + 1, sc: 1.05 },
+  { k: 'rack', at: at4(c, r, 'b') },
+  { ...house(c, r, ...C.ll, s), sc: 1.1 },
+  { ...house(c, r, ...C.lr, s + 4), sc: 1.1 },
 ];
 const crafts = (c, r) => [
-  { k: 'smithy', at: [c, r, -4, 0], sc: 1.1 },
-  { k: 'kiln', at: [c, r, 15, 12], v: 0 },
-  { k: 'kiln', at: [c, r, -16, 14], v: 1 },
-  house(c, r, 2, 20, 0),
+  { k: 'smithy', at: at4(c, r, 'ul', [4, 0]), sc: 1 },
+  { k: 'kiln', at: at4(c, r, 'ur', [0, 4]), v: 0 },
+  { k: 'kiln', at: at4(c, r, 'lr'), v: 1 },
+  { ...house(c, r, ...C.ll, 0), sc: 1.1 },
 ];
 
 const QUARTERS = [
@@ -77,14 +76,9 @@ for (const q of QUARTERS) {
 }
 things.push(
   // the market: booths round the cross, the town hall (rådstuga) of brick at its back, the well sweep
-  ...[
-    [-12, 2],
-    [12, 2],
-    [-8, 18],
-    [10, 18],
-  ].map(([x, y], k) => ({ k: 'booth', at: [22, 12, x, y], v: k })),
-  { k: 'merchant', at: [22, 12, 0, -6], v: 1, sc: 1.05 },
-  { k: 'art', name: 'sweep', at: [22, 12, 18, -6], sc: 0.75, ay: 0.95 },
+  ...['ul', 'ur', 'll', 'lr'].map((k, j) => ({ k: 'booth', at: at4(22, 12, k, [0, 2]), v: j })),
+  { k: 'merchant', at: at4(22, 12, 't', [0, -2]), v: 1, sc: 1 },
+  { k: 'art', name: 'sweep', at: at4(22, 12, 'b', [6, 0]), sc: 0.7, ay: 0.95 },
   // the church across its two hexes, the priest's house and the tithe barn
   { k: 'church', at: [23, 12, 22, 12], sc: 1.15 },
   house(24, 12, 16, -4, 2, { loft: true, roof: 'shingle' }),
@@ -105,7 +99,7 @@ things.push(
   { k: 'watermill', at: [22, 15, -4, 4] },
   { k: 'postmill', at: [20, 15, 0, 6], sc: 1.1 },
   // the toll bar where the road from the south comes in
-  { k: 'toll', at: [23, 14, -4, -14] },
+  { k: 'toll', at: [23, 14, -12, -8] },
 );
 const people = [
   [22, 12, -4, 8], [6, 10], [-2, 24], [14, 10], [-18, 12], [2, 26], [20, 14], [-14, 22],
@@ -123,23 +117,24 @@ module.exports = {
     town: [...QUARTERS.map((q) => q.at), [20, 14], [26, 13]],
     outside: [[22, 14], [23, 14], [24, 14], [25, 14], [20, 15], [22, 16], [21, 16]],
   },
+  // the ways, as the game draws its lanes (w.worn 3, centre to centre through the hexes): in from the south past the toll, through
+  // the market (an open place, like a village green) to the quay; along the shore to the fishermen; east to the crafts; west to the bridge
+  greens: [[22, 12]],
   roads: [
-    [[23, 14], [24, 15], [25, 15], [26, 15], [27, 15]],
-    [[20, 14], [19, 14], [18, 14], [17, 15]],
+    [[23, 14, 40], [24, 15], [25, 15], [26, 15], [27, 15]],
+    [[20, 14, 30], [19, 14], [18, 14], [17, 15]],
+    [[22, 13, 50], [22, 11, 50], [23, 11, 40], [24, 11, 30], [25, 11, 20]],
+    [[21, 13, 30], [23, 13, 40], [24, 13, 30], [25, 13, 30], [26, 12, 20], [25, 12, 20], [21, 12, 30]],
   ],
-  quarters: { hexes: [...QUARTERS, { at: [20, 14], yard: 0.6 }].map((q) => ({ at: q.at, group: q.group })), street: 7 },
+  quarters: { hexes: [...QUARTERS, { at: [20, 14], yard: 0.6 }].map((q) => ({ at: q.at, group: q.group })), edges: false },
   fields: [
     { at: [24, 14], look: 'ripe', rot: -0.2 },
     { at: [25, 14], look: 'stubble', rot: 0.5 },
   ],
   meadows: base.meadows,
   ground: [],
-  cobbles: [{ at: [22, 12, 0, 10], rx: 18, ry: 12 }],
-  streets: [
-    { pts: [[23, 13, 0, 28], [23, 14, -4, -6], [23, 14, 0, 0]], w: 7 }, // the road in from the south, past the toll
-    { pts: [[21, 13, -24, 14], [21, 13, -30, 18]], w: 6 }, // to the bridge
-    { pts: [[20, 14, 14, -16], [20, 14, 0, 0]], w: 6 },
-  ],
+  cobbles: [{ at: [22, 12, 0, 4], rx: 16, ry: 11 }],
+  streets: [],
   // the kitchen-garden hexes on the landward side (kålgårdar): the town's soft edge
   gardens: [
     ...[[22, 14]].flatMap(([c, r], j) =>
@@ -160,7 +155,7 @@ module.exports = {
   ],
   palisade: [],
   things,
-  crosses: [[22, 12, 0, 12]],
+  crosses: [[22, 12, 8, 4]],
   people,
   cows: base.cows,
   smoke: [[26, 12, 6, -18], [26, 12, 16, 2], [26, 12, -16, 4]],

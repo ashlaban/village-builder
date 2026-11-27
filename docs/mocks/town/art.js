@@ -1368,7 +1368,7 @@ function tmHexes(w, H) {
       segs.push(p);
     });
   }
-  for (const p of segs) tmWay(p, H.street || 7);
+  if (H.edges !== false) for (const p of segs) tmWay(p, H.street || 7);
 }
 function townLabels() {
   const w = st.w;
