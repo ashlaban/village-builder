@@ -161,7 +161,7 @@ VB['sim/authored'] = (() => {
   // At the review of household plan's plan (sim/plans' planReviewed): the steps the default author took back leave once their task is
   // done or gone; each task of its members' own plans (by key, or at a tile: its chain's steps left) is weighed, in its plan's order, by
   // the head's estimate against its `by`: short, it is at risk (its `risk` the hours short and the hour first found); no longer short,
-  // planned again; at risk since an earlier review, past its `by` and not kept, the default author takes it back (takeBack). Its
+  // planned again; still open at the first review past its `by` and not kept, the default author takes it back (takeBack). Its
   // members' own task steps only: no work in a run where none plans for itself.
   function reviewAuthored(st, plan, c) {
     const hid = plan.holder.id,
@@ -188,9 +188,9 @@ VB['sim/authored'] = (() => {
         const short = need - until(st, s.by, per);
         if (short <= 0) {
           if (s.state === 'at-risk') Steps.atRisk(st, s, null);
-        } else if (s.state === 'at-risk' && d > s.by && !s.kept && s.risk.since < hour) {
+        } else if (d > s.by && !s.kept) {
           if (takeBack(st, hh, id, s, g, H, c)) need -= e;
-          else Steps.atRisk(st, s, { short: roundH(short), since: s.risk.since }); // no other hand: it stays, at risk, with its one hand
+          else Steps.atRisk(st, s, { short: roundH(short), since: s.risk ? s.risk.since : hour }); // no other hand: it stays, at risk, with its one hand
         } else Steps.atRisk(st, s, { short: roundH(short), since: s.risk ? s.risk.since : hour });
       }
     }

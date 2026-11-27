@@ -76,6 +76,7 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { fell: tile, n: 2 }), true);
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { fell: tile })), /already planned/);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { firewood: f.house }), true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'keep', { i: 1 }), true); // kept: not taken back past its by (VB-1892)
   assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks, [
     { kind: 'fell', site: tile, n: 2, got: 0 },
     { kind: 'firewood', site: f.house },
