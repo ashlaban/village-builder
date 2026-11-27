@@ -208,8 +208,11 @@ function checkState(st) {
     // to no more; at most six days behind, the latest first and before the day booked; booked to no later tick than now. Each household
     // plan's tally of the season and the year, by member, never below 0.
     for (const a of st.agents) {
+      // VB-1779: a breach's hours run to a tick (agent.taking); the goodwill gathered toward the head is under a ration, owed to a pawn
+      if (a && a.taking !== undefined && !Number.isFinite(a.taking)) bad.push(`agents[${a.id}].taking: ${a.taking}`);
       const r = a && a.book;
       if (!r) continue;
+      if (r.gw !== undefined && (!(Math.abs(r.gw) < 1 + 1e-9) || !st.pawns[r.gwTo])) bad.push(`agents[${a.id}].book.gw: ${r.gw} toward ${r.gwTo}`);
       const parts = (P) => Array.isArray(P) && P.length === 6 && P.every((x) => x >= -1e-9);
       const sum = (P) => P.reduce((x, y) => x + y, 0);
       if (!Number.isInteger(r.day) || !(r.at <= st.tick) || !(r.hands >= 0) || !parts(r.p) || sum(r.p) > 12 * r.hands + 1e-6 || !Array.isArray(r.past) || r.past.length > 6) {

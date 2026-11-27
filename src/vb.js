@@ -164,6 +164,16 @@ VB.COUNTERS = {
     "Tasks of a member lost to its household's day (dead, ill, lent, on leave, away) slotted to the others (sim/day lostHolder, VB-1758)",
   dayRose:
     "Tasks a household's review made more urgent, slotted again into the day's lists as they stand (sim/day reweigh, VB-1854)",
+  giveJudged:
+    "A member's judgement read: a demand answered, a levied leg's start weighed for a take (sim/levies judgement, VB-1779)",
+  breachBooked:
+    'Goodwill booked between a member and its head for hours demanded or taken, a ration at a time (sim/levies, VB-1779)',
+  riskWeighed: 'Tasks of an allotment weighed for work at risk the levies leave unmanned (sim/day atRisk, VB-1779)',
+  demandMade:
+    'Demands past the levy made by a head of a member: its own at the allotment, an assign or a call (sim/day, VB-1779)',
+  demandMet: 'Demands complied with (sim/day, VB-1779)',
+  demandRefused: 'Demands refused, a memory of the head (sim/day, VB-1779)',
+  breachTaken: 'Hours of the levy taken by a member for itself, a breach each (sim/day breach, VB-1779)',
   hoursBook: "Legs' ends whose working hours were booked into the six parts of a pawn's day (sim/levies book, VB-1761)",
   levyCompile:
     "Members' levies compiled on their household's plan: at the season's turn, a member new to it or of a changed role (sim/levies, VB-1760)",

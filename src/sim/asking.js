@@ -305,7 +305,7 @@ VB['sim/asking'] = (() => {
     }
     pool.sort((a, b) => a.h - b.h || a.q - b.q);
     for (const { farm } of pool.slice(0, ASK.pool))
-      if (farm !== null && issue(st, { actor: id, verb: 'call', target: farm, source: 'asking' }) === true) return;
+      if (farm !== null && issue(st, { actor: id, verb: 'callAt', target: farm, source: 'asking' }) === true) return;
   }
   // Daily at ASK.hour: the askings due, read from the head of the queue (Rules for cost, 4). asksMade counts the offers made, asksNobody
   // the askings whose rungs found nobody to ask.
