@@ -115,6 +115,17 @@ VB['sim/reasons'] = (() => {
     const played = !!st.player && st.player.pawn === id;
     if (commanded(st, id))
       return played ? { by: 'player', why: 'you gave the order' } : { by: 'self', why: 'an order of its own' };
+    if (a.calledTo && a.job) {
+      // called, not urgently, with a load in hand (VB-1926; design.md, A load in hand): the load first, then the task called
+      const to = st.jobs.get(a.calledTo.key),
+        m = Math.round(cal(a.calledTo.by).hour * 60) % (24 * 60),
+        by = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+      return {
+        by: 'call',
+        head,
+        why: `brings its load in first, then ${to ? KINDS[to.kind].label.toLowerCase() : 'the task called'}, by about ${by}`,
+      };
+    }
     if (j) {
       const K = KINDS[j.kind],
         why = cause(st, j, c),

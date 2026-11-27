@@ -5,7 +5,8 @@ VB['sim/agents'] = (() => {
   const { unbound, atWork } = VB['sim/pose'];
   const { living, commanded } = VB['sim/records'];
   const { isOpen } = VB['sim/kinds'];
-  const { register } = VB['sim/commands'];
+  const { register, issue } = VB['sim/commands'];
+  const { MATCH } = VB['sim/roles'];
   const { cal, DAY, TICKS, WORK } = VB['sim/rules'];
   const { eligible } = VB['sim/eligibility'];
   const Carts = VB['sim/carts'];
@@ -177,6 +178,7 @@ VB['sim/agents'] = (() => {
     }
     delete a.errand;
     delete a.sentHome;
+    delete a.calledTo;
     unbind(a);
     if (left) rerate(st, left); // a hand gone: the end is told again; the goal stays posted while it is wanted (VB-1812)
     a.basis = null;
@@ -367,10 +369,19 @@ VB['sim/agents'] = (() => {
   // The hours a pawn may work now: the working day, or past it a task lived by (VB-1547) or the player's command, and never a day owed
   // already given (VB-1813: one rule for the day's end and the day given).
   const mayWork = (st, a, j) => {
-    if (dayGiven(st, a) || a.sentHome) return false;
+    if (dayGiven(st, a) || a.sentHome || a.calledTo) return false;
     const h = cal(st.t).hour;
     return (h >= WORK[0] && h < WORK[1]) || carriedOn(st, j) || commanded(st, a.id);
   };
+  // A call answered (VB-1926; design.md, A load in hand): pawn a, called while it had a load in hand and the call not urgent, has brought
+  // the load in and let its task go; it now sets out for the task it was called to, if that is still open to it and the hours allow. Whether
+  // it did.
+  function answer(st, a, call) {
+    if (!call || a.path || !st.pawns[a.id].alive || a.away !== undefined) return false;
+    const j = st.jobs.get(call.key);
+    if (!j || !mayWork(st, a, j)) return false;
+    return issue(st, { actor: a.id, verb: 'work', target: call.key, source: 'planner' }) === true;
+  }
   function onward(st, a, depth = 0) {
     const j = a.job,
       g = Doing.goalOf(st, a),
@@ -383,8 +394,11 @@ VB['sim/agents'] = (() => {
       if (st.jobs.get(j.key) === j) dropJob(st, j);
       a.job = null;
       a.basis = null;
+      const call = a.calledTo;
+      delete a.calledTo;
       unbind(a);
       a.inside = false;
+      if (answer(st, a, call)) return;
       // past the working day, free, it goes in, as one whose load came in does (arrived; VB-1812: a goal met at its work leg)
       if ((given || h >= WORK[1] || h < WORK[0]) && !a.path && a.away === undefined && st.pawns[a.id].alive)
         goHome(st, a);
@@ -401,7 +415,9 @@ VB['sim/agents'] = (() => {
     if (s.blocked || depth > 8 || (!carrying && !mayWork(st, a, j))) {
       // nothing it can do now (the reason is the step's), or the day is over: it lets the task go, which stays posted while wanted
       if (s.blocked && st.jobs.get(j.key) === j && j.claims.length <= 1) dropJob(st, j);
+      const call = a.calledTo;
       release(st, a);
+      if (answer(st, a, call)) return;
       if (given && !a.path && !a.inside && unbound(a) && a.away === undefined) goHome(st, a); // its day given, home
       return;
     }
@@ -689,7 +705,15 @@ VB['sim/agents'] = (() => {
         slot = attentionOf(j);
       if (slot !== 'full')
         hold(st, a, j); // a charge is minded beside the pawn's task (VB-251, VB-1750)
-      else {
+      else if (c.args && c.args.call && !c.args.urgent && a.job && a.job !== j && a.load > 0 && !a.inside) {
+        // a head's call that is not urgent, to a hand with a load of another task in hand (VB-1926; design.md, A load in hand): the load is
+        // brought to its body's store first, by the rule, and the hand then sets out for the task called (answer), aiming to be there by
+        // args.by. An urgent call, or one to a hand with nothing in hand, sends it now: a load is set down where it stands (release).
+        // @state agent.calledTo (VB-1926): absent, or {key, by} of the head's call that waits for the load in hand to be brought in: the
+        //   task called and the game time the hand aims to be at it. Written only here; cleared by release and when answered (onward).
+        a.calledTo = { key: j.key, by: c.args.by ?? st.t + MATCH.day.within };
+        return { slot: 'call', key: j.key };
+      } else {
         release(st, a);
         // @state agent.opener (VB-1761): who opened the task in hand, 'head' (the planner's command: the head's allotment, call or duty)
         //   or 'pawn' (its own, or the player's); read only by its legs' `by` (sim/legs). Written only here.
@@ -703,6 +727,7 @@ VB['sim/agents'] = (() => {
     },
     active: (st, c, ref) => {
       const a = st.agents[c.actor];
+      if (ref && ref.slot === 'call') return !!a.calledTo && a.calledTo.key === ref.key; // the load first; then a work command of its own
       if (ref) return holds(a, ref);
       return inSlot(a, 'full', c.target) || inSlot(a, 'mind', c.target);
     },

@@ -947,6 +947,75 @@ console.log(
     }
     assert.deepStrictEqual(checkState(st), [], 'invariants');
   }
+  // VB-1926: the head calls a member with a load in hand to another task (the verb call, {member, key}): not urgent, the load reaches the
+  // store before the member is at the task called, which it aims to reach within MATCH.day.within; urgent, the load lies as a titled pile
+  // where it stood and the member is there sooner
+  const came = {};
+  for (const urgent of [false, true]) {
+    const st = make(),
+      hh = st.households[0],
+      f = st.farmsteads[hh.farmstead],
+      forest = st.villages[f.village].wood[0];
+    while (cal(st.t).hour < WORK[0] + 1 || cal(st.t).hour > WORK[0] + 3) Sim.advance(st, 0.2);
+    const day = st.plans.households.get(hh.id).day,
+      a = members(st, hh).find((b) => !b.job && !b.path && b.id !== hh.holder && day.lists[b.id]);
+    assert(a, 'a member with a list in the day');
+    setAt(st, a, forest);
+    Object.assign(a, { load: TRAVEL.load, carry: 'logs' });
+    const j = Jobs.post(st, `test:wood:h${hh.id}`, 'wood', title(hh), forest, {
+        farm: f,
+        chosen: false,
+        amount: 9 * P(st),
+      }),
+      fd = f.fields[0];
+    fd.stage = 'stubble';
+    const to = Jobs.post(st, `test:plow:h${hh.id}`, 'plow', title(hh), fd.tile, { field: fd, farm: f });
+    const t0 = hh.timber || 0;
+    Agents.start(st, a, j);
+    Sim.advance(st, 0.1);
+    const at = here(st, a),
+      t1 = st.t;
+    const r = Sim.head(st, hh.holder, 'call', {
+      member: a.id,
+      key: to.key,
+      ...(urgent ? { urgent: true } : {}),
+      demand: true,
+    });
+    assert.strictEqual(r, true, `the call is made: ${r}`);
+    if (urgent) {
+      assert(
+        a.load === 0 && a.job === to && !a.calledTo,
+        `urgent: it comes now: ${a.load} ${a.job && a.job.key} ${JSON.stringify(a.calledTo)}`,
+      );
+      assert(
+        Lying.amountAt(st, at, 'wood', title(hh)) === TRAVEL.load,
+        'the load lies as a pile with title where it stood',
+      );
+    } else {
+      assert(a.load > 0 && a.job === j && a.calledTo && a.calledTo.key === to.key, 'not urgent: the load first');
+      assert(
+        Math.abs(a.calledTo.by - t1 - VB['sim/roles'].MATCH.day.within) < 1e-9,
+        'aiming to be there within the hour',
+      );
+      assert(
+        /brings its load in first/.test(Sim.reasonLine(st, a.id)),
+        `its card says so: ${Sim.reasonLine(st, a.id)}`,
+      );
+    }
+    let home = null;
+    for (let i = 0; i < 80 && !(a.job === to && VB['sim/pose'].atWork(a)); i++) {
+      Sim.advance(st, 0.1);
+      if (home === null && (hh.timber || 0) > t0) home = st.t;
+    }
+    assert(a.job === to && VB['sim/pose'].atWork(a), `at the task called (urgent ${urgent})`);
+    came[urgent] = st.t - t1;
+    if (!urgent) {
+      assert(home !== null && home <= t1 + came[urgent], 'the load reached the store before the member came');
+      assert(!(st.lying || []).some((l) => l.owner.id === hh.id && l.kind === 'wood'), 'nothing set down on the way');
+    }
+    assert.deepStrictEqual(checkState(st), [], 'invariants');
+  }
+  assert(came[true] < came[false], `urgent, it is there sooner (${came[true]} h, against ${came[false]} h)`);
   console.log(
     'methods: the wood in a real state: the five rows, the felled pile, a load in hand, the stray pile, no fetch kind',
   );
