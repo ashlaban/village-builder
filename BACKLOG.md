@@ -19,8 +19,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-1485](backlog/VB-1485.md)<a id="VB-1485"></a> | Repair: a cow led home books goodwill with a dead holder (populous small seed 3) | - | 1 | S | relations throws 'goodwill: cannot add 20 between 6 and 76' from exchange ledHome (a deal's cow led home) when a holder of either household is no longer alive |
-| [VB-1495](backlog/VB-1495.md)<a id="VB-1495"></a> | Repair: tests/browser-editor places no empty farm near the village | - | 1 | S | tests/browser-editor.js fails five checks, from 'no empty farm could be placed near the village' on; seen on main at 5e69f31, before VB-1491. |
 | [VB-1924](backlog/VB-1924.md)<a id="VB-1924"></a> | Plan: how a town grows before the ship | town | 1 | M | What gathers makers into a town before any ship comes, how big a town is (one of about 350 or two of about 150), and how the ship calls at a town's harbour; the pass settles the rows marked Under revision. |
 | [VB-459](backlog/VB-459.md)<a id="VB-459"></a> | The harvest home: a yearly feast at the farm of a household with plenty | - | 2 | S | A new occasion kind: once a year a household above the feast's threshold asks kin and its holder's strongest ties, up to 20, to its farm when the grain is in. |
 | [VB-644](backlog/VB-644.md)<a id="VB-644"></a> | Dried fish for the fair: a shore head's target beyond its own need | fair | 2 | S | VB-255's fifth criterion, which waits for the fair: a head with a surplus in a shore village may take a project to dry fish beyond its need, aimed at the fair, its target in rations |

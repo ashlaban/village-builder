@@ -116,3 +116,17 @@ let checks = 0;
   assert(giving > 0, 'some household has something to give');
   console.log(`exchange ok: ${checks} gift checks; allowance equals surplus on ${n} households, ${giving} with something to give`);
 }
+{ // VB-1485: a cow led home in a deal books goodwill only between living holders: a holder who has died lets the deal lapse
+  const Ex = VB['sim/exchange'];
+  const st = scenario('founders');
+  const [from, hh] = st.households.filter((h) => !h.dissolved && h.holder !== null);
+  const plan = st.plans.households.get(hh.id);
+  for (const dead of [hh, from]) {
+    plan.want = { what: 'cow', from: from.id, kind: 'cow', by: 'deal' };
+    st.pawns[dead.holder].alive = false;
+    Ex.KIND.methods[0].steps.find((s) => s.prim === "unload").deliver(st, { from: from.id }, hh);
+    assert(plan.want.from === null && plan.want.by === null, 'the deal lapses with a dead holder');
+    st.pawns[dead.holder].alive = true;
+  }
+  console.log('exchange ok: a deal lapses when a holder died while the cow was led home');
+}
