@@ -234,7 +234,7 @@ VB['sim/steps'] = (() => {
   function plansIn(st, hid) {
     const out = [];
     if (hid === null || hid === undefined || !st.plans || !st.plans.pawns.size) return out;
-    for (const id of planners(st)) if (st.pawns[id].household === hid) out.push(pawnPlan(st, id));
+    for (const id of plannersIn(st, hid)) out.push(pawnPlan(st, id));
     return out;
   }
   // The task at a tile of goal kind `name` at `tile` in a plan of household hid's members (plansIn's order), the first by its pawn's
@@ -348,7 +348,15 @@ VB['sim/steps'] = (() => {
   // The pawns of household hid that plan for themselves, ascending ([] with none: no work in a run where none has planned).
   function plannersIn(st, hid) {
     if (hid === null || hid === undefined || !st.plans || !st.plans.pawns.size) return NONE;
-    return planners(st).filter((id) => st.pawns[id].household === hid);
+    const hh = st.households[hid],
+      out = [];
+    if (!hh) return out;
+    VB.count.planRead += hh.members.length;
+    for (const id of hh.members) {
+      const plan = st.plans.pawns.get(id);
+      if (plan && plan.lastTask !== undefined && st.pawns[id].household === hid) out.push(id);
+    }
+    return out.sort((a, b) => a - b);
   }
   // The step whose goal is the task of `key` among household hid's: one the default author took back ({s, pawn: null}), else one of a
   // member's own plan ({s, pawn}); null for none. A card's read (sim/reasons).

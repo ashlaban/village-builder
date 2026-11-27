@@ -11,6 +11,7 @@ VB['sim/camp'] = (() => {
   const { on } = VB['sim/events'];
   const { bfs, hexSteps, stepsTo } = VB['sim/hex'];
   const { walkable, partOf } = VB['sim/walking'];
+  const { pawnPlan: planOf } = VB['sim/steps'];
   const Stores = VB['sim/stores'],
     Lying = VB['sim/lying'],
     { leaveAt } = VB['sim/droving'];
@@ -272,7 +273,6 @@ VB['sim/camp'] = (() => {
   // Each: why the played pawn cannot build it now whatever the tile (`why`), why not on `tile` (`tile`), its raising's hours and its timber
   // (loads).
   // Pawn id's own plan (sim/steps, VB-1754), or null.
-  const planOf = VB['sim/steps'].pawnPlan;
   const planned = (st, id, what) => !!(planOf(st, id) && planOf(st, id).tasks.some((t) => t.kind === what));
   const BUILDS = {
     farmstead: {
