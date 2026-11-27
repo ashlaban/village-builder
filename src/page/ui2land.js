@@ -48,18 +48,25 @@ function hudGauges(hh) {
     (left ? ' Some is not counted, for want of a task of the plan: Stores says what.' : '')
   );
 }
-// How many live in the house against its room (sim/house roomOf, VB-1664): crowded, every member's mood suffers until a larger house.
+// How many live in the house against its room (sim/house roomOf, VB-1664): crowded, every member's mood suffers until a larger house. A
+// fact of the house's callout (people, and the count against the room), or null.
 function hudRoom(hh, f, FV) {
   const room = VB['sim/house'].roomOf(f),
     n = hh.members.length;
-  if (!Number.isFinite(room)) return '';
-  const lives = `${n} ${n === 1 ? 'lives' : 'live'} here`;
-  if (n <= room) return `<p class="u2-legend">${goodIcon('people')} ${lives}, room for ${room}.</p>`;
-  const next = FV && FV.next.length ? ladderOf(FV.next[0].what).name.toLowerCase() : '';
-  return (
-    `<p class="u2-move bad">${goodIcon('people')} Crowded: ${lives}, room for ${room}; everyone’s mood suffers.` +
-    `${next ? ` A ${next} mends it: Build up.` : ''}</p>`
-  );
+  if (!Number.isFinite(room)) return null;
+  const lives = `${n} ${n === 1 ? 'lives' : 'live'} here`,
+    next = FV && FV.next.length ? ladderOf(FV.next[0].what).name.toLowerCase() : '';
+  return {
+    k: 'room',
+    icon: goodIcon('people'),
+    n: `${n}/${room}`,
+    cls: n > room ? 'v2' : '',
+    label: n > room ? 'Crowded' : `${lives}, room for ${room}`,
+    why:
+      n <= room
+        ? `${siteCap(lives)}, room for ${room}.`
+        : `Crowded: ${lives}, room for ${room}; everyone’s mood suffers.${next ? ` A ${next} mends it: Build up.` : ''}`,
+  };
 }
 // What of a farm's move lies at its landing (VB-1667): the loads marked `moving`, the cart left there, the herds standing there; and the
 // landing's tile, or null when nothing is left.
@@ -121,10 +128,45 @@ function fieldPin(fd) {
         : ': the sowing is not open now.'),
   ];
 }
+// ---- icons first, the words a tap away (Kim, 27 Nov: "informational text should be used sparingly, and only after at least one click"),
+// the plan card's pattern (page/ui2plan planCard) for every surface ----
+// A fact: {k, icon (HTML), n (a number or '' beside it), cls, label (its name to a screen reader), why (its sentence), chip (false: a
+// sentence behind "i" with no chip of its own)}. slot: the key of hud that holds which fact's words are open, its k, or 'all' under "i"
+// (a slot's facts share one list of keys). Every chip has its why: missing information on expansion is a bug.
+const factNum = (f) => (f.n === '' || f.n === undefined || f.n === null ? '' : `<b>${esc(f.n)}</b>`);
+const factChip = (f, slot) =>
+  `<button type="button" class="u2-fact ${f.cls || ''}" data-hud="pinfo" data-slot="${slot}" data-k="${esc(f.k)}" ` +
+  `aria-pressed="${hud[slot] === f.k}" aria-label="${esc(f.label || f.why)}" title="${esc(f.label || f.why)}">${f.icon}${factNum(f)}</button>`;
+const factChips = (facts, slot) =>
+  facts
+    .filter((f) => f && f.chip !== false)
+    .map((f) => factChip(f, slot))
+    .join('');
+// The "i" that opens every sentence of a slot (k 'all'), or the sentences of one group of it (k its own).
+const factI = (slot, k = 'all', label = 'What it means') =>
+  `<button type="button" class="u2-i" data-hud="pinfo" data-slot="${slot}" data-k="${esc(k)}" aria-pressed="${hud[slot] === k}" ` +
+  `aria-label="${esc(label)}" title="${esc(label)}">i</button>`;
+// The words open in a slot: the tapped chip's sentence, or all of them under "i" (all false: not these), or those of `group`.
+function factWords(facts, slot, group, all = true) {
+  const cur = hud[slot],
+    shown = facts.filter((f) => f && ((all && cur === 'all') || cur === f.k || (group && cur === group)));
+  return shown.length
+    ? `<ul class="u2-pinfo">${shown
+        .map(
+          (f) =>
+            `<li><span class="u2-fact ${f.cls || ''}">${f.icon}${factNum(f)}</span><span>${esc(f.why)}</span></li>`,
+        )
+        .join('')}</ul>`
+    : '';
+}
 // A mark's own explanation, in the callout of its tile when the mark was what was tapped (Kim, 24 Nov: a tap on anything standing on a
-// tile opens that tile's callout, the mark's words in a band on top with its icon repeated).
+// tile opens that tile's callout, the mark's icon repeated in a band on top). Its words are behind a tap on the band (Kim, 27 Nov).
 const hudBand = (b) =>
-  b && b.why ? `<p class="u2-band"><span class="${esc(b.cls)}">${b.html}</span><span>${esc(b.why)}</span></p>` : '';
+  b && b.why
+    ? `<button type="button" class="u2-band" data-hud="pinfo" data-slot="cinfo" data-k="band" aria-pressed="${hud.cinfo === 'band'}" ` +
+      `aria-label="${esc(b.why)}" title="${esc(b.why)}"><span class="${esc(b.cls)}">${b.html}</span><span class="u2-i" aria-hidden="true">i</span></button>` +
+      (hud.cinfo === 'band' || hud.cinfo === 'all' ? `<p class="u2-pinfo u2-bandwhy">${esc(b.why)}</p>` : '')
+    : '';
 // A span of working hours in the player's units: hours under a day's work, else days of work to the half.
 const hudSpan = (h) => {
   const L = Sim.WORK[1] - Sim.WORK[0];
@@ -138,31 +180,28 @@ const hudDaysTo = (t) => Math.max(1, Math.floor(t / Sim.DAY) - Math.floor(st.t /
 const HUD_VERDICT = { 'in time': 0, tight: 1, late: 2 };
 // An agenda entry's verdict: its own, or the whole chain's it leads to (a field broken now, sown in time?).
 const hudVerdict = (e) => (e.then && e.then.verdict) || e.verdict || null;
-// One line of words for an agenda entry: the hours it takes as the settler reckons them, and how it stands against its deadline.
-const HUD_ENDS = {
-  plant: 'to a sown field',
-  hay: 'until the hay is home',
-  harvest: 'until the sheaves are in',
-  farmstead: 'until the shelter stands',
-  fell: 'until the timber is home',
-  firewood: 'until it is cut',
-  upgrade: 'until it is finished',
-  foundation: 'until the house stands on stone',
-  outbuilding: 'until it stands',
-};
-function hudStake(e) {
-  let t = `About ${hudSpan(e.hours.mid)} of work`;
-  if (e.steps && e.steps.length)
-    t += ` ${HUD_ENDS[e.kind] || HUD_ENDS.plant} (${e.steps.map((x) => hudKind(x.kind).toLowerCase()).join(', ')})${e.rough ? ', roughly' : ''}`;
-  if (e.then) {
-    const more = e.then.steps.reduce((n, x) => n + x.hours.mid, 0);
-    t += `, then ${hudSpan(more)} more before ${e.then.crop} is sown`;
-    const d = e.then.deadline;
-    if (d)
-      t += `: ${e.then.verdict === 'late' ? 'too late for' : e.then.verdict === 'tight' ? 'tight for' : 'in time for'} ${d.what}`;
-  } else if (e.deadline)
-    t += `: ${e.verdict === 'late' ? 'too late for' : e.verdict === 'tight' ? 'tight for' : 'in time for'} ${e.deadline.what}`;
-  return t + (e.why ? `. ${siteCap(e.why)}` : '');
+// An agenda entry as the chips of a job in a tile's callout (job j): its work, its deadline and its verdict, as the plan's card shows them
+// (page/ui2ahead), and the site's words; keys `j<j>…` in the callout's slot.
+function hudJobFacts(e, j) {
+  if (!e) return [];
+  const d = laneDeadline(e),
+    v = hudVerdict(e),
+    pre = `j${j}`;
+  return [
+    e.hours ? { ...laneWorkFact(e), k: `${pre}w` } : null,
+    d
+      ? {
+          k: `${pre}d`,
+          icon: laneDeadIcon(d),
+          n: laneDayN(d.t),
+          cls: v === 'late' ? 'v2' : '',
+          label: `Deadline: ${d.what}, ${laneDate(d.t)}`,
+          why: `Deadline: ${d.what}, ${laneDate(d.t)} (${laneInWords(d.t)}).`,
+        }
+      : null,
+    v ? { ...laneVerdictFact(e), k: `${pre}v` } : null,
+    e.why ? { k: `${pre}s`, icon: goodIcon('tile'), n: '', label: 'The site', why: `${siteCap(e.why)}.` } : null,
+  ].filter(Boolean);
 }
 const hudPin = (icon, n = '') => `${icon}${n === '' ? '' : `<b>${n}</b>`}`;
 // The tiles the next field or meadow may be laid on (page/plan's planSites, the head's own checks), read once an hour.
@@ -177,7 +216,9 @@ function hudSites(hh) {
     };
   return hud.sites;
 }
-// The callout of tile i: what it is, how it stands, and what the settler can do there.
+// The callout of tile i: what it is, how it stands, and what the settler can do there. Its first view is a header (the tile's name, "i"
+// and close), a row of icon+number chips, and the acts as icons with short labels; the words behind a chip's tap or "i" (hud.cinfo).
+const HUD_CALL_SHORT = { plant: 'Plant', hay: 'Make hay', harvest: 'Harvest' };
 function hudCall(i, id, hh, f) {
   if (hud.place) return placeCall(i);
   const P0move = (hudPlanned() || { tasks: [] }).tasks.some((t) => t.kind === 'farmstead');
@@ -197,75 +238,105 @@ function hudCall(i, id, hh, f) {
         seen.add(o.kind),
     );
   let title,
-    sub,
     acts = '';
+  const facts = [], // the tile's own chips and sentences, all of them under the header's "i"
+    say = (k, icon, why, more = {}) => facts.push({ k, icon, n: '', why, ...more });
   const camp = hudCamp(f),
     P0 = hudPlanned(),
     placed = i !== f.house && P0 && P0.tasks.some((t) => t.kind === 'farmstead' && t.site === i);
   if (i === f.house) {
-    title = camp === 'camp' ? `${f.name}: a camp` : camp === 'staked' ? `${f.name}: the shelter staked` : f.name;
-    sub = `${st.pawns[id].given}: ${Sim.describe(st, id)}.${hudAils()
-      .map(([, words]) => ` ${words}`)
-      .join('')}`;
+    title = camp === 'camp' ? `${f.name}: camp` : camp === 'staked' ? `${f.name}: staked` : f.name;
     if (camp === 'camp')
-      sub = `Nothing is built: the goods are landed here, and the nights are spent under the open sky. ${
-        buildTasked() ? 'The farmstead is in the plan.' : 'The build button places a farmstead.'
-      } ${sub}`;
+      say(
+        'camp',
+        goodIcon('flour'),
+        `Nothing is built: the goods are landed here, and the nights are spent under the open sky. ${
+          buildTasked() ? 'The farmstead is in the plan.' : 'The build button places a farmstead.'
+        }`,
+        { label: 'A camp: nothing built' },
+      );
     else if (camp === 'staked')
-      sub = `The farmstead is placed: its shelter is staked here, and stands once its timber is carried and it is raised. ${sub}`;
+      say(
+        'camp',
+        actIcon('home'),
+        'The farmstead is placed: its shelter is staked here, and stands once its timber is carried and it is raised.',
+        { label: 'The shelter staked', cls: 'v1' },
+      );
+    for (const [icon, words] of hudAils()) say(`ail-${icon}`, goodIcon(icon), words, { cls: 'v2', label: words });
+    say('who', actIcon('me'), `${st.pawns[id].given}: ${Sim.describe(st, id)}.`, { chip: false });
     if (camp === 'camp' && !buildTasked())
-      acts += `<button type="button" class="u2-act go" data-tab="build">${actIcon('build')} Build…<small>The build menu</small></button>`;
+      acts += `<button type="button" class="u2-act go" data-tab="build" aria-label="The build menu">${actIcon('build')} Build</button>`;
     const FV = camp ? null : Sim.farmView(st, f.id, st.player ? st.player.pawn : null);
     if (FV) {
       if (FV.rung !== 'camp') title = `${f.name}: ${ladderOf(FV.rung).name.toLowerCase()}`;
       const now = ladderBuilding(FV);
-      if (now) sub = `${now} ${sub}`;
+      if (now) say('building', actIcon('build'), now, { n: laneSpanN(FV.building.hoursLeft), label: now });
       // the upgrade icon's card, opened by the icon on the land or by this button
       acts +=
-        `<button type="button" class="u2-chip up" data-hud="uptoggle" aria-pressed="${!!hud.up}">${actIcon('build')} Build up…</button>` +
+        `<button type="button" class="u2-chip up" data-hud="uptoggle" aria-pressed="${!!hud.up}">${actIcon('build')} Build up</button>` +
         (hud.up ? `<div class="u2-ladder">${ladderHTML(f)}</div>` : '');
     }
-    acts += hudRoom(hh, f, FV) + houseWood(camp ? null : Sim.fireView(st, st.player.pawn));
+    const room = hudRoom(hh, f, FV);
+    if (room) facts.push(room);
+    const wood = houseWood(camp ? null : Sim.fireView(st, st.player.pawn));
+    if (wood.fact) facts.push(wood.fact);
+    acts += wood.act;
+    say('gauges', goodIcon('grain'), hudGauges(hh), { chip: false });
     acts +=
-      `<p class="u2-legend">${hudGauges(hh)}</p>` +
-      '<div class="u2-row2"><button type="button" class="u2-chip" data-tab="stores">Stores</button>' +
-      `<button type="button" class="u2-chip" data-tab="me">${esc(st.pawns[id].given)}</button></div>`;
+      `<div class="u2-row2"><button type="button" class="u2-chip" data-tab="stores">${goodIcon('grain')} Stores</button>` +
+      `<button type="button" class="u2-chip" data-tab="me">${actIcon('me')} ${esc(st.pawns[id].given)}</button></div>`;
   } else if (placed) {
     title = 'The farmstead’s place';
-    sub = 'The farmstead is to stand here: it is in the plan.';
-  } else if (fi >= 0) [title, sub] = fieldLine(f.fields[fi], fi);
-  else if (mi >= 0) {
+    say('placed', actIcon('home'), 'The farmstead is to stand here: it is in the plan.', { label: 'In the plan' });
+  } else if (fi >= 0) {
+    const [t, sub] = fieldLine(f.fields[fi], fi),
+      [icon, n, press, why] = fieldPin(f.fields[fi]);
+    title = t;
+    say('field', icon, `${sub}. ${why}`, { n, cls: press ? `v${press}` : '', label: sub });
+  } else if (mi >= 0) {
     title = `Hay meadow ${mi + 1}`;
-    sub = 'Mown in summer for the winter’s hay.';
+    say('meadow', actIcon('hay'), 'Mown in summer for the winter’s hay.', { label: 'Mown in summer' });
   } else {
     title = VB['world/biomes'].BIOMES[w.biome[i]].name;
-    sub =
-      V.tiles.field === i
-        ? 'Marked for the next field.'
-        : V.tiles.meadow === i
-          ? 'Marked for the next hay meadow.'
-          : waterLines(i)[0] || '';
+    if (V.tiles.field === i || V.tiles.meadow === i)
+      say(
+        'marked',
+        `<span class="gap">${goodIcon(V.tiles.field === i ? 'field' : 'meadow')}</span>`,
+        V.tiles.field === i ? 'Marked for the next field.' : 'Marked for the next hay meadow.',
+      );
+    const water = waterLines(i)[0];
+    if (water) say('water', goodIcon('water'), `${water}.`, { label: water });
   }
   const A = Sim.agenda(st, st.player.pawn);
   const P = hudPlanned();
+  let jobsHTML = '';
   jobs.slice(0, 3).forEach((o, n) => {
     const e = hudEntry(A, o.target),
-      stake = e ? esc(hudStake(e)) : '',
       inPlan = P && P.tasks.some((t) => t.key === o.target),
-      name = esc(Sim.KINDS[o.kind].name);
+      name = Sim.KINDS[o.kind].name,
+      icon = actIcon(KIND_ICON[o.kind] || 'hoe'),
+      jf = hudJobFacts(e, n);
+    let row = '';
     if (P && !inPlan)
-      acts +=
-        `<button type="button" class="u2-act${n ? '' : ' go'}" data-hud="planadd" data-target="${esc(o.target)}">${name}` +
-        `<small>${stake ? `${stake}. ` : ''}Add to the plan</small></button>`;
-    else if (P)
-      acts += `<p class="u2-inplan">${actIcon(KIND_ICON[o.kind] || 'hoe')}<span><b>${name}</b> is in the plan. ${stake}</span></p>`;
+      row +=
+        `<button type="button" class="u2-act${n ? '' : ' go'}" data-hud="planadd" data-target="${esc(o.target)}" ` +
+        `aria-label="${esc(`${name}: add to the plan`)}" title="${esc(`${name}: add to the plan`)}">${actIcon('plus')}${icon} ${esc(name)}</button>`;
+    else if (P) {
+      row += `<span class="u2-jobname">${icon}<b>${esc(name)}</b></span>`;
+      jf.unshift({ k: `j${n}p`, icon: actIcon('queue'), n: '', label: 'In the plan', why: `${name} is in the plan.` });
+    }
     if (o.when === 'now' || !P)
-      acts +=
-        `<button type="button" class="${P ? 'u2-chip' : `u2-act${n ? '' : ' go'}`}" data-hud="job" data-target="${esc(o.target)}" data-site="-1">` +
-        `${P ? `Do it now: ${name.toLowerCase()}` : `${name}<small>${stake || 'Done next'}</small>`}</button>`;
+      row +=
+        `<button type="button" class="${P ? 'u2-chip' : `u2-act${n ? '' : ' go'}`}" data-hud="job" data-target="${esc(o.target)}" data-site="-1" ` +
+        `data-name="${esc(P ? `do it now: ${name.toLowerCase()}` : name)}" aria-label="${esc(P ? `Do it now: ${name.toLowerCase()}` : name)}" ` +
+        `title="${esc(P ? `Do it now: ${name.toLowerCase()}` : name)}">${P ? `${actIcon('walk')} Now` : `${icon} ${esc(name)}`}</button>`;
+    jobsHTML +=
+      `<div class="u2-cjob"><div class="u2-jobrow">${row}</div>` +
+      (jf.length ? `<div class="u2-facts">${factChips(jf, 'cinfo')}</div>` : '') +
+      factWords(jf, 'cinfo', `j${n}`, false) +
+      '</div>';
   });
-
-  if (i !== f.house) acts += woodActs(i, f);
+  if (i !== f.house) acts += woodActs(i, f, facts);
   const here = (V.projects || []).find((p) => p.tile === i) || null, // the project under way on this tile, of several (VB-1651)
     making = !!here && here.what === 'field',
     unsown = fi >= 0 && !['sown', 'growing', 'ripe', 'stooks'].includes(f.fields[fi].stage);
@@ -283,25 +354,51 @@ function hudCall(i, id, hh, f) {
       Sim.planGaps && fi >= 0 && !unsown && 'harvest',
     ].filter((c) => c && P && !P.tasks.some((t) => t.kind === c && t.site === i));
   if (gap)
-    sub = `${sub ? `${sub} ` : ''}Nothing in the plan sees to it, and ${hudDays(gap.days)} ${gap.days === 1 ? 'is' : 'are'} left: ${gap.deadline.what}.`;
-  if (chains.length)
-    acts =
+    say(
+      'gap',
+      `<span class="gap">${HUD_CHAIN[gap.goal].icon()}</span>`,
+      `Nothing in the plan sees to it, and ${laneDays(gap.days)} ${gap.days === 1 ? 'is' : 'are'} left: ${gap.deadline.what}.`,
+      { n: String(Math.max(0, gap.days)), cls: 'v2', label: `Nothing planned: ${laneDays(gap.days)} left` },
+    );
+  for (const c of chains)
+    say(
+      `chain-${c}`,
+      actIcon('plus') + HUD_CHAIN[c].icon(),
+      `${offer(c)}: one task of the plan, ${HUD_CHAIN[c].done}.`,
+      {
+        chip: false,
+      },
+    );
+  const chainHTML = chains.length
+    ? '<div class="u2-row2 u2-chains">' +
       chains
         .map(
-          (c) =>
-            `<button type="button" class="u2-act go" data-hud="chain" data-chain="${c}">${offer(c)}` +
-            `<small>One task of the plan: ${HUD_CHAIN[c].done}</small></button>`,
+          (c, k) =>
+            `<button type="button" class="u2-act${k ? '' : ' go'}" data-hud="chain" data-chain="${c}" ` +
+            `aria-label="${esc(`${offer(c)}: one task of the plan, ${HUD_CHAIN[c].done}`)}" title="${esc(offer(c))}">` +
+            `${actIcon('plus')}${HUD_CHAIN[c].icon()} ${esc(HUD_CALL_SHORT[c] || HUD_CHAIN[c].name)}</button>`,
         )
-        .join('') + acts.replace('u2-act go', 'u2-act');
+        .join('') +
+      '</div>'
+    : '';
+  if (chains.length) jobsHTML = jobsHTML.replace('u2-act go', 'u2-act');
+  acts = chainHTML + jobsHTML + acts;
+  let tail = '';
   if (here)
-    acts += `<button type="button" class="u2-chip" data-hud="drop" data-id="${here.id}">Give this work up</button>`;
+    tail +=
+      `<button type="button" class="u2-chip" data-hud="drop" data-id="${here.id}" aria-label="Give this work up" ` +
+      `title="Give this work up">${actIcon('no')} Give up</button>`;
   if (!w.water[i] && !w.river[i] && i !== f.house)
-    acts += '<button type="button" class="u2-chip" data-hud="walk">Walk here</button>';
+    tail += `<button type="button" class="u2-chip" data-hud="walk" aria-label="Walk here" title="Walk here">${actIcon('walk')} Walk</button>`;
+  if (tail) acts += `<div class="u2-row2">${tail}</div>`;
+  const band = hud.band && hud.band.tile === i ? hud.band : null;
   return (
-    hudBand(hud.band && hud.band.tile === i ? hud.band : null) +
-    (hud.band && hud.band.tile === i && hud.band.mark === 'house' && fireWarn() ? fireAct(fireWarn(), f) : '') +
-    `<div class="u2-verdict"><div><h2>${esc(title)}</h2>${sub ? `<p class="sub">${esc(sub)}</p>` : ''}</div>` +
+    hudBand(band) +
+    (band && band.mark === 'house' && fireWarn() ? fireAct(fireWarn(), f, facts) : '') +
+    `<div class="u2-verdict"><h2>${esc(title)}</h2>${facts.length ? factI('cinfo') : ''}` +
     '<button type="button" class="u2-x" data-hud="shut" aria-label="Close">×</button></div>' +
+    (facts.some((x) => x.chip !== false) ? `<div class="u2-facts">${factChips(facts, 'cinfo')}</div>` : '') +
+    factWords(facts, 'cinfo') +
     (hud.msg && !hud.tab ? `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>` : '') +
     (acts ? `<div class="u2-acts">${acts}</div>` : '')
   );
@@ -456,6 +553,7 @@ function hudTap(sx, sy) {
   const i = pin ? pin.tile : loc(...toWorld(sx, sy), [0, 0]);
   hud.at = (i === hud.at && !pin) || i < 0 ? -1 : i;
   hud.band = pin && hud.at >= 0 ? pin : null;
+  hud.cinfo = null;
   hud.up = !!hud.band && hud.band.mark === 'up';
   hud.tapAt = performance.now();
   hud.msg = null;
