@@ -234,14 +234,20 @@ VB['sim/hands'] = (() => {
     }
   }
   // The hours of help household hh plans to ask today, its season not fitting its labour budget (sim/levies fit, VB-1778: plan.fit's
-  // help): of each short step whose window is open today, its hours spread over the window's days; 0 where its season fits. Read by
-  // the morning's ask (sim/day allot) beside what the day's estimate finds short (shortOf).
+  // help): of each short step whose window is open today, its hours spread over the window's days, but never more a day than the
+  // step's hours left (its `left`, by the head's estimate at the latest review) spread over the window's days left: a step done asks no
+  // more help. 0 where its season fits. Read by the morning's ask (sim/day allot) beside what the day's estimate finds short (shortOf).
   function plannedHelp(st, hh, c) {
     const plan = st.plans && st.plans.households.get(hh.id),
       F = plan && plan.fit;
-    if (!F || F.at !== c.year * 4 + c.season || !F.help || !F.help.length) return 0;
+    if (!F || F.at !== c.year * 4 + c.season || !F.help || !F.help.length || !plan.season) return 0;
     let h = 0;
-    for (const [, , from, until, hours] of F.help) if (c.day >= from && c.day <= until) h += hours / (until - from + 1);
+    for (const [id, , from, until, hours] of F.help) {
+      if (c.day < from || c.day > until) continue;
+      const s = plan.season.find((x) => x.id === id),
+        left = s && s.left ? s.left.mid : 0;
+      if (left > 0) h += Math.min(hours / (until - from + 1), left / (until - c.day + 1));
+    }
     return h;
   }
   // ---- the hands' day ----

@@ -7,7 +7,7 @@ VB['sim/estimate'] = (() => {
   const { atWork } = VB['sim/pose'];
   const { CROPS } = VB['sim/crops'],
     Targets = VB['sim/targets'];
-  const { HUNGER, HEALTH, HERD } = VB['sim/rules'],
+  const { HUNGER, HEALTH, HERD, FIELDS } = VB['sim/rules'],
     { workRate } = VB['sim/roles'];
   const { age, fullName, log, atFarm } = VB['sim/records'];
   const Skills = VB['sim/skills'],
@@ -290,6 +290,10 @@ VB['sim/estimate'] = (() => {
     'dried fish': () => ({ kind: 'rackfish', hours: KINDS.rackfish.hours / 4 + KINDS.dry.hours / 10 }),
     tar: () => ({ kind: 'burntar', hours: KINDS.burntar.hours }),
   };
+  // The rations a field of crop yields in a year by a head's reckoning: FIELDS.expect of the crop's yield. The one reckoning of a field's
+  // worth (VB-1778, review F1): read by the head's demand (sim/day atRisk, a field step's yield at risk) and by the labour budget's fit
+  // (sim/levies, a field target's yield an hour), so that the bar for lowering a field and the weighing of a demand for it agree.
+  const fieldYield = (crop) => FIELDS.expect * CROPS[crop].yield;
   // The work target step T still wants: {kind, lack (what its store lacks of its level, in the store's units), hours}, or null; read by
   // setLeft and by the labour budget's fit (sim/levies, VB-1778: a target lowered by the lack its hours buy).
   function workOfTarget(st, hh, c, T) {
@@ -382,5 +386,6 @@ VB['sim/estimate'] = (() => {
     workOf,
     span,
     workOfTarget,
+    fieldYield,
   };
 })();
