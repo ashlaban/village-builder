@@ -22,7 +22,7 @@ VB['sim/clock'] = (() => {
     { dropMind } = VB['sim/attention'],
     { reckonAll } = VB['sim/work'];
   const { placeOf } = VB['sim/pose'];
-  const { feedAway, dayAway } = VB['sim/away'],
+  const { feedAway, dayAway, siteLodgers } = VB['sim/away'],
     { fetchGoesOn } = VB['sim/journeys'];
   const { refreshJobs, lookForWork } = VB['sim/jobs'],
     { takeDay, abed, dutyRound, eveningCall } = VB['sim/day'],
@@ -747,7 +747,8 @@ VB['sim/clock'] = (() => {
     playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
     const c = cal(st.t),
       all = stepAgents(st, c),
-      mine = st.controlled && st.controlled.length ? all.filter((a) => !unplanned(st, a.id)) : all, // any controller's pawn (VB-1745)
+      own = st.controlled && st.controlled.length ? all.filter((a) => !unplanned(st, a.id)) : all, // any controller's pawn (VB-1745)
+      mine = st.sites.length ? siteLodgers(st, own, c) : own, // a site's workers set out to lodge there (VB-787)
       idle = abed(st, st.away.length ? dayAway(st, mine) : mine); // a lodger works only what its stay names (VB-783); the ill keep to bed
     if (idle.length) {
       // each takes the next task of its day (VB-466); those it gave none look at the household's opportunities, whose day is then allotted

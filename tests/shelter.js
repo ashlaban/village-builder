@@ -1,4 +1,5 @@
-// VB-1666: the shelter, the ladder's first rung, on the house tile for every household (Kim: one rule for every household). A settler
+// VB-1666: the shelter, the ladder's first rung, on the house tile for every household (Kim: one rule for every household). (A settler
+// household moves into a finished cottage since VB-787: tests/sites.js.) Before that, a settler
 // household (sim/settle settleFarm; heirs at seed 13 on the probe island, as tests/settle.js) begins its shelter on its own house tile, no
 // booth of st.booths beside it; it sleeps under the open sky and its cottage waits until the shelter stands, then the cottage's stages are
 // worked on that same tile. A save from before VB-1666, a farm's booth staked beside its house, loads and goes on: the booth is kept as
@@ -24,56 +25,6 @@ const roll = (st, f) => {
     rs.forEach((r) => delete r.fix);
   }
 };
-
-// ---- 1. a settler household: its shelter on its house tile, then its cottage there ----
-{
-  const st = scenario('heirs', 13);
-  st.naturalDeaths = false;
-  const v = st.villages[0];
-  const inA = (p) =>
-    p.alive && p.age >= 18 && p.age <= 45 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id) && Sim.spouseOf(st, p.id) === null;
-  const m = st.pawns.find((p) => inA(p) && Sim.siblingsOf(st, p.id).some((q) => inA(st.pawns[q])));
-  const sib = Sim.siblingsOf(st, m.id).map((q) => st.pawns[q]).find(inA);
-  for (const [t] of bfs(st.w, v.center, 6, () => true).dist) st.used.add(t);
-  for (const u of st.villages) VB['sim/territory'].reckonWood(st, u);
-  st.demand = [m.id, sib.id];
-  m.landWait = 2;
-  sib.landWait = 2;
-  m.stake = 300;
-  const farms = st.farmsteads.length,
-    booths = st.booths.length;
-  roll(st, () => S.settleRound(st));
-  const f = st.farmsteads[farms];
-  assert(f, 'a farm settled');
-  const hh = st.households[f.household];
-  assert.strictEqual(f.booth, true, 'no cottage yet');
-  assert.deepStrictEqual(f.shelter, { wood: 0, done: 0, built: null, cond: 1, condAt: st.t }, 'its shelter begun');
-  assert.strictEqual(st.booths.length, booths, 'no booth of st.booths for it');
-  assert(Sim.stakedBooths(st).includes(f.house), 'the page reads it being raised on the house tile');
-  assert(B.roofless(st, hh), 'under the open sky until it stands');
-  assert.strictEqual(rungOf(st, f), 'camp');
-  assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).building.what, 'shelter');
-  sound(st, 'settled');
-  let stood = null,
-    staged = false;
-  for (let d = 0; d < Sim.SEASON_DAYS * 2 && !staged; d++) {
-    for (let h = 0; h < 24; h++) {
-      Sim.advance(st, 1);
-      const stage = st.jobs.get(`booth:f${f.id}`);
-      if (stage) {
-        assert(stood !== null, `a cottage stage (${stage.kind}) posted before the shelter stands`);
-        assert.strictEqual(stage.site, f.house, 'the cottage worked on the shelter\'s tile');
-        staged = true;
-      }
-      if (stood === null && B.shelterStands(st, f)) stood = st.t;
-    }
-  }
-  assert(stood !== null, 'the shelter stands');
-  assert(!B.roofless(st, hh) && rungOf(st, f) === 'shelter', 'under the shelter: the rung a shelter');
-  assert(staged, 'the cottage begun on the same tile');
-  assert.strictEqual(st.booths.length, booths, 'still no booth of st.booths for it');
-  sound(st, 'the shelter up, the cottage under way');
-}
 
 // ---- 2. a save from before VB-1666: a farm's booth staked beside the house, no shelter; kept as a booth until the cottage is roofed ----
 {
@@ -106,5 +57,5 @@ const roll = (st, f) => {
 }
 assert(BOOTH.hours > 0);
 console.log(
-  'shelter: a settler household raises its shelter on its house tile, no booth, and its cottage there after; an older save\'s booth kept',
+  'shelter: an older save\'s booth kept',
 );
