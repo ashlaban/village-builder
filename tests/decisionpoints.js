@@ -30,6 +30,12 @@ const of = (list, point, body) =>
     head = hh.holder,
     body = { kind: 'household', id: hh.id },
     plan = st.plans.households.get(hh.id);
+  // the allotment is a point only where the day would change (VB-1884): a task struck from the day standing makes it so
+  const day = plan.day.lists,
+    would = VB['sim/day'].weighDay(st, hh, VB['sim/rules'].cal(st.t)).lists,
+    who = Object.keys(would).find((id) => would[id].length);
+  assert.ok(who, 'work to allot');
+  day[who] = day[who].filter((t) => t !== would[who][0]);
   const before = hash(st),
     n0 = VB.count.pointOffer;
   const pts = Sim.decisions(st, head);
@@ -235,8 +241,9 @@ console.log(
     "at once, a step at risk until the review, an ask until due; a scripted controller's run and an ordered visit replayed from a save to the same state",
 );
 
-// 3. An allotment is a point only where the head has a choice (VB-1848): two or more members allotted, or the day the rule would allot
-// differs from the day standing. One member and a day standing as the rule would make it: none; a household of two: one.
+// 3. An allotment is a point only where the day the rule would allot puts work on a member the day standing does not (VB-1884; tasks
+// done since drop out and change nothing): a day standing as the rule would make it: none, whatever the members; a task struck from the
+// standing day: one.
 {
   const st = make(4.5),
     hh = st.households[0],
@@ -249,8 +256,16 @@ console.log(
   for (const m of others.slice(1)) st.agents[m].away = { until: st.t + 100 };
   VB['sim/day'].allot(st, hh, c);
   const n0 = VB.count.dayWould;
-  assert.strictEqual(of(Sim.decisions(st, head), 'allot', body).length, 1, 'a household of two: an allotment point');
-  assert.strictEqual(VB.count.dayWould, n0, 'two allotted: the choice is plain, the day not weighed');
+  assert.strictEqual(of(Sim.decisions(st, head), 'allot', body).length, 0, 'a household of two, its day as the rule would make it: none');
+  assert.ok(VB.count.dayWould > n0, 'the day weighed, counted');
+  const plan = st.plans.households.get(hh.id),
+    lists = plan.day.lists,
+    would = VB['sim/day'].weighDay(st, hh, c).lists,
+    who = Object.keys(would).find((id) => would[id].length);
+  assert.ok(who, 'a day with work in it');
+  const struck = would[who][0];
+  lists[who] = lists[who].filter((t) => t !== struck);
+  assert.strictEqual(of(Sim.decisions(st, head), 'allot', body).length, 1, `${struck} struck from the standing day: an allotment point`);
   // the household of one: the other away too, the day allotted as the rule would
   st.agents[others[0]].away = { until: st.t + 100 };
   VB['sim/day'].allot(st, hh, c);

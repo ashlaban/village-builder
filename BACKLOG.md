@@ -150,7 +150,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1818](backlog/VB-1818.md)<a id="VB-1818"></a> | Kinds: the control fields no code reads after VB-1750 taken out | - | 3 | S | the kinds' own to and meadows' reload, dead since the phases went, removed |
 | [VB-1840](backlog/VB-1840.md)<a id="VB-1840"></a> | The page tells the player what automatic answers, and its sleep as of now | - | 3 | S | After VB-1776 the played pawn on automatic answers at-once offers itself and its sleep is reckoned hourly: the page says so and reads sleep as of now |
 | [VB-1841](backlog/VB-1841.md)<a id="VB-1841"></a> | An older save keeps the player's wish | - | 3 | S | A save from before VB-1776 loses the played pawn's chosen wish to its own choosing: mark it authored on load |
-| [VB-1884](backlog/VB-1884.md)<a id="VB-1884"></a> | Allotment points: a choice only where the allotment would change the day | plans | 3 | S | Narrow the allotment point's choice, which two allotted members leave true for nearly every household |
 | [VB-1886](backlog/VB-1886.md)<a id="VB-1886"></a> | Q12 over three seeds: the levelling controller's windows missed by key and by deadline | plans | 3 | S | VB-1843's one seed gave 5 missed by the default author, 16 levelled by key and 9 by deadline: too few to judge 10% |
 
 </details>
