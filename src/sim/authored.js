@@ -189,8 +189,8 @@ VB['sim/authored'] = (() => {
         if (short <= 0) {
           if (s.state === 'at-risk') Steps.atRisk(st, s, null);
         } else if (s.state === 'at-risk' && d > s.by && !s.kept && s.risk.since < hour) {
-          need -= e;
-          takeBack(st, hh, id, s, g, H, c);
+          if (takeBack(st, hh, id, s, g, H, c)) need -= e;
+          else Steps.atRisk(st, s, { short: roundH(short), since: s.risk.since }); // no other hand: it stays, at risk, with its one hand
         } else Steps.atRisk(st, s, { short: roundH(short), since: s.risk ? s.risk.since : hour });
       }
     }
@@ -198,19 +198,21 @@ VB['sim/authored'] = (() => {
   // The default author takes step s of pawn id's plan back (its task g): the step becomes the household's, due by the day its head's
   // estimate says the members its day allots finish it in (the step moved), and a task by key is slotted into the day as it stands, so
   // that it is given hands now (the day weighs it at its next allotment if the slot cannot); a task at a tile is the day's to take up.
+  // Returns false, the step left on the pawn's plan, when no hand of the household's day could work it (a played pawn with auto off works its
+  // own plan only: the household's plan has no one to do it).
   function takeBack(st, hh, id, s, g, H, c) {
     const j = g.key !== undefined ? st.jobs.get(g.key) : null,
       hands = hh.members.filter((m) => {
         const p = st.pawns[m];
         return p.died === null && allotted(st, p) && (!j || eligible(st, j, p));
-      }),
-      e = !hands.length
-        ? Infinity
-        : j
-          ? Estimate.estimate(st, H.id, j, hands).mid
-          : (Estimate.goalEstimate(st, H.id, hh.id, g, hands) || { mid: Infinity }).mid;
+      });
+    if (!hands.length) return false;
+    const e = j
+      ? Estimate.estimate(st, H.id, j, hands).mid
+      : (Estimate.goalEstimate(st, H.id, hh.id, g, hands) || { mid: Infinity }).mid;
     Steps.takeBack(st, id, s, hh.id, today(st) + (Number.isFinite(e) ? Math.ceil(e / SPAN) : 0));
     if (j) slotIn(st, hh, j, c);
+    return true;
   }
   on('planReviewed', (st, d) => {
     if (d.plan.holder.type === 'household') reviewAuthored(st, d.plan, d.c);
