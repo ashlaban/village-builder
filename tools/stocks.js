@@ -216,7 +216,7 @@ const OPS = { put: 'add', take: 'take', takeSpare: 'take', move: 'move', cook: '
   start: 'start', brew: 'brew',
   pour: 'take', spoilAle: 'take', villageDay: 'take', dry: 'take', cookLarder: 'add' };
 const OP_GOODS = { dug: ['clay', 'bogOre', 'peat'] };
-const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'commute', 'loan', 'share', 'wage', 'handingOn', 'provisions', 'start', 'moving']);
+const LOSS = new Set(['spoilage', 'burn']), TRANSFER = new Set(['gift', 'loan', 'share', 'wage', 'handingOn', 'provisions', 'start', 'moving']);
 const SKIP = new Set(['sim/stores', 'sim/saves']); // the stores' own operations, and saving
 // A module's named functions, innermost by line: [{name, from, to}], a job kind's properties as `kind.property`
 function functionsOf(src) {

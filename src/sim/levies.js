@@ -13,6 +13,7 @@ VB['sim/levies'] = (() => {
   const { on, emit } = VB['sim/events'];
   const { SEASON_DAYS, YEAR_DAYS, GOODWILL } = VB['sim/rules'];
   const { CROPS } = VB['sim/crops'];
+  const { setAside } = VB['sim/gifts'];
   const { of: traitOf } = VB['sim/traits'];
   const { opinionOf, balance, book: bookGoodwill } = VB['sim/relations'];
   const { KINDS } = VB['sim/kinds'];
@@ -1132,13 +1133,10 @@ VB['sim/levies'] = (() => {
         hh = st.households[o.debtor.id],
         n = Math.min(1, Obligations.left(o));
       Obligations.setLevy(st, o.id, { named: without(o, c.args.day) });
-      // the rate's rations move by sim/stores; the day is booked as paid (not worked) against the levy
-      Obligations.fulfil(st, o.id, n, 'commute', {
-        from: hh,
-        to: st.households[o.creditor.id],
-        good: 'grain',
-        n: o.terms.commute,
-      });
+      // the rate's rations are the levier's where they lie, set aside at the levied's house and fetched by one of the levier's (sim/gifts
+      // setAside, as a loan's repayment is: nothing teleports); the day is booked as paid (not worked) against the levy at once
+      setAside(st, hh, st.households[o.creditor.id], o.terms.commute);
+      Obligations.fulfil(st, o.id, n, 'commute');
       VB.count.dayCommuted++;
     },
   });
@@ -1237,7 +1235,7 @@ VB['sim/levies'] = (() => {
         owes: { days: 1 },
         due: (e.day + 1) * DAY,
         source: o.source,
-        terms: { ...o.terms, carry: false },
+        terms: { ...o.terms, carry: false, lent: true },
         window: [e.day, e.day],
       });
       const d = st.daysToday;
@@ -1374,7 +1372,9 @@ VB['sim/levies'] = (() => {
         const o = st.obligations[id];
         if (o.kind !== 'days') continue;
         VB.count.leviesLooked++;
-        if (o.source === 'debt' && o.due <= (D + 1) * DAY) {
+        // a debt's last day: relaid unless it is a day lent (transfer), or a day of it is named for today (its hours booked as they are
+        // worked; what is left then ends overdue at its due)
+        if (o.source === 'debt' && !o.terms.lent && o.due <= (D + 1) * DAY && !o.named.some((e) => e.day === D)) {
           relay(st, o);
           if (!Obligations.isLive(o)) continue;
         }

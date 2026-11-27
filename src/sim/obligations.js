@@ -47,7 +47,8 @@ VB['sim/obligations'] = (() => {
     days: {
       every: null,
       term: (t) => (Math.floor(t / YEAR) + 1) * YEAR,
-      ended: (st, o) => (o.source === 'debt' || (o.terms && o.terms.carry) ? 'overdue' : 'lapsed'),
+      // a day of a debt lent to another household (sim/levies transfer: terms.lent) is not a debt to it, and lapses unworked
+      ended: (st, o) => ((o.source === 'debt' && !o.terms.lent) || o.terms.carry ? 'overdue' : 'lapsed'),
     },
   };
   // A kind contributed by the module whose rules carry it out (a loan: sim/loans, VB-312), before the first seed. Its row may also have
@@ -187,14 +188,14 @@ VB['sim/obligations'] = (() => {
   const owed = (st, party, as = 'creditor', kind = null) => due(st, party, as, kind).reduce((s, o) => s + left(o), 0);
   // n of what is owed is delivered against obligation id, or against several of one debtor and creditor (ids, the oldest first): part or
   // whole. `goods` ({from, to, good}): the n are moved by sim/stores, in one movement, for the reason `why`; without it they came another
-  // way (animals led, hours worked) and are only booked; goods.n, where given, is what moves for them (a levy's day commuted at its
-  // rate, VB-1769). One met leaves the caches: the caller tells the payment, which knows its words.
+  // way (animals led, hours worked) and are only booked. A levy's days count as worked only for the reason 'days worked' (a day
+  // commuted is paid, not worked: VB-1769). One met leaves the caches: the caller tells the payment, which knows its words.
   // Returns null, or why not.
   function fulfil(st, id, n, why, goods = null) {
     const list = (Array.isArray(id) ? id : [id]).map((k) => st.obligations[k]);
     if (!list.every((o) => o && isLive(o))) return 'the obligation is closed';
     if (!(n > 0) || n > list.reduce((s, o) => s + left(o), 0) + 1e-9) return 'more than is owed';
-    if (goods) Stores.move(st, goods.from, goods.to, goods.good, goods.n ?? n, why);
+    if (goods) Stores.move(st, goods.from, goods.to, goods.good, n, why);
     for (const { id: k } of list) {
       const o = st.obligations[k];
       const part = Math.min(n, left(o));
@@ -202,7 +203,7 @@ VB['sim/obligations'] = (() => {
       n -= part;
       o.delivered += part;
       if (o.kind === 'days') {
-        if (!goods) o.worked += part; // hours worked, not a day commuted for goods
+        if (why === 'days worked') o.worked += part; // hours worked, not a day commuted
         o.asked = Math.max(0, o.asked - part);
       }
       // Met within rounding (parts of hours or rations summed: 3.9999999999999996 of 4), and then booked as whole (VB-1175's run).

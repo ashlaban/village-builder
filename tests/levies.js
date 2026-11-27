@@ -1047,8 +1047,8 @@ let fitSeen = '';
     `commuted: paid, not worked (${O.left(L)}, ${L.worked})`,
   );
   assert.ok(
-    Math.abs(VB['sim/stores'].grainOf(B) - gB + OU2.worth) < 1e-6 && Math.abs(VB['sim/stores'].grainOf(A) - gA - OU2.worth) < 1e-6,
-    "the rate's rations moved from the household's store to the levier's",
+    Math.abs(VB['sim/stores'].grainOf(B) - gB + OU2.worth) < 1e-6 && VB['sim/stores'].grainOf(A) <= gA + 1e-6,
+    `the rate's rations set aside at the levied's house, the levier's to fetch: nothing teleports (review F2): ${gB} -> ${VB['sim/stores'].grainOf(B)}, ${gA} -> ${VB['sim/stores'].grainOf(A)}`,
   );
   assert.ok(
     st.offers.some((x) => x.basis === 'release' && x.wants.levy === L.id),
@@ -1159,6 +1159,29 @@ let fitSeen = '';
     `relaid for a new year (${od.status}, ${nd.source} ${O.left(nd)})`,
   );
   O.forgive(st, nd.id, A.holder);
+  // a day of a debt lent (transfer) is not a debt to the household it is lent to: on its day, its last, it is sent, not relaid (review F1)
+  const nLent = st.obligations.length,
+    lent = st.obligations[
+      O.create(st, {
+        kind: 'days',
+        debtor: toB,
+        creditor: { kind: 'household', id: A.id },
+        owes: { days: 1 },
+        due: (today() + 2) * DAY,
+        source: 'debt',
+        terms: { ...TERMS.debt, carry: false, lent: true },
+        window: [today() + 1, today() + 1],
+      })
+    ];
+  O.setLevy(st, lent.id, { named: [{ day: today() + 1, pawn: hand }] });
+  while (today() < lent.window[0]) Sim.advance(st, 1);
+  Sim.advance(st, 0.2);
+  assert.ok(
+    st.obligations.length === nLent + 1 && (st.daysToday.by[hand] || [])[0] === lent.id,
+    `the lent day sent, no debt relaid (${st.obligations.length - nLent}, ${JSON.stringify(st.daysToday.by[hand])})`,
+  );
+  while (st.t < lent.due + 1) Sim.advance(st, 1);
+  assert.ok(lent.status === 'met' || lent.status === 'lapsed', `and it ends with its day (${lent.status})`);
   assert.deepStrictEqual(
     checkState(st).filter((b) => /obligation|days/.test(b)),
     [],
