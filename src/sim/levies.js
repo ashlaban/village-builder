@@ -854,7 +854,7 @@ VB['sim/levies'] = (() => {
   // ---- naming: the levied head's rule, or the verb name ----
   // What naming day d displaces of household hh's windowed work, by its head's reckoning: for each open task whose window (sim/hands
   // windowEnd) is still open on d, the hours of it left past what the household's hands can do from d to the window's end less the day's.
-  function displaced(st, hh, c, d, cap) {
+  function displaced(st, hh, c, d, cap, by) {
     const dy = c.season * SEASON_DAYS + c.sday + (d - c.day);
     let n = 0;
     for (const j of st.jobsBy.get(`household:${hh.id}`) || []) {
@@ -862,7 +862,9 @@ VB['sim/levies'] = (() => {
       const e = windowEnd(st, j, c);
       if (e === null || e < dy || !isOpen(st, j)) continue;
       const left = Math.max(0, (j.hours ?? KINDS[j.kind].hours ?? 0) - (j.done || 0));
-      n += Math.min(OUTER.hours, Math.max(0, left - (cap * (e - dy + 1) - OUTER.hours)));
+      const x = Math.min(OUTER.hours, Math.max(0, left - (cap * (e - dy + 1) - OUTER.hours)));
+      if (by && x > 0) by(j.kind, x); // the harness's tally (tools/q10.js), by the kind of task displaced
+      n += x;
     }
     return n;
   }
@@ -883,6 +885,9 @@ VB['sim/levies'] = (() => {
   // The days of levy o's window still to name, by the default author of whoever names them: the levied's, each the day that displaces
   // least of its windowed work (the earliest of equals), never a day another adult of its household is named for; the levier's, the
   // earliest days at the notice, the one sent picked on the day.
+  // SWITCH.calendar (tools/q10.js only, off by default): the levied's days are put on the calendar's days instead, the first days of the window
+  // after the notice, nobody's choice (no pawn named: the one sent is picked on the day).
+  const SWITCH = { calendar: false };
   function nameDays(st, o, D) {
     const hh = st.households[o.debtor.id];
     if (!hh || hh.dissolved || o.terms.names === 'together') return; // one date for all: the alderman's (VB-1768)
@@ -894,18 +899,19 @@ VB['sim/levies'] = (() => {
     const taken = new Set();
     for (const x of Obligations.due(st, hhRef(hh.id), 'debtor', 'days')) for (const e of x.named) taken.add(e.day);
     const c = cal(st.t),
-      cap = byLevier ? 0 : capOf(st, hh, D);
+      onCalendar = SWITCH.calendar && !byLevier,
+      cap = byLevier || onCalendar ? 0 : capOf(st, hh, D);
     for (let k = unnamed(st, o); k > 0; k--) {
       let day = null,
         least = Infinity;
       for (let d = from; d <= to; d++) {
         if (taken.has(d)) continue;
-        const x = byLevier ? 0 : displaced(st, hh, c, d, cap);
+        const x = byLevier || onCalendar ? 0 : displaced(st, hh, c, d, cap);
         if (x < least - 1e-9) [day, least] = [d, x];
-        if (byLevier || least <= 0) break;
+        if (byLevier || onCalendar || least <= 0) break;
       }
       if (day === null) return;
-      const pawn = byLevier ? null : adultFor(st, hh, day);
+      const pawn = byLevier || onCalendar ? null : adultFor(st, hh, day);
       if (issue(st, { actor, verb: 'name', target: o.id, args: { day, pawn }, source: 'planner' }) !== true) return;
       taken.add(day);
     }
@@ -947,7 +953,7 @@ VB['sim/levies'] = (() => {
   // Whether the levied head of levy o names its own days now: its default author does, unless the head is on its own commands, whose
   // days are named by the default author only once the window has no more days left than the days unnamed and the notice.
   function namesNow(st, o, D) {
-    if (o.terms.names !== 'levied') return true;
+    if (o.terms.names !== 'levied' || SWITCH.calendar) return true;
     const hh = st.households[o.debtor.id],
       head = hh ? hh.holder : null;
     return head === null || !unplanned(st, head) || o.window[1] - D + 1 <= unnamed(st, o) + o.terms.notice;
@@ -1017,6 +1023,9 @@ VB['sim/levies'] = (() => {
   }
   return {
     step,
+    SWITCH,
+    displaced,
+    capOf,
     OUTER,
     TERMS,
     leviesOf,
