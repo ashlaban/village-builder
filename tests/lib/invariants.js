@@ -210,6 +210,7 @@ function checkState(st) {
     for (const a of st.agents) {
       // VB-1779: a breach's hours run to a tick (agent.taking); the goodwill gathered toward the head is under a ration, owed to a pawn
       if (a && a.taking !== undefined && !Number.isFinite(a.taking)) bad.push(`agents[${a.id}].taking: ${a.taking}`);
+      if (a && a.asked !== undefined && !(a.asked.hours > 0 && Number.isInteger(a.asked.day))) bad.push(`agents[${a.id}].asked: ${JSON.stringify(a.asked)}`);
       const r = a && a.book;
       if (!r) continue;
       if (r.gw !== undefined && (!(Math.abs(r.gw) < 1 + 1e-9) || !st.pawns[r.gwTo])) bad.push(`agents[${a.id}].book.gw: ${r.gw} toward ${r.gwTo}`);

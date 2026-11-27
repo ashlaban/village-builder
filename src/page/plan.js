@@ -548,12 +548,14 @@ function planClick(b, hh) {
   } else if (d.plan === 'project')
     r = Sim.head(st, st.player.pawn, 'project', { what: d.what === 'null' ? null : d.what });
   else if (d.plan === 'drop') r = Sim.head(st, st.player.pawn, 'dropProject', d.id !== undefined ? { id: +d.id } : {});
-  else if (d.plan.startsWith('day')) {
+  else if (DAY_PLANS.has(d.plan)) {
     r = dayClick(b, hh); // the day's verbs (page/day, VB-477)
     if (r === undefined) return;
   } else return;
   planMsg = r === true ? { text: `Done: ${b.getAttribute('aria-label')}.` } : { text: r, bad: true };
 }
+// the day's verbs, handed to page/day's dayClick (VB-1779 renamed them from day...)
+const DAY_PLANS = new Set(['callAsk', 'callNo', 'call', 'assign', 'dayOrder']);
 // The tiles that would take the next field or meadow, read once at the tool's start: those within the farm's reach (the walk of the rule,
 // REACH_FIELD or REACH_MEADOW steps) that the rule's own check (fieldWhy, meadowWhy) lets through, the same as the verb's. With them, for
 // when there is none, why: the rule's reason that refuses the most tiles within reach (the house's own tile aside), in the rule's words.

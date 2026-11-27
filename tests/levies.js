@@ -328,10 +328,14 @@ function handsOf(s, id) {
   assert.ok(a.taking === undefined, 'the breach ends once booked past');
   assert.ok(Math.abs(a.book.p[5] - 3 * a.book.hands) < 1e-9, `three hours taken (${a.book.p})`);
   const hours = Math.ceil(row) + 4;
+  // a demand met of 2 hours: those of the head's hours past the levy are goodwill it owes; the rest of its work past the levy, no demand
+  // made, owes nothing (review F1)
+  Levies.asked(s, m, 2);
   end(9, Math.min(18, 9 + hours), 'head');
   const P = a.book.p;
-  assert.ok(P[2] > 0, `hours past the levy demanded (${P})`);
-  const owed = (P[2] - P[5]) * (3 / 8),
+  assert.ok(P[2] > 2 * a.book.hands, `hours past the levy demanded (${P})`);
+  assert.ok(s.agents[m] === undefined || s.agents[m].asked === undefined, 'the demand worked out');
+  const owed = (2 * a.book.hands - P[5]) * (3 / 8),
     g1 = Rel.balance(s, m, h.holder) + (a.book.gw || 0);
   assert.ok(Math.abs(g1 - g0 - owed) < 0.01, `goodwill (it decays as it stands): the head owes the hours demanded less those taken (${g1 - g0}, ${owed})`);
   const tl = Levies.tallyOf(s, h, cal(day * DAY + WORK[0]));
@@ -368,6 +372,13 @@ function handsOf(s, id) {
       assert.strictEqual(VB.count.demandMade, made + 1, 'a demand made');
       const met = s.plans.households.get(h.id).day.lists[y].includes(key);
       assert.ok(met ? VB.count.demandMet === yes0 + 1 : VB.count.demandRefused === no0 + 1, 'answered at once: moved at a yes, a memory at a no');
+    }
+    {
+      // a call to a task on the member's own list is inside what the allotment gave it: no demand, even with its levy left spent (F2)
+      const key = day.lists[x][0];
+      day.free[x] = 0;
+      const r = issue(s, { actor: h.holder, verb: 'call', target: h.id, args: { member: x, key }, source: 'player' });
+      assert.ok(!/is a demand/.test(String(r)), `a call within the allotment is no demand (${r})`);
     }
   }
   const hp = h.holder;

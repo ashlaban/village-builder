@@ -183,8 +183,9 @@ VB['sim/day'] = (() => {
             args: { basis: 'demand', wants: { verb: 'default', key: j.key, hours: h, fit: s } },
             source: 'pawn',
           });
+          // an open demand (a played member to answer) is counted as asked: no second demand, no risk named for it (review F4)
+          if (o === 'yes' || o === 'open') u -= h * r;
           if (o === 'yes') {
-            u -= h * r;
             const m = ctx.manned.get(j) || [0, 0];
             ctx.manned.set(j, [m[0] + h * r, m[1] + 1]);
           }
@@ -216,6 +217,7 @@ VB['sim/day'] = (() => {
         hh = st.households[o.household],
         day = planOf(st, 'household', hh.id).day;
       VB.count.demandMet++;
+      Levies.asked(st, o.to, w.hours);
       if (w.verb !== 'default') {
         const r = issue(st, {
           actor: o.from,
@@ -886,14 +888,18 @@ VB['sim/day'] = (() => {
     return pastLevy(st, st.households[c.target], to, h, day);
   }
   // The hours past member id's levy left that a call to task j asks: the hours of its work left at the member's rate, to the day's end.
+  // None for a task already on the member's list: the allotment gave it those hours, and a later call inside them is no breach (design.md,
+  // The day's capacity; the call only puts it first).
   function callPast(st, c) {
     const hh = st.households[c.target],
       id = c.args.member,
+      day = planOf(st, 'household', hh.id).day,
       j = st.jobs.get(c.args.key),
       r = rateOf(st, st.pawns[id]),
       hour = cal(st.t).hour,
       h = r > 0 ? Math.min(hoursLeft(st, j) / r, WORK[1] - Math.min(WORK[1], Math.max(WORK[0], hour))) : 0;
-    return pastLevy(st, hh, id, h, planOf(st, 'household', hh.id).day);
+    if (day.lists && day.lists[id] && day.lists[id].includes(c.args.key)) return 0;
+    return pastLevy(st, hh, id, h, day);
   }
   // call({member, key}) (VB-1779): the member is called to task `key` now, from work, from the road home or from idling, as the head's
   // call (design.md section 7, The head calls): a work command the head opened. Past its levy left a demand (above).
