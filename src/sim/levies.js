@@ -20,7 +20,12 @@ VB['sim/levies'] = (() => {
   const { ASK } = VB['sim/rules'],
     { MADE } = VB['sim/targets'];
   const Obligations = VB['sim/obligations'],
-    { DAYS } = VB['sim/days'];
+    Days = VB['sim/days'],
+    { DAYS } = Days;
+  const Stores = VB['sim/stores'];
+  const { floorOf } = VB['sim/hunger'];
+  const { isOpen } = VB['sim/kinds'];
+  const { register, issue } = VB['sim/commands'];
   const { workOfTarget, fieldYield } = VB['sim/estimate'];
   const { fullName, log, atFarm, unplanned } = VB['sim/records'];
   const Norms = VB['sim/norms'],
@@ -711,7 +716,119 @@ VB['sim/levies'] = (() => {
       emit(st, 'seasonJudged', { hh, c: d.c }); // the season's turn: the members' asks of a lighter levy (sim/voice, VB-1763)
     }
   });
+  // ---- the days called and the day's duty (moved from sim/days, VB-1767) ----
+  const today = (st) => Math.floor(st.t / DAY);
+  const farmOf = (st, hh) => (hh.farmstead === null ? null : st.farmsteads[hh.farmstead]);
+  // The hours of work the household has open now: its tasks with room, what is left of each.
+  function openHours(st, hh) {
+    let n = 0;
+    for (const j of st.jobsBy.get(`household:${hh.id}`) || []) {
+      if (!isOpen(st, j)) continue;
+      n += Math.max(0, (j.hours ?? KINDS[j.kind].hours ?? 0) - (j.done || 0));
+    }
+    return n;
+  }
+  // Why household hh sends no hand, or null: below its floor, or its own harvest waiting (the day stays owed).
+  function sendsNone(st, hh) {
+    if (Stores.grainOf(hh) - floorOf(st, hh) < 0) return 'its household is below its floor';
+    for (const j of st.jobsBy.get(`household:${hh.id}`) || [])
+      if (KINDS[j.kind].type === 'harvest' && isOpen(st, j)) return 'its household has its own harvest waiting';
+    return null;
+  }
+  const inQueue = (st, day, hid) => (st.daysCalls || []).some(([d, p]) => d === day && st.pawns[p].household === hid);
+  // The adult of the debtor household called for `day`: the pawn asked for, or the first fit; {pawn} or {why}.
+  function pick(st, o, day, asked) {
+    const hh = st.households[o.debtor.id];
+    if (hh.dissolved) return { why: 'the household owing is gone' };
+    const why = sendsNone(st, hh);
+    if (why) return { why };
+    if (inQueue(st, day, hh.id)) return { why: 'an adult of that household is called for that day already' };
+    const ids = asked !== undefined && asked !== null ? [asked] : hh.members;
+    for (const id of ids) {
+      const p = st.pawns[id];
+      if (p && p.alive && p.household === hh.id && !p.retired && age(st, p) >= MATCH.help.minAge) return { pawn: id };
+    }
+    return { why: 'no adult of that household can come' };
+  }
+  // Why the holder `actor` cannot call a day of obligation id for `day`, or null.
+  function callWhy(st, actor, id, day, asked) {
+    const o = st.obligations && st.obligations[id];
+    if (!o || o.kind !== 'days' || !Obligations.isLive(o)) return `there are no days owed under ${id}`;
+    const p = st.pawns[actor],
+      hh = p && p.alive && p.household !== null ? st.households[p.household] : null;
+    if (!hh || hh.holder !== actor || o.creditor.id !== hh.id)
+      return 'only the holder of the household owed calls its days';
+    if (Obligations.left(o) - o.called < 1e-9) return 'every day owed is called already';
+    if (day < today(st) + DAYS.notice) return `a day is called at least ${DAYS.notice} days ahead`;
+    const a = farmOf(st, hh),
+      b = farmOf(st, st.households[o.debtor.id]);
+    if (!a || !b || a.village !== b.village) return 'the household owing is not of its village';
+    const pending = Obligations.due(st, o.creditor, 'creditor', 'days').reduce((s, x) => s + x.called, 0);
+    if (openHours(st, hh) < (pending + 1) * DAYS.hours) return 'there is no work for another hand';
+    return pick(st, o, day, asked).why || null;
+  }
+  const calledDay = (st, c) => (c.args && c.args.day !== undefined ? c.args.day : today(st) + DAYS.notice);
+  // callDays: the holder calls a day of the days owed it (target: the obligation), for args.day (default: DAYS.notice ahead), from args.pawn
+  register('callDays', {
+    check: (st, c) => callWhy(st, c.actor, c.target, calledDay(st, c), c.args && c.args.pawn),
+    run: (st, c) => {
+      const day = calledDay(st, c),
+        o = st.obligations[c.target],
+        { pawn } = pick(st, o, day, c.args && c.args.pawn);
+      const q = st.daysCalls || (st.daysCalls = []);
+      let at = q.length;
+      while (at > 0 && (q[at - 1][0] > day || (q[at - 1][0] === day && q[at - 1][1] > pawn))) at--;
+      q.splice(at, 0, [day, pawn, o.id]);
+      Obligations.setCalled(st, o.id, 1);
+      VB.count.daysCalled++;
+    },
+  });
+  // On a household's planning day its holder calls a day from each household that owes it days (the planner's own use of the verb).
+  on('planReviewed', (st, d) => {
+    const hold = d.plan.holder;
+    if (d.why !== 'day' || hold.type !== 'household' || !st.obligationsBy) return;
+    const hh = st.households[hold.id];
+    if (hh.dissolved || hh.holder === null) return;
+    for (const o of Obligations.due(st, { kind: 'household', id: hh.id }, 'creditor', 'days'))
+      issue(st, { actor: hh.holder, verb: 'callDays', target: o.id, args: {}, source: 'planner' });
+  });
+  // A day's first step: yesterday's calls are over (what was not worked stays owed); today's come on duty, unless their household sends
+  // none. Then those who have given their hours are told so (`dayGiven`): their working day is over, and sim/agents' rule for it (a load
+  // in hand carried to the creditor's store first, then home) is theirs; sim/days sends nobody home itself (VB-1749).
+  function step(st) {
+    const D = today(st);
+    let d = st.daysToday;
+    if (!d || d.day !== D) {
+      if (d) for (const e of Object.values(d.by)) Obligations.setCalled(st, e[0], -1);
+      d = Days.begin(st, D);
+      const q = st.daysCalls || [];
+      while (q.length && q[0][0] <= D) {
+        const [day, pawn, oid] = q.shift(),
+          o = st.obligations[oid];
+        if (!Obligations.isLive(o)) continue;
+        const p = st.pawns[pawn];
+        if (
+          day < D ||
+          d.by[pawn] ||
+          !p.alive ||
+          p.household !== o.debtor.id ||
+          sendsNone(st, st.households[p.household])
+        )
+          Obligations.setCalled(st, oid, -1);
+        else Days.seat(st, pawn, oid);
+      }
+    }
+    for (const [id, e] of Object.entries(d.by))
+      if (e[1] >= DAYS.hours - 1e-9 && !e[2]) {
+        // a load on the road is brought in first, by the rule for a load in hand: the day is given once it is in (VB-1548)
+        const ag = st.agents[+id];
+        if (ag && ag.load > 0 && ag.job && ag.load > 0) continue;
+        Days.markGiven(st, +id);
+        emit(st, 'dayGiven', { pawn: +id });
+      }
+  }
   return {
+    step,
     rowOf,
     levyOf,
     levied,

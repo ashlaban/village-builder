@@ -95,10 +95,10 @@ assert.deepStrictEqual(checkState(st).filter((b) => /obligation|days/.test(b)), 
   st.daysToday = { day: today(), by: { [hand]: [oid, DAYS.hours, 0] } };
   const e = st.daysToday.by[hand];
   ag.job = j; ag.load = 1;
-  Days.step(st);
+  VB['sim/levies'].step(st);
   assert.strictEqual(e[2], 0, 'a load on the road: no goHome yet');
   ag.load = 0; ag.job = null;
-  Days.step(st);
+  VB['sim/levies'].step(st);
   assert.strictEqual(e[2], 1, 'the load delivered: the hand goes home');
   [ag.job, ag.load, st.daysToday] = was;
 }
@@ -137,7 +137,7 @@ console.log("days ok: a day called, worked on the creditor's field as others' ho
     assert.ok(n < 400 && ag.job === jj && (kind === 'wood' || ag.leg.kind === 'work'), `${kind}: the hand is at the trip (${n}, ${ag.job && ag.job.key})`);
     const hours = DAYS.hours;
     mark(hours);
-    if (kind === 'gather') Days.step(s);
+    if (kind === 'gather') VB['sim/levies'].step(s);
     let i = 0;
     for (; i < 25 && (ag.job || !ag.inside); i++) Sim.advance(s, 0.1); // well within the hours it would take to work on
     assert.ok(!ag.job && ag.inside && !(ag.load > 0), `${kind}: the load set down, the hand home (${ag.job && ag.job.key}, ${ag.load}, inside ${ag.inside})`);
