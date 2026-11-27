@@ -614,6 +614,34 @@ let fitSeen = '';
   assert.ok(plan.budget.total < B.total - 1e-9 && VB.count.budgetReckoned === n + 1, 'a member gone: reckoned again');
   h.members = save;
   review();
+  // an outer levy's days come off the budget in its window once asked (VB-1767), and leave it with the levy
+  {
+    const O = VB['sim/obligations'],
+      { OUTER: OU, TERMS: TE } = VB['sim/days'],
+      cr = s.households.find((x) => x !== h && !x.dissolved),
+      B0 = plan.budget,
+      first = c.day - c.sday;
+    const id = O.create(s, {
+      kind: 'days',
+      source: 'debt',
+      debtor: { kind: 'household', id: h.id },
+      creditor: { kind: 'household', id: cr.id },
+      owes: { days: 4 },
+      terms: TE.debt,
+    });
+    review();
+    assert.ok(plan.budget.outer === 0 && plan.budget.total === B0.total, 'not asked: not charged to the season');
+    O.setLevy(s, id, { window: [first + B0.from, first + SEASON_DAYS - 1], asked: 2 });
+    review();
+    assert.ok(
+      plan.budget.outer === 2 && Math.abs(B0.total - plan.budget.total - 2 * OU.hours) < 1e-6,
+      `the days asked come off the budget (${plan.budget.outer}, ${B0.total} -> ${plan.budget.total})`,
+    );
+    O.forgive(s, id, cr.holder);
+    assert.ok(!O.due(s, { kind: 'household', id: h.id }, 'debtor', 'days').length, 'closed: out of the live index');
+    review();
+    assert.ok(plan.budget.outer === 0 && plan.budget.total === B0.total, 'and off the budget');
+  }
   // the season made not to fit: the head reckons it can place a great deal of tar (sim/asks), more than its people owe the season
   plan.placed = { year: c.year, goods: { tar: Math.ceil(plan.budget.total / KINDS.burntar.hours) * 2 }, heard: [] };
   delete plan.fit;
