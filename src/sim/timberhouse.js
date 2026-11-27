@@ -26,7 +26,7 @@ VB['sim/timberhouse'] = (() => {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `the household has no farm of its own`;
     if (f.booth) return `${f.name} has no cottage yet`;
-    if (f.rung === 'timber') return `${f.name} has a timber house`;
+    if (f.rung === 'timber') return `${f.name} has a farmhouse`;
     if (!st.villages[f.village].wood.length) return `${st.villages[f.village].name} has no wood to fell its timber in`;
     return null;
   }
@@ -43,7 +43,7 @@ VB['sim/timberhouse'] = (() => {
     f.rung = 'timber';
     st.biomeDirty.add(f.house);
     st.farmDirty.add(f.id);
-    log(st, `The timber house at ${f.name} is finished; ${fullName(st.pawns[hh.holder])} and the household move in.`, {
+    log(st, `The farmhouse at ${f.name} is finished; ${fullName(st.pawns[hh.holder])} and the household move in.`, {
       kind: 'cottage',
       pawn: hh.holder,
       ...atFarm(f),
@@ -56,9 +56,9 @@ VB['sim/timberhouse'] = (() => {
     needs: i === 0 ? ['timber'] : [],
     gives,
     verb,
-    go: 'Going to build the timber house',
+    go: 'Going to build the farmhouse',
     name,
-    label: 'Timber house',
+    label: 'Farmhouse',
     anim,
     hours: BUILD.timberHouse.hours[i],
     hands: Infinity,
@@ -68,8 +68,8 @@ VB['sim/timberhouse'] = (() => {
     done,
   });
   const KINDS = {
-    timberframe: kind("Raising the timber house's frame", 'Raise the frame', 'chop', 0, []),
-    timberroof: kind('Roofing the timber house', 'Roof the timber house', 'mallet', 1, ['house']),
+    timberframe: kind("Raising the farmhouse's frame", 'Raise the frame', 'chop', 0, []),
+    timberroof: kind('Roofing the farmhouse', 'Roof the farmhouse', 'mallet', 1, ['house']),
   };
   return { KINDS, STAGES, timberSteps, timberWhy };
 })();
