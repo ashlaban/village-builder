@@ -106,6 +106,9 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   the page reads it by key; no generator or simulation module may name it (`tests/dependencies.js`). `ArchGen` is the generator only.
 
 ## Conventions
+- **Time has two scales** (design.md section 3, Two scales of time): a game day stands for a real week, a game week (4 game days) for a
+  real month, a game season (3 game weeks, 12 game days) for a real season, a game year (48 game days) for a real year. There is no game
+  month. Name every unit of time with its scale ("game week", "real month"); a bare "day" is a game day; never write a bare "week" or "month".
 - Read owned fields freely; write through the module in `src/owners.json` (caches follow the same rule; page flags are signals).
   `tests/ownership.js` checks this; `// lint-allow: owner <reason>` exempts one line. Its schema validates owners against the manifest and
   `plannedOwners`; remove a planned name when its module lands.

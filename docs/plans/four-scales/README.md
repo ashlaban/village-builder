@@ -160,7 +160,8 @@ arrives with its kind known and its hours not (76 to 80% against 26 to 32%, *mea
 - **a dated step**: a piece of work with "from" or "by", which the day's allotment takes up when its day comes and mans by its window.
 
 The page shows six days ahead (half a season) because a player thinks in that span; the rule binds three. The week as a calendar
-unit exists nowhere in the simulation.
+unit exists nowhere in the simulation. **Note (Kim, 27 November):** "the week" in this document is v1's six game days; the game
+week is now 4 game days, a third of a season, standing for a real month (design.md section 3, Two scales of time).
 
 ### 3.2 The task as a plan
 
@@ -296,7 +297,7 @@ average household's work and fall short of the busiest; that shortfall is where 
 | Horizon | The budget from above | What the plan below does within it |
 | --- | --- | --- |
 | Year | An estate's days on a village; the meeting's routines as lots on households; the custom's levy table, known to every member | The village's plan must deliver the estate's days; the household's year knows its outer days by window; a pawn's aims are sized to its own hours |
-| Season | **The household's labour budget**: the sum of its members' levies over the season's days, less the outer levies' days (8 hours each); also by each third of the season, 4 game days (Kim, 27 November) | The head's season plan sets each target's hours left against the budget, by its estimate; a season that does not fit is seen at its start (ask for hands, lower a target, ask members for more) |
+| Season | **The household's labour budget**: the sum of its members' levies over the season's days, less the outer levies' days (8 hours each); also by each game week of the season (4 game days, standing for a real month; Kim, 27 November) | The head's season plan sets each target's hours left against the budget, by its estimate; a season that does not fit is seen at its start (ask for hands, lower a target, ask members for more) |
 | Days ahead | Named days of outer levies; dated grants (leave) | Duties and dated steps go to members within their levies; an outer day comes out of the household's levy on the one sent, not out of that pawn's own hours |
 | Day | Each member's levy in hours today | **The allotment's capacity for a member is its levy**, not 12 (today: "each member up to its own hours"). Levy hours the allotment leaves unassigned fall to the member for the day; the head may still call within the levy |
 | Task | The step that opened the task says whose hours they are | Hours are booked at a leg's end: owed, levied, demanded, given, kept or taken (below) |
