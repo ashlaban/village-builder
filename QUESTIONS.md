@@ -52,4 +52,14 @@ The measure (VB-1554, populous small, seed 7, 2 years): the allotment is 31% of 
 tools/contact.js (populous small, seeds 7, 11, 13, 40 years): villages in the top fifth by distinct people met at venues drift 0.0079 a key a year against 0.0096 for the rest (correlation -0.28); gathering hosts 0.0082 against 0.0095. Contact alone gives no faster drift.
 Proposed answers: (a) leave it to contact: no term; (b) add a term to attitude.malleability reading those met at venues, with a range (e.g. 1 to 1.5 times), so a busy place drifts faster by mechanism.
 
+### VB-1947: When do the tunables move out of src/sim/rules.js (VB-1406 step 9)? (raised 27 November 2026)
+1. VB-1947 moves the tables several domains read out of `src/sim/rules.js` into files by domain, with `VB['sim/rules']` kept as the joined view so that none of its 107 readers changes. It touches what every module reads at load, so every branch in flight that edits a table conflicts with it once. When should it go ahead?
+   **P:** after the slice work in flight has merged, in a quiet hour, as one task: the joined view keeps every reader as it is, and `tools/same.js` shows it.
+
 ## Priority 3
+
+### VB-1406: Two lists only Kim reads or records: docs/tuning.md and tests/counters.json (VB-1406) (raised 27 November 2026)
+1. `docs/tuning.md`: 17 of the 18 tasks that touched it appended a row to "Parameters waiting". Kim reads the file to start tuning runs. Should it become one entry a task, a file each as `backlog/` is, gathered by a tool into the table you read?
+   **P:** one entry a task, gathered by a tool into the same table; until then the orchestrator writes the rows once a run from the inbox's `tuning` notes, as now.
+2. `tests/counters.json` is a recorded baseline of the work counters, and 15 tasks rewrote it (one commit only re-recorded it after a merge). Should it be recorded at merge, at night, or in each task as now?
+   **P:** at night: the nightly bench records it once, on the merged result, and a task reports its counters' change in its PR without writing the file.

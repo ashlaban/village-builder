@@ -94,8 +94,11 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   `writes`, `calibrate`, `wrap`, `shot`, `village-shot`, `cover`, `bench`, `agent-usage`.
 
 ## Finding things
-- Module map: `grep -rn "^// @sys" src`; state schema: `grep -rn "@state" src`; modules in load order: `src/manifest.json`; tunables:
-  `grep -rn "@tunable" src`, beside the tables of `src/sim/rules.js` that several domains read (VB-419).
+- Find a thing by the grep of its declaration, not by a list file (VB-1406): module map `grep -rn "^// @sys" src`; state schema and
+  owners `grep -rn "@state" src`; tunables `grep -rn "@tunable" src`, beside the tables of `src/sim/rules.js` that several domains read
+  (VB-419); verbs `grep -rn "register('" src`; job kinds `grep -rn "const KINDS = " src`. The lists not yet turned into declarations (modules
+  in load order `src/manifest.json`, layers `src/layers.json`, owners `src/owners.json`, tiers `tests/suites.js`, counters `VB.COUNTERS`)
+  are still read and edited until their step lands (`docs/architecture/modules.md`, Adding things).
 - Source is read through `readSource(file)` (`tools/lib/source.js`), never `readFileSync`, so that `.ts` is read as JavaScript.
 - The terrain's codes, names and grid (`B`, the biomes' names, `treeStage`, `ROCK`, `DEPOSIT`, `hexLocator`, `csample`, a river's kind)
   are `src/world/*` (VB-1501): read them there, not through the `gen` facade, which is the generator and the bake.
@@ -145,6 +148,12 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   names it in its PR and goes on. Never place code elsewhere to make room.
   A split is where to think hardest (Kim, 18 November): the session that takes a line of the collector says, before any code moves,
   which responsibilities the module holds and where each belongs; the split follows those, not the line count, and the line is ticked.
+  Before that, it names the lists in the module that every feature appends to (a table, an export block, an `if` a field), and turns
+  those into declarations by their owners, joined in a declared order (target-v2, principle 20; VB-1406); it splits by concern only
+  what is left, and its PR names, for each part, the tasks of the last 50 merged PRs that would have touched it. A split that only
+  moves such a list leaves the parent as hot as before (`docs/plans/VB-1406-overlap.md`, section 4).
+- What a feature adds to a shared list is declared by its owner, beside its code; a registry or a tool joins it in a declared order,
+  never by load order (target-v2, principle 20). Where each kind of thing is declared: `docs/architecture/modules.md`, Adding things.
   The seven modules the sweep left over the line are in `tests/lint-baseline.json` at their lengths, which only fall.
   Width the same way (VB-415): a module over 15 exports (`tests/width-baseline.json` holds today's 21 at their counts) may add one only
   with such a line open; the `sim` facade is not counted, nor an export read only by registries (`REGISTRIES` in `tests/lint.js`: `sim/kinds`, `sim/clock`; VB-454).
