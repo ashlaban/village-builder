@@ -66,10 +66,13 @@ const FARMER = 0, WIFE = 1;
 // 3. Called off (sim/jobs, allot; VB-466): the woodpile falls low, the head's day is allotted anew at the full hour, and a son leaves the
 // field for the woods while the farmer keeps hoeing (design.md section 7, More urgent work); told to hoe, the son stays.
 {
-  const SON = 4;
   const low = (st) => { const hh = st.households[0]; VB['sim/stores'].take(st, hh, 'wood', hh.wood - 5, 'burn'); Sim.advance(st, 0.6); };
-  const plain = make(4.5, true), st = make(4.5, true), a = st.agents[SON];
-  low(plain); assert.strictEqual(plain.agents[SON].job.kind, 'wood', 'unplayed, the son leaves the field for the woods');
+  const plain = make(4.5, true), st = make(4.5, true), hoes = (s, id) => s.agents[id].job && s.agents[id].job.kind === 'plow';
+  const hoeing = plain.households[0].members.filter((id) => id !== FARMER && hoes(plain, id));
+  low(plain);
+  // the one of them called to the woods (VB-1951: pawn 4 until the draws moved)
+  const SON = hoeing.find((id) => plain.agents[id].job && plain.agents[id].job.kind === 'wood'), a = st.agents[SON];
+  assert.ok(SON !== undefined && hoes(st, SON), 'unplayed, one of the hoeing leaves the field for the woods');
   assert.strictEqual(plain.agents[FARMER].job.kind, 'plow', 'and the farmer keeps hoeing');
   const field = a.job;
   Sim.inhabit(st, SON); Sim.queue(st, st.player.pawn, { actor: SON, verb: 'work', target: field.key });

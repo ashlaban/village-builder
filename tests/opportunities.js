@@ -121,7 +121,7 @@ const ask = (st, id, near) => O.forPawn(st, O.actorView(st, id), id, near);
 }
 // ---- the wish for a match leaves out those barred by who they are, and fills from the next by tie (VB-1110) ----
 {
-  const st = tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4 }], { seed: 7, herds: true });
+  const st = tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4 }], { seed: 9, herds: true }); // seed 9 since VB-1951 moved the draws
   const R = VB['sim/records'], single = (sex) => st.living.filter((id) => st.pawns[id].sex === sex && Sim.age(st, st.pawns[id]) >= 18 && R.spouseOf(st, id) === null);
   const son = single('m')[0], [mother, other, retired] = single('f');
   assert.ok(son !== undefined && retired !== undefined, `the tiny village holds the pawns: ${single('m')} ${single('f')}`);
