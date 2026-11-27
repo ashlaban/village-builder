@@ -408,7 +408,7 @@ VB['sim/methods'] = (() => {
     eff: [cartOrNone],
   };
   // A load that goes home on a cart says so at its cart's step (`miss`, VB-1810): a hand of it that sets out with none free while one
-  // would pay carries on its back while more waits, a miss the head counts (sim/doing cartMissed).
+  // would pay carries on its back while more waits, a miss the head counts (sim/doing wanted).
   const loadCart = { ...cartStep, miss: true };
   function carry(K, key, o) {
     const good = o.good || key,
