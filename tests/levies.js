@@ -427,6 +427,34 @@ let ownSeen = '';
   assert.ok(VB.count.giveLeg > legs0, 'legs given by judgement');
   assert.ok(own[x] >= 3 * own[y] && own[x] > 0, `the diligent son gives three times the idle one's hours (${own[x].toFixed(1)}, ${own[y].toFixed(1)})`);
   assert.ok(given[x] > 0 && given[x] >= given[y], `hours past the levy booked given (${given[x].toFixed(1)}, ${given[y].toFixed(1)})`);
+  // explainIdle names the choice at a job of the idle son's list past its levy, levy left or not (review F1)
+  const dy = s.plans.households.get(h.id).day,
+    fy = (dy.fits && dy.fits[y]) || [],
+    k = (dy.lists[y] || []).find((key, i) => fy[i] !== null && fy[i] < 0 && s.jobs.has(key));
+  if (k !== undefined && !Levies.gives(s, h, s.pawns[y], s.jobs.get(k), true)) {
+    const row = VB['sim/fit'].explainIdle(s, y).find((r) => r.job === k);
+    assert.ok(!row || row.reason === 'its own hours: it gives none' || row.bid === null, `a job past the levy named as its own hours (${JSON.stringify(row)})`);
+  }
+  {
+    // constructed: a job of the idle son's list put past its levy while its levy has room, in the morning
+    Sim.advance(s, 4);
+    const f = s.farmsteads[h.farmstead];
+    VB['sim/jobs'].post(s, `repair:h${h.id}:test`, 'repair', { type: 'household', id: h.id }, f.house, {});
+    const j = s.jobs.get(`repair:h${h.id}:test`),
+      dy = s.plans.households.get(h.id).day;
+    assert.ok(VB['sim/fit'].explainIdle(s, y).some((r) => r.job === j.key && r.bid !== null), 'the idle son would bid for the repair');
+    {
+      assert.ok(Levies.capacity(s, h, s.pawns[y], cal(s.t)) > 0, 'its levy has room');
+      const save = [dy.lists[y], dy.fits[y], dy.hours[y]];
+      [dy.lists[y], dy.fits[y], dy.hours[y]] = [[j.key], [-1], [0]];
+      s.pawns[y].traits[D] = 0;
+      const row = VB['sim/fit'].explainIdle(s, y).find((r) => r.job === j.key);
+      assert.ok(!Levies.gives(s, h, s.pawns[y], j, true), 'an idle son gives nothing to it');
+      assert.strictEqual(row.reason, 'its own hours: it gives none', 'named past the levy with levy left');
+      s.pawns[y].traits[D] = 0.2;
+      [dy.lists[y], dy.fits[y], dy.hours[y]] = save;
+    }
+  }
   assert.deepStrictEqual(checkState(s), [], 'invariants after a season of own hours');
   ownSeen = `${own[x].toFixed(0)} hours against ${own[y].toFixed(0)}, ${given[x].toFixed(0)} of them past the levy`;
 }
