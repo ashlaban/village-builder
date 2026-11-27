@@ -720,16 +720,10 @@ console.log(
     same(r.legs, ['fetch', 'go', 'fell', 'load', 'haul', 'unload', 'cut', 'return'], 'row 1');
     // the tree falls at the work leg, the felling's: two felled, a load each, at the forest
     const fells = r.seen.filter((x) => x.op === 'fell');
-    assert(
-      fells.length === 2 && fells.every((x) => x.at === forest && Math.abs(x.felled - 1) < 1e-9),
-      'a tree a fell leg',
-    );
+    assert(fells.length === 2 && fells.every((x) => x.at === forest && Math.abs(x.felled - 1) < 1e-9), 'a tree a fell leg');
     assert(Math.abs(t0 - st.w.trees[forest] - 2) < 1e-9, 'two trees fewer');
     assert(Math.abs(hh.wood - 2 * P(st)) < 1e-9 && !(hh.timber > 1e-9), `two loads cut: ${hh.wood}, ${hh.timber}`);
-    assert(
-      hh.carts[0].by === null && !Lying.amountAt(st, forest, 'wood', title(hh)),
-      'the cart left at home, nothing lying',
-    );
+    assert(hh.carts[0].by === null && !Lying.amountAt(st, forest, 'wood', title(hh)), 'the cart left at home, nothing lying');
   }
   // row 2: on the forest tile for another reason, no cart: fell, load on the back, haul, unload, cut, and back for more until met
   {
@@ -747,10 +741,7 @@ console.log(
     const r = play(st, a);
     assert(r.done, `row 3 met: ${r.legs.join(', ')}`);
     same(r.legs, ['fetch', 'go', 'load', 'haul', 'unload', 'cut', 'return'], 'row 3');
-    assert(
-      st.w.trees[forest] === t0 && !Lying.amountAt(st, forest, 'wood', title(hh)),
-      'the pile taken up, no tree felled',
-    );
+    assert(st.w.trees[forest] === t0 && !Lying.amountAt(st, forest, 'wood', title(hh)), 'the pile taken up, no tree felled');
   }
   // row 4: called off on the road with a load: haul, unload (the rule for a load in hand, the goal gone); the cutting is then open to anyone
   {
@@ -768,15 +759,7 @@ console.log(
     const b = members(st, hh)[1];
     Object.assign(b, { load: 0, carry: null });
     setAt(st, b, forest);
-    b.job = {
-      key: 'test:fw',
-      kind: 'firewood',
-      owner: title(hh),
-      site: f.house,
-      farm: f,
-      claims: [b.id],
-      amount: P(st),
-    };
+    b.job = { key: 'test:fw', kind: 'firewood', owner: title(hh), site: f.house, farm: f, claims: [b.id], amount: P(st) };
     same(play(st, b).legs, ['go', 'cut'], 'row 4, the cutting by another hand');
   }
   // row 5: timber at the farm: cut
@@ -791,10 +774,7 @@ console.log(
     const s = Doing.ask(st, a);
     assert(s.prim === 'work' && s.op === 'fell', 'the first leg at the forest: fell');
     Doing.work(st, a, s);
-    assert(
-      Lying.amountAt(st, forest, 'wood', title(hh)) === TRAVEL.load,
-      'the felled load lies, its title the household',
-    );
+    assert(Lying.amountAt(st, forest, 'wood', title(hh)) === TRAVEL.load, 'the felled load lies, its title the household');
     const b = members(st, hh)[2];
     Object.assign(b, { load: 0, carry: null });
     setAt(st, b, forest);
@@ -811,10 +791,7 @@ console.log(
     const away = st.villages[f.village].wood[2],
       other = st.households[1];
     Lying.put(st, 'wood', TRAVEL.load, away, title(other));
-    assert(
-      Lying.strayOf(st, title(hh), 'wood', forest, f.house) === null,
-      "another household's pile is not this one's stray",
-    );
+    assert(Lying.strayOf(st, title(hh), 'wood', forest, f.house) === null, "another household's pile is not this one's stray");
     Lying.put(st, 'wood', TRAVEL.load, away, title(hh));
     assert(st.lyingBy instanceof Map && st.lyingBy.get(`household:${hh.id}`).length === 1, 'piles indexed by owner');
     assert(Lying.strayOf(st, title(hh), 'wood', forest, f.house) === away, "the household's stray pile found");
@@ -822,39 +799,24 @@ console.log(
     assert(s.prim === 'go' && s.at === 'stray' && Doing.placeOf(st, a, s) === away, 'the stray pile first');
     const r = play(st, a);
     assert(r.legs.slice(0, 4).join() === 'go,load,haul,unload', `fetched home: ${r.legs.join(', ')}`);
-    assert(
-      !Lying.amountAt(st, away, 'wood', title(hh)) && Lying.amountAt(st, away, 'wood', title(other)) === TRAVEL.load,
-      'its own only',
-    );
+    assert(!Lying.amountAt(st, away, 'wood', title(hh)) && Lying.amountAt(st, away, 'wood', title(other)) === TRAVEL.load, 'its own only');
   }
   // VB-1813: a trip's good is named by what it is: the stone a pick trip set down is the stray of a quarry goal of its owner, and the fish
   // of a fishing trip the stray of a rackfish goal (the pile lies as `stone`, `fish`, not as the kind that made it)
-  for (const [made, wants, good] of [
-    ['pick', 'quarry', 'stone'],
-    ['fish', 'rackfish', 'fish'],
-  ]) {
+  for (const [made, wants, good] of [['pick', 'quarry', 'stone'], ['fish', 'rackfish', 'fish']]) {
     const { st, hh, f, a } = row(wants, { cart: false }),
       away = st.villages[f.village].wood[2];
-    assert(
-      Doing.planOf(made).uses[0] === good && Doing.planOf(wants).uses[0] === good,
-      `${made} and ${wants} use ${good}`,
-    );
+    assert(Doing.planOf(made).uses[0] === good && Doing.planOf(wants).uses[0] === good, `${made} and ${wants} use ${good}`);
     Object.assign(a, { load: TRAVEL.load, carry: null });
     a.job = { ...a.job, kind: made, key: `test:${made}`, site: away };
     setAt(st, a, away);
     Doing.unload(st, a, M.RULE.drop, a.x, a.y);
-    assert(
-      Lying.amountAt(st, away, good, title(hh)) > 0 && (made === good || !Lying.amountAt(st, away, made, title(hh))),
-      `${made}'s load lies as ${good}`,
-    );
+    assert(Lying.amountAt(st, away, good, title(hh)) > 0 && (made === good || !Lying.amountAt(st, away, made, title(hh))), `${made}'s load lies as ${good}`);
     a.job = { ...a.job, kind: wants, key: `test:${wants}`, site: f.house };
     setAt(st, a, f.house);
     assert(Lying.strayOf(st, title(hh), good, f.house, f.house) === away, `the pile is found by a ${wants} goal`);
     const s = Doing.ask(st, a);
-    assert(
-      s.prim === 'go' && s.at === 'stray' && Doing.placeOf(st, a, s) === away,
-      `${wants} goes to the stray ${good} first`,
-    );
+    assert(s.prim === 'go' && s.at === 'stray' && Doing.placeOf(st, a, s) === away, `${wants} goes to the stray ${good} first`);
   }
   // the fetch kinds: none (the wood's piles are the stray method's; VB-1821: the name of one gone, sim/lying fetchKey); and no fetch task posted
   {
@@ -878,11 +840,7 @@ console.log(
     assert(a, 'an idle hand after the working day');
     setAt(st, a, forest);
     Object.assign(a, { load: TRAVEL.load, carry: 'logs' });
-    const j = Jobs.post(st, `test:wood:h${hh.id}`, 'wood', title(hh), forest, {
-      farm: f,
-      chosen: false,
-      amount: 9 * P(st),
-    });
+    const j = Jobs.post(st, `test:wood:h${hh.id}`, 'wood', title(hh), forest, { farm: f, chosen: false, amount: 9 * P(st) });
     const t0 = hh.timber || 0;
     Agents.start(st, a, j);
     assert(a.load > 0 && a.path && a.job === j, `past the working day, it hauls home (${a.leg && a.leg.kind})`);
@@ -890,10 +848,7 @@ console.log(
       Sim.advance(st, 0.2);
       const at = here(st, a);
       VB['sim/lifecycle'].killPawn(st, a.id);
-      assert(
-        Lying.amountAt(st, at, 'wood', title(hh)) === TRAVEL.load,
-        "its load set down where it died, the household's",
-      );
+      assert(Lying.amountAt(st, at, 'wood', title(hh)) === TRAVEL.load, "its load set down where it died, the household's");
       assert((hh.timber || 0) === t0, 'none of it home');
     } else {
       for (let i = 0; i < 40 && a.load > 0; i++) Sim.advance(st, 0.1);
@@ -905,9 +860,7 @@ console.log(
     Sim.advance(st, DAY);
     assert.deepStrictEqual(checkState(st), [], 'invariants');
   }
-  console.log(
-    'methods: the wood in a real state: the five rows, the felled pile, a load in hand, the stray pile, no fetch kind',
-  );
+  console.log('methods: the wood in a real state: the five rows, the felled pile, a load in hand, the stray pile, no fetch kind');
 }
 
 // VB-1775, review F1: a save from before the wood had methods may hold a fetch task of timber (fetchWood), a kind this build has no
@@ -937,17 +890,7 @@ console.log(
     [b, 'fetch:L999', true],
   ]) {
     if (p.job) Agents.release(st, p);
-    const j = {
-      id: ++st.jobSeq,
-      key,
-      kind: 'fetchWood',
-      owner,
-      site: forest,
-      done: 0,
-      claims: [p.id],
-      posted: st.t,
-      live: true,
-    };
+    const j = { id: ++st.jobSeq, key, kind: 'fetchWood', owner, site: forest, done: 0, claims: [p.id], posted: st.t, live: true };
     st.jobs.set(key, j);
     Object.assign(p, { job: j, load: back ? TRAVEL.load : 0, carry: back ? 'logs' : null });
     const to = back ? f.house : forest;
@@ -994,20 +937,8 @@ console.log(
     [b, 'fetch:L999', true],
   ]) {
     if (p.job) Agents.release(st, p);
-    const j = {
-      id: ++st.jobSeq,
-      key,
-      kind: 'fetchLeftGrain',
-      owner,
-      site: away,
-      done: 0,
-      claims: [p.id],
-      posted: st.t,
-      live: true,
-      lying: back ? 999 : l.id,
-      parts: back ? { rye: 10 } : { barley: 20 },
-      left: back ? 0 : 20,
-    };
+    const j = { id: ++st.jobSeq, key, kind: 'fetchLeftGrain', owner, site: away, done: 0, claims: [p.id], posted: st.t, live: true,
+      lying: back ? 999 : l.id, parts: back ? { rye: 10 } : { barley: 20 }, left: back ? 0 : 20 };
     st.jobs.set(key, j);
     Object.assign(p, { job: j, load: back ? 10 : 0, carry: back ? 'sack' : null });
     const to = back ? f.house : away;
@@ -1018,21 +949,12 @@ console.log(
   assert(![...back.jobs.values()].some((j) => !KINDS[j.kind]), 'no task of an unknown kind loaded');
   assert(back.agents[a.id].job === null && back.agents[b.id].job === null, 'its hands freed');
   const laid = (back.lying || []).filter((x) => x.kind === 'leftGrain' && x.owner.id === hh.id && x.tile !== away);
-  assert(
-    laid.length === 1 && laid[0].n === 10 && laid[0].of.parts.rye === 10,
-    'the load in hand set down where its carrier stood, with its crops',
-  );
+  assert(laid.length === 1 && laid[0].n === 10 && laid[0].of.parts.rye === 10, 'the load in hand set down where its carrier stood, with its crops');
   // home by its crops: every grain put by a leftGrain delivery, by crop
   const home = {},
     put = Stores.put;
   Stores.put = function (st_, holder, good, n, why, parts) {
-    if (
-      holder === back.households[hh.id] &&
-      good === 'grain' &&
-      why &&
-      why.kind === 'gift' &&
-      why.from === 'where it lay'
-    )
+    if (holder === back.households[hh.id] && good === 'grain' && why && why.kind === 'gift' && why.from === 'where it lay')
       for (const c in parts) home[c] = (home[c] || 0) + parts[c];
     return put.apply(this, arguments);
   };
@@ -1042,42 +964,27 @@ console.log(
     Stores.put = put;
   }
   assert(!(back.lying || []).some((x) => x.kind === 'leftGrain'), 'the grain left lying is brought home');
-  assert(
-    Math.abs((home.barley || 0) - 20) < 1e-6 && Math.abs((home.rye || 0) - 10) < 1e-6,
-    `home by its crops: ${JSON.stringify(home)}`,
-  );
+  assert(Math.abs((home.barley || 0) - 20) < 1e-6 && Math.abs((home.rye || 0) - 10) < 1e-6, `home by its crops: ${JSON.stringify(home)}`);
   Sim.advance(back, DAY);
   assert.deepStrictEqual(checkState(back), [], 'invariants, run on');
-  console.log(
-    'methods: an older save with a fetch task of grain left lying loads, runs on, and its grain comes home by its crops',
-  );
+  console.log('methods: an older save with a fetch task of grain left lying loads, runs on, and its grain comes home by its crops');
 }
 
 // VB-1750: every kind carries methods (no kind runs on the phases); the work done at a site is `labour`'s row, its end the kind's own; the
 // charges held at the side (the herd, the spinning) are minded (`mind`); the animals led home are a load in hand, set down at the door.
 {
   const { KINDS } = VB['sim/kinds'];
-  assert.deepStrictEqual(
-    Object.keys(KINDS).filter((k) => !KINDS[k].methods),
-    [],
-    'every kind carries methods',
-  );
+  assert.deepStrictEqual(Object.keys(KINDS).filter((k) => !KINDS[k].methods), [], 'every kind carries methods');
   const plans = M.compile(KINDS);
   for (const k of ['herd', 'spin']) {
     assert(KINDS[k].mind && plans[k].methods[0].steps.some((s) => s.prim === 'mind'), `${k} is minded`);
   }
   for (const k of ['plow', 'cook', 'foundation', 'restore']) {
     const s = plans[k].methods[0].steps;
-    assert(
-      s.length === 2 && s[0].prim === 'go' && s[1].prim === 'work' && KINDS[k].ops[s[1].op].ends,
-      `${k} is work at its site`,
-    );
+    assert(s.length === 2 && s[0].prim === 'go' && s[1].prim === 'work' && KINDS[k].ops[s[1].op].ends, `${k} is work at its site`);
   }
-  for (const k of ['lead', 'drove'])
-    assert.deepStrictEqual(plans[k].uses, [k], `${k}: the animals led are a load in hand`);
-  console.log(
-    'methods: every kind carries methods; the herd and the spinning are minded; the animals led are a load in hand',
-  );
+  for (const k of ['lead', 'drove']) assert.deepStrictEqual(plans[k].uses, [k], `${k}: the animals led are a load in hand`);
+  console.log('methods: every kind carries methods; the herd and the spinning are minded; the animals led are a load in hand');
 }
 
 // VB-1750 review, F1: a leader let go on the road home (its death) lays nothing: the cow it led was never taken from the giver's herd (it is
@@ -1113,10 +1020,7 @@ console.log(
     [],
     'nothing lies where the leader fell',
   );
-  assert(
-    st.jobs.get(j.key) === j && !KINDS.lead.met(st, { job: j }, VB['sim/doing'].VIEW),
-    'the task is posted and unmet',
-  );
+  assert(st.jobs.get(j.key) === j && !KINDS.lead.met(st, { job: j }, VB['sim/doing'].VIEW), 'the task is posted and unmet');
   assert.strictEqual(cattle(), had, 'the herds keep their animals');
   console.log('methods: a leader dead on the road home lays nothing; the cow stays in the herd and the task is unmet');
 }
@@ -1157,8 +1061,7 @@ console.log(
           continue;
         }
         const d = doneOf(st, j);
-        if (d < had - 1e-9)
-          t.fewer.push(`${key}: ${d.toFixed(2)} of the ${had.toFixed(2)} hours it had (seed ${seed}, hour ${h})`);
+        if (d < had - 1e-9) t.fewer.push(`${key}: ${d.toFixed(2)} of the ${had.toFixed(2)} hours it had (seed ${seed}, hour ${h})`);
         if (d > had + 1e-9) {
           t.resumed++;
           cut.delete(key);
@@ -1177,9 +1080,7 @@ console.log(
         }
       }
       if (rnd(rng) < 0.15) {
-        const all = st.living
-            .map((id) => st.agents[id])
-            .filter((a) => a.job && a.leg && a.leg.kind === 'work' && staged(a.job.kind)),
+        const all = st.living.map((id) => st.agents[id]).filter((a) => a.job && (a.leg && a.leg.kind === 'work') && staged(a.job.kind)),
           built = all.filter((a) => BUILD.has(a.job.kind)),
           at = built.length && rnd(rng) < 0.5 ? built : all; // a building's stage as often as a field's, when there is one
         if (at.length) {
@@ -1196,8 +1097,7 @@ console.log(
           if (st.jobs.get(j.key) === j) cut.set(j.key, [Math.max((cut.get(j.key) || [0])[0], doneOf(st, j)), j]);
         }
       }
-      if (h % 24 === 23)
-        assert.deepStrictEqual(checkState(st), [], `the stages cut, seed ${seed}, day ${(h + 1) / 24}`);
+      if (h % 24 === 23) assert.deepStrictEqual(checkState(st), [], `the stages cut, seed ${seed}, day ${(h + 1) / 24}`);
     }
   }
   assert.deepStrictEqual(t.fewer, [], 'a stage cut keeps its hours');
