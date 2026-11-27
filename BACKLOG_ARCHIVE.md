@@ -862,3 +862,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1811](backlog/VB-1811.md) | A pile's fetch is not held for days by a hand that has not set out | plans | 3 | S | The gate's one held task after VB-1748 is a fetchHay claimed by a child who sets out 39 hours later; the base holds the same kind 31 hours |
 | [VB-1868](backlog/VB-1868.md) | Routine steps' left from the tasks they open | - | 3 | S | Routine steps carry left from their tasks |
 | [VB-1846](backlog/VB-1846.md) | Sim.answer and Sim.orderVisit keyed by pawn | plans | 3 | S | The last two facade calls that find their actor in st.player take the pawn, as the rest of the API by pawn does |
+| [VB-1842](backlog/VB-1842.md) | A task at a tile on a pawn's own plan is dated, at risk and taken back as a task by key | plans | 3 | S | Chains get an estimate, a by and the at-risk check |
