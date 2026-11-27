@@ -149,9 +149,7 @@ VB['sim/reasons'] = (() => {
       return { by: 'self', why: 'on the road home' };
     }
     if (unplanned(st, id))
-      return played
-        ? { by: 'player', why: 'you have turned its own plans off' }
-        : { by: 'self', why: 'its own plans are off' };
+      return played ? { by: 'player', why: 'you plan its work by hand' } : { by: 'self', why: 'its own plans are off' };
     const owed = Days.on(st, id),
       lent = Hands.on(st, id);
     if (owed !== null) return { by: 'owed', why: `nothing to take at ${farmName(st, owed)} yet` };

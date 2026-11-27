@@ -274,6 +274,8 @@ function laneTaskFacts(t, e, i) {
       why: `Next step: ${nx}.`,
     });
   }
+  const rf = recipeFact(t.kind, 'recipe');
+  if (rf) out.push(rf);
   if (t.waits) out.push(laneWaitFact(t.waits));
   if (v) out.push(laneVerdictFact(e));
   if (e && e.hours) out.push(laneWorkFact(e));
@@ -292,7 +294,7 @@ function laneTaskFacts(t, e, i) {
         (Number.isFinite(s.by) ? ` by ${laneDate(s.by * Sim.DAY)}` : '') +
         (s.kept
           ? '. Kept: the household will not take it back, so it stays yours to finish or to leave undone.'
-          : '. Unless it is kept, the household may take it back once that day is past.') +
+          : '. Unless it is kept, it may leave your plan once that day is past, and the household sees to it instead.') +
         ' On the lane, the red mark.',
     });
   }

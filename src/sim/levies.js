@@ -696,8 +696,8 @@ VB['sim/levies'] = (() => {
     if (F.demand > 1e-9) parts.push(`will ask ${r1(F.demand)} hours more of the household`);
     log(
       st,
-      `${who} reckoned the season's work ${r1(F.short)} hours more than the household owes it by the ` +
-        `${['first', 'second', 'third'][F.week]} week${parts.length ? `, and ${parts.join('; ')}` : ''}.`,
+      `${who} has ${r1(F.short)} hours more work this season than the household's hands can give by the end of the ` +
+        `${['first', 'second', 'third'][F.week]} game week${parts.length ? `, and ${parts.join('; ')}` : ''}.`,
       { kind: 'seasonShort', pawn: head ?? undefined, ...atFarm(f) },
     );
   }
