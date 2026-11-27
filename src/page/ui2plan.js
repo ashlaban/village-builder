@@ -140,6 +140,7 @@ function renderPlan() {
       owed,
       hud.msg ? hud.msg.text : '',
       hud.pmove ? `${hud.pmove.from}>${hud.pmove.to}` : '',
+      hud.pinfo || '',
     ].join('|');
   if (key === hud.planKey) return;
   hud.planKey = key;
@@ -185,43 +186,89 @@ function renderPlan() {
   renderDay(A, P);
   renderAhead(A, P);
 }
-// The words behind a chip of the plan, and what can be done with it.
+// A chip of the plan's card: its icons, its number and its kind; its words a tap away (hud.pinfo: a fact's k, or 'all' under "i").
 function planCard(P, A, S) {
   const [what, arg] = String(hud.pc).split(':'),
     btn = (act, label, extra = '') =>
       `<button type="button" class="u2-chip" data-hud="${act}"${extra}>${label}</button>`;
   let title,
-    sub,
+    icon = '',
+    facts = [],
     warn = '',
     acts = '';
   if (what === 'r') {
     const r = P.routine.find((x) => x.kind === arg);
     title = hudKind(arg);
-    sub = !r
-      ? 'Not in the routine.'
-      : r.done
-        ? 'Every day. Seen to today (its icon is faded until tomorrow).'
-        : r.open
-          ? 'Every day. Next in turn today.'
-          : 'Every day. Nothing of it to do yet today.';
-    if (r) acts += btn('pdrop', 'Drop from the routine', ` data-kind="${esc(arg)}"`);
+    icon = actIcon(KIND_ICON[arg] || 'hoe');
+    facts.push({ k: 'every', icon: actIcon('round'), n: '', label: 'Every day', why: 'Every day, in the routine.' });
+    if (r)
+      facts.push(
+        r.done
+          ? {
+              k: 'state',
+              icon: actIcon('vok'),
+              n: '',
+              cls: 'v0',
+              label: 'Done today',
+              why: 'Seen to today: its icon is faded until tomorrow.',
+            }
+          : r.open
+            ? { k: 'state', icon: actIcon('next'), n: '', label: 'Next', why: 'Next in turn today.' }
+            : { k: 'state', icon: actIcon('wait'), n: '', label: 'Nothing yet', why: 'Nothing of it to do yet today.' },
+      );
+    else
+      facts.push({ k: 'state', icon: actIcon('no'), n: '', label: 'Not in the routine', why: 'Not in the routine.' });
+    if (r) acts += btn('pdrop', `${actIcon('no')}Drop`, ` data-kind="${esc(arg)}" aria-label="Drop from the routine"`);
   } else if (what === 'sleep') {
     const owed = S ? S.owed : 0;
     hud.sleepWas = P.sleep || hud.sleepWas || HUD_SLEEP;
-    title = P.sleep ? `Sleeps ${hudHour(P.sleep.from)} to ${hudHour(P.sleep.until)}` : 'No hours for sleep';
-    sub =
+    title = 'Sleep';
+    icon = actIcon('idle');
+    facts.push(
+      P.sleep
+        ? {
+            k: 'hours',
+            icon: actIcon('clock'),
+            n: `${hudHour(P.sleep.from).slice(0, 2)}–${hudHour(P.sleep.until).slice(0, 2)}`,
+            label: `Sleeps ${hudHour(P.sleep.from)} to ${hudHour(P.sleep.until)}`,
+            why: `Sleeps ${hudHour(P.sleep.from)} to ${hudHour(P.sleep.until)}. Work in the plan stops for the night and is taken up in the morning.`,
+          }
+        : {
+            k: 'hours',
+            icon: actIcon('no'),
+            n: '',
+            label: 'No hours for sleep',
+            why: 'No hours for sleep: the plan’s work goes on through the night.',
+          },
+    );
+    const h = Math.round(owed);
+    facts.push(
       owed < 1
-        ? 'Rested.'
-        : `Owes ${Math.round(owed)} ${Math.round(owed) === 1 ? 'hour' : 'hours'} of sleep` +
-          (S.mood ? `: mood ${S.mood}` : '') +
-          (S.health ? ', and health suffers' : '') +
-          '.';
+        ? { k: 'owed', icon: actIcon('vok'), n: '', cls: 'v0', label: 'Rested', why: 'Rested.' }
+        : {
+            k: 'owed',
+            icon: actIcon('wait'),
+            n: `${h}h`,
+            cls: owed >= 16 ? 'v2' : owed >= 8 ? 'v1' : '',
+            label: `Owes ${h} hours of sleep`,
+            why:
+              `Owes ${h} ${h === 1 ? 'hour' : 'hours'} of sleep` +
+              (S.mood ? `: mood ${S.mood}` : '') +
+              (S.health ? ', and health suffers' : '') +
+              '.',
+          },
+    );
     const night = (st.player.days || []).slice(-1)[0],
       rough = night ? (night.why.cold || 0) + (night.why.damp || 0) : 0;
-    if (rough >= 0.25) sub += ' The last night was cold and damp, and took of its health: a roof would mend that.';
-    sub += P.sleep
-      ? ' Work in the plan stops for the night and is taken up in the morning.'
-      : ' The plan’s work goes on through the night.';
+    if (rough >= 0.25)
+      facts.push({
+        k: 'rough',
+        icon: goodIcon('cold'),
+        n: '',
+        cls: 'v2',
+        label: 'A cold, damp night',
+        why: 'The last night was cold and damp, and took of its health: a roof would mend that.',
+      });
     if (P.sleep)
       acts +=
         btn('psleep', 'To bed earlier', ` data-from="${P.sleep.from - 1}" data-until="${P.sleep.until}"`) +
@@ -232,48 +279,123 @@ function planCard(P, A, S) {
     else
       acts += btn('psleep', 'Sleep at night', ` data-from="${hud.sleepWas.from}" data-until="${hud.sleepWas.until}"`);
     const out = HUD_DAILY.filter((k) => !P.routine.some((r) => r.kind === k));
-    if (out.length) acts += out.map((k) => btn('padd', `Every day: ${hudKind(k)}`, ` data-kind="${esc(k)}"`)).join('');
+    if (out.length)
+      acts += out
+        .map((k) =>
+          btn(
+            'padd',
+            `${actIcon('plus')}${esc(hudKind(k))}`,
+            ` data-kind="${esc(k)}" aria-label="${esc(`Every day: ${hudKind(k)}`)}"`,
+          ),
+        )
+        .join('');
   } else if (what === 't') {
     const i = +arg,
       t = P.tasks[i],
       e = t && hudTaskEntry(A, t);
     if (!t) return ((hud.pc = null), '');
-    title = `${i + 1}. ${hudKind(t.kind)}${HUD_CHAIN[t.kind] && t.step ? `: ${hudKind(t.step).toLowerCase()} next` : ''}`;
-    sub = [hudWaits(t.waits), e ? `${hudStake(e)}.` : t.waits ? '' : 'Its work is not open now.', laneTaskWords(e, i)]
-      .filter(Boolean)
-      .join(' ');
-    const till =
-      e && Number.isFinite(e.ends) ? `, the round number the game days until it is done (${hudDaysTo(e.ends)})` : '';
-    sub += ` On the land, its pin's square is its place in the plan${till}.`;
-    // a reorder that would make another task worse waits here for the player's word (page/ui2ahead laneKnock)
+    title = laneShort(t);
+    icon = `${hudTaskIcon(t)}<s class="sq">${i + 1}</s>`;
+    facts = laneTaskFacts(t, e, i);
+    // a reorder that would make another task worse waits here for the player's word (page/ui2ahead laneKnock): the task, the red
+    // badge of its new verdict, the deadline and its day; the sentence behind "i"
     const pm = hud.pmove && hud.pmove.from === i ? hud.pmove : null;
-    if (pm)
+    if (pm) {
+      facts = [
+        ...pm.worse.map((k) => ({
+          k: 'knock',
+          chip: false,
+          icon: k.icon + laneVerdictIcon(k.to),
+          cls: `v${HUD_VERDICT[k.to] || 0}`,
+          why: `${laneKnockWords(k)} Move: change the order anyway. Keep: leave it as it is.`,
+        })),
+        ...facts,
+      ];
       warn =
-        `<p class="u2-msg">${esc(pm.worse.map(laneKnockWords).join(' '))}</p>` +
-        `<div class="u2-row2">${btn('pmove', pm.to < i ? 'Move earlier anyway' : 'Move later anyway', ` data-from="${i}" data-to="${pm.to}" data-sure="1"`)}` +
-        `${btn('pmovecancel', 'Keep the order')}</div>`;
+        '<div class="u2-knock">' +
+        pm.worse
+          .map(
+            (k) =>
+              `<button type="button" class="u2-kn" data-hud="pinfo" data-k="knock" aria-pressed="${hud.pinfo === 'knock'}" ` +
+              `aria-label="${esc(laneKnockWords(k))}" title="${esc(laneKnockWords(k))}">${k.icon}` +
+              `<span class="u2-fact v${HUD_VERDICT[k.to] || 0}">${laneVerdictIcon(k.to)}</span>` +
+              `${laneDeadIcon(k.deadline)}<b>${esc(laneDayN(k.deadline.t))}</b></button>`,
+          )
+          .join('') +
+        '</div>' +
+        '<div class="u2-row2">' +
+        btn(
+          'pmove',
+          `${actIcon(pm.to < i ? 'back' : 'next')}Move`,
+          ` data-from="${i}" data-to="${pm.to}" data-sure="1" aria-label="Move ${pm.to < i ? 'earlier' : 'later'} anyway"`,
+        ) +
+        `${btn('pmovecancel', `${actIcon('pin')}Keep`, ' aria-label="Keep the order"')}</div>`;
+    }
     acts +=
-      (t.site >= 0 ? btn('fly', 'Show', ` data-tile="${t.site}"`) : '') +
-      btn('pmove', 'Earlier', ` data-from="${i}" data-to="${i - 1}"${i > 0 ? '' : ' disabled'}`) +
-      btn('pmove', 'Later', ` data-from="${i}" data-to="${i + 1}"${i < P.tasks.length - 1 ? '' : ' disabled'}`) +
-      btn('premove', 'Remove', ` data-i="${i}"`);
+      (t.site >= 0 ? btn('fly', `${actIcon('target')}Show`, ` data-tile="${t.site}"`) : '') +
+      btn('pmove', `${actIcon('back')}Earlier`, ` data-from="${i}" data-to="${i - 1}"${i > 0 ? '' : ' disabled'}`) +
+      btn(
+        'pmove',
+        `Later${actIcon('next')}`,
+        ` data-from="${i}" data-to="${i + 1}"${i < P.tasks.length - 1 ? '' : ' disabled'}`,
+      ) +
+      btn('premove', `${actIcon('no')}Remove`, ` data-i="${i}"`);
   } else if (what === 'q') {
     const q = Sim.controlOf(st, st.player.pawn).queue[+arg];
     if (!q) return ((hud.pc = null), '');
     title = `Now: ${commandWords(q)}`;
-    sub = 'Ordered by hand: it goes before the plan, and is not broken off for sleep.';
+    icon = `<s>!</s>${actIcon(KIND_ICON[String(q.target).split(':')[0]] || 'walk')}`;
+    facts.push({
+      k: 'hand',
+      chip: false,
+      icon: '<s>!</s>',
+      why: 'Ordered by hand: it goes before the plan, and is not broken off for sleep.',
+    });
     acts += btn('unqueue', q.begun !== null ? 'Stop' : 'Remove', ` data-i="${arg}"`);
   } else if (what === 'g') {
     const g = laneGapCard(+arg);
     if (!g) return ((hud.pc = null), '');
-    ({ title, sub, acts } = g);
+    ({ title, icon, facts, acts } = g);
   } else {
     title = 'Nothing planned';
-    sub = `Tap the land where work is to be done, and add it to the plan. ${st.pawns[played()].given} does the day’s routine and then waits.`;
+    icon = goodIcon('tile');
+    facts.push({
+      k: 'how',
+      chip: false,
+      icon: goodIcon('tile'),
+      why: `Tap the land where work is to be done, and add it to the plan. ${st.pawns[played()].given} does the day’s routine and then waits.`,
+    });
   }
+  const num = (f) => (f.n === '' || f.n === undefined ? '' : `<b>${esc(f.n)}</b>`),
+    chips = facts
+      .filter((f) => f.chip !== false)
+      .map(
+        (f) =>
+          `<button type="button" class="u2-fact ${f.cls || ''}" data-hud="pinfo" data-k="${esc(f.k)}" aria-pressed="${hud.pinfo === f.k}" ` +
+          `aria-label="${esc(f.label || f.why)}" title="${esc(f.label || f.why)}">${f.icon}${num(f)}</button>`,
+      )
+      .join(''),
+    shown = hud.pinfo === 'all' ? facts : facts.filter((f) => f.k === hud.pinfo),
+    head =
+      what === 't'
+        ? `<button type="button" class="u2-pico" data-hud="pinfo" data-k="place" aria-pressed="${hud.pinfo === 'place'}" ` +
+          `aria-label="Its place in the plan">${icon}</button>`
+        : `<span class="u2-pico">${icon}</span>`;
   return (
-    `<div class="u2-verdict"><div><h2>${esc(title)}</h2><p class="sub">${esc(sub)}</p></div>` +
+    `<div class="u2-verdict">${head}<h2>${esc(title)}</h2>` +
+    (facts.length
+      ? `<button type="button" class="u2-i" data-hud="pinfo" data-k="all" aria-pressed="${hud.pinfo === 'all'}" ` +
+        'aria-label="What it means" title="What it means">i</button>'
+      : '') +
     '<button type="button" class="u2-x" data-hud="pshut" aria-label="Close">×</button></div>' +
+    (chips ? `<div class="u2-facts">${chips}</div>` : '') +
+    (shown.length
+      ? `<ul class="u2-pinfo">${shown
+          .map(
+            (f) => `<li><span class="u2-fact ${f.cls || ''}">${f.icon}${num(f)}</span><span>${esc(f.why)}</span></li>`,
+          )
+          .join('')}</ul>`
+      : '') +
     (hud.msg ? `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>` : '') +
     warn +
     (acts && !warn ? `<div class="u2-row2">${acts}</div>` : '')

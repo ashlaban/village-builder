@@ -2,7 +2,18 @@
 // ======== the played settler's year, day and stores ========
 // All of it reads st and acts through Sim: the head's verbs (Sim.head: project, target, order), the queue (Sim.queue, unqueue,
 // setAuto). The page's own state, never saved: hud = {tab: 'today' | 'plan' | 'stores' | null, msg: {text, bad}, key: what was drawn}.
-const hud = { tab: null, msg: null, key: '', yearKey: '', at: -1, markKey: '', sites: null, pc: null, planKey: '' };
+const hud = {
+  tab: null,
+  msg: null,
+  key: '',
+  yearKey: '',
+  at: -1,
+  markKey: '',
+  sites: null,
+  pc: null,
+  pinfo: null,
+  planKey: '',
+};
 const HUD_TABS = [
   ['build', 'Build', () => actIcon('build')],
   ['me', 'The settler', () => actIcon('me')],
@@ -257,7 +268,9 @@ function hudClick(b) {
   const d = b.dataset,
     { id, hh } = hudHouse();
   if (d.hud === 'close') hud.tab = null;
-  else if (d.hud === 'pshut') hud.pc = hud.pmove = null;
+  else if (d.hud === 'pshut') hud.pc = hud.pmove = hud.pinfo = null;
+  else if (d.hud === 'pinfo')
+    hud.pinfo = hud.pinfo === d.k ? null : d.k; // a chip's words, or all of them under "i"
   else if (d.hud === 'buildpick') buildPick(d.what);
   else if (d.hud === 'placeoff') buildPick(null);
   else if (d.hud === 'buildhere') buildHere();
@@ -282,14 +295,14 @@ function hudClick(b) {
     // the knock-on first (page/ui2ahead): a move that makes another task tight or late waits for the player's word
     const worse = d.sure ? [] : laneKnock(+d.from, +d.to);
     hud.pmove = worse.length ? { from: +d.from, to: +d.to, worse } : null;
-    hud.msg = null;
+    hud.msg = hud.pinfo = null;
     if (!worse.length) {
       const r = Sim.plan(st, st.player.pawn, 'move', { from: +d.from, to: +d.to });
       hudMsg(r, 'The order is changed.');
       if (r === true) hud.pc = `t:${d.to}`;
     }
   } else if (d.hud === 'pmovecancel') {
-    hud.pmove = null;
+    hud.pmove = hud.pinfo = null;
     hudMsg(true, 'The order is kept.');
   } else if (d.hud === 'psleep')
     hudMsg(
@@ -349,7 +362,7 @@ if (UI2) {
       pc = e.target.closest('[data-pc]');
     if (pc && st && played() >= 0) {
       hud.pc = hud.pc === pc.dataset.pc ? null : pc.dataset.pc;
-      hud.msg = hud.pmove = null;
+      hud.msg = hud.pmove = hud.pinfo = null;
       hud.planKey = '';
       return renderHud(); // the map stays where it is: a task's card has "Show" for its place
     }

@@ -178,6 +178,39 @@ body:has(.genscreen:not([hidden])) .u2, body:not(.ui2) .u2 { display: none; }
 .u2-band { display: flex; gap: 12px; align-items: center; padding: 8px 8px 8px 14px; border-radius: 10px; background: var(--paper); font-size: 14px; }
 .u2-band > .u2-pin, .u2-band > .u2-gauges { flex: none; margin: 4px 6px 0 0; animation: none; }
 .u2-inplan { display: flex; gap: 8px; align-items: center; font-size: 14px; } .u2-inplan svg { width: 22px; height: 22px; flex: none; }
+/* the plan's card, icons first (lane-v2): the task's icon and short name, a row of icon+number chips, the words behind "i" or a chip's tap */
+.u2-pcard .u2-verdict h2 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.u2 .u2-pico { position: relative; flex: none; width: 38px; height: 38px; padding: 0; border-radius: 10px; border: var(--line); background: var(--paper2); color: var(--ink2); display: grid; place-items: center; --ico-bg: var(--paper2); }
+.u2-pico > svg { width: 24px; height: 24px; }
+.u2-pcard s { text-decoration: none; }
+.u2-pico s.sq { position: absolute; left: -6px; top: -6px; min-width: 18px; height: 18px; box-sizing: border-box; padding: 0 3px; border-radius: 4px; background: var(--ink2); color: var(--paper); font: 800 12px/18px var(--body); }
+.u2-pico .gap, .u2-fact .gap { display: grid; place-items: center; width: 28px; height: 28px; border: 1.5px dashed var(--ink2); border-radius: 6px; background: repeating-linear-gradient(135deg, rgba(192, 138, 30, 0.3) 0 4px, rgba(247, 240, 223, 0.6) 4px 8px); }
+.u2-pico .gap svg { width: 20px; height: 20px; }
+.u2 .u2-i { flex: none; width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 1.5px solid var(--ink2); background: var(--paper); font: italic 800 18px/1 var(--head); color: var(--ink2); }
+.u2 .u2-i[aria-pressed="true"], .u2 .u2-pico[aria-pressed="true"] { background: var(--ink2); color: var(--paper); --ico-bg: var(--ink2); }
+.u2-facts { display: flex; flex-wrap: wrap; gap: 6px; }
+.u2 .u2-fact { --ico-bg: var(--paper); display: inline-flex; align-items: center; gap: 3px; min-height: 36px; min-width: 36px; padding: 0 8px; box-sizing: border-box; justify-content: center; border-radius: 18px; border: 1.5px solid var(--ink2); background: var(--paper); color: var(--ink2); font: 800 16px/1 var(--body); font-variant-numeric: tabular-nums; }
+.u2-fact svg { width: 20px; height: 20px; flex: none; }
+.u2-fact b { font-weight: 800; }
+.u2 .u2-fact.v0 { --ico-bg: var(--pine); background: var(--pine); color: #f3fbf4; }
+.u2 .u2-fact.v1 { --ico-bg: var(--gold2); background: var(--gold2); color: #20170a; }
+.u2 .u2-fact.v2 { --ico-bg: var(--red); background: var(--red); color: #fff7ec; }
+.u2 .u2-fact.risk { --ico-bg: var(--paper); border-color: var(--red); color: var(--red2); }
+.u2-fact > s { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--red); color: #fff7ec; font: 800 14px/1 var(--body); }
+.u2 .u2-fact[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--gold2); }
+.u2-pinfo { max-height: min(40vh, 320px); overflow-y: auto; overscroll-behavior: contain; margin: 0; padding: 6px 8px; list-style: none; display: grid; gap: 6px; border-radius: 10px; background: var(--paper); font-size: 14px; line-height: 1.3; }
+.u2-pinfo li { display: flex; gap: 8px; align-items: flex-start; }
+.u2 .u2-pinfo .u2-fact { flex: none; min-height: 28px; min-width: 50px; padding: 0 5px; font-size: 13px; }
+.u2-pinfo .u2-fact svg { width: 16px; height: 16px; }
+.u2-pinfo .u2-fact s.sq { display: grid; place-items: center; min-width: 18px; height: 18px; border-radius: 4px; background: var(--ink2); color: var(--paper); font: 800 12px/1 var(--body); }
+.u2-pinfo .u2-fact .gap { width: 22px; height: 22px; } .u2-pinfo .u2-fact .gap svg { width: 15px; height: 15px; }
+.u2-knock { display: flex; flex-wrap: wrap; gap: 6px; }
+.u2 .u2-kn { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: 12px; border: 2px solid var(--red); background: var(--paper); color: var(--ink2); font: 800 18px/1 var(--body); --ico-bg: var(--paper); }
+.u2 .u2-kn[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--gold2); }
+.u2-kn > svg { width: 24px; height: 24px; }
+.u2 .u2-kn .u2-fact { min-height: 28px; min-width: 28px; padding: 0 4px; }
+.u2 .u2-pcard .u2-chip { display: inline-flex; align-items: center; gap: 3px; padding: 0 9px; font-size: 13px; }
+.u2-pcard .u2-row2 { gap: 6px; }
 /* the days ahead by the hour: one strip a day */
 .u2-days { display: grid; gap: 3px; width: min(520px, calc(100vw - 16px)); padding: 5px 10px; border-radius: 12px; border: var(--line); background: var(--glass); box-shadow: var(--lift); opacity: 0.999; cursor: pointer; }
 .u2-day { display: grid; grid-template-columns: 62px 1fr 34px; gap: 6px; align-items: center; }
