@@ -216,6 +216,12 @@ outer archipelago is a fraction of a game day each way, so a market visit could 
 4. **Off-map trade.** Trade with the world off the map goes through a town.
 5. **Which mechanics first.** Not answered; the mechanics are recorded as Proposed in `design.md`, section 17.
 
+Follow-ups, the same day:
+
+- The period borrows freely from other periods and from the continent.
+- A single salt spring in the whole archipelago stays as a small local source.
+- Towns exist before the ship: the ship visits an existing harbour of an existing town.
+
 ## Sources
 
 Pages opened or searched for this research:
