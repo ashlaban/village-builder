@@ -1621,9 +1621,12 @@ function checkState(st) {
   }
   // loads lying where their carrier fell (VB-611, sim/lying): absent or a non-empty list in the order put down, ids distinct, rising and
   // within st.lyingSeq; each of a kind that carries a load (one with a fetch kind), a load above 0, on a tile of the map, put down this
-  // year at most (the autumn frost rots them all), owned by a household or village that exists
+  // year and the frost's drift at most (the autumn frost rots them all), owned by a household or village that exists
   if (st.lying !== undefined) {
-    const KS = globalThis.VB['sim/kinds'].KINDS, { YEAR } = globalThis.VB['sim/rules'];
+    const KS = globalThis.VB['sim/kinds'].KINDS, { YEAR, DAY, SEASON_DAYS } = globalThis.VB['sim/rules'];
+    // from one frost to the next: the frost's day is drawn each year within autumn (sim/weather frostDay), so a load laid just after an
+    // early frost can lie past a year until a late one (heirs seed 42, year 13 of the extended tier, 27 Nov 2026)
+    const LIES = YEAR + (SEASON_DAYS - 1) * DAY;
     if (!Array.isArray(st.lying) || !st.lying.length) bad.push(`lying: ${Array.isArray(st.lying) ? 'empty' : typeof st.lying}`);
     else st.lying.forEach((l, n) => {
       const at = `lying[${n}] (${l.id})`, prev = st.lying[n - 1], o = l.owner;
@@ -1631,7 +1634,7 @@ function checkState(st) {
       if (!(KS[l.kind] && KS[l.kind].methods) && !Object.keys(KS).some((k) => globalThis.VB['sim/doing'].planOf(k).uses.includes(l.kind))) bad.push(`${at}: kind ${l.kind} has no fetching`); // a kind with methods: its stray method (VB-1775)
       if (!(l.n > 0) || !Number.isFinite(l.n)) bad.push(`${at}: a load of ${l.n}`);
       if (!Number.isInteger(l.tile) || l.tile < 0 || l.tile >= st.w.COLS * st.w.ROWS) bad.push(`${at}: on tile ${l.tile}`);
-      if (!(l.t <= st.t) || !(st.t - l.t < YEAR)) bad.push(`${at}: put down at ${l.t}, a year or more ago (the frost rots it)`);
+      if (!(l.t <= st.t) || !(st.t - l.t < LIES)) bad.push(`${at}: put down at ${l.t}, before the last frost (the frost rots it)`);
       if (!o || !((o.type === 'household' && st.households[o.id]) || (o.type === 'village' && st.villages[o.id]))) bad.push(`${at}: owner ${JSON.stringify(o)}`);
       if (!l.of || !Number.isInteger(l.of.src)) bad.push(`${at}: no task tile`);
       if (l.kind === 'leftCart' && !(o && o.type === 'household' && st.households[o.id] && st.households[o.id].carts.some((c) => c.at && c.kind === l.of.cart.kind && c.built === l.of.cart.built)))

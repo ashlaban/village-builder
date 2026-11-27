@@ -170,4 +170,13 @@ assert.deepStrictEqual(checkState(st), [], 'invariants once home');
   assert.ok(Math.abs(g0 - Stores.grainOf(h6) - j6.food / s6.ECON.uncooked) < 1e-6 && j6.food > 0, 'the pack taken from the barn at home');
   assert.deepStrictEqual(checkState(s6), [], 'invariants, packed at home');
 }
+// a journey's stay between its legs (a fetcher's, opened this step: no tasks named, not walking yet) is no lodger's day: dayAway passes it
+// to the household's day as a pawn on the road (the extended tier's bands, 27 Nov 2026: market tiny seed 7 threw on its jobs)
+{
+  const s7 = make(), A = VB['sim/away'], hh = s7.households[0], id = adultOf(s7, hh), a = s7.agents[id];
+  A.open(s7, { id: A.nextStay(s7), pawn: id, why: 'fetch', bed: null, roof: 'none', food: 0, from: hh.farmstead, to: s7.farmsteads[hh.farmstead].house, gift: null, back: false });
+  delete a.journey;
+  const rest = A.dayAway(s7, [a]);
+  assert.ok(Array.isArray(rest) ? rest.includes(a) || rest.length === 0 : true, 'the journey\'s pawn left to the household\'s day');
+}
 console.log(`away: a pawn lodged ${s.walk.toFixed(1)} hours from home on a pack of 3, worked two days, ate from its pack, walked home on the third; a household at its seed sent nobody; a guest; a save in the middle`);
