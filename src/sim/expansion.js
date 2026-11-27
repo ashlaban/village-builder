@@ -153,7 +153,8 @@ VB['sim/expansion'] = (() => {
       const may = farmedLand(w, st.villages, v, h, st);
       // a house may not close a way, since no route crosses one, nor close the green in (VB-402)
       if (cutsOff(w, h, shut, house) || (v.green && rimFull(w, v.center, h, house))) continue;
-      // its field as the generator and a head place one (FIELD_RULE), by the walk out of the gate the house would have (VB-1951)
+      // the land it would farm, its best field site as the generator and a head score one (FIELD_RULE), by the walk out of the gate the
+      // house would have (VB-1951): it weighs the site, and no field is placed (Kim, 27 Nov)
       const out = gateSteps(w, h, FIELD_REACH, gateSide(w, h, v.center));
       let f = -1,
         fs = -Infinity;
@@ -178,19 +179,17 @@ VB['sim/expansion'] = (() => {
       if (water && s > bs) s -= SETTLE.perFetch * (fetch ||= plotFetch(w, v, reach, PLOT_PEOPLE)).get(h);
       if (s > bs) {
         bs = s;
-        best = { house: h, field: f };
+        best = { house: h, land: f };
       }
     }
-    return !best || best.field < 0 ? null : best;
+    return !best || best.land < 0 ? null : best;
   }
   // A plot begun in village v for pawn `intended`: the village's, or (by, a household id) that household's project for its heir (VB-255).
   function startPlot(st, v, intended, by = null, site = findSite(st, v)) {
     if (!site) return false;
     const w = st.w,
-      tiles = [
-        { tile: site.house, kind: 'house' },
-        { tile: site.field, kind: 'field' },
-      ];
+      // the house alone: a new plot places no field (Kim, 27 Nov); its household makes its fields as any head does (sim/fieldplans)
+      tiles = [{ tile: site.house, kind: 'house' }];
     for (const tr of tiles) {
       tr.steps = stepsFor(w, tr.tile, tr.kind);
       tr.i = 0;
