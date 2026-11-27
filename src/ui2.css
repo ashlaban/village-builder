@@ -321,6 +321,8 @@ p.u2-pinfo { display: block; }
 .u2-ychip { display: inline-flex; align-items: center; gap: 3px; } .u2-ychip svg { width: 22px; height: 22px; } .u2-ychip b { font: 800 17px/1 var(--body); font-variant-numeric: tabular-nums; }
 .u2-ychip .gap { display: grid; place-items: center; width: 26px; height: 26px; border: 1.5px dashed currentColor; border-radius: 6px; } .u2-ychip .gap svg { width: 18px; height: 18px; }
 .u2-ywords { padding: 0 8px 4px; font-size: 14px; }
+.u2 .u2-ygo { display: inline-flex; align-items: center; gap: 3px; min-height: 36px; padding: 0 10px; border: var(--line); border-radius: 999px; background: #fff7ec; color: #20170a; font: inherit; cursor: pointer; }
+.u2 .u2-ygo svg { width: 20px; height: 20px; } .u2 .u2-ygo span { margin-left: 2px; }
 .u2-shead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .u2-shead > svg { width: 26px; height: 26px; flex: none; }
 .u2-shead .u2-facts { margin-left: auto; }
 .u2-cells span { display: grid; place-items: center; height: 21px; } .u2-cells span svg { width: 16px; height: 16px; }
