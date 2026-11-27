@@ -6,6 +6,7 @@ river on the north shore, drawn in the farm art's manner (`src/page/farmart.js`)
 
     node docs/mocks/town/town.js            # the shots in img/, desk and phone (about a minute)
     node docs/mocks/town/town.js --labels   # the island with each land tile's col,row, to place things by hand
+    node docs/mocks/town/town.js --plan docs/mocks/town/plan-hex.js   # v2: each hex a quarter, streets on hex edges, no palisade
 
 - `town.js` builds the page, seeds two villages, marks the town's tiles as built on (no trees) and its roads as lanes, and splices
   `art.js` into the page's closure.
@@ -20,4 +21,5 @@ river on the north shore, drawn in the farm art's manner (`src/page/farmart.js`)
 | `img/desk-town.jpg` | the whole town at the closest zoom |
 | `img/desk-surroundings.jpg` | the town with its fields, mills, commons and the two villages it serves |
 | `img/island.jpg` | the island |
+| `img/desk-hex-town.jpg`, `img/desk-hex-surroundings.jpg` | v2 (`plan-hex.js`, Kim 27 Nov): a quarter of houses per hex like a farm, streets along hex edges, no palisade; garden hex, fields and a toll bar mark the edge |
 | `img/phone-*.jpg` | the same on a phone |

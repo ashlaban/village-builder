@@ -6,7 +6,7 @@
 // pattern: one long street along the shore (Strandgatan) with narrow plots, houses gable to the street and alleys down to the water; a
 // second street behind it (Köpmangatan); a market square with booths and a cross; a stone parish church; a quay of timber cribs with a
 // cog at it; a stone tower on the point watching the harbour; fishermen's sheds and racks on the beach at the east end; the fire crafts
-// (smith, kilns) at the edge; the tanner across the river below the town; a palisade and a gate on the landward side; gardens, the
+// (smith, kilns) at the edge; the tanner across the river below the town; gardens (no palisade: Kim, 27 Nov); the
 // town's fields and its common grazing outside; a water mill on the river and a post mill on the rise; lanes to two villages.
 const Z = (dx, dy) => [22, 12, dx, dy];
 const row = (x0, x1, y, step, f) => {
@@ -89,7 +89,7 @@ module.exports = {
     [Z(-28, 66), Z(-20, 108), Z(28, 108), Z(30, 70)],
     [Z(70, 70), Z(72, 108), Z(170, 108), Z(176, 66)],
   ],
-  palisade: [[Z(-68, 64), Z(36, 68)], [Z(60, 68), Z(178, 66), Z(208, 40), Z(214, 8)]],
+  palisade: [], // none: there is no violence in the game (Kim, 27 November)
   things: [
     // the stone tower on the point
     { k: 'kastal', at: Z(0, -72), sc: 1.1 },
@@ -146,7 +146,6 @@ module.exports = {
     { k: 'boat', at: Z(-90, -6), v: 1, flip: true },
     { k: 'boat', at: Z(-92, 14), v: 0 },
     // the gate, the mills
-    { k: 'gate', at: Z(48, 72), sc: 1.1 },
     { k: 'watermill', at: [22, 15, -4, 4] },
     { k: 'postmill', at: [20, 15, 0, 6], sc: 1.1 },
   ],

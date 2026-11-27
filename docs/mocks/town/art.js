@@ -1235,7 +1235,51 @@ function tmSmoke(x, y, n = 3) {
   }
 }
 
+// A sea mark (båk) on the point: a tall timber trestle with a cask on top, that the skippers steer by into the harbour.
+function bakCanvas() {
+  const K = artKit(50, 130, 29),
+    { g, ink, pole } = K;
+  K.shadow(25, 126, 20, 3.5);
+  pole(8, 126, 22, 26, MP.post, 3);
+  pole(42, 126, 28, 26, MP.post, 3);
+  pole(25, 126, 25, 20, MP.post, 3);
+  for (const y of [100, 72, 46]) pole(8 + (126 - y) * 0.14, y, 42 - (126 - y) * 0.14, y, MP.post, 1.8);
+  g.beginPath();
+  g.ellipse(25, 16, 9, 11, 0, 0, 7);
+  ink(MP.barn, 0.9);
+  for (const d of [-5, 5]) pole(16.5, 16 + d, 33.5, 16 + d, MP.iron, 1);
+  return K.c;
+}
+// The market toll's bar across the road where it comes into town (tullbom), and the toll-keeper's booth: not a defence, a till.
+function tollCanvas() {
+  const K = artKit(80, 50, 33),
+    { g, ink, line, pole } = K;
+  K.shadow(40, 46, 34, 3);
+  g.beginPath();
+  g.rect(48, 22, 24, 22);
+  ink(MP.logs[0], 0.9);
+  K.poly([
+    [45, 24],
+    [60, 10],
+    [75, 24],
+  ]);
+  ink(MP.turf[0], 0.9);
+  g.beginPath();
+  g.rect(55, 28, 9, 7);
+  ink(MP.dark, 0.6);
+  pole(8, 46, 8, 26, MP.post, 2.6);
+  pole(4, 27, 46, 27, [224, 210, 180], 2.4);
+  for (let x = 12; x < 44; x += 8) {
+    g.beginPath();
+    g.moveTo(x, 27);
+    g.lineTo(x + 4, 27);
+    line([190, 64, 46], 2.4);
+  }
+  return K.c;
+}
 const TM_MAKE = {
+  bak: () => bakCanvas(),
+  toll: () => tollCanvas(),
   house: (v, o) => gableHouseCanvas(o, v),
   merchant: (v) => merchantCanvas(v),
   church: () => churchCanvas(),
@@ -1261,11 +1305,70 @@ function tmThing(w, t) {
     y = w.hy[i] + (t.at[3] || 0),
     v = t.v || 0;
   const key = t.k + ':' + v + ':' + JSON.stringify(t.o || {});
-  const tex = tmT(key, () => TM_MAKE[t.k](v, t.o || {}));
+  const tex = t.k === 'art' ? (Array.isArray(art[t.name]) ? art[t.name][v] : art[t.name]) : tmT(key, () => TM_MAKE[t.k](v, t.o || {}));
   const s = tmPlace(tex, x, y, t.ay || 0.94, ART_S * (t.sc || 1));
   if (t.flip) s.scale.x *= -1;
   if (t.z !== undefined) s.zIndex = y + t.z;
   return s;
+}
+// The plan's quarters as hexes (plan-hex.js): each a hex of trodden yard like a farm's, and streets along the edges between two
+// town hexes that are not of one group (the church's two hexes share their yard). Neighbours by direction: E, NE, NW, W, SW, SE.
+const TM_DIRS = [
+  [
+    [1, 0],
+    [0, -1],
+    [-1, -1],
+    [-1, 0],
+    [-1, 1],
+    [0, 1],
+  ],
+  [
+    [1, 0],
+    [1, -1],
+    [0, -1],
+    [-1, 0],
+    [0, 1],
+    [1, 1],
+  ],
+];
+const TM_EDGE = [
+  [330, 30],
+  [270, 330],
+  [210, 270],
+  [150, 210],
+  [90, 150],
+  [30, 90],
+];
+function tmHexes(w, H) {
+  const key = (c, r) => c + ',' + r,
+    grp = new Map(H.hexes.map((h) => [key(h.at[0], h.at[1]), h.group || key(h.at[0], h.at[1])])),
+    R = w.R,
+    done = new Set();
+  for (const h of H.hexes) {
+    const i = h.at[1] * w.COLS + h.at[0],
+      x = w.hx[i],
+      y = w.hy[i];
+    if (h.yard !== false) {
+      const s = place(art.yard, x, y + 1, 0.5, 0.5, L.fields, 0.27);
+      s.alpha = h.yard || 0.9;
+    }
+  }
+  const segs = [];
+  for (const h of H.hexes) {
+    const [c, r] = h.at,
+      i = r * w.COLS + c,
+      x = w.hx[i],
+      y = w.hy[i];
+    TM_DIRS[r & 1].forEach(([dc, dr], k) => {
+      const n = key(c + dc, r + dr),
+        e = [key(c, r), n].sort().join('|');
+      if (!grp.has(n) || grp.get(n) === grp.get(key(c, r)) || done.has(e)) return;
+      done.add(e);
+      const p = TM_EDGE[k].map((deg) => [x + R * Math.cos((deg * Math.PI) / 180), y + R * Math.sin((deg * Math.PI) / 180)]);
+      segs.push(p);
+    });
+  }
+  for (const p of segs) tmWay(p, H.street || 7);
 }
 function townLabels() {
   const w = st.w;
@@ -1308,6 +1411,7 @@ function townDraw(P) {
     sp.position.set(...at(...m.at));
     L.fields.addChild(sp);
   }
+  if (P.quarters) tmHexes(w, P.quarters);
   for (const gr of P.ground || []) tmGround(pts(gr.pts || gr), gr.a || 1);
   for (const c of P.cobbles || []) tmCobbles(...at(...c.at), c.rx, c.ry, c.seed || 1);
   for (const s of P.streets || []) tmWay(pts(s.pts), s.w || 9);

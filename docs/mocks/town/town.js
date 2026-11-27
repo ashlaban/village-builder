@@ -6,11 +6,13 @@
 //   --seed N   the island (default: plan.js's seed); --cols, --rows its size in tiles (default: plan.js's)
 //   --scale S  device pixel ratio (default 2); --out DIR where the shots go (default: docs/mocks/town/img)
 //   --only K   only the shot named K (see plan.js's shots)
+//   --plan F   another plan (plan-hex.js: each hex a quarter of houses, as a farm is a hex of buildings)
 //   --night    the shots at dusk as well (not yet)
 // Writes <name>.jpg for each of plan.js's shots, desk (1440 by 900) and phone (390 by 844).
 const root = require('path').join(__dirname, '..', '..', '..'), fs = require('fs'), path = require('path'), os = require('os');
 const { chromium } = require(root + '/node_modules/playwright');
-const plan = require('./plan.js');
+const args0 = process.argv.slice(2), planAt = args0.indexOf('--plan');
+const plan = require(planAt >= 0 ? require('path').resolve(args0[planAt + 1]) : './plan.js');
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; }, has = (k) =>
   args.includes('--' + k);
 if (has('help')) { console.log(fs.readFileSync(__filename, 'utf8').split('\n').filter((l) => l.startsWith('//')).map((l) => l.slice(3)).join('\n')); process.exit(0); }
