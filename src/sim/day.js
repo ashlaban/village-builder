@@ -990,14 +990,17 @@ VB['sim/day'] = (() => {
   // with them. The work is not done: its list waits for the next allotment.
   // @state agent.taking (VB-1779): absent, or the tick to which the pawn keeps hours of its levy (the verb breach). Written only here;
   //   cleared by sim/levies when its hours are booked past it.
+  // With args {levy, day, K}: the levied head's breach of an outer levy's day named (sim/levies breach, VB-1769).
   register('breach', {
     check: (st, c) => {
+      if (c.args && c.args.levy !== undefined) return Levies.breachWhy(st, c.actor, c.args);
       const why = takeWhy(st, c.actor);
       if (why) return why;
       const h = c.args && c.args.hours;
       return h === undefined || (Number.isFinite(h) && h > 0) ? null : `cannot take ${h} hours`;
     },
     run: (st, c) => {
+      if (c.args && c.args.levy !== undefined) return Levies.breach(st, c.actor, c.args);
       const p = st.pawns[c.actor],
         hh = st.households[p.household],
         left = Levies.capacity(st, hh, p, cal(st.t)),

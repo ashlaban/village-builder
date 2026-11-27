@@ -16,6 +16,7 @@ VB['sim/stores'] = (() => {
     'harvest',
     'gift',
     'keep',
+    'commute', // a day of an outer levy paid in grain at its terms' rate (sim/levies, VB-1769)
     'meat',
     'milk',
     'butter',

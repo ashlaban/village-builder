@@ -13,7 +13,9 @@ VB['sim/obligations'] = (() => {
   //   'keep', 'patron', 'routine', 'due'), terms ({names: 'levied' | 'levier' | 'together', notice (days), substitute, commute (rations a
   //   day, or null), carry, onBreach}: the draft's, sim/days TERMS by source), window ([first, last] game day the days asked may
   //   be named in, or null until its levier asks), asked (the days asked in the window, less the hours worked of them over OUTER.hours),
-  //   named ([{day, pawn (an id, or null: picked on the day)}], by day: the days named and not yet come) and worked (the days worked).
+  //   named ([{day, pawn (an id, or null: picked on the day)}], by day: the days named and not yet come), worked (the days worked) and
+  //   breaches ([{day, K (what the levied head reckoned keeping it would cost, rations), by (that head's id)}]: the breaches its levier's
+  //   agent has still to let stand or forgive at its next planning day, VB-1769; emptied as it closes).
   //   A `loan` one (VB-312, sim/loans) also has lent (the grain lent, before what custom adds) and
   //   missed (its dues passed unpaid: overdue at the first, defaulted at the second).
   // @state st.obligationsDue: the ids of the obligations whose term runs (status open or part), sorted by due, then id: the due-queue
@@ -115,7 +117,10 @@ VB['sim/obligations'] = (() => {
   // A closed obligation leaves the queue and both parties' lists; its record stays.
   function close(st, o, status) {
     st.obligations[o.id].status = status;
-    if (o.kind === 'days') st.obligations[o.id].named = []; // its days named are over with it (Rules for cost, 9)
+    if (o.kind === 'days') {
+      st.obligations[o.id].named = []; // its days named are over with it (Rules for cost, 9)
+      st.obligations[o.id].breaches = [];
+    }
     dequeue(st, o);
     unindex(st, 'debtor', o.debtor, o.id);
     unindex(st, 'creditor', o.creditor, o.id);
@@ -163,6 +168,7 @@ VB['sim/obligations'] = (() => {
       o.asked = o.window ? o.owes.days : 0;
       o.named = [];
       o.worked = 0;
+      o.breaches = [];
     }
     st.obligations.push(o);
     enqueue(st, o);
@@ -181,13 +187,14 @@ VB['sim/obligations'] = (() => {
   const owed = (st, party, as = 'creditor', kind = null) => due(st, party, as, kind).reduce((s, o) => s + left(o), 0);
   // n of what is owed is delivered against obligation id, or against several of one debtor and creditor (ids, the oldest first): part or
   // whole. `goods` ({from, to, good}): the n are moved by sim/stores, in one movement, for the reason `why`; without it they came another
-  // way (animals led, hours worked) and are only booked. One met leaves the caches: the caller tells the payment, which knows its words.
+  // way (animals led, hours worked) and are only booked; goods.n, where given, is what moves for them (a levy's day commuted at its
+  // rate, VB-1769). One met leaves the caches: the caller tells the payment, which knows its words.
   // Returns null, or why not.
   function fulfil(st, id, n, why, goods = null) {
     const list = (Array.isArray(id) ? id : [id]).map((k) => st.obligations[k]);
     if (!list.every((o) => o && isLive(o))) return 'the obligation is closed';
     if (!(n > 0) || n > list.reduce((s, o) => s + left(o), 0) + 1e-9) return 'more than is owed';
-    if (goods) Stores.move(st, goods.from, goods.to, goods.good, n, why);
+    if (goods) Stores.move(st, goods.from, goods.to, goods.good, goods.n ?? n, why);
     for (const { id: k } of list) {
       const o = st.obligations[k];
       const part = Math.min(n, left(o));
@@ -207,27 +214,51 @@ VB['sim/obligations'] = (() => {
     return null;
   }
   // An outer levy's working fields, written by sim/levies through this one door (VB-1767): any of {window, asked, named} (its days
-  // asked in a window by its levier, named by whoever its terms say).
+  // asked in a window by its levier, named by whoever its terms say), breaches (those its levier's agent has still to answer).
   function setLevy(st, id, fields) {
     const o = st.obligations[id];
     if (fields.window !== undefined) o.window = fields.window && [fields.window[0], fields.window[1]];
     if (fields.asked !== undefined) o.asked = fields.asked;
     if (fields.named !== undefined) o.named = fields.named.map((e) => ({ day: e.day, pawn: e.pawn }));
+    if (fields.breaches !== undefined) o.breaches = fields.breaches.map((b) => ({ day: b.day, K: b.K, by: b.by }));
   }
-  // The creditor's pawn `by` lets go of what is left of obligation id.
-  function forgive(st, id, by) {
+  // n of obligation o is struck (forgiven or lapsed in part, VB-1769: a day of a levy released or breached): what it owes is lowered by
+  // n, and a levy's days asked with it. True where only a part went; false where n reaches what is left, for the whole to close.
+  function strike(st, id, n) {
+    const ob = st.obligations[id];
+    if (n === null || n === undefined || n >= left(ob) - 1e-9) return false;
+    if (ob.owes.rations !== undefined) ob.owes.rations -= n;
+    else if (ob.owes.days !== undefined) ob.owes.days -= n;
+    else ob.owes.hours -= n;
+    if (ob.kind === 'days') ob.asked = Math.max(0, ob.asked - n);
+    return true;
+  }
+  // The creditor's pawn `by` lets go of what is left of obligation id, or of n of it (VB-1769: a day of a levy released).
+  function forgive(st, id, by, n = null) {
     const o = st.obligations[id];
     if (!o || !isLive(o)) return 'the obligation is closed';
-    const n = left(o);
+    if (!(n === null || n > 0)) return 'nothing to forgive';
+    if (strike(st, o.id, n)) {
+      tell(
+        st,
+        o,
+        `${n} ${unit(o)} of the ${o.kind} ${o.source ? `(${o.source}) ` : ''}were let go by ${fullName(st.pawns[by])}`,
+      );
+      return null;
+    }
+    n = left(o);
     close(st, o, 'forgiven');
     tell(st, o, `What was still owed of the ${o.kind} (${n} ${unit(o)}) was forgiven by ${fullName(st.pawns[by])}`);
     return null;
   }
-  // What is left of obligation id can no longer be paid or claimed (why: 'the one owed has died').
-  function lapse(st, id, why) {
+  // What is left of obligation id, or n of it (VB-1769: a day of a levy breached), can no longer be paid or claimed (why: 'the one owed
+  // has died'). A part is struck without a line of the record: its caller tells it.
+  function lapse(st, id, why, n = null) {
     const o = st.obligations[id];
     if (!o || !isLive(o)) return 'the obligation is closed';
-    const n = left(o);
+    if (!(n === null || n > 0)) return 'nothing to lapse';
+    if (strike(st, o.id, n)) return null;
+    n = left(o);
     close(st, o, 'lapsed');
     tell(st, o, `What was still owed of the ${o.kind} (${n} ${unit(o)}) lapsed: ${why}`);
     return null;
