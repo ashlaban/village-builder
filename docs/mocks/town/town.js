@@ -2,6 +2,7 @@
 //   A mock of a town as the map would show it (thread "Mock a town in the game", 27 November 2026): throwaway, not game code.
 //   A real generated island, a village or two seeded as tools/village-shot.js seeds one, and a town placed by hand from plan.js:
 //   its plots, church, market, quay, crafts, gardens, fields and roads, drawn by art.js in the manner of the farm art (page/farmart).
+//   --dump F   write the island's water, river and biome by tile to F (JSON) and stop
 //   --labels   the whole island with each land tile's col,row written on it, to place a town by hand (writes labels.jpg)
 //   --seed N   the island (default: plan.js's seed); --cols, --rows its size in tiles (default: plan.js's)
 //   --scale S  device pixel ratio (default 2); --out DIR where the shots go (default: docs/mocks/town/img)
@@ -103,6 +104,7 @@ async function main() {
       await page.evaluate(() => document.getElementById('uiToggle') && document.getElementById('uiToggle').click());
       await page.addStyleTag({ content: '#uiToggle, #lod { visibility: hidden !important; }' });
       const info = await page.evaluate((P) => window.__town.draw(P), P);
+      if (has('dump')) { fs.writeFileSync(opt('dump'), JSON.stringify(await page.evaluate(() => { const w = window.__vb.st.w; return { COLS: w.COLS, ROWS: w.ROWS, water: Array.from(w.water), river: Array.from(w.river), biome: Array.from(w.biome || []) }; }))); return; }
       for (const s of list) {
         const [x, y, z] = s.whole ? [info.W / 2, info.H / 2, Math.min(vp.width / info.W, vp.height / info.H)]
           : [s.at[0], s.at[1], dev === 'desk' ? s.zoom : s.zoomPhone || s.zoom];
