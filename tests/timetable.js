@@ -62,8 +62,8 @@ const head = hh.holder, [m1, m2] = hh.members.filter((m) => dayOf(hh.id).lists[m
   const notHead = hh.members.find((m) => m !== head && st.pawns[m].died === null);
   assert.match(String(issue(st, { actor: notHead, verb: 'dayOrder', target: hh.id, args: { member: m1, from: 0, to: 1 }, source: 'player' })), /not the head/);
   assert.match(String(issue(st, { actor: head, verb: 'dayOrder', target: hh.id, args: { member: m1, from: 0, to: 99 }, source: 'player' })), /no place/);
-  assert.match(String(issue(st, { actor: head, verb: 'dayGive', target: hh.id, args: { key: 'nothing', from: m1, to: m2 }, source: 'player' })), /not in pawn/);
-  assert.match(String(issue(st, { actor: head, verb: 'dayCall', target: hh.id, args: { member: 999 }, source: 'player' })), /not a living member/);
+  assert.match(String(issue(st, { actor: head, verb: 'assign', target: hh.id, args: { key: 'nothing', from: m1, to: m2 }, source: 'player' })), /not in pawn/);
+  assert.match(String(issue(st, { actor: head, verb: 'call', target: hh.id, args: { member: 999 }, source: 'player' })), /not a living member/);
   assert.strictEqual(canon(dayOf(hh.id)), before, 'a refused change changes nothing');
 }
 
@@ -97,7 +97,7 @@ const head = hh.holder, [m1, m2] = hh.members.filter((m) => dayOf(hh.id).lists[m
   if (loner) assert.match(String(own(loner.id, loner.id, { from: 0, to: 1 })), /no household/);
 }
 
-// 4. dayGive: a task of m1's list that m2 does not hold goes to m2, with its hours; the free hours follow.
+// 4. assign: a task of m1's list that m2 does not hold goes to m2, with its hours; the free hours follow.
 {
   const d = dayOf(hh.id), given = (id, k) => { const i = d.lists[id].indexOf(k); return i >= 0 && (d.fits[id][i] === null || d.fits[id][i] > 0); };
   let a = null, b = null, j = null;
@@ -106,15 +106,15 @@ const head = hh.holder, [m1, m2] = hh.members.filter((m) => dayOf(hh.id).lists[m
   assert.ok(j, 'a task another member may take');
   {
     const i = d.lists[a].indexOf(j), h = d.hours[a][i], f1 = d.free[a], f2 = d.free[b];
-    assert.strictEqual(issue(st, { actor: head, verb: 'dayGive', target: hh.id, args: { key: j, from: a, to: b }, source: 'player' }), true);
+    assert.strictEqual(issue(st, { actor: head, verb: 'assign', target: hh.id, args: { key: j, from: a, to: b }, source: 'player' }), true);
     assert.ok(!d.lists[a].includes(j) && given(b, j), 'the task moved, given to the taker');
     assert.strictEqual(d.lists[b].filter((k) => k === j).length, 1, 'once in its list');
     assert.strictEqual(d.lists[b].length, d.fits[b].length);
     assert.strictEqual(d.hours[b].length, d.lists[b].length, 'lists, fits and hours stay beside each other');
     if (a in d.free) assert.ok(Math.abs(d.free[a] - (f1 + h)) < 1e-9, 'the giver gets its hours back');
     if (b in d.free) assert.ok(Math.abs(d.free[b] - Math.max(0, f2 - h)) < 1e-9, 'the taker gives them');
-    assert.match(String(issue(st, { actor: head, verb: 'dayGive', target: hh.id, args: { key: j, from: b, to: b }, source: 'player' })), /another member/);
-    assert.match(String(issue(st, { actor: head, verb: 'dayGive', target: hh.id, args: { key: j, from: a, to: b }, source: 'player' })), /not in pawn/);
+    assert.match(String(issue(st, { actor: head, verb: 'assign', target: hh.id, args: { key: j, from: b, to: b }, source: 'player' })), /another member/);
+    assert.match(String(issue(st, { actor: head, verb: 'assign', target: hh.id, args: { key: j, from: a, to: b }, source: 'player' })), /not in pawn/);
   }
 }
 
@@ -127,7 +127,7 @@ const head = hh.holder, [m1, m2] = hh.members.filter((m) => dayOf(hh.id).lists[m
   const cost = Sim.callCost(st, m);
   assert.ok(cost && cost.walk >= 0 && cost.load >= 0, 'a walk home and a load');
   if (st.agents[m].job) assert.strictEqual(cost.task, st.agents[m].job.key, 'the task it leaves');
-  assert.strictEqual(issue(st, { actor: head, verb: 'dayCall', target: hh.id, args: { member: m }, source: 'player' }), true);
+  assert.strictEqual(issue(st, { actor: head, verb: 'call', target: hh.id, args: { member: m }, source: 'player' }), true);
   const d = dayOf(hh.id);
   assert.deepStrictEqual([d.lists[m], d.fits[m], d.hours[m]], [[], [], []], 'its list is emptied');
   assert.strictEqual(st.agents[m].job, null, 'it lets its task go');
@@ -175,4 +175,4 @@ const head = hh.holder, [m1, m2] = hh.members.filter((m) => dayOf(hh.id).lists[m
   Sim.uninhabit(st);
   assert.strictEqual(Sim.taskFrom(st), null, 'no pawn played, no cursor');
 }
-console.log('timetable ok: the view laid end to end and read only; dayOrder, dayGive, dayCall checked and standing until the next allotment; until my task ends stops and writes nothing');
+console.log('timetable ok: the view laid end to end and read only; dayOrder, assign, call checked and standing until the next allotment; until my task ends stops and writes nothing');

@@ -291,6 +291,112 @@ function handsOf(s, id) {
   assert.ok(seen.head > 0, `the head's allotment opens legs (${JSON.stringify(seen)})`);
 }
 
+// 10. (VB-1779) Demand and take. The judgement: a member of middle diligence, neutral to its head, rested, complies with a demand of work
+// at risk; one idle, resentful and wanting its hours takes a levied leg's. Hours demanded book goodwill the head owes the member, hours
+// taken goodwill the member owes the head, a day's work 3 rations; taken hours are counted in the season's tally.
+{
+  const { emit } = VB['sim/events'],
+    { TICKS } = VB['sim/rules'],
+    Rel = VB['sim/relations'],
+    { issue } = VB['sim/commands'];
+  const s = make(4.5),
+    h = s.households[0],
+    sp = spouseOf(s, h.holder),
+    m = h.members.find((id) => id !== h.holder && id !== sp && age(s, s.pawns[id]) >= 14 && !s.pawns[id].retired),
+    p = s.pawns[m],
+    meal = { kind: 'cook' };
+  // the judgement read: diligence 0 and a wanting member, of a task merely open, takes; diligence 1 complies
+  const L = Levies.GIVE;
+  assert.ok(L.press === 0.4 && L.hold === 0.8 && Levies.DEMAND.weight === 2, 'the starting values');
+  // goodwill: a leg of 4 hours past the levy demanded, a leg of 3 taken
+  const row = Levies.levyOf(s, m) / 1,
+    day = Math.floor(s.t / DAY) + 2,
+    at = (hour) => (day * DAY + hour) * TICKS,
+    tick = s.tick,
+    t0 = s.t;
+  const a = { id: m, leg: null };
+  const end = (from, to, by) => {
+    a.leg = { kind: 'work', t: at(from), by };
+    s.tick = at(to);
+    s.t = s.tick / TICKS;
+    emit(s, 'legOver', a);
+  };
+  const g0 = Rel.balance(s, m, h.holder);
+  end(6, 6, 'head');
+  a.taking = at(9);
+  end(6, 9, undefined); // a breach's hours: taken
+  assert.ok(a.taking === undefined, 'the breach ends once booked past');
+  assert.ok(Math.abs(a.book.p[5] - 3 * a.book.hands) < 1e-9, `three hours taken (${a.book.p})`);
+  const hours = Math.ceil(row) + 4;
+  // a demand met of 2 hours: those of the head's hours past the levy are goodwill it owes; the rest of its work past the levy, no demand
+  // made, owes nothing (review F1)
+  Levies.asked(s, m, 2);
+  end(9, Math.min(18, 9 + hours), 'head');
+  const P = a.book.p;
+  assert.ok(P[2] > 2 * a.book.hands, `hours past the levy demanded (${P})`);
+  assert.ok(s.agents[m] === undefined || s.agents[m].asked === undefined, 'the demand worked out');
+  const owed = (2 * a.book.hands - P[5]) * (3 / 8),
+    g1 = Rel.balance(s, m, h.holder) + (a.book.gw || 0);
+  assert.ok(Math.abs(g1 - g0 - owed) < 0.01, `goodwill (it decays as it stands): the head owes the hours demanded less those taken (${g1 - g0}, ${owed})`);
+  const tl = Levies.tallyOf(s, h, cal(day * DAY + WORK[0]));
+  assert.ok(Math.abs(tl.of[m][1] - P[5]) < 1e-9 && tl.of[m][0] >= P[2] - 1e-9, `the tally counts taken and demanded (${tl.of[m]})`);
+  s.tick = tick;
+  s.t = t0;
+}
+// 11. (VB-1779) assign past the levy left is a demand, named by its check before it is issued; issued with demand: true, it is an offer
+// the member answers by its judgement, and at a yes the task is moved. breach: a levied member keeps hours of its levy, refused for the
+// head pair. The default author's points: take for a levied member in the working day.
+{
+  const { issue } = VB['sim/commands'];
+  const s = make(WORK[0] + 1.5),
+    h = s.households.find((x) => x.members.filter((id) => Levies.levyOf(s, id) > 0).length >= 2) || s.households[0],
+    day = s.plans.households.get(h.id).day,
+    levied = h.members.filter((id) => Levies.levyOf(s, id) > 0 && day.lists[id] && day.lists[id].length);
+  assert.ok(levied.length >= 2, "two levied members");
+  {
+    const [x, y] = levied,
+      given = (key) => day.lists[y].includes(key) && !(day.fits[y][day.lists[y].indexOf(key)] < 0),
+      i = day.fits[x].findIndex((f, k) => f > 0 && day.hours[x][k] > 0 && !given(day.lists[x][k]));
+    assert.ok(i >= 0, "a task given hands to move");
+    {
+      const key = day.lists[x][i];
+      day.free[y] = 0; // its levy left spent
+      const cmd = { actor: h.holder, verb: 'assign', target: h.id, args: { key, from: x, to: y }, source: 'player' };
+      const why = issue(s, cmd);
+      assert.match(String(why), /is a demand: .* hours past pawn \d+'s levy left today/, 'named before it is issued');
+      const made = VB.count.demandMade,
+        yes0 = VB.count.demandMet,
+        no0 = VB.count.demandRefused,
+        r = issue(s, { ...cmd, args: { ...cmd.args, demand: true } });
+      assert.strictEqual(r, true, 'a demand issued');
+      assert.strictEqual(VB.count.demandMade, made + 1, 'a demand made');
+      const met = s.plans.households.get(h.id).day.lists[y].includes(key);
+      assert.ok(met ? VB.count.demandMet === yes0 + 1 : VB.count.demandRefused === no0 + 1, 'answered at once: moved at a yes, a memory at a no');
+    }
+    {
+      // a call to a task on the member's own list is inside what the allotment gave it: no demand, even with its levy left spent (F2)
+      const key = day.lists[x][0];
+      day.free[x] = 0;
+      const r = issue(s, { actor: h.holder, verb: 'call', target: h.id, args: { member: x, key }, source: 'player' });
+      assert.ok(!/is a demand/.test(String(r)), `a call within the allotment is no demand (${r})`);
+    }
+  }
+  const hp = h.holder;
+  assert.match(String(issue(s, { actor: hp, verb: 'breach', args: {}, source: 'player' })), /owes no household hours/, 'the head pair owe none');
+  const m = h.members.find((id) => Levies.levyOf(s, id) > 0 && age(s, s.pawns[id]) >= 14);
+  assert.ok(m !== undefined && Levies.capacity(s, h, s.pawns[m], cal(s.t)) > 0, "a levied member with levy left");
+  {
+    assert.ok(Sim.decisions(s, m).some((d) => d.point === 'take'), 'a levied member may take hours of its levy');
+    assert.strictEqual(issue(s, { actor: m, verb: 'breach', args: { hours: 2 }, source: 'player' }), true, 'a breach');
+    assert.ok(s.agents[m].taking > s.tick, 'keeping its hours');
+    assert.ok(!Sim.decisions(s, m).some((d) => d.point === 'take'), 'not while it takes');
+    Sim.advance(s, 3);
+    assert.deepStrictEqual(checkState(s), [], 'invariants after a breach');
+    const o = Sim.hours(s, m, Math.floor(s.t / DAY), Math.floor(s.t / DAY))[0];
+    assert.ok(o.taken > 0, `the hours booked taken (${o.taken})`);
+  }
+}
+
 console.log(
-  "levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first; each leg's hours booked into the six parts, a day summing to H, the tally folded",
+  "levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first; each leg's hours booked into the six parts, a day summing to H, the tally folded; a demand named and answered by the member's judgement, a breach's hours taken, goodwill booked both ways",
 );

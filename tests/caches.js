@@ -78,7 +78,7 @@ assert.deepStrictEqual(failures, [], 'a cache differs from its derivation after 
 // The verbs these states do not reach yet, each needing a command built for it (an offer to answer, a plan, a booth, a trust; VB-1703).
 // The list only shrinks: a verb carried here is struck from it, a new verb is carried or added.
 const NOT_YET = ['answer', 'claim', 'letIn', 'placeFarmstead', 'blaze', 'lodge', 'comeHome', 'goGathering', 'stayHome', 'swap',
-  'target', 'tile', 'order', 'letField', 'sowOutOfTurn', 'courses', 'dayOrder', 'dayGive', 'dayCall', 'handOn', 'plotToVillage',
+  'target', 'tile', 'order', 'letField', 'sowOutOfTurn', 'courses', 'dayOrder', 'assign', 'call', 'handOn', 'plotToVillage',
   'beginCottage', 'goBack', 'goToKin', 'visit', 'sendVisit', 'foundHousehold', 'decide', 'argue', 'dropCause', 'rally', 'leave', 'takeUp',
   'renounce', 'marry', 'skip', 'slander',
   'wish', 'match', 'found', 'upkeep']; // VB-361: no facility kind is declared in the game yet (each craft's task declares its own); tests/facilities.js carries both

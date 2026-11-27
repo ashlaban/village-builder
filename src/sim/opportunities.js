@@ -405,7 +405,7 @@ VB['sim/opportunities'] = (() => {
   }
 
   // ---- a call at a farm (VB-1271; the verb `call`, sim/occasions): for an unmarried pawn of age, the farms of other households in the
-  // villages within a day's walk, nearest village first, at most CALL_FARMS, each an item {verb: 'call', target: the farm, call: {place
+  // villages within a day's walk, nearest village first, at most CALL_FARMS, each an item {verb: 'callAt', target: the farm, call: {place
   // (the farm's name), village}}, why the verb's own check ----
   const CALL_FARMS = 8;
   function calls(view, p, out) {
@@ -422,10 +422,10 @@ VB['sim/opportunities'] = (() => {
         const hh = view.households[k];
         if (n >= CALL_FARMS) return;
         if (hh.id === p.household || hh.farmstead === null || view.farmsteads[hh.farmstead].village !== u) continue;
-        const why = check(view, p.id, 'call', hh.farmstead, null);
+        const why = check(view, p.id, 'callAt', hh.farmstead, null);
         n++;
         out.push(
-          item('call', hh.farmstead, null, why, {
+          item('callAt', hh.farmstead, null, why, {
             call: { place: view.farmsteads[hh.farmstead].name, village: view.villages[u].name },
           }),
         );
