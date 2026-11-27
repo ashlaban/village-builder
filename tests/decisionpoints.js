@@ -234,3 +234,28 @@ console.log(
   "decisionpoints ok: a head's four points and the alderman's year, each answered by the default author past its deadline; a leg's end " +
     "at once, a step at risk until the review, an ask until due; a scripted controller's run and an ordered visit replayed from a save to the same state",
 );
+
+// 3. An allotment is a point only where the head has a choice (VB-1848): two or more members allotted, or the day the rule would allot
+// differs from the day standing. One member and a day standing as the rule would make it: none; a household of two: one.
+{
+  const st = make(4.5),
+    hh = st.households[0],
+    head = hh.holder,
+    body = { kind: 'household', id: hh.id },
+    c = VB['sim/rules'].cal(st.t),
+    others = hh.members.filter((m) => m !== head && st.pawns[m].died === null);
+  assert.ok(others.length >= 1, 'a household of more than the head');
+  // the household of two: the head and one other, the rest away
+  for (const m of others.slice(1)) st.agents[m].away = { until: st.t + 100 };
+  VB['sim/day'].allot(st, hh, c);
+  const n0 = VB.count.dayWould;
+  assert.strictEqual(of(Sim.decisions(st, head), 'allot', body).length, 1, 'a household of two: an allotment point');
+  assert.strictEqual(VB.count.dayWould, n0, 'two allotted: the choice is plain, the day not weighed');
+  // the household of one: the other away too, the day allotted as the rule would
+  st.agents[others[0]].away = { until: st.t + 100 };
+  VB['sim/day'].allot(st, hh, c);
+  const h1 = hash(st);
+  assert.strictEqual(of(Sim.decisions(st, head), 'allot', body).length, 0, 'a household of one, its day as the rule would make it: none');
+  assert.strictEqual(hash(st), h1, 'asking writes nothing');
+  assert.ok(VB.count.dayWould > n0, 'the day weighed, counted');
+}
