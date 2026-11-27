@@ -10,9 +10,10 @@ const { VERBS } = VB['sim/commands'], { YEAR_DAYS, DAY, YEAR } = VB['sim/rules']
 const SIZES = { tiny: [120, 85], small: [180, 130], medium: [280, 200], large: [380, 270] };
 
 const world = (seed, map) => { const it = G.generate(seed, { cols: SIZES[map][0], rows: SIZES[map][1] }); let r; while (!(r = it.next()).done); return r.value; };
-// Current-run state fingerprints for save/load comparisons: each key of it, the world and what only indexes other fields left out
-const DERIVED = ['w', 'jobsBy', 'living', 'liveHouseholds', 'plans'];
-const hashes = (st) => { const o = {}; for (const k of Object.keys({ ...st, wear: 0 }).sort()) if (!DERIVED.includes(k)) o[k] = sha(canon(k === 'wear' ? st.w.wear : st[k])); return o; };
+// Current-run state fingerprints for save/load comparisons: each key of it, the world and what only indexes other fields left out: the
+// fields a save leaves out (sim/saves DERIVED, rebuilt on load or at their first use, and checked against their sources by the invariants)
+const DERIVED = new Set(['w', 'plans', ...Object.keys(VB['sim/saves'].DERIVED)]);
+const hashes = (st) => { const o = {}; for (const k of Object.keys({ ...st, wear: 0 }).sort()) if (!DERIVED.has(k)) o[k] = sha(canon(k === 'wear' ? st.w.wear : st[k])); return o; };
 
 // ---- commands counted by source: each verb's run is wrapped once; a counter is the run's own (`tally`) ----
 let tally = null, trail = null;
