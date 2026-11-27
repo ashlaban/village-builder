@@ -87,12 +87,12 @@ VB['sim/points'] = (() => {
   //   risk (step: its id, short, by): a step of its own plan at risk (VB-1755), until that review, where the default author may take it back;
   //   leg: its automatic behaviour off, its queue empty and nothing in hand: at once;
   //   ask (offer: its id, basis): an offer it has an answer to give, until the day's turn after it falls due (sim/offers), when its judgement
-  //     answers.
+  //     answers: among them a member's ask of its head (VB-1763), on the basis `leave` or `lighter` (a lighter levy, at the season's turn).
   //   demand (body, key, work): work at risk its allotment left with the levies spent (VB-1779), the head's to demand or not, by the hour;
   //   demanded (offer): a demand of its head's past its levy (an offer on the basis `demand`), to comply with or refuse, at once (its
   //     judgement answers at the day's turn);
   //   take (levy): hours of its levy left today, a levied member's to take for itself (the verb breach) or not, at once.
-  // The levy's other points join this list (VB-1763, VB-1769).
+  // The levy's other points join this list (VB-1769).
   function decisions(st, id) {
     const p = Number.isInteger(id) ? st.pawns[id] : null;
     if (!p || p.died !== null) return [];

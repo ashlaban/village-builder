@@ -94,4 +94,30 @@ assert.deepStrictEqual(issues(st), []);
 assert.strictEqual(cal(st.t).season, 3);
 // a plan once packed cannot be changed
 assert.match(String(issue(st, { actor: goers[0][0], verb: 'stayHome', source: 'player' })), /packed|not going/);
+
+// An adult who stayed leaves the household (the extended tier's invariants, 27 Nov: populous seed 7, an adult moved out on the day of
+// packing and the holder lodged with nobody home): before the packing, the goer who would leave nobody stays home; once the goers lodge,
+// the first adult lodged turns for home, as at a death at home.
+{
+  const s2 = make(), far = [0, 1, 2, 3].find((v) => v !== H && hoursBetween(s2, v, H) > G.homeHours), to = hhOf(s2, H)[0];
+  for (let v = 0; v < 4; v++) for (const hh of hhOf(s2, v)) Stores.put(s2, hh, 'grain', 60, { kind: 'harvest' }, { barley: 60 });
+  Sim.advance(s2, start - DAY - s2.t); // the day before, before the packing: the households have planned
+  const moveOut = (m) => ['service', 'care', 'home'].some((reason) => issue(s2, { actor: m, verb: 'move', target: to.id, args: { reason }, source: 'debug' }) === true);
+  const leaveAll = (hh) => {
+    for (const m of hh.members.slice()) if (adult(s2, m) && !hh.gathering.go.includes(m) && m !== hh.holder)
+      assert.ok(moveOut(m), `pawn ${m} moves`);
+  };
+  const [a, b] = hhOf(s2, far);
+  assert.ok(a.gathering && a.gathering.planned && !a.gathering.packed && a.gathering.go.length, 'planned, not packed');
+  leaveAll(a);
+  Sim.advance(s2, start - DAY + WORK[0] + 13 - s2.t);
+  const lodgedOf = (hh) => hh.members.filter((m) => { const x = stayOf(s2, m); return x && x.why === 'gathering' && !x.back; });
+  const adultsOf = (hh) => hh.members.filter((m) => s2.pawns[m].alive && adult(s2, m));
+  assert.ok(adultsOf(a).some((m) => !lodgedOf(a).includes(m)), 'an adult stays home when the one who would have stayed left before the packing');
+  assert.ok(lodgedOf(b).length, 'the other household lodged');
+  for (const m of b.members.slice()) if (adult(s2, m) && !lodgedOf(b).includes(m))
+    assert.ok(moveOut(m), `pawn ${m} moves`);
+  assert.ok(adultsOf(b).some((m) => { const x = stayOf(s2, m); return !x || x.why !== 'gathering' || x.back; }), 'a lodged adult turns for home when the last at home left');
+  assert.deepStrictEqual(issues(s2), []);
+}
 console.log(`going: ok (${goers.length} went, ${[...beds].map(([k, n]) => `${k} ${n}`).join(', ')})`);

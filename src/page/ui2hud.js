@@ -13,6 +13,7 @@ const hud = {
   pc: null,
   pinfo: null,
   planKey: '',
+  goAt: null, // {tile, chain}: the window's act opened this tile's card (yearGo), its chain shown first
 };
 const HUD_TABS = [
   ['build', 'Build', () => actIcon('build')],
@@ -43,38 +44,77 @@ function hudYear(hh, f) {
     ripe = fields
       .filter((x) => x.stage === 'sown' || x.stage === 'growing')
       .map((x) => (x.sown + CROPS[x.crop].ripe) % Sim.YEAR_DAYS);
-  let line, press;
+  // the line's words, behind a tap; its first view the window's glyph and the game days left (chips: page/ui2land factChips)
+  let line,
+    press,
+    win = null,
+    chips = [];
+  const left = (icon, n, label) => ({ icon, n: String(n), label });
   if (buildCalls(f)) {
     line = 'Nothing is built yet: the build button places your farmstead';
     press = 1;
+    chips = [{ icon: actIcon('build'), n: '!', label: 'Build the farmstead' }];
   } else if (sow && c.doy <= sow[1] && sown < Math.max(1, fields.length)) {
-    const left = sow[1] - c.doy + 1;
+    const n = sow[1] - c.doy + 1;
     line = fields.length
-      ? `Sow by spring day ${sow[1] + 1}: ${hudDays(left)} left, ${sown} of ${fields.length} ${fields.length === 1 ? 'field' : 'fields'} sown`
-      : `Sowing closes after spring day ${sow[1] + 1}: ${hudDays(left)} left, and no field is broken yet`;
-    press = left <= 3 ? 2 : 1;
+      ? `Sow by spring day ${sow[1] + 1}: ${laneDays(n)} left, ${sown} of ${fields.length} ${fields.length === 1 ? 'field' : 'fields'} sown`
+      : `Sowing closes after spring day ${sow[1] + 1}: ${laneDays(n)} left, and no field is broken yet`;
+    press = n <= 3 ? 2 : 1;
+    win = 'plant';
+    chips = [
+      left(actIcon('sow'), n, `Sowing: ${laneDays(n)} left`),
+      fields.length
+        ? { icon: goodIcon('field'), n: `${sown}/${fields.length}`, label: `${sown} of ${fields.length} sown` }
+        : { icon: `<span class="gap">${goodIcon('field')}</span>`, n: '', label: 'No field yet' },
+    ];
   } else if (c.doy < hay[0]) {
-    line = `Haymaking opens in ${hudDays(hay[0] - c.doy)}`;
+    line = `Haymaking opens in ${laneDays(hay[0] - c.doy)}`;
     press = 0;
+    chips = [{ icon: actIcon('wait') + actIcon('hay'), n: String(hay[0] - c.doy), label: line }];
   } else if (c.doy <= hay[1]) {
-    const left = hay[1] - c.doy + 1;
-    line = `Haymaking: ${hudDays(left)} left to mow`;
-    press = left <= 3 ? 2 : 1;
+    const n = hay[1] - c.doy + 1;
+    line = `Haymaking: ${laneDays(n)} left to mow`;
+    press = n <= 3 ? 2 : 1;
+    win = 'hay';
+    chips = [left(actIcon('hay'), n, line)];
   } else if (c.season < 3) {
-    line = `Winter in ${hudDays(3 * S - c.doy)}: bring in the harvest and the wood`;
+    line = `Winter in ${laneDays(3 * S - c.doy)}: bring in the harvest and the wood`;
     press = 3 * S - c.doy <= 4 ? 1 : 0;
+    win = 'harvest';
+    chips = [left(goodIcon('cold'), 3 * S - c.doy, `Winter in ${laneDays(3 * S - c.doy)}`)];
   } else {
-    line = `Winter: ${hudDays(4 * S - c.doy)} to spring`;
+    line = `Winter: ${laneDays(4 * S - c.doy)} to spring`;
     press = 0;
+    chips = [left(seasonIcon(0), 4 * S - c.doy, line)];
   }
-  return { c, sow, hay, ripe, line, press };
+  const go = win && f ? yearGo(win, hh, f) : null;
+  return { c, sow, hay, ripe, line, press: go ? Math.max(1, press) : press, chips, go }; // a window's act shows the line, calm or not
 }
+// The window's act (the playtest of 27 Nov: a window with no way to it): the tile the window's work is best begun at, for a chain of
+// work the plan does not hold yet: a pressing gap of the plan (Sim.planGaps), else the farm's own field or meadow, else the tile the
+// head marked for the next one, else the nearest the head's own check takes. {chain, tile}, or null with the work already planned or
+// nowhere to do it. A tap flies there and opens the tile's card, where the chain's button adds it.
+function yearGo(chain, hh, f) {
+  const P = hudPlanned();
+  if (!P || P.tasks.some((t) => t.kind === chain)) return null;
+  const g = hudGaps().find((x) => x.goal === chain);
+  if (g) return { chain, tile: g.tile };
+  if (chain === 'harvest') return null;
+  const own = chain === 'plant' ? f.fields.find((x) => x.stage === 'stubble' || x.stage === 'plowed') : f.meadows[0];
+  if (own) return { chain, tile: own.tile };
+  const V = Sim.headView(st, hh.id),
+    marked = chain === 'plant' ? V.tiles.field : V.tiles.meadow;
+  if (Number.isInteger(marked) && marked >= 0) return { chain, tile: marked };
+  const first = [...hudSites(hh)[chain === 'plant' ? 'field' : 'meadow']][0];
+  return first === undefined ? null : { chain, tile: first };
+}
+const YEAR_GO = { plant: 'Plant', hay: 'Make hay', harvest: 'Harvest' };
 function renderYear() {
   const { hh, f } = hudHouse();
   if (!hh) return;
   const Y = hudYear(hh, f),
     N = Sim.YEAR_DAYS,
-    key = `${Y.c.year}|${Y.c.doy}|${Y.line}|${Y.ripe.join()}`;
+    key = `${Y.c.year}|${Y.c.doy}|${Y.line}|${Y.ripe.join()}|${hud.yinfo}|${Y.go ? `${Y.go.chain}${Y.go.tile}` : ''}`;
   if (key === hud.yearKey) return;
   hud.yearKey = key;
   const pct = (d) => `${((d / N) * 100).toFixed(2)}%`,
@@ -88,7 +128,18 @@ function renderYear() {
     Y.ripe.map((d) => band('ripe', d, d + 2, 'reap')).join('') +
     `<u style="left:${pct(Y.c.doy + 0.5)}"></u></div>`;
   u2.alert.className = `u2-alert press${Y.press}`;
-  u2.alert.textContent = Y.line;
+  // the window's glyph and the game days left; a tap says it in words (Kim, 27 Nov)
+  u2.alert.innerHTML =
+    `<button type="button" class="u2-yline" data-hud="pinfo" data-slot="yinfo" data-k="year" aria-pressed="${hud.yinfo === 'year'}" ` +
+    `aria-label="${esc(Y.line)}" title="${esc(Y.line)}">${Y.chips
+      .map((x) => `<span class="u2-ychip" aria-hidden="true">${x.icon}${x.n ? `<b>${esc(x.n)}</b>` : ''}</span>`)
+      .join('')}</button>` +
+    (Y.go
+      ? `<button type="button" class="u2-ygo" data-hud="ygo" data-tile="${Y.go.tile}" data-chain="${Y.go.chain}" ` +
+        `aria-label="${esc(`${HUD_CHAIN[Y.go.chain].name}: show where`)}" ` +
+        `title="${esc(HUD_CHAIN[Y.go.chain].name)}">${actIcon('target')}${HUD_CHAIN[Y.go.chain].icon()}<span>${YEAR_GO[Y.go.chain]}</span></button>`
+      : '') +
+    (hud.yinfo === 'year' ? `<span class="u2-ywords">${esc(Y.line)}.</span>` : '');
   hud.press = Y.press;
 }
 // ---- the tabs ----
@@ -146,31 +197,36 @@ const HUD_STORES = [
   ['fuel', 'Firewood', 'measures'], // a load home is Sim.ECON.woodPerTrip measures
   ['hay', 'Hay', 'loads'],
 ];
-// What the outlook of a household planned by hand left out for want of a task (parts.left, VB-1661), in words, with the way to it.
-function storeLeft(x, f, unit) {
+// What the outlook of a household planned by hand left out for want of a task (parts.left, VB-1661): a dashed chip of the good and how
+// much, its sentence a tap away, and the way to it as buttons.
+function storeLeft(x, f, unit, good, k) {
   const fi = f.fields.findIndex((q) => q.tile === x.tile),
     mi = f.meadows.findIndex((q) => q.tile === x.tile),
     at = fi >= 0 ? `field ${fi + 1}` : mi >= 0 ? `hay meadow ${mi + 1}` : 'the wood',
     n = `about ${Math.round(x.n)} ${unit}`,
     show = Number.isInteger(x.tile)
-      ? `<button type="button" class="u2-chip" data-hud="fly" data-tile="${x.tile}">Show</button>`
+      ? `<button type="button" class="u2-chip" data-hud="fly" data-tile="${x.tile}">${actIcon('target')} Show</button>`
       : '',
-    chain = (c, label) =>
-      `<button type="button" class="u2-chip" data-hud="chain" data-chain="${c}" data-tile="${x.tile}">${label}</button>`,
-    cut = '<button type="button" class="u2-chip" data-hud="cutwood">Cut firewood</button>';
+    chain = (c, label, why) =>
+      `<button type="button" class="u2-chip go" data-hud="chain" data-chain="${c}" data-tile="${x.tile}" aria-label="${esc(why)}" ` +
+      `title="${esc(why)}">${actIcon('plus')}${HUD_CHAIN[c].icon()} ${label}</button>`,
+    cut = `<button type="button" class="u2-chip go" data-hud="cutwood" aria-label="Cut firewood">${actIcon('plus')}${goodIcon('wood')} Cut</button>`;
   const [words, acts] =
     x.what === 'harvest'
       ? [
           `${siteCap(n)} of ${x.crop} on ${at}: no task of the plan brings in its harvest.`,
-          show + chain('harvest', 'Bring it in'),
+          show + chain('harvest', 'Bring in', 'Bring it in'),
         ]
       : x.what === 'mown'
         ? [
             `${siteCap(n)} of hay lying mown on ${at}: no task of the plan brings it home.`,
-            show + chain('hay', 'Make hay here'),
+            show + chain('hay', 'Make hay', 'Make hay here'),
           ]
         : x.what === 'meadow'
-          ? [`${siteCap(n)} of hay on ${at}: no task of the plan mows it.`, show + chain('hay', 'Make hay here')]
+          ? [
+              `${siteCap(n)} of hay on ${at}: no task of the plan mows it.`,
+              show + chain('hay', 'Make hay', 'Make hay here'),
+            ]
           : x.what === 'timber'
             ? [`${siteCap(woodTimber(x.n))} at home: no task of the plan cuts it into firewood.`, cut]
             : x.what === 'fell'
@@ -182,55 +238,116 @@ function storeLeft(x, f, unit) {
                   `${siteCap(n)} of firewood for the year ahead: no task of the plan fells and cuts it. ${WOOD_PATH}`,
                   '',
                 ];
-  return `<li><span>${esc(words)}</span>${acts ? `<span class="u2-row2">${acts}</span>` : ''}</li>`;
+  return {
+    fact: {
+      k,
+      icon: `<span class="gap">${goodIcon(good)}</span>`,
+      n: String(Math.round(x.n)),
+      cls: 'left',
+      label: `Not counted: ${n}`,
+      why: `Not counted: ${words}`,
+    },
+    acts,
+  };
 }
 const STORE_KEY =
-  'Each bar is a good; its four cells are the seasons ahead, from now, each filled as far as the store lasts into it. ' +
-  'Green: it lasts the year; gold: it runs short; red: it runs badly short. A faded cell: none of it is needed that season. ' +
-  'Counted: what is in store, and what the tasks of the plan bring in.';
+  'Each bar is a good; its four cells are the seasons ahead, from now (sprout spring, sun summer, leaf autumn, snowflake winter), each ' +
+  'filled as far as the store lasts into it. Green: it lasts the year; gold: it runs short; red: it runs badly short. A faded cell: ' +
+  'none of it is needed that season. Counted: what is in store, and what the tasks of the plan bring in, nothing else. A dashed chip: ' +
+  'what is not counted, for want of a task of the plan.';
+const STORE_ICON = { food: 'grain', fuel: 'wood', hay: 'hay' };
+// The stores: a row a good, its icon, its meter of the seasons ahead and the season it lasts to; the words behind a chip or "i" (hud.sinfo).
 function storesHTML(hh) {
   const O = Sim.supplyOutlook(st, hh.id),
     f = st.farmsteads[hh.farmstead];
-  if (!O) return '<p class="sub">Not reckoned yet: the stores are counted on the first morning.</p>';
+  if (!O) {
+    const none = [
+      {
+        k: 'none',
+        icon: actIcon('wait'),
+        n: '',
+        label: 'Not reckoned yet',
+        why: 'Not reckoned yet: the stores are counted on the first morning.',
+      },
+    ];
+    return `<div class="u2-facts">${factChips(none, 'sinfo')}</div>${factWords(none, 'sinfo')}`;
+  }
   let h = '';
   for (const [key, label, unit] of HUD_STORES) {
     const s = O[key];
     if (s.state === 'none') continue;
     const coming = s.parts.intakes.reduce((n, x) => n + x.n, 0),
-      left = s.parts.left || [],
-      word =
+      left = (s.parts.left || []).map((x, k) => storeLeft(x, f, unit, STORE_ICON[key], `${key}-left${k}`)),
+      runs = Sim.SEASONS[(O.season + s.season) % 4],
+      facts = [
         s.state === 'safe'
-          ? coming > 0
-            ? 'Lasts the year, if the tasks planned are done'
-            : 'Lasts the year ahead'
-          : `Runs ${s.state === 'bad' ? 'badly ' : ''}short in ${Sim.SEASONS[(O.season + s.season) % 4]}`,
+          ? {
+              k: `${key}-lasts`,
+              icon: actIcon('vok'),
+              n: '',
+              cls: 'v0',
+              label: 'Lasts the year',
+              why: coming > 0 ? 'Lasts the year ahead, if the tasks planned are done.' : 'Lasts the year ahead.',
+            }
+          : {
+              k: `${key}-lasts`,
+              icon: seasonIcon((O.season + s.season) % 4),
+              n: '',
+              cls: s.state === 'bad' ? 'v2' : 'v1',
+              label: `Runs short in ${runs}`,
+              why: `Runs ${s.state === 'bad' ? 'badly ' : ''}short in ${runs}.`,
+            },
+        {
+          k: `${key}-store`,
+          icon: actIcon('sack'),
+          n: String(Math.round(s.parts.store)),
+          label: `${Math.round(s.parts.store)} ${unit} in store`,
+          why: `${Math.round(s.parts.store)} ${unit} in store now.`,
+        },
+        coming > 0
+          ? {
+              k: `${key}-coming`,
+              icon: actIcon('plus'),
+              n: String(Math.round(coming)),
+              label: `${Math.round(coming)} more from the plan`,
+              why: `About ${Math.round(coming)} ${unit} more from the tasks of the plan.`,
+            }
+          : null,
+        ...left.map((x) => x.fact),
+      ].filter(Boolean),
       cells = [0, 1, 2, 3]
         .map((k) => {
           const fill = Math.max(0, Math.min(1, s.own - k)),
             need = s.parts.need[k] > 0;
-          return `<i class="${need ? '' : 'idle'}" title="${Sim.SEASONS[(O.season + k) % 4]}"><u style="width:${(fill * 100).toFixed(0)}%"></u><span>${
-            Sim.SEASONS[(O.season + k) % 4]
-          }</span></i>`;
+          return (
+            `<i class="${need ? '' : 'idle'}" title="${Sim.SEASONS[(O.season + k) % 4]}">` +
+            `<u style="width:${(fill * 100).toFixed(0)}%"></u><span>${seasonIcon((O.season + k) % 4)}</span></i>`
+          );
         })
         .join('');
     h +=
-      `<div class="u2-store ${s.state}" data-hud="storekey" data-key="${key}" role="button" tabindex="0" aria-expanded="${hud.storeKey === key}">` +
-      `<div><b>${label}</b><span>${esc(word)}</span></div><div class="u2-cells">${cells}</div>` +
-      `<small>${Math.round(s.parts.store)} ${unit} in store now` +
-      `${coming > 0 ? ` · about ${Math.round(coming)} more from the tasks of the plan` : ''}</small>` +
-      (hud.storeKey === key ? `<p class="u2-legend">${esc(STORE_KEY)}</p>` : '') +
-      '</div>' +
-      (left.length
-        ? `<ul class="u2-left"><li class="h">Not counted:</li>${left.map((x) => storeLeft(x, f, unit)).join('')}</ul>`
-        : '');
+      `<div class="u2-store ${s.state}"><div class="u2-shead">${goodIcon(STORE_ICON[key])}<b>${label}</b>` +
+      `<div class="u2-facts">${factChips(facts, 'sinfo')}</div></div><div class="u2-cells">${cells}</div>` +
+      factWords(facts, 'sinfo') +
+      (left.some((x) => x.acts) ? `<div class="u2-row2">${left.map((x) => x.acts).join('')}</div>` : '') +
+      '</div>';
   }
-  const herds = Sim.describeHerds ? Sim.describeHerds(st, hh) : '';
-  if (herds) h += `<h3>Animals</h3><p class="sub">${esc(String(herds))}</p>`;
-  return (
-    h +
-    '<p class="sub">The bars count what is in store and what the tasks of the plan bring in, nothing else; a tap on a bar says how to read it.</p>' +
-    (O.stale ? '<p class="sub">Counted last season; it is counted again at the next review.</p>' : '')
-  );
+  const herds = Sim.describeHerds ? String(Sim.describeHerds(st, hh) || '') : '',
+    more = [
+      herds ? { k: 'herds', icon: goodIcon('beast'), n: '', label: 'Animals', why: herds } : null,
+      { k: 'key', chip: false, icon: seasonIcon(O.season), why: STORE_KEY },
+      O.stale
+        ? {
+            k: 'stale',
+            icon: actIcon('wait'),
+            n: '',
+            cls: 'v1',
+            label: 'Counted last season',
+            why: 'Counted last season; it is counted again at the next review.',
+          }
+        : null,
+    ].filter(Boolean);
+  return h + `<div class="u2-facts">${factChips(more, 'sinfo')}</div>` + factWords(more, 'sinfo');
 }
 function renderHud() {
   const { id, hh, f } = hudHouse();
@@ -242,7 +359,7 @@ function renderHud() {
   renderPlan();
   const hour = Math.floor(st.t),
     ctl = Sim.controlOf(st, st.player.pawn),
-    key = `${hud.tab}|${hud.storeKey}|${hour}|${ctl.queue.length}|${ctl.auto}|${followPlayed}|${hud.msg ? hud.msg.text : ''}`;
+    key = `${hud.tab}|${hud.sinfo}|${hud.binfo}|${hour}|${ctl.queue.length}|${ctl.auto}|${followPlayed}|${hud.msg ? hud.msg.text : ''}`;
   for (const b of u2.tabs.children) b.setAttribute('aria-pressed', String(b.dataset.tab === hud.tab));
   u2.sheet.hidden = !hud.tab;
   if (!hud.tab || key === hud.key) return;
@@ -251,6 +368,7 @@ function renderHud() {
     body = hud.tab === 'me' ? meHTML(id) : hud.tab === 'build' ? buildHTML() : storesHTML(hh);
   u2.sheet.innerHTML =
     `<header><h2>${hud.tab === 'me' ? esc(Sim.fullName(st.pawns[id])) : hud.tab === 'build' ? 'Build' : esc(f.name) + ': stores'}</h2>` +
+    (hud.tab === 'stores' ? factI('sinfo') : hud.tab === 'build' ? factI('binfo') : '') +
     `<button type="button" class="u2-chip" data-hud="close" aria-label="Close">Close</button></header>` +
     (hud.msg ? `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>` : '') +
     body;
@@ -260,7 +378,7 @@ function hudTab(tab) {
   const open = hud.tab === tab ? null : tab;
   if (tab === 'build') buildPick(null); // the menu again: what was being placed is let go
   hud.tab = open;
-  hud.msg = null;
+  hud.msg = hud.sinfo = hud.binfo = null;
   hud.key = '';
   u2.sheet.scrollTop = 0;
 }
@@ -269,9 +387,10 @@ function hudClick(b) {
     { id, hh } = hudHouse();
   if (d.hud === 'close') hud.tab = null;
   else if (d.hud === 'pshut') hud.pc = hud.pmove = hud.pinfo = null;
-  else if (d.hud === 'pinfo')
-    hud.pinfo = hud.pinfo === d.k ? null : d.k; // a chip's words, or all of them under "i"
-  else if (d.hud === 'buildpick') buildPick(d.what);
+  else if (d.hud === 'pinfo') {
+    const k = d.slot || 'pinfo'; // a chip's words, or all of them under "i" (page/ui2land factChips)
+    hud[k] = hud[k] === d.k ? null : d.k;
+  } else if (d.hud === 'buildpick') buildPick(d.what);
   else if (d.hud === 'placeoff') buildPick(null);
   else if (d.hud === 'buildhere') buildHere();
   else if (d.hud === 'uptoggle') hud.up = !hud.up;
@@ -301,6 +420,10 @@ function hudClick(b) {
       hudMsg(r, 'The order is changed.');
       if (r === true) hud.pc = `t:${d.to}`;
     }
+  } else if (d.hud === 'pkeep') {
+    const r = Sim.plan(st, st.player.pawn, 'keep', { i: +d.i, on: !!d.on }); // the pressed pin says it: words only on a refusal
+    hud.msg = null;
+    if (r !== true) hudMsg(r, '');
   } else if (d.hud === 'pmovecancel') {
     hud.pmove = hud.pinfo = null;
     hudMsg(true, 'The order is kept.');
@@ -326,13 +449,19 @@ function hudClick(b) {
   } else if (d.hud === 'shut') hud.at = -1;
   else if (d.hud === 'walk')
     hudMsg(Sim.queue(st, st.player.pawn, { actor: id, verb: 'walkTo', target: hud.at }), 'Queued: walk here.');
-  else if (d.hud === 'storekey') hud.storeKey = hud.storeKey === d.key ? null : d.key;
   else if (d.hud === 'chain')
     hudMsg(
       Sim.plan(st, st.player.pawn, 'add', { [d.chain]: d.tile !== undefined ? +d.tile : hud.at }),
       `Added to the plan: ${HUD_CHAIN[d.chain].done}.`,
     );
-  else if (d.hud === 'fly') {
+  else if (d.hud === 'ygo') {
+    // the window's act: fly to its tile and open the tile's card, whose button adds the chain (its first button, "go")
+    flyTo(w.hx[+d.tile], w.hy[+d.tile]);
+    hud.tab = hud.msg = null;
+    hud.at = +d.tile;
+    hud.goAt = { tile: +d.tile, chain: d.chain };
+    hud.tapAt = performance.now();
+  } else if (d.hud === 'fly') {
     flyTo(w.hx[+d.tile], w.hy[+d.tile]);
     if (b.closest('#u2Sheet')) ((hud.tab = null), (hud.at = +d.tile), (hud.tapAt = performance.now())); // from the stores: its tile's callout
   } else if (d.hud === 'follow') {
@@ -344,7 +473,7 @@ function hudClick(b) {
   } else if (d.hud === 'job') {
     hudMsg(
       Sim.queue(st, st.player.pawn, { actor: id, verb: 'work', target: d.target }),
-      `Queued: ${b.firstChild.textContent.toLowerCase()}.`,
+      `Queued: ${(d.name || b.textContent.trim()).toLowerCase()}.`,
     );
   } else if (d.hud === 'drop') hudMsg(Sim.head(st, st.player.pawn, 'dropProject', { id: +d.id }), 'Given up.');
   hud.key = hud.markKey = hud.planKey = '';

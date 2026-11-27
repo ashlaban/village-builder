@@ -509,10 +509,12 @@ VB['sim/gathering'] = (() => {
     for (const hh of householdsOf(st, v)) {
       const plan = planFor(hh, at.year);
       if (!plan) continue;
+      const set = []; // those of hh who set out now: an adult left the household since it planned, so one stays (design.md, Who goes)
       for (const [id, host, barn] of plan.beds) {
         const ok =
           st.pawns[id].alive &&
           st.pawns[id].household === hh.id &&
+          adultStays(st, hh, set, id) &&
           issue(st, {
             actor: id,
             verb: 'lodge',
@@ -527,7 +529,8 @@ VB['sim/gathering'] = (() => {
             },
             source: 'planner',
           }) === true;
-        if (!ok) setGoing(st, id, false); // its dealer loads as its stay opens, at its house (lodged, below; VB-1175)
+        if (ok) set.push(id);
+        else setGoing(st, id, false); // its dealer loads as its stay opens, at its house (lodged, below; VB-1175)
       }
       plan.beds = [];
     }
@@ -632,30 +635,35 @@ VB['sim/gathering'] = (() => {
     );
   }
   onEnd('gathering', { end: (st, o, pre, present) => dayEnd(st, o, present) });
-  // A death at home while its household's goers lodge at the gathering (sim/lifecycle's 'died'): if no adult is left at home, the first
-  // adult lodged there turns for home (the news is known at once: knowledge moves without a carrier).
   // A goer's stay at the gathering opens (sim/away's lodge, at its house: VB-1175): its dealer loads there (sim/fair, VB-302), until the
   // gathering's end (its stay's until is the morning after).
   on('lodged', (st, s) => {
     if (s.why === 'gathering')
       emit(st, 'gatheringSetOut', { pawn: s.pawn, household: st.pawns[s.pawn].household, until: s.until - WORK[0] });
   });
-  on('died', (st, d) => {
-    const p = st.pawns[d.pawn];
-    if (p.household === null) return;
-    const hh = st.households[p.household],
-      plan = planFor(hh, cal(st.t).year);
+  // A death at home, or an adult gone to another household (sim/heirs' move: 'rehoused'), while household hh's goers lodge at the
+  // gathering: if no adult is left at home, the first adult lodged there turns for home (the news is known at once: knowledge moves
+  // without a carrier). `gone`: the pawn who is no longer at home.
+  function homeLeft(st, hh, gone) {
+    const plan = planFor(hh, cal(st.t).year);
     if (!plan || !plan.go.length) return;
     let home = false,
       back = null;
     for (const m of hh.members) {
       const q = st.pawns[m];
-      if (m === d.pawn || !q.alive || age(st, q) < G.adult) continue;
+      if (m === gone || !q.alive || age(st, q) < G.adult) continue;
       const s = stayOf(st, m);
       if (!s || s.why !== 'gathering' || s.back) home = true;
       else if (back === null) back = m;
     }
     if (!home && back !== null) issue(st, { actor: back, verb: 'comeHome', source: 'pawn' });
+  }
+  on('died', (st, d) => {
+    const p = st.pawns[d.pawn];
+    if (p.household !== null) homeLeft(st, st.households[p.household], d.pawn);
+  });
+  on('rehoused', (st, d) => {
+    if (d.old && !d.old.dissolved && d.old !== d.hh) homeLeft(st, d.old, d.a ? d.a.id : null);
   });
   // goGathering: go to the village's gathering this winter (VB-295): named among the household's goers, who pack the day before
   register('goGathering', {

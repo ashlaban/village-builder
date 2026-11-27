@@ -168,6 +168,7 @@
       "sim/jobs",
       "sim/drinking",
       "sim/fit",
+      "sim/grants",
       "sim/levies",
       "sim/day",
       "sim/authored",

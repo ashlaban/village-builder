@@ -288,8 +288,10 @@ VB['sim/saves'] = (() => {
   // not its controller's (no pawn.control.plan); a save of format 9 is another build's, and refused (no migration is written).
   // Format 11 (VB-1777): a task at a tile is a goal its kind's methods carry, {kind, site, ...} (sim/kinds GOALS), not {<chain>: tile}, and
   // a command its plan fed is marked by its goal kind and site; a save of format 10 is another build's, and refused (no migration is written).
-  const FORMAT = 11,
-    READS = [11];
+  // Format 12 (VB-1763): a member's leave is its head's dated grant on the household's plan (plan.grants), not st.leaves; a save of
+  // format 11 is another build's, and refused (no migration is written).
+  const FORMAT = 12,
+    READS = [12];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {

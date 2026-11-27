@@ -235,14 +235,38 @@ function checkState(st) {
           bad.push(`plans.households[${hid}].tally: ${JSON.stringify(T).slice(0, 120)}`);
       }
     }
-    // VB-1555: today's leaves, each a pawn's, from an hour before the end of the working day it ends at; a pawn's days of its own ask and
-    // its last visit are whole game days, none in the future
-    if (st.leaves) {
-      const d = st.leaves;
-      if (!Number.isInteger(d.day) || !d.by || typeof d.by !== 'object') bad.push(`leaves: ${JSON.stringify(d).slice(0, 80)}`);
-      for (const [id, e] of Object.entries(d.by || {}))
-        if (!st.pawns[id] || !Array.isArray(e) || !(e[0] < e[1]) || e[1] > (d.day + 1) * 24 || (e[2] !== 0 && e[2] !== 1) || (e[3] !== null && !st.pawns[e[3]]))
-          bad.push(`leaves: pawn ${id} ${JSON.stringify(e)}`);
+    // VB-1778: each household plan's labour budget, of a season not later than now, three game weeks none below 0 summing to its total;
+    // its season's fit, short and demand never below 0, what it lowered never below 0, its help planned within a day's span
+    if (st.plans && st.plans.households) {
+      const { cal } = globalThis.VB['sim/rules'], c = cal(st.t), now = c.year * 4 + c.season;
+      for (const [hid, plan] of st.plans.households) {
+        const B = plan && plan.budget, F = plan && plan.fit;
+        if (B !== undefined && (!B || !Number.isInteger(B.at) || B.at > now || !Array.isArray(B.weeks) || B.weeks.length !== 3 || !B.weeks.every((x) => x >= 0) || Math.abs(B.weeks[0] + B.weeks[1] + B.weeks[2] - B.total) > 1e-6 || !(B.outer >= 0)))
+          bad.push(`plans.households[${hid}].budget: ${JSON.stringify(B).slice(0, 120)}`);
+        if (F !== undefined && (!F || !Number.isInteger(F.at) || F.at > now || !(F.short >= 0) || !(F.week >= 0 && F.week <= 2)
+          || (F.demand !== undefined && !(F.demand >= 0)) || (F.lowered && !Object.values(F.lowered).every((x) => x >= 0))
+          || (F.help && !F.help.every((h) => h.length === 5 && h[2] <= h[3] && h[4] >= 0))))
+          bad.push(`plans.households[${hid}].fit: ${JSON.stringify(F).slice(0, 120)}`);
+      }
+    }
+    // VB-1555: a pawn's days of its own ask and its last visit are whole game days, none in the future. VB-1763: each household plan's
+    // grants: standing ones of a season no later than the next, hours a day within the
+    // working day; dated ones of a member or one gone since, a first day and whole days, beginning within its first day's working day,
+    // begun on no day outside them
+    if (st.plans && st.plans.households) {
+      const { cal } = globalThis.VB['sim/rules'], c = cal(st.t), now = c.year * 4 + c.season;
+      for (const [hid, plan] of st.plans.households) {
+        const G = plan && plan.grants;
+        if (G === undefined) continue;
+        if (!G || typeof G.season !== 'object' || !Array.isArray(G.dated)) { bad.push(`plans.households[${hid}].grants: ${JSON.stringify(G).slice(0, 80)}`); continue; }
+        for (const [id, e] of Object.entries(G.season))
+          if (!st.pawns[id] || !Array.isArray(e) || e.length !== 2 || !Number.isInteger(e[0]) || e[0] > now + 1 || !(e[1] > 0 && e[1] <= 12))
+            bad.push(`plans.households[${hid}].grants: pawn ${id} ${JSON.stringify(e)}`);
+        for (const g of G.dated)
+          if (!Array.isArray(g) || g.length !== 6 || !st.pawns[g[0]] || !Number.isInteger(g[1]) || !(Number.isInteger(g[2]) && g[2] >= 1)
+            || !(g[3] >= g[1] * 24 && g[3] < g[1] * 24 + 18) || (g[4] !== null && !st.pawns[g[4]]) || !(g[5] === -1 || (g[5] >= g[1] && g[5] < g[1] + g[2])))
+            bad.push(`plans.households[${hid}].grants: ${JSON.stringify(g)}`);
+      }
     }
     for (const p of st.pawns)
       for (const f of ['voiced', 'sat'])

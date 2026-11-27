@@ -178,6 +178,11 @@ VB.COUNTERS = {
   demandRefused: 'Demands refused, a memory of the head (sim/day, VB-1779)',
   breachTaken: 'Hours of the levy taken by a member for itself, a breach each (sim/day breach, VB-1779)',
   hoursBook: "Legs' ends whose working hours were booked into the six parts of a pawn's day (sim/levies book, VB-1761)",
+  budgetReckoned:
+    "Households' labour budgets reckoned: at the season's first review and when the members or the outer days change (sim/levies budget, VB-1778)",
+  fitJudged:
+    "Households' seasons judged against their labour budget, once a season at its first review (sim/levies fit, VB-1778)",
+  fitRow: 'Season steps with hours left set against the labour budget at a fit (sim/levies fit, VB-1778)',
   levyCompile:
     "Members' levies compiled on their household's plan: at the season's turn, a member new to it or of a changed role (sim/levies, VB-1760)",
   dayAllot:
@@ -202,6 +207,17 @@ VB.COUNTERS = {
   leaveAsked: 'Asks of leave made by a member of its head (sim/voice, VB-1555)',
   leaveGiven: 'Leaves given by a head (sim/voice, VB-1555)',
   leaveRefused: 'Asks of leave refused by a head (sim/voice, VB-1555)',
+  grantGiven:
+    "Grants of a member's levy written on its household's plan: a head's, standing or dated, and a servant's free day (sim/levies, VB-1763)",
+  grantLook:
+    "Dated grants on a household's plan looked at, for a member's levy in force, the budget or a leave begun (sim/levies, sim/voice; VB-1763)",
+  budgetDay:
+    "Members' days of a season read for their levy in force by a household's labour budget reckoned (sim/levies budget, VB-1763)",
+  dailyDay:
+    "Days of a season left read for a household's daily byre work by its head's estimate at a plan review (sim/estimate dailyLeft, VB-1906)",
+  lighterLook: "Members looked at at the season's turn for an ask of a lighter levy (sim/voice, VB-1763)",
+  lighterAsked: 'Asks of a lighter levy made by a member of its head (sim/voice, VB-1763)',
+  lighterGiven: 'Lighter levies granted by a head (sim/voice, VB-1763)',
   occasionAsked:
     "Pawns weighed as guests of an occasion: a village's people at its meeting, kin and housemates at a wedding or a death " +
     '(sim/occasions, VB-126), the adults asked to an ale evening and to the rite (VB-522)',

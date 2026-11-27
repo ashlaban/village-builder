@@ -363,8 +363,14 @@ VB['sim/heirs'] = (() => {
     }
   }
   // The heir who takes the farm: the first in line, but when no adult is left in the house to be a minor's guardian (other than `leaving`),
-  // the first adult in line, if there is one (stability review): a child does not keep a farm alone.
+  // the first adult in line, if there is one (stability review): a child does not keep a farm alone. One who lives over the sea from the
+  // farm is passed over, as nobody is sent there (VB-436; the move command refuses it): it could not take the farm up, and the farm stood
+  // empty with a holder who never came (the extended tier's invariants, 27 Nov 2026: heirs seed 42, year 12).
   function heirFor(st, hh, ranking, leaving = null, companion = null) {
+    ranking = ranking.filter((id) => {
+      const h = st.pawns[id].household;
+      return h === null || h === hh.id || reachable(st, st.households[h], hh);
+    });
     if (!ranking.length) return null;
     const grown = hh.members.some(
       (id) => id !== leaving && id !== companion && id !== hh.holder && st.pawns[id].alive && st.pawns[id].age >= 18,

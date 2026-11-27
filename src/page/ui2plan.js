@@ -218,6 +218,7 @@ function planCard(P, A, S) {
       );
     else
       facts.push({ k: 'state', icon: actIcon('no'), n: '', label: 'Not in the routine', why: 'Not in the routine.' });
+    if (r && !r.done) facts.push(...dayFacts(A, P, hud.pc));
     if (r) acts += btn('pdrop', `${actIcon('no')}Drop`, ` data-kind="${esc(arg)}" aria-label="Drop from the routine"`);
   } else if (what === 'sleep') {
     const owed = S ? S.owed : 0;
@@ -296,7 +297,7 @@ function planCard(P, A, S) {
     if (!t) return ((hud.pc = null), '');
     title = laneShort(t);
     icon = `${hudTaskIcon(t)}<s class="sq">${i + 1}</s>`;
-    facts = laneTaskFacts(t, e, i);
+    facts = [...laneTaskFacts(t, e, i), ...dayFacts(A, P, hud.pc, t)];
     // a reorder that would make another task worse waits here for the player's word (page/ui2ahead laneKnock): the task, the red
     // badge of its new verdict, the deadline and its day; the sentence behind "i"
     const pm = hud.pmove && hud.pmove.from === i ? hud.pmove : null;
@@ -339,7 +340,8 @@ function planCard(P, A, S) {
         `Later${actIcon('next')}`,
         ` data-from="${i}" data-to="${i + 1}"${i < P.tasks.length - 1 ? '' : ' disabled'}`,
       ) +
-      btn('premove', `${actIcon('no')}Remove`, ` data-i="${i}"`);
+      btn('premove', `${actIcon('no')}Remove`, ` data-i="${i}"`) +
+      laneKeepButton(i);
   } else if (what === 'q') {
     const q = Sim.controlOf(st, st.player.pawn).queue[+arg];
     if (!q) return ((hud.pc = null), '');
@@ -366,16 +368,7 @@ function planCard(P, A, S) {
       why: `Tap the land where work is to be done, and add it to the plan. ${st.pawns[played()].given} does the day’s routine and then waits.`,
     });
   }
-  const num = (f) => (f.n === '' || f.n === undefined ? '' : `<b>${esc(f.n)}</b>`),
-    chips = facts
-      .filter((f) => f.chip !== false)
-      .map(
-        (f) =>
-          `<button type="button" class="u2-fact ${f.cls || ''}" data-hud="pinfo" data-k="${esc(f.k)}" aria-pressed="${hud.pinfo === f.k}" ` +
-          `aria-label="${esc(f.label || f.why)}" title="${esc(f.label || f.why)}">${f.icon}${num(f)}</button>`,
-      )
-      .join(''),
-    shown = hud.pinfo === 'all' ? facts : facts.filter((f) => f.k === hud.pinfo),
+  const chips = factChips(facts, 'pinfo'),
     head =
       what === 't'
         ? `<button type="button" class="u2-pico" data-hud="pinfo" data-k="place" aria-pressed="${hud.pinfo === 'place'}" ` +
@@ -383,19 +376,10 @@ function planCard(P, A, S) {
         : `<span class="u2-pico">${icon}</span>`;
   return (
     `<div class="u2-verdict">${head}<h2>${esc(title)}</h2>` +
-    (facts.length
-      ? `<button type="button" class="u2-i" data-hud="pinfo" data-k="all" aria-pressed="${hud.pinfo === 'all'}" ` +
-        'aria-label="What it means" title="What it means">i</button>'
-      : '') +
+    (facts.length ? factI('pinfo') : '') +
     '<button type="button" class="u2-x" data-hud="pshut" aria-label="Close">×</button></div>' +
     (chips ? `<div class="u2-facts">${chips}</div>` : '') +
-    (shown.length
-      ? `<ul class="u2-pinfo">${shown
-          .map(
-            (f) => `<li><span class="u2-fact ${f.cls || ''}">${f.icon}${num(f)}</span><span>${esc(f.why)}</span></li>`,
-          )
-          .join('')}</ul>`
-      : '') +
+    factWords(facts, 'pinfo') +
     (hud.msg ? `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>` : '') +
     warn +
     (acts && !warn ? `<div class="u2-row2">${acts}</div>` : '')

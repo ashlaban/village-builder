@@ -8,7 +8,7 @@ VB['sim/service'] = (() => {
   const { refreshRoles, setGuardian, extinct } = VB['sim/heirs'];
   const { issue } = VB['sim/commands'];
   const { hoursBetween, withinDay, byLand } = VB['sim/villagehours'];
-  const { MARRIAGE, AGES, SHARES, YEAR, DAY } = VB['sim/rules'];
+  const { MARRIAGE, AGES, SHARES, YEAR, DAY, cal, YEAR_DAYS, SEASON_DAYS, ASK } = VB['sim/rules'];
   const Stores = VB['sim/stores'];
   const Obligations = VB['sim/obligations'];
   const { floorOf } = VB['sim/hunger'];
@@ -151,8 +151,34 @@ VB['sim/service'] = (() => {
       }`,
     };
   }
-  const serve = (st, id, hhId, source) =>
-    issue(st, { actor: id, verb: 'move', target: hhId, args: serving(st, id, hhId), source });
+  // The game day of the moving round (autumn's ASK.day) after today: a servant's term.
+  function termDay(st) {
+    const c = cal(st.t),
+      round = (y) => y * YEAR_DAYS + 2 * SEASON_DAYS + ASK.day;
+    return round(c.year) > c.day ? round(c.year) : round(c.year + 1);
+  }
+  // A servant's contract, made or renewed, gives it a free game day at its term (design.md, Children, lodgers, elders and servants): a
+  // dated grant of the moving round's whole day on its household's plan (sim/levies grant, by the contract: no goodwill booked).
+  function freeDay(st, id) {
+    const p = st.pawns[id];
+    if (!p || !p.alive || !p.servant || p.household === null) return;
+    const day = termDay(st);
+    const head = st.households[p.household].holder;
+    if (head === null || head === id) return;
+    // the head grants it by the contract (args.term: no goodwill booked), through the verb any controller has
+    issue(st, {
+      actor: head,
+      verb: 'grant',
+      target: id,
+      args: { day, days: 1, from: day * DAY, term: true },
+      source: 'round',
+    });
+  }
+  function serve(st, id, hhId, source) {
+    const r = issue(st, { actor: id, verb: 'move', target: hhId, args: serving(st, id, hhId), source });
+    if (r === true) freeDay(st, id);
+    return r;
+  }
   // ---- the basis `place` of sim/offers (VB-692; plan VB-682, sections 2 and 4.2): {from (the head of household gives.household), to (the
   // adult it would take), gives {household}}. Those whose yes the move needs answer (moveWhy: the adult and the head, who answers what the
   // round offers in his name, the played head as he likes); the adult says
@@ -317,6 +343,12 @@ VB['sim/service'] = (() => {
   // it could not pay one (VB-637), nor does a lone holder's (takeServants) but where its farm is held in trust (VB-309: a rescue, as
   // takeIn is). One its master owes more than SERVICE.unpaid years' wages goes home (unpaidLeave), else asks for a place as one a head
   // refused does (`leavers`), whatever the hands at home.
+  // Whether household hh would take a servant at this year's moving round, a season of its year not fitting its labour budget (sim/levies
+  // fit, VB-1778: plan.fit's servant, the year of the round it wants one at).
+  const wantsServant = (st, hh) => {
+    const plan = st.plans && st.plans.households.get(hh.id);
+    return !!plan && !!plan.fit && plan.fit.servant === cal(st.t).year;
+  };
   const fieldsOf = (st, hh) => Math.max(1, farmOf(st, hh).fields.length);
   const handsPerField = (st, hh) => hands(st, hh) / fieldsOf(st, hh);
   const parentIn = (st, q, hh) =>
@@ -331,7 +363,7 @@ VB['sim/service'] = (() => {
           !taken.has(h.id) &&
           !trustOf(st, h.id) &&
           farmOf(st, h).fields.length > 0 &&
-          handsPerField(st, h) < SERVICE.short &&
+          (handsPerField(st, h) < SERVICE.short || wantsServant(st, h)) && // or a season short of hours (VB-1778)
           !belowFloor(st, h),
       );
     if (!short.length) return;
@@ -413,6 +445,7 @@ VB['sim/service'] = (() => {
           owes: { rations: SERVICE.wage },
           enforcer: party('village', farmOf(st, hh).village),
         });
+        freeDay(st, id); // its contract renewed for the year to come
       }
     }
     payWages(st);

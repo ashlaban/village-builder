@@ -108,13 +108,18 @@ function laneHTML(A, P) {
       s = steps[i],
       v = e ? hudVerdict(e) : null,
       d = laneDeadline(e),
-      risk = s && s.state === 'at-risk',
+      // the lane's own word: a task whose end falls past its window, or tight with its deadline in the days at full width, is marked
+      // though the plan's step is not at risk (a harvest is laid on the ripening, which may fall a day before the frost)
+      late = v === 'late',
+      near = v === 'tight' && d && d.t < (S.day0 + LANE.full) * D,
+      risk = (s && s.state === 'at-risk') || late || near,
       name = `${i + 1}. ${hudKind(t.kind)}`,
       pc = `t:${i}`,
       sel = hud.pc === pc ? ' sel' : '',
+      keep = s && s.kept ? `<i class="u2-lkeep" aria-label="Kept">${actIcon('pin')}</i>` : '',
       riskMark = (left) =>
         `<button type="button" class="u2-lrisk" data-pc="${pc}" style="left:${left}" ` +
-        `aria-label="${esc(`${name}: at risk`)}" title="At risk">!</button>`;
+        `aria-label="${esc(`${name}: ${late ? 'too late' : 'at risk'}`)}" title="${late ? 'Too late' : 'At risk'}">!</button>`;
     let r = '';
     if (e && Number.isFinite(e.ends) && Number.isFinite(e.starts)) {
       const a = S.x(Math.max(st.t, e.starts)),
@@ -126,12 +131,12 @@ function laneHTML(A, P) {
         `<button type="button" class="u2-lbar v${HUD_VERDICT[v] || 0}${v ? '' : ' none'}${more ? ' more' : ''}${sel}" data-pc="${pc}" ` +
         `style="left:min(${lanePct(a)}, 100% - 22px);width:${lanePct(c - a)};--mid:${(((b - a) / Math.max(0.01, c - a)) * 100).toFixed(1)}%" ` +
         `aria-label="${esc(`${name}: ${laneDate(e.starts)} to ${laneDate(e.ends)}${v ? `, ${v}` : ''}`)}" title="${esc(name)}">` +
-        `${hudTaskIcon(t)}</button>`;
+        `${hudTaskIcon(t)}${keep}</button>`;
       if (risk) r += riskMark(`min(${lanePct(c)}, 100% - 9px)`);
     } else
       r +=
         `<button type="button" class="u2-lbar unlaid${sel}" data-pc="${pc}" style="left:0;width:22px" ` +
-        `aria-label="${esc(`${name}: not laid in the days ahead`)}" title="${esc(name)}">${hudTaskIcon(t)}</button>` +
+        `aria-label="${esc(`${name}: not laid in the days ahead`)}" title="${esc(name)}">${hudTaskIcon(t)}${keep}</button>` +
         (risk ? riskMark('24px') : '');
     if (d) r = dead(d, pc, v === 'late', name) + r;
     rows += `<div class="u2-lrow">${r}</div>`;
@@ -218,6 +223,42 @@ function laneWaitFact(x) {
   else if (x.why === 'hand') f.icon += actIcon('walk');
   return f;
 }
+// An agenda entry's verdict as a fact: the coloured ring (green in time, gold tight, red late), or null.
+function laneVerdictFact(e) {
+  const v = hudVerdict(e),
+    d = laneDeadline(e);
+  if (!v) return null;
+  const word = v === 'late' ? 'Too late' : v === 'tight' ? 'Tight' : 'In time';
+  return {
+    k: 'verdict',
+    icon: laneVerdictIcon(v),
+    n: '',
+    cls: `v${HUD_VERDICT[v]}`,
+    label: v,
+    why:
+      `${word} for ${d ? d.what : 'its deadline'}` +
+      (e.then ? `, ${e.then.crop} sown` : '') +
+      ', by the settler’s estimate. Green in time, gold tight, red late.',
+  };
+}
+// An agenda entry's work as a fact: the stopwatch and its span, the chain's steps to sowing counted in.
+function laneWorkFact(e) {
+  const more = e.then ? e.then.steps.reduce((n, x) => n + x.hours.mid, 0) : 0,
+    steps = e.steps && e.steps.length ? e.steps.map((x) => hudKind(x.kind).toLowerCase()).join(', ') : '';
+  return {
+    k: 'work',
+    icon: actIcon('clock'),
+    n: laneSpanN(e.hours.mid + more),
+    label: `${hudSpan(e.hours.mid + more)} of work`,
+    why:
+      `Work: about ${hudSpan(e.hours.mid)}` +
+      (e.hours.hi > e.hours.mid ? `, ${hudSpan(e.hours.hi)} if it goes slowly` : '') +
+      (steps ? ` (${steps})` : '') +
+      (e.rough ? ', roughly' : '') +
+      (more ? `, then ${hudSpan(more)} more until ${e.then.crop} is sown` : '') +
+      '.',
+  };
+}
 // The facts of the plan's task i: what it waits for, its verdict, its work, its deadline, at risk; then the lane's and the pin's words.
 function laneTaskFacts(t, e, i) {
   const out = [],
@@ -234,36 +275,8 @@ function laneTaskFacts(t, e, i) {
     });
   }
   if (t.waits) out.push(laneWaitFact(t.waits));
-  if (v) {
-    const word = v === 'late' ? 'Too late' : v === 'tight' ? 'Tight' : 'In time';
-    out.push({
-      k: 'verdict',
-      icon: laneVerdictIcon(v),
-      n: '',
-      cls: `v${HUD_VERDICT[v]}`,
-      label: v,
-      why:
-        `${word} for ${d ? d.what : 'its deadline'}` +
-        (e.then ? `, ${e.then.crop} sown` : '') +
-        ', by the settler’s estimate. Green in time, gold tight, red late.',
-    });
-  }
-  if (e && e.hours) {
-    const more = e.then ? e.then.steps.reduce((n, x) => n + x.hours.mid, 0) : 0,
-      steps = e.steps && e.steps.length ? e.steps.map((x) => hudKind(x.kind).toLowerCase()).join(', ') : '';
-    out.push({
-      k: 'work',
-      icon: actIcon('clock'),
-      n: laneSpanN(e.hours.mid + more),
-      label: `${hudSpan(e.hours.mid + more)} of work`,
-      why:
-        `Work: about ${hudSpan(e.hours.mid)}` +
-        (e.hours.hi > e.hours.mid ? `, ${hudSpan(e.hours.hi)} if it goes slowly` : '') +
-        (steps ? ` (${steps})` : '') +
-        (more ? `, then ${hudSpan(more)} more until ${e.then.crop} is sown` : '') +
-        '.',
-    });
-  }
+  if (v) out.push(laneVerdictFact(e));
+  if (e && e.hours) out.push(laneWorkFact(e));
   if (d) out.push(laneDeadFact(d, v === 'late' ? 'v2' : ''));
   const s = laneSteps()[i];
   if (s && s.state === 'at-risk') {
@@ -277,7 +290,10 @@ function laneTaskFacts(t, e, i) {
       why:
         `At risk: ${h ? `${h} ${h === 1 ? 'hour' : 'hours'} short` : 'short'} of being done` +
         (Number.isFinite(s.by) ? ` by ${laneDate(s.by * Sim.DAY)}` : '') +
-        '. On the lane, the red mark.',
+        (s.kept
+          ? '. Kept: the household will not take it back, so it stays yours to finish or to leave undone.'
+          : '. Unless it is kept, the household may take it back once that day is past.') +
+        ' On the lane, the red mark.',
     });
   }
   if (!e && !t.waits)
@@ -366,3 +382,14 @@ function laneKnock(from, to) {
 }
 const laneKnockWords = (k) =>
   `${k.noun} becomes ${k.to === 'late' ? 'late' : 'tight'} for ${k.deadline.what} (${laneDate(k.deadline.t)}).`;
+
+// ---- keep (VB-1755: the verb plan's op keep) ----
+// The Keep toggle of the plan's task i: the pin, pressed while kept (the household never takes it back).
+function laneKeepButton(i) {
+  const s = laneSteps()[i],
+    on = !!(s && s.kept);
+  return (
+    `<button type="button" class="u2-chip keep" data-hud="pkeep" data-i="${i}" data-on="${on ? '' : '1'}" aria-pressed="${on}" ` +
+    `aria-label="${on ? 'Kept: tap to let go' : 'Keep: the household never takes it back'}" title="Keep">${actIcon('pin')}Keep</button>`
+  );
+}

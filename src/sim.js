@@ -106,6 +106,12 @@ const Sim = (() => {
           : body.kind === 'village'
             ? (VB['sim/decisions'].agentOf(view, body.id) ?? null)
             : body.id;
+    // a household's labour budget and its season's fit beside its season's steps (sim/levies, VB-1778)
+    const plan = r && body.kind === 'household' ? view.plans.households.get(body.id) : null;
+    if (plan) {
+      r.budget = plan.budget ? { ...plan.budget, weeks: plan.budget.weeks.slice() } : null;
+      r.fit = plan.fit ? JSON.parse(JSON.stringify(plan.fit)) : null;
+    }
     return r;
   }
   const { compat, bond, bondWord, opinionOf, opinionWord, relationsOf, reasonsOf, goodwillOf } = VB['sim/relations'];

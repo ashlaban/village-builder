@@ -10,6 +10,7 @@ const { WORK, DAY, SEASON_DAYS, cal } = VB['sim/rules'],
   { CHILD, MATCH } = VB['sim/roles'];
 const { age, spouseOf } = VB['sim/records'];
 const { levyNorm } = VB['sim/customs'];
+const { KINDS } = VB['sim/kinds'];
 const Levies = VB['sim/levies'],
   Day = VB['sim/day'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'),
@@ -24,12 +25,32 @@ const make = (hours) => {
 
 // 1. The custom's table, through the one door: an adult member 9.5, 10, 10.5 and 9.5 hours a day; a child of 7 to 13 6, 10, 7 and 3; a
 // servant the adult row by its contract; a lodger and an elder none; a lodger's adult-days one in summer and one in autumn.
-assert.deepStrictEqual([0, 1, 2, 3].map((s) => levyNorm(null, 'adult', s, 0)), [9.5, 10, 10.5, 9.5], 'the adult row');
-assert.deepStrictEqual([0, 1, 2, 3].map((s) => levyNorm(null, 'child', s, 0)), [6, 10, 7, 3], 'the child row');
-assert.deepStrictEqual([0, 1, 2, 3].map((s) => levyNorm(null, 'servant', s, 0)), [9.5, 10, 10.5, 9.5], 'a servant: the adult row');
+assert.deepStrictEqual(
+  [0, 1, 2, 3].map((s) => levyNorm(null, 'adult', s, 0)),
+  [9.5, 10, 10.5, 9.5],
+  'the adult row',
+);
+assert.deepStrictEqual(
+  [0, 1, 2, 3].map((s) => levyNorm(null, 'child', s, 0)),
+  [6, 10, 7, 3],
+  'the child row',
+);
+assert.deepStrictEqual(
+  [0, 1, 2, 3].map((s) => levyNorm(null, 'servant', s, 0)),
+  [9.5, 10, 10.5, 9.5],
+  'a servant: the adult row',
+);
 for (const row of ['lodger', 'elder'])
-  assert.deepStrictEqual([0, 1, 2, 3].map((s) => levyNorm(null, row, s, 0)), [0, 0, 0, 0], `the ${row} row`);
-assert.deepStrictEqual([0, 1, 2, 3].map((s) => levyNorm(null, 'lodgerDays', s, 0)), [0, 1, 1, 0], "a lodger's adult-days");
+  assert.deepStrictEqual(
+    [0, 1, 2, 3].map((s) => levyNorm(null, row, s, 0)),
+    [0, 0, 0, 0],
+    `the ${row} row`,
+  );
+assert.deepStrictEqual(
+  [0, 1, 2, 3].map((s) => levyNorm(null, 'lodgerDays', s, 0)),
+  [0, 1, 1, 0],
+  "a lodger's adult-days",
+);
 
 // 2. Each member's levy: the head pair none; a child under 7 none; a child of 7 to 13 the child row times its hands; an elder none; any
 // other adult, whatever its position, the adult row times its hands. Sim.levyOf is the same reading.
@@ -58,13 +79,21 @@ for (const id of hh.members) {
     seen.adult++;
   }
 }
-assert.ok(seen.head >= 1 && seen.adult >= 1, `the household has a head pair and a levied adult (${JSON.stringify(seen)})`);
+assert.ok(
+  seen.head >= 1 && seen.adult >= 1,
+  `the household has a head pair and a levied adult (${JSON.stringify(seen)})`,
+);
 // another season's levy is worked out, not written: the summer's adult row
-const son = hh.members.find((id) => id !== hh.holder && id !== spouse && age(st, st.pawns[id]) >= 14 && !st.pawns[id].retired);
+const son = hh.members.find(
+  (id) => id !== hh.holder && id !== spouse && age(st, st.pawns[id]) >= 14 && !st.pawns[id].retired,
+);
 const summer = Math.floor(st.t / DAY) + SEASON_DAYS;
 assert.strictEqual(cal(summer * DAY + WORK[0]).season, 1, 'a summer day');
 const at = st.plans.households.get(hh.id).levies.at;
-assert.ok(Math.abs(Levies.levyOf(st, son, summer) / Levies.levyOf(st, son) - 10 / 9.5) < 1e-9, "the summer's levy, by its row");
+assert.ok(
+  Math.abs(Levies.levyOf(st, son, summer) / Levies.levyOf(st, son) - 10 / 9.5) < 1e-9,
+  "the summer's levy, by its row",
+);
 assert.strictEqual(st.plans.households.get(hh.id).levies.at, at, "another season's levy is not compiled");
 
 // 3. Compiled once a season a member: reading again compiles nothing; a member whose role changed is compiled again.
@@ -87,12 +116,22 @@ assert.strictEqual(st.plans.households.get(hh.id).levies.at, at, "another season
     holder = st.pawns[hh.holder],
     day = Math.floor(st.t / DAY),
     dayLeft = WORK[1] - Math.min(WORK[1], Math.max(WORK[0], c.hour));
-  assert.strictEqual(Levies.capacity(st, hh, holder, c), MATCH.day.horizon * (WORK[1] - WORK[0]), 'the head: its working hours');
+  assert.strictEqual(
+    Levies.capacity(st, hh, holder, c),
+    MATCH.day.horizon * (WORK[1] - WORK[0]),
+    'the head: its working hours',
+  );
   const worked = VB['sim/work'].workedToday(st, son, day);
-  assert.ok(Math.abs(Levies.capacity(st, hh, p, c) - Math.max(0, Math.min(row - worked, dayLeft))) < 1e-9, 'a member: its levy left');
+  assert.ok(
+    Math.abs(Levies.capacity(st, hh, p, c) - Math.max(0, Math.min(row - worked, dayLeft))) < 1e-9,
+    'a member: its levy left',
+  );
   const keep = st.workToday;
   st.workToday = { day, by: { [son]: 7 } };
-  assert.ok(Math.abs(Levies.capacity(st, hh, p, c) - Math.min(2.5, dayLeft)) < 1e-9, "the household's work done today comes out of it");
+  assert.ok(
+    Math.abs(Levies.capacity(st, hh, p, c) - Math.min(2.5, dayLeft)) < 1e-9,
+    "the household's work done today comes out of it",
+  );
   const owed = st.daysToday;
   st.daysToday = { day, by: { [son]: [0, 2, 0] } };
   assert.ok(Math.abs(Levies.capacity(st, hh, p, c) - Math.min(0.5, dayLeft)) < 1e-9, 'a day owed comes out of it');
@@ -115,7 +154,8 @@ assert.strictEqual(st.plans.households.get(hh.id).levies.at, at, "another season
   for (const id of h.members) {
     const given = (day.hours[id] || []).reduce((x, y) => x + y, 0),
       L = Levies.levyOf(s, id),
-      cap = id === h.holder || id === sp ? MATCH.day.horizon * (WORK[1] - WORK[0]) : L === null ? 0 : L / handsOf(s, id);
+      cap =
+        id === h.holder || id === sp ? MATCH.day.horizon * (WORK[1] - WORK[0]) : L === null ? 0 : L / handsOf(s, id);
     if (L === null && id !== h.holder && id !== sp) continue;
     assert.ok(given <= cap + 1e-6, `pawn ${id}: ${given.toFixed(2)} hours given, within ${cap.toFixed(2)}`);
   }
@@ -133,11 +173,25 @@ function handsOf(s, id) {
   const water = { id: 1, kind: 'water', claims: [] },
     cook = { id: 2, kind: 'cook', claims: [] },
     plow = { id: 3, kind: 'plow', claims: [] };
-  const pairs = [[9, hh.holder, plow], [8, hh.holder, cook], [7, son, plow], [6, son, cook], [5, son, water], [4, hh.holder, water]];
+  const pairs = [
+    [9, hh.holder, plow],
+    [8, hh.holder, cook],
+    [7, son, plow],
+    [6, son, cook],
+    [5, son, water],
+    [4, hh.holder, water],
+  ];
   Day.vitalFirst(st, hh, pairs);
   assert.deepStrictEqual(
     pairs.map(([s, id, j]) => [s, id === son ? 'son' : 'head', j.kind]),
-    [[5, 'son', 'water'], [9, 'head', 'plow'], [8, 'head', 'cook'], [7, 'son', 'plow'], [6, 'son', 'cook'], [4, 'head', 'water']],
+    [
+      [5, 'son', 'water'],
+      [9, 'head', 'plow'],
+      [8, 'head', 'cook'],
+      [7, 'son', 'plow'],
+      [6, 'son', 'cook'],
+      [4, 'head', 'water'],
+    ],
     "the son's water first; the head's meal and the rest in their order",
   );
 }
@@ -175,7 +229,10 @@ function handsOf(s, id) {
   assert.ok(Math.abs(r.p[1] - 4 * hands) < 1e-9, 'its own accord within the levy: levied');
   const left = L - 7 * hands; // the levy left: the levy less owed and levied
   leg(son, 14, 17, 'head'); // the head's work across the levy line: two parts
-  assert.ok(Math.abs(r.p[1] - (4 * hands + Math.min(left, 3 * hands))) < 1e-9, "the head's work: levied up to the levy left");
+  assert.ok(
+    Math.abs(r.p[1] - (4 * hands + Math.min(left, 3 * hands))) < 1e-9,
+    "the head's work: levied up to the levy left",
+  );
   assert.ok(Math.abs(r.p[2] - Math.max(0, 3 * hands - left)) < 1e-9, 'and demanded past it');
   leg(son, 17, 30, 'pawn'); // past the levy, of its own accord: given; the night unbooked; the next day's 06:00 to 06:00 nothing
   assert.ok(Math.abs(r.p[3]) < 1e-9 && r.day === day + 1, 'the next day begun at 06:00');
@@ -185,7 +242,10 @@ function handsOf(s, id) {
   const sum = closed.slice(3).reduce((x, y) => x + y, 0);
   assert.ok(Math.abs(sum - 12 * hands) < 1e-9, `the six parts sum to H = 12 × its hands (${sum})`);
   const T = s.plans.households.get(h.id).tally;
-  assert.ok(T && Math.abs(T.of[m][0] - r.past[0][3 + 2]) < 1e-9 && Math.abs(T.of[m][2] - hands) < 1e-9, "the season's tally: demanded, given");
+  assert.ok(
+    T && Math.abs(T.of[m][0] - r.past[0][3 + 2]) < 1e-9 && Math.abs(T.of[m][2] - hands) < 1e-9,
+    "the season's tally: demanded, given",
+  );
   // the head: not levied, its household's work given, an outer day owed, a pastime kept
   leg(head, 6, 6, 'head');
   leg(head, 8, 12, 'head');
@@ -193,22 +253,35 @@ function handsOf(s, id) {
   leg(head, 14, 18, undefined);
   const g = head.book.p,
     hh2 = head.book.hands;
-  assert.ok(Math.abs(g[3] - 4 * hh2) < 1e-9 && Math.abs(g[0] - 2 * hh2) < 1e-9 && Math.abs(g[4] - 6 * hh2) < 1e-9, 'the head: given, owed, kept');
-  assert.ok(!(T.of[h.holder]), 'the head pair have no tally');
+  assert.ok(
+    Math.abs(g[3] - 4 * hh2) < 1e-9 && Math.abs(g[0] - 2 * hh2) < 1e-9 && Math.abs(g[4] - 6 * hh2) < 1e-9,
+    'the head: given, owed, kept',
+  );
+  assert.ok(!T.of[h.holder], 'the head pair have no tally');
   // Sim.hours: the days behind exact, today's booked so far, a day ahead the levy only; sovereignty by right and as lived
   s.agents[m].book = son.book; // the scratch record read as the member's
   const H = Sim.hours(s, m, day, day + 3),
     [d0] = H;
-  assert.deepStrictEqual(H.map((o) => o.state), ['past', 'today', 'ahead', 'ahead'], 'past, today, ahead');
+  assert.deepStrictEqual(
+    H.map((o) => o.state),
+    ['past', 'today', 'ahead', 'ahead'],
+    'past, today, ahead',
+  );
   assert.strictEqual(d0.state, 'past', 'a past day');
   assert.ok(Math.abs(d0.right - (1 - L / (12 * hands))) < 1e-9, 'by right: 1 less the levy over H');
-  assert.ok(Math.abs(d0.lived - (d0.demanded + d0.given + d0.kept) / d0.H) < 1e-9, 'as lived: demanded, given and kept over H');
+  assert.ok(
+    Math.abs(d0.lived - (d0.demanded + d0.given + d0.kept) / d0.H) < 1e-9,
+    'as lived: demanded, given and kept over H',
+  );
   s.tick = tick;
   s.t = t0;
   // the season's end folds the tally into the year's count
   const later = cal((day + SEASON_DAYS) * DAY + WORK[0]),
     t2 = Levies.tallyOf(s, h, later);
-  assert.ok(Object.keys(t2.of).length === 0 && Math.abs(t2.yearOf[m][2] - hands) < 1e-9, "folded into the year's count");
+  assert.ok(
+    Object.keys(t2.of).length === 0 && Math.abs(t2.yearOf[m][2] - hands) < 1e-9,
+    "folded into the year's count",
+  );
 }
 
 // 8. On the run: every pawn-day closed sums to H (the invariant), and Sim.hours shows the six days behind and a day ahead.
@@ -218,12 +291,19 @@ function handsOf(s, id) {
     m = s.households[0].members.find((id) => Levies.levyOf(s, id) > 0);
   assert.deepStrictEqual(checkState(s), [], 'invariants: the six parts sum to H');
   const H = Sim.hours(s, m, today - 10, today + 1);
-  assert.deepStrictEqual(H.map((o) => o.state), ['past', 'past', 'past', 'past', 'past', 'past', 'today', 'ahead'], 'six days behind, today, a day ahead');
+  assert.deepStrictEqual(
+    H.map((o) => o.state),
+    ['past', 'past', 'past', 'past', 'past', 'past', 'today', 'ahead'],
+    'six days behind, today, a day ahead',
+  );
   for (const o of H.slice(0, 6)) {
     const sum = VB['sim/levies'].PARTS.reduce((x, k) => x + o[k], 0);
     assert.ok(Math.abs(sum - o.H) < 1e-6 && o.H > 0, `day ${o.day}: the parts sum to H (${sum}, ${o.H})`);
   }
-  assert.ok(H.slice(0, 6).some((o) => o.levied > 0), 'levied hours are booked');
+  assert.ok(
+    H.slice(0, 6).some((o) => o.levied > 0),
+    'levied hours are booked',
+  );
   assert.ok(VB.count.hoursBook > 0, 'bookings counted');
 }
 
@@ -257,7 +337,10 @@ function handsOf(s, id) {
   const a = { id: m, leg: null };
   end(a, 6, 6, 'head');
   end(a, 6, 6 + row, 'head');
-  assert.ok(a.book.p[2] < 1e-9 && Math.abs(a.book.p[1] - row * a.book.hands) < 1e-9, `the capacity's hours all levied (${a.book.p})`);
+  assert.ok(
+    a.book.p[2] < 1e-9 && Math.abs(a.book.p[1] - row * a.book.hands) < 1e-9,
+    `the capacity's hours all levied (${a.book.p})`,
+  );
   // read before the leg in progress ends: the day shown is what its end books
   const real = s.agents[m],
     keep = [real.book, real.leg];
@@ -282,7 +365,8 @@ function handsOf(s, id) {
     for (const a of s.agents) {
       const l = a && a.leg,
         j = a && a.job;
-      if (!l || l.kind === 'wait' || !j || !j.owner || (j.owner.type !== 'household' && j.owner.type !== 'village')) continue;
+      if (!l || l.kind === 'wait' || !j || !j.owner || (j.owner.type !== 'household' && j.owner.type !== 'village'))
+        continue;
       const want = a.basis === 'owed' || a.basis === 'helper' ? 'owed' : a.opener === 'head' ? 'head' : 'pawn';
       assert.strictEqual(l.by, want, `pawn ${a.id}'s ${l.kind} leg of ${j.kind} carries who opened it`);
       seen[want]++;
@@ -333,9 +417,15 @@ function handsOf(s, id) {
   assert.ok(P[2] > 0, `hours past the levy demanded (${P})`);
   const owed = (P[2] - P[5]) * (3 / 8),
     g1 = Rel.balance(s, m, h.holder) + (a.book.gw || 0);
-  assert.ok(Math.abs(g1 - g0 - owed) < 0.01, `goodwill (it decays as it stands): the head owes the hours demanded less those taken (${g1 - g0}, ${owed})`);
+  assert.ok(
+    Math.abs(g1 - g0 - owed) < 0.01,
+    `goodwill (it decays as it stands): the head owes the hours demanded less those taken (${g1 - g0}, ${owed})`,
+  );
   const tl = Levies.tallyOf(s, h, cal(day * DAY + WORK[0]));
-  assert.ok(Math.abs(tl.of[m][1] - P[5]) < 1e-9 && tl.of[m][0] >= P[2] - 1e-9, `the tally counts taken and demanded (${tl.of[m]})`);
+  assert.ok(
+    Math.abs(tl.of[m][1] - P[5]) < 1e-9 && tl.of[m][0] >= P[2] - 1e-9,
+    `the tally counts taken and demanded (${tl.of[m]})`,
+  );
   s.tick = tick;
   s.t = t0;
 }
@@ -348,12 +438,12 @@ function handsOf(s, id) {
     h = s.households.find((x) => x.members.filter((id) => Levies.levyOf(s, id) > 0).length >= 2) || s.households[0],
     day = s.plans.households.get(h.id).day,
     levied = h.members.filter((id) => Levies.levyOf(s, id) > 0 && day.lists[id] && day.lists[id].length);
-  assert.ok(levied.length >= 2, "two levied members");
+  assert.ok(levied.length >= 2, 'two levied members');
   {
     const [x, y] = levied,
       given = (key) => day.lists[y].includes(key) && !(day.fits[y][day.lists[y].indexOf(key)] < 0),
       i = day.fits[x].findIndex((f, k) => f > 0 && day.hours[x][k] > 0 && !given(day.lists[x][k]));
-    assert.ok(i >= 0, "a task given hands to move");
+    assert.ok(i >= 0, 'a task given hands to move');
     {
       const key = day.lists[x][i];
       day.free[y] = 0; // its levy left spent
@@ -367,7 +457,10 @@ function handsOf(s, id) {
       assert.strictEqual(r, true, 'a demand issued');
       assert.strictEqual(VB.count.demandMade, made + 1, 'a demand made');
       const met = s.plans.households.get(h.id).day.lists[y].includes(key);
-      assert.ok(met ? VB.count.demandMet === yes0 + 1 : VB.count.demandRefused === no0 + 1, 'answered at once: moved at a yes, a memory at a no');
+      assert.ok(
+        met ? VB.count.demandMet === yes0 + 1 : VB.count.demandRefused === no0 + 1,
+        'answered at once: moved at a yes, a memory at a no',
+      );
     }
     {
       // a call to a task on the member's own list is inside what the allotment gave it: no demand, even with its levy left spent (F2)
@@ -378,11 +471,18 @@ function handsOf(s, id) {
     }
   }
   const hp = h.holder;
-  assert.match(String(issue(s, { actor: hp, verb: 'breach', args: {}, source: 'player' })), /owes no household hours/, 'the head pair owe none');
+  assert.match(
+    String(issue(s, { actor: hp, verb: 'breach', args: {}, source: 'player' })),
+    /owes no household hours/,
+    'the head pair owe none',
+  );
   const m = h.members.find((id) => Levies.levyOf(s, id) > 0 && age(s, s.pawns[id]) >= 14);
-  assert.ok(m !== undefined && Levies.capacity(s, h, s.pawns[m], cal(s.t)) > 0, "a levied member with levy left");
+  assert.ok(m !== undefined && Levies.capacity(s, h, s.pawns[m], cal(s.t)) > 0, 'a levied member with levy left');
   {
-    assert.ok(Sim.decisions(s, m).some((d) => d.point === 'take'), 'a levied member may take hours of its levy');
+    assert.ok(
+      Sim.decisions(s, m).some((d) => d.point === 'take'),
+      'a levied member may take hours of its levy',
+    );
     assert.strictEqual(issue(s, { actor: m, verb: 'breach', args: { hours: 2 }, source: 'player' }), true, 'a breach');
     assert.ok(s.agents[m].taking > s.tick, 'keeping its hours');
     assert.ok(!Sim.decisions(s, m).some((d) => d.point === 'take'), 'not while it takes');
@@ -425,15 +525,24 @@ let ownSeen = '';
     for (const id of [x, y]) given[id] += Sim.hours(s, id, yd, yd)[0].given;
   }
   assert.ok(VB.count.giveLeg > legs0, 'legs given by judgement');
-  assert.ok(own[x] >= 3 * own[y] && own[x] > 0, `the diligent son gives three times the idle one's hours (${own[x].toFixed(1)}, ${own[y].toFixed(1)})`);
-  assert.ok(given[x] > 0 && given[x] >= given[y], `hours past the levy booked given (${given[x].toFixed(1)}, ${given[y].toFixed(1)})`);
+  assert.ok(
+    own[x] >= 3 * own[y] && own[x] > 0,
+    `the diligent son gives three times the idle one's hours (${own[x].toFixed(1)}, ${own[y].toFixed(1)})`,
+  );
+  assert.ok(
+    given[x] > 0 && given[x] >= given[y],
+    `hours past the levy booked given (${given[x].toFixed(1)}, ${given[y].toFixed(1)})`,
+  );
   // explainIdle names the choice at a job of the idle son's list past its levy, levy left or not (review F1)
   const dy = s.plans.households.get(h.id).day,
     fy = (dy.fits && dy.fits[y]) || [],
     k = (dy.lists[y] || []).find((key, i) => fy[i] !== null && fy[i] < 0 && s.jobs.has(key));
   if (k !== undefined && !Levies.gives(s, h, s.pawns[y], s.jobs.get(k), true)) {
     const row = VB['sim/fit'].explainIdle(s, y).find((r) => r.job === k);
-    assert.ok(!row || row.reason === 'its own hours: it gives none' || row.bid === null, `a job past the levy named as its own hours (${JSON.stringify(row)})`);
+    assert.ok(
+      !row || row.reason === 'its own hours: it gives none' || row.bid === null,
+      `a job past the levy named as its own hours (${JSON.stringify(row)})`,
+    );
   }
   {
     // constructed: a job of the idle son's list put past its levy while its levy has room, in the morning
@@ -442,7 +551,10 @@ let ownSeen = '';
     VB['sim/jobs'].post(s, `repair:h${h.id}:test`, 'repair', { type: 'household', id: h.id }, f.house, {});
     const j = s.jobs.get(`repair:h${h.id}:test`),
       dy = s.plans.households.get(h.id).day;
-    assert.ok(VB['sim/fit'].explainIdle(s, y).some((r) => r.job === j.key && r.bid !== null), 'the idle son would bid for the repair');
+    assert.ok(
+      VB['sim/fit'].explainIdle(s, y).some((r) => r.job === j.key && r.bid !== null),
+      'the idle son would bid for the repair',
+    );
     {
       assert.ok(Levies.capacity(s, h, s.pawns[y], cal(s.t)) > 0, 'its levy has room');
       const save = [dy.lists[y], dy.fits[y], dy.hours[y]];
@@ -459,6 +571,174 @@ let ownSeen = '';
   ownSeen = `${own[x].toFixed(0)} hours against ${own[y].toFixed(0)}, ${given[x].toFixed(0)} of them past the levy`;
 }
 
+// 9. The labour budget (VB-1778; design.md section 7, The labour budget, A season that does not fit): a household's budget for a season
+// is its members' levies over the season's days (the head pair at the adult row times their hands: the plan is theirs), by its three
+// game weeks, less the outer levies' days; reckoned at its first review and again when the members change. A season that fits is left
+// alone; one whose steps' hours left exceed it is flagged at its first review and answered in design.md's order: help asked in the short
+// step's window and a servant at the moving round, then the target whose hours buy least lowered, then the rest demanded; a line said.
+let fitSeen = '';
+{
+  const s = make(30);
+  const c = cal(s.t),
+    h = s.households[0],
+    plan = s.plans.households.get(h.id),
+    B = plan.budget,
+    review = () => VB['sim/plans'].reviewed(s, plan, cal(s.t), 'store');
+  assert.ok(B && B.at === c.year * 4 + c.season && B.weeks.length === 3, 'the budget is reckoned at the first review');
+  let a = 0;
+  for (const id of h.members) {
+    const p = s.pawns[id],
+      l = Levies.levyOf(s, id);
+    if (p.died !== null) continue;
+    if (l !== null) a += l;
+    else if (id === h.holder || spouseOf(s, h.holder) === id)
+      a += levyNorm(s, 'adult', c.season, 0) * plan.levies.of[id][1];
+  }
+  assert.ok(
+    Math.abs(B.total - a * (SEASON_DAYS - B.from)) < 1e-6,
+    `the budget: the levies over the season's days (${B.total}, ${a})`,
+  );
+  assert.ok(
+    plan.fit && plan.fit.short === 0 && !plan.fit.help && !plan.fit.lowered,
+    'a season that fits is left alone',
+  );
+  assert.strictEqual(s.record.filter((e) => e.kind === 'seasonShort').length, 0, 'nothing said of a season that fits');
+  const n = VB.count.budgetReckoned;
+  review();
+  assert.ok(plan.budget === B && VB.count.budgetReckoned === n, 'reviewed again: nothing reckoned again');
+  // a member gone: the budget is reckoned again, lower
+  const gone = h.members.find((id) => Levies.levyOf(s, id) > 0),
+    save = h.members.slice();
+  h.members = h.members.filter((id) => id !== gone);
+  review();
+  assert.ok(plan.budget.total < B.total - 1e-9 && VB.count.budgetReckoned === n + 1, 'a member gone: reckoned again');
+  h.members = save;
+  review();
+  // the season made not to fit: the head reckons it can place a great deal of tar (sim/asks), more than its people owe the season
+  plan.placed = { year: c.year, goods: { tar: Math.ceil(plan.budget.total / KINDS.burntar.hours) * 2 }, heard: [] };
+  delete plan.fit;
+  review();
+  const F = plan.fit,
+    tar = plan.season.find((x) => x.what.target && x.what.target.good === 'tar');
+  assert.ok(F.short > 0 && F.at === c.year * 4 + c.season, `flagged short at its first review (${F.short})`);
+  assert.strictEqual(F.servant, c.year, "a servant wanted at this year's moving round");
+  assert.ok(
+    F.lowered.tar > 0 && tar.what.target.level < plan.placed.goods.tar,
+    `the tar, whose hours buy least, lowered (${JSON.stringify(F)})`,
+  );
+  assert.ok(F.demand >= 0 && F.demand < F.short, `the rest demanded (${F.demand} of ${F.short})`);
+  const told = s.record.filter((e) => e.kind === 'seasonShort');
+  assert.ok(told.length === 1 && /lowered its target of tar/.test(told[0].text), told.map((e) => e.text).join());
+  // the next review of the season judges nothing again, and the lowering stands
+  const m = VB.count.fitJudged,
+    level = tar.what.target.level;
+  review();
+  assert.ok(
+    VB.count.fitJudged === m && Math.abs(tar.what.target.level - level) < 1e-9,
+    'judged once a season; the lowering stands',
+  );
+  // help in the sowing window, where the sowing is short: its planned hours asked in the morning, spread over the window's days
+  assert.ok(
+    F.help.reduce((x, r) => x + r[4], 0) <= F.short + 1e-9,
+    `the help planned is at most the shortfall (${JSON.stringify(F.help)}, ${F.short})`,
+  );
+  const sow = plan.season.find((x) => x.what.routine === 'sow'),
+    sowLeft = sow.left;
+  F.help = [[sow.id, 'sow', c.day, c.day + 3, 40]];
+  sow.left = { lo: 40, mid: 40, hi: 40 };
+  assert.ok(
+    Math.abs(VB['sim/hands'].plannedHelp(s, h, cal(s.t)) - 10) < 1e-9,
+    'help planned: 40 hours over four days, 10 today',
+  );
+  // the sowing done within its window (review F2): no help asked for work that no longer exists
+  sow.left = { lo: 0, mid: 0, hi: 0 };
+  assert.strictEqual(VB['sim/hands'].plannedHelp(s, h, cal(s.t)), 0, 'a step with no hours left asks no planned help');
+  sow.left = sowLeft;
+  // one reckoning of a field's yield (review F1): the fit's bar for lowering a field target (sim/levies yieldOf) and the head's demand
+  // for a field step (sim/day atRisk) both read sim/estimate fieldYield, FIELDS.expect of the crop's yield
+  assert.ok(
+    Math.abs(
+      VB['sim/estimate'].fieldYield('barley') - VB['sim/rules'].FIELDS.expect * VB['sim/crops'].CROPS.barley.yield,
+    ) < 1e-9,
+    "a field's yield a year: FIELDS.expect of its crop's, one reckoning",
+  );
+  assert.deepStrictEqual(checkState(s), [], 'invariants with a season that does not fit');
+  assert.ok(
+    Sim.plans(s, { kind: 'household', id: h.id }).fit.short > 0,
+    'Sim.plans reads the budget and the fit beside the steps',
+  );
+  fitSeen = `; the labour budget ${Math.round(B.total)} hours, a season ${Math.round(F.short)} hours short answered`;
+}
+
+// 10. The season's daily routines in its hours left (VB-1906): the meal, the water, the milking and the fodder count their work on each
+// day of the season left by the head's estimate, so a household whose targets fit but whose daily work with them does not is flagged at
+// its first review.
+{
+  const s = make(30);
+  const c = cal(s.t),
+    h = s.households[0],
+    plan = s.plans.households.get(h.id),
+    days = plan.season[0].by - c.day,
+    daily = (x) => !!(x.what.routine && KINDS[x.what.routine].daily),
+    sum = (f) => plan.season.filter(f).reduce((a, x) => a + (x.left ? x.left.mid : 0), 0),
+    review = () => VB['sim/plans'].reviewed(s, plan, cal(s.t), 'store');
+  const cook = plan.season.find((x) => x.what.routine === 'cook'),
+    water = plan.season.find((x) => x.what.routine === 'water'),
+    W = VB['sim/water'].waterOf(s, s.farmsteads[h.farmstead]);
+  // the meal's left: the head's estimate of each day's meal left, today's counted once (its open task's, else a day of the kind's
+  // hours where the meal is not yet cooked: review F1, a first review before the meal is posted)
+  {
+    const E = VB['sim/estimate'],
+      head = plan.head.pawn,
+      job = (hours) => ({ kind: 'cook', hours, done: 0, rate: 0, owner: { type: 'household', id: h.id }, claims: [] }),
+      open = [...(s.jobsBy.get(`household:${h.id}`) || [])].filter((j) => j.step === cook.id),
+      n = days + (open.length || h.cookDay === c.day ? 0 : 1),
+      want = open.reduce((a, j) => a + E.estimate(s, head, j).mid, 0) + E.estimate(s, head, job(n * KINDS.cook.hours)).mid;
+    assert.ok(days > 0 && Math.abs(cook.left.mid - want) < 1e-6, `the meal's hours left each day (${cook.left.mid}, ${want})`);
+    // the same review with no meal standing nor cooked today: today's meal counted (F1)
+    const saved = s.jobsBy.get(`household:${h.id}`),
+      was = h.cookDay;
+    s.jobsBy.set(`household:${h.id}`, new Set([...(saved || [])].filter((j) => j.step !== cook.id)));
+    h.cookDay = -1;
+    review();
+    const all = E.estimate(s, head, job((days + 1) * KINDS.cook.hours)).mid;
+    assert.ok(Math.abs(cook.left.mid - all) < 1e-6, `before the meal is posted, today's counted (${cook.left.mid}, ${all})`);
+    if (saved) s.jobsBy.set(`household:${h.id}`, saved);
+    else s.jobsBy.delete(`household:${h.id}`);
+    h.cookDay = was;
+    review();
+  }
+  assert.ok(water.left.mid >= W.hours * days - 1e-9, `the water's fetch each day left (${water.left.mid}, ${W.hours})`);
+  assert.ok(plan.fit && plan.fit.short === 0, 'its season, daily work and all, fits');
+  // tar placed to fill the budget but for half the daily work: its targets fit, and the daily work with them does not
+  const D = sum(daily),
+    T = sum((x) => !daily(x));
+  plan.placed = { year: c.year, goods: { tar: 10 }, heard: [] };
+  review();
+  const tar = plan.season.find((x) => x.what.target && x.what.target.good === 'tar'),
+    per = tar.left.mid / 10; // the head's hours a barrel of tar
+  // the fit judged once a season: raised barrel by barrel (each review reckons the hours left again) until the targets alone come
+  // within the daily work of the budget, then judged afresh
+  let n = Math.floor((plan.budget.total - T - D) / per),
+    T2 = 0;
+  for (; n < 1000; n++) {
+    plan.placed.goods.tar = n;
+    review();
+    T2 = sum((x) => !daily(x));
+    if (T2 + sum(daily) > plan.budget.total) break;
+  }
+  delete plan.fit;
+  review();
+  assert.ok(D > 0 && T2 <= plan.budget.total, `the targets alone fit (${Math.round(T2)} of ${Math.round(plan.budget.total)})`);
+  assert.ok(
+    plan.fit.short > 0 && sum(daily) + T2 > plan.budget.total,
+    `with the daily work it does not: flagged at its first review (${Math.round(plan.fit.short)} short, ${Math.round(D)} daily, ${tar.what.target.level} tar)`,
+  );
+  assert.strictEqual(s.record.filter((e) => e.kind === 'seasonShort').length, 1, 'and said');
+  assert.deepStrictEqual(checkState(s), [], 'invariants with the daily work counted');
+  fitSeen += `; the daily work ${Math.round(D)} hours of the season counted`;
+}
+
 console.log(
-  `levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first; each leg's hours booked into the six parts, a day summing to H, the tally folded; a demand named and answered by the member's judgement, a breach's hours taken, goodwill booked both ways; own hours given by the member's judgement, the diligent son's ${ownSeen}`,
+  `levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first; each leg's hours booked into the six parts, a day summing to H, the tally folded; a demand named and answered by the member's judgement, a breach's hours taken, goodwill booked both ways; own hours given by the member's judgement, the diligent son's ${ownSeen}${fitSeen}`,
 );
