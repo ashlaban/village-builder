@@ -46,7 +46,9 @@ const Sim = (() => {
   // its pastime and with whom (sim/pastimes, VB-1552),
   const describe = (st, id) => occasionLabel(st, st.agents[id]) || pastimeLine(st, id) || doing(st, id);
   const { explainIdle, idleLine } = VB['sim/fit'];
-  const { levyOf, hours } = VB['sim/levies'];
+  const { levyOf, hours, leviesOf } = VB['sim/levies'];
+  // The outer levies body ({kind, id}) lays and bears, with their terms and days named, read through the actor view (VB-1767).
+  const levies = (st, body) => leviesOf(actorView(st), body);
   const { line: thirstLine } = VB['sim/thirst'];
   const { reasonOf, reasonLine } = VB['sim/reasons']; // who chose a pawn's act, and why, for its card (VB-1551)
   const { seedReserve } = VB['sim/hunger'],
@@ -293,6 +295,7 @@ const Sim = (() => {
     explainIdle,
     idleLine,
     levyOf, // the hours a day a member owes its household by its levy (VB-1760)
+    levies, // the outer levies a body lays and bears, with their terms, through the actor view (VB-1767)
     hours, // a pawn's days: the six parts of its working hours, the six behind exact, and its sovereignty (VB-1761)
     thirstLine,
     reasonOf,

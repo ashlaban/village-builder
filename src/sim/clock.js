@@ -553,10 +553,10 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'step',
-      when: (st) => !!st.daysToday || (!!st.daysCalls && st.daysCalls.length > 0),
-      owner: 'sim/days',
+      when: (st) => !!st.daysToday || !!st.obligationsDue,
+      owner: 'sim/levies',
       note: "a day's calls come on duty and those who gave their hours go home (VB-462)",
-      run: (st) => VB['sim/days'].step(st),
+      run: (st) => VB['sim/levies'].step(st),
     },
     {
       every: 'step',

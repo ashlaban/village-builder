@@ -290,8 +290,11 @@ VB['sim/saves'] = (() => {
   // a command its plan fed is marked by its goal kind and site; a save of format 10 is another build's, and refused (no migration is written).
   // Format 12 (VB-1763): a member's leave is its head's dated grant on the household's plan (plan.grants), not st.leaves; a save of
   // format 11 is another build's, and refused (no migration is written).
-  const FORMAT = 12,
-    READS = [12];
+  // Format 13 (VB-1767): an outer levy (an obligation of kind `days`) has its terms, window, asked, named and worked, not `called`,
+  // and st.daysCalls is gone (the days named are on the records); a save of format 12 is another build's, and refused (no migration is
+  // written).
+  const FORMAT = 13,
+    READS = [13];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {
