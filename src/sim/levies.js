@@ -1342,11 +1342,13 @@ VB['sim/levies'] = (() => {
       agent = agentOf(st, o.creditor),
       debtor = o.debtor.kind === 'household' ? st.households[o.debtor.id] : null;
     if (!(n > 1e-9) || agent === null || agent === undefined || !debtor || debtor.dissolved) return;
+    const again = { debtor: o.debtor, creditor: o.creditor, days: n, due: o.due + YEAR_DAYS * DAY };
+    again.source = 'debt';
     const laid =
       issue(st, {
         actor: agent,
         verb: 'levy',
-        args: { debtor: o.debtor, creditor: o.creditor, source: 'debt', days: n, due: o.due + YEAR_DAYS * DAY },
+        args: again,
         source: 'planner',
       }) === true;
     if (!laid) return;
