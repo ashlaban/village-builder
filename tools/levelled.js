@@ -55,6 +55,7 @@ function run(levelled) {
     missed = new Map(), // the same key -> {kind, hh, why}
     refused = {},
     own = new Set(),
+    trace = new Map(), // key -> {by, risk (the hour first found at risk), back (the hour the default author took it back)}
     ever = new Set(); // the keys a head was given, through the verb
 
   let authored = 0;
@@ -66,6 +67,7 @@ function run(levelled) {
         why,
         authored: ever.has(j.key),
         hands: j.claims ? j.claims.length : 0,
+        trace: trace.get(j.key) || null,
       });
   };
   const loadOf = (id) => {
@@ -137,13 +139,26 @@ function run(levelled) {
       seen.delete(k);
     }
     if (!levelled) return;
+    for (const [k, tr] of trace) if (tr.end === undefined && !st.jobs.has(k)) tr.end = Math.floor(st.t);
     const today = Math.floor(st.t / DAY);
+    for (const id of five) {
+      const pl = st.plans.households.get(id);
+      for (const s of pl ? pl.ahead : []) {
+        const g = s.what && s.what.goal,
+          tr = g && g.key !== undefined && s.tookBack && trace.get(g.key);
+        if (tr && tr.back === undefined) tr.back = Math.floor(st.t / 1);
+      }
+    }
     for (const h of own) {
       const pp = Steps.pawnPlan(st, h);
       if (!pp) continue;
       pp.steps.forEach((s, i) => {
         const g = pp.tasks[i],
           j = g.key !== undefined && st.jobs.get(g.key);
+        if (j && Number.isInteger(s.by)) {
+          const tr = trace.get(j.key) || trace.set(j.key, { by: s.by }).get(j.key);
+          if (s.state === 'at-risk' && tr.risk === undefined) tr.risk = s.risk.since;
+        }
         if (j && Number.isInteger(s.by) && today > s.by) miss(`${j.key}@${y}`, j, 'by');
       });
     }
@@ -195,7 +210,7 @@ else {
   console.log(line('levelled', lev));
   if (args.includes('--detail'))
     for (const [name, r] of [['default', base], ['levelled', lev]])
-      for (const m of r.list) console.log(`  ${name} ${m.key} ${m.why}${m.authored ? ' authored' : ''}, ${m.hands} hands`);
+      for (const m of r.list) console.log(`  ${name} ${m.key} ${m.why}${m.authored ? ' authored' : ''}, ${m.hands} hands${m.trace ? `, by day ${m.trace.by}, at risk from hour ${m.trace.risk === undefined ? '-' : m.trace.risk}, taken back ${m.trace.back === undefined ? 'no' : `hour ${m.trace.back}`}, task gone ${m.trace.end === undefined ? 'never' : `hour ${m.trace.end}`}` : ''}`);
   console.log(`  authored ${lev.authored} tasks by ${lev.heads.length} heads; refused ${JSON.stringify(lev.refused)}`);
   const d = out.difference;
   console.log(
