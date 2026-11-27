@@ -472,6 +472,31 @@ free, influence goes upward by a command, an event or a hook. Composition roots 
 
 ## Adding things
 
+Each kind of thing has one declaration, by the module that owns it, beside its code; a registry or a tool joins the declarations in
+a declared order, never by load order (target-v2, principle 20; VB-1406). Where that one declaration goes, today and once its step
+of VB-1406 has landed (`docs/plans/VB-1406-overlap.md`, section 5); until then, the list named "today" is still edited:
+- **A module**: its `// @sys key [layer]: what it owns` line. Today also its line in `src/manifest.json` (after every module it reads)
+  and in `src/layers.json`; after VB-1941 the layer is read from the `@sys` line, and after VB-1943 the order is derived from the
+  module's load-time reads. Find them: `grep -rn "^// @sys" src`.
+- **A state field**: its `@state` line in the owning module (`grep -rn "@state" src`). Today also its line in `src/owners.json`;
+  after VB-1942 the owner is the module that carries the line, with a marker for a cache and for a field documented elsewhere.
+  A stored quantity's tag for `tools/stocks.js` goes on the same line after VB-1941 (today `QUANTITIES` or `NOT_STOCKS` there).
+- **A test**: today its line in `tests/suites.js`, in its tier; after VB-1933 a header line `// @suite fast|integration|extended`
+  in the test file (`grep -rln "@suite" tests`).
+- **A work counter**: today an entry of `VB.COUNTERS` in `src/vb.js`; after VB-1934 declared at load by the module, beside the loop
+  it counts.
+- **A tunable**: a table one domain reads, in that module with its `// @tunable NAME: meaning` line (`grep -rn "@tunable" src`); a
+  table several read, in `src/sim/rules.js` until VB-1947 moves them into files by domain, `VB['sim/rules']` staying the joined view.
+- **A migration** (what fills a field an older save lacks): today a line in `load` of `src/sim/saves.js`; after VB-1945 registered
+  by the field's owner, run by `sim/saves` in a fixed order.
+- **An event kind**: today its years in `HISTORY` (`src/sim/records.js`), its group in `CHRONICLE` and `PERSONAL` and its skip stop
+  in `src/sim/notable.js`, its icon and its word on the page; after VB-1946 one record declared by the module that emits it.
+- **A `Sim` name**: today an import and an export line in `src/sim.js`; after VB-1944 the module names what it gives the page and
+  `src/sim.js` joins the lists.
+- Already declarations: a job kind (`KINDS`, joined by `sim/kinds`), a verb (`register` of `sim/commands`), an overlay
+  (`registerOverlay`), a journey kind (`JOURNEYS`). A calendar entry stays a line of `CALENDAR` in `src/sim/clock.js`: there the
+  order is the rule itself, declared in one place and held by `tests/clock.js`.
+
 To time or count a function in Node, call `loadModules({ wrap })` from `tests/lib/load.js` before loading the simulation. Key each wrapper factory by module and export name, as in `tools/perf.js`.
 - Put the module in its load list and name what it owns or supplies in the first-line `@sys` declaration. Describe the boundary
   in terms of the work and state the module handles. A module that changes another's state calls the owner's operations.
