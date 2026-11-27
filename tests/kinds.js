@@ -13,11 +13,14 @@ for (const [k, K] of Object.entries(Sim.KINDS)) {
   for (const g of P.uses) {
     const s = P.goods[g] || {};
     check(typeof s.look === 'string' && typeof s.words === 'string' && s.words.length > 0, `${k} carries ${g} but its method says no look or no words`);
-    if (!(G[g] && G[g].store)) check(typeof VB['sim/doing'].said(G[g] ? G[g].kind : g, g)?.deliver === 'function', `${k} carries ${g} but nothing delivers it`);
+    if (!(G[g] && G[g].store)) check(typeof VB['sim/doing'].said(G[g] && G[g].kind ? G[g].kind : k, g)?.deliver === 'function', `${k} carries ${g} but nothing delivers it`);
   }
   check(!(K.methods.some((m) => m.steps.some((s) => s.inside)) && K.field), `${k} is both inside and on a field`);
   if (K.field) check(typeof K.spot === 'function', `${k} is field work without a spot on the field`);
 }
+// VB-1813: a kind with a load, a cart or a stack in the kind's record has methods, or is a misfit named here with its reason
+const MISFIT = {};
+for (const [k, K] of Object.entries(Sim.KINDS)) if (['load', 'carry', 'carted', 'stack'].some((f) => K[f] !== undefined)) check(K.methods || MISFIT[k], `${k} carries by its record and has no methods`);
 for (const [role, r] of Object.entries(Sim.ROLES)) for (const [k, K] of Object.entries(Sim.KINDS)) {
   const brings = K.strays && K.strays.length ? K.strays[0].good ?? K.strays[0] : null; // a kind of strays: ranked as its good (VB-1821)
   const want = r.except[k] ?? r.except[brings] ?? r.work[K.type] ?? 0;

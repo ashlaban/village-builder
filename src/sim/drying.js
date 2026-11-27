@@ -333,7 +333,7 @@ VB['sim/drying'] = (() => {
     words: 'Carrying the catch home',
     deliver: (st, j, hh, f, a) => potCatch(st, j, hh, a.load), // the catch, for the played pawn's sheet (VB-1118)
   });
-  VB['sim/methods'].trip(KINDS.rackfish, 'rackfish', {
+  VB['sim/methods'].trip(KINDS.rackfish, 'fish', {
     look: 'fish',
     words: 'Carrying the catch to the rack',
     deliver: (st, j, hh, f, a) => {
