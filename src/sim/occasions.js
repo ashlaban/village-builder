@@ -4,13 +4,15 @@
 //   out, and the due-queue that sends and ends them; the villages' turns of the meetings and the moving round. What the host lays out is
 //   sim/feast's.
 // @state st.occasions[]: the occasions called and not yet over, sorted by `due` (after those due at the same time), each {id, kind
-//   ('meeting' | 'wedding' | 'funeral' | 'ale' | 'rite' | 'call' | 'gathering': a day of it, VB-295), for[] (pawn ids it is held for: the couple, the
-//   dead, an ale evening's host;
+//   ('meeting' | 'wedding' | 'funeral' | 'harvest' | 'ale' | 'rite' | 'call' | 'gathering': a day of it, VB-295),
+//   for[] (pawn ids it is held for: the couple, the dead, an ale evening's host;
 //   empty for a meeting and a rite), village, farm (farmstead id, or null on a green), tile, x, y (the spot, map units), start, end
 //   (game hours), overrides (work stops for it), asked[] ({id, leave (the game hour it sets out), hours (its walk there)}, in order of
 //   leave, each taken off once it sets out or cannot come), come[] (the ids that set out), due (game hours: the next time the step
 //   looks at it)}. Plain data, saved; ended ones are dropped.
 // @state st.occasionSeq: number; the next occasion's id; ids are never reused
+// @state household.harvestIn: absent, or the game year (cal's year) in which the household last called a harvest home: one a year, whatever
+//   the planning days; no later than this year (tests/lib/invariants.js). Written only here.
 // @state agent.occasion: the id of the occasion the pawn set out for and stands at until its end, or null
 VB['sim/occasions'] = (() => {
   const { unbound } = VB['sim/pose'];
@@ -26,7 +28,8 @@ VB['sim/occasions'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const { unplanned } = VB['sim/records'];
   const { ALE_EVENING, RITE, GATHERING, WORK: WORK_HOURS } = VB['sim/rules'];
-  const { pourAle, feast } = VB['sim/feast'];
+  const { pourAle, feast, surplus, FEAST } = VB['sim/feast'],
+    { on } = VB['sim/events'];
   // @tunable CALL: a call at a farm: how long it lasts, how often, and the strangers met
   // A call at a farm (VB-1119; design.md, Where pawns meet): a pawn walks to another household's farm within a day's walk and stays from the
   // end of work to `until`; those at home meet it there as at an occasion, with `mix` the floor for strangers among the partners drawn
@@ -46,6 +49,7 @@ VB['sim/occasions'] = (() => {
     },
     wedding: { from: 16, to: 21, overrides: false, at: 'At a wedding', go: 'Walking to a wedding' },
     funeral: { from: 16, to: 21, overrides: true, at: 'At a funeral ale', go: 'Walking to a funeral ale' },
+    harvest: { from: 16, to: 21, overrides: false, at: 'At a harvest home', go: 'Walking to a harvest home' },
     // the ale evening (VB-522): from the end of work to ALE_EVENING.until; the season's rite: at RITE.hour for RITE.hours. Neither stops work.
     ale: {
       from: WORK_HOURS[1],
@@ -187,6 +191,96 @@ VB['sim/occasions'] = (() => {
     const g = guests(st, farm, [...hh.members, ...kinNear(st, id)], id);
     if (g.ids.length) call(st, 'funeral', day, yard(st, farm), g.ids, g.hours, [id]);
   }
+  // ---- the harvest home (VB-459; design.md, The gift: The harvest home) ----
+  // The strongest ties whose households are looked at for guests, after the kin's: a bound on the route searches a host makes.
+  const HARVEST_TIES = 30;
+  // Whether farm f's grain is in: it has a field reaped this year, none still ripe, and none of a spring sowing still growing (a field sown
+  // since the autumn began is next year's).
+  function grainIn(st, f) {
+    const c = cal(st.t);
+    if (c.season < 2) return false;
+    const year0 = c.day - c.doy,
+      autumn = year0 + 2 * VB['sim/rules'].SEASON_DAYS;
+    let reapedNow = false;
+    for (const fd of f.fields) {
+      if (fd.stage === 'ripe' || (fd.stage === 'sown' && fd.sown < autumn)) return false;
+      if (fd.reaped !== undefined && fd.reaped >= year0) reapedNow = true;
+    }
+    return reapedNow;
+  }
+  // The guests of household hh's harvest home on the day that begins at `day`: its own members, then the kin households (the members of
+  // the holder's kin's households), then the households of the pawns the holder is tied to most strongly, nearest first, until
+  // HARVEST_GUESTS outside the host's are asked; those within a day's walk by land (guests), and none already bound for an occasion
+  // that day.
+  const HARVEST_GUESTS = 20; // ale's number (BREW.guests)
+  function harvestGuests(st, hh, day) {
+    const f = st.farmsteads[hh.farmstead],
+      bound = new Set();
+    for (const o of st.occasions)
+      if (dayOf(o.start) === day) {
+        for (const g of o.asked) bound.add(g.id);
+        for (const id of o.come) bound.add(id);
+      }
+    const near = (ids) => {
+      const mates = [];
+      for (const id of ids) {
+        const p = st.pawns[id];
+        if (p.household === null || p.household === hh.id) continue;
+        for (const m of st.households[p.household].members) mates.push(m);
+      }
+      return mates;
+    };
+    const kin = near(kinNear(st, hh.holder)),
+      tied = [...st.pawns[hh.holder].ties]
+        .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+        .slice(0, HARVEST_TIES)
+        .map((e) => e[0]);
+    const own = guests(st, f, hh.members),
+      k = guests(st, f, kin),
+      t = guests(st, f, tied.length ? near(tied) : []);
+    const ids = [],
+      hours = [],
+      seen = new Set();
+    let n = 0;
+    const take = (g, order, mine = false) => {
+      const rows = g.ids.map((id, i) => [id, g.hours[i]]);
+      if (order) rows.sort((a, b) => a[1] - b[1]); // stable: nearest first, the strongest tie first among the equal
+      for (const [id, h] of rows) {
+        if (n >= HARVEST_GUESTS) return;
+        if (seen.has(id) || bound.has(id)) continue;
+        seen.add(id);
+        ids.push(id);
+        hours.push(h);
+        if (!mine) n++;
+      }
+    };
+    take(own, false, true);
+    take(k, false);
+    take(t, true);
+    return { ids, hours, n };
+  }
+  // Household hh calls its harvest home, if its grain is in, it stands above the feast's threshold and it has not held one this year: for
+  // the evening FEAST.notice days ahead. Returns the occasion or null.
+  function harvestHome(st, hh) {
+    const year = cal(st.t).year;
+    if (hh.dissolved || hh.farmstead === null || hh.harvestIn === year) return null;
+    const f = st.farmsteads[hh.farmstead];
+    if (!grainIn(st, f) || !(surplus(st, hh) > 0)) return null;
+    const day = dayOf(st.t) + FEAST.notice * DAY,
+      g = harvestGuests(st, hh, day);
+    if (g.n === 0) return null; // nobody free to ask today: a later planning day may find some
+    hh.harvestIn = year;
+    VB.count.harvestCalled++;
+    return call(st, 'harvest', day, yard(st, f), g.ids, g.hours, [hh.holder]);
+  }
+  // A holder's planning day (sim/plans' planReviewed, why 'day'), after harvest: it may call its harvest home. The played pawn decides alone.
+  on('planReviewed', (st, d) => {
+    if (d.why !== 'day' || d.plan.holder.type !== 'household') return;
+    const hh = st.households[d.plan.holder.id],
+      id = hh.holder;
+    if (id === null || id === undefined || !st.pawns[id].alive || unplanned(st, id)) return;
+    harvestHome(st, hh);
+  });
   // The day of the meetings (autumn day 10, at midnight; sim/clock): each village calls the people with a voice to its green, for its turn.
   function callMeetings(st) {
     const day = dayOf(st.t),
@@ -321,6 +415,17 @@ VB['sim/occasions'] = (() => {
       log(st, `The funeral ale for ${names} at ${f.name}: ${came}.`, { kind: 'funeralAle', pawn: o.for[0], n, ...at });
     }),
   );
+  onEnd(
+    'harvest',
+    farmEnd((st, o, f, n, came, at) =>
+      log(st, `The harvest home of ${fullName(st.pawns[o.for[0]])} at ${f.name}: ${came}.`, {
+        kind: 'harvest',
+        pawn: o.for[0],
+        n,
+        ...at,
+      }),
+    ),
+  );
   // The occasion ends: those who came are free; outside working hours those outdoors go home; then its kind's end (ENDS).
   function finish(st, o) {
     const end = ENDS[o.kind],
@@ -419,6 +524,8 @@ VB['sim/occasions'] = (() => {
     villageTurn,
     wedding,
     funeral,
+    harvestHome,
+    harvestGuests,
     callMeetings,
     cannotAttend,
     join,
