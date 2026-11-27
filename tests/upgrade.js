@@ -17,7 +17,11 @@ const { projectsOf } = VB['sim/projects'],
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const hash = (st) => sha(canon(kept(st)));
-const add = (st, what, tile = st.farmsteads[0].house) => Sim.plan(st, st.player.pawn, 'add', { upgrade: tile, what });
+const add = (st, what, tile = st.farmsteads[0].house) => {
+  const r = Sim.plan(st, st.player.pawn, 'add', { upgrade: tile, what });
+  if (r === true) Sim.plan(st, st.player.pawn, 'keep', { i: VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length - 1 }); // VB-1842: not taken back as late
+  return r;
+};
 // The played solo settler by hand, its shelter raised on the landing by the farmstead task.
 function booth() {
   const st = Sim.seed(tinyWorld(rows), 7, 'solo', null, { hand: true });
@@ -26,6 +30,7 @@ function booth() {
   Sim.setAuto(st, st.player.pawn, false);
   assert.match(String(add(st, 'cottage')), /still a camp/, 'refused at the camp');
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: st.farmsteads[0].house }), true);
+  Sim.plan(st, st.player.pawn, 'keep', { i: VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length - 1 }); // VB-1842: not taken back as late
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'sleep', { from: 21, until: 6 }), true);
   for (let i = 0; i < 20 * 240 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length; i++) Sim.advance(st, 0.1);
   assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'raised');

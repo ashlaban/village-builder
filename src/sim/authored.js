@@ -7,7 +7,7 @@ VB['sim/authored'] = (() => {
     { CHILD } = VB['sim/roles'];
   const { age } = VB['sim/records'];
   const { eligible } = VB['sim/eligibility'];
-  const { KINDS, dailyNow } = VB['sim/kinds'];
+  const { KINDS, GOALS, goalGone, dailyNow } = VB['sim/kinds'];
   const { says } = VB['sim/methods'];
   const { planOp } = VB['sim/plans'];
   const Estimate = VB['sim/estimate'];
@@ -21,7 +21,7 @@ VB['sim/authored'] = (() => {
   // `daily`) is slotted in before anything authored, its expected hours reserved by the check of the verb `plan`; an authored task
   // carries a `by`; and at the household's review a task its head's estimate says will not be done by then is at risk, asked of its
   // author's controller, and taken back by the default author once its `by` is past unanswered, unless it is kept. The estimate is the
-  // head's (The future is someone's estimate), of a task by key: a task at a tile has no task to estimate yet and is left undated.
+  // head's (The future is someone's estimate), of a task by key, or of a task at a tile by the steps its chain has left.
   const SPAN = WORK[1] - WORK[0];
   const today = (st) => Math.floor(st.t / DAY);
   // Whether pawn id plans for itself and its plan, not its household's day, has its hours (its own logic off).
@@ -70,78 +70,104 @@ VB['sim/authored'] = (() => {
     return Math.max(0, (by - today(st) + rest) * per);
   }
   const roundH = (h) => (Number.isFinite(h) ? Math.round(h * 10) / 10 : 9999);
-  // The hours of work by the head's estimate of pawn id's task steps by key, from the first up to the i-th (exclusive).
-  function needOf(st, head, id, steps, i) {
-    let need = 0;
-    for (let k = 0; k < i && k < steps.length; k++) {
-      const g = steps[k].what.goal,
-        j = g && g.key !== undefined ? st.jobs.get(g.key) : null;
-      if (j) need += Estimate.estimate(st, head, j, [id]).mid;
+  // The hours by the head H's estimate of task t of pawn id's plan: a task by key's job, a task at a tile's steps left (the chain of its
+  // goal kind); null for a task gone.
+  function costOf(st, H, id, t) {
+    if (t.key !== undefined) {
+      const j = st.jobs.get(t.key);
+      return j ? Estimate.estimate(st, H.id, j, [id]).mid : null;
     }
+    const e = goalEst(st, H, id, t);
+    return e ? e.mid : null;
+  }
+  const goalEst = (st, H, id, t) => {
+    const hid = st.pawns[id].household;
+    return GOALS[t.kind] && hid !== null ? Estimate.goalEstimate(st, H.id, hid, t, [id]) : null;
+  };
+  // The hours of work by the head's estimate of pawn id's tasks, from the first up to the i-th (exclusive).
+  function needOf(st, head, id, tasks, i) {
+    let need = 0;
+    for (let k = 0; k < i && k < tasks.length; k++) need += costOf(st, head, id, tasks[k]) || 0;
     return need;
   }
-  // Pawn c.target's household, and the work by its head's estimate of its plan's tasks before place `at` and of the task of `key`, with
-  // the pawn's own hours a day; null for a pawn of no household or a task gone.
-  function weighed(st, c, at, key) {
+  // Pawn c.target's household, and the work by its head's estimate of its plan's tasks before place `at` and of task t (a task by key
+  // {key} or a goal at a tile), with the pawn's own hours a day; null for a pawn of no household or a task gone.
+  function weighed(st, c, at, t) {
     const id = c.target,
       p = st.pawns[id],
-      hh = p.household === null ? null : st.households[p.household],
-      j = key === undefined ? null : st.jobs.get(key);
-    if (!hh || hh.dissolved || !j) return null;
+      hh = p.household === null ? null : st.households[p.household];
+    if (!hh || hh.dissolved || !t) return null;
     const pp = Steps.pawnPlan(st, id),
-      H = Estimate.headOf(st, hh);
+      H = Estimate.headOf(st, hh),
+      mine = costOf(st, H, id, t);
+    if (mine === null) return null;
+    const e = t.key === undefined ? goalEst(st, H, id, t) : null;
     return {
-      need: needOf(st, H.id, id, pp ? pp.steps : [], at) + Estimate.estimate(st, H.id, j, [id]).mid,
+      need: needOf(st, H, id, pp ? pp.tasks : [], at) + mine,
       per: ownHours(st, hh, id, H),
+      opens: e && Number.isFinite(e.from) ? Math.floor(e.from / DAY) : -Infinity,
     };
   }
   // The check of the ops add and date of the verb `plan` on a pawn's own plan, after their own: a task by key dated `by` whose work, with
   // its plan's tasks before it, does not fit in the pawn's own hours to then, the household's daily work reserved, is refused.
-  function reserveWhy(st, c, at, key) {
+  function reserveWhy(st, c, at, t) {
     const by = c.args.by,
-      w = by === undefined || by === null ? null : weighed(st, c, at, key);
+      w = by === undefined || by === null ? null : weighed(st, c, at, t);
     if (!w) return null;
     const have = until(st, by, w.per);
     return w.need > have
-      ? `pawn ${c.target} cannot do job ${key} by day ${by}: ${roundH(w.need)} hours of work, ${roundH(have)} of its own ` +
+      ? `pawn ${c.target} cannot do ${nameOf(t)} by day ${by}: ${roundH(w.need)} hours of work, ${roundH(have)} of its own ` +
           "with its household's water, meal, fire and beasts seen to first"
       : null;
   }
   // The `by` a task by key added undated is given: the day its work, with the plan's tasks before it, is done in the pawn's own hours.
-  function byOf(st, c, at, key) {
-    const w = weighed(st, c, at, key);
+  function byOf(st, c, at, t) {
+    const w = weighed(st, c, at, t);
     if (!w || !(w.per > 0) || !Number.isFinite(w.need)) return undefined;
     const d = today(st),
       first = until(st, d, w.per),
-      from = Number.isInteger(c.args.from) ? Math.max(c.args.from, d) : d;
+      from = Number.isInteger(c.args.from) ? Math.max(c.args.from, d) : d,
+      open = Math.max(from, w.opens); // a task at a tile whose chain waits (the crop to ripen, the hay to dry) is dated from then
+    if (open > d) return open + Math.max(0, Math.ceil(w.need / w.per) - 1);
     return Math.max(from, d + (w.need <= first ? 0 : Math.ceil((w.need - first) / w.per)));
   }
   const atOf = (st, c) => {
     const pp = Steps.pawnPlan(st, c.target);
     return Number.isInteger(c.args.at) ? c.args.at : pp ? pp.tasks.length : 0;
   };
+  // The task the op add names: a goal at a tile ({kind, site, ...}, as sim/controller's add makes it) or a task by key; null if neither.
+  function addedOf(st, c) {
+    const g = c.args,
+      name = Object.keys(GOALS).find((k) => g[k] !== undefined);
+    if (name) return { kind: name, site: g[name], ...(GOALS[name].args ? GOALS[name].args(g, st, c.target) : null) };
+    return g.key !== undefined ? { key: g.key } : null;
+  }
+  const nameOf = (t) => (t.key !== undefined ? `job ${t.key}` : `${t.kind} at ${t.site}`);
   planOp('pawn', 'add', {
-    check: (st, c) => PLAN_OPS.add.check(st, c) || reserveWhy(st, c, atOf(st, c), c.args.key),
+    check: (st, c) => PLAN_OPS.add.check(st, c) || reserveWhy(st, c, atOf(st, c), addedOf(st, c)),
     run: (st, c) => {
-      const by = c.args.by ?? (c.args.key !== undefined ? byOf(st, c, atOf(st, c), c.args.key) : undefined);
+      const t = addedOf(st, c),
+        by = c.args.by ?? (t ? byOf(st, c, atOf(st, c), t) : undefined);
       PLAN_OPS.add.run(st, by === undefined ? c : { ...c, args: { ...c.args, by } });
     },
   });
   planOp('pawn', 'date', {
     check: (st, c) =>
-      PLAN_OPS.date.check(st, c) || reserveWhy(st, c, c.args.i, Steps.pawnPlan(st, c.target).tasks[c.args.i].key),
+      PLAN_OPS.date.check(st, c) || reserveWhy(st, c, c.args.i, Steps.pawnPlan(st, c.target).tasks[c.args.i]),
     run: PLAN_OPS.date.run,
   });
+  // Whether the task of step s a household took back is done or gone.
+  const over = (st, hid, g) => (g.key !== undefined ? !st.jobs.has(g.key) : !!goalGone(st, hid, g.kind, g.site, g));
   // At the review of household plan's plan (sim/plans' planReviewed): the steps the default author took back leave once their task is
-  // done or gone; each task by key of its members' own plans is weighed, in its plan's order, by the head's estimate against its `by`:
-  // short, it is at risk (its `risk` the hours short and the hour first found); no longer short, planned again; at risk since an earlier
-  // review, past its `by` and not kept, the default author takes it back (takeBack). Its members' own task steps only: no work in a run
-  // where none plans for itself.
+  // done or gone; each task of its members' own plans (by key, or at a tile: its chain's steps left) is weighed, in its plan's order, by
+  // the head's estimate against its `by`: short, it is at risk (its `risk` the hours short and the hour first found); no longer short,
+  // planned again; at risk since an earlier review, past its `by` and not kept, the default author takes it back (takeBack). Its
+  // members' own task steps only: no work in a run where none plans for itself.
   function reviewAuthored(st, plan, c) {
     const hid = plan.holder.id,
       hh = st.households[hid];
     if (!hh || hh.dissolved) return;
-    for (const s of plan.ahead.slice()) if (s.tookBack && !st.jobs.has(s.what.goal.key)) Steps.dropTaken(st, hid, s);
+    for (const s of plan.ahead.slice()) if (s.tookBack && over(st, hid, s.what.goal)) Steps.dropTaken(st, hid, s);
     const ids = Steps.plannersIn(st, hid);
     if (!ids.length) return;
     const H = Estimate.headOf(st, hh),
@@ -152,11 +178,11 @@ VB['sim/authored'] = (() => {
         per = ownHours(st, hh, id, H);
       let need = 0;
       for (const s of pp.steps) {
-        const g = s.what.goal,
-          j = g.key !== undefined ? st.jobs.get(g.key) : null;
-        if (!j) continue;
+        const g = s.what.goal;
+        if (g.key !== undefined && !st.jobs.has(g.key)) continue;
         VB.count.riskCheck++;
-        const e = Estimate.estimate(st, H.id, j, [id]).mid;
+        const e = costOf(st, H, id, g);
+        if (e === null) continue;
         need += e;
         if (s.by === undefined) continue;
         const short = need - until(st, s.by, per);
@@ -164,22 +190,27 @@ VB['sim/authored'] = (() => {
           if (s.state === 'at-risk') Steps.atRisk(st, s, null);
         } else if (s.state === 'at-risk' && d > s.by && !s.kept && s.risk.since < hour) {
           need -= e;
-          takeBack(st, hh, id, s, j, H, c);
+          takeBack(st, hh, id, s, g, H, c);
         } else Steps.atRisk(st, s, { short: roundH(short), since: s.risk ? s.risk.since : hour });
       }
     }
   }
-  // The default author takes step s of pawn id's plan back (its task j): the step becomes the household's, due by the day its head's
-  // estimate says the members its day allots finish it in (the step moved), and the task is slotted into the day as it stands, so that it
-  // is given hands now (the day weighs it at its next allotment if the slot cannot).
-  function takeBack(st, hh, id, s, j, H, c) {
-    const hands = hh.members.filter((m) => {
+  // The default author takes step s of pawn id's plan back (its task g): the step becomes the household's, due by the day its head's
+  // estimate says the members its day allots finish it in (the step moved), and a task by key is slotted into the day as it stands, so
+  // that it is given hands now (the day weighs it at its next allotment if the slot cannot); a task at a tile is the day's to take up.
+  function takeBack(st, hh, id, s, g, H, c) {
+    const j = g.key !== undefined ? st.jobs.get(g.key) : null,
+      hands = hh.members.filter((m) => {
         const p = st.pawns[m];
-        return p.died === null && allotted(st, p) && eligible(st, j, p);
+        return p.died === null && allotted(st, p) && (!j || eligible(st, j, p));
       }),
-      e = hands.length ? Estimate.estimate(st, H.id, j, hands).mid : Infinity;
+      e = !hands.length
+        ? Infinity
+        : j
+          ? Estimate.estimate(st, H.id, j, hands).mid
+          : (Estimate.goalEstimate(st, H.id, hh.id, g, hands) || { mid: Infinity }).mid;
     Steps.takeBack(st, id, s, hh.id, today(st) + (Number.isFinite(e) ? Math.ceil(e / SPAN) : 0));
-    slotIn(st, hh, j, c);
+    if (j) slotIn(st, hh, j, c);
   }
   on('planReviewed', (st, d) => {
     if (d.plan.holder.type === 'household') reviewAuthored(st, d.plan, d.c);

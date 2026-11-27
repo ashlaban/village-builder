@@ -58,6 +58,7 @@ function move(st, t, placed = () => {}, days = 60) {
     MOVE = VB['sim/kinds'].GOALS.farmstead.whole,
     a = st.agents[hh.holder];
   assert.strictEqual(Sim.plan(st, id, 'add', { farmstead: t }), true);
+  Sim.plan(st, id, 'keep', { i: VB['sim/steps'].pawnPlan(st, id).tasks.length - 1 }); // VB-1842: not taken back as late
   const seen = new Set(),
     laid = new Set();
   let at = null,
@@ -183,6 +184,7 @@ for (const n of [2, 10, 24]) {
     f = st.farmsteads[0],
     t = tileAt(st, 4);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: t }), true);
+  Sim.plan(st, st.player.pawn, 'keep', { i: VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length - 1 }); // VB-1842: not taken back as late
   for (let i = 0; i < 2400 && !f.shelter; i++) Sim.advance(st, 0.1);
   Sim.advance(st, 6);
   assert(st.lying && st.lying.some((l) => l.of.moving), 'mid-move: loads still at the landing');
@@ -206,6 +208,7 @@ for (const n of [2, 10, 24]) {
     hh = st.households[0],
     f = st.farmsteads[0];
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { farmstead: tileAt(st, 4) }), true);
+  Sim.plan(st, st.player.pawn, 'keep', { i: VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length - 1 }); // VB-1842: not taken back as late
   for (let i = 0; i < 2400 && !f.shelter; i++) Sim.advance(st, 0.1);
   while (VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length) Sim.plan(st, st.player.pawn, 'remove', { i: 0 }); // the move left undone, to the frost
   Sim.setAuto(st, st.player.pawn, false);

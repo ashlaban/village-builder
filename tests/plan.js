@@ -224,6 +224,7 @@ const head = (st) => Sim.controlOf(st, st.player.pawn).queue[0];
   const st = played(make()), Stores = VB['sim/stores'], hh = st.households[0];
   const fd = st.farmsteads[0].fields[2];
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { plant: fd.tile }), true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'keep', { i: 0 }), true); // kept: the default author does not take it back (VB-1842)
   Stores.take(st, hh, Stores.grainGood('barley'), Stores.grainOf(hh, 'barley'), 'seed');
   for (let i = 0; i < 12 * 24 * 10 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length; i++) Sim.advance(st, 0.1);
   assert.deepStrictEqual([VB['sim/steps'].pawnPlan(st, st.player.pawn).last.site, VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which], [fd.tile, 'closed'], 'its window shut, the field unsown');
@@ -270,6 +271,7 @@ const chainRun = (st, stop, steps = 40 * 24 * 10) => {
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { harvest: fd.tile })), /is not sown/);
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { harvest: st.farmsteads[1].fields[0].tile })), /no field of the household's/, 'a neighbour\'s field');
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { hay: m.tile }), true, 'a hay task added before the haymaking');
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'keep', { i: 1 }), true); // kept through the spring (VB-1842)
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { hay: m.tile, at: 0 })), /meadow at \d+ is already planned/);
   assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks[1], { kind: 'hay', site: m.tile });
   const hv = Sim.planView(st, st.player.pawn).tasks[1];
