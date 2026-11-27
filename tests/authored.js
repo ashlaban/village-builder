@@ -221,4 +221,28 @@ for (const kept of [false, true]) {
   }
   checkState(s);
 }
+// 7. A planner who falls ill (VB-1894): its two tasks by key go to the household's day within the hour, the cards saying why; with one
+// kept, that one stays on its plan, at risk, with the reason.
+for (const kept of [false, true]) {
+  const s = make();
+  for (const p of s.pawns) if (p.id > 1 && p.alive) VB['sim/lifecycle'].killPawn(s, p.id);
+  Sim.advance(s, 0.1);
+  const P = s.plans.households.get(0);
+  assert.strictEqual(Sim.setAuto(s, 0, false), true);
+  assert.strictEqual(Sim.plan(s, 0, 'add', { key: 'plow:f0.0' }), true);
+  assert.strictEqual(Sim.plan(s, 0, 'add', { key: 'clear:f0' }), true);
+  if (kept) assert.strictEqual(Sim.plan(s, 0, 'keep', { i: 0 }), true);
+  s.pawns[0].ill = { since: s.t };
+  VB['sim/events'].emit(s, 'fellIll', { pawn: 0 });
+  Sim.advance(s, 1);
+  const taken = P.ahead.filter((x) => x.tookBack);
+  assert.strictEqual(taken.length, kept ? 1 : 2, 'taken back');
+  assert(taken.every((x) => x.tookBack.why === 'fell ill'), 'the card says why');
+  for (const x of taken) assert(Object.values(P.day.lists).some((l) => l.includes(x.what.goal.key)), `${x.what.goal.key} in the day`);
+  if (kept) {
+    const st = Steps.pawnPlan(s, 0).steps;
+    assert(st.length === 1 && st[0].kept && st[0].state === 'at-risk' && st[0].risk.why === 'fell ill', 'the kept step stays, at risk');
+  } else assert.strictEqual(Steps.pawnPlan(s, 0).steps.length, 0);
+  checkState(s);
+}
 console.log('authored: ok');
