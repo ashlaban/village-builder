@@ -49,7 +49,13 @@ VB.COUNTERS = {
   lieChance: 'Talk turns of a pawn with an enemy, a chance to make up a story each (sim/stories, VB-554)',
   lieInvented: 'Lies made up, by pawns and the player (sim/stories, VB-554)',
   lieExposed: 'Lies told to one who knew better (sim/stories, VB-554)',
-  daysCalled: 'Days called by a creditor holder on its planning day (sim/days, VB-462)',
+  daysNamed:
+    "Days of an outer levy named, by the levied head's rule, the verb name or the levier (sim/levies, VB-1767)",
+  leviesLaid: 'Outer levies laid through the verb levy, a record a household (sim/levies, VB-1767)',
+  leviesAsked: "Outer levies asked by their levier's default author at its season's turn (sim/levies ask, VB-1767)",
+  leviesLooked:
+    "Outer levies read at a day's first step, through the obligations' due-queue (sim/levies step, VB-1767)",
+  leviesWeighed: 'Tasks of a household weighed for the windowed work a day named would displace (sim/levies, VB-1767)',
   obligationsDue: 'Obligations whose term ended at a step, taken off the due-queue (sim/obligations, VB-310)',
   asksRead: 'Open asks for a good passed by a head reading them, once a year a head (sim/asks, VB-699)',
   termsValued:

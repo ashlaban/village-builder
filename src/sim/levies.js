@@ -20,7 +20,11 @@ VB['sim/levies'] = (() => {
   const { ASK } = VB['sim/rules'],
     { MADE } = VB['sim/targets'];
   const Obligations = VB['sim/obligations'],
-    { DAYS } = VB['sim/days'];
+    Days = VB['sim/days'];
+  const Stores = VB['sim/stores'];
+  const { floorOf } = VB['sim/hunger'];
+  const { isOpen } = VB['sim/kinds'];
+  const { register, issue } = VB['sim/commands'];
   const { workOfTarget, fieldYield } = VB['sim/estimate'];
   const { fullName, log, atFarm, unplanned } = VB['sim/records'];
   const Norms = VB['sim/norms'],
@@ -457,31 +461,27 @@ VB['sim/levies'] = (() => {
     if (e[0] !== null) return inForce(grantsOf(st, hh), p.id, day, e[0]) * e[1];
     return head && !p.retired ? levyNorm(st, 'adult', c.season, villageOf(st, p)) * e[1] : 0;
   }
-  // The outer levies' days of household hh this season from day `from` on, by game week: each day called (sim/days' calls) in its week,
-  // and of each obligation's days owed and not yet called, this season's share of them (spread evenly over the seasons left to its due
-  // date, this one counted: a year's days owed are not all charged to every season), in the first week its creditor could call them for
-  // (DAYS.notice ahead); [days a week, total].
+  // The outer levies' days of household hh this season from day `from` on, by game week, each in its window (VB-1767): each day
+  // named in its week, and the days asked and not yet named in the first week they could be named for (their notice ahead, within the
+  // window); [days a week, total]. Days not yet asked are not charged to any season until their levier asks them.
   function outerDays(st, hh, c, from) {
     const first = c.day - c.sday,
       w = [0, 0, 0];
     let n = 0;
-    for (const [day, pawn] of st.daysCalls || []) {
-      const d = day - first;
-      if (d < from || d >= SEASON_DAYS || st.pawns[pawn].household !== hh.id) continue;
-      w[Math.floor(d / WEEK)]++;
-      n++;
-    }
-    let uncalled = 0;
-    for (const o of Obligations.due(st, { kind: 'household', id: hh.id }, 'debtor', 'days'))
-      if (Obligations.isLive(o)) {
-        const owed = Math.max(0, Math.ceil(Obligations.left(o) - o.called - 1e-9)),
-          seasons = Math.max(1, Math.ceil((o.due - st.t) / (SEASON_DAYS * DAY) - 1e-9));
-        uncalled += Math.ceil(owed / seasons - 1e-9);
+    for (const o of Obligations.due(st, { kind: 'household', id: hh.id }, 'debtor', 'days')) {
+      if (!o.window) continue;
+      for (const e of o.named) {
+        const d = e.day - first;
+        if (d < from || d >= SEASON_DAYS) continue;
+        w[Math.floor(d / WEEK)]++;
+        n++;
       }
-    if (uncalled > 0) {
-      const d = Math.min(SEASON_DAYS - 1, c.sday + DAYS.notice);
-      w[Math.floor(d / WEEK)] += uncalled;
-      n += uncalled;
+      const u = Math.max(0, Math.ceil(Math.min(o.asked, Obligations.left(o)) - 1e-9) - o.named.length),
+        d = Math.max(c.sday + o.terms.notice, o.window[0] - first);
+      if (u > 0 && d < SEASON_DAYS && o.window[1] - first >= from) {
+        w[Math.floor(Math.min(d, o.window[1] - first, SEASON_DAYS - 1) / WEEK)] += u;
+        n += u;
+      }
     }
     return [w, n];
   }
@@ -495,10 +495,10 @@ VB['sim/levies'] = (() => {
       for (const g of G.dated) s += `d${g[0]}.${g[1]}.${g[2]}.${g[3]}`;
       for (const id of Object.keys(G.season)) s += `s${id}.${G.season[id][0]}.${G.season[id][1]}`;
     }
-    let n = 0;
     for (const o of Obligations.due(st, { kind: 'household', id: hh.id }, 'debtor', 'days'))
-      if (Obligations.isLive(o)) n += Obligations.left(o);
-    return s + ':' + Math.round(n * 100);
+      if (Obligations.isLive(o))
+        s += `o${o.id}.${Math.round(Obligations.left(o) * 100)}.${Math.round(o.asked * 100)}.${o.named.length}`;
+    return s;
   }
   // budget(st, hh, c): household hh's labour budget for the season of c (plan.budget), reckoned where it is a new season or what it
   // was reckoned on has changed; null where it has no plan. A standing grant comes out of its member's hours a day, and each dated grant
@@ -528,7 +528,7 @@ VB['sim/levies'] = (() => {
         if (p.died === null) weeks[Math.floor(d / WEEK)] += budgetHours(st, hh, p, c, first + d);
       }
     const [w, outer] = outerDays(st, hh, c, from);
-    for (let k = 0; k < 3; k++) weeks[k] = Math.max(0, weeks[k] - w[k] * DAYS.hours);
+    for (let k = 0; k < 3; k++) weeks[k] = Math.max(0, weeks[k] - w[k] * OUTER.hours);
     return [weeks, outer];
   }
   // The hours of plan's season due by each game week against `weeks` (levy hours a week), by the cumulative weekly comparison of fit:
@@ -711,7 +711,317 @@ VB['sim/levies'] = (() => {
       emit(st, 'seasonJudged', { hh, c: d.c }); // the season's turn: the members' asks of a lighter levy (sim/voice, VB-1763)
     }
   });
+  // ---- outer levies (VB-1767; design.md, Outer levies): laid with their terms, asked by season, named by the levied, worked ----
+  const today = (st) => Math.floor(st.t / DAY);
+  const { OUTER, TERMS } = Days;
+  // The sources whose levier asks their days season by season (design.md's table); a routine's and a due's are laid with their window.
+  const ASKED = new Set(['keep', 'debt', 'patron']);
+  const hhRef = (id) => ({ kind: 'household', id });
+  // The pawn who acts for body party: a household's holder, a village's alderman; null for none.
+  function agentOf(st, party) {
+    if (party.kind === 'household') {
+      const hh = st.households[party.id];
+      return hh && !hh.dissolved ? hh.holder : null;
+    }
+    if (party.kind === 'village') {
+      const v = st.villages[party.id];
+      return v && v.alderman !== undefined ? v.alderman : null;
+    }
+    return null;
+  }
+  // The days of levy o still to be named: those asked (whole days, a day part worked counted whole) less those named and those on
+  // duty today.
+  function unnamed(st, o) {
+    const d = st.daysToday;
+    let n = o.named.length;
+    if (d && d.day === today(st)) for (const k in d.by) if (d.by[k][0] === o.id && d.by[k][1] < OUTER.hours - 1e-9) n++;
+    return Math.max(0, Math.ceil(Math.min(o.asked, Obligations.left(o)) - 1e-9) - n);
+  }
+  // Why household hh sends no hand, or null: below its floor, or its own harvest waiting (the day stays owed).
+  function sendsNone(st, hh) {
+    if (Stores.grainOf(hh) - floorOf(st, hh) < 0) return 'its household is below its floor';
+    for (const j of st.jobsBy.get(`household:${hh.id}`) || [])
+      if (KINDS[j.kind].type === 'harvest' && isOpen(st, j)) return 'its household has its own harvest waiting';
+    return null;
+  }
+  // An adult of household hh who may be sent: alive, a member, not retired, of the age help takes.
+  const able = (st, hh, id) => {
+    const p = st.pawns[id];
+    return !!p && p.alive && p.household === hh.id && !p.retired && age(st, p) >= MATCH.help.minAge;
+  };
+  // ---- the verb levy: a levier's agent lays a levy with its terms ----
+  // args: {debtor (a party: a household, or a village whose lots are its households'), creditor (default: the actor's household), source
+  // (a key of TERMS), days, window ([first, last] game day; a keep's, a debt's and a patron's are asked by season instead), due (the hour
+  // its term ends; default its window's end, else its kind's), terms (any of TERMS' fields, over the source's)}.
+  function creditorOf(st, actor, a) {
+    if (a.creditor) return a.creditor;
+    const p = st.pawns[actor];
+    return p && p.household !== null ? hhRef(p.household) : null;
+  }
+  function levyWhy(st, actor, a) {
+    if (!a || !TERMS[a.source]) return 'a levy names its source';
+    if (!(a.days > 0)) return 'a levy is of a day of work or more';
+    const cr = creditorOf(st, actor, a);
+    if (!cr || agentOf(st, cr) !== actor) return 'only the one who acts for the body owed lays its levy';
+    const db = a.debtor,
+      body = db && (db.kind === 'household' ? st.households[db.id] : db.kind === 'village' ? st.villages[db.id] : null);
+    if (!body || body.dissolved) return 'there is no such household or village to levy';
+    if (db.kind === cr.kind && db.id === cr.id) return 'a body does not levy itself';
+    if (a.window && !(a.window[0] <= a.window[1] && a.window[1] >= today(st))) return 'its window is past';
+    return null;
+  }
+  // A village's levy split into its households' lots by fields (design.md, Lots: the custom's default), whole days by the largest
+  // remainder, ties in turn by the household's id against the year; a household with no fields owes none. [[household id, days]].
+  function lotsOf(st, vid, D) {
+    const hs = [];
+    for (const fid of st.villages[vid].farmsteads) {
+      const f = st.farmsteads[fid],
+        hh = f.household === null ? null : st.households[f.household];
+      if (hh && !hh.dissolved && f.fields.length) hs.push([hh.id, f.fields.length]);
+    }
+    const F = hs.reduce((s, h) => s + h[1], 0);
+    if (!F) return [];
+    const y = cal(st.t).year,
+      lots = hs.map(([id, n]) => [id, Math.floor((D * n) / F), (D * n) / F - Math.floor((D * n) / F)]);
+    let rest = D - lots.reduce((s, l) => s + l[1], 0);
+    const order = lots
+      .slice()
+      .sort((a, b) => b[2] - a[2] || ((a[0] + y) % hs.length) - ((b[0] + y) % hs.length) || a[0] - b[0]);
+    for (const l of order) if (rest-- > 0) l[1]++;
+    return lots.filter((l) => l[1] > 0).map((l) => [l[0], l[1]]);
+  }
+  register('levy', {
+    check: (st, c) => levyWhy(st, c.actor, c.args),
+    run: (st, c) => {
+      const a = c.args,
+        creditor = creditorOf(st, c.actor, a),
+        due = a.due ?? (a.window ? (a.window[1] + 1) * DAY : undefined),
+        draft = (debtor, days) => ({
+          kind: 'days',
+          debtor,
+          creditor,
+          owes: { days },
+          due,
+          source: a.source,
+          terms: { ...TERMS[a.source], ...(a.terms || {}) },
+          window: a.window,
+        });
+      // on a village, on top of the levies already laid on its households (design.md, An estate's levy): each lot its own record
+      const parts =
+        a.debtor.kind === 'village'
+          ? lotsOf(st, a.debtor.id, a.days).map(([id, n]) => [hhRef(id), n])
+          : [[a.debtor, a.days]];
+      for (const [debtor, n] of parts) {
+        Obligations.create(st, draft(debtor, n));
+        VB.count.leviesLaid++;
+      }
+    },
+  });
+  // ---- the ask: the levier's default author, at its season's turn ----
+  // A keep's or a patron's: the days its household's season plan falls short of its labour budget (plan.fit.short over OUTER.hours,
+  // rounded up), a day at a time from the levy with most days left; a debt's a quarter of its days; at summer's turn, the year's last
+  // season, whatever is still owed. The window: from today to the season's last day, within the levy's term.
+  function ask(st, hh, c) {
+    const L = Obligations.due(st, hhRef(hh.id), 'creditor', 'days').filter((o) => ASKED.has(o.source));
+    if (!L.length) return;
+    const last = c.day - c.sday + SEASON_DAYS - 1,
+      summer = c.season === 1,
+      plan = planOf(st, 'household', hh.id),
+      whole = (o) => Math.ceil(Obligations.left(o) - 1e-9),
+      n = new Map(L.map((o) => [o.id, 0]));
+    let short = plan && plan.fit && plan.fit.short > 0 ? Math.ceil(plan.fit.short / OUTER.hours - 1e-9) : 0;
+    for (const o of L) {
+      VB.count.leviesAsked++;
+      if (summer) n.set(o.id, whole(o));
+      else if (o.source === 'debt') n.set(o.id, Math.min(whole(o), Math.ceil(o.owes.days / 4 - 1e-9)));
+    }
+    const shared = L.filter((o) => o.source !== 'debt');
+    while (!summer && short > 0) {
+      let best = null;
+      for (const o of shared)
+        if (n.get(o.id) < whole(o) && (!best || whole(o) - n.get(o.id) > whole(best) - n.get(best.id))) best = o;
+      if (!best) break;
+      n.set(best.id, n.get(best.id) + 1);
+      short--;
+    }
+    for (const o of L)
+      Obligations.setLevy(st, o.id, {
+        window: [c.day, Math.min(last, Math.floor((o.due - 1) / DAY))],
+        asked: Math.max(n.get(o.id), o.named.length), // the days named still to come stay asked
+      });
+  }
+  on('seasonJudged', (st, d) => ask(st, d.hh, d.c));
+  // ---- naming: the levied head's rule, or the verb name ----
+  // What naming day d displaces of household hh's windowed work, by its head's reckoning: for each open task whose window (sim/hands
+  // windowEnd) is still open on d, the hours of it left past what the household's hands can do from d to the window's end less the day's.
+  function displaced(st, hh, c, d, cap) {
+    const dy = c.season * SEASON_DAYS + c.sday + (d - c.day);
+    let n = 0;
+    for (const j of st.jobsBy.get(`household:${hh.id}`) || []) {
+      VB.count.leviesWeighed++;
+      const e = windowEnd(st, j, c);
+      if (e === null || e < dy || !isOpen(st, j)) continue;
+      const left = Math.max(0, (j.hours ?? KINDS[j.kind].hours ?? 0) - (j.done || 0));
+      n += Math.min(OUTER.hours, Math.max(0, left - (cap * (e - dy + 1) - OUTER.hours)));
+    }
+    return n;
+  }
+  // The hours a day of hh's adults: each one's levy in force (the head pair the working day).
+  const capOf = (st, hh, D) =>
+    hh.members.reduce((s, id) => s + (able(st, hh, id) ? (levyOf(st, id, D) ?? WORK[1] - WORK[0]) : 0), 0);
+  // The adult of hh to send on day d: the one whose levy leaves least undone, the lowest levy that day (the head pair's the working day).
+  function adultFor(st, hh, d) {
+    let best = null,
+      bh = Infinity;
+    for (const id of hh.members) {
+      if (!able(st, hh, id)) continue;
+      const h = levyOf(st, id, d) ?? WORK[1] - WORK[0];
+      if (h < bh) [best, bh] = [id, h];
+    }
+    return best;
+  }
+  // The days of levy o's window still to name, by the default author of whoever names them: the levied's, each the day that displaces
+  // least of its windowed work (the earliest of equals), never a day another adult of its household is named for; the levier's, the
+  // earliest days at the notice, the one sent picked on the day.
+  function nameDays(st, o, D) {
+    const hh = st.households[o.debtor.id];
+    if (!hh || hh.dissolved || o.terms.names === 'together') return; // one date for all: the alderman's (VB-1768)
+    const byLevier = o.terms.names === 'levier',
+      actor = byLevier ? agentOf(st, o.creditor) : hh.holder,
+      from = Math.max(D + o.terms.notice, o.window[0]),
+      to = o.window[1];
+    if (actor === null || actor === undefined || from > to) return;
+    const taken = new Set();
+    for (const x of Obligations.due(st, hhRef(hh.id), 'debtor', 'days')) for (const e of x.named) taken.add(e.day);
+    const c = cal(st.t),
+      cap = byLevier ? 0 : capOf(st, hh, D);
+    for (let k = unnamed(st, o); k > 0; k--) {
+      let day = null,
+        least = Infinity;
+      for (let d = from; d <= to; d++) {
+        if (taken.has(d)) continue;
+        const x = byLevier ? 0 : displaced(st, hh, c, d, cap);
+        if (x < least - 1e-9) [day, least] = [d, x];
+        if (byLevier || least <= 0) break;
+      }
+      if (day === null) return;
+      const pawn = byLevier ? null : adultFor(st, hh, day);
+      if (issue(st, { actor, verb: 'name', target: o.id, args: { day, pawn }, source: 'planner' }) !== true) return;
+      taken.add(day);
+    }
+  }
+  // Why `actor` cannot name day args.day of levy id (for args.pawn, or null: picked on the day), or null.
+  function nameWhy(st, actor, id, a) {
+    const o = st.obligations && st.obligations[id];
+    if (!o || o.kind !== 'days' || !Obligations.isLive(o)) return `there are no days owed under ${id}`;
+    if (!o.window) return 'no day of it is asked yet';
+    const hh = st.households[o.debtor.id];
+    if (o.terms.names === 'together') return 'its day is the one date for all';
+    const who = o.terms.names === 'levier' ? agentOf(st, o.creditor) : hh ? hh.holder : null;
+    if (who === null || who !== actor)
+      return `its days are named by the ${o.terms.names === 'levier' ? 'levier' : 'levied head'}`;
+    const day = a && a.day;
+    if (!Number.isInteger(day)) return 'a day is named by its game day';
+    if (day < today(st) + o.terms.notice) return `a day is named at least ${o.terms.notice} days ahead`;
+    if (day < o.window[0] || day > o.window[1]) return "the day is outside the levy's window";
+    if (!(unnamed(st, o) > 0)) return 'every day asked is named already';
+    if (o.named.some((e) => e.day === day)) return 'an adult is named for that day of this levy already';
+    if (a.pawn !== null && a.pawn !== undefined && !able(st, hh, a.pawn)) return 'no adult of that household can come';
+    return null;
+  }
+  register('name', {
+    check: (st, c) => nameWhy(st, c.actor, c.target, c.args),
+    run: (st, c) => {
+      const o = st.obligations[c.target],
+        day = c.args.day;
+      Obligations.setLevy(st, o.id, {
+        named: [
+          ...o.named.filter((e) => e.day < day),
+          { day, pawn: c.args.pawn ?? null },
+          ...o.named.filter((e) => e.day > day),
+        ],
+      });
+      VB.count.daysNamed++;
+    },
+  });
+  // Whether the levied head of levy o names its own days now: its default author does, unless the head is on its own commands, whose
+  // days are named by the default author only once the window has no more days left than the days unnamed and the notice.
+  function namesNow(st, o, D) {
+    if (o.terms.names !== 'levied') return true;
+    const hh = st.households[o.debtor.id],
+      head = hh ? hh.holder : null;
+    return head === null || !unplanned(st, head) || o.window[1] - D + 1 <= unnamed(st, o) + o.terms.notice;
+  }
+  // The pawn of household hh sent on day named e of levy o, or null: the one named, or where it cannot come and the terms allow
+  // (or none was named), another adult; none where its household sends none (the day stays owed).
+  function sentOf(st, o, e, by) {
+    const hh = st.households[o.debtor.id];
+    if (!hh || hh.dissolved || sendsNone(st, hh)) return null;
+    const ok = (id) => able(st, hh, id) && !by[id];
+    if (e.pawn !== null && ok(e.pawn)) return e.pawn;
+    if (e.pawn !== null && !o.terms.substitute) return null;
+    return hh.members.find(ok) ?? null;
+  }
+  // A day's first step, through the due-queue's outer levies (Rules for cost, 4): the days named for today come on duty (those of
+  // days past are over: what was not worked stays owed and is named again); the days still unnamed are named. Then those who have
+  // given their hours are told so (`dayGiven`): their working day is over, and sim/agents' rule for it (a load in hand carried to the
+  // levier's store first, then home) is theirs; nobody is sent home here (VB-1749).
+  function step(st) {
+    const D = today(st);
+    let d = st.daysToday;
+    if (!d || d.day !== D) {
+      d = Days.begin(st, D);
+      for (const id of (st.obligationsDue || []).slice()) {
+        const o = st.obligations[id];
+        if (o.kind !== 'days') continue;
+        VB.count.leviesLooked++;
+        while (o.named.length && o.named[0].day <= D) {
+          const e = o.named[0];
+          Obligations.setLevy(st, o.id, { named: o.named.slice(1) });
+          const pawn = e.day === D ? sentOf(st, o, e, d.by) : null;
+          if (pawn !== null) Days.seat(st, pawn, o.id);
+        }
+        if (o.window && D <= o.window[1] && unnamed(st, o) > 0 && namesNow(st, o, D)) nameDays(st, o, D);
+      }
+    }
+    for (const [id, e] of Object.entries(d.by))
+      if (e[1] >= OUTER.hours - 1e-9 && !e[2]) {
+        // a load on the road is brought in first, by the rule for a load in hand: the day is given once it is in (VB-1548)
+        const ag = st.agents[+id];
+        if (ag && ag.load > 0 && ag.job) continue;
+        Days.markGiven(st, +id);
+        emit(st, 'dayGiven', { pawn: +id });
+      }
+  }
+  // The levies body party lays and bears (VB-1767), read through the actor view: {lays, bears}, each a copy with its terms.
+  function leviesOf(st, party) {
+    const copy = (o) => ({
+      id: o.id,
+      source: o.source,
+      debtor: { ...o.debtor },
+      creditor: { ...o.creditor },
+      days: o.owes.days,
+      left: Obligations.left(o),
+      status: o.status,
+      due: o.due,
+      window: o.window && o.window.slice(),
+      asked: o.asked,
+      terms: { ...o.terms },
+      named: o.named.map((e) => ({ ...e })),
+      worked: o.worked,
+    });
+    return {
+      lays: Obligations.due(st, party, 'creditor', 'days').map(copy),
+      bears: Obligations.due(st, party, 'debtor', 'days').map(copy),
+    };
+  }
   return {
+    step,
+    OUTER,
+    TERMS,
+    leviesOf,
+    lotsOf,
+    sendsNone,
     rowOf,
     levyOf,
     levied,

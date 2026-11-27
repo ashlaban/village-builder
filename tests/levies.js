@@ -614,6 +614,34 @@ let fitSeen = '';
   assert.ok(plan.budget.total < B.total - 1e-9 && VB.count.budgetReckoned === n + 1, 'a member gone: reckoned again');
   h.members = save;
   review();
+  // an outer levy's days come off the budget in its window once asked (VB-1767), and leave it with the levy
+  {
+    const O = VB['sim/obligations'],
+      { OUTER: OU, TERMS: TE } = VB['sim/days'],
+      cr = s.households.find((x) => x !== h && !x.dissolved),
+      B0 = plan.budget,
+      first = c.day - c.sday;
+    const id = O.create(s, {
+      kind: 'days',
+      source: 'debt',
+      debtor: { kind: 'household', id: h.id },
+      creditor: { kind: 'household', id: cr.id },
+      owes: { days: 4 },
+      terms: TE.debt,
+    });
+    review();
+    assert.ok(plan.budget.outer === 0 && plan.budget.total === B0.total, 'not asked: not charged to the season');
+    O.setLevy(s, id, { window: [first + B0.from, first + SEASON_DAYS - 1], asked: 2 });
+    review();
+    assert.ok(
+      plan.budget.outer === 2 && Math.abs(B0.total - plan.budget.total - 2 * OU.hours) < 1e-6,
+      `the days asked come off the budget (${plan.budget.outer}, ${B0.total} -> ${plan.budget.total})`,
+    );
+    O.forgive(s, id, cr.holder);
+    assert.ok(!O.due(s, { kind: 'household', id: h.id }, 'debtor', 'days').length, 'closed: out of the live index');
+    review();
+    assert.ok(plan.budget.outer === 0 && plan.budget.total === B0.total, 'and off the budget');
+  }
   // the season made not to fit: the head reckons it can place a great deal of tar (sim/asks), more than its people owe the season
   plan.placed = { year: c.year, goods: { tar: Math.ceil(plan.budget.total / KINDS.burntar.hours) * 2 }, heard: [] };
   delete plan.fit;
@@ -693,8 +721,12 @@ let fitSeen = '';
       job = (hours) => ({ kind: 'cook', hours, done: 0, rate: 0, owner: { type: 'household', id: h.id }, claims: [] }),
       open = [...(s.jobsBy.get(`household:${h.id}`) || [])].filter((j) => j.step === cook.id),
       n = days + (open.length || h.cookDay === c.day ? 0 : 1),
-      want = open.reduce((a, j) => a + E.estimate(s, head, j).mid, 0) + E.estimate(s, head, job(n * KINDS.cook.hours)).mid;
-    assert.ok(days > 0 && Math.abs(cook.left.mid - want) < 1e-6, `the meal's hours left each day (${cook.left.mid}, ${want})`);
+      want =
+        open.reduce((a, j) => a + E.estimate(s, head, j).mid, 0) + E.estimate(s, head, job(n * KINDS.cook.hours)).mid;
+    assert.ok(
+      days > 0 && Math.abs(cook.left.mid - want) < 1e-6,
+      `the meal's hours left each day (${cook.left.mid}, ${want})`,
+    );
     // the same review with no meal standing nor cooked today: today's meal counted (F1)
     const saved = s.jobsBy.get(`household:${h.id}`),
       was = h.cookDay;
@@ -702,7 +734,10 @@ let fitSeen = '';
     h.cookDay = -1;
     review();
     const all = E.estimate(s, head, job((days + 1) * KINDS.cook.hours)).mid;
-    assert.ok(Math.abs(cook.left.mid - all) < 1e-6, `before the meal is posted, today's counted (${cook.left.mid}, ${all})`);
+    assert.ok(
+      Math.abs(cook.left.mid - all) < 1e-6,
+      `before the meal is posted, today's counted (${cook.left.mid}, ${all})`,
+    );
     if (saved) s.jobsBy.set(`household:${h.id}`, saved);
     else s.jobsBy.delete(`household:${h.id}`);
     h.cookDay = was;
@@ -729,7 +764,10 @@ let fitSeen = '';
   }
   delete plan.fit;
   review();
-  assert.ok(D > 0 && T2 <= plan.budget.total, `the targets alone fit (${Math.round(T2)} of ${Math.round(plan.budget.total)})`);
+  assert.ok(
+    D > 0 && T2 <= plan.budget.total,
+    `the targets alone fit (${Math.round(T2)} of ${Math.round(plan.budget.total)})`,
+  );
   assert.ok(
     plan.fit.short > 0 && sum(daily) + T2 > plan.budget.total,
     `with the daily work it does not: flagged at its first review (${Math.round(plan.fit.short)} short, ${Math.round(D)} daily, ${tar.what.target.level} tar)`,
@@ -739,6 +777,399 @@ let fitSeen = '';
   fitSeen += `; the daily work ${Math.round(D)} hours of the season counted`;
 }
 
+// Outer levies (VB-462, VB-1767; design.md, Outer levies): the verb levy lays a levy with its source's terms; its levier's default author
+// asks its days by season (a debt a quarter); the levied head names them at three days' notice through the verb name (its default author
+// the day that displaces least, a head on its own commands only once the window runs short); the one sent works the levier's tasks on
+// the basis `owed`, each hour booked against the levy; a household with its own harvest waiting or below its floor sends nobody and the
+// day stays owed, to be named again; at the term's end a debt's days stand and the keep's lapse, told once; a due laid on a village adds
+// lots to its households' levies; Sim.levies reads them. On a small constructed state: two farms on open ground.
+{
+  const { eligible } = VB['sim/eligibility'],
+    Jobs = VB['sim/jobs'],
+    O = VB['sim/obligations'],
+    { issue } = VB['sim/commands'],
+    { emit } = VB['sim/events'];
+  const { OUTER, TERMS } = VB['sim/days'];
+  const st = tinyState(tinyWorld(Array(20).fill('.'.repeat(36))), [{ at: [8, 10], farms: 2, sizes: [4, 4] }], {
+    seed: 4,
+  });
+  Sim.advance(st, 3);
+  const [A, B] = [st.households[0], st.households[1]],
+    fA = st.farmsteads[A.farmstead],
+    fB = st.farmsteads[B.farmstead];
+  const dropAll = (key) => {
+    for (const j of [...(st.jobsBy.get(key) || [])]) {
+      st.jobs.delete(j.key);
+      st.jobsBy.get(key).delete(j);
+    }
+  };
+  const quiet = () => {
+    for (const h of [A, B]) {
+      dropAll(`household:${h.id}`);
+      h.waterDay = Sim.cal(st.t).day;
+    }
+    dropAll(`village:${fA.village}`);
+  };
+  const adults = (hh) => hh.members.filter((id) => st.pawns[id].alive && age(st, st.pawns[id]) >= MATCH.help.minAge);
+  const hand = adults(B)[0],
+    today = () => Math.floor(st.t / DAY);
+  quiet();
+  const fd = fA.fields[0];
+  fd.stage = 'stubble';
+  const post = () => {
+    const j = Jobs.post(st, `plow:f${fA.id}.${fd.id}`, 'plow', { type: 'household', id: A.id }, fd.tile, {
+      field: fd,
+      farm: fA,
+    });
+    j.hours = 60;
+    return j;
+  };
+  let j = post();
+  A.grain = { barley: 4000 };
+  B.grain = { barley: 4000 };
+  const lay = (actor, args) => issue(st, { actor, verb: 'levy', args, source: 'player' });
+  const toB = { kind: 'household', id: B.id };
+  assert.ok(
+    /only the one who acts/.test(lay(hand, { creditor: { kind: 'household', id: A.id }, debtor: toB, source: 'debt', days: 2 })),
+    "only the levier's agent lays a levy",
+  );
+  assert.ok(
+    /names its source/.test(lay(A.holder, { debtor: toB, source: 'tithe', days: 2 })),
+    'a levy has a source of the table',
+  );
+  assert.ok(
+    /does not levy itself/.test(lay(A.holder, { debtor: { kind: 'household', id: A.id }, source: 'debt', days: 2 })),
+  );
+  assert.strictEqual(lay(A.holder, { debtor: toB, source: 'debt', days: 2 }), true, "the verb levy lays a debt's days");
+  const oid = st.obligations.length - 1,
+    o = st.obligations[oid];
+  assert.deepStrictEqual([o.kind, o.source, o.debtor, o.creditor.id, o.owes.days], ['days', 'debt', toB, A.id, 2]);
+  assert.deepStrictEqual(
+    o.terms,
+    TERMS.debt,
+    "the source's terms: the levied names, a substitute, commuted at OUTER.worth, no carry",
+  );
+  assert.deepStrictEqual(
+    [o.terms.names, o.terms.commute, o.window, o.asked, o.named, o.worked],
+    ['levied', OUTER.worth, null, 0, [], 0],
+  );
+  const nm = (actor, args) => issue(st, { actor, verb: 'name', target: oid, args, source: 'player' });
+  assert.ok(/asked/.test(nm(B.holder, { day: today() + 5 })), 'nothing is named before its levier asks');
+  // the levier's default author asks at its season's turn: a debt a quarter of its days, in the season's window
+  emit(st, 'seasonJudged', { hh: A, c: Sim.cal(st.t) });
+  const c0 = Sim.cal(st.t);
+  assert.deepStrictEqual(
+    [o.asked, o.window],
+    [1, [c0.day, c0.day - c0.sday + VB['sim/rules'].SEASON_DAYS - 1]],
+    'a quarter of the days, this season',
+  );
+  // the levied head names: three days ahead at least, within the window, only the head of the household levied
+  assert.ok(
+    /at least 3 days ahead/.test(nm(B.holder, { day: today() + 1, pawn: hand })),
+    'a day is named three days ahead at least',
+  );
+  assert.ok(/levied head/.test(nm(A.holder, { day: today() + 3 })), 'the levied head names, not the levier');
+  assert.ok(/outside/.test(nm(B.holder, { day: o.window[1] + 1 })), 'within the window');
+  const D = today() + OUTER.notice;
+  assert.strictEqual(nm(B.holder, { day: D, pawn: hand }), true, 'a day is named');
+  assert.ok(/named already/.test(nm(B.holder, { day: D + 1 })), 'no more days than asked');
+  assert.deepStrictEqual(o.named, [{ day: D, pawn: hand }]);
+  assert.deepStrictEqual(
+    checkState(st).filter((b) => /obligation|days/.test(b)),
+    [],
+  );
+  // Sim.levies: what a body lays and bears, with the terms, through the actor view
+  const seen = Sim.levies(st, toB);
+  assert.ok(
+    seen.bears.some((x) => x.id === oid && x.terms.names === 'levied' && x.named.length === 1) && !seen.lays.length,
+  );
+  assert.ok(
+    Sim.levies(st, { kind: 'household', id: A.id }).lays.some((x) => x.id === oid),
+    'and the levier lays it',
+  );
+  // the hand is on duty only on the day, and takes tasks of the levier's plan only
+  const p = st.pawns[hand];
+  assert.strictEqual(eligible(st, j, p), null, 'not before the day');
+  while (today() < D) {
+    Sim.advance(st, 1);
+    quiet();
+    if (!st.jobs.has(j.key)) j = post();
+  }
+  Sim.advance(st, 0.2);
+  assert.strictEqual(st.daysToday.day, D);
+  assert.deepStrictEqual(o.named, [], 'the day come, it leaves the days named');
+  assert.strictEqual(eligible(st, j, p), 'owed', "on duty: the levier's tasks, on the basis owed");
+  const mine = Jobs.post(
+    st,
+    `plow:f${fB.id}.${fB.fields[0].id}`,
+    'plow',
+    { type: 'household', id: B.id },
+    fB.fields[0].tile,
+    {
+      field: fB.fields[0],
+      farm: fB,
+    },
+  );
+  assert.strictEqual(eligible(st, mine, p), null, "and not its own household's");
+  st.jobs.delete(mine.key);
+  st.jobsBy.get(`household:${B.id}`).delete(mine);
+  const others = () => {
+    for (const q of [...(st.jobsBy.get(`household:${A.id}`) || [])])
+      if (q !== j && q.kind === 'plow') {
+        st.jobs.delete(q.key);
+        st.jobsBy.get(`household:${A.id}`).delete(q);
+      }
+  };
+  while (st.t < D * DAY + 12) {
+    Sim.advance(st, 0.5);
+    dropAll(`household:${B.id}`);
+    others();
+    B.waterDay = Sim.cal(st.t).day;
+  }
+  const a = st.agents[hand];
+  assert.ok(
+    a.job === j && a.basis === 'owed',
+    `at noon it works the levier's field (job ${a.job && a.job.key}, ${a.basis})`,
+  );
+  while (st.t < D * DAY + 23) {
+    Sim.advance(st, 0.5);
+    dropAll(`household:${B.id}`);
+    B.waterDay = Sim.cal(st.t).day;
+  }
+  assert.ok(o.delivered > 0.3 && o.delivered <= 1 + 1e-9, `the day worked comes out of the levy (${o.delivered})`);
+  assert.ok(
+    Math.abs(o.worked - o.delivered) < 1e-9 && o.asked <= 1 - o.delivered + 1e-9,
+    `booked as days worked (${o.worked}, asked ${o.asked})`,
+  );
+  assert.ok(fd.hoursOther >= o.delivered * OUTER.hours - 1e-6, `booked as others' hours (${fd.hoursOther})`);
+  assert.ok(!a.job && st.daysToday.by[hand][1] <= OUTER.hours + 1e-9, "home at night, no more than the day's hours");
+  // the default author: a levy of a household whose head is not on its own commands is named at the next day's first step, each day
+  // at the notice or after, never two on one day
+  const lay2 = () => {
+    lay(A.holder, {
+      debtor: toB,
+      source: 'due',
+      days: 3,
+      window: [today() + 1, today() + 12],
+      terms: { names: 'levied' },
+    });
+    return st.obligations[st.obligations.length - 1];
+  };
+  const o2 = lay2();
+  assert.deepStrictEqual(
+    [o2.asked, o2.terms.substitute, o2.terms.carry],
+    [3, false, true],
+    "a due's terms, the window's days asked",
+  );
+  Sim.advance(st, 1);
+  assert.strictEqual(o2.named.length, 3, 'named by the default author');
+  assert.ok(
+    o2.named.every((e, i) => e.day >= o2.window[0] && e.day <= o2.window[1] && (!i || e.day > o2.named[i - 1].day)),
+  );
+  assert.ok(
+    o2.named.every((e) => e.pawn !== null && B.members.includes(e.pawn)),
+    'each with the adult sent',
+  );
+  O.forgive(st, o2.id, A.holder);
+  assert.deepStrictEqual(o2.named, [], 'closed, its days named go with it');
+  // a head on its own commands names its days itself; its default author only once the window has no more days than those unnamed and
+  // the notice
+  const head = st.pawns[B.holder],
+    ctl = head.control;
+  head.control = { auto: false, queue: [] };
+  const o3 = lay2();
+  Sim.advance(st, 1);
+  assert.strictEqual(o3.named.length, 0, 'the head on its own commands: not named for it');
+  while (o3.window[1] - today() + 1 > 3 + OUTER.notice) Sim.advance(st, 1);
+  Sim.advance(st, 0.1);
+  assert.strictEqual(o3.named.length, 3, 'named by its default author when the window runs short');
+  head.control = ctl;
+  O.forgive(st, o3.id, A.holder);
+  // a day named, and then its household's own harvest waiting that day: nobody comes, and the day stays owed, to be named again
+  B.grain = { barley: 4000 };
+  lay(A.holder, { debtor: toB, source: 'debt', days: 5 });
+  const o4 = st.obligations[st.obligations.length - 1];
+  O.setLevy(st, o4.id, { window: [today(), today() + 20], asked: 1 });
+  const D2 = today() + OUTER.notice + 2;
+  if (!st.jobs.has(j.key)) j = post();
+  assert.strictEqual(
+    issue(st, { actor: B.holder, verb: 'name', target: o4.id, args: { day: D2, pawn: hand }, source: 'player' }),
+    true,
+  );
+  const f0 = fB.fields[0],
+    was = [f0.stage, f0.crop];
+  f0.stage = 'ripe';
+  f0.crop = 'barley';
+  const reap = Jobs.post(st, `reap:f${fB.id}.0`, 'reap', { type: 'household', id: B.id }, fB.fields[0].tile, {
+    field: fB.fields[0],
+    farm: fB,
+  });
+  reap.hours = 1000;
+  const repost = () => {
+    if (!st.jobs.has(reap.key)) {
+      st.jobs.set(reap.key, reap);
+      st.jobsBy.get(`household:${B.id}`).add(reap);
+    }
+  };
+  while (today() < D2) {
+    Sim.advance(st, 0.1);
+    repost();
+    A.grain = B.grain = { barley: 4000 };
+    for (const h of [A, B]) h.waterDay = Sim.cal(st.t).day;
+  }
+  Sim.advance(st, 0.2);
+  assert.strictEqual(st.daysToday.day, D2);
+  assert.ok(!st.daysToday.by[hand], 'its own harvest waiting: not called away');
+  assert.ok(O.left(o4) === 5 && o4.asked >= 1 && !o4.named.some((e) => e.day <= D2), `the day stays owed and asked, to be named again (${O.left(o4)}, ${o4.asked}, ${JSON.stringify(o4.named)}, ${JSON.stringify(o4.window)}, ${today()})`);
+  st.jobs.delete(reap.key);
+  st.jobsBy.get(`household:${B.id}`).delete(reap);
+  [f0.stage, f0.crop] = was;
+  O.forgive(st, o4.id, A.holder);
+  // a term's end: a debt's days stand, the keep's lapse, told once
+  const mk = (source) => {
+    lay(A.holder, { debtor: toB, source, days: 4, due: st.t + 2 });
+    return st.obligations.length - 1;
+  };
+  const debt = mk('debt'),
+    keep = mk('keep');
+  const n0 = st.record.length;
+  Sim.advance(st, 3);
+  assert.strictEqual(st.obligations[debt].status, 'overdue', "a debt's days stand");
+  assert.strictEqual(st.obligations[keep].status, 'lapsed', "the keep's days lapse");
+  assert.strictEqual(st.record.slice(n0).filter((e) => /lapsed/.test(e.text || '')).length, 1, 'told once');
+  assert.deepStrictEqual(
+    checkState(st).filter((b) => /obligation|days/.test(b)),
+    [],
+  );
+  // an estate's levy comes on top (design.md, Outer levies, An estate's levy): a due laid on a village is split into its households'
+  // lots by fields, beside the routine lots already laid on them, which stand as they were
+  const vid = fA.village,
+    routine = [A, B].map((h) =>
+      O.create(st, {
+        kind: 'days',
+        debtor: { kind: 'household', id: h.id },
+        creditor: { kind: 'village', id: vid },
+        owes: { days: 2 },
+        source: 'routine',
+        terms: TERMS.routine,
+        window: [today(), today() + 20],
+      }),
+    );
+  const before = JSON.stringify(routine.map((id) => st.obligations[id]));
+  const n1 = st.obligations.length;
+  assert.strictEqual(
+    lay(A.holder, { debtor: { kind: 'village', id: vid }, source: 'due', days: 3, window: [today(), today() + 20] }),
+    true,
+  );
+  const dues = st.obligations.slice(n1);
+  assert.ok(
+    dues.every((x) => x.source === 'due' && x.debtor.kind === 'household' && x.terms.names === 'levier'),
+    'lots of the due',
+  );
+  assert.strictEqual(
+    dues.reduce((s, x) => s + x.owes.days, 0),
+    3,
+    'the lots sum to the days laid',
+  );
+  assert.strictEqual(
+    JSON.stringify(routine.map((id) => st.obligations[id])),
+    before,
+    'the routine lots stand as they were',
+  );
+  for (const h of [A, B])
+    assert.ok(
+      Sim.levies(st, { kind: 'household', id: h.id }).bears.length >=
+        1 + dues.filter((x) => x.debtor.id === h.id).length,
+    );
+  for (const id of [...routine, ...dues.map((x) => x.id)]) O.forgive(st, id, A.holder);
+  // hours booked while the creditor's load is on the road: it is brought in before the pawn goes home (VB-1548)
+  {
+    const ag = st.agents[hand],
+      was = [ag.job, ag.load, st.daysToday];
+    st.daysToday = { day: today(), by: { [hand]: [oid, OUTER.hours, 0] } };
+    const e = st.daysToday.by[hand];
+    ag.job = j;
+    ag.load = 1;
+    Levies.step(st);
+    assert.strictEqual(e[2], 0, 'a load on the road: no goHome yet');
+    ag.load = 0;
+    ag.job = null;
+    Levies.step(st);
+    assert.strictEqual(e[2], 1, 'the load delivered: the hand goes home');
+    [ag.job, ag.load, st.daysToday] = was;
+  }
+  // VB-1813: an owed hand whose hours are booked while it is cut at a creditor's trip (a basket of stone picked: the load made, carried to the
+  // creditor's store by the methods) and on a wood haul (the load in hand set in the creditor's store) sets the load in the store, then walks home
+  // (sim/agents dayGiven, onward); the store is the creditor's, never the debtor's
+  {
+    const { tinyWorld, tinyState } = require('./lib/tiny.js'),
+      Agents = VB['sim/agents'],
+      Stores = VB['sim/stores'],
+      { cal } = VB['sim/rules'];
+    const rows = Array.from({ length: 14 }, (_, i) =>
+      i < 2 ? 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF' : '.'.repeat(36),
+    );
+    const mkst = () => {
+      const s = tinyState(tinyWorld(rows), [{ at: [8, 8], farms: 2, sizes: [4, 4] }], { seed: 4 });
+      s.naturalDeaths = false;
+      Sim.advance(s, 3);
+      while (cal(s.t).hour < 8) Sim.advance(s, 0.25);
+      return s;
+    };
+    for (const kind of ['gather', 'wood']) {
+      const s = mkst(),
+        [CA, CB] = [s.households[0], s.households[1]],
+        fa = s.farmsteads[CA.farmstead],
+        ob = O.create(s, {
+          kind: 'days',
+          debtor: { kind: 'household', id: CB.id },
+          creditor: { kind: 'household', id: CA.id },
+          owes: { days: 2 },
+          source: 'debt',
+        });
+      const h = CB.members.find((m) => s.pawns[m].alive && age(s, s.pawns[m]) >= MATCH.help.minAge),
+        ag = s.agents[h];
+      const site = s.villages[fa.village].wood[0];
+      assert.ok(site >= 0, `${kind}: a site`);
+      const jj = Jobs.post(s, `${kind}:test`, kind, { type: 'household', id: CA.id }, site, { farm: fa });
+      const mark = (x) => {
+        s.daysToday = { day: Math.floor(s.t / DAY), by: { [h]: [ob, x, 0] } };
+      };
+      mark(0);
+      VB['sim/agents'].release(s, ag);
+      ag.basis = 'owed';
+      Agents.start(s, ag, jj);
+      const held = (hh) =>
+          kind === 'gather' ? hh.fresh.reduce((x, b) => x + b.qty, 0) : Stores.heldOf(hh, 'timber') + (hh.wood || 0),
+        stone = () => held(CA),
+        mine = () => held(CB),
+        was = [stone(), mine()];
+      let n = 0;
+      if (kind === 'gather') {
+        while (!(ag.leg && ag.leg.kind === 'work') && n++ < 400) Sim.advance(s, 0.1);
+        for (let i = 0; i < 5; i++) Sim.advance(s, 0.1); // half an hour of its two hours worked
+      } else while (!(ag.load > 0) && n++ < 600) Sim.advance(s, 0.1);
+      assert.ok(
+        n < 400 && ag.job === jj && (kind === 'wood' || ag.leg.kind === 'work'),
+        `${kind}: the hand is at the trip (${n}, ${ag.job && ag.job.key})`,
+      );
+      const hours = OUTER.hours;
+      mark(hours);
+      if (kind === 'gather') Levies.step(s);
+      let i = 0;
+      for (; i < 25 && (ag.job || !ag.inside); i++) Sim.advance(s, 0.1); // well within the hours it would take to work on
+      assert.ok(
+        !ag.job && ag.inside && !(ag.load > 0),
+        `${kind}: the load set down, the hand home (${ag.job && ag.job.key}, ${ag.load}, inside ${ag.inside})`,
+      );
+      assert.ok(
+        stone() > was[0] && mine() === was[1],
+        `${kind}: the load is in the creditor's store (${was[0]} to ${stone()}; its own ${mine()})`,
+      );
+    }
+  }
+}
+
 console.log(
-  `levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first; each leg's hours booked into the six parts, a day summing to H, the tally folded; a demand named and answered by the member's judgement, a breach's hours taken, goodwill booked both ways; own hours given by the member's judgement, the diligent son's ${ownSeen}${fitSeen}`,
+  `levies ok: the custom's table through the door; each member's levy by its row and hands, the head pair and a child under 7 not levied; compiled once a season; the levy left today the day's capacity; the morning's lists within the levies; the vital work slotted first; each leg's hours booked into the six parts, a day summing to H, the tally folded; a demand named and answered by the member's judgement, a breach's hours taken, goodwill booked both ways; own hours given by the member's judgement, the diligent son's ${ownSeen}${fitSeen}; an outer levy laid with its terms, asked, named at the notice, worked as owed, a due on a village on top of its routine lots`,
 );
