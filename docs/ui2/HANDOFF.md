@@ -1,5 +1,7 @@
 # New interface (ui2): where it stands
 
+**The brief's first rule (Kim, 27 November): design.md section 1, The core loop.** The days ahead are the main planning surface; today shows what is happening and why; no paths on the land; a cut is ordinary; leaving undone is an act.
+
 **On main since 24 November (PR #289), as partial work: the new interface shows in the solo scenario only** (`u2Live()` in
 `src/page/ui2.js`; every other scenario, the start's menus and the editor are the old interface's; `?classic` shows the old one in
 solo too). The task numbers below are as renumbered at that merge (this work's VB-1615..1642 became VB-1643..1670: main had taken

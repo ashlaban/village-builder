@@ -5,6 +5,8 @@
 // worked out when read, from the task, its hands and the head; the one thing drawn is the lean, plan.head.bias.hours (sim/seasonal).
 VB['sim/estimate'] = (() => {
   const { atWork } = VB['sim/pose'];
+  const { CROPS } = VB['sim/crops'],
+    Targets = VB['sim/targets'];
   const { HUNGER, HEALTH, HERD } = VB['sim/rules'],
     { workRate } = VB['sim/roles'];
   const { age, fullName, log, atFarm } = VB['sim/records'];
@@ -237,8 +239,23 @@ VB['sim/estimate'] = (() => {
   }
   // The hours each season step still wants by the head's estimate (VB-1826: its rates and its lean), `left` {lo, mid, hi}: a
   // target's from its store's shortfall against its level (wood: the loads it lacks, fell and cut; hay: the mowing and carrying its
-  // shortfall wants; fields: a clearing and a breaking each field it lacks; seed and the made goods: none yet, VB-1867), a routine's none
+  // shortfall wants; fields: a clearing and a breaking each field it lacks;
+  // seed: a sowing a field's seed it lacks; a made good: its maker's hours a unit it lacks), a routine's none
   // yet (VB-1868). One estimate a target step with work left; it feeds no rule yet (VB-1778 sets it against the labour budget).
+  // The hours a unit of each made good takes, by its maker's kind (VB-1867).
+  const PER = {
+    ale: () => ({ kind: 'brew', hours: KINDS.brew.hours }),
+    clay: () => ({ kind: 'dig', hours: KINDS.dig.hours }),
+    bogOre: () => ({ kind: 'dig', hours: KINDS.dig.hours }),
+    peat: (st) => ({ kind: 'dig', hours: KINDS.dig.hours / st.ECON.woodPerTrip }),
+    salt: () => ({ kind: 'boilsalt', hours: KINDS.boilsalt.hours / 10 }),
+    iron: () => ({ kind: 'smelt', hours: KINDS.smelt.hours }),
+    quern: () => ({ kind: 'hewQuern', hours: KINDS.hewQuern.hours }),
+    butter: () => ({ kind: 'milk', hours: KINDS.milk.hours }),
+    'salt meat': () => ({ kind: 'slaughter', hours: KINDS.slaughter.hours }),
+    'dried fish': () => ({ kind: 'rackfish', hours: KINDS.rackfish.hours / 4 + KINDS.dry.hours / 10 }),
+    tar: () => ({ kind: 'burntar', hours: KINDS.burntar.hours }),
+  };
   function workOfTarget(st, hh, c, T) {
     const k = T.what.target;
     if (k.store === 'wood') {
@@ -258,6 +275,18 @@ VB['sim/estimate'] = (() => {
       const lack = k.level - st.farmsteads[hh.farmstead].fields.length;
       if (!(lack > 0)) return null;
       return { kind: 'clear', hours: lack * (KINDS.clear.hours + KINDS.break.hours) };
+    }
+    if (k.store === 'seed') {
+      const lack = k.level - (hh.grain ? hh.grain.barley || 0 : 0);
+      if (!(lack > 0)) return null;
+      return { kind: 'sow', hours: (lack / CROPS.barley.seed) * KINDS.sow.hours };
+    }
+    if (k.good && PER[k.good]) {
+      const M = Targets.MADE.get(k.good),
+        lack = k.level - (M ? M.held(st, hh) : 0);
+      if (!(lack > 0) || !Number.isFinite(lack)) return null;
+      const P = PER[k.good](st);
+      return { kind: P.kind, hours: lack * P.hours };
     }
     return null;
   }

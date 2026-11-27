@@ -1,7 +1,7 @@
 // Review: the deterministic half of an independent review of a task's change (VB-1619). A `vb-review` sub-agent with a fresh context
 // reads the packet, writes its findings, and only then reads the implementer's claims; this tool computes what a reviewer must not
 // spend calls on, and checks the findings file. The review's first question is whether the change keeps the game's vision and its
-// design principles (design.md, The game, in Kim's terms; Principles for decisions): every packet carries both whole.
+// design principles (design.md, The game, in Kim's terms; The core loop; Principles for decisions): every packet carries them whole.
 // usage: node tools/review.js <command> VB-NNN [--base REF] [--head REF] [--root DIR]
 //   eligible   the arm, and the rule that decided it: review, control (held out by a hash of the ID), ineligible, or reviewed (a
 //              record of an earlier review exists: one review a task)
@@ -212,7 +212,7 @@ async function packet(root, id, base, head) {
     const node = (args, cwd) => cp.spawnSync(process.execPath, args, { cwd, encoding: 'utf8', maxBuffer: 1 << 26 });
     // the vision and the principles, as they stood at the base
     const doc = (q) => node([path.join(__dirname, 'doc.js'), 'design.md', q], tree);
-    const vision = ["The game, in Kim's terms", 'Principles for decisions'].map(doc).filter((r) => r.status === 0).map((r) => r.stdout.trim());
+    const vision = ["The game, in Kim's terms", 'The core loop', 'Principles for decisions'].map(doc).filter((r) => r.status === 0).map((r) => r.stdout.trim());
     out.push('## The vision and the design principles (design.md, section 1, at the base): the first thing a review checks\n' +
       (vision.join('\n\n') || '(not found in design.md at the base)'));
     // the task as it stood at the base: a task made on the branch is shown as at the head, its ticks cleared and its notes cut
