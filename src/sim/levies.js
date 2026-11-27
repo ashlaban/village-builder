@@ -11,7 +11,9 @@ VB['sim/levies'] = (() => {
   const { planOf } = VB['sim/plans'];
   const { workedToday } = VB['sim/work'];
   const { on, emit } = VB['sim/events'];
-  const { SEASON_DAYS, GOODWILL } = VB['sim/rules'];
+  const { SEASON_DAYS, YEAR_DAYS, GOODWILL } = VB['sim/rules'];
+  const { CROPS } = VB['sim/crops'];
+  const { setAside } = VB['sim/gifts'];
   const { of: traitOf } = VB['sim/traits'];
   const { opinionOf, balance, book: bookGoodwill } = VB['sim/relations'];
   const { KINDS } = VB['sim/kinds'];
@@ -737,13 +739,6 @@ VB['sim/levies'] = (() => {
     if (d && d.day === today(st)) for (const k in d.by) if (d.by[k][0] === o.id && d.by[k][1] < OUTER.hours - 1e-9) n++;
     return Math.max(0, Math.ceil(Math.min(o.asked, Obligations.left(o)) - 1e-9) - n);
   }
-  // Why household hh sends no hand, or null: below its floor, or its own harvest waiting (the day stays owed).
-  function sendsNone(st, hh) {
-    if (Stores.grainOf(hh) - floorOf(st, hh) < 0) return 'its household is below its floor';
-    for (const j of st.jobsBy.get(`household:${hh.id}`) || [])
-      if (KINDS[j.kind].type === 'harvest' && isOpen(st, j)) return 'its household has its own harvest waiting';
-    return null;
-  }
   // An adult of household hh who may be sent: alive, a member, not retired, of the age help takes.
   const able = (st, hh, id) => {
     const p = st.pawns[id];
@@ -916,7 +911,8 @@ VB['sim/levies'] = (() => {
       taken.add(day);
     }
   }
-  // Why `actor` cannot name day args.day of levy id (for args.pawn, or null: picked on the day), or null.
+  // Why `actor` cannot name day args.day of levy id (for args.pawn, or null: picked on the day), or null; with args.from, a day named
+  // moved to another (the ladder's second rung, VB-1769).
   function nameWhy(st, actor, id, a) {
     const o = st.obligations && st.obligations[id];
     if (!o || o.kind !== 'days' || !Obligations.isLive(o)) return `there are no days owed under ${id}`;
@@ -930,7 +926,10 @@ VB['sim/levies'] = (() => {
     if (!Number.isInteger(day)) return 'a day is named by its game day';
     if (day < today(st) + o.terms.notice) return `a day is named at least ${o.terms.notice} days ahead`;
     if (day < o.window[0] || day > o.window[1]) return "the day is outside the levy's window";
-    if (!(unnamed(st, o) > 0)) return 'every day asked is named already';
+    const from = a.from;
+    if (from !== undefined && !o.named.some((e) => e.day === from))
+      return 'no adult is named for the day it moves from';
+    if (from === undefined && !(unnamed(st, o) > 0)) return 'every day asked is named already';
     if (o.named.some((e) => e.day === day)) return 'an adult is named for that day of this levy already';
     if (a.pawn !== null && a.pawn !== undefined && !able(st, hh, a.pawn)) return 'no adult of that household can come';
     return null;
@@ -939,12 +938,13 @@ VB['sim/levies'] = (() => {
     check: (st, c) => nameWhy(st, c.actor, c.target, c.args),
     run: (st, c) => {
       const o = st.obligations[c.target],
-        day = c.args.day;
+        day = c.args.day,
+        rest = o.named.filter((e) => e.day !== c.args.from);
       Obligations.setLevy(st, o.id, {
         named: [
-          ...o.named.filter((e) => e.day < day),
+          ...rest.filter((e) => e.day < day),
           { day, pawn: c.args.pawn ?? null },
-          ...o.named.filter((e) => e.day > day),
+          ...rest.filter((e) => e.day > day),
         ],
       });
       VB.count.daysNamed++;
@@ -958,15 +958,406 @@ VB['sim/levies'] = (() => {
       head = hh ? hh.holder : null;
     return head === null || !unplanned(st, head) || o.window[1] - D + 1 <= unnamed(st, o) + o.terms.notice;
   }
-  // The pawn of household hh sent on day named e of levy o, or null: the one named, or where it cannot come and the terms allow
-  // (or none was named), another adult; none where its household sends none (the day stays owed).
+  // The pawn of household hh sent on day named e of levy o, once its head's ladder has answered (keepDay), or null: the one named, or
+  // where it cannot come and the terms allow (or none was named), another adult; none where nobody can (the day stays owed).
   function sentOf(st, o, e, by) {
     const hh = st.households[o.debtor.id];
-    if (!hh || hh.dissolved || sendsNone(st, hh)) return null;
-    const ok = (id) => able(st, hh, id) && !by[id];
+    if (!hh || hh.dissolved) return null;
+    const ok = (id) => comes(st, hh, id, by);
     if (e.pawn !== null && ok(e.pawn)) return e.pawn;
     if (e.pawn !== null && !o.terms.substitute) return null;
     return hh.members.find(ok) ?? null;
+  }
+  // ---- the ladder before a breach (VB-1769; design.md, Outer levies, The terms, the ladder and the breach) ----
+  // An adult of hh who can come today: able, not ill, at home (not away), not on another levy's duty today.
+  const comes = (st, hh, id, by) =>
+    able(st, hh, id) && !st.pawns[id].ill && !!st.agents[id] && st.agents[id].away === undefined && !(by && by[id]);
+  // K: what keeping day d of an outer levy costs household hh with adult id sent (null: any adult, a whole day), in rations, by its
+  // head's reckoning, as its demand reckons work at risk (sim/day atRisk): for each open task whose window (sim/hands windowEnd) is still
+  // open on d, the hours the day takes from it past what the household's levied hours to the window's end less the day's cover, times
+  // its yield over its hours left (a field's crop, sim/estimate fieldYield; a task due today, a ration a member); weighed by
+  // OUTER.hunger below its floor. The hours the day takes: the day's, at most the adult's own levy that day.
+  function costOf(st, hh, d, id = null) {
+    VB.count.outerCost++;
+    const c = cal(st.t),
+      dy = c.season * SEASON_DAYS + c.sday + (d - c.day),
+      own = id === null ? null : (levyOf(st, id, d) ?? WORK[1] - WORK[0]),
+      taken = own === null ? OUTER.hours : Math.min(OUTER.hours, own),
+      cap = capOf(st, hh, d),
+      mouths = hh.members.filter((m) => st.pawns[m].died === null).length;
+    let K = 0;
+    for (const j of st.jobsBy.get(`household:${hh.id}`) || []) {
+      VB.count.leviesWeighed++;
+      const e = windowEnd(st, j, c);
+      if (e === null || e < dy || !isOpen(st, j)) continue;
+      const left = Math.max(0, (j.hours ?? KINDS[j.kind].hours ?? 0) - (j.done || 0)),
+        x = Math.min(taken, Math.max(0, left - (cap * (e - dy + 1) - taken)));
+      if (!(x > 0) || !(left > 0)) continue;
+      const R = KINDS[j.kind].late ? mouths : j.field && CROPS[j.field.crop] ? fieldYield(j.field.crop) : 0;
+      K += (R * x) / left;
+    }
+    return Stores.grainOf(hh) < floorOf(st, hh) ? K * OUTER.hunger : K;
+  }
+  // B: what levy o does to those who breach it, in rations, read from its terms' onBreach: the day's worth booked as goodwill to its
+  // levier's agent, weighed by OUTER.breach (the goodwill, and the opinion that follows); a debt's day also stays owed, its worth again.
+  // A fine, a case, an estate's penalty and eviction are named in the terms and not built: each reads as the memory for now.
+  const breachCost = (o) => OUTER.worth * OUTER.breach + (o.source === 'debt' ? OUTER.worth : 0);
+  // K where nobody can be sent: the day cannot be kept at any cost short of the levier's own answer.
+  const CANNOT = 1e6;
+  // W: the day's worth to the levier of o on day d, by its agent's reckoning: the keep's, the work at risk a day's hands would save his
+  // household's own plan (costOf, on his household); a routine's, a debt's, a patron's, a due's, the day's worth (a routine's lots
+  // weighed against its work left wait for VB-1768).
+  function worthTo(st, o, d) {
+    if (o.source === 'keep' && o.creditor.kind === 'household') {
+      const cr = st.households[o.creditor.id];
+      return cr && !cr.dissolved ? costOf(st, cr, d) : 0;
+    }
+    return OUTER.worth;
+  }
+  // The agent of levy o's levier grants an ask for a day (a release, or its transfer) by need and opinion: when K × (1 + its opinion of
+  // the asker's head) > W + the goodwill that head already owes it; the same rule lets a breach be forgiven (the agent's planning day).
+  function grants(st, o, agent, head, K, d) {
+    if (agent === null || agent === undefined || !st.pawns[agent] || !st.pawns[agent].alive) return false;
+    const G = Math.max(0, balance(st, agent, head));
+    return K * (1 + opinionOf(st, agent, head)) > worthTo(st, o, d) + G;
+  }
+  // The levied head's default author, on the day's first step, for the day named e of levy o: where the one named can come and keeping
+  // the day costs no more than its worth, it is kept; else the ladder, each rung by the verbs and their checks: (1) substitute the adult
+  // whose K is least, where it is below the day's worth; (2) name another day of the window whose K is below it; (3) ask the levier's
+  // agent for a release; (4) commute, where the terms give a rate, K passes it and the household holds it above its floor; (5) breach,
+  // when K > B; else the day is kept as named. A head on its own commands had the decision point `keep` before the day.
+  function keepDay(st, o, e, by) {
+    const hh = st.households[o.debtor.id];
+    if (!hh || hh.dissolved) return;
+    const D = e.day,
+      head = hh.holder,
+      W = OUTER.worth,
+      first = e.pawn !== null ? e.pawn : hh.members.find((id) => comes(st, hh, id, by));
+    VB.count.outerDayJudged++;
+    let K = first !== undefined && first !== null && comes(st, hh, first, by) ? costOf(st, hh, D, first) : CANNOT;
+    if (K <= W || head === null || !st.pawns[head] || !st.pawns[head].alive) return;
+    VB.count.ladderTried++;
+    const act = (verb, args, target = o.id) =>
+      issue(st, { actor: head, verb, target, args: { day: D, ...args }, source: 'planner' }) === true;
+    const still = () => o.named.some((x) => x.day === D);
+    // (1) another adult
+    if (o.terms.substitute) {
+      let best = null,
+        bk = Infinity;
+      for (const id of hh.members) {
+        if (id === first || !comes(st, hh, id, by)) continue;
+        const k = costOf(st, hh, D, id);
+        if (k < bk) [best, bk] = [id, k];
+      }
+      if (best !== null && bk < W && act('substitute', { pawn: best })) return;
+      if (best !== null && K === CANNOT) K = bk; // what keeping it costs is then what sending the next adult costs
+    }
+    // (2) another day, where the levied names and the notice allows: the first whose K is below the day's worth
+    if (o.terms.names === 'levied') {
+      const taken = new Set();
+      for (const x of Obligations.due(st, hhRef(hh.id), 'debtor', 'days')) for (const y of x.named) taken.add(y.day);
+      for (let d = Math.max(D + o.terms.notice, o.window[0]); d <= o.window[1]; d++) {
+        if (taken.has(d)) continue;
+        const id = adultFor(st, hh, d);
+        if (id === null) break;
+        if (costOf(st, hh, d, id) < W) {
+          if (act('name', { day: d, pawn: id, from: D })) return;
+          break;
+        }
+      }
+    }
+    // (3) a release asked of the levier's agent, its reckoning carried with the ask
+    const agent = agentOf(st, o.creditor);
+    if (agent !== null && agent !== undefined && agent !== head && st.pawns[agent] && st.pawns[agent].alive) {
+      VB.count.releaseAsked++;
+      act('ask', { basis: 'release', wants: { levy: o.id, day: D, K } }, agent);
+      if (!still()) return;
+    }
+    // (4) commuted at the terms' rate, from the store above its floor
+    const rate = o.terms.commute;
+    if (
+      rate !== null &&
+      rate !== undefined &&
+      K > rate &&
+      Stores.grainOf(hh) - floorOf(st, hh) >= rate &&
+      act('commute', {})
+    )
+      return;
+    // (5) breached, when keeping it costs more than what the levier does
+    if (K > breachCost(o)) act('breach', { levy: o.id, K });
+  }
+  // The day named `day` of levy o, or null; the days named without it.
+  const namedOn = (o, day) => o.named.find((e) => e.day === day) || null;
+  const without = (o, day) => o.named.filter((e) => e.day !== day);
+  // Why `actor` may not act on day a.day of levy id on the levied side (substitute, commute, breach), or null: only its levied head.
+  function leviedWhy(st, actor, id, a) {
+    const o = st.obligations && st.obligations[id];
+    if (!o || o.kind !== 'days' || !Obligations.isLive(o)) return `there are no days owed under ${id}`;
+    const hh = o.debtor.kind === 'household' ? st.households[o.debtor.id] : null;
+    if (!hh || hh.dissolved || hh.holder !== actor) return 'only the levied head acts on its days';
+    if (!a || !Number.isInteger(a.day) || !namedOn(o, a.day)) return 'no adult is named for that day';
+    return null;
+  }
+  // substitute({day, pawn}): another adult sent on a day named, where the terms allow.
+  register('substitute', {
+    check: (st, c) => {
+      const why = leviedWhy(st, c.actor, c.target, c.args);
+      if (why) return why;
+      const o = st.obligations[c.target],
+        hh = st.households[o.debtor.id];
+      if (!o.terms.substitute) return 'its terms send the one named, and no other';
+      return able(st, hh, c.args.pawn) ? null : 'no adult of that household can come';
+    },
+    run: (st, c) => {
+      const o = st.obligations[c.target];
+      Obligations.setLevy(st, o.id, {
+        named: o.named.map((e) => (e.day === c.args.day ? { day: e.day, pawn: c.args.pawn } : e)),
+      });
+      VB.count.daySubstituted++;
+    },
+  });
+  // commute({day}): the day named paid for in goods at the terms' rate, from the household's store to the levier's (a debt's against it).
+  register('commute', {
+    check: (st, c) => {
+      const why = leviedWhy(st, c.actor, c.target, c.args);
+      if (why) return why;
+      const o = st.obligations[c.target],
+        rate = o.terms.commute;
+      if (rate === null || rate === undefined) return 'its terms take the day, not goods for it';
+      const cr = o.creditor.kind === 'household' ? st.households[o.creditor.id] : null;
+      if (!cr || cr.dissolved) return 'there is no store of the levier to pay into';
+      return Stores.grainOf(st.households[o.debtor.id]) >= rate ? null : `the household does not hold ${rate} rations`;
+    },
+    run: (st, c) => {
+      const o = st.obligations[c.target],
+        hh = st.households[o.debtor.id],
+        n = Math.min(1, Obligations.left(o));
+      Obligations.setLevy(st, o.id, { named: without(o, c.args.day) });
+      // the rate's rations are the levier's where they lie, set aside at the levied's house and fetched by one of the levier's (sim/gifts
+      // setAside, as a loan's repayment is: nothing teleports); the day is booked as paid (not worked) against the levy at once
+      setAside(st, hh, st.households[o.creditor.id], o.terms.commute);
+      Obligations.fulfil(st, o.id, n, 'commute');
+      VB.count.dayCommuted++;
+    },
+  });
+  // The breach of the day named a.day of levy a.levy by its levied head (the verb breach with {levy, day, K}; sim/day's breach of a
+  // member's own levy is the other): its onBreach booked at once, the day's worth the head owes the levier's agent, opinion following;
+  // a debt's day stays owed (named again), any other's is struck. Told in the record with K and B; the agent answers at its next
+  // planning day.
+  function breachWhy(st, actor, a) {
+    return (
+      leviedWhy(st, actor, a.levy, a) || (a.K !== undefined && !(a.K >= 0) ? 'a breach carries its reckoning' : null)
+    );
+  }
+  function breach(st, actor, a) {
+    const o = st.obligations[a.levy],
+      hh = st.households[o.debtor.id],
+      agent = agentOf(st, o.creditor),
+      K = Math.min(CANNOT, a.K ?? costOf(st, hh, a.day)),
+      B = breachCost(o);
+    Obligations.setLevy(st, o.id, { named: without(o, a.day) });
+    VB.count.dayBreached++;
+    if (o.source !== 'debt') Obligations.lapse(st, o.id, 'breached', Math.min(1, Obligations.left(o)));
+    const live =
+      Obligations.isLive(o) && agent !== null && agent !== undefined && agent !== actor && st.pawns[agent].alive;
+    if (agent !== null && agent !== undefined && agent !== actor && st.pawns[agent].alive)
+      bookGoodwill(st, agent, actor, OUTER.worth);
+    if (live) Obligations.setLevy(st, o.id, { breaches: [...o.breaches, { day: a.day, K, by: actor }] });
+    if (hh.farmstead !== null) {
+      const f = st.farmsteads[hh.farmstead],
+        to = agent !== null && agent !== undefined && agent !== actor ? ` to ${fullName(st.pawns[agent])}` : '';
+      log(
+        st,
+        `${fullName(st.pawns[actor])} of ${f.name} kept back the day of ${o.source} owed${to}: keeping it would have cost ` +
+          `${r1(K)} rations, the breach ${B}${o.source === 'debt' ? '; the day is still owed' : ''}.`,
+        { kind: 'levyBreached', pawn: actor, ...atFarm(f) },
+      );
+    }
+  }
+  // Why `actor` may not act for the levier of levy id (release, transfer, forgive), or null: only its agent.
+  function levierWhy(st, actor, id) {
+    const o = st.obligations && st.obligations[id];
+    if (!o || o.kind !== 'days' || !Obligations.isLive(o)) return `there are no days owed under ${id}`;
+    return agentOf(st, o.creditor) === actor ? null : 'only the one who acts for the levier answers for its days';
+  }
+  // release({day} or {days}): the levier's agent strikes a day named, or n days of what is left (a levy about to lapse, let go).
+  register('release', {
+    check: (st, c) => {
+      const why = levierWhy(st, c.actor, c.target);
+      if (why) return why;
+      const o = st.obligations[c.target],
+        a = c.args || {};
+      if (Number.isInteger(a.day)) return namedOn(o, a.day) ? null : 'no adult is named for that day';
+      return a.days > 0 && a.days <= Obligations.left(o) + 1e-9 ? null : 'a release names a day or the days let go';
+    },
+    run: (st, c) => {
+      const o = st.obligations[c.target],
+        a = c.args;
+      if (Number.isInteger(a.day)) Obligations.setLevy(st, o.id, { named: without(o, a.day) });
+      Obligations.forgive(st, o.id, c.actor, Number.isInteger(a.day) ? Math.min(1, Obligations.left(o)) : a.days);
+      VB.count.dayReleased++;
+    },
+  });
+  // transfer({day, to}): the levier's agent lends the day named to household `to` of the levied's village: the day worked there on the
+  // basis `owed`, a levy of one day of its own (the alderman lends a day of his keep to a household in need).
+  register('transfer', {
+    check: (st, c) => {
+      const why = levierWhy(st, c.actor, c.target);
+      if (why) return why;
+      const o = st.obligations[c.target],
+        a = c.args || {},
+        to = Number.isInteger(a.to) ? st.households[a.to] : null,
+        from = st.households[o.debtor.id];
+      if (!Number.isInteger(a.day) || !namedOn(o, a.day)) return 'no adult is named for that day';
+      if (
+        !to ||
+        to.dissolved ||
+        !from ||
+        to.id === from.id ||
+        (o.creditor.kind === 'household' && to.id === o.creditor.id)
+      )
+        return 'a day is lent to another household';
+      return from.farmstead !== null &&
+        to.farmstead !== null &&
+        st.farmsteads[from.farmstead].village === st.farmsteads[to.farmstead].village
+        ? null
+        : 'a day is lent within the village';
+    },
+    run: (st, c) => {
+      const o = st.obligations[c.target],
+        e = namedOn(o, c.args.day);
+      Obligations.setLevy(st, o.id, { named: without(o, e.day) });
+      Obligations.forgive(st, o.id, c.actor, Math.min(1, Obligations.left(o)));
+      const id = Obligations.create(st, {
+        kind: 'days',
+        debtor: o.debtor,
+        creditor: hhRef(c.args.to),
+        owes: { days: 1 },
+        due: (e.day + 1) * DAY,
+        source: o.source,
+        terms: { ...o.terms, carry: false, lent: true },
+        window: [e.day, e.day],
+      });
+      const d = st.daysToday;
+      if (e.day === today(st) && d && d.day === e.day) {
+        const hh = st.households[o.debtor.id],
+          p = e.pawn !== null && comes(st, hh, e.pawn, d.by) ? e.pawn : hh.members.find((x) => comes(st, hh, x, d.by));
+        if (p !== undefined && p !== null) Days.seat(st, p, id);
+      } else Obligations.setLevy(st, id, { named: [e] });
+      VB.count.dayTransferred++;
+    },
+  });
+  // forgive({day}): the levier's agent forgives a breach still to answer: the goodwill it booked is struck (design.md also books the
+  // day's worth to the agent's credit as a gift, which would undo the striking; VB-1769 strikes it only, a note to design). The day a
+  // debt still owes stays owed.
+  register('forgive', {
+    check: (st, c) => {
+      const why = levierWhy(st, c.actor, c.target);
+      if (why) return why;
+      const o = st.obligations[c.target];
+      return o.breaches.some((b) => b.day === (c.args && c.args.day))
+        ? null
+        : 'there is no breach of that day to answer';
+    },
+    run: (st, c) => {
+      const o = st.obligations[c.target],
+        b = o.breaches.find((x) => x.day === c.args.day);
+      Obligations.setLevy(st, o.id, { breaches: o.breaches.filter((x) => x !== b) });
+      if (st.pawns[b.by].alive && st.pawns[c.actor].alive) bookGoodwill(st, b.by, c.actor, OUTER.worth);
+      VB.count.breachForgiven++;
+    },
+  });
+  // At the levier's agent's planning day (a review of the levier's plan): each breach still to answer forgiven where its release would
+  // have been granted (grants), else let stand.
+  on('planReviewed', (st, d) => {
+    const H = d.plan.holder;
+    if (H.type !== 'household' && H.type !== 'village') return;
+    for (const o of Obligations.due(st, { kind: H.type, id: H.id }, 'creditor', 'days')) {
+      if (!o.breaches.length) continue;
+      const agent = agentOf(st, o.creditor);
+      for (const b of o.breaches.slice()) {
+        VB.count.breachAnswered++;
+        if (agent !== null && agent !== undefined && st.pawns[b.by].alive && grants(st, o, agent, b.by, b.K, b.day))
+          issue(st, { actor: agent, verb: 'forgive', target: o.id, args: { day: b.day }, source: 'planner' });
+      }
+      if (o.breaches.length) Obligations.setLevy(st, o.id, { breaches: [] }); // the rest let stand
+    }
+  });
+  // ---- the asks of the levied: the bases `release` and `transfer` (sim/offers), answered by the levier's agent ----
+  // wants {levy, day, K (the asker's reckoning of the day), to (transfer: the household the day is to be worked for)}.
+  function askCheck(st, o) {
+    const w = o.wants,
+      L = w && st.obligations && st.obligations[w.levy];
+    if (!L || L.kind !== 'days' || !Obligations.isLive(L)) return 'an ask for a day names a levy';
+    const hh = L.debtor.kind === 'household' ? st.households[L.debtor.id] : null;
+    if (!hh || hh.holder !== o.from) return 'only the levied head asks for its days';
+    if (agentOf(st, L.creditor) !== o.to) return "the day is asked of its levier's agent";
+    if (!Number.isInteger(w.day) || !namedOn(L, w.day)) return 'no adult is named for that day';
+    if (!(w.K >= 0)) return 'an ask for a day carries its reckoning';
+    if (o.basis === 'transfer' && (!Number.isInteger(w.to) || !st.households[w.to]))
+      return 'a transfer names the household';
+    return {};
+  }
+  // A grant: by transfer where the basis asks it, or where the agent holds an ask for hands from another household of the village
+  // (sim/hands); else a release; either booked as the agent's goodwill.
+  function askSettle(st, o) {
+    const L = st.obligations[o.wants.levy];
+    if (!Obligations.isLive(L) || !namedOn(L, o.wants.day)) return 'the day is answered already';
+    let to = o.basis === 'transfer' ? o.wants.to : null;
+    if (to === null)
+      for (const x of st.offers)
+        if (
+          x.basis === 'help' &&
+          x.household !== L.debtor.id &&
+          x.answers.some((a) => a.by === o.to && a.yes === null)
+        ) {
+          to = x.household;
+          break;
+        }
+    const by = (verb, args) => issue(st, { actor: o.to, verb, target: L.id, args, source: 'planner' });
+    const r =
+      to !== null && by('transfer', { day: o.wants.day, to }) === true ? true : by('release', { day: o.wants.day });
+    if (r !== true) return r;
+    if (st.pawns[o.from].alive && st.pawns[o.to].alive) bookGoodwill(st, o.to, o.from, OUTER.worth);
+    VB.count.releaseGranted++;
+    return true;
+  }
+  const askWords = (st, o) => {
+    const L = st.obligations[o.wants.levy];
+    return `an ask by ${fullName(st.pawns[o.from])} to be let off a day of ${L ? L.source : 'days'} owed`;
+  };
+  for (const name of ['release', 'transfer'])
+    VB['sim/offers'].basis(name, {
+      asked: name, // by the verb ask (sim/offers)
+      books: 'nothing',
+      wait: () => 1,
+      check: askCheck,
+      answers: (st, o) => [{ key: 'agent', by: o.to, yes: null }],
+      weigh: (st, o) => grants(st, st.obligations[o.wants.levy], o.to, o.from, o.wants.K, o.wants.day),
+      settle: askSettle,
+      what: askWords,
+    });
+  // ---- a debt's days unworked (design.md, A debt's days unworked; Remedies) ----
+  // On the last day of a debt's year (its due before the next day's first step), its days left are not struck by a breach: what
+  // remains is laid as a new year's `debt` levy by the creditor's agent (the field that passes under "labour, then land" for a debt
+  // left of half a field's worth waits for the land remedy, VB-1921).
+  function relay(st, o) {
+    const n = Obligations.left(o),
+      agent = agentOf(st, o.creditor),
+      debtor = o.debtor.kind === 'household' ? st.households[o.debtor.id] : null;
+    if (!(n > 1e-9) || agent === null || agent === undefined || !debtor || debtor.dissolved) return;
+    const again = { debtor: o.debtor, creditor: o.creditor, days: n, due: o.due + YEAR_DAYS * DAY };
+    again.source = 'debt';
+    const laid =
+      issue(st, {
+        actor: agent,
+        verb: 'levy',
+        args: again,
+        source: 'planner',
+      }) === true;
+    if (!laid) return;
+    VB.count.debtRelaid++;
+    Obligations.lapse(st, o.id, 'what was left is laid again as a new year of days owed');
   }
   // A day's first step, through the due-queue's outer levies (Rules for cost, 4): the days named for today come on duty (those of
   // days past are over: what was not worked stays owed and is named again); the days still unnamed are named. Then those who have
@@ -981,6 +1372,13 @@ VB['sim/levies'] = (() => {
         const o = st.obligations[id];
         if (o.kind !== 'days') continue;
         VB.count.leviesLooked++;
+        // a debt's last day: relaid unless it is a day lent (transfer), or a day of it is named for today (its hours booked as they are
+        // worked; what is left then ends overdue at its due)
+        if (o.source === 'debt' && !o.terms.lent && o.due <= (D + 1) * DAY && !o.named.some((e) => e.day === D)) {
+          relay(st, o);
+          if (!Obligations.isLive(o)) continue;
+        }
+        if (o.named.length && o.named[0].day === D) keepDay(st, o, o.named[0], d.by);
         while (o.named.length && o.named[0].day <= D) {
           const e = o.named[0];
           Obligations.setLevy(st, o.id, { named: o.named.slice(1) });
@@ -1030,7 +1428,13 @@ VB['sim/levies'] = (() => {
     TERMS,
     leviesOf,
     lotsOf,
-    sendsNone,
+    costOf,
+    keepDay,
+    unnamed,
+    breachCost,
+    breach,
+    breachWhy,
+    comes,
     rowOf,
     levyOf,
     levied,
