@@ -9,8 +9,7 @@ other choices are the designer's, listed as close calls in aims.md 12. Each task
    year at a surplus, one project at a time, for a member of 18, a sole heir offered one. After: the means of the household aim `home`, formed
    when a member who will need a place turns 16, courts or is betrothed, with no surplus asked, beside other projects; a sole heir, who inherits
    the home farm, is not offered one. **P:** yes: it is the house planned ahead that answer 21 asks for, and the marriage then waits for the house.
-2. **Is the labour budget the limit on a holder's parallel large projects?** (VB-1472, which waits for Kim.) **P:** yes: any number, each sized
-   to the season's spare after the work the household lives by, ranked by its `by`; a `home` aim's plot is not the menu's one project.
+2. **Is the labour budget the limit on a holder's parallel large projects?** Moved to `QUESTIONS.md`, block VB-1472, on 27 November 2026 (Kim: the aims are parked, this question is not).
 3. **May a member buy hours of its levy with goods?** (a new act for a played member; VB-1794.) **P:** yes, priced by the hour at the worth
    table's day's work (3 rations for 8 hours, the rate help and the outer levies already use), answered by the head's judgement.
 4. **May a head take a member's goods unasked, as a breach?** (the verb `take`, a new act for a played head; VB-1792.) **P:** yes, symmetric with
