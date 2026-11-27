@@ -613,5 +613,5 @@ VB['sim/agenda'] = (() => {
       return { ...e, work: ps.length ? Math.round(work * 10) / 10 : e.hours };
     });
   }
-  return { agenda, after, past, planGaps, buildMenu };
+  return { agenda, after, past, planGaps, buildMenu, deadlineOf };
 })();

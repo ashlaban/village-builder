@@ -150,8 +150,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1818](backlog/VB-1818.md)<a id="VB-1818"></a> | Kinds: the control fields no code reads after VB-1750 taken out | - | 3 | S | the kinds' own to and meadows' reload, dead since the phases went, removed |
 | [VB-1840](backlog/VB-1840.md)<a id="VB-1840"></a> | The page tells the player what automatic answers, and its sleep as of now | - | 3 | S | After VB-1776 the played pawn on automatic answers at-once offers itself and its sleep is reckoned hourly: the page says so and reads sleep as of now |
 | [VB-1841](backlog/VB-1841.md)<a id="VB-1841"></a> | An older save keeps the player's wish | - | 3 | S | A save from before VB-1776 loses the played pawn's chosen wish to its own choosing: mark it authored on load |
-| [VB-1843](backlog/VB-1843.md)<a id="VB-1843"></a> | Q12 measured: a scripted controller levelling five heads' loads against the default author | plans | 3 | M | The windows missed with five heads authoring their own plans, populous small seed 7, 2 years |
 | [VB-1848](backlog/VB-1848.md)<a id="VB-1848"></a> | Decision points: an allotment is a point only where the head has a choice | plans | 3 | S | The two allotments a day give 2.0 of a head's 2.69 points a head-day against Q13's 1.0 |
+| [VB-1886](backlog/VB-1886.md)<a id="VB-1886"></a> | Q12 over three seeds: the levelling controller's windows missed by key and by deadline | plans | 3 | S | VB-1843's one seed gave 5 missed by the default author, 16 levelled by key and 9 by deadline: too few to judge 10% |
 
 </details>
 
