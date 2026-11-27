@@ -1,4 +1,7 @@
-// usage: node docs/mocks/roads/heat.js [--seed 3] [--farms 10] [--years 4] [--out DIR]
+// usage: node docs/mocks/roads/heat.js [--seed 3] [--farms 10] [--years 4] [--weight W] [--out DIR]
+//   --weight: DISCOMFORT.weight (sim/walking) set before the run, so that routes keep to worn ways (it steers the choice alone)
+//   --offway X: an experiment: every passable tile (fields too) gets the discomfort X, taken away by wear as PATHS.clear takes the
+//   ground's cost, so that a walker minds leaving a worn way anywhere; implies --weight 1 unless given
 //   Where a village's people actually walk (thread "Redesign road layout for hex maps", Kim 27 Nov: "go into the path finder, I want
 //   the actual paths"): one village grown by the simulation as tools/village-shot.js grows one, and in its last game year every walk
 //   a pawn sets out on (sim/legs setOut: the route search's tiles, as the points the pawn walks through) drawn into a raster of the
@@ -6,7 +9,8 @@
 const root = require('path').join(__dirname, '..', '..', '..'), fs = require('fs'), path = require('path'), os = require('os');
 const { chromium } = require(root + '/node_modules/playwright');
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
-const seed = +opt('seed', 3), farms = +opt('farms', 10), years = +opt('years', 4), cols = 60, rows = 42;
+const offway = opt('offway', null), weight = opt('weight', offway === null ? null : '1'),
+  tag = (weight === null ? '' : `-w${weight}`) + (offway === null ? '' : `-o${offway}`), seed = +opt('seed', 3), farms = +opt('farms', 10), years = +opt('years', 4), cols = 60, rows = 42;
 const outDir = path.resolve(opt('out', path.join(__dirname, 'img', 'heat')));
 const shot = fs.readFileSync(root + '/tools/village-shot.js', 'utf8');
 const seedSrc = shot.slice(shot.indexOf('function seedVillage('), shot.indexOf('\n}\n', shot.indexOf('function seedVillage(')) + 2);
@@ -18,6 +22,7 @@ const HOOKS = [
   ['const SIZES = { t: [120, 85],', `const SIZES = { x: [${cols}, ${rows}], t: [120, 85],`],
   ['Sim.seed(wd, seed, scenario, custom ? custom.places : null)', 'window.__seedVillage(wd, seed)'],
 ];
+if (offway !== null) HOOKS.push([/function discomfort\(w, i\) \{/, `function discomfort(w, i) { if (!w.water[i]) { const s0 = w.worn ? w.worn[i] : 0; return ${+offway} * (1 - PATHS.clear[s0]); }`]);
 HOOKS.push([/a\.seg = 0;\s*begin\(st, a\);/, 'if (window.__walkLog) window.__walkLog(a.path, a); a.seg = 0; begin(st, a);']);
 let html = require(root + '/tests/lib/page').builtPage();
 for (const [from, to] of HOOKS) { if (typeof from === 'string' ? !html.includes(from) : !from.test(html)) throw new Error('hook not found: ' + String(from).slice(0, 40)); html = html.replace(from, () => to); }
@@ -42,8 +47,11 @@ fs.mkdirSync(outDir, { recursive: true });
     await page.waitForFunction(() => document.getElementById('loader').classList.contains('done'), null, { timeout: 180000 });
     await page.evaluate(() => { const b = document.getElementById('chooseWatch'); if (b) b.click(); });
     await page.evaluate(() => { const b = document.querySelector('[data-speed="0"]'); if (b) b.click(); });
-    const data = await page.evaluate(async (years) => {
+    const data = await page.evaluate(async ([years, weight]) => {
       const st = window.__vb.st, Sim = window.__vb.Sim(), w = st.w;
+      if (weight !== null) VB['sim/walking'].DISCOMFORT.weight = +weight;
+      let steps = 0, onWay = 0; // tile steps of the logged walks, and those onto a path or lane
+      const ways = (pts) => { for (const p of pts) if (p.length > 3 && p[3] >= 0) { steps++; if (w.worn[p[3]] >= 2) onWay++; } };
       const v = st.villages[0], fsx = v.farmsteads.map((id) => st.farmsteads[id]);
       const tiles = [v.center, ...fsx.flatMap((fm) => [fm.house, ...fm.fields.map((fd) => fd.tile)])];
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -52,7 +60,7 @@ fs.mkdirSync(outDir, { recursive: true });
       const S = 1, GW = Math.ceil((x1 - x0) / S), GH = Math.ceil((y1 - y0) / S), grid = new Float32Array(GW * GH), mark = new Int32Array(GW * GH);
       let walk = 0, walks = 0;
       const log = (pts) => { // each cell a walk passes counts once for that walk
-        walk++; walks++;
+        walk++; walks++; ways(pts);
         for (let k = 1; k < pts.length; k++) {
           const [ax, ay] = pts[k - 1], [bx, by] = pts[k], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / (S * 0.5)));
           for (let s = 0; s <= n; s++) {
@@ -75,10 +83,11 @@ fs.mkdirSync(outDir, { recursive: true });
       return { cols: w.COLS, rows: w.ROWS, R: w.R, hx: Array.from(w.hx), hy: Array.from(w.hy), water: Array.from(w.water), river: Array.from(w.river),
         dev: Array.from(w.dev), worn: Array.from(w.worn), name: v.name, centre: v.center, well: v.well,
         houses: fsx.map((fm) => fm.house), fields: fsx.flatMap((fm) => fm.fields.map((fd) => fd.tile)),
-        pop: st.pawns.filter((p) => p.alive).length, box: [x0, y0, x1, y1], S, GW, GH, grid: btoa(bin), walks };
-    }, years);
-    data.seed = seed; data.years = years;
-    fs.writeFileSync(path.join(outDir, `heat-${seed}.json`), JSON.stringify(data));
+        pop: st.pawns.filter((p) => p.alive).length, box: [x0, y0, x1, y1], S, GW, GH, grid: btoa(bin), walks, steps, onWay,
+        lanes: tiles.length && Array.from(w.worn).filter((s) => s >= 3).length, paths: Array.from(w.worn).filter((s) => s === 2).length };
+    }, [years, weight]);
+    data.seed = seed; data.years = years; data.weight = weight === null ? 0 : +weight;
+    fs.writeFileSync(path.join(outDir, `heat-${seed}${tag}.json`), JSON.stringify(data));
     await page.evaluate(() => window.__vb.clearSky());
     await page.evaluate(() => document.getElementById('uiToggle').click());
     await page.addStyleTag({ content: '#uiToggle, #lod { visibility: hidden !important; }' });
@@ -87,7 +96,7 @@ fs.mkdirSync(outDir, { recursive: true });
     await page.waitForTimeout(3000);
     await page.waitForFunction(() => document.getElementById('lod').hidden, null, { timeout: 90000 }).catch(() => {});
     await page.waitForTimeout(800);
-    await page.screenshot({ path: path.join(outDir, `heat-${seed}-map.jpg`), type: 'jpeg', quality: 88 });
-    console.log(`${data.name}: ${data.houses.length} farms, ${data.pop} people; ${data.walks} walks in the last game year`);
+    await page.screenshot({ path: path.join(outDir, `heat-${seed}${tag}-map.jpg`), type: 'jpeg', quality: 88 });
+    console.log(`${data.name}: ${data.houses.length} farms, ${data.pop} people; ${data.walks} walks in the last game year; ${(100 * data.onWay / data.steps).toFixed(1)}% of ${data.steps} steps on a path or lane; ${data.paths} path and ${data.lanes} lane tiles on the map`);
   } finally { await browser.close(); fs.unlinkSync(page_); }
 })().catch((e) => { console.error(e); process.exit(1); });
