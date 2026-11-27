@@ -199,6 +199,11 @@ name (`docs/principles-concordance.md`).
     is played, the view). The unplayed head chooses as well as its cost allows: the player's edge is foresight and attention, not a
     head made weaker on purpose (Kim, 24 November). Natural processes need no pawn (birth, death, growth, spoilage, an animal
     eating); debug verbs are the world's, not a pawn's.
+- **Acts are on offer; goals are the planner's** (Kim, 27 November). A verb is never withheld because a store meets a goal or a
+  season's target: felling may be planned on any tile whose trees the household may fell, and cutting firewood whenever timber that no
+  project has reserved is at hand, in any season. What limits an act is the world and its rights (no trees, out of reach, another's,
+  reserved), never a goal. Keeping the household through the winter is its head's planning, the player's or an unplayed head's own
+  rule, made with the same acts (Every act is a pawn's).
 - **Whoever cannot keep itself is someone's charge** (Kim, 24 November). A child too young to keep itself, or a pawn bedridden, has a
   named living minder: an obligation, which passes at once like any right and, at the minder's death, by Nothing is left to no one.
   A minder may still leave; leaving costs what it costs the dependant, and the minder weighs that. No verb's check forbids it.
