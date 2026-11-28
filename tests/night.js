@@ -20,6 +20,7 @@ function lose(season, nights, setup) {
   p.health = 80;
   for (let n = 0; n < nights; n++) {
     st.t = (season * SEASON_DAYS + 4 + n) * DAY;
+    p.dress = { worth: 1, at: st.t, grade: 1 }; // sound dress: the cold is the house's (VB-363)
     s.food = 6;
     feedAway(st);
   }

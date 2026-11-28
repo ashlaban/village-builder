@@ -131,6 +131,7 @@
     "pawn.leanDays": "sim/traits",
     "pawn.skill": "sim/skills",
     "pawn.skills": "sim/skills",
+    "pawn.dress": "sim/dress",
     "pawn.mods": "sim/mood",
     "pawn.wish": "sim/wishes",
     "pawn.ask": "sim/offers",

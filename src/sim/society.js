@@ -3,6 +3,7 @@ VB['sim/society'] = (() => {
   const { living, settlement } = VB['sim/records'];
   const { personEvent } = VB['sim/records'];
   const { next: rnd, drawer } = VB['sim/rng'];
+  const Dress = VB['sim/dress'];
   const { issue, register } = VB['sim/commands'];
   const { ask } = VB['sim/decisions'];
   const Culture = VB['culture'],
@@ -217,6 +218,7 @@ VB['sim/society'] = (() => {
       const ale = aleStanding(st, holdingOf(st, p.id));
       if (ale > 0) parts.push(['Ale poured', ale]);
     }
+    if (Dress.rags(st, p)) parts.push(['In rags', -Dress.DRESS.shame]); // VB-363
     const led = Followers.followerTerm(st, p.id); // followers (VB-708): each by its bond's weight, their own at a discount
     if (led > 0) parts.push(['Followers', led]);
     const given = deedNow(st, p, 'gift');
