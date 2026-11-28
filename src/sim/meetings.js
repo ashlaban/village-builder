@@ -11,9 +11,10 @@ VB['sim/meetings'] = (() => {
   const { opinionOf } = VB['sim/relations'];
   const { setAlderman } = VB['sim/membership'];
   const { chooseRoutines, VILLAGE_ROUTINES } = VB['sim/routines'];
+  const { living, villageOf } = VB['sim/records'];
   const { refreshRoles } = VB['sim/heirs'];
   const { updateTie, refreshStanding, refreshInterests, hooks } = VB['sim/society'];
-  const { issue } = VB['sim/commands'];
+  const { issue, register } = VB['sim/commands'];
   const { defineKind, setPresider, ask } = VB['sim/decisions'];
   const { VILLAGE_STEPS } = VB['sim/occasions'];
   const { chooseGathering, settleGatherings } = VB['sim/gathering'];
@@ -236,6 +237,7 @@ VB['sim/meetings'] = (() => {
     const held = st.occasions.find(
       (o) => o.kind === 'meeting' && o.village === s.id && o.start <= st.t && st.t < o.end,
     );
+    holdersPropose(st, s); // the year's review, at the agenda's closing (VB-1770)
     const txt = routinesMeeting(st, s, held, people);
     if (txt) out.push({ year: c.year, text: txt });
     if (people.length) chooseGathering(st, s, quorumAt(st, s, held, people), people); // VB-294: its choice of gathering
@@ -335,11 +337,180 @@ VB['sim/meetings'] = (() => {
         village: v.id,
       });
   }
+  // ---- a holder proposes (VB-1770; design.md section 15, The meeting decides, a holder proposes) ----
+  // @state plan.proposed (a village's): [{by (a holder's pawn), year, what: 'routine' | 'lots', value (a routine's key, or a custom of lots's
+  //   option)}], the agenda of the next meeting, one a holder a year; written by the verb `propose` and cleared by the meeting, which tells
+  //   each and its fate in the record. plan.lotsRule: the village's custom of lots once its meeting has changed it (sim/customs lotsRule).
+  // The meeting weighs a proposal by its procedure (sim/decisions): a routine is taken up where the village has the work (the need and
+  // the work left over, and the holders' words), refused where it has none; the custom of lots by a vote of the households, each for the
+  // rule under which its own lot of a reference levy is least (the one in force on a tie). The proposal puts the question; no pawn has a ballot.
+  defineKind('routine', {
+    procedure: 'vote',
+    evaluate: (st, q) => ({ support: q.support, need: [0, 0] }),
+    fallback: (st, q) => q.current,
+  });
+  defineKind('lots', {
+    procedure: 'vote',
+    evaluate: (st, q) => ({ support: q.support, need: q.support.map(() => Customs.PRACTICES.lots.malleability) }),
+    fallback: (st, q) => q.current,
+  });
+  const LOTS = Customs.PRACTICES.lots.opts.map((o) => o[0]);
+  const holdersOf = (st, vid) => {
+    const out = [];
+    for (const fid of st.villages[vid].farmsteads) {
+      const hh = st.farmsteads[fid].household === null ? null : st.households[st.farmsteads[fid].household];
+      if (hh && !hh.dissolved && hh.holder !== null && st.pawns[hh.holder].died === null) out.push(hh);
+    }
+    return out;
+  };
+  // Has village v's meeting of this year been held: its routines set since the founders'.
+  const heldThisYear = (st, plan) => plan.routinesBy !== 'founded' && plan.routinesYear === cal(st.t).year;
+  // propose(village, {what: 'routine', routine} | {what: 'lots', rule}): a holder of the village puts it on the next meeting's agenda.
+  register('propose', {
+    check: (st, c) => {
+      const vid = c.target,
+        plan = Number.isInteger(vid) ? st.plans.villages.get(vid) : undefined,
+        a = c.args || {};
+      if (!plan) return `village ${vid} has no plan`;
+      if (living(st, c.actor)) return living(st, c.actor);
+      const p = st.pawns[c.actor];
+      if (!isHolder(st, c.actor) || p.household === null || villageOf(st, p) !== vid)
+        return `pawn ${c.actor} is not a holder of village ${vid}`;
+      if (heldThisYear(st, plan)) return `the meeting of ${st.villages[vid].name} has been held this year`;
+      const y = cal(st.t).year;
+      if ((plan.proposed || []).some((x) => x.by === c.actor && x.year === y)) return 'a holder proposes once a year';
+      if (a.what === 'routine')
+        return Object.hasOwn(VILLAGE_ROUTINES, a.routine) ? null : `there is no routine ${a.routine}`;
+      if (a.what === 'lots') return LOTS.includes(a.rule) ? null : `there is no custom of lots ${a.rule}`;
+      return 'a holder proposes a routine or the lots';
+    },
+    run: (st, c) => {
+      const plan = st.plans.villages.get(c.target),
+        a = c.args;
+      (plan.proposed = plan.proposed || []).push({
+        by: c.actor,
+        year: cal(st.t).year,
+        what: a.what,
+        value: a.what === 'routine' ? a.routine : a.rule,
+      });
+    },
+  });
+  // The lots each household of village vid would bear of a reference levy under each custom, [Map household id -> lot] by option.
+  function lotsUnder(st, vid) {
+    const D = Math.max(1, holdersOf(st, vid).length * 2),
+      split = VB['sim/levies'].split;
+    return LOTS.map((rule) => new Map(split(st, vid, D, rule)[0]));
+  }
+  // The default author of each holder's year's review (a decision point, sim/points; its deadline the agenda's closing, as the meeting
+  // begins): one proposal a holder who has made none, by its own judgement: a routine it needs and lacks hands for (the village's work not
+  // yet its routine, a farm with more than two fields to each adult), else the custom of lots under which its lot is lighter by a day.
+  function holdersPropose(st, s) {
+    const v = st.villages[s.id],
+      plan = st.plans.villages.get(s.id),
+      y = cal(st.t).year;
+    if (!plan || heldThisYear(st, plan)) return;
+    let lots = null;
+    for (const hh of holdersOf(st, s.id)) {
+      if ((plan.proposed || []).some((x) => x.by === hh.holder && x.year === y)) continue;
+      const adults = hh.members.filter((id) => st.pawns[id].died === null && st.pawns[id].age >= 18).length,
+        fields = hh.farmstead === null ? 0 : st.farmsteads[hh.farmstead].fields.length;
+      let best = null;
+      if (fields > 2 * adults)
+        for (const k of Object.keys(VILLAGE_ROUTINES)) {
+          const R = VILLAGE_ROUTINES[k];
+          if (plan.routines.includes(k) || !R.available(st, v)) continue;
+          const n = R.need(st, v);
+          if (n > 0 && (best === null || n > best[0])) best = [n, k];
+        }
+      const cmd = { actor: hh.holder, verb: 'propose', target: s.id, source: 'pawn' };
+      if (best) {
+        issue(st, { ...cmd, args: { what: 'routine', routine: best[1] } });
+        continue;
+      }
+      lots = lots || lotsUnder(st, s.id);
+      const now = LOTS.indexOf(Customs.lotsRule(st, s.id)),
+        own = (j) => lots[j].get(hh.id) || 0;
+      let j = now;
+      for (let i = 0; i < LOTS.length; i++) if (own(i) < own(j)) j = i;
+      if (j !== now && own(now) - own(j) >= 1) issue(st, { ...cmd, args: { what: 'lots', rule: LOTS[j] } });
+    }
+  }
+  // The agenda's proposals of this year weighed at the meeting of village s (`decides`: it has a quorum), each told in the record with its
+  // fate; returns {routine: holders who proposed it} of those taken up, for the choice's weighing. The agenda is cleared.
+  function weighProposals(st, s, decides) {
+    const v = st.villages[s.id],
+      plan = st.plans.villages.get(s.id),
+      y = cal(st.t).year,
+      list = (plan.proposed || []).filter((x) => x.year === y),
+      taken = {},
+      said = (x, fate) =>
+        log(
+          st,
+          `${fullName(st.pawns[x.by])} proposed to the ${s.name} meeting ${
+            x.what === 'routine'
+              ? VILLAGE_ROUTINES[x.value].label.toLowerCase()
+              : `that levy lots be split: ${Customs.PRACTICES.lots.opts[LOTS.indexOf(x.value)][1].toLowerCase()}`
+          }; ${fate}.`,
+          { kind: 'proposal', village: s.id, pawn: x.by, what: x.what, value: x.value },
+        );
+    plan.proposed = [];
+    for (const x of list) {
+      if (!decides) {
+        said(x, 'the meeting did not decide');
+        continue;
+      }
+      if (x.what !== 'routine') continue;
+      const R = VILLAGE_ROUTINES[x.value],
+        n = list.filter((z) => z.what === 'routine' && z.value === x.value).length,
+        avail = R.available(st, v),
+        left =
+          plan.routineLeft && plan.routineLeft.by === plan.routinesBy + plan.routinesYear ? plan.routineLeft.days : {},
+        w = avail ? R.need(st, v) + (left[x.value] || 0) + n : 0,
+        take = ask(st, { kind: 'routine', body: s.id, current: 0, options: 2, support: [avail ? 0 : n, w] });
+      if (take === 1) taken[x.value] = n;
+      said(x, take === 1 ? 'the meeting took it up' : 'the meeting refused it: the village has no such work');
+    }
+    const lotsList = list.filter((x) => x.what === 'lots');
+    if (decides && lotsList.length) {
+      const lots = lotsUnder(st, s.id),
+        now = LOTS.indexOf(Customs.lotsRule(st, s.id)),
+        support = LOTS.map(() => 0);
+      for (const hh of holdersOf(st, s.id)) {
+        let j = now;
+        for (let i = 0; i < LOTS.length; i++) if ((lots[i].get(hh.id) || 0) < (lots[j].get(hh.id) || 0)) j = i;
+        support[j]++;
+      }
+      // the question is put once for each rule proposed, the best supported first
+      const rules = [...new Set(lotsList.map((x) => LOTS.indexOf(x.value)))].sort(
+        (a, b) => support[b] - support[a] || a - b,
+      );
+      let chosen = now;
+      for (const j of rules) {
+        const sup = support.map((n, i) => (i === now || i === j ? n : 0));
+        if (ask(st, { kind: 'lots', body: s.id, current: now, options: LOTS.length, support: sup }) === j) {
+          chosen = j;
+          break;
+        }
+      }
+      for (const x of lotsList)
+        said(x, LOTS.indexOf(x.value) === chosen ? 'the meeting adopted it' : 'the meeting kept the custom of lots');
+      if (chosen !== now) {
+        plan.lotsRule = LOTS[chosen];
+        log(
+          st,
+          `At the ${s.name} meeting: levy lots are now split “${Customs.PRACTICES.lots.opts[chosen][1].toLowerCase()}”.`,
+          { kind: 'custom', village: s.id },
+        );
+      }
+    }
+    return taken;
+  }
   function routinesMeeting(st, s, o, people = membersOf(st, s.id)) {
     const v = st.villages[s.id];
     if (!v || !people.length) return null;
     const { voices, came, quorum } = attendance(st, s, o, people),
-      list = quorum ? chooseRoutines(st, v) : null;
+      taken = weighProposals(st, s, quorum),
+      list = quorum ? chooseRoutines(st, v, false, taken) : null;
     neglected(st, v); // the work the routines left undone, heard before the choice (VB-1768)
     if (list) {
       issue(st, {

@@ -7,7 +7,8 @@ VB['sim/levies'] = (() => {
   const { cal, DAY, WORK, AGES, TICKS } = VB['sim/rules'],
     { CHILD, MATCH } = VB['sim/roles'];
   const { age, spouseOf, villageOf } = VB['sim/records'];
-  const { levyNorm, practiceOf } = VB['sim/customs'];
+  const Customs = VB['sim/customs'],
+    { levyNorm } = Customs;
   const Routines = VB['sim/routines'],
     Steps = VB['sim/steps'];
   const { planOf } = VB['sim/plans'];
@@ -1509,7 +1510,7 @@ VB['sim/levies'] = (() => {
       at = Math.floor(window[0] / SEASON_DAYS),
       had = hadIn(plan, at),
       s = st.cenv && st.cenv.settlements[v.id],
-      rule = practiceOf(s && st.cenv.cultures[s.culture], 'lots'),
+      rule = Customs.lotsRule(st, v.id), // the village's custom: its meeting's choice, else its culture's (VB-1770)
       [lots, rest] = split(st, v.id, D, rule, (id) => OUTER.lotMax - (had[id] || 0)),
       step = Routines.stepOf(plan, k),
       why = step ? { step: step.id, of: `village:${v.id}` } : null;
@@ -1617,6 +1618,7 @@ VB['sim/levies'] = (() => {
     TERMS,
     leviesOf,
     lotsOf,
+    split,
     split,
     costOf,
     keepDay,

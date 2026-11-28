@@ -621,6 +621,22 @@ function checkState(st) {
             for (const [h, n] of Object.entries(by))
               if (!Number.isInteger(n) || n < 1 || n > lotMax)
                 bad.push(`plans: village ${id} season ${s}: household ${h} has ${n} days of lots`);
+          // VB-1770: the agenda: a holder's proposal, one a year, of a known routine or custom of lots; the village's own custom of lots
+          const seen = new Set(),
+            LOTS = VB['sim/customs'].PRACTICES.lots.opts.map((o) => o[0]);
+          for (const x of plan.proposed || []) {
+            const key = `${x.by}:${x.year}`;
+            if (
+              seen.has(key) ||
+              !Number.isInteger(x.by) ||
+              !Number.isInteger(x.year) ||
+              !(x.what === 'routine' ? Object.hasOwn(VB['sim/routines'].VILLAGE_ROUTINES, x.value) : x.what === 'lots' && LOTS.includes(x.value))
+            )
+              bad.push(`plans: village ${id} has a proposal ${JSON.stringify(x)}`);
+            seen.add(key);
+          }
+          if (plan.lotsRule !== undefined && !LOTS.includes(plan.lotsRule))
+            bad.push(`plans: village ${id} has the custom of lots ${plan.lotsRule}`);
           for (const [k, n] of Object.entries((plan.routineLeft && plan.routineLeft.days) || {}))
             if (!VB['sim/routines'].VILLAGE_ROUTINES[k] || !Number.isInteger(n) || n < 0)
               bad.push(`plans: village ${id} left ${n} days of ${k}`);
