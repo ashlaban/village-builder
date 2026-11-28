@@ -652,7 +652,11 @@ VB['sim/heirs'] = (() => {
         : st.households[c.args.household].holder !== c.actor
           ? `pawn ${c.actor} does not hold household ${c.args.household}`
           : living(st, c.target),
-    run: (st, c) => transfer(st, st.households[c.args.household], c.target, c.args.reason),
+    // the roles follow the holder at once (VB-1703): a heir who held a place of its own hands it on first (heirsPlace), so all of them
+    run: (st, c) => {
+      transfer(st, st.households[c.args.household], c.target, c.args.reason);
+      refreshRoles(st);
+    },
   });
   // move(target, {reason, with, text}): the actor changes to household `target` (VB-822), the one act for every change of household; the
   // acts that change a right as well (marry, handOn, goToKin, goBack, the foundings) issue it for their people. `with`: the minors who
