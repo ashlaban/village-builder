@@ -1,4 +1,4 @@
-// @sys sim/gateturn: turning a farmstead's gate (VB-1951 batch 2; Kim, 27 Nov 2026: the player may turn a farmstead's gate, a building's
+// @sys sim/gateturn [material]: turning a farmstead's gate (VB-1951 batch 2; Kim, 27 Nov 2026: the player may turn a farmstead's gate, a building's
 //   entrance being a general property; not a church's): the small making `gate` (args {side}), a project of the household at its house
 //   whose one step, the job kind turngate, moves the gate to that side when it is done (sim/entrances turnGate)
 VB['sim/gateturn'] = (() => {

@@ -1,4 +1,4 @@
-// @sys sim/help: food help between households: whom a hungry household's head asks (kin, then its lord, the village store's alderman, then kin
+// @sys sim/help [agency]: food help between households: whom a hungry household's head asks (kin, then its lord, the village store's alderman, then kin
 // further away), for how much and when (at its plan's review, once a season, until the harvest; VB-691), each ask an offer on the basis
 // `ask` (sim/exchange) the one asked answers; and the village store's yearly filling, called by its alderman, each quarter a command
 // `give`; the store gives and is filled only through its alderman at home (VB-673)
@@ -60,6 +60,7 @@ VB['sim/help'] = (() => {
     hoursBetween(st, st.farmsteads[st.households[k].farmstead].village, st.farmsteads[hh.farmstead].village);
   // @state household.askedIn: the season (game seasons since the start) in which the household last asked for help, or absent; written only
   //   here. A household asks at most once a season (VB-222; design.md, The gift: Lumps and occasions), and an ask that moved no goods does not count (VB-391).
+  // @notstock household.askedIn: ledgers and statistics of what moved (sim/stores, sim/hunger)
   const seasonOf = (t) => Math.floor(t / (SEASON_DAYS * DAY));
   const noteAsked = (hh, season) => {
     hh.askedIn = season;
@@ -83,6 +84,7 @@ VB['sim/help'] = (() => {
     }).length <= 1;
   // @state household.fellShort: the game day on which the household, short of people (shortOfPeople), last asked for food and was given
   //   less than it asked, or absent; written only here, read by sim/service's takeIn at the next midnight (VB-308, VB-691)
+  // @notstock household.fellShort: ledgers and statistics of what moved (sim/stores, sim/hunger)
   // The pawn who asks for household hh: its holder, else its eldest living member; null with none
   function askerOf(st, hh) {
     if (hh.holder !== null && hh.holder !== undefined && st.pawns[hh.holder].alive) return hh.holder;
@@ -246,6 +248,7 @@ VB['sim/help'] = (() => {
   }
   // ---- the good-year gift (VB-460; design.md, The gift: The good-year gift) ----
   // @state household.giftedIn: the year (game years since the start) in which the household last gave unasked, or absent; written only here.
+  // @notstock household.giftedIn: ledgers and statistics of what moved (sim/stores, sim/hunger)
   // On a holder's planning day from the harvest on, a household above the feast's threshold (rule 'feast') offers, once a year, to the first
   // of its ties (kin, then by the tie's strength) within a day's walk and by land that holds under GIFT.shortBelow years of its need above its
   // seed: its allowance, at most TRAVEL.load, at most what brings the receiver to a year; under GIFT.least no gift. The verb `give`'s, carried

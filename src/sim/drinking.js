@@ -1,4 +1,4 @@
-// @sys sim/drinking: the verb `drink` (VB-1585; design.md, Water by the site, The thirsty pawn): a pawn walks to the nearest source it
+// @sys sim/drinking [agency]: the verb `drink` (VB-1585; design.md, Water by the site, The thirsty pawn): a pawn walks to the nearest source it
 // may draw at and drinks, and where its household's water is not in takes the household's fetch from there; and the pawns that ended a
 // day without a drink, held due (st.thirstDue) until THIRST.leave hours without one, when each leaves whatever it does to drink
 VB['sim/drinking'] = (() => {

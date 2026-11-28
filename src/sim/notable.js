@@ -1,4 +1,4 @@
-// @sys sim/notable: which events of the record are notable and why, and an event told in one sentence, histories and the village log; what stops a
+// @sys sim/notable [derived]: which events of the record are notable and why, and an event told in one sentence, histories and the village log; what stops a
 // skip to the next event that concerns the played pawn (VB-234); queries of the record and a pawn's life (VB-199); read-only views, no state
 VB['sim/notable'] = (() => {
   const { index, ancestorsOf, fullName, age, settlementIdOf } = VB['sim/records'];

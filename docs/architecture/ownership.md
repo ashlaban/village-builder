@@ -552,7 +552,7 @@ direct expansion → farmclaims lookup and enforces the dependency rule agreed b
 
 ### Upward calls by layer (VB-230, 11 November 2026)
 
-The layer of each module is in `src/layers.json` (modules.md, Layers, lists them). `node tools/dependencies.js` reports each import and lookup
+The layer of each module is the tag of its `@sys` line (VB-1941; `node tools/modules.js` lists them by layer). `node tools/dependencies.js` reports each import and lookup
 from a lower layer to a higher one, leaving out `issue`; `tests/dependencies.js` holds them to `tests/layers-baseline.json`, by pair of
 modules, and only `--update` to a lower count writes it. Found: 25 of 442 edges, by group:
 

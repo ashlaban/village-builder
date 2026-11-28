@@ -1,4 +1,4 @@
-// @sys sim/advice: the retired's voice (VB-1316; design.md, Inheritance, The retired; docs/plans/VB-1122.md, section 3): the basis `advice`
+// @sys sim/advice [agency]: the retired's voice (VB-1316; design.md, Inheritance, The retired; docs/plans/VB-1122.md, section 3): the basis `advice`
 //   of sim/offers, by which a retired member of a household offers its head one of the head's own verbs (a target, the rotation, the
 //   season's order, a crop out of turn, or a grandchild's match), which the head takes by its opinion of the adviser and the adviser's
 //   standing and then carries out itself; and an unplayed retired pawn's own advice, once a year at its head's spring planning day

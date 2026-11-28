@@ -1,4 +1,4 @@
-// @sys draw/marks: what stands on the land in the map chunks, drawn as a church mural: trees, stones, flowers, marsh pools, hill humps and crags
+// @sys draw/marks [presentation]: what stands on the land in the map chunks, drawn as a church mural: trees, stones, flowers, marsh pools, hill humps and crags
 // ===== The marks of the land. draw/bake chooses what stands on each tile (decorateChunk); this module only draws the items it is given. =====
 // One dark contour round flat earth colours, as in page/farmart, so that the ground and the farms on it are of one hand. Relief that the
 // light of the bake cannot show at a tile's size is drawn as a figure: a hump for a hill, a peaked crag washed thinly over the ground, with a lit

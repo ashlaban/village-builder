@@ -1,4 +1,4 @@
-// @sys sim/opportunities: what a pawn may do here, for whom and on what basis, computed when asked and never stored; the actor view (VB-209);
+// @sys sim/opportunities [derived]: what a pawn may do here, for whom and on what basis, computed when asked and never stored; the actor view (VB-209);
 // whom the player may go on as after its pawn's death (VB-213)
 VB['sim/opportunities'] = (() => {
   const Customs = VB['sim/customs'],

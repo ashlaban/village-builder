@@ -1,4 +1,4 @@
-// @sys sim/crops: the crops, their rotations and the soil (VB-419, from sim/rules): each crop's row, the rotations a field keeps,
+// @sys sim/crops [kernel]: the crops, their rotations and the soil (VB-419, from sim/rules): each crop's row, the rotations a field keeps,
 // how a harvest wears the soil and dung restores it, and which land can be farmed and how fertile it is
 VB['sim/crops'] = (() => {
   const { B } = VB['world/biomes'];

@@ -1,4 +1,4 @@
-// @sys sim/plandays: when a holder's plan is reviewed (design.md section 7, Planning days; VB-249): its planning day by its head's
+// @sys sim/plandays [agency]: when a holder's plan is reviewed (design.md section 7, Planning days; VB-249): its planning day by its head's
 // diligence, staggered over the days and the hours of work, and out of turn when a window closes on it, its fields are due, a village's
 // work day comes or a store crosses a target; and the due-queue that opens the time-bound kinds for a household at their hours
 VB['sim/plandays'] = (() => {

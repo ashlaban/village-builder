@@ -1,4 +1,4 @@
-// @sys sim/obligations: every explicit claim of one party on another (VB-310; target-v2, 4.4): what is owed, by whom, to whom and by when,
+// @sys sim/obligations [social]: every explicit claim of one party on another (VB-310; target-v2, 4.4): what is owed, by whom, to whom and by when,
 // with a due-queue; a kind (KINDS) says when its term ends. The first kind is the heirs' share still owed (design.md, Handover and shares)
 VB['sim/obligations'] = (() => {
   const Due = VB['sim/due'];

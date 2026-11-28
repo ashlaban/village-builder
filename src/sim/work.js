@@ -1,4 +1,4 @@
-// @sys sim/work: a task's work as a block: its progress reckoned in closed form from the rate of the hands at it (or a background task's
+// @sys sim/work [agency]: a task's work as a block: its progress reckoned in closed form from the rate of the hands at it (or a background task's
 // holders minding it), its end in the due-queue st.workDue, a hand's rate and the ox team; split from sim/agents (VB-422)
 VB['sim/work'] = (() => {
   const { unbound, atWork: inWork } = VB['sim/pose'];
@@ -159,6 +159,7 @@ VB['sim/work'] = (() => {
   //   (Traits' hands: 14 to 59, not retired) worked at full attention on any task this season, and `last` those of the season before (0
   //   when that season was not the one before); absent until its first hour of work. Counted as a task's work is reckoned (settle), so it
   //   costs an addition a hand; read by sim/aims (idleShare) at a head's review. Written only here.
+  // @notstock household.workHours: ledgers and statistics of what moved (sim/stores, sim/hunger)
   function countWork(st, id, dt, t) {
     const p = st.pawns[id],
       hh = p.household === null ? null : st.households[p.household];

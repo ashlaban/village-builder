@@ -1,4 +1,4 @@
-// @sys sim/walking: terrain and slope costs, the ground by season compiled into one array a world (VB-808), the discomfort routes are
+// @sys sim/walking [kernel]: terrain and slope costs, the ground by season compiled into one array a world (VB-808), the discomfort routes are
 // chosen by, tile passability and cached reach by walking steps
 VB['sim/walking'] = (() => {
   const { B } = VB['world/biomes'];
@@ -145,6 +145,7 @@ VB['sim/walking'] = (() => {
   //   where ice bears it, season[r] row r's season (GROUND's flags). Compiled once a run (sim/climate layGround: at a run's first step and at
   //   a load), a tile again where its cost changed (sim/routes costChanged), a band's rows on a winter's date. Equal to the rule computed
   //   afresh (an invariant).
+  // @notstock w.ground: ways (the wear of walking, fords and bridges, passage, the ground compiled, a house's gate)
   function compileGround(w, rows) {
     // derived from the world and the season, rebuilt on load; never saved
     w.ground = { cost: new Float64Array(w.N), ice: new Uint8Array(w.N), season: Uint8Array.from(rows) }; // lint-allow: owner derived

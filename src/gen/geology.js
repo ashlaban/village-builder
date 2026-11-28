@@ -1,4 +1,4 @@
-// @sys gen/geology: what lies in the ground: each land tile's bedrock, and the deposits of clay and ores laid as patches and veins, by island
+// @sys gen/geology [kernel]: what lies in the ground: each land tile's bedrock, and the deposits of clay and ores laid as patches and veins, by island
 // ===== Geology: bedrock provinces, lenses of rare stone, and finite deposits of clay and ore (generation only: nothing digs yet) =====
 // Listed before gen.js, which calls lay with the arrays of the world in the making.
 // Measure: node tools/sim.js --scenario populous --map small --years 0 --report ground --seeds 1,2,3 [--reach 12,30]: villages with each deposit in reach.
@@ -148,11 +148,16 @@ VB['gen/geology'] = (() => {
     const { N, nb, hx, hy, hp, hm, water, biome, river } = g,
       rnd = stream(0);
     // @state w.rock: Uint8Array per tile; bedrock, a ROCK code of gen/geology (granite..soapstone on land, 0 on water)
+    // @notstock w.rock: the generated world
     // @state w.deposit: Uint8Array per tile; what can be dug here, a DEPOSIT code of gen/geology (0 on most tiles)
+    // @notstock w.deposit: the generated world
     // @state w.depositLeft: Uint16Array per tile; loads left of the tile's deposit, 65535 (ENDLESS) for one that does not run out; 0 with none
     // @state w.vein: Uint16Array per tile; the id (1..) of the vein the tile's deposit belongs to, 0 with none
+    // @notstock w.vein: the generated world
     // @state w.veinKind: array by vein id of the vein's DEPOSIT code (index 0 unused)
+    // @notstock w.veinKind: the generated world
     // @state w.veinNear: Uint16Array per tile; the id of a hidden vein within FIND.reach tiles over land, the nearest, 0 with none
+    // @notstock w.veinNear: the generated world
     const rock = new Uint8Array(N),
       deposit = new Uint8Array(N),
       depositLeft = new Uint16Array(N);

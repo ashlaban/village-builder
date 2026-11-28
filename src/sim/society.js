@@ -1,4 +1,4 @@
-// @sys sim/society: Culture wiring: settlements, ties, standing and interests of pawns (a village's, at its meeting)
+// @sys sim/society [social]: Culture wiring: settlements, ties, standing and interests of pawns (a village's, at its meeting)
 VB['sim/society'] = (() => {
   const { living, settlement } = VB['sim/records'];
   const { personEvent } = VB['sim/records'];

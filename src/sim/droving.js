@@ -1,4 +1,4 @@
-// @sys sim/droving: animals that change household (VB-674): handed on when a household ends or goes into trust, given as a start in life,
+// @sys sim/droving [material]: animals that change household (VB-674): handed on when a household ends or goes into trust, given as a start in life,
 // paid in for a share; the owner changes where they stand, a member of the new household leads them home (the kind `drove`), and the hay
 // that goes with them is left lying at the old farm for it to fetch (sim/lying); a herd with nobody to have it stays at its farm until the
 // autumn frost, when the farm's household takes it in or it is lost. Writes st.herds' records that move and st.herdsAway.

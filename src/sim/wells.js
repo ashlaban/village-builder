@@ -1,4 +1,4 @@
-// @sys sim/wells: a household's well (VB-1584): the making `well`, dug at the house on the house's own tile in the hours its ground's depth
+// @sys sim/wells [material]: a household's well (VB-1584): the making `well`, dug at the house on the house's own tile in the hours its ground's depth
 // asks and lined with stone off the household's heap; the head's test of whether a well pays, on its planning day, and the stone it wants
 // on its heap for one; the well a new site was chosen for, which its settlers dig with the booth and the clearing (VB-1587); the well
 // finished is a source on the map (sim/water)
@@ -79,6 +79,7 @@ VB['sim/wells'] = (() => {
     // @state farmstead.wellMeant: true while the farm's site, chosen for the well its settlers mean to dig (sim/settle settleFarm), has
     //   no well yet: its household gathers the lining's stone and digs with the booth and the clearing, whatever the season and its
     //   land; absent otherwise, and once water is struck (VB-1587)
+    // @notstock farmstead.wellMeant: land, buildings and their records (fields, meadows, a site's timber)
     if (siteWater(st, f.house, people, v).by === 'well') f.wellMeant = true;
   }
   // A load of stone has come onto household hh's heap (sim/building stoneHome): at a site chosen for its well the digging is begun with

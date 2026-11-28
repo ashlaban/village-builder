@@ -1,8 +1,9 @@
-// @sys sim/venues: the village's gatherings by custom (VB-522; split from sim/occasions, VB-1270): the ale evening a holder opens its house
+// @sys sim/venues [agency]: the village's gatherings by custom (VB-522; split from sim/occasions, VB-1270): the ale evening a holder opens its house
 //   for (its check, its asking, the holder's choice at its planning day, what its end pours and books) and the season's rite on the green
 //   (its day, its asking, its leader and the ties to it); sim/occasions calls, sends and ends them
 // @state village.riteDays: [spring, summer, winter] days (0-based) of a village's own rites, each within RITE.spread days after the season's day;
 //   drawn when first asked, absent before (VB-775)
+// @notstock village.riteDays: identity, links and membership
 VB['sim/venues'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { DAY, BREW, ALE_EVENING, RITE, cal } = VB['sim/rules'],

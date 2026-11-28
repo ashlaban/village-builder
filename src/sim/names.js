@@ -1,4 +1,4 @@
-// @sys sim/names: name generators by kind of thing named (farms, villages; VB-026, VB-399) and the culture's order of preference among the farms'
+// @sys sim/names [kernel]: name generators by kind of thing named (farms, villages; VB-026, VB-399) and the culture's order of preference among the farms'
 VB['sim/names'] = (() => {
   const { B } = VB['world/biomes'];
   const { bfs, hexSteps } = VB['sim/hex'];

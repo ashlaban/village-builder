@@ -1,4 +1,4 @@
-// @sys sim/attention: the charge a pawn minds beside its task (VB-251; `mind`, VB-1750): taken up and let go, within reach or out of it,
+// @sys sim/attention [agency]: the charge a pawn minds beside its task (VB-251; `mind`, VB-1750): taken up and let go, within reach or out of it,
 // and looked at as the holder's leg begins and ends; split from sim/agents (VB-422)
 VB['sim/attention'] = (() => {
   const { unbound } = VB['sim/pose'];

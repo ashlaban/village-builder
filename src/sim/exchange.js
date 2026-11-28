@@ -1,4 +1,4 @@
-// @sys sim/exchange: deals between parties, the gift for now (VB-216): whether one goes ahead (the floor, allowance), and settling it through
+// @sys sim/exchange [agency]: deals between parties, the gift for now (VB-216): whether one goes ahead (the floor, allowance), and settling it through
 // sim/stores and sim/relations, its worth booked as goodwill between the two holders (VB-217); a household's want of a cow, the deal or
 // the start in life that meets it and the job that leads the animal home (VB-390); whom a household deals with first, its kin
 VB['sim/exchange'] = (() => {

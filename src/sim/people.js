@@ -1,4 +1,4 @@
-// @sys sim/people: the household generators of the founders, solo and populous scenarios
+// @sys sim/people [kernel]: the household generators of the founders, solo and populous scenarios
 VB['sim/people'] = (() => {
   const { person, marry, makeHousehold, joinHousehold } = VB['sim/records'];
   // @tunable FOUNDERS: the founders' ages

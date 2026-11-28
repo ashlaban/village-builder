@@ -1,4 +1,4 @@
-// @sys sim/larder: household lots of perishable stored food, their withdrawal and expiry
+// @sys sim/larder [material]: household lots of perishable stored food, their withdrawal and expiry
 VB['sim/larder'] = (() => {
   const { DAY } = VB['sim/rules'];
   const { keepsDays } = VB['sim/goods'];

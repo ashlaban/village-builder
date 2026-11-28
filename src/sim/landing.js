@@ -1,4 +1,4 @@
-// @sys sim/landing: a site read before anyone has settled (the solo start): its soil, water, wood and room, and the best sites of a land
+// @sys sim/landing [kernel]: a site read before anyone has settled (the solo start): its soil, water, wood and room, and the best sites of a land
 VB['sim/landing'] = (() => {
   const { B, BIOMES } = VB['world/biomes'];
   const { fromState, drawer } = VB['sim/rng'];

@@ -1,4 +1,4 @@
-// @sys draw/bake: rasterizing the map into levels of detail, including land, water and decorations
+// @sys draw/bake [presentation]: rasterizing the map into levels of detail, including land, water and decorations
 VB['draw/bake'] = (() => {
   const { mulberry32 } = VB['gen/noise'];
   const { PIGMENTS, SEA, LAKE } = VB['draw/pigments'],

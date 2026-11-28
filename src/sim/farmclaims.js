@@ -1,4 +1,4 @@
-// @sys sim/farmclaims: claims on empty farms (VB-033): the old family's birthright, who may claim a farm in the order of the village's
+// @sys sim/farmclaims [social]: claims on empty farms (VB-033): the old family's birthright, who may claim a farm in the order of the village's
 // "Claims on empty farms" custom, the claim at the moving round, the restoration, and the claimants moving in
 VB['sim/farmclaims'] = (() => {
   const { living } = VB['sim/records'];

@@ -1,4 +1,4 @@
-// @sys sim/rotations: crop courses, sowing choices and village rotation customs; the head's foresight on what to sow (VB-351)
+// @sys sim/rotations [material]: crop courses, sowing choices and village rotation customs; the head's foresight on what to sow (VB-351)
 VB['sim/rotations'] = (() => {
   const { targetOf } = VB['sim/steps'];
   const { FIELDS, cal, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'],
@@ -12,14 +12,18 @@ VB['sim/rotations'] = (() => {
   //   whose course is the field's crop. A village's common fields (VB-100) hold barley every year.
   // @state village.rotation: the village's usual rotation, a key of ROTATIONS: the one most of its farms hold, brought up to date at its
   //   autumn meeting and at no other time (usualRotation; Kim, 11 Nov). Owned here, as a reading of its farms' fields (target-v2 4.3).
+  // @notstock village.rotation: land, buildings and their records (fields, meadows, a site's timber)
   // @state farmstead.fields[].turn: absent, or true: the field's crop was chosen out of turn for a year (the verb sowOutOfTurn, VB-355) and
   //   is not its step's course; cleared when the field goes on to its next step, or its farm changes rotation.
   // @state farmstead.rotationBy: absent, or the id of the household whose head chose the farm's rotation to keep (the verb rotation with
   //   hold, VB-355): while that household holds the farm, its rule (rotationChoice) leaves the rotation alone.
+  // @notstock farmstead.rotationBy: land, buildings and their records (fields, meadows, a site's timber)
   // @state farmstead.firstRotation: absent, or a key of ROTATIONS: the rotation the farm's first fields take where its own differs from its
   //   village's (the scenarios' crops, VB-353; rotationOf)
+  // @notstock farmstead.firstRotation: identity, links and membership
   // @state farmstead.keeps: absent, or crops[] the farm holds a field's seed of and does not sow (the founders' backup farm; sim/hunger
   //   seedNeed, sim/plans reserveSeed)
+  // @notstock farmstead.keeps: identity, links and membership
   const underCrop = (fd) =>
     fd.stage === 'sown' || fd.stage === 'growing' || fd.stage === 'ripe' || fd.stage === 'stooks';
   // The rotation a farm's household holds: its fields' (the same on each); with no field yet, its village's usual one where it has the

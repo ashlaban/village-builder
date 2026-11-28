@@ -1,4 +1,4 @@
-// @sys sim/overview: a village at a glance (VB-162): its food against its need, the year's harvest, its people by age band, its hungry
+// @sys sim/overview [derived]: a village at a glance (VB-162): its food against its need, the year's harvest, its people by age band, its hungry
 // households and idle hands, and the warnings; computed when asked and stored nowhere. The warnings that foretell are a pawn's estimate.
 VB['sim/overview'] = (() => {
   const { targetOf } = VB['sim/steps'];

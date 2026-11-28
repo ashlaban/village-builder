@@ -1,4 +1,4 @@
-// @sys sim/hands: help asked for (VB-470; design.md section 7, Help between households): a head whose estimate says its field work will
+// @sys sim/hands [agency]: help asked for (VB-470; design.md section 7, Help between households): a head whose estimate says its field work will
 //   not be done in its window with its own hands asks the heads of its village, nearest kin and best friends first, for hands and hours
 //   today: an offer on the basis `help` (VB-690), "two hands for six hours". The head asked answers by kinship, its opinion of the asker
 //   and its own day (the hours its allotment gave its members no task; sim/day plan.day.free), and may give fewer hours than asked. A

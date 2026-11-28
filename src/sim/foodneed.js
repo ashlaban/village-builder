@@ -1,4 +1,4 @@
-// @sys sim/foodneed: how a household values food in exchange, given its stores and the time until harvest
+// @sys sim/foodneed [material]: how a household values food in exchange, given its stores and the time until harvest
 VB['sim/foodneed'] = (() => {
   const { FOODS, DAY, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
   const Goods = VB['sim/goods'];

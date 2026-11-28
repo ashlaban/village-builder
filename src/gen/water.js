@@ -1,4 +1,4 @@
-// @sys gen/water: the map's fresh water as the generator lays it: each tile's source (w.fresh) from the lakes, the rivers and the marsh, and
+// @sys gen/water [kernel]: the map's fresh water as the generator lays it: each tile's source (w.fresh) from the lakes, the rivers and the marsh, and
 // the depth to the ground's water on land (w.waterDepth), from the tile's rise above the nearest water surface
 VB['gen/water'] = (() => {
   const { B } = VB['world/biomes'];
@@ -124,8 +124,10 @@ VB['gen/water'] = (() => {
     }
     // @state w.fresh: Uint8Array per tile; the tile's source of fresh water, a FRESH code of world/water (none, lake, brook, stream,
     //   river, marsh, well): laid from the lake biome, w.river by its kinds and the marsh biome; no rule reads it yet (VB-1581)
+    // @notstock w.fresh: the generated world
     // @state w.waterDepth: Float32Array per tile; metres down to the ground's water on a land tile, Infinity (world/water NO_WELL)
     //   where no well can be dug: water, mountain, snowfield and ground deeper than WELL.deepest; computed once, shown as a band
+    // @notstock w.waterDepth: the generated world
     return { fresh, waterDepth };
   }
   return { WATERTABLE, lay };

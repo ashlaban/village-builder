@@ -1,4 +1,4 @@
-// @sys sim/sleep: sleep owed (VB-1643): the SLEEP tunable, what the hours owed cost in mood (sim/mood) and health (sim/hunger), and
+// @sys sim/sleep [material]: sleep owed (VB-1643): the SLEEP tunable, what the hours owed cost in mood (sim/mood) and health (sim/hunger), and
 //   the page's read of the played pawn's sleep. The hours are every pawn's (pawn.sleep, VB-1645): sim/sleepers keeps them and carries
 //   out the verb `sleep`
 VB['sim/sleep'] = (() => {

@@ -1,4 +1,4 @@
-// @sys sim/tar: tar (VB-301), the second good of place: a village's pine (its reach test), the tar pit one household builds and owns, the
+// @sys sim/tar [material]: tar (VB-301), the second good of place: a village's pine (its reach test), the tar pit one household builds and owns, the
 // household its alderman charges with it (chargeTar, VB-673),
 // burning tar in the slack of early summer, and a barrel spent on the house (f.tarredUntil) or on the fishing boat; tar's need term
 // Design: design.md, Goods of place and side crafts (Goods of place, First goods, A well-kept house, The fishing boat; What each good is
@@ -57,6 +57,7 @@ VB['sim/tar'] = (() => {
   // ---- the pit: a facility one household builds and owns (design.md, Skill and tools) ----
   // @state household.tarPit: {tile, village, built} or null: the household's tar pit, dug on tile `tile` of village `village`'s wood at game
   //   hour `built`; it burns only while the household's farm is in that village. Written only here.
+  // @notstock household.tarPit: land, buildings and their records (fields, meadows, a site's timber)
   const pitOf = (st, hh, f) => (hh.tarPit && f && hh.tarPit.village === f.village ? hh.tarPit : null);
   // The household of village v that holds a pit there, or null; and whether one is being dug (a household's project plan).
   function villagePit(st, v) {
@@ -90,6 +91,7 @@ VB['sim/tar'] = (() => {
   }
   // @state village.tarBy: the household id the village's alderman charged with digging its tar pit (VB-673; the verb chargeTar), or
   //   absent/null before he has; written only here.
+  // @notstock village.tarBy: ledgers and statistics of what moved (sim/stores, sim/hunger)
   // Whether village v wants a pit: pine in its wood, and no pit nor one being dug.
   const wantsPit = (st, v) => !!(v.wood && v.wood.length) && !villagePit(st, v) && pineTile(st, v) >= 0;
   // Whether household hh stands charged with village v's pit: the one charged, a live household of the village whose head may begin one.

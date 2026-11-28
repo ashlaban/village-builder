@@ -1,4 +1,4 @@
-// @sys sim/hex: hex-grid search, paths and land components, and where a house would close a way or a green in
+// @sys sim/hex [kernel]: hex-grid search, paths and land components, and where a house would close a way or a green in
 VB['sim/hex'] = (() => {
   // ---- hex helpers ----
   function bfs(w, from, maxSteps, pass) {

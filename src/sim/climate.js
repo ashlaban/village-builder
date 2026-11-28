@@ -1,4 +1,4 @@
-// @sys sim/climate: the climate by latitude (VB-807; design.md, Climate and travel beyond walking): a world's latitude, the map read in
+// @sys sim/climate [kernel]: the climate by latitude (VB-807; design.md, Climate and travel beyond walking): a world's latitude, the map read in
 // bands of rows, each band's curve of the year's temperature, and the winter's dates, reckoned once a year on autumn day 1 from the
 // curve and the winter's warmth and taken from a due-queue as they fall; and how far a world's growing year lies from the middle world's.
 // The weather (sim/weather) draws the seasons and the year's thaw and frost about the normal; this module holds the normal itself, by

@@ -1,6 +1,6 @@
 // @suite fast
-// Structure lint: every source module is listed once and has an @sys header on line 1; no line over 160 characters, clock or unseeded random
-// (`// lint-allow: clock <reason>` exempts a line); the page script only writes the allowed fields of st. The page script's files
+// Structure lint: every source module is listed once and has an @sys header on line 1, with its layer (VB-1941); no line over 160
+// characters, clock or unseeded random (`// lint-allow: clock <reason>` exempts a line); the page script only writes the allowed fields of st. The page script's files
 // (src/page/*.js, listed in src/page.json; VB-053) get the structure checks and the page rule, not the clock rule: the page may read the clock.
 // Existing long lines are kept in tests/lint-baseline.json and may only go down; `--update` lowers the baseline.
 // The sources are formatted by Prettier (`npm run format`; tests/format.js checks it), so a line counted here is a formatted line.
@@ -23,6 +23,7 @@ const REGISTRIES = {
 const files = JSON.parse(fs.readFileSync(path.join(root, 'src/manifest.json'), 'utf8')).map((f) => 'src/' + f).concat('src/load.js');
 const pageFiles = JSON.parse(fs.readFileSync(path.join(root, 'src/page.json'), 'utf8')).map((f) => 'src/' + f);
 const key = (f) => f.slice(4, -path.extname(f).length);
+const { SYS } = require('../tools/dependencies.js'), layers = JSON.parse(fs.readFileSync(path.join(root, 'src/layers.json'), 'utf8'));
 const base = fs.existsSync(BASE) ? JSON.parse(fs.readFileSync(BASE, 'utf8')) : {};
 const cur = {}, errors = [], notes = [];
 const listed = new Set();
@@ -43,11 +44,13 @@ const openTasks = () => tasks || (tasks = fs.readdirSync(path.join(root, 'backlo
 for (const f of files.concat(pageFiles)) {
   const lines = readSource(f).split('\n');
   if (lines[lines.length - 1] === '') lines.pop();
-  const prefix = `// @sys ${key(f)}: `;
   const long = lines.map((l, i) => (l.length > MAX_COLS ? i + 1 : 0)).filter(Boolean);
-  const head = lines[0] || '';
-  const headOk = head.startsWith(prefix) && /^\S/.test(head.slice(prefix.length));
-  if (!headOk) errors.push(`${f}:1 line 1 must be "// @sys ${key(f)}: <purpose>"`);
+  const head = lines[0] || '', sys = SYS.exec(head) || [];
+  // the layer is the tag of line 1 (VB-1941): a module of the manifest has one of layers.json's names, a root, the loader and the page none
+  const layered = files.includes(f) && f !== 'src/load.js' && !layers.roots.includes(key(f));
+  const want = `// @sys ${key(f)}${layered ? ` [${layers.layers.join('|')}]` : ''}: <purpose>`;
+  const headOk = sys[1] === key(f) && /^\S/.test(head.slice(sys[0].length)) && (layered ? layers.layers.includes(sys[2]) : !sys[2]);
+  if (!headOk) errors.push(`${f}:1 line 1 must be "${want}"`);
   cur[f] = { lines: lines.length, longLines: long.length };
   const b = { lines: 0, longLines: 0, ...base[f] };
   if (lines.length > SPLIT_LINES && lines.length > b.lines) {

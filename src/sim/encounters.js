@@ -1,4 +1,4 @@
-// @sys sim/encounters: who meets whom (VB-521; design.md, Where pawns meet; target-v2, section 4.4): a table of encounter kinds, each saying
+// @sys sim/encounters [social]: who meets whom (VB-521; design.md, Where pawns meet; target-v2, section 4.4): a table of encounter kinds, each saying
 //   who is present, whom a pawn may draw as a partner, how strangers mix and what is said to all; the talk round (sim/relations) asks it for
 //   partners. Encounters read no plan and have only social effects.
 VB['sim/encounters'] = (() => {

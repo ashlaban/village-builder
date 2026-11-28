@@ -1,4 +1,4 @@
-// @sys culture: the cultures and their customs in force: a pawn's culture made, its causes, the villages' meetings, the yearly reckoning and the split
+// @sys culture [social]: the cultures and their customs in force: a pawn's culture made, its causes, the villages' meetings, the yearly reckoning and the split
 // ===== Customs: one culture-wide set, local practice per settlement =====
 // A settlement's practice changes only at its yearly meeting; the culture's customs change only at the yearly reckoning after all
 // meetings. What each person holds, and its daily drift, is sim/attitudes' (VB-417); the causes argued here move it through pull and hold.

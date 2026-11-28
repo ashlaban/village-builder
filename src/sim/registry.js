@@ -1,4 +1,4 @@
-// @sys sim/registry: load-time rules and ordered contributions; hot values and checked explanations
+// @sys sim/registry [kernel]: load-time rules and ordered contributions; hot values and checked explanations
 VB['sim/registry'] = (() => {
   // Code, never saved state. Nothing may register once a simulation has been seeded or loaded.
   const rules = new Map();

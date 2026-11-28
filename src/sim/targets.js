@@ -1,4 +1,4 @@
-// @sys sim/targets: the head's target on each stored good a household makes (VB-698): the goods with a maker, declared at load by the
+// @sys sim/targets [material]: the head's target on each stored good a household makes (VB-698): the goods with a maker, declared at load by the
 // module that makes each; the target a household's plan holds for a good (sim/plans compiles it at the head's review), its default (the
 // household's need, as the maker's rule sets it) and its bounds (what the place and the hands allow); the working hands of a household
 // Design: AGENTS.md, Deciding without Kim (7, 9, 16); design.md, Goods, production and animals. What a household makes of each good is its

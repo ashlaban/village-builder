@@ -1,4 +1,5 @@
-// @sys sim/planview: the page's reads of a pawn's plan (Sim.planView(st, pawn), VB-1746: the routine, the sleeping hours, the tasks with why each waits,
+// @sys sim/planview [derived]: the page's reads of a pawn's plan (Sim.planView(st, pawn), VB-1746: the routine, the sleeping hours, the tasks with why each
+//   waits,
 //   what the plan has the pawn on and does next) and of the fire (Sim.fireView, VB-1653); views computed when the page asks, as sim/agenda
 //   is: they write nothing and no simulation module reads them (VB-1646; VB-1657 split them from the player's plan module;
 //   the pawn's own steps of its plan record since VB-1754)

@@ -1,4 +1,4 @@
-// @sys sim/gathering: the gathering (VB-294; design.md, The gathering): at its autumn meeting a village with a green offers to host and every
+// @sys sim/gathering [agency]: the gathering (VB-294; design.md, The gathering): at its autumn meeting a village with a green offers to host and every
 //   village ranks the hosts it would walk to, by effective hours; once all have met, each goes to one gathering that stands (three villages
 //   or more, the host among them, lodged by its farms); the district is the villages of one gathering, read from the choice; going there (VB-295): each
 //   household's plan of who goes and who
@@ -12,10 +12,12 @@
 //   matches made at the gathering it hosted that winter: 0 until the gathering hears them, VB-297 and VB-298; read by its report)}.
 //   The meeting's verb `gathering` writes chosen, by, hosting and prefs (setGathering); the evening's settling writes year, host, ale,
 //   cases and matches (settleGatherings); between the two, year and host are last year's.
+// @notstock village.gathering: choices of the village's meeting (a decision, not an amount)
 // @state household.gathering: absent, or {year (the winter it is for), planned (its head has planned it), go[] (pawn ids of its members who
 //   mean to go, in the order they chose), packed (the goers are lodged, and the choice is made), beds[] ([pawn, host household, in the barn] for each
 //   goer lodged in the host village, from the
 //   lodging until it packs)}: written by the verbs goGathering and stayHome (setGoing), the lodging and the packing, all here
+// @notstock household.gathering: a household's plan of who goes to the gathering (a decision, not an amount; VB-295)
 VB['sim/gathering'] = (() => {
   const { settlement } = VB['sim/records'];
   const { GATHERING, TRAVEL, YEAR, SEASON_DAYS, DAY, WORK, MARRIAGE, HEALTH, BREW, cal } = VB['sim/rules'];

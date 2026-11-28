@@ -1,4 +1,4 @@
-// @sys sim/offers: offer and answer (VB-690; principle "Every act is a pawn's"): every crossing between households is an offer one pawn
+// @sys sim/offers [social]: offer and answer (VB-690; principle "Every act is a pawn's"): every crossing between households is an offer one pawn
 //   makes and another answers, yes or no, once, when it falls due, by its basis's rule (the played pawn as it likes, its pawn's judgement
 //   shown as advice); a yes settles by the basis's verbs (the right at once, goods carried by the one who gives), a no is a memory
 // @state st.offers[]: the open offers, sorted by due (after those due at the same time), each {id, from, to (pawn ids; for a gift given

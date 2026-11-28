@@ -1,4 +1,4 @@
-// @sys sim/green: the village green and well, built by the village (VB-058; Kim, 30 Oct): a village of two or more occupied farms and no
+// @sys sim/green [material]: the village green and well, built by the village (VB-058; Kim, 30 Oct): a village of two or more occupied farms and no
 // well may choose the work as a routine at its meeting (VB-257); its review then makes it a project plan of the village (VB-123): the
 // green's tile chosen and taken, the green cleared, stone carried to it from the households' heaps, the well dug and lined, the sweep
 // raised; then the village has its green and well, its centre on the green. The well's hours and stone are by the depth of the green's

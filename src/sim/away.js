@@ -1,4 +1,4 @@
-// @sys sim/away: the nights a pawn spends away from its household's house (VB-783): the open stays (a journey's, a bed where its leg
+// @sys sim/away [agency]: the nights a pawn spends away from its household's house (VB-783): the open stays (a journey's, a bed where its leg
 // ends, and a lodger's, a bed at a place or a guest's in another house), their packs and meals; a lodger's stay by the verbs lodge and
 // comeHome, its day away, and its judgement to stake a booth at its bed (VB-1172). A journey's course is sim/journeys'; a guest's bed, sim/hosting's
 VB['sim/away'] = (() => {

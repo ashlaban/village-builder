@@ -1,4 +1,5 @@
-// @sys draw/paths: how worn paths look: a trail through each worn tile towards its worn neighbours, painted into the map chunks and over the fields
+// @sys draw/paths [presentation]: how worn paths look: a trail through each worn tile towards its worn neighbours, painted into the map chunks and over the
+//   fields
 // ===== Worn paths on the map (VB-094). The simulation counts and fades the wear (sim/paths); this module only reads w.worn. =====
 // Listed after sim.js, in the presentation layer, before draw/bake: the chunk bake keeps trees and stones off paths and lanes through `thin`.
 VB['draw/paths'] = (() => {

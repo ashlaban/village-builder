@@ -1,4 +1,4 @@
-// @sys world/biomes: the biomes' codes, keys, names and which are water, and the density stage of a tile's trees: what the generator lays,
+// @sys world/biomes [kernel]: the biomes' codes, keys, names and which are water, and the density stage of a tile's trees: what the generator lays,
 // the simulation changes and the drawing shows
 VB['world/biomes'] = (() => {
   // ---- Biomes ----

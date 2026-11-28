@@ -1,4 +1,4 @@
-// @sys sim/byrehouse: the byre as a building (VB-1665): farmstead.byre, the making `byre` (a project of the household at its house, its
+// @sys sim/byrehouse [material]: the byre as a building (VB-1665): farmstead.byre, the making `byre` (a project of the household at its house, its
 //   stages the job kinds byrewalls and byreroof, the walls waiting for their timber), its check byreWhy, the byres the run begins with and
 //   an older save's; the stall winter it shelters is sim/byre's (a farm without one winters its animals in the open: HERD.openLean)
 VB['sim/byrehouse'] = (() => {
@@ -9,6 +9,7 @@ VB['sim/byrehouse'] = (() => {
   //   (HERD.byre places, sim/byre); absent or null while it has none. Every farm that stands at seeding has one (seedByres), but a camp
   //   landed by hand (noByre); a farm made in play (a settler's, sim/settle; an heir's cottage, sim/cottage) has none until its household
   //   builds it. One a farm; it goes with the farm. Written only here.
+  // @notstock farmstead.byre: land, buildings and their records (fields, meadows, a site's timber)
   const STAGES = ['byrewalls', 'byreroof'];
   // The steps of a byre's project plan at house tile `house`: the walls with the timber they wait for, then the roof.
   const byreSteps = (house) =>

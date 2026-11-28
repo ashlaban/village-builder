@@ -1,4 +1,4 @@
-// @sys sim/leather: leather, a first version (VB-911): a household's shoes, worn by its walkers day by day, and its team's harness, worn by
+// @sys sim/leather [material]: leather, a first version (VB-911): a household's shoes, worn by its walkers day by day, and its team's harness, worn by
 // the years while it keeps a team; a hide cut and sewn at home into shoes, or into harness to mend the team's; the hide's need term
 // Design: VB-424 (hides from the hunt, wanted for shoes and harness); design.md, Goods, production and animals (Goods of place; Skill and
 // tools); AGENTS.md, Deciding without Kim (7, 9, 16): the wear is the sink, as the tools' iron is (sim/ironwork); nothing is barred by it
