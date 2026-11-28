@@ -126,6 +126,8 @@ VB['sim/records'] = (() => {
     heardOfUs: SHORT, // the played pawn heard a story of its household (sim/stories, VB-554)
     helped: SHORT, // helped another household of the village with its work (VB-106)
     workday: SHORT, // a village's work day: who turned out and who stayed away (VB-120)
+    workLeft: SHORT, // a village's routine work left undone at its seasons' ends, heard at its meeting (VB-1768)
+    levyBreached: SHORT, // a household's levied day not worked, booked as goodwill its head owes (sim/levies, VB-1768)
     courting: GENERATION, // a courtship begun, and ended unmarried (sim/courting, VB-036)
     courtingEnded: GENERATION,
     gift: GENERATION,

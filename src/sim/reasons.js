@@ -133,7 +133,8 @@ VB['sim/reasons'] = (() => {
       const owed = Days.on(st, id),
         lent = Hands.on(st, id);
       if (owner.type === 'household' && owner.id !== p.household) {
-        const by = owed === owner.id ? 'owed' : lent === owner.id ? 'lent' : 'self';
+        const by =
+          owed === owner.id && Days.kindOn(st, id) === 'household' ? 'owed' : lent === owner.id ? 'lent' : 'self';
         return { by, why: why || `at ${farmName(st, owner.id)}` };
       }
       const list = plan && plan.day && plan.day.lists[id],
@@ -163,7 +164,11 @@ VB['sim/reasons'] = (() => {
       return played ? { by: 'player', why: 'you plan its work by hand' } : { by: 'self', why: 'its own plans are off' };
     const owed = Days.on(st, id),
       lent = Hands.on(st, id);
-    if (owed !== null) return { by: 'owed', why: `nothing to take at ${farmName(st, owed)} yet` };
+    if (owed !== null)
+      return {
+        by: 'owed',
+        why: `nothing to take at ${Days.kindOn(st, id) === 'village' ? st.villages[owed].name : farmName(st, owed)} yet`,
+      };
     if (lent !== null) return { by: 'lent', why: `nothing to take at ${farmName(st, lent)} yet` };
     // at a pastime (sim/pastimes, VB-1552), the choice is its own: the line under it says why it has no work
     return { by: VB['sim/pastimes'].of(st, id) ? 'self' : 'none', why: noWork(st, id, p, a, c) };

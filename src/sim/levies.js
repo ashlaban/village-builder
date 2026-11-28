@@ -7,7 +7,9 @@ VB['sim/levies'] = (() => {
   const { cal, DAY, WORK, AGES, TICKS } = VB['sim/rules'],
     { CHILD, MATCH } = VB['sim/roles'];
   const { age, spouseOf, villageOf } = VB['sim/records'];
-  const { levyNorm } = VB['sim/customs'];
+  const { levyNorm, practiceOf } = VB['sim/customs'];
+  const Routines = VB['sim/routines'],
+    Steps = VB['sim/steps'];
   const { planOf } = VB['sim/plans'];
   const { workedToday } = VB['sim/work'];
   const { on, emit } = VB['sim/events'];
@@ -27,7 +29,7 @@ VB['sim/levies'] = (() => {
   const { floorOf } = VB['sim/hunger'];
   const { isOpen } = VB['sim/kinds'];
   const { register, issue } = VB['sim/commands'];
-  const { workOfTarget, fieldYield } = VB['sim/estimate'];
+  const { workOfTarget, fieldYield, estimate } = VB['sim/estimate'];
   const { fullName, log, atFarm, unplanned } = VB['sim/records'];
   const Norms = VB['sim/norms'],
     { goodOf } = VB['sim/goods'];
@@ -765,26 +767,51 @@ VB['sim/levies'] = (() => {
     if (a.window && !(a.window[0] <= a.window[1] && a.window[1] >= today(st))) return 'its window is past';
     return null;
   }
-  // A village's levy split into its households' lots by fields (design.md, Lots: the custom's default), whole days by the largest
-  // remainder, ties in turn by the household's id against the year; a household with no fields owes none. [[household id, days]].
-  function lotsOf(st, vid, D) {
+  // A village's levy of D days split into its households' lots (design.md, Lots) by `rule`, the village's custom of lots: 'fields' (the
+  // default: in proportion to the fields each holds, so one with none owes none), 'adults' (to its adults of LOT_AGE and over, not
+  // retired) or 'equal'. Whole days by the largest remainder, ties in turn by the household's id against the year; `room(id)`, where
+  // given, the most a household may take more (OUTER.lotMax less its lots this season): the days past it go to the others in the same
+  // way, and what none can take is left. [lots ([[household id, days]], by id), rest (days left unplaced)].
+  const LOT_AGE = 15;
+  function split(st, vid, D, rule = 'fields', room = null) {
     const hs = [];
     for (const fid of st.villages[vid].farmsteads) {
       const f = st.farmsteads[fid],
         hh = f.household === null ? null : st.households[f.household];
-      if (hh && !hh.dissolved && f.fields.length) hs.push([hh.id, f.fields.length]);
+      if (!hh || hh.dissolved) continue;
+      let w = 1;
+      if (rule === 'fields') w = f.fields.length;
+      else if (rule === 'adults')
+        w = hh.members.filter((id) => able(st, hh, id) && age(st, st.pawns[id]) >= LOT_AGE).length;
+      const r = room ? Math.max(0, room(hh.id)) : Infinity;
+      if (w > 0 && r > 0) hs.push({ id: hh.id, w, r, n: 0 });
     }
-    const F = hs.reduce((s, h) => s + h[1], 0);
-    if (!F) return [];
     const y = cal(st.t).year,
-      lots = hs.map(([id, n]) => [id, Math.floor((D * n) / F), (D * n) / F - Math.floor((D * n) / F)]);
-    let rest = D - lots.reduce((s, l) => s + l[1], 0);
-    const order = lots
-      .slice()
-      .sort((a, b) => b[2] - a[2] || ((a[0] + y) % hs.length) - ((b[0] + y) % hs.length) || a[0] - b[0]);
-    for (const l of order) if (rest-- > 0) l[1]++;
-    return lots.filter((l) => l[1] > 0).map((l) => [l[0], l[1]]);
+      N = hs.length;
+    let rest = D,
+      open = hs;
+    while (rest > 0 && open.length) {
+      VB.count.routineLots += open.length;
+      const F = open.reduce((s, h) => s + h.w, 0),
+        share = open.map((h) => [h, Math.floor((rest * h.w) / F), (rest * h.w) / F - Math.floor((rest * h.w) / F)]);
+      let up = rest - share.reduce((s, x) => s + x[1], 0);
+      const order = share
+        .slice()
+        .sort((a, b) => b[2] - a[2] || ((a[0].id + y) % N) - ((b[0].id + y) % N) || a[0].id - b[0].id);
+      for (const x of order) if (up-- > 0) x[1]++;
+      let over = 0;
+      for (const [h, n] of share) {
+        const k = Math.min(n, h.r - h.n);
+        h.n += k;
+        over += n - k;
+      }
+      rest = over;
+      open = open.filter((h) => h.n < h.r);
+    }
+    return [hs.filter((h) => h.n > 0).map((h) => [h.id, h.n]), rest];
   }
+  // By fields, nothing held back: the levy verb's lots of a levy laid on a village.
+  const lotsOf = (st, vid, D) => split(st, vid, D)[0];
   register('levy', {
     check: (st, c) => levyWhy(st, c.actor, c.args),
     run: (st, c) => {
@@ -800,6 +827,9 @@ VB['sim/levies'] = (() => {
           source: a.source,
           terms: { ...TERMS[a.source], ...(a.terms || {}) },
           window: a.window,
+          why: a.why || null,
+          // a village's routine is enforced by the village (design.md, Lots; VB-1768)
+          ...(a.source === 'routine' ? { enforcer: creditor } : {}),
         });
       // on a village, on top of the levies already laid on its households (design.md, An estate's levy): each lot its own record
       const parts =
@@ -807,7 +837,11 @@ VB['sim/levies'] = (() => {
           ? lotsOf(st, a.debtor.id, a.days).map(([id, n]) => [hhRef(id), n])
           : [[a.debtor, a.days]];
       for (const [debtor, n] of parts) {
-        Obligations.create(st, draft(debtor, n));
+        const id = Obligations.create(st, draft(debtor, n)),
+          o = st.obligations[id];
+        // one date for all (a routine's work done together, VB-1768): a lot of n days is n adults on the window's one day
+        if (o.terms.names === 'together' && o.window)
+          Obligations.setLevy(st, id, { named: Array.from({ length: n }, () => ({ day: o.window[0], pawn: null })) });
         VB.count.leviesLaid++;
       }
     },
@@ -1155,9 +1189,10 @@ VB['sim/levies'] = (() => {
       agent = agentOf(st, o.creditor),
       K = Math.min(CANNOT, a.K ?? costOf(st, hh, a.day)),
       B = breachCost(o);
+    const n = o.named.filter((e) => e.day === a.day).length; // a together lot's adults of the day (VB-1768); else one
     Obligations.setLevy(st, o.id, { named: without(o, a.day) });
     VB.count.dayBreached++;
-    if (o.source !== 'debt') Obligations.lapse(st, o.id, 'breached', Math.min(1, Obligations.left(o)));
+    if (o.source !== 'debt') Obligations.lapse(st, o.id, 'breached', Math.min(n, Obligations.left(o)));
     const live =
       Obligations.isLive(o) && agent !== null && agent !== undefined && agent !== actor && st.pawns[agent].alive;
     if (agent !== null && agent !== undefined && agent !== actor && st.pawns[agent].alive)
@@ -1359,6 +1394,50 @@ VB['sim/levies'] = (() => {
     VB.count.debtRelaid++;
     Obligations.lapse(st, o.id, 'what was left is laid again as a new year of days owed');
   }
+  // A household that did not work a day named of a routine (VB-1768; design.md, What a levier does) breaches it: the day's worth booked as
+  // goodwill its head owes the levier's agent, opinion following, the day struck and told in the record with its reason (`why`). The
+  // rule's own missing (sim/workdays judge, the day past below), beside the head's judgement before the day (keepDay, breach).
+  function missedDay(st, o, day, why, n = 1) {
+    const hh = st.households[o.debtor.id],
+      head = hh ? hh.holder : null,
+      agent = agentOf(st, o.creditor);
+    if (!Obligations.isLive(o) || !hh || head === null || !st.pawns[head].alive) return false;
+    VB.count.dayBreached++;
+    Obligations.lapse(st, o.id, 'breached', Math.min(n, Obligations.left(o)));
+    const by = agent !== null && agent !== undefined && agent !== head && st.pawns[agent].alive ? agent : null;
+    if (by !== null) bookGoodwill(st, by, head, OUTER.worth * n);
+    if (hh.farmstead !== null) {
+      const f = st.farmsteads[hh.farmstead];
+      log(
+        st,
+        `${fullName(st.pawns[head])} of ${f.name} owes ${by !== null ? fullName(st.pawns[by]) : 'the village'} for ` +
+          `${n === 1 ? 'a day' : `${n} days`} of the village's work not done: ${why}.`,
+        { kind: 'levyBreached', pawn: head, ...atFarm(f) },
+      );
+    }
+    return true;
+  }
+  // The routine's days on duty of the day past d (a work day's are judged at its end, sim/workdays): one on duty that worked none of
+  // its hours while the village's tasks stood breached it; where the village had none to give, its day is released by the alderman.
+  function dayPast(st, d) {
+    for (const [id, e] of Object.entries(d.by)) {
+      const o = st.obligations[e[0]];
+      VB.count.routineMissed++;
+      if (o.source !== 'routine' || e[1] > 1e-9 || !Obligations.isLive(o) || o.terms.names === 'together') continue;
+      let work = false;
+      for (const j of st.jobsBy.get(`village:${o.creditor.id}`) || []) if (isOpen(st, j)) work = true;
+      const agent = agentOf(st, o.creditor);
+      if (work) missedDay(st, o, d.day, `${fullName(st.pawns[+id])} was named and did not come`);
+      else if (agent !== null && agent !== undefined && st.pawns[agent] && st.pawns[agent].alive)
+        issue(st, {
+          actor: agent,
+          verb: 'release',
+          target: o.id,
+          args: { days: Math.min(1, Obligations.left(o)) },
+          source: 'planner',
+        });
+    }
+  }
   // A day's first step, through the due-queue's outer levies (Rules for cost, 4): the days named for today come on duty (those of
   // days past are over: what was not worked stays owed and is named again); the days still unnamed are named. Then those who have
   // given their hours are told so (`dayGiven`): their working day is over, and sim/agents' rule for it (a load in hand carried to the
@@ -1367,6 +1446,7 @@ VB['sim/levies'] = (() => {
     const D = today(st);
     let d = st.daysToday;
     if (!d || d.day !== D) {
+      if (d) dayPast(st, d);
       d = Days.begin(st, D);
       for (const id of (st.obligationsDue || []).slice()) {
         const o = st.obligations[id];
@@ -1397,6 +1477,115 @@ VB['sim/levies'] = (() => {
         emit(st, 'dayGiven', { pawn: +id });
       }
   }
+  // ---- the routines' levies (VB-1768; design.md section 9, Outer levies: Lots) ----
+  // @state plan.lotsAt (a village's): the season (year * 4 + season) its routines' lots were last laid, absent before; plan.lotsHad:
+  //   {season: {household id: days}}, the routine lots of each season laid so far (this one and the next: a work day called ahead);
+  //   plan.lotsOf: the routines given lots this season; plan.routineLeft: {by (plan.routinesBy and routinesYear: the routines' setting it
+  //   counts since), days: {routine: days}}, the work they left undone at their windows' ends, which the next meeting hears and weighs
+  //   (sim/meetings, sim/routines chooseRoutines). Written only here.
+  // The hours left of routine k's tasks in village v, by the estimate of its alderman `a` (sim/estimate, his skill) or, with none,
+  // their hours as posted.
+  const estOf = (e) => (Number.isFinite(e.mid) ? e.mid : e.work);
+  function hoursLeft(st, v, k, a) {
+    const R = Routines.VILLAGE_ROUTINES[k];
+    let h = 0;
+    for (const j of st.jobsBy.get(`village:${v.id}`) || []) {
+      VB.count.routineWeighed++;
+      if (Routines.owns(R, j))
+        h += a === null ? Math.max(0, (j.hours || 0) - (j.done || 0)) : estOf(estimate(st, a, j, [a]));
+    }
+    return h;
+  }
+  // The routine lots of season `at` laid so far, by household.
+  function hadIn(plan, at) {
+    if (!plan.lotsHad) plan.lotsHad = {};
+    return (plan.lotsHad[at] = plan.lotsHad[at] || {});
+  }
+  // The alderman `a` lays routine k's D days on village v's households, by its custom of lots, at most OUTER.lotMax a household in the
+  // season of the window ([first, last] game day); `together`: one date for all, the window's one day. Each lot is a levy (the verb
+  // levy) whose `why` is the routine's year step. Returns the days no household could take.
+  function layLots(st, v, a, k, D, window, together) {
+    const plan = st.plans.villages.get(v.id),
+      at = Math.floor(window[0] / SEASON_DAYS),
+      had = hadIn(plan, at),
+      s = st.cenv && st.cenv.settlements[v.id],
+      rule = practiceOf(s && st.cenv.cultures[s.culture], 'lots'),
+      [lots, rest] = split(st, v.id, D, rule, (id) => OUTER.lotMax - (had[id] || 0)),
+      step = Routines.stepOf(plan, k),
+      why = step ? { step: step.id, of: `village:${v.id}` } : null;
+    for (const [id, n] of lots) {
+      const args = {
+        debtor: { kind: 'household', id },
+        creditor: { kind: 'village', id: v.id },
+        source: 'routine',
+        days: n,
+        window,
+        why,
+        ...(together ? { terms: { names: 'together' } } : {}),
+      };
+      if (issue(st, { actor: a, verb: 'levy', args, source: 'planner' }) === true) had[id] = (had[id] || 0) + n;
+    }
+    return rest;
+  }
+  // A village's first review in a season, its alderman `a` at home: the work its routines left undone at last season's end is kept for
+  // the meeting, and each routine not done together is sized and laid in lots for the season: the hours left of its tasks over
+  // OUTER.hours, rounded up (design.md, Lots). A routine whose tasks are not yet posted at the season's turn (they are posted at the same
+  // review, after this) is sized at the first review of the season that finds them, its window from that day.
+  function seasonLots(st, plan, v, a) {
+    const c = cal(st.t),
+      at = Math.floor(c.day / SEASON_DAYS);
+    if (plan.lotsAt !== at) turnLots(st, plan, v, a, at);
+    const window = [c.day, c.day - c.sday + SEASON_DAYS - 1];
+    for (const k of plan.routines) {
+      if (Routines.VILLAGE_ROUTINES[k].together || plan.lotsOf.includes(k)) continue;
+      const D = Math.ceil(hoursLeft(st, v, k, a) / OUTER.hours - 1e-9);
+      if (D > 0) {
+        plan.lotsOf.push(k);
+        layLots(st, v, a, k, D, window, false);
+      }
+    }
+  }
+  // The season's turn of a village's lots: the work left by last season's routines kept for the meeting, the season's record begun.
+  function turnLots(st, plan, v, a, at) {
+    if (plan.lotsAt !== undefined) {
+      const by = plan.routinesBy + plan.routinesYear;
+      if (!plan.routineLeft || plan.routineLeft.by !== by) plan.routineLeft = { by, days: {} };
+      for (const k of plan.lotsOf || []) {
+        const n = plan.routines.includes(k) ? Math.ceil(hoursLeft(st, v, k, a) / OUTER.hours - 1e-9) : 0;
+        if (n > 0) plan.routineLeft.days[k] = (plan.routineLeft.days[k] || 0) + n;
+      }
+    }
+    plan.lotsAt = at;
+    plan.lotsOf = [];
+    for (const s in plan.lotsHad || {}) if (+s < at) delete plan.lotsHad[s];
+  }
+  // At a village's review: a routine whose work is done (no hours of its tasks left) has its lots' days left released by the alderman,
+  // and those of its households on duty today go home (design.md, Lots).
+  function releaseDone(st, plan, v, a) {
+    const L = Obligations.due(st, { kind: 'village', id: v.id }, 'creditor', 'days');
+    if (!L.length) return;
+    const done = new Map();
+    for (const o of L) {
+      if (o.source !== 'routine' || !o.why || o.terms.names === 'together') continue;
+      const s = Steps.find(st, plan, o.why.step),
+        k = s && s.what.routine;
+      // a routine no longer set (its step gone) has nothing left to work
+      if (k && !done.has(k)) done.set(k, !plan.routines.includes(k) || hoursLeft(st, v, k, a) <= 0);
+      if (k && !done.get(k)) continue;
+      const d = st.daysToday;
+      if (d) for (const id in d.by) if (d.by[id][0] === o.id) Days.release(st, +id);
+      const n = Obligations.left(o);
+      if (n > 1e-9) issue(st, { actor: a, verb: 'release', target: o.id, args: { days: n }, source: 'planner' });
+    }
+  }
+  on('routinesReviewed', (st, { plan, v, a }) => {
+    seasonLots(st, plan, v, a);
+    releaseDone(st, plan, v, a);
+  });
+  // A work day called (sim/workdays callWorkday): its D days laid in lots on its one date, terms `together`.
+  on('workdayCalled', (st, { v, actor, days, day }) => layLots(st, v, actor, 'workdays', days, [day, day], true));
+  // A household levied for a work day that stayed away (sim/workdays judge): its breach.
+  on('workdayMissed', (st, { o, day, why, n }) => missedDay(st, o, day, why, n));
   // The levies body party lays and bears (VB-1767), read through the actor view: {lays, bears}, each a copy with its terms.
   function leviesOf(st, party) {
     const copy = (o) => ({
@@ -1428,6 +1617,7 @@ VB['sim/levies'] = (() => {
     TERMS,
     leviesOf,
     lotsOf,
+    split,
     costOf,
     keepDay,
     unnamed,

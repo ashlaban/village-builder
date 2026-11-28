@@ -56,6 +56,12 @@ VB.COUNTERS = {
   leviesLooked:
     "Outer levies read at a day's first step, through the obligations' due-queue (sim/levies step, VB-1767)",
   leviesWeighed: 'Tasks of a household weighed for the windowed work a day named would displace (sim/levies, VB-1767)',
+  routineWeighed:
+    "Village tasks weighed for a routine's hours left, at its lots and at its work done (sim/routines, VB-1768)",
+  routineLots:
+    "A routine's levy split into its households' lots, a household weighed a round (sim/levies split, VB-1768)",
+  routineMissed:
+    "Days of a routine's levy on duty weighed at the day's turn for work not done (sim/levies step, VB-1768)",
   pointLevy: 'Outer levies read for the decision points of a pawn its controller asks for (sim/points, VB-1769)',
   outerCost: "A levied head's reckoning of what keeping a day of an outer levy costs, K (sim/levies costOf, VB-1769)",
   outerDayJudged:
