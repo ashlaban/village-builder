@@ -313,8 +313,9 @@ VB['sim/records'] = (() => {
       kinPush: null,
       visited: null,
     };
-    // sim/dress (VB-363): the first people's dress is drawn from their look (no draw of the stream), 0.3 to 1; a made person's is new
-    p.dress = { worth: R.t ? 1 : 0.3 + (0.7 * p.look) / 1e9, at: R.t || 0, grade: 1 };
+    // sim/dress (VB-363): the first people's dress is drawn from their look (no stream draw), 0.3 to 1; a made person has none until
+    // the household mends it from its cloth (nothing appears)
+    p.dress = { worth: R.t ? 0 : 0.3 + (0.7 * p.look) / 1e9, at: R.t || 0, grade: 1 };
     R.rand(); // the draw that was pawn.buffer's (VB-216), now generosity's (VB-520): kept, so the stream goes on as before
     if (p.died !== null) {
       p.born = p.died - o.age * YEAR;

@@ -26,4 +26,10 @@ p.dress = { worth: 0, at: st.t, grade: 1 };
 assert.strictEqual(D.mend(st, p, hh), true);
 st.t += (DRESS.years * YEAR) / 2 + 1;
 assert(Math.abs(D.worth(st, p) - 0.75) < 1e-3, 'a child has its dress the longer');
+// a person made after the start has no sound dress from nowhere (nothing appears): worn until its household mends it
+{
+  const R = { pawns: [], living: [], rand: () => 0.5, pickGiven: () => 'A', pickFather: () => 'B', t: 100 };
+  const id = VB['sim/records'].person(R, { sex: 'f', age: 0 });
+  assert.strictEqual(R.pawns[id].dress.worth, 0, 'a person made later has no dress but what its household gives');
+}
 console.log('dress ok');
