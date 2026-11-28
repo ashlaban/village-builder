@@ -1,3 +1,4 @@
+// @suite integration
 // Own time (VB-1552; design.md, Work, Own time): a pawn the planner found no task chooses a pastime from sim/pastimes' table. Each of
 // the six is reached on the probe's small village: a child of 7 to 13 plays, a herder stays by its herd, a pawn with a close friend at
 // home on another farm of its village visits and walks there, the fire weighs more in winter and for the old; the verb `pastime`

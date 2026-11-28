@@ -1,3 +1,4 @@
+// @suite fast
 // VB-034: land split between heirs, on a constructed farm of 4 fields and 3 grown children (tests/lib/tiny.js). At the handover under
 // "split" the heir keeps 2 fields and each sibling owns 1 (sim/ownership's titles, basis `inherited`), worked by the old household for
 // half their harvest (the obligation `rent`, paid at the moving round), and the village begins a house by each; the house built, its

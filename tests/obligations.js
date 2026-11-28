@@ -1,3 +1,4 @@
+// @suite integration
 // Obligations (VB-310; target-v2, 4.4): every explicit claim has one owner, sim/obligations, with a due-queue and the parties' lists of
 // their live ones, two caches rebuilt here from the records and compared. The heirs' shares are its first kind: owed by the farm, paid
 // at the moving round from grain above the reserve (sim/cottage payOwed), by the sibling's id.

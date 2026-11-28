@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1810: the cart a load goes home on (sheaves, hay, timber) is taken at the house as its hand sets out, and walked out at the cart's
 // pace (sim/methods' cart step, fetched at the house); a load made or taken up on the back by a hand that has no cart while more waits is
 // a miss the head counts (sim/doing wanted), one a load: the last load, which the back holds, counts none.

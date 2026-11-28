@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1660: the shelter (VB-1666: on the house tile) built up to a cottage as a task of the plan (chain `upgrade`, sim/upgrade). The refusals (a camp, a rung that does
 // not follow, one not built yet, one planned or under way); from the raised shelter to the roof on by the plan alone, the head beginning
 // the cottage by its own verb, with its waits and its days in the agenda; the timber held at home taken into the walls first, and no

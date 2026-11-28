@@ -1,3 +1,4 @@
+// @suite integration
 // New fields: founders start without fields, clear and break meadow tiles they own; heirs keep their fields. On the small islands of
 // tests/lib/probe.js (VB-855).
 const VB = require('../src/load.js'), Sim = VB.sim, { island, scenario } = require('./lib/probe.js');

@@ -1,3 +1,4 @@
+// @suite integration
 // tools/brief.js on a small constructed backlog: the task up to its criteria with its notes only by size (a Flag line kept), its
 // questions, a short design section whole and a long one by its subsections, a row found inside a subsection, who waits for it,
 // and the rules by kind (a change of behaviour, a refactor, the page).

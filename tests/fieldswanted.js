@@ -1,3 +1,4 @@
+// @suite integration
 // VB-389: the fields a household wants are counted net of the seed a field takes back (FIELDS.want of rations at FIELDS.expect of the
 // yield, less the seed): 2 adults and 2 children want 4 fields (3 before), a lone adult 2 (1 before); the hands still cap it.
 const assert = require('assert');

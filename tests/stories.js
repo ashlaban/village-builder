@@ -1,3 +1,4 @@
+// @suite integration
 // Stories (sim/stories, VB-523; design.md, Traits, talk and stories: Stories), on a constructed state of one village, chances forced with
 // `fix`: a witnessed event known first-hand, told and believed, its hearsay a memory discounted by hops and capped; saturation for one
 // audience only; a ninth story drops the weakest; strength in closed form by half-lives and wits; a story dies with its last holder; a save keeps them.

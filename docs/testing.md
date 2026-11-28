@@ -20,7 +20,9 @@ scenarios, heavily constructed on the smallest states; the longer tests run at n
 | `node tools/same.js --base REF` | A behavior-preserving change | The same runs from REF and from the working tree, compared leaf by leaf; nothing recorded; `--renamed OLD=NEW` reads a renamed field by its new name |
 | `node tools/samepixels.js --base REF` | A change to the map's drawing that keeps its pixels | The same chunks baked headless by REF's code and the working tree's (sea, overview, round each village, a cover set and restored), hashes compared; `tests/samepixels.js` shows it catches a pigment and a mark moved |
 
-`tests/suites.js` is the explicit inventory. `--list` prints per-script timings; `--verbose` includes full output and advisory
+Each test declares its tier in its head, a line a tier and argument set: `// @suite fast|integration|extended [node:FLAG] [ARG]`
+(`tests/lib/tiers.js`, VB-1933; `grep -rn "^// @suite" tests` is the inventory). A test with no such line runs in no tier; `tests/suites.js`
+holds only `FIRST`, the slowest of extended, started first. `--list` prints per-script timings; `--verbose` includes full output and advisory
 targets. Every suite reports its slowest five scripts.
 
 **The rule for a new check.** Build it on a small constructed state (`tests/tiny.js`'s `tinyWorld` and `tinyState`,

@@ -1,3 +1,4 @@
+// @suite fast
 // VB-173: only an owned field's owner writes it. --update removes fixed sites; it never adds allowances.
 // The baseline groups sites by field, then by module, operation and tokenized receiver (independent of line numbers).
 const fs = require('fs'), path = require('path');

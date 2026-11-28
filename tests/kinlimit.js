@@ -1,3 +1,4 @@
+// @suite integration
 // Starting marriage limit: founders start at "close" (first cousins or further); heirs and populous at "first". On the small islands (VB-854).
 const VB = require('../src/load.js'), C = VB.culture, Customs = VB['sim/customs'];
 const { scenario } = require('./lib/probe.js');

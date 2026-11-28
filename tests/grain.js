@@ -1,3 +1,4 @@
+// @suite integration
 // Grain held and moved in crop proportions, including legacy barley stores.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/stores'], { CROPS } = VB['sim/crops'], { issue } = VB['sim/commands'];

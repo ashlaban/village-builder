@@ -1,3 +1,4 @@
+// @suite integration
 // VB-302: the fair. At a gathering, each household's dealer carries its margin as a load (packed from the store through sim/stores, a back
 // load less room for what it takes) and swaps it in whole quanta with the dealers it meets there: an offer on the basis `swap`, weighed by
 // need and a deal's allowance (goodwill and opinion: near zero between strangers), settled by the verb `swap`, the residual in customary

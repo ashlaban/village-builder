@@ -1,3 +1,4 @@
+// @suite integration
 // Tar (VB-301; design.md, Goods of place and side crafts): a village with pine in its wood has a tar pit dug by its household with the most
 // working hands; the pit's household burns a barrel (TAR.barrelHours, one pine tree felled) in early summer while it holds fewer than it
 // keeps; a barrel laid on the house tars it for HOUSE.tarYears (its wear so far read first), and one on the boat keeps it whole: untarred

@@ -1,3 +1,4 @@
+// @suite integration
 // tools/lib/ids.js: a task set aside as an idea keeps its ID (`docs/ideas/**/VB-N.md`, Kim, 25 November), so the highest ID in
 // sight counts the ideas beside the backlog and no ID is reused; on a small constructed tree, outside git.
 const fs = require('fs'), os = require('os'), path = require('path');

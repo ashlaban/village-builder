@@ -1,3 +1,4 @@
+// @suite integration
 // VB-632 (design.md, People, Marriage, nursing and growth: Nursing): a nursing child's death ends the nursing; its life does not shorten it,
 // and the term stays 48 days. On a tiny village, the daily step called by hand with chances forced by `fix`.
 const assert = require('assert');

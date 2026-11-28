@@ -1,3 +1,4 @@
+// @suite fast
 // A marriage's terms (VB-276; sim/terms), on a constructed state (tests/lib/tiny.js): the offer carries its terms {dowry, gift}, the
 // defaults by the valuation; an unplayed spokesman's range; the asking side's own terms; the close leads and lays the dowry and books it
 // as an advance, subtracted at the next division; the morning gift becomes the widow's and goes with her; the head's match for a member.

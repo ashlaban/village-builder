@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1587: a new site's well is dug by its settlers with the booth and the clearing. On drawn maps (tests/lib/tiny.js): a party that
 // settles a site with no water in reach, chosen for the well in its ground, has the farm marked (farmstead.wellMeant); from its booth
 // it gathers the lining's stone and digs beside its first field's breaking, whatever the season; until water is struck no source is

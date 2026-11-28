@@ -1,3 +1,5 @@
+// @suite fast
+// @suite integration --integration
 // The clock counts whole 6-minute steps (VB-235): st.tick is its source of truth, so the same seed is the same run by any chunks of whole
 // steps, and every hour's work runs in the step that reaches its hour, over decades, with no tolerance on a float.
 const assert = require('assert');

@@ -1,3 +1,4 @@
+// @suite fast
 // The timetable and the head's verbs on the day (VB-477; design.md section 7, The timetable): a household's day as a view, each member's
 // list laid end to end with its walks, each task a range by the viewer's estimate, worked out when asked and writing nothing; the head
 // reorders a member's list, gives a task to another member and calls a member off, each checked, the change standing until the day is

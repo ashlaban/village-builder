@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1547: a task of a kind a household lives by, once begun, is carried to its end though the work day ends (sim/kinds carriedOn), and
 // the water may be begun after work, until MATCH.day.evening (sim/jobs eveningCall). On the probe island's solo settler: a clearing at work
 // at 17:54 is let go at 18:00; water taken at 17:42 is still in hand after 18:00 and delivered; water not in at 19:00 (posted at 18:30, after

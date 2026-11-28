@@ -1,3 +1,4 @@
+// @suite fast
 // First marriages exclude pre-existing unions and remarriages, but include people who later die.
 const assert = require('assert'), { summarize } = require('../tools/marriage-demography.js');
 const st = { t: 60, living: [0, 1, 2, 3, 4], pawns: [

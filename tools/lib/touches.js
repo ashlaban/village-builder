@@ -5,7 +5,7 @@
 //   tests/jobs.js                    a path, with or without names in brackets
 //   new sim/wells                    a module or a file the task creates
 // or `unknown (<reason>)`, for a plan task or when the writer cannot tell. A module's import block, export list and `@sys` header are
-// implied; the list and bookkeeping files (manifest, owners, layers, suites, the backlog) are not named while they are lists (VB-1406).
+// implied; the list and bookkeeping files (manifest, owners, layers, the backlog) are not named while they are lists (VB-1406).
 const fs = require('fs'), path = require('path');
 const NAME = /^[A-Za-z_$][\w$]*$/, TARGET = /^[\w.-]+(\/[\w.-]+)*$/;
 // the line's text -> { unknown: reason } | { items: [{ target, names: [], created }] }; throws with the reason when malformed

@@ -1,3 +1,4 @@
+// @suite fast
 // Crafts learnt by doing (VB-360; sim/skills): a pawn's level at a craft rises with its hours (halfway in SKILLS.half at aptitude 1,
 // faster with the trait), fades a tenth a year unused, read in closed form, and sets a craft job's rate from a novice's to a master's;
 // a save keeps it. On a tiny farm at seed 7.

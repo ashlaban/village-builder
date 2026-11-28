@@ -1,3 +1,4 @@
+// @suite fast
 // tools/agent-usage.js on a small transcript: a response written as several lines counts once, tokens and context from the usage,
 // tool calls with result sizes and times, prompts and turns, subagent calls apart, nothing of the content printed; --out and --history.
 const fs = require('fs'), os = require('os'), path = require('path'), { spawnSync } = require('child_process');

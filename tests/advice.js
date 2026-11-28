@@ -1,3 +1,4 @@
+// @suite integration
 // The retired's voice (VB-1316; design.md, Inheritance, The retired; docs/plans/VB-1122.md, section 3), on a constructed state
 // (tests/lib/tiny.js): a retired member offers its head one of the head's verbs as an offer of basis `advice`; the head takes it when its
 // opinion of the adviser times the adviser's standing over the village's mean reaches ADVICE.heed, and then issues the verb itself; a no

@@ -1,3 +1,5 @@
+// @suite fast
+// @suite extended --runs 10000
 // VB-1747: the task as a plan (sim/methods), wired to nothing yet, on a constructed micro-world: two farms, a forest, a road; stores,
 // piles at places with an owner, pawns that carry, one cart the two farms share. The firewood goal of docs/plans/four-scales/README.md
 // 3.2 is declared here; the engine is the game's. Rebuilt from Study A's mock (git show 4651420:docs/mocks/plans/task/micro.js), parts

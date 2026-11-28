@@ -1,3 +1,4 @@
+// @suite fast
 // Borders (VB-157, sim/territory) on tiny worlds: a village short of outland presses a neighbour that holds more a farm; the Disputed claims
 // custom settles it at the next meeting; cairns mark the border and keep the loser off those tiles for a while; the losers remember it.
 const VB = require('../src/load.js'), Sim = VB.sim, T = VB['sim/territory'], CL = VB['sim/claims'], R = VB['sim/relations'];

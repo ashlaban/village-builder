@@ -1,3 +1,4 @@
+// @suite integration
 // VB-779: a household that dies out holding timber at a building step drops its plans while it still stands; the timber lies on the
 // derelict farm's woodpile, booked, and nothing throws; the woodpile, in whole trips, then lies at the house for its heir (VB-1175). On a tiny village.
 const VB = require('../src/load.js'), { ECON, TRAVEL } = VB['sim/rules'], Projects = VB['sim/projects'], { extinct } = VB['sim/heirs'], Carts = VB['sim/carts'];

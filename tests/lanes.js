@@ -1,3 +1,4 @@
+// @suite integration
 // tools/lanes.js (VB-1678) in a scratch repository with an origin: tasks that edit different functions of one module run side by side,
 // one that edits a function already taken is held back, as is one that meets a branch pushed and not merged, or a claim in the inbox;
 // a task with no footprint falls back to the rule of archs, a plan runs alone, a table marked `// @merge union` is no footprint;
@@ -24,7 +25,7 @@ task('VB-103', 'Three', 'sim/a (f1); sim/b (g1)');
 task('VB-104', 'Four', 'unknown (an investigation)', 'arch');
 task('VB-105', 'Plan: five', 'unknown (a plan)');
 task('VB-106', 'Six', 'sim/b (g1)', 'P2');
-task('VB-107', 'Seven', 'sim/b (T); tests/suites.js', 'P2');
+task('VB-107', 'Seven', 'sim/b (T); tests/counters.json', 'P2');
 task('VB-108', 'Eight', 'unknown (an investigation)', 'P2 arch');
 // the tables tools/backlog.js reads (lanes takes its candidates from `backlog.js next`)
 const ids = [['VB-101', 'One', 1], ['VB-102', 'Two', 1], ['VB-103', 'Three', 1], ['VB-104', 'Four', 1], ['VB-105', 'Plan: five', 1], ['VB-106', 'Six', 2], ['VB-107', 'Seven', 2], ['VB-108', 'Eight', 2]];

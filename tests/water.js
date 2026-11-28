@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1582: the fetch is walked. On drawn maps (tests/lib/tiny.js): a farm's source is the first its household may draw at, by the walk
 // (running water on its own tile, a lake from its bank, its village's well, a well of its own; marsh only when no good water lies within
 // WATER.marshShy further); a house beside a brook fetches in about 0.36 hours and one 7 steps of meadow off in about 1.95; a farm with no

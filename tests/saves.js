@@ -1,3 +1,4 @@
+// @suite integration
 // Saves (VB-074): a run saved, written as JSON text, parsed and loaded into a fresh world goes on exactly as the run that was never saved:
 // every key of the state (the world aside) has the same canonical text, and the tiles the simulation changes are the same. On small
 // islands since VB-853: each scenario on a generated island loaded into one generated again from the save's seed and size, and the probe

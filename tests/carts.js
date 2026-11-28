@@ -1,3 +1,4 @@
+// @suite integration
 // Carts (sim/carts; the distance review, Kim, 12 Nov): hand carts and ox carts as a household's items. A load is 30 rations on the back, 90
 // on a hand cart and 300 on an ox cart, which needs the team free; a cart is out while its pawn is at the job it took it for; each
 // trip wears it, it is mended below half and gone at nothing; the head counts the loads that found no cart and has one built at the

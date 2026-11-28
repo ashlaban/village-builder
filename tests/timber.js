@@ -1,3 +1,4 @@
+// @suite fast
 // Timber (VB-328): a felled plot tile's trees are the plot's wood; a cottage short of BUILD.timber loads for its walls fells the rest in the
 // village's wood, trips drawn there and carried to the site, and its walls wait for them; what the walls leave goes to the new household
 // up to its winter goal, then to those who worked the plot, the rest burnt; a new household's first wood comes from its members' old homes,

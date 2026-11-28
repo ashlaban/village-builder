@@ -1,3 +1,4 @@
+// @suite integration
 // A caller sits with those indoors (VB-1559; design.md, Own time, and Where pawns meet): a pawn at the pastime `visit`, arrived at the
 // house it calls at, is present at that house's encounter. On the probe's village: a caller at the door and its friend inside talk within
 // a day of talk hours; a passer-by at the same spot, on no visit, draws nobody inside and is drawn by nobody inside.

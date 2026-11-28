@@ -1,3 +1,4 @@
+// @suite integration
 // Relationships (sim/relations): compatibility, opinion derived from the bond, affinity (compatibility shown as a tie grows) and timed
 // memories within their caps (VB-240), close friend and enemy bands told once and checked again each season, memories that fade and are
 // forgotten (once a season), and death ending relationships.

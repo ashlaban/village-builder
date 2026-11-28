@@ -1,3 +1,4 @@
+// @suite integration
 // VB-460: the good-year gift: a holder above the feast's threshold gives unasked to a tie that is short, kin first, a load carried by one of
 // its own; nothing under a sack; the grain is on the carrier's back and in neither store.
 const assert = require('assert');
