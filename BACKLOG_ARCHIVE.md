@@ -937,3 +937,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1934](backlog/VB-1934.md) | Refactor: a work counter is declared by the module whose loop it counts | - | 2 | M | src/vb.js 12 tasks to 0 (VB-1406 step 2) |
 | [VB-2011](backlog/VB-2011.md) | Split sim/chores: the wood to sim/wood | - | 1 | M | sim/chores is 762 lines, over 700 (lint); the wood moves to its own module |
 | [VB-2030](backlog/VB-2030.md) | Investigate: a settler dies of starvation with 80+ grain in the barn and hunger 0 | - | 2 | S | Seeds 3 and 5 solo: health falls 3 a day at hunger 0 |
+| [VB-1809](backlog/VB-1809.md) | A blocked goal says why, and is not posted again until its fact changes | - | 3 | S | VB-1775 review F5 and F8: onward drops a blocked goal and its reason; the counters' world has no wood, so methodAsk guards nothing |
