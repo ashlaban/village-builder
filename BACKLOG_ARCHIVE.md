@@ -935,3 +935,5 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-2027](backlog/VB-2027.md) | The storehouse as a place: threshed grain carried to it | - | 3 | S | jobs name the storehouse where the grain keeps |
 | [VB-1771](backlog/VB-1771.md) | Duties of the days ahead: one member sees to a type of recurring work without a window | plans | 2 | M | A duty, given by the head at its review, puts its holder first for one type of recurring work without a window (the wood, the water, the beasts, the cooking) in each day's allotment and nothing more; work with a window is never a duty. In place of VB-1553's removed mechanism. |
 | [VB-1934](backlog/VB-1934.md) | Refactor: a work counter is declared by the module whose loop it counts | - | 2 | M | src/vb.js 12 tasks to 0 (VB-1406 step 2) |
+| [VB-2011](backlog/VB-2011.md) | Split sim/chores: the wood to sim/wood | - | 1 | M | sim/chores is 762 lines, over 700 (lint); the wood moves to its own module |
+| [VB-2030](backlog/VB-2030.md) | Investigate: a settler dies of starvation with 80+ grain in the barn and hunger 0 | - | 2 | S | Seeds 3 and 5 solo: health falls 3 a day at hunger 0 |

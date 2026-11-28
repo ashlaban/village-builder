@@ -50,7 +50,7 @@ VB['sim/stores'] = (() => {
   // VB-328: the woodpile, in loads: a firewood trip, the day's burning (routine), a plot's wood, timber left over, a new household's first wood.
   KINDS.push('firewood', 'burn', 'plot', 'timber', 'start');
   ROUTINE.push('firewood', 'burn');
-  // VB-1653: timber felled in the woods and carried home (sim/chores' wood), and cut there into firewood (its firewood kind): out of
+  // VB-1653: timber felled in the woods and carried home (sim/wood' wood), and cut there into firewood (its firewood kind): out of
   // 'timber' and into 'wood', both routine totals
   KINDS.push('felling', 'cutting');
   ROUTINE.push('felling', 'cutting');
@@ -203,7 +203,7 @@ VB['sim/stores'] = (() => {
   const setWood = (hh, n) => {
     hh.wood = n;
   };
-  // @state household.timber: loads of timber felled in the woods and carried home, not yet cut into firewood (VB-1653; sim/chores: put
+  // @state household.timber: loads of timber felled in the woods and carried home, not yet cut into firewood (VB-1653; sim/wood: put
   //   by the wood kind's trip, taken by the firewood kind's cutting at the house, ECON.woodPerTrip a trip, the woodpile's units);
   //   absent (none) until the household's first timber is home, and in a save from before
   const setTimber = (hh, n) => {

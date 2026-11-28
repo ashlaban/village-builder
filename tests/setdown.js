@@ -166,7 +166,7 @@ const fetchJob = () => {
   A.start(st, c, fj);
   for (let k = 0; k < 600 && step.brought === 0; k++) Sim.advance(st, 0.1);
   assert.strictEqual(step.brought, 1, 'the fetched stone did not reach the well');
-  // the stone's pile only: a household's felled wood lies at its tile until a hand takes it up (sim/chores' fell, progress in the world)
+  // the stone's pile only: a household's felled wood lies at its tile until a hand takes it up (sim/wood' fell, progress in the world)
   assert(!(st.lying || []).some((x) => x.kind === 'wellstone'), 'the stone still lies after it was fetched');
   assert.deepStrictEqual(checkState(st), []);
 }

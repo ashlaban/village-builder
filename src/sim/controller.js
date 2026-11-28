@@ -406,7 +406,7 @@ VB['sim/controller'] = (() => {
   // ---- the household's own rule that holds an open step's job back (VB-1652): the one closed list, HOLDS, each {rule, text} ----
   // hands: a field beyond what its hands till (sim/fieldwork beyondHands, the plan's targets.workable); sowing: its sowing refused
   // (sim/fieldwork sowWhy: the seed, the thaw); hay: no hay wanted (sim/meadows hayWanted); timber: no timber home to cut; woodpile: the
-  // pile at the season's goal (sim/chores, the firewood job's rule); booth: the booth's timber not all fetched to its tile; wood: no wood
+  // pile at the season's goal (sim/wood, the firewood job's rule); booth: the booth's timber not all fetched to its tile; wood: no wood
   // to fetch the booth's (or an outbuilding's) timber from; stone: no stone in reach for the foundation (the wait `project`, its step not
   // opened while a project is under way, VB-1663, is gone with the limit, VB-1668); review: none of those,
   // the job posted at the household's next review. Each goal kind's `hold` names the one of its own (sim/kinds GOALS; VB-1777).
