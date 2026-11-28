@@ -89,5 +89,22 @@ check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
   const bad2 = checkState(s2).filter((e) => /dissolved, holding obligations/.test(e));
   check(!bad2.length, bad2.join('; '));
 }
+// VB-1983: a death leaves st.demand and a ward's guardianship
+{
+  const s3 = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  const L = VB['sim/lifecycle'], gone = s3.living[0];
+  s3.demand = s3.living.slice(0, 3);
+  L.killPawn(s3, gone);
+  check(!s3.demand.includes(gone) && s3.demand.length === 2, 'a dead pawn leaves st.demand');
+  const hh = s3.households.find((h) => !h.dissolved), g = hh.members.find((m) => s3.pawns[m].alive && s3.pawns[m].age >= 18);
+  if (g !== undefined) {
+    const ward = s3.pawns[hh.members.find((m) => m !== g)] || s3.pawns[g];
+    hh.ward = ward.id; hh.guardian = g;
+    L.killPawn(s3, g);
+    check(hh.guardian !== g && (hh.guardian === null || s3.pawns[hh.guardian].alive), 'a dead guardian is replaced or none');
+  } else check(false, 'no adult to test');
+  const bad3 = checkState(s3).filter((e) => /is dead/.test(e) && /demand|guardian/.test(e));
+  check(!bad3.length, bad3.join('; '));
+}
 if (failed) process.exit(1);
 console.log(`tiny ok: two villages on a 14 x 10 map seeded in ${ms} ms, ${st.pawns.length} people`);
