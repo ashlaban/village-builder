@@ -223,8 +223,8 @@ VB['sim/enforcement'] = (() => {
     const r = issue(st, {
       actor: by,
       verb: 'levy',
-      args: { debtor: o.debtor, creditor: o.creditor, source: 'debt', days, due: st.t + YEAR, debt: o.id },
       source: 'planner',
+      args: { debtor: o.debtor, creditor: o.creditor, source: 'debt', days, due: st.t + YEAR, debt: o.id },
     });
     if (r !== true) return false;
     VB.count.debtDaysOwed += days;

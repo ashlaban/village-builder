@@ -310,7 +310,26 @@ function checkState(st) {
         !(exists(o.debtor) && exists(o.creditor) && (o.enforcer === null || exists(o.enforcer)))
       )
         bad.push(`${at}: a party of it does not exist (${JSON.stringify([o.debtor, o.creditor, o.enforcer])})`);
+      // VB-315: days owed for a debt work off a loan; live, they are worth at most what is left of it (a day for 3 rations, the last
+      // part counted whole)
+      if (o.kind === 'days' && o.debt !== undefined) {
+        const l = all[o.debt];
+        if (!l || l.kind !== 'loan') bad.push(`${at}: days for debt ${o.debt}, not a loan`);
+        else if (O.isLive(o) && O.left(o) * 3 > O.left(l) + 3 + 1e-9)
+          bad.push(`${at}: ${O.left(o)} days owed for a loan of ${O.left(l)} left`);
+      }
     });
+    // VB-315: the cases pressed, one a loan, each a loan defaulted
+    if (st.cases) {
+      const seen = new Set();
+      for (const c of st.cases) {
+        const l = all[c.loan];
+        if (!l || l.kind !== 'loan' || l.status !== 'defaulted') bad.push(`case of ${c.loan}: not a loan defaulted`);
+        if (seen.has(c.loan)) bad.push(`case of ${c.loan}: pressed twice`);
+        seen.add(c.loan);
+        if (!st.pawns[c.by] || !(c.since <= st.t)) bad.push(`case of ${c.loan}: by ${c.by}, since ${c.since}`);
+      }
+    }
     // VB-470: today's lent hands, each a living pawn lent to another live household, its hours worked within those given
     if (st.handsToday) {
       const d = st.handsToday;
