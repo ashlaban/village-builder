@@ -101,6 +101,7 @@ for (const change of [
   (p) => { p.creators = 'sim/scenarios'; }, (p) => p.creators.push('sim/missing'),
   (p) => p.exempt.push(p.exempt[0]), (p) => p.plannedOwners.push('sim/records'),
   (p) => { p.fields['househld.grain'] = 'sim/stores'; }, (p) => { p.extra = true; },
+  (p) => { p.ids['st.pawns[].mother'] = 'pawn dead'; }, (p) => { p.ids['pawns..x'] = 'pawn live'; },
 ]) {
   const policy = structuredClone(OWNERS); change(policy);
   assert(validateOwners(policy, context).length > 0, 'must reject malformed policy metadata');

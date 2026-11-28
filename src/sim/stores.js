@@ -81,6 +81,7 @@ VB['sim/stores'] = (() => {
   KINDS.push('smelt', 'mendtools');
   KINDS.push('leather'); // VB-911: a hide cut into shoes or harness at home (sim/leather)
   KINDS.push('slaughter'); // VB-911: the hide of a slaughtered beast of the cattle (sim/byre)
+  KINDS.push('dress'); // VB-363: a length of cloth taken for a person's dress (sim/dress)
   KINDS.push('shear', 'spin', 'weave'); // VB-362: fleeces shorn at the fold (sim/byre), spun to yarn and woven to cloth (sim/textile)
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;

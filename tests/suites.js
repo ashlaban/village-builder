@@ -115,6 +115,7 @@ const FAST = [
   ['node', 'tests/discomfort.js'], // VB-448: routes chosen by time weighed with discomfort; a bridge up to twice the time, load classes
   ['node', 'tests/oversea.js'], // VB-436: nobody is sent to a home over the sea
   ['node', 'tests/tiny.js'],
+  ['node', 'tests/endings.js'], // VB-1683: each pawn, then each household, ended at each phase of a day; every id resolves after
   ['node', 'tests/stand.js'], // VB-1545: a holder alone takes the ranks of the roles its household lacks
   ['node', 'tests/timetable.js'], // VB-477: the timetable as a view, read only; the head's verbs on the day, checked
   ['node', 'tests/slot.js'], // VB-1558: a task the due-queue opens is slotted into the day as it stands, as the allotment would put it
@@ -202,6 +203,7 @@ const INTEGRATION = [
   ['node', 'tests/prospect.js'],
   ['node', 'tests/children.js'],
   ['node', 'tests/hands.js'],
+  ['node', 'tests/hired.js'], // hired hands: the hire, the basis, the wage paid at the day's end, no hire below the floor (VB-319)
   ['node', 'tests/tillcap.js'], // hoe and sow only what the hands can till (VB-1186)
   ['node', 'tests/helpers.js'], // help asked for: the ask, the answer, the hands lent and the tie by hours (VB-470)
   ['node', 'tests/voice.js'], // a member's voice: leave asked of the head, answered by its day and opinion, taken around the day (VB-1555)
