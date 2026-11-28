@@ -40,7 +40,7 @@ const MIN_DAYS = SEASON_DAYS, HUNGRY_SHARE = 0.3;
 const CENSUS = W.censusHour(VB['sim/rules']); // the hour of a year at which the marriage census is taken (VB-633)
 
 // Probes: (samples, afterYear) -> a number. samples[0] is the state at seeding, samples[y] at the end of year y.
-const HUNGER = new Set(['hunger', 'starvation']);
+const HUNGER = new Set(['hunger', 'starvation', 'thirst']);
 const after = (samples, y) => samples.filter((s) => s.year > y);
 // VB-633: yearly growth over the years `from` to `to` of the samples ((living at to / living at from)^(1 / years) - 1; NaN for no years)
 const growthOver = (s, from, to) => {
