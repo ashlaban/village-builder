@@ -54,6 +54,7 @@ for (const seed of [7, 42]) {
     const near = VB['sim/hex'].hexSteps(w, pick.house, st.farmsteads[0].house); // the village's own placing sets the house beside the tile chosen
     check(near <= 3 && st.farmsteads[0].house !== def.farmsteads[0].house, `the chosen site ${pick.house} landed ${near} steps off, on ${st.farmsteads[0].house}`);
   }
+  check(offer.every((s) => Number.isFinite(s.water.hours) && s.water.people === 1), 'a site offered with no fetch reading'); // the page card prints these
   const none = Sim.seed(w, seed, 'solo', null, null);
   check(none.farmsteads[0].house === def.farmsteads[0].house, 'no choice seeds differently');
 }

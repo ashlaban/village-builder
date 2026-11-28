@@ -77,14 +77,10 @@ const siteVerdict = (r) =>
 // each with its water), read as the page reads a tile; the land's own best when that offers none. Choosing one lands the settler there
 // (siteSettle passes it as the seed's `site`).
 function scoutedSites(seed) {
-  let offered = [];
-  try {
-    offered = Sim.soloSites(w, seed)
-      .map((o) => Sim.landing.read(w, o.house))
-      .filter((r) => r && r.ok)
-      .slice(0, 3);
-  } catch (e) {
-    console.warn('No sites offered', e);
+  const offered = [];
+  for (const o of Sim.soloSites(w, seed)) {
+    const r = Sim.landing.read(w, o.house);
+    if (r && r.ok && offered.length < 3) offered.push({ ...r, fetch: o.water }); // fetch: siteWater's reading, shown on the card
   }
   Sim.landing.lay(w);
   return offered.length ? offered : Sim.landing.best(w, 3);
@@ -175,6 +171,9 @@ function renderSite() {
       for (const key of ['water', 'soil', 'wood'])
         h += `<div class="u2-row">${SITE_ICON[key]}<b>${esc(wd[key][0])}</b>${sitePips(r[key].band)}</div>`;
       h += `</div><p class="sub">${esc(wd[weak][1])}</p>`;
+      const fe = (site.best.find((b) => b.tile === r.tile) || {}).fetch; // the walk, the daily fetch and the well, as siteWater has them
+      if (fe)
+        h += `<p class="sub">${esc(`Water: ${fe.hours.toFixed(1)} hours a day for ${fe.people === 1 ? 'one' : fe.people}${fe.well ? `, a ${fe.well.name} well to dig (${fe.well.hours.toFixed(1)} hours)` : ''}.`)}</p>`;
       if (site.msg) h += `<p class="u2-msg">${esc(site.msg)}</p>`;
       h +=
         `<button type="button" class="u2-btn go" data-site="settle"${site.busy ? ' disabled' : ''}>` +
