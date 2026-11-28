@@ -31,4 +31,11 @@ if (bad) process.exit(1);
   expect('a hand walking laden 36 hours of 60 is progress', held((t) => t >= 24, 60) === 0);
   expect('a hand walking laden for ever is held', held(() => true, 120) === 1);
 }
+{
+  const bd = compare({ runs: [R({ hungryDays: 300, band: [{ hungryDays: 224, hungerDeaths: 0 }] })] }, { runs: [R({ hungryDays: 328, band: [{ hungryDays: 250, hungerDeaths: 0 }] })] });
+  expect('overlapping bands are inside the noise', /224-300 \(base 250-328\) inside the noise/.test(bd.rows[0].hungryDays) && bd.ok);
+  const far = compare({ runs: [R({ hungryDays: 900, band: [{ hungryDays: 800, hungerDeaths: 0 }] })] }, base);
+  expect('apart is not noise and never fails', !/noise/.test(far.rows[0].hungryDays) && far.ok);
+  expect('no band, the old row', c({}).rows[0].hungryDays === '5 (base 5)');
+}
 console.log('gate-tool ok: extinct by hunger, collapse (under half its own and the base), stuck tasks, unexplained; hunger never fails');
