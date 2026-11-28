@@ -10,7 +10,8 @@ VB['sim/loans'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const { on } = VB['sim/events'];
   const { HELP, DAY, YEAR, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
-  const { floorOf, dailyNeed, seedNeed } = VB['sim/hunger'];
+  const { floorOf, dailyNeed, sownNext, seedPer } = VB['sim/hunger'];
+  const { targetOf } = VB['sim/steps'];
   const { CROPS } = VB['sim/crops'],
     { CROP_LIST } = VB['sim/goods'];
   const { opinionOf, remember } = VB['sim/relations'];
@@ -84,9 +85,14 @@ VB['sim/loans'] = (() => {
     return { end, from: end - (SEASON_DAYS + last + 1) * DAY };
   }
   // The seed household hh lacks for its sowings to come, those whose asking is open (from the season before the window to its close):
-  // each crop's seed its fields to be sown want (sim/hunger seedNeed) above what it holds of it, less the grain on its way to it; and the
-  // hour the last of those windows closes. {n, until}
+  // each crop's seed its fields to be sown want (in stubble or hoed, sown with it next: sim/hunger sownNext; barley's a field the plan's,
+  // seedPer, as the reserve's) above what it holds of it, less the grain on its way to it; and the hour the last of those windows
+  // closes. The seed a rotation keeps of a crop no field sows next is not asked for, nor that of more fields of a crop than its hands
+  // till (the plan's fields.workable, as sim/fieldwork's handsCap). {n, until}
   function seedShort(st, hh) {
+    const fields = st.farmsteads[hh.farmstead].fields,
+      F = targetOf(st.plans && st.plans.households.get(hh.id), 'fields'),
+      cap = F ? Math.max(1, F.workable) : Infinity;
     let n = 0,
       until = 0;
     for (const k of CROP_LIST) {
@@ -94,7 +100,12 @@ VB['sim/loans'] = (() => {
       if (!(C.seed > 0) || !C.sow) continue;
       const w = windowOf(st.t, C.sow);
       if (st.t < w.from) continue;
-      const short = seedNeed(st, hh, k) - Stores.grainOf(hh, k);
+      let want = 0,
+        m = 0;
+      for (const fd of fields)
+        if ((fd.stage === 'stubble' || fd.stage === 'plowed') && sownNext(fd) === k && m++ < cap)
+          want += k === 'barley' ? seedPer(st, hh) : C.seed;
+      const short = want - Stores.grainOf(hh, k);
       if (short <= 1e-9) continue;
       n += short;
       until = Math.max(until, w.end);
