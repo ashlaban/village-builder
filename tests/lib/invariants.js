@@ -531,6 +531,7 @@ function checkState(st) {
     if (!Number.isFinite(p.stake) || p.stake < -1e-9) bad.push(`pawns[${p.id}]: stake ${p.stake}`);
     else if (p.alive && p.stake > 1e-9 && p.household === null)
       bad.push(`pawns[${p.id}]: a stake of ${p.stake} with no household to lie in`);
+    else if (!p.alive && p.stake > 1e-9) bad.push(`pawns[${p.id}]: dead, holding a stake of ${p.stake} (VB-1476)`);
   }
   // the clock (VB-235): st.tick, a non-negative whole count of 6-minute steps, is its source of truth; st.t is it in hours, whole steps
   // only (VB-244: the page keeps the part of a step)

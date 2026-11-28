@@ -4,7 +4,8 @@
 VB['sim/lifecycle'] = (() => {
   const { holdingOf, living } = VB['sim/records'];
   const { register } = VB['sim/commands'];
-  const { emit } = VB['sim/events'];
+  const { emit } = VB['sim/events'],
+    Stores = VB['sim/stores'];
   const { TRAITS, DAY, YEAR } = VB['sim/rules'];
   const { dayOfDeath, CAUSES, COLD } = VB['sim/deaths'];
   const { leaveHousehold, unionOf, noteDeath, log, age, fullName, noteUnionEnd, atHousehold, lifeEvent, isHolder } =
@@ -22,6 +23,20 @@ VB['sim/lifecycle'] = (() => {
   const { funeral } = VB['sim/occasions'];
   const { closeTrust, wardsOfAge, inheritedHeld } = VB['sim/trust'],
     { trustOfHolder } = VB['sim/ownership'];
+  // VB-1476: a dead pawn's grain stake is title, and passes at once (design.md, Title moves at once): to the household it lived in, where the
+  // grain lies, else to its heir's household (the line's successor by its village's customs), else to the first village's store.
+  function leaveStake(st, p, hh, successorOf) {
+    const n = p.stake || 0;
+    if (!(n > 0)) return;
+    let to = hh;
+    if (!to) {
+      const q = successorOf(st, p.id),
+        h = q === null ? null : st.pawns[q].household;
+      to = h !== null && h !== undefined ? st.households[h] : null;
+    }
+    if (!to || to.dissolved) to = st.villages[0];
+    Stores.move(st, p, to, 'grain', n, { kind: 'handingOn', estate: true, pawn: p.id });
+  }
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id];
     if (!p.alive) return;
@@ -66,6 +81,7 @@ VB['sim/lifecycle'] = (() => {
     );
     funeral(st, id); // the next day's funeral ale, at the farm it leaves (sim/occasions, VB-126)
     const hh = p.household !== null ? st.households[p.household] : null;
+    leaveStake(st, p, hh, successorOf);
     if (hh) {
       leaveHousehold(st, id, true);
       if (hh.holder === id) succession(st, hh, 'death');
