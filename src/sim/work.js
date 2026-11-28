@@ -131,7 +131,7 @@ VB['sim/work'] = (() => {
       if (K.craft) Skills.practise(st, id, K.craft, dt); // hours at a craft raise the hand's skill at it (VB-360)
       if (j.field && j.farm) bookHours(j.field, st.pawns[id].household === j.farm.household, dt); // VB-462: the class reads it
       if (st.agents[id].basis === 'owed') Days.worked(st, id, dt);
-      else if (st.agents[id].basis === 'helper') Hands.worked(st, id, dt);
+      else if (st.agents[id].basis === 'helper' || st.agents[id].basis === 'hired') Hands.worked(st, id, dt);
       else countToday(st, id, dt, t);
     }
   }

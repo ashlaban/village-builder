@@ -202,6 +202,7 @@ const INTEGRATION = [
   ['node', 'tests/prospect.js'],
   ['node', 'tests/children.js'],
   ['node', 'tests/hands.js'],
+  ['node', 'tests/hired.js'], // hired hands: the hire, the basis, the wage paid at the day's end, no hire below the floor (VB-319)
   ['node', 'tests/tillcap.js'], // hoe and sow only what the hands can till (VB-1186)
   ['node', 'tests/helpers.js'], // help asked for: the ask, the answer, the hands lent and the tie by hours (VB-470)
   ['node', 'tests/voice.js'], // a member's voice: leave asked of the head, answered by its day and opinion, taken around the day (VB-1555)

@@ -78,7 +78,7 @@ VB['sim/legs'] = (() => {
     const j = a.job,
       o = j && j.owner;
     if (!o || (o.type !== 'household' && o.type !== 'village')) return undefined;
-    if (a.basis === 'owed' || a.basis === 'helper') return 'owed';
+    if (a.basis === 'owed' || a.basis === 'helper' || a.basis === 'hired') return 'owed';
     return a.opener === 'head' ? 'head' : 'pawn';
   }
   function stamp(a, l) {
