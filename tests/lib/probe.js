@@ -1,8 +1,8 @@
 // Small deliberate village for contracts that do not depend on generated geography.
 const { tinyWorld, tinyState } = require('./tiny.js');
 const world = () => tinyWorld(Array(18).fill('.'.repeat(28)), { seed: 7 });
-const state = () => tinyState(world(), [{ at: [7, 9], farms: 2, sizes: [6, 5] },
-  { at: [21, 9], farms: 2, sizes: [5, 4] }], { seed: 7, herds: true });
+const state = (seed = 7) => tinyState(world(), [{ at: [7, 9], farms: 2, sizes: [6, 5] },
+  { at: [21, 9], farms: 2, sizes: [5, 4] }], { seed, herds: true });
 // Small generated islands (VB-853), for the rules that need a scenario's own seeding or generated land, at a tenth of a second each: 36 by 26
 // (as tests/page.js), and 48 by 34 for heirs, whose two debug villages need the room. A save names its size, so island(data.seed, data)
 // generates the same world again. Each island is generated once per seed and size in a test process (VB-872), and every call hands out a

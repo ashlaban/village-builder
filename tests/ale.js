@@ -13,6 +13,7 @@ const hh = st.households.find((h) => !h.dissolved && h.holder !== null), f = st.
 const autumnT = (d) => SEASON_DAYS * 2 * DAY + d * DAY + 8, autumn = (d) => cal(autumnT(d)), jobs = (c) => { const out = []; K.KINDS.brew.available(st, hh, f, c, (key) => out.push(key)); return out; };
 
 // 1. The rule: ale is wanted only from grain above the floor, in autumn and winter, and while the household holds no barrel.
+st.t = autumnT(3); // the floor of the autumn day brewed on (it moves with the date)
 const floor = H.floorOf(st, hh);
 hh.grain = { barley: floor + BREW.grain - 0.5 }; assert.strictEqual(jobs(autumn(3)).length, 0, 'no brewing below the floor plus a barrel\'s grain');
 hh.grain = { barley: floor + BREW.grain }; assert.strictEqual(jobs(autumn(3)).length, 1, 'brewing from the surplus');

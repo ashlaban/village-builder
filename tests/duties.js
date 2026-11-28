@@ -10,7 +10,7 @@ const VB = require('../src/load.js'), Sim = VB.sim, D = VB['sim/day'], Steps = V
 const { issue } = VB['sim/commands'], { emit } = VB['sim/events'], { age } = VB['sim/records'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha, kept } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
-const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 4 });
+const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 12 });
 st.makeFields = false;
 D.SWITCH.duties = true; // the default author gives duties (off until Kim's answer, VB-1771)
 Sim.advance(st, 30.5); // the second day, 10:30: the household's reviews are behind it

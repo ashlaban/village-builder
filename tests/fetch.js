@@ -18,7 +18,7 @@ const gifts = (hh) => hh.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.
   to(st, 7);
   const [giver, rec] = st.households.filter((h) => villageOf(st, h) === 0);
   assert.notStrictEqual(giver.farmstead, rec.farmstead, 'two farmsteads');
-  Stores.put(st, giver, 'grain', 200, 'harvest', { barley: 150, rye: 50 });
+  Stores.put(st, giver, 'grain', 400, 'harvest', { barley: 350, rye: 50 }); // grain enough that its allowance covers the gift whoever the two are (VB-1951 moved the probe's people)
   const g0 = Stores.grainOf(giver), got0 = gifts(rec), n = 2 * TRAVEL.load + 10;
   assert.strictEqual(issue(st, { actor: giver.holder, verb: 'give', target: rec.id, args: { good: 'grain', n }, source: 'help' }), true, 'the gift is agreed');
   assert.ok(Math.abs(g0 - Stores.grainOf(giver) - n) < 1e-9, 'it is the receiver\'s at once: set aside, out of the giver\'s store');
@@ -53,7 +53,7 @@ const gifts = (hh) => hh.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.
   const st = probe.state();
   to(st, 7);
   const [giver, rec] = st.households.filter((h) => villageOf(st, h) === 0);
-  Stores.put(st, giver, 'grain', 100, 'harvest', { barley: 100 });
+  Stores.put(st, giver, 'grain', 300, 'harvest', { barley: 300 });
   const g0 = Stores.grainOf(giver);
   assert.strictEqual(issue(st, { actor: giver.holder, verb: 'give', target: rec.id, args: { good: 'grain', n: 20 }, source: 'help' }), true);
   const j = st.away.find((x) => x.why === 'fetch');
@@ -68,7 +68,7 @@ const gifts = (hh) => hh.ledger.filter((e) => e.kind === 'gift' && e.n > 0 && e.
   const st = probe.state();
   to(st, 7);
   const [giver, rec] = st.households.filter((h) => villageOf(st, h) === 0);
-  Stores.put(st, giver, 'grain', 200, 'harvest', { barley: 150, rye: 50 });
+  Stores.put(st, giver, 'grain', 400, 'harvest', { barley: 350, rye: 50 });
   const n = 3 * TRAVEL.load;
   issue(st, { actor: giver.holder, verb: 'give', target: rec.id, args: { good: 'grain', n }, source: 'help' });
   const j = st.away.find((x) => x.why === 'fetch');
@@ -97,7 +97,7 @@ console.log('fetch: a gift set aside at once and fetched a load a trip, a store\
   const st = probe.state();
   to(st, 7);
   const giver = st.households.find((h) => villageOf(st, h) === 0), v = st.villages[0];
-  Stores.put(st, giver, 'grain', 200, 'harvest', { barley: 150, rye: 50 });
+  Stores.put(st, giver, 'grain', 400, 'harvest', { barley: 350, rye: 50 });
   const g0 = Stores.grainOf(giver), v0 = Stores.grainOf(v), n = 2 * TRAVEL.load + 10;
   assert.strictEqual(issue(st, { actor: giver.holder, verb: 'give', target: { village: 0 }, args: { good: 'grain', n }, source: 'help' }), true);
   assert.ok(g0 - Stores.grainOf(giver) > n - 1e-9, 'out of the giver\'s store (and his meals)');

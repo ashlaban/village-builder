@@ -10,7 +10,10 @@ VB['sim/loans'] = (() => {
   const { issue, register } = VB['sim/commands'];
   const { on } = VB['sim/events'];
   const { HELP, DAY, YEAR, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
-  const { floorOf, dailyNeed } = VB['sim/hunger'];
+  const { floorOf, dailyNeed, sownNext, seedPer } = VB['sim/hunger'];
+  const { targetOf } = VB['sim/steps'];
+  const { CROPS } = VB['sim/crops'],
+    { CROP_LIST } = VB['sim/goods'];
   const { opinionOf, remember } = VB['sim/relations'];
   const { inForce } = VB['sim/customs'];
   const { agentOf, agentWhy } = VB['sim/decisions'];
@@ -69,13 +72,92 @@ VB['sim/loans'] = (() => {
     if (st.farmsteads[to.farmstead].fields.length === 0 && unpaid(st, to)) return 'no field, and a loan unpaid';
     return null;
   }
-  // What lender `from` lends household `to` of the n it lacks: in whole sacks, at most what it spares; 0 when it refuses
-  function lends(st, from, by, to, n) {
+  // What lender `from` lends household `to` of the n it lacks: in whole sacks, at most what it spares; 0 when it refuses. Seed
+  // (VB-1973) is lent in the sacks that cover what is short, a field's seed being of no use in part.
+  function lends(st, from, by, to, n, seed = false) {
     if (refuses(st, from, by, to)) return 0;
-    return Math.floor(Math.min(n, spareOf(st, from)) / LOAN.sack + 1e-9) * LOAN.sack;
+    const most = Math.floor(spareOf(st, from) / LOAN.sack + 1e-9);
+    return Math.min(most, seed ? Math.ceil(n / LOAN.sack - 1e-9) : Math.floor(n / LOAN.sack + 1e-9)) * LOAN.sack;
   }
+  // ---- a seed loan (VB-1973; design.md, Loans of seed; Kim, 28 Nov: borrowed as a grain loan, kept for the sowing, repaid in grain at
+  // the end of autumn) ----
+  // The hour a crop's sowing window [season, first, last] next closes after hour t, and its asking from the start of the season before
+  function windowOf(t, sow) {
+    const [s, , last] = sow,
+      close = (Math.floor(t / YEAR) * YEAR_DAYS + s * SEASON_DAYS + last + 1) * DAY,
+      end = close > t ? close : close + YEAR;
+    return { end, from: end - (SEASON_DAYS + last + 1) * DAY };
+  }
+  // The seed household hh lacks for its sowings to come, those whose asking is open (from the season before the window to its close):
+  // each crop's seed its fields to be sown want (in stubble or hoed, sown with it next: sim/hunger sownNext; barley's a field the plan's,
+  // seedPer, as the reserve's) above what it holds of it, less the grain on its way to it; and the hour the last of those windows
+  // closes. The seed a rotation keeps of a crop no field sows next is not asked for, nor that of more fields of a crop than its hands
+  // till (the plan's fields.workable, as sim/fieldwork's handsCap). {n, until}
+  function seedShort(st, hh) {
+    const fields = st.farmsteads[hh.farmstead].fields,
+      F = targetOf(st.plans && st.plans.households.get(hh.id), 'fields'),
+      cap = F ? Math.max(1, F.workable) : Infinity;
+    let n = 0,
+      until = 0;
+    for (const k of CROP_LIST) {
+      const C = CROPS[k];
+      if (!(C.seed > 0) || !C.sow) continue;
+      const w = windowOf(st.t, C.sow);
+      if (st.t < w.from) continue;
+      let want = 0,
+        m = 0;
+      for (const fd of fields)
+        if ((fd.stage === 'stubble' || fd.stage === 'plowed') && sownNext(fd) === k && m++ < cap)
+          want += k === 'barley' ? seedPer(st, hh) : C.seed;
+      const short = want - Stores.grainOf(hh, k);
+      if (short <= 1e-9) continue;
+      n += short;
+      until = Math.max(until, w.end);
+    }
+    return { n: n > 0 ? Math.max(0, n - coming(st, hh)) : 0, until };
+  }
+  // @state household.seedLent: absent, or the seed loan held for the coming sowing: {lent, sown, until}: the rations lent as seed, of
+  //   them those sown since (the event seedSown, sim/fieldwork), and the hour the last sowing window it was lent for closes. What is
+  //   lent and not sown is held as seed: the meal and the cook do not eat it (sim/hunger seedKept, sim/pot); from `until` it is the
+  //   household's grain again (freed at its next review); the loan is repaid in grain at the end of autumn, as a grain loan is. Written
+  //   only here.
+  function lendSeed(st, hh, n, until) {
+    const r = hh.seedLent;
+    if (r) {
+      r.lent += n;
+      r.until = Math.max(r.until, until);
+    } else hh.seedLent = { lent: n, sown: 0, until };
+    VB.count.seedLent += n;
+  }
+  // A field of household hh sown with n of seed: the loan's seed is sown first
+  on('seedSown', (st, { hh, n }) => {
+    const r = hh.seedLent;
+    if (!r || st.t >= r.until) return;
+    const k = Math.min(n, r.lent - r.sown);
+    r.sown += k;
+    VB.count.seedLentSown += k;
+  });
+  // The sowing over (its window closed): what was lent and not sown is the seed of no field
+  function seedFreed(st, hh) {
+    const r = hh.seedLent;
+    if (!r || st.t < r.until) return;
+    VB.count.seedLentFreed += r.lent - r.sown;
+    delete hh.seedLent;
+  }
+  // What household `to` asks of an offer o: the seed it lacks for its sowing (wants.seed), or what it lacks of the next harvest
+  const wantOf = (st, o, to) => Math.min(o.wants.n, o.wants.seed ? seedShort(st, to).n : lack(st, to));
   VB.counter('loansMade', 'Loans of grain made (sim/loans, VB-312)');
   VB.counter('loanLent', 'Grain lent, in rations (sim/loans, VB-312)');
+  VB.counter(
+    'seedAsks',
+    'Seed loans asked before a sowing by a household short of seed, once a season (sim/loans, VB-1973)',
+  );
+  VB.counter('seedLent', 'Grain lent as seed for a sowing, in rations (sim/loans lendSeed, VB-1973)');
+  VB.counter('seedLentSown', 'Grain lent as seed and sown, in rations (sim/loans, VB-1973)');
+  VB.counter(
+    'seedLentFreed',
+    'Grain lent as seed and not sown by the close of its sowing window, in rations (sim/loans seedFreed, VB-1973)',
+  );
   // ---- the basis `loan` (sim/offers): the borrower's holder wants {good: 'grain', n, store?} and gives its promise ----
   Offers.basis('loan', {
     books: 'an obligation',
@@ -108,7 +190,7 @@ VB['sim/loans'] = (() => {
     weigh: (st, o) => {
       const from = Offers.partyOf(st, o.parties.to),
         to = Offers.partyOf(st, o.parties.from);
-      return lends(st, from, o.to, to, Math.min(o.wants.n, lack(st, to))) > 0;
+      return lends(st, from, o.to, to, wantOf(st, o, to), o.wants.seed) > 0;
     },
     // a no is remembered only where the lender had a sack to spare (an honest cannot is not resented, as an ask's)
     refused: (st, o, no) => {
@@ -123,12 +205,15 @@ VB['sim/loans'] = (() => {
         ...atHousehold(st, Offers.partyOf(st, o.parties.from)),
       });
     },
-    what: (st, o) => `a loan of ${Math.round(o.wants.n)} grain to ${fullName(st.pawns[o.from])}`,
+    what: (st, o) =>
+      `a loan of ${Math.round(o.wants.n)} ${o.wants.seed ? 'seed corn' : 'grain'} to ${fullName(st.pawns[o.from])}`,
     // a yes: the grain set aside as the borrower's and fetched (the verb deliver, args.loan), and the obligation booked: one or nothing
     settle: (st, o) => {
       const from = Offers.partyOf(st, o.parties.to),
         to = Offers.partyOf(st, o.parties.from);
-      const n = lends(st, from, o.to, to, Math.min(o.wants.n, lack(st, to))); // at most what it lacks now (a later yes: others lent meanwhile)
+      const seed = o.wants.seed === true,
+        short = seed ? seedShort(st, to) : null,
+        n = lends(st, from, o.to, to, wantOf(st, o, to), seed); // at most what it lacks now (a later yes: others lent meanwhile)
       if (!(n > 0)) return `${nameOf(st, from)} has nothing to lend now`;
       const args = { good: 'grain', n, loan: true };
       if (!isHousehold(from)) args.store = from.id;
@@ -151,11 +236,12 @@ VB['sim/loans'] = (() => {
       });
       VB.count.loansMade++;
       VB.count.loanLent += n;
+      if (seed) lendSeed(st, to, n, short.until); // kept as seed for the sowing (sim/hunger)
       personEvent(
         st,
         o.from,
         'loan',
-        `Borrowed ${n} grain from ${nameOf(st, from)}, to repay ${Math.round(back)} at the harvest`,
+        `Borrowed ${n} ${seed ? 'seed corn' : 'grain'} from ${nameOf(st, from)}, to repay ${Math.round(back)} at the harvest`,
         { n, other: o.to, ...atHousehold(st, to) },
       );
       personEvent(st, o.to, 'loan', `Lent ${n} grain to ${nameOf(st, to)}`, false);
@@ -241,9 +327,48 @@ VB['sim/loans'] = (() => {
     }
     return true;
   }
+  // @state household.seedAskedIn: the season in which the household's holder last asked a seed loan (VB-1973), or absent; written only
+  //   here. It asks at most once a season.
+  // Household hh's holder asks a seed loan before its sowing (VB-1973): while the seed it holds is short of its fields to be sown
+  // (seedShort) by any of it, once a season, of the same lenders as a grain loan, in the same order, each for what is still short. True
+  // when it asked.
+  function borrowSeed(st, hh) {
+    const season = seasonOf(st.t),
+      by = hh.holder;
+    if (hh.dissolved || hh.seedAskedIn === season || by === null || by === undefined || !st.pawns[by].alive)
+      return false;
+    if (hh.farmstead === null || unplanned(st, by)) return false;
+    if (st.offers.some((o) => o.basis === 'loan' && o.from === by)) return false; // a loan asked, not yet answered
+    let want = seedShort(st, hh).n;
+    if (want <= 1e-9) return false;
+    hh.seedAskedIn = season;
+    VB.count.seedAsks++;
+    const ask = (party, target, store) => {
+      const before = Stores.grainOf(party),
+        wants = { good: 'grain', n: Math.max(LOAN.sack, want), seed: true };
+      if (store !== undefined) wants.store = store;
+      issue(st, { actor: by, verb: 'offer', target, args: { basis: 'loan', wants }, source: 'planner' });
+      want -= Math.max(0, before - Stores.grainOf(party));
+    };
+    const v = villageOf(st, hh);
+    for (const k of lenders(st, v, hh)) {
+      if (want <= 1e-9) return true;
+      ask(k, k.holder);
+    }
+    const alderman = agentOf(st, v);
+    if (want > 1e-9 && alderman !== null && spareOf(st, st.villages[v]) >= LOAN.sack) ask(st.villages[v], alderman, v);
+    for (const k of partners(st, by, hh)) {
+      if (want <= 1e-9) return true;
+      ask(k, k.holder);
+    }
+    return true;
+  }
   on('planReviewed', (st, d) => {
     if ((d.why !== 'day' && d.why !== 'store') || d.plan.holder.type !== 'household') return;
-    borrow(st, st.households[d.plan.holder.id]);
+    const hh = st.households[d.plan.holder.id];
+    if (hh.seedLent) seedFreed(st, hh);
+    borrowSeed(st, hh); // the seed first: what is lent for the sowing is kept for it, and counts in what it lacks
+    borrow(st, hh);
   });
   // ---- repayment, overdue and default (design.md, Interest and due; Overdue and default) ----
   // The debtor's actor: its holder, or the household itself without one
@@ -334,5 +459,5 @@ VB['sim/loans'] = (() => {
       else log(st, `${nameOf(st, hh)} d${text}.`, { kind: 'loanDefaulted', pawn: null, ...atHousehold(st, hh) });
     },
   });
-  return { LOAN, borrow, lack, spareOf, lends, refuses, harvestAfter };
+  return { LOAN, borrow, borrowSeed, seedShort, windowOf, lack, spareOf, lends, refuses, harvestAfter };
 })();

@@ -20,7 +20,7 @@ const B = live.find((h) => live.some((g) => g !== h && village(g) === village(h)
 const A = live.find((g) => g !== B && village(g) === village(B) && !kinHouseholds(st, B).includes(g.id));
 assert(A && B, 'two households of one village, not kin');
 const a = A.holder, b = B.holder;
-for (const hh of st.households) { hh.grain = { barley: seedReserve(st, hh) + keep(hh) }; hh.borrowedIn = VB['sim/help'].seasonOf(st.t); }
+for (const hh of st.households) { hh.grain = { barley: seedReserve(st, hh) + keep(hh) }; hh.borrowedIn = hh.seedAskedIn = VB['sim/help'].seasonOf(st.t); }
 for (const v of st.villages) v.grain = { barley: 0 };
 const n = (m) => [...(st.obligations || [])].filter((o) => o.source === 'patron' && o.debtor.id === B.id && o.creditor.id === A.id).length;
 const mark = () => F.PATRON.above * dailyNeed(st, B);

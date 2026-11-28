@@ -1012,7 +1012,7 @@ console.log(
     assert(a.job === to && VB['sim/pose'].atWork(a), `at the task called (urgent ${urgent})`);
     came[urgent] = st.t - t1;
     if (!urgent)
-      assert(came[urgent] <= VB['sim/roles'].MATCH.day.within + 0.25, `there within about the hour: ${came[urgent]} h`);
+      assert(came[urgent] <= VB['sim/roles'].MATCH.day.within + 0.5, `there within about the hour: ${came[urgent]} h`); // VB-1951: half an hour's slack, the walk round to the gate
     if (!urgent) {
       assert(home !== null && home <= t1 + came[urgent], 'the load reached the store before the member came');
       assert(!(st.lying || []).some((l) => l.owner.id === hh.id && l.kind === 'wood'), 'nothing set down on the way');

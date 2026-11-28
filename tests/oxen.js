@@ -9,7 +9,7 @@ const world = (seed) => require('./lib/probe.js').island(seed);
 const T = Sim.HERD.team;
 
 // --- populous tiny at seed 7: a household with a team and one without, each hoeing a field by hand
-const st = Sim.seed(world(7), 7, 'populous');
+const st = Sim.seed(world(2), 2, 'populous'); // seed 2 (7 before VB-1951's gates moved the farms: no farm there with two fields and a team)
 const live = st.households.filter((h) => !h.dissolved && st.farmsteads[h.farmstead].fields.length >= 2);
 const withT = live.find((h) => H.team(st, h)), without = live.find((h) => !H.team(st, h) && h.members.length >= 2);
 check(withT && without, 'no household with a team and one without');

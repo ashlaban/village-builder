@@ -79,6 +79,10 @@ VB['sim/hunger'] = (() => {
   const { reserved, grainOf } = Stores;
   // The grain held back as seed, as the Sim API has read it (the page); the simulation reads reserved(st, hh, 'grain').
   const seedReserve = (st, hh) => reserved(st, hh, 'grain');
+  // The seed lent for the sowing (household.seedLent, sim/loans; VB-1973) the meal keeps of `held`, the seed household hh holds now:
+  // what was lent and not sown, until its window closes
+  const seedKept = (st, hh, held) =>
+    hh.seedLent && st.t < hh.seedLent.until ? Math.max(0, Math.min(hh.seedLent.lent - hh.seedLent.sown, held)) : 0;
   // What the household's living members eat in a day, in rations.
   function dailyNeed(st, hh) {
     const adult = st.ECON.ration.adult,
@@ -179,7 +183,7 @@ VB['sim/hunger'] = (() => {
       avail = hh.meals + wild + (flour + spare) / R; // meals, then uncooked food
     const late = avail < rest && hh.larder.length ? takeFood(st, hh, rest - avail, Infinity, undefined, by) : 0;
     if (by) for (const k in by) Stores.record(st, hh, k, -by[k], 'meal');
-    const seed = (grainOf(hh) - spare) / R,
+    const seed = (grainOf(hh) - spare - seedKept(st, hh, grainOf(hh) - spare)) / R, // the seed lent for the sowing is not eaten (VB-1973)
       lack = rest - late - avail,
       dip = lack > 1e-9 && seed > 0 ? Math.min(lack, seed) : 0; // the seed the meal needs
     if (avail + dip >= rest - late) {

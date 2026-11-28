@@ -8,7 +8,7 @@ const VB = require('../src/load.js'),
   Sim = VB.sim,
   Water = VB['sim/water'],
   Thirst = VB['sim/thirst'];
-const { tinyWorld, tinyState } = require('./lib/tiny.js');
+const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
 const { checkState } = require('./lib/invariants.js');
 const { FRESH } = VB['world/water'];
 const { TICKS, DAY, YEAR, HUNGER, TRAVEL, SPEED, cal } = VB['sim/rules'];
@@ -30,14 +30,13 @@ const meadow = (cols, rows) => Array.from({ length: rows }, () => '.'.repeat(col
 const handCart = () => ({ kind: 'hand', cond: 1, built: 0, by: null });
 // A lone farm of `n` people, its brook `steps` tiles east of the house (0: a well by the door), with the carts given.
 const farm = (n, steps, carts) => {
-  const lay = (ww) => tinyState(ww, [{ at: [8, 6], farms: 1, sizes: [n] }], { seed: 7 });
-  const w = tinyWorld(meadow(30, 13));
+  const w = tinyWorld(meadow(30, 13)),
+    h = tileAt(w, 8, 6);
   if (steps) {
-    const i = lay(tinyWorld(meadow(30, 13))).farmsteads[0].house + steps;
-    w.river[i] = 1;
-    w.fresh[i] = FRESH.BROOK;
+    w.river[h + steps] = 1;
+    w.fresh[h + steps] = FRESH.BROOK;
   }
-  const st = lay(w),
+  const st = tinyState(w, [{ house: [8, 6], sizes: [n] }], { seed: 7, gates: false }),
     hh = st.households[0],
     f = st.farmsteads[hh.farmstead];
   w.fresh[f.house] = steps ? FRESH.NONE : FRESH.WELL; // a test's write: the well a farm that has stood far from water starts with
@@ -87,7 +86,8 @@ check(WATER.hand === 6 && WATER.child === 3 && WATER.cart === 18 && WATER.fill =
   check(posted.length === 1, `one person alone at home: one trip posted (${posted})`);
   const j = { kind: 'water', owner: { type: 'household', id: hh.id }, site: f.water.tile, farm: f, claims: [] };
   check(waterSetOut(st, st.agents[hh.holder], j) === 0 && !j.cart && j.cover === WATER.hand, 'which it makes by hand, as six do');
-  check(near(waterTrip(st, j) + KINDS.water.hours, hand, 1e-9), `in ${hand.toFixed(2)} hours`);
+  // the trip by the farm's walk as found (0.871: VB-1951's gates move the ways the seeding wears in, so a step of the 7 is worn)
+  check(near(waterTrip(st, j) + KINDS.water.hours, tripHours(f.water.walk), 1e-9) && near(f.water.walk, W, 0.01), `in ${hand.toFixed(2)} hours (${waterTrip(st, j) + KINDS.water.hours}, ${JSON.stringify(f.water)})`);
 }
 for (const n of [3, 6]) {
   const r = fetchDay(n, 7, [handCart()]);
