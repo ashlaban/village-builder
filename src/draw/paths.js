@@ -277,7 +277,8 @@ VB['draw/paths'] = (() => {
     return out;
   }
   // The trail curves of one chunk at level l (lv: draw/bake LV[l]), and its worn fields and meadows.
-  function chunkSegments(w, lv, cx, cy, l) {
+  // look: the rows' season looks (draw/season rowLooks), or none: the ways of a row under snow go in `snowy`, drawn as trodden snow.
+  function chunkSegments(w, lv, cx, cy, l, look = null) {
     const { R, HW, AP, COLS, ROWS } = w,
       x0 = cx * lv.size,
       y0 = cy * lv.size,
@@ -289,22 +290,26 @@ VB['draw/paths'] = (() => {
     const c0 = Math.max(0, Math.floor((x0 - M - AP) / HW)),
       c1 = Math.min(COLS - 1, Math.ceil((x1 + M - AP) / HW));
     const segs = [],
-      sown = [];
+      snowy = [],
+      sown = [],
+      SNOW = VB['draw/season'].TINT.snow,
+      tintOf = VB['draw/season'].tintOf;
     for (let row = r0; row <= r1; row++)
       for (let col = c0; col <= c1; col++) {
         const i = row * COLS + col;
         if (!(w.worn[i] && LOOK.level[w.worn[i]] >= l) && !(w.dev && w.dev[i] === 2)) continue;
         if (w.dev && w.dev[i] === 1) sown.push(i);
-        for (const g of segments(w, i)) if (LOOK.level[g[7]] >= l) segs.push(g);
+        const into = look && tintOf(look[row]) === SNOW ? snowy : segs;
+        for (const g of segments(w, i)) if (LOOK.level[g[7]] >= l) into.push(g);
       }
-    return { segs, sown };
+    return { segs, snowy, sown };
   }
   // Strokes the curves in their layers; ctx is set to map units.
-  function paint(ctx, segs, sc) {
+  function paint(ctx, segs, sc, layers = LOOK.layers) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     const minW = 1.2 / sc; // at least a texel or so wide on the coarser levels
-    for (const [k, colours] of LOOK.layers)
+    for (const [k, colours] of layers)
       for (let s = 1; s <= 3; s++) {
         if (!colours[s]) continue;
         ctx.strokeStyle = colours[s];
@@ -327,14 +332,16 @@ VB['draw/paths'] = (() => {
       }
   }
   // Paints the trails of one chunk onto ctx, over the rivers and under the decorations. lv: draw/bake LV[level]; l: the level.
-  function drawChunk(w, ctx, lv, cx, cy, l) {
+  // look: as chunkSegments'; a lane under snow stays in sight as trodden snow (Worn paths, 6), on the ice too while it bears.
+  function drawChunk(w, ctx, lv, cx, cy, l, look = null) {
     if (!w.worn) return;
-    const { segs } = chunkSegments(w, lv, cx, cy, l);
-    if (!segs.length) return;
+    const { segs, snowy } = chunkSegments(w, lv, cx, cy, l, look);
+    if (!segs.length && !snowy.length) return;
     const sc = lv.scale;
     ctx.setTransform(sc, 0, 0, sc, -cx * lv.size * sc, -cy * lv.size * sc);
     ctx.globalCompositeOperation = 'source-atop'; // only on land already painted
     paint(ctx, segs, sc);
+    if (snowy.length) paint(ctx, snowy, sc, VB['draw/season'].TRODDEN);
     ctx.globalCompositeOperation = 'source-over';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
@@ -342,15 +349,16 @@ VB['draw/paths'] = (() => {
   // size (from make(), asked for only if a field or meadow of the chunk is worn) and kept only inside those tiles' panes (FIELD_PANE of
   // the tile's radius, as the field art is cut), so the two paintings meet at the pane's edge with nothing painted twice. The canvas, or null.
   const FIELD_PANE = 0.92;
-  function drawOver(w, lv, cx, cy, l, make) {
+  function drawOver(w, lv, cx, cy, l, make, look = null) {
     if (!w.worn) return null;
-    const { segs, sown } = chunkSegments(w, lv, cx, cy, l);
-    if (!sown.length || !segs.length) return null;
+    const { segs, snowy, sown } = chunkSegments(w, lv, cx, cy, l, look);
+    if (!sown.length || (!segs.length && !snowy.length)) return null;
     const canvas = make(),
       ctx = canvas.getContext('2d'),
       sc = lv.scale;
     ctx.setTransform(sc, 0, 0, sc, -cx * lv.size * sc, -cy * lv.size * sc);
     paint(ctx, segs, sc);
+    if (snowy.length) paint(ctx, snowy, sc, VB['draw/season'].TRODDEN);
     ctx.globalCompositeOperation = 'destination-in';
     ctx.beginPath();
     for (const i of sown)

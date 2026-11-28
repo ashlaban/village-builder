@@ -50,6 +50,7 @@ function clearSettlement() {
   herdSprites = new Map();
   deerSprites = [];
   meadowSprites = [];
+  roofSprites = [];
   teamDraw = new Map();
   cartDraw = [];
   ledDraw = new Map();
@@ -370,6 +371,7 @@ function buildFarms(wd) {
   herdSprites = new Map();
   deerSprites = [];
   meadowSprites = [];
+  roofSprites = [];
   teamDraw = new Map();
   cartDraw = [];
   ledDraw = new Map();
@@ -404,6 +406,7 @@ function redrawSettlement(wd) {
     // the frame's lists keep only what still stands
     fieldSprites = fieldSprites.filter((o) => !o.sp.destroyed);
     meadowSprites = meadowSprites.filter((o) => !o.sp.destroyed);
+    roofSprites = roofSprites.filter((o) => !o.sp.destroyed);
     fences = fences.filter((o) => !o.g.destroyed);
     houseInfo = houseInfo.filter((o) => !o.wood.destroyed);
     if (labelsReady && labelSigOf() !== labelSig) buildLabels(wd);
@@ -456,12 +459,12 @@ function drawFarm(wd, f) {
     ruin = f.state === 'ruin';
   for (const fd of f.fields) addField(wd, fd, f.rowAngle);
   for (const m of f.meadows) {
-    const sp = new PIXI.Sprite(fieldTex['meadow-' + m.stage]);
+    const sp = new PIXI.Sprite(fieldTex[meadowLook(m)]);
     sp.anchor.set(0.5);
     sp.scale.set(0.5);
     sp.position.set(wd.hx[m.tile], wd.hy[m.tile]);
     L.fields.addChild(sp);
-    meadowSprites.push({ sp, m, stage: m.stage });
+    meadowSprites.push({ sp, m, stage: meadowLook(m) });
   }
   const yard = place(art.yard, hx, hy + 1, 0.5, 0.5, L.fields, 0.27);
   if (empty) yard.alpha = ruin ? 0.2 : 0.35;
@@ -491,6 +494,7 @@ function drawFarm(wd, f) {
       stuga.texture = art.stuga[(v + 1) % 3];
       stuga.scale.set(ART_S * 1.32);
     }
+    for (const b of barn ? [lada, harbre, stuga, barn] : [lada, harbre, stuga]) roofSprite(b, f.house);
     if (ruin) {
       lada.visible = harbre.visible = false;
       if (barn) barn.visible = false;
@@ -513,7 +517,7 @@ function drawFarm(wd, f) {
   const herds = !empty && st.households[f.household].herds.length > 0;
   // the byre (VB-1665) where one stands; an older save's farm, with no record of it, has one where it keeps animals
   const byre = f.byre === undefined ? herds && !landed : hasBuilt(f.byre);
-  if (byre) place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92);
+  if (byre) roofSprite(place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92), f.house);
   const stack =
     herds || (!empty && st.households[f.household].hay > 0)
       ? place(art.haystack[0], hx + YARD.stack[0], hy + YARD.stack[1], 0.5, 0.93)
@@ -651,11 +655,15 @@ function cropStage(fd) {
 }
 // A field's picture (VB-355; a key of page/fieldart's FIELD_P): its crop at its stage, read from the field alone. Barley's are the
 // stages; rye, sown in autumn, stands green and lies under snow all winter; a fallow course lies in weedy stubble, then tilled.
+// A meadow's look: its stage, or snow where snow lies on its band (page/chunks snowShown).
+const meadowLook = (m) => 'meadow-' + (snowShown(m.tile) ? 'snow' : m.stage);
 function fieldLook(fd) {
   const s = cropStage(fd);
+  // under snow where snow lies on its band (page/chunks snowShown, VB-083): rye green through it where it is sown, any other field white
+  if (snowShown(fd.tile))
+    return fd.crop === 'rye' && (s === 'sown' || s === 'young' || s === 'growing') ? 'rye-snow' : 'snow';
   if (fd.stage === 'stubble' && VB['sim/crops'].CROPS[fd.crop].fallow) return fd.rest === 1 ? 'tilled' : 'lea';
   if (fd.crop === 'rye' && (s === 'sown' || s === 'young' || s === 'growing')) {
-    if (Sim.cal(st.t).season === 3) return 'rye-snow';
     if (s === 'growing' && Sim.cal(fd.sown * Sim.DAY).season === 2 && Sim.cal(st.t).season === 2) return 'rye-young';
   }
   const k = `${fd.crop}-${s}`;
