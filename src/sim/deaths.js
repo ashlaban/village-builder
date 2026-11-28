@@ -1,7 +1,7 @@
 // @sys sim/deaths: causes of death, the death.hazard rule and its daily roll, and the course of an illness, which kills (VB-1118) or passes (VB-1246)
 VB['sim/deaths'] = (() => {
   const { next: rnd } = VB['sim/rng'];
-  const { YEAR, YEAR_DAYS, DAY, ILLNESS } = VB['sim/rules'],
+  const { YEAR, YEAR_DAYS, DAY, ILLNESS, HEALTH } = VB['sim/rules'],
     { CROWD } = VB['sim/crowding'];
   const Rules = VB['sim/registry'];
   const { emit } = VB['sim/events'];
@@ -37,6 +37,7 @@ VB['sim/deaths'] = (() => {
     illness: { event: 'Died of illness', log: 'died of illness' },
     oldAge: { event: 'Died of old age', log: 'died of old age' },
     hunger: { event: 'Died of hunger', log: 'died of hunger' },
+    thirst: { event: 'Died of thirst', log: 'died of thirst' },
     starvation: { event: 'Died of starvation', log: 'starved to death' },
     childbirth: { event: 'Died in childbirth', log: 'died in childbirth' },
     killed: { event: 'Killed', log: 'was killed' },
@@ -46,8 +47,15 @@ VB['sim/deaths'] = (() => {
   const baseCause = (a) => (a < 1 ? 'infancy' : a < 15 ? 'childhood' : a < 60 ? 'illness' : 'oldAge');
   // One pawn's death roll for the day: null or a cause key, read from the rule's contributions (Rules.draw). One random draw, `u`.
   function deathRoll(st, p, u = rnd(st.rng.deaths)) {
-    if (p.health <= 0) return 'starvation';
+    if (p.health <= 0) return gaveOut(st, p);
     return Rules.draw(st, 'death.hazard', p, u);
+  }
+  // The cause of a death at health 0 (VB-1541): starvation, or thirst when the household's dry days took more of the health than hunger
+  // did (hh.dry, the mean of the days kept, at HEALTH.dry a day, against hunger's drain now).
+  function gaveOut(st, p) {
+    const hh = p.household == null || !st.households ? null : st.households[p.household];
+    if (!hh || !(hh.dry > 0)) return 'starvation';
+    return HEALTH.dry * hh.dry > HEALTH.drain * p.hunger * p.hunger ? 'thirst' : 'starvation';
   }
   // @state pawn.ill: absent, or {cause (a key of ILLNESS.days), from, until (game hours), passes (absent, or true: a course that passes,
   //   VB-1246)}: an illness running its course (VB-1118). A death the roll draws of a cause with a course is not dealt at once: the pawn
@@ -60,7 +68,7 @@ VB['sim/deaths'] = (() => {
   function dayOfDeath(st, p) {
     const I = p.ill;
     if (I !== undefined && !I.passes) {
-      const cause = p.health <= 0 ? 'starvation' : st.t >= I.until ? I.cause : null;
+      const cause = p.health <= 0 ? gaveOut(st, p) : st.t >= I.until ? I.cause : null;
       if (cause !== null) delete p.ill; // the course is run
       return cause;
     }
