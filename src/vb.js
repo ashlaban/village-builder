@@ -352,6 +352,9 @@ VB.COUNTERS = {
     'Loads lying read for the timber at a tile a firewood task names off the house, at each read of the task (sim/lying pilesAt; VB-1931)',
   lyingDecay:
     "Loads lying out read by the day's decay, each day from the autumn frost to the year's end while any lies (sim/lying decay; VB-1910)",
+  outDecay:
+    "Worked fields and meadows read for stooks and mown hay lying out, each day from the autumn frost to the year's end (sim/fields " +
+    'stooksDecay, sim/meadows hayDecay; VB-2001)',
 };
 VB.count = {};
 VB.resetCounts = () => {

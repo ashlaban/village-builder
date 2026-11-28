@@ -25,7 +25,8 @@ VB['sim/meadows'] = (() => {
   const Stores = VB['sim/stores'];
   const Projects = VB['sim/projects'],
     { onProject, landProject } = Projects,
-    { emit } = VB['sim/events'];
+    { emit } = VB['sim/events'],
+    { lossOver } = VB['sim/lying'];
   const { seedPer } = VB['sim/hunger'];
   const { scrubHours, clearScrub } = VB['sim/spread'];
   // A meadow tile yields HAY × its site value a year in an ordinary year (VB-132): open meadow 1, marsh 0.8, heath 0.6, and 1.3 times that on
@@ -339,11 +340,23 @@ VB['sim/meadows'] = (() => {
         m.held = 0;
       }
   }
-  // At the autumn frost, the year's frost day (sim/weather frostDay; sim/clock, CALENDAR: meadowsFrost): hay still lying rots.
-  function meadowsFrost(st) {
+  // Mown hay out after the frost (VB-2001; design.md, Goods and the farming year, Risk; Kim, 27 Nov): each game day from the frost's to
+  // the year's end (sim/clock), the hay lying on a mown meadow loses a share, by sim/lying's lossOver as a load lying out does (in its
+  // loads, TRAVEL.hay units a load), booked to the farm's household as that load's loss is (the event lyingSpoilt); worn under
+  // LYING.quantum, what is left rots and the meadow is aftermath. `days` over one: so many days at once (a test).
+  function hayDecay(st, days = 1) {
     for (const f of st.farmsteads)
       for (const m of f.meadows) {
-        if (m.stage !== 'mown') continue;
+        VB.count.outDecay++;
+        if (m.stage !== 'mown' || !(m.held > 0)) continue;
+        const n = lossOver(m.held / TRAVEL.hay, days) * TRAVEL.hay;
+        if (!(n > 0)) continue;
+        if (f.household !== null)
+          emit(st, 'lyingSpoilt', { owner: { type: 'household', id: f.household }, good: 'hay', n });
+        if (n < m.held - 1e-9) {
+          m.held -= n;
+          continue;
+        }
         m.stage = 'aftermath';
         m.held = 0;
         if (f.household !== null)
@@ -573,7 +586,7 @@ VB['sim/meadows'] = (() => {
     hayLoad,
     hayLaid,
     meadowsSpring,
-    meadowsFrost,
+    hayDecay,
     meadowFert,
     expectedHay,
     chooseMeadow,

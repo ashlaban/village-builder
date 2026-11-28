@@ -213,7 +213,8 @@ VB['sim/lying'] = (() => {
   // year's frost has come, and the pile is gone under LYING.quantum; nothing on the load but its amount. The wet day's share waits for a
   // wet day in the sim (VB-2000). ----
   // One quantity, one reckoning: what `n` lying out loses over `days` game days after the frost; all of it once what is left is under
-  // the quantum. The day's loss (decay) and a head's estimate of it (sim/outlook) are both this.
+  // the quantum. The day's loss (decay) and a head's estimate of it (sim/outlook) are both this; so are the stooks' in the field and the
+  // mown hay's on the meadow (sim/fields stooksDecay, sim/meadows hayDecay; VB-2001), in the same units (rations; hay by TRAVEL.hay).
   function lossOver(n, days) {
     if (!(days > 0) || !(n > 0)) return 0;
     const rest = n * (1 - LYING.frostLoss) ** days;
@@ -297,6 +298,7 @@ VB['sim/lying'] = (() => {
     takeFrom,
     frost,
     decay,
+    lossOver,
     lyingOut,
     pileAt,
     amountAt,
