@@ -293,8 +293,8 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   (`false` when another call records the same happening); `Sim.recordOf(st, {pawn, household, farm, village, kinds, from, to})` queries it.
   A new log line names its event's kind, pawn and place (`atHousehold`, `atFarm`); `tests/record.js` checks every call.
   Bounded history (VB-199): `pawn.events` holds positions in `st.record`, read with `Sim.recordOf(st, {pawn, life: true})` (`sim/notable`,
-  `lifeOf`); a new kind of event goes into `HISTORY` (`sim/records`), 0 to keep it or the years after which `foldHistory` folds it into
-  `st.recordYears`, one count per kind, village and year (a folded slot of the record becomes its count's index; slots are never removed).
+  `lifeOf`); a new kind of event has its record (`eventKinds` of `sim/eventkinds`, VB-1946), whose `keep` gives the years after which
+  `foldHistory` folds it into `st.recordYears`, one count per kind, village and year (a folded slot of the record becomes its count's index; slots are never removed).
 - Relationships (VB-127, VB-240): `src/sim/ties.js` owns familiarity (`pawn.ties`, on a decay scale per pawn). `src/sim/relations.js` owns memories of events
   (`pawn.rel`, kinds of `SOCIAL.memories`, written by `remember`; a record exists only while it holds one) and the close-friend and enemy
   bands (`pawn.bands`). Opinion is derived when read (`opinionOf`): the kin bond, plus affinity (the pair's compatibility, shown as the tie
@@ -332,7 +332,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   it shows says why not itself (`staysWhy`, `barred`, `unfit`, `fit`): a new bar is added to the rule, not here.
 - The chronicle (VB-099): `Sim.chronicle(st, {pawn | farm | village}, group)` and `Sim.villageLog(st, n)`, also in `src/sim/notable.js`, are the
   record as a history, newest first, and as the village log (`st.events` is gone: `log` writes the record only). `CHRONICLE` names the
-  filters by kind; a new event kind that belongs to one is added there. The History tab of the selection card is `src/page/history.js`.
+  filters by kind; a new event kind names its filter in its record (`group`). The History tab of the selection card is `src/page/history.js`.
 - Customs on the page (VB-396 to VB-398): `src/page/customs.js` is the Customs tab of a village's card, the customs as sentences (`SAID`; a
   new custom or option gets its phrase there), who stands by which way, and a voice's note (its pulls from `src/sim/leanings.js`, a
   read-only view, weighed by `sim/attitudes`' `WEIGH`, the factors the daily drift itself reads, so the note and the drift cannot disagree); `src/page/culture.js` is the dock's Culture pane: a culture's villages, its own charter, the meetings.
@@ -490,8 +490,10 @@ of VB-1406 has landed (`docs/plans/VB-1406-overlap.md`, section 5); until then, 
   table several read, in `src/sim/rules.js` until VB-1947 moves them into files by domain, `VB['sim/rules']` staying the joined view.
 - **A migration** (what fills a field an older save lacks): today a line in `load` of `src/sim/saves.js`; after VB-1945 registered
   by the field's owner, run by `sim/saves` in a fixed order.
-- **An event kind**: today its years in `HISTORY` (`src/sim/records.js`), its group in `CHRONICLE` and `PERSONAL` and its skip stop
-  in `src/sim/notable.js`, its icon and its word on the page; after VB-1946 one record declared by the module that emits it.
+- **An event kind**: one record, declared at load by the module that writes it, `VB['sim/eventkinds'].eventKinds(owner, {kind: {...}})`
+  at the module's head (VB-1946; `grep -rn "eventKinds('" src`): how long it is kept (`keep`), its history's group (`group`), whether
+  it is `personal`, why it is notable (`notice`, `sim/notable`), the rule by which it stops a skip (`skip`, `STOPS` of `sim/skip`) and
+  its word on the page (`word`). `tests/record.js` holds every kind written to its record. No kind has an icon of its own on the page.
 - **A `Sim` name**: today an import and an export line in `src/sim.js`; after VB-1944 the module names what it gives the page and
   `src/sim.js` joins the lists.
 - **A card's row** (a line of a person's, a farm's house or an open tile's card, a stat of a household on its farm's card): one

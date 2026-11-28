@@ -1,5 +1,9 @@
 // @sys sim/cottage: a finished cottage becomes a farmstead and a household (start in life from shares); owed shares are paid down
 VB['sim/cottage'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/cottage', {
+    cottage: { group: 'land', notice: 'farm', skip: 'farm', word: 'new cottages' },
+  });
   const { livePlots, cottageAt } = VB['sim/expansion'],
     { stepOf } = VB['sim/projects'];
   const { personEvent, log, fullName, atHousehold } = VB['sim/records'];

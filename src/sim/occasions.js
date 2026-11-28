@@ -15,6 +15,11 @@
 //   the planning days; no later than this year (tests/lib/invariants.js). Written only here.
 // @state agent.occasion: the id of the occasion the pawn set out for and stands at until its end, or null
 VB['sim/occasions'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/occasions', {
+    wedding: { keep: 'generation', group: 'marriage' },
+    funeralAle: { keep: 'generation', group: 'life' },
+  });
   const { unbound } = VB['sim/pose'];
   const Due = VB['sim/due'],
     dueKey = (e) => e.due; // its order (sim/due): by due, after those due at the same time

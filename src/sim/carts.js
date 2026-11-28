@@ -4,6 +4,11 @@
 // hand cart, else the load goes on the back (TRAVEL). Today only sheaves are carried by the load (sim/kinds, haul); hay, firewood and manure
 // are to follow. Reads sim/herds (the team), sim/projects; writes household.carts and household.cartMiss, and declares the cart's making and ends its project.
 VB['sim/carts'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/carts', {
+    cartBuilt: {}, // a household's new cart (VB-327)
+    cartGone: { keep: 'generation' }, // a cart worn out (VB-327)
+  });
   const { TRAVEL, SEASON_DAYS } = VB['sim/rules'];
   // The tunables (the distance review, Kim, 12 Nov): a load is `load` rations on the back, `hand` on a hand cart and `cart` on an ox
   // cart (it was 90 with two oxen: Kim, 10 Nov; a back load is 25 to 30 kg, a hand cart's 100 to 150 kg on a track, an ox cart's 500 to

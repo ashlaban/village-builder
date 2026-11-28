@@ -5,6 +5,10 @@
 // @state pawn.advisedIn (VB-1316): absent, else the year (game years since the start) in which the retired pawn last gave its spring
 //   advice (sim/advice): once a year. Plain data, saved with the pawn.
 VB['sim/advice'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/advice', {
+    advice: { keep: 'generation' }, // a retired member's advice taken by its head (VB-1316)
+  });
   const Offers = VB['sim/offers'];
   const { issue, VERBS } = VB['sim/commands'];
   const { YEAR, MARRIAGE, ASK, cal } = VB['sim/rules'];

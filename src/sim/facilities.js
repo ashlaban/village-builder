@@ -10,6 +10,10 @@
 // are read by tile and by owner through the index, their condition in closed form, and upkeep is weighed on the owner's planning day
 // among its own facilities only.
 VB['sim/facilities'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/facilities', {
+    facilityBuilt: {}, // a facility's last stage raised (VB-361)
+  });
   const { YEAR } = VB['sim/rules'];
   const { atLoad } = VB['sim/registry'];
   const Stores = VB['sim/stores'],

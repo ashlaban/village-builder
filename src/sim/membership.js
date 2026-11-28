@@ -2,6 +2,10 @@
 // @state village.alderman: the pawn (a holder of the village) who holds its office, or null/absent; aldermanSince (hours), aldermanYear (the year
 //   chosen; a term by turns ends with it), aldermanFarm (the farmstead whose holder served last by turns)
 VB['sim/membership'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/membership', {
+    provisions: {},
+  });
   const { living } = VB['sim/records'];
   const { makeHousehold, joinHousehold, setServant, home } = VB['sim/records'];
   const { farmTo } = VB['sim/ownership'];

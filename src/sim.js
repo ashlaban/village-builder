@@ -27,6 +27,7 @@ const Sim = (() => {
   } = VB['sim/records'];
   const { recordOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog } = VB['sim/notable'];
   const { SKIP, skipFrom, skipStop: skipStopWith, gatherings } = VB['sim/skip'];
+  const { EVENTS } = VB['sim/eventkinds']; // the kinds of event of the record, each its record (VB-1946)
   const { describe: doing } = VB['sim/agents'],
     { occasionLabel } = VB['sim/occasions'],
     { explainFeast } = VB['sim/feast'],
@@ -357,6 +358,7 @@ const Sim = (() => {
     NOTABLE,
     notable,
     eventLine,
+    EVENTS,
     CHRONICLE,
     chronicle,
     villageLog,

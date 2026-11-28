@@ -1,5 +1,9 @@
 // @sys sim/clock: the calendar (one ordered table of what runs each step, hour, day, season and year) and Sim.advance
 VB['sim/clock'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/clock', {
+    year: {},
+  });
   const { next: rnd } = VB['sim/rng'];
   const { DAY, SEASON_DAYS, YEAR_DAYS, TICKS, cal, WORK, dark, HERD, FISH, ASK } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];

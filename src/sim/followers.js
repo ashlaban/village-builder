@@ -2,6 +2,10 @@
 //   of bonds (goodwill owed above PATRON.above, service; later a tenancy and days owed add rows), the live index of followers by lord, a
 //   tie begun and broken (its bond ended, or the lord failed the follower), and the standing term by followers
 VB['sim/followers'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/followers', {
+    follower: {}, // a tie of a follower to its lord begun or ended, with why (VB-708)
+  });
   const { YEAR_DAYS, YEAR, DAY, SEASON_DAYS, cal } = VB['sim/rules'];
   const Obligations = VB['sim/obligations'];
   const Rules = VB['sim/registry'];

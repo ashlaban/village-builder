@@ -17,6 +17,11 @@
 //   goer lodged in the host village, from the
 //   lodging until it packs)}: written by the verbs goGathering and stayHome (setGoing), the lodging and the packing, all here
 VB['sim/gathering'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/gathering', {
+    gathering: { group: 'custom' }, // the villages that go to a host's gathering this winter (VB-294)
+    gatheringHeld: { group: 'custom' }, // who was at a host's gathering on its last day, and the ale poured (VB-295)
+  });
   const { settlement } = VB['sim/records'];
   const { GATHERING, TRAVEL, YEAR, SEASON_DAYS, DAY, WORK, MARRIAGE, HEALTH, BREW, cal } = VB['sim/rules'];
   const { age, spouseOf, unplanned, fullName, living } = VB['sim/records'];

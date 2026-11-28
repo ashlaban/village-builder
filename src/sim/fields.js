@@ -1,5 +1,10 @@
 // @sys sim/fields: a field's crop year: hoed, sown, growing, weeded, ripe, reaped, carried, lost to the frost or left standing; fallow's rest
 VB['sim/fields'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/fields', {
+    fieldLeft: {}, // a field a household let go, its tile back to the village (VB-768)
+    frost: { keep: 'generation', notice: 'farm', skip: 'farm' },
+  });
   const { next: rnd } = VB['sim/rng'];
   const { HERD, DEER, DAY, SEASON_DAYS, YEAR, YEAR_DAYS } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];

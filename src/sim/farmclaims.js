@@ -1,6 +1,11 @@
 // @sys sim/farmclaims: claims on empty farms (VB-033): the old family's birthright, who may claim a farm in the order of the village's
 // "Claims on empty farms" custom, the claim at the moving round, the restoration, and the claimants moving in
 VB['sim/farmclaims'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/farmclaims', {
+    claim: { group: 'land', notice: 'farm', skip: 'farm', word: 'farms claimed' },
+    claimEnded: {},
+  });
   const { living } = VB['sim/records'];
   const { issue, register } = VB['sim/commands'];
   const { YEAR, CLAIMS, MARRIAGE } = VB['sim/rules'],

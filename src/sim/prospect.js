@@ -2,6 +2,10 @@
 // Bedrock, clay, peat, bog iron, flint, amber and salt springs show at the surface and are known to all. The upland ores (the deposits
 // marked `hidden` in gen/geology) are not: a village knows a vein once one of its pawns has come on it while working within reach.
 VB['sim/prospect'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/prospect', {
+    oreFound: { group: 'land' },
+  });
   const { next: rnd } = VB['sim/rng'];
   const { villageOf, fullName, log, atHousehold } = VB['sim/records'];
   const Geo = VB['world/geology'];

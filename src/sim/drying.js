@@ -7,6 +7,10 @@
 // of tar every BOAT.tarYears (sim/tar spends it); untarred that long it fishes at BOAT.leaky of its catch, and after BOAT.lostYears it is lost.
 // VB-388 (Kim, 12 Nov): the catch for the pot a household cannot eat before it spoils goes to the rack while the rack has room.
 VB['sim/drying'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/drying', {
+    boatLost: { keep: 'generation' }, // a fishing boat lost for want of tar (VB-301)
+  });
   const { FISH, FIELDS, FOODS, SEASON_DAYS, YEAR, YEAR_DAYS, cal } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'],
     { passable } = VB['sim/walking'];

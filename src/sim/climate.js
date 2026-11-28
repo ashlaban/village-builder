@@ -5,6 +5,10 @@
 // latitude, and the dates it gives the ground and the water: as a date falls, its band's rows come to the ground of its state
 // (sim/walking's compiled ground, VB-808), and the ground of a normal winter is what the winter table of hours is searched over.
 VB['sim/climate'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/climate', {
+    climate: { keep: 'short' }, // a winter's date falls in a band of the map (VB-807)
+  });
   const { DAY, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'];
   // A table one domain reads lives in its domain (VB-419).
   // @tunable CLIMATE: worlds, the four climates a world is made in, by the latitude of its middle row in degrees north (middle, the default:

@@ -3,6 +3,11 @@
 // fetched or hauled (VB-291, VB-461), the suitor's visit there and back (VB-289), and JOURNEYS, what each kind does of its own (VB-1409); the stays'
 // record, packs and meals are sim/away's; split from sim/away (VB-1474)
 VB['sim/journeys'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/journeys', {
+    setOut: {}, // a journey to a new home in another village (VB-287)
+    arrived: { keep: 'generation' }, // the journey's end (VB-287)
+  });
   const { cal, DAY, WORK, SPEED, TRAVEL } = VB['sim/rules'];
   const { hoursBetween } = VB['sim/villagehours'];
   const { personEvent } = VB['sim/records'];

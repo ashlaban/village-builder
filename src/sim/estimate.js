@@ -4,6 +4,10 @@
 // Principle (principle "The future is someone's estimate"): what is shown of the future is some pawn's estimate. Nothing is stored here: the estimate is
 // worked out when read, from the task, its hands and the head; the one thing drawn is the lean, plan.head.bias.hours (sim/seasonal).
 VB['sim/estimate'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/estimate', {
+    misjudged: { keep: 'generation', notice: 'farm', skip: 'farm' },
+  });
   const { atWork } = VB['sim/pose'];
   const { CROPS } = VB['sim/crops'],
     Targets = VB['sim/targets'];

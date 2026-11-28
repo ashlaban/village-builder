@@ -1,5 +1,15 @@
 // @sys sim/heirs: succession: heir ranking, handovers, moving between households, roles
 VB['sim/heirs'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/heirs', {
+    inherited: { group: 'land', skip: 'inherited' },
+    joined: { group: 'land', personal: true, skip: 'move' },
+    stayed: { group: 'land' },
+    empty: { group: 'land', notice: 'farm', skip: 'farm', word: 'farms left empty' },
+    estate: {}, // a farm's new household takes up what the household that died out left in its stores (VB-1697)
+    share: { personal: true },
+    renounced: { group: 'land' }, // an inheritance renounced by one in line who holds a place (VB-824)
+  });
   const { home } = VB['sim/records'];
   const { setServant, living, noteRoles } = VB['sim/records'];
   const { moveWhy } = VB['sim/wishes'];

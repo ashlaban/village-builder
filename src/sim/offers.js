@@ -15,6 +15,11 @@
 //   one a match would marry for the man's side, the claimant, the leader of a party, the servant, the heir); written when such an offer
 //   is kept and cleared when it closes, so a pawn holds at most one (plan VB-682, section 2, Caps). Plain data, saved with the pawn.
 VB['sim/offers'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/offers', {
+    offerLapsed: { group: 'marriage' },
+    offerRefused: {}, // goods offered or asked for, refused (VB-690)
+  });
   const Due = VB['sim/due'],
     dueKey = (e) => e.due; // its order (sim/due): by due, after those due at the same time
   const { living, unplanned } = VB['sim/records'];

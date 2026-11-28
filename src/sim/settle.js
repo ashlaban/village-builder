@@ -1,5 +1,11 @@
 // @sys sim/settle: moving to new land: crowded villages, who leaves and with whom, provisions, the site, and the new village with its booth
 VB['sim/settle'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/settle', {
+    left: { group: 'land', notice: 'farm', skip: 'farm', word: 'parties setting out for new land' },
+    siteStaked: {}, // a site of a new farm staked at the round, its trail blazed, its cottage roofed (sim/sites, VB-787)
+    noLand: {},
+  });
   const { living } = VB['sim/records'];
   const { issue, register } = VB['sim/commands'];
   const Offers = VB['sim/offers'];

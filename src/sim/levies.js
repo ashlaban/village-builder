@@ -4,6 +4,12 @@
 // the booking of a pawn's working hours into the six parts at each leg's end (VB-1761; Own hours, booked; Whose an hour is), the six
 // days behind (agent.book) and the household's season's tally (plan.tally)
 VB['sim/levies'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/levies', {
+    days: {}, // days of work owed lapsed (sim/obligations, VB-462; the alderman's keep, VB-463)
+    levyBreached: { keep: 'short' }, // a household's levied day not worked, booked as goodwill its head owes (VB-1768)
+    seasonShort: { keep: 'short' }, // a head reckoned its season's work past its household's labour budget, and how it answered (VB-1778)
+  });
   const { cal, DAY, WORK, AGES, TICKS } = VB['sim/rules'],
     { CHILD, MATCH } = VB['sim/roles'];
   const { age, spouseOf, villageOf } = VB['sim/records'];

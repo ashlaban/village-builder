@@ -1,6 +1,12 @@
 // @sys sim/byre: daily barn hay and spoilage, fodder, the autumn count and the head's verb cull (VB-679), slaughter, milk where the herd
 // is, shearing at the fold, and hunger in the byre
 VB['sim/byre'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/byre', {
+    slaughter: { keep: 'generation' },
+    spoiled: { keep: 'generation' },
+    cattleInCrop: { keep: 'generation' },
+  });
   const Stores = VB['sim/stores'],
     { dayLoss } = VB['sim/goods'];
   const { next: rnd } = VB['sim/rng'];

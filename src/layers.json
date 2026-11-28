@@ -17,6 +17,7 @@
       "gen/water",
       "gen/cover",
       "gen",
+      "sim/eventkinds",
       "sim/customs",
       "sim/norms",
       "sim/rules",

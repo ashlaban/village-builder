@@ -1,6 +1,13 @@
 // @sys sim/births: conception, pregnancy, childbirth and nursing of married women, and of courting ones (VB-555): a child born to an
 //   unmarried mother is born outside marriage, until its parents marry each other
 VB['sim/births'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/births', {
+    born: { group: 'life', notice: 'family', skip: 'family', word: 'births' },
+    bornOutside: {}, // a child born outside marriage, and one its parents' marriage made born in it (VB-555)
+    legitimated: {},
+    child: {},
+  });
   const { next: rnd, drawer } = VB['sim/rng'];
   const { emit } = VB['sim/events'];
   const { DAY, YEAR_DAYS, MALE, FEMALE } = VB['sim/rules'];

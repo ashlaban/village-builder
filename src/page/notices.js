@@ -1,23 +1,11 @@
 // @sys page/notices: toasts for notable events (VB-098), read from the record through Sim.notable, and the list that turns each kind on or off
 // ---- notifications ----
 // A toast for each notable event the record gains: at the top centre, under the top bar (VB-338), for 6 s, at most 3 at once (a fourth replaces
-// the oldest). Events of one kind in one village on one game day share a toast while it is up ("3 births in Ulsäter"), which is what
-// happens at high speed. Which kinds show is the page's choice, kept in localStorage and never in st.
+// the oldest). Events of one kind in one village on one game day share a toast while it is up ("3 births in Ulsäter", the word its kind's
+// record gives), which is what happens at high speed. Which kinds show is the page's choice, kept in localStorage and never in st.
 const TOAST_SECONDS = 6,
   TOAST_MAX = 3,
   NOTICE_KEY = 'vb.notices.off';
-const MANY = {
-  born: 'births',
-  died: 'deaths',
-  married: 'marriages',
-  empty: 'farms left empty',
-  claim: 'farms claimed',
-  cottage: 'new cottages',
-  left: 'parties setting out for new land',
-  custom: 'changes of custom',
-  cause: 'causes taken up',
-  split: 'partings of custom',
-};
 const noticeOff = new Set();
 try {
   for (const k of JSON.parse(localStorage.getItem(NOTICE_KEY) || '[]')) if (Sim.NOTABLE[k]) noticeOff.add(k);
@@ -116,7 +104,7 @@ function toast(ev) {
   if (t) {
     t.n++;
     t.target = { village: ev.village };
-    t.el.textContent = `${t.n} ${MANY[ev.kind] || 'events'} in ${st.villages[ev.village].name}`;
+    t.el.textContent = `${t.n} ${(Sim.EVENTS[ev.kind] || {}).word || 'events'} in ${st.villages[ev.village].name}`;
   } else {
     t = { key, n: 1, target: noticeTarget(ev), left: 0, el: document.createElement('button') };
     t.el.type = 'button';

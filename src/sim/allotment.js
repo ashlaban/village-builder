@@ -2,6 +2,10 @@
 // allotment told, a cleared plot allotted afresh at each moving round and given up when nobody comes; and the moving round's plots, each who
 // waits asking for one (startPlots); it hears sim/expansion's plots cleared and handed to the village (VB-1475)
 VB['sim/allotment'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/allotment', {
+    plot: { group: 'land' },
+  });
   const { issue } = VB['sim/commands'];
   const { YEAR } = VB['sim/rules'];
   const { on } = VB['sim/events'];

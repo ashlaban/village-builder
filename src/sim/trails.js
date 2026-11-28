@@ -1,6 +1,10 @@
 // @sys sim/trails: blazing a trail (VB-447): the verb blaze, its route through the wood and its plan of a job a wooded tile, worked by the
 // blazer's household; each tile blazed becomes a path (sim/paths), a worn way kept only by being walked
 VB['sim/trails'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/trails', {
+    trail: {}, // a trail blazed through the wood (VB-447)
+  });
   const { emit } = VB['sim/events'];
   const { register } = VB['sim/commands'];
   const { log, living, fullName, atFarm } = VB['sim/records'];

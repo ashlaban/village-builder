@@ -3,6 +3,10 @@
 // that goes with them is left lying at the old farm for it to fetch (sim/lying); a herd with nobody to have it stays at its farm until the
 // autumn frost, when the farm's household takes it in or it is lost. Writes st.herds' records that move and st.herdsAway.
 VB['sim/droving'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/droving', {
+    herdLed: { keep: 'generation' }, // animals that changed household led home, or taken in where they were left (VB-674)
+  });
   const { HERD, SHARES, TRAVEL, WORK, SPEED } = VB['sim/rules'];
   const { route, routeCost, hasRoute } = VB['sim/routes'];
   const { log, atHousehold, atFarm } = VB['sim/records'];

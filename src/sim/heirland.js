@@ -3,6 +3,10 @@
 // a sibling's fields are split off and owned by it (sim/ownership's titles, basis `inherited`), worked by the old household for half their
 // harvest (the obligation `rent`) until the house the village builds by them stands, when its household takes them as its farm's
 VB['sim/heirland'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/heirland', {
+    rent: {}, // half the harvest of an heir's split fields paid to it (VB-034)
+  });
   const Own = VB['sim/ownership'];
   const Obligations = VB['sim/obligations'],
     Stores = VB['sim/stores'];

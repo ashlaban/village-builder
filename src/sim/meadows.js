@@ -1,6 +1,12 @@
 // @sys sim/meadows: hay meadows as built land, and the hay goal (VB-1777): a tile's worth as meadow, choosing one, the meadow project (a project plan of
 // sim/plans), and the meadows of generated farms
 VB['sim/meadows'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/meadows', {
+    meadow: { group: 'land' },
+    hayRotted: {},
+    hay: { keep: 'generation' },
+  });
   const { targetOf } = VB['sim/steps'];
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['world/biomes'];

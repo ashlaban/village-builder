@@ -3,6 +3,10 @@
 // mowing, by the sowing window (the thaw) and by the frost's day. The world layer's climate (target-v2 4.2) until the weather branch
 // answers the same question a region.
 VB['sim/weather'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/weather', {
+    weather: { keep: 'short' }, // a season's weather, named as it begins (VB-354)
+  });
   const { next: rnd } = VB['sim/rng'];
   const { CROPS } = VB['sim/crops'];
   const { log } = VB['sim/records'];

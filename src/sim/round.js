@@ -4,6 +4,10 @@
 //   its kin pressure, the visits its unmatched plan), then demand, claims, settlement and service, island-wide, each made an offer due
 //   at once; after the last, what is open lapses (split from sim/lifecycle, VB-876)
 VB['sim/round'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/round', {
+    kinBarred: {},
+  });
   const Customs = VB['sim/customs'];
   const Crowding = VB['sim/crowding'];
   const { cal, DAY, HUNGER, MARRIAGE, ASK } = VB['sim/rules'];

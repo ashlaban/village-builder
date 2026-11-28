@@ -2,6 +2,10 @@
 //   event holderYear, coming of age, orphans, ties);
 //   the village meetings are sim/meetings, the moving round sim/round, marriage and its offers sim/marriage (VB-876)
 VB['sim/lifecycle'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/lifecycle', {
+    died: { group: 'life', notice: 'family', skip: 'family', word: 'deaths' },
+  });
   const { holdingOf, living, trackRoles, spouseOf } = VB['sim/records'];
   const { register } = VB['sim/commands'];
   const { emit } = VB['sim/events'],

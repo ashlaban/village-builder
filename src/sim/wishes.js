@@ -3,6 +3,10 @@
 // (the wish verb); wishOf, the one read of it, where the round asks what a pawn itself wants; whose yes a move needs (moveWhy); and
 // the asking day's due-queue, when each pawn who seeks next reviews its wish (VB-823)
 VB['sim/wishes'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/wishes', {
+    wishLapsed: { personal: true, skip: 'wish' }, // the played pawn's wish for a match ended or passed by, with why (VB-1113)
+  });
   const Due = VB['sim/due'];
   const { HUNGER, MARRIAGE, ASK, DAY, YEAR, SEASON_DAYS } = VB['sim/rules'];
   const { of: traitOf } = VB['sim/traits'];

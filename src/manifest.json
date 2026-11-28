@@ -13,6 +13,7 @@
   "gen/water.js",
   "gen/cover.js",
   "gen.js",
+  "sim/eventkinds.js",
   "sim/customs.js",
   "sim/norms.js",
   "sim/attitudes.js",

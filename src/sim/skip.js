@@ -4,11 +4,8 @@ VB['sim/skip'] = (() => {
   const { fullName, settlementIdOf } = VB['sim/records'];
   const { YEAR, DAY, SEASON_DAYS, WORK, cal } = VB['sim/rules'];
   const { what: offerText } = VB['sim/offers'];
-  const { told, concerns, inLine, eventLine, helpIn, FARM, CUSTOM } = VB['sim/notable'];
-  // What moves a pawn between homes or brings one in, for the played household (VB-1109); each stops a skip, since the household's hands, mouths
-  // or farm change: 'moved' (a child or holder goes to kin who hold its farm in trust, a ward comes back of age and the trust ends, a pawn comes
-  // to help a short household, a farm is taken up again), 'service' (a servant joins), 'joined' (a pawn rehoused: a child taken in).
-  const MOVE = new Set(['moved', 'service', 'joined']);
+  const { told, concerns, inLine, eventLine, helpIn } = VB['sim/notable'];
+  const { eventOf } = VB['sim/eventkinds'];
   // A 'joined' whose reason has its own event (the trust's 'moved', the 'service', an inheritance or a marriage) is not a second stop.
   const JOINED_TOLD = new Set([
     'care',
@@ -180,33 +177,41 @@ VB['sim/skip'] = (() => {
     }
     return true;
   }
-  // Which reason of SKIP a record event is for the played pawn `about`, of household hid and village vid, or null.
-  function stopsFor(st, ev, about, hid, vid) {
-    if (!told(ev)) return null;
-    const k = ev.kind;
-    if (k === 'born' || k === 'married' || k === 'died') return concerns(st, ev, about) ? 'family' : null;
-    if (k === 'inherited') return concerns(st, ev, about) ? 'farm' : null;
-    if (k === 'gift')
-      return helpIn(ev) && (ev.pawn === about || (hid !== null && ev.household === hid)) && firstHelp(st, ev, hid)
+  // The rules by which an event stops a skip, as a kind's record names them (`skip`, sim/eventkinds): each gives the reason of SKIP that
+  // the event `ev` is for the played pawn `about`, of household hid and village vid, or null.
+  const STOPS = {
+    family: (st, ev, about) => (concerns(st, ev, about) ? 'family' : null),
+    inherited: (st, ev, about) => (concerns(st, ev, about) ? 'farm' : null),
+    help: (st, ev, about, hid) =>
+      helpIn(ev) && (ev.pawn === about || (hid !== null && ev.household === hid)) && firstHelp(st, ev, hid)
         ? 'help'
-        : null;
-    if (k === 'wishLapsed') return ev.pawn === about ? 'wish' : null;
-    if (k === 'heardOfUs') return ev.pawn === about ? 'heard' : null;
-    if (k === 'cause')
-      return ev.pawn === about && (ev.reason === 'natural' || ev.reason === 'lapsed' || ev.reason === 'won')
-        ? 'cause'
-        : null;
-    if (k === 'cottage' && !ev.pawn && ev.pawn !== 0) return null; // a house raised onto stone asks nothing (VB-1101); a settling names its pawn
-    if (MOVE.has(k) && !(k === 'joined' && JOINED_TOLD.has(ev.reason))) {
+        : null,
+    wish: (st, ev, about) => (ev.pawn === about ? 'wish' : null),
+    heard: (st, ev, about) => (ev.pawn === about ? 'heard' : null),
+    cause: (st, ev, about) =>
+      ev.pawn === about && (ev.reason === 'natural' || ev.reason === 'lapsed' || ev.reason === 'won') ? 'cause' : null,
+    // What moves a pawn between homes or brings one in, for the played household (VB-1109); each stops a skip, since the household's hands,
+    // mouths or farm change: 'moved' (a child or holder goes to kin who hold its farm in trust, a ward comes back of age and the trust ends, a
+    // pawn comes to help a short household, a farm is taken up again), 'service' (a servant joins), 'joined' (a pawn rehoused: a child taken in).
+    move(st, ev, about, hid) {
+      if (ev.kind === 'joined' && JOINED_TOLD.has(ev.reason)) return null;
       const hh = hid !== null ? st.households[hid] : null;
       const mine = (id) => id !== undefined && (id === about || (hh !== null && hh.members.includes(id)));
       return ev.household === hid || mine(ev.pawn) || mine(ev.other) ? 'farm' : null;
-    }
-    if (FARM.has(k))
+    },
+    farm(st, ev, about, hid, vid) {
+      if (ev.kind === 'cottage' && !ev.pawn && ev.pawn !== 0) return null; // a house raised onto stone asks nothing (VB-1101); a settling names its pawn
       return (vid !== null && ev.village === vid) || (hid !== null && ev.household === hid) || concerns(st, ev, about)
         ? 'farm'
         : null;
-    return CUSTOM.has(k) && vid !== null && ev.village === vid ? 'custom' : null;
+    },
+    custom: (st, ev, about, hid, vid) => (vid !== null && ev.village === vid ? 'custom' : null),
+  };
+  // Which reason of SKIP a record event is for the played pawn `about`, of household hid and village vid, or null.
+  function stopsFor(st, ev, about, hid, vid) {
+    if (!told(ev)) return null;
+    const rule = eventOf(ev.kind, 'skip');
+    return rule ? STOPS[rule](st, ev, about, hid, vid) : null;
   }
   // Has a skip begun at `from` (skipFrom) reached a stop: null, or {why (a key of SKIP), text (a sentence), ev (the record event, if one)}.
   // Asked after each step; it reads the events the record has gained since the last ask (from.n moves on; a stop leaves the rest of its
@@ -308,5 +313,6 @@ VB['sim/skip'] = (() => {
     skipStop,
     roundEve,
     gatherings,
+    STOPS,
   };
 })();

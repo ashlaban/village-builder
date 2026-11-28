@@ -7,6 +7,10 @@
 // silted ditch is
 // dug again for the share silted, so drainage is kept by work, as tilth is by dung.
 VB['sim/drain'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/drain', {
+    drained: {}, // a household's wet field ditched (VB-721)
+  });
   const { SEASON_DAYS, SPEED } = VB['sim/rules'];
   const { wetLoss } = VB['sim/crops'];
   const { DITCH, ditchOf, ditchDug } = VB['sim/soil'];

@@ -2,6 +2,10 @@
 //   it pours and the guests' memory of it, the feast from its grain above the rule 'feast', and what each guest household owes for what it
 //   ate and drank (the gift's booking between the holders)
 VB['sim/feast'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/feast', {
+    feast: { keep: 'generation' }, // food laid out at a wedding or a funeral ale (VB-458)
+  });
   const { DAY, BREW, YEAR_DAYS } = VB['sim/rules'];
   const { fullName, log, atFarm, age } = VB['sim/records'];
   const { emit } = VB['sim/events'],

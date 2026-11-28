@@ -4,6 +4,8 @@ VB['sim/notable'] = (() => {
   const { index, ancestorsOf, fullName, age } = VB['sim/records'];
   const { CAUSES, COLD } = VB['sim/deaths'];
   const { YEAR } = VB['sim/rules'];
+  const { EVENTS, eventOf } = VB['sim/eventkinds'];
+  const personal = (kind) => !!eventOf(kind, 'personal');
   // An event of the record in full that every view reads: not a folded slot (a number, sim/records), nor a pawn's own telling of an event
   // recorded beside it (`self`), which only its life reads.
   const told = (e) => typeof e === 'object' && !e.self;
@@ -59,8 +61,6 @@ VB['sim/notable'] = (() => {
   // A pawn's line: itself, its forebears and its descendants, this many generations up and down.
   const GENERATIONS = 4;
   const HUNGER = new Set(['hunger', 'starvation', 'thirst', 'cold']);
-  const FARM = new Set(['empty', 'claim', 'cottage', 'left', 'frost', 'misjudged']);
-  const CUSTOM = new Set(['custom', 'split']);
   const inLine = (st, a, b) =>
     a === b || ancestorsOf(st, [a], GENERATIONS).has(b) || ancestorsOf(st, [b], GENERATIONS).has(a);
   // Does a birth, marriage or death concern pawn `about`: it happened in its household, or to someone of its line.
@@ -81,13 +81,12 @@ VB['sim/notable'] = (() => {
   // selected pawn; the played one once the player plays a pawn, VB-210), or null. Most events are routine: they cost one switch.
   function notable(st, ev, about = null) {
     if (!told(ev)) return null;
-    const k = ev.kind;
-    if (FARM.has(k)) return ['farm'];
-    if (CUSTOM.has(k)) return ['custom'];
-    if (k === 'cause') return ev.reason === 'natural' ? ['cause'] : null; // taken up on its own (VB-082), not laid down or ended
-    if (k === 'meetingFailed') return ['meeting'];
-    if (k === 'heardOfUs') return ev.pawn === about ? ['heard'] : null; // only the played pawn's hearing is written (sim/stories)
-    if (k !== 'died' && k !== 'born' && k !== 'married') return null;
+    const k = ev.kind,
+      n = eventOf(k, 'notice'); // its kind's reason, from its record (sim/eventkinds)
+    if (n === 'farm' || n === 'custom' || n === 'meeting') return [n];
+    if (n === 'cause') return ev.reason === 'natural' ? ['cause'] : null; // taken up on its own (VB-082), not laid down or ended
+    if (n === 'heard') return ev.pawn === about ? ['heard'] : null; // only the played pawn's hearing is written (sim/stories)
+    if (n !== 'family') return null;
     const why = [];
     if (concerns(st, ev, about)) why.push('family');
     if (k === 'died') {
@@ -115,80 +114,16 @@ VB['sim/notable'] = (() => {
     return `${fullName(p)} of ${where} ${cause.log}${ev.cold ? COLD : ''}, aged ${age(st, p, ev.t)}.`;
   }
   // ---- the chronicle (VB-099): the record as the history of a pawn, a farm or a village, and as the village log ----
-  // The kinds a history is filtered by, in the order the page offers them.
+  // The groups a history is filtered by, in the order the page offers them; a kind's record names its group (sim/eventkinds), and one
+  // whose record is `personal` is told by a pawn's own history in its own voice ("Became close friends with ..."): no line of the village
+  // log, nor of a farm's history.
   const CHRONICLE = {
-    life: { label: 'Births and deaths', kinds: ['born', 'died', 'funeralAle'] },
-    marriage: {
-      label: 'Marriages',
-      kinds: [
-        'married',
-        'putOff',
-        'offered',
-        'visited',
-        'visitOff',
-        'matchRefused',
-        'marriedAgainst',
-        'offerLapsed',
-        'wedding',
-        'courting',
-        'courtingEnded',
-        'leftRefused',
-      ],
-    },
-    land: {
-      label: 'Land and farms',
-      kinds: [
-        'holds',
-        'inherited',
-        'renounced',
-        'empty',
-        'claim',
-        'moved',
-        'joined',
-        'cottage',
-        'left',
-        'stayed',
-        'settled',
-        'plot',
-        'plotStarted',
-        'green',
-        'field',
-        'meadow',
-        'stake',
-        'border',
-        'oreFound',
-        'projectTaken',
-        'projectDone',
-        'service',
-        'guardian',
-      ],
-    },
-    custom: {
-      label: 'Customs and meetings',
-      kinds: ['custom', 'split', 'cause', 'meetingFailed', 'gathering', 'gatheringHeld', 'rite', 'aleEvening'],
-    },
+    life: { label: 'Births and deaths' },
+    marriage: { label: 'Marriages' },
+    land: { label: 'Land and farms' },
+    custom: { label: 'Customs and meetings' },
   };
-  // Events a pawn's own history tells in its own voice ("Became close friends with ..."; friend and fellOut, before VB-240): no line of
-  // the village log, nor of a farm's history.
-  const PERSONAL = new Set([
-    'courting',
-    'courtingEnded',
-    'leftRefused',
-    'closeFriend',
-    'enemy',
-    'friend',
-    'fellOut',
-    'quarrel',
-    'cause',
-    'wishLapsed',
-    'player',
-    'share',
-    'gift',
-    'joined',
-    'helped',
-    'heardOfUs',
-    'lieExposed',
-  ]);
+
   // A member's move between farms (a `joined` event that names the farm left, `fromFarm`: sim/heirs' moveTo), as farm `farm` tells it
   // (VB-1027): the farm left tells the leaving, the farm come to the coming; a servant's and a settler's in their own words. One event of
   // the record, read from either end: no second record is made for the farm left.
@@ -208,7 +143,7 @@ VB['sim/notable'] = (() => {
   // The events that tell a farm is lived in again, which end a spell of standing empty.
   const SETTLES = new Set(['holds', 'inherited', 'moved', 'cottage', 'left']);
   const whole = (n) => `${n} ${n === 1 ? 'year' : 'years'}`;
-  // The history of q = {pawn}, {farm} or {village}, of the kinds of CHRONICLE[group] (all kinds without one), newest first: rows
+  // The history of q = {pawn}, {farm} or {village}, of the kinds whose record names `group` (all kinds without one), newest first: rows
   // {ev, text, note}. A farm's history follows the farm across households: the record names the farm in every event that happened there.
   // A pawn's has what it did and what befell it, in its own words where it has them, and what it took part in as `other` (a child born
   // to it, a farm taken over from it). A farm's or village's leaves out the personal events, but a farm's tells who left it and who
@@ -289,15 +224,15 @@ VB['sim/notable'] = (() => {
   const childOf = (st, e, id) =>
     (e.kind === 'born' || e.kind === 'died') && e.pawn !== id && st.pawns[e.pawn].father === id;
   function chronicle(st, q, group = null, limit = 0) {
-    const kinds = group ? new Set(CHRONICLE[group].kinds) : null,
+    const kinds = group ? new Set(Object.keys(EVENTS).filter((k) => EVENTS[k].group === group)) : null,
       rows = [],
       mine = q.pawn !== undefined;
     const base = st.record.filter(
       (e) =>
         told(e) &&
         (mine
-          ? e.pawn === q.pawn || (e.other === q.pawn && !PERSONAL.has(e.kind)) || childOf(st, e, q.pawn)
-          : !PERSONAL.has(e.kind) || (q.farm !== undefined && movedAt(e, q.farm))) &&
+          ? e.pawn === q.pawn || (e.other === q.pawn && !personal(e.kind)) || childOf(st, e, q.pawn)
+          : !personal(e.kind) || (q.farm !== undefined && movedAt(e, q.farm))) &&
         (q.farm === undefined || e.farm === q.farm || movedAt(e, q.farm)) &&
         (q.village === undefined || e.village === q.village),
     );
@@ -329,7 +264,7 @@ VB['sim/notable'] = (() => {
     const out = [];
     for (let i = st.record.length - 1; i >= 0 && out.length < n; i--) {
       const e = st.record[i];
-      if (!told(e) || PERSONAL.has(e.kind) || e.text === undefined || e.text === 'before the record') continue;
+      if (!told(e) || personal(e.kind) || e.text === undefined || e.text === 'before the record') continue;
       out.push({ t: e.t, text: eventLine(st, e), ev: e });
     }
     return out;
@@ -347,7 +282,5 @@ VB['sim/notable'] = (() => {
     told,
     concerns,
     inLine,
-    FARM,
-    CUSTOM,
   };
 })();

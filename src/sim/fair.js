@@ -13,6 +13,11 @@
 //   and lost with it)}.
 //   Written only here; plain data, saved.
 VB['sim/fair'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/fair', {
+    fair: {}, // the fair at a gathering: its deals, what changed hands, those that failed for want of change (VB-302)
+    swap: { keep: 'short' }, // a deal at the fair, each side's (VB-302)
+  });
   const Goods = VB['sim/goods'],
     Stores = VB['sim/stores'],
     Rules = VB['sim/registry'],

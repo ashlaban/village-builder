@@ -2,6 +2,10 @@
 // hauled or fetched (sim/journeys) between places, booked at once within one farmstead (sim/exchange); and a new household's start in life,
 // laid at the homes it was taken from and borne or fetched (VB-675, layStart)
 VB['sim/gifts'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/gifts', {
+    gift: { keep: 'generation', personal: true, skip: 'help' },
+  });
   const { setOut, addFetchStop, bear } = VB['sim/journeys'];
   const { stayOf } = VB['sim/pose'];
   const Lying = VB['sim/lying'],

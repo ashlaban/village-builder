@@ -5,6 +5,10 @@
 // ground (world/water's one rule, VB-1584), the green lies where the villagers reckon the water shallowest, and a green whose ground has
 // no well is laid out without one
 VB['sim/green'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/green', {
+    green: { group: 'land' }, // the village's green and well laid out, and done (VB-058)
+  });
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'];
   const { BUILD } = VB['sim/rules'];

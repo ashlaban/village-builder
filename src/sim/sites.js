@@ -2,6 +2,14 @@
 // house tile and first field cleared and its cottage built by the party's members from their old households, until the move founds the
 // household (sim/settle's verb leave); the site's jobs, their ends, the leader's stake on its tiles, and the leader who follows a dead one
 VB['sim/sites'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/sites', {
+    siteTrail: {},
+    siteRoofed: {},
+    siteWaits: {}, // the move from a roofed site waits, with why, once a season
+    siteLeader: {}, // the party's next adult leads the site after its leader's death
+    siteGivenUp: {},
+  });
   const { on } = VB['sim/events'];
   const { issue } = VB['sim/commands'];
   const { log, fullName, isHolder, spouseOf, childrenOf } = VB['sim/records'];

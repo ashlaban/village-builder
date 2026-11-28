@@ -4,6 +4,11 @@
 // @state village.riteDays: [spring, summer, winter] days (0-based) of a village's own rites, each within RITE.spread days after the season's day;
 //   drawn when first asked, absent before (VB-775)
 VB['sim/venues'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/venues', {
+    aleEvening: { keep: 'short', group: 'custom' }, // a holder's open house on a barrel of its ale (VB-522)
+    rite: { keep: 'generation', group: 'custom' }, // the season's rite on a village green, and who led it (VB-522)
+  });
   const { next: rnd } = VB['sim/rng'];
   const { DAY, BREW, ALE_EVENING, RITE, cal } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];

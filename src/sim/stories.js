@@ -4,6 +4,11 @@
 // their exposure by a hearer who knows better, the source of a counter-story about the liar (VB-554); what a pawn has heard, as its
 // belief (heard, the actor view). Owns st.stories, st.storySeq and pawn.known.
 VB['sim/stories'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/stories', {
+    lieExposed: { keep: 'short', personal: true }, // a lie told to one who knew better (VB-554)
+    heardOfUs: { keep: 'short', personal: true, notice: 'heard', skip: 'heard' }, // the played pawn heard a story of its household (VB-554)
+  });
   const { next: rnd } = VB['sim/rng'];
   const { DAY, TRAITS } = VB['sim/rules'];
   const { SOCIAL, tieOf } = VB['sim/ties'];
