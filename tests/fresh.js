@@ -43,7 +43,7 @@ for (const q of f.fields) if (q !== fresh) q.soil = S.cap;
 { const w = VB['sim/soil'].manureWanted(st, f, hh, cal(2)); check(w && w[2] === true, 'a field above the cap is wanted for surplus dung only'); }
 VB['sim/soil'].manureDone(st, fresh, hh, 2);
 check(near(fresh.soil, 1.3), `manure lowered a fresh field's soil to ${fresh.soil}`);
-// a plot's field broken on fresh ground keeps its soil when the cottage makes the farmstead
+// a plot places no field (VB-1951; Kim, 27 Nov): its household breaks its fields as any head does, fresh ground's soil as above
 const X = VB['sim/expansion'];
 const landed = (id) => Sim.isHolder(st, id) || (Sim.spouseOf(st, id) !== null && Sim.isHolder(st, Sim.spouseOf(st, id))); // no plot for a holder's spouse
 const landless = (u) => st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === u.id && !landed(p.id)).map((p) => p.id);
@@ -51,14 +51,6 @@ const v = st.villages.find((u) => landless(u).length) || st.villages[0], ids = l
 st.demand = ids.slice(0, 1);
 VB['sim/allotment'].startPlots(st);
 const plot = X.livePlots(st, v).slice(-1)[0]; // its village's project plan (VB-123)
-if (!plot) check(false, 'a plot is started');
-else {
-  const ftr = X.tilesOf(plot).find((t) => t.kind === 'field'), wasFresh = !w.dev[ftr.tile];
-  for (const tr of X.tilesOf(plot)) while (tr.i < tr.steps.length) X.finishStep(st, { plot, tr });
-  check(ftr.fresh === wasFresh, `the plot's field remembers fresh ground (${ftr.fresh})`);
-  for (let i = 0; i < 3; i++) X.finishStep(st, { plot, cottage: true });
-  const g = st.farmsteads[v.plots.find((q) => q.id === plot.plot)?.farmstead];
-  check(g && near(g.fields[0].soil, wasFresh ? S.fresh : S.start), `the plot farm's field soil ${g && g.fields[0].soil}`);
-}
+check(plot && !X.tilesOf(plot).some((t) => t.kind === 'field'), 'a plot is started, with no field');
 if (failed) process.exit(1);
 console.log(`fresh ok: first harvest on fresh ground ${rf.toFixed(2)} of a full yield, on old ground ${ro.toFixed(2)}; both at the floor after 9 crops`);
