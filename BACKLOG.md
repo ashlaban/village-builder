@@ -40,7 +40,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1944](backlog/VB-1944.md)<a id="VB-1944"></a> | Refactor: the Sim facade joined from what each module gives the page | - | 2 | M | src/sim.js 17 to 1-4 (VB-1406 step 6) |
 | [VB-1946](backlog/VB-1946.md)<a id="VB-1946"></a> | Refactor: one record an event kind, declared by its emitter; sim/notable split into the skip and the chronicle | - | 2 | M | sim/notable 16 to 8 and 6, sim/records 10 to 6 (VB-1406 step 8) |
 | [VB-1948](backlog/VB-1948.md)<a id="VB-1948"></a> | Refactor: the page's stylesheets by area, and a card's rows declared by the feature's page file | - | 2 | M | head.html 14 to 6, 6, 4; page/words 11 to 7 (VB-1406 step 10) |
-| [VB-1973](backlog/VB-1973.md)<a id="VB-1973"></a> | A seed loan before sowing, after a failed year | plans | 2 | M | seed corn lent before sowing and kept for it, so a failed year is not followed by an unsown one |
 | [VB-2029](backlog/VB-2029.md)<a id="VB-2029"></a> | A lone settler's foraging need outranks reaping his ripe field when frost is near | - | 2 | S | Foraging need 8 beats reap 1.3+frostNear when spare food under 3 days |
 | [VB-2033](backlog/VB-2033.md)<a id="VB-2033"></a> | A cold lone settler fetches wood | - | 2 | S | Cold, not hunger, drained the settler; find why wood is not chosen |
 | [VB-093](backlog/VB-093.md)<a id="VB-093"></a> | A village mill: water where a river is in reach, else wind | mill | 3 | M | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. |
@@ -159,6 +158,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1990](backlog/VB-1990.md)<a id="VB-1990"></a> | An animal is not given where its new household cannot lead it home | - | 3 | S | giveAnimal skips a gift beyond a day's walk, which otherwise starves away before the frost |
 | [VB-2000](backlog/VB-2000.md)<a id="VB-2000"></a> | Wet game days: a share of what lies out lost on each | - | 3 | M | the wet share of VB-1910, waiting for a wet day in the sim |
 | [VB-2023](backlog/VB-2023.md)<a id="VB-2023"></a> | A team's harness moves with the team | - | 3 | S | A new keeper of a team takes its worn harness, not a sound one |
+| [VB-2045](backlog/VB-2045.md)<a id="VB-2045"></a> | A seed loan lent in the crop short | - | 3 | S | seed lent in the crop the fields want, not the lender's mix |
 
 </details>
 
