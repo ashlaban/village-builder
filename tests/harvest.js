@@ -1,3 +1,4 @@
+// @suite fast
 // The harvest home (VB-459; design.md, The gift: The harvest home): once its grain is in, a household above the feast's threshold calls
 // one evening FEAST.notice days ahead at its farm, once a year, and asks its own, its kin households, then the households its holder is
 // tied to most strongly, nearest first, to 20, within a day's walk by land, none already bound for an occasion that day.
