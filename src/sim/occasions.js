@@ -127,6 +127,7 @@ VB['sim/occasions'] = (() => {
     enqueue(st, o);
     return o;
   }
+  VB.counter('gatherMet', 'New contacts made at the gathering (sim/encounters, VB-296)');
   // A talk of two strangers on the green at a day of the gathering (VB-296) is a new contact for each, counted in o.fresh against the day's
   // cap (GATHERING.contacts; sim/encounters takes strangers out of the draw at the cap).
   on('talked', (st, e) => {
@@ -149,6 +150,11 @@ VB['sim/occasions'] = (() => {
     memo.set(hh.id, h);
     return h;
   }
+  VB.counter(
+    'occasionAsked',
+    "Pawns weighed as guests of an occasion: a village's people at its meeting, kin and housemates at a wedding or a death " +
+      '(sim/occasions, VB-126), the adults asked to an ale evening and to the rite (VB-522)',
+  );
   // The guests of a farm's occasion: the living of `ids` (in order, each once), old enough, with a home within a day's walk of the farm.
   function guests(st, f, ids, skip = null) {
     const out = [],
@@ -271,6 +277,7 @@ VB['sim/occasions'] = (() => {
     take(t, true);
     return { ids, hours, n };
   }
+  VB.counter('harvestCalled', 'Harvest homes called (sim/occasions harvestHome, VB-459)');
   // Household hh calls its harvest home, if its grain is in, it stands above the feast's threshold and it has not held one this year: for
   // the evening FEAST.notice days ahead. Returns the occasion or null.
   function harvestHome(st, hh) {

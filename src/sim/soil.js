@@ -62,6 +62,7 @@ VB['sim/soil'] = (() => {
     fd.tilth = tilthOf(st, fd) + n * TILTH.perLoad; // the ground's slow soil, whatever the soil (VB-717)
     fd.tilthAt = st.t;
   }
+  VB.counter('tilthRead', "Reads of a field's tilth, at manuring and reaping only (sim/fields tilthOf, VB-717)");
   // @state farmstead.fields[].tilth: the field's tilth when last set (0 or more); tilthAt: the tick it was set; it fades as e^-(t/TILTH.years),
   //   read in closed form by tilthOf, and written only at manuring (VB-717). A field starts at 0 in every scenario.
   function tilthOf(st, fd) {

@@ -111,6 +111,10 @@ VB['sim/ties'] = (() => {
     p.tieT = st.t;
     p.homeHours = 0;
   }
+  VB.counter(
+    'walkTies',
+    "Ties walked to put a pawn's ties back on today's scale, or to make room under the cap (sim/relations, VB-127)",
+  );
   // p's tie to b is stored as w. A new tie at the cap takes the place of the weakest not to kin (the earlier on a tie in weight), unless it is
   // weaker still and not to kin either; then it is not kept.
   function put(st, p, b, w) {

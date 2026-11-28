@@ -130,6 +130,10 @@ VB['sim/workdays'] = (() => {
     if (!p.workdays || p.workdays.year !== c.year) p.workdays = { year: c.year, came: 0, missed: 0 };
     p.workdays[key]++;
   }
+  VB.counter(
+    'workdayHolders',
+    'Holders of a village weighed by a household that stayed away from its work day, twice a year (sim/workdays; VB-120)',
+  );
   // The end of a work day (sim/clock, at the end of work; VB-1768): each adult who worked WORKDAY.hours turned out. Each household levied
   // for the day (its lot, terms `together`) none of whose adults worked their share (WORKDAY.hours, or the hours the village worked over
   // its adults when that is less) stayed away: it breaches its lot (sim/levies missedDay: the day's worth

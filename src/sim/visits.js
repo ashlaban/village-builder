@@ -84,6 +84,10 @@ VB['sim/visits'] = (() => {
       { kind: 'visitOff', pawn: p.id, ...atHousehold(st, hh) },
     );
   }
+  VB.counter(
+    'visitWalk',
+    "Entries of the asking queue read for the unmarried women beyond a day's walk, a visit sought (sim/visits seekVisit, VB-289)",
+  );
   // Those pawn p of village v might marry who live beyond a day's walk of it and within walking reach, the nearest village first: the
   // unmarried of the other sex, of age, fed, not retired, not wishing otherwise, each {f (the pawn), fv (its village), h (the hours)}.
   // Read from the queue's part of each village beyond a day's walk (askingIn), the nearest village first, the pawns of one by id, village
@@ -206,6 +210,10 @@ VB['sim/visits'] = (() => {
       return command(st, { actor: pawn, verb: 'sendVisit', target: who, args: { village: v }, source: 'player' });
     return command(st, { actor: who, verb: 'visit', target: v, source: 'player' });
   }
+  VB.counter(
+    'visitNoRoute',
+    "Visits that did not set out: no route within the search's reach from where the visitor stood (sim/visits, visitsDue; VB-436)",
+  );
   // Daily at 6:00: the visits due, from the head of the queue (Rules for cost, 4). A plan is dropped where its man has died, married,
   // retired, changed household (he took a farm, his home dissolved) or is away; one whose household can no longer spare the food, or who
   // is hungry himself, stays home, and the log says so; else he sets out (sim/journeys visit).
@@ -233,6 +241,7 @@ VB['sim/visits'] = (() => {
       visit(st, a, e.village);
     }
   }
+  VB.counter('visits', 'Visits arrived at the village visited (sim/visits, VB-289)');
   // @state pawn.visited: null, or {village, year}: the village the pawn last visited, and the year of the moving round the visit followed
   //   (sim/matching roundYear at its arrival), so that it counts until the next round is over (sim/matching reads it); overwritten by the
   //   next visit, cleared at its marriage and its death

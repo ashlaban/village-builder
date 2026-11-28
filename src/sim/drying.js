@@ -34,6 +34,11 @@ VB['sim/drying'] = (() => {
   // untarred that long it leaks and fishes at `leaky` of its catch (8 rations a trip to 4), and untarred `lostYears` it is lost.
   const BOAT = { hours: 20, timber: 6, catch: 2, hands: 2, tarYears: 2, leaky: 0.5, lostYears: 4 };
   const winterDays = SEASON_DAYS + FISH.from;
+  VB.counter(
+    'fishReach',
+    "Tiles within reach of a house searched for fishing water: a village's reach test when it has a new farm, a household's shore " +
+      'for a boat (sim/drying; VB-300)',
+  );
   // ---- the village's reach (the reach test, as VB-117's): fishing water (a river, a lake or the sea) next to a bank within FISH.reach
   // walking steps of one of its houses. The world's water does not change in play, so the test changes only with the village's farms. ----
   // @state village.fishing: {farms, near}: the reach test as of the village's farms (farms: how many it had when tested; near: whether
@@ -128,6 +133,11 @@ VB['sim/drying'] = (() => {
     const free = hands(st, hh) - Math.ceil(f.fields.length / FIELDS.perHand);
     return free >= BOAT.hands && Stores.grainOf(hh) - floorOf(st, hh) >= dailyNeed(st, hh) * YEAR_DAYS;
   }
+  VB.counter(
+    'tarAsk',
+    "Farms asked once a year whether a boat is lost for want of tar or a tar pit is begun, and pine tiles of a village's wood walked " +
+      'for tar (sim/drying, sim/tar; VB-301)',
+  );
   // At the start of the drying season a boat untarred BOAT.lostYears is lost (VB-301): the yearly round takes it away and tells it. No boat
   // is begun here (VB-678): the head weighs one at its look (the making below).
   function boatsRot(st) {
@@ -147,6 +157,10 @@ VB['sim/drying'] = (() => {
   }
   // The household has a boat for its house still to be saved.
   const hasBoat = (st, hh, f) => !!hh.boat && hh.boat.house === f.house && !boatGone(st, hh.boat);
+  VB.counter(
+    'boatAsk',
+    'Farms of villages by fishing water asked whether their household begins a boat, once a year (sim/drying; VB-300)',
+  );
   // The boat, a making the head begins through the verb project (VB-678; sim/projects' declare): possible with no boat for the house nor
   // one under way, a village wood to fell its timber in, fishing water in the village's reach and a shore by the sea or a large lake in
   // the house's; the head weighs it once a year from the start of the drying season, when the fishing is ahead, and wants it with grain

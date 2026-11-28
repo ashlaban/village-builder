@@ -156,6 +156,7 @@ VB['sim/hands'] = (() => {
       }
     return open ? { day: today(st), household: A.id } : 'there is no field work to help with';
   }
+  VB.counter('handsLent', 'Hands lent by a head asked for help, a pawn a day (sim/hands, VB-470)');
   // A yes: the asked head lends the members it can spare, the most free first, each for the hours asked or what it can give
   function settle(st, o) {
     if (o.day !== today(st) || hoursLeft(st) < HANDS.least) return 'the day is over';
@@ -205,6 +206,14 @@ VB['sim/hands'] = (() => {
   });
   // The hours lent to household id today
   const lentTo = (d, id) => Object.values(d.by).reduce((s, e) => s + (e[0] === id ? e[1] : 0), 0);
+  VB.counter(
+    'handsAsked',
+    'Asks for hands made by a head short of hands, at the morning allotment (sim/hands askFor, VB-470)',
+  );
+  VB.counter(
+    'handsWeighed',
+    'Farms of the village read by a head short of hands, to choose whom to ask (sim/hands askFor, VB-470)',
+  );
   // The head of household hh, short of `short` hours of help today (sim/day, at the morning's allotment), asks its village's heads,
   // its near kin first, then by its opinion of them, at most HANDS.asks of them, until the hours lent cover it; once a day. The played
   // head asks for itself, by the same verb, ask with the basis `hands` (VB-1756). A played head on automatic with nothing queued is
@@ -247,6 +256,7 @@ VB['sim/hands'] = (() => {
   }
   // The wage for h hours worked: HANDS.wage rations a day of HANDS.day hours, whole rations rounded up
   const wageFor = (h) => (h > 1e-9 ? Math.ceil((h * HANDS.wage) / HANDS.day - 1e-9) : 0);
+  VB.counter('handsHired', 'Hands hired by a head still short after its asks, a pawn a day (sim/hands, VB-319)');
   // The landless adults (st.demand: grown, with no farm in prospect) of household o's village that its head could hire now, with the
   // hours each can give (spareOf: its own day's free hours), most first.
   function hire(st, hh, rest, d) {
@@ -277,6 +287,8 @@ VB['sim/hands'] = (() => {
         issue(st, { actor: id, verb: 'idle', args: { until: st.t }, source: 'planner' });
     }
   }
+  VB.counter('wagesHired', 'Rations of wage owed hired hands at the end of a day (sim/hands, VB-319)');
+  VB.counter('wagesPaidHired', 'Rations of wage paid hired hands at the end of a day (sim/hands, VB-319)');
   // The wage of hired pawn id for the h hours it worked for household hh, an obligation of the kind `wage` due at the day's end, paid from
   // the household's grain above nothing it cannot spare (what is short stays owed, overdue like a loan), to the pawn's household if it has
   // a farm, else to the pawn

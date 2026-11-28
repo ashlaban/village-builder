@@ -485,6 +485,10 @@ VB['sim/agents'] = (() => {
     a.anim = 'idle';
     roadWait(st, a);
   }
+  VB.counter(
+    'walkAwake',
+    "Pawn records looked at by the working day's start, for those waiting for it, once a day (sim/agents dayStart; VB-473)",
+  );
   // ---- the step (VB-205, VB-473): the legs due end, and nothing else is touched ----
   // @state st.stepAt: {moving, walked}, a cache owned here; null until the first step; derived, not saved (`sim/saves` DERIVED): the
   //   tick whose legs have begun to be taken, and the tick whose legs have all been taken. Between steps both are the tick (a loaded run).

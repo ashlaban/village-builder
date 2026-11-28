@@ -352,6 +352,11 @@ VB['sim/building'] = (() => {
     if (s.cls === FRESH.MARSH) extra.poor = true;
     return [`boothwater:o${b.id}`, s.tile, extra, 'boothwater', { type: 'booth', id: b.id }];
   }
+  VB.counter(
+    'boothWater',
+    "Stays read for the booths' water, each review hour while any booth stands: the fetch of each booth somebody sleeps in " +
+      '(sim/building; VB-1601)',
+  );
   // Asked once for the island, while any booth stands: the fetch of each booth somebody sleeps in. Cost: the stays, a review hour.
   function boothWaterWork(st, holder, at, c, post) {
     if (!st.booths.length) return;

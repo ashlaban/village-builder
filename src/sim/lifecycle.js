@@ -117,6 +117,7 @@ VB['sim/lifecycle'] = (() => {
     return true;
   }
 
+  VB.counter('walkDaily', 'Pawn records walked by dailyLife and Attitudes.dailyStep');
   function dailyLife(st) {
     VB.count.walkDaily += st.living.length;
     let holders = null,

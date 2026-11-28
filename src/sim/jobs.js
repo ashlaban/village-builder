@@ -88,6 +88,10 @@ VB['sim/jobs'] = (() => {
     slotOut(st, j); // its hours back to the members it was given to (sim/day)
     dropJob(st, j);
   }
+  VB.counter(
+    'oppAsk',
+    "Calls of a kind's `available` rule: by the reviews of the plans, the due-queue and members looking for work (sim/jobs; VB-258, VB-249)",
+  );
   // Each review hour (VB-249; design.md section 7, Planning days): the due-queue opens the time-bound kinds that fall due (sim/plans); each
   // holder whose plan is due a review (its planning day, a window closing, a store crossing a target) has it reviewed: each kind says where
   // it is available for the holder (sim/kinds, `available`), asked in the order of ASK, which is the jobs' ids; what it reports is posted

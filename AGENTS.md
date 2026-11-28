@@ -96,8 +96,8 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 ## Finding things
 - Find a thing by the grep of its declaration, not by a list file (VB-1406): module map `grep -rn "^// @sys" src`; state schema and
   owners `grep -rn "@state" src`; tunables `grep -rn "@tunable" src`, beside the tables of `src/sim/rules.js` that several domains read
-  (VB-419); verbs `grep -rn "register('" src`; job kinds `grep -rn "const KINDS = " src`. The lists not yet turned into declarations (modules
-  in load order `src/manifest.json`, layers `src/layers.json`, owners `src/owners.json`, tiers each test's `// @suite` line, counters `VB.COUNTERS`)
+  (VB-419); verbs `grep -rn "register('" src`; work counters `grep -rn "VB.counter('" src`; job kinds `grep -rn "const KINDS = " src`. The lists not yet turned into declarations (modules
+  in load order `src/manifest.json`, layers `src/layers.json`, owners `src/owners.json`, tiers each test's `// @suite` line)
   are still read and edited until their step lands (`docs/architecture/modules.md`, Adding things).
 - Source is read through `readSource(file)` (`tools/lib/source.js`), never `readFileSync`, so that `.ts` is read as JavaScript.
 - The terrain's codes, names and grid (`B`, the biomes' names, `treeStage`, `ROCK`, `DEPOSIT`, `hexLocator`, `csample`, a river's kind)
@@ -130,7 +130,8 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - A rule of `VB['sim/registry']` is declared or contributed to before the first seed or load, which seals the registry; rules never enter saved state.
 - The page script draws and only reads `st`. It writes to `st` through the `Sim` API and three flags, `visualDirty`, `naturalDeaths`, `driftMul`,
   and clears `rigDirty`, `farmDirty`, `villageDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing; the lint enforces this.
-- A new loop over a growing collection, or over pairs, adds a declared work counter in `VB.COUNTERS`.
+- A new loop over a growing collection, or over pairs, adds a work counter, declared at load by its module beside the loop it counts:
+  `VB.counter(name, meaning)` (`src/vb.js`, VB-1934); `VB.COUNTERS` is the joined list, and `src/vb.js` is not edited for it.
 - A table whose entries may come in any order (icons, a tool's reports, the test lists) is marked `// @merge union` on the line before it,
   an entry on lines of its own: entries added on two branches then merge by name (`tools/merge.js`, VB-1679). Not a table whose order is
   saved state or determinism (`KINDS`, rule contributions, event subscribers).
