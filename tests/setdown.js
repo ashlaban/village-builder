@@ -116,7 +116,7 @@ const fetchJob = () => {
   assert(!Sim.load(w2, old).lying);
   // 5. left lying, it rots at the autumn frost, and the frost is told
   const n0 = st.record.length;
-  Lying.frost(st);
+  Lying.frost(st); Lying.decay(st, 48);
   VB['sim/carts'].cartsFrost(st); // as the clock's frost: a cart left standing with a felled wood's timber goes with it (VB-1525)
   assert(!st.lying, 'a load still lies after the frost');
   assert(st.record.slice(n0).some((e) => e && e.kind === 'frost'), 'the frost on a lying load is not told');

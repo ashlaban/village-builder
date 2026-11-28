@@ -7,7 +7,7 @@ VB['sim/clock'] = (() => {
   const { growTrees } = VB['sim/forest'];
   const { spreadForest } = VB['sim/spread'];
   const { fieldsDay, fieldsFrost } = VB['sim/fields'];
-  const { seasonBegins, frostDay, winterAhead } = VB['sim/weather'];
+  const { seasonBegins, frostDay, frostSeen, winterAhead } = VB['sim/weather'];
   const { reckon: reckonWinter, fallDue: climateDue, layGround } = VB['sim/climate'];
   const { refreshRoutes, costChanged } = VB['sim/routes'],
     { refreshHoursStep, ROW_STEPS, WINTER_AT, winterDay, winterStep } = VB['sim/villagehours'];
@@ -42,7 +42,7 @@ VB['sim/clock'] = (() => {
   const { herdsDay, spring } = VB['sim/herds'];
   const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
   const { passageDay } = VB['sim/passage'];
-  const { frost: lyingFrost } = VB['sim/lying'];
+  const { frost: lyingFrost, decay: lyingDecay } = VB['sim/lying'];
   const { frost: droveFrost } = VB['sim/droving'];
   const { byreDay, autumnCounts, strays, shearing } = VB['sim/byre'];
   const { herdsBack, halveGraze } = VB['sim/grazing'];
@@ -349,8 +349,15 @@ VB['sim/clock'] = (() => {
       every: 'day',
       when: frosty,
       owner: 'sim/lying',
-      note: 'the autumn frost rots the loads left lying where their carrier fell (VB-611)',
+      note: 'the autumn frost takes the carts left standing from the loads lying (VB-611, VB-649)',
       run: (st) => lyingFrost(st),
+    },
+    {
+      every: 'day',
+      when: (st) => st.lying !== undefined && frostSeen(st) !== null,
+      owner: 'sim/lying',
+      note: 'once the frost has come, what lies out loses a share of itself a day (VB-1910)',
+      run: (st) => lyingDecay(st),
     },
     {
       every: 'day',

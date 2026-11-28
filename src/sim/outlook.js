@@ -25,6 +25,8 @@ VB['sim/outlook'] = (() => {
   const { hands } = VB['sim/targets'];
   const { headSkill } = VB['sim/seasonal'];
   const { GOALS } = VB['sim/kinds'];
+  const { lyingOut } = VB['sim/lying'];
+  const { frostSeen, frostExpected } = VB['sim/weather'];
   // Proposed (VB-666): `little`, a first short season whose need is covered at least this share is short a little ('short'), else badly
   // ('bad'); `woodTrips`, the firewood trips a working hand makes in a season towards the pile's goal (ECON.woodPerTrip units each), which
   // bounds the wood the plan's goal brings in a season. Named tunables of the view; nothing in the simulation reads them.
@@ -52,7 +54,9 @@ VB['sim/outlook'] = (() => {
   //   likeliest (with, leaned by its bias on the store), the best; lo <= mid <= hi, 0 to FRAME; with no head, the middle skill and no
   //   lean), seasons (the seasons of the year it is needed in: [0, 1, 2, 3], or [3] for hay), parts: {store
   //   (what is held now, in the supply's units), need (by season of the frame, from the start of the one we are in), intakes ([{what, season
-  //   (of the frame), n}], summed by what and season), spoilt (what the reckoning with intakes lets spoil within the frame), and for a
+  //   (of the frame), n}], summed by what and season), spoilt (what the reckoning with intakes lets spoil within the frame), for food
+  //   and hay lying ({n, lost}: what of the household's lies out, sim/lying, and what of it the head expects lost by the season's end,
+  //   VB-1910), and for a
   //   household planned by hand (VB-1661) left ([{good, what, tile?, crop?, n}]: the intakes still to be worked that no task of the plan
   //   covers, left out of `with`: fuel 'timber' (home, no firewood task to cut it), 'fell' (a fell task's loads, none to cut them),
   //   'cutting' (the head's own felling to the season's goal); hay 'mown' and 'meadow' (lying, or to mow: no hay task there); food
@@ -167,6 +171,15 @@ VB['sim/outlook'] = (() => {
     );
   const STANDING = ['sown', 'growing', 'ripe', 'stooks'];
   // A supply's reckoning with what it left out (`parts.left`) for a household planned by hand.
+  // What of the household's lies out (sim/lying) its head expects lost by the end of the season we are in, reckoned by the decay's own
+  // function (sim/lying lyingOut, VB-1910): the game days of frost left in the season, from today once the frost is seen, else from the
+  // day the head expects it (frostExpected); none in spring and summer. {n, lost} in the supply's units, rounded.
+  function lyingLoss(st, hh, good, c) {
+    const from =
+        c.season === 3 ? c.sday : c.season === 2 ? Math.max(c.sday, frostSeen(st) ?? frostExpected(st)) : SEASON_DAYS,
+      L = lyingOut(st, { type: 'household', id: hh.id }, good, SEASON_DAYS - from);
+    return { n: r1(L.n), lost: r1(L.lost) };
+  }
   const withLeft = (s, hand, left) => (hand ? { ...s, parts: { ...s.parts, left } } : s);
   const farmOf = (st, hh) => {
     const f = hh.farmstead === null || hh.farmstead === undefined ? null : st.farmsteads[hh.farmstead];
@@ -260,7 +273,7 @@ VB['sim/outlook'] = (() => {
       dz,
       'food',
     );
-    return withLeft(out, hand, left);
+    return withLeft({ ...out, parts: { ...out.parts, lying: lyingLoss(st, hh, 'grain', c) } }, hand, left);
   }
   // Fuel: firewood and peat as one supply (sim/chores' fuelFree: the pile less what a project holds back, peat at PEAT.worth), burnt at
   // the season's ECON.woodUse times the house's own fire (sim/house fireOf: a timber house's is smaller; VB-1669). Its intake is the
@@ -443,6 +456,7 @@ VB['sim/outlook'] = (() => {
         intakes: rows(ins, F),
         spoilt: r1(w.spoilt),
         share: r2(share(w)),
+        lying: lyingLoss(st, hh, 'hay', c),
         ...(hand ? { left } : {}),
       },
     };
