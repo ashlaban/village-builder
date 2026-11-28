@@ -179,6 +179,13 @@ const ICON = {
     '<path d="M4 17.5c2-4 7-3 7-7s4-5 5-7.5"/><path d="M7.5 17.5c2-3 6.5-3 6.5-6.5" stroke-dasharray="1.5 2"/>',
     ICON_STROKE,
   ), // a way worn, a track beside it
+  walks: svgIcon(
+    20,
+    20,
+    '<ellipse cx="6" cy="13" rx="2" ry="3"/><ellipse cx="11.5" cy="8" rx="2" ry="3"/><path d="M4 18.5h4M13.5 3h3"/>' +
+      '<circle cx="15.5" cy="14.5" r="1"/><circle cx="17" cy="10.5" r="1"/>',
+    ICON_STROKE,
+  ), // footprints, and the steps to come: the Walks map mode (VB-2042)
   // three sheets one over another: the map's overlays (VB-1496), on the overlay button while none is on
   layers: svgIcon(
     20,

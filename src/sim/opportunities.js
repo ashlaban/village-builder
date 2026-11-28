@@ -615,5 +615,6 @@ VB['sim/opportunities'] = (() => {
     if (s.id !== id) return `${fullName(st.pawns[pl.pawn])}'s successor is ${fullName(st.pawns[s.id])}`;
     return goOnAs(st, id, `The player went on as its ${s.why}, ${fullName(st.pawns[id])}`);
   }
-  return { actorView, forPawn, workFor, successor, succeed, roundChoice };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { actorView, forPawn, workFor, successor, succeed, roundChoice, PAGE: ['successor', 'succeed'] };
 })();

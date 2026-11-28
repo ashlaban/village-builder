@@ -96,7 +96,7 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert(onTile, 'the felling was at the chosen tile');
   assert.strictEqual(lastFell.which, 'home', 'the fell task left with its trips home');
   assert(st.w.trees[tile] < trees - 1.5, `two trees felled at the chosen tile, less a few days' regrowth (${trees} to ${st.w.trees[tile]})`);
-  assert(['cut', 'full'].includes(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which), `the firewood task left: ${VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which}`);
+  assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'cut', 'the firewood task left with the timber cut');
   assert(hh.wood > 0, 'firewood cut at home');
   fire = Sim.fireView(st, st.player.pawn);
   assert(fire.wood === hh.wood && fire.nights >= 1 && Array.isArray(fire.mend));
@@ -241,4 +241,74 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert(hh.wood > 0 && cutSum() > before, `and brought home to the woodpile (${hh.wood})`);
   sound(st, 'firewood set down on the road brought home');
 }
-console.log('firewood ok: two steps for every household, no cold day in a year; fell and firewood planned by hand, their refusals; the fire read; save and load; the outlook; a fell task of n loads brings n loads, and the timber held closes against its ledger; cut where timber of the household or of nobody lies, not of another');
+// 6. VB-1932 (Kim, 27 Nov 2026: "The task to cut trees should always be available. The task to cut timber to firewood should always be
+// available on non-reserved timber"): with the pile above the season's goal, a firewood task is accepted while timber that no building
+// holds back is home, refused with none, and cuts all of that timber, the held-back timber left; a fell task is accepted on any tile the
+// village's wood allows in every season; the outlook's left-out timber (the Stores row's Cut) and the page's house callout and forest
+// tile offer the acts.
+{
+  const st = make();
+  Sim.inhabit(st, FARMER);
+  Sim.setAuto(st, st.player.pawn, false);
+  const me = st.player.pawn, hid = st.pawns[FARMER].household, hh = st.households[hid], f = st.farmsteads[hh.farmstead], v = st.villages[f.village];
+  const P = st.ECON.woodPerTrip, { pileOf, timberFree } = VB['sim/wood'], { SEASON_DAYS, cal } = VB['sim/rules'];
+  const fillPile = () => {
+    const p = pileOf(st, hh);
+    Stores.put(st, hh, 'wood', Math.max(0, p.goal - p.free) + 4 * P, 'cutting');
+    assert(!pileOf(st, hh).short, "the pile holds the season's goal");
+  };
+  fillPile();
+  if (hh.timber > 0) Stores.take(st, hh, 'timber', hh.timber, 'cutting');
+  assert.match(String(Sim.plan(st, me, 'add', { firewood: f.house })), /no timber is home to cut: fell timber first/);
+  // timber a building holds back (a cottage's walls lacking 2 loads): not to cut
+  const CP = VB['sim/cottageplan'], cottageTimber = CP.cottageTimber;
+  CP.cottageTimber = (s, x) => (x.id === f.id ? { site: { wood: 0 }, need: 2 * P } : cottageTimber(s, x));
+  Stores.put(st, hh, 'timber', 2 * P, 'felling');
+  assert.strictEqual(timberFree(st, hh), 0);
+  assert.match(String(Sim.plan(st, me, 'add', { firewood: f.house })), /no timber is home to cut but what the household's building holds back/);
+  const leftOf = () => VB['sim/outlook'].reckon(st, hh, st.plans.households.get(hid)).fuel.parts.left || [];
+  assert(!leftOf().some((x) => x.what === 'timber'), 'held-back timber is not offered for cutting in the Stores row');
+  // two loads more: accepted, though the pile holds the season's goal
+  Stores.put(st, hh, 'timber', 2 * P, 'felling');
+  assert.strictEqual(timberFree(st, hh), 2 * P);
+  assert(leftOf().some((x) => x.what === 'timber' && Math.abs(x.n - 2 * P) < 1e-6), 'the Stores row offers the unreserved timber for cutting');
+  assert.strictEqual(Sim.fireView(st, me).cuttable, 2 * P);
+  assert.strictEqual(Sim.plan(st, me, 'add', { firewood: f.house }), true, "a cutting is accepted with the pile at the season's goal");
+  const cutSum = () => (hh.ledger || []).concat(hh.totals || []).filter((e) => e.kind === 'cutting' && e.good === 'wood' && e.n > 0).reduce((x, e) => x + e.n, 0);
+  const cut0 = cutSum();
+  for (let i = 0; i < 4 * 240 && VB['sim/steps'].pawnPlan(st, me).tasks.length; i++) Sim.advance(st, 0.1);
+  const pp = VB['sim/steps'].pawnPlan(st, me);
+  assert.deepStrictEqual(pp.tasks, [], 'the cutting done');
+  assert.strictEqual(pp.last.which, 'cut', `the task left with the unreserved timber cut, not at the goal: ${pp.last.which}`);
+  assert(Math.abs(hh.timber - 2 * P) < 1e-6, `the timber the building holds back is left uncut (${hh.timber})`);
+  assert(cutSum() - cut0 >= 2 * P - 1e-6, `the unreserved timber cut into firewood (${cutSum() - cut0})`);
+  CP.cottageTimber = cottageTimber;
+  sound(st, "cut above the season's goal");
+  // fell: accepted on a tile the village's wood allows, in every season, the pile full
+  const tile = v.wood.find((t) => st.w.trees[t] >= 2 && VB['sim/territory'].woodWhy(st, v, t) === null);
+  assert(tile !== undefined, 'a tile to fell on');
+  const seasons = new Set();
+  for (let k = 0; k < 4; k++) {
+    fillPile();
+    seasons.add(cal(st.t).season);
+    assert.strictEqual(Sim.plan(st, me, 'add', { fell: tile }), true, `a felling accepted in season ${cal(st.t).season}`);
+    const i = VB['sim/steps'].pawnPlan(st, me).tasks.findIndex((t) => t.kind === 'fell');
+    assert.strictEqual(Sim.plan(st, me, 'remove', { i }), true);
+    Sim.advance(st, SEASON_DAYS * DAY);
+  }
+  assert.strictEqual(seasons.size, 4, 'every season tried');
+  // the page (page/ui2wood, run on its own): the house callout offers Cut whenever unreserved timber is home and no cut task is planned;
+  // a fellable tile offers Fell
+  const vm = require('vm'), { readSource } = require('../tools/lib/source.js');
+  fillPile();
+  Stores.put(st, hh, 'timber', P, 'felling');
+  const page = { Sim, st, w: st.w, VB, hud: {}, esc: (x) => x, actIcon: (k) => `[${k}]`, goodIcon: (k) => `[${k}]`, recipeFact: (k) => ({ k }),
+    hudPlanned: () => VB['sim/steps'].pawnPlan(st, me) };
+  vm.createContext(page);
+  vm.runInContext(readSource('src/page/ui2wood.js') + '\nthis.houseWood = houseWood; this.woodActs = woodActs;', page);
+  assert(!pileOf(st, hh).short && /data-hud="cutwood"/.test(page.houseWood(Sim.fireView(st, me)).act), 'the house offers Cut above the goal');
+  assert(/data-hud="fell"/.test(page.woodActs(tile, f, [])), 'a fellable tile offers Fell, the pile full');
+  assert.strictEqual(Sim.plan(st, me, 'add', { firewood: f.house }), true);
+  assert.strictEqual(page.houseWood(Sim.fireView(st, me)).act, '', 'no Cut while a cut task is planned');
+}
+console.log('firewood ok: two steps for every household, no cold day in a year; fell and firewood planned by hand, their refusals; the fire read; save and load; the outlook; a fell task of n loads brings n loads, and the timber held closes against its ledger; cut where timber of the household or of nobody lies, not of another; cut and fell on offer whatever the pile, the held-back timber not cut');

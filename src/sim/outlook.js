@@ -20,7 +20,7 @@ VB['sim/outlook'] = (() => {
     { larderOf } = VB['sim/larder'];
   const { householdHay } = VB['sim/herds'];
   const { HAY } = VB['sim/meadows'];
-  const { fuelFree, timberOf } = VB['sim/wood'];
+  const { fuelFree, timberOf, timberFree } = VB['sim/wood'];
   const { fireOf } = VB['sim/house'];
   const { hands } = VB['sim/targets'];
   const { headSkill } = VB['sim/seasonal'];
@@ -320,7 +320,7 @@ VB['sim/outlook'] = (() => {
     };
     let planned = 0;
     if (hand) {
-      const T = timberOf(hh);
+      const T = timberFree(st, hh); // the timber a firewood task would cut: none a building holds back (VB-1932)
       if (!cut && T > 0) left.push({ good: 'fuel', what: 'timber', n: r1(T) });
       for (const t of tasksOf(st, hh))
         if (t.key === undefined && t.kind === 'fell' && (t.got || 0) < (t.n || 1)) {
@@ -616,5 +616,18 @@ VB['sim/outlook'] = (() => {
       hay: { ...none, seasons: [3] },
     };
   }
-  return { OUTLOOK, DOUBT, FRAME, SUPPLIES, STATES, reckon, supplyOutlook, giftOutlook, villageOutlook, handOf };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return {
+    OUTLOOK,
+    DOUBT,
+    FRAME,
+    SUPPLIES,
+    STATES,
+    reckon,
+    supplyOutlook,
+    giftOutlook,
+    villageOutlook,
+    handOf,
+    PAGE: ['supplyOutlook', 'giftOutlook'],
+  };
 })();

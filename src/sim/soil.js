@@ -90,5 +90,19 @@ VB['sim/soil'] = (() => {
     fd.ditch = 1;
     fd.ditchAt = st.t;
   }
-  return { TILTH, DITCH, wearSoil, rested, surplusOf, manureWanted, manureDone, tilthOf, ditchOf, wetFactor, ditchDug };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return {
+    TILTH,
+    DITCH,
+    wearSoil,
+    rested,
+    surplusOf,
+    manureWanted,
+    manureDone,
+    tilthOf,
+    ditchOf,
+    wetFactor,
+    ditchDug,
+    PAGE: ['wetFactor', 'ditchOf', 'tilthOf'],
+  };
 })();

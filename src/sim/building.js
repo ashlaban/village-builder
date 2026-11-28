@@ -948,6 +948,8 @@ VB['sim/building'] = (() => {
     },
   });
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['boothCondition'],
     UPKEEP,
     KINDS,
     boothAt,

@@ -11,6 +11,7 @@
 //   --ui          keep the interface in the shots (hidden by default)
 //   --clouds      keep the clouds (cleared by default: they hide the village on the whole-island shot)
 //   --land        with the Land overlay on
+//   --walks       the Walks map mode switched on after the --years, then one game year more advanced: the walks of that year (VB-2042)
 //   --cart-out    put a pawn of each of the first farms out with its cart, hay on it (VB-410)
 //   --cow-led     put a pawn of each of the first farms out leading a cow home (VB-429)
 //   --scale S     device pixel ratio (default 2: 2880 by 1800 pixels; 1 for a quick look)
@@ -90,6 +91,12 @@ async function shootSeed(browser, seed) {
     for (let d = 0; d < n * Sim.YEAR_DAYS; d++) { Sim.advance(st, Sim.DAY); if (d % 12 === 11) await new Promise((r) => setTimeout(r, 0)); }
     st.visualDirty = true;
   }, years);
+  if (has('walks')) await page.evaluate(async () => { // the Walks map mode on, and a game year of walks collected
+    document.getElementById('walksBtn').click();
+    const st = window.__vb.st, Sim = window.__vb.Sim();
+    for (let d = 0; d < Sim.YEAR_DAYS; d++) { Sim.advance(st, Sim.DAY); if (d % 12 === 11) await new Promise((r) => setTimeout(r, 0)); }
+    st.visualDirty = true;
+  });
   if (has('cart-out')) await page.evaluate(() => { // a pawn of each of the first farms hauling hay home with its cart (the ox cart where there is one)
     const st = window.__vb.st, C = window.VB['sim/carts'], A = (id) => st.agents[id];
     for (const hh of st.households.slice(0, 4)) {

@@ -432,5 +432,6 @@ VB['sim/pastimes'] = (() => {
     }
     return out;
   }
-  return { IDLE, PASTIME, PASTIMES, ownTime, of, line, why, options, someoneToVisit };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { IDLE, PASTIME, PASTIMES, ownTime, of, line, why, options, someoneToVisit, PAGE: [['pastimeOf', 'of']] };
 })();

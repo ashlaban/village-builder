@@ -150,6 +150,8 @@ VB['sim/claims'] = (() => {
     renewClaim(st, j.site, j.owner);
   };
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['claimsOn', ['claimStrength', 'strength'], 'holdings'],
     workStake,
     claimsOn,
     claimOf,

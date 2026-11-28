@@ -613,5 +613,6 @@ VB['sim/agenda'] = (() => {
       return { ...e, work: ps.length ? Math.round(work * 10) / 10 : e.hours };
     });
   }
-  return { agenda, after, past, planGaps, buildMenu, deadlineOf };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { agenda, after, past, planGaps, buildMenu, deadlineOf, PAGE: ['agenda', 'planGaps', 'buildMenu'] };
 })();

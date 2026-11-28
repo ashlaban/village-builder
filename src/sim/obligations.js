@@ -378,6 +378,8 @@ VB['sim/obligations'] = (() => {
     return out.sort((a, b) => a[0] - b[0]);
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['shareOwed'],
     kind, // its KINDS, contributed to and read
     create,
     isLive,
