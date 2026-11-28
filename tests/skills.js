@@ -1,3 +1,4 @@
+// @suite fast
 // Time taken from causes (VB-475): a pawn's skill at each type of work (sim/skills, from the stream `traits`), the mishap drawn at a work
 // leg's start (the stream `mishap`), and reaping's and threshing's hours by the crop's size (sim/fieldwork). On a tiny farm at seed 7.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;

@@ -1,3 +1,4 @@
+// @suite fast
 // Mood (VB-062; design.md, Traits, talk and stories: Mood): 50 plus the modifiers in force, within 0 to 100. A modifier for a state is read
 // from the state (hungry, cold, without water, weak), one for an event is written at it into pawn.mods (newly married, a child born, both
 // parents, grieving at the death of a spouse, child or parent) and is gone on time without a pass, and "talked with a friend" is read from

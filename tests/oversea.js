@@ -1,3 +1,4 @@
+// @suite fast
 // Nobody is sent to a home over the sea (VB-436; design.md, Between villages, Over the sea): on two islands, the move verb refuses a home
 // with no way by land and says why, as the marry verb does; the route check answers without counting a fallback; an orphaned farm with no household by land keeps
 // its children (QUESTION_ARCHIVE.md, VB-329, question 2), while one with a household by land goes to it.

@@ -1,3 +1,4 @@
+// @suite integration
 // A call at a farm (VB-1119; design.md, Where pawns meet), on a constructed state (tests/lib/probe.js, two villages of two farms): an
 // unmarried man calls at the farm of an unmarried woman of the other village. The verb refuses a farm of his own household and a second
 // call in a week; a call is an evening in the farm's yard, the caller and the household asked; two calls raise his tie to her until she

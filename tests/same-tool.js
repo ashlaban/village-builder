@@ -1,3 +1,4 @@
+// @suite fast
 // tools/same.js: the comparison of two trees' leaves on deliberate files, and a refused option. The runs themselves are tools/sim.js's.
 const assert = require('assert'), fs = require('fs'), os = require('os'), path = require('path'), cp = require('child_process');
 const { compare } = require('../tools/same.js');

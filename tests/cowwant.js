@@ -1,3 +1,4 @@
+// @suite fast
 // A cow for a household with a meadow and none (VB-390): the want of its standing plan, met by a deal with a household of its village that
 // spares one (booked as goodwill) or by a heifer from kin at a marriage (not booked); the animal moves only when a member has walked to the
 // giver's byre and led it home (the kind `lead`). On the small deliberate village of tests/lib/probe.js; the state invariants hold.

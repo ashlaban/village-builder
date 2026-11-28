@@ -1,3 +1,4 @@
+// @suite integration
 // Households short of people (sim/service; stability review): a minor heir left with no adult in the house takes in a landless adult relative
 // as guardian, or, with none, the children go to their kin and the farm stands empty; a holder who lives alone takes in an unmarried landless
 // adult as servant, but never one whose household would be left with fewer than SERVICE.keepHands working hands.

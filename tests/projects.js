@@ -1,3 +1,4 @@
+// @suite integration
 // Project plans (VB-123; design.md section 7, Holders and plans, Reservations): a holder's plan of steps in st.plans.projects, each step's task
 // made when the one before is done, what its steps spend reserved in the holder's store, and the plan reviewed at once when its open step
 // becomes impossible. The acceptance scenario of Test C (docs/architecture/stress-tests.md, section 5): a test-only project spends 40 loads

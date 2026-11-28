@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1753: no rule reads who is played (design.md section 7, Plans at four scales: Authors; section 15, Parity of command).
 // 1. Every read of `st.player` in src/sim (sim/outlook's two mended here as well), by module and function, classed: the frame (who is played, what the page follows of it), a
 //    log line's or the sheet's audience, both kept; or a rule, on an allow-list that only falls (VB-1776 empties it). A new reader fails,

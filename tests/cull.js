@@ -1,3 +1,4 @@
+// @suite integration
 // The cull is the head's (VB-679): the verb `cull` chooses which animals go this autumn. With no list the count's rule chooses, as every
 // head does on the count day (sim/clock's autumn counts issue it); a played head may choose otherwise, its list replacing the count's.
 // Only the head, in autumn from the count day, and only its own animals. On the small island of tests/lib/probe.js.

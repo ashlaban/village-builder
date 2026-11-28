@@ -1,3 +1,4 @@
+// @suite integration
 // Attention (VB-251; one name, `mind`, VB-1750): a pawn holds one task and, besides it, its charges: one that bars its other work (the
 // herd at the side) and one that yields (spinning beside it); a charge is held within its reach, and dropped, reopened for others, when
 // the pawn leaves reach or takes a full task out of it. Test-only kinds: a full one, a charge that yields (tPart) and two that bar.

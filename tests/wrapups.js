@@ -1,3 +1,4 @@
+// @suite fast
 // VB-048 (its review, F1): a wrap-up is blocked until the arch's implement tasks are done (BACKLOG.md, How this backlog works, Archs and
 // phases). A wrap-up still open with every criterion ticked reads as done; this fails while an implement task of its arch is open.
 const fs = require('fs'), path = require('path');

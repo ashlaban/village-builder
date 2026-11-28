@@ -1,3 +1,4 @@
+// @suite integration
 // Patronage (VB-464): a hungry household asks the richest of its village above the feast's threshold after near kin and before the store,
 // and goodwill is booked between the two holders; a client (goodwill owed above PATRON.above days of its need, the tie of sim/followers)
 // owes its patron's household PATRON.days days a year, source `patron`, which leave the balance as it was, and leans its voice to his side;

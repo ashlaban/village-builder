@@ -1,3 +1,4 @@
+// @suite fast
 // VB-082: customs made legible. A village meeting's log line for a changed custom gives the votes and the margin needed, read from the
 // ballots sim/decisions keeps; a custom whose leading way came within 5% of the support it needed is noted in the meeting log only; the
 // pawn's leanings against its village's practice (sim/leanings, leansOf); a cause taken up is notable and told with its pawn's name.

@@ -1,3 +1,5 @@
+// @suite integration founders,solo
+// @suite integration populous
 // VB-1659: the main building's rungs and the outbuildings as data (sim/ladder), read from the rules that build them; rungOf, derived from
 // the state, right for every farm of founders, solo (with and without `hand`) and populous at seeding and a year on; Sim.farmView, plain
 // data that writes nothing, through the hand-planned settler's landing: a camp, its shelter being raised on the house tile, the shelter, the
@@ -61,7 +63,7 @@ function sweep(st, tag, seen) {
   assert.strictEqual(hash(st), before, `${tag}: the views wrote nothing`);
 }
 // The scenarios swept are the arguments' (each a year on the small island, two seconds for founders or populous): two lines of
-// tests/suites.js, to keep each script under its five seconds; all of them without one.
+// its head's @suite lines, to keep each script under its five seconds; all of them without one.
 const seen = new Set(),
   only = process.argv[2] ? process.argv[2].split(',') : null;
 for (const [name, opts] of [

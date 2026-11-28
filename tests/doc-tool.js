@@ -1,3 +1,4 @@
+// @suite fast
 // tools/doc.js on a small document: the table of contents with sizes, a section by its heading (numbers and bracketed notes ignored),
 // a Design ref's "Section (Subsection)", a table row or bold bullet inside a section, headings in code blocks ignored, ambiguity refused.
 const fs = require('fs'), os = require('os'), path = require('path'), { spawnSync } = require('child_process');

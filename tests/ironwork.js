@@ -1,3 +1,4 @@
+// @suite integration
 // Iron tools (VB-701, sim/ironwork): a household's tools have a condition from 0 to 1 that ploughing, reaping and felling wear by
 // TOOLS.wear an hour, and that slows that work to 1 - TOOLS.share + TOOLS.share × condition of a hand's rate (never barred); bog ore and
 // firewood smelted at the farm into a bloom; a winter's mending takes a tenth of a bloom and restores a tenth. Iron's target is its

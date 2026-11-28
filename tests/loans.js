@@ -1,3 +1,4 @@
+// @suite integration
 // Grain loans (VB-312): a household help has gone round for and still short of the harvest borrows, in whole sacks, from the household
 // of its village with most to spare; the grain is set aside as the borrower's and fetched, and an obligation is booked (a quarter more by
 // default, as lent by the practice), not goodwill; a lender refuses enmity, and a household with no field and a loan unpaid; at the end of

@@ -1,3 +1,4 @@
+// @suite fast
 // Compare current runs to each other, never to an approved historical fingerprint.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
 const { world, state } = require('./lib/probe.js'), { canon, kept } = require('./lib/canon.js');

@@ -1,3 +1,4 @@
+// @suite integration
 // Goodwill (VB-217; design.md, The gift): a kin gift books its worth between the two holders, one signed balance {v, t} mirrored on both,
 // read as v halved every GOODWILL.halfLife years since t (tunable from 2 to 20), so a large balance loses more than a small one and no step
 // decays it; balances net, keep at most 32 counterparts, read as 0 once under a ration and are dropped when a pawn next books, pass half at

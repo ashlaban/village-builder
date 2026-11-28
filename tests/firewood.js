@@ -1,3 +1,4 @@
+// @suite fast
 // Wood in two steps (VB-1653): timber felled in the woods and carried home (the kind wood), cut into firewood at the house (the kind
 // firewood), for every household; the player's plan tasks `fell` (a forest tile of its choosing, n trips) and `firewood` (at the house),
 // their refusals, the page's read of the fire (Sim.fireView), and a save and a load going on the same. On the tiny village of tests/plan.js.
@@ -162,12 +163,23 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert.strictEqual(sum('felling'), 3 * P, 'three loads felled');
   assert(trees0 - st.w.trees[tile] > 2 && trees0 - st.w.trees[tile] < 3 + 1e-6, `three trees felled: ${trees0} to ${st.w.trees[tile]}`);
   closes('felled');
-  // a firewood task cuts the timber home; the cottage added meanwhile, then fetches the timber its walls lack to the site
-  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { firewood: f.house }), true);
-  for (let i = 0; i < 4 * 240 && !(sum('cutting') < 0); i++) Sim.advance(st, 0.1);
-  assert(sum('cutting') < 0, 'some timber cut');
-  closes('cut');
+  // the cottage under way, the woodpile below the season's goal: a firewood task leaves the timber its walls count on (VB-1808), so that
+  // none is cut; the cottage then fetches what its walls lack to the site, the timber home first
+  hh.wood = 0; // below the season's goal
+  const { fireAmount, fuelFree } = VB['sim/chores'];
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { upgrade: f.house, what: 'cottage' }), true);
+  for (let i = 0; i < 2 * 240 && !VB['sim/projects'].projectsOf(st, 'household', hh.id).length; i++) Sim.advance(st, 0.1);
+  const plan = VB['sim/projects'].projectsOf(st, 'household', hh.id)[0];
+  assert(plan, 'the cottage is under way');
+  const ct = VB['sim/cottageplan'].cottageTimber(st, f), lack = (ct ? VB['sim/projects'].lacks(ct.site, ct.need) : 0) +
+    plan.steps.slice(plan.open).reduce((n, y) => n + (y.timber ? VB['sim/projects'].lacks(y, y.timber) : 0), 0);
+  Stores.put(st, hh, 'timber', 3, 'felling');
+  hh.wood = 0;
+  assert(lack > 3, `the walls lack timber: ${lack}`);
+  assert.strictEqual(fireAmount(st, hh), fuelFree(st, hh), 'a firewood goal cuts none of the timber the walls count on');
+  Stores.put(st, hh, 'timber', lack, 'felling');
+  assert(fireAmount(st, hh) > fuelFree(st, hh), 'only the timber above what the walls lack may be cut');
+  closes('kept');
   const trips = () => (hh.ledger || []).filter((e) => e.good === 'timber' && e.kind === 'timber').length, sited0 = trips();
   let sited = 0;
   for (let i = 0; i < 20 * 240 && !sited; i++) {
@@ -175,7 +187,7 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
     sited = trips() - sited0;
     closes(`hour ${st.t.toFixed(1)}`);
   }
-  assert(sum('build') <= 0 && sited > 0, `the walls took what timber was home (${sum('build')}) and a trip brought timber to the site`);
+  assert(sum('build') < 0 && sited > 0, `the walls took what timber was home (${sum('build')}) and a trip brought timber to the site`);
   closes('built');
   sound(st, 'felled, cut and built with by hand');
 }

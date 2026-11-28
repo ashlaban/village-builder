@@ -1,3 +1,4 @@
+// @suite integration
 // VB-520 (design.md, People, The twelve traits and the rules each changes; Chemistry): what each trait does, linear in the trait and
 // neutral at 0.5 (a pawn at 0.5 acts as every pawn did before traits), chemistry's four terms and Like seeks like, and the quarrel. On a
 // constructed state, traits set by hand and chances forced with `fix`.

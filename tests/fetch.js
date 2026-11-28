@@ -1,3 +1,4 @@
+// @suite fast
 // A gift is fetched (VB-461; AGENTS.md, the hard rule): help from another farmstead, or from the village store, changes owner where it
 // lies and waits there until a member of the receiving household fetches it, TRAVEL.load a trip; it is the household's to eat as each load
 // comes in. On the probe's small state, with the page closed.

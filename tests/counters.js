@@ -1,3 +1,4 @@
+// @suite fast
 // VB-192: exact work on two tiny villages, normalized by living pawn-days.
 const assert = require('assert'), fs = require('fs'), path = require('path');
 const VB = require('../src/load.js'), { tinyWorld, tinyState } = require('./lib/tiny.js'), Sim = VB.sim;

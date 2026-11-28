@@ -1,3 +1,4 @@
+// @suite fast
 // Breaking forest to a field (VB-1525; Kim, 23 Nov): a household with only forest in reach makes its field there, felling and grubbing it
 // before the clearing and the breaking, as a plot's tile is; every tree on it lies at the site as timber and comes home to the woodpile by
 // the hands' walks (sim/lying's leftTimber); the field records its ground, a wood's fertility and fresh soil.

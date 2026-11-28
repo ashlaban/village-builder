@@ -1,3 +1,4 @@
+// @suite fast
 // The tiny-world kit (VB-155, tests/lib/tiny.js): a text map lays its tiles as the generator does, and a state of two villages seeds fast and runs.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');

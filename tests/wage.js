@@ -1,3 +1,4 @@
+// @suite integration
 // A servant's wage (VB-637; design.md, Marriage, nursing and growth: The portion): owed at the moving round for a year served, as an
 // obligation of the kind `wage` (sim/obligations), paid from the master's grain above its reserve into the servant's stake, where it lies;
 // what cannot be paid stays owed; a servant owed more than SERVICE.unpaid years' wages goes home; the means to marry count the stakes of

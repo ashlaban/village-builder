@@ -1,3 +1,5 @@
+// @suite integration
+// @suite extended --extended
 // Rivers (VB-111): courses, catchment and sources; nothing built on a river; watered fields; village sites near rivers; decorations clear.
 // Fords (VB-112): deterministic, each joins two banks, one on every course of 5 land tiles or more; routes cross rivers only at fords.
 // Every rule on two 48 by 34 islands of tests/lib/probe.js (VB-856). --extended, at night: the default island at seeds 7 and 42, where

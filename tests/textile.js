@@ -1,3 +1,4 @@
+// @suite integration
 // Wool to cloth (VB-362, sim/textile): a fleece spun into a skein as background work at the house, up to TEXTILE.yarnStock skeins; two
 // skeins woven into a length of a drawn grade at the household's loom; the loom a small making; the practice "Spinning and weaving are"
 // sets who spins (women's work, or everyone's indoor work). Populous at seed 8 on the small island of tests/lib/probe.js.

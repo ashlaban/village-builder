@@ -1,3 +1,4 @@
+// @suite fast
 // Fields sized against the head's estimate of all its food (VB-768; sim/yields' trusted, sim/fieldplans' fieldsWanted and fieldToLetGo,
 // the verb letField of sim/plans): on the probe's state, two households with the same nets and the same eight years, a cautious head and
 // a bold one: the bold one wants fewer fields; a household with no second source wants what it wants today; one good year lets no field

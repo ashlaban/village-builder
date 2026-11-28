@@ -1,3 +1,4 @@
+// @suite integration
 // VB-1520: a field records its ground: the biome its tile had when its project began (sim/fieldrec's newField).
 const VB = require('../src/load.js'), G = VB['world/biomes'];
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');

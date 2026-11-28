@@ -1,3 +1,4 @@
+// @suite fast
 // Every theme defines every token (VB-1532): the list of theme tokens at the head of the stylesheet (VB-1530), the themes of
 // THEMES in src/page/options.js, and each theme's token block in src/head.html. A theme is safe to add: one that misses a token, or a
 // block whose theme is not in THEMES, fails with the theme and the token named.

@@ -1,3 +1,4 @@
+// @suite integration
 // Tilth (VB-717): a field's slow soil, built by dung and fading over decades, read in closed form. On a small constructed state.
 const VB = require('../src/load.js'), F = VB['sim/fields'], { state } = require('./lib/probe.js');
 const { YEAR } = VB['sim/rules'], { TILTH } = VB['sim/soil'], { checkState } = require('./lib/invariants.js');

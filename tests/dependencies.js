@@ -1,3 +1,4 @@
+// @suite fast
 // VB-176: enforce module order, including deferred lookups. VB-228: the verbs are registered by their modules, so the dispatcher has no
 // door upward and the modules form no cycle; `issue` may still be looked up from any module.
 const assert = require('assert'), { parse } = require('acorn');

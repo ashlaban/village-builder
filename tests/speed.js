@@ -1,3 +1,4 @@
+// @suite fast
 // VB-084: pacing contracts with a controlled wall clock, focus and background timers.
 const assert = require('assert'), fs = require('fs'), vm = require('vm'), path = require('path');
 const listeners = {}, timers = new Map();

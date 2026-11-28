@@ -1,3 +1,4 @@
+// @suite fast
 // Winter rye and fallow (VB-348; design.md, Crops and rotations, The first crops). A field forced through the courses fallow, rye and
 // barley over three years on a tiny farm at seed 7, run by the simulation: fallow is tilled once in summer (10 hours) and rests the soil at
 // the year's end; rye is sown in autumn days 1-6 from the household's rye, stands the frost and the winter, is ripe 42 days after sowing,

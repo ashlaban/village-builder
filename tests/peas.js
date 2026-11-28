@@ -1,3 +1,4 @@
+// @suite fast
 // Peas (VB-349; design.md, Crops and rotations, The first crops). A field forced to peas on a tiny farm at seed 7, run by the simulation:
 // hoed, sown from the household's peas in spring days 1-10, ripe 18 days on, pulled (10 hours a normal crop) and threshed (10) into peas, 60 rations a
 // field at soil 1, the soil mended 0.04 to at most 1.0 (a manured field keeps its soil); a pea left to the frost is lost as barley is.

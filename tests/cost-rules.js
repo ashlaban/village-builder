@@ -1,3 +1,4 @@
+// @suite fast
 // The growth arithmetic and its report (docs/gates.md rows 16, 17, 19): a ratio over the line is a residual, reported and never failing.
 const assert = require('assert');
 const { report, growth, LIMITS, NAMES } = require('./lib/cost.js');
