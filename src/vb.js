@@ -91,6 +91,11 @@ VB.COUNTERS = {
     'Households and stores weighed as lenders by a household short after help, once a season, over its village (sim/loans, VB-312)',
   loansMade: 'Loans of grain made (sim/loans, VB-312)',
   loanLent: 'Grain lent, in rations (sim/loans, VB-312)',
+  seedAsks: 'Seed loans asked before a sowing by a household short of seed, once a season (sim/loans, VB-1973)',
+  seedLent: 'Grain lent as seed for a sowing, in rations (sim/loans lendSeed, VB-1973)',
+  seedLentSown: 'Grain lent as seed and sown, in rations (sim/loans, VB-1973)',
+  seedLentFreed:
+    'Grain lent as seed and not sown by the close of its sowing window, in rations (sim/loans seedFreed, VB-1973)',
   loanRepaid: 'Grain of loans repaid, in rations (sim/loans, VB-312)',
   loanDefaulted: 'Grain of loans defaulted, in rations unpaid after the second harvest (sim/loans, VB-312)',
   offerWeighed: 'Answers to an offer weighed by the pawn asked, at the due time (sim/offers, VB-690)',

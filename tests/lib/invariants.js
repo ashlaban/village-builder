@@ -1944,6 +1944,15 @@ function checkState(st) {
       )
     )
       bad.push(`households[${h.id}]: askedIn is ${h.askedIn}`);
+    // a seed loan (sim/loans, VB-1973): the seed lent is either sown, held as seed (lent less sown, kept from the meal) or, its sowing
+    // window closed, freed to be repaid in grain as a grain loan is (kept no longer, freed at the next meal); its window at most a year ahead
+    if (h.seedLent !== undefined) {
+      const r = h.seedLent;
+      if (!(r.lent > 0 && r.sown >= 0 && r.sown <= r.lent + 1e-9 && r.until <= st.t + globalThis.VB['sim/rules'].YEAR))
+        bad.push(`households[${h.id}]: seedLent ${JSON.stringify(r)} at ${st.t}`);
+    }
+    if (h.seedAskedIn !== undefined && !(Number.isInteger(h.seedAskedIn) && h.seedAskedIn <= Math.floor(st.t / (globalThis.VB['sim/rules'].SEASON_DAYS * globalThis.VB['sim/rules'].DAY))))
+      bad.push(`households[${h.id}]: seedAskedIn is ${h.seedAskedIn}`);
     // an ask for food that fell short, short of people (sim/help, VB-691): the day of it, no later than today
     if (
       h.fellShort !== undefined &&

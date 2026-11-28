@@ -146,4 +146,52 @@ const spareNeed = (st, hh) => VB['sim/help'].askDaysAt(st) * VB['sim/hunger'].da
   const l = VB['sim/lying'].lay(st, { load: 12 }, { owner: { type: 'household', id: a.id }, site: tile, parts: { barley: 9, rye: 3 } }, 'leftGrain', tile, 0, 0);
   assert.deepStrictEqual(l.of.parts, { barley: 9, rye: 3 }, 'laid down with its crops');
 }
+// a seed loan before sowing (VB-1973; Kim, 28 Nov): a household short of seed for its fields to be sown asks, in the season before the
+// window, as a grain loan; what is lent is kept as seed (the meal does not eat it), sown first, freed at the window's close; repaid
+// at the end of autumn as a grain loan is
+{
+  const { borrowSeed, seedShort, windowOf } = VB['sim/loans'], H = VB['sim/hunger'], { CROPS } = VB['sim/crops'], { DAY, YEAR } = VB['sim/rules'];
+  const farms = () => { // populous: its households hold fields to be sown
+    const st = Sim.seed(island(7), 7, 'populous');
+    for (const hh of st.households) VB['sim/projectplans'].dropAll(st, 'household', hh.id);
+    for (const hh of st.households) { hh.grain = { barley: seedReserve(st, hh) }; hh.meals = 0; }
+    for (const v of st.villages) v.grain = { barley: 0 };
+    setClock(st, windowOf(st.t, CROPS.barley.sow).from + YEAR + DAY); // the winter before the next spring sowing
+    return st;
+  };
+  const st = farms(), { a, c } = pair(st), w = windowOf(st.t, CROPS.barley.sow);
+  rich(st, c, 500);
+  a.grain = { barley: 0 }; // it ate its seed in a failed year
+  const short = seedShort(st, a);
+  assert(short.n >= H.seedNeed(st, a, 'barley') - 1e-9 && short.n > 0 && short.until >= w.end, `setup: short ${JSON.stringify(short)}`);
+  const r0 = Stores.reserved(st, a, 'grain');
+  assert.strictEqual(borrowSeed(st, a), true, 'it asks a seed loan');
+  assert.strictEqual(borrowSeed(st, a), false, 'once a season');
+  const o = loansOf(st).find((x) => x.debtor.id === a.id), lent = Math.ceil(short.n / LOAN.sack - 1e-9) * LOAN.sack;
+  assert(o && o.lent === lent && o.due === harvestAfter(st.t), `lent ${o && o.lent} of ${lent}, repaid at the end of autumn as a grain loan`);
+  assert.deepStrictEqual(a.seedLent, { lent, sown: 0, until: short.until }, 'kept as seed for the sowing');
+  settle(st);
+  assert(Stores.grainOf(a) >= lent - 1e-6, `it came in: ${Stores.grainOf(a)} of ${lent}`);
+  assert.deepStrictEqual(checkState(st), [], 'invariants with a seed loan held');
+  // the meal does not eat it: the household goes hungry, its seed whole
+  a.grain = { barley: lent }; a.meals = 0; a.flour = 0; a.larder = []; a.fresh = []; // what help brought meanwhile eaten
+  assert(lent <= Stores.reserved(st, a, 'grain') + 1e-9, 'setup: all of it seed');
+  const g0 = Stores.grainOf(a), d0 = a.hungryDays;
+  H.feedHousehold(st, a);
+  assert(Stores.grainOf(a) >= Math.min(g0, lent) - 1e-6 && a.hungryDays === d0 + 1, `the lent seed is not eaten: ${g0} to ${Stores.grainOf(a)}`);
+  assert.strictEqual(VB['sim/pot'].cookable(st, a, 10), Stores.grainOf(a) > lent + 1e-9, 'nor cooked');
+  // sown first; at the window's close the rest is freed
+  VB['sim/events'].emit(st, 'seedSown', { hh: a, n: CROPS.barley.seed }); // a field sown (sim/fieldwork)
+  assert.strictEqual(a.seedLent.sown, Math.min(lent, CROPS.barley.seed), 'sown from the loan');
+  setClock(st, a.seedLent.until);
+  assert.strictEqual(VB['sim/pot'].cookable(st, a, 10), true, 'its window closed, it is grain the cook may reach');
+  VB['sim/events'].emit(st, 'planReviewed', { plan: st.plans.households.get(a.id), c: VB['sim/rules'].cal(st.t), why: 'day' });
+  assert.strictEqual(a.seedLent, undefined, 'freed at its review');
+  assert(r0 > 0, 'setup: a reserved seed');
+  // a household with its seed asks nothing
+  const st2 = farms(), { a: b2 } = pair(st2);
+  b2.grain = { barley: Stores.reserved(st2, b2, 'grain') + 50 };
+  assert.strictEqual(seedShort(st2, b2).n, 0, 'nothing short');
+  assert.strictEqual(borrowSeed(st2, b2), false, 'no seed loan');
+}
 console.log('loans ok');
