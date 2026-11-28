@@ -199,7 +199,9 @@ for (const id of st.liveHouseholds) {
   assert.ok(VB.count.planReview >= 1 && s.plans.households.get(0).woke === c8.day, 'the household is reviewed for its store');
   assert.strictEqual(VB.count.dayAllot, 0, 'no day allotted whole');
   assert.strictEqual(dayOf(s, 0).made, made, 'the day as it stood');
-  const moved = Object.keys(day.lists).filter((id) => at(id) >= 0 && fit(id) > 0 && (before[id][0] < 0 || at(id) < before[id][0]));
+  // VB-1771: the wood is a duty, so its holder keeps the first place for the trip: there it rises in place, at its more urgent fit
+  const duty = VB['sim/steps'].dutyOf(s.plans.households.get(0), KINDS.wood.type), holder = duty && String(duty.who[0]);
+  const moved = Object.keys(day.lists).filter((id) => at(id) >= 0 && fit(id) > 0 && (before[id][0] < 0 || at(id) < before[id][0] || (id === holder && fit(id) > before[id][1])));
   assert.ok(moved.length > 0, `the trip moved ahead in a list: ${JSON.stringify(before)} to ${JSON.stringify(Object.fromEntries(Object.keys(day.lists).map((id) => [id, [at(id), at(id) >= 0 ? fit(id) : null]])))}`);
   assert.ok(VB.count.dayRose >= 1, `the trip slotted again (${VB.count.dayRose})`);
   assert.deepStrictEqual(checkState(s), [], 'invariants after the review');
