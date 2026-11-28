@@ -127,7 +127,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1697](backlog/VB-1697.md)<a id="VB-1697"></a> | A dead-out household's remaining goods pass with the farm | - | 3 | M | Stone, flour, peat, tar, hides, salt, iron, clay, ore and the rack stay at the farmstead as the estate's and pass with the farm to whoever takes it |
 | [VB-1698](backlog/VB-1698.md)<a id="VB-1698"></a> | The membership graph: fold the dead's ended edges into the record | debt | 3 | S | Bound the graph's history in saves (rule 9) |
 | [VB-1701](backlog/VB-1701.md)<a id="VB-1701"></a> | Followers: the medium runs and the cost on the fixtures | - | 3 | S | VB-708 left its medium report and its cost on small-y40 and medium-ref unmeasured |
-| [VB-1703](backlog/VB-1703.md)<a id="VB-1703"></a> | Caches checked after every verb: the 41 verbs tests/caches.js does not reach | - | 3 | M | Build a command for each verb tests/caches.js does not reach yet |
 | [VB-1706](backlog/VB-1706.md)<a id="VB-1706"></a> | Hay through sim/stores, so that its account closes | - | 3 | M | hh.hay is written outside the stores (meadows' carrying, byre's feeding and loss, droving, camp's leaving, herds' start): no ledger, so no account. |
 | [VB-1711](backlog/VB-1711.md)<a id="VB-1711"></a> | balance.js: made/need as a ratio of sums | - | 3 | S | the tool's made/need column is a mean of ratios that empty households inflate |
 | [VB-1714](backlog/VB-1714.md)<a id="VB-1714"></a> | Ways worn over the ice | roads | 3 | S | wear counted on water while its ice bears, drawn as trodden snow |
@@ -159,6 +158,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1990](backlog/VB-1990.md)<a id="VB-1990"></a> | An animal is not given where its new household cannot lead it home | - | 3 | S | giveAnimal skips a gift beyond a day's walk, which otherwise starves away before the frost |
 | [VB-2000](backlog/VB-2000.md)<a id="VB-2000"></a> | Wet game days: a share of what lies out lost on each | - | 3 | M | the wet share of VB-1910, waiting for a wet day in the sim |
 | [VB-2023](backlog/VB-2023.md)<a id="VB-2023"></a> | A team's harness moves with the team | - | 3 | S | A new keeper of a team takes its worn harness, not a sound one |
+| [VB-2051](backlog/VB-2051.md)<a id="VB-2051"></a> | Caches checked after every verb: the last 8 verbs tests/caches.js does not reach | - | 3 | M | Carry found, upkeep, goGathering, stayHome, swap, beginCottage, visit and sendVisit in tests/caches.js on states built for them |
 
 </details>
 
