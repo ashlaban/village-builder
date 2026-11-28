@@ -360,11 +360,14 @@ function updateSettlement(dt) {
     const on = o.fd.stage === 'stooks';
     if (o.stooks[0].visible !== on) for (const sk of o.stooks) sk.visible = on;
   }
-  for (const o of meadowSprites)
-    if (o.m.stage !== o.stage) {
-      o.stage = o.m.stage;
-      o.sp.texture = fieldTex['meadow-' + o.stage];
+  for (const o of meadowSprites) {
+    const s = meadowLook(o.m);
+    if (s !== o.stage) {
+      o.stage = s;
+      o.sp.texture = fieldTex[s];
     }
+  }
+  refreshSeason();
   for (const f of fences)
     if (f.s.dirty) {
       drawFence(f.g, f.s);
