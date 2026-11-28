@@ -3,10 +3,11 @@
 // What took of the settler's health at its last reckoning (st.player.days, VB-1118), each an icon at the house and a sentence in its
 // callout: the warning stands on the land, its words a tap away.
 // The day kept is the last one reckoned (its `t`, at the day's end): its cold is of the roof that stood then, so a shelter raised since is
-// said to have come after it. `damp` is a day without water (sim/hunger's dry day, VB-331), not the roof's.
+// said to have come after it. `dry` is a day without water (sim/hunger's dry day, VB-331), not the roof's.
 const HUD_AILS = [
   ['cold', 'cold', ''],
-  ['damp', 'water', 'A day without water: none was fetched for the house. Fetching water is in the daily routine.'],
+  ['dry', 'water', 'A day without water: none was fetched for the house. Fetching water is in the daily routine.'],
+  ['damp', 'water', 'Marsh water is taking of its health.'],
   ['hunger', 'hunger', 'Hunger is taking of its health.'],
   ['tired', 'mood', 'Lack of sleep is taking of its health.'],
   ['ill', 'health', 'It is ill.'],
