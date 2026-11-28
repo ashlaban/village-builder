@@ -360,6 +360,8 @@ VB['sim/water'] = (() => {
     if (f && f.water && f.water.year !== yearOf(st.t)) find(st, f);
   });
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['waterOf', 'siteWater'],
     WATER,
     layWalk,
     source,

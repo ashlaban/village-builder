@@ -510,6 +510,8 @@ VB['sim/stories'] = (() => {
       .sort((x, y) => y.strength - x.strength || x.story - y.story);
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['heard'],
     STORY,
     TALES,
     witness,

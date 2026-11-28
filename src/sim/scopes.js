@@ -138,5 +138,6 @@ VB['sim/scopes'] = (() => {
     ['resides', 'service', 'holder', 'alderman', 'family', 'line', 'spouse'].flatMap((role) =>
       liveFrom(st, role, id).map((k) => ({ role, to: st.edges[k].to })),
     );
-  return { LEVELS, DIMS, STORE_COLUMNS, inScope, storesOf, membershipsOf };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { LEVELS, DIMS, STORE_COLUMNS, inScope, storesOf, membershipsOf, PAGE: ['inScope', 'storesOf'] };
 })();

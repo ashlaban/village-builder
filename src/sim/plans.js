@@ -576,6 +576,8 @@ VB['sim/plans'] = (() => {
     run: (st, c) => swapSteps(st, st.farmsteads[st.households[c.target].farmstead], c.args.a, c.args.b),
   });
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['headView'],
     planOp,
     planFacade,
     heads,
