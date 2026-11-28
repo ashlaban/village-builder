@@ -709,7 +709,7 @@ VB['sim/rules'] = (() => {
       openness: Object.freeze({ malleability: Object.freeze([0.5, 1.5]), cause: Object.freeze([0, 2]) }),
       body: Object.freeze({ recover: Object.freeze([2.5 / 3, 3.5 / 3]) }),
     }),
-    breach: Object.freeze(['claim', 'border', 'refusedMatch', 'crop', 'stayedAway', 'failedUs']),
+    breach: Object.freeze(['claim', 'border', 'refusedMatch', 'crop', 'stayedAway', 'failedUs', 'brokeFaith']),
   });
   return {
     // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)

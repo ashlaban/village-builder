@@ -176,11 +176,23 @@ VB['sim/society'] = (() => {
   // in rations, to a sum that halves in `giftHalf` years, as goodwill does (The gift: goodwill halves in 4 years); the term is
   // `gift` x (1 - exp(-sum / giftScale)), so one large gift does not buy the first place: a gift of 50 rations gives 0.12, of 200 0.26.
   // A term under `forget` is dropped. Named estimates (VB-705, 23 Nov), no source: `held` keeps a holder's term at the old 0.6 above a
-  // villager, the half-lives a working life's few years.
-  const DEED = { base: 1, held: 0.6, heldHalf: 6, gift: 0.3, giftScale: 100, giftHalf: 4, forget: 0.005 };
+  // villager, the half-lives a working life's few years. Faith broken (VB-707: a debt refused that could have been met) adds its worth, in
+  // rations, to a sum that halves in `breachHalf` years; the term is -`breach` x (1 - exp(-sum / breachScale)).
+  const DEED = {
+    base: 1,
+    held: 0.6,
+    heldHalf: 6,
+    gift: 0.3,
+    giftScale: 100,
+    giftHalf: 4,
+    forget: 0.005,
+    breach: 0.3,
+    breachScale: 20,
+    breachHalf: 3,
+  };
   // @state pawn.deeds: absent until a deed, then {[kind]: [v, t]} for kind held, office (v the term when the position was last seen held,
-  //   t that hour) and gift (v the rations given, as of hour t); read with its half-life by `deedNow`, never decayed by a pass.
-  const HALF = { held: DEED.heldHalf, office: DEED.heldHalf, gift: DEED.giftHalf };
+  //   t that hour), gift (v the rations given) and breach (v the rations refused); read with its half-life by `deedNow`, never decayed by a pass.
+  const HALF = { held: DEED.heldHalf, office: DEED.heldHalf, gift: DEED.giftHalf, breach: DEED.breachHalf };
   function deedNow(st, p, kind) {
     const d = p.deeds && p.deeds[kind];
     return d ? d[0] * Math.pow(0.5, (st.t - d[1]) / (HALF[kind] * YEAR)) : 0;
@@ -204,6 +216,7 @@ VB['sim/society'] = (() => {
     mark(st, p, 'held', holder, DEED.held);
     mark(st, p, 'office', holdsOffice(st, p, holder), OFFICE.standing);
     if (p.deeds && p.deeds.gift && deedNow(st, p, 'gift') < 1) delete p.deeds.gift;
+    if (p.deeds && p.deeds.breach && deedNow(st, p, 'breach') < DEED.forget) delete p.deeds.breach;
   }
   // The parts of a pawn's standing, [label, value]: the base, a farm held (or held before), age from 55, an office, for a holder and a holder's
   // spouse the term of the house's condition (VB-306), read from the farm's closed form (nothing is stored beside the condition), ale poured,
@@ -228,6 +241,8 @@ VB['sim/society'] = (() => {
       if (ale > 0) parts.push(['Ale poured', ale]);
     }
     if (Dress.rags(st, p)) parts.push(['In rags', -Dress.DRESS.shame]); // VB-363
+    const broke = deedNow(st, p, 'breach'); // faith broken (VB-707): a debt refused that it could have met, fading in breachHalf years
+    if (broke >= DEED.forget) parts.push(['Broke faith', -DEED.breach * (1 - Math.exp(-broke / DEED.breachScale))]);
     const led = Followers.followerTerm(st, p.id); // followers (VB-708): each by its bond's weight, their own at a discount
     if (led > 0) parts.push(['Followers', led]);
     const given = deedNow(st, p, 'gift');
@@ -272,6 +287,14 @@ VB['sim/society'] = (() => {
     const given = deedNow(st, p, 'gift') + e.worth;
     if (!p.deeds) p.deeds = {};
     p.deeds.gift = [given, st.t];
+    p.standing = sumOf(standingParts(st, p));
+  });
+  // A debtor refused an ask it owed and could meet (sim/offers breakFaith, VB-707): its sum of breaches grows by the worth refused, at once.
+  on('faithBroken', (st, e) => {
+    const p = st.pawns[e.by];
+    if (!p.alive) return;
+    if (!p.deeds) p.deeds = {};
+    p.deeds.breach = [deedNow(st, p, 'breach') + e.worth, st.t];
     p.standing = sumOf(standingParts(st, p));
   });
   // A village's work day ended (sim/workdays): the standing of those who turned out, and of the holders who stayed away, at once.
