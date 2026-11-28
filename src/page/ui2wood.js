@@ -97,7 +97,7 @@ function fireAct(F, f, facts) {
     return '';
   }
   if (k === 'firewood') {
-    const why = `Cut firewood: ${woodTimber(F.timber)} at home, cut at the house.`;
+    const why = `Cut firewood: ${woodTimber(F.cuttable)} at home, cut at the house.`;
     facts.push(recipeFact('firewood', 'mendr'));
     facts.push({ k: 'mend', chip: false, icon: goodIcon('wood'), why });
     return (
@@ -134,7 +134,8 @@ function houseWood(F) {
     label: fireTitle(F),
     why: `${fireTitle(F)}; ${woodTimber(F.timber)} at home to cut.`,
   };
-  if (F.planned.firewood || !((F.timber > 0 || F.planned.fell) && F.short)) return { fact, act: '' };
+  // Cut on offer whenever timber no building holds back is home (or a felling planned brings it), whatever the pile (VB-1932)
+  if (F.planned.firewood || !(F.cuttable > 0 || F.planned.fell)) return { fact, act: '' };
   return {
     fact,
     act: `<button type="button" class="u2-chip" data-hud="cutwood" aria-label="Cut firewood">${actIcon('plus')}${goodIcon('wood')} Cut firewood</button>`,

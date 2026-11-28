@@ -80,5 +80,6 @@ VB['sim/thirst'] = (() => {
       },
     },
   };
-  return { THIRST, KINDS, thirst, thirsty, drank, goes, dayEnd, loaded, line };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { THIRST, KINDS, thirst, thirsty, drank, goes, dayEnd, loaded, line, PAGE: [['thirstLine', 'line']] };
 })();

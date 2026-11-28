@@ -492,8 +492,9 @@ of VB-1406 has landed (`docs/plans/VB-1406-overlap.md`, section 5); until then, 
   by the field's owner, run by `sim/saves` in a fixed order.
 - **An event kind**: today its years in `HISTORY` (`src/sim/records.js`), its group in `CHRONICLE` and `PERSONAL` and its skip stop
   in `src/sim/notable.js`, its icon and its word on the page; after VB-1946 one record declared by the module that emits it.
-- **A `Sim` name**: today an import and an export line in `src/sim.js`; after VB-1944 the module names what it gives the page and
-  `src/sim.js` joins the lists.
+- **A `Sim` name**: the module names what it gives the page in its namespace, `PAGE: ['name', ['nameOnSim', 'exportName']]` (VB-1944;
+  `grep -rn "PAGE: \[" src`); `src/sim.js` joins the lists in load order, throws on a name given twice, and keeps only what it composes
+  itself (the skip's aids, the reads through the actor view, `DEBUG`, `replay`). The width lint does not count a name given to the page alone.
 - **A card's row** (a line of a person's, a farm's house or an open tile's card, a stat of a household on its farm's card): one
   `cardRow(card, place, row)` at load, in the feature's page file beside the code it shows (VB-1948; `page/cardrows`, which joins
   them by place, never by the order of `src/page.json`; `grep -rn "cardRow('" src/page`). The places are numbers with room between them;

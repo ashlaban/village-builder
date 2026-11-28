@@ -194,5 +194,19 @@ VB['sim/fit'] = (() => {
     if (!r) return null;
     return `${KINDS[r.kind].label}: ${r.reason}`;
   }
-  return { score, bid, appraise, matchBar, joined, allotted, standOf, explainIdle, idleLine, workCommand, jobsFor };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return {
+    score,
+    bid,
+    appraise,
+    matchBar,
+    joined,
+    allotted,
+    standOf,
+    explainIdle,
+    idleLine,
+    workCommand,
+    jobsFor,
+    PAGE: ['explainIdle', 'idleLine'],
+  };
 })();

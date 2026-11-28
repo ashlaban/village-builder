@@ -798,5 +798,6 @@ VB['sim/clock'] = (() => {
     },
     run: (st, c) => advance(st, c.args.hours),
   });
-  return { CALENDAR, calendarRows, advance, ticking, stepsIn };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { CALENDAR, calendarRows, advance, ticking, stepsIn, PAGE: ['advance'] };
 })();

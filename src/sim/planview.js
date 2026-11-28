@@ -4,7 +4,7 @@
 //   the pawn's own steps of its plan record since VB-1754)
 VB['sim/planview'] = (() => {
   const { cal, DAY } = VB['sim/rules'];
-  const { timberOf, pileOf } = VB['sim/wood'];
+  const { timberOf, timberFree, pileOf } = VB['sim/wood'];
   const { goalOf, goalSteps } = VB['sim/kinds'];
   const { pawnPlan: planOf } = VB['sim/steps'];
   const { controlOf, nextOf, waitsOf } = VB['sim/controller'];
@@ -60,14 +60,15 @@ VB['sim/planview'] = (() => {
     };
   }
   // ---- the page's read of the fire (VB-1653): Sim.fireView(st, id) ----
-  // How the fire stands for pawn id's household: wood (firewood held), timber (held, not yet cut), peat (held), free (the pile's
+  // How the fire stands for pawn id's household: wood (firewood held), timber (held, not yet cut), cuttable (the timber no building holds
+  // back, sim/wood timberFree: what a firewood task cuts, VB-1932), peat (held), free (the pile's
   // free fuel, sim/wood fuelFree: what a project holds back left out, peat at its worth), goal (the season's, the head's plan's), nights
   // (whole nights the free pile lasts at the season's use, ECON.woodUse, times the house's own fire, sim/house fireOf), cold (the house
   // went cold last night), short (the house cold, or the fuel of the supply outlook not lasting its frame), state, lasts, season (VB-1661: the
   // outlook's fuel, its state, its `with`
   // and its first short season, the one reckoning the page shows; null season when it lasts), below (the pile below the season's goal,
-  // the head's target for its cutting), mend (what would mend it, in order: [] when not short; 'firewood' first when timber is home and
-  // the pile is below its goal or the house cold, 'fell' when no timber is or what is home falls short of the goal or of the frame),
+  // the head's target for its cutting), mend (what would mend it, in order: [] when not short; 'firewood' first when cuttable timber is
+  // home, whatever the pile, VB-1932; 'fell' when none is or what is home falls short of the goal),
   // planned ({fell, firewood}: whether its plan holds a task of each). null when id is no pawn, or with no household with a farm. Plain data;
   // writes nothing.
   // One reckoning of the fire (VB-1661): `short` reads the outlook's fuel (sim/outlook: the pile and the timber the plan cuts, walked
@@ -87,15 +88,17 @@ VB['sim/planview'] = (() => {
       short = cold || fuel.state !== 'safe',
       mend = [],
       tasks = planOf(st, id) ? planOf(st, id).tasks : [];
+    const cuttable = timberFree(st, hh);
     if (short) {
-      const cut = timber > 0 && (cold || p.short);
+      const cut = cuttable > 0;
       if (cut) mend.push('firewood');
-      if (!cut || p.free + timber < p.goal) mend.push('fell');
-      if (!timber) mend.push('firewood');
+      if (!cut || p.free + cuttable < p.goal) mend.push('fell');
+      if (!cut) mend.push('firewood');
     }
     return {
       wood: hh.wood,
       timber,
+      cuttable,
       peat: hh.peat || 0,
       free: p.free,
       goal: p.goal,
@@ -113,5 +116,6 @@ VB['sim/planview'] = (() => {
       },
     };
   }
-  return { planView, fireView };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { planView, fireView, PAGE: ['planView', 'fireView'] };
 })();
