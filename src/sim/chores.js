@@ -66,10 +66,29 @@ VB['sim/chores'] = (() => {
   };
   // A firewood task's goal is the pile it was posted to reach (job.amount: the timber home then, cut, up to the season's goal; a cold house
   // one load at least), so it ends when that is cut, and goes to the woods for the rest only when the timber home is gone before.
+  // The timber home that a building step of the household counts on (VB-1808): what its open project step, its cottage's walls or its plot's
+  // walls still lack, the one read of sim/projects lacks; a firewood goal leaves it, where it would burn the walls' timber first.
+  const timberKept = (st, hh) => {
+    const { cottageTimber } = VB['sim/cottageplan'],
+      sites = [];
+    if (hh.farmstead !== null) {
+      const f = st.farmsteads[hh.farmstead];
+      sites.push(cottageTimber(st, f));
+      // every step still to come of its project plans that carries timber, not only the open one (the barn's walls wait on its foundation)
+      for (const plan of VB['sim/projects'].projectsOf(st, 'household', hh.id))
+        for (let i = plan.open; i < plan.steps.length; i++)
+          if (plan.steps[i].timber) sites.push({ site: plan.steps[i], need: plan.steps[i].timber });
+      for (const n of VB['sim/expansion'].plotTimber(st, st.villages[f.village]))
+        if (n.owner.id === hh.id && n.owner.type === 'household') sites.push(n);
+    }
+    let kept = 0;
+    for (const n of sites) if (n) kept += VB['sim/projects'].lacks(n.site, n.need);
+    return kept;
+  };
   const fireAmount = (st, hh) => {
     const free = fuelFree(st, hh),
       want = Math.max(woodTargets(st, hh).seasons[cal(st.t).season] - free, hh.cold > 0 ? st.ECON.woodPerTrip : 0);
-    return free + Math.min(timberOf(hh), want);
+    return free + Math.min(Math.max(0, timberOf(hh) - timberKept(st, hh)), want);
   };
   const fireNeed = (st, j) => {
     const hh = st.households[j.owner.id]; // a task of a save from before VB-1775 has no amount: the pile's now
@@ -626,5 +645,5 @@ VB['sim/chores'] = (() => {
     },
   };
   const GOALS = { fell, firewood };
-  return { KINDS, GOALS, WOOD_HOURS, fuelFree, timberOf, pileOf, cookWanted };
+  return { KINDS, GOALS, WOOD_HOURS, fireAmount, fuelFree, timberOf, pileOf, cookWanted };
 })();
