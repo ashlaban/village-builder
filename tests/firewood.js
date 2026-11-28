@@ -168,11 +168,9 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   hh.wood = 0; // below the season's goal
   const { fireAmount, fuelFree } = VB['sim/wood'];
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { upgrade: f.house, what: 'cottage' }), true);
-  for (let i = 0; i < 2 * 240 && !VB['sim/projects'].projectsOf(st, 'household', hh.id).length; i++) Sim.advance(st, 0.1);
-  const plan = VB['sim/projects'].projectsOf(st, 'household', hh.id)[0];
-  assert(plan, 'the cottage is under way');
-  const ct = VB['sim/cottageplan'].cottageTimber(st, f), lack = (ct ? VB['sim/projects'].lacks(ct.site, ct.need) : 0) +
-    plan.steps.slice(plan.open).reduce((n, y) => n + (y.timber ? VB['sim/projects'].lacks(y, y.timber) : 0), 0);
+  for (let i = 0; i < 2 * 240 && !VB['sim/sites'].ofFarm(st, f.id); i++) Sim.advance(st, 0.1);
+  assert(VB['sim/sites'].ofFarm(st, f.id), 'the cottage is under way');
+  const ct = VB['sim/cottageplan'].farmTimber(st, f), lack = ct ? VB['sim/projects'].lacks(ct.site, ct.need) : 0;
   Stores.put(st, hh, 'timber', 3, 'felling');
   hh.wood = 0;
   assert(lack > 3, `the walls lack timber: ${lack}`);
@@ -261,8 +259,8 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   if (hh.timber > 0) Stores.take(st, hh, 'timber', hh.timber, 'cutting');
   assert.match(String(Sim.plan(st, me, 'add', { firewood: f.house })), /no timber is home to cut: fell timber first/);
   // timber a building holds back (a cottage's walls lacking 2 loads): not to cut
-  const CP = VB['sim/cottageplan'], cottageTimber = CP.cottageTimber;
-  CP.cottageTimber = (s, x) => (x.id === f.id ? { site: { wood: 0 }, need: 2 * P } : cottageTimber(s, x));
+  const CP = VB['sim/cottageplan'], farmTimber = CP.farmTimber;
+  CP.farmTimber = (s, x) => (x.id === f.id ? { site: { wood: 0 }, need: 2 * P } : farmTimber(s, x));
   Stores.put(st, hh, 'timber', 2 * P, 'felling');
   assert.strictEqual(timberFree(st, hh), 0);
   assert.match(String(Sim.plan(st, me, 'add', { firewood: f.house })), /no timber is home to cut but what the household's building holds back/);
@@ -282,7 +280,7 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert.strictEqual(pp.last.which, 'cut', `the task left with the unreserved timber cut, not at the goal: ${pp.last.which}`);
   assert(Math.abs(hh.timber - 2 * P) < 1e-6, `the timber the building holds back is left uncut (${hh.timber})`);
   assert(cutSum() - cut0 >= 2 * P - 1e-6, `the unreserved timber cut into firewood (${cutSum() - cut0})`);
-  CP.cottageTimber = cottageTimber;
+  CP.farmTimber = farmTimber;
   sound(st, "cut above the season's goal");
   // fell: accepted on a tile the village's wood allows, in every season, the pile full
   const tile = v.wood.find((t) => st.w.trees[t] >= 2 && VB['sim/territory'].woodWhy(st, v, t) === null);

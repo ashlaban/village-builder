@@ -18,10 +18,10 @@ function hudColdWords(d) {
     { hexSteps } = VB['sim/hex'],
     sh = f && f.shelter && f.shelter.built !== null ? f.shelter : null, // the shelter on the house tile (VB-1666)
     booth = sh || (f && hh ? st.booths.find((b) => b.by === hh.id && hexSteps(w, b.tile, f.house) <= 1) : null), // or an older save's
-    roofed = f && (!f.booth || (booth && booth.built <= d.t));
+    roofed = f && (f.rung !== 'shelter' || (booth && booth.built <= d.t));
   if (roofed) return 'The last night was cold: too little firewood for the fire. ' + WOOD_PATH;
   const then = 'The last night was cold: there was no roof and fire to sleep by.';
-  if (booth || (f && !f.booth)) return `${then} The shelter stands now: the next night is under its roof.`;
+  if (booth || (f && f.rung !== 'shelter')) return `${then} The shelter stands now: the next night is under its roof.`;
   return `${then} ${buildCalls(f) ? 'Build a farmstead: the build button.' : 'The shelter in the plan mends that.'}`;
 }
 function hudAils() {

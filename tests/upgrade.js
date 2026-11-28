@@ -11,7 +11,7 @@ const { tinyWorld } = require('./lib/tiny.js'),
   { canon, sha, kept } = require('./lib/canon.js'),
   { checkState } = require('./lib/invariants.js');
 const { projectsOf } = VB['sim/projects'],
-  { cottageOf, wallsOf } = VB['sim/cottageplan'],
+  { wallsOf } = VB['sim/sites'], cottageOf = (st, hid) => VB['sim/sites'].ofFarm(st, st.households[hid].farmstead),
   { RUNGS } = VB['sim/ladder'],
   { BUILD } = VB['sim/rules'],
   Stores = VB['sim/stores'];
@@ -47,7 +47,7 @@ function run(st, days = 40) {
     Sim.advance(st, 0.1);
     for (const t of Sim.planView(st, st.player.pawn).tasks) if (t.waits) waits.add(t.waits.why + (t.waits.kind ? `:${t.waits.kind}` : ''));
     if (i % 10 === 0) for (const g of Sim.agenda(st, st.player.pawn).days.flat()) if (g.what === 'task') laid.add(g.kind);
-    if (st.jobs.has('timber:f0')) trips++;
+    if (st.jobs.has('timber:s0')) trips++;
   }
   return { waits, laid, trips };
 }
@@ -88,14 +88,14 @@ function run(st, days = 40) {
   // VB-1666: built up in place: the cottage's stages on the house tile itself, worked while the household lives in the shelter there
   for (let i = 0; i < 240 && !cottageOf(st, 0); i++) Sim.advance(st, 0.1);
   const p = cottageOf(st, 0);
-  assert(p && p.steps.every((k) => k.place === f.house), 'the cottage on the shelter\'s tile');
+  assert(p && p.house === f.house && p.plot.steps.every((k) => k.place === f.house), 'the cottage on the shelter\'s tile');
   assert(f.shelter && f.shelter.built !== null && !VB['sim/building'].roofless(st, hh), 'under the shelter meanwhile');
   const { waits, laid, trips } = run(st);
   assert.deepStrictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks, [], 'the task has left');
   assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'roof', JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
-  assert.strictEqual(f.booth, null, 'out of the shelter');
+  assert(!f.rung, 'out of the shelter');
   assert.strictEqual(f.shelter, null, 'the shelter gone: the cottage stands in its place');
-  assert.strictEqual(cottageOf(st, 0), null, 'the cottage plan finished');
+  assert.strictEqual(cottageOf(st, 0), null, 'the cottage\'s site ended');
   assert(trips > 0, 'timber trips fetched for the walls');
   assert(waits.has('sleep') && waits.has('unposted:walls'), `waits given: ${[...waits]}`);
   assert(['foundation', 'walls', 'roof'].every((k) => laid.has(k)), `the agenda lays its steps: ${[...laid]}`);
@@ -148,7 +148,7 @@ function run(st, days = 40) {
   run(st);
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
   assert.strictEqual(VB['sim/steps'].pawnPlan(back, back.player.pawn).last.which, 'roof');
-  assert.strictEqual(back.farmsteads[0].booth, null);
+  assert(!back.farmsteads[0].rung);
   sound(back, 'loaded mid-chain');
 }
 console.log('upgrade: the refusals; the booth to the cottage by the plan alone, its waits and agenda; the timber at home first; '

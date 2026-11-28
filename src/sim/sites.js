@@ -4,7 +4,7 @@
 VB['sim/sites'] = (() => {
   const { on } = VB['sim/events'];
   const { issue } = VB['sim/commands'];
-  const { log, fullName, isHolder, spouseOf, childrenOf } = VB['sim/records'];
+  const { log, fullName, isHolder, spouseOf, childrenOf, atFarm } = VB['sim/records'];
   const { ECON, BUILD } = VB['sim/rules'];
   const CL = VB['sim/claims'];
   const { keptDone } = VB['sim/progress'];
@@ -13,8 +13,8 @@ VB['sim/sites'] = (() => {
   const { clearScrub, tended } = VB['sim/spread'];
   const { woodTaken } = VB['sim/territory'];
   const { stepsFor, stepHours } = VB['sim/expansion'];
-  const { COTTAGE, cottageSteps, waitsForTimber } = VB['sim/cottageplan'];
-  const { fetchTimber } = VB['sim/building'];
+  const { COTTAGE, cottageSteps, waitsForTimber, siteWalls, farmTimber } = VB['sim/cottageplan'];
+  const { fetchTimber, cottageWaits } = VB['sim/building'];
   const { trailOf } = VB['sim/trails'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
@@ -27,22 +27,35 @@ VB['sim/sites'] = (() => {
   //   log last said why the move waits, or absent), tried ({pawn: day it last set out to lodge there, or found it could not})};
   //   st.siteSeq, the next id. Written here (staked, worked, its leader followed, given up) and by sim/settle (staked by the verb
   //   stakeSite, ended by the move). The stake on its tiles is the leader's claim (sim/claims, holder {type: 'pawn'}), renewed by each step.
-  // The live index, pawn id -> its site, of the parties' members: kept beside st.sites and made again when st.sites is another array (a
-  // load, a new state). Not saved.
+  //   A farm's own site (VB-1937; farmSite) has `farm`, the farmstead whose household is founded already and owns its work (the lone
+  //   settler's, sim/scenarios landAlone and sim/upgrade beginCottage; a booth household's in a save before it, sitesLoaded): leader null,
+  //   its party empty, field null, booth null, no stake (the farm's own tiles), stage 'building' until the roof ends it (roofOn).
+  // The live index, pawn id -> its site, of the parties' members, and farmstead id -> its farm's own site: kept beside st.sites and made
+  // again when st.sites is another array (a load, a new state). Not saved.
   const IX = new WeakMap();
   function index(st) {
     let x = IX.get(st);
     if (!x || x.of !== st.sites) {
-      x = { of: st.sites, by: new Map() };
-      for (const s of st.sites || []) for (const id of s.party.all) x.by.set(id, s);
+      x = { of: st.sites, by: new Map(), farms: new Map() };
+      for (const s of st.sites || []) {
+        for (const id of s.party.all) x.by.set(id, s);
+        if (s.farm !== undefined) x.farms.set(s.farm, s);
+      }
       IX.set(st, x);
     }
-    return x.by;
+    return x;
   }
-  const siteOf = (st, id) => (st.sites && st.sites.length ? index(st).get(id) || null : null);
+  const siteOf = (st, id) => (st.sites && st.sites.length ? index(st).by.get(id) || null : null);
+  // The site of farm fid's own cottage (farmSite), or null.
+  const ofFarm = (st, fid) => (st.sites && st.sites.length ? index(st).farms.get(fid) || null : null);
+  const staked = (s) => s.farm === undefined;
   const byId = (st, id) => (st.sites || []).find((s) => s.id === id) || null;
   const leaderClaim = (s) => ({ type: 'pawn', id: s.leader });
   const ownerOf = (st, s) => {
+    if (!staked(s)) {
+      const f = st.farmsteads[s.farm];
+      return f.household === null ? null : { type: 'household', id: f.household };
+    }
     const p = st.pawns[s.leader];
     return p.household === null ? null : { type: 'household', id: p.household };
   };
@@ -83,13 +96,83 @@ VB['sim/sites'] = (() => {
     w.dev[s.house] = 3;
     costChanged(st, s.house);
     st.sites.push(s);
-    index(st).set(leader, s);
-    for (const id of s.party.all) index(st).set(id, s);
+    for (const id of s.party.all) index(st).by.set(id, s);
     const home = st.villages[s.from].center;
     if (issue(st, { actor: leader, verb: 'blaze', args: { from: home, to: s.house }, source: 'pawn' }) === true)
       s.stage = 'trail';
     st.villageDirty.add(s.from);
     return s;
+  }
+  // A farm's own site (VB-1937): the cottage of farm f, whose household is founded, built as a site's is (its house tile cleared by
+  // its steps, then the stages), its household's own work (farmWork). `at` (a save's cottage plan, sitesLoaded): the house tile's steps
+  // done and the cottage's stages as they stand. The site.
+  function farmSite(st, f, at = null) {
+    const s = {
+      id: st.siteSeq++,
+      leader: null,
+      party: { all: [], followers: [] },
+      from: f.village,
+      village: f.village,
+      house: f.house,
+      field: null,
+      farm: f.id,
+      plot: {
+        places: [{ tile: f.house, kind: 'house', steps: at ? at.steps : houseSteps(st, f.house), i: 0 }],
+        steps: at ? at.stages : cottageSteps(f.house),
+        open: at ? at.open : 0,
+      },
+      booth: null,
+      stage: 'building',
+      since: st.t,
+      hours: {},
+      tried: {},
+    };
+    if (at) s.plot.places[0].i = at.i;
+    st.sites.push(s);
+    index(st).farms.set(f.id, s);
+    st.farmDirty.add(f.id);
+    return s;
+  }
+  // The steps of a farm's own house tile before its cottage: felled and grubbed where wooded, as the cottage plan's were; not cleared
+  // of scrub and stones, the tile being its yard already.
+  const houseSteps = (st, house) => stepsFor(st.w, house, 'house').filter((k) => k !== 'clear');
+  // A farm's own site's work, asked at each farm after its plans (sim/kinds): its house tile's open step, then the cottage's open stage,
+  // the walls waiting for their timber (farmTimber, fetched by sim/building timberWork); none while the cottage waits (sim/building
+  // cottageWaits: the household roofless, or outside the slack in its shelter unless its plan asks). Jobs of the household's own, ranked by
+  // role as any (no party), and before other work while it sleeps in its shelter (MATCH.urgency.shelter, j.shelter).
+  function farmWork(st, hh, f, c, post) {
+    const s = ofFarm(st, f.id);
+    if (!s || cottageWaits(st, hh, f, c)) return;
+    const base = { siteId: s.id, home: true, shelter: true }, // home: asked at the farm (sim/jobs islandJob)
+      tr = s.plot.places[0];
+    if (tr.i < tr.steps.length) {
+      post(`site:s${s.id}.${tr.tile}`, tr.tile, { ...base, tr, hours: stepHours(st, tr) }, tr.steps[tr.i]);
+      return;
+    }
+    if (waitsForTimber(wallsOf(s), s.plot.open)) return;
+    const k = s.plot.steps[s.plot.open],
+      key = `site:s${s.id}.cottage`;
+    k.done = keptDone(st, key, k.hours, k.done);
+    post(key, s.house, { ...base, cottage: true, done: k.done, hours: k.hours }, k.kind);
+  }
+  // The roof on farm f's own site (VB-1937; as sim/cottageplan's roofOn was): the household leaves its shelter, taken down (the cottage
+  // stands on its tile in its place; in a save before VB-1666, the booth beside the house is left to rot), the timber left over goes to its
+  // woodpile, the farm's rung is the cottage's, and the site ends. Its household was founded before: nobody moves, nothing is founded.
+  function roofOn(st, s) {
+    const f = st.farmsteads[s.farm],
+      hh = f.household === null ? null : st.households[f.household],
+      wood = wallsOf(s).wood;
+    if (hh && wood > 0) VB['sim/stores'].put(st, hh, 'wood', wood, 'timber');
+    f.rung = null; // lint-allow: owner the cottage built on its farm's own site has its roof (VB-1937)
+    f.shelter = null; // lint-allow: owner the shelter taken down when the cottage on its tile has its roof (VB-1666)
+    st.farmDirty.add(f.id);
+    end(st, s);
+    if (!hh) return;
+    log(
+      st,
+      `The new cottage at ${f.name} in ${st.villages[f.village].name} has its roof; ${fullName(st.pawns[hh.holder])} leaves the shelter.`,
+      { kind: 'cottage', pawn: hh.holder, ...atFarm(f) },
+    );
   }
   // The booth's tile: the nearest open tile beside the house that is not the field, nobody's, unused. Null where there is none.
   function boothTile(st, house, field) {
@@ -111,7 +194,7 @@ VB['sim/sites'] = (() => {
   }
   const houseCleared = (s) => s.plot.places[0].i >= s.plot.places[0].steps.length;
   const roofed = (s) => s.plot.open >= COTTAGE.length;
-  const wallsOf = (s) => s.plot.steps[COTTAGE.indexOf('walls')];
+  const wallsOf = siteWalls;
   // The keys of site s's jobs, the ones a lodger there is away for (sim/away): its tiles' steps, the cottage's stage, the timber trips.
   const jobKeys = (s) => [
     `site:s${s.id}.${s.house}`,
@@ -137,7 +220,7 @@ VB['sim/sites'] = (() => {
   function siteWork(st, holder, at, c, post) {
     if (!st.sites || !st.sites.length) return;
     for (const s of [...st.sites]) {
-      if (!prune(st, s)) continue;
+      if (!staked(s) || !prune(st, s)) continue;
       const owner = ownerOf(st, s);
       if (!owner || s.stage === 'roofed') continue;
       if (s.stage === 'trail') {
@@ -180,10 +263,12 @@ VB['sim/sites'] = (() => {
       if (k.kind === 'walls') k.wood -= BUILD.timber;
       k.done = k.hours;
       s.plot.open++;
-      CL.renewClaim(st, s.house, leaderClaim(s));
+      if (staked(s)) CL.renewClaim(st, s.house, leaderClaim(s));
       st.biomeDirty.add(s.house);
       st.villageDirty.add(s.from);
+      if (!staked(s)) st.farmDirty.add(s.farm);
       if (!roofed(s)) return;
+      if (!staked(s)) return roofOn(st, s);
       s.stage = 'roofed';
       log(st, `The cottage at the site of ${fullName(st.pawns[s.leader])}'s new farm has its roof.`, {
         kind: 'siteRoofed',
@@ -210,7 +295,7 @@ VB['sim/sites'] = (() => {
     }
     tended(st, tr.tile);
     tr.i++;
-    CL.renewClaim(st, tr.tile, leaderClaim(s));
+    if (staked(s)) CL.renewClaim(st, tr.tile, leaderClaim(s));
     st.biomeDirty.add(tr.tile);
     st.villageDirty.add(s.from);
   }
@@ -285,7 +370,7 @@ VB['sim/sites'] = (() => {
   // Site s ends (moved into, or given up): out of st.sites and the index, the leader's stake dropped; given up (`why`), its tiles are left
   // as they stand, unused, for the next party that searches (the endings are VB-789's).
   function end(st, s, why = null) {
-    for (const t of [s.house, s.field]) CL.dropClaim(st, t, leaderClaim(s));
+    if (staked(s)) for (const t of [s.house, s.field]) CL.dropClaim(st, t, leaderClaim(s));
     st.sites.splice(st.sites.indexOf(s), 1);
     IX.delete(st);
     if (why === null) return;
@@ -316,15 +401,44 @@ VB['sim/sites'] = (() => {
     const s = byId(st, j.siteId);
     if (s) s.hours[id] = (s.hours[id] || 0) + dt;
   }
-  // A save from before the sites (VB-787): none under way.
+  // A save from before the sites (VB-787): none under way. A save from before VB-1937: a farm with no cottage yet (farmstead.booth) is
+  // at the rung of its shelter (farmstead.rung 'shelter'), and the cottage plan of its household (a settler household's, or the lone
+  // settler's) is its farm's own site at step 3, the house tile's steps done as the plan had them and the open stage kept; a plan its
+  // village held for a farm whose household ended is dropped, the farm's next household beginning its own (sim/upgrade beginCottage).
   function sitesLoaded(st) {
     st.sites ??= [];
     st.siteSeq ??= 0;
+    if (!st.farmsteads.some((f) => 'booth' in f)) return;
+    const P = VB['sim/projects'],
+      { remove } = VB['sim/projectplans'];
+    for (const f of st.farmsteads) {
+      const booth = f.booth;
+      delete f.booth; // lint-allow: owner a save's mark of a farm with no cottage, read as its rung (VB-1937)
+      if (!booth) continue;
+      f.rung = 'shelter'; // lint-allow: owner as above
+      const mine = (p) => p.what === 'cottage' && p.farmstead === f.id,
+        plan =
+          (f.household !== null && P.projectsOf(st, 'household', f.household).find(mine)) ||
+          P.projectsOf(st, 'village', f.village).find(mine);
+      if (!plan) continue;
+      VB['sim/stores'].releaseAll(plan); // its walls' timber goes with the site (the stages copied)
+      remove(st, plan);
+      if (plan.holder.type !== 'household') continue;
+      const first = plan.steps.findIndex((k) => COTTAGE.includes(k.kind)),
+        stages = plan.steps.slice(first).map((k) => ({ ...k })),
+        open = Math.max(0, plan.open - first),
+        steps = plan.steps.slice(0, first).map((k) => k.kind);
+      farmSite(st, f, { steps, i: Math.min(plan.open, first), stages, open });
+    }
   }
   return {
     worked,
     sitesLoaded,
     siteOf,
+    ofFarm,
+    farmSite,
+    farmWork,
+    houseSteps,
     byId,
     stakeSite,
     siteWork,

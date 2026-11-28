@@ -192,15 +192,10 @@ function tent(g, bx, by) {
 }
 // A settlers' booth (bod) of leaning poles and bark by the house tile, and beside it the cottage by stage, as on a plot: foundation stones,
 // rising log walls, the turf roof; a ring while the work goes on (VB-148).
-// The cottage plan of farm f's settlers (sim/cottageplan's cottagePlan): its household's, or its village's while the farm waits for a
-// household (sim/plans' dropAll), or undefined.
+// The stages done of farm f's own cottage under way (its site, sim/sites farmSite, VB-1937), 0 with none.
 function boothCottage(f) {
-  const P = VB['sim/projects'],
-    mine = (p) => p.what === 'cottage' && p.farmstead === f.id;
-  return (
-    (f.household !== null && P.projectsOf(st, 'household', f.household).find(mine)) ||
-    P.projectsOf(st, 'village', f.village).find(mine)
-  );
+  const s = VB['sim/sites'].ofFarm(st, f.id);
+  return s ? s.plot.open : 0;
 }
 // A camp (farmstead.camp, VB-1655: the settler who plans by hand lands with nothing built): the goods landed on the house tile, a
 // covered pile of sacks and a chest beside a ring of hearth stones, and nothing standing; the shelter's poles come when it is staked
@@ -307,7 +302,7 @@ function drawBooth(wd, f, empty) {
   const x = wd.hx[f.house],
     y = wd.hy[f.house],
     g = new PIXI.Graphics(),
-    n = boothCottage(f) ? boothCottage(f).open : 0, // the stages done
+    n = boothCottage(f), // the stages done
     bx = x + YARD.booth[0],
     by = y + YARD.booth[1];
   // the shelter on the house tile (VB-1666): poles while it is raised, the tent once it stands, worn as a booth wears; an older save's
@@ -546,7 +541,7 @@ function drawFarm(wd, f) {
     yard.alpha = 0.3; // trodden ground only
     drawCamp(wd, f);
     if (f.shelter) drawBooth(wd, f, empty);
-  } else if (f.booth) drawBooth(wd, f, empty);
+  } else if (f.rung === 'shelter') drawBooth(wd, f, empty);
   else {
     // the barn and the storehouse only where the farm has them (VB-1898; farmstead.barn, farmstead.storehouse), the cottage always
     const stuga = place(art.stuga[v], hx + YARD.stuga[0], hy + YARD.stuga[1], 0.5, 0.92),
@@ -618,11 +613,11 @@ function drawFarm(wd, f) {
           : null;
     const [cx, cy] = fire
       ? [fire[0], fire[1] - (booth ? 14 : 3)]
-      : f.booth
+      : f.rung === 'shelter'
         ? [hx + YARD.booth[0], hy + YARD.booth[1] - 13]
         : at(STUGA.hole);
-    const [gx, gy] = fire || (f.booth ? [hx + YARD.booth[0], hy + YARD.booth[1] + 1] : at([48, 62]));
-    const lit = f.booth ? null : place(art.lit, sx, sy, 0.5, 0.92);
+    const [gx, gy] = fire || (f.rung === 'shelter' ? [hx + YARD.booth[0], hy + YARD.booth[1] + 1] : at([48, 62]));
+    const lit = f.rung === 'shelter' ? null : place(art.lit, sx, sy, 0.5, 0.92);
     if (lit) {
       lit.zIndex = sy + 0.01;
       lit.visible = false;
@@ -631,7 +626,7 @@ function drawFarm(wd, f) {
     glow.anchor.set(0.5);
     glow.blendMode = 'add';
     glow.position.set(gx, gy);
-    glow.scale.set(f.booth ? 0.2 : 0.36, f.booth ? 0.13 : 0.23);
+    glow.scale.set(f.rung === 'shelter' ? 0.2 : 0.36, f.rung === 'shelter' ? 0.13 : 0.23);
     glow.zIndex = sy + 0.02;
     glow.visible = false;
     L.objects.addChild(glow);

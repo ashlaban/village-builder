@@ -57,7 +57,7 @@ check(moved !== null, `the party moves (site at ${s.stage}, steps ${s.plot.place
 check(st.households.length === households + 1 && m.household !== home && st.households[m.household].holder === m.id, 'the household is founded at the move, the leader its head');
 check(st.villages.length === villages + 1, 'the village is founded at the move');
 const f = st.farmsteads[st.households[m.household].farmstead];
-check(f && !f.booth && !f.shelter, 'its cottage stands: no booth, no shelter');
+check(f && f.rung !== 'shelter' && !f.shelter, 'its cottage stands: no booth, no shelter');
 for (const k of ['siteRoofed', 'left']) check(told(st, k), `the ${k} is told`);
 check(Object.values(s.hours).reduce((a, b) => a + b, 0) > 100, `the party worked at the site (${JSON.stringify(s.hours)})`);
 bad = checkState(st); check(!bad.length, `invariants after the move: ${bad.slice(0, 3).join('; ')}`);

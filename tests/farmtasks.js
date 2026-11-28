@@ -34,7 +34,7 @@ function village() {
   for (const p of projectsOf(st, 'household', hh.id)) VB['sim/commands'].issue(st, { actor: 0, verb: 'dropProject', target: hh.id, args: { id: p.id }, source: 'player' });
   f.barn = null; // VB-1898: a seeded farm has its barn; this one is made without
   Sim.advance(st, 2 * DAY);
-  assert(!f.booth && f.grade === 'ground' && !f.barn, 'a cottage on the ground with no barn');
+  assert(f.rung !== 'shelter' && f.grade === 'ground' && !f.barn, 'a cottage on the ground with no barn');
   return { st, hh, f };
 }
 // Runs until no task of `kind` is left in the plan (or `days` pass), noting each wait and each agenda kind laid.

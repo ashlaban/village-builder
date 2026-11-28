@@ -23,8 +23,11 @@ VB['sim/expansion'] = (() => {
     { workStake } = VB['sim/claims'];
   const { FIELD_REACH, FIELD_RULE, HOUSE, farmedLand, houseScore } = VB['sim/layout'];
   const { gateSide, gateSteps, faceGate } = VB['sim/entrances'];
-  const { COTTAGE, villageOf, wallsOf, timberNeed, waitsForTimber, cottageSteps, finishCottageStage, cottageOf } =
+  const { COTTAGE, villageOf, wallsOf, timberNeed, waitsForTimber, cottageSteps, finishCottageStage, siteWalls } =
     VB['sim/cottageplan'];
+  const homeSiteOf = VB['sim/cottageplan'].homeSite;
+  // The site of household hh's farm's own cottage under way (sim/sites farmSite, VB-1937), or null.
+  const homeSite = (st, hh) => (hh.farmstead === null ? null : homeSiteOf(st, hh.farmstead));
   const Stores = VB['sim/stores'];
   const MAX_PLOTS = 2,
     REACH = 6,
@@ -412,8 +415,8 @@ VB['sim/expansion'] = (() => {
       tile = s.place;
     if (s.kind === 'fell') {
       const loads = Math.floor(w.trees[tile]) * ECON.woodPerTrip,
-        home = cottageOf(st, hh.id);
-      const walls = home ? wallsOf(home) : null;
+        home = homeSite(st, hh);
+      const walls = home ? siteWalls(home) : null;
       if (walls) walls.wood += loads;
       else if (loads > 0) Stores.put(st, hh, 'wood', loads, 'timber');
       w.trees[tile] = 0;
@@ -452,7 +455,7 @@ VB['sim/expansion'] = (() => {
       done: (st, j, hh) => {
         const plan = Projects.onProject(st, j);
         if (!plan) return;
-        if (plan.what === 'field' && j.farm && hh && !cottageOf(st, hh.id)) finishFell(st, j.farm, hh, plan);
+        if (plan.what === 'field' && j.farm && hh && !homeSite(st, hh)) finishFell(st, j.farm, hh, plan);
         else finishOwnClearing(st, j, hh);
       },
       available: plotWork,
@@ -478,7 +481,7 @@ VB['sim/expansion'] = (() => {
       done: (st, j, hh) => {
         const plan = Projects.onProject(st, j);
         if (!plan) return;
-        if (plan.what === 'field' && j.farm && hh && !cottageOf(st, hh.id)) finishGrub(st, j.farm, hh, plan);
+        if (plan.what === 'field' && j.farm && hh && !homeSite(st, hh)) finishGrub(st, j.farm, hh, plan);
         else finishOwnClearing(st, j, hh);
       },
       available: plotWork,
