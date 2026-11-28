@@ -257,9 +257,17 @@ VB['sim/legs'] = (() => {
     const last = ok ? stepCost(w, p[p.length - 2], tile) : cost(tile);
     if (into) a.path.push([into[0], into[1], last, -1]); // the gate's point; the house is entered at the walk's end, as without one
     a.path.push([x, y, last, ok ? tile : -1]);
+    if (walkListener !== null) walkListener(a.path);
     a.seg = 0;
     begin(st, a);
   }
+  // The one listener of walks set out on (VB-2042): the page's Walks map mode sets it while it is on and clears it when it is off; it is
+  // given each walk's points as setOut has laid them, reads them and keeps nothing of the state's, so the run is the same with it or not.
+  // Off (null, the default), setOut's work for it is that one check.
+  let walkListener = null;
+  const listenWalks = (fn) => {
+    walkListener = fn || null;
+  };
   // The pawn is put at (x, y) (by the door of its bed; a newborn where its mother is), its leg and route left as they are.
   function putAt(st, a, x, y) {
     a.x = x;
@@ -297,5 +305,20 @@ VB['sim/legs'] = (() => {
       fn(st, a, l);
     }
   }
-  return { legsOf, waitLeg, roadWait, unleg, halt, begin, repace, setOut, putAt, workAt, walked, dueLegs, restamp };
+  return {
+    legsOf,
+    waitLeg,
+    roadWait,
+    unleg,
+    halt,
+    begin,
+    repace,
+    setOut,
+    listenWalks,
+    putAt,
+    workAt,
+    walked,
+    dueLegs,
+    restamp,
+  };
 })();

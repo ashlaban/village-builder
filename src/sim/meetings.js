@@ -607,6 +607,8 @@ VB['sim/meetings'] = (() => {
   // review, a decision point, sim/points)
   const MEETING = Object.freeze({ season: 2, sday: 9, hour: 12 });
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['holdMeetings'],
     MEETING,
     villagesOfStep,
     holdMeetings,

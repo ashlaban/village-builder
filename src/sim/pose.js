@@ -117,5 +117,21 @@ VB['sim/pose'] = (() => {
     if (s !== null && !s.back) return s.bed;
     return st.farmsteads[st.households[st.pawns[a.id].household].farmstead].house;
   }
-  return { tileAt, here, endTile, along, poseAt, placeOf, walkHours, poseOf, travelling, atWork, unbound, stayOf, bed };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return {
+    tileAt,
+    here,
+    endTile,
+    along,
+    poseAt,
+    placeOf,
+    walkHours,
+    poseOf,
+    travelling,
+    atWork,
+    unbound,
+    stayOf,
+    bed,
+    PAGE: ['placeOf', 'poseOf'],
+  };
 })();

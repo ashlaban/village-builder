@@ -857,6 +857,8 @@ VB['sim/stores'] = (() => {
     if (left < n - 1e-9) emit(st, 'storeShort', { type: kind, id: holder.id, good });
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['grainOf'],
     passShoes,
     dug,
     peatDry,

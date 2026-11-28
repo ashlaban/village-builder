@@ -615,6 +615,8 @@ VB['sim/controller'] = (() => {
     return issue(st, c);
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['command', 'controlOf', ['waits', 'waitsOf']],
     command,
     QUEUE_MAX,
     PLAN_MAX,

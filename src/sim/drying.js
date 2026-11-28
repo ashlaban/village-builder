@@ -359,6 +359,8 @@ VB['sim/drying'] = (() => {
     },
   });
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: [['boatUntarred', 'untarred']],
     DRY,
     BOAT,
     KINDS,

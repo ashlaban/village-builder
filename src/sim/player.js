@@ -358,6 +358,8 @@ VB['sim/player'] = (() => {
     return command(st, { actor: id, verb, target, args: args || {}, source: 'player' });
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['head', 'inhabit', 'sheetNotes', 'uninhabit', 'queue', 'unqueue', 'setAuto', 'wish', 'answer'],
     head,
     QUEUE_MAX,
     inhabit,

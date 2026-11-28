@@ -273,6 +273,8 @@ VB['sim/work'] = (() => {
   }
   // The work of a's task is done (dueWork): its load is taken home, it cuts another, or the task is complete.
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['withOxen'],
     attentionOf,
     inReach,
     manning,

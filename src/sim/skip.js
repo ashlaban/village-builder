@@ -308,6 +308,8 @@ VB['sim/skip'] = (() => {
     return `The moving round is tomorrow. Since the skip began: ${born} born, ${died} dead${more ? `; ${more}` : ''}.`;
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['SKIP', 'skipFrom', 'gatherings'],
     SKIP,
     skipFrom,
     skipStop,

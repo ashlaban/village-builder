@@ -50,5 +50,15 @@ VB['sim/prospect'] = (() => {
       { kind: 'oreFound', pawn: pawnId, ...atHousehold(st, hh) },
     );
   }
-  return { PROSPECT, knows, known, worked };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return {
+    PROSPECT,
+    knows,
+    known,
+    worked,
+    PAGE: [
+      ['knowsDeposit', 'knows'],
+      ['depositKnown', 'known'],
+    ],
+  };
 })();

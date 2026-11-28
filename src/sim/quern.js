@@ -184,6 +184,8 @@ VB['sim/quern'] = (() => {
     graded: { work: ['grit'] }, // VB-761: a quern's grade multiplies its grit (grinding speed) by its work, its years by its life
   });
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: [['quernYears', 'yearsLeft']],
     QUERN,
     KINDS,
     villageRock,

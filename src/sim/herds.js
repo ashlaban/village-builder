@@ -483,6 +483,8 @@ VB['sim/herds'] = (() => {
     };
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['herdsOf', 'dailyHay', 'winterNeed', 'stalled', 'years', 'describeHerds', 'herdReport', 'team', 'inMilk'],
     COWS,
     BULLS,
     years,

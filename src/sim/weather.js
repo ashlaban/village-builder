@@ -152,6 +152,8 @@ VB['sim/weather'] = (() => {
     return c.season === W[0] && c.sday >= (W[0] === 0 ? Math.max(W[1], thawDay(st)) : W[1]) && c.sday <= W[2];
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['SEASONS'],
     SEASONS,
     WEATHER,
     seasonBegins,

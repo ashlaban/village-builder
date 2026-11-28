@@ -129,5 +129,6 @@ VB['sim/feast'] = (() => {
     );
     return { eaten: eaters.length, rations: served };
   }
-  return { FEAST, pourAle, surplus, explainFeast, owing, bookAll, feast };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { FEAST, pourAle, surplus, explainFeast, owing, bookAll, feast, PAGE: ['explainFeast'] };
 })();

@@ -452,6 +452,8 @@ VB['sim/society'] = (() => {
     },
   });
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['standingParts', 'hooks', 'refreshInterests', 'updateTies'],
     TIE,
     standingParts,
     DEED,

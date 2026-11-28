@@ -306,6 +306,8 @@ VB['sim/wishes'] = (() => {
   });
   on('rehoused', (st, d) => seek(st, d.a.id));
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['wishesOf'],
     WISH,
     RUNGS,
     chooseWishes,

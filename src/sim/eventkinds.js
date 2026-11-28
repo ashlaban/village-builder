@@ -27,5 +27,6 @@ VB['sim/eventkinds'] = (() => {
   const keepOf = (kind) => (Object.hasOwn(EVENTS, kind) && EVENTS[kind].keep ? KEEP[EVENTS[kind].keep] : 0);
   // The field `field` of kind's record, or undefined.
   const eventOf = (kind, field) => (Object.hasOwn(EVENTS, kind) ? EVENTS[kind][field] : undefined);
-  return { KEEP, EVENTS, eventKinds, keepOf, eventOf };
+  // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944): each kind's record, read by page/notices
+  return { PAGE: ['EVENTS'], KEEP, EVENTS, eventKinds, keepOf, eventOf };
 })();

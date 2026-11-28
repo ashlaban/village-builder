@@ -781,5 +781,6 @@ VB['sim/scenarios'] = (() => {
     if (opts && opts.rye) giveRye(st);
     return st;
   }
-  return { seedFounders, seedHeirs, seedPopulous, makeState, startStreams, seed };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { seedFounders, seedHeirs, seedPopulous, makeState, startStreams, seed, PAGE: ['seed'] };
 })();
