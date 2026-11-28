@@ -320,6 +320,8 @@ VB['sim/territory'] = (() => {
     for (const v of st.villages) reckonWood(st, v);
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['woodOf'],
     isOutland,
     freeFor,
     outlandOf,

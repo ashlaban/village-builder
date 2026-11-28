@@ -272,5 +272,16 @@ VB['sim/visits'] = (() => {
     check: (st, c) => living(st, c.actor) || sendWhy(st, c.actor, c.target, c.args.village),
     run: (st, c) => planVisit(st, c.target, c.args.village),
   });
-  return { visitWhy, sendWhy, planVisit, seekVisit, visitsDue, visitChoices, visitState, orderVisit };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return {
+    visitWhy,
+    sendWhy,
+    planVisit,
+    seekVisit,
+    visitsDue,
+    visitChoices,
+    visitState,
+    orderVisit,
+    PAGE: ['orderVisit', 'visitState'],
+  };
 })();

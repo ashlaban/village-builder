@@ -176,5 +176,6 @@ VB['sim/dig'] = (() => {
       if (a.load > 0) Stores.dug(st, hh, j.good, a.load);
     },
   });
-  return { DIG, KIND, GOODS, DUG, goodOf, left, digLoad, mayDig, wants, digSite };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { DIG, KIND, GOODS, DUG, goodOf, left, digLoad, mayDig, wants, digSite, PAGE: [['depositLeftNow', 'left']] };
 })();

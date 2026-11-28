@@ -116,5 +116,6 @@ VB['sim/planview'] = (() => {
       },
     };
   }
-  return { planView, fireView };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { planView, fireView, PAGE: ['planView', 'fireView'] };
 })();

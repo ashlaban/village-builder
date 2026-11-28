@@ -41,5 +41,6 @@ VB['sim/sleep'] = (() => {
       health: tiredHealth(owed),
     };
   }
-  return { SLEEP, AWAKE, owedBy, tiredMood, tiredHealth, sleepOf };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { SLEEP, AWAKE, owedBy, tiredMood, tiredHealth, sleepOf, PAGE: ['sleepOf'] };
 })();

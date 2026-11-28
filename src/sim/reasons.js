@@ -224,5 +224,16 @@ VB['sim/reasons'] = (() => {
     if (!who) return r.why.charAt(0).toUpperCase() + r.why.slice(1) + step;
     return (r.why ? `${who}: ${r.why}` : who) + step;
   }
-  return { REASONS, BY, reasonOf: reasonWith, reasonLine, windowLeft, cause, planned, blockedOf };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return {
+    REASONS,
+    BY,
+    reasonOf: reasonWith,
+    reasonLine,
+    windowLeft,
+    cause,
+    planned,
+    blockedOf,
+    PAGE: ['reasonOf', 'reasonLine'],
+  };
 })();

@@ -8,7 +8,8 @@
 // line naming its key in the split collector (`node tools/backlog.js collect split`);
 // with one it may grow. A module kept over the line without a task is in the baseline at its length, which only falls.
 // Width the same way (VB-415): a module over 15 exports, counted on its loaded namespace, may add one only with such a task open;
-// tests/width-baseline.json holds the modules over 15 at their counts, which only fall. `sim`, the facade that gathers the others, is not counted.
+// tests/width-baseline.json holds the modules over 15 at their counts, which only fall. `sim`, the facade that gathers the others, is not counted,
+// nor a module's PAGE list (VB-1944) and a name in it that only the facade or a registry reads: given to the page alone, it is no interface.
 const { readSource } = require('../tools/lib/source.js');
 const fs = require('fs'), path = require('path'), { clockUse, pageWrites, counterUses, splitTask, exportReaders, leftOut } = require('./lint-rules.js');
 const root = path.join(__dirname, '..'), BASE = path.join(__dirname, 'lint-baseline.json');
@@ -116,7 +117,8 @@ const width = fs.existsSync(WIDTH) ? JSON.parse(fs.readFileSync(WIDTH, 'utf8')) 
 for (const f of files) {
   const k = key(f), ns = VB[k];
   if (FACADES.has(k) || !ns || typeof ns !== 'object') continue;
-  const names = Object.keys(ns), out = leftOut(names, readers[k], REGISTRIES), n = names.length - Object.keys(out).length, was = width[k] || 0;
+  const names = Object.keys(ns), page = (Array.isArray(ns.PAGE) ? ns.PAGE : []).map((e) => (Array.isArray(e) ? e[1] : e)),
+    out = leftOut(names, readers[k], REGISTRIES, page), n = names.length - Object.keys(out).length, was = width[k] || 0;
   if (names.length > MAX_EXPORTS) {
     const by = {};
     for (const r of Object.values(out)) by[r.join('+')] = (by[r.join('+')] || 0) + 1;

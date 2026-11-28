@@ -354,6 +354,8 @@ VB['sim/rotations'] = (() => {
     log(st, `${v.name} now farms ${ROTATIONS[best].label} as a rule.`, { kind: 'custom', village: v.id });
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['fieldView'],
     SOWING,
     tierOf,
     underCrop,
