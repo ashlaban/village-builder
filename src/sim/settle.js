@@ -264,7 +264,7 @@ VB['sim/settle'] = (() => {
       const under =
         activePlots(st, u).length +
         livePlots(st, u).filter(building).length +
-        u.farmsteads.filter((id) => st.farmsteads[id].booth).length;
+        u.farmsteads.filter((id) => st.farmsteads[id].rung === 'shelter').length;
       if (under >= MAX_PLOTS) continue;
       const site = findSite(st, u);
       if (site) return { village: u, house: site.house, field: site.land, hours: hours(u) }; // its first field where the site was weighed by

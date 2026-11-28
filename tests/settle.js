@@ -69,7 +69,7 @@ check(nv && nv.founded && nv.founded.from === v.id && nv.founded.by === m.id, `f
 }
 const trail = VB['sim/routes'].trailReach(st.w, v.center, SETTLE.hours * SPEED).get(nv.center) / SPEED;
 check(trail <= SETTLE.hours && VB['sim/hex'].hexSteps(st.w, v.center, nv.center) >= SETTLE.centreApart, `the new village is ${trail.toFixed(1)} hours away along a trail`);
-check(f && f.village === nv.id && nv.farmsteads.length === 1 && nv.farmsteads[0] === f.id && !f.booth, 'one farm, its cottage built');
+check(f && f.village === nv.id && nv.farmsteads.length === 1 && nv.farmsteads[0] === f.id && f.rung !== 'shelter', 'one farm, its cottage built');
 check(f.name === nv.name, `the farm bears the new village's name (${f.name}, ${nv.name})`);
 check(f.fields.length === 1 || !!VB['sim/projects'].openOf(st, hh.id), 'the first field is broken, or the household\'s project plan');
 check(hh && hh.holder === m.id && m.household === hh.id && sib.household === hh.id && hh.members.length === 2, 'settler and sibling live there');
@@ -96,12 +96,12 @@ for (let d = 0; d < 2 * Sim.YEAR_DAYS && (sown === null || built === null || bor
   Sim.advance(st, 24);
   if (came === null && Sim.grainOf(hh) > 0) came = d;
   if (borne === null && !bearing().length) borne = d;
-  if (built === null && !f.booth) built = d;
+  if (built === null && f.rung !== 'shelter') built = d;
   if (sown === null && f.fields.some((fd) => fd.stage !== 'stubble' && fd.stage !== 'plowed')) sown = d;
 }
 check(came !== null && borne !== null && hh.ledger.some((e) => e.good === 'grain' && e.n > 0 && e.kind === 'provisions'),
   `the grain comes in as it is borne (the first on day ${came}, all by day ${borne})`);
-check(built !== null, `the cottage is built (booth ${JSON.stringify(f.booth)})`);
+check(built !== null, `the cottage is built (booth ${JSON.stringify(f.rung === 'shelter')})`);
 check(sown !== null, `the first field is sown (fields ${f.fields.map((fd) => fd.stage).join(',') || 'none'}, project ${VB['sim/projects'].openOf(st, f.household)?.kind})`);
 bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slice(0, 3).join('; ')}`);
 // 3. No provisions: nobody moves.

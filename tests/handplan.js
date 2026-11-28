@@ -148,7 +148,7 @@ const handStart = (seed = 7, play = true) => {
   const hh = st.households[st.pawns[0].household],
     f = st.farmsteads[hh.farmstead],
     plan = st.plans.households.get(hh.id);
-  assert(!f.booth && f.grade === 'ground' && plan.build, 'the head means to raise its house onto stone');
+  assert(f.rung !== 'shelter' && f.grade === 'ground' && plan.build, 'the head means to raise its house onto stone');
   assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).building.what, 'foundation');
   Sim.inhabit(st, 0);
   Sim.setAuto(st, st.player.pawn, false);

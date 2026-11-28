@@ -67,14 +67,14 @@ check(issue(st, { actor: hh.holder, verb: 'dropProject', target: hh.id, args: {}
   'with no id the large project is given up, the pit beside it stands');
 sound('plans dropped');
 
-// in a booth: a settler household's cottage under way, a cart begun beside it
+// at its shelter: a farm's own cottage under way (its site, VB-1937), a cart begun beside it
 const g = st.farmsteads[v.farmsteads[1]], gh = st.households[g.household];
-g.booth = true;
-const home = VB['sim/projectplans'].makeProject(st, 'household', gh.id, VB['sim/cottageplan'].cottagePlan(st, g));
+g.rung = 'shelter';
+const home = VB['sim/sites'].farmSite(st, g);
 gh.cartMiss = C.CART.misses;
 lookNow(st, 'cart', gh);
 const gcart = Projects.projectsOf(st, 'household', gh.id).find((p) => p.what === 'cart');
-check(!!gcart && Projects.projectsOf(st, 'household', gh.id).includes(home) && Projects.ownOf(st, gh.id) === null,
+check(!!gcart && VB['sim/sites'].ofFarm(st, g.id) === home && Projects.ownOf(st, gh.id) === null,
   'in a booth with its cottage under way: a cart begun beside it, and neither is a large project');
 sound('a cart in a booth');
 

@@ -161,7 +161,7 @@ function icon(key, draw) {
 }
 // A farm by its cottage (one of three, as on the map), its settlers' booth while the cottage is built, or the low walls of a ruin.
 function farmIcon(f) {
-  if (f.booth)
+  if (f.rung === 'shelter')
     return icon('booth', (g) => {
       g.translate(60, 70);
       g.scale(4.4, 4.4);

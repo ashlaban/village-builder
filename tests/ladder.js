@@ -36,8 +36,8 @@ assert.deepStrictEqual(OUTBUILDINGS.barn.needs, { timber: BUILD.barn.timber, sto
 // of its household stands beside its house and it has a camp or one staked there; a shelter else; a cottage on the ground or on stone.
 function expected(st, f) {
   if (f.camp === true) return 'camp';
-  if (f.booth && f.shelter) return f.shelter.built !== null && B.boothCondition(st, f.shelter) > 0 ? 'shelter' : 'camp';
-  if (f.booth) {
+  if (f.rung === 'shelter' && f.shelter) return f.shelter.built !== null && B.boothCondition(st, f.shelter) > 0 ? 'shelter' : 'camp';
+  if (f.rung === 'shelter') {
     const near = (t) => hexSteps(st.w, t, f.house) <= 1;
     if (st.booths.some((b) => b.by === f.household && near(b.tile))) return 'shelter';
     let staked = false;

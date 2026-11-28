@@ -196,14 +196,14 @@ const twoOff = (st) => {
   Sim.setAuto(st, st.player.pawn, true);
   let placed = null,
     raised = null;
-  for (let i = 0; i < 24 * 10 * 30 && !projectsOf(st, 'household', 0).some((p) => p.what === 'cottage'); i++) {
+  for (let i = 0; i < 24 * 10 * 30 && !VB['sim/sites'].ofFarm(st, f.id); i++) {
     Sim.advance(st, 0.1);
     if (placed === null && Sim.stakedBooths(st).length) placed = st.t;
     if (raised === null && f.camp === false) raised = st.t;
   }
   assert(placed !== null && placed < 30 + 24, `placed within a day of automatic behaviour turned on (${placed})`);
   assert(raised !== null && !roofless(st, hh), 'the shelter raised');
-  assert(projectsOf(st, 'household', 0).some((p) => p.what === 'cottage'), 'the cottage begun');
+  assert(VB['sim/sites'].ofFarm(st, f.id), 'the cottage begun');
   assert(st.t < 30 + Sim.SEASON_DAYS * 24, `within a season (${st.t})`);
   assert(!st.villages[f.village].fence.length, 'no fence stands for the farm placed in play');
   sound(st, 'roofed on automatic');
