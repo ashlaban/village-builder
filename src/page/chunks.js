@@ -128,9 +128,21 @@ function iceKey() {
       const row = document.createElement('span'),
         sw = document.createElement('i');
       sw.style.background = Season.ICE_CSS[k];
-      row.append(sw, words);
+      const w = document.createElement('b');
+      w.textContent = words;
+      row.append(sw, w);
       el.append(row);
     }
+  if (shown && !el.dataset.tap) {
+    // words only after a tap on the key; a second tap, or a tap elsewhere, hides them again
+    el.dataset.tap = '1';
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      el.classList.toggle('open');
+    });
+    document.addEventListener('click', () => el.classList.remove('open'));
+  }
+  if (!shown) el.classList.remove('open');
 }
 function addChunk(l, cx, cy, canvas, wayCanvas) {
   const s = LV[l].size,
