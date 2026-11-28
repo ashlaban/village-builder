@@ -62,7 +62,7 @@ const HINTS = {
   'sim/stories': { s: 'st.stories', e: 'pawn.known[]', best: 'pawn.known[]' }, // a story, and a pawn's entry for it (VB-523)
   'sim/claims': { c: 'claim', r: 'local' }, 'sim/trust': { t: 'st.trusts' }, 'sim/offers': { o: 'st.offers' }, 'sim/clock': { s: 'fence' }, 'sim/meadows': { m: 'farmstead.meadows[]' }, 'sim/births': { m: 'pawn' },
   'sim/commands': { q: 'pawn' }, 'sim/skip': { from: 'local' }, 'sim/timetable': { from: 'local' }, 'sim/agents': { g: 'agent', stay: 'st.away[]' }, 'sim/away': { g: 'local', rest: 'local', stay: 'st.away[]' }, 'sim/journeys': { g: 'local' }, 'sim/expansion': { walls: 'plan.steps[]' }, 'sim/allotment': { live: 'local', worked: 'local' }, 'sim/building': { walls: 'plan.steps[]' }, 'sim/upgrade': { walls: 'plan.steps[]' }, // a plot's walls step (VB-1407)
-  'sim/facilities': { fac: 'st.facilities[]', I: 'st.facilityIdx' }, 'sim/pot': { units: 'local' }, 'sim/hands': { d: 'st.handsToday' },
+  'sim/facilities': { fac: 'st.facilities[]' }, 'sim/facilityrecords': { fac: 'st.facilities[]', I: 'st.facilityIdx' }, 'sim/pot': { units: 'local' }, 'sim/hands': { d: 'st.handsToday' },
   'sim/sites': { s: 'st.sites[]', k: 'st.sites[]', walls: 'st.sites[]', tr: 'st.sites[]', x: 'local' }, // a site and its plot's steps (VB-787)
   'sim/fit': { memo: 'local' }, 'sim/occasions': { memo: 'local' }, // scratch maps of one pass (VB-1848)
   'sim/day': { asking: 'local', pairs: 'local', cap: 'local', due: 'local', lists: 'plan.day', fits: 'plan.day', ctx: 'plan.day' }, // VB-470: today's lent hands; the morning's asks

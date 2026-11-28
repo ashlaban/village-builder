@@ -50,7 +50,7 @@ assert.deepStrictEqual([...COMPARED, ...Object.keys(CACHES_UNCOMPARED)].filter((
 // VB-2051: a facility kind of the test's, declared before the first seed seals the registry (as tests/facilities.js does; none is in the
 // game yet, VB-361): one stage of no loads, worn and mended as a shed
 const Fac = VB['sim/facilities'];
-Fac.declare('cacheshed', { name: 'test shed', stages: [{ hours: 2 }], may: () => null, wear: 0.2, upkeep: 10 });
+VB['sim/facilityrecords'].declare('cacheshed', { name: 'test shed', stages: [{ hours: 2 }], may: () => null, wear: 0.2, upkeep: 10 });
 const runs = [state(4), scenario('founders', 7)]; // the probe village at seed 4 (7 before VB-1951 gave the layout its own draws: eight of the verbs found no state to pass there)
 for (const st of runs) Sim.advance(st, 50 * Sim.DAY);
 const natural = carried.size;

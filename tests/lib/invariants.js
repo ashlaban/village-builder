@@ -1509,11 +1509,11 @@ function checkState(st) {
         bad.push(`${at}: refused ${JSON.stringify(r)}`);
       if (p.sex === 'm') men.push(p.id);
     }
-    // the facilities' index (VB-361): by tile and by owner, as the records give it
+    // the facilities' index (VB-361): by tile (but a farm's outbuildings, VB-1911) and by owner, as the records give it
     if (st.facilityIdx) {
       const want = { tile: new Map(), owner: new Map() };
       for (const fac of st.facilities || []) {
-        want.tile.set(fac.tile, fac.id);
+        if (fac.owner.type !== 'farm') want.tile.set(fac.tile, fac.id);
         const k = `${fac.owner.type}:${fac.owner.id}`;
         if (!want.owner.has(k)) want.owner.set(k, []);
         want.owner.get(k).push(fac.id);
@@ -2393,23 +2393,12 @@ function checkState(st) {
     }
     const want = f.household === null ? ['derelict', 'ruin'] : ['occupied'];
     if (!want.includes(f.state)) bad.push(`farmsteads[${f.id}]: state ${f.state} with household ${f.household}`);
-    // VB-255: the farm's barn, one at most, built at a time not after now
-    if (f.barn !== undefined && f.barn !== null && !(Object.keys(f.barn).join() === 'built' && f.barn.built <= st.t))
-      bad.push(`farmsteads[${f.id}]: barn ${JSON.stringify(f.barn)}`);
-    // VB-1665: the farm's byre, one at most, built at a time not after now; none on a camp
-    if (
-      f.byre !== undefined &&
-      f.byre !== null &&
-      !(Object.keys(f.byre).join() === 'built' && f.byre.built <= st.t && f.camp !== true)
-    )
-      bad.push(`farmsteads[${f.id}]: byre ${JSON.stringify(f.byre)}`);
-    // VB-1898: the farm's storehouse, one at most, built at a time not after now; none on a camp
-    if (
-      f.storehouse !== undefined &&
-      f.storehouse !== null &&
-      !(Object.keys(f.storehouse).join() === 'built' && f.storehouse.built <= st.t && f.camp !== true)
-    )
-      bad.push(`farmsteads[${f.id}]: storehouse ${JSON.stringify(f.storehouse)}`);
+    // VB-1911: the barn, the byre and the storehouse are facilities of the farm, no longer its fields (VB-255, VB-1665, VB-1898); none
+    // stands on a camp but a barn
+    for (const k of ['barn', 'byre', 'storehouse']) if (k in f) bad.push(`farmsteads[${f.id}]: a field ${k}`);
+    if (f.camp === true && st.facilities)
+      for (const k of ['byre', 'storehouse'])
+        if (globalThis.VB['sim/facilityrecords'].standing(st, f, k)) bad.push(`farmsteads[${f.id}]: a ${k} on a camp`);
     // VB-1664: the rung stored where it cannot be derived: the timber house, or the shelter of a farm with no cottage yet (VB-1937, in
     // place of the booth's mark farmstead.booth, which no longer is)
     if (f.rung !== undefined && f.rung !== null && f.rung !== 'timber' && f.rung !== 'shelter')
@@ -3795,11 +3784,12 @@ function checkState(st) {
     }
   }
   // the facilities (VB-361): ids their indexes, a known kind on a tile of the world, one a tile, owned by a household or a village that
-  // is; a stage within its kind's stages (all of them once built), its hours done within the stage's, its condition in 0..1 at a time not
+  // is; a farm's outbuilding (VB-1911) a kind declared `farm`, owned by a farm, at its house, one of a kind a farm; a stage within its kind's stages (all of them once built), its hours done within the stage's, its condition in 0..1 at a time not
   // after now; built not after now, and null exactly while a stage is left to raise
   if (st.facilities !== undefined) {
-    const F = globalThis.VB['sim/facilities'].FACILITY,
-      tiles = new Set();
+    const F = globalThis.VB['sim/facilityrecords'].FACILITY,
+      tiles = new Set(),
+      outs = new Set();
     st.facilities.forEach((fac, n) => {
       const at = `facilities[${n}]`,
         K = F[fac.kind];
@@ -3808,12 +3798,21 @@ function checkState(st) {
         bad.push(`${at}: no kind ${fac.kind}`);
         return;
       }
-      if (!tileOk(fac.tile) || tiles.has(fac.tile)) bad.push(`${at}: tile ${fac.tile}`);
-      tiles.add(fac.tile);
-      const o =
-        fac.owner &&
-        (fac.owner.type === 'household' ? st.households : fac.owner.type === 'village' ? st.villages : null);
-      if (!o || !o[fac.owner.id]) bad.push(`${at}: owner ${JSON.stringify(fac.owner)}`);
+      const farm = fac.owner && fac.owner.type === 'farm';
+      if (farm !== K.farm) bad.push(`${at}: kind ${fac.kind} owned by ${JSON.stringify(fac.owner)}`);
+      if (farm) {
+        const f = st.farmsteads[fac.owner.id],
+          k = `${fac.owner.id}:${fac.kind}`;
+        if (!f || fac.tile !== f.house || outs.has(k)) bad.push(`${at}: ${fac.kind} of farm ${fac.owner.id} at ${fac.tile}`);
+        outs.add(k);
+      } else {
+        if (!tileOk(fac.tile) || tiles.has(fac.tile)) bad.push(`${at}: tile ${fac.tile}`);
+        tiles.add(fac.tile);
+        const o =
+          fac.owner &&
+          (fac.owner.type === 'household' ? st.households : fac.owner.type === 'village' ? st.villages : null);
+        if (!o || !o[fac.owner.id]) bad.push(`${at}: owner ${JSON.stringify(fac.owner)}`);
+      }
       const n2 = K.stages.length;
       if (!Number.isInteger(fac.stage) || fac.stage < 0 || fac.stage > n2 || (fac.built === null) !== fac.stage < n2)
         bad.push(`${at}: stage ${fac.stage} of ${n2}, built ${fac.built}`);

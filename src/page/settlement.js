@@ -294,10 +294,8 @@ function drawMoveLoads() {
   }
   moveG.zIndex = lying.length ? Math.max(...lying.map((x) => x.y)) + 1 : 0;
 }
-// A building record stands (farmstead.barn, farmstead.byre: {built}); `true` in a save older than the record.
-const hasBuilt = (x) => !!x && (typeof x !== 'object' || (x.built !== null && x.built !== undefined));
-// Farm f's barn and storehouse drawn only where the sim has them (VB-1898; farmstead.barn, farmstead.storehouse): keys of YARD.
-const yardOut = (f) => ['barn', 'harbre'].filter((k) => hasBuilt(k === 'barn' ? f.barn : f.storehouse));
+// Farm f's barn and storehouse drawn only where the sim has them standing (VB-1898; VB-1911: facilities of the farm): keys of YARD.
+const yardOut = (f) => ['barn', 'harbre'].filter((k) => Sim.standing(st, f, k === 'barn' ? 'barn' : 'storehouse'));
 function drawBooth(wd, f, empty) {
   const x = wd.hx[f.house],
     y = wd.hy[f.house],
@@ -579,8 +577,8 @@ function drawFarm(wd, f) {
   const wood = place(art.wood[0], hx + YARD.wood[0], hy + YARD.wood[1], 0.5, 0.9);
   wood.visible = !empty;
   const herds = !empty && st.households[f.household].herds.length > 0;
-  // the byre (VB-1665) where one stands; an older save's farm, with no record of it, has one where it keeps animals
-  const byre = f.byre === undefined ? herds && !landed : hasBuilt(f.byre);
+  // the byre (VB-1665) where one stands (VB-1911: a facility of the farm; an older save's farm reads as it loads, sim/saves)
+  const byre = !!Sim.standing(st, f, 'byre');
   if (byre) roofSprite(place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92), f.house);
   const stack =
     herds || (!empty && st.households[f.household].hay > 0)

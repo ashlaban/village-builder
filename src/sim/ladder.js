@@ -15,11 +15,12 @@ VB['sim/ladder'] = (() => {
   const { COTTAGE, COTTAGE_HOURS } = VB['sim/cottageplan'];
   // The site of farm f's own cottage under way (sim/sites farmSite, VB-1937), or null.
   const homeSite = (st, f) => VB['sim/sites'].ofFarm(st, f.id);
-  const { roofless, stakedEach, barnSteps } = VB['sim/building'];
+  const { roofless, stakedEach } = VB['sim/building'];
   const { BUILDS } = VB['sim/camp'];
   const { barnWhy } = VB['sim/aims'];
-  const { byreWhy, byreSteps } = VB['sim/byrehouse'];
-  const { storehouseWhy, storehouseSteps } = VB['sim/storehouse'];
+  const { byreWhy } = VB['sim/byrehouse'];
+  const { storehouseWhy } = VB['sim/storehouse'];
+  const Facilities = VB['sim/facilityrecords'];
   const { HERD } = VB['sim/rules'];
   const sum = (a) => a.reduce((s, x) => s + x, 0);
   // ---- the tables: later rungs (a timber house) and outbuildings (a byre) are added here, with the rules that build them ----
@@ -60,31 +61,48 @@ VB['sim/ladder'] = (() => {
     needs: { timber: 0, stone: BUILD.foundationStone, hours: BUILD.foundationHours },
     gives: { wear: HOUSE.wearStone, standing: HOUSE.termStone },
   });
-  // Each outbuilding: `from` the rung the farm must stand at, `needs` as a rung's, `gives` in the sim's terms (a storehouse: the grain's
-  // spoilage times `loss`, sim/hunger; a barn: the hay's, sim/byre); `kinds` its stages' job kinds. The making of the same name (sim/makings)
-  // begins it, and the farm records it built as f[what]: sim/upgrade's chain `outbuilding` builds any of them so (VB-1663).
-  const OUTBUILDINGS = Object.freeze({
+  // Each outbuilding (VB-1911: one row, a facility of the farm, sim/facilities): `from` the rung the farm must stand at, `name`, `stages`
+  // its stages' job kinds (their modules': sim/building's barn, sim/byrehouse, sim/storehouse), their hours BUILD's and the walls waiting
+  // for BUILD's timber, `gives` in the sim's terms (a storehouse: the grain's spoilage times `loss`, sim/hunger; a barn: the hay's,
+  // sim/byre). Each is declared a facility of its name, `farm` (it goes with the farm), and given `needs` as a rung's and `kinds` its
+  // stages' job kinds. The making of the same name (sim/makings) founds it at the farm's house (sim/facilityrecords foundOn), each stage done
+  // raises it (raiseOn), and the farm reads it standing (sim/facilityrecords standing): sim/upgrade's chain `outbuilding` builds any of them so
+  // (VB-1663).
+  const ROWS = {
     // the storehouse (VB-1898): the threshed grain and the food keep in it
     storehouse: {
       from: 'cottage',
-      needs: { timber: BUILD.storehouse.timber, stone: 0, hours: sum(BUILD.storehouse.hours) },
+      name: 'storehouse',
+      stages: ['storewalls', 'storeroof'],
       gives: { store: 'grain', loss: BUILD.storehouse.loss },
-      kinds: storehouseSteps(-1).map((s) => s.kind),
     },
     barn: {
       from: 'cottage',
-      needs: { timber: BUILD.barn.timber, stone: 0, hours: sum(BUILD.barn.hours) },
+      name: 'barn',
+      stages: ['barnbase', 'barnwalls', 'barnroof'],
       gives: { store: 'hay', loss: BUILD.barn.loss },
-      kinds: barnSteps(-1).map((s) => s.kind),
     },
     // the byre (VB-1665): the animals' places through the stall winter (HERD.byre, sim/byre); a farm without one winters them in the open
-    byre: {
-      from: 'cottage',
-      needs: { timber: BUILD.byre.timber, stone: 0, hours: sum(BUILD.byre.hours) },
-      gives: { places: HERD.byre },
-      kinds: byreSteps(-1).map((s) => s.kind),
-    },
-  });
+    byre: { from: 'cottage', name: 'byre', stages: ['byrewalls', 'byreroof'], gives: { places: HERD.byre } },
+  };
+  const OUTBUILDINGS = {};
+  for (const [what, R] of Object.entries(ROWS)) {
+    const B = BUILD[what],
+      walls = R.stages.findIndex((job) => job.endsWith('walls'));
+    Facilities.declare(what, {
+      name: R.name,
+      farm: true,
+      may: () => null,
+      stages: R.stages.map((job, i) => ({ job, hours: B.hours[i], ...(i === walls ? { timber: B.timber } : {}) })),
+    });
+    OUTBUILDINGS[what] = Object.freeze({
+      from: R.from,
+      needs: { timber: B.timber, stone: 0, hours: sum(B.hours) },
+      gives: R.gives,
+      kinds: [...R.stages],
+    });
+  }
+  Object.freeze(OUTBUILDINGS);
   // ---- the rung a farm stands at, from its state as it is ----
   // A farm with no cottage yet (f.rung === 'shelter'): a camp while its household sleeps under the open sky (sim/building roofless: its camp, or its
   // shelter being raised or worn to nothing; in a save before VB-1666 its booth staked and not yet raised, or rotted), else a shelter
@@ -233,7 +251,7 @@ VB['sim/ladder'] = (() => {
     byre: (st, hh, f) => own(st, hh, f) || byreWhy(st, hh),
   };
   const outRule = (st, hh, f, what) =>
-    f[what]
+    Facilities.standing(st, f, what)
       ? `${f.name} has a ${what}`
       : hh && Projects.underWay(st, hh.id, what)
         ? `the household has a ${what} under way`
@@ -306,7 +324,7 @@ VB['sim/ladder'] = (() => {
       const why = hand ? outWhy(st, pawn, f, what) : outRule(st, hh, f, what);
       return {
         what,
-        built: !!f[what],
+        built: !!Facilities.standing(st, f, what),
         needs: { ...OUTBUILDINGS[what].needs },
         ok: why === null,
         why,

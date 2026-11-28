@@ -4,7 +4,7 @@
 function drawFacilities(wd) {
   const Fac = VB['sim/facilities'];
   for (const fac of st.facilities || []) {
-    const K = Fac.FACILITY[fac.kind];
+    const K = VB['sim/facilityrecords'].FACILITY[fac.kind];
     if (!K) continue;
     const x = wd.hx[fac.tile],
       y = wd.hy[fac.tile],

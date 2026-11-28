@@ -279,7 +279,7 @@ VB['sim/fieldwork'] = (() => {
       gives: ['grain'],
       // the grain threshed in the barn is carried to the storehouse that keeps it (VB-2027), or the house of a farm without one
       words: (st, j) => ({
-        verb: j.farm.storehouse
+        verb: VB['sim/facilityrecords'].standing(st, j.farm, 'storehouse')
           ? 'Threshing in the barn, the grain for the storehouse'
           : 'Threshing in the barn, the grain for the house',
       }),

@@ -32,9 +32,9 @@ function village() {
     f = st.farmsteads[hh.farmstead];
   assert.strictEqual(hh.holder, 0, 'pawn 0 heads its household');
   for (const p of projectsOf(st, 'household', hh.id)) VB['sim/commands'].issue(st, { actor: 0, verb: 'dropProject', target: hh.id, args: { id: p.id }, source: 'player' });
-  f.barn = null; // VB-1898: a seeded farm has its barn; this one is made without
+  VB['sim/facilityrecords'].raze(st, f, 'barn'); // VB-1898: a seeded farm has its barn; this one is made without
   Sim.advance(st, 2 * DAY);
-  assert(f.rung !== 'shelter' && f.grade === 'ground' && !f.barn, 'a cottage on the ground with no barn');
+  assert(f.rung !== 'shelter' && f.grade === 'ground' && !VB['sim/facilityrecords'].standing(st, f, 'barn'), 'a cottage on the ground with no barn');
   return { st, hh, f };
 }
 // Runs until no task of `kind` is left in the plan (or `days` pass), noting each wait and each agenda kind laid.
@@ -145,7 +145,7 @@ function run(st, kind, days = 80) {
   const { waits, laid } = run(st, 'outbuilding');
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
   assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'built', JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
-  assert(f.barn, 'the farm has its barn');
+  assert(VB['sim/facilityrecords'].standing(st, f, 'barn'), 'the farm has its barn');
   assert(laid.has('barnwalls') && laid.has('barnroof'), `the agenda lays its steps: ${[...laid]}`);
   const v = Sim.farmView(st, f.id, st.player && st.player.pawn).outbuildings.find((o) => o.what === 'barn');
   assert.strictEqual(v.built, true);
@@ -186,7 +186,8 @@ function run(st, kind, days = 80) {
     }
   }
   assert(all && saved, 'the barn, the byre and the foundation under way together');
-  assert(f.barn && f.byre && f.grade === 'stone', `all three carried through: barn ${!!f.barn}, byre ${!!f.byre}, ${f.grade}`);
+  const has = (k) => !!VB['sim/facilityrecords'].standing(st, f, k);
+  assert(has('barn') && has('byre') && f.grade === 'stone', `all three carried through: barn ${has('barn')}, byre ${has('byre')}, ${f.grade}`);
   sound(st, 'three side by side');
   const back = Sim.load(world(), saved),
     again = Sim.load(world(), saved);
@@ -204,7 +205,7 @@ function run(st, kind, days = 80) {
     f = st.farmsteads[hh.farmstead],
     act = (args) => VB['sim/commands'].issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args, source: 'pawn' });
   for (const p of projectsOf(st, 'household', hh.id)) act({ what: null }) && VB['sim/commands'].issue(st, { actor: hh.holder, verb: 'dropProject', target: hh.id, args: { id: p.id }, source: 'pawn' });
-  f.barn = null; // VB-1898: a seeded farm has its barn; this one is made without
+  VB['sim/facilityrecords'].raze(st, f, 'barn'); // VB-1898: a seeded farm has its barn; this one is made without
   const fields = f.fields.length;
   assert.strictEqual(act({ what: 'field' }), true, 'a field begun');
   assert.strictEqual(act({ what: 'barn' }), true, 'a barn begun beside it, by the verb');
@@ -212,8 +213,9 @@ function run(st, kind, days = 80) {
   const tile = projectsOf(st, 'household', hh.id).find((p) => p.what === 'field').steps[0].place;
   assert.match(String(act({ what: 'meadow', tile })), /under way at/, 'one project a tile');
   sound(st, 'a field and a barn');
-  for (let d = 0; d < 200 && !(f.barn && f.fields.length > fields); d++) Sim.advance(st, DAY);
-  assert(f.barn && f.fields.length > fields, `both carried through: barn ${!!f.barn}, fields ${fields} to ${f.fields.length}`);
+  const barn = () => !!VB['sim/facilityrecords'].standing(st, f, 'barn');
+  for (let d = 0; d < 200 && !(barn() && f.fields.length > fields); d++) Sim.advance(st, DAY);
+  assert(barn() && f.fields.length > fields, `both carried through: barn ${barn()}, fields ${fields} to ${f.fields.length}`);
 }
 console.log('farmtasks: by hand neither begun by itself; the refusals; the foundation by the plan, outside the slack, and the slack wait '
   + 'for a head left to its rule; the barn by the plan, the timber at home first; a save mid-chain the same; a barn, a byre and the '

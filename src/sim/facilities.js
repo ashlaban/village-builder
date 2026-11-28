@@ -1,11 +1,11 @@
-// @sys sim/facilities [material]: built things on sites (VB-361; target-v2 4.3, Facility, cut to slice 6): st.facilities, each with its kind, tile,
-// owner (a household or a village), the stage of its building, its condition and when it was built; the registry FACILITY of the kinds
-// each craft's module declares (its stages, where it may stand, its capabilities and capacity); found, the verb `found`, a facility's
-// stages as the steps of its owner's project plan (the job kind raisestage), and its upkeep offered on the owner's planning day (the verb
-// `upkeep`, the job kind mendfacility)
+// @sys sim/facilities [material]: built things on sites (VB-361; target-v2 4.3, Facility, cut to slice 6): a facility's condition, found,
+// the verb `found`, a facility's stages as the steps of its owner's project plan (the job kind raisestage), and its upkeep offered on the
+// owner's planning day (the verb `upkeep`, the job kind mendfacility), and the tile panel's view; the records (st.facilities, the registry
+// FACILITY of the kinds each craft's module declares, a farm's outbuildings) are sim/facilityrecords' (VB-1911).
 // Design: design.md, Goods, production and animals (The mill and the loom, the kiln and the quarry: Facilities). A facility owns its
-// building progress, so a half-built one outlives a dropped plan and is taken up again by founding it anew on its tile. Houses, barns,
-// byres, wells, fences and the fishing boat stay where they are (a task for each when a slice needs it).
+// building progress, so a half-built one outlives a dropped plan and is taken up again by founding it anew on its tile. A farm's
+// outbuildings (the barn, the byre and the storehouse, VB-1911) are kinds of it too (`farm`), owned by their farm and begun as its
+// household's making; houses, wells, fences and the fishing boat stay where they are (a task for each when a slice needs it).
 // Cost (docs/cost.md, rule 9): facilities are few (one or two a household that crafts, one mill a village); nothing walks them all: they
 // are read by tile and by owner through the index, their condition in closed form, and upkeep is weighed on the owner's planning day
 // among its own facilities only.
@@ -15,7 +15,6 @@ VB['sim/facilities'] = (() => {
     facilityBuilt: {}, // a facility's last stage raised (VB-361)
   });
   const { YEAR } = VB['sim/rules'];
-  const { atLoad } = VB['sim/registry'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],
     { makeProject } = VB['sim/projectplans'];
@@ -23,63 +22,25 @@ VB['sim/facilities'] = (() => {
   const { register, issue } = VB['sim/commands'],
     { agentWhy } = VB['sim/decisions'];
   const { log } = VB['sim/records'];
+  const R = VB['sim/facilityrecords'],
+    { FACILITY, at, ofOwner, make } = R;
   // @tunable FACILITIES: a built facility's upkeep (VB-361). `mend`: below this condition its owner is offered its upkeep on its planning
   // day; a kind's own `wear` (condition lost a year) and `upkeep` (hours to mend it from nothing) are its record's.
   const FACILITIES = { mend: 0.6 };
-  // ---- the kinds (declared at load by each craft's module, as sim/makings and sim/commands are) ----
-  // A kind is {name, stages: [{hours (work hours), loads ({[good]: n}, taken from the owner's stores with the reason `build` as the stage
-  // is done, reserved from its founding), name (what the stage is called, optional)}], may(st, tile, owner): why the kind may not stand on
-  // the tile for the owner, or null; can: its capabilities (['grind'], ['smelt'] ...), capacity (what it does at once, in its own unit),
-  // wear (condition lost a year once built), upkeep (hours to mend it from nothing), small (a small construction, VB-1414: built beside any
-  // other project)}. No kind is declared here: each craft's task declares its own.
-  const FACILITY = {};
-  function declare(kind, F) {
-    atLoad();
-    if (FACILITY[kind]) throw new Error('Duplicate facility: ' + kind);
-    if (!F || typeof F.name !== 'string' || !Array.isArray(F.stages) || !F.stages.length)
-      throw new Error(`Facility ${kind} needs a name and stages`);
-    for (const s of F.stages)
-      if (!(s.hours > 0) || (s.loads && Object.values(s.loads).some((n) => !(n > 0))))
-        throw new Error(`Facility ${kind}: a stage has hours and loads above zero`);
-    if (typeof F.may !== 'function') throw new Error(`Facility ${kind} needs may (where it may stand)`);
-    FACILITY[kind] = Object.freeze({ can: [], capacity: 0, wear: 0, upkeep: 0, small: false, ...F, kind });
-  }
-  // @state st.facilities[]: the built things on sites (VB-361), ids their indexes, never reused: {id, kind (of FACILITY), tile, owner
-  //   ({type: 'household' | 'village', id}), stage (the index of the stage being raised; its kind's stages.length once built), done (hours
-  //   worked on that stage, kept while its plan is dropped), condition (0..1 at condAt, worn in closed form by its kind's wear; 1 while
-  //   it is being built), condAt, built (the game hour it was finished, null while it is being built)}. Absent in a save from before it
-  //   (read as none). Written only here.
-  const NONE = [];
-  const all = (st) => st.facilities || NONE;
-  // @state st.facilityIdx: the cache of st.facilities by tile and by owner, {tile: Map of a tile to its facility's id, owner: Map of
-  //   'type:id' to its facilities' ids in the order founded}; left out of a save and built again at its first read. Written only here.
   const ownerKey = (ref) => `${ref.type}:${ref.id}`;
-  function idx(st) {
-    if (st.facilityIdx) return st.facilityIdx;
-    const I = { tile: new Map(), owner: new Map() };
-    for (const fac of all(st)) index(I, fac);
-    return (st.facilityIdx = I);
-  }
-  function index(I, fac) {
-    I.tile.set(fac.tile, fac.id);
-    const k = ownerKey(fac.owner);
-    if (!I.owner.has(k)) I.owner.set(k, []);
-    I.owner.get(k).push(fac.id);
-  }
-  // The facility on tile t, or null; the ids of the owner's facilities (an empty list, never written to, for none). Allocate nothing
-  // once the index is built.
-  const at = (st, t) => {
-    const id = idx(st).tile.get(t);
-    return id === undefined ? null : st.facilities[id];
-  };
-  const ofOwner = (st, ref) => idx(st).owner.get(ownerKey(ref)) || NONE;
+  const all = (st) => st.facilities || [];
   // A facility's condition now: as it was at condAt, less its kind's wear for the years since once it stands. Allocates nothing.
   function conditionOf(st, fac) {
     if (fac.built === null) return fac.condition;
     const F = FACILITY[fac.kind];
     return Math.max(0, fac.condition - ((F ? F.wear : 0) * (st.t - fac.condAt)) / YEAR);
   }
-  const owner = (st, ref) => (ref.type === 'household' ? st.households[ref.id] : st.villages[ref.id]);
+  const owner = (st, ref) =>
+    ref.type === 'household'
+      ? st.households[ref.id]
+      : ref.type === 'farm'
+        ? st.farmsteads[ref.id]
+        : st.villages[ref.id];
   // The plan building facility fac, or null.
   function buildPlan(st, fac) {
     for (const p of Projects.projectsOf(st, fac.owner.type, fac.owner.id))
@@ -100,6 +61,7 @@ VB['sim/facilities'] = (() => {
   function foundWhy(st, kind, tile, ref) {
     const F = Object.hasOwn(FACILITY, kind) ? FACILITY[kind] : null;
     if (!F) return `there is no facility ${kind}`;
+    if (F.farm) return `a ${F.name} is begun as its farm's own project`;
     if (!Number.isInteger(tile) || tile < 0 || tile >= st.w.biome.length) return `there is no tile ${tile}`;
     if (!ref || (ref.type !== 'household' && ref.type !== 'village'))
       return 'a facility is owned by a household or a village';
@@ -123,32 +85,17 @@ VB['sim/facilities'] = (() => {
     }
     return there ? null : F.may(st, tile, ref);
   }
-  // The project plan's steps for fac from its open stage: each stage a step of the job kind raisestage, the open one less the hours done.
-  const stepsFor = (F, fac) =>
-    F.stages.slice(fac.stage).map((s, i) => ({
-      kind: 'raisestage',
-      place: fac.tile,
-      hours: s.hours - (i === 0 ? fac.done : 0),
-      ...(s.loads ? { spends: { ...s.loads } } : {}),
-    }));
   // `kind` founded on `tile` for owner {type, id}: the facility (or the half-built one there, taken up again) and its owner's project
   // plan of its stages, whose loads are reserved now. The facility, or why not (foundWhy; the plan refused by the stores).
   function found(st, kind, tile, ref) {
     const why = foundWhy(st, kind, tile, ref);
     if (why) return why;
     const F = FACILITY[kind];
-    let fac = at(st, tile);
-    if (!fac) {
-      st.facilities ||= [];
-      fac = { id: st.facilities.length, kind, tile, owner: { type: ref.type, id: ref.id }, stage: 0, done: 0 };
-      Object.assign(fac, { condition: 1, condAt: st.t, built: null });
-      st.facilities.push(fac);
-      index(idx(st), fac);
-    }
+    const fac = at(st, tile) || make(st, kind, tile, ref);
     const plan = makeProject(st, ref.type, ref.id, {
       what: 'facility',
       facility: fac.id,
-      steps: stepsFor(F, fac),
+      steps: R.stepsOn(st, kind, null, fac).steps,
       ...(F.small ? { small: true } : {}),
     });
     if (!plan) return `the stores no longer hold the loads of the ${F.name}`;
@@ -247,17 +194,13 @@ VB['sim/facilities'] = (() => {
   function ends(st, j, effect) {
     const plan = planOf(st, j);
     if (!plan) return;
-    effect(st, st.facilities[plan.facility]);
+    effect(st, st.facilities[plan.facility], plan);
     emit(st, 'stepDone', { type: plan.holder.type, id: plan.holder.id, plan });
   }
   // A stage raised: the next opens; after the last the facility stands, whole.
-  function raised(st, fac) {
+  function raised(st, fac, plan) {
     const F = FACILITY[fac.kind];
-    fac.stage++;
-    fac.done = 0;
-    st.visualDirty = true;
-    if (fac.stage < F.stages.length) return;
-    Object.assign(fac, { built: st.t, condition: 1, condAt: st.t });
+    if (!R.raiseOn(st, plan)) return;
     const o = owner(st, fac.owner),
       house = fac.owner.type === 'household',
       f = house && o.farmstead !== null ? st.farmsteads[o.farmstead] : null;
@@ -266,11 +209,7 @@ VB['sim/facilities'] = (() => {
       : { village: fac.owner.id };
     log(st, `${f ? f.name : o.name} has built a ${F.name}.`, { kind: 'facilityBuilt', facility: fac.id, ...where });
   }
-  function mended(st, fac) {
-    fac.condition = 1;
-    fac.condAt = st.t;
-    st.visualDirty = true;
-  }
+  const mended = (st, fac) => R.mend(st, fac);
   // The hours worked on the open stage, kept on the facility as the task is reckoned (sim/work): the stage's hours less the step's,
   // where it was taken up again half-built, and the job's hours done.
   function worked(st, j) {
@@ -278,7 +217,7 @@ VB['sim/facilities'] = (() => {
     if (!plan) return;
     const fac = st.facilities[plan.facility],
       s = FACILITY[fac.kind].stages[fac.stage];
-    if (s) fac.done = Math.min(s.hours, s.hours - j.hours + j.done);
+    if (s) R.workedOn(fac, Math.min(s.hours, s.hours - j.hours + j.done));
   }
   // A village's facility steps (asked at the village, sim/kinds ASK): the open step of each of its plans that names a facility, owned by
   // the village. A household's are posted with its other project steps (sim/projects landProject).
@@ -341,9 +280,11 @@ VB['sim/facilities'] = (() => {
       who =
         fac.owner.type === 'village'
           ? `${o.name} village`
-          : o.farmstead !== null
-            ? `${st.farmsteads[o.farmstead].name} household`
-            : 'a household';
+          : fac.owner.type === 'farm'
+            ? `${o.name} farm`
+            : o.farmstead !== null
+              ? `${st.farmsteads[o.farmstead].name} household`
+              : 'a household';
     const s = fac.built === null ? F.stages[fac.stage] : null,
       named = s && s.name ? `, ${s.name}` : '';
     const stage = s
@@ -353,11 +294,7 @@ VB['sim/facilities'] = (() => {
   }
   return {
     FACILITIES,
-    FACILITY,
     KINDS,
-    declare,
-    at,
-    ofOwner,
     conditionOf,
     foundWhy,
     found,

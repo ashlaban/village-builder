@@ -658,7 +658,7 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   for (const k of Object.keys(CACHES)) assert.ok(typeof Sim[k] === 'function' && !listed.has(k), `Sim.${k}: a cache is a read's`);
   // the reads, listed too (review F2): a function of the facade in no list fails, so that a new one is placed by hand, and a read is
   // still called on the state below, a second guard
-  const READS = ['save', 'levyOf', 'levies', 'hours', 'recordOf', 'headView', 'timetable', 'callCost', 'taskLeft', 'taskFrom', 'taskStop', 'sheetNotes', 'controlOf',
+  const READS = ['save', 'levyOf', 'levies', 'hours', 'recordOf', 'headView', 'timetable', 'callCost', 'taskLeft', 'taskFrom', 'taskStop', 'sheetNotes', 'controlOf', 'standing',
     'wishesOf', 'opportunities', 'offerPreview', 'fairSides', 'swapTerms', 'foodDays', 'successor', 'villageSummary', 'supplyOutlook',
     'siteWater', 'giftOutlook', 'harvestEstimate', 'villageOutlook', 'cal', 'age', 'birthYear', 'fullName', 'spouseOf', 'childrenOf',
     'siblingsOf', 'spousesOf', 'kinship', 'kinDegree', 'describe', 'pastimeOf', 'villageOf', 'dark', 'heirRanking', 'practice',
