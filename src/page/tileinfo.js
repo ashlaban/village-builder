@@ -12,19 +12,9 @@ function showTile(i) {
   const b = Biomes.BIOMES[w.biome[i]],
     col = i % w.COLS,
     row = (i / w.COLS) | 0;
-  let line;
-  if (w.water[i]) {
-    const d = Grid.csample(w, paintOf(w).cdist, w.hx[i], w.hy[i]);
-    const m = b.key === 'lake' ? 2 + 28 * (1 - Math.exp(-d / 70)) : 3 + 150 * (1 - Math.exp(-d / (150 * w.KS)));
-    line = `Depth about ${Math.round(m)} m`;
-  } else {
-    const soil = w.hm[i] < 0.33 ? 'dry ground' : w.hm[i] < 0.56 ? 'fresh ground' : 'damp ground';
-    line = `Elevation ${Math.max(2, Math.round(w.he[i] * 1400))} m, ${soil}`;
-  }
   const rg = w.regions[w.region[i]];
   const where = rg.label ? `Tile ${col}, ${row} in region ${rg.label}` : `Tile ${col}, ${row}, open water`;
   const farm = settlementTileInfo(i),
-    own = st ? Sim.ownerOf(st, i) : null,
     of = farm ? farm[2] : null;
   // the green stands for its village; a house for its farm, whose card is kept fresh while it is shown
   if (of && of.village !== undefined) {
@@ -35,48 +25,72 @@ function showTile(i) {
   }
   selVillage = -1;
   selFarm = of && of.house ? of.farm : -1;
-  const ownLine =
-    own && !farm
-      ? [
-          own.type === 'village'
-            ? `${st.villages[own.id].name} village`
-            : `${st.farmsteads[st.households[own.id].farmstead].name} household`,
-        ]
-      : [];
-  const cross = ['no crossing on foot here', 'a ford crosses it', 'a bridge crosses it'][w.crossing[i]];
-  const perDay = w.worn ? w.wear[i] / 70 : 0; // a count kept up by n crossings a day settles at about 70 n
-  const worn =
-    w.worn && w.worn[i]
-      ? [
-          `${['', 'Trodden ground', 'A worn path', 'A lane'][w.worn[i]]}, ${
-            perDay >= 0.75 ? `crossed about ${Math.round(perDay)} times a day` : 'little used now'
-          }`,
-        ]
-      : [];
-  const river = w.river[i]
-    ? [`${Flow.kind(w, i)} runs through; ${cross}`]
-    : !w.water[i] && Sim.byRiver(w, i)
-      ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`]
-      : [];
-  const claims = claimLines(i),
-    cutBy = st && Sim.woodOf(st, i); // the village whose wood the tile is (VB-326)
-  if (cutBy) claims.push(`Cut for firewood by ${cutBy.name}`);
   tileWhere = where; // the tile's place in numbers is Debug's (page/drawer), not the player's card's (VB-664)
   const strength = claimStats(i);
-  const fac = st && VB['sim/facilities'].at(st, i), // a facility on the tile (VB-361): its name, owner and stage
-    fv = fac && VB['sim/facilities'].view(st, fac);
-  if (fv) claims.unshift(`${fv.name[0].toUpperCase() + fv.name.slice(1)} of ${fv.owner}, ${fv.stage}`);
   if (farm) {
     const more = tileExtras(of);
-    card(farm[0], [...farm[1], ...claims], '', {
+    card(farm[0], [...farm[1], ...claimsAt(i)], '', {
       ...more,
       stats: (more.stats || '') + strength,
     });
   } else
-    card(b.name, [line, ...river, ...waterLines(i), ...worn, ...ownLine, ...claims], '', {
+    card(b.name, cardRows('tile', i), '', {
       stats: levelStats(i) + strength,
-    });
+    }); // its lines, each a feature's (page/cardrows)
 }
+// What is claimed of tile i, a line each: a facility on it (VB-361: its name, owner and stage), its claims and cairn, and the village
+// whose wood it is (VB-326).
+function claimsAt(i) {
+  const claims = claimLines(i),
+    cutBy = st && Sim.woodOf(st, i);
+  if (cutBy) claims.push(`Cut for firewood by ${cutBy.name}`);
+  const fac = st && VB['sim/facilities'].at(st, i),
+    fv = fac && VB['sim/facilities'].view(st, fac);
+  if (fv) claims.unshift(`${fv.name[0].toUpperCase() + fv.name.slice(1)} of ${fv.owner}, ${fv.stage}`);
+  return claims;
+}
+// ---- an open tile's lines (page/cardrows): its depth or its ground, its river, its water (page/water, 30), its path, its owner and
+// what is claimed of it ----
+cardRow('tile', 10, (i) => {
+  if (!w.water[i]) {
+    const soil = w.hm[i] < 0.33 ? 'dry ground' : w.hm[i] < 0.56 ? 'fresh ground' : 'damp ground';
+    return `Elevation ${Math.max(2, Math.round(w.he[i] * 1400))} m, ${soil}`;
+  }
+  const d = Grid.csample(w, paintOf(w).cdist, w.hx[i], w.hy[i]);
+  const m =
+    Biomes.BIOMES[w.biome[i]].key === 'lake'
+      ? 2 + 28 * (1 - Math.exp(-d / 70))
+      : 3 + 150 * (1 - Math.exp(-d / (150 * w.KS)));
+  return `Depth about ${Math.round(m)} m`;
+});
+cardRow('tile', 20, (i) => {
+  const cross = ['no crossing on foot here', 'a ford crosses it', 'a bridge crosses it'][w.crossing[i]];
+  return w.river[i]
+    ? [`${Flow.kind(w, i)} runs through; ${cross}`]
+    : !w.water[i] && Sim.byRiver(w, i)
+      ? [`By the river: a field here yields ${Math.round(Sim.RIVER.irrigation * 100)}% more`]
+      : [];
+});
+cardRow('tile', 40, (i) => {
+  const perDay = w.worn ? w.wear[i] / 70 : 0; // a count kept up by n crossings a day settles at about 70 n
+  return w.worn && w.worn[i]
+    ? [
+        `${['', 'Trodden ground', 'A worn path', 'A lane'][w.worn[i]]}, ${
+          perDay >= 0.75 ? `crossed about ${Math.round(perDay)} times a day` : 'little used now'
+        }`,
+      ]
+    : [];
+});
+cardRow('tile', 50, (i) => {
+  const own = st ? Sim.ownerOf(st, i) : null;
+  if (!own) return [];
+  return [
+    own.type === 'village'
+      ? `${st.villages[own.id].name} village`
+      : `${st.farmsteads[st.households[own.id].farmstead].name} household`,
+  ];
+});
+cardRow('tile', 60, claimsAt);
 // ---- a field's crop, and the head's choice of it (VB-355; design.md, How the head chooses what to sow) ----
 // A field's part of its tile's card, from Sim.fieldView: its crop (with its own icon), its course in the farm's rotation, what is sown on
 // it next and when, and the grain of each crop its household holds against a field's seed, as stats above its soil; and for the played

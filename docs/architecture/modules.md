@@ -493,6 +493,13 @@ of VB-1406 has landed (`docs/plans/VB-1406-overlap.md`, section 5); until then, 
   in `src/sim/notable.js`, its icon and its word on the page; after VB-1946 one record declared by the module that emits it.
 - **A `Sim` name**: today an import and an export line in `src/sim.js`; after VB-1944 the module names what it gives the page and
   `src/sim.js` joins the lists.
+- **A card's row** (a line of a person's, a farm's house or an open tile's card, a stat of a household on its farm's card): one
+  `cardRow(card, place, row)` at load, in the feature's page file beside the code it shows (VB-1948; `page/cardrows`, which joins
+  them by place, never by the order of `src/page.json`; `grep -rn "cardRow('" src/page`). The places are numbers with room between them;
+  `tests/cardrows.js` fails for two rows at one place.
+- **A style**: in the stylesheet of its area under `src/styles/` (the bar and panels, the cards and the meter, the screens, a theme
+  each, the icons' sets), spliced by `build.js` in the order of `src/styles.json`, which is the cascade's (VB-1948); a new theme is a
+  file of its own, listed after `mural.css`.
 - Already declarations: a job kind (`KINDS`, joined by `sim/kinds`), a verb (`register` of `sim/commands`), an overlay
   (`registerOverlay`), a journey kind (`JOURNEYS`). A calendar entry stays a line of `CALENDAR` in `src/sim/clock.js`: there the
   order is the rule itself, declared in one place and held by `tests/clock.js`.
