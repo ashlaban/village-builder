@@ -47,7 +47,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1946](backlog/VB-1946.md)<a id="VB-1946"></a> | Refactor: one record an event kind, declared by its emitter; sim/notable split into the skip and the chronicle | - | 2 | M | sim/notable 16 to 8 and 6, sim/records 10 to 6 (VB-1406 step 8) |
 | [VB-1948](backlog/VB-1948.md)<a id="VB-1948"></a> | Refactor: the page's stylesheets by area, and a card's rows declared by the feature's page file | - | 2 | M | head.html 14 to 6, 6, 4; page/words 11 to 7 (VB-1406 step 10) |
 | [VB-2001](backlog/VB-2001.md)<a id="VB-2001"></a> | Stooks and mown hay degrade a share a day after the frost, as lying loads do | - | 2 | M | the design's Risk row for the sheaves and hay out in the field, which VB-1910 built for sim/lying only |
-| [VB-2006](backlog/VB-2006.md)<a id="VB-2006"></a> | Tests run by no tier: give each its @suite line or remove it | - | 2 | S | five tests/*.js no tier runs; each tiered, mended or removed; runner.js guards it |
 | [VB-093](backlog/VB-093.md)<a id="VB-093"></a> | A village mill: water where a river is in reach, else wind | mill | 3 | M | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. |
 | [VB-108](backlog/VB-108.md)<a id="VB-108"></a> | Wrap-up: the household's year | year | 3 | S | Check slice 3 with long runs at four seeds: work with a date done in time, households no hungrier, planning cheap early and late; idle share reported. |
 | [VB-121](backlog/VB-121.md)<a id="VB-121"></a> | Winter crafts: tools and fence poles | mill | 3 | M | Tools wear with field work and are mended in winter; fence poles are cut in winter and used for mending. |
@@ -163,6 +162,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1980](backlog/VB-1980.md)<a id="VB-1980"></a> | Gathering customs measure at 40 years | - | 3 | S | VB-296 before/after at 40 populous years |
 | [VB-1990](backlog/VB-1990.md)<a id="VB-1990"></a> | An animal is not given where its new household cannot lead it home | - | 3 | S | giveAnimal skips a gift beyond a day's walk, which otherwise starves away before the frost |
 | [VB-2000](backlog/VB-2000.md)<a id="VB-2000"></a> | Wet game days: a share of what lies out lost on each | - | 3 | M | the wet share of VB-1910, waiting for a wet day in the sim |
+| [VB-2007](backlog/VB-2007.md)<a id="VB-2007"></a> | Repair tests/sites.js: a dead pawn's drink job | - | 3 | S | sites.js fails its last invariant check |
 
 </details>
 

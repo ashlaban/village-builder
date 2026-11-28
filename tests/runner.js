@@ -38,6 +38,13 @@ const node = (code) => [process.execPath, '-e', code];
   for (const cmd of cmds) {
     const script = cmd.find((a) => /\.(js|py)$/.test(a)); assert(fs.existsSync(path.join(__dirname, '..', script)), script);
   }
+  // no test is left out of every tier by accident (VB-2006): each tests/*.js has a @suite line, or is named here
+  const NOT_TESTS = ['run.js', 'suites.js', 'lint-rules.js', 'backlog-page.js'],
+    PENDING = { 'sites.js': 'VB-2007' }; // a test that fails, its repair task named: it gets its @suite line with the repair
+  for (const f of fs.readdirSync(__dirname).filter((n) => n.endsWith('.js'))) {
+    const declared = /^\/\/ @suite /m.test(fs.readFileSync(path.join(__dirname, f), 'utf8'));
+    assert(declared || NOT_TESTS.includes(f) || PENDING[f], `tests/${f} has no // @suite line and is not named as a non-test`);
+  }
   const { FIRST } = require('./suites.js'), first = FIRST.map((c) => c.join(' '));
   for (const c of first) assert(all.includes(c), `tests/suites.js FIRST names ${c}, which no @suite line declares`);
   assert.deepStrictEqual(tiers.extended.slice(0, first.length).map((c) => c.join(' ')), first, 'FIRST starts first');

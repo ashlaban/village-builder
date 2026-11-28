@@ -920,3 +920,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1983](backlog/VB-1983.md) | Repair: a death left in st.demand and household.guardian | - | 2 | S | A dead pawn stays in st.demand and as a ward's guardian until a later pass |
 | [VB-1933](backlog/VB-1933.md) | Refactor: a test declares its tier in its header; tests/run.js discovers it | - | 2 | M | tests/suites.js 28 tasks to 1 (VB-1406 step 1) |
 | [VB-1910](backlog/VB-1910.md) | What lies out degrades: a share a game day in the wet and after the frost, not all at the frost | - | 2 | M | Sheaves and hay lying out lose a share of their amount each game day (a small one on a wet day, a larger one once the frost has come) in place of rotting whole at the frost; no condition on any item. |
+| [VB-2006](backlog/VB-2006.md) | Tests run by no tier: give each its @suite line or remove it | - | 2 | S | five tests/*.js no tier runs; each tiered, mended or removed; runner.js guards it |
