@@ -242,8 +242,9 @@ function showPawn(id) {
   showRelations(id);
   renderPlay(id);
 }
-// ---- the person card's first lines (page/cardrows): its role and age; where it lives and its children; its share, its leanings and what bars its marriage
-// are rows of their features' files (page/family, page/customs). Its crafts (page/meter, 60), its thirst (page/water, 70) and its task in hand (page/day, 80) follow. ----
+// ---- the person card's first lines (page/cardrows): its role and age; where it lives and its children. Its share and what bars its
+// marriage (page/family, 30 and 50) and its leanings (page/customs, 40) are rows of their features' files; its crafts (page/meter, 60),
+// its thirst (page/water, 70) and its task in hand (page/day, 80) follow. ----
 cardRow('person', 10, (id) => `${roleLine(st.pawns[id])}, ${st.pawns[id].age}`);
 cardRow('person', 20, (id) => {
   const p = st.pawns[id],
