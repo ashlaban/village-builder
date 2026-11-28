@@ -235,19 +235,114 @@ VB['sim/heirs'] = (() => {
   // while it stands (a dissolved holder is refused), as handed on; once its people are placed they lie at the house (sim/lying, leftGrain
   // and leftTimber) for the household its herds go to (sim/droving passHerds: the first of its people to find a new home), put in at once
   // when that household lives on the same farm. With none, the grain is the village's, as the farm is (sim/ownership farmTo), and
-  // the wood lies the dead household's for the autumn frost, which names it (sim/lying frost). What is left in its record (wood under a
-  // trip, and the goods no fetch kind carries yet: stone, flour, peat, tar, hides, salt, iron, clay, ore, the rack) is noted in VB-1175.
+  // the wood lies the dead household's for the autumn frost, which names it (sim/lying frost). Every other good its stores hold (VB-1697:
+  // the wood under a trip, timber, stone by rock, peat, tar, hides, salt, wool, yarn, cloth by grade, iron, clay, ore, the rack, flour,
+  // meals, the larder's lots and the ale) is taken out too and lies at the house as one pile, the estate's (sim/lying, kind estate, owned
+  // by the dead household), which passes with the farm: put in at once for a household on the same farm, else for the household that
+  // restores the farm when it is founded there (passEstate, from sim/membership); what nobody takes rots at the frost, as lying loads do.
   function takeEstate(st, hh) {
     const parts = {},
       grain = Stores.grainOf(hh) > 1e-9 ? Stores.take(st, hh, 'grain', Stores.grainOf(hh), ESTATE, parts) : 0,
       trips = Math.floor((hh.wood || 0) / ECON.woodPerTrip);
     if (trips > 0) Stores.take(st, hh, 'wood', trips * ECON.woodPerTrip, ESTATE);
-    return { grain, parts, trips };
+    return { grain, parts, trips, goods: takeGoods(st, hh) };
+  }
+  // The goods of a household's stores, by the store's field and the good a take names (stone and cloth are by kind and grade, below).
+  const GOODS = [
+    ['wood', 'wood'],
+    ['timber', 'timber'],
+    ['peat', 'peat'],
+    ['tar', 'tar'],
+    ['hides', 'hide'],
+    ['salt', 'salt'],
+    ['wool', 'wool'],
+    ['yarn', 'yarn'],
+    ['iron', 'iron'],
+    ['clay', 'clay'],
+    ['bogOre', 'bogOre'],
+    ['rack', 'fish'],
+    ['flour', 'flour'],
+    ['meals', 'meals'],
+  ];
+  // The goods counted in whole numbers (sim/stores' state): what the frost has worn of them is put in whole (passEstate).
+  const WHOLE = new Set(['tar', 'hide', 'wool', 'yarn', 'clay', 'bogOre', 'cloth']);
+  // Everything else a household's stores hold, taken out as handed on: {[good]: n, cloth: [by grade], larder: [lots], ale: [lots]}, only
+  // what it holds; null when it holds none of them.
+  function takeGoods(st, hh) {
+    const goods = {};
+    let any = false;
+    for (const [k, good] of GOODS)
+      if ((hh[k] || 0) > 1e-9) {
+        goods[good] = Stores.take(st, hh, good, hh[k], ESTATE);
+        any = true;
+      }
+    for (const rock in hh.stone || {})
+      if (hh.stone[rock] > 1e-9) {
+        goods['stone/' + rock] = Stores.take(st, hh, 'stone/' + rock, hh.stone[rock], ESTATE);
+        any = true;
+      }
+    if (hh.cloth && hh.cloth.some((n) => n > 0)) {
+      goods.cloth = [...hh.cloth];
+      Stores.take(
+        st,
+        hh,
+        'cloth',
+        goods.cloth.reduce((a, b) => a + b, 0),
+        ESTATE,
+      );
+      any = true;
+    }
+    const { larder, ale } = Stores.estateLots(st, hh, ESTATE);
+    if (larder.length) goods.larder = larder;
+    if (ale.length) goods.ale = ale;
+    any = any || larder.length > 0 || ale.length > 0;
+    return any ? goods : null;
+  }
+  // The goods of an estate (takeGoods' form, as the frost has left them) put into household `to`'s stores, as handed on.
+  function putGoods(st, to, goods) {
+    const whole = (good, n) => (WHOLE.has(good) ? Math.floor(n + 1e-9) : n);
+    for (const good in goods) {
+      if (good === 'cloth' || good === 'larder' || good === 'ale') continue;
+      const n = whole(good.split('/')[0], goods[good]);
+      if (n > 1e-9) Stores.put(st, to, good, n, ESTATE);
+    }
+    if (goods.cloth)
+      goods.cloth.forEach((n, grade) => {
+        const m = whole('cloth', n);
+        if (m > 0) Stores.put(st, to, 'cloth', m, { ...ESTATE, grade });
+      });
+    if (goods.larder || goods.ale) Stores.putLots(st, to, goods, ESTATE);
+  }
+  // Household hh, founded on farm f (sim/membership foundHousehold), takes the estates lying at its house: the goods pass with the farm.
+  function passEstate(st, f, hh) {
+    if (!st.lying) return;
+    for (const l of Lying.pilesAt(st, f.house))
+      if (l.kind === 'estate') {
+        const goods = l.of.goods;
+        Lying.takeFrom(st, l, l.n);
+        putGoods(st, hh, goods);
+        log(st, `The new household at ${f.name} takes up what was left there by the household before.`, {
+          kind: 'estate',
+          ...atHousehold(st, hh),
+        });
+      }
   }
   const ESTATE = { kind: 'handingOn', estate: true };
-  function layEstate(st, hh, f, { grain, parts, trips }, to) {
+  function layEstate(st, hh, f, { grain, parts, trips, goods }, to) {
     const heir = to === null ? null : st.households[to],
       here = heir && heir.farmstead === hh.farmstead;
+    if (goods) {
+      if (here) putGoods(st, heir, goods);
+      else
+        Lying.leave(
+          st,
+          'estate',
+          Lying.estateSize(goods),
+          f.house,
+          { type: 'household', id: hh.id },
+          { of: { goods } },
+        );
+    }
     if (grain > 0) {
       if (here) Stores.put(st, heir, 'grain', grain, ESTATE, parts);
       else
@@ -725,6 +820,7 @@ VB['sim/heirs'] = (() => {
     moveTo,
     transfer,
     extinct,
+    passEstate,
     succession,
     comeOfAge,
     refreshRoles,

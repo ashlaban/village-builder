@@ -3010,6 +3010,7 @@ function checkState(st) {
         if (!Number.isInteger(l.id) || !(l.id <= st.lyingSeq) || (prev && !(prev.id < l.id && prev.t <= l.t)))
           bad.push(`${at}: id ${l.id} out of order, or past lyingSeq ${st.lyingSeq}`);
         if (
+          l.kind !== 'estate' && // a dead-out household's goods: no one fetches them, they pass with the farm (VB-1697, sim/heirs)
           !(KS[l.kind] && KS[l.kind].methods) &&
           !Object.keys(KS).some((k) => globalThis.VB['sim/doing'].planOf(k).uses.includes(l.kind))
         )
@@ -3022,6 +3023,18 @@ function checkState(st) {
         if (!o || !((o.type === 'household' && st.households[o.id]) || (o.type === 'village' && st.villages[o.id])))
           bad.push(`${at}: owner ${JSON.stringify(o)}`);
         if (!l.of || !Number.isInteger(l.of.src)) bad.push(`${at}: no task tile`);
+        // an estate (VB-1697): the goods of a household that died out, its own, at its house; its load the sum of their units
+        if (
+          l.kind === 'estate' &&
+          !(
+            o.type === 'household' &&
+            st.households[o.id] &&
+            st.households[o.id].dissolved &&
+            l.of.goods &&
+            Math.abs(globalThis.VB['sim/lying'].estateSize(l.of.goods) - l.n) <= 1e-6 * Math.max(1, l.n)
+          )
+        )
+          bad.push(`${at}: an estate not of a dissolved household, or not the sum of its goods`);
         if (
           l.kind === 'leftCart' &&
           !(
