@@ -180,14 +180,15 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   Stores.put(st, hh, 'timber', lack, 'felling');
   assert(fireAmount(st, hh) > fuelFree(st, hh), 'only the timber above what the walls lack may be cut');
   closes('kept');
-  const trips = () => (hh.ledger || []).filter((e) => e.good === 'timber' && e.kind === 'timber').length, sited0 = trips();
-  let sited = 0;
+  let sited = 0; // the trips' loads lie at the site and are no store's ledger (VB-1705): count the trees felled for it
+  const fell = VB['sim/kinds'].KINDS.timber.ops.fell, run = fell.run;
+  fell.run = (...a) => { sited++; return run(...a); };
   for (let i = 0; i < 20 * 240 && !sited; i++) {
     Sim.advance(st, 0.1);
-    sited = trips() - sited0;
     closes(`hour ${st.t.toFixed(1)}`);
   }
   assert(sum('build') < 0 && sited > 0, `the walls took what timber was home (${sum('build')}) and a trip brought timber to the site`);
+  fell.run = run;
   closes('built');
   sound(st, 'felled, cut and built with by hand');
 }
