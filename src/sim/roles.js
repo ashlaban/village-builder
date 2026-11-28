@@ -195,6 +195,7 @@ VB['sim/roles'] = (() => {
       fieldPerDay: 8, // plow and sow: 1 + sday / 8
       reap: 1.3,
       reapFrostPerDay: 5,
+      reapFrostWindow: 10, // days before the expected frost when reaping and hauling outrank the foraging of a household short of food (VB-2029)
       haul: 1.1, // reap: 1.3; both, in autumn, + the days gone of a season ending at the year's frost / 5 (sim/fieldwork frostNear)
       woodLow: 8,
       woodLowUrgency: 2.2,
