@@ -8,12 +8,12 @@ VB['sim/opportunities'] = (() => {
   const { walkable } = VB['sim/walking'];
   const { villageOf, settlementIdOf, practice, fullName, spouseOf, childrenOf, holdingOf, spokesmanOf } =
     VB['sim/records'];
-  const { ASK } = VB['sim/kinds'];
+  const { ASK, dutyTypes } = VB['sim/kinds'];
   const { claimable, barred: claimBar } = VB['sim/farmclaims'],
     { onFarm } = VB['sim/projects'];
   const { VERBS } = VB['sim/commands'];
   const { goOnAs } = VB['sim/player'];
-  const { likely: leaveLikely } = VB['sim/voice'];
+  const { likely: leaveLikely, dutyLikely } = VB['sim/voice'];
   const { advice, what: offerText } = VB['sim/offers'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { GATHERING } = VB['sim/rules'],
@@ -148,6 +148,17 @@ VB['sim/opportunities'] = (() => {
         }),
       );
     }
+    // a duty asked of its head (VB-1556): each type of recurring work, with the head's likely answer as its pawn sees it
+    if (hh && !hh.dissolved && hh.holder !== null && hh.holder !== p.id)
+      for (const type of dutyTypes().keys()) {
+        const args = { basis: 'duty', wants: { duty: type } };
+        out.push(
+          item('ask', hh.holder, args, check(view, p.id, 'ask', hh.holder, args), {
+            holder: { type: 'household', id: hh.id },
+            duty: { head: fullName(view.pawns[hh.holder]), type, likely: dutyLikely(view, p.id, type) },
+          }),
+        );
+      }
     slander(view, p, out);
     occasions(view, p, out);
     if (near === null || near === undefined) return;

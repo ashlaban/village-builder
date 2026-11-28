@@ -3,7 +3,7 @@
 //   hour to the end of the working day, or whole days), written on the household's plan by the verb grant, by a yes to a member's ask
 //   (sim/voice) or by a servant's contract (its free day at its term, sim/service); read by sim/levies as the levy in force.
 VB['sim/grants'] = (() => {
-  const { cal, DAY, WORK, HEALTH } = VB['sim/rules'],
+  const { cal, DAY, WORK, HEALTH, SEASON_DAYS } = VB['sim/rules'],
     { workRate, MATCH } = VB['sim/roles'];
   const { age } = VB['sim/records'];
   const { planOf } = VB['sim/plans'];
@@ -12,8 +12,18 @@ VB['sim/grants'] = (() => {
   // from: the hour its own ask's leave begins (the afternoon's allotment, MATCH.day.afternoon); wait: the days the played head has to
   // answer; closing: a window that closes within this many days wants the hands the head gave it; base, diligence: the head says yes
   // when base + its opinion of the member - diligence * (its diligence - 0.5) * 2 is above 0; lighter: the hours a day by the clock a
-  // member asks off its levy for the season (VB-1763). Kept here, where sim/levies (the member's need: closing) reads it, before both; sim/voice's.
-  const VOICE = { days: 6, from: MATCH.day.afternoon, wait: 0.125, base: 0.2, diligence: 0.3, closing: 3, lighter: 1 };
+  // member asks off its levy for the season (VB-1763); dutyDays: a member asks for a duty of its own accord when it has held none for
+  // this many days, at most once in them (VB-1556). Kept here, where sim/levies (the member's need: closing) reads it, before both; sim/voice's.
+  const VOICE = {
+    days: 6,
+    from: MATCH.day.afternoon,
+    wait: 0.125,
+    base: 0.2,
+    diligence: 0.3,
+    closing: 3,
+    lighter: 1,
+    dutyDays: SEASON_DAYS,
+  };
   const today = (st) => Math.floor(st.t / DAY);
   const endOfWork = (st) => today(st) * DAY + WORK[1];
   const seasonKey = (c) => c.year * 4 + c.season;

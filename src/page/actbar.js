@@ -170,6 +170,15 @@ function menuHTML(id, opps) {
         `The rest of the working day to yourself; ${leave.leave.likely ? 'likely yes' : 'likely no: there is work that will not wait'}`,
         leave.why,
       );
+    // a duty asked of its head (VB-1556): the recurring work of a type as its own
+    for (const o of by.self.filter((x) => x.verb === 'ask' && x.duty))
+      h += actRow(
+        cmdAttrs(o),
+        'home',
+        `Ask ${o.duty.head} for the ${o.duty.type} duty`,
+        `The ${o.duty.type} work as your own; ${o.duty.likely ? 'likely yes' : 'likely no: another is more skilled at it'}`,
+        o.why,
+      );
     // the ale evenings and rites called within reach (VB-522)
     for (const o of by.self.filter((x) => x.verb === 'attend')) {
       const ale = o.occasion.kind === 'ale';

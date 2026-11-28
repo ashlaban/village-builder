@@ -71,7 +71,7 @@ assert.ok(sown, 'it is sown');
 const seed = v.ledger.filter((e) => e.kind === 'seed').reduce((n, e) => n - e.n, 0);
 assert.ok(seed > 0, 'its seed came from the village store');
 assert.ok(harvest > 0, `its harvest reached the village store within two years (${((st.t - start) / YEAR).toFixed(2)} years)`);
-assert.ok(Sim.villageLog(st).some((x) => /common field/.test(x.text)), 'the village\'s log tells it');
+assert.ok(Sim.villageLog(st, 400).some((x) => /common field/.test(x.text)), 'the village\'s log tells it');
 assert.deepStrictEqual(bad(), [], 'invariants');
 
 // help received leans a person towards the next higher option, in proportion to the days of need owed, fading as goodwill fades

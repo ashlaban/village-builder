@@ -13,6 +13,7 @@ const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : 
 const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 3 }], { seed: 12 });
 st.makeFields = false;
 D.SWITCH.duties = true; // the default author gives duties (off until Kim's answer, VB-1771)
+for (const p of st.pawns) p.dutyAsked = 0; // no member asks of its own accord here (VB-1556: sim/voice dutyLook), only the head's rule gives
 Sim.advance(st, 30.5); // the second day, 10:30: the household's reviews are behind it
 const hh = st.households[0], plan = st.plans.households.get(0), c = Sim.cal(st.t);
 const duties = () => plan.ahead.filter((s) => s.what.duty !== undefined);
