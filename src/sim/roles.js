@@ -239,5 +239,6 @@ VB['sim/roles'] = (() => {
       needDays: 3,
     },
   };
-  return { ROLES, STAND, STAND_KEYS, absentMask, CHILD, workRate, MATCH };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { ROLES, STAND, STAND_KEYS, absentMask, CHILD, workRate, MATCH, PAGE: ['ROLES'] };
 })();

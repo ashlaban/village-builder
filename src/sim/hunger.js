@@ -396,6 +396,8 @@ VB['sim/hunger'] = (() => {
     return d >= U.needDays ? lean : Math.max(lean, U.need * (1 - d / U.needDays));
   };
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['seedReserve'],
     spareDays,
     spareUrgency,
     storeRoom,

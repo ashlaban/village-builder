@@ -652,6 +652,8 @@ VB['sim/relations'] = (() => {
     return out;
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['compat', 'bond', 'bondWord', 'opinionOf', 'opinionWord', 'relationsOf', 'reasonsOf', 'goodwillOf'],
     initRelations,
     workedTogether,
     dailyTies,

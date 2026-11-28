@@ -536,5 +536,6 @@ VB['sim/fair'] = (() => {
     const year = cal(st.t).year;
     st.fair.fairs = st.fair.fairs.filter((r) => r.year === year || !r.told);
   }
-  return { FAIR, fairHour, swapWhy, swapWarning, held, weight, fairSides, swapTerms };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { FAIR, fairHour, swapWhy, swapWarning, held, weight, fairSides, swapTerms, PAGE: ['fairSides', 'swapTerms'] };
 })();

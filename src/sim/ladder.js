@@ -306,5 +306,17 @@ VB['sim/ladder'] = (() => {
     });
     return { rung, building: building(st, hh, f), next, foundation, outbuildings };
   }
-  return { RUNGS, FOUNDATION, OUTBUILDINGS, rungOf, rungWhy, upgradeWhy, foundationWhy, outWhy, farmView };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return {
+    RUNGS,
+    FOUNDATION,
+    OUTBUILDINGS,
+    rungOf,
+    rungWhy,
+    upgradeWhy,
+    foundationWhy,
+    outWhy,
+    farmView,
+    PAGE: ['farmView'],
+  };
 })();

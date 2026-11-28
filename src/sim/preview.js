@@ -125,5 +125,6 @@ VB['sim/preview'] = (() => {
       food: { before: fed(st, homeId), after: fed(c, homeId) },
     };
   }
-  return { offerPreview, foodDays };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { offerPreview, foodDays, PAGE: ['offerPreview', 'foodDays'] };
 })();

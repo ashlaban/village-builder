@@ -330,6 +330,8 @@ VB['sim/round'] = (() => {
     } else if (r === true && heldBy(st, m, 'match')) (taken.add(m), taken.add(f));
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['movingRound'],
     movingRound,
     roundPhase,
     ROUND_STEPS,

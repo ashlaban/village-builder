@@ -124,5 +124,7 @@ for (const p of st.pawns) if (p.died === null) assert(Sim.reasonLine(st, p.id), 
 const r = build();
 const readers = r.deps.filter((d) => d.imports.includes('sim/reasons') || d.lookups.some((l) => l.key === 'sim/reasons')).map((d) => d.mod);
 // sim/agenda (VB-1644), itself a view read by no simulation module, words its causes by this one's
-assert.deepStrictEqual(readers, ['sim/agenda', 'sim'], `only sim and the agenda read sim/reasons, not ${readers.join(', ')}`);
+// the facade joins what a module gives the page (VB-1944): sim/reasons names it in its PAGE list
+assert.deepStrictEqual(readers.filter((m) => m !== 'sim'), ['sim/agenda'], `only sim and the agenda read sim/reasons, not ${readers.join(', ')}`);
+assert(VB['sim/reasons'].PAGE.includes('reasonLine'), 'sim/reasons gives the page its line');
 console.log(`reasons ok: ${seen.size} of ${VB['sim/reasons'].BY.length} kinds of chooser reached (duty is VB-1553's)`);

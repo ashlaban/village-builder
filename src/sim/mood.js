@@ -116,5 +116,17 @@ VB['sim/mood'] = (() => {
   }
   // A word for a mood: miserable under 25, low under 45, content under 65, happy.
   const word = (m) => (m < 25 ? 'miserable' : m < 45 ? 'low' : m < 65 ? 'content' : 'happy');
-  return { MOOD, of, level, word, feel, EVENT };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return {
+    MOOD,
+    of,
+    level,
+    word,
+    feel,
+    EVENT,
+    PAGE: [
+      ['moodOf', 'of'],
+      ['moodWord', 'word'],
+    ],
+  };
 })();
