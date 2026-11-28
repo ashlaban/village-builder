@@ -35,6 +35,12 @@ weather); the shortfalls are rows of `docs/tuning.md` (Crops, VB-356).
    tuning row "The seasons' timing" (VB-354) settles it; no threshing for winter (design.md, What crops touch): the autumn is not crowded by
    it (the harvest is the peak of the fields' hours, summer of all hours).
 
+### VB-1472: Is the labour budget the limit on a holder's parallel large projects? (raised 25 November 2026, moved here 27 November)
+The rule that a household keeps at most one project is out of the design (Kim, 21 Nov); what takes its place is open (`backlog/VB-1472.md`). The
+aims design (`docs/plans/four-scales/aims.md`, parked: designed, not scheduled) proposes an answer.
+1. **Is the labour budget the limit on a holder's parallel large projects?** **P:** yes: any number, each sized to the season's spare after the
+   work the household lives by, ranked by its `by`; a `home` aim's plot is not the menu's one project.
+
 ### VB-1554: The day's allotment is the largest part of the jobs line: may a task newly due be slotted in, not the day weighed anew? (raised 23 November 2026)
 The measure (VB-1554, populous small, seed 7, 2 years): the allotment is 31% of the jobs line and its largest part; a household's day is allotted 4.4 times a day (the morning 1, the milking's opening at 6:00 0.55, the cooking's at 14:00 0.8, the village's review 0.7, its own review 0.4, a member's look 0.5, others 0.5), each time every member against every task. Within the Decided rule ("when its tasks change, every member is weighed for every task") only the village's review could go: dayPair 21.4 to 19.3 a pawn-day, a tenth, not the third the task asked.
 1. May a task the due-queue opens (the milking, the cooking, fodder) be weighed alone, each member for that task, and slotted into the lists as they stand, the whole day weighed anew only at the morning, the review and a look? About 30% of the pairs weighed. **P:** yes: the head knows in the morning that the milking and the meal come; the lists otherwise stand, and the call for a task with a deadline stays.
@@ -46,4 +52,14 @@ The measure (VB-1554, populous small, seed 7, 2 years): the allotment is 31% of 
 tools/contact.js (populous small, seeds 7, 11, 13, 40 years): villages in the top fifth by distinct people met at venues drift 0.0079 a key a year against 0.0096 for the rest (correlation -0.28); gathering hosts 0.0082 against 0.0095. Contact alone gives no faster drift.
 Proposed answers: (a) leave it to contact: no term; (b) add a term to attitude.malleability reading those met at venues, with a range (e.g. 1 to 1.5 times), so a busy place drifts faster by mechanism.
 
+### VB-1947: When do the tunables move out of src/sim/rules.js (VB-1406 step 9)? (raised 27 November 2026)
+1. VB-1947 moves the tables several domains read out of `src/sim/rules.js` into files by domain, with `VB['sim/rules']` kept as the joined view so that none of its 107 readers changes. It touches what every module reads at load, so every branch in flight that edits a table conflicts with it once. When should it go ahead?
+   **P:** after the slice work in flight has merged, in a quiet hour, as one task: the joined view keeps every reader as it is, and `tools/same.js` shows it.
+
 ## Priority 3
+
+### VB-1406: Two lists only Kim reads or records: docs/tuning.md and tests/counters.json (VB-1406) (raised 27 November 2026)
+1. `docs/tuning.md`: 17 of the 18 tasks that touched it appended a row to "Parameters waiting". Kim reads the file to start tuning runs. Should it become one entry a task, a file each as `backlog/` is, gathered by a tool into the table you read?
+   **P:** one entry a task, gathered by a tool into the same table; until then the orchestrator writes the rows once a run from the inbox's `tuning` notes, as now.
+2. `tests/counters.json` is a recorded baseline of the work counters, and 15 tasks rewrote it (one commit only re-recorded it after a merge). Should it be recorded at merge, at night, or in each task as now?
+   **P:** at night: the nightly bench records it once, on the merged result, and a task reports its counters' change in its PR without writing the file.

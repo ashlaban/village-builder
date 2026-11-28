@@ -13,6 +13,7 @@ const hud = {
   pc: null,
   pinfo: null,
   planKey: '',
+  goAt: null, // {tile, chain}: the window's act opened this tile's card (yearGo), its chain shown first
 };
 const HUD_TABS = [
   ['build', 'Build', () => actIcon('build')],
@@ -46,8 +47,9 @@ function hudYear(hh, f) {
   // the line's words, behind a tap; its first view the window's glyph and the game days left (chips: page/ui2land factChips)
   let line,
     press,
+    win = null,
     chips = [];
-  const left = (icon, n, label) => ({ icon, n: String(n), label });
+  const left = (icon, n, label) => ({ icon, n: String(n), label, unit: n === 1 ? 'day' : 'days' }); // game days, the label says
   if (buildCalls(f)) {
     line = 'Nothing is built yet: the build button places your farmstead';
     press = 1;
@@ -58,6 +60,7 @@ function hudYear(hh, f) {
       ? `Sow by spring day ${sow[1] + 1}: ${laneDays(n)} left, ${sown} of ${fields.length} ${fields.length === 1 ? 'field' : 'fields'} sown`
       : `Sowing closes after spring day ${sow[1] + 1}: ${laneDays(n)} left, and no field is broken yet`;
     press = n <= 3 ? 2 : 1;
+    win = 'plant';
     chips = [
       left(actIcon('sow'), n, `Sowing: ${laneDays(n)} left`),
       fields.length
@@ -67,29 +70,52 @@ function hudYear(hh, f) {
   } else if (c.doy < hay[0]) {
     line = `Haymaking opens in ${laneDays(hay[0] - c.doy)}`;
     press = 0;
-    chips = [{ icon: actIcon('wait') + actIcon('hay'), n: String(hay[0] - c.doy), label: line }];
+    chips = [left(actIcon('wait') + actIcon('hay'), hay[0] - c.doy, line)];
   } else if (c.doy <= hay[1]) {
     const n = hay[1] - c.doy + 1;
     line = `Haymaking: ${laneDays(n)} left to mow`;
     press = n <= 3 ? 2 : 1;
+    win = 'hay';
     chips = [left(actIcon('hay'), n, line)];
   } else if (c.season < 3) {
-    line = `Winter in ${laneDays(3 * S - c.doy)}: bring in the harvest and the wood`;
+    const out = fields.some((x) => ['sown', 'growing', 'ripe', 'stooks'].includes(x.stage)); // a crop still on its field
+    line = `Winter in ${laneDays(3 * S - c.doy)}${out ? ': bring in the harvest and the wood' : ''}`;
     press = 3 * S - c.doy <= 4 ? 1 : 0;
+    win = 'harvest';
     chips = [left(goodIcon('cold'), 3 * S - c.doy, `Winter in ${laneDays(3 * S - c.doy)}`)];
   } else {
     line = `Winter: ${laneDays(4 * S - c.doy)} to spring`;
     press = 0;
     chips = [left(seasonIcon(0), 4 * S - c.doy, line)];
   }
-  return { c, sow, hay, ripe, line, press, chips };
+  const go = win && f ? yearGo(win, hh, f) : null;
+  return { c, sow, hay, ripe, line, press: go ? Math.max(1, press) : press, chips, go }; // a window's act shows the line, calm or not
 }
+// The window's act (the playtest of 27 Nov: a window with no way to it): the tile the window's work is best begun at, for a chain of
+// work the plan does not hold yet: a pressing gap of the plan (Sim.planGaps), else the farm's own field or meadow, else the tile the
+// head marked for the next one, else the nearest the head's own check takes. {chain, tile}, or null with the work already planned or
+// nowhere to do it. A tap flies there and opens the tile's card, where the chain's button adds it.
+function yearGo(chain, hh, f) {
+  const P = hudPlanned();
+  if (!P || P.tasks.some((t) => t.kind === chain)) return null;
+  const g = hudGaps().find((x) => x.goal === chain);
+  if (g) return { chain, tile: g.tile };
+  if (chain === 'harvest') return null;
+  const own = chain === 'plant' ? f.fields.find((x) => x.stage === 'stubble' || x.stage === 'plowed') : f.meadows[0];
+  if (own) return { chain, tile: own.tile };
+  const V = Sim.headView(st, hh.id),
+    marked = chain === 'plant' ? V.tiles.field : V.tiles.meadow;
+  if (Number.isInteger(marked) && marked >= 0) return { chain, tile: marked };
+  const first = [...hudSites(hh)[chain === 'plant' ? 'field' : 'meadow']][0];
+  return first === undefined ? null : { chain, tile: first };
+}
+const YEAR_GO = { plant: 'Plant', hay: 'Make hay', harvest: 'Harvest' };
 function renderYear() {
   const { hh, f } = hudHouse();
   if (!hh) return;
   const Y = hudYear(hh, f),
     N = Sim.YEAR_DAYS,
-    key = `${Y.c.year}|${Y.c.doy}|${Y.line}|${Y.ripe.join()}|${hud.yinfo}`;
+    key = `${Y.c.year}|${Y.c.doy}|${Y.line}|${Y.ripe.join()}|${hud.yinfo}|${Y.go ? `${Y.go.chain}${Y.go.tile}` : ''}`;
   if (key === hud.yearKey) return;
   hud.yearKey = key;
   const pct = (d) => `${((d / N) * 100).toFixed(2)}%`,
@@ -107,8 +133,17 @@ function renderYear() {
   u2.alert.innerHTML =
     `<button type="button" class="u2-yline" data-hud="pinfo" data-slot="yinfo" data-k="year" aria-pressed="${hud.yinfo === 'year'}" ` +
     `aria-label="${esc(Y.line)}" title="${esc(Y.line)}">${Y.chips
-      .map((x) => `<span class="u2-ychip" aria-hidden="true">${x.icon}${x.n ? `<b>${esc(x.n)}</b>` : ''}</span>`)
+      .map(
+        (x) =>
+          `<span class="u2-ychip" aria-hidden="true">${x.icon}${x.n ? `<b>${esc(x.n)}</b>` : ''}` +
+          `${x.unit ? `<small>${x.unit}</small>` : ''}</span>`,
+      )
       .join('')}</button>` +
+    (Y.go
+      ? `<button type="button" class="u2-ygo" data-hud="ygo" data-tile="${Y.go.tile}" data-chain="${Y.go.chain}" ` +
+        `aria-label="${esc(`${HUD_CHAIN[Y.go.chain].name}: show where`)}" ` +
+        `title="${esc(HUD_CHAIN[Y.go.chain].name)}">${actIcon('target')}${HUD_CHAIN[Y.go.chain].icon()}<span>${YEAR_GO[Y.go.chain]}</span></button>`
+      : '') +
     (hud.yinfo === 'year' ? `<span class="u2-ywords">${esc(Y.line)}.</span>` : '');
   hud.press = Y.press;
 }
@@ -134,7 +169,7 @@ function meHTML(id) {
     lines.push(`Owes ${Math.round(S.owed)} ${Math.round(S.owed) === 1 ? 'hour' : 'hours'} of sleep.`);
   h += lines.length
     ? `<ul class="u2-log">${lines.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`
-    : '<p class="sub">Nothing ails it.</p>';
+    : `<p class="sub">Nothing ails ${p.sex === 'm' ? 'him' : 'her'}.</p>`;
   h += `<div class="u2-row2"><button type="button" class="u2-chip" data-hud="follow" aria-pressed="${followPlayed}">Follow on the map</button></div>`;
   const log = Sim.villageLog(st, 5);
   if (log.length) h += `<h3>Lately</h3><ul class="u2-log">${log.map((e) => `<li>${esc(e.text)}</li>`).join('')}</ul>`;
@@ -161,7 +196,13 @@ function fieldLine(fd, i) {
     open ? (left <= 3 ? 2 : 1) : 0,
   ];
 }
-const HUD_PROJECT = { field: 'a new field', meadow: 'a hay meadow', barn: 'a barn', well: 'a well' };
+const HUD_PROJECT = {
+  field: 'a new field',
+  meadow: 'a hay meadow',
+  barn: 'a barn',
+  storehouse: 'a storehouse',
+  well: 'a well',
+};
 const HUD_STORES = [
   ['food', 'Food', 'rations'],
   ['fuel', 'Firewood', 'measures'], // a load home is Sim.ECON.woodPerTrip measures
@@ -390,6 +431,10 @@ function hudClick(b) {
       hudMsg(r, 'The order is changed.');
       if (r === true) hud.pc = `t:${d.to}`;
     }
+  } else if (d.hud === 'pkeep') {
+    const r = Sim.plan(st, st.player.pawn, 'keep', { i: +d.i, on: !!d.on }); // the pressed pin says it: words only on a refusal
+    hud.msg = null;
+    if (r !== true) hudMsg(r, '');
   } else if (d.hud === 'pmovecancel') {
     hud.pmove = hud.pinfo = null;
     hudMsg(true, 'The order is kept.');
@@ -420,7 +465,14 @@ function hudClick(b) {
       Sim.plan(st, st.player.pawn, 'add', { [d.chain]: d.tile !== undefined ? +d.tile : hud.at }),
       `Added to the plan: ${HUD_CHAIN[d.chain].done}.`,
     );
-  else if (d.hud === 'fly') {
+  else if (d.hud === 'ygo') {
+    // the window's act: fly to its tile and open the tile's card, whose button adds the chain (its first button, "go")
+    flyTo(w.hx[+d.tile], w.hy[+d.tile]);
+    hud.tab = hud.msg = null;
+    hud.at = +d.tile;
+    hud.goAt = { tile: +d.tile, chain: d.chain };
+    hud.tapAt = performance.now();
+  } else if (d.hud === 'fly') {
     flyTo(w.hx[+d.tile], w.hy[+d.tile]);
     if (b.closest('#u2Sheet')) ((hud.tab = null), (hud.at = +d.tile), (hud.tapAt = performance.now())); // from the stores: its tile's callout
   } else if (d.hud === 'follow') {
@@ -444,7 +496,8 @@ if (UI2) {
   ).join('');
   u2.u2.addEventListener('click', (e) => {
     // the tap that opened a callout presses nothing in it: what appears under the finger is not what was aimed at
-    if (e.target.closest('.u2-call') && performance.now() - (hud.tapAt || 0) < 450) return;
+    // nor a tap while the camera still flies to it (the window's act, Show): the card moves until the flight ends
+    if (e.target.closest('.u2-call') && (performance.now() - (hud.tapAt || 0) < 450 || intro)) return;
     const t = e.target.closest('[data-tab]'),
       b = e.target.closest('[data-hud]'),
       pc = e.target.closest('[data-pc]');

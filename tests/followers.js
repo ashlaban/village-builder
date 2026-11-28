@@ -1,3 +1,4 @@
+// @suite integration
 // Followers (VB-708): a pawn looks to the lord of its weightiest bond (goodwill owed above PATRON.above days of its household's need, or
 // service), keeps him while the bond holds, and its household follows; the tie breaks when the bond ends or the lord refuses it in need;
 // a cycle is refused; standing gains by followers and their own at a discount; a death frees the followers; the tie survives a save.

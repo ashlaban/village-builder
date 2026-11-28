@@ -1,3 +1,4 @@
+// @suite extended
 // Verify late-game states: the small pair, made here if missing (the extended runner makes it first), and the medium ones where made.
 const assert = require('assert'), F = require('./lib/fixtures.js'), { checkState } = require('./lib/invariants.js');
 const VB = require('../src/load.js'), Sim = VB.sim, { compareRankings } = require('./lib/heir-rankings.js');
@@ -14,6 +15,7 @@ for (const name of Object.keys(F.FIXTURES)) {
   for (const f of st.farmsteads) { for (const fd of f.fields) marks.add(fd.tile); if (f.household !== null) for (const p of VB['sim/projects'].projectsOf(st, 'household', f.household)) marks.add(p.steps[p.open].place); }
   const X = VB['sim/expansion'];
   for (const v of st.villages) for (const p of [...v.plots, ...X.livePlots(st, v)]) for (const tr of X.tilesOf(p)) marks.add(tr.tile);
+  for (const v of st.villages) for (const t of v.wood || []) expected.near.add(t); // no house or field in a village's wood (VB-786)
   for (const t of marks) {
     expected.taken.add(t);
     for (const [j] of bfs(st.w, t, SETTLE.apart - 1, () => true).dist) expected.near.add(j);

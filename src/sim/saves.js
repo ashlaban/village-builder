@@ -289,8 +289,13 @@ VB['sim/saves'] = (() => {
   // not its controller's (no pawn.control.plan); a save of format 9 is another build's, and refused (no migration is written).
   // Format 11 (VB-1777): a task at a tile is a goal its kind's methods carry, {kind, site, ...} (sim/kinds GOALS), not {<chain>: tile}, and
   // a command its plan fed is marked by its goal kind and site; a save of format 10 is another build's, and refused (no migration is written).
-  const FORMAT = 11,
-    READS = [11];
+  // Format 12 (VB-1763): a member's leave is its head's dated grant on the household's plan (plan.grants), not st.leaves; a save of
+  // format 11 is another build's, and refused (no migration is written).
+  // Format 13 (VB-1767): an outer levy (an obligation of kind `days`) has its terms, window, asked, named and worked, not `called`,
+  // and st.daysCalls is gone (the days named are on the records); a save of format 12 is another build's, and refused (no migration is
+  // written).
+  const FORMAT = 13,
+    READS = [13];
   function packRel(rel) {
     const a = [];
     for (const [j, r] of rel) {
@@ -426,6 +431,8 @@ VB['sim/saves'] = (() => {
     VB['sim/stores'].heapsLoaded(st); // VB-733: an older save's heap of no rock, and its quern's `rock`
     VB['sim/quern'].quernsLoaded(st);
     VB['sim/byrehouse'].byresLoaded(st); // VB-1665: an older save's farms read as having their byres
+    VB['sim/storehouse'].storehousesLoaded(st); // VB-1898: an older save's farms read as having their storehouses, and the barns they had
+    VB['sim/sites'].sitesLoaded(st); // VB-787: an older save has no sites under way
     for (const hd of st.herds) for (const e of hd.cull || []) if (e.sheep) e.lot ??= 1; // VB-1682: a sheep marked alone
     const R = VB['sim/rng']; // a save from before a system's stream (VB-761's `making`): its stream from the seed and its name, as at seeding
     for (const k of R.SYSTEMS) if (!st.rng[k]) st.rng[k] = R.makeStream(data.seed, k);

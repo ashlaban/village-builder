@@ -1,3 +1,4 @@
+// @suite integration
 // The byre and the autumn count (VB-134): short hay culls the least valuable first (ewes before cows, the bull, the ram and the oxen kept);
 // a byre over 6 cattle is culled to fit; with no hay the household slaughters at once, and unfed animals die after 2 days; slaughter puts
 // meat in the larder, salting makes it keep, unsalted meat spoils; the meal eats from the larder; a fed founders herd loses nothing to
@@ -85,6 +86,24 @@ check(!checkState(st).length, 'founders after 3 years: ' + checkState(st).slice(
 // --- a flock bounded (VB-1682): one standing away from its byre (it grew to half a million on populous small seed 11, reached by no count,
 // hay or hunger) lambs as at home, but has no hay where it stands: in the byre season it goes hungry and its weakest lot dies each day
 // from starveDays; a flock far past its hay is culled by lots of a kind, not one entry an animal
+{
+  // VB-1906: the day's byre work the head's season estimate reads (dayHours) is the job byreJobs posts that day: the fodder while stalled
+  const s = fresh(), h0 = s.households[0], c = cal(Sim.HERD.stall[0] + 1);
+  h0.fodderDay = -1;
+  const fod = Y.byreJobs(s, h0, c).find((j) => j[1] === 'fodder');
+  check(fod && Math.abs(Y.dayHours(s, h0, 'fodder', c) - fod[2].hours) < 1e-9, `dayHours: the fodder's hours ${fod && fod[2].hours}`);
+  check(Y.dayHours(s, h0, 'fodder', cal(Sim.HERD.stall[1] + 20)) === 0 && Y.dayHours(s, h0, 'milk', c) === 0,
+    'dayHours: no fodder out of the stall, no milking in it');
+  // and the milking while a cow is in milk, out of the stall at a working hour
+  const cow = H.herdOf(s, h0, 'cattle').head.find((x) => x.kind === 'cow'), m = { ...cal(Sim.HERD.stall[1] + 20), hour: 8 };
+  check(!!cow, "a cow on the first farm");
+  if (cow) {
+    cow.calved = Math.floor(s.t / Sim.YEAR) + 1;
+    h0.milkDay = -1;
+    const mj = Y.byreJobs(s, h0, m).find((j) => j[1] === 'milk');
+    check(mj && Math.abs(Y.dayHours(s, h0, 'milk', m) - mj[2].hours) < 1e-9 && mj[2].hours > 0, `dayHours: the milking's hours ${mj && mj[2].hours}`);
+  }
+}
 {
   const s = fresh(), h0 = s.households[0], flock = H.herdOf(s, h0, 'sheep');
   VB['sim/droving'].leaveAt(s, h0, s.farmsteads[h0.farmstead].house);

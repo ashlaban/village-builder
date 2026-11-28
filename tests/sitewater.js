@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1583: a site's water is weighed by the site search and carried by the sites a leader chooses among. On drawn maps (tests/lib/tiny.js):
 // the leader's estimate (sim/water siteWater) is the least of the walk to fresh water, the well of the village the site would join and a
 // well of its own at the middle of its band, spread over WELL.payYears; a candidate's score loses SETTLE.perFetch a daily hour, so of two

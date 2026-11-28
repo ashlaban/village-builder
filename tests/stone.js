@@ -1,3 +1,4 @@
+// @suite fast
 // Stone is used (VB-332): a house on the ground may be raised onto a stone foundation (12 loads from the heap, 40 hours, in the slack of
 // early summer or winter), which lifts its standing term (0.20 against 0.15 times the condition) and slows its wear (0.08 a year against 0.1);
 // the stone is picked on a stony meadow tile (lowering it as clearing does) or quarried on hills, a load a trip, only while the household's

@@ -1,3 +1,4 @@
+// @suite integration
 // Foresight's hunger by household-years (VB-571; tools/foresight-hunger.js): a year advanced a day at a time is the plain run's year, and the
 // household-years are read from it; the measures on hand-made household-years: the share hungry, the days a household-year, the share one
 // household holds, the thirds by the head's skill (a household-year with a head on less than half its days left out of them), no thirds

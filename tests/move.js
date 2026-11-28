@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1667: the farmstead placed anywhere reachable on foot. Placed off the landing, the house moves and nothing teleports: the grain (by
 // crop, but for the head's back load), the firewood and the hay lie at the landing as loads to fetch, the carts stand there and the herds
 // with them; the farmstead task drives the herds, fetches the carts and the loads, then fetches its timber and raises the shelter. A lone
@@ -213,7 +214,7 @@ for (const n of [2, 10, 24]) {
   while (VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length) Sim.plan(st, st.player.pawn, 'remove', { i: 0 }); // the move left undone, to the frost
   Sim.setAuto(st, st.player.pawn, false);
   const herds = st.herdsAway.length;
-  VB['sim/lying'].frost(st);
+  VB['sim/lying'].frost(st); VB['sim/lying'].decay(st, 48);
   VB['sim/carts'].cartsFrost(st);
   VB['sim/droving'].frost(st);
   assert.deepStrictEqual(st.lying.map((l) => l.kind), hh.carts.map(() => 'leftCart'), 'only the carts\' loads kept');

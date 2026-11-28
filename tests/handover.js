@@ -1,3 +1,4 @@
+// @suite fast
 // Succession is offered and taken up (VB-824; design.md, Succession: Handed on, and taken up), on a constructed state (tests/lib/tiny.js):
 // the line as it is asked gives the ranking (those who would take it, in order), with why each of the others would not; a holder offers
 // on its own day, at the custom's time, due at the round, the first in line answers, and a no passes the offer to the next at once,

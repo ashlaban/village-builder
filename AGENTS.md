@@ -81,9 +81,9 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - Questions: `node tools/questions.js list|show VB-NNN|answer|archive`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
 - Format: `npm run format` after editing `src/` (Prettier). `index.html` is derived and not in the repository (VB-450): never commit it. The
   page's tests and tools build their own copy, and the Pages workflow builds the site's; `node build.js` writes one to open by hand.
-- Tests (`tests/suites.js`, `docs/testing.md`): `npm test`, fast, 10 seconds; `npm run verify`, fast and integration, 40 seconds; one
+- Tests (`// @suite` headers read by `tests/lib/tiers.js`, `docs/testing.md`): `npm test`, fast, 10 seconds; `npm run verify`, fast and integration, 40 seconds; one
   script, `node tests/NAME.js`. The extended tier, the fixtures, the bench and the bands run at night, never in a task. A new check is
-  built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`) and gets a line in `tests/suites.js`.
+  built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`) and opens with a `// @suite TIER` line.
 - No golden file: a refactor that claims its behaviour unchanged shows it with `node tools/same.js --base REF`, REF the commit it started from.
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report NAME] [--save FILE|--load FILE]`.
 - Numbers before and after: `node tools/balance.js` (food by source against need), `node tests/counters.js` (work counters; `--update`
@@ -94,8 +94,11 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   `writes`, `calibrate`, `wrap`, `shot`, `village-shot`, `cover`, `bench`, `agent-usage`.
 
 ## Finding things
-- Module map: `grep -rn "^// @sys" src`; state schema: `grep -rn "@state" src`; modules in load order: `src/manifest.json`; tunables:
-  `grep -rn "@tunable" src`, beside the tables of `src/sim/rules.js` that several domains read (VB-419).
+- Find a thing by the grep of its declaration, not by a list file (VB-1406): module map `grep -rn "^// @sys" src`; state schema and
+  owners `grep -rn "@state" src`; tunables `grep -rn "@tunable" src`, beside the tables of `src/sim/rules.js` that several domains read
+  (VB-419); verbs `grep -rn "register('" src`; work counters `grep -rn "VB.counter('" src`; job kinds `grep -rn "const KINDS = " src`. The lists not yet turned into declarations (modules
+  in load order `src/manifest.json`, layers `src/layers.json`, owners `src/owners.json`, tiers each test's `// @suite` line)
+  are still read and edited until their step lands (`docs/architecture/modules.md`, Adding things).
 - Source is read through `readSource(file)` (`tools/lib/source.js`), never `readFileSync`, so that `.ts` is read as JavaScript.
 - The terrain's codes, names and grid (`B`, the biomes' names, `treeStage`, `ROCK`, `DEPOSIT`, `hexLocator`, `csample`, a river's kind)
   are `src/world/*` (VB-1501): read them there, not through the `gen` facade, which is the generator and the bake.
@@ -127,7 +130,8 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - A rule of `VB['sim/registry']` is declared or contributed to before the first seed or load, which seals the registry; rules never enter saved state.
 - The page script draws and only reads `st`. It writes to `st` through the `Sim` API and three flags, `visualDirty`, `naturalDeaths`, `driftMul`,
   and clears `rigDirty`, `farmDirty`, `villageDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing; the lint enforces this.
-- A new loop over a growing collection, or over pairs, adds a declared work counter in `VB.COUNTERS`.
+- A new loop over a growing collection, or over pairs, adds a work counter, declared at load by its module beside the loop it counts:
+  `VB.counter(name, meaning)` (`src/vb.js`, VB-1934); `VB.COUNTERS` is the joined list, and `src/vb.js` is not edited for it.
 - A table whose entries may come in any order (icons, a tool's reports, the test lists) is marked `// @merge union` on the line before it,
   an entry on lines of its own: entries added on two branches then merge by name (`tools/merge.js`, VB-1679). Not a table whose order is
   saved state or determinism (`KINDS`, rule contributions, event subscribers).
@@ -145,6 +149,12 @@ Every tool under `tools/` answers `--help` with its options, without running: re
   names it in its PR and goes on. Never place code elsewhere to make room.
   A split is where to think hardest (Kim, 18 November): the session that takes a line of the collector says, before any code moves,
   which responsibilities the module holds and where each belongs; the split follows those, not the line count, and the line is ticked.
+  Before that, it names the lists in the module that every feature appends to (a table, an export block, an `if` a field), and turns
+  those into declarations by their owners, joined in a declared order (target-v2, principle 20; VB-1406); it splits by concern only
+  what is left, and its PR names, for each part, the tasks of the last 50 merged PRs that would have touched it. A split that only
+  moves such a list leaves the parent as hot as before (`docs/plans/VB-1406-overlap.md`, section 4).
+- What a feature adds to a shared list is declared by its owner, beside its code; a registry or a tool joins it in a declared order,
+  never by load order (target-v2, principle 20). Where each kind of thing is declared: `docs/architecture/modules.md`, Adding things.
   The seven modules the sweep left over the line are in `tests/lint-baseline.json` at their lengths, which only fall.
   Width the same way (VB-415): a module over 15 exports (`tests/width-baseline.json` holds today's 21 at their counts) may add one only
   with such a line open; the `sim` facade is not counted, nor an export read only by registries (`REGISTRIES` in `tests/lint.js`: `sim/kinds`, `sim/clock`; VB-454).

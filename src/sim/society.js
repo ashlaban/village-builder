@@ -3,6 +3,7 @@ VB['sim/society'] = (() => {
   const { living, settlement } = VB['sim/records'];
   const { personEvent } = VB['sim/records'];
   const { next: rnd, drawer } = VB['sim/rng'];
+  const Dress = VB['sim/dress'];
   const { issue, register } = VB['sim/commands'];
   const { ask } = VB['sim/decisions'];
   const Culture = VB['culture'],
@@ -11,7 +12,7 @@ VB['sim/society'] = (() => {
     { inForceAt } = VB['sim/customs'];
   const { initRelations } = VB['sim/relations'],
     { raiseTie } = VB['sim/ties'];
-  const { YEAR, SPEED, OFFICE, cal, TRAITS, HERD, DAY } = VB['sim/rules'],
+  const { YEAR, SPEED, OFFICE, cal, TRAITS, HERD, DAY, GATHERING } = VB['sim/rules'],
     { houseTerm } = VB['sim/house'],
     { SOCIAL } = VB['sim/ties'],
     { WORKDAY } = VB['sim/workdays'];
@@ -143,7 +144,11 @@ VB['sim/society'] = (() => {
         const o = st.pawns[q];
         if (o.alive && settlementIdOf(st, o) === centre) kin++;
       }
-    s.tie = Math.min(1, Math.exp(-d / TIE.hours) + Math.min(0.3, kin * 0.04));
+    // VB-296: to one gathering with the centre this winter (the same host, the same year, read from the villages' choices)
+    const gc = va.gathering,
+      gk = vb.gathering,
+      together = gc && gk && gc.host !== null && gc.host === gk.host && gc.year === gk.year ? GATHERING.tie : 0;
+    s.tie = Math.min(1, Math.exp(-d / TIE.hours) + Math.min(0.3, kin * 0.04) + together);
     s.distance = d;
     s.kinLinks = kin;
   }
@@ -217,15 +222,16 @@ VB['sim/society'] = (() => {
       const ale = aleStanding(st, holdingOf(st, p.id));
       if (ale > 0) parts.push(['Ale poured', ale]);
     }
+    if (Dress.rags(st, p)) parts.push(['In rags', -Dress.DRESS.shame]); // VB-363
     const led = Followers.followerTerm(st, p.id); // followers (VB-708): each by its bond's weight, their own at a discount
     if (led > 0) parts.push(['Followers', led]);
     const given = deedNow(st, p, 'gift');
     if (given >= 1) parts.push(['Gifts given', DEED.gift * (1 - Math.exp(-given / DEED.giftScale))]);
-    // the village's work days this year (VB-120): turned out, and, as a holder, stayed away
+    // the village's work days this year (VB-120): turned out (staying away costs goodwill owed the alderman now, a breach of the
+    // routine's levy, VB-1768; pawn.workdays.missed is its record)
     const wd = p.workdays;
     if (wd && wd.year === cal(st.t).year) {
       if (wd.came) parts.push(['Turned out for the work days', wd.came * WORKDAY.came]);
-      if (wd.missed) parts.push(['Stayed away from the work day', wd.missed * WORKDAY.missed]);
     }
     return parts;
   }

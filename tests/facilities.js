@@ -1,3 +1,4 @@
+// @suite fast
 // Facilities (VB-361; design.md, The mill and the loom, the kiln and the quarry: Facilities): a registry of built things on sites, each
 // founded by its owner's head through the verb `found`, its stages the steps of the owner's project plan (the job kind raisestage), the
 // loads each stage takes reserved at the founding and taken as it is done (sim/stores, reason `build`); a half-built one outlives its

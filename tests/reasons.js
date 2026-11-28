@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1551: Reasons shown (design.md section 7): who chose a pawn's present act, and why, a view the card reads. Every `by` but `duty`
 // (VB-1553's) on a small constructed state; the causes the view names (a deadline today, a window each day, a field window closing on the
 // head's expected frost, a store under the head's target); it writes nothing, draws nothing, and no simulation module names it.

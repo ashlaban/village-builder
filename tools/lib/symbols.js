@@ -6,8 +6,8 @@ const { spawnSync } = require('child_process');
 
 // The list and bookkeeping files every task appends to: not a footprint while they are lists. When a step of VB-1406 turns one into
 // declarations beside their owners, it takes that file off this list.
-const IGNORED = new Set(['src/manifest.json', 'src/layers.json', 'src/owners.json', 'src/page.json', 'src/vb.js', 'src/sim.js',
-  'tests/suites.js', 'tests/counters.json', 'BACKLOG.md', 'BACKLOG_ARCHIVE.md', 'QUESTIONS.md', 'QUESTION_ARCHIVE.md', 'docs/tuning.md',
+const IGNORED = new Set(['src/manifest.json', 'src/layers.json', 'src/owners.json', 'src/page.json', 'src/sim.js',
+  'tests/counters.json', 'BACKLOG.md', 'BACKLOG_ARCHIVE.md', 'QUESTIONS.md', 'QUESTION_ARCHIVE.md', 'docs/tuning.md',
   'docs/agents/changes.md', 'docs/design-changelog.md']);
 const ignored = (f) => IGNORED.has(f) || /^backlog\//.test(f) || /^docs\/agents\/usage\//.test(f) || /^docs\/bench\//.test(f);
 // a module's parts that merge by themselves (tools/merge.js): never a footprint

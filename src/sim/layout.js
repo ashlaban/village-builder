@@ -207,6 +207,8 @@ VB['sim/layout'] = (() => {
       fence: null,
       meadows: [],
       booth: null,
+      byre: null, // none until built (sim/byrehouse); seeding gives the farms that stand then theirs (seedByres), and a save keeps null as none
+      storehouse: null, // none until built (sim/storehouse); seeding gives the farms that stand then theirs (seedStorehouses), as the barn (seedBarns)
       grade: 'ground', // a house stands on the bare ground until raised onto stone (sim/building, VB-332)
     };
   }

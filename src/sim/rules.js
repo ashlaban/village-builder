@@ -261,6 +261,11 @@ VB['sim/rules'] = (() => {
     dayWalk: 12,
     stay: 1,
   };
+  // @tunable LYING: what lies out degrades (VB-1910; design.md, Goods and the farming year, Risk; Decided, Kim, 27 Nov: over time, no
+  // condition on each item): frostLoss, the share of a lying load (sim/lying) lost each game day once the year's frost has come (Proposed,
+  // a first value); quantum, the load (in a load's units, rations of weight: a sack of grain's 10) under which what is left is dropped.
+  // The wet day's share waits for a wet day in the sim (VB-2000).
+  const LYING = Object.freeze({ frostLoss: 0.25, quantum: 10 });
   // @tunable WINTER: the ground by season (VB-808; design.md, Climate and travel beyond walking, The ground by season; docs/plans/VB-190.md,
   // section 5.2), read by sim/walking as the winter's dates fall (sim/climate): ice, the cost of a tile of lake, river or sound ice that
   // bears, crossed with no slope (a river needs no ford); marsh, frozen marsh's ground in place of TERRAIN's 5 (the dear ground of the
@@ -470,6 +475,9 @@ VB['sim/rules'] = (() => {
     barn: 6,
     barnCold: 0.5,
     from: 9,
+    mix: 0.5, // VB-296: the floor added to a partner's weight on the green, so that strangers of other villages are drawn (an ale evening's)
+    contacts: 6, // the most new contacts a pawn makes a day of it (Kim, 10 Nov)
+    tie: 0.15, // added to a village's tie to its culture's centre when both go to one gathering (VB-296)
   };
   const HELP = {
     // a holder wants floorDays and its own reserve (TRAITS.acts.generosity.reserve, by its generosity: 0 to 40 days; VB-520) of the
@@ -610,8 +618,12 @@ VB['sim/rules'] = (() => {
     greenReach: 4,
     // a barn (VB-255; Kim, 10 Nov: QUESTION_ARCHIVE.md, "VB-255: the barn as a project"): a second store building on the farm's block,
     // built by a plot's cottage's stages (hours as theirs) with `timber` loads felled in the village's wood for its walls; a farm with one
-    // loses `loss` times the grain to spoilage (ECON.storeLoss, sim/hunger) and the barn hay (HERD.hayLoss, sim/byre)
+    // loses `loss` times the hay to spoilage (HERD.hayLoss, sim/byre), the grain no longer (VB-1898: the storehouse keeps it)
     barn: Object.freeze({ timber: 40, hours: Object.freeze([30, 60, 30]), loss: 0.5 }),
+    // a storehouse on posts (VB-1898; design.md, Settlements and look, Farmstead, Decided 27 Nov; its cost Proposed, as the byre's): its
+    // walls take `timber` loads felled in the village's wood, `hours` its walls' and its roof's (sim/storehouse); a farm with one loses
+    // `loss` times the grain to spoilage (sim/hunger storeLoss)
+    storehouse: Object.freeze({ timber: 20, hours: Object.freeze([40, 20]), loss: 0.5 }),
     // a byre (VB-1665; Kim, 24 Nov 2026: "a byre of about 20 timber loads and 60 hours houses six"): its walls take `timber` loads felled
     // in the village's wood; `hours` its walls' and its roof's (sim/byrehouse); it houses HERD.byre places
     byre: Object.freeze({ timber: 20, hours: Object.freeze([40, 20]) }),
@@ -726,6 +738,7 @@ VB['sim/rules'] = (() => {
     HELP,
     GOODWILL,
     TRAVEL,
+    LYING,
     WINTER,
     BOOTH,
     HERD,

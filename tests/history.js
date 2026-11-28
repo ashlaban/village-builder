@@ -1,3 +1,4 @@
+// @suite extended
 // VB-088: history growth at fixed fixture windows; clocks are read here, never by simulation modules.
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const F = require('./lib/fixtures.js'), { measure, growth, report, timing, NAMES } = require('./lib/cost.js');

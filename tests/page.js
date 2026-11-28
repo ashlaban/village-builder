@@ -1,3 +1,4 @@
+// @suite integration
 // The page in verify (VB-409): the built page in jsdom on a 36 by 26 island (a size added to the page's own here, which start at 120 by
 // 85), a founders game started from the address's hash, some days run through the speed buttons, and each panel opened once: whom to
 // play, the overlays, the People sheet, a farm's card and its tabs, a pawn's card and its History tab, a village's Customs tab, the

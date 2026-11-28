@@ -47,7 +47,7 @@ VB['sim/allotment'] = (() => {
   function reallot(st, v) {
     for (const plot of [...livePlots(st, v)]) {
       if (plot.open < 1 || plot.to !== null || plot.by !== undefined) continue;
-      const pick = allot(st, v, plot);
+      const pick = plot.split ? heirOpen(st, plot) : allot(st, v, plot); // a house by an heir's fields is its alone (VB-034)
       if (pick !== null) {
         plot.to = pick;
         delete plot.vacant;
@@ -107,7 +107,9 @@ VB['sim/allotment'] = (() => {
   // as it allots.
   on('plotCleared', (st, { plot }) => {
     const v = st.villages[villageOf(plot)];
-    if (plot.by !== undefined) {
+    if (plot.split)
+      plot.to = heirOpen(st, plot); // a house by an heir's fields (VB-034): its, or nobody's
+    else if (plot.by !== undefined) {
       plot.to = heirOpen(st, plot);
       if (plot.to === null) return handToVillage(st, plot, 'the heir it was cleared for cannot take it');
     } else plot.to = allot(st, v, plot);

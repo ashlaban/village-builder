@@ -1,3 +1,4 @@
+// @suite fast
 // sim/leanings, pulls (VB-398): what draws a person towards a way of a custom, as the daily drift weighs it, for the note of a voice on the
 // Customs tab. A view: it changes nothing.
 const assert = require('assert');

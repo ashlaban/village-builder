@@ -91,6 +91,10 @@ VB['sim/help'] = (() => {
       if (st.pawns[id].alive && (best === null || st.pawns[id].age > st.pawns[best].age)) best = id;
     return best;
   }
+  VB.counter(
+    'foodAsked',
+    'Asks for food made by a hungry head at its plan review, one an asked party (sim/help askFood, VB-691)',
+  );
   // The head of household hh asks for food (VB-691; design.md, The gift), at a review of its plan: on its planning day, or when its grain
   // above the seed runs out (sim/stores wakes the plan). While its spare grain covers fewer than HELP.askBelow days, and it has not asked
   // this season, it asks for food until the next harvest (askDaysAt): an offer on the basis `ask` to the head of each kin household
@@ -171,6 +175,10 @@ VB['sim/help'] = (() => {
     if (want > 1e-9 && shortOfPeople(st, hh)) hh.fellShort = Math.floor(st.t / DAY);
     return true;
   }
+  VB.counter(
+    'patronWeighed',
+    "Households of its village weighed for the richest patron by a hungry household's ask, a season (sim/help, VB-464)",
+  );
   // The richest household of hh's village above the feast's threshold (rule 'feast', VB-458) whose head would be asked: not hh, nor the
   // kin near or the lord's household asked already, nor a head who refused it this season; ties by id. Over the village's farms.
   function patronFor(st, hh, near, lh, head) {
@@ -244,6 +252,10 @@ VB['sim/help'] = (() => {
   // by one of the giver's own; the receiver's holder answers, and goodwill is booked on arrival (sim/exchange).
   const yearOf = (t) => Math.floor(t / YEAR);
   const { tieOf } = VB['sim/ties'];
+  VB.counter(
+    'giftTiesWeighed',
+    'Ties of a holder weighed for the good-year gift, at most 32, on its one planning day a year (sim/help, VB-460)',
+  );
   // Why household hh gives no unasked gift now, or the gift {to, n, carrier}
   function goodYearGift(st, hh) {
     const id = hh.holder;

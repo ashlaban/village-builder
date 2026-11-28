@@ -1,3 +1,4 @@
+// @suite fast
 // The player is the line (VB-213, VB-1121): when the played pawn dies the player goes on as its successor, the first of its line by its
 // village's inheritance customs, worked out beforehand (Sim.successor) and not chosen from a list; the widow's right to the farm, a
 // successor's own farm or its refusal do not unmake it, and a child is played as a child. In life the player stays with its pawn, retired

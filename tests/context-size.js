@@ -1,3 +1,4 @@
+// @suite fast
 // What every sub-agent loads before it reads its task: AGENTS.md and .claude/agents/vb-task.md. Each of its calls re-reads them, so
 // their size is paid a hundred times a task. A target, never a failure (docs/review-agent-workflow.md, section 8).
 const fs = require('fs'), path = require('path'), { target } = require('./lib/targets.js');

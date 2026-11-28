@@ -1,3 +1,4 @@
+// @suite integration
 // VB-058: the village green and well, built by the village. A one-farm village has neither and never starts them, even with the routine
 // forced; a village that gains a second occupied farm may choose the work at its meeting (VB-257), and its review makes it a project plan
 // of the village (VB-123): the green's tile, free and passable between the farms, nearest their mean position, becomes the village's; the
@@ -56,7 +57,7 @@ st.households[settler.household].grain.barley += 2000; // a family that can spar
 const site = X.findSite(st, v);
 assert.ok(site, 'room to settle beside the lone farm');
 const party = { all: [settler.id], followers: [] };
-assert.strictEqual(issue(st, { actor: settler.id, verb: 'leave', args: { from: home.id, village: v.id, party, house: site.house, field: site.land }, source: 'round' }), true);
+assert.strictEqual(require('./lib/settled.js')(VB, st, settler.id, { from: home.id, village: v.id, party, house: site.house, field: site.land }), true);
 const joined = st.t, oldCentre = v.center;
 assert.strictEqual(Green.houses(st, v).length, 2, 'two occupied farms');
 assert.ok(VB['sim/routines'].VILLAGE_ROUTINES.green.available(st, v) && VB['sim/routines'].chooseRoutines(st, v).includes('green'), 'the meeting may choose it');

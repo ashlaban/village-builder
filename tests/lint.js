@@ -1,3 +1,4 @@
+// @suite fast
 // Structure lint: every source module is listed once and has an @sys header on line 1; no line over 160 characters, clock or unseeded random
 // (`// lint-allow: clock <reason>` exempts a line); the page script only writes the allowed fields of st. The page script's files
 // (src/page/*.js, listed in src/page.json; VB-053) get the structure checks and the page rule, not the clock rule: the page may read the clock.
@@ -80,8 +81,8 @@ for (const f of ['src/body.html', ...pageFiles]) readSource(f).split('\n').forEa
 // Tunables (VB-419): a table that left sim/rules keeps a `// @tunable NAME: meaning` line in the comment just above it, so that
 // `grep -rn "@tunable" src` finds it wherever it lives (the tables still in sim/rules are found there); each such line names the table
 // defined just below it. A table that leaves sim/rules joins LEFT_RULES.
-const LEFT_RULES = ['AWAY', 'BIRTH', 'CALL', 'CHILD', 'COMMONS', 'COURT', 'CROPS', 'CROWD', 'DAYS', 'DIRNAME', 'FEAST', 'FORAGE',
-  'FOUNDERS', 'GIFT', 'GRAZE', 'GROUND', 'HOUSE', 'IDLE', 'MATCH', 'MOOD', 'PATHS', 'PLOT_PRIO', 'RIVER', 'ROLES', 'ROTATIONS', 'ROUTE', 'SEASONS', 'SERVICE',
+const LEFT_RULES = ['AWAY', 'BIRTH', 'CALL', 'CHILD', 'COMMONS', 'COURT', 'CROPS', 'CROWD', 'DIRNAME', 'FEAST', 'FORAGE',
+  'FOUNDERS', 'GIFT', 'GRAZE', 'GROUND', 'HOUSE', 'IDLE', 'MATCH', 'MOOD', 'OUTER', 'PATHS', 'PLOT_PRIO', 'RIVER', 'ROLES', 'ROTATIONS', 'ROUTE', 'SEASONS', 'SERVICE',
   'SLOPE', 'SOCIAL', 'SOIL', 'TERRAIN', 'TIE', 'TILTH', 'WISH', 'WORKDAY'];
 const tunables = new Set();
 for (const f of files) {

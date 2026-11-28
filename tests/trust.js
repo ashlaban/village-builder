@@ -1,3 +1,4 @@
+// @suite integration
 // Held by kin when nobody can come (VB-309; design.md, Households short of people): a household of at most one grown member whose ask for
 // food falls short, with no relative and no servant to come, goes to its nearest kin household, which holds the farm in trust: it works
 // the fields as its own, the owner, holder and line unchanged, the house empty. The trust ends at the holder's marriage, a servant at the

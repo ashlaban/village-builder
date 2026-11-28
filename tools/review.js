@@ -44,7 +44,7 @@ const HOLDOUT = true;
 const EXCLUDE = ['index.html', 'package-lock.json', 'BACKLOG.md', 'BACKLOG_ARCHIVE.md', 'QUESTION_ARCHIVE.md', 'docs/img', 'docs/agents/usage', 'docs/bench'];
 const BASELINES = /^tests\/(.*baseline.*\.json|counters\.json)$/;
 const CAP = 60000;
-const RUNNERS = ['tests/suites.js', 'tests/run.js']; // lists and runners of tests, not tests
+const RUNNERS = ['tests/suites.js', 'tests/run.js']; // the runner and its schedule (FIRST), not tests; a test's tier is its @suite line
 
 // ---- small helpers
 const fnv1a = (s) => { let h = 0x811c9dc5; for (const c of Buffer.from(s)) h = Math.imul(h ^ c, 0x01000193) >>> 0; return h; };
@@ -70,6 +70,8 @@ function facts(text, file) {
     if (!n || typeof n.type !== 'string') return;
     if (n.type === 'CallExpression' && (n.callee.name === 'register' || n.callee.property?.name === 'register') && n.arguments[0]?.type === 'Literal')
       out.verbs.add(n.arguments[0].value);
+    if (n.type === 'CallExpression' && n.callee.object?.name === 'VB' && n.callee.property?.name === 'counter' && n.arguments[0]?.type === 'Literal')
+      out.counters.add(n.arguments[0].value); // a counter declared by its module (VB-1934)
     if (n.type === 'VariableDeclarator' && n.id.name === 'KINDS' && n.init?.type === 'ObjectExpression') keys(n.init).forEach((k) => out.kinds.add(k));
     if (n.type === 'AssignmentExpression' && n.left.type === 'MemberExpression') {
       const l = n.left, name = l.property?.name;

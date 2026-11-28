@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1951: a house's gate (sim/entrances; Kim, 27 Nov 2026). On a drawn map (tests/lib/tiny.js): every generated house has a gate on a
 // side a route may cross, facing its village's green when no way is worn near; a route leaves and enters a house by its gate alone,
 // however far round (Kim, 27 Nov: a hard rule); a walk passes the gate's point; a gate opening on land no route crosses is missed by

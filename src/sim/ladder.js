@@ -17,6 +17,7 @@ VB['sim/ladder'] = (() => {
   const { BUILDS } = VB['sim/camp'];
   const { barnWhy } = VB['sim/aims'];
   const { byreWhy, byreSteps } = VB['sim/byrehouse'];
+  const { storehouseWhy, storehouseSteps } = VB['sim/storehouse'];
   const { HERD } = VB['sim/rules'];
   const sum = (a) => a.reduce((s, x) => s + x, 0);
   // ---- the tables: later rungs (a timber house) and outbuildings (a byre) are added here, with the rules that build them ----
@@ -57,14 +58,21 @@ VB['sim/ladder'] = (() => {
     needs: { timber: 0, stone: BUILD.foundationStone, hours: BUILD.foundationHours },
     gives: { wear: HOUSE.wearStone, standing: HOUSE.termStone },
   });
-  // Each outbuilding: `from` the rung the farm must stand at, `needs` as a rung's, `gives` in the sim's terms (a barn: the grain's and
-  // the hay's spoilage times `loss`, sim/hunger, sim/byre); `kinds` its stages' job kinds. The making of the same name (sim/makings)
+  // Each outbuilding: `from` the rung the farm must stand at, `needs` as a rung's, `gives` in the sim's terms (a storehouse: the grain's
+  // spoilage times `loss`, sim/hunger; a barn: the hay's, sim/byre); `kinds` its stages' job kinds. The making of the same name (sim/makings)
   // begins it, and the farm records it built as f[what]: sim/upgrade's chain `outbuilding` builds any of them so (VB-1663).
   const OUTBUILDINGS = Object.freeze({
+    // the storehouse (VB-1898): the threshed grain and the food keep in it
+    storehouse: {
+      from: 'cottage',
+      needs: { timber: BUILD.storehouse.timber, stone: 0, hours: sum(BUILD.storehouse.hours) },
+      gives: { store: 'grain', loss: BUILD.storehouse.loss },
+      kinds: storehouseSteps(-1).map((s) => s.kind),
+    },
     barn: {
       from: 'cottage',
       needs: { timber: BUILD.barn.timber, stone: 0, hours: sum(BUILD.barn.hours) },
-      gives: { store: true, loss: BUILD.barn.loss },
+      gives: { store: 'hay', loss: BUILD.barn.loss },
       kinds: barnSteps(-1).map((s) => s.kind),
     },
     // the byre (VB-1665): the animals' places through the stall winter (HERD.byre, sim/byre); a farm without one winters them in the open
@@ -196,7 +204,7 @@ VB['sim/ladder'] = (() => {
     timber: (st, hh, f) => own(st, hh, f) || timberRule(st, hh),
   };
   const timberRule = (st, hh) =>
-    Projects.underWay(st, hh.id, 'timberhouse') ? `the household has a timber house under way` : timberWhy(st, hh);
+    Projects.underWay(st, hh.id, 'timberhouse') ? `the household has a farmhouse under way` : timberWhy(st, hh);
   // the stone foundation's step (sim/building buildStep): a house from the cottage up on the ground, none begun; beside any other project
   // (VB-1668)
   const stoneWhy = (st, hh, f) =>
@@ -210,6 +218,7 @@ VB['sim/ladder'] = (() => {
           : null);
   // an outbuilding: none built, none under way, and its making's own check (a barn: sim/aims barnWhy)
   const OUT_WHY = {
+    storehouse: (st, hh, f) => own(st, hh, f) || storehouseWhy(st, hh),
     barn: (st, hh, f) => own(st, hh, f) || barnWhy(st, hh),
     byre: (st, hh, f) => own(st, hh, f) || byreWhy(st, hh),
   };

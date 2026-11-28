@@ -1,3 +1,4 @@
+// @suite integration
 // Leather (VB-911, sim/leather): a household's shoes wear by its walkers a day and its team's harness by the years; a hide is cut at home into
 // LEATHER.pairs pairs of shoes, or into harness that makes good LEATHER.harnessMend of it; in winter, or in any season when nearly worn out.
 // A slaughtered beast of the cattle gives a hide (sim/byre). The hide's need term reads a year of the wear. Populous at seed 8 on the small
@@ -30,6 +31,11 @@ check(near(hh.shoes, n * LEATHER.keep - n / LEATHER.shoeDays), `a day's wear: ${
 const team = hasTeam(st, hh);
 if (team) check(near(hh.harness, 1 - 1 / (LEATHER.harnessYears * YEAR_DAYS)), `the team's harness worn a day: ${hh.harness}`);
 else check(hh.harness === undefined, 'no team: no harness worn');
+// a game year's wear: YEAR_DAYS / shoeDays pairs a walker, a pair lasting between half a year and a year (shoeDays read in game days, not real ones)
+hh.shoes = 1000;
+for (let d = 0; d < YEAR_DAYS; d++) L.wearDay(st);
+check(near(1000 - hh.shoes, (n * YEAR_DAYS) / LEATHER.shoeDays), `a year wears ${n} * YEAR_DAYS / shoeDays pairs: ${1000 - hh.shoes}`);
+check(YEAR_DAYS / LEATHER.shoeDays >= 1 && YEAR_DAYS / LEATHER.shoeDays <= 2, `a pair lasts half a year to a year: ${YEAR_DAYS / LEATHER.shoeDays} pairs a year`);
 hh.shoes = 0.5;
 for (let d = 0; d < 10 * LEATHER.shoeDays; d++) L.wearDay(st);
 check(hh.shoes === 0, 'worn to nothing, not below');

@@ -1,3 +1,4 @@
+// @suite integration
 // Stakes (VB-158, sim/stakes) on tiny worlds: a field or meadow project stakes its tile instead of owning it; work renews the stake and
 // breaking the ground makes it the household's; an unworked stake lapses and ends its project; a household that dissolves drops its stakes;
 // a household with no free tile may contest a weakened stake, and the village's Disputed claims custom settles it.

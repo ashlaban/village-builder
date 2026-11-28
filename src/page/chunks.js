@@ -47,17 +47,102 @@ function recolour(wd, tiles) {
 }
 const dropPaint = (wd) => paints.delete(wd);
 // out, if given, gets out.way: the chunk's ways over its fields and meadows, a canvas of their own (draw/paths drawOver), or null.
+// A chunk is painted in the season's look its bands show (seasonLookOf): read when the job starts, the job painted again if a band turns
+// meanwhile (staleChunk).
 function* chunkJob(wd, l, cx, cy, canvas, out) {
   const ctx = canvas.getContext('2d'),
-    img = ctx.createImageData(TEX, TEX);
-  yield* Bake.bakeChunk(wd, paintOf(wd), l, cx, cy, img);
+    img = ctx.createImageData(TEX, TEX),
+    look = seasonLookOf(wd);
+  yield* Bake.bakeChunk(wd, paintOf(wd), l, cx, cy, img, look);
   ctx.putImageData(img, 0, 0);
   yield 1;
-  Rivers.drawChunk(wd, ctx, LV[l], cx, cy, l === 0);
-  Paths.drawChunk(wd, ctx, LV[l], cx, cy, l);
-  if (out) out.way = Paths.drawOver(wd, LV[l], cx, cy, l, () => makeCanvas(TEX, TEX));
+  Rivers.drawChunk(wd, ctx, LV[l], cx, cy, l === 0, look);
+  Paths.drawChunk(wd, ctx, LV[l], cx, cy, l, look);
+  if (out) out.way = Paths.drawOver(wd, LV[l], cx, cy, l, () => makeCanvas(TEX, TEX), look);
   yield 1;
-  Bake.decorateChunk(wd, ctx, l, cx, cy, SPR || (SPR = landSprites()));
+  Bake.decorateChunk(wd, ctx, l, cx, cy, SPR || (SPR = landSprites()), look);
+}
+// ---- the season on the map (VB-083; draw/season): the land's tint, snow and ice, a band of rows at a time ----
+// The page shows each band in a look (seasonShown, draw/season's codes) and paints its chunks in it. When the run's look of a band
+// differs (a date has fallen, or the leaves turn), one band a frame takes its new look: the chunks over its rows are marked stale and
+// painted again within the frame budget, shown until then, as the tree stages' are (refreshTrees); its fields, meadows and roofs take
+// their snow at once. It reads st.climate and st.t and writes nothing to the run (Rules for cost 7). A world swapped in starts from
+// summer's look, the look its overview was painted in (page/loader paintOverview paints before the swap).
+let seasonShown = null,
+  seasonRows = null,
+  seasonFor = null;
+const seasonLookOf = (wd) => (wd === w && seasonFor === w ? seasonRows : null);
+// Whether snow lies, as shown, on tile i's band (fields, meadows and roofs: page/settlement).
+const snowShown = (i) =>
+  seasonFor === w && !!seasonRows && Season.tintOf(seasonRows[(i / w.COLS) | 0]) === Season.TINT.snow;
+function refreshSeason() {
+  if (!w) return;
+  if (seasonFor !== w) {
+    seasonFor = w;
+    seasonShown = new Array(Season.looks(null).length).fill(0);
+    seasonRows = null;
+  }
+  const now = Season.looks(st);
+  const b = now.findIndex((c, k) => c !== seasonShown[k]);
+  if (b < 0) return;
+  seasonShown[b] = now[b];
+  seasonRows = seasonShown.some((c) => c) ? Season.rowLooks(w, seasonShown) : null;
+  const B = Season.looks(null).length,
+    lo = Math.ceil((b * w.ROWS) / B),
+    hi = Math.ceil(((b + 1) * w.ROWS) / B) - 1,
+    reach = 36 + 2 * w.R,
+    rect = [0, w.hy[lo * w.COLS] - reach, w.W, w.hy[hi * w.COLS] + reach];
+  for (const l of [0, 1, 2]) {
+    const [x0, y0, x1, y1] = rangeIn(l, rect);
+    for (let cy = y0; cy <= y1; cy++)
+      for (let cx = x0; cx <= x1; cx++) {
+        staleChunk(ckey(l, cx, cy));
+        const o = l === 2 && overOf(cx, cy);
+        if (o) o.stale = true;
+      }
+  }
+  for (const o of roofSprites) roofLook(o);
+  iceKey();
+}
+// A building whose roof takes snow (page/settlement drawFarm): kept, and shown in the snow of its band now.
+function roofSprite(sp, tile) {
+  const o = { sp, base: sp.texture, tile };
+  roofSprites.push(o);
+  roofLook(o);
+}
+function roofLook(o) {
+  const t = (snowShown(o.tile) && art.snowOf && art.snowOf.get(o.base)) || o.base;
+  if (o.sp.texture !== t) o.sp.texture = t;
+}
+// The key of the ice, beside the calendar while any is shown: which ice bears and which does not, the same on every water.
+function iceKey() {
+  const el = $('iceKey');
+  if (!el) return;
+  const shown = seasonShown.some((c) => Season.lakeOf(c) || Season.seaOf(c));
+  el.hidden = !shown;
+  if (shown && !el.childElementCount)
+    for (const [k, words] of [
+      [Season.ICE.bears, 'Ice that bears'],
+      [Season.ICE.weak, 'Ice that does not bear: freezing or breaking up'],
+    ]) {
+      const row = document.createElement('span'),
+        sw = document.createElement('i');
+      sw.style.background = Season.ICE_CSS[k];
+      const w = document.createElement('b');
+      w.textContent = words;
+      row.append(sw, w);
+      el.append(row);
+    }
+  if (shown && !el.dataset.tap) {
+    // words only after a tap on the key; a second tap, or a tap elsewhere, hides them again
+    el.dataset.tap = '1';
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      el.classList.toggle('open');
+    });
+    document.addEventListener('click', () => el.classList.remove('open'));
+  }
+  if (!shown) el.classList.remove('open');
 }
 function addChunk(l, cx, cy, canvas, wayCanvas) {
   const s = LV[l].size,

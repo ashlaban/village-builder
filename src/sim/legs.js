@@ -79,7 +79,7 @@ VB['sim/legs'] = (() => {
     const j = a.job,
       o = j && j.owner;
     if (!o || (o.type !== 'household' && o.type !== 'village')) return undefined;
-    if (a.basis === 'owed' || a.basis === 'helper') return 'owed';
+    if (a.basis === 'owed' || a.basis === 'helper' || a.basis === 'hired') return 'owed';
     return a.opener === 'head' ? 'head' : 'pawn';
   }
   function stamp(a, l) {
@@ -177,6 +177,10 @@ VB['sim/legs'] = (() => {
     while (j >= 0 && wet(j)) j--;
     return j < 0 ? due : Math.max(t + 1, t + Math.floor(h[j] * TICKS));
   }
+  VB.counter(
+    'walkPoint',
+    'Path points passed, their tiles trodden as a walk ends or is cut (sim/legs treadTo; VB-205, VB-473)',
+  );
   // The tiles entered from point `from` to point `to` are trodden; the herds a herder drives wear the way too (VB-136): only a herder out
   // with them, or bringing them home, can drive any.
   function treadTo(st, a, from, to) {
@@ -276,6 +280,10 @@ VB['sim/legs'] = (() => {
     stopAt(st, a, l, (l.due - l.t) / TICKS);
     return false;
   }
+  VB.counter(
+    'walkStep',
+    'Legs a step takes from the due-queue as they end: walks and waits (sim/legs dueLegs, for sim/agents stepAgents; VB-473)',
+  );
   // The legs due at this step are taken from the queue, in order, each pawn's leg ended (null) and given to fn(st, a, leg) (sim/agents
   // stepAgents): what the pawn does next is fn's.
   function dueLegs(st, fn) {

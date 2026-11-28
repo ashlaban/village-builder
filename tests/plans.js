@@ -1,3 +1,4 @@
+// @suite integration
 // VB-248: the hidden plans made explicit. A household's standing plan holds its targets (the woodpile by season, hay in winters, the fields
 // wanted), the land step with its seam for a tile the plan names, the year's herd count, and its reservation of seed in sim/stores.
 // On the small islands (VB-854).

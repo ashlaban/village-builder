@@ -80,6 +80,10 @@ VB['sim/followers'] = (() => {
   };
   const EMPTY = new Set();
   const householdOf = (st, p) => (p.household === null ? null : st.households[p.household]);
+  VB.counter(
+    'followerBonds',
+    "A pawn's balances and followers read for its ties, at its lord's planning days after harvest (sim/followers, VB-708)",
+  );
   // ---- the table of bonds: each row the weight of id's bond to lord (0: none), and the lords it may hold one to ----
   // A patron is of the follower's village (design.md: a household of the village); a servant's master is the holder of its household.
   const BONDS = [
@@ -135,6 +139,7 @@ VB['sim/followers'] = (() => {
       }
     return best;
   }
+  VB.counter('followerWalk', 'Steps up a chain of lords, to refuse a cycle (sim/followers, VB-708)');
   // whether lord's chain of lords reaches id (a tie id -> lord would close a cycle); no cap on depth
   function reaches(st, lord, id) {
     for (let x = lord, n = 0; x !== null; x = lordOf(st, x), n++) {
@@ -175,6 +180,7 @@ VB['sim/followers'] = (() => {
     died: 'its lord died',
     gone: 'it died',
   };
+  VB.counter('followerTies', 'Ties of a follower to a lord begun (sim/followers, VB-708)');
   // A tie begun by a bond of id's own: told, and the lord's standing at once
   function begin(st, id, b) {
     setLord(st, id, b.lord);
@@ -274,8 +280,13 @@ VB['sim/followers'] = (() => {
       BONDS[0].weight(st, f, lord) > 0
     );
   }
+  VB.counter(
+    'patronDays',
+    "Client households made to owe their patron's household its days, once a year each (sim/followers, VB-464)",
+  );
   // On the patron's planning day after harvest, each client household owes the patron's household PATRON.days days, source `patron`
-  // (sim/days calls them), to the next autumn, once a year; the days are work, not goodwill, so the balance stands as it was. Nothing
+  // (laid by the verb levy, its days asked and named in sim/levies), to the next autumn, once a year; the days are work, not
+  // goodwill, so the balance stands as it was. Nothing
   // of the tie is stored but looksTo: the balance's decay ends the bond, the tie and next year's days. Over the lord's followers.
   function owePatronDays(st, lord) {
     const lh = holdingOf(st, lord);
@@ -291,14 +302,15 @@ VB['sim/followers'] = (() => {
         (o) => o.source === 'patron' && o.debtor.id === hh.id,
       );
       if (live) continue;
-      Obligations.create(st, {
-        kind: 'days',
-        debtor: { kind: 'household', id: hh.id },
-        creditor: { kind: 'household', id: lh.id },
-        owes: { days: PATRON.days },
-        due: nextAutumn(st.t),
-        source: 'patron',
+      // laid by the patron's household's holder through the verb levy, its days asked as the keep's are (sim/levies, VB-1767)
+      if (lh.holder === null) continue;
+      const done = VB['sim/commands'].issue(st, {
+        actor: lh.holder,
+        verb: 'levy',
+        args: { debtor: { kind: 'household', id: hh.id }, source: 'patron', days: PATRON.days, due: nextAutumn(st.t) },
+        source: 'planner',
       });
+      if (done !== true) continue;
       VB.count.patronDays++;
     }
   }
@@ -356,6 +368,7 @@ VB['sim/followers'] = (() => {
     const why = broken(st, d.creditor, d.debtor);
     if (why !== null) end(st, d.creditor, why);
   });
+  VB.counter('followerFailed', 'Ties broken by a lord who refused his follower in need (sim/followers, VB-708)');
   // A lord who refuses his follower what he could give above his floor fails it: the tie breaks, and the follower remembers a breach.
   on('askRefused', (st, d) => {
     if (lordOf(st, d.asker) !== d.by) return;

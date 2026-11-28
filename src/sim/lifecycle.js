@@ -4,16 +4,17 @@
 VB['sim/lifecycle'] = (() => {
   const { holdingOf, living } = VB['sim/records'];
   const { register } = VB['sim/commands'];
-  const { emit } = VB['sim/events'];
+  const { emit } = VB['sim/events'],
+    Stores = VB['sim/stores'];
   const { TRAITS, DAY, YEAR } = VB['sim/rules'];
   const { dayOfDeath, CAUSES, COLD } = VB['sim/deaths'];
   const { leaveHousehold, unionOf, noteDeath, log, age, fullName, noteUnionEnd, atHousehold, lifeEvent, isHolder } =
     VB['sim/records'];
   const { setAtAge } = VB['sim/traits'];
-  const { stillAtDeath } = VB['sim/agents'],
+  const { stillAtDeath, dropJob } = VB['sim/agents'],
     { tileAt, placeOf, travelling } = VB['sim/pose'];
   const { heirRanking, successorOf } = VB['sim/heirranking'],
-    { transfer, succession, comeOfAge, refreshRoles } = VB['sim/heirs'];
+    { transfer, succession, comeOfAge, refreshRoles, setGuardian } = VB['sim/heirs'];
   const { careForOrphans } = VB['sim/service'];
   const { refreshStanding } = VB['sim/society'];
   const { playerDied, clearMatchWish } = VB['sim/player'];
@@ -22,6 +23,20 @@ VB['sim/lifecycle'] = (() => {
   const { funeral } = VB['sim/occasions'];
   const { closeTrust, wardsOfAge, inheritedHeld } = VB['sim/trust'],
     { trustOfHolder } = VB['sim/ownership'];
+  // VB-1476: a dead pawn's grain stake is title, and passes at once (design.md, Title moves at once): to the household it lived in, where the
+  // grain lies, else to its heir's household (the line's successor by its village's customs), else to the first village's store.
+  function leaveStake(st, p, hh, successorOf) {
+    const n = p.stake || 0;
+    if (!(n > 0)) return;
+    let to = hh;
+    if (!to) {
+      const q = successorOf(st, p.id),
+        h = q === null ? null : st.pawns[q].household;
+      to = h !== null && h !== undefined ? st.households[h] : null;
+    }
+    if (!to || to.dissolved) to = st.villages[0];
+    Stores.move(st, p, to, 'grain', n, { kind: 'handingOn', estate: true, pawn: p.id });
+  }
   function killPawn(st, id, cause = 'killed') {
     const p = st.pawns[id];
     if (!p.alive) return;
@@ -34,6 +49,8 @@ VB['sim/lifecycle'] = (() => {
     const a = st.agents[id],
       road = travelling(a) ? tileAt(st, ...placeOf(st, a)) : null; // it dies where it fell on the road (VB-287)
     stillAtDeath(st, a);
+    const drink = st.jobs.get(`drink:p${id}`); // the drink it was going for dies with it
+    if (drink) dropJob(st, drink);
     clearMatchWish(st, id, id);
     playerDied(st, id, successorOf); // the player's pawn: its farm, spouse and friends are noted before the death erases them (VB-213)
     const u = unionOf(st, id);
@@ -64,6 +81,7 @@ VB['sim/lifecycle'] = (() => {
     );
     funeral(st, id); // the next day's funeral ale, at the farm it leaves (sim/occasions, VB-126)
     const hh = p.household !== null ? st.households[p.household] : null;
+    leaveStake(st, p, hh, successorOf);
     if (hh) {
       leaveHousehold(st, id, true);
       if (hh.holder === id) succession(st, hh, 'death');
@@ -74,6 +92,14 @@ VB['sim/lifecycle'] = (() => {
       succession(st, st.households[held.household], 'death');
     }
     inheritedHeld(st);
+    if (st.demand.includes(id)) st.demand = st.demand.filter((q) => q !== id); // the living who want out only (VB-1983)
+    for (const hid of st.liveHouseholds) {
+      // a ward's dead guardian is replaced by the next one in the house, or none (VB-1983)
+      const g = st.households[hid];
+      if (g.guardian !== id) continue;
+      if (st.pawns[g.ward]?.alive && st.pawns[g.ward].age < 18) setGuardian(st, g, g.ward);
+      else g.guardian = null;
+    }
     endGoodwill(st, id); // after succession, which passes a holder's share on
     refreshRoles(st);
     refreshStanding(st);
@@ -91,6 +117,7 @@ VB['sim/lifecycle'] = (() => {
     return true;
   }
 
+  VB.counter('walkDaily', 'Pawn records walked by dailyLife and Attitudes.dailyStep');
   function dailyLife(st) {
     VB.count.walkDaily += st.living.length;
     let holders = null,

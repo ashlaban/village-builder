@@ -1,3 +1,4 @@
+// @suite fast
 // An arranged match is a spokesman's offer, and the side asked takes the best (VB-693; docs/plans/VB-682.md, section 4.1), on a
 // constructed state (tests/lib/tiny.js), the fancy given so that nothing is drawn: the side asked answers the best offer it holds, the
 // other lapses and is no slight; a spokesman who refuses a suit is remembered by the one who offered it (refusedSuit); one who courts

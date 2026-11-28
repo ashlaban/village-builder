@@ -37,9 +37,12 @@ VB['sim/stores'] = (() => {
   KINDS.push('wage'); // VB-637: a servant's wage, paid from its master's grain into its stake (sim/service)
   KINDS.push('moving'); // VB-1667: what a household left lying at its landing when its house moved, and fetched home (sim/camp)
   KINDS.push('loan'); // VB-312: grain lent, and repaid at the harvest (sim/loans)
+  KINDS.push('rent'); // VB-034: the half harvest of an heir's fields, paid at the moving round by the household that works them (sim/heirland)
   KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-359, sim/dig)
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
+  KINDS.push('lying'); // VB-1910: a share of what lies out of a holder's lost after the frost (sim/lying decay), never in its store
+  ROUTINE.push('lying');
   // VB-683: fresh meat salted in the larder, out of 'meat' into 'salt meat' (sim/byre), a routine total; VB-700: the salt it took, and
   // the meat it had no salt for smoked into 'smoked meat'
   KINDS.push('salting');
@@ -47,7 +50,7 @@ VB['sim/stores'] = (() => {
   // VB-328: the woodpile, in loads: a firewood trip, the day's burning (routine), a plot's wood, timber left over, a new household's first wood.
   KINDS.push('firewood', 'burn', 'plot', 'timber', 'start');
   ROUTINE.push('firewood', 'burn');
-  // VB-1653: timber felled in the woods and carried home (sim/chores' wood), and cut there into firewood (its firewood kind): out of
+  // VB-1653: timber felled in the woods and carried home (sim/wood' wood), and cut there into firewood (its firewood kind): out of
   // 'timber' and into 'wood', both routine totals
   KINDS.push('felling', 'cutting');
   ROUTINE.push('felling', 'cutting');
@@ -79,7 +82,11 @@ VB['sim/stores'] = (() => {
   // VB-701: a bloom smelted at the household's pit, out of bog ore and firewood, and the iron a mending of its tools takes (sim/smelting)
   KINDS.push('smelt', 'mendtools');
   KINDS.push('leather'); // VB-911: a hide cut into shoes or harness at home (sim/leather)
+  KINDS.push('wear'); // VB-1620: a day's wear of the household's shoes (sim/leather wearDay), a routine total
+  ROUTINE.push('wear');
+  KINDS.push('carried'); // VB-1620: the shoes a member takes with them when they move to another household (sim/leather carry)
   KINDS.push('slaughter'); // VB-911: the hide of a slaughtered beast of the cattle (sim/byre)
+  KINDS.push('dress'); // VB-363: a length of cloth taken for a person's dress (sim/dress)
   KINDS.push('shear', 'spin', 'weave'); // VB-362: fleeces shorn at the fold (sim/byre), spun to yarn and woven to cloth (sim/textile)
   // The calendar year (as cal(hour).year) of the hour the clock is working through (sim/clock, st.tick): midnight's work belongs to the day it starts.
   const yearNow = (st) => Math.floor(st.tick / (YEAR * TICKS)) + 1;
@@ -141,6 +148,7 @@ VB['sim/stores'] = (() => {
     if (kind === 'household' && (good === 'stone' || baseOf(good) === 'stone')) return 'stone'; // the stone heap (VB-332), by rock (VB-733)
     if (kind === 'household' && good === 'peat') return good; // the peat stack (VB-367)
     if (kind === 'household' && good === 'tar') return good; // barrels of tar (VB-301, sim/tar)
+    if (kind === 'household' && good === 'shoes') return good; // pairs of shoes, moved with their wearers (VB-1620, sim/leather)
     if (kind === 'household' && good === 'hide') return 'hides'; // the hides of the hunt (VB-424, sim/deer)
     if (kind === 'household' && good === 'salt') return good; // salt boiled at a spring (VB-700, sim/saltpan)
     if (kind === 'household' && (good === 'wool' || good === 'yarn' || good === 'cloth')) return good; // VB-362, sim/textile
@@ -195,7 +203,7 @@ VB['sim/stores'] = (() => {
   const setWood = (hh, n) => {
     hh.wood = n;
   };
-  // @state household.timber: loads of timber felled in the woods and carried home, not yet cut into firewood (VB-1653; sim/chores: put
+  // @state household.timber: loads of timber felled in the woods and carried home, not yet cut into firewood (VB-1653; sim/wood: put
   //   by the wood kind's trip, taken by the firewood kind's cutting at the house, ECON.woodPerTrip a trip, the woodpile's units);
   //   absent (none) until the household's first timber is home, and in a save from before
   const setTimber = (hh, n) => {
@@ -263,6 +271,12 @@ VB['sim/stores'] = (() => {
   };
   // @state household.hides: hides held, whole numbers (VB-424; a kill gives one, sim/deer, and a slaughtered beast of the cattle one,
   //   sim/byre, VB-911; cut into shoes and harness, sim/leather), 0 at the start
+  // @state household.shoes: pairs of shoes by the wear left, in sim/leather's count (VB-911): put when cut (reason leather) and taken by wear
+  //   (wear), moved with their wearers (carried; VB-1620); undefined for a household placed at the start until its first day's wear; 0 for one
+  //   formed later (start)
+  const setShoes = (hh, n) => {
+    hh.shoes = n;
+  };
   const setHides = (hh, n) => {
     hh.hides = n;
   };
@@ -310,6 +324,7 @@ VB['sim/stores'] = (() => {
     else if (good === 'peat') setPeat(holder, n);
     else if (good === 'fish') setRack(holder, n);
     else if (good === 'tar') setTar(holder, n);
+    else if (good === 'shoes') setShoes(holder, n);
     else if (good === 'hide') setHides(holder, n);
     else if (good === 'wool') setWool(holder, n);
     else if (good === 'yarn') setYarn(holder, n);
@@ -328,6 +343,13 @@ VB['sim/stores'] = (() => {
     const plan = st.plans && st.plans.households.get(hh.id);
     if (plan) plan.dirty = true;
   }
+  // A share of a load lying out lost after the frost (sim/lying decay, VB-1910): booked to its owner as a store's spoilage is, a routine
+  // total, under its own reason (lying: nothing is taken from a store, it was never in one, so the food account reads no movement of
+  // a store in it). Nobody's, once its household is gone.
+  on('lyingSpoilt', (st, { owner, good, n }) => {
+    const holder = owner.type === 'village' ? st.villages[owner.id] : st.households[owner.id];
+    if (holder && !holder.dissolved) record(st, holder, good, -n, 'lying', owner.type);
+  });
   // The player's plan asks its head for work the head's rule posts at a review (sim/controller, the event planAsks: a firewood task's
   // cutting, VB-1661): the plan is woken as by a store crossing a target, the stores it reads having changed since its review.
   on('planAsks', (st, { household }) => {
@@ -599,12 +621,18 @@ VB['sim/stores'] = (() => {
   }
   // Only a newly constructed household, before its members move in. Constructor supplies are replaced, not consumed. grain: by crop (a
   // take's `into`).
+  // The shoes of a dissolved household pass to another by hand: its ledger is shut, no movement can reach it (VB-1620).
+  function passShoes(from, hh, n) {
+    setShoes(from, (from.shoes || 0) - n);
+    setShoes(hh, (hh.shoes || 0) + n);
+  }
   function start(st, hh, grain, meals = 0) {
     if (!partsOk(grain)) throw new Error("stores: a start's grain is by crop");
     amount(meals);
     type(hh);
     hh.grain = { ...grain };
     hh.meals = meals;
+    hh.shoes = 0; // none from nothing (VB-1620): it has the pairs its members bring (sim/leather carry)
     hh.wood = 0; // its first wood comes from somewhere (sim/membership, VB-328)
     record(st, hh, 'grain', partsSum(grain), 'provisions');
     record(st, hh, 'meals', meals, 'provisions');
@@ -614,6 +642,7 @@ VB['sim/stores'] = (() => {
     const lost = take(st, hh, 'grain', n, 'spoilage');
     hh.spoilt = (hh.spoilt || 0) + lost;
   }
+  VB.counter('storeWalk', 'Village stores and retained ledger entries visited for spoilage and pruning');
   function villageDay(st) {
     VB.count.storeWalk += st.villages.length;
     for (const v of st.villages) {
@@ -801,6 +830,7 @@ VB['sim/stores'] = (() => {
     if (left < n - 1e-9) emit(st, 'storeShort', { type: kind, id: holder.id, good });
   }
   return {
+    passShoes,
     dug,
     peatDry,
     dry,

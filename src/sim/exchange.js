@@ -5,7 +5,7 @@ VB['sim/exchange'] = (() => {
   const Goods = VB['sim/goods'],
     Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  const { book, balance, opinionOf, remember } = VB['sim/relations'],
+  const { book, balance, remember } = VB['sim/relations'],
     { addTie } = VB['sim/ties'];
   const { HELP, GOODWILL, HERD, TRAVEL, stalled } = VB['sim/rules'];
   const { withinDay, byLand } = VB['sim/villagehours'];
@@ -34,7 +34,7 @@ VB['sim/exchange'] = (() => {
   const opinionTerm = (st, c) =>
     !GOODWILL.acts || c.giver === null || c.receiver === null
       ? 0
-      : GOODWILL.opinionRations * opinionOf(st, c.giver, c.receiver);
+      : GOODWILL.opinionRations * Offers.answerOpinion(st, c.giver, c.receiver);
   // A deal's allowance (VB-302; target-v2 5.1 and 5.2): what one side lets a swap cost it toward the other, its goodwill and its opinion
   // only, so that between strangers it is near zero (a gift's allowance adds the giver's grain above its floor and its reserve, the size
   // of a gift). It may be below zero: a side owed beyond the limit wants a gain. Context as allowance's: {giver, receiver, from, to}.
@@ -161,6 +161,11 @@ VB['sim/exchange'] = (() => {
       if (two && isHousehold(from)) emit(st, 'giftGiven', { giver: hf.id, receiver: ht.id, worth: n * WORTH.grain });
     }
   }
+  VB.counter(
+    'giftUncarried',
+    'Grain a gift settled at once between two farmsteads, or from a village store to a household: none, by the hard rule (sim/exchange; ' +
+      'VB-461)',
+  );
   // Settles an accepted gift between two households of one farmstead, which is one place (the hard rule): what goes between places is
   // carried, hauled or fetched (sim/away) and booked by `receive` as it arrives (VB-1111). Only the verb `deliver` calls it (tests/commands.js).
   function settleGift(st, o) {
@@ -444,6 +449,10 @@ VB['sim/exchange'] = (() => {
     );
   }
   const worthOf = (kind) => Norms.norm('worth', 'cattle/' + kind); // the one table of customary worth (VB-299)
+  VB.counter(
+    'cowSeek',
+    "Households of its village weighed by a household's open want of a cow, on its planning day (sim/exchange; VB-390)",
+  );
   // A deal for the want: among the households of its village, kin first (kinHouseholds), then the others in the order of its farms, the first that spares a
   // heifer, or else a cow, and whose allowance toward the household covers its customary worth (the gift for now: the animal is given and
   // its worth booked as goodwill when it is home). Sets the want's giver, or leaves it open.
@@ -506,6 +515,11 @@ VB['sim/exchange'] = (() => {
     const from = st.households[w.from],
       kind = w.kind,
       worth = worthOf(kind);
+    // a deal is between two living holders: when one has died on the way, it lapses and the want is open again
+    if (w.by === 'deal' && [from.holder, hh.holder].some((h) => h !== null && !st.pawns[h].alive)) {
+      open(w);
+      return;
+    }
     if (!(payInAnimals(st, from, hh, worth, [kind], true) > 0)) {
       open(w);
       return;

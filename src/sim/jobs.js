@@ -70,7 +70,8 @@ VB['sim/jobs'] = (() => {
   }
   // A plot's steps and an empty farm's restoration are asked for the whole island, every review hour, whoever owns them.
   // a staked booth's raising (VB-1172), a booth's water (VB-1601)
-  const islandJob = (j) => !!j.plot || j.kind === 'restore' || j.kind === 'booth' || j.kind === 'boothwater';
+  const islandJob = (j) =>
+    !!j.plot || j.siteId !== undefined || j.kind === 'restore' || j.kind === 'booth' || j.kind === 'boothwater';
   // The due-queue's ask of each time-bound kind: its own rule (a shared rule, as the byre's, posts only that kind there).
   const DUE_RULES = WINDOWED.map((k) => [[k, KINDS[k].available]]);
   // What a member without a task asks: the household's kinds but those the due-queue opens.
@@ -87,6 +88,10 @@ VB['sim/jobs'] = (() => {
     slotOut(st, j); // its hours back to the members it was given to (sim/day)
     dropJob(st, j);
   }
+  VB.counter(
+    'oppAsk',
+    "Calls of a kind's `available` rule: by the reviews of the plans, the due-queue and members looking for work (sim/jobs; VB-258, VB-249)",
+  );
   // Each review hour (VB-249; design.md section 7, Planning days): the due-queue opens the time-bound kinds that fall due (sim/plans); each
   // holder whose plan is due a review (its planning day, a window closing, a store crossing a target) has it reviewed: each kind says where
   // it is available for the holder (sim/kinds, `available`), asked in the order of ASK, which is the jobs' ids; what it reports is posted

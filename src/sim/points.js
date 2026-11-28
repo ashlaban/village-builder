@@ -11,9 +11,10 @@ VB['sim/points'] = (() => {
   const { controlOf } = VB['sim/controller'];
   const { unbound, travelling } = VB['sim/pose'];
   const { MEETING } = VB['sim/meetings'];
-  const { weighDay } = VB['sim/day'];
+  const { weighDay, dutiesToGive } = VB['sim/day'];
   const { allotted } = VB['sim/fit'];
-  const Levies = VB['sim/levies'];
+  const Levies = VB['sim/levies'],
+    Routines = VB['sim/routines'];
   const SEASON = SEASON_DAYS * DAY,
     YEAR = YEAR_DAYS * DAY;
   // The hours of the day's two allotments (sim/jobs refreshJobs, sim/day allot): the morning's, an hour before work, and the afternoon's.
@@ -68,6 +69,9 @@ VB['sim/points'] = (() => {
     out.push({ point: 'year', body, deadline: meetingAfter(st.t) });
     out.push({ point: 'season', body, deadline: seasonReview(st, plan) });
     out.push({ point: 'ahead', body, deadline: plan.nextReview });
+    // the days-ahead review's duties to give (VB-1771): the types no member holds, and whom the default author would give each
+    const give = dutiesToGive(st, hh, plan);
+    if (give.length) out.push({ point: 'duty', body, give, deadline: plan.nextReview });
     const a = allotAfter(st.t);
     if (hh.farmstead !== null && choice(st, hh, plan)) {
       out.push({ point: 'allot', body, which: a.which ? 'afternoon' : 'morning', deadline: a.at });
@@ -78,6 +82,67 @@ VB['sim/points'] = (() => {
           if (st.jobs.has(key)) out.push({ point: 'demand', body, key, work, deadline: Math.floor(st.t) + 1 });
     }
   }
+  VB.counter(
+    'pointLevy',
+    'Outer levies read for the decision points of a pawn its controller asks for (sim/points, VB-1769)',
+  );
+  // The outer levies' points of pawn id (VB-1769): as the levied head of household hh, a levy laid with days to name (`name`, until its
+  // default author names them: the next day's first step, or for a head on its own commands the day its window runs short), and a day
+  // named for today or tomorrow that cannot be kept as named (`keep`: the one named dead, ill or away, or keeping it costs more than
+  // its worth; until the day's first step, where the ladder is tried); as the agent of a levier (a household it heads, a village it is
+  // alderman of), a breach to answer (`breach`, until the levier's next planning day) and a levy whose terms carry about to end with
+  // days unworked (`lapse`, until its due: it carries, unless released). An ask for release is the point `ask` (sim/offers).
+  function levyPoints(st, id, hh, out) {
+    const Ob = VB['sim/obligations'],
+      D = Math.floor(st.t / DAY);
+    if (!st.obligationsBy) return;
+    if (hh && hh.holder === id && !hh.dissolved) {
+      const body = { kind: 'household', id: hh.id };
+      for (const o of Ob.due(st, body, 'debtor', 'days')) {
+        VB.count.pointLevy++;
+        const n = o.window && D <= o.window[1] ? Levies.unnamed(st, o) : 0;
+        if (n > 0 && o.terms.names === 'levied') {
+          const late = (o.window[1] + 1 - (n + o.terms.notice)) * DAY;
+          out.push({
+            point: 'name',
+            levy: o.id,
+            days: n,
+            deadline: Math.max(st.t, unplannedHead(st, id) ? late : (D + 1) * DAY),
+          });
+        }
+        for (const e of o.named) {
+          if (e.day > D + 1) break;
+          const can = e.pawn === null || Levies.comes(st, hh, e.pawn, null),
+            K = can ? Levies.costOf(st, hh, e.day, e.pawn) : null;
+          if (!can || K > Levies.OUTER.worth)
+            out.push({ point: 'keep', levy: o.id, day: e.day, pawn: e.pawn, K, deadline: Math.max(st.t, e.day * DAY) });
+        }
+      }
+    }
+    const parties = [];
+    if (hh && hh.holder === id && !hh.dissolved) parties.push({ kind: 'household', id: hh.id });
+    for (const v of st.villages) if (agentOf(st, v.id) === id) parties.push({ kind: 'village', id: v.id });
+    for (const party of parties) {
+      const plan = st.plans && (party.kind === 'household' ? st.plans.households : st.plans.villages).get(party.id);
+      for (const o of Ob.due(st, party, 'creditor', 'days')) {
+        VB.count.pointLevy++;
+        if (o.breaches.length)
+          out.push({
+            point: 'breach',
+            levy: o.id,
+            days: o.breaches.map((b) => b.day),
+            deadline: plan && plan.nextReview > st.t ? plan.nextReview : st.t,
+          });
+        if (o.terms.carry && Ob.left(o) > 1e-9 && o.due - st.t <= o.terms.notice * DAY)
+          out.push({ point: 'lapse', levy: o.id, left: Ob.left(o), deadline: o.due });
+      }
+    }
+  }
+  const unplannedHead = (st, id) => VB['sim/records'].unplanned(st, id);
+  VB.counter(
+    'pointOffer',
+    'Open offers looked at by Sim.decisions: each offer, a call a controller makes for its pawn (sim/points decisions, VB-1757)',
+  );
   // Sim.decisions(st, id): the decision points open to pawn id's controller now, by deadline (then as listed), each {point, deadline (a
   // game hour; st.t: at once), and its own fields}; none for a pawn that is dead or no pawn. Read only.
   //   year, season, ahead (body {kind, id}): the reviews of a body it is agent of: a household it heads (all three), a village it is the
@@ -87,12 +152,14 @@ VB['sim/points'] = (() => {
   //   risk (step: its id, short, by): a step of its own plan at risk (VB-1755), until that review, where the default author may take it back;
   //   leg: its automatic behaviour off, its queue empty and nothing in hand: at once;
   //   ask (offer: its id, basis): an offer it has an answer to give, until the day's turn after it falls due (sim/offers), when its judgement
-  //     answers.
+  //     answers: among them a member's ask of its head (VB-1763), on the basis `leave` or `lighter` (a lighter levy, at the season's turn).
   //   demand (body, key, work): work at risk its allotment left with the levies spent (VB-1779), the head's to demand or not, by the hour;
   //   demanded (offer): a demand of its head's past its levy (an offer on the basis `demand`), to comply with or refuse, at once (its
   //     judgement answers at the day's turn);
   //   take (levy): hours of its levy left today, a levied member's to take for itself (the verb breach) or not, at once.
-  // The levy's other points join this list (VB-1763, VB-1769).
+  //   name (levy, days), keep (levy, day, pawn, K), breach (levy, days), lapse (levy, left): the outer levies' (levyPoints, VB-1769);
+  //   workday (body: a village it is the alderman of, day, what): its next work day to call, by the day it is called by rule (the verb
+  //     callWorkday, at least OUTER.notice days ahead; VB-1768).
   function decisions(st, id) {
     const p = Number.isInteger(id) ? st.pawns[id] : null;
     if (!p || p.died !== null) return [];
@@ -101,8 +168,15 @@ VB['sim/points'] = (() => {
       hh = hid === null || hid === undefined ? null : st.households[hid];
     if (hh && hh.holder === id) headPoints(st, hid, out);
     for (const v of st.villages)
-      if (agentOf(st, v.id) === id)
-        out.push({ point: 'year', body: { kind: 'village', id: v.id }, deadline: meetingAfter(st.t) });
+      if (agentOf(st, v.id) === id) {
+        const body = { kind: 'village', id: v.id },
+          plan = st.plans && st.plans.villages.get(v.id);
+        out.push({ point: 'year', body, deadline: meetingAfter(st.t) });
+        // a work day to call (VB-1768): OUTER.notice days before the custom's day, when his review calls it by rule
+        const call = plan && plan.routines.includes('workdays') ? Routines.nextCall(st, v) : null;
+        if (call)
+          out.push({ point: 'workday', body, day: call.day, what: call.what, deadline: Math.max(st.t, call.at * DAY) });
+      }
     const pp = pawnPlan(st, id),
       plan = hh && !hh.dissolved && st.plans ? st.plans.households.get(hid) : null;
     if (pp && plan) {
@@ -127,6 +201,7 @@ VB['sim/points'] = (() => {
       ag.away === undefined
     )
       out.push({ point: 'take', levy: Math.min(left, WORK[1] - hour), deadline: st.t });
+    levyPoints(st, id, hh, out);
     const c = controlOf(st, id);
     if (!c.auto && !c.queue.length && unbound(st.agents[id])) out.push({ point: 'leg', deadline: st.t });
     for (const o of st.offers) {

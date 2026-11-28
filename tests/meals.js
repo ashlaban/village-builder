@@ -1,3 +1,4 @@
+// @suite integration
 // Meals: meals are eaten first, grain covers a missed cook (uncooked, at a penalty: tests/pot.js), the cook makes the next meal (of the seed a short
 // household would eat too, VB-388) and may leave other work after 14:00. On the small islands (VB-854).
 const assert = require('assert');

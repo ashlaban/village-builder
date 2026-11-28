@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1586: the fetch grows with the household. On a drawn map (tests/lib/tiny.js), a lone farm 7 steps of meadow from a brook (0.875
 // hours one way): households of 1 and 6 make one trip by hand (1.95 h), of 7 one with a cart's barrel (2.49 h) or two by hand with no
 // cart (3.89 h, and a miss the head counts), of 19 a cart's and one by hand (4.43 h); a cart trip wears the cart; at a well by the door

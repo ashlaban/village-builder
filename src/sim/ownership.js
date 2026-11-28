@@ -4,7 +4,8 @@ VB['sim/ownership'] = (() => {
   // @state st.owner: Int32Array, one per tile, its user (who works it); 0 = nobody, n > 0 = household n - 1, n < 0 = village -n - 1. The
   //   user's cache: a farm's tiles are its household's (its village's when it stands empty) unless a title gives a holding another user.
   const party = (n) => (n === 0 ? null : n > 0 ? { type: 'household', id: n - 1 } : { type: 'village', id: -n - 1 });
-  const code = (p) => (!p ? 0 : p.type === 'household' ? p.id + 1 : -p.id - 1);
+  // a pawn owns land only under a title (VB-034: fields split off to an heir with no household yet), and has no code: 0, nobody's
+  const code = (p) => (!p || p.type === 'pawn' ? 0 : p.type === 'household' ? p.id + 1 : -p.id - 1);
   const userOf = (st, tile) => party(st.owner[tile]);
   // owner is {type: 'household'|'village', id} or null; the tile is marked for the Land overlay (st.landDirty, sim/claims)
   const setOwner = (st, tile, owner) => {
@@ -24,12 +25,21 @@ VB['sim/ownership'] = (() => {
       for (const fd of f.fields) setOwner(st, fd.tile, o);
     }
   }
-  // A farm that stands empty passes to its village, with its fields and meadows.
-  function farmToVillage(st, f) {
-    const o = { type: 'village', id: f.village };
+  // Farm f is worked by party o from now (a household founded on it, sim/membership; its village when it stands empty): its house, fields
+  // and meadows, and the use of each holding split off it that its old user worked (VB-034: a field owned by an heir whose house is not
+  // yet built), its title kept. A holding split off and worked by another party stays theirs.
+  function farmTo(st, f, o) {
+    const was = userOf(st, f.house),
+      T = titlesOf(st);
+    const ft = T && T.get(f.house);
+    if (ft && ft.kind === 'farm') ft.user = { type: o.type, id: o.id }; // the farm's own title follows its user (its tiles are set below)
     setOwner(st, f.house, o);
-    for (const fd of f.fields) setOwner(st, fd.tile, o);
-    for (const m of f.meadows || []) setOwner(st, m.tile, o);
+    for (const x of [...f.fields, ...(f.meadows || [])]) {
+      const t = T && T.get(x.tile);
+      if (t && t.kind !== 'farm' && !same(t.user, was)) continue;
+      if (t && t.kind !== 'farm') t.user = { type: o.type, id: o.id };
+      setOwner(st, x.tile, o);
+    }
   }
   // ---- farms held in trust (VB-309; st.trusts and st.liveTrusts, written by sim/trust) ----
   // A farm held in trust is worked by a kin household that does not own it: the owner stays the household that holds it. Read here, by the
@@ -63,8 +73,9 @@ VB['sim/ownership'] = (() => {
   // ---- titles: own and use held apart (VB-311; design.md, Land and rights) ----
   // @state st.titles: Map of holding to title, only for the holdings split off their farm or whose own and use lie with different parties;
   //   absent until the first. A holding is named by its tile: a farm by its house (with its fields and meadows not split off), a field or a
-  //   meadow by its own. A title: {kind 'farm'|'field'|'meadow', farm (farmstead id), owner, user ({type, id}), since (hour), basis, rent
-  //   (the share of each harvest owed the owner), why}. st.owner[t] is the title's user on each of its holding's tiles.
+  //   meadow by its own. A title: {kind 'farm'|'field'|'meadow', farm (farmstead id), owner, user ({type, id}; the owner may be a pawn,
+  //   type 'pawn': an heir's fields before its household, VB-034), since (hour), basis, rent (the share of each harvest owed the owner),
+  //   why}. st.owner[t] is the title's user on each of its holding's tiles.
   const titlesOf = (st) => (st.titles && st.titles.size ? st.titles : null);
   // The tiles of holding `key` under title t: a field or meadow its own; a farm its house and the fields and meadows not split off.
   function tilesOf(st, key, t) {
@@ -203,7 +214,7 @@ VB['sim/ownership'] = (() => {
     ownerOf,
     setOwner,
     seedOwners,
-    farmToVillage,
+    farmTo,
     trustOf,
     trustOfHolder,
     heldFarms,

@@ -322,9 +322,29 @@ VB['sim/customs'] = (() => {
       base: 'women',
       malleability: 0.4,
     }),
+    // How a village's levy is split into its households' lots (VB-1768; design.md section 9, Outer levies: Lots): by the fields each
+    // household holds (the default, as `wayDuty`'s road lots), by its adults, or the same to each; read where the alderman lays a
+    // routine's lots at a season's turn (sim/routines). The meeting arguing it, as a custom is, is not built.
+    lots: Object.freeze({
+      label: 'Levy lots are split',
+      opts: Object.freeze([
+        ['fields', 'By the fields each household holds'],
+        ['adults', 'By its adults'],
+        ['equal', 'Equally among the households'],
+      ]),
+      base: 'fields',
+      malleability: 0.4,
+    }),
   });
   // The culture's practice of key k: its own, or the one every culture starts with (a save made before VB-257).
   const practiceOf = (c, k) => (c && c.practices && c.practices[k] !== undefined ? c.practices[k] : PRACTICES[k].base);
+
+  // A village's custom of lots (VB-1770): the option its meeting chose (plan.lotsRule), else its culture's practice.
+  function lotsRule(st, vid) {
+    const plan = st.plans && st.plans.villages.get(vid),
+      s = st.cenv && st.cenv.settlements[vid];
+    return plan && plan.lotsRule ? plan.lotsRule : practiceOf(s && st.cenv.cultures[s.culture], 'lots');
+  }
 
   // ---- the door: the option of a custom in force ----
   // `at` is a settlement id (a village id). With no culture seeded, no such settlement, or a practice array
@@ -383,6 +403,7 @@ VB['sim/customs'] = (() => {
     ARCHETYPES,
     PRACTICES,
     practiceOf,
+    lotsRule,
     fromArchetype,
     inForce,
     inForceAt,

@@ -1,3 +1,4 @@
+// @suite fast
 // Decision points and the record of commands (VB-1757; design.md section 15, Decision points, The API by pawn and body;
 // docs/plans/four-scales/README.md, 3.6): Sim.decisions lists the points open to a pawn's controller, each with its deadline, computed
 // when asked and nothing stored; past a deadline the default author answers as with no controller; Sim.command records each command with

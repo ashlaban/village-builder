@@ -188,6 +188,7 @@ VB['draw/marks'] = (() => {
 
   // Draws items ({t, x, y, ...}, sorted by y) on a context already set to map units. S: the sprites of trees and shrubs (page/farmart's
   // landSprites); rng(seed): gen's generator, for the items that scatter their own parts.
+  const BROAD_SET = [null, 'broadSpring', 'broadAutumn', 'bare', 'bare'];
   function draw(ctx, items, S, R, full, rng) {
     const lw = full ? 1 : 1.9; // on the middle level a line needs its width in texels
     ctx.lineJoin = 'round';
@@ -203,7 +204,9 @@ VB['draw/marks'] = (() => {
     for (const it of items) {
       if (it.t === 'broad') {
         const k = it.sc * 0.74;
-        ctx.drawImage(S.broad[it.v], it.x - 14 * k, it.y - 26 * k, 28 * k, 30 * k);
+        // in its season's leaves (draw/season TINT: spring's fresh, autumn's turned, bare in winter), the summer's where none is drawn
+        const set = (it.k && S[BROAD_SET[it.k]]) || S.broad;
+        ctx.drawImage(set[it.v], it.x - 14 * k, it.y - 26 * k, 28 * k, 30 * k);
       } else if (it.t === 'pine') {
         const k = it.sc * 0.72;
         ctx.drawImage(S.pine[it.v % 8], it.x - 10 * k, it.y - 32 * k, 20 * k, 34 * k);

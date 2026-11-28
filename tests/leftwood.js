@@ -1,3 +1,4 @@
+// @suite integration
 // A boat's project given up (VB-645): the timber carried to its shore lies there (sim/lying, VB-611), not gone with the plan: on the
 // household's woodpile once fetched home, or rotted at the autumn frost with an event, as other loads left lying.
 const assert = require('assert');
@@ -57,7 +58,7 @@ assert(!KINDS.fetchLeftTimber && KINDS.leftTimber && KINDS.leftTimber.strays.som
   const { st, plan } = make();
   VB['sim/projectplans'].drop(st, plan);
   const n0 = st.record.length;
-  Lying.frost(st);
+  Lying.frost(st); Lying.decay(st, 48);
   assert(!st.lying, 'rotted: none lies');
   assert(st.record.slice(n0).some((e) => e && e.kind === 'frost'), 'the frost on the timber is told');
 }

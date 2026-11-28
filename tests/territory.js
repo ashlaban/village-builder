@@ -1,3 +1,4 @@
+// @suite fast
 // The village's outland (VB-156, sim/territory), on tiny worlds: claimed by need, its own a year and a day later, grown with its farms; no
 // household or plot takes in another village's land; settlers keep to wilderness; the commons wood comes from the village's own land.
 const VB = require('../src/load.js'), Sim = VB.sim, T = VB['sim/territory'], CL = VB['sim/claims'], { CLAIMS, YEAR } = VB['sim/rules'];

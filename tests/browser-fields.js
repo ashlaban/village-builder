@@ -1,3 +1,4 @@
+// @suite extended
 // VB-1146: a field's card in the page: the crop, its course, what is sown next and the grain held; for the head of the farm the rotation
 // buttons (an allowed one changes the field's rotation and answers "Done", a refused one answers the verb's reason and changes nothing),
 // and none for a pawn that is not the head; and the field sprites take the crop's texture (rye under snow in winter).
@@ -9,7 +10,8 @@ const root = path.join(__dirname, '..');
 const pixi = fs.readFileSync(path.join(root, 'node_modules/pixi.js/dist/pixi.min.js'));
 const HOOK = 'let st = null,\n  speed = 1,\n  selPawn = -1;';
 const rawHTML = builtPage().replace(HOOK, HOOK + ' window.__fieldTest = { get st() { return st; }, open(i) { sel = i; showTile(i); }, '
-  + 'look: (fd) => fieldLook(fd), hasTex: (k) => !!fieldTex[k] };');
+  + 'look: (fd) => fieldLook(fd), hasTex: (k) => !!fieldTex[k], season: () => { refreshSeason(); return { shown: [...seasonShown], '
+  + 'stale: [...chunks.values()].filter((c) => c.stale).length, key: !$("iceKey").hidden && $("iceKey").textContent }; } };');
 const html = browserHTML(rawHTML);
 assert(html.includes('window.__fieldTest'), 'page hook exists');
 (async () => {
@@ -81,12 +83,28 @@ assert(html.includes('window.__fieldTest'), 'page hook exists');
     const t0 = await tilthRow(0), t12 = await tilthRow(0.12);
     assert(t0 && t0.val === '0' && t0.now === 0, `tilth 0: the row, its meter empty: ${JSON.stringify(t0)}`);
     assert(t12 && t12.val === '12' && t12.now === 12, `tilth 0.12 reads 12: ${JSON.stringify(t12)}`);
-    // winter rye wears the snow
-    const look = await page.evaluate(() => { const T = window.__fieldTest, st = T.st;
-      while (Sim.cal(st.t).season !== 3) Sim.advance(st, 6);
-      return { snow: T.look({ crop: 'rye', stage: 'growing', sown: Math.floor(st.t / Sim.DAY) - 60, tile: 0 }), tex: T.hasTex('rye-snow') }; });
-    assert.strictEqual(look.snow, 'rye-snow'); assert(look.tex, 'rye-snow texture exists');
+    // winter rye wears the snow, from the north band's frost as the map shows it (VB-083: a band at a time, a frame each)
+    const look = await page.evaluate(async () => { const T = window.__fieldTest, st = T.st;
+      while (!['lakeBears', 'soundShut', 'soundBears'].includes(st.climate && st.climate.bands[0].state)) Sim.advance(st, 6);
+      const seen = [];
+      for (let k = 0; k < 4; k++) seen.push(T.season());
+      const sown = Math.floor(st.t / Sim.DAY) - 60;
+      return { snow: T.look({ crop: 'rye', stage: 'growing', sown, tile: 0 }), bare: T.look({ crop: 'barley', stage: 'stubble', sown, tile: 0 }),
+        tex: T.hasTex('rye-snow') && T.hasTex('snow') && T.hasTex('meadow-snow'), seen }; });
+    assert.strictEqual(look.snow, 'rye-snow'); assert.strictEqual(look.bare, 'snow'); assert(look.tex, 'the snow textures exist');
+    const last = look.seen[look.seen.length - 1];
+    assert(last.key && /Ice that bears/.test(last.key), `the ice's key beside the calendar: ${JSON.stringify(last)}`);
+    const vis = () => page.evaluate(() => { const k = document.getElementById('iceKey');
+      return { sw: k.querySelectorAll('i').length, text: k.innerText.trim() }; });
+    const closed = await vis();
+    assert(closed.sw === 2 && closed.text === '', `the key shows two swatches and no words: ${JSON.stringify(closed)}`);
+    await page.locator('#iceKey').evaluate((k) => k.click());
+    const opened = await vis();
+    assert(/Ice that bears/.test(opened.text) && /does not bear/.test(opened.text), `a tap shows the words: ${JSON.stringify(opened)}`);
+    await page.locator('#iceKey').evaluate((k) => k.click());
+    assert.strictEqual((await vis()).text, '', 'a second tap hides them');
+    assert(look.seen[0].stale > 0, `the band's chunks marked to be painted again: ${JSON.stringify(look.seen)}`);
     assert.deepStrictEqual(errors, [], 'no page errors');
-    console.log(`browser-fields: the card, ${allowed.key} chosen (Done), ${refused ? 'a refusal answered' : 'no refusal on this seed'}, no buttons for another's field, the tilth row at 0 and 12, rye-snow in winter`);
+    console.log(`browser-fields: the card, ${allowed.key} chosen (Done), ${refused ? 'a refusal answered' : 'no refusal on this seed'}, no buttons for another's field, the tilth row at 0 and 12, rye-snow and snow in winter, the ice's key`);
   } finally { await browser.close(); }
 })().catch((e) => { console.error(e); process.exit(1); });

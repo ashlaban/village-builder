@@ -1,3 +1,4 @@
+// @suite integration
 // VB-302: the fair. At a gathering, each household's dealer carries its margin as a load (packed from the store through sim/stores, a back
 // load less room for what it takes) and swaps it in whole quanta with the dealers it meets there: an offer on the basis `swap`, weighed by
 // need and a deal's allowance (goodwill and opinion: near zero between strangers), settled by the verb `swap`, the residual in customary
@@ -52,8 +53,13 @@ const far = st.agents[g0].occasion === null && st.agents[t0].occasion === null ?
 if (far !== null) assert.match(far, /not in one place|back load/);
 // between strangers a deal's allowance is near zero; a gift's is the giver's grain above its floor
 const ctx = { giver: g0, receiver: t0, from: st.households[st.pawns[g0].load.household], to: st.households[st.pawns[t0].load.household] };
+const S1 = VB['sim/ties'].SOCIAL.standing, was = [st.pawns[g0].standing, st.pawns[t0].standing];
+st.pawns[t0].standing = S1.base; // a stranger of a member's standing; above it, standing makes an opinion (VB-706)
 assert.ok(Math.abs(Rules.value(st, 'dealAllowance', ctx)) < 1, `a deal's allowance between strangers: ${Rules.value(st, 'dealAllowance', ctx)}`);
 assert.ok(Rules.value(st, 'allowance', ctx) > 100, "a gift's allowance is larger");
+st.pawns[t0].standing = S1.base + 1; // a stranger of standing is thought well of, a swap with it is allowed more (VB-706)
+assert.ok(Rules.value(st, 'dealAllowance', ctx) > 1, `standing allows a stranger more: ${Rules.value(st, 'dealAllowance', ctx)}`);
+st.pawns[t0].standing = was[1];
 
 // the first day at noon: the dealers stand on the green together and some have dealt
 Sim.advance(st, start + 12 - st.t);

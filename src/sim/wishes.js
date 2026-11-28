@@ -56,6 +56,10 @@ VB['sim/wishes'] = (() => {
     else if (!plain) p.wish = { rank, farm, partner };
     else if (p.wish) p.wish = null;
   }
+  VB.counter(
+    'wishWalk',
+    "Pawn records walked by the pawns' own choosing of their wishes, once a moving round (sim/wishes, VB-680)",
+  );
   // ---- the pawn's own choosing, at the start of the round (sim/lifecycle) ----
   // Each living pawn of an age to marry whose wish is not authored ranks the rungs (plan, section 3): the default; New land above A plot at
   // ambition WISH.landAmbition or more; Stay above Marry while it is at a hunger of HUNGER.marryBelow or more ("not this year"). Which farm

@@ -56,6 +56,12 @@ VB['sim/records'] = (() => {
     moved: 0,
     joined: 0,
     left: 0,
+    siteStaked: 0, // a site of a new farm staked at the round, its trail blazed, its cottage roofed (sim/sites, VB-787)
+    siteTrail: 0,
+    siteRoofed: 0,
+    siteWaits: 0, // the move from a roofed site waits, with why, once a season
+    siteLeader: 0, // the party's next adult leads the site after its leader's death
+    siteGivenUp: 0,
     stayed: 0,
     settled: 0,
     noLand: 0,
@@ -82,6 +88,7 @@ VB['sim/records'] = (() => {
     wishLapsed: 0, // the played pawn's wish for a match ended or passed by, with why (sim/wishes, VB-1113)
     kinBarred: 0,
     share: 0,
+    rent: 0, // half the harvest of an heir's split fields paid to it (sim/heirland, VB-034)
     wage: 0, // a servant's wage paid, or what was still owed of it lapsed (sim/service, VB-637)
     player: 0,
     year: 0,
@@ -126,6 +133,9 @@ VB['sim/records'] = (() => {
     heardOfUs: SHORT, // the played pawn heard a story of its household (sim/stories, VB-554)
     helped: SHORT, // helped another household of the village with its work (VB-106)
     workday: SHORT, // a village's work day: who turned out and who stayed away (VB-120)
+    workLeft: SHORT, // a village's routine work left undone at its seasons' ends, heard at its meeting (VB-1768)
+    proposal: SHORT, // a holder's proposal to its village's meeting and its fate (VB-1770)
+    levyBreached: SHORT, // a household's levied day not worked, booked as goodwill its head owes (sim/levies, VB-1768)
     courting: GENERATION, // a courtship begun, and ended unmarried (sim/courting, VB-036)
     courtingEnded: GENERATION,
     gift: GENERATION,
@@ -133,6 +143,7 @@ VB['sim/records'] = (() => {
     hay: GENERATION,
     frost: GENERATION,
     misjudged: GENERATION,
+    seasonShort: SHORT, // a head reckoned its season's work past its household's labour budget, and how it answered (sim/levies, VB-1778)
     climate: SHORT, // a winter's date falls in a band of the map (sim/climate, VB-807)
     weather: SHORT, // a season's weather, named as it begins (sim/weather, VB-354)
     herdBirths: GENERATION,
@@ -164,6 +175,7 @@ VB['sim/records'] = (() => {
   // them over the year's first FOLD_DAYS days, a slice of the slots a day (rule 5). Each slot is passed once by each end to mark it and
   // once to fold it, never once a village; it touches st.record only, never the pawns.
   const FOLD_DAYS = 4;
+  VB.counter('recordFold', 'Record slots passed by the yearly fold of routine events (sim/records, VB-199)');
   // The year's start (sim/clock's CALENDAR) begins a pass, unless one is under way; foldHistory, daily, folds a slice of it.
   function startFold(st) {
     const F = st.recordFold,
@@ -309,6 +321,9 @@ VB['sim/records'] = (() => {
       kinPush: null,
       visited: null,
     };
+    // sim/dress (VB-363): the first people's dress is drawn from their look (no stream draw), 0.3 to 1; a made person has none until
+    // the household mends it from its cloth (nothing appears)
+    p.dress = { worth: R.t ? 0 : 0.3 + (0.7 * p.look) / 1e9, at: R.t || 0, grade: 1 };
     R.rand(); // the draw that was pawn.buffer's (VB-216), now generosity's (VB-520): kept, so the stream goes on as before
     if (p.died !== null) {
       p.born = p.died - o.age * YEAR;
@@ -628,6 +643,11 @@ VB['sim/records'] = (() => {
     st.pawns[id].events.push(st.record.length - 1);
   }
   const age = (st, p, t = st.t) => Math.floor((t - p.born) / YEAR);
+  VB.counter(
+    'childMinded',
+    'Times one about to leave home was found the last of 7 or over there with a child under 7, and stayed: a lodger, a carrier, a ' +
+      'fetcher or hauler of a gift, a suitor (sim/records mindsWhy; VB-1602)',
+  );
   // ---- nobody leaves a small child alone (VB-1602) ----
   // Why pawn id may not go away from home, or null: it is at home, of CHILD.from (7) or over, and the only such member of its household
   // at home (not away: agent.away, sim/away), with a member under 7 at home too. One who minds a child does not leave (the verb lodge, a

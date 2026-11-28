@@ -8,7 +8,7 @@
 // reads the outlook to decide: it is a view the review keeps, so that the page never computes one.
 VB['sim/outlook'] = (() => {
   const { targetOf } = VB['sim/steps'];
-  const { SEASON_DAYS, YEAR_DAYS, FIELDS, HERD, BUILD, PEAT, HELP, cal } = VB['sim/rules'],
+  const { SEASON_DAYS, YEAR_DAYS, FIELDS, HERD, BUILD, PEAT, HELP, TRAVEL, cal } = VB['sim/rules'],
     { CROPS, ROTATIONS } = VB['sim/crops'];
   const { on } = VB['sim/events'];
   const { controlOf } = VB['sim/controller'];
@@ -20,11 +20,13 @@ VB['sim/outlook'] = (() => {
     { larderOf } = VB['sim/larder'];
   const { householdHay } = VB['sim/herds'];
   const { HAY } = VB['sim/meadows'];
-  const { fuelFree, timberOf } = VB['sim/chores'];
+  const { fuelFree, timberOf } = VB['sim/wood'];
   const { fireOf } = VB['sim/house'];
   const { hands } = VB['sim/targets'];
   const { headSkill } = VB['sim/seasonal'];
   const { GOALS } = VB['sim/kinds'];
+  const { lyingOut, lossOver } = VB['sim/lying'];
+  const { frostSeen, frostExpected } = VB['sim/weather'];
   // Proposed (VB-666): `little`, a first short season whose need is covered at least this share is short a little ('short'), else badly
   // ('bad'); `woodTrips`, the firewood trips a working hand makes in a season towards the pile's goal (ECON.woodPerTrip units each), which
   // bounds the wood the plan's goal brings in a season. Named tunables of the view; nothing in the simulation reads them.
@@ -52,7 +54,9 @@ VB['sim/outlook'] = (() => {
   //   likeliest (with, leaned by its bias on the store), the best; lo <= mid <= hi, 0 to FRAME; with no head, the middle skill and no
   //   lean), seasons (the seasons of the year it is needed in: [0, 1, 2, 3], or [3] for hay), parts: {store
   //   (what is held now, in the supply's units), need (by season of the frame, from the start of the one we are in), intakes ([{what, season
-  //   (of the frame), n}], summed by what and season), spoilt (what the reckoning with intakes lets spoil within the frame), and for a
+  //   (of the frame), n}], summed by what and season), spoilt (what the reckoning with intakes lets spoil within the frame), for food
+  //   and hay lying ({n, lost}: what of the household's lies out, sim/lying, and what of it the head expects lost by the season's end,
+  //   VB-1910), and for a
   //   household planned by hand (VB-1661) left ([{good, what, tile?, crop?, n}]: the intakes still to be worked that no task of the plan
   //   covers, left out of `with`: fuel 'timber' (home, no firewood task to cut it), 'fell' (a fell task's loads, none to cut them),
   //   'cutting' (the head's own felling to the season's goal); hay 'mown' and 'meadow' (lying, or to mow: no hay task there); food
@@ -100,7 +104,8 @@ VB['sim/outlook'] = (() => {
     return { at, met, need, spoilt, left: keep + rot };
   }
   // A day's loss of a store spoiling by tiers, by its good's keeping (sim/goods: grain by years of need, hay by winters): `unit` held a tier,
-  // times the barn's (BUILD.barn.loss with one); q: the good's daily shares (Goods.shares), reckoned once a supply.
+  // times its building's (BUILD.storehouse.loss with one for grain, BUILD.barn.loss for hay); q: the good's daily shares (Goods.shares),
+  // reckoned once a supply.
   const tierLoss = (x, unit, q, barn) => (unit > 0 ? Goods.tierLoss(x, unit, q) * barn : 0);
   // A supply's value and state from a walk on the seasons scale: when it first ran short, capped at the frame, and how much of that season's
   // need it covered.
@@ -167,6 +172,20 @@ VB['sim/outlook'] = (() => {
     );
   const STANDING = ['sown', 'growing', 'ripe', 'stooks'];
   // A supply's reckoning with what it left out (`parts.left`) for a household planned by hand.
+  // What of the household's lies out (sim/lying) its head expects lost by the end of the season we are in, reckoned by the decay's own
+  // function (sim/lying lyingOut, VB-1910): the game days of frost left in the season, from today once the frost is seen, else from the
+  // day the head expects it (frostExpected); none in spring and summer. {n, lost} in the supply's units, rounded.
+  function lyingLoss(st, hh, good, c) {
+    const L = lyingOut(st, { type: 'household', id: hh.id }, good, frostDays(st, c));
+    return { n: r1(L.n), lost: r1(L.lost) };
+  }
+  // The game days of frost the head expects left in the season we are in (lyingLoss); the stooks in the field and the hay mown on the
+  // meadow are counted less what lossOver takes of them over these (VB-2001: they wear a share a day after the frost, as loads lying).
+  function frostDays(st, c) {
+    const from =
+      c.season === 3 ? c.sday : c.season === 2 ? Math.max(c.sday, frostSeen(st) ?? frostExpected(st)) : SEASON_DAYS;
+    return SEASON_DAYS - from;
+  }
   const withLeft = (s, hand, left) => (hand ? { ...s, parts: { ...s.parts, left } } : s);
   const farmOf = (st, hh) => {
     const f = hh.farmstead === null || hh.farmstead === undefined ? null : st.farmsteads[hh.farmstead];
@@ -226,10 +245,12 @@ VB['sim/outlook'] = (() => {
       hand = handOf(st, hh),
       left = [];
     if (f) {
-      const per = seedPer(st, hh);
+      const per = seedPer(st, hh),
+        days = frostDays(st, c),
+        stooks = (fd) => (fd.held || 0) - lossOver(fd.held || 0, days); // less what the frost's days wear of them (VB-2001)
       for (const fd of f.fields)
         cropDays(fd, c, end, (day, k, first) => {
-          const gross = first && fd.stage === 'stooks' ? fd.held || 0 : FIELDS.expect * CROPS[k].yield,
+          const gross = first && fd.stage === 'stooks' ? stooks(fd) : FIELDS.expect * CROPS[k].yield,
             n = Math.max(0, gross - (k === 'barley' ? per : CROPS[k].seed));
           // by hand, a crop standing is counted with a harvest task on its field; one not sown yet is in no task (VB-1661)
           if (hand && !(first && STANDING.includes(fd.stage) && covered(st, hh, 'harvest', fd.tile))) {
@@ -238,7 +259,7 @@ VB['sim/outlook'] = (() => {
         });
     }
     ins.sort((a, b) => a[0] - b[0]);
-    const barn = f && f.barn ? BUILD.barn.loss : 1,
+    const barn = f && f.storehouse ? BUILD.storehouse.loss : 1, // the storehouse keeps the grain (VB-1898)
       year = D * YEAR_DAYS,
       q = Goods.shares(st, 'grain'),
       loss = (g) => (g > 0 ? (tierLoss(g + seed, year, q, barn) * g) / (g + seed) : 0);
@@ -260,14 +281,14 @@ VB['sim/outlook'] = (() => {
       dz,
       'food',
     );
-    return withLeft(out, hand, left);
+    return withLeft({ ...out, parts: { ...out.parts, lying: lyingLoss(st, hh, 'grain', c) } }, hand, left);
   }
-  // Fuel: firewood and peat as one supply (sim/chores' fuelFree: the pile less what a project holds back, peat at PEAT.worth), burnt at
+  // Fuel: firewood and peat as one supply (sim/wood' fuelFree: the pile less what a project holds back, peat at PEAT.worth), burnt at
   // the season's ECON.woodUse times the house's own fire (sim/house fireOf: a timber house's is smaller; VB-1669). Its intake is the
   // plan's: at the start of each season (today, for this one) the household cuts towards the season's goal, its wood target of the season,
   // at most hands × OUTLOOK.woodTrips × ECON.woodPerTrip a season (the share of it left, for the season we are in); none with no farm or no wood in its
   // village's reach. Firewood does not spoil. Timber home and not yet cut
-  // counts as firewood (VB-1653): the head has it cut by its own rule (sim/chores); for the household of a pawn planned by hand
+  // counts as firewood (VB-1653): the head has it cut by its own rule (sim/wood); for the household of a pawn planned by hand
   // (automatic behaviour off) only while a `firewood` task of the plan covers it (sim/steps, VB-1754).
   // For a household planned by hand (VB-1661; Kim, 24 Nov: "Stores count what is in the plan"), the head's own cutting to the goal is
   // left out, and a fell task's loads still to come home are counted, today, only with a `firewood` task to cut them.
@@ -355,6 +376,8 @@ VB['sim/outlook'] = (() => {
         last = y0 + 2 * SEASON_DAYS + 2; // the window's last day (sim/meadows, MOW_LAST)
       let lying = 0,
         grass = 0;
+      const days = frostDays(st, c),
+        mown = (m) => (m.held || 0) - lossOver((m.held || 0) / TRAVEL.hay, days) * TRAVEL.hay; // less the frost's wear (VB-2001)
       for (const m of f.meadows) {
         // by hand, a meadow's hay still to bring in is counted with a hay task on it (VB-1661)
         const by = !hand || covered(st, hh, 'hay', m.tile);
@@ -363,8 +386,8 @@ VB['sim/outlook'] = (() => {
             if (m.held > 0) left.push({ good: 'hay', what: 'mown', tile: m.tile, n: r1(m.held) });
             continue;
           }
-          lying += m.held || 0;
-          ins.push([Math.max(c.day, (m.mown || c.day) + 1), 'mown', m.held || 0]);
+          lying += mown(m);
+          ins.push([Math.max(c.day, (m.mown || c.day) + 1), 'mown', mown(m)]);
         } else if (m.stage === 'grass' && c.day <= last) {
           if (by) grass += HAY * m.fert;
           else left.push({ good: 'hay', what: 'meadow', tile: m.tile, n: r1(HAY * m.fert) });
@@ -443,6 +466,7 @@ VB['sim/outlook'] = (() => {
         intakes: rows(ins, F),
         spoilt: r1(w.spoilt),
         share: r2(share(w)),
+        lying: lyingLoss(st, hh, 'hay', c),
         ...(hand ? { left } : {}),
       },
     };

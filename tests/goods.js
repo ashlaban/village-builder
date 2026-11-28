@@ -1,3 +1,4 @@
+// @suite integration node:--expose-gc
 // Goods for the fair (VB-299): the registry of goods (quantum, perishing, class, keeping), Culture's norms worth and proper as rules, and
 // need: food against the year ahead, an animal against the household's herd and hay, tar and ale, a keeping good beyond need. Nothing of it
 // is in saved state, and needValue allocates nothing.

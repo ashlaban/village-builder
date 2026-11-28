@@ -19,7 +19,8 @@ VB['sim/fieldwork'] = (() => {
     { manureWanted, manureDone } = VB['sim/soil'];
   const { hoed, sown, reaped, standing, carried, laidDown, binned, reclaimed, weeded } = VB['sim/fields'];
   const { fieldsWorkable, fieldProject } = VB['sim/fieldplans'];
-  const { heldFarms } = VB['sim/ownership'];
+  const { heldFarms } = VB['sim/ownership'],
+    { emit } = VB['sim/events'];
   const rowAngle = (j) => (j.farm ? j.farm.rowAngle : 0);
   // Several hands on one field start on different rows: the nth worker on row -12 + 6n, five rows across the tile.
   const firstRow = (j, a) => -12 + 6 * (Math.max(0, j.claims.indexOf(a.id)) % 5);
@@ -127,6 +128,12 @@ VB['sim/fieldwork'] = (() => {
   // in autumn, by the days gone of a season that ended at the frost (as by the autumn's day when the frost fell on its last).
   const frostNear = (st, c, U) =>
     c.season === 2 ? Math.max(0, SEASON_DAYS - 1 - (frostExpected(st) - c.sday)) / U.reapFrostPerDay : 0;
+  // Whether a load of the household's sheaves cut from field fd lies on the road (sim/lying).
+  const lyingFor = (st, hh, fd) => {
+    if (!st.lying || !hh) return false;
+    const o = VB['sim/lying'].ownedPiles(st, { type: 'household', id: hh.id });
+    return !!o && o.some((l) => l.kind === 'haul' && l.of.field === fd);
+  };
   const KINDS = {
     plow: {
       verb: 'Hoeing a field',
@@ -225,6 +232,9 @@ VB['sim/fieldwork'] = (() => {
       available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'stooks' && c.day >= fd.reaped + st.ECON.dryDays)
           post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, crop: fd.crop });
+        // the last load cut on the road lies beside the stubble: the goal is posted again to carry it home before the frost (VB-1815)
+        else if (fd.stage === 'stubble' && lyingFor(st, hh, fd))
+          post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, crop: fd.crop });
       },
     },
     weed: {
@@ -251,9 +261,15 @@ VB['sim/fieldwork'] = (() => {
       verb: 'Threshing in the barn',
       go: 'Going to the barn to thresh',
       name: 'Thresh the grain',
-      at: ['barn'],
+      at: ['barn', 'storehouse'],
       needs: ['sheaves'],
       gives: ['grain'],
+      // the grain threshed in the barn is carried to the storehouse that keeps it (VB-2027), or the house of a farm without one
+      words: (st, j) => ({
+        verb: j.farm.storehouse
+          ? 'Threshing in the barn, the grain for the storehouse'
+          : 'Threshing in the barn, the grain for the house',
+      }),
       label: 'Threshing',
       anim: null,
       hours: HOURS.thresh,
@@ -370,7 +386,7 @@ VB['sim/fieldwork'] = (() => {
     plow: ['stubble'],
     sow: ['plowed'],
     reap: ['ripe'],
-    haul: ['stooks'],
+    haul: ['stooks', 'stubble'], // the stubble: a load of its sheaves left lying (VB-1815)
     weed: ['growing'],
     reclaim: ['fallow', 'scrub'],
   };
@@ -389,6 +405,7 @@ VB['sim/fieldwork'] = (() => {
       // untouched once it is sown anew (VB-1814: as the fetch kinds had it)
       const seq = Stores.sheaf(st, hh, a.load, j.bin ?? j.field.bin ?? -1, j.crop ?? j.field.crop);
       if (j.bin === undefined || j.bin === j.field.bin) binned(j.field, seq);
+      if (st.titles && st.titles.size) emit(st, 'sheavesIn', { hh, field: j.field, n: a.load }); // a rent on it (sim/heirland, VB-034)
       if (
         f.fields.every((q) => q.stage !== 'ripe' && q.stage !== 'stooks') &&
         !hh.members.some((id) => id !== a.id && st.agents[id].load > 0 && st.agents[id].load > 0)
@@ -405,7 +422,7 @@ VB['sim/fieldwork'] = (() => {
     run: (st, j, g, at, a, cap) => {
       a.load = carried(j.field, cap);
     },
-    met: (st, g) => g.job.field.stage !== 'stooks',
+    met: (st, g) => g.job.field.stage !== 'stooks' && !lyingFor(st, st.households[g.job.owner.id], g.job.field),
   });
   Object.assign(KINDS.haul, {
     places: { barn: (st, g, v) => (g.job.common ? g.job.dest : v.storeOf(st, g.owner)) },

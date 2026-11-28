@@ -180,3 +180,57 @@ are from the last three days of the window, so there is almost no "after" histor
 - Whether a derived manifest order can equal today's; `tools/dependencies.js` suggests it was intended, I did not run it.
 - Actual merge conflicts between parallel agents; task counts per file stand in for them.
 - The page-file and invariants back-tests rest on symbol heuristics and are the least certain numbers here.
+
+## 5. The steps (VB-1406, 27 Nov)
+
+The rule is principle 20 of `docs/architecture/target-v2.md` (proposed; a clause of 18 if Kim prefers), with its note in 11.2;
+`docs/architecture/modules.md`, Adding things, says where each kind of thing is declared today and after its step; `AGENTS.md`
+(Finding things, Conventions) names the greps and the new splitting rule. One task a step, in this order; each lands with
+`npm run verify` passing and `node tools/same.js --base REF` printing `same`, takes its file off `IGNORED` in `tools/lib/symbols.js`
+when the file stops being a list (Kim, 24 Nov), and its PR reruns the back-test of section 3 for its hot file.
+
+| Step | Task | Hot file, tasks now to after | Waits for |
+|---|---|---|---|
+| 1. A test's tier in its header, discovered | VB-1933 | `tests/suites.js` 28 to 1 | a quiet hour |
+| 2. Work counters declared by their module | VB-1934 | `src/vb.js` 12 to 0 | |
+| 3. The layer in the `@sys` line; the modules' list generated; `NOT_STOCKS` a tag | VB-1941 | `src/layers.json` 13 to 1, `modules.md` 22 to 0, `tools/stocks.js` 10 to 3 | |
+| 4. A field's owner from its `@state` line | VB-1942 | `src/owners.json` 18 to at most 2 an owner | VB-1941 (both edit the `@state` lines) |
+| 5. The load order derived | VB-1943 | `src/manifest.json` 15 to 1 | VB-1941 (the layer is its tie-break) |
+| 6. The `Sim` facade joined | VB-1944 | `src/sim.js` 17 to 1-4 | |
+| 7. Save migrations by the field's owner | VB-1945 | `sim/saves` 12 to 4 | VB-1942 |
+| 8. One record an event kind; `sim/notable` split | VB-1946 | `sim/notable` 16 to 8 and 6, `sim/records` 10 to 6 | taken with `sim/records`' line of VB-1737 or after it |
+| 9. Tunables by domain | VB-1947 | `sim/rules` 21 to at most 5 a file | Kim (when) |
+| 10. The page: stylesheets by area; card rows declared | VB-1948 | `head.html` 14 to 6, 6, 4; `page/words` 11 to 7 | |
+| after 4. The invariants by owning module | VB-1949 | `tests/lib/invariants.js` 24 to at most 3 a file | VB-1942 |
+
+Steps 1, 4 and 5 change a registry every branch in flight writes to: each lands in a quiet hour, since every such branch conflicts
+with it once. None of the steps was taken in VB-1406 itself: it ran beside other tasks of a night run, all of which append to these
+lists (a decision, in its notes).
+
+**The splitting rule, revised.** A "Refactor: split" task first names the lists in the module that every feature appends to and turns
+those into declarations by their owners; it splits by concern only what is left, and names, for each part, the tasks of the last 50
+merged PRs that would have touched it (the replay of section 4). The splits replayed there show why: `heirs`, `relations`, `stores`,
+`page/cards` and `fields` kept their tasks on the parent; `kinds` (VB-418) lost them, because it replaced a list. The rule is in
+`AGENTS.md`, Conventions; `BACKLOG.md`, Refactor rules, gets the same sentence from the orchestrator (a worker does not edit it).
+
+**What this changes for the splits named.** VB-419 (tunables, done 22 Nov): the model for step 9; its `// @tunable` line stays the
+declaration, and step 9 moves the tables several domains read into files by domain. VB-417 (culture, done 22 Nov): `DIMS`,
+`ARCHETYPES` and `PRACTICES` already sit in `sim/customs`; a new custom still adds a `DIMS` entry and a value in each `ARCHETYPES`
+entry, a list of the kind this rule names, left as it is (a custom is one record across two tables, read by position). VB-455
+(`sim/records`, collected as a line of VB-1737, 25 Nov): its split takes `HISTORY` out as the event kinds' record of step 8, not as a
+table moved into `sim/eventlog`; step 8 is taken with that line or after it, never across it. VB-422 (`sim/agents`, done 22 Nov) and
+VB-431 (`sim/plans`, done 22 Nov): nothing to undo; the journeys' kinds (`JOURNEYS`, VB-1409) are already declared beside their
+owner. VB-1737 (the collector, open): each line taken from now on follows the revised rule above.
+
+**Not done, and why.** `page/cards.js` (13 to 11), `sim/marriage.js` and `sim/fields.js`: their tasks are sequential work on one
+concern within one slice (`settleMatch` 6 tasks, `refusedMatch` 5; crops and tilth), not appends to a list; a split would spread
+the same tasks over more files and raise the tasks a file, not lower them. `culture` (12 to 6, 6, 5) is left to VB-1737's rule.
+`tests/counters.json` is a measured baseline: no structure removes it (a question: record it at night).
+
+**`docs/tuning.md`, proposed, not built** (a question for Kim, who reads it to start tuning runs): one entry a task, a file of its
+own as `backlog/` is, gathered by a tool into "Parameters waiting" (17 of its 18 tasks append there). Until then the orchestrator
+writes the rows from the inbox's `tuning` notes once a run, which already keeps sub-agents off the file.
+
+**`design.md`** is not changed: searched again for `rules.js`, `sim/rules`, the manifest, the facade, migrations, `owners.json`,
+`suites.js` and `layers.json`, it names `src/sim/rules.js` only as where the numbers of "Households short of people" live, a place, not a
+Decided mechanism; step 9 leaves a `design` note for that reference, since a worker does not edit `design.md`.

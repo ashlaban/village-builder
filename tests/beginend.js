@@ -1,3 +1,4 @@
+// @suite fast
 // A project's beginning and its end said once (VB-1408): sim/projects' mayBegin, the one read of whether a household may begin a project
 // of its own, a small construction (it lives, is not dissolved, has no plan of the same making under way, a head not holding off
 // projects; a booth and another plan do not stop it, VB-1414), and stepEnds, the one way a project step's job ends (the holder's open step, its kind and place; the
@@ -8,6 +9,7 @@ let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('B
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'P'.repeat(16) : '................'));
 const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 2, sizes: [5, 4] }], { seed: 4 });
 const f = st.farmsteads[st.villages[0].farmsteads[0]], hh = st.households[f.household];
+f.barn = null; // VB-1898: a seeded farm has its barn; this one is made without
 const { mayBegin, stepEnds } = Projects;
 
 // the guard: each of its refusals, and what no longer refuses (a booth, another plan under way)

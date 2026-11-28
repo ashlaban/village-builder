@@ -13,7 +13,7 @@ VB['sim/fit'] = (() => {
   const { KINDS, isOpen, carriedOn } = VB['sim/kinds'];
   const Days = VB['sim/days'];
   const Hands = VB['sim/hands'],
-    Voice = VB['sim/voice'];
+    Grants = VB['sim/grants'];
   const { claimPrio } = VB['sim/farmclaims'];
   const { commonPrio } = VB['sim/commons'];
   const Levies = VB['sim/levies'],
@@ -37,21 +37,27 @@ VB['sim/fit'] = (() => {
   // Water by the site, How it is ranked). The head allots by it (allot); a
   // pawn on duty or lent bids it for the tasks of the household it works for, where a job that k pawns already work gets join^k of the
   // bid (VB-102).
+  // A site's job (VB-787; sim/sites, j.party its party): its members of 14 and over, but a mother who nurses, at the first of PLOT_PRIO;
+  // nobody else.
+  const sitePrio = (st, p, j) =>
+    j.party.includes(p.id) && p.age >= 14 && !(p.nursingUntil > st.t) ? PLOT_PRIO.waiting : 0;
   const plotPrio = (st, p) => (st.demand.includes(p.id) ? PLOT_PRIO.waiting : PLOT_PRIO[p.role] || 0);
   // Role priority for a job: by plot, by claim on an empty farm (sim/farmclaims), by the village's custom on a common field (sim/commons,
   // VB-100), by the kind's own `rank` where it declares one (VB-362: spinning and weaving, by a practice and the pawn's sex), else by
   // role and kind, the holder's with the ranks of the roles its household lacks (`stand`, the mask of sim/roles absentMask its caller
   // made for the holder, else 0; VB-1545).
   const prioOf = (st, p, j, stand = 0) =>
-    j.plot
-      ? plotPrio(st, p)
-      : j.claim
-        ? claimPrio(st, p, j)
-        : j.common
-          ? commonPrio(st, p, j)
-          : KINDS[j.kind].rank
-            ? KINDS[j.kind].rank(st, p, j, stand)
-            : ROLES[p.role].ranks[stand][j.kind] || 0;
+    j.party
+      ? sitePrio(st, p, j)
+      : j.plot
+        ? plotPrio(st, p)
+        : j.claim
+          ? claimPrio(st, p, j)
+          : j.common
+            ? commonPrio(st, p, j)
+            : KINDS[j.kind].rank
+              ? KINDS[j.kind].rank(st, p, j, stand)
+              : ROLES[p.role].ranks[stand][j.kind] || 0;
   // Whether the head allots member id the day: not a child under 7, one away from home (VB-287, VB-783), the player's pawn while it is
   // commanded, or one on a day owed elsewhere (sim/days) or lent as a hand.
   const allotted = (st, p) =>
@@ -60,7 +66,7 @@ VB['sim/fit'] = (() => {
     !unplanned(st, p.id) &&
     Days.on(st, p.id) === null &&
     Hands.on(st, p.id) === null &&
-    !Voice.on(st, p.id) && // on leave (VB-1555)
+    !Grants.on(st, p.id) && // on leave (VB-1555; its head's dated grant, VB-1763)
     p.ill === undefined; // ill (VB-1758: an illness keeps its pawn from work)
   // The stand mask of pawn p (VB-1545): the roles its household lacks today when p is the holder at work, else 0. A pass over the
   // household's members, for a reader outside an allotment (fit); allot makes it once from its own list.

@@ -19,6 +19,9 @@ const GOOD_PATHS = {
   hay: ACT_PATHS.hay,
   wood: '<circle cx="7" cy="16" r="3.5"/><circle cx="17" cy="16" r="3.5"/><circle cx="12" cy="8.5" r="3.5"/><path d="M7 16h.01M17 16h.01M12 8.5h.01"/>',
   tree: '<path d="M12 21v-5M12 3l-5 7h2.5L5.5 16h13L14.5 10H17z"/>',
+  // timber (Kim, 27 Nov: a job shows what it gives): two felled logs, their cut ends showing
+  timber:
+    '<path d="M5 5.5h13a2.5 2.5 0 0 1 0 5H5M5 13.5h13a2.5 2.5 0 0 1 0 5H5"/><ellipse cx="5" cy="8" rx="2" ry="2.5"/><ellipse cx="5" cy="16" rx="2" ry="2.5"/>',
   stone: '<path d="M4 18l2-7 5-4 6 1 3 6-2 4zM11 7l1 5 6 2M12 12l-6 1"/>',
   clay: '<path d="M4 9h10v6H4zM14 9l5-3v6l-5 3M4 9l5-3h10"/>',
   ore: '<path d="M5 19l-1-6 4-6 6-2 5 4 1 7-4 3zM8 7l3 5-2 6M11 12l6-1"/><path d="M14.5 15h.01M7 14h.01"/>',
@@ -93,6 +96,9 @@ const GOOD_STEN = {
     '<circle cx="7.5" cy="16.5" r="4.2"/><circle cx="16.5" cy="16.5" r="4.2"/><circle cx="12" cy="8.7" r="4.2"/>' +
     '<circle class="c" cx="7.5" cy="16.5" r="1.5"/><circle class="c" cx="16.5" cy="16.5" r="1.5"/><circle class="c" cx="12" cy="8.7" r="1.5"/>',
   tree: '<path class="l" d="M12 21v-5"/><path d="M12 2.8l-5.5 7.7h3L5 16.5h14l-4.5-6h3z"/>',
+  timber:
+    '<path d="M5 5.5h13a2.5 2.5 0 0 1 0 5H5zM5 13.5h13a2.5 2.5 0 0 1 0 5H5z"/>' +
+    '<ellipse class="c" cx="5" cy="8" rx="2" ry="2.5"/><ellipse class="c" cx="5" cy="16" rx="2" ry="2.5"/>',
   stone: '<path d="M4 18l2-7 5-4 6 1 3 6-2 4z"/><path class="c" d="M11 7l1 5 6 2M12 12l-6 1"/>',
   clay: '<path d="M3.5 9.5h11V16h-11z"/><path d="M3.5 9.5l5-3h11l-5 3z"/><path d="M14.5 9.5l5-3V13l-5 3z"/>',
   ore: '<path d="M5 19l-1-6 4-6 6-2 5 4 1 7-4 3z"/><path class="c" d="M8 7l3 5-2 6M11 12l6-1"/>',

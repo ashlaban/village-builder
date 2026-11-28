@@ -72,6 +72,8 @@
       "sim/pot",
       "sim/thirst",
       "sim/sleep",
+      "sim/dress",
+      "sim/storehouse",
       "sim/hunger",
       "sim/foodneed",
       "sim/saltpan",
@@ -109,10 +111,12 @@
       "sim/timberhouse",
       "sim/camp",
       "sim/trails",
+      "sim/sites",
       "sim/drying",
       "sim/tar",
       "sim/drain",
       "sim/carts",
+      "sim/wood",
       "sim/chores",
       "sim/green",
       "sim/lying",
@@ -134,6 +138,7 @@
       "sim/births",
       "sim/heirranking",
       "sim/terms",
+      "sim/heirland",
       "sim/heirs",
       "sim/membership",
       "sim/cottage",
@@ -170,6 +175,7 @@
       "sim/jobs",
       "sim/drinking",
       "sim/fit",
+      "sim/grants",
       "sim/levies",
       "sim/day",
       "sim/authored",
@@ -213,6 +219,14 @@
       "sim/agenda",
       "sim/timetable"
     ],
-    "presentation": ["draw/pigments", "draw/paths", "draw/rivers", "draw/marks", "draw/paint", "draw/bake"]
+    "presentation": [
+      "draw/pigments",
+      "draw/season",
+      "draw/paths",
+      "draw/rivers",
+      "draw/marks",
+      "draw/paint",
+      "draw/bake"
+    ]
   }
 }

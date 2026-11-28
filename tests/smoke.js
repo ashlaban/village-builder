@@ -1,3 +1,4 @@
+// @suite extended
 // The page in jsdom, at night (docs/testing.md): the tiny map, its panels, a year skipped, regenerating, the toasts, the goodwill rows and
 // the action bar. Its quick sibling in verify is tests/page.js; the harness both load the page with is tests/lib/dompage.js.
 const P = require('./lib/dompage').openPage({ label: 'SMOKE' });

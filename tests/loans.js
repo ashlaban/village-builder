@@ -1,3 +1,4 @@
+// @suite integration
 // Grain loans (VB-312): a household help has gone round for and still short of the harvest borrows, in whole sacks, from the household
 // of its village with most to spare; the grain is set aside as the borrower's and fetched, and an obligation is booked (a quarter more by
 // default, as lent by the practice), not goodwill; a lender refuses enmity, and a household with no field and a loan unpaid; at the end of
@@ -65,7 +66,7 @@ const spareNeed = (st, hh) => VB['sim/help'].askDaysAt(st) * VB['sim/hunger'].da
   assert(c.ledger.some((e) => e.kind === 'loan' && e.n > 0), 'carried back to the lender');
   assert.deepStrictEqual(checkState(st), [], 'invariants overdue');
   setClock(st, o.due);
-  VB['sim/lying'].frost(st); // the autumn frost the jump passed over rots what lies (VB-1775: a felled tree's timber lies as a pile)
+  VB['sim/lying'].frost(st); VB['sim/lying'].decay(st, 48); // the autumn frost the jump passed over rots what lies (VB-1775: a felled tree's timber lies as a pile)
   a.grain = { barley: 0 };
   Obligations.step(st);
   assert.strictEqual(o.status, 'defaulted', 'unpaid after the second harvest: defaulted');

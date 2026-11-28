@@ -1,5 +1,5 @@
 // @sys sim/keep: what the alderman is kept with (VB-463; design.md, Households and other bodies: The alderman's keep): under the village's
-// practice `keep`, at each autumn meeting every other farm's household owes the alderman's days of work to the next meeting (sim/days,
+// practice `keep`, at each autumn meeting every other farm's household owes the alderman's days of work to the next meeting (sim/levies,
 // source 'keep'), or at the moving round sets aside a share of its surplus for him, fetched by a member of his household (the gift's way,
 // sim/gifts: nothing is carried but by a pawn). A vacancy, or a new alderman, ends the days owed the one before.
 VB['sim/keep'] = (() => {
@@ -29,6 +29,10 @@ VB['sim/keep'] = (() => {
   }
   const aldermanHousehold = (st, v) =>
     v.alderman === undefined || v.alderman === null ? null : st.pawns[v.alderman].household;
+  VB.counter(
+    'keepGiven',
+    "The alderman's keep: households' shares set aside at a moving round, and days owed at an autumn meeting (sim/keep, VB-463)",
+  );
   // At village s's autumn meeting, after its office is filled: the days owed the household before end, and the new ones are owed.
   function meeting(st, s) {
     const v = st.villages[s.id],
@@ -51,14 +55,21 @@ VB['sim/keep'] = (() => {
         (o) => o.source === 'keep' && o.debtor.id === hh.id,
       );
       if (live) continue;
-      Obligations.create(st, {
-        kind: 'days',
-        debtor: { kind: 'household', id: hh.id },
-        creditor: { kind: 'household', id: hhA },
-        owes: { days: OFFICE.keepDays },
-        due: st.t + YEAR - DAY, // to the next autumn's meeting
-        source: 'keep',
+      // laid by the alderman's household's holder through the verb levy, its days asked season by season (sim/levies, VB-1767)
+      const holder = st.households[hhA].holder;
+      if (holder === null) continue;
+      const done = VB['sim/commands'].issue(st, {
+        actor: holder,
+        verb: 'levy',
+        args: {
+          debtor: { kind: 'household', id: hh.id },
+          source: 'keep',
+          days: OFFICE.keepDays,
+          due: st.t + YEAR - DAY,
+        }, // to the next autumn's meeting
+        source: 'planner',
       });
+      if (done !== true) continue;
       b.days += OFFICE.keepDays;
       b.payers++;
       VB.count.keepGiven++;

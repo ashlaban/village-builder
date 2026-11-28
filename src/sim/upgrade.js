@@ -46,7 +46,7 @@ VB['sim/upgrade'] = (() => {
     walls.wood = (walls.wood || 0) + got; // the walls' timber brought from home, as a trip's load is (sim/building)
     return got;
   }
-  // A trip of timber is home (sim/chores' wood): the household's cottage begun by an upgrade task of its members' plans takes it while
+  // A trip of timber is home (sim/wood' wood): the household's cottage begun by an upgrade task of its members' plans takes it while
   // its walls lack it.
   on('timberHome', (st, { household }) => {
     const f = plansIn(st, household).length ? farmOf(st, household) : null,
@@ -75,6 +75,7 @@ VB['sim/upgrade'] = (() => {
       if (p) homeTimber(st, hh, p);
     },
   });
+  VB.counter('campLook', 'Households read each working hour for a camp left to itself (sim/upgrade ownRung, VB-1658)');
   // ---- the head's own rule (VB-1658): a camp left to itself gets its roof ----
   // Each working hour, every household whose farm was landed as a camp (sim/camp; f.camp set) and whose head does not hold off projects
   // (sim/projects heldOff: automatic behaviour on, or a head not played) builds up by its own rule, by the verbs a player's plan issues:
@@ -254,7 +255,7 @@ VB['sim/upgrade'] = (() => {
     }
   }
   // ---- the goal: outbuilding (GOALS.outbuilding; VB-1663) ----
-  // Any outbuilding of sim/ladder's OUTBUILDINGS (`what`, the task's: a barn today) built as a task of the plan: its act begins it by the
+  // Any outbuilding of sim/ladder's OUTBUILDINGS (`what`, the task's: a storehouse, a barn, a byre) built as a task of the plan: its act begins it by the
   // head's verb `project` and the making of its name (sim/makings; a barn: sim/aims, under barnWhy), as the head's own rule would; then its
   // stages at the house, the timber trips a stage that carries timber lacks before it (their jobs at the wood, found by their keys), the
   // timber held at home first (outTimber, as the cottage's walls take it, VB-1660). It leaves when the farm has it ('built'), or when the

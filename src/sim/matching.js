@@ -17,7 +17,7 @@ VB['sim/matching'] = (() => {
   const { heirRanking } = VB['sim/heirranking'],
     { heirFor } = VB['sim/heirs'];
   const { trustOfHolder } = VB['sim/ownership'];
-  const { opinionOf } = VB['sim/relations'];
+  const opinionOf = (st, a, b) => VB['sim/offers'].answerOpinion(st, a, b);
   const { hoursBetween, byLand } = VB['sim/villagehours'];
   const { wishOf, authored } = VB['sim/wishes'];
   const Rules = VB['sim/registry'];
@@ -81,6 +81,10 @@ VB['sim/matching'] = (() => {
   // (TRAVEL.dayWalk hours between their greens), or one of the two has visited the other's village since the last round.
   const courts = (st, m, f, vm, vf) =>
     vm === vf || hoursBetween(st, vm, vf) <= TRAVEL.dayWalk || visitOf(st, m) === vf || visitOf(st, f) === vm;
+  VB.counter(
+    'guestWalk',
+    "Entries of the asking queue read at a village's round for the women who visited it (sim/matching poolFor, VB-292)",
+  );
   // ---- the pool and the villages' term (VB-288, VB-289; design.md, Between villages: Ease of mixing) ----
   // The villages within a day's walk of village v (v itself first) and those its living have visited since the last round, and their
   // living: the pool of v's round, built from those villages' households, not from the island's living filtered. A pawn of no household

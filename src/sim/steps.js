@@ -56,6 +56,10 @@ VB['sim/steps'] = (() => {
     plan.ahead = [];
     return plan;
   }
+  VB.counter(
+    'planSteps',
+    "Plan steps made: a household's season steps at each season's plan, a project's year step (sim/steps; VB-1752)",
+  );
   // A new step: `what`, `why`, by the default author, planned; `extra` its own fields (from, by, left, state).
   function make(st, what, why, extra) {
     VB.count.planSteps++;
@@ -124,6 +128,19 @@ VB['sim/steps'] = (() => {
     )
       st.plans.pawns.delete(p.holder.id);
   }
+  // A village's routines as steps of its year (sim/routines, VB-1768): each `what` {routine, kinds}, by the default author, open, its
+  // `why` the decision that set them ({custom: by}); a routine set again keeps its step (its id, which the levies' why name), the others
+  // leave.
+  function setRoutines(st, plan, whats, by) {
+    if (!plan.year) return;
+    const had = new Map(plan.year.filter((s) => s.what.kinds).map((s) => [s.what.routine, s]));
+    plan.year = plan.year.filter((s) => !s.what.kinds);
+    for (const what of whats) {
+      const s = had.get(what.routine);
+      if (s) Object.assign(s, { what, why: { custom: by } });
+      plan.year.push(s || make(st, what, { custom: by }, { state: 'open' }));
+    }
+  }
   // ---- a task's step ----
   // The id of the step that opens a task of `kind` at `site` for `owner`, or null: the open step of the owner's project of that kind (at
   // the site, else any), else its season's routine of that kind. At a task's posting (sim/jobs post). Allocates nothing.
@@ -142,6 +159,9 @@ VB['sim/steps'] = (() => {
     if (any !== null) return any;
     const plan = planFor(st, owner.type, owner.id);
     if (plan) for (const s of plan.season || NONE) if (s.what.routine === kind) return s.id;
+    // a village's routine of the year (sim/routines, VB-1768), by the kinds it is the source of
+    if (plan && owner.type === 'village')
+      for (const s of plan.year || NONE) if (s.what.kinds && s.what.kinds.includes(kind)) return s.id;
     return null;
   }
   // A step as a view shows it: a copy, with the body whose plan holds it.
@@ -346,6 +366,33 @@ VB['sim/steps'] = (() => {
     const plan = planFor(st, 'household', hid);
     plan.ahead.splice(plan.ahead.indexOf(s), 1);
   }
+  // ---- duties (VB-1771; design.md section 7, Plans at four scales: The days ahead; Standing duties) ----
+  // @state a duty: a step of a household's `ahead` {what: {duty: a type of recurring work without a window (sim/day dutyTypes)}, who:
+  //   [the member that holds it]}, open, at most one a type; by the default author ({custom: 'duty'}, given at the head's review) or
+  //   'pawn' (why null: through the verb assign with a duty, by whoever controls the head). It stands until its holder is absent (ill,
+  //   called away, dead, no longer a member), when it lapses (sim/day). Written here only (giveDuty, dropDuty), by sim/day.
+  // The duty step of `type` in household plan `plan`, or null: a pass over its few days-ahead steps.
+  function dutyOf(plan, type) {
+    for (const s of plan.ahead) if (s.what.duty === type) return s;
+    return null;
+  }
+  // Member `pawn` holds the duty `type` of household plan `plan`, by `author` (the one it held before, if any, given to it).
+  function giveDuty(st, plan, type, pawn, author = 'custom') {
+    const why = author === 'custom' ? { custom: 'duty' } : null;
+    const s = dutyOf(plan, type);
+    if (s) return Object.assign(s, { who: [pawn], author, why });
+    const n = make(st, { duty: type }, why, { who: [pawn], state: 'open', author });
+    plan.ahead.push(n);
+    return n;
+  }
+  // Duty step s leaves household plan `plan` (it lapses).
+  function dropDuty(plan, s) {
+    plan.ahead.splice(plan.ahead.indexOf(s), 1);
+  }
+  VB.counter(
+    'planRead',
+    'Members of a household read for those that plan for themselves (sim/steps plannersIn, VB-1834)',
+  );
   // The pawns of household hid that plan for themselves, ascending ([] with none: no work in a run where none has planned).
   function plannersIn(st, hid) {
     if (hid === null || hid === undefined || !st.plans || !st.plans.pawns.size) return NONE;
@@ -375,7 +422,7 @@ VB['sim/steps'] = (() => {
       s = plan && plan.ahead.find((x) => x.what.routine === kind);
     if (s) s.begun = today(st);
   }
-  // A trip of timber is home from `tile` with its `loads` (sim/chores' wood, the event timberHome): a fell task there of a plan of the
+  // A trip of timber is home from `tile` with its `loads` (sim/wood' wood, the event timberHome): a fell task there of a plan of the
   // household's members counts its loads, not its trips (VB-1662: a cart's trip brings several); the first by its pawn's id.
   on('timberHome', (st, { household, tile, loads }) => {
     for (const pp of plansIn(st, household)) {
@@ -414,6 +461,9 @@ VB['sim/steps'] = (() => {
     takeBack,
     onGone,
     dropTaken,
+    dutyOf,
+    giveDuty,
+    dropDuty,
     plannersIn,
     stepOfKey,
     STATES,
@@ -427,6 +477,7 @@ VB['sim/steps'] = (() => {
     advanced,
     unlink,
     stepFor,
+    setRoutines,
     chain,
     recordOf,
     targetOf,

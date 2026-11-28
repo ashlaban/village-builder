@@ -1,3 +1,4 @@
+// @suite fast
 // The supply outlook (VB-666; sim/outlook, Sim.supplyOutlook): how long food, fuel and hay last, in seasons from the start of the season we
 // are in, on the probe's small village with its stores set by hand: a year's food and a month's; fuel that lasts the summer and not the
 // winter; hay for half a winter with meadows still to mow; the outlook made at the review, made again when a harvest stacked wakes it,
@@ -19,6 +20,7 @@ const empty = (hh) => { hh.grain = {}; hh.meals = 0; hh.flour = 0; hh.larder = [
 
 const st = probe.state();
 st.naturalDeaths = false;
+for (const f of st.farmsteads) f.storehouse = f.barn = null; // VB-1898: the spoilage of a farm with neither, as these figures were made for
 at(st, YEAR + 8); // year 1, spring, day 0 of the season, 08:00
 const c = cal(st.t), [h0, h1] = st.villages[0].farmsteads.map((f) => st.households[st.farmsteads[f].household]);
 const p0 = st.plans.households.get(h0.id), p1 = st.plans.households.get(h1.id), f0 = st.farmsteads[h0.farmstead];

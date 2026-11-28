@@ -10,7 +10,8 @@ VB['sim/leather'] = (() => {
   const { age } = VB['sim/records'];
   const { hasTeam } = VB['sim/herds'];
   // @tunable LEATHER: shoes and harness (VB-911; named estimates with no source but the reckoning here, rows of docs/tuning.md). shodAge:
-  // from this age a member walks shod (a small child goes barefoot); shoeDays: the days a walker wears a pair of turnshoes through; pairs:
+  // from this age a member walks shod (a small child goes barefoot); shoeDays: the GAME days a walker wears a pair of turnshoes through
+  // (a game day stands for a week, YEAR_DAYS 48 a year: 32 is some eight months of wear); pairs:
   // the pairs a hide is cut into (a roe deer's gives two, a cow's many more, most of it to other uses); keep: the pairs a walker's
   // household keeps in hand, its target; shoeHours: the work of cutting and sewing a hide into shoes, one hand in the house;
   // harnessYears: the years a team's harness lasts; harnessMend: the part of a whole harness a hide makes good; harnessHours: that work;
@@ -18,7 +19,7 @@ VB['sim/leather'] = (() => {
   // done in any season; urgency: a side craft's (MATCH.urgency's scale), as the tools' mending.
   const LEATHER = {
     shodAge: 3,
-    shoeDays: 240,
+    shoeDays: 32,
     pairs: 4,
     keep: 1,
     shoeHours: 6,
@@ -29,8 +30,9 @@ VB['sim/leather'] = (() => {
     low: 0.25,
     urgency: 0.5,
   };
-  // @state household.shoes: the pairs of shoes the household holds, counted by the wear left in them (a pair half worn is half a pair),
-  //   undefined until its first day's wear, when its members' own are counted (LEATHER.keep a walker); written only here
+  // household.shoes (@state in sim/stores): the pairs of shoes the household holds, counted by the wear left in them (a pair half worn is half a pair),
+  //   undefined for a household placed at the start until its first day's wear, when its members' own are counted (LEATHER.keep a walker);
+  //   a household formed later starts at 0 (sim/membership) and gets pairs only by a hide cut or a member's carry; written here and in sim/stores
   // @state household.harness: the condition of the team's harness, 0 (worn out) to 1 (sound), undefined for sound; worn only while the
   //   household keeps a team (sim/herds hasTeam); written only here
   const walkers = (st, hh) => {
@@ -42,6 +44,7 @@ VB['sim/leather'] = (() => {
   const harnessOf = (hh) => (hh.harness === undefined ? 1 : hh.harness);
   const hidesOf = (hh) => hh.hides || 0;
   const shoeTarget = (st, hh) => walkers(st, hh) * LEATHER.keep;
+  VB.counter('leatherWear', 'Households whose shoes and harness wear a day, once a day (sim/leather wearDay; VB-911)');
   // A day's wear: each walker wears 1 / shoeDays of a pair; a team's harness 1 / harnessYears of a year. Once a day for every household
   // that has members (sim/clock), counted in VB.count.leatherWear.
   function wearDay(st) {
@@ -51,10 +54,36 @@ VB['sim/leather'] = (() => {
       VB.count.leatherWear++;
       if (!hh.members.length) continue;
       const n = walkers(st, hh);
-      if (hh.shoes === undefined) hh.shoes = n * LEATHER.keep;
-      hh.shoes = Math.max(0, hh.shoes - n / LEATHER.shoeDays);
+      counted(st, hh);
+      Stores.take(st, hh, 'shoes', n / LEATHER.shoeDays, 'wear');
       if (hasTeam(st, hh)) hh.harness = Math.max(0, harnessOf(hh) - harnessDay);
     }
+  }
+  // The shoes a member takes with them (VB-1620): a walker leaving household `old` for `hh` takes their share of its pairs, the pairs
+  // divided by its walkers; a child below shodAge takes none. Once the old household is dissolved (sim/heirs extinct) its ledger is shut
+  // and the pairs pass by hand; none leave the world but by wear. Called before the member leaves.
+  const counted = (st, hh) => {
+    // a household placed at the start is shod as placed
+    if (hh.shoes === undefined && !hh.dissolved) Stores.put(st, hh, 'shoes', walkers(st, hh) * LEATHER.keep, 'start');
+  };
+  function carry(st, from, hh, id) {
+    if (!from || from === hh || age(st, st.pawns[id]) < LEATHER.shodAge) return 0;
+    counted(st, from);
+    counted(st, hh);
+    const n = walkers(st, from);
+    const share = n > 0 ? shoesOf(from) / n : 0;
+    if (!(share > 0)) return 0;
+    if (from.dissolved || hh.dissolved) {
+      Stores.passShoes(from, hh, share);
+      return share;
+    }
+    return Stores.move(st, from, hh, 'shoes', share, 'carried');
+  }
+  // What a dissolved household still holds of shoes (its walkers gone, or none who could carry) goes to `to`, a household.
+  function passShoes(st, from, hh) {
+    if (!hh || !(shoesOf(from) > 0)) return;
+    counted(st, hh);
+    Stores.passShoes(from, hh, from.shoes);
   }
   // The work wanted: shoes below the target, or the harness worn by more than half a hide's mending while the household keeps a team;
   // `pressing` when below LEATHER.low of it, when the work is done in any season.
@@ -66,7 +95,7 @@ VB['sim/leather'] = (() => {
   function cobbled(st, hh) {
     if (hidesOf(hh) < 1) return 0;
     Stores.take(st, hh, 'hide', 1, 'leather');
-    hh.shoes = shoesOf(hh) + LEATHER.pairs;
+    Stores.put(st, hh, 'shoes', LEATHER.pairs, 'leather');
     return 1;
   }
   // A hide cut into harness: one hide taken, the harness LEATHER.harnessMend sounder, up to whole; nothing without a hide.
@@ -162,6 +191,8 @@ VB['sim/leather'] = (() => {
     harnessOf,
     shoeTarget,
     wearDay,
+    carry,
+    passShoes,
     shoesWanted,
     harnessWanted,
     cobbled,

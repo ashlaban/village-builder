@@ -53,6 +53,10 @@ VB['sim/timetable'] = (() => {
   // that reordered its own list (VB-1756)
   const editor = (st, hh, ed) =>
     ed.by === null || ed.by === hh.holder || !st.pawns[ed.by] ? 'the head' : fullName(st.pawns[ed.by]);
+  VB.counter(
+    'timetableEntry',
+    "Entries of a member's list laid out in a timetable, a view asked by the page (sim/timetable, VB-477)",
+  );
   // Household hh's timetable as pawn `viewer` reckons it (its head when null), or null with no day: {household, viewer, made (the hour
   // the day was allotted), edited (the last change by the verbs on the day, standing until the day is next allotted, or null: {t, by, who,
   // the words for who made it, 'the head' or a member's name: a member reorders its own list, VB-1756}), members: [{id, now (the
@@ -131,8 +135,10 @@ VB['sim/timetable'] = (() => {
   // What calling member id off costs, as pawn `viewer` reckons it (the household's head when null), named before the call (the verb
   // call, sim/day): walk, the hours of its walk home from where it stands; load, what it carries home now and would put down where it
   // stands (0 when none); task, the key of its task in hand (or null) and left, the viewer's range of that task's hours left with its hands
-  // ({lo, mid, hi}, or null).
-  function callCost(st, id, viewer = null) {
+  // ({lo, mid, hi}, or null). With `key`, the call is to that task (VB-1926): to, its key; come, the hours until the member is at it, not
+  // urgent (the load brought in first, then the walk out from home) and urgent (straight from where it stands): {calm, now}, or null for
+  // a task gone.
+  function callCost(st, id, viewer = null, key = null) {
     const p = st.pawns[id],
       a = st.agents[id],
       hh = p.household === null ? null : st.households[p.household];
@@ -142,9 +148,14 @@ VB['sim/timetable'] = (() => {
       house = st.farmsteads[hh.farmstead].house,
       j = a.job,
       left = j && attentionOf(j) === 'full' ? Estimate.estimate(st, who, j) : null;
-    const walk = a.inside ? 0 : walkHours(st, tileOf(st, id), house),
-      load = a.load > 0 ? a.load : 0;
+    const at = tileOf(st, id),
+      walk = a.inside ? 0 : walkHours(st, at, house),
+      load = a.load > 0 ? a.load : 0,
+      to = key === null || key === undefined ? null : st.jobs.get(key),
+      now = to ? walkHours(st, at, to.site) : 0,
+      come = to && { calm: load > 0 ? walk + walkHours(st, house, to.site) : now, now };
     return {
+      ...(key === null || key === undefined ? {} : { to: key, come: come || null }),
       walk,
       load,
       // a call that is not urgent brings the load in first: about when the hand is in (hours; the walk to the store is the walk home,

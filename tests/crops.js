@@ -1,3 +1,4 @@
+// @suite fast
 // Crop boundary regressions: seed shortages, sheaves waiting at frost, and restoring an abandoned farm.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
 const { CROPS } = VB['sim/crops'];
@@ -51,6 +52,8 @@ const waiting = { ...fd, id: f.fields.length, stage: 'stooks', sown: 0, held: 17
 f.fields.push(waiting);
 const frostBefore = st.record.filter((e) => e.kind === 'frost').length;
 fieldsDay(st, c); fieldsFrost(st); // the final autumn midnight (sim/clock, CALENDAR)
+assert.equal(waiting.stage, 'stooks', 'the frost leaves the stooks standing (VB-2001)');
+VB['sim/fields'].stooksDecay(st, 2); // their days after it (sim/clock, CALENDAR)
 assert(hh.unthreshed.includes(held), 'delivered sheaves survive the final autumn midnight');
 assert.equal(fd.stage, 'stubble');
 assert.equal(waiting.stage, 'stubble');

@@ -1,3 +1,4 @@
+// @suite integration
 // Geology (gen/geology): the same on every generation and leaving the rest of the world as it was; bedrock on land only; each deposit
 // on a tile that can hold it, with loads left; tin only in granite; no island of the test maps with every kind. Every rule on three
 // 48 by 34 islands of tests/lib/probe.js (VB-856; three 180 by 130 maps before, which held over 50 deposits: these hold 36).

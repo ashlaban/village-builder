@@ -1,3 +1,4 @@
+// @suite fast
 // Peas (VB-349; design.md, Crops and rotations, The first crops). A field forced to peas on a tiny farm at seed 7, run by the simulation:
 // hoed, sown from the household's peas in spring days 1-10, ripe 18 days on, pulled (10 hours a normal crop) and threshed (10) into peas, 60 rations a
 // field at soil 1, the soil mended 0.04 to at most 1.0 (a manured field keeps its soil); a pea left to the frost is lost as barley is.
@@ -64,9 +65,11 @@ for (const [soil, after] of [[0.8, 0.84], [0.98, 1], [1, 1], [1.12, 1.12]]) {
   KINDS.reap.done(st2, j, hh2, cal(st2.t));
   assert(near(g.soil, after), `peas on soil ${soil}: ${g.soil}, not ${after}`);
 }
-// the frost takes peas in the stook, as it takes barley
+// the frost wears peas in the stook away, as it does barley (VB-2001: a share a day, gone under the quantum)
 Object.assign(g, { crop: 'peas', stage: 'stooks', sown: 0, held: 17 });
 fieldsFrost(st2);
+assert(g.stage === 'stooks' && g.held === 17, 'the frost leaves the stooks standing');
+VB['sim/fields'].stooksDecay(st2, 2);
 assert(g.stage === 'stubble' && g.held === 0, 'peas left in the field are lost to the frost');
 
 // ---- the pot: barley and peas are two sources ----

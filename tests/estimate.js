@@ -1,3 +1,4 @@
+// @suite fast
 // The head's estimate (VB-476; design.md section 7, The estimate; sim/estimate): the causes a judgement reckons with come in by skill as
 // head, in a named order; the work a head sees left of a heavy crop is a normal crop's for a poor head and the crop's own for a good one;
 // the range is wider for the poor head and holds the centre; progress seen moves the centre to the truth; the head's day mans a task by the

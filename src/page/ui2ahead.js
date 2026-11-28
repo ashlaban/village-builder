@@ -75,8 +75,9 @@ const lanePct = (v) => `${v.toFixed(2)}%`;
 function laneHTML(A, P) {
   const S = laneScale(),
     steps = laneSteps(),
-    gaps = hudGaps();
-  if (!P.tasks.length && !gaps.length) return '';
+    gaps = hudGaps(),
+    lying = laneLying();
+  if (!P.tasks.length && !gaps.length && !lying.length) return '';
   const D = Sim.DAY,
     now = S.x(st.t);
   let head = '';
@@ -108,13 +109,18 @@ function laneHTML(A, P) {
       s = steps[i],
       v = e ? hudVerdict(e) : null,
       d = laneDeadline(e),
-      risk = s && s.state === 'at-risk',
+      // the lane's own word: a task whose end falls past its window, or tight with its deadline in the days at full width, is marked
+      // though the plan's step is not at risk (a harvest is laid on the ripening, which may fall a day before the frost)
+      late = v === 'late',
+      near = v === 'tight' && d && d.t < (S.day0 + LANE.full) * D,
+      risk = (s && s.state === 'at-risk') || late || near,
       name = `${i + 1}. ${hudKind(t.kind)}`,
       pc = `t:${i}`,
       sel = hud.pc === pc ? ' sel' : '',
+      keep = s && s.kept ? `<i class="u2-lkeep" aria-label="Kept">${actIcon('pin')}</i>` : '',
       riskMark = (left) =>
         `<button type="button" class="u2-lrisk" data-pc="${pc}" style="left:${left}" ` +
-        `aria-label="${esc(`${name}: at risk`)}" title="At risk">!</button>`;
+        `aria-label="${esc(`${name}: ${late ? 'too late' : 'at risk'}`)}" title="${late ? 'Too late' : 'At risk'}">!</button>`;
     let r = '';
     if (e && Number.isFinite(e.ends) && Number.isFinite(e.starts)) {
       const a = S.x(Math.max(st.t, e.starts)),
@@ -126,12 +132,12 @@ function laneHTML(A, P) {
         `<button type="button" class="u2-lbar v${HUD_VERDICT[v] || 0}${v ? '' : ' none'}${more ? ' more' : ''}${sel}" data-pc="${pc}" ` +
         `style="left:min(${lanePct(a)}, 100% - 22px);width:${lanePct(c - a)};--mid:${(((b - a) / Math.max(0.01, c - a)) * 100).toFixed(1)}%" ` +
         `aria-label="${esc(`${name}: ${laneDate(e.starts)} to ${laneDate(e.ends)}${v ? `, ${v}` : ''}`)}" title="${esc(name)}">` +
-        `${hudTaskIcon(t)}</button>`;
+        `${hudTaskIcon(t)}${keep}</button>`;
       if (risk) r += riskMark(`min(${lanePct(c)}, 100% - 9px)`);
     } else
       r +=
         `<button type="button" class="u2-lbar unlaid${sel}" data-pc="${pc}" style="left:0;width:22px" ` +
-        `aria-label="${esc(`${name}: not laid in the days ahead`)}" title="${esc(name)}">${hudTaskIcon(t)}</button>` +
+        `aria-label="${esc(`${name}: not laid in the days ahead`)}" title="${esc(name)}">${hudTaskIcon(t)}${keep}</button>` +
         (risk ? riskMark('24px') : '');
     if (d) r = dead(d, pc, v === 'late', name) + r;
     rows += `<div class="u2-lrow">${r}</div>`;
@@ -146,6 +152,22 @@ function laneHTML(A, P) {
       `<button type="button" class="u2-lgap${hud.pc === pc ? ' sel' : ''}" data-pc="${pc}" style="${span}" ` +
       `aria-label="${esc(`${name}: nothing planned, ${laneDays(g.days)} left before ${g.deadline.what}`)}" title="${esc(`${name}: nothing planned`)}">` +
       `${HUD_CHAIN[g.goal].icon()}</button></div>`;
+  }
+  for (const x of lying) {
+    const pc = `l:${x.tile}/${x.kind}`,
+      name = LYING_NAME[x.kind] || 'Goods',
+      b = x.deadline.t >= S.end ? 100 : S.x(x.deadline.t);
+    rows +=
+      `<div class="u2-lrow">${dead(x.deadline, pc, true, name)}` +
+      `<button type="button" class="u2-lgap lie${hud.pc === pc ? ' sel' : ''}" data-pc="${pc}" ` +
+      `style="left:${lanePct(now)};width:${lanePct(Math.max(3, b - now))}" ` +
+      `aria-label="${esc(`${name} left out: lost at the frost, ${laneDate(x.deadline.t)}, unless fetched`)}" title="${esc(`${name} left out`)}">` +
+      `${goodIcon(LYING_ICON[x.kind] || 'tile')}</button>` +
+      (x.deadline.t < (S.day0 + LANE.full) * D // the "!" once the frost is within the days at full width
+        ? `<button type="button" class="u2-lrisk" data-pc="${pc}" style="left:min(${lanePct(b)}, 100% - 9px)" ` +
+          `aria-label="${esc(`${name}: at risk`)}" title="At risk">!</button>`
+        : '') +
+      '</div>';
   }
   return `<div class="u2-lhead">${head}</div><div class="u2-lbody">${grid}<u style="left:${lanePct(now)}"></u>${rows}</div>`;
 }
@@ -269,6 +291,8 @@ function laneTaskFacts(t, e, i) {
       why: `Next step: ${nx}.`,
     });
   }
+  const rf = recipeFact(t.kind, 'recipe');
+  if (rf) out.push(rf);
   if (t.waits) out.push(laneWaitFact(t.waits));
   if (v) out.push(laneVerdictFact(e));
   if (e && e.hours) out.push(laneWorkFact(e));
@@ -285,7 +309,10 @@ function laneTaskFacts(t, e, i) {
       why:
         `At risk: ${h ? `${h} ${h === 1 ? 'hour' : 'hours'} short` : 'short'} of being done` +
         (Number.isFinite(s.by) ? ` by ${laneDate(s.by * Sim.DAY)}` : '') +
-        '. On the lane, the red mark.',
+        (s.kept
+          ? '. Kept: the household will not take it back, so it stays yours to finish or to leave undone.'
+          : '. Unless it is kept, it may leave your plan once that day is past, and the household sees to it instead.') +
+        ' On the lane, the red mark.',
     });
   }
   if (!e && !t.waits)
@@ -315,6 +342,81 @@ function laneTaskFacts(t, e, i) {
       '.',
   });
   return out;
+}
+// ---- goods left lying before the frost (the playtests of 27 Nov: the ox cart lost to the frost, unwarned) ----
+// The played household's loads left lying (st.lying: a cart left standing, timber, grain, hay put down on the road), each lost at the
+// autumn frost unless fetched, but a cart kept at the landing (`of.kept`), which the frost does not take; with the frost the head expects
+// (sim/weather frostExpected, an estimate, as every deadline on the lane) and the job that fetches it (posted at the household's review,
+// sim/lying bringWork), or none. None after the frost, nor with a task of the plan fetching it. [{tile, kind, n, deadline, key}].
+const LYING_ICON = { leftCart: 'cart', leftTimber: 'timber', leftGrain: 'grain', hay: 'hay' };
+const LYING_NAME = { leftCart: 'The cart', leftTimber: 'Timber', leftGrain: 'Grain', hay: 'Hay' };
+function laneLying() {
+  const { hh } = hudHouse();
+  if (!hh || !st.lying) return [];
+  const c = Sim.cal(st.t),
+    d = VB['sim/weather'].frostExpected(st),
+    t = Math.floor(st.t / Sim.YEAR) * Sim.YEAR + (2 * Sim.SEASON_DAYS + d) * Sim.DAY;
+  if (c.season > 2 || t <= st.t) return [];
+  const P = hudPlanned(),
+    BRING = VB['sim/lying'].BRING,
+    out = [];
+  for (const l of st.lying) {
+    if (!l.owner || l.owner.type !== 'household' || l.owner.id !== hh.id || (l.of && l.of.kept)) continue;
+    if (out.some((x) => x.tile === l.tile && x.kind === l.kind)) continue;
+    const key = BRING[l.kind] ? `${BRING[l.kind]}:h${hh.id}` : null;
+    if (key && P && P.tasks.some((q) => q.key === key)) continue;
+    out.push({
+      tile: l.tile,
+      kind: l.kind,
+      n: l.n,
+      deadline: { t, what: 'the frost' },
+      key: key && st.jobs.has(key) ? key : null,
+    });
+  }
+  return out;
+}
+// The card of goods left lying: what and where, the frost, the days left, and the fetching added to the plan where it is posted.
+function laneLyingCard(arg) {
+  const [tile, kind] = String(arg).split('/'),
+    x = laneLying().find((q) => q.tile === +tile && q.kind === kind);
+  if (!x) return null;
+  const icon = `<span class="gap">${goodIcon(LYING_ICON[x.kind] || 'tile')}</span>`,
+    name = LYING_NAME[x.kind] || 'Goods',
+    days = Math.max(0, Math.floor(x.deadline.t / Sim.DAY) - Math.floor(st.t / Sim.DAY));
+  return {
+    title: `${name} left out`,
+    icon,
+    facts: [
+      {
+        k: 'lying',
+        chip: false,
+        icon,
+        why: `${name} lies out here, and the frost takes what is still out when it comes. Fetch it home before then.`,
+      },
+      laneDeadFact(x.deadline, 'v2'),
+      {
+        k: 'left',
+        icon: actIcon('wait'),
+        n: String(days),
+        label: `${laneDays(days)} left`,
+        why: `${laneDays(days)} left before the frost.`,
+      },
+      x.key
+        ? null
+        : {
+            k: 'posted',
+            chip: false,
+            icon: actIcon('wait'),
+            why: 'Its fetching is posted at the household’s next planning day; then it can be added to the plan.',
+          },
+    ].filter(Boolean),
+    acts:
+      (x.key
+        ? `<button type="button" class="u2-chip go" data-hud="planadd" data-target="${esc(x.key)}">` +
+          `${actIcon('plus')}${goodIcon(LYING_ICON[x.kind] || 'tile')}${esc(HUD_MOVE[VB['sim/lying'].BRING[x.kind]] || 'Fetch')}</button>`
+        : '') +
+      `<button type="button" class="u2-chip" data-hud="fly" data-tile="${x.tile}">${actIcon('target')}Show</button>`,
+  };
 }
 // The card of a window with nothing planned: its icon, its deadline and the days left, and the act that plans it, the callout's own.
 function laneGapCard(tile) {
@@ -374,3 +476,14 @@ function laneKnock(from, to) {
 }
 const laneKnockWords = (k) =>
   `${k.noun} becomes ${k.to === 'late' ? 'late' : 'tight'} for ${k.deadline.what} (${laneDate(k.deadline.t)}).`;
+
+// ---- keep (VB-1755: the verb plan's op keep) ----
+// The Keep toggle of the plan's task i: the pin, pressed while kept (the household never takes it back).
+function laneKeepButton(i) {
+  const s = laneSteps()[i],
+    on = !!(s && s.kept);
+  return (
+    `<button type="button" class="u2-chip keep" data-hud="pkeep" data-i="${i}" data-on="${on ? '' : '1'}" aria-pressed="${on}" ` +
+    `aria-label="${on ? 'Kept: tap to let go' : 'Keep: the household never takes it back'}" title="Keep">${actIcon('pin')}Keep</button>`
+  );
+}

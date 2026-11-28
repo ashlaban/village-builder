@@ -9,8 +9,9 @@ VB['sim/hunger'] = (() => {
   const Stores = VB['sim/stores'],
     Pot = VB['sim/pot'],
     { hungryDay, act } = VB['sim/traits'];
+  const Dress = VB['sim/dress'];
   const { takeFood } = VB['sim/larder'];
-  const { dayLoss, GRAIN } = VB['sim/goods'];
+  const Storehouse = VB['sim/storehouse'];
   const Rules = VB['sim/registry'],
     { emit } = VB['sim/events'];
   const Thirst = VB['sim/thirst'];
@@ -336,15 +337,16 @@ VB['sim/hunger'] = (() => {
       frail = a < 5 || a >= 60 ? HEALTH.frail : 1,
       before = p.health;
     const hungry = p.hunger > 0 ? HEALTH.drain * p.hunger * p.hunger * frail : 0,
-      chill = cold > 0 ? HEALTH.cold * cold * frail : 0,
-      damp = dry > 0 ? HEALTH.dry * frail : poor ? HEALTH.marsh * frail : 0, // marsh water: the meal is cooked and restores (VB-1582)
+      chill = cold > 0 ? HEALTH.cold * cold * frail * (Dress.rags(st, p) ? Dress.DRESS.cold : 1) : 0, // in rags (VB-363)
+      thirst = dry > 0 ? HEALTH.dry * frail : 0, // no water fetched (VB-1541: named for itself, not the house's damp)
+      damp = dry > 0 ? 0 : poor ? HEALTH.marsh * frail : 0, // marsh water: the meal is cooked and restores (VB-1582)
       ill =
         p.ill === undefined
           ? 0
           : ((p.ill.passes ? ILLNESS.passing : 1) * ILLNESS.fall * DAY) / (p.ill.until - p.ill.from),
       tired = tiredHealth(owedBy(st, p.id)), // the pawn's sleep owed, a whole night or more (sim/sleep, VB-1643, VB-1645)
       rest = cold <= 0 && dry <= 0 && fed && !ill ? HEALTH.recover * act(st, p.id, 'body', 'recover') : 0; // 2.5 to 3.5 by body (VB-520)
-    p.health = Math.max(0, Math.min(100, p.health - hungry - chill - damp - ill - tired + rest));
+    p.health = Math.max(0, Math.min(100, p.health - hungry - chill - thirst - damp - ill - tired + rest));
     if (st.player && st.player.pawn === p.id)
       emit(st, 'health', {
         pawn: p.id,
@@ -353,23 +355,19 @@ VB['sim/hunger'] = (() => {
         hungerLevel: p.hunger,
         hunger: hungry,
         cold: chill,
+        dry: thirst,
         damp,
         ill,
         tired,
         rest,
       });
   }
-  // What a household's farm loses to spoilage, as a share of a farm without a barn: BUILD.barn.loss with one (VB-255; farmstead.barn, sim/building).
-  function barnLoss(st, hh) {
-    const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    return f && f.barn ? BUILD.barn.loss : 1;
-  }
-  // Grain in the barn spoils a little each day (balance review): by grain's keeping (sim/goods), its tiers a year of need held each, so a
-  // good farm's store levels off at a year or two of need instead of growing for ever. hh.spoilt counts the rations lost.
+  // Grain in the store spoils a little each day, so a good farm's store levels off at a year or two of need instead of growing for ever:
+  // by grain's keeping, its tiers a year of need held each, a storehouse halving it (sim/storehouse's grainLoss and storeLoss, VB-1898;
+  // the barn kept the grain before, VB-255). hh.spoilt counts the rations lost.
   function spoilGrain(st, hh) {
-    const g = grainOf(hh);
-    if (!(g > 0)) return;
-    Stores.spoil(st, hh, dayLoss(st, GRAIN, g, dailyNeed(st, hh) * YEAR_DAYS) * barnLoss(st, hh));
+    const lost = Storehouse.grainLoss(st, hh, dailyNeed(st, hh) * YEAR_DAYS);
+    if (lost > 0) Stores.spoil(st, hh, lost * Storehouse.storeLoss(st, hh));
   }
   // The grain the village store lacks of its target (VB-457; HELP.storeTarget years of its members' need), 0 at or above it.
   function storeRoom(st, v) {

@@ -1,3 +1,4 @@
+// @suite integration
 // Commands (VB-167): a work command is carried out as start was; a refused command changes nothing; outside a verb (the `register(...)` of
 // the module that carries it out, VB-228) and the module that defines it, nothing in src/sim calls start (or the other acts the verbs wrap). On the small islands of tests/lib/probe.js (VB-856; the default
 // island before): founders on 36 by 26, heirs on 48 by 34.
@@ -196,7 +197,7 @@ assert.ok(S3.provisions(st3, [settler.id]), 'provisions for the settler');
 const fromV = st3.villages[Sim.settlementIdOf(st3, settler)], use3 = S3.landInUse(st3), site3 = S3.newSite(st3, fromV, use3, S3.candidates(st3, fromV, use3, S3.reachOf(st3, fromV)));
 if (site3) {
   const nf = st3.farmsteads.length, nv = st3.villages.length, party = { all: [settler.id], followers: [] };
-  assert.strictEqual(issue(st3, { actor: settler.id, verb: 'leave', args: { from: fromV.id, party, house: site3.house, field: site3.field, wood: site3.wood }, source: 'round' }), true);
+  assert.strictEqual(require('./lib/settled.js')(VB, st3, settler.id, { from: fromV.id, party, house: site3.house, field: site3.field }), true);
   assert.strictEqual(st3.farmsteads.length, nf + 1); assert.strictEqual(st3.villages.length, nv + 1);
   assert.strictEqual(st3.households[settler.household].farmstead, nf, 'the settler lives on the new farm');
   R3.push(['leave', 1]);
@@ -220,9 +221,9 @@ const before5 = snap3(), lead = st3.pawns.find((p) => p.died === null && p.age >
 for (const [cmd, why] of [
   [{ actor: lead.id, verb: 'foundHousehold', target: 99999, args: { members: [lead.id], grain: 0 } }, /empty farm/],
   [{ actor: null, verb: 'finishCottage', target: 99999, args: { village: 0 } }, /finished cottage/],
-  [{ actor: lead.id, verb: 'leave', args: { from: 999, party: { all: [lead.id] }, house: 0, field: 1 } }, /no village/],
-  [{ actor: lead.id, verb: 'leave', args: { from: 0, party: { all: [dead.id] }, house: 0, field: 1 } }, /led by the actor/],
-  [{ actor: lead.id, verb: 'leave', args: { from: 0, party: { all: [lead.id] }, house: -5, field: 1 } }, /must be tiles/],
+  [{ actor: lead.id, verb: 'stakeSite', args: { from: 999, party: { all: [lead.id] }, house: 0, field: 1 } }, /no village/],
+  [{ actor: lead.id, verb: 'stakeSite', args: { from: 0, party: { all: [dead.id] }, house: 0, field: 1 } }, /led by the actor/],
+  [{ actor: lead.id, verb: 'stakeSite', args: { from: 0, party: { all: [lead.id] }, house: -5, field: 1 } }, /must be tiles/],
 ]) { const res = issue(st3, { source: 'debug', ...cmd }); assert.ok(typeof res === 'string' && why.test(res), `${JSON.stringify(cmd)}: ${res}`); R3.push(['leave refusal', 1]); }
 assert.strictEqual(snap3(), before5, 'refused leave commands change nothing');
 // VB-681: a verb's check holds for any pawn; the sources are one list, and the world's verbs are debug's only
@@ -617,13 +618,15 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
     auto: ['auto'],
     chain: ['plan'], // op add with a chain's tile, on the pawn's own plan; VB-1777 makes it a goal its kind's methods carry
     ownDay: ['plan'], // op dayOrder on the pawn's own plan: its own list of its household's day (tests/timetable.js 3b)
-    leave: ['ask'], // basis leave, of its head (tests/voice.js); st.leaves stays until VB-1763's dated grant
+    leave: ['ask'], // basis leave, of its head, answered by its dated grant (tests/voice.js; VB-1763)
+    lighter: ['ask'], // basis lighter, of its head, answered by a standing grant (tests/voice.js; VB-1763)
+    grant: ['grant'], // the head lowers a member's levy, standing or dated (tests/voice.js; VB-1763)
     hands: ['ask'], // basis hands, of another head of the village (tests/helpers.js)
+    levyAhead: ['levy', 'name'], // a levy laid on a household's days with its terms by the levier's agent, its days named by the levied head (tests/levies.js; VB-1767)
+    workdayDate: ['callWorkday'], // the alderman calls the work day ahead, for the custom's day (tests/workdays.js; VB-1768)
   };
   const ACTS_LEFT = {
     aim: 'VB-1784', // set aside in docs/ideas/aims/ (25 Nov)
-    workdayDate: 'VB-1768', // the alderman dates the work day; today the calendar does
-    levyAhead: 'VB-1767', // a levy laid on a household's days a season ahead
   };
   for (const [act, verbs] of Object.entries(ACTS)) for (const v of verbs) assert.ok(VERBS[v], `the act ${act} is reached by the verb ${v}`);
   const archive = fs.readFileSync(path.join(__dirname, '../BACKLOG_ARCHIVE.md'), 'utf8');
@@ -654,7 +657,7 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   for (const k of Object.keys(CACHES)) assert.ok(typeof Sim[k] === 'function' && !listed.has(k), `Sim.${k}: a cache is a read's`);
   // the reads, listed too (review F2): a function of the facade in no list fails, so that a new one is placed by hand, and a read is
   // still called on the state below, a second guard
-  const READS = ['save', 'levyOf', 'hours', 'recordOf', 'headView', 'timetable', 'callCost', 'taskLeft', 'taskFrom', 'taskStop', 'sheetNotes', 'controlOf',
+  const READS = ['save', 'levyOf', 'levies', 'hours', 'recordOf', 'headView', 'timetable', 'callCost', 'taskLeft', 'taskFrom', 'taskStop', 'sheetNotes', 'controlOf',
     'wishesOf', 'opportunities', 'offerPreview', 'fairSides', 'swapTerms', 'foodDays', 'successor', 'villageSummary', 'supplyOutlook',
     'siteWater', 'giftOutlook', 'harvestEstimate', 'villageOutlook', 'cal', 'age', 'birthYear', 'fullName', 'spouseOf', 'childrenOf',
     'siblingsOf', 'spousesOf', 'kinship', 'kinDegree', 'describe', 'pastimeOf', 'villageOf', 'dark', 'heirRanking', 'practice',

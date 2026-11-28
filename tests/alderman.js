@@ -1,3 +1,4 @@
+// @suite fast
 // VB-314: the alderman. At a village's meeting, when the office is vacant, its holders choose one (elected, or by turns a farm a year);
 // a village of one farm has its holder; the office is vacated on his death or when his year ends; he presides over a tie, gains
 // standing, and the village store's gift is booked as goodwill between him and the receiving holder. A constructed state.

@@ -85,6 +85,8 @@ VB['sim/routes'] = (() => {
       },
     };
   }
+  VB.counter('routeSearch', 'A* searches started');
+  VB.counter('routeExpand', 'Tiles removed from the A* heap (including duplicates)');
   // The route from `from` to `to` a walker of load class `cls` (sim/walking DISCOMFORT.load: 0 unladen, 1 on the back, 2 with a cart)
   // chooses, both ends included, or null when every route takes more than maxCost. It is the one least costly to choose (choiceCost:
   // its time weighed with its discomfort, VB-448), which with DISCOMFORT.weight 0 is the quickest; maxCost bounds its time, as before,
@@ -146,6 +148,10 @@ VB['sim/routes'] = (() => {
     VB.count.routeExpand += expanded;
     return null;
   }
+  VB.counter(
+    'reachSettled',
+    'Tiles settled by the searches of the walking hours between villages (sim/routes reachCosts, VB-286)',
+  );
   // The cheapest cost from tile `from` to each of the tiles `targets` (a list), by one Dijkstra search over passable tiles: the cost to
   // targets[i] goes to out[i], or null when it lies beyond maxCost or cannot be reached. The search stops at maxCost, or once every target is
   // settled. As in findRoute, `from` and the targets may be closed tiles (a closed target is reached, never walked through). It reuses the
@@ -190,6 +196,11 @@ VB['sim/routes'] = (() => {
     for (let i = 0; i < targets.length; i++) out[i] = shut[targets[i]] === run ? g[targets[i]] : null;
     return out;
   }
+  VB.counter(
+    'settleReach',
+    "Tiles settled by a crowded village's search for new land within SETTLE.hours along a trail, one a round where someone " +
+      'leads (sim/routes trailReach, VB-786)',
+  );
   // The cost from tile `from` to every passable tile within maxCost along a trail (VB-786; sim/walking trailStep: a wooded tile with no
   // path at a path's cost), by one bounded Dijkstra search as reachCosts's: a Map of tile to cost, `from` at 0, in the order settled. A
   // house is reached, never walked through. Reuses the world's scratch buffers and heap; the tiles it settles are counted in
@@ -230,6 +241,7 @@ VB['sim/routes'] = (() => {
     return c;
   }
 
+  VB.counter('routeEvict', 'Cached routes evicted to enforce the bound (including legacy loads)');
   // ---- the cache: bounded, first in first out in Map order (oldest first), emptied each day a tile changed; the way back is the way there, reversed ----
   // Also used on load: pre-VB-198 saves may hold more entries than the current bound.
   function trimRoutes(st) {
@@ -272,6 +284,10 @@ VB['sim/routes'] = (() => {
   // with a margin for rounding, in twice hexSteps so as to stay in integers. A tile within the bound is at most R = r2 / 2 steps from
   // either end, so within R rows of both and 1.5 R + 1 columns (offset rows shift by half a tile a row): only those cells are read.
   const LO2 = 2 / ROUTE.minStep;
+  VB.counter(
+    'routeCheck',
+    'Changed tiles and cells read in testing a route set aside before it is taken back (sim/routes untouched, VB-1563)',
+  );
   function untouched(cols, p, c, cells) {
     if (!cells.size) return true;
     const from = p[0],
@@ -321,6 +337,10 @@ VB['sim/routes'] = (() => {
       }
     return true;
   }
+  VB.counter(
+    'routeHit',
+    'Routes served from the cache, in either direction, or taken back from the routes set aside at its emptying (VB-1563)',
+  );
   // The route under key k set aside at an emptying, taken into the cache if untouched since, or null. Its entry: [path, cost, epoch],
   // the epoch the emptying's number; the log holds the emptyings from epoch - log.length + 1 to epoch, and `today` the tiles changed
   // since the last (st.routeDirty, by cell).
@@ -401,6 +421,7 @@ VB['sim/routes'] = (() => {
     recost(st.w, tile); // the compiled ground (sim/walking, VB-808)
     invalidateReach(st.w, tile);
   };
+  VB.counter('routeRefresh', 'Cached routes tested for invalidation');
   // The ground of a band changed with the season (VB-808: a winter's date, sim/climate): the routes cached are emptied now, not at the
   // day's end, and none set aside is taken back (thousands of tiles changed at once).
   function groundChanged(st) {

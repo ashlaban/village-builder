@@ -73,7 +73,7 @@ const HUD_CHAIN = {
     name: 'Build an outbuilding',
     icon: () => actIcon('build'),
     offer: 'Build',
-    done: 'the barn or the byre built until it stands',
+    done: 'the storehouse, the barn or the byre built until it stands',
   },
   harvest: {
     name: 'Bring in the harvest',
@@ -218,6 +218,7 @@ function planCard(P, A, S) {
       );
     else
       facts.push({ k: 'state', icon: actIcon('no'), n: '', label: 'Not in the routine', why: 'Not in the routine.' });
+    if (r && !r.done) facts.push(...dayFacts(A, P, hud.pc));
     if (r) acts += btn('pdrop', `${actIcon('no')}Drop`, ` data-kind="${esc(arg)}" aria-label="Drop from the routine"`);
   } else if (what === 'sleep') {
     const owed = S ? S.owed : 0;
@@ -296,7 +297,7 @@ function planCard(P, A, S) {
     if (!t) return ((hud.pc = null), '');
     title = laneShort(t);
     icon = `${hudTaskIcon(t)}<s class="sq">${i + 1}</s>`;
-    facts = laneTaskFacts(t, e, i);
+    facts = [...laneTaskFacts(t, e, i), ...dayFacts(A, P, hud.pc, t)];
     // a reorder that would make another task worse waits here for the player's word (page/ui2ahead laneKnock): the task, the red
     // badge of its new verdict, the deadline and its day; the sentence behind "i"
     const pm = hud.pmove && hud.pmove.from === i ? hud.pmove : null;
@@ -339,7 +340,8 @@ function planCard(P, A, S) {
         `Later${actIcon('next')}`,
         ` data-from="${i}" data-to="${i + 1}"${i < P.tasks.length - 1 ? '' : ' disabled'}`,
       ) +
-      btn('premove', `${actIcon('no')}Remove`, ` data-i="${i}"`);
+      btn('premove', `${actIcon('no')}Remove`, ` data-i="${i}"`) +
+      laneKeepButton(i);
   } else if (what === 'q') {
     const q = Sim.controlOf(st, st.player.pawn).queue[+arg];
     if (!q) return ((hud.pc = null), '');
@@ -352,6 +354,10 @@ function planCard(P, A, S) {
       why: 'Ordered by hand: it goes before the plan, and is not broken off for sleep.',
     });
     acts += btn('unqueue', q.begun !== null ? 'Stop' : 'Remove', ` data-i="${arg}"`);
+  } else if (what === 'l') {
+    const g = laneLyingCard(arg);
+    if (!g) return ((hud.pc = null), '');
+    ({ title, icon, facts, acts } = g);
   } else if (what === 'g') {
     const g = laneGapCard(+arg);
     if (!g) return ((hud.pc = null), '');

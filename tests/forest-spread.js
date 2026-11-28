@@ -1,3 +1,4 @@
+// @suite fast
 // Forest spread (VB-091, sim/spread): open land beside forest, or beside scrub at half cover or more, gains trees as regrowth does (a
 // quarter of full cover, scrub, in about 8 years; full cover in 30, when it is forest, pine where most of its forest neighbours are), unless a
 // field in use, a house, a green, a meadow mown within the year, work within the year or grazing at GRAZE.keepsOpen keeps it open; grazing at
@@ -62,7 +63,7 @@ st.front.add(ft); w.biome[tileAt(w, (ft % w.COLS), Math.floor(ft / w.COLS) - 1)]
 days(3);
 check(w.trees[ft] === 0, 'a field in use stays open');
 const hh = st.households[f.household];
-VB['sim/ownership'].farmToVillage(st, f); f.household = null;
+VB['sim/ownership'].farmTo(st, f, { type: 'village', id: f.village }); f.household = null;
 days(3);
 check(w.trees[ft] > 0, "an empty farm's field gains trees");
 const wasF = w.trees[ft];

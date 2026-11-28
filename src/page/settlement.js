@@ -4,8 +4,7 @@
 const ART_S = 0.2;
 const YARD = {
   byre: [-10, -3],
-  lada: [6, -1],
-  barn: [19, -6], // the second barn a household builds as a project (VB-255), behind the storehouse
+  barn: [19, -6], // the barn (lada; farmstead.barn), behind the storehouse
   harbre: [14, 7],
   stuga: [-4, 14],
   wood: [10, 15],
@@ -50,6 +49,7 @@ function clearSettlement() {
   herdSprites = new Map();
   deerSprites = [];
   meadowSprites = [];
+  roofSprites = [];
   teamDraw = new Map();
   cartDraw = [];
   ledDraw = new Map();
@@ -301,6 +301,8 @@ function drawMoveLoads() {
 }
 // A building record stands (farmstead.barn, farmstead.byre: {built}); `true` in a save older than the record.
 const hasBuilt = (x) => !!x && (typeof x !== 'object' || (x.built !== null && x.built !== undefined));
+// Farm f's barn and storehouse drawn only where the sim has them (VB-1898; farmstead.barn, farmstead.storehouse): keys of YARD.
+const yardOut = (f) => ['barn', 'harbre'].filter((k) => hasBuilt(k === 'barn' ? f.barn : f.storehouse));
 function drawBooth(wd, f, empty) {
   const x = wd.hx[f.house],
     y = wd.hy[f.house],
@@ -370,6 +372,7 @@ function buildFarms(wd) {
   herdSprites = new Map();
   deerSprites = [];
   meadowSprites = [];
+  roofSprites = [];
   teamDraw = new Map();
   cartDraw = [];
   ledDraw = new Map();
@@ -404,6 +407,7 @@ function redrawSettlement(wd) {
     // the frame's lists keep only what still stands
     fieldSprites = fieldSprites.filter((o) => !o.sp.destroyed);
     meadowSprites = meadowSprites.filter((o) => !o.sp.destroyed);
+    roofSprites = roofSprites.filter((o) => !o.sp.destroyed);
     fences = fences.filter((o) => !o.g.destroyed);
     houseInfo = houseInfo.filter((o) => !o.wood.destroyed);
     if (labelsReady && labelSigOf() !== labelSig) buildLabels(wd);
@@ -523,12 +527,12 @@ function drawFarm(wd, f) {
     ruin = f.state === 'ruin';
   for (const fd of f.fields) addField(wd, fd, f.rowAngle);
   for (const m of f.meadows) {
-    const sp = new PIXI.Sprite(fieldTex['meadow-' + m.stage]);
+    const sp = new PIXI.Sprite(fieldTex[meadowLook(m)]);
     sp.anchor.set(0.5);
     sp.scale.set(0.5);
     sp.position.set(wd.hx[m.tile], wd.hy[m.tile]);
     L.fields.addChild(sp);
-    meadowSprites.push({ sp, m, stage: m.stage });
+    meadowSprites.push({ sp, m, stage: meadowLook(m) });
   }
   const yard = place(art.yard, hx, hy + 1, 0.5, 0.5, L.fields, 0.27);
   if (empty) yard.alpha = ruin ? 0.2 : 0.35;
@@ -544,23 +548,24 @@ function drawFarm(wd, f) {
     if (f.shelter) drawBooth(wd, f, empty);
   } else if (f.booth) drawBooth(wd, f, empty);
   else {
-    const lada = place(art.lada, hx + YARD.lada[0], hy + YARD.lada[1], 0.5, 0.93),
-      harbre = place(art.harbre, hx + YARD.harbre[0], hy + YARD.harbre[1], 0.5, 0.95),
-      stuga = place(art.stuga[v], hx + YARD.stuga[0], hy + YARD.stuga[1], 0.5, 0.92);
-    const barn = hasBuilt(f.barn) ? place(art.lada, hx + YARD.barn[0], hy + YARD.barn[1], 0.5, 0.93) : null; // farmstead.barn (VB-255)
-    for (const b of barn ? [lada, harbre, stuga, barn] : [lada, harbre, stuga]) {
+    // the barn and the storehouse only where the farm has them (VB-1898; farmstead.barn, farmstead.storehouse), the cottage always
+    const stuga = place(art.stuga[v], hx + YARD.stuga[0], hy + YARD.stuga[1], 0.5, 0.92),
+      out = yardOut(f).map((k) =>
+        place(art[k === 'barn' ? 'lada' : 'harbre'], hx + YARD[k][0], hy + YARD[k][1], 0.5, k === 'barn' ? 0.93 : 0.95),
+      ),
+      all = [...out, stuga];
+    for (const b of all) {
       b.tint = tint;
       if (empty && !ruin) b.alpha = 0.9;
     }
-    if (landed) lada.visible = harbre.visible = false;
     if (f.rung === 'timber') {
       // the timber house (VB-1664): a larger house of another of the three cottages' looks, standing where the cottage stood
       stuga.texture = art.stuga[(v + 1) % 3];
       stuga.scale.set(ART_S * 1.32);
     }
+    for (const b of all) roofSprite(b, f.house);
     if (ruin) {
-      lada.visible = harbre.visible = false;
-      if (barn) barn.visible = false;
+      for (const b of out) b.visible = false;
       stuga.scale.y = ART_S * 0.55;
       stuga.alpha = 0.85;
     }
@@ -581,7 +586,7 @@ function drawFarm(wd, f) {
   const herds = !empty && st.households[f.household].herds.length > 0;
   // the byre (VB-1665) where one stands; an older save's farm, with no record of it, has one where it keeps animals
   const byre = f.byre === undefined ? herds && !landed : hasBuilt(f.byre);
-  if (byre) place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92);
+  if (byre) roofSprite(place(art.byre, hx + YARD.byre[0], hy + YARD.byre[1], 0.5, 0.92), f.house);
   const stack =
     herds || (!empty && st.households[f.household].hay > 0)
       ? place(art.haystack[0], hx + YARD.stack[0], hy + YARD.stack[1], 0.5, 0.93)
@@ -719,11 +724,15 @@ function cropStage(fd) {
 }
 // A field's picture (VB-355; a key of page/fieldart's FIELD_P): its crop at its stage, read from the field alone. Barley's are the
 // stages; rye, sown in autumn, stands green and lies under snow all winter; a fallow course lies in weedy stubble, then tilled.
+// A meadow's look: its stage, or snow where snow lies on its band (page/chunks snowShown).
+const meadowLook = (m) => 'meadow-' + (snowShown(m.tile) ? 'snow' : m.stage);
 function fieldLook(fd) {
   const s = cropStage(fd);
+  // under snow where snow lies on its band (page/chunks snowShown, VB-083): rye green through it where it is sown, any other field white
+  if (snowShown(fd.tile))
+    return fd.crop === 'rye' && (s === 'sown' || s === 'young' || s === 'growing') ? 'rye-snow' : 'snow';
   if (fd.stage === 'stubble' && VB['sim/crops'].CROPS[fd.crop].fallow) return fd.rest === 1 ? 'tilled' : 'lea';
   if (fd.crop === 'rye' && (s === 'sown' || s === 'young' || s === 'growing')) {
-    if (Sim.cal(st.t).season === 3) return 'rye-snow';
     if (s === 'growing' && Sim.cal(fd.sown * Sim.DAY).season === 2 && Sim.cal(st.t).season === 2) return 'rye-young';
   }
   const k = `${fd.crop}-${s}`;

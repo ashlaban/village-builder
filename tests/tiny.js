@@ -1,3 +1,4 @@
+// @suite fast
 // The tiny-world kit (VB-155, tests/lib/tiny.js): a text map lays its tiles as the generator does, and a state of two villages seeds fast and runs.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;
 const { tinyWorld, tinyState, tileAt } = require('./lib/tiny.js');
@@ -71,6 +72,57 @@ check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
   check(st.w.freshWalk && st.w.freshWalk.length === st.w.N && st.w.freshWalk.every((x, i) => x === Infinity), 'a state on a map with no fresh water has its walk laid, none to walk to');
   const again = ww.freshWalk; VB['sim/water'].layWalk(ww);
   check(ww.freshWalk === again, 'the walk is laid once');
+}
+// VB-1982: a household owing a share dies out; its obligation passes to the household its people go to, or lapses with none
+{
+  const O = VB['sim/obligations'], { extinct } = VB['sim/heirs'];
+  const s2 = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  const [a, b] = s2.households.filter((h) => !h.dissolved && h.holder !== null && h.farmstead !== null);
+  const sib = s2.pawns.find((p) => p.alive && p.household !== a.id && p.household !== b.id) || s2.pawns[s2.households[2].holder];
+  const o = O.oweShare(s2, a, sib.id, 10);
+  const id = typeof o === 'object' && o !== null ? o.id : o;
+  extinct(s2, a);
+  const rec = s2.obligations[id];
+  check(a.dissolved, 'the household died out');
+  check(rec.status !== 'open' || (rec.debtor.kind === 'household' && !s2.households[rec.debtor.id].dissolved), `its share passed or closed: ${rec.status} ${JSON.stringify(rec.debtor)}`);
+  check(!(s2.obligationsBy.debtor['household:' + a.id] || []).length, 'none left to the dissolved debtor');
+  const bad2 = checkState(s2).filter((e) => /dissolved, holding obligations/.test(e));
+  check(!bad2.length, bad2.join('; '));
+}
+// VB-1983: a death leaves st.demand and a ward's guardianship
+{
+  const s3 = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  const L = VB['sim/lifecycle'], gone = s3.living[0];
+  s3.demand = s3.living.slice(0, 3);
+  L.killPawn(s3, gone);
+  check(!s3.demand.includes(gone) && s3.demand.length === 2, 'a dead pawn leaves st.demand');
+  const hh = s3.households.find((h) => !h.dissolved), g = hh.members.find((m) => s3.pawns[m].alive && s3.pawns[m].age >= 18);
+  if (g !== undefined) {
+    const ward = s3.pawns[hh.members.find((m) => m !== g)] || s3.pawns[g];
+    hh.ward = ward.id; hh.guardian = g;
+    L.killPawn(s3, g);
+    check(hh.guardian !== g && (hh.guardian === null || s3.pawns[hh.guardian].alive), 'a dead guardian is replaced or none');
+  } else check(false, 'no adult to test');
+  const bad3 = checkState(s3).filter((e) => /is dead/.test(e) && /demand|guardian/.test(e));
+  check(!bad3.length, bad3.join('; '));
+}
+// VB-1541: a household with food and no water, five days: the sheet names the water, and so does the death
+{
+  const s4 = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 1 }], { seed: 7 });
+  const hh = s4.households.find((h) => !h.dissolved), p = s4.pawns[hh.holder];
+  Sim.inhabit(s4, p.id);
+  const U = VB['sim/hunger'].updateHealth;
+  p.hunger = 0; p.health = 80; hh.dryLog = [1, 1, 1, 1, 1]; hh.dry = 1;
+  for (let d = 0; d < 3; d++) { s4.t += Sim.DAY; U(s4, p, true, 0, 1, false); }
+  const words = Sim.sheetNotes(s4).moved.join(' | ');
+  check(/no water fetched \(-\d+\)/.test(words) && !/damp/.test(words), `the sheet reads the water: ${words}`);
+  p.health = 0;
+  check(VB['sim/deaths'].deathRoll(s4, p) === 'thirst', 'a death by dry days is thirst');
+  hh.dry = 0; hh.dryLog = [];
+  check(VB['sim/deaths'].deathRoll(s4, p) === 'starvation', 'and by none of them, starvation');
+  hh.cold = 1; p.hunger = 0;
+  check(VB['sim/deaths'].deathRoll(s4, p) === 'cold', 'a death in a cold house, with no hunger, is cold (VB-2030)');
+  hh.cold = 0;
 }
 if (failed) process.exit(1);
 console.log(`tiny ok: two villages on a 14 x 10 map seeded in ${ms} ms, ${st.pawns.length} people`);

@@ -1,3 +1,4 @@
+// @suite fast
 // A night without a roof is cold and wet (VB-785; design.md, Sleeping away from home): at a stay's night the cold and the wet reach its
 // pawn's health by the house's rule (sim/hunger nightCost) read for its roof: two nights in the open in winter cost what two nights in a
 // cold house cost, in summer a fraction of it, in a booth with wood nothing. On a tiny state.
@@ -20,6 +21,7 @@ function lose(season, nights, setup) {
   p.health = 80;
   for (let n = 0; n < nights; n++) {
     st.t = (season * SEASON_DAYS + 4 + n) * DAY;
+    p.dress = { worth: 1, at: st.t, grade: 1 }; // sound dress: the cold is the house's (VB-363)
     s.food = 6;
     feedAway(st);
   }

@@ -1,3 +1,4 @@
+// @suite fast
 // The cold house (VB-327; design.md, Fuel): the day's fire burns the season's use or what the pile holds; a household whose pile does not
 // cover it is cold that day by the wood it lacked over winter's use, hh.cold the mean of the last 12 days. A cold day drains health
 // (HEALTH.cold, more for the frail) and a full meal restores nothing; an empty pile posts no cook job, so the grain is eaten uncooked

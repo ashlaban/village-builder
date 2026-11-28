@@ -352,6 +352,11 @@ VB['sim/building'] = (() => {
     if (s.cls === FRESH.MARSH) extra.poor = true;
     return [`boothwater:o${b.id}`, s.tile, extra, 'boothwater', { type: 'booth', id: b.id }];
   }
+  VB.counter(
+    'boothWater',
+    "Stays read for the booths' water, each review hour while any booth stands: the fetch of each booth somebody sleeps in " +
+      '(sim/building; VB-1601)',
+  );
   // Asked once for the island, while any booth stands: the fetch of each booth somebody sleeps in. Cost: the stays, a review hour.
   function boothWaterWork(st, holder, at, c, post) {
     if (!st.booths.length) return;
@@ -519,7 +524,9 @@ VB['sim/building'] = (() => {
   }
   // ---- a barn (VB-255; BUILD.barn): a project of its household at the house, by the cottage's stages, its walls waiting for their timber ----
   // @state farmstead.barn (VB-255): {built (game hours)} once the farm has a barn, a second store building on its block, drawn beside the
-  //   house; absent or null before. One a farm; it goes with the farm, not the household. Written only here, when its roof is on.
+  //   house, where its hay and its unthreshed sheaves keep (a farm with one loses BUILD.barn.loss as much hay: sim/byre spoilHay); absent
+  //   or null before. Every farm that stands at seeding has one (seedBarns, VB-1898), but a camp landed by hand (noBarn); a save keeps the
+  //   barns it had. One a farm; it goes with the farm, not the household. Written only here, when its roof is on or at seeding.
   const BARN_STAGES = ['barnbase', 'barnwalls', 'barnroof'];
   // The steps of a barn's project plan at house tile `house`: the three stages, the walls with the timber they wait for.
   const barnSteps = (house) =>
@@ -540,6 +547,13 @@ VB['sim/building'] = (() => {
     st.biomeDirty.add(f.house);
     st.farmDirty.add(f.id);
   }
+  // At seeding (sim/scenarios makeState; VB-1898, as the byre): every farm has its barn; a camp landed by hand has none.
+  function seedBarns(st) {
+    for (const f of st.farmsteads) f.barn = { built: st.t };
+  }
+  const noBarn = (st, f) => {
+    f.barn = null;
+  };
   const barnStage_ = (verb, go, name, label, anim, i) => ({
     verb,
     go,
@@ -869,17 +883,9 @@ VB['sim/building'] = (() => {
   Methods.carry(KINDS.timber, 'timber', {
     look: 'logs',
     words: 'Carrying timber to the building site',
-    // its load lies at the site, and the ledger of the village or household building says so
+    // its load lies at the site, not in the store: no ledger books it (VB-1705), the site's wood counts it
     deliver: (st, j) => {
-      const v = st.villages[j.village];
       j.timberFor.wood = (j.timberFor.wood || 0) + ECON.woodPerTrip;
-      Stores.record(
-        st,
-        j.owner.type === 'village' ? v : st.households[j.owner.id],
-        'timber',
-        ECON.woodPerTrip,
-        'timber',
-      );
     },
     name: 'felled for the site',
     good: 'sitetimber',
@@ -958,6 +964,7 @@ VB['sim/building'] = (() => {
     roofless,
     shelterStands,
     stakeShelter,
+    fetchTimber,
     rotBooths,
     boothWork,
     timberWork,
@@ -966,5 +973,7 @@ VB['sim/building'] = (() => {
     buildStep,
     stoneSource,
     barnSteps,
+    seedBarns,
+    noBarn,
   };
 })();

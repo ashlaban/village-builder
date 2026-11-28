@@ -1,3 +1,4 @@
+// @suite integration
 // tools/inbox.js on a copy of the backlog: IDs are reserved in blocks that never overlap, a claim names who else edits a file, a note
 // is checked against its kind and a task note against the IDs reserved for its task, apply writes each result and note once (the
 // backlog through tools/backlog.js, the questions, the tuning row) and leaves tests/backlog.js passing, and report prints the PR's section.

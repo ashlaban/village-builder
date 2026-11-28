@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1100: what a yes to an offer would bring (sim/preview offerPreview), on a small constructed state, the case of the playtest of 16
 // November: a widowed holder with five children, the eldest a minor, marries onto a widow's farm. The preview names the five children
 // who move (four with their father, the minor heir to kin the next day), the minor's farm held in trust by the receiving home, its heir

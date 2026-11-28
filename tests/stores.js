@@ -1,3 +1,4 @@
+// @suite integration
 // Stores arithmetic, error handling and complete annual food reconciliation, on the small islands (VB-854): founders two years (a household
 // dissolves in the second) and populous one (its journeys' provisions); the window of pruning is checked on the constructed state above it.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/stores'];
@@ -43,7 +44,8 @@ assert.throws(() => S.put(st, b, 'grain/barley', 1, 'unknown'), /reason/);
   h.dissolved = true; S.close(c, h); assert(!h.ledger.length && !h.totals.length, 'a dissolved household\'s ledger is emptied');
 }
 const quantity = (h) => S.grainOf(h) + (h.meals || 0) + (h.unthreshed || []).reduce((n, x) => n + x, 0);
-const isFood = (e) => !e.stake && ['grain', 'meals', 'sheaves'].includes(e.good);
+// what lay out and was lost there ('lying': a load lying, stooks and mown hay after the frost; VB-1910, VB-2001) moved no store
+const isFood = (e) => !e.stake && e.kind !== 'lying' && ['grain', 'meals', 'sheaves'].includes(e.good);
 // Every holder's food since the seed equals its entries plus its yearly totals, checked at noon on each new year's first day, away
 // from the midnight work at the year's turn (VB-204). Nothing is pruned within three years; a dissolved household's ledger is emptied.
 let entries = 0, totals = 0;

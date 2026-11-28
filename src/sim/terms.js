@@ -28,6 +28,10 @@ VB['sim/terms'] = (() => {
   });
   const KEYS = ['dowry', 'gift'];
   const live = (st, id) => Number.isInteger(id) && !!st.households[id] && !st.households[id].dissolved;
+  VB.counter(
+    'termsValued',
+    'Households valued for a match offered, its dowry and its morning gift: two an offer (sim/terms, VB-276)',
+  );
   // ---- the valuation: one a household (VB.count.termsValued) ----
   // Household hh's estate as its inheritance divides it (sim/heirs transfer; one reckoning, VB-276): the fields it owns (sim/ownership,
   // VB-311) and its grain at SHARES' rates, less `less` (a widow's dower), never below nothing

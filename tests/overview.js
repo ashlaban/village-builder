@@ -1,3 +1,4 @@
+// @suite fast
 // The village overview (VB-162; sim/overview, Sim.villageSummary): food in store and its days of need, the latest harvest against a year's
 // need, people by age band now and a year ago, households hungry in the window, the idle share of the hands' hours, and the warnings with
 // the households they concern, each checked against a hand count on the probe's small village, its stores, logs and ages set by hand.

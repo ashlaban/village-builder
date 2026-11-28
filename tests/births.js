@@ -1,3 +1,4 @@
+// @suite extended
 // Births: invariants of the birth rules, and the report of 50-year founders runs by decade, read to judge the simulation's stability
 // (reported, not asserted): births, deaths and population, and the deaths by cause that tests/health.js printed from the same runs.
 const assert = require('assert');
@@ -26,7 +27,10 @@ for (const seed of [7, 42]) {
     if (p.born < 0) continue; // on record before the start
     const m = st.pawns[p.mother], age = Math.floor((p.born - 36 * Sim.DAY - m.born) / Sim.YEAR); // at conception
     assert(age >= 15 && age < 50, `conception at age ${age}`);
-    assert(st.unions.some((u) => u.a === p.father && u.b === p.mother && u.start <= p.born), `birth to an unmarried woman: ${Sim.fullName(m)}`);
+    // in marriage, or outside it from courting (VB-555): the child is told born outside marriage, with its father, at its birth
+    const wed = st.unions.some((u) => u.a === p.father && u.b === p.mother && u.start <= p.born);
+    const told = st.record.some((e) => e && e.kind === 'bornOutside' && e.pawn === p.id && e.other === p.mother && e.by === p.father);
+    assert(wed || told, `birth to an unmarried woman, not told born outside marriage: ${Sim.fullName(m)}`);
     assert(p.father !== null && p.household !== null, 'a newborn has both parents and a household');
   }
   assert(st.agents.length === st.pawns.length, 'an agent for every pawn');

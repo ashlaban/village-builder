@@ -6,8 +6,8 @@ VB['sim/clock'] = (() => {
   const { log, startFold, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { spreadForest } = VB['sim/spread'];
-  const { fieldsDay, fieldsFrost } = VB['sim/fields'];
-  const { seasonBegins, frostDay, winterAhead } = VB['sim/weather'];
+  const { fieldsDay, fieldsFrost, stooksDecay } = VB['sim/fields'];
+  const { seasonBegins, frostDay, frostSeen, winterAhead } = VB['sim/weather'];
   const { reckon: reckonWinter, fallDue: climateDue, layGround } = VB['sim/climate'];
   const { refreshRoutes, costChanged } = VB['sim/routes'],
     { refreshHoursStep, ROW_STEPS, WINTER_AT, winterDay, winterStep } = VB['sim/villagehours'];
@@ -22,7 +22,7 @@ VB['sim/clock'] = (() => {
     { dropMind } = VB['sim/attention'],
     { reckonAll } = VB['sim/work'];
   const { placeOf } = VB['sim/pose'];
-  const { feedAway, dayAway } = VB['sim/away'],
+  const { feedAway, dayAway, siteLodgers } = VB['sim/away'],
     { fetchGoesOn } = VB['sim/journeys'];
   const { refreshJobs, lookForWork } = VB['sim/jobs'],
     { takeDay, abed, dutyRound, eveningCall } = VB['sim/day'],
@@ -40,9 +40,9 @@ VB['sim/clock'] = (() => {
   const { visitsDue } = VB['sim/visits'];
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay, spring } = VB['sim/herds'];
-  const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
+  const { meadowsSpring, hayDecay } = VB['sim/meadows'];
   const { passageDay } = VB['sim/passage'];
-  const { frost: lyingFrost } = VB['sim/lying'];
+  const { frost: lyingFrost, decay: lyingDecay } = VB['sim/lying'];
   const { frost: droveFrost } = VB['sim/droving'];
   const { byreDay, autumnCounts, strays, shearing } = VB['sim/byre'];
   const { herdsBack, halveGraze } = VB['sim/grazing'];
@@ -162,9 +162,8 @@ VB['sim/clock'] = (() => {
     {
       every: 'hour',
       at: { hour: [WORK[0] - 1, WORK[1]] },
-      when: (st, c) => c.hour === WORK[0] - 1 || !!st.leaves,
       owner: 'sim/voice',
-      note: "a member's leave begins at its hour; after the morning's allotment, the members' own asks of leave (VB-1555)",
+      note: "a member's leave (its head's dated grant) begins at its hour; after the morning's allotment, the members' own asks of leave (VB-1555, VB-1763)",
       run: (st, c) => VB['sim/voice'].hour(st, c),
     },
     {
@@ -192,13 +191,11 @@ VB['sim/clock'] = (() => {
     {
       every: 'hour',
       at: { hour: WORK[1] },
-      when: (st, c) => !!Workdays.dayOf(c),
+      when: (st, c) => Workdays.isDay(st, c),
       owner: 'sim/workdays',
       note: "a village's work day ends: who turned out and who stayed away (VB-120); its jobs left free are taken down",
       run: (st, c) => {
-        const called = new Set();
-        for (const j of st.jobs.values()) if (Workdays.isWorkdayJob(j)) called.add(j.village);
-        for (const v of st.villages) Workdays.judge(st, v, c, called.has(v.id));
+        for (const v of st.villages) Workdays.judge(st, v, c);
         for (const j of [...st.jobs.values()]) if (Workdays.isWorkdayJob(j) && !j.claims.length) dropJob(st, j);
       },
     },
@@ -343,17 +340,31 @@ VB['sim/clock'] = (() => {
     { every: 'year', owner: 'sim/meadows', note: 'the meadows are grass again', run: (st) => meadowsSpring(st) },
     {
       every: 'day',
-      when: frosty,
+      when: (st) => frostSeen(st) !== null,
+      owner: 'sim/fields',
+      note: 'once the frost has come, stooks still out lose a share of themselves a day (VB-2001)',
+      run: (st) => stooksDecay(st),
+    },
+    {
+      every: 'day',
+      when: (st) => frostSeen(st) !== null,
       owner: 'sim/meadows',
-      note: 'the autumn frost rots hay still lying',
-      run: (st) => meadowsFrost(st),
+      note: 'once the frost has come, mown hay still lying loses a share of itself a day (VB-2001)',
+      run: (st) => hayDecay(st),
     },
     {
       every: 'day',
       when: frosty,
       owner: 'sim/lying',
-      note: 'the autumn frost rots the loads left lying where their carrier fell (VB-611)',
+      note: 'the autumn frost takes the carts left standing from the loads lying (VB-611, VB-649)',
       run: (st) => lyingFrost(st),
+    },
+    {
+      every: 'day',
+      when: (st) => st.lying !== undefined && frostSeen(st) !== null,
+      owner: 'sim/lying',
+      note: 'once the frost has come, what lies out loses a share of itself a day (VB-1910)',
+      run: (st) => lyingDecay(st),
     },
     {
       every: 'day',
@@ -554,10 +565,10 @@ VB['sim/clock'] = (() => {
     },
     {
       every: 'step',
-      when: (st) => !!st.daysToday || (!!st.daysCalls && st.daysCalls.length > 0),
-      owner: 'sim/days',
+      when: (st) => !!st.daysToday || !!st.obligationsDue,
+      owner: 'sim/levies',
       note: "a day's calls come on duty and those who gave their hours go home (VB-462)",
-      run: (st) => VB['sim/days'].step(st),
+      run: (st) => VB['sim/levies'].step(st),
     },
     {
       every: 'step',
@@ -748,7 +759,8 @@ VB['sim/clock'] = (() => {
     playerStep(st); // the player's queue goes before the pawn's own logic (VB-169)
     const c = cal(st.t),
       all = stepAgents(st, c),
-      mine = st.controlled && st.controlled.length ? all.filter((a) => !unplanned(st, a.id)) : all, // any controller's pawn (VB-1745)
+      own = st.controlled && st.controlled.length ? all.filter((a) => !unplanned(st, a.id)) : all, // any controller's pawn (VB-1745)
+      mine = st.sites.length ? siteLodgers(st, own, c) : own, // a site's workers set out to lodge there (VB-787)
       idle = abed(st, st.away.length ? dayAway(st, mine) : mine); // a lodger works only what its stay names (VB-783); the ill keep to bed
     if (idle.length) {
       // each takes the next task of its day (VB-466); those it gave none look at the household's opportunities, whose day is then allotted

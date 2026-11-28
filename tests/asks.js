@@ -1,3 +1,4 @@
+// @suite integration
 // VB-699: a head reads the asks. On a tiny world of two villages, one with pine in its wood: a household with no pit (beside the pit's,
 // and one of the village with no pine) lacking the barrel of tar it keeps asks for it at its review (one a good, while open); the pit's head
 // reads the asks after the harvest, once a year, of its own village and (from a skill of ASKS.hears) the villages its own gathers with,
@@ -43,6 +44,7 @@ assert.strictEqual(plan.placed, undefined, 'a spring review reads no asks');
 const kept = st.villages.map((v) => v.gathering);
 for (const v of st.villages) v.gathering = { chosen: 'asLastYear', hosting: v.id === A.id, prefs: [A.id], year: 1, host: A.id, by: null }; // lint-allow: owner a test settles the gathering
 autumn(0);
+plan.fit = { at: cal(st.t).year * 4 + cal(st.t).season, short: 0, week: 2 }; // lint-allow: owner its season judged to fit (VB-1778: a short one lowers the tar), so the target is the asks' alone
 VB.resetCounts();
 review(maker);
 const skill = VB['sim/seasonal'].headSkill(st, maker.id), lean = plan.head.bias.hours;

@@ -185,6 +185,14 @@ VB['sim/controller'] = (() => {
   const begun = (st, cmd) => {
     if (cmd.plan) planBegun(st, cmd.actor, cmd.plan);
   };
+  VB.counter(
+    'queueRun',
+    'Queues run by the queue step: each step, one a pawn whose controller holds a command (sim/controller queueStep, VB-1745)',
+  );
+  VB.counter(
+    'planFeed',
+    'Plans looked at by the feeder: each step, one a pawn whose controller holds a plan (sim/player playerStep, VB-1746)',
+  );
   function queueStep(st) {
     for (const id of planners(st)) {
       VB.count.planFeed++;
@@ -398,7 +406,7 @@ VB['sim/controller'] = (() => {
   // ---- the household's own rule that holds an open step's job back (VB-1652): the one closed list, HOLDS, each {rule, text} ----
   // hands: a field beyond what its hands till (sim/fieldwork beyondHands, the plan's targets.workable); sowing: its sowing refused
   // (sim/fieldwork sowWhy: the seed, the thaw); hay: no hay wanted (sim/meadows hayWanted); timber: no timber home to cut; woodpile: the
-  // pile at the season's goal (sim/chores, the firewood job's rule); booth: the booth's timber not all fetched to its tile; wood: no wood
+  // pile at the season's goal (sim/wood, the firewood job's rule); booth: the booth's timber not all fetched to its tile; wood: no wood
   // to fetch the booth's (or an outbuilding's) timber from; stone: no stone in reach for the foundation (the wait `project`, its step not
   // opened while a project is under way, VB-1663, is gone with the limit, VB-1668); review: none of those,
   // the job posted at the household's next review. Each goal kind's `hold` names the one of its own (sim/kinds GOALS; VB-1777).
@@ -413,7 +421,7 @@ VB['sim/controller'] = (() => {
     wood: (what = 'booth') => `there is no wood to fetch the ${what}'s timber from`,
     stone: () => 'there is no stone to pick or quarry within reach of the house', // VB-1663: the foundation's
 
-    review: () => "posted at the household's next review",
+    review: () => "waits for the household's next planning day",
   };
   const RULES = Object.keys(HOLDS);
   const held = (rule, ...a) => ({ rule, text: HOLDS[rule](...a) });
@@ -496,6 +504,10 @@ VB['sim/controller'] = (() => {
     if (js) for (const j of js) if (j.kind === k && VERBS.work.check(st, workCmd(id, j.key)) === null) return j;
     return null;
   }
+  VB.counter(
+    'vitalAsk',
+    'Open tasks of its household passed by a pawn on its own plan, for a daily one the day leaves unmanned (sim/controller, VB-1755)',
+  );
   // A task of a kind its household lives by each day (sim/kinds `daily`: the water, the meal, the fire, milking, fodder) that stands
   // open, unmanned and not the next task of another member by the household's day (givenTo), and that pawn id
   // may take now, unless its routine is to take that kind today; or null. Due and vital kinds are slotted in before anything authored

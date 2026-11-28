@@ -1,3 +1,4 @@
+// @suite integration
 // VB-100: common fields worked by the village. A village of three farms whose store is empty may choose a common field at its meeting
 // (VB-257, a routine only a meeting sets); its review makes the project plan: a free meadow tile within COMMONS.reach steps of the green,
 // claimed by the village, cleared and broken by its adults (the kinds `clear` and `break`, owned by the village, taken on the `villager`

@@ -1,3 +1,4 @@
+// @suite fast
 // Independent cache corruption probes; long-run checks also run after every role refresh in tests/invariants.js.
 const assert = require('assert'), { checkRoles, loadWithRoleChecks } = require('./lib/owner-caches.js');
 const VB = loadWithRoleChecks(), { tinyWorld, tinyState } = require('./lib/tiny.js');
@@ -21,7 +22,7 @@ holder.household = 1;
 assert(checkState(st).some((e) => e.includes('household field')), 'pawn membership must match the member list');
 holder.household = hh.id;
 hh.members.push(st.households[1].holder);
-assert(checkState(st).some((e) => e.includes('in households')), 'member lists must agree in both directions');
+assert(checkState(st).some((e) => e.includes('st.households[].members[]: pawn')), 'member lists must agree in both directions');
 hh.members.pop();
 // No lag (VB-1685): a child turned fourteen and still called a child is reported at once, and the day's life step refreshes its role.
 const child = st.pawns.find((p) => p.role === 'daughter'), born = child.born;
@@ -42,3 +43,13 @@ assert.deepStrictEqual(checkState(st), []);
 lineFarm.line = oldLine; VB['sim/records'].noteLine(st, lineFarm);
 assert.deepStrictEqual(checkState(st), []);
 console.log('owner caches ok: roles, exact tile owners, membership and line index corruption detected; no birthday lag');
+// VB-1836: a farm held under its own title (use granted to another household) and then given to a household (farmTo) keeps its title's user
+// in step with the owner cache: before the mend the title kept the old user and the checker expected it on every tile.
+{
+  const s = tinyState(tinyWorld(Array(20).fill('.'.repeat(30))), [{ at: [10, 10], farms: 2, sizes: [6, 5] }], { seed: 5, herds: true });
+  const g = s.farmsteads[0];
+  VB['sim/ownership'].grant(s, g.house, 'use', { type: 'household', id: 1 }, 0, 'tenancy');
+  assert.deepStrictEqual(checkState(s), []);
+  VB['sim/ownership'].farmTo(s, g, { type: 'household', id: 0 });
+  assert.deepStrictEqual(checkState(s), [], 'farmTo moves the farm title\'s user with the owner cache');
+}

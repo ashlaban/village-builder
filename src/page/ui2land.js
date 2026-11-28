@@ -3,10 +3,11 @@
 // What took of the settler's health at its last reckoning (st.player.days, VB-1118), each an icon at the house and a sentence in its
 // callout: the warning stands on the land, its words a tap away.
 // The day kept is the last one reckoned (its `t`, at the day's end): its cold is of the roof that stood then, so a shelter raised since is
-// said to have come after it. `damp` is a day without water (sim/hunger's dry day, VB-331), not the roof's.
+// said to have come after it. `dry` is a day without water (sim/hunger's dry day, VB-331), not the roof's.
 const HUD_AILS = [
   ['cold', 'cold', ''],
-  ['damp', 'water', 'A day without water: none was fetched for the house. Fetching water is in the daily routine.'],
+  ['dry', 'water', 'A day without water: none was fetched for the house. Fetching water is in the daily routine.'],
+  ['damp', 'water', 'Marsh water is taking of its health.'],
   ['hunger', 'hunger', 'Hunger is taking of its health.'],
   ['tired', 'mood', 'Lack of sleep is taking of its health.'],
   ['ill', 'health', 'It is ill.'],
@@ -203,6 +204,83 @@ function hudJobFacts(e, j) {
     e.why ? { k: `${pre}s`, icon: goodIcon('tile'), n: '', label: 'The site', why: `${siteCap(e.why)}.` } : null,
   ].filter(Boolean);
 }
+// ---- a job's recipe (Kim, 27 Nov: every job shows what it needs and what it gives, as icons) ----
+// Where it is done and what it takes, an arrow, and what it gives: read from the kind's own record (sim/kinds `at`, `needs`, `gives`),
+// a chain of the plan by its own row. Places and goods with no glyph are left out of the icons, never out of the sentence.
+const RECIPE_PLACE = {
+  woods: ['tree', 'a forest tile'],
+  field: ['field', 'a field'],
+  meadow: ['meadow', 'a meadow'],
+  land: ['tile', 'open land'],
+  hills: ['stone', 'hills'],
+  water: ['water', 'water'],
+  shore: ['water', 'the shore'],
+  farm: ['!home', 'the farm'],
+  house: ['!home', 'the house'],
+  site: ['!build', 'the building site'],
+  byre: ['beast', 'the byre'],
+};
+const RECIPE_GOOD = {
+  timber: 'timber',
+  firewood: 'wood',
+  sheaves: 'sheaves',
+  grain: 'grain',
+  seed: 'seed',
+  water: 'water',
+  stone: 'stone',
+  hay: 'hay',
+  meals: '!pot',
+  field: 'field',
+  meadow: 'meadow',
+  house: '!home',
+  fish: 'fish',
+  meat: 'meat',
+  milk: 'milk',
+  butter: 'butter',
+  flour: 'flour',
+  cattle: 'beast',
+  cart: 'cart',
+  boat: 'boat',
+  peat: 'peat',
+  clay: 'clay',
+  ore: 'ore',
+  tar: 'tar',
+  quern: 'quern',
+};
+const RECIPE_CHAIN = {
+  plant: { at: ['land'], needs: ['seed'], gives: ['field'], says: 'a field broken and sown' },
+  hay: { at: ['meadow'], needs: [], gives: ['hay'] },
+  harvest: { at: ['field'], needs: [], gives: ['sheaves', 'grain'] },
+  fell: { at: ['woods'], needs: [], gives: ['timber'] },
+  firewood: { at: ['house'], needs: ['timber'], gives: ['firewood'] },
+  farmstead: { at: ['land'], needs: ['timber'], gives: ['house'] },
+  upgrade: { at: ['house'], needs: ['timber'], gives: ['house'] },
+  foundation: { at: ['house'], needs: ['stone'], gives: ['house'] },
+  outbuilding: { at: ['farm'], needs: ['timber'], gives: [] },
+};
+const recipeIcon = (k) => (k[0] === '!' ? actIcon(k.slice(1)) : goodIcon(k));
+// The recipe of a job kind or a plan's chain: a fact for factChips (its icons the chip, its sentence behind the tap), or null.
+function recipeFact(kind, k = 'recipe') {
+  const r = RECIPE_CHAIN[kind] || (Sim.KINDS[kind] ? Sim.KINDS[kind] : null);
+  if (!r) return null;
+  const at = (r.at || []).map((x) => RECIPE_PLACE[x]).filter(Boolean),
+    needs = (r.needs || []).filter((x) => RECIPE_GOOD[x]),
+    gives = (r.gives || []).filter((x) => RECIPE_GOOD[x]);
+  if (!at.length && !needs.length && !gives.length) return null;
+  const list = (xs) => xs.join(' and ');
+  const icon =
+    at.map(([g]) => `<span class="u2-rat">${recipeIcon(g)}</span>`).join('') +
+    needs.map((x) => recipeIcon(RECIPE_GOOD[x])).join('') +
+    (gives.length
+      ? `<span class="u2-rto">${actIcon('next')}</span>` + gives.map((x) => recipeIcon(RECIPE_GOOD[x])).join('')
+      : '');
+  const why =
+    (at.length ? `Done on ${list(at.map(([, w]) => w))}` : 'Done') +
+    (needs.length ? `; uses ${list(needs)}` : '') +
+    (gives.length ? `; gives ${r.says || list(gives)}` : '') +
+    '.';
+  return { k, icon, n: '', cls: 'recipe', label: why.slice(0, -1), why };
+}
 const hudPin = (icon, n = '') => `${icon}${n === '' ? '' : `<b>${n}</b>`}`;
 // The tiles the next field or meadow may be laid on (page/plan's planSites, the head's own checks), read once an hour.
 function hudSites(hh) {
@@ -315,7 +393,7 @@ function hudCall(i, id, hh, f) {
       inPlan = P && P.tasks.some((t) => t.key === o.target),
       name = Sim.KINDS[o.kind].name,
       icon = actIcon(KIND_ICON[o.kind] || 'hoe'),
-      jf = hudJobFacts(e, n);
+      jf = [recipeFact(o.kind, `j${n}r`), ...hudJobFacts(e, n)].filter(Boolean);
     let row = '';
     if (P && !inPlan)
       row +=
@@ -352,7 +430,10 @@ function hudCall(i, id, hh, f) {
       (making || unsown || marked === 'plant' || free.field.has(i)) && 'plant',
       Sim.planGaps && (mi >= 0 || making2 || marked === 'hay' || free.meadow.has(i)) && 'hay',
       Sim.planGaps && fi >= 0 && !unsown && 'harvest',
-    ].filter((c) => c && P && !P.tasks.some((t) => t.kind === c && t.site === i));
+    ]
+      .filter((c) => c && P && !P.tasks.some((t) => t.kind === c && t.site === i))
+      // the window's act opened this card (page/ui2hud yearGo): its chain first, the one pressed for
+      .sort((a, b) => (hud.goAt && hud.goAt.tile === i ? (b === hud.goAt.chain) - (a === hud.goAt.chain) : 0));
   if (gap)
     say(
       'gap',

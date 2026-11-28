@@ -1,3 +1,4 @@
+// @suite fast
 // tools/review.js (VB-1619) on a constructed repository of two commits: the arm and its rule, one review a task, the packet (the vision
 // and principles first, the task as it stood, a changed test that passes on the base flagged, the task's own file left out of the diff),
 // the claims refused before the draft, the findings' grades checked, and what a source file declares.
@@ -10,7 +11,7 @@ const f = facts(`VB['sim/a'] = (() => {
   // @state st.digs: holes dug, by tile
   const { register } = VB['sim/commands'];
   const KINDS = { dig: { rank: 1 } };
-  VB.COUNTERS.digWalk = 'tiles read';
+  VB.counter('digWalk', 'tiles read');
   register('dig', { check: () => null, run: () => {} });
   const later = () => VB['sim/b'].x;
   return { KINDS };

@@ -5,6 +5,7 @@ VB['sim/encounters'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { ALE_EVENING, RITE } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];
+  const { GATHERING } = VB['sim/rules'];
   const T = SOCIAL.talk;
   // Scratch (derived, not state): seen[id] === look marks a pawn already drawn for the pawn whose partners are sought; lists, the cells read.
   let seen = new Int32Array(1024),
@@ -136,7 +137,7 @@ VB['sim/encounters'] = (() => {
     occasion: {
       draws: 8,
       mix: 0.2,
-      kinds: { ale: ALE_EVENING, rite: RITE }, // their mix: 0.5 at an ale evening, 0.2 at the rite (VB-522)
+      kinds: { ale: ALE_EVENING, rite: RITE, gathering: GATHERING }, // their mix: 0.5 at an ale evening, 0.2 at the rite (VB-522)
       present: (st, id) => present(st, id),
       sample(st, a, near, busy, round, found) {
         const O = ENCOUNTERS.occasion,
@@ -153,6 +154,7 @@ VB['sim/encounters'] = (() => {
           seen[b.id] = look;
           if (busy[b.id] !== round && standing(st, b, o)) found.push(b);
         }
+        if (o.kind === 'gathering') capped(st, a.id, o, found); // VB-296
         const k = O.kinds[o.kind];
         return k && k.mix !== undefined ? k.mix : O.mix;
       },
@@ -160,6 +162,26 @@ VB['sim/encounters'] = (() => {
     },
   };
 
+  VB.counter(
+    'gatherDrawn',
+    'Partners drawn at a day of the gathering, read against the cap on new contacts (sim/encounters, VB-296)',
+  );
+  // New contacts at a day of the gathering (VB-296; design.md, The gathering: Customs drawn together): a pawn meets at most
+  // GATHERING.contacts it had no tie with, a day of the gathering (o.fresh[id], saved with the occasion, the day's count). `capped` takes out of
+  // `found` the strangers to pawn id once it or they have met their share (sim/occasions counts the contacts, at each 'talked').
+  // Reads and counts only the pawns present, at most O.draws a talk (rule 2).
+  function capped(st, id, o, found) {
+    const f = o.fresh,
+      mine = f ? f[id] || 0 : 0,
+      ties = st.pawns[id].ties;
+    let k = 0;
+    for (const b of found) {
+      VB.count.gatherDrawn++;
+      if (!ties.has(b.id) && (mine >= GATHERING.contacts || (f && (f[b.id] || 0) >= GATHERING.contacts))) continue;
+      found[k++] = b;
+    }
+    found.length = k;
+  }
   // The members of household hh at home, but pawn `but`, into `found`: not one standing at an occasion, nor one talking this hour.
   function inside(st, hh, but, busy, round, found) {
     for (const m of hh.members)

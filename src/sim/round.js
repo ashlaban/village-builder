@@ -15,7 +15,8 @@ VB['sim/round'] = (() => {
   const { claimFarms, claimableFarm, askLand } = VB['sim/farmclaims'];
   const { settleRound } = VB['sim/settle'];
   const { takeServants, serveWhereShort, oweWages, unpaid, unpaidLeave } = VB['sim/service'];
-  const { payOwed } = VB['sim/cottage'];
+  const { payOwed } = VB['sim/cottage'],
+    { payRent } = VB['sim/heirland'];
   const { callFilling } = VB['sim/help'];
   const { refreshStanding } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
@@ -27,6 +28,10 @@ VB['sim/round'] = (() => {
   const { review, leavers } = VB['sim/courting'];
   const { seekVisit } = VB['sim/visits'];
   const kinOpts = Customs.DIMS[Customs.IDX.kinLimit].opts.map((o) => o[0]); // strictest first
+  VB.counter(
+    'kinPairs',
+    "Free pawn and candidate pairs read by a village's kin pressure at the end of its round, each can() (sim/round kinPressure, VB-1170)",
+  );
   // Scarcity and plenty of spouses push the marriage limit, a village's own at the end of its round (VB-277): one the step married to a
   // partner also allowed under the next stricter option pulls back, at half the weight; an unmatched man of the village, or an unmarried
   // woman of it, not held by an offer, who finds no allowed partner among the free of the other sex within reach (VB-288) but would under
@@ -129,6 +134,7 @@ VB['sim/round'] = (() => {
       const unhomed = unpaidLeave(st, unpaid(st));
       serveWhereShort(st, { ...takeServants(st), leavers: [...leavers(st), ...unhomed] });
       payOwed(st);
+      payRent(st); // the half harvest of an heir's fields (VB-034)
       refreshStanding(st);
       if (ASK.passes === 1) lapseRound(st);
     }
@@ -147,6 +153,10 @@ VB['sim/round'] = (() => {
       by = spokesmanOf(st, asked);
     return sideScore(st, st.pawns[o.gives.man], st.pawns[o.wants.woman], 0.5, by, spokesmanOf(st, askerOf(o)));
   }
+  VB.counter(
+    'offersAnswered',
+    'Open offers answered at a village step of the moving round, a day of it each (sim/round, VB-692)',
+  );
   function answerDue(st, v, d, now) {
     let due = null;
     const married = [];
@@ -193,6 +203,10 @@ VB['sim/round'] = (() => {
     if (p.ask !== undefined && p.ask !== null) return;
     askMatch(st, id, Math.floor(now / DAY) * DAY + DAY + 12, { not });
   }
+  VB.counter(
+    'roundWalk',
+    "Pawn records walked by a village's round to build its pool, once a village (sim/lifecycle, VB-277)",
+  );
   // A village's round (VB-277, VB-693; design.md, A village's round): its alderman calls its households to fill its store; the played pawn's wished match
   // (VB-274) is offered, the wisher's own yes given; its kin pressure; and its men who hold no offer plan a visit. The round chooses
   // nobody (principle "Every act is a pawn's"): the matches were asked through the year by the spokesmen (sim/asking) and answered in the village's step
@@ -315,6 +329,10 @@ VB['sim/round'] = (() => {
       delete st.pawns[by].proposal; // lint-allow: owner made, it ends with the marriage
     } else if (r === true && heldBy(st, m, 'match')) (taken.add(m), taken.add(f));
   }
+  VB.counter(
+    'roundPairs',
+    'Candidate man/woman pairs visited in the moving round: none since the round chooses nobody (VB-693; see asksWeighed)',
+  );
   return {
     movingRound,
     roundPhase,

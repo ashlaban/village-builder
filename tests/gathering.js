@@ -1,3 +1,4 @@
+// @suite integration
 // VB-294: the gathering. At its autumn meeting each village ranks the hosts it would walk to by effective hours (the walk between the greens,
 // its own 0, less for kin and last year's gathering, plus or less by the pull between the villages) and offers to host when it would go to its
 // own; once all have met, each goes to one gathering that stands: three villages or more with the host among them, lodged by the host's

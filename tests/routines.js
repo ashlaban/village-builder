@@ -1,3 +1,4 @@
+// @suite integration
 // VB-257: the village's routines. The village's standing plan holds this year's routines (at most four, each known), set by the yearly
 // meeting through its verb from the village work available (the fence's stretches the first); a routine chosen is a source of tasks for
 // the village's adults on the `villager` basis, one not chosen posts nothing; a meeting that does not decide (no quorum, a tie) leaves it
@@ -30,7 +31,7 @@ function green(st, v, ids) {
 
 { // the practice is declared with the customs: every generated culture holds `nothing`
   const st = fresh();
-  assert.deepStrictEqual(Object.keys(Customs.PRACTICES), ['noDecision', 'alderman', 'riteDays', 'spinning']);
+  assert.deepStrictEqual(Object.keys(Customs.PRACTICES), ['noDecision', 'alderman', 'riteDays', 'spinning', 'lots']);
   assert.ok(st.cenv.cultures.every((c) => c.practices.noDecision === 'nothing'), 'each culture holds nothing');
   assert.strictEqual(Customs.practiceOf({}, 'noDecision'), 'nothing', 'a culture of an older save reads the base');
 }
@@ -114,4 +115,129 @@ function green(st, v, ids) {
   assert.deepStrictEqual([...back.plans.villages.values()].map((p) => p.routines), [...st.plans.villages.values()].map((p) => p.routines));
   assert.deepStrictEqual(checkState(st).filter((x) => /plans|cultures/.test(x)), [], 'invariants');
 }
-console.log('routines ok: founded, chosen by the meeting, posted on the villager basis; no quorum with nothing and asLastYear; ties; the verb\'s refusals');
+{ // VB-1768: a village's routines as levies, laid in lots by its custom of lots
+  const { tinyWorld, tinyState } = require('./lib/tiny.js');
+  const Levies = VB['sim/levies'], Ob = VB['sim/obligations'], { OUTER } = VB['sim/days'], { SEASON_DAYS } = VB['sim/rules'];
+  const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
+  const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 4, sizes: [6, 6, 6, 1] }], { seed: 4 });
+  const v = st.villages[0], plan = Plans.planOf(st, 'village', v.id), s = st.cenv.settlements[v.id];
+  assert.strictEqual(Customs.PRACTICES.lots.base, 'fields');
+  assert.deepStrictEqual(Customs.PRACTICES.lots.opts.map((o) => o[0]), ['fields', 'adults', 'equal']);
+  assert.ok(Customs.PRACTICES.lots.malleability > 0, 'a practice with its malleability');
+  assert.strictEqual(Customs.practiceOf(st.cenv.cultures[s.culture], 'lots'), 'fields', 'by fields, the default');
+  // the split: whole days by the largest remainder, summing to D; ties in turn by household id against the year
+  const sum = (lots) => lots.reduce((n, l) => n + l[1], 0), N = v.farmsteads.length, y = cal(st.t).year;
+  for (const rule of ['fields', 'adults', 'equal']) {
+    const [lots, rest] = Levies.split(st, v.id, 5, rule);
+    assert.strictEqual(sum(lots) + rest, 5, `${rule}: the lots sum to D`);
+    assert.strictEqual(rest, 0);
+  }
+  const [one] = Levies.split(st, v.id, 1, 'equal'), first = [...Array(N).keys()].sort((a, b) => ((a + y) % N) - ((b + y) % N))[0];
+  assert.deepStrictEqual(one, [[first, 1]], 'a tie goes by the household id against the year');
+  const adults = Levies.split(st, v.id, 6, 'adults')[0], lone = st.households[3];
+  assert.ok((adults.find((l) => l[0] === lone.id) || [0, 0])[1] < (adults.find((l) => l[0] === 0) || [0, 0])[1], 'by adults, the small owe less');
+  // room: at most OUTER.lotMax a household a season, the days past it to the others, what none can take left
+  const [capped, left] = Levies.split(st, v.id, 50, 'equal', () => OUTER.lotMax);
+  assert.ok(capped.every((l) => l[1] === OUTER.lotMax) && left === 50 - N * OUTER.lotMax, 'capped, the rest left');
+  const [over] = Levies.split(st, v.id, 6, 'equal', (id) => (id === 0 ? 0 : OUTER.lotMax));
+  assert.ok(!over.some((l) => l[0] === 0) && sum(over) === 6, 'a household with no room: its days to the others');
+  const f0 = st.farmsteads[v.farmsteads[0]], had = f0.fields;
+  f0.fields = []; // lint-allow: owner a test's scene: a household with no fields
+  assert.ok(!Levies.split(st, v.id, 5, 'fields')[0].some((l) => l[0] === f0.household), 'by fields, one with none owes none');
+  assert.ok(Levies.split(st, v.id, 5, 'equal')[0].some((l) => l[0] === f0.household), 'equal, it owes its share');
+  f0.fields = had; // lint-allow: owner the scene undone
+
+  // the routine set by the meeting, a step of the village's year; its alderman lays its season's lots at his review
+  VB['sim/routines'].setRoutines(st, v.id, ['fence'], 'meeting');
+  VB['sim/membership'].setAlderman(st, v, st.households[0].holder);
+  const step = VB['sim/routines'].stepOf(plan, 'fence');
+  assert.deepStrictEqual([step.author, step.why], ['custom', { custom: 'meeting' }], 'the routine a step of the year, the meeting its why');
+  for (const x of v.fence) x.cond = 0.2;
+  review(st, 1); // posts the fence's tasks
+  review(st, 2); // the season's lots, sized from them
+  const lots = st.obligations.filter((o) => o.source === 'routine'), end = SEASON_DAYS - 1;
+  assert.ok(lots.length > 0, 'lots laid');
+  for (const o of lots) {
+    assert.deepStrictEqual([o.kind, o.debtor.kind, o.creditor, o.enforcer, o.window], ['days', 'household', { kind: 'village', id: v.id },
+      { kind: 'village', id: v.id }, [2, end]], JSON.stringify(o));
+    assert.deepStrictEqual([o.terms.names, o.terms.substitute, o.terms.commute, o.terms.carry], ['levied', true, null, false], 'its terms');
+    assert.ok(o.owes.days <= OUTER.lotMax);
+    assert.deepStrictEqual(o.why, { step: step.id, of: `village:${v.id}` }, "each levied day's why, its routine");
+  }
+  assert.deepStrictEqual(plan.lotsOf, ['fence']);
+  const once = lots.length;
+  review(st, 3);
+  assert.strictEqual(st.obligations.filter((o) => o.source === 'routine').length, once, 'laid once a season');
+  // the routines set again mid-season (the meeting's day, here by asLastYear): the routine keeps its step, so its lots' why still reach it
+  VB['sim/routines'].setRoutines(st, v.id, ['fence'], 'asLastYear');
+  const again = VB['sim/steps'].find(st, plan, lots[0].why.step);
+  assert.ok(again && again.what.routine === 'fence' && again.id === step.id, 'the step of the why found after the re-set');
+  assert.deepStrictEqual(again.why, { custom: 'asLastYear' }, 'its why the new decision');
+  // the work done: the days left released
+  for (const x of v.fence) x.cond = 1;
+  review(st, 4); review(st, 5);
+  assert.ok(lots.every((o) => !Ob.isLive(o)), `the work done, its lots released: ${lots.map((o) => o.status)}`);
+  // the next season: lots laid again, and the work left at its end told at the meeting and weighed
+  for (const x of v.fence) x.cond = 0.2;
+  review(st, SEASON_DAYS); review(st, SEASON_DAYS + 1);
+  assert.ok(st.obligations.some((o) => o.source === 'routine' && o.window[0] >= SEASON_DAYS), 'laid again in the next season');
+  review(st, 2 * SEASON_DAYS);
+  assert.ok(plan.routineLeft && plan.routineLeft.days.fence > 0, `the work left kept: ${JSON.stringify(plan.routineLeft)}`);
+  const voices = Sim.membersOf(st, v.id).filter((p) => Sim.voiceOf(st, p, s) > 0);
+  L.routinesMeeting(st, s, green(st, v, voices.map((p) => p.id)));
+  const told = st.record.find((e) => typeof e === 'object' && e.kind === 'workLeft' && /work left undone/.test(e.text));
+  assert.ok(told && told.text.includes(`${plan.routineLeft.days.fence} day`) && /fence/i.test(told.text), told && told.text);
+  assert.ok(plan.routines.includes('fence'), 'the fence chosen again');
+  { // the work left weighs in the choice: a routine ranked last comes first with many days of it left
+    const R = VB['sim/routines'], base = R.chooseRoutines(st, v), was = plan.routineLeft;
+    assert.ok(base && base.length > 1, `routines to rank: ${base}`);
+    const k = base[base.length - 1];
+    plan.routineLeft = { by: plan.routinesBy + plan.routinesYear, days: { [k]: 1000 } }; // lint-allow: owner a test's scene
+    assert.strictEqual(R.chooseRoutines(st, v)[0], k, `${k} weighed by its work left`);
+    plan.routineLeft = { by: 'another setting', days: { [k]: 1000 } }; // lint-allow: owner a test's scene: left under routines set before
+    assert.deepStrictEqual(R.chooseRoutines(st, v), base, 'work left under other routines not weighed');
+    plan.routineLeft = was; // lint-allow: owner the scene undone
+  }
+  assert.deepStrictEqual(checkState(st).filter((x) => /plans|obligation|levy/.test(x)), [], 'invariants');
+}
+{ // a holder proposes (VB-1770): to the next meeting's agenda, once a year; the meeting weighs it; played and unplayed alike
+  const { st, v, s, plan, voices } = setUp();
+  const holders = st.households.filter((h) => !h.dissolved && h.holder !== null && villageOf(st, st.pawns[h.holder]) === v.id).map((h) => h.holder);
+  assert.ok(holders.length >= 2, 'holders to propose');
+  const [played, other] = holders, propose = (actor, args, source) => issue(st, { actor, verb: 'propose', target: v.id, args, source });
+  assert.ok(/not a holder/.test(propose(Sim.membersOf(st, v.id).find((p) => !holders.includes(p.id) && p.household !== null).id, { what: 'routine', routine: 'fence' }, 'pawn')), 'only a holder');
+  assert.ok(/no routine/.test(propose(played, { what: 'routine', routine: 'gaol' }, 'pawn')), 'a known routine');
+  assert.strictEqual(propose(played, { what: 'routine', routine: 'workdays' }, 'player'), true, 'the played holder proposes');
+  assert.ok(/once a year/.test(propose(played, { what: 'routine', routine: 'commons' }, 'player')), 'one a year');
+  assert.strictEqual(propose(other, { what: 'routine', routine: 'green' }, 'pawn'), true, 'an unplayed holder proposes');
+  assert.deepStrictEqual(plan.proposed.map((x) => [x.by, x.value]), [[played, 'workdays'], [other, 'green']]);
+  assert.deepStrictEqual(checkState(st).filter((x) => /plans/.test(x)), [], 'invariants');
+  const Rt = VB['sim/routines'];
+  assert.ok(Rt.VILLAGE_ROUTINES.workdays.available(st, v), 'work days have work');
+  assert.ok(!Rt.VILLAGE_ROUTINES.green.available(st, v), 'the green has none (a well is dug)' );
+  plan.routines = []; // lint-allow: owner the test starts from a year without village work
+  L.routinesMeeting(st, s, green(st, v, voices.map((p) => p.id)));
+  const fates = st.record.filter((e) => typeof e === 'object' && e.kind === 'proposal');
+  assert.strictEqual(fates.length, 2, 'the record tells each proposal');
+  assert.ok(plan.routines.includes('workdays') && /took it up/.test(fates.find((e) => /work days/.test(e.text)).text), 'weighed highest: chosen');
+  assert.ok(!plan.routines.includes('green') && /refused/.test(fates.find((e) => /green/.test(e.text)).text), 'no such work: refused');
+  assert.deepStrictEqual(plan.proposed, [], 'the agenda cleared');
+  assert.ok(/held this year/.test(propose(other, { what: 'routine', routine: 'fence' }, 'pawn')), 'not once the meeting is held');
+  // a proposal weighs its routine up in the ranking
+  const base = Rt.chooseRoutines(st, v), last = base[base.length - 1];
+  assert.strictEqual(Rt.chooseRoutines(st, v, false, { [last]: 1000 })[0], last, 'the holders\' words weigh');
+  // the custom of lots: put to the households, each for the rule that lightens its own lot
+  const st2 = setUp(); st2.plan.routines = []; // lint-allow: owner the test starts from a year without village work
+  const vid = st2.v.id, hs = st2.st.households.filter((h) => !h.dissolved && h.holder !== null && villageOf(st2.st, st2.st.pawns[h.holder]) === vid);
+  assert.strictEqual(issue(st2.st, { actor: hs[0].holder, verb: 'propose', target: vid, args: { what: 'lots', rule: 'equal' }, source: 'pawn' }), true);
+  L.routinesMeeting(st2.st, st2.s, green(st2.st, st2.v, st2.voices.map((p) => p.id)));
+  const said = st2.st.record.find((e) => typeof e === 'object' && e.kind === 'proposal');
+  assert.ok(said && /the meeting (adopted it|kept the custom of lots)/.test(said.text), said && said.text);
+  assert.strictEqual(Customs.lotsRule(st2.st, vid), /adopted/.test(said.text) ? 'equal' : Customs.practiceOf(st2.st.cenv.cultures[st2.s.culture], 'lots'));
+  // the default author: at the meeting, a holder with no proposal makes one by its own judgement
+  const st3 = setUp(), P3 = st3.plan;
+  L.meetingStage(st3.st, 0); L.holdMeetings(st3.st);
+  for (const e of st3.st.record.filter((x) => typeof x === 'object' && x.kind === 'proposal')) assert.ok(e.pawn !== undefined, 'a proposal is told in the record');
+  assert.deepStrictEqual(checkState(st3.st).filter((x) => /plans/.test(x)), [], 'invariants after the meetings');
+}
+console.log('routines ok: founded, chosen by the meeting, posted on the villager basis; no quorum with nothing and asLastYear; ties; the verb\'s refusals; the routines\' lots laid, released and their work left told');

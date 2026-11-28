@@ -1,3 +1,4 @@
+// @suite integration
 // Dried fish and the fishing boat (VB-300): a village's reach to fishing water, tested again when it has a new farm; fishing for the drying
 // rack from spring day 3 to the end of autumn while the household holds less dried fish than it wants (the winter pot's fish share, 0.8,
 // of its need over the 14 days without fresh fish, in whole lots of 10; VB-388), one catch waiting at a time; the catch hung at the rack

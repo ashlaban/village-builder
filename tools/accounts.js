@@ -66,12 +66,13 @@ const G = 'g:';
 const X = 'x:';
 // A ledger entry or a yearly total in a good's own account: `in.<reason>` or `out.<reason>`, by the movement's sign; null when it moves
 // nothing (the milk a crowded pasture cost)
-const goodLine = (d) => (d.kind === 'milkbite' ? null : (d.n > 0 ? 'in.' : 'out.') + d.kind);
+// 'lying' (VB-1910): what lay out and was lost there, never in a store: no movement of one
+const goodLine = (d) => (d.kind === 'milkbite' || d.kind === 'lying' ? null : (d.n > 0 ? 'in.' : 'out.') + d.kind);
 // A ledger entry or a yearly total of a food: the line it books to, or null when it moves food between two of a holder's stores (threshing,
 // grinding, drying) or is no movement (milkbite). holder: 'household' or 'village'; d: the entry (kind, n, crop, to, stake ...).
 function lineOf(holder, d) {
   const k = d.kind, n = d.n, g = d.good;
-  if (k === 'thresh' || k === 'grind' || k === 'drying' || k === 'milkbite' || k === 'salting') return null;
+  if (k === 'lying' || k === 'thresh' || k === 'grind' || k === 'drying' || k === 'milkbite' || k === 'salting') return null;
   if (k === 'harvest') return holder === 'village' ? 'produced.grain.commons' : 'produced.grain.' + (d.crop || 'barley');
   if (k === 'catch') return 'produced.fish';
   if (k === 'gathering') return 'produced.gathered';
@@ -453,7 +454,7 @@ function hoursShare(share) {
 }
 // The stores' fields of a household that hold a good as one number, by the good the ledger names (sim/stores field)
 const HELD = [['flour', 'flour'], ['meals', 'meals'], ['wood', 'wood'], ['timber', 'timber'], ['peat', 'peat'], ['tar', 'tar'], ['hide', 'hides'],
-  ['salt', 'salt'], ['iron', 'iron'], ['clay', 'clay'], ['bogOre', 'bogOre'], ['wool', 'wool'], ['yarn', 'yarn'], ['fish', 'rack']];
+  ['salt', 'salt'], ['iron', 'iron'], ['clay', 'clay'], ['bogOre', 'bogOre'], ['wool', 'wool'], ['yarn', 'yarn'], ['fish', 'rack'], ['shoes', 'shoes']];
 // an account's nested lines back to their flat keys ({in: {felling: 3}} -> {'in.felling': 3})
 const flatLines = (tree) => Object.fromEntries(flat(tree));
 function sumLines(list) { const o = {}; for (const b of list) for (const [k, n] of Object.entries(b)) o[k] = (o[k] || 0) + n; return o; }

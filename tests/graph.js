@@ -1,3 +1,4 @@
+// @suite integration
 // The membership graph and its scopes (VB-043): on the heirs scenario, the graph built at the seed agrees with the household caches, a
 // year of moves, births, deaths and successions keeps them agreeing, a pawn holds several memberships at once, ended edges leave the live
 // index, and the scopes "village A, owns" and "Lars's family, is kin of" cover what they should.

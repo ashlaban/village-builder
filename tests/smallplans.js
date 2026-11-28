@@ -1,3 +1,4 @@
+// @suite fast
 // Small constructions beside any other project (VB-1414; design.md section 7, Holders and plans, Kim 21 Nov 2026): a cart, a boat and a
 // tar pit are begun and built beside a barn, in a booth as in a house, one of a making; each step is posted, each gets its own timber
 // trips, each job ends its own plan, a plan dropped leaves the others, and the head's view names them all. On a tiny world, through the rules.

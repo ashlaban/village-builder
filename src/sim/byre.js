@@ -370,12 +370,13 @@ VB['sim/byre'] = (() => {
       Stores.record(st, hh, 'smoked meat', smoked, 'salting');
     }
   }
-  // Barn hay spoils by winters of the animals now; mown hay still on a meadow is untouched (VB-159); BUILD.barn.loss as much on a farm
-  // with a barn (VB-255).
+  // The hay household hh's barn would lose today with no barn standing: by hay's keeping (sim/goods), tiers of the herds' winter; mown hay
+  // still on a meadow is untouched (VB-159). One reckoning for the doing (spoilHay) and the head's weighing of a barn (sim/aims).
+  const hayLoss = (st, hh) => (hh.hay > 0 ? dayLoss(st, 'hay', hh.hay, winterNeed(st, hh)) : 0);
+  // Barn hay spoils by winters of the animals now; BUILD.barn.loss as much on a farm with a barn (VB-255; the hay only, VB-1898).
   function spoilHay(st, hh) {
-    const hay = hh.hay;
-    if (!(hay > 0)) return;
-    let lost = dayLoss(st, 'hay', hay, winterNeed(st, hh)); // hay's keeping (sim/goods): tiers of the herds' winter
+    let lost = hayLoss(st, hh);
+    if (!(lost > 0)) return;
     if (hh.farmstead !== null && st.farmsteads[hh.farmstead].barn) lost *= BUILD.barn.loss; // a barn halves it (VB-255)
     hh.hay -= lost;
     hh.haySpoilt = (hh.haySpoilt || 0) + lost;
@@ -517,6 +518,7 @@ VB['sim/byre'] = (() => {
       n,
       ...atFarm(f),
     });
+    VB['sim/droving'].emptied(st, herd); // its last animal gone, it no longer stands there (VB-1709)
   }
   // Ewes in milk now (VB-144): those that lambed this spring, from turn-out to the end of summer.
   const inMilkEwes = (st, herd, c) =>
@@ -569,6 +571,23 @@ VB['sim/byre'] = (() => {
     );
   const hasAnimals = (st, hh) =>
     herdsOf(st, hh).some((hd) => (hd.species === 'cattle' ? hd.head.length : hd.ewes + hd.rams + hd.lambs) > 0);
+  // The hours of a milking of household hh's animals in milk on the day of c (0 with none in milk, or the herds in the byre): the job's.
+  function milkHours(st, hh, c) {
+    if (stalled(c)) return 0;
+    const cows = milkCows(st, hh, c),
+      ewes = milkEwes(st, hh, c);
+    return cows || ewes ? HERD.milkHours[0] + HERD.milkHours[1] * cows + HERD.eweHours * ewes : 0;
+  }
+  // The hours of household hh's daily byre work of `kind` (fodder, milk) on the day of c, as its job would be posted then; 0 where none
+  // would be (VB-1906: read by the head's estimate of the season's daily routines, sim/estimate setLeft).
+  const dayHours = (st, hh, kind, c) =>
+    kind === 'fodder'
+      ? stalled(c) && hasAnimals(st, hh)
+        ? fodderHours(st, hh)
+        : 0
+      : kind === 'milk' && (hh.herds.length || hh.larder.length)
+        ? milkHours(st, hh, c)
+        : 0;
   // The byre's jobs for a household now: [key, kind, extra]; refreshJobs posts them.
   function byreJobs(st, hh, c) {
     const out = [];
@@ -589,16 +608,8 @@ VB['sim/byre'] = (() => {
     if (meat > 0 && larderOf(hh, 'salt meat') < Targets.target(st, hh, 'salt meat'))
       out.push([`salt:h${hh.id}`, 'salt', { hours: Math.max(1, meat / HERD.saltPerHour) }]);
     // milking from 6:00 while the herds are out (VB-135); the cows in milk are counted only then (no cow is in milk in the byre, VB-227)
-    const due = hh.milkDay !== c.day && c.hour >= WORK[0] && !stalled(c),
-      cows = due ? milkCows(st, hh, c) : 0,
-      ewes = due ? milkEwes(st, hh, c) : 0;
-    if (cows || ewes)
-      out.push([
-        `milk:h${hh.id}:${c.day}`,
-        'milk',
-        { hours: HERD.milkHours[0] + HERD.milkHours[1] * cows + HERD.eweHours * ewes },
-        milkSite(st, hh),
-      ]);
+    const milk = hh.milkDay !== c.day && c.hour >= WORK[0] ? milkHours(st, hh, c) : 0;
+    if (milk > 0) out.push([`milk:h${hh.id}:${c.day}`, 'milk', { hours: milk }, milkSite(st, hh)]);
     // shearing at the fold (VB-679), while the flock waits there with its fleeces
     const fleeces = atFold(st, hh, c);
     if (fleeces > 0) out.push([`shear:h${hh.id}`, 'shear', { hours: HERD.shearHours * fleeces }]);
@@ -824,6 +835,7 @@ VB['sim/byre'] = (() => {
     KINDS,
     byreWork,
     spoilHay,
+    hayLoss,
     autumnCounts,
     strays,
     stray,
@@ -840,5 +852,6 @@ VB['sim/byre'] = (() => {
     shearing,
     shearDone,
     byreJobs,
+    dayHours,
   };
 })();

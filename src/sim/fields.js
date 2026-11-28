@@ -11,6 +11,7 @@ VB['sim/fields'] = (() => {
   const { wearSoil, rested, tilthOf, wetFactor } = VB['sim/soil'];
   const { emit } = VB['sim/events'];
   const { setOwner } = VB['sim/ownership'];
+  const { lossOver } = VB['sim/lying'];
   // A farm's window missed with the task that would have met it still on the board (sim/estimate, VB-476: the head's estimate read against
   // the truth): told before the field moves on, while the task stands. A village's common field has no head to have misjudged it.
   const missed = (st, f, fd, kind, why) => {
@@ -171,6 +172,27 @@ VB['sim/fields'] = (() => {
     st.biomeDirty.add(fd.tile);
     log(st, `${f.name} lets a field go: its household no longer needs its grain.`, { kind: 'fieldLeft', ...atFarm(f) });
   }
+  // Field fd of farm `from` becomes farm f's (VB-034: an heir's field, as its house stands; sim/heirland settle): it leaves the list of the
+  // farm it was split from, whose ids it does not give again (`left`, as a field let go), and is f's last, its id the next of f's; its
+  // sheaves' barn entry was the old household's. Work on it was stopped by the caller.
+  function passField(st, fromId, fd, toId, c) {
+    const f = st.farmsteads[fromId],
+      g = st.farmsteads[toId],
+      i = f.fields.indexOf(fd);
+    if (i < 0) return;
+    f.fields.splice(i, 1);
+    const L = f.left || (f.left = { gone: 0, year: c.year, inYear: 0 });
+    L.gone++;
+    delete fd.bin;
+    fd.id = g.fields.length + ((g.left && g.left.gone) || 0);
+    g.fields.push(fd);
+    st.farmDirty.add(f.id);
+    st.farmDirty.add(g.id);
+  }
+  VB.counter(
+    'fieldLapse',
+    "Fields weighed for their years unused on the year's last day (sim/fields' lapseFields; VB-1527)",
+  );
   // A field unused goes back to the land, whatever farm it lies on (Kim, 23 Nov: reverting is a natural property of the ground, not tied
   // to a pawn or a household; VB-1527): on the year's last day, a field of any farm, held or empty, whose last use (fd.used: sown, reaped,
   // a fallow course, reclaimed, broken) is LAPSE.years back, that bears no crop and no sheaves and has no task on it, leaves the farm's
@@ -292,12 +314,13 @@ VB['sim/fields'] = (() => {
       }
   }
   // The autumn frost, on the year's frost day (sim/weather frostDay; sim/clock, CALENDAR: fieldsFrost, after fieldsDay): a crop still
-  // standing or in stooks is lost; a winter crop (rye) standing green is not (VB-348).
+  // standing is lost; a winter crop (rye) standing green is not (VB-348). Stooks are not lost at once: they wear a share a day from
+  // today (stooksDecay, VB-2001).
   function fieldsFrost(st) {
     const lost = new Map(); // one line a holder, not one a field: holder -> {stage: count}
     eachWorked(st, (f, fd) => {
       if (CROPS[fd.crop].winter && fd.stage === 'growing') return;
-      if (['ripe', 'growing', 'stooks'].includes(fd.stage)) {
+      if (['ripe', 'growing'].includes(fd.stage)) {
         const k = fd.crop + ' ' + (STOOD[fd.stage] || fd.stage);
         if (fd.stage === 'ripe') missed(st, f, fd, 'reap', `frost took the ${fd.crop}`);
         if (!lost.has(f)) lost.set(f, new Map());
@@ -323,8 +346,45 @@ VB['sim/fields'] = (() => {
       });
     }
   }
-  const STOOD = { ripe: 'ripe and not yet reaped', stooks: 'in stooks', growing: 'still growing' };
+  const STOOD = { ripe: 'ripe and not yet reaped', growing: 'still growing' };
+  VB.counter(
+    'outDecay',
+    "Worked fields and meadows read for stooks and mown hay lying out, each day from the autumn frost to the year's end (sim/fields " +
+      'stooksDecay, sim/meadows hayDecay; VB-2001)',
+  );
+  // Stooks out after the frost (VB-2001; design.md, Goods and the farming year, Risk; Kim, 27 Nov): each game day from the frost's to the
+  // year's end (sim/clock), the sheaves standing in a worked field's stooks lose a share, by sim/lying's lossOver as a load lying out
+  // does, booked to the field's holder as that load's loss is (the event lyingSpoilt, grain in rations); worn under LYING.quantum, what
+  // is left is lost, the field goes on to its next course, and the frost is told. `days` over one: so many days at once (a test).
+  function stooksDecay(st, days = 1) {
+    const gone = new Map(); // holder -> [crop]
+    eachWorked(st, (f, fd) => {
+      VB.count.outDecay++;
+      if (fd.stage !== 'stooks' || !(fd.held > 0)) return;
+      const n = lossOver(fd.held, days);
+      if (!(n > 0)) return;
+      const owner = isVillage(f) ? { type: 'village', id: f.id } : { type: 'household', id: f.household };
+      emit(st, 'lyingSpoilt', { owner, good: 'grain', n });
+      if (n < fd.held - 1e-9) {
+        fd.held -= n;
+        return;
+      }
+      if (!gone.has(f)) gone.set(f, new Set());
+      gone.get(f).add(fd.crop);
+      fd.stage = 'stubble';
+      fd.sown = null;
+      fd.held = 0;
+      failed(st, f, fd);
+      nextStep(fd); // the crop is lost (VB-350)
+    });
+    for (const [f, crops] of gone)
+      log(st, `Frost took the ${[...crops].join(' and ')} at ${placeName(f)}, left in stooks.`, {
+        kind: 'frost',
+        ...placeOf(f),
+      });
+  }
   return {
+    passField,
     book,
     hoed,
     sown,
@@ -341,5 +401,6 @@ VB['sim/fields'] = (() => {
     lapseFields,
     fieldsDay,
     fieldsFrost,
+    stooksDecay,
   };
 })();

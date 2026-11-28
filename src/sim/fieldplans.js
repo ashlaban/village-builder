@@ -71,6 +71,11 @@ VB['sim/fieldplans'] = (() => {
   }
   // ---- fields let go (VB-768; design.md, Fields a household wants) ----
   const IDLE = new Set(['stubble', 'fallow', 'scrub']);
+  VB.counter(
+    'letGoJobs',
+    "Jobs read to see whether a field a household might let go has a task on it, on its head's planning day after the harvest " +
+      '(sim/fieldplans letGoWhy, VB-768)',
+  );
   // Why field fd of farm f cannot be let go now, or null: it bears no crop and no sheaves (stubble, fallow or scrub, nothing held), and no
   // job of its household stands on it (VB.count.letGoJobs), so letting it go touches no work and no store.
   function letGoWhy(st, f, fd) {

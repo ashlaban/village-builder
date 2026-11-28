@@ -401,6 +401,7 @@ VB['sim/walking'] = (() => {
     setRows,
     ruleCost,
     iced,
+    seaNear,
     passable,
     through,
     ended,

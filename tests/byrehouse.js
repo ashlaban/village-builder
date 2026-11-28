@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1665: the byre as a building (sim/byrehouse). Every farm that stands at seeding has one, a camp landed by hand none, an older save's
 // farms read as having theirs; a farm without one winters its animals in the open, the stall winter's lean HERD.openLean times as fast;
 // the played head builds it as a task of its plan (the chain outbuilding), the timber at home first, a save and a load mid-chain going
@@ -43,6 +44,14 @@ const unbuild = (f) => (f.byre = null);
   VB['sim/byrehouse'].byresLoaded(old);
   assert(old.farmsteads.every((f) => f.byre && f.byre.built === old.t), 'an older save reads as having its byres');
   sound(old, 'older save');
+  // a farm made in play (sim/layout makeFarmstead, as a new cottage's or a settler's) has none, and a save and a load keep it so (the
+  // extended tier's tests/line.js found a loaded run giving such farms a byre: undefined read as an older save's)
+  const made = VB['sim/layout'].makeFarmstead(st.w, st.farmsteads.length, -1, [], null, new Set());
+  assert.strictEqual(made.byre, null, 'a farm made in play has no byre');
+  const bare = st.farmsteads.find((f) => f.household !== null);
+  unbuild(bare);
+  const back = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(st))));
+  assert.strictEqual(back.farmsteads[bare.id].byre, null, 'a farm with no byre has none after a save and a load');
 }
 // ---- 2. the stall winter in the open: the lean HERD.openLean times as fast, the rest the same ----
 {

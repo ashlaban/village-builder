@@ -1,3 +1,4 @@
+// @suite fast
 // The asking day (VB-823; docs/plans/VB-682.md, sections 2, 3 and 7), on a constructed state (tests/lib/tiny.js): the queue of askings
 // (st.asking, sim/wishes) and each pawn's day by its id; no offer while one is open; the cap of ASK.held open matches on one woman, and of
 // ASK.pool candidates weighed; an offer that lapses at the asker's next asking when the one asked has married another; the played

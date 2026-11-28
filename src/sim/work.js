@@ -102,6 +102,10 @@ VB['sim/work'] = (() => {
     }
     return rate;
   }
+  VB.counter(
+    'workReckon',
+    'Tasks under work reckoned, with their hours since (sim/work settle: a hand joins or leaves, the end of work, the meal; VB-472)',
+  );
   // The task's progress brought up to tick t (the hands' work so far, at the rate last reckoned), with its kind's `worked` for each hand
   // at work (a background task's once) over the hours since, and a plot's hours by pawn. Before its hands change.
   function settle(st, j, t = workTick(st)) {
@@ -127,11 +131,12 @@ VB['sim/work'] = (() => {
       if (!atWork(st, j, id)) continue;
       if (K.worked) K.worked(st, j, dt, st.agents[id], from);
       if (j.plot) j.plot.hours[id] = (j.plot.hours[id] || 0) + dt;
+      if (j.siteId !== undefined) VB['sim/sites'].worked(st, j, id, dt); // hours worked at a site (VB-787)
       countWork(st, id, dt, t);
       if (K.craft) Skills.practise(st, id, K.craft, dt); // hours at a craft raise the hand's skill at it (VB-360)
       if (j.field && j.farm) bookHours(j.field, st.pawns[id].household === j.farm.household, dt); // VB-462: the class reads it
       if (st.agents[id].basis === 'owed') Days.worked(st, id, dt);
-      else if (st.agents[id].basis === 'helper') Hands.worked(st, id, dt);
+      else if (st.agents[id].basis === 'helper' || st.agents[id].basis === 'hired') Hands.worked(st, id, dt);
       else countToday(st, id, dt, t);
     }
   }

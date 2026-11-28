@@ -7,6 +7,8 @@ VB['sim/scenarios'] = (() => {
   const { seal } = VB['sim/registry'];
   const { makeCamp } = VB['sim/camp'];
   const { seedByres, noByre } = VB['sim/byrehouse'];
+  const { seedStorehouses, noStorehouse } = VB['sim/storehouse'];
+  const { seedBarns, noBarn } = VB['sim/building'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
     { buildHours } = VB['sim/villagehours'];
@@ -123,6 +125,8 @@ VB['sim/scenarios'] = (() => {
     if (hand) {
       makeCamp(st, f); // VB-1655: a camp, nothing under way; the head places the farmstead by its plan
       noByre(st, f); // VB-1665: nor a byre
+      noStorehouse(st, f); // VB-1898: nor a storehouse, nor a barn
+      noBarn(st, f);
       return;
     }
     if (field >= 0) {
@@ -302,6 +306,7 @@ VB['sim/scenarios'] = (() => {
     });
     VB['sim/carts'].seedCarts(st, true);
     VB['sim/textile'].seedLooms(st); // a farm that has stood for years has its loom (VB-362)
+    VB['sim/textile'].seedFleeces(st); // and the fleeces of its sheep (VB-363)
     startStreams(st, seedNum);
     return st;
   }
@@ -452,6 +457,7 @@ VB['sim/scenarios'] = (() => {
     });
     VB['sim/carts'].seedCarts(st, true);
     VB['sim/textile'].seedLooms(st); // VB-362
+    VB['sim/textile'].seedFleeces(st); // VB-363
     startStreams(st, seedNum);
     return st;
   }
@@ -553,6 +559,7 @@ VB['sim/scenarios'] = (() => {
     // @state st.occasions, st.occasionSeq: the occasions called and not over, and the next one's id (see sim/occasions)
     // @state st.away, st.awaySeq: the open stays away from home, journeys among them, and the next one's id (see sim/away, VB-783)
     // @state st.booths, st.boothSeq: the booths raised or being raised, and the next one's id (see sim/building, VB-784)
+    // @state st.sites, st.siteSeq: the sites of new farms under way, and the next one's id (see sim/sites, VB-787)
     // @state st.demand: array of pawn ids who want to move out. recomputed by countDemand(st) (sim/heirs)
     // @state st.agents[]: {id, x, y, path, seg, journey, homeward, job, inside, anim, carry, face, stride, ox, oy, idleUntil, talk (sim/relations)};
     //   one per pawn, map units; side (sim/agents, VB-251): absent unless the pawn holds a partial or background task
@@ -644,6 +651,8 @@ VB['sim/scenarios'] = (() => {
       visits: [], // the suitors' visits planned (sim/visits, VB-289)
       booths: [],
       boothSeq: 0,
+      sites: [], // the sites of new farms under way (sim/sites, VB-787)
+      siteSeq: 0,
       facilities: [], // built things on sites (sim/facilities, VB-361)
       finds: new Map(),
       deer: null,
@@ -684,6 +693,8 @@ VB['sim/scenarios'] = (() => {
       if (e.kind === 'born' && st.pawns[e.pawn].died === null) st.pawns[e.pawn].events.unshift(i);
     });
     seedByres(st); // VB-1665: every farm that stands at seeding has its byre
+    seedStorehouses(st); // VB-1898: and its storehouse and its barn
+    seedBarns(st);
     return st;
   }
 

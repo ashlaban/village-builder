@@ -1,3 +1,4 @@
+// @suite integration
 // The good is made where the work is done (VB-1748; design.md section 7, Plans at four scales): a kind that made its good on delivery
 // makes it as its work leg ends, and its load in hand is the good: a carrier cut on the road leaves it lying as a pile of its owner's
 // (sim/lying), fetched home by its fetch kind. A trip's yield accrues with the work: a gathering trip cut at half its hours leaves half its
@@ -79,7 +80,7 @@ function atWork(a, kind, site, extra, done) {
   assert(!pileOf('wild'), 'nothing is set down');
   A.release(st, a); // a death on the road: it lies
   assert(pileOf('wild') && a.job === null, 'a carrier cut on the road leaves it lying');
-  Lying.frost(st);
+  Lying.frost(st); Lying.decay(st, 48);
 }
 // 2. a whole trip: its yield is made as the work ends, the load in hand, and only put into the store at home
 {
@@ -136,6 +137,6 @@ function atWork(a, kind, site, extra, done) {
 for (const [k, K] of Object.entries(KINDS))
   if (K.make && VB['sim/doing'].carriesTo(k) !== null) assert(K.methods, `${k}: its load lying is fetched by nothing`);
 assert.deepStrictEqual(checkState(st), [], 'invariants');
-Lying.frost(st);
+Lying.frost(st); Lying.decay(st, 48);
 assert(!pileOf('wild'), 'a pile not fetched rots at the frost');
 console.log('madeatwork ok: a cut gathering trip leaves half its yield lying, fetched home; a whole trip made at the work; a hunt\'s kill in hand');

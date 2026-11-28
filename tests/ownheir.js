@@ -1,3 +1,4 @@
+// @suite integration
 // The ownHeir custom (VB-089): a first heir of their own parents' farm steps behind other relatives under "behind", and keeps their place under "keeps".
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, Culture = VB.culture, Customs = VB['sim/customs'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('OWNHEIR FAIL:', m); } };

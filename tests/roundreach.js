@@ -1,3 +1,4 @@
+// @suite integration
 // VB-290: the round's other acts read the walking hours between villages (sim/villagehours, hoursBetween), not hex steps: an orphan's service
 // home in the nearest village by walking hours (with none in reach, they stay: VB-436), a guardian within walking reach first, service within
 // SERVICE.hours, and the tie to the culture's centre as exp(-h / TIE.hours) (TIE.sea times the hex steps over SPEED beyond reach), with

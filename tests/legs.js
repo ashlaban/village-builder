@@ -1,3 +1,4 @@
+// @suite fast
 // Legs (VB-471, VB-472, VB-473; docs/review-blocks.md, steps 1 to 3): a pawn is always in one leg, a walk, work or a wait, whose end is
 // known when it begins and waits in a due-queue; nothing is done to it in between. A walk ends at the step its hours foretold, never
 // later, standing at its route's end; a cut treads the tiles entered so far and leaves the pawn where its hours reach; a task under work
