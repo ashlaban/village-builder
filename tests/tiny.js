@@ -72,5 +72,21 @@ check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
   const again = ww.freshWalk; VB['sim/water'].layWalk(ww);
   check(ww.freshWalk === again, 'the walk is laid once');
 }
+// VB-1982: a household owing a share dies out; its obligation passes to the household its people go to, or lapses with none
+{
+  const O = VB['sim/obligations'], { extinct } = VB['sim/heirs'];
+  const s2 = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  const [a, b] = s2.households.filter((h) => !h.dissolved && h.holder !== null && h.farmstead !== null);
+  const sib = s2.pawns.find((p) => p.alive && p.household !== a.id && p.household !== b.id) || s2.pawns[s2.households[2].holder];
+  const o = O.oweShare(s2, a, sib.id, 10);
+  const id = typeof o === 'object' && o !== null ? o.id : o;
+  extinct(s2, a);
+  const rec = s2.obligations[id];
+  check(a.dissolved, 'the household died out');
+  check(rec.status !== 'open' || (rec.debtor.kind === 'household' && !s2.households[rec.debtor.id].dissolved), `its share passed or closed: ${rec.status} ${JSON.stringify(rec.debtor)}`);
+  check(!(s2.obligationsBy.debtor['household:' + a.id] || []).length, 'none left to the dissolved debtor');
+  const bad2 = checkState(s2).filter((e) => /dissolved, holding obligations/.test(e));
+  check(!bad2.length, bad2.join('; '));
+}
 if (failed) process.exit(1);
 console.log(`tiny ok: two villages on a 14 x 10 map seeded in ${ms} ms, ${st.pawns.length} people`);
