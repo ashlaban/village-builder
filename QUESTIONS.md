@@ -56,6 +56,19 @@ Proposed answers: (a) leave it to contact: no term; (b) add a term to attitude.m
 1. VB-1947 moves the tables several domains read out of `src/sim/rules.js` into files by domain, with `VB['sim/rules']` kept as the joined view so that none of its 107 readers changes. It touches what every module reads at load, so every branch in flight that edits a table conflicts with it once. When should it go ahead?
    **P:** after the slice work in flight has merged, in a quiet hour, as one task: the joined view keeps every reader as it is, and `tools/same.js` shows it.
 
+### VB-1943: VB-1943: the derived load order cannot equal today's manifest (raised 28 November 2026)
+VB-1943 was to derive the load order from each module's load-time reads, with the `@sys` layer as the tie-break, and stop if the
+result differs from `src/manifest.json`. It differs. The reads fix 68 of the 220 adjacent pairs. Of the pairs no read orders, 1,923
+put a higher layer first today (sim/attitudes and culture [social] before sim/rules [kernel]; sim/people [kernel] after sim/births;
+draw/* after the roots), and 3,619 are in the same layer. Sorting by reads, then layer, then name moves 217 of the 221 modules. The
+order of `KINDS`, of event subscribers and of rule contributions is saved state and determinism (target-v2, principle 18).
+
+1. Should the load order change once so that it can be derived, or should the manifest stay?
+   **P:** Keep `src/manifest.json` as the declared order and close VB-1943 as not worth doing. A new module still adds one line
+   there, and `tools/dependencies.js` `violations` already checks the line against the reads. To change the order instead, a later
+   task would reorder once to reads, then layer, then name. It would re-record `tests/counters.json`, check old saves against the
+   new `KINDS` order and show the effect with `tools/same.js`, and only then drop the manifest.
+
 ## Priority 3
 
 ### VB-1406: Two lists only Kim reads or records: docs/tuning.md and tests/counters.json (VB-1406) (raised 27 November 2026)
