@@ -1,5 +1,6 @@
 [
   "page/setup.js",
+  "page/cardrows.js",
   "page/icons.js",
   "page/kindicons.js",
   "page/goodicons.js",

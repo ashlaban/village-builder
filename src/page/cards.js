@@ -163,6 +163,8 @@ const harvestStat = (hh) => {
   };
 };
 // While the household lives partly on help (VB-1114): the share of its year's need received over the last year, as a meter, and from whom.
+cardRow('house', 20, harvestStat); // the farm card's stats (page/cardrows)
+cardRow('house', 30, (hh) => tilthStat(st.farmsteads[hh.farmstead].fields, 'the mean of its fields'));
 const kinStat = (hh) => {
   const S = Sim.villageSummary(st, st.farmsteads[hh.farmstead].village),
     k = S.kin[hh.id];
@@ -183,6 +185,7 @@ const kinStat = (hh) => {
 // one meter, marked at the years of food it keeps first; past the mark it feasts, its holder laying out a share of what is over by its
 // generosity (its word beside the share). The rule's parts are the title. What it holds now, counted: no estimate (principle "The future is someone's
 // estimate").
+cardRow('house', 10, kinStat);
 const feastStat = (hh) => {
   if (hh.holder === null || !st.pawns[hh.holder].alive) return null;
   const x = Sim.explainFeast(st, hh),
@@ -217,6 +220,7 @@ const feastStat = (hh) => {
 };
 // Patronage (VB-464; sim/followers): the holder a client, with its patron and the days its household owes him a year; a patron, with
 // the client households of its holder
+cardRow('house', 40, feastStat);
 const patronStat = (hh) => {
   const F = VB['sim/followers'],
     c = F.clientOf(st, hh),
@@ -234,6 +238,7 @@ const patronStat = (hh) => {
   };
 };
 // The household's tools (VB-701, sim/ironwork): shown once worn, with what their wear costs the field work and felling
+cardRow('house', 50, patronStat);
 const toolsStat = (hh) => {
   if (hh.tools === undefined) return null;
   const I = VB['sim/ironwork'],
@@ -248,6 +253,7 @@ const toolsStat = (hh) => {
   };
 };
 // The household's shoes and its team's harness (VB-911, sim/leather): gear that wears; shown once counted
+cardRow('house', 90, toolsStat);
 const shoesStat = (hh) => {
   if (hh.shoes === undefined) return null;
   const want = VB['sim/leather'].shoeTarget(st, hh),
@@ -303,19 +309,15 @@ const waterStat = (hh) => {
       }
     : { icon: 'water', label: 'Water', value: h, tone: W.poor ? 'warn' : '', title: `Water ${from}` };
 };
-const houseStats = (hh) =>
-  suppliesHTML(Sim.supplyOutlook(st, hh.id)) +
-  stats([
-    kinStat(hh),
-    harvestStat(hh),
-    tilthStat(st.farmsteads[hh.farmstead].fields, 'the mean of its fields'),
-    feastStat(hh),
-    patronStat(hh),
-    hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', title: 'Cold: no firewood' } : null,
-    waterStat(hh),
-    hh.hungryDays > 0 ? { icon: 'hunger', label: 'Hungry days', value: hh.hungryDays, tone: 'warn' } : null,
-    toolsStat(hh),
-  ]);
+cardRow('house', 60, (hh) =>
+  hh.cold > 0 ? { icon: 'cold', label: 'Cold', value: 'no firewood', tone: 'bad', title: 'Cold: no firewood' } : null,
+);
+cardRow('house', 70, waterStat);
+cardRow('house', 80, (hh) =>
+  hh.hungryDays > 0 ? { icon: 'hunger', label: 'Hungry days', value: hh.hungryDays, tone: 'warn' } : null,
+);
+// a household's supplies, then its stats, each a feature's row (page/cardrows)
+const houseStats = (hh) => suppliesHTML(Sim.supplyOutlook(st, hh.id)) + stats(cardRows('house', hh));
 const section = (title) => `<h3 class="card-sec">${title}</h3>`;
 // ---- materials (VB-668): held until a work asks for them, so the question is whether there is enough for what is planned ----
 // A material: the good a project's step spends (its key, as sim/stores names it) or a heap the household holds; `kinds` is the list of
