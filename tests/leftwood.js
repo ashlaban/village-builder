@@ -58,7 +58,7 @@ assert(!KINDS.fetchLeftTimber && KINDS.leftTimber && KINDS.leftTimber.strays.som
   const { st, plan } = make();
   VB['sim/projectplans'].drop(st, plan);
   const n0 = st.record.length;
-  Lying.frost(st);
+  Lying.frost(st); Lying.decay(st, 48);
   assert(!st.lying, 'rotted: none lies');
   assert(st.record.slice(n0).some((e) => e && e.kind === 'frost'), 'the frost on the timber is told');
 }

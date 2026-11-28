@@ -80,7 +80,7 @@ function atWork(a, kind, site, extra, done) {
   assert(!pileOf('wild'), 'nothing is set down');
   A.release(st, a); // a death on the road: it lies
   assert(pileOf('wild') && a.job === null, 'a carrier cut on the road leaves it lying');
-  Lying.frost(st);
+  Lying.frost(st); Lying.decay(st, 48);
 }
 // 2. a whole trip: its yield is made as the work ends, the load in hand, and only put into the store at home
 {
@@ -137,6 +137,6 @@ function atWork(a, kind, site, extra, done) {
 for (const [k, K] of Object.entries(KINDS))
   if (K.make && VB['sim/doing'].carriesTo(k) !== null) assert(K.methods, `${k}: its load lying is fetched by nothing`);
 assert.deepStrictEqual(checkState(st), [], 'invariants');
-Lying.frost(st);
+Lying.frost(st); Lying.decay(st, 48);
 assert(!pileOf('wild'), 'a pile not fetched rots at the frost');
 console.log('madeatwork ok: a cut gathering trip leaves half its yield lying, fetched home; a whole trip made at the work; a hunt\'s kill in hand');

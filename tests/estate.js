@@ -48,7 +48,7 @@ const out = [];
   check(g && near(g.n, grain) && g.owner.type === 'village' && g.owner.id === f.village, `with no heir the grain is the village's: ${JSON.stringify(g)}`);
   check(w && w.owner.type === 'household' && w.owner.id === hh.id, `and the wood lies the dead household's: ${JSON.stringify(w)}`);
   const was = st.record.length;
-  L.frost(st);
+  L.frost(st); L.decay(st, 48);
   check(!st.lying, 'the frost takes what lies');
   const said = st.record.slice(was).filter((e) => e.kind === 'frost').map((e) => e.text);
   check(said.some((t) => /whose household is gone/.test(t)) && said.length === 2, `the frost names both: ${said.join(' | ')}`);

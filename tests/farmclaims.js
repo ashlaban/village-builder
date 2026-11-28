@@ -191,7 +191,7 @@ const P = (id) => ({ type: 'pawn', id });
   moveClock(st, 1); J.refreshJobs(st, cal(st.t));
   const job2 = st.jobs.get(`restore:f${f.id}.h${A0}`);
   check(job2 && job2.done === 20 && !st.jobs.has(`restore:f${f.id}.h${hid}`), 'moved house: the job goes on at 20 hours, the old one is gone');
-  moveClock(st, YEAR); VB['sim/lying'].frost(st); KINDS.restore.worked(st, job2); // the frost the year passed (a dead household's estate lies, VB-1175)
+  moveClock(st, YEAR); VB['sim/lying'].frost(st); VB['sim/lying'].decay(st, 48); KINDS.restore.worked(st, job2); // the frost the year passed (a dead household's estate lies, VB-1175)
   check(CL.strength(st, CL.claimOf(st, f.house, P(who.gunhild))) === 1, 'work on the farm renews the claim');
   // the roof mended: they move in, their old household able to spare their start
   st.households[A0].grain = { barley: 2000 }; st.households[A0].wood = 40; // and its first wood (VB-328)
@@ -235,7 +235,7 @@ const P = (id) => ({ type: 'pawn', id });
   ok(st, 'died');
   FC.claimFarms(st);
   check(FC.claimOn(st, f) && FC.claimOn(st, f).by === who.brita, `the next claimant takes it (${FC.claimOn(st, f) && st.pawns[FC.claimOn(st, f).by].given})`);
-  moveClock(st, CLAIMS.years * YEAR); VB['sim/lying'].frost(st);
+  moveClock(st, CLAIMS.years * YEAR); VB['sim/lying'].frost(st); VB['sim/lying'].decay(st, 48);
   const lapsed = CL.lapseClaims(st); VB['sim/stakes'].lapsedStakes(st, lapsed); FC.lapsedFarmClaims(st, lapsed); // as the day's end does
   check(!FC.claimOn(st, f) && FC.claimable(st, f), 'a claim unworked for 3 years lapses');
   ok(st, 'lapsed');

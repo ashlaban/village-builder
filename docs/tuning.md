@@ -186,6 +186,7 @@ Both references meet the target (median at least 1%), so nothing below is urgent
 | AIMS fair weight and fairDried amount (sim/aims) | how much dried fish a shore head with a surplus makes for the fair | populous small 15y: little dried fish changes hands (packed comes home), nobody asks for it | leave until dried fish has demand at the fair | VB-644 |
 | HANDS.hires | hired hands a morning | seed 7 only: 0.33 hires a year; seeds 3,11,42 unmeasured (load) | measure at night, then tune | VB-319 |
 | TEXTILE.spinHours / wool supply | cloth woven a year against dress need | about 30 lengths a year for about 400 people (need about 130); 19-25 of 100 households ever hold cloth; 80% of people in rags from year 3, populous small seeds 7 and 42 | more fleeces or fewer spinning hours; with VB-1976's dealing | VB-363 |
+| LYING.frostLoss 0.25, LYING.quantum 10 (sim/rules, VB-1910) | the share of a lying load lost each game day from the frost to the year's end, and the pile under which it is dropped | populous small 20y: sheaves lost a year 0 to 91 (seed 7) and 0 to 112 (seed 42); hay 7 to 101 and 0 to 88; hungry household-days 1037 to 1276 and 876 to 722; population 456 to 432 and 476 to 462. Loads laid after the frost (winter) now wear too, where before they lay untouched | the night's measure to confirm; if hunger holds, a smaller frostLoss or wear only from loads that lay at the frost | VB-1910 |
 
 ## Mechanisms on their way that move the same numbers
 

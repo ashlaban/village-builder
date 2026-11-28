@@ -1,20 +1,23 @@
 // @sys sim/lying: loads lying where their carrier fell (VB-611): a load on its way home whose carrier died on the road, or whose household
 // dissolved, is put down where it was, as a pile with title the stray method of the owner's goal that uses it fetches (sim/methods;
-// the goods with no goal of their own, BRING, VB-1814) and carries home; one nobody fetches rots at the autumn frost, as the stooks and
-// the mown hay do. A good made where the work is done (VB-1748: the catch, game, wild food, what is dug, salt, a basket of stone) lies so
-// too, and the yield of a fishing, hunting or gathering trip cut at its work (sim/agents cutTrip). Writes st.lying; read by sim/doing
+// the goods with no goal of their own, BRING, VB-1814) and carries home; one nobody fetches loses a share of itself each game day once
+// the autumn frost has come, and is gone under its quantum (decay, VB-1910). A good made where the work is done (VB-1748: the catch,
+// game, wild food, what is dug, salt, a basket of stone) lies so too, and the yield of a fishing, hunting or gathering trip cut at its
+// work (sim/agents cutTrip). Writes st.lying; read by sim/doing
 // (the piles of the goals' view), sim/kinds (the rule that posts the goals of BRING) and sim/agents (release lays a load down).
 VB['sim/lying'] = (() => {
   const { log, atHousehold } = VB['sim/records'];
-  const { TRAVEL } = VB['sim/rules'];
+  const { TRAVEL, LYING } = VB['sim/rules'];
+  const { emit } = VB['sim/events'];
   // @state st.lying: absent, or [{id, kind, n, tile, x, y, t, owner, of}]: the loads lying where their carrier was released on the road,
   //   in the order they were put down (id): `kind` the job kind that carried it (haul, hay, wood, wellstone; VB-1748 the kinds that make
   //   their good where the work is done: fish, rackfish, hunt, gather, dig, boilsalt, pick, quarry), `n` the load in that kind's
   //   units (a.load), `tile` and `x`, `y` where it lies, `t` the game hour it was put down, `owner` the task's owner ({type, id}: the
   //   household or village it was carried for), `of` what the kind's delivery reads of the task (its field or meadow, farm, village,
   //   common, dest, step, from, and `src`, the task's tile). A small live list (Rules for cost 1): an entry leaves it when its last load
-  //   is taken (take) or at the autumn frost (frost), so it holds at most a year's loads put down on the road. Written only here; plain
-  //   data, saved (with the sharing of the fields and meadows it names); absent until the first and once empty.
+  //   is taken (take) or once the frost has worn it under LYING.quantum (decay), so it holds at most a year's loads put down on the
+  //   road; its amount `n` falls a day once the frost has come (VB-1910). Written only here; plain data, saved (with the sharing of
+  //   the fields and meadows it names); absent until the first and once empty.
   // @state st.lyingSeq: the last lying load's id (ids are never reused); absent until the first.
   // @state st.lyingBy: a cache owned here, derived and not saved (sim/saves DERIVED, built at its first use): the loads lying by owner,
   //   `type:id` to the entries of st.lying it owns, in their order; so a pile of an owner's is found without a scan (VB-1775).
@@ -189,38 +192,80 @@ VB['sim/lying'] = (() => {
       post(`${k}:${owner.type[0]}${owner.id}`, l.tile, {}, k, owner);
     }
   }
-  // The autumn frost (sim/clock, with the stooks and the mown hay): every load still lying rots where it lies, and the list is empty but for
-  // a cart its household left standing at the landing when its house moved (`of.kept`, VB-1667: sim/carts' frost keeps it too).
+  // ---- what lies out degrades (VB-1910; design.md, Goods and the farming year, Risk): a share of its amount each game day once the
+  // year's frost has come, and the pile is gone under LYING.quantum; nothing on the load but its amount. The wet day's share waits for a
+  // wet day in the sim (VB-2000). ----
+  // One quantity, one reckoning: what `n` lying out loses over `days` game days after the frost; all of it once what is left is under
+  // the quantum. The day's loss (decay) and a head's estimate of it (sim/outlook) are both this.
+  function lossOver(n, days) {
+    if (!(days > 0) || !(n > 0)) return 0;
+    const rest = n * (1 - LYING.frostLoss) ** days;
+    return rest < LYING.quantum ? n : n - rest;
+  }
+  // A lying load's loss in its owner's store, as the stores book spoilage (event lyingSpoilt): the good, and its units a unit of load
+  // (the sheaves and grain in rations, the hay at TRAVEL.hay). The other goods lying are in no store's units, and are not booked.
+  const SPOILS = { haul: ['grain', 1], leftGrain: ['grain', 1], hay: ['hay', TRAVEL.hay] };
+  // The game day's loss once the frost has come (sim/clock, each day from the frost's to the year's end; `days` over one: so many days at
+  // once, as a test passing over them): each load but a cart left standing loses lossOver of its amount, booked as spoilage; one worn
+  // under its quantum is lost, and told as the frost's.
+  function decay(st, days = 1) {
+    if (!st.lying) return;
+    for (const l of st.lying.slice()) {
+      VB.count.lyingDecay++;
+      if (l.kind === 'leftCart') continue;
+      const lost = lossOver(l.n, days),
+        sp = SPOILS[l.kind];
+      if (sp && lost > 0) emit(st, 'lyingSpoilt', { owner: l.owner, good: sp[0], n: lost * sp[1] });
+      if (lost < l.n - 1e-9) l.n -= lost;
+      else {
+        drop(st, l);
+        lostTold(st, l);
+      }
+    }
+  }
+  // The line for a load the frost has taken: named by its owner's farm, by the farm its household held, or by its village.
+  function lostTold(st, l) {
+    const o = l.owner,
+      hh = o.type === 'household' ? st.households[o.id] : null,
+      what = whatOf(l.kind);
+    if (hh && !hh.dissolved)
+      log(st, `A load of ${what} left lying for ${st.farmsteads[hh.farmstead].name} was lost to the frost.`, {
+        kind: 'frost',
+        ...atHousehold(st, hh),
+      });
+    else if (hh && hh.farmstead !== null && st.farmsteads[hh.farmstead]) {
+      // its household gone: the place is named, the farm it held
+      const f = st.farmsteads[hh.farmstead];
+      log(st, `A load of ${what} left lying for ${f.name}, whose household is gone, was lost to the frost.`, {
+        kind: 'frost',
+        farm: f.id,
+        village: f.village,
+      });
+    } else if (o.type === 'village' && st.villages[o.id])
+      log(st, `A load of ${what} left lying for ${st.villages[o.id].name} was lost to the frost.`, {
+        kind: 'frost',
+        village: o.id,
+      });
+  }
+  // The autumn frost (sim/clock): a cart left standing goes from the list, but one its household left at the landing when its house moved
+  // (`of.kept`, VB-1667; sim/carts' frost keeps that one too, and names the one it loses, VB-649). What else lies, decay wears from today.
   function frost(st) {
     if (!st.lying) return;
-    const keep = st.lying.filter((l) => l.kind === 'leftCart' && l.of.kept);
-    for (const l of st.lying) {
-      const o = l.owner,
-        hh = o.type === 'household' ? st.households[o.id] : null;
-      if (l.kind === 'leftCart') continue; // its cart is gone with it, and named (sim/carts' frost sweep, VB-649)
-      const what = whatOf(l.kind);
-      if (hh && !hh.dissolved)
-        log(st, `A load of ${what} left lying for ${st.farmsteads[hh.farmstead].name} was lost to the frost.`, {
-          kind: 'frost',
-          ...atHousehold(st, hh),
-        });
-      else if (hh && hh.farmstead !== null && st.farmsteads[hh.farmstead]) {
-        // its household gone: the place is named, the farm it held
-        const f = st.farmsteads[hh.farmstead];
-        log(st, `A load of ${what} left lying for ${f.name}, whose household is gone, was lost to the frost.`, {
-          kind: 'frost',
-          farm: f.id,
-          village: f.village,
-        });
-      } else if (o.type === 'village' && st.villages[o.id])
-        log(st, `A load of ${what} left lying for ${st.villages[o.id].name} was lost to the frost.`, {
-          kind: 'frost',
-          village: o.id,
-        });
+    for (const l of st.lying.slice()) if (l.kind === 'leftCart' && !l.of.kept) drop(st, l);
+  }
+  // What lies out of `owner`'s that is booked as `good` (SPOILS), in its store's units: {n, lost}, `lost` what lossOver takes of it over
+  // `days` game days after the frost, all of it reckoned as the day's decay reckons it (a head's estimate, sim/outlook: its own goods,
+  // the days its own reckoning of the frost gives).
+  function lyingOut(st, owner, good, days) {
+    let n = 0,
+      lost = 0;
+    for (const l of ownedBy(st, owner) || []) {
+      const sp = SPOILS[l.kind];
+      if (!sp || sp[0] !== good) continue;
+      n += l.n * sp[1];
+      lost += lossOver(l.n, days) * sp[1];
     }
-    if (keep.length) st.lying = keep;
-    else delete st.lying;
-    delete st.lyingBy; // built again at its next use
+    return { n, lost };
   }
   return {
     lay,
@@ -231,6 +276,8 @@ VB['sim/lying'] = (() => {
     bringWork,
     ownedPiles: ownedBy,
     frost,
+    decay,
+    lyingOut,
     pileAt,
     amountAt,
     strayOf,
