@@ -39,6 +39,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1944](backlog/VB-1944.md)<a id="VB-1944"></a> | Refactor: the Sim facade joined from what each module gives the page | - | 2 | M | src/sim.js 17 to 1-4 (VB-1406 step 6) |
 | [VB-1946](backlog/VB-1946.md)<a id="VB-1946"></a> | Refactor: one record an event kind, declared by its emitter; sim/notable split into the skip and the chronicle | - | 2 | M | sim/notable 16 to 8 and 6, sim/records 10 to 6 (VB-1406 step 8) |
 | [VB-1948](backlog/VB-1948.md)<a id="VB-1948"></a> | Refactor: the page's stylesheets by area, and a card's rows declared by the feature's page file | - | 2 | M | head.html 14 to 6, 6, 4; page/words 11 to 7 (VB-1406 step 10) |
+| [VB-1973](backlog/VB-1973.md)<a id="VB-1973"></a> | A seed loan before sowing, after a failed year | plans | 2 | M | seed corn lent before sowing and kept for it, so a failed year is not followed by an unsown one |
 | [VB-2029](backlog/VB-2029.md)<a id="VB-2029"></a> | A lone settler's foraging need outranks reaping his ripe field when frost is near | - | 2 | S | Foraging need 8 beats reap 1.3+frostNear when spare food under 3 days |
 | [VB-2030](backlog/VB-2030.md)<a id="VB-2030"></a> | Investigate: a settler dies of starvation with 80+ grain in the barn and hunger 0 | - | 2 | S | Seeds 3 and 5 solo: health falls 3 a day at hunger 0 |
 | [VB-093](backlog/VB-093.md)<a id="VB-093"></a> | A village mill: water where a river is in reach, else wind | mill | 3 | M | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. |
@@ -173,7 +174,6 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | [VB-1472](backlog/VB-1472.md)<a id="VB-1472"></a> | Design: how a holder's parallel projects are limited and ranked | - | 2 | M | What replaces 'at most one project': the limit and the ranking of a holder's parallel projects |
 | [VB-1771](backlog/VB-1771.md)<a id="VB-1771"></a> | Duties of the days ahead: one member sees to a type of recurring work without a window | plans | 2 | M | A duty, given by the head at its review, puts its holder first for one type of recurring work without a window (the wood, the water, the beasts, the cooking) in each day's allotment and nothing more; work with a window is never a duty. In place of VB-1553's removed mechanism. |
 | [VB-1947](backlog/VB-1947.md)<a id="VB-1947"></a> | Refactor: the tunables several domains read in files by domain, VB['sim/rules'] the joined view | - | 2 | M | sim/rules 21 to at most 5 a file (VB-1406 step 9), when Kim says |
-| [VB-1973](backlog/VB-1973.md)<a id="VB-1973"></a> | A seed loan before sowing, after a failed year | plans | 2 | M | seed corn lent before sowing and kept for it, so a failed year is not followed by an unsown one |
 
 </details>
 

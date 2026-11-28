@@ -2,6 +2,13 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 28 November 2026 (VB-1973)
+
+## VB-1973: A seed loan before sowing, after a failed year (raised 28 November 2026)
+1. A household that ate its seed in a failed year sows nothing the next spring (VB-1965: populous seed 7, household 0 ate 235 of seed in year 7 and sowed 0 of 12 fields in year 8, eating the gifts and grain loans it got, though idle half its working hours). design.md, Loans (slice 5), makes seed corn after a failed year the first loan and leaves open whether it is repaid in the crop lent. May the seed loan be built now, and how is it repaid?
+   **P:** Build it now (VB-1973): before its spring sowing a household holding less seed than its fields to be sown want asks a seed loan through sim/loans (its village's lenders, its store, a trade partner, as a grain loan); the grain lent is set aside as seed (reserved, so the meal does not eat it before the sowing) and repaid at the end of autumn as a grain loan is (LOAN.adds by the practice), in grain whatever its crop.
+   **A (Kim, 28 Nov):** Yes, borrowing seed corn sounds very reasonable. (Repayment not answered; built as proposed, repaid in grain at the end of autumn, unless Kim says otherwise.)
+
 # Archived 27 November 2026 (VB-1779)
 
 ## VB-1779: goodwill for the head's own work past the levy (review F1) against the gate (raised 27 November 2026)

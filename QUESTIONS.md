@@ -56,10 +56,6 @@ Proposed answers: (a) leave it to contact: no term; (b) add a term to attitude.m
 1. VB-1947 moves the tables several domains read out of `src/sim/rules.js` into files by domain, with `VB['sim/rules']` kept as the joined view so that none of its 107 readers changes. It touches what every module reads at load, so every branch in flight that edits a table conflicts with it once. When should it go ahead?
    **P:** after the slice work in flight has merged, in a quiet hour, as one task: the joined view keeps every reader as it is, and `tools/same.js` shows it.
 
-### VB-1973: A seed loan before sowing, after a failed year (raised 28 November 2026)
-1. A household that ate its seed in a failed year sows nothing the next spring (VB-1965: populous seed 7, household 0 ate 235 of seed in year 7 and sowed 0 of 12 fields in year 8, eating the gifts and grain loans it got, though idle half its working hours). design.md, Loans (slice 5), makes seed corn after a failed year the first loan and leaves open whether it is repaid in the crop lent. May the seed loan be built now, and how is it repaid?
-   **P:** Build it now (VB-1973): before its spring sowing a household holding less seed than its fields to be sown want asks a seed loan through sim/loans (its village's lenders, its store, a trade partner, as a grain loan); the grain lent is set aside as seed (reserved, so the meal does not eat it before the sowing) and repaid at the end of autumn as a grain loan is (LOAN.adds by the practice), in grain whatever its crop.
-
 ### VB-1771: Duties of the days ahead: Q5's rise did not show; should the head's rule give duties? (raised 28 November 2026)
 1. Should the head's default author give duties? (VB-1771; design.md section 7, Plans at four scales: The days ahead; docs/plans/four-scales/README.md, section 4, Q5)
 
