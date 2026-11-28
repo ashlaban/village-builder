@@ -161,6 +161,8 @@ VB['sim/kinds'] = (() => {
     farm: 'the farmyard',
     house: 'in the house',
     barn: 'the barn',
+    storehouse:
+      'the storehouse on posts, where the threshed grain and the food keep (a farm without one keeps them in the house)',
     byre: 'the byre and the fold',
     pasture: 'the pasture and the outland',
     woods: 'the woods',
