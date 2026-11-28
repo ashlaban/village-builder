@@ -51,8 +51,8 @@ for (const seed of [2, 12, 13, 15]) {
   Sim.movingRound(tinyState(tinyWorld(Array(30).fill('.'.repeat(50))),
     [{ at: [10, 15], farms: 4, sizes: [9, 9, 9, 9] }, { at: [38, 15], farms: 4, sizes: [9, 9, 9, 9] }], { seed }));
 }
-const probePairs = VB.count.roundPairs;
-assert(Number.isFinite(probePairs) && probePairs >= 0, 'round pair count is valid');
+const probePairs = VB.count.asksWeighed;
+assert(Number.isFinite(probePairs) && probePairs >= 0, 'round pairs-weighed count is valid');
 // A same-tile request does no A* work; a nontrivial route starts a search.
 const routeWorld = tinyWorld(['...']); VB.resetCounts();
 assert.deepStrictEqual(VB['sim/routes'].findRoute(routeWorld, 1, 1), [1]);
@@ -68,4 +68,4 @@ assert.strictEqual(livingPawnDays(lifetimes, 0), 5);
 assert.strictEqual(livingPawnDays(lifetimes, 24), 2.5);
 assert.strictEqual(livingPawnDays(lifetimes, 0, 0), 0);
 console.log(`counters ok: ${Object.keys(values).length} counters, 30 days, two villages, ${pawnDays.toFixed(
-  0)} living pawn-days; ${probePairs}-pair round probe; ${out} counters out against baseline`);
+  0)} living pawn-days; ${probePairs}-ask round probe; ${out} counters out against baseline`);

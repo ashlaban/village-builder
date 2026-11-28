@@ -14,10 +14,10 @@ for (const name of names.length ? names : ['small-y40', 'medium-ref']) {
   VB.resetCounts();
   const before = VB.count.heirRank, started = performance.now();
   Sim.movingRound(st);
-  const roundMs = performance.now() - started, roundRank = VB.count.heirRank - before, roundPairs = VB.count.roundPairs;
+  const roundMs = performance.now() - started, roundRank = VB.count.heirRank - before;
   const saveHash = crypto.createHash('sha256').update(JSON.stringify(Sim.save(st))).digest('hex');
   console.log(JSON.stringify({ name, source: root, fixtureCommit: stamp.commit, fixtureKey: stamp.key, households,
-    roundMs, roundRank, rankingsPerHousehold: roundRank / households, roundPairs, saveHash }));
+    roundMs, roundRank, rankingsPerHousehold: roundRank / households, saveHash }));
   if (!day) continue;
   const fresh = F.loadFixture(name).st, { DAY, YEAR, SEASON_DAYS } = Sim;
   const start = Math.floor(fresh.t / YEAR) * YEAR + (2 * SEASON_DAYS + 10) * DAY;

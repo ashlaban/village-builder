@@ -47,6 +47,10 @@ assert.deepStrictEqual([...COMPARED, ...Object.keys(CACHES_UNCOMPARED)].filter((
 
 // the runs: the probe village and the founders, each 50 days (the first gathering, ale, claims, a household founded, lodging, a cottage
 // finished: VB-1775, with the wood as goals the founders' first cottage is roofed after day 45)
+// VB-2051: a facility kind of the test's, declared before the first seed seals the registry (as tests/facilities.js does; none is in the
+// game yet, VB-361): one stage of no loads, worn and mended as a shed
+const Fac = VB['sim/facilities'];
+Fac.declare('cacheshed', { name: 'test shed', stages: [{ hours: 2 }], may: () => null, wear: 0.2, upkeep: 10 });
 const runs = [state(4), scenario('founders', 7)]; // the probe village at seed 4 (7 before VB-1951 gave the layout its own draws: eight of the verbs found no state to pass there)
 for (const st of runs) Sim.advance(st, 50 * Sim.DAY);
 const natural = carried.size;
@@ -198,12 +202,73 @@ const inheritance = (st, yes) => {
   Sim.inhabit(st, hh.holder);
   Sim.setAuto(st, hh.holder, false);
   first(st, 'placeFarmstead', [{ actor: hh.holder, target: st.farmsteads[0].house, source: 'player' }]);
+  // VB-2051: its shelter raised, by the job's own end (sim/building's kind shelter); then its head begins the cottage on it
+  const f = st.farmsteads[0];
+  VB['sim/building'].KINDS.shelter.done(st, { farm: f });
+  first(st, 'beginCottage', [{ actor: hh.holder, target: f.house, source: 'player' }]);
+}
+// VB-2051: the verbs that need a state of their own, each built by hand on a constructed state, no day run (the clock moved only by
+// sim/clock's ticking, its steps not taken).
+{
+  // a facility founded by a head beside its house, its one stage raised by the job's own end (sim/facilities' kind raisestage), and worn
+  // three years by the test's hand on its record (as tests/facilities.js does): its upkeep begun
+  const [st] = runs, h = held(st)[0], owner = { type: 'household', id: h.id }, house = st.farmsteads[h.farmstead].house;
+  const near = Array.from({ length: 6 }, (_, d) => st.w.nb[house * 6 + d]).filter((t) => t >= 0);
+  if (first(st, 'found', near.map((t) => ({ actor: h.holder, target: t, args: { kind: 'cacheshed', owner }, source: 'player' })))) {
+    const fac = st.facilities[st.facilities.length - 1];
+    Fac.KINDS.raisestage.done(st, { kind: 'raisestage', owner, site: fac.tile });
+    fac.condAt = st.t - 3 * YEAR;
+    first(st, 'upkeep', [{ actor: h.holder, target: fac.id, source: 'player' }]);
+  }
+}
+{
+  // four villages of two farms in a row on open meadow (tests/going.js), at the start of the year: their meetings choose a gathering by the
+  // verb and it is settled, so that it is ahead; an adult goes, then stays home
+  const { tinyWorld, tinyState } = require('./lib/tiny.js'), Gt = VB['sim/gathering'], { membersOf, age } = VB['sim/records'];
+  const { GATHERING, DAY } = VB['sim/rules'];
+  const st = tinyState(tinyWorld(Array(12).fill('.'.repeat(110)), { seed: 7 }), [4, 30, 56, 82].map((x) => ({ at: [x, 5], farms: 2, sizes: [6, 5] })), { seed: 2 });
+  for (const v of st.villages) Gt.chooseGathering(st, st.cenv.settlements[v.id], true, membersOf(st, v.id));
+  Gt.settleGatherings(st);
+  const goers = st.living.map((id) => ({ actor: id, source: 'player' }));
+  if (first(st, 'goGathering', goers)) first(st, 'stayHome', goers);
+  // two dealers of two households, each with a load packed as at its setting out for the gathering (sim/fair's loadUp, on the event
+  // gatheringSetOut), called to one meeting on the green and come to it: one swaps from its load for the other's
+  const adults = (hh) => hh.members.filter((m) => age(st, st.pawns[m]) >= GATHERING.adult);
+  const [ha, hb] = [st.households[0], st.households[1]], [a] = adults(ha), [b] = adults(hb);
+  Stores.put(st, ha, 'grain', 900, { kind: 'harvest' }, { barley: 900 });
+  Stores.put(st, hb, 'tar', 3, { kind: 'harvest' });
+  Stores.put(st, hb, 'hide', 2, { kind: 'harvest' });
+  for (const [p, hh] of [[a, ha], [b, hb]]) VB['sim/events'].emit(st, 'gatheringSetOut', { pawn: p, household: hh.id, until: st.t + 4 * DAY });
+  const v = st.villages[0], O = VB['sim/occasions'], day = Math.floor(st.t / DAY) * DAY + DAY;
+  const o = O.call(st, 'meeting', day, { village: v.id, farm: null, tile: v.center, x: st.w.hx[v.center], y: st.w.hy[v.center] }, [a, b], [0, 0], []);
+  for (const p of [a, b]) issue(st, { actor: p, verb: 'attend', target: o.id, source: 'pawn' });
+  const goods = VB['sim/fair'].FAIR.goods;
+  first(st, 'swap', goods.flatMap((g) => goods.map((t) => ({ actor: a, target: b, args: { gives: { good: g, n: 1 }, wants: { good: t, n: 1 } }, source: 'offer' }))));
+}
+{
+  // three villages in a row, each beyond a day's walk of the next (tests/journeys.js), the clock set to the moving round of autumn: a head
+  // sends a grown son of its house on a winter's visit to the nearest, and a grown daughter of the second village plans her own
+  const { tinyWorld, tinyState } = require('./lib/tiny.js'), { spouseOf } = VB['sim/records'], { SEASON_DAYS, ASK, DAY } = VB['sim/rules'];
+  const st = tinyState(tinyWorld(Array(9).fill('.'.repeat(210)), { seed: 7 }),
+    [{ at: [6, 4], farms: 1, sizes: [5] }, { at: [156, 4], farms: 1, sizes: [5] }, { at: [196, 4], farms: 1, sizes: [5] }], { seed: 7 });
+  const grown = (hh, sex, years) => {
+    const p = st.pawns[hh.members.find((k) => k !== hh.holder && spouseOf(st, k) === null)];
+    p.sex = sex;
+    p.born = st.t - (years + 0.5) * YEAR;
+    p.age = years;
+    return p.id;
+  };
+  const [man, woman] = [grown(st.households[0], 'm', 25), grown(st.households[1], 'f', 22)];
+  VB['sim/wishes'].seedAsking(st);
+  Heirs.refreshRoles(st);
+  for (const hh of st.households) fill(st, hh, 3000);
+  VB['sim/clock'].ticking(st, (2 * SEASON_DAYS + ASK.day) * DAY + 11 - st.t, () => {});
+  first(st, 'sendVisit', [{ actor: st.households[0].holder, target: man, args: { village: 1 }, source: 'player' }]);
+  first(st, 'visit', [0, 2].map((v) => ({ actor: woman, target: v, source: 'player' })));
 }
 assert.deepStrictEqual(failures, [], 'a cache differs from its derivation after a verb');
-// The verbs these states do not reach yet, each needing a state built for it (VB-2051): a facility kind declared (none is in the game yet,
-// VB-361; tests/facilities.js carries found and upkeep), a gathering ahead, two loads at a fair, a shelter standing, a visit in winter
-// to a village beyond a day's walk. The list only shrinks: a verb carried here is struck from it, a new verb is carried or added.
-const NOT_YET = ['found', 'upkeep', 'goGathering', 'stayHome', 'swap', 'beginCottage', 'visit', 'sendVisit'];
+// Every verb is carried (VB-2051 struck the last eight). The list only shrinks: a new verb is carried here, or added to it with the reason.
+const NOT_YET = [];
 const missed = Object.keys(VERBS).filter((v) => !carried.has(v));
 assert.deepStrictEqual(missed.filter((v) => !NOT_YET.includes(v)), [], 'a verb neither carried nor listed in NOT_YET');
 assert.deepStrictEqual(NOT_YET.filter((v) => carried.has(v) || !VERBS[v]), [], 'carried now, or no longer a verb: strike it from NOT_YET');

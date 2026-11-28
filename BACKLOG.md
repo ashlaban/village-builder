@@ -133,7 +133,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1739](backlog/VB-1739.md)<a id="VB-1739"></a> | A job's farm, field, meadow and stretch held as ids, and agent.job as the job's key | - | 3 | M | The job back-references VB-247 left: job.farm, job.field, job.meadow, job.stretch and agent.job as ids, read through helpers |
 | [VB-1741](backlog/VB-1741.md)<a id="VB-1741"></a> | Why fewer leave since land is asked: the small villages' asks after VB-697 | acts | 3 | S | Departures fell by half or more after VB-697 (44 to 16 at populous small seed 7, 30 years): find why, with VB-697's owed numbers |
 | [VB-1807](backlog/VB-1807.md)<a id="VB-1807"></a> | Design: rules built that design.md does not say, collected | - | 3 | M | Rules the code built that design.md does not say yet, a line each: written into the design together, with Kim |
-| [VB-1818](backlog/VB-1818.md)<a id="VB-1818"></a> | Kinds: the control fields no code reads after VB-1750 taken out | - | 3 | S | the kinds' own to and meadows' reload, dead since the phases went, removed |
 | [VB-1840](backlog/VB-1840.md)<a id="VB-1840"></a> | The page tells the player what automatic answers, and its sleep as of now | - | 3 | S | After VB-1776 the played pawn on automatic answers at-once offers itself and its sleep is reckoned hourly: the page says so and reads sleep as of now |
 | [VB-1841](backlog/VB-1841.md)<a id="VB-1841"></a> | An older save keeps the player's wish | - | 3 | S | A save from before VB-1776 loses the played pawn's chosen wish to its own choosing: mark it authored on load |
 | [VB-1897](backlog/VB-1897.md)<a id="VB-1897"></a> | The page confirms a demand before it is issued | - | 3 | S | assign and call past the levy are demands: the page says so and asks to confirm |
@@ -152,9 +151,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1980](backlog/VB-1980.md)<a id="VB-1980"></a> | Gathering customs measure at 40 years | - | 3 | S | VB-296 before/after at 40 populous years |
 | [VB-1990](backlog/VB-1990.md)<a id="VB-1990"></a> | An animal is not given where its new household cannot lead it home | - | 3 | S | giveAnimal skips a gift beyond a day's walk, which otherwise starves away before the frost |
 | [VB-2000](backlog/VB-2000.md)<a id="VB-2000"></a> | Wet game days: a share of what lies out lost on each | - | 3 | M | the wet share of VB-1910, waiting for a wet day in the sim |
-| [VB-2041](backlog/VB-2041.md)<a id="VB-2041"></a> | Retire the work counter roundPairs, counted nowhere since VB-693 | - | 3 | S | roundPairs is declared and read but never raised: retire it and its always-zero probe |
 | [VB-2045](backlog/VB-2045.md)<a id="VB-2045"></a> | A seed loan lent in the crop short | - | 3 | S | seed lent in the crop the fields want, not the lender's mix |
-| [VB-2051](backlog/VB-2051.md)<a id="VB-2051"></a> | Caches checked after every verb: the last 8 verbs tests/caches.js does not reach | - | 3 | M | Carry found, upkeep, goGathering, stayHome, swap, beginCottage, visit and sendVisit in tests/caches.js on states built for them |
 
 </details>
 
