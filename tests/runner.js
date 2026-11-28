@@ -40,7 +40,7 @@ const node = (code) => [process.execPath, '-e', code];
   }
   // no test is left out of every tier by accident (VB-2006): each tests/*.js has a @suite line, or is named here
   const NOT_TESTS = ['run.js', 'suites.js', 'lint-rules.js', 'backlog-page.js'],
-    PENDING = { 'sites.js': 'VB-2007' }; // a test that fails, its repair task named: it gets its @suite line with the repair
+    PENDING = {}; // a test that fails, its repair task named: it gets its @suite line with the repair
   for (const f of fs.readdirSync(__dirname).filter((n) => n.endsWith('.js'))) {
     const declared = /^\/\/ @suite /m.test(fs.readFileSync(path.join(__dirname, f), 'utf8'));
     assert(declared || NOT_TESTS.includes(f) || PENDING[f], `tests/${f} has no // @suite line and is not named as a non-test`);

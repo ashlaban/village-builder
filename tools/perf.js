@@ -17,7 +17,7 @@ const SYSTEMS = {
   'kin help and goodwill': { 'sim/exchange': ['assessGift'], 'sim/relations': ['book', 'passGoodwill', 'endGoodwill'] },
   'herds': { 'sim/herds': ['herdsDay', 'spring'] },
   'byre': { 'sim/byre': ['byreDay', 'autumnCounts'] },
-  'meadows': { 'sim/meadows': ['meadowsSpring', 'meadowsFrost'] },
+  'meadows': { 'sim/meadows': ['meadowsSpring', 'hayDecay'] },
   'paths and routes': { 'sim/paths': ['fadeWear'], 'sim/routes': ['refreshRoutes'] },
   'trees': { 'sim/forest': ['growTrees'] },
   'the moving round': { 'sim/round': ['roundPhase'] }, // a step: a village's round, or a phase (VB-201, VB-277)

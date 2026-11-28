@@ -8,7 +8,7 @@
 // reads the outlook to decide: it is a view the review keeps, so that the page never computes one.
 VB['sim/outlook'] = (() => {
   const { targetOf } = VB['sim/steps'];
-  const { SEASON_DAYS, YEAR_DAYS, FIELDS, HERD, BUILD, PEAT, HELP, cal } = VB['sim/rules'],
+  const { SEASON_DAYS, YEAR_DAYS, FIELDS, HERD, BUILD, PEAT, HELP, TRAVEL, cal } = VB['sim/rules'],
     { CROPS, ROTATIONS } = VB['sim/crops'];
   const { on } = VB['sim/events'];
   const { controlOf } = VB['sim/controller'];
@@ -25,7 +25,7 @@ VB['sim/outlook'] = (() => {
   const { hands } = VB['sim/targets'];
   const { headSkill } = VB['sim/seasonal'];
   const { GOALS } = VB['sim/kinds'];
-  const { lyingOut } = VB['sim/lying'];
+  const { lyingOut, lossOver } = VB['sim/lying'];
   const { frostSeen, frostExpected } = VB['sim/weather'];
   // Proposed (VB-666): `little`, a first short season whose need is covered at least this share is short a little ('short'), else badly
   // ('bad'); `woodTrips`, the firewood trips a working hand makes in a season towards the pile's goal (ECON.woodPerTrip units each), which
@@ -176,10 +176,15 @@ VB['sim/outlook'] = (() => {
   // function (sim/lying lyingOut, VB-1910): the game days of frost left in the season, from today once the frost is seen, else from the
   // day the head expects it (frostExpected); none in spring and summer. {n, lost} in the supply's units, rounded.
   function lyingLoss(st, hh, good, c) {
-    const from =
-        c.season === 3 ? c.sday : c.season === 2 ? Math.max(c.sday, frostSeen(st) ?? frostExpected(st)) : SEASON_DAYS,
-      L = lyingOut(st, { type: 'household', id: hh.id }, good, SEASON_DAYS - from);
+    const L = lyingOut(st, { type: 'household', id: hh.id }, good, frostDays(st, c));
     return { n: r1(L.n), lost: r1(L.lost) };
+  }
+  // The game days of frost the head expects left in the season we are in (lyingLoss); the stooks in the field and the hay mown on the
+  // meadow are counted less what lossOver takes of them over these (VB-2001: they wear a share a day after the frost, as loads lying).
+  function frostDays(st, c) {
+    const from =
+      c.season === 3 ? c.sday : c.season === 2 ? Math.max(c.sday, frostSeen(st) ?? frostExpected(st)) : SEASON_DAYS;
+    return SEASON_DAYS - from;
   }
   const withLeft = (s, hand, left) => (hand ? { ...s, parts: { ...s.parts, left } } : s);
   const farmOf = (st, hh) => {
@@ -240,10 +245,12 @@ VB['sim/outlook'] = (() => {
       hand = handOf(st, hh),
       left = [];
     if (f) {
-      const per = seedPer(st, hh);
+      const per = seedPer(st, hh),
+        days = frostDays(st, c),
+        stooks = (fd) => (fd.held || 0) - lossOver(fd.held || 0, days); // less what the frost's days wear of them (VB-2001)
       for (const fd of f.fields)
         cropDays(fd, c, end, (day, k, first) => {
-          const gross = first && fd.stage === 'stooks' ? fd.held || 0 : FIELDS.expect * CROPS[k].yield,
+          const gross = first && fd.stage === 'stooks' ? stooks(fd) : FIELDS.expect * CROPS[k].yield,
             n = Math.max(0, gross - (k === 'barley' ? per : CROPS[k].seed));
           // by hand, a crop standing is counted with a harvest task on its field; one not sown yet is in no task (VB-1661)
           if (hand && !(first && STANDING.includes(fd.stage) && covered(st, hh, 'harvest', fd.tile))) {
@@ -369,6 +376,8 @@ VB['sim/outlook'] = (() => {
         last = y0 + 2 * SEASON_DAYS + 2; // the window's last day (sim/meadows, MOW_LAST)
       let lying = 0,
         grass = 0;
+      const days = frostDays(st, c),
+        mown = (m) => (m.held || 0) - lossOver((m.held || 0) / TRAVEL.hay, days) * TRAVEL.hay; // less the frost's wear (VB-2001)
       for (const m of f.meadows) {
         // by hand, a meadow's hay still to bring in is counted with a hay task on it (VB-1661)
         const by = !hand || covered(st, hh, 'hay', m.tile);
@@ -377,8 +386,8 @@ VB['sim/outlook'] = (() => {
             if (m.held > 0) left.push({ good: 'hay', what: 'mown', tile: m.tile, n: r1(m.held) });
             continue;
           }
-          lying += m.held || 0;
-          ins.push([Math.max(c.day, (m.mown || c.day) + 1), 'mown', m.held || 0]);
+          lying += mown(m);
+          ins.push([Math.max(c.day, (m.mown || c.day) + 1), 'mown', mown(m)]);
         } else if (m.stage === 'grass' && c.day <= last) {
           if (by) grass += HAY * m.fert;
           else left.push({ good: 'hay', what: 'meadow', tile: m.tile, n: r1(HAY * m.fert) });
