@@ -6,7 +6,7 @@ VB['sim/clock'] = (() => {
   const { log, startFold, foldHistory } = VB['sim/records'];
   const { growTrees } = VB['sim/forest'];
   const { spreadForest } = VB['sim/spread'];
-  const { fieldsDay, fieldsFrost } = VB['sim/fields'];
+  const { fieldsDay, fieldsFrost, stooksDecay } = VB['sim/fields'];
   const { seasonBegins, frostDay, frostSeen, winterAhead } = VB['sim/weather'];
   const { reckon: reckonWinter, fallDue: climateDue, layGround } = VB['sim/climate'];
   const { refreshRoutes, costChanged } = VB['sim/routes'],
@@ -40,7 +40,7 @@ VB['sim/clock'] = (() => {
   const { visitsDue } = VB['sim/visits'];
   const { dailyBirths } = VB['sim/births'];
   const { herdsDay, spring } = VB['sim/herds'];
-  const { meadowsSpring, meadowsFrost } = VB['sim/meadows'];
+  const { meadowsSpring, hayDecay } = VB['sim/meadows'];
   const { passageDay } = VB['sim/passage'];
   const { frost: lyingFrost, decay: lyingDecay } = VB['sim/lying'];
   const { frost: droveFrost } = VB['sim/droving'];
@@ -340,10 +340,17 @@ VB['sim/clock'] = (() => {
     { every: 'year', owner: 'sim/meadows', note: 'the meadows are grass again', run: (st) => meadowsSpring(st) },
     {
       every: 'day',
-      when: frosty,
+      when: (st) => frostSeen(st) !== null,
+      owner: 'sim/fields',
+      note: 'once the frost has come, stooks still out lose a share of themselves a day (VB-2001)',
+      run: (st) => stooksDecay(st),
+    },
+    {
+      every: 'day',
+      when: (st) => frostSeen(st) !== null,
       owner: 'sim/meadows',
-      note: 'the autumn frost rots hay still lying',
-      run: (st) => meadowsFrost(st),
+      note: 'once the frost has come, mown hay still lying loses a share of itself a day (VB-2001)',
+      run: (st) => hayDecay(st),
     },
     {
       every: 'day',

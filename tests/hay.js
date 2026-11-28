@@ -55,11 +55,14 @@ for (const h of fed) check(h.hay > start.get(h.id), `populous: household ${h.id}
 const ratio = fed.map((h) => h.hay / Sim.winterNeed(st, h)).sort((a, b) => a - b);
 check(!checkState(st).length, 'populous: ' + checkState(st).slice(0, 3).join('; '));
 
-// the frost: hay still lying rots; the next spring every meadow is grass again
-const m0 = meadows(st)[0]; m0.stage = 'mown'; m0.held = 25; m0.mown = Math.floor(st.t / Sim.DAY);
+// the frost: hay still lying loses a share a day, and rots under the quantum (VB-2001); the next spring every meadow is grass again
+const m0 = meadows(st)[0]; m0.stage = 'mown'; m0.held = 400; m0.mown = Math.floor(st.t / Sim.DAY);
 st.jobs.forEach((j) => { if (j.meadow === m0) VB['sim/agents'].dropJob(st, j); });
 const hayBefore = st.households.reduce((s, h) => s + h.hay, 0);
-VB['sim/meadows'].meadowsFrost(st);
+const { LYING, TRAVEL } = VB['sim/rules'];
+VB['sim/meadows'].hayDecay(st);
+check(m0.stage === 'mown' && Math.abs(m0.held - 400 * (1 - LYING.frostLoss)) < 1e-6, `frost: a day's share of hay lying (${m0.held})`);
+VB['sim/meadows'].hayDecay(st, 60);
 check(m0.stage === 'aftermath' && m0.held === 0, 'frost: hay lying was not lost');
 check(st.households.reduce((s, h) => s + h.hay, 0) === hayBefore, 'frost: rotted hay reached a barn');
 at(st, Sim.YEAR_DAYS + 1);
