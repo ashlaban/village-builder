@@ -45,6 +45,10 @@ VB['sim/drain'] = (() => {
     if (wetLoss(st.w, fd.tile) <= 0) return 'the field is not wet';
     return ditchOf(st, fd) >= DRAIN.again ? 'its ditches are still sound' : null;
   }
+  VB.counter(
+    'drainAsk',
+    "Fields read by a head's yearly look at ditching a wet field, once a year a farm after the harvest (sim/drain bestField, VB-721)",
+  );
   // The field of farm f the head would ditch: the best score above the bar, or null.
   function bestField(st, f) {
     const k = siteTerms(),

@@ -45,6 +45,10 @@ VB['sim/gathering'] = (() => {
     const g = choiceOf(st, h);
     return g && g.year === year - 1 && g.host === h ? g : null;
   }
+  VB.counter(
+    'gatherDisposition',
+    "Counterparts of a village's holders read for the pull between villages, at its meeting (sim/gathering, VB-294)",
+  );
   // ---- a village's choice, at its meeting (sim/meetings, villageMeeting) ----
   // The pull of each other village on village v's holders, read from what they hold now (design.md, The gathering, Disposition between
   // villages; never stored): each holder's opinion of the holders of another village among those it knows (its ties, the memories it holds,
@@ -74,6 +78,10 @@ VB['sim/gathering'] = (() => {
     for (const [u, s] of sum) out.set(u, Math.max(-1, Math.min(1, s / holders.length)));
     return out;
   }
+  VB.counter(
+    'gatherKin',
+    "Kin households read for a village's choice of gathering, at its meeting (sim/gathering, VB-294)",
+  );
   // The households of kin of v's households (sim/exchange's kinHouseholds: parents, children, siblings) in other villages, counted by the
   // host those villages went to last winter. A Map of host id to the count.
   function kinByHost(st, v, households, year) {
@@ -91,6 +99,10 @@ VB['sim/gathering'] = (() => {
       }
     return out;
   }
+  VB.counter(
+    'gatherChoice',
+    "Villages weighed as hosts by a village's choice of gathering, at its meeting (sim/gathering, VB-294)",
+  );
   // Village v's effective hours to each village that can host within a day's walk (design.md, The gathering, How a village comes to host):
   // the walk between the greens (its own 0), less GATHERING.kin for each household of kin in the villages that went there last winter (at
   // most kinMax), less or plus up to `disposition` by the pull between the two villages, less `held` if it was held last winter, less up
@@ -167,6 +179,10 @@ VB['sim/gathering'] = (() => {
       was = v.gathering || { year: null, host: null, ale: 0 };
     v.gathering = { ...was, chosen: cal(st.t).year, by: a.by, hosting: a.hosting, prefs: [...a.prefs] };
   }
+  VB.counter(
+    'gatherSettle',
+    'Hosts named and asked in the settling of the gatherings, once a year (sim/gathering, VB-294)',
+  );
   // ---- the evening's settling, once every village has met (sim/meetings, culture step) ----
   // Which villages go to which gathering this winter (design.md, The gathering; the rules of who comes and lodging): each village goes to its
   // first host in the running (one that offered this year), and a host lodges GATHERING.lodge guests a farm, GATHERING.goers a household
@@ -377,6 +393,10 @@ VB['sim/gathering'] = (() => {
     if (go && i < 0) plan.go.push(id);
     if (!go && i >= 0) plan.go.splice(i, 1);
   }
+  VB.counter(
+    'gatherPlan',
+    "Members read by a household's plan of who goes to the gathering, once a year (sim/gathering, VB-295)",
+  );
   // The head plans who goes (design.md, Who goes), on its planning day between the meetings and the packing: the holder, its unmarried
   // of marrying age (the eldest first), and by wish the others of GATHERING.wishAge or more, at `wish` times (0.5 + sociability), each
   // through the verb, whose check keeps an adult at home and the lodged to `goers`. A party to a border case goes too once such a case
@@ -417,6 +437,7 @@ VB['sim/gathering'] = (() => {
   }
   // Its goers still to go: living members of the household, in the order they chose.
   const goersOf = (st, hh, plan) => plan.go.filter((id) => st.pawns[id].alive && st.pawns[id].household === hh.id);
+  VB.counter('gatherLodge', 'Beds tried for the goers lodged at a gathering, once a year (sim/gathering, VB-295)');
   // The lodging for host h's gathering (design.md, Lodging; Agreed, 10 Nov): each goer of a village beyond homeHours, the nearest villages
   // first, gets a bed at a farm of the host village whose head will have it: with kin (its household's, sim/exchange kinHouseholds), else
   // with a pawn it holds a goodwill balance with (its partner), in the house while its GATHERING.house beds last and then in the barn;

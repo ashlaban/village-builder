@@ -161,6 +161,7 @@ VB['sim/stories'] = (() => {
     st.stories.set(s.id, s);
     return s;
   }
+  VB.counter('storyMade', 'Stories made, a witnessed event each (sim/stories, VB-523)');
   function witness(st, kind, subject, other, present) {
     const K = STORY.kinds[kind],
       ps = st.pawns[subject];
@@ -196,6 +197,7 @@ VB['sim/stories'] = (() => {
     tellMaybe(st, e.b, e.a);
   });
   const wts = [];
+  VB.counter('storyWeighed', 'Held stories weighed by a teller at its telling in a talk (sim/stories, VB-523)');
   // a may tell b one of the stories it holds: at STORY.tell × (0.5 + sociability), the one drawn by salience against other talk, or none.
   // Nobody tells a pawn of itself but its close friend, and nobody tells of itself. Forgotten entries are dropped as they are weighed.
   function tellMaybe(st, a, b) {
@@ -229,6 +231,7 @@ VB['sim/stories'] = (() => {
     while (k < wts.length - 1 && (x -= wts[k]) > 0) k++;
     if (wts[k] > 0) tell(st, a, b, pa.known[k], aud);
   }
+  VB.counter('storyTold', 'Stories told in a talk, believed or not (sim/stories, VB-523)');
   // a tells b the story of its entry e, its zeal that for b's audience `aud`
   function tell(st, a, b, e, aud) {
     const s = st.stories.get(e.story),
@@ -332,6 +335,7 @@ VB['sim/stories'] = (() => {
       c = env.cultures[set ? set.culture : 0];
     return ((c && c.values) || TRAITS.culture.oldNordic).honour;
   }
+  VB.counter('lieExposed', 'Lies told to one who knew better (sim/stories, VB-554)');
   // A lie told by a to b, who knows better (its told valence v; a's entry e): not believed. b holds first-hand the counter-story about the
   // lie's inventor, of −min(1, counter × |v| × (0.5 + b's honour) × (0.5 + its culture's mean honour)), and remembers the liar by it; a is
   // told it at once and tells the lie no more. One counter-story a lie, each holder's valence its own. An event of the record, of the
@@ -385,6 +389,7 @@ VB['sim/stories'] = (() => {
       }
     return null;
   }
+  VB.counter('lieInvented', 'Lies made up, by pawns and the player (sim/stories, VB-554)');
   // Stories.invent: pawn `teller` makes up a story of `kind` about `about` (why: 'enemy' or 'player'), which it holds first-hand and tells
   // as any other. Checked by the verb slander; returns the story.
   function invent(st, teller, about, kind, why) {
@@ -406,6 +411,7 @@ VB['sim/stories'] = (() => {
   // At its talk turn a pawn that holds another as an enemy (pawn.bands, -1) may make up a story about one, drawn evenly, at STORY.lie ×
   // (1 − honour) × (0.5 + ambition), of a kind of TALES drawn by |v|. One draw a turn, only for a pawn with an enemy.
   const TALE_W = TALES.reduce((n, k) => n + Math.abs(STORY.kinds[k].v), 0);
+  VB.counter('lieChance', 'Talk turns of a pawn with an enemy, a chance to make up a story each (sim/stories, VB-554)');
   function lieMaybe(st, a) {
     const pa = st.pawns[a];
     if (!pa.bands.size || !holds(pa)) return;

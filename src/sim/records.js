@@ -175,6 +175,7 @@ VB['sim/records'] = (() => {
   // them over the year's first FOLD_DAYS days, a slice of the slots a day (rule 5). Each slot is passed once by each end to mark it and
   // once to fold it, never once a village; it touches st.record only, never the pawns.
   const FOLD_DAYS = 4;
+  VB.counter('recordFold', 'Record slots passed by the yearly fold of routine events (sim/records, VB-199)');
   // The year's start (sim/clock's CALENDAR) begins a pass, unless one is under way; foldHistory, daily, folds a slice of it.
   function startFold(st) {
     const F = st.recordFold,
@@ -666,6 +667,11 @@ VB['sim/records'] = (() => {
     st.pawns[id].events.push(st.record.length - 1);
   }
   const age = (st, p, t = st.t) => Math.floor((t - p.born) / YEAR);
+  VB.counter(
+    'childMinded',
+    'Times one about to leave home was found the last of 7 or over there with a child under 7, and stayed: a lodger, a carrier, a ' +
+      'fetcher or hauler of a gift, a suitor (sim/records mindsWhy; VB-1602)',
+  );
   // ---- nobody leaves a small child alone (VB-1602) ----
   // Why pawn id may not go away from home, or null: it is at home, of CHILD.from (7) or over, and the only such member of its household
   // at home (not away: agent.away, sim/away), with a member under 7 at home too. One who minds a child does not leave (the verb lodge, a

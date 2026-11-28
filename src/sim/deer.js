@@ -88,6 +88,10 @@ VB['sim/deer'] = (() => {
   }
   // A standing crop, sown and not yet reaped.
   const STANDING = ['sown', 'growing', 'ripe'];
+  VB.counter(
+    'deerCrop',
+    'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
+  );
   // In summer (sim/clock, CALENDAR): a standing crop beside a wood and beside a broken stretch of its village's fence (below
   // DEER.crop.below) is browsed with DEER.crop.chance times its region's deer against the capacity; it loses DEER.crop.loss of its yield
   // (sim/fields). Nobody is blamed: the deer are nobody's (the fence's keeper answers for cattle, sim/byre).
@@ -114,6 +118,10 @@ VB['sim/deer'] = (() => {
       }
     }
   }
+  VB.counter(
+    'deerGround',
+    'Tiles within reach of a house searched for its hunting ground, when its hunting is asked for in autumn and winter (sim/deer; VB-139)',
+  );
   // ---- hunting ----
   // The hunting ground of a house: the nearest forest-edge tile within DEER.hunt.reach walking steps, not built on, whose region holds
   // DEER.hunt.least deer or more (ties by the search's order), or -1.

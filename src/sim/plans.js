@@ -126,6 +126,10 @@ VB['sim/plans'] = (() => {
     for (const id of st.liveHouseholds) makePlan(st, 'household', id);
     for (const v of st.villages) makePlan(st, 'village', v.id);
   }
+  VB.counter(
+    'planReview',
+    "Plans reviewed: on each holder's planning day, when a window closes or a store crosses a target (sim/plans; VB-258, VB-249)",
+  );
   // A plan reviewed now, for `why` (reviewWhy): on its planning day its next is set by its cadence; a review out of turn leaves it. The
   // flag of a store is cleared. A household's first review in a season makes its seasonal plan from the template (VB-252); every review
   // reads the targets from the plan, writes those of today's values (the fields wanted, which the land step reads), notes the year's count

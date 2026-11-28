@@ -658,6 +658,10 @@ VB['sim/heirs'] = (() => {
           : living(st, c.target),
     run: (st, c) => transfer(st, st.households[c.args.household], c.target, c.args.reason),
   });
+  VB.counter(
+    'moveNoRoute',
+    'Moves to a new home refused for want of a way by land between the two villages (sim/heirs, the move verb; VB-436)',
+  );
   // move(target, {reason, with, text}): the actor changes to household `target` (VB-822), the one act for every change of household; the
   // acts that change a right as well (marry, handOn, goToKin, goBack, the foundings) issue it for their people. `with`: the minors who
   // follow, after it, each its child, its spouse's child or its ward; `text`: the 'moved' life event, when the issuer says more than the

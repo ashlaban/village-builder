@@ -205,6 +205,10 @@ VB['sim/facilities'] = (() => {
       });
     },
   });
+  VB.counter(
+    'facilityAsk',
+    "An owner's facilities read on its planning day for their upkeep (sim/facilities offerUpkeep, VB-361)",
+  );
   // The owner's planning day: each of its facilities worn below FACILITIES.mend is offered to its head, who begins the upkeep through
   // the verb. The owner's few facilities, by the index.
   function offerUpkeep(st, ref, actor) {
