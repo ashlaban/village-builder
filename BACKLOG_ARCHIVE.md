@@ -946,3 +946,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-2043](backlog/VB-2043.md) | Refactor: the person card's feature rows moved out of page/words to their features' page files | - | 3 | S | Move the leanings, share and marriage-bar rows of the person card out of page/words |
 | [VB-1809](backlog/VB-1809.md) | A blocked goal says why, and is not posted again until its fact changes | - | 3 | S | VB-1775 review F5 and F8: onward drops a blocked goal and its reason; the counters' world has no wood, so methodAsk guards nothing |
 | [VB-1973](backlog/VB-1973.md) | A seed loan before sowing, after a failed year | plans | 2 | M | seed corn lent before sowing and kept for it, so a failed year is not followed by an unsown one |
+| [VB-1818](backlog/VB-1818.md) | Kinds: the control fields no code reads after VB-1750 taken out | - | 3 | S | the kinds' own to and meadows' reload, dead since the phases went, removed |
