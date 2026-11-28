@@ -104,7 +104,8 @@ VB['sim/outlook'] = (() => {
     return { at, met, need, spoilt, left: keep + rot };
   }
   // A day's loss of a store spoiling by tiers, by its good's keeping (sim/goods: grain by years of need, hay by winters): `unit` held a tier,
-  // times the barn's (BUILD.barn.loss with one); q: the good's daily shares (Goods.shares), reckoned once a supply.
+  // times its building's (BUILD.storehouse.loss with one for grain, BUILD.barn.loss for hay); q: the good's daily shares (Goods.shares),
+  // reckoned once a supply.
   const tierLoss = (x, unit, q, barn) => (unit > 0 ? Goods.tierLoss(x, unit, q) * barn : 0);
   // A supply's value and state from a walk on the seasons scale: when it first ran short, capped at the frame, and how much of that season's
   // need it covered.
@@ -258,7 +259,7 @@ VB['sim/outlook'] = (() => {
         });
     }
     ins.sort((a, b) => a[0] - b[0]);
-    const barn = f && f.barn ? BUILD.barn.loss : 1,
+    const barn = f && f.storehouse ? BUILD.storehouse.loss : 1, // the storehouse keeps the grain (VB-1898)
       year = D * YEAR_DAYS,
       q = Goods.shares(st, 'grain'),
       loss = (g) => (g > 0 ? (tierLoss(g + seed, year, q, barn) * g) / (g + seed) : 0);

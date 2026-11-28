@@ -370,12 +370,13 @@ VB['sim/byre'] = (() => {
       Stores.record(st, hh, 'smoked meat', smoked, 'salting');
     }
   }
-  // Barn hay spoils by winters of the animals now; mown hay still on a meadow is untouched (VB-159); BUILD.barn.loss as much on a farm
-  // with a barn (VB-255).
+  // The hay household hh's barn would lose today with no barn standing: by hay's keeping (sim/goods), tiers of the herds' winter; mown hay
+  // still on a meadow is untouched (VB-159). One reckoning for the doing (spoilHay) and the head's weighing of a barn (sim/aims).
+  const hayLoss = (st, hh) => (hh.hay > 0 ? dayLoss(st, 'hay', hh.hay, winterNeed(st, hh)) : 0);
+  // Barn hay spoils by winters of the animals now; BUILD.barn.loss as much on a farm with a barn (VB-255; the hay only, VB-1898).
   function spoilHay(st, hh) {
-    const hay = hh.hay;
-    if (!(hay > 0)) return;
-    let lost = dayLoss(st, 'hay', hay, winterNeed(st, hh)); // hay's keeping (sim/goods): tiers of the herds' winter
+    let lost = hayLoss(st, hh);
+    if (!(lost > 0)) return;
     if (hh.farmstead !== null && st.farmsteads[hh.farmstead].barn) lost *= BUILD.barn.loss; // a barn halves it (VB-255)
     hh.hay -= lost;
     hh.haySpoilt = (hh.haySpoilt || 0) + lost;
@@ -834,6 +835,7 @@ VB['sim/byre'] = (() => {
     KINDS,
     byreWork,
     spoilHay,
+    hayLoss,
     autumnCounts,
     strays,
     stray,

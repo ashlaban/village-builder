@@ -1,6 +1,7 @@
 // @suite integration
 // VB-255 (design.md section 7, How a holder chooses: projects): a head with a surplus takes one project from a menu weighed by its values,
-// and drops it when the surplus is gone a whole season; a barn halves what the farm loses to spoilage, of grain and of barn hay. On a tiny
+// and drops it when the surplus is gone a whole season; a storehouse halves the grain the farm loses to spoilage, a barn the barn hay (VB-1898,
+// the barn kept both before), the menu weighing each by what it saves. On a tiny
 // village.
 const assert = require('assert');
 const { targets: TG, season: SP } = require('./lib/season.js');
@@ -13,9 +14,10 @@ const rows = Array.from({ length: 14 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFFFFFF
 const make = () => tinyState(tinyWorld(rows), [{ at: [9, 8], farms: 2, sizes: [5, 4] }], { seed: 4, herds: true });
 const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
 
-// a barn halves the grain lost to spoilage and the barn hay lost (BUILD.barn.loss)
+// a storehouse halves the grain lost to spoilage (BUILD.storehouse.loss), a barn the barn hay lost (BUILD.barn.loss), each its own only
 {
   const st = make(), hh = st.households[0], f = st.farmsteads[hh.farmstead];
+  f.storehouse = f.barn = null; // VB-1898: a seeded farm has both; this one is made without
   Stores.put(st, hh, Stores.grainGood('barley'), 3000, 'harvest');
   hh.hay = 40;
   const lose = () => {
@@ -31,8 +33,12 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
   assert.ok(g0 > 0 && h0 > 0, 'grain and hay spoil without a barn');
   f.barn = { built: st.t };
   const [g1, h1] = lose();
-  assert.ok(near(g1, g0 * BUILD.barn.loss, 1e-6), `grain lost with a barn ${g1} is half of ${g0}`);
+  assert.ok(near(g1, g0, 1e-6), `grain lost with a barn ${g1} is as without, ${g0}`);
   assert.ok(near(h1, h0 * BUILD.barn.loss, 1e-9), `hay lost with a barn ${h1} is half of ${h0}`);
+  f.storehouse = { built: st.t };
+  const [g2, h2] = lose();
+  assert.ok(near(g2, g0 * BUILD.storehouse.loss, 1e-6), `grain lost with a storehouse ${g2} is half of ${g0}`);
+  assert.ok(near(h2, h1, 1e-9), `the hay as with the barn alone: ${h2}`);
   assert.deepStrictEqual(checkState(st), [], 'invariants with a barn');
 }
 
@@ -56,6 +62,7 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
 // to the first review after the autumn count, with a household set to a surplus: stores well over 1.5 years, its targets met, idle
 function surplusState() {
   const st = make();
+  for (const f of st.farmsteads) f.barn = null; // VB-1898: a seeded farm has its barn; these are made without, their storehouse standing
   const c0 = cal(st.t);
   Sim.advance(st, ((HERD.countDay + 1 - c0.doy + 48) % 48) * DAY);
   const hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = st.plans.households.get(hh.id), c = cal(st.t);
@@ -78,7 +85,9 @@ function surplusState() {
   const menu = A.menu(st, plan, hh, f), by = Object.fromEntries(menu.map((o) => [o.what, o]));
   assert.ok(by.field && by.claim && by.barn, `field, claim and barn open: ${menu.map((o) => o.what)}`);
   assert.ok(near(by.field.weight, 1 + ambition) && near(by.claim.weight, 1 + ambition), 'the field and the claim lean by ambition');
-  assert.strictEqual(by.barn.weight, 1, 'the barn leans by nothing');
+  const saved = VB['sim/byre'].hayLoss(st, hh) * VB['sim/rules'].YEAR_DAYS * (1 - BUILD.barn.loss);
+  assert.ok(near(by.barn.weight, Math.min(A.AIMS.outbuilding, saved / (A.AIMS.keep * 120))), `the barn by the hay it saves: ${by.barn.weight}`);
+  assert.ok(!by.storehouse, 'no storehouse where one stands');
   // one draw from the stream plans over the weights: at its least the first option, at its most the last
   st.rng.plans.fix = 0;
   assert.strictEqual(A.choose(st, menu).what, menu[0].what);

@@ -94,6 +94,7 @@ if (only && !only.includes('solo')) process.exit(0);
   assert.strictEqual(v.building, null);
   assert.deepStrictEqual(v.next, [{ what: 'shelter', needs: RUNGS.shelter.needs, ok: true, why: null, planned: false }]);
   assert.deepStrictEqual(v.outbuildings, [
+    { what: 'storehouse', built: false, needs: OUTBUILDINGS.storehouse.needs, ok: false, why: `${f.name} has no cottage yet`, planned: false, building: null },
     { what: 'barn', built: false, needs: OUTBUILDINGS.barn.needs, ok: false, why: `${f.name} has no cottage yet`, planned: false, building: null },
     { what: 'byre', built: false, needs: OUTBUILDINGS.byre.needs, ok: false, why: `${f.name} has no cottage yet`, planned: false, building: null },
   ]);
