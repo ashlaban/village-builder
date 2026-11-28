@@ -38,7 +38,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1941](backlog/VB-1941.md)<a id="VB-1941"></a> | Refactor: a module's layer read from its @sys line; the modules' list generated; NOT_STOCKS a tag on @state | - | 2 | M | src/layers.json 13 to 1, modules.md 22 to 0, tools/stocks.js 10 to 3 (VB-1406 step 3) |
 | [VB-1944](backlog/VB-1944.md)<a id="VB-1944"></a> | Refactor: the Sim facade joined from what each module gives the page | - | 2 | M | src/sim.js 17 to 1-4 (VB-1406 step 6) |
 | [VB-1946](backlog/VB-1946.md)<a id="VB-1946"></a> | Refactor: one record an event kind, declared by its emitter; sim/notable split into the skip and the chronicle | - | 2 | M | sim/notable 16 to 8 and 6, sim/records 10 to 6 (VB-1406 step 8) |
-| [VB-1948](backlog/VB-1948.md)<a id="VB-1948"></a> | Refactor: the page's stylesheets by area, and a card's rows declared by the feature's page file | - | 2 | M | head.html 14 to 6, 6, 4; page/words 11 to 7 (VB-1406 step 10) |
 | [VB-2029](backlog/VB-2029.md)<a id="VB-2029"></a> | A lone settler's foraging need outranks reaping his ripe field when frost is near | - | 2 | S | Foraging need 8 beats reap 1.3+frostNear when spare food under 3 days |
 | [VB-2033](backlog/VB-2033.md)<a id="VB-2033"></a> | A cold lone settler fetches wood | - | 2 | S | Cold, not hunger, drained the settler; find why wood is not chosen |
 | [VB-093](backlog/VB-093.md)<a id="VB-093"></a> | A village mill: water where a river is in reach, else wind | mill | 3 | M | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. |
@@ -88,7 +87,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1240](backlog/VB-1240.md)<a id="VB-1240"></a> | Acts with no pawn, collected: swept at a slice's wrap-up | acts | 3 | M | The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up |
 | [VB-1354](backlog/VB-1354.md)<a id="VB-1354"></a> | Screenshots and Debug audit for VB-671 | - | 3 | S | screenshots, Debug audit |
 | [VB-1364](backlog/VB-1364.md)<a id="VB-1364"></a> | The village's loans are made by its alderman | - | 3 | S | Loans of the village (VB-312) made by the alderman, booked as goodwill |
-| [VB-1369](backlog/VB-1369.md)<a id="VB-1369"></a> | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
 | [VB-1389](backlog/VB-1389.md)<a id="VB-1389"></a> | Cost: three history targets out at small-y40 (asksWeighed, kinPairs, roundWalk) | - | 3 | S | asksWeighed, kinPairs and roundWalk grow with history at small-y40; find the loops and bound them |
 | [VB-1404](backlog/VB-1404.md)<a id="VB-1404"></a> | Measures owed to VB-775: RITE.spread 3/5/8, hours lost, cross-village marriages | - | 3 | S | RITE.spread runs, hours lost, marriages across villages, greens' share of dealing |
 | [VB-1410](backlog/VB-1410.md)<a id="VB-1410"></a> | Measure the alderman's keep (VB-463): each option forced, keepDays 2/4/7, keepShare 0.05/0.1/0.17 | - | 3 | S | Collecting task for VB-463's unmeasured numbers |
@@ -125,7 +123,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1697](backlog/VB-1697.md)<a id="VB-1697"></a> | A dead-out household's remaining goods pass with the farm | - | 3 | M | Stone, flour, peat, tar, hides, salt, iron, clay, ore and the rack stay at the farmstead as the estate's and pass with the farm to whoever takes it |
 | [VB-1698](backlog/VB-1698.md)<a id="VB-1698"></a> | The membership graph: fold the dead's ended edges into the record | debt | 3 | S | Bound the graph's history in saves (rule 9) |
 | [VB-1701](backlog/VB-1701.md)<a id="VB-1701"></a> | Followers: the medium runs and the cost on the fixtures | - | 3 | S | VB-708 left its medium report and its cost on small-y40 and medium-ref unmeasured |
-| [VB-1703](backlog/VB-1703.md)<a id="VB-1703"></a> | Caches checked after every verb: the 41 verbs tests/caches.js does not reach | - | 3 | M | Build a command for each verb tests/caches.js does not reach yet |
 | [VB-1706](backlog/VB-1706.md)<a id="VB-1706"></a> | Hay through sim/stores, so that its account closes | - | 3 | M | hh.hay is written outside the stores (meadows' carrying, byre's feeding and loss, droving, camp's leaving, herds' start): no ledger, so no account. |
 | [VB-1711](backlog/VB-1711.md)<a id="VB-1711"></a> | balance.js: made/need as a ratio of sums | - | 3 | S | the tool's made/need column is a mean of ratios that empty households inflate |
 | [VB-1714](backlog/VB-1714.md)<a id="VB-1714"></a> | Ways worn over the ice | roads | 3 | S | wear counted on water while its ice bears, drawn as trodden snow |
@@ -156,9 +153,10 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1980](backlog/VB-1980.md)<a id="VB-1980"></a> | Gathering customs measure at 40 years | - | 3 | S | VB-296 before/after at 40 populous years |
 | [VB-1990](backlog/VB-1990.md)<a id="VB-1990"></a> | An animal is not given where its new household cannot lead it home | - | 3 | S | giveAnimal skips a gift beyond a day's walk, which otherwise starves away before the frost |
 | [VB-2000](backlog/VB-2000.md)<a id="VB-2000"></a> | Wet game days: a share of what lies out lost on each | - | 3 | M | the wet share of VB-1910, waiting for a wet day in the sim |
-| [VB-2023](backlog/VB-2023.md)<a id="VB-2023"></a> | A team's harness moves with the team | - | 3 | S | A new keeper of a team takes its worn harness, not a sound one |
 | [VB-2041](backlog/VB-2041.md)<a id="VB-2041"></a> | Retire the work counter roundPairs, counted nowhere since VB-693 | - | 3 | S | roundPairs is declared and read but never raised: retire it and its always-zero probe |
+| [VB-2043](backlog/VB-2043.md)<a id="VB-2043"></a> | Refactor: the person card's feature rows moved out of page/words to their features' page files | - | 3 | S | Move the leanings, share and marriage-bar rows of the person card out of page/words |
 | [VB-2045](backlog/VB-2045.md)<a id="VB-2045"></a> | A seed loan lent in the crop short | - | 3 | S | seed lent in the crop the fields want, not the lender's mix |
+| [VB-2051](backlog/VB-2051.md)<a id="VB-2051"></a> | Caches checked after every verb: the last 8 verbs tests/caches.js does not reach | - | 3 | M | Carry found, upkeep, goGathering, stayHome, swap, beginCottage, visit and sendVisit in tests/caches.js on states built for them |
 
 </details>
 

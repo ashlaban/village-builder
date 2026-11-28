@@ -938,3 +938,7 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-2030](backlog/VB-2030.md) | Investigate: a settler dies of starvation with 80+ grain in the barn and hunger 0 | - | 2 | S | Seeds 3 and 5 solo: health falls 3 a day at hunger 0 |
 | [VB-1973](backlog/VB-1973.md) | A seed loan before sowing, after a failed year | plans | 2 | M | seed corn lent before sowing and kept for it, so a failed year is not followed by an unsown one |
 | [VB-1934](backlog/VB-1934.md) | Refactor: a work counter is declared by the module whose loop it counts | - | 2 | M | src/vb.js 12 tasks to 0 (VB-1406 step 2) |
+| [VB-2023](backlog/VB-2023.md) | A team's harness moves with the team | - | 3 | S | A new keeper of a team takes its worn harness, not a sound one |
+| [VB-1703](backlog/VB-1703.md) | Caches checked after every verb: the 41 verbs tests/caches.js does not reach | - | 3 | M | Build a command for each verb tests/caches.js does not reach yet |
+| [VB-1369](backlog/VB-1369.md) | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
+| [VB-1948](backlog/VB-1948.md) | Refactor: the page's stylesheets by area, and a card's rows declared by the feature's page file | - | 2 | M | head.html 14 to 6, 6, 4; page/words 11 to 7 (VB-1406 step 10) |
