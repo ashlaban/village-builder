@@ -2392,7 +2392,7 @@ function checkState(st) {
     for (const k of ['barn', 'byre', 'storehouse']) if (k in f) bad.push(`farmsteads[${f.id}]: a field ${k}`);
     if (f.camp === true && st.facilities)
       for (const k of ['byre', 'storehouse'])
-        if (globalThis.VB['sim/facilities'].standing(st, f, k)) bad.push(`farmsteads[${f.id}]: a ${k} on a camp`);
+        if (globalThis.VB['sim/facilityrecords'].standing(st, f, k)) bad.push(`farmsteads[${f.id}]: a ${k} on a camp`);
     // VB-1664: the rung stored where it cannot be derived: the timber house, or the shelter of a farm with no cottage yet (VB-1937, in
     // place of the booth's mark farmstead.booth, which no longer is)
     if (f.rung !== undefined && f.rung !== null && f.rung !== 'timber' && f.rung !== 'shelter')
@@ -3781,7 +3781,7 @@ function checkState(st) {
   // is; a farm's outbuilding (VB-1911) a kind declared `farm`, owned by a farm, at its house, one of a kind a farm; a stage within its kind's stages (all of them once built), its hours done within the stage's, its condition in 0..1 at a time not
   // after now; built not after now, and null exactly while a stage is left to raise
   if (st.facilities !== undefined) {
-    const F = globalThis.VB['sim/facilities'].FACILITY,
+    const F = globalThis.VB['sim/facilityrecords'].FACILITY,
       tiles = new Set(),
       outs = new Set();
     st.facilities.forEach((fac, n) => {

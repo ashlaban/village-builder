@@ -529,19 +529,19 @@ VB['sim/building'] = (() => {
   //   OUTBUILDINGS), a second store building on its block, drawn beside the house, where its hay and its unthreshed sheaves keep (a farm
   //   with one loses BUILD.barn.loss as much hay: sim/byre spoilHay). Every farm that stands at seeding has one (seedBarns, VB-1898), but a
   //   camp landed by hand (noBarn); a save keeps the barns it had. One a farm; it goes with the farm, not the household.
-  const Fac = () => VB['sim/facilities'];
+  const Fac = VB['sim/facilityrecords'];
   // The making's plan record of farm f's barn (sim/aims declares the making): its stages from the half-built one's open stage, if any.
-  const barnSteps = (st, f) => Fac().stepsOn(st, 'barn', f);
-  // A stage of the barn done: the next opens (sim/plans), the barn raised by it (sim/facilities raiseOn); with the roof on, the farm has
+  const barnSteps = (st, f) => Fac.stepsOn(st, 'barn', f);
+  // A stage of the barn done: the next opens (sim/plans), the barn raised by it (sim/facilityrecords raiseOn); with the roof on, the farm has
   // its barn. The holder is the farm's household (j.owner), not the hand's who ends it.
-  const barnBuilt = (st, j, hh, plan) => Fac().raiseOn(st, plan);
+  const barnBuilt = (st, j, hh, plan) => Fac.raiseOn(st, plan);
   const barnStage = (st, j) =>
     Projects.stepEnds(st, j, j.owner && j.owner.type === 'household' ? st.households[j.owner.id] : null, barnBuilt);
   // At seeding (sim/scenarios makeState; VB-1898, as the byre): every farm has its barn; a camp landed by hand has none.
   function seedBarns(st) {
-    for (const f of st.farmsteads) Fac().seedOn(st, f, 'barn');
+    for (const f of st.farmsteads) Fac.seedOn(st, f, 'barn');
   }
-  const noBarn = (st, f) => Fac().raze(st, f, 'barn');
+  const noBarn = (st, f) => Fac.raze(st, f, 'barn');
   const barnStage_ = (verb, go, name, label, anim, i) => ({
     verb,
     go,

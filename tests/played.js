@@ -158,7 +158,7 @@ function village(play, auto) {
   const built = (v) => ({
     build: v.st.plans.households.get(v.hh.id).build,
     projects: projectsOf(v.st, 'household', v.hh.id).map((p) => p.what),
-    farm: { grade: v.f.grade, rung: v.f.rung, barn: !!VB['sim/facilities'].standing(v.st, v.f, 'barn'), byre: !!VB['sim/facilities'].standing(v.st, v.f, 'byre') },
+    farm: { grade: v.f.grade, rung: v.f.rung, barn: !!VB['sim/facilityrecords'].standing(v.st, v.f, 'barn'), byre: !!VB['sim/facilityrecords'].standing(v.st, v.f, 'byre') },
     jobs: [...v.st.jobs.values()]
       .filter((j) => j.owner && j.owner.type === 'household' && j.owner.id === v.hh.id)
       .map((j) => j.key)

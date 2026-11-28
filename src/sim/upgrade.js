@@ -16,7 +16,7 @@ VB['sim/upgrade'] = (() => {
   const { on, emit } = VB['sim/events'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],
-    Facilities = VB['sim/facilities'];
+    Facilities = VB['sim/facilityrecords'];
   const { projectsOf, lacks } = Projects;
   const { KINDS, GOALS, headCmd } = VB['sim/kinds'];
   const { makingOf } = VB['sim/makings'];

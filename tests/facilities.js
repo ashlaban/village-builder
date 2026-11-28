@@ -8,6 +8,7 @@ const VB = require('../src/load.js'),
   Sim = VB.sim,
   { state } = require('./lib/probe.js');
 const Fac = VB['sim/facilities'],
+  Rec = VB['sim/facilityrecords'],
   Stores = VB['sim/stores'],
   Projects = VB['sim/projects'],
   { issue } = VB['sim/commands'];
@@ -20,7 +21,7 @@ const check = (ok, m) => {
     console.error('FACILITIES FAIL:', m);
   }
 };
-Fac.declare('testshed', {
+Rec.declare('testshed', {
   name: 'test shed',
   stages: [{ hours: 6, loads: { iron: 2 }, name: 'the frame' }, { hours: 4 }],
   may: (st, t) => (st.w.water[t] ? 'it stands on land' : null),
@@ -29,10 +30,10 @@ Fac.declare('testshed', {
   wear: 0.2,
   upkeep: 10,
 });
-Fac.declare('testhut', { name: 'test hut', stages: [{ hours: 3 }], may: () => null }); // no loads: a village holds no iron
+Rec.declare('testhut', { name: 'test hut', stages: [{ hours: 3 }], may: () => null }); // no loads: a village holds no iron
 let threw = false;
 try {
-  Fac.declare('testshed', { name: 'again', stages: [{ hours: 1 }], may: () => null });
+  Rec.declare('testshed', { name: 'again', stages: [{ hours: 1 }], may: () => null });
 } catch {
   threw = true;
 }
@@ -60,9 +61,9 @@ const water = near.find((t) => t >= 0 && w.water[t]);
 Stores.put(st, hh, 'iron', 3, 'smelt');
 if (water !== undefined) check(found(water) === 'it stands on land', 'the kind tests the tile');
 check(found(tile) === true, 'the head founds a shed');
-const fac = Fac.at(st, tile);
+const fac = Rec.at(st, tile);
 check(fac && fac.id === n0 && fac.stage === 0 && fac.built === null && fac.owner.id === hh.id, `the record: ${JSON.stringify(fac)}`);
-check(Fac.ofOwner(st, me).join() === String(n0), 'indexed by owner');
+check(Rec.ofOwner(st, me).join() === String(n0), 'indexed by owner');
 const plan = Projects.projectsOf(st, 'household', hh.id).find((p) => p.what === 'facility');
 check(
   plan && plan.steps.length === 2 && plan.steps.every((s) => s.kind === 'raisestage' && s.place === tile) && plan.steps[0].spends.iron === 2,
@@ -95,11 +96,11 @@ check(Fac.upkeepWhy(st, fac.id) === 'it is whole' || Fac.conditionOf(st, fac) > 
 // a half-built facility outlives its dropped plan, and is taken up again where it stood
 Stores.put(st, hh, 'iron', 2, 'smelt');
 check(found(other) === true, `a second shed (${found(other)})`);
-const fac2 = Fac.at(st, other);
+const fac2 = Rec.at(st, other);
 for (let h = 0; h < 24 * 10 && !(fac2.done > 0); h++) Sim.advance(st, 1);
 const p2 = Projects.projectsOf(st, 'household', hh.id).find((p) => p.facility === fac2.id);
 if (p2) issue(st, { actor: hh.holder, verb: 'dropProject', target: hh.id, args: { id: p2.id }, source: 'player' });
-check(fac2.done > 0 && fac2.built === null && Fac.at(st, other) === fac2, `half-built, it stands (${JSON.stringify(fac2)})`);
+check(fac2.done > 0 && fac2.built === null && Rec.at(st, other) === fac2, `half-built, it stands (${JSON.stringify(fac2)})`);
 const done2 = fac2.done;
 check(found(other) === true, 'taken up again');
 const p3 = Projects.projectsOf(st, 'household', hh.id).find((p) => p.facility === fac2.id);
@@ -109,7 +110,7 @@ check(st.facilities.length === n0 + 2, 'ids are never reused');
 // a village's: its plan, the job posted at the village
 const v = st.villages[f.village];
 const vt = (() => {
-  for (let i = 0; i < w.N; i++) if (!w.water[i] && st.owner[i] === 0 && !Fac.at(st, i) && i !== tile) return i;
+  for (let i = 0; i < w.N; i++) if (!w.water[i] && st.owner[i] === 0 && !Rec.at(st, i) && i !== tile) return i;
   return -1;
 })();
 const vf = Fac.found(st, 'testhut', vt, { type: 'village', id: v.id });
@@ -120,7 +121,7 @@ bad = [...checkState(st), ...checkCaches(st)];
 check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
 // a save keeps the records and builds the index again
 const back = Sim.load(w, JSON.parse(JSON.stringify(Sim.save(st))));
-check(JSON.stringify(back.facilities) === JSON.stringify(st.facilities) && Fac.at(back, tile).id === n0, 'saved and loaded');
+check(JSON.stringify(back.facilities) === JSON.stringify(st.facilities) && Rec.at(back, tile).id === n0, 'saved and loaded');
 // the invariants see a broken record
 fac.stage = 7;
 check(checkState(st).some((m) => m.startsWith(`facilities[${n0}]`)), 'an invariant misses a stage past the kind');

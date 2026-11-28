@@ -433,7 +433,7 @@ VB['sim/saves'] = (() => {
     // VB-1911: an older save's farmstead.barn, .byre and .storehouse as facilities of their farms; one with no record of its storehouse
     // reads as having it unless landed by hand (VB-1898), of its barn as having none
     const { storehouseHad } = VB['sim/storehouse'];
-    VB['sim/facilities'].outbuildingsLoaded(st, (f, kind) => kind === 'storehouse' && storehouseHad(f));
+    VB['sim/facilityrecords'].outbuildingsLoaded(st, (f, kind) => kind === 'storehouse' && storehouseHad(f));
     VB['sim/sites'].sitesLoaded(st); // VB-787: an older save has no sites under way
     for (const hd of st.herds) for (const e of hd.cull || []) if (e.sheep) e.lot ??= 1; // VB-1682: a sheep marked alone
     const R = VB['sim/rng']; // a save from before a system's stream (VB-761's `making`): its stream from the seed and its name, as at seeding

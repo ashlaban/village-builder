@@ -267,7 +267,7 @@ VB['sim/meadows'] = (() => {
     if (doy >= winter) return 0;
     const stall = Math.max(0, HERD.stall[1] - doy) + Math.max(0, winter - Math.max(doy, HERD.stall[0]));
     const spoil =
-      dayLoss(st, 'hay', target, need) * (VB['sim/facilities'].standing(st, f, 'barn') ? BUILD.barn.loss : 1);
+      dayLoss(st, 'hay', target, need) * (VB['sim/facilityrecords'].standing(st, f, 'barn') ? BUILD.barn.loss : 1);
     return (stall * need) / HERD.stallDays + (winter - doy) * spoil;
   }
   // The jobs a meadow posts now: [key, kind, extra]; refreshJobs posts them for the meadow's household. Raking and mowing only while hay is

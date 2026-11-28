@@ -3,7 +3,7 @@
 //   storeroof, the walls waiting for their timber), its check storehouseWhy, the storehouses the run begins with and an older save's; the
 //   grain it keeps (a farm with one loses BUILD.storehouse.loss as much grain to spoilage: storeLoss; the day's loss, grainLoss, one
 //   reckoning for sim/hunger's spoilGrain and sim/aims' weighing of a storehouse); the storehouse itself is a facility of its farm
-//   (VB-1911: its row in sim/ladder OUTBUILDINGS, its record sim/facilities')
+//   (VB-1911: its row in sim/ladder OUTBUILDINGS, its record sim/facilityrecords')
 VB['sim/storehouse'] = (() => {
   const { BUILD } = VB['sim/rules'];
   const Projects = VB['sim/projects'];
@@ -13,30 +13,30 @@ VB['sim/storehouse'] = (() => {
   // The farm's storehouse (VB-1898, VB-1911): the facility `storehouse` of its farm (sim/facilities, loaded after this module), where its
   //   threshed grain and food keep (storeLoss). Every farm that stands at seeding has one (seedStorehouses), but a camp landed by hand
   //   (noStorehouse); a farm made in play (a settler's, an heir's) has none until its household builds it.
-  const Fac = () => VB['sim/facilities'];
+  const Fac = VB['sim/facilityrecords'];
   // Why household hh may not begin a storehouse now, or null: a farm of its own with none, its cottage built, a village wood to fell its
   // timber in, none under way; beside any other project (VB-1668), as the byre.
   function storehouseWhy(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `the household has no farm of its own`;
-    if (Fac().standing(st, f, 'storehouse')) return `${f.name} has a storehouse`;
+    if (Fac.standing(st, f, 'storehouse')) return `${f.name} has a storehouse`;
     if (f.rung === 'shelter') return `${f.name} has no cottage yet`;
     if (!st.villages[f.village].wood.length) return `${st.villages[f.village].name} has no wood to fell its timber in`;
     return Projects.underWay(st, hh.id, 'storehouse') ? `the household has a storehouse under way` : null;
   }
   declare('storehouse', {
     why: (st, hh) => storehouseWhy(st, hh),
-    begin: (st, hh, f) => Fac().stepsOn(st, 'storehouse', f),
-    made: (st, hh, f, plan) => Fac().foundOn(st, 'storehouse', f, plan),
+    begin: (st, hh, f) => Fac.stepsOn(st, 'storehouse', f),
+    made: (st, hh, f, plan) => Fac.foundOn(st, 'storehouse', f, plan),
   });
-  // A stage done: the next opens (sim/plans), the storehouse raised by it (sim/facilities raiseOn); with the roof on, the farm has its
+  // A stage done: the next opens (sim/plans), the storehouse raised by it (sim/facilityrecords raiseOn); with the roof on, the farm has its
   // storehouse. The holder is the farm's household (j.owner).
   const done = (st, j) =>
     Projects.stepEnds(
       st,
       j,
       j.owner && j.owner.type === 'household' ? st.households[j.owner.id] : null,
-      (st, j, hh, plan) => Fac().raiseOn(st, plan),
+      (st, j, hh, plan) => Fac.raiseOn(st, plan),
     );
   const kind = (verb, name, anim, i, gives) => ({
     at: ['farm'],
@@ -68,15 +68,15 @@ VB['sim/storehouse'] = (() => {
   // What household hh's farm loses of its grain, as a share of a farm without a storehouse: BUILD.storehouse.loss with one.
   function storeLoss(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    return f && Fac().standing(st, f, 'storehouse') ? BUILD.storehouse.loss : 1;
+    return f && Fac.standing(st, f, 'storehouse') ? BUILD.storehouse.loss : 1;
   }
   // ---- the storehouses the run begins with ----
   // At seeding (sim/scenarios makeState): every farm has its storehouse, as every farm kept its grain before VB-1898.
   function seedStorehouses(st) {
-    for (const f of st.farmsteads) Fac().seedOn(st, f, 'storehouse');
+    for (const f of st.farmsteads) Fac.seedOn(st, f, 'storehouse');
   }
   // A camp landed by hand (sim/scenarios landAlone): nothing stands on it, a storehouse neither.
-  const noStorehouse = (st, f) => Fac().raze(st, f, 'storehouse');
+  const noStorehouse = (st, f) => Fac.raze(st, f, 'storehouse');
   // A save from before VB-1898 (no farmstead.storehouse): its farm reads as having its storehouse, as the grain's keeping assumed then;
   // but a farm landed by hand (f.camp defined, sim/camp) none, as none was drawn on it: only what it built stands (sim/facilities
   // outbuildingsLoaded asks).

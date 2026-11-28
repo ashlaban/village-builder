@@ -18,7 +18,7 @@ const { OUTBUILDINGS } = VB['sim/ladder'],
   { spoilHay, hayLoss } = VB['sim/byre'],
   { menu } = VB['sim/aims'],
   Stores = VB['sim/stores'],
-  Fac = VB['sim/facilities'];
+  Fac = VB['sim/facilityrecords'];
 // VB-1911: the storehouse and the barn are facilities of the farm
 const has = (st, f, k) => Fac.standing(st, f, k);
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));

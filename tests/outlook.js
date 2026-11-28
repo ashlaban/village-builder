@@ -20,7 +20,7 @@ const empty = (hh) => { hh.grain = {}; hh.meals = 0; hh.flour = 0; hh.larder = [
 
 const st = probe.state();
 st.naturalDeaths = false;
-for (const f of st.farmsteads) for (const k of ['storehouse', 'barn']) VB['sim/facilities'].raze(st, f, k); // VB-1898: the spoilage of a farm with neither, as these figures were made for
+for (const f of st.farmsteads) for (const k of ['storehouse', 'barn']) VB['sim/facilityrecords'].raze(st, f, k); // VB-1898: the spoilage of a farm with neither, as these figures were made for
 at(st, YEAR + 8); // year 1, spring, day 0 of the season, 08:00
 const c = cal(st.t), [h0, h1] = st.villages[0].farmsteads.map((f) => st.households[st.farmsteads[f].household]);
 const p0 = st.plans.households.get(h0.id), p1 = st.plans.households.get(h1.id), f0 = st.farmsteads[h0.farmstead];

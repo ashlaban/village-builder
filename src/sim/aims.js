@@ -12,7 +12,7 @@ VB['sim/aims'] = (() => {
   });
   const { targetOf } = VB['sim/steps'];
   const { barnSteps } = VB['sim/building'];
-  const Facilities = VB['sim/facilities'];
+  const Facilities = VB['sim/facilityrecords'];
   const { emit } = VB['sim/events'];
   const { HERD, DAY, SEASON_DAYS, YEAR_DAYS, WORK, MARRIAGE, BUILD, cal } = VB['sim/rules'];
   const { next: rnd } = VB['sim/rng'];

@@ -20,7 +20,7 @@ VB['sim/ladder'] = (() => {
   const { barnWhy } = VB['sim/aims'];
   const { byreWhy } = VB['sim/byrehouse'];
   const { storehouseWhy } = VB['sim/storehouse'];
-  const Facilities = VB['sim/facilities'];
+  const Facilities = VB['sim/facilityrecords'];
   const { HERD } = VB['sim/rules'];
   const sum = (a) => a.reduce((s, x) => s + x, 0);
   // ---- the tables: later rungs (a timber house) and outbuildings (a byre) are added here, with the rules that build them ----
@@ -65,8 +65,8 @@ VB['sim/ladder'] = (() => {
   // its stages' job kinds (their modules': sim/building's barn, sim/byrehouse, sim/storehouse), their hours BUILD's and the walls waiting
   // for BUILD's timber, `gives` in the sim's terms (a storehouse: the grain's spoilage times `loss`, sim/hunger; a barn: the hay's,
   // sim/byre). Each is declared a facility of its name, `farm` (it goes with the farm), and given `needs` as a rung's and `kinds` its
-  // stages' job kinds. The making of the same name (sim/makings) founds it at the farm's house (sim/facilities foundOn), each stage done
-  // raises it (raiseOn), and the farm reads it standing (sim/facilities standing): sim/upgrade's chain `outbuilding` builds any of them so
+  // stages' job kinds. The making of the same name (sim/makings) founds it at the farm's house (sim/facilityrecords foundOn), each stage done
+  // raises it (raiseOn), and the farm reads it standing (sim/facilityrecords standing): sim/upgrade's chain `outbuilding` builds any of them so
   // (VB-1663).
   const ROWS = {
     // the storehouse (VB-1898): the threshed grain and the food keep in it

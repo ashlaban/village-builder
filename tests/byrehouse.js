@@ -16,7 +16,7 @@ const { projectsOf } = VB['sim/projects'],
   { herdsOf } = VB['sim/herds'],
   { byreDay } = VB['sim/byre'],
   Stores = VB['sim/stores'],
-  Fac = VB['sim/facilities'];
+  Fac = VB['sim/facilityrecords'];
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const hash = (st) => sha(canon(kept(st)));
