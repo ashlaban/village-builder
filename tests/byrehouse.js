@@ -15,7 +15,8 @@ const { projectsOf } = VB['sim/projects'],
   { BUILD, HERD, DAY } = VB['sim/rules'],
   { herdsOf } = VB['sim/herds'],
   { byreDay } = VB['sim/byre'],
-  Stores = VB['sim/stores'];
+  Stores = VB['sim/stores'],
+  Fac = VB['sim/facilityrecords'];
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const hash = (st) => sha(canon(kept(st)));
@@ -26,32 +27,35 @@ const fresh = () => {
   return st;
 };
 // The farm of household hh made byre-less, as a settler's new farm is (a test's write: the farm stands without one).
-const unbuild = (f) => (f.byre = null);
+const unbuild = (st, f) => Fac.raze(st, f, 'byre');
+const byre = (st, f) => Fac.standing(st, f, 'byre'); // VB-1911: a facility of the farm
 
 // ---- 1. at seeding, a camp, an older save ----
 {
   const st = fresh();
-  assert(st.farmsteads.every((f) => f.byre && f.byre.built === st.t), 'every farm at seeding has its byre');
+  assert(st.farmsteads.every((f) => byre(st, f) && byre(st, f).built === st.t), 'every farm at seeding has its byre');
   const camp = Sim.seed(tinyWorld(rows), 7, 'solo', null, { hand: true });
-  assert.strictEqual(camp.farmsteads[0].byre, null, 'a camp landed by hand has none');
+  assert.strictEqual(byre(camp, camp.farmsteads[0]), null, 'a camp landed by hand has none');
   sound(camp, 'camp');
   const solo = Sim.seed(tinyWorld(rows), 7, 'solo');
-  assert(solo.farmsteads[0].byre, 'the solo start without hand begins as before');
+  assert(byre(solo, solo.farmsteads[0]), 'the solo start without hand begins as before');
   Sim.advance(st, 3);
+  // a save from before VB-1911: the outbuildings farmstead fields, no facility records of them
   const saved = JSON.parse(JSON.stringify(Sim.save(st)));
+  saved.state.facilities = [];
+  for (const f of saved.state.farmsteads) f.byre = f.barn = f.storehouse = { built: 1 };
   const old = Sim.load(world(), saved);
-  for (const f of old.farmsteads) delete f.byre; // as a save from before VB-1665 decodes
-  VB['sim/byrehouse'].byresLoaded(old);
-  assert(old.farmsteads.every((f) => f.byre && f.byre.built === old.t), 'an older save reads as having its byres');
+  assert(old.farmsteads.every((f) => byre(old, f) && byre(old, f).built === 1 && byre(old, f).condition === 1), 'an older save reads as having its byres, whole');
+  assert(old.farmsteads.every((f) => Fac.standing(old, f, 'barn').built === 1 && !('barn' in f)), 'and the barns it had, as facilities');
   sound(old, 'older save');
   // a farm made in play (sim/layout makeFarmstead, as a new cottage's or a settler's) has none, and a save and a load keep it so (the
   // extended tier's tests/line.js found a loaded run giving such farms a byre: undefined read as an older save's)
   const made = VB['sim/layout'].makeFarmstead(st.w, st.farmsteads.length, -1, [], null, new Set());
-  assert.strictEqual(made.byre, null, 'a farm made in play has no byre');
+  assert(!('byre' in made), 'a farm made in play has no byre');
   const bare = st.farmsteads.find((f) => f.household !== null);
-  unbuild(bare);
+  unbuild(st, bare);
   const back = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(st))));
-  assert.strictEqual(back.farmsteads[bare.id].byre, null, 'a farm with no byre has none after a save and a load');
+  assert.strictEqual(byre(back, back.farmsteads[bare.id]), null, 'a farm with no byre has none after a save and a load');
 }
 // ---- 2. the stall winter in the open: the lean HERD.openLean times as fast, the rest the same ----
 {
@@ -59,7 +63,7 @@ const unbuild = (f) => (f.byre = null);
   const withHerds = st.households.filter((h) => h.herds.length);
   assert(withHerds.length >= 2, 'two households with animals');
   const [a, b] = withHerds;
-  unbuild(st.farmsteads[b.farmstead]);
+  unbuild(st, st.farmsteads[b.farmstead]);
   for (const hh of [a, b]) {
     hh.hay = 1e4;
     hh.fodderDay = -5; // not foddered yesterday: a lean day
@@ -95,7 +99,7 @@ const unbuild = (f) => (f.byre = null);
     building: null,
   });
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { outbuilding: f.house, what: 'byre' })), /has a byre/);
-  unbuild(f);
+  unbuild(st, f);
   Sim.advance(st, 2 * DAY);
   assert(!projectsOf(st, 'household', hh.id).some((p) => p.what === 'byre'), 'by hand, not begun by itself');
   assert.deepStrictEqual(byreOf(), { what: 'byre', built: false, needs: OUTBUILDINGS.byre.needs, ok: true, why: null, planned: false, building: null });
@@ -125,7 +129,7 @@ const unbuild = (f) => (f.byre = null);
   run(st);
   assert.strictEqual(hash(st), hash(back), 'as the run itself');
   assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'built', JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
-  assert(f.byre && f.byre.built <= st.t, 'the farm has its byre');
+  assert(byre(st, f) && byre(st, f).built <= st.t, 'the farm has its byre');
   assert.strictEqual(byreOf().built, true);
   sound(back, 'loaded mid-chain');
 }
@@ -134,17 +138,17 @@ const unbuild = (f) => (f.byre = null);
   const st = fresh();
   const hh = st.households.find((h) => h.herds.length),
     f = st.farmsteads[hh.farmstead];
-  unbuild(f);
+  unbuild(st, f);
   let begun = null;
-  for (let i = 0; i < 60 * 24 && !f.byre; i++) {
+  for (let i = 0; i < 60 * 24 && !byre(st, f); i++) {
     Sim.advance(st, 1);
     if (begun === null && projectsOf(st, 'household', hh.id).some((p) => p.what === 'byre')) begun = st.t;
   }
   assert(begun !== null, 'the head began a byre by itself');
-  assert(f.byre, `built within sixty days (begun on day ${(begun / DAY).toFixed(1)})`);
+  assert(byre(st, f), `built within sixty days (begun on day ${(begun / DAY).toFixed(1)})`);
   assert(st.farmsteads.filter((g) => g !== f && g.household !== null).every((g) => !projectsOf(st, 'household', g.household).some((p) => p.what === 'byre')), 'none where a byre stands');
   sound(st, 'own rule');
-  console.log(`  own rule: begun on day ${(begun / DAY).toFixed(1)}, built on day ${(f.byre.built / DAY).toFixed(1)}`);
+  console.log(`  own rule: begun on day ${(begun / DAY).toFixed(1)}, built on day ${(byre(st, f).built / DAY).toFixed(1)}`);
 }
 console.log('byrehouse: a byre at seeding, none on a camp, an older save reads as having one; the lean in the open; by the plan, the timber '
   + 'at home first, a save mid-chain the same; by the head\'s own rule');

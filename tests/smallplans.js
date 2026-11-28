@@ -15,7 +15,9 @@ const mine = () => Projects.projectsOf(st, 'household', hh.id);
 check(v.wood.length > 0, 'the village has a wood to fell timber in');
 
 // a barn under way (a large project), then a cart begun by the head's look beside it, and a boat beside both
-const barn = VB['sim/projectplans'].makeProject(st, 'household', hh.id, { what: 'barn', steps: Bld.barnSteps(f.house) });
+VB['sim/facilityrecords'].raze(st, f, 'barn'); // VB-1898: a seeded farm has its barn; this one is made without
+const barn = VB['sim/projectplans'].makeProject(st, 'household', hh.id, { what: 'barn', ...Bld.barnSteps(st, f) });
+VB['sim/facilityrecords'].foundOn(st, 'barn', f, barn); // VB-1911: as the making founds it
 barn.open = 1; // its walls, waiting for their timber
 hh.cartMiss = C.CART.misses;
 lookNow(st, 'cart', hh);

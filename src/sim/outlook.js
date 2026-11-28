@@ -259,7 +259,7 @@ VB['sim/outlook'] = (() => {
         });
     }
     ins.sort((a, b) => a[0] - b[0]);
-    const barn = f && f.storehouse ? BUILD.storehouse.loss : 1, // the storehouse keeps the grain (VB-1898)
+    const barn = f && VB['sim/facilityrecords'].standing(st, f, 'storehouse') ? BUILD.storehouse.loss : 1, // the storehouse keeps the grain (VB-1898)
       year = D * YEAR_DAYS,
       q = Goods.shares(st, 'grain'),
       loss = (g) => (g > 0 ? (tierLoss(g + seed, year, q, barn) * g) / (g + seed) : 0);
@@ -398,7 +398,7 @@ VB['sim/outlook'] = (() => {
       if (mow > 0) ins.push([Math.max(c.day, Math.floor(mid)) + 1, 'meadows', mow]);
     }
     ins.sort((a, b) => a[0] - b[0]);
-    const barn = f && f.barn ? BUILD.barn.loss : 1,
+    const barn = f && VB['sim/facilityrecords'].standing(st, f, 'barn') ? BUILD.barn.loss : 1,
       q = Goods.shares(st, 'hay'),
       loss = (x) => tierLoss(x, W, q, barn),
       base = {

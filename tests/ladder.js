@@ -58,7 +58,7 @@ function sweep(st, tag, seen) {
     assert.deepStrictEqual(JSON.parse(JSON.stringify(v)), v, `${tag}: farm ${f.id}'s view is plain data`);
     assert.strictEqual(v.rung, r);
     assert(v.next.every((n) => RUNGS[n.what].from === r && n.ok === (n.why === null)), `${tag}: farm ${f.id}'s next`);
-    assert(v.outbuildings.every((o) => o.ok === (o.why === null) && o.built === !!f[o.what]), `${tag}: outbuildings`);
+    assert(v.outbuildings.every((o) => o.ok === (o.why === null) && o.built === !!VB['sim/facilityrecords'].standing(st, f, o.what)), `${tag}: outbuildings`);
   }
   assert.strictEqual(hash(st), before, `${tag}: the views wrote nothing`);
 }
