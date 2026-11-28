@@ -24,6 +24,9 @@ for (const [id, a] of Object.entries(AGES)) {
   const p = st.pawns[id];
   p.born = T - a * YEAR; p.age = Math.floor(a); p.retired = false;
 }
+// the scene's women 2 and 5, whom the probe's draws have made men since VB-1951 moved them (a test's write, the roles as they say)
+for (const id of [2, 5]) st.pawns[id].sex = 'f';
+VB['sim/heirs'].refreshRoles(st);
 for (const id of [8, 9, 10]) { const p = st.pawns[id]; p.alive = false; p.died = T - 0.5 * YEAR; }
 // stores: h0 holds its grain, 8 meals and 20 in sheaves; h1 holds nothing; the village store nothing
 for (const hh of [h0, h1]) { hh.flour = 0; hh.larder = []; hh.fresh = []; hh.ledger = []; }

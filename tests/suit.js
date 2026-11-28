@@ -33,7 +33,7 @@ const map = [
 // Village 0: household 0 (holder 0, his wife 1, daughters 2 to 5) and household 1 (holder 6, his wife 7, sons 8 and 10, daughter 9);
 // village 1, under an hour's walk away: household 2 (holder 11, his wife 12, daughter 13, son 14). Aged as each case needs.
 function world(ages) {
-  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2, sizes: [6, 5] }, { at: [11, 2], farms: 1, sizes: [4] }], { seed: 982 });
   for (const [id, years] of Object.entries(ages)) {
     st.pawns[id].born = st.t - years * YEAR - DAY;
     st.pawns[id].age = years;

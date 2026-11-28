@@ -50,7 +50,7 @@ check(H.herdOf(st, to, 'cattle').head.length + standing.reduce((n, hd) => n + hd
 check(!checkState(st).length, 'after passHerds: ' + checkState(st).slice(0, 3).join('; '));
 
 // --- populous: every herd fits the byre; a village with cattle has a bull, one with sheep a ram
-st = scenario('populous', 1); // the herds drawn at seeding move with every custom added (VB-711, VB-826, VB-555)
+st = scenario('populous', 2); // the herds drawn at seeding move with every custom added (VB-711, VB-826, VB-555)
 for (const hd of st.herds) if (hd.head) check(H.byreRoom(hd) <= Sim.HERD.byre, `populous: herd ${hd.id} needs ${H.byreRoom(hd)} places in the byre`);
 for (const v of st.villages) {
   const vh = st.herds.filter((hd) => st.farmsteads[st.households[hd.household].farmstead].village === v.id);

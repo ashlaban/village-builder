@@ -32,10 +32,10 @@ function world() {
   const st = tinyState(
     tinyWorld(map),
     [
-      { at: [3, 5], farms: 2 },
-      { at: [11, 2], farms: 1 },
+      { at: [3, 5], farms: 2, sizes: [6, 5] },
+      { at: [11, 2], farms: 1, sizes: [4] },
     ],
-    { seed: 7 },
+    { seed: 982 },
   );
   for (const [id, y] of [
     [2, 21],

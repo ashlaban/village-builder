@@ -15,7 +15,7 @@ const issues = (st) => checkState(st).filter((x) => /fair|gathering|away/.test(x
 // four villages of two farms in a row, as tests/going.js: the grain villages (0 and 2) hold far beyond two years' need, the others little
 // grain and tar and hides to spare
 const XS = [4, 30, 56, 82];
-const st = tinyState(tinyWorld(Array(12).fill('.'.repeat(110)), { seed: 7 }), XS.map((x) => ({ at: [x, 5], farms: 2, sizes: [6, 5] })), { seed: 7 });
+const st = tinyState(tinyWorld(Array(12).fill('.'.repeat(110)), { seed: 7 }), XS.map((x) => ({ at: [x, 5], farms: 2, sizes: [6, 5] })), { seed: 9 });
 const start = Gt.whenHeld(st, 0, 1)[0], end = start + 3 * DAY;
 Sim.advance(st, start - 2 * DAY - st.t);
 const hhOf = (v) => st.villages[v].farmsteads.map((f) => st.households[st.farmsteads[f].household]);

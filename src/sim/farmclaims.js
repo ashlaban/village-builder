@@ -200,11 +200,11 @@ VB['sim/farmclaims'] = (() => {
     }
   }
   // ---- the basis `land` of sim/offers (VB-692; plan VB-682, sections 2 and 4.4): {from (a landless adult), to (who speaks for the
-  // village: its eldest living holder until it has an alderman, VB-314), wants {farm} (an empty farm's id) or {plot (a village id), house,
-  // field (the site, or absent for the village to find one)}}. The one asked answers by the village's custom, today's rule: a farm to the
-  // first of its claimants (claimants), a plot to one with none coming; where the asker speaks for the village itself, nobody else is
-  // asked. A yes is the claim (the claim verb) or the plot begun for the asker (sim/expansion, on the event plotGranted). A no is told,
-  // and nobody remembers it (a custom's no; the grievance is the claims review's). ----
+  // village: its eldest living holder until it has an alderman, VB-314), wants {farm} (an empty farm's id) or {plot (a village id), house
+  // (the site, or absent for the village to find one; a plot places no field, VB-1951)}}. The one asked answers by the village's custom,
+  // today's rule: a farm to the first of its claimants (claimants), a plot to one with none coming; where the asker speaks for the
+  // village itself, nobody else is asked. A yes is the claim (the claim verb) or the plot begun for the asker (sim/expansion, on the
+  // event plotGranted). A no is told, and nobody remembers it (a custom's no; the grievance is the claims review's). ----
   function speakerOf(st, vid) {
     const al = st.villages[vid].alderman; // the village's agent (VB-314), while the office is filled
     if (al !== undefined && al !== null && st.pawns[al].alive) return al;
@@ -227,7 +227,7 @@ VB['sim/farmclaims'] = (() => {
     if (w.farm !== undefined) {
       if (!st.farmsteads[w.farm] || !claimable(st, st.farmsteads[w.farm])) return `farm ${w.farm} cannot be claimed`;
     } else if (!st.villages[w.plot]) return 'land is an empty farm or a plot in a village';
-    else if ((w.house === undefined) !== (w.field === undefined)) return "a plot's site is a house and a field";
+    else if (w.house !== undefined && !Number.isInteger(w.house)) return "a plot's site is a house tile";
     else if (hasPlot(st, p.id)) return `pawn ${p.id} has a plot coming`;
     const sp = speakerOf(st, landVillage(st, w));
     if (o.to !== (sp === null ? p.id : sp)) return 'land is asked of the one who speaks for its village';
@@ -278,7 +278,7 @@ VB['sim/farmclaims'] = (() => {
   function settleLand(st, o) {
     const w = o.wants;
     if (w.farm !== undefined) return issue(st, { actor: o.from, verb: 'claim', target: w.farm, source: 'round' });
-    const site = w.house === undefined ? null : { house: w.house, field: w.field };
+    const site = w.house === undefined ? null : { house: w.house };
     emit(st, 'plotGranted', { village: w.plot, pawn: o.from, site });
     return hasPlot(st, o.from) ? true : `no site for a plot is left in ${st.villages[w.plot].name}`;
   }

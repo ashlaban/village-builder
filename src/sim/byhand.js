@@ -14,8 +14,6 @@ VB['sim/byhand'] = (() => {
   function farmAt(w, gen, house) {
     const { used, farmsteads, villages, fieldsAt, yards } = gen;
     if (!farmable(w, house) || used.has(house) || yards.has(house)) return null;
-    const fields = placeFields(w, used, house, 3, yards);
-    if (!fields) return null;
     let v = null,
       vd = SETTLE.centreApart + 1;
     for (const u of villages) {
@@ -25,6 +23,9 @@ VB['sim/byhand'] = (() => {
         v = u;
       }
     }
+    // its fields by the gate it will have, toward its village's centre (VB-1951), as the generator places them
+    const fields = placeFields(w, used, house, 3, yards, null, false, v ? v.center : house);
+    if (!fields) return null;
     if (!v) {
       v = loneVillage(gen.rand, villages, house);
       villages.push(v);

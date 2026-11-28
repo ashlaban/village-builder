@@ -220,10 +220,14 @@ VB['sim/pot'] = (() => {
   function seedForMeal(st, hh, want) {
     const g = grainOf(hh),
       free = Math.max(0, g - reserved(st, hh, 'grain'));
-    if (!(want > 0) || g - free <= 1e-9) return 0;
+    const lent =
+      hh.seedLent && st.t < hh.seedLent.until
+        ? Math.max(0, Math.min(hh.seedLent.lent - hh.seedLent.sown, g - free))
+        : 0; // kept for the sowing (sim/hunger seedKept, VB-1973)
+    if (!(want > 0) || g - free - lent <= 1e-9) return 0;
     let other = mealsFrom('grain', free) + hh.flour + (hh.fresh.length ? freshHeld(st, hh) : 0);
     for (const l of hh.larder) other += l.n;
-    return Math.max(0, Math.min(g - free, (want - other) / FOODS.grain.worth)); // grain, cooked unground (VB-009)
+    return Math.max(0, Math.min(g - free - lent, (want - other) / FOODS.grain.worth)); // grain, cooked unground (VB-009)
   }
   // The cook's pot for a household whose day needs `need` rations: the meals still missing, with the seed the meal would eat (VB-388).
   function cookMeal(st, hh, need) {

@@ -118,6 +118,7 @@ VB['sim/records'] = (() => {
     loomBuilt: 0, // a household's loom built (VB-362)
     tarPit: 0, // a household's tar pit dug (VB-301)
     drained: 0, // a household's wet field ditched (VB-721)
+    gateTurned: 0, // a farmstead's gate moved (VB-1951)
     wellDug: 0, // a household's well dug by its house (VB-1584)
     facilityBuilt: 0, // a facility's last stage raised (VB-361)
     thirst: SHORT, // a pawn that left what it did to drink, THIRST.leave hours without one (sim/drinking, VB-1585)

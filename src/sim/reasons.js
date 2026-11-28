@@ -184,11 +184,19 @@ VB['sim/reasons'] = (() => {
     if (top.what.target) return `in the season's plan, for its ${top.what.target.store}`;
     return top.what.routine ? "in the season's plan" : null;
   }
+  // What household hid's tasks are blocked on, [{kind, why, site}] (VB-1809): a step that could not be taken says why, to the card (noWork)
+  // and to the head's view (the household's list). Reads only.
+  function blockedOf(st, hid) {
+    const hh = hid === null || hid === undefined ? null : st.households[hid];
+    return hh && hh.blocked ? Object.values(hh.blocked).map((b) => ({ kind: b.kind, why: b.why, site: b.site })) : [];
+  }
   // Why a pawn with no work has none: too young, the working day over, else the idle line (sim/jobs idleLine).
   function noWork(st, id, p, a, c) {
     if (age(st, p) < CHILD.from) return 'too young to work';
     if (c.hour < WORK[0] || c.hour >= WORK[1]) return 'the working day is over';
     if (!!a.homeward) return 'going home';
+    const stuck = blockedOf(st, p.household)[0];
+    if (stuck) return `${KINDS[stuck.kind].label.toLowerCase()} is blocked: ${stuck.why}`;
     const line = idleLine(st, id);
     if (line) return line;
     return p.household === null
@@ -216,5 +224,5 @@ VB['sim/reasons'] = (() => {
     if (!who) return r.why.charAt(0).toUpperCase() + r.why.slice(1) + step;
     return (r.why ? `${who}: ${r.why}` : who) + step;
   }
-  return { REASONS, BY, reasonOf: reasonWith, reasonLine, windowLeft, cause, planned };
+  return { REASONS, BY, reasonOf: reasonWith, reasonLine, windowLeft, cause, planned, blockedOf };
 })();

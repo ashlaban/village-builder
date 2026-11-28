@@ -3,7 +3,7 @@
 const assert = require('assert'), fs = require('fs'), path = require('path');
 const VB = require('../src/load.js'), { tinyWorld, tinyState } = require('./lib/tiny.js'), Sim = VB.sim;
 const { target } = require('./lib/targets.js'), { livingPawnDays } = require('../tools/counts.js');
-const st = tinyState(tinyWorld(Array(24).fill('.'.repeat(40))),
+const st = tinyState(tinyWorld(Array.from({ length: 24 }, (_, i) => (i < 2 ? 'F' : '.').repeat(40))), // two rows of forest: where wood is (VB-1809)
   [{ at: [8, 12], farms: 3, sizes: [6, 5, 4] }, { at: [30, 12], farms: 3, sizes: [6, 5, 4] }], {
     seed: 1, herds: true }); // seed 1: a seed whose round has pairs to score
 assert.strictEqual(st.villages.length, 2);

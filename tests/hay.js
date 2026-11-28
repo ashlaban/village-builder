@@ -1,5 +1,5 @@
 // @suite integration
-// Haymaking (VB-133), on the small islands of tests/lib/probe.js (VB-855): populous at seed 6 (7 before VB-816's custom shifted the draws: 88% there, with or without fields closed; 6 before VB-1547's evening shifted the draws: 89% of 37 meadows there, 91% of 35 before; 3 before VB-1107's custom) rakes its meadows in spring and mows and
+// Haymaking (VB-133), on the small islands of tests/lib/probe.js (VB-855): populous at seed 4 (6 before VB-1951's gates moved the farms: a farm with a cow and no meadow there; 7 before VB-816's custom shifted the draws: 88% there, with or without fields closed; 6 before VB-1547's evening shifted the draws: 89% of 37 meadows there, 91% of 35 before; 3 before VB-1107's custom) rakes its meadows in spring and mows and
 // carries at least 90% of them by autumn day 4; the hay goes into the household's barn; founders at seed 7 bring in hay by year 3 (VB-360); hay left
 // lying at the frost rots; every spring the meadows are grass again. Reports each household's hay against its winter's need.
 const VB = require('../src/load.js'), Sim = VB.sim, { scenario } = require('./lib/probe.js'), M = VB['sim/meadows'], { checkState } = require('./lib/invariants.js');
@@ -34,7 +34,7 @@ byreDay({ ...barnState, liveHouseholds: [0], households: [hh], farmsteads: [{ me
 check(hh.hay < 100 && hh.haySpoilt > 0, 'daily hook spoils hay even without animals');
 check(lying.held === 25, 'barn spoilage leaves mown meadow hay alone');
 
-let st = scenario('populous', 6);
+let st = scenario('populous', 4);
 st.naturalDeaths = false; // haymaking is tested, not who lives: a holder who dies in spring leaves a widow whose hay lies mown (VB-402's seed)
 // Old saves have no loss counter; loading starts it at zero without accepting invalid new values.
 const savedLoss = st.households[0].haySpoilt;
@@ -83,5 +83,5 @@ for (const h of wintering) check(told.includes(`${st.farmsteads[h.farmstead].nam
 check(Sim.villageLog(st, Infinity).some((e) => /has its hay in/.test(e.text)), 'founders: no log line for the hay');
 
 if (failed) process.exit(1);
-console.log(`hay ok: populous 6, small island: ${Math.round(raked * 100)}% raked, ${Math.round(done * 100)}% in by autumn day 4; hay / winter need ` +
+console.log(`hay ok: populous 4, small island: ${Math.round(raked * 100)}% raked, ${Math.round(done * 100)}% in by autumn day 4; hay / winter need ` +
   `min ${ratio[0].toFixed(2)}, median ${ratio[ratio.length >> 1].toFixed(2)}, max ${ratio[ratio.length - 1].toFixed(2)} (${fed.length} households)`);

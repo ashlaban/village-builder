@@ -9,7 +9,7 @@ const { TRAITS, HEALTH, HELP, SETTLE } = VB['sim/rules'], { SOCIAL } = VB['sim/t
 const { updateHealth, dailyNeed } = VB['sim/hunger'], { leaveChance } = VB['sim/settle'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
-const make = () => tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 2, sizes: [5, 4] }], { seed: 4, herds: true });
+const make = () => tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 2, sizes: [5, 4] }], { seed: 1, herds: true });
 const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
 const set = (st, id, name, x) => (st.pawns[id].traits[T.IDX[name]] = x);
 const AT = [0, 0.5, 1];

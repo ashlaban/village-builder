@@ -249,10 +249,17 @@ VB['sim/wood'] = (() => {
       // while the village has a wood and the pile's free wood (VB-123) with the timber home is below the plan's goal for the season; a
       // second job below its woodSecond. For each pawn's plan in the household, a trip to the tile of each `fell` task of its plan with trips
       // left and trees standing (sim/steps' plansIn), whatever the pile.
-      available: (st, hh, f, c, post) => {
-        const wood = st.villages[f.village].wood,
-          T = woodTargets(st, hh),
-          have = fuelFree(st, hh) + timberOf(hh);
+      available: (st, hh, f, c, post0) => {
+        const wood = st.villages[f.village].wood;
+        // a task that blocked for want of trees is not posted again until a tree stands in the wood (VB-1809)
+        const post = (key, ...rest) => {
+          const b = hh.blocked && hh.blocked[key];
+          if (b && b.why === 'no trees standing' && !wood.some((t) => st.w.trees[t] > 0)) return;
+          if (b) delete hh.blocked[key];
+          post0(key, ...rest);
+        };
+        const T = woodTargets(st, hh);
+        const have = fuelFree(st, hh) + timberOf(hh);
         if (wood.length && have < T.seasons[c.season]) {
           const amount = woodAmount(st, hh);
           post(`wood:h${hh.id}`, wood[0], { farm: f, amount });

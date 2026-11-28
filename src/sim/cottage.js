@@ -64,9 +64,9 @@ VB['sim/cottage'] = (() => {
       return;
     }
     const house = tiles.find((t) => t.kind === 'house').tile,
-      field = plot.split ? null : tiles.find((t) => t.kind === 'field').tile;
-    const f = makeFarmstead(st.w, st.farmsteads.length, house, plot.split ? [] : [field], v, st.used);
-    if (field !== null && tiles.find((t) => t.kind === 'field').fresh) f.fields[0].soil = SOIL.fresh; // broken on ground never farmed (VB-149)
+      fieldTr = plot.split ? null : tiles.find((t) => t.kind === 'field'); // a plot begun before VB-1951 has its field; a new one has none (Kim, 27 Nov)
+    const f = makeFarmstead(st.w, st.farmsteads.length, house, fieldTr ? [fieldTr.tile] : [], v, st.used);
+    if (fieldTr && fieldTr.fresh) f.fields[0].soil = SOIL.fresh; // broken on ground never farmed (VB-149)
     f.name = farmName(st, v, f, holder);
     f.state = 'occupied';
     f.condition = 1;
