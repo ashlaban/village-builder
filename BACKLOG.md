@@ -56,7 +56,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1944](backlog/VB-1944.md)<a id="VB-1944"></a> | Refactor: the Sim facade joined from what each module gives the page | - | 2 | M | src/sim.js 17 to 1-4 (VB-1406 step 6) |
 | [VB-1946](backlog/VB-1946.md)<a id="VB-1946"></a> | Refactor: one record an event kind, declared by its emitter; sim/notable split into the skip and the chronicle | - | 2 | M | sim/notable 16 to 8 and 6, sim/records 10 to 6 (VB-1406 step 8) |
 | [VB-1948](backlog/VB-1948.md)<a id="VB-1948"></a> | Refactor: the page's stylesheets by area, and a card's rows declared by the feature's page file | - | 2 | M | head.html 14 to 6, 6, 4; page/words 11 to 7 (VB-1406 step 10) |
-| [VB-1965](backlog/VB-1965.md)<a id="VB-1965"></a> | Measure why hunger rises in populous seed 7 | plans | 2 | M | Populous seed 7 hungry household-days rose 145 to 468 over the levy tasks (VB-1906, VB-1767, VB-1769); measure which change and which mechanism carries it, and note the mend. |
+| [VB-1972](backlog/VB-1972.md)<a id="VB-1972"></a> | The gate's hunger as a band over perturbed realisations | plans | 2 | S | gate --band N: hungry days and hunger deaths as a range over null-perturbed realisations, so a step inside the noise reads so |
 | [VB-1982](backlog/VB-1982.md)<a id="VB-1982"></a> | Repair: a dissolved household's obligations stay open | - | 2 | S | A household that dies out keeps running obligations as debtor; they should pass with the estate or close |
 | [VB-1983](backlog/VB-1983.md)<a id="VB-1983"></a> | Repair: a death left in st.demand and household.guardian | - | 2 | S | A dead pawn stays in st.demand and as a ward's guardian until a later pass |
 | [VB-093](backlog/VB-093.md)<a id="VB-093"></a> | A village mill: water where a river is in reach, else wind | mill | 3 | M | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. |
@@ -185,6 +185,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 |----|------|------|-----|------|---------|
 | [VB-1472](backlog/VB-1472.md)<a id="VB-1472"></a> | Design: how a holder's parallel projects are limited and ranked | - | 2 | M | What replaces 'at most one project': the limit and the ranking of a holder's parallel projects |
 | [VB-1947](backlog/VB-1947.md)<a id="VB-1947"></a> | Refactor: the tunables several domains read in files by domain, VB['sim/rules'] the joined view | - | 2 | M | sim/rules 21 to at most 5 a file (VB-1406 step 9), when Kim says |
+| [VB-1973](backlog/VB-1973.md)<a id="VB-1973"></a> | A seed loan before sowing, after a failed year | plans | 2 | M | seed corn lent before sowing and kept for it, so a failed year is not followed by an unsown one |
 
 </details>
 
