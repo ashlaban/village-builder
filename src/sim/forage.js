@@ -30,6 +30,10 @@ VB['sim/forage'] = (() => {
     w.forageYear[i] = year(st);
     return FORAGE.trip * s * frac;
   }
+  VB.counter(
+    'forageGround',
+    'Tiles within reach of a house searched for its gathering ground, when its gathering is asked for (sim/forage; VB-118)',
+  );
   // The gathering ground of a house: the nearest forest or heath tile within FORAGE.reach walking steps with at least FORAGE.least left
   // (ties by the search's order), or -1.
   function ground(st, house) {

@@ -99,6 +99,11 @@ VB['sim/water'] = (() => {
     }
     return cls;
   }
+  VB.counter(
+    'sourceSettled',
+    "Tiles settled by the searches for a farm's source of water: one a farm on its first morning, at a well's finishing in its village " +
+      'and once a year on its planning day, each stopping at the first source (sim/water; VB-1582)',
+  );
   // The source of a house on tile `house` in village v: {tile, cls, walk}, the tile its household stands on to draw (-1: none in reach),
   // the source's class (w.fresh's code) and the walk one way in hours. One search outward from the house over the ground as it is walked
   // now (sim/walking stepCost: the worn ways and the ground's cost), which stops at the first tile the household may draw at; bounded at

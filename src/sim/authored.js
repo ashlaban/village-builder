@@ -158,6 +158,10 @@ VB['sim/authored'] = (() => {
   });
   // Whether the task of step s a household took back is done or gone.
   const over = (st, hid, g) => (g.key !== undefined ? !st.jobs.has(g.key) : !!goalGone(st, hid, g.kind, g.site, g));
+  VB.counter(
+    'riskCheck',
+    "Authored task steps weighed for their `by` at the household's review: none in a run with nothing authored (sim/day, VB-1755)",
+  );
   // At the review of household plan's plan (sim/plans' planReviewed): the steps the default author took back leave once their task is
   // done or gone; each task of its members' own plans (by key, or at a tile: its chain's steps left) is weighed, in its plan's order, by
   // the head's estimate against its `by`: short, it is at risk (its `risk` the hours short and the hour first found); no longer short,

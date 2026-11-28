@@ -46,7 +46,7 @@ VB['sim/upgrade'] = (() => {
     walls.wood = (walls.wood || 0) + got; // the walls' timber brought from home, as a trip's load is (sim/building)
     return got;
   }
-  // A trip of timber is home (sim/chores' wood): the household's cottage begun by an upgrade task of its members' plans takes it while
+  // A trip of timber is home (sim/wood' wood): the household's cottage begun by an upgrade task of its members' plans takes it while
   // its walls lack it.
   on('timberHome', (st, { household }) => {
     const f = plansIn(st, household).length ? farmOf(st, household) : null,
@@ -75,6 +75,7 @@ VB['sim/upgrade'] = (() => {
       if (p) homeTimber(st, hh, p);
     },
   });
+  VB.counter('campLook', 'Households read each working hour for a camp left to itself (sim/upgrade ownRung, VB-1658)');
   // ---- the head's own rule (VB-1658): a camp left to itself gets its roof ----
   // Each working hour, every household whose farm was landed as a camp (sim/camp; f.camp set) and whose head does not hold off projects
   // (sim/projects heldOff: automatic behaviour on, or a head not played) builds up by its own rule, by the verbs a player's plan issues:

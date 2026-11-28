@@ -69,7 +69,7 @@ Touches: sim/jobs (allot, lookForWork); page/words (showPawn); tests/jobs.js; ne
 - Implied, not named: a module's import block, its export list and its `@sys` header, and the tables marked `// @merge union`: they
   merge by themselves (`tools/merge.js`).
 - Not named while they are lists every task appends to (VB-1406): `src/manifest.json`, `src/layers.json`, `src/owners.json`,
-  `src/page.json`, `src/vb.js`, `src/sim.js`, `tests/counters.json`, and the bookkeeping (`BACKLOG*.md`,
+  `src/page.json`, `src/sim.js`, `tests/counters.json`, and the bookkeeping (`BACKLOG*.md`,
   `QUESTIONS.md`, `docs/tuning.md`, `docs/agents/changes.md`).
 - `Touches: unknown (<reason>)` for a plan task, or an investigation whose cause is not yet found.
 

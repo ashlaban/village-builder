@@ -42,6 +42,10 @@ VB['sim/voice'] = (() => {
     return hh && !hh.dissolved && hh.farmstead !== null && hh.holder !== null && hh.holder !== id ? hh : null;
   }
 
+  VB.counter(
+    'leaveWeighed',
+    "Entries of a member's day read by its head weighing an ask of leave (sim/voice, VB-1555)",
+  );
   // ---- the head's answer ----
   // Does the head's day want pawn id's hours: it gave the member hours (the first pass, or the head of its list) at a task with a deadline
   // today (`late`, the meal) or whose window closes within VOICE.closing days (sim/hands windowEnd: the sowing, the frost), as its estimate saw them when it
@@ -154,6 +158,10 @@ VB['sim/voice'] = (() => {
     for (let d = day; d < day + days; d++) if (Grants.datedOn(G, id, d)) return `${fullName(p)} has leave on day ${d}`;
     return null;
   }
+  VB.counter(
+    'grantGiven',
+    "Grants of a member's levy written on its household's plan: a head's, standing or dated, and a servant's free day (sim/levies, VB-1763)",
+  );
   // grant(st, head, id, terms, contract): the grant written onto the household's plan (grantWhy's terms; true, or why not). A grant of the
   // head's books goodwill to its credit, the worth of the levy hours it gives (GOODWILL.hour an hour: 3 rations for 8), and opinion follows;
   // a contract's books none. A leave from now begins at once (sim/voice begin).
@@ -237,6 +245,7 @@ VB['sim/voice'] = (() => {
     const why = grantWhy(st, o.to, o.from, T);
     return why || { household: hh.id };
   }
+  VB.counter('leaveGiven', 'Leaves given by a head (sim/voice, VB-1555)');
   // A yes: the head's dated grant (sim/levies grant), begun at once when its hour is now
   function settle(st, o) {
     const hh = homeOf(st, o.from);
@@ -247,6 +256,7 @@ VB['sim/voice'] = (() => {
     }
     return r;
   }
+  VB.counter('leaveRefused', 'Asks of leave refused by a head (sim/voice, VB-1555)');
   // A no: the member remembers it (design.md: a no is a memory of the member's); told only where the player is one of the two
   function refused(st, o, no) {
     VB.count.leaveRefused++;
@@ -282,6 +292,7 @@ VB['sim/voice'] = (() => {
     const why = grantWhy(st, o.to, o.from, { hours: w.hours });
     return why || { household: hh.id };
   }
+  VB.counter('lighterGiven', 'Lighter levies granted by a head (sim/voice, VB-1763)');
   Offers.basis('lighter', {
     asked: 'lighter', // by the verb ask (sim/offers)
     books: 'nothing',
@@ -339,6 +350,10 @@ VB['sim/voice'] = (() => {
     if (Number.isInteger(p.sat) && day - p.sat < VOICE.days) return null;
     return Pastimes.someoneToVisit(st, p);
   }
+  VB.counter(
+    'leaveLook',
+    "Members looked at after the morning's allotment for a reason to ask leave (sim/voice, VB-1555)",
+  );
   // After the morning's allotment: each member of working age, not the head nor the played pawn on its own commands, whom the day gave
   // work and who has a reason, asks its head for the afternoon (VOICE.from). A pass over the living a day (members x 1 a day, a few lookups each).
   function morning(st) {
@@ -362,6 +377,7 @@ VB['sim/voice'] = (() => {
       }
     }
   }
+  VB.counter('leaveAsked', 'Asks of leave made by a member of its head (sim/voice, VB-1555)');
   // Pawn id asks its head for leave from hour `from` (game hours), to visit `with` (or null), for `days` whole days (from a day's start)
   // where more than one: the verb ask, by its own rule (source 'pawn', the default author; any controller issues the same verb, VB-1756)
   function ask(st, id, from, w = null, days = 1) {
@@ -377,6 +393,10 @@ VB['sim/voice'] = (() => {
       source: 'pawn',
     });
   }
+  VB.counter(
+    'grantLook',
+    "Dated grants on a household's plan looked at, for a member's levy in force, the budget or a leave begun (sim/levies, sim/voice; VB-1763)",
+  );
   // Each hour of the working day: the leaves whose hour has come begin (the dated grants of each household's plan); after the morning's
   // allotment, the members' own asks.
   function hour(st, c) {
@@ -391,6 +411,7 @@ VB['sim/voice'] = (() => {
       }
     }
   }
+  VB.counter('lighterLook', "Members looked at at the season's turn for an ask of a lighter levy (sim/voice, VB-1763)");
   // At household hh's season's turn (its first review, sim/levies): each levied member not on its own commands that took hours of its
   // levy in the season before asks its head a lighter levy of VOICE.lighter hours a day for this season, by its own rule (the default
   // author). One look a member a season.
@@ -407,6 +428,7 @@ VB['sim/voice'] = (() => {
     }
   }
   on('seasonJudged', (st, d) => lighter(st, d.hh, d.c));
+  VB.counter('lighterAsked', 'Asks of a lighter levy made by a member of its head (sim/voice, VB-1763)');
   // Pawn id asks its head a lighter levy of `hours` a day for the rest of the season: the verb ask, by its own rule (source 'pawn').
   function askLighter(st, id, hours) {
     const hh = homeOf(st, id);

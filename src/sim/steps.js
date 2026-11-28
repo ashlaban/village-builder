@@ -56,6 +56,10 @@ VB['sim/steps'] = (() => {
     plan.ahead = [];
     return plan;
   }
+  VB.counter(
+    'planSteps',
+    "Plan steps made: a household's season steps at each season's plan, a project's year step (sim/steps; VB-1752)",
+  );
   // A new step: `what`, `why`, by the default author, planned; `extra` its own fields (from, by, left, state).
   function make(st, what, why, extra) {
     VB.count.planSteps++;
@@ -385,6 +389,10 @@ VB['sim/steps'] = (() => {
   function dropDuty(plan, s) {
     plan.ahead.splice(plan.ahead.indexOf(s), 1);
   }
+  VB.counter(
+    'planRead',
+    'Members of a household read for those that plan for themselves (sim/steps plannersIn, VB-1834)',
+  );
   // The pawns of household hid that plan for themselves, ascending ([] with none: no work in a run where none has planned).
   function plannersIn(st, hid) {
     if (hid === null || hid === undefined || !st.plans || !st.plans.pawns.size) return NONE;
@@ -414,7 +422,7 @@ VB['sim/steps'] = (() => {
       s = plan && plan.ahead.find((x) => x.what.routine === kind);
     if (s) s.begun = today(st);
   }
-  // A trip of timber is home from `tile` with its `loads` (sim/chores' wood, the event timberHome): a fell task there of a plan of the
+  // A trip of timber is home from `tile` with its `loads` (sim/wood' wood, the event timberHome): a fell task there of a plan of the
   // household's members counts its loads, not its trips (VB-1662: a cart's trip brings several); the first by its pawn's id.
   on('timberHome', (st, { household, tile, loads }) => {
     for (const pp of plansIn(st, household)) {

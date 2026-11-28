@@ -120,6 +120,9 @@ check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
   check(VB['sim/deaths'].deathRoll(s4, p) === 'thirst', 'a death by dry days is thirst');
   hh.dry = 0; hh.dryLog = [];
   check(VB['sim/deaths'].deathRoll(s4, p) === 'starvation', 'and by none of them, starvation');
+  hh.cold = 1; p.hunger = 0;
+  check(VB['sim/deaths'].deathRoll(s4, p) === 'cold', 'a death in a cold house, with no hunger, is cold (VB-2030)');
+  hh.cold = 0;
 }
 if (failed) process.exit(1);
 console.log(`tiny ok: two villages on a 14 x 10 map seeded in ${ms} ms, ${st.pawns.length} people`);
