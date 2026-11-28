@@ -75,6 +75,10 @@ const fetchJob = () => {
   const l = ours()[0];
   assert.deepStrictEqual([l.kind, l.n, l.tile, l.owner.type, l.owner.id, l.of.field === fd], ['haul', n, at, 'household', hh.id, true]);
   assert.deepStrictEqual(checkState(st), [], 'the state with a load lying breaks an invariant');
+  // VB-1815: the field is in stubble with the last load lying: a haul goal is posted again, before the frost
+  VB['sim/jobs'].refreshJobs(st, VB.cal ? VB.cal(st.t) : VB['sim/rules'].cal(st.t), true);
+  const again = st.jobs.get('haul:' + VB['sim/fieldwork'].fieldKey(f, fd));
+  assert(again && again.site === fd.tile, 'no haul goal is posted again for a last load lying on the road');
   // no fetching is posted for it (VB-1812): the stray method of the household's next sheaves' goal carries it home before the stooks
   let posted = null;
   Lying.bringWork(st, hh, f, null, (key, site, extra, k) => (posted = k)); // as sim/kinds asks (VB-1814: no fetch kinds at all)
