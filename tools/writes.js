@@ -66,8 +66,9 @@ const HINTS = {
   'sim/sites': { s: 'st.sites[]', k: 'st.sites[]', walls: 'st.sites[]', tr: 'st.sites[]', x: 'local' }, // a site and its plot's steps (VB-787)
   'sim/fit': { memo: 'local' }, 'sim/occasions': { memo: 'local' }, // scratch maps of one pass (VB-1848)
   'sim/day': { asking: 'local', pairs: 'local', cap: 'local', due: 'local', lists: 'plan.day', fits: 'plan.day', ctx: 'plan.day' }, // VB-470: today's lent hands; the morning's asks
+  'sim/territory': { o: 'local' }, 'sim/stores': { x: 'household.totals[]|village.totals[]' }, // a dispute tally of one pass; a year's total (VB-1910)
   'sim/lying': { l: 'st.lying[]' }, // a lying load, found by its owner's index (VB-1775) or in a copy of the list (decay, VB-1910)
-  'sim/voice': { G: 'plan.grants', g: 'plan.grants' }, 'sim/levies': { F: 'plan.fit', r: 'agent.book', T: 'plan.tally', U: 'local', sum: 'plan.tally', e: 'plan.tally', old: 'agent.book' }, 'sim/legs': { l: 'agent.leg' }, // VB-1761: a pawn's booked hours, a plan's tally
+  'sim/voice': { G: 'plan.grants', g: 'plan.grants' }, 'sim/levies': { h: 'local', F: 'plan.fit', r: 'agent.book', T: 'plan.tally', U: 'local', sum: 'plan.tally', e: 'plan.tally', old: 'agent.book' }, 'sim/legs': { l: 'agent.leg' }, // VB-1761: a pawn's booked hours, a plan's tally
   'sim/fair': { l: 'local', x: 'local' }, 'sim/larder': { lots: 'local', by: 'local' }, // a dealer's load and its lots, inside pawn.load and written only by sim/fair (VB-302)
   'sim/lifecycle': { households: 'local', people: 'local', u: 'union' }, 'sim/meetings': { people: 'local' }, 'sim/steps': { s: 'plan.steps[]' }, 'sim/seasonal': { W: 'plan.season[]', H: 'plan.season[]', F: 'plan.season[]', A: 'plan.season[]', G: 'plan.season[]', S: 'plan.season' }, 'sim/aims': { A: 'plan.aim', B: 'plan.aim' }, 'sim/settle': { use: 'local' }, 'sim/society': { customs: 'local' }, 'sim/scenarios': {
     R: 'st', A1: 'farmstead', A2: 'farmstead', B1: 'farmstead', f: 'farmstead' },
