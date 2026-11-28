@@ -30,7 +30,7 @@ VB['sim/heirs'] = (() => {
   const { farmTo, heldFarms, trustOf } = VB['sim/ownership'];
   const { issue, register } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
-  const { oweShare } = VB['sim/obligations'];
+  const { oweShare, dissolving: settleObligations } = VB['sim/obligations'];
   const { dropStakes } = VB['sim/stakes'];
   const { birthright, claimOf } = VB['sim/farmclaims'];
   const { landed } = VB['sim/holding'];
@@ -338,6 +338,7 @@ VB['sim/heirs'] = (() => {
       .find((p) => p.alive && p.household !== null && p.household !== hh.id);
     passHerds(st, hh, first ? first.household : null);
     layEstate(st, hh, f, estate, first ? first.household : null);
+    settleObligations(st, hh, first ? first.household : null); // its debts and claims pass to its successor, or lapse (design, A dissolved debtor)
     clearMembers(st, hh);
     log(st, `${f.name} stands empty: ${why}.`, { kind: 'empty', ...atHousehold(st, hh) });
     st.visualDirty = true;
