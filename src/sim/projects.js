@@ -8,9 +8,8 @@ VB['sim/projects'] = (() => {
   //   opportunity kind of sim/kinds), place (a tile), hours (of work), stake (the why of the holder's claim the step works under, or absent),
   //   spends ({[good]: n} taken from the holder's store when the step is done, or absent), timber and wood (loads it needs at its site and
   //   loads brought, or absent; VB-300's boat), done (hours worked on a stage kept while its job is dropped, or absent)}], open (the index of
-  //   the open step), reserved, reasons (sim/stores)}. A settler household's cottage (VB-1411; sim/cottageplan's cottagePlan, made by
-  //   sim/settle) is 'cottage', with the plot's three stages and `farmstead` (the farm it is kept with: its village holds it while the farm
-  //   waits for a household, sim/plans' dropAll); it is not of the household's choosing (ownOf). A small construction (a cart, a boat, a tar
+  //   the open step), reserved, reasons (sim/stores)}. A settler household's cottage is its farm's own site (sim/sites, VB-1937),
+  //   not a plan; a 'cottage' plan of a save before it is made that site on its load (sim/sites sitesLoaded). A small construction (a cart, a boat, a tar
   //   pit: a few days' work; Kim, 21 Nov 2026) is marked `small: true` by the starter that makes it: begun and built beside any other plan,
   //   in a booth as in a house, one of a making (`what`) at a time (mayBegin), and not of the household's large projects (ownOf).
   //   A plan begun while another of the household's under way has steps of a kind it has (VB-1651 for the played head's fields, VB-1668
@@ -141,7 +140,7 @@ VB['sim/projects'] = (() => {
   const onProject = (st, j) => planAt(st, 'household', j.owner.id, j.kind, j.site);
   // The open steps of the household's project plans but a plot's and a cottage's (a new field's clear and break, a meadow, a boat...), each
   // posted once the step before it is done, and not while it waits for timber (VB-300). A plot the household clears for its heir (VB-255) is
-  // posted as every plot is (plotWork), a settler household's cottage by sim/building's boothWork. The key is the step's kind at the farm:
+  // posted as every plot is (plotWork). The key is the step's kind at the farm:
   // a plan begun beside another with steps of a kind it has (`side`, VB-1651, VB-1668) adds its plan's id, so the keys of several plans
   // under way do not meet (VB-1414).
   const landProject = (st, hh, f, c, post) => {

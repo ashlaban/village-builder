@@ -80,7 +80,7 @@ const wellPlan = (st, hh) => Projects.projectsOf(st, 'household', hh.id).find((p
   Sim.advance(st, 2 * DAY);
   const bad = checkState(st);
   check(!bad.length, `invariants after: ${bad.slice(0, 3).join('; ')}`);
-  console.log(`  inland: begun on day ${begun && begun.day}, struck on day ${days}; in its booth still: ${f.booth === true}`);
+  console.log(`  inland: begun on day ${begun && begun.day}, struck on day ${days}; in its booth still: ${f.rung === 'shelter'}`);
 }
 // ---- 2. a site a step from a brook: the brook is its water; no mark, no stone gathered, no well from the booth ----
 {

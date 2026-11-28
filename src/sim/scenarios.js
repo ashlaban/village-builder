@@ -519,7 +519,7 @@ VB['sim/scenarios'] = (() => {
     //   weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1 at condAt (hours; an occupied house wears from it, houseCondition of
     //   sim/house); tarredUntil (hours, VB-301); grade 'ground' or 'stone' (the house raised onto a stone foundation; sim/building, VB-332);
-    //   rung (sim/timberhouse): 'shelter' while settlers live in a booth until their cottage, the farm's own site (sim/sites, VB-1937), has its roof
+    //   (its rung, sim/timberhouse: 'shelter' while settlers live in a booth until their cottage, the farm's own site of sim/sites, has its roof; VB-1937)
     // @notstock farmstead.id, farmstead.house, farmstead.village, farmstead.household, farmstead.name, farmstead.line: identity, links and membership
     // @notstock farmstead.rowAngle: identity, links and membership
     // @notstock farmstead.fields, farmstead.meadows, farmstead.state: land, buildings and their records (fields, meadows, a site's timber)

@@ -108,5 +108,23 @@ console.log(`  moved on day ${moved}; at most ${lodged} lodged; saves at ${Objec
   const bad5 = checkState(t.st);
   check(!bad5.length, `invariants after the heir stays: ${bad5.slice(0, 3).join('; ')}`);
 }
+// 6. a farm's own site beside a staked one (VB-1937: a booth household's cottage, as an older save loads it): the island's site work posts
+// nothing for it, its household's members are of no party (they may stake one), and no lodger sets out for it (it has no booth)
+{
+  const t = setUp(), home6 = t.st.households[t.m.household];
+  const f6 = t.st.farmsteads.find((g) => g.household !== null && g.household !== home6.id && !g.rung);
+  f6.rung = 'shelter'; // a test's write: the farm has no cottage yet, as sim/sites sitesLoaded sets it
+  const own = Sites.farmSite(t.st, f6), hh6 = t.st.households[f6.household];
+  check(t.st.sites.length === 2 && Sites.ofFarm(t.st, f6.id) === own && own.booth === null && !own.party.all.length, 'the farm\'s own site stands beside the staked one');
+  const keys = [];
+  Sites.siteWork(t.st, null, null, { hour: 8 }, (key) => keys.push(key));
+  check(keys.some((k) => k.startsWith(`site:s${t.s.id}.`)) && !keys.some((k) => k.startsWith(`site:s${own.id}.`)), `the island's site work posts nothing for a farm's own site (${keys})`);
+  check(hh6.members.every((id) => Sites.siteOf(t.st, id) === null), 'its household\'s members are of no site\'s party');
+  const { WORK } = VB['sim/rules'], idle = hh6.members.map((id) => t.st.pawns[id]).filter((p) => p.alive);
+  const left = VB['sim/away'].siteLodgers(t.st, idle, { hour: WORK[0] });
+  check(left.length === idle.length && !(t.st.away || []).some((x) => hh6.members.includes(x.pawn)), 'none of them lodges at it');
+  const bad6 = checkState(t.st);
+  check(!bad6.length, `invariants with a farm's own site: ${bad6.slice(0, 3).join('; ')}`);
+}
 if (failed) process.exit(1);
 console.log('sites ok: staked at the round, built from home, founded at the move');

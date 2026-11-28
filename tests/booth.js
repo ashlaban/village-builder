@@ -218,4 +218,25 @@ assert.ok(
   );
   assert.deepStrictEqual(checkState(s2), [], 'invariants, given up');
 }
+// a booth household's cottage, as an older save loads it (VB-1937): its farm's own site, beside no booth of a site's (site.booth null), its
+// household in no party; no lodger sets out for it, and its members raise a booth of their own as any pawn
+{
+  const s3 = tinyState(tinyWorld(Array(9).fill('.'.repeat(W)), { seed: 3 }), [{ at: [6, 4], farms: 2, sizes: [5, 4] }], {
+    seed: 3,
+  });
+  const h3 = s3.households[0],
+    f3 = s3.farmsteads[h3.farmstead];
+  f3.rung = 'shelter'; // a test's write: the farm has no cottage yet, as sim/sites sitesLoaded sets it
+  const Sites = VB['sim/sites'],
+    own = Sites.farmSite(s3, f3);
+  assert.ok(own.booth === null && own.leader === null && !own.party.all.length, "a farm's own site has no booth, leader or party");
+  assert.ok(h3.members.every((m) => Sites.siteOf(s3, m) === null), 'its household is of no party');
+  const idle = h3.members.map((m) => s3.pawns[m]);
+  const { WORK } = VB['sim/rules'];
+  assert.strictEqual(VB['sim/away'].siteLodgers(s3, idle, { hour: WORK[0] }).length, idle.length, 'nobody lodges at it');
+  const m3 = h3.members.find((m) => s3.pawns[m].age >= 14 && s3.pawns[m].age < 60),
+    t3 = tileAt(s3.w, (f3.house % s3.w.COLS) + 8, Math.floor(f3.house / s3.w.COLS));
+  assert.strictEqual(issue(s3, { actor: m3, verb: 'raiseBooth', target: t3, source: 'pawn' }), true, 'a member stakes a booth');
+  assert.deepStrictEqual(checkState(s3), [], "invariants, a farm's own site");
+}
 console.log('booth ok');
