@@ -913,3 +913,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1982](backlog/VB-1982.md) | Repair: a dissolved household's obligations stay open | - | 2 | S | A household that dies out keeps running obligations as debtor; they should pass with the estate or close |
 | [VB-1808](backlog/VB-1808.md) | A firewood goal keeps the timber a building counts on | - | 2 | S | VB-1775 review F3: one firewood task cuts all the timber home up to the season's goal, the timber a barn or cottage step counts on with it |
 | [VB-1972](backlog/VB-1972.md) | The gate's hunger as a band over perturbed realisations | plans | 2 | S | gate --band N: hungry days and hunger deaths as a range over null-perturbed realisations, so a step inside the noise reads so |
+| [VB-1933](backlog/VB-1933.md) | Refactor: a test declares its tier in its header; tests/run.js discovers it | - | 2 | M | tests/suites.js 28 tasks to 1 (VB-1406 step 1) |
