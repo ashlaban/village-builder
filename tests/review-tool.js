@@ -11,7 +11,7 @@ const f = facts(`VB['sim/a'] = (() => {
   // @state st.digs: holes dug, by tile
   const { register } = VB['sim/commands'];
   const KINDS = { dig: { rank: 1 } };
-  VB.COUNTERS.digWalk = 'tiles read';
+  VB.counter('digWalk', 'tiles read');
   register('dig', { check: () => null, run: () => {} });
   const later = () => VB['sim/b'].x;
   return { KINDS };

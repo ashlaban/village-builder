@@ -145,6 +145,10 @@ VB['sim/rotations'] = (() => {
       end = d > 0 ? Math.min(Math.max(s, SOIL.start), to) : Math.max(SOIL.floor, to);
     return (s + end) / 2;
   }
+  VB.counter(
+    'rotationWalk',
+    "Farms walked by a village's meeting for its usual rotation, a village a year (sim/fields, VB-350)",
+  );
   // The good head's estimate of what rotation `key` gives its household a year: its fields under a crop (fallow ones do not count against
   // its hands, FIELDS.perHand a hand), each the mean of its courses' yield by the head's bias and the soil it keeps, at FIELDS.expect; worth
   // what serves the year's need, FIELDS.want times it, and a tenth of what is beyond.

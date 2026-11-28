@@ -27,6 +27,10 @@ VB['sim/sleepers'] = (() => {
     return here(st, a) === bed(st, a);
   }
   const fresh = (st) => ({ owed: 0, asleep: false, at: st.tick, until: null });
+  VB.counter(
+    'sleepReckon',
+    'Pawns whose sleep owed was reckoned: each living pawn once an hour, the played pawn each step (sim/sleepers, VB-1645)',
+  );
   // The time since pawn id was last reckoned, taken as it is now: an hour awake owes AWAKE, an hour asleep pays one, within 0 and
   // SLEEP.cap. Once a step at most; not for the dead.
   function reckon(st, id) {
@@ -47,6 +51,10 @@ VB['sim/sleepers'] = (() => {
   function adopt(st, id, old) {
     st.pawns[id].sleep = { owed: old.owed, asleep: old.asleep, at: old.at, until: null };
   }
+  VB.counter(
+    'sleepOwn',
+    "Sleeps begun by a pawn's own rule, one that owed a whole night and was free in the working day (sim/sleepers, VB-1645)",
+  );
   // A pawn's own rule: in the working day, one that owes a whole night (SLEEP.health.over) and is free, with nothing in hand, sleeps off
   // what it owes over SLEEP.mood.over (from a night lost, 4 hours at 6:00), then goes on with its day. Not a played pawn the player
   // drives (its automatic behaviour off): its sleep is the player's to choose.

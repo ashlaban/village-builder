@@ -104,6 +104,10 @@ VB['sim/fair'] = (() => {
     if (good === 'iron') return hh.iron || 0; // smelted from bog ore (VB-701)
     return larderOf(hh, good);
   }
+  VB.counter(
+    'fairPack',
+    "A good weighed for a dealer's load as it sets out for the gathering, once a year (sim/fair, VB-302)",
+  );
   // What giving up a quantum of `good` costs household hh by need, against its customary worth; null when it has none to spare
   function cost(st, hh, good) {
     VB.count.fairPack++;
@@ -253,6 +257,10 @@ VB['sim/fair'] = (() => {
     return null;
   }
   const ctx = { giver: null, receiver: null, from: null, to: null }; // reused, so the allowance allocates nothing
+  VB.counter(
+    'fairWeigh',
+    'A swap weighed by a dealer at the fair: the dealers present times their proposals, three days a year (sim/fair, VB-302)',
+  );
   // How pawn `me` (dealing for its load's household) weighs giving `gives` for `wants` from pawn `other`: {gain (by need), allowance (toward
   // the other: goodwill and opinion, near zero between strangers), floorOk, accept}. The quanta may be fractional, to ask what a deal at
   // an exact ratio would do (the count of deals that failed for want of change).

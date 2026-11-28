@@ -34,6 +34,10 @@ VB['sim/loans'] = (() => {
     const end = (Math.floor(t / YEAR) * YEAR_DAYS + (AUTUMN + 1) * SEASON_DAYS) * DAY;
     return end > t ? end : end + YEAR;
   };
+  VB.counter(
+    'loanComing',
+    'Journeys looked over for the grain on its way to a household short of the harvest (sim/loans coming, VB-312)',
+  );
   // Grain on its way to household hh: what its members fetch and have not yet brought in (a gift set aside, a loan), and a gift a giver's
   // man carries to it from beyond a day (sim/gifts carryGift)
   function coming(st, hh) {
@@ -142,6 +146,18 @@ VB['sim/loans'] = (() => {
   }
   // What household `to` asks of an offer o: the seed it lacks for its sowing (wants.seed), or what it lacks of the next harvest
   const wantOf = (st, o, to) => Math.min(o.wants.n, o.wants.seed ? seedShort(st, to).n : lack(st, to));
+  VB.counter('loansMade', 'Loans of grain made (sim/loans, VB-312)');
+  VB.counter('loanLent', 'Grain lent, in rations (sim/loans, VB-312)');
+  VB.counter(
+    'seedAsks',
+    'Seed loans asked before a sowing by a household short of seed, once a season (sim/loans, VB-1973)',
+  );
+  VB.counter('seedLent', 'Grain lent as seed for a sowing, in rations (sim/loans lendSeed, VB-1973)');
+  VB.counter('seedLentSown', 'Grain lent as seed and sown, in rations (sim/loans, VB-1973)');
+  VB.counter(
+    'seedLentFreed',
+    'Grain lent as seed and not sown by the close of its sowing window, in rations (sim/loans seedFreed, VB-1973)',
+  );
   // ---- the basis `loan` (sim/offers): the borrower's holder wants {good: 'grain', n, store?} and gives its promise ----
   Offers.basis('loan', {
     books: 'an obligation',
@@ -232,6 +248,10 @@ VB['sim/loans'] = (() => {
       return true;
     },
   });
+  VB.counter(
+    'loanLenders',
+    'Households and stores weighed as lenders by a household short after help, once a season, over its village (sim/loans, VB-312)',
+  );
   // ---- borrowing (design.md, Grain loans) ----
   // @state household.borrowedIn: the season (game seasons since the start) in which the household's holder last asked to borrow, or
   //   absent; written only here. It asks at most once a season.
@@ -374,6 +394,7 @@ VB['sim/loans'] = (() => {
     if (!to || (isHousehold(to) && to.dissolved)) return 'the one owed is gone';
     return null;
   }
+  VB.counter('loanRepaid', 'Grain of loans repaid, in rations (sim/loans, VB-312)');
   register('repay', {
     check: repayWhy,
     run: (st, c) => {
@@ -408,6 +429,10 @@ VB['sim/loans'] = (() => {
     }
     return true;
   }
+  VB.counter(
+    'loanDefaulted',
+    'Grain of loans defaulted, in rations unpaid after the second harvest (sim/loans, VB-312)',
+  );
   Obligations.kind('loan', {
     every: null,
     dues: LOAN.dues,

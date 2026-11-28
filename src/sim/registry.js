@@ -117,6 +117,7 @@ VB['sim/registry'] = (() => {
     }
     return n;
   }
+  VB.counter('ruleValue', 'Rule values read (explanations excluded)');
   function value(st, id, ctx) {
     VB.count.ruleValue++;
     const { spec, contributions } = ruleOf(id);

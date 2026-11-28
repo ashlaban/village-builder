@@ -53,6 +53,10 @@ VB['sim/venues'] = (() => {
     if (o) return `${st.farmsteads[o.farm].name} holds the village's ale evening tonight`;
     return null;
   }
+  VB.counter(
+    'aleCalled',
+    'Ale evenings called, each one pass over the live households (sim/occasions callAle, VB-522)',
+  );
   // The holder id opens its house tonight (the verb callAle, its check passed): the adults of its village and of the villages within
   // ALE_EVENING.reach walking hours of it (the table of walking hours) are asked, the near villages first, and each comes by its own wish
   // until ALE_EVENING.guests have said yes; the household's own come. One pass over the live households, and a draw for each adult asked.
@@ -171,6 +175,7 @@ VB['sim/venues'] = (() => {
     const i = RITE.days.findIndex((d) => d[0] === c.season);
     return i >= 0 && c.sday === (keepsOwnDays(st, v) ? riteDaysOf(st, v)[i] : RITE.days[i][1]);
   }
+  VB.counter('riteCalled', "Rites called on the villages' greens, three days a year (sim/occasions callRites, VB-522)");
   // On a rite's day, at midnight (sim/clock): each village with a green whose day it is calls a rite there; its adults come, each at
   // RITE.come + RITE.piety × its piety. Under 'common' days, those of a village with no green (a lone farm) within RITE.reach walking
   // hours of one go to the nearest. Under 'own' days, the adults of any other village within RITE.reach come too, at that chance times

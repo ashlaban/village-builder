@@ -162,6 +162,10 @@ VB['sim/encounters'] = (() => {
     },
   };
 
+  VB.counter(
+    'gatherDrawn',
+    'Partners drawn at a day of the gathering, read against the cap on new contacts (sim/encounters, VB-296)',
+  );
   // New contacts at a day of the gathering (VB-296; design.md, The gathering: Customs drawn together): a pawn meets at most
   // GATHERING.contacts it had no tie with, a day of the gathering (o.fresh[id], saved with the occasion, the day's count). `capped` takes out of
   // `found` the strangers to pawn id once it or they have met their share (sim/occasions counts the contacts, at each 'talked').

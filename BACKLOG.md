@@ -34,7 +34,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1911](backlog/VB-1911.md)<a id="VB-1911"></a> | The barn, the byre and the storehouse as kinds in the facility registry | - | 2 | M | The three outbuildings are declared as facility kinds (sim/facilities declare) with their stages, and the farm's flags become reads of the registry; old saves read as before; no number moves. |
 | [VB-1925](backlog/VB-1925.md)<a id="VB-1925"></a> | The generator lays exactly one salt spring a map, picked by the seed | - | 2 | S | The generator draws a salt spring per island by chance (0.1), so a map may have none or several; Kim, 27 Nov: exactly one in the whole archipelago, which is the only salt until a town brings an import. |
 | [VB-1932](backlog/VB-1932.md)<a id="VB-1932"></a> | Fell and Cut firewood are always available; the head plans the winter's wood | - | 2 | M | Fell and Cut are never withheld because of a store's goal: Fell on any tile the household may fell, Cut whenever unreserved timber is home; the winter's wood is the head's planning |
-| [VB-1934](backlog/VB-1934.md)<a id="VB-1934"></a> | Refactor: a work counter is declared by the module whose loop it counts | - | 2 | M | src/vb.js 12 tasks to 0 (VB-1406 step 2) |
 | [VB-1937](backlog/VB-1937.md)<a id="VB-1937"></a> | Settling in steps: f.booth goes, a booth household loads as a site | - | 2 | M | Remove f.booth and the booth cottage jobs; load a booth household's save as a site at step 3 with its household founded |
 | [VB-1941](backlog/VB-1941.md)<a id="VB-1941"></a> | Refactor: a module's layer read from its @sys line; the modules' list generated; NOT_STOCKS a tag on @state | - | 2 | M | src/layers.json 13 to 1, modules.md 22 to 0, tools/stocks.js 10 to 3 (VB-1406 step 3) |
 | [VB-1944](backlog/VB-1944.md)<a id="VB-1944"></a> | Refactor: the Sim facade joined from what each module gives the page | - | 2 | M | src/sim.js 17 to 1-4 (VB-1406 step 6) |
@@ -158,6 +157,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1990](backlog/VB-1990.md)<a id="VB-1990"></a> | An animal is not given where its new household cannot lead it home | - | 3 | S | giveAnimal skips a gift beyond a day's walk, which otherwise starves away before the frost |
 | [VB-2000](backlog/VB-2000.md)<a id="VB-2000"></a> | Wet game days: a share of what lies out lost on each | - | 3 | M | the wet share of VB-1910, waiting for a wet day in the sim |
 | [VB-2023](backlog/VB-2023.md)<a id="VB-2023"></a> | A team's harness moves with the team | - | 3 | S | A new keeper of a team takes its worn harness, not a sound one |
+| [VB-2041](backlog/VB-2041.md)<a id="VB-2041"></a> | Retire the work counter roundPairs, counted nowhere since VB-693 | - | 3 | S | roundPairs is declared and read but never raised: retire it and its always-zero probe |
 | [VB-2045](backlog/VB-2045.md)<a id="VB-2045"></a> | A seed loan lent in the crop short | - | 3 | S | seed lent in the crop the fields want, not the lender's mix |
 
 </details>

@@ -431,7 +431,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   never saved and never a game to go back to; `build` drops it.
 - The page script (`src/page/*.js`) draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
   `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `farmDirty`, `villageDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing); the lint enforces this.
-- `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
+- `src/vb.js` creates the `VB` namespace and `VB.counter`, by which a module declares its work counters; `src/load.js` loads the modules in Node for the tests.
 - Review tools (VB-337), outside the simulation: `tools/hours.js` (`node tools/sim.js --report hours`) samples a run's agents and fields at
   every step for a household's pawn-hours by job kind and the farming year's days; `tools/stocks.js` maps each stored quantity's adders,
   takers and readers from the writes map (`tools/writes.js`), with a hand-written line a quantity on what happens at none.
@@ -484,8 +484,8 @@ of VB-1406 has landed (`docs/plans/VB-1406-overlap.md`, section 5); until then, 
   A stored quantity's tag for `tools/stocks.js` goes on the same line after VB-1941 (today `QUANTITIES` or `NOT_STOCKS` there).
 - **A test**: a header line `// @suite fast|integration|extended [node:FLAG] [ARG]` in the test file, a line a tier and argument
   set, among the comment lines it opens with (VB-1933; `grep -rn "^// @suite" tests`); `tests/suites.js` is not touched.
-- **A work counter**: today an entry of `VB.COUNTERS` in `src/vb.js`; after VB-1934 declared at load by the module, beside the loop
-  it counts.
+- **A work counter**: declared at load by the module, beside the loop it counts, `VB.counter(name, meaning)` (VB-1934;
+  `grep -rn "VB.counter('" src`); `VB.COUNTERS` joins them in load order, and `src/vb.js` holds none.
 - **A tunable**: a table one domain reads, in that module with its `// @tunable NAME: meaning` line (`grep -rn "@tunable" src`); a
   table several read, in `src/sim/rules.js` until VB-1947 moves them into files by domain, `VB['sim/rules']` staying the joined view.
 - **A migration** (what fills a field an older save lacks): today a line in `load` of `src/sim/saves.js`; after VB-1945 registered

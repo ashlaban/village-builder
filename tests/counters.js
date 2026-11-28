@@ -7,6 +7,9 @@ const st = tinyState(tinyWorld(Array(24).fill('.'.repeat(40))),
   [{ at: [8, 12], farms: 3, sizes: [6, 5, 4] }, { at: [30, 12], farms: 3, sizes: [6, 5, 4] }], {
     seed: 1, herds: true }); // seed 1: a seed whose round has pairs to score
 assert.strictEqual(st.villages.length, 2);
+// The counters are declared by their modules at load (VB.counter, VB-1934); VB.COUNTERS is the joined list, read as before.
+assert.deepStrictEqual(Object.keys(VB.count), Object.keys(VB.COUNTERS), 'every counter is declared through VB.counter');
+assert.throws(() => VB.counter('routeSearch', 'again'), /declared twice/);
 VB.resetCounts();
 const from = st.t;
 for (let d = 0; d < 30; d++) {

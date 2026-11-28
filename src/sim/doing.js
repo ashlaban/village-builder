@@ -150,6 +150,10 @@ VB['sim/doing'] = (() => {
     stage: () => false,
     stray: (st, g, good, x, y) => Lying.strayOf(st, titleOf(g.job, g.owner), goodOf(good).lying, x, y),
   };
+  VB.counter(
+    'methodAsk',
+    "A task's next leg read from the world, at each leg's end or cut (sim/methods next, through sim/doing; VB-1775)",
+  );
   // The pawn's next leg toward its task (sim/methods next): a step, Methods.DONE, or {blocked}.
   function ask(st, a, g = goalOf(st, a)) {
     VB.count.methodAsk++;
