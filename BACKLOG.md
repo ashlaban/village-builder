@@ -90,7 +90,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1240](backlog/VB-1240.md)<a id="VB-1240"></a> | Acts with no pawn, collected: swept at a slice's wrap-up | acts | 3 | M | The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up |
 | [VB-1354](backlog/VB-1354.md)<a id="VB-1354"></a> | Screenshots and Debug audit for VB-671 | - | 3 | S | screenshots, Debug audit |
 | [VB-1364](backlog/VB-1364.md)<a id="VB-1364"></a> | The village's loans are made by its alderman | - | 3 | S | Loans of the village (VB-312) made by the alderman, booked as goodwill |
-| [VB-1369](backlog/VB-1369.md)<a id="VB-1369"></a> | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
 | [VB-1389](backlog/VB-1389.md)<a id="VB-1389"></a> | Cost: three history targets out at small-y40 (asksWeighed, kinPairs, roundWalk) | - | 3 | S | asksWeighed, kinPairs and roundWalk grow with history at small-y40; find the loops and bound them |
 | [VB-1404](backlog/VB-1404.md)<a id="VB-1404"></a> | Measures owed to VB-775: RITE.spread 3/5/8, hours lost, cross-village marriages | - | 3 | S | RITE.spread runs, hours lost, marriages across villages, greens' share of dealing |
 | [VB-1410](backlog/VB-1410.md)<a id="VB-1410"></a> | Measure the alderman's keep (VB-463): each option forced, keepDays 2/4/7, keepShare 0.05/0.1/0.17 | - | 3 | S | Collecting task for VB-463's unmeasured numbers |
