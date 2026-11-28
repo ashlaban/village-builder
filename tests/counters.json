@@ -212,6 +212,7 @@
   "boothWater": 0,
   "leatherWear": 0.20117351215423301,
   "deerCrop": 0,
+  "lyingAt": 0,
   "lyingDecay": 0,
   "outDecay": 0,
   "roundRank": 0.015646828723107013

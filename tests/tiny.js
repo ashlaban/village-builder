@@ -106,5 +106,20 @@ check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
   const bad3 = checkState(s3).filter((e) => /is dead/.test(e) && /demand|guardian/.test(e));
   check(!bad3.length, bad3.join('; '));
 }
+// VB-1541: a household with food and no water, five days: the sheet names the water, and so does the death
+{
+  const s4 = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 1 }], { seed: 7 });
+  const hh = s4.households.find((h) => !h.dissolved), p = s4.pawns[hh.holder];
+  Sim.inhabit(s4, p.id);
+  const U = VB['sim/hunger'].updateHealth;
+  p.hunger = 0; p.health = 80; hh.dryLog = [1, 1, 1, 1, 1]; hh.dry = 1;
+  for (let d = 0; d < 3; d++) { s4.t += Sim.DAY; U(s4, p, true, 0, 1, false); }
+  const words = Sim.sheetNotes(s4).moved.join(' | ');
+  check(/no water fetched \(-\d+\)/.test(words) && !/damp/.test(words), `the sheet reads the water: ${words}`);
+  p.health = 0;
+  check(VB['sim/deaths'].deathRoll(s4, p) === 'thirst', 'a death by dry days is thirst');
+  hh.dry = 0; hh.dryLog = [];
+  check(VB['sim/deaths'].deathRoll(s4, p) === 'starvation', 'and by none of them, starvation');
+}
 if (failed) process.exit(1);
 console.log(`tiny ok: two villages on a 14 x 10 map seeded in ${ms} ms, ${st.pawns.length} people`);
