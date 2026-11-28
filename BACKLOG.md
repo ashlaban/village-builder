@@ -150,7 +150,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1980](backlog/VB-1980.md)<a id="VB-1980"></a> | Gathering customs measure at 40 years | - | 3 | S | VB-296 before/after at 40 populous years |
 | [VB-1990](backlog/VB-1990.md)<a id="VB-1990"></a> | An animal is not given where its new household cannot lead it home | - | 3 | S | giveAnimal skips a gift beyond a day's walk, which otherwise starves away before the frost |
 | [VB-2000](backlog/VB-2000.md)<a id="VB-2000"></a> | Wet game days: a share of what lies out lost on each | - | 3 | M | the wet share of VB-1910, waiting for a wet day in the sim |
-| [VB-2045](backlog/VB-2045.md)<a id="VB-2045"></a> | A seed loan lent in the crop short | - | 3 | S | seed lent in the crop the fields want, not the lender's mix |
 
 </details>
 
