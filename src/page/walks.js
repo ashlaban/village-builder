@@ -3,9 +3,10 @@
 // While the mode is on, sim/legs gives each walk's points (the route's tiles as the pawn walks through them, its gate and its yard) to
 // walkSeen, which draws the walk into a raster of the whole map: a cell a fifth of a hex's radius (a T world's whole map 6.4 MB),
 // each cell counted once a walk. The counts halve each game year (PATHS.halfLifeDays), as wear does: a walk is added at the weight
-// 2^(days since `base` / half-life) and read back at 2^-(days since `base` / half-life), so nothing is touched to fade it; `base` is moved up (every count scaled down) once the
-// weights grow large. The raster is kept in chunks of WALK_CHUNK cells square, made only where a walk has passed, each with its canvas
-// and sprite, so a world's memory is that of the land walked over, at most WALK_BYTES (a walk past it is not drawn where no chunk is left).
+// 2^(days since `base` / half-life) and read back at 2^-(days since `base` / half-life), so nothing is touched to fade it; `base` is
+// moved up (every count scaled down) once the weights grow large. The raster is kept in chunks of WALK_CHUNK cells square, made only
+// where a walk has passed, each with its canvas and sprite, so a world's memory is that of the land walked over, at most WALK_BYTES
+// (a walk past it is not drawn where no chunk is left).
 // Off, nothing is kept: the listener is cleared (sim/legs does one check of it) and the raster dropped, so switching it on starts afresh.
 // A cell is the more opaque the more it is walked, so that the land under a few walks still shows. Drawn at most twice a second, the
 // chunks a walk has touched since; all of them when the ramp's top or the fading has moved on.
