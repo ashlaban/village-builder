@@ -7,6 +7,7 @@ VB['sim/keep'] = (() => {
   const { inForce } = VB['sim/customs'];
   const Obligations = VB['sim/obligations'];
   const { log } = VB['sim/records'];
+  const { emit } = VB['sim/events'];
   // @state village.keep: {year, days (owed), grain (set aside), payers (households that owed or gave)}: the keep of the year of `year`, folded
   //   into one yearly line at the next autumn meeting (Rules for cost, 8); absent until the first. Written only here.
   // @notstock village.keep: ledgers and statistics of what moved (sim/stores, sim/hunger)
@@ -98,6 +99,7 @@ VB['sim/keep'] = (() => {
       });
       if (done !== true) continue;
       b.grain += n;
+      emit(st, 'keepGrain', { hh: st.households[hhA], n }); // sim/class: income from others (VB-318)
       b.payers++;
       VB.count.keepGiven++;
     }

@@ -73,7 +73,13 @@ VB['sim/fields'] = (() => {
   // farmstead.fields[] also has hoursOwn (VB-462): the year's work hours given by its user household's own members, and
   // hoursOther: those given by others (owed days, later the hired: VB-319); absent until the first; zeroed after the class is reckoned (VB-318).
   //   Written only here, as work is reckoned (sim/agents).
+  // `own` null: the year is reckoned (sim/class, at its village's meeting: VB-318) and both hours are cleared.
   const book = (fd, own, dt) => {
+    if (own === null) {
+      delete fd.hoursOwn;
+      delete fd.hoursOther;
+      return;
+    }
     const k = own ? 'hoursOwn' : 'hoursOther';
     fd[k] = (fd[k] || 0) + dt;
   };

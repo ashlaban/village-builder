@@ -197,6 +197,7 @@
   "sim/overview.js",
   "sim/cottage.js",
   "sim/society.js",
+  "sim/class.js",
   "sim/settle.js",
   "sim/lifecycle.js",
   "sim/marriage.js",

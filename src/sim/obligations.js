@@ -5,6 +5,7 @@ VB['sim/obligations'] = (() => {
   const { DAY, YEAR, YEAR_DAYS, SEASON_DAYS, ASK } = VB['sim/rules'];
   const { personEvent, log, fullName, atHousehold } = VB['sim/records'];
   const Stores = VB['sim/stores'];
+  const { emit } = VB['sim/events'];
   // @state st.obligations: every obligation ever made, by id, never reused: {id, kind (a key of KINDS), debtor, creditor (party refs:
   //   {kind: 'household' | 'village' | 'pawn', id}), owes ({rations: n} or {hours: n}), due (the hour its term ends), every (hours from one
   //   term to the next, or null: a single term), enforcer (a party ref, or null: social only), status ('open', 'part', 'overdue' while it
@@ -215,6 +216,7 @@ VB['sim/obligations'] = (() => {
       if (!(part > 0)) continue;
       n -= part;
       o.delivered += part;
+      emit(st, 'paid', { o, part }); // sim/class reads the rents, interest and wages (VB-318)
       if (o.kind === 'days') {
         if (why === 'days worked') o.worked += part; // hours worked, not a day commuted
         o.asked = Math.max(0, o.asked - part);

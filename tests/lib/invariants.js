@@ -96,6 +96,17 @@ function checkState(st) {
     if (zero)
       bad.push(`ledger: ${h.center ? 'village' : 'household'} ${h.id} records a movement of nothing (${zero.kind})`);
   }
+  // VB-318: a household's livelihood: its counts whole and within 0..2 years, its parts finite and not negative
+  for (const h of st.households) {
+    const L = h.livelihood;
+    if (!L) continue;
+    const Y = globalThis.VB['sim/class'].CLASS.years;
+    for (const k of ['elite', 'landed'])
+      if (!Number.isInteger(L[k]) || L[k] < 0 || L[k] >= 2 * Y) bad.push(`livelihood: household ${h.id} count ${k} is ${L[k]}`);
+    for (const k of ['rent', 'keep', 'interest', 'hours', 'wages'])
+      if (!(L[k] >= 0) || !Number.isFinite(L[k])) bad.push(`livelihood: household ${h.id} ${k} is ${L[k]}`);
+    if (L.last !== null && !Number.isFinite(L.last.m + L.last.ml)) bad.push(`livelihood: household ${h.id} last measure is not a number`);
+  }
   // VB-354: the seasons' weather: one or two years, oldest first and consecutive, the last no later than this year (a test that sets the
   // clock jumps past the seasons' draws); at most four seasons each, warmth
   // and wetness in -1 to 1, the thaw a spring day of 0 to 3 and the frost an autumn day of 7 to 11

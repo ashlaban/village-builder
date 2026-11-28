@@ -237,6 +237,27 @@ const patronStat = (hh) => {
     wide: true,
   };
 };
+// The household's class (VB-318, sim/class): by land and by livelihood, with the year's income from others by its parts
+const classStat = (hh) => {
+  const C = VB['sim/class'],
+    c = C.classOf(st, hh);
+  if (!c.land) return null;
+  const word = c.landed ? 'landed elite' : c.elite ? 'elite' : c.land;
+  const parts = c.parts
+      ? `Last year's income from others, in shares of its need of ${Math.round(c.parts.need)} rations: ${Math.round(c.m * 100)}% ` +
+        `(rents ${Math.round(c.parts.rent)}, keep ${Math.round(c.parts.keep)}, interest ${Math.round(c.parts.interest)}, ` +
+        `others' hours on its land ${Math.round(c.parts.hours)}, less wages ${Math.round(c.parts.wages)}); from land alone ${Math.round(c.ml * 100)}%`
+      : 'Not yet reckoned: its first year at the village meeting',
+    cut = `Elite from ${Math.round(C.CLASS.eliteIn * 100)}% three years running, no longer under ${Math.round(C.CLASS.eliteOut * 100)}%`;
+  return {
+    icon: 'people',
+    label: 'Class',
+    value: word,
+    note: `${c.worked} fields worked, ${c.owned} owned`,
+    title: `${word}: ${c.worked} fields worked, ${c.owned} owned. ${parts}. ${cut}`,
+  };
+};
+cardRow('house', 45, classStat);
 // The household's tools (VB-701, sim/ironwork): shown once worn, with what their wear costs the field work and felling
 cardRow('house', 50, patronStat);
 const toolsStat = (hh) => {
