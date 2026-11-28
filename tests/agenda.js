@@ -111,7 +111,9 @@ if (keep.had) st.jobs.set(key, keep.had); else st.jobs.delete(key);
 // no simulation module names the view: only the Sim facade reads it
 const r = build();
 const readers = r.deps.filter((d) => d.imports.includes('sim/agenda') || d.lookups.some((l) => l.key === 'sim/agenda')).map((d) => d.mod);
-assert.deepStrictEqual(readers, ['sim'], `only sim reads sim/agenda, not ${readers.join(', ')}`);
+// the facade joins what a module gives the page (VB-1944): sim/agenda names it in its PAGE list, and no other module names sim/agenda
+assert.deepStrictEqual(readers.filter((m) => m !== 'sim'), [], `only sim reads sim/agenda, not ${readers.join(', ')}`);
+assert(VB['sim/agenda'].PAGE.includes('agenda'), 'sim/agenda gives the page its agenda');
 
 // VB-1647: the plan laid into days. On the tiny village of tests/plan.js with the played farmer alone (the others' hands would end its
 // tasks sooner than its own estimate says, which the view does not reckon): a routine, sleeping hours and two tasks.

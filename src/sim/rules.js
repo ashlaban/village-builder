@@ -712,6 +712,8 @@ VB['sim/rules'] = (() => {
     breach: Object.freeze(['claim', 'border', 'refusedMatch', 'crop', 'stayedAway', 'failedUs', 'brokeFaith']),
   });
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['cal', 'DAY', 'YEAR', 'YEAR_DAYS', 'SEASON_DAYS', 'ECON', 'TRAVEL', 'WORK', 'dark', 'HERD', 'CLAIMS'],
     TRAITS,
     DAY,
     SEASON_DAYS,

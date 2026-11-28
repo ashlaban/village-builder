@@ -53,5 +53,6 @@ VB['sim/house'] = (() => {
   // The day's firewood of household hh's hearth over a cottage's: ROOM.timberFire in a timber house, else 1.
   const fireOf = (st, hh) =>
     hh.farmstead !== null && st.farmsteads[hh.farmstead].rung === 'timber' ? ROOM.timberFire : 1;
-  return { HOUSE, ROOM, houseTarred, houseCondition, houseTerm, roomOf, crowded, fireOf };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { HOUSE, ROOM, houseTarred, houseCondition, houseTerm, roomOf, crowded, fireOf, PAGE: ['houseTarred'] };
 })();

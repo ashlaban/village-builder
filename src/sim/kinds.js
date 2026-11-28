@@ -434,6 +434,8 @@ VB['sim/kinds'] = (() => {
     return where.plan || where.mark ? null : GOALS[name].gone(st, where);
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: ['KINDS'],
     KINDS,
     ASK,
     isOpen,
