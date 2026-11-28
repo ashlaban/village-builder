@@ -261,9 +261,15 @@ VB['sim/fieldwork'] = (() => {
       verb: 'Threshing in the barn',
       go: 'Going to the barn to thresh',
       name: 'Thresh the grain',
-      at: ['barn'],
+      at: ['barn', 'storehouse'],
       needs: ['sheaves'],
       gives: ['grain'],
+      // the grain threshed in the barn is carried to the storehouse that keeps it (VB-2027), or the house of a farm without one
+      words: (st, j) => ({
+        verb: j.farm.storehouse
+          ? 'Threshing in the barn, the grain for the storehouse'
+          : 'Threshing in the barn, the grain for the house',
+      }),
       label: 'Threshing',
       anim: null,
       hours: HOURS.thresh,

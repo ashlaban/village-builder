@@ -56,26 +56,6 @@ Proposed answers: (a) leave it to contact: no term; (b) add a term to attitude.m
 1. VB-1947 moves the tables several domains read out of `src/sim/rules.js` into files by domain, with `VB['sim/rules']` kept as the joined view so that none of its 107 readers changes. It touches what every module reads at load, so every branch in flight that edits a table conflicts with it once. When should it go ahead?
    **P:** after the slice work in flight has merged, in a quiet hour, as one task: the joined view keeps every reader as it is, and `tools/same.js` shows it.
 
-### VB-1973: A seed loan before sowing, after a failed year (raised 28 November 2026)
-1. A household that ate its seed in a failed year sows nothing the next spring (VB-1965: populous seed 7, household 0 ate 235 of seed in year 7 and sowed 0 of 12 fields in year 8, eating the gifts and grain loans it got, though idle half its working hours). design.md, Loans (slice 5), makes seed corn after a failed year the first loan and leaves open whether it is repaid in the crop lent. May the seed loan be built now, and how is it repaid?
-   **P:** Build it now (VB-1973): before its spring sowing a household holding less seed than its fields to be sown want asks a seed loan through sim/loans (its village's lenders, its store, a trade partner, as a grain loan); the grain lent is set aside as seed (reserved, so the meal does not eat it before the sowing) and repaid at the end of autumn as a grain loan is (LOAN.adds by the practice), in grain whatever its crop.
-
-### VB-1771: Duties of the days ahead: Q5's rise did not show; should the head's rule give duties? (raised 28 November 2026)
-1. Should the head's default author give duties? (VB-1771; design.md section 7, Plans at four scales: The days ahead; docs/plans/four-scales/README.md, section 4, Q5)
-
-   Q5 predicted that duties would raise the share of member-days that begin with yesterday's type of work from 63 to 66% to at least 72%. They do not raise it. Measured with tools/q5.js on populous small, 2 years, seeds 7 and 11, with the rule on and with it off:
-   - continuity: 73.8% and 73.3% with duties, 74.3% and 74.0% without. The share is already above 72% with no duty, by this measure (the type of the first task of each member's morning list).
-   - windowed work begun no later: 86.0% and 88.0%. On seed 7, 370 tasks began earlier and 399 later, so the two runs part both ways and nothing is delayed systematically.
-   - vital hours unmet at the evening's end: 37 and 22 with duties, 65 and 44 without.
-   - hungry household-days: 2 and 45 with duties, 7 and 42 without.
-   - tests/hay.js and tests/meadows.js are green, and the gate holds with the rule on.
-
-   Duties cover only the kinds of their type that are due each day or that a household lives by (water, meal, wood, fodder, milking). A member's day mostly begins with field work, and field work is never a duty, so duties cannot move this share by construction.
-
-   What ships now: the rule's giving is off (SWITCH.duties in sim/day). The mechanism, the verb (assign with a duty) and the decision point `duty` are live.
-
-   **P:** Turn the rule on. Duties delay no windowed work and roughly halve the vital hours left unmet, and Q5's figure of 72% is read as already met. The other answers: (b) drop duties, as section 4's refutation says, so that the days ahead hold dates and dated steps only and the build is removed; (c) leave duties to controllers only, given through assign, which is what ships now.
-
 ## Priority 3
 
 ### VB-1406: Two lists only Kim reads or records: docs/tuning.md and tests/counters.json (VB-1406) (raised 27 November 2026)
