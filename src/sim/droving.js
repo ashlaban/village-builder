@@ -3,7 +3,8 @@
 // that goes with them is left lying at the old farm for it to fetch (sim/lying); a herd with nobody to have it stays at its farm until the
 // autumn frost, when the farm's household takes it in or it is lost. Writes st.herds' records that move and st.herdsAway.
 VB['sim/droving'] = (() => {
-  const { HERD, SHARES, TRAVEL } = VB['sim/rules'];
+  const { HERD, SHARES, TRAVEL, WORK, SPEED } = VB['sim/rules'];
+  const { route, routeCost, hasRoute } = VB['sim/routes'];
   const { log, atHousehold, atFarm } = VB['sim/records'];
   const { herdsOf, herdOf, winterNeed, makeHerd, homeTile } = VB['sim/herds'];
   const Lying = VB['sim/lying'];
@@ -187,13 +188,37 @@ VB['sim/droving'] = (() => {
       ...atHousehold(st, hh),
     });
   }
-  // The autumn frost (sim/clock): a herd standing with nobody to fetch it (no owner, or an owner with no farm) is taken in by the household
-  // of the farm it stands at, or else is lost to the winter, named in the record.
+  // A herd standing away that has no animal left (it starved there, sim/byre starveAway): nothing is left to lead home, and it leaves
+  // the list, its record kept with household null as a herd emptied by a merge (VB-1709).
+  function emptied(st, herd) {
+    if (herd.at === undefined || count(herd)) return;
+    unlist(st, herd);
+    herd.household = null;
+    herd.cull = [];
+    herd.herder = null;
+  }
+  // Whether the herd's household can lead it home in a working day (VB-1709): there from its house, the haltering and back within the
+  // working hours. One farther is never led: its `drove` is taken up in the morning and the hand is called back to the day's work before it
+  // is there (populous small seed 7: a 20-hour walk, taken and dropped every day for years).
+  function reachable(st, herd, owner) {
+    const from = st.farmsteads[owner.farmstead].house,
+      to = herd.tile ?? st.farmsteads[herd.at].house;
+    if (from === to) return true;
+    if (!hasRoute(st, from, to)) return false; // none by land: never led (a fallback's straight line is not a way)
+    return 2 * (routeCost(st.w, route(st, from, to)) / SPEED) + KIND.hours <= WORK[1] - WORK[0];
+  }
+  // The autumn frost (sim/clock): a herd standing with nobody to fetch it (no owner, an owner with no farm, or one whose house is beyond
+  // a working day's walk and back, VB-1709) is taken in by the household of the farm it stands at, or else is lost to the winter, named in
+  // the record. A herd with no animal left leaves the list.
   function frost(st) {
     for (const id of [...away(st)]) {
       const herd = st.herds[id],
         owner = herd.household === null ? null : st.households[herd.household];
-      if (owner && owner.farmstead !== null) continue;
+      if (!count(herd)) {
+        emptied(st, herd);
+        continue;
+      }
+      if (owner && owner.farmstead !== null && reachable(st, herd, owner)) continue;
       const f = st.farmsteads[herd.at],
         keeper = f.household === null ? null : st.households[f.household];
       const text = what(herd),
@@ -201,7 +226,9 @@ VB['sim/droving'] = (() => {
       unlist(st, herd);
       if (keeper && !keeper.dissolved) {
         merge(st, herd, keeper);
-        log(st, `${f.name} takes in ${text} left there with nobody to keep them.`, {
+        const why =
+          owner && owner.farmstead !== null ? 'too far from their own farm to be fetched' : 'with nobody to keep them';
+        log(st, `${f.name} takes in ${text} left there ${why}.`, {
           kind: 'herdLed',
           ...atHousehold(st, keeper),
         });
@@ -222,7 +249,8 @@ VB['sim/droving'] = (() => {
     }
   }
   // The kind `drove` (sim/kinds): a member walks to the farm where the household's herd stands and leads it home (no animal is in a byre it
-  // was not led to). Posted at the household's farm for each of its herds standing away, in any season (its hay is fetched apart).
+  // was not led to). Posted at the household's farm for each of its herds standing away within a day's walk and back, in any season (its
+  // hay is fetched apart).
   const KIND = {
     verb: 'Haltering the animals',
     go: 'Going to fetch the animals',
@@ -240,7 +268,9 @@ VB['sim/droving'] = (() => {
     available: (st, hh, f, c, post) => {
       for (const id of away(st)) {
         const hd = st.herds[id];
-        if (hd.household === hh.id) post(`drove:H${id}`, hd.tile ?? st.farmsteads[hd.at].house, { farm: f, herd: id });
+        // one it cannot lead home in a day is not posted: it waits for the frost (VB-1709)
+        if (hd.household === hh.id && reachable(st, hd, hh))
+          post(`drove:H${id}`, hd.tile ?? st.farmsteads[hd.at].house, { farm: f, herd: id });
       }
     },
   }; // the animals haltered at the site and led home, as a load in hand: set down at the door by the kind's delivery (VB-1750)
@@ -257,5 +287,5 @@ VB['sim/droving'] = (() => {
     met: (st, g) => (g.job.made || 0) > 0,
   });
 
-  return { passHerds, startHerd, payInAnimals, leaveAt, frost, KIND };
+  return { passHerds, startHerd, payInAnimals, leaveAt, frost, emptied, KIND };
 })();

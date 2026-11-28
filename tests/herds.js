@@ -112,5 +112,35 @@ check(!checkState(st).length, 'populous in the byre: ' + checkState(st).slice(0,
   check(Math.abs(unh - unh0) < 1e-9 && Math.abs(unh / alone - HH.milk) < 1e-9, `unherded takes no bite: ${unh}, ${unh0}, ${alone}`);
 }
 
+// --- a herd standing beyond a day's walk of its household (VB-1709): populous small seed 7, a cow given at a farm 20 hours' walk away was
+// taken up every morning and dropped at 14:00, and stood there for years. Its `drove` is not posted; at the frost the farm's household
+// takes it in, as one with nobody; one within reach waits for its own; a herd whose last animal starved there leaves the list.
+{
+  const { tinyWorld, tinyState } = require('./lib/tiny.js'), K = HO.KIND;
+  const w = tinyWorld(Array.from({ length: 7 }, () => '.'.repeat(170)));
+  const s = tinyState(w, [{ at: [8, 3], farms: 2 }, { at: [160, 3], farms: 1 }], { seed: 3, herds: true });
+  const hh = (v) => s.households.find((h) => !h.dissolved && h.farmstead !== null && s.farmsteads[h.farmstead].village === v);
+  const near = s.households.filter((h) => !h.dissolved && h.farmstead !== null && s.farmsteads[h.farmstead].village === 0);
+  const far = hh(1), [a, b] = near;
+  for (const h of [a, b, far]) h.hay = 10000; // every one keeps its winter hay and has animals to give
+  const give = (from, to) => { HO.payInAnimals(s, from, to, 1000, ['cow'], false); return (s.herdsAway || []).map((id) => s.herds[id]).find((hd) => hd.household === to.id && hd.at === from.farmstead); };
+  const posted = (h) => { const keys = []; K.available(s, h, s.farmsteads[h.farmstead], null, (key) => keys.push(key)); return keys; };
+  const there = give(far, a), close = give(b, a);
+  check(there && close && there.head.length && close.head.length, 'far: a cow stands at the far farm and one at the near farm for the same household');
+  if (there && close) {
+    check(posted(a).includes(`drove:H${close.id}`) && !posted(a).includes(`drove:H${there.id}`), `far: posted ${posted(a).join(', ')}`);
+    const keeps = H.herdOf(s, far, 'cattle').head.length, n = there.head.length;
+    HO.frost(s);
+    check(there.at === undefined && !(s.herdsAway || []).includes(there.id) && H.herdOf(s, far, 'cattle').head.length === keeps + n,
+      'far: at the frost the far farm takes in the herd its owner cannot fetch');
+    check(close.at !== undefined && close.household === a.id, 'far: the herd within reach still waits for its owner at the frost');
+    check(!checkState(s).length, 'far, after the frost: ' + checkState(s).slice(0, 3).join('; '));
+    close.head = [];
+    HO.emptied(s, close);
+    check(close.at === undefined && !(s.herdsAway || []).includes(close.id) && close.household === null, 'far: an emptied herd leaves the list');
+    check(!checkState(s).length, 'far, emptied: ' + checkState(s).slice(0, 3).join('; '));
+  }
+}
+
 if (failed) process.exit(1);
 console.log(`herds ok: ${report}`);
