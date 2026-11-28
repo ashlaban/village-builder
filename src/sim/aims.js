@@ -5,6 +5,11 @@
 // a whole season. And once a year the head weighs each small construction (a boat, a cart, a tar pit) by its making's own test (VB-678);
 // all of them begun through the verb project, which the played head has as any head
 VB['sim/aims'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/aims', {
+    projectTaken: { group: 'land' }, // a head's project taken and finished (VB-255)
+    projectDone: { group: 'land' },
+  });
   const { targetOf } = VB['sim/steps'];
   const { barnSteps } = VB['sim/building'];
   const { emit } = VB['sim/events'];

@@ -2,6 +2,10 @@
 // a plot under way is a project plan of its village (sim/plans, VB-123), a plot built a record in village.plots; who gets a plot, and the
 // moving round's plots, are sim/allotment's; the cottage's stages themselves, a plot's and a settler household's, sim/cottageplan's
 VB['sim/expansion'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/expansion', {
+    plotStarted: { group: 'land' },
+  });
   const { B } = VB['world/biomes'];
   const { doneOf, keptDone } = VB['sim/progress'];
   const { FIELDS, ECON, SETTLE } = VB['sim/rules'],

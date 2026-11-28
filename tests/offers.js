@@ -5,7 +5,7 @@
 // leaves both unmarried, and a young pawn that refuses its head's match costs the head's opinion; silence is the pawn's own judgement at
 // the round; a death lets it lapse; a save with an offer open plays on as the unbroken run.
 const assert = require('assert');
-const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], L = VB['sim/lifecycle'], N = VB['sim/notable'];
+const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], L = VB['sim/lifecycle'], N = VB['sim/skip'];
 const { opinionOf } = VB['sim/relations'];
 const { canon, kept } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);

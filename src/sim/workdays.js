@@ -4,6 +4,10 @@
 // at the day's end those who turned out gain standing for the year, a household levied that stayed away breaches (goodwill its head owes
 // the alderman), and the other holders tied to that holder remember it
 VB['sim/workdays'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/workdays', {
+    workday: { keep: 'short' }, // a village's work day: who turned out and who stayed away (VB-120)
+  });
   const { WORK, DAY, SEASON_DAYS, YEAR_DAYS, cal } = VB['sim/rules'];
   const { hexSteps } = VB['sim/hex'];
   const { log, age, fullName, unplanned } = VB['sim/records'],

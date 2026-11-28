@@ -3,6 +3,11 @@
 //   with no offer of theirs open; a head's refusal of their match is remembered by both, who may ask for service at the next round. The
 //   pair's own offer is made by sim/asking, and answered as a match (sim/marriage)
 VB['sim/courting'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/courting', {
+    courting: { keep: 'generation', group: 'marriage', personal: true }, // a courtship begun, and ended unmarried (VB-036)
+    courtingEnded: { keep: 'generation', group: 'marriage', personal: true },
+  });
   const { YEAR } = VB['sim/rules'];
   const { personEvent, fullName, spouseOf, settlementIdOf, practice, age } = VB['sim/records'],
     { tieOf } = VB['sim/ties'];

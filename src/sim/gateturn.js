@@ -2,6 +2,10 @@
 //   entrance being a general property; not a church's): the small making `gate` (args {side}), a project of the household at its house
 //   whose one step, the job kind turngate, moves the gate to that side when it is done (sim/entrances turnGate)
 VB['sim/gateturn'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/gateturn', {
+    gateTurned: {}, // a farmstead's gate moved (VB-1951)
+  });
   const Projects = VB['sim/projects'];
   const { declare } = VB['sim/makings'];
   const { GATE, turnGate } = VB['sim/entrances'];

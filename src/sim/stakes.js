@@ -2,6 +2,11 @@
 // the household's own once made; it lapses unworked, goes with a household that dissolves, and a weakened stake may be contested by custom;
 // a stake lost is told to the project plans (sim/projects) by the event rightLost
 VB['sim/stakes'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/stakes', {
+    stake: { group: 'land' },
+    stakeLapsed: {},
+  });
   const { CLAIMS } = VB['sim/rules'];
   const CL = VB['sim/claims'],
     Disputes = VB['sim/disputes'];

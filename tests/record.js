@@ -1,7 +1,8 @@
 // @suite integration
 // The record of events (VB-075): after 10 founders years at seed 7, every pawn ever born has a born event, every dead pawn a died event and
 // every union a married event; recordOf filters by pawn, place, kind and time and returns time order. VB-199: a pawn's events are
-// positions in the record and read as they did, every kind is in HISTORY, and the routine kinds fold into yearly counts.
+// positions in the record and read as they did, and the routine kinds fold into yearly counts. VB-1946: every kind written has its
+// record (sim/eventkinds), declared by the module that writes it, and each field of a record names a group, reason or rule that is.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim;
 const { readSource } = require('../tools/lib/source.js');
@@ -27,16 +28,34 @@ for (const f of fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 's
   }
 }
 assert.deepStrictEqual(missing, [], `log calls without an event: ${missing.join(', ')}`);
-// every kind of event a call writes is in the table of how long each kind is kept (VB-199): the literal kinds of personEvent, and of
-// the events of log and record calls
-const H = VB['sim/records'].HISTORY, written = new Set();
+// every kind of event a call writes has its record (VB-1946; how long it is kept, VB-199): the literal kinds of personEvent, and of the
+// events of log and record calls
+const E = VB['sim/eventkinds'], H = {}, written = new Set();
+for (const k of Object.keys(E.EVENTS)) H[k] = E.keepOf(k);
 for (const f of fs.readdirSync(path.join(__dirname, '../src/sim')).map((x) => 'src/sim/' + x)) {
   const src = readSource(f);
   for (const m of src.matchAll(/personEvent\(st, [^,]+, '(\w+)'/g)) written.add(m[1]);
   for (const m of src.matchAll(/\b(?:log|record)\(st, [^;]*?\{[^;]*?kind: '(\w+)'/g)) written.add(m[1]);
 }
 const unlisted = [...written].filter((k) => !(k in H));
-assert.deepStrictEqual(unlisted, [], `kinds written but not in HISTORY (sim/records): ${unlisted.join(', ')}`);
+assert.deepStrictEqual(unlisted, [], `kinds written with no record (sim/eventkinds): ${unlisted.join(', ')}`);
+// each field of a record names what is: a history's group, a notice's reason, a skip's rule; and its owner is a module
+{
+  const N = VB['sim/notable'], S = VB['sim/skip'], bad = [], LEGACY = new Set(['fellOut']);
+  for (const [k, r] of Object.entries(E.EVENTS)) {
+    if (r.group !== undefined && !Object.hasOwn(N.CHRONICLE, r.group)) bad.push(`${k}: group ${r.group}`);
+    if (r.notice !== undefined && !Object.hasOwn(N.NOTABLE, r.notice)) bad.push(`${k}: notice ${r.notice}`);
+    if (r.skip !== undefined && !Object.hasOwn(S.STOPS, r.skip)) bad.push(`${k}: skip ${r.skip}`);
+    if (r.personal !== undefined && r.personal !== true) bad.push(`${k}: personal ${r.personal}`);
+    if (r.word !== undefined && !(typeof r.word === 'string' && r.word)) bad.push(`${k}: word ${r.word}`);
+    const own = path.join(__dirname, '../src', r.owner + '.js');
+    if (!fs.existsSync(own)) bad.push(`${k}: owner ${r.owner}`);
+    // its owner writes it: the kind's name, as a literal, outside its own declaration (LEGACY: kinds only older saves hold)
+    else if (!LEGACY.has(k) && readSource(own).split(`'${k}'`).length < 2 && !new RegExp(`\\b${k}\\b`).test(readSource(own).replace(/^ {4}\w+: \{.*$/gm, '')))
+      bad.push(`${k}: not written by its owner ${r.owner}`);
+  }
+  assert.deepStrictEqual(bad, [], `event records that name nothing: ${bad.join(', ')}`);
+}
 // On the small islands of tests/lib/probe.js (VB-856; founders ten years and heirs three on the default island before): founders three years
 // and twelve days, saved and loaded in the third year's fold on the way.
 const { island, ROOMY } = require('./lib/probe.js'), world = () => island(7);
@@ -76,7 +95,7 @@ const wed = new Set(told.filter((e) => e.kind === 'married').map((e) => `${e.paw
 for (const u of st.unions) assert.ok(wed.has(`${u.a}-${u.b}`), `union ${u.id} (${u.a} and ${u.b}) has no married event`);
 for (const e of live) {
   assert.ok(typeof e.kind === 'string' && Number.isFinite(e.t) && e.t <= st.t, `bad event ${JSON.stringify(e)}`);
-  assert.ok(e.kind in H, `the kind ${e.kind} is not in HISTORY (sim/records)`);
+  assert.ok(Object.hasOwn(H, e.kind), `the kind ${e.kind} has no record (sim/eventkinds)`);
   for (const k of Object.keys(e)) assert.ok(e[k] !== undefined && e[k] !== null, `event ${JSON.stringify(e)}: ${k} is empty`);
 }
 // the fold: a routine event is kept its years, then its slot is the index of its count, and each count is as many slots

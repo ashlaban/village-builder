@@ -2,6 +2,10 @@
 // sim/stores and sim/relations, its worth booked as goodwill between the two holders (VB-217); a household's want of a cow, the deal or
 // the start in life that meets it and the job that leads the animal home (VB-390); whom a household deals with first, its kin
 VB['sim/exchange'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/exchange', {
+    gift: { keep: 'generation', personal: true, skip: 'help' },
+  });
   const Goods = VB['sim/goods'],
     Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
