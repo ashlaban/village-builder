@@ -517,6 +517,7 @@ VB['sim/byre'] = (() => {
       n,
       ...atFarm(f),
     });
+    VB['sim/droving'].emptied(st, herd); // its last animal gone, it no longer stands there (VB-1709)
   }
   // Ewes in milk now (VB-144): those that lambed this spring, from turn-out to the end of summer.
   const inMilkEwes = (st, herd, c) =>
