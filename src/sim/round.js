@@ -15,7 +15,8 @@ VB['sim/round'] = (() => {
   const { claimFarms, claimableFarm, askLand } = VB['sim/farmclaims'];
   const { settleRound } = VB['sim/settle'];
   const { takeServants, serveWhereShort, oweWages, unpaid, unpaidLeave } = VB['sim/service'];
-  const { payOwed } = VB['sim/cottage'];
+  const { payOwed } = VB['sim/cottage'],
+    { payRent } = VB['sim/heirland'];
   const { callFilling } = VB['sim/help'];
   const { refreshStanding } = VB['sim/society'];
   const { issue } = VB['sim/commands'];
@@ -129,6 +130,7 @@ VB['sim/round'] = (() => {
       const unhomed = unpaidLeave(st, unpaid(st));
       serveWhereShort(st, { ...takeServants(st), leavers: [...leavers(st), ...unhomed] });
       payOwed(st);
+      payRent(st); // the half harvest of an heir's fields (VB-034)
       refreshStanding(st);
       if (ASK.passes === 1) lapseRound(st);
     }

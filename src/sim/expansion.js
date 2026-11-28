@@ -30,9 +30,11 @@ VB['sim/expansion'] = (() => {
     PLOT_PEOPLE = 2; // whom a plot's water is weighed for: the couple a plot is cleared for (one trip a day at any size until VB-1586)
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   // @state village.plots[]: the village's plots built, {id, village, intended, holder (who moved in), started, farmstead, tiles: [{tile, kind
-  //   'house' | 'field'}]}, appended when the cottage's household moves in (sim/cottage). A plot under way is a project plan of its village
+  //   'house' | 'field'}], split (true: its house built by fields split off to its holder, VB-034)}, appended when the cottage's
+  //   household moves in (sim/cottage). A plot under way is a project plan of its village
   //   (st.plans.projects; a village's other project is its green, sim/green), {..., what: 'plot', plot (its number in the village: the plots built and under
-  //   way before it), intended, to (the pawn it is allotted to once cleared, or null), hours ({pawn: hours worked on it}), started, steps}:
+  //   way before it), intended, to (the pawn it is allotted to once cleared, or null), hours ({pawn: hours worked on it}), started, steps,
+  //   split (VB-034: the tiles of the fields split off to `intended` at a handover, its house built by them; absent on a plot cleared)}:
   //   the steps are its clearing, of several places (each {tile, kind 'house' | 'field', steps (fell, grub, clear, break), i, fresh}, one
   //   task a place, worked side by side), then the cottage's stages at the house ({kind, place, hours, done (hours worked)}; the walls also
   //   `wood`, the timber brought to the site, which nothing else may take: VB-328).
@@ -178,14 +180,38 @@ VB['sim/expansion'] = (() => {
     }
     return !best || best.field < 0 ? null : best;
   }
+  // A house site for fields split off a farm to an heir (VB-034; design.md, Handover and shares: a sibling who gets fields needs a house
+  // next to them): a tile of village v's land within FIELD_REACH steps of every one of `fields` (tiles), free and buildable as findSite's,
+  // not closing a way or the green in, the best by the generator's house score (sim/layout houseScore). {house, fields}, or null. Cost:
+  // one walk of FIELD_REACH steps from the first field.
+  function splitSite(st, v, fields) {
+    const w = st.w,
+      built = builtTiles(st),
+      { shut, end: house } = cutTests(w);
+    let best = null,
+      bs = -Infinity;
+    for (const [h] of bfs(w, fields[0], FIELD_REACH, walkable(w)).dist) {
+      if (!freeFor(st, h, v.id) || st.used.has(h) || built.has(h) || v.wood.includes(h) || w.river[h]) continue;
+      if (w.biome[h] === B.MOUNTAIN || w.biome[h] === B.SNOW) continue;
+      if (!fields.every((t) => hexSteps(w, h, t) >= 1 && hexSteps(w, h, t) <= FIELD_REACH)) continue;
+      if (cutsOff(w, h, shut, house) || (v.green && rimFull(w, v.center, h, house))) continue;
+      let touch = 0;
+      for (let k = 0; k < 6; k++) if (built.has(w.nb[h * 6 + k])) touch++;
+      const s = houseScore(w, h, hexSteps(w, v.center, h), touch) - HOUSE.spare * fertility(w, h);
+      if (s > bs) {
+        bs = s;
+        best = { house: h, fields: [...fields] };
+      }
+    }
+    return best;
+  }
   // A plot begun in village v for pawn `intended`: the village's, or (by, a household id) that household's project for its heir (VB-255).
+  // A site with `fields` (splitSite) is a house only, for the fields split off to `intended` (VB-034): the plot's `split`.
   function startPlot(st, v, intended, by = null, site = findSite(st, v)) {
     if (!site) return false;
     const w = st.w,
-      tiles = [
-        { tile: site.house, kind: 'house' },
-        { tile: site.field, kind: 'field' },
-      ];
+      tiles = [{ tile: site.house, kind: 'house' }];
+    if (!site.fields) tiles.push({ tile: site.field, kind: 'field' });
     for (const tr of tiles) {
       tr.steps = stepsFor(w, tr.tile, tr.kind);
       tr.i = 0;
@@ -211,16 +237,21 @@ VB['sim/expansion'] = (() => {
         to: null,
         hours: {},
         started: st.t,
+        ...(site.fields ? { split: [...site.fields] } : {}),
         steps: [{ kind: 'clear', places: tiles }, ...cottage],
       },
     });
     st.villageDirty.add(v.id);
     if (by === null)
-      log(st, `${v.name} sets out to clear a plot for ${fullName(st.pawns[intended])}.`, {
-        kind: 'plotStarted',
-        pawn: intended,
-        village: v.id,
-      }); // a household's for its heir is told as its head's project (sim/aims)
+      log(
+        st,
+        `${v.name} sets out to ${site.fields ? 'build a house by the fields of' : 'clear a plot for'} ${fullName(st.pawns[intended])}.`,
+        {
+          kind: 'plotStarted',
+          pawn: intended,
+          village: v.id,
+        },
+      ); // a household's for its heir is told as its head's project (sim/aims)
     return true;
   }
   // The next plot's number in village v: one past the highest of its plots built and under way, so no two live plots share one (a
@@ -454,6 +485,7 @@ VB['sim/expansion'] = (() => {
     cottageAt,
     roomAt,
     findSite,
+    splitSite,
     plotJobs,
     plotProgress,
     finishStep,
