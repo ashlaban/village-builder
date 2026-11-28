@@ -29,7 +29,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1911](backlog/VB-1911.md)<a id="VB-1911"></a> | The barn, the byre and the storehouse as kinds in the facility registry | - | 2 | M | The three outbuildings are declared as facility kinds (sim/facilities declare) with their stages, and the farm's flags become reads of the registry; old saves read as before; no number moves. |
 | [VB-1925](backlog/VB-1925.md)<a id="VB-1925"></a> | The generator lays exactly one salt spring a map, picked by the seed | - | 2 | S | The generator draws a salt spring per island by chance (0.1), so a map may have none or several; Kim, 27 Nov: exactly one in the whole archipelago, which is the only salt until a town brings an import. |
 | [VB-1942](backlog/VB-1942.md)<a id="VB-1942"></a> | Refactor: a field's owner read from its @state line; src/owners.json keeps the exemptions | - | 2 | M | src/owners.json 18 to at most 2 an owner (VB-1406 step 4) |
-| [VB-1943](backlog/VB-1943.md)<a id="VB-1943"></a> | Refactor: the load order derived from each module's load-time reads, read through one function | - | 2 | M | src/manifest.json 15 to 1 (VB-1406 step 5), only if the derived order equals today's |
 | [VB-1951](backlog/VB-1951.md)<a id="VB-1951"></a> | Plan: a building's entrance, which walks go through and the player can turn | - | 2 | M | Kim, 27 Nov: every building has an entrance, a general property of a building: walks to and from it go through it, and the player can turn it (rotate the tile). Today each kind places its own spot by a fixed offset and walks fan into the house's tile from every side. |
 | [VB-093](backlog/VB-093.md)<a id="VB-093"></a> | A village mill: water where a river is in reach, else wind | mill | 3 | M | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. |
 | [VB-108](backlog/VB-108.md)<a id="VB-108"></a> | Wrap-up: the household's year | year | 3 | S | Check slice 3 with long runs at four seeds: work with a date done in time, households no hungrier, planning cheap early and late; idle share reported. |
@@ -155,6 +154,7 @@ Status `needs-review`: each file lists the questions Kim must answer first, and 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
 | [VB-1472](backlog/VB-1472.md)<a id="VB-1472"></a> | Design: how a holder's parallel projects are limited and ranked | - | 2 | M | What replaces 'at most one project': the limit and the ranking of a holder's parallel projects |
+| [VB-1943](backlog/VB-1943.md)<a id="VB-1943"></a> | Refactor: the load order derived from each module's load-time reads, read through one function | - | 2 | M | src/manifest.json 15 to 1 (VB-1406 step 5), only if the derived order equals today's |
 | [VB-1947](backlog/VB-1947.md)<a id="VB-1947"></a> | Refactor: the tunables several domains read in files by domain, VB['sim/rules'] the joined view | - | 2 | M | sim/rules 21 to at most 5 a file (VB-1406 step 9), when Kim says |
 
 </details>
