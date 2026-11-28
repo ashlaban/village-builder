@@ -13,7 +13,8 @@ VB['sim/points'] = (() => {
   const { MEETING } = VB['sim/meetings'];
   const { weighDay } = VB['sim/day'];
   const { allotted } = VB['sim/fit'];
-  const Levies = VB['sim/levies'];
+  const Levies = VB['sim/levies'],
+    Routines = VB['sim/routines'];
   const SEASON = SEASON_DAYS * DAY,
     YEAR = YEAR_DAYS * DAY;
   // The hours of the day's two allotments (sim/jobs refreshJobs, sim/day allot): the morning's, an hour before work, and the afternoon's.
@@ -145,7 +146,9 @@ VB['sim/points'] = (() => {
   //   demanded (offer): a demand of its head's past its levy (an offer on the basis `demand`), to comply with or refuse, at once (its
   //     judgement answers at the day's turn);
   //   take (levy): hours of its levy left today, a levied member's to take for itself (the verb breach) or not, at once.
-  //   name (levy, days), keep (levy, day, pawn, K), breach (levy, days), lapse (levy, left): the outer levies' (levyPoints, VB-1769).
+  //   name (levy, days), keep (levy, day, pawn, K), breach (levy, days), lapse (levy, left): the outer levies' (levyPoints, VB-1769);
+  //   workday (body: a village it is the alderman of, day, what): its next work day to call, by the day it is called by rule (the verb
+  //     callWorkday, at least OUTER.notice days ahead; VB-1768).
   function decisions(st, id) {
     const p = Number.isInteger(id) ? st.pawns[id] : null;
     if (!p || p.died !== null) return [];
@@ -154,8 +157,15 @@ VB['sim/points'] = (() => {
       hh = hid === null || hid === undefined ? null : st.households[hid];
     if (hh && hh.holder === id) headPoints(st, hid, out);
     for (const v of st.villages)
-      if (agentOf(st, v.id) === id)
-        out.push({ point: 'year', body: { kind: 'village', id: v.id }, deadline: meetingAfter(st.t) });
+      if (agentOf(st, v.id) === id) {
+        const body = { kind: 'village', id: v.id },
+          plan = st.plans && st.plans.villages.get(v.id);
+        out.push({ point: 'year', body, deadline: meetingAfter(st.t) });
+        // a work day to call (VB-1768): OUTER.notice days before the custom's day, when his review calls it by rule
+        const call = plan && plan.routines.includes('workdays') ? Routines.nextCall(st, v) : null;
+        if (call)
+          out.push({ point: 'workday', body, day: call.day, what: call.what, deadline: Math.max(st.t, call.at * DAY) });
+      }
     const pp = pawnPlan(st, id),
       plan = hh && !hh.dissolved && st.plans ? st.plans.households.get(hid) : null;
     if (pp && plan) {

@@ -109,8 +109,9 @@ VB['sim/heirland'] = (() => {
       Obligations.lapse(st, o.id, 'the one owed has died');
   });
   // At the moving round: each rent is paid from its debtor's grain above its reserve (the seed and the winter's food), as a share is
-  // (sim/cottage payOwed), to the owner's household, or the pawn's own (its stake while it has none); the rest stays owed. A walk over the
-  // owners of live rents, by key.
+  // (sim/cottage payOwed), to the stake of an owner who lives in that household: the grain stays in the barn it lies in (design.md,
+  // Nothing teleports). An owner who lives elsewhere (its own house built, or another household) is not paid until a carry brings
+  // it: the rest stays owed. A walk over the owners of live rents, by key.
   function payRent(st) {
     if (!st.obligationsBy) return;
     for (const k of Object.keys(st.obligationsBy.creditor)) {
@@ -124,26 +125,13 @@ VB['sim/heirland'] = (() => {
         const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember,
           pay = Math.floor(Math.min(Obligations.left(o), Math.max(0, Stores.grainOf(hh) - reserve)));
         if (pay <= 0) continue;
-        const p = kind === 'pawn' ? st.pawns[+id] : null,
-          own = p
-            ? p.household !== null && p.household !== hh.id
-              ? st.households[p.household]
-              : null
-            : st.households[+id];
-        const to = own && !own.dissolved ? own : p;
-        if (!to) continue;
-        Obligations.fulfil(
-          st,
-          o.id,
-          pay,
-          { kind: 'rent', ...(p ? { pawn: p.id } : {}) },
-          { from: hh, to, good: 'grain' },
-        );
-        if (p)
-          personEvent(st, p.id, 'rent', `Was paid ${pay} rations, half the harvest of its fields`, {
-            n: pay,
-            ...atHousehold(st, hh),
-          });
+        const p = kind === 'pawn' ? st.pawns[+id] : null;
+        if (!p || p.household !== hh.id) continue; // lives elsewhere: its grain is not carried yet
+        Obligations.fulfil(st, o.id, pay, { kind: 'rent', pawn: p.id }, { from: hh, to: p, good: 'grain' });
+        personEvent(st, p.id, 'rent', `Was paid ${pay} rations, half the harvest of its fields`, {
+          n: pay,
+          ...atHousehold(st, hh),
+        });
       }
     }
   }

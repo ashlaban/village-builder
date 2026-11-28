@@ -22,10 +22,42 @@ const { DAY, YEAR, SHARES } = VB['sim/rules'];
 const clean = (st, when) => assert.deepStrictEqual([...checkState(st), ...checkCaches(st)], [], `${when}: invariants`);
 
 // the parts: in proportion to the weights by the largest remainders, the heir (first) keeps one at least, a part of none gets no land
-assert.deepStrictEqual(L.apportion(4, [[0, 2], [1, 2], [2, 2]]), [2, 1, 1], 'three equal heirs of 4 fields');
-assert.deepStrictEqual(L.apportion(4, [[0, 2], [1, 2], [2, 1]]), [2, 1, 1], "a daughter's half: her 0.8 rounds up first");
-assert.deepStrictEqual(L.apportion(5, [[0, 2], [1, 1], [2, 1]]), [3, 1, 1], 'a son and two daughters at half: 2.5, 1.25, 1.25');
-assert.deepStrictEqual(L.apportion(2, [[0, 1], [1, 2], [2, 2]]), [1, 1, 0], 'the farm keeps a field: taken from a sibling');
+assert.deepStrictEqual(
+  L.apportion(4, [
+    [0, 2],
+    [1, 2],
+    [2, 2],
+  ]),
+  [2, 1, 1],
+  'three equal heirs of 4 fields',
+);
+assert.deepStrictEqual(
+  L.apportion(4, [
+    [0, 2],
+    [1, 2],
+    [2, 1],
+  ]),
+  [2, 1, 1],
+  "a daughter's half: her 0.8 rounds up first",
+);
+assert.deepStrictEqual(
+  L.apportion(5, [
+    [0, 2],
+    [1, 1],
+    [2, 1],
+  ]),
+  [3, 1, 1],
+  'a son and two daughters at half: 2.5, 1.25, 1.25',
+);
+assert.deepStrictEqual(
+  L.apportion(2, [
+    [0, 1],
+    [1, 2],
+    [2, 2],
+  ]),
+  [1, 1, 0],
+  'the farm keeps a field: taken from a sibling',
+);
 
 const st = tinyState(tinyWorld(Array.from({ length: 12 }, () => '................')), [{ at: [7, 6], farms: 2 }], {
   seed: 7,
@@ -81,7 +113,8 @@ assert.strictEqual(projectsOf(st, 'village', v.id).length - projects0, 2, 'two p
 assert.deepStrictEqual(plots.map((p) => p.intended).sort(), [...sibs].sort());
 for (const p of plots) {
   assert.strictEqual(p.steps[0].places.length, 1, 'a house only: no field to clear');
-  for (const t of p.split) assert.ok(hexSteps(st.w, p.steps[0].places[0].tile, t) <= VB['sim/layout'].FIELD_REACH, 'the house by its field');
+  for (const t of p.split)
+    assert.ok(hexSteps(st.w, p.steps[0].places[0].tile, t) <= VB['sim/layout'].FIELD_REACH, 'the house by its field');
 }
 // the rent: sheaves from a sibling's field owe it half; paid at the round from the grain above the reserve, to its stake
 const [p3] = plots.filter((p) => p.intended === 3),
@@ -90,7 +123,11 @@ emit(st, 'sheavesIn', { hh, field: fd3, n: 10 });
 emit(st, 'sheavesIn', { hh, field: fd3, n: 6 });
 emit(st, 'sheavesIn', { hh, field: kept[0], n: 10 }); // the heir's own: no rent
 const rents = Ob.due(st, { kind: 'pawn', id: 3 }, 'creditor', 'rent');
-assert.strictEqual(rents.reduce((s, o) => s + o.owes.rations, 0), 8, 'half of 16 sheaves');
+assert.strictEqual(
+  rents.reduce((s, o) => s + o.owes.rations, 0),
+  8,
+  'half of 16 sheaves',
+);
 assert.strictEqual(Ob.due(st, { kind: 'pawn', id: 5 }, 'creditor', 'rent').length, 0, 'none yet to the other');
 const stake0 = st.pawns[3].stake || 0;
 L.payRent(st);
@@ -102,11 +139,24 @@ p3.to = 3;
 for (const s of p3.steps) s.done = s.hours; // the clearing and the cottage's stages done
 p3.open = p3.steps.length - 1;
 const farms0 = st.farmsteads.length;
+emit(st, 'sheavesIn', { hh, field: fd3, n: 40 }); // a rent owed when the house stands
 finishCottage(st, p3);
 assert.strictEqual(st.farmsteads.length, farms0 + 1, 'a farmstead founded');
 const g = st.farmsteads[farms0],
   gh = st.households[g.household];
 assert.strictEqual(gh.holder, 3, 'the sibling holds it');
+{
+  const old0 = Stores.grainOf(hh),
+    new0 = Stores.grainOf(gh);
+  L.payRent(st);
+  assert.strictEqual(Stores.grainOf(gh), new0, 'no grain lands in the new barn uncarried (Nothing teleports)');
+  assert.strictEqual(Stores.grainOf(hh), old0, 'nor leaves the old one');
+  assert.strictEqual(
+    Ob.due(st, { kind: 'pawn', id: 3 }, 'creditor', 'rent').reduce((s, o) => s + Ob.left(o), 0),
+    20,
+    'still owed',
+  );
+}
 assert.deepStrictEqual(
   g.fields.map((fd) => fd.tile),
   p3.split,
@@ -114,10 +164,17 @@ assert.deepStrictEqual(
 );
 assert.strictEqual(g.fields[0].id, 0);
 assert.ok(!st.titles.has(p3.split[0]), 'the title ended');
-assert.deepStrictEqual(O.ownerOf(st, p3.split[0]), { type: 'household', id: gh.id }, 'owned and worked by the new household');
+assert.deepStrictEqual(
+  O.ownerOf(st, p3.split[0]),
+  { type: 'household', id: gh.id },
+  'owned and worked by the new household',
+);
 assert.strictEqual(st.owner[p3.split[0]], gh.id + 1);
 assert.strictEqual(f.fields.length, 3, 'the old farm works 3 now');
-assert.ok(st.villages[v.id].plots.some((p) => p.farmstead === g.id && p.split), 'the plot recorded as on split land');
+assert.ok(
+  st.villages[v.id].plots.some((p) => p.farmstead === g.id && p.split),
+  'the plot recorded as on split land',
+);
 clean(st, 'moved in');
 // a save keeps the heir's title; on the loaded copy, the farm standing empty gives the use of the field to the village, its owner kept
 const tile5 = plots.find((p) => p.intended === 5).split[0],

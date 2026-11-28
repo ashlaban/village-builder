@@ -179,6 +179,7 @@ VB['sim/obligations'] = (() => {
       o.named = [];
       o.worked = 0;
       o.breaches = [];
+      if (draft.why) o.why = { step: draft.why.step, of: draft.why.of }; // the step it serves (a routine's, VB-1768)
     }
     st.obligations.push(o);
     enqueue(st, o);
