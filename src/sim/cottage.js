@@ -1,4 +1,4 @@
-// @sys sim/cottage: a finished cottage becomes a farmstead and a household (start in life from shares); owed shares are paid down
+// @sys sim/cottage [social]: a finished cottage becomes a farmstead and a household (start in life from shares); owed shares are paid down
 VB['sim/cottage'] = (() => {
   const { livePlots, cottageAt } = VB['sim/expansion'],
     { stepOf } = VB['sim/projects'];

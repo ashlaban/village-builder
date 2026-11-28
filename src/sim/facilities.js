@@ -1,4 +1,4 @@
-// @sys sim/facilities: built things on sites (VB-361; target-v2 4.3, Facility, cut to slice 6): st.facilities, each with its kind, tile,
+// @sys sim/facilities [material]: built things on sites (VB-361; target-v2 4.3, Facility, cut to slice 6): st.facilities, each with its kind, tile,
 // owner (a household or a village), the stage of its building, its condition and when it was built; the registry FACILITY of the kinds
 // each craft's module declares (its stages, where it may stand, its capabilities and capacity); found, the verb `found`, a facility's
 // stages as the steps of its owner's project plan (the job kind raisestage), and its upkeep offered on the owner's planning day (the verb

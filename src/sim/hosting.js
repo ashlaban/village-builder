@@ -1,4 +1,4 @@
-// @sys sim/hosting: a guest's bed in another household's house (VB-1151; design.md, Sleeping away from home): whether a head will have
+// @sys sim/hosting [agency]: a guest's bed in another household's house (VB-1151; design.md, Sleeping away from home): whether a head will have
 // a pawn as a guest (hostWhy, the rule of the verb lodge's guest), the households a visitor asks for a bed at the village he visits
 // (askBed); split from sim/away (VB-1474)
 VB['sim/hosting'] = (() => {

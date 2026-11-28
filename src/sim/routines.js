@@ -1,4 +1,4 @@
-// @sys sim/routines: the village's routines (design.md section 7, Village routines; VB-257): the village work a meeting may choose, how
+// @sys sim/routines [agency]: the village's routines (design.md section 7, Village routines; VB-257): the village work a meeting may choose, how
 // it chooses, the founders' first choice, the meeting's verb that sets them, and the steps the village's review takes for them, each
 // by its alderman at home (VB-673: the green's project and a common field's, verb layOut; the work day's call; the tar pit's charge), and
 // the common fields' seed

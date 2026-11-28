@@ -1,4 +1,4 @@
-// @sys sim/followers: whom a pawn looks to (VB-708; design.md, Patronage; Kim, 16 Nov: followers are dependants): pawn.looksTo over a table
+// @sys sim/followers [social]: whom a pawn looks to (VB-708; design.md, Patronage; Kim, 16 Nov: followers are dependants): pawn.looksTo over a table
 //   of bonds (goodwill owed above PATRON.above, service; later a tenancy and days owed add rows), the live index of followers by lord, a
 //   tie begun and broken (its bond ended, or the lord failed the follower), and the standing term by followers
 VB['sim/followers'] = (() => {
@@ -263,6 +263,7 @@ VB['sim/followers'] = (() => {
   // ---- a client's days (VB-464; design.md, Patronage) ----
   // @state household.clientIn: the year (game years since the start) in which the household, its holder a client, was last made to owe
   //   its patron's household PATRON.days days; absent until then. Written only here: one owing a year, however many planning days.
+  // @notstock household.clientIn: ledgers and statistics of what moved (sim/stores, sim/hunger)
   const AUTUMN = 2;
   const nextAutumn = (t) => (Math.floor(t / YEAR) + 1) * YEAR + AUTUMN * SEASON_DAYS * DAY;
   // A client: a holder whose own tie to lord is the patron's bond (goodwill owed above PATRON.above days of its household's need), lord a

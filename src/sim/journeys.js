@@ -1,4 +1,4 @@
-// @sys sim/journeys: a stay whose bed is where its leg ends (VB-287; design.md, Between villages: A journey, Provisions and the season):
+// @sys sim/journeys [agency]: a stay whose bed is where its leg ends (VB-287; design.md, Between villages: A journey, Provisions and the season):
 // setting out, the legs and their rests, arrival and the change of home (moved, a child born away, a small child fetched: VB-1240), a gift carried,
 // fetched or hauled (VB-291, VB-461), the suitor's visit there and back (VB-289), and JOURNEYS, what each kind does of its own (VB-1409); the stays'
 // record, packs and meals are sim/away's; split from sim/away (VB-1474)

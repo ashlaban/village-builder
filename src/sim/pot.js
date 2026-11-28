@@ -1,4 +1,4 @@
-// @sys sim/pot: fresh food (fish, gathered food) held in batches by the day it came in and lost past its shelf life when the store is next
+// @sys sim/pot [material]: fresh food (fish, gathered food) held in batches by the day it came in and lost past its shelf life when the store is next
 // touched; the pot, where the cook makes the coming day's meals from fresh food, dried fish and grain, and a pot of several foods goes further
 // Design: design.md, Economy and jobs (Goods and the farming year: Mixed meals, Meals); VB-119 (Kim, 30 Oct, 10 and 11 Nov). Beside sim/stores,
 // whose operations it moves food with (record, put, take, takeSpare, cookLarder), as sim/dig: the stores module is at the lint's size.

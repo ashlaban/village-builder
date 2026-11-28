@@ -1,4 +1,4 @@
-// @sys sim/projectplans: the project plans' one writer (VB-123; design.md section 7): a project plan made with what its steps spend
+// @sys sim/projectplans [material]: the project plans' one writer (VB-123; design.md section 7): a project plan made with what its steps spend
 // reserved, its open step advanced as done, reviewed when a store or a right of its holder changes, handed on, and dropped (its timber
 // left where it was carried); their record and reads are sim/projects'
 VB['sim/projectplans'] = (() => {

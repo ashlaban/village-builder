@@ -1,4 +1,4 @@
-// @sys sim/heirland: land split between heirs (VB-034; design.md, Handover and shares: Splitting land; Land and rights: Splitting between
+// @sys sim/heirland [social]: land split between heirs (VB-034; design.md, Handover and shares: Splitting land; Land and rights: Splitting between
 // heirs): at a handover under "land split between heirs" the farm's fields are divided between the heir and the siblings who want land;
 // a sibling's fields are split off and owned by it (sim/ownership's titles, basis `inherited`), worked by the old household for half their
 // harvest (the obligation `rent`) until the house the village builds by them stands, when its household takes them as its farm's

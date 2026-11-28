@@ -1,4 +1,4 @@
-// @sys sim/courting: courting (VB-036; design.md, Traits, talk and stories: Courting): two unmarried pawns who have come to like each
+// @sys sim/courting [social]: courting (VB-036; design.md, Traits, talk and stories: Courting): two unmarried pawns who have come to like each
 //   other court, from a good talk (no pass over pairs); it ends when the liking cools, one marries another or dies, or after COURT.years
 //   with no offer of theirs open; a head's refusal of their match is remembered by both, who may ask for service at the next round. The
 //   pair's own offer is made by sim/asking, and answered as a match (sim/marriage)

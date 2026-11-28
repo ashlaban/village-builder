@@ -1,4 +1,4 @@
-// @sys sim/forest: felling, regrowth and clearing of forest tiles
+// @sys sim/forest [kernel]: felling, regrowth and clearing of forest tiles
 VB['sim/forest'] = (() => {
   const { B, treeStage, setBiome } = VB['world/biomes'];
   const { YEAR_DAYS, WOOD } = VB['sim/rules'];

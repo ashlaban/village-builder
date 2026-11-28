@@ -1,4 +1,4 @@
-// @sys sim/fair: the fair (VB-302; design.md, The fair: barter between villages): a dealer of each household at a gathering carries its
+// @sys sim/fair [agency]: the fair (VB-302; design.md, The fair: barter between villages): a dealer of each household at a gathering carries its
 //   household's margin as a load, swaps it in whole quanta with the dealers it meets there (need accepts, customary worth books the
 //   residual as goodwill), and carries what it holds home; the swap (an offer on the basis `swap` of sim/offers, settled by the verb
 //   `swap`), the fair's counts and its log line

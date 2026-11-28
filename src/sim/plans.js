@@ -1,4 +1,4 @@
-// @sys sim/plans: holders' standing plans (design.md section 7; VB-258, VB-248, VB-253): a standing plan per live household and village,
+// @sys sim/plans [agency]: holders' standing plans (design.md section 7; VB-258, VB-248, VB-253): a standing plan per live household and village,
 // made, reviewed (its seasonal plan and targets, sim/seasonal; its rotation and sowing; its land step; the seed it holds back; a
 // village's routines' steps, sim/routines) and dropped; and the head's choices of its plan, each through a verb of sim/commands
 VB['sim/plans'] = (() => {

@@ -1,4 +1,4 @@
-// @sys sim/workmanship: the five grades of workmanship on a made good (VB-761): the tunables, the odds of each grade at a maker's skill at
+// @sys sim/workmanship [kernel]: the five grades of workmanship on a made good (VB-761): the tunables, the odds of each grade at a maker's skill at
 // the craft, the draw of a piece's grade at its making (the stream `making`), the head's estimate of what its own hand's piece is worth,
 // and who of a household takes a making (its most skilled hand at the craft)
 // Design: design.md, The metals and the stones (Workmanship: Decided, 16 Nov; the numbers Proposed); docs/plans/VB-702.md, section 13.

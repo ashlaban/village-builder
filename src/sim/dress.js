@@ -1,4 +1,4 @@
-// @sys sim/dress: clothing that wears out (VB-363): each person's dress is a length of cloth worn out in DRESS.years, read in closed form;
+// @sys sim/dress [material]: clothing that wears out (VB-363): each person's dress is a length of cloth worn out in DRESS.years, read in closed form;
 // on the household's planning day a person whose dress is worn takes a length from the store; in rags winter costs more health and
 // standing falls. Design: design.md, Goods, production and animals (The mill and the loom: Dress); backlog/VB-185.md.
 VB['sim/dress'] = (() => {

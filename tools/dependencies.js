@@ -1,4 +1,4 @@
-// Module edges for the writes map and dependency gate. Policy is separate from extraction so layers can replace load order. `node tools/dependencies.js` lists the upward calls by layer (VB-230; `src/layers.json`).
+// Module edges for the writes map and dependency gate. Policy is separate from extraction so layers can replace load order. `node tools/dependencies.js` lists the upward calls by layer (VB-230; each module's `@sys` line, VB-1941).
 require('./help.js')(__filename);
 function dependencies(tree, src, mod) {
   const out = [];
@@ -47,14 +47,25 @@ function violations(deps) {
 // VB-230: the layer rule (target-v2 3.1). Calls go downward; a module of a lower layer naming a higher one is an upward call, unless it is
 // `issue` (the command door). Composition roots are apart. `emit` needs no exclusion: it is a call down into `sim/events` (VB-229); hook contributions join the exclusions as they land.
 const fs = require('fs'), path = require('path');
-function loadLayers() {
+// A module's layer is the tag of its first line, `// @sys key [layer]: ...` (VB-1941); src/layers.json holds only the layer names, in order,
+// and the composition roots, which have none.
+const SYS = /^\/\/ @sys (\S+)(?: \[([a-z]+)\])?: /;
+function sysLines() {
+  const { readSource } = require('./lib/source.js');
+  return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'manifest.json'), 'utf8')).map((f) => {
+    const m = SYS.exec(readSource('src/' + f).split('\n', 1)[0]) || [];
+    return { file: 'src/' + f, key: f.slice(0, -path.extname(f).length), sys: m[1] || null, layer: m[2] || null };
+  });
+}
+function loadLayers(lines = sysLines()) {
   const l = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'layers.json'), 'utf8'));
   const of = {};
-  l.layers.forEach((name, i) => (l.modules[name] || []).forEach((m) => { of[m] = i; }));
+  for (const s of lines) if (s.layer && l.layers.includes(s.layer)) of[s.key] = l.layers.indexOf(s.layer);
   return { names: l.layers, roots: l.roots, of };
 }
 function missingLayers(mods, L = loadLayers()) {
-  return mods.filter((m) => L.of[m] === undefined && !L.roots.includes(m)).map((m) => `${m} has no layer in src/layers.json`);
+  return mods.filter((m) => L.of[m] === undefined && !L.roots.includes(m))
+    .map((m) => `${m} has no layer: its first line is "// @sys ${m} [${L.names.join('|')}]: ..." (VB-1941)`);
 }
 // Upward edges as {from, to, line, kind}; deps is the list of {mod, importSites, lookups}.
 function upward(deps, L = loadLayers()) {
@@ -122,7 +133,7 @@ function drawnReads(tree, src, mod, tags) {
   walk(tree);
   return out;
 }
-module.exports = { dependencies, violations, loadLayers, missingLayers, upward, drawnTags, drawnReads };
+module.exports = { dependencies, violations, SYS, sysLines, loadLayers, missingLayers, upward, drawnTags, drawnReads };
 if (require.main === module) {
   const { build } = require('./writes.js'), r = build(), up = upward(r.deps);
   const n = r.deps.reduce((t, d) => t + d.lookups.length + (d.importSites || []).length, 0);

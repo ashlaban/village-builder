@@ -1,4 +1,4 @@
-// @sys sim/points: the decision points open to a pawn's controller (VB-1757; design.md section 15, Decision points;
+// @sys sim/points [derived]: the decision points open to a pawn's controller (VB-1757; design.md section 15, Decision points;
 //   docs/plans/four-scales/README.md, 3.6): where the pawn's own rule, or the default author of a body it is agent of, would next act,
 //   each with its deadline in game hours, past which that rule answers as it does with no controller. A view computed when asked
 //   (Sim.decisions): nothing is stored, no simulation module reads it, and a run whose controllers never ask does no work here

@@ -1,4 +1,4 @@
-// @sys sim/aims: a head's projects (design.md section 7, How a holder chooses: projects; VB-255): layer 3 of how a holder chooses. Once a
+// @sys sim/aims [agency]: a head's projects (design.md section 7, How a holder chooses: projects; VB-255): layer 3 of how a holder chooses. Once a
 // year, at its first review after the autumn count, a head whose plan's targets are met, whose store holds food beyond the year's need
 // and the seed and whose hands stood idle over a third of the last season has a surplus, and takes one project from a menu weighed by its
 // values: a field beyond those it needs, a claim on land (a new hay meadow), a farm for its heir, a storehouse, a barn; dropped when the surplus is gone

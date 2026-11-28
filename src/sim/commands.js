@@ -1,4 +1,4 @@
-// @sys sim/commands: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out; each
+// @sys sim/commands [kernel]: commands, the one way an actor acts: plain data {actor, verb, target, args, source}, checked, then carried out; each
 // module registers the verbs of the acts it carries out (target-v2 3.2), so this one knows no domain
 VB['sim/commands'] = (() => {
   const { atLoad } = VB['sim/registry'];

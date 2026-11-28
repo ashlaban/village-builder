@@ -1,4 +1,4 @@
-// @sys sim/legs: a pawn's leg (a walk, a wait or work) and the one due-queue of walks and waits: a walk set out on, begun, cut, its pace
+// @sys sim/legs [agency]: a pawn's leg (a walk, a wait or work) and the one due-queue of walks and waits: a walk set out on, begun, cut, its pace
 // told again and ended, its tiles trodden; split from sim/agents (VB-422). What a walk's end means for the pawn is sim/agents'
 VB['sim/legs'] = (() => {
   const { unbound } = VB['sim/pose'];

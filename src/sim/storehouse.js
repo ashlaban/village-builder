@@ -1,4 +1,4 @@
-// @sys sim/storehouse: the storehouse on posts (*härbre*) as a building (VB-1898; design.md, Settlements and look, Farmstead, 27 Nov):
+// @sys sim/storehouse [material]: the storehouse on posts (*härbre*) as a building (VB-1898; design.md, Settlements and look, Farmstead, 27 Nov):
 //   farmstead.storehouse, the making `storehouse` (a project of the household at its house, its stages the job kinds storewalls and
 //   storeroof, the walls waiting for their timber), its check storehouseWhy, the storehouses the run begins with and an older save's; the
 //   grain it keeps (a farm with one loses BUILD.storehouse.loss as much grain to spoilage: storeLoss; the day's loss, grainLoss, one
@@ -13,6 +13,7 @@ VB['sim/storehouse'] = (() => {
   //   (sim/hunger storeLoss); absent or null while it has none. Every farm that stands at seeding has one (seedStorehouses), but a camp
   //   landed by hand (noStorehouse); a farm made in play (a settler's, an heir's) has none until its household builds it. One a farm; it
   //   goes with the farm. Written only here.
+  // @notstock farmstead.storehouse: land, buildings and their records (fields, meadows, a site's timber)
   const STAGES = ['storewalls', 'storeroof'];
   // The steps of a storehouse's project plan at house tile `house`: the walls with the timber they wait for, then the roof.
   const storehouseSteps = (house) =>

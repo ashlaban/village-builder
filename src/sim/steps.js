@@ -1,4 +1,4 @@
-// @sys sim/steps: the plan record (design.md section 7, Plans at four scales: The plan record, Authors, How a step becomes work; VB-1752):
+// @sys sim/steps [material]: the plan record (design.md section 7, Plans at four scales: The plan record, Authors, How a step becomes work; VB-1752):
 // every body's plan as lists of steps by horizon, each step with its author and its one link upward; the steps made, found by id, folded
 // and linked to the projects they hold; the step a task is opened by; and the chain of steps above a task, for its card (Reasons shown)
 VB['sim/steps'] = (() => {

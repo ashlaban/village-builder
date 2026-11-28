@@ -1,4 +1,4 @@
-// @sys sim/deer: roe deer (VB-139), the one wild grazer: a stock in each region with forest, growing towards a capacity set by its
+// @sys sim/deer [material]: roe deer (VB-139), the one wild grazer: a stock in each region with forest, growing towards a capacity set by its
 // forest-edge tiles; their grazing at the edges, their browsing of crops through a broken fence, and hunting them in autumn and winter
 VB['sim/deer'] = (() => {
   const { DEER, HERD, DAY, YEAR_DAYS } = VB['sim/rules'],

@@ -1,4 +1,4 @@
-// @sys sim/ownership: who holds each tile: its user (st.owner, the household or village that works it, which every rule of work reads) and,
+// @sys sim/ownership [material]: who holds each tile: its user (st.owner, the household or village that works it, which every rule of work reads) and,
 // where another party owns it, the title (st.titles: own and use held apart, VB-311); and which farms are held in trust (read only; VB-309)
 VB['sim/ownership'] = (() => {
   // @state st.owner: Int32Array, one per tile, its user (who works it); 0 = nobody, n > 0 = household n - 1, n < 0 = village -n - 1. The

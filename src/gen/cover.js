@@ -1,4 +1,4 @@
-// @sys gen/cover: what a tile's cover holds, as the generator lays it and as the editor sets it by hand; a world's arrays kept and put back
+// @sys gen/cover [kernel]: what a tile's cover holds, as the generator lays it and as the editor sets it by hand; a world's arrays kept and put back
 VB['gen/cover'] = (() => {
   const { mulberry32 } = VB['gen/noise'],
     { B, BIOMES, setBiome } = VB['world/biomes'],

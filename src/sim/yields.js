@@ -1,4 +1,4 @@
-// @sys sim/yields: a head's remembered yield of each source of food (VB-767): a household's yearly tally of rations by source, booked by
+// @sys sim/yields [material]: a head's remembered yield of each source of food (VB-767): a household's yearly tally of rations by source, booked by
 // sim/stores with each food operation, closed at the head's planning day after the harvest into a ring of FIELDS.memory years a source;
 // what the head expects of a source (poor and mean), how cautious it is, and what it trusts its sources other than its fields to bring
 // (trusted, which sim/fieldplans' fieldsWanted takes off the food its fields must grow: VB-768).
@@ -26,6 +26,7 @@ VB['sim/yields'] = (() => {
     good === 'grain' || good === 'meals' || good === 'flour' || String(good).startsWith('grain/');
   // @state household.yields: {tally: {[source]: rations >= 0} (booked since the last close), ring: {[source]: [rations a year, the latest
   //   last, at most FIELDS.memory]}, closed (the game year of the last close)}; the head's memory is the farm's, kept by its heir (VB-767)
+  // @notstock household.yields: ledgers and statistics of what moved (sim/stores, sim/hunger)
   function make() {
     const tally = {},
       ring = {};

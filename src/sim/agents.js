@@ -1,4 +1,4 @@
-// @sys sim/agents: what a pawn does with its legs: a task's next leg read from the world (set out, arrive, a load home, done, released;
+// @sys sim/agents [agency]: what a pawn does with its legs: a task's next leg read from the world (set out, arrive, a load home, done, released;
 // no phases, VB-1751), home placement, talks, death, a journey's walking, the step that takes the legs and tasks due, and the verbs;
 // its legs are sim/legs', its work sim/work's (VB-422)
 VB['sim/agents'] = (() => {
@@ -383,6 +383,7 @@ VB['sim/agents'] = (() => {
   }
   // @state household.blocked (VB-1809): absent until a task of the household blocks, then {task key: {kind, site, why (the step's reason), t}};
   //   written by onward, cleared when the task is done or posted again after its fact changed (a kind's rule, sim/wood); read by sim/reasons blockedOf
+  // @notstock household.blocked: land, buildings and their records (fields, meadows, a site's timber)
   function onward(st, a, depth = 0) {
     const j = a.job,
       g = Doing.goalOf(st, a),

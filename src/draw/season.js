@@ -1,4 +1,4 @@
-// @sys draw/season: the season's look of the map, a band at a time (VB-083; design.md, Climate and travel beyond walking): the tint of
+// @sys draw/season [presentation]: the season's look of the map, a band at a time (VB-083; design.md, Climate and travel beyond walking): the tint of
 // the land, the snow and the ice of each band of rows, read from the band's state and dates (sim/climate) and the hour; and the colours
 // the land, the water and the ways are painted in for each. It reads the run and writes nothing (Rules for cost 7).
 VB['draw/season'] = (() => {

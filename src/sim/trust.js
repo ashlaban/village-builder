@@ -1,4 +1,4 @@
-// @sys sim/trust: a farm held in trust by kin (VB-309): a household nobody can come to goes to its nearest kin household, which works its
+// @sys sim/trust [agency]: a farm held in trust by kin (VB-309): a household nobody can come to goes to its nearest kin household, which works its
 // fields and takes their harvest while the owner, holder and line stay the same; the trust ends at the holder's marriage, a servant, a
 // ward's coming of age, the trustee's end or the holder's death
 VB['sim/trust'] = (() => {

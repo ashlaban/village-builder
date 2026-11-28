@@ -1,4 +1,4 @@
-// @sys sim/wood: the wood of the household (VB-2011, split from sim/chores): the job kinds and goals that fell timber in the woods and
+// @sys sim/wood [material]: the wood of the household (VB-2011, split from sim/chores): the job kinds and goals that fell timber in the woods and
 //   carry it home (wood; the goal fell), cut it into firewood at the house (firewood) or where it lies (cutpile; the goal firewood, VB-1931),
 //   with the woodpile's reads the other modules take (fuelFree, timberOf, pileOf, fireAmount) and the hours of a load (WOOD_HOURS)
 // Like sim/chores, it takes from the world (sim/forest's trees, sim/lying's piles) and puts into the house (sim/stores' timber and wood), so

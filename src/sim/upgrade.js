@@ -1,4 +1,4 @@
-// @sys sim/upgrade: the main building built up a rung as a task of the player's plan (VB-1660; Kim, 24 Nov 2026: "It should then be
+// @sys sim/upgrade [agency]: the main building built up a rung as a task of the player's plan (VB-1660; Kim, 24 Nov 2026: "It should then be
 //   possible to upgrade the main building"): the goal `upgrade` (the shelter to a cottage today), contributed to sim/kinds' GOALS (the goal kinds, VB-1777) at
 //   load; the head's verb that begins the cottage (beginCottage: its plan made as sim/settle and sim/scenarios make it); and the timber
 //   held at home taken into the walls of a cottage so begun before any is fetched; a camp's household left to itself placing its

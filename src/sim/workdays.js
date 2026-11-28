@@ -1,4 +1,4 @@
-// @sys sim/workdays: village work days (VB-120; Kim, 10 Nov): a routine the meeting may choose for a village with a fence (VB-257), called
+// @sys sim/workdays [social]: village work days (VB-120; Kim, 10 Nov): a routine the meeting may choose for a village with a fence (VB-257), called
 // by its alderman (callWorkday, VB-673) at least OUTER.notice days ahead, its levy's lots laid for that one date (VB-1768); on spring's
 // first day the village closes its fence together and on summer's second clears scrub at its wood's edge, every adult at one priority;
 // at the day's end those who turned out gain standing for the year, a household levied that stayed away breaches (goodwill its head owes
@@ -37,6 +37,7 @@ VB['sim/workdays'] = (() => {
   //   of (the custom's day it stands for, a game day), hoursOf ({pawn id: hours worked at the day's jobs}), cleared (the commons' work
   //   done), judged (its end told)}. Written only here: begun when the alderman calls the day (the verb callWorkday, VB-673; at least
   //   OUTER.notice days ahead, VB-1768), judged at the end of work (sim/clock).
+  // @notstock village.workday: ledgers and statistics of what moved (sim/stores, sim/hunger)
   // @state pawn.workdays: {year (of cal), came (work days the pawn turned out to), missed (work days its household stayed away from, as its
   //   holder)}, absent before its first; read by sim/society's standing while year is this year.
   const VILLAGE = (v) => ({ type: 'village', id: v.id });

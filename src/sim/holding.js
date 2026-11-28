@@ -1,4 +1,4 @@
-// @sys sim/holding: who may come to hold a farm, and who goes with a new holder (VB-688): one table of the bars, named in a fixed order, and
+// @sys sim/holding [material]: who may come to hold a farm, and who goes with a new holder (VB-688): one table of the bars, named in a fixed order, and
 // each way to a farm (a claim, a plot, settling, the ask for land, wanting out) as the list of the bars it reads; the bars whose state another
 // module owns (a claim under way, a plot coming) are contributed by it at load
 VB['sim/holding'] = (() => {

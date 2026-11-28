@@ -1,4 +1,4 @@
-// @sys sim/methods: the task as a plan (design.md section 7, Plans at four scales; VB-1747): a goal's next leg read from the world. A kind
+// @sys sim/methods [kernel]: the task as a plan (design.md section 7, Plans at four scales; VB-1747): a goal's next leg read from the world. A kind
 // declares its methods (KINDS[kind].methods), rows of steps of nine primitives, each step with the facts it needs and the facts it makes,
 // read from the world and never kept on the task; `next` takes the rule for a load in hand, then the stray method, then the first method
 // that applies, read from its last step to its first. The world is read through a view, the readers its caller gives, so the engine

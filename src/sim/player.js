@@ -1,4 +1,4 @@
-// @sys sim/player: the player (VB-169), a source of commands with one pawn at a time: the frame (which pawn, and its line's record for
+// @sys sim/player [agency]: the player (VB-169), a source of commands with one pawn at a time: the frame (which pawn, and its line's record for
 // the page), its pawn's death and whom it goes on as; and the facade's controller calls, keyed by pawn (VB-1746): any pawn's controller
 // (sim/controller) reached through the verbs, its wish, its choices as head, and its plan fed to its queue (the feeder, for every pawn
 // whose controller holds a plan)

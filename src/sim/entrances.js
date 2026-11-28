@@ -1,4 +1,4 @@
-// @sys sim/entrances: a building's entrance (VB-1951; Kim, 27 Nov 2026): w.gate, the side of a house's hex that walks enter and leave it
+// @sys sim/entrances [kernel]: a building's entrance (VB-1951; Kim, 27 Nov 2026): w.gate, the side of a house's hex that walks enter and leave it
 // by, set when the house is placed, facing the nearest worn way or else its village's centre; and the gate's point, where walks pass it
 VB['sim/entrances'] = (() => {
   const { through, walkable } = VB['sim/walking'];
@@ -11,6 +11,7 @@ VB['sim/entrances'] = (() => {
   // Fresh gates for a world: none set (every side open); the settlement generator calls it.
   function initGates(w) {
     // @state w.gate: Int8Array per tile; the side of a house (0 to 5, its index in w.nb) that walks enter and leave it by, -1 any side
+    // @notstock w.gate: ways (the wear of walking, fords and bridges, passage, the ground compiled, a house's gate)
     w.gate = new Int8Array(w.N).fill(-1);
   }
   // The nearest tile within GATE.way steps of `from` worn to a path or more, by a breadth-first search over land a route may cross; -1.

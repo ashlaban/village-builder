@@ -1,4 +1,4 @@
-// @sys sim/due: the due-queue (Rules for cost, 4) as a pure helper over a list its owner keeps sorted by a due key: where an entry stands,
+// @sys sim/due [kernel]: the due-queue (Rules for cost, 4) as a pure helper over a list its owner keeps sorted by a due key: where an entry stands,
 // its insert, its removal, and the taking of the entries due by a time (VB-1473). No state of its own, no domain, no randomness.
 VB['sim/due'] = (() => {
   // A queue is a plain array its owner holds in state. Its order is given by `key(entry, ctx)`, the entry's due time, and for a queue

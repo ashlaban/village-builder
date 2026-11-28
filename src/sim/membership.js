@@ -1,6 +1,7 @@
-// @sys sim/membership: founding a household on a farm, coordinating records, supplies, land and moving; the village's alderman (VB-314)
+// @sys sim/membership [social]: founding a household on a farm, coordinating records, supplies, land and moving; the village's alderman (VB-314)
 // @state village.alderman: the pawn (a holder of the village) who holds its office, or null/absent; aldermanSince (hours), aldermanYear (the year
 //   chosen; a term by turns ends with it), aldermanFarm (the farmstead whose holder served last by turns)
+// @notstock village.alderman: identity, links and membership
 VB['sim/membership'] = (() => {
   const { living } = VB['sim/records'];
   const { makeHousehold, joinHousehold, setServant, home } = VB['sim/records'];

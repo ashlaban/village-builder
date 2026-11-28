@@ -1,4 +1,4 @@
-// @sys draw/rivers: rivers drawn on the map, each river tile a curve from joint to joint, its banks, springs and reeds
+// @sys draw/rivers [presentation]: rivers drawn on the map, each river tile a curve from joint to joint, its banks, springs and reeds
 // ===== Rivers on the map: width by catchment, bends, lines per tile, drawn per chunk; items kept off them =====
 // Listed after sim.js, in the presentation layer, before draw/bake, whose decorateChunk calls thin; the page draws each chunk with
 // drawChunk (VB-1502, from gen/rivers).

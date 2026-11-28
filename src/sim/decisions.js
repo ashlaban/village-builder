@@ -1,4 +1,4 @@
-// @sys sim/decisions: questions with several voices (target-v2 4.5): a body's question asked by kind, settled by the body's procedure
+// @sys sim/decisions [kernel]: questions with several voices (target-v2 4.5): a body's question asked by kind, settled by the body's procedure
 //   (a vote, or one pawn deciding), with its ballots kept for the year (VB-313)
 // @state st.decisionLog[]: {t, body, kind, dim, procedure, current, chosen, support[], need, by}; newest first, the last 30 (VB-313)
 VB['sim/decisions'] = (() => {

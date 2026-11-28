@@ -1,4 +1,4 @@
-// @sys sim/attitudes: a person's attitude to each custom, its leanings, and its day-by-day drift towards company, cause and upbringing
+// @sys sim/attitudes [social]: a person's attitude to each custom, its leanings, and its day-by-day drift towards company, cause and upbringing
 // ===== Attitudes (VB-417, out of culture): every person holds a preference over the options of each custom, updated each game day (one
 // game day stands for about a week). The only writer of a pawn's attitude, its anchor and its leanings; culture's causes and meetings move
 // them through pull and hold. =====

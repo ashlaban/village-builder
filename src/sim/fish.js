@@ -1,4 +1,4 @@
-// @sys sim/fish: fish in rivers, lakes and the sea (VB-117): each river and small lake tile's stock, lowered by a catch and recovering in
+// @sys sim/fish [kernel]: fish in rivers, lakes and the sea (VB-117): each river and small lake tile's stock, lowered by a catch and recovering in
 // closed form, and a house's fishing ground: the nearest bank within reach whose water holds fish
 VB['sim/fish'] = (() => {
   const { FISH, DAY } = VB['sim/rules'];
