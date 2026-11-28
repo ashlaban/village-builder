@@ -943,3 +943,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-2023](backlog/VB-2023.md) | A team's harness moves with the team | - | 3 | S | A new keeper of a team takes its worn harness, not a sound one |
 | [VB-1703](backlog/VB-1703.md) | Caches checked after every verb: the 41 verbs tests/caches.js does not reach | - | 3 | M | Build a command for each verb tests/caches.js does not reach yet |
 | [VB-1697](backlog/VB-1697.md) | A dead-out household's remaining goods pass with the farm | - | 3 | M | Stone, flour, peat, tar, hides, salt, iron, clay, ore and the rack stay at the farmstead as the estate's and pass with the farm to whoever takes it |
+| [VB-2043](backlog/VB-2043.md) | Refactor: the person card's feature rows moved out of page/words to their features' page files | - | 3 | S | Move the leanings, share and marriage-bar rows of the person card out of page/words |

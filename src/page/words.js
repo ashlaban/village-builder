@@ -193,26 +193,6 @@ function selectPawn(id, pinned = true) {
   hoverDirty = true;
   showPawn(id);
 }
-// The pawn card's "Leans" line (VB-082): the two customs where its own mind differs most from its village's practice (sim/leanings), and
-// the cause it argues, with the years left. None for a child under 14, whose mind is still its upbringing's.
-function leansLine(p) {
-  const sid = Sim.settlementIdOf(st, p),
-    s = sid === null || sid === undefined ? null : st.cenv.settlements[sid],
-    a = p.advocate,
-    opt = (d, j) => `“${Customs.DIMS[d].opts[j][1]}”`;
-  const leans =
-    s && p.age >= 14
-      ? VB['sim/leanings']
-          .leansOf(p, s.practice)
-          .map((l) => `${opt(l.dim, l.opt)} on ${Customs.DIMS[l.dim].label.toLowerCase()}`)
-      : [];
-  const left = a && a.until !== undefined ? Math.max(0, Math.ceil(a.until - st.cenv.t)) : null,
-    cause = a
-      ? `argues for ${opt(a.dim, a.opt)}${left === null ? '' : `, ${left} ${left === 1 ? 'year' : 'years'} left`}`
-      : '';
-  if (!leans.length) return cause ? cause[0].toUpperCase() + cause.slice(1) : '';
-  return `Leans to ${leans.join(' and ')}${s ? ` (${s.name} holds otherwise)` : ''}${cause ? `; ${cause}` : ''}`;
-}
 function showPawn(id) {
   $('personFamily').hidden = false;
   const p = st.pawns[id],
@@ -262,8 +242,9 @@ function showPawn(id) {
   showRelations(id);
   renderPlay(id);
 }
-// ---- the person card's first lines (page/cardrows): its role and age; where it lives and its children; its share; its leanings; what
-// bars its marriage. Its crafts (page/meter, 60), its thirst (page/water, 70) and its task in hand (page/day, 80) follow. ----
+// ---- the person card's first lines (page/cardrows): its role and age; where it lives and its children. Its share and what bars its
+// marriage (page/family, 30 and 50) and its leanings (page/customs, 40) are rows of their features' files; its crafts (page/meter, 60),
+// its thirst (page/water, 70) and its task in hand (page/day, 80) follow. ----
 cardRow('person', 10, (id) => `${roleLine(st.pawns[id])}, ${st.pawns[id].age}`);
 cardRow('person', 20, (id) => {
   const p = st.pawns[id],
@@ -283,19 +264,6 @@ cardRow('person', 20, (id) => {
             : `Lives at ${f.name}`;
   const rel = kids.length ? `${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : '';
   return `${status}.${rel ? ` ${rel}` : ''}`;
-});
-cardRow('person', 30, (id) => {
-  const p = st.pawns[id];
-  return p.stake
-    ? `Share in hand: ${p.stake} rations${Sim.shareOwed(st, p.id) ? `, ${Sim.shareOwed(st, p.id)} still owed` : ''}`
-    : '';
-});
-cardRow('person', 40, (id) => leansLine(st.pawns[id]));
-// what stands between it and a marriage (VB-631): the means held against those asked are a meter among its stats (VB-908), the other
-// bars a line
-cardRow('person', 50, (id) => {
-  const bar = Sim.marryBar(st, id);
-  return bar && !hasMeans(bar) ? marryWords(bar) : '';
 });
 // A pawn's levels, the same wherever a pawn's state is shown (its card, the played pawn's sheet): its mood on the one meter, the
 // modifiers in force under it (VB-062); health and hunger on the meter, its household's cold, and its standing. Standing is a sum with
