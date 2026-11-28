@@ -138,6 +138,7 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/timberhouse'].KINDS); // the timber house's frame and roof (VB-1664): sim/timberhouse's
   Object.assign(KINDS, VB['sim/facilities'].KINDS); // a facility's stages raised and its upkeep (VB-361): sim/facilities'
   Object.assign(KINDS, Expansion.plotted(KINDS)); // a plot's step ends in its finish, through its kind's `done` (sim/expansion, VB-1821)
+  Object.assign(KINDS, VB['sim/sites'].sited(KINDS)); // a site's step ends in its finish, as a plot's (sim/sites, VB-787)
   // every kind that declares no methods of its own is work done at its site (sim/methods labour, VB-1750: no kind runs on the phases); an
   // indoor kind's work stands by the door of its house (as sim/agents' spotAt)
   for (const k in KINDS) {
@@ -319,6 +320,7 @@ VB['sim/kinds'] = (() => {
   (ASK.farmAfterPlans.push(rule(Lying.bringWork)), ASK.village.push(rule(Lying.bringWork)));
   ASK.village.push(rule(VB['sim/facilities'].villageWork)); // a village's facilities raised and mended (VB-361)
   ASK.island.push(rule('blaze')); // the trails under way, each its blazer's household's (VB-447, sim/trails)
+  ASK.island.push(rule(VB['sim/sites'].siteWork)); // the sites of new farms under way, each its leader's household's (VB-787, sim/sites)
   for (const e of ASK.field) for (const g of ASK.stages[e[0]]) (ASK.fieldAt[g] ||= []).push(e);
   // ---- goals (VB-1777; docs/plans/four-scales/README.md, 3.2): a task at a tile carried through several steps, for any pawn ----
   // A goal kind is declared as data by the domain whose kinds carry its steps, beside their rules (GOALS): sim/fieldwork's plant and

@@ -127,6 +127,8 @@
     "st.away[].guest": "sim/journeys",
     "st.booths": "sim/building",
     "st.boothSeq": "sim/building",
+    "st.sites": "sim/sites",
+    "st.siteSeq": "sim/sites",
     "st.facilities": "sim/facilities",
     "st.facilityIdx": { "owner": "sim/facilities", "category": "cache" },
     "agent.away": { "owner": "sim/away", "category": "cache" },

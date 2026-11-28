@@ -46,23 +46,26 @@ const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
   st.demand = [m.id]; m.landWait = 3; m.stake = 300;
   const n = st.villages.length, farms = st.farmsteads.length;
   roll(st, () => S.settleRound(st));
-  check(st.villages.length === n + 1, `a village is founded in the forest (${st.villages.length - n})`);
-  const f = st.farmsteads[farms], hh = f && st.households[f.household];
-  if (f && hh) {
-    const plans = Projects.projectsOf(st, 'household', hh.id), field = plans.find((p) => p.what === 'field'), home = plans.find((p) => p.what === 'cottage');
-    const fieldTile = field && field.steps[field.steps.length - 1].place;
-    check(wooded(w, f.house) && fieldTile !== undefined && wooded(w, fieldTile), 'the house and the first field stand on wooded tiles');
-    check(field && field.steps.map((s) => s.kind).join() === 'fell,grub,clear,break', `the field is felled, grubbed, cleared and broken (${field && field.steps.map((s) => s.kind)})`);
-    check(home && home.steps.map((s) => s.kind).join() === 'fell,grub,foundation,walls,roof', `the house tile is felled and grubbed before the foundation (${home && home.steps.map((s) => s.kind)})`);
-    const hours = VB['sim/villagehours'].hoursBetween(st, v.id, f.village);
-    check(st.record.some((e) => e.kind === 'left' && /hours' walk away along a trail/.test(e.text)), 'the log tells the hours along the trail');
-    let bad = checkState(st); check(!bad.length, `invariants after founding: ${bad.slice(0, 3).join('; ')}`);
-    let grubbed = null, broken = null, built = null;
+  // VB-787: the round stakes the site, its tiles cleared and its cottage built by the party before the move founds the village
+  const site = st.sites[0];
+  check(!!site && st.villages.length === n, `a site is staked in the forest, nothing founded yet (${st.sites.length})`);
+  if (site) {
+    const fieldTile = site.field, house = site.house, steps = (k) => site.plot.places.find((tr) => tr.kind === k).steps.join();
+    check(wooded(w, house) && wooded(w, fieldTile), 'the house and the first field stand on wooded tiles');
+    check(steps('field') === 'fell,grub,clear,break', `the field is felled, grubbed, cleared and broken (${steps('field')})`);
+    check(steps('house') === 'fell,grub,clear', `the house tile is felled and grubbed before the foundation (${steps('house')})`);
+    check(st.record.some((e) => e.kind === 'siteStaked' && /hours' walk away along a trail/.test(e.text)), 'the log tells the hours along the trail');
+    let bad = checkState(st); check(!bad.length, `invariants at the stake: ${bad.slice(0, 3).join('; ')}`);
+    let grubbed = null, broken = null, built = null, f = null, hours = 0;
     for (let d = 0; d < 2 * Sim.YEAR_DAYS && (broken === null || built === null); d++) {
       Sim.advance(st, 24);
-      if (grubbed === null && w.biome[f.house] === B.MEADOW) grubbed = d;
-      if (built === null && !f.booth) built = d;
-      if (broken === null && f.fields.length) {
+      if (grubbed === null && w.biome[house] === B.MEADOW) grubbed = d;
+      if (built === null && !st.sites.includes(site)) {
+        built = d;
+        f = st.farmsteads[farms];
+        hours = VB['sim/villagehours'].hoursBetween(st, v.id, f.village);
+      }
+      if (broken === null && f && f.fields.length) {
         broken = d;
         const fd = f.fields.find((x) => x.tile === fieldTile);
         check(fd && fd.soil === SOIL.fresh && w.biome[fieldTile] === B.MEADOW, `the field broken on the forest is fresh land (${fd && fd.soil})`);

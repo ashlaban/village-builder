@@ -958,6 +958,7 @@ VB['sim/building'] = (() => {
     roofless,
     shelterStands,
     stakeShelter,
+    fetchTimber,
     rotBooths,
     boothWork,
     timberWork,

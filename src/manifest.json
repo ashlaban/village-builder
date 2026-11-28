@@ -129,6 +129,7 @@
   "sim/projectplans.js",
   "sim/facilities.js",
   "sim/trails.js",
+  "sim/sites.js",
   "sim/kinds.js",
   "sim/days.js",
   "sim/hands.js",

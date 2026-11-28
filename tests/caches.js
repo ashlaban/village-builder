@@ -79,7 +79,7 @@ assert.deepStrictEqual(failures, [], 'a cache differs from its derivation after 
 // The list only shrinks: a verb carried here is struck from it, a new verb is carried or added.
 const NOT_YET = ['answer', 'claim', 'letIn', 'placeFarmstead', 'blaze', 'lodge', 'comeHome', 'goGathering', 'stayHome', 'swap',
   'target', 'tile', 'order', 'letField', 'sowOutOfTurn', 'courses', 'dayOrder', 'assign', 'call', 'handOn', 'plotToVillage',
-  'beginCottage', 'goBack', 'goToKin', 'visit', 'sendVisit', 'foundHousehold', 'decide', 'argue', 'dropCause', 'rally', 'leave', 'takeUp',
+  'beginCottage', 'goBack', 'goToKin', 'visit', 'sendVisit', 'foundHousehold', 'decide', 'argue', 'dropCause', 'rally', 'leave', 'stakeSite', 'takeUp',
   'renounce', 'marry', 'skip', 'slander',
   'wish', 'match', 'found', 'upkeep',
   'substitute', 'commute', 'transfer', 'forgive']; // VB-1769 (release carried since VB-1768's routines): the ladder's verbs, carried by tests/levies.js // VB-361: no facility kind is declared in the game yet (each craft's task declares its own); tests/facilities.js carries both

@@ -56,6 +56,9 @@ fill(st, v);
 st.demand = [m.id, sib.id]; m.landWait = 2; sib.landWait = 2; m.stake = 300;
 const villages = st.villages.length, farms = st.farmsteads.length, households = st.households.length, oldHh = m.household;
 roll(st, () => S.settleRound(st));
+// VB-787: the round stakes the site; the party builds it from home and moves when its cottage has its roof
+check(st.sites.length === 1 && st.villages.length === villages && m.household === oldHh, 'a site is staked, and nobody moves yet');
+for (let d = 0; d < 2 * Sim.YEAR_DAYS && st.sites.length; d++) Sim.advance(st, 24);
 check(st.villages.length === villages + 1, `a village is founded (${st.villages.length - villages})`);
 const nv = st.villages[st.villages.length - 1], f = st.farmsteads[farms], hh = st.households[households];
 check(nv && nv.founded && nv.founded.from === v.id && nv.founded.by === m.id, `founded from ${v.name} by the settler (${JSON.stringify(nv.founded)})`);
@@ -65,9 +68,9 @@ check(nv && nv.founded && nv.founded.from === v.id && nv.founded.by === m.id, `f
 }
 const trail = VB['sim/routes'].trailReach(st.w, v.center, SETTLE.hours * SPEED).get(nv.center) / SPEED;
 check(trail <= SETTLE.hours && VB['sim/hex'].hexSteps(st.w, v.center, nv.center) >= SETTLE.centreApart, `the new village is ${trail.toFixed(1)} hours away along a trail`);
-check(f && f.village === nv.id && nv.farmsteads.length === 1 && nv.farmsteads[0] === f.id && f.booth === true && VB['sim/projects'].projectsOf(st, 'household', f.household).some((p) => p.what === 'cottage'), 'one farm, in a booth');
+check(f && f.village === nv.id && nv.farmsteads.length === 1 && nv.farmsteads[0] === f.id && !f.booth, 'one farm, its cottage built');
 check(f.name === nv.name, `the farm bears the new village's name (${f.name}, ${nv.name})`);
-check(f.fields.length === 0 && ['clear', 'fell'].includes(VB['sim/projects'].openOf(st, hh.id)?.kind), 'the first field is the household\'s project plan');
+check(f.fields.length === 1 || !!VB['sim/projects'].openOf(st, hh.id), 'the first field is broken, or the household\'s project plan');
 check(hh && hh.holder === m.id && m.household === hh.id && sib.household === hh.id && hh.members.length === 2, 'settler and sibling live there');
 check(sib.servant && ['farmhand', 'maid'].includes(sib.role) && m.role === 'farmer', `the sibling serves (${sib.role})`);
 // the stake less a day's ration a head, eaten uncooked on the journey (VB-287, sim/agents setOut)
@@ -76,9 +79,7 @@ const journeyFood = hh.members.reduce((n, id) => n + (st.pawns[id].age >= 14 ? s
 const oldHouse = st.farmsteads[st.households[oldHh].farmstead].house;
 const bearing = () => st.away.filter((j) => j.why === 'fetch' && j.gift && j.gift.to === hh.id);
 const lies = () => bearing().reduce((n, j) => n + j.gift.held + j.gift.stops.reduce((k, x) => k + x.left, 0), 0);
-check(Sim.grainOf(hh) === 0 && !m.stake && bearing().length === 2 && bearing().every((j) => j.gift.stops.every((x) => x.at === oldHouse && x.start)),
-  `the stake lies at the old home for both to bear (${Sim.grainOf(hh)} in store, ${bearing().length} bearers)`);
-check(Math.abs(lies() - (300 - journeyFood)) < 1e-6, `the stake less the journey's food (${lies()})`);
+check(!m.stake, 'the stake is taken as provisions at the move');
 check(!st.households[oldHh].members.includes(m.id), 'the settler left the old household');
 check(st.demand.includes(sib.id) && !st.demand.includes(m.id), 'the sibling still wants land, the settler does not');
 const s = st.cenv.settlements[nv.id];
@@ -109,7 +110,7 @@ bad = checkState(st); check(!bad.length, `invariants after two years: ${bad.slic
   for (const h of t.st.households) h.grain = { barley: 0 };
   const n = t.st.villages.length;
   roll(t.st, () => S.settleRound(t.st));
-  check(t.st.villages.length === n && Sim.villageLog(t.st, Infinity).some((e) => /cannot spare the grain/.test(e.text)), 'a party without provisions stays');
+  check(t.st.villages.length === n && t.st.sites.length === 1 && !VB['sim/settle'].provisions(t.st, t.st.sites[0].party.all), 'a party without provisions stakes its site, and its move waits for them (VB-787)');
 }
 // 3b. A home that took in a spouse at this round gives no provisions (VB-330); the next round it gives, and one that did not marry gives as before.
 {
@@ -144,7 +145,7 @@ const founders = () => {
   const small = S.smallVillage(t.st, t.v, t.m, S.waitingByVillage(t.st));
   check(d <= SETTLE.join && small && small.village === t.lone, `the lone farm lies within ${SETTLE.join} hours (${d.toFixed(1)}) and is the small village offered`);
   roll(t.st, () => S.settleRound(t.st));
-  check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id && t.lone.farmsteads.length === 1, 'the round founds, and joins nobody unasked');
+  check(t.st.sites.length === 1 && t.st.sites[0].leader === t.m.id && t.st.sites[0].village === null && t.lone.farmsteads.length === 1, 'the round stakes a new village\'s site, and joins nobody unasked');
   bad = checkState(t.st); check(!bad.length, `invariants after founding: ${bad.slice(0, 3).join('; ')}`);
   joined = `; the lone village ${t.lone.name} ${d.toFixed(1)} hours away is offered, not joined`;
 }
@@ -154,13 +155,13 @@ const founders = () => {
   VB['sim/heirs'].moveTo(t.st, other.id, t.st.farmsteads[t.lone.farmsteads[0]].household); t.st.demand.push(other.id);
   check(S.smallVillage(t.st, t.v, t.m, S.waitingByVillage(t.st)) === null, 'with its own adult waiting, the lone farm is passed over');
   roll(t.st, () => S.settleRound(t.st));
-  check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id, 'and the settler founds');
+  check(t.st.sites.length === 1 && t.st.sites[0].leader === t.m.id && t.st.sites[0].village === null, 'and the settler stakes a new village\'s site');
 }
 { // no room at the lone farm either: the settler founds
   const t = founders(), n = t.st.villages.length; fill(t.st, t.lone);
   check(S.smallVillage(t.st, t.v, t.m, S.waitingByVillage(t.st)) === null, 'with no room at the lone farm, it is passed over');
   roll(t.st, () => S.settleRound(t.st));
-  check(t.st.villages.length === n + 1 && t.st.villages[n].founded.by === t.m.id, 'and the settler founds');
+  check(t.st.sites.length === 1 && t.st.sites[0].leader === t.m.id && t.st.sites[0].village === null, 'and the settler stakes a new village\'s site');
 }
 // 5. The wish to settle (VB-392, on VB-680's wishes): true passes the draws to lead and to follow, false never leads or follows, null
 // draws as before; the round's other rules decide as for anyone. Every pawn holds it; the played pawn's is set by the wish verb.
@@ -174,8 +175,8 @@ const founders = () => {
     if (ws !== null) Wi.setWish(t.st, t.sib.id, 'settle', ws);
     const n = t.st.villages.length;
     how(t.st, () => S.settleRound(t.st));
-    const nv = t.st.villages[n], hh = nv && t.st.households[t.st.farmsteads[nv.farmsteads[0]].household];
-    return { led: !!nv && nv.founded.by === t.m.id, followed: !!hh && hh.members.includes(t.sib.id), st: t.st };
+    const s = t.st.sites[0];
+    return { led: !!s && s.leader === t.m.id && t.st.villages.length === n, followed: !!s && s.party.all.includes(t.sib.id), st: t.st };
   };
   let r = scene(null, null, never);
   check(!r.led, 'with no wish and the draws against it, nobody leaves');
