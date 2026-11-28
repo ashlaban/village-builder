@@ -1,4 +1,4 @@
-// @sys sim/projects: the project plans' record and its reads (VB-123; design.md section 7, Holders and plans), for every module: a holder's
+// @sys sim/projects [material]: the project plans' record and its reads (VB-123; design.md section 7, Holders and plans), for every module: a holder's
 // plans of steps, each opening when the one before is done; sim/plans writes them; what a building site lacks (VB-1407); and who may
 // begin a project of its own and how a step's job ends (VB-1408)
 VB['sim/projects'] = (() => {

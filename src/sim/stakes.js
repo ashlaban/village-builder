@@ -1,4 +1,4 @@
-// @sys sim/stakes: a household's stake on the tile of its new field or meadow (VB-158): staked when the project starts, renewed by its work,
+// @sys sim/stakes [material]: a household's stake on the tile of its new field or meadow (VB-158): staked when the project starts, renewed by its work,
 // the household's own once made; it lapses unworked, goes with a household that dissolves, and a weakened stake may be contested by custom;
 // a stake lost is told to the project plans (sim/projects) by the event rightLost
 VB['sim/stakes'] = (() => {

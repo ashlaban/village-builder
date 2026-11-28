@@ -1,4 +1,4 @@
-// @sys sim/stores: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals;
+// @sys sim/stores [material]: food quantities, paid stakes, movements and three-year household and village ledgers, routine movements as yearly totals;
 // reservations, grain by crop, a good by kind (the stone heap by rock, VB-733) and ale brewed, poured and spoiling (VB-305)
 VB['sim/stores'] = (() => {
   const { DAY, YEAR, YEAR_DAYS, TICKS, FOODS, BREW, cal } = VB['sim/rules'],

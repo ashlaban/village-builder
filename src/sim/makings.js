@@ -1,4 +1,4 @@
-// @sys sim/makings: the makings (VB-678), the registry of what a head may begin through the verb `project` (sim/plans) beyond a field and
+// @sys sim/makings [material]: the makings (VB-678), the registry of what a head may begin through the verb `project` (sim/plans) beyond a field and
 // a meadow: each declared at load by the module that carries it out (a boat by sim/drying, a cart by sim/carts, a tar pit by sim/tar, a
 // barn and a farm for the heir by sim/aims), as sim/kinds and sim/commands are; it holds no domain's rule and no state
 VB['sim/makings'] = (() => {

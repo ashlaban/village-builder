@@ -1,4 +1,4 @@
-// @sys world/water: fresh water on the map: the codes and names of a tile's source (w.fresh), the well's bands by the depth to the ground's
+// @sys world/water [kernel]: fresh water on the map: the codes and names of a tile's source (w.fresh), the well's bands by the depth to the ground's
 // water (w.waterDepth) with the hours a well of each takes, and the nearest source down the walk to water (w.freshWalk)
 // design.md, Goods and the farming year, Water by the site (VB-1543; laid by VB-1581). gen/water lays the class and the depth, sim/water
 // the walk. Nothing here is a rule of the fetch: these are the map's names and its one reading of a depth.

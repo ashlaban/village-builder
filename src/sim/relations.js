@@ -1,4 +1,4 @@
-// @sys sim/relations: relationships between pawns: compatibility, opinion derived from kin, familiarity and memories, talk, company for the idle,
+// @sys sim/relations [social]: relationships between pawns: compatibility, opinion derived from kin, familiarity and memories, talk, company for the idle,
 // and the people a pawn knows; owns opinion memories, bands and goodwill
 VB['sim/relations'] = (() => {
   const { next: rnd } = VB['sim/rng'];

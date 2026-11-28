@@ -1,4 +1,4 @@
-// @sys sim/claims: claims on tiles, realised and unrealised: strength, renewal and lapse, and the land each holds (disputes: sim/disputes)
+// @sys sim/claims [material]: claims on tiles, realised and unrealised: strength, renewal and lapse, and the land each holds (disputes: sim/disputes)
 VB['sim/claims'] = (() => {
   const { YEAR, CLAIMS } = VB['sim/rules'];
   const { setOwner, ownedCodes } = VB['sim/ownership'];

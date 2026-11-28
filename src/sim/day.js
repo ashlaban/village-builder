@@ -1,4 +1,4 @@
-// @sys sim/day: the day's work (VB-466; design.md section 7, The day's work): the head allots its household's tasks to its members by
+// @sys sim/day [agency]: the day's work (VB-466; design.md section 7, The day's work): the head allots its household's tasks to its members by
 // their fit (sim/fit), each takes the first of its list it can, the head calls for what is urgent, due today or left for the evening; one
 // on a day owed or lent (sim/days, sim/hands) takes of the tasks of the household it works for; the hours of help a head lacks, asked at
 // the morning's allotment (sim/hands, VB-470). Owns plan.day

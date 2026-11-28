@@ -1,4 +1,4 @@
-// @sys sim/authored: an authored step and the default author (VB-1755; design.md section 7, Plans at four scales: Authors; A step at
+// @sys sim/authored [agency]: an authored step and the default author (VB-1755; design.md section 7, Plans at four scales: Authors; A step at
 // risk, and the take-back): the expected hours of a household's daily work reserved before anything authored (reserveOf, ownHours), the
 // check of the verb plan's add and date on a pawn's own plan that refuses a task that cannot be done by its `by`, the `by` an undated task
 // is given, and at the household's review the at-risk check of its members' authored tasks and the take-back

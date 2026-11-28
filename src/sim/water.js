@@ -1,4 +1,4 @@
-// @sys sim/water: the walk to fresh water as a field of the map (w.freshWalk): the hours on foot over pathless ground from each land tile to
+// @sys sim/water [kernel]: the walk to fresh water as a field of the map (w.freshWalk): the hours on foot over pathless ground from each land tile to
 // the nearest source that is not marsh, searched once from the land as generated; and each farm's source (farmstead.water): where its
 // household draws its water, of what class and how long the walk, found by one search outward from the house (VB-1582); the wells the
 // map starts with and a well's entry on the map (w.fresh); and a site's water before a house stands there (siteFetch, siteWater: VB-1583;
@@ -78,6 +78,7 @@ VB['sim/water'] = (() => {
     // @state w.freshWalk: Float32Array per tile; hours on foot over pathless ground to the nearest source of fresh water that is not
     //   marsh (w.fresh), 0 on a river's tile, Infinity on water and where none can be walked to; laid once from the land as generated,
     //   not saved (a load lays it again on its freshly generated world); the tile card and the Water overlay read it (VB-1581)
+    // @notstock w.freshWalk: the generated world
     if (!w.freshWalk && w.fresh) w.freshWalk = walks(w);
   }
   // ---- a farm's source (VB-1582; design.md, Water by the site, A farm's source) ----
@@ -152,6 +153,7 @@ VB['sim/water'] = (() => {
     //   source's own tile, or a lake's bank or a marsh's edge; -1 when none lies within WATER.search hours), the source's class (w.fresh's
     //   code; 0 with none), the walk one way in hours as the ground was when it was found, and the year it was found in; absent until
     //   the farm's first morning (sim/water find, VB-1582)
+    // @notstock farmstead.water: land, buildings and their records (fields, meadows, a site's timber)
     f.water = { ...source(st.w, f.house, st.villages[f.village]), year: yearOf(st.t) };
     return f.water;
   }

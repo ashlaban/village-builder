@@ -1,4 +1,4 @@
-// @sys sim/weather: the seasons' weather a crop asks for (VB-354; design.md, Crops and the weather): for the archipelago, each season's
+// @sys sim/weather [kernel]: the seasons' weather a crop asks for (VB-354; design.md, Crops and the weather): for the archipelago, each season's
 // warmth and wetness drawn at its start, and each year's thaw and first autumn frost; read by the crops and the meadows at reaping and
 // mowing, by the sowing window (the thaw) and by the frost's day. The world layer's climate (target-v2 4.2) until the weather branch
 // answers the same question a region.

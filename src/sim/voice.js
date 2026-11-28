@@ -1,4 +1,4 @@
-// @sys sim/voice: a member's voice (VB-1555, VB-1763; design.md section 7, A member's voice; The levy and own hours, Grant and ask): a
+// @sys sim/voice [agency]: a member's voice (VB-1555, VB-1763; design.md section 7, A member's voice; The levy and own hours, Grant and ask): a
 //   member asks its head, the verb ask, an offer answered once by the head: on the basis `leave`, levy hours of a day, from an hour
 //   named (or now) to the end of the working day, or whole days (a stay away of its own); on the basis `lighter`, a standing grant of
 //   VOICE.lighter hours a day for the season. The head says no to leave when its day gave the member hours at a task with a deadline

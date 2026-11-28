@@ -1,4 +1,4 @@
-// @sys world/rivers: what the water running through a tile is called, by its flow
+// @sys world/rivers [kernel]: what the water running through a tile is called, by its flow
 VB['world/rivers'] = (() => {
   // A river tile's w.river (its catchment) below `brook` is a brook, below `stream` a stream, and a river from there: the names the drawn
   // widths 8 and 16 gave at the default hex size R = 28 (Kim, 23 November: the name goes by the flow, not by how wide it is drawn).

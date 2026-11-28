@@ -1,4 +1,4 @@
-// @sys sim/births: conception, pregnancy, childbirth and nursing of married women, and of courting ones (VB-555): a child born to an
+// @sys sim/births [social]: conception, pregnancy, childbirth and nursing of married women, and of courting ones (VB-555): a child born to an
 //   unmarried mother is born outside marriage, until its parents marry each other
 VB['sim/births'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];

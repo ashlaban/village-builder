@@ -1,4 +1,4 @@
-// @sys sim/pose: where a pawn is, read only: the tile at a map point, and a walker's place, pose and hours left, worked out from its leg
+// @sys sim/pose [material]: where a pawn is, read only: the tile at a map point, and a walker's place, pose and hours left, worked out from its leg
 // (sim/legs) at any moment between its start and its end, and its bed; split from sim/agents (VB-422)
 VB['sim/pose'] = (() => {
   const { TICKS } = VB['sim/rules'];

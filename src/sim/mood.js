@@ -1,4 +1,4 @@
-// @sys sim/mood: a pawn's mood (VB-062), 50 plus its modifiers, computed when asked and stored nowhere; the event modifiers (pawn.mods),
+// @sys sim/mood [social]: a pawn's mood (VB-062), 50 plus its modifiers, computed when asked and stored nowhere; the event modifiers (pawn.mods),
 //   written at a wedding, a birth and a death. Read by the pawn's card, and by one rule: the giver's mood in the allowance of a gift
 //   (sim/exchange, VB-875; tests/mood.js holds that no other module reads it)
 VB['sim/mood'] = (() => {

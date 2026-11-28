@@ -1,4 +1,4 @@
-// @sys sim/spread: forest spread into open land (VB-091): the front of open tiles beside woodland, where scrub grows to forest unless
+// @sys sim/spread [material]: forest spread into open land (VB-091): the front of open tiles beside woodland, where scrub grows to forest unless
 // farming, work or grazing keeps the land open; the hours scrub adds to clearing; a field let go, wild ground again after its years (VB-1527)
 VB['sim/spread'] = (() => {
   const { B, treeStage, setBiome } = VB['world/biomes'];
@@ -53,6 +53,7 @@ VB['sim/spread'] = (() => {
   //   becomes thick scrub or forest. Written here only.
   // @state w.tended: Int32Array per tile; the game day of the last work on the tile (a clearing step, a field or meadow made, a field
   //   reclaimed) plus 1, 0 for none; work keeps a tile open SPREAD.tendedDays. Written here only (tended).
+  // @notstock w.tended: when a tile was last worked (a day, not an amount; sim/spread)
   // A field a scenario lays out gone to scrub (a ruin's) has the trees of scrub, a quarter of full cover.
   function initFront(st) {
     const w = st.w;

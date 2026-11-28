@@ -505,6 +505,12 @@ VB['sim/scenarios'] = (() => {
     //   fodderDay (the last day the animals were fed in the byre; sim/byre), milkDay (the last day the cows were milked; VB-135),
     //   manure (loads on the heap by the byre; VB-137), wool (fleeces shorn, summer day 1; VB-144),
     //   spoilt (rations of grain lost in store since the start; sim/hunger)}
+    // @notstock household.id, household.farmstead, household.members, household.holder, household.guardian, household.ward: identity, links and membership
+    // @notstock household.herds, household.dissolved: identity, links and membership
+    // @notstock household.ledger, household.totals, household.spoilt, household.hungryDays: ledgers and statistics of what moved (sim/stores, sim/hunger)
+    // @notstock household.hunger, household.cold, household.coldLog, household.dry: ledgers and statistics of what moved (sim/stores, sim/hunger)
+    // @notstock household.marshDay, household.dryLog, household.seedSeason, household.milkDay: ledgers and statistics of what moved (sim/stores, sim/hunger)
+    // @notstock household.boat: land, buildings and their records (fields, meadows, a site's timber)
     // @state st.farmsteads[]: {id, house, fields[], village, household, name, rowAngle, fence, line, state, condition, condAt, grade,
     //   tarredUntil, emptySince}
     //   house is a tile index (the field or meadow in the making is its household's project plan, st.plans.projects, and an empty farm's
@@ -517,6 +523,10 @@ VB['sim/scenarios'] = (() => {
     //   sim/house); tarredUntil (hours, VB-301); grade 'ground' or 'stone' (the house raised onto a stone foundation; sim/building, VB-332);
     //   booth true or null: settlers live in a booth until their cottage has its roof (sim/settle), the cottage itself a plan of
     //   their household in st.plans.projects (sim/expansion, VB-1411)
+    // @notstock farmstead.id, farmstead.house, farmstead.village, farmstead.household, farmstead.name, farmstead.line: identity, links and membership
+    // @notstock farmstead.rowAngle: identity, links and membership
+    // @notstock farmstead.fields, farmstead.meadows, farmstead.booth, farmstead.state: land, buildings and their records (fields, meadows, a site's timber)
+    // @notstock farmstead.grade, farmstead.emptySince: land, buildings and their records (fields, meadows, a site's timber)
     // @state st.villages[]: {id, name, center, farmsteads[], fence, wood[], grain, ledger[], totals[] (as a household's), green, well};
     //   center is a tile index, farmsteads are ids; wood: the tiles the village cuts its firewood on (sim/territory, VB-326);
     //   grain: the village store, {crop: rations} (sim/help); green: a boolean; well: the tile of its well, on its green, or null
@@ -528,6 +538,9 @@ VB['sim/scenarios'] = (() => {
     //   farmed; VB-149)}}; a plot is cleared for those who want out
     //   crowded: adults of the village waiting for land with no room for a plot, at the last moving round (0 when not crowded; sim/settle);
     //   founded {t, from (village id), by (pawn id)} for a village founded in play by settlers, else null (sim/settle)
+    // @notstock village.id, village.name, village.center, village.farmsteads, village.wood, village.plots: identity, links and membership
+    // @notstock village.ledger, village.totals: ledgers and statistics of what moved (sim/stores, sim/hunger)
+    // @notstock village.green, village.well, village.crowded, village.founded: land, buildings and their records (fields, meadows, a site's timber)
     // @state st.owner: Int32Array of tile owners (see sim/ownership). st.claims, st.claimSeq, st.landDirty: see sim/claims
     // @state st.cairns: Map of tile to {a (village that won it), b (village that lost it), t (game hours)}: the marks of settled borders (sim/territory)
     // @state st.makeFields: boolean; households start projects for new fields and meadows (every scenario since the balance review, 1 Nov 2026;

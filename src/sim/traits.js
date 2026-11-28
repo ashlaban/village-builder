@@ -1,4 +1,4 @@
-// @sys sim/traits: the twelve traits (design.md, People, Traits, talk and stories; VB-519, on VB-254's stand-ins): four values, four of
+// @sys sim/traits [kernel]: the twelve traits (design.md, People, Traits, talk and stories; VB-519, on VB-254's stand-ins): four values, four of
 // temperament, four aptitudes, one number in [0.02, 0.98] per pawn and trait, passed on by one equation (TRAITS, sim/rules) at birth and,
 // for the values and a hungry childhood, once at 15; placed pawns draw from their culture's distribution; all from the stream `traits`.
 // Read through Traits.of, and named by Traits.labelsOf; a head's skill and its bias, as numbers, for sim/plans; a culture's values as the

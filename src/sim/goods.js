@@ -1,4 +1,5 @@
-// @sys sim/goods: the catalog of trade goods with their materials and kinds (VB-733), grain subtype identifiers and culture's worth and propriety rules
+// @sys sim/goods [material]: the catalog of trade goods with their materials and kinds (VB-733), grain subtype identifiers and culture's worth and propriety
+//   rules
 VB['sim/goods'] = (() => {
   const { FOODS, HERD, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];

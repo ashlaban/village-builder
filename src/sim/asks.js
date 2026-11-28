@@ -1,4 +1,5 @@
-// @sys sim/asks: the asks for goods (VB-699; principle "Place matters"; principle "The future is someone's estimate"; principle "Every act is a pawn's"):
+// @sys sim/asks [agency]: the asks for goods (VB-699; principle "Place matters"; principle "The future is someone's estimate"; principle "Every act is a
+//   pawn's"):
 //   a household that lacks a good it needs and
 //   cannot make where it lives asks for it, an ask open until met or a year old; a head whose place gives the good reads, once a year after
 //   the harvest, the asks of the villages it gathers with, and reckons what it can place beyond its own need: its estimate, never a price

@@ -1,4 +1,4 @@
-// @sys sim/timetable: the timetable (VB-477; design.md section 7, The timetable): a household's day as a view, worked out when asked and
+// @sys sim/timetable [derived]: the timetable (VB-477; design.md section 7, The timetable): a household's day as a view, worked out when asked and
 //   never in a step: each member's list laid end to end with its walks, each task a range by the estimate of the pawn who looks (the one the
 //   player inhabits: flaws and all); progress so far is exact. With it the cost of calling a member off, named before the call, and the
 //   stops of a run until the inhabited pawn's task ends. Writes nothing

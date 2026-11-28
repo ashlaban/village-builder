@@ -1,4 +1,4 @@
-// @sys sim/grants: the head's grants on a member's levy (VB-1763; design.md section 7, The levy and own hours: Grant and ask; Leave, and
+// @sys sim/grants [agency]: the head's grants on a member's levy (VB-1763; design.md section 7, The levy and own hours: Grant and ask; Leave, and
 //   a stay away; Children, lodgers, elders and servants): a standing grant of hours a day for a season, and a dated one (leave: from an
 //   hour to the end of the working day, or whole days), written on the household's plan by the verb grant, by a yes to a member's ask
 //   (sim/voice) or by a servant's contract (its free day at its term, sim/service); read by sim/levies as the levy in force.

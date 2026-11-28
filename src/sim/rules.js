@@ -1,4 +1,4 @@
-// @sys sim/rules: the calendar, the economy and the foods, the herds, the ages of life and health, travel, given names, and the other
+// @sys sim/rules [kernel]: the calendar, the economy and the foods, the herds, the ages of life and health, travel, given names, and the other
 // tables several domains read (VB-419: a table one domain reads lives in that domain's module, found by its @tunable line)
 VB['sim/rules'] = (() => {
   const { B } = VB['world/biomes'];

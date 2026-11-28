@@ -1,4 +1,4 @@
-// @sys sim/outlook: the supply outlook (VB-666): how long a household's food, fuel and hay last, on one scale (seasons of need) over the
+// @sys sim/outlook [agency]: the supply outlook (VB-666): how long a household's food, fuel and hay last, on one scale (seasons of need) over the
 // four seasons from the start of the one we are in, by its head's reckoning at each review of its plan, with its doubt (VB-669); kept in
 // plan.outlook, read by the page
 // Design: docs/mocks/supply-scale.html and supply-doubt.html (the UI review with Kim, 16 Nov); principle "The future is someone's estimate" (the future

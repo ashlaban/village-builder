@@ -1,4 +1,4 @@
-// @sys sim/scopes: a scope on the membership graph (VB-043; design.md, One scope model for overlays, stores and trees): an entity level, the
+// @sys sim/scopes [derived]: a scope on the membership graph (VB-043; design.md, One scope model for overlays, stores and trees): an entity level, the
 // entities chosen and a dimension, and the pawns, households, villages, tiles and stores it covers; read-only, no state
 VB['sim/scopes'] = (() => {
   const { liveFrom, liveTo } = VB['sim/graph'];

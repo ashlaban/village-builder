@@ -1,4 +1,4 @@
-// @sys sim/norms: the norms on goods: customary worth, the classes of goods and what custom calls an exchange between them
+// @sys sim/norms [kernel]: the norms on goods: customary worth, the classes of goods and what custom calls an exchange between them
 // A kernel module: pure tables and one pure reading of them; it imports nothing (VB-417: out of culture, which drifts and votes).
 VB['sim/norms'] = (() => {
   // ===== Norms (VB-299; design.md, The fair and Goods of place, Quanta and worth; target-v2 4.4): usual quantities, one table for every

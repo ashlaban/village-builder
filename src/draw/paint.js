@@ -1,4 +1,4 @@
-// @sys draw/paint: a world's paint, built from the world alone: each tile's colour, the light of the relief and the distance to the land per
+// @sys draw/paint [presentation]: a world's paint, built from the world alone: each tile's colour, the light of the relief and the distance to the land per
 // coarse cell, and the brush texture; the page keeps one per world (page/chunks paintOf) and recolours a tile where its biome changed
 VB['draw/paint'] = (() => {
   const { mulberry32 } = VB['gen/noise'];

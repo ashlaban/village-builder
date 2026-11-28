@@ -1,4 +1,4 @@
-// @sys sim/eligibility: who may take a task, and on what basis (design.md section 7; VB-250): one table of bases, each a check, in a fixed order
+// @sys sim/eligibility [agency]: who may take a task, and on what basis (design.md section 7; VB-250): one table of bases, each a check, in a fixed order
 VB['sim/eligibility'] = (() => {
   const { villageOf } = VB['sim/records'];
   const HELP = VB['sim/roles'].MATCH.help;

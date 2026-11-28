@@ -1,4 +1,4 @@
-// @sys sim/wood: the wood of the household (VB-2011, split from sim/chores): the job kinds and goals that fell timber in the woods and
+// @sys sim/wood [material]: the wood of the household (VB-2011, split from sim/chores): the job kinds and goals that fell timber in the woods and
 //   carry it home (wood; the goal fell), cut it into firewood at the house (firewood) or where it lies (cutpile; the goal firewood, VB-1931),
 //   with the woodpile's reads the other modules take (fuelFree, timberOf, pileOf, fireAmount) and the hours of a load (WOOD_HOURS)
 // Like sim/chores, it takes from the world (sim/forest's trees, sim/lying's piles) and puts into the house (sim/stores' timber and wood), so
@@ -67,7 +67,9 @@ VB['sim/wood'] = (() => {
   // shortfall of the season's goal, the timber home counted; a firewood task's, the pile's shortfall alone, and one while tonight's fire is short.
   // A wood task's goal is the pile, with the timber home, it was posted to reach (job.amount): a trip's worth, the household's best cart
   // full or a back load, no more than the season's goal wants; so one trip meets it, and a cut one goes on from what the world holds.
-  const woodHave = (st, hh) => fuelFree(st, hh) + timberOf(hh);
+  // the timber home a building step does not hold back (timberKept) counts: the walls' timber is no firewood to fell for (VB-2033)
+  const timberLoose = (st, hh) => Math.max(0, timberOf(hh) - timberKept(st, hh));
+  const woodHave = (st, hh) => fuelFree(st, hh) + timberLoose(st, hh);
   const woodAmount = (st, hh) => {
     const P = st.ECON.woodPerTrip,
       short = Math.ceil((woodTargets(st, hh).seasons[cal(st.t).season] - woodHave(st, hh)) / P - 1e-9),
@@ -250,14 +252,14 @@ VB['sim/wood'] = (() => {
       // carried home after work
       vital: (st, j) => {
         const hh = st.households[j.farm.household];
-        return !timberOf(hh) && fireShort(st, hh);
+        return !timberLoose(st, hh) && fireShort(st, hh);
       },
       // 3 in a cold house with no timber to cut (VB-327: above cooking's 2.2); 2.2 when the pile and the timber are nearly out; else
       // their shortfall of the goal, and more in autumn
       urgency: (st, j, c, U) => {
         const hh = st.households[j.farm.household];
-        if (hh.cold > 0 && !timberOf(hh)) return U.woodColdUrgency;
-        return pileUrgency(st, hh, c, U, fuelFree(st, hh) + timberOf(hh));
+        if (hh.cold > 0 && !timberLoose(st, hh)) return U.woodColdUrgency;
+        return pileUrgency(st, hh, c, U, fuelFree(st, hh) + timberLoose(st, hh));
       },
       // a tile drawn from the village's wood, but for a trip the plan sent to a tile of its choosing (`chosen`)
       draw: (st, j) => (j.chosen ? -1 : drawWood(st, st.villages[j.farm.village])),
@@ -274,7 +276,7 @@ VB['sim/wood'] = (() => {
           post0(key, ...rest);
         };
         const T = woodTargets(st, hh);
-        const have = fuelFree(st, hh) + timberOf(hh);
+        const have = woodHave(st, hh);
         if (wood.length && have < T.seasons[c.season]) {
           const amount = woodAmount(st, hh);
           post(`wood:h${hh.id}`, wood[0], { farm: f, amount });

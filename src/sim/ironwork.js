@@ -1,4 +1,4 @@
-// @sys sim/ironwork: iron tools, a first version (VB-701): a household's tools and their condition, worn by field work and felling and
+// @sys sim/ironwork [material]: iron tools, a first version (VB-701): a household's tools and their condition, worn by field work and felling and
 // slowing it, never barring it; bog ore smelted with firewood in a pit at the farm into a bloom; a winter's mending with iron
 // Design: design.md, Goods, production and animals (Goods of place; Skill and tools); AGENTS.md, Deciding without Kim (7, 9, 16). Kim, 16
 // Nov: the wear is the recurring sink, and the place is the bog. A farm's tools keep one condition (VB-762 adds the grade of the set's

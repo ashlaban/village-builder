@@ -1,4 +1,5 @@
-// @sys sim/soil: a field's soil and tilth: worn by a crop, mended by manure, the heap's loads carted to the field that wants them (VB-137, VB-717, VB-718)
+// @sys sim/soil [material]: a field's soil and tilth: worn by a crop, mended by manure, the heap's loads carted to the field that wants them (VB-137, VB-717,
+//   VB-718)
 VB['sim/soil'] = (() => {
   const { YEAR } = VB['sim/rules'],
     { CROPS, SOIL, wetLoss } = VB['sim/crops'];

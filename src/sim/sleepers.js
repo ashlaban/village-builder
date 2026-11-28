@@ -1,4 +1,4 @@
-// @sys sim/sleepers: sleep for every pawn (VB-1645): the hours each owes (pawn.sleep), reckoned by SLEEP (sim/sleep) once an hour over
+// @sys sim/sleepers [agency]: sleep for every pawn (VB-1645): the hours each owes (pawn.sleep), reckoned by SLEEP (sim/sleep) once an hour over
 //   the living, the played pawn as any (VB-1776); the verb `sleep`, for the player and a pawn's own rule; and that rule, which sleeps a
 //   pawn that owes a whole night when it is free in the working day
 VB['sim/sleepers'] = (() => {

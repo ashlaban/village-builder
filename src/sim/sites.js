@@ -1,4 +1,4 @@
-// @sys sim/sites: a party's site of a new farm (VB-787; design.md, Moving to new land, Settling in steps): staked at the moving round, its
+// @sys sim/sites [material]: a party's site of a new farm (VB-787; design.md, Moving to new land, Settling in steps): staked at the moving round, its
 // house tile and first field cleared and its cottage built by the party's members from their old households, until the move founds the
 // household (sim/settle's verb leave); the site's jobs, their ends, the leader's stake on its tiles, and the leader who follows a dead one
 VB['sim/sites'] = (() => {

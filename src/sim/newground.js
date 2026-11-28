@@ -1,4 +1,4 @@
-// @sys sim/newground: new ground made: a field's site felled and grubbed when it is a wood (VB-1525), cleared of its stones, its ground
+// @sys sim/newground [material]: new ground made: a field's site felled and grubbed when it is a wood (VB-1525), cleared of its stones, its ground
 // broken, and the new field it becomes (VB-149, VB-332)
 VB['sim/newground'] = (() => {
   const { DAY } = VB['sim/rules'];

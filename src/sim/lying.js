@@ -1,4 +1,4 @@
-// @sys sim/lying: loads lying where their carrier fell (VB-611): a load on its way home whose carrier died on the road, or whose household
+// @sys sim/lying [material]: loads lying where their carrier fell (VB-611): a load on its way home whose carrier died on the road, or whose household
 // dissolved, is put down where it was, as a pile with title the stray method of the owner's goal that uses it fetches (sim/methods;
 // the goods with no goal of their own, BRING, VB-1814) and carries home; one nobody fetches loses a share of itself each game day once
 // the autumn frost has come, and is gone under its quantum (decay, VB-1910). A good made where the work is done (VB-1748: the catch,

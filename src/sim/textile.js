@@ -1,4 +1,4 @@
-// @sys sim/textile: wool to cloth (VB-362): a fleece spun into a skein of yarn as background work at the house, two skeins woven into a
+// @sys sim/textile [material]: wool to cloth (VB-362): a fleece spun into a skein of yarn as background work at the house, two skeins woven into a
 // length of cloth at the household's loom, the loom a small making; the practice "Spinning and weaving are" and the ranks it gives
 // Design: design.md, Goods, production and animals (The mill and the loom, the kiln and the quarry: Wool to cloth, Who spins; Decided
 // 11 Nov, the numbers Proposed); backlog/VB-185.md. The fleeces are shorn at the fold (sim/byre); the cloth waits for dress (VB-363).
