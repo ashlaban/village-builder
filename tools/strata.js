@@ -24,7 +24,7 @@ const KINDS_OF = {
   farm: 'plow sow reap haul weed thresh clear break ditch meadow reclaim rake mow hay fodder manure milk shear slaughter salt fell grub fish gather herd lead hunt boat cart leftCart restore workclear fetchHaul fetchHay fetchLeftCart leftHay drove fetchFish fetchGather fetchHunt',
   craft: 'brew hewQuern rackfish dry tarpit burntar tarhouse tarboat dig boilsalt smelt mendtools cobble harness spin weave loom fetchRackfish fetchDig fetchBoilsalt',
   household:
-    'wood firewood cook water boothwater drink grind foundation walls roof barnbase barnwalls barnroof byrewalls byreroof timberframe timberroof timber booth shelter leftTimber leftGrain pick quarry raise green wellstone well sweep workfence mend repair mendcart housewell raisestage mendfacility fetchWood fetchLeftTimber fetchLeftGrain fetchWellstone blaze fetchPick fetchQuarry',
+    'wood firewood cook water boothwater drink grind foundation walls roof barnbase barnwalls barnroof byrewalls byreroof storewalls storeroof timberframe timberroof timber booth shelter leftTimber leftGrain pick quarry raise green wellstone well sweep workfence mend repair mendcart housewell raisestage mendfacility fetchWood fetchLeftTimber fetchLeftGrain fetchWellstone blaze fetchPick fetchQuarry',
 };
 const CLASS = {};
 for (const [c, ks] of Object.entries(KINDS_OF)) for (const k of ks.split(' ')) CLASS[k] = c;

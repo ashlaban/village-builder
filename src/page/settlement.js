@@ -4,7 +4,7 @@
 const ART_S = 0.2;
 const YARD = {
   byre: [-10, -3],
-  barn: [6, -1], // the barn (lada; farmstead.barn), behind the storehouse
+  barn: [19, -6], // the barn (lada; farmstead.barn), behind the storehouse
   harbre: [14, 7],
   stuga: [-4, 14],
   wood: [10, 15],
