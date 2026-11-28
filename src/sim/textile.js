@@ -93,6 +93,17 @@ VB['sim/textile'] = (() => {
     for (const id of st.liveHouseholds)
       if (st.households[id].farmstead !== null) st.households[id].loom = { built: st.t };
   }
+  // The fleeces a scenario's households start with (VB-363): a household with sheep holds the year's, one for each, as the fold shears them.
+  function seedFleeces(st) {
+    const now = st.t;
+    st.t = 0; // booked at the start, as the households' provisions are
+    for (const hd of st.herds) {
+      if (hd.species !== 'sheep' || hd.household === null || !st.households[hd.household]) continue;
+      const hh = st.households[hd.household];
+      if (hh.farmstead !== null) Stores.put(st, hh, 'wool', hd.ewes + hd.rams, 'start');
+    }
+    st.t = now;
+  }
   function loomBuilt(st, j, hh) {
     const f = st.farmsteads[hh.farmstead];
     hh.loom = { built: st.t };
@@ -178,5 +189,5 @@ VB['sim/textile'] = (() => {
   VB['sim/methods'].labour(KINDS.weave, { inside: true });
   VB['sim/methods'].labour(KINDS.loom, { inside: true });
   VB['sim/methods'].mind(KINDS.spin); // spinning minded beside other work, a charge held (VB-1750)
-  return { TEXTILE, SPINNERS, KINDS, practice, rank, hasLoom, yarnOf, clothOf, spun, woven, seedLooms };
+  return { TEXTILE, SPINNERS, KINDS, practice, rank, hasLoom, yarnOf, clothOf, spun, woven, seedLooms, seedFleeces };
 })();
