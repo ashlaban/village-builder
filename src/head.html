@@ -135,6 +135,9 @@ body {
 .clock strong { display: block; font-size: 19px; }
 .clock span { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .clock .ice-key { display: flex; flex-direction: column; gap: 2px; } /* the key of the ice, while any is on the map (VB-083) */
+.clock .ice-key { cursor: pointer; }
+.clock .ice-key b { display: none; font-weight: normal; }
+.clock .ice-key.open b { display: inline; }
 .clock .ice-key[hidden] { display: none; }
 .clock .ice-key span { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .clock .ice-key i { display: inline-block; width: 14px; height: 10px; border: 1px solid #2c201c; border-radius: 2px; }
