@@ -901,3 +901,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-083](backlog/VB-083.md) | Seasons on the map | roads | 3 | M | Seasonal tints and winter snow on the painted map. |
 | [VB-034](backlog/VB-034.md) | Splitting land between heirs | debt | 3 | M | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. |
 | [VB-1964](backlog/VB-1964.md) | The ice key: two swatches, words one tap in | roads | 1 | S | The ice key beside the calendar is two swatches; their words show one tap in (Kim's icons-first rule). |
+| [VB-1770](backlog/VB-1770.md) | A holder proposes a routine or a change of the custom of lots to the meeting | plans | 2 | S | The verb propose: any holder of the village puts a routine, or the custom of lots, on its meeting's agenda; the decision stays the meeting's by its procedure, and no controller has a ballot. |
