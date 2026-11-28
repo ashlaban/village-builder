@@ -103,6 +103,10 @@ VB['sim/away'] = (() => {
     const at = hh.dissolved ? st.villages[st.farmsteads[hh.farmstead].village] : hh;
     Stores.put(st, at, 'grain', g.n, { kind: 'away', pawn: j.pawn }, g.parts);
   }
+  VB.counter(
+    'awayMeals',
+    'Meals eaten from a pack by the pawns away from home, on a journey or lodging, a meal a day each (sim/away feedAway; VB-783)',
+  );
   // The day's meal away (sim/clock, after the households' meals): each pawn away eats from its pack, a ration a day (half below 14). A
   // lodger whose stay is over by its meal (stayOver) comes home.
   // Its night has the cold and the wet of its roof (VB-785, sim/hunger nightCost): a booth's fire burns once for all who sleep in it.

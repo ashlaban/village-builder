@@ -53,6 +53,10 @@ VB['sim/timetable'] = (() => {
   // that reordered its own list (VB-1756)
   const editor = (st, hh, ed) =>
     ed.by === null || ed.by === hh.holder || !st.pawns[ed.by] ? 'the head' : fullName(st.pawns[ed.by]);
+  VB.counter(
+    'timetableEntry',
+    "Entries of a member's list laid out in a timetable, a view asked by the page (sim/timetable, VB-477)",
+  );
   // Household hh's timetable as pawn `viewer` reckons it (its head when null), or null with no day: {household, viewer, made (the hour
   // the day was allotted), edited (the last change by the verbs on the day, standing until the day is next allotted, or null: {t, by, who,
   // the words for who made it, 'the head' or a member's name: a member reorders its own list, VB-1756}), members: [{id, now (the

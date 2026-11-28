@@ -67,6 +67,10 @@ VB['sim/day'] = (() => {
   // A member's working hours of the horizon, by the clock; what it does in them at a task is the head's belief of its rate there (VB-476).
   const dayHours = () => MATCH.day.horizon * (WORK[1] - WORK[0]);
   const hoursLeft = (st, j) => (j.hours ?? KINDS[j.kind].hours ?? 0) - doneOf(st, j);
+  VB.counter(
+    'dayAllot',
+    "Households' days allotted whole: at the morning, at 14:00, and when a slot-in finds nobody (sim/day, allot; VB-1758)",
+  );
   // The head allots the household's day. Every member is weighed for every task of the household and of its village that it may take, by
   // its fit (score); best fit first, a further hand on a task counting for less (join), a task is given hands until they cover its work
   // left as the head estimates it (sim/estimate, VB-476: the causes its judgement reckons with, leaned by its lean), each member up to its
@@ -95,6 +99,15 @@ VB['sim/day'] = (() => {
     demandAtRisk(st, hh, w.H, w.pairs, ctx, c, plan);
     for (const p of w.members) call(st, hh, p, ctx.due.get(p.id), ctx.given.get(p.id), c, w.memo, w.stand);
   }
+  VB.counter(
+    'dayPair',
+    "Member and task pairs weighed when a household's day is allotted: its members with the tasks of the household and its village " +
+      "(sim/day, allot; VB-466), with a task slotted in and the household's own tasks at its review (reweigh, VB-1854)",
+  );
+  VB.counter(
+    'dayWould',
+    "Days weighed without being allotted: a head's allotment point asked whether the rule would change the day standing (sim/points, VB-1848)",
+  );
   // The day the rule would allot household hh, as it stands now, and nothing written (allot's first part; sim/points reads it, VB-1848):
   // {lists, fits, hours, free, members (those allotted), ctx, memo, stand, H (the head's estimate), pairs}. Counts dayWould.
   function weighDay(st, hh, c) {
@@ -142,6 +155,10 @@ VB['sim/day'] = (() => {
     for (const p of members) free[p.id] = ctx.cap.get(p.id);
     return { lists, fits, hours, free, members, ctx, memo, stand, H, pairs };
   }
+  VB.counter(
+    'riskWeighed',
+    'Tasks of an allotment weighed for work at risk the levies leave unmanned (sim/day atRisk, VB-1779)',
+  );
   // ---- the head's demand (VB-1779; design.md section 7, The levy and own hours: The head's demand, Demand and take) ----
   // The work at risk the allotment left unmanned, [[task, work left unmanned, rations at risk]]: a field step whose window its hands given
   // today cannot cover (sim/hands shortOf, by the head's estimate), its target's yield (sim/estimate fieldYield) times the share of
@@ -162,6 +179,10 @@ VB['sim/day'] = (() => {
     }
     return out;
   }
+  VB.counter(
+    'demandMade',
+    'Demands past the levy made by a head of a member: its own at the allotment, an assign or a call (sim/day, VB-1779)',
+  );
   // The head weighs a demand for each task at risk (atRisk) that no member's levy left today can take: of the members its allotment would
   // give it, in the allotment's order (its pairs, best fit first), each whose levy left is spent and who has working hours left today,
   // h hours of it when R > DEMAND.weight × h × V + G (sim/levies demands), one at a time until the work is found or none complies. The
@@ -207,6 +228,8 @@ VB['sim/day'] = (() => {
     }
     if (left.length) plan.day.risk = left;
   }
+  VB.counter('demandMet', 'Demands complied with (sim/day, VB-1779)');
+  VB.counter('demandRefused', 'Demands refused, a memory of the head (sim/day, VB-1779)');
   // The demand past the levy (Demand and take: "a call past the levy left is the same demand, whoever issues it"), an offer from the head
   // to its member, answered by the member's judgement at once (J + GIVE.press > 0), or by its controller within the day; wants {verb
   // ('assign', 'call': the verb's args; 'default': the head's own at its allotment, key, hours, fit), ...}. A yes carries the act out; a
@@ -334,6 +357,10 @@ VB['sim/day'] = (() => {
         (held || (held = new Map())).set(s.what.duty, s.who[0]);
     return held;
   }
+  VB.counter(
+    'dutyFirst',
+    "A duty's holder put first for a task of its type in an allotment or a slot-in, ahead of a better fit (sim/day dutyFirst, VB-1771)",
+  );
   // A duty gives its holder the first place for its type (design.md, The days ahead): in the pairs weighed, best first, the holder's pair
   // for a task of the duty's kinds goes just before the task's best pair, so that the pass (man) gives it the task first and the others
   // come to it as further hands; nothing else moves. One pass over the pairs.
@@ -363,6 +390,10 @@ VB['sim/day'] = (() => {
     }
     for (let i = 0; i < out.length; i++) pairs[i] = out[i];
   }
+  VB.counter(
+    'dutyRead',
+    "Members' lists read at a household's review for the duties to give, and duties lapsed with their holder (sim/day, VB-1771)",
+  );
   // The duties household hh's head would give at its review (its default author, the customs): each type of recurring work without a
   // window that no member holds goes to the member the day standing put first for it, the one whose list gives a task of the type's kinds
   // earliest (the lower id on a tie), given hands or at its head; none where the day gives no such task. [[type, pawn id]], in the order
@@ -681,6 +712,10 @@ VB['sim/day'] = (() => {
     }
     allotDays(st, whole, c);
   }
+  VB.counter(
+    'dayRose',
+    "Tasks a household's review made more urgent, slotted again into the day's lists as they stand (sim/day reweigh, VB-1854)",
+  );
   // ---- the head's review re-weighs in place (VB-1854; design.md section 7, Plans at four scales, Replanning: the head's review rung) ----
   // Household hh reviewed: each of its own tasks in the day's lists that its stores or windows have made more urgent since it was given
   // its place (a store fallen below its target, a window closing) is slotted again (slotIn), as one arriving would be: its best fit now
@@ -751,6 +786,10 @@ VB['sim/day'] = (() => {
       }
     }
   }
+  VB.counter(
+    'dayLost',
+    "Tasks of a member lost to its household's day (dead, ill, lent, on leave, away) slotted to the others (sim/day lostHolder, VB-1758)",
+  );
   // Pawn id is lost to its household's day (it died, fell ill, was lent, took its leave or went away): the tasks it was given hands for go
   // back to the pool at once, each slotted to the others as the lists stand (slotIn); its list is emptied and its hours taken out of the
   // day, so that one back in the day has it allotted anew (takeDay). Out of working hours its list is only emptied: the morning weighs all.
@@ -809,6 +848,10 @@ VB['sim/day'] = (() => {
     if (ask)
       for (const [id, short] of ask) if (!st.households[id].dissolved) Hands.askFor(st, st.households[id], short, c);
   }
+  VB.counter(
+    'eveningAsk',
+    "Households' tasks read for one that may be begun after work, from its end to the evening (sim/day eveningCall, VB-1547)",
+  );
   // The evening (VB-1547; design.md, The head calls): from the end of work to MATCH.day.evening, each hour, a household's task of a kind
   // that may be begun after work (`evening`, sim/kinds: the water) that stands open and unmanned calls one hand: the member free of a task
   // whom the head's day put it earliest for (the lower id on a tie; one whose list was made before the task was posted, after those), at
@@ -840,6 +883,7 @@ VB['sim/day'] = (() => {
   }
   // Whether pawn a can take job j of its list now: there is room, it still may, and a task held at the side is in reach.
   const canTake = (st, a, j) => !matchBar(st, a, j);
+  VB.counter('dayTake', 'Tasks of its list an idle pawn passes or takes (sim/day, takeDay; VB-466)');
   // Each idle pawn takes the first task of its list that it can (a task held at the side leaves it free for the next one, next step). A
   // household with no day yet, or a member its day does not know (it moved in, or was born, since) or left out, has its day allotted first. The
   // pawns that got work.
@@ -1124,6 +1168,7 @@ VB['sim/day'] = (() => {
     if (c.hour < WORK[0] || c.hour >= WORK[1]) return 'hours of the levy are taken in the working day';
     return Levies.capacity(st, hh, p, c) > 1e-9 ? null : `pawn ${id} has no levy left today`;
   }
+  VB.counter('breachTaken', 'Hours of the levy taken by a member for itself, a breach each (sim/day breach, VB-1779)');
   // breach({hours}): the member keeps hours of its levy for itself (the levied's breach, 3.6), up to its levy left today (all of it when
   // none are named): it lets its task go and spends them as its own time (sim/pastimes), and until they end (agent.taking) it takes no
   // task of its list and the head calls it to none; the hours are booked taken (sim/levies), and the goodwill it then owes its head

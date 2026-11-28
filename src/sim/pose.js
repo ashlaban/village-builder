@@ -58,6 +58,10 @@ VB['sim/pose'] = (() => {
       r = h[lo] > h0 ? (e - h0) / (h[lo] - h0) : 0;
     return [i - 1, p0[0] + (p1[0] - p0[0]) * r, p0[1] + (p1[1] - p0[1]) * r];
   }
+  VB.counter(
+    'walkPlace',
+    'Places worked out along a walk (placeOf of a walking pawn: talk, nearness, company, a cut; VB-473)',
+  );
   // Where the pawn is now, worked out from its leg: for a walk, the hours since its start along its route; else where it stands (a pawn at
   // work stands at its task's spot: the rows of a field are the page's).
   function placeOf(st, a) {

@@ -340,6 +340,10 @@ VB['sim/estimate'] = (() => {
   // then (sim/byre dayHours: the fodder while the herds are stalled, the milking while animals are in milk); another lived by every day
   // (`vital` true), its hours a day.
   const DONE_DAY = { cook: 'cookDay', water: 'waterDay', milk: 'milkDay', fodder: 'fodderDay' };
+  VB.counter(
+    'dailyDay',
+    "Days of a season left read for a household's daily byre work by its head's estimate at a plan review (sim/estimate dailyLeft, VB-1906)",
+  );
   function dailyLeft(st, hh, c, s, id, open) {
     const k = s.what.routine,
       K = KINDS[k];
