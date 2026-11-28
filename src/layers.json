@@ -105,6 +105,7 @@
       "sim/wells",
       "sim/building",
       "sim/byrehouse",
+      "sim/gateturn",
       "sim/timberhouse",
       "sim/camp",
       "sim/trails",

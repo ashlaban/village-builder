@@ -70,7 +70,28 @@ check(
 );
 // the run walks: a game day passes with no error
 Sim.advance(st, VB['sim/rules'].DAY);
+// turning a farmstead's gate (the small making `gate`, sim/gateturn): refused onto its own side or onto water; begun, the household's
+// hands move it, and walks then leave by the new side
+{
+  const { issue } = VB['sim/commands'];
+  const f = st.farmsteads[1],
+    hh = st.households[f.household],
+    old = w.gate[f.house],
+    to = [0, 1, 2, 3, 4, 5].find((d) => d !== old && through(w, w.nb[f.house * 6 + d]));
+  const turn = (side) => issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args: { what: 'gate', side }, source: 'pawn' });
+  check(/on that side/.test(turn(old)), `not onto its own side (${turn(old)})`);
+  check(typeof turn(9) === 'string', 'not onto a side a house has not');
+  check(turn(to) === true, `the gate's turning begun (${to})`);
+  check(/being turned/.test(turn([0, 1, 2, 3, 4, 5].find((d) => d !== old && d !== to))), 'one turning at a time');
+  for (let d = 0; d < 6 && w.gate[f.house] !== to; d++) Sim.advance(st, VB['sim/rules'].DAY);
+  check(w.gate[f.house] === to, `moved by the household's hands (${w.gate[f.house]}, wanted ${to})`);
+  check(st.record.some((e) => typeof e === 'object' && e.kind === 'gateTurned'), 'and told');
+  const n = w.nb[f.house * 6 + to],
+    far = [0, 1, 2, 3, 4, 5].map((d) => w.nb[n * 6 + d]).find((j) => j >= 0 && j !== f.house && through(w, j) && hexSteps(w, j, f.house) === 2);
+  const p = far !== undefined && findRoute(w, f.house, far);
+  check(p && p[1] === n, `a walk leaves by the new side (${p && p.join(' ')})`);
+}
 if (failed) process.exit(1);
 console.log(
-  'entrances ok: gates set toward the green, kept on a load; a route leaves and enters a house by its gate alone',
+  'entrances ok: gates set toward the green, kept on a load; a route leaves and enters a house by its gate alone; a gate turned by the household',
 );

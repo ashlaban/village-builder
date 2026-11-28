@@ -4,8 +4,10 @@ VB['sim/entrances'] = (() => {
   const { through, walkable } = VB['sim/walking'];
   const { bfs } = VB['sim/hex'];
   const { findRoute } = VB['sim/routes'];
-  // How far a new house looks for a worn way (a path or a lane) to face, in walking steps; with none in reach it faces its village's centre.
-  const GATE = { way: 6, stage: 2 };
+  // @tunable GATE: `way`, how far a new house looks for a worn way (a path or a lane) to face, in walking steps (with none in reach it
+  // faces its village's centre); `stage`, the wear that counts as a way; `turnHours`, the work of moving a farmstead's gate (its posts
+  // and the fence piece that closes the old side, sim/gateturn): half a day's work.
+  const GATE = { way: 6, stage: 2, turnHours: 4 };
   // Fresh gates for a world: none set (every side open); the settlement generator calls it.
   function initGates(w) {
     // @state w.gate: Int8Array per tile; the side of a house (0 to 5, its index in w.nb) that walks enter and leave it by, -1 any side
@@ -64,6 +66,11 @@ VB['sim/entrances'] = (() => {
     for (const [t, d] of bfs(w, n, maxSteps - 1, (j) => j !== house && walk(j)).dist) out.set(t, d + 1);
     return out;
   }
+  // The gate of the house on `house` is moved to side `side` (sim/gateturn, when the work is done).
+  function turnGate(w, house, side) {
+    if (!w.gate) initGates(w);
+    w.gate[house] = side;
+  }
   // A house moved or gone: its old tile has no gate.
   function clearGate(w, tile) {
     if (w.gate) w.gate[tile] = -1;
@@ -85,5 +92,5 @@ VB['sim/entrances'] = (() => {
     const n = w.nb[i * 6 + s];
     return [(w.hx[i] + w.hx[n]) / 2, (w.hy[i] + w.hy[n]) / 2];
   }
-  return { GATE, initGates, gateSide, faceGate, gateSteps, clearGate, sansGate, gatePoint, nearestWay };
+  return { GATE, initGates, gateSide, faceGate, turnGate, gateSteps, clearGate, sansGate, gatePoint, nearestWay };
 })();

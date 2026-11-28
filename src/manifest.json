@@ -115,6 +115,7 @@
   "sim/wells.js",
   "sim/building.js",
   "sim/byrehouse.js",
+  "sim/gateturn.js",
   "sim/timberhouse.js",
   "sim/landing.js",
   "sim/camp.js",

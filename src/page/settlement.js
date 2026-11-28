@@ -448,6 +448,38 @@ function drawBooths(wd) {
     add(g, wd.hy[t]);
   }
 }
+// The gate of the house on tile `house` (VB-1951; sim/entrances): two posts and a rail on the edge its walks cross, along that edge, the
+// gate swung half open; none where the house has no gate (open on every side).
+function drawGate(wd, house, faded) {
+  const p = VB['sim/entrances'].gatePoint(st.w, house);
+  if (!p) return;
+  const n = st.w.nb[house * 6 + st.w.gate[house]],
+    dx = wd.hx[n] - wd.hx[house],
+    dy = wd.hy[n] - wd.hy[house],
+    len = Math.hypot(dx, dy) || 1,
+    ex = -dy / len, // along the edge
+    ey = dx / len,
+    half = 0.16 * len,
+    [x, y] = p,
+    g = new PIXI.Graphics();
+  const post = (px, py) =>
+    g
+      .rect(px - 1, py - 5, 2, 6)
+      .fill({ color: 0x6b4a2e })
+      .stroke({ width: 0.4, color: INK, alpha: 0.7 });
+  // the gate leaf hangs on the first post, swung toward the house
+  g.moveTo(x - ex * half, y - ey * half - 2.5)
+    .lineTo(x - ex * half * 0.1 - (dx / len) * half * 0.6, y - ey * half * 0.1 - (dy / len) * half * 0.6 - 2.5)
+    .stroke({ width: 1.4, color: 0x8a6440 });
+  g.moveTo(x - ex * half, y - ey * half - 0.5)
+    .lineTo(x - ex * half * 0.1 - (dx / len) * half * 0.6, y - ey * half * 0.1 - (dy / len) * half * 0.6 - 0.5)
+    .stroke({ width: 1.1, color: 0x8a6440 });
+  post(x - ex * half, y - ey * half);
+  post(x + ex * half, y + ey * half);
+  g.alpha = faded ? 0.45 : 1;
+  g.zIndex = y + 0.02;
+  L.objects.addChild(g);
+}
 // One farm: its fields, meadows, yard and buildings, its woodpile, byre and stacks, its smoke and firelight, and its fence.
 function drawFarm(wd, f) {
   const hx = wd.hx[f.house],
@@ -508,6 +540,7 @@ function drawFarm(wd, f) {
       L.objects.addChild(sill);
     }
   }
+  if (!ruin) drawGate(wd, f.house, empty);
   const wood = place(art.wood[0], hx + YARD.wood[0], hy + YARD.wood[1], 0.5, 0.9);
   wood.visible = !empty;
   const herds = !empty && st.households[f.household].herds.length > 0;
