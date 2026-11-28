@@ -1397,6 +1397,18 @@ function checkState(st) {
     SKS = SK.SKILLS,
     paceLo = SK.paceOf(0, 1) * Math.min(1, SKS.novice) - 1e-3,
     paceHi = SK.paceOf(1, 0) * Math.max(1, SKS.master) + 1e-3;
+  // dress (VB-363; sim/dress): a pawn's dress is {worth 0 to 1, at not after now, grade 0 to 4, span absent or above 1}
+  for (const p of st.pawns) {
+    const d = p.dress;
+    if (
+      !d ||
+      !(d.worth >= 0 && d.worth <= 1) ||
+      !(d.at <= st.t + 1e-9) ||
+      !(Number.isInteger(d.grade) && d.grade >= 0 && d.grade < 5) ||
+      (d.span !== undefined && !(d.span >= 1))
+    )
+      bad.push(`pawn ${p.id}: dress ${JSON.stringify(d)}`);
+  }
   for (const p of st.pawns) {
     const t = p.skill;
     if (

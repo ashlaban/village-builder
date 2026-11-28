@@ -71,6 +71,7 @@
       "sim/pot",
       "sim/thirst",
       "sim/sleep",
+      "sim/dress",
       "sim/hunger",
       "sim/foodneed",
       "sim/saltpan",
