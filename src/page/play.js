@@ -309,13 +309,14 @@ function offerBox(id, opps) {
     // the pawn's own judgement, as advice (principle "The future is someone's estimate": whose estimate it is)
     const advice =
       o.advice === null ? '' : ` ${esc(Sim.fullName(st.pawns[id]))} would answer ${o.advice ? 'yes' : 'no'}.`;
+    const warn = o.warning ? ` ${esc(o.warning)}` : '';
     h +=
       `<div class="offer" role="group" aria-label="${title}"><h3>${title}</h3>` +
       `<p>${body} ${part}</p>` +
       previewHTML(o.id, id) +
       `<p class="hint">${said ? `${said}. ` : ''}${o.daysLeft} ${
         o.daysLeft === 1 ? 'day' : 'days'
-      } left; unanswered, it is answered as your pawn would.${advice}</p>` +
+      } left; unanswered, it is answered as your pawn would.${advice}${warn}</p>` +
       `<div class="switches"><button type="button" class="primary" data-play="answer" data-offer="${o.id}" data-yes="true">Yes</button>` +
       `<button type="button" data-play="answer" data-offer="${o.id}" data-yes="false">No</button></div></div>`;
   }

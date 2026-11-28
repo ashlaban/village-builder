@@ -246,6 +246,46 @@ VB['sim/offers'] = (() => {
     },
     { basis: seen },
   );
+  // ---- faith (VB-707): a debtor's refusal ----
+  // Would pawn `by`'s no to the ask o of `worth` rations, which it could meet (`can`: above its floor), break faith: it owes the asker at
+  // least that worth in goodwill, and custom (sim/norms 'proper', food for food) does not excuse it.
+  function breaks(st, o, by, worth, can) {
+    if (!can || !alive(st, o.from) || !alive(st, by) || o.from === by) return false;
+    const hh = st.pawns[by].household;
+    if (hh === null || st.households[hh].dissolved) return false;
+    if (Relations.balance(st, o.from, by) < worth) return false; // what `by` owes the asker, now
+    const w = VB['sim/norms'].norm('proper', 'food', 'food', 0); // grain for nothing, within a class: ordinary unless custom says none
+    return w !== 'none' && w !== 'hard';
+  }
+  // Does pawn `by` meet a debt it could meet: its honour's weight of the breach (TRAITS.acts.honour.breach, 0.5 to 1.5) at least 1,
+  // that is, an honour from half up
+  const keepsFaith = (st, by) => VB['sim/traits'].act(st, by, 'honour', 'breach') >= 1;
+  VB.counter(
+    'faithBroken',
+    'Refusals of an ask by one who owed the asker its worth and could have met it (sim/offers, VB-707)',
+  );
+  // The deed: standing (sim/society), the creditor's memory, the record
+  function breakFaith(st, o, by, worth) {
+    VB.count.faithBroken++;
+    remember(st, o.from, by, 'brokeFaith');
+    VB['sim/events'].emit(st, 'faithBroken', { by, creditor: o.from, worth });
+    log(
+      st,
+      `${fullName(st.pawns[by])} broke faith with ${fullName(st.pawns[o.from])}, refusing ${what(st, o)} it owed.`,
+      {
+        kind: 'faithBroken',
+        pawn: by,
+        other: o.from,
+      },
+    );
+  }
+  // The warning to a played pawn about to say no to an ask o it would break faith by, or null (the basis's `breach`)
+  function warning(st, o, id) {
+    const B = BASES[o.basis];
+    return B.breach && o.answers.some((a) => a.by === id && a.yes === null) && B.breach(st, o, id)
+      ? `${fullName(st.pawns[id])} owes ${fullName(st.pawns[o.from])} this and could give it: a no breaks faith.`
+      : null;
+  }
   // Keep offer o in the queue, in order of due time (after those due at the same time)
   function keep(st, o) {
     o.id = st.offerSeq++;
@@ -403,6 +443,10 @@ VB['sim/offers'] = (() => {
     cannotAnswer,
     answer,
     advice,
+    breaks,
+    keepsFaith,
+    breakFaith,
+    warning,
     dueOffers,
     conclude,
     heldBy,

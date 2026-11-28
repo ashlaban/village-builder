@@ -181,6 +181,8 @@ VB['sim/hands'] = (() => {
   // of the two (an ask refused is everyday work, and the record is history's cost: docs/cost.md)
   function refused(st, o, no) {
     if (spareOf(st, st.households[st.pawns[no.by].household]).length) {
+      if (debt(st, o, no.by))
+        Offers.breakFaith(st, o, no.by, (o.wants.hands * o.wants.hours * Days.OUTER.worth) / Days.OUTER.hours);
       remember(st, o.from, no.by, 'refusedUs');
       remember(st, no.by, o.from, 'refusedThem');
     }
@@ -193,13 +195,25 @@ VB['sim/hands'] = (() => {
         ...atHousehold(st, st.households[o.household]),
       });
   }
+  // Would the head `id`'s no to the ask o of hands break faith (VB-707): it owes the asker the hours' worth (the levy's day rate) and has
+  // the hands to spare
+  function debt(st, o, id) {
+    const w = o.wants,
+      B = st.pawns[id] && st.pawns[id].household !== null ? st.households[st.pawns[id].household] : null;
+    if (!B || o.to !== id) return false;
+    const worth = (w.hands * w.hours * Days.OUTER.worth) / Days.OUTER.hours;
+    return Offers.breaks(st, o, id, worth, spareOf(st, B).length > 0);
+  }
   Offers.basis('help', {
     asked: 'hands', // by the verb ask (sim/offers): ask {basis: 'hands', wants: {hands, hours}}
     books: 'nothing',
     wait: () => HANDS.wait,
     check,
     answers: (st, o) => [{ key: 'head', by: o.to, yes: null }],
-    weigh: (st, o) => willing(st, o.to, o.from) && spareOf(st, st.households[st.pawns[o.to].household]).length > 0,
+    weigh: (st, o) =>
+      spareOf(st, st.households[st.pawns[o.to].household]).length > 0 &&
+      (willing(st, o.to, o.from) || (debt(st, o, o.to) && Offers.keepsFaith(st, o.to))),
+    breach: (st, o, id) => debt(st, o, id),
     settle,
     refused,
     what: askWords,
