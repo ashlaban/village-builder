@@ -56,6 +56,10 @@ VB['sim/steps'] = (() => {
     plan.ahead = [];
     return plan;
   }
+  VB.counter(
+    'planSteps',
+    "Plan steps made: a household's season steps at each season's plan, a project's year step (sim/steps; VB-1752)",
+  );
   // A new step: `what`, `why`, by the default author, planned; `extra` its own fields (from, by, left, state).
   function make(st, what, why, extra) {
     VB.count.planSteps++;
@@ -385,6 +389,10 @@ VB['sim/steps'] = (() => {
   function dropDuty(plan, s) {
     plan.ahead.splice(plan.ahead.indexOf(s), 1);
   }
+  VB.counter(
+    'planRead',
+    'Members of a household read for those that plan for themselves (sim/steps plannersIn, VB-1834)',
+  );
   // The pawns of household hid that plan for themselves, ascending ([] with none: no work in a run where none has planned).
   function plannersIn(st, hid) {
     if (hid === null || hid === undefined || !st.plans || !st.plans.pawns.size) return NONE;

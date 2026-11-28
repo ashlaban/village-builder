@@ -192,6 +192,11 @@ VB['sim/offers'] = (() => {
     const o = offerOf(st, c);
     return typeof o === 'string' ? o : null;
   };
+  VB.counter('offerWeighed', 'Answers to an offer weighed by the pawn asked, at the due time (sim/offers, VB-690)');
+  VB.counter('answerYesTie', 'Answers given yes, by the basis `tie` of the opinion (sim/offers, VB-706)');
+  VB.counter('answerYesStanding', 'Answers given yes, by the basis `standing` of the opinion (sim/offers, VB-706)');
+  VB.counter('answerNoTie', 'Answers given no, by the basis `tie` of the opinion (sim/offers, VB-706)');
+  VB.counter('answerNoStanding', 'Answers given no, by the basis `standing` of the opinion (sim/offers, VB-706)');
   // The answer `a` of offer o by its pawn's own judgement: the basis's rule (one evaluation; VB.count.offerWeighed)
   function judge(st, o, a) {
     VB.count.offerWeighed++;
@@ -215,6 +220,14 @@ VB['sim/offers'] = (() => {
   // knows it, above the base of a member, times SOCIAL.standing.weight (times .far from another village), -1..1. Read as the offer is
   // answered: no pass, no state. VB.count.answerOpinion(Standing) count the two.
   const seen = new Set(); // the bases the answers since it was cleared read (sim/offers judge, answerOpinion.basis)
+  VB.counter(
+    'answerOpinionTie',
+    'Answers whose opinion of the asker rests on a tie (sim/offers answerOpinion, VB-706)',
+  );
+  VB.counter(
+    'answerOpinionStanding',
+    'Answers whose opinion of the asker rests on its standing, no tie (sim/offers answerOpinion, VB-706)',
+  );
   const answerOpinion = Object.assign(
     (st, a, b) => {
       const pa = st.pawns[a];

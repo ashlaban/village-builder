@@ -75,6 +75,10 @@ VB['sim/feast'] = (() => {
     return booked;
   }
   const ration = (st, p) => (age(st, p) >= 14 ? st.ECON.ration.adult : st.ECON.ration.child); // as sim/hunger's day's need
+  VB.counter(
+    'feastServed',
+    'Pawns served at a feast, each eating its portion and its household booked at most once (sim/occasions, VB-458)',
+  );
   // The host household of farm f lays out food for those `present` (its own members too) after `barrels` of ale were poured, if its holder
   // lives and its grain stands above the rule 'feast': its share of the surplus (FEAST.share, times the holder's generosity), at most
   // FEAST.perGuest a ration of need of those who eat, less the ale's grain. A feast too small to make each a day's meal is not laid out.

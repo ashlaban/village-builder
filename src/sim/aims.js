@@ -132,6 +132,11 @@ VB['sim/aims'] = (() => {
       AIMS.outbuilding,
       (AIMS.base * day * YEAR_DAYS * (1 - B.loss)) / (AIMS.keep * B.hours.reduce((a, h) => a + h, 0)),
     );
+  VB.counter(
+    'aimMenu',
+    "A head's menu of projects computed (its options' tiles and sites), for a holder with a surplus and no project, at most once a " +
+      'year and when a project ends (sim/aims; VB-255)',
+  );
   // The menu: the options open to the household now, each {what, weight, tile | heir}, computed for the holder (never stored). Only for a
   // holder with a surplus and no project (VB.count.aimMenu).
   function menu(st, plan, hh, f) {

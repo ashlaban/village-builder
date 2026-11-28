@@ -642,6 +642,7 @@ VB['sim/stores'] = (() => {
     const lost = take(st, hh, 'grain', n, 'spoilage');
     hh.spoilt = (hh.spoilt || 0) + lost;
   }
+  VB.counter('storeWalk', 'Village stores and retained ledger entries visited for spoilage and pruning');
   function villageDay(st) {
     VB.count.storeWalk += st.villages.length;
     for (const v of st.villages) {

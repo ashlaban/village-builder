@@ -114,6 +114,10 @@ VB['sim/overview'] = (() => {
       into = c.sday + Math.max(0, Math.min(1, (c.hour - WORK[0]) / span));
     return { worked: now + (before * Math.max(0, SEASON_DAYS - into)) / SEASON_DAYS, had: hands * span * SEASON_DAYS };
   }
+  VB.counter(
+    'overviewWalk',
+    'Pawn records walked by a village overview, once a summary asked (a view, never a step: sim/overview, VB-162)',
+  );
   // The grain each household received as help in the last year (VB-1114), read from the record back to a year ago: Map household id to
   // {n, from: [[giver's name, rations]] most first}. Written nowhere; one pass over the year's events, made when the panel is drawn.
   function helpReceived(st) {

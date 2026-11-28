@@ -98,6 +98,10 @@ VB['sim/spread'] = (() => {
     if (w.dev) for (let t = 0; t < w.N; t++) if (w.dev[t] === 1 && !st.used.has(t)) lapse(st, t);
     return st.lapsed;
   }
+  VB.counter(
+    'lapsedTile',
+    'Tiles of fields let go visited by spreadForest, once a game day, until they revert or are used again (sim/spread; VB-1527)',
+  );
   // Once a game day: lapsed ground taken into use again is no longer lapsed; LAPSE.years untended, it is wild ground of its terrain,
   // walked and drawn as its biome, and never farmed to whoever breaks it next (its stones do not come back).
   function revert(st, day) {
@@ -199,6 +203,7 @@ VB['sim/spread'] = (() => {
     costChanged(st, t);
     join.push(t);
   }
+  VB.counter('frontTile', 'Tiles of the forest front visited by spreadForest, once a game day (sim/spread; VB-091)');
   // Once a game day: each tile of the front gains trees, or is kept open, or is thinned by grazing; one that no longer qualifies leaves it.
   function spreadForest(st) {
     const w = st.w,

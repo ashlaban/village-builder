@@ -130,6 +130,11 @@ VB['sim/drinking'] = (() => {
     }
     if (c.hour >= WORK[1] || c.hour < WORK[0]) hold(st, { pawn: p.id, at: st.t, home: true });
   });
+  VB.counter(
+    'thirstDue',
+    'Entries of the thirsty pawns taken when due: a pawn that ended a day without a drink, at 36 hours without one, and one that ' +
+      'drank at night and goes in (sim/drinking; VB-1585)',
+  );
   // The step's entries due (sim/clock, only while any is held). A thirsty pawn still THIRST.leave hours without a drink leaves
   // whatever it does, a task rank never interrupts as well, and goes to drink (the verb, which names why not: then it waits for its
   // next day's end). One carrying a load home, at an occasion or under the player's command is asked again in an hour.
