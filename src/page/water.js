@@ -157,3 +157,6 @@ registerOverlay({
   layer: L.freshwater,
   keyEl: $('freshwaterKey'),
 });
+// The cards' lines on water (page/cardrows): a person's thirst (sim/thirst), and an open tile's water after its river.
+cardRow('person', 70, (id) => Sim.thirstLine(st, id));
+cardRow('tile', 30, waterLines);
