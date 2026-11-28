@@ -43,7 +43,7 @@ const fetching = st.away.filter((j) => j.why === 'fetch' && j.gift && j.gift.to 
   .concat((st.lying || []).filter((l) => l.kind === 'leftGrain' && l.owner.id === hh.id).map((l) => ({ left: l.n })));
 const staked = fetching.reduce((n, x) => n + x.left, 0);
 check(Sim.grainOf(hh) === 0 && Math.abs(staked - 400) < 1e-6 && !m.stake && !f.stake, `the stakes lie at the old homes (${Sim.grainOf(hh)} in store, ${staked} to fetch)`);
-check(fm.fields.length === 1 && fm.village === v.id && st.farmsteads[fm.id] === fm, 'farmstead has the plot field');
+check(fm.fields.length === 0 && fm.village === v.id && st.farmsteads[fm.id] === fm, 'the farmstead, with no field: a plot places none (VB-1951; Kim, 27 Nov)');
 check(Sim.recordOf(st, { pawn: m.id, life: true }).some((e) => /Moved/.test(e.text || '')), 'a moved event');
 check(X.plotJobs(st).every((j) => !(j[3].cottage && j[3].plot === plot)), 'no more cottage jobs');
 // owed shares are paid from grain above the debtor farm's reserve
@@ -51,9 +51,9 @@ const other = st.households.find((h) => !h.dissolved && h.id !== hh.id), p = st.
 VB['sim/obligations'].oweShare(st, other, p.id, 50); other.grain = { barley: 1000 };
 VB['sim/cottage'].payOwed(st);
 check(Sim.shareOwed(st, p.id) === 0 && st.obligations[0].status === 'met' && Sim.grainOf(hh) === 50 && Sim.grainOf(other) === 950, `owed share paid (owed ${Sim.shareOwed(st, p.id)}, grain ${Sim.grainOf(hh)}/${Sim.grainOf(other)})`);
-// the next spring: the household sows its field
+// its head makes its fields as any head does (sim/fieldplans): within the year one is made and worked
 let sown = false;
-for (let d = 0; d < 400 * 24 && !sown; d += 24) { Sim.advance(st, 24); sown = fm.fields[0].stage !== 'stubble'; if (hh.dissolved) break; }
-check(sown, `the new field was worked (stage ${fm.fields[0].stage})`);
+for (let d = 0; d < 400 * 24 && !sown; d += 24) { Sim.advance(st, 24); sown = fm.fields.some((q) => q.stage !== 'stubble'); if (hh.dissolved) break; }
+check(sown, `a field of its own made and worked (${fm.fields.map((q) => q.stage)})`);
 if (failed) process.exit(1);
 console.log('cottage ok');

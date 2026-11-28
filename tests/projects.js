@@ -107,17 +107,17 @@ const woodTaken = (hh) => hh.ledger.filter((e) => e.kind === 'build' && e.good =
   clean(st, 'stake lost');
   out.push('a right lost drops the plan; a store still covering it does not');
 }
-{ // a plot: one project plan of its village, its tiles cleared side by side in its first step, then the cottage's stages
+{ // a plot: one project plan of its village, its house tile cleared in its first step (a plot places no field: VB-1951; Kim, 27 Nov), then the cottage's stages
   const X = VB['sim/expansion'], st = Sim.seed(world7, 7, 'heirs'), v = st.villages[0];
   st.demand = st.pawns.filter((p) => p.alive && p.age >= 18 && Sim.settlementIdOf(st, p) === 0 && !Sim.isHolder(st, p.id)).map((p) => p.id).slice(0, 2);
   for (const f of st.farmsteads) if (f.household === null) f.state = 'ruin';
   VB['sim/allotment'].startPlots(st);
   const plan = X.livePlots(st, v)[0];
-  assert(plan && plan.what === 'plot' && plan.steps.map((s) => s.kind).join() === 'clear,foundation,walls,roof' && plan.steps[0].places.length === 2,
-    'a plot: its tiles\' clearing, then the cottage');
-  assert.strictEqual(X.plotJobs(st).filter((j) => j[3].plot === plan).length, 2, 'one task a place, side by side');
+  assert(plan && plan.what === 'plot' && plan.steps.map((s) => s.kind).join() === 'clear,foundation,walls,roof' && plan.steps[0].places.length === 1,
+    'a plot: its house tile\'s clearing, then the cottage');
+  assert.strictEqual(X.plotJobs(st).filter((j) => j[3].plot === plan).length, 1, 'one task a place');
   const tr = plan.steps[0].places[0]; X.finishStep(st, { plot: plan, tr });
   clean(st, 'plot under way');
-  out.push('a plot is one plan of its village, its tiles cleared side by side');
+  out.push('a plot is one plan of its village, its house tile cleared');
 }
 console.log(`projects ok: ${out.join('; ')}`);

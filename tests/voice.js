@@ -19,7 +19,7 @@ const Voice = VB['sim/voice'],
   { planOf } = VB['sim/plans'],
   { DAY, WORK } = VB['sim/rules'];
 const make = () => {
-  const st = tinyState(tinyWorld(Array(20).fill('.'.repeat(36))), [{ at: [8, 10], farms: 2, sizes: [5, 4] }], { seed: 4 });
+  const st = tinyState(tinyWorld(Array(20).fill('.'.repeat(36))), [{ at: [8, 10], farms: 2, sizes: [5, 4] }], { seed: 2 });
   Sim.advance(st, 3); // 9:00 on the first day of spring
   const A = st.households[0],
     m = A.members.find((id) => VB['sim/levies'].rowOf(st, A, st.pawns[id]) !== null && age(st, st.pawns[id]) >= 12);

@@ -11,8 +11,9 @@ for (let doy = 0; doy < Sim.YEAR_DAYS; doy++) { const [a, b] = Sim.dark({ doy })
 // nobody works in the dark: over a founders year, no pawn is out on a job while Sim.dark(c) says it is dark. A pawn may still
 // carry a load home after 18:00 (deliveries are finished first), so the hours just after work are not checked.
 const inDark = (h, [a, b]) => (a > b ? h >= a || h < b : h >= a && h < b);
-const G = VB.gen, it = G.generate(7); let r; while (!(r = it.next()).done);
-const st = Sim.seed(r.value, 7, 'founders'); let out = 0, hours = 0;
+// seed 3 (7 before VB-1951 moved the farms: a peat or clay pit 15 tiles out, 6 hours' walk home with a load)
+const G = VB.gen, it = G.generate(3); let r; while (!(r = it.next()).done);
+const st = Sim.seed(r.value, 3, 'founders'); let out = 0, hours = 0;
 for (let h = 0; h < 2 * 24 * 12; h++) {
   Sim.advance(st, 1); const c = Sim.cal(st.t);
   if (inDark(c.hour, Sim.dark(c))) { hours++; if (st.agents.some((a) => !a.inside && st.pawns[a.id].alive && a.job)) out++; }

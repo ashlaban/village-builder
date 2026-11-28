@@ -51,8 +51,11 @@ for (let d = 1; d < 3 * YEAR_DAYS; d++) {
     if (verbose) console.log(JSON.stringify(log[log.length - 1]));
     prev = now;
   }
-  if (fd.crop === 'rye' && fd.sown !== null) rye = { sown: fd.sown, reaped: fd.reaped, held: fd.held || (rye && rye.held) };
-  if (fd.crop === 'barley' && fd.sown !== null) barley = { sown: fd.sown, reaped: fd.reaped, held: fd.held || (barley && barley.held) };
+  // the harvest: the most the field held in sheaves (VB-1951: a field further from the gate is carried in over more days, the sheaves on it
+  // falling load by load)
+  if (fd.crop === 'rye' && fd.sown !== null) rye = { sown: fd.sown, reaped: fd.reaped, held: Math.max(fd.held || 0, (rye && rye.held) || 0) };
+  if (fd.crop === 'barley' && fd.sown !== null)
+    barley = { sown: fd.sown, reaped: fd.reaped, held: Math.max(fd.held || 0, (barley && barley.held) || 0) };
   if (c.year === 2) ryeMax = Math.max(ryeMax, Stores.grainOf(hh, 'rye'));
   if (c.season === 3 && c.sday === SEASON_DAYS - 1) yearEnd.push(+fd.soil.toFixed(3));
   if (c.year === 1 && c.season >= 2 && c.sday === SEASON_DAYS - 1) assert.equal(fd.stage, 'growing', 'rye stands the frost and the winter');

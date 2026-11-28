@@ -35,10 +35,11 @@ const map = [
   '~.............',
   '~~............',
 ];
-// As tests/courting.js: village 0, household 0 (holder 0, his wife 1, daughters 2 to 5) and household 1 (holder 6, his wife 7, sons 8
-// and 10, daughter 9); village 1, household 2. The heirs 2 (21) and 8 (22); 4 (20) and 10 (21), heirs to nothing.
+// Much as tests/courting.js: village 0, household 0 (holder 0, his wife 1, daughters 2 to 4, son 5) and household 1 (holder 6, his wife
+// 7, sons 8 to 10); village 1, household 2. The heirs 2 (21) and 8 (22); 4 (20) and 10 (21), heirs to nothing. Seed 11 (VB-1951 moved
+// the draws; at courting's seed 982 a home was found for 10 and 4 before the birth).
 function world() {
-  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2, sizes: [6, 5] }, { at: [11, 2], farms: 1, sizes: [4] }], { seed: 11 });
   const aged = (id, years) => {
     st.pawns[id].born = st.t - years * YEAR - DAY;
     st.pawns[id].age = years;

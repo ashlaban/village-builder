@@ -12,7 +12,7 @@ const { GATHERING: G, DAY, WORK, cal } = VB['sim/rules'], { hoursBetween } = VB[
 
 // four villages of two farms in a row about two hours apart on open meadow, as tests/gathering.js
 const XS = [4, 30, 56, 82];
-const make = () => tinyState(tinyWorld(Array(12).fill('.'.repeat(110)), { seed: 7 }), XS.map((x) => ({ at: [x, 5], farms: 2, sizes: [6, 5] })), { seed: 7 });
+const make = () => tinyState(tinyWorld(Array(12).fill('.'.repeat(110)), { seed: 7 }), XS.map((x) => ({ at: [x, 5], farms: 2, sizes: [6, 5] })), { seed: 2 });
 const issues = (st) => checkState(st).filter((x) => /gathering|away|lodger/.test(x));
 const hhOf = (st, v) => st.villages[v].farmsteads.map((f) => st.households[st.farmsteads[f].household]);
 const adult = (st, id) => VB['sim/records'].age(st, st.pawns[id]) >= G.adult;

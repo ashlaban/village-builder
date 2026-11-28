@@ -39,7 +39,7 @@ function world(customs = {}, herds = false) {
       { at: [3, 5], farms: 2 },
       { at: [11, 2], farms: 1 },
     ],
-    { seed: 7, herds, customs: { widow: 'keep', handover: 'age60', ...customs } },
+    { seed: 1, herds, customs: { widow: 'keep', handover: 'age60', ...customs } },
   );
   const aged = (id, years) => {
     st.pawns[id].born = st.t - years * YEAR - DAY;

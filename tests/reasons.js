@@ -57,7 +57,9 @@ expect('day', () => {
 }, (r) => {
   assert.strictEqual(r.head, head);
   assert.deepStrictEqual(r.place, { at: 1, of: 3 });
-  assert.strictEqual(r.line, `${Sim.fullName(st.pawns[head])}'s day, second of three: in the season's plan`);
+  // the plan's step behind it: the season's routine, or (where the household is making a field, as the probe's is since VB-1951) its project
+  const step = r.line.slice(`${Sim.fullName(st.pawns[head])}'s day, second of three: `.length);
+  assert.ok(r.line.startsWith(`${Sim.fullName(st.pawns[head])}'s day, second of three: `) && ["in the season's plan", 'a step of the new field'].includes(step), r.line);
 });
 // a kind with a window: due every day
 const water = job('water');

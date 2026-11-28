@@ -102,7 +102,8 @@ check(fac2.done > 0 && fac2.built === null && Fac.at(st, other) === fac2, `half-
 const done2 = fac2.done;
 check(found(other) === true, 'taken up again');
 const p3 = Projects.projectsOf(st, 'household', hh.id).find((p) => p.facility === fac2.id);
-check(p3 && Math.abs(p3.steps[0].hours + done2 - 6) < 1e-6 && fac2.id === 1, `its open stage less the hours done (${p3 && p3.steps[0].hours})`);
+const open2 = [6, 4][fac2.stage]; // the stage it stood at: the frame's 6 hours, or the roof's 4 once the frame was done in one leg
+check(p3 && Math.abs(p3.steps[0].hours + done2 - open2) < 1e-6 && fac2.id === 1, `its open stage less the hours done (${p3 && p3.steps[0].hours})`);
 check(st.facilities.length === 2, 'ids are never reused');
 // a village's: its plan, the job posted at the village
 const v = st.villages[f.village];

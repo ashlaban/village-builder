@@ -6,13 +6,17 @@
 const assert = require('assert'), fs = require('fs'), path = require('path');
 const EVERY = 40; // a verb's first EVERY runs are each checked, then every EVERY-th (work and talk run thousands of times)
 const failures = [], carried = new Map();
-let checking = null, batched = 0; // the check, set once the modules are loaded; the depth of sim/crowding's batch
+let checking = null, batched = 0, depth = 0; // the check, set once the modules are loaded; the depth of sim/crowding's batch; of verbs' runs
 const VB = require('./lib/load.js').loadModules({ wrap: {
   'sim/commands': {
+    // a verb issued inside another's run (move's walk home, sim/journeys) is checked at the outer verb's end, its run whole
     register: (register) => (verb, V) => register(verb, { ...V, run: (st, cmd) => {
-      const ref = V.run(st, cmd), n = (carried.get(verb) || 0) + 1;
+      depth++;
+      let ref;
+      try { ref = V.run(st, cmd); } finally { depth--; }
+      const n = (carried.get(verb) || 0) + 1;
       carried.set(verb, n);
-      if (checking && (n <= EVERY || n % EVERY === 0)) checking(st, `${verb} (${cmd.source})`);
+      if (checking && depth === 0 && (n <= EVERY || n % EVERY === 0)) checking(st, `${verb} (${cmd.source})`);
       return ref;
     } }),
   },
@@ -43,7 +47,7 @@ assert.deepStrictEqual([...COMPARED, ...Object.keys(CACHES_UNCOMPARED)].filter((
 
 // the runs: the probe village and the founders, each 50 days (the first gathering, ale, claims, a household founded, lodging, a cottage
 // finished: VB-1775, with the wood as goals the founders' first cottage is roofed after day 45)
-const runs = [state(), scenario('founders', 7)];
+const runs = [state(4), scenario('founders', 7)]; // the probe village at seed 4 (7 before VB-1951 gave the layout its own draws: eight of the verbs found no state to pass there)
 for (const st of runs) Sim.advance(st, 50 * Sim.DAY);
 const natural = carried.size;
 // a loan booked by hand where a run took none, so that `repay` is tried on it (VB-1812: with a held cart walking at its pace the founders

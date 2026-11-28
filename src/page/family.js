@@ -478,3 +478,15 @@ $('tree').addEventListener('keydown', (e) => {
     else pickTreePerson(+n.dataset.pawn, e.shiftKey);
   }
 });
+cardRow('person', 30, (id) => {
+  const p = st.pawns[id];
+  return p.stake
+    ? `Share in hand: ${p.stake} rations${Sim.shareOwed(st, p.id) ? `, ${Sim.shareOwed(st, p.id)} still owed` : ''}`
+    : '';
+});
+// what stands between it and a marriage (VB-631): the means held against those asked are a meter among its stats (VB-908), the other
+// bars a line
+cardRow('person', 50, (id) => {
+  const bar = Sim.marryBar(st, id);
+  return bar && !hasMeans(bar) ? marryWords(bar) : '';
+});
