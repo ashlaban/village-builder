@@ -19,7 +19,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-2011](backlog/VB-2011.md)<a id="VB-2011"></a> | Split sim/chores: the wood to sim/wood | - | 1 | M | sim/chores is 762 lines, over 700 (lint); the wood moves to its own module |
 | [VB-665](backlog/VB-665.md)<a id="VB-665"></a> | Housekeeping: one scale for the simulation's meters, reviewed with Kim | - | 2 | S | Inventory every bounded or signed quantity the player is shown, its range in st and on the page; propose 0 to 100 and -100 to 100 with the motivated exceptions; questions for Kim |
 | [VB-707](backlog/VB-707.md)<a id="VB-707"></a> | A debtor's refusal is a breach the village knows, and costs standing | - | 2 | S | Ignoring a debt of honour costs nothing but a private memory, and sim/exchange's `propriety` has no caller. Kim, 16 Nov: a refusal by one who owes is a public breach. |
 | [VB-1478](backlog/VB-1478.md)<a id="VB-1478"></a> | The fair's animals and carts: a beast led to the gathering, an ox cart carrying 300 | fair | 2 | S | VB-302 left these out: an animal walks to the fair beside its dealer and changes herd when swapped; a household with an ox cart and its team free loads 90 rations' worth, the cart out until it is home. |
@@ -42,7 +41,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1946](backlog/VB-1946.md)<a id="VB-1946"></a> | Refactor: one record an event kind, declared by its emitter; sim/notable split into the skip and the chronicle | - | 2 | M | sim/notable 16 to 8 and 6, sim/records 10 to 6 (VB-1406 step 8) |
 | [VB-1973](backlog/VB-1973.md)<a id="VB-1973"></a> | A seed loan before sowing, after a failed year | plans | 2 | M | seed corn lent before sowing and kept for it, so a failed year is not followed by an unsown one |
 | [VB-2029](backlog/VB-2029.md)<a id="VB-2029"></a> | A lone settler's foraging need outranks reaping his ripe field when frost is near | - | 2 | S | Foraging need 8 beats reap 1.3+frostNear when spare food under 3 days |
-| [VB-2030](backlog/VB-2030.md)<a id="VB-2030"></a> | Investigate: a settler dies of starvation with 80+ grain in the barn and hunger 0 | - | 2 | S | Seeds 3 and 5 solo: health falls 3 a day at hunger 0 |
+| [VB-2033](backlog/VB-2033.md)<a id="VB-2033"></a> | A cold lone settler fetches wood | - | 2 | S | Cold, not hunger, drained the settler; find why wood is not chosen |
 | [VB-093](backlog/VB-093.md)<a id="VB-093"></a> | A village mill: water where a river is in reach, else wind | mill | 3 | M | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. |
 | [VB-108](backlog/VB-108.md)<a id="VB-108"></a> | Wrap-up: the household's year | year | 3 | S | Check slice 3 with long runs at four seeds: work with a date done in time, households no hungrier, planning cheap early and late; idle share reported. |
 | [VB-121](backlog/VB-121.md)<a id="VB-121"></a> | Winter crafts: tools and fence poles | mill | 3 | M | Tools wear with field work and are mended in winter; fence poles are cut in winter and used for mending. |
