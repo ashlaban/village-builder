@@ -172,8 +172,10 @@ function renderSite() {
         h += `<div class="u2-row">${SITE_ICON[key]}<b>${esc(wd[key][0])}</b>${sitePips(r[key].band)}</div>`;
       h += `</div><p class="sub">${esc(wd[weak][1])}</p>`;
       const fe = (site.best.find((b) => b.tile === r.tile) || {}).fetch; // the walk, the daily fetch and the well, as siteWater has them
-      if (fe)
-        h += `<p class="sub">${esc(`Water: ${fe.hours.toFixed(1)} hours a day for ${fe.people === 1 ? 'one' : fe.people}${fe.well ? `, a ${fe.well.name} well to dig (${fe.well.hours.toFixed(1)} hours)` : ''}.`)}</p>`;
+      if (fe) {
+        const well = fe.well ? `, a ${fe.well.name} well to dig (${fe.well.hours.toFixed(1)} hours)` : '';
+        h += `<p class="sub">${esc(`Water: ${fe.hours.toFixed(1)} hours a day for ${fe.people === 1 ? 'one' : fe.people}${well}.`)}</p>`;
+      }
       if (site.msg) h += `<p class="u2-msg">${esc(site.msg)}</p>`;
       h +=
         `<button type="button" class="u2-btn go" data-site="settle"${site.busy ? ' disabled' : ''}>` +
