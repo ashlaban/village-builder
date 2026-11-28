@@ -94,12 +94,6 @@ VB['sim/plans'] = (() => {
     mapOf(st, type).set(id, plan);
     for (const p of projectsOf(st, type, id)) Steps.link(st, p); // projects made before it (a settler's cottage)
     if (type === 'household') {
-      const f = st.farmsteads[st.households[id].farmstead], // a cottage left on its farm (dropAll) is the new household's
-        left =
-          f &&
-          f.booth &&
-          projectsOf(st, 'village', f.village).find((p) => p.what === 'cottage' && p.farmstead === f.id);
-      if (left) emit(st, 'projectHanded', { plan: left, type, id });
       household(st, plan);
       enqueue(st, id);
     } else founded(st, plan);

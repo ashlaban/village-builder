@@ -216,7 +216,7 @@ VB['sim/society'] = (() => {
     if (office > 0) parts.push([inOffice ? 'Alderman' : 'Was alderman', office]);
     const hh = holder || spHolder ? st.households[p.household] : null,
       f = hh && !hh.dissolved && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
-    if (f && f.household === hh.id && !f.booth)
+    if (f && f.household === hh.id && f.rung !== 'shelter')
       parts.push([f.grade === 'stone' ? 'A well-kept house on stone' : 'A well-kept house', houseTerm(st, f)]);
     if (holder) {
       const ale = aleStanding(st, holdingOf(st, p.id));

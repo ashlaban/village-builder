@@ -86,11 +86,10 @@ VB['sim/wood'] = (() => {
   // The timber home that a building step of the household counts on (VB-1808): what its open project step, its cottage's walls or its plot's
   // walls still lack, the one read of sim/projects lacks; a firewood goal leaves it, where it would burn the walls' timber first.
   const timberKept = (st, hh) => {
-    const { cottageTimber } = VB['sim/cottageplan'],
-      sites = [];
+    const sites = [];
     if (hh.farmstead !== null) {
       const f = st.farmsteads[hh.farmstead];
-      sites.push(cottageTimber(st, f));
+      sites.push(VB['sim/cottageplan'].farmTimber(st, f)); // its farm's own cottage (VB-1937)
       // every step still to come of its project plans that carries timber, not only the open one (the barn's walls wait on its foundation)
       for (const plan of VB['sim/projects'].projectsOf(st, 'household', hh.id))
         for (let i = plan.open; i < plan.steps.length; i++)

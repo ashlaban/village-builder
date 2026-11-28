@@ -21,7 +21,7 @@ VB['sim/building'] = (() => {
   const { living } = VB['sim/records'];
   const { fellTree, drawWood } = VB['sim/forest'];
   const { plotTimber } = VB['sim/expansion'],
-    { cottageJob, cottageTimber, finishBoothStage } = VB['sim/cottageplan'];
+    { farmTimber } = VB['sim/cottageplan'];
   const { wantsStone, hewable, hewLoad } = VB['sim/quern'];
   const { stoneLacking, stoneIn } = VB['sim/wells'];
   const { freeFor } = VB['sim/territory'];
@@ -57,7 +57,7 @@ VB['sim/building'] = (() => {
       for (const n of plotTimber(st, v)) fetchTimber(v, n, post);
       for (const id of v.farmsteads) {
         const f = st.farmsteads[id];
-        fetchTimber(v, shelterTimber(st, f) || cottageTimber(st, f), post); // the shelter's first, then its cottage's (VB-1666)
+        fetchTimber(v, shelterTimber(st, f) || farmTimber(st, f), post); // the shelter's, then its cottage's (VB-1666, VB-1937)
         for (const n of Projects.timberOf(st, f)) fetchTimber(v, n, post);
       }
     }
@@ -80,26 +80,28 @@ VB['sim/building'] = (() => {
       pp.tasks.some((t) => t.key === undefined && t.kind === 'upgrade' && t.site === f.house && t.what === 'cottage')
     );
   };
-  function boothWork(st, hh, f, c, post) {
-    if (f.shelter && !shelterStands(st, f)) return shelterWork(st, hh, f, post);
+  // Whether the cottage of household hh's farm f waits (its farm's site, sim/sites farmWork, VB-1937): while the household sleeps under
+  // the open sky; and, sleeping in its shelter (or, settled before VB-1666, in a booth of its own beside the house), outside the slack
+  // of the year unless its plan asks for the cottage.
+  function cottageWaits(st, hh, f, c) {
     const own = !!f.shelter || homeBooth(st, hh, f);
-    if ((own && !slack(c) && !cottageAsked(st, hh, f)) || roofless(st, hh)) return;
-    const bj = cottageJob(st, hh, f);
-    if (!bj) return;
-    if (own) bj[2].shelter = true;
-    post(bj[0], f.house, bj[2], bj[1]);
+    return (own && !slack(c) && !cottageAsked(st, hh, f)) || roofless(st, hh);
+  }
+  // The shelter's raising while it does not stand (VB-1666); the cottage follows as its farm's site (sim/sites farmWork).
+  function shelterRule(st, hh, f, c, post) {
+    if (f.shelter && !shelterStands(st, f)) shelterWork(st, hh, f, post);
   }
   // ---- the shelter on the house tile: the ladder's first rung (VB-1666; Kim, 24 Nov 2026: the booth removed in favour of the ladder) ----
   // @state farmstead.shelter: absent or null on a farm with no shelter (its cottage roofed; a farm settled before VB-1666, whose booth
   //   staked or raised beside the house stays its roof, read as before, until its cottage is roofed); on a farm with no cottage yet
-  //   (f.booth) the shelter of poles, bark and turf on its own house tile, as a booth is (BOOTH: its timber, hours, room and wear):
+  //   (f.rung === 'shelter') the shelter of poles, bark and turf on its own house tile, as a booth is (BOOTH: its timber, hours, room and wear):
   //   {wood (loads brought, BOOTH.wood to raise it), done (hours of its raising, kept while the job is dropped), built (the game hour it was
   //   raised, null while it is being raised), cond, condAt (its condition at condAt, worn as a booth's: boothCondition)}. Written here
   //   (stakeShelter, its timber's loads, the raising, raised again when worn to nothing) and by sim/cottageplan's roofOn, which takes it
   //   down when the cottage built on its tile has its roof. No entry of st.booths: those are the booths away from home (sim/away).
   const shelterStands = (st, f) => !!f.shelter && f.shelter.built !== null && boothCondition(st, f.shelter) > 0;
   // The shelter of farm f is begun on its house tile (sim/camp placeFarmstead, sim/settle settleFarm, sim/scenarios landAlone): its
-  // timber, then its raising, worked by its household (timberWork, boothWork).
+  // timber, then its raising, worked by its household (timberWork, shelterRule).
   function stakeShelter(st, f) {
     f.shelter = { wood: 0, done: 0, built: null, cond: 1, condAt: st.t };
     st.farmDirty.add(f.id);
@@ -162,14 +164,14 @@ VB['sim/building'] = (() => {
   const boothCondition = (st, b) => Math.max(0, b.cond - ((st.t - b.condAt) / YEAR) * BOOTH.wear);
   // Whether pawn id may sleep in booth b: its household's own, or whom its maker let in.
   const boothOpenTo = (st, b, id) => st.pawns[id].household === b.by || b.guests.includes(id);
-  // Whether household hh sleeps under the open sky (VB-1544; sim/hunger warmHouse): its farm has no cottage yet (f.booth) and the booth one
+  // Whether household hh sleeps under the open sky (VB-1544; sim/hunger warmHouse): its farm has no cottage yet (f.rung === 'shelter') and the booth one
   // of its members staked is not yet raised. Once it stands they sleep under it, its fire their hearth's, the household's pile (the
   // booth's rule, VB-785, as a heated house); a booth farm's household that staked none (sim/settle's settlers, until VB-787 has them
   // raise one) sleeps as in a house, as before. Read once a day for a booth farm's household only; few booths stand or are staked.
   // Its booth is the one beside the farm's house (a booth a member raises away from home, to work there, is not its roof).
   function roofless(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    if (!f || !f.booth) return false;
+    if (!f || f.rung !== 'shelter') return false;
     if (f.shelter) return !shelterStands(st, f); // VB-1666: the shelter on the house tile
     if (homeBooth(st, hh, f)) return false;
     if (f.camp === true) return true; // a camp (sim/camp, VB-1655): nothing stands on the farm
@@ -443,12 +445,12 @@ VB['sim/building'] = (() => {
     if (held && !foundationAsked(st, hh, f)) return null;
     const old = plan.build || null,
       quern = !held && !!f && wantsStone(st, hh),
-      well = !held && !!f && (!f.booth || !!f.wellMeant) && stoneLacking(st, hh, f) > 0,
+      well = !held && !!f && (f.rung !== 'shelter' || !!f.wellMeant) && stoneLacking(st, hh, f) > 0,
       other = quern || well;
     if (
       !f ||
       f.household !== hh.id ||
-      (f.booth && !well) ||
+      (f.rung === 'shelter' && !well) ||
       (f.grade !== 'ground' && !other) ||
       (!old && !other && !foundationAsked(st, hh, f) && Projects.ownOf(st, hh.id))
     )
@@ -472,7 +474,7 @@ VB['sim/building'] = (() => {
       step = plan && plan.build;
     if (!step || f.household !== hh.id) return;
     const well = stoneLacking(st, hh, f) > 0; // the lining's stone for the well its head means to dig (VB-1584), a trip at a time
-    if (f.booth) {
+    if (f.rung === 'shelter') {
       // a booth's household gathers no stone but its site's well's (VB-1587): its cottage is laid on the ground
       if (well && step.tile >= 0) post(`${step.kind}:h${hh.id}`, step.tile, { farm: f }, step.kind);
       return;
@@ -579,11 +581,9 @@ VB['sim/building'] = (() => {
     hours,
     hands: Infinity,
     type: 'wood',
-    done: (st, j) => {
-      if (j.booth) finishBoothStage(st, j);
-    },
+    done: () => {}, // a site's (j.siteId) ends in sim/sites' finish, a plot's in sim/expansion's plotted
     urgency: (st, j, c, U) => (j.shelter ? U.shelter : U.other),
-    available: boothWork,
+    available: () => {}, // posted by sim/sites (farmWork, siteWork) and sim/expansion (plotWork)
   });
   // where a stage is worked, what it takes and what it gives (sim/kinds, PLACES and THINGS; VB-1124)
   const info = (at, needs, gives, K) => ({ ...K, at, needs, gives });
@@ -682,7 +682,7 @@ VB['sim/building'] = (() => {
       craft: 'building',
       done: finishShelter,
       urgency: (st, j, c, U) => U.shelter,
-      available: boothWork,
+      available: shelterRule,
     },
     // A booth's water (VB-1601): drawn at the booth's source and carried to its tile, the farm's fetch for those who sleep away; a job
     // of the booth's own, lived by, so the end of work does not take it from a hand on its way
@@ -870,7 +870,7 @@ VB['sim/building'] = (() => {
         f.condAt = st.t;
       },
       available: (st, hh, f, c, post) => {
-        if (f.household === hh.id && !f.booth && houseCondition(st, f) < HOUSE.mendBelow)
+        if (f.household === hh.id && f.rung !== 'shelter' && houseCondition(st, f) < HOUSE.mendBelow)
           post(`repair:f${f.id}`, f.house, { farm: f });
       },
     },
@@ -968,7 +968,8 @@ VB['sim/building'] = (() => {
     stakeShelter,
     fetchTimber,
     rotBooths,
-    boothWork,
+    cottageWaits,
+    shelterRule,
     timberWork,
     shareWood,
     stoneWork,

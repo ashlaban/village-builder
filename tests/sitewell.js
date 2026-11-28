@@ -50,7 +50,7 @@ const wellPlan = (st, hh) => Projects.projectsOf(st, 'household', hh.id).find((p
 // ---- 1. an inland site, no water within reach: the well is the site's water, and the party digs it from its booth ----
 {
   const { st, w, res, grown, f, hh, house } = settle([30, 7], 0, 6);
-  check(res === true && grown.length >= 1 && f && !f.booth, `a party settles in its finished cottage (${res}, ${grown})`);
+  check(res === true && grown.length >= 1 && f && f.rung !== 'shelter', `a party settles in its finished cottage (${res}, ${grown})`);
   const est = Water.siteWater(st, house, 2);
   check(est.by === 'well' && f.wellMeant === true, `the site's water is the well it means to dig (${est.by}, ${f.wellMeant})`);
   check(f.fields.length === 1, 'its first field, broken at the site, is its own (VB-787)');
@@ -62,7 +62,7 @@ const wellPlan = (st, hh) => Projects.projectsOf(st, 'household', hh.id).find((p
     if (w.fresh[house] !== FRESH.WELL && f.water && f.water.tile >= 0) drawn++;
     const p = wellPlan(st, hh);
     if (p && !begun) {
-      begun = { day: days, hours: p.steps[0].hours, stone: p.reserved.stone, booth: f.booth, field: !!Projects.ownOf(st, hh.id) };
+      begun = { day: days, hours: p.steps[0].hours, stone: p.reserved.stone, booth: f.rung === 'shelter', field: !!Projects.ownOf(st, hh.id) };
       const bad = checkState(st);
       check(!bad.length, `invariants while digging: ${bad.slice(0, 3).join('; ')}`);
     }

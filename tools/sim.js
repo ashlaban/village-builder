@@ -200,7 +200,7 @@ const tables = {
     const farms = v.farmsteads.map((id) => st.farmsteads[id]), fd = v.founded, s = Sim.villageSummary(st, v.id);
     const band = (b) => b.join('/'), W = s.warnings, ids = (l) => (l.length ? l.join(' ') : '-');
     return { id: v.id, name: v.name, farms: farms.length, occupied: farms.filter((f) => f.household !== null).length,
-      booths: farms.filter((f) => f.booth).length, people: s.people, crowded: v.crowded,
+      booths: farms.filter((f) => f.rung === 'shelter').length, people: s.people, crowded: v.crowded,
       founded: fd ? `year ${Math.floor(fd.t / Sim.YEAR) + 1} from ${st.villages[fd.from].name} by ${Sim.fullName(st.pawns[fd.by])}` : '',
       food: Math.round(s.food.rations), foodDays: Math.floor(s.food.days), harvestPct: Math.round(100 * s.harvest.share),
       ages: band(s.bands.now), change: band(s.bands.now.map((n, i) => (n - s.bands.ago[i] >= 0 ? '+' : '') + (n - s.bands.ago[i]))),

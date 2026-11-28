@@ -198,7 +198,7 @@ function showVillage(id) {
     out.length ? `Want to move out: ${out.map(name).join(', ')}` : '',
     // the sites under way from it (VB-787): staked, their trail, their cottage, roofed and waiting to move
     ...(st.sites || [])
-      .filter((s) => s.from === v.id)
+      .filter((s) => s.from === v.id && s.farm === undefined) // a farm's own cottage is drawn with the farm (VB-1937)
       .map(
         (s) =>
           `Building a new farm: ${s.party.all.map(name).join(', ')}; ${

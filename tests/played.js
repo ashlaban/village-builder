@@ -158,7 +158,7 @@ function village(play, auto) {
   const built = (v) => ({
     build: v.st.plans.households.get(v.hh.id).build,
     projects: projectsOf(v.st, 'household', v.hh.id).map((p) => p.what),
-    farm: { grade: v.f.grade, booth: !!v.f.booth, rung: v.f.rung, barn: !!v.f.barn, byre: !!v.f.byre },
+    farm: { grade: v.f.grade, rung: v.f.rung, barn: !!v.f.barn, byre: !!v.f.byre },
     jobs: [...v.st.jobs.values()]
       .filter((j) => j.owner && j.owner.type === 'household' && j.owner.id === v.hh.id)
       .map((j) => j.key)
@@ -224,8 +224,8 @@ function village(play, auto) {
     Sim.setAuto(st, id, true);
     assert.strictEqual(Sim.plan(st, id, 'add', { upgrade: f.house, what: 'cottage' }), true, 'the cottage authored');
     Sim.plan(st, id, 'keep', { i: VB['sim/steps'].pawnPlan(st, id).tasks.length - 1 }); // VB-1842: not taken back as late
-    for (let d = 0; d < 30 && f.booth; d++) Sim.advance(st, DAY);
-    assert(!f.booth, `the cottage roofed by the plan within 30 days (${st.player ? 'played' : 'unplayed'})`);
+    for (let d = 0; d < 30 && f.rung === 'shelter'; d++) Sim.advance(st, DAY);
+    assert(f.rung !== 'shelter', `the cottage roofed by the plan within 30 days (${st.player ? 'played' : 'unplayed'})`);
     assert.notStrictEqual(Sim.cal(st.t).season, 3, 'the authored cottage did not wait for the winter slack');
     assert(st.t - t0 < 30 * DAY);
     sound(st, 'the cottage roofed');

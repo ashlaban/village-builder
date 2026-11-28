@@ -13,7 +13,7 @@
 // (`st.pawns.filter((p) => ...)`), destructuring (`const { owner } = st`), else the name's convention (hh, p, f, v, a, j, ...; CONV below).
 // Bindings to object or array literals and new Maps or Sets are local; writes to them are counted, not listed. Writes whose receiver is
 // neither are listed as unresolved, for a judgement by hand. Fields of nested records are reported by path (`farmstead.fields[].stage`);
-// a nested object with no record type of its own is reported as its parent field (`farmstead.booth`).
+// a nested object with no record type of its own is reported as its parent field (`farmstead.shelter`).
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path');
 const { tokenize } = require('./wrap.js');

@@ -24,7 +24,7 @@ VB['sim/byrehouse'] = (() => {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `the household has no farm of its own`;
     if (f.byre) return `${f.name} has a byre`;
-    if (f.booth) return `${f.name} has no cottage yet`;
+    if (f.rung === 'shelter') return `${f.name} has no cottage yet`;
     if (!st.villages[f.village].wood.length) return `${st.villages[f.village].name} has no wood to fell its timber in`;
     return Projects.underWay(st, hh.id, 'byre') ? `the household has a byre under way` : null;
   }
