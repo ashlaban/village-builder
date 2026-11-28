@@ -329,10 +329,6 @@ VB['sim/round'] = (() => {
       delete st.pawns[by].proposal; // lint-allow: owner made, it ends with the marriage
     } else if (r === true && heldBy(st, m, 'match')) (taken.add(m), taken.add(f));
   }
-  VB.counter(
-    'roundPairs',
-    'Candidate man/woman pairs visited in the moving round: none since the round chooses nobody (VB-693; see asksWeighed)',
-  );
   return {
     movingRound,
     roundPhase,

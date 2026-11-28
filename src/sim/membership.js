@@ -65,6 +65,7 @@ VB['sim/membership'] = (() => {
     st.households.push(hh);
     makePlan(st, 'household', hh.id);
     farmTo(st, f, { type: 'household', id: hh.id }); // with the use of its fields split off to an heir (VB-034)
+    VB['sim/heirs'].passEstate(st, f, hh); // what the household before left in its stores passes with the farm (VB-1697)
     for (const id of members) {
       if (unhomed && st.pawns[id].household === null) joinHousehold(st, hh, id);
       else {

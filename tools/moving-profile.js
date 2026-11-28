@@ -37,5 +37,5 @@ for (const name of process.argv.slice(2).length ? process.argv.slice(2) : ['smal
   try { VB.sim.movingRound(st); } finally { active = false; }
   const hash = crypto.createHash('sha256').update(JSON.stringify(VB.sim.save(st))).digest('hex');
   console.log(JSON.stringify({ name, households: st.liveHouseholds.length, roundRank: VB.count.heirRank,
-    roundPairs: VB.count.roundPairs, saveHash: hash, profile: [...rows.values()].sort((a, b) => b.selfMs - a.selfMs) }));
+    saveHash: hash, profile: [...rows.values()].sort((a, b) => b.selfMs - a.selfMs) }));
 }

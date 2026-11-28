@@ -125,7 +125,7 @@ const QUANTITIES = [
   { id: 'giftGrain', of: 'stay', name: 'a gift\'s grain on its way: on a carrier\'s back, or set aside where it lies until it is fetched', unit: 'rations',
     fields: ['st.away'], kinds: [],
     none: 'nothing is on its way: the gift has come in, or what was left lying went back to its giver\'s store when its fetcher died or left the household (sim/away, VB-291, VB-461)' },
-  { id: 'lying', of: 'tile', name: 'a load lying where its carrier fell, a pile with title: also the goods made where the work is done (VB-1748: the catch, game, gathered food, dug clay, ore and peat, salt, a basket of stone) and a cut trip\'s yield', unit: 'its kind\'s loads (rations of sheaves, fish, meat and wild food, hay loads, firewood, baskets of stone and of dug earth, measures of salt)',
+  { id: 'lying', of: 'tile', name: 'a load lying where its carrier fell, a pile with title: also the goods made where the work is done (VB-1748: the catch, game, gathered food, dug clay, ore and peat, salt, a basket of stone), a cut trip\'s yield, and the estate of a household that died out (VB-1697: its stores\' other goods, taken up by the farm\'s next household)', unit: 'its kind\'s loads (rations of sheaves, fish, meat and wild food, hay loads, firewood, baskets of stone and of dug earth, measures of salt)',
     fields: ['st.lying'], covers: ['st.lyingSeq'], kinds: [], losses: ['sim/lying:frost'],
     none: 'nothing lies on the road: every load is in hand or home; one left lying is fetched by its owner\'s next hand (the fetch kinds; a felled tree\'s timber as timber left lying, firewood) '
       + 'or rots at the autumn frost (sim/lying, VB-611); a cart left standing with its load (household.carts[].at, VB-649) is fetched home with its team '
@@ -158,7 +158,7 @@ const NOT_STOCKS = {
     'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.marshDay', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.clientIn', 'household.harvestIn', 'household.borrowedIn', 'household.seedAskedIn', 'household.seedLent', 'household.fellShort', 'household.giftedIn', 'household.milkDay', 'household.workHours', 'village.ledger', 'village.totals', 'village.workday'],
   'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'village.commonFields',
     'farmstead.booth', 'farmstead.camp', 'farmstead.barn', 'farmstead.byre', 'farmstead.storehouse', 'farmstead.rung', 'household.pasture', 'village.droveway', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
-      'household.cartMiss', 'village.fishing', 'village.green', 'village.well', 'farmstead.water', 'farmstead.wellMeant', 'village.crowded', 'village.founded',
+      'household.cartMiss', 'household.blocked', 'village.fishing', 'village.green', 'village.well', 'farmstead.water', 'farmstead.wellMeant', 'village.crowded', 'village.founded',
       'village.rotation', 'farmstead.rotationBy', 'farmstead.failed', 'farmstead.left'],
   'the generated world': ['w.seed', 'w.lat', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
     'w.elev',

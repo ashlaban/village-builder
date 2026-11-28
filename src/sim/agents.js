@@ -381,6 +381,8 @@ VB['sim/agents'] = (() => {
     if (!j || !mayWork(st, a, j)) return false;
     return issue(st, { actor: a.id, verb: 'work', target: call.key, source: 'planner' }) === true;
   }
+  // @state household.blocked (VB-1809): absent until a task of the household blocks, then {task key: {kind, site, why (the step's reason), t}};
+  //   written by onward, cleared when the task is done or posted again after its fact changed (a kind's rule, sim/wood); read by sim/reasons blockedOf
   function onward(st, a, depth = 0) {
     const j = a.job,
       g = Doing.goalOf(st, a),
@@ -391,6 +393,8 @@ VB['sim/agents'] = (() => {
       // the goal met: its other hands stop, and it is taken down; the pawn looks for work
       freeHands(st, j, a.id);
       if (st.jobs.get(j.key) === j) dropJob(st, j);
+      if (j.owner && j.owner.type === 'household' && st.households[j.owner.id]?.blocked)
+        delete st.households[j.owner.id].blocked[j.key];
       a.job = null;
       a.basis = null;
       const call = a.calledTo;
@@ -413,6 +417,13 @@ VB['sim/agents'] = (() => {
     }
     if (s.blocked || depth > 8 || (!carrying && !mayWork(st, a, j))) {
       // nothing it can do now (the reason is the step's), or the day is over: it lets the task go, which stays posted while wanted
+      if (s.blocked && j.owner && j.owner.type === 'household' && st.households[j.owner.id]) {
+        // the reason is kept for the card and the head (sim/reasons blockedOf), and the task is not posted again at its tile while the fact
+        // that blocked it holds (a kind's `unblocked`, read where it is posted; VB-1809)
+        const hh = st.households[j.owner.id];
+        if (!hh.blocked) hh.blocked = {};
+        hh.blocked[j.key] = { kind: j.kind, site: j.site, why: s.blocked, t: st.t };
+      }
       if (s.blocked && st.jobs.get(j.key) === j && j.claims.length <= 1) dropJob(st, j);
       const call = a.calledTo;
       release(st, a);
