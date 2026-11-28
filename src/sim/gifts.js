@@ -7,7 +7,7 @@ VB['sim/gifts'] = (() => {
   const Lying = VB['sim/lying'],
     { on } = VB['sim/events'];
   const { cannotOffer, giftOf, make, delivery } = VB['sim/offers'];
-  const { age, home, mindsWhy } = VB['sim/records'];
+  const { age, home, leaves, leaveCost, hungerLoss } = VB['sim/records'];
   const { booked, settleGift } = VB['sim/exchange'];
   const { register } = VB['sim/commands'];
   const HANDS = VB['sim/rules'].AGES.hands,
@@ -37,21 +37,36 @@ VB['sim/gifts'] = (() => {
   function fetcherOf(st, hh) {
     for (const j of st.away)
       if (j.why === 'fetch' && j.gift && j.gift.to === hh.id && st.pawns[j.pawn].household === hh.id) return j.pawn;
-    return haulerOf(st, hh);
+    return haulerOf(st, hh, worth(st, hh));
+  }
+  // What a gift fetched home brings household hh's dependants, in health a day (sim/records leaves): the hunger it eases, its members'
+  // (sim/hunger hungerLoss), the minder's own with them (VB-1693: the lone parent's hunger is its child's keeping too).
+  function worth(st, hh) {
+    let w = 0;
+    for (const id of hh.members) if (st.pawns[id].alive) w += hungerLoss(st, st.pawns[id]);
+    return w;
   }
   // Whether an occasion not yet over is held for pawn id (a wedding's couple, VB-276): it bears and fetches nothing until it is over
   const heldFor = (st, id) => st.occasions.some((o) => o.for.includes(id));
   // The youngest member of household hh of 14 or more who is not away nor carrying a load home, or -1: who goes for a gift, or takes the
-  // household's quarter to the green (VB-849); never the last one at home with a child under 7 (VB-1602: sim/records mindsWhy), nor one
+  // household's quarter to the green (VB-849); the last keeper at home with a child under 7 goes only when what the going brings its
+  // household (`worth`, health a day: a fetch the hunger it eases; a haul nothing) outweighs the child's day alone (VB-1693: sim/records
+  // leaves), and a keeper who leaves none behind goes before it; nor one
   // an occasion is held for and not yet over (VB-276: a bride does not go for her dowry on the eve of her wedding)
-  function haulerOf(st, hh) {
-    let best = -1;
+  function haulerOf(st, hh, worth = 0) {
+    let best = -1,
+      bound = false;
     for (const id of hh.members) {
       const p = st.pawns[id],
         a = st.agents[id];
       if (!p.alive || age(st, p) < HANDS[0] || a.away !== undefined || a.load > 0) continue;
-      if (mindsWhy(st, id) || heldFor(st, id)) continue;
-      if (best < 0 || age(st, p) < age(st, st.pawns[best])) best = id;
+      if (heldFor(st, id)) continue;
+      const free = leaveCost(st, id) === 0;
+      if (!free && !leaves(st, id, worth)) continue;
+      if (best < 0 || (free && bound) || (free === !bound && age(st, p) < age(st, st.pawns[best]))) {
+        best = id;
+        bound = !free;
+      }
     }
     return best;
   }
@@ -218,12 +233,12 @@ VB['sim/gifts'] = (() => {
     !g.carrier && 'farmstead' in g.to && !('farmstead' in g.from && g.from.farmstead === g.to.farmstead);
   // A household's gift to its village's store, with no carrier, is carried to the green by a member of the giving household (VB-849).
   const hauled = (g) => !g.carrier && 'farmstead' in g.from && !('farmstead' in g.to);
-  // Why none of household hh can go: `other`, unless one of them minds a child under 7 (VB-1602), and the check names that.
+  // Why none of household hh can go: `other`, unless the one who could weighed a child under 7 left alone and stays (VB-1693), and the
+  // reason names that.
   function noneWhy(st, hh, other) {
-    for (const id of hh.members) {
-      const why = mindsWhy(st, id);
-      if (why) return why;
-    }
+    for (const id of hh.members)
+      if (leaveCost(st, id) > 0)
+        return `${other}: the last keeper at home weighs a child left alone, which the going would cost more than it brings`;
     return other;
   }
   function fetchWhy(st, g) {

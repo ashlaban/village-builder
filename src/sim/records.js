@@ -5,7 +5,7 @@ VB['sim/records'] = (() => {
     { inForce } = VB['sim/customs'];
   const Crowding = VB['sim/crowding'],
     Graph = VB['sim/graph'];
-  const { DAY, YEAR_DAYS, YEAR, ECON, MALE, FEMALE, patronym } = VB['sim/rules'];
+  const { DAY, YEAR_DAYS, YEAR, ECON, HEALTH, MALE, FEMALE, patronym } = VB['sim/rules'];
   // ---- the record of events (VB-075) ----
   // st.record: every event, appended in play: {t, kind, pawn, other, household, farm, village, n, text, self, cold, tile, reason,
   // fromFarm, by}, the fields that do not apply absent (cold: a death in a cold house, VB-327; tile: where a pawn died on the road,
@@ -448,6 +448,7 @@ VB['sim/records'] = (() => {
     if (R.pawns[id].age < 18) notePeopleCheck(R, hh); // a minor may be all a household has
     R.pawns[id].household = hh.id;
     setServant(R, id, servant);
+    if (R.agents && R.living) nameMinder(R, id); // a dependant joining a household is in the charge of its keeper (VB-1693)
   }
   // Death keeps the last household and service on the historical person record.
   function leaveHousehold(st, id, historical = false) {
@@ -462,6 +463,7 @@ VB['sim/records'] = (() => {
       Graph.leave(st, id, hh.id, !historical);
     }
     if (!historical) p.household = null;
+    if (st.agents && st.living) passCharges(st, id); // its charges pass (VB-1693)
   }
   function clearMembers(st, hh) {
     for (const m of hh.members) noteRoles(m);
@@ -671,30 +673,110 @@ VB['sim/records'] = (() => {
   const age = (st, p, t = st.t) => Math.floor((t - p.born) / YEAR);
   VB.counter(
     'childMinded',
-    'Times one about to leave home was found the last of 7 or over there with a child under 7, and stayed: a lodger, a carrier, a ' +
-      'fetcher or hauler of a gift, a suitor (sim/records mindsWhy; VB-1602)',
+    'Times one about to leave home weighed what its going costs the dependants it would leave with no keeper at home (a day ' +
+      'without water each) against what the going brings them, and stayed: a lodger at a site, a carrier, a fetcher or hauler of ' +
+      'a gift, a suitor (sim/records leaves; VB-1602, VB-1693)',
   );
-  // ---- nobody leaves a small child alone (VB-1602) ----
-  // Why pawn id may not go away from home, or null: it is at home, of CHILD.from (7) or over, and the only such member of its household
-  // at home (not away: agent.away, sim/away), with a member under 7 at home too. One who minds a child does not leave (the verb lodge, a
-  // gift's carrier, fetcher and hauler, a suitor's visit): the child cannot draw its water, cook nor go for its own drink, and the
-  // gathering's rule (an adult stays with the animals and the fire) is every stay's. At most a household's members a call, asked
-  // only where one is about to leave.
-  function mindsWhy(st, id) {
+  VB.counter(
+    'chargePassed',
+    'Living pawns read to name or pass the charge of a dependant: a minder died, fell ill or left its household, or one with no ' +
+      'keeper at home was named one beyond it (sim/records passCharges, minderFor; VB-1693)',
+  );
+  // The health pawn p loses a day: to its hunger now, and to a day without water (one reckoning, read by sim/hunger updateHealth and by leaveCost,
+  // VB-1693: what a minder's going costs its charge and what a fetch brings them).
+  const frailOf = (st, p) => {
+    const a = age(st, p);
+    return a < 5 || a >= 60 ? HEALTH.frail : 1;
+  };
+  const hungerLoss = (st, p) => (p.hunger > 0 ? HEALTH.drain * p.hunger * p.hunger * frailOf(st, p) : 0);
+  const thirstLoss = (st, p) => HEALTH.dry * frailOf(st, p);
+  // ---- a dependant's charge (VB-1693; design.md, Principles: Whoever cannot keep itself is someone's charge) ----
+  // A dependant: a living child under CHILD.from (7), who cannot draw its water, cook nor go for its own drink, or a pawn ill in bed
+  // (pawn.ill, sim/deaths). A keeper: living, of 7 or over, not ill. Every dependant has a named minder, a keeper: by custom its mother,
+  // else its father, if they keep and live in its household; else its household's eldest keeper; with none, its nearest kin that keeps
+  // (a parent elsewhere, a grandparent, then a sibling), else the eldest keeper of its village, else of the island.
+  const dependant = (st, p) => p.died === null && (age(st, p) < VB['sim/roles'].CHILD.from || p.ill !== undefined);
+  const keeps = (st, q) => q.died === null && q.ill === undefined && age(st, q) >= VB['sim/roles'].CHILD.from;
+  function minderFor(st, id) {
     const p = st.pawns[id],
       hh = p.household === null ? null : st.households[p.household],
-      from = VB['sim/roles'].CHILD.from;
-    if (!hh || hh.dissolved || !p.alive || st.agents[id].away !== undefined || age(st, p) < from) return null;
-    let child = false;
+      ok = (q) => q !== null && q !== undefined && q !== id && keeps(st, st.pawns[q]);
+    if (hh) {
+      for (const q of [p.mother, p.father]) if (ok(q) && hh.members.includes(q)) return q;
+      let best = null;
+      for (const m of hh.members) if (ok(m) && (best === null || st.pawns[m].born < st.pawns[best].born)) best = m;
+      if (best !== null) return best;
+    }
+    const kin = [p.mother, p.father];
+    for (const q of [p.mother, p.father]) if (q !== null) kin.push(st.pawns[q].mother, st.pawns[q].father);
+    for (const q of [p.mother, p.father]) if (q !== null) kin.push(...childrenOf(st, q));
+    for (const q of kin) if (ok(q)) return q;
+    const v = settlementIdOf(st, p);
+    let best = null,
+      near = false;
+    for (const q of st.living) {
+      VB.count.chargePassed++;
+      if (!ok(q)) continue;
+      const here = v !== null && settlementIdOf(st, st.pawns[q]) === v;
+      if (best === null || (here && !near) || (here === near && st.pawns[q].born < st.pawns[best].born)) {
+        best = q;
+        near = here;
+      }
+    }
+    return best;
+  }
+  // @state pawn.minder: the id of the keeper in whose charge a dependant is (VB-1693), named by minderFor when it becomes one (born or
+  //   joining a household: joinHousehold; falling ill: on 'fellIll'), and passed at once when its minder dies, falls ill or leaves its
+  //   household (passCharges); null with no keeper on the island. Read only while the pawn is a dependant: one grown or recovered keeps
+  //   the last it had. The invariant: every dependant has a living minder (tests/lib/invariants.js).
+  function nameMinder(st, id) {
+    const p = st.pawns[id];
+    if (dependant(st, p)) p.minder = minderFor(st, id);
+  }
+  // The charges of pawn id pass (Nothing is left to no one): each dependant whose minder it is gets a new one by custom, if id no longer
+  // keeps, or has left the dependant's household while that household has a keeper.
+  function passCharges(st, id) {
+    const m = st.pawns[id];
+    for (const d of st.living) {
+      VB.count.chargePassed++;
+      const p = st.pawns[d];
+      if (p.minder !== id || d === id || !dependant(st, p)) continue;
+      if (!keeps(st, m) || m.household !== p.household) nameMinder(st, d);
+    }
+  }
+  // Every dependant with no minder that keeps named, at the seeding and at a save's loading (a save from before VB-1693 has none).
+  function nameAll(st) {
+    for (const p of st.pawns)
+      if (dependant(st, p) && !(p.minder >= 0 && keeps(st, st.pawns[p.minder]))) nameMinder(st, p.id);
+  }
+  VB['sim/events'].on('fellIll', (st, d) => {
+    if (st.pawns[d.pawn] === undefined) return;
+    nameMinder(st, d.pawn);
+    passCharges(st, d.pawn);
+  });
+  // The health a day that pawn id's going away from home costs the dependants of its household it would leave at home with no keeper
+  // there (a day without water each, sim/hunger thirstLoss), 0 when another keeper stays or it is away already. A minder may leave: the
+  // one who goes weighs this against what its going brings them (leaves), never a verb's check (VB-1693, replacing VB-1602's ban).
+  function leaveCost(st, id) {
+    const p = st.pawns[id],
+      hh = p.household === null ? null : st.households[p.household];
+    if (!hh || hh.dissolved || !p.alive || !st.agents[id] || st.agents[id].away !== undefined || !keeps(st, p))
+      return 0;
+    let cost = 0;
     for (const m of hh.members) {
       const q = st.pawns[m];
       if (m === id || !q.alive || !st.agents[m] || st.agents[m].away !== undefined) continue;
-      if (age(st, q) >= from) return null;
-      child = true;
+      if (keeps(st, q)) return 0;
+      cost += thirstLoss(st, q);
     }
-    if (!child) return null;
+    return cost;
+  }
+  // Whether pawn id, weighing its going, goes: what it costs the dependants it would leave (leaveCost, health a day) is no more than
+  // `worth`, what its going brings them (health a day, reckoned the same way; 0 for a going that brings them nothing).
+  function leaves(st, id, worth = 0) {
+    if (leaveCost(st, id) <= worth) return true;
     VB.count.childMinded++;
-    return `the last one at home with a child under ${from} does not leave it alone`;
+    return false;
   }
   const birthYear = (p) => Math.floor(p.born / YEAR) + 1;
   const fullName = (p) => `${p.given} ${p.patronym}`;
@@ -878,7 +960,13 @@ VB['sim/records'] = (() => {
     atHousehold,
     atFarm,
     age,
-    mindsWhy,
+    leaveCost,
+    leaves,
+    nameAll,
+    dependant,
+    frailOf,
+    hungerLoss,
+    thirstLoss,
     birthYear,
     fullName,
     spouseOf,

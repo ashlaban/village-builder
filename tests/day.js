@@ -155,6 +155,7 @@ for (const id of st.liveHouseholds) {
     const targets = canon(s.plans.households.get(0).targets), left = () => reaps().reduce((n, j) => n + j.hours - doneOf(s, j), 0);
     VB.resetCounts();
     s.pawns[id].ill = { cause: 'illness', from: s.t, until: s.t + 3 * Sim.DAY, passes: true };
+    VB['sim/records'].nameAll(s); // a test's write: its charge named as falling ill names it (VB-1693)
     if (announced) emit(s, 'fellIll', { pawn: id });
     else issue(s, { actor: id, verb: 'goHome', source: 'planner' });
     const r = { id, held, at: { allots: VB.count.dayAllot, lost: VB.count.dayLost, list: [...dayOf(s, 0).lists[id]], job: s.agents[id].job }, unmet: 0 };

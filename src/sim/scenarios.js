@@ -702,6 +702,7 @@ VB['sim/scenarios'] = (() => {
     st.record.forEach((e, i) => {
       if (e.kind === 'born' && st.pawns[e.pawn].died === null) st.pawns[e.pawn].events.unshift(i);
     });
+    VB['sim/records'].nameAll(st); // VB-1693: every dependant in the charge of a named minder
     seedByres(st); // VB-1665: every farm that stands at seeding has its byre
     seedStorehouses(st); // VB-1898: and its storehouse and its barn
     seedBarns(st);
