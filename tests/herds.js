@@ -135,6 +135,13 @@ check(!checkState(st).length, 'populous in the byre: ' + checkState(st).slice(0,
       'far: at the frost the far farm takes in the herd its owner cannot fetch');
     check(close.at !== undefined && close.household === a.id, 'far: the herd within reach still waits for its owner at the frost');
     check(!checkState(s).length, 'far, after the frost: ' + checkState(s).slice(0, 3).join('; '));
+    // a herd left at a landing of its own farm (leaveAt) beyond a day's walk is not brought home by the frost: it waits for its drove
+    const landing = 3 * 170 + 140, homeHerds = b.herds.length;
+    HO.leaveAt(s, b, landing);
+    const left = (s.herdsAway || []).map((id) => s.herds[id]).filter((hd) => hd.tile === landing);
+    HO.frost(s);
+    check(homeHerds > 0 && left.length === homeHerds && left.every((hd) => hd.at === b.farmstead && hd.tile === landing && hd.household === b.id) && !b.herds.length,
+      `far: a herd left at its own farm's landing stays there at the frost (${left.length} of ${homeHerds})`);
     close.head = [];
     HO.emptied(s, close);
     check(close.at === undefined && !(s.herdsAway || []).includes(close.id) && close.household === null, 'far: an emptied herd leaves the list');

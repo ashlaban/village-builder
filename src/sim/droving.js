@@ -203,7 +203,8 @@ VB['sim/droving'] = (() => {
   function reachable(st, herd, owner) {
     const from = st.farmsteads[owner.farmstead].house,
       to = herd.tile ?? st.farmsteads[herd.at].house;
-    if (from === to) return true;
+    // a herd at the landing of its own farm (leaveAt) is its own farm's, which no other household takes in: it waits for its own drove
+    if (from === to || herd.at === owner.farmstead) return true;
     if (!hasRoute(st, from, to)) return false; // none by land: never led (a fallback's straight line is not a way)
     return 2 * (routeCost(st.w, route(st, from, to)) / SPEED) + KIND.hours <= WORK[1] - WORK[0];
   }
