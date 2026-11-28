@@ -13,6 +13,7 @@ const hud = {
   pc: null,
   pinfo: null,
   planKey: '',
+  yard: null, // the building whose card is open in the yard (page/ui2build)
   goAt: null, // {tile, chain}: the window's act opened this tile's card (yearGo), its chain shown first
 };
 const HUD_TABS = [
@@ -384,12 +385,15 @@ function renderHud() {
     (hud.msg ? `<p class="u2-msg${hud.msg.bad ? '' : ' ok'}">${esc(hud.msg.text)}</p>` : '') +
     body;
   u2.sheet.scrollTop = top;
+  const card = hud.yardShow && u2.sheet.querySelector('.u2-ycard'); // a card just opened in the yard: into view
+  if (card) card.scrollIntoView({ block: 'nearest' });
+  hud.yardShow = false;
 }
 function hudTab(tab) {
   const open = hud.tab === tab ? null : tab;
   if (tab === 'build') buildPick(null); // the menu again: what was being placed is let go
   hud.tab = open;
-  hud.msg = hud.sinfo = hud.binfo = null;
+  hud.msg = hud.sinfo = hud.binfo = hud.yard = null;
   hud.key = '';
   u2.sheet.scrollTop = 0;
 }
@@ -406,7 +410,11 @@ function hudClick(b) {
   else if (d.hud === 'buildhere') buildHere();
   else if (d.hud === 'uptoggle') hud.up = !hud.up;
   else if (d.hud === 'upgrade') ladderAdd(d.kind, d.what);
-  else if (d.hud === 'fell') {
+  else if (d.hud === 'yard') {
+    hud.yard = hud.yard === d.what ? null : d.what; // a building's card in the yard (page/ui2build)
+    hud.yardShow = !!hud.yard;
+    hud.binfo = hud.cinfo = null;
+  } else if (d.hud === 'fell') {
     const n = +d.n;
     hudMsg(
       Sim.plan(st, st.player.pawn, 'add', { fell: +d.tile, n }),

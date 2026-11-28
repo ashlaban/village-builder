@@ -51,6 +51,15 @@ const ACT_PATHS = {
   clock: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.8 2M10 2.8h4M12 2.8V6"/>',
   pin: '<path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>', // keep
   wait: '<path d="M6 3h12M6 21h12M7.5 3c0 5 9 4.5 9 9s-9 4-9 9M16.5 3c0 5-9 4.5-9 9s9 4 9 9"/>',
+  // the yard's buildings and parts (VB-1908): the house's sizes, the outbuildings, a stage's walls and roof, a lock
+  shelter: '<path d="M3 20L12 5l9 15zM12 20l-2.5-6"/>',
+  bighouse: '<path d="M2 12l5.5-5.5 5 4.5 5-4.5L22 12M4 11v9h16v-9M8.5 20v-4M15.5 20v-4"/>',
+  storehouse: '<path d="M4 7l8-4 8 4v8.5H4zM6.5 16v5M17.5 16v5M4.5 9.5h15"/>',
+  barn: '<path d="M3 20.5V10l9-6.5 9 6.5v10.5zM8.5 20.5v-7h7v7M8.5 13.5l7 7M15.5 13.5l-7 7"/>',
+  byre: '<path d="M2.5 20.5V11L12 4l9.5 7v9.5zM7 20.5v-5h10v5M9.5 9.5h5"/>',
+  wall: '<path d="M3 5h18v14H3zM3 9.7h18M3 14.3h18M9 5v4.7M15 9.7v4.6M9 14.3V19"/>',
+  roof: '<path d="M2 14L12 4l10 10M6 19h12"/>',
+  lock: '<path d="M5.5 10.5h13V21h-13zM8.5 10.5v-3a3.5 3.5 0 0 1 7 0v3"/>',
 };
 // The same acts as stencils (VB-1162), by ACT_PATHS' keys.
 const HOUSE_STEN = 'M2.5 11.5l9.5-8.5 9.5 8.5h-2.8V21H5.3v-9.5z';
@@ -120,6 +129,15 @@ const ACT_STEN = {
   wait:
     '<path d="M5.5 2.5h13v2.2c0 3.6-4.3 5.3-4.3 7.3s4.3 3.7 4.3 7.3v2.2h-13v-2.2c0-3.6 4.3-5.3 4.3-7.3S5.5 8.3 5.5 4.7z"/>' +
     '<path class="c" d="M8.5 19.5h7"/>',
+  shelter: '<path d="M3 20.5L12 5l9 15.5z"/><path class="c" d="M12 20.5l-2.5-6"/>',
+  bighouse: '<path d="M1.5 12.5L7 7l5 4.5L17 7l5.5 5.5h-2v8h-17v-8z"/><path class="c" d="M8 20.5V16M16 20.5V16"/>',
+  storehouse:
+    '<path d="M4 7l8-4 8 4v8.5H4z"/><path class="l" d="M6.5 16v5M17.5 16v5"/><path class="c" d="M12 15.5V11M4.5 9.5h15"/>',
+  barn: '<path d="M3 20.5V10l9-6.5 9 6.5v10.5z"/><path class="c" d="M8.5 20.5v-7h7v7M8.5 13.5l7 7M15.5 13.5l-7 7"/>',
+  byre: '<path d="M2.5 20.5V11L12 4l9.5 7v9.5z"/><path class="c" d="M7 20.5v-5h10v5M9.5 9.5h5"/>',
+  wall: '<path d="M3 5h18v14H3z"/><path class="c" d="M3 9.7h18M3 14.3h18M9 5v4.7M15 9.7v4.6M9 14.3V19"/>',
+  roof: '<path d="M2 14L12 4l10 10-2 2-8-8-8 8z"/><path class="l" d="M6 19h12"/>',
+  lock: '<path d="M5.5 10.5h13V21h-13z"/><path class="l" d="M8.5 10.5v-3a3.5 3.5 0 0 1 7 0v3"/>',
 };
 const actIcon = (k) =>
   drawings(svgIcon(24, 24, ACT_PATHS[k] || ACT_PATHS.hoe, ICON_STROKE), {
