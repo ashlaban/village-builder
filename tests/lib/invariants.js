@@ -502,7 +502,7 @@ function checkState(st) {
       }
     }
     for (const p of st.pawns)
-      for (const f of ['voiced', 'sat'])
+      for (const f of ['voiced', 'sat', 'dutied', 'dutyAsked'])
         if (
           p[f] !== undefined &&
           p[f] !== null &&
@@ -3435,6 +3435,13 @@ function checkState(st) {
             bad.push(`${at}: leave of ${o.from} asked of ${o.to}, household ${o.household}`);
           if (!Number.isFinite(w.from) || !(w.with === null || !!st.pawns[w.with]))
             bad.push(`${at}: leave wants ${JSON.stringify(w)}`);
+          if (keys.join() !== 'head' || o.answers[0].by !== o.to) bad.push(`${at}: answers ${keys.join()} of ${o.to}`);
+        } else if (o.basis === 'duty') {
+          // a member's ask of a duty (VB-1556): of its household's head, a type of recurring work
+          const hh = st.households[o.household];
+          if (!hh || hh.holder !== o.to || !hh.members.includes(o.from) || o.gives !== null)
+            bad.push(`${at}: duty of ${o.from} asked of ${o.to}, household ${o.household}`);
+          if (!o.wants || typeof o.wants.duty !== 'string') bad.push(`${at}: duty wants ${JSON.stringify(o.wants)}`);
           if (keys.join() !== 'head' || o.answers[0].by !== o.to) bad.push(`${at}: answers ${keys.join()} of ${o.to}`);
         } else if (BASES[o.basis].where) {
           // an offer about a life: answered at a village's step of the round (a handover has no subject, VB-824)

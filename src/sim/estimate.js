@@ -79,6 +79,11 @@ VB['sim/estimate'] = (() => {
     for (const [k, from] of ESTIMATE.reckons) out[k] = s >= from;
     return out;
   }
+  // Pawn id's skill at a type of work as pawn `head` judges it (VB-1556): the truth where the head's judgement reckons with skill, else the
+  // middle, the same for every hand.
+  function skillSeen(st, head, id, type) {
+    return reckoned(judgement(st, head).skill).skill ? Skills.skillOf(st, id, type) : (Skills.SKILL.middle ?? 0.5);
+  }
   // ---- the parts ----
   const hoursOf = (j) => j.hours ?? KINDS[j.kind].hours ?? 0;
   // A task's hours for a normal crop: its kind's `norm` (sim/fieldwork: a reaping and a threshing go by the crop's size), else its hours.
@@ -436,6 +441,7 @@ VB['sim/estimate'] = (() => {
     ESTIMATE,
     judgement,
     reckoned,
+    skillSeen,
     estimate,
     goalEstimate,
     headOf,

@@ -20,7 +20,7 @@ VB['sim/voice'] = (() => {
   const { opinionOf, remember } = VB['sim/relations'];
   const { age, fullName, log, atHousehold, living, unplanned } = VB['sim/records'];
   const { of: traitOf } = VB['sim/traits'];
-  const { KINDS } = VB['sim/kinds'];
+  const { KINDS, dutyTypes } = VB['sim/kinds'];
   const { planOf } = VB['sim/plans'];
   const Hands = VB['sim/hands'],
     Days = VB['sim/days'];
@@ -362,6 +362,7 @@ VB['sim/voice'] = (() => {
     for (const id of st.liveHouseholds) {
       const hh = st.households[id];
       if (hh.holder === null || hh.farmstead === null) continue;
+      dutyLook(st, hh, day);
       const plan = planOf(st, 'household', id),
         lists = plan && plan.day && plan.day.lists;
       if (!lists) continue;
@@ -442,6 +443,96 @@ VB['sim/voice'] = (() => {
       source: 'pawn',
     });
   }
+  // ---- the basis `duty` (VB-1556): a member asks its head for a type of recurring work without a window as its own ----
+  // @state pawn.dutied: absent, or the game day the pawn was last seen holding a duty (the morning's look); pawn.dutyAsked: absent, or the
+  //   game day it last asked for a duty of its own accord (once a season, VOICE.dutyDays). Written only here.
+  const dutyWords = (st, o) => `an ask of the ${o.wants.duty} duty by ${fullName(st.pawns[o.from])}`;
+  BASES_WORDS.duty = dutyWords;
+  function dutyCheck(st, o) {
+    const hh = homeOf(st, o.from);
+    if (!hh || hh.holder !== o.to) return `pawn ${o.to} is not the head of pawn ${o.from}'s household`;
+    if (age(st, st.pawns[o.from]) < CHILD.from) return `${fullName(st.pawns[o.from])} is too young for a duty`;
+    if (!o.wants || !dutyTypes().has(o.wants.duty)) return 'a duty is of a type of recurring work without a window';
+    return { household: hh.id };
+  }
+  // Would head h give member id the duty `type`: where none holds it, yes; where another does, only if member id is more skilled at the
+  // type as the head sees it (sim/estimate skillSeen) than the holder.
+  function dutyWilling(st, h, id, type) {
+    const hh = homeOf(st, id);
+    if (!hh || hh.holder !== h) return false;
+    const s = VB['sim/steps'].dutyOf(planOf(st, 'household', hh.id), type);
+    if (!s) return true;
+    if (s.who[0] === id) return false;
+    const { skillSeen } = VB['sim/estimate'];
+    return skillSeen(st, h, id, type) > skillSeen(st, h, s.who[0], type);
+  }
+  VB.counter('dutyGiven', 'Duties given by a head to a member that asked (sim/voice, VB-1556)');
+  VB.counter('dutyRefused', 'Asks of a duty refused by a head (sim/voice, VB-1556)');
+  VB.counter('dutyAsked', 'Asks of a duty made by a member of its head (sim/voice, VB-1556)');
+  VB.counter('dutyLook', 'Members looked at in the morning for an ask of a duty (sim/voice, VB-1556)');
+  Offers.basis('duty', {
+    asked: 'duty', // by the verb ask (sim/offers)
+    books: 'nothing',
+    wait: () => VOICE.wait,
+    check: dutyCheck,
+    answers: (st, o) => [{ key: 'head', by: o.to, yes: null }],
+    weigh: (st, o) => dutyWilling(st, o.to, o.from, o.wants.duty),
+    settle: (st, o) => {
+      const hh = homeOf(st, o.from);
+      if (!hh || hh.holder !== o.to) return 'the head has changed';
+      if (!dutyTypes().has(o.wants.duty)) return 'no such duty';
+      VB['sim/steps'].giveDuty(st, planOf(st, 'household', hh.id), o.wants.duty, o.from, 'pawn');
+      VB.count.dutyGiven++;
+      return true;
+    },
+    // a no is a memory of the member's; no line in the village's log (a duty asked is a small matter, a leave a larger)
+    refused: (st, o, no) => {
+      VB.count.dutyRefused++;
+      if (living(st, o.from) === null && living(st, no.by) === null) remember(st, o.from, no.by, 'refusedUs');
+    },
+    what: dutyWords,
+  });
+  // Pawn id asks its head for the duty `type`: the verb ask, by its own rule (source 'pawn').
+  function askDuty(st, id, type) {
+    const hh = homeOf(st, id);
+    if (!hh) return 'it has no head to ask';
+    VB.count.dutyAsked++;
+    return issue(st, {
+      actor: id,
+      verb: 'ask',
+      target: hh.holder,
+      args: { basis: 'duty', wants: { duty: type } },
+      source: 'pawn',
+    });
+  }
+  // The morning's look at household hh: those holding a duty are marked (pawn.dutied); each member of working age, not the head nor on
+  // its own commands, that holds none and has held none for a season (VOICE.dutyDays) and has not asked for one in that time, asks for the type
+  // it is most skilled at, where its head would give it (the lower type on a tie). A pass over the members and the duties.
+  function dutyLook(st, hh, day) {
+    if (!VOICE.duties) return; // off until Kim's answer on duties (sim/day SWITCH.duties, VB-1771): given, they raised the hunger of a populous run
+    const plan = planOf(st, 'household', hh.id);
+    if (!plan || !plan.ahead) return;
+    for (const s of plan.ahead) if (s.what.duty !== undefined && st.pawns[s.who[0]]) st.pawns[s.who[0]].dutied = day;
+    const { skillOf } = VB['sim/skills'],
+      types = [...dutyTypes().keys()];
+    for (const pid of hh.members) {
+      VB.count.dutyLook++;
+      const p = st.pawns[pid];
+      if (pid === hh.holder || p.died !== null || unplanned(st, pid) || age(st, p) < CHILD.from) continue;
+      if (Number.isInteger(p.dutied) && day - p.dutied < VOICE.dutyDays) continue;
+      if (Number.isInteger(p.dutyAsked) && day - p.dutyAsked < VOICE.dutyDays) continue;
+      let best = null;
+      for (const T of types) if (best === null || skillOf(st, pid, T) > skillOf(st, pid, best)) best = T;
+      if (best === null || !dutyWilling(st, hh.holder, pid, best)) continue; // it asks where it would be given (everyone knows what the head sees)
+      p.dutyAsked = day;
+      askDuty(st, pid, best);
+    }
+  }
+  // The likely answer of pawn id's head to an ask of the duty `type`, as pawn id sees it: true, false, or null with no head.
+  function dutyLikely(st, id, type) {
+    const hh = homeOf(st, id);
+    return hh ? dutyWilling(st, hh.holder, id, type) : null;
+  }
   // The likely answer of pawn id's head to an ask of leave from `from`, as pawn id sees it (principle "The future is someone's estimate"; everyone knows
   // everything for
   // now: sim/opportunities actorView): true, false, or null when it has no head to ask.
@@ -457,6 +548,9 @@ VB['sim/voice'] = (() => {
     hour,
     ask,
     askLighter,
+    askDuty,
+    dutyLikely,
+    dutyWilling,
     lighter,
     begin,
     wanted,

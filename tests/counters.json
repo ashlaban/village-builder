@@ -219,5 +219,9 @@
   "lyingAt": 0,
   "lyingDecay": 0,
   "outDecay": 0,
-  "roundRank": 0.015646828723107013
+  "roundRank": 0.015646828723107013,
+  "dutyGiven": 0.014529198100027941,
+  "dutyRefused": 0.005588153115395362,
+  "dutyAsked": 0.020117351215423303,
+  "dutyLook": 0.9991617770326907
 }

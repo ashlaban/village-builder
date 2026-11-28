@@ -400,6 +400,7 @@ console.log(`commands ok: work, walkTo, goHome, idle and haltForTalk carried out
     assert.strictEqual(offer(s, a.holder, b.holder, { basis: 'ask', wants: { good: 'grain', n: 20 }, due: s.t + 2 * Sim.DAY }), true);
     assert.ok(s.offers.length === 1 && s.offers[0].answers[0].yes === null && VB.count.offerWeighed === n0, 'not weighed before it is due');
     sound(s, 'an ask due later');
+    for (const p of s.pawns) p.dutyAsked = Math.floor(s.t / 24); // no member asks for a duty meanwhile (VB-1556)
     Sim.advance(s, 3 * Sim.DAY);
     assert.deepStrictEqual(s.offers, [], 'answered at its due time');
     assert.strictEqual(VB.count.offerWeighed, n0 + 1, 'one evaluation');

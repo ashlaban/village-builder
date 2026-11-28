@@ -434,10 +434,24 @@ VB['sim/kinds'] = (() => {
     if (!where) return 'gone';
     return where.plan || where.mark ? null : GOALS[name].gone(st, where);
   }
+  // The types of recurring work without a window (VB-1771; sim/day: duties), with each type's recurring kinds. Worked out once, never saved.
+  let DUTY = null;
+  function dutyTypes() {
+    if (DUTY) return DUTY;
+    DUTY = new Map();
+    for (const k of Object.keys(KINDS)) {
+      const K = KINDS[k];
+      if (!K.daily && !K.vital) continue;
+      if (!DUTY.has(K.type)) DUTY.set(K.type, new Set());
+      DUTY.get(K.type).add(k);
+    }
+    return DUTY;
+  }
   return {
     // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
     PAGE: ['KINDS'],
     KINDS,
+    dutyTypes,
     ASK,
     isOpen,
     carriedOn,

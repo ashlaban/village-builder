@@ -327,18 +327,7 @@ VB['sim/day'] = (() => {
   // gives its holder the first place for those kinds only: none has a window (sim/hands windowEnd: plowing, sowing, reaping, hauling) or a
   // season (the hay), so no hand comes late to windowed work for its duty, as under MATCH.keep (VB-1553). Kinds are fixed at load: worked
   // out once, never saved.
-  let DUTY = null;
-  function dutyTypes() {
-    if (DUTY) return DUTY;
-    DUTY = new Map();
-    for (const k of Object.keys(KINDS)) {
-      const K = KINDS[k];
-      if (!K.daily && !K.vital) continue;
-      if (!DUTY.has(K.type)) DUTY.set(K.type, new Set());
-      DUTY.get(K.type).add(k);
-    }
-    return DUTY;
-  }
+  const { dutyTypes } = VB['sim/kinds'];
   // Whether task j is of a kind duty `type` covers.
   const dutyCovers = (j) => {
     const S = dutyTypes().get(KINDS[j.kind].type);
