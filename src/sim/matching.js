@@ -17,7 +17,7 @@ VB['sim/matching'] = (() => {
   const { heirRanking } = VB['sim/heirranking'],
     { heirFor } = VB['sim/heirs'];
   const { trustOfHolder } = VB['sim/ownership'];
-  const { opinionOf } = VB['sim/relations'];
+  const opinionOf = (st, a, b) => VB['sim/offers'].answerOpinion(st, a, b);
   const { hoursBetween, byLand } = VB['sim/villagehours'];
   const { wishOf, authored } = VB['sim/wishes'];
   const Rules = VB['sim/registry'];

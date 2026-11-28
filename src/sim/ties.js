@@ -87,6 +87,10 @@ VB['sim/ties'] = (() => {
     enemy: -0.5,
     seek: 0.5,
     seekSample: 4,
+    // Standing as an opinion where there is no tie (VB-706): in an answer to an offer, a stranger is read by its standing above the
+    // member's base (`base`, sim/society DEED.base), times `weight` (standing 1 is a member; a holder of a farm is about 1.6), and from another
+    // village times `far` (until stories carry it, VB-523, and a tie of villages exists); within -1..1.
+    standing: { base: 1, weight: 0.3, far: 0.5 },
   };
   const TIES = SOCIAL.ties;
   // A pawn's ties are stored on its own decay scale: scaleOf puts its stored weights to now (at most 1); tieOf is a's tie to b now.

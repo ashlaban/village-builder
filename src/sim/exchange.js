@@ -5,7 +5,7 @@ VB['sim/exchange'] = (() => {
   const Goods = VB['sim/goods'],
     Stores = VB['sim/stores'];
   const Rules = VB['sim/registry'];
-  const { book, balance, opinionOf, remember } = VB['sim/relations'],
+  const { book, balance, remember } = VB['sim/relations'],
     { addTie } = VB['sim/ties'];
   const { HELP, GOODWILL, HERD, TRAVEL, stalled } = VB['sim/rules'];
   const { withinDay, byLand } = VB['sim/villagehours'];
@@ -34,7 +34,7 @@ VB['sim/exchange'] = (() => {
   const opinionTerm = (st, c) =>
     !GOODWILL.acts || c.giver === null || c.receiver === null
       ? 0
-      : GOODWILL.opinionRations * opinionOf(st, c.giver, c.receiver);
+      : GOODWILL.opinionRations * Offers.answerOpinion(st, c.giver, c.receiver);
   // A deal's allowance (VB-302; target-v2 5.1 and 5.2): what one side lets a swap cost it toward the other, its goodwill and its opinion
   // only, so that between strangers it is near zero (a gift's allowance adds the giver's grain above its floor and its reserve, the size
   // of a gift). It may be below zero: a side owed beyond the limit wants a gain. Context as allowance's: {giver, receiver, from, to}.

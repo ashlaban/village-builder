@@ -90,6 +90,13 @@ VB.COUNTERS = {
   loanRepaid: 'Grain of loans repaid, in rations (sim/loans, VB-312)',
   loanDefaulted: 'Grain of loans defaulted, in rations unpaid after the second harvest (sim/loans, VB-312)',
   offerWeighed: 'Answers to an offer weighed by the pawn asked, at the due time (sim/offers, VB-690)',
+  answerOpinionTie: 'Answers whose opinion of the asker rests on a tie (sim/offers answerOpinion, VB-706)',
+  answerOpinionStanding:
+    'Answers whose opinion of the asker rests on its standing, no tie (sim/offers answerOpinion, VB-706)',
+  answerYesTie: 'Answers given yes, by the basis `tie` of the opinion (sim/offers, VB-706)',
+  answerYesStanding: 'Answers given yes, by the basis `standing` of the opinion (sim/offers, VB-706)',
+  answerNoTie: 'Answers given no, by the basis `tie` of the opinion (sim/offers, VB-706)',
+  answerNoStanding: 'Answers given no, by the basis `standing` of the opinion (sim/offers, VB-706)',
   offersAnswered: 'Open offers answered at a village step of the moving round, a day of it each (sim/round, VB-692)',
   adviceOffered: 'Advice offered by a retired member to its head, at its spring planning day (sim/advice, VB-1316)',
   adviceTaken: 'Advice taken by a head and carried out (sim/advice, VB-1316)',

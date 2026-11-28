@@ -20,8 +20,11 @@ VB['sim/offers'] = (() => {
   const { living, unplanned } = VB['sim/records'];
   const { register } = VB['sim/commands'];
   const { DAY, YEAR, TRAVEL } = VB['sim/rules'];
-  const { remember } = VB['sim/relations'];
-  const { log, fullName, holdingOf, atHousehold, mindsWhy } = VB['sim/records'];
+  const Relations = VB['sim/relations'],
+    Ties = VB['sim/ties'],
+    { remember } = Relations,
+    { SOCIAL } = Ties;
+  const { log, fullName, holdingOf, atHousehold, mindsWhy, settlementIdOf } = VB['sim/records'];
   const { grainOf } = VB['sim/stores'];
   const { agentWhy } = VB['sim/decisions'];
   const home = (st, id) => Number.isInteger(id) && !!st.households[id] && !st.households[id].dissolved;
@@ -192,8 +195,43 @@ VB['sim/offers'] = (() => {
   // The answer `a` of offer o by its pawn's own judgement: the basis's rule (one evaluation; VB.count.offerWeighed)
   function judge(st, o, a) {
     VB.count.offerWeighed++;
-    return !!BASES[o.basis].weigh(st, o, a);
+    seen.clear();
+    const yes = !!BASES[o.basis].weigh(st, o, a);
+    // the answer's basis (VB-706): on standing if it read a stranger's standing, else on a tie (or on none read)
+    if (seen.size) {
+      if (yes) {
+        VB.count.answerYesStanding++;
+      } else {
+        VB.count.answerNoStanding++;
+      }
+    } else if (yes) {
+      VB.count.answerYesTie++;
+    } else {
+      VB.count.answerNoTie++;
+    }
+    return yes;
   }
+  // What a thinks of b for an answer to an offer (VB-706; sim/offers): opinion where there is a tie (a tie, a bond or a memory), else b's standing as a
+  // knows it, above the base of a member, times SOCIAL.standing.weight (times .far from another village), -1..1. Read as the offer is
+  // answered: no pass, no state. VB.count.answerOpinion(Standing) count the two.
+  const seen = new Set(); // the bases the answers since it was cleared read (sim/offers judge, answerOpinion.basis)
+  const answerOpinion = Object.assign(
+    (st, a, b) => {
+      const pa = st.pawns[a];
+      if (Ties.tieOf(st, a, b) > 0 || pa.rel.has(b) || Relations.bond(st, a, b)) {
+        VB.count.answerOpinionTie++;
+        return Relations.opinionOf(st, a, b);
+      }
+      VB.count.answerOpinionStanding++;
+      seen.add('standing');
+      const pb = st.pawns[b],
+        S = SOCIAL.standing,
+        far = settlementIdOf(st, pa) === settlementIdOf(st, pb) ? 1 : S.far,
+        o = Relations.opinionOf(st, a, b) + far * S.weight * (pb.standing - S.base);
+      return Math.max(-1, Math.min(1, o));
+    },
+    { basis: seen },
+  );
   // Keep offer o in the queue, in order of due time (after those due at the same time)
   function keep(st, o) {
     o.id = st.offerSeq++;
@@ -354,6 +392,7 @@ VB['sim/offers'] = (() => {
     dueOffers,
     conclude,
     heldBy,
+    answerOpinion,
     giftOf,
     delivery,
     partyOf,
