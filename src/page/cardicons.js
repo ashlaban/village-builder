@@ -140,6 +140,7 @@ const OCCASION_PATHS = {
   ale: GOOD_PATHS.ale,
   call: TRAIT_PATHS.sociability, // a call on a household (VB-1119's kind had no mark, and the map's mark threw): people who talk, as a meeting
   gathering: TRAIT_PATHS.sociability, // a day of the gathering (VB-295): people of many villages who talk, as a meeting
+  harvest: TRAIT_PATHS.sociability, // the harvest home (VB-459): a feast of people who talk, as a meeting (it had no mark, and the map's mark threw)
 };
 const OCCASION_STEN = {
   meeting: TRAIT_STEN.sociability,
@@ -149,6 +150,7 @@ const OCCASION_STEN = {
   ale: ACT_STEN.ale,
   call: TRAIT_STEN.sociability,
   gathering: TRAIT_STEN.sociability,
+  harvest: TRAIT_STEN.sociability,
 };
 const occasionIcon = (k) => drawings(svgIcon(24, 24, OCCASION_PATHS[k], ICON_STROKE), { stencil: OCCASION_STEN[k] });
 for (const k of ['me', 'home', 'village', 'queue']) ICON['act-' + k] = actIcon(k);

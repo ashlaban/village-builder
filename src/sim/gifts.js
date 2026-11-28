@@ -62,7 +62,12 @@ VB['sim/gifts'] = (() => {
       name = store ? o.from.name + "'s store" : st.farmsteads[o.from.farmstead].name,
       parts = {},
       to = st.farmsteads[o.to.farmstead];
-    Stores.take(st, o.from, 'grain', o.n, { kind: o.keep ? 'keep' : o.loan ? 'loan' : 'gift', to: to.name }, parts);
+    const why = { kind: o.keep ? 'keep' : o.loan ? 'loan' : 'gift', to: to.name };
+    let left = o.n;
+    if (o.crops)
+      // a seed loan: the crop short where the lender holds it (VB-2045), the rest in its proportion
+      for (const c in o.crops) left -= Stores.take(st, o.from, 'grain/' + c, Math.min(left, o.crops[c]), why, parts);
+    if (left > 1e-9) Stores.take(st, o.from, 'grain', left, why, parts);
     if (!o.loan) booked(st, o.from, o.to, o.n, name); // a loan books an obligation, not goodwill (sim/loans, VB-312)
     const stop = {
       at: store ? o.from.center : st.farmsteads[o.from.farmstead].house,

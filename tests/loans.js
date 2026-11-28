@@ -161,17 +161,25 @@ const spareNeed = (st, hh) => VB['sim/help'].askDaysAt(st) * VB['sim/hunger'].da
   };
   const st = farms(), { a, c } = pair(st), w = windowOf(st.t, CROPS.barley.sow);
   rich(st, c, 500);
+  c.grain.rye = c.grain.barley; const take0 = Stores.take, lentOf = {}; // the lender holds as much rye as barley: the seed lent is the crop short (VB-2045)
   a.grain = { barley: 0 }; // it ate its seed in a failed year
   const short = seedShort(st, a);
   assert(short.n >= H.seedNeed(st, a, 'barley') - 1e-9 && short.n > 0 && short.until >= w.end, `setup: short ${JSON.stringify(short)}`);
   const r0 = Stores.reserved(st, a, 'grain');
+  Stores.take = (st_, h, good, n, why, ...r) => { // what the lender gave for the loan, by good
+    const got = take0(st_, h, good, n, why, ...r);
+    if (why && why.kind === 'loan' && h === c) lentOf[good] = (lentOf[good] || 0) + got;
+    return got;
+  };
   assert.strictEqual(borrowSeed(st, a), true, 'it asks a seed loan');
+  Stores.take = take0;
   assert.strictEqual(borrowSeed(st, a), false, 'once a season');
   const o = loansOf(st).find((x) => x.debtor.id === a.id), lent = Math.ceil(short.n / LOAN.sack - 1e-9) * LOAN.sack;
   assert(o && o.lent === lent && o.due === harvestAfter(st.t), `lent ${o && o.lent} of ${lent}, repaid at the end of autumn as a grain loan`);
   assert.deepStrictEqual(a.seedLent, { lent, sown: 0, until: short.until }, 'kept as seed for the sowing');
   settle(st);
   assert(Stores.grainOf(a) >= lent - 1e-6, `it came in: ${Stores.grainOf(a)} of ${lent}`);
+  assert(lentOf['grain/barley'] >= Math.ceil(short.n) - 1e-6 && !lentOf['grain/rye'], `the lender gave barley, the crop short: ${JSON.stringify(lentOf)}`);
   assert.deepStrictEqual(checkState(st), [], 'invariants with a seed loan held');
   // the meal does not eat it: the household goes hungry, its seed whole
   a.grain = { barley: lent }; a.meals = 0; a.flour = 0; a.larder = []; a.fresh = []; // what help brought meanwhile eaten

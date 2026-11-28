@@ -99,6 +99,7 @@ VB['sim/loans'] = (() => {
       cap = F ? Math.max(1, F.workable) : Infinity;
     let n = 0,
       until = 0;
+    const by = {}; // the short of each crop (VB-2045): a seed loan names them
     for (const k of CROP_LIST) {
       const C = CROPS[k];
       if (!(C.seed > 0) || !C.sow) continue;
@@ -112,9 +113,24 @@ VB['sim/loans'] = (() => {
       const short = want - Stores.grainOf(hh, k);
       if (short <= 1e-9) continue;
       n += short;
+      by[k] = short;
       until = Math.max(until, w.end);
     }
-    return { n: n > 0 ? Math.max(0, n - coming(st, hh)) : 0, until };
+    return { n: n > 0 ? Math.max(0, n - coming(st, hh)) : 0, until, by };
+  }
+  // Of n lent as seed, what each crop short is asked for, in whole rations, at most its short: {crop: rations}; the rest of n is the
+  // lender's proportion (sim/gifts fetchGift). VB-2045
+  function cropsFor(by, n) {
+    const out = {};
+    let left = n;
+    for (const k of CROP_LIST) {
+      const x = Math.min(left, Math.ceil(by[k] || 0));
+      if (x > 0) {
+        out[k] = x;
+        left -= x;
+      }
+    }
+    return out;
   }
   // @state household.seedLent: absent, or the seed loan held for the coming sowing: {lent, sown, until}: the rations lent as seed, of
   //   them those sown since (the event seedSown, sim/fieldwork), and the hour the last sowing window it was lent for closes. What is
@@ -216,6 +232,7 @@ VB['sim/loans'] = (() => {
         n = lends(st, from, o.to, to, wantOf(st, o, to), seed); // at most what it lacks now (a later yes: others lent meanwhile)
       if (!(n > 0)) return `${nameOf(st, from)} has nothing to lend now`;
       const args = { good: 'grain', n, loan: true };
+      if (seed) args.crops = cropsFor(short.by, n); // the crop short, where the lender holds it (VB-2045)
       if (!isHousehold(from)) args.store = from.id;
       const r = issue(st, {
         actor: !isHousehold(from) ? o.to : from.holder !== null ? from.holder : { household: from.id },
