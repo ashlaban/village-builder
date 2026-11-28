@@ -407,3 +407,24 @@ function togglePhrase(e) {
 }
 $('tileCustoms').addEventListener('click', togglePhrase);
 $('tileCustoms').addEventListener('keydown', togglePhrase);
+// The pawn card's "Leans" line (VB-082): the two customs where its own mind differs most from its village's practice (sim/leanings), and
+// the cause it argues, with the years left. None for a child under 14, whose mind is still its upbringing's.
+function leansLine(p) {
+  const sid = Sim.settlementIdOf(st, p),
+    s = sid === null || sid === undefined ? null : st.cenv.settlements[sid],
+    a = p.advocate,
+    opt = (d, j) => `“${Customs.DIMS[d].opts[j][1]}”`;
+  const leans =
+    s && p.age >= 14
+      ? VB['sim/leanings']
+          .leansOf(p, s.practice)
+          .map((l) => `${opt(l.dim, l.opt)} on ${Customs.DIMS[l.dim].label.toLowerCase()}`)
+      : [];
+  const left = a && a.until !== undefined ? Math.max(0, Math.ceil(a.until - st.cenv.t)) : null,
+    cause = a
+      ? `argues for ${opt(a.dim, a.opt)}${left === null ? '' : `, ${left} ${left === 1 ? 'year' : 'years'} left`}`
+      : '';
+  if (!leans.length) return cause ? cause[0].toUpperCase() + cause.slice(1) : '';
+  return `Leans to ${leans.join(' and ')}${s ? ` (${s.name} holds otherwise)` : ''}${cause ? `; ${cause}` : ''}`;
+}
+cardRow('person', 40, (id) => leansLine(st.pawns[id])); // the person card's leanings line (page/cardrows)

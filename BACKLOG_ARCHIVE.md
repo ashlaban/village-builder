@@ -940,3 +940,7 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1809](backlog/VB-1809.md) | A blocked goal says why, and is not posted again until its fact changes | - | 3 | S | VB-1775 review F5 and F8: onward drops a blocked goal and its reason; the counters' world has no wood, so methodAsk guards nothing |
 | [VB-1369](backlog/VB-1369.md) | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
 | [VB-1948](backlog/VB-1948.md) | Refactor: the page's stylesheets by area, and a card's rows declared by the feature's page file | - | 2 | M | head.html 14 to 6, 6, 4; page/words 11 to 7 (VB-1406 step 10) |
+| [VB-2023](backlog/VB-2023.md) | A team's harness moves with the team | - | 3 | S | A new keeper of a team takes its worn harness, not a sound one |
+| [VB-1703](backlog/VB-1703.md) | Caches checked after every verb: the 41 verbs tests/caches.js does not reach | - | 3 | M | Build a command for each verb tests/caches.js does not reach yet |
+| [VB-2043](backlog/VB-2043.md) | Refactor: the person card's feature rows moved out of page/words to their features' page files | - | 3 | S | Move the leanings, share and marriage-bar rows of the person card out of page/words |
+| [VB-2029](backlog/VB-2029.md) | A lone settler's foraging need outranks reaping his ripe field when frost is near | - | 2 | S | Foraging need 8 beats reap 1.3+frostNear when spare food under 3 days |
