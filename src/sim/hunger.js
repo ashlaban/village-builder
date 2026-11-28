@@ -338,14 +338,15 @@ VB['sim/hunger'] = (() => {
       before = p.health;
     const hungry = p.hunger > 0 ? HEALTH.drain * p.hunger * p.hunger * frail : 0,
       chill = cold > 0 ? HEALTH.cold * cold * frail * (Dress.rags(st, p) ? Dress.DRESS.cold : 1) : 0, // in rags (VB-363)
-      damp = dry > 0 ? HEALTH.dry * frail : poor ? HEALTH.marsh * frail : 0, // marsh water: the meal is cooked and restores (VB-1582)
+      thirst = dry > 0 ? HEALTH.dry * frail : 0, // no water fetched (VB-1541: named for itself, not the house's damp)
+      damp = dry > 0 ? 0 : poor ? HEALTH.marsh * frail : 0, // marsh water: the meal is cooked and restores (VB-1582)
       ill =
         p.ill === undefined
           ? 0
           : ((p.ill.passes ? ILLNESS.passing : 1) * ILLNESS.fall * DAY) / (p.ill.until - p.ill.from),
       tired = tiredHealth(owedBy(st, p.id)), // the pawn's sleep owed, a whole night or more (sim/sleep, VB-1643, VB-1645)
       rest = cold <= 0 && dry <= 0 && fed && !ill ? HEALTH.recover * act(st, p.id, 'body', 'recover') : 0; // 2.5 to 3.5 by body (VB-520)
-    p.health = Math.max(0, Math.min(100, p.health - hungry - chill - damp - ill - tired + rest));
+    p.health = Math.max(0, Math.min(100, p.health - hungry - chill - thirst - damp - ill - tired + rest));
     if (st.player && st.player.pawn === p.id)
       emit(st, 'health', {
         pawn: p.id,
@@ -354,6 +355,7 @@ VB['sim/hunger'] = (() => {
         hungerLevel: p.hunger,
         hunger: hungry,
         cold: chill,
+        dry: thirst,
         damp,
         ill,
         tired,

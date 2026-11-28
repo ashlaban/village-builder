@@ -238,7 +238,7 @@ VB['sim/player'] = (() => {
       before: d.before,
       hunger: d.hungerLevel,
       food: Number.isFinite(food) ? food : null,
-      why: { hunger: d.hunger, cold: d.cold, damp: d.damp, ill: d.ill, tired: d.tired, rest: d.rest },
+      why: { hunger: d.hunger, cold: d.cold, dry: d.dry, damp: d.damp, ill: d.ill, tired: d.tired, rest: d.rest },
     });
     if (pl.days.length > DAYS_KEPT) pl.days.shift();
   });
@@ -256,12 +256,13 @@ VB['sim/player'] = (() => {
     return `${what}: done${at}.`;
   }
   // What moved the played pawn's levels over its last days, in words for its sheet: health, hunger and the household's food, each with
-  // its change and, for health, the causes that moved it most (hunger, cold, damp, illness; a full meal on a warm day restores). [] with
+  // its change and, for health, the causes that moved it most (hunger, cold, no water, marsh water, illness; a full meal on a warm day restores). [] with
   // fewer than two days kept, or nothing moved.
   const CAUSE_WORDS = {
     hunger: 'hunger',
     cold: 'a cold house',
-    damp: 'a damp house',
+    dry: 'no water fetched',
+    damp: 'marsh water',
     ill: 'illness',
     tired: 'lack of sleep',
     rest: 'rest and full meals',
@@ -277,7 +278,7 @@ VB['sim/player'] = (() => {
       days = n === 1 ? 'today' : `over ${n} days`;
     const dh = last.health - first.before;
     if (Math.abs(dh) >= 0.5) {
-      const sum = { hunger: 0, cold: 0, damp: 0, ill: 0, tired: 0, rest: 0 };
+      const sum = { hunger: 0, cold: 0, dry: 0, damp: 0, ill: 0, tired: 0, rest: 0 };
       for (const d of D) for (const k in sum) sum[k] += d.why[k] || 0; // tired absent in a day kept before VB-1643
       const causes = Object.keys(sum)
         .filter((k) => sum[k] >= 0.5 && (dh < 0 ? k !== 'rest' : k === 'rest'))
