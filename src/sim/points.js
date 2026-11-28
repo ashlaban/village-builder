@@ -11,7 +11,7 @@ VB['sim/points'] = (() => {
   const { controlOf } = VB['sim/controller'];
   const { unbound, travelling } = VB['sim/pose'];
   const { MEETING } = VB['sim/meetings'];
-  const { weighDay } = VB['sim/day'];
+  const { weighDay, dutiesToGive } = VB['sim/day'];
   const { allotted } = VB['sim/fit'];
   const Levies = VB['sim/levies'],
     Routines = VB['sim/routines'];
@@ -69,6 +69,9 @@ VB['sim/points'] = (() => {
     out.push({ point: 'year', body, deadline: meetingAfter(st.t) });
     out.push({ point: 'season', body, deadline: seasonReview(st, plan) });
     out.push({ point: 'ahead', body, deadline: plan.nextReview });
+    // the days-ahead review's duties to give (VB-1771): the types no member holds, and whom the default author would give each
+    const give = dutiesToGive(st, hh, plan);
+    if (give.length) out.push({ point: 'duty', body, give, deadline: plan.nextReview });
     const a = allotAfter(st.t);
     if (hh.farmstead !== null && choice(st, hh, plan)) {
       out.push({ point: 'allot', body, which: a.which ? 'afternoon' : 'morning', deadline: a.at });
