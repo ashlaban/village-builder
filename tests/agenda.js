@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1644: the agenda, the played pawn's queue and open work against their deadlines, a view the page reads. On a small constructed state:
 // two queued jobs lie end to end at the pawn's own estimate; a sowing that cannot end within its window is late; open work not queued is
 // listed with its deadline; a field project's step carries the steps after it to the sowing; the view writes nothing and no simulation

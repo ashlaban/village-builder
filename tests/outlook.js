@@ -1,3 +1,4 @@
+// @suite fast
 // The supply outlook (VB-666; sim/outlook, Sim.supplyOutlook): how long food, fuel and hay last, in seasons from the start of the season we
 // are in, on the probe's small village with its stores set by hand: a year's food and a month's; fuel that lasts the summer and not the
 // winter; hay for half a winter with meadows still to mow; the outlook made at the review, made again when a harvest stacked wakes it,

@@ -1,3 +1,4 @@
+// @suite integration
 // One keeping rule a good (VB-683): each stored good is lost by its row of sim/goods' keeping, alike in every store that holds it. Grain
 // by tiers of a year's need (a household's), the village's store flat at ECON.villageStoreTier; hay by tiers of its herds' winter; the
 // larder's lots and the fresh batches by their food's days; the larder's takes, losses and salting in the ledger as the grain's are.

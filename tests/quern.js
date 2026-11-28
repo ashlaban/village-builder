@@ -1,3 +1,4 @@
+// @suite fast
 // The hand quern (VB-009, sim/quern; design.md, Milling at home and The quern): a household grinds grain to flour at home, 1 work hour for
 // 4 grain on sandstone, a fifth slower on granite, while it holds grain above its seed reserve and less than 10 days of flour; the cook puts
 // flour in the pot at 1:1 and grain unground at 1.25 a ration, so the same grain feeds a household about 25% longer with a quern; a quern

@@ -1,3 +1,4 @@
+// @suite fast
 // The fixture cache (VB-272), on tiny stand-in saves in a scratch directory: no simulation run here (tests/fixtures.js loads real ones).
 const assert = require('assert'), fs = require('fs'), path = require('path'), zlib = require('zlib');
 const F = require('./lib/fixtures.js'), { runYears, clean } = require('../tools/fixtures.js');

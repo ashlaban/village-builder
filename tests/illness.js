@@ -1,3 +1,4 @@
+// @suite fast
 // Illnesses that are survived (VB-1246; sim/deaths, dayOfDeath): a pawn falls ill at an incidence of its own above the death roll's draws;
 // such a course passes and the pawn recovers, its health having fallen by ILLNESS.passing of the fall; a death drawn while it ails turns
 // the course to one that kills, so the roll's deaths are as before; a pawn whose health gives out dies of the illness. On a constructed

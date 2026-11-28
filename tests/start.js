@@ -1,3 +1,5 @@
+// @suite integration
+// @suite extended --people
 // The start's island (VB-340): the showcase island of the menu (DEMO, page/loader) re-seeded with each built scenario. Heirs asks for less
 // land on a small map (seedHeirs, sim/scenarios), so it fits that island; DEMO.start lists the seeds of DEMO.seeds where every scenario fits.
 // `--people` also checks the start's people at each map size (START_PEOPLE, page/start) against Sim.seed at the seeds of DEMO.seeds (extended).

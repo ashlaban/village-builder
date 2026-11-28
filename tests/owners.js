@@ -1,3 +1,4 @@
+// @suite integration
 // Villages and tile owners: every farm has a village, seeding gives the owners (houses, fields, meadows), an empty farm passes to its village.
 // On the small islands (VB-854).
 const VB = require('../src/load.js'), Sim = VB.sim;

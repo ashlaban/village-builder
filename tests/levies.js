@@ -1,3 +1,4 @@
+// @suite integration
 // The household's levy on a member (VB-1760; design.md section 7, The levy and own hours): the custom's hours a day by season, read through
 // sim/customs' door; each member's levy by its row times its hands, the head pair not levied, a child under 7 neither levied nor allotted;
 // compiled once a season a member; the head's day gives a levied member tasks up to its levy left today (the levy less the household's

@@ -1,3 +1,4 @@
+// @suite fast
 // Forest spread (VB-091, sim/spread): open land beside forest, or beside scrub at half cover or more, gains trees as regrowth does (a
 // quarter of full cover, scrub, in about 8 years; full cover in 30, when it is forest, pine where most of its forest neighbours are), unless a
 // field in use, a house, a green, a meadow mown within the year, work within the year or grazing at GRAZE.keepsOpen keeps it open; grazing at

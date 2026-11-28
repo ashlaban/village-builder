@@ -1,3 +1,6 @@
+// @suite fast
+// @suite integration --integration
+// @suite extended --extended
 // Worn paths (VB-094): crossings count on open land, fields and meadows, not on houses, greens or water, the count halves in a game year, stages with a margin, the page is told,
 // and in a run the wear sits where pawns walk; generated villages start worn in (VB-114); the map's trails reach their neighbours and keep
 // trees off paths and lanes. Three cases: the thresholds, wear and fading on the probe village (npm test); with --integration (verify,

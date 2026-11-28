@@ -1,3 +1,4 @@
+// @suite integration
 // tools/chain.js: on a scratch state file, a chain starts the first ready task of its size with the model of its size, waits while a
 // leaf runs, skips the tasks an open PR names and those it took, and stops at N, at two unfinished in a row, and at a leaf's stop.
 const fs = require('fs'), os = require('os'), path = require('path'), { spawnSync } = require('child_process');

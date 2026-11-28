@@ -1,3 +1,4 @@
+// @suite extended
 // The archipelago editor in real Chromium: Archipelago editor on the main menu opens a world alone on the stage (no run, none of the game's
 // interface); the tools at the top left open their panels in the one scene, Play and Main menu are at the top right and there is no Back; a
 // changed form is said to be changed, and Regenerate raises the world it asks for; Main menu goes back, and a game that was open comes back

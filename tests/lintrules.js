@@ -1,3 +1,4 @@
+// @suite fast
 // The line rules of tests/lint.js on single lines: the page writes to st, and clock or random use in the modules.
 const assert = require('assert'), { clockUse, pageWrites, counterUses, splitTask } = require('./lint-rules.js');
 for (const l of ['st.t = 5;', 'st.pawns[3].household = 1', 'st.jobs.set(k, j)', 'st.events.push(e)', 'st.x.y += 2', 'n = ++st.jobSeq', 'st.jobSeq++', 'st.rigDirty.add(3)',

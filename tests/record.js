@@ -1,3 +1,4 @@
+// @suite integration
 // The record of events (VB-075): after 10 founders years at seed 7, every pawn ever born has a born event, every dead pawn a died event and
 // every union a married event; recordOf filters by pawn, place, kind and time and returns time order. VB-199: a pawn's events are
 // positions in the record and read as they did, every kind is in HISTORY, and the routine kinds fold into yearly counts.

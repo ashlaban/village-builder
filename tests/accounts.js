@@ -1,3 +1,4 @@
+// @suite fast
 // The balance accounts (VB-403, tools/accounts.js): on the roomy island of tests/lib/probe.js (VB-862), the heirs scenario, 3 years (it has gifts, the village store,
 // handings on and deaths in that time), the food account closes within 1% of the produce with `unexplained` counted (what the
 // lines and the change in stores leave over, the stocks read apart from the movements), the people account's births and arrivals less
@@ -8,9 +9,8 @@
 // Each run is a child process: the report's loader wraps modules as they load, which one process does once.
 const assert = require('assert'), cp = require('child_process'), path = require('path'), crypto = require('crypto');
 const SEED = 7, SCENARIO = 'heirs', YEARS = 3;
-// goods whose account cannot close yet, and why: a building's timber trip books the timber into its household's (or village's) ledger
-// while the load lies at the site, and the building takes it from there unbooked (sim/building KINDS.timber deliver)
-const OPEN = { timber: 'VB-1705' };
+// goods whose account cannot close yet, and why (none now)
+const OPEN = {};
 const TINY = ['..............', '...FF.........', '...FF.........', '..............', '..........FF..', '..............', '.........^^...',
   '..............', '~.............', '~~............'];
 

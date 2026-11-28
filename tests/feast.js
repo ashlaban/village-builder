@@ -1,3 +1,4 @@
+// @suite integration
 // The feast (VB-458; design.md, The gift: The feast, What a feast books): at a wedding or a funeral ale at its farm, a host whose grain stands
 // above its seed and FEAST.above years of need lays out the lesser of its share of the surplus and FEAST.perGuest a ration of need of those
 // who came, less the ale's grain; each eats its part as the day's meal, and each guest household's holder owes the host's holder its worth.

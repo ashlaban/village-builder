@@ -1,3 +1,4 @@
+// @suite extended
 // The start (VB-340) in real Chromium: New archipelago opens it in place of the form; each built scenario is chosen from its card and shown on
 // the showcase island with its callouts inside the picture; pointing at an archetype lights its people and changes no element's size; each
 // scenario is raised from the start into whom to play; a game that is open is kept aside and comes back with Back; one column on a narrow

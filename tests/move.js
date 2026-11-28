@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1667: the farmstead placed anywhere reachable on foot. Placed off the landing, the house moves and nothing teleports: the grain (by
 // crop, but for the head's back load), the firewood and the hay lie at the landing as loads to fetch, the carts stand there and the herds
 // with them; the farmstead task drives the herds, fetches the carts and the loads, then fetches its timber and raises the shelter. A lone

@@ -1,3 +1,4 @@
+// @suite integration
 // Herding and grazing pressure (VB-136, sim/grazing): each grazing day a household with animals posts `herd` from 6:00, a background task
 // a herder of 8 or more takes; it takes the herds to a pasture within 8 steps (open land or wood, not a field or another household's),
 // minds them 9 hours within reach, adding pressure, then brings them home. The pressure halves each year in closed form. A herd left by

@@ -13,7 +13,7 @@ VB['sim/lifecycle'] = (() => {
   const { stillAtDeath } = VB['sim/agents'],
     { tileAt, placeOf, travelling } = VB['sim/pose'];
   const { heirRanking, successorOf } = VB['sim/heirranking'],
-    { transfer, succession, comeOfAge, refreshRoles } = VB['sim/heirs'];
+    { transfer, succession, comeOfAge, refreshRoles, setGuardian } = VB['sim/heirs'];
   const { careForOrphans } = VB['sim/service'];
   const { refreshStanding } = VB['sim/society'];
   const { playerDied, clearMatchWish } = VB['sim/player'];
@@ -74,6 +74,14 @@ VB['sim/lifecycle'] = (() => {
       succession(st, st.households[held.household], 'death');
     }
     inheritedHeld(st);
+    if (st.demand.includes(id)) st.demand = st.demand.filter((q) => q !== id); // the living who want out only (VB-1983)
+    for (const hid of st.liveHouseholds) {
+      // a ward's dead guardian is replaced by the next one in the house, or none (VB-1983)
+      const g = st.households[hid];
+      if (g.guardian !== id) continue;
+      if (st.pawns[g.ward]?.alive && st.pawns[g.ward].age < 18) setGuardian(st, g, g.ward);
+      else g.guardian = null;
+    }
     endGoodwill(st, id); // after succession, which passes a holder's share on
     refreshRoles(st);
     refreshStanding(st);

@@ -1,3 +1,4 @@
+// @suite fast
 // Backlog check: every backlog/VB-NNN.md has one row, in BACKLOG.md under its status's section (Ready, Waiting for Kim, Blocked) or, when done,
 // in BACKLOG_ARCHIVE.md under "## Done tasks", and vice versa. Each row's link, name, arch, priority and size match the task file; the phase has no
 // column but must agree with the name ("Plan: ..." is a plan, "Wrap-up: ..." a wrap-up, any other an implement task). The open sections are sorted

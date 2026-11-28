@@ -1,3 +1,4 @@
+// @suite integration
 // What lies out degrades (VB-1910; design.md, Goods and the farming year, Risk): a lying load loses LYING.frostLoss of its amount each
 // game day once the year's frost has come, booked to its owner as spoilage is ('lying'), and is gone under LYING.quantum, told as the
 // frost's; a cart left standing goes at the frost as before. The head's estimate (sim/outlook, parts.lying) is the same reckoning. A tiny

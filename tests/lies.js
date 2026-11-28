@@ -1,3 +1,4 @@
+// @suite integration
 // Lies and counter-stories (sim/stories, VB-554; design.md, Traits, talk and stories: Stories, the rows Lies, Exposure and What the
 // player hears), on a constructed state of one village, chances forced with `fix`: only an enemy is lied about, and an honourable pawn
 // never lies; a witness exposes a lie and a stranger believes it; the counter-story's valence by the hearer's honour; the verb slander

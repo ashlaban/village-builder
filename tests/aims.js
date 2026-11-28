@@ -1,3 +1,4 @@
+// @suite integration
 // VB-255 (design.md section 7, How a holder chooses: projects): a head with a surplus takes one project from a menu weighed by its values,
 // and drops it when the surplus is gone a whole season; a barn halves what the farm loses to spoilage, of grain and of barn hay. On a tiny
 // village.

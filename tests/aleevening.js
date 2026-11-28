@@ -1,3 +1,4 @@
+// @suite integration
 // The ale evening and the season's rite (VB-522; design.md, Where pawns meet). On a constructed state (tests/lib/probe.js, two villages
 // of two farms, 1.75 walking hours apart (14 tiles at 8 an hour)): no barrel, no evening; a barrel kept for a wedding at the farm is not poured; a second host of
 // the village the same day waits; a guest 2 hours away is not asked; the barrel leaves the store once, and only if a guest came; the

@@ -1,3 +1,4 @@
+// @suite integration
 // VB-207: a death's cause is read from the contributions of death.hazard. Contributions with other causes are registered before seeding,
 // in a process of their own, in each order; the share of each cause must not depend on the order.
 const assert = require('assert'), cp = require('child_process'), path = require('path');

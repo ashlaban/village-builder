@@ -1,3 +1,4 @@
+// @suite integration
 // tools/samepixels.js (VB-1500): its painter on a small generated island bakes the same hashes twice, and catches a pigment changed by a
 // little and one mark moved by a few units; the cover set by hand shows and its restore leaves nothing stale; a stray option is refused.
 const assert = require('assert'), path = require('path'), cp = require('child_process');

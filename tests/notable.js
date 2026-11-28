@@ -1,3 +1,4 @@
+// @suite integration
 // Notable events (VB-098): `Sim.notable(st, ev, about)` gives the reasons a record event is notable (keys of `Sim.NOTABLE`) or null, and
 // `Sim.eventLine` tells an event in one sentence, a death as the village log told it. The heirs scenario at seed 7, on the 48 by 34 island
 // of tests/lib/probe.js (VB-856; the default island before).

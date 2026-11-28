@@ -1,3 +1,5 @@
+// @suite integration
+// @suite extended --extended
 // tools/sim.js: the yearly table prints, and --json --report households parses with one entry per household; its reports and tools/balance.js.
 // On the probe map, the 36 by 26 island of tests/lib/probe.js (VB-856; the tiny map, 120 by 85, before). Verify runs the tool three times:
 // a year of founders with the idle report as text, saved; the households report from that save; populous's worn-in paths. --extended, at

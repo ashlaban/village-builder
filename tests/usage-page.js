@@ -1,3 +1,4 @@
+// @suite fast
 // tools/usage-page.js on constructed runs: a sub-agent's cost goes to the task its prompt named; a session of its own to the task its
 // file names, or the one that heads two thirds of its commits; an orchestrator and a session with no one task are listed apart; a
 // task measured twice is the sum; and the page is written with its data.

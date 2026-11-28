@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1601: water at a site (design.md, Water by the site, The thirsty pawn: a pawn working away drinks and fetches at the site's source in
 // the same way). On drawn maps (tests/lib/tiny.js): a booth's water is a job of the booth's own, posted each day at the booth's source
 // (found once) and walked by one who sleeps there, before its tasks; the day it is not in, those who sleep there end their day by their

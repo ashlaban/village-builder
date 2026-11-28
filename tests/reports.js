@@ -1,3 +1,4 @@
+// @suite fast
 // Report calculations use explicit data; one CLI call checks wiring without simulating years.
 const assert = require('assert'), { execFileSync } = require('child_process');
 const st = { t: 0, households: [0, 1, 2, 3].map((id) => ({ id, farmstead: id, holder: id, members: [id], hungryDays: 0, grain: id * 100 })),

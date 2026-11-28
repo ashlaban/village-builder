@@ -1,3 +1,4 @@
+// @suite integration
 // Milk and butter (VB-135): a cow that calved this spring is in milk from turn-out to the byre; a daily milking job gives 0.5 rations a cow,
 // less for the winter's lean days; 40% is churned to butter that keeps a year, the rest is drunk within the day; no milk in the byre.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, H = VB['sim/herds'], Y = VB['sim/byre'], L = VB['sim/larder'], { dailyNeed } = VB['sim/hunger'];

@@ -1,3 +1,4 @@
+// @suite fast
 // The seasons' weather (VB-354; design.md, Crops and the weather), on drawn years and a small constructed state: barley's factor over
 // 1,000 drawn years has the mean and spread of the yearly factor it replaced (0.75 to 1.2 evenly: mean 0.975, deviation 0.13), both
 // printed; each crop reads its own seasons (a dry summer leaves rye whole, a hard snowless winter touches only rye); the thaw falls on

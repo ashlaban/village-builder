@@ -1,3 +1,4 @@
+// @suite integration
 // The good is made where the work is done (VB-1748; design.md section 7, Plans at four scales): a kind that made its good on delivery
 // makes it as its work leg ends, and its load in hand is the good: a carrier cut on the road leaves it lying as a pile of its owner's
 // (sim/lying), fetched home by its fetch kind. A trip's yield accrues with the work: a gathering trip cut at half its hours leaves half its

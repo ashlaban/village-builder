@@ -1,3 +1,4 @@
+// @suite integration
 // The ways to a farm share one table of bars (sim/holding, VB-688): every bar has its check once the modules are loaded, each way reads only
 // names of the table, a holder is barred as landed by every way that reads it, a minor as under 18, and goesWith takes the holder's spouse
 // and minor children living with them, never a grown child.

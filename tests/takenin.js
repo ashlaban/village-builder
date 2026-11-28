@@ -1,3 +1,4 @@
+// @suite integration
 // Taken in before it starves (VB-308; design.md, Households short of people): a household of at most one grown member, with fields, whose
 // seasonal ask for food falls short takes in its nearest free relative from st.demand (kin first), else a servant, at once; land is unchanged.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], S = VB['sim/service'], H = VB['sim/help'];

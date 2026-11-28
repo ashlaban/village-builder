@@ -1,3 +1,4 @@
+// @suite integration
 // VB-048: the band `own-food` (tests/lib/bands.js): a farm's own food over its need, island-wide, read as a ratio of sums, not a mean of
 // per-household ratios (which an empty or small household inflates), and sampled from a real run's ledgers.
 const assert = require('assert');
