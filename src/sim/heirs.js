@@ -1,7 +1,7 @@
 // @sys sim/heirs: succession: heir ranking, handovers, moving between households, roles
 VB['sim/heirs'] = (() => {
   const { home } = VB['sim/records'];
-  const { setServant, living } = VB['sim/records'];
+  const { setServant, living, noteRoles } = VB['sim/records'];
   const { moveWhy } = VB['sim/wishes'];
   const {
     joinHousehold,
@@ -106,8 +106,12 @@ VB['sim/heirs'] = (() => {
       passGoodwill(st, old, heir, GOODWILL.share);
     if (op && op.alive && op.household === hh.id && op.id !== heir) {
       op.retired = true;
+      noteRoles(op.id);
       const s = spouseOf(st, old);
-      if (s !== null && st.pawns[s].alive) st.pawns[s].retired = true;
+      if (s !== null && st.pawns[s].alive) {
+        st.pawns[s].retired = true;
+        noteRoles(s);
+      }
     }
     // shares for the siblings who do not inherit
     if (cu.heirCount !== 'one' && reason !== 'claim') {

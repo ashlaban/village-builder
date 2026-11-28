@@ -420,7 +420,24 @@ VB['sim/records'] = (() => {
   }
   // @state pawn.household, pawn.servant, household.members: membership and service, written only here, as caches of the membership graph
   //   (sim/graph): each move writes its edge with them (VB-043).
+  // The pawns whose role a handover may have changed (VB-1369): joins, leaves, service, holder changes and retirement note them while a
+  // tracking runs (trackRoles), so that a death or retirement refreshes those and no others.
+  let roleTouched = null;
+  function noteRoles(id) {
+    if (roleTouched !== null && id !== null && id !== undefined) roleTouched.add(id);
+  }
+  function trackRoles(st, ids, fn) {
+    if (roleTouched !== null) return fn(); // nested: the outer one refreshes
+    roleTouched = new Set(ids);
+    try {
+      fn();
+      return roleTouched;
+    } finally {
+      roleTouched = null;
+    }
+  }
   function joinHousehold(R, hh, id, servant = R.pawns[id].servant) {
+    noteRoles(id);
     if (!hh.members.includes(id)) {
       hh.members.push(id);
       Graph.link(R, id, hh.id, 'resides');
@@ -432,6 +449,7 @@ VB['sim/records'] = (() => {
   }
   // Death keeps the last household and service on the historical person record.
   function leaveHousehold(st, id, historical = false) {
+    noteRoles(id);
     const p = st.pawns[id],
       hh = p.household !== null ? st.households[p.household] : null;
     if (hh) {
@@ -444,12 +462,14 @@ VB['sim/records'] = (() => {
     if (!historical) p.household = null;
   }
   function clearMembers(st, hh) {
+    for (const m of hh.members) noteRoles(m);
     Crowding.moved(st, hh, -hh.members.length);
     if (st.edges) Graph.end(st, Graph.liveTo(st, 'resides', hh.id)); // kept on their records (VB-043)
     hh.members = [];
   } // an empty household is skipped by the check, so it is not noted
   // @state pawn.servedSince: the game hour a pawn entered service (null outside it), kept with pawn.servant (VB-634).
   function setServant(st, id, servant) {
+    noteRoles(id);
     const p = st.pawns[id];
     if (servant && !p.servant) Graph.link(st, id, p.household, 'service');
     else if (!servant && p.servant && st.edges) Graph.end(st, Graph.liveFrom(st, 'service', id), true);
@@ -534,6 +554,10 @@ VB['sim/records'] = (() => {
     return x;
   }
   function noteHolder(st, hh) {
+    if (roleTouched !== null) {
+      noteRoles(hh.holder);
+      for (const m of hh.members) noteRoles(m);
+    }
     Graph.single(st, 'holder', hh.id, hh.holder);
     if (st.idx && hh.id < st.idx.nh) addHolder(st.idx, hh);
   } // households not yet indexed are added by index()
@@ -848,6 +872,8 @@ VB['sim/records'] = (() => {
     voiceOf,
     holdingOf,
     noteHolder,
+    trackRoles,
+    noteRoles,
     noteUnionEnd,
     unionOf,
     wasWidowed,

@@ -145,6 +145,7 @@ function taskLine(id) {
   const whose = v === null ? 'its own' : 'your';
   return `${T.label}: ${Math.round(T.done * 100)}% done${T.left ? `, ${dayRange(T.left)} left by ${whose} reckoning` : ''}`;
 }
+cardRow('person', 80, taskLine); // the person card's last line (page/cardrows)
 // The Today section: read from Sim.timetable, by the inhabited pawn's estimate (the head's with none played).
 function dayHTML(hh, mine) {
   const T = Sim.timetable(st, hh, dayViewer());
