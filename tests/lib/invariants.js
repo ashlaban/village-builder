@@ -160,13 +160,8 @@ function checkState(st) {
       ))
   )
     bad.push('decisionLog: over its bound, or a choice outside its options');
-  // VB-323: the households to check for a missing adult: live ids, no duplicates
-  if (
-    !Array.isArray(st.peopleCheck) ||
-    new Set(st.peopleCheck).size !== st.peopleCheck.length ||
-    st.peopleCheck.some((id) => !st.households[id] || st.households[id].dissolved)
-  )
-    bad.push('peopleCheck: not a list of distinct live household ids');
+  // VB-323: the households to check for a missing adult: a list (its ids live and distinct: the walk of ids, below)
+  if (!Array.isArray(st.peopleCheck)) bad.push('peopleCheck: not a list');
   // VB-766: a household's compiled crowding equals a fresh count of the people within CROWD.steps of its house
   {
     const Cr = globalThis.VB['sim/crowding'];
@@ -178,16 +173,7 @@ function checkState(st) {
       }
     }
   }
-  // VB-1481: a pawn holds at most one live household (a marriage hands a farm on before the holder is counted twice)
-  {
-    const seen = new Map();
-    for (const hh of st.households) {
-      if (hh.dissolved || hh.holder === null || hh.holder === undefined) continue;
-      if (seen.has(hh.holder))
-        bad.push(`holders: pawn ${hh.holder} holds households ${seen.get(hh.holder)} and ${hh.id}`);
-      else seen.set(hh.holder, hh.id);
-    }
-  }
+  // VB-1481: a pawn holds at most one live household: the walk of ids (below), st.households[].holder unique
   // VB-311: titles: each names a holding that exists (a farm by its house, a field or meadow of its farm by its tile); its owner and user
   // live households or villages (the owner a living pawn on the basis `inherited`, VB-034); its since, rent and kind sound
   if (st.titles) {
@@ -1717,14 +1703,8 @@ function checkState(st) {
     }
     if (new Set(h.members).size !== h.members.length) bad.push(`households[${h.id}]: duplicate members ${h.members}`);
     for (const id of h.members) {
-      const p = st.pawns[id];
-      if (!p) {
-        bad.push(`households[${h.id}]: member ${id} does not exist`);
-        continue;
-      }
-      if (!p.alive) bad.push(`households[${h.id}]: member ${id} is dead`);
-      if (memberOf.has(id)) bad.push(`pawns[${id}]: in households ${memberOf.get(id)} and ${h.id}`);
-      memberOf.set(id, h.id);
+      // a member that exists, living, in no other household: the walk of ids (below)
+      if (!memberOf.has(id)) memberOf.set(id, h.id);
     }
     if (
       h.holder !== null &&
@@ -1733,8 +1713,6 @@ function checkState(st) {
       !(st.liveTrusts || []).some((i) => st.trusts[i].household === h.id)
     )
       bad.push(`households[${h.id}]: holder ${h.holder} is not a member`);
-    if (h.holder !== null && st.pawns[h.holder] && !st.pawns[h.holder].alive)
-      bad.push(`households[${h.id}]: holder ${h.holder} is dead`);
     if (grainBad(h.grain)) bad.push(`households[${h.id}]: grain ${JSON.stringify(h.grain)}`);
     for (const k of ['wood', 'peat', 'meals', 'flour', 'hungryDays'])
       if (!within(h[k], 0, 1e6)) bad.push(`households[${h.id}]: ${k} is ${h[k]}`);
@@ -2285,7 +2263,6 @@ function checkState(st) {
       if (p.marsh !== undefined && !(Number.isInteger(p.marsh) && p.marsh <= st.t / 24))
         bad.push(`pawns[${p.id}]: marsh is ${p.marsh}`);
     } else {
-      if (memberOf.has(p.id)) bad.push(`pawns[${p.id}]: dead but in household ${memberOf.get(p.id)}`);
       if (p.died === null) bad.push(`pawns[${p.id}]: dead without a died time`);
     }
     if (p.alive && p.nursling !== null && p.nursling !== undefined) {
@@ -2506,12 +2483,7 @@ function checkState(st) {
   if (st.claims) {
     const CL = VB['sim/claims'],
       WHY = ['outland', 'field', 'meadow', 'farm', 'birthright', 'site'];
-    const exists = (by) =>
-      by.type === 'pawn'
-        ? !!st.pawns[by.id]
-        : by.type === 'household'
-          ? !!st.households[by.id]
-          : by.type === 'village' && !!st.villages[by.id];
+    // each claimant exists, and none is a dissolved household: the walk of ids (below)
     for (const [tile, list] of st.claims) {
       if (!tileOk(tile)) bad.push(`claims: tile ${tile} out of range`);
       if (!list.length) bad.push(`claims[${tile}]: empty list kept`);
@@ -2520,13 +2492,10 @@ function checkState(st) {
         const k = c.by.type + ':' + c.by.id;
         if (seen.has(k)) bad.push(`claims[${tile}]: ${k} claims twice`);
         seen.add(k);
-        if (!exists(c.by)) bad.push(`claims[${tile}]: claimant ${k} does not exist`);
         if (!['unrealised', 'realised'].includes(c.state) || !WHY.includes(c.why))
           bad.push(`claims[${tile}]: ${k} is ${c.state}, ${c.why}`);
         if (!within(CL.strength(st, c), 0, 1) || !(c.seq > 0 && c.seq <= st.claimSeq))
           bad.push(`claims[${tile}]: ${k} strength or seq ${c.seq}`);
-        if (c.by.type === 'household' && st.households[c.by.id] && st.households[c.by.id].dissolved)
-          bad.push(`claims[${tile}]: dissolved household ${c.by.id}`);
         // only villages claim outland (VB-156); a village claims only outland, and a common field's tile (VB-100)
         if ((c.why === 'outland') !== (c.by.type === 'village') && !(c.why === 'field' && c.by.type === 'village'))
           bad.push(`claims[${tile}]: ${k} claims ${c.why}`);
@@ -3909,6 +3878,7 @@ function checkState(st) {
         bad.push(`agents[${a.id}]: at occasion ${a.occasion}, which ${o ? 'does not list it' : 'is not in the queue'}`);
     }
   }
+  for (const e of idBreaches(st)) if (!knownOf(e)) bad.push(e); // VB-1683: every id resolves, an ended party holds nothing
   return bad;
 }
 // Herds (sim/herds, VB-131): each listed by its living household and no other, or emptied with no household; counts whole and not negative;
@@ -3945,8 +3915,8 @@ function checkHerds(st, bad) {
       continue;
     }
     const hh = st.households[hd.household];
-    if (!hh || hh.dissolved) bad.push(`${where}: household ${hd.household} missing or dissolved`);
-    else if (hh.herds.filter((id) => id === hd.id).length !== (standing ? 0 : 1))
+    // its household exists and stands: the walk of ids (below)
+    if (hh && hh.herds.filter((id) => id === hd.id).length !== (standing ? 0 : 1))
       bad.push(`${where}: ${standing ? 'standing away but listed' : 'not listed once'} by household ${hd.household}`);
     if (!Number.isInteger(hd.home) || hd.home < 0 || hd.home >= st.w.N) bad.push(`${where}: home tile ${hd.home}`);
     if (hd.species === 'cattle') {
@@ -3987,8 +3957,6 @@ function checkHerds(st, bad) {
       bad.push(`${where}: fleece ${hd.fleece}`);
     // herding (sim/grazing, VB-136): out with a living pawn, of the household or one working off days it owes it (VB-462, VB-463's keep: the
     // job is the household's, whoever takes it), or by the farm; taken out last on a past day, or never (-1)
-    if (hd.herder !== null && !(st.pawns[hd.herder] && st.pawns[hd.herder].alive))
-      bad.push(`${where}: herder ${hd.herder}`);
     if (!(Number.isInteger(hd.herded) && hd.herded >= -1 && hd.herded <= Math.floor(st.t / 24)))
       bad.push(`${where}: herded on day ${hd.herded}`);
     // the household's kept pasture (sim/grazing, VB-136): absent, or a tile of the map chosen on a past day
@@ -4326,7 +4294,6 @@ function checkFollowers(st, bad) {
       continue;
     }
     if (l === p.id) bad.push(`${where}: looks to itself`);
-    if (!st.pawns[l].alive) bad.push(`${where}: looks to ${l}, who is dead`);
     for (let x = l, n = 0; x !== null && x !== undefined; x = st.pawns[x].looksTo, n++)
       if (x === p.id || n > st.pawns.length) {
         bad.push(`${where}: a cycle of lords through ${l}`);
@@ -4436,3 +4403,163 @@ function checkCaches(st, { crowding = true } = {}) {
 }
 module.exports.checkCaches = checkCaches;
 module.exports.CACHES_UNCOMPARED = CACHES_UNCOMPARED;
+
+// VB-1683 (M1, M3 of the principles review of 24 November): every id-typed field of st is declared once, in src/owners.json `ids`, as
+// 'KIND live|history [unique]'; one walk resolves them all. A live id names a living pawn, an undissolved household, a farm or a village
+// that exists; a history id one that exists. A record of an ended party (a dead pawn, its agent, a dissolved household) keeps its ids as
+// history: what it holds is checked below instead. `unique`: no party is reached twice in live records (a pawn in two households, holding
+// two). A path's steps: a key, `[]` each element, `{}` each value (of an object or Map), `<>` each key. Then what an ended party holds (M3):
+// a dead pawn no stake, load or task; a dissolved household no good in any store, herd, cart, claim, right or obligation. A breach an open
+// repair covers is KNOWN, by that task: left out of checkState (knownBreaches lists them) until the repair lands.
+// The record's ids are history, checked as each event is appended (VB-075, above), so that the walk does not grow with the record; the
+// graph's edges join parties of several kinds by role and are checked by sim/graph's own check (checkCaches).
+const IDS = Object.entries(require('../../src/owners.json').ids).map(([path, spec]) => {
+  const [kind, as, unique] = spec.split(' ');
+  return { path, steps: path.slice(3).match(/[^.[{<]+|\[\]|\{\}|<>/g), kind, live: as === 'live', unique: !!unique };
+});
+// a household's stores (sim/stores field, sim/larder, sim/pot, sim/leather, sim/quern), and the sheaves not yet threshed
+const STORE_FIELDS = [
+  'grain',
+  'meals',
+  'flour',
+  'wood',
+  'timber',
+  'stone',
+  'peat',
+  'tar',
+  'hides',
+  'salt',
+  'wool',
+  'yarn',
+  'cloth',
+  'iron',
+  'clay',
+  'bogOre',
+  'rack',
+  'hay',
+  'manure',
+  'ale',
+  'larder',
+  'fresh',
+  'unthreshed',
+  'shoes',
+  'quern',
+];
+const KNOWN = [
+  { task: 'VB-1476', re: /^pawns\[\d+\]: dead, holding a stake/ },
+  { task: 'VB-1620', re: /^households\[\d+\]: dissolved, holding shoes/ },
+  // what VB-650 left in the closed record (VB-1175's line); VB-1697 passes it with the farm
+  { task: 'VB-1697', re: /^households\[\d+\]: dissolved, holding (?!shoes)\w+ / },
+  { task: 'VB-1982', re: /^households\[\d+\]: dissolved, holding obligations/ },
+  // a death leaves its id where a living pawn is named: those who want out, a ward's guardian
+  { task: 'VB-1983', re: /^st\.(demand\[\d+\]|households\[\d+\]\.guardian): pawn \d+ is dead/ },
+];
+// Declared history, not live, where the design lets an ended party's id stand until a later turn ends it: an offer to one who has died
+// lapses at its due (sim/offers close); a dead claimant's claim ends at the moving round (sim/farmclaims); a talk's record is its last;
+// a dead alderman's office is vacated at the autumn meeting (sim/meetings aldermanMeeting), and the keep owed his household with it.
+// A relationship with one who has died is dropped at the season's pass (sim/relations; the relationships' check, above).
+function idBreaches(st) {
+  const out = [],
+    P = st.pawns,
+    H = st.households,
+    ended = (coll, x) =>
+      !!x &&
+      ((coll === 'pawns' && x.alive === false) ||
+        (coll === 'households' && x.dissolved === true) ||
+        (coll === 'agents' && !!P[x.id] && !P[x.id].alive)),
+    exists = {
+      pawn: (id) => !!P[id],
+      household: (id) => !!H[id],
+      farm: (id) => !!st.farmsteads[id],
+      village: (id) => !!st.villages[id],
+    },
+    alive = { pawn: (id) => P[id].alive, household: (id) => !H[id].dissolved, farm: () => true, village: () => true };
+  for (const d of IDS) {
+    const seen = d.unique ? new Map() : null;
+    const resolve = (v, where, live) => {
+      if (v === null || v === undefined || v === -1) return;
+      let kind = d.kind,
+        id = v;
+      if (kind === 'party') {
+        kind = v && typeof v === 'object' ? v.type || v.kind : null; // an obligation's party is {kind, id} (sim/obligations)
+        if (!exists[kind]) return out.push(`${where}: ${JSON.stringify(v)} is no party`);
+        id = v.id;
+      }
+      if (typeof id === 'string' && /^\d+$/.test(id)) id = +id;
+      if (!Number.isInteger(id) || !exists[kind](id)) return out.push(`${where}: ${kind} ${id} does not exist`);
+      if (!live) return;
+      if (d.live && !alive[kind](id)) out.push(`${where}: ${kind} ${id} is ${kind === 'pawn' ? 'dead' : 'dissolved'}`);
+      if (seen) {
+        if (seen.has(kind + id)) out.push(`${d.path}: ${kind} ${id} at ${seen.get(kind + id)} and ${where}`);
+        else seen.set(kind + id, where);
+      }
+    };
+    const go = (x, i, where, coll, live) => {
+      if (x === null || x === undefined) return;
+      if (i === d.steps.length) return resolve(x, where, live);
+      const s = d.steps[i];
+      if (s === '[]' || s === '{}') {
+        const each = (v, k) => go(v, i + 1, `${where}[${k}]`, null, live && !ended(coll, v));
+        if (x instanceof Map) for (const [k, v] of x) each(v, k);
+        else if (Array.isArray(x)) x.forEach(each);
+        else if (typeof x === 'object') for (const k of Object.keys(x)) each(x[k], k);
+      } else if (s === '<>') {
+        const keys = x instanceof Map ? [...x.keys()] : typeof x === 'object' ? Object.keys(x) : [];
+        for (const k of keys) go(k, i + 1, `${where}<${k}>`, null, live);
+      } else if (typeof x === 'object')
+        go(x instanceof Map ? x.get(s) : x[s], i + 1, `${where}.${s}`, i === 0 ? s : null, live);
+    };
+    go(st, 0, 'st', null, true);
+  }
+  // M3: what an ended party holds
+  for (const p of P) {
+    if (p.alive) continue;
+    const a = st.agents[p.id];
+    if (p.stake > 1e-9) out.push(`pawns[${p.id}]: dead, holding a stake of ${p.stake}`);
+    if (p.load) out.push(`pawns[${p.id}]: dead, holding a fair load`);
+    if (a && (a.load > 0 || a.carry))
+      out.push(`pawns[${p.id}]: dead, holding a load ${a.load || JSON.stringify(a.carry)}`);
+    if (a && a.job) out.push(`pawns[${p.id}]: dead, holding a task ${a.job.key}`);
+  }
+  const dissolved = new Set(H.filter((h) => h.dissolved).map((h) => h.id)),
+    party = (r) => !!r && r.type === 'household' && dissolved.has(r.id),
+    held = (v) =>
+      typeof v === 'number'
+        ? v
+        : Array.isArray(v)
+          ? v.length
+          : v && typeof v === 'object'
+            ? Object.values(v).reduce((n, x) => n + (typeof x === 'number' ? x : 1), 0)
+            : 0;
+  for (const id of dissolved) {
+    const h = H[id];
+    // its stores read as they lie (sim/stores refuses a dissolved holder): each good's field, and the lots of ale, larder and fresh food
+    for (const k of STORE_FIELDS)
+      if (held(h[k]) > 1e-9) out.push(`households[${id}]: dissolved, holding ${k} ${JSON.stringify(h[k])}`);
+    if ((h.herds || []).length) out.push(`households[${id}]: dissolved, holding herds ${h.herds}`);
+    if ((h.carts || []).length) out.push(`households[${id}]: dissolved, holding ${h.carts.length} carts`);
+    for (const as of ['debtor', 'creditor'])
+      if (st.obligationsBy && (st.obligationsBy[as]['household:' + id] || []).length)
+        out.push(`households[${id}]: dissolved, holding obligations as ${as}`);
+  }
+  if (dissolved.size) {
+    for (const hd of st.herds || [])
+      if (dissolved.has(hd.household)) out.push(`households[${hd.household}]: dissolved, holding herd ${hd.id}`);
+    for (const [tile, list] of st.claims || [])
+      for (const c of list) if (party(c.by)) out.push(`households[${c.by.id}]: dissolved, holding a claim on ${tile}`);
+    for (const [k, t] of st.titles || [])
+      for (const r of ['owner', 'user'])
+        if (party(t[r])) out.push(`households[${t[r].id}]: dissolved, holding a right (${r} of ${k})`);
+  }
+  return out;
+}
+const knownOf = (e) => (KNOWN.find((k) => k.re.test(e)) || {}).task;
+// The breaches the open repairs cover, each with its task's ID
+function knownBreaches(st) {
+  return idBreaches(st)
+    .filter(knownOf)
+    .map((e) => `${knownOf(e)}: ${e}`);
+}
+module.exports.idBreaches = idBreaches;
+module.exports.knownBreaches = knownBreaches;
+module.exports.KNOWN = KNOWN;
