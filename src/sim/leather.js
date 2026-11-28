@@ -42,6 +42,9 @@ VB['sim/leather'] = (() => {
   };
   const shoesOf = (hh) => hh.shoes || 0;
   const harnessOf = (hh) => (hh.harness === undefined ? 1 : hh.harness);
+  // The harness that goes with a team passing from `from` to `to` (VB-2023): its condition as it was, when `from` keeps a team and `to`
+  // keeps none yet; null when none goes (`to` has a team and keeps its own harness, or `from` has none). Called before the herds move.
+  const harnessGoing = (st, from, to) => (hasTeam(st, from) && !hasTeam(st, to) ? harnessOf(from) : null);
   const hidesOf = (hh) => hh.hides || 0;
   const shoeTarget = (st, hh) => walkers(st, hh) * LEATHER.keep;
   // A day's wear: each walker wears 1 / shoeDays of a pair; a team's harness 1 / harnessYears of a year. Once a day for every household
@@ -188,6 +191,7 @@ VB['sim/leather'] = (() => {
     walkers,
     shoesOf,
     harnessOf,
+    harnessGoing,
     shoeTarget,
     wearDay,
     carry,
