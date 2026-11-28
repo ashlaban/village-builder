@@ -1,3 +1,4 @@
+// @suite integration
 // The save codec (VB-074, sim/saves): encode, JSON text, decode gives a deep copy with the same sharing, types and odd values.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { encode, decode } = VB['sim/saves'];

@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1584: wells are dug. On drawn maps (tests/lib/tiny.js): a well's hours and stone are by the depth of its tile, one rule for a
 // household's and a village's (2 m: 24 hours and 2 loads; 10 m: 56 and 6); a household inland gathers the lining's stone, digs by its
 // house and then fetches in the drawing alone; a household beside a brook does not dig, and one of twelve at the same walk does (VB-1604);

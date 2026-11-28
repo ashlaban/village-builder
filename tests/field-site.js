@@ -1,3 +1,4 @@
+// @suite fast
 // A field's site by its estimated yield (VB-1524; Kim, 23 Nov: no rule mandates the order of land use): the head takes the tile whose
 // score (sim/fieldplans siteScore: grain a year for the hours a year it costs) is higher, whatever its ground.
 const VB = require('../src/load.js'), { B } = VB['world/biomes'];

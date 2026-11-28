@@ -1,3 +1,4 @@
+// @suite fast
 // Independent cache corruption probes; long-run checks also run after every role refresh in tests/invariants.js.
 const assert = require('assert'), { checkRoles, loadWithRoleChecks } = require('./lib/owner-caches.js');
 const VB = loadWithRoleChecks(), { tinyWorld, tinyState } = require('./lib/tiny.js');

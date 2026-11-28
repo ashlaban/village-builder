@@ -1,3 +1,4 @@
+// @suite fast
 // The moving round concludes offers (VB-692; docs/plans/VB-682.md, sections 2 and 5), on a constructed state (tests/lib/tiny.js): whose
 // yes a move needs (moveWhy) in each case, and the move verb refusing a minor's service; the round's days, the order of the bases in a
 // village's step, an offer about a pawn's future held as pawn.ask; a refusal on day 1 answered anew on day 2; a lapse after day 3.

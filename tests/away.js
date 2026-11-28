@@ -1,3 +1,4 @@
+// @suite fast
 // Sleeping away from home (VB-783; design.md, Moving to new land, Sleeping away from home): a pawn lodges at a place three hours from home on
 // a pack from its household's food above its seed, works there only the tasks its stay names, is left out of its household's meals, eats
 // a ration a day from its pack and walks home when the pack is down to the walk home's ration; a household at its seed sends nobody; a

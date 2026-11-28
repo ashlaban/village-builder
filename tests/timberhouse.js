@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1664: the timber house, the rung above the cottage (sim/timberhouse), and the room of each rung (sim/house ROOM). A household over
 // its rung's room is crowded, and every one of its members carries the mood modifier `crowded` (Kim, 24 Nov 2026: "every one should be
 // affected by crowding"); a timber house's hearth burns ROOM.timberFire of a cottage's; the played head builds it as a task of its plan (the chain

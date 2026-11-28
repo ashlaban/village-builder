@@ -1,3 +1,4 @@
+// @suite integration
 // Encounters and the talk round by turns (VB-521; design.md, Where pawns meet), on a small constructed state: a pawn starts a talk only at
 // its turn and is in one talk an hour at most; two guests in a host's house at an occasion can talk (housemates only, without it); two
 // herders 100 units apart can, at 150 they cannot; an occasion's mix lets a pawn be drawn whom familiarity and liking alone would not;

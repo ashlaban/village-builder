@@ -1,3 +1,4 @@
+// @suite integration
 // Work hours and the dark part of the day (VB-105): WORK is 6-18, dark(c) is 22-4 at the equinoxes, 23-3 at midsummer, 21-5 at midwinter.
 const VB = require('../src/load.js'), Sim = VB.sim;
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('DAYLIGHT FAIL:', m); } };

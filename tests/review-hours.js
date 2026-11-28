@@ -1,3 +1,4 @@
+// @suite integration
 // The review tools (VB-337): the hours report (tools/hours.js) only reads the run: a seed is the same run with or without it. Apart from
 // tests/review-tools.js since VB-856, on the small island of tests/lib/probe.js (120 by 85 before).
 const assert = require('assert');

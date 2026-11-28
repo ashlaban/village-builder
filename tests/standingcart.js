@@ -1,3 +1,4 @@
+// @suite integration
 // A cart whose carrier dies on the road (VB-649) stands where he fell, with its load and the team that drew it, until a hand of its
 // household has fetched it home; one nobody fetches is lost at the autumn frost, and named.
 const assert = require('assert');

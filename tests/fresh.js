@@ -1,3 +1,4 @@
+// @suite integration
 // Fresh land (VB-149): a field broken on ground never farmed (w.dev 0) starts with soil SOIL.fresh, above manure's cap, and yields more at
 // its first harvest; each crop wears it as any field, so without manure both it and an old field reach the floor after 9 crops; manure
 // never lowers it. A plot's field broken on fresh ground keeps it when its farmstead is made.

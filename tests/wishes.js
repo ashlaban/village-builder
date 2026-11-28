@@ -1,3 +1,4 @@
+// @suite fast
 // The wishes at the moving round (VB-212, VB-680): every pawn's wish is on the pawn (pawn.wish, sim/wishes), the player's for the pawn it
 // plays; where the round asks what a pawn itself wants it reads the wish, and decides by its rules. A landless adult wished to stay is left out of st.demand, and neither claims nor leaves; an heir wished to
 // move out enters it; a wish never passes a rule; a wish for one farm, for none, and against service narrow what the round gives; with no

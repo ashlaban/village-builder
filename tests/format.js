@@ -1,3 +1,4 @@
+// @suite fast
 // The sources under src/ are formatted by Prettier (.prettierrc.json; VB-380): a file that `npm run format` would change fails.
 const { spawnSync } = require('child_process'), path = require('path');
 const root = path.join(__dirname, '..'), bin = path.join(root, 'node_modules', 'prettier', 'bin', 'prettier.cjs');

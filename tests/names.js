@@ -1,3 +1,4 @@
+// @suite integration
 // Names (VB-026, VB-399, VB-400): a village by its site, the largest of a map as its old centre, a daughter by its founder or its mother;
 // farms of a village by six generators in an order drawn by weight, numbered only when every generator fails; a lone farm's village
 // bears its farm's name, unique on the island, so the map's labels (a village of two or more farms by its name, a lone farm by its

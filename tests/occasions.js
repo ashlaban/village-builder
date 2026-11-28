@@ -1,3 +1,4 @@
+// @suite integration
 // Occasions (VB-126; design.md, Customs and culture, Meetings; Kim's answers in QUESTION_ARCHIVE.md, "VB-126"): a place, a start and an
 // end, and who is asked. A wedding the day after a marriage, 16:00 to 21:00 at the couple's farm, for the couple and the near kin of both
 // within a day's walk, takes those who are free; a funeral ale the day after a death, at the farm of the dead, for its household and near

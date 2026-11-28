@@ -1,3 +1,4 @@
+// @suite fast
 // Courting (VB-036; design.md, Traits, talk and stories: Courting; docs/plans/VB-682.md, sections 3 and 4.1), on a constructed state
 // (tests/lib/tiny.js): the gate, each condition in turn; one at a time; the pair's own offer, made when the courtship starts, due at the
 // round, answered before the round's matcher and married when all say yes; a couple without a place to live waits, and is matched with

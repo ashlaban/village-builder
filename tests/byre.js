@@ -1,3 +1,4 @@
+// @suite integration
 // The byre and the autumn count (VB-134): short hay culls the least valuable first (ewes before cows, the bull, the ram and the oxen kept);
 // a byre over 6 cattle is culled to fit; with no hay the household slaughters at once, and unfed animals die after 2 days; slaughter puts
 // meat in the larder, salting makes it keep, unsalted meat spoils; the meal eats from the larder; a fed founders herd loses nothing to

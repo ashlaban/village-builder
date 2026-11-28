@@ -1,3 +1,4 @@
+// @suite extended
 // Births: invariants of the birth rules, and the report of 50-year founders runs by decade, read to judge the simulation's stability
 // (reported, not asserted): births, deaths and population, and the deaths by cause that tests/health.js printed from the same runs.
 const assert = require('assert');

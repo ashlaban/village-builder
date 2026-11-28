@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1585: the thirsty pawn. On drawn maps (tests/lib/tiny.js): a pawn's thirst is read from the hour it last drank (pawn.drank) and a
 // save without it loads as having drunk; the dry day's health is the pawn's own (who drank at a source loses none, who did not loses
 // HEALTH.dry; marsh water drunk costs HEALTH.marsh); a pawn mowing, 36 hours without a drink and its household's water not in, leaves the

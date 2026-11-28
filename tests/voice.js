@@ -1,3 +1,4 @@
+// @suite integration
 // A member's voice (VB-1555; design.md section 7, A member's voice): a member asks its head for leave, the verb ask (VB-1756), an offer on the basis `leave`
 // (sim/voice). On a constructed household: a head whose day gave the member a task with a deadline today says no, and the member
 // remembers it; a head with a free day says yes by its opinion of the member, and no to one it thinks ill of; on a yes the day is allotted

@@ -1,3 +1,4 @@
+// @suite extended
 // Mobile interaction regression: panels, folds, search, UI restoration and map gestures in real Chromium.
 const { builtPage } = require('./lib/page');
 const assert = require('assert'), fs = require('fs'), path = require('path');

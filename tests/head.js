@@ -1,3 +1,4 @@
+// @suite integration
 // VB-253: the player as head. Every choice of a household's plan is a verb of sim/commands (target, tile, order, project, dropProject),
 // which the player in its head issues through Sim.head and the holder's own rule through the land step (source 'pawn'). On a tiny world
 // at seed 5 (7 before VB-1107's new custom shifted the draws): only the head may choose; a tile is chosen and the field is made there; a refused tile returns its reason; a raised hay

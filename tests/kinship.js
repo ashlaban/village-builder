@@ -1,3 +1,4 @@
+// @suite integration
 // Marriage limit by civil degree (VB-029): degrees on a constructed pedigree, who may never marry, and the scarcity and plenty pulls on kinLimit.
 const VB = require('../src/load.js'), Sim = VB.sim, C = VB.culture, Customs = VB['sim/customs'], Attitudes = VB['sim/attitudes'], rules = VB['sim/rules'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('KINSHIP FAIL:', m); } };

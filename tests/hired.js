@@ -1,3 +1,4 @@
+// @suite integration
 // Hired hands (VB-319): a head still short of hands after its asks hires a landless adult of its village (st.demand) whose own day has the
 // hours, for a wage of 3 rations a day of 8 work hours (whole rations, rounded up) paid at the day's end from its grain as an obligation of
 // the kind `wage` through sim/stores; the hand takes the field work of the hirer on the basis `hired`. A household below its floor does

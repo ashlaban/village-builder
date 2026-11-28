@@ -1,3 +1,4 @@
+// @suite fast
 // VB-816: passage on foot. A field in crop is closed to routes through it (sim/passage, sim/walking tileCost), its holder's too, but along
 // a path or a lane; it opens at its reaping; a field whose closing would cut a house off stays open; a meadow in grass is closed where the
 // custom `passage` is `ways`, and open where it is `free`. On a small constructed state (tests/lib/tiny.js).

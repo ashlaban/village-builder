@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1549: a household out of food seeks it before work whose payoff is months away (sim/hunger spareUrgency; MATCH.urgency need,
 // needDays): with no spare food its holder's fit for fishing is above his fit for ploughing at its most pressing and for a low
 // woodpile; with food in store, below; the urgency falls in a line with the days of food, with no step at needDays.

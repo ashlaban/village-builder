@@ -81,9 +81,9 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - Questions: `node tools/questions.js list|show VB-NNN|answer|archive`. Documents: `node tools/doc.js [FILE] [--toc] [QUERY]`.
 - Format: `npm run format` after editing `src/` (Prettier). `index.html` is derived and not in the repository (VB-450): never commit it. The
   page's tests and tools build their own copy, and the Pages workflow builds the site's; `node build.js` writes one to open by hand.
-- Tests (`tests/suites.js`, `docs/testing.md`): `npm test`, fast, 10 seconds; `npm run verify`, fast and integration, 40 seconds; one
+- Tests (`// @suite` headers read by `tests/lib/tiers.js`, `docs/testing.md`): `npm test`, fast, 10 seconds; `npm run verify`, fast and integration, 40 seconds; one
   script, `node tests/NAME.js`. The extended tier, the fixtures, the bench and the bands run at night, never in a task. A new check is
-  built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`) and gets a line in `tests/suites.js`.
+  built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`) and opens with a `// @suite TIER` line.
 - No golden file: a refactor that claims its behaviour unchanged shows it with `node tools/same.js --base REF`, REF the commit it started from.
 - Inspect a run: `node tools/sim.js --scenario founders --seed 7 --map small --years 10 [--report NAME] [--save FILE|--load FILE]`.
 - Numbers before and after: `node tools/balance.js` (food by source against need), `node tests/counters.js` (work counters; `--update`
@@ -97,7 +97,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - Find a thing by the grep of its declaration, not by a list file (VB-1406): module map `grep -rn "^// @sys" src`; state schema and
   owners `grep -rn "@state" src`; tunables `grep -rn "@tunable" src`, beside the tables of `src/sim/rules.js` that several domains read
   (VB-419); verbs `grep -rn "register('" src`; job kinds `grep -rn "const KINDS = " src`. The lists not yet turned into declarations (modules
-  in load order `src/manifest.json`, layers `src/layers.json`, owners `src/owners.json`, tiers `tests/suites.js`, counters `VB.COUNTERS`)
+  in load order `src/manifest.json`, layers `src/layers.json`, owners `src/owners.json`, tiers each test's `// @suite` line, counters `VB.COUNTERS`)
   are still read and edited until their step lands (`docs/architecture/modules.md`, Adding things).
 - Source is read through `readSource(file)` (`tools/lib/source.js`), never `readFileSync`, so that `.ts` is read as JavaScript.
 - The terrain's codes, names and grid (`B`, the biomes' names, `treeStage`, `ROCK`, `DEPOSIT`, `hexLocator`, `csample`, a river's kind)

@@ -1,3 +1,4 @@
+// @suite integration node:--expose-gc
 // VB-197: rule contracts, original death rolls, bounded heap use, and the registry's diagnostic CLI.
 const { readSource } = require('../tools/lib/source.js');
 const assert = require('assert'), fs = require('fs'), path = require('path'), vm = require('vm');

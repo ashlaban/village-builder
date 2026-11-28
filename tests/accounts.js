@@ -1,3 +1,4 @@
+// @suite fast
 // The balance accounts (VB-403, tools/accounts.js): on the roomy island of tests/lib/probe.js (VB-862), the heirs scenario, 3 years (it has gifts, the village store,
 // handings on and deaths in that time), the food account closes within 1% of the produce with `unexplained` counted (what the
 // lines and the change in stores leave over, the stocks read apart from the movements), the people account's births and arrivals less

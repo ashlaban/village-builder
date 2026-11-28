@@ -1,3 +1,4 @@
+// @suite fast
 // Sleep for the played pawn (VB-1643; sim/sleep, sim/player): the hours it owes rise awake and fall asleep; the verb `sleep` sends it home
 // until its hour, and the queue goes on after it; a night worked is felt in mood by SLEEP.mood; health is touched only once a whole night
 // or more is owed; a save keeps the hours owed. On the tiny village of tests/player.js.

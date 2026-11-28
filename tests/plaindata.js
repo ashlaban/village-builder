@@ -1,3 +1,4 @@
+// @suite integration
 // The simulation state is plain data (VB-073): no function anywhere in st, its world st.w included, after seeding each scenario and after a
 // year (half a year of heirs and populous, through the summer), so a save (VB-074) can write it whole. On the small islands of
 // tests/lib/probe.js (VB-856; a year each on the default island and 120 by 85 before; tests/saves.js loads a save of each scenario too).

@@ -1,3 +1,4 @@
+// @suite fast
 // Rotations (VB-350; design.md, Crops and rotations, The rotation; Seed). On a tiny farm at seed 7, constructed states: the table of
 // rotations; a farm taking its village's usual rotation at its plan's review when it has the seed, its fields staggered; the seed the plan
 // holds back of each crop, a fallow field's for the crop sown on it next; the fields wanted, the fallow ones on top of the sown; a field

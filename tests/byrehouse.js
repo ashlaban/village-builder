@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1665: the byre as a building (sim/byrehouse). Every farm that stands at seeding has one, a camp landed by hand none, an older save's
 // farms read as having theirs; a farm without one winters its animals in the open, the stall winter's lean HERD.openLean times as fast;
 // the played head builds it as a task of its plan (the chain outbuilding), the timber at home first, a save and a load mid-chain going

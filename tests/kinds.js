@@ -1,3 +1,4 @@
+// @suite fast
 // Job kinds (sim/kinds): every kind has its labels, hours and a type of work that some role ranks; carried kinds say where the load goes;
 // each role's priority of a kind is its exception for the kind (a fetch kind's: the kind it fetches for, VB-611), else its rank of the kind's type.
 const VB = require('../src/load.js'), Sim = VB.sim;

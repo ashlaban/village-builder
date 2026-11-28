@@ -1,3 +1,4 @@
+// @suite fast
 // tools/questions.js on small QUESTIONS.md and QUESTION_ARCHIVE.md files: answers go under their question; archive refuses unanswered
 // questions, moves answered ones alone (with the block's intro and "(question N)") or the whole block, into the newest group when it is
 // the same date and occasion and into a new group before it otherwise.

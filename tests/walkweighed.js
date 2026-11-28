@@ -1,3 +1,4 @@
+// @suite fast
 // VB-781 (the plan, its review's F1 to F3): design.md, The walk weighed, agrees with the rules it reckons from. The farthest walk out of
 // a kind that brings a load is reckoned home at the load's pace (TRAVEL.pace.back), REACH.out covers the farthest kind, the household's
 // wood has one rule (no draw), and the cost a game day is the year's over YEAR_DAYS. Text and arithmetic only: the rule is not built yet

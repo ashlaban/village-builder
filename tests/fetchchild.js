@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1240: a small child moved to a new home within a day's walk does not walk there alone. On a tiny state: a child of 3 and a grown
 // of 30 move to another household of the village; the grown fetches the child (the verb fetchChild) and they walk home together. A child
 // moved first, before any grown of its new household, waits where it is; the first grown to join fetches it. A child of 3 fetches no one.

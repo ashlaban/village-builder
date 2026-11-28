@@ -1,3 +1,4 @@
+// @suite integration
 // The head's day (VB-466; design.md section 7, The day's work): each morning and at 14:00 a household's head allots its members' day: for
 // each living member an ordered list of task keys, best fit first, a further hand on a task counting for less, without a random draw; a
 // task that arrives in the day is slotted into the lists as they stand, and a holder lost has its tasks slotted to the others (VB-1758);

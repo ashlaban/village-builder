@@ -1,3 +1,4 @@
+// @suite integration
 // VB-699: a head reads the asks. On a tiny world of two villages, one with pine in its wood: a household with no pit (beside the pit's,
 // and one of the village with no pine) lacking the barrel of tar it keeps asks for it at its review (one a good, while open); the pit's head
 // reads the asks after the harvest, once a year, of its own village and (from a skill of ASKS.hears) the villages its own gathers with,

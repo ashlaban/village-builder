@@ -1,3 +1,4 @@
+// @suite integration
 // Several hands on one job (VB-102): a household of 3 adults with one stubble field in the sowing window hoes it with more than one
 // pawn, each on its own row, in under 60% of the hours one hoer takes; a carried job whose work is done is not open to others.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { isOpen } = VB['sim/kinds'];

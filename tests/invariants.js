@@ -1,3 +1,4 @@
+// @suite extended
 // State invariants (tests/lib/invariants.js) hold after every game day of long runs; a hand-broken state is reported.
 const VB = require('./lib/owner-caches.js').loadWithRoleChecks(), G = VB.gen, Sim = VB.sim;
 const { checkState } = require('./lib/invariants.js');

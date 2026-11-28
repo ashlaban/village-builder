@@ -1,3 +1,4 @@
+// @suite fast
 // Exercise the real writes scanner and ownership audit without changing repository files.
 const assert = require('assert'), fs = require('fs'), path = require('path');
 const { readSource } = require('../tools/lib/source.js');
