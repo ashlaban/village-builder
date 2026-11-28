@@ -1,3 +1,4 @@
+// @suite integration
 // Gathering (VB-118): a forest or heath tile's stock falls 0.2 a trip and is full again each spring; a trip brings home 2.5 rations times the
 // stock home as fresh food (VB-119); the ground is the nearest such tile within 5 steps with at least 0.2 left; posted from summer day 6 to the
 // end of autumn, a second trip under 12 days of spare food; the urgency is fishing's; ranks as foraging, gathering 3 for son and farmhand.

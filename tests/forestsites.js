@@ -1,3 +1,4 @@
+// @suite integration
 // The site search on the forested island (VB-786): a crowded village ringed by forest finds a wooded site within SETTLE.hours along a
 // trail (a wooded tile with no path at a path's cost) and none beyond; no site lies within SETTLE.centreApart - 1 hex steps of a centre;
 // the settlers fell and grub the house tile before the cottage's foundation and their first field before it is cleared and broken, and the

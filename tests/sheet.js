@@ -1,3 +1,4 @@
+// @suite fast
 // The played pawn's sheet (VB-1118): what its last act yielded, what moved its levels, and who of its household ails, as kin see it.
 // A tiny village of two farms by the sea; a member of household 0 is played, a fishing trip is queued, and when it ends the sheet names the
 // catch; its health's fall is told with its causes; a member drawn to die falls ill, is shown ailing while its health falls, and dies when

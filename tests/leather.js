@@ -1,3 +1,4 @@
+// @suite integration
 // Leather (VB-911, sim/leather): a household's shoes wear by its walkers a day and its team's harness by the years; a hide is cut at home into
 // LEATHER.pairs pairs of shoes, or into harness that makes good LEATHER.harnessMend of it; in winter, or in any season when nearly worn out.
 // A slaughtered beast of the cattle gives a hide (sim/byre). The hide's need term reads a year of the wear. Populous at seed 8 on the small

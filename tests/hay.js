@@ -1,3 +1,4 @@
+// @suite integration
 // Haymaking (VB-133), on the small islands of tests/lib/probe.js (VB-855): populous at seed 6 (7 before VB-816's custom shifted the draws: 88% there, with or without fields closed; 6 before VB-1547's evening shifted the draws: 89% of 37 meadows there, 91% of 35 before; 3 before VB-1107's custom) rakes its meadows in spring and mows and
 // carries at least 90% of them by autumn day 4; the hay goes into the household's barn; founders at seed 7 bring in hay by year 3 (VB-360); hay left
 // lying at the frost rots; every spring the meadows are grass again. Reports each household's hay against its winter's need.

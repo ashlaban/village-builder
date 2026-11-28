@@ -1,3 +1,4 @@
+// @suite fast
 // VB-195: mutation during live walks, independent corruption checks and format-1 cache rebuilding.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');

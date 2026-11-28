@@ -1,3 +1,4 @@
+// @suite fast
 // tools/lib/reset-estimate.js (VB-1615) on constructed runs: the context's curve from its series or a straight line; the cost of a run
 // with no reset; a reset at the ceiling; a voluntary one only over T, from the 30th call, with 20 calls left, once; and the grid.
 const assert = require('assert');

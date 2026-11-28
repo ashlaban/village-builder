@@ -1,3 +1,4 @@
+// @suite integration
 // Moving to new land (VB-146, VB-147): a waiting adult of a crowded village leaves with a sibling who follows and founds a village of one
 // farm within SETTLE.hours along a trail (VB-786), in a booth until the cottage is built; the household sows its first field. A village with room founds
 // nothing, and a party without provisions stays. With a small village nearby that has room, the settler joins it instead. On the small

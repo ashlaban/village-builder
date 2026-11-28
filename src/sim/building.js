@@ -869,17 +869,9 @@ VB['sim/building'] = (() => {
   Methods.carry(KINDS.timber, 'timber', {
     look: 'logs',
     words: 'Carrying timber to the building site',
-    // its load lies at the site, and the ledger of the village or household building says so
+    // its load lies at the site, not in the store: no ledger books it (VB-1705), the site's wood counts it
     deliver: (st, j) => {
-      const v = st.villages[j.village];
       j.timberFor.wood = (j.timberFor.wood || 0) + ECON.woodPerTrip;
-      Stores.record(
-        st,
-        j.owner.type === 'village' ? v : st.households[j.owner.id],
-        'timber',
-        ECON.woodPerTrip,
-        'timber',
-      );
     },
     name: 'felled for the site',
     good: 'sitetimber',

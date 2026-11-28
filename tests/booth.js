@@ -1,3 +1,4 @@
+// @suite fast
 // A booth (VB-784; design.md, Moving to new land, The booth): staked by a pawn on free ground, its wood lying at its tile first, raised in
 // BOOTH.hours; a stay at its tile sleeps under its roof, four at most, its household's and whom its maker lets in; unkept it rots lazily
 // and is gone at none, the tile as it was. On a tiny state.

@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1545: a holder takes the ranks of the roles its household lacks (sim/roles STAND): alone it ranks the water as a mistress does; with
 // a mistress, a maid or a daughter at home, as a farmer; with the mistress away, as a mistress again. Only the holder stands in.
 const VB = require('../src/load.js');

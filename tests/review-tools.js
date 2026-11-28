@@ -1,3 +1,4 @@
+// @suite integration
 // The review tools (VB-337): tools/stocks.js has a line for every stored quantity of the @state lines and marks what nothing reads;
 // the hours report (tools/hours.js) only reads the run: a seed is the same run with or without it.
 const assert = require('assert');

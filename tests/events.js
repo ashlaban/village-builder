@@ -1,3 +1,4 @@
+// @suite integration
 // VB-229: the event channel. Every kind has an emitter and a subscriber; subscribers run at once, in the order they registered; registering
 // closes with the registries; a subscriber whose command is refused changes nothing further.
 const assert = require('assert');

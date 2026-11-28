@@ -1,3 +1,4 @@
+// @suite integration
 // The cottage (VB-032): a cleared plot with a waiting couple gets foundation, walls and roof; the roof makes a farmstead and a household
 // whose grain is the couple's stake, and the household sows its field the next spring. Owed shares are paid down from the debtor farm.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, X = VB['sim/expansion'];

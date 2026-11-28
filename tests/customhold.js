@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1104: a change passed holds. At a village's meeting that changes a practice, and in each village that takes up a change of its
 // culture's custom, the voices that favour the new way move their anchors P.hold of the way to their attitudes; the others keep theirs.
 // The culture's change names the villages that took it up and those that kept the old. A constructed environment, no simulation.

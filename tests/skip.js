@@ -1,3 +1,4 @@
+// @suite integration
 // Skip to the next event that concerns the played pawn (VB-234): Sim.skipFrom marks where a skip begins and Sim.skipStop, asked after each
 // step, says when it has reached a stop and why. It stops on a birth, marriage or death in the pawn's household or line, on a farm's
 // event and a change of custom in its village but not elsewhere, on hunger come to its household, on a refused command, on an empty

@@ -1,3 +1,5 @@
+// @suite integration
+// @suite extended --extended
 // Village layout (VB-109, VB-113): a farm's fields are one block within 4 walking steps of its house, next to no green; the
 // houses of a village hang together with its green, through houses, yards and its fields; fields made in play keep the rules.
 // Every rule on the small islands of tests/lib/probe.js (VB-856): populous at seeds 7 and 11 (at 42 the small island's crowded village

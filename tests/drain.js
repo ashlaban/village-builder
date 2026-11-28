@@ -1,3 +1,4 @@
+// @suite integration
 // Draining a wet field (VB-721): a field's wetness (sim/crops wetLoss, the tile's moisture w.hm) takes a share of its fertility; a ditch
 // takes away a share of that loss and silts, read in closed form (sim/soil); the head ditches a wet field by its own estimate, through the
 // verb project (sim/drain's making), and pawns dig it at the field. On a small constructed state.

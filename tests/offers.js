@@ -1,3 +1,4 @@
+// @suite integration
 // Marriage offers (VB-293, VB-693; design.md, Marriage as a negotiation, The round as offers): a match is an offer a spokesman makes at
 // an asking, kept in st.offers until the moving round, which the two who would marry and their spokesmen answer: each by its own
 // judgement at the round, the played pawn whenever it likes before. Yes marries them in the offer's home and the handover follows; no

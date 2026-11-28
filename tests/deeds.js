@@ -1,3 +1,4 @@
+// @suite integration
 // VB-705: standing is the sum of a pawn's public deeds. Every member of a village starts at DEED.base; a farm held adds DEED.held, and after
 // the holding ends it fades with a half-life of DEED.heldHalf years; a holder's spouse has no term of its own position (the house's term is
 // the household's); a gift of food given adds its worth to a sum that halves in DEED.giftHalf years, read as DEED.gift x (1 - exp(-sum /

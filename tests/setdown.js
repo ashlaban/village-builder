@@ -1,3 +1,4 @@
+// @suite integration
 // A load on its way home (VB-581) is carried in or lies where it was: a hand told to move while it carries one brings the load in first
 // and then goes; a hand released standing in its own field sets the load back with the stooks; at its death on the road, or its household
 // dissolving, the load lies where it stood (VB-611, sim/lying) until another hand fetches it and carries it home; one left lying rots at

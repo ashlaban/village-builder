@@ -1,3 +1,4 @@
+// @suite integration
 // Who waits to marry, and why (VB-633; tools/waiting.js): on a constructed village, one pawn under each cause in turn (hungry, nobody
 // free, kin, no home, the score, the means, free to marry), checked against the round's own bar (sim/matching matchBar) where it has one;
 // the census and the year's facts change nothing, and the report's year is the plain run's; and the growth probes of the bands

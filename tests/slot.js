@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1558: a task the due-queue opens in the day is slotted into the household's day as it stands (sim/day slotIn; design.md section 7,
 // The day's work), not the whole day weighed anew. On the small constructed state of tests/lib/probe.js (two villages, cattle kept):
 // 1. a task slotted lands where the allotment would have put it when nothing else changed: the same lists and fits, and its members

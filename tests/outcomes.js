@@ -1,3 +1,4 @@
+// @suite fast
 // Commands' outcomes and the queue (VB-1405): the dispatcher gives the queue done, refused(why) or pending(ref), and `issue` keeps its
 // true-or-reason contract, both through one execution; the queue asks the verb whether its reference is still active: for work, the
 // pawn's particular assignment in the slot of its attention, so a release ends it whoever works on, a reposted key or a fresh taking

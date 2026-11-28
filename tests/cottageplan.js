@@ -1,3 +1,4 @@
+// @suite fast
 // A settler household's cottage is a project plan of its household beside its first field's (VB-1411): each job ends its own plan; the
 // cottage's stage is posted under the booth's key, its timber goes to its walls from the foundation on, and its roof ends the booth; the
 // guards do not count it; a household dissolved leaves it with the farm, for the household that comes. On a tiny world, through the rules.

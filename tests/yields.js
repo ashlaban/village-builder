@@ -1,3 +1,4 @@
+// @suite fast
 // A head's remembered yield (VB-767; sim/yields): the tally of rations by source booked with each food operation, closed at winter's
 // planning day into a ring of FIELDS.memory years, expects (poor, mean, years), caution from the head's bias; nothing else changes.
 const VB = require('../src/load.js');

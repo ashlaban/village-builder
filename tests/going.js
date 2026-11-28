@@ -1,3 +1,4 @@
+// @suite integration
 // VB-295: going to the gathering. Each household of an attending village plans who goes (its holder, its unmarried of marrying age, others
 // by wish; an adult always stays), through the verbs goGathering and stayHome; the day before, those from beyond homeHours are lodged at
 // the host's farms (kin and partners in the house, the rest in the barn, nobody outdoors), pack their provisions and walk there; the

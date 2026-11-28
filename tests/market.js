@@ -1,3 +1,4 @@
+// @suite integration
 // The scenario "The market town" (VB-778): a populous island with plot households packed within 2 steps of each other, a test bed known to
 // decay and no evidence that a town emerges. Checks its start on a small generated island: the plots, their closeness, what each holds, that
 // it is not offered on the start screen, and that no rule outside the scenario reads the label.

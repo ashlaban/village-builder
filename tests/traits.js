@@ -1,3 +1,4 @@
+// @suite integration
 // VB-254, VB-519 (design.md, People, Traits, talk and stories): the twelve traits, passed on at birth and set at 15, read through
 // Traits.of and named by Traits.labelsOf, and a culture's values; a head's skill (wits and husbandry, and years as head); its horizon (it reacts, projects to the season's end, or a
 // season further) and its bias on each target, drawn once when it becomes head, never at a review. On a tiny village.

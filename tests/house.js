@@ -1,3 +1,4 @@
+// @suite integration
 // A well-kept house (VB-306): the condition wears 0.1 a year by closed form (0.067 tarred), 4 hours of upkeep raise it 0.1, offered under 0.8;
 // standing gains 0.15 times the condition for a holder and a holder's spouse (0.18 tarred); the pawn panel's parts name the term.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;

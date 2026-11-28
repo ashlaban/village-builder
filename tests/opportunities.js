@@ -1,3 +1,4 @@
+// @suite fast
 // What a pawn may do here (VB-209, sim/opportunities): on a tiny map over a game day the list and the planner agree (every open job a pawn
 // would bid for is listed as work it may take, and nothing else is), every job a pawn takes was on its list, and asking changes nothing
 // and draws nothing. Its own acts, a cause and the moving round's acts each come with the rule that bars them.

@@ -1,3 +1,4 @@
+// @suite integration
 // Children of 7 to 13 take water, weeding, hauling and reaping at a reduced rate; under 7 they take nothing.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { bid } = VB['sim/fit'], { workRate, CHILD } = VB['sim/roles'];
 const { moveClock } = require('./lib/clock.js');

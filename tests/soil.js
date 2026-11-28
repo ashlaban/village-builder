@@ -1,3 +1,5 @@
+// @suite integration
+// @suite extended --extended
 // Manure and the soil (VB-137): a reaped crop yields in proportion to the field's soil and wears it by 0.08 to 0.75; fodder collects manure
 // (0.2 loads a head of cattle, 0.04 a sheep, each stall day); in spring days 1-6 the heap is carted to the poorest field not yet sown, a load
 // raising its soil by 0.04 to 1.15. On the small islands of tests/lib/probe.js (VB-855): the rules on populous at seed 7, and founders' first

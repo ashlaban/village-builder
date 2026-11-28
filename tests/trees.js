@@ -1,3 +1,4 @@
+// @suite integration
 // Trees per forest tile: seeding, felling, regrowth over 30 years, clearing to meadow, and the drawing stages.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, F = VB['sim/forest'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('TREES FAIL:', m); } };

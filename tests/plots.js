@@ -1,3 +1,4 @@
+// @suite integration
 // Clearing a new plot: a village with waiting people and a free site starts a project; the newLand custom picks who gets the plot.
 // On the small islands of tests/lib/probe.js (VB-856; the default island and a 180 by 130 one before).
 const VB = require('../src/load.js'), Sim = VB.sim, X = VB['sim/expansion'];

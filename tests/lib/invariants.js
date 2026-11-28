@@ -868,6 +868,7 @@ function checkState(st) {
         return body.kind === 'pawn' ? p === body.id : body.kind === 'household' ? q.household === body.id : true;
       };
       const step = (body, s, where) => {
+        const duty = !!s.what && s.what.duty !== undefined;
         if (
           !Number.isInteger(s.id) ||
           s.id > P.stepSeq ||
@@ -876,7 +877,16 @@ function checkState(st) {
           !Sx.STATES.includes(s.state) ||
           !okWhy(s.why) ||
           !Array.isArray(s.who) ||
-          !s.who.every((p) => within(body, p))
+          // VB-1771: a duty, of a household's days ahead, of a type of recurring work without a window, one holder, at most one a type;
+          // a holder that has left the household since stands until the next allotment or review lapses it
+          (duty &&
+            (body.kind !== 'household' ||
+              where !== 'ahead' ||
+              !VB['sim/day'].dutyTypes().has(s.what.duty) ||
+              s.who.length !== 1 ||
+              s.state !== 'open' ||
+              Sx.planFor(st, 'household', body.id).ahead.filter((x) => x.what.duty === s.what.duty).length !== 1)) ||
+          !s.who.every((p) => within(body, p) || (duty && st.pawns[p] && st.pawns[p].alive))
         )
           bad.push(
             `plans: ${body.kind} ${body.id}'s step ${s.id} (${where}) ${JSON.stringify({ why: s.why, who: s.who, author: s.author, state: s.state })}`,
@@ -4462,8 +4472,6 @@ const KNOWN = [
   { task: 'VB-1620', re: /^households\[\d+\]: dissolved, holding shoes/ },
   // what VB-650 left in the closed record (VB-1175's line); VB-1697 passes it with the farm
   { task: 'VB-1697', re: /^households\[\d+\]: dissolved, holding (?!shoes)\w+ / },
-  // a death leaves its id where a living pawn is named: those who want out, a ward's guardian
-  { task: 'VB-1983', re: /^st\.(demand\[\d+\]|households\[\d+\]\.guardian): pawn \d+ is dead/ },
 ];
 // Declared history, not live, where the design lets an ended party's id stand until a later turn ends it: an offer to one who has died
 // lapses at its due (sim/offers close); a dead claimant's claim ends at the moving round (sim/farmclaims); a talk's record is its last;

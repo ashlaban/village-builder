@@ -1,3 +1,4 @@
+// @suite integration
 // Founders keep bringing in a harvest, and stores stay sound; a walk of an underflowing budget ends. On the small island of
 // tests/lib/probe.js (VB-856; three years on the default island before, two here).
 const VB = require('../src/load.js'), Sim = VB.sim, { island } = require('./lib/probe.js');
