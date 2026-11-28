@@ -184,6 +184,7 @@ Both references meet the target (median at least 1%), so nothing below is urgent
 | populous seed 7 hunger after VB-1767 | hungry household-days in the gate's populous 7 run (10 years) | 391 against the base's 145 (populous 11: 58 vs 76; populous 42: 88 vs 153; no hunger deaths) | look at the keep's ask (only its season plan's shortfall, most at summer's turn) and the levied's naming in populous 7 before tuning OUTER | VB-1767 |
 | WORKDAY.missed | the standing a holder lost when its household stayed away from a work day; removed by VB-1768, replaced by the breach of the routine's lot (goodwill owed the alderman) | not measured | strike the value from docs/tuning.md's WORKDAY row | VB-1768 |
 | AIMS fair weight and fairDried amount (sim/aims) | how much dried fish a shore head with a surplus makes for the fair | populous small 15y: little dried fish changes hands (packed comes home), nobody asks for it | leave until dried fish has demand at the fair | VB-644 |
+| HANDS.hires | hired hands a morning | seed 7 only: 0.33 hires a year; seeds 3,11,42 unmeasured (load) | measure at night, then tune | VB-319 |
 
 ## Mechanisms on their way that move the same numbers
 
