@@ -22,7 +22,9 @@ for (const x of st.households) {
   n++;
 }
 // 3. just under and just over, in a home of two adults
-const h = st.households.find((x) => !x.dissolved && adults(x) >= 2 && x.members.some((i) => st.pawns[i].sex === 'm' && st.pawns[i].age >= 20 && !st.pawns[i].servant && R.spouseOf(st, i) === null));
+// a single man of 20 or more who would live on his own home's land when married: its holder or its heir (matching's place)
+const single = (i) => st.pawns[i].sex === 'm' && st.pawns[i].age >= 20 && !st.pawns[i].servant && R.spouseOf(st, i) === null && matchRules(st).place(i) !== null;
+const h = st.households.find((x) => !x.dissolved && adults(x) >= 2 && x.members.some(single));
 const set = (years) => { // meals so that the home holds `years` of food
   h.meals = 0;
   h.meals = (years - Sim.meansOf(st, h.id).held) * YEAR_DAYS * (dailyNeed(st, h) + st.ECON.ration.adult);
@@ -34,7 +36,7 @@ assert(!matchRules(st).affords(h.id), 'just under: no');
 m = set(MARRIAGE.means + 0.05);
 assert(matchRules(st).affords(h.id), 'just over: yes');
 // the words: a man of that home and a woman of his village; the reason names the numbers
-const mm = st.pawns[h.members.find((i) => st.pawns[i].sex === 'm' && st.pawns[i].age >= 20 && !st.pawns[i].servant && R.spouseOf(st, i) === null)];
+const mm = st.pawns[h.members.find(single)];
 const v = R.settlementIdOf(st, mm);
 const ff = st.pawns.find((p) => p.alive && p.sex === 'f' && p.age >= 18 && R.spouseOf(st, p.id) === null && p.household !== null && R.settlementIdOf(st, p) === v && kinOk(st, mm.id, p.id, R.practice(st, v)));
 R.practice(st, v).residence = 'husband';

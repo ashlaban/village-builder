@@ -226,6 +226,17 @@ VB['sim/walking'] = (() => {
   const passable = (w, i) => i >= 0 && (tileCost(w, i) < Infinity || ended(w, i));
   // Land a route may cross: passable, and not a house or a closed field.
   const through = (w, i) => i >= 0 && tileCost(w, i) < Infinity;
+  // A house's gate (VB-1951; sim/entrances; Kim, 27 Nov: a hard rule): a walk enters and leaves a house by its gate (w.gate) and no other
+  // side. gateMiss: the sides of the step between tiles i and j that miss a house's gate, 0, 1 or 2 (a house to a house); a step that
+  // misses one is barred. A gate that opens on land no route may cross (a field closed for its crop, water) is missed by nobody: the
+  // house is entered from any side until the gate's way is open again.
+  const gateOff = (w, h, o) => {
+    const s = w.gate[h];
+    if (s < 0) return 0;
+    const n = w.nb[h * 6 + s];
+    return n !== o && through(w, n) ? 1 : 0;
+  };
+  const gateMiss = (w, i, j) => (w.gate ? gateOff(w, j, i) + gateOff(w, i, j) : 0);
   // A tile a route may end at but not cross: a house, or a field or meadow closed by passage (VB-816).
   const ended = (w, i) => !!w.dev && (w.dev[i] === 3 || (!!w.shut && w.shut[i] === 1));
   // The two tests of sim/hex cutsOff, on the ground as it stands (VB-402, VB-816): `shut`, no route crosses j; `end`, j is a place a
@@ -394,6 +405,7 @@ VB['sim/walking'] = (() => {
     passable,
     through,
     ended,
+    gateMiss,
     cutTests,
     walkable,
     reachTiles,

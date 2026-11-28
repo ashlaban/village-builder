@@ -11,7 +11,7 @@ const out = [];
 // A (one farm) on the west, B 14 tiles east of it, C 40 tiles east: by hex steps B is the nearer, and the table is set by hand per case
 const rows = Array.from({ length: 12 }, () => '.'.repeat(60));
 const fresh = () => {
-  const st = tinyState(tinyWorld(rows), [{ at: [5, 5], farms: 1 }, { at: [19, 5], farms: 2 }, { at: [45, 5], farms: 2 }], { seed: 3 });
+  const st = tinyState(tinyWorld(rows), [{ at: [5, 5], farms: 1 }, { at: [19, 5], farms: 2 }, { at: [45, 5], farms: 2 }], { seed: 2 });
   st.naturalDeaths = false;
   return st;
 };

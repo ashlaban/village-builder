@@ -206,11 +206,12 @@ assert.ok(whole(cast), `the scene's cast: ${JSON.stringify(cast)}`);
     Sim.movingRound(st); return st;
   };
   const matchItem = (st, who, partner) => O.forPawn(st, O.actorView(st, who), who).find((o) => o.verb === 'match' && o.target === partner);
-  // a pair that passes the rules and that the round would not marry by itself
+  // a pair that passes the rules and that the round would not marry by itself, for whom the wish is the best offer each side holds at
+  // the round (the wish is its pawn's offer, no more, VB-693; VB-1951 moved the draws, and at the first such pair a better offer came)
   let found = null;
   for (let seed = 1; seed < 60 && !found; seed++) {
     const plain = after(seed);
-    for (const [m, f] of pairs(world(seed))) if (married(plain, m) !== f) { found = { seed, m, f }; break; }
+    for (const [m, f] of pairs(world(seed))) if (married(plain, m) !== f && married(after(seed, f, m), m) === f) { found = { seed, m, f }; break; }
   }
   assert.ok(found, 'the scene: a pair the askings would not marry to each other, that passes the rules');
   const { seed, m, f } = found;

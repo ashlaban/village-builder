@@ -13,7 +13,7 @@ let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('D
 const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
 const cal = (season, sday, hour = 8) => ({ season, sday, doy: season * 12 + sday, day: season * 12 + sday, hour });
 const rows = Array.from({ length: 14 }, (_, i) => (i < 3 ? 'FFFFFFFFFFFFFFFFFF' : i === 3 ? 'FFFF..........FFFF' : '..................'));
-const make = () => tinyState(tinyWorld(rows), [{ at: [9, 9], farms: 3, sizes: [6, 5, 4] }], { seed: 3 });
+const make = () => tinyState(tinyWorld(rows), [{ at: [9, 9], farms: 3, sizes: [6, 5, 4] }], { seed: 1 }) // seed 1 (3 before VB-1951's gates: nobody hunted there);
 const st = make(), w = st.w;
 
 // --- the stock: every region with forest edges at its capacity, DEER.perEdge an edge tile

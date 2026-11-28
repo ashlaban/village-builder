@@ -433,6 +433,15 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
         await page.click('#tileHouse [data-project] [data-plan="drop"]');
         if (await page.evaluate((id) => !!VB['sim/projects'].ownOf(window.__play.st, id), hh)) fail(`Give it up did not give up the ${under} under way`);
       }
+      // VB-1951: Turn the gate begins the small making gate, to the next open side round the house
+      const gateBtn = page.locator('#tileHouse [data-plan="project"][data-what="gate"]');
+      if (!(await gateBtn.count())) fail('the Plan tab offers no Turn the gate');
+      else {
+        const side = +(await gateBtn.getAttribute('data-side'));
+        await gateBtn.click();
+        const gate = await page.evaluate((id) => VB['sim/projects'].projectsOf(window.__play.st, 'household', id).find((p) => p.what === 'gate'), hh);
+        if (!gate || gate.side !== side) fail(`Turn the gate did not begin its turning to side ${side}: ${JSON.stringify(gate)}`);
+      }
       await page.click('#tileHouse [data-plan="project"][data-what="field"]');
       const at = await page.evaluate((id) => { const p = VB['sim/projects'].ownOf(window.__play.st, id); return p ? p.steps[p.open].place : -1; }, hh);
       const link = `#tileHouse [data-project] [data-plan="fly"][data-tile="${at}"]`;

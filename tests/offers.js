@@ -9,12 +9,12 @@ const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], L = V
 const { opinionOf } = VB['sim/relations'];
 const { canon, kept } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
-const { island, scenario } = require('./lib/probe.js'), SEED = 9;
+const { island, scenario } = require('./lib/probe.js'), SEED = 12;
 // every chance comes up (sim/rng's fix), for the round only
 const roll = (st, f) => {
   const rs = new Set(Object.values(st.rng)); rs.forEach((r) => { r.fix = 0; }); try { f(); } finally { rs.forEach((r) => { delete r.fix; }); } };
 const told = (st, from, kind) => st.record.slice(from).filter((e) => typeof e === 'object' && !e.self && e.kind === kind);
-// Populous on the small island (VB-854) at seed 9 (was 42 until VB-888 dropped the empty villages, and on the 120 by 85 island 54: the scene needs a bride who speaks for herself),
+// Populous on the small island (VB-854) at seed 12 (9 before VB-1951's gates moved the farms; was 42 until VB-888 dropped the empty villages, and on the 120 by 85 island 54: the scene needs a bride who speaks for herself),
 // natural deaths off, every household given the means to marry; `before(st)` runs first (to play a pawn). The year's askings are held
 // now, due at noon today (askAll), and with `round` the moving round is run at once, which answers them.
 const { askFor } = VB['sim/asking'];

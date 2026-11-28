@@ -394,28 +394,51 @@ function projectHTML(hh, V, mine) {
         'wide',
       )
     : planBtn({ plan: 'project', what: 'none' }, 'Hold off', 'Begin no project by the rule until told', true, 'wide');
-  return `<div class="plan-row" data-project>${h}${fly}<span class="plan-ctl menu">${menu}${hold}</span></div>${smallHTML(V, mine)}${makeHTML(V)}`;
+  return `<div class="plan-row" data-project>${h}${fly}<span class="plan-ctl menu">${menu}${hold}</span></div>${smallHTML(V, mine)}${makeHTML(V, hh)}`;
 }
 // The small constructions the played head may begin beside any project (VB-678: through the verb project, under the same check as every
 // head's; a refusal says why): those of a making not under way.
 const SMALL_VERB = { cart: 'Build a cart', boat: 'Build a fishing boat', tarpit: 'Dig a tar pit', well: 'Dig a well' };
-function makeHTML(V) {
-  const btns = Object.keys(SMALL_VERB)
-    .filter((what) => !(V.small || []).some((q) => q.what === what))
-    .map((what) =>
-      planBtn(
-        { plan: 'project', what },
-        SMALL_VERB[what],
-        `Begin a ${SMALL_NAME[what]} now, beside any project`,
-        true,
-        'wide',
-      ),
-    )
-    .join('');
+function makeHTML(V, hh) {
+  const gate = (V.small || []).some((q) => q.what === 'gate') ? -1 : nextGateSide(hh);
+  const btns =
+    (gate >= 0
+      ? planBtn(
+          { plan: 'project', what: 'gate', side: gate },
+          'Turn the gate',
+          'Move the gate to the next open side of the house',
+          true,
+          'wide',
+        )
+      : '') +
+    Object.keys(SMALL_VERB)
+      .filter((what) => !(V.small || []).some((q) => q.what === what))
+      .map((what) =>
+        planBtn(
+          { plan: 'project', what },
+          SMALL_VERB[what],
+          `Begin a ${SMALL_NAME[what]} now, beside any project`,
+          true,
+          'wide',
+        ),
+      )
+      .join('');
   return btns ? `<div class="plan-row" data-make><span class="plan-ctl menu">${btns}</span></div>` : '';
 }
+// The next side round the house, clockwise from its gate, that a walk may cross: where the gate would be turned to (VB-1951), or -1.
+function nextGateSide(hh) {
+  const f = hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
+  if (!f || !st.w.gate) return -1;
+  const g = st.w.gate[f.house];
+  for (let k = 1; k < 6; k++) {
+    const d = ((g < 0 ? 0 : g) + k) % 6,
+      n = st.w.nb[f.house * 6 + d];
+    if (n >= 0 && VB['sim/walking'].through(st.w, n)) return d;
+  }
+  return -1;
+}
 // The small constructions under way beside the project (a cart, a boat, a tar pit: VB-1414), a row each; the head may give each up.
-const SMALL_NAME = { cart: 'cart', boat: 'fishing boat', tarpit: 'tar pit', well: 'well' };
+const SMALL_NAME = { cart: 'cart', boat: 'fishing boat', tarpit: 'tar pit', well: 'well', gate: 'gate' };
 // A well under way shows its ground's band and the band's range of hours until water is struck, never the metres ahead (VB-1584).
 function wellNote(tile) {
   const W = VB['world/water'],
@@ -546,7 +569,10 @@ function planClick(b, hh) {
     renderActions();
     return;
   } else if (d.plan === 'project')
-    r = Sim.head(st, st.player.pawn, 'project', { what: d.what === 'null' ? null : d.what });
+    r = Sim.head(st, st.player.pawn, 'project', {
+      what: d.what === 'null' ? null : d.what,
+      ...(d.side !== undefined ? { side: +d.side } : {}),
+    });
   else if (d.plan === 'drop') r = Sim.head(st, st.player.pawn, 'dropProject', d.id !== undefined ? { id: +d.id } : {});
   else if (DAY_PLANS.has(d.plan)) {
     r = dayClick(b, hh); // the day's verbs (page/day, VB-477)

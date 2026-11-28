@@ -87,13 +87,12 @@ const brook = (w, i) => {
 // The hours a member of the household has the water in hand on the second day (the first begins at the hour of work, with the day's
 // water counted as in): the walk out, the drawing, the walk home laden.
 const fetchOf = (steps) => {
-  const w = tinyWorld(meadow(30, 13)),
-    c0 = 8,
+  const c0 = 8,
     r0 = 6;
   // the brook in the house's row, `steps` tiles east of it: laid before the state is made, on a map drawn again once the house is known
-  const lay = (ww) => tinyState(ww, [{ at: [c0, r0], farms: 1, sizes: [3] }], { seed: 7 });
-  brook(w, lay(tinyWorld(meadow(30, 13))).farmsteads[0].house + steps);
-  const st = lay(w),
+  const w = tinyWorld(meadow(30, 13));
+  brook(w, tileAt(w, c0, r0) + steps);
+  const st = tinyState(w, [{ house: [c0, r0], sizes: [3] }], { seed: 7, gates: false }),
     hh = st.households[0],
     f = st.farmsteads[hh.farmstead];
   w.fresh[f.house] = FRESH.NONE; // a test's write: without the well a farm that has stood 7 steps off starts with (case 4)
@@ -151,7 +150,7 @@ const fetchOf = (steps) => {
 // ---- 4. no water in reach: no fetch is posted, and the page is told why ----
 {
   const w = tinyWorld(meadow(20, 9)),
-    st = tinyState(w, [{ at: [8, 4], farms: 1, sizes: [2] }], { seed: 7 }),
+    st = tinyState(w, [{ at: [8, 4], farms: 1, sizes: [2] }], { seed: 7, gates: false }),
     hh = st.households[0],
     f = st.farmsteads[hh.farmstead];
   // the farm has stood for years, so it starts with a well of its own where its ground has one (At the start)
@@ -172,7 +171,7 @@ const fetchOf = (steps) => {
 // ---- 5. a village that starts with its green: its well is a source on the green's tile, and its farms draw there ----
 {
   const w = tinyWorld(meadow(24, 12)),
-    st = tinyState(w, [{ at: [10, 5], farms: 3 }], { seed: 7 }),
+    st = tinyState(w, [{ at: [10, 5], farms: 3 }], { seed: 7, gates: false }),
     v = st.villages[0];
   check(v.well === v.center && w.fresh[v.well] === FRESH.WELL, 'the starting village has its well on the map, on the green');
   for (const id of v.farmsteads) {
@@ -190,7 +189,7 @@ const fetchOf = (steps) => {
 // ---- 6. marsh water: the day's water in, the meal cooked, HEALTH.marsh off those it covers ----
 {
   const w = tinyWorld(meadow(20, 9)),
-    st = tinyState(w, [{ at: [8, 4], farms: 1, sizes: [2] }], { seed: 7 }),
+    st = tinyState(w, [{ at: [8, 4], farms: 1, sizes: [2] }], { seed: 7, gates: false }),
     hh = st.households[0],
     p = st.pawns[hh.holder],
     { ate } = VB['sim/hunger'];

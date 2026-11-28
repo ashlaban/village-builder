@@ -28,6 +28,7 @@ function morning() {
   check(farmer.job && farmer.job.kind === 'plow' && (farmer.leg && farmer.leg.kind === 'work'), 'the farmer is not hoeing by 15:00');
   const field = son.job, done = field.done;
   hh.wood = 5;
+  VB['sim/jobs'].refreshJobs(st, Sim.cal(st.t), true); // the household's tasks reviewed now, the wood's second trip posted (its own review comes when its due-queue says)
   Sim.advance(st, 0.6); // past the full hour, when working pawns look up, and a step after it (whole steps, VB-244)
   check(son.job && son.job.kind === 'wood', `the son did not leave the field for the woods (${son.job && son.job.kind})`);
   check(st.jobs.get(field.key) === field && field.done >= done && !field.claims.includes(son.id), 'the field job lost its place or progress');

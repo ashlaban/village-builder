@@ -8,6 +8,7 @@ VB['sim/layout'] = (() => {
   const { bfs, hexSteps, cutsOff, rimFull } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
   const { initWear, wearIn } = VB['sim/paths'];
+  const { initGates, faceGate, gateSide, gateSteps } = VB['sim/entrances'];
   const { newField } = VB['sim/fieldrec'];
   const { initFish } = VB['sim/fish'],
     { initForage } = VB['sim/forage'];
@@ -16,6 +17,14 @@ VB['sim/layout'] = (() => {
   const FIELD_REACH = 4;
   // What a step from the house costs a field, against its fertility (meadow 1): the fields lie close to the house (was 0.15; Kim, 12 Nov).
   const FIELD_NEAR = 0.3;
+  // How a field's site is scored, one rule for the generator, the editor, a new plot and a head in play (Kim, 27 Nov: no difference in
+  // the placing logic of a farm head and the village generator): the head's reckoning (sim/fieldplans siteScore, which sets it at load:
+  // the grain a year for each hour a year the field costs, the walk out by the house's gate counted), (w, tile, steps) => score. Until it is
+  // set (a module loaded alone), fertility less FIELD_NEAR a step.
+  const FIELD_RULE = { score: (w, t, d) => fertility(w, t) - FIELD_NEAR * d };
+  const useFieldScore = (fn) => {
+    FIELD_RULE.score = fn;
+  };
   const nextTo = (w, t, set) => {
     for (let k = 0; k < 6; k++) {
       const j = w.nb[t * 6 + k];
@@ -23,19 +32,19 @@ VB['sim/layout'] = (() => {
     }
     return false;
   };
-  // n free farmable tiles in one connected block (each touching another, by hex neighbour) within FIELD_REACH walking steps of the house,
+  // n free farmable tiles in one connected block (each touching another, by hex neighbour) within FIELD_REACH walking steps of the house
+  // out by its gate (sim/entrances gateSteps; a site with no house yet, by the gate it would have, facing `toward`, VB-1951),
   // none in `avoid` (the ground kept open: a street's tiles and the tiles round a green). A field may touch a house, its own or
   // another's (Kim, 12 Nov: the fields lie close). Grown from each candidate tile, taking the best
-  // neighbouring candidate each time; of these blocks, the one with the highest summed fertility less FIELD_NEAR per step from the house.
+  // neighbouring candidate each time; of these blocks, the one with the highest summed score (FIELD_RULE, the head's).
   // Null when no block of n exists. ok (optional): a test every tile of the block passes (a village's fields lie outward of their house).
   // cleared: a wooded tile is read as the meadow it becomes when grubbed (sim/crops clearable; a new village's site, VB-786).
-  function placeFields(w, used, house, n, avoid, ok = null, cleared = false) {
+  function placeFields(w, used, house, n, avoid, ok = null, cleared = false, toward = -1) {
     const score = new Map(),
-      may = cleared ? clearable : farmable,
-      fert = cleared ? clearedFertility : fertility;
-    for (const [t, d] of bfs(w, house, FIELD_REACH, walkable(w)).dist) {
+      may = cleared ? clearable : farmable;
+    for (const [t, d] of gateSteps(w, house, FIELD_REACH, gateSide(w, house, toward))) {
       if (d >= 1 && may(w, t) && !used.has(t) && !(avoid && avoid.has(t)) && (!ok || ok(t)))
-        score.set(t, fert(w, t) - FIELD_NEAR * d);
+        score.set(t, FIELD_RULE.score(w, t, d));
     }
     let best = null,
       bs = -Infinity;
@@ -185,6 +194,7 @@ VB['sim/layout'] = (() => {
     used.add(house);
     for (const j of fields) used.add(j);
     if (w.dev) w.dev[house] = 3; // a house raised in play; a generated one is marked when the land is finished (finishLand)
+    faceGate(w, house, village ? village.center : -1); // its gate, toward the nearest way or the green, before its fields (VB-1951)
     const a = (((w.hrnd[house] * 6) | 0) * Math.PI) / 3;
     return {
       id,
@@ -313,7 +323,7 @@ VB['sim/layout'] = (() => {
       for (let k = 0; k < open.length && !best; k += HOUSE.tries)
         for (const [t, base] of open.slice(k, k + HOUSE.tries)) {
           used.add(t); // placeFields takes no used tile
-          const fields = placeFields(w, used, t, 3, yards, outward(t));
+          const fields = placeFields(w, used, t, 3, yards, outward(t), false, center);
           used.delete(t);
           if (!fields || worth(fields) < HOUSE.land) continue;
           const sc = base + HOUSE.byLand * worth(fields) - HOUSE.spare * fertility(w, t);
@@ -385,6 +395,7 @@ VB['sim/layout'] = (() => {
     for (const f of farmsteads) w.dev[f.house] = 3; // a house: no way wears through it (sim/paths)
     for (const v of villages) if (v.green) w.dev[v.center] = 2; // the green is open ground: the ways that meet there cross it (draw/paths)
     initWear(w);
+    if (!w.gate) initGates(w); // the gates were set as the houses were placed (makeFarmstead, VB-1951)
     initFish(w);
     initForage(w);
     w.graze = new Float32Array(w.N); // grazing pressure, none yet (sim/herds, VB-136)
@@ -397,7 +408,7 @@ VB['sim/layout'] = (() => {
       ls = -Infinity;
     for (const [j, d] of reach) {
       if (d < 12 || !farmable(w, j) || w.biome[j] !== B.MEADOW || (j * 31) % 3 || yards.has(j)) continue;
-      const fields = placeFields(w, used, j, 3, yards);
+      const fields = placeFields(w, used, j, 3, yards, null, false, j); // a lone farm's house is its centre
       if (!fields) continue;
       const s = siteScore(w, j) + fields.reduce((a, k) => a + fertility(w, k), 0) + rand();
       if (s > ls && woodNear(w, used, j, WOOD.least).length >= WOOD.least) {
@@ -437,13 +448,18 @@ VB['sim/layout'] = (() => {
   // One more field for a farm: the best free farmable tile touching one of its fields, within FIELD_REACH walking steps of the house and
   // not in a yard (next to a house or green), so the block stays one. False when there is none.
   function addField(w, used, f, yards = new Set()) {
-    const { dist } = bfs(w, f.house, FIELD_REACH, walkable(w));
     let best = -1,
       bs = -Infinity;
-    for (const [t, d] of dist) {
-      if (used.has(t) || yards.has(t) || !farmable(w, t) || !f.fields.some((fd) => hexSteps(w, fd.tile, t) === 1))
+    for (const [t, d] of gateSteps(w, f.house, FIELD_REACH)) {
+      if (
+        d < 1 ||
+        used.has(t) ||
+        yards.has(t) ||
+        !farmable(w, t) ||
+        !f.fields.some((fd) => hexSteps(w, fd.tile, t) === 1)
+      )
         continue;
-      const s = fertility(w, t) - FIELD_NEAR * d;
+      const s = FIELD_RULE.score(w, t, d);
       if (s > bs) {
         bs = s;
         best = t;
@@ -462,6 +478,7 @@ VB['sim/layout'] = (() => {
   // The one generator of settlements, used by every scenario. A scenario chooses sites and sizes; the generator places villages
   // (farms, fields), then names, commons wood and fences. Call addVillage / addLoneFarm in order, then finish().
   function settlementGenerator(w, rand, bare = false) {
+    initGates(w); // the houses' gates, set as each is placed (makeFarmstead, VB-1951)
     const used = new Set(),
       farmsteads = [],
       villages = [],
@@ -541,6 +558,8 @@ VB['sim/layout'] = (() => {
     farmHooks,
     FIELD_REACH,
     FIELD_NEAR,
+    FIELD_RULE,
+    useFieldScore,
     HOUSE,
     farmedLand,
     nextTo,

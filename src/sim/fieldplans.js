@@ -9,7 +9,8 @@ VB['sim/fieldplans'] = (() => {
   const { team } = VB['sim/herds'];
   const { bfs } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'];
-  const { nextTo, farmedLand } = VB['sim/layout'];
+  const { nextTo, farmedLand, useFieldScore } = VB['sim/layout'];
+  const { gateSteps } = VB['sim/entrances'];
   const { freeFor } = VB['sim/territory'];
   const { stake, contest, contestable } = VB['sim/stakes'];
   const Projects = VB['sim/projects'],
@@ -179,8 +180,13 @@ VB['sim/fieldplans'] = (() => {
   const makingHours = (st, t) =>
     Math.max(0, woodHours(st.w, t) + clearHours(st, t) + BREAK_HOURS - SITE.wood * woodOn(st.w, t));
   const siteScore = (st, t, d, k = siteTerms()) =>
-    (k.grain * fertility(st.w, t) * (1 - wetLoss(st.w, t)) * (st.w.dev[t] ? k.start : k.fresh)) /
+    (k.grain * fertility(st.w, t) * (1 - wetLoss(st.w, t)) * (st.w.dev && st.w.dev[t] ? k.start : k.fresh)) /
     (k.work + makingHours(st, t) / SITE.years + (2 * SITE.trips * d) / SPEED);
+  // The one rule for a field's site (Kim, 27 Nov: no difference between a farm head and the village generator): the generator, the
+  // editor and a new plot score a field as a head does, d steps from the house out by its gate (sim/layout FIELD_RULE, VB-1951). It reads
+  // the world alone (siteScore reads st.w), so a world being generated, with no run yet, is scored the same.
+  const TERMS = siteTerms();
+  useFieldScore((w, t, d) => siteScore({ w }, t, d, TERMS));
   // The best farmable tile within reach of the house that the household may take in (its village's outland or wilderness, sim/territory),
   // not on a river, and where farmed land may lie (sim/layout, farmedLand: beside a house, but off the ring round a green and no nearer
   // the green than the house): the best score (siteScore), whatever its ground, and SITE.together times better when it touches one of the
@@ -193,7 +199,7 @@ VB['sim/fieldplans'] = (() => {
       k = siteTerms();
     let best = -1,
       bs = -Infinity;
-    for (const [t, d] of bfs(w, f.house, REACH, walkable(w)).dist) {
+    for (const [t, d] of gateSteps(w, f.house, REACH)) {
       if (d < 1 || fieldBar(st, t, free, built, may) !== null) continue;
       const s = siteScore(st, t, d, k) * (nextTo(w, t, own) ? SITE.together : 1);
       if (s > bs) {
@@ -209,7 +215,7 @@ VB['sim/fieldplans'] = (() => {
   // steps' walk of the house. The check of the head's verb, the player's and the holder's alike (sim/commands, VB-253).
   function fieldWhy(st, f, hh, t, built = builtTiles(st)) {
     if (!(Number.isInteger(t) && t >= 0 && t < st.w.N)) return `there is no tile ${t}`;
-    const d = bfs(st.w, f.house, REACH, walkable(st.w)).dist.get(t);
+    const d = gateSteps(st.w, f.house, REACH).get(t); // out by the house's gate (VB-1951)
     if (d === undefined) return `the tile is not within ${REACH} steps' walk of the house`;
     if (d < 1) return 'the house stands there';
     return fieldBar(

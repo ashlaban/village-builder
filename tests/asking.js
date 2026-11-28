@@ -29,7 +29,7 @@ const map = [
 // Two villages: village 0 holds households 0 (holder 0, daughters 2 to 5) and 1 (holder 6, children 8 to 10); village 1 household 2.
 // Aged as each case needs: daughters 2 (21), 4 (20), 5 (19); sons 8 (22) and 10 (20); 9 young.
 function world() {
-  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 2 }); // seed 2 since VB-1951 moved the draws
   const aged = (id, years) => {
     st.pawns[id].born = st.t - years * YEAR - DAY;
     st.pawns[id].age = years;

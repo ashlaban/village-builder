@@ -40,15 +40,17 @@ check([0, 1, 2].map(bandStone).join() === '3,6,11', 'the stone set aside is the 
 // A lone farm of `n` people with a brook `steps` tiles east of its house, in ground `depth` metres to the water; the farm's starting
 // well taken away.
 const lone = (steps, depth, n = 4) => {
-  const lay = (ww) => tinyState(ww, [{ at: [8, 6], farms: 1, sizes: [n] }], { seed: 7 });
+  const lay = (ww) => tinyState(ww, [{ house: [8, 6], sizes: [n] }], { seed: 7, gates: false });
   const w = tinyWorld(meadow(30, 13), { stones: 200 }),
-    house = lay(tinyWorld(meadow(30, 13))).farmsteads[0].house;
+    house = tileAt(w, 8, 6);
   brook(w, house + steps);
   w.waterDepth[house] = depth;
   const st = lay(w),
     hh = st.households[0],
     f = st.farmsteads[hh.farmstead];
   w.fresh[f.house] = FRESH.NONE; // a test's write: the farm starts with no well
+  // a test's write: its land is made, the head wanting no more fields than it has (four grown hands would want a fourth: landFirst)
+  VB['sim/steps'].targetOf(st.plans.households.get(hh.id), 'fields').level = f.fields.length;
   Water.find(st, f);
   return { st, w, hh, f };
 };
@@ -58,7 +60,7 @@ const wellPlan = (st, hh) => Projects.projectsOf(st, 'household', hh.id).find((p
 {
   const { st, w, hh, f } = lone(7, 2);
   check(near(f.water.walk, 0.875) && Wells.pays(st, f), `7 steps of meadow off, a well pays (${JSON.stringify(f.water)})`);
-  check(Wells.stoneLacking(st, hh, f) === 3 && /loads of stone/.test(project(st, hh)), `with no stone on the heap the verb says so (${project(st, hh)})`);
+  check(Wells.stoneLacking(st, hh, f) === 3 && /loads of stone/.test(project(st, hh)), `with no stone on the heap the verb says so (${project(st, hh)}; lacking ${Wells.stoneLacking(st, hh, f)})`);
   let begun = null,
     days = 0;
   for (; days < 60 && w.fresh[f.house] !== FRESH.WELL; days++) {
@@ -143,7 +145,7 @@ const wellPlan = (st, hh) => Projects.projectsOf(st, 'household', hh.id).find((p
 // ---- 5. the village's well: the green where the water is reckoned shallowest, the well's step by the depth; none where the ground has none ----
 {
   const w = tinyWorld(meadow(24, 12)),
-    st = tinyState(w, [{ at: [10, 5], farms: 3 }], { seed: 7 }),
+    st = tinyState(w, [{ at: [10, 5], farms: 3 }], { seed: 7, gates: false }),
     v = st.villages[0];
   check(v.well === v.center && w.fresh[v.well] === FRESH.WELL, `the starting village's well is its tile, on the green (${v.well})`);
   // the village as one that has yet to lay out its green (a test's writes)
@@ -181,7 +183,7 @@ const wellPlan = (st, hh) => Projects.projectsOf(st, 'household', hh.id).find((p
   Water.wellsLoaded(old);
   check(old.villages.map((v) => v.well).join() === '41,,12,', `the boolean becomes the green's tile, or none (${old.villages.map((v) => v.well)})`);
   const w = tinyWorld(meadow(24, 12)),
-    st = tinyState(w, [{ at: [10, 5], farms: 3 }], { seed: 7 }),
+    st = tinyState(w, [{ at: [10, 5], farms: 3 }], { seed: 7, gates: false }),
     data = JSON.parse(JSON.stringify(Sim.save(st)));
   const back = Sim.load(st.w, data);
   check(back.villages[0].well === st.villages[0].well && back.w.fresh[back.villages[0].well] === FRESH.WELL, 'a save keeps the well\'s tile and its source');

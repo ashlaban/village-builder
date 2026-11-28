@@ -15,7 +15,7 @@ const { emit } = VB['sim/events'];
 const Rel = VB['sim/relations'], R = VB['sim/records'], Culture = VB.culture, Customs = VB['sim/customs'];
 const map = ['..............', '...FF.........', '...FF.........', '..............', '..........FF..', '..............', '.........^^...', '..............', '~.............', '~~............'];
 function world(option, ages) {
-  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 7 });
+  const st = tinyState(tinyWorld(map), [{ at: [3, 5], farms: 2 }, { at: [11, 2], farms: 1 }], { seed: 25 });
   for (const s of st.cenv.settlements) setPractice(st, s.id, { matchBy: option });
   for (const [id, years] of Object.entries(ages)) {
     st.pawns[id].born = st.t - years * YEAR - DAY;
