@@ -12,7 +12,7 @@ const { issue } = VB['sim/commands'], A = VB['sim/agents'], { age, fullName } = 
 const { cal, WORK, YEAR } = VB['sim/rules'];
 
 assert.deepStrictEqual(Object.keys(PASTIMES).sort(), ['company', 'fire', 'green', 'herd', 'play', 'visit'], 'the six pastimes of the row');
-const st = probe.state();
+const st = probe.state(1); // seed 1: a child of 7 to 13 (7 before VB-1951 gave the layout its own draws)
 st.naturalDeaths = false;
 // to the middle of the first working morning
 while (cal(st.t).hour !== WORK[0] + 2) Sim.advance(st, 1);
