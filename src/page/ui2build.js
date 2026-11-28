@@ -57,7 +57,12 @@ const LADDER = {
     icon: () => goodIcon('stone'),
     line: 'The house raised onto stones: it wears slower, and a well-kept house on stone gives its holder standing.',
   },
-  barn: { name: 'Barn', icon: () => goodIcon('sheaves'), line: 'Grain and hay spoil half as fast in it.' },
+  storehouse: {
+    name: 'Storehouse',
+    icon: () => goodIcon('grain'),
+    line: 'A storehouse on posts: threshed grain spoils half as fast in it.',
+  },
+  barn: { name: 'Barn', icon: () => goodIcon('hay'), line: 'Hay and sheaves keep in it: hay spoils half as fast.' },
   byre: {
     name: 'Byre',
     icon: () => goodIcon('beast'),

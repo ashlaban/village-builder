@@ -73,7 +73,7 @@ const HUD_CHAIN = {
     name: 'Build an outbuilding',
     icon: () => actIcon('build'),
     offer: 'Build',
-    done: 'the barn or the byre built until it stands',
+    done: 'the storehouse, the barn or the byre built until it stands',
   },
   harvest: {
     name: 'Bring in the harvest',

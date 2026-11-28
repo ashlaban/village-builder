@@ -2386,6 +2386,13 @@ function checkState(st) {
       !(Object.keys(f.byre).join() === 'built' && f.byre.built <= st.t && f.camp !== true)
     )
       bad.push(`farmsteads[${f.id}]: byre ${JSON.stringify(f.byre)}`);
+    // VB-1898: the farm's storehouse, one at most, built at a time not after now; none on a camp
+    if (
+      f.storehouse !== undefined &&
+      f.storehouse !== null &&
+      !(Object.keys(f.storehouse).join() === 'built' && f.storehouse.built <= st.t && f.camp !== true)
+    )
+      bad.push(`farmsteads[${f.id}]: storehouse ${JSON.stringify(f.storehouse)}`);
     // VB-1664: the rung stored where it cannot be derived, the timber house, on a farm with its cottage built (no booth)
     if (f.rung !== undefined && f.rung !== null && !(f.rung === 'timber' && !f.booth))
       bad.push(`farmsteads[${f.id}]: rung ${JSON.stringify(f.rung)} with booth ${JSON.stringify(f.booth)}`);

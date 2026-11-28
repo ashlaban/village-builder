@@ -196,7 +196,13 @@ function fieldLine(fd, i) {
     open ? (left <= 3 ? 2 : 1) : 0,
   ];
 }
-const HUD_PROJECT = { field: 'a new field', meadow: 'a hay meadow', barn: 'a barn', well: 'a well' };
+const HUD_PROJECT = {
+  field: 'a new field',
+  meadow: 'a hay meadow',
+  barn: 'a barn',
+  storehouse: 'a storehouse',
+  well: 'a well',
+};
 const HUD_STORES = [
   ['food', 'Food', 'rations'],
   ['fuel', 'Firewood', 'measures'], // a load home is Sim.ECON.woodPerTrip measures

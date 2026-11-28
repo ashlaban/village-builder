@@ -4,8 +4,7 @@
 const ART_S = 0.2;
 const YARD = {
   byre: [-10, -3],
-  lada: [6, -1],
-  barn: [19, -6], // the second barn a household builds as a project (VB-255), behind the storehouse
+  barn: [6, -1], // the barn (lada; farmstead.barn), behind the storehouse
   harbre: [14, 7],
   stuga: [-4, 14],
   wood: [10, 15],
@@ -302,6 +301,8 @@ function drawMoveLoads() {
 }
 // A building record stands (farmstead.barn, farmstead.byre: {built}); `true` in a save older than the record.
 const hasBuilt = (x) => !!x && (typeof x !== 'object' || (x.built !== null && x.built !== undefined));
+// Farm f's barn and storehouse drawn only where the sim has them (VB-1898; farmstead.barn, farmstead.storehouse): keys of YARD.
+const yardOut = (f) => ['barn', 'harbre'].filter((k) => hasBuilt(k === 'barn' ? f.barn : f.storehouse));
 function drawBooth(wd, f, empty) {
   const x = wd.hx[f.house],
     y = wd.hy[f.house],
@@ -480,24 +481,24 @@ function drawFarm(wd, f) {
     if (f.shelter) drawBooth(wd, f, empty);
   } else if (f.booth) drawBooth(wd, f, empty);
   else {
-    const lada = place(art.lada, hx + YARD.lada[0], hy + YARD.lada[1], 0.5, 0.93),
-      harbre = place(art.harbre, hx + YARD.harbre[0], hy + YARD.harbre[1], 0.5, 0.95),
-      stuga = place(art.stuga[v], hx + YARD.stuga[0], hy + YARD.stuga[1], 0.5, 0.92);
-    const barn = hasBuilt(f.barn) ? place(art.lada, hx + YARD.barn[0], hy + YARD.barn[1], 0.5, 0.93) : null; // farmstead.barn (VB-255)
-    for (const b of barn ? [lada, harbre, stuga, barn] : [lada, harbre, stuga]) {
+    // the barn and the storehouse only where the farm has them (VB-1898; farmstead.barn, farmstead.storehouse), the cottage always
+    const stuga = place(art.stuga[v], hx + YARD.stuga[0], hy + YARD.stuga[1], 0.5, 0.92),
+      out = yardOut(f).map((k) =>
+        place(art[k === 'barn' ? 'lada' : 'harbre'], hx + YARD[k][0], hy + YARD[k][1], 0.5, k === 'barn' ? 0.93 : 0.95),
+      ),
+      all = [...out, stuga];
+    for (const b of all) {
       b.tint = tint;
       if (empty && !ruin) b.alpha = 0.9;
     }
-    if (landed) lada.visible = harbre.visible = false;
     if (f.rung === 'timber') {
       // the timber house (VB-1664): a larger house of another of the three cottages' looks, standing where the cottage stood
       stuga.texture = art.stuga[(v + 1) % 3];
       stuga.scale.set(ART_S * 1.32);
     }
-    for (const b of barn ? [lada, harbre, stuga, barn] : [lada, harbre, stuga]) roofSprite(b, f.house);
+    for (const b of all) roofSprite(b, f.house);
     if (ruin) {
-      lada.visible = harbre.visible = false;
-      if (barn) barn.visible = false;
+      for (const b of out) b.visible = false;
       stuga.scale.y = ART_S * 0.55;
       stuga.alpha = 0.85;
     }

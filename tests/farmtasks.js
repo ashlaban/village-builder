@@ -32,6 +32,7 @@ function village() {
     f = st.farmsteads[hh.farmstead];
   assert.strictEqual(hh.holder, 0, 'pawn 0 heads its household');
   for (const p of projectsOf(st, 'household', hh.id)) VB['sim/commands'].issue(st, { actor: 0, verb: 'dropProject', target: hh.id, args: { id: p.id }, source: 'player' });
+  f.barn = null; // VB-1898: a seeded farm has its barn; this one is made without
   Sim.advance(st, 2 * DAY);
   assert(!f.booth && f.grade === 'ground' && !f.barn, 'a cottage on the ground with no barn');
   return { st, hh, f };
@@ -65,6 +66,7 @@ function run(st, kind, days = 80) {
   assert(!v.next.some((n) => n.what === 'stone'), 'the foundation is no rung');
   assert.deepStrictEqual(v.foundation, { grade: 'ground', needs: FOUNDATION.needs, ok: true, why: null, planned: false, building: null });
   assert.deepStrictEqual(v.outbuildings, [
+    { what: 'storehouse', built: true, needs: OUTBUILDINGS.storehouse.needs, ok: false, why: `${f.name} has a storehouse`, planned: false, building: null },
     { what: 'barn', built: false, needs: OUTBUILDINGS.barn.needs, ok: true, why: null, planned: false, building: null },
     { what: 'byre', built: true, needs: OUTBUILDINGS.byre.needs, ok: false, why: `${f.name} has a byre`, planned: false, building: null },
   ]);
@@ -80,7 +82,7 @@ function run(st, kind, days = 80) {
   assert.strictEqual(v.foundation.why, 'the stone foundation is planned already');
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { outbuilding: f.house, what: 'barn' }), true);
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { outbuilding: f.house, what: 'barn' })), /already planned/, 'one outbuilding task at a house');
-  assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).outbuildings[0].planned, true);
+  assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).outbuildings.find((o) => o.what === 'barn').planned, true);
   sound(st, 'refusals');
 }
 // ---- 2. the foundation by the plan alone: its stone, its raising outside the slack; the house keeps its grade ----
@@ -128,7 +130,7 @@ function run(st, kind, days = 80) {
   for (let i = 0; i < 240 && !projectsOf(st, 'household', hh.id).some((p) => p.what === 'barn'); i++) Sim.advance(st, 0.1);
   const p = projectsOf(st, 'household', hh.id).find((q) => q.what === 'barn');
   assert(p, 'begun by the task');
-  assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).outbuildings[0].building.what, 'barn');
+  assert.strictEqual(Sim.farmView(st, f.id, st.player && st.player.pawn).outbuildings.find((o) => o.what === 'barn').building.what, 'barn');
   for (let i = 0; i < 40 * 240 && p.open === 0; i++) Sim.advance(st, 0.1);
   assert.strictEqual(p.steps[1].kind, 'barnwalls');
   assert(p.steps[1].wood >= 6, `the walls took the timber at home: ${p.steps[1].wood}`);
@@ -145,7 +147,7 @@ function run(st, kind, days = 80) {
   assert.strictEqual(VB['sim/steps'].pawnPlan(st, st.player.pawn).last.which, 'built', JSON.stringify(VB['sim/steps'].pawnPlan(st, st.player.pawn).last));
   assert(f.barn, 'the farm has its barn');
   assert(laid.has('barnwalls') && laid.has('barnroof'), `the agenda lays its steps: ${[...laid]}`);
-  const v = Sim.farmView(st, f.id, st.player && st.player.pawn).outbuildings[0];
+  const v = Sim.farmView(st, f.id, st.player && st.player.pawn).outbuildings.find((o) => o.what === 'barn');
   assert.strictEqual(v.built, true);
   assert.strictEqual(v.why, `${f.name} has a barn`);
   sound(back, 'loaded mid-chain');
@@ -202,6 +204,7 @@ function run(st, kind, days = 80) {
     f = st.farmsteads[hh.farmstead],
     act = (args) => VB['sim/commands'].issue(st, { actor: hh.holder, verb: 'project', target: hh.id, args, source: 'pawn' });
   for (const p of projectsOf(st, 'household', hh.id)) act({ what: null }) && VB['sim/commands'].issue(st, { actor: hh.holder, verb: 'dropProject', target: hh.id, args: { id: p.id }, source: 'pawn' });
+  f.barn = null; // VB-1898: a seeded farm has its barn; this one is made without
   const fields = f.fields.length;
   assert.strictEqual(act({ what: 'field' }), true, 'a field begun');
   assert.strictEqual(act({ what: 'barn' }), true, 'a barn begun beside it, by the verb');

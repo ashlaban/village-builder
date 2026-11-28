@@ -161,6 +161,7 @@
     "plan.outlook": "sim/outlook",
     "farmstead.barn": "sim/building",
     "farmstead.byre": "sim/byrehouse",
+    "farmstead.storehouse": "sim/storehouse",
     "farmstead.rung": "sim/timberhouse",
     "household.workHours": "sim/work",
     "st.workToday": "sim/work",

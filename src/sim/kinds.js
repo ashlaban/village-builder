@@ -135,6 +135,7 @@ VB['sim/kinds'] = (() => {
   Object.assign(KINDS, VB['sim/textile'].KINDS); // spinning, weaving and the loom (VB-362): sim/textile's
   KINDS.firewood = Chores.KINDS.firewood; // timber cut into firewood at the house (VB-1653): sim/chores'
   Object.assign(KINDS, VB['sim/byrehouse'].KINDS); // the byre's walls and roof (VB-1665): sim/byrehouse's
+  Object.assign(KINDS, VB['sim/storehouse'].KINDS); // the storehouse's walls and roof (VB-1898): sim/storehouse's
   Object.assign(KINDS, VB['sim/timberhouse'].KINDS); // the timber house's frame and roof (VB-1664): sim/timberhouse's
   Object.assign(KINDS, VB['sim/facilities'].KINDS); // a facility's stages raised and its upkeep (VB-361): sim/facilities'
   Object.assign(KINDS, Expansion.plotted(KINDS)); // a plot's step ends in its finish, through its kind's `done` (sim/expansion, VB-1821)
@@ -217,6 +218,7 @@ VB['sim/kinds'] = (() => {
     house: { name: 'the house' },
     barn: { name: 'a barn' },
     byre: { name: 'a byre' },
+    storehouse: { name: 'a storehouse' },
     booth: { name: 'a booth' },
     fence: { name: 'the village fence' },
     green: { name: 'the village green' },
