@@ -947,3 +947,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1809](backlog/VB-1809.md) | A blocked goal says why, and is not posted again until its fact changes | - | 3 | S | VB-1775 review F5 and F8: onward drops a blocked goal and its reason; the counters' world has no wood, so methodAsk guards nothing |
 | [VB-1973](backlog/VB-1973.md) | A seed loan before sowing, after a failed year | plans | 2 | M | seed corn lent before sowing and kept for it, so a failed year is not followed by an unsown one |
 | [VB-1818](backlog/VB-1818.md) | Kinds: the control fields no code reads after VB-1750 taken out | - | 3 | S | the kinds' own to and meadows' reload, dead since the phases went, removed |
+| [VB-2041](backlog/VB-2041.md) | Retire the work counter roundPairs, counted nowhere since VB-693 | - | 3 | S | roundPairs is declared and read but never raised: retire it and its always-zero probe |
