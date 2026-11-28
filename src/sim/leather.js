@@ -10,7 +10,8 @@ VB['sim/leather'] = (() => {
   const { age } = VB['sim/records'];
   const { hasTeam } = VB['sim/herds'];
   // @tunable LEATHER: shoes and harness (VB-911; named estimates with no source but the reckoning here, rows of docs/tuning.md). shodAge:
-  // from this age a member walks shod (a small child goes barefoot); shoeDays: the days a walker wears a pair of turnshoes through; pairs:
+  // from this age a member walks shod (a small child goes barefoot); shoeDays: the GAME days a walker wears a pair of turnshoes through
+  // (a game day stands for a week, YEAR_DAYS 48 a year: 32 is some eight months of wear); pairs:
   // the pairs a hide is cut into (a roe deer's gives two, a cow's many more, most of it to other uses); keep: the pairs a walker's
   // household keeps in hand, its target; shoeHours: the work of cutting and sewing a hide into shoes, one hand in the house;
   // harnessYears: the years a team's harness lasts; harnessMend: the part of a whole harness a hide makes good; harnessHours: that work;
@@ -18,7 +19,7 @@ VB['sim/leather'] = (() => {
   // done in any season; urgency: a side craft's (MATCH.urgency's scale), as the tools' mending.
   const LEATHER = {
     shodAge: 3,
-    shoeDays: 240,
+    shoeDays: 32,
     pairs: 4,
     keep: 1,
     shoeHours: 6,

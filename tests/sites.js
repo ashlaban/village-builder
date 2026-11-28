@@ -1,3 +1,4 @@
+// @suite integration
 // VB-787: settling in steps (design.md, Moving to new land, Settling in steps). On the heirs island of tests/lib/probe.js at seed 13,
 // village A crowded: at the round its waiting adult stakes a site for itself and its sibling (nobody moves, no household or village is
 // made), blazes the trail, the two clear its tiles and build its cottage from their old household, and they move when its roof is on,
