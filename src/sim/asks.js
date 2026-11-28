@@ -106,6 +106,7 @@ VB['sim/asks'] = (() => {
       per = FAIR.weight[G.lump];
     return per ? Math.floor((TRAVEL.load - FAIR.room + TOLERANCE) / per) * G.quantum : 0;
   }
+  VB.counter('asksRead', 'Open asks for a good passed by a head reading them, once a year a head (sim/asks, VB-699)');
   // The head of household hh reads the asks for each good it can make, once a year from its first review of autumn: the units the asks of
   // the villages it hears of want (stale ones close as lapsed as it passes them), times its lean (plan.head.bias.hours: the lean of its
   // estimates, VB-476), within what its spare hands make beyond its need (sim/targets' bound) and what its dealer carries. Each ask read is

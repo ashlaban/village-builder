@@ -135,6 +135,10 @@ VB['sim/lying'] = (() => {
     l.n += n;
     return l;
   }
+  VB.counter(
+    'lyingAt',
+    'Loads lying read for the timber at a tile a firewood task names off the house, at each read of the task (sim/lying pilesAt; VB-1931)',
+  );
   // The loads lying at `tile`, whoever owns them (VB-1931: the timber a household may cut there, its own or nobody's, sim/wood): a read
   // of the small live list, for a tile a played pawn names; the index by owner cannot say what lies of an owner not known.
   function pilesAt(st, tile) {
@@ -223,6 +227,10 @@ VB['sim/lying'] = (() => {
   // A lying load's loss in its owner's store, as the stores book spoilage (event lyingSpoilt): the good, and its units a unit of load
   // (the sheaves and grain in rations, the hay at TRAVEL.hay). The other goods lying are in no store's units, and are not booked.
   const SPOILS = { haul: ['grain', 1], leftGrain: ['grain', 1], hay: ['hay', TRAVEL.hay] };
+  VB.counter(
+    'lyingDecay',
+    "Loads lying out read by the day's decay, each day from the autumn frost to the year's end while any lies (sim/lying decay; VB-1910)",
+  );
   // The game day's loss once the frost has come (sim/clock, each day from the frost's to the year's end; `days` over one: so many days at
   // once, as a test passing over them): each load but a cart left standing loses lossOver of its amount, booked as spoilage; one worn
   // under its quantum is lost, and told as the frost's.

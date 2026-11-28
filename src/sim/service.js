@@ -353,6 +353,11 @@ VB['sim/service'] = (() => {
   const handsPerField = (st, hh) => hands(st, hh) / fieldsOf(st, hh);
   const parentIn = (st, q, hh) =>
     [q.father, q.mother].some((id) => id !== null && st.pawns[id].alive && st.pawns[id].household === hh.id);
+  VB.counter(
+    'labourWeighed',
+    'Households short of labour weighed for a landless adult with hands to spare at home, at the moving round (sim/service, ' +
+      'serveWhereShort; VB-090)',
+  );
   function serveWhereShort(st, { taken = new Set(), moved = new Set(), leavers = [] } = {}) {
     const short = st.liveHouseholds
       .map((id) => st.households[id])
@@ -426,6 +431,11 @@ VB['sim/service'] = (() => {
   // A household below its floor (its seed and HELP.floorDays of food: what it keeps back from any gift) could not pay a wage.
   const belowFloor = (st, hh) => Stores.grainOf(hh) < floorOf(st, hh);
   const party = (kind, id) => ({ kind, id });
+  VB.counter(
+    'wagesWeighed',
+    'Members of the households weighed for a servant who has served a year, owed its wage at the moving round (sim/service, ' +
+      'oweWages; VB-637)',
+  );
   // At the moving round's first step, before its offers are answered: each servant who has served a year (in service with its master
   // since the round a year back, pawn.servedSince) is owed SERVICE.wage rations by the household it serves, as an obligation of the kind
   // `wage`: the creditor the servant, as a sibling's share names a person, the enforcer the master's village. One obligation a servant a
@@ -551,6 +561,11 @@ VB['sim/service'] = (() => {
   // people go to kin who hold the farm in trust (trusteeFor, sim/trust; VB-309), else nothing happens. Only a household named searches:
   // st.demand once with a kinship memo, then the servants' list, then its kin households.
   const grown = (st, hh) => hh.members.filter((id) => adult(st.pawns[id])).length;
+  VB.counter(
+    'takeInWeighed',
+    'Pawns of st.demand weighed for a household short of people whose ask for food fell short, as kin and then as servants ' +
+      '(sim/service, takeIn; VB-308)',
+  );
   function takeIn(st, ids) {
     let available = null;
     for (const id of ids) {

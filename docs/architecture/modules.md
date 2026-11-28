@@ -425,13 +425,13 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   page, not by `Sim.load`. The landing page and the loader (`src/page/loader.js`) lead to it; it keeps nothing in `st`.
 - The interface's theme (VB-1161) is `src/page/options.js`: the main menu's Options screen, and `glass` (the default, the stylesheet as it
   stands) or `mural`, set as `data-theme` on the page's root and kept in localStorage (`vb.theme`), never in `st` or a save. A theme is a
-  block of tokens under `[data-theme="..."]` and its styling of the pieces in `src/head.html`; the meter gives its fill's start and end as `--lo` and `--hi`, so a
+  block of tokens under `[data-theme="..."]` and its styling of the pieces in its stylesheet (`src/styles/`); the meter gives its fill's start and end as `--lo` and `--hi`, so a
   theme can draw a level another way than as a bar's width.
   With no game open, the loader raises a tiny showcase island behind the menu screens, on one of a pool of seeds (VB-307; `demo`, page state): a run of its own at 3x,
   never saved and never a game to go back to; `build` drops it.
 - The page script (`src/page/*.js`) draws and only reads `st`. It writes to `st` through the `Sim` API and three flags:
   `visualDirty`, `naturalDeaths`, `driftMul` (and it clears `rigDirty`, `farmDirty`, `villageDirty`, `treeDirty`, `biomeDirty`, `pathDirty` and `landDirty` after redrawing); the lint enforces this.
-- `src/vb.js` creates the `VB` namespace; `src/load.js` loads the modules in Node for the tests.
+- `src/vb.js` creates the `VB` namespace and `VB.counter`, by which a module declares its work counters; `src/load.js` loads the modules in Node for the tests.
 - Review tools (VB-337), outside the simulation: `tools/hours.js` (`node tools/sim.js --report hours`) samples a run's agents and fields at
   every step for a household's pawn-hours by job kind and the farming year's days; `tools/stocks.js` maps each stored quantity's adders,
   takers and readers from the writes map (`tools/writes.js`), with a hand-written line a quantity on what happens at none.
@@ -484,8 +484,8 @@ of VB-1406 has landed (`docs/plans/VB-1406-overlap.md`, section 5); until then, 
   A stored quantity's tag for `tools/stocks.js` goes on the same line after VB-1941 (today `QUANTITIES` or `NOT_STOCKS` there).
 - **A test**: a header line `// @suite fast|integration|extended [node:FLAG] [ARG]` in the test file, a line a tier and argument
   set, among the comment lines it opens with (VB-1933; `grep -rn "^// @suite" tests`); `tests/suites.js` is not touched.
-- **A work counter**: today an entry of `VB.COUNTERS` in `src/vb.js`; after VB-1934 declared at load by the module, beside the loop
-  it counts.
+- **A work counter**: declared at load by the module, beside the loop it counts, `VB.counter(name, meaning)` (VB-1934;
+  `grep -rn "VB.counter('" src`); `VB.COUNTERS` joins them in load order, and `src/vb.js` holds none.
 - **A tunable**: a table one domain reads, in that module with its `// @tunable NAME: meaning` line (`grep -rn "@tunable" src`); a
   table several read, in `src/sim/rules.js` until VB-1947 moves them into files by domain, `VB['sim/rules']` staying the joined view.
 - **A migration** (what fills a field an older save lacks): today a line in `load` of `src/sim/saves.js`; after VB-1945 registered
@@ -494,6 +494,13 @@ of VB-1406 has landed (`docs/plans/VB-1406-overlap.md`, section 5); until then, 
   in `src/sim/notable.js`, its icon and its word on the page; after VB-1946 one record declared by the module that emits it.
 - **A `Sim` name**: today an import and an export line in `src/sim.js`; after VB-1944 the module names what it gives the page and
   `src/sim.js` joins the lists.
+- **A card's row** (a line of a person's, a farm's house or an open tile's card, a stat of a household on its farm's card): one
+  `cardRow(card, place, row)` at load, in the feature's page file beside the code it shows (VB-1948; `page/cardrows`, which joins
+  them by place, never by the order of `src/page.json`; `grep -rn "cardRow('" src/page`). The places are numbers with room between them;
+  `tests/cardrows.js` fails for two rows at one place.
+- **A style**: in the stylesheet of its area under `src/styles/` (the bar and panels, the cards and the meter, the screens, a theme
+  each, the icons' sets), spliced by `build.js` in the order of `src/styles.json`, which is the cascade's (VB-1948); a new theme is a
+  file of its own, listed after `mural.css`.
 - Already declarations: a job kind (`KINDS`, joined by `sim/kinds`), a verb (`register` of `sim/commands`), an overlay
   (`registerOverlay`), a journey kind (`JOURNEYS`). A calendar entry stays a line of `CALENDAR` in `src/sim/clock.js`: there the
   order is the rule itself, declared in one place and held by `tests/clock.js`.
@@ -546,7 +553,7 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
 - A new custom adds a `DIMS` entry (its `key` and `opts`) and a value in each `ARCHETYPES` entry; offsets are computed from `DIMS`.
 - A new set of icons (VB-1533; `line` and `stencil` today) is one entry of `ICON_SETS` in `src/page/icons.js` and its drawings, given
   by name where an icon is made (`drawings(svg, { stencil: ..., <set>: ... })`, drawn on a 24 box); an icon left without one shows its
-  `line` drawing. In `src/head.html`, beside the stencil's, its one rule (hidden unless the root's `data-icons` names it, and then the
+  `line` drawing. In `src/styles/icons.css`, beside the stencil's, its one rule (hidden unless the root's `data-icons` names it, and then the
   `line` drawing beside it hidden) and the styles its shapes are drawn with; then a theme names it, the `icons` field of its entry in
   `THEMES` (`src/page/options.js`), which `applyTheme` puts on the root as `data-icons`. No rule of the icons names a theme.
   The drawings are in four files, by what they show (VB-1589), in this order in `src/page.json`, each reading only those before it:
@@ -555,7 +562,7 @@ To time or count a function in Node, call `loadModules({ wrap })` from `tests/li
   (the goods' and measures': `GOOD_PATHS`, `GOOD_STEN`, `goodIcon`) and `src/page/cardicons.js` (the seasons', traits', bonds', states'
   and occasions', several of them the goods' and the acts' drawings). A new set gets its drawings in each.
 - A new theme (VB-1531) is two edits. An entry in `THEMES` (`src/page/options.js`): its key, `name`, `note` and the `icons` it shows; its
-  card in Options, and `tests/page.js`'s walk of the themes, follow. And a block `[data-theme="<key>"] { ... }` in `src/head.html`
+  card in Options, and `tests/page.js`'s walk of the themes, follow. And a block `[data-theme="<key>"] { ... }` in a stylesheet of its own, `src/styles/<key>.css`, listed after `mural.css` in `src/styles.json`,
   that sets every token listed at the head of the stylesheet, in one rule (`tests/themes.js` checks it); written without `:root`, it
   applies to any element with the attribute, so the card's sample (a panel, a head, a pressed and an unpressed button) is drawn in the
   theme whatever theme is on. Then its styling of the pieces (VB-1534), listed beside the tokens: panel, head, button (pressed and

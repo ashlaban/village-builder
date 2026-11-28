@@ -54,6 +54,10 @@ VB['sim/preview'] = (() => {
       empty: false,
     };
   }
+  VB.counter(
+    'previewWalk',
+    "Live households ranked for their first heir by an offer's preview, when the page shows it (sim/preview, VB-1100)",
+  );
   // What a yes to the open offer `offerId` would bring, as `viewer` estimates it (principle "The future is someone's estimate"), or null when there is no
   // such offer:
   // {offer, by (the viewer), home (the household it settles at), lapses (why the settling would fail, else null), moves [{pawn, from, to

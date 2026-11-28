@@ -66,6 +66,11 @@ VB['gen/water'] = (() => {
     }
     return level;
   }
+  VB.counter(
+    'waterSettled',
+    "Tiles settled by the two searches of the map's fresh water, once a world: the rise above the nearest water surface (gen/water) " +
+      'and the walk to fresh water (sim/water; VB-1581)',
+  );
   // The height of the nearest water surface of every land tile, by steps over land: one breadth-first search from every water tile (the
   // sea at 0, a lake at its level) and every river tile (at its own height). A river tile is its own surface. Where the ways to water
   // are as short through several neighbours, the surface is the mean of theirs, so that it does not go by the order the tiles are read in.

@@ -51,6 +51,10 @@ VB['sim/meetings'] = (() => {
     const a = st.villages && st.villages[body] ? st.villages[body].alderman : null;
     return a !== undefined && a !== null && st.pawns[a].alive ? a : null;
   });
+  VB.counter(
+    'aldermanBallots',
+    "Voices times candidates weighed when a village's meeting elects its alderman: once a vacancy, never daily (sim/meetings, VB-314)",
+  );
   // The office is filled by a question of its own: each voice for the holder it thinks most of, by its opinion of him and his standing, and
   // a follower's term for its lord (PATRON.ballot, VB-708)
   // (elected), or the farm next in the order of founding (by turns, each farm a year in its turn). A tie at the top, with no alderman to
@@ -168,6 +172,10 @@ VB['sim/meetings'] = (() => {
       culturesYear(st);
     } else if (n === CULTURE_STEP + 1) landMeeting(st);
   }
+  VB.counter(
+    'meetingWalk',
+    "Pawn records walked by a village's meeting: its living, and at the first village's the island's (sim/lifecycle, VB-278)",
+  );
   // Village v's meeting: its living's interests, its tie to its culture's centre, the causes its adults take up, and its meeting, whose lines
   // go to the head of st.meetingLog. At the first village's step, the island's roles and standing (every meeting reads them), and the living
   // of no settlement have their interests and causes with that village's.
@@ -298,6 +306,10 @@ VB['sim/meetings'] = (() => {
     });
     return out;
   }
+  VB.counter(
+    'splitCandidate',
+    'Cultures reported at the year as filling more than one gathering (sim/meetings, VB-296)',
+  );
   // At 18:00, once all the villages have met: each culture's year, and a line when no meeting of this year changed anything.
   function culturesYear(st) {
     const env = st.cenv,

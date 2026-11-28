@@ -21,6 +21,10 @@ VB['sim/graph'] = (() => {
   const NAMES = Object.keys(ROLES),
     R_ID = Object.fromEntries(NAMES.map((r, i) => [r, i]));
   const SPAN = 2 ** 26; // a key of the live index: role number × SPAN + id
+  VB.counter(
+    'graphBuild',
+    "Edges read to build the membership graph's live index, at its first use after a seed or load (sim/graph, VB-043)",
+  );
   // @state st.edges[]: {id, from, to, role, since, until, left?}: the membership graph, appended in play and saved; `until` null while the edge
   //   is live, the hour it ended after; `left` true when the member gave it up (a move, the end of service), absent when it ended with a
   //   death or a dissolution, which the person's record keeps (its last household, its service). Absent until the first seed or load
@@ -79,6 +83,10 @@ VB['sim/graph'] = (() => {
   const end = (st, ids, left = false) => {
     for (const id of ids.slice()) close(st, id, left);
   };
+  VB.counter(
+    'graphScan',
+    "Edges read back along st.edges for a pawn kept on a dissolved household's record that leaves it (sim/graph leave, VB-043)",
+  );
   // ---- the moves of Membership: a pawn joins a household by link (sim/records joinHousehold), service begins by link and ends by end ----
   // A pawn leaves household hh: moved (left), or dead, or its household dissolved, which its record keeps (sim/records leaveHousehold,
   // clearMembers). A pawn kept on a dissolved household's record has no live edge left: its last one, ended, is marked left (rare: a look

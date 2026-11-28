@@ -29,6 +29,11 @@ VB['sim/expansion'] = (() => {
     REACH = 6,
     PLOT_PEOPLE = 2; // whom a plot's water is weighed for: the couple a plot is cleared for (one trip a day at any size until VB-1586)
   const wooded = (w, t) => w.biome[t] === B.FOREST || w.biome[t] === B.PINE;
+  VB.counter(
+    'plotWalk',
+    "Holders with a project plan under way walked for the households' plots for their heirs, as a village's plots are asked for " +
+      '(sim/expansion livePlots; VB-255)',
+  );
   // @state village.plots[]: the village's plots built, {id, village, intended, holder (who moved in), started, farmstead, tiles: [{tile, kind
   //   'house' | 'field'}], split (true: its house built by fields split off to its holder, VB-034)}, appended when the cottage's
   //   household moves in (sim/cottage). A plot under way is a project plan of its village

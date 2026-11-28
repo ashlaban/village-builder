@@ -5,7 +5,7 @@ const ICON_STROKE =
   ' fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
 // The icon sets (VB-1162, VB-1533): a set is a way of drawing the interface's icons, and a theme names the set it shows (page/options,
 // THEMES' icons, put on the root as data-icons). Each drawing an icon has is in its markup under its set's name, data-set="<name>", and
-// src/head.html shows the root's set by one rule a set, so a change of theme redraws nothing. line is the drawing every icon has, the
+// src/styles/icons.css shows the root's set by one rule a set, so a change of theme redraws nothing. line is the drawing every icon has, the
 // SVG as svgIcon makes it, and the one shown where an icon has no drawing of the set asked for. The others are drawn on a 24 box and
 // scaled to their icon's. A third set: docs/architecture/modules.md, Adding things.
 const ICON_SETS = {
