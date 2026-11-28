@@ -286,6 +286,34 @@ VB['sim/obligations'] = (() => {
     }
     return null;
   }
+  // Household hh dissolves (sim/heirs extinct, once its people are placed): each obligation it is debtor or creditor of that still runs
+  // passes to `to`, the household that takes on its estate (design, A dissolved debtor), or lapses with no one to pass to, or when it
+  // would owe itself. Returns the number passed and lapsed.
+  function dissolving(st, hh, to) {
+    if (!st.obligationsBy) return { passed: 0, lapsed: 0 };
+    const me = { kind: 'household', id: hh.id },
+      out = { passed: 0, lapsed: 0 };
+    for (const as of ['debtor', 'creditor']) {
+      const other = as === 'debtor' ? 'creditor' : 'debtor';
+      for (const id of [...(st.obligationsBy[as][keyOf(me)] || [])]) {
+        const o = st.obligations[id];
+        if (to === null || to === undefined || (o[other].kind === 'household' && o[other].id === to)) {
+          lapse(
+            st,
+            id,
+            as === 'debtor'
+              ? 'its debtor household was dissolved, with none to take it on'
+              : 'its creditor household was dissolved, with none to take it on',
+          );
+          out.lapsed++;
+        } else {
+          transfer(st, id, { [as]: { kind: 'household', id: to } });
+          out.passed++;
+        }
+      }
+    }
+    return out;
+  }
   // Each step: the obligations whose term has ended, and only those (Rules for cost, 4). One of a kind with terms goes on to its next
   // term, as it stands; one with a single term is what its kind's `ended` makes it (overdue by default, waiting out of the queue for
   // who enforces it, VB-315; a loan is paid there, or overdue and due again, or defaulted: sim/loans).
@@ -356,6 +384,7 @@ VB['sim/obligations'] = (() => {
     forgive,
     lapse,
     transfer,
+    dissolving,
     step,
     rebuilt,
     left,
