@@ -15,6 +15,7 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
   --tag NAME    the files' prefix (default <scenario>-<seed>-<size>-y<years>)
   --html FILE   another build of the page (default: built from src/ for the run)
   --follow KIND the first pawn at work on a job of this kind (gather, fish...) is where --at looks (--at X,Y,Z then gives Z only)
+  --climate C   the world's climate: southern, middle (default), northern or farNorth (sim/climate CLIMATE.worlds; VB-083)
   --hours H     then H more game hours (whole 6-minute steps), to catch a time of day: a meeting, a wedding`);
   process.exit(0);
 }
@@ -22,7 +23,7 @@ const root = require('path').join(__dirname, '..'), fs = require('fs'), path = r
 const { chromium } = require(root + '/node_modules/playwright');
 const args = process.argv.slice(2), opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
 const scenario = opt('scenario', 'populous'), seed = opt('seed', '7'), size = opt('size', 't'), years = +opt('years', 0), tag = opt('tag', `${scenario}-${seed}-${size}-y${years}`);
-const hours = +opt('hours', 0), follow = opt('follow', null);
+const hours = +opt('hours', 0), follow = opt('follow', null), climate = opt('climate', 'middle');
 const outDir = path.resolve(opt('out', '.')), closeN = +opt('close', 1), at = opt('at', null), land = args.includes('--land'), reach = args.includes('--reach'), overlay = opt('overlay', null), htmlPath = opt('html', null);
 const pixi = fs.readFileSync(root + '/node_modules/pixi.js/dist/pixi.min.js');
 const html = (htmlPath ? fs.readFileSync(htmlPath, 'utf8') : require('../tests/lib/page').builtPage()).replace('let st = null,\n  speed = 1,\n  selPawn = -1;',
@@ -38,10 +39,13 @@ const page_ = path.join(os.tmpdir(), `vb-shot-${process.pid}.html`); fs.writeFil
     ? r.fulfill({ contentType: 'application/javascript', body: pixi }) : r.fulfill({ contentType: 'text/css', body: '' })));
   await page.goto('file://' + page_);
   await page.waitForFunction(() => !document.getElementById('landing').hidden, null, { timeout: 60000 });
-  await page.evaluate(([sz, sd, sc]) => {
+  await page.evaluate(([sz, sd, sc, cl]) => {
+    const lat = VB['sim/climate'].CLIMATE.worlds[cl];
+    if (!lat) throw new Error('no such climate: ' + cl);
+    document.getElementById('genClimate').value = String(lat);
     document.getElementById('genScenario').value = sc; document.getElementById('genSize').value = sz; document.getElementById('genSeed').value = sd;
     document.getElementById('genForm').dispatchEvent(new Event('submit', { cancelable: true }));
-  }, [size, seed, scenario]);
+  }, [size, seed, scenario, climate]);
   await page.waitForFunction(() => document.getElementById('loader').classList.contains('done'), null, { timeout: 180000 });
   // A new game opens on the choice of whom to play, which holds the game paused, covers the speed buttons and gives the game its speed back
   // when it closes: leave it as Watch only does, then pause, so that the shots show the map alone and the run they were asked for.

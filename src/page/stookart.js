@@ -133,42 +133,77 @@ function landSprites() {
     [136, 166, 80],
     [152, 164, 78],
   ];
-  for (let v = 0; v < 10; v++)
-    S.broad.push(
-      mk(28, 30, 1000 + v, (g, r) => {
-        const leaf = leafs[v % leafs.length],
-          pts = [];
-        trunk(g, 12.7, 17, 2.8, 10);
-        for (let k = 0, n = 4 + ((r() * 3) | 0); k < n; k++)
-          pts.push([14 + (r() - 0.5) * 10, 12.5 + (r() - 0.5) * 8, 4.6 + r() * 2.6]);
-        g.strokeStyle = MP.line;
-        g.lineWidth = 2;
-        for (const [x, y, rad] of pts) {
+  // A broadleaf tree in each season's leaves (draw/season, VB-083): the same ten shapes in summer's, spring's fresh and autumn's turned
+  // leaves, and bare, its boughs where the crown was.
+  const broadSet = (palette) => {
+    const out = [];
+    for (let v = 0; v < 10; v++) out.push(broadTree(v, palette));
+    return out;
+  };
+  const broadTree = (v, palette) =>
+    mk(28, 30, 1000 + v, (g, r) => {
+      const leaf = palette ? palette[v % palette.length] : null,
+        pts = [];
+      trunk(g, 12.7, 17, 2.8, 10);
+      for (let k = 0, n = 4 + ((r() * 3) | 0); k < n; k++)
+        pts.push([14 + (r() - 0.5) * 10, 12.5 + (r() - 0.5) * 8, 4.6 + r() * 2.6]);
+      if (!leaf) {
+        for (const [lw, c] of [
+          [1.7, MP.line],
+          [0.8, col(MP.post)],
+        ]) {
+          g.strokeStyle = c;
+          g.lineWidth = lw;
           g.beginPath();
-          g.arc(x, y, rad, 0, 7);
+          for (const [x, y, rad] of pts) {
+            g.moveTo(14, 18);
+            g.quadraticCurveTo((14 + x) / 2, y + 3, x, y - rad * 0.4);
+          }
           g.stroke();
         }
-        g.fillStyle = col(leaf);
-        for (const [x, y, rad] of pts) {
-          g.beginPath();
-          g.arc(x, y, rad, 0, 7);
-          g.fill();
-        }
-        g.strokeStyle = col(leaf, 0.72);
-        g.lineWidth = 0.9;
-        for (const [x, y, rad] of pts) {
-          g.beginPath();
-          g.arc(x, y + 0.4, rad * 0.55, Math.PI * 0.15, Math.PI * 0.85);
-          g.stroke();
-        }
-        g.fillStyle = col(leaf, 1.3);
-        for (const [x, y, rad] of pts) {
-          g.beginPath();
-          g.arc(x - rad * 0.3, y - rad * 0.4, 0.9, 0, 7);
-          g.fill();
-        }
-      }),
-    );
+        return;
+      }
+      g.strokeStyle = MP.line;
+      g.lineWidth = 2;
+      for (const [x, y, rad] of pts) {
+        g.beginPath();
+        g.arc(x, y, rad, 0, 7);
+        g.stroke();
+      }
+      g.fillStyle = col(leaf);
+      for (const [x, y, rad] of pts) {
+        g.beginPath();
+        g.arc(x, y, rad, 0, 7);
+        g.fill();
+      }
+      g.strokeStyle = col(leaf, 0.72);
+      g.lineWidth = 0.9;
+      for (const [x, y, rad] of pts) {
+        g.beginPath();
+        g.arc(x, y + 0.4, rad * 0.55, Math.PI * 0.15, Math.PI * 0.85);
+        g.stroke();
+      }
+      g.fillStyle = col(leaf, 1.3);
+      for (const [x, y, rad] of pts) {
+        g.beginPath();
+        g.arc(x - rad * 0.3, y - rad * 0.4, 0.9, 0, 7);
+        g.fill();
+      }
+    });
+  S.broad = broadSet(leafs);
+  S.broadSpring = broadSet([
+    [150, 196, 96],
+    [166, 204, 100],
+    [138, 186, 98],
+  ]);
+  S.broadAutumn = broadSet([
+    [196, 150, 64],
+    [184, 112, 58],
+    [206, 170, 78],
+    [166, 96, 56],
+    [176, 132, 62],
+  ]);
+  S.bare = broadSet(null);
   const needles = [
     [70, 112, 84],
     [80, 122, 84],

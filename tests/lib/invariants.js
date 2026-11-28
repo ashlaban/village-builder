@@ -679,6 +679,7 @@ function checkState(st) {
             Number.isInteger(Ai.year) &&
             typeof Ai.surplus === 'boolean' &&
             typeof Ai.again === 'boolean' &&
+            (Ai.fair === undefined || Ai.fair > 0) &&
             (Ai.trial !== undefined
               ? Ai.project === null && Ai.what === 'trial' && Ai.since <= st.t && (CROP_LIST_I || []).includes(Ai.trial) // VB-351: a trial, no plan
               : Ai.project === null

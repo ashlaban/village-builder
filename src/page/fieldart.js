@@ -28,6 +28,7 @@ const FIELD_P = {
   'oats-growing': { as: 'growing', base: [116, 155, 129], row: [84, 113, 94], hi: [198, 224, 149] },
   'oats-ripe': { as: 'ripe', base: [201, 192, 151], row: [146, 140, 110], hi: [249, 241, 208] },
   'rye-young': { as: 'young', base: [146, 172, 92], row: [108, 142, 68], hi: [188, 216, 122] },
+  snow: { as: 'stubble', base: [236, 240, 244], row: [206, 214, 226], hi: [246, 248, 251] }, // a field under snow (VB-083)
   'rye-snow': { as: 'young', base: [236, 240, 244], row: [204, 213, 224], hi: [112, 160, 88] },
   'rye-growing': { as: 'growing', base: [112, 156, 108], row: [78, 122, 84], hi: [166, 198, 146] },
   'rye-ripe': { as: 'ripe', base: [226, 208, 144], row: [186, 164, 96], hi: [246, 234, 182] },
@@ -190,7 +191,9 @@ function meadowCanvas(stage, R) {
     cy = Hc / 2,
     rr0 = R * S * 0.92,
     r = Noise.mulberry32(stage.length * 131 + 9);
-  const base = { grass: [130, 174, 90], mown: [178, 188, 106], aftermath: [148, 180, 94] }[stage];
+  const base = { grass: [130, 174, 90], mown: [178, 188, 106], aftermath: [148, 180, 94], snow: [234, 238, 243] }[
+    stage
+  ];
   const rgb = (a, f = 1) => `rgb(${a.map((v) => Math.min(255, v * f) | 0)})`;
   g.save();
   hexClip(g, cx, cy, rr0);
@@ -280,7 +283,7 @@ function makeArt(R) {
   const T = (c) => texFrom(c, { autoGenerateMipmaps: true, resolution: c.artK || 1 });
   fieldTex = {};
   for (const k of Object.keys(FIELD_P)) fieldTex[k] = T(fieldCanvas(k, R));
-  for (const k of ['grass', 'mown', 'aftermath']) fieldTex['meadow-' + k] = T(meadowCanvas(k, R));
+  for (const k of ['grass', 'mown', 'aftermath', 'snow']) fieldTex['meadow-' + k] = T(meadowCanvas(k, R));
   art = {
     stuga: [0, 1, 2].map((v) => T(stugaCanvas(v))),
     harbre: T(harbreCanvas()),
@@ -311,5 +314,14 @@ function makeArt(R) {
     sheep: [T(sheepCanvas(0)), T(sheepCanvas(1))],
     deer: [0, 1].map((coat) => [T(deerCanvas(coat, 0)), T(deerCanvas(coat, 1))]), // roe deer (VB-139, page/deer)
   };
+  // the buildings under snow (VB-083): each roof's texture beside the same building's with snow on its roof (page/farmart roofSnow)
+  roofSnow = true;
+  art.snowOf = new Map([
+    ...art.stuga.map((t, v) => [t, T(stugaCanvas(v))]),
+    [art.harbre, T(harbreCanvas())],
+    [art.lada, T(ladaCanvas())],
+    [art.byre, T(byreCanvas())],
+  ]);
+  roofSnow = false;
   atlas = buildAtlas();
 }
