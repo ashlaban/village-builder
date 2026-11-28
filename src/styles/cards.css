@@ -1,0 +1,209 @@
+/* The cards and the meter (VB-1948): selection cards, portraits, the one meter, stats and supplies, a village's warnings, a
+   pawn's mood and traits, histories. */
+/* Selection cards: a portrait or icon by the title, links to what the selection belongs to, and rows for what it holds. */
+.sheet-title { flex: 1; min-width: 0; }
+.tile .sheet-title span { margin: 1px 0 0; font-size: 14px; }
+#tileBadge { flex-shrink: 0; line-height: 0; }
+img.badge { width: 52px; height: 52px; border-radius: 50%; background: var(--plate); border: 1px solid var(--edge); }
+img.mini { width: 26px; height: 26px; border-radius: 50%; background: var(--plate); border: 1px solid var(--edge); flex-shrink: 0; vertical-align: middle; }
+img.gone { filter: grayscale(1); opacity: 0.6; }
+.occ-badge { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--node); border: 1px solid var(--edge); color: var(--ink); }
+.occ-badge svg { width: 30px; height: 30px; }
+/* A person's state in its family (VB-1035), an icon among its card's chips: unmarried, widowed, expecting, nursing. */
+.state-mark { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--node); border: 1px solid var(--edge); color: var(--ink); }
+.state-mark svg { width: 22px; height: 22px; }
+/* A portrait as another sees it (VB-1026): the bonds as badges on its right corners, kin below and opinion above (the left would be cut by a panel's edge). */
+.bonded { position: relative; display: inline-flex; flex-shrink: 0; line-height: 0; vertical-align: middle; }
+.bonded .bond { position: absolute; bottom: -5px; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; background: var(--node);
+  border: 1px solid var(--edge); color: var(--ink); }
+.bonded .bond.kin { right: -6px; } .bonded .bond.op { right: -6px; bottom: auto; top: -5px; }
+.bonded .bond svg { width: 11px; height: 11px; stroke-width: 2.3; }
+.bonded .bond.good { color: var(--good); } .bonded .bond.bad { color: var(--bad); }
+.bonded.badge .bond { width: 22px; height: 22px; } .bonded.badge .bond svg { width: 15px; height: 15px; }
+.chip .bonded { margin-left: -7px; margin-right: 3px; } .chip .bonded img.mini { margin-left: 0; }
+.links { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px; font-size: 14px; background: var(--node); }
+.chip img.mini { margin-left: -7px; border-radius: 50%; }
+.roster { margin-top: 8px; padding-top: 6px; }
+.roster { border-top: 1px solid var(--edge); }
+.roster h3 { margin: 0 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.row { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 0; border: 0; border-radius: var(--r-1); background: none;
+  text-align: left; }
+.tile .row span { margin: 0; }
+.tile .row .who { flex: 1; min-width: 0; color: var(--ink); }
+.row .who i { display: block; font-style: normal; font-size: 13px; color: var(--muted); }
+.tile .row .state { max-width: 46%; font-size: 13px; text-align: right; }
+.mark { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--good); }
+.mark.short { background: var(--gold); }
+.mark.hungry { background: var(--bad); }
+/* One control, one meaning (VB-664): a tab is underlined, a filter is a small pill that stays pressed, an act is a button. */
+.tabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 6px 0 10px; border-bottom: 1px solid var(--edge); }
+.tabs button { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; padding: 5px 10px; font-size: 14px; border: 0; border-bottom: 2px solid transparent;
+  border-radius: var(--r-1) var(--r-1) 0 0; background: none; margin-bottom: -1px; }
+.tabs button .ico { width: 16px; height: 16px; }
+.tabs button[aria-selected="true"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
+.tabs button[aria-selected="false"] { color: var(--muted); }
+.history .kinds button { min-height: 28px; padding: 2px 10px; font-size: 13px; }
+/* The one meter (page/meter): a level on its scale, marks at its targets, a signed one filled from its middle. */
+.agenda-meters { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; font-size: 12px; }
+.meter { position: relative; display: inline-block; flex: 1; min-width: 44px; height: 8px; border-radius: var(--r-0); background: color-mix(in srgb, var(--ink) 13%, transparent);
+  vertical-align: middle; }
+.meter > i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: var(--r-0); background: var(--accent); }
+.meter.good > i { background: var(--good); }
+.meter.warn > i { background: var(--gold); }
+.meter.bad > i { background: var(--bad); }
+.meter.over > i { border-radius: var(--r-0) 0 0 var(--r-0); }
+.meter.over::after { content: ''; position: absolute; right: -5px; top: -1px; border: 5px solid transparent; border-left-color: var(--accent); border-right: 0; }
+.meter.signed > i { border-radius: 0; }
+.meter > u { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+.meter > b { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 1px; }
+.meter > b { background: var(--ink); }
+.meter > b + b { background: var(--gold); }
+.meter > b.custom { background: var(--ink); }
+.meter > b.head { background: var(--gold); }
+.mark-key { display: flex; gap: 14px; margin: 0 0 6px; font-size: 12.5px; color: var(--muted); }
+.mark-key > span { display: inline-flex; align-items: center; gap: 5px; }
+.mark-key b { display: inline-block; width: 2px; height: 14px; border-radius: 1px; }
+.mark-key b { background: var(--ink); }
+.mark-key b.head { background: var(--gold); }
+/* The People sheet as a finder: the cards' rows, a farm's people under it. */
+.settlers .row { font: inherit; color: var(--ink); }
+.settlers .row .who { flex: 1; min-width: 0; }
+.settlers .row .state { max-width: 46%; font-size: 13px; text-align: right; color: var(--muted); }
+.finder-members { margin: 0 0 6px 18px; padding-left: 10px; border-left: 1px solid var(--edge); }
+.chip.as .ico { width: 15px; height: 15px; margin-right: -4px; color: var(--gold); }
+.tile .rel button.op { flex-wrap: nowrap; }
+.tile .rel button.op i { flex: 1 1 0; min-width: 0; }
+.tile .rel button.op .meter { flex: 0 0 56px; }
+.tile .rel button.op b { flex: 0 0 34px; text-align: right; }
+/* A stat: icon, word, meter, value; the grid of them. */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; margin: 4px 0 8px; }
+.stat { display: flex; align-items: center; gap: 7px; min-height: 30px; min-width: 0; font-size: 14px; color: var(--ink); }
+.stat.wide { grid-column: 1 / -1; }
+.stat-ico { display: inline-flex; flex: none; color: var(--accent); }
+.stat-ico .ico { width: 20px; height: 20px; }
+.stat-ico .mini { width: 28px; height: 28px; }
+.stat-ico .swatch { display: inline-block; width: 18px; height: 18px; border: 1.5px solid #2a1a0c; border-radius: 3px; opacity: .85; }
+.stat-ico .swatch.ore { border-radius: 50%; opacity: 1; }
+.stat-ico .swatch.earth { opacity: 1; }
+.stat-ico .swatch.gem { width: 13px; height: 13px; margin: 2.5px; transform: rotate(45deg); opacity: 1; }
+.stat.warn .stat-ico { color: var(--gold); }
+.stat.bad .stat-ico { color: var(--bad); }
+.stat-name { flex: none; color: var(--muted); font-size: 13px; }
+.stat.wide .stat-name { width: 84px; }
+.stat.stage .stat-name { width: auto; flex: 1; color: var(--ink); font-size: 14px; }
+.stat-val { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stat.wide .stat-val { min-width: 62px; text-align: right; }
+.stat-val small { margin-left: 4px; font-weight: 400; font-size: 12.5px; color: var(--muted); }
+.work { margin: 6px 0; padding: 4px 10px 2px; border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); border-radius: var(--r-1); }
+.work-head { display: flex; align-items: center; gap: 7px; font-size: 14px; }
+.work-head .ico { width: 20px; height: 20px; color: var(--accent); }
+.work-head small { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+.stat.kinds { min-height: 20px; gap: 10px; font-size: 12.5px; color: var(--muted); }
+.stat.kinds i { display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: 50%; }
+.card-switch { margin: 2px 0 6px; padding: 2px 10px; font-size: 13px; }
+/* The supply component (page/meter, VB-667): a row a supply, its icon, word, season cells, state and i; the cells filled solid from the
+   store and striped from what is still to come, a red frame where the likeliest outcome does not cover the season. */
+.supplies { margin: 2px 0 8px; }
+.supplies.stale .cells, .supplies.stale .whisk { opacity: 0.6; }
+.supply { display: grid; grid-template-columns: 20px 40px minmax(0, 1fr) 112px 24px; gap: 7px; align-items: center; min-height: 32px; font-size: 14px; }
+.supply.head { min-height: 18px; }
+.supply .stat-name { width: auto; }
+.supply .cells { display: flex; gap: 4px; align-items: center; min-width: 0; }
+.supply .cells-wrap { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.supply .whisk { display: flex; gap: 4px; height: 8px; }
+.supply .whisk .cell-season { visibility: hidden; height: 0; }
+.supply .whisk-cell { position: relative; flex: 1; }
+.supply .whisk-cell > i { position: absolute; top: 50%; }
+.supply .whisk-cell > i.wl { height: 1.5px; margin-top: -0.75px; background: var(--ink); }
+.supply .whisk-cell > i.wl.on { box-sizing: content-box; padding-right: 4px; }
+.supply .whisk-cell > i.wt { width: 1.5px; height: 7px; margin: -3.5px 0 0 -0.75px; background: var(--ink); }
+.supply .whisk-cell > i.wd { width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--ink); }
+.supply.head .cells .cell-season { flex: 1; text-align: center; }
+.supply .cell-season { display: inline-flex; justify-content: center; flex: none; color: var(--muted); }
+.supply .cell-season .ico { width: 14px; height: 14px; }
+.supply .cell { position: relative; flex: 1; height: 18px; border-radius: var(--r-0); overflow: hidden; background: color-mix(in srgb, var(--ink) 13%, transparent); }
+.supply .cell.short { background: color-mix(in srgb, var(--bad) 14%, transparent); box-shadow: inset 0 0 0 1.3px var(--bad); }
+.supply .cell > i { position: absolute; top: 0; bottom: 0; left: 0; }
+.supply .cell > i.with { background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--accent) 75%, transparent) 0 2px, transparent 2px 6px); }
+.supply .cell > i.own { background: var(--accent); }
+.supply .cell.short > i { box-shadow: inset 0 0 0 1.3px var(--bad); }
+.supply .supply-state { justify-self: end; margin: 0; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.supply.safe .supply-state { color: var(--good); }
+.supply.warn .supply-state { color: var(--gold); }
+.supply.bad .supply-state { color: var(--bad); }
+.supply.none .supply-state { color: var(--muted); font-weight: 400; }
+.supply-more { width: 24px; height: 24px; min-height: 0; padding: 0; border-radius: 50%; font: italic 700 13px/1 Georgia, serif; color: var(--muted); }
+.supply-nums { margin: 0 0 8px 27px; padding: 6px 10px; border-radius: var(--r-1); font-size: 13px; }
+.supply-nums { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.supply-nums p { margin: 0 0 6px; color: var(--muted); }
+.supply-nums dl { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin: 0; }
+.supply-nums dt { color: var(--muted); }
+.supply-nums dd { margin: 0; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+/* a farm's row: a chip for each supply about to fall short (gold a little, red badly), then its people as an icon and a number */
+.tile .supply-chip, .supply-chip { display: inline-flex; align-items: center; gap: 1px; margin-right: 4px; padding: 0 5px 0 3px; border: 1.5px solid; border-radius: 99px; color: var(--gold); vertical-align: middle; }
+.supply-chip.bad { color: var(--bad); }
+.supply-chip .ico { width: 15px; height: 15px; }
+.supply-chip .ico + .ico { width: 13px; height: 13px; }
+.tile .farm-state, .farm-state { display: inline-flex; align-items: center; justify-content: flex-end; white-space: nowrap; }
+.tile .ppl, .ppl { display: inline-flex; align-items: center; gap: 3px; margin-left: 2px; vertical-align: middle; white-space: nowrap; }
+.ppl .ico { width: 15px; height: 15px; }
+.card-sec { margin: 10px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.card-note { margin: 2px 0 6px; font-size: 13.5px; line-height: 1.4; color: var(--muted); }
+/* A village's warnings (VB-162): an icon and words, then the farms it concerns as chips */
+.warning { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 7px; margin: 4px 0; font-size: 14px; }
+.warning .stat-ico { color: var(--bad); }
+.warning .links { flex-basis: 100%; margin: 0 0 4px 27px; }
+.plan-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.plan-row > .stat { flex: 1 1 260px; }
+.plan-row[data-target] .stat-val { line-height: 1.15; }
+.plan-row[data-target] .stat-val small { display: block; margin-left: 0; font-size: 11.5px; }
+.plan-ctl { display: inline-flex; gap: 4px; flex: none; }
+.plan-ctl.menu { flex-wrap: wrap; margin: 0 0 6px 27px; }
+.plan-btn { min-width: 28px; height: 26px; padding: 0 6px; border: 1px solid var(--edge); border-radius: var(--r-1); background: transparent; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.plan-btn:disabled { opacity: 0.35; cursor: default; }
+.plan-btn.wide { padding: 0 10px; }
+.field-ctl { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 8px; }
+.field-btn { display: inline-flex; align-items: center; gap: 4px; height: 28px; }
+.field-btn svg { width: 16px; height: 16px; flex: none; }
+.field-btn.on { border-color: var(--ink); font-weight: 700; }
+.field-btn.off { opacity: 0.45; }
+.plan-order { margin: 0 0 6px; padding: 0; list-style: none; counter-reset: routine; }
+.plan-order li { display: flex; align-items: center; gap: 7px; min-height: 28px; font-size: 14px; color: var(--ink); counter-increment: routine; }
+.plan-order li::before { content: counter(routine); width: 14px; color: var(--muted); font-size: 12px; text-align: right; }
+.plan-order li .ico { width: 20px; height: 20px; color: var(--accent); }
+.plan-order li > span:first-of-type { flex: 1; }
+.plan-steps .stat-val { white-space: normal; text-align: right; }
+.plan-daily { margin: 0 0 6px; }
+.plan-daily > summary { cursor: pointer; font-size: 13.5px; color: var(--muted); min-height: 28px; line-height: 28px; }
+.plan-msg { margin: 2px 0 6px; font-size: 13.5px; color: var(--ink); }
+.plan-msg.bad { color: var(--bad); }
+.day-row { margin: 4px 0 8px; }
+.day-who { margin: 6px 0 2px; font-size: 14px; }
+.day-list { margin: 0; padding-left: 20px; }
+.day-entry { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px; padding: 2px 0; font-size: 13.5px; }
+.day-entry.now .day-what b { text-decoration: underline; }
+.day-hours { color: var(--muted, var(--ink)); font-size: 12.5px; }
+.day-to { height: 26px; font: inherit; font-size: 13px; }
+/* A pawn's mood's modifiers in force (VB-062): each its icon and signed value, the label its title. */
+.mood-mods { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: -4px 0 8px 27px; }
+.mood-mods .mood-mod { display: inline-flex; align-items: center; gap: 3px; margin: 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+.mood-mods .ico { width: 18px; height: 18px; }
+.mood-mods .up { color: var(--good); }
+.mood-mods .down { color: var(--bad); }
+/* A pawn's traits: twelve icons, each over the meter; one beyond the labels is marked. */
+.traits { display: grid; gap: 4px; margin: 6px 0 8px; }
+.trait-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.trait { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted); }
+.trait .ico { width: 20px; height: 20px; }
+.trait .meter { width: 100%; flex: none; height: 5px; }
+.trait .meter > i { background: var(--muted); }
+.trait.high, .trait.low { color: var(--ink); }
+.trait.high .meter > i { background: var(--good); }
+.trait.low .meter > i { background: var(--gold); }
+.history .kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.history p { margin: 0 0 8px; font-size: 14px; line-height: 1.45; color: var(--ink); }
+.history p time, .history p i { display: block; font-style: normal; font-size: 12px; color: var(--muted); }
+.history p.more { color: var(--muted); }
+button.name { display: inline; min-height: 0; padding: 0; border: 0; border-radius: 3px; background: none; font: inherit; color: var(--ink); text-align: left;
+  text-decoration: underline; text-decoration-color: var(--edge); text-underline-offset: 3px; }

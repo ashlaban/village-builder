@@ -1,6 +1,6 @@
 // @suite fast
 // Every theme defines every token (VB-1532): the list of theme tokens at the head of the stylesheet (VB-1530), the themes of
-// THEMES in src/page/options.js, and each theme's token block in src/head.html. A theme is safe to add: one that misses a token, or a
+// THEMES in src/page/options.js, and each theme's token block in the stylesheets of src/styles.json. A theme is safe to add: one that misses a token, or a
 // block whose theme is not in THEMES, fails with the theme and the token named.
 // A theme's token block is a rule outside any @media whose selector has a part that is the themed element itself (`:root[data-theme="x"]`,
 // `[data-theme="x"]`, `.theme-pv[data-theme="x"]`: one compound, no combinator) and that sets a custom property; one under a media
@@ -187,11 +187,20 @@ function themeKeys(src) {
   return Object.keys(new Function(`return ${m[1]}`)());
 }
 
-function stylesheet(html) {
-  const a = html.indexOf('<style>');
-  if (a < 0) throw new Error('no <style> in src/head.html');
-  const b = html.indexOf('</style>', a);
-  return html.slice(0, a + 7).replace(/[^\n]/g, '') + html.slice(a + 7, b < 0 ? html.length : b); // lines as in the file
+// The page's one stylesheet: the files of src/styles.json joined in their order, as build.js splices them (VB-1948); `at` names a line
+// of the joined text by its file and its line there.
+function stylesheet() {
+  const starts = [];
+  let css = '';
+  for (const f of JSON.parse(readSource('src/styles.json'))) {
+    starts.push([css.split('\n').length, `src/${f}`]);
+    css += readSource(`src/${f}`);
+  }
+  const at = (n) => {
+    const [first, f] = starts.filter(([a]) => a <= n).pop();
+    return `${f} line ${n - first + 1}`;
+  };
+  return { css, at };
 }
 
 // Custom properties the page sets outside the stylesheet: `--x:` in an inline style, setProperty('--x', ...).
@@ -272,10 +281,10 @@ expect(
 );
 
 // The repository.
-const css = stylesheet(readSource('src/head.html'));
+const { css, at } = stylesheet();
 const themes = themeKeys(readSource('src/page/options.js'));
 const errors = check(css, themes, pageDefined());
-for (const e of errors) expect(false, e);
+for (const e of errors) expect(false, e.replace(/\bline (\d+)/g, (_, n) => at(Number(n))));
 // the list was read whole: VB-1535 cut VB-1530's 40 to 28, a list of scales; fewer is fine, a list near empty is a misread
 expect(tokenList(css).length >= 20, `the token list holds ${tokenList(css).length} tokens, VB-1535 wrote 28`);
 

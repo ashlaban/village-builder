@@ -1,0 +1,63 @@
+/* The mural theme (VB-1161, VB-1948): its tokens and its styling of the pieces, last so that they override. A new theme is a file of its own like it, listed
+   after it in src/styles.json. */
+/* ---- The mural theme (VB-1161): the interface as the map is painted, a church mural's flat pigment and dark contour on lime plaster. Its
+   pieces: a panel is the band (plaster between two sawtooth borders); a head is black letter in red ochre; a thing pressed is a ringed
+   medallion, a name or a word a scroll, the two together a labelled button; pressed fills with red ochre; a level is counted beads.
+   The palette and the pieces every panel shares are here; the icons and each screen's own pieces follow (the task's notes). ---- */
+:root {
+  --mural-tex: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.03' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .27 0 0 0 0 .18 0 0 0 .55 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --mural-band: conic-gradient(from 135deg at 50% 0, #a04a30 90deg, transparent 0) 0 2px / 10px 6px repeat-x,
+    conic-gradient(from -45deg at 50% 100%, #a04a30 90deg, transparent 0) 0 calc(100% - 2px) / 10px 6px repeat-x,
+    linear-gradient(#a04a30, #a04a30) 0 0 / 100% 2px no-repeat, linear-gradient(#a04a30, #a04a30) 0 100% / 100% 2px no-repeat,
+    var(--mural-tex), #faf6e8;
+}
+[data-theme="mural"] {
+  --panel: #faf6e8; --ink: #2c201c; --muted: #6b5a4c; --edge: rgba(44, 32, 28, 0.32); --accent: #a04a30; --on-accent: #faf6e8; --node: #faf6e8;
+  --good: #547446; --bad: #8c2f1e; --gold: #b98524;
+  --sea: #16395f; --plate: #e2c684;
+  --r-0: 0px; --r-1: 0px; --r-2: 0px;
+  --body: 'Alegreya Sans', 'Gill Sans', 'Trebuchet MS', system-ui, sans-serif;
+  --head: 'Grenze Gotisch', 'Alegreya', Georgia, serif; --head-ink: var(--accent); --scroll: 'Alegreya', Georgia, serif;
+  --panel-ground: var(--mural-band); --panel-border: 8px solid transparent; --panel-backdrop: none;
+  --btn-ground: var(--node); --btn-border: 1.5px solid var(--ink); --btn-on-edge: var(--ink);
+  --shadow-0: 0 3px 8px rgba(20, 14, 10, 0.5); --shadow-1: 0 6px 16px rgba(20, 14, 10, 0.45); --shadow-2: 0 10px 30px rgba(3, 16, 26, 0.28);
+  color-scheme: light;
+}
+/* Mural's pieces (VB-1534, VB-1535): the band is its panel, by its tokens (the band's sawtooth lies in the panel's transparent top
+   and bottom border) and the ochre sides below, on a panel in a Mural page or a Mural sample; black letter in red ochre its head, by
+   its tokens, upright below; the leaf is its button, its corners and the scroll's hand below; a ringed medallion in red ochre its
+   icon button, and a labelled one's icon, its label a tag under or beside it, both filled with red ochre when pressed (VB-1536; the
+   :is(*, ...) lifts the rule over the one pressed look, which would fill the button behind them); a dotted ink line parts its rows; counted beads are its meter, ten to a level, filled as far as the level, the last in part, a mark a wedge over the beads (the fill lies under the whole row, cut to the level by page/meter's --lo and --hi). */
+:where([data-theme="mural"]) button:where(:not(.row, .card)) { border-radius: 0 10px 0 10px; font-family: var(--scroll); font-style: italic; font-weight: 700; }
+[data-theme="mural"] .panel, .panel[data-theme="mural"] { border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+[data-theme="mural"] .head { font-style: normal; }
+[data-theme="mural"] .icon-btn:not(.labelled) { border: 2px solid var(--ink); box-shadow: inset 0 0 0 2px var(--node), inset 0 0 0 3.5px var(--accent); }
+[data-theme="mural"] .icon-btn:not(.labelled):is([aria-pressed="true"], [aria-haspopup][aria-expanded="true"]) { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3.5px var(--node); }
+[data-theme="mural"] .icon-btn:not([aria-pressed="true"], [aria-expanded="true"]) { color: var(--accent); }
+[data-theme="mural"] .icon-btn.labelled:is(*, [aria-pressed="true"], [aria-haspopup][aria-expanded="true"]) { background: none; border: 0; border-radius: 0; box-shadow: none;
+  color: var(--ink); overflow: visible; padding: 0; gap: 3px; }
+[data-theme="mural"] .icon-btn.labelled > .ico { box-sizing: content-box; padding: 9px; border: 2px solid var(--ink); border-radius: 50%; background: var(--node);
+  box-shadow: inset 0 0 0 2px var(--node), inset 0 0 0 3.5px var(--accent), var(--shadow-0); color: var(--accent); }
+[data-theme="mural"] .icon-btn.labelled > .label { padding: 0 5px; font-size: 13px; line-height: 1.3; border: 1px solid var(--ink); background: var(--node); box-shadow: var(--shadow-0); }
+[data-theme="mural"] .icon-btn.labelled:is([aria-pressed="true"], [aria-haspopup][aria-expanded="true"]) > :is(.ico, .label) { background: var(--accent); color: var(--on-accent); }
+[data-theme="mural"] .icon-btn.labelled:is([aria-pressed="true"], [aria-haspopup][aria-expanded="true"]) > .ico {
+  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3.5px var(--node), var(--shadow-0); }
+@media (max-width: 1024px) { [data-theme="mural"] .icon-btn.labelled > .ico { padding: 4px; } [data-theme="mural"] .icon-btn.labelled > .label { line-height: 1.15; } }
+[data-theme="mural"] .row { border-top: 1.5px dotted var(--edge); }
+[data-theme="mural"] .meter { --beads: 10; height: 12px;
+  background: radial-gradient(circle closest-side, var(--node) 0 62%, var(--ink) 66% 92%, transparent 97%) 0 0 / calc(100% / var(--beads)) 100%; }
+[data-theme="mural"] .meter > i { left: 0 !important; width: 100% !important; background: var(--good);
+  -webkit-mask: radial-gradient(circle closest-side, #000 0 62%, transparent 66%) 0 0 / calc(100% / var(--beads)) 100%;
+  mask: radial-gradient(circle closest-side, #000 0 62%, transparent 66%) 0 0 / calc(100% / var(--beads)) 100%;
+  clip-path: inset(0 calc(100% - var(--hi, 0%)) 0 var(--lo, 0%)); }
+[data-theme="mural"] .meter.warn > i { background: var(--gold); }
+[data-theme="mural"] .meter.bad > i { background: var(--bad); }
+[data-theme="mural"] :is(.meter > b, .mark-key b) { top: -6px; bottom: auto; width: 0; height: 0; margin-left: -4px; border: 4px solid transparent;
+  border-top: 6px solid var(--ink); border-bottom: 0; border-radius: 0; }
+[data-theme="mural"] :is(.meter > b + b, .meter > b.head, .mark-key b.head) { border-top-color: var(--gold); }
+[data-theme="mural"] .meter > b.custom { border-top-color: var(--ink); }
+[data-theme="mural"] .meter.over::after { border-left-color: var(--good); }
+/* Counted (VB-1534): a Mural rule for one component, with its reason. The key of a meter's marks (above, with the meter's marks): it
+   draws the marks as the meter does. The bars over the map: their buttons stand on the map with no band, which would hide the map
+   under the dock and does not fit the height the bars are stacked by. */
+[data-theme="mural"] :is(.navigation, .map-bar, .act-bar) { background: none; border: 0; box-shadow: none; }
