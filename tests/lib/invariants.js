@@ -354,7 +354,7 @@ function checkState(st) {
         // VB-255: the head's projects: its record absent, or its year, its project under way (a live project plan of the household's,
         // with its kind) or none, and the times not after now
         const Ai = plan.aim, CROP_LIST_I = globalThis.VB['sim/stores'].CROP_LIST;
-        if (Ai !== undefined && !(Number.isInteger(Ai.year) && typeof Ai.surplus === 'boolean' && typeof Ai.again === 'boolean' &&
+        if (Ai !== undefined && !(Number.isInteger(Ai.year) && typeof Ai.surplus === 'boolean' && typeof Ai.again === 'boolean' && (Ai.fair === undefined || Ai.fair > 0) &&
           (Ai.trial !== undefined ? Ai.project === null && Ai.what === 'trial' && Ai.since <= st.t && (CROP_LIST_I || []).includes(Ai.trial) // VB-351: a trial, no plan
             : Ai.project === null ? Ai.what === null && Ai.since === null && Ai.shortSince === null
             : globalThis.VB['sim/aims'].KIND.includes(Ai.what) && Ai.since <= st.t && (Ai.shortSince === null || Ai.shortSince <= st.t) &&
