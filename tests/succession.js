@@ -103,3 +103,14 @@ const scene = (st) => assert.deepStrictEqual([st.households[0].holder, st.househ
 }
 console.log('succession ok: the successor by the customs, not the widow, a child played as a child, unlanded pawns too, a holder with '
   + 'a farm of its own still; played on after a handover; no successor ends the game; saved and loaded');
+
+// VB-1476: a pawn's grain stake passes at its death to the household it lived in, where it lies, with a handingOn reason.
+{
+  const st = make(), Stores = VB['sim/stores'];
+  st.pawns[7].stake = 12;
+  const hh = st.households[st.pawns[7].household], before = Stores.grainOf(hh);
+  Sim.killPawn(st, 7, 'illness');
+  assert.strictEqual(st.pawns[7].stake, 0, 'the dead hold no stake');
+  assert.strictEqual(Stores.grainOf(hh), before + 12, 'its household has the grain');
+  sound(st, 'after a death with a stake');
+}
