@@ -6,7 +6,7 @@ VB['sim/droving'] = (() => {
   const { HERD, SHARES, TRAVEL, WORK, SPEED } = VB['sim/rules'];
   const { route, routeCost, hasRoute } = VB['sim/routes'];
   const { log, atHousehold, atFarm } = VB['sim/records'];
-  const { herdsOf, herdOf, winterNeed, makeHerd, homeTile } = VB['sim/herds'];
+  const { herdsOf, herdOf, winterNeed, makeHerd, homeTile, hasTeam } = VB['sim/herds'];
   const Lying = VB['sim/lying'];
   // @state st.herdsAway: absent, or [herd ids]: the herds standing at a farm not their household's (herd.at), in the order they were left
   //   there: owned by a household that has not yet led them home, or left with nobody (household null) when theirs ended. A small live
@@ -77,6 +77,8 @@ VB['sim/droving'] = (() => {
   // to fetch. With nobody (null) they stay at the farm with no owner (frost). Its herds standing elsewhere pass to `to` where they stand.
   function passHerds(st, from, to) {
     const dest = to === null ? null : st.households[to];
+    const goes = !!dest && hasTeam(st, from) && !hasTeam(st, dest),
+      harness = from.harness; // read before the herds move
     for (const herd of herdsOf(st, from)) {
       if (!count(herd)) {
         herd.household = null;
@@ -93,6 +95,7 @@ VB['sim/droving'] = (() => {
     if (dest && from.hay > 0) leaveHay(st, from, dest, from.hay);
     from.herds = [];
     from.hay = 0;
+    if (goes) dest.harness = harness; // the team's harness goes with the team (VB-2023)
   }
 
   // Animals leave a household in shares (VB-140; design.md, Quanta and worth): a cow, an ox, a heifer, a steer or a ewe, by their customary worth
