@@ -5,7 +5,7 @@
 // queue with the automatic behaviour off, and at the latest on the eve of the moving round. Asking writes nothing: a skipped run is the
 // run played. A skip begun where the last one stopped goes on with its cursor (VB-1108).
 const assert = require('assert');
-const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], N = VB['sim/notable'], { YEAR, DAY, SEASON_DAYS, cal } = VB['sim/rules'];
+const VB = require('../src/load.js'), Sim = VB.sim, R = VB['sim/records'], N = VB['sim/skip'], { YEAR, DAY, SEASON_DAYS, cal } = VB['sim/rules'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha, kept } = require('./lib/canon.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'F'.repeat(18) : i === 11 ? '~'.repeat(18) : '.'.repeat(18)));
 const make = () => tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4, sizes: [9, 9, 9, 9] }], { seed: 4 });

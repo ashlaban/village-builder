@@ -1,6 +1,11 @@
 // @sys sim/territory [material]: the village's outland (utmark), claimed by need at the meetings and its own a year and a day later; borders settled by
 // custom and marked with cairns; land a household or village may take in; the village's wood, the area it cuts its firewood in (VB-326)
 VB['sim/territory'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/territory', {
+    border: { group: 'land' },
+    noWood: { keep: 'generation' },
+  });
   const { B } = VB['world/biomes'];
   const { CLAIMS, YEAR, WOOD } = VB['sim/rules'];
   const { bfs } = VB['sim/hex'];

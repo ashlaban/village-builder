@@ -1,5 +1,10 @@
 // @sys sim/society [social]: Culture wiring: settlements, ties, standing and interests of pawns (a village's, at its meeting)
 VB['sim/society'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/society', {
+    split: { group: 'custom', notice: 'custom', skip: 'custom', word: 'partings of custom' },
+    cause: { group: 'custom', personal: true, notice: 'cause', skip: 'cause', word: 'causes taken up' },
+  });
   const { living, settlement } = VB['sim/records'];
   const { personEvent } = VB['sim/records'];
   const { next: rnd, drawer } = VB['sim/rng'];

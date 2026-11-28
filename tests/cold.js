@@ -49,7 +49,7 @@ check([0, 1, 2].every((s) => near(U[s] / U[WINTER], [0.22, 0.19, 0.31][s], 0.01)
   const at = st.record.length; killPawn(st, c.id, 'oldAge');
   const ev = st.record.slice(at).find((e) => typeof e === 'object' && e.kind === 'died');
   check(ev && ev.cold === true && ev.text === 'oldAge', `the death is recorded cold: ${JSON.stringify(ev)}`);
-  check(ev && Sim.villageLog && /died of old age in a cold house/.test(VB['sim/notable'].eventLine(st, ev)), `told: ${ev && VB['sim/notable'].eventLine(st, ev)}`);
+  check(ev && Sim.villageLog && /died of old age in a cold house/.test(VB['sim/eventline'].eventLine(st, ev)), `told: ${ev && VB['sim/eventline'].eventLine(st, ev)}`);
 }
 // --- a summer day without wood barely counts; part of a winter day's wood leaves the house cold by the rest
 {

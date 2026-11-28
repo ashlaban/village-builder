@@ -29,144 +29,20 @@ VB['sim/records'] = (() => {
     'by',
   ];
   function record(st, ev, t = st.t) {
+    if (!Object.hasOwn(EVENTS, ev.kind)) throw new Error(`an event of kind ${ev.kind} has no record (sim/eventkinds)`);
     const e = { t, kind: ev.kind };
     for (const k of FIELDS) if (ev[k] !== undefined && ev[k] !== null) e[k] = ev[k];
     st.record.push(e);
     return e;
   }
-  // How many years each kind of event stays on the record in full (Kim, 10 November 2026; QUESTION_ARCHIVE.md, "VB-199"): 0 for the
-  // notable ones, kept for good; the routine ones are folded into one count per kind, village and year once that old. A kind not listed
-  // is kept; tests/record.js checks that every kind on the record is listed.
-  const GENERATION = 25,
-    SHORT = 2;
-  const HISTORY = {
-    // notable: births, marriages and deaths; inheritances and handovers; moves and leaving; farms, plots, cottages and meadows; customs
-    // and causes; shares paid; and the kinds no task has called routine yet
-    born: 0,
-    bornOutside: 0, // a child born outside marriage, and one its parents' marriage made born in it (sim/births, VB-555)
-    legitimated: 0,
-    married: 0,
-    died: 0,
-    child: 0,
-    holds: 0,
-    inherited: 0,
-    guardian: 0,
-    service: 0,
-    provisions: 0,
-    moved: 0,
-    joined: 0,
-    left: 0,
-    siteStaked: 0, // a site of a new farm staked at the round, its trail blazed, its cottage roofed (sim/sites, VB-787)
-    siteTrail: 0,
-    siteRoofed: 0,
-    siteWaits: 0, // the move from a roofed site waits, with why, once a season
-    siteLeader: 0, // the party's next adult leads the site after its leader's death
-    siteGivenUp: 0,
-    stayed: 0,
-    settled: 0,
-    noLand: 0,
-    empty: 0,
-    estate: 0, // a farm's new household takes up what the household that died out left in its stores (sim/heirs, VB-1697)
-    claim: 0,
-    claimEnded: 0,
-    cottage: 0,
-    plot: 0,
-    plotStarted: 0,
-    green: 0, // the village's green and well laid out, and done (VB-058)
-    field: 0,
-    fieldLeft: 0, // a field a household let go, its tile back to the village (sim/fields, VB-768)
-    meadow: 0,
-    stake: 0,
-    stakeLapsed: 0,
-    projectDropped: 0,
-    projectTaken: 0, // a head's project taken and finished (VB-255)
-    projectDone: 0,
-    border: 0,
-    oreFound: 0,
-    custom: 0,
-    split: 0,
-    cause: 0,
-    wishLapsed: 0, // the played pawn's wish for a match ended or passed by, with why (sim/wishes, VB-1113)
-    kinBarred: 0,
-    share: 0,
-    rent: 0, // half the harvest of an heir's split fields paid to it (sim/heirland, VB-034)
-    wage: 0, // a servant's wage paid, or what was still owed of it lapsed (sim/service, VB-637)
-    player: 0,
-    year: 0,
-    hayRotted: 0,
-    offered: 0,
-    visited: 0, // a suitor's visit to another village (VB-289)
-    visitOff: GENERATION, // kept home by the farm's food
-    matchRefused: 0,
-    marriedAgainst: 0, // one who courted another married the one its spokesman chose (sim/marriage, VB-693)
-    leftRefused: 0, // left home for service after a head refused the one it courts (sim/service, VB-036)
-    offerLapsed: 0,
-    offerRefused: 0, // goods offered or asked for, refused (sim/offers, VB-690)
-    advice: GENERATION, // a retired member's advice taken by its head (sim/advice, VB-1316)
-    renounced: 0, // an inheritance renounced by one in line who holds a place (sim/heirs, VB-824)
-    meetingFailed: 0,
-    loan: 0, // a loan of grain made (sim/loans, VB-312)
-    loanRepaid: 0, // a loan's repayment at the harvest, in whole or in part (sim/loans, VB-312)
-    loanDefaulted: 0, // a loan unpaid after its second harvest (sim/loans, VB-312; VB-315 hears it)
-    days: 0, // days of work owed lapsed (sim/obligations, VB-462; the alderman's keep, VB-463)
-    follower: 0, // a tie of a follower to its lord begun or ended, with why (sim/followers, VB-708)
-    alderman: 0, // the village's alderman chosen, and the office vacated (sim/meetings, VB-314)
-    gathering: 0, // the villages that go to a host's gathering this winter (VB-294)
-    gatheringHeld: 0, // who was at a host's gathering on its last day, and the ale poured (VB-295)
-    fair: 0, // the fair at a gathering: its deals, what changed hands, those that failed for want of change (VB-302)
-    cartBuilt: 0, // a household's new cart (VB-327)
-    loomBuilt: 0, // a household's loom built (VB-362)
-    tarPit: 0, // a household's tar pit dug (VB-301)
-    drained: 0, // a household's wet field ditched (VB-721)
-    gateTurned: 0, // a farmstead's gate moved (VB-1951)
-    wellDug: 0, // a household's well dug by its house (VB-1584)
-    facilityBuilt: 0, // a facility's last stage raised (VB-361)
-    thirst: SHORT, // a pawn that left what it did to drink, THIRST.leave hours without one (sim/drinking, VB-1585)
-    trail: 0, // a trail blazed through the wood (VB-447)
-    setOut: 0, // a journey to a new home in another village (VB-287)
-    // routine (a wedding and a funeral ale add to the marriage and the death that are kept)
-    closeFriend: SHORT,
-    enemy: SHORT,
-    friend: SHORT,
-    swap: SHORT, // a deal at the fair, each side's (VB-302)
-    fellOut: SHORT,
-    quarrel: SHORT, // cross words that became a quarrel (VB-520)
-    lieExposed: SHORT, // a lie told to one who knew better (sim/stories, VB-554)
-    heardOfUs: SHORT, // the played pawn heard a story of its household (sim/stories, VB-554)
-    helped: SHORT, // helped another household of the village with its work (VB-106)
-    workday: SHORT, // a village's work day: who turned out and who stayed away (VB-120)
-    workLeft: SHORT, // a village's routine work left undone at its seasons' ends, heard at its meeting (VB-1768)
-    proposal: SHORT, // a holder's proposal to its village's meeting and its fate (VB-1770)
-    levyBreached: SHORT, // a household's levied day not worked, booked as goodwill its head owes (sim/levies, VB-1768)
-    courting: GENERATION, // a courtship begun, and ended unmarried (sim/courting, VB-036)
-    courtingEnded: GENERATION,
-    gift: GENERATION,
-    harvest: GENERATION,
-    hay: GENERATION,
-    frost: GENERATION,
-    misjudged: GENERATION,
-    seasonShort: SHORT, // a head reckoned its season's work past its household's labour budget, and how it answered (sim/levies, VB-1778)
-    climate: SHORT, // a winter's date falls in a band of the map (sim/climate, VB-807)
-    weather: SHORT, // a season's weather, named as it begins (sim/weather, VB-354)
-    herdBirths: GENERATION,
-    herdDeath: GENERATION,
-    herdLed: GENERATION, // animals that changed household led home, or taken in where they were left (sim/droving, VB-674)
-    slaughter: GENERATION,
-    spoiled: GENERATION,
-    putOff: GENERATION,
-    seedEaten: GENERATION,
-    wedding: GENERATION,
-    funeralAle: GENERATION,
-    feast: GENERATION, // food laid out at a wedding or a funeral ale (VB-458)
-    aleEvening: SHORT, // a holder's open house on a barrel of its ale (VB-522)
-    rite: GENERATION, // the season's rite on a village green, and who led it (VB-522)
-    noWood: GENERATION,
-    cattleInCrop: GENERATION,
-    cartGone: GENERATION, // a cart worn out (VB-327)
-    boatLost: GENERATION, // a fishing boat lost for want of tar (VB-301)
-    arrived: GENERATION, // the journey's end (VB-287)
-    deerInCrop: GENERATION,
-  };
+  // How many years each kind of event stays on the record in full, from its record (sim/eventkinds, VB-1946): the routine ones are folded
+  // into one count per kind, village and year once that old, SHORT years or a GENERATION.
+  const {
+    KEEP: { short: SHORT, generation: GENERATION },
+    keepOf,
+    EVENTS,
+  } = VB['sim/eventkinds'];
+
   // @state st.recordYears[]: {year (Math.floor(t / YEAR) of its events), kind, village (absent for events of none), tally}: the routine
   //   events folded, one count per kind, village and year; a folded slot of st.record holds its count's index. tally counts record
   //   events, so a gift between two holders counts twice. Appended only, by foldHistory.
@@ -206,7 +82,7 @@ VB['sim/records'] = (() => {
         const e = R[i];
         VB.count.recordFold++;
         if (typeof e !== 'object') continue;
-        const years = HISTORY[e.kind];
+        const years = keepOf(e.kind);
         if (!years || (years === SHORT) !== short) continue;
         const year = Math.floor(e.t / YEAR),
           key = `${e.kind}|${e.village === undefined ? '' : e.village}|${year}`;
@@ -953,7 +829,6 @@ VB['sim/records'] = (() => {
     personEvent,
     log,
     record,
-    HISTORY,
     startFold,
     foldHistory,
     lifeEvent,

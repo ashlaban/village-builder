@@ -3,6 +3,11 @@
 //   plans a visit there by the verb `visit`; the plans wait in a due-queue and are set out in winter (visitsDue), as journeys of sim/journeys;
 //   the villages any pawn might visit (visitChoices), a visit's state for its sheet and the played pawn's order for one (VB-292)
 VB['sim/visits'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/visits', {
+    visited: { group: 'marriage' }, // a suitor's visit to another village (VB-289)
+    visitOff: { keep: 'generation', group: 'marriage' }, // kept home by the farm's food
+  });
   const { command } = VB['sim/controller'];
   const Due = VB['sim/due'],
     dueKey = (e) => e.due; // its order (sim/due): by due, after those due at the same time

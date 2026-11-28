@@ -1,6 +1,10 @@
 // @sys sim/newground [material]: new ground made: a field's site felled and grubbed when it is a wood (VB-1525), cleared of its stones, its ground
 // broken, and the new field it becomes (VB-149, VB-332)
 VB['sim/newground'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/newground', {
+    field: { group: 'land' },
+  });
   const { DAY } = VB['sim/rules'];
   const { SOIL } = VB['sim/crops'];
   const { ECON, TRAVEL } = VB['sim/rules'];

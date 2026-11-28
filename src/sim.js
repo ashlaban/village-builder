@@ -15,7 +15,7 @@ const Sim = (() => {
     }
   }
   const { TICKS } = VB['sim/rules'];
-  const { skipStop: skipStopWith } = VB['sim/notable'];
+  const { skipStop: skipStopWith } = VB['sim/skip'];
   const { describe: doing } = VB['sim/agents'],
     { occasionLabel } = VB['sim/occasions'],
     { line: pastimeLine } = VB['sim/pastimes'];
@@ -30,7 +30,7 @@ const Sim = (() => {
   // Sim.command(st, cmd): the one door a controller issues through (VB-1757), keyed by the pawn it acts as (cmd.actor), each command
   // recorded with its game time (sim/controller, st.commanded); Sim.decisions(st, pawn), the points open to its controller (sim/points)
   const { command } = VB['sim/controller'];
-  // The skip's stop (VB-1101): sim/notable asks, at the round's eve, for a choice the round will read and for the year's food in brief.
+  // The skip's stop (VB-1101): sim/skip asks, at the round's eve, for a choice the round will read and for the year's food in brief.
   const skipAids = {
     choice: roundChoice,
     brief(st, vid) {

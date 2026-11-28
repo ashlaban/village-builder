@@ -33,8 +33,8 @@ const KEPT = {
   'doing:unload': [2, 'audience', "the trip's yield told on the played pawn's sheet (event yielded)"],
   'hands:refused': [2, 'audience', 'a refusal logged where the player is one of the two'],
   'hunger:updateHealth': [2, 'audience', "the day's health told on the played pawn's sheet (event health, sim/player)"],
-  'notable:skipFrom': [1, 'frame', 'the skip follows the played pawn'],
-  'notable:skipStop': [1, 'frame', "the skip stops on the played pawn's events"],
+  'skip:skipFrom': [1, 'frame', 'the skip follows the played pawn'],
+  'skip:skipStop': [1, 'frame', "the skip stops on the played pawn's events"],
   'opportunities:successor': [3, 'frame', "the played pawn's successor, by the customs it died under (st.player.left)"],
   'opportunities:succeed': [1, 'frame', 'the player goes on as the successor'],
   'opportunities:firsts': [

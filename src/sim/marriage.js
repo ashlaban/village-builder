@@ -2,6 +2,14 @@
 //   `handover`: the first in line answers, a no passes it on; VB-824), and the basis `match` of sim/offers (VB-690): what may be offered,
 //   who answers, what a yes, a no and a lapse do (split from sim/lifecycle, VB-876)
 VB['sim/marriage'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/marriage', {
+    married: { group: 'marriage', notice: 'family', skip: 'family', word: 'marriages' },
+    offered: { group: 'marriage' },
+    matchRefused: { group: 'marriage' },
+    marriedAgainst: { group: 'marriage' }, // one who courted another married the one its spokesman chose (VB-693)
+    putOff: { keep: 'generation', group: 'marriage' },
+  });
   const { living, home } = VB['sim/records'];
   const { emit, on } = VB['sim/events'];
   const { MARRIAGE, ASK, HUNGER, HANDOVER, AGES, ECON, YEAR, YEAR_DAYS } = VB['sim/rules'],

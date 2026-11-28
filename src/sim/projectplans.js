@@ -2,6 +2,10 @@
 // reserved, its open step advanced as done, reviewed when a store or a right of its holder changes, handed on, and dropped (its timber
 // left where it was carried); their record and reads are sim/projects'
 VB['sim/projectplans'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/projectplans', {
+    projectDropped: {},
+  });
   const { TRAVEL } = VB['sim/rules'];
   const Stores = VB['sim/stores'];
   const Projects = VB['sim/projects'],
