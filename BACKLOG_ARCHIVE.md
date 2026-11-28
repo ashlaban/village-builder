@@ -952,3 +952,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1852](backlog/VB-1852.md) | Repair: browser-saves' file round trip drifts after a load | - | 2 | S | the page's save of year 3 loaded runs on to a different state; failing at dd8a5cb9 already |
 | [VB-2045](backlog/VB-2045.md) | A seed loan lent in the crop short | - | 3 | S | seed lent in the crop the fields want, not the lender's mix |
 | [VB-1944](backlog/VB-1944.md) | Refactor: the Sim facade joined from what each module gives the page | - | 2 | M | src/sim.js 17 to 1-4 (VB-1406 step 6) |
+| [VB-2042](backlog/VB-2042.md) | A Walks map mode: the routes walked since it was switched on, as a heat map | - | 2 | M | A new map mode beside Wear (group ways): from the moment it is switched on, every route the path finder gives a walker is drawn into a fine raster of the map and shown as a heat map on a log scale; off, it stops collecting and drops what it held (Kim, 27 Nov). |
