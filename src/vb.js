@@ -350,6 +350,9 @@ VB.COUNTERS = {
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
   lyingDecay:
     "Loads lying out read by the day's decay, each day from the autumn frost to the year's end while any lies (sim/lying decay; VB-1910)",
+  outDecay:
+    "Worked fields and meadows read for stooks and mown hay lying out, each day from the autumn frost to the year's end (sim/fields " +
+    'stooksDecay, sim/meadows hayDecay; VB-2001)',
 };
 VB.count = {};
 VB.resetCounts = () => {
