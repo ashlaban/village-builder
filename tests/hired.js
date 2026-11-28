@@ -35,6 +35,7 @@ const make = () => {
   assert.ok(st.demand.includes(id) && e[0] === B.id && e[1] >= Hands.HANDS.least && e[1] <= 6, JSON.stringify(e));
   assert.strictEqual(eligible(st, j, st.pawns[id]), 'hired', 'the hand takes the field work as hired');
   assert.strictEqual(eligible(st, { ...j, kind: 'cook' }, st.pawns[id]), null, 'and no cooking');
+  const { tieOf } = VB['sim/ties'], tie0 = tieOf(st, id, B.holder), op0 = VB['sim/relations'].opinionOf(st, id, B.holder), ev0 = st.record.length;
   const t0 = st.t;
   while (Hands.on(st, id) !== null && st.t < t0 + 12) {
     Sim.advance(st, 0.1);
@@ -44,6 +45,9 @@ const make = () => {
   const worked = e[2], want = Math.ceil((worked * 3) / 8 - 1e-9);
   assert.ok(worked > 0, 'the hand worked');
   assert.strictEqual(VB.count.wagesPaidHired, want, 'the wage is paid whole');
+  assert.strictEqual(tieOf(st, id, B.holder), tie0, 'a hired hand books no tie: the wage is the payment');
+  assert.strictEqual(VB['sim/relations'].opinionOf(st, id, B.holder), op0, 'nor goodwill');
+  assert.ok(!st.record.slice(ev0).some((x) => x.kind === 'helped' && x.pawn === id), 'nor a Helped life event');
   assert.ok(Obligations.due(st, { kind: 'pawn', id }, 'creditor', 'wage').length === 0, 'paid, nothing owed');
 }
 // ---- below the floor: no hire ----
@@ -54,5 +58,18 @@ const make = () => {
   const n = VB.count.handsHired;
   Hands.askFor(st, B, 6, Sim.cal(st.t));
   assert.strictEqual(VB.count.handsHired, n, 'a household below its floor does not hire');
+}
+// ---- a hirer short of grain pays what it has; the rest stays owed ----
+{
+  const { st, B } = make();
+  const p = st.demand[0];
+  Stores.take(st, B, Stores.grainGood('barley'), Stores.grainOf(B) - 1, 'harvest');
+  const before = VB.count.wagesPaidHired;
+  const oid = Obligations.create(st, { kind: 'wage', debtor: { kind: 'household', id: B.id }, creditor: { kind: 'pawn', id: p }, owes: { rations: 3 }, due: st.t, every: null });
+  Obligations.fulfil(st, oid, 1, { kind: 'wage', pawn: p }, { from: B, to: st.pawns[p], good: 'grain' });
+  assert.strictEqual(Obligations.owed(st, { kind: 'pawn', id: p }, 'creditor', 'wage'), 2, 'two rations stay owed');
+  Obligations.step(st);
+  assert.strictEqual(st.obligations[oid].status, 'overdue', 'overdue like a loan');
+  void before;
 }
 console.log('hired ok');

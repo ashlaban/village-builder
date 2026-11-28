@@ -335,7 +335,7 @@ VB['sim/hands'] = (() => {
     e[3] = 1;
     if (e[4] && e[2] > 0 && st.pawns[id].alive && !st.households[e[0]].dissolved)
       pay(st, id, st.households[e[0]], e[2]);
-    if (e[2] > 0 && st.pawns[id].alive && !st.households[e[0]].dissolved)
+    if (!e[4] && e[2] > 0 && st.pawns[id].alive && !st.households[e[0]].dissolved)
       emit(st, 'helped', { helpers: [id], household: e[0], farm: null, hours: e[2] });
   }
   // Lent pawn id has nothing of the household's it can take (sim/day dutyRound): it goes back to its own day
