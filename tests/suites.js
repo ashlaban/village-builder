@@ -210,6 +210,7 @@ const INTEGRATION = [
   ['node', 'tests/help.js'], // food help, with VB-461's fetched gift (VB-889)
   ['node', 'tests/interrupts.js'],
   ['node', 'tests/day.js'],
+  ['node', 'tests/duties.js'], // VB-1771: duties of the days ahead: given at the review or by assign, the holder first for its type, lapsed when absent
   ['node', 'tests/levies.js'], // VB-1760: the household's levy on a member, and the day's capacity its levy left today
   ['node', 'tests/authored.js'], // VB-1755: the daily work before anything authored, the plan verb's by, a step at risk, the take-back, a kept step
   ['node', 'tests/ownheir.js'],

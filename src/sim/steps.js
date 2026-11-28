@@ -362,6 +362,29 @@ VB['sim/steps'] = (() => {
     const plan = planFor(st, 'household', hid);
     plan.ahead.splice(plan.ahead.indexOf(s), 1);
   }
+  // ---- duties (VB-1771; design.md section 7, Plans at four scales: The days ahead; Standing duties) ----
+  // @state a duty: a step of a household's `ahead` {what: {duty: a type of recurring work without a window (sim/day dutyTypes)}, who:
+  //   [the member that holds it]}, open, at most one a type; by the default author ({custom: 'duty'}, given at the head's review) or
+  //   'pawn' (why null: through the verb assign with a duty, by whoever controls the head). It stands until its holder is absent (ill,
+  //   called away, dead, no longer a member), when it lapses (sim/day). Written here only (giveDuty, dropDuty), by sim/day.
+  // The duty step of `type` in household plan `plan`, or null: a pass over its few days-ahead steps.
+  function dutyOf(plan, type) {
+    for (const s of plan.ahead) if (s.what.duty === type) return s;
+    return null;
+  }
+  // Member `pawn` holds the duty `type` of household plan `plan`, by `author` (the one it held before, if any, given to it).
+  function giveDuty(st, plan, type, pawn, author = 'custom') {
+    const why = author === 'custom' ? { custom: 'duty' } : null;
+    const s = dutyOf(plan, type);
+    if (s) return Object.assign(s, { who: [pawn], author, why });
+    const n = make(st, { duty: type }, why, { who: [pawn], state: 'open', author });
+    plan.ahead.push(n);
+    return n;
+  }
+  // Duty step s leaves household plan `plan` (it lapses).
+  function dropDuty(plan, s) {
+    plan.ahead.splice(plan.ahead.indexOf(s), 1);
+  }
   // The pawns of household hid that plan for themselves, ascending ([] with none: no work in a run where none has planned).
   function plannersIn(st, hid) {
     if (hid === null || hid === undefined || !st.plans || !st.plans.pawns.size) return NONE;
@@ -430,6 +453,9 @@ VB['sim/steps'] = (() => {
     takeBack,
     onGone,
     dropTaken,
+    dutyOf,
+    giveDuty,
+    dropDuty,
     plannersIn,
     stepOfKey,
     STATES,
