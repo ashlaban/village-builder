@@ -301,5 +301,10 @@ VB['sim/enforcement'] = (() => {
     }
     if (!Obligations.isLive(o)) drop(st, o.id);
   });
+  // A loan lapsed (its household dissolved with none to take it on): its case is dropped and its days owed lapse with it
+  Obligations.onLapsed('loan', (st, o) => {
+    drop(st, o.id);
+    for (const x of levies(st, o)) Obligations.lapse(st, x.id, 'the debt they worked off lapsed');
+  });
   return { CASE, hear, isDebt, forgiveWhy, forgiveDebt, daysFor };
 })();

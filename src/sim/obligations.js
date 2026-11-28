@@ -234,6 +234,12 @@ VB['sim/obligations'] = (() => {
   function onPaid(kind, f) {
     (PAID[kind] || (PAID[kind] = [])).push(f);
   }
+  // What follows a lapse of a kind's obligation, contributed at load by the module whose rule it is: f(st, o), after it is closed
+  // (sim/enforcement: a loan's case is dropped, its days owed lapse). Code, never saved state.
+  const LAPSED = {};
+  function onLapsed(kind, f) {
+    (LAPSED[kind] || (LAPSED[kind] = [])).push(f);
+  }
   // A loan defaulted is extended (VB-315, sim/enforcement): overdue again, falling due once more at `due`, and defaulted if unpaid there.
   function extend(st, id, due) {
     const o = st.obligations[id];
@@ -293,6 +299,7 @@ VB['sim/obligations'] = (() => {
     close(st, o, 'lapsed');
     tell(st, o, `What was still owed of the ${o.kind} (${n} ${unit(o)}) lapsed: ${why}`);
     if (KINDS[o.kind].lapsed) KINDS[o.kind].lapsed(st, o); // remembered (a loan, by its creditor's holder: VB-315)
+    for (const f of LAPSED[o.kind] || NONE) f(st, o); // what hangs on it closes too (a loan's case and days owed, VB-315)
     return null;
   }
   // Obligation id passes to a successor: to = {debtor} or {creditor}, a party ref. A right, so it moves at once (AGENTS.md, the hard rule).
@@ -413,6 +420,7 @@ VB['sim/obligations'] = (() => {
     transfer,
     extend,
     onPaid,
+    onLapsed,
     dissolving,
     step,
     rebuilt,

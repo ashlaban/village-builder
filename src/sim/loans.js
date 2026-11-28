@@ -24,7 +24,7 @@ VB['sim/loans'] = (() => {
   const { inForce } = VB['sim/customs'];
   const { agentOf, agentWhy } = VB['sim/decisions'];
   const { withinDay, byLand } = VB['sim/villagehours'];
-  const { personEvent, log, fullName, atHousehold, holdingOf, unplanned } = VB['sim/records'];
+  const { personEvent, log, fullName, atHousehold, holdingOf, unplanned, kinNear } = VB['sim/records'];
   const { askDaysAt, seasonOf } = VB['sim/help'];
   const { setAside } = VB['sim/gifts'];
   // @tunable LOAN: grain loans (design.md, Grain loans; Interest and due; Overdue and default)
@@ -473,14 +473,20 @@ VB['sim/loans'] = (() => {
       if (n > 0) issue(st, { actor: actorOf(hh), verb: 'repay', target: o.id, args: { n }, source: 'pawn' });
       return 'overdue';
     },
-    // lapsed with a party gone and none to take it on (design.md, Partial failure): the creditor's holder remembers the debtor's (VB-315)
+    // lapsed with a party gone and none to take it on (design.md, Partial failure): the creditor's holder remembers the debtor's holder,
+    // or, the holder dead (as it is when its household dissolves with none to take it on), the eldest of its living near kin (VB-315)
     lapsed: (st, o) => {
       const cr = creditorOf(st, o),
         hh = st.households[o.debtor.id],
-        a = cr ? (isHousehold(cr) ? cr.holder : cr.alderman) : null,
-        b = hh.holder;
-      if (a !== null && a !== undefined && b !== null && a !== b && st.pawns[a].alive && st.pawns[b].alive)
-        remember(st, a, b, 'debtUnpaid');
+        a = cr ? (isHousehold(cr) ? cr.holder : cr.alderman) : null;
+      if (a === null || a === undefined || !st.pawns[a].alive || hh.holder === null) return;
+      let b = hh.holder;
+      if (!st.pawns[b].alive) {
+        b = null;
+        for (const q of kinNear(st, hh.holder))
+          if (st.pawns[q].alive && q !== a && (b === null || st.pawns[q].born < st.pawns[b].born)) b = q;
+      }
+      if (b !== null && b !== a) remember(st, a, b, 'debtUnpaid');
     },
     // at the second harvest unpaid: told; it stays live, for its creditor to press, extend or forgive (sim/enforcement, VB-315)
     defaulted: (st, o) => {

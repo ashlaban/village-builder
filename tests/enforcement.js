@@ -103,4 +103,35 @@ function hearWith(st, v, base) {
   assert.strictEqual(o.status, 'overdue');
   assert.notStrictEqual(press(st, b.holder, o), true, 'no longer defaulted: nothing to press');
 }
+// the debtor household dies out with none to take it on: the loan lapses, with its case (pressed, not yet heard) or its days owed (upheld),
+// and the creditor's holder remembers the last holder's eldest living near kin, if any (design.md, A dissolved debtor)
+for (const upheld of [false, true]) {
+  const { st, a, b, o, v } = defaulted();
+  assert.strictEqual(press(st, b.holder, o), true);
+  if (upheld) hearWith(st, v, 5);
+  const x = levyOf(st, o);
+  assert(upheld ? x && st.cases.length === 0 : !x && st.cases.length === 1, 'setup: days owed, or a case standing');
+  const kin = VB['sim/records'].kinNear(st, a.holder).filter((q) => q !== b.holder && !a.members.includes(q));
+  for (const m of [...a.members]) VB['sim/lifecycle'].killPawn(st, m);
+  Sim.advance(st, 0.1);
+  assert(a.dissolved, 'setup: the household dissolved');
+  assert.strictEqual(o.status, 'lapsed', 'the loan lapsed, none to take it on');
+  if (x) assert.strictEqual(x.status, 'lapsed', 'its days owed lapse with it');
+  assert.deepStrictEqual(st.cases, [], 'no case stands for it');
+  const alive = kin.filter((q) => st.pawns[q].alive);
+  if (alive.length) {
+    const eldest = alive.reduce((m, q) => (st.pawns[q].born < st.pawns[m].born ? q : m));
+    const r = st.pawns[b.holder].rel.get(eldest);
+    assert(r && r.mem.debtUnpaid, "the creditor's holder remembers the last holder's eldest living kin");
+  }
+  assert.deepStrictEqual(checkState(st), [], 'invariants lapsed');
+  assert.deepStrictEqual(alive, [], 'the tiny founders have no kin between farms');
+  assert(!st.pawns[b.holder].rel.get(a.holder) || !st.pawns[b.holder].rel.get(a.holder).mem.debtUnpaid, 'none for the dead');
+  // the rule's own case of a kin outside, called as the lapse calls it: the dead holder's father taken as the third household's holder
+  const c = st.households.find((h) => h !== a && h !== b && !h.dissolved && h.holder !== null);
+  st.pawns[a.holder].father = c.holder;
+  Obligations.kind('loan').lapsed(st, o);
+  const r = st.pawns[b.holder].rel.get(c.holder);
+  assert(r && r.mem.debtUnpaid, "the creditor's holder remembers the last holder's living kin");
+}
 console.log('enforcement: ok');
