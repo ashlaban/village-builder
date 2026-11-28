@@ -223,7 +223,7 @@
     "household.salt": "sim/stores",
     "household.iron": "sim/stores",
     "household.tools": "sim/ironwork",
-    "household.shoes": "sim/leather",
+    "household.shoes": "sim/stores",
     "household.harness": "sim/leather",
     "household.rack": "sim/stores",
     "household.fresh": "sim/pot",
