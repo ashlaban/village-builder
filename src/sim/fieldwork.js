@@ -128,6 +128,14 @@ VB['sim/fieldwork'] = (() => {
   // in autumn, by the days gone of a season that ended at the frost (as by the autumn's day when the frost fell on its last).
   const frostNear = (st, c, U) =>
     c.season === 2 ? Math.max(0, SEASON_DAYS - 1 - (frostExpected(st) - c.sday)) / U.reapFrostPerDay : 0;
+  // Reaping and hauling a household's own crop outrank the foraging its want of food raises (sim/hunger spareUrgency, VB-1549) once
+  // the frost is within reapFrostWindow days: the crop is the food it forages for (VB-2029).
+  const reapOverNeed = (st, j, c, U) => {
+    const base = frostNear(st, c, U),
+      hh = j.farm && st.households[j.farm.household];
+    if (!hh || c.season !== 2 || frostExpected(st) - c.sday > U.reapFrostWindow) return base;
+    return VB['sim/hunger'].spareDays(st, hh) < 1 ? base : Math.max(base, VB['sim/hunger'].spareUrgency(st, j, U));
+  };
   // Whether a load of the household's sheaves cut from field fd lies on the road (sim/lying).
   const lyingFor = (st, hh, fd) => {
     if (!st.lying || !hh) return false;
@@ -207,7 +215,7 @@ VB['sim/fieldwork'] = (() => {
       field: true,
       spot: onField,
       norm: (st, j) => CROPS[j.field.crop].hours.reap ?? HOURS.reap, // a normal crop's hours (the head's estimate, VB-476)
-      urgency: (st, j, c, U) => U.reap + frostNear(st, c, U),
+      urgency: (st, j, c, U) => Math.max(U.reap + frostNear(st, c, U), reapOverNeed(st, j, c, U) + 0.01),
       done: (st, j, hh, c) => reaped(st, j.field, c),
       // a ripe field
       available: (st, hh, fd, c, post, f) => {
@@ -228,7 +236,7 @@ VB['sim/fieldwork'] = (() => {
       type: 'harvest',
       window: { from: WORK[0] - 1 }, // dry by the morning
       spot: (st, a, j) => [st.w.hx[j.site] + a.ox * 0.6, st.w.hy[j.site] + a.oy * 0.6],
-      urgency: (st, j, c, U) => U.haul + frostNear(st, c, U),
+      urgency: (st, j, c, U) => Math.max(U.haul + frostNear(st, c, U), reapOverNeed(st, j, c, U) + 0.01),
       available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'stooks' && c.day >= fd.reaped + st.ECON.dryDays)
           post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, crop: fd.crop });
