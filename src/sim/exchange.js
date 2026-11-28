@@ -253,12 +253,24 @@ VB['sim/exchange'] = (() => {
   }
   // What `from` (a household or a village store) would give to an ask of n grain by household `to`: what its floor and allowance allow,
   // up to n; under ASK.least, 0
-  function askGives(st, from, to, n) {
+  function askGives(st, from, to, n, owed = false) {
     const most = isHousehold(from)
-      ? Math.min(assessGift(st, { from, to, n: 0, source: 'ask' }).allowance, Stores.grainOf(from) - floorOf(st, from))
+      ? owed
+        ? Stores.grainOf(from) - floorOf(st, from) // a debt met (VB-707): the allowance does not hold it back
+        : Math.min(
+            assessGift(st, { from, to, n: 0, source: 'ask' }).allowance,
+            Stores.grainOf(from) - floorOf(st, from),
+          )
       : Stores.grainOf(from) - Stores.reserved(st, from, 'grain');
     const k = Math.min(n, most);
     return k >= HELP.askLeast - TOLERANCE ? k : 0;
+  }
+  // Would pawn id's no to the ask o break faith (VB-707): it owes the asker the ask's worth and holds that much above its floor
+  function debt(st, o, id) {
+    const from = Offers.partyOf(st, o.parties.to);
+    if (!isHousehold(from) || !st.pawns[id] || st.pawns[id].household !== from.id) return false;
+    const n = o.wants.n;
+    return Offers.breaks(st, o, id, n * WORTH.grain, Stores.grainOf(from) - floorOf(st, from) >= n - TOLERANCE);
   }
   Offers.basis('ask', {
     books: 'goodwill',
@@ -287,17 +299,22 @@ VB['sim/exchange'] = (() => {
       return { parties: { from: { household: p.household }, to: Offers.refOf(to) } };
     },
     answers: (st, o) => [{ key: 'to', by: o.to, yes: null }],
+    // a debtor who could meet the ask above its floor (VB-707) and whose honour weighs the breach meets it, the allowance aside
     weigh: (st, o) => {
       const from = Offers.partyOf(st, o.parties.to),
         to = Offers.partyOf(st, o.parties.from);
-      return !from.dissolved && !to.dissolved && askGives(st, from, to, o.wants.n) > 0;
+      if (from.dissolved || to.dissolved) return false;
+      if (askGives(st, from, to, o.wants.n) > 0) return true;
+      return debt(st, o, o.to) && Offers.keepsFaith(st, o.to);
     },
+    breach: (st, o, id) => debt(st, o, id),
     refused: (st, o, no) => {
       const from = Offers.partyOf(st, o.parties.to);
       const above = isHousehold(from)
         ? Stores.grainOf(from) - floorOf(st, from)
         : Stores.grainOf(from) - Stores.reserved(st, from, 'grain');
       if (o.from === no.by || above < HELP.askLeast) return; // nothing to give: an honest cannot
+      if (debt(st, o, no.by)) Offers.breakFaith(st, o, no.by, o.wants.n * WORTH.grain);
       remember(st, o.from, no.by, 'refusedUs');
       remember(st, no.by, o.from, 'refusedThem');
       // could give and would not: a lord who does fails his follower (sim/followers); not the village's store, which is not his to give
@@ -313,7 +330,7 @@ VB['sim/exchange'] = (() => {
       const from = Offers.partyOf(st, o.parties.to),
         to = Offers.partyOf(st, o.parties.from),
         far = farOf(st, from, to);
-      const n = from.dissolved || to.dissolved ? 0 : askGives(st, from, to, o.wants.n);
+      const n = from.dissolved || to.dissolved ? 0 : askGives(st, from, to, o.wants.n, debt(st, o, o.to));
       if (!(n > 0)) return `${nameOf(st, from)} has nothing to spare now`;
       const args = { good: o.wants.good, n };
       if (far) {

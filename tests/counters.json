@@ -124,6 +124,7 @@
   "patronDays": 0,
   "patronWeighed": 0.26823134953897737,
   "followerFailed": 0,
+  "faithBroken": 0,
   "aldermanBallots": 0,
   "rotationWalk": 0,
   "overviewWalk": 0,
