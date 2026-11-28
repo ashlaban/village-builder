@@ -1,4 +1,4 @@
-// @sys sim/leanings: read-only views of a person's leanings on the customs: what draws them towards a way (VB-398), and where they
+// @sys sim/leanings [derived]: read-only views of a person's leanings on the customs: what draws them towards a way (VB-398), and where they
 //   differ from the practice in force (VB-082); no state
 VB['sim/leanings'] = (() => {
   const { OFF, NOPT, DIMS } = VB['sim/customs'],

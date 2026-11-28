@@ -1,4 +1,4 @@
-// @sys sim/records: person and household records, membership and service, live indexes, family queries, culture lookups; the
+// @sys sim/records [kernel]: person and household records, membership and service, live indexes, family queries, culture lookups; the
 // record of events, a pawn's events as positions in it, and the yearly fold of its routine events (VB-199)
 VB['sim/records'] = (() => {
   const Customs = VB['sim/customs'],

@@ -1,4 +1,4 @@
-// @sys sim/settle: moving to new land: crowded villages, who leaves and with whom, provisions, the site, and the new village with its booth
+// @sys sim/settle [social]: moving to new land: crowded villages, who leaves and with whom, provisions, the site, and the new village with its booth
 VB['sim/settle'] = (() => {
   const { living } = VB['sim/records'];
   const { issue, register } = VB['sim/commands'];

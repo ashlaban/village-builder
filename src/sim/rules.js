@@ -1,4 +1,4 @@
-// @sys sim/rules: the calendar, the economy and the foods, the herds, the ages of life and health, travel, given names, and the other
+// @sys sim/rules [kernel]: the calendar, the economy and the foods, the herds, the ages of life and health, travel, given names, and the other
 // tables several domains read (VB-419: a table one domain reads lives in that domain's module, found by its @tunable line)
 VB['sim/rules'] = (() => {
   const { B } = VB['world/biomes'];
@@ -709,7 +709,7 @@ VB['sim/rules'] = (() => {
       openness: Object.freeze({ malleability: Object.freeze([0.5, 1.5]), cause: Object.freeze([0, 2]) }),
       body: Object.freeze({ recover: Object.freeze([2.5 / 3, 3.5 / 3]) }),
     }),
-    breach: Object.freeze(['claim', 'border', 'refusedMatch', 'crop', 'stayedAway', 'failedUs']),
+    breach: Object.freeze(['claim', 'border', 'refusedMatch', 'crop', 'stayedAway', 'failedUs', 'brokeFaith']),
   });
   return {
     // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)

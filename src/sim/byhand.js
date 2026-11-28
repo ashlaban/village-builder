@@ -1,4 +1,4 @@
-// @sys sim/byhand: what is placed by hand on a settlement generator: the editor's farm, field or green on a very tile; the market town's packed plots
+// @sys sim/byhand [kernel]: what is placed by hand on a settlement generator: the editor's farm, field or green on a very tile; the market town's packed plots
 VB['sim/byhand'] = (() => {
   const { SETTLE } = VB['sim/rules'],
     { openGround: farmable } = VB['sim/crops'];

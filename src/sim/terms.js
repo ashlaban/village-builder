@@ -1,4 +1,4 @@
-// @sys sim/terms: a marriage's terms (VB-276; design.md, Marriage as a negotiation: Terms): the dowry (hemföljd) the bride's house gives
+// @sys sim/terms [social]: a marriage's terms (VB-276; design.md, Marriage as a negotiation: Terms): the dowry (hemföljd) the bride's house gives
 //   the couple's home, an advance on her share of its estate, and the morning gift (morgongåva) the groom's side books to her, hers if she
 //   is widowed; both in customary worth (sim/norms), valued once when a match is offered, the dowry led and laid at the close
 // @state pawn.advance: absent, or {household, n}: the dowry a woman was given by household `household`, in rations of customary worth;

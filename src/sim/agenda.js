@@ -1,4 +1,5 @@
-// @sys sim/agenda: a pawn's agenda (VB-1644; docs/ui2/HANDOFF.md; keyed by pawn, VB-1746): its queue laid end to end from now and the open work it may
+// @sys sim/agenda [derived]: a pawn's agenda (VB-1644; docs/ui2/HANDOFF.md; keyed by pawn, VB-1746): its queue laid end to end from now and the open work it
+//   may
 // take, each with the hours the pawn itself reckons it takes (sim/estimate; principle "The future is someone's estimate": what is shown of the future is
 // some pawn's
 // estimate), the deadline that presses (a field's sowing window, the frost the head expects, the haymaking window) and whether it ends in

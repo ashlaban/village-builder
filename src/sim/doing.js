@@ -1,4 +1,4 @@
-// @sys sim/doing: the game's view for sim/methods (VB-1775): the readers `next` asks of the world (where a pawn stands, what it carries,
+// @sys sim/doing [agency]: the game's view for sim/methods (VB-1775): the readers `next` asks of the world (where a pawn stands, what it carries,
 // the cart it holds, the piles with title of sim/lying, a household's store), a task's goal read from its job, and the effects of the
 // steps that move goods (a cart taken, a load taken up from a pile, set down in its owner's store or where the pawn stands, a work leg's
 // effect). Walking and the work legs, and the one switch between a kind with methods and one on its phases, are sim/agents'.

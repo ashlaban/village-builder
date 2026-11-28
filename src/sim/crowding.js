@@ -1,4 +1,4 @@
-// @sys sim/crowding: a household's crowding (VB-766), the people within CROWD.steps of its house, and the death.hazard factor it gives, kept as arrays
+// @sys sim/crowding [kernel]: a household's crowding (VB-766), the people within CROWD.steps of its house, and the death.hazard factor it gives, kept as arrays
 VB['sim/crowding'] = (() => {
   const { hexSteps } = VB['sim/hex'];
   // @tunable CROWD: crowding (VB-766; design.md, Balance loops and targets: Deaths; Kim, 16 Nov): living close costs lives, wherever it happens, and

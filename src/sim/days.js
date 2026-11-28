@@ -1,4 +1,4 @@
-// @sys sim/days: the day's duty of the outer levies (VB-462, VB-1767; design.md, Outer levies, Worked): the compiled index of the pawns
+// @sys sim/days [agency]: the day's duty of the outer levies (VB-462, VB-1767; design.md, Outer levies, Worked): the compiled index of the pawns
 // on a day named today, read by the check of every task (the basis `owed`) and by the modules below sim/levies, which seats it at the
 // day's first step; each hour a pawn on duty works is booked here against its household's levy (kind `days` of sim/obligations).
 VB['sim/days'] = (() => {

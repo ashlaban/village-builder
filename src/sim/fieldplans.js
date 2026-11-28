@@ -1,4 +1,4 @@
-// @sys sim/fieldplans: field demand, site selection, clearing projects and the head's harvest estimate
+// @sys sim/fieldplans [material]: field demand, site selection, clearing projects and the head's harvest estimate
 VB['sim/fieldplans'] = (() => {
   const { targetOf } = VB['sim/steps'];
   const { ECON, FIELDS, SPEED, cal, YEAR_DAYS } = VB['sim/rules'],

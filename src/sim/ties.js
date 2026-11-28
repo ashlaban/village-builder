@@ -1,4 +1,4 @@
-// @sys sim/ties: familiarity between pawns, its decay scale, kin floor and hours shared at home.
+// @sys sim/ties [kernel]: familiarity between pawns, its decay scale, kin floor and hours shared at home.
 VB['sim/ties'] = (() => {
   const { YEAR, DAY, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
   const { kinNear } = VB['sim/records'];
@@ -42,6 +42,8 @@ VB['sim/ties'] = (() => {
       // sim/workdays: a holder of the village whose household stayed away from a work day; each other holder with a tie to it (VB-120; Kim,
       // 10 Nov: a small negative memory fading over a year; the numbers are the agent's starting values)
       stayedAway: { label: 'Stayed away from the work day', v: -0.05, cap: -0.15, days: YEAR_DAYS },
+      // sim/offers: a debtor refused an ask it owed and could meet (VB-707); a breach, felt by the creditor's honour
+      brokeFaith: { label: 'Broke faith with us', v: -0.3, cap: -0.6, days: 4 * YEAR_DAYS },
       // sim/relations: cross words that became a quarrel, both ways (VB-520; design.md, The twelve traits: temper)
       quarrel: { label: 'Quarrelled with us', v: -0.1, cap: -0.3, days: YEAR_DAYS },
     },

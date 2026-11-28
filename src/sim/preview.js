@@ -1,4 +1,4 @@
-// @sys sim/preview: what a yes to an open offer would bring (VB-1100; design.md, Marriage as a negotiation, The player's doors): the
+// @sys sim/preview [agency]: what a yes to an open offer would bring (VB-1100; design.md, Marriage as a negotiation, The player's doors): the
 //   offer is settled on a copy of the state by its basis's own rules (sim/offers' answer, the match's marry and handOn, sim/heirs, the
 //   next day's care for a farm left with no grown member, sim/service and sim/trust), and the copy is read against the state: who moves,
 //   each farm's holder after, the first heir of the home and its food. Read when the page shows an offer, never in a step; writes

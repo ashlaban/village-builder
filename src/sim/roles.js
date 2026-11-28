@@ -1,4 +1,4 @@
-// @sys sim/roles: the roles and their work (VB-419, from sim/rules): each role's ranks of the types of work, a child's working rate,
+// @sys sim/roles [kernel]: the roles and their work (VB-419, from sim/rules): each role's ranks of the types of work, a child's working rate,
 // and how hands are matched to tasks (MATCH)
 VB['sim/roles'] = (() => {
   // @tunable ROLES: roles and work: each role ranks types of work from 0 to 10 (`work`), with exceptions for single job kinds (`except`); sim/kinds gives

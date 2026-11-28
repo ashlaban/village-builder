@@ -1,4 +1,4 @@
-// @sys sim/customs: the catalogue of customs and practices, and the one door every layer reads the customs in force through
+// @sys sim/customs [kernel]: the catalogue of customs and practices, and the one door every layer reads the customs in force through
 // ===== The customs in force, read (VB-231; target-v2, principle 12 and 3.1): the catalogue (DIMS, ARCHETYPES, PRACTICES) and the door =====
 // A kernel module: it imports nothing, and culture (loaded after it) is the only writer of customs, attitudes and drift. Outside culture
 // and this module no module under src/sim indexes a settlement's practice or a culture's customs (tests/lint.js holds it).

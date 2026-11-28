@@ -1,4 +1,4 @@
-// @sys sim/building: the cottage's stages as job kinds, and what building takes (VB-328): timber felled in the village's wood and carried to
+// @sys sim/building [material]: the cottage's stages as job kinds, and what building takes (VB-328): timber felled in the village's wood and carried to
 // every site that lacks it, one rule over the sites their modules name (VB-1407), and the plot's wood shared out when the plot is given;
 // raising a house onto a stone foundation, with stone picked or quarried for it (VB-332); a booth, staked as its maker's project plan and
 // raised (VB-784, VB-1172), standing until it rots, its water fetched each day by one who sleeps in it (VB-1601), the booths away from
@@ -527,6 +527,7 @@ VB['sim/building'] = (() => {
   //   house, where its hay and its unthreshed sheaves keep (a farm with one loses BUILD.barn.loss as much hay: sim/byre spoilHay); absent
   //   or null before. Every farm that stands at seeding has one (seedBarns, VB-1898), but a camp landed by hand (noBarn); a save keeps the
   //   barns it had. One a farm; it goes with the farm, not the household. Written only here, when its roof is on or at seeding.
+  // @notstock farmstead.barn: land, buildings and their records (fields, meadows, a site's timber)
   const BARN_STAGES = ['barnbase', 'barnwalls', 'barnroof'];
   // The steps of a barn's project plan at house tile `house`: the three stages, the walls with the timber they wait for.
   const barnSteps = (house) =>

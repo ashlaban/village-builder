@@ -1,4 +1,4 @@
-// @sys sim/routes: least-cost path searches and the daily invalidation of the run's bounded route cache, which keeps the routes no
+// @sys sim/routes [kernel]: least-cost path searches and the daily invalidation of the run's bounded route cache, which keeps the routes no
 // changed tile could have touched
 VB['sim/routes'] = (() => {
   const { hexSteps } = VB['sim/hex'];

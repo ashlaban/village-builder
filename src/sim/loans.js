@@ -1,4 +1,4 @@
-// @sys sim/loans: grain loans (VB-312; design.md, Loans, obligations and cases: Grain loans, Interest and due, Overdue and default): a
+// @sys sim/loans [agency]: grain loans (VB-312; design.md, Loans, obligations and cases: Grain loans, Interest and due, Overdue and default): a
 // household still short of the next harvest after help has gone round borrows, once a season, an offer on the basis `loan` (Kim,
 // 16 Nov: the borrower wants grain now and gives a promise) to a lender of its village, its store, then a trade partner; a yes sets the
 // grain aside as the borrower's and has it fetched, and books an obligation of kind `loan`, repaid at the end of autumn (the verb
@@ -137,6 +137,7 @@ VB['sim/loans'] = (() => {
   //   lent and not sown is held as seed: the meal and the cook do not eat it (sim/hunger seedKept, sim/pot); from `until` it is the
   //   household's grain again (freed at its next review); the loan is repaid in grain at the end of autumn, as a grain loan is. Written
   //   only here.
+  // @notstock household.seedLent: ledgers and statistics of what moved (sim/stores, sim/hunger)
   function lendSeed(st, hh, n, until) {
     const r = hh.seedLent;
     if (r) {
@@ -272,6 +273,7 @@ VB['sim/loans'] = (() => {
   // ---- borrowing (design.md, Grain loans) ----
   // @state household.borrowedIn: the season (game seasons since the start) in which the household's holder last asked to borrow, or
   //   absent; written only here. It asks at most once a season.
+  // @notstock household.borrowedIn: ledgers and statistics of what moved (sim/stores, sim/hunger)
   // The households of village v with a farm, in order of what they spare (most first, then by id), each with it
   function lenders(st, v, hh) {
     const out = [];
@@ -346,6 +348,7 @@ VB['sim/loans'] = (() => {
   }
   // @state household.seedAskedIn: the season in which the household's holder last asked a seed loan (VB-1973), or absent; written only
   //   here. It asks at most once a season.
+  // @notstock household.seedAskedIn: ledgers and statistics of what moved (sim/stores, sim/hunger)
   // Household hh's holder asks a seed loan before its sowing (VB-1973): while the seed it holds is short of its fields to be sown
   // (seedShort) by any of it, once a season, of the same lenders as a grain loan, in the same order, each for what is still short. True
   // when it asked.

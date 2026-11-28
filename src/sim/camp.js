@@ -1,4 +1,4 @@
-// @sys sim/camp: the camp of a settler who plans by hand, and the farmstead goal (VB-1777) (VB-1655; Kim, 24 Nov 2026: "land first, place
+// @sys sim/camp [material]: the camp of a settler who plans by hand, and the farmstead goal (VB-1777) (VB-1655; Kim, 24 Nov 2026: "land first, place
 //   from the menu"): the farm kept on
 //   the landing tile with nothing on it, roofless (sim/building roofless), until its head places the farmstead (the verb `placeFarmstead`:
 //   the house moved to the tile chosen anywhere reachable on foot, the shelter begun on it, VB-1666, VB-1667) and its shelter stands; the
@@ -31,6 +31,7 @@ VB['sim/camp'] = (() => {
   //   solo start with `hand`: its household sleeps under the open sky, sim/building roofless), false once its shelter stands (VB-1666; in a
   //   save before it, its booth beside the house), the cottage not yet planned (VB-1655). Written here only: at the landing (makeCamp) and
   //   when the shelter is raised.
+  // @notstock farmstead.camp: land, buildings and their records (fields, meadows, a site's timber)
   // The landing (VB-1658): the farm is a camp, and the village fence the generator laid round its tile (sim/layout finishLand: the solo
   // village encloses its one house) is taken down before anything reads it, its stretches numbered again: nothing of the farm stands
   // until it is placed, and a farm placed in play gets no fence by itself, as a settler's (sim/cottage) gets none.

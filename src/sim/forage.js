@@ -1,4 +1,4 @@
-// @sys sim/forage: wild food in the woods and on the heath (VB-118): each forest and heath tile's stock of berries, mushrooms and nuts, full
+// @sys sim/forage [kernel]: wild food in the woods and on the heath (VB-118): each forest and heath tile's stock of berries, mushrooms and nuts, full
 // each spring and lowered by a trip, and a house's gathering ground: the nearest such tile within reach with something left
 VB['sim/forage'] = (() => {
   const { YEAR_DAYS, DAY } = VB['sim/rules'],

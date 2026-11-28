@@ -1,4 +1,4 @@
-// @sys sim/cottageplan: the cottage as stages of a plan (foundation, walls, roof), a plot's after its clearing (sim/expansion) and a settler
+// @sys sim/cottageplan [material]: the cottage as stages of a plan (foundation, walls, roof), a plot's after its clearing (sim/expansion) and a settler
 // household's own while it lives in a booth (cottagePlan, VB-1411): the stages' steps, the walls' timber (VB-328), the booth household's
 // open stage as a job, a stage finished, and the roof on
 VB['sim/cottageplan'] = (() => {

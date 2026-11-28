@@ -1,4 +1,4 @@
-// @sys sim/service: households short of people: a guardian for orphaned minor heirs, a servant for a holder who lives alone, kin or a
+// @sys sim/service [social]: households short of people: a guardian for orphaned minor heirs, a servant for a holder who lives alone, kin or a
 // servant for a household of at most one grown member whose ask for food fell short (VB-308), and with nobody to come, kin who hold its farm
 // in trust (VB-309); service where labour is short (VB-090)
 VB['sim/service'] = (() => {

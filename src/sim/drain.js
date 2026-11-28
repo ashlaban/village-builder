@@ -1,4 +1,4 @@
-// @sys sim/drain: draining a wet field (VB-721): the head's estimate of a ditch's gain against its hours, the making `drain` it begins
+// @sys sim/drain [material]: draining a wet field (VB-721): the head's estimate of a ditch's gain against its hours, the making `drain` it begins
 // through the verb project, and the ditching, dug by the household's hands at the field
 // Design: design.md, Goods and the farming year (Yield over time); docs/review-yields.md, 2.5. A field's wetness is its tile's moisture
 // (sim/crops' wetLoss, slice 10's plan VB-190, 5.1); its ditch takes away a share of the loss and silts (sim/soil's DITCH, ditchOf). A

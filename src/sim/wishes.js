@@ -1,4 +1,4 @@
-// @sys sim/wishes: every pawn's wish at the moving round (VB-680; docs/plans/VB-682.md, section 3): a ranking of rungs, each one answer
+// @sys sim/wishes [kernel]: every pawn's wish at the moving round (VB-680; docs/plans/VB-682.md, section 3): a ranking of rungs, each one answer
 // to "where do I live next year", chosen by the pawn before the round (its ambition, its hunger) and by the player for the pawn it plays
 // (the wish verb); wishOf, the one read of it, where the round asks what a pawn itself wants; whose yes a move needs (moveWhy); and
 // the asking day's due-queue, when each pawn who seeks next reviews its wish (VB-823)

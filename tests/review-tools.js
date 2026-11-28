@@ -4,12 +4,15 @@
 const assert = require('assert');
 const Stocks = require('../tools/stocks.js');
 
-// 1. Every field of the @state lines of households, farms, villages and tiles is a quantity with its line, or listed as none; a new one fails
-const fields = Stocks.stateFields(), { missing, stale } = Stocks.unlisted(fields);
-assert.deepStrictEqual(missing, [], 'a stored quantity needs its line in tools/stocks.js (QUANTITIES, with `none`), or a place in NOT_STOCKS');
-assert.deepStrictEqual(stale, [], 'tools/stocks.js lists fields no @state line names');
+// 1. Every field of the @state lines of households, farms, villages and tiles is a quantity with its line, or tagged @notstock; a new one fails
+const fields = Stocks.stateFields(), tags = Stocks.notStocks(), { missing, stale, apart } = Stocks.unlisted(fields, tags);
+assert.deepStrictEqual(missing, [], 'a stored quantity needs its line in tools/stocks.js (QUANTITIES, with `none`), or a field that is none '
+  + 'the tag `// @notstock FIELD: why` beside its @state line (VB-1941)');
+assert.deepStrictEqual(stale, [], 'tools/stocks.js or an @notstock tag names fields no @state line names');
+assert.deepStrictEqual(apart, [], 'an @notstock tag stands in the module of its field\'s @state line');
+assert(tags.length > 100 && tags.every((t) => t.why.length > 5), 'the @notstock tags are read, each with its reason');
 const more = new Map([...fields, ['household.lime', 'a test']]);
-assert.deepStrictEqual(Stocks.unlisted(more).missing, ['household.lime (a test)'], 'a quantity without a line is found');
+assert.deepStrictEqual(Stocks.unlisted(more, tags).missing, ['household.lime (a test)'], 'a quantity without a line is found');
 for (const q of Stocks.QUANTITIES) assert(q.none && q.none.length > 10 && q.fields.length && q.name, `${q.id}: a line says what happens at none`);
 // what the reviews of 10 and 11 November found is mended: the day's water is read since VB-331 (the cook, the dry day), the woodpile
 // since VB-327 (the cold house, the cook), the stone heap since VB-332 (the foundation)

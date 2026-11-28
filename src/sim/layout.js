@@ -1,4 +1,4 @@
-// @sys sim/layout: placing villages (a green, and a farm at a time round it, by its land), farmsteads, fields and fences on the map
+// @sys sim/layout [kernel]: placing villages (a green, and a farm at a time round it, by its land), farmsteads, fields and fences on the map
 VB['sim/layout'] = (() => {
   const { B } = VB['world/biomes'];
   const { WOOD } = VB['sim/rules'],

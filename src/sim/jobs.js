@@ -1,4 +1,4 @@
-// @sys sim/jobs: the job board: a task posted and taken down; each review hour the due-queue's and the reviews' asks of the kinds' rules
+// @sys sim/jobs [agency]: the job board: a task posted and taken down; each review hour the due-queue's and the reviews' asks of the kinds' rules
 // (sim/kinds), and the asks of a member without a task; a task posted is slotted into its holder's days as they stand, which are allotted
 // anew at the morning, at 14:00 and where a slot finds nobody (sim/day; VB-1758)
 VB['sim/jobs'] = (() => {

@@ -1,4 +1,4 @@
-// @sys sim/fields: a field's crop year: hoed, sown, growing, weeded, ripe, reaped, carried, lost to the frost or left standing; fallow's rest
+// @sys sim/fields [material]: a field's crop year: hoed, sown, growing, weeded, ripe, reaped, carried, lost to the frost or left standing; fallow's rest
 VB['sim/fields'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { HERD, DEER, DAY, SEASON_DAYS, YEAR, YEAR_DAYS } = VB['sim/rules'],
@@ -153,6 +153,7 @@ VB['sim/fields'] = (() => {
   }
   // @state farmstead.left (VB-768): absent, or {gone (fields the farm has let go, ever), year (the game year of the last), inYear (let go in
   //   that year, at most FIELDS.letGo)}; a new field's id is the farm's fields made so far, fields.length + gone, so no id is used again
+  // @notstock farmstead.left: land, buildings and their records (fields, meadows, a site's timber)
   // A field let go (the head's verb letField, sim/plans; VB-768): it leaves the farm's list and its tile passes back to the village, in
   // stubble or fallow as it lay: developed ground, outland any household of the village may take in again (sim/territory's freeFor). Only
   // an idle field is let go (the verb checks it: no crop, no sheaves, no job on it), so no work and no store is touched.

@@ -1,4 +1,4 @@
-// @sys sim/fit: a posted job weighed for a pawn: the job's urgency, the pawn's priority for it by role, plot, claim or custom, its score
+// @sys sim/fit [agency]: a posted job weighed for a pawn: the job's urgency, the pawn's priority for it by role, plot, claim or custom, its score
 // less the walk, the bars to taking it, the bid; why an idle pawn has no work. Read-only, drawing nothing: read by the head's day and the
 // pawn on duty (sim/day) and by the Actions list (sim/opportunities), which choose by it and take with the one command (workCommand)
 VB['sim/fit'] = (() => {

@@ -14,8 +14,8 @@
 // - marked `read by nothing`: no read and no use in the simulation; `shown only`: besides, its own job kinds do not read it either and the
 //   page shows it.
 // The table QUANTITIES below is written by hand, a line a quantity with what its lack costs (`none`); every field of the `@state` lines of
-// households, farms, villages and tiles is either in a line or in NOT_STOCKS, which tests/review-tools.js checks (npm test). A new stored
-// quantity adds its line here, with its `none`.
+// households, farms, villages and tiles is either in a line or tagged `// @notstock FIELD: why` beside its @state line (VB-1941), which
+// tests/review-tools.js checks (npm test). A new stored quantity adds its line here, with its `none`; a new field that is none, its tag.
 require('./help.js')(__filename);
 const fs = require('fs'), path = require('path'), acorn = require('acorn'), Writes = require('./writes.js');
 const { readSource } = require('./lib/source.js');
@@ -148,30 +148,6 @@ const QUANTITIES = [
     none: 'no hunting ground there (below DEER.hunt.least), no kill, no crop browsed; the deer grow back towards the capacity of the region\'s forest '
       + 'edges, from any left (sim/deer)' },
 ];
-
-// ---- the other fields of the @state lines, by hand: each with why it is not a stored quantity ----
-const NOT_STOCKS = {
-  'identity, links and membership': ['household.id', 'household.farmstead', 'household.members', 'household.holder', 'household.expected', 'household.guardian', 'household.ward',
-    'household.herds', 'household.dissolved', 'farmstead.id', 'farmstead.house', 'farmstead.village', 'farmstead.household', 'farmstead.name',
-    'farmstead.line', 'farmstead.rowAngle', 'farmstead.firstRotation', 'farmstead.keeps', 'village.id', 'village.riteDays', 'village.name', 'village.center', 'village.farmsteads', 'village.wood', 'village.plots', 'village.alderman'],
-  'ledgers and statistics of what moved (sim/stores, sim/hunger)': ['household.ledger', 'household.totals', 'village.keep', 'village.keepBy', 'village.tarBy', 'household.yields', 'household.spoilt', 'household.hungryDays',
-    'household.hunger', 'household.cold', 'household.coldLog', 'household.dry', 'household.marshDay', 'household.dryLog', 'household.seedSeason', 'household.askedIn', 'household.clientIn', 'household.harvestIn', 'household.borrowedIn', 'household.seedAskedIn', 'household.seedLent', 'household.fellShort', 'household.giftedIn', 'household.milkDay', 'household.workHours', 'village.ledger', 'village.totals', 'village.workday'],
-  'land, buildings and their records (fields, meadows, a site\'s timber)': ['farmstead.fields', 'farmstead.meadows', 'village.commonFields',
-    'farmstead.booth', 'farmstead.camp', 'farmstead.barn', 'farmstead.byre', 'farmstead.storehouse', 'farmstead.rung', 'household.pasture', 'village.droveway', 'farmstead.state', 'farmstead.grade', 'farmstead.emptySince', 'household.boat', 'household.tarPit', 'household.carts',
-      'household.cartMiss', 'household.blocked', 'village.fishing', 'village.green', 'village.well', 'farmstead.water', 'farmstead.wellMeant', 'village.crowded', 'village.founded',
-      'village.rotation', 'farmstead.rotationBy', 'farmstead.failed', 'farmstead.left'],
-  'the generated world': ['w.seed', 'w.lat', 'w.name', 'w.R', 'w.COLS', 'w.ROWS', 'w.RR', 'w.W', 'w.H', 'w.HW', 'w.AP', 'w.N', 'w.STEP', 'w.CW', 'w.CH', 'w.KS',
-    'w.elev',
-    'w.macro', 'w.hx', 'w.hy', 'w.he', 'w.hp', 'w.hm', 'w.wind', 'w.rain', 'w.biome', 'w.water', 'w.ocean',
-      'w.hrnd',
-    'w.landDist', 'w.nb', 'w.region', 'w.regions', 'w.river', 'w.riverTo', 'w.rock', 'w.deposit', 'w.vein', 'w.veinKind',
-    'w.veinNear', 'w.fresh', 'w.waterDepth', 'w.freshWalk'],
-  'ways (the wear of walking, fords and bridges; passage over fields and meadows, sim/passage; the ground compiled, sim/walking; the gate of a house, sim/entrances)': ['w.wear', 'w.worn', 'w.crossing', 'w.shut', 'w.ground', 'w.gate'],
-  'when a tile was last worked (a day, not an amount; sim/spread)': ['w.tended'],
-  'choices of the village\'s meeting (a decision, not an amount)': ['village.gathering'],
-  'a household\'s plan of who goes to the gathering (a decision, not an amount; VB-295)': ['household.gathering'],
-  'a memory of a lost dispute (the rules that would have won it, until a time; sim/disputes)': ['household.grievance'],
-};
 
 // ---- the @state lines: the fields of households, farms, villages and tiles they name ----
 const ENTITY = { household: 'household', farmstead: 'farmstead', village: 'village', w: 'w' };
@@ -386,10 +362,24 @@ if (require.main === module) {
   const rows = build();
   console.log(process.argv.includes('--json') ? JSON.stringify(rows, null, 1) : markdown(rows));
 }
-// The fields of the @state lines with no line in QUANTITIES and none in NOT_STOCKS; and the fields these name that no @state line does.
-function unlisted(fields = stateFields()) {
-  const listed = new Set([...QUANTITIES.flatMap((q) => [...q.fields, ...(q.covers || [])]), ...Object.values(NOT_STOCKS).flat()]);
-  return { missing: [...fields.keys()].filter((f) => !listed.has(f)).map((f) => `${f} (${fields.get(f)})`),
-    stale: [...listed].filter((f) => ENTITY[f.split('.')[0]] && !fields.has(f)) };
+// A field of the @state lines that is no stored quantity carries the tag `// @notstock FIELD, FIELD: why` beside its @state line, in the
+// module that has the line (VB-1941; it was the table NOT_STOCKS here): [{field, why, where}], from every module of the manifest.
+function notStocks() {
+  const out = [];
+  for (const f of JSON.parse(fs.readFileSync(path.join(ROOT, 'src/manifest.json'), 'utf8')))
+    readSource('src/' + f).split('\n').forEach((line, i) => {
+      const m = /\/\/ @notstock ([^:]+): (\S.*)$/.exec(line);
+      if (m) for (const field of m[1].split(',').map((x) => x.trim()).filter(Boolean)) out.push({ field, why: m[2], where: `src/${f}:${i + 1}` });
+    });
+  return out;
 }
-module.exports = { QUANTITIES, NOT_STOCKS, stateFields, unlisted, build, markdown };
+// The fields of the @state lines with neither a line in QUANTITIES nor an @notstock tag; the fields these name that no @state line does;
+// and the tags that stand in another file than the @state line of their field.
+function unlisted(fields = stateFields(), tags = notStocks()) {
+  const listed = new Set([...QUANTITIES.flatMap((q) => [...q.fields, ...(q.covers || [])]), ...tags.map((t) => t.field)]);
+  const file = (where) => where.split(':')[0];
+  return { missing: [...fields.keys()].filter((f) => !listed.has(f)).map((f) => `${f} (${fields.get(f)})`),
+    stale: [...listed].filter((f) => ENTITY[f.split('.')[0]] && !fields.has(f)),
+    apart: tags.filter((t) => fields.has(t.field) && file(fields.get(t.field)) !== file(t.where)).map((t) => `${t.field} (${t.where}; its @state at ${fields.get(t.field)})`) };
+}
+module.exports = { QUANTITIES, notStocks, stateFields, unlisted, build, markdown };

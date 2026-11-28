@@ -1,4 +1,4 @@
-// @sys sim/deaths: causes of death, the death.hazard rule and its daily roll, and the course of an illness, which kills (VB-1118) or passes (VB-1246)
+// @sys sim/deaths [social]: causes of death, the death.hazard rule and its daily roll, and the course of an illness, which kills (VB-1118) or passes (VB-1246)
 VB['sim/deaths'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { YEAR, YEAR_DAYS, DAY, ILLNESS, HEALTH } = VB['sim/rules'],

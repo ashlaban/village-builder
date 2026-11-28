@@ -1,4 +1,4 @@
-// @sys sim/controller: a controller per pawn (VB-1745): whether its own logic chooses its acts (`auto`), the commands queued for it,
+// @sys sim/controller [agency]: a controller per pawn (VB-1745): whether its own logic chooses its acts (`auto`), the commands queued for it,
 // which go before that logic; the verbs any pawn issues for itself (auto, queue, unqueue), the queue step for every pawn with a command
 // queued, and the controller's end at the pawn's death. The steps a pawn authors for itself in its plan record (VB-1754: its routine,
 // its sleeping hours, its ordered and dated tasks, sim/steps' pawnPlan) through the verb `plan` (sim/plans; the checks of its ops

@@ -1,4 +1,4 @@
-// @sys sim/feast: what a host household lays out at an occasion at its farm (VB-458, VB-305; split from sim/occasions, VB-1270): the ale
+// @sys sim/feast [agency]: what a host household lays out at an occasion at its farm (VB-458, VB-305; split from sim/occasions, VB-1270): the ale
 //   it pours and the guests' memory of it, the feast from its grain above the rule 'feast', and what each guest household owes for what it
 //   ate and drank (the gift's booking between the holders)
 VB['sim/feast'] = (() => {

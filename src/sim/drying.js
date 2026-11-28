@@ -1,4 +1,4 @@
-// @sys sim/drying: dried fish (VB-300), the first good of place: a village's reach to fishing water, refreshed when its farms change;
+// @sys sim/drying [material]: dried fish (VB-300), the first good of place: a village's reach to fishing water, refreshed when its farms change;
 // fishing for the drying rack and hanging the catch, a side craft of spring to autumn; the fishing boat, a household's facility on
 // a shore built as a project plan (the cook puts dried fish in the winter's pot: sim/pot, VB-119)
 // Design: design.md, Goods of place and side crafts (Goods of place, First goods, Side crafts, The fishing boat; Agreed, 10 Nov). Fish are
@@ -43,6 +43,7 @@ VB['sim/drying'] = (() => {
   // walking steps of one of its houses. The world's water does not change in play, so the test changes only with the village's farms. ----
   // @state village.fishing: {farms, near}: the reach test as of the village's farms (farms: how many it had when tested; near: whether
   //   fishing water was in reach of one of their houses); a cache, written only here, tested again when the village has a new farm.
+  // @notstock village.fishing: land, buildings and their records (fields, meadows, a site's timber)
   function nearWater(st, house) {
     const w = st.w,
       { dist } = bfs(w, house, FISH.reach, (j) => passable(w, j));

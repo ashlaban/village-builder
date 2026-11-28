@@ -1,4 +1,5 @@
-// @sys sim/matching: the rules of a marriage match: the pool within a day's walk or visited (VB-289), kin degree, a home and its means, the score; what
+// @sys sim/matching [social]: the rules of a marriage match: the pool within a day's walk or visited (VB-289), kin degree, a home and its means, the score;
+//   what
 // the asking (sim/asking), the offer's answers (sim/marriage) and the player's wish for a match (VB-274) are both checked against
 VB['sim/matching'] = (() => {
   const { MARRIAGE, DAY, YEAR, SEASON_DAYS, YEAR_DAYS, HUNGER, ASK, TRAVEL } = VB['sim/rules'];

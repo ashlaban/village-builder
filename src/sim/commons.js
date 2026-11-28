@@ -1,4 +1,4 @@
-// @sys sim/commons: common fields worked by the village (VB-100; Kim, 10 Nov): a routine its meeting may choose for a village of three or more
+// @sys sim/commons [social]: common fields worked by the village (VB-100; Kim, 10 Nov): a routine its meeting may choose for a village of three or more
 // occupied farms whose store runs short, with free meadow near its green; the village claims the tile and clears and breaks it as a farm
 // makes a field, then works it through a farm field's stages, its tasks the village's at the priorities its custom `commons` sets; the seed
 // comes from the village store and the harvest goes into it. Help a household was given leans its people towards the commons.
@@ -39,6 +39,7 @@ VB['sim/commons'] = (() => {
   };
   // @state village.commonFields: the village's common fields, records as a farm's (farmstead.fields, sim/fields: stage, crop, sown...),
   //   absent before its first; a field is added only here, when its ground is broken; its stages are written by sim/fields as a farm's.
+  // @notstock village.commonFields: land, buildings and their records (fields, meadows, a site's timber)
   // @state the common field's project plan (st.plans.projects.village; sim/projects): {what: 'commons', started (game hours), steps: [{kind
   //   'clear', place, hours, stake 'field'}, {kind 'break', place, hours, stake 'field'}]}, at most one a village; from its making its tile
   //   is claimed by the village (st.claims, why 'field'; renewed by the work) and in use (st.used); breaking makes it the village's.

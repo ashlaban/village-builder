@@ -1,4 +1,4 @@
-// @sys sim/rng: seeded random streams as plain data (mulberry32), one per system, so systems do not reshuffle each other and saves can hold them
+// @sys sim/rng [kernel]: seeded random streams as plain data (mulberry32), one per system, so systems do not reshuffle each other and saves can hold them
 VB['sim/rng'] = (() => {
   // A stream is { s }: a 32-bit state. next() gives exactly the sequence of gen's mulberry32 closure started from the same state, and a stream
   // copied with JSON continues identically. A test may set `fix` on a stream: next() then returns it without advancing (every chance comes up).
