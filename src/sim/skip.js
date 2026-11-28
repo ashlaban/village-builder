@@ -4,7 +4,7 @@ VB['sim/skip'] = (() => {
   const { fullName, settlementIdOf } = VB['sim/records'];
   const { YEAR, DAY, SEASON_DAYS, WORK, cal } = VB['sim/rules'];
   const { what: offerText } = VB['sim/offers'];
-  const { told, concerns, inLine, eventLine, helpIn } = VB['sim/notable'];
+  const { told, concerns, inLine, eventLine, helpIn } = VB['sim/eventline'];
   const { eventOf } = VB['sim/eventkinds'];
   // A 'joined' whose reason has its own event (the trust's 'moved', the 'service', an inheritance or a marriage) is not a second stop.
   const JOINED_TOLD = new Set([

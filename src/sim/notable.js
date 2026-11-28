@@ -1,14 +1,12 @@
 // @sys sim/notable: which events of the record are notable and why, and an event told in one sentence, histories and the village log;
 // queries of the record and a pawn's life (VB-199); read-only views, no state
 VB['sim/notable'] = (() => {
-  const { index, ancestorsOf, fullName, age } = VB['sim/records'];
+  const { index, fullName } = VB['sim/records'];
+  const { told, concerns, eventLine, helpIn } = VB['sim/eventline'];
   const { CAUSES, COLD } = VB['sim/deaths'];
   const { YEAR } = VB['sim/rules'];
   const { EVENTS, eventOf } = VB['sim/eventkinds'];
   const personal = (kind) => !!eventOf(kind, 'personal');
-  // An event of the record in full that every view reads: not a folded slot (a number, sim/records), nor a pawn's own telling of an event
-  // recorded beside it (`self`), which only its life reads.
-  const told = (e) => typeof e === 'object' && !e.self;
   // The events about a pawn (as pawn or other), household, farm or village, of the given kinds, with from <= t < to, in time order.
   // With {pawn, life: true}: the pawn's own events, read through its positions on the record (lifeOf).
   function recordOf(st, q = {}) {
@@ -58,19 +56,7 @@ VB['sim/notable'] = (() => {
     gathering: 'Gatherings that concern the played person, as they begin',
     heard: 'What the played person hears said of its household (VB-554)',
   };
-  // A pawn's line: itself, its forebears and its descendants, this many generations up and down.
-  const GENERATIONS = 4;
   const HUNGER = new Set(['hunger', 'starvation', 'thirst', 'cold']);
-  const inLine = (st, a, b) =>
-    a === b || ancestorsOf(st, [a], GENERATIONS).has(b) || ancestorsOf(st, [b], GENERATIONS).has(a);
-  // Does a birth, marriage or death concern pawn `about`: it happened in its household, or to someone of its line.
-  function concerns(st, ev, about) {
-    if (about === null || about === undefined || about < 0) return false;
-    if (ev.household !== undefined && ev.household === st.pawns[about].household) return true;
-    return (
-      (ev.pawn !== undefined && inLine(st, about, ev.pawn)) || (ev.other !== undefined && inLine(st, about, ev.other))
-    );
-  }
   // Did the dead pawn of a `died` event hold the household it died in. Read from the kin index, which keeps a household under every holder
   // it has had since the run was seeded or loaded: right for a death of this session, false for one a loaded save had already passed on.
   function heldAtDeath(st, ev) {
@@ -94,24 +80,6 @@ VB['sim/notable'] = (() => {
       if (HUNGER.has(ev.text)) why.push('hunger');
     }
     return why.length ? why : null;
-  }
-  // An event in one sentence. Most kinds carry their sentence; a death carries its cause and is told as the village log told it, and the
-  // births, marriages and deaths from before the start, seeded as history, carry none.
-  function eventLine(st, ev) {
-    if (ev.kind !== 'died') {
-      // a cause taken up is told with its pawn's name, as the notice tells it (VB-082): "Took up the cause: ..." in its own history
-      if (ev.kind === 'cause' && ev.reason === 'natural' && /^Took up/.test(ev.text))
-        return `${fullName(st.pawns[ev.pawn])} took up${ev.text.slice(7)}.`;
-      if (ev.text) return ev.text;
-      if (ev.kind === 'born') return `${fullName(st.pawns[ev.pawn])} was born.`;
-      if (ev.kind === 'holds') return `${fullName(st.pawns[ev.pawn])} holds ${st.farmsteads[ev.farm].name}.`;
-      return ev.kind === 'married' ? `${fullName(st.pawns[ev.pawn])} and ${fullName(st.pawns[ev.other])} married.` : '';
-    }
-    const p = st.pawns[ev.pawn],
-      cause = CAUSES[ev.text];
-    if (!cause) return `${fullName(p)} died ${ev.text || ''}`.trim() + '.';
-    const where = ev.farm !== undefined ? st.farmsteads[ev.farm].name : 'the island';
-    return `${fullName(p)} of ${where} ${cause.log}${ev.cold ? COLD : ''}, aged ${age(st, p, ev.t)}.`;
   }
   // ---- the chronicle (VB-099): the record as the history of a pawn, a farm or a village, and as the village log ----
   // The groups a history is filtered by, in the order the page offers them; a kind's record names its group (sim/eventkinds), and one
@@ -165,12 +133,6 @@ VB['sim/notable'] = (() => {
         ? `Received ${sum} grain from ${givers[0][0]} this year`
         : `Received ${sum} grain this year: ${andList(givers.map(([g, n]) => `${n} from ${g}`))}`,
   };
-  // Grain received as a gift (sim/exchange's booked): {n, from (the giver's name)}, else null. The record tells it as text.
-  const GIFT_IN = /^Received (\d+) grain from (.+)$/;
-  function helpIn(ev) {
-    const m = ev.kind === 'gift' && typeof ev.text === 'string' ? GIFT_IN.exec(ev.text) : null;
-    return m ? { n: +m[1], from: m[2] } : null;
-  }
   const foldKind = (ev) => (helpIn(ev) ? 'received' : ev.kind);
   const andList = (a) => (a.length > 1 ? `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}` : a[0] || '');
   // Fold the rows of a chronicle (newest first), from the newest, until `limit` lines are made: a row {ev (the newest it holds), text, note,
@@ -271,18 +233,13 @@ VB['sim/notable'] = (() => {
   }
   return {
     // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
-    PAGE: ['recordOf', 'NOTABLE', 'notable', 'eventLine', 'CHRONICLE', 'chronicle', 'villageLog'],
+    PAGE: ['recordOf', 'NOTABLE', 'notable', 'CHRONICLE', 'chronicle', 'villageLog'],
     recordOf,
     lifeOf,
     NOTABLE,
     notable,
-    eventLine,
     CHRONICLE,
     chronicle,
     villageLog,
-    helpIn,
-    told,
-    concerns,
-    inLine,
   };
 })();

@@ -2,6 +2,7 @@
 VB['sim/heirs'] = (() => {
   // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
   VB['sim/eventkinds'].eventKinds('sim/heirs', {
+    service: { group: 'land', skip: 'move' },
     inherited: { group: 'land', skip: 'inherited' },
     joined: { group: 'land', personal: true, skip: 'move' },
     stayed: { group: 'land' },

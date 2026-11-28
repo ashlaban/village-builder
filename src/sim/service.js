@@ -5,7 +5,6 @@ VB['sim/service'] = (() => {
   // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
   VB['sim/eventkinds'].eventKinds('sim/service', {
     guardian: { group: 'land' },
-    service: { group: 'land', skip: 'move' },
     wage: {}, // a servant's wage paid, or what was still owed of it lapsed (VB-637)
     leftRefused: { group: 'marriage', personal: true }, // left home for service after a head refused the one it courts (VB-036)
   });

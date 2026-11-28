@@ -41,14 +41,18 @@ const unlisted = [...written].filter((k) => !(k in H));
 assert.deepStrictEqual(unlisted, [], `kinds written with no record (sim/eventkinds): ${unlisted.join(', ')}`);
 // each field of a record names what is: a history's group, a notice's reason, a skip's rule; and its owner is a module
 {
-  const N = VB['sim/notable'], S = VB['sim/skip'], bad = [];
+  const N = VB['sim/notable'], S = VB['sim/skip'], bad = [], LEGACY = new Set(['fellOut']);
   for (const [k, r] of Object.entries(E.EVENTS)) {
     if (r.group !== undefined && !Object.hasOwn(N.CHRONICLE, r.group)) bad.push(`${k}: group ${r.group}`);
     if (r.notice !== undefined && !Object.hasOwn(N.NOTABLE, r.notice)) bad.push(`${k}: notice ${r.notice}`);
     if (r.skip !== undefined && !Object.hasOwn(S.STOPS, r.skip)) bad.push(`${k}: skip ${r.skip}`);
     if (r.personal !== undefined && r.personal !== true) bad.push(`${k}: personal ${r.personal}`);
     if (r.word !== undefined && !(typeof r.word === 'string' && r.word)) bad.push(`${k}: word ${r.word}`);
-    if (!fs.existsSync(path.join(__dirname, '../src', r.owner + '.js'))) bad.push(`${k}: owner ${r.owner}`);
+    const own = path.join(__dirname, '../src', r.owner + '.js');
+    if (!fs.existsSync(own)) bad.push(`${k}: owner ${r.owner}`);
+    // its owner writes it: the kind's name, as a literal, outside its own declaration (LEGACY: kinds only older saves hold)
+    else if (!LEGACY.has(k) && readSource(own).split(`'${k}'`).length < 2 && !new RegExp(`\\b${k}\\b`).test(readSource(own).replace(/^ {4}\w+: \{.*$/gm, '')))
+      bad.push(`${k}: not written by its owner ${r.owner}`);
   }
   assert.deepStrictEqual(bad, [], `event records that name nothing: ${bad.join(', ')}`);
 }

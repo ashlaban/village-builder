@@ -209,6 +209,7 @@
       "sim/estimate"
     ],
     "derived": [
+      "sim/eventline",
       "sim/notable",
       "sim/skip",
       "sim/scopes",

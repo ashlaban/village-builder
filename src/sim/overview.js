@@ -123,7 +123,7 @@ VB['sim/overview'] = (() => {
   function helpReceived(st) {
     const out = new Map(),
       since = st.t - YEAR,
-      { helpIn } = VB['sim/notable'];
+      { helpIn } = VB['sim/eventline'];
     for (let i = st.record.length - 1; i >= 0; i--) {
       const e = st.record[i];
       if (typeof e !== 'object' || e.t < since) break;

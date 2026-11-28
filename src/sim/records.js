@@ -29,6 +29,7 @@ VB['sim/records'] = (() => {
     'by',
   ];
   function record(st, ev, t = st.t) {
+    if (!Object.hasOwn(EVENTS, ev.kind)) throw new Error(`an event of kind ${ev.kind} has no record (sim/eventkinds)`);
     const e = { t, kind: ev.kind };
     for (const k of FIELDS) if (ev[k] !== undefined && ev[k] !== null) e[k] = ev[k];
     st.record.push(e);
@@ -39,6 +40,7 @@ VB['sim/records'] = (() => {
   const {
     KEEP: { short: SHORT, generation: GENERATION },
     keepOf,
+    EVENTS,
   } = VB['sim/eventkinds'];
 
   // @state st.recordYears[]: {year (Math.floor(t / YEAR) of its events), kind, village (absent for events of none), tally}: the routine
