@@ -42,5 +42,20 @@ for (const seed of [7, 42]) {
   try { for (let q = 0; q < 4; q++) { Sim.advance(st, Sim.YEAR / 4); const bad = checkState(st); check(!bad.length, `${tag}, quarter ${q + 1}: ${bad.slice(0, 3).join('; ')}`); } } catch (e) { err = e; }
   check(!err, `${tag}: a year throws: ${err && err.stack}`);
 }
+// VB-1613: the sites offered with their water, a choice landing on its tile, the default unchanged.
+{
+  const seed = 7, w = scenario('solo', seed).w;
+  const offer = Sim.soloSites(w, seed), def = scenario('solo', seed);
+  check(offer.length >= 1 && offer.length <= 1 + VB['sim/rules'].SETTLE.shown, `offered ${offer.length} sites`);
+  check(offer[0].house === def.farmsteads[0].house, 'the first site offered is not the default');
+  check(offer.every((s) => s.water && typeof s.water === 'object'), 'a site is offered without its water');
+  if (offer.length > 1) {
+    const pick = offer[1], st = Sim.seed(w, seed, 'solo', null, { site: pick.house });
+    const near = VB['sim/hex'].hexSteps(w, pick.house, st.farmsteads[0].house); // the village's own placing sets the house beside the tile chosen
+    check(near <= 3 && st.farmsteads[0].house !== def.farmsteads[0].house, `the chosen site ${pick.house} landed ${near} steps off, on ${st.farmsteads[0].house}`);
+  }
+  const none = Sim.seed(w, seed, 'solo', null, null);
+  check(none.farmsteads[0].house === def.farmsteads[0].house, 'no choice seeds differently');
+}
 if (failed) process.exit(1);
 console.log('solo ok: one young settler alone, no house; a shelter on the house tile within the season; a year on keeps the invariants');

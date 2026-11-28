@@ -789,6 +789,30 @@ VB['sim/scenarios'] = (() => {
     if (opts && opts.rye) giveRye(st);
     return st;
   }
+  // The sites a played solo settler is offered (VB-1613; design.md, Settling in steps, The played pawn): the first is the one a settler not
+  // played takes (the search's, as `seed(w, n, 'solo')` lands it), then the best SETTLE.shown of sim/settle's search from it, each with its
+  // water (siteWater: the walk, the daily fetch, the well's band). [{house, field, hours, score, water}]; the player's choice is
+  // `seed(w, n, 'solo', null, { site: house })`, the verb the start screen issues for the played settler; the village's own
+  // placing sets its house within a few steps of the tile chosen.
+  function soloSites(w, seedNum) {
+    const st = seedFounders(w, seedNum, true, -1, true),
+      S = VB['sim/settle'],
+      v = st.villages[0],
+      use = S.landInUse(st),
+      first = st.farmsteads[0].house;
+    const rest = S.sites(st, v, use, S.candidates(st, v, use, S.reachOf(st, v), 1), 1);
+    const own = { house: first, field: -1, hours: 0, score: 0, water: VB['sim/water'].siteWater(st, first, 1, null) };
+    return [own, ...rest.filter((s) => s.house !== first)];
+  }
   // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
-  return { seedFounders, seedHeirs, seedPopulous, makeState, startStreams, seed, PAGE: ['seed'] };
+  return {
+    seedFounders,
+    seedHeirs,
+    seedPopulous,
+    makeState,
+    startStreams,
+    seed,
+    soloSites,
+    PAGE: ['seed', 'soloSites'],
+  };
 })();
