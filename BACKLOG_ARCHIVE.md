@@ -949,3 +949,5 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1818](backlog/VB-1818.md) | Kinds: the control fields no code reads after VB-1750 taken out | - | 3 | S | the kinds' own to and meadows' reload, dead since the phases went, removed |
 | [VB-2041](backlog/VB-2041.md) | Retire the work counter roundPairs, counted nowhere since VB-693 | - | 3 | S | roundPairs is declared and read but never raised: retire it and its always-zero probe |
 | [VB-2051](backlog/VB-2051.md) | Caches checked after every verb: the last 8 verbs tests/caches.js does not reach | - | 3 | M | Carry found, upkeep, goGathering, stayHome, swap, beginCottage, visit and sendVisit in tests/caches.js on states built for them |
+| [VB-1852](backlog/VB-1852.md) | Repair: browser-saves' file round trip drifts after a load | - | 2 | S | the page's save of year 3 loaded runs on to a different state; failing at dd8a5cb9 already |
+| [VB-2045](backlog/VB-2045.md) | A seed loan lent in the crop short | - | 3 | S | seed lent in the crop the fields want, not the lender's mix |
