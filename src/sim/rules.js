@@ -618,8 +618,12 @@ VB['sim/rules'] = (() => {
     greenReach: 4,
     // a barn (VB-255; Kim, 10 Nov: QUESTION_ARCHIVE.md, "VB-255: the barn as a project"): a second store building on the farm's block,
     // built by a plot's cottage's stages (hours as theirs) with `timber` loads felled in the village's wood for its walls; a farm with one
-    // loses `loss` times the grain to spoilage (ECON.storeLoss, sim/hunger) and the barn hay (HERD.hayLoss, sim/byre)
+    // loses `loss` times the hay to spoilage (HERD.hayLoss, sim/byre), the grain no longer (VB-1898: the storehouse keeps it)
     barn: Object.freeze({ timber: 40, hours: Object.freeze([30, 60, 30]), loss: 0.5 }),
+    // a storehouse on posts (VB-1898; design.md, Settlements and look, Farmstead, Decided 27 Nov; its cost Proposed, as the byre's): its
+    // walls take `timber` loads felled in the village's wood, `hours` its walls' and its roof's (sim/storehouse); a farm with one loses
+    // `loss` times the grain to spoilage (sim/hunger storeLoss)
+    storehouse: Object.freeze({ timber: 20, hours: Object.freeze([40, 20]), loss: 0.5 }),
     // a byre (VB-1665; Kim, 24 Nov 2026: "a byre of about 20 timber loads and 60 hours houses six"): its walls take `timber` loads felled
     // in the village's wood; `hours` its walls' and its roof's (sim/byrehouse); it houses HERD.byre places
     byre: Object.freeze({ timber: 20, hours: Object.freeze([40, 20]) }),

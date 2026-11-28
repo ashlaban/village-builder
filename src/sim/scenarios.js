@@ -7,6 +7,8 @@ VB['sim/scenarios'] = (() => {
   const { seal } = VB['sim/registry'];
   const { makeCamp } = VB['sim/camp'];
   const { seedByres, noByre } = VB['sim/byrehouse'];
+  const { seedStorehouses, noStorehouse } = VB['sim/storehouse'];
+  const { seedBarns, noBarn } = VB['sim/building'];
   const { bfs, hexSteps, landComponents } = VB['sim/hex'];
   const { walkable } = VB['sim/walking'],
     { buildHours } = VB['sim/villagehours'];
@@ -123,6 +125,8 @@ VB['sim/scenarios'] = (() => {
     if (hand) {
       makeCamp(st, f); // VB-1655: a camp, nothing under way; the head places the farmstead by its plan
       noByre(st, f); // VB-1665: nor a byre
+      noStorehouse(st, f); // VB-1898: nor a storehouse, nor a barn
+      noBarn(st, f);
       return;
     }
     if (field >= 0) {
@@ -689,6 +693,8 @@ VB['sim/scenarios'] = (() => {
       if (e.kind === 'born' && st.pawns[e.pawn].died === null) st.pawns[e.pawn].events.unshift(i);
     });
     seedByres(st); // VB-1665: every farm that stands at seeding has its byre
+    seedStorehouses(st); // VB-1898: and its storehouse and its barn
+    seedBarns(st);
     return st;
   }
 

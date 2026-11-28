@@ -254,7 +254,7 @@ VB['sim/upgrade'] = (() => {
     }
   }
   // ---- the goal: outbuilding (GOALS.outbuilding; VB-1663) ----
-  // Any outbuilding of sim/ladder's OUTBUILDINGS (`what`, the task's: a barn today) built as a task of the plan: its act begins it by the
+  // Any outbuilding of sim/ladder's OUTBUILDINGS (`what`, the task's: a storehouse, a barn, a byre) built as a task of the plan: its act begins it by the
   // head's verb `project` and the making of its name (sim/makings; a barn: sim/aims, under barnWhy), as the head's own rule would; then its
   // stages at the house, the timber trips a stage that carries timber lacks before it (their jobs at the wood, found by their keys), the
   // timber held at home first (outTimber, as the cottage's walls take it, VB-1660). It leaves when the farm has it ('built'), or when the

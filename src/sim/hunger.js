@@ -11,7 +11,7 @@ VB['sim/hunger'] = (() => {
     { hungryDay, act } = VB['sim/traits'];
   const Dress = VB['sim/dress'];
   const { takeFood } = VB['sim/larder'];
-  const { dayLoss, GRAIN } = VB['sim/goods'];
+  const Storehouse = VB['sim/storehouse'];
   const Rules = VB['sim/registry'],
     { emit } = VB['sim/events'];
   const Thirst = VB['sim/thirst'];
@@ -362,17 +362,12 @@ VB['sim/hunger'] = (() => {
         rest,
       });
   }
-  // What a household's farm loses to spoilage, as a share of a farm without a barn: BUILD.barn.loss with one (VB-255; farmstead.barn, sim/building).
-  function barnLoss(st, hh) {
-    const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
-    return f && f.barn ? BUILD.barn.loss : 1;
-  }
-  // Grain in the barn spoils a little each day (balance review): by grain's keeping (sim/goods), its tiers a year of need held each, so a
-  // good farm's store levels off at a year or two of need instead of growing for ever. hh.spoilt counts the rations lost.
+  // Grain in the store spoils a little each day, so a good farm's store levels off at a year or two of need instead of growing for ever:
+  // by grain's keeping, its tiers a year of need held each, a storehouse halving it (sim/storehouse's grainLoss and storeLoss, VB-1898;
+  // the barn kept the grain before, VB-255). hh.spoilt counts the rations lost.
   function spoilGrain(st, hh) {
-    const g = grainOf(hh);
-    if (!(g > 0)) return;
-    Stores.spoil(st, hh, dayLoss(st, GRAIN, g, dailyNeed(st, hh) * YEAR_DAYS) * barnLoss(st, hh));
+    const lost = Storehouse.grainLoss(st, hh, dailyNeed(st, hh) * YEAR_DAYS);
+    if (lost > 0) Stores.spoil(st, hh, lost * Storehouse.storeLoss(st, hh));
   }
   // The grain the village store lacks of its target (VB-457; HELP.storeTarget years of its members' need), 0 at or above it.
   function storeRoom(st, v) {
