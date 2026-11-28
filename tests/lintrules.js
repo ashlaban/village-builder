@@ -39,6 +39,10 @@ assert.deepStrictEqual(leftOut(['hoed', 'shared', 'idle'], rd, REG), { hoed: ['s
 const whole = { 'sim/clock': "const A = VB['m']; run(A);" };
 assert.deepStrictEqual(Object.keys(leftOut(['x'], exportReaders(whole).m, REG)), ['x'], 'a namespace passed whole is read in full, by a registry here');
 assert.deepStrictEqual(leftOut(['x'], exportReaders({ ...whole, p: "VB['m'].x" }).m, REG), {}, 'a non-registry reader counts');
+// VB-1944: a name given to the page (its module's PAGE list) and read by no other module, or by registries alone, is left out, and so is
+// the PAGE list; a given name another module reads counts
+assert.deepStrictEqual(leftOut(['hoed', 'shared', 'idle', 'PAGE'], rd, REG, ['idle', 'shared', 'hoed']),
+  { hoed: ['sim', 'sim/clock', 'sim/kinds'], idle: ['sim'], PAGE: ['sim'] }, 'given to the facade alone: left out');
 { // the split collector: an unticked line naming the key splits it; a ticked line, or a line of another collector, does not
   const { COLLECT } = require('../tools/lib/collect.js'), text = '- [x] From VB-7: sim/ticked: 720 lines\n- [ ] From VB-8: sim/byre: 760 lines, over 700\n- [ ] sim/goods.js: 16 exports';
   const held = [{ id: 'VB-9', title: COLLECT.split.name, status: 'ready', text }, { id: 'VB-10', title: COLLECT.teleport.name, status: 'ready', text: '- [ ] sim/herds: hay' }];

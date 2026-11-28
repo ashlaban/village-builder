@@ -222,6 +222,11 @@ VB['sim/traits'] = (() => {
   // A head's multiplier on one target, of skill s: within HEAD.bias × (1 - s) either way of 1, uniform; drawn from the stream `traits`.
   const biasOf = (st, s) => Math.round((1 + HEAD.bias * (1 - s) * (2 * rnd(st.rng.traits) - 1)) * 1000) / 1000; // to a thousandth
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: [
+      ['traitLabels', 'labelsOf'],
+      ['traitAct', 'act'],
+    ],
     IDX,
     HEAD,
     pass,

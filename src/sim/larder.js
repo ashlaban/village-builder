@@ -40,5 +40,6 @@ VB['sim/larder'] = (() => {
     if (spoilt.length) hh.larder = hh.larder.filter((l) => l.until > st.t);
     return spoilt;
   }
-  return { addFood, larderOf, takeFood, takeAll, spoilFood };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { addFood, larderOf, takeFood, takeAll, spoilFood, PAGE: ['larderOf'] };
 })();

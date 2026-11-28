@@ -951,3 +951,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-2051](backlog/VB-2051.md) | Caches checked after every verb: the last 8 verbs tests/caches.js does not reach | - | 3 | M | Carry found, upkeep, goGathering, stayHome, swap, beginCottage, visit and sendVisit in tests/caches.js on states built for them |
 | [VB-1852](backlog/VB-1852.md) | Repair: browser-saves' file round trip drifts after a load | - | 2 | S | the page's save of year 3 loaded runs on to a different state; failing at dd8a5cb9 already |
 | [VB-2045](backlog/VB-2045.md) | A seed loan lent in the crop short | - | 3 | S | seed lent in the crop the fields want, not the lender's mix |
+| [VB-1944](backlog/VB-1944.md) | Refactor: the Sim facade joined from what each module gives the page | - | 2 | M | src/sim.js 17 to 1-4 (VB-1406 step 6) |

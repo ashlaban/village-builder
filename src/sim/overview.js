@@ -246,5 +246,13 @@ VB['sim/overview'] = (() => {
   // The village store's supply outlook (VB-966) as pawn `viewer` (null: the village's eldest holder) would reckon it; computed when asked.
   const villageOutlookOf = (st, vid, viewer = null) =>
     VB['sim/outlook'].villageOutlook(st, vid, viewerOf(st, st.villages[vid], viewer));
-  return { OVERVIEW, villageSummary, viewerOf, estimateOf, villageOutlookOf };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return {
+    OVERVIEW,
+    villageSummary,
+    viewerOf,
+    estimateOf,
+    villageOutlookOf,
+    PAGE: ['villageSummary', 'OVERVIEW', ['villageOutlook', 'villageOutlookOf']],
+  };
 })();

@@ -446,5 +446,6 @@ VB['sim/saves'] = (() => {
     VB['sim/agents'].loaded(st); // VB-472: the step's agents have begun; older saves' work is reckoned from now
     return st;
   }
-  return { encode, decode, save, load, FORMAT, READS, DERIVED };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { encode, decode, save, load, FORMAT, READS, DERIVED, PAGE: ['save', 'load'] };
 })();

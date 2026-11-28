@@ -72,12 +72,15 @@ module.exports.exportReaders = exportReaders;
 
 // The exports of a module that the width lint leaves out: those read by registries alone. names are the module's exports, readers its entry of
 // exportReaders, registries the list of tests/lint.js. Returns {name: [registry keys that read it]} for each export left out. An export nobody
-// reads is counted; so is one a module reads that is no registry, or a '*' read by a non-registry.
-function leftOut(names, readers = {}, registries) {
-  const out = {};
+// reads is counted; so is one a module reads that is no registry, or a '*' read by a non-registry. The names a module gives the page (page,
+// the export names of its PAGE list, VB-1944) are read by the facade: one read by nobody else, or by registries alone, is left out with 'sim'
+// among its readers, and so is the PAGE list itself.
+function leftOut(names, readers = {}, registries, page = []) {
+  const out = {}, given = new Set(page);
   for (const n of names) {
     const by = new Set([...(readers[n] || []), ...(readers['*'] || [])]);
-    if (by.size && [...by].every((m) => m in registries)) out[n] = [...by].sort();
+    if (n === 'PAGE' || given.has(n)) by.add('sim');
+    if (by.size && [...by].every((m) => m in registries || m === 'sim')) out[n] = [...by].sort();
   }
   return out;
 }

@@ -218,5 +218,6 @@ VB['sim/points'] = (() => {
       .sort((a, b) => a[0].deadline - b[0].deadline || a[1] - b[1])
       .map((x) => x[0]);
   }
-  return { decisions, meetingAfter };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return { decisions, meetingAfter, PAGE: ['decisions'] };
 })();

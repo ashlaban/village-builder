@@ -633,6 +633,19 @@ VB['sim/notable'] = (() => {
     return `The moving round is tomorrow. Since the skip began: ${born} born, ${died} dead${more ? `; ${more}` : ''}.`;
   }
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: [
+      'recordOf',
+      'NOTABLE',
+      'notable',
+      'eventLine',
+      'CHRONICLE',
+      'chronicle',
+      'villageLog',
+      'SKIP',
+      'skipFrom',
+      'gatherings',
+    ],
     recordOf,
     lifeOf,
     NOTABLE,

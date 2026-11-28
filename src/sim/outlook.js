@@ -616,5 +616,18 @@ VB['sim/outlook'] = (() => {
       hay: { ...none, seasons: [3] },
     };
   }
-  return { OUTLOOK, DOUBT, FRAME, SUPPLIES, STATES, reckon, supplyOutlook, giftOutlook, villageOutlook, handOf };
+  // PAGE: what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+  return {
+    OUTLOOK,
+    DOUBT,
+    FRAME,
+    SUPPLIES,
+    STATES,
+    reckon,
+    supplyOutlook,
+    giftOutlook,
+    villageOutlook,
+    handOf,
+    PAGE: ['supplyOutlook', 'giftOutlook'],
+  };
 })();

@@ -830,6 +830,26 @@ VB['sim/records'] = (() => {
       ? null
       : `there is no settlement ${c.actor && c.actor.settlement}`;
   return {
+    // what it gives the page through the Sim facade (src/sim.js joins the lists, VB-1944)
+    PAGE: [
+      'age',
+      'birthYear',
+      'fullName',
+      'spouseOf',
+      'childrenOf',
+      'siblingsOf',
+      'spousesOf',
+      'kinship',
+      'kinDegree',
+      'villageOf',
+      'practice',
+      'farmPractice',
+      'isHolder',
+      'holdingOf',
+      'settlementIdOf',
+      'membersOf',
+      'voiceOf',
+    ],
     settlement,
     commanded,
     unplanned,
