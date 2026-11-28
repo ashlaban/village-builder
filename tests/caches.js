@@ -210,6 +210,20 @@ const inheritance = (st, yes) => {
 // VB-2051: the verbs that need a state of their own, each built by hand on a constructed state, no day run (the clock moved only by
 // sim/clock's ticking, its steps not taken).
 {
+  // VB-315: two loans of one household to another defaulted (due now, a harvest missed already: a test's write), the first pressed, the
+  // second extended by the creditor's holder
+  const [st] = runs, [a, b] = held(st), Ob = VB['sim/obligations'];
+  const loan = () => {
+    const id = Ob.create(st, { kind: 'loan', debtor: { kind: 'household', id: a.id }, creditor: { kind: 'household', id: b.id }, owes: { rations: 5000 }, due: st.t, lent: 4000 });
+    st.obligations[id].missed = 1; // a test's write: one harvest missed
+    return id;
+  };
+  const p = loan(), e = loan();
+  Ob.step(st);
+  first(st, 'press', [{ actor: b.holder, target: p, source: 'player' }]);
+  first(st, 'extend', [{ actor: b.holder, target: e, source: 'player' }]);
+}
+{
   // a facility founded by a head beside its house, its one stage raised by the job's own end (sim/facilities' kind raisestage), and worn
   // three years by the test's hand on its record (as tests/facilities.js does): its upkeep begun
   const [st] = runs, h = held(st)[0], owner = { type: 'household', id: h.id }, house = st.farmsteads[h.farmstead].house;

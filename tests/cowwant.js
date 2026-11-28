@@ -45,7 +45,7 @@ function setUp() {
   check(!X.cowWanted(st, buyer), 'no meadow: no cow wanted');
   M.addMeadow(st, f, buyer, M.chooseMeadow(st, f));
   seller.hay = 600; // enough to spare a cow and its winter's hay, and grain for an allowance over a cow's worth
-  VB['sim/stores'].put(st, seller, VB['sim/stores'].grainGood('barley'), 100, 'harvest');
+  VB['sim/stores'].put(st, seller, VB['sim/stores'].grainGood('barley'), 300, 'harvest');
   return { st, buyer, seller, away, plan: st.plans.households.get(buyer.id) };
 }
 // lead the want home: advance past the stall (spring day 5) hour by hour until the buyer has cattle; the lead job is seen claimed first
@@ -80,7 +80,7 @@ function leadHome(st, buyer) {
   X.reviewWant(st, plan, buyer, 'day');
   check(plan.want && plan.want.from === null, `no hay to spare: the want stays open (${JSON.stringify(plan.want)})`);
   seller.hay = 200;
-  VB['sim/stores'].take(st, seller, VB['sim/stores'].grainGood('barley'), 100, 'harvest');
+  VB['sim/stores'].take(st, seller, VB['sim/stores'].grainGood('barley'), 300, 'harvest');
   X.reviewWant(st, plan, buyer, 'day');
   check(plan.want && plan.want.from === null, `an allowance under a cow's worth: no deal (${JSON.stringify(plan.want)})`);
   for (const id of buyer.members) if (id !== buyer.holder) st.pawns[id].retired = true;

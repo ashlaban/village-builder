@@ -236,6 +236,37 @@ VB['sim/customs'] = (() => {
         ['asLent', 'As lent'],
       ],
     },
+    // VB-315 (design.md, Loans, obligations and cases: Cases at the meeting; Remedies; Slice 5's practices): who rules on a debt pressed,
+    // whether its parties' households vote on it, and what an upheld debt is paid with, read by the debtor's village at its meeting
+    // (sim/enforcement)
+    {
+      key: 'judges',
+      label: 'Who judges a case',
+      m: 0.3,
+      opts: [
+        ['voices', 'The meeting’s voices'],
+        ['alderman', 'The alderman'],
+      ],
+    },
+    {
+      key: 'ownCause',
+      label: 'One’s own cause',
+      m: 0.35,
+      opts: [
+        ['aside', 'The parties stand aside'],
+        ['vote', 'The parties vote'],
+      ],
+    },
+    {
+      key: 'debtsPaid',
+      label: 'Debts are paid with',
+      m: 0.5,
+      opts: [
+        ['labour', 'Labour'],
+        ['labourLand', 'Labour, then land'],
+        ['land', 'Land'],
+      ],
+    },
   ];
   const OFF = [],
     NOPT = [],
@@ -272,6 +303,9 @@ VB['sim/customs'] = (() => {
       outside: 'after',
       passage: 'free',
       loans: 'quarter',
+      judges: 'voices',
+      ownCause: 'aside',
+      debtsPaid: 'labourLand',
       commons: 'fair', // its claims favour kin, not the village (`first` where an archetype's claims are the village's: villagers, assembly)
     },
   };

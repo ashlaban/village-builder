@@ -790,7 +790,8 @@ VB['sim/levies'] = (() => {
   // ---- the verb levy: a levier's agent lays a levy with its terms ----
   // args: {debtor (a party: a household, or a village whose lots are its households'), creditor (default: the actor's household), source
   // (a key of TERMS), days, window ([first, last] game day; a keep's, a debt's and a patron's are asked by season instead), due (the hour
-  // its term ends; default its window's end, else its kind's), terms (any of TERMS' fields, over the source's)}.
+  // its term ends; default its window's end, else its kind's), terms (any of TERMS' fields, over the source's), debt (a debt's: the loan
+  // its days work off, VB-315)}.
   function creditorOf(st, actor, a) {
     if (a.creditor) return a.creditor;
     const p = st.pawns[actor];
@@ -874,6 +875,7 @@ VB['sim/levies'] = (() => {
           terms: { ...TERMS[a.source], ...(a.terms || {}) },
           window: a.window,
           why: a.why || null,
+          ...(a.debt !== undefined ? { debt: a.debt } : {}), // a debt's days work off its loan (VB-315, sim/enforcement)
           // a village's routine is enforced by the village (design.md, Lots; VB-1768)
           ...(a.source === 'routine' ? { enforcer: creditor } : {}),
         });
@@ -1379,9 +1381,11 @@ VB['sim/levies'] = (() => {
   );
   // forgive({day}): the levier's agent forgives a breach still to answer: the goodwill it booked is struck (design.md also books the
   // day's worth to the agent's credit as a gift, which would undo the striking; VB-1769 strikes it only, a note to design). The day a
-  // debt still owes stays owed.
+  // debt still owes stays owed. On a loan defaulted, its creditor's agent forgives the debt (VB-315, sim/enforcement's rule).
+  const Enforcement = VB['sim/enforcement'];
   register('forgive', {
     check: (st, c) => {
+      if (Enforcement.isDebt(st, c.target)) return Enforcement.forgiveWhy(st, c);
       const why = levierWhy(st, c.actor, c.target);
       if (why) return why;
       const o = st.obligations[c.target];
@@ -1390,6 +1394,7 @@ VB['sim/levies'] = (() => {
         : 'there is no breach of that day to answer';
     },
     run: (st, c) => {
+      if (Enforcement.isDebt(st, c.target)) return Enforcement.forgiveDebt(st, c);
       const o = st.obligations[c.target],
         b = o.breaches.find((x) => x.day === c.args.day);
       Obligations.setLevy(st, o.id, { breaches: o.breaches.filter((x) => x !== b) });

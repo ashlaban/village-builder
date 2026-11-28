@@ -473,7 +473,16 @@ VB['sim/loans'] = (() => {
       if (n > 0) issue(st, { actor: actorOf(hh), verb: 'repay', target: o.id, args: { n }, source: 'pawn' });
       return 'overdue';
     },
-    // at the second harvest unpaid: told (VB-315's cases will hear it, emitting the event it subscribes to)
+    // lapsed with a party gone and none to take it on (design.md, Partial failure): the creditor's holder remembers the debtor's (VB-315)
+    lapsed: (st, o) => {
+      const cr = creditorOf(st, o),
+        hh = st.households[o.debtor.id],
+        a = cr ? (isHousehold(cr) ? cr.holder : cr.alderman) : null,
+        b = hh.holder;
+      if (a !== null && a !== undefined && b !== null && a !== b && st.pawns[a].alive && st.pawns[b].alive)
+        remember(st, a, b, 'debtUnpaid');
+    },
+    // at the second harvest unpaid: told; it stays live, for its creditor to press, extend or forgive (sim/enforcement, VB-315)
     defaulted: (st, o) => {
       const hh = st.households[o.debtor.id],
         left = Math.round(Obligations.left(o)),

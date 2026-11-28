@@ -79,6 +79,7 @@
     "st.stories": "sim/stories",
     "st.storySeq": "sim/stories",
     "st.decisionLog": "sim/decisions",
+    "st.cases": "sim/enforcement",
     "st.liveTrusts": { "owner": "sim/trust", "category": "cache" },
     "st.stepAt": { "owner": "sim/agents", "category": "cache" },
     "st.legDue": "sim/legs",
