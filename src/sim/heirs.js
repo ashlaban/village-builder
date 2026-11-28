@@ -27,7 +27,7 @@ VB['sim/heirs'] = (() => {
   const { wishOf } = VB['sim/wishes'];
   const { stopWorkFor } = VB['sim/agents'],
     { stayOf } = VB['sim/pose'];
-  const { farmToVillage, heldFarms, trustOf } = VB['sim/ownership'];
+  const { farmTo, heldFarms, trustOf } = VB['sim/ownership'];
   const { issue, register } = VB['sim/commands'];
   const Stores = VB['sim/stores'];
   const { oweShare } = VB['sim/obligations'];
@@ -45,7 +45,8 @@ VB['sim/heirs'] = (() => {
     { dropPlan } = VB['sim/plans'],
     { emit } = VB['sim/events'];
   const { heirsPlace, heirRanking, ownFirstOf } = VB['sim/heirranking'];
-  const Terms = VB['sim/terms'];
+  const Terms = VB['sim/terms'],
+    { divide } = VB['sim/heirland'];
   // The act of moving (the move command, VB-822, its only caller): pawn id changes to household hhId, for `reason`; text: the 'moved' life
   // event, when the caller says more than the farm's name (sim/settle). The pawn walks to its new home, on a journey when it lies in another
   // village (sim/journeys' moved, VB-287, by sim/events); carry false: its provisions come from the new household (settlers).
@@ -116,9 +117,15 @@ VB['sim/heirs'] = (() => {
         dower = wd !== null && st.pawns[wd].alive ? Terms.dowerOf(st, wd, hh) : 0;
       const value = Terms.estateWorth(st, hh, dower),
         total = [...sibs, heir].reduce((s, q) => s + wt(q), 0);
+      // under "split" the siblings who want land take fields as their share, at SHARES.perField each, the rest in goods (VB-034)
+      const land = cu.heirCount === 'split' ? divide(st, hh, heir, sibs, wt) : new Map();
       for (const q of sibs) {
         const reserve = SHARES.reserveBase + hh.members.length * SHARES.reservePerMember; // shares never eat the seed corn or the winter's food
-        const due = Math.max(0, Math.round((value * wt(q)) / total) - Terms.advanceOf(st, q, hh)),
+        const fields = land.get(q) || 0;
+        const due = Math.max(
+            0,
+            Math.round((value * wt(q)) / total) - Terms.advanceOf(st, q, hh) - fields * SHARES.perField,
+          ),
           paid = Math.min(due, Math.max(0, Math.floor(Stores.grainOf(hh) - reserve)));
         Stores.move(st, hh, st.pawns[q], 'grain', paid, { kind: 'share', pawn: q });
         const qh = st.pawns[q].household; // grain short: animals (at their customary worth) go to a sibling's household of their own (VB-140)
@@ -126,13 +133,21 @@ VB['sim/heirs'] = (() => {
           owed = due - paid - animals;
         if (owed) oweShare(st, hh, q, owed); // the farm that pays, at each moving round (sim/obligations; sim/cottage payOwed)
         Terms.settleAdvance(st, q, hh);
+        if (fields)
+          personEvent(
+            st,
+            q,
+            'share',
+            `Inherited ${fields} field${fields > 1 ? 's' : ''} of ${f.name}, worked by it for half their harvest until a house stands by them`,
+            { n: fields, ...atHousehold(st, hh) },
+          );
         if (due)
           personEvent(
             st,
             q,
             'share',
             `Received ${paid} rations${animals ? ` and animals worth ${animals}` : ''} as a share of ${f.name}` +
-              `${owed ? `, ${owed} still owed` : ''}${cu.heirCount === 'split' ? ' (splitting land comes in a later batch)' : ''}`,
+              `${owed ? `, ${owed} still owed` : ''}`,
             { n: paid + animals, ...atHousehold(st, hh) },
           );
       }
@@ -214,7 +229,7 @@ VB['sim/heirs'] = (() => {
   // lies, at its farm, and changes owner there. Its grain and its woodpile in whole trips (ECON.woodPerTrip) are taken out of its store
   // while it stands (a dissolved holder is refused), as handed on; once its people are placed they lie at the house (sim/lying, leftGrain
   // and leftTimber) for the household its herds go to (sim/droving passHerds: the first of its people to find a new home), put in at once
-  // when that household lives on the same farm. With none, the grain is the village's, as the farm is (sim/ownership farmToVillage), and
+  // when that household lives on the same farm. With none, the grain is the village's, as the farm is (sim/ownership farmTo), and
   // the wood lies the dead household's for the autumn frost, which names it (sim/lying frost). What is left in its record (wood under a
   // trip, and the goods no fetch kind carries yet: stone, flour, peat, tar, hides, salt, iron, clay, ore, the rack) is noted in VB-1175.
   function takeEstate(st, hh) {
@@ -299,7 +314,7 @@ VB['sim/heirs'] = (() => {
     noteDissolved(st, hh);
     Stores.close(st, hh);
     dropStakes(st, hh);
-    farmToVillage(st, f);
+    farmTo(st, f, { type: 'village', id: f.village }); // a farm that stands empty is its village's, with its fields and meadows
     birthright(st, f, hh.holder); // the old family's claim on the farm for a generation (sim/farmclaims)
     // anyone left moves in with their nearest kin, or into service elsewhere in the village
     const people = [...hh.members];

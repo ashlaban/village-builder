@@ -56,6 +56,12 @@ VB.COUNTERS = {
   leviesLooked:
     "Outer levies read at a day's first step, through the obligations' due-queue (sim/levies step, VB-1767)",
   leviesWeighed: 'Tasks of a household weighed for the windowed work a day named would displace (sim/levies, VB-1767)',
+  routineWeighed:
+    "Village tasks weighed for a routine's hours left, at its lots and at its work done (sim/routines, VB-1768)",
+  routineLots:
+    "A routine's levy split into its households' lots, a household weighed a round (sim/levies split, VB-1768)",
+  routineMissed:
+    "Days of a routine's levy on duty weighed at the day's turn for work not done (sim/levies step, VB-1768)",
   pointLevy: 'Outer levies read for the decision points of a pawn its controller asks for (sim/points, VB-1769)',
   outerCost: "A levied head's reckoning of what keeping a day of an outer levy costs, K (sim/levies costOf, VB-1769)",
   outerDayJudged:
@@ -246,6 +252,7 @@ VB.COUNTERS = {
     '(sim/occasions, VB-126), the adults asked to an ale evening and to the rite (VB-522)',
   callWalk:
     'The asking queue read for a pawn whose asking found nobody, to find a farm to call at (sim/asking callAround, VB-1119)',
+  harvestCalled: 'Harvest homes called (sim/occasions harvestHome, VB-459)',
   aleCalled: 'Ale evenings called, each one pass over the live households (sim/occasions callAle, VB-522)',
   riteCalled: "Rites called on the villages' greens, three days a year (sim/occasions callRites, VB-522)",
   feastServed:

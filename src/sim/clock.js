@@ -191,13 +191,11 @@ VB['sim/clock'] = (() => {
     {
       every: 'hour',
       at: { hour: WORK[1] },
-      when: (st, c) => !!Workdays.dayOf(c),
+      when: (st, c) => Workdays.isDay(st, c),
       owner: 'sim/workdays',
       note: "a village's work day ends: who turned out and who stayed away (VB-120); its jobs left free are taken down",
       run: (st, c) => {
-        const called = new Set();
-        for (const j of st.jobs.values()) if (Workdays.isWorkdayJob(j)) called.add(j.village);
-        for (const v of st.villages) Workdays.judge(st, v, c, called.has(v.id));
+        for (const v of st.villages) Workdays.judge(st, v, c);
         for (const j of [...st.jobs.values()]) if (Workdays.isWorkdayJob(j) && !j.claims.length) dropJob(st, j);
       },
     },

@@ -277,3 +277,64 @@ const roofOn = (st, hh, p) => {
   assert.deepStrictEqual(checkState(st), [], 'invariants after the drop');
 }
 console.log("aims ok: surplus, menu, choice, barn and its halvings, drop after a season; the heir's plot passes to the village; timber kept");
+
+// VB-644: dried fish for the fair. A head with a surplus in a village by fishing water may take, as its project, rations of dried fish beyond
+// its household's year: a target (no project plan), the menu's option 'fair' weighed by its lean, the steps the rack's own; in a village
+// with no shore, none. What was dried beyond the year is packed for the fair by the household's dealer, to be offered in its deals.
+{
+  const shore = Array.from({ length: 14 }, (_, i) => (i < 3 ? '~'.repeat(20) : i < 5 ? 'FFFFFFFFFFFFFFFFFFFF' : '....................'));
+  const mk = (rows) => tinyState(tinyWorld(rows), [{ at: [9, 8], farms: 2, sizes: [5, 4] }], { seed: 4, herds: true });
+  const set = (st) => {
+    const c0 = cal(st.t);
+    Sim.advance(st, ((HERD.countDay + 1 - c0.doy + 48) % 48) * DAY);
+    const hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = st.plans.households.get(hh.id), c = cal(st.t);
+    for (const p of [...Projects.projectsOf(st, 'household', hh.id)]) VB['sim/projectplans'].drop(st, p);
+    Stores.put(st, hh, Stores.grainGood('barley'), 5000, 'harvest');
+    Stores.put(st, hh, 'wood', 200, 'firewood');
+    hh.hay = TG(plan).hayWinters * VB['sim/herds'].winterNeed(st, hh) + 5;
+    TG(plan).fields = f.fields.length; // lint-allow: owner the test meets the fields' target
+    TG(plan).workable = f.fields.length + 2; // lint-allow: owner and gives hands for more
+    hh.workHours = [c.year * 4 + c.season, 0, 0]; // lint-allow: owner idle all the last season
+    delete plan.aim; // lint-allow: owner no look at the surplus yet
+    return { st, hh, f, plan, c };
+  };
+  const D = VB['sim/drying'], Targets = VB['sim/targets'], Asks = VB['sim/asks'], Fair = VB['sim/fair'];
+  const { st, hh, f, plan, c } = set(mk(shore));
+  assert.ok(D.villageFishes(st, st.villages[f.village]), 'a shore village');
+  const menu = A.menu(st, plan, hh, f), o = menu.find((x) => x.what === 'fair');
+  assert.ok(o && o.n > 0, 'the fair is on the menu of a shore head with a surplus');
+  assert.strictEqual(menu[menu.length - 1].what, 'fair', 'the last option');
+  assert.ok(near(o.weight, plan.head.bias.hours), "weighed by the head's lean");
+  assert.ok(o.n <= Asks.carried('dried fish'), 'within a back load');
+  const need = Targets.need(st, hh, 'dried fish');
+  st.rng.plans.fix = 0.999999; // the last option
+  P.reviewed(st, plan, c);
+  delete st.rng.plans.fix;
+  assert.strictEqual(plan.aim.fair, o.n, 'the head took the fair');
+  assert.strictEqual(plan.aim.project, null, 'no project plan');
+  assert.strictEqual(Projects.ownOf(st, hh.id), null);
+  assert.strictEqual(Targets.target(st, hh, 'dried fish'), need + o.n, 'its target for dried fish: the year and the fair');
+  assert.deepStrictEqual(checkState(st), [], 'invariants with the fair taken');
+  // the rack's fishing is posted while less than the target is held, though the year's need is held
+  hh.larder.length = 0; // lint-allow: owner a test empties the larder
+  VB['sim/larder'].addFood(st, hh, 'dried fish', need);
+  const posted = [];
+  VB['sim/kinds'].KINDS.rackfish.available(st, hh, f, { season: 1, sday: 3, doy: 15, day: 15, hour: 8 }, (k) => posted.push(k));
+  assert.strictEqual(posted.length, 1, 'beyond its year, the household still fishes for the rack');
+  // held, the dealer of the household packs it for the fair: carried by its pawn, to be offered in its deals
+  VB['sim/larder'].addFood(st, hh, 'dried fish', o.n);
+  const dealer = hh.members.find((id) => st.pawns[id].alive && VB['sim/records'].age(st, st.pawns[id]) >= 14);
+  VB['sim/events'].emit(st, 'gatheringSetOut', { pawn: dealer, household: hh.id, until: st.t + 3 * DAY });
+  const load = st.pawns[dealer].load;
+  assert.ok(load && Fair.held(load, 'dried fish') > 0, 'the household\'s pawn carries dried fish to the fair');
+  assert.ok((hh.ledger || []).some((e) => e.kind === 'fair' && e.good === 'dried fish' && e.n < 0), 'packed through the stores');
+  // a later year's look with no surplus lets it go
+  plan.aim.year = c.year - 1;
+  hh.workHours = [c.year * 4 + c.season, 1e6, 1e6]; // lint-allow: owner no idle hands: no surplus
+  P.reviewed(st, plan, c);
+  assert.strictEqual(plan.aim.fair, undefined, 'let go with the surplus');
+  assert.strictEqual(Targets.target(st, hh, 'dried fish'), need, 'its target back to the year');
+  // a village with no shore: no option
+  const dry = set(mk(Array.from({ length: 14 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFFFFFF' : '....................'))));
+  assert.ok(!A.menu(dry.st, dry.plan, dry.hh, dry.f).some((x) => x.what === 'fair'), 'no fair fish where nobody fishes');
+}

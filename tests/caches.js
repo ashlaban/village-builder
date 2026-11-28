@@ -82,7 +82,7 @@ const NOT_YET = ['answer', 'claim', 'letIn', 'placeFarmstead', 'blaze', 'lodge',
   'beginCottage', 'goBack', 'goToKin', 'visit', 'sendVisit', 'foundHousehold', 'decide', 'argue', 'dropCause', 'rally', 'leave', 'stakeSite', 'takeUp',
   'renounce', 'marry', 'skip', 'slander',
   'wish', 'match', 'found', 'upkeep',
-  'substitute', 'commute', 'release', 'transfer', 'forgive']; // VB-1769: the ladder's verbs, carried by tests/levies.js // VB-361: no facility kind is declared in the game yet (each craft's task declares its own); tests/facilities.js carries both
+  'substitute', 'commute', 'transfer', 'forgive']; // VB-1769 (release carried since VB-1768's routines): the ladder's verbs, carried by tests/levies.js // VB-361: no facility kind is declared in the game yet (each craft's task declares its own); tests/facilities.js carries both
 const missed = Object.keys(VERBS).filter((v) => !carried.has(v));
 assert.deepStrictEqual(missed.filter((v) => !NOT_YET.includes(v)), [], 'a verb neither carried nor listed in NOT_YET');
 assert.deepStrictEqual(NOT_YET.filter((v) => carried.has(v) || !VERBS[v]), [], 'carried now, or no longer a verb: strike it from NOT_YET');

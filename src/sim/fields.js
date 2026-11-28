@@ -171,6 +171,23 @@ VB['sim/fields'] = (() => {
     st.biomeDirty.add(fd.tile);
     log(st, `${f.name} lets a field go: its household no longer needs its grain.`, { kind: 'fieldLeft', ...atFarm(f) });
   }
+  // Field fd of farm `from` becomes farm f's (VB-034: an heir's field, as its house stands; sim/heirland settle): it leaves the list of the
+  // farm it was split from, whose ids it does not give again (`left`, as a field let go), and is f's last, its id the next of f's; its
+  // sheaves' barn entry was the old household's. Work on it was stopped by the caller.
+  function passField(st, fromId, fd, toId, c) {
+    const f = st.farmsteads[fromId],
+      g = st.farmsteads[toId],
+      i = f.fields.indexOf(fd);
+    if (i < 0) return;
+    f.fields.splice(i, 1);
+    const L = f.left || (f.left = { gone: 0, year: c.year, inYear: 0 });
+    L.gone++;
+    delete fd.bin;
+    fd.id = g.fields.length + ((g.left && g.left.gone) || 0);
+    g.fields.push(fd);
+    st.farmDirty.add(f.id);
+    st.farmDirty.add(g.id);
+  }
   // A field unused goes back to the land, whatever farm it lies on (Kim, 23 Nov: reverting is a natural property of the ground, not tied
   // to a pawn or a household; VB-1527): on the year's last day, a field of any farm, held or empty, whose last use (fd.used: sown, reaped,
   // a fallow course, reclaimed, broken) is LAPSE.years back, that bears no crop and no sheaves and has no task on it, leaves the farm's
@@ -325,6 +342,7 @@ VB['sim/fields'] = (() => {
   }
   const STOOD = { ripe: 'ripe and not yet reaped', stooks: 'in stooks', growing: 'still growing' };
   return {
+    passField,
     book,
     hoed,
     sown,

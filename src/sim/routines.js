@@ -3,7 +3,11 @@
 // by its alderman at home (VB-673: the green's project and a common field's, verb layOut; the work day's call; the tar pit's charge), and
 // the common fields' seed
 VB['sim/routines'] = (() => {
-  const { cal } = VB['sim/rules'];
+  const { cal, DAY, SEASON_DAYS, YEAR_DAYS } = VB['sim/rules'];
+  const Days = VB['sim/days'];
+  const { log, fullName } = VB['sim/records'];
+  const Steps = VB['sim/steps'];
+  const { emit } = VB['sim/events'];
   const { settlement, unplanned } = VB['sim/records'];
   const { agentOf, agentWhy } = VB['sim/decisions'];
   const Stores = VB['sim/stores'],
@@ -49,6 +53,7 @@ VB['sim/routines'] = (() => {
     workdays: Object.freeze({
       label: 'Work days at the fence and the commons',
       meeting: true,
+      together: true, // its days fall on the one date the alderman names (sim/workdays, VB-1768)
       kinds: Object.freeze(['workfence', 'workclear']),
       available: (st, v) => Workdays.wanted(st, v),
       need: (st, v) => Green.houses(st, v).length,
@@ -59,6 +64,7 @@ VB['sim/routines'] = (() => {
     commons: Object.freeze({
       label: 'A common field for the village store',
       meeting: true,
+      common: true, // its tasks: the village's on its common fields
       kinds: Object.freeze([]),
       available: (st, v) => Commons.available(st, v),
       need: (st, v) => Green.houses(st, v).length,
@@ -75,11 +81,17 @@ VB['sim/routines'] = (() => {
   }
   // The routines a village would choose from its work available now, or null for a tie; its founders (`founders`) choose none that only a
   // meeting sets (`meeting`).
+  // A meeting weighs besides the work a routine left undone at its windows' ends since the routines were set (plan.routineLeft, sim/levies,
+  // in days, VB-1768).
   function chooseRoutines(st, v, founders = false) {
-    const cands = [];
+    const cands = [],
+      plan = st.plans.villages.get(v.id),
+      R = plan && plan.routineLeft,
+      left = R && R.by === plan.routinesBy + plan.routinesYear ? R.days : {};
     for (const k of Object.keys(VILLAGE_ROUTINES)) {
       const R = VILLAGE_ROUTINES[k];
-      if (!(founders && R.meeting) && R.available(st, v)) cands.push([R.need(st, v), k]);
+      if (!(founders && R.meeting) && R.available(st, v))
+        cands.push([R.need(st, v) + (founders ? 0 : left[k] || 0), k]);
     }
     return rankRoutines(cands);
   }
@@ -92,12 +104,24 @@ VB['sim/routines'] = (() => {
   }
   // The village's routines become `list`, set `by` ('founded', 'meeting', 'nothing', 'asLastYear'): the one writer (the meeting's verb,
   // sim/commands, and the plan's making). They post from the village's next review on; those no longer chosen are taken down at it.
+  // Each routine is a step of the village's year (VB-1768; author `custom`, its `why` the decision that set it, {custom: by}); the
+  // work left that the meeting heard is cleared once it has chosen.
   function setRoutines(st, vid, list, by) {
     const plan = st.plans.villages.get(vid);
     plan.routines = [...list];
     plan.routinesBy = by;
     plan.routinesYear = cal(st.t).year;
+    Steps.setRoutines(
+      st,
+      plan,
+      list.map((k) => ({ routine: k, kinds: [...VILLAGE_ROUTINES[k].kinds] })),
+      by,
+    );
   }
+  // The year step of routine k in a village's plan, or null (a routine's levy's `why`, VB-1768).
+  const stepOf = (plan, k) => (plan.year || []).find((s) => s.what.kinds && s.what.routine === k) || null;
+  // Whose tasks are routine R's: the village's of its kinds, or on its common fields.
+  const owns = (R, j) => (R.common ? !!j.common : R.kinds.includes(j.kind));
   // Does the village's plan ask kind k this year: is it a kind of one of its routines. Allocates nothing.
   function routineAsks(plan, k) {
     const list = plan.routines;
@@ -179,10 +203,89 @@ VB['sim/routines'] = (() => {
       issue(st, { actor: a, verb: 'layOut', target: v.id, args: { what: 'commons' }, source: 'pawn' });
     if (Commons.fieldsOf(v).length) Stores.reserve(st, v, plan, SEED, seedNeed(st, v, SEED_CROP), 'seed');
   }
-  // A village's review on a work day of its routines: its alderman calls the village out (sim/workdays, VB-120).
+  // ---- work days called (VB-120, VB-673, VB-1768; sim/workdays holds the day, its work and its judging) ----
+  // The custom's days of the year of game day D and the next, each {of (game day), what}.
+  function customDays(D) {
+    const y0 = D - (D % YEAR_DAYS),
+      out = [];
+    for (const y of [y0, y0 + YEAR_DAYS])
+      for (const [season, sday, what] of Workdays.WORKDAY.days) out.push({ of: y + season * SEASON_DAYS + sday, what });
+    return out;
+  }
+  // The work day village v's alderman is to call next (VB-1768), or null: {day (the date he names), of (the custom's day it stands for),
+  // what, at (the game day to call it: OUTER.notice before the custom's day)}: the custom's day not yet called whose call is due; one
+  // whose call day has passed unmade (the alderman away, the routine chosen late) is named for the first day the notice allows, while
+  // its season lasts.
+  function nextCall(st, v) {
+    const D = Math.floor(st.t / DAY),
+      n = Days.OUTER.notice;
+    for (const x of customDays(D)) {
+      if (v.workday && v.workday.of === x.of) continue;
+      const end = x.of - (x.of % SEASON_DAYS) + SEASON_DAYS - 1;
+      if (x.of - n >= D) return { day: x.of, of: x.of, what: x.what, at: x.of - n };
+      if (D + n <= end) return { day: D + n, of: x.of, what: x.what, at: D };
+    }
+    return null;
+  }
+  // callWorkday(village, {day, of}) (VB-673, VB-1768): the alderman, at home, calls out his village for game day `day`, at least
+  // OUTER.notice days ahead: the work day standing for the custom's day `of` (default: `day`, a custom's day). Its levy's lots are laid
+  // for that one date (sim/levies layLots, terms `together`): the day's work over OUTER.hours, rounded up, so many adult-days. The
+  // day's jobs are posted on it until the end of work, and it is judged then.
+  const seasonOf = (d) => Math.floor(d / SEASON_DAYS);
+  function callWhy(st, c) {
+    const vid = c.target,
+      plan = Number.isInteger(vid) ? st.plans.villages.get(vid) : undefined,
+      a = c.args || {},
+      D = Math.floor(st.t / DAY),
+      n = Days.OUTER.notice,
+      of = a.of ?? a.day,
+      x = Number.isInteger(of) ? customDays(of - (of % YEAR_DAYS)).find((y) => y.of === of) : null;
+    if (!plan) return `village ${vid} has no plan`;
+    const v = st.villages[vid];
+    return (
+      agentWhy(st, vid, c.actor) ||
+      (!plan.routines.includes('workdays')
+        ? `the meeting of ${v.name} did not choose work days`
+        : !Number.isInteger(a.day) || a.day < D + n
+          ? `a work day is called at least ${n} days ahead`
+          : !x
+            ? 'it stands for no work day of the custom'
+            : seasonOf(a.day) !== seasonOf(of)
+              ? "a work day is held in its custom's season"
+              : v.workday && v.workday.of === of
+                ? 'the work day is called'
+                : null)
+    );
+  }
+  register('callWorkday', {
+    check: callWhy,
+    run: (st, c) => {
+      const v = st.villages[c.target],
+        of = c.args.of ?? c.args.day,
+        what = customDays(of - (of % YEAR_DAYS)).find((y) => y.of === of).what;
+      Workdays.begin(v, c.args.day, what, of);
+      const D = Math.ceil(Workdays.workOf(st, v, what) / Days.OUTER.hours - 1e-9);
+      // its lots, by sim/levies (the village's custom of lots, OUTER.lotMax)
+      if (D > 0) emit(st, 'workdayCalled', { v, actor: c.actor, days: D, day: c.args.day });
+      log(
+        st,
+        `${fullName(st.pawns[c.actor])} called ${v.name} out for its work day ${Workdays.TASK[what]} in ${c.args.day - Math.floor(st.t / DAY)} days.`,
+        {
+          kind: 'workday',
+          village: v.id,
+          pawn: c.actor,
+        },
+      );
+    },
+  });
+  // A village's review while its routines hold work days: its alderman calls the next, OUTER.notice days ahead (sim/workdays nextCall:
+  // the custom's day, or, called late, the first day the notice allows), and lays its lots for that one date (VB-1768).
   function workdayStep(st, plan, a) {
-    if (!plan.routines.includes('workdays') || !Workdays.dayOf(cal(st.t))) return;
-    issue(st, { actor: a, verb: 'callWorkday', target: plan.holder.id, source: 'pawn' });
+    if (!plan.routines.includes('workdays')) return;
+    const v = st.villages[plan.holder.id],
+      call = nextCall(st, v);
+    if (call && call.at <= Math.floor(st.t / DAY))
+      issue(st, { actor: a, verb: 'callWorkday', target: v.id, args: { day: call.day, of: call.of }, source: 'pawn' });
   }
   // routines({routines, by}): the village's routines this year (VB-257) become args.routines, set by the meeting's decision (by
   // 'meeting') or, when it did not decide, by its culture's practice (by 'nothing' or 'asLastYear'; sim/lifecycle)
@@ -201,6 +304,7 @@ VB['sim/routines'] = (() => {
   function villageSteps(st, plan) {
     const v = st.villages[plan.holder.id],
       a = actorFor(st, v);
+    if (a !== null) emit(st, 'routinesReviewed', { plan, v, a }); // the season's lots of its routines, and those done released (sim/levies, VB-1768)
     if (a !== null) greenStep(st, plan, a);
     commonsStep(st, plan, a);
     if (a !== null) workdayStep(st, plan, a);
@@ -218,5 +322,8 @@ VB['sim/routines'] = (() => {
     founded,
     villageSteps,
     routineWhy,
+    stepOf,
+    owns,
+    nextCall,
   };
 })();

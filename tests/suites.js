@@ -20,6 +20,7 @@ const FAST = [
   ['node', 'tests/customlog.js'], // VB-082: a meeting's votes and margins in its log, near misses, leanings, a cause taken up told
   ['node', 'tests/solo.js'], // the solo start: one young settler alone, and a year on
   ['node', 'tests/titles.js'], // VB-311: own and use held apart: a field split off, its own passed, worked by its user, the title ended
+  ['node', 'tests/heirsplit.js'], // VB-034: land split between heirs: a sibling's field owned, worked for half its harvest, then its own farm
   ['node', 'tests/alderman.js'], // VB-314: the village's alderman, chosen at its meeting
   ['node', 'tests/cacheowners.js'],
   ['node', 'tests/caches.js'], // VB-1685: each declared cache equals its derivation after each verb, no lag; no ...Changed( before its write
@@ -95,6 +96,7 @@ const FAST = [
   ['node', 'tests/weather.js'], // VB-354: the seasons' weather, each crop's reading, the thaw, the frost, the ripening
   ['node', 'tests/latitude.js'], // VB-807: the winter's dates by latitude, the bands, the growing year by world, dates falling, lat saved
   ['node', 'tests/winter.js'], // VB-808: the ground by season: ice that bears, frozen marsh, snow; no night on the ice; the thaw's routes
+  ['node', 'tests/season.js'], // VB-083: seasons on the map: a band's look by its dates, the north first, a chunk baked in each look
   ['node', 'tests/peas.js'],
   ['node', 'tests/skills.js'], // time taken from causes: skill, a leg's mishap, the crop's size (VB-475)
   ['node', 'tests/planrecord.js'], // VB-1752: the plan record: every body's, a project as a year step, a task's step and its chain

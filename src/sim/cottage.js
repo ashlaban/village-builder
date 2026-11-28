@@ -14,7 +14,8 @@ VB['sim/cottage'] = (() => {
   const Stores = VB['sim/stores'],
     Obligations = VB['sim/obligations'],
     { emit } = VB['sim/events'];
-  const names = VB['sim/names'];
+  const names = VB['sim/names'],
+    { heldOf, settle } = VB['sim/heirland'];
   const { issue, register } = VB['sim/commands'];
   // A new farm's name (VB-026, VB-401): by the generators the village's culture prefers, their order drawn by weight, not one another
   // farm of the village has; owner is its first holder. Drawn from the house tile's own stream, not st.rng.
@@ -56,10 +57,16 @@ VB['sim/cottage'] = (() => {
       log(st, `The new cottage in ${v.name} stands empty.`, { kind: 'empty', village: v.id });
       return;
     }
+    // a house by an heir's fields (VB-034) whose fields it no longer owns (it died meanwhile: they went back) stands empty
+    if (plot.split && !heldOf(st, plot).length) {
+      plot.to = null;
+      log(st, `The new cottage in ${v.name} stands empty.`, { kind: 'empty', village: v.id });
+      return;
+    }
     const house = tiles.find((t) => t.kind === 'house').tile,
-      field = tiles.find((t) => t.kind === 'field').tile;
-    const f = makeFarmstead(st.w, st.farmsteads.length, house, [field], v, st.used);
-    if (tiles.find((t) => t.kind === 'field').fresh) f.fields[0].soil = SOIL.fresh; // broken on ground never farmed (VB-149)
+      field = plot.split ? null : tiles.find((t) => t.kind === 'field').tile;
+    const f = makeFarmstead(st.w, st.farmsteads.length, house, plot.split ? [] : [field], v, st.used);
+    if (field !== null && tiles.find((t) => t.kind === 'field').fresh) f.fields[0].soil = SOIL.fresh; // broken on ground never farmed (VB-149)
     f.name = farmName(st, v, f, holder);
     f.state = 'occupied';
     f.condition = 1;
@@ -67,6 +74,7 @@ VB['sim/cottage'] = (() => {
     f.emptySince = null;
     f.fence = null;
     st.farmsteads.push(f);
+    if (plot.split) settle(st, plot, f); // its fields leave the farm they were split from (sim/heirland)
     v.farmsteads.push(f.id);
     v.plots.push({
       id: plot.plot,
@@ -77,6 +85,7 @@ VB['sim/cottage'] = (() => {
       farmstead: f.id,
       tiles: tiles.map((t) => ({ tile: t.tile, kind: t.kind })),
       ...(plot.by !== undefined ? { by: plot.by } : {}), // built by a household for its heir (VB-255)
+      ...(plot.split ? { split: true } : {}), // by fields split off to an heir (VB-034)
     });
     emit(st, 'stepDone', { type: plot.holder.type, id: plot.holder.id, plan: plot }); // the roof on: the plan is finished (sim/plans)
     const members = goesWith(st, holder.id), // the start in life every way to a farm shares (sim/holding)
