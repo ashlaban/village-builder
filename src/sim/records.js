@@ -66,6 +66,7 @@ VB['sim/records'] = (() => {
     settled: 0,
     noLand: 0,
     empty: 0,
+    estate: 0, // a farm's new household takes up what the household that died out left in its stores (sim/heirs, VB-1697)
     claim: 0,
     claimEnded: 0,
     cottage: 0,

@@ -14,7 +14,8 @@ VB['sim/lying'] = (() => {
   //   their good where the work is done: fish, rackfish, hunt, gather, dig, boilsalt, pick, quarry), `n` the load in that kind's
   //   units (a.load), `tile` and `x`, `y` where it lies, `t` the game hour it was put down, `owner` the task's owner ({type, id}: the
   //   household or village it was carried for), `of` what the kind's delivery reads of the task (its field or meadow, farm, village,
-  //   common, dest, step, from, and `src`, the task's tile). A small live list (Rules for cost 1): an entry leaves it when its last load
+  //   common, dest, step, from, and `src`, the task's tile; VB-1697: kind `estate`, `of.goods`, a dead-out household's goods, below).
+  //   A small live list (Rules for cost 1): an entry leaves it when its last load
   //   is taken (take) or once the frost has worn it under LYING.quantum (decay), so it holds at most a year's loads put down on the
   //   road; its amount `n` falls a day once the frost has come (VB-1910). Written only here; plain data, saved (with the sharing of
   //   the fields and meadows it names); absent until the first and once empty.
@@ -185,6 +186,7 @@ VB['sim/lying'] = (() => {
     earth: 'dug earth',
     salt: 'salt',
     stone: 'stone',
+    estate: 'household goods', // what a household that died out left in its stores (sim/heirs, VB-1697)
   };
   const whatOf = (kind) => (kind === 'leftCart' ? 'cart' : WHAT[kind] || 'goods');
   // ---- the goods left lying with no goal of their own (VB-1814; design.md section 7, A stray pile) ----
@@ -234,12 +236,35 @@ VB['sim/lying'] = (() => {
       const lost = lossOver(l.n, days),
         sp = SPOILS[l.kind];
       if (sp && lost > 0) emit(st, 'lyingSpoilt', { owner: l.owner, good: sp[0], n: lost * sp[1] });
-      if (lost < l.n - 1e-9) l.n -= lost;
-      else {
+      if (lost < l.n - 1e-9) {
+        if (l.kind === 'estate') l.of.goods = scaledGoods(l.of.goods, 1 - lost / l.n);
+        l.n -= lost;
+      } else {
         drop(st, l);
         lostTold(st, l);
       }
     }
+  }
+  // ---- an estate (VB-1697; sim/heirs): the goods a household that died out held in its stores, lying at its house as one pile owned by
+  // it until the farm's next household takes them up. `of.goods`: {[good]: n, cloth: [by grade], larder: [{kind, n, until}], ale:
+  // [{n, until}]}; its `n` the sum of their units, worn as any load, each good by the same share. ----
+  function estateSize(goods) {
+    let n = 0;
+    for (const k in goods) {
+      const v = goods[k];
+      if (typeof v === 'number') n += v;
+      else for (const x of v) n += typeof x === 'number' ? x : x.n;
+    }
+    return n;
+  }
+  // The goods worn to share q of what they were: a new record, each good and each lot scaled alike.
+  function scaledGoods(goods, q) {
+    const out = {};
+    for (const k in goods) {
+      const v = goods[k];
+      out[k] = typeof v === 'number' ? v * q : v.map((x) => (typeof x === 'number' ? x * q : { ...x, n: x.n * q }));
+    }
+    return out;
   }
   // The line for a load the frost has taken: named by its owner's farm, by the farm its household held, or by its village.
   function lostTold(st, l) {
@@ -299,6 +324,7 @@ VB['sim/lying'] = (() => {
     frost,
     decay,
     lossOver,
+    estateSize,
     lyingOut,
     pileAt,
     amountAt,

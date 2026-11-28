@@ -19,8 +19,9 @@ try { extinct(st, hh, 'a test'); } catch (e) { err = e; }
 check(!err, `extinct throws: ${err && err.message}`);
 check(hh.dissolved && !cartOf(st, hh.id), 'dissolved, its plan gone');
 const total = before + 7, trips = Math.floor(total / ECON.woodPerTrip), laid = (st.lying || []).filter((l) => l.kind === 'leftTimber' && l.tile === f.house);
-check(Math.abs(hh.wood - (total - trips * ECON.woodPerTrip)) < 1e-9 && Math.abs(laid.reduce((n, l) => n + l.n, 0) - trips * TRAVEL.load) < 1e-9,
-  `the timber joins the woodpile, which lies at the house in whole trips: ${before} + 7 to ${hh.wood} left, ${laid.length} loads laid`);
+const estate = (st.lying || []).find((l) => l.kind === 'estate' && l.tile === f.house); // the wood under a trip lies with its estate (VB-1697)
+check(hh.wood === 0 && Math.abs(((estate && estate.of.goods.wood) || 0) - (total - trips * ECON.woodPerTrip)) < 1e-9 && Math.abs(laid.reduce((n, l) => n + l.n, 0) - trips * TRAVEL.load) < 1e-9,
+  `the timber joins the woodpile, which lies at the house in whole trips, the rest with the estate: ${before} + 7 to ${hh.wood} left, ${laid.length} loads laid`);
 const bad = checkState(st).filter((m) => !/role cache/.test(m)); // roles are refreshed at the next round
 check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
 if (failed) process.exit(1);

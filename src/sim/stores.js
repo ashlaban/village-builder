@@ -4,7 +4,7 @@ VB['sim/stores'] = (() => {
   const { DAY, YEAR, YEAR_DAYS, TICKS, FOODS, BREW, cal } = VB['sim/rules'],
     { MATCH } = VB['sim/roles'],
     { CROPS } = VB['sim/crops'];
-  const { addFood, takeFood } = VB['sim/larder'];
+  const { addFood, takeFood, takeAll } = VB['sim/larder'];
   const WOOD_LOW = MATCH.urgency.woodLow;
   const { goodOf, dayLoss, keepsDays, GRAIN, CROP_LIST, CROP_GOOD, GOOD_CROP, isGrain, grainGood } = VB['sim/goods'],
     { kindRow, baseOf, kindIn } = VB['sim/goods'];
@@ -713,6 +713,33 @@ VB['sim/stores'] = (() => {
     record(st, hh, 'ale', -lost, 'spoilage');
     hh.ale = hh.ale.filter((l) => l.until > st.t);
   }
+  // ---- the lots of a household that dies out (VB-1697, sim/heirs): its larder's and its ale's, taken out whole and put into the farm's
+  // next household as they are, each keeping its date ----
+  // Takes every lot out, booked with `why`: {larder: [{kind, n, until}], ale: [{n, until}]}, empty lists when it holds none.
+  function estateLots(st, hh, why) {
+    const larder = hh.larder.filter((l) => l.n > 1e-9).map((l) => ({ ...l })),
+      ale = hh.ale.filter((l) => l.n > 0).map((l) => ({ ...l }));
+    for (const kind of new Set(larder.map((l) => l.kind))) record(st, hh, kind, -takeAll(hh, kind), why);
+    if (ale.length) record(st, hh, 'ale', -ale.reduce((n, l) => n + l.n, 0), why);
+    hh.ale = [];
+    return { larder, ale };
+  }
+  // Puts the lots of estateLots into household hh, booked with `why`: a lot already past its date is put in to spoil at the day's turn.
+  // Barrels are whole: a lot the frost has worn keeps its whole barrels.
+  function putLots(st, hh, { larder, ale }, why) {
+    for (const l of larder || []) {
+      if (!(l.n > 1e-9)) continue;
+      record(st, hh, l.kind, l.n, why);
+      addFood(st, hh, l.kind, l.n, (l.until - st.t) / DAY);
+    }
+    for (const l of ale || []) {
+      const n = Math.floor(l.n + 1e-9);
+      if (!(n > 0)) continue;
+      record(st, hh, 'ale', n, why);
+      hh.ale.push({ n, until: l.until });
+    }
+    hh.ale.sort((a, b) => a.until - b.until);
+  }
   // Pours up to n barrels, the oldest first, and says how many (the host's standing counts them, sim/society); used up with its reason.
   function pour(st, hh, n) {
     type(hh);
@@ -867,6 +894,8 @@ VB['sim/stores'] = (() => {
     releaseAll,
     reserved,
     aleOf,
+    estateLots,
+    putLots,
     brew,
     spoilAle,
     pour,
