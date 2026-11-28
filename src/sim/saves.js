@@ -430,8 +430,10 @@ VB['sim/saves'] = (() => {
     VB['sim/thirst'].loaded(st); // VB-1585: a save from before a pawn's own thirst loads as having drunk
     VB['sim/stores'].heapsLoaded(st); // VB-733: an older save's heap of no rock, and its quern's `rock`
     VB['sim/quern'].quernsLoaded(st);
-    VB['sim/byrehouse'].byresLoaded(st); // VB-1665: an older save's farms read as having their byres
-    VB['sim/storehouse'].storehousesLoaded(st); // VB-1898: an older save's farms read as having their storehouses, and the barns they had
+    // VB-1911: an older save's farmstead.barn, .byre and .storehouse as facilities of their farms; one with no record of its storehouse
+    // reads as having it unless landed by hand (VB-1898), of its barn as having none
+    const { storehouseHad } = VB['sim/storehouse'];
+    VB['sim/facilities'].outbuildingsLoaded(st, (f, kind) => kind === 'storehouse' && storehouseHad(f));
     VB['sim/sites'].sitesLoaded(st); // VB-787: an older save has no sites under way
     for (const hd of st.herds) for (const e of hd.cull || []) if (e.sheep) e.lot ??= 1; // VB-1682: a sheep marked alone
     const R = VB['sim/rng']; // a save from before a system's stream (VB-761's `making`): its stream from the seed and its name, as at seeding

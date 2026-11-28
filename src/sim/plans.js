@@ -501,7 +501,9 @@ VB['sim/plans'] = (() => {
   // its module itself (heirFarm's plot, sim/expansion).
   function beginMaking(st, hh, M, args) {
     const p = M.begin(st, hh, st.farmsteads[hh.farmstead], args);
-    if (p) makeProject(st, 'household', hh.id, M.small ? { ...p, what: M.what, small: true } : { ...p, what: M.what });
+    const plan =
+      p && makeProject(st, 'household', hh.id, M.small ? { ...p, what: M.what, small: true } : { ...p, what: M.what });
+    if (plan && M.made) M.made(st, hh, st.farmsteads[hh.farmstead], plan);
   }
   // The household's project of its own choosing that the verb dropProject gives up: the one of id when given (a field, a meadow, a barn, a
   // boat, a cart, a tar pit...; never a settler household's cottage), else its large project (ownOf), else the first small one under way.

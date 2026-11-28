@@ -47,7 +47,8 @@ for (let d = 0; d < 6; d++) near.push(w.nb[f.house * 6 + d]);
 const free = (t) => t >= 0 && !w.water[t] && t !== f.house && !f.fields.some((fd) => fd.tile === t);
 const tile = near.find(free),
   other = near.find((t) => free(t) && t !== tile);
-const me = { type: 'household', id: hh.id };
+const me = { type: 'household', id: hh.id },
+  n0 = st.facilities.length; // the farms' outbuildings (VB-1911) stand before
 const found = (t, kind = 'testshed', actor = hh.holder) =>
   issue(st, { actor, verb: 'found', target: t, args: { kind, owner: me }, source: 'player' });
 check(/no facility/.test(found(tile, 'mill')), 'an undeclared kind is refused');
@@ -60,8 +61,8 @@ Stores.put(st, hh, 'iron', 3, 'smelt');
 if (water !== undefined) check(found(water) === 'it stands on land', 'the kind tests the tile');
 check(found(tile) === true, 'the head founds a shed');
 const fac = Fac.at(st, tile);
-check(fac && fac.id === 0 && fac.stage === 0 && fac.built === null && fac.owner.id === hh.id, `the record: ${JSON.stringify(fac)}`);
-check(Fac.ofOwner(st, me).join() === '0', 'indexed by owner');
+check(fac && fac.id === n0 && fac.stage === 0 && fac.built === null && fac.owner.id === hh.id, `the record: ${JSON.stringify(fac)}`);
+check(Fac.ofOwner(st, me).join() === String(n0), 'indexed by owner');
 const plan = Projects.projectsOf(st, 'household', hh.id).find((p) => p.what === 'facility');
 check(
   plan && plan.steps.length === 2 && plan.steps.every((s) => s.kind === 'raisestage' && s.place === tile) && plan.steps[0].spends.iron === 2,
@@ -103,8 +104,8 @@ const done2 = fac2.done;
 check(found(other) === true, 'taken up again');
 const p3 = Projects.projectsOf(st, 'household', hh.id).find((p) => p.facility === fac2.id);
 const open2 = [6, 4][fac2.stage]; // the stage it stood at: the frame's 6 hours, or the roof's 4 once the frame was done in one leg
-check(p3 && Math.abs(p3.steps[0].hours + done2 - open2) < 1e-6 && fac2.id === 1, `its open stage less the hours done (${p3 && p3.steps[0].hours})`);
-check(st.facilities.length === 2, 'ids are never reused');
+check(p3 && Math.abs(p3.steps[0].hours + done2 - open2) < 1e-6 && fac2.id === n0 + 1, `its open stage less the hours done (${p3 && p3.steps[0].hours})`);
+check(st.facilities.length === n0 + 2, 'ids are never reused');
 // a village's: its plan, the job posted at the village
 const v = st.villages[f.village];
 const vt = (() => {
@@ -119,9 +120,9 @@ bad = [...checkState(st), ...checkCaches(st)];
 check(!bad.length, `invariants: ${bad.slice(0, 3).join('; ')}`);
 // a save keeps the records and builds the index again
 const back = Sim.load(w, JSON.parse(JSON.stringify(Sim.save(st))));
-check(JSON.stringify(back.facilities) === JSON.stringify(st.facilities) && Fac.at(back, tile).id === 0, 'saved and loaded');
+check(JSON.stringify(back.facilities) === JSON.stringify(st.facilities) && Fac.at(back, tile).id === n0, 'saved and loaded');
 // the invariants see a broken record
 fac.stage = 7;
-check(checkState(st).some((m) => /facilities\[0\]/.test(m)), 'an invariant misses a stage past the kind');
+check(checkState(st).some((m) => m.startsWith(`facilities[${n0}]`)), 'an invariant misses a stage past the kind');
 if (failed) process.exit(1);
 console.log('facilities ok');

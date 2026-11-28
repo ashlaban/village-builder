@@ -383,7 +383,8 @@ VB['sim/byre'] = (() => {
   function spoilHay(st, hh) {
     let lost = hayLoss(st, hh);
     if (!(lost > 0)) return;
-    if (hh.farmstead !== null && st.farmsteads[hh.farmstead].barn) lost *= BUILD.barn.loss; // a barn halves it (VB-255)
+    if (hh.farmstead !== null && VB['sim/facilities'].standing(st, st.farmsteads[hh.farmstead], 'barn'))
+      lost *= BUILD.barn.loss; // a barn halves it (VB-255)
     hh.hay -= lost;
     hh.haySpoilt = (hh.haySpoilt || 0) + lost;
   }
@@ -465,7 +466,8 @@ VB['sim/byre'] = (() => {
       if (!stalled(c)) continue;
       const yesterday = { doy: (c.doy + 47) % 48 };
       if (stalled(yesterday) && c.doy !== HERD.stall[0] && hh.fodderDay !== c.day - 1)
-        for (const herd of herds) herd.lean += st.farmsteads[hh.farmstead].byre ? 1 : HERD.openLean; // in the open: faster (VB-1665)
+        for (const herd of herds)
+          herd.lean += VB['sim/facilities'].standing(st, st.farmsteads[hh.farmstead], 'byre') ? 1 : HERD.openLean; // in the open: faster (VB-1665)
       const need = herds.reduce((s, hd) => s + dailyHay(hd), 0);
       if (hh.hay >= need) {
         hh.hay -= need;
@@ -739,7 +741,7 @@ VB['sim/byre'] = (() => {
   const byreStands = (st, j) => {
     const hh = j.owner && j.owner.type === 'household' ? st.households[j.owner.id] : null,
       f = hh && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
-    return !!(f && f.byre);
+    return !!(f && VB['sim/facilities'].standing(st, f, 'byre'));
   };
   // The job kinds (sim/kinds joins them into KINDS; a kind's fields are described there).
   const KINDS = {

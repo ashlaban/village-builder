@@ -17,7 +17,8 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
 // a storehouse halves the grain lost to spoilage (BUILD.storehouse.loss), a barn the barn hay lost (BUILD.barn.loss), each its own only
 {
   const st = make(), hh = st.households[0], f = st.farmsteads[hh.farmstead];
-  f.storehouse = f.barn = null; // VB-1898: a seeded farm has both; this one is made without
+  VB['sim/facilities'].raze(st, f, 'storehouse'); // VB-1898: a seeded farm has both; this one is made without
+  VB['sim/facilities'].raze(st, f, 'barn');
   Stores.put(st, hh, Stores.grainGood('barley'), 3000, 'harvest');
   hh.hay = 40;
   const lose = () => {
@@ -31,11 +32,11 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
   };
   const [g0, h0] = lose();
   assert.ok(g0 > 0 && h0 > 0, 'grain and hay spoil without a barn');
-  f.barn = { built: st.t };
+  VB['sim/facilities'].seedOn(st, f, 'barn');
   const [g1, h1] = lose();
   assert.ok(near(g1, g0, 1e-6), `grain lost with a barn ${g1} is as without, ${g0}`);
   assert.ok(near(h1, h0 * BUILD.barn.loss, 1e-9), `hay lost with a barn ${h1} is half of ${h0}`);
-  f.storehouse = { built: st.t };
+  VB['sim/facilities'].seedOn(st, f, 'storehouse');
   const [g2, h2] = lose();
   assert.ok(near(g2, g0 * BUILD.storehouse.loss, 1e-6), `grain lost with a storehouse ${g2} is half of ${g0}`);
   assert.ok(near(h2, h1, 1e-9), `the hay as with the barn alone: ${h2}`);
@@ -62,7 +63,7 @@ const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
 // to the first review after the autumn count, with a household set to a surplus: stores well over 1.5 years, its targets met, idle
 function surplusState() {
   const st = make();
-  for (const f of st.farmsteads) f.barn = null; // VB-1898: a seeded farm has its barn; these are made without, their storehouse standing
+  for (const f of st.farmsteads) VB['sim/facilities'].raze(st, f, 'barn'); // VB-1898: a seeded farm has its barn; these are made without, their storehouse standing
   const c0 = cal(st.t);
   Sim.advance(st, ((HERD.countDay + 1 - c0.doy + 48) % 48) * DAY);
   const hh = st.households[0], f = st.farmsteads[hh.farmstead], plan = st.plans.households.get(hh.id), c = cal(st.t);
@@ -122,7 +123,7 @@ function surplusState() {
     if (s0.timber) s0.wood = s0.timber; // lint-allow: owner the timber carried to the site
     K[kind].done(st, { kind, site: f.house, farm: f, owner: { type: 'household', id: hh.id } }, st.households[1]); // ended by a neighbour's hand
   }
-  assert.ok(f.barn && f.barn.built === st.t, 'the barn stands');
+  assert.ok(VB['sim/facilities'].standing(st, f, 'barn') && VB['sim/facilities'].standing(st, f, 'barn').built === st.t, 'the barn stands');
   assert.strictEqual(Projects.ownOf(st, hh.id), null, 'the project is finished');
   assert.ok(st.record.some((e) => typeof e === 'object' && e.kind === 'projectDone' && e.pawn === hh.holder && e.household === hh.id));
   assert.ok(plan.aim.project === null && plan.aim.again, 'the head looks again at its next review');
@@ -354,9 +355,9 @@ console.log("aims ok: surplus, menu, choice, barn and its halvings, drop after a
   const st = make(), hh = st.households[0], f = st.farmsteads[hh.farmstead];
   const K = VB['sim/kinds'].KINDS.thresh, job = { farm: f };
   assert.ok(VB['sim/kinds'].PLACES.storehouse && K.at.includes('storehouse'), 'the storehouse is a place the threshing is declared at');
-  f.storehouse = { built: st.t };
+  VB['sim/facilities'].seedOn(st, f, 'storehouse');
   assert.match(K.words(st, job).verb, /storehouse/, 'with a storehouse the job says where the grain goes');
-  f.storehouse = null;
+  VB['sim/facilities'].raze(st, f, 'storehouse');
   assert.match(K.words(st, job).verb, /house/, 'without one it goes to the house');
   assert.doesNotMatch(K.words(st, job).verb, /storehouse/);
 }
