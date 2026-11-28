@@ -19,7 +19,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-2068](backlog/VB-2068.md)<a id="VB-2068"></a> | Mend VB-1946's review finding F3 (criterion, src/sim/records.js:37) | - | 1 | S | VB-1737's sim/records line is open and its plan, docs/plans/VB-455.md (lines 10-11), still says to move HISTORY with foldHistory to sim/eventlog. This change takes HISTORY out of sim/records into sim/eventkinds before that line, so the plan |
 | [VB-665](backlog/VB-665.md)<a id="VB-665"></a> | Housekeeping: one scale for the simulation's meters, reviewed with Kim | - | 2 | S | Inventory every bounded or signed quantity the player is shown, its range in st and on the page; propose 0 to 100 and -100 to 100 with the motivated exceptions; questions for Kim |
 | [VB-1478](backlog/VB-1478.md)<a id="VB-1478"></a> | The fair's animals and carts: a beast led to the gathering, an ox cart carrying 300 | fair | 2 | S | VB-302 left these out: an animal walks to the fair beside its dealer and changes herd when swapped; a household with an ox cart and its team free loads 90 rations' worth, the cart out until it is home. |
 | [VB-1693](backlog/VB-1693.md)<a id="VB-1693"></a> | Design: a dependant's charge, a named living minder in place of the ban | - | 2 | M | Whoever cannot keep itself is someone's charge (Kim, 24 Nov): the minder named, passed at death, and leaving weighed, not refused |
