@@ -31,6 +31,8 @@ VB['sim/ownership'] = (() => {
   function farmTo(st, f, o) {
     const was = userOf(st, f.house),
       T = titlesOf(st);
+    const ft = T && T.get(f.house);
+    if (ft && ft.kind === 'farm') ft.user = { type: o.type, id: o.id }; // the farm's own title follows its user (its tiles are set below)
     setOwner(st, f.house, o);
     for (const x of [...f.fields, ...(f.meadows || [])]) {
       const t = T && T.get(x.tile);
