@@ -14,7 +14,7 @@ VB['sim/opportunities'] = (() => {
   const { VERBS } = VB['sim/commands'];
   const { goOnAs } = VB['sim/player'];
   const { likely: leaveLikely } = VB['sim/voice'];
-  const { advice, what: offerText } = VB['sim/offers'];
+  const { advice, warning, what: offerText } = VB['sim/offers'];
   const { relationsOf, opinionWord } = VB['sim/relations'];
   const { GATHERING } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];
@@ -470,6 +470,7 @@ VB['sim/opportunities'] = (() => {
             .map((a) => ({ name: fullName(view.pawns[a.by]), key: a.key, yes: a.yes })),
           daysLeft: Math.max(0, Math.ceil((o.due - view.t) / DAY)),
           advice: advice(st, o, id),
+          warning: warning(st, o, id),
         };
       if (match)
         Object.assign(offer, {
