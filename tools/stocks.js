@@ -80,7 +80,7 @@ const QUANTITIES = [
   { id: 'hides', of: 'household', name: 'hides', unit: 'hides', fields: ['household.hides'], good: 'hide', holder: 'household',
     kinds: ['hunt', 'slaughter'],
     none: 'no shoes are made and the harness is not mended; a household lacking a year\'s hides values one at its worth, and takes one at the fair or as a gift (sim/leather, VB-424, VB-911)' },
-  { id: 'shoes', of: 'household', name: 'shoes', unit: 'pairs (by the wear left)', fields: ['household.shoes'], kinds: ['cobble'],
+  { id: 'shoes', of: 'household', name: 'shoes', unit: 'pairs (by the wear left)', fields: ['household.shoes'], good: 'shoes', holder: 'household', kinds: ['cobble', 'wear'],
     none: 'its walkers go barefoot: nothing is barred or slowed by it yet (sim/leather, VB-911)' },
   { id: 'harness', of: 'household', name: 'the team\'s harness', unit: '0..1', fields: ['household.harness'], kinds: ['harness'],
     none: 'a worn harness: nothing is barred or slowed by it yet (sim/leather, VB-911)' },

@@ -53,8 +53,9 @@ VB['sim/heirs'] = (() => {
   function moveTo(st, id, hhId, text = null, carry = true, reason = null) {
     const p = st.pawns[id],
       old = p.household !== null ? st.households[p.household] : null;
-    leaveHousehold(st, id);
     const hh = st.households[hhId];
+    VB['sim/leather'].carry(st, old, hh, id); // a walker takes their share of the shoes (VB-1620)
+    leaveHousehold(st, id);
     joinHousehold(st, hh, id, false);
     emit(st, 'rehoused', { a: st.agents[id], old, hh, carry }); // it walks to its new home (sim/journeys' moved)
     if (old && old.farmstead !== hh.farmstead) {
@@ -337,6 +338,7 @@ VB['sim/heirs'] = (() => {
       .map((id) => st.pawns[id])
       .find((p) => p.alive && p.household !== null && p.household !== hh.id);
     passHerds(st, hh, first ? first.household : null);
+    VB['sim/leather'].passShoes(st, hh, first ? st.households[first.household] : null); // what none could carry (VB-1620)
     layEstate(st, hh, f, estate, first ? first.household : null);
     settleObligations(st, hh, first ? first.household : null); // its debts and claims pass to its successor, or lapse (design, A dissolved debtor)
     clearMembers(st, hh);

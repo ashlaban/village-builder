@@ -454,7 +454,7 @@ function hoursShare(share) {
 }
 // The stores' fields of a household that hold a good as one number, by the good the ledger names (sim/stores field)
 const HELD = [['flour', 'flour'], ['meals', 'meals'], ['wood', 'wood'], ['timber', 'timber'], ['peat', 'peat'], ['tar', 'tar'], ['hide', 'hides'],
-  ['salt', 'salt'], ['iron', 'iron'], ['clay', 'clay'], ['bogOre', 'bogOre'], ['wool', 'wool'], ['yarn', 'yarn'], ['fish', 'rack']];
+  ['salt', 'salt'], ['iron', 'iron'], ['clay', 'clay'], ['bogOre', 'bogOre'], ['wool', 'wool'], ['yarn', 'yarn'], ['fish', 'rack'], ['shoes', 'shoes']];
 // an account's nested lines back to their flat keys ({in: {felling: 3}} -> {'in.felling': 3})
 const flatLines = (tree) => Object.fromEntries(flat(tree));
 function sumLines(list) { const o = {}; for (const b of list) for (const [k, n] of Object.entries(b)) o[k] = (o[k] || 0) + n; return o; }

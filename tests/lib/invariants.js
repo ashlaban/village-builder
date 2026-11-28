@@ -2082,6 +2082,7 @@ function checkState(st) {
             'peat',
             'tar',
             'hide',
+            'shoes',
             'salt',
             'iron',
             'wool',
@@ -2114,7 +2115,7 @@ function checkState(st) {
         !Number.isInteger(x.count) ||
         x.count < 1 ||
         (![
-          ...'grain meals sheaves meat milk butter ale peat hide'.split(' '),
+          ...'grain meals sheaves meat milk butter ale peat hide shoes'.split(' '),
           'salt meat',
           'smoked meat',
           'salt',
