@@ -115,6 +115,7 @@ const FAST = [
   ['node', 'tests/discomfort.js'], // VB-448: routes chosen by time weighed with discomfort; a bridge up to twice the time, load classes
   ['node', 'tests/oversea.js'], // VB-436: nobody is sent to a home over the sea
   ['node', 'tests/tiny.js'],
+  ['node', 'tests/endings.js'], // VB-1683: each pawn, then each household, ended at each phase of a day; every id resolves after
   ['node', 'tests/stand.js'], // VB-1545: a holder alone takes the ranks of the roles its household lacks
   ['node', 'tests/timetable.js'], // VB-477: the timetable as a view, read only; the head's verbs on the day, checked
   ['node', 'tests/slot.js'], // VB-1558: a task the due-queue opens is slotted into the day as it stands, as the allotment would put it

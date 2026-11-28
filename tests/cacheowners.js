@@ -21,7 +21,7 @@ holder.household = 1;
 assert(checkState(st).some((e) => e.includes('household field')), 'pawn membership must match the member list');
 holder.household = hh.id;
 hh.members.push(st.households[1].holder);
-assert(checkState(st).some((e) => e.includes('in households')), 'member lists must agree in both directions');
+assert(checkState(st).some((e) => e.includes('st.households[].members[]: pawn')), 'member lists must agree in both directions');
 hh.members.pop();
 // No lag (VB-1685): a child turned fourteen and still called a child is reported at once, and the day's life step refreshes its role.
 const child = st.pawns.find((p) => p.role === 'daughter'), born = child.born;
