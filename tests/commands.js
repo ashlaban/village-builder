@@ -648,7 +648,7 @@ console.log('commands ok: move (VB-822): each refusal changes nothing; each reas
   // 2. the facade, function by function
   const ISSUES = ['command', 'head', 'queue', 'unqueue', 'setAuto', 'wish', 'answer', 'orderVisit', 'plan'];
   const FRAME = ['inhabit', 'uninhabit', 'succeed']; // st.player, the frame: which pawn the page shows (design.md section 15)
-  const WORLD = ['seed', 'load', 'advance', 'replay']; // the world made, loaded, its clock run (replay: with the commands recorded, VB-1757): every act within it is a verb
+  const WORLD = ['seed', 'soloSites', 'load', 'advance', 'replay']; // the world made, loaded, its clock run (replay: with the commands recorded, VB-1757): every act within it is a verb
   const fns = Object.keys(Sim).filter((k) => typeof Sim[k] === 'function');
   const listed = new Set([...ISSUES, ...FRAME, ...WORLD, ...Sim.DEBUG]);
   // a read that fills a cache of saved state its module owns, with the cache

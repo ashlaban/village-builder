@@ -73,9 +73,21 @@ function siteWords(r) {
 const siteGrade = (r) => (!r.ok ? 0 : r.stars >= 8 ? 3 : r.stars >= 6 ? 2 : r.stars >= 4 ? 1 : 0);
 const siteVerdict = (r) =>
   !r.ok ? 'No farm can stand here' : ['A poor place', 'A hard place', 'A good place', 'A fine place'][siteGrade(r)];
+// The places scouted (VB-1613): the sites the solo start offers (Sim.soloSites: the settler's default site, then the search's best,
+// each with its water), read as the page reads a tile; the land's own best when that offers none. Choosing one lands the settler there
+// (siteSettle passes it as the seed's `site`).
+function scoutedSites(seed) {
+  const offered = [];
+  for (const o of Sim.soloSites(w, seed)) {
+    const r = Sim.landing.read(w, o.house);
+    if (r && r.ok && offered.length < 3) offered.push({ ...r, fetch: o.water }); // fetch: siteWater's reading, shown on the card
+  }
+  Sim.landing.lay(w);
+  return offered.length ? offered : Sim.landing.best(w, 3);
+}
 function openSite(seed) {
   Sim.landing.lay(w);
-  site = { seed, best: Sim.landing.best(w, 3), at: -1, read: null, lens: '', msg: '', busy: false };
+  site = { seed, best: scoutedSites(seed), at: -1, read: null, lens: '', msg: '', busy: false };
   setSpeed(0);
   u2.lens.hidden = u2.sitecard.hidden = false;
   u2.lens.innerHTML = SITE_LENS.map(
@@ -159,6 +171,11 @@ function renderSite() {
       for (const key of ['water', 'soil', 'wood'])
         h += `<div class="u2-row">${SITE_ICON[key]}<b>${esc(wd[key][0])}</b>${sitePips(r[key].band)}</div>`;
       h += `</div><p class="sub">${esc(wd[weak][1])}</p>`;
+      const fe = (site.best.find((b) => b.tile === r.tile) || {}).fetch; // the walk, the daily fetch and the well, as siteWater has them
+      if (fe) {
+        const well = fe.well ? `, a ${fe.well.name} well to dig (${fe.well.hours.toFixed(1)} hours)` : '';
+        h += `<p class="sub">${esc(`Water: ${fe.hours.toFixed(1)} hours a day for ${fe.people === 1 ? 'one' : fe.people}${well}.`)}</p>`;
+      }
       if (site.msg) h += `<p class="u2-msg">${esc(site.msg)}</p>`;
       h +=
         `<button type="button" class="u2-btn go" data-site="settle"${site.busy ? ' disabled' : ''}>` +
