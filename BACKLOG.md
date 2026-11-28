@@ -19,7 +19,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-2011](backlog/VB-2011.md)<a id="VB-2011"></a> | Split sim/chores: the wood to sim/wood | - | 1 | M | sim/chores is 762 lines, over 700 (lint); the wood moves to its own module |
 | [VB-665](backlog/VB-665.md)<a id="VB-665"></a> | Housekeeping: one scale for the simulation's meters, reviewed with Kim | - | 2 | S | Inventory every bounded or signed quantity the player is shown, its range in st and on the page; propose 0 to 100 and -100 to 100 with the motivated exceptions; questions for Kim |
 | [VB-707](backlog/VB-707.md)<a id="VB-707"></a> | A debtor's refusal is a breach the village knows, and costs standing | - | 2 | S | Ignoring a debt of honour costs nothing but a private memory, and sim/exchange's `propriety` has no caller. Kim, 16 Nov: a refusal by one who owes is a public breach. |
 | [VB-1478](backlog/VB-1478.md)<a id="VB-1478"></a> | The fair's animals and carts: a beast led to the gathering, an ox cart carrying 300 | fair | 2 | S | VB-302 left these out: an animal walks to the fair beside its dealer and changes herd when swapped; a household with an ox cart and its team free loads 90 rations' worth, the cart out until it is home. |

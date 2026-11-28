@@ -20,7 +20,7 @@ VB['sim/outlook'] = (() => {
     { larderOf } = VB['sim/larder'];
   const { householdHay } = VB['sim/herds'];
   const { HAY } = VB['sim/meadows'];
-  const { fuelFree, timberOf } = VB['sim/chores'];
+  const { fuelFree, timberOf } = VB['sim/wood'];
   const { fireOf } = VB['sim/house'];
   const { hands } = VB['sim/targets'];
   const { headSkill } = VB['sim/seasonal'];
@@ -283,12 +283,12 @@ VB['sim/outlook'] = (() => {
     );
     return withLeft({ ...out, parts: { ...out.parts, lying: lyingLoss(st, hh, 'grain', c) } }, hand, left);
   }
-  // Fuel: firewood and peat as one supply (sim/chores' fuelFree: the pile less what a project holds back, peat at PEAT.worth), burnt at
+  // Fuel: firewood and peat as one supply (sim/wood' fuelFree: the pile less what a project holds back, peat at PEAT.worth), burnt at
   // the season's ECON.woodUse times the house's own fire (sim/house fireOf: a timber house's is smaller; VB-1669). Its intake is the
   // plan's: at the start of each season (today, for this one) the household cuts towards the season's goal, its wood target of the season,
   // at most hands × OUTLOOK.woodTrips × ECON.woodPerTrip a season (the share of it left, for the season we are in); none with no farm or no wood in its
   // village's reach. Firewood does not spoil. Timber home and not yet cut
-  // counts as firewood (VB-1653): the head has it cut by its own rule (sim/chores); for the household of a pawn planned by hand
+  // counts as firewood (VB-1653): the head has it cut by its own rule (sim/wood); for the household of a pawn planned by hand
   // (automatic behaviour off) only while a `firewood` task of the plan covers it (sim/steps, VB-1754).
   // For a household planned by hand (VB-1661; Kim, 24 Nov: "Stores count what is in the plan"), the head's own cutting to the goal is
   // left out, and a fell task's loads still to come home are counted, today, only with a `firewood` task to cut them.

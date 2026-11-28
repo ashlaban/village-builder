@@ -46,7 +46,7 @@ VB['sim/upgrade'] = (() => {
     walls.wood = (walls.wood || 0) + got; // the walls' timber brought from home, as a trip's load is (sim/building)
     return got;
   }
-  // A trip of timber is home (sim/chores' wood): the household's cottage begun by an upgrade task of its members' plans takes it while
+  // A trip of timber is home (sim/wood' wood): the household's cottage begun by an upgrade task of its members' plans takes it while
   // its walls lack it.
   on('timberHome', (st, { household }) => {
     const f = plansIn(st, household).length ? farmOf(st, household) : null,
