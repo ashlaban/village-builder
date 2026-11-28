@@ -384,6 +384,7 @@ These are read and never written after creation. Each has one owner by construct
 | village | `workday` (the last work day: hours each adult worked, judged at its end, VB-120) | workdays |
 | pawn | `workdays` (the year's work days turned out to and stayed away from, read by society's standing, VB-120) | workdays |
 | st | `booths`, `boothSeq` (the booths raised or being raised, live ones only: staked and raised by `sim/building`'s verb and job, rotted away by its daily rule, VB-784) | building |
+| st | `sites`, `siteSeq` (the sites of new farms under way, one a party: staked by `sim/settle`'s verb stakeSite through `sim/sites`, worked by its jobs, ended by the verb leave at the move, VB-787) | sites |
 | union | `id`, `a`, `b`, `start`, `kind` | records (`marry`), lifecycle (`wed`) |
 | herd | `id`, `species` | herds (`makeHerd`) |
 | job | `id`, `key`, `kind`, `owner`, `site`, `posted`, `hours`, and its source's fields (`field`, `farm`, `meadow`, `plot`, `claim`, ...) | jobs (`post`) |

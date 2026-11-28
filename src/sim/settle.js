@@ -6,7 +6,7 @@ VB['sim/settle'] = (() => {
   const { next: rnd, drawer } = VB['sim/rng'];
   const { B } = VB['world/biomes'];
   const { DAY, SETTLE, ECON, FIELDS, WOOD, MARRIAGE, SPEED } = VB['sim/rules'],
-    { CROPS, fertility, openGround: farmable, clearable, clearedFertility } = VB['sim/crops'];
+    { CROPS, SOIL, fertility, openGround: farmable, clearable, clearedFertility } = VB['sim/crops'];
   const { bufferOf, act } = VB['sim/traits'];
   const { wishOf, moveWhy } = VB['sim/wishes'];
   const { reserved } = VB['sim/stores'];
@@ -19,8 +19,8 @@ VB['sim/settle'] = (() => {
   const names = VB['sim/names'];
   const { builtTiles, fieldProject } = VB['sim/fieldplans'];
   const { stake } = VB['sim/stakes'];
-  const { findSite, activePlots, building, roomAt, livePlots, tilesOf } = VB['sim/expansion'],
-    { cottagePlan } = VB['sim/cottageplan'];
+  const { findSite, activePlots, building, roomAt, livePlots, tilesOf } = VB['sim/expansion'];
+  const Sites = VB['sim/sites'];
   const { foundHousehold } = VB['sim/membership'];
   const { farmName } = VB['sim/cottage'];
   const { addSettlement } = VB['sim/society'];
@@ -271,23 +271,24 @@ VB['sim/settle'] = (() => {
     }
     return null;
   }
-  // ---- settling ----
-  // The party settles on `house` in village v: a farmstead with no fields whose cottage is still to build (f.booth, the mark; the cottage a
-  // project plan of the household, sim/expansion's), its shelter begun on the house tile (VB-1666: the ladder's first rung, one rule for
-  // every household; sim/building stakeShelter), a household with the provisions as its grain, and `field` as its first field project.
-  // They sleep under the open sky until the shelter stands, and their cottage waits for it (sim/building boothWork).
-  function settleFarm(st, v, home, party, house, field, prov) {
+  // ---- settling: the move (step 4) ----
+  // The party of site `site` settles on its house in village v: a farmstead whose cottage stands (built at the site, sim/sites), a
+  // household with the provisions as its grain, and the first field its own where it was broken at the site, else its field project
+  // (staked, and cleared, broken and sown from the household: Kim, 27 Nov 2026); the walls' timber left over on its woodpile.
+  function settleFarm(st, v, home, party, house, field, prov, site = null) {
     const w = st.w,
       settler = st.pawns[party.all[0]];
-    const f = makeFarmstead(w, st.farmsteads.length, house, [], v, st.used);
+    const ftr = site ? site.plot.places.find((tr) => tr.kind === 'field') : null,
+      broken = !!ftr && ftr.i >= ftr.steps.length;
+    if (!broken) st.used.delete(field); // the site's mark: the field is the household's project from now
+    const f = makeFarmstead(w, st.farmsteads.length, house, broken ? [field] : [], v, st.used);
+    if (broken && ftr.fresh) f.fields[0].soil = SOIL.fresh; // broken on ground never farmed (VB-149)
     f.condition = 1;
     f.condAt = st.t;
     f.emptySince = null;
-    f.booth = true; // no cottage yet: the household lives in its shelter until its cottage has its roof (sim/cottageplan's roofOn)
-    siteWell(st, f, v, party.all.length); // a site chosen for the well it means to dig: dug with the booth and the clearing (VB-1587)
+    siteWell(st, f, v, party.all.length); // a site chosen for the well it means to dig (VB-1587)
     st.farmsteads.push(f);
     v.farmsteads.push(f.id);
-    VB['sim/building'].stakeShelter(st, f);
     costChanged(st, house); // routes go round the house from now on
     // the farm of a village just founded bears the village's name (Erikstorp); one that joins a village is named as a new cottage is
     f.name = v.founded && v.farmsteads.length === 1 ? v.name : farmName(st, v, f, settler);
@@ -302,18 +303,22 @@ VB['sim/settle'] = (() => {
       piles.push([h, n]);
     }
     const text = `Left ${home.name} to settle at ${f.name}, ${v.name}`;
+    const wood = site ? Math.min(ECON.woodWinter, Math.max(0, VB['sim/sites'].wallsOf(site).wood || 0)) : 0; // the rest burnt where it lies, as a plot's
+    if (site) VB['sim/sites'].end(st, site); // the site is the farm now: the leader's stake ends, the household's own begin
     const hh = foundHousehold(st, f, party.all, settler.id, {
       grain,
       piles,
       text,
       followers: party.followers,
+      wood,
       carry: false,
-    }); // no wood (VB-328)
+    });
     woodTaken(st, house);
     reckonWood(st, v); // a farm founded: the village's wood is reckoned again (VB-326)
-    stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
-    makeProject(st, 'household', hh.id, fieldProject(st, hh, field)); // its project plans (sim/plans, VB-123): the field's,
-    makeProject(st, 'household', hh.id, cottagePlan(st, f)); // and its cottage's, built beside it (VB-1411)
+    if (!broken) {
+      stake(st, hh, field, 'field'); // the first field is staked till broken (sim/stakes)
+      makeProject(st, 'household', hh.id, fieldProject(st, hh, field)); // its project plan (sim/plans, VB-123)
+    }
     return f;
   }
   // A new village of one farm on `site`, founded by settler p of village `home`: it keeps the mother village's culture and practice.
@@ -339,7 +344,7 @@ VB['sim/settle'] = (() => {
     st.villages.push(v);
     makePlan(st, 'village', v.id);
     addSettlement(st, v, hs.culture, hs.practice, hs.tie);
-    const f = settleFarm(st, v, home, party, site.house, site.field, prov);
+    const f = settleFarm(st, v, home, party, site.house, site.field, prov, site.site || null);
     villageAdded(st); // VB-286: its row of the table of walking hours, at once
     return f;
   }
@@ -377,7 +382,7 @@ VB['sim/settle'] = (() => {
         { from, all, followers, house, field, village } = g;
       return issue(st, {
         actor: o.from,
-        verb: 'leave',
+        verb: 'stakeSite',
         args: { from, party: { all, followers }, house, field, ...(village !== undefined ? { village } : {}) },
         source: 'round',
       });
@@ -405,7 +410,7 @@ VB['sim/settle'] = (() => {
     for (const v of [...st.villages]) {
       if (!v.crowded) continue;
       const ids = [...waiting.get(v.id)],
-        taken = new Set(),
+        taken = new Set(ids.filter((id) => Sites.siteOf(st, id))), // a site's party waits for its move, and stakes no other
         at = (id) => st.pawns[id];
       ids.sort((a, b) => at(b).landWait - at(a).landWait || at(a).born - at(b).born || a - b);
       let reach = null,
@@ -429,24 +434,15 @@ VB['sim/settle'] = (() => {
           (wish === null && rnd(st.rng.settle) >= leaveChance(p.landWait / act(st, id, 'ambition', 'settle')))
         )
           continue;
-        const party = partyOf(st, p, ids, taken),
-          prov = provisions(st, party.all);
-        if (!prov) {
-          log(st, `${fullName(p)} would leave crowded ${v.name} for new land, but the family cannot spare the grain.`, {
-            kind: 'stayed',
-            pawn: p.id,
-            village: v.id,
-          });
-          continue;
-        }
+        const party = partyOf(st, p, ids, taken); // the provisions are reckoned at the move (step 4), not here
         if (!use) use = landInUse(st);
         if (!reach) reach = reachOf(st, v);
         let f = null,
           hours = 0;
-        // the call to the party (the basis `party`, due at once: VB-692), whose yes is the leave command; the new farm is the last one
-        // added, and its house and field are marked used for the rest of the round
+        // the call to the party (the basis `party`, due at once: VB-692), whose yes is the stakeSite command; the site is the last one
+        // staked, and its house and field are marked used for the rest of the round
         const leave = (args) => {
-          const n = st.farmsteads.length;
+          const n = st.siteSeq;
           issue(st, {
             actor: p.id,
             verb: 'offer',
@@ -454,9 +450,10 @@ VB['sim/settle'] = (() => {
             args: { basis: 'party', gives: { from: v.id, all: party.all, followers: party.followers, ...args } },
             source: 'round',
           });
-          if (st.farmsteads.length === n) return null;
+          const s = Sites.byId(st, n);
+          if (!s) return null;
           for (const t of [args.house, args.field]) markUsed(st.w, use, t);
-          return st.farmsteads[n];
+          return s;
         };
         // a small village is not joined unasked: a plot there is asked of its alderman on the asking day (sim/asking, VB-697)
         if (!noLand) {
@@ -476,7 +473,6 @@ VB['sim/settle'] = (() => {
           }
         }
         if (!f) continue;
-        const nv = st.villages[f.village];
         for (const q of party.all) taken.add(q);
         const others = party.all.slice(1),
           adults = others.filter((q) => st.pawns[q].age >= 18),
@@ -487,13 +483,14 @@ VB['sim/settle'] = (() => {
         ];
         log(
           st,
-          `${fullName(p)} leaves crowded ${v.name}${company.length ? ` with ${listed(company)}` : ''} and ` +
-            `founds ${nv.name}, ${hours.toFixed(1)} hours' walk away along a trail.`,
+          `${fullName(p)} of crowded ${v.name} stakes the site of a new farm${company.length ? ` for ${listed(company)} and itself` : ''}, ` +
+            `${hours.toFixed(1)} hours' walk away along a trail.`,
           {
-            kind: 'left',
+            kind: 'siteStaked',
             pawn: p.id,
             n: party.all.length,
-            ...atFarm(f),
+            village: v.id,
+            tile: f.house,
           },
         );
         v.crowded = Math.max(0, v.crowded - party.all.filter((q) => ids.includes(q)).length);
@@ -501,30 +498,66 @@ VB['sim/settle'] = (() => {
       }
     }
   }
-  // leave({from, party: {all, followers}, house, field, village}): the actor's party leaves village `from` to settle at `house` with its first
-  // `field`: in the small village `village` if given, else founding a new one; provisions as the round reckons them
-  register('leave', {
-    check: (st, c) => {
-      const a = c.args || {};
-      if (!st.villages[a.from]) return `there is no village ${a.from}`;
-      if (!a.party || !Array.isArray(a.party.all) || a.party.all[0] !== c.actor)
-        return 'the party must be led by the actor';
-      for (const id of a.party.all) {
-        const dead = living(st, id);
-        if (dead) return dead;
-      }
-      if (![a.house, a.field].every((t) => Number.isInteger(t) && t >= 0 && t < st.w.N))
-        return 'the house and field must be tiles';
-      if (a.village !== undefined && !st.villages[a.village]) return `there is no village ${a.village}`;
-      return provisions(st, a.party.all) ? null : 'the family cannot spare the grain';
-    },
+  // Why the party `party` of village `from` cannot stake a site at `house` with its first `field` (args as stakeSite's), or null.
+  function stakeWhy(st, c) {
+    const a = c.args || {};
+    if (!st.villages[a.from]) return `there is no village ${a.from}`;
+    if (!a.party || !Array.isArray(a.party.all) || a.party.all[0] !== c.actor)
+      return 'the party must be led by the actor';
+    for (const id of a.party.all) {
+      const dead = living(st, id);
+      if (dead) return dead;
+      if (Sites.siteOf(st, id)) return `${fullName(st.pawns[id])} is of a party with a site already`;
+    }
+    if (![a.house, a.field].every((t) => Number.isInteger(t) && t >= 0 && t < st.w.N))
+      return 'the house and field must be tiles';
+    if (st.used.has(a.house) || st.used.has(a.field)) return 'the site is taken';
+    if (a.village !== undefined && !st.villages[a.village]) return `there is no village ${a.village}`;
+    return null;
+  }
+  // stakeSite({from, party: {all, followers}, house, field, village}) (VB-787; design.md, Settling in steps, 1): the actor stakes the site
+  // of its party's new farm, in the small village `village` if given, else a new one: nobody moves, no grain is taken, no household or
+  // village is made (sim/sites: the site, its stake and its trail).
+  register('stakeSite', {
+    check: stakeWhy,
     run: (st, c) => {
-      const a = c.args,
-        home = st.villages[a.from],
-        party = { all: a.party.all, followers: a.party.followers || [] };
-      const prov = provisions(st, party.all);
-      if (a.village !== undefined) settleFarm(st, st.villages[a.village], home, party, a.house, a.field, prov);
-      else found(st, home, st.pawns[c.actor], party, { house: a.house, field: a.field }, prov);
+      Sites.stakeSite(st, c.args);
+    },
+  });
+  // Why the leader of site `sid` cannot move its party there, or null: its cottage has its roof, and the provisions are there.
+  function leaveWhy(st, c) {
+    const s = Sites.byId(st, c.target);
+    if (!s) return `there is no site ${c.target}`;
+    if (s.leader !== c.actor) return 'the party must be led by the actor';
+    if (!Sites.roofed(s)) return 'its cottage has no roof yet';
+    for (const id of s.party.all) {
+      const dead = living(st, id);
+      if (dead) return dead;
+    }
+    return provisions(st, s.party.all) ? null : 'the family cannot spare the grain';
+  }
+  // leave(site) (VB-787; design.md, Settling in steps, 4): the leader moves its party to the site's finished cottage: the household is
+  // founded with it as head, and the village where the site is a new one; provisions to the harvest and seed, as the round reckoned them.
+  register('leave', {
+    check: leaveWhy,
+    run: (st, c) => {
+      const s = Sites.byId(st, c.target),
+        home = st.villages[s.from],
+        party = { all: s.party.all, followers: s.party.followers },
+        prov = provisions(st, party.all),
+        p = st.pawns[c.actor],
+        n = st.farmsteads.length;
+      if (s.village !== null) settleFarm(st, st.villages[s.village], home, party, s.house, s.field, prov, s);
+      else found(st, home, p, party, { house: s.house, field: s.field, site: s }, prov);
+      const f = st.farmsteads[n],
+        nv = st.villages[f.village];
+      const others = party.all.length - 1 ? ` with ${party.all.length - 1} more` : '';
+      log(st, `${fullName(p)} moves from ${home.name}${others} into the new cottage of ${f.name}, ${nv.name}.`, {
+        kind: 'left',
+        pawn: p.id,
+        n: party.all.length,
+        ...atFarm(f),
+      });
     },
   });
   return {

@@ -196,6 +196,19 @@ function showVillage(id) {
     v.crowded > 0 ? `Crowded: ${v.crowded} adults wait for land, and there is no room to clear` : '',
     daughters.length ? `Daughter villages: ${daughters.map((u) => u.name).join(', ')}` : '',
     out.length ? `Want to move out: ${out.map(name).join(', ')}` : '',
+    // the sites under way from it (VB-787): staked, their trail, their cottage, roofed and waiting to move
+    ...(st.sites || [])
+      .filter((s) => s.from === v.id)
+      .map(
+        (s) =>
+          `Building a new farm: ${s.party.all.map(name).join(', ')}; ${
+            {
+              trail: 'the trail is being blazed',
+              building: 'the site is being cleared and built',
+              roofed: 'the cottage stands, the move waits',
+            }[s.stage] || s.stage
+          }`,
+      ),
     ...plots.map((plot) =>
       !plot.steps
         ? `Plot cleared, for ${name(plot.holder)}; the cottage is built`

@@ -621,6 +621,22 @@ function checkState(st) {
             for (const [h, n] of Object.entries(by))
               if (!Number.isInteger(n) || n < 1 || n > lotMax)
                 bad.push(`plans: village ${id} season ${s}: household ${h} has ${n} days of lots`);
+          // VB-1770: the agenda: a holder's proposal, one a year, of a known routine or custom of lots; the village's own custom of lots
+          const seen = new Set(),
+            LOTS = VB['sim/customs'].PRACTICES.lots.opts.map((o) => o[0]);
+          for (const x of plan.proposed || []) {
+            const key = `${x.by}:${x.year}`;
+            if (
+              seen.has(key) ||
+              !Number.isInteger(x.by) ||
+              !Number.isInteger(x.year) ||
+              !(x.what === 'routine' ? Object.hasOwn(VB['sim/routines'].VILLAGE_ROUTINES, x.value) : x.what === 'lots' && LOTS.includes(x.value))
+            )
+              bad.push(`plans: village ${id} has a proposal ${JSON.stringify(x)}`);
+            seen.add(key);
+          }
+          if (plan.lotsRule !== undefined && !LOTS.includes(plan.lotsRule))
+            bad.push(`plans: village ${id} has the custom of lots ${plan.lotsRule}`);
           for (const [k, n] of Object.entries((plan.routineLeft && plan.routineLeft.days) || {}))
             if (!VB['sim/routines'].VILLAGE_ROUTINES[k] || !Number.isInteger(n) || n < 0)
               bad.push(`plans: village ${id} left ${n} days of ${k}`);
@@ -2489,7 +2505,7 @@ function checkState(st) {
   // claims on tiles (sim/claims, VB-042): valid tiles and claimants, no claimant twice on a tile, strengths in 0..1, no empty lists
   if (st.claims) {
     const CL = VB['sim/claims'],
-      WHY = ['outland', 'field', 'meadow', 'farm', 'birthright'];
+      WHY = ['outland', 'field', 'meadow', 'farm', 'birthright', 'site'];
     const exists = (by) =>
       by.type === 'pawn'
         ? !!st.pawns[by.id]
@@ -2522,6 +2538,12 @@ function checkState(st) {
               `claims[${tile}]: ${k} birthright is ${c.state} on ${f ? `a farm held by ${f.household}` : 'no farm'}`,
             );
         }
+        if (c.why === 'site') {
+          // a leader's stake on its site's tiles (VB-787)
+          const site = (st.sites || []).find((x) => x.leader === c.by.id && (x.house === tile || x.field === tile));
+          if (c.by.type !== 'pawn' || !site || c.state !== 'unrealised')
+            bad.push(`claims[${tile}]: ${k} stakes a site that is not its own`);
+        }
         if (c.why === 'farm') {
           // a pawn's claim on the house of the empty farm it is restoring (VB-033)
           const f = st.farmsteads.find((x) => x.house === tile);
@@ -2542,6 +2564,39 @@ function checkState(st) {
         }
       }
     }
+  }
+  // the sites of new farms under way (VB-787): ids below st.siteSeq, in order; a living leader first of its party, every member alive and
+  // of one site only; its two tiles used and staked by the leader; its stage as its work; the index (sim/sites siteOf) as the parties
+  if (st.sites !== undefined) {
+    const Sites = VB['sim/sites'],
+      member = new Map(),
+      STAGES = ['trail', 'building', 'roofed'];
+    st.sites.forEach((x, n) => {
+      const at = `sites[${n}] (id ${x.id})`;
+      if (!Number.isInteger(x.id) || x.id >= st.siteSeq || (n > 0 && st.sites[n - 1].id >= x.id))
+        bad.push(`${at}: id against siteSeq ${st.siteSeq}`);
+      if (x.party.all[0] !== x.leader || !st.pawns[x.leader] || !st.villages[x.from])
+        bad.push(`${at}: its leader ${x.leader} is not first of its party`);
+      if (x.village !== null && !st.villages[x.village]) bad.push(`${at}: no village ${x.village} to join`);
+      for (const id of x.party.all) {
+        if (member.has(id)) bad.push(`${at}: pawn ${id} is of two sites`);
+        member.set(id, x);
+        if (Sites.siteOf(st, id) !== x) bad.push(`${at}: the index does not give pawn ${id} its site`);
+      }
+      if (!x.party.followers.every((id) => x.party.all.includes(id))) bad.push(`${at}: a follower outside its party`);
+      for (const t of [x.house, x.field]) if (!st.used.has(t)) bad.push(`${at}: tile ${t} is not marked used`);
+      if (st.pawns[x.leader].alive)
+        for (const t of [x.house, x.field])
+          if (!(st.claims.get(t) || []).some((c) => c.by.type === 'pawn' && c.by.id === x.leader && c.why === 'site'))
+            bad.push(`${at}: tile ${t} not staked by its leader`);
+      if (!STAGES.includes(x.stage) || (x.stage === 'roofed') !== Sites.roofed(x))
+        bad.push(`${at}: stage ${x.stage} against its cottage's ${x.plot.open}`);
+      if (
+        !(x.plot.open >= 0 && x.plot.open <= 3) ||
+        x.plot.places.some((tr) => !(tr.i >= 0 && tr.i <= tr.steps.length))
+      )
+        bad.push(`${at}: its steps out of range`);
+    });
   }
   // cairns on settled borders (VB-157): a valid tile, two different villages, set in the past
   for (const [tile, c] of st.cairns || []) {

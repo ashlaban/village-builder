@@ -199,4 +199,44 @@ function green(st, v, ids) {
   }
   assert.deepStrictEqual(checkState(st).filter((x) => /plans|obligation|levy/.test(x)), [], 'invariants');
 }
+{ // a holder proposes (VB-1770): to the next meeting's agenda, once a year; the meeting weighs it; played and unplayed alike
+  const { st, v, s, plan, voices } = setUp();
+  const holders = st.households.filter((h) => !h.dissolved && h.holder !== null && villageOf(st, st.pawns[h.holder]) === v.id).map((h) => h.holder);
+  assert.ok(holders.length >= 2, 'holders to propose');
+  const [played, other] = holders, propose = (actor, args, source) => issue(st, { actor, verb: 'propose', target: v.id, args, source });
+  assert.ok(/not a holder/.test(propose(Sim.membersOf(st, v.id).find((p) => !holders.includes(p.id) && p.household !== null).id, { what: 'routine', routine: 'fence' }, 'pawn')), 'only a holder');
+  assert.ok(/no routine/.test(propose(played, { what: 'routine', routine: 'gaol' }, 'pawn')), 'a known routine');
+  assert.strictEqual(propose(played, { what: 'routine', routine: 'workdays' }, 'player'), true, 'the played holder proposes');
+  assert.ok(/once a year/.test(propose(played, { what: 'routine', routine: 'commons' }, 'player')), 'one a year');
+  assert.strictEqual(propose(other, { what: 'routine', routine: 'green' }, 'pawn'), true, 'an unplayed holder proposes');
+  assert.deepStrictEqual(plan.proposed.map((x) => [x.by, x.value]), [[played, 'workdays'], [other, 'green']]);
+  assert.deepStrictEqual(checkState(st).filter((x) => /plans/.test(x)), [], 'invariants');
+  const Rt = VB['sim/routines'];
+  assert.ok(Rt.VILLAGE_ROUTINES.workdays.available(st, v), 'work days have work');
+  assert.ok(!Rt.VILLAGE_ROUTINES.green.available(st, v), 'the green has none (a well is dug)' );
+  plan.routines = []; // lint-allow: owner the test starts from a year without village work
+  L.routinesMeeting(st, s, green(st, v, voices.map((p) => p.id)));
+  const fates = st.record.filter((e) => typeof e === 'object' && e.kind === 'proposal');
+  assert.strictEqual(fates.length, 2, 'the record tells each proposal');
+  assert.ok(plan.routines.includes('workdays') && /took it up/.test(fates.find((e) => /work days/.test(e.text)).text), 'weighed highest: chosen');
+  assert.ok(!plan.routines.includes('green') && /refused/.test(fates.find((e) => /green/.test(e.text)).text), 'no such work: refused');
+  assert.deepStrictEqual(plan.proposed, [], 'the agenda cleared');
+  assert.ok(/held this year/.test(propose(other, { what: 'routine', routine: 'fence' }, 'pawn')), 'not once the meeting is held');
+  // a proposal weighs its routine up in the ranking
+  const base = Rt.chooseRoutines(st, v), last = base[base.length - 1];
+  assert.strictEqual(Rt.chooseRoutines(st, v, false, { [last]: 1000 })[0], last, 'the holders\' words weigh');
+  // the custom of lots: put to the households, each for the rule that lightens its own lot
+  const st2 = setUp(); st2.plan.routines = []; // lint-allow: owner the test starts from a year without village work
+  const vid = st2.v.id, hs = st2.st.households.filter((h) => !h.dissolved && h.holder !== null && villageOf(st2.st, st2.st.pawns[h.holder]) === vid);
+  assert.strictEqual(issue(st2.st, { actor: hs[0].holder, verb: 'propose', target: vid, args: { what: 'lots', rule: 'equal' }, source: 'pawn' }), true);
+  L.routinesMeeting(st2.st, st2.s, green(st2.st, st2.v, st2.voices.map((p) => p.id)));
+  const said = st2.st.record.find((e) => typeof e === 'object' && e.kind === 'proposal');
+  assert.ok(said && /the meeting (adopted it|kept the custom of lots)/.test(said.text), said && said.text);
+  assert.strictEqual(Customs.lotsRule(st2.st, vid), /adopted/.test(said.text) ? 'equal' : Customs.practiceOf(st2.st.cenv.cultures[st2.s.culture], 'lots'));
+  // the default author: at the meeting, a holder with no proposal makes one by its own judgement
+  const st3 = setUp(), P3 = st3.plan;
+  L.meetingStage(st3.st, 0); L.holdMeetings(st3.st);
+  for (const e of st3.st.record.filter((x) => typeof x === 'object' && x.kind === 'proposal')) assert.ok(e.pawn !== undefined, 'a proposal is told in the record');
+  assert.deepStrictEqual(checkState(st3.st).filter((x) => /plans/.test(x)), [], 'invariants after the meetings');
+}
 console.log('routines ok: founded, chosen by the meeting, posted on the villager basis; no quorum with nothing and asLastYear; ties; the verb\'s refusals; the routines\' lots laid, released and their work left told');
