@@ -56,6 +56,9 @@ assert.deepStrictEqual(unlisted, [], `kinds written with no record (sim/eventkin
   }
   assert.deepStrictEqual(bad, [], `event records that name nothing: ${bad.join(', ')}`);
 }
+// the skip and the chronicle share their readers through sim/eventline, neither reading the other (review of VB-1946, F2)
+for (const [a, b] of [['skip', 'notable'], ['notable', 'skip']])
+  assert.ok(!readSource(`src/sim/${a}.js`).includes(`VB['sim/${b}']`), `sim/${a} reads sim/${b}: a reader both need belongs in sim/eventline`);
 // On the small islands of tests/lib/probe.js (VB-856; founders ten years and heirs three on the default island before): founders three years
 // and twelve days, saved and loaded in the third year's fold on the way.
 const { island, ROOMY } = require('./lib/probe.js'), world = () => island(7);
