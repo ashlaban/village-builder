@@ -73,9 +73,25 @@ function siteWords(r) {
 const siteGrade = (r) => (!r.ok ? 0 : r.stars >= 8 ? 3 : r.stars >= 6 ? 2 : r.stars >= 4 ? 1 : 0);
 const siteVerdict = (r) =>
   !r.ok ? 'No farm can stand here' : ['A poor place', 'A hard place', 'A good place', 'A fine place'][siteGrade(r)];
+// The places scouted (VB-1613): the sites the solo start offers (Sim.soloSites: the settler's default site, then the search's best,
+// each with its water), read as the page reads a tile; the land's own best when that offers none. Choosing one lands the settler there
+// (siteSettle passes it as the seed's `site`).
+function scoutedSites(seed) {
+  let offered = [];
+  try {
+    offered = Sim.soloSites(w, seed)
+      .map((o) => Sim.landing.read(w, o.house))
+      .filter((r) => r && r.ok)
+      .slice(0, 3);
+  } catch (e) {
+    console.warn('No sites offered', e);
+  }
+  Sim.landing.lay(w);
+  return offered.length ? offered : Sim.landing.best(w, 3);
+}
 function openSite(seed) {
   Sim.landing.lay(w);
-  site = { seed, best: Sim.landing.best(w, 3), at: -1, read: null, lens: '', msg: '', busy: false };
+  site = { seed, best: scoutedSites(seed), at: -1, read: null, lens: '', msg: '', busy: false };
   setSpeed(0);
   u2.lens.hidden = u2.sitecard.hidden = false;
   u2.lens.innerHTML = SITE_LENS.map(
