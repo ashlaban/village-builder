@@ -41,12 +41,7 @@ function settle(at, brook, depth) {
     grown = home.members.filter((id) => st.pawns[id].age >= 18 && id !== home.holder).slice(0, 2);
   home.grain.barley += 3000; // a family that can spare the provisions
   const n = st.farmsteads.length,
-    res = issue(st, {
-      actor: grown[0],
-      verb: 'leave',
-      args: { from: 0, party: { all: grown, followers: [] }, house, field },
-      source: 'round',
-    });
+    res = require('./lib/settled.js')(VB, st, grown[0], { from: 0, party: { all: grown, followers: [] }, house, field });
   const f = st.farmsteads[n] || null;
   return { st, w, res, grown, f, hh: f ? st.households[f.household] : null, house };
 }
@@ -54,10 +49,10 @@ const wellPlan = (st, hh) => Projects.projectsOf(st, 'household', hh.id).find((p
 // ---- 1. an inland site, no water within reach: the well is the site's water, and the party digs it from its booth ----
 {
   const { st, w, res, grown, f, hh, house } = settle([30, 7], 0, 6);
-  check(res === true && grown.length >= 1 && f && f.booth === true, `a party settles in a booth (${res}, ${grown})`);
+  check(res === true && grown.length >= 1 && f && !f.booth, `a party settles in its finished cottage (${res}, ${grown})`);
   const est = Water.siteWater(st, house, 2);
   check(est.by === 'well' && f.wellMeant === true, `the site's water is the well it means to dig (${est.by}, ${f.wellMeant})`);
-  check(Projects.ownOf(st, hh.id) && Projects.ownOf(st, hh.id).what === 'field', 'its first field is under way beside it');
+  check(f.fields.length === 1, 'its first field, broken at the site, is its own (VB-787)');
   let begun = null,
     days = 0,
     drawn = 0;
@@ -72,7 +67,7 @@ const wellPlan = (st, hh) => Projects.projectsOf(st, 'household', hh.id).find((p
     }
   }
   check(
-    begun && begun.hours === wellHours(6) && begun.stone === 6 && begun.booth === true,
+    begun && begun.hours === wellHours(6) && begun.stone === 6,
     `from its booth, 6 loads gathered and a well of ${wellHours(6)} hours begun (${JSON.stringify(begun)})`,
   );
   check(w.fresh[house] === FRESH.WELL && f.wellMeant === undefined, `water is struck within 90 days (${days}), and the mark goes`);
