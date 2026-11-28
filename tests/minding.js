@@ -1,7 +1,8 @@
 // @suite fast
-// VB-1602: nobody leaves a small child alone. On a tiny state: a household of two adults and a child of 3; the first adult lodges away,
-// the second is refused with the reason (the last one at home with a child under 7), is no gift's carrier, and the child is not alone
-// at the day's end; with the first home again the second may go.
+// VB-1693 (from VB-1602): a dependant's charge. On a tiny state: a household of two adults and a child of 3; the child is in the charge of
+// a named living minder; the first adult lodges away; the second, the last keeper at home, weighs what its going costs the child and is
+// no gift's carrier, so the child is not alone at the day's end; yet no verb refuses it (the player may lodge it away); and at the
+// minder's death the charge passes at once to the other adult.
 const assert = require('assert'),
   VB = require('../src/load.js'),
   Sim = VB.sim;
@@ -11,8 +12,8 @@ const { issue } = VB['sim/commands'],
   Stores = VB['sim/stores'];
 const { DAY, YEAR } = VB['sim/rules'],
   { carrierOf } = VB['sim/exchange'],
-  { age, mindsWhy } = VB['sim/records'];
-const minds = (s, id) => mindsWhy(s, id) !== null;
+  { killPawn } = VB['sim/lifecycle'],
+  { age, leaveCost, leaves, thirstLoss } = VB['sim/records'];
 const hourOf = (st) => st.t - Math.floor(st.t / DAY) * DAY;
 const to = (st, h) => Sim.advance(st, (((h - hourOf(st)) % DAY) + DAY) % DAY || DAY); // to the next h:00
 const st = tinyState(tinyWorld(Array(9).fill('.'.repeat(60)), { seed: 3 }), [{ at: [6, 4], farms: 2, sizes: [3, 4] }], { seed: 1 }); // seed 1: a farmer, his wife and a small child (VB-1951 moved the draws)
@@ -31,6 +32,10 @@ for (const [id, years] of [
   st.pawns[id].age = years;
 }
 assert.ok(age(st, st.pawns[kid]) === 3 && age(st, st.pawns[x]) === 30, 'two adults and a child of 3');
+VB['sim/records'].nameAll(st); // the test aged them after the seeding named the charges
+const mother = st.pawns[kid].mother;
+assert.ok([x, y].includes(st.pawns[kid].minder), `the child is in the charge of one of them: ${st.pawns[kid].minder}`);
+if ([x, y].includes(mother)) assert.strictEqual(st.pawns[kid].minder, mother, 'by custom its mother');
 const alone = () =>
   !hh.members.some((id) => st.pawns[id].alive && st.agents[id].away === undefined && age(st, st.pawns[id]) >= 7) &&
   hh.members.some((id) => st.pawns[id].alive && st.agents[id].away === undefined && age(st, st.pawns[id]) < 7);
@@ -38,22 +43,24 @@ to(st, 5); // indoors, at their house: a lodge packs from its door
 Stores.put(st, hh, 'grain', 60, 'harvest', { barley: 60 });
 const site = tileAt(st.w, (f.house % st.w.COLS) + 24, Math.floor(f.house / st.w.COLS));
 const lodge = (id) => issue(st, { actor: id, verb: 'lodge', target: site, args: { why: 'work', days: 3 }, source: 'player' });
-assert.ok(!minds(st, x) && !minds(st, y) && !minds(st, kid), 'with two adults at home neither minds the child alone');
+assert.ok(leaveCost(st, x) === 0 && leaveCost(st, y) === 0, "with two adults at home neither's going costs the child");
 assert.ok(carrierOf(st, hh) >= 0, 'one of them may carry a gift');
 assert.strictEqual(lodge(x), true, 'the first adult lodges away');
 assert.ok(st.agents[x].away !== undefined, 'its stay is open');
-assert.ok(minds(st, y), 'the second is the last one at home with the child');
-const why = lodge(y);
-assert.ok(typeof why === 'string' && /child under 7/.test(why), `and is refused, and the reason names the child: ${why}`);
-assert.strictEqual(carrierOf(st, hh), -1, 'nor does it carry a gift away');
-assert.ok(st.agents[y].away === undefined, 'no stay is opened for it');
+const cost = leaveCost(st, y);
+assert.strictEqual(cost, thirstLoss(st, st.pawns[kid]), "the second's going would cost the child its day's water: " + cost);
+assert.ok(!leaves(st, y) && leaves(st, y, cost), 'it weighs that: it stays for a going that brings the child nothing, goes for more');
+assert.strictEqual(carrierOf(st, hh), -1, 'so it carries no gift away');
 to(st, 1);
 assert.ok(!alone(), "the child is not alone at the day's end");
 assert.deepStrictEqual(checkState(st), [], 'invariants');
-// the child grown to 7 needs no minding: the second may go
-st.pawns[kid].born = st.t - 7.5 * YEAR; // a test's write
-st.pawns[kid].age = 7;
-assert.ok(!minds(st, y), 'a child of 7 is not minded');
+// no verb's check refuses a minder for its charge alone: the player may lodge the second away too
 to(st, 5);
-assert.strictEqual(lodge(y), true, 'and the second adult may lodge away');
+assert.strictEqual(lodge(y), true, 'the second adult may lodge away: the verb does not forbid it');
+// the minder dies: the charge passes at once to the other adult (Nothing is left to no one)
+const m = st.pawns[kid].minder,
+  other = m === x ? y : x;
+killPawn(st, m, 'illness');
+assert.strictEqual(st.pawns[kid].minder, other, 'at the minder\'s death the charge passes at once to the other adult');
+assert.deepStrictEqual(checkState(st), [], 'invariants after the death');
 console.log('minding ok');

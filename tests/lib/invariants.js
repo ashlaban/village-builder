@@ -2315,6 +2315,12 @@ function checkState(st) {
         bad.push(`pawns[${p.id}]: drank is ${p.drank} at ${st.t}`);
       if (p.marsh !== undefined && !(Number.isInteger(p.marsh) && p.marsh <= st.t / 24))
         bad.push(`pawns[${p.id}]: marsh is ${p.marsh}`);
+      // VB-1693: every dependant (a child under 7, one ill in bed) has a named living minder of 7 or over (sim/records pawn.minder)
+      if (VB['sim/records'].dependant(st, p)) {
+        const m = p.minder === null || p.minder === undefined ? null : st.pawns[p.minder];
+        if (!m || !m.alive || m.id === p.id || VB['sim/records'].age(st, m) < VB['sim/roles'].CHILD.from)
+          bad.push(`pawns[${p.id}]: a dependant whose minder ${p.minder} is not a living pawn of 7 or over`);
+      }
     } else {
       if (p.died === null) bad.push(`pawns[${p.id}]: dead without a died time`);
     }
