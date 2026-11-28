@@ -82,6 +82,10 @@ VB['sim/points'] = (() => {
           if (st.jobs.has(key)) out.push({ point: 'demand', body, key, work, deadline: Math.floor(st.t) + 1 });
     }
   }
+  VB.counter(
+    'pointLevy',
+    'Outer levies read for the decision points of a pawn its controller asks for (sim/points, VB-1769)',
+  );
   // The outer levies' points of pawn id (VB-1769): as the levied head of household hh, a levy laid with days to name (`name`, until its
   // default author names them: the next day's first step, or for a head on its own commands the day its window runs short), and a day
   // named for today or tomorrow that cannot be kept as named (`keep`: the one named dead, ill or away, or keeping it costs more than
@@ -135,6 +139,10 @@ VB['sim/points'] = (() => {
     }
   }
   const unplannedHead = (st, id) => VB['sim/records'].unplanned(st, id);
+  VB.counter(
+    'pointOffer',
+    'Open offers looked at by Sim.decisions: each offer, a call a controller makes for its pawn (sim/points decisions, VB-1757)',
+  );
   // Sim.decisions(st, id): the decision points open to pawn id's controller now, by deadline (then as listed), each {point, deadline (a
   // game hour; st.t: at once), and its own fields}; none for a pawn that is dead or no pawn. Read only.
   //   year, season, ahead (body {kind, id}): the reviews of a body it is agent of: a household it heads (all three), a village it is the

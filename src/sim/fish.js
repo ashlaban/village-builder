@@ -54,6 +54,10 @@ VB['sim/fish'] = (() => {
     }
     return FISH.trip * s * frac;
   }
+  VB.counter(
+    'fishGround',
+    'Tiles within reach of a house searched for its fishing ground, when its fishing is asked for (sim/fish; VB-117)',
+  );
   // The fishing ground of a house: the nearest bank (walkable land, not a river, next to water) within FISH.reach walking steps whose
   // richest neighbouring water holds at least FISH.least; ties by the search's order. {shore, water}, or null.
   function ground(st, house) {

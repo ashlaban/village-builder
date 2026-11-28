@@ -161,6 +161,11 @@ VB['sim/exchange'] = (() => {
       if (two && isHousehold(from)) emit(st, 'giftGiven', { giver: hf.id, receiver: ht.id, worth: n * WORTH.grain });
     }
   }
+  VB.counter(
+    'giftUncarried',
+    'Grain a gift settled at once between two farmsteads, or from a village store to a household: none, by the hard rule (sim/exchange; ' +
+      'VB-461)',
+  );
   // Settles an accepted gift between two households of one farmstead, which is one place (the hard rule): what goes between places is
   // carried, hauled or fetched (sim/away) and booked by `receive` as it arrives (VB-1111). Only the verb `deliver` calls it (tests/commands.js).
   function settleGift(st, o) {
@@ -444,6 +449,10 @@ VB['sim/exchange'] = (() => {
     );
   }
   const worthOf = (kind) => Norms.norm('worth', 'cattle/' + kind); // the one table of customary worth (VB-299)
+  VB.counter(
+    'cowSeek',
+    "Households of its village weighed by a household's open want of a cow, on its planning day (sim/exchange; VB-390)",
+  );
   // A deal for the want: among the households of its village, kin first (kinHouseholds), then the others in the order of its farms, the first that spares a
   // heifer, or else a cow, and whose allowance toward the household covers its customary worth (the gift for now: the animal is given and
   // its worth booked as goodwill when it is home). Sets the want's giver, or leaves it open.

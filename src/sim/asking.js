@@ -70,6 +70,14 @@ VB['sim/asking'] = (() => {
     }
     return out.sort((a, b) => a.h - b.h || a.w - b.w);
   }
+  VB.counter(
+    'asksWeighed',
+    'Candidates weighed at an asking or an ask anew, by either side: at most ASK.pool a call (sim/asking askMatch, VB-823, VB-693)',
+  );
+  VB.counter(
+    'askWalk',
+    'Entries of the asking queue read for the unmarried of the other sex within reach, a match asked (sim/asking askMatch, VB-823)',
+  );
   function askMatch(st, id, due, { not = null, only = null } = {}) {
     const p = st.pawns[id],
       v = settlementIdOf(st, p),
@@ -175,6 +183,7 @@ VB['sim/asking'] = (() => {
       });
     return r === true && Number.isInteger(m.ask) ? 'made' : 'wait';
   }
+  VB.counter('asksMade', 'Offers made at an asking (sim/asking, VB-823)');
   // The courtship begins (sim/courting): their offer is made at once, if the gate allows them
   on('courting', (st, d) => {
     if (askCourted(st, d.man) === 'made') {
@@ -224,6 +233,7 @@ VB['sim/asking'] = (() => {
     const q = st.courtDue;
     while (q && q.length && q[0].t <= st.t) offerKnown(st, q.shift());
   }
+  VB.counter('askings', 'Askings held: a pawn who seeks, on its asking day once a season (sim/asking, VB-823)');
   // ---- the asking ----
   // Pawn id's asking (plan, section 3): an open offer it holds lapses if its people have died, married or taken a place (it asks again on
   // its next day); else it reviews its wish (not one its controller authored, VB-1776) and walks its rungs, best first, to Stay: Heir
@@ -286,6 +296,10 @@ VB['sim/asking'] = (() => {
     }
     return tried ? 'nobody' : 'stay';
   }
+  VB.counter(
+    'callWalk',
+    'The asking queue read for a pawn whose asking found nobody, to find a farm to call at (sim/asking callAround, VB-1119)',
+  );
   // The rung of an unmarried pawn whose asking found nobody to ask (VB-1119): it calls, by the verb `call`, at the nearest farm of
   // another village within a day's walk that holds one it does not know yet and might marry; not while it is unplanned (its controller's to order).
   // One look over the asking queue for a pawn whose asking found nobody (at most once a season, a pawn's asking day), the verb allows one
@@ -307,6 +321,7 @@ VB['sim/asking'] = (() => {
     for (const { farm } of pool.slice(0, ASK.pool))
       if (farm !== null && issue(st, { actor: id, verb: 'callAt', target: farm, source: 'asking' }) === true) return;
   }
+  VB.counter('asksNobody', 'Askings whose rungs found nobody to ask (sim/asking, VB-823)');
   // Daily at ASK.hour: the askings due, read from the head of the queue (Rules for cost, 4). asksMade counts the offers made, asksNobody
   // the askings whose rungs found nobody to ask.
   function askingDay(st) {

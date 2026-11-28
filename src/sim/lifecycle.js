@@ -2,7 +2,7 @@
 //   event holderYear, coming of age, orphans, ties);
 //   the village meetings are sim/meetings, the moving round sim/round, marriage and its offers sim/marriage (VB-876)
 VB['sim/lifecycle'] = (() => {
-  const { holdingOf, living } = VB['sim/records'];
+  const { holdingOf, living, trackRoles, spouseOf } = VB['sim/records'];
   const { register } = VB['sim/commands'];
   const { emit } = VB['sim/events'],
     Stores = VB['sim/stores'];
@@ -37,9 +37,16 @@ VB['sim/lifecycle'] = (() => {
     if (!to || to.dissolved) to = st.villages[0];
     Stores.move(st, p, to, 'grain', n, { kind: 'handingOn', estate: true, pawn: p.id });
   }
+  // The death hands its farm on and refreshes the roles of the pawns the handover touched only (VB-1369; sim/records trackRoles).
   function killPawn(st, id, cause = 'killed') {
+    if (!st.pawns[id].alive) return;
+    const sp = spouseOf(st, id),
+      touched = trackRoles(st, sp !== null ? [sp] : [], () => killNow(st, id, cause));
+    if (touched) refreshRoles(st, touched);
+    refreshStanding(st);
+  }
+  function killNow(st, id, cause) {
     const p = st.pawns[id];
-    if (!p.alive) return;
     p.died = st.t;
     p.alive = false;
     emit(st, 'died', { pawn: id }); // its kin grieve (sim/mood, VB-062), before the death ends its union
@@ -101,8 +108,6 @@ VB['sim/lifecycle'] = (() => {
       else g.guardian = null;
     }
     endGoodwill(st, id); // after succession, which passes a holder's share on
-    refreshRoles(st);
-    refreshStanding(st);
     if (u) st.rigDirty.add(u.a === id ? u.b : u.a); // the widowed's rig (VB-442); a farm left empty or inherited asks for its own redraw (sim/heirs)
   }
   function retireHolder(st, hhId) {
@@ -110,13 +115,16 @@ VB['sim/lifecycle'] = (() => {
     if (!hh || hh.dissolved) return false;
     const r = heirRanking(st, hh);
     if (!r.length) return false;
-    transfer(st, hh, r[0], 'retirement');
-    inheritedHeld(st);
-    refreshRoles(st);
+    const touched = trackRoles(st, [], () => {
+      transfer(st, hh, r[0], 'retirement');
+      inheritedHeld(st);
+    });
+    if (touched) refreshRoles(st, touched);
     refreshStanding(st);
     return true;
   }
 
+  VB.counter('walkDaily', 'Pawn records walked by dailyLife and Attitudes.dailyStep');
   function dailyLife(st) {
     VB.count.walkDaily += st.living.length;
     let holders = null,

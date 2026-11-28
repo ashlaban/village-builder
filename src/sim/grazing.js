@@ -75,6 +75,15 @@ VB['sim/grazing'] = (() => {
   // Open pasture for any herd: grass, no water, not in use, not a green.
   const open = (st, t, greens) =>
     !!HERD.herding.grass[st.w.biome[t]] && !st.w.water[t] && !st.w.river[t] && !st.used.has(t) && !greens.has(t);
+  VB.counter(
+    'pastureTiles',
+    "Tiles within reach of a house searched for its herds' pasture, once a grazing day a household (sim/herds; VB-136), and of a " +
+      "green for its herds' way out, once a season a village (sim/grazing wayOf; VB-446)",
+  );
+  VB.counter(
+    'droveWays',
+    'Ways out to the outland chosen, a route search each, once a season a village with herds (sim/grazing wayOf; VB-446)',
+  );
   // @state village.droveway: absent until its herds first go out, then {season (the game season it was chosen in, day / SEASON_DAYS), to
   //   (the tile of its outland pasture the way leads to, -1 for none), tiles (the route from the green to `to`, the green first; [] for
   //   none)}: the one way all its herds are driven out by that season, so that their crossings fall on the same tiles and wear a cattle lane

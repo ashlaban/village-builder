@@ -1,0 +1,8 @@
+/* The icons' sets (VB-1948), after the themes, which name one. */
+/* the icons' sets (VB-1162, VB-1533; page/icons, ICON_SETS): the root's data-icons, which the theme names, is the set shown, and an icon
+   with no drawing of that set shows its line one. One rule a set but line, the fallback: hidden unless asked for, and when asked for,
+   the line drawing beside it hidden. The stencil: one pigment, its parts held apart by gaps in the colour of the ground it lies on */
+:root:not([data-icons="stencil"]) .ico > [data-set="stencil"], :root[data-icons="stencil"] .ico:has(> [data-set="stencil"]) > [data-set="line"] { display: none; }
+[data-set="stencil"] > * { fill: currentColor; stroke: var(--ico-bg, var(--node)); stroke-width: 0.7; stroke-linejoin: round; }
+[data-set="stencil"] > .l { fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; }
+[data-set="stencil"] > .c { fill: none; stroke: var(--ico-bg, var(--node)); stroke-width: 1.5; stroke-linecap: round; }

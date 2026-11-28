@@ -41,6 +41,10 @@ VB['sim/relations'] = (() => {
     touch(st, a, b);
     touch(st, b, a);
   } // both ties grow; bands checked
+  VB.counter(
+    'tiePairs',
+    'Pairs given familiarity for waking hours at home (daily) or a job finished together (sim/relations, VB-127)',
+  );
   function workedTogether(st, ids) {
     // the pawns `ids` finished one job together (sim/agents): each pair grows by TIES.work
     VB.count.tiePairs += (ids.length * (ids.length - 1)) / 2;
@@ -309,6 +313,7 @@ VB['sim/relations'] = (() => {
   // derived from st.living, written only here, rebuilt when the living have changed (their array, its length or its last id: ids only
   // grow, so a list of the same length and last id is the same list).
   const turns = { of: null, n: -1, last: -1, every: 0, by: [] };
+  VB.counter('talkBucket', 'Living walked to rebuild the talk turns when the living changed (sim/relations, VB-521)');
   function turnsOf(st) {
     const L = st.living,
       last = L.length ? L[L.length - 1] : -1;
@@ -328,6 +333,11 @@ VB['sim/relations'] = (() => {
   // partner sim/encounters finds, unless already talking this hour. Anyone may be drawn as a partner in any hour, once.
   const cand = [],
     wts = [];
+  VB.counter('talkWeighed', 'Eligible partners weighed in talkHour');
+  VB.counter(
+    'talkTurn',
+    'Pawns asked by the talk round at their talk turn, every SOCIAL.talk.every waking hours (sim/relations, VB-521)',
+  );
   function talkHour(st, h, near) {
     if (h < T.from || h >= T.to) return;
     const ag = st.agents,
@@ -456,6 +466,7 @@ VB['sim/relations'] = (() => {
     }
     return c.by;
   }
+  VB.counter('companyWeighed', 'Idle pawns drawn and weighed as company in companyFor (VB-205)');
   // Whom idle pawn a joins, at chance SOCIAL.seek: one of up to SOCIAL.seekSample idle pawns of its village, by liking (opinion + 0.05, so
   // never one it dislikes) and familiarity; null if none, and it strolls to the green or its yard as before.
   function companyFor(st, a) {

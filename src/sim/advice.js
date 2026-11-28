@@ -80,6 +80,10 @@ VB['sim/advice'] = (() => {
     if (g.verb === 'match') return matchWhy(st, o.to, hh, g.args);
     return VERBS[g.verb].check(st, commandOf(st, o));
   }
+  VB.counter(
+    'adviceStanding',
+    'Members of a village read for its mean standing, an advice weighed (sim/advice weightOf, VB-1316)',
+  );
   // The weight the head gives the adviser's word: its opinion of it times its standing over the mean standing of its village (one walk
   // of the village's members, `adviceStanding`)
   function weightOf(st, head, adviser) {
@@ -101,6 +105,7 @@ VB['sim/advice'] = (() => {
     if (g.verb === 'sowOutOfTurn') return `${args.crop} out of turn`;
     return "the season's order of work";
   }
+  VB.counter('adviceTaken', 'Advice taken by a head and carried out (sim/advice, VB-1316)');
   // What a yes does: the head issues the verb itself (the act is the head's); for a match, its match offer by askMatch, due at the round
   function carry(st, o) {
     const g = o.gives;
@@ -143,6 +148,10 @@ VB['sim/advice'] = (() => {
     if (!hh.herds || !hh.herds.length) return null; // no herd to feed
     return Math.abs(T.now - T.custom) > ADVICE.gap * T.custom ? { store: 'hay', n: T.custom } : null;
   }
+  VB.counter(
+    'adviceMatchWalk',
+    "Entries of the asking queue read for a grandchild's match, a retired grandparent's advice (sim/advice, VB-1316)",
+  );
   // The match a retired grandparent wishes for grandchild g, args {pawn, partner}, or null: of those who seek in its village (the asking
   // queue's part, at most ASK.pool read, `adviceMatchWalk`), of the other sex and of age, the one it thinks best of, at ADVICE.fancy or more.
   function matchAdvice(st, r, g, hh) {
@@ -179,6 +188,10 @@ VB['sim/advice'] = (() => {
     }
     return out;
   }
+  VB.counter(
+    'adviceOffered',
+    'Advice offered by a retired member to its head, at its spring planning day (sim/advice, VB-1316)',
+  );
   // Pawn p, retired in household hh, advises its head this spring: a store's target where the head's departs from the custom's, and a
   // match for the first grandchild of age it finds one for. Each an offer of basis `advice`, due at once.
   function advise(st, p, hh) {

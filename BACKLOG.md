@@ -19,7 +19,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 
 | ID | Name | Arch | Pri | Size | Summary |
 |----|------|------|-----|------|---------|
-| [VB-2011](backlog/VB-2011.md)<a id="VB-2011"></a> | Split sim/chores: the wood to sim/wood | - | 1 | M | sim/chores is 762 lines, over 700 (lint); the wood moves to its own module |
 | [VB-665](backlog/VB-665.md)<a id="VB-665"></a> | Housekeeping: one scale for the simulation's meters, reviewed with Kim | - | 2 | S | Inventory every bounded or signed quantity the player is shown, its range in st and on the page; propose 0 to 100 and -100 to 100 with the motivated exceptions; questions for Kim |
 | [VB-707](backlog/VB-707.md)<a id="VB-707"></a> | A debtor's refusal is a breach the village knows, and costs standing | - | 2 | S | Ignoring a debt of honour costs nothing but a private memory, and sim/exchange's `propriety` has no caller. Kim, 16 Nov: a refusal by one who owes is a public breach. |
 | [VB-1478](backlog/VB-1478.md)<a id="VB-1478"></a> | The fair's animals and carts: a beast led to the gathering, an ox cart carrying 300 | fair | 2 | S | VB-302 left these out: an animal walks to the fair beside its dealer and changes herd when swapped; a household with an ox cart and its team free loads 90 rations' worth, the cart out until it is home. |
@@ -35,12 +34,10 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1911](backlog/VB-1911.md)<a id="VB-1911"></a> | The barn, the byre and the storehouse as kinds in the facility registry | - | 2 | M | The three outbuildings are declared as facility kinds (sim/facilities declare) with their stages, and the farm's flags become reads of the registry; old saves read as before; no number moves. |
 | [VB-1925](backlog/VB-1925.md)<a id="VB-1925"></a> | The generator lays exactly one salt spring a map, picked by the seed | - | 2 | S | The generator draws a salt spring per island by chance (0.1), so a map may have none or several; Kim, 27 Nov: exactly one in the whole archipelago, which is the only salt until a town brings an import. |
 | [VB-1932](backlog/VB-1932.md)<a id="VB-1932"></a> | Fell and Cut firewood are always available; the head plans the winter's wood | - | 2 | M | Fell and Cut are never withheld because of a store's goal: Fell on any tile the household may fell, Cut whenever unreserved timber is home; the winter's wood is the head's planning |
-| [VB-1934](backlog/VB-1934.md)<a id="VB-1934"></a> | Refactor: a work counter is declared by the module whose loop it counts | - | 2 | M | src/vb.js 12 tasks to 0 (VB-1406 step 2) |
 | [VB-1937](backlog/VB-1937.md)<a id="VB-1937"></a> | Settling in steps: f.booth goes, a booth household loads as a site | - | 2 | M | Remove f.booth and the booth cottage jobs; load a booth household's save as a site at step 3 with its household founded |
 | [VB-1941](backlog/VB-1941.md)<a id="VB-1941"></a> | Refactor: a module's layer read from its @sys line; the modules' list generated; NOT_STOCKS a tag on @state | - | 2 | M | src/layers.json 13 to 1, modules.md 22 to 0, tools/stocks.js 10 to 3 (VB-1406 step 3) |
 | [VB-1944](backlog/VB-1944.md)<a id="VB-1944"></a> | Refactor: the Sim facade joined from what each module gives the page | - | 2 | M | src/sim.js 17 to 1-4 (VB-1406 step 6) |
 | [VB-1946](backlog/VB-1946.md)<a id="VB-1946"></a> | Refactor: one record an event kind, declared by its emitter; sim/notable split into the skip and the chronicle | - | 2 | M | sim/notable 16 to 8 and 6, sim/records 10 to 6 (VB-1406 step 8) |
-| [VB-1948](backlog/VB-1948.md)<a id="VB-1948"></a> | Refactor: the page's stylesheets by area, and a card's rows declared by the feature's page file | - | 2 | M | head.html 14 to 6, 6, 4; page/words 11 to 7 (VB-1406 step 10) |
 | [VB-1973](backlog/VB-1973.md)<a id="VB-1973"></a> | A seed loan before sowing, after a failed year | plans | 2 | M | seed corn lent before sowing and kept for it, so a failed year is not followed by an unsown one |
 | [VB-2033](backlog/VB-2033.md)<a id="VB-2033"></a> | A cold lone settler fetches wood | - | 2 | S | Cold, not hunger, drained the settler; find why wood is not chosen |
 | [VB-093](backlog/VB-093.md)<a id="VB-093"></a> | A village mill: water where a river is in reach, else wind | mill | 3 | M | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. |
@@ -90,7 +87,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1240](backlog/VB-1240.md)<a id="VB-1240"></a> | Acts with no pawn, collected: swept at a slice's wrap-up | acts | 3 | M | The acts with no pawn, and the choices only the player has, that tasks found; a line each, swept when a slice wraps up |
 | [VB-1354](backlog/VB-1354.md)<a id="VB-1354"></a> | Screenshots and Debug audit for VB-671 | - | 3 | S | screenshots, Debug audit |
 | [VB-1364](backlog/VB-1364.md)<a id="VB-1364"></a> | The village's loans are made by its alderman | - | 3 | S | Loans of the village (VB-312) made by the alderman, booked as goodwill |
-| [VB-1369](backlog/VB-1369.md)<a id="VB-1369"></a> | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
 | [VB-1389](backlog/VB-1389.md)<a id="VB-1389"></a> | Cost: three history targets out at small-y40 (asksWeighed, kinPairs, roundWalk) | - | 3 | S | asksWeighed, kinPairs and roundWalk grow with history at small-y40; find the loops and bound them |
 | [VB-1404](backlog/VB-1404.md)<a id="VB-1404"></a> | Measures owed to VB-775: RITE.spread 3/5/8, hours lost, cross-village marriages | - | 3 | S | RITE.spread runs, hours lost, marriages across villages, greens' share of dealing |
 | [VB-1410](backlog/VB-1410.md)<a id="VB-1410"></a> | Measure the alderman's keep (VB-463): each option forced, keepDays 2/4/7, keepShare 0.05/0.1/0.17 | - | 3 | S | Collecting task for VB-463's unmeasured numbers |
@@ -159,6 +155,8 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1990](backlog/VB-1990.md)<a id="VB-1990"></a> | An animal is not given where its new household cannot lead it home | - | 3 | S | giveAnimal skips a gift beyond a day's walk, which otherwise starves away before the frost |
 | [VB-2000](backlog/VB-2000.md)<a id="VB-2000"></a> | Wet game days: a share of what lies out lost on each | - | 3 | M | the wet share of VB-1910, waiting for a wet day in the sim |
 | [VB-2023](backlog/VB-2023.md)<a id="VB-2023"></a> | A team's harness moves with the team | - | 3 | S | A new keeper of a team takes its worn harness, not a sound one |
+| [VB-2041](backlog/VB-2041.md)<a id="VB-2041"></a> | Retire the work counter roundPairs, counted nowhere since VB-693 | - | 3 | S | roundPairs is declared and read but never raised: retire it and its always-zero probe |
+| [VB-2043](backlog/VB-2043.md)<a id="VB-2043"></a> | Refactor: the person card's feature rows moved out of page/words to their features' page files | - | 3 | S | Move the leanings, share and marriage-bar rows of the person card out of page/words |
 
 </details>
 

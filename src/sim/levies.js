@@ -52,6 +52,10 @@ VB['sim/levies'] = (() => {
     if (a < AGES.hands[0]) return 'child';
     return p.servant ? 'servant' : 'adult';
   }
+  VB.counter(
+    'levyCompile',
+    "Members' levies compiled on their household's plan: at the season's turn, a member new to it or of a changed role (sim/levies, VB-1760)",
+  );
   // Pawn p's levy entry as compiled now: [hours a day by the clock (null: not levied), hands, role].
   function compile(st, hh, p, season) {
     VB.count.levyCompile++;
@@ -168,6 +172,11 @@ VB['sim/levies'] = (() => {
       visit = Number.isInteger(p.sat) ? Math.min(1, (day - p.sat) / VOICE.days) : 0;
     return Math.max(rest, visit, Number.isInteger(p.courting) ? GIVE.court : 0);
   }
+  VB.counter(
+    'giveJudged',
+    "A member's judgement read: a demand answered, a levied leg's start weighed for a take, its own hours weighed for giving " +
+      '(sim/levies judgement, VB-1779, VB-1762)',
+  );
   // judgement(st, hh, p, n): member p's judgement J of household hh's head, by what it knows now, for a task of need n (needOf); null for
   // one with no head to judge. No draw.
   function judgement(st, hh, p, n) {
@@ -183,6 +192,10 @@ VB['sim/levies'] = (() => {
       GIVE.want * wantOf(st, p)
     );
   }
+  VB.counter(
+    'giveLeg',
+    "Legs of a member's own hours given to its household's or village's work by its judgement (sim/levies gives, VB-1762)",
+  );
   // Does member p give one leg of task j, the first of its list past the levy with room, of its own hours (J > 0: What own hours are for;
   // VB-1762): read when it comes to its own hours, and again at each given leg's end; `view` (sim/fit explainIdle) reads it and counts no
   // leg. One with no head to judge gives nothing.
@@ -316,6 +329,10 @@ VB['sim/levies'] = (() => {
     if (tallied) tally(st, hh, p, k === 2 ? 0 : 2, past, r.day);
     if (tallied && k === 2 && by !== 'owed') owe(st, hh, p, r, past);
   }
+  VB.counter(
+    'breachBooked',
+    'Goodwill booked between a member and its head for hours demanded or taken, a ration at a time (sim/levies, VB-1779)',
+  );
   // Goodwill between member p and its head for h hours times hands (> 0 demanded: the head owes; < 0 taken: the member owes), in a day's
   // work's units (The gift: GOODWILL.hour rations an hour), gathered on the record (r.gw) and booked once it comes to a whole ration
   // (GOODWILL.forget: less would be forgotten as it is booked).
@@ -343,6 +360,10 @@ VB['sim/levies'] = (() => {
     }
     r.at = Math.max(r.at, to);
   }
+  VB.counter(
+    'hoursBook',
+    "Legs' ends whose working hours were booked into the six parts of a pawn's day (sim/levies book, VB-1761)",
+  );
   // A leg of pawn a has ended (sim/legs emits 'legOver' with a.leg the leg): the hours from the last booking to the leg's start are the
   // pawn's own (in no leg), the leg's own by who opened it (leg.by), up to now. One booking a leg's end (hoursBook).
   function book(st, a) {
@@ -505,6 +526,10 @@ VB['sim/levies'] = (() => {
         s += `o${o.id}.${Math.round(Obligations.left(o) * 100)}.${Math.round(o.asked * 100)}.${o.named.length}`;
     return s;
   }
+  VB.counter(
+    'budgetReckoned',
+    "Households' labour budgets reckoned: at the season's first review and when the members or the outer days change (sim/levies budget, VB-1778)",
+  );
   // budget(st, hh, c): household hh's labour budget for the season of c (plan.budget), reckoned where it is a new season or what it
   // was reckoned on has changed; null where it has no plan. A standing grant comes out of its member's hours a day, and each dated grant
   // its hours of the levy out of its day's game week (Leave, and a stay away: the labour budget counts them out of its season).
@@ -520,6 +545,10 @@ VB['sim/levies'] = (() => {
       [weeks, outer] = weeksOf(st, hh, c);
     return (plan.budget = { at: key, from, sig, weeks, total: weeks[0] + weeks[1] + weeks[2], outer });
   }
+  VB.counter(
+    'budgetDay',
+    "Members' days of a season read for their levy in force by a household's labour budget reckoned (sim/levies budget, VB-1763)",
+  );
   // The levy hours of household hh's members in each game week of the season of c, from its day on, less the outer levies' days: [weeks,
   // the outer days owed].
   function weeksOf(st, hh, c) {
@@ -536,6 +565,7 @@ VB['sim/levies'] = (() => {
     for (let k = 0; k < 3; k++) weeks[k] = Math.max(0, weeks[k] - w[k] * OUTER.hours);
     return [weeks, outer];
   }
+  VB.counter('fitRow', 'Season steps with hours left set against the labour budget at a fit (sim/levies fit, VB-1778)');
   // The hours of plan's season due by each game week against `weeks` (levy hours a week), by the cumulative weekly comparison of fit:
   // {short (the largest shortfall), week (where it falls), rows ([week, step]), ends}.
   function shortOf(st, plan, hh, c, weeks) {
@@ -615,6 +645,10 @@ VB['sim/levies'] = (() => {
     return w && w.lack > 0 && s.left.mid > 0 ? { perHour: (worth * w.lack) / s.left.mid, lack: w.lack } : null;
   }
   const r1 = (x) => Math.round(x);
+  VB.counter(
+    'fitJudged',
+    "Households' seasons judged against their labour budget, once a season at its first review (sim/levies fit, VB-1778)",
+  );
   // The head of household hh judges its season against its budget, at the season's first review (after its estimate of each step's
   // hours left, sim/estimate setLeft): by each game week, the hours due by its end against the budget's to its end, so a short game week
   // is seen as the season's total is. Where it does not fit, its default author answers in design.md's order, each by its estimate: help
@@ -774,6 +808,10 @@ VB['sim/levies'] = (() => {
   // given, the most a household may take more (OUTER.lotMax less its lots this season): the days past it go to the others in the same
   // way, and what none can take is left. [lots ([[household id, days]], by id), rest (days left unplaced)].
   const LOT_AGE = 15;
+  VB.counter(
+    'routineLots',
+    "A routine's levy split into its households' lots, a household weighed a round (sim/levies split, VB-1768)",
+  );
   function split(st, vid, D, rule = 'fields', room = null) {
     const hs = [];
     for (const fid of st.villages[vid].farmsteads) {
@@ -813,6 +851,7 @@ VB['sim/levies'] = (() => {
   }
   // By fields, nothing held back: the levy verb's lots of a levy laid on a village.
   const lotsOf = (st, vid, D) => split(st, vid, D)[0];
+  VB.counter('leviesLaid', 'Outer levies laid through the verb levy, a record a household (sim/levies, VB-1767)');
   register('levy', {
     check: (st, c) => levyWhy(st, c.actor, c.args),
     run: (st, c) => {
@@ -847,6 +886,10 @@ VB['sim/levies'] = (() => {
       }
     },
   });
+  VB.counter(
+    'leviesAsked',
+    "Outer levies asked by their levier's default author at its season's turn (sim/levies ask, VB-1767)",
+  );
   // ---- the ask: the levier's default author, at its season's turn ----
   // A keep's or a patron's: the days its household's season plan falls short of its labour budget (plan.fit.short over OUTER.hours,
   // rounded up), a day at a time from the levy with most days left; a debt's a quarter of its days; at summer's turn, the year's last
@@ -881,6 +924,10 @@ VB['sim/levies'] = (() => {
       });
   }
   on('seasonJudged', (st, d) => ask(st, d.hh, d.c));
+  VB.counter(
+    'leviesWeighed',
+    'Tasks of a household weighed for the windowed work a day named would displace (sim/levies, VB-1767)',
+  );
   // ---- naming: the levied head's rule, or the verb name ----
   // What naming day d displaces of household hh's windowed work, by its head's reckoning: for each open task whose window (sim/hands
   // windowEnd) is still open on d, the hours of it left past what the household's hands can do from d to the window's end less the day's.
@@ -969,6 +1016,10 @@ VB['sim/levies'] = (() => {
     if (a.pawn !== null && a.pawn !== undefined && !able(st, hh, a.pawn)) return 'no adult of that household can come';
     return null;
   }
+  VB.counter(
+    'daysNamed',
+    "Days of an outer levy named, by the levied head's rule, the verb name or the levier (sim/levies, VB-1767)",
+  );
   register('name', {
     check: (st, c) => nameWhy(st, c.actor, c.target, c.args),
     run: (st, c) => {
@@ -1007,6 +1058,10 @@ VB['sim/levies'] = (() => {
   // An adult of hh who can come today: able, not ill, at home (not away), not on another levy's duty today.
   const comes = (st, hh, id, by) =>
     able(st, hh, id) && !st.pawns[id].ill && !!st.agents[id] && st.agents[id].away === undefined && !(by && by[id]);
+  VB.counter(
+    'outerCost',
+    "A levied head's reckoning of what keeping a day of an outer levy costs, K (sim/levies costOf, VB-1769)",
+  );
   // K: what keeping day d of an outer levy costs household hh with adult id sent (null: any adult, a whole day), in rations, by its
   // head's reckoning, as its demand reckons work at risk (sim/day atRisk): for each open task whose window (sim/hands windowEnd) is still
   // open on d, the hours the day takes from it past what the household's levied hours to the window's end less the day's cover, times
@@ -1056,6 +1111,18 @@ VB['sim/levies'] = (() => {
     const G = Math.max(0, balance(st, agent, head));
     return K * (1 + opinionOf(st, agent, head)) > worthTo(st, o, d) + G;
   }
+  VB.counter(
+    'outerDayJudged',
+    'Days of an outer levy come, judged by the levied head before it sends its adult (sim/levies keepDay, VB-1769)',
+  );
+  VB.counter(
+    'ladderTried',
+    'Days of an outer levy whose keeping cost passed its worth, the ladder tried (sim/levies keepDay, VB-1769)',
+  );
+  VB.counter(
+    'releaseAsked',
+    "Asks for the release of an outer levy's day made by the levied head's rule (sim/levies, VB-1769)",
+  );
   // The levied head's default author, on the day's first step, for the day named e of levy o: where the one named can come and keeping
   // the day costs no more than its worth, it is kept; else the ladder, each rung by the verbs and their checks: (1) substitute the adult
   // whose K is least, where it is below the day's worth; (2) name another day of the window whose K is below it; (3) ask the levier's
@@ -1133,6 +1200,10 @@ VB['sim/levies'] = (() => {
     if (!a || !Number.isInteger(a.day) || !namedOn(o, a.day)) return 'no adult is named for that day';
     return null;
   }
+  VB.counter(
+    'daySubstituted',
+    'Days of an outer levy sent another adult through the verb substitute (sim/levies, VB-1769)',
+  );
   // substitute({day, pawn}): another adult sent on a day named, where the terms allow.
   register('substitute', {
     check: (st, c) => {
@@ -1151,6 +1222,10 @@ VB['sim/levies'] = (() => {
       VB.count.daySubstituted++;
     },
   });
+  VB.counter(
+    'dayCommuted',
+    "Days of an outer levy paid in grain at the terms' rate through the verb commute (sim/levies, VB-1769)",
+  );
   // commute({day}): the day named paid for in goods at the terms' rate, from the household's store to the levier's (a debt's against it).
   register('commute', {
     check: (st, c) => {
@@ -1184,6 +1259,7 @@ VB['sim/levies'] = (() => {
       leviedWhy(st, actor, a.levy, a) || (a.K !== undefined && !(a.K >= 0) ? 'a breach carries its reckoning' : null)
     );
   }
+  VB.counter('dayBreached', 'Days of an outer levy breached by the levied head (sim/levies breach, VB-1769)');
   function breach(st, actor, a) {
     const o = st.obligations[a.levy],
       hh = st.households[o.debtor.id],
@@ -1216,6 +1292,10 @@ VB['sim/levies'] = (() => {
     if (!o || o.kind !== 'days' || !Obligations.isLive(o)) return `there are no days owed under ${id}`;
     return agentOf(st, o.creditor) === actor ? null : 'only the one who acts for the levier answers for its days';
   }
+  VB.counter(
+    'dayReleased',
+    "Days of an outer levy struck by its levier's agent through the verb release (sim/levies, VB-1769)",
+  );
   // release({day} or {days}): the levier's agent strikes a day named, or n days of what is left (a levy about to lapse, let go).
   register('release', {
     check: (st, c) => {
@@ -1234,6 +1314,10 @@ VB['sim/levies'] = (() => {
       VB.count.dayReleased++;
     },
   });
+  VB.counter(
+    'dayTransferred',
+    "Days of an outer levy lent by its levier's agent to another household (sim/levies transfer, VB-1769)",
+  );
   // transfer({day, to}): the levier's agent lends the day named to household `to` of the levied's village: the day worked there on the
   // basis `owed`, a levy of one day of its own (the alderman lends a day of his keep to a household in need).
   register('transfer', {
@@ -1283,6 +1367,10 @@ VB['sim/levies'] = (() => {
       VB.count.dayTransferred++;
     },
   });
+  VB.counter(
+    'breachForgiven',
+    "Breaches forgiven by the levier's agent through the verb forgive (sim/levies, VB-1769)",
+  );
   // forgive({day}): the levier's agent forgives a breach still to answer: the goodwill it booked is struck (design.md also books the
   // day's worth to the agent's credit as a gift, which would undo the striking; VB-1769 strikes it only, a note to design). The day a
   // debt still owes stays owed.
@@ -1303,6 +1391,7 @@ VB['sim/levies'] = (() => {
       VB.count.breachForgiven++;
     },
   });
+  VB.counter('breachAnswered', "Breaches answered by the levier's agent at its planning day (sim/levies, VB-1769)");
   // At the levier's agent's planning day (a review of the levier's plan): each breach still to answer forgiven where its release would
   // have been granted (grants), else let stand.
   on('planReviewed', (st, d) => {
@@ -1334,6 +1423,7 @@ VB['sim/levies'] = (() => {
       return 'a transfer names the household';
     return {};
   }
+  VB.counter('releaseGranted', "Asks for an outer levy's day granted, by release or transfer (sim/levies, VB-1769)");
   // A grant: by transfer where the basis asks it, or where the agent holds an ask for hands from another household of the village
   // (sim/hands); else a release; either booked as the agent's goodwill.
   function askSettle(st, o) {
@@ -1373,6 +1463,10 @@ VB['sim/levies'] = (() => {
       settle: askSettle,
       what: askWords,
     });
+  VB.counter(
+    'debtRelaid',
+    "A debt's days left at its year's end laid again as a new year's levy (sim/levies, VB-1769)",
+  );
   // ---- a debt's days unworked (design.md, A debt's days unworked; Remedies) ----
   // On the last day of a debt's year (its due before the next day's first step), its days left are not struck by a breach: what
   // remains is laid as a new year's `debt` levy by the creditor's agent (the field that passes under "labour, then land" for a debt
@@ -1418,6 +1512,10 @@ VB['sim/levies'] = (() => {
     }
     return true;
   }
+  VB.counter(
+    'routineMissed',
+    "Days of a routine's levy on duty weighed at the day's turn for work not done (sim/levies step, VB-1768)",
+  );
   // The routine's days on duty of the day past d (a work day's are judged at its end, sim/workdays): one on duty that worked none of
   // its hours while the village's tasks stood breached it; where the village had none to give, its day is released by the alderman.
   function dayPast(st, d) {
@@ -1439,6 +1537,10 @@ VB['sim/levies'] = (() => {
         });
     }
   }
+  VB.counter(
+    'leviesLooked',
+    "Outer levies read at a day's first step, through the obligations' due-queue (sim/levies step, VB-1767)",
+  );
   // A day's first step, through the due-queue's outer levies (Rules for cost, 4): the days named for today come on duty (those of
   // days past are over: what was not worked stays owed and is named again); the days still unnamed are named. Then those who have
   // given their hours are told so (`dayGiven`): their working day is over, and sim/agents' rule for it (a load in hand carried to the
@@ -1487,6 +1589,10 @@ VB['sim/levies'] = (() => {
   // The hours left of routine k's tasks in village v, by the estimate of its alderman `a` (sim/estimate, his skill) or, with none,
   // their hours as posted.
   const estOf = (e) => (Number.isFinite(e.mid) ? e.mid : e.work);
+  VB.counter(
+    'routineWeighed',
+    "Village tasks weighed for a routine's hours left, at its lots and at its work done (sim/routines, VB-1768)",
+  );
   function hoursLeft(st, v, k, a) {
     const R = Routines.VILLAGE_ROUTINES[k];
     let h = 0;

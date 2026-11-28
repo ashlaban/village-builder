@@ -260,7 +260,7 @@ How to work here:
 - The flag: `UI2` (`src/page/ui2.js`). On by default; `?classic` in the address, or `window.VB_CLASSIC` (set by `tests/lib/page.js`
   for the page's tests and tools), shows the old interface. The old panels are hidden by one rule in `src/ui2.css`, not removed.
   The start menus are still the old ones.
-- `src/ui2.css`: the new styles, spliced after `head.html` by `build.js`.
+- `src/ui2.css`: the new styles, the last of the stylesheets `build.js` splices after `head.html`, in the order of `src/styles.json`.
 - `src/sim/landing.js` (`Sim.landing`): a site read before anyone settles (water, soil, wood banded 0 to 3, 9 in all; `why` no farm
   can stand; `best` the places scouted). `Sim.seed(..., {site})` lays the solo farm on the tile chosen.
 - `src/page/ui2site.js`: the solo start. `build()` (page/loader) shows the land with `st` null (`landFirst`); the reading is a

@@ -89,6 +89,7 @@ VB['sim/heirranking'] = (() => {
     const home = st.households[st.pawns[id].household];
     return home && !home.dissolved && home.holder === sp ? home : null;
   }
+  VB.counter('heirRank', 'All heirRanking calls, including nested rankings and indirect callers');
   // Who would inherit this farm now, in order, under the practice of its village. The order is whom the holding is offered to, and the
   // passing over is what each would answer (VB-824; design.md, Succession: Handed on, and taken up): `asked`, an array, gets the whole
   // line in the order asked, {id, no (why this one would not take it, or null)}; those with no null, in that order, are the ranking.
