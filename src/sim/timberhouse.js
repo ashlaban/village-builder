@@ -8,8 +8,9 @@ VB['sim/timberhouse'] = (() => {
   const { declare } = VB['sim/makings'];
   const { log, fullName, atFarm } = VB['sim/records'];
   // @state farmstead.rung (VB-1664): the rung the farm's main building stands at where it cannot be derived from the farm's state
-  //   (sim/ladder rungOf derives a camp, a shelter and a cottage): absent or null below the timber house, 'timber' once it is finished. A
-  //   save from before reads as the rung derived. It goes with the farm and its house; written only here.
+  //   (sim/ladder rungOf derives a camp, a shelter and a cottage): 'shelter' while the farm has no cottage yet (its own site's,
+  //   sim/sites, VB-1937; null again at the roof), absent or null for a cottage, 'timber' once the timber house is finished. A save from
+  //   before reads as the rung derived. It goes with the farm and its house; written here, by sim/sites and by the scenarios.
   // @notstock farmstead.rung: land, buildings and their records (fields, meadows, a site's timber)
   const STAGES = ['timberframe', 'timberroof'];
   // The steps of a timber house's project plan at house tile `house`: the frame with the timber it waits for, then the roof.
@@ -26,7 +27,7 @@ VB['sim/timberhouse'] = (() => {
   function timberWhy(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `the household has no farm of its own`;
-    if (f.booth) return `${f.name} has no cottage yet`;
+    if (f.rung === 'shelter') return `${f.name} has no cottage yet`;
     if (f.rung === 'timber') return `${f.name} has a farmhouse`;
     if (!st.villages[f.village].wood.length) return `${st.villages[f.village].name} has no wood to fell its timber in`;
     return null;

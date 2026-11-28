@@ -19,8 +19,12 @@ VB['sim/upgrade'] = (() => {
   const { projectsOf, lacks } = Projects;
   const { KINDS, GOALS, headCmd } = VB['sim/kinds'];
   const { makingOf } = VB['sim/makings'];
-  const { makeProject } = VB['sim/projectplans'];
-  const { COTTAGE, cottagePlan, cottageOf, wallsOf } = VB['sim/cottageplan'];
+  const { COTTAGE, cottageSteps } = VB['sim/cottageplan'];
+  // The site of household hid's farm's own cottage (sim/sites farmSite, VB-1937), or null.
+  const siteOfHome = (st, hid) => {
+    const f = farmOf(st, hid);
+    return f ? VB['sim/sites'].ofFarm(st, f.id) : null;
+  };
   const { taskAt } = VB['sim/steps'];
   const { rungWhy, foundationWhy, outWhy, OUTBUILDINGS } = VB['sim/ladder'];
   const { byreWhy } = VB['sim/byrehouse'];
@@ -34,12 +38,12 @@ VB['sim/upgrade'] = (() => {
     return hh && !hh.dissolved && hh.farmstead !== null ? st.farmsteads[hh.farmstead] : null;
   };
   // ---- the timber at home first ----
-  // The timber household hh holds at home taken into the walls of its cottage plan p while they lack it (through sim/stores, the reason
+  // The timber household hh holds at home taken into the walls of its farm's own site s while they lack it (through sim/stores, the reason
   // 'build': what a project's step spends); the loads taken. Only for a cottage the upgrade task began: an unplayed household's timber
   // home is its firewood, cut at the house as before.
-  function homeTimber(st, hh, p) {
-    if (COTTAGE.indexOf(p.steps[p.open].kind) > WALLS) return 0;
-    const walls = wallsOf(p),
+  function homeTimber(st, hh, s) {
+    if (s.plot.open > WALLS) return 0;
+    const walls = VB['sim/sites'].wallsOf(s),
       n = Math.min(Stores.heldOf(hh, 'timber'), Projects.lacks(walls, BUILD.timber));
     if (!(n > 0)) return 0;
     const got = Stores.take(st, hh, 'timber', n, 'build');
@@ -50,14 +54,14 @@ VB['sim/upgrade'] = (() => {
   // its walls lack it.
   on('timberHome', (st, { household }) => {
     const f = plansIn(st, household).length ? farmOf(st, household) : null,
-      p = f && f.booth ? cottageOf(st, household) : null;
+      p = f && f.rung === 'shelter' ? VB['sim/sites'].ofFarm(st, f.id) : null;
     if (p && taskAt(st, household, 'upgrade', f.house)) homeTimber(st, st.households[household], p);
   });
   // ---- the verb: the head begins its cottage ----
-  // beginCottage(tile): the head of a household living in its shelter (VB-1666) begins its cottage at its house (`tile`): the cottage plan made as a
-  // settler household's is (sim/cottageplan cottagePlan), its stages then posted as theirs are (sim/building boothWork), and the timber
-  // held at home taken into its walls. A verb, not the making registry: the cottage is the household's one main building, a project plan
-  // of its own (sim/projects, 'cottage'), not a small construction beside others; the plan's chain reaches it as the farmstead's placing.
+  // beginCottage(tile): the head of a household living in its shelter (VB-1666) begins its cottage at its house (`tile`): its farm's own
+  // site (sim/sites farmSite, VB-1937: one way to build a new farm's cottage, a site's), its work its household's (farmWork), and the
+  // timber held at home taken into its walls. A verb, not the making registry: the cottage is the household's one main building, not a
+  // small construction beside others; the plan's chain reaches it as the farmstead's placing.
   function beginWhy(st, id, tile) {
     const p = st.pawns[id],
       f = p ? farmOf(st, p.household) : null;
@@ -70,16 +74,15 @@ VB['sim/upgrade'] = (() => {
     run: (st, c) => {
       const hh = st.households[st.pawns[c.actor].household],
         f = st.farmsteads[hh.farmstead],
-        p = makeProject(st, 'household', hh.id, cottagePlan(st, f));
-      st.farmDirty.add(f.id);
-      if (p) homeTimber(st, hh, p);
+        s = VB['sim/sites'].farmSite(st, f);
+      homeTimber(st, hh, s);
     },
   });
   VB.counter('campLook', 'Households read each working hour for a camp left to itself (sim/upgrade ownRung, VB-1658)');
   // ---- the head's own rule (VB-1658): a camp left to itself gets its roof ----
   // Each working hour, every household whose farm was landed as a camp (sim/camp; f.camp set) and whose head does not hold off projects
   // (sim/projects heldOff: automatic behaviour on, or a head not played) builds up by its own rule, by the verbs a player's plan issues:
-  // from a camp with no shelter begun it places the farmstead (sim/camp placeOwn); once the shelter stands (camp false, f.booth) it begins
+  // from a camp with no shelter begun it places the farmstead (sim/camp placeOwn); once the shelter stands (camp false, f.rung === 'shelter') it begins
   // its cottage (beginCottage), as the solo start without `hand` makes it at the landing (sim/scenarios landAlone). Few farms are camps;
   // the rest are passed over at one read each (the work counter campLook).
   // And the played head's foundation task asks its review (askFoundation, VB-1663); its outbuilding begun takes the timber at home (outTimber).
@@ -89,12 +92,12 @@ VB['sim/upgrade'] = (() => {
     for (const hid of st.liveHouseholds) {
       VB.count.campLook++;
       const f = farmOf(st, hid);
-      if (f && !f.byre && !f.booth) ownByre(st, st.households[hid]);
-      if (f && !f.booth && f.rung !== 'timber') ownTimber(st, st.households[hid]);
-      if (!f || f.camp === undefined || !f.booth || Projects.heldOff(st, hid)) continue;
+      if (f && !f.byre && f.rung !== 'shelter') ownByre(st, st.households[hid]);
+      if (f && f.rung !== 'shelter' && f.rung !== 'timber') ownTimber(st, st.households[hid]);
+      if (!f || f.camp === undefined || f.rung !== 'shelter' || Projects.heldOff(st, hid)) continue;
       const hh = st.households[hid];
       if (f.camp === true) Camp.placeOwn(st, hh, f);
-      else if (hh.holder !== null && !cottageOf(st, hid))
+      else if (hh.holder !== null && !siteOfHome(st, hid))
         issue(st, { actor: hh.holder, verb: 'beginCottage', target: f.house, source: 'pawn' });
     }
   }
@@ -147,7 +150,7 @@ VB['sim/upgrade'] = (() => {
         hh: st.households[hid],
         tile,
         what,
-        cottage: cottageOf(st, hid),
+        cottage: siteOfHome(st, hid),
         project: what === 'timber' ? openOut(st, hid, 'timberhouse') : null,
       };
     },
@@ -158,14 +161,20 @@ VB['sim/upgrade'] = (() => {
     // begun, what the timber at home will not cover
     steps: (st, hid, { f, hh, what, cottage: p, project }) => {
       if (what === 'timber')
-        return f.booth || f.rung === 'timber' ? [] : makingSteps(st, f, hh, 'timberhouse', project);
-      if (!f.booth) return [];
-      const list = p ? p.steps.slice(p.open) : cottagePlan(st, f).steps,
+        return f.rung === 'shelter' || f.rung === 'timber' ? [] : makingSteps(st, f, hh, 'timberhouse', project);
+      if (f.rung !== 'shelter') return [];
+      const Sites = VB['sim/sites'],
+        tr = p ? p.plot.places[0] : { tile: f.house, kind: 'house', steps: Sites.houseSteps(st, f.house), i: 0 },
+        clearing = tr.steps
+          .slice(tr.i)
+          .map((k, n) => ({ kind: k, hours: VB['sim/expansion'].stepHours(st, { ...tr, i: tr.i + n }) })),
+        list = [...clearing, ...(p ? p.plot.steps.slice(p.plot.open) : cottageSteps(f.house))],
         lack = p
-          ? COTTAGE.indexOf(p.steps[p.open].kind) > WALLS
+          ? p.plot.open > WALLS
             ? 0
-            : Projects.lacks(wallsOf(p), BUILD.timber)
+            : Projects.lacks(Sites.wallsOf(p), BUILD.timber)
           : Math.max(0, BUILD.timber - Stores.heldOf(hh, 'timber')),
+        key = `timber:s${p ? p.id : st.siteSeq}`,
         out = [];
       for (const s of list) {
         if (s.kind === 'walls' && lack > 0)
@@ -174,20 +183,20 @@ VB['sim/upgrade'] = (() => {
             hours: KINDS.timber.hours,
             n: trips(lack),
             from: -Infinity,
-            keys: [`timber:f${f.id}`, `timber:f${f.id}b`],
+            keys: [key, `${key}b`],
           });
         out.push({ kind: s.kind, hours: s.hours, n: 1, from: -Infinity });
       }
       return out;
     },
-    gone: (st, { f, what }) => ((what === 'timber' ? f.rung !== 'timber' : f.booth) ? null : 'roof'),
+    gone: (st, { f, what }) => ((what === 'timber' ? f.rung !== 'timber' : f.rung === 'shelter') ? null : 'roof'),
     deadline: () => null,
     act: (st, id, where, tile) =>
       where.what === 'timber'
-        ? !where.project && !where.f.booth && where.f.rung !== 'timber'
+        ? !where.project && where.f.rung !== 'shelter' && where.f.rung !== 'timber'
           ? headCmd(id, where.hh.id, { what: 'timberhouse' })
           : null
-        : !where.cottage && where.f.booth && where.what === 'cottage'
+        : !where.cottage && where.f.rung === 'shelter' && where.what === 'cottage'
           ? { actor: id, verb: 'beginCottage', target: tile, args: null, source: 'player' }
           : null,
   };
@@ -215,7 +224,7 @@ VB['sim/upgrade'] = (() => {
     why: (st, { f }, tile, id) => foundationWhy(st, id, f),
     // the loads the heap lacks (of the step's kind; picked before the step opens), then the raising
     steps: (st, hid, { f, hh, step }) => {
-      if (f.booth || f.grade !== 'ground') return [];
+      if (f.rung === 'shelter' || f.grade !== 'ground') return [];
       const lack = Math.max(0, BUILD.foundationStone - Stores.heldOf(hh, 'stone')),
         out = [];
       if (lack > 0) {
@@ -249,7 +258,7 @@ VB['sim/upgrade'] = (() => {
     for (const id of planners(st)) {
       const hid = st.pawns[id].household,
         f = farmOf(st, hid);
-      if (!f || f.booth || f.grade !== 'ground' || !taskAt(st, hid, 'foundation', f.house)) continue;
+      if (!f || f.rung === 'shelter' || f.grade !== 'ground' || !taskAt(st, hid, 'foundation', f.house)) continue;
       const plan = st.plans.households.get(hid);
       if (plan && !plan.build && !plan.dirty) emit(st, 'planAsks', { household: hid });
     }

@@ -66,5 +66,68 @@ for (const [label, make, restore, before, after] of [
   if (canon(one.agents) !== canon(two.agents)) { failed++; console.error('SAVES FAIL: the agents of a second save differ while a cottage is built'); }
   out.push('a second save while a cottage is built');
 }
+// VB-1937: a save from before it, a household living in a booth (farmstead.booth, its cottage a project plan of its household), loads with
+// its cottage as its farm's own site at step 3: stage building, the house tile's steps done, the open stage and the walls' wood kept, its
+// household founded already; it plays on, and the roof founds nothing: it ends the site, the farm has its cottage.
+{
+  const { tinyWorld } = require('./lib/tiny.js'), Sites = VB['sim/sites'], P = VB['sim/projects'];
+  const { checkState } = require('./lib/invariants.js');
+  const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
+  const st = Sim.seed(tinyWorld(rows), 7, 'solo', null, {}), f = st.farmsteads[0], hh = st.households[f.household];
+  while (!VB['sim/building'].shelterStands(st, f)) Sim.advance(st, DAY);
+  // the site made at the landing, written back as the save before VB-1937 held it
+  const s = Sites.ofFarm(st, f.id);
+  const data = JSON.parse(JSON.stringify(Sim.save(st)));
+  const sf = data.state.farmsteads[0];
+  sf.booth = true; delete sf.rung;
+  data.state.sites = data.state.sites.filter((x) => x.id !== s.id);
+  const steps = [{ kind: 'fell', place: f.house, hours: 10, done: 0 }, { kind: 'grub', place: f.house, hours: 6, done: 0 },
+    { kind: 'foundation', place: f.house, hours: 30, done: 30 }, { kind: 'walls', place: f.house, hours: 60, done: 12, wood: 7 }, { kind: 'roof', place: f.house, hours: 30, done: 0 }];
+  const before = Sim.load(tinyWorld(rows), JSON.parse(JSON.stringify(data)));
+  for (const x of before.sites) if (x.farm === 0) before.sites.splice(before.sites.indexOf(x), 1);
+  VB['sim/projectplans'].makeProject(before, 'household', hh.id, { what: 'cottage', farmstead: f.id, steps }).open = 3;
+  const old = JSON.parse(JSON.stringify(Sim.save(before)));
+  old.state.farmsteads[0].booth = true; delete old.state.farmsteads[0].rung;
+  for (const g of old.state.farmsteads.slice(1)) g.booth = null;
+  const back = Sim.load(tinyWorld(rows), old), bf = back.farmsteads[0], bs = Sites.ofFarm(back, 0), n = back.households.length;
+  const ok = (c, m) => { if (!c) { failed++; console.error('SAVES FAIL: a booth household loaded:', m); } };
+  ok(!('booth' in bf) && bf.rung === 'shelter' && !P.projectsOf(back, 'household', hh.id).some((p) => p.what === 'cottage'), 'the booth\'s mark and its plan are its rung and its site');
+  ok(bs && bs.stage === 'building' && bs.farm === 0 && bs.leader === null && bs.plot.places[0].steps.join() === 'fell,grub' && bs.plot.places[0].i === 2,
+    `its site at step 3, the house tile's steps done (${bs && JSON.stringify(bs.plot.places)})`);
+  ok(bs && bs.plot.open === 1 && bs.plot.steps[1].done === 12 && bs.plot.steps[1].wood === 7, `the open stage kept (${bs && JSON.stringify(bs.plot.steps)})`);
+  ok(!checkState(back).length, `invariants on the load: ${checkState(back).slice(0, 3)}`);
+  for (let d = 0; d < 3 * Sim.SEASON_DAYS * 2 && Sites.ofFarm(back, 0); d++) Sim.advance(back, DAY);
+  ok(!Sites.ofFarm(back, 0) && !bf.rung && bf.shelter === null && bf.household === hh.id && back.households.length === n,
+    `played on to the roof: the site ends, the farm has its cottage, nothing founded (site ${!!Sites.ofFarm(back, 0)}, rung ${bf.rung})`);
+  ok(!checkState(back).length, `invariants after the roof: ${checkState(back).slice(0, 3)}`);
+  out.push('a booth household of an older save loaded as its farm\'s site, to its roof');
+}
+// VB-1937, its review: a booth cottage plan its village held (sim/plans dropAll kept it for the farm's next household) loads as that farm's
+// site as well, its walls' wood and its stages kept, nothing vanishing; and a plan open at its grub step, half done, keeps those hours.
+{
+  const { tinyWorld } = require('./lib/tiny.js'), Sites = VB['sim/sites'], P = VB['sim/projects'];
+  const { checkState } = require('./lib/invariants.js');
+  const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
+  const st = Sim.seed(tinyWorld(rows), 7, 'solo', null, {}), f = st.farmsteads[0];
+  while (!VB['sim/building'].shelterStands(st, f)) Sim.advance(st, DAY);
+  const data = JSON.parse(JSON.stringify(Sim.save(st)));
+  const before = Sim.load(tinyWorld(rows), JSON.parse(JSON.stringify(data)));
+  for (const x of [...before.sites]) if (x.farm === 0) before.sites.splice(before.sites.indexOf(x), 1);
+  const steps = [{ kind: 'fell', place: f.house, hours: 10, done: 0 }, { kind: 'grub', place: f.house, hours: 6, done: 3 },
+    { kind: 'foundation', place: f.house, hours: 30, done: 0 }, { kind: 'walls', place: f.house, hours: 60, done: 0, wood: 7 }, { kind: 'roof', place: f.house, hours: 30, done: 0 }];
+  VB['sim/projectplans'].makeProject(before, 'village', f.village, { what: 'cottage', farmstead: f.id, steps }).open = 1;
+  const old = JSON.parse(JSON.stringify(Sim.save(before)));
+  old.state.farmsteads[0].booth = true; delete old.state.farmsteads[0].rung;
+  for (const g of old.state.farmsteads.slice(1)) g.booth = null;
+  const back = Sim.load(tinyWorld(rows), old), bs = Sites.ofFarm(back, 0);
+  const ok = (c, m) => { if (!c) { failed++; console.error('SAVES FAIL: a village-held booth cottage loaded:', m); } };
+  ok(!P.projectsOf(back, 'village', f.village).some((p) => p.what === 'cottage'), 'the village holds no cottage plan after the load');
+  ok(bs && bs.plot.places[0].i === 1 && bs.plot.places[0].done === 3, `its site open at the grub step, its 3 hours kept (${bs && JSON.stringify(bs.plot.places)})`);
+  ok(bs && bs.plot.open === 0 && bs.plot.steps[1].wood === 7, `the stages and the walls' wood kept (${bs && JSON.stringify(bs.plot.steps)})`);
+  ok(!checkState(back).length, `invariants on the load: ${checkState(back).slice(0, 3)}`);
+  for (let d = 0; d < 3 * Sim.SEASON_DAYS * 2 && Sites.ofFarm(back, 0); d++) Sim.advance(back, DAY);
+  ok(!Sites.ofFarm(back, 0) && !back.farmsteads[0].rung, 'played on to the roof');
+  out.push('a village-held booth cottage loaded as its farm\'s site');
+}
 if (failed) process.exit(1);
 console.log(`saves ok: saved, loaded into a new world and advanced, each run matches the unbroken one (${out.join(', ')})`);

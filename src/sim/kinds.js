@@ -287,7 +287,8 @@ VB['sim/kinds'] = (() => {
     farm: [meadowWork, 'manure', byreWork, 'herd'].map(rule),
     farmAfterPlans: [
       landProject,
-      Building.boothWork,
+      Building.shelterRule,
+      VB['sim/sites'].farmWork, // a farm's own cottage, its site's (VB-1937)
       'wood',
       'firewood',
       'thresh',

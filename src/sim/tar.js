@@ -164,7 +164,7 @@ VB['sim/tar'] = (() => {
   }
   // ---- what tar is for: the house and the boat ----
   // The house is due a barrel while it is not tarred; the boat from TAR.lead years before it leaks.
-  const houseDue = (st, f) => !!f && !f.booth && !houseTarred(st, f);
+  const houseDue = (st, f) => !!f && f.rung !== 'shelter' && !houseTarred(st, f);
   function dueCount(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f) return 0;

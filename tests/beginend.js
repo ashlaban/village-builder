@@ -18,9 +18,9 @@ check(!mayBegin(st, null, 'tarpit') && !mayBegin(st, undefined, 'cart'), 'no hou
 hh.dissolved = true;
 check(!mayBegin(st, hh, 'tarpit') && !mayBegin(st, hh, 'cart'), 'a dissolved household: none');
 hh.dissolved = false;
-f.booth = { tile: f.house };
-check(mayBegin(st, hh, 'tarpit') && mayBegin(st, hh, 'cart'), 'a farm with a booth: a small construction all the same');
-f.booth = null;
+f.rung = 'shelter';
+check(mayBegin(st, hh, 'tarpit') && mayBegin(st, hh, 'cart'), 'a farm at its shelter: a small construction all the same');
+f.rung = null;
 const plan = VB['sim/projectplans'].makeProject(st, 'household', hh.id, { what: 'tarpit', small: true, steps: [{ kind: 'tarpit', place: f.house, hours: 10, wood: 0 }] });
 check(!mayBegin(st, hh, 'tarpit') && mayBegin(st, hh, 'cart') && !Projects.ownOf(st, hh.id), 'a pit under way: no second pit, a cart beside it; not a large project');
 const hp = st.plans.households.get(hh.id), was = hp && hp.chosen;

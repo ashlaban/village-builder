@@ -136,12 +136,10 @@ VB['sim/projectplans'] = (() => {
   }
   // Every plan of a holder that ends (a household dissolved), without a word: the end of its holder is told.
   // A household's plot for its heir is not dropped but passes to its village (the verb plotToVillage; VB-255), its tiles and work with it;
-  // its cottage (settlers, sim/settle) passes to its village too, kept with the farm for the household that comes (makePlan; VB-1411).
+  // a farm's own cottage is its site's (sim/sites, VB-1937), kept with the farm for the household that comes.
   const dropAll = (st, type, id) => {
     for (const plan of [...projectsOf(st, type, id)])
-      if (plan.what === 'cottage')
-        emit(st, 'projectHanded', { plan, type: 'village', id: st.farmsteads[plan.farmstead].village });
-      else if (plan.what === 'plot' && type === 'household')
+      if (plan.what === 'plot' && type === 'household')
         issue(st, {
           actor: null,
           verb: 'plotToVillage',
@@ -182,5 +180,5 @@ VB['sim/projectplans'] = (() => {
   on('plotReleased', (st, d) => dropProject(st, d.plan));
   // A plan given up by its holder's own verb or rule (sim/building: a booth staked and not raised, VB-1172), `text` told when given.
   on('projectGivenUp', (st, d) => dropProject(st, d.plan, d.text || null, d.at || {}));
-  return { makeProject, advance, drop: dropProject, review, dropAll, impossible, dropWords };
+  return { makeProject, advance, drop: dropProject, remove, review, dropAll, impossible, dropWords };
 })();

@@ -2404,9 +2404,11 @@ function checkState(st) {
       !(Object.keys(f.storehouse).join() === 'built' && f.storehouse.built <= st.t && f.camp !== true)
     )
       bad.push(`farmsteads[${f.id}]: storehouse ${JSON.stringify(f.storehouse)}`);
-    // VB-1664: the rung stored where it cannot be derived, the timber house, on a farm with its cottage built (no booth)
-    if (f.rung !== undefined && f.rung !== null && !(f.rung === 'timber' && !f.booth))
-      bad.push(`farmsteads[${f.id}]: rung ${JSON.stringify(f.rung)} with booth ${JSON.stringify(f.booth)}`);
+    // VB-1664: the rung stored where it cannot be derived: the timber house, or the shelter of a farm with no cottage yet (VB-1937, in
+    // place of the booth's mark farmstead.booth, which no longer is)
+    if (f.rung !== undefined && f.rung !== null && f.rung !== 'timber' && f.rung !== 'shelter')
+      bad.push(`farmsteads[${f.id}]: rung ${JSON.stringify(f.rung)}`);
+    if ('booth' in f) bad.push(`farmsteads[${f.id}]: the booth's mark ${JSON.stringify(f.booth)} after its load (VB-1937)`);
     // the house's condition (VB-306): 0..1 as last set, at a time not after now, and its tar not further than a barrel's years ahead
     if (f.condition !== undefined && !(f.condition >= 0 && f.condition <= 1))
       bad.push(`farmsteads[${f.id}]: condition ${f.condition}`);
@@ -2418,34 +2420,32 @@ function checkState(st) {
     )
       bad.push(`farmsteads[${f.id}]: tarredUntil ${f.tarredUntil}`);
     if (!tileOk(f.house)) bad.push(`farmsteads[${f.id}]: house tile ${f.house} out of range`);
-    // settlers' booth (sim/settle): a mark, the cottage being the project plan 'cottage' of its household, or of its village while the
-    // farm waits for a household (VB-1411)
-    if (f.booth !== null && f.booth !== true) bad.push(`farmsteads[${f.id}]: booth is ${JSON.stringify(f.booth)}`);
-    if (f.booth && st.plans && st.plans.projects) {
+    // a farm's own site (VB-1937; sim/sites farmSite): only on a farm at its shelter; no cottage plan is left of the booth's (VB-1411)
+    const own = globalThis.VB['sim/sites'].ofFarm(st, f.id);
+    if (own && f.rung !== 'shelter') bad.push(`farmsteads[${f.id}]: its own site ${own.id} with its cottage standing`);
+    if (st.plans && st.plans.projects) {
       const P = st.plans.projects,
-        mine = (p) => p.what === 'cottage' && p.farmstead === f.id,
-        n = [...(P.household.get(f.household) || []), ...(P.village.get(f.village) || [])].filter(mine).length;
-      // a farm landed by hand (f.camp, VB-1655) has its cottage planned by a later task: none, or one
-      if (n !== 1 && !(n === 0 && f.camp !== undefined))
-        bad.push(`farmsteads[${f.id}]: a booth with ${n} cottage plans`);
+        mine = (p) => p.what === 'cottage' && p.farmstead === f.id;
+      if ([...(P.household.get(f.household) || []), ...(P.village.get(f.village) || [])].some(mine))
+        bad.push(`farmsteads[${f.id}]: a cottage plan, not its site`);
     }
     // the camp (VB-1655): absent, or true (nothing stands: no booth of its household raised by its house) or false, on a booth farm while true
     if (f.camp !== undefined && f.camp !== true && f.camp !== false)
       bad.push(`farmsteads[${f.id}]: camp ${JSON.stringify(f.camp)}`);
     if (
       f.camp === true &&
-      (!f.booth ||
+      (f.rung !== 'shelter' ||
         (st.booths || []).some(
           (b) => b.by === f.household && globalThis.VB['sim/hex'].hexSteps(st.w, b.tile, f.house) <= 1,
         ))
     )
-      bad.push(`farmsteads[${f.id}]: a camp ${f.booth ? 'with its booth raised' : 'with no booth mark'}`);
+      bad.push(`farmsteads[${f.id}]: a camp ${f.rung === 'shelter' ? 'with its booth raised' : 'not at the shelter'}`);
     // the shelter on the house tile (VB-1666): absent or null, or on a farm with no cottage yet {wood, done, built (null while raised, else
     // not after now), cond 0..1, condAt not after now}; a camp's never stands
     const sh = f.shelter;
     if (sh !== undefined && sh !== null) {
       const num = (x) => Number.isFinite(x) && x >= 0;
-      if (!f.booth) bad.push(`farmsteads[${f.id}]: a shelter on a farm with its cottage`);
+      if (f.rung !== 'shelter') bad.push(`farmsteads[${f.id}]: a shelter on a farm with its cottage`);
       if (
         !num(sh.wood) ||
         !num(sh.done) ||
@@ -2585,6 +2585,17 @@ function checkState(st) {
       const at = `sites[${n}] (id ${x.id})`;
       if (!Number.isInteger(x.id) || x.id >= st.siteSeq || (n > 0 && st.sites[n - 1].id >= x.id))
         bad.push(`${at}: id against siteSeq ${st.siteSeq}`);
+      // a farm's own site (VB-1937): its farm at its shelter, no leader, no party, no field, no booth, no stake, being built
+      if (x.farm !== undefined) {
+        const f = st.farmsteads[x.farm];
+        if (!f || f.rung !== 'shelter' || f.house !== x.house || x.leader !== null || x.party.all.length || x.field !== null)
+          bad.push(`${at}: a farm's own site not of farm ${x.farm} at its shelter`);
+        if (x.booth !== null || x.stage !== 'building' || x.plot.places.length !== 1 || Sites.ofFarm(st, x.farm) !== x)
+          bad.push(`${at}: a farm's own site with a booth, stage ${x.stage}, or not in the index`);
+        if (!(x.plot.open >= 0 && x.plot.open < 3) || x.plot.places.some((tr) => !(tr.i >= 0 && tr.i <= tr.steps.length)))
+          bad.push(`${at}: its steps out of range`);
+        return;
+      }
       if (x.party.all[0] !== x.leader || !st.pawns[x.leader] || !st.villages[x.from])
         bad.push(`${at}: its leader ${x.leader} is not first of its party`);
       if (x.village !== null && !st.villages[x.village]) bad.push(`${at}: no village ${x.village} to join`);
@@ -2656,13 +2667,8 @@ function checkState(st) {
     const greens = projects.filter((pl) => pl.what === 'green');
     if (projects.some((pl) => !['plot', 'green', 'commons', 'facility', 'upkeep', 'cottage'].includes(pl.what)))
       bad.push(`villages[${v.id}]: a project of an unknown kind`);
-    // VB-1411: a settler's cottage left by a household that ended passes to its village, kept with the farm (a booth of this village) for the
-    // household that comes
-    for (const pl of projects.filter((q) => q.what === 'cottage')) {
-      const f = st.farmsteads[pl.farmstead];
-      if (!f || f.village !== v.id || !f.booth)
-        bad.push(`villages[${v.id}]: holds a cottage for farmstead ${pl.farmstead}, not a booth of its own`);
-    }
+    // VB-1937: no settler's cottage plan is left with a village (a farm's own cottage is its site, sim/sites)
+    if (projects.some((q) => q.what === 'cottage')) bad.push(`villages[${v.id}]: holds a cottage plan`);
     // a common field under way (VB-100): at most one, its clearing and breaking on one tile, in use
     const commons = projects.filter((pl) => pl.what === 'commons');
     if (

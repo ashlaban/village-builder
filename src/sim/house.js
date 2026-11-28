@@ -46,7 +46,7 @@ VB['sim/house'] = (() => {
   const ROOM = { cottage: 6, timber: 10, timberFire: 0.8 };
   // The people farm f's main building sleeps without crowding: none counted in a camp (no house to crowd: the open sky's cold is its
   // cost), a shelter's BOOTH.sleeps, else its rung's (f.rung, sim/timberhouse: the timber house; absent, a cottage).
-  const roomOf = (f) => (f.camp === true ? Infinity : f.booth ? BOOTH.sleeps : ROOM[f.rung || 'cottage']);
+  const roomOf = (f) => (f.camp === true ? Infinity : f.rung === 'shelter' ? BOOTH.sleeps : ROOM[f.rung || 'cottage']);
   // Whether household hh is crowded: more members than the room of its farm's main building. One comparison; allocates nothing.
   const crowded = (st, hh) =>
     !hh.dissolved && hh.farmstead !== null && hh.members.length > roomOf(st.farmsteads[hh.farmstead]);

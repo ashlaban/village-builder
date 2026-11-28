@@ -47,8 +47,7 @@ VB['sim/scenarios'] = (() => {
   const { yearlyRations, fieldsWanted, fieldProject, pickField } = VB['sim/fieldplans'];
   const { issue } = VB['sim/commands'],
     { stake } = VB['sim/stakes'],
-    { makeProject } = VB['sim/projectplans'],
-    { cottagePlan } = VB['sim/cottageplan'];
+    { makeProject } = VB['sim/projectplans'];
   const { foundersHerds, populousHerds, heirsHerds } = VB['sim/herds'];
   const { placeMeadows, meadowAt } = VB['sim/meadows'];
   const { initDeer } = VB['sim/deer'];
@@ -109,19 +108,18 @@ VB['sim/scenarios'] = (() => {
     if (solo) landAlone(st, hand); // no cottage stands: a shelter first, then the cottage (VB-1544, VB-1666)
     return st;
   }
-  // The lone settler lands (VB-1544; the solo start): no cottage stands on its farm, which is a booth farm as a settler
-  // household's is (f.booth, its cottage its project plan, sim/settle's settleFarm), and its shelter is begun on the house tile by the same
-  // rule (VB-1666; sim/building stakeShelter), raised by the settler's own work; it sleeps under the open sky until the shelter stands
-  // (sim/building roofless), and the cottage follows on the same tile as a settler household's does. Its first field is staked at the
-  // landing as a settler household's is (settleFarm), on the tile its head would pick (sim/fieldplans pickField): a household's land
-  // projects wait while another of its projects is under way, and the cottage's would hold the field back to the roof. With `hand` (a
-  // player who plans by hand; Kim, 24 Nov 2026: "begin with nothing under way") nothing is: no field, no booth, no cottage plan; the farm is
+  // The lone settler lands (VB-1544; the solo start): no cottage stands on its farm, which is at the rung of its shelter (f.rung
+  // 'shelter'), and its shelter is begun on the house tile (VB-1666; sim/building stakeShelter), raised by the settler's own work; it
+  // sleeps under the open sky until the shelter stands (sim/building roofless), and the cottage follows on the same tile as its farm's own
+  // site (sim/sites farmSite, VB-1937). Its first field is staked at the landing, as a settler household's is at its move (settleFarm), on
+  // the tile its head would pick (sim/fieldplans pickField). With `hand` (a
+  // player who plans by hand; Kim, 24 Nov 2026: "begin with nothing under way") nothing is: no field, no shelter, no cottage; the farm is
   // a camp (sim/camp, VB-1655) until its head places the farmstead by its plan.
   function landAlone(st, hand = false) {
     const hh = st.households[0],
       f = st.farmsteads[hh.farmstead],
       field = hand ? -1 : pickField(st, f, hh);
-    f.booth = true;
+    f.rung = 'shelter';
     if (hand) {
       makeCamp(st, f); // VB-1655: a camp, nothing under way; the head places the farmstead by its plan
       noByre(st, f); // VB-1665: nor a byre
@@ -133,7 +131,7 @@ VB['sim/scenarios'] = (() => {
       stake(st, hh, field, 'field');
       makeProject(st, 'household', hh.id, fieldProject(st, hh, field));
     }
-    makeProject(st, 'household', hh.id, cottagePlan(st, f));
+    VB['sim/sites'].farmSite(st, f); // its cottage, its farm's own site (VB-1937)
     VB['sim/building'].stakeShelter(st, f);
   }
   // Populous Villages: only villages, of three size bands, until the map holds the target population (POPULATION's first number a
@@ -521,11 +519,10 @@ VB['sim/scenarios'] = (() => {
     //   weedPosted (day), weedMiss (jobs missed)};
     //   state 'occupied', 'derelict' or 'ruin'; condition 0..1 at condAt (hours; an occupied house wears from it, houseCondition of
     //   sim/house); tarredUntil (hours, VB-301); grade 'ground' or 'stone' (the house raised onto a stone foundation; sim/building, VB-332);
-    //   booth true or null: settlers live in a booth until their cottage has its roof (sim/settle), the cottage itself a plan of
-    //   their household in st.plans.projects (sim/expansion, VB-1411)
+    //   (its rung, sim/timberhouse: 'shelter' while settlers live in a booth until their cottage, the farm's own site of sim/sites, has its roof; VB-1937)
     // @notstock farmstead.id, farmstead.house, farmstead.village, farmstead.household, farmstead.name, farmstead.line: identity, links and membership
     // @notstock farmstead.rowAngle: identity, links and membership
-    // @notstock farmstead.fields, farmstead.meadows, farmstead.booth, farmstead.state: land, buildings and their records (fields, meadows, a site's timber)
+    // @notstock farmstead.fields, farmstead.meadows, farmstead.state: land, buildings and their records (fields, meadows, a site's timber)
     // @notstock farmstead.grade, farmstead.emptySince: land, buildings and their records (fields, meadows, a site's timber)
     // @state st.villages[]: {id, name, center, farmsteads[], fence, wood[], grain, ledger[], totals[] (as a household's), green, well};
     //   center is a tile index, farmsteads are ids; wood: the tiles the village cuts its firewood on (sim/territory, VB-326);
