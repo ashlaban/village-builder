@@ -257,6 +257,8 @@ function supplyNums(O, r, s) {
   for (const x of P.intakes) lines.push([`${intakeWord(x.what)}, in ${seasonWord(O, x.season)}`, n(x.n)]);
   if (P.target !== undefined) lines.push(["The store's target", `${n(P.target)}`]);
   if (P.spoilt >= 0.5) lines.push(['Expected to spoil', `about ${n(P.spoilt)}`]);
+  if (P.lying && P.lying.lost >= 0.5)
+    lines.push(["Lying out, lost by the season's end", `about ${n(P.lying.lost)} of ${n(P.lying.n)}`]);
   if (s.lo !== undefined && s.hi - s.lo > 0.005) lines.push(["The head's range", supplyRange(O, s, one)]);
   lines.push([
     'Likeliest outcome',

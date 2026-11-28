@@ -41,6 +41,8 @@ VB['sim/stores'] = (() => {
   KINDS.push('dig'); // loads of clay and bog iron ore dug into a household's store (VB-359, sim/dig)
   // VB-204: routine kinds (95% of movements) add to a yearly total per holder, kind and good instead of writing an entry each.
   const ROUTINE = ['meal', 'seedMeal', 'cooking', 'spoilage', 'thresh', 'milk', 'butter', 'catch', 'gathering'];
+  KINDS.push('lying'); // VB-1910: a share of what lies out of a holder's lost after the frost (sim/lying decay), never in its store
+  ROUTINE.push('lying');
   // VB-683: fresh meat salted in the larder, out of 'meat' into 'salt meat' (sim/byre), a routine total; VB-700: the salt it took, and
   // the meat it had no salt for smoked into 'smoked meat'
   KINDS.push('salting');
@@ -330,6 +332,13 @@ VB['sim/stores'] = (() => {
     const plan = st.plans && st.plans.households.get(hh.id);
     if (plan) plan.dirty = true;
   }
+  // A share of a load lying out lost after the frost (sim/lying decay, VB-1910): booked to its owner as a store's spoilage is, a routine
+  // total, under its own reason (lying: nothing is taken from a store, it was never in one, so the food account reads no movement of
+  // a store in it). Nobody's, once its household is gone.
+  on('lyingSpoilt', (st, { owner, good, n }) => {
+    const holder = owner.type === 'village' ? st.villages[owner.id] : st.households[owner.id];
+    if (holder && !holder.dissolved) record(st, holder, good, -n, 'lying', owner.type);
+  });
   // The player's plan asks its head for work the head's rule posts at a review (sim/controller, the event planAsks: a firewood task's
   // cutting, VB-1661): the plan is woken as by a store crossing a target, the stores it reads having changed since its review.
   on('planAsks', (st, { household }) => {

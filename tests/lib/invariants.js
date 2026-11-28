@@ -2102,14 +2102,15 @@ function checkState(st) {
         !Number.isFinite(x.n) ||
         !Number.isInteger(x.count) ||
         x.count < 1 ||
-        ![
+        (![
           ...'grain meals sheaves meat milk butter ale peat hide'.split(' '),
           'salt meat',
           'smoked meat',
           'salt',
           ...FISHES,
           ...WOODS,
-        ].includes(x.good) ||
+        ].includes(x.good) &&
+          !(x.kind === 'lying' && x.good === 'hay')) || // VB-1910: hay lying out lost after the frost, booked as it is worn
         seen.has(key) ||
         (i && holder.totals[i - 1].year > x.year)
       )
@@ -2962,14 +2963,15 @@ function checkState(st) {
     for (const a of st.agents) if ('work' in a) bad.push(`agents[${a.id}]: rows (a.work) in the state`);
   }
   // loads lying where their carrier fell (VB-611, sim/lying): absent or a non-empty list in the order put down, ids distinct, rising and
-  // within st.lyingSeq; each of a kind that carries a load (one with a fetch kind), a load above 0, on a tile of the map, put down this
-  // year and the frost's drift at most (the autumn frost rots them all), owned by a household or village that exists
+  // within st.lyingSeq; each of a kind that carries a load (one with a fetch kind), a load above 0, on a tile of the map, put down within
+  // two years (VB-1910: the frost wears a load from its day to the year's end, and one pile too large to fall under LYING.quantum by
+  // then lies to the next frost), owned by a household or village that exists
   if (st.lying !== undefined) {
     const KS = globalThis.VB['sim/kinds'].KINDS,
       { YEAR, DAY, SEASON_DAYS } = globalThis.VB['sim/rules'];
-    // from one frost to the next: the frost's day is drawn each year within autumn (sim/weather frostDay), so a load laid just after an
-    // early frost can lie past a year until a late one (heirs seed 42, year 13 of the extended tier, 27 Nov 2026)
-    const LIES = YEAR + (SEASON_DAYS - 1) * DAY;
+    // a load laid in spring lies to the frost and is worn to the year's end; a pile larger than the quantum over (1 - frostLoss) to the
+    // power of the days from a late frost to the year's end (13 at the least: 420 rations) is worn on at the next frost
+    const LIES = 2 * YEAR + SEASON_DAYS * DAY;
     if (!Array.isArray(st.lying) || !st.lying.length)
       bad.push(`lying: ${Array.isArray(st.lying) ? 'empty' : typeof st.lying}`);
     else
@@ -2988,7 +2990,7 @@ function checkState(st) {
         if (!Number.isInteger(l.tile) || l.tile < 0 || l.tile >= st.w.COLS * st.w.ROWS)
           bad.push(`${at}: on tile ${l.tile}`);
         if (!(l.t <= st.t) || !(st.t - l.t < LIES))
-          bad.push(`${at}: put down at ${l.t}, before the last frost (the frost rots it)`);
+          bad.push(`${at}: put down at ${l.t}, before the frost of two years ago (the frost wears it away)`);
         if (!o || !((o.type === 'household' && st.households[o.id]) || (o.type === 'village' && st.villages[o.id])))
           bad.push(`${at}: owner ${JSON.stringify(o)}`);
         if (!l.of || !Number.isInteger(l.of.src)) bad.push(`${at}: no task tile`);

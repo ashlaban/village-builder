@@ -261,6 +261,11 @@ VB['sim/rules'] = (() => {
     dayWalk: 12,
     stay: 1,
   };
+  // @tunable LYING: what lies out degrades (VB-1910; design.md, Goods and the farming year, Risk; Decided, Kim, 27 Nov: over time, no
+  // condition on each item): frostLoss, the share of a lying load (sim/lying) lost each game day once the year's frost has come (Proposed,
+  // a first value); quantum, the load (in a load's units, rations of weight: a sack of grain's 10) under which what is left is dropped.
+  // The wet day's share waits for a wet day in the sim (VB-2000).
+  const LYING = Object.freeze({ frostLoss: 0.25, quantum: 10 });
   // @tunable WINTER: the ground by season (VB-808; design.md, Climate and travel beyond walking, The ground by season; docs/plans/VB-190.md,
   // section 5.2), read by sim/walking as the winter's dates fall (sim/climate): ice, the cost of a tile of lake, river or sound ice that
   // bears, crossed with no slope (a river needs no ford); marsh, frozen marsh's ground in place of TERRAIN's 5 (the dear ground of the
@@ -729,6 +734,7 @@ VB['sim/rules'] = (() => {
     HELP,
     GOODWILL,
     TRAVEL,
+    LYING,
     WINTER,
     BOOTH,
     HERD,

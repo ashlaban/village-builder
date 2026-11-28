@@ -65,7 +65,7 @@ const spareNeed = (st, hh) => VB['sim/help'].askDaysAt(st) * VB['sim/hunger'].da
   assert(c.ledger.some((e) => e.kind === 'loan' && e.n > 0), 'carried back to the lender');
   assert.deepStrictEqual(checkState(st), [], 'invariants overdue');
   setClock(st, o.due);
-  VB['sim/lying'].frost(st); // the autumn frost the jump passed over rots what lies (VB-1775: a felled tree's timber lies as a pile)
+  VB['sim/lying'].frost(st); VB['sim/lying'].decay(st, 48); // the autumn frost the jump passed over rots what lies (VB-1775: a felled tree's timber lies as a pile)
   a.grain = { barley: 0 };
   Obligations.step(st);
   assert.strictEqual(o.status, 'defaulted', 'unpaid after the second harvest: defaulted');
