@@ -9,6 +9,7 @@ VB['sim/hunger'] = (() => {
   const Stores = VB['sim/stores'],
     Pot = VB['sim/pot'],
     { hungryDay, act } = VB['sim/traits'];
+  const Dress = VB['sim/dress'];
   const { takeFood } = VB['sim/larder'];
   const { dayLoss, GRAIN } = VB['sim/goods'];
   const Rules = VB['sim/registry'],
@@ -336,7 +337,7 @@ VB['sim/hunger'] = (() => {
       frail = a < 5 || a >= 60 ? HEALTH.frail : 1,
       before = p.health;
     const hungry = p.hunger > 0 ? HEALTH.drain * p.hunger * p.hunger * frail : 0,
-      chill = cold > 0 ? HEALTH.cold * cold * frail : 0,
+      chill = cold > 0 ? HEALTH.cold * cold * frail * (Dress.rags(st, p) ? Dress.DRESS.cold : 1) : 0, // in rags (VB-363)
       damp = dry > 0 ? HEALTH.dry * frail : poor ? HEALTH.marsh * frail : 0, // marsh water: the meal is cooked and restores (VB-1582)
       ill =
         p.ill === undefined
