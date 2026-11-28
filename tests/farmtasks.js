@@ -117,11 +117,7 @@ function run(st, kind, days = 80) {
 // ---- 4. the barn by the plan alone, the timber at home first; a save and a load mid-chain go on the same ----
 {
   const { st, hh, f } = village();
-  // the woodpile full for the year, so that the household cuts none of the timber home into firewood meanwhile (VB-1775: a firewood
-  // goal cuts the timber home to the season's goal, where a job before cut a back load, and the walls found none); `had`, what its wood
-  // task brought home in the two days
-  const plan = st.plans.households.get(hh.id);
-  Stores.put(st, hh, 'wood', Math.max(...Object.values(TG(plan).wood)), 'cutting');
+  // `had`: what its wood task brought home in the two days (a firewood goal leaves the timber the barn's walls count on, VB-1808)
   const had = Stores.heldOf(hh, 'timber');
   Stores.put(st, hh, 'timber', 6, 'felling');
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { outbuilding: f.house, what: 'barn' }), true);
