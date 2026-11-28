@@ -49,7 +49,7 @@ const LONG = () =>
         f = st.farmsteads[st.households[st.pawns[st.player.pawn].household].farmstead];
       f.camp = false; // a cottage, with its byre: the rungs as the state derives them (sim/ladder rungOf)
       f.booth = false;
-      f.byre = true;
+      VB['sim/facilities'].seedOn(st, f, 'byre'); // VB-1911: a facility of the farm
       document.querySelector('[data-tab="build"]').click();
     });
     await page.waitForFunction(() => document.querySelector('#u2Sheet .u2-tiles'));

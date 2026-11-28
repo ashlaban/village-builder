@@ -7,6 +7,7 @@
 VB['sim/aims'] = (() => {
   const { targetOf } = VB['sim/steps'];
   const { barnSteps } = VB['sim/building'];
+  const Facilities = VB['sim/facilities'];
   const { emit } = VB['sim/events'];
   const { HERD, DAY, SEASON_DAYS, YEAR_DAYS, WORK, MARRIAGE, BUILD, cal } = VB['sim/rules'];
   const { next: rnd } = VB['sim/rng'];
@@ -441,7 +442,7 @@ VB['sim/aims'] = (() => {
   function barnWhy(st, hh) {
     const f = hh.farmstead === null ? null : st.farmsteads[hh.farmstead];
     if (!f || f.household !== hh.id) return `the household has no farm of its own`;
-    if (f.barn) return `${f.name} has a barn`;
+    if (Facilities.standing(st, f, 'barn')) return `${f.name} has a barn`;
     if (f.rung === 'shelter') return `${f.name} has no cottage yet`;
     if (!st.villages[f.village].wood.length) return `${st.villages[f.village].name} has no wood to fell its timber in`;
     return Projects.underWay(st, hh.id, 'barn') ? `the household has a barn under way` : null;
@@ -457,10 +458,11 @@ VB['sim/aims'] = (() => {
     return null; // the site is found as the plot is begun (sim/expansion's startPlot), and none begins where there is no room
   }
   // The barn (VB-255), a making begun through the verb project (VB-678; sim/projects' declare): a project at the house (sim/building's
-  // barnSteps), under barnWhy; a large project, offered by the menu.
+  // barnSteps: the facility founded at the house), under barnWhy; a large project, offered by the menu.
   declare('barn', {
     why: (st, hh) => barnWhy(st, hh),
-    begin: (st, hh, f) => ({ steps: barnSteps(f.house) }),
+    begin: (st, hh, f) => barnSteps(st, f),
+    made: (st, hh, f, plan) => Facilities.foundOn(st, 'barn', f, plan),
   });
   // The farm for the heir (VB-255), a making begun through the verb project with args.heir (VB-678): clearing a plot and building its
   // cottage for pawn `heir`, an adult of the household with no farm, as the household's project (sim/expansion's plot, held by the
