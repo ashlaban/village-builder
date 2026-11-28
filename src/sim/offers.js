@@ -134,6 +134,7 @@ VB['sim/offers'] = (() => {
     const g = { from, to, good: 'grain', n, source };
     if (args.keep === true) g.keep = true; // the alderman's keep (VB-463): a due of custom, answered yes in the making
     if (args.loan === true) g.loan = true; // a loan (VB-312, sim/loans): set aside and fetched, an obligation booked, not goodwill
+    if (args.crops !== undefined) g.crops = args.crops; // a seed loan names its crops (VB-2045: sim/loans cropsFor)
     if (args.carrier !== undefined) {
       const p = st.pawns[args.carrier],
         a = p && st.agents[p.id];
