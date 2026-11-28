@@ -116,10 +116,16 @@ VB['sim/lying'] = (() => {
     return l ? l.n : 0;
   };
   // The tile of a pile of the owner's of kind `kind` lying at neither tile a nor b (the stray method, sim/methods), or null.
+  // A pile kept for a task planned at its tile is no stray (VB-1931: the timber a cutting is planned on, sim/chores), by the rules the
+  // domains give (keep(fn), fn(st, l) true for a pile kept), read only for a pile otherwise taken up.
+  const KEPT = [];
+  const keep = (fn) => KEPT.push(fn);
+  const kept = (st, l) => KEPT.some((fn) => fn(st, l));
   function strayOf(st, owner, kind, a, b) {
     const o = ownedBy(st, owner);
     if (o)
-      for (let i = 0; i < o.length; i++) if (o[i].kind === kind && o[i].tile !== a && o[i].tile !== b) return o[i].tile;
+      for (let i = 0; i < o.length; i++)
+        if (o[i].kind === kind && o[i].tile !== a && o[i].tile !== b && !kept(st, o[i])) return o[i].tile;
     return null;
   }
   // `n` of the owner's put down at `tile`: on the pile already there, or a new one (at {x, y, of} as `leave`).
@@ -198,7 +204,7 @@ VB['sim/lying'] = (() => {
     for (const l of o) {
       const k = BRING[l.kind],
         bit = k ? 1 << BRUNG.indexOf(l.kind) : 0;
-      if (!k || seen & bit) continue;
+      if (!k || seen & bit || kept(st, l)) continue;
       seen |= bit;
       post(`${k}:${owner.type[0]}${owner.id}`, l.tile, {}, k, owner);
     }
@@ -287,6 +293,7 @@ VB['sim/lying'] = (() => {
     bringWork,
     ownedPiles: ownedBy,
     pilesAt,
+    keep,
     takeFrom,
     frost,
     decay,

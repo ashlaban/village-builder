@@ -533,7 +533,7 @@ VB['sim/chores'] = (() => {
       hands: 1,
       type: 'wood',
       urgency: (st, j, c, U) => {
-        const hh = st.households[j.farm.household];
+        const hh = st.households[j.owner.id];
         return hh.cold > 0 ? U.woodColdUrgency : pileUrgency(st, hh, c, U, fuelFree(st, hh));
       },
     },
@@ -553,8 +553,11 @@ VB['sim/chores'] = (() => {
       }
       if (n > 0) a.load = n;
     },
+    // met once nothing is left to cut there or the pile wants none; never while firewood cut there lies (one set down on its way home:
+    // a goal of the owner's, sim/lying BRING)
     met: (st, g) => {
       const hh = st.households[g.owner];
+      if (Lying.amountAt(st, g.at, 'cutpile', titled(g)) > 0) return false;
       return !cuttableAt(st, g.owner, g.at).n || !(hh.cold > 0 || pileOf(st, hh).short);
     },
     deliver: (st, j, hh, f, a) => {
@@ -681,8 +684,11 @@ VB['sim/chores'] = (() => {
   const fellPlanned = (st, hid) =>
     plansIn(st, hid).some((pp) => pp.tasks.some((t) => t.key === undefined && t.kind === 'fell' && t.got < t.n));
   // The cuttings where timber lies (KINDS.cutpile): one for each firewood task off the house of a plan of the household's members, while
-  // timber it may cut lies there and the pile wants it or the house is cold.
+  // timber it may cut lies there and the pile wants it or the house is cold; and one at the first pile of firewood cut so and set down on
+  // its way home (by the household's index of its piles), whatever the pile, to bring it home.
   function cutAway(st, hh, f, post) {
+    const down = (Lying.ownedPiles(st, { type: 'household', id: hh.id }) || []).find((l) => l.kind === 'cutpile');
+    if (down) post(`cutpile:h${hh.id}`, down.tile, { farm: f }, 'cutpile');
     const want = hh.cold > 0 || pileOf(st, hh).short;
     if (!want) return;
     for (const pp of plansIn(st, hh.id))
@@ -690,6 +696,16 @@ VB['sim/chores'] = (() => {
         if (t.kind === 'firewood' && t.key === undefined && t.site !== f.house && cuttableAt(st, hh.id, t.site).n > 0)
           post(`cutpile:h${hh.id}:t${t.site}`, t.site, { farm: f }, 'cutpile');
   }
+  // the household's timber lying where a cutting of its is planned is kept for it: no goal of the household's takes it up as a stray
+  // (VB-1931 review: its felling's stray method fetched it home as timber, the cutting left with nothing to cut)
+  Lying.keep(
+    (st, l) =>
+      CUTTABLE.includes(l.kind) &&
+      l.owner.type === 'household' &&
+      plansIn(st, l.owner.id).some((pp) =>
+        pp.tasks.some((t) => t.key === undefined && t.kind === 'firewood' && t.site === l.tile),
+      ),
+  );
   const firewood = {
     noun: 'firewood',
     mark: null,

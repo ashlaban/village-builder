@@ -211,7 +211,6 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { firewood: theirs })), /timber at \d+ is another's/);
   assert.match(String(Sim.plan(st, st.player.pawn, 'add', { firewood: f.house + 9 })), /house is not at/);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { firewood: own }), true, "the household's own timber may be cut");
-  assert.strictEqual(Sim.plan(st, st.player.pawn, 'remove', { i: 0 }), true);
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { firewood: nobody }), true, "nobody's timber may be cut");
   // the firewood cut and not from the timber home (a cutting at the house takes its timber with the same reason)
   const cutSum = () => (hh.ledger || []).concat(hh.totals || []).filter((e) => e.kind === 'cutting').reduce((x, e) => x + e.n, 0);
@@ -227,10 +226,19 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   assert.deepStrictEqual(pp.tasks, [], 'the cutting done');
   assert.strictEqual(pp.last.which, 'cut', `the task left with the timber cut: ${pp.last.which}`);
   assert(atPile, 'the cutting was worked at the tile where the timber lay');
-  assert(!Lying.pilesAt(st, nobody).length, 'the timber lying there is all cut');
+  assert(!Lying.pilesAt(st, nobody).length && !Lying.pilesAt(st, own).length, 'the timber lying at both tiles is all cut');
   const cut = cutSum() - cut0;
-  assert(Math.abs(cut - 2 * P) < 1e-6, `two loads of firewood stacked on the woodpile (${cut})`);
+  assert(Math.abs(cut - 3 * P) < 1e-6, `three loads of firewood stacked on the woodpile, one of its own (not fetched home as timber by its felling: the review's F1) and two of nobody's (${cut})`);
   assert.strictEqual(Lying.amountAt(st, theirs, 'leftTimber', { type: 'household', id: other.id }), TRAVEL.load, "another's timber lies uncut");
   sound(st, 'cut where the timber lay');
+  // (the review's F6) a cutting's load set down on its way home lies as the household's, and a goal of its brings it home
+  const before = cutSum();
+  Lying.leave(st, 'cutpile', TRAVEL.load, f.house + 4, { type: 'household', id: hid });
+  Stores.take(st, hh, 'wood', hh.wood, 'burn');
+  for (let i = 0; i < 2 * 240 && Lying.pilesAt(st, f.house + 4).length; i++) Sim.advance(st, 0.1);
+  for (let i = 0; i < 240 && st.agents.some((a) => a.job && a.job.kind === 'cutpile' && a.load > 0); i++) Sim.advance(st, 0.1);
+  assert(!Lying.pilesAt(st, f.house + 4).length, 'the firewood set down on the road is taken up');
+  assert(hh.wood > 0 && cutSum() > before, `and brought home to the woodpile (${hh.wood})`);
+  sound(st, 'firewood set down on the road brought home');
 }
 console.log('firewood ok: two steps for every household, no cold day in a year; fell and firewood planned by hand, their refusals; the fire read; save and load; the outlook; a fell task of n loads brings n loads, and the timber held closes against its ledger; cut where timber of the household or of nobody lies, not of another');
