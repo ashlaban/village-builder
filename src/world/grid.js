@@ -1,4 +1,4 @@
-// @sys world/grid: the hex grid's geometry: the pointy-top odd-r neighbour directions, axial coordinates and distance, the tile under a map
+// @sys world/grid [kernel]: the hex grid's geometry: the pointy-top odd-r neighbour directions, axial coordinates and distance, the tile under a map
 // point, and the sample of a coarse-cell array at one
 VB['world/grid'] = (() => {
   const SQ3 = Math.sqrt(3);

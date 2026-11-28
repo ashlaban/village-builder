@@ -1,4 +1,4 @@
-// @sys sim/reasons: why a pawn does what it does (VB-1551; design.md section 7, Reasons shown): who chose its present act (the head's day
+// @sys sim/reasons [derived]: why a pawn does what it does (VB-1551; design.md section 7, Reasons shown): who chose its present act (the head's day
 // and its place in the member's list, the head's call, a day lent or owed, the village's work, the player's order, its own choosing, or
 // none) and one line of why, from the day's lists, the task's basis and what its kind declares; what presses is the head's estimate.
 // A view computed when a card asks: it writes nothing, draws nothing, and no simulation module reads it (tests/reasons.js)

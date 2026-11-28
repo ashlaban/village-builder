@@ -1,4 +1,4 @@
-// @sys sim/occasions: occasions (VB-126): a gathering at a place from a start to an end in game hours, of those asked: the village meeting
+// @sys sim/occasions [agency]: occasions (VB-126): a gathering at a place from a start to an end in game hours, of those asked: the village meeting
 //   on the green (at its village's turn), the wedding feast and the funeral ale at a farm, a call at a farm (VB-1119: the verb `call`, a
 //   pawn's evening at another household's), and the kinds sim/venues calls (the ale evening, the season's rite); who is asked, who sets
 //   out, and the due-queue that sends and ends them; the villages' turns of the meetings and the moving round. What the host lays out is
@@ -13,6 +13,7 @@
 // @state st.occasionSeq: number; the next occasion's id; ids are never reused
 // @state household.harvestIn: absent, or the game year (cal's year) in which the household last called a harvest home: one a year, whatever
 //   the planning days; no later than this year (tests/lib/invariants.js). Written only here.
+// @notstock household.harvestIn: ledgers and statistics of what moved (sim/stores, sim/hunger)
 // @state agent.occasion: the id of the occasion the pawn set out for and stands at until its end, or null
 VB['sim/occasions'] = (() => {
   const { unbound } = VB['sim/pose'];

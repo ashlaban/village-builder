@@ -1,4 +1,4 @@
-// @sys sim/marriage: a marriage (wed, the marry verb's act), the handover in life (the holder's rule for offering it, and the basis
+// @sys sim/marriage [agency]: a marriage (wed, the marry verb's act), the handover in life (the holder's rule for offering it, and the basis
 //   `handover`: the first in line answers, a no passes it on; VB-824), and the basis `match` of sim/offers (VB-690): what may be offered,
 //   who answers, what a yes, a no and a lapse do (split from sim/lifecycle, VB-876)
 VB['sim/marriage'] = (() => {
@@ -103,6 +103,7 @@ VB['sim/marriage'] = (() => {
   //   offers or finds another first in line, and when the holding changes hands ('newHead'). On the household, not the farmstead: a
   //   farm outlives its households, and a holding out ends with the household that holds. The heir's grudge is derived from it
   //   (sim/relations, opinionAt). Written only here.
+  // @notstock household.expected: identity, links and membership
   const expect = (st, hh, heir) => {
     if (!hh.expected || hh.expected.heir !== heir) hh.expected = { heir, since: st.t };
   };

@@ -1,4 +1,4 @@
-// @sys sim/gifts: how a gift gets from here to there (VB-228): the verbs `give`, the offer of a gift, and `deliver`, what a yes settles: carried,
+// @sys sim/gifts [agency]: how a gift gets from here to there (VB-228): the verbs `give`, the offer of a gift, and `deliver`, what a yes settles: carried,
 // hauled or fetched (sim/journeys) between places, booked at once within one farmstead (sim/exchange); and a new household's start in life,
 // laid at the homes it was taken from and borne or fetched (VB-675, layStart)
 VB['sim/gifts'] = (() => {

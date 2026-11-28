@@ -1,4 +1,4 @@
-// @sys sim/ladder: the main building's rungs (a camp, a shelter, a cottage, a timber house: VB-1664), its stone foundation (a property
+// @sys sim/ladder [agency]: the main building's rungs (a camp, a shelter, a cottage, a timber house: VB-1664), its stone foundation (a property
 //   of the house, not a rung; VB-1663) and the outbuildings (a barn) as data, each what it is built from, needs and gives, read from the
 //   rules that build it; the rung a farm stands at (rungOf), derived from its state (but the timber house, stored: farmstead.rung,
 //   sim/timberhouse); and the farm's view for the page (farmView): what stands, what is being built, what could follow and why not now

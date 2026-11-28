@@ -1,4 +1,4 @@
-// @sys sim/seasonal: a household's seasonal plan and its targets (design.md section 7, How a holder chooses: the year, foresight; VB-252,
+// @sys sim/seasonal [agency]: a household's seasonal plan and its targets (design.md section 7, How a holder chooses: the year, foresight; VB-252,
 // VB-254): its culture's template of the year as rules, compiled at the season's turn; the head who plans, its bias and the horizon its
 // skill gives; the targets copied from the template, times the bias, with what the horizon projects and the head's own choices over them
 VB['sim/seasonal'] = (() => {

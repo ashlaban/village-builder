@@ -1,4 +1,4 @@
-// @sys sim/pastimes: own time (VB-1552; design.md, Work, Own time; target-v2, section 4.5): the table of pastimes (who may choose each,
+// @sys sim/pastimes [social]: own time (VB-1552; design.md, Work, Own time; target-v2, section 4.5): the table of pastimes (who may choose each,
 //   where it is spent, with whom, what weighs for it, its words for the card), the choice of a pawn the planner found no task (ownTime),
 //   the verb `pastime`, which the played pawn has too, and the pawn's pastime (agent.pastime). A pastime is a walk and a wait: it reads
 //   no plan, no store and no mood, makes and uses no good, and has only the effects of the encounter it puts the pawn in (sim/encounters)

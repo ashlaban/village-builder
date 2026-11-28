@@ -1,4 +1,4 @@
-// @sys sim/round: the moving round (autumn days 11 to 13, ASK.passes days; VB-692): on each day each village's step answers the offers
+// @sys sim/round [agency]: the moving round (autumn days 11 to 13, ASK.passes days; VB-692): on each day each village's step answers the offers
 //   due to its people (sim/offers, in the order ASK.order; of the matches one is asked by, the best as its side reads it first, VB-693),
 //   and one refused asks anew, due the next day; on the first, each village's round (its store filled, the played pawn's wished match,
 //   its kin pressure, the visits its unmatched plan), then demand, claims, settlement and service, island-wide, each made an offer due

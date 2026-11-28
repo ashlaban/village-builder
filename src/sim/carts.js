@@ -1,4 +1,4 @@
-// @sys sim/carts: the household's carts (the distance review, Kim, 12 Nov): hand carts and ox carts as items that carry a larger load home,
+// @sys sim/carts [material]: the household's carts (the distance review, Kim, 12 Nov): hand carts and ox carts as items that carry a larger load home,
 // wear with each trip and are mended; the head counts the loads that found no cart free and begins another through the verb project (VB-678)
 // Design: design.md, Carts. A pawn taking a load from the field takes the household's best free cart: an ox cart if its team is free, else a
 // hand cart, else the load goes on the back (TRAVEL). Today only sheaves are carried by the load (sim/kinds, haul); hay, firewood and manure
@@ -34,6 +34,7 @@ VB['sim/carts'] = (() => {
   //   that has it out with a load, or null)}: the household's carts, in the order they were made. Written only here.
   // @state household.cartMiss: loads taken on the back because no cart was free while more waited, since the head's last yearly look at a
   //   cart or the last cart begun (the head's count; VB-678). Written only here.
+  // @notstock household.cartMiss: land, buildings and their records (fields, meadows, a site's timber)
   // A cart is out while the pawn named in `by` is at the job it took it for: carrying a load home, cutting a further load of firewood
   // beside it, or carting dung; or on its way out with a cart taken at the house (the water's barrel, sim/chores: a load beyond the
   // back's on the way to the work, VB-1586); a `by` left by a pawn that died or dropped the job is free again.
@@ -42,6 +43,7 @@ VB['sim/carts'] = (() => {
   //   while it stands the cart is out, and the team that drew it stands with it. Written only here; removed at the autumn frost if nobody
   //   came (sim/lying), unless `kept`: a cart its household left standing at the landing when its house moved (VB-1667), on its own land
   //   and not abandoned, which the frost does not take.
+  // @notstock household.carts: land, buildings and their records (fields, meadows, a site's timber)
   const out = (st, c) => {
     if (c.at) return true;
     const a = c.by === null ? null : st.agents[c.by];

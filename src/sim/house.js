@@ -1,4 +1,4 @@
-// @sys sim/house: a well-kept house (VB-306; VB-419, from sim/rules): a house's condition and how it wears, tar and a stone house,
+// @sys sim/house [kernel]: a well-kept house (VB-306; VB-419, from sim/rules): a house's condition and how it wears, tar and a stone house,
 // and the standing its term gives; the room each rung of the main building has, a household over it crowded, and a timber house's
 // smaller fire (VB-1664)
 VB['sim/house'] = (() => {

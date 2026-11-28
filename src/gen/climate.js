@@ -1,4 +1,4 @@
-// @sys gen/climate: the weather that shapes a generated world (VB-342): the seed's wind, erosion of the relief by running water, the rain the
+// @sys gen/climate [kernel]: the weather that shapes a generated world (VB-342): the seed's wind, erosion of the relief by running water, the rain the
 // ===== Climate at generation: wind carries off the sea, and each tile's moisture from that rain and the water of its valley =====
 // Listed before gen.js, which calls it on its coarse grid (CW by CH cells, elevation above 0 land); it reads gen/rivers for its heap only.
 VB['gen/climate'] = (() => {

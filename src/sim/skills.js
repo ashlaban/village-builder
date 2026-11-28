@@ -1,4 +1,4 @@
-// @sys sim/skills: a pawn's skill at each type of work (VB-475: a stand-in drawn once, from the stream `traits`, that does not grow) and
+// @sys sim/skills [kernel]: a pawn's skill at each type of work (VB-475: a stand-in drawn once, from the stream `traits`, that does not grow) and
 // at each craft (VB-360: learnt by doing, faster with aptitude, fading unused, read in closed form), and what they do to a hand's rate:
 // skill speeds the work, and a mishap drawn at a work leg's start (the stream `mishap`) slows it, less for a skilled hand; a hand of
 // middling skill works at the norm on average; a craft's level multiplies the rate from a novice's to a master's.

@@ -1,4 +1,4 @@
-// @sys sim/levies: the household's levy on its members (VB-1760; design.md section 7, The levy and own hours): the hours a day by season
+// @sys sim/levies [agency]: the household's levy on its members (VB-1760; design.md section 7, The levy and own hours): the hours a day by season
 // each member owes its household by custom (sim/customs LEVY) or contract, times its hands, compiled on the household's plan; and the
 // levy left today, the head's day's capacity for a member (sim/day allot). Owns plan.levies; and
 // the booking of a pawn's working hours into the six parts at each leg's end (VB-1761; Own hours, booked; Whose an hour is), the six

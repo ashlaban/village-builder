@@ -1,4 +1,4 @@
-// @sys sim/heirranking: blood lines, succession customs and competing claims to a farm
+// @sys sim/heirranking [social]: blood lines, succession customs and competing claims to a farm
 VB['sim/heirranking'] = (() => {
   const { childrenOf, spouseOf, holdingOf, practice, villageOf, householdsOfLine, ancestorsOf } = VB['sim/records'];
   // The living of pawn `line`'s blood in the order its customs `cu` give (sex, birth order; under "chosen" those of household `homeId`

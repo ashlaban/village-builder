@@ -1,4 +1,4 @@
-// @sys sim/events: the channel by which a lower layer's act reaches a higher one (target-v2 3.2): `emit` calls the subscribers at once, in load order
+// @sys sim/events [kernel]: the channel by which a lower layer's act reaches a higher one (target-v2 3.2): `emit` calls the subscribers at once, in load order
 VB['sim/events'] = (() => {
   const { atLoad } = VB['sim/registry'];
   // Code, never saved state: kind -> subscribers in the order they registered. Closed with the registries (the first seed or load).

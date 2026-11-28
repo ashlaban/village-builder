@@ -1,4 +1,4 @@
-// @sys sim/asking: the asking day (VB-823; plan VB-682, sections 2, 3 and 7): each pawn who seeks reviews its wish on a day of its own once
+// @sys sim/asking [agency]: the asking day (VB-823; plan VB-682, sections 2, 3 and 7): each pawn who seeks reviews its wish on a day of its own once
 //   a season (the due-queue st.asking of sim/wishes) and, holding no open offer about its future, makes the one its best open rung asks
 //   for, due at the moving round, which answers it: a match, by its spokesman (askMatch, which the round
 //   also uses to ask anew after a refusal), or an empty farm (the basis land); a plot, at home or (with no site there) of a small village within

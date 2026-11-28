@@ -97,7 +97,7 @@ Every tool under `tools/` answers `--help` with its options, without running: re
 - Find a thing by the grep of its declaration, not by a list file (VB-1406): module map `grep -rn "^// @sys" src`; state schema and
   owners `grep -rn "@state" src`; tunables `grep -rn "@tunable" src`, beside the tables of `src/sim/rules.js` that several domains read
   (VB-419); verbs `grep -rn "register('" src`; work counters `grep -rn "VB.counter('" src`; job kinds `grep -rn "const KINDS = " src`. The lists not yet turned into declarations (modules
-  in load order `src/manifest.json`, layers `src/layers.json`, owners `src/owners.json`, tiers each test's `// @suite` line)
+  in load order `src/manifest.json`, owners `src/owners.json`; a layer is the `[layer]` tag of the `@sys` line, VB-1941)
   are still read and edited until their step lands (`docs/architecture/modules.md`, Adding things).
 - Source is read through `readSource(file)` (`tools/lib/source.js`), never `readFileSync`, so that `.ts` is read as JavaScript.
 - The terrain's codes, names and grid (`B`, the biomes' names, `treeStage`, `ROCK`, `DEPOSIT`, `hexLocator`, `csample`, a river's kind)

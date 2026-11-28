@@ -1,4 +1,4 @@
-// @sys sim/courses: a field's course in its farm's rotation: the next step, a rotation taken and its fields staggered, a new field placed,
+// @sys sim/courses [material]: a field's course in its farm's rotation: the next step, a rotation taken and its fields staggered, a new field placed,
 // two fields' steps swapped, a crop out of turn, and the crop last lost that the next year's choice remembers (VB-350, VB-351, VB-355)
 VB['sim/courses'] = (() => {
   const { underCrop, fieldAt, courseFor } = VB['sim/rotations'];
@@ -100,6 +100,7 @@ VB['sim/courses'] = (() => {
   // @state farmstead.failed: absent, or {crop, year}: the crop last lost on a field of the farm, to the frost or left standing, and the year
   //   of cal it was lost in (VB-351): the year after, an ordinary or good head sows more of another crop (sim/rotations' fieldsChoice).
   //   Kept only on a farm whose rotation has two crops or more, so a farm of barley alone holds none.
+  // @notstock farmstead.failed: land, buildings and their records (fields, meadows, a site's timber)
   function failed(st, f, fd) {
     if (isVillage(f) || ROTATIONS[fd.rotation].courses.filter((k) => CROPS[k].seed > 0).length < 2) return;
     f.failed = { crop: fd.crop, year: cal(st.t).year };

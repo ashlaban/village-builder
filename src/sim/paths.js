@@ -1,4 +1,4 @@
-// @sys sim/paths: worn paths: each crossing of a tile counts, the count halves each game year, and its stage (trodden, path, lane) shows
+// @sys sim/paths [kernel]: worn paths: each crossing of a tile counts, the count halves each game year, and its stage (trodden, path, lane) shows
 VB['sim/paths'] = (() => {
   const { SEASON_DAYS } = VB['sim/rules'],
     { PATHS, recost } = VB['sim/walking'];
@@ -17,7 +17,9 @@ VB['sim/paths'] = (() => {
   // Fresh wear for a world; the settlement generator calls it.
   function initWear(w) {
     // @state w.wear: Float32Array per tile; crossings by walking pawns, fading by half each game year (sim/paths)
+    // @notstock w.wear: ways (the wear of walking, fords and bridges, passage, the ground compiled, a house's gate)
     // @state w.worn: Uint8Array per tile; stage of the wear: 0 none, 1 trodden ground, 2 path, 3 lane; set once a game day
+    // @notstock w.worn: ways (the wear of walking, fords and bridges, passage, the ground compiled, a house's gate)
     w.wear = new Float32Array(w.N);
     w.worn = new Uint8Array(w.N);
   }

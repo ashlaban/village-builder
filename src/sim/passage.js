@@ -1,4 +1,4 @@
-// @sys sim/passage: passage on foot (VB-816): a field in crop, and a meadow in grass where the custom says so, closed to routes through it
+// @sys sim/passage [material]: passage on foot (VB-816): a field in crop, and a meadow in grass where the custom says so, closed to routes through it
 // ===== Passage on foot (design.md, Built ways, passage and upkeep: Passage on foot, Decided 3 Nov; target-v2 4.2) =====
 // Read where a tile lies, not by who walks, so that one ground serves every walker (sim/walking tileCost): a field from its sowing to its
 // reaping is crossed by nobody, its holder included, but along a path or a lane worn over it; a route may start or end on it, as at a house.
@@ -21,6 +21,7 @@ VB['sim/passage'] = (() => {
   // @state w.shut: Uint8Array per tile, made at the first day's sweep: 0 open; 1 a field in crop or a meadow in grass under `ways`, closed
   //   to routes through it (sim/walking tileCost), but along a path or a lane; 2 standing, but kept open, since closing it would cut a
   //   house, a field or the green off. Written only here, once a day (passageDay), and saved with the world.
+  // @notstock w.shut: ways (the wear of walking, fords and bridges, passage, the ground compiled, a house's gate)
   const shutOf = (st) => st.w.shut || (st.w.shut = new Uint8Array(st.w.N));
   // Whether a meadow of village v is closed in its grass today: the custom is `ways`, and it is not winter (a meadow never mown opens
   // with the snow).

@@ -1,4 +1,4 @@
-// @sys sim/keep: what the alderman is kept with (VB-463; design.md, Households and other bodies: The alderman's keep): under the village's
+// @sys sim/keep [agency]: what the alderman is kept with (VB-463; design.md, Households and other bodies: The alderman's keep): under the village's
 // practice `keep`, at each autumn meeting every other farm's household owes the alderman's days of work to the next meeting (sim/levies,
 // source 'keep'), or at the moving round sets aside a share of its surplus for him, fetched by a member of his household (the gift's way,
 // sim/gifts: nothing is carried but by a pawn). A vacancy, or a new alderman, ends the days owed the one before.
@@ -9,7 +9,9 @@ VB['sim/keep'] = (() => {
   const { log } = VB['sim/records'];
   // @state village.keep: {year, days (owed), grain (set aside), payers (households that owed or gave)}: the keep of the year of `year`, folded
   //   into one yearly line at the next autumn meeting (Rules for cost, 8); absent until the first. Written only here.
+  // @notstock village.keep: ledgers and statistics of what moved (sim/stores, sim/hunger)
   // @state village.keepBy: the household id the keep's days are owed to, or null: whom a new alderman or a vacancy ends them for. Written only here.
+  // @notstock village.keepBy: ledgers and statistics of what moved (sim/stores, sim/hunger)
   const optOf = (st, vid) => inForce(st, 'keep', vid);
   const bookOf = (st, v) => {
     const y = cal(st.t).year;

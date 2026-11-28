@@ -1,4 +1,4 @@
-// @sys sim/quern: the hand quern (VB-009): a household's quern stone, of sandstone or granite, worn out QUERN.years after it was made (read
+// @sys sim/quern [material]: the hand quern (VB-009): a household's quern stone, of sandstone or granite, worn out QUERN.years after it was made (read
 // from when it was made); grinding grain to flour at home, at the grit of the quern's rock; hewing a new quern from a load of sandstone or
 // granite on the heap, of the rock of that load (VB-733); the quern as a good of two kinds
 // Design: design.md, Long work and processing (Milling at home: Decided, Agreed) and The mill and the loom (The quern: Decided, 11 Nov;

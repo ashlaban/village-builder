@@ -1,4 +1,4 @@
-// @sys sim/expansion: clearing a new plot for those who want to move out, and posting its cottage's stages: site, jobs, progress, release;
+// @sys sim/expansion [material]: clearing a new plot for those who want to move out, and posting its cottage's stages: site, jobs, progress, release;
 // a plot under way is a project plan of its village (sim/plans, VB-123), a plot built a record in village.plots; who gets a plot, and the
 // moving round's plots, are sim/allotment's; the cottage's stages themselves, a plot's and a settler household's, sim/cottageplan's
 VB['sim/expansion'] = (() => {

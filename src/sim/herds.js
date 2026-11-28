@@ -1,4 +1,5 @@
-// @sys sim/herds: households' cattle and sheep: the herds and their hay, breeding and ageing each spring, each scenario's herds (handing on: sim/droving)
+// @sys sim/herds [material]: households' cattle and sheep: the herds and their hay, breeding and ageing each spring, each scenario's herds (handing on:
+//   sim/droving)
 VB['sim/herds'] = (() => {
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['world/biomes'];

@@ -1,4 +1,4 @@
-// @sys gen: assembly of the seeded archipelago's terrain, tile and region data, and the public ArchGen API
+// @sys gen [kernel]: assembly of the seeded archipelago's terrain, tile and region data, and the public ArchGen API
 const ArchGen = (() => {
   const { mulberry32, makeSimplex, fbm, smooth } = VB['gen/noise'];
   const { COVER: BASE_COVER } = VB['gen/biomes'];
@@ -336,22 +336,38 @@ const ArchGen = (() => {
     const ground = VB['gen/geology'].lay({ N, nb, hx, hy, hp, hm, water, biome, river: rivers.river, W, H, R, seed });
     // @state w.lat: number; the world's latitude, degrees north at its middle row: the climate it was made in (sim/climate CLIMATE.worlds,
     //   VB-807), not drawn from the seed, so a seed's island is the same in every climate; 59, the middle world's, where none is given
+    // @notstock w.lat: the generated world
     // @state w.seed,name: number, string; the generator seed and the map's name
+    // @notstock w.seed, w.name: the generated world
     // @state w.R,COLS,ROWS,RR: numbers; hex circumradius (map units), grid columns, grid rows, region radius (tiles)
+    // @notstock w.R, w.COLS, w.ROWS, w.RR: the generated world
     // @state w.W,H,HW,AP: numbers; map width and height, hex width and hex apothem (map units)
+    // @notstock w.W, w.H, w.HW, w.AP: the generated world
     // @state w.N,STEP,CW,CH,KS: numbers; tile count COLS*ROWS, coarse-grid step (map units), coarse grid size, scale vs the first prototype
+    // @notstock w.N, w.STEP, w.CW, w.CH, w.KS: the generated world
     // @state w.elev,macro: Float32Array per coarse cell (CW*CH); elevation (<0 sea floor, 0..1 land), tint (the map's colours, the light
     //   of the relief and the distance to the land are the page's paint, draw/paint, VB-1504)
+    // @notstock w.elev, w.macro: the generated world
     // @state w.hx,hy: Float32Array per tile; tile centre in map units
+    // @notstock w.hx, w.hy: the generated world
     // @state w.he,hp,hm: Float32Array per tile; elevation (<=0 water), land elevation rank 0..1, moisture 0..1
+    // @notstock w.he, w.hp, w.hm: the generated world
     // @state w.wind,rain: [x, y], Float32Array per tile; the way the seed's wind blows (unit vector), a land tile's rain 0..1 (gen/climate)
+    // @notstock w.wind, w.rain: the generated world
     // @state w.biome: Uint8Array per tile; B.* code
+    // @notstock w.biome: the generated world
     // @state w.water,ocean: Uint8Array per tile; 1 = water, 1 = open sea (0 for lakes)
+    // @notstock w.water, w.ocean: the generated world
     // @state w.hrnd: Float32Array per tile; fixed random number 0..1
+    // @notstock w.hrnd: the generated world
     // @state w.landDist: Int16Array per tile; steps to the nearest land tile (0 on land, 999 if none)
+    // @notstock w.landDist: the generated world
     // @state w.nb: Int32Array, 6 per tile; neighbour tile indexes in direction order, -1 off the map
+    // @notstock w.nb: the generated world
     // @state w.region: Int32Array per tile; index into w.regions
+    // @notstock w.region: the generated world
     // @state w.regions[]: {cq, cr, tiles, land, label}; hex patch centre, tile count, land tile count, 1.. label for land regions
+    // @notstock w.regions: the generated world
     // @state w.trees,treesMax: Float32Array, Uint8Array per tile; trees standing and at full cover (forest tiles only, 0 elsewhere)
     // @state w.stones: Uint8Array per tile; stones on meadow tiles, 30..255 (few < 85, some < 170, many above); 0 elsewhere and on fields
     return {

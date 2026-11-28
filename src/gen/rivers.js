@@ -1,4 +1,4 @@
-// @sys gen/rivers: rivers traced over the generated terrain, from hills, mountains and marsh through lakes to the sea
+// @sys gen/rivers [kernel]: rivers traced over the generated terrain, from hills, mountains and marsh through lakes to the sea
 // ===== Rivers: drainage by priority flood, catchment, sources per island, courses to the sea =====
 // Listed before gen.js, which calls trace with the arrays of the world in the making and a random source.
 VB['gen/rivers'] = (() => {
@@ -200,8 +200,11 @@ VB['gen/rivers'] = (() => {
     }
     const crossing = fords(t, rand, river, riverTo, starts);
     // @state w.river: Uint16Array per tile; catchment of a land tile a river runs through (tiles, weighted by moisture), 0 elsewhere
+    // @notstock w.river: the generated world
     // @state w.riverTo: Int32Array per tile; next tile down a river's course (river tile, lake on the course, or sea), -1 off every course
+    // @notstock w.riverTo: the generated world
     // @state w.crossing: Uint8Array per tile; how a river tile is crossed on foot: 0 not at all, 1 a ford, 2 a bridge (built in play)
+    // @notstock w.crossing: ways (the wear of walking, fords and bridges, passage, the ground compiled, a house's gate)
     return { river, riverTo, crossing };
   }
   // A river tile whose dry neighbours lie on two sides or more, none of them water: crossing it joins two banks.

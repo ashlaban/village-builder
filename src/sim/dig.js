@@ -1,4 +1,5 @@
-// @sys sim/dig: digging clay, bog iron and peat (VB-359, VB-367): the loads a deposit tile has left, bog iron growing back, and a household's digging ground
+// @sys sim/dig [material]: digging clay, bog iron and peat (VB-359, VB-367): the loads a deposit tile has left, bog iron growing back, and a household's
+//   digging ground
 // What shows at the surface and needs no facility is dug: clay, bog iron and peat. The hidden ores, flint, amber and salt wait for their goods
 // (design.md, Goods of place and side crafts, In the ground). The loads go into the household's store (sim/stores dig) and nothing uses clay
 // and bog iron until slice 6 (VB-185), so a household digs those in its slack, and only up to DIG.stock loads of each. Peat is fuel (VB-367):

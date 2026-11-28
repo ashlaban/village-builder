@@ -1,4 +1,4 @@
-// @sys draw/pigments: the colours the map is painted in: each land biome's pigments and how the relief's light tells on it, the sea's
+// @sys draw/pigments [presentation]: the colours the map is painted in: each land biome's pigments and how the relief's light tells on it, the sea's
 // bands and the lake's colour
 VB['draw/pigments'] = (() => {
   // Land colours are the earth pigments of a painted vault (yellow ochre, green earth, red oxide, limewash), from c to c2 by the macro

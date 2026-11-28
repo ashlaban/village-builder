@@ -1,4 +1,4 @@
-// @sys gen/biomes: land cover thresholds (the biomes' codes and names are world/biomes', their pigments draw/pigments')
+// @sys gen/biomes [kernel]: land cover thresholds (the biomes' codes and names are world/biomes', their pigments draw/pigments')
 VB['gen/biomes'] = (() => {
   // ---- land cover: which biome a land tile gets, from its height rank p (0 the lowest land tile, 1 the highest) and its moisture m
   // (0 dry to 1 wet, a little wetter on the coast and drier with height). Read in this order, the first that holds:

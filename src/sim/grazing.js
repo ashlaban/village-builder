@@ -1,4 +1,5 @@
-// @sys sim/grazing: herding and grazing pressure (VB-136): the pasture, the herder, the way out to the outland (VB-446), the pressure and the milk (VB-709)
+// @sys sim/grazing [material]: herding and grazing pressure (VB-136): the pasture, the herder, the way out to the outland (VB-446), the pressure and the milk
+//   (VB-709)
 VB['sim/grazing'] = (() => {
   const { DAY, YEAR, SEASON_DAYS, HERD, CLAIMS, stalled, cal } = VB['sim/rules'];
   const { bfs, hexSteps } = VB['sim/hex'];
@@ -89,6 +90,7 @@ VB['sim/grazing'] = (() => {
   //   none)}: the one way all its herds are driven out by that season, so that their crossings fall on the same tiles and wear a cattle lane
   //   (VB-446). Chosen at the first herding of a season, by one search over the outland and one route search, and kept for the season
   //   (Rules for cost: one search a village a season). Plain data; written here only.
+  // @notstock village.droveway: land, buildings and their records (fields, meadows, a site's timber)
   function wayOf(st, v, c) {
     const season = Math.floor(c.day / SEASON_DAYS);
     if (v.droveway && v.droveway.season === season) return v.droveway;
@@ -213,6 +215,7 @@ VB['sim/grazing'] = (() => {
   //   since it was chosen. So its routes are walked again and stay in the cache, and the search runs once in days (Rules for cost).
   //   A village with a way out sends its herds by it, its outland being its common pasture (design.md, Infield, outland and wilderness);
   //   one with none, or a herd with no grazable tile at its end, grazes by the house as before.
+  // @notstock household.pasture: land, buildings and their records (fields, meadows, a site's timber)
   function todaysPasture(st, hh, c) {
     const p = hh.pasture,
       H = HERD.herding,

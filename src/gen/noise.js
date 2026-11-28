@@ -1,4 +1,4 @@
-// @sys gen/noise: seeded random draws and the noise fields used to generate relief and brush texture
+// @sys gen/noise [kernel]: seeded random draws and the noise fields used to generate relief and brush texture
 VB['gen/noise'] = (() => {
   const SQ3 = Math.sqrt(3);
 

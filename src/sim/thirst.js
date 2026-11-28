@@ -1,4 +1,4 @@
-// @sys sim/thirst: a pawn's own thirst (VB-1585; design.md, Water by the site, The thirsty pawn): the hour it last drank (pawn.drank), from
+// @sys sim/thirst [material]: a pawn's own thirst (VB-1585; design.md, Water by the site, The thirsty pawn): the hour it last drank (pawn.drank), from
 // which its thirst is read in closed form, so nothing ticks; the day's end of each pawn (the meal's pass asks: did it drink today), who
 // goes for its own drink, and the job kind `drink`, a drink at a source. The verb and the leaving of work are sim/drinking's
 VB['sim/thirst'] = (() => {

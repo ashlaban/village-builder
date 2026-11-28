@@ -48,6 +48,15 @@ assert(errors(wrap("const later = (key) => VB[key]; const run = () => later('lat
 // VB-230: every module has a layer; upward calls (by pair of modules) are held to a baseline that only falls.
 const L = loadLayers(), BASE = path.join(__dirname, 'layers-baseline.json');
 assert.deepStrictEqual(missingLayers(r.deps.map((d) => d.mod), L), []);
+// VB-1941: the layer is read from the `@sys` line, `src/layers.json` keeps only the names and the roots, and the module map is built from
+// the same lines (tools/modules.js), every module of the manifest in it with a layer or as a root
+assert.deepStrictEqual(Object.keys(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'layers.json'), 'utf8'))), ['layers', 'roots']);
+assert.strictEqual(L.of['sim/jobs'], L.names.indexOf('agency'), 'sim/jobs is of the agency layer, by its @sys line');
+{
+  const { map } = require('../tools/modules.js'), m = map();
+  assert.deepStrictEqual(m.rows.filter((x) => !x.layer || !x.purpose).map((x) => x.key), [], 'every module is in the map with its layer and purpose');
+  assert.strictEqual(m.rows.length, JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'manifest.json'), 'utf8')).length);
+}
 const found = {};
 for (const u of upward(r.deps, L)) found[`${u.from} -> ${u.to}`] = (found[`${u.from} -> ${u.to}`] || 0) + 1;
 const total = Object.values(found).reduce((a, b) => a + b, 0);

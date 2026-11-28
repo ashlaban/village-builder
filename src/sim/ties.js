@@ -1,4 +1,4 @@
-// @sys sim/ties: familiarity between pawns, its decay scale, kin floor and hours shared at home.
+// @sys sim/ties [kernel]: familiarity between pawns, its decay scale, kin floor and hours shared at home.
 VB['sim/ties'] = (() => {
   const { YEAR, DAY, YEAR_DAYS, SEASON_DAYS } = VB['sim/rules'];
   const { kinNear } = VB['sim/records'];

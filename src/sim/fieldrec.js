@@ -1,4 +1,4 @@
-// @sys sim/fieldrec: the one constructor of a field's record, for the generator (sim/layout) and for ground broken in play (sim/newground)
+// @sys sim/fieldrec [kernel]: the one constructor of a field's record, for the generator (sim/layout) and for ground broken in play (sim/newground)
 VB['sim/fieldrec'] = (() => {
   const { SOIL, GROUND, fertility } = VB['sim/crops'];
   const { BIOMES } = VB['world/biomes'];

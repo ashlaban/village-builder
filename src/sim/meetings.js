@@ -1,4 +1,4 @@
-// @sys sim/meetings: the year's meetings (a village a step, then the cultures and the land meeting), the village's routines and its choice
+// @sys sim/meetings [agency]: the year's meetings (a village a step, then the cultures and the land meeting), the village's routines and its choice
 //   of gathering (sim/gathering) made at its meeting, and the night's drift of attitudes, a settlement a step (split from sim/lifecycle, VB-876)
 VB['sim/meetings'] = (() => {
   const { drawer } = VB['sim/rng'];

@@ -1,4 +1,4 @@
-// @sys sim/lifecycle: deaths (the day's death rolls, killPawn), retirement, and the daily life step (ages, a holder's birthday told as the
+// @sys sim/lifecycle [agency]: deaths (the day's death rolls, killPawn), retirement, and the daily life step (ages, a holder's birthday told as the
 //   event holderYear, coming of age, orphans, ties);
 //   the village meetings are sim/meetings, the moving round sim/round, marriage and its offers sim/marriage (VB-876)
 VB['sim/lifecycle'] = (() => {

@@ -1,4 +1,4 @@
-// @sys sim/allotment: who gets a plot (VB-032, VB-142, VB-646): the village's pick by its custom `newLand`, a household's heir's, the
+// @sys sim/allotment [social]: who gets a plot (VB-032, VB-142, VB-646): the village's pick by its custom `newLand`, a household's heir's, the
 // allotment told, a cleared plot allotted afresh at each moving round and given up when nobody comes; and the moving round's plots, each who
 // waits asking for one (startPlots); it hears sim/expansion's plots cleared and handed to the village (VB-1475)
 VB['sim/allotment'] = (() => {

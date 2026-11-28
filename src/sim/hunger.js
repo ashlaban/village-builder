@@ -1,4 +1,4 @@
-// @sys sim/hunger: feeding households, the daily hearth and the effects of food and shelter on pawns' health
+// @sys sim/hunger [material]: feeding households, the daily hearth and the effects of food and shelter on pawns' health
 VB['sim/hunger'] = (() => {
   const { targetOf } = VB['sim/steps'];
   const { owedBy, tiredHealth } = VB['sim/sleep'];

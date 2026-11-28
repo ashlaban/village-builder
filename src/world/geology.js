@@ -1,4 +1,4 @@
-// @sys world/geology: the codes and names of what lies in the ground: bedrock and deposits, the endless source, and how near a hidden vein shows
+// @sys world/geology [kernel]: the codes and names of what lies in the ground: bedrock and deposits, the endless source, and how near a hidden vein shows
 // The setting is Europe of 1300 to 1700, continental and Scandinavian: granite and gneiss are the common ground, limestone and sandstone
 // the building stones, slate, marble and soapstone the rarer ones; iron comes from bogs and from rock, silver with lead, tin only in
 // granite (uplands and hills). gen/geology lays them.

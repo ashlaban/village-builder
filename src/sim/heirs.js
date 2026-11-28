@@ -1,4 +1,4 @@
-// @sys sim/heirs: succession: heir ranking, handovers, moving between households, roles
+// @sys sim/heirs [social]: succession: heir ranking, handovers, moving between households, roles
 VB['sim/heirs'] = (() => {
   const { home } = VB['sim/records'];
   const { setServant, living, noteRoles } = VB['sim/records'];

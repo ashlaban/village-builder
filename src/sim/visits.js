@@ -1,4 +1,4 @@
-// @sys sim/visits: the suitor's visit, planned (VB-289; design.md, Between villages: The suitor's visit): a man who found nobody to ask
+// @sys sim/visits [agency]: the suitor's visit, planned (VB-289; design.md, Between villages: The suitor's visit): a man who found nobody to ask
 //   within a day's walk at his village's round chooses the nearest village beyond it that holds a woman he could marry (seekVisit) and
 //   plans a visit there by the verb `visit`; the plans wait in a due-queue and are set out in winter (visitsDue), as journeys of sim/journeys;
 //   the villages any pawn might visit (visitChoices), a visit's state for its sheet and the played pawn's order for one (VB-292)

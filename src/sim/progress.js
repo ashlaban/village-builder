@@ -1,4 +1,4 @@
-// @sys sim/progress: a task's progress now in its closed form (VB-472, VB-514): the hours done at its last reckoning plus its rate since;
+// @sys sim/progress [material]: a task's progress now in its closed form (VB-472, VB-514): the hours done at its last reckoning plus its rate since;
 // and the hours of an open stage kept on its record while its job is posted again (VB-1407)
 VB['sim/progress'] = (() => {
   const { TICKS } = VB['sim/rules'];

@@ -1,4 +1,4 @@
-// @sys sim/graph: the membership graph (VB-043): typed edges from pawns and bodies to bodies, written by Membership (sim/records, sim/membership,
+// @sys sim/graph [kernel]: the membership graph (VB-043): typed edges from pawns and bodies to bodies, written by Membership (sim/records, sim/membership,
 // sim/marriage, sim/society) as each membership changes; the index of live edges; the household caches derived from the edges and checked against them
 VB['sim/graph'] = (() => {
   // Each role: the kind of its `from` and of its `to`. A pawn may hold several edges of one role over time, and edges of several roles at once

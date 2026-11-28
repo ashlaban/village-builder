@@ -1,4 +1,4 @@
-// @sys sim/disputes: two or more claims on one tile, settled by the "Disputed claims" custom: each claim's speaker and support, the
+// @sys sim/disputes [material]: two or more claims on one tile, settled by the "Disputed claims" custom: each claim's speaker and support, the
 // scores under each rule, the winner, and the grievance of the losers (split from sim/claims, VB-1176)
 VB['sim/disputes'] = (() => {
   const { YEAR, CLAIMS } = VB['sim/rules'];
@@ -6,6 +6,7 @@ VB['sim/disputes'] = (() => {
     { tieOf } = VB['sim/ties'];
   const { strength } = VB['sim/claims'];
   // @state household.grievance: written by aggrieve, below (the rules that would have let its losing claim win, until a game hour)
+  // @notstock household.grievance: a memory of a lost dispute (the rules that would have won it, until a time; sim/disputes)
   // The pawn who speaks for a claim: a pawn's own, a household's holder; a village has none.
   const speaker = (st, by) =>
     by.type === 'pawn' ? by.id : by.type === 'household' ? st.households[by.id].holder : null;

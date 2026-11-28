@@ -1,4 +1,4 @@
-// @sys sim/stories: stories (VB-523; design.md, Traits, talk and stories: Stories; Kim, 3 Nov, model B): an event worth telling, known first
+// @sys sim/stories [social]: stories (VB-523; design.md, Traits, talk and stories: Stories; Kim, 3 Nov, model B): an event worth telling, known first
 // to those who were there, told in talk by its salience, believed by trust and fit, sharper at each retelling, forgotten untold; a believed
 // story is remembered of its subject as hearsay (sim/relations); lies about an enemy, by pawns and the player (the verb slander), and
 // their exposure by a hearer who knows better, the source of a counter-story about the liar (VB-554); what a pawn has heard, as its

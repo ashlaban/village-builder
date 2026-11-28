@@ -1,4 +1,4 @@
-// @sys sim/saltpan: salt boiled at a salt spring (VB-700): a household's spring within reach, the boiling as a job kind (brine boiled
+// @sys sim/saltpan [material]: salt boiled at a salt spring (VB-700): a household's spring within reach, the boiling as a job kind (brine boiled
 // in a pan over wood cut at the spring, the salt carried home), and salt as a made good and a good of the fair
 // Design: design.md, Goods, production and animals (Goods of place; In the ground: salt springs, rare, inland on limestone or sandstone,
 // which flow on); AGENTS.md, Deciding without Kim (7, 9, 16). Salt is boiled, never dug: brine from the spring is boiled down in an iron
