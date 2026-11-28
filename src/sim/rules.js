@@ -470,6 +470,9 @@ VB['sim/rules'] = (() => {
     barn: 6,
     barnCold: 0.5,
     from: 9,
+    mix: 0.5, // VB-296: the floor added to a partner's weight on the green, so that strangers of other villages are drawn (an ale evening's)
+    contacts: 6, // the most new contacts a pawn makes a day of it (Kim, 10 Nov)
+    tie: 0.15, // added to a village's tie to its culture's centre when both go to one gathering (VB-296)
   };
   const HELP = {
     // a holder wants floorDays and its own reserve (TRAITS.acts.generosity.reserve, by its generosity: 0 to 40 days; VB-520) of the
