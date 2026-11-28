@@ -380,9 +380,11 @@ assert.deepStrictEqual(checkState(st), [], 'invariants after the journey');
     assert.ok(visitsOf(q, m2).every((o) => /planned a visit already/.test(o.why)), 'and no second');
     Sim.advance(q, 10); // his village's round: it plans no other
     assert.deepStrictEqual(q.visits.filter((e) => e.pawn === m2).map((e) => e.village), [2], 'the round leaves his plan as it is');
-    const g0 = Stores.grainOf(hh), out = walked(q, m2, plan.due), days = 2 * Math.ceil(hAC / TRAVEL.dayWalk) + TRAVEL.stay;
+    const t0 = q.t, out = walked(q, m2, plan.due), days = 2 * Math.ceil(hAC / TRAVEL.dayWalk) + TRAVEL.stay;
     assert.ok(out && out.state === 'away' && out.village === 2 && out.daysLeft === days, `under way, ${days} days left by his pack: ` + JSON.stringify(out));
-    assert.ok(g0 - Stores.grainOf(hh) >= days / q.ECON.uncooked - 1e-6, "at the same cost: a ration a day from his household's grain");
+    // his pack, taken from the household's grain as he sets out (VB-1951: the store's level is no measure, a harvest threshed meanwhile)
+    const pack = -hh.ledger.filter((e) => e.kind === 'away' && e.good === 'grain' && e.n < 0 && e.t >= t0).reduce((x, e) => x + e.n, 0);
+    assert.ok(pack >= days / q.ECON.uncooked - 1e-6, `at the same cost: a ration a day from his household's grain (${pack})`);
     assert.deepStrictEqual(q.pawns[m2].visited, { village: 2, year: M.roundYear(q.t) }, 'the visit is his');
     assert.strictEqual(Sim.visitState(q, m2), null, 'and he is home');
     assert.ok(M.poolFor(q, 0).includes(v2), "his village's pool holds C's women, not B's");

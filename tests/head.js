@@ -181,7 +181,7 @@ const hay = [];
 // the days with the walked fetch (VB-1582: seed 3 held 2.7 winters at the start of winter after a peak of 3.4), and the custom passage
 // (VB-816: seed 4 drew no herd for the first household; 12 gives a cow and sheep and 3.0 winters at its peak)
 for (const raise of [false, true]) {
-  const { st, hh, f } = scene({ herds: true, seed: 12 });
+  const { st, hh, f } = scene({ herds: true, seed: 7 }); // seed 7 since VB-1951 moved the draws (12 drew the first household no herd)
   for (const id of hh.herds) { // a cow and five ewes: three winters' need is within what the four meadows give, raked
     const hd = st.herds[id];
     if (hd.species === 'cattle') hd.head.length = 1; else { hd.ewes = 5; hd.rams = 0; hd.lambs = 0; }

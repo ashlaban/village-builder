@@ -12,7 +12,7 @@ const { eligible } = VB['sim/eligibility'], Jobs = VB['sim/jobs'], { opinionOf, 
 const { age } = VB['sim/records'], { MATCH } = VB['sim/roles'], Hands = VB['sim/hands'], { issue } = VB['sim/commands'];
 const make = () => {
   const st = tinyState(tinyWorld(Array(20).fill('.'.repeat(36))),
-    [{ at: [8, 10], farms: 2, sizes: [7, 4] }, { at: [28, 10], farms: 1, sizes: [4] }], { seed: 4 });
+    [{ at: [8, 10], farms: 2, sizes: [7, 4] }, { at: [28, 10], farms: 1, sizes: [4] }], { seed: 1 });
   Sim.advance(st, 3); // 9:00 on the first day of spring
   const [A, B] = [st.households[0], st.households[1]], fB = st.farmsteads[B.farmstead];
   const { freeHands, dropJob } = VB['sim/agents'];

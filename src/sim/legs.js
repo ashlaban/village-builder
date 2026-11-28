@@ -4,7 +4,8 @@ VB['sim/legs'] = (() => {
   const { unbound } = VB['sim/pose'];
   const { DAY, TICKS, WORK, SPEED, HERD, TRAVEL } = VB['sim/rules'];
   const { route } = VB['sim/routes'],
-    { stepCost, tileCost, iced } = VB['sim/walking'];
+    { stepCost, tileCost, iced, gateMiss } = VB['sim/walking'];
+  const { gatePoint } = VB['sim/entrances'];
   const { tread } = VB['sim/paths'];
   const { driven, droveRoute } = VB['sim/grazing'];
   const Carts = VB['sim/carts'];
@@ -232,7 +233,7 @@ VB['sim/legs'] = (() => {
     const w = st.w,
       from = tileAt(st, a.x, a.y),
       k = near && from >= 0 ? w.nb.indexOf(tile, from * 6) : -1,
-      step = k >= from * 6 && k < from * 6 + 6,
+      step = k >= from * 6 && k < from * 6 + 6 && !gateMiss(w, from, tile), // a house's gate (VB-1951)
       cls = loadClass(st, a),
       // a herder with its herds goes by its village's way out (sim/grazing, VB-446)
       p = step
@@ -244,11 +245,18 @@ VB['sim/legs'] = (() => {
       tiles = ok ? p.slice(1, -1) : [],
       cost = (i) => (i >= 0 && tileCost(w, i) < Infinity ? tileCost(w, i) : 1);
     a.path = [[a.x, a.y]];
+    // a house is left and entered through its gate (VB-1951; sim/entrances): the walk passes the gate's point
+    const out = ok && p.length > 1 && w.gate && w.nb[from * 6 + w.gate[from]] === p[1] ? gatePoint(w, from) : null,
+      into =
+        ok && p.length > 1 && w.gate && w.nb[tile * 6 + w.gate[tile]] === p[p.length - 2] ? gatePoint(w, tile) : null;
+    if (out) a.path.push([out[0], out[1], stepCost(w, from, p[1]), -1]);
     for (let s = 0; s < tiles.length; s++) {
       const t = tiles[s];
       a.path.push([w.hx[t] + a.ox * 0.4, w.hy[t] + a.oy * 0.4, stepCost(w, p[s], t), t]);
     }
-    a.path.push([x, y, ok ? stepCost(w, p[p.length - 2], tile) : cost(tile), ok ? tile : -1]);
+    const last = ok ? stepCost(w, p[p.length - 2], tile) : cost(tile);
+    if (into) a.path.push([into[0], into[1], last, -1]); // the gate's point; the house is entered at the walk's end, as without one
+    a.path.push([x, y, last, ok ? tile : -1]);
     a.seg = 0;
     begin(st, a);
   }

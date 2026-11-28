@@ -8,7 +8,7 @@ let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('D
 
 // a wooded island: the village on a clearing in its middle that its houses and fields fill, its outland the forest round it
 const w = tinyWorld(Array.from({ length: 26 }, (_, r) => (r >= 11 && r <= 15 ? 'F'.repeat(18) + '.'.repeat(8) + 'F'.repeat(18) : 'F'.repeat(44))));
-const st = tinyState(w, [{ at: [22, 13], farms: 8 }], { seed: 3, herds: true });
+const st = tinyState(w, [{ at: [22, 13], farms: 8 }], { seed: 13, herds: true });
 const v = st.villages[0], SEASON = Sim.SEASON_DAYS;
 const herding = () => st.liveHouseholds.map((id) => st.households[id]).filter((hh) => VB['sim/grazing'].herdLoad(st, hh) > 0);
 check(herding().length >= 4, `only ${herding().length} households with animals`);

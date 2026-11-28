@@ -11,7 +11,7 @@ const { spoilGrain } = VB['sim/hunger'], { spoilHay } = VB['sim/byre'], { issue 
 const { DAY, SEASON_DAYS, HERD, WORK, BUILD, cal } = VB['sim/rules'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { checkState } = require('./lib/invariants.js');
 const rows = Array.from({ length: 14 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFFFFFF' : '....................'));
-const make = () => tinyState(tinyWorld(rows), [{ at: [9, 8], farms: 2, sizes: [5, 4] }], { seed: 4, herds: true });
+const make = () => tinyState(tinyWorld(rows), [{ at: [9, 8], farms: 2, sizes: [5, 4] }], { seed: 8, herds: true });
 const near = (a, b, e = 1e-9) => Math.abs(a - b) < e;
 
 // a storehouse halves the grain lost to spoilage (BUILD.storehouse.loss), a barn the barn hay lost (BUILD.barn.loss), each its own only
@@ -293,7 +293,7 @@ console.log("aims ok: surplus, menu, choice, barn and its halvings, drop after a
 // with no shore, none. What was dried beyond the year is packed for the fair by the household's dealer, to be offered in its deals.
 {
   const shore = Array.from({ length: 14 }, (_, i) => (i < 3 ? '~'.repeat(20) : i < 5 ? 'FFFFFFFFFFFFFFFFFFFF' : '....................'));
-  const mk = (rows) => tinyState(tinyWorld(rows), [{ at: [9, 8], farms: 2, sizes: [5, 4] }], { seed: 4, herds: true });
+  const mk = (rows) => tinyState(tinyWorld(rows), [{ at: [9, 8], farms: 2, sizes: [5, 4] }], { seed: 8, herds: true });
   const set = (st) => {
     const c0 = cal(st.t);
     Sim.advance(st, ((HERD.countDay + 1 - c0.doy + 48) % 48) * DAY);

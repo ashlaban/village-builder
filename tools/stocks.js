@@ -166,7 +166,7 @@ const NOT_STOCKS = {
       'w.hrnd',
     'w.landDist', 'w.nb', 'w.region', 'w.regions', 'w.river', 'w.riverTo', 'w.rock', 'w.deposit', 'w.vein', 'w.veinKind',
     'w.veinNear', 'w.fresh', 'w.waterDepth', 'w.freshWalk'],
-  'ways (the wear of walking, fords and bridges; passage over fields and meadows, sim/passage; the ground compiled, sim/walking)': ['w.wear', 'w.worn', 'w.crossing', 'w.shut', 'w.ground'],
+  'ways (the wear of walking, fords and bridges; passage over fields and meadows, sim/passage; the ground compiled, sim/walking; the gate of a house, sim/entrances)': ['w.wear', 'w.worn', 'w.crossing', 'w.shut', 'w.ground', 'w.gate'],
   'when a tile was last worked (a day, not an amount; sim/spread)': ['w.tended'],
   'choices of the village\'s meeting (a decision, not an amount)': ['village.gathering'],
   'a household\'s plan of who goes to the gathering (a decision, not an amount; VB-295)': ['household.gathering'],

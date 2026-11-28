@@ -41,7 +41,7 @@ let demo = false,
 // on the forested island (VB-780) the heirs' two villages fit at four of them
 const DEMO = {
   seeds: [18, 19, 29, 32, 33, 45, 93, 114, 128],
-  start: [19, 29, 114, 128],
+  start: [19, 29, 93, 114, 128],
   cols: 56,
   rows: 40,
   speed: 3,
