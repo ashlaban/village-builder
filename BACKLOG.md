@@ -154,7 +154,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1990](backlog/VB-1990.md)<a id="VB-1990"></a> | An animal is not given where its new household cannot lead it home | - | 3 | S | giveAnimal skips a gift beyond a day's walk, which otherwise starves away before the frost |
 | [VB-2000](backlog/VB-2000.md)<a id="VB-2000"></a> | Wet game days: a share of what lies out lost on each | - | 3 | M | the wet share of VB-1910, waiting for a wet day in the sim |
 | [VB-2041](backlog/VB-2041.md)<a id="VB-2041"></a> | Retire the work counter roundPairs, counted nowhere since VB-693 | - | 3 | S | roundPairs is declared and read but never raised: retire it and its always-zero probe |
-| [VB-2043](backlog/VB-2043.md)<a id="VB-2043"></a> | Refactor: the person card's feature rows moved out of page/words to their features' page files | - | 3 | S | Move the leanings, share and marriage-bar rows of the person card out of page/words |
 | [VB-2051](backlog/VB-2051.md)<a id="VB-2051"></a> | Caches checked after every verb: the last 8 verbs tests/caches.js does not reach | - | 3 | M | Carry found, upkeep, goGathering, stayHome, swap, beginCottage, visit and sendVisit in tests/caches.js on states built for them |
 
 </details>
