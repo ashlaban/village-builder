@@ -14,14 +14,15 @@ VB['sim/class'] = (() => {
   // ends running a count takes to turn; `prio`, the holder's priority for field work (of 10) at the level that made a household elite;
   // `standing`, the standing it adds there (VB-318, Kim 11 Nov).
   const CLASS = { eliteIn: 1.25, eliteOut: 0.75, years: 3, prio: 2, standing: 0.2 };
-  // @state household.livelihood: absent until the household first takes in or pays what counts, else {e, l (the hysteresis counts of elite
+  // @state household.livelihood: absent until the household first takes in or pays what counts, else {elite, landed (the hysteresis counts of elite
   //   and landed: 0..years-1 the years running toward, years..2*years-1 on, and that many minus years the years running under), rent, keep,
   //   interest, hours, wages (the year's parts, in rations, since the village's last meeting), last (the year before's parts, with its need,
   //   m (its income from others in shares of its need) and ml (its income from land), or null)}. Written only here, at the village's autumn
   //   meeting (VB-318: a village a step).
   // @notstock household.livelihood: the year's income in rations and counts of years, not goods held (what moved is in sim/stores' ledgers)
   const lv = (hh) =>
-    hh.livelihood || (hh.livelihood = { e: 0, l: 0, rent: 0, keep: 0, interest: 0, hours: 0, wages: 0, last: null });
+    hh.livelihood ||
+    (hh.livelihood = { elite: 0, landed: 0, rent: 0, keep: 0, interest: 0, hours: 0, wages: 0, last: null });
   // A count's next value after a year's measure m: off, it counts the years at or above `in` and turns on at `years` running; on, it counts the
   // years under `out` and turns off at `years` running.
   function step(n, m) {
@@ -29,8 +30,8 @@ VB['sim/class'] = (() => {
     if (n >= Y) return m < CLASS.eliteOut ? (n + 1 >= 2 * Y ? 0 : n + 1) : Y;
     return m >= CLASS.eliteIn ? (n + 1 >= Y ? Y : n + 1) : 0;
   }
-  const isElite = (hh) => !!hh.livelihood && hh.livelihood.e >= CLASS.years;
-  const isLanded = (hh) => !!hh.livelihood && hh.livelihood.l >= CLASS.years;
+  const isElite = (hh) => !!hh.livelihood && hh.livelihood.elite >= CLASS.years;
+  const isLanded = (hh) => !!hh.livelihood && hh.livelihood.landed >= CLASS.years;
   const partsOf = (L) => ({
     others: L.rent + L.keep + L.interest + L.hours - L.wages,
     land: L.rent + L.hours - L.wages,
@@ -57,12 +58,12 @@ VB['sim/class'] = (() => {
   }
   // The class of household hh: {land: 'tenant'|'cottager'|'peasant', elite, landed, worked, owned, m, ml, parts}. Read, never stored.
   function classOf(st, hh) {
-    const l = byLand(st, hh),
+    const lb = byLand(st, hh),
       L = hh.livelihood;
     return {
-      land: l ? l.name : null,
-      worked: l ? l.worked : 0,
-      owned: l ? l.owned : 0,
+      land: lb ? lb.name : null,
+      worked: lb ? lb.worked : 0,
+      owned: lb ? lb.owned : 0,
       elite: isElite(hh),
       landed: isLanded(hh),
       m: L && L.last ? L.last.m : 0,
@@ -107,8 +108,8 @@ VB['sim/class'] = (() => {
       { others, land } = partsOf(L);
     const m = need > 0 ? others / need : 0,
       ml = need > 0 ? land / need : 0;
-    L.e = step(L.e, m);
-    L.l = step(L.l, ml);
+    L.elite = step(L.elite, m);
+    L.landed = step(L.landed, ml);
     L.last = { rent: L.rent, keep: L.keep, interest: L.interest, hours: L.hours, wages: L.wages, need, m, ml };
     L.rent = L.keep = L.interest = L.hours = L.wages = 0;
     for (const fd of st.farmsteads[hh.farmstead].fields) Fields.book(fd, null);

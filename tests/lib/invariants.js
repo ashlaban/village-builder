@@ -101,7 +101,7 @@ function checkState(st) {
     const L = h.livelihood;
     if (!L) continue;
     const Y = globalThis.VB['sim/class'].CLASS.years;
-    for (const k of ['e', 'l'])
+    for (const k of ['elite', 'landed'])
       if (!Number.isInteger(L[k]) || L[k] < 0 || L[k] >= 2 * Y) bad.push(`livelihood: household ${h.id} count ${k} is ${L[k]}`);
     for (const k of ['rent', 'keep', 'interest', 'hours', 'wages'])
       if (!(L[k] >= 0) || !Number.isFinite(L[k])) bad.push(`livelihood: household ${h.id} ${k} is ${L[k]}`);
