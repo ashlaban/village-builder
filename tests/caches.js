@@ -75,15 +75,131 @@ for (const verb of Object.keys(VERBS).filter((v) => !carried.has(v))) {
     }
   }
 }
+// VB-1703: the verbs the runs and the hand above do not reach, each given the state it needs, built by hand on the runs' states (no month
+// is run): an heir away from home asked its inheritance, a booth staked, a site roofed, a levy's days named and broken, a plan's steps.
+// Each issues the first of its commands that its check lets by; a test's writes go through the systems' own functions, or age a child.
+const { YEAR } = VB['sim/rules'], Stores = VB['sim/stores'], Heirs = VB['sim/heirs'], { heirRanking } = VB['sim/heirranking'];
+const first = (st, verb, cmds) => cmds.some((c) => issue(st, { verb, ...c }) === true);
+const held = (st) => st.liveHouseholds.map((id) => st.households[id]).filter((h) => h.holder !== null && h.farmstead !== null);
+const fill = (st, h, n = 400) => Stores.put(st, h, 'grain', n, 'harvest', { barley: n });
+const grow = (st, p) => { p.born = st.t - 20.5 * YEAR; p.age = 20; Heirs.refreshRoles(st); }; // a child made a grown pawn of 20
+const levies = (st) => (st.obligations || []).filter((o) => o.kind === 'days' && o.status !== 'forgiven' && o.status !== 'met');
+// a holder widowed, its heir grown and in service in another household, played on its own commands: at the holder's death the heir is
+// asked its inheritance (an offer to answer); yes takes it up, no renounces it
+const inheritance = (st, yes) => {
+  for (const h of held(st)) {
+    const heir = heirRanking(st, h)[0], other = held(st).find((g) => g.id !== h.id);
+    if (heir === undefined || !other || st.pawns[heir].household !== h.id) continue;
+    const sp = Sim.spouseOf(st, h.holder);
+    if (sp !== null) issue(st, { actor: sp, verb: 'kill', source: 'debug' });
+    grow(st, st.pawns[heir]);
+    if (issue(st, { actor: heir, verb: 'move', target: other.id, args: { reason: 'service' }, source: 'debug' }) !== true) continue;
+    if (heirRanking(st, h)[0] !== heir) continue;
+    Sim.inhabit(st, heir);
+    Sim.setAuto(st, heir, false);
+    const n = st.offers.length;
+    issue(st, { actor: h.holder, verb: 'kill', source: 'debug' });
+    if (st.offers.length > n) return first(st, 'answer', [{ actor: heir, target: st.offers[st.offers.length - 1].id, args: { yes }, source: 'player' }]);
+  }
+  return false;
+};
+{
+  const [st] = runs;
+  // the round's: a wedding of two grown and single
+  const single = (sex) => st.living.map((id) => st.pawns[id]).filter((p) => p.sex === sex && Sim.spouseOf(st, p.id) === null && !Sim.isHolder(st, p.id));
+  first(st, 'marry', single('m').flatMap((g) => single('f').map((b) => ({ actor: g.id, target: b.id, args: { home: g.household }, source: 'round' }))));
+  inheritance(st, true);
+  inheritance(st, false);
+  const hs = held(st);
+  for (const h of hs) fill(st, h);
+  first(st, 'lodge', hs.flatMap((h) => h.members.map((m) => ({ actor: m, target: st.farmsteads[h.farmstead].house, args: { why: 'work', days: 1 }, source: 'pawn' }))));
+  first(st, 'comeHome', st.living.filter((id) => st.agents[id].away !== undefined).map((id) => ({ actor: id, source: 'player' })));
+  const talker = st.living.find((id) => st.pawns[id].age >= 16);
+  first(st, 'slander', st.living.map((id) => ({ actor: talker, target: id, args: { kind: VB['sim/stories'].TALES[0] }, source: 'player' })));
+  // a booth staked by a head near its house, and a pawn of another household let in
+  const h0 = hs[0], house = st.farmsteads[h0.farmstead].house, bid = st.boothSeq;
+  first(st, 'raiseBooth', Array.from({ length: 80 }, (_, k) => ({ actor: h0.holder, target: house - 40 + k, source: 'pawn' })));
+  first(st, 'letIn', st.living.map((m) => ({ actor: h0.holder, target: bid, args: { pawn: m }, source: 'pawn' })));
+  // a levy's days: another adult sent, a day bought off, a day lent, a day broken and forgiven
+  for (const o of levies(st)) fill(st, st.households[o.debtor.id]);
+  const named = levies(st).filter((o) => o.named.length), debtor = (o) => st.households[o.debtor.id];
+  first(st, 'substitute', named.flatMap((o) => debtor(o).members.map((m) => ({ actor: debtor(o).holder, target: o.id, args: { day: o.named[0].day, pawn: m }, source: 'player' }))));
+  first(st, 'commute', named.map((o) => ({ actor: debtor(o).holder, target: o.id, args: { day: o.named[o.named.length - 1].day }, source: 'player' })));
+  first(st, 'breach', named.map((o) => ({ actor: debtor(o).holder, args: { levy: o.id, day: o.named[0].day }, source: 'player' })));
+  first(st, 'forgive', levies(st).filter((o) => o.breaches.length).map((o) => ({ actor: st.households[o.creditor.id].holder, target: o.id, args: { day: o.breaches[0].day }, source: 'player' })));
+  // a child grown to settle: its site staked on open ground, worked and roofed as if done (tests/lib/settled.js), then left for
+  const settler = st.living.map((id) => st.pawns[id]).find((p) => p.age < 14 && p.household !== null);
+  grow(st, settler);
+  fill(st, st.households[settler.household], 2000);
+  const open = [];
+  for (let t = 0; t < st.w.N && open.length < 2; t += 37) if (!st.w.water[t] && !st.w.river[t] && !st.used.has(t) && st.w.trees[t] === 0) open.push(t);
+  const lent = levies(st).find((o) => o.named.length), village = st.farmsteads[st.households[lent.debtor.id].farmstead].village;
+  require('./lib/settled.js')(VB, st, settler.id, { from: Sim.settlementIdOf(st, settler), party: { all: [settler.id], followers: [] }, house: open[0], field: open[1], village });
+  // a levy's day lent by its levier to the settler's new household, of the levied's village
+  first(st, 'transfer', levies(st).filter((o) => o.named.length).flatMap((o) => st.liveHouseholds.map((to) => ({ actor: st.households[o.creditor.id].holder, target: o.id, args: { day: o.named[0].day, to }, source: 'player' }))));
+  // a farm held in trust by kin: the ward's kin in service in another household (the inheritance renounced above) takes it, and its
+  // holder goes back
+  const wards = held(st).flatMap((h) => h.members.map((w) => ({ actor: h.holder, target: h.id, args: { ward: w }, source: 'player' })));
+  if (first(st, 'goToKin', wards)) first(st, 'goBack', held(st).map((h) => ({ actor: h.holder, target: h.id, source: 'player' })));
+}
+{
+  const [, st] = runs, Customs = VB['sim/customs'], d = Customs.IDX.voice, s0 = st.cenv.settlements[0];
+  first(st, 'skip', [{ actor: null, args: { hours: 1 }, source: 'debug' }]);
+  // the meeting's verbs: a practice decided, a cause argued and dropped, a fifth rallied
+  first(st, 'decide', [{ actor: { settlement: 0 }, args: { dim: d, option: (s0.practice[d] + 1) % Customs.NOPT[d] }, source: 'meeting' }]);
+  first(st, 'argue', st.living.map((id) => ({ actor: id, args: { dim: d, option: 0 }, source: 'debug' })));
+  first(st, 'dropCause', st.living.filter((id) => st.pawns[id].advocate).map((id) => ({ actor: id, source: 'player' })));
+  first(st, 'rally', [{ actor: { settlement: 0 }, args: { dim: d, option: 0 }, source: 'debug' }]);
+  // a pawn's own: a trail blazed, a wish, a match let go
+  const [a] = st.living, hs = held(st), f0 = st.farmsteads[hs[0].farmstead];
+  first(st, 'blaze', st.living.map((id) => ({ actor: id, args: { from: f0.house, to: f0.house + 4 }, source: 'player' })));
+  first(st, 'wish', [{ actor: a, target: 'out', args: { value: true }, source: 'player' }]);
+  first(st, 'match', [{ actor: a, target: a, args: { partner: null }, source: 'player' }]);
+  // the plan's and the day's verbs, by each head of its household
+  const D = VB['sim/day'], routines = VB['sim/seasonal'].routinesOf;
+  const heads = (f) => held(st).flatMap((h) => f(h, st.farmsteads[h.farmstead], st.plans.households.get(h.id)).map((args) => ({ actor: h.holder, target: h.id, args, source: 'player' })));
+  first(st, 'target', heads(() => [{ store: 'hay', n: null }]));
+  first(st, 'tile', heads(() => [{ what: 'field', tile: null }]));
+  first(st, 'order', heads((h, f, p) => (p && p.season ? [{ steps: [...routines(p)].reverse() }] : [])));
+  first(st, 'dayOrder', heads((h) => h.members.map((member) => ({ member, from: 0, to: 1 }))));
+  first(st, 'call', heads((h) => h.members.map((member) => ({ member }))));
+  first(st, 'assign', heads((h) => h.members.flatMap((to) => [...D.dutyTypes().keys()].map((duty) => ({ duty, to })))));
+  first(st, 'sowOutOfTurn', heads((h, f) => f.fields.flatMap((x) => ['barley', 'rye', 'oats'].map((crop) => ({ tile: x.tile, crop })))));
+  first(st, 'courses', heads((h, f) => f.fields.flatMap((x) => f.fields.map((y) => ({ a: x.tile, b: y.tile })))));
+  first(st, 'letField', heads((h, f) => f.fields.map((fd) => ({ field: fd.id }))));
+  // the round's: a farm handed on; a levy's day named by its levied head and lent to a third household of its village
+  const villageOf = (h) => st.farmsteads[h.farmstead].village;
+  for (const o of levies(st).filter((x) => !x.named.length)) {
+    const d0 = st.households[o.debtor.id], days = Array.from({ length: o.window[1] - o.window[0] + 1 }, (_, k) => o.window[0] + k);
+    if (!first(st, 'name', days.map((day) => ({ actor: d0.holder, target: o.id, args: { day, pawn: null }, source: 'player' })))) continue;
+    const to = held(st).filter((h) => h.id !== d0.id && h.id !== o.creditor.id && villageOf(h) === villageOf(d0));
+    if (first(st, 'transfer', to.map((h) => ({ actor: st.households[o.creditor.id].holder, target: o.id, args: { day: o.named[0].day, to: h.id }, source: 'player' })))) break;
+  }
+  first(st, 'handOn', held(st).flatMap((h) => heirRanking(st, h).slice(0, 1).map((heir) => ({ actor: h.holder, target: heir, args: { household: h.id, reason: 'retirement' }, source: 'round' }))));
+  // a farm for the heir begun by its head (the making heirFarm), then given up to the village
+  const plots = (h) => VB['sim/projects'].projectsOf(st, 'household', h.id).filter((p) => p.what === 'plot');
+  first(st, 'project', heads((h) => h.members.map((heir) => ({ what: 'heirFarm', heir }))));
+  first(st, 'plotToVillage', held(st).flatMap((h) => plots(h).map((p) => ({ actor: h.holder, target: h.id, args: { plan: p.id }, source: 'player' }))));
+  // a household gone: its farm empty, claimed and founded again by the claimant
+  const gone = held(st).at(-1), nFarm = gone.farmstead;
+  for (const id of [...gone.members]) issue(st, { actor: id, verb: 'kill', source: 'debug' });
+  const claimant = st.living.find((id) => st.pawns[id].age >= 18);
+  if (first(st, 'claim', [{ actor: claimant, target: nFarm, source: 'round' }]))
+    first(st, 'foundHousehold', [{ actor: claimant, target: nFarm, args: { members: [claimant], grain: {} }, source: 'restoration' }]);
+}
+{
+  // the solo settler by hand, landed at a camp (tests/camp.js): its head places the farmstead on the landing
+  const st = Sim.seed(require('./lib/tiny.js').tinyWorld(Array.from({ length: 12 }, (_, i) => (i < 2 ? 'F' : '.').repeat(16))), 7, 'solo', null, { hand: true });
+  const hh = st.households[0];
+  Sim.inhabit(st, hh.holder);
+  Sim.setAuto(st, hh.holder, false);
+  first(st, 'placeFarmstead', [{ actor: hh.holder, target: st.farmsteads[0].house, source: 'player' }]);
+}
 assert.deepStrictEqual(failures, [], 'a cache differs from its derivation after a verb');
-// The verbs these states do not reach yet, each needing a command built for it (an offer to answer, a plan, a booth, a trust; VB-1703).
-// The list only shrinks: a verb carried here is struck from it, a new verb is carried or added.
-const NOT_YET = ['answer', 'claim', 'letIn', 'placeFarmstead', 'blaze', 'lodge', 'comeHome', 'goGathering', 'stayHome', 'swap',
-  'target', 'tile', 'order', 'letField', 'sowOutOfTurn', 'courses', 'dayOrder', 'assign', 'call', 'handOn', 'plotToVillage',
-  'beginCottage', 'goBack', 'goToKin', 'visit', 'sendVisit', 'foundHousehold', 'decide', 'argue', 'dropCause', 'rally', 'leave', 'stakeSite', 'takeUp',
-  'renounce', 'marry', 'skip', 'slander',
-  'wish', 'match', 'found', 'upkeep',
-  'substitute', 'commute', 'transfer', 'forgive']; // VB-1769 (release carried since VB-1768's routines): the ladder's verbs, carried by tests/levies.js // VB-361: no facility kind is declared in the game yet (each craft's task declares its own); tests/facilities.js carries both
+// The verbs these states do not reach yet, each needing a state built for it (VB-2051): a facility kind declared (none is in the game yet,
+// VB-361; tests/facilities.js carries found and upkeep), a gathering ahead, two loads at a fair, a shelter standing, a visit in winter
+// to a village beyond a day's walk. The list only shrinks: a verb carried here is struck from it, a new verb is carried or added.
+const NOT_YET = ['found', 'upkeep', 'goGathering', 'stayHome', 'swap', 'beginCottage', 'visit', 'sendVisit'];
 const missed = Object.keys(VERBS).filter((v) => !carried.has(v));
 assert.deepStrictEqual(missed.filter((v) => !NOT_YET.includes(v)), [], 'a verb neither carried nor listed in NOT_YET');
 assert.deepStrictEqual(NOT_YET.filter((v) => carried.has(v) || !VERBS[v]), [], 'carried now, or no longer a verb: strike it from NOT_YET');
