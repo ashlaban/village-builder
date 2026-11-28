@@ -9,7 +9,7 @@ let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('B
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'P'.repeat(16) : '................'));
 const st = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 2, sizes: [5, 4] }], { seed: 4 });
 const f = st.farmsteads[st.villages[0].farmsteads[0]], hh = st.households[f.household];
-f.barn = null; // VB-1898: a seeded farm has its barn; this one is made without
+VB['sim/facilityrecords'].raze(st, f, 'barn'); // VB-1898: a seeded farm has its barn; this one is made without
 const { mayBegin, stepEnds } = Projects;
 
 // the guard: each of its refusals, and what no longer refuses (a booth, another plan under way)
@@ -40,15 +40,17 @@ hp.chosen = { ...(was || {}), project: 'none' };
 check(!mayBegin(st, hh, 'tarpit') && !mayBegin(st, hh, 'cart'), 'a head holding off projects: none, the cart as the others (VB-678 closed)');
 hp.chosen = was;
 const two = VB['sim/projectplans'].makeProject(st, 'household', hh.id, { what: 'barn', steps: [{ kind: 'barnbase', place: f.house, hours: 1 }, { kind: 'barnroof', place: f.house, hours: 1 }] });
+VB['sim/facilityrecords'].foundOn(st, 'barn', f, two); // VB-1911: the barn it raises, its two last stages left (a test's write)
+st.facilities[two.facility].stage = 2; // the test's effect ends the first, the roof's own the last
 check(!stepEnds(st, { kind: 'barnroof', site: f.house }, hh, effect) && ran === 1, 'a later step not yet open: no effect');
 check(stepEnds(st, { kind: 'barnbase', site: f.house }, hh, effect) && ran === 2 && Projects.openOf(st, hh.id) === two.steps[1], 'the open step ends: the next opens');
 check(!stepEnds(st, { kind: 'barnbase', site: f.house }, hh, effect) && ran === 2, 'the step before, ended again: nothing');
 // the barn's holder is the job's owner, not the hand's household
 const { KINDS } = VB['sim/kinds'], other = st.households.find((h) => h.id !== hh.id && !h.dissolved);
 KINDS.barnroof.done(st, { kind: 'barnroof', site: f.house, farm: f, owner: { type: 'household', id: other.id } }, hh);
-check(Projects.openOf(st, hh.id) === two.steps[1] && !f.barn, "another household's barn job: not this holder's step");
+check(Projects.openOf(st, hh.id) === two.steps[1] && !VB['sim/facilityrecords'].standing(st, f, 'barn'), "another household's barn job: not this holder's step");
 KINDS.barnroof.done(st, { kind: 'barnroof', site: f.house, farm: f, owner: { type: 'household', id: hh.id } }, other);
-check(!Projects.ownOf(st, hh.id) && f.barn && f.barn.built === st.t, 'its owner\'s roof on: the farm has its barn, the plan done');
+check(!Projects.ownOf(st, hh.id) && VB['sim/facilityrecords'].standing(st, f, 'barn') && VB['sim/facilityrecords'].standing(st, f, 'barn').built === st.t, 'its owner\'s roof on: the farm has its barn, the plan done');
 
 if (failed) { console.error(`beginend: ${failed} failed`); process.exit(1); }
 console.log('beginend ok');

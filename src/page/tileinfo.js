@@ -44,7 +44,7 @@ function claimsAt(i) {
   const claims = claimLines(i),
     cutBy = st && Sim.woodOf(st, i);
   if (cutBy) claims.push(`Cut for firewood by ${cutBy.name}`);
-  const fac = st && VB['sim/facilities'].at(st, i),
+  const fac = st && VB['sim/facilityrecords'].at(st, i),
     fv = fac && VB['sim/facilities'].view(st, fac);
   if (fv) claims.unshift(`${fv.name[0].toUpperCase() + fv.name.slice(1)} of ${fv.owner}, ${fv.stage}`);
   return claims;

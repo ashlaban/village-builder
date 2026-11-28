@@ -17,7 +17,10 @@ const { OUTBUILDINGS } = VB['sim/ladder'],
   grainLoss = (st, hh) => VB['sim/storehouse'].grainLoss(st, hh, dailyNeed(st, hh) * YEAR_DAYS),
   { spoilHay, hayLoss } = VB['sim/byre'],
   { menu } = VB['sim/aims'],
-  Stores = VB['sim/stores'];
+  Stores = VB['sim/stores'],
+  Fac = VB['sim/facilityrecords'];
+// VB-1911: the storehouse and the barn are facilities of the farm
+const has = (st, f, k) => Fac.standing(st, f, k);
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const sound = (st, what) => assert.deepStrictEqual(checkState(st), [], `invariants, ${what}`);
 const world = () => tinyWorld(rows, { stones: 200 });
@@ -32,41 +35,50 @@ const close = (a, b, what) => assert(Math.abs(a - b) < 1e-9 * Math.max(1, Math.a
 {
   const st = fresh();
   assert(
-    st.farmsteads.every((f) => f.storehouse && f.storehouse.built === st.t),
+    st.farmsteads.every((f) => has(st, f, 'storehouse') && has(st, f, 'storehouse').built === st.t),
     'every farm at seeding has its storehouse',
   );
   assert(
-    st.farmsteads.every((f) => f.barn && f.barn.built === st.t),
+    st.farmsteads.every((f) => has(st, f, 'barn') && has(st, f, 'barn').built === st.t),
     'and its barn',
   );
   const camp = Sim.seed(tinyWorld(rows), 7, 'solo', null, { hand: true });
-  assert.strictEqual(camp.farmsteads[0].storehouse, null, 'a camp landed by hand has no storehouse');
-  assert.strictEqual(camp.farmsteads[0].barn, null, 'nor a barn');
+  assert.strictEqual(has(camp, camp.farmsteads[0], 'storehouse'), null, 'a camp landed by hand has no storehouse');
+  assert.strictEqual(has(camp, camp.farmsteads[0], 'barn'), null, 'nor a barn');
   sound(camp, 'camp');
-  const oldCamp = Sim.load(tinyWorld(rows), JSON.parse(JSON.stringify(Sim.save(camp))));
-  delete oldCamp.farmsteads[0].storehouse; // a camp saved before VB-1898
-  VB['sim/storehouse'].storehousesLoaded(oldCamp);
-  assert.strictEqual(oldCamp.farmsteads[0].storehouse, null, 'an older save of a camp reads as having no storehouse');
+  // saves from before VB-1911 (the outbuildings farmstead fields) and VB-1898 (no storehouse field)
+  const older = (st, write) => {
+    const saved = JSON.parse(JSON.stringify(Sim.save(st)));
+    saved.state.facilities = [];
+    saved.state.farmsteads.forEach(write);
+    return saved;
+  };
+  const oldCamp = Sim.load(tinyWorld(rows), older(camp, (f) => (f.byre = null))); // a camp saved before VB-1898
+  assert.strictEqual(has(oldCamp, oldCamp.farmsteads[0], 'storehouse'), null, 'an older save of a camp reads as having no storehouse');
   sound(oldCamp, 'older camp');
   Sim.advance(st, 3);
-  const old = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(st))));
+  const old = Sim.load(
+    world(),
+    older(st, (f, i) => {
+      f.byre = { built: 1 };
+      if (i === 0) f.barn = { built: 2 }; // a farm that had a barn then, the next none
+    }),
+  );
   const [a, b] = old.farmsteads;
-  for (const f of old.farmsteads) delete f.storehouse; // as a save from before VB-1898 decodes
-  delete b.barn; // a farm that had no barn then
-  VB['sim/storehouse'].storehousesLoaded(old);
   assert(
-    old.farmsteads.every((f) => f.storehouse && f.storehouse.built === old.t),
+    old.farmsteads.every((f) => has(old, f, 'storehouse') && has(old, f, 'storehouse').built === old.t),
     'an older save reads as having its storehouses',
   );
-  assert(a.barn && a.barn.built <= old.t, 'the barn it had');
-  assert.strictEqual(b.barn, undefined, 'and none where it had none');
+  assert(has(old, a, 'barn') && has(old, a, 'barn').built === 2, 'the barn it had');
+  assert.strictEqual(has(old, b, 'barn'), null, 'and none where it had none');
+  assert(old.farmsteads.every((f) => !('barn' in f || 'byre' in f || 'storehouse' in f)), 'the fields taken out');
   sound(old, 'older save');
   const made = VB['sim/layout'].makeFarmstead(st.w, st.farmsteads.length, -1, [], null, new Set());
-  assert.strictEqual(made.storehouse, null, 'a farm made in play has no storehouse');
+  assert(!('storehouse' in made), 'a farm made in play has no storehouse');
   const bare = st.farmsteads.find((f) => f.household !== null);
-  bare.storehouse = null;
+  Fac.raze(st, bare, 'storehouse');
   const back = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(st))));
-  assert.strictEqual(back.farmsteads[bare.id].storehouse, null, 'none after a save and a load');
+  assert.strictEqual(has(back, back.farmsteads[bare.id], 'storehouse'), null, 'none after a save and a load');
 }
 // ---- 2. each halving: the storehouse the grain, the barn the hay ----
 {
@@ -90,11 +102,11 @@ const close = (a, b, what) => assert(Math.abs(a - b) < 1e-9 * Math.max(1, Math.a
   };
   close(lose()[0], grainDay * BUILD.storehouse.loss, 'with both: the grain at the storehouse loss');
   close(lose()[1], hayDay * BUILD.barn.loss, 'and the hay at the barn loss');
-  f.barn = null;
+  Fac.raze(st, f, 'barn');
   const [g1, h1] = lose();
   close(g1, grainDay * BUILD.storehouse.loss, 'the barn gone: the grain as before');
   close(h1, hayDay, 'the hay whole');
-  f.storehouse = null;
+  Fac.raze(st, f, 'storehouse');
   close(lose()[0], grainDay, 'the storehouse gone: the grain whole');
   sound(st, 'halvings');
 }
@@ -108,7 +120,8 @@ const close = (a, b, what) => assert(Math.abs(a - b) < 1e-9 * Math.max(1, Math.a
   hh.hay = 5000;
   const offered = (what) => menu(st, plan, hh, f).find((o) => o.what === what);
   assert(!offered('storehouse') && !offered('barn'), 'none offered where both stand');
-  f.storehouse = f.barn = null;
+  Fac.raze(st, f, 'storehouse');
+  Fac.raze(st, f, 'barn');
   const sum = (a) => a.reduce((s, x) => s + x, 0),
     want = (day, B) => Math.min(2, (day * YEAR_DAYS * (1 - B.loss)) / sum(B.hours));
   close(
@@ -139,7 +152,7 @@ const close = (a, b, what) => assert(Math.abs(a - b) < 1e-9 * Math.max(1, Math.a
     String(Sim.plan(st, st.player.pawn, 'add', { outbuilding: f.house, what: 'storehouse' })),
     /has a storehouse/,
   );
-  f.storehouse = null;
+  Fac.raze(st, f, 'storehouse');
   assert.deepStrictEqual(viewOf()[0], {
     what: 'storehouse',
     built: false,
@@ -159,17 +172,16 @@ const close = (a, b, what) => assert(Math.abs(a - b) < 1e-9 * Math.max(1, Math.a
   const P = VB['sim/steps'];
   for (let i = 0; i < 120 * 240 && P.pawnPlan(st, st.player.pawn).tasks.some((t) => t.kind === 'outbuilding'); i++)
     Sim.advance(st, 0.1);
-  assert(f.storehouse && f.storehouse.built <= st.t, 'the farm has its storehouse');
+  assert(has(st, f, 'storehouse') && has(st, f, 'storehouse').built <= st.t, 'the farm has its storehouse');
   sound(st, 'by the plan');
 }
 // ---- 5. the drawing rule (page/settlement yardOut): each only where the sim has it ----
 {
   const src = fs.readFileSync(path.join(__dirname, '../src/page/settlement.js'), 'utf8');
   const grab = (name) => src.match(new RegExp(`^const ${name} = .*$`, 'm'))[0];
-  const yardOut = new Function(`${grab('hasBuilt')}\n${grab('yardOut')}\nreturn yardOut;`)();
+  const yardOut = new Function('Sim', 'st', `${grab('yardOut')}\nreturn yardOut;`)({ standing: (st, f, k) => f[k] || null }, null);
   assert.deepStrictEqual(yardOut({ barn: { built: 0 }, storehouse: { built: 0 } }), ['barn', 'harbre']);
   assert.deepStrictEqual(yardOut({ barn: null, storehouse: { built: 0 } }), ['harbre']);
-  assert.deepStrictEqual(yardOut({ barn: true, storehouse: null }), ['barn'], "an older save's barn of `true`");
   assert.deepStrictEqual(yardOut({}), [], 'a farm with neither draws neither');
   assert(!/\blada: \[/.test(src), 'no always-drawn lada');
 }

@@ -5,9 +5,11 @@ VB['sim/makings'] = (() => {
   const { atLoad } = VB['sim/registry'];
   // A making is {why(st, hh, f, args): why household hh, holding farm f, may not begin it now, or null (the verb's one check for every
   // head, played or not); begin(st, hh, f, args): the project plan's record {steps, ...} for sim/plans to make, or null when the making's
-  // own module begins it (heirFarm's plot, sim/expansion); small (a small construction, VB-1414); look (absent for a large project, which
-  // sim/aims' menu offers): {from (the day of the year from which the head weighs it, once a year at its first review on or after it),
-  // want(st, hh, f, c): the args the head's rule begins it with, or null: what makes it possible and attractive to the head}}.
+  // own module begins it (heirFarm's plot, sim/expansion), also asked for its steps only (sim/upgrade makingSteps), so it writes nothing;
+  // made(st, hh, f, plan): what its module does as the plan is made, optional (a farm's outbuilding founded, sim/facilities); small (a
+  // small construction, VB-1414); look (absent for a large project, which sim/aims' menu offers): {from (the day of the year from
+  // which the head weighs it, once a year at its first review on or after it), want(st, hh, f, c): the args the head's rule
+  // begins it with, or null: what makes it possible and attractive to the head}}.
   const MAKINGS = {};
   function declare(what, M) {
     atLoad();

@@ -15,7 +15,8 @@ VB['sim/upgrade'] = (() => {
   const { planners, plansIn } = VB['sim/steps'];
   const { on, emit } = VB['sim/events'];
   const Stores = VB['sim/stores'],
-    Projects = VB['sim/projects'];
+    Projects = VB['sim/projects'],
+    Facilities = VB['sim/facilityrecords'];
   const { projectsOf, lacks } = Projects;
   const { KINDS, GOALS, headCmd } = VB['sim/kinds'];
   const { makingOf } = VB['sim/makings'];
@@ -92,7 +93,7 @@ VB['sim/upgrade'] = (() => {
     for (const hid of st.liveHouseholds) {
       VB.count.campLook++;
       const f = farmOf(st, hid);
-      if (f && !f.byre && f.rung !== 'shelter') ownByre(st, st.households[hid]);
+      if (f && !Facilities.standing(st, f, 'byre') && f.rung !== 'shelter') ownByre(st, st.households[hid]);
       if (f && f.rung !== 'shelter' && f.rung !== 'timber') ownTimber(st, st.households[hid]);
       if (!f || f.camp === undefined || f.rung !== 'shelter' || Projects.heldOff(st, hid)) continue;
       const hh = st.households[hid];
@@ -323,11 +324,14 @@ VB['sim/upgrade'] = (() => {
     why: () => null,
     // its stages left (all of them before it is begun, as its making would begin it), each that carries timber after the trips it lacks:
     // before it opens, what the timber at home will not cover
-    steps: (st, hid, { f, hh, what, project: p }) => (!what || f[what] ? [] : makingSteps(st, f, hh, what, p)),
-    gone: (st, { f, what }) => (what && f[what] ? 'built' : null),
+    steps: (st, hid, { f, hh, what, project: p }) =>
+      !what || Facilities.standing(st, f, what) ? [] : makingSteps(st, f, hh, what, p),
+    gone: (st, { f, what }) => (what && Facilities.standing(st, f, what) ? 'built' : null),
     deadline: () => null,
     act: (st, id, where) =>
-      where.what && !where.project && !where.f[where.what] ? headCmd(id, where.hh.id, { what: where.what }) : null,
+      where.what && !where.project && !Facilities.standing(st, where.f, where.what)
+        ? headCmd(id, where.hh.id, { what: where.what })
+        : null,
     // the household's rule that holds its timber back: no wood to fell it in (VB-1663)
     hold: (st, hid, where, y) =>
       y.kind === 'timber' && !st.villages[where.f.village].wood.length ? ['wood', where.what] : null,

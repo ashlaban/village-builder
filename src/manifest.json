@@ -83,6 +83,7 @@
   "sim/pot.js",
   "sim/thirst.js",
   "sim/dress.js",
+  "sim/facilityrecords.js",
   "sim/storehouse.js",
   "sim/hunger.js",
   "sim/foodneed.js",
