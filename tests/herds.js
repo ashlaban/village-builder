@@ -1,3 +1,4 @@
+// @suite integration
 // Herds (VB-131): the founders' herds as Kim decided; calves and lambs each spring; no calf without a bull within reach; populous herds fit
 // the byre and each village with cattle has its bull; a dissolved household's herds go to its people's new home; the state invariants hold.
 // On the small islands of tests/lib/probe.js (VB-855).

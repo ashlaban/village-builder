@@ -1,3 +1,4 @@
+// @suite integration
 // VB-288: distance governs the round's matching. A village's pool is the living of the villages within walking reach (hoursBetween
 // finite), built from those villages' households; the score's villages' term is MARRIAGE.sameVillage x exp(-hours / nearHours); a
 // wished partner beyond reach is refused with that reason (matchBar); and kin pressure counts only partners within reach.

@@ -1,3 +1,4 @@
+// @suite extended
 // VB-092: the Stores panel. A village's card opens it as a table of the village's households, their total and the village's own store;
 // a household's Stores tab opens it for that household; a household's row selects its farm, as clicking the farm does.
 const { builtPage } = require('./lib/page');

@@ -1,3 +1,4 @@
+// @suite integration
 // Diagnostic reporting needs stable math and failure handling; never assert machine timing.
 const assert = require('assert'), fs = require('fs'), os = require('os'), path = require('path');
 const { spawnSync } = require('child_process');

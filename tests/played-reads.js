@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1753: tests/played.js's count of the reads of who is played: through any name, or taken apart (st.player, view.player,
 // const { player } = st), comments left out.
 const assert = require('assert');

@@ -481,8 +481,8 @@ of VB-1406 has landed (`docs/plans/VB-1406-overlap.md`, section 5); until then, 
 - **A state field**: its `@state` line in the owning module (`grep -rn "@state" src`). Today also its line in `src/owners.json`;
   after VB-1942 the owner is the module that carries the line, with a marker for a cache and for a field documented elsewhere.
   A stored quantity's tag for `tools/stocks.js` goes on the same line after VB-1941 (today `QUANTITIES` or `NOT_STOCKS` there).
-- **A test**: today its line in `tests/suites.js`, in its tier; after VB-1933 a header line `// @suite fast|integration|extended`
-  in the test file (`grep -rln "@suite" tests`).
+- **A test**: a header line `// @suite fast|integration|extended [node:FLAG] [ARG]` in the test file, a line a tier and argument
+  set, among the comment lines it opens with (VB-1933; `grep -rn "^// @suite" tests`); `tests/suites.js` is not touched.
 - **A work counter**: today an entry of `VB.COUNTERS` in `src/vb.js`; after VB-1934 declared at load by the module, beside the loop
   it counts.
 - **A tunable**: a table one domain reads, in that module with its `// @tunable NAME: meaning` line (`grep -rn "@tunable" src`); a

@@ -1,3 +1,4 @@
+// @suite extended
 // VB-084: functional speed, clock, keyboard and focus checks; no presentation timing budget.
 const { builtPage } = require('./lib/page');
 const assert = require('assert'), fs = require('fs'), path = require('path');

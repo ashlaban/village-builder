@@ -1,3 +1,4 @@
+// @suite extended
 // VB-1146: a field's card in the page: the crop, its course, what is sown next and the grain held; for the head of the farm the rotation
 // buttons (an allowed one changes the field's rotation and answers "Done", a refused one answers the verb's reason and changes nothing),
 // and none for a pawn that is not the head; and the field sprites take the crop's texture (rye under snow in winter).

@@ -1,3 +1,4 @@
+// @suite integration
 // Salt (VB-700, sim/saltpan): boiled at a salt spring within 12 walking steps, a boiling of 10 hours by one hand giving 10 measures, its
 // wood a tree of the spring's tile or a neighbour's, the salt carried home into the household's store through the ledger (reason
 // 'saltboil'); a household with animals keeps a boiling's worth by default (its head's target); the spring does not run out. The salting

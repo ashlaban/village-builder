@@ -1,3 +1,4 @@
+// @suite fast
 // Discomfort steers the route search (VB-448; design.md, Worn paths, 4): with the weight on, a walker goes round to a bridge up to
 // twice the time of wading a ford and no further, a laden walker and a cart mind bad footing more, and the walk takes its time alone;
 // with the weight 0 (as it lands) every route is the quickest and every load class shares one cache entry.

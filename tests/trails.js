@@ -1,3 +1,4 @@
+// @suite integration
 // Blazing a trail (VB-447; design.md, Moving to new land, Settling in steps): the verb blaze opens a trail from a tile to a tile along the
 // route the trail would make (a wooded tile at a path's cost), each wooded tile on it a job of PATHS.blaze hours for the blazer's household,
 // 1 where still trodden; a tile blazed is a path (PATHS.at[2]), a worn way like any other, and the walk is as quick as the trail promised;

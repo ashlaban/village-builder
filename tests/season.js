@@ -1,3 +1,4 @@
+// @suite fast
 // Seasons on the map (VB-083; draw/season): a band's look from its state and its normal dates, the north turning before the south, no snow in a
 // winter that has none, and a chunk baked in each look: the land tinted and under snow, a lake iced, pine staying green, the summer's
 // paint unchanged when no look is given.

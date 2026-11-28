@@ -1,3 +1,4 @@
+// @suite integration
 // The custom `stocking` (VB-711): the autumn count's margin is the village's option, HERD.margins[option]. Six cows and hay for four cows'
 // winter (84 units): to the hay keeps 3 (3 × 21 × 1.1 = 69.3), keep the herd keeps 5 (5 × 21 × 0.8 = 84). A bad winter (hay for 60% of the
 // stall days of the kept five) gives the herd lean days and, past starveDays, a head lost a day; the village store lends no fodder.

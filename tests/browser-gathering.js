@@ -1,3 +1,4 @@
+// @suite extended
 // VB-1031, VB-1032: a gathering while it is on. Its mark stands on the map over the spot, and a click on it opens its card: what it is,
 // where and until when, and who is there, the portraits with what each is to the played pawn; the card closes when it is over and the
 // mark goes. As it begins, a notice says so to the one it concerns (the record tells it only when it is over).

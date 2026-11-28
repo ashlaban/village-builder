@@ -128,6 +128,12 @@ VB['sim/fieldwork'] = (() => {
   // in autumn, by the days gone of a season that ended at the frost (as by the autumn's day when the frost fell on its last).
   const frostNear = (st, c, U) =>
     c.season === 2 ? Math.max(0, SEASON_DAYS - 1 - (frostExpected(st) - c.sday)) / U.reapFrostPerDay : 0;
+  // Whether a load of the household's sheaves cut from field fd lies on the road (sim/lying).
+  const lyingFor = (st, hh, fd) => {
+    if (!st.lying || !hh) return false;
+    const o = VB['sim/lying'].ownedPiles(st, { type: 'household', id: hh.id });
+    return !!o && o.some((l) => l.kind === 'haul' && l.of.field === fd);
+  };
   const KINDS = {
     plow: {
       verb: 'Hoeing a field',
@@ -225,6 +231,9 @@ VB['sim/fieldwork'] = (() => {
       urgency: (st, j, c, U) => U.haul + frostNear(st, c, U),
       available: (st, hh, fd, c, post, f) => {
         if (fd.stage === 'stooks' && c.day >= fd.reaped + st.ECON.dryDays)
+          post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, crop: fd.crop });
+        // the last load cut on the road lies beside the stubble: the goal is posted again to carry it home before the frost (VB-1815)
+        else if (fd.stage === 'stubble' && lyingFor(st, hh, fd))
           post('haul:' + fieldKey(f, fd), fd.tile, { field: fd, farm: f, crop: fd.crop });
       },
     },
@@ -371,7 +380,7 @@ VB['sim/fieldwork'] = (() => {
     plow: ['stubble'],
     sow: ['plowed'],
     reap: ['ripe'],
-    haul: ['stooks'],
+    haul: ['stooks', 'stubble'], // the stubble: a load of its sheaves left lying (VB-1815)
     weed: ['growing'],
     reclaim: ['fallow', 'scrub'],
   };
@@ -407,7 +416,7 @@ VB['sim/fieldwork'] = (() => {
     run: (st, j, g, at, a, cap) => {
       a.load = carried(j.field, cap);
     },
-    met: (st, g) => g.job.field.stage !== 'stooks',
+    met: (st, g) => g.job.field.stage !== 'stooks' && !lyingFor(st, st.households[g.job.owner.id], g.job.field),
   });
   Object.assign(KINDS.haul, {
     places: { barn: (st, g, v) => (g.job.common ? g.job.dest : v.storeOf(st, g.owner)) },

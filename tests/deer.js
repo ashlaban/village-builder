@@ -1,3 +1,4 @@
+// @suite integration
 // Roe deer (VB-139, sim/deer): a stock in each region with forest, growing logistically (DEER.growth a year) towards DEER.perEdge deer a
 // forest-edge tile (a wood tile beside open land), counted again each year; the deer graze DEER.graze cow-hours a deer a day over
 // DEER.spots of the region's edge tiles in turn (sim/grazing); in summer a standing crop beside a wood and a broken stretch of the village

@@ -1,3 +1,4 @@
+// @suite integration
 // The guardian of a minor heir: the widow in the heirs scenario's A4 farm, kept while the heir is a minor and cleared the day he is 18
 // (VB-854: on the small heirs island, the ward's birth moved to bring his eighteenth birthday a few days on, where it took 14 years).
 const VB = require('../src/load.js'), Sim = VB.sim, { YEAR, DAY } = VB['sim/rules'];

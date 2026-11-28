@@ -1,3 +1,4 @@
+// @suite integration
 // Spacing (VB-154, stability review): a new farm needs room (FIELDS.room free farmable tiles within FIELD_REACH of its house besides its first
 // field), whether a village's plot, a settler joining a small village, or a new village; and a new village keeps SETTLE.apart steps from every
 // other farm's house, green and fields and SETTLE.centreApart hex steps from every village centre.

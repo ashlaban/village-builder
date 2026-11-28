@@ -1,3 +1,4 @@
+// @suite fast
 // Claims on empty farms (VB-033, sim/farmclaims) on a tiny world: the hours to restore a farm by its condition; the old family's birthright
 // when a farm empties, and its lapse; who may claim an empty farm, and in what order, under each option of the "Claims on empty farms" custom.
 const VB = require('../src/load.js'), Sim = VB.sim, FC = VB['sim/farmclaims'], CL = VB['sim/claims'], H = VB['sim/heirs'];

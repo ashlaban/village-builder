@@ -44,7 +44,7 @@ const HOLDOUT = true;
 const EXCLUDE = ['index.html', 'package-lock.json', 'BACKLOG.md', 'BACKLOG_ARCHIVE.md', 'QUESTION_ARCHIVE.md', 'docs/img', 'docs/agents/usage', 'docs/bench'];
 const BASELINES = /^tests\/(.*baseline.*\.json|counters\.json)$/;
 const CAP = 60000;
-const RUNNERS = ['tests/suites.js', 'tests/run.js']; // lists and runners of tests, not tests
+const RUNNERS = ['tests/suites.js', 'tests/run.js']; // the runner and its schedule (FIRST), not tests; a test's tier is its @suite line
 
 // ---- small helpers
 const fnv1a = (s) => { let h = 0x811c9dc5; for (const c of Buffer.from(s)) h = Math.imul(h ^ c, 0x01000193) >>> 0; return h; };

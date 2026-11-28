@@ -1,3 +1,4 @@
+// @suite fast
 // The head chooses what to sow, by foresight (VB-351; design.md, How the head chooses what to sow). On a tiny farm at seed 7, constructed
 // states: the three heads by skill (SOWING's fifths); a poor head keeping the rotation it took over, and in a hungry year sowing its
 // fallow field; an ordinary head taking the village's usual one and resting a worn field first; a good head choosing its own rotation at

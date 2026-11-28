@@ -1,3 +1,4 @@
+// @suite integration
 // Commands (VB-167): a work command is carried out as start was; a refused command changes nothing; outside a verb (the `register(...)` of
 // the module that carries it out, VB-228) and the module that defines it, nothing in src/sim calls start (or the other acts the verbs wrap). On the small islands of tests/lib/probe.js (VB-856; the default
 // island before): founders on 36 by 26, heirs on 48 by 34.

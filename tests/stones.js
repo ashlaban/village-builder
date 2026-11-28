@@ -1,3 +1,4 @@
+// @suite integration
 // Stones on meadow tiles: seeding, hills fall-off, fields start clear. On two 48 by 34 islands of tests/lib/probe.js (VB-856; the
 // default island at seeds 7 and 42 before), which hold as many meadows near hills and far from them as the test asks.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim;

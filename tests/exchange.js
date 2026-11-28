@@ -1,3 +1,4 @@
+// @suite integration
 // The gift (VB-216): the verb give settles a gift within the floor and the allowance and refuses one beyond them, unless the player's
 // pawn gives; allowance's terms are slack and reserve, and on a running village it equals help's surplus. On the small islands (VB-854).
 const assert = require('assert');

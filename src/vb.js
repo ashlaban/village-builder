@@ -229,6 +229,10 @@ VB.COUNTERS = {
     "Households' days allotted whole: at the morning, at 14:00, and when a slot-in finds nobody (sim/day, allot; VB-1758)",
   dayWould:
     "Days weighed without being allotted: a head's allotment point asked whether the rule would change the day standing (sim/points, VB-1848)",
+  dutyFirst:
+    "A duty's holder put first for a task of its type in an allotment or a slot-in, ahead of a better fit (sim/day dutyFirst, VB-1771)",
+  dutyRead:
+    "Members' lists read at a household's review for the duties to give, and duties lapsed with their holder (sim/day, VB-1771)",
   vitalAsk:
     'Open tasks of its household passed by a pawn on its own plan, for a daily one the day leaves unmanned (sim/controller, VB-1755)',
   riskCheck:

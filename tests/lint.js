@@ -1,3 +1,4 @@
+// @suite fast
 // Structure lint: every source module is listed once and has an @sys header on line 1; no line over 160 characters, clock or unseeded random
 // (`// lint-allow: clock <reason>` exempts a line); the page script only writes the allowed fields of st. The page script's files
 // (src/page/*.js, listed in src/page.json; VB-053) get the structure checks and the page rule, not the clock rule: the page may read the clock.

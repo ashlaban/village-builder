@@ -1,3 +1,4 @@
+// @suite fast
 // The village's wood (VB-326): a village of 10 households cuts its firewood in an area of 5 tiles a household, a tree a trip on a tile drawn
 // evenly among those keeping more than a quarter of their trees; over 30 years at 11 trees a household a year no tile of it is cut bare and
 // its standing trees level off. With WOOD.perHousehold forced to 1, tiles are cut bare, as when a village cut on one tile. On a tiny world,

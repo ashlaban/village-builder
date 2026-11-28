@@ -1,3 +1,5 @@
+// @suite integration
+// @suite extended --extended
 // Hunger: each rule on constructed households of the small islands (VB-854). With --extended (at night), then a report of hungry days,
 // deaths by cause and marriages over three years of founders on the default island at seeds 7 and 42 (reported, not asserted).
 const assert = require('assert');

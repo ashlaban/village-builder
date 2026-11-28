@@ -1,3 +1,4 @@
+// @suite integration
 // VB-698: a target on every stored good a household makes. On a tiny world at seed 7 with herds: a review compiles the head's target on
 // each made good to its household's need (clay and bog iron DIG.stock, ale BREW.stock, a working quern, the dried fish wanted, the
 // barrels a pit's household keeps; no cap of their own on butter, salt meat and peat); the head's verb sets one within its bounds, at

@@ -1,3 +1,4 @@
+// @suite integration
 // Help asked for (VB-470; VB-106): two households of one village; B has a field in stubble to hoe, A three idle adults and nothing of
 // its own to do. B's head asks A's head for hands (an offer on the basis `help`, sim/hands): A's head, unplayed, answers by kinship,
 // opinion and its own day, and lends the adults its day gave no task, for the hours asked or fewer. A hand lent takes B's field work on

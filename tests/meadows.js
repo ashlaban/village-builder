@@ -1,3 +1,4 @@
+// @suite integration
 // Hay meadows (VB-132): founders with animals make meadows by the end of year 1 (VB-780: it was by summer's end), each on a valid tile within reach; generated
 // (populous) farms with animals start with theirs; farms without animals make none; the state invariants hold.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, M = VB['sim/meadows'], { bfs } = VB['sim/hex'], { walkable } = VB['sim/walking'];

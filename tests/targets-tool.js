@@ -1,3 +1,4 @@
+// @suite fast
 // tests/lib/targets.js and tools/targets.js: residual signs for max, min and range, status in/out/noise, no throw for a value out,
 // --record appends commit/dirty/date/machine, the runner's parser reads the printed lines, and the reader prints the latest value and
 // the last five and writes the table, all on a temporary copy.

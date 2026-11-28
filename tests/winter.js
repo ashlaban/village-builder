@@ -1,3 +1,4 @@
+// @suite fast
 // VB-808: the ground by season (sim/walking's compiled ground; sim/climate's dates; design.md, Climate and travel beyond walking, The ground
 // by season). On a tiny world drawn for the case: two shores of a lake are a straight walk apart while its ice bears and a walk round it
 // before and after; frozen marsh costs WINTER.marsh in frost; snow and the thaw's soft ground slow a tile with no lane, not a lane; a

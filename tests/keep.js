@@ -1,3 +1,4 @@
+// @suite integration
 // The alderman's keep (VB-463): under the practice `keep`, days owed at the autumn meeting (source 'keep'), ended by a vacancy; or a share of
 // each other household's surplus set aside and fetched at the moving round, booked with the reason `keep`.
 const assert = require('assert');

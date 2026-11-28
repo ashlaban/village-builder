@@ -1,3 +1,4 @@
+// @suite integration
 // Stores arithmetic, error handling and complete annual food reconciliation, on the small islands (VB-854): founders two years (a household
 // dissolves in the second) and populous one (its journeys' provisions); the window of pruning is checked on the constructed state above it.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim, S = VB['sim/stores'];

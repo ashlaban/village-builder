@@ -1,3 +1,4 @@
+// @suite fast
 // tools/lib/periods.js (VB-1615) on constructed data: the log's rows cut periods; a task falls in the period its first run started in;
 // strata by run kind, size and model; a stratum under FEW tasks is marked and not compared; the change against the period before;
 // done from the runs' outcome, else the backlog; the reopened proxy; and orchestrators apart.
