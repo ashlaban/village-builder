@@ -68,7 +68,8 @@ const FARMER = 0, WIFE = 1;
 // field for the woods while the farmer keeps hoeing (design.md section 7, More urgent work); told to hoe, the son stays.
 {
   const SON = 4;
-  const low = (st) => { const hh = st.households[0]; VB['sim/stores'].take(st, hh, 'wood', hh.wood - 5, 'burn'); Sim.advance(st, 0.6); };
+  // VB-1771: the son holds the wood as his duty, so the trip is his first whoever else fits it (the rule's review may give it to another)
+  const low = (st) => { const hh = st.households[0]; VB['sim/steps'].giveDuty(st, st.plans.households.get(0), 'wood', SON); VB['sim/stores'].take(st, hh, 'wood', hh.wood - 5, 'burn'); Sim.advance(st, 0.6); };
   const plain = make(4.5, true), st = make(4.5, true), a = st.agents[SON];
   low(plain); assert.strictEqual(plain.agents[SON].job.kind, 'wood', 'unplayed, the son leaves the field for the woods');
   assert.strictEqual(plain.agents[FARMER].job.kind, 'plow', 'and the farmer keeps hoeing');

@@ -17,6 +17,7 @@ VB['sim/day'] = (() => {
   const Days = VB['sim/days'];
   const Levies = VB['sim/levies'];
   const Hands = VB['sim/hands'];
+  const Steps = VB['sim/steps'];
   const { planOf, heads, planOp, planFacade } = VB['sim/plans'];
   const Estimate = VB['sim/estimate'];
   const { score, bid, matchBar, joined, allotted, workCommand, jobsFor } = VB['sim/fit'];
@@ -80,6 +81,7 @@ VB['sim/day'] = (() => {
     const plan = planOf(st, 'household', hh.id);
     if (!plan || hh.farmstead === null) return;
     VB.count.dayAllot++;
+    lapse(st, hh, plan); // a holder no longer a member (VB-1771)
     const w = weighDay(st, hh, c);
     plan.day = { made: Math.floor(st.tick / TICKS), lists: w.lists, fits: w.fits, hours: w.hours, free: w.free };
     // the morning's allotment: the hours of help the head's estimate says the household lacks to finish its field work in its windows
@@ -119,6 +121,8 @@ VB['sim/day'] = (() => {
       for (const j of jobs) weigh(st, hh, members, j, c, memo, stand, pairs);
     }
     pairs.sort((x, y) => y[0] - x[0] || x[2].id - y[2].id || x[1] - y[1]);
+    const plan = planOf(st, 'household', hh.id);
+    if (plan) dutyFirst(st, plan, members, pairs);
     vitalFirst(st, hh, pairs);
     const H = Estimate.headOf(st, hh),
       ctx = {
@@ -294,6 +298,120 @@ VB['sim/day'] = (() => {
     for (const pair of first) pairs.push(pair);
     for (const pair of rest) pairs.push(pair);
   }
+  // ---- duties (VB-1771; design.md section 7, Plans at four scales: The days ahead; Standing duties) ----
+  // The types of recurring work without a window, each with its recurring kinds: of each type of work (KINDS' type), the kinds due each
+  // day or that a household lives by (`daily`, `vital`: the water, the meal, the fire and the wood, milking, fodder). A duty of the type
+  // gives its holder the first place for those kinds only: none has a window (sim/hands windowEnd: plowing, sowing, reaping, hauling) or a
+  // season (the hay), so no hand comes late to windowed work for its duty, as under MATCH.keep (VB-1553). Kinds are fixed at load: worked
+  // out once, never saved.
+  let DUTY = null;
+  function dutyTypes() {
+    if (DUTY) return DUTY;
+    DUTY = new Map();
+    for (const k of Object.keys(KINDS)) {
+      const K = KINDS[k];
+      if (!K.daily && !K.vital) continue;
+      if (!DUTY.has(K.type)) DUTY.set(K.type, new Set());
+      DUTY.get(K.type).add(k);
+    }
+    return DUTY;
+  }
+  // Whether task j is of a kind duty `type` covers.
+  const dutyCovers = (j) => {
+    const S = dutyTypes().get(KINDS[j.kind].type);
+    return !!S && S.has(j.kind);
+  };
+  // SWITCH.duties: whether the head's default author gives duties at its review (dutiesToGive). Off until Kim's answer (VB-1771: Q5 of
+  // the four-scales plan did not show the rise in continuity it predicted, so whether the rule gives duties is Kim's); tools/q5.js and
+  // tests/duties.js turn it on. Off, no rule gives a duty and the allotment is as before; a duty given through assign is weighed.
+  const SWITCH = { duties: false };
+  // The holders among `members` (those allotted) of household plan's duties: type -> pawn id, or null with none.
+  function holders(plan, members) {
+    if (!plan.ahead || !plan.ahead.length) return null;
+    let held = null;
+    for (const s of plan.ahead)
+      if (s.what.duty !== undefined && members.some((p) => p.id === s.who[0]))
+        (held || (held = new Map())).set(s.what.duty, s.who[0]);
+    return held;
+  }
+  // A duty gives its holder the first place for its type (design.md, The days ahead): in the pairs weighed, best first, the holder's pair
+  // for a task of the duty's kinds goes just before the task's best pair, so that the pass (man) gives it the task first and the others
+  // come to it as further hands; nothing else moves. One pass over the pairs.
+  function dutyFirst(st, plan, members, pairs) {
+    const held = holders(plan, members);
+    if (!held) return;
+    const lead = new Map(); // job -> [its best pair, the holder's pair where it is not that]
+    for (const pair of pairs) {
+      const j = pair[2],
+        h = held.get(KINDS[j.kind].type);
+      if (h === undefined || !dutyCovers(j)) continue;
+      const x = lead.get(j);
+      if (!x) lead.set(j, [pair, pair[1] === h ? null : undefined]);
+      else if (pair[1] === h && x[1] === undefined) x[1] = pair;
+    }
+    const before = new Map();
+    for (const [best, mine] of lead.values()) if (mine) before.set(best, mine);
+    if (!before.size) return;
+    VB.count.dutyFirst += before.size;
+    const moved = new Set(before.values()),
+      out = [];
+    for (const pair of pairs) {
+      if (moved.has(pair)) continue;
+      const mine = before.get(pair);
+      if (mine) out.push(mine);
+      out.push(pair);
+    }
+    for (let i = 0; i < out.length; i++) pairs[i] = out[i];
+  }
+  // The duties household hh's head would give at its review (its default author, the customs): each type of recurring work without a
+  // window that no member holds goes to the member the day standing put first for it, the one whose list gives a task of the type's kinds
+  // earliest (the lower id on a tie), given hands or at its head; none where the day gives no such task. [[type, pawn id]], in the order
+  // of the types; a pass over the members' lists.
+  function dutiesToGive(st, hh, plan) {
+    const day = plan && plan.day;
+    if (!day || !day.lists || hh.farmstead === null) return [];
+    const best = new Map(); // type -> [position, pawn id]
+    for (const id of hh.members) {
+      const list = day.lists[id],
+        fit = day.fits && day.fits[id];
+      if (!list || st.pawns[id].died !== null || (day.off && day.off.includes(id))) continue;
+      VB.count.dutyRead++;
+      for (let i = 0; i < list.length; i++) {
+        if (fit && fit[i] !== null && fit[i] <= 0) break; // the rest, given no hands
+        const j = st.jobs.get(list[i]);
+        if (!j || !dutyCovers(j)) continue;
+        const T = KINDS[j.kind].type,
+          b = best.get(T);
+        if (!b || i < b[0] || (i === b[0] && id < b[1])) best.set(T, [i, id]);
+      }
+    }
+    const out = [];
+    for (const T of dutyTypes().keys()) if (best.has(T) && !Steps.dutyOf(plan, T)) out.push([T, best.get(T)[1]]);
+    return out;
+  }
+  // The duties lapsed in household plan `plan`: those whose holder is no longer a living member (left, died), or pawn id's (absent: ill,
+  // called away, dead; lostHolder).
+  function lapse(st, hh, plan, id = null) {
+    if (!plan.ahead || !plan.ahead.length) return;
+    for (const s of plan.ahead.slice()) {
+      if (s.what.duty === undefined) continue;
+      const p = st.pawns[s.who[0]];
+      if (s.who[0] === id || !p || p.died !== null || p.household !== hh.id) {
+        VB.count.dutyRead++;
+        Steps.dropDuty(plan, s);
+      }
+    }
+  }
+  // The head's review of the days ahead (sim/plans' planReviewed, about 0.7 a household-day): its duties lapsed go, and the default author
+  // gives those no member holds (dutiesToGive), while SWITCH.duties is on. What a controller gave through assign stands until its holder is absent.
+  on('planReviewed', (st, d) => {
+    const plan = d.plan;
+    if (plan.holder.type !== 'household') return;
+    const hh = st.households[plan.holder.id];
+    if (!hh || hh.dissolved) return;
+    lapse(st, hh, plan);
+    if (SWITCH.duties) for (const [type, id] of dutiesToGive(st, hh, plan)) Steps.giveDuty(st, plan, type, id);
+  });
   // The roles the household lacks today, whose ranks its holder takes (VB-1545): one pass over the members allotted.
   const standIn = (hh, members) =>
     hh.holder !== null && members.some((p) => p.id === hh.holder) ? absentMask(hh.holder, members) : 0;
@@ -453,6 +571,7 @@ VB['sim/day'] = (() => {
     VB.count.dayPair += members.length;
     weigh(st, hh, members, j, c, memo, stand, pairs);
     pairs.sort((x, y) => y[0] - x[0] || x[1] - y[1]);
+    dutyFirst(st, plan, members, pairs);
     // a member's hours for the task: those left, and those of its tasks given hands at a lesser fit, which it would give up for it as
     // the allotment would have (the hours of the lesser ones taken, the least first, below)
     const fitOf = new Map(pairs.map(([s, id]) => [id, s])),
@@ -641,6 +760,7 @@ VB['sim/day'] = (() => {
       plan = hh && !hh.dissolved && hh.farmstead !== null ? planOf(st, 'household', hh.id) : null,
       day = plan && plan.day,
       list = day && day.lists[id];
+    if (plan) lapse(st, hh, plan, id); // its duties lapse with its absence, given again at the next review (VB-1771)
     if (!list || !list.length) return;
     const keys = [];
     for (let i = 0; i < list.length; i++)
@@ -865,10 +985,19 @@ VB['sim/day'] = (() => {
   // of it among the rest, if any, gives way), with the hours the giver had of it; one at work on it now works on until it next looks
   // for work. Refused when `to`
   // may not take it (sim/eligibility).
+  // assign({duty, to}) (VB-1771; design.md, The days ahead): member `to` holds the duty `duty`, a type of recurring work without a window
+  // (dutyTypes), in place of whoever held it, by the controller (author 'pawn'); it stands until its holder is absent. Refused for a type
+  // that is not one, or a member too young to work.
   register('assign', {
     check: (st, c) => {
-      const a = c.args || {},
-        why = dayWhy(st, c, a.from) || dayWhy(st, c, a.to);
+      const a = c.args || {};
+      if (a.duty !== undefined) {
+        const why = dayWhy(st, c, a.to);
+        if (why) return why;
+        if (!dutyTypes().has(a.duty)) return `${a.duty} is not a type of recurring work without a window`;
+        return age(st, st.pawns[a.to]) < CHILD.from ? `pawn ${a.to} is too young for a duty` : null;
+      }
+      const why = dayWhy(st, c, a.from) || dayWhy(st, c, a.to);
       if (why) return why;
       const plan = planOf(st, 'household', c.target),
         day = plan.day,
@@ -884,6 +1013,8 @@ VB['sim/day'] = (() => {
       return demandWhy(st, c, a.to, assignPast(st, c));
     },
     run: (st, c) => {
+      if (c.args.duty !== undefined)
+        return void Steps.giveDuty(st, planOf(st, 'household', c.target), c.args.duty, c.args.to, 'pawn');
       const past = c.args.demand === true ? assignPast(st, c) : 0;
       if (past > 1e-9) return demand(st, c, c.args.to, past);
       const plan = planOf(st, 'household', c.target),
@@ -1036,5 +1167,8 @@ VB['sim/day'] = (() => {
     eveningCall,
     dayHours,
     hoursLeft,
+    dutyTypes,
+    dutiesToGive,
+    SWITCH,
   };
 })();
