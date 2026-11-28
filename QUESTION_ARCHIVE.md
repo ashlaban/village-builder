@@ -2,6 +2,25 @@
 
 Questions from `QUESTIONS.md` that Kim has answered, kept as the record behind the task files and `design.md`. Each section keeps its questions, the proposed answer (**P:**) and Kim's answer (**A:**) as they stood when answered; the task files hold what was decided. A question moves here, unchanged, once it is answered; newer archives go on top. `node tools/questions.js archive` makes the move.
 
+# Archived 28 November 2026 (VB-1771)
+
+## VB-1771: Duties of the days ahead: Q5's rise did not show; should the head's rule give duties? (raised 28 November 2026)
+1. Should the head's default author give duties? (VB-1771; design.md section 7, Plans at four scales: The days ahead; docs/plans/four-scales/README.md, section 4, Q5)
+
+   Q5 predicted that duties would raise the share of member-days that begin with yesterday's type of work from 63 to 66% to at least 72%. They do not raise it. Measured with tools/q5.js on populous small, 2 years, seeds 7 and 11, with the rule on and with it off:
+   - continuity: 73.8% and 73.3% with duties, 74.3% and 74.0% without. The share is already above 72% with no duty, by this measure (the type of the first task of each member's morning list).
+   - windowed work begun no later: 86.0% and 88.0%. On seed 7, 370 tasks began earlier and 399 later, so the two runs part both ways and nothing is delayed systematically.
+   - vital hours unmet at the evening's end: 37 and 22 with duties, 65 and 44 without.
+   - hungry household-days: 2 and 45 with duties, 7 and 42 without.
+   - tests/hay.js and tests/meadows.js are green, and the gate holds with the rule on.
+
+   Duties cover only the kinds of their type that are due each day or that a household lives by (water, meal, wood, fodder, milking). A member's day mostly begins with field work, and field work is never a duty, so duties cannot move this share by construction.
+
+   What ships now: the rule's giving is off (SWITCH.duties in sim/day). The mechanism, the verb (assign with a duty) and the decision point `duty` are live.
+
+   **P:** Turn the rule on. Duties delay no windowed work and roughly halve the vital hours left unmet, and Q5's figure of 72% is read as already met. The other answers: (b) drop duties, as section 4's refutation says, so that the days ahead hold dates and dated steps only and the build is removed; (c) leave duties to controllers only, given through assign, which is what ships now.
+   **A (Kim, 28 Nov):** No: leave the head's giving of duties disabled (SWITCH.duties stays off).
+
 # Archived 28 November 2026 (VB-1973)
 
 ## VB-1973: A seed loan before sowing, after a failed year (raised 28 November 2026)
