@@ -153,6 +153,25 @@ const roofPath = (g, e0, e1, r1, r0, yE, yR, sag) => {
   g.quadraticCurveTo((r0 + r1) / 2, yR + sag, r0, yR);
   g.closePath();
 };
+// Snow on a roof (VB-083): set while page/fieldart makes the buildings' snowy textures, each roof then drawn under a white blanket with a
+// blue-grey edge, so a farm in winter reads as one under snow. The drawing is the roof's own, so nothing else of the building moves.
+let roofSnow = false;
+function snowOnRoof(K, e0, e1, r1, r0, yE, yR, sag) {
+  if (!roofSnow) return;
+  const { g } = K;
+  roofPath(g, e0 - 0.5, e1 + 0.5, r1 + 0.5, r0 - 0.5, yE - 1.2, yR - 1, sag);
+  g.fillStyle = 'rgb(238,242,247)';
+  g.fill();
+  g.strokeStyle = 'rgb(138,154,174)';
+  g.lineWidth = 1.2;
+  g.stroke();
+  g.beginPath();
+  g.moveTo(e0 + 3, yE - 2.6);
+  g.lineTo(e1 - 3, yE - 2.6);
+  g.strokeStyle = 'rgba(150,170,192,0.6)';
+  g.lineWidth = 1;
+  g.stroke();
+}
 // Turf on birch bark: the bark's pale edge and the eave log that holds the turf, tufts and meadow flowers in rows, grass over the eave.
 function turfRoof(K, e0, e1, r1, r0, yE, yR, v) {
   const { g, r, col, ink, line } = K;
@@ -193,6 +212,7 @@ function turfRoof(K, e0, e1, r1, r0, yE, yR, v) {
     g.closePath();
     ink(MP.turfDk, 0.55);
   }
+  snowOnRoof(K, e0, e1, r1, r0, yE, yR, 2.2);
 }
 // Straw thatch in two layers, a combed eave, and crossed poles astride the ridge to hold it against the wind.
 function thatchRoof(K, e0, e1, r1, r0, yE, yR) {
@@ -224,6 +244,7 @@ function thatchRoof(K, e0, e1, r1, r0, yE, yR) {
   ink(MP.thatchDk, 0.7);
   for (let x = r0 + 7; x < r1 - 4; x += 12.5)
     for (const d of [-1, 1]) pole(x + d * 4.4, yR + 8, x - d * 2.8, yR - 5.5, MP.post, 1.5);
+  snowOnRoof(K, e0, e1, r1, r0, yE, yR, 1.6);
 }
 // Split shingles in overlapping rows under a ridge board.
 function shingleRoof(K, e0, e1, r1, r0, yE, yR) {
@@ -242,6 +263,7 @@ function shingleRoof(K, e0, e1, r1, r0, yE, yR) {
   g.restore();
   rr(g, r0 - 1.5, yR - 1.8, r1 - r0 + 3, 3.4, 1.4);
   ink(MP.eave, 0.6);
+  snowOnRoof(K, e0, e1, r1, r0, yE, yR, 0);
 }
 // A plank door in a heavy frame, on iron strap hinges.
 function plankDoor(K, x, y, w, h) {

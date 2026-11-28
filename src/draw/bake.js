@@ -3,7 +3,8 @@ VB['draw/bake'] = (() => {
   const { mulberry32 } = VB['gen/noise'];
   const { PIGMENTS, SEA, LAKE } = VB['draw/pigments'],
     { B, treeStage } = VB['world/biomes'],
-    { hexLocator, csample } = VB['world/grid'];
+    { hexLocator, csample } = VB['world/grid'],
+    Season = VB['draw/season'];
 
   // Level-of-detail pyramid: every chunk is TEX x TEX texels; each level up covers 3x3 chunks of the one below.
   const TEX = 512;
@@ -46,10 +47,11 @@ VB['draw/bake'] = (() => {
   }
 
   // One chunk of the land layer at level l (0 = full detail), in the world's paint P. Transparent over open water.
-  // Generator: yields every 16 texel rows so the caller can spread work across frames.
+  // Generator: yields every 16 texel rows so the caller can spread work across frames. look: the rows' season looks (draw/season
+  // rowLooks), or none for summer's: the land tinted and under snow, the water iced, a band at a time (VB-083).
   const INK = [44, 32, 28]; // the contour's colour (page/farmart's MP.line)
-  function* bakeChunk(w, P, l, cx, cy, img) {
-    const { W, H, AP, biome, nb, water, ocean, landDist } = w,
+  function* bakeChunk(w, P, l, cx, cy, img, look = null) {
+    const { W, H, AP, COLS, biome, nb, water, ocean, landDist } = w,
       { tile, shade, tr, tg, tb } = P;
     const lv = LV[l],
       inv = 1 / lv.scale,
@@ -61,6 +63,12 @@ VB['draw/bake'] = (() => {
       loc = hexLocator(w),
       o = [0, 0],
       pr = new Float32Array(6);
+    // the ice on water tile i by its row's look: a lake's from the frost, the sea's within reach of land where the sound shuts
+    const near = look && look.some((c) => Season.seaOf(c)) ? VB['sim/walking'].seaNear(w) : null;
+    const iceOf = (i) => {
+      const c = look[(i / COLS) | 0];
+      return ocean[i] ? (near && near[i] === 1 ? Season.seaOf(c) : 0) : Season.lakeOf(c);
+    };
     // the contour of the coast and the seam where two biomes meet, in map units: at least most of a texel wide, blended over half a texel
     const COAST = Math.max(1.5, 0.8 * inv),
       SEAM = Math.max(0.6, 0.45 * inv),
@@ -87,7 +95,7 @@ VB['draw/bake'] = (() => {
           const x = x0 + (tx + 0.5) * inv;
           if (x >= W) break;
           let i = loc(x, y, o);
-          if (i < 0 || (water[i] && (far || landDist[i] > 1))) continue;
+          if (i < 0 || (water[i] && (far || landDist[i] > 1) && !(look && iceOf(i)))) continue;
           let dx = o[0],
             dy = o[1];
           if (full) {
@@ -111,6 +119,19 @@ VB['draw/bake'] = (() => {
             pb = 0.5 * dx - 0.866 * dy,
             pc = -0.5 * dx - 0.866 * dy;
           if (water[i]) {
+            const ic = look ? iceOf(i) : 0;
+            if (ic) {
+              // ice: flat, mottled, with streaks along the wind; the land's contour runs round it as round open water
+              const c = Season.ICE_RGB[ic],
+                s = Season.ICE_STREAK[ic],
+                m = 1 + (tn(x * 0.05 + 5, y * 0.05 + 11) - 0.5) * 0.08,
+                q = tn(x * 0.03 + 17, y * 0.22 + 3) > 0.66 ? 0.7 : 0;
+              D[p] = (c[0] + (s[0] - c[0]) * q) * m;
+              D[p + 1] = (c[1] + (s[1] - c[1]) * q) * m;
+              D[p + 2] = (c[2] + (s[2] - c[2]) * q) * m;
+              D[p + 3] = 255;
+              continue;
+            }
             if (far) continue;
             // the shore: a band of limewash along the land and, on the closer levels, one fine line off it
             let md = 99;
@@ -164,9 +185,18 @@ VB['draw/bake'] = (() => {
           let k = 0;
           if (jn >= 0 && water[jn]) k = Math.min(1, Math.max(0, (COAST - ed) / SOFT)) * (far ? 0.8 : 1);
           else if (jn >= 0 && !far && biome[jn] !== bt) k = Math.min(1, Math.max(0, (SEAM - ed) / SOFT)) * 0.3;
-          const r = tr[i] * f,
-            g = tg[i] * f,
-            b = tb[i] * f;
+          let r = tr[i],
+            g = tg[i],
+            b = tb[i];
+          const m = look && Season.MIX[Season.tintOf(look[(i / COLS) | 0])][bt];
+          if (m) {
+            r += (m[0] - r) * m[3];
+            g += (m[1] - g) * m[3];
+            b += (m[2] - b) * m[3];
+          }
+          r *= f;
+          g *= f;
+          b *= f;
           D[p] = r + (INK[0] - r) * k;
           D[p + 1] = g + (INK[1] - g) * k;
           D[p + 2] = b + (INK[2] - b) * k;
@@ -178,7 +208,8 @@ VB['draw/bake'] = (() => {
 
   // Decorations for one chunk. Items come from every tile near the chunk, so objects that straddle
   // a chunk edge are drawn identically on both sides.
-  function decorateChunk(w, ctx, l, cx, cy, S) {
+  // look: the rows' season looks, as bakeChunk's: a broadleaf tree in its season's leaves or bare, no flowers out of their season.
+  function decorateChunk(w, ctx, l, cx, cy, S, look = null) {
     if (l >= 2) return;
     const { R, HW, AP, COLS, ROWS, hx, hy, biome, seed } = w;
     const lv = LV[l],
@@ -200,7 +231,8 @@ VB['draw/bake'] = (() => {
           b = w.trees && w.trees[i] > 0 && biome[i] < B.FOREST ? B.FOREST : biome[i]; // scrub drawn as wood (VB-091)
         if (w.dev && w.dev[i]) continue; // farmland and yards are drawn by the settlement layer
         if (hx[i] < x0 - M - R || hx[i] > x1 + M + R || hy[i] < y0 - M - R || hy[i] > y1 + M + R) continue;
-        const rnd = mulberry32((seed * 31 + i * 2654435761) >>> 0);
+        const rnd = mulberry32((seed * 31 + i * 2654435761) >>> 0),
+          tint = look ? Season.tintOf(look[row]) : 0;
         const spot = (rr) => {
           const a = rnd() * Math.PI * 2,
             d = Math.sqrt(rnd()) * rr * R;
@@ -212,19 +244,20 @@ VB['draw/bake'] = (() => {
           for (let k = 0; k < n; k++) {
             const [x, y] = spot(0.62);
             const pine = b === B.PINE ? rnd() < 0.92 : rnd() < 0.15;
-            const item = { t: pine ? 'pine' : 'broad', x, y, sc: 0.85 + rnd() * 0.3, v: (rnd() * 10) | 0 };
+            const item = { t: pine ? 'pine' : 'broad', x, y, sc: 0.85 + rnd() * 0.3, v: (rnd() * 10) | 0, k: tint };
             if (k < shown) items.push(item);
           }
         } else if (b === B.MEADOW) {
           const u = rnd();
           if (u < 0.07) {
             const [x, y] = spot(0.4);
-            items.push({ t: 'broad', x, y, sc: 0.95, v: (rnd() * 10) | 0 });
+            items.push({ t: 'broad', x, y, sc: 0.95, v: (rnd() * 10) | 0, k: tint });
           } else if (u < 0.13) {
             const [x, y] = spot(0.5);
             items.push({ t: 'shrub', x, y, v: (rnd() * 4) | 0 });
           }
-          if (full) items.push({ t: 'flowers', x: hx[i], y: hy[i], s: (rnd() * 1e9) >>> 0 });
+          const s = (rnd() * 1e9) >>> 0; // drawn whether or not the flowers are out, so the stones fall alike in every season
+          if (full && tint <= Season.TINT.spring) items.push({ t: 'flowers', x: hx[i], y: hy[i], s });
           if (full && w.stones) {
             for (let k = Math.ceil(w.stones[i] / 70); k > 0; k--) {
               const [x, y] = spot(0.6);

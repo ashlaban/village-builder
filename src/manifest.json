@@ -204,6 +204,7 @@
   "sim/saves.js",
   "sim.js",
   "draw/pigments.js",
+  "draw/season.js",
   "draw/paths.js",
   "draw/rivers.js",
   "draw/marks.js",
