@@ -4,7 +4,7 @@
 //   the pawn's own steps of its plan record since VB-1754)
 VB['sim/planview'] = (() => {
   const { cal, DAY } = VB['sim/rules'];
-  const { timberOf, pileOf } = VB['sim/chores'];
+  const { timberOf, pileOf } = VB['sim/wood'];
   const { goalOf, goalSteps } = VB['sim/kinds'];
   const { pawnPlan: planOf } = VB['sim/steps'];
   const { controlOf, nextOf, waitsOf } = VB['sim/controller'];
@@ -61,7 +61,7 @@ VB['sim/planview'] = (() => {
   }
   // ---- the page's read of the fire (VB-1653): Sim.fireView(st, id) ----
   // How the fire stands for pawn id's household: wood (firewood held), timber (held, not yet cut), peat (held), free (the pile's
-  // free fuel, sim/chores fuelFree: what a project holds back left out, peat at its worth), goal (the season's, the head's plan's), nights
+  // free fuel, sim/wood fuelFree: what a project holds back left out, peat at its worth), goal (the season's, the head's plan's), nights
   // (whole nights the free pile lasts at the season's use, ECON.woodUse, times the house's own fire, sim/house fireOf), cold (the house
   // went cold last night), short (the house cold, or the fuel of the supply outlook not lasting its frame), state, lasts, season (VB-1661: the
   // outlook's fuel, its state, its `with`
