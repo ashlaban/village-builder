@@ -33,6 +33,36 @@ VB['sim/chores'] = (() => {
   const fuelFree = (st, hh) => hh.wood - reserved(st, hh, 'wood') + PEAT.worth * (hh.peat || 0);
   // The timber the household holds, felled and home, not yet cut (VB-1653; absent: none), in the woodpile's loads.
   const timberOf = (hh) => (hh.timber > 1e-9 ? hh.timber : 0);
+  // ---- firewood cut wherever timber lies (VB-1931; Kim, 27 Nov 2026: "cut should be possible on any tile with timber that you or
+  // nobody owns") ----
+  // The timber lying as felled ('wood') or left ('leftTimber'); a building's timber on its way to its site is the building's, not cut.
+  const CUTTABLE = ['wood', 'leftTimber'];
+  // Whose a lying load is for household hid: its own, nobody's (its household gone), or another's (another household's, a village's).
+  const titleFor = (st, l, hid) => {
+    const o = l.owner;
+    if (o.type !== 'household') return 'other';
+    if (o.id === hid) return 'own';
+    const hh = st.households[o.id];
+    return !hh || hh.dissolved ? 'nobody' : 'other';
+  };
+  // The timber lying at `tile` that household hid may cut, its own first, then nobody's ({piles, n} in TRAVEL's loads), and the loads of
+  // another's there.
+  function cuttableAt(st, hid, tile) {
+    const own = [],
+      nobody = [];
+    let n = 0,
+      other = 0;
+    for (const l of Lying.pilesAt(st, tile)) {
+      if (!CUTTABLE.includes(l.kind)) continue;
+      const who = titleFor(st, l, hid);
+      if (who === 'other') other += l.n;
+      else {
+        (who === 'own' ? own : nobody).push(l);
+        n += l.n;
+      }
+    }
+    return { piles: [...own, ...nobody], n: n > 1e-9 ? n : 0, other };
+  }
   // The loads a fell task at `tile` of a plan of household hid's members has still to bring home (0 when there is none; the fell goal).
   const plannedLeft = (st, hid, tile) => {
     for (const pp of plansIn(st, hid)) {
@@ -475,6 +505,7 @@ VB['sim/chores'] = (() => {
       // at the house, while timber is home and the pile wants it (fireAmount: below the season's goal, or the house cold); a
       // second job below its woodSecond with more than a load home
       available: (st, hh, f, c, post) => {
+        cutAway(st, hh, f, post);
         const timber = timberOf(hh);
         if (!timber) return;
         const T = woodTargets(st, hh),
@@ -487,7 +518,51 @@ VB['sim/chores'] = (() => {
         }
       },
     },
+    // Firewood cut where timber lies (VB-1931): the timber of the household's, or of nobody's, cut into firewood at its tile a load a
+    // cutting and carried home to the woodpile; posted only for a firewood task a pawn's plan holds off the house (cutAway).
+    cutpile: {
+      verb: 'Cutting firewood',
+      go: 'Going to cut firewood where timber lies',
+      name: 'Cut firewood where timber lies',
+      at: ['road'],
+      needs: ['timber'],
+      gives: ['firewood'],
+      label: 'Firewood',
+      anim: 'chop',
+      hours: WOOD_HOURS.cut,
+      hands: 1,
+      type: 'wood',
+      urgency: (st, j, c, U) => {
+        const hh = st.households[j.farm.household];
+        return hh.cold > 0 ? U.woodColdUrgency : pileUrgency(st, hh, c, U, fuelFree(st, hh));
+      },
+    },
   };
+  // the cutting where timber lies: a load of it cut at the tile into the hand (its own first, then nobody's), carried home and stacked
+  // on the woodpile, while timber the household may cut lies there and the pile wants it (or the house is cold)
+  VB['sim/methods'].carry(KINDS.cutpile, 'cutpile', {
+    op: 'cut',
+    hours: WOOD_HOURS.cut,
+    look: 'logs',
+    words: 'Carrying firewood home',
+    run: (st, j, g, at, a) => {
+      let n = 0;
+      for (const l of cuttableAt(st, g.owner, at).piles) {
+        if (n >= TRAVEL.load - 1e-9) break;
+        n += Lying.takeFrom(st, l, TRAVEL.load - n);
+      }
+      if (n > 0) a.load = n;
+    },
+    met: (st, g) => {
+      const hh = st.households[g.owner];
+      return !cuttableAt(st, g.owner, g.at).n || !(hh.cold > 0 || pileOf(st, hh).short);
+    },
+    deliver: (st, j, hh, f, a) => {
+      const n = (st.ECON.woodPerTrip * a.load) / TRAVEL.load;
+      Stores.put(st, hh, 'wood', n, 'cutting');
+      return n;
+    },
+  });
   // worked indoors (VB-1820: the work step says it, sim/methods labour; no field of the kind)
   VB['sim/methods'].labour(KINDS.cook, { inside: true });
   VB['sim/methods'].labour(KINDS.brew, { inside: true });
@@ -605,42 +680,80 @@ VB['sim/chores'] = (() => {
   // Whether a plan of household hid's members holds a fell task with trips left (timber to come home).
   const fellPlanned = (st, hid) =>
     plansIn(st, hid).some((pp) => pp.tasks.some((t) => t.key === undefined && t.kind === 'fell' && t.got < t.n));
+  // The cuttings where timber lies (KINDS.cutpile): one for each firewood task off the house of a plan of the household's members, while
+  // timber it may cut lies there and the pile wants it or the house is cold.
+  function cutAway(st, hh, f, post) {
+    const want = hh.cold > 0 || pileOf(st, hh).short;
+    if (!want) return;
+    for (const pp of plansIn(st, hh.id))
+      for (const t of pp.tasks)
+        if (t.kind === 'firewood' && t.key === undefined && t.site !== f.house && cuttableAt(st, hh.id, t.site).n > 0)
+          post(`cutpile:h${hh.id}:t${t.site}`, t.site, { farm: f }, 'cutpile');
+  }
   const firewood = {
     noun: 'firewood',
     mark: null,
-    kinds: ['firewood'],
+    kinds: ['firewood', 'cutpile'],
     which: ['cut', 'full', 'gone'],
-    at: (st, hid, tile) => {
-      const f = homeOf(st, hid);
-      return f && f.house === tile && !st.households[hid].dissolved ? { f, hh: st.households[hid], tile } : null;
+    // at the house; or at a tile where timber lies (`away`, VB-1931) that the household may cut, its own or nobody's (`others`: only
+    // another's lies there), and at a tile planned so while the plan holds the task
+    at: (st, hid, tile, task) => {
+      const f = homeOf(st, hid),
+        hh = st.households[hid];
+      if (!f || hh.dissolved) return null;
+      if (f.house === tile) return { f, hh, tile };
+      const c = cuttableAt(st, hid, tile);
+      if (c.n > 0 || task) return { f, hh, tile, away: c.n };
+      return c.other > 0 ? { f, hh, tile, away: 0, others: true } : null;
     },
-    none: (tile) => `the household's house is not at ${tile}`,
-    // timber home, or a felling planned to bring it; the pile short of the season's goal
-    why: (st, { hh }) => {
-      if (!timberOf(hh) && !fellPlanned(st, hh.id)) return 'no timber is home to cut: fell timber first';
+    none: (tile) => `the household's house is not at ${tile}, and no timber of its own or of nobody's lies there`,
+    // timber home, or a felling planned to bring it; the pile short of the season's goal. Off the house, timber of its own or of nobody's
+    // lying there: another household's is not the household's to cut
+    why: (st, { hh, tile, away, others }) => {
+      if (others) return `the timber at ${tile} is another's: only timber of the household's own or of nobody's is cut`;
+      if (away === undefined && !timberOf(hh) && !fellPlanned(st, hh.id))
+        return 'no timber is home to cut: fell timber first';
       return pileOf(st, hh).short ? null : "the woodpile holds the season's goal";
     },
-    // the loads left to cut: the timber home, at most the pile's shortfall, ECON.woodPerTrip a load
-    steps: (st, hid, { hh }) => {
-      const p = pileOf(st, hh),
-        per = st.ECON.woodPerTrip,
+    // the loads left to cut: the timber home (off the house, the timber lying there), at most the pile's shortfall, ECON.woodPerTrip a load
+    steps: (st, hid, { hh, away }) => {
+      const p = pileOf(st, hh);
+      if (away !== undefined) {
+        const x = Math.min(away, Math.max(0, p.goal - p.free) * (TRAVEL.load / st.ECON.woodPerTrip));
+        return x > 0
+          ? [{ kind: 'cutpile', hours: WOOD_HOURS.cut, n: Math.ceil(x / TRAVEL.load - 1e-9), from: -Infinity }]
+          : [];
+      }
+      const per = st.ECON.woodPerTrip,
         x = Math.min(timberOf(hh), Math.max(0, p.goal - p.free));
       return x > 0 || fellPlanned(st, hh.id)
         ? [{ kind: 'firewood', hours: WOOD_HOURS.cut, n: Math.max(1, Math.ceil(x / per - 1e-9)), from: -Infinity }]
         : [];
     },
-    gone: (st, { hh }) => (!pileOf(st, hh).short ? 'full' : !timberOf(hh) && !fellPlanned(st, hh.id) ? 'cut' : null),
+    gone: (st, { hh, away }) => {
+      if (!pileOf(st, hh).short) return 'full';
+      if (away !== undefined) return away > 0 ? null : 'cut';
+      return !timberOf(hh) && !fellPlanned(st, hh.id) ? 'cut' : null;
+    },
     deadline: () => null,
     // the household's rule that holds the cutting back: no timber home, or the pile at the season's goal with the house warm
     hold: (st, hid, where, y) => {
+      if (y.kind === 'cutpile') return !(where.hh.cold > 0) && !pileOf(st, where.hh).short ? ['woodpile'] : null;
       if (y.kind !== 'firewood') return null;
       if (!timberOf(where.hh)) return ['timber'];
       return !(where.hh.cold > 0) && !pileOf(st, where.hh).short ? ['woodpile'] : null;
     },
     // the plan asks its head at once for a cutting its rule would post but has not (timber home, the pile below the season's goal or
     // the house cold; VB-1661: it waited up to three days for the household's planning day, by its head's diligence, sim/plandays)
-    ask: (st, hid) => {
-      const hh = st.households[hid];
+    ask: (st, hid, task) => {
+      const hh = st.households[hid],
+        f = homeOf(st, hid);
+      if (task && f && task.site !== f.house)
+        return (
+          (hh.cold > 0 || pileOf(st, hh).short) &&
+          !st.jobs.has(`cutpile:h${hid}:t${task.site}`) &&
+          cuttableAt(st, hid, task.site).n > 0
+        );
       return timberOf(hh) > 0 && (hh.cold > 0 || pileOf(st, hh).short) && !st.jobs.has(`firewood:h${hid}`);
     },
   };

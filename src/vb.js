@@ -348,6 +348,8 @@ VB.COUNTERS = {
   leatherWear: 'Households whose shoes and harness wear a day, once a day (sim/leather wearDay; VB-911)',
   deerCrop:
     'Fields of villages with a broken fence stretch tested for roe deer in the crop, once a summer day (sim/deer; VB-139)',
+  lyingAt:
+    'Loads lying read for the timber at a tile a firewood task names off the house, at each read of the task (sim/lying pilesAt; VB-1931)',
   lyingDecay:
     "Loads lying out read by the day's decay, each day from the autumn frost to the year's end while any lies (sim/lying decay; VB-1910)",
 };

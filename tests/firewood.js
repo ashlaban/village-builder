@@ -192,4 +192,45 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   closes('built');
   sound(st, 'felled, cut and built with by hand');
 }
-console.log('firewood ok: two steps for every household, no cold day in a year; fell and firewood planned by hand, their refusals; the fire read; save and load; the outlook; a fell task of n loads brings n loads, and the timber held closes against its ledger');
+// 5. VB-1931 (Kim, 27 Nov 2026: cut wherever timber lies that the household or nobody owns): a firewood task at a tile off the house where
+// timber of the household's lies, or of nobody's (its household gone), is accepted, and its cutting turns that timber into firewood
+// carried home to the woodpile; one where only another household's lies is refused with a reason, and that timber lies uncut.
+{
+  const st = make();
+  Sim.inhabit(st, FARMER);
+  Sim.setAuto(st, st.player.pawn, false);
+  const Lying = VB['sim/lying'], { TRAVEL } = VB['sim/rules'], P = st.ECON.woodPerTrip;
+  const hid = st.pawns[FARMER].household, hh = st.households[hid], f = st.farmsteads[hh.farmstead];
+  const [other, gone] = st.households.filter((x) => x.id !== hid && !x.dissolved);
+  const own = f.house + 3, theirs = f.house + 5, nobody = f.house + 7;
+  Lying.leave(st, 'wood', TRAVEL.load, own, { type: 'household', id: hid });
+  Lying.leave(st, 'leftTimber', TRAVEL.load, theirs, { type: 'household', id: other.id });
+  Lying.leave(st, 'wood', 2 * TRAVEL.load, nobody, { type: 'household', id: gone.id });
+  VB['sim/heirs'].extinct(st, gone, 'a test');
+  Stores.take(st, hh, 'wood', hh.wood, 'burn'); // the pile short
+  assert.match(String(Sim.plan(st, st.player.pawn, 'add', { firewood: theirs })), /timber at \d+ is another's/);
+  assert.match(String(Sim.plan(st, st.player.pawn, 'add', { firewood: f.house + 9 })), /house is not at/);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { firewood: own }), true, "the household's own timber may be cut");
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'remove', { i: 0 }), true);
+  assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { firewood: nobody }), true, "nobody's timber may be cut");
+  // the firewood cut and not from the timber home (a cutting at the house takes its timber with the same reason)
+  const cutSum = () => (hh.ledger || []).concat(hh.totals || []).filter((e) => e.kind === 'cutting').reduce((x, e) => x + e.n, 0);
+  const cut0 = cutSum();
+  let atPile = false;
+  for (let i = 0; i < 6 * 240 && VB['sim/steps'].pawnPlan(st, st.player.pawn).tasks.length; i++) {
+    Sim.advance(st, 0.1);
+    const a = st.agents[st.player.pawn];
+    if (a && a.job && a.job.kind === 'cutpile' && a.job.site === nobody && a.leg && a.leg.kind === 'work') atPile = true;
+  }
+  for (let i = 0; i < 240 && st.agents[st.player.pawn].load > 0; i++) Sim.advance(st, 0.1); // the last load carried home
+  const pp = VB['sim/steps'].pawnPlan(st, st.player.pawn);
+  assert.deepStrictEqual(pp.tasks, [], 'the cutting done');
+  assert.strictEqual(pp.last.which, 'cut', `the task left with the timber cut: ${pp.last.which}`);
+  assert(atPile, 'the cutting was worked at the tile where the timber lay');
+  assert(!Lying.pilesAt(st, nobody).length, 'the timber lying there is all cut');
+  const cut = cutSum() - cut0;
+  assert(Math.abs(cut - 2 * P) < 1e-6, `two loads of firewood stacked on the woodpile (${cut})`);
+  assert.strictEqual(Lying.amountAt(st, theirs, 'leftTimber', { type: 'household', id: other.id }), TRAVEL.load, "another's timber lies uncut");
+  sound(st, 'cut where the timber lay');
+}
+console.log('firewood ok: two steps for every household, no cold day in a year; fell and firewood planned by hand, their refusals; the fire read; save and load; the outlook; a fell task of n loads brings n loads, and the timber held closes against its ledger; cut where timber of the household or of nobody lies, not of another');

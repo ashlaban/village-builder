@@ -129,6 +129,16 @@ VB['sim/lying'] = (() => {
     l.n += n;
     return l;
   }
+  // The loads lying at `tile`, whoever owns them (VB-1931: the timber a household may cut there, its own or nobody's, sim/chores): a read
+  // of the small live list, for a tile a played pawn names; the index by owner cannot say what lies of an owner not known.
+  function pilesAt(st, tile) {
+    const out = [];
+    for (const l of st.lying || []) {
+      VB.count.lyingAt++;
+      if (l.tile === tile) out.push(l);
+    }
+    return out;
+  }
   // At most `cap` taken up from the owner's pile of kind `kind` at `tile`: what was taken.
   function takeAt(st, tile, kind, owner, cap) {
     const l = pileAt(st, tile, kind, owner);
@@ -157,6 +167,7 @@ VB['sim/lying'] = (() => {
     hay: 'hay',
     wood: 'timber',
     leftTimber: 'timber',
+    cutpile: 'firewood', // cut where timber lay, on its way to the woodpile (sim/chores cutpile, VB-1931)
     timber: 'timber', // the building's, cut on its way to the site (VB-1812)
     leftGrain: 'grain',
     wellstone: 'stone',
@@ -275,6 +286,8 @@ VB['sim/lying'] = (() => {
     BRING,
     bringWork,
     ownedPiles: ownedBy,
+    pilesAt,
+    takeFrom,
     frost,
     decay,
     lyingOut,
