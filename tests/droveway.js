@@ -1,3 +1,4 @@
+// @suite integration
 // The herds' way out to the outland (VB-446, sim/grazing): a village chooses one way a season from its green to its outland pasture, and
 // all its herds are driven by it, so that their crossings fall on the same tiles; on a wooded island a season's driving wears the forest
 // it crosses to a path, and a way no longer driven fades as any worn way does (sim/paths).

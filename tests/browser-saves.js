@@ -1,3 +1,4 @@
+// @suite extended
 // Saves in the page (VB-214, VB-260), in real Chromium; verify only. On a tiny map with a played pawn: save to slots and to a file, reload and
 // continue, a save of another build (refused; Delete it; Start a new game), Delete archipelago, a file round trip and a file of another
 // build, the auto slot when the page is hidden, Main menu then Back to game, and no console errors.

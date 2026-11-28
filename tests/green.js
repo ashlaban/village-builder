@@ -1,3 +1,4 @@
+// @suite integration
 // VB-058: the village green and well, built by the village. A one-farm village has neither and never starts them, even with the routine
 // forced; a village that gains a second occupied farm may choose the work at its meeting (VB-257), and its review makes it a project plan
 // of the village (VB-123): the green's tile, free and passable between the farms, nearest their mean position, becomes the village's; the

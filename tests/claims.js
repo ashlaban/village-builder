@@ -1,3 +1,4 @@
+// @suite fast
 // Claims on tiles (VB-042, sim/claims): adding, renewing, fading and lapsing, realising, each Disputed claims option, grievances and land held.
 const VB = require('../src/load.js'), Sim = VB.sim, CL = VB['sim/claims'], D = VB['sim/disputes'], { YEAR, CLAIMS } = VB['sim/rules'];
 const { moveClock } = require('./lib/clock.js');

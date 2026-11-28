@@ -229,6 +229,7 @@ VB['sim/lying'] = (() => {
     left,
     BRING,
     bringWork,
+    ownedPiles: ownedBy,
     frost,
     pileAt,
     amountAt,

@@ -1,3 +1,4 @@
+// @suite integration
 // Causes of death: the base hazard names its cause by age; the texts come from CAUSES; a kill writes the event and the log.
 const assert = require('assert');
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, { deathRoll, CAUSES } = VB['sim/deaths'], { YEAR } = VB['sim/rules'];

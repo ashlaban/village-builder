@@ -1,3 +1,4 @@
+// @suite fast
 const assert = require('assert'), fs = require('fs'), os = require('os'), path = require('path');
 const { run, workers, isBrowser } = require('./lib/runner.js');
 const node = (code) => [process.execPath, '-e', code];
@@ -25,11 +26,20 @@ const node = (code) => [process.execPath, '-e', code];
   assert(isBrowser(['node', 'tests/browser-editor.js']));
   assert(isBrowser(['node', 'tests/browser-future.js']));
   assert(!isBrowser(['node', 'tests/speed.js']));
-  const { FAST, INTEGRATION, EXTENDED } = require('./suites.js');
-  const all = [...FAST, ...INTEGRATION, ...EXTENDED].map((c) => c.join(' '));
+  // the tiers, from each test's `// @suite` lines (tests/lib/tiers.js, VB-1933)
+  const { headerOf, discover } = require('./lib/tiers.js');
+  const head = "// @suite fast\n// @suite integration node:--expose-gc --integration a,b\n// words\nconst x = '// @suite extended';\n// @suite extended\n";
+  assert.deepStrictEqual(headerOf(head, 'tests/t.js'), [{ tier: 'fast', cmd: ['node', 'tests/t.js'] },
+    { tier: 'integration', cmd: ['node', '--expose-gc', 'tests/t.js', '--integration', 'a,b'] }], 'the head only, a tier and argument set a line');
+  assert.throws(() => headerOf('// @suite quick\n', 'tests/t.js'), /the tier is one of/);
+  assert.throws(() => headerOf('// @suite fast --x node:--expose-gc\n', 'tests/t.js'), /node: flags come before/);
+  const tiers = discover(), cmds = Object.values(tiers).flat(), all = cmds.map((c) => c.join(' '));
   assert.strictEqual(new Set(all).size, all.length, 'tiers do not duplicate commands');
-  for (const cmd of [...FAST, ...INTEGRATION, ...EXTENDED]) {
+  for (const cmd of cmds) {
     const script = cmd.find((a) => /\.(js|py)$/.test(a)); assert(fs.existsSync(path.join(__dirname, '..', script)), script);
   }
-  console.log('runner: exits, signals, spawn errors, timeout cleanup, worker validation and tier inventory pass');
+  const { FIRST } = require('./suites.js'), first = FIRST.map((c) => c.join(' '));
+  for (const c of first) assert(all.includes(c), `tests/suites.js FIRST names ${c}, which no @suite line declares`);
+  assert.deepStrictEqual(tiers.extended.slice(0, first.length).map((c) => c.join(' ')), first, 'FIRST starts first');
+  console.log('runner: exits, signals, spawn errors, timeout cleanup, worker validation, the @suite heads and the tier inventory pass');
 })().catch((e) => { console.error(e); process.exitCode = 1; });

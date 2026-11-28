@@ -1,3 +1,4 @@
+// @suite fast
 // Crop boundary regressions: seed shortages, sheaves waiting at frost, and restoring an abandoned farm.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;
 const { CROPS } = VB['sim/crops'];

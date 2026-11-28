@@ -1,3 +1,4 @@
+// @suite fast
 // Clearing by ground (VB-1522): a tile's clearing adds GROUND[biome].clear to the brush; the breaking is the same on any ground.
 const VB = require('../src/load.js'), { B } = VB['world/biomes'];
 const FieldPlans = VB['sim/fieldplans'], { GROUND } = VB['sim/crops'];

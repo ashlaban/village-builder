@@ -1,3 +1,4 @@
+// @suite integration
 // Health: hunger drains it, full meals restore it, 0 is death by starvation; low health raises the death risk and slows work.
 // The deaths by cause per decade of the 50-year founders runs are in the report of tests/births.js.
 const assert = require('assert');

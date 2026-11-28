@@ -1,3 +1,5 @@
+// @suite fast
+// @suite integration --integration
 // The record indexes (children, spouse, holders, settlement members) agree with a full scan: after each mutation of the record on the probe
 // village (npm test), and with --integration (verify, VB-853) every season of each scenario's runs on small generated islands, through births,
 // deaths, marriages and households that end; these replaced the runs of years on the tiny and medium maps (--extended), deleted.

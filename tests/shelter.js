@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1666: the shelter, the ladder's first rung, on the house tile for every household (Kim: one rule for every household). (A settler
 // household moves into a finished cottage since VB-787: tests/sites.js.) Before that, a settler
 // household (sim/settle settleFarm; heirs at seed 13 on the probe island, as tests/settle.js) begins its shelter on its own house tile, no

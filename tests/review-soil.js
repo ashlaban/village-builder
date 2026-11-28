@@ -1,3 +1,4 @@
+// @suite integration
 // The soil report, apart from tests/review-tools.js since VB-1477 (its two years of populous were half of that script's CPU).
 const assert = require('assert');
 // The soil report (VB-720, tools/soil.js): --help, sim.js lists it, and two years on the small island give the farm classes and villages, and

@@ -1,3 +1,4 @@
+// @suite integration
 // Food help: a household above its buffer gives, one below does not; kin are asked before the village store; a household asks once a
 // season, for food until the next harvest (VB-222), by its head's offer at its plan's review (VB-691); stores fill from surpluses. On the small island of tests/lib/probe.js (VB-856; the
 // default island before).

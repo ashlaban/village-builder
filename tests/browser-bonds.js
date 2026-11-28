@@ -1,3 +1,4 @@
+// @suite extended
 // VB-1026, VB-1033, VB-1029, VB-1035: a portrait drawn in relation to someone carries its bonds as badges: in a person's Knows best rows and on the spouse's chip of
 // its card, with the word as the badge's label; a portrait drawn for nobody carries none.
 const { builtPage } = require('./lib/page');

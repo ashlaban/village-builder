@@ -1,3 +1,4 @@
+// @suite integration
 // Fishing (VB-117): a river or small lake tile's stock falls 0.1 a trip and recovers 0.02 a day, the sea's and a large lake's never; a trip
 // brings home 4 rations times the stock home as fresh food (VB-119); the ground is the nearest bank within 6 steps with fish; posted from
 // spring day 3 to the end of autumn, a second trip under 12 days of spare food; urgency 0.2 at 24 days or more, MATCH.urgency.need at none (VB-1549); roles rank

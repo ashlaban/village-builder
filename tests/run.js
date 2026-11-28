@@ -1,5 +1,5 @@
 // Explicit tiers, bounded subprocesses, one browser lane. See docs/testing.md.
-const path = require('path'), { FAST, INTEGRATION, EXTENDED } = require('./suites.js');
+const path = require('path'), { discover } = require('./lib/tiers.js');
 const { positive, workers, isBrowser, run, stopAll } = require('./lib/runner.js');
 const { parse } = require('./lib/targets.js');
 const root = path.join(__dirname, '..');
@@ -10,7 +10,9 @@ for (const [signal, code] of [['SIGINT', 130], ['SIGTERM', 143]]) process.on(sig
 async function main() {
   const suite = process.argv[2], verbose = process.argv.includes('--verbose');
   const list = process.argv.includes('--list') || process.stdout.isTTY;
-  const suites = { test: FAST, integration: INTEGRATION, verify: [...FAST, ...INTEGRATION], extended: EXTENDED };
+  // each test's tier is the `// @suite` line in its head (tests/lib/tiers.js, VB-1933)
+  const { fast, integration, extended } = discover(root);
+  const suites = { test: fast, integration, verify: [...fast, ...integration], extended };
   const cmds = suites[suite];
   if (!cmds || process.argv.slice(3).some((a) => !['--verbose', '--list'].includes(a)))
     throw new Error('usage: node tests/run.js test|integration|verify|extended [--list] [--verbose]');

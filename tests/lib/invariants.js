@@ -4472,8 +4472,6 @@ const KNOWN = [
   { task: 'VB-1620', re: /^households\[\d+\]: dissolved, holding shoes/ },
   // what VB-650 left in the closed record (VB-1175's line); VB-1697 passes it with the farm
   { task: 'VB-1697', re: /^households\[\d+\]: dissolved, holding (?!shoes)\w+ / },
-  // a death leaves its id where a living pawn is named: those who want out, a ward's guardian
-  { task: 'VB-1983', re: /^st\.(demand\[\d+\]|households\[\d+\]\.guardian): pawn \d+ is dead/ },
 ];
 // Declared history, not live, where the design lets an ended party's id stand until a later turn ends it: an offer to one who has died
 // lapses at its due (sim/offers close); a dead claimant's claim ends at the moving round (sim/farmclaims); a talk's record is its last;

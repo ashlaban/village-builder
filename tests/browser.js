@@ -1,3 +1,4 @@
+// @suite extended
 // Browser smoke test: loads index.html in real Chromium (Playwright), PixiJS served from node_modules in place of the CDN.
 // Generates a Tiny Populous Villages map, skips a year, opens each panel, and fails on any console or page error. Runs in verify only.
 const { builtPage } = require('./lib/page');

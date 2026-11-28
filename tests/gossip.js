@@ -1,3 +1,4 @@
+// @suite integration
 // tools/gossip.js (VB-187), the gossip experiment: deterministic for a seed; both models hear the same meetings; an island with no way
 // across hears nothing; the baseline forgets nothing and has no counter-story; a story's sharpened retellings stay within -1..1.
 // It checks the experiment's machinery, not its bands: those are reported (docs/gossip-experiment.md), not asserted.

@@ -1,3 +1,4 @@
+// @suite integration
 // Ale (VB-305; design.md, Goods, Ale and standing): brewed as a side craft from grain above the household's floor only (the floor holds the seed
 // reserve), 10 rations of grain and 4 hours a barrel, which keeps one season; poured at a wedding or a funeral ale by the host household, a
 // barrel to 20 guests, used up through sim/stores with the reason 'pour'; each guest remembers the host (SOCIAL.memories.ale) and the host's

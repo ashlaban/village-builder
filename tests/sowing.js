@@ -1,3 +1,4 @@
+// @suite fast
 // The head's choice of what its fields bear (VB-355; design.md, How the head chooses what to sow, The player as head). On a tiny farm at
 // seed 7, constructed states: the verb `rotation` under its checks (the head alone, a known rotation, the seed of every crop of it, no
 // field under a crop it has not), any rotation there is seed for and not only the village's usual one; with hold, the head's choice kept

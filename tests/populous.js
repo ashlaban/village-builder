@@ -1,3 +1,5 @@
+// @suite integration
+// @suite extended --extended
 // Populous Villages and the shared generators: population by map size, village size bands, two generations, the generator hook.
 // Verify (VB-856): every rule but the bands on 60 by 44 islands of tests/lib/probe.js, and the hook on the small ones. --extended, at
 // night: the four map sizes at seeds 7 and 42, for the population each size seeds and the village size bands of the medium and large

@@ -1,3 +1,4 @@
+// @suite fast
 // The chronicle (VB-099): the record of events as the history of a farm, a pawn and a village, and as the village log. A farm's history
 // follows the farm across households: every holder, handover, empty spell and claim since the start; the personal events stay with their pawn.
 const assert = require('assert');

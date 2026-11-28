@@ -1,3 +1,4 @@
+// @suite integration
 // The manual scenario (the archipelago editor's Settlement tool): places laid in their order, a village by the generator about a tile and a
 // household on a very tile; households close to a village's centre are of that village, a far one is a village of its own; a place with no
 // room names itself; a field, a meadow and a way are laid where they were placed; the state is sound and runs; and a world kept before seeding and put back seeds the same run again.

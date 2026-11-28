@@ -1,3 +1,4 @@
+// @suite integration
 // VB-634: service is by the year. The master's house is no home for a couple under any residence custom (homeFor gives none, matchBar
 // says why); a servant marries at the round by leaving service; an offer out of the round refuses a servant; servedSince is kept with
 // the servant flag.

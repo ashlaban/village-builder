@@ -1,3 +1,4 @@
+// @suite fast
 // A child on the way (VB-555; design.md, Courting: A child on the way and A child outside marriage), on a constructed state
 // (tests/lib/tiny.js), chances forced with `fix`: a courting woman conceives and an unmarried one who courts nobody never does; the
 // pregnancy known COURT.known days on, the couple's offer is answered out of the round and the child is born in marriage; a couple that

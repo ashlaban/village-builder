@@ -1,3 +1,4 @@
+// @suite fast
 // Work spread over steps: the night's culture, a settlement a 6-minute step after midnight (VB-201); the autumn meetings on the steps from
 // noon of autumn day 10, a village's a step, then the cultures' years and the land meeting (VB-206, VB-278); the moving round on the steps from noon of the next day, a village's round a step, then its three
 // island-wide phases from 18:00 (VB-201, VB-277). Each runs exactly once whatever the advance calls' sizes, and a run saved between two of

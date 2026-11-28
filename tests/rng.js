@@ -1,3 +1,4 @@
+// @suite fast
 // Random streams (VB-072): a stream gives mulberry32's sequence and survives a JSON copy; each system has its own, so extra draws in one
 // leave the others' next values unchanged.
 const assert = require('assert');

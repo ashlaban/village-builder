@@ -1,3 +1,4 @@
+// @suite extended
 // The reduced scenarios of the bands (VB-163; tests/lib/bands.js): every band with an `assert` is checked on its reduced run, each seed in
 // its own process. A watched band outside its range fails with its id, the seed and the value; a balancing band and growth over the
 // seeds are targets, reported and never failing; a described band is only printed. The full runs are tools/bands.js, nightly.

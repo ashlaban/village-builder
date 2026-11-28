@@ -1,3 +1,4 @@
+// @suite fast
 // tools/roadmap.js on a small constructed backlog: the slices in the Archs table's order with a closed slice put back by its number,
 // a side arch merged before the first slice that began after it and one not begun before the last slice, the pace from full days,
 // growth from the slices planned five days before, the open tasks by size from a small git history, an arch whose plan is open counted as unplanned, finishes in order and the

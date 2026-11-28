@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1685: a cache equals its derivation after every command, with no lag (the principles review of 24 November, S1). Each registered
 // verb's run is followed, on constructed states, by checkCaches (tests/lib/invariants.js), which compares each declared cache (src/owners.json,
 // category cache) with a fresh derivation: the verbs the runs issue themselves, then each verb not yet carried tried by hand. Statically, a

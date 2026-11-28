@@ -1,3 +1,4 @@
+// @suite integration
 // Duties of the days ahead (VB-1771; design.md section 7, Plans at four scales: The days ahead; Standing duties): a duty is a step of the
 // household's days ahead, {what: {duty: type}, who: [one member]}, for a type of recurring work without a window only (the wood, the
 // water and the meal, the beasts), given by the head's default author at its review to the member the day put first for it, or through
