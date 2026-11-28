@@ -12,7 +12,7 @@ VB['sim/reasons'] = (() => {
   const { carriesTo } = VB['sim/doing'];
   const { KINDS } = VB['sim/kinds'],
     { MADE, target } = VB['sim/targets'],
-    { fuelFree } = VB['sim/chores'];
+    { fuelFree } = VB['sim/wood'];
   const { age, fullName, commanded, unplanned } = VB['sim/records'];
   const { travelling, stayOf } = VB['sim/pose'];
   const { chain, stepOfKey } = VB['sim/steps'];

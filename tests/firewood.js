@@ -4,7 +4,7 @@
 // their refusals, the page's read of the fire (Sim.fireView), and a save and a load going on the same. On the tiny village of tests/plan.js.
 const assert = require('assert');
 const VB = require('../src/load.js'), Sim = VB.sim, { DAY, YEAR_DAYS } = VB['sim/rules'], { KINDS } = VB['sim/kinds'];
-const { WOOD_HOURS } = VB['sim/chores'], Stores = VB['sim/stores'];
+const { WOOD_HOURS } = VB['sim/wood'], Stores = VB['sim/stores'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js'), { canon, sha, kept } = require('./lib/canon.js'), { checkState } = require('./lib/invariants.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFF' : '................'));
 const make = () => {
@@ -166,7 +166,7 @@ assert.deepStrictEqual([KINDS.wood.gives, KINDS.firewood.needs, KINDS.firewood.g
   // the cottage under way, the woodpile below the season's goal: a firewood task leaves the timber its walls count on (VB-1808), so that
   // none is cut; the cottage then fetches what its walls lack to the site, the timber home first
   hh.wood = 0; // below the season's goal
-  const { fireAmount, fuelFree } = VB['sim/chores'];
+  const { fireAmount, fuelFree } = VB['sim/wood'];
   assert.strictEqual(Sim.plan(st, st.player.pawn, 'add', { upgrade: f.house, what: 'cottage' }), true);
   for (let i = 0; i < 2 * 240 && !VB['sim/projects'].projectsOf(st, 'household', hh.id).length; i++) Sim.advance(st, 0.1);
   const plan = VB['sim/projects'].projectsOf(st, 'household', hh.id)[0];
