@@ -13,6 +13,7 @@ VB['sim/crowding'] = (() => {
   //   owned here (the same writer), read by the death roll; a house stands where it was founded, so only a household's members and its
   //   founding or ending change it, and they change it at once, never by a daily pass.
   const factorOf = (n) => Math.min(CROWD.max, 1 + CROWD.per * Math.max(0, n - CROWD.free));
+  VB.counter('crowdScan', 'Passes over the farms to find the households near a house, at a membership change (VB-766)');
   // The households of farms near the tile of house `house`: a pass over the farms, at a membership change (not a pair pass).
   function each(st, house, fn) {
     VB.count.crowdScan++;

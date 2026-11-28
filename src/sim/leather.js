@@ -44,6 +44,7 @@ VB['sim/leather'] = (() => {
   const harnessOf = (hh) => (hh.harness === undefined ? 1 : hh.harness);
   const hidesOf = (hh) => hh.hides || 0;
   const shoeTarget = (st, hh) => walkers(st, hh) * LEATHER.keep;
+  VB.counter('leatherWear', 'Households whose shoes and harness wear a day, once a day (sim/leather wearDay; VB-911)');
   // A day's wear: each walker wears 1 / shoeDays of a pair; a team's harness 1 / harnessYears of a year. Once a day for every household
   // that has members (sim/clock), counted in VB.count.leatherWear.
   function wearDay(st) {

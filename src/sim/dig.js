@@ -92,6 +92,10 @@ VB['sim/dig'] = (() => {
         inReach(hh, f, good) ? Math.floor(spare / DIG.hours) * (good === 'peat' ? st.ECON.woodPerTrip : 1) : 0,
       held: (st, hh) => hh[good] || 0,
     });
+  VB.counter(
+    'digGround',
+    'Tiles within reach of a house searched for its digging ground, when its want opens, at most once a year (sim/dig; VB-359)',
+  );
   // @state household.digAt: {house, year, clay, bogOre} or undefined: the household's digging ground, searched from its house in the game
   //   year named, for each good the nearest tile it may dig within DIG.reach walking steps (-1 with none). Searched when the want opens and
   //   kept (rule 4): again only for a new house, a new year with a good not found, or a tile no longer to be dug.

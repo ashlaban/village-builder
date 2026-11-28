@@ -937,3 +937,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1948](backlog/VB-1948.md) | Refactor: the page's stylesheets by area, and a card's rows declared by the feature's page file | - | 2 | M | head.html 14 to 6, 6, 4; page/words 11 to 7 (VB-1406 step 10) |
 | [VB-2011](backlog/VB-2011.md) | Split sim/chores: the wood to sim/wood | - | 1 | M | sim/chores is 762 lines, over 700 (lint); the wood moves to its own module |
 | [VB-2030](backlog/VB-2030.md) | Investigate: a settler dies of starvation with 80+ grain in the barn and hunger 0 | - | 2 | S | Seeds 3 and 5 solo: health falls 3 a day at hunger 0 |
+| [VB-1934](backlog/VB-1934.md) | Refactor: a work counter is declared by the module whose loop it counts | - | 2 | M | src/vb.js 12 tasks to 0 (VB-1406 step 2) |

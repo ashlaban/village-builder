@@ -189,6 +189,10 @@ VB['sim/fields'] = (() => {
     st.farmDirty.add(f.id);
     st.farmDirty.add(g.id);
   }
+  VB.counter(
+    'fieldLapse',
+    "Fields weighed for their years unused on the year's last day (sim/fields' lapseFields; VB-1527)",
+  );
   // A field unused goes back to the land, whatever farm it lies on (Kim, 23 Nov: reverting is a natural property of the ground, not tied
   // to a pawn or a household; VB-1527): on the year's last day, a field of any farm, held or empty, whose last use (fd.used: sown, reaped,
   // a fallow course, reclaimed, broken) is LAPSE.years back, that bears no crop and no sheaves and has no task on it, leaves the farm's
@@ -343,6 +347,11 @@ VB['sim/fields'] = (() => {
     }
   }
   const STOOD = { ripe: 'ripe and not yet reaped', growing: 'still growing' };
+  VB.counter(
+    'outDecay',
+    "Worked fields and meadows read for stooks and mown hay lying out, each day from the autumn frost to the year's end (sim/fields " +
+      'stooksDecay, sim/meadows hayDecay; VB-2001)',
+  );
   // Stooks out after the frost (VB-2001; design.md, Goods and the farming year, Risk; Kim, 27 Nov): each game day from the frost's to the
   // year's end (sim/clock), the sheaves standing in a worked field's stooks lose a share, by sim/lying's lossOver as a load lying out
   // does, booked to the field's holder as that load's loss is (the event lyingSpoilt, grain in rations); worn under LYING.quantum, what

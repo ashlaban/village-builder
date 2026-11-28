@@ -42,6 +42,10 @@ VB['sim/passage'] = (() => {
       costChanged(st, t);
     }
   }
+  VB.counter(
+    'passageRead',
+    "Fields and meadows read by the day's sweep of passage on foot, once a day (sim/passage passageDay, VB-816)",
+  );
   // Once a day, before the route cache is refreshed (sim/clock): each field and meadow of a farm, and each common field of a village,
   // marked by how it stands. On the year's first day, any tile still marked that no field or meadow holds now (a field given up, a farm's
   // land gone back) is opened.
