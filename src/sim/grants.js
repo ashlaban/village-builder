@@ -13,7 +13,7 @@ VB['sim/grants'] = (() => {
   // answer; closing: a window that closes within this many days wants the hands the head gave it; base, diligence: the head says yes
   // when base + its opinion of the member - diligence * (its diligence - 0.5) * 2 is above 0; lighter: the hours a day by the clock a
   // member asks off its levy for the season (VB-1763); dutyDays: a member asks for a duty of its own accord when it has held none for
-  // this many days, at most once in them (VB-1556). Kept here, where sim/levies (the member's need: closing) reads it, before both; sim/voice's.
+  // this many days, at most once in them (VB-1556); duties: whether they do at all (off until Kim's answer on duties, VB-1771).
   const VOICE = {
     days: 6,
     from: MATCH.day.afternoon,
@@ -23,6 +23,7 @@ VB['sim/grants'] = (() => {
     closing: 3,
     lighter: 1,
     dutyDays: SEASON_DAYS,
+    duties: false,
   };
   const today = (st) => Math.floor(st.t / DAY);
   const endOfWork = (st) => today(st) * DAY + WORK[1];

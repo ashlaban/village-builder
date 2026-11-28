@@ -509,6 +509,7 @@ VB['sim/voice'] = (() => {
   // its own commands, that holds none and has held none for a season (VOICE.dutyDays) and has not asked for one in that time, asks for the type
   // it is most skilled at, where its head would give it (the lower type on a tie). A pass over the members and the duties.
   function dutyLook(st, hh, day) {
+    if (!VOICE.duties) return; // off until Kim's answer on duties (sim/day SWITCH.duties, VB-1771): given, they raised the hunger of a populous run
     const plan = planOf(st, 'household', hh.id);
     if (!plan || !plan.ahead) return;
     for (const s of plan.ahead) if (s.what.duty !== undefined && st.pawns[s.who[0]]) st.pawns[s.who[0]].dutied = day;

@@ -15,6 +15,7 @@ const Voice = VB['sim/voice'],
   { age } = VB['sim/records'],
   { planOf } = VB['sim/plans'],
   { SKILL } = VB['sim/skills'],
+  { VOICE } = Voice,
   { KINDS } = VB['sim/kinds'],
   { WORK } = VB['sim/rules'];
 const st = tinyState(tinyWorld(Array(20).fill('.'.repeat(36))), [{ at: [8, 10], farms: 2, sizes: [5, 4] }], { seed: 2 });
@@ -64,6 +65,7 @@ assert.strictEqual(holder(), n, 'a more skilled asker takes it');
 // of its own accord, once a season
 {
   const p = st.pawns[m];
+  VOICE.duties = true;
   delete p.dutied;
   delete p.dutyAsked;
   plan.ahead = plan.ahead.filter((s) => s.what.duty === undefined);
