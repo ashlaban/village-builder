@@ -4462,7 +4462,6 @@ const KNOWN = [
   { task: 'VB-1620', re: /^households\[\d+\]: dissolved, holding shoes/ },
   // what VB-650 left in the closed record (VB-1175's line); VB-1697 passes it with the farm
   { task: 'VB-1697', re: /^households\[\d+\]: dissolved, holding (?!shoes)\w+ / },
-  { task: 'VB-1982', re: /^households\[\d+\]: dissolved, holding obligations/ },
   // a death leaves its id where a living pawn is named: those who want out, a ward's guardian
   { task: 'VB-1983', re: /^st\.(demand\[\d+\]|households\[\d+\]\.guardian): pawn \d+ is dead/ },
 ];
