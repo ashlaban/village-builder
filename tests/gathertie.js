@@ -1,3 +1,4 @@
+// @suite fast
 // VB-296: customs drawn together. A village that goes to its culture's centre's gathering is tied the closer to it; those at a gathering meet
 // as strangers at most GATHERING.contacts a pawn a day; a culture whose villages fill two gatherings is told as a candidate to split.
 const assert = require('assert');

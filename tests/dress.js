@@ -1,3 +1,4 @@
+// @suite fast
 // Dress (VB-363, sim/dress): worn out in DRESS.years in closed form; mended from the household's cloth on its planning day (a child's
 // length lasts twice as long); in rags the cold costs DRESS.cold times and standing DRESS.shame.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim, { island } = require('./lib/probe.js');
