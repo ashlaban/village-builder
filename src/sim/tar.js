@@ -7,6 +7,10 @@
 // standing by itself, only through the well-kept house (HOUSE.termTarred, sim/house). Without the fair (VB-302) a barrel never leaves the
 // household that burnt it: only the pit's own household tars its house and its boat.
 VB['sim/tar'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/tar', {
+    tarPit: {}, // a household's tar pit dug (VB-301)
+  });
   const { YEAR, SEASON_DAYS } = VB['sim/rules'],
     { HOUSE, houseCondition, houseTarred } = VB['sim/house'];
   const { B } = VB['world/biomes'];

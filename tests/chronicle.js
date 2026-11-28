@@ -71,7 +71,7 @@ assert.ok(!kindsOf(Sim.chronicle(st, { pawn: heir })).includes('friend'), 'anoth
 
 // the filters, and the village's history
 for (const [key, g] of Object.entries(Sim.CHRONICLE)) {
-  assert.ok(g.label && Sim.chronicle(st, { village: 0 }, key).every((r) => g.kinds.includes(r.ev.kind)), `the filter ${key}`);
+  assert.ok(g.label && Sim.chronicle(st, { village: 0 }, key).every((r) => Sim.EVENTS[r.ev.kind].group === key), `the filter ${key}`);
 }
 assert.ok(kindsOf(Sim.chronicle(st, { village: 0 }, 'life')).includes('died') && kindsOf(Sim.chronicle(st, { village: 0 }, 'land')).includes('claim'));
 record(st, { kind: 'custom', village: 0, text: 'A new custom.' });

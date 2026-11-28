@@ -2,6 +2,10 @@
 // fields and takes their harvest while the owner, holder and line stay the same; the trust ends at the holder's marriage, a servant, a
 // ward's coming of age, the trustee's end or the holder's death
 VB['sim/trust'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/trust', {
+    moved: { group: 'land', skip: 'move' },
+  });
   const { living, home } = VB['sim/records'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, atHousehold, kinship } = VB['sim/records'];
   const { refreshRoles, handOn } = VB['sim/heirs'];

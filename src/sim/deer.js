@@ -1,6 +1,10 @@
 // @sys sim/deer [material]: roe deer (VB-139), the one wild grazer: a stock in each region with forest, growing towards a capacity set by its
 // forest-edge tiles; their grazing at the edges, their browsing of crops through a broken fence, and hunting them in autumn and winter
 VB['sim/deer'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/deer', {
+    deerInCrop: { keep: 'generation' },
+  });
   const { DEER, HERD, DAY, YEAR_DAYS } = VB['sim/rules'],
     { B } = VB['world/biomes'];
   const { next: rnd } = VB['sim/rng'];

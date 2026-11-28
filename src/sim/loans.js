@@ -4,6 +4,12 @@
 // grain aside as the borrower's and has it fetched, and books an obligation of kind `loan`, repaid at the end of autumn (the verb
 // `repay`), overdue at the first harvest unpaid, defaulted at the second
 VB['sim/loans'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/loans', {
+    loan: {}, // a loan of grain made (VB-312)
+    loanRepaid: {}, // a loan's repayment at the harvest, in whole or in part (VB-312)
+    loanDefaulted: {}, // a loan unpaid after its second harvest (VB-312; VB-315 hears it)
+  });
   const Offers = VB['sim/offers'],
     Obligations = VB['sim/obligations'],
     Stores = VB['sim/stores'];

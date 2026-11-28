@@ -3,6 +3,10 @@
 // (sim/controller) reached through the verbs, its wish, its choices as head, and its plan fed to its queue (the feeder, for every pawn
 // whose controller holds a plan)
 VB['sim/player'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/player', {
+    player: { personal: true },
+  });
   const { holdingOf, spouseOf, personEvent, living, villageOf, fullName, spokesmanOf } = VB['sim/records'];
   const { HEALTH } = VB['sim/rules'],
     { SOCIAL } = VB['sim/ties'];

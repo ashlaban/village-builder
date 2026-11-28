@@ -3,6 +3,10 @@
 // Design: design.md, Goods, production and animals (The mill and the loom, the kiln and the quarry: Wool to cloth, Who spins; Decided
 // 11 Nov, the numbers Proposed); backlog/VB-185.md. The fleeces are shorn at the fold (sim/byre); the cloth waits for dress (VB-363).
 VB['sim/textile'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/textile', {
+    loomBuilt: {}, // a household's loom built (VB-362)
+  });
   const { SEASON_DAYS } = VB['sim/rules'];
   const Stores = VB['sim/stores'],
     Projects = VB['sim/projects'],

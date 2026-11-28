@@ -1,6 +1,14 @@
 // @sys sim/meetings [agency]: the year's meetings (a village a step, then the cultures and the land meeting), the village's routines and its choice
 //   of gathering (sim/gathering) made at its meeting, and the night's drift of attitudes, a settlement a step (split from sim/lifecycle, VB-876)
 VB['sim/meetings'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/meetings', {
+    custom: { group: 'custom', notice: 'custom', skip: 'custom', word: 'changes of custom' },
+    meetingFailed: { group: 'custom', notice: 'meeting' },
+    alderman: {}, // the village's alderman chosen, and the office vacated (VB-314)
+    workLeft: { keep: 'short' }, // a village's routine work left undone at its seasons' ends, heard at its meeting (VB-1768)
+    proposal: { keep: 'short' }, // a holder's proposal to its village's meeting and its fate (VB-1770)
+  });
   const { drawer } = VB['sim/rng'];
   const Culture = VB['culture'],
     Attitudes = VB['sim/attitudes'],

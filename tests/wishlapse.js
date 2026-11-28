@@ -2,7 +2,7 @@
 // A wish for a match that fails is told (VB-1113): the wished partner marries another (a personal event that stops a skip), and the
 // round passes the wish by (told with the round's reason; the wish stands).
 const assert = require('assert');
-const VB = require('../src/load.js'), Sim = VB.sim, MT = VB['sim/matching'], N = VB['sim/notable'], R = VB['sim/records'];
+const VB = require('../src/load.js'), Sim = VB.sim, MT = VB['sim/matching'], N = VB['sim/skip'], R = VB['sim/records'];
 const { tinyWorld, tinyState } = require('./lib/tiny.js');
 const rows = Array.from({ length: 12 }, (_, i) => (i < 2 ? 'F'.repeat(18) : i === 11 ? '~'.repeat(18) : '.'.repeat(18)));
 const st = tinyState(tinyWorld(rows), [{ at: [8, 6], farms: 4, sizes: [9, 9, 9, 9] }], { seed: 1 });
