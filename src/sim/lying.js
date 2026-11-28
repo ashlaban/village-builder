@@ -116,7 +116,7 @@ VB['sim/lying'] = (() => {
     return l ? l.n : 0;
   };
   // The tile of a pile of the owner's of kind `kind` lying at neither tile a nor b (the stray method, sim/methods), or null.
-  // A pile kept for a task planned at its tile is no stray (VB-1931: the timber a cutting is planned on, sim/chores), by the rules the
+  // A pile kept for a task planned at its tile is no stray (VB-1931: the timber a cutting is planned on, sim/wood), by the rules the
   // domains give (keep(fn), fn(st, l) true for a pile kept), read only for a pile otherwise taken up.
   const KEPT = [];
   const keep = (fn) => KEPT.push(fn);
@@ -135,7 +135,7 @@ VB['sim/lying'] = (() => {
     l.n += n;
     return l;
   }
-  // The loads lying at `tile`, whoever owns them (VB-1931: the timber a household may cut there, its own or nobody's, sim/chores): a read
+  // The loads lying at `tile`, whoever owns them (VB-1931: the timber a household may cut there, its own or nobody's, sim/wood): a read
   // of the small live list, for a tile a played pawn names; the index by owner cannot say what lies of an owner not known.
   function pilesAt(st, tile) {
     const out = [];
@@ -173,7 +173,7 @@ VB['sim/lying'] = (() => {
     hay: 'hay',
     wood: 'timber',
     leftTimber: 'timber',
-    cutpile: 'firewood', // cut where timber lay, on its way to the woodpile (sim/chores cutpile, VB-1931)
+    cutpile: 'firewood', // cut where timber lay, on its way to the woodpile (sim/wood cutpile, VB-1931)
     timber: 'timber', // the building's, cut on its way to the site (VB-1812)
     leftGrain: 'grain',
     wellstone: 'stone',

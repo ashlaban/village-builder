@@ -6,6 +6,7 @@ VB['sim/kinds'] = (() => {
     { doneOf } = VB['sim/progress'];
   const Fieldwork = VB['sim/fieldwork'],
     Chores = VB['sim/chores'],
+    Wood = VB['sim/wood'],
     Meadows = VB['sim/meadows'],
     Byre = VB['sim/byre'],
     Expansion = VB['sim/expansion'],
@@ -84,7 +85,7 @@ VB['sim/kinds'] = (() => {
     sow: F.sow,
     reap: F.reap,
     haul: F.haul,
-    wood: Chores.KINDS.wood,
+    wood: Wood.KINDS.wood,
     water: Chores.KINDS.water,
     cook: Chores.KINDS.cook,
     brew: Chores.KINDS.brew,
@@ -133,8 +134,8 @@ VB['sim/kinds'] = (() => {
   KINDS.drink = VB['sim/thirst'].KINDS.drink; // a pawn's drink at a source (VB-1585): sim/thirst's
   Object.assign(KINDS, VB['sim/leather'].KINDS); // shoes and harness cut from a hide (VB-911): sim/leather's
   Object.assign(KINDS, VB['sim/textile'].KINDS); // spinning, weaving and the loom (VB-362): sim/textile's
-  KINDS.firewood = Chores.KINDS.firewood; // timber cut into firewood at the house (VB-1653): sim/chores'
-  KINDS.cutpile = Chores.KINDS.cutpile; // and where timber lies, carried home cut (VB-1931): sim/chores'
+  KINDS.firewood = Wood.KINDS.firewood; // timber cut into firewood at the house (VB-1653): sim/wood's
+  KINDS.cutpile = Wood.KINDS.cutpile; // and where timber lies, carried home cut (VB-1931): sim/wood's
   Object.assign(KINDS, VB['sim/byrehouse'].KINDS); // the byre's walls and roof (VB-1665): sim/byrehouse's
   Object.assign(KINDS, VB['sim/storehouse'].KINDS); // the storehouse's walls and roof (VB-1898): sim/storehouse's
   Object.assign(KINDS, VB['sim/timberhouse'].KINDS); // the timber house's frame and roof (VB-1664): sim/timberhouse's
@@ -329,7 +330,7 @@ VB['sim/kinds'] = (() => {
   for (const e of ASK.field) for (const g of ASK.stages[e[0]]) (ASK.fieldAt[g] ||= []).push(e);
   // ---- goals (VB-1777; docs/plans/four-scales/README.md, 3.2): a task at a tile carried through several steps, for any pawn ----
   // A goal kind is declared as data by the domain whose kinds carry its steps, beside their rules (GOALS): sim/fieldwork's plant and
-  // harvest, sim/meadows' hay, sim/chores' fell and firewood, sim/camp's farmstead, joined here in that order; sim/upgrade contributes
+  // harvest, sim/meadows' hay, sim/wood's fell and firewood, sim/camp's farmstead, joined here in that order; sim/upgrade contributes
   // upgrade, foundation and outbuilding at load, before the first seed. Each step is a job of a kind whose methods carry it (sim/methods,
   // sim/doing). A goal kind's fields: noun; mark (the land project a marked or a free tile begins, 'field' or 'meadow', or null) and
   // project(st, hh, tile) (the project it would make, read only); kinds (the job kinds that carry it: sim/agenda's gaps, sim/outlook's
@@ -346,7 +347,7 @@ VB['sim/kinds'] = (() => {
     plant: Fieldwork.GOALS.plant,
     hay: Meadows.GOALS.hay,
     harvest: Fieldwork.GOALS.harvest,
-    ...Chores.GOALS,
+    ...Wood.GOALS,
     ...VB['sim/camp'].GOALS,
   };
   // The goal kind of task t (a task at a tile: no key), or null for a task by key.

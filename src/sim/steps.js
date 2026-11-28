@@ -414,7 +414,7 @@ VB['sim/steps'] = (() => {
       s = plan && plan.ahead.find((x) => x.what.routine === kind);
     if (s) s.begun = today(st);
   }
-  // A trip of timber is home from `tile` with its `loads` (sim/chores' wood, the event timberHome): a fell task there of a plan of the
+  // A trip of timber is home from `tile` with its `loads` (sim/wood' wood, the event timberHome): a fell task there of a plan of the
   // household's members counts its loads, not its trips (VB-1662: a cart's trip brings several); the first by its pawn's id.
   on('timberHome', (st, { household, tile, loads }) => {
     for (const pp of plansIn(st, household)) {

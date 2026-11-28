@@ -123,6 +123,7 @@
   "sim/tar.js",
   "sim/drain.js",
   "sim/carts.js",
+  "sim/wood.js",
   "sim/chores.js",
   "sim/green.js",
   "sim/workdays.js",
