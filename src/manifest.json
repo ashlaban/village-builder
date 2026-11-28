@@ -160,6 +160,7 @@
   "sim/gathering.js",
   "sim/fair.js",
   "sim/loans.js",
+  "sim/enforcement.js",
   "sim/seasonal.js",
   "sim/routines.js",
   "sim/plandays.js",

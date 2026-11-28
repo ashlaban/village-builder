@@ -32,9 +32,10 @@ VB['sim/decisions'] = (() => {
     if (actor !== p) return `pawn ${actor} is not the alderman of village ${body}`;
     return agentOf(st, body) === null ? `the alderman of village ${body} is away` : null;
   }
-  // The procedure a body settles a kind of question by: its practice of deciding where it has one (none yet: VB-314, VB-315), else the
-  // kind's default.
-  const procedureFor = (st, body, kind) => KINDS[kind].procedure;
+  // The procedure a body settles a kind of question by: its practice of deciding where the kind reads one (procedureOf(st, body): a case,
+  // by "Who judges a case", VB-315), else the kind's default.
+  const procedureFor = (st, body, kind) =>
+    KINDS[kind].procedureOf ? KINDS[kind].procedureOf(st, body) : KINDS[kind].procedure;
   // A tie (two options with equal support where one must be chosen) goes to the presiding pawn, else the question's fallback.
   function escalate(st, q, K) {
     const p = st ? presider(st, q.body) : null;

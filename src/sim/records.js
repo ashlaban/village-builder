@@ -108,6 +108,10 @@ VB['sim/records'] = (() => {
     loan: 0, // a loan of grain made (sim/loans, VB-312)
     loanRepaid: 0, // a loan's repayment at the harvest, in whole or in part (sim/loans, VB-312)
     loanDefaulted: 0, // a loan unpaid after its second harvest (sim/loans, VB-312; VB-315 hears it)
+    debtPressed: 0, // a debt defaulted pressed, extended or forgiven by its creditor (sim/enforcement, VB-315)
+    debtExtended: 0,
+    debtForgiven: 0,
+    case: 0, // a case heard at a village's meeting, and its ruling (sim/enforcement, VB-315)
     days: 0, // days of work owed lapsed (sim/obligations, VB-462; the alderman's keep, VB-463)
     follower: 0, // a tie of a follower to its lord begun or ended, with why (sim/followers, VB-708)
     alderman: 0, // the village's alderman chosen, and the office vacated (sim/meetings, VB-314)
