@@ -507,7 +507,7 @@ VB['sim/voice'] = (() => {
   }
   // The morning's look at household hh: those holding a duty are marked (pawn.dutied); each member of working age, not the head nor on
   // its own commands, that holds none and has held none for a season (VOICE.dutyDays) and has not asked for one in that time, asks for the type
-  // it is most skilled at (the lower type on a tie). A pass over the members and the duties.
+  // it is most skilled at, where its head would give it (the lower type on a tie). A pass over the members and the duties.
   function dutyLook(st, hh, day) {
     const plan = planOf(st, 'household', hh.id);
     if (!plan || !plan.ahead) return;
@@ -522,7 +522,7 @@ VB['sim/voice'] = (() => {
       if (Number.isInteger(p.dutyAsked) && day - p.dutyAsked < VOICE.dutyDays) continue;
       let best = null;
       for (const T of types) if (best === null || skillOf(st, pid, T) > skillOf(st, pid, best)) best = T;
-      if (best === null) continue;
+      if (best === null || !dutyWilling(st, hh.holder, pid, best)) continue; // it asks where it would be given (everyone knows what the head sees)
       p.dutyAsked = day;
       askDuty(st, pid, best);
     }
