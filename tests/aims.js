@@ -86,7 +86,7 @@ function surplusState() {
   assert.ok(by.field && by.claim && by.barn, `field, claim and barn open: ${menu.map((o) => o.what)}`);
   assert.ok(near(by.field.weight, 1 + ambition) && near(by.claim.weight, 1 + ambition), 'the field and the claim lean by ambition');
   const saved = VB['sim/byre'].hayLoss(st, hh) * VB['sim/rules'].YEAR_DAYS * (1 - BUILD.barn.loss);
-  assert.ok(near(by.barn.weight, Math.min(A.AIMS.heirs, saved / (A.AIMS.keep * 120))), `the barn by the hay it saves: ${by.barn.weight}`);
+  assert.ok(near(by.barn.weight, Math.min(A.AIMS.outbuilding, saved / (A.AIMS.keep * 120))), `the barn by the hay it saves: ${by.barn.weight}`);
   assert.ok(!by.storehouse, 'no storehouse where one stands');
   // one draw from the stream plans over the weights: at its least the first option, at its most the last
   st.rng.plans.fix = 0;
