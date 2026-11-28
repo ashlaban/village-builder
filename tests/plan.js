@@ -421,7 +421,7 @@ function SOWN(fd) { return ['sown', 'growing'].includes(fd.stage); }
     if (!saved && beside.length === 3) {
       assert(beside.filter((p) => p.what === 'field').every((p) => p.side), 'the fields beside the first are keyed apart');
       const pv = Sim.headView(s, 0);
-      assert.deepStrictEqual(pv.projects.map((p) => p.tile).sort(), [site, a, b, m].sort((x, y) => x - y), 'headView().projects');
+      assert.deepStrictEqual(pv.projects.map((p) => p.tile).sort((x, y) => x - y), [site, a, b, m].sort((x, y) => x - y), 'headView().projects');
       assert.deepStrictEqual(pv.project.id, first.id, 'project stays the first');
       saved = JSON.parse(JSON.stringify(Sim.save(s)));
     }

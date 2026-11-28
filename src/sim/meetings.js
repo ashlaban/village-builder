@@ -28,6 +28,7 @@ VB['sim/meetings'] = (() => {
   const { chooseGathering, settleGatherings } = VB['sim/gathering'];
   const { usualRotation } = VB['sim/rotations'];
   const { PATRON } = VB['sim/followers'];
+  const Enforcement = VB['sim/enforcement'];
   // The year's meetings (VB-278; design.md, A village's meeting): on autumn day 10, each village's meeting on its own 6-minute step from noon,
   // in the order of village id from `year mod villages` (villageTurn, as the moving round's villages), then from 18:00 each culture's year,
   // and on the next step the
@@ -258,6 +259,7 @@ VB['sim/meetings'] = (() => {
     if (txt) out.push({ year: c.year, text: txt });
     if (people.length) chooseGathering(st, s, quorumAt(st, s, held, people), people); // VB-294: its choice of gathering
 
+    for (const text of Enforcement.hear(st, s, people)) out.push({ year: c.year, text }); // its cases (VB-315), before the office
     aldermanMeeting(st, s, people);
     VB['sim/keep'].meeting(st, s); // the keep's days owed to the alderman now in office (VB-463)
     VB['sim/class'].meeting(st, s); // the year's livelihoods reckoned, a village a step (VB-318)

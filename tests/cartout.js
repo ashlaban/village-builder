@@ -27,6 +27,7 @@ function run(kind, carts, what, hours = 72) {
       pace = a.leg.pace / (SPEED * st.w.HW);
       by = hh.carts.length ? hh.carts[0].by : null;
     }
+    for (const id of hh.members) if (id !== a.id && st.agents[id] && st.agents[id].job) A.release(st, st.agents[id]); // the others idle: their loads are not this hand's misses
     Sim.advance(st, 0.1);
     if (a.job === j && a.load > 0 && !(was > 0) && !hh.carts.some((c) => c.by === a.id)) back++;
     was = a.job === j ? a.load : 0;

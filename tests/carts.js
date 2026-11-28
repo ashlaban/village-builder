@@ -106,7 +106,7 @@ const bad = checkState(st); check(!bad.length, 'invariants: ' + bad.slice(0, 3).
 hh.carts[0].cond = 2; check(checkState(st).some((e) => /cart/.test(e)), 'a cart of condition 2 is caught');
 hh.carts[0].cond = 1;
 {
-  const s = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 2, sizes: [5, 4] }], { seed: 4, herds: true });
+  const s = tinyState(tinyWorld(rows), [{ at: [8, 7], farms: 2, sizes: [5, 4] }], { seed: 2, herds: true }); // the seed: whether a cart is out in 40 days moves with the customs drawn (VB-315)
   for (const h of s.households) h.carts.push({ kind: 'hand', cond: 1, built: s.t, by: null });
   Sim.advance(s, 40 * Sim.DAY);
   const b2 = checkState(s); check(!b2.length, 'after 40 days: ' + b2.slice(0, 3).join('; '));

@@ -9,14 +9,16 @@ VB['sim/obligations'] = (() => {
   // @state st.obligations: every obligation ever made, by id, never reused: {id, kind (a key of KINDS), debtor, creditor (party refs:
   //   {kind: 'household' | 'village' | 'pawn', id}), owes ({rations: n} or {hours: n}), due (the hour its term ends), every (hours from one
   //   term to the next, or null: a single term), enforcer (a party ref, or null: social only), status ('open', 'part', 'overdue' while it
-  //   lives; 'met', 'forgiven', 'lapsed', 'defaulted' once closed), delivered (of what it owes), since (the hour it was made)}; written
+  //   lives; a loan defaulted ('defaulted', VB-315) lives too, out of the due-queue, until its creditor presses, extends or forgives it
+  //   (sim/enforcement); 'met', 'forgiven', 'lapsed' once closed), delivered (of what it owes), since (the hour it was made)}; written
   //   only here; absent until the first. A `days` one, an outer levy (VB-462, VB-1767; design.md, Outer levies), also has source ('debt',
   //   'keep', 'patron', 'routine', 'due'), terms ({names: 'levied' | 'levier' | 'together', notice (days), substitute, commute (rations a
   //   day, or null), carry, onBreach}: the draft's, sim/days TERMS by source), window ([first, last] game day the days asked may
   //   be named in, or null until its levier asks), asked (the days asked in the window, less the hours worked of them over OUTER.hours),
   //   named ([{day, pawn (an id, or null: picked on the day)}], by day: the days named and not yet come), worked (the days worked) and
   //   breaches ([{day, K (what the levied head reckoned keeping it would cost, rations), by (that head's id)}]: the breaches its levier's
-  //   agent has still to let stand or forgive at its next planning day, VB-1769; emptied as it closes).
+  //   agent has still to let stand or forgive at its next planning day, VB-1769; emptied as it closes); a debt's (VB-315) may have debt
+  //   (the id of the loan its days work off, sim/enforcement: each day worked or commuted is booked against it).
   //   A `loan` one (VB-312, sim/loans) also has lent (the grain lent, before what custom adds) and
   //   missed (its dues passed unpaid: overdue at the first, defaulted at the second).
   // @state st.obligationsDue: the ids of the obligations whose term runs (status open or part), sorted by due, then id: the due-queue
@@ -64,14 +66,14 @@ VB['sim/obligations'] = (() => {
   // A kind contributed by the module whose rules carry it out (a loan: sim/loans, VB-312), before the first seed. Its row may also have
   // ended ((st, o) => what it becomes at its due, 'overdue' or 'lapsed', unless its kind's verbs meet it there), dues (how many times a
   // single-term obligation falls due: one still unpaid at a due before the last is overdue and due again at its next term, `missed`
-  // counting them; at the last it is defaulted) and defaulted ((st, o): told as it is).
+  // counting them; at the last it is defaulted) and defaulted ((st, o): told as it is), and lapsed ((st, o): what follows its lapse).
   // kind(name) alone reads its row, or null.
   function kind(name, row) {
     if (row === undefined) return KINDS[name] || null;
     if (KINDS[name]) throw new Error(`obligation kind ${name} is declared twice`);
     KINDS[name] = row;
   }
-  const LIVE = ['open', 'part', 'overdue'];
+  const LIVE = ['open', 'part', 'overdue', 'defaulted'];
   const isLive = (o) => LIVE.includes(o.status);
   // In the due-queue: a term running, or overdue with a due still to come (missed under its kind's dues)
   const running = (o) =>
@@ -181,6 +183,7 @@ VB['sim/obligations'] = (() => {
       o.worked = 0;
       o.breaches = [];
       if (draft.why) o.why = { step: draft.why.step, of: draft.why.of }; // the step it serves (a routine's, VB-1768)
+      if (draft.debt !== undefined) o.debt = draft.debt; // the loan its days work off (VB-315, sim/enforcement)
     }
     st.obligations.push(o);
     enqueue(st, o);
@@ -223,7 +226,30 @@ VB['sim/obligations'] = (() => {
         o.delivered = amount(o);
         close(st, o, 'met');
       } else if (o.status === 'open') o.status = 'part';
+      for (const f of PAID[o.kind] || NONE) f(st, o, part, why); // booked on (a debt's day against its loan, VB-315)
     }
+    return null;
+  }
+  // What follows a part delivered of a kind's obligation, contributed at load by the module whose rule it is: f(st, o, n, why), after the
+  // part is booked (sim/enforcement: a debt's day worked is booked against its loan). Code, never saved state.
+  const PAID = {};
+  function onPaid(kind, f) {
+    (PAID[kind] || (PAID[kind] = [])).push(f);
+  }
+  // What follows a lapse of a kind's obligation, contributed at load by the module whose rule it is: f(st, o), after it is closed
+  // (sim/enforcement: a loan's case is dropped, its days owed lapse). Code, never saved state.
+  const LAPSED = {};
+  function onLapsed(kind, f) {
+    (LAPSED[kind] || (LAPSED[kind] = [])).push(f);
+  }
+  // A loan defaulted is extended (VB-315, sim/enforcement): overdue again, falling due once more at `due`, and defaulted if unpaid there.
+  function extend(st, id, due) {
+    const o = st.obligations[id];
+    if (!o || o.status !== 'defaulted') return 'only a debt defaulted is extended';
+    o.status = 'overdue';
+    o.due = due;
+    o.missed = (KINDS[o.kind].dues || 1) - 1;
+    enqueue(st, o);
     return null;
   }
   // An outer levy's working fields, written by sim/levies through this one door (VB-1767): any of {window, asked, named} (its days
@@ -274,6 +300,8 @@ VB['sim/obligations'] = (() => {
     n = left(o);
     close(st, o, 'lapsed');
     tell(st, o, `What was still owed of the ${o.kind} (${n} ${unit(o)}) lapsed: ${why}`);
+    if (KINDS[o.kind].lapsed) KINDS[o.kind].lapsed(st, o); // remembered (a loan, by its creditor's holder: VB-315)
+    for (const f of LAPSED[o.kind] || NONE) f(st, o); // what hangs on it closes too (a loan's case and days owed, VB-315)
     return null;
   }
   // Obligation id passes to a successor: to = {debtor} or {creditor}, a party ref. A right, so it moves at once (AGENTS.md, the hard rule).
@@ -342,7 +370,7 @@ VB['sim/obligations'] = (() => {
           lapse(st, o.id, 'its year ended with the days not called');
         } else if (K.dues && ++o.missed >= K.dues) {
           if (K.defaulted) K.defaulted(st, o);
-          close(st, o, 'defaulted');
+          o.status = 'defaulted'; // live, out of the queue: its creditor presses, extends or forgives it (VB-315, sim/enforcement)
         } else {
           o.status = to;
           if (K.dues) {
@@ -392,6 +420,9 @@ VB['sim/obligations'] = (() => {
     forgive,
     lapse,
     transfer,
+    extend,
+    onPaid,
+    onLapsed,
     dissolving,
     step,
     rebuilt,
