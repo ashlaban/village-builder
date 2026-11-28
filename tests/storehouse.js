@@ -43,6 +43,11 @@ const close = (a, b, what) => assert(Math.abs(a - b) < 1e-9 * Math.max(1, Math.a
   assert.strictEqual(camp.farmsteads[0].storehouse, null, 'a camp landed by hand has no storehouse');
   assert.strictEqual(camp.farmsteads[0].barn, null, 'nor a barn');
   sound(camp, 'camp');
+  const oldCamp = Sim.load(tinyWorld(rows), JSON.parse(JSON.stringify(Sim.save(camp))));
+  delete oldCamp.farmsteads[0].storehouse; // a camp saved before VB-1898
+  VB['sim/storehouse'].storehousesLoaded(oldCamp);
+  assert.strictEqual(oldCamp.farmsteads[0].storehouse, null, 'an older save of a camp reads as having no storehouse');
+  sound(oldCamp, 'older camp');
   Sim.advance(st, 3);
   const old = Sim.load(world(), JSON.parse(JSON.stringify(Sim.save(st))));
   const [a, b] = old.farmsteads;

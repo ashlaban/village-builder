@@ -37,10 +37,12 @@ VB['sim/aims'] = (() => {
   // `idle` of their work hours in the last season. The weights of the menu: `base` for each option, `heirs` for the heir's farm when two or
   // more would inherit (so that one would be left without the home farm); each times the head's lean (choose). An outbuilding that keeps a
   // store (VB-1898: the storehouse the grain, the barn the hay) weighs `base` times what it would save a year (rations, or units of hay)
-  // over `keep` times its hours of work, at most `heirs`; none while it would save nothing (Proposed, VB-1898: a ration or a unit of hay
-  // saved a year for each hour of building weighs as any other option).
+  // over `keep` times its hours of work, at most `outbuilding` (a cap of its own, so that no store's saving outweighs the rest of the menu
+  // by more); none while it would save nothing (Proposed, VB-1898: a ration or a unit of hay saved a year for each hour of building weighs
+  // as any other option).
   const AIMS = Object.freeze({
     keep: 1,
+    outbuilding: 2,
     years: MARRIAGE.means,
     idle: 1 / 3,
     base: 1,
@@ -127,7 +129,7 @@ VB['sim/aims'] = (() => {
   // reckoning: sim/storehouse grainLoss, sim/byre hayLoss) comes to a year, times the share it saves (1 − B.loss), against B's hours (AIMS.keep).
   const keepWeight = (day, B) =>
     Math.min(
-      AIMS.heirs,
+      AIMS.outbuilding,
       (AIMS.base * day * YEAR_DAYS * (1 - B.loss)) / (AIMS.keep * B.hours.reduce((a, h) => a + h, 0)),
     );
   // The menu: the options open to the household now, each {what, weight, tile | heir}, computed for the holder (never stored). Only for a

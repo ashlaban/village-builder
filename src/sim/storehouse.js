@@ -87,9 +87,11 @@ VB['sim/storehouse'] = (() => {
   const noStorehouse = (st, f) => {
     f.storehouse = null;
   };
-  // A save from before VB-1898: every farm reads as having its storehouse, as the grain's keeping assumed then.
+  // A save from before VB-1898: every farm reads as having its storehouse, as the grain's keeping assumed then; but a farm landed by hand
+  // (f.camp defined, sim/camp) none, as none was drawn on it: only what it built stands.
   function storehousesLoaded(st) {
-    for (const f of st.farmsteads) if (f.storehouse === undefined) f.storehouse = { built: st.t };
+    for (const f of st.farmsteads)
+      if (f.storehouse === undefined) f.storehouse = f.camp === undefined ? { built: st.t } : null;
   }
   return {
     KINDS,
