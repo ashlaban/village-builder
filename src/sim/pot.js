@@ -5,6 +5,10 @@
 // VB-388 (Kim, 12 Nov): the cook cooks the seed a short household would eat; fishing for the pot waits while fresh fish covers two days.
 // VB-009: flour from the quern (sim/quern) goes in before grain, at 1:1; grain cooked unground gives 1 / ECON.unground a ration (FOODS).
 VB['sim/pot'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/pot', {
+    seedEaten: { keep: 'generation' },
+  });
   const { DAY, FOODS, FISH, ECON, SEASON_DAYS, cal } = VB['sim/rules'],
     { CROPS } = VB['sim/crops'];
   const { log, atFarm } = VB['sim/records'];

@@ -1335,14 +1335,14 @@ function checkState(st) {
   // the folded counts (VB-199), those made since the last check: a routine kind, a whole year at least two before now, a village that exists
   // or none, a count of at least one, and one count per kind, village and year; and the fold's positions within the record
   if (st.recordYears) {
-    const R = globalThis.VB['sim/records'],
+    const { keepOf } = globalThis.VB['sim/eventkinds'],
       YEAR = globalThis.VB['sim/rules'].YEAR,
       seen = checked.get(Y) || { n: 0, keys: new Set() };
     for (; seen.n < Y.length; seen.n++) {
       const y = Y[seen.n],
         key = `${y.kind}|${y.village}|${y.year}`;
       if (
-        !(R.HISTORY[y.kind] > 0) ||
+        !(keepOf(y.kind) > 0) ||
         !Number.isInteger(y.year) ||
         y.year > Math.floor(st.t / YEAR) - 2 ||
         !(Number.isInteger(y.tally) && y.tally >= 1) ||

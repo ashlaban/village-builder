@@ -1,6 +1,11 @@
 // @sys sim/herds [material]: households' cattle and sheep: the herds and their hay, breeding and ageing each spring, each scenario's herds (handing on:
 //   sim/droving)
 VB['sim/herds'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/herds', {
+    herdBirths: { keep: 'generation' },
+    herdDeath: { keep: 'generation' },
+  });
   const { next: rnd } = VB['sim/rng'];
   const { B } = VB['world/biomes'];
   const { DAY, YEAR, TICKS, HERD, stalled } = VB['sim/rules'];

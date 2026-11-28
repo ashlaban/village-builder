@@ -1,6 +1,15 @@
 // @sys sim/relations [social]: relationships between pawns: compatibility, opinion derived from kin, familiarity and memories, talk, company for the idle,
 // and the people a pawn knows; owns opinion memories, bands and goodwill
 VB['sim/relations'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/relations', {
+    closeFriend: { keep: 'short', personal: true },
+    enemy: { keep: 'short', personal: true },
+    friend: { keep: 'short', personal: true },
+    fellOut: { keep: 'short', personal: true },
+    quarrel: { keep: 'short', personal: true }, // cross words that became a quarrel (VB-520)
+    helped: { keep: 'short', personal: true }, // helped another household of the village with its work (VB-106)
+  });
   const { next: rnd } = VB['sim/rng'];
   const { DAY, YEAR, TICKS, GOODWILL, TRAITS, HANDOVER } = VB['sim/rules'],
     { MATCH } = VB['sim/roles'],

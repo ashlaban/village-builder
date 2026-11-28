@@ -5,6 +5,10 @@
 // no field itself. sim/kinds joins KINDS into the registry, where a kind's fields are described; for a common field sim/commons wraps
 // the three kinds whose end is the village's (haul, clear, break).
 VB['sim/fieldwork'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/fieldwork', {
+    harvest: { keep: 'generation' },
+  });
   const { targetOf } = VB['sim/steps'];
   const Stores = VB['sim/stores'];
   const { WORK, SEASON_DAYS, TRAVEL, DAY, YEAR, cal } = VB['sim/rules'],

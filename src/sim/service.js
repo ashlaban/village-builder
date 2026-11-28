@@ -2,6 +2,12 @@
 // servant for a household of at most one grown member whose ask for food fell short (VB-308), and with nobody to come, kin who hold its farm
 // in trust (VB-309); service where labour is short (VB-090)
 VB['sim/service'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/service', {
+    guardian: { group: 'land' },
+    wage: {}, // a servant's wage paid, or what was still owed of it lapsed (VB-637)
+    leftRefused: { group: 'marriage', personal: true }, // left home for service after a head refused the one it courts (VB-036)
+  });
   const { takePeopleCheck } = VB['sim/records'];
   const { personEvent, log, fullName, spouseOf, childrenOf, isHolder, kinship, atHousehold } = VB['sim/records'];
   const { wishOf, moveWhy } = VB['sim/wishes'];

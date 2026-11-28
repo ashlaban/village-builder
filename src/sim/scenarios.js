@@ -1,5 +1,10 @@
 // @sys sim/scenarios: the founders (and solo), heirs and populous scenarios and the initial simulation state
 VB['sim/scenarios'] = (() => {
+  // The kinds of event it writes on the record (sim/eventkinds, VB-1946).
+  VB['sim/eventkinds'].eventKinds('sim/scenarios', {
+    holds: { group: 'land' },
+    settled: { group: 'land' },
+  });
   const { B } = VB['world/biomes'];
   const { fromState, drawer, seeding, splitStreams } = VB['sim/rng'];
   const { YEAR, TICKS, ECON, TESTBED, SEASON_DAYS, cal } = VB['sim/rules'],
