@@ -341,3 +341,36 @@ p.u2-pinfo { display: block; }
 /* a job's recipe (Kim, 27 Nov): the place framed as a tile, the arrow between what it takes and what it gives */
 .u2-fact.recipe { gap: 1px; } .u2 .recipe .u2-rat { display: inline-grid; place-items: center; border: 1.5px solid currentColor; border-radius: 5px; padding: 0 1px; margin-right: 3px; }
 .u2 .recipe .u2-rat svg { width: 16px; height: 16px; } .u2 .recipe .u2-rto svg { width: 14px; height: 14px; opacity: 0.7; }
+/* the yard (VB-1908): the house as its size and its parts, a tile for each outbuilding, the card of the one tapped */
+.u2-house { display: grid; grid-template-columns: 56px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border: var(--line); border-radius: 12px; background: var(--paper2); --ico-bg: var(--paper2); }
+.u2-house > span:nth-child(2) { display: grid; gap: 4px; min-width: 0; } .u2-house b { font: italic 700 20px/1.1 var(--head); }
+.u2-ring { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; border: 3.5px solid transparent; }
+.u2-ring > svg { width: 30px; height: 30px; }
+.u2-house .u2-ring, .u2-tile.has .u2-ring { border-color: var(--pine); }
+.u2-tile.build .u2-ring { border: 3.5px dashed var(--gold2); }
+.u2-sizes { display: flex; align-items: flex-end; gap: 3px; } .u2-sizes i { display: grid; opacity: 0.28; } .u2-sizes i.on { opacity: 1; }
+.u2-sizes i:nth-child(1) svg { width: 15px; height: 15px; } .u2-sizes i:nth-child(2) svg { width: 20px; height: 20px; } .u2-sizes i:nth-child(3) svg { width: 25px; height: 25px; }
+.u2-sizes .u2-fact { margin-left: 8px; }
+.u2-parts { display: flex; gap: 6px; }
+.u2 .u2-part { position: relative; width: 42px; height: 42px; padding: 0; border-radius: 50%; border: var(--line); background: var(--paper); display: grid; place-items: center; --ico-bg: var(--paper); }
+.u2-part > svg { width: 24px; height: 24px; }
+.u2 .u2-part.has { background: var(--pine); color: #f3fbf4; --ico-bg: var(--pine); }
+.u2 .u2-part.build { border: 2.5px dashed var(--gold2); } .u2 .u2-part.can, .u2 .u2-part.plan { border-style: dashed; } .u2 .u2-part.no { border-style: dashed; color: #8d958f; }
+.u2-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; margin-top: 8px; }
+.u2 .u2-tile { position: relative; padding: 6px 2px 7px; border: var(--line); border-radius: 12px; background: var(--paper2); display: grid; justify-items: center; gap: 3px; box-shadow: 0 2px 0 rgba(20, 28, 25, 0.5); --ico-bg: var(--paper2); }
+.u2-tile b { font: 700 13px/1.05 var(--body); text-align: center; }
+.u2-tile .u2-fact { min-height: 24px; min-width: 0; padding: 0 6px; font-size: 13px; gap: 3px; --ico-bg: var(--paper); } .u2-tile .u2-fact svg { width: 14px; height: 14px; }
+.u2-tile .u2-fact.v1 { --ico-bg: var(--gold2); }
+.u2 .u2-tile.can, .u2 .u2-tile.no, .u2 .u2-tile.plan { border-style: dashed; box-shadow: none; background: rgba(239, 229, 205, 0.55); }
+.u2 .u2-tile.no { color: #8d958f; --ico-bg: #f1e9d4; }
+.u2 .u2-tile[aria-expanded="true"], .u2 .u2-part[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--gold2); background: #f3dfa6; }
+.u2-tile s, .u2-part s { position: absolute; right: -5px; top: -5px; width: 21px; height: 21px; border-radius: 50%; border: var(--line); background: var(--paper); color: var(--ink2); display: grid; place-items: center; text-decoration: none; --ico-bg: var(--paper); }
+.u2-tile s svg, .u2-part s svg { width: 13px; height: 13px; }
+.u2-tile s.can, .u2-part s.can { background: var(--red); color: #fff7ec; --ico-bg: var(--red); } .u2-tile s.no, .u2-part s.no { color: var(--red); }
+.u2-ycard { margin-top: 10px; padding: 10px 12px; border: var(--line); border-radius: 12px; background: var(--paper); display: grid; gap: 8px; }
+.u2-yhead { display: flex; align-items: center; gap: 8px; } .u2-yhead > svg { width: 30px; height: 30px; } .u2-yhead b { font: italic 700 20px/1.1 var(--head); }
+.u2-yhead .u2-i { margin-left: auto; } .u2-yhead .u2-x { margin-left: 0; }
+.u2-stages { display: flex; height: 34px; border: var(--line); border-radius: 10px; overflow: hidden; }
+.u2-stages span { display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; border-left: var(--line); background: var(--paper); font: 800 14px/1 var(--body); --ico-bg: var(--paper); }
+.u2-stages span:first-child { border-left: 0; } .u2-stages svg { width: 18px; height: 18px; }
+.u2-stages .done { background: var(--pine); color: #f3fbf4; --ico-bg: var(--pine); } .u2-stages .now { background: #f3dfa6; --ico-bg: #f3dfa6; }
