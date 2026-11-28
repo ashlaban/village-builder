@@ -940,3 +940,5 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-1369](backlog/VB-1369.md) | Cost: the death handover refreshes its households' roles only | - | 3 | S | lifecycle death/retire and round.js married batch use refreshRoles(st, membersOf(...)) |
 | [VB-1934](backlog/VB-1934.md) | Refactor: a work counter is declared by the module whose loop it counts | - | 2 | M | src/vb.js 12 tasks to 0 (VB-1406 step 2) |
 | [VB-1948](backlog/VB-1948.md) | Refactor: the page's stylesheets by area, and a card's rows declared by the feature's page file | - | 2 | M | head.html 14 to 6, 6, 4; page/words 11 to 7 (VB-1406 step 10) |
+| [VB-2023](backlog/VB-2023.md) | A team's harness moves with the team | - | 3 | S | A new keeper of a team takes its worn harness, not a sound one |
+| [VB-1703](backlog/VB-1703.md) | Caches checked after every verb: the 41 verbs tests/caches.js does not reach | - | 3 | M | Build a command for each verb tests/caches.js does not reach yet |
