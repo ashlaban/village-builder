@@ -192,6 +192,7 @@ VB['sim/fieldwork'] = (() => {
         if (j.field.stage !== 'plowed' || !(CROPS[j.field.crop].seed > 0)) return;
         if (Stores.grainOf(from, j.field.crop) < CROPS[j.field.crop].seed) return; // the seed eaten since it was posted
         Stores.take(st, from, Stores.grainGood(j.field.crop), CROPS[j.field.crop].seed, 'seed');
+        if (!j.common && from.seedLent) emit(st, 'seedSown', { hh: from, n: CROPS[j.field.crop].seed }); // a seed loan's (sim/loans, VB-1973)
         sown(j.field, c);
       },
       // a hoed field, in the sowing window, while the household has the seed for it (sowWhy)

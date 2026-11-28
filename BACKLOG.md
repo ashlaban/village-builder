@@ -39,7 +39,6 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1944](backlog/VB-1944.md)<a id="VB-1944"></a> | Refactor: the Sim facade joined from what each module gives the page | - | 2 | M | src/sim.js 17 to 1-4 (VB-1406 step 6) |
 | [VB-1946](backlog/VB-1946.md)<a id="VB-1946"></a> | Refactor: one record an event kind, declared by its emitter; sim/notable split into the skip and the chronicle | - | 2 | M | sim/notable 16 to 8 and 6, sim/records 10 to 6 (VB-1406 step 8) |
 | [VB-1951](backlog/VB-1951.md)<a id="VB-1951"></a> | Plan: a building's entrance, which walks go through and the player can turn | - | 2 | M | Kim, 27 Nov: every building has an entrance, a general property of a building: walks to and from it go through it, and the player can turn it (rotate the tile). Today each kind places its own spot by a fixed offset and walks fan into the house's tile from every side. |
-| [VB-1973](backlog/VB-1973.md)<a id="VB-1973"></a> | A seed loan before sowing, after a failed year | plans | 2 | M | seed corn lent before sowing and kept for it, so a failed year is not followed by an unsown one |
 | [VB-2033](backlog/VB-2033.md)<a id="VB-2033"></a> | A cold lone settler fetches wood | - | 2 | S | Cold, not hunger, drained the settler; find why wood is not chosen |
 | [VB-2042](backlog/VB-2042.md)<a id="VB-2042"></a> | A Walks map mode: the routes walked since it was switched on, as a heat map | - | 2 | M | A new map mode beside Wear (group ways): from the moment it is switched on, every route the path finder gives a walker is drawn into a fine raster of the map and shown as a heat map on a log scale; off, it stops collecting and drops what it held (Kim, 27 Nov). |
 | [VB-093](backlog/VB-093.md)<a id="VB-093"></a> | A village mill: water where a river is in reach, else wind | mill | 3 | M | A village of 3 or more farms builds a windmill that grinds 5 times faster than the quern; other villages pay a toll. |
@@ -156,6 +155,7 @@ The order tasks are taken in, the first first (`node tools/backlog.js next`). So
 | [VB-1990](backlog/VB-1990.md)<a id="VB-1990"></a> | An animal is not given where its new household cannot lead it home | - | 3 | S | giveAnimal skips a gift beyond a day's walk, which otherwise starves away before the frost |
 | [VB-2000](backlog/VB-2000.md)<a id="VB-2000"></a> | Wet game days: a share of what lies out lost on each | - | 3 | M | the wet share of VB-1910, waiting for a wet day in the sim |
 | [VB-2041](backlog/VB-2041.md)<a id="VB-2041"></a> | Retire the work counter roundPairs, counted nowhere since VB-693 | - | 3 | S | roundPairs is declared and read but never raised: retire it and its always-zero probe |
+| [VB-2045](backlog/VB-2045.md)<a id="VB-2045"></a> | A seed loan lent in the crop short | - | 3 | S | seed lent in the crop the fields want, not the lender's mix |
 | [VB-2051](backlog/VB-2051.md)<a id="VB-2051"></a> | Caches checked after every verb: the last 8 verbs tests/caches.js does not reach | - | 3 | M | Carry found, upkeep, goGathering, stayHome, swap, beginCottage, visit and sendVisit in tests/caches.js on states built for them |
 
 </details>

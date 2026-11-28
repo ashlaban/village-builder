@@ -331,6 +331,8 @@
     "household.askedIn": "sim/help",
     "household.clientIn": "sim/followers",
     "household.borrowedIn": "sim/loans",
+    "household.seedAskedIn": "sim/loans",
+    "household.seedLent": "sim/loans",
     "pawn.att": "sim/attitudes",
     "culture.practices": "culture",
     "culture.values": "culture",
