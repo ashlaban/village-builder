@@ -77,5 +77,12 @@ check(VB['sim/cottageplan'].farmTimber(st, g) === null, 'a farm with no househol
 g.household = prev;
 check(VB['sim/cottageplan'].farmTimber(st, g).owner.id === prev, 'the household that comes owns its work');
 
+// thick scrub on an unwooded house tile (VB-1937, its review): the farm's yard already, neither felled nor grubbed, as the cottage plan had it
+{
+  const t = tileAt(w, 8, 3), was = [w.trees[t], w.treesMax[t]];
+  w.treesMax[t] = 10; w.trees[t] = 10; // a test's write: thick scrub on a meadow tile
+  check(Sites.houseSteps(st, t).length === 0, `a thick-scrub, unwooded house tile has no steps (${Sites.houseSteps(st, t)})`);
+  [w.trees[t], w.treesMax[t]] = was;
+}
 if (failed) process.exit(1);
 console.log('cottageplan ok: a farm\'s own cottage its site, beside the field, each job ending its own, timber to its walls, the roof ending it');

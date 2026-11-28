@@ -13,6 +13,7 @@ VB['sim/sites'] = (() => {
   const { clearScrub, tended } = VB['sim/spread'];
   const { woodTaken } = VB['sim/territory'];
   const { stepsFor, stepHours } = VB['sim/expansion'];
+  const { fellSteps } = VB['sim/fieldplans'];
   const { COTTAGE, cottageSteps, waitsForTimber, siteWalls, farmTimber } = VB['sim/cottageplan'];
   const { fetchTimber, cottageWaits } = VB['sim/building'];
   const { trailOf } = VB['sim/trails'];
@@ -20,7 +21,8 @@ VB['sim/sites'] = (() => {
   const { walkable } = VB['sim/walking'];
   // @state st.sites[]: the sites under way, one a party, in the order staked (by id), each {id, leader (the pawn whose stake it is), party
   //   {all (the leader first), followers}, from (the village it was staked from), village (the small village it joins, or null: a new one),
-  //   house, field (tiles), plot {places: [{tile, kind 'house' | 'field', steps (fell, grub, clear, break), i, fresh}], steps (the
+  //   house, field (tiles), plot {places: [{tile, kind 'house' | 'field', steps (fell, grub, clear, break), i, fresh, done (a loaded
+  //   farm site's hours on its open step, or absent)}], steps (the
   //   cottage's stages at the house, as a plot's: {kind, place, hours, done}, the walls also `wood`), open (the stage under way, 3 once the
   //   roof is on)}, booth (the tile beside the house where its workers lodge and raise their booth, or null), stage ('trail' while the
   //   leader's trail to it is blazed, 'building', 'roofed'), since (game hours), hours ({pawn: hours worked at it}), told (the season the
@@ -128,14 +130,15 @@ VB['sim/sites'] = (() => {
       tried: {},
     };
     if (at) s.plot.places[0].i = at.i;
+    if (at && at.done > 0) s.plot.places[0].done = at.done; // the hours of a save's open fell or grub step, kept (farmWork)
     st.sites.push(s);
     index(st).farms.set(f.id, s);
     st.farmDirty.add(f.id);
     return s;
   }
-  // The steps of a farm's own house tile before its cottage: felled and grubbed where wooded, as the cottage plan's were; not cleared
-  // of scrub and stones, the tile being its yard already.
-  const houseSteps = (st, house) => stepsFor(st.w, house, 'house').filter((k) => k !== 'clear');
+  // The steps of a farm's own house tile before its cottage: felled and grubbed where wooded, as the cottage plan's were (sim/fieldplans
+  // fellSteps); not grubbed for thick scrub nor cleared of scrub and stones, the tile being its yard already.
+  const houseSteps = (st, house) => fellSteps(st, house).map((k) => k.kind);
   // A farm's own site's work, asked at each farm after its plans (sim/kinds): its house tile's open step, then the cottage's open stage,
   // the walls waiting for their timber (farmTimber, fetched by sim/building timberWork); none while the cottage waits (sim/building
   // cottageWaits: the household roofless, or outside the slack in its shelter unless its plan asks). Jobs of the household's own, ranked by
@@ -146,7 +149,10 @@ VB['sim/sites'] = (() => {
     const base = { siteId: s.id, home: true, shelter: true }, // home: asked at the farm (sim/jobs islandJob)
       tr = s.plot.places[0];
     if (tr.i < tr.steps.length) {
-      post(`site:s${s.id}.${tr.tile}`, tr.tile, { ...base, tr, hours: stepHours(st, tr) }, tr.steps[tr.i]);
+      const key = `site:s${s.id}.${tr.tile}`,
+        hours = stepHours(st, tr);
+      if (tr.done) tr.done = keptDone(st, key, hours, tr.done); // a save's open step begun (sitesLoaded)
+      post(key, tr.tile, { ...base, tr, hours, ...(tr.done ? { done: tr.done } : {}) }, tr.steps[tr.i]);
       return;
     }
     if (waitsForTimber(wallsOf(s), s.plot.open)) return;
@@ -294,6 +300,7 @@ VB['sim/sites'] = (() => {
       if (tr.fresh) costChanged(st, tr.tile);
     }
     tended(st, tr.tile);
+    delete tr.done; // lint-allow: owner the hours kept of a loaded open step, spent
     tr.i++;
     if (staked(s)) CL.renewClaim(st, tr.tile, leaderClaim(s));
     st.biomeDirty.add(tr.tile);
@@ -404,7 +411,7 @@ VB['sim/sites'] = (() => {
   // A save from before the sites (VB-787): none under way. A save from before VB-1937: a farm with no cottage yet (farmstead.booth) is
   // at the rung of its shelter (farmstead.rung 'shelter'), and the cottage plan of its household (a settler household's, or the lone
   // settler's) is its farm's own site at step 3, the house tile's steps done as the plan had them and the open stage kept; a plan its
-  // village held for a farm whose household ended is dropped, the farm's next household beginning its own (sim/upgrade beginCottage).
+  // village held for a farm whose household ended is that farm's site as well, kept for its next household (farmWork asks it then).
   function sitesLoaded(st) {
     st.sites ??= [];
     st.siteSeq ??= 0;
@@ -423,12 +430,12 @@ VB['sim/sites'] = (() => {
       if (!plan) continue;
       VB['sim/stores'].releaseAll(plan); // its walls' timber goes with the site (the stages copied)
       remove(st, plan);
-      if (plan.holder.type !== 'household') continue;
       const first = plan.steps.findIndex((k) => COTTAGE.includes(k.kind)),
         stages = plan.steps.slice(first).map((k) => ({ ...k })),
         open = Math.max(0, plan.open - first),
-        steps = plan.steps.slice(0, first).map((k) => k.kind);
-      farmSite(st, f, { steps, i: Math.min(plan.open, first), stages, open });
+        steps = plan.steps.slice(0, first).map((k) => k.kind),
+        done = plan.open < first ? plan.steps[plan.open].done || 0 : 0;
+      farmSite(st, f, { steps, i: Math.min(plan.open, first), stages, open, done });
     }
   }
   return {
