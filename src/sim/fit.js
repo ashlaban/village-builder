@@ -15,6 +15,7 @@ VB['sim/fit'] = (() => {
   const Hands = VB['sim/hands'],
     Grants = VB['sim/grants'];
   const { claimPrio } = VB['sim/farmclaims'];
+  const Rules = VB['sim/registry'];
   const { commonPrio } = VB['sim/commons'];
   const Levies = VB['sim/levies'],
     { planOf } = VB['sim/plans'];
@@ -37,6 +38,18 @@ VB['sim/fit'] = (() => {
   // Water by the site, How it is ranked). The head allots by it (allot); a
   // pawn on duty or lent bids it for the tasks of the household it works for, where a job that k pawns already work gets join^k of the
   // bid (VB-102).
+  // The holder's priority for a field job (VB-318): its role's, less what others' work on its land and their payments leave it (the
+  // contributions to `fieldPrio`, a product: sim/class), read for a holder only, whose household is the rule's context. Allocates nothing.
+  Rules.declare({ id: 'fieldPrio', owner: 'sim/fit', combine: 'product', base: (st, c) => c.pr, clamp: [0, 10] });
+  const FIELD_CTX = { pr: 0, hh: null };
+  function holderField(st, p, j, pr) {
+    if (!j.field || !(pr > 0) || p.household === null) return pr;
+    const hh = st.households[p.household];
+    if (hh.holder !== p.id || !hh.livelihood) return pr; // none until it first takes in or pays something that counts
+    FIELD_CTX.pr = pr;
+    FIELD_CTX.hh = hh;
+    return Rules.value(st, 'fieldPrio', FIELD_CTX);
+  }
   // A site's job (VB-787; sim/sites, j.party its party): its members of 14 and over, but a mother who nurses, at the first of PLOT_PRIO;
   // nobody else.
   const sitePrio = (st, p, j) =>
@@ -57,7 +70,7 @@ VB['sim/fit'] = (() => {
             ? commonPrio(st, p, j)
             : KINDS[j.kind].rank
               ? KINDS[j.kind].rank(st, p, j, stand)
-              : ROLES[p.role].ranks[stand][j.kind] || 0;
+              : holderField(st, p, j, ROLES[p.role].ranks[stand][j.kind] || 0);
   // Whether the head allots member id the day: not a child under 7, one away from home (VB-287, VB-783), the player's pawn while it is
   // commanded, or one on a day owed elsewhere (sim/days) or lent as a hand.
   const allotted = (st, p) =>

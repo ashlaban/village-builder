@@ -260,6 +260,7 @@ VB['sim/meetings'] = (() => {
 
     aldermanMeeting(st, s, people);
     VB['sim/keep'].meeting(st, s); // the keep's days owed to the alderman now in office (VB-463)
+    VB['sim/class'].meeting(st, s); // the year's livelihoods reckoned, a village a step (VB-318)
     toMeetingLog(st, out);
   }
   // A cause's end (VB-1112), told in the pawn's record with the last vote its village's meeting gave it (p.lastCause, Culture.endCause).

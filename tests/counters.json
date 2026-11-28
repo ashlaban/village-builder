@@ -1,6 +1,6 @@
 {
   "waterSettled": 0,
-  "ruleValue": 1.314333612740989,
+  "ruleValue": 1.327745180217938,
   "planSteps": 0.45040514110086616,
   "planRead": 0,
   "crowdScan": 0.0011176306230790724,
@@ -204,6 +204,7 @@
   "wagesWeighed": 0.032411288069293095,
   "takeInWeighed": 0,
   "overviewWalk": 0,
+  "classReckoned": 0,
   "walkDaily": 5.998323554065381,
   "aldermanBallots": 0,
   "meetingWalk": 0,

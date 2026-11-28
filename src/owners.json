@@ -320,6 +320,7 @@
     "village.workday": "sim/workdays",
     "village.gathering": "sim/gathering",
     "household.gathering": "sim/gathering",
+    "household.livelihood": "sim/class",
     "pawn.load": "sim/fair",
     "st.fair": "sim/fair",
     "village.rotation": "sim/rotations",

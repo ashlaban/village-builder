@@ -149,8 +149,10 @@ if (saveTo) {
 
 const pawnDays = report === 'counts' ? require('./counts.js').livingPawnDays(st, countsFrom, st.t, Sim.DAY) : 0;
 const pawnRow = (p) => ({ id: p.id, name: Sim.fullName(p), sex: p.sex, age: p.age, household: p.household, role: p.role, alive: p.alive, hunger: +p.hunger.toFixed(2) });
+// VB-318: a household's class by land and livelihood, and the measures behind it (income from others and from land, in shares of its year's need)
+const classCols = (h) => { if (h.dissolved || h.farmstead === null) return {}; const c = VB['sim/class'].classOf(st, h); return { class: c.land, elite: c.elite, landed: c.landed, others: +c.m.toFixed(2), land: +c.ml.toFixed(2) }; };
 const hhRow = (h) => ({ id: h.id, farm: st.farmsteads[h.farmstead].name, members: h.members.length, holder: h.holder, grain: Math.round(Sim.grainOf(h)), wood: Math.round(h.wood),
-  hungryDays: h.hungryDays, dissolved: h.dissolved });
+  hungryDays: h.hungryDays, dissolved: h.dissolved, ...classCols(h) });
 // A household's plans (sim/plans): the standing plan's targets, reservations and next review; the seasonal plan's season and steps.
 const when = (hour) => {
   const c = Sim.cal(hour);

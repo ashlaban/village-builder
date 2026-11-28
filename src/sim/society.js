@@ -38,6 +38,7 @@ VB['sim/society'] = (() => {
     membersOf,
     voiceOf,
   } = VB['sim/records'];
+  const Rules = VB['sim/registry'];
   const { on } = VB['sim/events'],
     { aleStanding } = VB['sim/stores'];
   const { heirRanking } = VB['sim/heirranking'];
@@ -245,6 +246,10 @@ VB['sim/society'] = (() => {
     if (broke >= DEED.forget) parts.push(['Broke faith', -DEED.breach * (1 - Math.exp(-broke / DEED.breachScale))]);
     const led = Followers.followerTerm(st, p.id); // followers (VB-708): each by its bond's weight, their own at a discount
     if (led > 0) parts.push(['Followers', led]);
+    if (holder) {
+      const lives = Rules.value(st, 'standing.livelihood', { hh: st.households[p.household] }); // VB-318: income from others
+      if (lives > 0) parts.push(['Lives on others', lives]);
+    }
     const given = deedNow(st, p, 'gift');
     if (given >= 1) parts.push(['Gifts given', DEED.gift * (1 - Math.exp(-given / DEED.giftScale))]);
     // the village's work days this year (VB-120): turned out (staying away costs goodwill owed the alderman now, a breach of the
@@ -263,6 +268,14 @@ VB['sim/society'] = (() => {
       p.standing = sumOf(standingParts(st, p));
     }
   }
+  // The standing of the holders of a village's households follows its meeting's reckoning of their livelihood (sim/class, VB-318).
+  Rules.declare({ id: 'standing.livelihood', owner: 'sim/society', combine: 'sum', base: () => 0 });
+  on('livelihood', (st, e) => {
+    for (const hh of e.households) {
+      const p = hh.holder === null ? null : st.pawns[hh.holder];
+      if (p && p.alive) p.standing = sumOf(standingParts(st, p));
+    }
+  });
   // A host poured ale (sim/occasions): its holder's standing gains at once, not at the year's round.
   on('alePoured', (st, e) => {
     const p = st.pawns[e.host];
