@@ -19,6 +19,7 @@ VB['sim/offers'] = (() => {
   VB['sim/eventkinds'].eventKinds('sim/offers', {
     offerLapsed: { group: 'marriage' },
     offerRefused: {}, // goods offered or asked for, refused (VB-690)
+    faithBroken: {}, // a debt it could meet refused (VB-707); kept for good
   });
   const Due = VB['sim/due'],
     dueKey = (e) => e.due; // its order (sim/due): by due, after those due at the same time
