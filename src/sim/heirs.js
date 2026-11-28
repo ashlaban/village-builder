@@ -1,7 +1,7 @@
 // @sys sim/heirs: succession: heir ranking, handovers, moving between households, roles
 VB['sim/heirs'] = (() => {
   const { home } = VB['sim/records'];
-  const { setServant, living } = VB['sim/records'];
+  const { setServant, living, noteRoles } = VB['sim/records'];
   const { moveWhy } = VB['sim/wishes'];
   const {
     joinHousehold,
@@ -106,8 +106,12 @@ VB['sim/heirs'] = (() => {
       passGoodwill(st, old, heir, GOODWILL.share);
     if (op && op.alive && op.household === hh.id && op.id !== heir) {
       op.retired = true;
+      noteRoles(op.id);
       const s = spouseOf(st, old);
-      if (s !== null && st.pawns[s].alive) st.pawns[s].retired = true;
+      if (s !== null && st.pawns[s].alive) {
+        st.pawns[s].retired = true;
+        noteRoles(s);
+      }
     }
     // shares for the siblings who do not inherit
     if (cu.heirCount !== 'one' && reason !== 'claim') {
@@ -747,7 +751,11 @@ VB['sim/heirs'] = (() => {
         : st.households[c.args.household].holder !== c.actor
           ? `pawn ${c.actor} does not hold household ${c.args.household}`
           : living(st, c.target),
-    run: (st, c) => transfer(st, st.households[c.args.household], c.target, c.args.reason),
+    // the roles follow the holder at once (VB-1703): a heir who held a place of its own hands it on first (heirsPlace), so all of them
+    run: (st, c) => {
+      transfer(st, st.households[c.args.household], c.target, c.args.reason);
+      refreshRoles(st);
+    },
   });
   VB.counter(
     'moveNoRoute',

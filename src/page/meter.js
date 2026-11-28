@@ -149,6 +149,7 @@ function craftsLine(id) {
   const c = VB['sim/skills'].craftsOf(st, id);
   return c.length ? `Crafts: ${c.map((x) => `${x.craft} (${x.word})`).join(', ')}` : '';
 }
+cardRow('person', 60, craftsLine); // a line of the person card (page/cardrows)
 // ======== the supply component (VB-667) ========
 // One presentation of a supply, wherever it is shown (principle "Like is shown alike"): its icon, its word, its season cells, its
 // state in a few words and an i that opens its numbers. Its argument is the outlook the household's head made at his last review
