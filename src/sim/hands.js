@@ -6,7 +6,7 @@
 //   each adult helped grows by the hours it gave (VB-106: a gift, nothing owed), and the hours' worth is booked as goodwill to its own
 //   credit (sim/relations helped, VB-704).
 // @state st.handsToday: absent until the first hand is lent or asked, then {day (game day), asked: [household ids whose head asked
-//   today], by: {pawn id: [household helped, hours given, hours worked, 1 once its hours are given or it is sent home]}}: today's lent
+//   today], by: {pawn id: [household helped, hours given, hours worked, 1 once its hours are given or it is sent home, 1 if hired (VB-319)]}}: today's lent
 //   hands; a new day's first step closes yesterday's. Written only here.
 VB['sim/hands'] = (() => {
   const { DAY, WORK, SEASON_DAYS, TICKS } = VB['sim/rules'],
@@ -21,10 +21,15 @@ VB['sim/hands'] = (() => {
   const { emit } = VB['sim/events'];
   const { isOpen } = VB['sim/kinds'];
   const Days = VB['sim/days'];
+  const Obligations = VB['sim/obligations'];
+  const Stores = VB['sim/stores'];
+  const { floorOf } = VB['sim/hunger'];
   // @tunable HANDS: help asked for (VB-470)
   // A head short of hands asks at most `asks` households a morning, for at most `most` hands, each for at least `least` hours of the
   // working day left; the played head asked answers within `wait` days (else its pawn's judgement answers for it).
-  const HANDS = { asks: 3, most: 3, least: 2, wait: 0.125 };
+  // Hired hands (VB-319): a head still short after its asks hires landless adults of its village at most `hires` a morning, for a wage of
+  // `wage` rations for a day of `day` work hours (less for part of a day, in whole rations, rounded up), paid at the day's end.
+  const HANDS = { asks: 3, most: 3, least: 2, wait: 0.125, hires: 2, wage: 3, day: 8 };
   const today = (st) => Math.floor(st.t / DAY);
   // The working hours left today, by the clock
   const hoursLeft = (st) => Math.max(0, WORK[1] - Math.max(WORK[0], st.t - today(st) * DAY));
@@ -47,6 +52,12 @@ VB['sim/hands'] = (() => {
     const d = loans(st),
       e = d && d.by[id];
     return e && !e[3] ? e[0] : null;
+  }
+  // Whether the pawn id lent today is a hired hand (its entry's fifth place), not a gift
+  function hired(st, id) {
+    const d = loans(st),
+      e = d && d.by[id];
+    return !!(e && !e[3] && e[4]);
   }
   const holderOf = (st, id) => {
     const p = Number.isInteger(id) ? st.pawns[id] : null,
@@ -232,6 +243,68 @@ VB['sim/hands'] = (() => {
       });
       rest -= lentTo(d, hh.id) - was;
     }
+    if (rest >= HANDS.least) hire(st, hh, rest, d);
+  }
+  // The wage for h hours worked: HANDS.wage rations a day of HANDS.day hours, whole rations rounded up
+  const wageFor = (h) => (h > 1e-9 ? Math.ceil((h * HANDS.wage) / HANDS.day - 1e-9) : 0);
+  // The landless adults (st.demand: grown, with no farm in prospect) of household o's village that its head could hire now, with the
+  // hours each can give (spareOf: its own day's free hours), most first.
+  function hire(st, hh, rest, d) {
+    // a household below its floor does not hire; nor one that could not pay the wages it asks
+    if (Stores.grainOf(hh) < floorOf(st, hh) + wageFor(rest)) return;
+    const demand = new Set(st.demand || []),
+      v = st.farmsteads[hh.farmstead].village,
+      left = hoursLeft(st),
+      pool = [];
+    for (const fid of st.villages[v].farmsteads) {
+      const hid = st.farmsteads[fid].household,
+        o = hid === null ? null : st.households[hid];
+      if (!o || o === hh || o.dissolved) continue;
+      VB.count.handsWeighed++;
+      for (const [id, h] of spareOf(st, o)) if (demand.has(id) && o.holder !== id) pool.push([id, h]);
+    }
+    pool.sort((x, y) => y[1] - x[1] || x[0] - y[0]);
+    for (let i = 0; i < pool.length && i < HANDS.hires && rest >= HANDS.least; i++) {
+      const [id, h] = pool[i],
+        hours = Math.min(h, Math.ceil(rest), Math.floor(left));
+      if (hours < HANDS.least) continue;
+      d.by[id] = [hh.id, hours, 0, 0, 1];
+      VB.count.handsHired++;
+      rest -= hours;
+      emit(st, 'leftDay', { pawn: id });
+      const g = st.agents[id];
+      if (!g.job && !g.homeward && !g.journey && g.idleUntil > st.t)
+        issue(st, { actor: id, verb: 'idle', args: { until: st.t }, source: 'planner' });
+    }
+  }
+  // The wage of hired pawn id for the h hours it worked for household hh, an obligation of the kind `wage` due at the day's end, paid from
+  // the household's grain above nothing it cannot spare (what is short stays owed, overdue like a loan), to the pawn's household if it has
+  // a farm, else to the pawn
+  function pay(st, id, hh, h) {
+    const n = wageFor(h);
+    if (!n) return;
+    const p = st.pawns[id],
+      oid = Obligations.create(st, {
+        kind: 'wage',
+        debtor: { kind: 'household', id: hh.id },
+        creditor: { kind: 'pawn', id },
+        owes: { rations: n },
+        due: st.t,
+        every: null,
+        enforcer: { kind: 'village', id: st.farmsteads[hh.farmstead].village },
+      });
+    VB.count.wagesHired += n;
+    const home = p.household !== null && !st.households[p.household].dissolved ? st.households[p.household] : null,
+      give = Math.min(n, Math.max(0, Math.floor(Stores.grainOf(hh))));
+    if (give > 0)
+      Obligations.fulfil(
+        st,
+        oid,
+        give,
+        { kind: 'wage', pawn: id },
+        { from: hh, to: home && home.farmstead !== null ? home : p, good: 'grain' },
+      );
+    VB.count.wagesPaidHired += give;
   }
   // The hours of help household hh plans to ask today, its season not fitting its labour budget (sim/levies fit, VB-1778: plan.fit's
   // help): of each short step whose window is open today, its hours spread over the window's days, but never more a day than the
@@ -260,7 +333,9 @@ VB['sim/hands'] = (() => {
   // The help of pawn id, entry e, ends: its tie with the adults helped grows by the hours it worked (sim/relations, VB-106)
   function ended(st, id, e) {
     e[3] = 1;
-    if (e[2] > 0 && st.pawns[id].alive && !st.households[e[0]].dissolved)
+    if (e[4] && e[2] > 0 && st.pawns[id].alive && !st.households[e[0]].dissolved)
+      pay(st, id, st.households[e[0]], e[2]);
+    if (!e[4] && e[2] > 0 && st.pawns[id].alive && !st.households[e[0]].dissolved)
       emit(st, 'helped', { helpers: [id], household: e[0], farm: null, hours: e[2] });
   }
   // Lent pawn id has nothing of the household's it can take (sim/day dutyRound): it goes back to its own day
@@ -295,5 +370,5 @@ VB['sim/hands'] = (() => {
       if (st.pawns[id].alive) issue(st, { actor: +id, verb: 'goHome', source: 'planner' });
     }
   }
-  return { HANDS, on, worked, release, step, askFor, shortOf, spareOf, windowEnd, plannedHelp };
+  return { HANDS, on, hired, worked, release, step, askFor, shortOf, spareOf, windowEnd, plannedHelp };
 })();

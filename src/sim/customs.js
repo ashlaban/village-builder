@@ -339,6 +339,13 @@ VB['sim/customs'] = (() => {
   // The culture's practice of key k: its own, or the one every culture starts with (a save made before VB-257).
   const practiceOf = (c, k) => (c && c.practices && c.practices[k] !== undefined ? c.practices[k] : PRACTICES[k].base);
 
+  // A village's custom of lots (VB-1770): the option its meeting chose (plan.lotsRule), else its culture's practice.
+  function lotsRule(st, vid) {
+    const plan = st.plans && st.plans.villages.get(vid),
+      s = st.cenv && st.cenv.settlements[vid];
+    return plan && plan.lotsRule ? plan.lotsRule : practiceOf(s && st.cenv.cultures[s.culture], 'lots');
+  }
+
   // ---- the door: the option of a custom in force ----
   // `at` is a settlement id (a village id). With no culture seeded, no such settlement, or a practice array
   // shorter than the catalogue (a save made before the custom was added), the option is the one of the archetype every
@@ -396,6 +403,7 @@ VB['sim/customs'] = (() => {
     ARCHETYPES,
     PRACTICES,
     practiceOf,
+    lotsRule,
     fromArchetype,
     inForce,
     inForceAt,

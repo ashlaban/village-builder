@@ -83,7 +83,9 @@ VB['sim/routines'] = (() => {
   // meeting sets (`meeting`).
   // A meeting weighs besides the work a routine left undone at its windows' ends since the routines were set (plan.routineLeft, sim/levies,
   // in days, VB-1768).
-  function chooseRoutines(st, v, founders = false) {
+  // `proposed` ({routine: holders who proposed it}, VB-1770): what the meeting took up of the holders' proposals weighs that much more, each
+  // holder's word being one.
+  function chooseRoutines(st, v, founders = false, proposed = null) {
     const cands = [],
       plan = st.plans.villages.get(v.id),
       R = plan && plan.routineLeft,
@@ -91,7 +93,7 @@ VB['sim/routines'] = (() => {
     for (const k of Object.keys(VILLAGE_ROUTINES)) {
       const R = VILLAGE_ROUTINES[k];
       if (!(founders && R.meeting) && R.available(st, v))
-        cands.push([R.need(st, v) + (founders ? 0 : left[k] || 0), k]);
+        cands.push([R.need(st, v) + (founders ? 0 : left[k] || 0) + (proposed && proposed[k] ? proposed[k] : 0), k]);
     }
     return rankRoutines(cands);
   }

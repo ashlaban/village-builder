@@ -42,6 +42,10 @@ VB.COUNTERS = {
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   routeCheck:
     'Changed tiles and cells read in testing a route set aside before it is taken back (sim/routes untouched, VB-1563)',
+  gatherDrawn:
+    'Partners drawn at a day of the gathering, read against the cap on new contacts (sim/encounters, VB-296)',
+  gatherMet: 'New contacts made at the gathering (sim/encounters, VB-296)',
+  splitCandidate: 'Cultures reported at the year as filling more than one gathering (sim/meetings, VB-296)',
   talkWeighed: 'Eligible partners weighed in talkHour',
   storyMade: 'Stories made, a witnessed event each (sim/stories, VB-523)',
   storyWeighed: 'Held stories weighed by a teller at its telling in a talk (sim/stories, VB-523)',
@@ -238,6 +242,9 @@ VB.COUNTERS = {
   foodAsked: 'Asks for food made by a hungry head at its plan review, one an asked party (sim/help askFood, VB-691)',
   handsWeighed: 'Farms of the village read by a head short of hands, to choose whom to ask (sim/hands askFor, VB-470)',
   handsLent: 'Hands lent by a head asked for help, a pawn a day (sim/hands, VB-470)',
+  handsHired: 'Hands hired by a head still short after its asks, a pawn a day (sim/hands, VB-319)',
+  wagesHired: 'Rations of wage owed hired hands at the end of a day (sim/hands, VB-319)',
+  wagesPaidHired: 'Rations of wage paid hired hands at the end of a day (sim/hands, VB-319)',
   leaveLook: "Members looked at after the morning's allotment for a reason to ask leave (sim/voice, VB-1555)",
   leaveWeighed: "Entries of a member's day read by its head weighing an ask of leave (sim/voice, VB-1555)",
   leaveAsked: 'Asks of leave made by a member of its head (sim/voice, VB-1555)',
