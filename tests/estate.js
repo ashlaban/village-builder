@@ -82,12 +82,28 @@ const out = [];
   const was = st.record.length;
   L.frost(st); L.decay(st, 1);
   const e = (st.lying || []).find((l) => l.kind === 'estate');
-  check(e && near(e.of.goods.tar, 2 * 0.75) && near(e.n, L.estateSize(e.of.goods)), `a day's frost wears each good alike: ${JSON.stringify(e && e.of.goods)}`);
+  check(e && near(e.of.goods.tar, 2 * 0.75) && near(e.of.goods['stone/granite'], 3 * 0.75) && !('iron' in e.of.goods) && near(e.n, L.estateSize(e.of.goods)),
+    `a day's frost wears each good alike, in its own unit (the 0.7 of a bloom, under one, gone): ${JSON.stringify(e && e.of.goods)}`);
   L.decay(st, 47);
   check(!st.lying, 'the frost takes what lies');
   const said = st.record.slice(was).filter((e) => e.kind === 'frost').map((e) => e.text);
   check(said.some((t) => /whose household is gone/.test(t)) && said.length === 3, `the frost names all three: ${said.join(' | ')}`);
   out.push('with no heir: grain the village\'s, wood and the estate for the frost');
+}
+
+// ---- a small estate in unlike units (review VB-1697, F1): 6 blooms of iron and 3 lengths of cloth keep three quarters after a frost day,
+// though their sum is under the lying quantum of rations ----
+{
+  const st = tinyState(tinyWorld(Array.from({ length: 10 }, () => '.'.repeat(20))), [{ at: [8, 5], farms: 2, sizes: [8, 8] }], { seed: 3 });
+  const hh = st.households[st.farmsteads[st.villages[0].farmsteads[1]].household];
+  for (const id of [...hh.members]) { const p = st.pawns[id]; p.alive = false; p.died = st.t; }
+  for (const k of Object.keys(hh.grain)) hh.grain[k] = 0; hh.wood = 0; hh.meals = 0; hh.flour = 0; hh.larder = [];
+  S.put(st, hh, 'iron', 6, 'plot'); S.put(st, hh, 'cloth', 3, { kind: 'plot', grade: 2 });
+  H.extinct(st, hh);
+  L.frost(st); L.decay(st, 1);
+  const e = (st.lying || []).find((l) => l.kind === 'estate');
+  check(e && near(e.of.goods.iron, 4.5) && near(e.of.goods.cloth[2], 2.25), `a small estate keeps its share: ${JSON.stringify(e && e.of.goods)}`);
+  out.push('a small estate worn by its own goods\' units');
 }
 
 if (failed) process.exit(1);
