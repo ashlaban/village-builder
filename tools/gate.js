@@ -1,10 +1,13 @@
 // The gate (VB-1774; docs/plans/four-scales/README.md, 3.10): the six runs of a gated task, and the comparison with the task's before.
-// node tools/gate.js [--json] [--out FILE] [--base FILE] [--jobs N]
+// node tools/gate.js [--json] [--out FILE] [--base FILE] [--jobs N] [--band N]
 //   Runs founders and populous, small map, seeds 7, 11 and 42, 10 years, N at a time (default: the cores, at most 6; `--jobs 1` one
 //   by one). A line a run: the settlements at year 0 and at year 10 with their living (`id:living0>living10`), those extinct and why
 //   (`hunger`, or the cause of the settlement's last deaths in the record), the tasks held over 48 hours without progress, the food
 //   accounts' `unexplained` (the run's years' absolute sum, rations, tools/accounts.js), hungry household-days, deaths by hunger.
 //   --json   the result as data on stdout (also what --out writes)
+//   --band N   runs each populous seed N more times (default 2), the k-th after k draws of `st.rng.talk` (a null perturbation: the same
+//     model, another realisation; docs/plans/VB-1965-probe.js), and keeps their hungry days and deaths by hunger in the run's `band`
+//     (--out keeps them). The comparison then prints the task's range of each beside the base's, and `inside the noise` when they overlap.
 //   --out FILE   keep the result (the commit it was made at, its runs)
 //   --base FILE  compare with a kept result: exit 1 when the gate fails, 0 when it holds. It fails when, in any run:
 //     - a settlement is extinct by hunger that the base keeps alive;
@@ -37,7 +40,16 @@ function compare(cur, base) {
     }
     if (r.stuck > b.stuck) fails.push(`${name}: ${r.stuck} tasks held over ${HELD} hours, base ${b.stuck}`);
     if (r.unexplained > b.unexplained + 1 + 0.001 * r.produced) fails.push(`${name}: unexplained ${r.unexplained}, base ${b.unexplained}`);
-    rows.push({ run: name, hungryDays: `${r.hungryDays} (base ${b.hungryDays})`, hungerDeaths: `${r.hungerDeaths} (base ${b.hungerDeaths})`, stuck: `${r.stuck} (base ${b.stuck})`, unexplained: `${r.unexplained} (base ${b.unexplained})` });
+    const row = { run: name, hungryDays: `${r.hungryDays} (base ${b.hungryDays})`, hungerDeaths: `${r.hungerDeaths} (base ${b.hungerDeaths})`, stuck: `${r.stuck} (base ${b.stuck})`, unexplained: `${r.unexplained} (base ${b.unexplained})` };
+    if (r.band) {
+      const rg = (x, f) => { const v = [x[f], ...(x.band || []).map((e) => e[f])]; return [Math.min(...v), Math.max(...v)]; },
+        show = (a) => (a[0] === a[1] ? String(a[0]) : `${a[0]}-${a[1]}`);
+      for (const f of ['hungryDays', 'hungerDeaths']) {
+        const a = rg(r, f), c = rg(b, f);
+        row[f] = `${show(a)} (base ${show(c)})${a[0] <= c[1] && c[0] <= a[1] ? ' inside the noise' : ''}`;
+      }
+    }
+    rows.push(row);
   }
   return { ok: !fails.length, fails, rows };
 }
@@ -64,12 +76,13 @@ function sample(s, seen, stuck) {
 }
 
 // One run, in this process: the accounts report steps the years; Sim.advance is wrapped to sample the held tasks.
-function run(scenario, seed) {
+function run(scenario, seed, perturb = 0) {
   const accounts = require('./accounts.js'), VB = accounts.load(), G = VB.gen, Sim = VB.sim;
   const it = G.generate(seed, { cols: 180, rows: 130 });
   let r; while (!(r = it.next()).done);
   const st = Sim.seed(r.value, seed, scenario, null, {}), Rec = VB['sim/records'];
   const living = () => { const m = new Map(st.villages.map((v) => [v.id, 0])); for (const id of st.living) { const v = Rec.settlementIdOf(st, st.pawns[id]); if (v !== null) m.set(v, (m.get(v) || 0) + 1); } return m; };
+  for (let k = 0; k < perturb; k++) VB['sim/rng'].next(st.rng.talk);
   const l0 = living(), hungry0 = st.households.reduce((s, h) => s + h.hungryDays, 0), seen = new Map(), stuck = new Set(); let nextSample = st.t;
   const adv = Sim.advance;
   Sim.advance = (s, dt) => {
@@ -107,23 +120,30 @@ const line = (r) => `${r.scenario.padEnd(8)} ${String(r.seed).padStart(2)}  sett
 
 function main() {
   const args = process.argv.slice(2), opt = (n) => { const i = args.indexOf('--' + n); return i >= 0 ? args[i + 1] : null; };
-  if (args[0] === '--run') { process.stdout.write(JSON.stringify(run(args[1], +args[2]))); return; }
-  const jobs = +(opt('jobs') || Math.min(6, os.cpus().length)), todo = SCENARIOS.flatMap((s) => SEEDS.map((n) => [s, n])), runs = [];
+  if (args[0] === '--run') { process.stdout.write(JSON.stringify(run(args[1], +args[2], +args[3] || 0))); return; }
+  const jobs = +(opt('jobs') || Math.min(6, os.cpus().length)), todo = SCENARIOS.flatMap((s) => SEEDS.map((n) => [s, n, 0])), runs = [], bandN = args.includes('--band') ? Math.max(1, +opt('band') || 2) : 0;
+  if (bandN) for (const n of SEEDS) for (let k = 1; k <= bandN; k++) todo.push(['populous', n, k]);
   const t0 = Date.now(); let next = 0, bad = 0;
   const worker = async () => {
     while (next < todo.length) {
-      const [s, n] = todo[next++];
+      const [s, n, k] = todo[next++];
       const out = await new Promise((res) => {
-        const c = cp.spawn(process.execPath, [__filename, '--run', s, String(n)], { stdio: ['ignore', 'pipe', 'inherit'] }); let b = '';
+        const c = cp.spawn(process.execPath, [__filename, '--run', s, String(n), String(k)], { stdio: ['ignore', 'pipe', 'inherit'] }); let b = '';
         c.stdout.on('data', (d) => (b += d)); c.on('close', (code) => res(code === 0 ? JSON.parse(b) : null));
       });
-      if (!out) { bad++; console.error(`run ${s} ${n} failed`); } else runs.push(out);
+      if (!out) { bad++; console.error(`run ${s} ${n} failed`); } else runs.push(Object.assign(out, { k }));
     }
   };
   Promise.all(Array.from({ length: Math.max(1, jobs) }, worker)).then(() => {
     if (bad) process.exit(2);
-    const at = (r) => todo.findIndex((t) => t[0] === r.scenario && t[1] === r.seed);
-    runs.sort((a, b) => at(a) - at(b));
+    const at = (r) => todo.findIndex((t) => t[0] === r.scenario && t[1] === r.seed && t[2] === 0);
+    const extra = runs.filter((r) => r.k > 0), main6 = runs.filter((r) => !r.k).sort((a, b) => at(a) - at(b));
+    for (const r of main6) {
+      const e = extra.filter((x) => x.scenario === r.scenario && x.seed === r.seed).sort((a, b) => a.k - b.k);
+      if (e.length) r.band = e.map((x) => ({ hungryDays: x.hungryDays, hungerDeaths: x.hungerDeaths }));
+      delete r.k;
+    }
+    runs.length = 0; runs.push(...main6);
     let commit = ''; try { commit = cp.execSync('git rev-parse --short HEAD', { cwd: path.join(__dirname, '..') }).toString().trim(); } catch (e) { /* no git */ }
     const res = { commit, years: YEARS, wallSeconds: Math.round((Date.now() - t0) / 1000), runs };
     if (opt('out')) fs.writeFileSync(opt('out'), JSON.stringify(res, null, 1) + '\n');
