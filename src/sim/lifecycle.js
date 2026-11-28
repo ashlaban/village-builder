@@ -10,7 +10,7 @@ VB['sim/lifecycle'] = (() => {
   const { leaveHousehold, unionOf, noteDeath, log, age, fullName, noteUnionEnd, atHousehold, lifeEvent, isHolder } =
     VB['sim/records'];
   const { setAtAge } = VB['sim/traits'];
-  const { stillAtDeath } = VB['sim/agents'],
+  const { stillAtDeath, dropJob } = VB['sim/agents'],
     { tileAt, placeOf, travelling } = VB['sim/pose'];
   const { heirRanking, successorOf } = VB['sim/heirranking'],
     { transfer, succession, comeOfAge, refreshRoles, setGuardian } = VB['sim/heirs'];
@@ -34,6 +34,8 @@ VB['sim/lifecycle'] = (() => {
     const a = st.agents[id],
       road = travelling(a) ? tileAt(st, ...placeOf(st, a)) : null; // it dies where it fell on the road (VB-287)
     stillAtDeath(st, a);
+    const drink = st.jobs.get(`drink:p${id}`); // the drink it was going for dies with it
+    if (drink) dropJob(st, drink);
     clearMatchWish(st, id, id);
     playerDied(st, id, successorOf); // the player's pawn: its farm, spouse and friends are noted before the death erases them (VB-213)
     const u = unionOf(st, id);
