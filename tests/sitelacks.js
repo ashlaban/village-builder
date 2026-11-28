@@ -1,3 +1,4 @@
+// @suite fast
 // What a building site lacks (VB-1407): one read, sim/projects' lacks, for the timber trips and the waits; a step that carries `timber`
 // gets its trips whatever its kind, one without none (no cottage's default); a plot's walls step is reached by its kind; an open stage's
 // hours kept while its job is posted again (sim/progress keptDone). On a tiny world, through the rules, not a run.

@@ -1,3 +1,4 @@
+// @suite integration
 // Climate at generation (VB-342): the seed's wind, erosion, rain carried by the wind and moisture dealt out by it (src/gen/climate.js).
 // The rules on small made-up grids: rain falls on the side of a ridge that faces the wind and little behind it; erosion lowers land, never
 // moves the coast and never raises a cell above its neighbours' reach; moisture hands the old values out again in the order of wetness.

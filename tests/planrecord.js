@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1752: the plan record (design.md section 7, Plans at four scales: The plan record, How a step becomes work): every live household and
 // village has one; a project plan is a year step of its holder's plan, its own steps under it, each with an id, an author, a state and a
 // `why` that resolves; a posted task names the step that opened it; Sim.why gives the chain upward and Sim.plans the record, a copy.

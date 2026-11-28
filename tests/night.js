@@ -1,3 +1,4 @@
+// @suite fast
 // A night without a roof is cold and wet (VB-785; design.md, Sleeping away from home): at a stay's night the cold and the wet reach its
 // pawn's health by the house's rule (sim/hunger nightCost) read for its roof: two nights in the open in winter cost what two nights in a
 // cold house cost, in summer a fraction of it, in a booth with wood nothing. On a tiny state.

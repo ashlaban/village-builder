@@ -1,3 +1,4 @@
+// @suite integration
 // The custom `matchBy` (VB-826): whose voice counts in a match, on a constructed state of tests/suit.js's world. Consent (the default): the
 // head of the house speaks for a son or daughter of it. Couple: each pawn of age speaks for itself, and a woman asks from the first day.
 // Heads: a spokesman may offer for one who courts another, and the member's no is booked twice. Both who marry consent under every option.

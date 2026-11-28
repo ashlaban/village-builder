@@ -1,3 +1,4 @@
+// @suite integration
 // VB-120, VB-1768: village work days. A village with a fence may choose work days at its meeting (never its founders: the meeting sets them
 // for the coming year); chosen, its alderman calls each at least OUTER.notice days ahead (callWorkday: the custom's day, spring's first for
 // the fence and summer's second for the commons), its levy laid in lots on the village's households for that one date (terms `together`:

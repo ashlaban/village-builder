@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1683: the ending sweep (the principles review of 24 November, M1 and M3). On a constructed village of tests/tiny.js, each pawn, then
 // each household, is ended in turn at each phase of a day: checkState runs after the ending, and again half a day on, as what it set
 // going plays out. A breach an open repair covers is listed (tests/lib/invariants.js KNOWN, by task) and not counted. With --known, those are printed.

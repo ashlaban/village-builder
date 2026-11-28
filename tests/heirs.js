@@ -1,3 +1,5 @@
+// @suite integration
+// @suite extended --extended
 // Heirs: the rankings of the heirs scenario's farms by name, the first meetings and moving round, two deaths that pass farms on, and the
 // rankings by line against the full list, on the small heirs island (VB-854). With --extended (at night), on the default island: ten years
 // on, reported, and the lone holder at B3 with a head of skill 0.5 bringing in a crop at four seeds (a statistic over seeds).

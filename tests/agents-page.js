@@ -1,3 +1,4 @@
+// @suite fast
 // tools/agents-page.js on constructed files: the frontmatter and the hint read; the parameters are the first list under the arguments
 // or parameters heading, a wrapped bullet joined and the list ended by prose; a bullet without a leading code span is a note; the page is
 // escaped. Then the project's own skills and agents: each has its hint and at least one named parameter, so the page explains them all.

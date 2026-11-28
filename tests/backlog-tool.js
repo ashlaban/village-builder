@@ -1,3 +1,4 @@
+// @suite integration
 // tools/backlog.js: sync leaves this checkout's backlog unchanged (the tables are already what the task files make), and new, set, done
 // and close-arch on a copy keep tests/backlog.js passing: rows move between sections and to the archive, a done task leaves the
 // "Waits for:" lines of the tasks that waited for it, and a task left waiting for nothing is set ready.

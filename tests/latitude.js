@@ -1,3 +1,4 @@
+// @suite fast
 // tests/latitude.js: the climate by latitude (VB-807; design.md, Climate and travel beyond walking): the winter's dates of the plan's table
 // (docs/plans/VB-190-ice.js) at 58, 59, 60, 62 and 65 degrees in a normal, a mild and a hard winter; none at 57 in a normal winter; the
 // bands of a map, north colder; the middle world's thaw and frost where VB-354 put them, a northern world's later and earlier; on a tiny

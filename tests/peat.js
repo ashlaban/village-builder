@@ -1,3 +1,4 @@
+// @suite integration
 // Peat (VB-367; design.md, Fuel): a trip of dig cuts ECON.woodPerTrip units of peat in summer into hh.peat; a unit burns as PEAT.worth (0.5) of
 // wood, after the wood, from the season after it was cut (it dries); a household cuts when the village's wood lies over PEAT.far steps off,
 // or from day PEAT.late of summer, while its fuel pile (wood and peat) is under the winter's goal, up to the shortfall; peat does not grow back.

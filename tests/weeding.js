@@ -1,3 +1,4 @@
+// @suite integration
 // Summer upkeep: growing fields post weeding jobs, and a tended field yields more than an untended one. Founders on the small island of
 // tests/lib/probe.js (VB-855).
 const VB = require('../src/load.js'), Sim = VB.sim, { scenario } = require('./lib/probe.js');

@@ -1,3 +1,4 @@
+// @suite fast
 // VB-311: own and use held apart. A field is split off a farm and its own passes to a neighbour, the farm's household keeping its use: the
 // field is still worked by its user (st.owner, the job board), ownerOf and holdingsOf answer both ways, the land counted (claims holdings,
 // the share rule) follows own, a save keeps the title, and ending it makes the field one holder's again. A constructed state.

@@ -1,3 +1,4 @@
+// @suite integration
 // Service where labour is short (VB-090; design.md, Leaving home: Service): at the moving round, an unmarried landless adult from a household
 // with hands to spare (over 1.5 hands per field) goes as a servant to the household of the village with the fewest hands per field, if short
 // (under 1); one new servant a household a round; nobody goes back to a parent's home by this rule.

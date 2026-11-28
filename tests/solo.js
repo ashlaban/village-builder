@@ -1,3 +1,4 @@
+// @suite fast
 // The solo start: one settler, a young adult of either sex (SOLO, sim/people), alone in one household on the one farm of one village,
 // unmarried and with no kin on record; seeded the same at the same seed; no house, a booth first (VB-1544). A year on runs without
 // throwing and keeps the state's invariants.

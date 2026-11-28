@@ -1,3 +1,4 @@
+// @suite fast
 // A wish for a match that fails is told (VB-1113): the wished partner marries another (a personal event that stops a skip), and the
 // round passes the wish by (told with the round's reason; the wish stands).
 const assert = require('assert');

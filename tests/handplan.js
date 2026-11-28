@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1661: what the screen says of the stores and the building counts on nothing the player has not planned. On small constructed
 // states: (1) one reckoning of the fire, Sim.fireView's `short` the supply outlook's fuel; (2) a household planned by hand counts an
 // intake still to be worked only when a task of the plan covers it (firewood, hay, harvest), and says what it left out; every other

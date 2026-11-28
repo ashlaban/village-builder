@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1563: a route set aside at the day's emptying and taken back is the route a search finds then. On a constructed grid of mixed
 // ground, tiles change cost day after day (ground and wear), the cache is emptied each day, and every route taken back from the routes
 // set aside is held equal to a fresh search on the ground as it stands; some are taken back, some refused, and hasRoute takes them too.

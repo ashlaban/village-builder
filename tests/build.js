@@ -1,3 +1,4 @@
+// @suite fast
 // The page builds (VB-450): index.html is derived and not kept, so nothing compares a kept copy with the sources; this checks that the
 // build itself works on the sources as they are: every module of src/manifest.json and src/page.json is found, the placeholders are all
 // filled, and the same sources give the same page and build id.

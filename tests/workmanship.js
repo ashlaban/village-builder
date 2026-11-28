@@ -1,3 +1,4 @@
+// @suite fast
 // Workmanship (VB-761): the odds of the five grades at a maker's skill, the draw from the stream `making`, the head's estimate of worth and
 // who takes a making; the quern hewn with a grade, that lasts and grinds by it. On a tiny farm at seed 7.
 const assert = require('assert'),

@@ -1,3 +1,4 @@
+// @suite integration
 // Store views (VB-092): on the heirs scenario at day 0, Sim.storesOf for "village A, owns" has a row for each of A's households and a
 // total row equal to their sums, the village's own store as a row of its own, and household rows that read as the household panel's
 // values (page/cards storesTab: Sim.grainOf, Sim.seedReserve, hh.flour, hh.meals, the sheaves, Sim.larderOf, hh.wood, hh.peat).

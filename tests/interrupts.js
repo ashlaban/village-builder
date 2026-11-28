@@ -1,3 +1,4 @@
+// @suite integration
 // More urgent work interrupts a job (VB-107; VB-466: when the head allots the day anew): a son hoeing leaves the field for the woods when the woodpile drops under 8
 // (firewood urgency 2.2), and the field keeps its progress; the farmer keeps hoeing (his firewood bid stays under 1.5 × his hoeing + 1);
 // a job the pawn would finish within the hour is not left.

@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1655: land first. The solo settler who plans by hand lands at a camp with nothing under way (no shelter begun, no cottage plan, no
 // field), roofless, its nights the open sky's (no fire lit); the build menu and the tile's reasons; the farmstead task's refusals; the
 // chain from the tap to the raised shelter on the house tile itself (VB-1666), on the landing tile and on a tile two steps off (the house, its tile's owner, the herd's home

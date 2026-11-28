@@ -1,3 +1,4 @@
+// @suite integration
 // VB-257: the village's routines. The village's standing plan holds this year's routines (at most four, each known), set by the yearly
 // meeting through its verb from the village work available (the fence's stretches the first); a routine chosen is a source of tasks for
 // the village's adults on the `villager` basis, one not chosen posts nothing; a meeting that does not decide (no quorum, a tie) leaves it

@@ -28,7 +28,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
   keeps the sweep out of `git blame`. `tests/` and `tools/` are not formatted yet.
 - Build: `node build.js` inlines `src/` into `index.html`, a derived file that is not kept in the repository (VB-450); `--check` fails if it is stale, `--stdout` prints the
   page and writes nothing (`tests/lib/page.js`). `tests/build.js` (fast) checks that the page builds.
-- Tests, three tiers listed in `tests/suites.js` (`docs/testing.md` has what each covers, the timeouts and the measured times):
+- Tests, three tiers, each test's declared by its `// @suite` line (`docs/testing.md` has what each covers, the timeouts and the measured times):
   - Fast: `npm install && npm test`, about 10 seconds (budget 30): the build, lint, ownership, dependencies, backlog and rule checks on
     deliberate small states. A passing run prints its slowest five and its summary (`node tests/run.js test --list` prints each script's line).
   - Verify: `npm run verify` runs fast and then the integration tier, rule checks on small constructed states and the small tools,
@@ -40,7 +40,7 @@ Every tool run from `tools/` answers `--help` with its options, without running:
     extended passed; a failed check fails it at the end (the Extended checks workflow). A task that changes `src/page/` also runs `node tests/smoke.js` and the `tests/browser*.js` it touches, by
     name, until verify has a page check of its own (VB-409).
   - One script alone: `node tests/NAME.js`. A new check is built on a small constructed state (`tests/tiny.js`, `tests/lib/probe.js`)
-    and goes into fast or integration, with a line in `tests/suites.js`; only what needs a whole island or years goes to extended.
+    and goes into fast or integration, by its `// @suite` line; only what needs a whole island or years goes to extended.
 - Fixtures, late saves (`small-y5`, `small-y40`, `medium-y5`, `medium-ref`): a local cache, never published or fetched (VB-272). They
   lie in the gitignored `tests/fixtures/<key>/`, the key a hash of the modules of `src/manifest.json`, so a fixture is made for the
   sources as they are and is never stale: `node tools/fixtures.js status|make|clean`. One run a map saves both of its fixtures (small

@@ -1,3 +1,4 @@
+// @suite fast
 // readSource (VB-373): .ts text is read as JavaScript with every token where it was; the tools read src/ only through it.
 const assert = require('assert'), fs = require('fs'), os = require('os'), path = require('path'), { parse } = require('acorn');
 const { readSource, stripTypes } = require('../tools/lib/source.js');

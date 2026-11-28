@@ -1,3 +1,4 @@
+// @suite fast
 // tools/gate.js (VB-1774): the comparison on constructed results, without running the simulation.
 const { compare, sample } = require('../tools/gate.js');
 let bad = 0;

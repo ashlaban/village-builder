@@ -1,3 +1,4 @@
+// @suite fast
 // Journeys (VB-287; design.md, Between villages: A journey, Provisions and the season): a pawn whose new home lies in another village walks
 // there, a leg a day from 6:00 to 18:00, sleeping where it stops, on food carried from the household it leaves; a move within a village is
 // a walk to the new door, with no journey. On tiny states, with the page closed (Rules for cost, 7: the walk is the simulation's).

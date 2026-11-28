@@ -1,3 +1,4 @@
+// @suite fast
 // The player inhabits a pawn (VB-169): its queued commands go before the pawn's own logic, at the planner's four sites; left to itself the
 // pawn does what any pawn would; with the automatic behaviour off it takes no work but still goes home at the end of work; a command
 // refused when its turn comes is dropped with its reason; the player and its queue are saved with the run.

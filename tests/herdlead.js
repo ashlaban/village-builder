@@ -1,3 +1,4 @@
+// @suite integration
 // Animals that change household (VB-674, sim/droving): the owner changes where they stand, a member of the new household walks to lead
 // them home, and their hay is left lying in the old barn to be fetched; a herd with nobody to have it stays at its farm until the frost.
 // On the probe's two villages of two farms (tests/lib/probe.js).

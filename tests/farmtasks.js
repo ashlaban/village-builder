@@ -1,3 +1,4 @@
+// @suite fast
 // VB-1663: the stone foundation, a property of the house (not a rung), and the barn, each built as one task of the played head's plan
 // (sim/upgrade's chains foundation and outbuilding). With automatic behaviour off the head begins neither by itself; the refusals in the
 // head's own words; the foundation's stone gathered and the house raised by the plan alone, outside the slack of the year (the

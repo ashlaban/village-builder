@@ -1,3 +1,4 @@
+// @suite integration
 // VB-286: the walking hours between villages (sim/villagehours): the table agrees with the route search, is read by hoursBetween, is refreshed a
 // village a step on autumn day 9 from noon (calendar), grows with a village founded, and is built for a save that lacks it.
 const assert = require('assert'), VB = require('../src/load.js'), Sim = VB.sim;

@@ -1,3 +1,4 @@
+// @suite integration
 // A farm that dies out: members without kin elsewhere go into service in their own village, else the nearest village.
 const VB = require('../src/load.js'), Sim = VB.sim, { kinNear } = VB['sim/records'], { extinct } = VB['sim/heirs'];
 let failed = 0; const check = (ok, m) => { if (!ok) { failed++; console.error('SERVICE FAIL:', m); } };

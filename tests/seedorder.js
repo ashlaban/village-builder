@@ -1,3 +1,4 @@
+// @suite fast
 // Seed in hunger and on the move (VB-352): the hungry household eats the crop with most seed first and each crop's last field's seed last;
 // a start in life and settlers' provisions take a field's seed of each crop first.
 const assert = require('assert'), VB = require('../src/load.js');

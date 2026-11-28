@@ -1,3 +1,4 @@
+// @suite fast
 // A controller per pawn (VB-1745; docs/plans/four-scales/README.md, section 4, the path's step 2): an empty controller on every pawn
 // (automatic on, nothing queued) runs to the same state as none, but for the controller records; two pawns with automatic behaviour off
 // at once are both left alone by the planner; any pawn's queue runs, from the index of the queues that hold a command; the verbs refuse

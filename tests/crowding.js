@@ -1,3 +1,4 @@
+// @suite fast
 // VB-766: a household's crowding, the people within CROWD.steps of its house, and its death.hazard factor, on a constructed state
 const assert = require('assert');
 const VB = require('../src/load.js'), Cr = VB['sim/crowding'], { CROWD } = VB['sim/crowding'];

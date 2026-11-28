@@ -1,3 +1,4 @@
+// @suite integration
 // Oxen at the plough (VB-138): a household with two oxen has a team; the first hand on its earliest hoeing or breaking job works at 2.5
 // times, the others at their own rate; the team is in one field at a time; the pawn panel says "Ploughing with the oxen". Founders at seed 7:
 // the oxen's farm breaks and hoes its fields in fewer hours than the farms without.

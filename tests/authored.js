@@ -1,3 +1,4 @@
+// @suite integration
 // An authored step and the default author (VB-1755; design.md section 7, Plans at four scales: Authors; A step at risk, and the
 // take-back): the household's daily work goes before anything authored; the verb plan refuses a task that cannot be done by its `by`
 // and dates an undated one; at the household's review a task its head's estimate says will not be done by its `by` is at risk, planned

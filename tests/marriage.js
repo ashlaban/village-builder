@@ -1,3 +1,4 @@
+// @suite integration
 // Marriage (VB-153, stability review): two holders may marry: the couple lives on one farm and the other passes on (to an heir who can keep
 // it, a landless adult of its village, or it stands empty); a holder marries a spouse who is only first heir elsewhere, who leaves that line;
 // and a couple marries only when the farm it will live on holds food above its seed for MARRIAGE.means years of its people and one more.

@@ -1,3 +1,4 @@
+// @suite integration
 // VB-631: the means to marry is a rule of the registry (marriage.means) and one formula, Sim.meansOf, serves the gate (affords), matchBar's
 // reason and the pawn panel's words (marryBar): a home just under and just over, the exempt home, the explanation.
 const VB = require('../src/load.js'), G = VB.gen, Sim = VB.sim, R = VB['sim/records'], Rules = VB['sim/registry'];

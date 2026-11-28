@@ -1,3 +1,4 @@
+// @suite fast
 // Wood in two steps (VB-1653): timber felled in the woods and carried home (the kind wood), cut into firewood at the house (the kind
 // firewood), for every household; the player's plan tasks `fell` (a forest tile of its choosing, n trips) and `firewood` (at the house),
 // their refusals, the page's read of the fire (Sim.fireView), and a save and a load going on the same. On the tiny village of tests/plan.js.

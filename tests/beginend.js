@@ -1,3 +1,4 @@
+// @suite fast
 // A project's beginning and its end said once (VB-1408): sim/projects' mayBegin, the one read of whether a household may begin a project
 // of its own, a small construction (it lives, is not dissolved, has no plan of the same making under way, a head not holding off
 // projects; a booth and another plan do not stop it, VB-1414), and stepEnds, the one way a project step's job ends (the holder's open step, its kind and place; the
