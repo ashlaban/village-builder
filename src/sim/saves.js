@@ -428,6 +428,7 @@ VB['sim/saves'] = (() => {
     VB['sim/fieldrec'].grounded(st); // VB-1520
     VB['sim/water'].wellsLoaded(st); // VB-1584: an older save's well, a boolean, is its tile
     VB['sim/thirst'].loaded(st); // VB-1585: a save from before a pawn's own thirst loads as having drunk
+    VB['sim/records'].nameAll(st); // VB-1693: a save from before the charge names every dependant's minder
     VB['sim/stores'].heapsLoaded(st); // VB-733: an older save's heap of no rock, and its quern's `rock`
     VB['sim/quern'].quernsLoaded(st);
     // VB-1911: an older save's farmstead.barn, .byre and .storehouse as facilities of their farms; one with no record of its storehouse

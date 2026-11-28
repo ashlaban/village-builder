@@ -30,7 +30,7 @@ VB['sim/offers'] = (() => {
     Ties = VB['sim/ties'],
     { remember } = Relations,
     { SOCIAL } = Ties;
-  const { log, fullName, holdingOf, atHousehold, mindsWhy, settlementIdOf } = VB['sim/records'];
+  const { log, fullName, holdingOf, atHousehold, settlementIdOf } = VB['sim/records'];
   const { grainOf } = VB['sim/stores'];
   const { agentWhy } = VB['sim/decisions'];
   const home = (st, id) => Number.isInteger(id) && !!st.households[id] && !st.households[id].dissolved;
@@ -147,8 +147,6 @@ VB['sim/offers'] = (() => {
       if (!('farmstead' in from) || !('farmstead' in to)) return 'only a household carries a gift to a household';
       if (!p || !p.alive || p.household !== from.id || p.age < 14 || p.age >= 60 || !a || onRoad(a) || a.load > 0)
         return `pawn ${args.carrier} cannot carry the gift`;
-      const kept = mindsWhy(st, p.id); // VB-1602
-      if (kept) return kept;
       if (from.farmstead === to.farmstead) return 'nothing is carried within a farmstead';
       if (n > TRAVEL.load + 1e-9) return `one pawn carries at most ${TRAVEL.load} rations: a larger gift is fetched`;
       g.carrier = p.id;
