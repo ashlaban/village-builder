@@ -42,3 +42,13 @@ assert.deepStrictEqual(checkState(st), []);
 lineFarm.line = oldLine; VB['sim/records'].noteLine(st, lineFarm);
 assert.deepStrictEqual(checkState(st), []);
 console.log('owner caches ok: roles, exact tile owners, membership and line index corruption detected; no birthday lag');
+// VB-1836: a farm held under its own title (use granted to another household) and then given to a household (farmTo) keeps its title's user
+// in step with the owner cache: before the mend the title kept the old user and the checker expected it on every tile.
+{
+  const s = tinyState(tinyWorld(Array(20).fill('.'.repeat(30))), [{ at: [10, 10], farms: 2, sizes: [6, 5] }], { seed: 5, herds: true });
+  const g = s.farmsteads[0];
+  VB['sim/ownership'].grant(s, g.house, 'use', { type: 'household', id: 1 }, 0, 'tenancy');
+  assert.deepStrictEqual(checkState(s), []);
+  VB['sim/ownership'].farmTo(s, g, { type: 'household', id: 0 });
+  assert.deepStrictEqual(checkState(s), [], 'farmTo moves the farm title\'s user with the owner cache');
+}
