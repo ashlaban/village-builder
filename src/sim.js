@@ -25,19 +25,8 @@ const Sim = (() => {
     membersOf,
     voiceOf,
   } = VB['sim/records'];
-  const {
-    recordOf,
-    NOTABLE,
-    notable,
-    eventLine,
-    CHRONICLE,
-    chronicle,
-    villageLog,
-    SKIP,
-    skipFrom,
-    skipStop: skipStopWith,
-    gatherings,
-  } = VB['sim/notable'];
+  const { recordOf, NOTABLE, notable, eventLine, CHRONICLE, chronicle, villageLog } = VB['sim/notable'];
+  const { SKIP, skipFrom, skipStop: skipStopWith, gatherings } = VB['sim/skip'];
   const { describe: doing } = VB['sim/agents'],
     { occasionLabel } = VB['sim/occasions'],
     { explainFeast } = VB['sim/feast'],
@@ -82,7 +71,7 @@ const Sim = (() => {
   const { meansOf, marryBar } = VB['sim/matching']; // the means to marry a home holds, and what stands between a pawn and a marriage (VB-631)
   const { waterOf, siteWater } = VB['sim/water']; // a farm's source and its day's fetch in hours (VB-1582); a site's, before placing (VB-1583)
   const { supplyOutlook, giftOutlook } = VB['sim/outlook']; // how long a household's supplies last, by its head's last review (VB-666)
-  // The skip's stop (VB-1101): sim/notable asks, at the round's eve, for a choice the round will read and for the year's food in brief.
+  // The skip's stop (VB-1101): sim/skip asks, at the round's eve, for a choice the round will read and for the year's food in brief.
   const skipAids = {
     choice: roundChoice,
     brief(st, vid) {

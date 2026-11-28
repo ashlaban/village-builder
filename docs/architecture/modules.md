@@ -324,7 +324,7 @@ tunables live and how a job kind or a custom is added (Adding things, below). Th
   `Sim.NOTABLE`: family, holder, hunger, farm, custom) or null, for the pawn the player follows; `Sim.eventLine(st, ev)` tells an event in one
   sentence. A read-only view with no state. The page's toasts (`src/page/notices.js`) read both; a new notable kind is added there, not in the page.
 - Gatherings while they are on (VB-1031, VB-1032): the record tells an occasion when it is over, so `Sim.gatherings(st, id, seen)`
-  (`src/sim/notable.js`) reads `st.occasions` for those that concern a pawn as they begin: the page's notice, and the skip's stop for a
+  (`src/sim/skip.js`) reads `st.occasions` for those that concern a pawn as they begin: the page's notice, and the skip's stop for a
   wedding or a funeral ale. `src/page/gathering.js` draws a mark over each occasion that is on and opens its card of who is there.
 - Opportunities (VB-209): `Sim.opportunities(st, id, near)` (`src/sim/opportunities.js`) lists what a pawn may do here, each a command with its
   holder, basis and the rule that bars it: its household's and village's work (from the kinds' `available`, with the planner's fit), its own

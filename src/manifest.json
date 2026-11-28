@@ -94,6 +94,7 @@
   "sim/followers.js",
   "sim/deaths.js",
   "sim/notable.js",
+  "sim/skip.js",
   "sim/scopes.js",
   "sim/leanings.js",
   "sim/rotations.js",

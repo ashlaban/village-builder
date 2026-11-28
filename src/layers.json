@@ -209,6 +209,7 @@
     ],
     "derived": [
       "sim/notable",
+      "sim/skip",
       "sim/scopes",
       "sim/leanings",
       "sim/opportunities",

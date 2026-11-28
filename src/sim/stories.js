@@ -435,7 +435,7 @@ VB['sim/stories'] = (() => {
   }
   // ---- what the player hears (design.md, Stories: What the player hears) ----
   // A story about the played pawn's household (or itself) that the played pawn comes to hold is an event of its life, notable
-  // (sim/notable: it stops a skip). Told as it was heard, from `from`: its belief, never whether it is true.
+  // (sim/skip: it stops a skip). Told as it was heard, from `from`: its belief, never whether it is true.
   function notice(st, id, s, from) {
     const pl = st.player;
     if (!pl || pl.pawn !== id) return;

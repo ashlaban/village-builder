@@ -180,7 +180,7 @@ VB['sim/timetable'] = (() => {
       left: r && Number.isFinite(r.mid) ? { lo: r.lo, mid: r.mid, hi: r.hi } : null,
     };
   }
-  // ---- until my task ends (Kim, 15 Nov; VB-477): the stops of a run ahead that the page's skip adds to its own (sim/notable skipStop,
+  // ---- until my task ends (Kim, 15 Nov; VB-477): the stops of a run ahead that the page's skip adds to its own (sim/skip skipStop,
   // which already stops at a death, a wedding or funeral ale, the first help received, an offer waiting for the pawn) when the player asks
   // to run until the inhabited pawn's task ends. Not a verb: the cursor is the page's plain data, and nothing here writes to st, so the
   // run is the same with or without it. ----
