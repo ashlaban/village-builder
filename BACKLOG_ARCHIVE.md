@@ -900,3 +900,4 @@ Done tasks and closed archs, moved out of `BACKLOG.md` so its tables list only o
 | [VB-644](backlog/VB-644.md) | Dried fish for the fair: a shore head's target beyond its own need | fair | 2 | S | VB-255's fifth criterion, which waits for the fair: a head with a surplus in a shore village may take a project to dry fish beyond its need, aimed at the fair, its target in rations |
 | [VB-083](backlog/VB-083.md) | Seasons on the map | roads | 3 | M | Seasonal tints and winter snow on the painted map. |
 | [VB-034](backlog/VB-034.md) | Splitting land between heirs | debt | 3 | M | Under "land split between heirs" the fields are divided, so the custom stops behaving like a buy-out. |
+| [VB-1964](backlog/VB-1964.md) | The ice key: two swatches, words one tap in | roads | 1 | S | The ice key beside the calendar is two swatches; their words show one tap in (Kim's icons-first rule). |
