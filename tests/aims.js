@@ -348,3 +348,15 @@ console.log("aims ok: surplus, menu, choice, barn and its halvings, drop after a
   const dry = set(mk(Array.from({ length: 14 }, (_, i) => (i < 2 ? 'FFFFFFFFFFFFFFFFFFFF' : '....................'))));
   assert.ok(!A.menu(dry.st, dry.plan, dry.hh, dry.f).some((x) => x.what === 'fair'), 'no fair fish where nobody fishes');
 }
+
+// VB-2027: the threshing names the building that keeps the grain: the storehouse, or the house of a farm without one (it keeps it, at the whole loss)
+{
+  const st = make(), hh = st.households[0], f = st.farmsteads[hh.farmstead];
+  const K = VB['sim/kinds'].KINDS.thresh, job = { farm: f };
+  assert.ok(VB['sim/kinds'].PLACES.storehouse && K.at.includes('storehouse'), 'the storehouse is a place the threshing is declared at');
+  f.storehouse = { built: st.t };
+  assert.match(K.words(st, job).verb, /storehouse/, 'with a storehouse the job says where the grain goes');
+  f.storehouse = null;
+  assert.match(K.words(st, job).verb, /house/, 'without one it goes to the house');
+  assert.doesNotMatch(K.words(st, job).verb, /storehouse/);
+}
