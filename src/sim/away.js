@@ -150,8 +150,6 @@ VB['sim/away'] = (() => {
       o = args || {};
     if (st.agents[id].away !== undefined) return `pawn ${id} is away from home already`;
     if (!hh || hh.dissolved || hh.farmstead === null) return `pawn ${id} has no home to go out from`;
-    const kept = Kin.mindsWhy(st, id); // the last one at home with a child under 7 (VB-1602)
-    if (kept) return kept;
     if (typeof o.why !== 'string' || !o.why) return 'a stay names why the pawn is away';
     if (!(Number.isInteger(o.days) && o.days >= 1)) return 'a stay plans a whole number of days, one or more';
     if (o.jobs !== undefined && !Array.isArray(o.jobs)) return 'the tasks of a stay must be a list';
@@ -366,6 +364,10 @@ VB['sim/away'] = (() => {
       const workers = s.party.all.filter((id) => Sites.worksAt(st, s, id)).length,
         days = Math.max(1, Math.min(AWAY.pack, Math.ceil(Sites.hoursLeft(st, s) / (workers * (WORK[1] - WORK[0])))));
       const args = { why: 'site', days, jobs: Sites.jobKeys(s), walk };
+      if (!Kin.leaves(st, a.id)) {
+        keep(); // the last keeper at home with a child under 7 weighs the stay, which brings the child nothing, and walks (VB-1693)
+        continue;
+      }
       if (issue(st, { actor: a.id, verb: 'lodge', target: s.booth, args, source: 'pawn' }) === true)
         out ||= idle.slice(0, i);
       else keep();

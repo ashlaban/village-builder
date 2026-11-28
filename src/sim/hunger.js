@@ -5,7 +5,7 @@ VB['sim/hunger'] = (() => {
   const { fireOf } = VB['sim/house'];
   const { HUNGER, HEALTH, ILLNESS, HERD, HELP, DAY, YEAR, YEAR_DAYS, PEAT, BUILD, GATHERING } = VB['sim/rules'],
     { CROPS, ROTATIONS } = VB['sim/crops'];
-  const { age, farmPractice } = VB['sim/records'];
+  const { age, farmPractice, frailOf, hungerLoss, thirstLoss } = VB['sim/records'];
   const Stores = VB['sim/stores'],
     Pot = VB['sim/pot'],
     { hungryDay, act } = VB['sim/traits'];
@@ -337,12 +337,11 @@ VB['sim/hunger'] = (() => {
   // over its days (ILLNESS.passing of it for one that passes, VB-1246), and nothing is restored while it runs. The played pawn's day is
   // told to sim/player (event 'health': what moved it); its sleep owed, a whole night or more, costs health too (VB-1643).
   function updateHealth(st, p, fed, cold = 0, dry = 0, poor = false) {
-    const a = age(st, p),
-      frail = a < 5 || a >= 60 ? HEALTH.frail : 1,
+    const frail = frailOf(st, p),
       before = p.health;
-    const hungry = p.hunger > 0 ? HEALTH.drain * p.hunger * p.hunger * frail : 0,
+    const hungry = hungerLoss(st, p),
       chill = cold > 0 ? HEALTH.cold * cold * frail * (Dress.rags(st, p) ? Dress.DRESS.cold : 1) : 0, // in rags (VB-363)
-      thirst = dry > 0 ? HEALTH.dry * frail : 0, // no water fetched (VB-1541: named for itself, not the house's damp)
+      thirst = dry > 0 ? thirstLoss(st, p) : 0, // no water fetched (VB-1541: named for itself, not the house's damp)
       damp = dry > 0 ? 0 : poor ? HEALTH.marsh * frail : 0, // marsh water: the meal is cooked and restores (VB-1582)
       ill =
         p.ill === undefined
