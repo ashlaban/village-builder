@@ -126,7 +126,7 @@ VB['sim/hands'] = (() => {
   // Is the head `by` willing to help pawn `asker`: as the round of help weighed it (VB-106), HELP.factor, + HELP.kin for near kin, + its
   // opinion of the asker, above nothing
   const willing = (st, by, asker) =>
-    HELP.factor + (kinNear(st, by).includes(asker) ? HELP.kin : 0) + opinionOf(st, by, asker) > 0;
+    HELP.factor + (kinNear(st, by).includes(asker) ? HELP.kin : 0) + Offers.answerOpinion(st, by, asker) > 0;
   // ---- the basis `help` ----
   const askWords = (st, o) => {
     const w = o.wants,

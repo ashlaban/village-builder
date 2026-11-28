@@ -8,6 +8,7 @@ const { issue } = VB['sim/commands'], { surplus } = VB['sim/help'], { floorOf, d
 const fresh = () => {
   const st = scenario('founders');
   const [a, b] = st.households.filter((h) => !h.dissolved && h.holder !== null);
+  for (const h of [a, b]) st.pawns[h.holder].standing = VB['sim/ties'].SOCIAL.standing.base; // strangers of a member's standing (VB-706)
   return { st, a, b };
 };
 const give = (st, from, to, n, source = 'help') => issue(st, { actor: from.holder, verb: 'give', target: to.id, args: { good: 'grain', n }, source });

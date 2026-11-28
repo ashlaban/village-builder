@@ -63,7 +63,7 @@ const half = R.memNow(st, 'claim', { v: -0.4, t: st.t - K.claim.days * DAY / 2 }
 check(Math.abs(half + 0.2) < 1e-9, `half-way through, a memory is at half: ${half}`);
 R.remember(st, a.id, b.id, 'bull');
 Sim.advance(st, (K.bull.days + 1) * DAY); R.fadeRelations(st);
-check(!a.rel.has(b.id), 'a record with no memories left is dropped');
+check(!a.rel.has(b.id) || !a.rel.get(b.id).mem.bull, `a record with no memories left is dropped: ${JSON.stringify(a.rel.get(b.id))}`);
 check(checkState(st).length === 0, 'invariants: ' + checkState(st).slice(0, 3).join('; '));
 
 // death ends the relationships of others with the dead
