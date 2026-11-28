@@ -42,6 +42,10 @@ VB.COUNTERS = {
   routeEvict: 'Cached routes evicted to enforce the bound (including legacy loads)',
   routeCheck:
     'Changed tiles and cells read in testing a route set aside before it is taken back (sim/routes untouched, VB-1563)',
+  gatherDrawn:
+    'Partners drawn at a day of the gathering, read against the cap on new contacts (sim/encounters, VB-296)',
+  gatherMet: 'New contacts made at the gathering (sim/encounters, VB-296)',
+  splitCandidate: 'Cultures reported at the year as filling more than one gathering (sim/meetings, VB-296)',
   talkWeighed: 'Eligible partners weighed in talkHour',
   storyMade: 'Stories made, a witnessed event each (sim/stories, VB-523)',
   storyWeighed: 'Held stories weighed by a teller at its telling in a talk (sim/stories, VB-523)',

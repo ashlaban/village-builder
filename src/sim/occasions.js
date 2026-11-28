@@ -9,7 +9,7 @@
 //   empty for a meeting and a rite), village, farm (farmstead id, or null on a green), tile, x, y (the spot, map units), start, end
 //   (game hours), overrides (work stops for it), asked[] ({id, leave (the game hour it sets out), hours (its walk there)}, in order of
 //   leave, each taken off once it sets out or cannot come), come[] (the ids that set out), due (game hours: the next time the step
-//   looks at it)}. Plain data, saved; ended ones are dropped.
+//   looks at it), fresh (a day of the gathering: {pawn id: new contacts made that day}, VB-296)}. Plain data, saved; ended ones are dropped.
 // @state st.occasionSeq: number; the next occasion's id; ids are never reused
 // @state household.harvestIn: absent, or the game year (cal's year) in which the household last called a harvest home: one a year, whatever
 //   the planning days; no later than this year (tests/lib/invariants.js). Written only here.
@@ -127,6 +127,18 @@ VB['sim/occasions'] = (() => {
     enqueue(st, o);
     return o;
   }
+  // A talk of two strangers on the green at a day of the gathering (VB-296) is a new contact for each, counted in o.fresh against the day's
+  // cap (GATHERING.contacts; sim/encounters takes strangers out of the draw at the cap).
+  on('talked', (st, e) => {
+    const x = st.agents[e.a].occasion;
+    if (!e.fresh || x === null || x !== st.agents[e.b].occasion) return;
+    const o = st.occasions.find((y) => y.id === x);
+    if (!o || o.kind !== 'gathering') return;
+    const fresh = o.fresh || (o.fresh = {});
+    fresh[e.a] = (fresh[e.a] || 0) + 1;
+    fresh[e.b] = (fresh[e.b] || 0) + 1;
+    VB.count.gatherMet++;
+  });
   // The walking hours from household hh's house to tile `to`, or Infinity beyond a day's walk; one bounded search (ROUTE's costs are in
   // meadow steps, walked at SPEED an hour), kept in `memo` for the household's other members.
   function hoursFrom(st, hh, to, memo) {

@@ -378,7 +378,7 @@ VB['sim/relations'] = (() => {
   // @state agent.talk: {with (pawn id), kind (chat, goodTalk or crossWords), at, until (game hours), friendAt (the hour of its last talk
   //   with one it held at SOCIAL.friend or above, as the talk's band check read it; absent before one)} or null; the latest talk, for the
   //   bubble, and talked with a friend for its mood (sim/mood, VB-062)
-  const told = { a: -1, b: -1 };
+  const told = { a: -1, b: -1, fresh: false };
   function talk(st, a, b) {
     const i = a.id,
       j = b.id,
@@ -390,6 +390,7 @@ VB['sim/relations'] = (() => {
     const kind = x < 1 ? 'chat' : x < 1 + wg ? 'goodTalk' : 'crossWords';
     const at = st.t + rnd(st.rng.talk) * T.bubbleHours,
       until = at + T.bubbleHours;
+    told.fresh = !st.pawns[i].ties.has(j); // a new contact (VB-296: sim/occasions counts those at a gathering)
     addTie(st, i, j, TIES.talk); // grow's, with the opinions its band checks read kept for the talk's friend (VB-062)
     addTie(st, j, i, TIES.talk);
     const oi = touch(st, i, j),

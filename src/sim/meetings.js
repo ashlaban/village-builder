@@ -283,6 +283,21 @@ VB['sim/meetings'] = (() => {
     st.meetingLog.unshift(...lines);
     st.meetingLog.length = Math.min(st.meetingLog.length, 30);
   }
+  // The cultures that fill more than one gathering (VB-296; design.md, Customs drawn together): [{culture, hosts (ids, ascending)}] of the
+  // cultures whose villages go to two gatherings or more this winter, read from the villages' choices: candidates to split along them.
+  // Reads only; the split itself is the fission's.
+  function splitCandidates(st) {
+    const out = [];
+    st.cenv.cultures.forEach((cu, ci) => {
+      const hosts = new Set();
+      for (const s of st.cenv.settlements) {
+        const g = s.culture === ci ? st.villages[s.id].gathering : null;
+        if (g && g.host !== null && g.host !== undefined) hosts.add(g.host);
+      }
+      if (hosts.size > 1) out.push({ culture: ci, hosts: [...hosts].sort((a, b) => a - b) });
+    });
+    return out;
+  }
   // At 18:00, once all the villages have met: each culture's year, and a line when no meeting of this year changed anything.
   function culturesYear(st) {
     const env = st.cenv,
@@ -301,6 +316,15 @@ VB['sim/meetings'] = (() => {
         log(st, txt, { kind: 'custom', village: cu.centres[0] });
         out.push({ year: c.year, text: txt });
       }
+    }
+    for (const x of splitCandidates(st)) {
+      const cu = env.cultures[x.culture],
+        names = x.hosts.map((h) => st.villages[h].name).join(' and ');
+      VB.count.splitCandidate++;
+      log(st, `The ${cu.name} culture fills the gatherings of ${names}: a candidate to split.`, {
+        kind: 'custom',
+        village: cu.centres[0],
+      });
     }
     if (!out.length && !st.meetingLog.some((e) => e.year === c.year && !e.close))
       out.push({ year: c.year, text: 'The meetings changed nothing this year.' });
