@@ -254,7 +254,14 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   }
   await page.waitForSelector(workable);
   const row = await page.locator(workable).first().evaluate((b) => ({ kind: b.dataset.kind, holder: b.dataset.holder }));
-  await page.locator(workable).first().click();
+  // the list redraws while it is open: wait until its first row is the same on two looks 300 ms apart, and try the click again if it was detached
+  for (let tries = 0; ; tries++) {
+    const look = () => page.locator(workable).first().evaluate((b) => b.outerHTML).catch(() => null);
+    const before = await look(); await page.waitForTimeout(300);
+    if (before && before === await look()) {
+      try { await page.locator(workable).first().click({ timeout: 2000 }); break; } catch (e) { if (tries >= 10) throw e; }
+    } else if (tries >= 10) fail('the work bar never stopped redrawing');
+  }
   let target = null;
   const inTool = await page.evaluate(() => window.__play.tool());
   if (inTool) {
@@ -317,7 +324,9 @@ const errors = [], fail = (m) => { errors.push(m); console.error('BROWSER FAIL:'
   while (await page.locator('#playBox [data-play="unqueue"]').count()) await page.locator('#playBox [data-play="unqueue"]').first().click();
   const idle = await page.evaluate(() => {
     const { st, Sim } = window.__play, id = st.player.pawn, a = st.agents[id], working = () => { const h = Sim.cal(st.t).hour; return h >= 7 && h < 17; };
-    for (let n = 0; n < 2400 && (a.job || !working()); n++) Sim.advance(st, 0.1);
+    // start early in the day, so the 40 steps below (4 hours) end before the work hours do, whatever the hour the run began at
+    const early = () => { const h = Sim.cal(st.t).hour; return h >= 7 && h < 11; };
+    for (let n = 0; n < 4800 && (a.job || !early()); n++) Sim.advance(st, 0.1);
     let free = 0;
     for (let n = 0; n < 40 && working(); n++) { Sim.advance(st, 0.1); if (a.job) return `took ${a.job.kind} at ${Sim.cal(st.t).hour.toFixed(1)}`; free++; }
     return Sim.controlOf(st, st.player.pawn).auto ? 'the switch is still on' : free >= 10 ? null : `only ${free} steps seen in working hours`;
