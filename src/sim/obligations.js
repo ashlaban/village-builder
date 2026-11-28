@@ -314,6 +314,10 @@ VB['sim/obligations'] = (() => {
     }
     return out;
   }
+  VB.counter(
+    'obligationsDue',
+    'Obligations whose term ended at a step, taken off the due-queue (sim/obligations, VB-310)',
+  );
   // Each step: the obligations whose term has ended, and only those (Rules for cost, 4). One of a kind with terms goes on to its next
   // term, as it stands; one with a single term is what its kind's `ended` makes it (overdue by default, waiting out of the queue for
   // who enforces it, VB-315; a loan is paid there, or overdue and due again, or defaulted: sim/loans).

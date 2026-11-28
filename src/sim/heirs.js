@@ -1,7 +1,7 @@
 // @sys sim/heirs: succession: heir ranking, handovers, moving between households, roles
 VB['sim/heirs'] = (() => {
   const { home } = VB['sim/records'];
-  const { setServant, living } = VB['sim/records'];
+  const { setServant, living, noteRoles } = VB['sim/records'];
   const { moveWhy } = VB['sim/wishes'];
   const {
     joinHousehold,
@@ -106,8 +106,12 @@ VB['sim/heirs'] = (() => {
       passGoodwill(st, old, heir, GOODWILL.share);
     if (op && op.alive && op.household === hh.id && op.id !== heir) {
       op.retired = true;
+      noteRoles(op.id);
       const s = spouseOf(st, old);
-      if (s !== null && st.pawns[s].alive) st.pawns[s].retired = true;
+      if (s !== null && st.pawns[s].alive) {
+        st.pawns[s].retired = true;
+        noteRoles(s);
+      }
     }
     // shares for the siblings who do not inherit
     if (cu.heirCount !== 'one' && reason !== 'claim') {
@@ -658,6 +662,10 @@ VB['sim/heirs'] = (() => {
       refreshRoles(st);
     },
   });
+  VB.counter(
+    'moveNoRoute',
+    'Moves to a new home refused for want of a way by land between the two villages (sim/heirs, the move verb; VB-436)',
+  );
   // move(target, {reason, with, text}): the actor changes to household `target` (VB-822), the one act for every change of household; the
   // acts that change a right as well (marry, handOn, goToKin, goBack, the foundings) issue it for their people. `with`: the minors who
   // follow, after it, each its child, its spouse's child or its ward; `text`: the 'moved' life event, when the issuer says more than the

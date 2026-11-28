@@ -77,6 +77,10 @@ VB['sim/pastimes'] = (() => {
     if (g.village !== f.village || villageOf(st, p) === null) return `${fullName(q)} lives in another village`;
     return atFarm(st, id) ? null : `${fullName(q)} is not at home`;
   }
+  VB.counter(
+    'visitWeighed',
+    'Near kin and close friends looked at as ones to call on, in the choice of a pastime (sim/pastimes callers, VB-1552)',
+  );
   // Those pawn p might call on now, into `out` (at most PASTIME.callers): its parents, children and siblings, then its close friends.
   function callers(st, p, out) {
     out.length = 0;
@@ -334,6 +338,10 @@ VB['sim/pastimes'] = (() => {
   // by their weights, and whom it calls on by its liking, on the stream `talk`. One with nothing open waits where it is. ----
   const list = [],
     wts = [];
+  VB.counter(
+    'idleStroll',
+    'Pawns the planner found no work given their own time by ownTime: a pastime chosen, a route begun for its walk (VB-205, VB-1552)',
+  );
   function ownTime(st, a) {
     VB.count.idleStroll++;
     const p = st.pawns[a.id];

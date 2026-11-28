@@ -221,25 +221,7 @@ function showPawn(id) {
     card(Sim.fullName(p), ['Died'], '', { badge: faceImg(id, 'badge') });
     return;
   }
-  const sp = Sim.spouseOf(st, id),
-    kids = Sim.childrenOf(st, id).filter((c) => st.pawns[c].died === null);
-  const holds = Sim.holdingOf(st, id),
-    heirs = heirTo(id);
-  const status = holds
-    ? `Holds ${f.name}`
-    : heirs.length
-      ? `Heir to ${heirs.map((x) => x.name).join(' and ')}`
-      : p.servant && typeof p.servedSince === 'number'
-        ? `In service at ${f.name} since year ${yearStr(Math.floor(p.servedSince / Sim.YEAR) + 1)}, and marries by leaving service at the moving round`
-        : p.retired
-          ? `Retired at ${f.name}`
-          : p.age >= 18 && st.demand.includes(id)
-            ? `Landless at ${f.name}, wants to move out`
-            : `Lives at ${f.name}`;
-  // what stands between it and a marriage (VB-631): the means held against those asked are a meter among its stats (VB-908), the
-  // other bars a line
-  const bar = Sim.marryBar(st, id),
-    marryLine = bar && !hasMeans(bar) ? marryWords(bar) : '';
+  const sp = Sim.spouseOf(st, id);
   // Its state in its family (VB-1033, VB-1035): whom it is married to is the spouse's chip, with the rings on its portrait; unmarried,
   // widowed, expecting and nursing are marks beside the chips, each an icon with its words as the label and tooltip. Only the count of
   // its children is written.
@@ -259,22 +241,10 @@ function showPawn(id) {
         `<span class="state-mark" role="img" aria-label="${esc(words)}" title="${esc(words)}">${stateIcon(k)}</span>`,
     )
     .join('');
-  const rel = kids.length ? `${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : '';
   const v = st.villages[f.village];
   card(
     Sim.fullName(p),
-    [
-      `${roleLine(p)}, ${p.age}`,
-      `${status}.${rel ? ` ${rel}` : ''}`,
-      p.stake
-        ? `Share in hand: ${p.stake} rations${Sim.shareOwed(st, p.id) ? `, ${Sim.shareOwed(st, p.id)} still owed` : ''}`
-        : '',
-      leansLine(p),
-      marryLine,
-      craftsLine(id),
-      Sim.thirstLine(st, id),
-      taskLine(id), // its task in hand: done so far, exact; hours left, the inhabited pawn's estimate (VB-477)
-    ].filter(Boolean),
+    cardRows('person', id).filter(Boolean), // its lines, each a feature's (page/cardrows)
     Sim.describe(st, id),
     {
       reason: Sim.reasonLine(st, id), // who chose it and why, under what it does; the idle line for one with no work (VB-1551)
@@ -292,6 +262,41 @@ function showPawn(id) {
   showRelations(id);
   renderPlay(id);
 }
+// ---- the person card's first lines (page/cardrows): its role and age; where it lives and its children; its share; its leanings; what
+// bars its marriage. Its crafts (page/meter, 60), its thirst (page/water, 70) and its task in hand (page/day, 80) follow. ----
+cardRow('person', 10, (id) => `${roleLine(st.pawns[id])}, ${st.pawns[id].age}`);
+cardRow('person', 20, (id) => {
+  const p = st.pawns[id],
+    f = farmOf(p),
+    kids = Sim.childrenOf(st, id).filter((c) => st.pawns[c].died === null),
+    heirs = heirTo(id);
+  const status = Sim.holdingOf(st, id)
+    ? `Holds ${f.name}`
+    : heirs.length
+      ? `Heir to ${heirs.map((x) => x.name).join(' and ')}`
+      : p.servant && typeof p.servedSince === 'number'
+        ? `In service at ${f.name} since year ${yearStr(Math.floor(p.servedSince / Sim.YEAR) + 1)}, and marries by leaving service at the moving round`
+        : p.retired
+          ? `Retired at ${f.name}`
+          : p.age >= 18 && st.demand.includes(id)
+            ? `Landless at ${f.name}, wants to move out`
+            : `Lives at ${f.name}`;
+  const rel = kids.length ? `${kids.length} ${kids.length === 1 ? 'child' : 'children'}` : '';
+  return `${status}.${rel ? ` ${rel}` : ''}`;
+});
+cardRow('person', 30, (id) => {
+  const p = st.pawns[id];
+  return p.stake
+    ? `Share in hand: ${p.stake} rations${Sim.shareOwed(st, p.id) ? `, ${Sim.shareOwed(st, p.id)} still owed` : ''}`
+    : '';
+});
+cardRow('person', 40, (id) => leansLine(st.pawns[id]));
+// what stands between it and a marriage (VB-631): the means held against those asked are a meter among its stats (VB-908), the other
+// bars a line
+cardRow('person', 50, (id) => {
+  const bar = Sim.marryBar(st, id);
+  return bar && !hasMeans(bar) ? marryWords(bar) : '';
+});
 // A pawn's levels, the same wherever a pawn's state is shown (its card, the played pawn's sheet): its mood on the one meter, the
 // modifiers in force under it (VB-062); health and hunger on the meter, its household's cold, and its standing. Standing is a sum with
 // no upper bound, so it is a number and no meter, its parts in the title (the exception VB-665 is to settle).
@@ -510,25 +515,19 @@ function pawnAt(x, y) {
   }
   return best;
 }
+// the farm card's first lines (page/cardrows): who holds it and how many live there, or how long it has stood empty
+cardRow('farm', 10, (f) => {
+  if (f.household === null)
+    return [`Empty for ${emptyYears(f)} years`, 'No heir took it; claims come in the next batch'];
+  const hh = st.households[f.household];
+  return [`Held by ${Sim.fullName(st.pawns[hh.holder])}; ${hh.members.length} live here`];
+});
 function settlementTileInfo(i) {
   if (!st) return null;
   for (const f of st.farmsteads) {
     const v = st.villages[f.village].name,
       where = `${f.name}, ${v}`;
-    if (f.house === i) {
-      if (f.household === null)
-        return [
-          f.name,
-          [`Empty for ${emptyYears(f)} years`, 'No heir took it; claims come in the next batch'],
-          { farm: f.id, house: true },
-        ];
-      const hh = st.households[f.household];
-      return [
-        f.name,
-        [`Held by ${Sim.fullName(st.pawns[hh.holder])}; ${hh.members.length} live here`],
-        { farm: f.id, house: true },
-      ];
-    }
+    if (f.house === i) return [f.name, cardRows('farm', f), { farm: f.id, house: true }]; // its lines (page/cardrows)
     const fd = f.fields.find((q) => q.tile === i);
     if (fd) {
       const word = {

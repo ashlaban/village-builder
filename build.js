@@ -23,8 +23,10 @@ async function build() {
   const body = read('body.html');
   if (body.split('<!--__PAGE__-->\n').length !== 2) throw new Error('body.html must hold one <!--__PAGE__--> line');
   // split/join, not replace: the code holds `$&` and the like
-  // The new interface's styles (src/ui2.css, page/ui2) close the page's one stylesheet, which head.html leaves open for body.html to end.
-  let page = read('head.html') + read('ui2.css') + body.split('<!--__MODULES__-->\n').join(modules).split('<!--__PAGE__-->\n').join(script);
+  // The stylesheets by area (VB-1948): src/styles/*.css and the new interface's src/ui2.css (page/ui2), in the order of src/styles.json,
+  // which is the cascade's, make the page's one stylesheet, which head.html leaves open for body.html to end.
+  const styles = list('styles.json').map(read).join('');
+  let page = read('head.html') + styles + body.split('<!--__MODULES__-->\n').join(modules).split('<!--__PAGE__-->\n').join(script);
   // The build id (VB-214): a short hash of the page's sources, so the same sources make the same page; a page save names it.
   return page.split('__BUILD_ID__').join(crypto.createHash('sha256').update(page).digest('hex').slice(0, 10));
 }

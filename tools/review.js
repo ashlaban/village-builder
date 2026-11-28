@@ -70,6 +70,8 @@ function facts(text, file) {
     if (!n || typeof n.type !== 'string') return;
     if (n.type === 'CallExpression' && (n.callee.name === 'register' || n.callee.property?.name === 'register') && n.arguments[0]?.type === 'Literal')
       out.verbs.add(n.arguments[0].value);
+    if (n.type === 'CallExpression' && n.callee.object?.name === 'VB' && n.callee.property?.name === 'counter' && n.arguments[0]?.type === 'Literal')
+      out.counters.add(n.arguments[0].value); // a counter declared by its module (VB-1934)
     if (n.type === 'VariableDeclarator' && n.id.name === 'KINDS' && n.init?.type === 'ObjectExpression') keys(n.init).forEach((k) => out.kinds.add(k));
     if (n.type === 'AssignmentExpression' && n.left.type === 'MemberExpression') {
       const l = n.left, name = l.property?.name;

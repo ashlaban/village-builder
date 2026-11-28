@@ -29,6 +29,10 @@ VB['sim/keep'] = (() => {
   }
   const aldermanHousehold = (st, v) =>
     v.alderman === undefined || v.alderman === null ? null : st.pawns[v.alderman].household;
+  VB.counter(
+    'keepGiven',
+    "The alderman's keep: households' shares set aside at a moving round, and days owed at an autumn meeting (sim/keep, VB-463)",
+  );
   // At village s's autumn meeting, after its office is filled: the days owed the household before end, and the new ones are owed.
   function meeting(st, s) {
     const v = st.villages[s.id],

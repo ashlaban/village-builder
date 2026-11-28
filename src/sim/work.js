@@ -102,6 +102,10 @@ VB['sim/work'] = (() => {
     }
     return rate;
   }
+  VB.counter(
+    'workReckon',
+    'Tasks under work reckoned, with their hours since (sim/work settle: a hand joins or leaves, the end of work, the meal; VB-472)',
+  );
   // The task's progress brought up to tick t (the hands' work so far, at the rate last reckoned), with its kind's `worked` for each hand
   // at work (a background task's once) over the hours since, and a plot's hours by pawn. Before its hands change.
   function settle(st, j, t = workTick(st)) {

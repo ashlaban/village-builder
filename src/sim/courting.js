@@ -57,6 +57,10 @@ VB['sim/courting'] = (() => {
     if (!kinOk(st, a, b, practice(st, village(st, m)))) return 'too close kin for the custom of the village';
     return null;
   }
+  VB.counter(
+    'courtCheck',
+    'Good talks read for the start of a courtship: one check a good talk (sim/courting, VB-036)',
+  );
   // A good talk of a and b (sim/relations' talk): one check, and they court if the gate allows. A life event of both; `courting` is
   // emitted for the pair's own offer (sim/asking).
   on('goodTalk', (st, d) => {
@@ -133,6 +137,10 @@ VB['sim/courting'] = (() => {
       end(st, id, courts(st.pawns[id]) === sp ? null : 'married');
   });
   on('died', (st, d) => end(st, d.pawn, 'died'));
+  VB.counter(
+    'courtWalk',
+    'Courting couples walked at the moving round: its review, and those a head refused (sim/courting, VB-036)',
+  );
   // The moving round reads the couples, at its start: a courtship that has run out ends. One walk of the courting couples (courtWalk).
   function review(st) {
     VB.count.courtWalk += st.courtships.length;

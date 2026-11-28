@@ -28,6 +28,10 @@ VB['sim/saltpan'] = (() => {
   const SALT = { reach: 12, hours: 10, yield: 10, fuel: 1, stock: 10, seasons: [0, 1, 2], urgency: 0.5 };
   const today = (st) => Math.floor(st.t / DAY);
   const isSpring = (w, t) => !!w.deposit && w.deposit[t] === DEPOSIT.SALT;
+  VB.counter(
+    'saltGround',
+    'Tiles within reach of a house searched for its salt spring, when its want opens, at most once a year (sim/saltpan; VB-700)',
+  );
   // @state household.saltAt: {house, year, tile} or undefined: the household's salt spring, searched from its house in the game year named,
   //   the nearest spring tile it may use within SALT.reach walking steps (-1 with none). Searched when the want opens and kept (rule 4):
   //   again only for a new house, a new year with none found, or a spring no longer the household's to use.

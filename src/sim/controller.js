@@ -185,6 +185,14 @@ VB['sim/controller'] = (() => {
   const begun = (st, cmd) => {
     if (cmd.plan) planBegun(st, cmd.actor, cmd.plan);
   };
+  VB.counter(
+    'queueRun',
+    'Queues run by the queue step: each step, one a pawn whose controller holds a command (sim/controller queueStep, VB-1745)',
+  );
+  VB.counter(
+    'planFeed',
+    'Plans looked at by the feeder: each step, one a pawn whose controller holds a plan (sim/player playerStep, VB-1746)',
+  );
   function queueStep(st) {
     for (const id of planners(st)) {
       VB.count.planFeed++;
@@ -496,6 +504,10 @@ VB['sim/controller'] = (() => {
     if (js) for (const j of js) if (j.kind === k && VERBS.work.check(st, workCmd(id, j.key)) === null) return j;
     return null;
   }
+  VB.counter(
+    'vitalAsk',
+    'Open tasks of its household passed by a pawn on its own plan, for a daily one the day leaves unmanned (sim/controller, VB-1755)',
+  );
   // A task of a kind its household lives by each day (sim/kinds `daily`: the water, the meal, the fire, milking, fodder) that stands
   // open, unmanned and not the next task of another member by the household's day (givenTo), and that pawn id
   // may take now, unless its routine is to take that kind today; or null. Due and vital kinds are slotted in before anything authored
